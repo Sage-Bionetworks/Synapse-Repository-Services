@@ -25,6 +25,10 @@
       <id>atlassian-m2-repository</id>
       <url>https://m2proxy.atlassian.com/repository/public</url>
     </repository>
+    <repository>
+      <id>mvn-gae-plugin-repo</id>
+      <url>http://maven-gae-plugin.googlecode.com/svn/repository/</url>
+    </repository>
   </repositories>
   
   <pluginRepositories>
@@ -43,6 +47,12 @@
       <artifactId>gae-runtime</artifactId>
       <version>${gae.version}</version>
       <type>pom</type>
+      <exclusions>
+		<exclusion>
+          <groupId>com.google.appengine.orm</groupId>
+          <artifactId>datanucleus-core</artifactId>
+		</exclusion>
+	  </exclusions>
     </dependency>
 
 	<!--
@@ -199,6 +209,7 @@
 			<groupId>org.datanucleus</groupId>
 			<artifactId>datanucleus-core</artifactId>
 			<version>${datanucleus.version}</version>
+            
 			<exclusions>
 			  <exclusion>
 				<groupId>javax.transaction</groupId>
@@ -257,6 +268,12 @@
             <artifactId>gae-runtime</artifactId>
             <version>${gae.version}</version>
             <type>pom</type>
+            <exclusions>
+		      <exclusion>
+                <groupId>com.google.appengine.orm</groupId>
+                <artifactId>datanucleus-core</artifactId>
+		      </exclusion>
+	        </exclusions>
           </dependency>
         </dependencies>
 	  </plugin>
