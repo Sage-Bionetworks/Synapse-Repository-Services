@@ -40,6 +40,14 @@ import org.springframework.web.servlet.mvc.multiaction.NoSuchRequestHandlingMeth
  * reasons as they see fit to produced a better human-readable
  * message.
  * <p>
+ * TODO It seems there needs to be a default exception handling strategy for 
+ * any Exception that the server generates, e.g. something that catches 
+ * Throwable and logs the full stack trace at ERROR level. This would cover 
+ * run-time Exceptions that we (hopefully) don't see in production with well-tested 
+ * code. Then, for specific exceptions that we expect could get generated we 
+ * could have less sever handling, e.g. request for a resource that doesn't 
+ * exist might just log a single-line statement at the WARNING level.
+ * <p>
  * TODO this still does not catch and handle all exceptions.  Consider
  * configuring SimpleMappingExceptionResolver.  More info <a href="
  * http://pietrowski.info/2010/06/spring-mvc-exception-handler/">http://pietrowski.info/2010/06/spring-mvc-exception-handler/</a>
