@@ -13,12 +13,17 @@
   
   <error-page>
     <error-code>404</error-code>
-    <location>errorPages/GenericNotFoundError.html</location>
+    <location>/errorPages/404_error.jsp</location>
   </error-page>
 
   <error-page>
     <error-code>500</error-code>
-    <location>errorPages/GenericServerError.html</location>
+    <location>/errorPages/500_error.jsp</location>
+  </error-page>
+  
+  <error-page>
+    <exception-type>java.lang.Throwable</exception-type>
+    <location>/errorPages/generic_error.jsp</location>
   </error-page>
     
   <!-- The context params that read by ContextLoaderListener  -->        
@@ -57,9 +62,7 @@
   
   <servlet-mapping>
     <servlet-name>repository</servlet-name>
-    <url-pattern>/*</url-pattern>
+    <url-pattern>/repo/v1/*</url-pattern>
   </servlet-mapping>
   
-  <!-- TO DO, consider rewrite filter to map /repo/dataset/123 to /dataset/123 -->
-    
 </web-app>

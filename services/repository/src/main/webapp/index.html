@@ -12,35 +12,35 @@ How to set up your own instance of the service: http://sagebionetworks.jira.com/
 
 Here are some sample requests you might make:
 <pre>
-~>curl -H Content-Type:application/json -d '{"text":"hello world!"}' http://localhost:8080/message
+~>curl -H Content-Type:application/json -d '{"text":"hello world!"}' http://localhost:8080/repo/v1/message
 {"id":1,"text":"hello world!"}
 
-~>curl -H Content-Type:application/json -d '{"text":"hello again world!"}' http://localhost:8080/message
+~>curl -H Content-Type:application/json -d '{"text":"hello again world!"}' http://localhost:8080/repo/v1/message
 {"id":2,"text":"hello again world!"}
 
-~>curl -H Content-Type:application/json -d '{"text":"hello yet again world!"}' http://localhost:8080/message
+~>curl -H Content-Type:application/json -d '{"text":"hello yet again world!"}' http://localhost:8080/repo/v1/message
 {"id":3,"text":"hello yet again world!"}
 
-~>curl -H Accept:application/json http://localhost:8080/message
-[{"id":1,"text":"hello world!"},{"id":2,"text":"hello again world!"},{"id":3,"text":"hello yet again world!"}]~>
+~>curl -H Accept:application/json http://localhost:8080/repo/v1/message
+[{"id":1,"text":"hello world!"},{"id":2,"text":"hello again world!"},{"id":3,"text":"hello yet again world!"}]
 
-~>curl -H Accept:application/json http://localhost:8080/message/1
-{"id":1,"text":"hello world!"}~>
+~>curl -H Accept:application/json http://localhost:8080/repo/v1/message/1
+{"id":1,"text":"hello world!"}
 
-~>curl -H Accept:application/json http://localhost:8080/message/2
-{"id":2,"text":"hello again world!"}~>
+~>curl -H Accept:application/json http://localhost:8080/repo/v1/message/2
+{"id":2,"text":"hello again world!"}
 
-~>curl -H Accept:application/json http://localhost:8080/message/3
+~>curl -H Accept:application/json http://localhost:8080/repo/v1/message/3
 {"id":3,"text":"hello yet again world!"}
 
-~>curl -H Accept:application/json http://localhost:8080/message/4
+~>curl -H Accept:application/json http://localhost:8080/repo/v1/message/4
 {"reason":"no message with id 4 exists"}
 
-~>curl -i -H Accept:application/json -X DELETE http://localhost:8080/message/2
+~>curl -i -H Accept:application/json -X DELETE http://localhost:8080/repo/v1/message/2
 HTTP/1.1 204 No Content
 Server: Jetty(6.1.x)
 
-~>curl -i -H Accept:application/json -X DELETE http://localhost:8080/message/2
+~>curl -i -H Accept:application/json -X DELETE http://localhost:8080/repo/v1/message/2
 HTTP/1.1 404 Not Found
 Content-Type: application/json
 Transfer-Encoding: chunked
