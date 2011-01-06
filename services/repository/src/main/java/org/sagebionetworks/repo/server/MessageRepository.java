@@ -2,7 +2,6 @@
 package org.sagebionetworks.repo.server;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import javax.jdo.Extent;
@@ -32,7 +31,7 @@ public class MessageRepository {
      * 
      * @return collection of all messages stored in the repository
      */
-    public Collection<Message> getAll() {
+    public List<Message> getAll() {
         PersistenceManager pm = pmfInstance.getPersistenceManager();
         try {
             List<Message> messages = new ArrayList<Message>();

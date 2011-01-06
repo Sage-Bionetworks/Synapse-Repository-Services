@@ -1,23 +1,11 @@
-/*
- * GreetController.java
- *
- * Sage Bionetworks http://www.sagebase.org
- *
- * Original author: Nicole Deflaux (nicole.deflaux@sagebase.org)
- *
- * @file   $Id: $
- * @author $Author: $
- * @date   $DateTime: $
- *
- */
-
 package org.sagebionetworks.repo.web.controller;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.repo.model.Message;
 import org.sagebionetworks.repo.server.MessageRepository;
+import org.sagebionetworks.repo.view.PaginatedResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -29,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+
 
 /**
  * REST controller for CRUD operations on Message objects
@@ -51,16 +40,16 @@ public class MessageController extends BaseController {
     /**
      * Get messages
      * <p><ul>
-     * <li>TODO pagination
+     * <li>TODO pagination with total number of results
      * <li>TODO filter by date
      * </ul>
-     * @return collection of all messages stored in the respository 
+     * @return list of all messages stored in the repository 
      */
     @ResponseStatus(HttpStatus.OK)
     @RequestMapping(value = "", method = RequestMethod.GET)
-        public @ResponseBody Collection<Message> getMessages() {
-        Collection<Message> messages = messageRepository.getAll();
-        return messages;
+        public @ResponseBody PaginatedResults<Message> getMessages() {
+        List<Message> messages = messageRepository.getAll();
+        return new PaginatedResults<Message>(messages, messages.size());
     }
 
     /**

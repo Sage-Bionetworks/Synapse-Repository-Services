@@ -48,7 +48,9 @@
   <bean id="jaxbMarshaller" class="org.springframework.oxm.jaxb.Jaxb2Marshaller">
     <property name="classesToBeBound">
       <list>
+        <value>org.sagebionetworks.repo.model.ErrorResponse</value>
         <value>org.sagebionetworks.repo.model.Message</value>
+        <value>org.sagebionetworks.repo.view.PaginatedResults</value>
       </list>
     </property>
   </bean>

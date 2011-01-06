@@ -11,6 +11,16 @@
     <welcome-file>index.html</welcome-file>
   </welcome-file-list>
   
+  <error-page>
+    <error-code>404</error-code>
+    <location>errorPages/GenericNotFoundError.html</location>
+  </error-page>
+
+  <error-page>
+    <error-code>500</error-code>
+    <location>errorPages/GenericServerError.html</location>
+  </error-page>
+    
   <!-- The context params that read by ContextLoaderListener  -->        
   <context-param>
     <param-name>contextConfigLocation</param-name>

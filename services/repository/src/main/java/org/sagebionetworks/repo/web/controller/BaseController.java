@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.EOFException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
@@ -28,7 +29,7 @@ import org.springframework.web.servlet.mvc.multiaction.NoSuchRequestHandlingMeth
  * The basic idea is that we want exception stack traces in the
  * service log, but we don't want to return them to the user.  We also
  * want to return human-readable error messages to the client in a
- * format that the client can parse such as json.  The
+ * format that the client can parse such as JSON.  The
  * AnnotationMethodHandlerExceptionResolver is configured with the
  * same HttpMessageConverters as the AnnotationMethodHandlerAdapter
  * and therefore should support all the same encodings.
@@ -37,7 +38,7 @@ import org.springframework.web.servlet.mvc.multiaction.NoSuchRequestHandlingMeth
  * classes to all be handled via the same logic and return the same
  * HTTP status code.  I chose to implement them individually so that
  * child classes can override them separately and munge exception
- * reasons as they see fit to produced a better human-readable
+ * reasons as they see fit to produce a better human-readable
  * message.
  * <p>
  * TODO It seems there needs to be a default exception handling strategy for 
@@ -52,8 +53,9 @@ import org.springframework.web.servlet.mvc.multiaction.NoSuchRequestHandlingMeth
  * configuring SimpleMappingExceptionResolver.  More info <a href="
  * http://pietrowski.info/2010/06/spring-mvc-exception-handler/">http://pietrowski.info/2010/06/spring-mvc-exception-handler/</a>
  * <ul>
- * <li>curl -H Accept:application/javascript http://localhost:8080/message/4.js
- * <li>curl -H Content-Type:application/json http://localhost:8080/message/4/foo
+ * <li>returns an html error page that I do not control: curl -H Accept:application/javascript http://localhost:8080/message/4.js
+ * <li>no handler for this, currently returns an html instead of json encoded error: curl -H Accept:application/json http://localhost:8080/message/4/foo
+ * <li>notice missing double quotes around key, currently returns an html instead of json encoded error: curl -H Accept:application/json  -H Content-Type:application/json -d '{text:"this is a test"}' http://localhost:8080/message
  * </ul>
  * @author deflaux
  */
@@ -182,7 +184,7 @@ public abstract class BaseController {
      * @return an ErrorResponse object containing the exception reason or some other human-readable response
      */
     protected ErrorResponse handleException(Throwable ex, HttpServletRequest request) {
-        log.warning("Handling " + request.toString() + ex);
+        log.log(Level.WARNING, "Handling " + request.toString(), ex);
         return new ErrorResponse(ex.getMessage());
     }
 

@@ -2,6 +2,9 @@ package org.sagebionetworks.repo.model;
 
 import java.io.Serializable;
 
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+
 /**
  * Container for any error info we want to return to clients of this service.
  * <p>
@@ -10,11 +13,18 @@ import java.io.Serializable;
  *
  * @author deflaux
  */
+@XmlRootElement
 public class ErrorResponse implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
     private String reason;
+
+    /**
+     * Default constructor
+     */
+    public ErrorResponse() {
+    }
 
     /**
      * @param reason
@@ -26,6 +36,7 @@ public class ErrorResponse implements Serializable {
     /**
      * @return The reason for the error
      */
+    @XmlElement
     public String getReason() {
         return reason;
     }
