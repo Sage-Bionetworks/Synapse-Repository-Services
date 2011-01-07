@@ -1,13 +1,13 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
-import org.sage.datamodel.AccessorFactory;
-import org.sage.datamodel.Dataset;
-import org.sage.datamodel.DatasetAccessor;
-import org.sage.datamodel.DatasetLayer;
-import org.sage.datamodel.ProjectAccessor;
-import org.sage.datamodel.RevisionAccessor;
-import org.sage.datamodel.Script;
-import org.sage.datamodel.ScriptAccessor;
+import org.sagebionetworks.repo.model.AccessorFactory;
+import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.DatasetAccessor;
+import org.sagebionetworks.repo.model.DatasetLayer;
+import org.sagebionetworks.repo.model.ProjectAccessor;
+import org.sagebionetworks.repo.model.RevisionAccessor;
+import org.sagebionetworks.repo.model.Script;
+import org.sagebionetworks.repo.model.ScriptAccessor;
 
 public class AccessorFactoryImpl implements AccessorFactory {
 	public ProjectAccessor getProjectAccessor() {

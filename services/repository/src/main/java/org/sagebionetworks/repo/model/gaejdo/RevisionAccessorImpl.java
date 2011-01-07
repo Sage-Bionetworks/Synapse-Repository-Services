@@ -5,9 +5,9 @@ import java.util.Collection;
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 
-import org.sage.datamodel.Revisable;
-import org.sage.datamodel.Revision;
-import org.sage.datamodel.RevisionAccessor;
+import org.sagebionetworks.repo.model.Revisable;
+import org.sagebionetworks.repo.model.Revision;
+import org.sagebionetworks.repo.model.RevisionAccessor;
 
 import com.google.appengine.api.datastore.Key;
 

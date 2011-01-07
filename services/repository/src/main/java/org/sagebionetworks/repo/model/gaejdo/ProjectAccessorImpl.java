@@ -3,8 +3,8 @@ package org.sagebionetworks.repo.model.gaejdo;
 import javax.jdo.PersistenceManager;
 import javax.jdo.Transaction;
 
-import org.sage.datamodel.Project;
-import org.sage.datamodel.ProjectAccessor;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ProjectAccessor;
 
 import com.google.appengine.api.datastore.Key;
 

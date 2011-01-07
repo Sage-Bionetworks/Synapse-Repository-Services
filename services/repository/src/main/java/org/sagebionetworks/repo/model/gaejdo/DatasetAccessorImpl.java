@@ -3,10 +3,10 @@ package org.sagebionetworks.repo.model.gaejdo;
 import javax.jdo.PersistenceManager;
 import javax.jdo.Transaction;
 
-import org.sage.datamodel.Dataset;
-import org.sage.datamodel.DatasetAccessor;
-import org.sage.datamodel.Script;
-import org.sage.datamodel.ScriptAccessor;
+import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.DatasetAccessor;
+import org.sagebionetworks.repo.model.Script;
+import org.sagebionetworks.repo.model.ScriptAccessor;
 
 import com.google.appengine.api.datastore.Key;
 

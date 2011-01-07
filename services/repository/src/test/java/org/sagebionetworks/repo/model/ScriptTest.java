@@ -15,7 +15,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sage.datamodel.gaejdo.AccessorFactoryImpl;
+import org.sagebionetworks.repo.model.gaejdo.AccessorFactoryImpl;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
