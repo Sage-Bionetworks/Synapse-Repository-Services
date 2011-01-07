@@ -26,7 +26,7 @@ public class Revision<T extends Revisable<T>> {
 	// http://stackoverflow.com/questions/3808874/problem-persisting-collection-of-interfaces-in-jdo-datanucleus-unable-to-assign
 	// http://code.google.com/p/datanucleus-appengine/issues/detail?id=207
 	@Extension(vendorName = "datanucleus", key = "implementation-classes", 
-			value = "org.sage.datamodel.Dataset,org.sage.datamodel.InputDataLayer,org.sage.datamodel.AnalysisResult,org.sage.datamodel.Script")
+			value = "org.sagebionetworks.repo.model.Dataset,org.sagebionetworks.repo.model.InputDataLayer,org.sagebionetworks.repo.model.AnalysisResult,org.sagebionetworks.repo.model.Script")
 	// http://code.google.com/appengine/docs/java/datastore/relationships.html#Owned_One_to_One_Relationships
 	@Persistent(mappedBy="revision")
 	private T owner; // this is the backwards pointer for the 1-1 owned relationship
