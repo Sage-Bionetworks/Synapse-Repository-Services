@@ -9,4 +9,5 @@ public interface DatasetAccessor {
 	
 	public void delete(Dataset dataset);
 
+	public void deleteDatasetAndContents(Dataset dataset);
 }

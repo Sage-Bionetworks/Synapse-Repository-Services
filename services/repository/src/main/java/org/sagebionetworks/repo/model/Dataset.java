@@ -55,16 +55,13 @@ public class Dataset implements Revisable<Dataset> {
 	@Persistent
 	private boolean downloadable;
 	
-	// http://code.google.com/appengine/docs/java/datastore/relationships.html#Owned_One_to_Many_Relationships
-	// Note: the 'dataset' field is not in the InputDataLayer class but rather in the DatasetLayer class
-	@Persistent(mappedBy = "dataset")
-	@Element(dependent = "true")
-	private Collection<InputDataLayer> inputLayers;
+	private Collection<Key> layers;
 	
-	// Note: the 'dataset' field is not in the AnalysisResult class but rather in the DatasetLayer class
-	@Persistent(mappedBy = "dataset")
-	@Element(dependent = "true")
-	private Collection<AnalysisResult> analysisResults;
+//	// http://code.google.com/appengine/docs/java/datastore/relationships.html#Owned_One_to_Many_Relationships
+//	// Note: the 'dataset' field is not in the AnalysisResult class but rather in the DatasetLayer class
+//	@Persistent(mappedBy = "dataset")
+//	@Element(dependent = "true")
+//	private Collection<AnalysisResult> analysisResults;
 	
 	public Dataset() {
 		setRevision(new Revision<Dataset>());
@@ -137,18 +134,18 @@ public class Dataset implements Revisable<Dataset> {
 	public void setDownloadable(boolean downloadable) {
 		this.downloadable = downloadable;
 	}
-	public Collection<InputDataLayer> getInputLayers() {
-		return inputLayers;
+	public Collection<Key> getLayers() {
+		return layers;
 	}
-	public void setInputLayers(Collection<InputDataLayer> inputLayers) {
-		this.inputLayers = inputLayers;
+	public void setLayers(Collection<Key> layers) {
+		this.layers =layers;
 	}
-	public Collection<AnalysisResult> getAnalysisResults() {
-		return analysisResults;
-	}
-	public void setAnalysisResults(Collection<AnalysisResult> analysisResults) {
-		this.analysisResults = analysisResults;
-	}
+//	public Collection<AnalysisResult> getAnalysisResults() {
+//		return analysisResults;
+//	}
+//	public void setAnalysisResults(Collection<AnalysisResult> analysisResults) {
+//		this.analysisResults = analysisResults;
+//	}
 
 	
 }

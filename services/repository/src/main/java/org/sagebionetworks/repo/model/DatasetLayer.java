@@ -30,18 +30,16 @@ abstract public class DatasetLayer implements Revisable<DatasetLayer> {
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
 	
-	@Persistent
-	private Dataset dataset; // backwards pointer for the 1-many owned relationship
-
-	public Dataset getDataset() {
-		return dataset;
-	}
-
-	public void setDataset(Dataset dataset) {
-		this.dataset = dataset;
-	}
-
-
+//	@Persistent
+//	private Dataset dataset; // backwards pointer for the 1-many owned relationship
+//
+//	public Dataset getDataset() {
+//		return dataset;
+//	}
+//
+//	public void setDataset(Dataset dataset) {
+//		this.dataset = dataset;
+//	}
 
 	
 	@Persistent

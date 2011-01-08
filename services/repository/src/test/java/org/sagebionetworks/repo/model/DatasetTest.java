@@ -73,12 +73,15 @@ public class DatasetTest {
 		dataset.setContributors(contributors);
 		dataset.setDownloadable(true);
 		
-		Collection<InputDataLayer> layers = new HashSet<InputDataLayer>();
-		dataset.setInputLayers(layers);
+		Collection<Key> layers = new HashSet<Key>();
+		dataset.setLayers(layers);
 		InputDataLayer idl = new InputDataLayer();
 		idl.setType(InputDataLayer.DataType.EXPRESSION);
 		idl.setRevision(new Revision<DatasetLayer>());
-		layers.add(idl);
+		
+		InputDataLayerAccessor dla = fac.getInputDataLayerAccessor();
+		dla.makePersistent(idl);
+		layers.add(idl.getId());
 		
 		Revision<Dataset> r = new Revision<Dataset>();
 		r.setVersion(new Version("1.0.0"));
@@ -107,11 +110,12 @@ public class DatasetTest {
 		Assert.assertEquals(true, d2.isDownloadable());
 		Assert.assertEquals(new Version("1.0.0"), d2.getRevision().getVersion());
 		
-		Collection<InputDataLayer> l2 = d2.getInputLayers();
+		Collection<Key> l2 = d2.getLayers();
 		Assert.assertEquals(1, l2.size());
-		DatasetLayer dl = l2.iterator().next();
-		Assert.assertTrue((dl instanceof InputDataLayer));
-		InputDataLayer.DataType type = ((InputDataLayer)dl).getType();
+		Key dlKey = l2.iterator().next();
+		InputDataLayer idl2 = dla.getDataLayer(dlKey);
+//		Assert.assertTrue((idl2 instanceof InputDataLayer));
+		InputDataLayer.DataType type = idl2.getType();
 		Assert.assertEquals(InputDataLayer.DataType.EXPRESSION, type);
 	}
 

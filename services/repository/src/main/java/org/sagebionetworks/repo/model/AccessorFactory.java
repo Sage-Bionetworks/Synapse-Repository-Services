@@ -10,6 +10,8 @@ public interface AccessorFactory {
 	public RevisionAccessor<DatasetLayer> getDatasetLayerRevisionAccessor();
 	
 	public DatasetAccessor getDatasetAccessor();
+	public InputDataLayerAccessor getInputDataLayerAccessor();
+	public AnalysisResultAccessor getAnalysisResultAccessor();
 	
 	public void close();
 }

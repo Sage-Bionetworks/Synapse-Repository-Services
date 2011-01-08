@@ -5,6 +5,7 @@ import javax.jdo.Transaction;
 
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatasetAccessor;
+import org.sagebionetworks.repo.model.DatasetLayer;
 import org.sagebionetworks.repo.model.Script;
 import org.sagebionetworks.repo.model.ScriptAccessor;
 
@@ -44,8 +45,33 @@ public class DatasetAccessorImpl implements DatasetAccessor {
 		try {
 			 	tx=pm.currentTransaction();
 				tx.begin();
-				dataset.getInputLayers().clear();
-				dataset.getAnalysisResults().clear();
+//				dataset.getInputLayers().clear();
+//				dataset.getAnalysisResults().clear();
+				pm.deletePersistent(dataset);
+				tx.commit();
+		} finally {
+				if(tx.isActive()) {
+					tx.rollback();
+				}
+		}	
+	}
+
+	/**
+	 * This enforces the 'owned relationship' between a dataset and its layers
+	 * by deleting its member persistent objects.
+	 * 
+	 * @param dataset
+	 */
+	public void deleteDatasetAndContents(Dataset dataset)  {
+		Transaction tx=null;
+		try {
+			 	tx=pm.currentTransaction();
+				tx.begin();
+				for (Key layerKey : dataset.getLayers()) {
+					// may have to check whether it's a InputDataLayer or AnalysisResult
+					DatasetLayer layer = (DatasetLayer)pm.getObjectById(DatasetLayer.class, layerKey);
+					pm.deletePersistent(layer);
+				}
 				pm.deletePersistent(dataset);
 				tx.commit();
 		} finally {
