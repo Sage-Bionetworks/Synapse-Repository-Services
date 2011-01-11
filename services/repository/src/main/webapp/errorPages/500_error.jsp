@@ -8,10 +8,14 @@
 Internal Server Error
 </h3>
 <p>
-Request URI: <%= pageContext.getErrorData().getRequestURI() %><p>
-Servlet Name: <%= pageContext.getErrorData().getServletName() %><p>
-Status Code: <%= pageContext.getErrorData().getStatusCode() %><p>
-Error: <%= pageContext.getErrorData().getThrowable() %><p>
-Cause: <%= pageContext.getErrorData().getThrowable().getCause() %><p>
+<% if (null != pageContext.getErrorData()) { %>
+  Request URI: <%= pageContext.getErrorData().getRequestURI() %><p>
+  Servlet Name: <%= pageContext.getErrorData().getServletName() %><p>
+  Status Code: <%= pageContext.getErrorData().getStatusCode() %><p>
+  <% if (null != pageContext.getErrorData().getThrowable()) { %>
+    Error: <%= pageContext.getErrorData().getThrowable() %><p>
+    Cause: <%= pageContext.getErrorData().getThrowable().getCause() %><p>
+  <% } %>
+<% } %>
 </body>
 </html> 

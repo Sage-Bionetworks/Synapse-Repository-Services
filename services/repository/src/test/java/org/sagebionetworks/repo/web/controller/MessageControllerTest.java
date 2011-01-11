@@ -5,9 +5,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.json.JSONObject;
@@ -28,7 +26,7 @@ import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestC
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 
 /**
- * Unit tests for the Message CRUD operations exposed by the MessageController with JSON 
+ * Unit tests for the Message CRUD operations exposed by the MessageController with JSON
  * request and response encoding.
  * <p>
  * This unit test suite for the repository Google App Engine service
@@ -236,7 +234,7 @@ public class MessageControllerTest {
         // [Source: org.mortbay.jetty.HttpParser$Input@293a985; line: 1, column: 2]"}
         assertTrue(null != results.getString("reason"));
     }
-    
+
     /**
      * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createMessage(Message)}.
      * @throws Exception
@@ -251,18 +249,17 @@ public class MessageControllerTest {
         request.addHeader("Content-Type", "application/json; charset=UTF-8");
         // Notice the missing quotes around the key
         request.setContent("{text:\"message from a unit test\"}".getBytes("UTF-8"));
-        try {
-            servlet.service(request, response);
-        }
-        catch (Exception e) { 
-            // Unfortunately this exception is uncaught via the DispatcherServlet so that the service does not 
-            // have an opportunity to handle it.  It would be better if were able to handle it like the others 
-            // and return HttpStatus.BAD_REQUEST
-            log.log(Level.INFO, "servlet failed to handle exception, but we expected this", e);
-            // So this test passes because it did what we expected
-            return;
-        }
-        fail("something changed!");
+        servlet.service(request, response);
+        log.info("Results: " + response.getContentAsString());
+        assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
+        JSONObject results = new JSONObject(response.getContentAsString());
+        // The response should be something like:  {"reason":"Could not read JSON: Unexpected character
+        // ('t' (code 116)): was expecting double-quote to start field name\n at [Source:
+        // org.springframework.mock.web.DelegatingServletInputStream@11e3c2c6; line: 1, column: 3];
+        // nested exception is org.codehaus.jackson.JsonParseException: Unexpected character
+        // ('t' (code 116)): was expecting double-quote to start field name\n at [Source:
+        // org.springframework.mock.web.DelegatingServletInputStream@11e3c2c6; line: 1, column: 3]"}
+        assertTrue(null != results.getString("reason"));
     }
 
     /**

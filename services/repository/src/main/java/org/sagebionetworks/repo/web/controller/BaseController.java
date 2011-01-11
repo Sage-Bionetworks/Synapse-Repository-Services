@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.EOFException;
+import java.lang.IllegalStateException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -12,51 +13,56 @@ import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.support.HandlerMethodInvocationException;
 import org.springframework.web.servlet.mvc.multiaction.NoSuchRequestHandlingMethodException;
+import org.springframework.web.util.NestedServletException;
 
 /**
  * This abstract class attempts to encapsulate exception handling for
- * exceptions common to all controllers.  (Note that I tried to do
- * this as a separate controller but it did not work.  In this case
- * inheritance seemed appropriate, though in general we want to prefer
- * composition over inheritance.)
- * <p>
+ * exceptions common to all controllers.  <p>
+ *
  * The basic idea is that we want exception stack traces in the
  * service log, but we don't want to return them to the user.  We also
  * want to return human-readable error messages to the client in a
  * format that the client can parse such as JSON.  The
  * AnnotationMethodHandlerExceptionResolver is configured with the
  * same HttpMessageConverters as the AnnotationMethodHandlerAdapter
- * and therefore should support all the same encodings.
- * <p>
+ * and therefore should support all the same encodings.  <p>
+ *
  * Note that the @ExceptionHandler can take an array of exception
  * classes to all be handled via the same logic and return the same
  * HTTP status code.  I chose to implement them individually so that
  * child classes can override them separately and munge exception
- * reasons as they see fit to produce a better human-readable
- * message.
+ * reasons as they see fit to produce a better human-readable message.
  * <p>
- * TODO It seems there needs to be a default exception handling strategy for 
- * any Exception that the server generates, e.g. something that catches 
- * Throwable and logs the full stack trace at ERROR level. This would cover 
- * run-time Exceptions that we (hopefully) don't see in production with well-tested 
- * code. Then, for specific exceptions that we expect could get generated we 
- * could have less sever handling, e.g. request for a resource that doesn't 
- * exist might just log a single-line statement at the WARNING level.
- * <p>
- * TODO this still does not catch and handle all exceptions.  Consider
- * configuring SimpleMappingExceptionResolver.  More info <a href="
- * http://pietrowski.info/2010/06/spring-mvc-exception-handler/">http://pietrowski.info/2010/06/spring-mvc-exception-handler/</a>
+ *
+ * Developer Note: I tried to do this as a separate controller but it
+ * did not work.  It seems that the exception handling methods must be
+ * <a
+ * href="http://blog.flurdy.com/2010/07/spring-mvc-exceptionhandler-needs-to-be.html">members
+ * of the controller class.</a> In this case inheritance seemed
+ * appropriate, though in general we want to prefer composition over
+ * inheritance.  Also note that unfortunately, this only takes care of
+ * exceptions thrown by our controllers.  If the exception is instead
+ * thrown before or after our controller logic, a different mechanism
+ * is needed to handle the exception.  See default error page
+ * configuration in web.xml<p>
+ *
+ * Here are some examples of exceptions not handled by these methods.
+ * They assume message with id 4 exists: <p>
  * <ul>
- * <li>returns an html error page that I do not control: curl -H Accept:application/javascript http://localhost:8080/message/4.js
- * <li>no handler for this, currently returns an html instead of json encoded error: curl -H Accept:application/json http://localhost:8080/message/4/foo
- * <li>notice missing double quotes around key, currently returns an html instead of json encoded error: curl -H Accept:application/json  -H Content-Type:application/json -d '{text:"this is a test"}' http://localhost:8080/message
- * </ul>
+ * <li>returns an error page configured via web.xml since we do not have a message converter configured for this encoding: curl -i -H Accept:application/javascript http://localhost:8080/repo/v1/message/4.js
+ * <li>returns an error page configured via web.xml since the DispatcherServlet could find no applicable handler: curl -i -H Accept:application/json http://localhost:8080/repo/v1/message/4/foo
+ * </ul><p>
+ * 
+ * TODO when our integration test framework is in place, add tests for stuff 
+ * managed by error pages in web.xml since we can't test that with our unit tests
  * @author deflaux
  */
 
@@ -67,6 +73,11 @@ public abstract class BaseController {
     /**
      * This is an application exception thrown when the request
      * references an entity that does not exist
+     * <p>
+     *
+     * TODO this exception is getting generic treatment right now but
+     * we may want log this less verbosely if it becomes a normal and
+     * expected exception
      *
      * @param ex the exception to be handled
      * @param request the client request
@@ -116,6 +127,34 @@ public abstract class BaseController {
     @ExceptionHandler(EOFException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public @ResponseBody ErrorResponse handleEofException(EOFException ex, HttpServletRequest request) {
+        return handleException(ex, request);
+    }
+
+    /**
+     * This occurs for example when the matched handler method expects an HTTP header
+     * not present in the request such as an ETag header.
+     *
+     * @param ex the exception to be handled
+     * @param request the client request
+     * @return an ErrorResponse object containing the exception reason or some other human-readable response
+     */
+    @ExceptionHandler(HandlerMethodInvocationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public @ResponseBody ErrorResponse handleMethodInvocationException(HandlerMethodInvocationException ex, HttpServletRequest request) {
+        return handleException(ex, request);
+    }
+
+
+    /**
+     * This occurs for example when the we send invalid JSON in the request
+     *
+     * @param ex the exception to be handled
+     * @param request the client request
+     * @return an ErrorResponse object containing the exception reason or some other human-readable response
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public @ResponseBody ErrorResponse handleNotReadableException(HttpMessageNotReadableException ex, HttpServletRequest request) {
         return handleException(ex, request);
     }
 
@@ -171,6 +210,51 @@ public abstract class BaseController {
     @ExceptionHandler(ServletException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public @ResponseBody ErrorResponse handleServletException(ServletException ex, HttpServletRequest request) {
+        return handleException(ex, request);
+    }
+
+    /**
+     * Haven't been able to get this one to happen yet
+     *
+     * @param ex the exception to be handled
+     * @param request the client request
+     * @return an ErrorResponse object containing the exception reason or some other human-readable response
+     */
+    @ExceptionHandler(NestedServletException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public @ResponseBody ErrorResponse handleNestedServletException(NestedServletException ex, HttpServletRequest request) {
+        return handleException(ex, request);
+    }
+
+    /**
+     * Haven't been able to get this one to happen yet
+     *
+     * @param ex the exception to be handled
+     * @param request the client request
+     * @return an ErrorResponse object containing the exception reason or some other human-readable response
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public @ResponseBody ErrorResponse handleIllegalStateException(IllegalStateException ex, HttpServletRequest request) {
+        return handleException(ex, request);
+    }
+
+    /**
+     * Handle any exceptions not handled by specific handlers.  Log an
+     * additional message with higher severity because we really do
+     * want to know what sorts of new exceptions are occurring.
+     *
+     * @param ex the exception to be handled
+     * @param request the client request
+     * @return an ErrorResponse object containing the exception reason or some other human-readable response
+     */
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public @ResponseBody ErrorResponse handleAllOtherExceptions(Exception ex,
+                                                                HttpServletRequest request) {
+        log.log(Level.SEVERE,
+                "Consider specifically handling exceptions of type "
+                + ex.getClass().getName());
         return handleException(ex, request);
     }
 

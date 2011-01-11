@@ -21,13 +21,14 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.servlet.DispatcherServlet;
 
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 
 /**
- * Unit tests for the Message CRUD operations exposed by the MessageController with 
+ * Unit tests for the Message CRUD operations exposed by the MessageController with
  * XML request and response encoding.
  * <p>
  * This unit test suite for the repository Google App Engine service
@@ -37,8 +38,8 @@ import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
  * bugs in our URL mapping, request format, response format, and
  * response status code.
  * <p>
- * Dev Note: we are not spending much effort on the XML representation at this time. 
- * A deeper test into the structure of the XML will be needed if/when we have anyone 
+ * Dev Note: we are not spending much effort on the XML representation at this time.
+ * A deeper test into the structure of the XML will be needed if/when we have anyone
  * consuming xml.  The purpose of configuring any XML at all right now is to just confirm
  * that the basic mechanism for varying the response encoding depending upon the Accept header
  * is working.
@@ -105,9 +106,9 @@ public class MessageControllerXMLTest {
         try {
             servlet.service(request, response);
         }
-        catch (Exception e) { 
-            // Unfortunately this exception is uncaught via the DispatcherServlet so that the service does not 
-            // have an opportunity to handle it.  It would be better if were able to handle it like the others 
+        catch (Exception e) {
+            // Unfortunately this exception is uncaught via the DispatcherServlet so that the service does not
+            // have an opportunity to handle it.  It would be better if were able to handle it like the others
             // and return HttpStatus.BAD_REQUEST
             log.log(Level.INFO, "servlet failed to handle exception, but we expected this", e);
             // So this test passes because it did what we expected
@@ -189,18 +190,11 @@ public class MessageControllerXMLTest {
         request.setRequestURI("/message");
         request.addHeader("Content-Type", "application/json; charset=UTF-8");
         request.setContent("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><message><text>message from a unit test</text></message>".getBytes("UTF-8"));
-        try {
-            servlet.service(request, response);
-        }
-        catch (Exception e) { 
-            // Unfortunately this exception is uncaught via the DispatcherServlet so that the service does not 
-            // have an opportunity to handle it.  It would be better if were able to handle it like the others 
-            // and return HttpStatus.BAD_REQUEST
-            log.log(Level.INFO, "servlet failed to handle exception, but we expected this", e);
-            // So this test passes because it did what we expected
-            return;
-        }
-        fail("something changed!");
+        servlet.service(request, response);
+        log.info("Results: " + response.getContentAsString());
+        assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
+        assertTrue(response.getContentAsString().startsWith("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+                + "<errorResponse><reason>"));
     }
 
     /**
@@ -217,18 +211,11 @@ public class MessageControllerXMLTest {
         request.addHeader("Content-Type", "application/xml; charset=UTF-8");
         // Notice the malformed XML
         request.setContent("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><message>message from a unit test</text></message>".getBytes("UTF-8"));
-        try {
-            servlet.service(request, response);
-        }
-        catch (Exception e) { 
-            // Unfortunately this exception is uncaught via the DispatcherServlet so that the service does not 
-            // have an opportunity to handle it.  It would be better if were able to handle it like the others 
-            // and return HttpStatus.BAD_REQUEST
-            log.log(Level.INFO, "servlet failed to handle exception, but we expected this", e);
-            // So this test passes because it did what we expected
-            return;
-        }
-        fail("something changed!");
+        servlet.service(request, response);
+        log.info("Results: " + response.getContentAsString());
+        assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
+        assertTrue(response.getContentAsString().startsWith("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+                + "<errorResponse><reason>"));
     }
 
     /**
@@ -244,18 +231,11 @@ public class MessageControllerXMLTest {
         request.setRequestURI("/message");
         request.addHeader("Content-Type", "application/xml; charset=UTF-8");
         // No call to request.setContent()
-        try {
-            servlet.service(request, response);
-        }
-        catch (Exception e) { 
-            // Unfortunately this exception is uncaught via the DispatcherServlet so that the service does not 
-            // have an opportunity to handle it.  It would be better if were able to handle it like the others 
-            // and return HttpStatus.BAD_REQUEST
-            log.log(Level.INFO, "servlet failed to handle exception, but we expected this", e);
-            // So this test passes because it did what we expected
-            return;
-        }
-        fail("something changed!");
+        servlet.service(request, response);
+        log.info("Results: " + response.getContentAsString());
+        assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
+        assertTrue(response.getContentAsString().startsWith("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+                + "<errorResponse><reason>"));
     }
 
     /**
@@ -319,7 +299,7 @@ public class MessageControllerXMLTest {
         log.info("Results: " + response.getContentAsString());
         assertEquals(HttpStatus.OK.value(), response.getStatus());
         String results = response.getContentAsString();
-        // The response should be something like: 
+        // The response should be something like:
         // <?xml version="1.0" encoding="UTF-8" standalone="yes"?><message><id>1</id>
         // <text>message from a unit test</text></message>
         assertTrue(results.startsWith("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><message><id>"));
@@ -345,7 +325,7 @@ public class MessageControllerXMLTest {
         log.info("Results: " + response.getContentAsString());
         assertEquals(HttpStatus.OK.value(), response.getStatus());
         String results = response.getContentAsString();
-        // The response should be something like: 
+        // The response should be something like:
         //  <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
         // <result>
         // <results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="message">
@@ -357,4 +337,54 @@ public class MessageControllerXMLTest {
         assertTrue(results.endsWith("<totalNumberOfResults>2</totalNumberOfResults></result>"));
     }
 
+    /**
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getMessages()}.
+     * @throws Exception
+     */
+    @Test
+    public void testUnsupportedEncoding() throws Exception {
+        // Load up a few messages
+        testCreateMessage();
+        testCreateMessage();
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        request.setMethod("GET");
+        request.addHeader("Accept", "application/javascript");
+        request.setRequestURI("/message");
+        try {
+            servlet.service(request, response);
+        }
+        catch (HttpMediaTypeNotAcceptableException  e) {
+            // Unfortunately this exception is uncaught via the DispatcherServlet so that the service does not
+            // have an opportunity to handle it.  It is handled by an error page configured via web.xml
+            log.log(Level.INFO, "servlet failed to handle exception, but we expected this", e);
+            // So this test passes because it did what we expected
+            // org.springframework.web.HttpMediaTypeNotAcceptableException: Could not find acceptable representation
+            return;
+        }
+        fail("something changed!");
+    }
+
+    /**
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getMessages()}.
+     * @throws Exception
+     */
+    @Test
+    public void testNoHandler() throws Exception {
+        // Load up a few messages
+        testCreateMessage();
+        testCreateMessage();
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        request.setMethod("GET");
+        request.addHeader("Accept", "application/xml");
+        request.setRequestURI("/message/1/foo");
+        servlet.service(request, response);
+        log.info("Results: " + response.getContentAsString());
+        assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus());
+        // Note that an error page configured via web.xml will actually be served
+        assertEquals("", response.getContentAsString());
+    }
 }
