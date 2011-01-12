@@ -8,19 +8,20 @@ public final class PMF {
     private static final PersistenceManagerFactory pmfInstance = 
         JDOHelper.getPersistenceManagerFactory("transactions-optional"); 
     
-    private static PersistenceManager pm = null;
+    //private static PersistenceManager pm = null;
  
     private PMF() {} 
  
     public static PersistenceManager get() { 
-    	if (pm==null) {
-    		pm = pmfInstance.getPersistenceManager(); 
-    	}
-        return pm;
+    	return pmfInstance.getPersistenceManager(); 
+//    	if (pm==null) {
+//    		pm = pmfInstance.getPersistenceManager(); 
+//    	}
+//        return pm;
     } 
     
-    public static void close() {
-    	if (pm!=null) pm.close();
-    	pm=null;
-    }
+//    public static void close() {
+//    	if (pm!=null) pm.close();
+//    	pm=null;
+//    }
 }

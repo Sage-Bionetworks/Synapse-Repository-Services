@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.repo.model.gaejdo;
 
 import java.util.Date;
 import javax.jdo.annotations.Extension;
@@ -6,10 +6,14 @@ import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
+
+import org.sagebionetworks.repo.model.Version;
+
 import com.google.appengine.api.datastore.Key;
 
-@PersistenceCapable(detachable = "true")
-public class Revision<T extends Revisable<T>> {
+@PersistenceCapable(detachable = "false")
+//@PersistenceCapable(detachable = "true")
+public class GAEJDORevision<T extends Revisable<T>> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
@@ -23,13 +27,13 @@ public class Revision<T extends Revisable<T>> {
 	@Persistent
 	private Date revisionDate;
 	
-	// http://stackoverflow.com/questions/3808874/problem-persisting-collection-of-interfaces-in-jdo-datanucleus-unable-to-assign
-	// http://code.google.com/p/datanucleus-appengine/issues/detail?id=207
-	@Extension(vendorName = "datanucleus", key = "implementation-classes", 
-			value = "org.sagebionetworks.repo.model.Dataset,org.sagebionetworks.repo.model.InputDataLayer,org.sagebionetworks.repo.model.AnalysisResult,org.sagebionetworks.repo.model.Script")
-	// http://code.google.com/appengine/docs/java/datastore/relationships.html#Owned_One_to_One_Relationships
-	@Persistent(mappedBy="revision")
-	private T owner; // this is the backwards pointer for the 1-1 owned relationship
+//	// http://stackoverflow.com/questions/3808874/problem-persisting-collection-of-interfaces-in-jdo-datanucleus-unable-to-assign
+//	// http://code.google.com/p/datanucleus-appengine/issues/detail?id=207
+//	@Extension(vendorName = "datanucleus", key = "implementation-classes", 
+//			value = "org.sagebionetworks.repo.model.Dataset,org.sagebionetworks.repo.model.InputDataLayer,org.sagebionetworks.repo.model.AnalysisResult,org.sagebionetworks.repo.model.Script")
+//	// http://code.google.com/appengine/docs/java/datastore/relationships.html#Owned_One_to_One_Relationships
+//	@Persistent(mappedBy="revision")
+//	private T owner; // this is the backwards pointer for the 1-1 owned relationship
 
 	public Key getOriginal() {
 		return original;
@@ -49,12 +53,12 @@ public class Revision<T extends Revisable<T>> {
 	public void setId(Key id) {
 		this.id = id;
 	}
-	public T getOwner() {
-		return owner;
-	}
-	public void setOwner(T owner) {
-		this.owner = owner;
-	}
+//	public T getOwner() {
+//		return owner;
+//	}
+//	public void setOwner(T owner) {
+//		this.owner = owner;
+//	}
 	public Date getRevisionDate() {
 		return revisionDate;
 	}

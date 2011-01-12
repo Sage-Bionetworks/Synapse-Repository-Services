@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model;
 
+import org.sagebionetworks.repo.model.gaejdo.GAEJDOProject;
+
 import com.google.appengine.api.datastore.Key;
 
 
@@ -9,9 +11,11 @@ import com.google.appengine.api.datastore.Key;
  *
  */
 public interface ProjectAccessor {
-	public Project getProject(Key id);
+	public GAEJDOProject getProject(Key id);
 	
-	public void makePersistent(Project project);
+	public void makePersistent(GAEJDOProject project);
 	
-	public void delete(Project project);
+	//public void delete(Project project);
+	
+	public void delete(Key id);
 }

@@ -16,6 +16,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.gaejdo.AccessorFactoryImpl;
+import org.sagebionetworks.repo.model.gaejdo.GAEJDORevision;
+import org.sagebionetworks.repo.model.gaejdo.GAEJDOScript;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
@@ -37,32 +39,32 @@ public class ScriptTest {
 	    }
 
 	    private AccessorFactory fac;
-		private Collection<Script> scripts;
+		private Collection<Key> scriptIds;
 
 		@Before
 		public void setUp() throws Exception {
 	        helper.setUp(); 
 			fac = new AccessorFactoryImpl();
-			scripts = new ArrayList<Script>();
+			scriptIds = new ArrayList<Key>();
 		}
 
 		@After
 		public void tearDown() throws Exception {
 			if (fac!=null) {
-				for (Script script: scripts) {
-					fac.getScriptAccessor().delete(script);
+				for (Key id: scriptIds) {
+					fac.getScriptAccessor().delete(id);
 				}
-				scripts.clear();
-				fac.close();
+				scriptIds.clear();
+				//fac.close();
 			}
 			helper.tearDown();
 		}
 		
 		@Test
 		public void testCreateandRetrieve() throws Exception {
-			Script script = new Script();
+			GAEJDOScript script = new GAEJDOScript();
 			script.setName("script name");
-			script.setRevision(new Revision<Script>());
+			script.setRevision(new GAEJDORevision<GAEJDOScript>());
 			Date now = new Date();
 			script.getRevision().setVersion(new Version("1.0"));
 			script.getRevision().setRevisionDate(now);
@@ -76,57 +78,60 @@ public class ScriptTest {
 			// persist it
 			ScriptAccessor sa = fac.getScriptAccessor();
 			sa.makePersistent(script);
-			scripts.add(script);
 			
 			// persisting creates a Key, which we can grab
 			Key id = script.getId();
+			scriptIds.add(id);
 			Assert.assertNotNull(id);
 			
 			// now retrieve the object by its key
-			Script s2 = sa.getScript(id);
+			GAEJDOScript s2 = sa.getScript(id);
 			Assert.assertNotNull(s2);
 			
 			// check that all the fields were persisted
 			Assert.assertEquals("script name", s2.getName());
+			Assert.assertEquals(now, s2.getPublicationDate());
+			Assert.assertEquals(uri, s2.getSource());
+			
 			// the original version of script is itself
 			Assert.assertEquals(null, script.getRevision().getOriginal());
+			
 			// the original of the retrieved script is also this script
+			Assert.assertNotNull(s2.getRevision());
 			Assert.assertEquals(null, s2.getRevision().getOriginal());
 			
 			Assert.assertEquals(script.getRevision().getVersion(), s2.getRevision().getVersion());
 			Assert.assertEquals(script.getRevision().getRevisionDate(), s2.getRevision().getRevisionDate());
 			Assert.assertEquals(overview, s2.getOverview().getValue());
-			Assert.assertEquals(uri, s2.getSource());
-			Assert.assertEquals(now, s2.getPublicationDate());
 
 		}
 		@Test
 		public void testCreateandDelete() throws Exception {
-			Script script = new Script();
+			GAEJDOScript script = new GAEJDOScript();
 			script.setName("script name");
-			script.setRevision(new Revision<Script>());
+			script.setRevision(new GAEJDORevision<GAEJDOScript>());
 
 			// persist it
 			ScriptAccessor sa = fac.getScriptAccessor();
 			sa.makePersistent(script);
-			scripts.add(script);
+			scriptIds.add(script.getId());
 			
 			// persisting creates a Key, which we can grab
 			Key id = script.getId();
 			Assert.assertNotNull(id);
 			
 			// now retrieve the object by its key
-			Script s2 = sa.getScript(id);
+			GAEJDOScript s2 = sa.getScript(id);
 			Assert.assertNotNull(s2);
 			
 			Key revisionId = s2.getRevision().getId();
 			Assert.assertNotNull(revisionId);
 			
 			// deletion of Script should delete the revision, since it's an owned, dependent relationship
-			sa.delete(script);
+			sa.delete(id);
 			
 			// need to 'flush the deletion'.  There may be other ways to do this.
-			fac.close();
+			//fac.close();
 			sa = fac.getScriptAccessor();
 			
 			try {
@@ -134,11 +139,11 @@ public class ScriptTest {
 				Assert.fail(id+" should be gone.");
 			} catch (JDOObjectNotFoundException e) {
 				// as expected
-				scripts.remove(script);
+				scriptIds.remove(script.getId());
 			}
 
 			
-			RevisionAccessor<Script> ra = fac.getScriptRevisionAccessor();
+			RevisionAccessor<GAEJDOScript> ra = fac.getScriptRevisionAccessor();
 			try {
 				ra.getRevision(revisionId);
 				Assert.fail(revisionId+" should be gone.");
@@ -149,22 +154,22 @@ public class ScriptTest {
 		
 		@Test
 		public void testMultipleRevisions() throws Exception {
-			Script s1 = new Script();
+			GAEJDOScript s1 = new GAEJDOScript();
 			s1.setName("script1");
-			s1.setRevision(new Revision<Script>());
-			Revision<Script> r1 = s1.getRevision();
+			s1.setRevision(new GAEJDORevision<GAEJDOScript>());
+			GAEJDORevision<GAEJDOScript> r1 = s1.getRevision();
 			r1.setVersion(new Version("1.0"));
 
 			// persist it
 			ScriptAccessor sa = fac.getScriptAccessor();
 			sa.makePersistent(s1);
-			scripts.add(s1); // queue for clean up 
+			scriptIds.add(s1.getId()); // queue for clean up 
 
 			// now create a revision
-			Script s2 = new Script();
-			s2.setRevision(new Revision<Script>());
+			GAEJDOScript s2 = new GAEJDOScript();
+			s2.setRevision(new GAEJDORevision<GAEJDOScript>());
 			s2.setName("script1"); // same script, just new version
-			Revision<Script> r2 = s2.getRevision();
+			GAEJDORevision<GAEJDOScript> r2 = s2.getRevision();
 			r2.setVersion(r1.getVersion().increment());
 			
 			Assert.assertNotNull(r1); // when s1 was persisted, r1's Key should have been assigned
@@ -172,7 +177,7 @@ public class ScriptTest {
 			
 			// persist it
 			sa.makePersistent(s2);
-			scripts.add(s2); // queue for clean up 
+			scriptIds.add(s2.getId()); // queue for clean up 
 			
 			Key s2Id = s2.getId();
 			
@@ -180,15 +185,17 @@ public class ScriptTest {
 			s2 = sa.getScript(s2Id);
 			r2 = s2.getRevision();
 			Key originalRevisionId = r2.getOriginal();
-			RevisionAccessor<Script> ra = fac.getScriptRevisionAccessor();
-			Revision<Script> originalRevision = ra.getRevision(originalRevisionId);
+			RevisionAccessor<GAEJDOScript> ra = fac.getScriptRevisionAccessor();
+			GAEJDORevision<GAEJDOScript> originalRevision = ra.getRevision(originalRevisionId);
 			Assert.assertNotNull(originalRevision);
-			// now, do I automatically get the script that owns the revision?
-			s1 = originalRevision.getOwner();
-			Assert.assertNotNull(s1);
+//			// now, do I automatically get the script that owns the revision?
+//			s1 = originalRevision.getOwner();
+//			Assert.assertNotNull(s1);
 			
 			// finally, try the helper function to return the latest
-			Revision<Script> latestRevision = ra.getLatest(originalRevision);
-			Assert.assertEquals(s2Id, latestRevision.getOwner().getId());
+			GAEJDOScript latestRevision = sa.getLatest(s2);
+			Assert.assertEquals(s2Id, latestRevision.getId());
+			latestRevision = sa.getLatest(s1);
+			Assert.assertEquals(s2Id, latestRevision.getId());
 		}
 }

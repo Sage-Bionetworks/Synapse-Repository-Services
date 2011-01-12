@@ -11,5 +11,6 @@
         <property name="javax.jdo.option.NontransactionalWrite" value="true"/>
         <property name="javax.jdo.option.RetainValues" value="true"/>
         <property name="datanucleus.appengine.autoCreateDatastoreTxns" value="true"/>
+        <property name="datanucleus.appengine.storageVersion" value="WRITE_OWNED_CHILD_KEYS_TO_PARENTS"/>
     </persistence-manager-factory>
 </jdoconfig>

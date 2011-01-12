@@ -1,27 +1,31 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
+import java.util.Collection;
+
 import javax.jdo.PersistenceManager;
+import javax.jdo.Query;
 import javax.jdo.Transaction;
 
-import org.sagebionetworks.repo.model.AnalysisResult;
 import org.sagebionetworks.repo.model.AnalysisResultAccessor;
-import org.sagebionetworks.repo.model.InputDataLayer;
-import org.sagebionetworks.repo.model.InputDataLayerAccessor;
 
 import com.google.appengine.api.datastore.Key;
 
 public class AnalysisResultAccessorImpl implements AnalysisResultAccessor {
-	PersistenceManager pm;
+//	PersistenceManager pm;
+//	
+//	public AnalysisResultAccessorImpl() {
+//		this.pm=pm;
+//	}
 	
-	public AnalysisResultAccessorImpl(PersistenceManager pm) {
-		this.pm=pm;
+	public GAEJDOAnalysisResult getAnalysisResult(Key id) {
+		PersistenceManager pm = PMF.get();
+		GAEJDOAnalysisResult ans = (GAEJDOAnalysisResult)pm.getObjectById(AnalysisResultAccessor.class, id);
+		//pm.close();
+		return ans;
 	}
 	
-	public AnalysisResult getAnalysisResult(Key id) {
-		return (AnalysisResult)pm.getObjectById(AnalysisResultAccessor.class, id);		
-	}
-	
-	public void makePersistent(AnalysisResult analysisResult) {
+	public void makePersistent(GAEJDOAnalysisResult analysisResult) {
+		PersistenceManager pm = PMF.get();
 		Transaction tx=null;
 		try {
 			 	tx=pm.currentTransaction();
@@ -32,22 +36,61 @@ public class AnalysisResultAccessorImpl implements AnalysisResultAccessor {
 				if(tx.isActive()) {
 					tx.rollback();
 				}
+				pm.close();
 		}	
 	}
 	
-	public void delete(AnalysisResult analysisResult)  {
+//	public void delete(AnalysisResult analysisResult)  {
+//		PersistenceManager pm = PMF.get();
+//		Transaction tx=null;
+//		try {
+//			 	tx=pm.currentTransaction();
+//				tx.begin();
+//				pm.deletePersistent(analysisResult);
+//				tx.commit();
+//		} finally {
+//				if(tx.isActive()) {
+//					tx.rollback();
+//				}
+//				pm.close();
+//		}	
+//	}
+
+	public void delete(Key id) {
+		PersistenceManager pm = PMF.get();		
 		Transaction tx=null;
 		try {
 			 	tx=pm.currentTransaction();
 				tx.begin();
-				pm.deletePersistent(analysisResult);
+				Query q = pm.newQuery(AnalysisResultAccessor.class);
+				q.setFilter("id==pId");
+				q.declareParameters(Key.class.getName()+" pId");
+				@SuppressWarnings("unchecked")
+				Collection<GAEJDOAnalysisResult> ars = (Collection<GAEJDOAnalysisResult>)q.execute(id);
+				if (ars.size()!=1) throw new IllegalStateException("Expected 1 but got "+ars.size());
+				pm.deletePersistent(ars.iterator().next());
 				tx.commit();
 		} finally {
 				if(tx.isActive()) {
 					tx.rollback();
 				}
+				pm.close();
 		}	
 	}
 
-
+	public void makeTransient(GAEJDOAnalysisResult analysisResult) {
+		PersistenceManager pm = PMF.get();
+		Transaction tx=null;
+		try {
+			 	tx=pm.currentTransaction();
+				tx.begin();
+				pm.makeTransient(analysisResult);
+				tx.commit();
+		} finally {
+				if(tx.isActive()) {
+					tx.rollback();
+				}
+				pm.close();
+		}	
+	}
 }

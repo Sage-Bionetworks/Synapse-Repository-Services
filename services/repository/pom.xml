@@ -191,8 +191,10 @@
           <!--
               Make sure this path contains your persistent classes!
             -->
-          <mappingIncludes>**/model/*.class</mappingIncludes>
+          <mappingIncludes>**/model/**/*.class</mappingIncludes>
+<!--          mappingIncludes>**/gaejdo/*.class</mappingIncludes-->
           <verbose>true</verbose>
+          <fork>false</fork>
           <enhancerName>ASM</enhancerName>
           <api>JDO</api>
         </configuration>

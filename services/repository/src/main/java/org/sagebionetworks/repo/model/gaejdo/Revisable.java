@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.repo.model.gaejdo;
 
 
 /**
@@ -7,5 +7,5 @@ package org.sagebionetworks.repo.model;
  * <T> the type of the Object 'owning' the revision
  */
 public interface Revisable<T extends Revisable<T>> {
-	Revision<T> getRevision();
+	GAEJDORevision<T> getRevision();
 }

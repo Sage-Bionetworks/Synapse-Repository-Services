@@ -1,16 +1,12 @@
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.repo.model.gaejdo;
 
 import java.util.Date;
 
-import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
-import javax.jdo.annotations.PrimaryKey;
-
-import com.google.appengine.api.datastore.Key;
 
 @PersistenceCapable(detachable = "true")
-public class InputDataLayer extends DatasetLayer {
+public class GAEJDOInputDataLayer extends GAEJDODatasetLayer {
 
 	public enum DataType { PHENOTYPE, EXPRESSION, GENOTYPE, SEQUENCE }
 	

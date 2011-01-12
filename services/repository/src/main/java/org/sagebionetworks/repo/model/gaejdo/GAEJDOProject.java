@@ -1,6 +1,6 @@
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.repo.model.gaejdo;
 
-import java.net.URI;
+import java.net.URL;
 import java.util.Date;
 
 import javax.jdo.annotations.IdGeneratorStrategy;
@@ -10,33 +10,33 @@ import javax.jdo.annotations.PrimaryKey;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
-
 /**
- * note 'source' may be a reference to a version control repository, like Subversion
+ * 
  * @author bhoff
  *
  */
 @PersistenceCapable(detachable = "true")
-public class Script implements Revisable<Script> {
+public class GAEJDOProject {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
-	private Key id;
+	private Key id; 
 	
 	@Persistent
 	private String name;
 	
-	// http://code.google.com/appengine/docs/java/datastore/relationships.html#Owned_One_to_One_Relationships
-	@Persistent(dependent = "true") 
-	private Revision<Script> revision;
+	public enum Status { PROPOSED, IN_PROGRESS, COMPLETED }
 	
 	@Persistent
-	private Date publicationDate;
+	private Status status;
 	
 	@Persistent
 	private Text overview;
 	
+	@Persistent
+	private Date started;
+	
 	@Persistent(serialized="true")
-	private URI source;
+	private URL sharedDocs;
 
 	public Key getId() {
 		return id;
@@ -54,20 +54,12 @@ public class Script implements Revisable<Script> {
 		this.name = name;
 	}
 
-	public Revision<Script> getRevision() {
-		return revision;
+	public Status getStatus() {
+		return status;
 	}
 
-	public void setRevision(Revision<Script> revision) {
-		this.revision = revision;
-	}
-
-	public Date getPublicationDate() {
-		return publicationDate;
-	}
-
-	public void setPublicationDate(Date publicationDate) {
-		this.publicationDate = publicationDate;
+	public void setStatus(Status status) {
+		this.status = status;
 	}
 
 	public Text getOverview() {
@@ -78,13 +70,20 @@ public class Script implements Revisable<Script> {
 		this.overview = overview;
 	}
 
-	public URI getSource() {
-		return source;
+	public Date getStarted() {
+		return started;
 	}
 
-	public void setSource(URI source) {
-		this.source = source;
+	public void setStarted(Date started) {
+		this.started = started;
 	}
 
-	public boolean isPublished() {return null!=publicationDate;}
+	public URL getSharedDocs() {
+		return sharedDocs;
+	}
+
+	public void setSharedDocs(URL sharedDocs) {
+		this.sharedDocs = sharedDocs;
+	}
+	
 }

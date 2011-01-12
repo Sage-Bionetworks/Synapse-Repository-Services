@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.gaejdo.AccessorFactoryImpl;
+import org.sagebionetworks.repo.model.gaejdo.GAEJDOProject;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
@@ -34,7 +35,7 @@ public class ProjectTest {
 
 
     private AccessorFactory fac;
-	private Project project;
+	private Key id;
 
 	@Before
 	public void setUp() throws Exception {
@@ -44,10 +45,10 @@ public class ProjectTest {
 
 	@After
 	public void tearDown() throws Exception {
-		if (fac!=null && project!=null) {
-			fac.getProjectAccessor().delete(project);
-			fac.close();
-			project = null;
+		if (fac!=null && id!=null) {
+			fac.getProjectAccessor().delete(id);
+			//fac.close();
+			id = null;
 		}
 		helper.tearDown();
 	}
@@ -57,10 +58,10 @@ public class ProjectTest {
 	@Test
 	public void testCreateandRetrieve() throws Exception {
 		// create a new project
-		project = new Project();
+		GAEJDOProject project = new GAEJDOProject();
 		
 		project.setName("project name");
-		project.setStatus(Project.Status.IN_PROGRESS);
+		project.setStatus(GAEJDOProject.Status.IN_PROGRESS);
 		String overview = "This project is a megacross, and includes genotyoping data.";
 		project.setOverview(new Text(overview));
 		Date started = new Date();
@@ -74,15 +75,16 @@ public class ProjectTest {
 		
 		// persisting creates a Key, which we can grab
 		Key id = project.getId();
+		this.id=id;
 		Assert.assertNotNull(id);
 		
 		// now retrieve the object by its key
-		Project p2 = pa.getProject(id);
+		GAEJDOProject p2 = pa.getProject(id);
 		Assert.assertNotNull(p2);
 		
 		// check that all the fields were persisted
 		Assert.assertEquals("project name", p2.getName());
-		Assert.assertEquals(Project.Status.IN_PROGRESS, p2.getStatus());
+		Assert.assertEquals(GAEJDOProject.Status.IN_PROGRESS, p2.getStatus());
 		Assert.assertEquals(overview, p2.getOverview().getValue());
 		Assert.assertEquals(started, p2.getStarted());
 		Assert.assertEquals(url, p2.getSharedDocs());

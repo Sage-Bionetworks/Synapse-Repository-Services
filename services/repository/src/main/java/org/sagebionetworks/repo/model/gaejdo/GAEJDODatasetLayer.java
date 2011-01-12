@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.repo.model.gaejdo;
 
 import java.net.URI;
 import java.util.Date;
@@ -25,7 +25,7 @@ import com.google.appengine.api.datastore.Text;
 
 @PersistenceCapable(detachable = "true")
 @Inheritance(strategy = InheritanceStrategy.SUBCLASS_TABLE)
-abstract public class DatasetLayer implements Revisable<DatasetLayer> {
+abstract public class GAEJDODatasetLayer implements Revisable<GAEJDODatasetLayer> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
@@ -55,13 +55,13 @@ abstract public class DatasetLayer implements Revisable<DatasetLayer> {
 	private Text releaseNotes;
 	
 	@Persistent(dependent = "true")	
-	private Revision<DatasetLayer> revision;
+	private GAEJDORevision<GAEJDODatasetLayer> revision;
 	
-	public Revision<DatasetLayer> getRevision() {
+	public GAEJDORevision<GAEJDODatasetLayer> getRevision() {
 		return revision;
 	}
 
-	public void setRevision(Revision<DatasetLayer> revision) {
+	public void setRevision(GAEJDORevision<GAEJDODatasetLayer> revision) {
 		this.revision = revision;
 	}
 

@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -16,6 +17,12 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.gaejdo.AccessorFactoryImpl;
+import org.sagebionetworks.repo.model.gaejdo.GAEJDOAnnotations;
+import org.sagebionetworks.repo.model.gaejdo.GAEJDODatasetLayer;
+import org.sagebionetworks.repo.model.gaejdo.GAEJDODataset;
+import org.sagebionetworks.repo.model.gaejdo.GAEJDOInputDataLayer;
+import org.sagebionetworks.repo.model.gaejdo.GAEJDORevision;
+import org.sagebionetworks.repo.model.gaejdo.GAEJDOStringAnnotation;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
@@ -38,7 +45,7 @@ public class DatasetTest {
 
 
     private AccessorFactory fac;
-	private Dataset dataset;
+	private Key key;
 
 	@Before
 	public void setUp() throws Exception {
@@ -48,10 +55,10 @@ public class DatasetTest {
 
 	@After
 	public void tearDown() throws Exception {
-		if (fac!=null && dataset!=null) {
-			fac.getDatasetAccessor().delete(dataset);
-			fac.close();
-			dataset = null;
+		if (fac!=null && key!=null) {
+			if (false) fac.getDatasetAccessor().delete(key);
+			//fac.close();
+			key = null;
 		}
 		helper.tearDown();
 	}
@@ -61,43 +68,50 @@ public class DatasetTest {
 	@Test
 	public void testCreateandRetrieve() throws Exception {
 		// create a new project
-		Dataset dataset = new Dataset();
+		GAEJDODataset dataset = new GAEJDODataset();
 		dataset.setName("dataset name");
 		dataset.setDescription("description");
 		String overview = "This dataset is a megacross, and includes genotyoping data.";
 		dataset.setOverview(new Text(overview));
 		Date release = new Date();
 		dataset.setReleaseDate(release);
-		dataset.setStatus(Dataset.DatasetStatus.IN_PROGRESS);
+		dataset.setStatus("IN_PROGRESS");
 		List<String> contributors = Arrays.asList(new String[]{"Larry", "Curly", "Moe"});
 		dataset.setContributors(contributors);
 		dataset.setDownloadable(true);
 		
 		Collection<Key> layers = new HashSet<Key>();
 		dataset.setLayers(layers);
-		InputDataLayer idl = new InputDataLayer();
-		idl.setType(InputDataLayer.DataType.EXPRESSION);
-		idl.setRevision(new Revision<DatasetLayer>());
+		GAEJDOInputDataLayer idl = new GAEJDOInputDataLayer();
+		idl.setType(GAEJDOInputDataLayer.DataType.EXPRESSION);
+		idl.setRevision(new GAEJDORevision<GAEJDODatasetLayer>());
 		
 		InputDataLayerAccessor dla = fac.getInputDataLayerAccessor();
 		dla.makePersistent(idl);
 		layers.add(idl.getId());
 		
-		Revision<Dataset> r = new Revision<Dataset>();
+		GAEJDORevision<GAEJDODataset> r = new GAEJDORevision<GAEJDODataset>();
+		Date revDate = new Date();
+		r.setRevisionDate(revDate);
 		r.setVersion(new Version("1.0.0"));
 		dataset.setRevision(r);
+		
+		GAEJDOAnnotations annots = new GAEJDOAnnotations();
+		dataset.setAnnotations(annots);
+		GAEJDOStringAnnotation stringAnnot = new GAEJDOStringAnnotation("testKey", "testValue");
+		annots.getStringAnnotations().add(stringAnnot);
 		
 		// persist it
 		DatasetAccessor da = fac.getDatasetAccessor();
 		da.makePersistent(dataset);
-		this.dataset=dataset;
+		this.key=dataset.getId();
 		
 		// persisting creates a Key, which we can grab
 		Key id = dataset.getId();
 		Assert.assertNotNull(id);
 		
 		// now retrieve the object by its key
-		Dataset d2 = da.getDataset(id);
+		GAEJDODataset d2 = da.getDataset(id);
 		Assert.assertNotNull(d2);
 		
 		// check that all the fields were persisted
@@ -105,18 +119,31 @@ public class DatasetTest {
 		Assert.assertEquals("description", d2.getDescription());
 		Assert.assertEquals(overview, d2.getOverview().getValue());
 		Assert.assertEquals(release, d2.getReleaseDate());
-		Assert.assertEquals(Dataset.DatasetStatus.IN_PROGRESS, d2.getStatus());
+		Assert.assertEquals("IN_PROGRESS", d2.getStatus());
 		Assert.assertEquals(contributors, d2.getContributors());
 		Assert.assertEquals(true, d2.isDownloadable());
-		Assert.assertEquals(new Version("1.0.0"), d2.getRevision().getVersion());
+		GAEJDORevision<GAEJDODataset> r2 = d2.getRevision();
+		Assert.assertNotNull(r2);
+//		Assert.assertEquals(d2, r2.getOwner());
+		Assert.assertEquals(revDate, r2.getRevisionDate());
+		Assert.assertEquals(new Version("1.0.0"), r2.getVersion());
 		
 		Collection<Key> l2 = d2.getLayers();
 		Assert.assertEquals(1, l2.size());
 		Key dlKey = l2.iterator().next();
-		InputDataLayer idl2 = dla.getDataLayer(dlKey);
+		GAEJDOInputDataLayer idl2 = dla.getDataLayer(dlKey);
 //		Assert.assertTrue((idl2 instanceof InputDataLayer));
-		InputDataLayer.DataType type = idl2.getType();
-		Assert.assertEquals(InputDataLayer.DataType.EXPRESSION, type);
+		GAEJDOInputDataLayer.DataType type = idl2.getType();
+		Assert.assertEquals(GAEJDOInputDataLayer.DataType.EXPRESSION, type);
+		
+		GAEJDOAnnotations annots2 = d2.getAnnotations();
+		Assert.assertNotNull(annots2);
+		Collection<GAEJDOStringAnnotation> stringAnnots = annots2.getStringAnnotations();
+		Assert.assertNotNull(stringAnnots);
+		Assert.assertEquals(1, stringAnnots.size());
+		GAEJDOStringAnnotation stringAnnot2 = stringAnnots.iterator().next();
+		Assert.assertEquals("testKey", stringAnnot2.getAttribute());
+		Assert.assertEquals("testValue", stringAnnot2.getValue());
 	}
 
 }
