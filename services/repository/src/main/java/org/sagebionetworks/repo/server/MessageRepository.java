@@ -27,8 +27,6 @@ public class MessageRepository {
 
     /**
      * Return all messages stored in the repository
-     * <p>
-     * TODO pagination
      * 
      * @return collection of all messages stored in the repository
      */
@@ -97,6 +95,32 @@ public class MessageRepository {
         finally {
             pm.close();
         }
+    }
+
+    /**
+     * Return all messages stored in the repository within a particular range<p>
+     * 
+     * TODO this is a dummy class, therefore I have not bothered to implement this yet
+     * 
+     * @param offset
+     * @param limit
+     * @return collection of all messages stored in the repository
+     */
+    public List<Message> getRange(Integer offset, Integer limit) {
+        // TODO implement me!
+        return getAll();
+    }
+
+    /**
+     * Return the count of all messages stored in the repository<p>
+     * 
+     * TODO this is a dummy class, therefore I have not bothered to implement this yet
+     * 
+     * @return the count
+     */
+    public Integer getCount() {
+        // TODO implement me!
+        return 42;
     }
 
 }

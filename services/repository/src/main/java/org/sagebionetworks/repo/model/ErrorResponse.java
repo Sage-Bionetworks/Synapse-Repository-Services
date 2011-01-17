@@ -2,12 +2,11 @@ package org.sagebionetworks.repo.model;
 
 import java.io.Serializable;
 
-import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * Container for any error info we want to return to clients of this service.
- * <p>
+ * Container for any error info we want to return to clients of this service.<p>
+ * 
  * For any non-20x HTTP status code, clients should expect to
  * deserialize this instead of a model object.
  *
@@ -36,7 +35,6 @@ public class ErrorResponse implements Serializable {
     /**
      * @return The reason for the error
      */
-    @XmlElement
     public String getReason() {
         return reason;
     }

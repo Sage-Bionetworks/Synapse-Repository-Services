@@ -13,6 +13,7 @@
   
   <!-- To enable @RequestMapping process on type level and method level -->
   <bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping" />
+  
   <bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
     <property name="messageConverters">
       <list>
@@ -20,6 +21,11 @@
         <ref bean="atomConverter"  />
         <ref bean="marshallingConverter" />
       </list>
+    </property>
+    <property name="customModelAndViewResolvers">
+        <list>
+            <bean class="org.sagebionetworks.repo.web.ResponseHeaderResolver"/>
+        </list>
     </property>
   </bean>
   <bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerExceptionResolver">

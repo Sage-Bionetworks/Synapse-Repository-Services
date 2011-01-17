@@ -10,6 +10,8 @@ import static org.junit.Assert.fail;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -306,7 +308,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getMessages()}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getMessages(Integer, Integer, HttpServletRequest)}.
      *
      * @throws Exception
      */
@@ -326,19 +328,21 @@ public class MessageControllerXMLTest {
         assertEquals(HttpStatus.OK.value(), response.getStatus());
         String results = response.getContentAsString();
         // The response should be something like:
-        //  <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-        // <result>
+        // <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        // <result><paging>
+        // <entry><key>previous</key><value>/message?offset=1&amp;limit=10</value></entry>
+        // <entry><key>next</key><value>/message?offset=11&amp;limit=10</value></entry></paging>
         // <results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="message">
         // <id>1</id><text>message from a unit test</text></results>
         // <results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="message"><id>2</id><text>message from a unit test</text></results>
-        // <totalNumberOfResults>2</totalNumberOfResults>
+        // <totalNumberOfResults>42</totalNumberOfResults>
         // </result>
         assertTrue(results.startsWith("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><result>"));
-        assertTrue(results.endsWith("<totalNumberOfResults>2</totalNumberOfResults></result>"));
+        assertTrue(results.endsWith("</totalNumberOfResults></result>"));
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getMessages()}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getMessages(Integer, Integer, HttpServletRequest)}.
      * @throws Exception
      */
     @Test
@@ -367,7 +371,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getMessages()}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getMessages(Integer, Integer, HttpServletRequest)}.
      * @throws Exception
      */
     @Test

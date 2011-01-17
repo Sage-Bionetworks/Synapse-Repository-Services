@@ -10,6 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.map.JsonMappingException;
 import org.sagebionetworks.repo.model.ErrorResponse;
+import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpStatus;
@@ -89,6 +90,34 @@ public abstract class BaseController {
         return handleException(ex, request);
     }
 
+    /**
+     * This is an application exception thrown when a resource was more recently updated than the 
+     * version referenced in the current update request
+     * <p>
+     *
+     * @param ex the exception to be handled
+     * @param request the client request
+     * @return an ErrorResponse object containing the exception reason or some other human-readable response
+     */
+    @ExceptionHandler(ConflictingUpdateException.class)
+    @ResponseStatus(HttpStatus.PRECONDITION_FAILED)
+    public @ResponseBody ErrorResponse handleConflictingUpdateException(ConflictingUpdateException ex, HttpServletRequest request) {
+        return handleException(ex, request);
+    }
+    
+    /**
+     * This is an application exception thrown when for example bad parameter values were passed
+     *
+     * @param ex the exception to be handled
+     * @param request the client request
+     * @return an ErrorResponse object containing the exception reason or some other human-readable response
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public @ResponseBody ErrorResponse handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
+        return handleException(ex, request);
+    }
+    
     /**
      * This occurs for example when parsing a URL for an integer but a
      * string is found in its location
