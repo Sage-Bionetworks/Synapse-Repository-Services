@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -11,6 +12,7 @@ import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
 import com.google.appengine.api.datastore.Key;
+import com.google.appengine.api.datastore.Text;
 
 @PersistenceCapable(detachable = "false")
 public class GAEJDOAnnotations {
@@ -21,7 +23,7 @@ public class GAEJDOAnnotations {
 //	@Extension(vendorName = "datanucleus", key = "implementation-classes", 
 //			value = "org.sagebionetworks.repo.model.GAEJDODataset")
 //	@Persistent(mappedBy="annotations")
-//	private Annotatable owner; // this is the backwards pointer for the 1-1 owned relationship
+//	private GAEJDOAnnotatable owner; // this is the backwards pointer for the 1-1 owned relationship
 	
 
 	// I'm not sure if this is quite right, as the data store may wish to
@@ -34,6 +36,35 @@ public class GAEJDOAnnotations {
 		setBooleanAnnotations(new HashSet<GAEJDOBooleanAnnotation>());
 		setFloatAnnotations(new HashSet<GAEJDOFloatAnnotation>());
 		setDateAnnotations(new HashSet<GAEJDODateAnnotation>());
+	}
+	
+	public static GAEJDOAnnotations clone(GAEJDOAnnotations a) {
+		GAEJDOAnnotations ans = new GAEJDOAnnotations();
+		Set<GAEJDOStringAnnotation> sa = ans.getStringAnnotations();
+		for (GAEJDOStringAnnotation annot : a.getStringAnnotations()) {
+			sa.add(new GAEJDOStringAnnotation(annot.getAttribute(), annot.getValue()));
+		}
+		Set<GAEJDOIntegerAnnotation> ia = ans.getIntegerAnnotations();
+		for (GAEJDOAnnotation<Integer> annot : a.getIntegerAnnotations()) {
+			ia.add(new GAEJDOIntegerAnnotation(annot.getAttribute(), annot.getValue()));
+		}
+		Set<GAEJDOBooleanAnnotation> ba = ans.getBooleanAnnotations();
+		for (GAEJDOAnnotation<Boolean> annot : a.getBooleanAnnotations()) {
+			ba.add(new GAEJDOBooleanAnnotation(annot.getAttribute(), annot.getValue()));
+		}
+		Set<GAEJDOTextAnnotation> ta = ans.getTextAnnotations();
+		for (GAEJDOAnnotation<Text> annot : a.getTextAnnotations()) {
+			ta.add(new GAEJDOTextAnnotation(annot.getAttribute(), annot.getValue()));
+		}
+		Set<GAEJDOFloatAnnotation> fa = ans.getFloatAnnotations();
+		for (GAEJDOAnnotation<Float> annot : a.getFloatAnnotations()) {
+			fa.add(new GAEJDOFloatAnnotation(annot.getAttribute(), annot.getValue()));
+		}
+		Set<GAEJDODateAnnotation> da = ans.getDateAnnotations();
+		for (GAEJDOAnnotation<Date> annot : a.getDateAnnotations()) {
+			da.add(new GAEJDODateAnnotation(annot.getAttribute(), annot.getValue()));
+		}
+		return ans;
 	}
 		
 	@Persistent(mappedBy = "owner") 	
@@ -68,11 +99,11 @@ public class GAEJDOAnnotations {
 		this.id = id;
 	}
 
-//	public Annotatable getOwner() {
+//	public GAEJDOAnnotatable getOwner() {
 //		return owner;
 //	}
 //
-//	public void setOwner(Annotatable owner) {
+//	public void setOwner(GAEJDOAnnotatable owner) {
 //		this.owner = owner;
 //	}
 

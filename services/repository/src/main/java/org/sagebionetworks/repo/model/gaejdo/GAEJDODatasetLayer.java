@@ -25,7 +25,7 @@ import com.google.appengine.api.datastore.Text;
 
 @PersistenceCapable(detachable = "true")
 @Inheritance(strategy = InheritanceStrategy.SUBCLASS_TABLE)
-abstract public class GAEJDODatasetLayer implements Revisable<GAEJDODatasetLayer> {
+abstract public class GAEJDODatasetLayer implements GAEJDORevisable<GAEJDODatasetLayer> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;

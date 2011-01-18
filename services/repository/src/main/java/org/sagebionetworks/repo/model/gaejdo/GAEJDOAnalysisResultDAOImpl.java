@@ -6,20 +6,20 @@ import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
 
-import org.sagebionetworks.repo.model.AnalysisResultAccessor;
+import org.sagebionetworks.repo.model.AnalysisResultDAO;
 
 import com.google.appengine.api.datastore.Key;
 
-public class AnalysisResultAccessorImpl implements AnalysisResultAccessor {
+public class GAEJDOAnalysisResultDAOImpl implements AnalysisResultDAO {
 //	PersistenceManager pm;
 //	
-//	public AnalysisResultAccessorImpl() {
+//	public GAEJDOAnalysisResultDAOImpl() {
 //		this.pm=pm;
 //	}
 	
 	public GAEJDOAnalysisResult getAnalysisResult(Key id) {
 		PersistenceManager pm = PMF.get();
-		GAEJDOAnalysisResult ans = (GAEJDOAnalysisResult)pm.getObjectById(AnalysisResultAccessor.class, id);
+		GAEJDOAnalysisResult ans = (GAEJDOAnalysisResult)pm.getObjectById(GAEJDOAnalysisResult.class, id);
 		//pm.close();
 		return ans;
 	}
@@ -62,7 +62,7 @@ public class AnalysisResultAccessorImpl implements AnalysisResultAccessor {
 		try {
 			 	tx=pm.currentTransaction();
 				tx.begin();
-				Query q = pm.newQuery(AnalysisResultAccessor.class);
+				Query q = pm.newQuery(AnalysisResultDAO.class);
 				q.setFilter("id==pId");
 				q.declareParameters(Key.class.getName()+" pId");
 				@SuppressWarnings("unchecked")

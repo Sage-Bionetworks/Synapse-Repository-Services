@@ -1,5 +1,5 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
-public interface Annotatable {
+public interface GAEJDOAnnotatable {
 	GAEJDOAnnotations getAnnotations();
 }

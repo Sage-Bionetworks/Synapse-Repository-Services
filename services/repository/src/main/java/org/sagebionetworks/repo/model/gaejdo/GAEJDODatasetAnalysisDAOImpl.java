@@ -6,14 +6,14 @@ import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
 
-import org.sagebionetworks.repo.model.DatasetAnalysisAccessor;
+import org.sagebionetworks.repo.model.DatasetAnalysisDAO;
 
 import com.google.appengine.api.datastore.Key;
 
-public class DatasetAnalysisAccessorImpl implements DatasetAnalysisAccessor {
+public class GAEJDODatasetAnalysisDAOImpl implements DatasetAnalysisDAO {
 //	private PersistenceManager pm;
 //	
-//	public DatasetAnalysisAccessorImpl(PersistenceManager pm) {
+//	public GAEJDODatasetAnalysisDAOImpl(PersistenceManager pm) {
 //		this.pm=pm;
 //	}
 	

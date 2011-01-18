@@ -10,12 +10,12 @@ import com.google.appengine.api.datastore.Key;
  * @author bhoff
  *
  */
-public interface ProjectAccessor {
-	public GAEJDOProject getProject(Key id);
-	
-	public void makePersistent(GAEJDOProject project);
-	
-	//public void delete(Project project);
-	
-	public void delete(Key id);
+public interface ProjectDAO extends BaseDAO {
+//	public GAEJDOProject getProject(Key id);
+//	
+//	public void makePersistent(GAEJDOProject project);
+//	
+//	//public void delete(Project project);
+//	
+//	public void delete(Key id);
 }

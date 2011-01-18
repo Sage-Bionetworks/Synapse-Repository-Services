@@ -6,31 +6,36 @@ import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
 
-import org.sagebionetworks.repo.model.InputDataLayerAccessor;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ScriptDAO;
 
 import com.google.appengine.api.datastore.Key;
 
-public class InputDataLayerAccessorImpl implements InputDataLayerAccessor {
+public class GAEJDOScriptDAOImpl implements ScriptDAO {
 //	PersistenceManager pm;
 //	
-//	public InputDataLayerAccessorImpl(PersistenceManager pm) {
+//	public GAEJDOScriptDAOImpl(PersistenceManager pm) {
 //		this.pm=pm;
 //	}
 	
-	public GAEJDOInputDataLayer getDataLayer(Key id) {
+	public GAEJDOScript getScript(Key id) {
 		PersistenceManager pm = PMF.get();		
-		GAEJDOInputDataLayer ans = (GAEJDOInputDataLayer)pm.getObjectById(GAEJDOInputDataLayer.class, id);	
+		GAEJDOScript ans = (GAEJDOScript)pm.getObjectById(GAEJDOScript.class, id);
 		//pm.close();
 		return ans;
 	}
 	
-	public void makePersistent(GAEJDOInputDataLayer inputDataLayer) {
+	public void makePersistent(GAEJDOScript script) {
 		PersistenceManager pm = PMF.get();		
+		
+		// the explicit transaction is important for the persistence of both objects in the
+		// owned relationship.  see
+		// http://code.google.com/appengine/docs/java/datastore/relationships.html#Relationships_Entity_Groups_and_Transactions
 		Transaction tx=null;
 		try {
 			 	tx=pm.currentTransaction();
 				tx.begin();
-				pm.makePersistent(inputDataLayer);
+				pm.makePersistent(script);
 				tx.commit();
 		} finally {
 				if(tx.isActive()) {
@@ -40,13 +45,13 @@ public class InputDataLayerAccessorImpl implements InputDataLayerAccessor {
 		}	
 	}
 	
-//	public void delete(InputDataLayer inputDataLayer)  {
+//	public void delete(Script script)  {
 //		PersistenceManager pm = PMF.get();		
 //		Transaction tx=null;
 //		try {
 //			 	tx=pm.currentTransaction();
 //				tx.begin();
-//				pm.deletePersistent(inputDataLayer);
+//				pm.deletePersistent(script);
 //				tx.commit();
 //		} finally {
 //				if(tx.isActive()) {
@@ -55,14 +60,35 @@ public class InputDataLayerAccessorImpl implements InputDataLayerAccessor {
 //				pm.close();
 //		}	
 //	}
-
-	public void makeTransient(GAEJDOInputDataLayer inputDataLayer) {
+	
+	public void delete(Key id) {
 		PersistenceManager pm = PMF.get();		
 		Transaction tx=null;
 		try {
 			 	tx=pm.currentTransaction();
 				tx.begin();
-				pm.makeTransient(inputDataLayer);
+				Query q = pm.newQuery(GAEJDOScript.class);
+				q.setFilter("id==pId");
+				q.declareParameters(Key.class.getName()+" pId");
+				long n = q.deletePersistentAll(id);
+				if (n!=1) throw new IllegalStateException("Expected 1 but got "+n);
+				tx.commit();
+		} finally {
+				if(tx.isActive()) {
+					tx.rollback();
+				}
+				pm.close();
+		}	
+	}
+
+	
+	public void makeTransient(GAEJDOScript script) {
+		PersistenceManager pm = PMF.get();		
+		Transaction tx=null;
+		try {
+			 	tx=pm.currentTransaction();
+				tx.begin();
+				pm.makeTransient(script);
 				tx.commit();
 		} finally {
 				if(tx.isActive()) {
@@ -72,28 +98,5 @@ public class InputDataLayerAccessorImpl implements InputDataLayerAccessor {
 		}	
 	}
 	
-	public void delete(Key id) {
-		PersistenceManager pm = PMF.get();		
-		Transaction tx=null;
-		try {
-			 	tx=pm.currentTransaction();
-				tx.begin();
-				Query q = pm.newQuery(GAEJDOInputDataLayer.class);
-				q.setFilter("id==pId");
-				q.declareParameters(Key.class.getName()+" pId");
-				@SuppressWarnings("unchecked")
-				Collection<GAEJDOInputDataLayer> layers = (Collection<GAEJDOInputDataLayer>)q.execute(id);
-				if (layers.size()!=1) throw new IllegalStateException("Expected 1 but got "+layers.size());
-				pm.deletePersistent(layers.iterator().next());
-				tx.commit();
-		} finally {
-				if(tx.isActive()) {
-					tx.rollback();
-				}
-				pm.close();
-		}	
-	}
-
-
 
 }

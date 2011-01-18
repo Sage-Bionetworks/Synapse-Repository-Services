@@ -17,7 +17,7 @@ import com.google.appengine.api.datastore.Text;
  *
  */
 @PersistenceCapable(detachable = "true")
-public class GAEJDOScript implements Revisable<GAEJDOScript> {
+public class GAEJDOScript implements GAEJDORevisable<GAEJDOScript> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;

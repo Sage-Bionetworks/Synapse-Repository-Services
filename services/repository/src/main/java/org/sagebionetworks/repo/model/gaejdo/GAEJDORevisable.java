@@ -6,6 +6,7 @@ package org.sagebionetworks.repo.model.gaejdo;
  * @author bhoff
  * <T> the type of the Object 'owning' the revision
  */
-public interface Revisable<T extends Revisable<T>> {
+public interface GAEJDORevisable<T extends GAEJDORevisable<T>> {
+	void setRevision(GAEJDORevision<T> r);
 	GAEJDORevision<T> getRevision();
 }
