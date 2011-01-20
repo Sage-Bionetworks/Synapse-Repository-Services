@@ -12,14 +12,14 @@ import javax.servlet.ServletException;
  */
 public class ConflictingUpdateException extends ServletException {
 
+    private static final long serialVersionUID = 1L;
+
     /**
      * Default constructor
      */
     public ConflictingUpdateException() {
         super("The resource you are attempting to edit has changed since you last fetched the object");
     }
-
-    private static final long serialVersionUID = 1L;
 
     /**
      * @param message

@@ -18,8 +18,9 @@ public interface BaseDAO<T> {
 	 * @param dto object to be created
 	 * @return the id of the newly created object
 	 * @throws DatastoreException
+	 * @throws InvalidModelException 
 	 */
-	public String create(T dto) throws DatastoreException;
+	public String create(T dto) throws DatastoreException, InvalidModelException;
 	
 	/**
 	 * Retrieves the object given its id
@@ -72,6 +73,5 @@ public interface BaseDAO<T> {
 	public List<T> getInRangeSortedByPrimaryField(int start, int end, String sortBy, boolean asc);
 	
 	public List<T> getInRangeHavingPrimaryField(int start, int end, String attribute, Object value);
-		
 
 }

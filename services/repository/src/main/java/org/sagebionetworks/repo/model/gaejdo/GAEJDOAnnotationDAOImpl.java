@@ -16,6 +16,7 @@ import javax.jdo.Transaction;
 import org.sagebionetworks.repo.model.AnnotationDAO;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
@@ -57,8 +58,9 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	 * 
 	 * @param dto
 	 * @param jdo
+	 * @throws InvalidModelException 
 	 */
-	abstract public void copyFromDto(S dto, T jdo);
+	abstract public void copyFromDto(S dto, T jdo) throws InvalidModelException;
 	
 
 	

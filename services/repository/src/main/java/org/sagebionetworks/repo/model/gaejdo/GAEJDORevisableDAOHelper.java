@@ -9,6 +9,7 @@ import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Revisable;
 
 import com.google.appengine.api.datastore.Key;
@@ -38,8 +39,9 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 	 * 
 	 * @param dto
 	 * @param jdo
+	 * @throws InvalidModelException 
 	 */
-	abstract public void copyFromDto(S dto, T jdo);
+	abstract public void copyFromDto(S dto, T jdo) throws InvalidModelException;
 	
 	abstract public Class<T> getJdoClass();
 	
@@ -48,8 +50,9 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 	 * @param createDate the date of creation
 	 * @return the id of the newly created object
 	 * @throws DatastoreException
+		 * @throws InvalidModelException 
 	 */
-	public T create(PersistenceManager pm, S dto) throws DatastoreException {
+	public T create(PersistenceManager pm, S dto) throws DatastoreException, InvalidModelException {
 			T jdo = newJDO();
 			GAEJDORevision<T> r = jdo.getRevision();
 			r.setRevisionDate(dto.getCreationDate());
@@ -68,8 +71,9 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 	 * This updates the 'shallow' properties.   Version doesn't change.
 	 * @param dto non-null id is required
 	 * @throws DatastoreException if version in dto doesn't match version of object
+	 * @throws InvalidModelException 
 	 */
-	public void update(PersistenceManager pm, S dto) throws DatastoreException {
+	public void update(PersistenceManager pm, S dto) throws DatastoreException, InvalidModelException {
 		if (dto.getId()==null) throw new DatastoreException("id is null");
 		Key id = KeyFactory.stringToKey(dto.getId());
 		@SuppressWarnings("unchecked")
@@ -88,9 +92,11 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 	 * @param revision indicates (1) the object to be revised and (2) the new 'shallow' properties
 	 * @param revisionDate
 	 * @return the JDO object for the new revision
+	 * @throws DatastoreException 
+	 * @throws InvalidModelException 
 	 * @exception if the version of this revision is not greater than the version of the latest revision
 	 */
-	public T revise(PersistenceManager pm, S revision, Date revisionDate) throws DatastoreException {
+	public T revise(PersistenceManager pm, S revision, Date revisionDate) throws DatastoreException, InvalidModelException {
 		if (revision.getId()==null) throw new DatastoreException("id is null");
 		if (revision.getVersion()==null) throw new DatastoreException("version is null");
 		

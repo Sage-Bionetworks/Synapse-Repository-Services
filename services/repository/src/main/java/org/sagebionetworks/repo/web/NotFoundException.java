@@ -13,11 +13,18 @@ import javax.servlet.ServletException;
  */
 public class NotFoundException extends ServletException {
 
-    private static final long serialVersionUID = 1L;
+     private static final long serialVersionUID = 1L;
 
-    /**
-     * @param message
-     */
+     /**
+      * Default constructor
+      */
+     public NotFoundException() {
+         super("The resource you are attempting to retrieve cannot be found");
+     }
+     
+     /**
+      * @param message
+      */
     public NotFoundException(String message) {
         super(message);
     }

@@ -9,7 +9,9 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.map.JsonMappingException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ErrorResponse;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.TypeMismatchException;
@@ -115,6 +117,20 @@ public abstract class BaseController {
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public @ResponseBody ErrorResponse handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
+        return handleException(ex, request);
+    }
+    
+    
+    /**
+     * This is an application exception thrown when a model object does not pass validity checks
+     *
+     * @param ex the exception to be handled
+     * @param request the client request
+     * @return an ErrorResponse object containing the exception reason or some other human-readable response
+     */
+    @ExceptionHandler(InvalidModelException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public @ResponseBody ErrorResponse handleInvalidModelException(InvalidModelException ex, HttpServletRequest request) {
         return handleException(ex, request);
     }
     
@@ -227,6 +243,20 @@ public abstract class BaseController {
         return handleException(ex, request);
     }
 
+
+    /**
+     * This is thrown when there are problems persisting and retrieving objects from the datastore
+     *
+     * @param ex the exception to be handled
+     * @param request the client request
+     * @return an ErrorResponse object containing the exception reason or some other human-readable response
+     */
+    @ExceptionHandler(DatastoreException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public @ResponseBody ErrorResponse handleDatastoreException(DatastoreException ex, HttpServletRequest request) {
+        return handleException(ex, request);
+    }
+    
     /**
      * Haven't been able to get this one to happen yet.  I was
      * assuming this might catch more exceptions that I am not

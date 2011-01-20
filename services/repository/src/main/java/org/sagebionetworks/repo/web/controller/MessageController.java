@@ -6,13 +6,12 @@ import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Message;
-import org.sagebionetworks.repo.server.MessageRepository;
+import org.sagebionetworks.repo.server.EntityRepository;
 import org.sagebionetworks.repo.view.PaginatedResults;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlPrefixes;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
@@ -27,19 +26,20 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 
 /**
- * REST controller for CRUD operations on Message objects
+ * REST controller for CRUD operations on Message objects<p>
+ * 
+ * TODO factor this similar to CommentController if we like that pattern
  * 
  * @author deflaux
  */
 @Controller
 @RequestMapping(UrlPrefixes.MESSAGE)
-public class MessageController extends BaseController {
+public class MessageController extends BaseController implements AbstractEntityController<Message> {
 
     @SuppressWarnings("unused")
     private static final Logger log = Logger.getLogger(MessageController.class.getName());
-    
-    @Autowired
-    private MessageRepository messageRepository;
+        
+    private EntityRepository<Message> messageRepository = new EntityRepository<Message>(Message.class);
 
     /**
      * Get messages<p>
@@ -55,7 +55,7 @@ public class MessageController extends BaseController {
      */
     @ResponseStatus(HttpStatus.OK)
     @RequestMapping(value = "", method = RequestMethod.GET)
-    public @ResponseBody PaginatedResults<Message> getMessages(
+    public @ResponseBody PaginatedResults<Message> getEntities(
             @RequestParam(value=ServiceConstants.PAGINATION_OFFSET_PARAM, 
                     required=false, 
                     defaultValue=ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
@@ -82,7 +82,7 @@ public class MessageController extends BaseController {
      */
     @ResponseStatus(HttpStatus.OK)
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
-        public @ResponseBody Message getMessage(@PathVariable Long id) throws NotFoundException {
+        public @ResponseBody Message getEntity(@PathVariable String id) throws NotFoundException {
         Message message = messageRepository.getById(id);
         if(null == message) {
             throw new NotFoundException("no message with id " + id + " exists");
@@ -102,7 +102,7 @@ public class MessageController extends BaseController {
      */
     @ResponseStatus(HttpStatus.CREATED)
     @RequestMapping(value = "", method = RequestMethod.POST)
-    public @ResponseBody Message createMessage(@RequestBody Message newMessage) {
+    public @ResponseBody Message createEntity(@RequestBody Message newMessage) {
         // TODO check newMessage.isValid()
         // newMessage.getValidationErrorMessage()
         messageRepository.create(newMessage);
@@ -125,7 +125,7 @@ public class MessageController extends BaseController {
      */
     @ResponseStatus(HttpStatus.OK)
     @RequestMapping(value = "/{id}", method = RequestMethod.PUT)
-    public @ResponseBody Message updateMessage(@PathVariable Long id, 
+    public @ResponseBody Message updateEntity(@PathVariable String id, 
             @RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag, 
             @RequestBody Message updatedMessage) throws NotFoundException, ConflictingUpdateException {
         Message message = messageRepository.getById(id);
@@ -148,7 +148,7 @@ public class MessageController extends BaseController {
      */
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
-    public void deleteMessage(@PathVariable Long id) throws NotFoundException {
+    public void deleteEntity(@PathVariable String id) throws NotFoundException {
         if(!messageRepository.deleteById(id)) {
             throw new NotFoundException("no message with id " + id + " exists");   
         }
@@ -164,7 +164,7 @@ public class MessageController extends BaseController {
     @ResponseStatus(HttpStatus.OK)
     @RequestMapping(value = "test", method = RequestMethod.GET)
         public String sanityCheck(ModelMap modelMap) {
-        modelMap.put("hello","REST rocks");
+        modelMap.put("hello","REST for Messages rocks");
         return ""; // use the default view
     }
         

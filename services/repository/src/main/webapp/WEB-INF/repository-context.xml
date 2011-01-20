@@ -7,6 +7,6 @@
                            http://www.springframework.org/schema/context
                            http://www.springframework.org/schema/context/spring-context-3.0.xsd">
   
-  <bean id="messageRepository" class="org.sagebionetworks.repo.server.MessageRepository" />
-  
+  <bean id="daoFactory" class="org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl" />
+    
 </beans>

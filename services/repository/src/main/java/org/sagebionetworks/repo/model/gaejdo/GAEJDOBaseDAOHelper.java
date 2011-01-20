@@ -10,6 +10,7 @@ import javax.jdo.Transaction;
 
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
@@ -41,8 +42,9 @@ abstract public class GAEJDOBaseDAOHelper<S,T extends GAEJDOBase> {
 	 * 
 	 * @param dto
 	 * @param jdo
+	 * @throws InvalidModelException 
 	 */
-	abstract public void copyFromDto(S dto, T jdo);
+	abstract public void copyFromDto(S dto, T jdo) throws InvalidModelException;
 	
 	/**
 	 * @param jdoClass the class parameterized by T
@@ -50,7 +52,7 @@ abstract public class GAEJDOBaseDAOHelper<S,T extends GAEJDOBase> {
 	abstract public Class<T> getJdoClass();
 
 	
-	public String create(S dto) {
+	public String create(S dto) throws InvalidModelException {
 		T jdo = newJDO();
 		copyFromDto(dto, jdo);
 		PersistenceManager pm = PMF.get();		

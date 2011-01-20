@@ -15,11 +15,16 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 
 public class GAEJDODatasetDAOImpl implements DatasetDAO {
+    
+    // Question: is this the right spot for this sort of constant?  Seems 
+    // like all revisable DAOs might want to share this contant
+    private static final String DEFAULT_VERSION = "0.0.1";
 	
 	private GAEJDOBaseDAOHelper<Dataset,GAEJDODataset> baseDAO = null;
 	private GAEJDORevisableDAOHelper<Dataset,GAEJDODataset> revisableDAO = null;
@@ -31,14 +36,14 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 			public GAEJDODataset newJDO() {return parent.newJDO();}
 			public Dataset newDTO() {return parent.newDTO();}
 			public void copyToDto(GAEJDODataset gae, Dataset dto) {parent.copyToDto(gae, dto);}
-			public void copyFromDto(Dataset dto, GAEJDODataset gae) {parent.copyFromDto(dto, gae);}
+			public void copyFromDto(Dataset dto, GAEJDODataset gae) throws InvalidModelException {parent.copyFromDto(dto, gae);}
 		};
 		baseDAO = new GAEJDOBaseDAOHelper<Dataset,GAEJDODataset>() {
 			public Class<GAEJDODataset> getJdoClass() {return GAEJDODataset.class;}
 			public GAEJDODataset newJDO() {return parent.newJDO();}
 			public Dataset newDTO() {return parent.newDTO();}
 			public void copyToDto(GAEJDODataset gae, Dataset dto) {parent.copyToDto(gae, dto);}
-			public void copyFromDto(Dataset dto, GAEJDODataset gae) {parent.copyFromDto(dto, gae);}
+			public void copyFromDto(Dataset dto, GAEJDODataset gae) throws InvalidModelException {parent.copyFromDto(dto, gae);}
 		};
 	}
 	
@@ -69,13 +74,33 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 //		String versionString = version.toString();
 		dto.setVersion(gae.getRevision().getVersion().toString());
 		Collection<String> layers = new HashSet<String>();
-		for (Key l : gae.getLayers()) layers.add(KeyFactory.keyToString(l));
+		Collection<Key> layerKeys = gae.getLayers();
+		if(null != layerKeys) {
+		    for (Key l : layerKeys) {
+		        layers.add(KeyFactory.keyToString(l));
+		    } 
+		}
 		dto.setLayers(layers);
 	}
 	
+	/**
+	 * @param dto
+	 * @param gae
+	 * @throws InvalidModelException
+	 */
 	// Note:  This method does NOT copy layers or revision info to the GAEJDO object,
 	// those being done by the 'revise' method
-	public void copyFromDto(Dataset dto, GAEJDODataset gae) {
+	public void copyFromDto(Dataset dto, GAEJDODataset gae) throws InvalidModelException {
+
+	    //
+	    // Confirm that the DTO is valid by checking that all required fields are set
+	    //
+	    // Question: is this where we want this sort of logic?
+	    // Dev Note: right now the only required field is name but I can imagine that the
+	    // validation logic will become more complex over time
+	    if(null == dto.getName()) {
+	        throw new InvalidModelException("'name' is a required property for Dataset");
+	    }
 		gae.setName(dto.getName());
 		gae.setDescription(dto.getDescription());
 		gae.setCreator(dto.getCreator());
@@ -106,17 +131,37 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 	 * @param dataset an original (not revised) dataset
 	 * @return the id of the newly created dataset
 	 * @throws DatastoreException
+	 * @throws InvalidModelException 
 	 */
-	public String create(Dataset dataset) throws DatastoreException {
+	public String create(Dataset dataset) throws DatastoreException, InvalidModelException {
 		PersistenceManager pm = PMF.get();	
 		Transaction tx=null;
 		try {
 			 	tx=pm.currentTransaction();
 				tx.begin();
+
+				//
+				// Set system-controlled immutable fields
+				//
+				// Question: is this where we want to be setting immutable system-controlled fields for our 
+				// objects?  This should only be set at creation time so its not appropriate to put it in copyFromDTO.
+				dataset.setCreationDate(new Date()); // now
+
+				//
+				// Set default values for optional fields that have defaults
+				//
+				// Question: is this where we want to specify reasonable default values?
+				if(null == dataset.getVersion()) {
+				    dataset.setVersion(DEFAULT_VERSION);
+				}
+				
 				GAEJDODataset jdo = revisableDAO.create(pm, dataset);
-				tx.commit();				
+				tx.commit();
+				copyToDto(jdo, dataset);
 				return KeyFactory.keyToString(jdo.getId());
-		} catch (Exception e) {
+        } catch (InvalidModelException e) {
+            throw e;
+        } catch (Exception e) {
 			throw new DatastoreException(e);
 		} finally {
 				if(tx.isActive()) {
@@ -300,7 +345,7 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 			public Dataset newDTO() {return parent.newDTO();}
 			public GAEJDODataset newJDO() {return parent.newJDO();}
 			public void copyToDto(GAEJDODataset jdo, Dataset dto) {parent.copyToDto(jdo, dto);}
-			public void copyFromDto(Dataset dto, GAEJDODataset jdo) {parent.copyFromDto(dto, jdo);}
+			public void copyFromDto(Dataset dto, GAEJDODataset jdo) throws InvalidModelException {parent.copyFromDto(dto, jdo);}
 			protected Class<GAEJDODataset> getOwnerClass() {return GAEJDODataset.class;}
 		};
 	}
@@ -320,7 +365,7 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 			public Dataset newDTO() {return parent.newDTO();}
 			public GAEJDODataset newJDO() {return parent.newJDO();}
 			public void copyToDto(GAEJDODataset jdo, Dataset dto) {parent.copyToDto(jdo, dto);}
-			public void copyFromDto(Dataset dto, GAEJDODataset jdo) {parent.copyFromDto(dto, jdo);}
+			public void copyFromDto(Dataset dto, GAEJDODataset jdo) throws InvalidModelException {parent.copyFromDto(dto, jdo);}
 			protected Class<GAEJDODataset> getOwnerClass() {return GAEJDODataset.class;}
 		};
 	}
@@ -340,7 +385,7 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 			public Dataset newDTO() {return parent.newDTO();}
 			public GAEJDODataset newJDO() {return parent.newJDO();}
 			public void copyToDto(GAEJDODataset jdo, Dataset dto) {parent.copyToDto(jdo, dto);}
-			public void copyFromDto(Dataset dto, GAEJDODataset jdo) {parent.copyFromDto(dto, jdo);}
+			public void copyFromDto(Dataset dto, GAEJDODataset jdo) throws InvalidModelException {parent.copyFromDto(dto, jdo);}
 			protected Class<GAEJDODataset> getOwnerClass() {return GAEJDODataset.class;}
 		};
 	}

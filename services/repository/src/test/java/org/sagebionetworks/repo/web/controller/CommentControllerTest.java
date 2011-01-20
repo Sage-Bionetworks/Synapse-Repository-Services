@@ -17,7 +17,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.Message;
+import org.sagebionetworks.repo.model.Comment;
 import org.sagebionetworks.repo.view.PaginatedResults;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.springframework.http.HttpStatus;
@@ -32,8 +32,10 @@ import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestC
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 
 /**
- * Unit tests for the Message CRUD operations exposed by the MessageController with JSON
+ * Unit tests for the Comment CRUD operations exposed by the CommentController with JSON
  * request and response encoding.
+ * <p>
+ * TODO REFACTOR AND COMBINE THIS WITH THE MESSAGE TESTS!
  * <p>
  * This unit test suite for the repository Google App Engine service
  * uses a local instance of DataStoreService.
@@ -52,10 +54,10 @@ import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations={"classpath:repository-context.xml","classpath:repository-servlet.xml"})
-public class MessageControllerTest {
+public class CommentControllerTest {
 
     private static final Logger log = Logger
-    .getLogger(MessageControllerTest.class.getName());
+    .getLogger(CommentControllerTest.class.getName());
 
     private static final LocalServiceTestHelper datastoreHelper =
         new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig());
@@ -87,7 +89,7 @@ public class MessageControllerTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#sanityCheck(org.springframework.ui.ModelMap)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#sanityCheck(org.springframework.ui.ModelMap)}.
      * @throws Exception
      */
     @Test
@@ -97,59 +99,59 @@ public class MessageControllerTest {
 
         request.setMethod("GET");
         request.addHeader("Accept", "application/json");
-        request.setRequestURI("/message/test");
+        request.setRequestURI("/comment/test");
         servlet.service(request, response);
         log.info("Results: " + response.getContentAsString());
         assertEquals("we got 200 OK", 200, response.getStatus());
         JSONObject results = new JSONObject(response.getContentAsString());
-        // The response should be: {"hello":"REST for Messages rocks"}
-        assertEquals("REST for Messages rocks", results.getString("hello"));
+        // The response should be: {"hello":"REST for Comments rocks"}
+        assertEquals("REST for Comments rocks", results.getString("hello"));
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntities(Integer, Integer, HttpServletRequest)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#getEntities(Integer, Integer, HttpServletRequest)}.
      * @throws Exception
      */
     @Test
-    public void testGetMessages() throws Exception {
-        // Load up a few messages
-        testCreateMessage();
-        testCreateMessage();
+    public void testGetComments() throws Exception {
+        // Load up a few comments
+        testCreateComment();
+        testCreateComment();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.setMethod("GET");
         request.addHeader("Accept", "application/json");
-        request.setRequestURI("/message");
+        request.setRequestURI("/comment");
         servlet.service(request, response);
         log.info("Results: " + response.getContentAsString());
         assertEquals(HttpStatus.OK.value(), response.getStatus());
         JSONObject results = new JSONObject(response.getContentAsString());
         // The response should be:
-        //  {"results":[{"id":1,"text":"message from a unit test"},{"id":2,
-        //   "text":"message from a unit test"}],"totalNumberOfResults":42,
-        //   "paging":{"previous":"/message?offset=1&limit=10","next":"/message?offset=11&limit=10"}}
+        //  {"results":[{"id":1,"text":"comment from a unit test"},{"id":2,
+        //   "text":"comment from a unit test"}],"totalNumberOfResults":42,
+        //   "paging":{"previous":"/comment?offset=1&limit=10","next":"/comment?offset=11&limit=10"}}
         assertNotNull(results.getInt("totalNumberOfResults"));
         assertEquals(2, results.getJSONArray("results").length());
-        assertEquals("/message?offset=1&limit=10", results.getJSONObject("paging").getString(PaginatedResults.PREVIOUS_PAGE_FIELD));
-        assertEquals("/message?offset=11&limit=10", results.getJSONObject("paging").getString(PaginatedResults.NEXT_PAGE_FIELD));
+        assertEquals("/comment?offset=1&limit=10", results.getJSONObject("paging").getString(PaginatedResults.PREVIOUS_PAGE_FIELD));
+        assertEquals("/comment?offset=11&limit=10", results.getJSONObject("paging").getString(PaginatedResults.NEXT_PAGE_FIELD));
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntities(Integer, Integer, HttpServletRequest)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#getEntities(Integer, Integer, HttpServletRequest)}.
      * @throws Exception
      */
     @Test
-    public void testGetMessagesBadLimit() throws Exception {
-        // Load up a few messages
-        testCreateMessage();
-        testCreateMessage();
+    public void testGetCommentsBadLimit() throws Exception {
+        // Load up a few comments
+        testCreateComment();
+        testCreateComment();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.setMethod("GET");
         request.addHeader("Accept", "application/json");
-        request.setRequestURI("/message");
+        request.setRequestURI("/comment");
         request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, "1");
         request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, "0");
         servlet.service(request, response);
@@ -161,20 +163,20 @@ public class MessageControllerTest {
     }
     
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntities(Integer, Integer, HttpServletRequest)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#getEntities(Integer, Integer, HttpServletRequest)}.
      * @throws Exception
      */
     @Test
-    public void testGetMessagesBadOffset() throws Exception {
-        // Load up a few messages
-        testCreateMessage();
-        testCreateMessage();
+    public void testGetCommentsBadOffset() throws Exception {
+        // Load up a few comments
+        testCreateComment();
+        testCreateComment();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.setMethod("GET");
         request.addHeader("Accept", "application/json");
-        request.setRequestURI("/message");
+        request.setRequestURI("/comment");
         request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, "-5");
         request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, "0");
         servlet.service(request, response);
@@ -186,60 +188,60 @@ public class MessageControllerTest {
     }
     
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntity(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#getEntity(java.lang.Long)}.
      * @throws Exception
      */
     @Test
-    public void testGetMessage() throws Exception {
-        // Load up a few messages
-        testCreateMessage();
-        testCreateMessage();
+    public void testGetComment() throws Exception {
+        // Load up a few comments
+        testCreateComment();
+        testCreateComment();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.setMethod("GET");
         request.addHeader("Accept", "application/json");
-        request.setRequestURI("/message/2");
+        request.setRequestURI("/comment/2");
         servlet.service(request, response);
         log.info("Results: " + response.getContentAsString());
         assertEquals(HttpStatus.OK.value(), response.getStatus());
         JSONObject results = new JSONObject(response.getContentAsString());
-        // The response should be: {"id":1,"text":"message from a unit test"}
+        // The response should be: {"id":1,"text":"comment from a unit test"}
         assertEquals(2, results.getInt("id"));
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntity(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#getEntity(java.lang.Long)}.
      * @throws Exception
      */
     @Test
-    public void testGetNonExistentMessage() throws Exception {
+    public void testGetNonExistentComment() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         request.setMethod("GET");
         request.addHeader("Accept", "application/json");
-        request.setRequestURI("/message/22");
+        request.setRequestURI("/comment/22");
         servlet.service(request, response);
         log.info("Results: " + response.getContentAsString());
         assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus());
         JSONObject results = new JSONObject(response.getContentAsString());
-        // The response should be: {"reason":"no message with id 22 exists"}
+        // The response should be: {"reason":"no comment with id 22 exists"}
         assertNotNull(results.getString("reason"));
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntity(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#getEntity(java.lang.Long)}.
      * @throws Exception
      */
     @Test
-    public void testGetMessageBadId() throws Exception {
+    public void testGetCommentBadId() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         request.setMethod("GET");
         request.addHeader("Accept", "application/json");
-        request.setRequestURI("/message/thisShouldBeANumber");
+        request.setRequestURI("/comment/thisShouldBeANumber");
         servlet.service(request, response);
         log.info("Results: " + response.getContentAsString());
         assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
@@ -250,66 +252,66 @@ public class MessageControllerTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createEntity(Message)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#createEntity(Comment)}.
      * @throws Exception
      */
     @Test
-    public void testCreateMessage() throws Exception {
+    public void testCreateComment() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.setMethod("POST");
         request.addHeader("Accept", "application/json");
-        String requestURI = "/message";
+        String requestURI = "/comment";
         request.setRequestURI(requestURI);
         request.addHeader("Content-Type", "application/json; charset=UTF-8");
-        request.setContent("{\"text\":\"message from a unit test\"}".getBytes("UTF-8"));
+        request.setContent("{\"text\":\"comment from a unit test\"}".getBytes("UTF-8"));
         servlet.service(request, response);
         log.info("Results: " + response.getContentAsString());
         assertEquals(HttpStatus.CREATED.value(), response.getStatus());
         JSONObject results = new JSONObject(response.getContentAsString());
-        // The response should be something like: {"id":1,"text":"message from a unit test"}
+        // The response should be something like: {"id":1,"text":"comment from a unit test"}
         assertTrue(0 < results.getInt("id"));
-        assertEquals("message from a unit test", results.getString("text"));
+        assertEquals("comment from a unit test", results.getString("text"));
         assertEquals(requestURI + "/" + results.getInt("id"), response.getHeader(ServiceConstants.LOCATION_HEADER));
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createEntity(Message)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#createEntity(Comment)}.
      * @throws Exception
      */
     @Test
-    public void testInvalidModelCreateMessage() throws Exception {
+    public void testInvalidModelCreateComment() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.setMethod("POST");
         request.addHeader("Accept", "application/json");
-        request.setRequestURI("/message");
+        request.setRequestURI("/comment");
         request.addHeader("Content-Type", "application/json; charset=UTF-8");
-        request.setContent("{\"textBROKEN\":\"message from a unit test\"}".getBytes("UTF-8"));
+        request.setContent("{\"textBROKEN\":\"comment from a unit test\"}".getBytes("UTF-8"));
         servlet.service(request, response);
         log.info("Results: " + response.getContentAsString());
         assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
         JSONObject results = new JSONObject(response.getContentAsString());
         // The response should be something like: {"reason":"Unrecognized field \"textBROKEN\"
-        // (Class org.sagebionetworks.repo.model.Message), not marked as ignorable\n at
+        // (Class org.sagebionetworks.repo.model.Comment), not marked as ignorable\n at
         // [Source: org.mortbay.jetty.HttpParser$Input@293a985; line: 1, column: 2]"}
         assertNotNull(results.getString("reason"));
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createEntity(Message)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#createEntity(Comment)}.
      * @throws Exception
      */
     @Test
-    public void testInvalidJsonCreateMessage() throws Exception {
+    public void testInvalidJsonCreateComment() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.setMethod("POST");
         request.addHeader("Accept", "application/json");
-        request.setRequestURI("/message");
+        request.setRequestURI("/comment");
         request.addHeader("Content-Type", "application/json; charset=UTF-8");
         // Notice the missing quotes around the key
-        request.setContent("{text:\"message from a unit test\"}".getBytes("UTF-8"));
+        request.setContent("{text:\"comment from a unit test\"}".getBytes("UTF-8"));
         servlet.service(request, response);
         log.info("Results: " + response.getContentAsString());
         assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
@@ -324,16 +326,16 @@ public class MessageControllerTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createEntity(Message)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#createEntity(Comment)}.
      * @throws Exception
      */
     @Test
-    public void testMissingBodyCreateMessage() throws Exception {
+    public void testMissingBodyCreateComment() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.setMethod("POST");
         request.addHeader("Accept", "application/json");
-        request.setRequestURI("/message");
+        request.setRequestURI("/comment");
         request.addHeader("Content-Type", "application/json; charset=UTF-8");
         // No call to request.setContent()
         servlet.service(request, response);
@@ -345,20 +347,20 @@ public class MessageControllerTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#deleteEntity(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#deleteEntity(java.lang.Long)}.
      * @throws Exception
      */
     @Test
-    public void testDeleteMessage() throws Exception {
-        // Load up a few messages
-        testCreateMessage();
-        testCreateMessage();
+    public void testDeleteComment() throws Exception {
+        // Load up a few comments
+        testCreateComment();
+        testCreateComment();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.setMethod("DELETE");
         request.addHeader("Accept", "application/json");
-        request.setRequestURI("/message/2");
+        request.setRequestURI("/comment/2");
         servlet.service(request, response);
         log.info("Results: " + response.getContentAsString());
         assertEquals(HttpStatus.NO_CONTENT.value(), response.getStatus());
@@ -367,64 +369,64 @@ public class MessageControllerTest {
 
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#deleteEntity(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#deleteEntity(java.lang.Long)}.
      * @throws Exception
      */
     @Test
-    public void testDeleteNonExistentMessage() throws Exception {
+    public void testDeleteNonExistentComment() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         request.setMethod("DELETE");
         request.addHeader("Accept", "application/json");
-        request.setRequestURI("/message/2");
+        request.setRequestURI("/comment/2");
         servlet.service(request, response);
         log.info("Results: " + response.getContentAsString());
         assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus());
         JSONObject results = new JSONObject(response.getContentAsString());
-        // The response should be: {"reason":"no message with id 22 exists"}
+        // The response should be: {"reason":"no comment with id 22 exists"}
         assertNotNull(results.getString("reason"));
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#updateEntity(Long, Integer, Message)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#updateEntity(Long, Integer, Comment)}.
      * @throws Exception
      */
     @Test
-    public void testUpdateMessage() throws Exception {
-        // Make one new message
-        testCreateMessage();
+    public void testUpdateComment() throws Exception {
+        // Make one new comment
+        testCreateComment();
 
-        // Get that message
+        // Get that comment
         MockHttpServletRequest getMethodRequest = new MockHttpServletRequest();
         MockHttpServletResponse getMethodResponse = new MockHttpServletResponse();
         getMethodRequest.setMethod("GET");
         getMethodRequest.addHeader("Accept", "application/json");
-        getMethodRequest.setRequestURI("/message/1");
+        getMethodRequest.setRequestURI("/comment/1");
         servlet.service(getMethodRequest, getMethodResponse);
         log.info("GET Results: " + getMethodResponse.getContentAsString());
         JSONObject getResults = new JSONObject(getMethodResponse.getContentAsString());
         Integer etag = (Integer) getMethodResponse.getHeader(ServiceConstants.ETAG_HEADER);
         assertNotNull(etag);
 
-        // Modify that message
-        getResults.put("text", "updated message from a unit test");
+        // Modify that comment
+        getResults.put("text", "updated comment from a unit test");
 
         MockHttpServletRequest putMethodRequest = new MockHttpServletRequest();
         MockHttpServletResponse putMethodResponse = new MockHttpServletResponse();
         putMethodRequest.setMethod("PUT");
         putMethodRequest.addHeader("Accept", "application/json");
         putMethodRequest.addHeader(ServiceConstants.ETAG_HEADER, etag);
-        putMethodRequest.setRequestURI("/message/1");
+        putMethodRequest.setRequestURI("/comment/1");
         putMethodRequest.addHeader("Content-Type", "application/json; charset=UTF-8");
         putMethodRequest.setContent(getResults.toString().getBytes("UTF-8"));
         servlet.service(putMethodRequest, putMethodResponse);
         log.info("Results: " + putMethodResponse.getContentAsString());
         assertEquals(HttpStatus.OK.value(), putMethodResponse.getStatus());
         JSONObject results = new JSONObject(putMethodResponse.getContentAsString());
-        // The response should be something like: {"id":1,"text":"updated message from a unit test"}
+        // The response should be something like: {"id":1,"text":"updated comment from a unit test"}
         assertTrue(0 < results.getInt("id"));
-        assertEquals("updated message from a unit test", results.getString("text"));
+        assertEquals("updated comment from a unit test", results.getString("text"));
         Integer updatedEtag = (Integer) putMethodResponse.getHeader(ServiceConstants.ETAG_HEADER);
         assertNotNull(updatedEtag);
 
@@ -433,37 +435,37 @@ public class MessageControllerTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#updateEntity(Long, Integer, Message)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#updateEntity(Long, Integer, Comment)}.
      * @throws Exception
      */
     @Test
-    public void testUpdateMessageConflict() throws Exception {
-        // Make one new message
-        testCreateMessage();
+    public void testUpdateCommentConflict() throws Exception {
+        // Make one new comment
+        testCreateComment();
 
-        // Get that message
+        // Get that comment
         MockHttpServletRequest getMethodRequest = new MockHttpServletRequest();
         MockHttpServletResponse getMethodResponse = new MockHttpServletResponse();
         getMethodRequest.setMethod("GET");
         getMethodRequest.addHeader("Accept", "application/json");
-        getMethodRequest.setRequestURI("/message/1");
+        getMethodRequest.setRequestURI("/comment/1");
         servlet.service(getMethodRequest, getMethodResponse);
         log.info("GET Results: " + getMethodResponse.getContentAsString());
         JSONObject getResults = new JSONObject(getMethodResponse.getContentAsString());
         Integer etag = (Integer) getMethodResponse.getHeader(ServiceConstants.ETAG_HEADER);
 
         // Someone else updates it
-        testUpdateMessage();
+        testUpdateComment();
 
-        // Modify the message we got earlier
-        getResults.put("text", "conflicting message from a unit test");
+        // Modify the comment we got earlier
+        getResults.put("text", "conflicting comment from a unit test");
 
         MockHttpServletRequest putMethodRequest = new MockHttpServletRequest();
         MockHttpServletResponse putMethodResponse = new MockHttpServletResponse();
         putMethodRequest.setMethod("PUT");
         putMethodRequest.addHeader("Accept", "application/json");
         putMethodRequest.addHeader(ServiceConstants.ETAG_HEADER, etag);
-        putMethodRequest.setRequestURI("/message/1");
+        putMethodRequest.setRequestURI("/comment/1");
         putMethodRequest.addHeader("Content-Type", "application/json; charset=UTF-8");
         putMethodRequest.setContent(getResults.toString().getBytes("UTF-8"));
         servlet.service(putMethodRequest, putMethodResponse);
@@ -475,55 +477,55 @@ public class MessageControllerTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#updateEntity(Long, Integer, Message)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#updateEntity(Long, Integer, Comment)}.
      * @throws Exception
      */
     @Test
-    public void testUpdateMessageMissingEtag() throws Exception {
-        // Make one new message
-        testCreateMessage();
+    public void testUpdateCommentMissingEtag() throws Exception {
+        // Make one new comment
+        testCreateComment();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.setMethod("PUT");
         request.addHeader("Accept", "application/json");
-        request.setRequestURI("/message/1");
+        request.setRequestURI("/comment/1");
         request.addHeader("Content-Type", "application/json; charset=UTF-8");
-        request.setContent("{\"id\": 1, \"text\":\"updated message from a unit test\"}".getBytes("UTF-8"));
+        request.setContent("{\"id\": 1, \"text\":\"updated comment from a unit test\"}".getBytes("UTF-8"));
         servlet.service(request, response);
         log.info("Results: " + response.getContentAsString());
         assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
         JSONObject results = new JSONObject(response.getContentAsString());
         // The response should be something like:  {"reason":"Failed to invoke handler method [public
-        // org.sagebionetworks.repo.model.Message org.sagebionetworks.repo.web.controller.MessageController.updateMessage
-        // (java.lang.Long,java.lang.String,org.sagebionetworks.repo.model.Message)
+        // org.sagebionetworks.repo.model.Comment org.sagebionetworks.repo.web.controller.CommentController.updateComment
+        // (java.lang.Long,java.lang.String,org.sagebionetworks.repo.model.Comment)
         // throws org.sagebionetworks.repo.web.NotFoundException]; nested exception is java.lang.IllegalStateException:
         // Missing header 'Etag' of type [java.lang.String]"}
         assertNotNull(results.getString("reason"));
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#updateEntity(Long, Integer, Message)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#updateEntity(Long, Integer, Comment)}.
      * @throws Exception
      */
     @Test
-    public void testUpdateNonExistentMessage() throws Exception {
-        // Make one new message
-        testCreateMessage();
+    public void testUpdateNonExistentComment() throws Exception {
+        // Make one new comment
+        testCreateComment();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.setMethod("PUT");
         request.addHeader("Accept", "application/json");
         request.addHeader("Etag", 123);
-        request.setRequestURI("/message/100");
+        request.setRequestURI("/comment/100");
         request.addHeader("Content-Type", "application/json; charset=UTF-8");
-        request.setContent("{\"id\": 100, \"text\":\"updated message from a unit test\"}".getBytes("UTF-8"));
+        request.setContent("{\"id\": 100, \"text\":\"updated comment from a unit test\"}".getBytes("UTF-8"));
         servlet.service(request, response);
         log.info("Results: " + response.getContentAsString());
         assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus());
         JSONObject results = new JSONObject(response.getContentAsString());
-        // The response should be something like: {"reason":"no message with id 100 exists"}
+        // The response should be something like: {"reason":"no comment with id 100 exists"}
         assertNotNull(results.getString("reason"));
     }
 }

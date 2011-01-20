@@ -121,7 +121,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getMessage(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntity(java.lang.Long)}.
      * @throws Exception
      */
     @Test
@@ -140,7 +140,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getMessage(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntity(java.lang.Long)}.
      * @throws Exception
      */
     @Test
@@ -154,13 +154,11 @@ public class MessageControllerXMLTest {
         servlet.service(request, response);
         log.info("Results: " + response.getContentAsString());
         assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
-        assertTrue(response.getContentAsString().equals("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><errorResponse>"
-                + "<reason>Failed to convert value of type 'java.lang.String' to required type 'java.lang.Long'; nested exception is "
-                + "java.lang.NumberFormatException: For input string: &quot;thisShouldBeANumber&quot;</reason></errorResponse>"));
+        assertTrue(response.getContentAsString().startsWith("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><errorResponse>"));
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createMessage(Message)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createEntity(Message)}.
      * @throws Exception
      */
     @Test
@@ -180,7 +178,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createMessage(Message)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createEntity(Message)}.
      * @throws Exception
      */
     @Test
@@ -200,7 +198,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createMessage(Message)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createEntity(Message)}.
      * @throws Exception
      */
     @Test
@@ -221,7 +219,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createMessage(Message)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createEntity(Message)}.
      * @throws Exception
      */
     @Test
@@ -241,7 +239,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#deleteMessage(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#deleteEntity(java.lang.Long)}.
      * @throws Exception
      */
     @Test
@@ -263,7 +261,7 @@ public class MessageControllerXMLTest {
 
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#deleteMessage(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#deleteEntity(java.lang.Long)}.
      * @throws Exception
      */
     @Test
@@ -282,7 +280,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getMessage(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntity(java.lang.Long)}.
      *
      * @throws Exception
      */
@@ -308,7 +306,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getMessages(Integer, Integer, HttpServletRequest)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntities(Integer, Integer, HttpServletRequest)}.
      *
      * @throws Exception
      */
@@ -342,7 +340,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getMessages(Integer, Integer, HttpServletRequest)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntities(Integer, Integer, HttpServletRequest)}.
      * @throws Exception
      */
     @Test
@@ -371,7 +369,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getMessages(Integer, Integer, HttpServletRequest)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntities(Integer, Integer, HttpServletRequest)}.
      * @throws Exception
      */
     @Test
