@@ -50,10 +50,9 @@ abstract public class GAEJDOBaseDAOHelper<S,T extends GAEJDOBase> {
 	abstract public Class<T> getJdoClass();
 
 	
-	public String create(S dto, Date creationDate) {
+	public String create(S dto) {
 		T jdo = newJDO();
 		copyFromDto(dto, jdo);
-		jdo.setCreationDate(creationDate);
 		PersistenceManager pm = PMF.get();		
 				Transaction tx=null;
 		try {
@@ -75,10 +74,10 @@ abstract public class GAEJDOBaseDAOHelper<S,T extends GAEJDOBase> {
 		try {
 			Key key = KeyFactory.stringToKey(id);
 			@SuppressWarnings("unchecked")
-			T jdo = (T)pm.getObjectById(key);
-			pm.close();
+			T jdo = (T)pm.getObjectById(getJdoClass(), key);
 			S dto = newDTO();
 			copyToDto(jdo, dto);
+			pm.close();
 			return dto;
 		} catch (Exception e) {
 			throw new DatastoreException(e);

@@ -11,12 +11,6 @@ import org.sagebionetworks.repo.model.DatasetAnalysisDAO;
 import com.google.appengine.api.datastore.Key;
 
 public class GAEJDODatasetAnalysisDAOImpl implements DatasetAnalysisDAO {
-//	private PersistenceManager pm;
-//	
-//	public GAEJDODatasetAnalysisDAOImpl(PersistenceManager pm) {
-//		this.pm=pm;
-//	}
-	
 	public GAEJDODatasetAnalysis getDatasetAnalysis(Key id) {
 		PersistenceManager pm = PMF.get();		
 		GAEJDODatasetAnalysis ans = (GAEJDODatasetAnalysis)pm.getObjectById(GAEJDODatasetAnalysis.class, id);

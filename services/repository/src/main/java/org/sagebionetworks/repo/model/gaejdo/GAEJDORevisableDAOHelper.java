@@ -59,6 +59,7 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 			pm.makePersistent(jdo);
 			r.setOriginal(r.getId()); // points to itself
 			pm.makePersistent(jdo); // not sure if it's necessary to 'persist' again
+			jdo.getRevision().getVersion().toString();
 			return jdo;					
 	}
 	

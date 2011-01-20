@@ -32,7 +32,7 @@ import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestC
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 
 
-public class DatasetTest {
+public class DatasetDAOTest {
     private final LocalServiceTestHelper helper = 
         new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig()); 
     
@@ -76,16 +76,17 @@ public class DatasetTest {
 		DatasetDAO dao = fac.getDatasetDAO();
 		id = dao.create(d);
 		Assert.assertNotNull(id);
-		System.out.println("id="+id);
-		dao.addAnnotation(id, "Tissue Type", "liver");
+		// TODO
+//		dao.getStringAnnotationDAO().addAnnotation(id, "Tissue Type", "liver");
 		
-//		1/17/2011: the next line causes an exception -- currently under investigation...
-//		Dataset d2 = dao.get(id);
-//		Assert.assertEquals(d.getName(), d2.getName());
-//		Annotations annots = dao.getAnnotations(id);
+		Dataset d2 = dao.get(id);
+		Assert.assertEquals(d.getName(), d2.getName());
+		Annotations annots = dao.getAnnotations(id);
 //		Collection<String> tissueType = annots.getStringAnnotations().get("Tissue Type");
 //		Assert.assertEquals(1, tissueType.size());
 //		Assert.assertEquals("liver", tissueType.iterator().next());
+	
+		
 		
 //		// create a new project
 //		GAEJDODataset dataset = new GAEJDODataset();

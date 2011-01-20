@@ -14,7 +14,7 @@ import javax.jdo.annotations.PrimaryKey;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
 
-@PersistenceCapable(detachable = "false")
+//@PersistenceCapable(detachable = "false")
 public class GAEJDOAnnotations {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
@@ -30,37 +30,27 @@ public class GAEJDOAnnotations {
 	// populate the fields itself.   However in the worst case the field 
 	// are just overwritten and so a little time is wasted creating these empty maps.
 	public GAEJDOAnnotations() {
-		setStringAnnotations(new HashSet<GAEJDOStringAnnotation>());
-		setIntegerAnnotations(new HashSet<GAEJDOIntegerAnnotation>());
-		setTextAnnotations(new HashSet<GAEJDOTextAnnotation>());
-		setBooleanAnnotations(new HashSet<GAEJDOBooleanAnnotation>());
-		setFloatAnnotations(new HashSet<GAEJDOFloatAnnotation>());
-		setDateAnnotations(new HashSet<GAEJDODateAnnotation>());
+		setStringAnnotations(new HashSet<GAEJDOAnnotation<String>>());
+		setNumberAnnotations(new HashSet<GAEJDOAnnotation<Number>>());
+		setTextAnnotations(new HashSet<GAEJDOAnnotation<Text>>());
+		setDateAnnotations(new HashSet<GAEJDOAnnotation<Date>>());
 	}
 	
 	public static GAEJDOAnnotations clone(GAEJDOAnnotations a) {
 		GAEJDOAnnotations ans = new GAEJDOAnnotations();
-		Set<GAEJDOStringAnnotation> sa = ans.getStringAnnotations();
-		for (GAEJDOStringAnnotation annot : a.getStringAnnotations()) {
+		Set<GAEJDOAnnotation<String>> sa = ans.getStringAnnotations();
+		for (GAEJDOAnnotation<String> annot : a.getStringAnnotations()) {
 			sa.add(new GAEJDOStringAnnotation(annot.getAttribute(), annot.getValue()));
 		}
-		Set<GAEJDOIntegerAnnotation> ia = ans.getIntegerAnnotations();
-		for (GAEJDOAnnotation<Integer> annot : a.getIntegerAnnotations()) {
-			ia.add(new GAEJDOIntegerAnnotation(annot.getAttribute(), annot.getValue()));
+		Set<GAEJDOAnnotation<Number>> ia = ans.getNumberAnnotations();
+		for (GAEJDOAnnotation<Number> annot : a.getNumberAnnotations()) {
+			ia.add(new GAEJDONumberAnnotation(annot.getAttribute(), annot.getValue()));
 		}
-		Set<GAEJDOBooleanAnnotation> ba = ans.getBooleanAnnotations();
-		for (GAEJDOAnnotation<Boolean> annot : a.getBooleanAnnotations()) {
-			ba.add(new GAEJDOBooleanAnnotation(annot.getAttribute(), annot.getValue()));
-		}
-		Set<GAEJDOTextAnnotation> ta = ans.getTextAnnotations();
+		Set<GAEJDOAnnotation<Text>> ta = ans.getTextAnnotations();
 		for (GAEJDOAnnotation<Text> annot : a.getTextAnnotations()) {
 			ta.add(new GAEJDOTextAnnotation(annot.getAttribute(), annot.getValue()));
 		}
-		Set<GAEJDOFloatAnnotation> fa = ans.getFloatAnnotations();
-		for (GAEJDOAnnotation<Float> annot : a.getFloatAnnotations()) {
-			fa.add(new GAEJDOFloatAnnotation(annot.getAttribute(), annot.getValue()));
-		}
-		Set<GAEJDODateAnnotation> da = ans.getDateAnnotations();
+		Set<GAEJDOAnnotation<Date>> da = ans.getDateAnnotations();
 		for (GAEJDOAnnotation<Date> annot : a.getDateAnnotations()) {
 			da.add(new GAEJDODateAnnotation(annot.getAttribute(), annot.getValue()));
 		}
@@ -69,27 +59,19 @@ public class GAEJDOAnnotations {
 		
 	@Persistent(mappedBy = "owner") 	
 	@Element(dependent = "true")
-	private Set<GAEJDOStringAnnotation> stringAnnotations;
+	private Set<GAEJDOAnnotation<String>> stringAnnotations;
 
 	@Persistent(mappedBy = "owner") 	
 	@Element(dependent = "true")
-	private Set<GAEJDOIntegerAnnotation> integerAnnotations;
+	private Set<GAEJDOAnnotation<Number>> numberAnnotations;
 
 	@Persistent(mappedBy = "owner") 	
 	@Element(dependent = "true")
-	private Set<GAEJDOTextAnnotation> textAnnotations;
+	private Set<GAEJDOAnnotation<Text>> textAnnotations;
 
 	@Persistent(mappedBy = "owner") 	
 	@Element(dependent = "true")
-	private Set<GAEJDOBooleanAnnotation> booleanAnnotations;
-
-	@Persistent(mappedBy = "owner") 	
-	@Element(dependent = "true")
-	private Set<GAEJDOFloatAnnotation> floatAnnotations;
-
-	@Persistent(mappedBy = "owner") 	
-	@Element(dependent = "true")
-	private Set<GAEJDODateAnnotation> dateAnnotations;
+	private Set<GAEJDOAnnotation<Date>> dateAnnotations;
 
 	public Key getId() {
 		return id;
@@ -99,60 +81,36 @@ public class GAEJDOAnnotations {
 		this.id = id;
 	}
 
-//	public GAEJDOAnnotatable getOwner() {
-//		return owner;
-//	}
-//
-//	public void setOwner(GAEJDOAnnotatable owner) {
-//		this.owner = owner;
-//	}
-
-	public Set<GAEJDOStringAnnotation> getStringAnnotations() {
+	public Set<GAEJDOAnnotation<String>> getStringAnnotations() {
 		return stringAnnotations;
 	}
 
 	public void setStringAnnotations(
-			Set<GAEJDOStringAnnotation> stringAnnotations) {
+			Set<GAEJDOAnnotation<String>> stringAnnotations) {
 		this.stringAnnotations = stringAnnotations;
 	}
 
-	public Set<GAEJDOIntegerAnnotation> getIntegerAnnotations() {
-		return integerAnnotations;
+	public Set<GAEJDOAnnotation<Number>> getNumberAnnotations() {
+		return numberAnnotations;
 	}
 
-	public void setIntegerAnnotations(Set<GAEJDOIntegerAnnotation> integerAnnotations) {
-		this.integerAnnotations = integerAnnotations;
+	public void setNumberAnnotations(Set<GAEJDOAnnotation<Number>> numberAnnotations) {
+		this.numberAnnotations = numberAnnotations;
 	}
 
-	public Set<GAEJDOTextAnnotation> getTextAnnotations() {
+	public Set<GAEJDOAnnotation<Text>> getTextAnnotations() {
 		return textAnnotations;
 	}
 
-	public void setTextAnnotations(Set<GAEJDOTextAnnotation> textAnnotations) {
+	public void setTextAnnotations(Set<GAEJDOAnnotation<Text>> textAnnotations) {
 		this.textAnnotations = textAnnotations;
 	}
 
-	public Set<GAEJDOBooleanAnnotation> getBooleanAnnotations() {
-		return booleanAnnotations;
-	}
-
-	public void setBooleanAnnotations(Set<GAEJDOBooleanAnnotation> booleanAnnotations) {
-		this.booleanAnnotations = booleanAnnotations;
-	}
-
-	public Set<GAEJDOFloatAnnotation> getFloatAnnotations() {
-		return floatAnnotations;
-	}
-
-	public void setFloatAnnotations(Set<GAEJDOFloatAnnotation> floatAnnotations) {
-		this.floatAnnotations = floatAnnotations;
-	}
-
-	public Set<GAEJDODateAnnotation> getDateAnnotations() {
+	public Set<GAEJDOAnnotation<Date>> getDateAnnotations() {
 		return dateAnnotations;
 	}
 
-	public void setDateAnnotations(Set<GAEJDODateAnnotation> dateAnnotations) {
+	public void setDateAnnotations(Set<GAEJDOAnnotation<Date>> dateAnnotations) {
 		this.dateAnnotations = dateAnnotations;
 	}
 

@@ -5,17 +5,17 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 import javax.jdo.PersistenceManager;
-import javax.jdo.Query;
 import javax.jdo.Transaction;
 
-import org.sagebionetworks.repo.model.AnalysisResultDAO;
+import org.sagebionetworks.repo.model.AnnotationDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 
@@ -23,7 +23,6 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 	
 	private GAEJDOBaseDAOHelper<Dataset,GAEJDODataset> baseDAO = null;
 	private GAEJDORevisableDAOHelper<Dataset,GAEJDODataset> revisableDAO = null;
-	private GAEJDORevisableAnnotatableDAOHelper<Dataset, GAEJDODataset> annotatableDAO = null;
 	
 	public GAEJDODatasetDAOImpl() {
 		final GAEJDODatasetDAOImpl parent = this;
@@ -62,8 +61,12 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 		dto.setName(gae.getName());
 		dto.setDescription(gae.getDescription());
 		dto.setCreator(gae.getCreator());
+		dto.setCreationDate(gae.getCreationDate());
 		dto.setStatus(gae.getStatus());
 		dto.setReleaseDate(gae.getReleaseDate());
+//		GAEJDORevision<GAEJDODataset> rev = gae.getRevision();
+//		Version version = rev.getVersion();
+//		String versionString = version.toString();
 		dto.setVersion(gae.getRevision().getVersion().toString());
 		Collection<String> layers = new HashSet<String>();
 		for (Key l : gae.getLayers()) layers.add(KeyFactory.keyToString(l));
@@ -76,6 +79,7 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 		gae.setName(dto.getName());
 		gae.setDescription(dto.getDescription());
 		gae.setCreator(dto.getCreator());
+		gae.setCreationDate(dto.getCreationDate());
 		gae.setStatus(dto.getStatus());
 		gae.setReleaseDate(dto.getReleaseDate());
 	}
@@ -269,191 +273,80 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 	}
 	
 
-	
-	@Override
-	public void addAnnotation(String id, String attribute, String value)
-			throws DatastoreException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void addAnnotation(String id, String attribute, Integer value)
-			throws DatastoreException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void addAnnotation(String id, String attribute, Float value)
-			throws DatastoreException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void addAnnotation(String id, String attribute, Boolean value)
-			throws DatastoreException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void addAnnotation(String id, String attribute, Date value)
-			throws DatastoreException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void removeAnnotation(String id, String attribute, String value)
-			throws DatastoreException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void removeAnnotation(String id, String attribute, Integer value)
-			throws DatastoreException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void removeAnnotation(String id, String attribute, Float value)
-			throws DatastoreException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void removeAnnotation(String id, String attribute, Boolean value)
-			throws DatastoreException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void removeAnnotation(String id, String attribute, Date value)
-			throws DatastoreException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
+	/**
+	 * @param id
+	 * @return annotations for the given object of the given type
+	 */
 	public Annotations getAnnotations(String id) throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
+		Annotations ans = new Annotations();
+		ans.setStringAnnotations(getStringAnnotationDAO().getAnnotations(id));
+		ans.setNumberAnnotations(getNumberAnnotationDAO().getAnnotations(id));
+		ans.setDateAnnotations(getDateAnnotationDAO().getAnnotations(id));
+		return ans;
 	}
-
-	@Override
-	public Collection<String> getStringAttributes() throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Collection<Integer> getIntegerAttributes() throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Collection<Boolean> getBooleanAttributes() throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Collection<Float> getFloatAttributes() throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Collection<Date> getDateAttributes() throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<Dataset> getInRangeSortedByString(int start, int end,
-			String sortByAttr) throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<Dataset> getInRangeSortedByInteger(int start, int end,
-			String sortByAttr) throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<Dataset> getInRangeSortedByBoolean(int start, int end,
-			String sortByAttr) throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<Dataset> getInRangeSortedByFloat(int start, int end,
-			String sortByAttr) throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<Dataset> getInRangeSortedByDate(int start, int end,
-			String sortByAttr) throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<Dataset> getInRangeHaving(int start, int end, String attribute,
-			String value) throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<Dataset> getInRangeHaving(int start, int end, String attribute,
-			Integer value) throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<Dataset> getInRangeHaving(int start, int end, String attribute,
-			Boolean value) throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<Dataset> getInRangeHaving(int start, int end, String attribute,
-			Float value) throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<Dataset> getInRangeHaving(int start, int end, String attribute,
-			Date value) throws DatastoreException {
-		PersistenceManager pm = PMF.get();	
-		try {
-			List<Dataset> dtos = annotatableDAO.getHavingDateAnnotation(pm, attribute, value, start,end);
-			return dtos;
-		} catch (Exception e) {
-			throw new DatastoreException(e);
-		} finally {
-			pm.close();
-		}	
-	}
-
 	
+	public AnnotationDAO<Dataset, String> getStringAnnotationDAO() {
+		final GAEJDODatasetDAOImpl parent = this;
+		return new GAEJDORevisableAnnotationDAOImpl<Dataset, GAEJDODataset, String>() {
+			protected Class<? extends GAEJDOAnnotation<String>> getAnnotationClass() {return GAEJDOStringAnnotation.class;} 
+			protected Class<String> getValueClass() {return String.class;}
+			protected GAEJDOAnnotation<String> newAnnotation(String attribute, String value) {
+				return new GAEJDOStringAnnotation(attribute, value);
+			}
+			protected String getCollectionName() {return "stringAnnotations";}
+			protected Set<GAEJDOAnnotation<String>> getAnnotationSet(GAEJDOAnnotations annots) {
+				return annots.getStringAnnotations();
+			}
+			public Dataset newDTO() {return parent.newDTO();}
+			public GAEJDODataset newJDO() {return parent.newJDO();}
+			public void copyToDto(GAEJDODataset jdo, Dataset dto) {parent.copyToDto(jdo, dto);}
+			public void copyFromDto(Dataset dto, GAEJDODataset jdo) {parent.copyFromDto(dto, jdo);}
+			protected Class<GAEJDODataset> getOwnerClass() {return GAEJDODataset.class;}
+		};
+	}
+	
+	public AnnotationDAO<Dataset, Number> getNumberAnnotationDAO()  {
+		final GAEJDODatasetDAOImpl parent = this;
+		return new GAEJDORevisableAnnotationDAOImpl<Dataset, GAEJDODataset, Number>() {
+			protected Class<? extends GAEJDOAnnotation<Number>> getAnnotationClass() {return GAEJDONumberAnnotation.class;} 
+			protected Class<Number> getValueClass() {return Number.class;}
+			protected GAEJDOAnnotation<Number> newAnnotation(String attribute, Number value) {
+				return new GAEJDONumberAnnotation(attribute, value);
+			}
+			protected String getCollectionName() {return "numberAnnotations";}
+			protected Set<GAEJDOAnnotation<Number>> getAnnotationSet(GAEJDOAnnotations annots) {
+				return annots.getNumberAnnotations();
+			}
+			public Dataset newDTO() {return parent.newDTO();}
+			public GAEJDODataset newJDO() {return parent.newJDO();}
+			public void copyToDto(GAEJDODataset jdo, Dataset dto) {parent.copyToDto(jdo, dto);}
+			public void copyFromDto(Dataset dto, GAEJDODataset jdo) {parent.copyFromDto(dto, jdo);}
+			protected Class<GAEJDODataset> getOwnerClass() {return GAEJDODataset.class;}
+		};
+	}
+	
+	public AnnotationDAO<Dataset, Date> getDateAnnotationDAO()  {
+		final GAEJDODatasetDAOImpl parent = this;
+		return new GAEJDORevisableAnnotationDAOImpl<Dataset, GAEJDODataset, Date>() {
+			protected Class<? extends GAEJDOAnnotation<Date>> getAnnotationClass() {return GAEJDODateAnnotation.class;} 
+			protected Class<Date> getValueClass() {return Date.class;}
+			protected GAEJDOAnnotation<Date> newAnnotation(String attribute, Date value) {
+				return new GAEJDODateAnnotation(attribute, value);
+			}
+			protected String getCollectionName() {return "dateAnnotations";}
+			protected Set<GAEJDOAnnotation<Date>> getAnnotationSet(GAEJDOAnnotations annots) {
+				return annots.getDateAnnotations();
+			}
+			public Dataset newDTO() {return parent.newDTO();}
+			public GAEJDODataset newJDO() {return parent.newJDO();}
+			public void copyToDto(GAEJDODataset jdo, Dataset dto) {parent.copyToDto(jdo, dto);}
+			public void copyFromDto(Dataset dto, GAEJDODataset jdo) {parent.copyFromDto(dto, jdo);}
+			protected Class<GAEJDODataset> getOwnerClass() {return GAEJDODataset.class;}
+		};
+	}
+
+
+
 	public void addLayer(String datasetId, String layerId) {
 		throw new RuntimeException("Not yet implemented");
 	}

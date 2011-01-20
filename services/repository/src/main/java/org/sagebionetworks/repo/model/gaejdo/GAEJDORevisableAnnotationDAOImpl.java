@@ -1,15 +1,16 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 
-abstract public class GAEJDORevisableAnnotatableDAOHelper<S, T extends GAEJDORevisable<T> & GAEJDOAnnotatable> extends
-	GAEJDOAnnotatableDAOHelper<S,T> {
+import org.sagebionetworks.repo.model.Base;
+
+abstract public class GAEJDORevisableAnnotationDAOImpl<S extends Base, T extends GAEJDOAnnotatable & GAEJDOBase, A>
+	extends GAEJDOAnnotationDAOImpl<S, T, A> {
 
 	protected List<T> getHavingAnnotation(
 			PersistenceManager pm,
@@ -20,7 +21,7 @@ abstract public class GAEJDORevisableAnnotatableDAOHelper<S, T extends GAEJDORev
 			Object value,
 			int start,
 			int end) {
-		Query query = pm.newQuery(getJdoClass());
+		Query query = pm.newQuery(getOwnerClass());
 		String filterString = ("annotations==vAnnotations && vAnnotations."+
 				collectionName+".contains(vAnnotation) && "+
 				"vAnnotation.attribute==pAttrib && vAnnotation.value==pValue"+
@@ -47,7 +48,7 @@ abstract public class GAEJDORevisableAnnotatableDAOHelper<S, T extends GAEJDORev
 			Class annotationClass,
 			int start,
 			int end) {
-		Query query = pm.newQuery(getJdoClass());
+		Query query = pm.newQuery(getOwnerClass());
 		String filterString = ("annotations==vAnnotations && vAnnotations."+
 				collectionName+".contains(vAnnotation) && "+
 				"vAnnotation.attribute==pAttrib"+
@@ -66,17 +67,4 @@ abstract public class GAEJDORevisableAnnotatableDAOHelper<S, T extends GAEJDORev
 		return range;
 	}
 	
-	public  Collection getAnnotationValues(T owner, String attribute, Class annotationClass) {
-		if (annotationClass.equals(String.class)) {
-			Collection<String> c = new HashSet<String>();
-			for (GAEJDOStringAnnotation annot: owner.getAnnotations().getStringAnnotations()) {
-				if (annot.getAttribute().equals(attribute)) c.add(annot.getValue());
-			}
-			return c;
-		} else {
-			throw new RuntimeException("Unexpected type "+annotationClass);
-		}
-	}
-
-		
 }

@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Date;
 
 import javax.jdo.annotations.IdGeneratorStrategy;
+import javax.jdo.annotations.NotPersistent;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
@@ -21,9 +22,11 @@ public class GAEJDODataset implements GAEJDOBase, GAEJDORevisable<GAEJDODataset>
 	private Key id;
 	
 	@Persistent(dependent = "true") 	
+	//@NotPersistent
 	private GAEJDORevision<GAEJDODataset> revision;
 	
-	@Persistent(dependent = "true")
+	//@Persistent(dependent = "true")
+	@NotPersistent
 	private GAEJDOAnnotations annotations;
 	
 	@Persistent
