@@ -77,7 +77,7 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 		if (dto.getId()==null) throw new DatastoreException("id is null");
 		Key id = KeyFactory.stringToKey(dto.getId());
 		@SuppressWarnings("unchecked")
-		T jdo = (T)pm.getObjectById(id);
+		T jdo = (T)pm.getObjectById(getJdoClass(), id);
 		if (!jdo.getRevision().getVersion().equals(new Version(dto.getVersion())))
 			throw new DatastoreException("Wrong version");
 		copyFromDto(dto, jdo);
@@ -146,7 +146,7 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 	// id is the key for some revision
 	public T getLatest(PersistenceManager pm, Key id) throws DatastoreException {
 		@SuppressWarnings("unchecked")
-		T someRev = (T)pm.getObjectById(id); // some revision, not necessarily first or last
+		T someRev = (T)pm.getObjectById(getJdoClass(), id); // some revision, not necessarily first or last
 		
 		Query query = pm.newQuery(getJdoClass());
 		query.setFilter("revision==r && r.original==pFirstRevision && r.latest==true");
@@ -167,7 +167,7 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 	// id is the key for some revision
 	public T getVersion(PersistenceManager pm, Key id, Version v) throws DatastoreException {
 		@SuppressWarnings("unchecked")
-		T someRev = (T)pm.getObjectById(id); // some revision, not necessarily first or last
+		T someRev = (T)pm.getObjectById(getJdoClass(), id); // some revision, not necessarily first or last
 
 		Query query = pm.newQuery(getJdoClass());
 		query.setFilter("revision==r && r.original==pFirstRevision && r.version==pVersion");
@@ -197,7 +197,7 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 	// id is the key for some revision
 	public Collection<T> getAllVersions(PersistenceManager pm, Key id) {
 		@SuppressWarnings("unchecked")
-		T someRev = (T)pm.getObjectById(id); // some revision, not necessarily first or last
+		T someRev = (T)pm.getObjectById(getJdoClass(), id); // some revision, not necessarily first or last
 
 		Query query = pm.newQuery(getJdoClass());
 		query.setFilter("revision==r && r.original==pFirstRevision");
@@ -211,7 +211,7 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 	// id is the key for some revision
 	public void deleteAllVersions(PersistenceManager pm, Key id) {
 		@SuppressWarnings("unchecked")
-		T someRev = (T)pm.getObjectById(id); // some revision, not necessarily first or last
+		T someRev = (T)pm.getObjectById(getJdoClass(), id); // some revision, not necessarily first or last
 
 		Query query = pm.newQuery(getJdoClass());
 		query.setFilter("revision==r && r.original==pFirstRevision");
