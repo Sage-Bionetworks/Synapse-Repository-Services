@@ -7,6 +7,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -76,15 +77,14 @@ public class DatasetDAOTest {
 		DatasetDAO dao = fac.getDatasetDAO();
 		id = dao.create(d);
 		Assert.assertNotNull(id);
-		// TODO
-//		dao.getStringAnnotationDAO().addAnnotation(id, "Tissue Type", "liver");
+		dao.getStringAnnotationDAO().addAnnotation(id, "Tissue Type", "liver");
 		
 		Dataset d2 = dao.get(id);
 		Assert.assertEquals(d.getName(), d2.getName());
 		Annotations annots = dao.getAnnotations(id);
-//		Collection<String> tissueType = annots.getStringAnnotations().get("Tissue Type");
-//		Assert.assertEquals(1, tissueType.size());
-//		Assert.assertEquals("liver", tissueType.iterator().next());
+		Collection<String> tissueType = annots.getStringAnnotations().get("Tissue Type");
+		Assert.assertEquals(1, tissueType.size());
+		Assert.assertEquals("liver", tissueType.iterator().next());
 	
 		
 		
@@ -166,5 +166,6 @@ public class DatasetDAOTest {
 //		Assert.assertEquals("testKey", stringAnnot2.getAttribute());
 //		Assert.assertEquals("testValue", stringAnnot2.getValue());
 	}
+
 
 }

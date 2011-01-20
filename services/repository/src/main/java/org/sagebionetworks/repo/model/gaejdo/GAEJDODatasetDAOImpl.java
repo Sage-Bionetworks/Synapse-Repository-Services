@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import javax.jdo.PersistenceManager;
 import javax.jdo.Transaction;
@@ -335,18 +334,22 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 		return new GAEJDORevisableAnnotationDAOImpl<Dataset, GAEJDODataset, String>() {
 			protected Class<? extends GAEJDOAnnotation<String>> getAnnotationClass() {return GAEJDOStringAnnotation.class;} 
 			protected Class<String> getValueClass() {return String.class;}
-			protected GAEJDOAnnotation<String> newAnnotation(String attribute, String value) {
-				return new GAEJDOStringAnnotation(attribute, value);
-			}
+//			protected GAEJDOAnnotation<String> newAnnotation(String attribute, String value) {
+//				return new GAEJDOStringAnnotation(attribute, value);
+//			}
 			protected String getCollectionName() {return "stringAnnotations";}
-			protected Set<GAEJDOAnnotation<String>> getAnnotationSet(GAEJDOAnnotations annots) {
-				return annots.getStringAnnotations();
-			}
+//			protected Set<GAEJDOAnnotation<String>> getAnnotationSet(GAEJDOAnnotations annots) {
+//				return annots.getStringAnnotations();
+//			}
 			public Dataset newDTO() {return parent.newDTO();}
 			public GAEJDODataset newJDO() {return parent.newJDO();}
 			public void copyToDto(GAEJDODataset jdo, Dataset dto) {parent.copyToDto(jdo, dto);}
 			public void copyFromDto(Dataset dto, GAEJDODataset jdo) throws InvalidModelException {parent.copyFromDto(dto, jdo);}
 			protected Class<GAEJDODataset> getOwnerClass() {return GAEJDODataset.class;}
+			protected void addAnnotation(GAEJDOAnnotations annots, String attribute, String value) {annots.add(attribute, value);}
+			protected void removeAnnotation(GAEJDOAnnotations annots, String attribute, String value) {annots.remove(attribute, value);}
+			protected Iterable<GAEJDOAnnotation<String>> getIterable(GAEJDOAnnotations annots) {return annots.getStringIterable();}
+
 		};
 	}
 	
@@ -355,18 +358,21 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 		return new GAEJDORevisableAnnotationDAOImpl<Dataset, GAEJDODataset, Number>() {
 			protected Class<? extends GAEJDOAnnotation<Number>> getAnnotationClass() {return GAEJDONumberAnnotation.class;} 
 			protected Class<Number> getValueClass() {return Number.class;}
-			protected GAEJDOAnnotation<Number> newAnnotation(String attribute, Number value) {
-				return new GAEJDONumberAnnotation(attribute, value);
-			}
+//			protected GAEJDOAnnotation<Number> newAnnotation(String attribute, Number value) {
+//				return new GAEJDONumberAnnotation(attribute, value);
+//			}
 			protected String getCollectionName() {return "numberAnnotations";}
-			protected Set<GAEJDOAnnotation<Number>> getAnnotationSet(GAEJDOAnnotations annots) {
-				return annots.getNumberAnnotations();
-			}
+//			protected Set<GAEJDOAnnotation<Number>> getAnnotationSet(GAEJDOAnnotations annots) {
+//				return annots.getNumberAnnotations();
+//			}
 			public Dataset newDTO() {return parent.newDTO();}
 			public GAEJDODataset newJDO() {return parent.newJDO();}
 			public void copyToDto(GAEJDODataset jdo, Dataset dto) {parent.copyToDto(jdo, dto);}
 			public void copyFromDto(Dataset dto, GAEJDODataset jdo) throws InvalidModelException {parent.copyFromDto(dto, jdo);}
 			protected Class<GAEJDODataset> getOwnerClass() {return GAEJDODataset.class;}
+			protected void addAnnotation(GAEJDOAnnotations annots, String attribute, Number value) {annots.add(attribute, value);}
+			protected void removeAnnotation(GAEJDOAnnotations annots, String attribute, Number value) {annots.remove(attribute, value);}
+			protected Iterable<GAEJDOAnnotation<Number>> getIterable(GAEJDOAnnotations annots) {return annots.getNumberIterable();}
 		};
 	}
 	
@@ -375,18 +381,21 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 		return new GAEJDORevisableAnnotationDAOImpl<Dataset, GAEJDODataset, Date>() {
 			protected Class<? extends GAEJDOAnnotation<Date>> getAnnotationClass() {return GAEJDODateAnnotation.class;} 
 			protected Class<Date> getValueClass() {return Date.class;}
-			protected GAEJDOAnnotation<Date> newAnnotation(String attribute, Date value) {
-				return new GAEJDODateAnnotation(attribute, value);
-			}
+//			protected GAEJDOAnnotation<Date> newAnnotation(String attribute, Date value) {
+//				return new GAEJDODateAnnotation(attribute, value);
+//			}
 			protected String getCollectionName() {return "dateAnnotations";}
-			protected Set<GAEJDOAnnotation<Date>> getAnnotationSet(GAEJDOAnnotations annots) {
-				return annots.getDateAnnotations();
-			}
+//			protected Set<GAEJDOAnnotation<Date>> getAnnotationSet(GAEJDOAnnotations annots) {
+//				return annots.getDateAnnotations();
+//			}
 			public Dataset newDTO() {return parent.newDTO();}
 			public GAEJDODataset newJDO() {return parent.newJDO();}
 			public void copyToDto(GAEJDODataset jdo, Dataset dto) {parent.copyToDto(jdo, dto);}
 			public void copyFromDto(Dataset dto, GAEJDODataset jdo) throws InvalidModelException {parent.copyFromDto(dto, jdo);}
 			protected Class<GAEJDODataset> getOwnerClass() {return GAEJDODataset.class;}
+			protected void addAnnotation(GAEJDOAnnotations annots, String attribute, Date value) {annots.add(attribute, value);}
+			protected void removeAnnotation(GAEJDOAnnotations annots, String attribute, Date value) {annots.remove(attribute, value);}
+			protected Iterable<GAEJDOAnnotation<Date>> getIterable(GAEJDOAnnotations annots) {return annots.getDateIterable();}
 		};
 	}
 

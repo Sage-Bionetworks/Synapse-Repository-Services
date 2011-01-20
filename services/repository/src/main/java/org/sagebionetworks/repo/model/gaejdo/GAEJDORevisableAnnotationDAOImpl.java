@@ -9,9 +9,40 @@ import javax.jdo.Query;
 
 import org.sagebionetworks.repo.model.Base;
 
+import com.google.appengine.api.datastore.Key;
+
 abstract public class GAEJDORevisableAnnotationDAOImpl<S extends Base, T extends GAEJDOAnnotatable & GAEJDOBase, A>
 	extends GAEJDOAnnotationDAOImpl<S, T, A> {
 
+	 protected boolean hasAnnotation(
+				PersistenceManager pm,
+				T owner,
+				String attrib,
+				String collectionName,
+				Class annotationClass,
+				Class valueClass, 
+				Object value) {
+			Query query = pm.newQuery(getOwnerClass());
+			String filterString = ("this.id==pId && annotations==vAnnotations && vAnnotations."+
+					collectionName+".contains(vAnnotation) && "+
+					"vAnnotation.attribute==pAttrib && vAnnotation.value==pValue &&"+
+					" revision==r && r.latest==true");
+//			System.out.println(filterString);
+			query.setFilter(filterString);
+			String variableString = (GAEJDOAnnotations.class.getName()+" vAnnotations; "+
+					annotationClass.getName()+" vAnnotation; "+
+					GAEJDORevision.class.getName()+" r");
+			query.declareVariables(variableString);
+			query.declareParameters(
+					Key.class.getName()+" pId, "
+					+String.class.getName()+" pAttrib, "
+					+valueClass.getName()+" pValue");
+			@SuppressWarnings("unchecked")
+			List<T> ans = (List<T>)query.execute(owner.getId(), attrib, value);	
+			if (ans.size()>1) throw new IllegalStateException("Expected 0 or 1 result but got "+ans.size());
+			return ans.size()>0;
+		}
+		
 	protected List<T> getHavingAnnotation(
 			PersistenceManager pm,
 			String attrib,
@@ -26,7 +57,6 @@ abstract public class GAEJDORevisableAnnotationDAOImpl<S extends Base, T extends
 				collectionName+".contains(vAnnotation) && "+
 				"vAnnotation.attribute==pAttrib && vAnnotation.value==pValue"+
 				" revision==r && r.latest==true");
-//		System.out.println(filterString);
 		query.setFilter(filterString);
 		String variableString = (GAEJDOAnnotations.class.getName()+" vAnnotations; "+
 				annotationClass.getName()+" vAnnotation; "+

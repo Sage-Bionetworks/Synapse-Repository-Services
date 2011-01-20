@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.jdo.Extent;
 import javax.jdo.PersistenceManager;
@@ -35,10 +34,11 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	// These methods are to be made concrete for particular types of annotations
 	abstract protected Class<? extends GAEJDOAnnotation<A>> getAnnotationClass();
 	abstract protected Class<A> getValueClass();
-	abstract protected GAEJDOAnnotation<A> newAnnotation(String attribute, A value);
 	// this is the name of the Set field in the GAEJDOAnnotations object
 	abstract protected String getCollectionName();
-	abstract protected Set<GAEJDOAnnotation<A>> getAnnotationSet(GAEJDOAnnotations annots);
+	abstract protected void addAnnotation(GAEJDOAnnotations annots, String attribute, A value);
+	abstract protected void removeAnnotation(GAEJDOAnnotations annots, String attribute, A value);
+	abstract protected Iterable<GAEJDOAnnotation<A>> getIterable(GAEJDOAnnotations annots);
 	
 	abstract public S newDTO();
 	
@@ -143,7 +143,7 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 			// check whether already have this annotation
 			if (hasAnnotation(pm, jdo, attribute, value)) return;
 			GAEJDOAnnotations annots = jdo.getAnnotations();
-			getAnnotationSet(annots).add(newAnnotation(attribute, value));
+			addAnnotation(annots, attribute, value);
 			tx.commit();
 		} finally {
 			if(tx.isActive()) {
@@ -166,7 +166,7 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 			Key key = KeyFactory.stringToKey(id);
 			T jdo = (T)pm.getObjectById(getOwnerClass(), key);
 			GAEJDOAnnotations annots = jdo.getAnnotations();
-			getAnnotationSet(annots).remove(newAnnotation(attribute, value));
+			removeAnnotation(annots, attribute, value);
 			tx.commit();
 		} finally {
 			if(tx.isActive()) {
@@ -187,7 +187,7 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 			T jdo = (T)pm.getObjectById(getOwnerClass(), key);
 			GAEJDOAnnotations annots = jdo.getAnnotations();
 			Map<String,Collection<A>> ans = new HashMap<String,Collection<A>>();
-			for (GAEJDOAnnotation<A> annot : getAnnotationSet(annots)) {
+			for (GAEJDOAnnotation<A> annot : getIterable(annots)) {
 				Collection<A> values = ans.get(annot.getAttribute());
 				if (values==null) {
 					values=new HashSet<A>();
@@ -209,7 +209,7 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 			T jdo = (T)pm.getObjectById(getOwnerClass(), key);
 			GAEJDOAnnotations annots = jdo.getAnnotations();
 			Collection<A> ans = new HashSet<A>();
-			for (GAEJDOAnnotation<A> annot : getAnnotationSet(annots)) {
+			for (GAEJDOAnnotation<A> annot : getIterable(annots)) {
 				if (annot.getAttribute().equals(attribute)) ans.add(annot.getValue());
 			}
 			return ans;
@@ -230,7 +230,7 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 			Extent<T> extent = pm.getExtent(getOwnerClass());
 			for (T jdo : extent) {
 				GAEJDOAnnotations annots = jdo.getAnnotations();
-				for (GAEJDOAnnotation<A> annot : getAnnotationSet(annots)) {
+				for (GAEJDOAnnotation<A> annot : getIterable(annots)) {
 					ans.add(annot.getAttribute());
 				}
 			}

@@ -22,11 +22,10 @@ public class GAEJDODataset implements GAEJDOBase, GAEJDORevisable<GAEJDODataset>
 	private Key id;
 	
 	@Persistent(dependent = "true") 	
-	//@NotPersistent
 	private GAEJDORevision<GAEJDODataset> revision;
 	
-	//@Persistent(dependent = "true")
-	@NotPersistent
+	@Persistent(dependent = "true")
+	//@NotPersistent
 	private GAEJDOAnnotations annotations;
 	
 	@Persistent
