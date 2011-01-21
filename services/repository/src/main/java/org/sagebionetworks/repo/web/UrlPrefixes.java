@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.web;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.Comment;
+import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Message;
 
 /**
@@ -29,15 +31,6 @@ public class UrlPrefixes {
     public static final String DATASET = "/dataset";
 
     /**
-     * URL prefix for entity model objects<p>
-     * 
-     * Entities are maps.  This is experimental 
-     * and this code for this is not checked in yet.
-     * 
-     */
-    public static final String ENTITY = "/entity";
-    
-    /**
      * URL prefix for message objects
      * 
      */
@@ -51,8 +44,7 @@ public class UrlPrefixes {
     static {
         Map<Class, String> model2url = new HashMap<Class, String>();
         model2url.put(Comment.class, COMMENT);
-        model2url.put(Object.class, DATASET);
-        model2url.put(Object.class, ENTITY);
+        model2url.put(Dataset.class, DATASET);
         model2url.put(Message.class, MESSAGE);
         MODEL2URL = Collections.unmodifiableMap(model2url);
     }
@@ -67,4 +59,11 @@ public class UrlPrefixes {
         return MODEL2URL.get(theModelClass);
     }
     
+    /**
+     * 
+     * @return The URL prefixes we currently have mapped to model classes
+     */
+    public static Collection<String> getAllUrlPrefixes() {
+        return MODEL2URL.values();
+    }
 }

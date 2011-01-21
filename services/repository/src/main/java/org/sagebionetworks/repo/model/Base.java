@@ -5,6 +5,10 @@ import java.util.Date;
 public interface Base {
 	public void setId(String id);
 	public String getId();
+	public void setUri(String uri);
+	public String getUri();
+	public void setEtag(String etag);
+	public String getEtag();
 	public void setCreationDate(Date createDate);
 	public Date getCreationDate();
 }

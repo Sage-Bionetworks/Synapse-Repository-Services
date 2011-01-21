@@ -82,7 +82,7 @@ public class MessageController extends BaseController implements AbstractEntityC
      */
     @ResponseStatus(HttpStatus.OK)
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
-        public @ResponseBody Message getEntity(@PathVariable String id) throws NotFoundException {
+        public @ResponseBody Message getEntity(@PathVariable String id, HttpServletRequest request) throws NotFoundException {
         Message message = messageRepository.getById(id);
         if(null == message) {
             throw new NotFoundException("no message with id " + id + " exists");
@@ -102,7 +102,7 @@ public class MessageController extends BaseController implements AbstractEntityC
      */
     @ResponseStatus(HttpStatus.CREATED)
     @RequestMapping(value = "", method = RequestMethod.POST)
-    public @ResponseBody Message createEntity(@RequestBody Message newMessage) {
+    public @ResponseBody Message createEntity(@RequestBody Message newMessage, HttpServletRequest request) {
         // TODO check newMessage.isValid()
         // newMessage.getValidationErrorMessage()
         messageRepository.create(newMessage);
@@ -127,7 +127,8 @@ public class MessageController extends BaseController implements AbstractEntityC
     @RequestMapping(value = "/{id}", method = RequestMethod.PUT)
     public @ResponseBody Message updateEntity(@PathVariable String id, 
             @RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag, 
-            @RequestBody Message updatedMessage) throws NotFoundException, ConflictingUpdateException {
+            @RequestBody Message updatedMessage,
+            HttpServletRequest request) throws NotFoundException, ConflictingUpdateException {
         Message message = messageRepository.getById(id);
         if(null == message) {
             throw new NotFoundException("no message with id " + id + " exists");

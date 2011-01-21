@@ -16,7 +16,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.Message;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -121,7 +120,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntity(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntity}.
      * @throws Exception
      */
     @Test
@@ -140,7 +139,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntity(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntity}.
      * @throws Exception
      */
     @Test
@@ -158,7 +157,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createEntity(Message)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createEntity}.
      * @throws Exception
      */
     @Test
@@ -178,7 +177,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createEntity(Message)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createEntity}.
      * @throws Exception
      */
     @Test
@@ -198,7 +197,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createEntity(Message)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createEntity}.
      * @throws Exception
      */
     @Test
@@ -219,7 +218,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createEntity(Message)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#createEntity}.
      * @throws Exception
      */
     @Test
@@ -239,7 +238,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#deleteEntity(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#deleteEntity}.
      * @throws Exception
      */
     @Test
@@ -261,7 +260,7 @@ public class MessageControllerXMLTest {
 
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#deleteEntity(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#deleteEntity}.
      * @throws Exception
      */
     @Test
@@ -280,7 +279,7 @@ public class MessageControllerXMLTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntity(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntity}.
      *
      * @throws Exception
      */

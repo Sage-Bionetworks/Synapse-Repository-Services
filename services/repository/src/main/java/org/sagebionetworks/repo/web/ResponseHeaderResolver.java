@@ -4,13 +4,14 @@
 package org.sagebionetworks.repo.web;
 
 import java.lang.reflect.Method;
-import org.springframework.util.ReflectionUtils;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.repo.model.Base;
 import org.springframework.ui.ExtendedModelMap;
+import org.springframework.util.ReflectionUtils;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.annotation.ModelAndViewResolver;
@@ -46,10 +47,15 @@ public class ResponseHeaderResolver implements ModelAndViewResolver {
             /*
              * Add the ETag header any time we return a resource
              */
-            Integer etag = returnValue.hashCode();
-            log.fine("adding Etag: " + etag);
-            response.setIntHeader(ServiceConstants.ETAG_HEADER, etag);
-
+            if(returnValue instanceof Base) { // DAO backed entities
+                Base entity = (Base) returnValue;
+                response.setHeader(ServiceConstants.ETAG_HEADER, entity.getEtag());
+            }
+            else { // Any other sort of entity
+                Integer etag = returnValue.hashCode();
+                log.fine("adding Etag: " + etag);
+                response.setIntHeader(ServiceConstants.ETAG_HEADER, etag);
+            }
 
             /*
              * Add the Location header any time we create a resource
@@ -62,13 +68,19 @@ public class ResponseHeaderResolver implements ModelAndViewResolver {
              * instead of request.getRequestURI() will not work
              */
             if(request.getMethod().equals("POST")) {
-                Method getId = ReflectionUtils.findMethod(returnValue.getClass(), "getId");
-                response.setHeader(ServiceConstants.LOCATION_HEADER,
-                        request.getRequestURI()
-                        + "/"
-                        + ReflectionUtils.invokeMethod(getId, returnValue));
+                if(returnValue instanceof Base) {
+                    Base entity = (Base) returnValue;
+                    response.setHeader(ServiceConstants.LOCATION_HEADER, entity.getUri());
+                }
+                else {
+                    Method getId = ReflectionUtils.findMethod(returnValue.getClass(), "getId");
+                    response.setHeader(ServiceConstants.LOCATION_HEADER,
+                            request.getRequestURI()
+                            + "/"
+                            + ReflectionUtils.invokeMethod(getId, returnValue));
+                }
             }
         }
-        return UNRESOLVED;
+        return UNRESOLVED; // Tell Spring to keep doing its thing (such as serializing returnValue to the appropriate encoding)
     }
 }
