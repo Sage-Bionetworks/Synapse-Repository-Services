@@ -158,7 +158,7 @@ public class MessageControllerTest {
         // The response should be:
         assertNotNull(results.getString("reason"));
     }
-    
+
     /**
      * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntities(Integer, Integer, HttpServletRequest)}.
      * @throws Exception
@@ -183,7 +183,7 @@ public class MessageControllerTest {
         // The response should be:
         assertNotNull(results.getString("reason"));
     }
-    
+
     /**
      * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#getEntity}.
      * @throws Exception
@@ -385,7 +385,7 @@ public class MessageControllerTest {
         assertNotNull(results.getString("reason"));
     }
 
-    /**Ý
+    /**
      * Test method for {@link org.sagebionetworks.repo.web.controller.MessageController#updateEntity}.
      * @throws Exception
      */
