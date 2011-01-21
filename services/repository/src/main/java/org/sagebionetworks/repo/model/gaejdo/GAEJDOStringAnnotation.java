@@ -13,8 +13,8 @@ public class GAEJDOStringAnnotation implements GAEJDOAnnotation<String>{
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
 	
-	@Persistent
-	private GAEJDOAnnotations owner; // this is the backwards pointer for the 1-1 owned relationship
+//	@Persistent
+//	private GAEJDOAnnotations owner; // this is the backwards pointer for the 1-1 owned relationship
 
 	@Persistent
 	private String attribute;
@@ -39,13 +39,13 @@ public class GAEJDOStringAnnotation implements GAEJDOAnnotation<String>{
 		this.id = id;
 	}
 
-	public GAEJDOAnnotations getOwner() {
-		return owner;
-	}
-
-	public void setOwner(GAEJDOAnnotations owner) {
-		this.owner = owner;
-	}
+//	public GAEJDOAnnotations getOwner() {
+//		return owner;
+//	}
+//
+//	public void setOwner(GAEJDOAnnotations owner) {
+//		this.owner = owner;
+//	}
 
 	public String getAttribute() {
 		return attribute;

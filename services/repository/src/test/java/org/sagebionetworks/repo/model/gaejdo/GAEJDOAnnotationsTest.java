@@ -1,9 +1,14 @@
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.repo.model.gaejdo;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.jdo.PersistenceManager;
+import javax.jdo.Query;
 
 import junit.framework.Assert;
 
@@ -23,7 +28,7 @@ import com.google.appengine.api.datastore.Key;
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 
-public class AnnotationsDAOTest {
+public class GAEJDOAnnotationsTest {
 	   private final LocalServiceTestHelper helper = 
 	        new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig()); 
 	    
@@ -36,66 +41,41 @@ public class AnnotationsDAOTest {
 	        Logger.getLogger("DataNucleus.Persistence").setLevel(Level.WARNING); 
 	    }
 
-
-	    private DAOFactory fac;
-		private String id;
-
 		@Before
 		public void setUp() throws Exception {
 	        helper.setUp(); 
-			fac = new GAEJDODAOFactoryImpl();
 		}
 
 		@After
 		public void tearDown() throws Exception {
-			if (fac!=null && id!=null) {
-				if (false) fac.getDatasetDAO().delete(id);
-				//fac.close();
-				id = null;
-			}
 			helper.tearDown();
 		}
 		
 		
 		
 		@Test
-		@Ignore
-		public void testCreateandRetrieve() throws Exception {
-			// create a new dataset
-			GAEJDODataset dataset = new GAEJDODataset();
-			Collection<Key> layers = new HashSet<Key>();
-			dataset.setLayers(layers);
-			
-			GAEJDORevision<GAEJDODataset> r = new GAEJDORevision<GAEJDODataset>();
-			r.setVersion(new Version("1.0.0"));
-			dataset.setRevision(r);
-			
-			GAEJDOAnnotations annots = new GAEJDOAnnotations();
-			dataset.setAnnotations(annots);
-			GAEJDOStringAnnotation stringAnnot = new GAEJDOStringAnnotation("testKey", "testValue");
-//			annots.getStringAnnotations().add(stringAnnot);
-
-			
-			// persist it
-			DatasetDAO da = fac.getDatasetDAO();
-			//da.makePersistent(dataset);
-			
-			// persisting creates a Key, which we can grab
-			Key id = dataset.getId();
-			Assert.assertNotNull(id);
-			//this.id=id;
-			
-			// now retrieve the object by its key
-//			Dataset d2 = da.getDataset(id);
-//			Assert.assertNotNull(d2);
-			
-//			AnnotatableDAO<GAEJDODataset> aa = fac.getDatasetAnnotationsAccessor();
-//			
-//			// now, test that we can retrieve the object having the given annotation
-//			Collection<GAEJDODataset> ac = aa.getHavingStringAnnotation("testKey", "testValue");
-//			Assert.assertEquals(1, ac.size());
-//			GAEJDODataset d2 = ac.iterator().next();
-//			Assert.assertEquals(dataset.getId(), d2.getId());
-//			aa.close();
+		public void testAnnotQuery() throws Exception {
+			PersistenceManager pm = PMF.get();	
+			try {
+				GAEJDOAnnotations a = new GAEJDOAnnotations();
+				Set<GAEJDOFloatAnnotation> as = a.getFloatAnnotations();
+				as.add(new GAEJDOFloatAnnotation("weight", 120.5F));
+				pm.makePersistent(a);
+			} finally {
+				pm.close();
+			}			
+			pm = PMF.get();
+			try {
+				Query query = pm.newQuery(GAEJDOAnnotations.class);
+				query.setFilter("this.floatAnnotations.contains(vAnnotation) && "+
+					"vAnnotation.attribute==pAttrib && vAnnotation.value==pValue");
+				query.declareVariables(GAEJDOFloatAnnotation.class.getName()+" vAnnotation");
+				query.declareParameters(String.class.getName()+" pAttrib, "+Float.class.getName()+" pValue");
+				@SuppressWarnings("unchecked")
+				List<GAEJDOAnnotations> annots = (List<GAEJDOAnnotations>)query.execute("weight", 120.5F);	
+				System.out.println(annots.iterator().next().getFloatAnnotations());
+			} finally {
+				pm.close();
+			}			
 		}
 }

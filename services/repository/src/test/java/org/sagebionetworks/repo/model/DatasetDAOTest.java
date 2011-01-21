@@ -74,6 +74,7 @@ public class DatasetDAOTest {
 		d.setName("dataset name");
 		d.setCreationDate(now);
 		d.setVersion("1.0");
+		d.setStatus("in progress");
 		DatasetDAO dao = fac.getDatasetDAO();
 		id = dao.create(d);
 		Assert.assertNotNull(id);
@@ -85,8 +86,27 @@ public class DatasetDAOTest {
 		Collection<String> tissueType = annots.getStringAnnotations().get("Tissue Type");
 		Assert.assertEquals(1, tissueType.size());
 		Assert.assertEquals("liver", tissueType.iterator().next());
-	
+		Assert.assertEquals(d2.getVersion(), "1.0");
+		Collection<Dataset> c;
+		c = dao.getInRange(0, 100);
+		Assert.assertEquals(1, c.size());
+		Assert.assertEquals(d.getName(), c.iterator().next().getName());
 		
+		c = dao.getInRangeHavingPrimaryField(0, 100, "status", "in progress");
+		Assert.assertEquals(1, c.size());
+		Assert.assertEquals(d.getName(), c.iterator().next().getName());
+		
+		c = dao.getInRangeSortedByPrimaryField(0, 100, "status", true);
+		Assert.assertEquals(1, c.size());
+		Assert.assertEquals(d.getName(), c.iterator().next().getName());
+		
+		c = dao.getStringAnnotationDAO().getInRangeSortedBy(0, 100, "Tissue Type", true);
+		Assert.assertEquals(1, c.size());
+		Assert.assertEquals(d.getName(), c.iterator().next().getName());
+		
+		c = dao.getStringAnnotationDAO().getInRangeHaving(0, 100, "Tissue Type", "liver");
+		Assert.assertEquals(1, c.size());
+		Assert.assertEquals(d.getName(), c.iterator().next().getName());
 		
 //		// create a new project
 //		GAEJDODataset dataset = new GAEJDODataset();

@@ -6,7 +6,7 @@ import java.util.Map;
 
 public class Annotations {
 	private Map<String,Collection<String>> stringAnnotations;
-	private Map<String,Collection<Number>> numberAnnotations;
+	private Map<String,Collection<Float>> floatAnnotations;
 	private Map<String,Collection<Date>> dateAnnotations;
 	public Map<String, Collection<String>> getStringAnnotations() {
 		return stringAnnotations;
@@ -15,12 +15,12 @@ public class Annotations {
 			Map<String, Collection<String>> stringAnnotations) {
 		this.stringAnnotations = stringAnnotations;
 	}
-	public Map<String, Collection<Number>> getIntegerAnnotations() {
-		return numberAnnotations;
+	public Map<String, Collection<Float>> getFloatAnnotations() {
+		return floatAnnotations;
 	}
-	public void setNumberAnnotations(
-			Map<String, Collection<Number>> numberAnnotations) {
-		this.numberAnnotations = numberAnnotations;
+	public void setFloatAnnotations(
+			Map<String, Collection<Float>> floatAnnotations) {
+		this.floatAnnotations = floatAnnotations;
 	}
 	public Map<String, Collection<Date>> getDateAnnotations() {
 		return dateAnnotations;
