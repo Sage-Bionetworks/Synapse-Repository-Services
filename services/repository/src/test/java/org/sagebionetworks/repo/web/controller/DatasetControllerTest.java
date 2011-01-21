@@ -5,14 +5,17 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.logging.Logger;
 
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.view.PaginatedResults;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -122,35 +125,35 @@ public class DatasetControllerTest {
         assertEquals("MouseCross", dataset.getString("name"));
     }
 
-//
-//    /**
-//     * Test method for {@link org.sagebionetworks.repo.web.controller.DatasetController#getEntities(Integer, Integer, HttpServletRequest)}.
-//     * @throws Exception
-//     */
-//    @Test
-//    public void testGetDatasets() throws Exception {
-//        // Load up a few datasets
-//        testCreateDataset();
-//        testCreateDataset();
-//
-//        MockHttpServletRequest request = new MockHttpServletRequest();
-//        MockHttpServletResponse response = new MockHttpServletResponse();
-//        request.setMethod("GET");
-//        request.addHeader("Accept", "application/json");
-//        request.setRequestURI("/dataset");
-//        servlet.service(request, response);
-//        log.info("Results: " + response.getContentAsString());
-//        assertEquals(HttpStatus.OK.value(), response.getStatus());
-//        JSONObject results = new JSONObject(response.getContentAsString());
-//        // The response should be:
-//        //  {"results":[{"id":1,"text":"dataset from a unit test"},{"id":2,
-//        //   "text":"dataset from a unit test"}],"totalNumberOfResults":42,
-//        //   "paging":{"previous":"/dataset?offset=1&limit=10","next":"/dataset?offset=11&limit=10"}}
-//        assertNotNull(results.getInt("totalNumberOfResults"));
-//        assertEquals(2, results.getJSONArray("results").length());
-//        assertEquals("/dataset?offset=1&limit=10", results.getJSONObject("paging").getString(PaginatedResults.PREVIOUS_PAGE_FIELD));
-//        assertEquals("/dataset?offset=11&limit=10", results.getJSONObject("paging").getString(PaginatedResults.NEXT_PAGE_FIELD));
-//    }
+
+    /**
+     * Test method for {@link org.sagebionetworks.repo.web.controller.DatasetController#getEntities}.
+     * 
+     * TODO un-ignore this
+     * @throws Exception
+     */
+    @Test
+    @Ignore
+    public void testGetDatasets() throws Exception {
+        int totalNumDatasets = 12;
+        // Load up a few datasets
+        for(int i = 0; i < totalNumDatasets; i++) {
+            helper.testCreateJsonEntity("/dataset", "{\"name\":\"DeLiver" + i + "\"}");
+        }
+        
+        JSONObject results = helper.testGetJsonEntities("/dataset");
+        assertEquals(12, results.getInt("totalNumberOfResults"));
+        assertEquals(10, results.getJSONArray("results").length());
+        assertEquals("/dataset?offset=1&limit=10", results.getJSONObject("paging").getString(PaginatedResults.PREVIOUS_PAGE_FIELD));
+        assertEquals("/dataset?offset=11&limit=10", results.getJSONObject("paging").getString(PaginatedResults.NEXT_PAGE_FIELD));
+        
+        results = helper.testGetJsonEntities(results.getJSONObject("paging").getString(PaginatedResults.NEXT_PAGE_FIELD));
+        assertEquals(12, results.getInt("totalNumberOfResults"));
+        assertEquals(2, results.getJSONArray("results").length());
+        assertEquals("/dataset?offset=1&limit=10", results.getJSONObject("paging").getString(PaginatedResults.PREVIOUS_PAGE_FIELD));
+        assertEquals("/dataset?offset=11&limit=10", results.getJSONObject("paging").getString(PaginatedResults.NEXT_PAGE_FIELD));
+        
+    }
 
     /**
      * Test method for {@link org.sagebionetworks.repo.web.controller.DatasetController#updateEntity}.
@@ -207,9 +210,9 @@ public class DatasetControllerTest {
         // (Class org.sagebionetworks.repo.model.Dataset), not marked as ignorable\n at 
         // [Source: org.springframework.mock.web.DelegatingServletInputStream@2501e081; line: 1, column: 19]"}
 
-        // TODO Fix me!
-//        assertTrue(results.getString("reason").matches(".*BOGUS.*"));
-//        assertTrue(results.getString("reason").matches(".*not marked as ignorable.*"));
+        String reason = results.getString("reason");
+        assertTrue(reason.matches("(?s).*\"BOGUS\".*"));
+        assertTrue(reason.matches("(?s).*not marked as ignorable.*"));
     }
 
     /**

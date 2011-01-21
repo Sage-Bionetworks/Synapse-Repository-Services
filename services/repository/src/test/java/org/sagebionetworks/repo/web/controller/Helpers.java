@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 import javax.servlet.ServletException;
 
 import org.json.JSONObject;
+import org.sagebionetworks.repo.view.PaginatedResults;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -130,7 +131,7 @@ public class Helpers {
     }
 
     /**
-     * @param jsonRequestContent
+     * @param jsonEntity
      * @return the json object holding the updated entity
      * @throws Exception 
      */
@@ -183,6 +184,32 @@ public class Helpers {
         testGetJsonEntityShouldFail(requestUrl, HttpStatus.NOT_FOUND);
     }
 
+    /**
+     * @param requestUrl
+     * @return the response Json entity
+     * @throws Exception
+     */
+    public JSONObject testGetJsonEntities(String requestUrl) throws Exception {
+        
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        request.setMethod("GET");
+        request.addHeader("Accept", "application/json");
+        request.setRequestURI(requestUrl);
+        servlet.service(request, response);
+        log.info("Results: " + response.getContentAsString());
+        assertEquals(HttpStatus.OK.value(), response.getStatus());
+        JSONObject results = new JSONObject(response.getContentAsString());
+        
+        // Check that the response has the correct structure
+        assertNotNull(results.getInt("totalNumberOfResults"));
+        assertNotNull(results.getJSONArray("results"));
+        assertNotNull(results.getJSONObject("paging"));
+        assertNotNull(results.getJSONObject("paging").getString(PaginatedResults.PREVIOUS_PAGE_FIELD));
+        assertNotNull(results.getJSONObject("paging").getString(PaginatedResults.NEXT_PAGE_FIELD));
+
+        return results;
+    }    
     /**
      * @param requestUrl
      * @param jsonRequestContent

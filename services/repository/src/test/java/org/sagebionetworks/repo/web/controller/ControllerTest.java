@@ -171,8 +171,7 @@ public class ControllerTest {
             // Missing header 'Etag' of type [java.lang.String]"}
             assertNotNull(results.getString("reason"));
 
-            // TODO Fix me!
-            //            assertTrue(results.getString("reason").matches(".*Missing header 'Etag'.*"));
+            assertTrue(results.getString("reason").matches("(?s).*Missing header 'ETag'.*"));
         }
     }
 }
