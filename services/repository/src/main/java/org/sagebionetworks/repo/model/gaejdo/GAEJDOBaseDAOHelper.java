@@ -94,7 +94,7 @@ abstract public class GAEJDOBaseDAOHelper<S,T extends GAEJDOBase> {
 				tx.begin();
 				Key key = KeyFactory.stringToKey(id);
 				@SuppressWarnings("unchecked")
-				T jdo = (T)pm.getObjectById(key);
+				T jdo = (T)pm.getObjectById(getJdoClass(), key);
 				pm.deletePersistent(jdo);
 				tx.commit();
 		} catch (Exception e) {
