@@ -48,7 +48,7 @@ public class EntityControllerImp<T> implements AbstractEntityController<T> {
     /* (non-Javadoc)
      * @see org.sagebionetworks.repo.web.controller.AbstractEntityController#getEntity(java.lang.String)
      */
-    public T getEntity(String id) throws NotFoundException {
+    public T getEntity(String id, HttpServletRequest request) throws NotFoundException {
         T entity = entityRepository.getById(id);
         if(null == entity) {
             throw new NotFoundException("no entity with id " + id + " exists");
@@ -59,7 +59,7 @@ public class EntityControllerImp<T> implements AbstractEntityController<T> {
     /* (non-Javadoc)
      * @see org.sagebionetworks.repo.web.controller.AbstractEntityController#createEntity(T)
      */
-    public T createEntity(T newEntity) {
+    public T createEntity(T newEntity, HttpServletRequest request) {
         // TODO check newEntity.isValid()
         // newEntity.getValidationErrorEntity()
         entityRepository.create(newEntity);
@@ -71,7 +71,8 @@ public class EntityControllerImp<T> implements AbstractEntityController<T> {
      */
     public T updateEntity(String id, 
             Integer etag, 
-            T updatedEntity) throws NotFoundException, ConflictingUpdateException {
+            T updatedEntity,
+            HttpServletRequest request) throws NotFoundException, ConflictingUpdateException {
         T entity = entityRepository.getById(id);
         if(null == entity) {
             throw new NotFoundException("no entity with id " + id + " exists");

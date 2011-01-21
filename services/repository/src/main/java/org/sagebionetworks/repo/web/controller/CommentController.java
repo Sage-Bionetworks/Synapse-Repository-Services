@@ -60,17 +60,17 @@ public class CommentController extends BaseController implements AbstractEntityC
      */
     @ResponseStatus(HttpStatus.OK)
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
-        public @ResponseBody Comment getEntity(@PathVariable String id) throws NotFoundException {
-        return entityController.getEntity(id);
+        public @ResponseBody Comment getEntity(@PathVariable String id, HttpServletRequest request) throws NotFoundException {
+        return entityController.getEntity(id, request);
     }
 
     /* (non-Javadoc)
-     * @see org.sagebionetworks.repo.web.controller.AbstractEntityController#createEntity(T)
+     * @see org.sagebionetworks.repo.web.controller.AbstractEntityController#createEntity(T, HttpServletRequest)
      */
     @ResponseStatus(HttpStatus.CREATED)
     @RequestMapping(value = "", method = RequestMethod.POST)
-    public @ResponseBody Comment createEntity(@RequestBody Comment newEntity) {
-        return entityController.createEntity(newEntity);
+    public @ResponseBody Comment createEntity(@RequestBody Comment newEntity, HttpServletRequest request) {
+        return entityController.createEntity(newEntity, request);
     }
 
     /* (non-Javadoc)
@@ -80,8 +80,9 @@ public class CommentController extends BaseController implements AbstractEntityC
     @RequestMapping(value = "/{id}", method = RequestMethod.PUT)
     public @ResponseBody Comment updateEntity(@PathVariable String id, 
             @RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag, 
-            @RequestBody Comment updatedEntity) throws NotFoundException, ConflictingUpdateException {
-        return entityController.updateEntity(id, etag, updatedEntity);
+            @RequestBody Comment updatedEntity,
+            HttpServletRequest request) throws NotFoundException, ConflictingUpdateException {
+        return entityController.updateEntity(id, etag, updatedEntity, request);
     }
     
     /* (non-Javadoc)

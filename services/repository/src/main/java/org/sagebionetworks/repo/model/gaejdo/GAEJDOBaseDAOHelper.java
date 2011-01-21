@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
@@ -11,6 +12,7 @@ import javax.jdo.Transaction;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
@@ -71,7 +73,7 @@ abstract public class GAEJDOBaseDAOHelper<S,T extends GAEJDOBase> {
 		}	
 	}
 	
-	public S get(String id) throws DatastoreException {
+	public S get(String id) throws DatastoreException, NotFoundException {
 		PersistenceManager pm = PMF.get();	
 		try {
 			Key key = KeyFactory.stringToKey(id);
@@ -81,12 +83,14 @@ abstract public class GAEJDOBaseDAOHelper<S,T extends GAEJDOBase> {
 			copyToDto(jdo, dto);
 			pm.close();
 			return dto;
+		} catch (JDOObjectNotFoundException e) {
+		    throw new NotFoundException(e);
 		} catch (Exception e) {
 			throw new DatastoreException(e);
 		}
 	}
 	
-	public void delete(String id) throws DatastoreException {
+	public void delete(String id) throws DatastoreException, NotFoundException {
 		PersistenceManager pm = PMF.get();		
 		Transaction tx=null;
 		try {
@@ -97,7 +101,9 @@ abstract public class GAEJDOBaseDAOHelper<S,T extends GAEJDOBase> {
 				T jdo = (T)pm.getObjectById(getJdoClass(), key);
 				pm.deletePersistent(jdo);
 				tx.commit();
-		} catch (Exception e) {
+        } catch (JDOObjectNotFoundException e) {
+            throw new NotFoundException(e);
+        } catch (Exception e) {
 			throw new DatastoreException(e);
 		} finally {
 				if(tx.isActive()) {

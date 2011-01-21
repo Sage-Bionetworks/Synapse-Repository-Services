@@ -13,13 +13,13 @@ import javax.servlet.ServletException;
  */
 public class NotFoundException extends ServletException {
 
-     private static final long serialVersionUID = 1L;
-
+    private static final long serialVersionUID = 1L;
+    private static final String DEFAULT_MESSAGE = "The resource you are attempting to retrieve cannot be found";
      /**
       * Default constructor
       */
      public NotFoundException() {
-         super("The resource you are attempting to retrieve cannot be found");
+         super(DEFAULT_MESSAGE);
      }
      
      /**
@@ -28,4 +28,19 @@ public class NotFoundException extends ServletException {
     public NotFoundException(String message) {
         super(message);
     }
+    
+    /**
+     * @param rootCause
+     */
+    public NotFoundException(Throwable rootCause) {
+        super(DEFAULT_MESSAGE, rootCause);
+    }
+
+    /**
+     * @param message
+     * @param rootCause
+     */
+    public NotFoundException(String message, Throwable rootCause) {
+        super(message, rootCause);
+    }    
 }

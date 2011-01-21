@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
@@ -170,11 +171,11 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 		}	
 	}
 	
-	public Dataset get(String id) throws DatastoreException {
+	public Dataset get(String id) throws DatastoreException, NotFoundException {
 		return baseDAO.get(id);
 	}
 
-	public void delete(String id) throws DatastoreException {
+	public void delete(String id) throws DatastoreException, NotFoundException {
 		baseDAO.delete(id);
 		
 	}

@@ -188,7 +188,7 @@ public class CommentControllerTest {
     }
     
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#getEntity(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#getEntity(java.lang.String, HttpServletRequest)}.
      * @throws Exception
      */
     @Test
@@ -211,7 +211,7 @@ public class CommentControllerTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#getEntity(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#getEntity(java.lang.String, HttpServletRequest)}.
      * @throws Exception
      */
     @Test
@@ -231,7 +231,7 @@ public class CommentControllerTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#getEntity(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#getEntity(java.lang.String, HttpServletRequest)}.
      * @throws Exception
      */
     @Test
@@ -252,7 +252,7 @@ public class CommentControllerTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#createEntity(Comment)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#createEntity(Comment, HttpServletRequest)}.
      * @throws Exception
      */
     @Test
@@ -276,7 +276,7 @@ public class CommentControllerTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#createEntity(Comment)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#createEntity(Comment, HttpServletRequest)}.
      * @throws Exception
      */
     @Test
@@ -299,7 +299,7 @@ public class CommentControllerTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#createEntity(Comment)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#createEntity(Comment, HttpServletRequest)}.
      * @throws Exception
      */
     @Test
@@ -326,7 +326,7 @@ public class CommentControllerTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#createEntity(Comment)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#createEntity(Comment, HttpServletRequest)}.
      * @throws Exception
      */
     @Test
@@ -347,7 +347,7 @@ public class CommentControllerTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#deleteEntity(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#deleteEntity(java.lang.String)}.
      * @throws Exception
      */
     @Test
@@ -369,7 +369,7 @@ public class CommentControllerTest {
 
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#deleteEntity(java.lang.Long)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#deleteEntity(java.lang.String)}.
      * @throws Exception
      */
     @Test
@@ -389,7 +389,7 @@ public class CommentControllerTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#updateEntity(Long, Integer, Comment)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#updateEntity(String, Integer, Comment, HttpServletRequest)}.
      * @throws Exception
      */
     @Test
@@ -435,7 +435,7 @@ public class CommentControllerTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#updateEntity(Long, Integer, Comment)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#updateEntity(String, Integer, Comment, HttpServletRequest)}.
      * @throws Exception
      */
     @Test
@@ -477,7 +477,7 @@ public class CommentControllerTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#updateEntity(Long, Integer, Comment)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#updateEntity(String, Integer, Comment, HttpServletRequest)}.
      * @throws Exception
      */
     @Test
@@ -505,7 +505,7 @@ public class CommentControllerTest {
     }
 
     /**
-     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#updateEntity(Long, Integer, Comment)}.
+     * Test method for {@link org.sagebionetworks.repo.web.controller.CommentController#updateEntity(String, Integer, Comment, HttpServletRequest)}.
      * @throws Exception
      */
     @Test

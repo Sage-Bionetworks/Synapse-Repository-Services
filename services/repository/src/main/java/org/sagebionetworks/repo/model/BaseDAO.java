@@ -9,6 +9,7 @@ import javax.jdo.PersistenceManager;
 
 import org.sagebionetworks.repo.model.gaejdo.GAEJDOScript;
 import org.sagebionetworks.repo.model.gaejdo.PMF;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.appengine.api.datastore.Key;
 
@@ -27,8 +28,9 @@ public interface BaseDAO<T> {
 	 * @param id
 	 * @return
 	 * @throws DatastoreException
+	 * @throws NotFoundException 
 	 */
-	public T get(String id) throws DatastoreException;
+	public T get(String id) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * This updates the 'shallow' properties of an object
@@ -41,8 +43,9 @@ public interface BaseDAO<T> {
 	 * delete the object given by the given ID
 	 * @param id
 	 * @throws DatastoreException
+	 * @throws NotFoundException 
 	 */
-	public void delete(String id)  throws DatastoreException;
+	public void delete(String id)  throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 

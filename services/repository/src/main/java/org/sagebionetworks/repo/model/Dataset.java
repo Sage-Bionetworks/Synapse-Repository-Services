@@ -10,8 +10,10 @@ import java.util.Date;
  * @author bhoff
  *
  */
-public class Dataset implements Revisable {
+public class Dataset implements Base, Revisable {
 	private String id;
+    private String uri;
+    private String etag;
 	private String name;
 	private String description;
 	private String creator;
@@ -27,7 +29,31 @@ public class Dataset implements Revisable {
 	public void setId(String id) {
 		this.id = id;
 	}
-	public String getName() {
+	/**
+     * @return the uri
+     */
+    public String getUri() {
+        return uri;
+    }
+    /**
+     * @param uri the uri to set
+     */
+    public void setUri(String uri) {
+        this.uri = uri;
+    }
+    /**
+     * @return the etag
+     */
+    public String getEtag() {
+        return etag;
+    }
+    /**
+     * @param etag the etag to set
+     */
+    public void setEtag(String etag) {
+        this.etag = etag;
+    }
+    public String getName() {
 		return name;
 	}
 	public void setName(String name) {

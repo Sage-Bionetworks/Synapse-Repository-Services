@@ -65,8 +65,8 @@ public class DatasetController extends BaseController implements AbstractEntityC
      */
     @ResponseStatus(HttpStatus.OK)
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
-        public @ResponseBody Dataset getEntity(@PathVariable String id) throws NotFoundException, DatastoreException {
-        return entityController.getEntity(id);
+        public @ResponseBody Dataset getEntity(@PathVariable String id, HttpServletRequest request) throws NotFoundException, DatastoreException {
+        return entityController.getEntity(id, request);
     }
 
     /* (non-Javadoc)
@@ -74,8 +74,8 @@ public class DatasetController extends BaseController implements AbstractEntityC
      */
     @ResponseStatus(HttpStatus.CREATED)
     @RequestMapping(value = "", method = RequestMethod.POST)
-    public @ResponseBody Dataset createEntity(@RequestBody Dataset newEntity) throws DatastoreException, InvalidModelException {
-        return entityController.createEntity(newEntity);
+    public @ResponseBody Dataset createEntity(@RequestBody Dataset newEntity, HttpServletRequest request) throws DatastoreException, InvalidModelException {
+        return entityController.createEntity(newEntity, request);
     }
 
     /* (non-Javadoc)
@@ -85,8 +85,9 @@ public class DatasetController extends BaseController implements AbstractEntityC
     @RequestMapping(value = "/{id}", method = RequestMethod.PUT)
     public @ResponseBody Dataset updateEntity(@PathVariable String id, 
             @RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag, 
-            @RequestBody Dataset updatedEntity) throws NotFoundException, ConflictingUpdateException, DatastoreException {
-        return entityController.updateEntity(id, etag, updatedEntity);
+            @RequestBody Dataset updatedEntity,
+            HttpServletRequest request) throws NotFoundException, ConflictingUpdateException, DatastoreException {
+        return entityController.updateEntity(id, etag, updatedEntity, request);
     }
     
     /* (non-Javadoc)
@@ -94,7 +95,7 @@ public class DatasetController extends BaseController implements AbstractEntityC
      */
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
-    public void deleteEntity(@PathVariable String id) throws NotFoundException {
+    public void deleteEntity(@PathVariable String id) throws NotFoundException, DatastoreException {
         entityController.deleteEntity(id);
         return;
     }
