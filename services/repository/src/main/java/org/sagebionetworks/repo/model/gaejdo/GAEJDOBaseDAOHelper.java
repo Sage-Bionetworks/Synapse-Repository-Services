@@ -177,7 +177,7 @@ abstract public class GAEJDOBaseDAOHelper<S,T extends GAEJDOBase> {
 			Query query = pm.newQuery(getJdoClass());
 			query.setRange(start, end);
 			query.setFilter(attribute+"==pValue");
-			query.declareParameters(value.getClass()+" pValue");
+			query.declareParameters(value.getClass().getName()+" pValue");
 			@SuppressWarnings("unchecked")
 			List<T> list = ((List<T>)query.execute(value));
 			List<S> ans = new ArrayList<S>();

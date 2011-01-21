@@ -33,6 +33,7 @@ public interface RevisableDAO<T extends Revisable> {
 	public Collection<T> getAllVersions(String id) throws DatastoreException;
 	
 	/**
+	 * Consensus on 1/17/2011 was that we don't need this
 	 * 
 	 * @param id the id of any object in the revision series
 	 * @throws DatastoreException

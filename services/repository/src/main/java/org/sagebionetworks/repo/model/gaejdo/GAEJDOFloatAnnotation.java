@@ -8,7 +8,7 @@ import javax.jdo.annotations.PrimaryKey;
 import com.google.appengine.api.datastore.Key;
 
 @PersistenceCapable(detachable = "true")
-public class GAEJDONumberAnnotation implements GAEJDOAnnotation<Number>{
+public class GAEJDOFloatAnnotation implements GAEJDOAnnotation<Float>{
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
@@ -20,14 +20,16 @@ public class GAEJDONumberAnnotation implements GAEJDOAnnotation<Number>{
 	private String attribute;
 	
 	@Persistent
-	private Number value;
+	private Float value;
 	
-	public GAEJDONumberAnnotation() {}
+	public GAEJDOFloatAnnotation() {}
 	
-	public GAEJDONumberAnnotation(String attr, Number value) {
+	public GAEJDOFloatAnnotation(String attr, Float value) {
 		setAttribute(attr);
 		setValue(value);
 	}
+	
+	public String toString() {return getAttribute()+": "+getValue();}
 
 	public Key getId() {
 		return id;
@@ -53,11 +55,11 @@ public class GAEJDONumberAnnotation implements GAEJDOAnnotation<Number>{
 		this.attribute = attribute;
 	}
 
-	public Number getValue() {
+	public Float getValue() {
 		return value;
 	}
 
-	public void setValue(Number value) {
+	public void setValue(Float value) {
 		this.value = value;
 	}
 
@@ -79,7 +81,7 @@ public class GAEJDONumberAnnotation implements GAEJDOAnnotation<Number>{
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		GAEJDONumberAnnotation other = (GAEJDONumberAnnotation) obj;
+		GAEJDOFloatAnnotation other = (GAEJDOFloatAnnotation) obj;
 		if (attribute == null) {
 			if (other.attribute != null)
 				return false;

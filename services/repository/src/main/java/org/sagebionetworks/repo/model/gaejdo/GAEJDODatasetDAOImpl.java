@@ -325,7 +325,7 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 	public Annotations getAnnotations(String id) throws DatastoreException {
 		Annotations ans = new Annotations();
 		ans.setStringAnnotations(getStringAnnotationDAO().getAnnotations(id));
-		ans.setNumberAnnotations(getNumberAnnotationDAO().getAnnotations(id));
+		ans.setFloatAnnotations(getFloatAnnotationDAO().getAnnotations(id));
 		ans.setDateAnnotations(getDateAnnotationDAO().getAnnotations(id));
 		return ans;
 	}
@@ -350,30 +350,37 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 			protected void addAnnotation(GAEJDOAnnotations annots, String attribute, String value) {annots.add(attribute, value);}
 			protected void removeAnnotation(GAEJDOAnnotations annots, String attribute, String value) {annots.remove(attribute, value);}
 			protected Iterable<GAEJDOAnnotation<String>> getIterable(GAEJDOAnnotations annots) {return annots.getStringIterable();}
-
+//			protected void addAnnotation(GAEJDOAnnotations annots, GAEJDOAnnotation<String> annot) {annots.getStringAnnotations().add(annot.getId());}
+//			protected void removeAnnotation(GAEJDOAnnotations annots, GAEJDOAnnotation<String> annot) {annots.getStringAnnotations().remove(annot.getId());}
+//			protected Collection<Key> getAnnotations(GAEJDOAnnotations annots) {return  annots.getStringAnnotations();}
+//			protected GAEJDOAnnotation<String> newAnnotation(String a, String v) {return new GAEJDOStringAnnotation(a,v);}
 		};
 	}
 	
-	public AnnotationDAO<Dataset, Number> getNumberAnnotationDAO()  {
+	public AnnotationDAO<Dataset, Float> getFloatAnnotationDAO()  {
 		final GAEJDODatasetDAOImpl parent = this;
-		return new GAEJDORevisableAnnotationDAOImpl<Dataset, GAEJDODataset, Number>() {
-			protected Class<? extends GAEJDOAnnotation<Number>> getAnnotationClass() {return GAEJDONumberAnnotation.class;} 
-			protected Class<Number> getValueClass() {return Number.class;}
-//			protected GAEJDOAnnotation<Number> newAnnotation(String attribute, Number value) {
-//				return new GAEJDONumberAnnotation(attribute, value);
+		return new GAEJDORevisableAnnotationDAOImpl<Dataset, GAEJDODataset, Float>() {
+			protected Class<? extends GAEJDOAnnotation<Float>> getAnnotationClass() {return GAEJDOFloatAnnotation.class;} 
+			protected Class<Float> getValueClass() {return Float.class;}
+//			protected GAEJDOAnnotation<Float> newAnnotation(String attribute, Float value) {
+//				return new GAEJDOFloatAnnotation(attribute, value);
 //			}
 			protected String getCollectionName() {return "numberAnnotations";}
-//			protected Set<GAEJDOAnnotation<Number>> getAnnotationSet(GAEJDOAnnotations annots) {
-//				return annots.getNumberAnnotations();
+//			protected Set<GAEJDOAnnotation<Float>> getAnnotationSet(GAEJDOAnnotations annots) {
+//				return annots.getFloatAnnotations();
 //			}
 			public Dataset newDTO() {return parent.newDTO();}
 			public GAEJDODataset newJDO() {return parent.newJDO();}
 			public void copyToDto(GAEJDODataset jdo, Dataset dto) {parent.copyToDto(jdo, dto);}
 			public void copyFromDto(Dataset dto, GAEJDODataset jdo) throws InvalidModelException {parent.copyFromDto(dto, jdo);}
 			protected Class<GAEJDODataset> getOwnerClass() {return GAEJDODataset.class;}
-			protected void addAnnotation(GAEJDOAnnotations annots, String attribute, Number value) {annots.add(attribute, value);}
-			protected void removeAnnotation(GAEJDOAnnotations annots, String attribute, Number value) {annots.remove(attribute, value);}
-			protected Iterable<GAEJDOAnnotation<Number>> getIterable(GAEJDOAnnotations annots) {return annots.getNumberIterable();}
+			protected void addAnnotation(GAEJDOAnnotations annots, String attribute, Float value) {annots.add(attribute, value);}
+			protected void removeAnnotation(GAEJDOAnnotations annots, String attribute, Float value) {annots.remove(attribute, value);}
+			protected Iterable<GAEJDOAnnotation<Float>> getIterable(GAEJDOAnnotations annots) {return annots.getFloatIterable();}
+//			protected void addAnnotation(GAEJDOAnnotations annots, GAEJDOAnnotation<Float> annot) {throw new RuntimeException();}
+//			protected void removeAnnotation(GAEJDOAnnotations annots, GAEJDOAnnotation<Float> annot) {throw new RuntimeException();}
+//			protected Collection<Key> getAnnotations(GAEJDOAnnotations annots) {throw new RuntimeException();}
+//			protected GAEJDOAnnotation<Float> newAnnotation(String a, Float v) {return new GAEJDOFloatAnnotation(a,v);}
 		};
 	}
 	
@@ -397,6 +404,10 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 			protected void addAnnotation(GAEJDOAnnotations annots, String attribute, Date value) {annots.add(attribute, value);}
 			protected void removeAnnotation(GAEJDOAnnotations annots, String attribute, Date value) {annots.remove(attribute, value);}
 			protected Iterable<GAEJDOAnnotation<Date>> getIterable(GAEJDOAnnotations annots) {return annots.getDateIterable();}
+//			protected void addAnnotation(GAEJDOAnnotations annots, GAEJDOAnnotation<Date> annot) {throw new RuntimeException();}
+//			protected void removeAnnotation(GAEJDOAnnotations annots, GAEJDOAnnotation<Date> annot) {throw new RuntimeException();}
+//			protected Collection<Key> getAnnotations(GAEJDOAnnotations annots) {throw new RuntimeException();}
+//			protected GAEJDOAnnotation<Date> newAnnotation(String a, Date v) {return new GAEJDODateAnnotation(a,v);}
 		};
 	}
 

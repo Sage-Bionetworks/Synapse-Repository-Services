@@ -18,7 +18,7 @@ public interface AnnotatableDAO<S extends Base> {
 	public Annotations getAnnotations(String id) throws DatastoreException ;
 	
 	public AnnotationDAO<S, String> getStringAnnotationDAO();
-	public AnnotationDAO<S, Number> getNumberAnnotationDAO();
+	public AnnotationDAO<S, Float> getFloatAnnotationDAO();
 	public AnnotationDAO<S, Date> getDateAnnotationDAO();
 	
 }

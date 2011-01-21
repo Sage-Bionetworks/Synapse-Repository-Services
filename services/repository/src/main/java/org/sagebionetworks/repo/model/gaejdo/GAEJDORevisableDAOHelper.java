@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
@@ -229,9 +230,26 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 	 * @return a subset of the results, starting at index 'start' and not going beyond index 'end'
 	 */
 	public List<S> getInRange(int start, int end) {
-		throw new RuntimeException("Not yet implemented");
+		PersistenceManager pm = PMF.get();		
+		try {
+			Query query = pm.newQuery(getJdoClass());
+			query.setFilter("revision==vRevision && vRevision.latest==true");
+			query.declareVariables(GAEJDORevision.class.getName()+" vRevision");
+			query.setRange(start, end);
+			@SuppressWarnings("unchecked")
+			List<T> list = ((List<T>)query.execute());
+			List<S> ans = new ArrayList<S>();
+			for (T jdo : list) {
+				S dto = newDTO();
+				copyToDto(jdo, dto);
+				ans.add(dto);
+			}
+			return ans;
+		} finally {
+			pm.close();
+		}
 	}
-	
+		
 	/**
 	 * 
 	 * @param start
@@ -242,14 +260,55 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 	 * and sorted by the given primary field
 	 */
 	public List<S> getInRangeSortedByPrimaryField(int start, int end, String sortBy, boolean asc) {
-		throw new RuntimeException("Not yet implemented");
+		PersistenceManager pm = null;		
+		try {
+			pm = PMF.get();		
+			Query query = pm.newQuery(getJdoClass());
+			query.setFilter("revision==vRevision && vRevision.latest==true");
+			query.declareVariables(GAEJDORevision.class.getName()+" vRevision");
+			query.setRange(start, end);
+			// can't ask JDO to sort by this field when joining
+			// TODO sort manually
+			//query.setOrdering(sortBy+(asc?" ascending":" descending"));
+			@SuppressWarnings("unchecked")
+			List<T> list = ((List<T>)query.execute());
+			List<S> ans = new ArrayList<S>();
+			for (T jdo : list) {
+				S dto = newDTO();
+				copyToDto(jdo, dto);
+				ans.add(dto);
+			}
+			return ans;
+		} finally {
+			pm.close();
+		}
+		
 	}
 	
-	public List<S> getInRangeHavingPrimaryField(int start, int end, String attribute, Object value) {
-		throw new RuntimeException("Not yet implemented");
+	public List<S> getInRangeHavingPrimaryField(int start, int end, String attribute, Object value)  {
+		PersistenceManager pm = null;		
+		try {
+			pm = PMF.get();		
+			Query query = pm.newQuery(getJdoClass());
+			query.setRange(start, end);
+			query.setFilter(attribute+"==pValue && revision==vRevision && vRevision.latest==true");
+			query.declareVariables(GAEJDORevision.class.getName()+" vRevision");
+			query.declareParameters(value.getClass().getName()+" pValue");
+			@SuppressWarnings("unchecked")
+			List<T> list = ((List<T>)query.execute(value));
+			List<S> ans = new ArrayList<S>();
+			for (T jdo : list) {
+				S dto = newDTO();
+				copyToDto(jdo, dto);
+				ans.add(dto);
+			}
+			return ans;
+		} finally {
+			pm.close();
+		}
 	}
 		
-
+	
 	
 
 }
