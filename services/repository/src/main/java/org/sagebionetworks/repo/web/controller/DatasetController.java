@@ -4,10 +4,12 @@ import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.view.PaginatedResults;
+import org.sagebionetworks.repo.web.AnnotatableDAOControllerImp;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.DAOControllerImp;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -37,12 +39,13 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @Controller
 @RequestMapping(UrlPrefixes.DATASET)
-public class DatasetController extends BaseController implements AbstractEntityController<Dataset> {
+public class DatasetController extends BaseController implements AbstractEntityController<Dataset>, AbstractAnnotatableEntityController<Dataset> {
 
     @SuppressWarnings("unused")
     private static final Logger log = Logger.getLogger(DatasetController.class.getName());
         
     private AbstractEntityController<Dataset> entityController = new DAOControllerImp<Dataset>(Dataset.class);
+    private AbstractAnnotatableEntityController<Dataset> annotationsController = new AnnotatableDAOControllerImp<Dataset>(Dataset.class);
     
     /* (non-Javadoc)
      * @see org.sagebionetworks.repo.web.controller.AbstractEntityController#getEntities(java.lang.Integer, java.lang.Integer, javax.servlet.http.HttpServletRequest)
@@ -66,7 +69,11 @@ public class DatasetController extends BaseController implements AbstractEntityC
     @ResponseStatus(HttpStatus.OK)
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
         public @ResponseBody Dataset getEntity(@PathVariable String id, HttpServletRequest request) throws NotFoundException, DatastoreException {
-        return entityController.getEntity(id, request);
+        Dataset dataset = entityController.getEntity(id, request);
+
+        dataset.setAnnotations(dataset.getUri() + "/annotations");
+        
+        return dataset;
     }
 
     /* (non-Javadoc)
@@ -75,7 +82,11 @@ public class DatasetController extends BaseController implements AbstractEntityC
     @ResponseStatus(HttpStatus.CREATED)
     @RequestMapping(value = "", method = RequestMethod.POST)
     public @ResponseBody Dataset createEntity(@RequestBody Dataset newEntity, HttpServletRequest request) throws DatastoreException, InvalidModelException {
-        return entityController.createEntity(newEntity, request);
+        Dataset dataset = entityController.createEntity(newEntity, request);
+        
+        dataset.setAnnotations(dataset.getUri() + "/annotations");
+        
+        return dataset;
     }
 
     /* (non-Javadoc)
@@ -87,7 +98,11 @@ public class DatasetController extends BaseController implements AbstractEntityC
             @RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag, 
             @RequestBody Dataset updatedEntity,
             HttpServletRequest request) throws NotFoundException, ConflictingUpdateException, DatastoreException {
-        return entityController.updateEntity(id, etag, updatedEntity, request);
+        Dataset dataset = entityController.updateEntity(id, etag, updatedEntity, request);
+        
+        dataset.setAnnotations(dataset.getUri() + "/annotations");
+        
+        return dataset;
     }
     
     /* (non-Javadoc)
@@ -111,6 +126,24 @@ public class DatasetController extends BaseController implements AbstractEntityC
         public String sanityCheck(ModelMap modelMap) {
         modelMap.put("hello","REST for Datasets rocks");
         return ""; // use the default view
+    }
+
+
+    @ResponseStatus(HttpStatus.OK)
+    @RequestMapping(value = "/{id}/annotations", method = RequestMethod.GET)
+    public @ResponseBody Annotations getEntityAnnotations(@PathVariable String id, 
+            HttpServletRequest request) throws NotFoundException, DatastoreException {
+        return annotationsController.getEntityAnnotations(id, request);
+    }
+    
+    @ResponseStatus(HttpStatus.OK)
+    @RequestMapping(value = "/{id}/annotations", method = RequestMethod.PUT)
+    public @ResponseBody Annotations updateEntityAnnotations(@PathVariable String id,
+            @RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
+            @RequestBody Annotations updatedAnnotations,
+            HttpServletRequest request) throws NotFoundException,
+            ConflictingUpdateException, DatastoreException {
+        return annotationsController.updateEntityAnnotations(id, etag, updatedAnnotations, request);
     }
         
 }
