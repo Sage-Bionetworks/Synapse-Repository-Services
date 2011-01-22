@@ -130,7 +130,7 @@ public class MessageControllerTest {
         //   "paging":{"previous":"/message?offset=1&limit=10","next":"/message?offset=11&limit=10"}}
         assertNotNull(results.getInt("totalNumberOfResults"));
         assertEquals(2, results.getJSONArray("results").length());
-        assertEquals("/message?offset=1&limit=10", results.getJSONObject("paging").getString(PaginatedResults.PREVIOUS_PAGE_FIELD));
+        assertFalse(results.getJSONObject("paging").has(PaginatedResults.PREVIOUS_PAGE_FIELD));
         assertEquals("/message?offset=11&limit=10", results.getJSONObject("paging").getString(PaginatedResults.NEXT_PAGE_FIELD));
     }
 

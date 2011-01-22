@@ -3,14 +3,18 @@ package org.sagebionetworks.repo.web.controller;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.net.URLEncoder;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
-import org.sagebionetworks.repo.view.PaginatedResults;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -86,9 +90,9 @@ public class Helpers {
         JSONObject results = new JSONObject(response.getContentAsString());
         
         // Check default properties
-        assertNotNull(results.getString("id"));
-        assertNotNull(results.getString("uri"));
-        assertNotNull(results.getString("etag"));
+        assertTrue(results.has("id"));
+        assertTrue(results.has("uri"));
+        assertTrue(results.has("etag"));
         
         // Check our response headers
         String etagHeader = (String) response.getHeader(ServiceConstants.ETAG_HEADER);
@@ -118,9 +122,9 @@ public class Helpers {
         JSONObject results = new JSONObject(response.getContentAsString());
 
         // Check default properties
-        assertNotNull(results.getString("id"));
-        assertNotNull(results.getString("uri"));
-        assertNotNull(results.getString("etag"));
+        assertTrue(results.has("id"));
+        assertTrue(results.has("uri"));
+        assertTrue(results.has("etag"));
         
         // Check our response headers
         String etagHeader = (String) response.getHeader(ServiceConstants.ETAG_HEADER);
@@ -144,15 +148,16 @@ public class Helpers {
         request.setRequestURI(jsonEntity.getString("uri"));
         request.addHeader("Content-Type", "application/json; charset=UTF-8");
         request.setContent(jsonEntity.toString().getBytes("UTF-8"));
+        log.info("About to send: " + jsonEntity.toString());
         servlet.service(request, response);
         log.info("Results: " + response.getContentAsString());
         assertEquals(HttpStatus.OK.value(), response.getStatus());
         JSONObject results = new JSONObject(response.getContentAsString());
 
         // Check default properties
-        assertNotNull(results.getString("id"));
-        assertNotNull(results.getString("uri"));
-        assertNotNull(results.getString("etag"));
+        assertTrue(results.has("id"));
+        assertTrue(results.has("uri"));
+        assertTrue(results.has("etag"));
 
         // Check our response headers
         String etagHeader = (String) response.getHeader(ServiceConstants.ETAG_HEADER);
@@ -186,30 +191,33 @@ public class Helpers {
 
     /**
      * @param requestUrl
+     * @param offset 
+     * @param limit 
      * @return the response Json entity
      * @throws Exception
      */
-    public JSONObject testGetJsonEntities(String requestUrl) throws Exception {
+    public JSONObject testGetJsonEntities(String requestUrl, Integer offset, Integer limit) throws Exception {
         
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
         request.setMethod("GET");
         request.addHeader("Accept", "application/json");
         request.setRequestURI(requestUrl);
+        if(null != offset) request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, offset.toString());
+        if(null != limit) request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, limit.toString());
         servlet.service(request, response);
         log.info("Results: " + response.getContentAsString());
         assertEquals(HttpStatus.OK.value(), response.getStatus());
         JSONObject results = new JSONObject(response.getContentAsString());
         
         // Check that the response has the correct structure
-        assertNotNull(results.getInt("totalNumberOfResults"));
-        assertNotNull(results.getJSONArray("results"));
-        assertNotNull(results.getJSONObject("paging"));
-        assertNotNull(results.getJSONObject("paging").getString(PaginatedResults.PREVIOUS_PAGE_FIELD));
-        assertNotNull(results.getJSONObject("paging").getString(PaginatedResults.NEXT_PAGE_FIELD));
+        assertTrue(results.has("totalNumberOfResults"));
+        assertTrue(results.has("results"));
+        assertTrue(results.has("paging"));
 
         return results;
-    }    
+    }  
+    
     /**
      * @param requestUrl
      * @param jsonRequestContent
@@ -230,7 +238,7 @@ public class Helpers {
         assertFalse(HttpStatus.OK.equals(response.getStatus()));
         assertEquals(status.value(), response.getStatus());
         JSONObject results = new JSONObject(response.getContentAsString());
-        assertNotNull(results.getString("reason"));
+        assertTrue(results.has("reason"));
         
         return results;
     }
@@ -253,7 +261,7 @@ public class Helpers {
         assertFalse(HttpStatus.OK.equals(response.getStatus()));
         assertEquals(status.value(), response.getStatus());
         JSONObject results = new JSONObject(response.getContentAsString());
-        assertNotNull(results.getString("reason"));        
+        assertTrue(results.has("reason"));        
 
         return results;
     }
@@ -278,12 +286,12 @@ public class Helpers {
         assertFalse(HttpStatus.OK.equals(response.getStatus()));
         assertEquals(status.value(), response.getStatus());
         JSONObject results = new JSONObject(response.getContentAsString());
-        assertNotNull(results.getString("reason"));        
+        assertTrue(results.has("reason"));        
 
         return results;
     }
  
-        /**
+    /**
      * @param requestUrl
      * @param status
      * @return the error entity
@@ -301,10 +309,59 @@ public class Helpers {
         assertFalse(HttpStatus.OK.equals(response.getStatus()));
         assertEquals(status.value(), response.getStatus());
         JSONObject results = new JSONObject(response.getContentAsString());
-        assertNotNull(results.getString("reason"));
+        assertTrue(results.has("reason"));
         
         return results;
-    }    
+    }  
     
+    /**
+     * @param requestUrl
+     * @return the response Json entity
+     * @throws Exception
+     */
+    public JSONObject testGetJsonEntitiesShouldFail(String requestUrl, Integer offset, Integer limit, HttpStatus status) throws Exception {
+        
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        request.setMethod("GET");
+        request.addHeader("Accept", "application/json");
+        request.setRequestURI(requestUrl);
+        if(null != offset) request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, offset.toString());
+        if(null != limit) request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, limit.toString());
+        servlet.service(request, response);
+        log.info("Results: " + response.getContentAsString());
+        assertFalse(HttpStatus.OK.equals(response.getStatus()));
+        assertEquals(status.value(), response.getStatus());
+        JSONObject results = new JSONObject(response.getContentAsString());
+        assertTrue(results.has("reason"));
+
+        return results;
+    }      
+    
+    /**
+     * @param expected
+     * @param actual
+     * @throws Exception
+     */
+    public void assertJSONArrayEquals(Object [] expected, JSONArray actual) throws Exception {
+        assertEquals(expected.length, actual.length());
+
+        Set<Object> s1 = new HashSet<Object>(Arrays.asList(expected));
+        Set<Object> s2 = new HashSet<Object>();
+
+        for(int i = 0; i < actual.length(); i++) {
+            s2.add(actual.get(i));
+        }
+        
+        // Symmetric set difference Ñ the set of elements contained in either 
+        // of two specified sets but not in both
+        Set<Object> symmetricDiff = new HashSet<Object>(s1);
+        symmetricDiff.addAll(s2);
+        Set<Object> tmp = new HashSet<Object>(s1);
+        tmp.retainAll(s2);
+        symmetricDiff.removeAll(tmp);
+        
+        assertEquals(0, symmetricDiff.size());
+    }
     
 }

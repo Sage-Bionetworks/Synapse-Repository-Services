@@ -60,18 +60,24 @@ public class PaginatedResults<T> implements Serializable {
             int nextOffset = ((offset+limit) > 0) ? offset+limit : ServiceConstants.DEFAULT_PAGINATION_OFFSET;
             
             paging = new HashMap<String,String>();
-            paging.put(PREVIOUS_PAGE_FIELD, 
-                    urlPath 
-                    + "?" + ServiceConstants.PAGINATION_OFFSET_PARAM 
-                    + "=" + previousOffset
-                    + "&" + ServiceConstants.PAGINATION_LIMIT_PARAM
-                    + "=" + limit);
-            paging.put(NEXT_PAGE_FIELD, 
-                    urlPath 
-                    + "?" + ServiceConstants.PAGINATION_OFFSET_PARAM 
-                    + "=" + nextOffset
-                    + "&" + ServiceConstants.PAGINATION_LIMIT_PARAM
-                    + "=" + limit);
+            // Include a previous page if we are not on the first page
+            if(previousOffset != offset) {
+                paging.put(PREVIOUS_PAGE_FIELD, 
+                        urlPath 
+                        + "?" + ServiceConstants.PAGINATION_OFFSET_PARAM 
+                        + "=" + previousOffset
+                        + "&" + ServiceConstants.PAGINATION_LIMIT_PARAM
+                        + "=" + limit);
+            }
+            // Include a next page if we are not on the last page
+            if(nextOffset < totalNumberOfResults) {
+                paging.put(NEXT_PAGE_FIELD, 
+                        urlPath 
+                        + "?" + ServiceConstants.PAGINATION_OFFSET_PARAM 
+                        + "=" + nextOffset
+                        + "&" + ServiceConstants.PAGINATION_LIMIT_PARAM
+                        + "=" + limit);
+            }
     }
 
     /**

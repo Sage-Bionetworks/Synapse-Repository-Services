@@ -21,6 +21,7 @@ public class Dataset implements Base, Revisable {
 	private String status;
 	private Date releaseDate;
 	private String version;
+    private String annotations; // uri for annotations
 	private Collection<String> layers;
 	
 	public String getId() {
@@ -95,7 +96,19 @@ public class Dataset implements Base, Revisable {
 	public void setVersion(String version) {
 		this.version = version;
 	}
-	public Collection<String> getLayers() {
+	/**
+     * @param annotations the annotations to set
+     */
+    public void setAnnotations(String annotations) {
+        this.annotations = annotations;
+    }
+    /**
+     * @return the annotations
+     */
+    public String getAnnotations() {
+        return annotations;
+    }
+    public Collection<String> getLayers() {
 		return layers;
 	}
 	public void setLayers(Collection<String> layers) {

@@ -365,7 +365,7 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 //			protected GAEJDOAnnotation<Float> newAnnotation(String attribute, Float value) {
 //				return new GAEJDOFloatAnnotation(attribute, value);
 //			}
-			protected String getCollectionName() {return "numberAnnotations";}
+			protected String getCollectionName() {return "floatAnnotations";}
 //			protected Set<GAEJDOAnnotation<Float>> getAnnotationSet(GAEJDOAnnotations annots) {
 //				return annots.getFloatAnnotations();
 //			}

@@ -4,7 +4,6 @@
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
@@ -169,9 +168,8 @@ public class ControllerTest {
             // (java.lang.Long,java.lang.String,org.sagebionetworks.repo.model.Dataset)
             // throws org.sagebionetworks.repo.web.NotFoundException]; nested exception is java.lang.IllegalStateException:
             // Missing header 'Etag' of type [java.lang.String]"}
-            assertNotNull(results.getString("reason"));
-
-            assertTrue(results.getString("reason").matches("(?s).*Missing header 'ETag'.*"));
+            assertTrue("Testing " + url,
+                    results.getString("reason").matches("(?s).*Missing header 'ETag'.*"));
         }
     }
 }

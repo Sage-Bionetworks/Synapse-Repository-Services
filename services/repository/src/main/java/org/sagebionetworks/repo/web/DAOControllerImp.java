@@ -31,8 +31,8 @@ public class DAOControllerImp<T extends Base> implements AbstractEntityControlle
 
     private static final Logger log = Logger.getLogger(DAOControllerImp.class.getName());
         
-    private Class<T> theModelClass;
-    private BaseDAO<T> dao;
+    protected Class<T> theModelClass;
+    protected BaseDAO<T> dao;
 
     /**
      * @param theModelClass
@@ -54,7 +54,7 @@ public class DAOControllerImp<T extends Base> implements AbstractEntityControlle
         
         ServiceConstants.validatePaginationParams(offset, limit);
         
-        List<T> entities = dao.getInRange(offset, offset + limit - 1);
+        List<T> entities = dao.getInRange(offset - 1, offset + limit - 1);
         Integer totalNumberOfEntities = dao.getCount();
 
         return new PaginatedResults<T>(request.getServletPath() + UrlPrefixes.getUrlForModel(theModelClass),
@@ -106,7 +106,7 @@ public class DAOControllerImp<T extends Base> implements AbstractEntityControlle
         }
         if(etag != entity.hashCode()) {
             throw new ConflictingUpdateException("entity with id " + entityId 
-                    + "was updated since you last fetched it, retrieve it again and reapply the update");
+                    + " was updated since you last fetched it, retrieve it again and reapply the update");
         }
         dao.update(updatedEntity);
 
@@ -134,7 +134,7 @@ public class DAOControllerImp<T extends Base> implements AbstractEntityControlle
      * @param id
      * @return
      */
-    private String getEntityIdFromUriId(String id) {
+    protected String getEntityIdFromUriId(String id) {
         String entityId = null;
         try {
             entityId = URLDecoder.decode(id, "UTF-8");
@@ -154,7 +154,7 @@ public class DAOControllerImp<T extends Base> implements AbstractEntityControlle
      * @param request
      * @return
      */
-    private String makeEntityUri(T entity, HttpServletRequest request) {
+    protected String makeEntityUri(T entity, HttpServletRequest request) {
         String uri = null;
         try {
             uri = request.getServletPath() 
@@ -177,7 +177,7 @@ public class DAOControllerImp<T extends Base> implements AbstractEntityControlle
      * @param entity
      * @return
      */
-    private String makeEntityEtag(T entity) {
+    protected String makeEntityEtag(T entity) {
         Integer hashCode = entity.hashCode();
         return hashCode.toString();
     }

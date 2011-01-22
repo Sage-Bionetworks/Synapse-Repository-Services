@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
+ * Controller interface for all operations common to entities.
+ * 
  * @author deflaux
  *
  * @param <T>
