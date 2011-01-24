@@ -50,7 +50,7 @@ public class GAEJDODataset implements GAEJDOBase,
 	private Collection<Key> layers;
 
 	public GAEJDODataset() {
-		GAEJDOAnnotations a = new GAEJDOAnnotations();
+		GAEJDOAnnotations a = GAEJDOAnnotations.newGAEJDOAnnotations();
 		setAnnotations(a);
 	}
 

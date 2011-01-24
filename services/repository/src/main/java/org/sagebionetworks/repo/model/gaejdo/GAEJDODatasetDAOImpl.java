@@ -84,7 +84,7 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 
 	public GAEJDODataset newJDO() {
 		GAEJDODataset jdo = new GAEJDODataset();
-		GAEJDOAnnotations a = new GAEJDOAnnotations();
+		GAEJDOAnnotations a = GAEJDOAnnotations.newGAEJDOAnnotations();
 		jdo.setAnnotations(a);
 		GAEJDORevision<GAEJDODataset> r = new GAEJDORevision<GAEJDODataset>();
 		jdo.setRevision(r);
@@ -475,7 +475,7 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 			// return new GAEJDOFloatAnnotation(attribute, value);
 			// }
 			protected String getCollectionName() {
-				return "numberAnnotations";
+				return "floatAnnotations";
 			}
 
 			// protected Set<GAEJDOAnnotation<Float>>

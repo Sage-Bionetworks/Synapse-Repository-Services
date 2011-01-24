@@ -57,7 +57,7 @@ public class GAEJDOAnnotationsTest {
 	public void testAnnotQuery() throws Exception {
 		PersistenceManager pm = PMF.get();
 		try {
-			GAEJDOAnnotations a = new GAEJDOAnnotations();
+			GAEJDOAnnotations a = GAEJDOAnnotations.newGAEJDOAnnotations();
 			Set<GAEJDOFloatAnnotation> as = a.getFloatAnnotations();
 			as.add(new GAEJDOFloatAnnotation("weight", 120.5F));
 			pm.makePersistent(a);

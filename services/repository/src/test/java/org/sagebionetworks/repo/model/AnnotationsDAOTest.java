@@ -70,7 +70,7 @@ public class AnnotationsDAOTest {
 		r.setVersion(new Version("1.0.0"));
 		dataset.setRevision(r);
 
-		GAEJDOAnnotations annots = new GAEJDOAnnotations();
+		GAEJDOAnnotations annots = GAEJDOAnnotations.newGAEJDOAnnotations();
 		dataset.setAnnotations(annots);
 		GAEJDOStringAnnotation stringAnnot = new GAEJDOStringAnnotation(
 				"testKey", "testValue");
