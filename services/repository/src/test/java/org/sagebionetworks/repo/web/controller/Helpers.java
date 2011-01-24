@@ -379,7 +379,7 @@ public class Helpers {
 			s2.add(actual.get(i));
 		}
 
-		// Symmetric set difference Ñ the set of elements contained in either
+		// Symmetric set difference the set of elements contained in either
 		// of two specified sets but not in both
 		Set<Object> symmetricDiff = new HashSet<Object>(s1);
 		symmetricDiff.addAll(s2);
