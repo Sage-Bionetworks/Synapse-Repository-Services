@@ -12,30 +12,32 @@ import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
 
 /**
- * note 'source' may be a reference to a version control repository, like Subversion
+ * note 'source' may be a reference to a version control repository, like
+ * Subversion
+ * 
  * @author bhoff
- *
+ * 
  */
 @PersistenceCapable(detachable = "true")
 public class GAEJDOScript implements GAEJDORevisable<GAEJDOScript> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
-	
+
 	@Persistent
 	private String name;
-	
+
 	// http://code.google.com/appengine/docs/java/datastore/relationships.html#Owned_One_to_One_Relationships
-	@Persistent(dependent = "true") 
+	@Persistent(dependent = "true")
 	private GAEJDORevision<GAEJDOScript> revision;
-	
+
 	@Persistent
 	private Date publicationDate;
-	
+
 	@Persistent
 	private Text overview;
-	
-	@Persistent(serialized="true")
+
+	@Persistent(serialized = "true")
 	private URI source;
 
 	public Key getId() {
@@ -86,5 +88,7 @@ public class GAEJDOScript implements GAEJDORevisable<GAEJDOScript> {
 		this.source = source;
 	}
 
-	public boolean isPublished() {return null!=publicationDate;}
+	public boolean isPublished() {
+		return null != publicationDate;
+	}
 }

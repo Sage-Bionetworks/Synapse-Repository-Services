@@ -12,91 +12,92 @@ import org.sagebionetworks.repo.model.ScriptDAO;
 import com.google.appengine.api.datastore.Key;
 
 public class GAEJDOScriptDAOImpl implements ScriptDAO {
-//	PersistenceManager pm;
-//	
-//	public GAEJDOScriptDAOImpl(PersistenceManager pm) {
-//		this.pm=pm;
-//	}
-	
+	// PersistenceManager pm;
+	//
+	// public GAEJDOScriptDAOImpl(PersistenceManager pm) {
+	// this.pm=pm;
+	// }
+
 	public GAEJDOScript getScript(Key id) {
-		PersistenceManager pm = PMF.get();		
-		GAEJDOScript ans = (GAEJDOScript)pm.getObjectById(GAEJDOScript.class, id);
-		//pm.close();
+		PersistenceManager pm = PMF.get();
+		GAEJDOScript ans = (GAEJDOScript) pm.getObjectById(GAEJDOScript.class,
+				id);
+		// pm.close();
 		return ans;
 	}
-	
+
 	public void makePersistent(GAEJDOScript script) {
-		PersistenceManager pm = PMF.get();		
-		
-		// the explicit transaction is important for the persistence of both objects in the
-		// owned relationship.  see
+		PersistenceManager pm = PMF.get();
+
+		// the explicit transaction is important for the persistence of both
+		// objects in the
+		// owned relationship. see
 		// http://code.google.com/appengine/docs/java/datastore/relationships.html#Relationships_Entity_Groups_and_Transactions
-		Transaction tx=null;
+		Transaction tx = null;
 		try {
-			 	tx=pm.currentTransaction();
-				tx.begin();
-				pm.makePersistent(script);
-				tx.commit();
+			tx = pm.currentTransaction();
+			tx.begin();
+			pm.makePersistent(script);
+			tx.commit();
 		} finally {
-				if(tx.isActive()) {
-					tx.rollback();
-				}
-				pm.close();
-		}	
-	}
-	
-//	public void delete(Script script)  {
-//		PersistenceManager pm = PMF.get();		
-//		Transaction tx=null;
-//		try {
-//			 	tx=pm.currentTransaction();
-//				tx.begin();
-//				pm.deletePersistent(script);
-//				tx.commit();
-//		} finally {
-//				if(tx.isActive()) {
-//					tx.rollback();
-//				}
-//				pm.close();
-//		}	
-//	}
-	
-	public void delete(Key id) {
-		PersistenceManager pm = PMF.get();		
-		Transaction tx=null;
-		try {
-			 	tx=pm.currentTransaction();
-				tx.begin();
-				Query q = pm.newQuery(GAEJDOScript.class);
-				q.setFilter("id==pId");
-				q.declareParameters(Key.class.getName()+" pId");
-				long n = q.deletePersistentAll(id);
-				if (n!=1) throw new IllegalStateException("Expected 1 but got "+n);
-				tx.commit();
-		} finally {
-				if(tx.isActive()) {
-					tx.rollback();
-				}
-				pm.close();
-		}	
+			if (tx.isActive()) {
+				tx.rollback();
+			}
+			pm.close();
+		}
 	}
 
-	
-	public void makeTransient(GAEJDOScript script) {
-		PersistenceManager pm = PMF.get();		
-		Transaction tx=null;
+	// public void delete(Script script) {
+	// PersistenceManager pm = PMF.get();
+	// Transaction tx=null;
+	// try {
+	// tx=pm.currentTransaction();
+	// tx.begin();
+	// pm.deletePersistent(script);
+	// tx.commit();
+	// } finally {
+	// if(tx.isActive()) {
+	// tx.rollback();
+	// }
+	// pm.close();
+	// }
+	// }
+
+	public void delete(Key id) {
+		PersistenceManager pm = PMF.get();
+		Transaction tx = null;
 		try {
-			 	tx=pm.currentTransaction();
-				tx.begin();
-				pm.makeTransient(script);
-				tx.commit();
+			tx = pm.currentTransaction();
+			tx.begin();
+			Query q = pm.newQuery(GAEJDOScript.class);
+			q.setFilter("id==pId");
+			q.declareParameters(Key.class.getName() + " pId");
+			long n = q.deletePersistentAll(id);
+			if (n != 1)
+				throw new IllegalStateException("Expected 1 but got " + n);
+			tx.commit();
 		} finally {
-				if(tx.isActive()) {
-					tx.rollback();
-				}
-				pm.close();
-		}	
+			if (tx.isActive()) {
+				tx.rollback();
+			}
+			pm.close();
+		}
 	}
-	
+
+	public void makeTransient(GAEJDOScript script) {
+		PersistenceManager pm = PMF.get();
+		Transaction tx = null;
+		try {
+			tx = pm.currentTransaction();
+			tx.begin();
+			pm.makeTransient(script);
+			tx.commit();
+		} finally {
+			if (tx.isActive()) {
+				tx.rollback();
+			}
+			pm.close();
+		}
+	}
 
 }

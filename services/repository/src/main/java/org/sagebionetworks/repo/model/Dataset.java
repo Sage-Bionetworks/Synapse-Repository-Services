@@ -7,13 +7,14 @@ import java.util.Date;
  * This is a data transfer object.
  * 
  * Note, this representation is independent of any implementation
+ * 
  * @author bhoff
- *
+ * 
  */
 public class Dataset implements Base, Revisable {
 	private String id;
-    private String uri;
-    private String etag;
+	private String uri;
+	private String etag;
 	private String name;
 	private String description;
 	private String creator;
@@ -21,99 +22,126 @@ public class Dataset implements Base, Revisable {
 	private String status;
 	private Date releaseDate;
 	private String version;
-    private String annotations; // uri for annotations
+	private String annotations; // uri for annotations
 	private Collection<String> layers;
-	
+
 	public String getId() {
 		return id;
 	}
+
 	public void setId(String id) {
 		this.id = id;
 	}
+
 	/**
-     * @return the uri
-     */
-    public String getUri() {
-        return uri;
-    }
-    /**
-     * @param uri the uri to set
-     */
-    public void setUri(String uri) {
-        this.uri = uri;
-    }
-    /**
-     * @return the etag
-     */
-    public String getEtag() {
-        return etag;
-    }
-    /**
-     * @param etag the etag to set
-     */
-    public void setEtag(String etag) {
-        this.etag = etag;
-    }
-    public String getName() {
+	 * @return the uri
+	 */
+	public String getUri() {
+		return uri;
+	}
+
+	/**
+	 * @param uri
+	 *            the uri to set
+	 */
+	public void setUri(String uri) {
+		this.uri = uri;
+	}
+
+	/**
+	 * @return the etag
+	 */
+	public String getEtag() {
+		return etag;
+	}
+
+	/**
+	 * @param etag
+	 *            the etag to set
+	 */
+	public void setEtag(String etag) {
+		this.etag = etag;
+	}
+
+	public String getName() {
 		return name;
 	}
+
 	public void setName(String name) {
 		this.name = name;
 	}
+
 	public String getDescription() {
 		return description;
 	}
+
 	public void setDescription(String description) {
 		this.description = description;
 	}
+
 	public String getCreator() {
 		return creator;
 	}
+
 	public void setCreator(String creator) {
 		this.creator = creator;
 	}
+
 	public Date getCreationDate() {
 		return creationDate;
 	}
+
 	public void setCreationDate(Date creationDate) {
 		this.creationDate = creationDate;
 	}
+
 	public String getStatus() {
 		return status;
 	}
+
 	public void setStatus(String status) {
 		this.status = status;
 	}
+
 	public Date getReleaseDate() {
 		return releaseDate;
 	}
+
 	public void setReleaseDate(Date releaseDate) {
 		this.releaseDate = releaseDate;
 	}
+
 	public String getVersion() {
 		return version;
 	}
+
 	public void setVersion(String version) {
 		this.version = version;
 	}
+
 	/**
-     * @param annotations the annotations to set
-     */
-    public void setAnnotations(String annotations) {
-        this.annotations = annotations;
-    }
-    /**
-     * @return the annotations
-     */
-    public String getAnnotations() {
-        return annotations;
-    }
-    public Collection<String> getLayers() {
+	 * @param annotations
+	 *            the annotations to set
+	 */
+	public void setAnnotations(String annotations) {
+		this.annotations = annotations;
+	}
+
+	/**
+	 * @return the annotations
+	 */
+	public String getAnnotations() {
+		return annotations;
+	}
+
+	public Collection<String> getLayers() {
 		return layers;
 	}
+
 	public void setLayers(Collection<String> layers) {
 		this.layers = layers;
 	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -130,6 +158,7 @@ public class Dataset implements Base, Revisable {
 		result = prime * result + ((version == null) ? 0 : version.hashCode());
 		return result;
 	}
+
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -182,5 +211,4 @@ public class Dataset implements Base, Revisable {
 		return true;
 	}
 
-	
 }

@@ -7,7 +7,10 @@ import com.google.appengine.api.datastore.Key;
 
 public interface GAEJDOBase {
 	public void setId(Key id);
+
 	public Key getId();
+
 	public void setCreationDate(Date d);
+
 	public Date getCreationDate();
 }

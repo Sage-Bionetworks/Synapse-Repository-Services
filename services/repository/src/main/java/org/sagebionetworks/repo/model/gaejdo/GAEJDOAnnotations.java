@@ -21,52 +21,48 @@ public class GAEJDOAnnotations {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
-	
+
 	// I'm not sure if this is quite right, as the data store may wish to
-	// populate the fields itself.   However in the worst case the field 
-	// are just overwritten and so a little time is wasted creating these empty maps.
+	// populate the fields itself. However in the worst case the field
+	// are just overwritten and so a little time is wasted creating these empty
+	// maps.
 	public GAEJDOAnnotations() {
 		setStringAnnotations(new HashSet<GAEJDOStringAnnotation>());
 		setFloatAnnotations(new HashSet<GAEJDOFloatAnnotation>());
 		setTextAnnotations(new HashSet<GAEJDOTextAnnotation>());
 		setDateAnnotations(new HashSet<GAEJDODateAnnotation>());
 	}
-	
-	// TODO implement this!
+
 	public static GAEJDOAnnotations clone(GAEJDOAnnotations a) {
 		GAEJDOAnnotations ans = new GAEJDOAnnotations();
 
-//		for (GAEJDOAnnotation<String> annot : a.getStringIterable()) {
-//			ans.add(annot.getAttribute(), annot.getValue());
-//		}
-//
-//		for (GAEJDOAnnotation<Number> annot : a.getNumberIterable()) {
-//			ans.add(annot.getAttribute(), annot.getValue());
-//		}
-//
-//		for (GAEJDOAnnotation<Text> annot : a.getTextIterable()) {
-//			ans.add(annot.getAttribute(), annot.getValue());
-//		}
-//
-//		for (GAEJDOAnnotation<Date> annot : a.getDateIterable()) {
-//			ans.add(annot.getAttribute(), annot.getValue());
-//		}
+		for (GAEJDOAnnotation<String> annot : a.getStringIterable()) {
+			ans.add(annot.getAttribute(), annot.getValue());
+		}
+
+		for (GAEJDOAnnotation<Float> annot : a.getFloatIterable()) {
+			ans.add(annot.getAttribute(), annot.getValue());
+		}
+
+		for (GAEJDOAnnotation<Text> annot : a.getTextIterable()) {
+			ans.add(annot.getAttribute(), annot.getValue());
+		}
+
+		for (GAEJDOAnnotation<Date> annot : a.getDateIterable()) {
+			ans.add(annot.getAttribute(), annot.getValue());
+		}
 		return ans;
 	}
-		
-	//@Persistent(mappedBy = "owner") 	
+
 	@Element(dependent = "true")
 	private Set<GAEJDOStringAnnotation> stringAnnotations;
 
-	//@Persistent(mappedBy = "owner") 	
 	@Element(dependent = "true")
 	private Set<GAEJDOFloatAnnotation> floatAnnotations;
 
-	//@Persistent(mappedBy = "owner") 	
 	@Element(dependent = "true")
 	private Set<GAEJDOTextAnnotation> textAnnotations;
 
-	//@Persistent(mappedBy = "owner") 	
 	@Element(dependent = "true")
 	private Set<GAEJDODateAnnotation> dateAnnotations;
 
@@ -77,63 +73,126 @@ public class GAEJDOAnnotations {
 	public void setId(Key id) {
 		this.id = id;
 	}
-	
-	// it's the caller's responsibility to make sure this <owner,attribute,value> pair doesn't already exist
-	public void add(String a, String v) {stringAnnotations.add(new GAEJDOStringAnnotation(a,v));}
-	public void remove(String a, String v) {stringAnnotations.remove(new GAEJDOStringAnnotation(a,v));}
+
+	public void add(String a, String v) {
+		stringAnnotations.add(new GAEJDOStringAnnotation(a, v));
+	}
+
+	public void remove(String a, String v) {
+		stringAnnotations.remove(new GAEJDOStringAnnotation(a, v));
+	}
+
 	public Iterable<GAEJDOAnnotation<String>> getStringIterable() {
 		return new Iterable<GAEJDOAnnotation<String>>() {
 			public Iterator<GAEJDOAnnotation<String>> iterator() {
 				return new Iterator<GAEJDOAnnotation<String>>() {
-					 private Iterator<GAEJDOStringAnnotation> it = stringAnnotations.iterator();
-					 public boolean hasNext() {return it.hasNext();}
-					 public GAEJDOAnnotation<String> next() {return it.next();}
-			         public void remove() {it.remove();}
+					private Iterator<GAEJDOStringAnnotation> it = stringAnnotations
+							.iterator();
+
+					public boolean hasNext() {
+						return it.hasNext();
+					}
+
+					public GAEJDOAnnotation<String> next() {
+						return it.next();
+					}
+
+					public void remove() {
+						it.remove();
+					}
 				};
 			}
 		};
 	}
-	
-	public void add(String a, Float v) {floatAnnotations.add(new GAEJDOFloatAnnotation(a,v));}
-	public void remove(String a, Float v) {floatAnnotations.remove(new GAEJDOFloatAnnotation(a,v));}
+
+	public void add(String a, Float v) {
+		floatAnnotations.add(new GAEJDOFloatAnnotation(a, v));
+	}
+
+	public void remove(String a, Float v) {
+		floatAnnotations.remove(new GAEJDOFloatAnnotation(a, v));
+	}
+
 	public Iterable<GAEJDOAnnotation<Float>> getFloatIterable() {
 		return new Iterable<GAEJDOAnnotation<Float>>() {
 			public Iterator<GAEJDOAnnotation<Float>> iterator() {
 				return new Iterator<GAEJDOAnnotation<Float>>() {
-					private Iterator<GAEJDOFloatAnnotation> it = floatAnnotations.iterator();
-					 public boolean hasNext() {return it.hasNext();}
-					 public GAEJDOAnnotation<Float> next() {return it.next();}
-			         public void remove() {it.remove();}
+					private Iterator<GAEJDOFloatAnnotation> it = floatAnnotations
+							.iterator();
+
+					public boolean hasNext() {
+						return it.hasNext();
+					}
+
+					public GAEJDOAnnotation<Float> next() {
+						return it.next();
+					}
+
+					public void remove() {
+						it.remove();
+					}
 				};
 			}
 		};
 	}
-	
-	public void add(String a, Date v) {dateAnnotations.add(new GAEJDODateAnnotation(a,v));}
-	public void remove(String a, Date v) {dateAnnotations.remove(new GAEJDODateAnnotation(a,v));}
+
+	public void add(String a, Date v) {
+		dateAnnotations.add(new GAEJDODateAnnotation(a, v));
+	}
+
+	public void remove(String a, Date v) {
+		dateAnnotations.remove(new GAEJDODateAnnotation(a, v));
+	}
+
 	public Iterable<GAEJDOAnnotation<Date>> getDateIterable() {
 		return new Iterable<GAEJDOAnnotation<Date>>() {
 			public Iterator<GAEJDOAnnotation<Date>> iterator() {
 				return new Iterator<GAEJDOAnnotation<Date>>() {
-					 private Iterator<GAEJDODateAnnotation> it = dateAnnotations.iterator();
-					 public boolean hasNext() {return it.hasNext();}
-					 public GAEJDOAnnotation<Date> next() {return it.next();}
-			         public void remove() {it.remove();}
+					private Iterator<GAEJDODateAnnotation> it = dateAnnotations
+							.iterator();
+
+					public boolean hasNext() {
+						return it.hasNext();
+					}
+
+					public GAEJDOAnnotation<Date> next() {
+						return it.next();
+					}
+
+					public void remove() {
+						it.remove();
+					}
 				};
 			}
 		};
 	}
-	
-	public void add(String a, Text v) {textAnnotations.add(new GAEJDOTextAnnotation(a,v));}
-	public void remove(String a, Text v) {textAnnotations.remove(new GAEJDOTextAnnotation(a,v));}
+
+	public void add(String a, Text v) {
+		textAnnotations.add(new GAEJDOTextAnnotation(a, v));
+	}
+
+	public void remove(String a, Text v) {
+		textAnnotations.remove(new GAEJDOTextAnnotation(a, v));
+	}
+
 	public Iterable<GAEJDOAnnotation<Text>> getTextIterable() {
 		return new Iterable<GAEJDOAnnotation<Text>>() {
 			public Iterator<GAEJDOAnnotation<Text>> iterator() {
 				return new Iterator<GAEJDOAnnotation<Text>>() {
-					 private Iterator<GAEJDOTextAnnotation> it = textAnnotations.iterator();
-					 public boolean hasNext() {return it.hasNext();}
-					 public GAEJDOAnnotation<Text> next() {return it.next();}
-			         public void remove() {it.remove();}
+					private Iterator<GAEJDOTextAnnotation> it = textAnnotations
+							.iterator();
+
+					public boolean hasNext() {
+						return it.hasNext();
+					}
+
+					public GAEJDOAnnotation<Text> next() {
+						return it.next();
+					}
+
+					public void remove() {
+						it.remove();
+					}
 				};
 			}
 		};
@@ -143,7 +202,8 @@ public class GAEJDOAnnotations {
 		return stringAnnotations;
 	}
 
-	public void setStringAnnotations(Set<GAEJDOStringAnnotation> stringAnnotations) {
+	public void setStringAnnotations(
+			Set<GAEJDOStringAnnotation> stringAnnotations) {
 		this.stringAnnotations = stringAnnotations;
 	}
 
@@ -195,8 +255,5 @@ public class GAEJDOAnnotations {
 			return false;
 		return true;
 	}
-	
-
-
 
 }

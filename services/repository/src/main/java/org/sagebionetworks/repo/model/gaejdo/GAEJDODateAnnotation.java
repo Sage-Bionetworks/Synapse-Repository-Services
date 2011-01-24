@@ -10,24 +10,27 @@ import javax.jdo.annotations.PrimaryKey;
 import com.google.appengine.api.datastore.Key;
 
 @PersistenceCapable(detachable = "true")
-public class GAEJDODateAnnotation implements GAEJDOAnnotation<Date>{
+public class GAEJDODateAnnotation implements GAEJDOAnnotation<Date> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
-	
-//	@Persistent
-//	private GAEJDOAnnotations owner; // this is the backwards pointer for the 1-1 owned relationship
+
+	// @Persistent
+	// private GAEJDOAnnotations owner; // this is the backwards pointer for the
+	// 1-1 owned relationship
 
 	@Persistent
 	private String attribute;
-	
-//	@Persistent
-//	@Extension(vendorName = "datanucleus", key = "implementation-classes", 
-//			value = "String,Integer,com.google.appengine.api.datastore.Text,Boolean,Float,java.util.Date")
+
+	// @Persistent
+	// @Extension(vendorName = "datanucleus", key = "implementation-classes",
+	// value =
+	// "String,Integer,com.google.appengine.api.datastore.Text,Boolean,Float,java.util.Date")
 	private Date value;
-	
-	public GAEJDODateAnnotation() {}
-	
+
+	public GAEJDODateAnnotation() {
+	}
+
 	public GAEJDODateAnnotation(String attr, Date value) {
 		setAttribute(attr);
 		setValue(value);
@@ -41,13 +44,13 @@ public class GAEJDODateAnnotation implements GAEJDOAnnotation<Date>{
 		this.id = id;
 	}
 
-//	public GAEJDOAnnotations getOwner() {
-//		return owner;
-//	}
-//
-//	public void setOwner(GAEJDOAnnotations owner) {
-//		this.owner = owner;
-//	}
+	// public GAEJDOAnnotations getOwner() {
+	// return owner;
+	// }
+	//
+	// public void setOwner(GAEJDOAnnotations owner) {
+	// this.owner = owner;
+	// }
 
 	public String getAttribute() {
 		return attribute;
@@ -96,6 +99,5 @@ public class GAEJDODateAnnotation implements GAEJDOAnnotation<Date>{
 			return false;
 		return true;
 	}
-	
-	
+
 }

@@ -20,16 +20,18 @@ import com.google.appengine.api.datastore.KeyFactory;
 /**
  * 
  * @author bhoff
- *
- * @param <S> the DTO class
- * @param <T> the JDO class
+ * 
+ * @param <S>
+ *            the DTO class
+ * @param <T>
+ *            the JDO class
  */
-abstract public class GAEJDOBaseDAOHelper<S,T extends GAEJDOBase> {
-	
+abstract public class GAEJDOBaseDAOHelper<S, T extends GAEJDOBase> {
+
 	abstract public S newDTO();
-	
+
 	abstract public T newJDO();
-	
+
 	/**
 	 * Do a shallow copy from the JDO object to the DTO object.
 	 * 
@@ -37,96 +39,95 @@ abstract public class GAEJDOBaseDAOHelper<S,T extends GAEJDOBase> {
 	 * @param dto
 	 */
 	abstract public void copyToDto(T jdo, S dto);
-	
-	
+
 	/**
 	 * Do a shallow copy from the DTO object to the JDO object.
 	 * 
 	 * @param dto
 	 * @param jdo
-	 * @throws InvalidModelException 
+	 * @throws InvalidModelException
 	 */
 	abstract public void copyFromDto(S dto, T jdo) throws InvalidModelException;
-	
+
 	/**
-	 * @param jdoClass the class parameterized by T
+	 * @param jdoClass
+	 *            the class parameterized by T
 	 */
 	abstract public Class<T> getJdoClass();
 
-	
 	public String create(S dto) throws InvalidModelException {
 		T jdo = newJDO();
 		copyFromDto(dto, jdo);
-		PersistenceManager pm = PMF.get();		
-				Transaction tx=null;
+		PersistenceManager pm = PMF.get();
+		Transaction tx = null;
 		try {
-			 	tx=pm.currentTransaction();
-				tx.begin();
-				pm.makePersistent(jdo);
-				tx.commit();
-				return KeyFactory.keyToString(jdo.getId());
+			tx = pm.currentTransaction();
+			tx.begin();
+			pm.makePersistent(jdo);
+			tx.commit();
+			return KeyFactory.keyToString(jdo.getId());
 		} finally {
-				if(tx.isActive()) {
-					tx.rollback();
-				}
-				pm.close();
-		}	
+			if (tx.isActive()) {
+				tx.rollback();
+			}
+			pm.close();
+		}
 	}
-	
+
 	public S get(String id) throws DatastoreException, NotFoundException {
-		PersistenceManager pm = PMF.get();	
+		PersistenceManager pm = PMF.get();
 		try {
 			Key key = KeyFactory.stringToKey(id);
 			@SuppressWarnings("unchecked")
-			T jdo = (T)pm.getObjectById(getJdoClass(), key);
+			T jdo = (T) pm.getObjectById(getJdoClass(), key);
 			S dto = newDTO();
 			copyToDto(jdo, dto);
 			pm.close();
 			return dto;
 		} catch (JDOObjectNotFoundException e) {
-		    throw new NotFoundException(e);
+			throw new NotFoundException(e);
 		} catch (Exception e) {
 			throw new DatastoreException(e);
 		}
 	}
-	
+
 	public void delete(String id) throws DatastoreException, NotFoundException {
-		PersistenceManager pm = PMF.get();		
-		Transaction tx=null;
+		PersistenceManager pm = PMF.get();
+		Transaction tx = null;
 		try {
-			 	tx=pm.currentTransaction();
-				tx.begin();
-				Key key = KeyFactory.stringToKey(id);
-				@SuppressWarnings("unchecked")
-				T jdo = (T)pm.getObjectById(getJdoClass(), key);
-				pm.deletePersistent(jdo);
-				tx.commit();
-        } catch (JDOObjectNotFoundException e) {
-            throw new NotFoundException(e);
-        } catch (Exception e) {
+			tx = pm.currentTransaction();
+			tx.begin();
+			Key key = KeyFactory.stringToKey(id);
+			@SuppressWarnings("unchecked")
+			T jdo = (T) pm.getObjectById(getJdoClass(), key);
+			pm.deletePersistent(jdo);
+			tx.commit();
+		} catch (JDOObjectNotFoundException e) {
+			throw new NotFoundException(e);
+		} catch (Exception e) {
 			throw new DatastoreException(e);
 		} finally {
-				if(tx.isActive()) {
-					tx.rollback();
-				}
-				pm.close();
-		}	
+			if (tx.isActive()) {
+				tx.rollback();
+			}
+			pm.close();
+		}
 	}
-	
 
 	/**
 	 * 
 	 * @param start
 	 * @param end
-	 * @return a subset of the results, starting at index 'start' and not going beyond index 'end'
+	 * @return a subset of the results, starting at index 'start' and not going
+	 *         beyond index 'end'
 	 */
 	public List<S> getInRange(int start, int end) {
-		PersistenceManager pm = PMF.get();		
+		PersistenceManager pm = PMF.get();
 		try {
 			Query query = pm.newQuery(getJdoClass());
 			query.setRange(start, end);
 			@SuppressWarnings("unchecked")
-			List<T> list = ((List<T>)query.execute());
+			List<T> list = ((List<T>) query.execute());
 			List<S> ans = new ArrayList<S>();
 			for (T jdo : list) {
 				S dto = newDTO();
@@ -138,25 +139,27 @@ abstract public class GAEJDOBaseDAOHelper<S,T extends GAEJDOBase> {
 			pm.close();
 		}
 	}
-		
+
 	/**
 	 * 
 	 * @param start
 	 * @param end
 	 * @param sortBy
-	 * @param asc if true then ascending, else descending
-	 * @return a subset of the results, starting at index 'start' and not going beyond index 'end'
-	 * and sorted by the given primary field
+	 * @param asc
+	 *            if true then ascending, else descending
+	 * @return a subset of the results, starting at index 'start' and not going
+	 *         beyond index 'end' and sorted by the given primary field
 	 */
-	public List<S> getInRangeSortedByPrimaryField(int start, int end, String sortBy, boolean asc) {
-		PersistenceManager pm = null;		
+	public List<S> getInRangeSortedByPrimaryField(int start, int end,
+			String sortBy, boolean asc) {
+		PersistenceManager pm = null;
 		try {
-			pm = PMF.get();		
+			pm = PMF.get();
 			Query query = pm.newQuery(getJdoClass());
 			query.setRange(start, end);
-			query.setOrdering(sortBy+(asc?" ascending":" descending"));
+			query.setOrdering(sortBy + (asc ? " ascending" : " descending"));
 			@SuppressWarnings("unchecked")
-			List<T> list = ((List<T>)query.execute());
+			List<T> list = ((List<T>) query.execute());
 			List<S> ans = new ArrayList<S>();
 			for (T jdo : list) {
 				S dto = newDTO();
@@ -167,19 +170,20 @@ abstract public class GAEJDOBaseDAOHelper<S,T extends GAEJDOBase> {
 		} finally {
 			pm.close();
 		}
-		
+
 	}
-	
-	public List<S> getInRangeHavingPrimaryField(int start, int end, String attribute, Object value)  {
-		PersistenceManager pm = null;		
+
+	public List<S> getInRangeHavingPrimaryField(int start, int end,
+			String attribute, Object value) {
+		PersistenceManager pm = null;
 		try {
-			pm = PMF.get();		
+			pm = PMF.get();
 			Query query = pm.newQuery(getJdoClass());
 			query.setRange(start, end);
-			query.setFilter(attribute+"==pValue");
-			query.declareParameters(value.getClass().getName()+" pValue");
+			query.setFilter(attribute + "==pValue");
+			query.declareParameters(value.getClass().getName() + " pValue");
 			@SuppressWarnings("unchecked")
-			List<T> list = ((List<T>)query.execute(value));
+			List<T> list = ((List<T>) query.execute(value));
 			List<S> ans = new ArrayList<S>();
 			for (T jdo : list) {
 				S dto = newDTO();
@@ -191,7 +195,5 @@ abstract public class GAEJDOBaseDAOHelper<S,T extends GAEJDOBase> {
 			pm.close();
 		}
 	}
-		
-	
 
 }

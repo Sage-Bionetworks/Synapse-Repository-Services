@@ -13,41 +13,42 @@ import com.google.appengine.api.datastore.Key;
 
 /**
  * @author bhoff
- *
+ * 
  */
 @PersistenceCapable(detachable = "true")
-public class GAEJDODataset implements GAEJDOBase, GAEJDORevisable<GAEJDODataset>, GAEJDOAnnotatable {
+public class GAEJDODataset implements GAEJDOBase,
+		GAEJDORevisable<GAEJDODataset>, GAEJDOAnnotatable {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
-	
-	@Persistent(dependent = "true") 	
+
+	@Persistent(dependent = "true")
 	private GAEJDORevision<GAEJDODataset> revision;
-	
+
 	@Persistent(dependent = "true")
 	private GAEJDOAnnotations annotations;
-	
+
 	@Persistent
 	private String name;
-	
+
 	@Persistent
 	private String description;
-	
+
 	@Persistent
 	private String creator;
-	
+
 	@Persistent
 	private Date creationDate;
-	
+
 	@Persistent
 	private String status;
-	
+
 	@Persistent
 	private Date releaseDate;
-		
+
 	@Persistent
 	private Collection<Key> layers;
-		
+
 	public GAEJDODataset() {
 		GAEJDOAnnotations a = new GAEJDOAnnotations();
 		setAnnotations(a);
@@ -157,5 +158,5 @@ public class GAEJDODataset implements GAEJDOBase, GAEJDORevisable<GAEJDODataset>
 			return false;
 		return true;
 	}
-	
+
 }
