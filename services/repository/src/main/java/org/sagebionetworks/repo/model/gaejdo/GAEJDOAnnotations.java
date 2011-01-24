@@ -21,20 +21,18 @@ public class GAEJDOAnnotations {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
-
-	// I'm not sure if this is quite right, as the data store may wish to
-	// populate the fields itself. However in the worst case the field
-	// are just overwritten and so a little time is wasted creating these empty
-	// maps.
-	public GAEJDOAnnotations() {
-		setStringAnnotations(new HashSet<GAEJDOStringAnnotation>());
-		setFloatAnnotations(new HashSet<GAEJDOFloatAnnotation>());
-		setTextAnnotations(new HashSet<GAEJDOTextAnnotation>());
-		setDateAnnotations(new HashSet<GAEJDODateAnnotation>());
+	
+	public static GAEJDOAnnotations newGAEJDOAnnotations() {
+		GAEJDOAnnotations obj = new GAEJDOAnnotations();
+		obj.setStringAnnotations(new HashSet<GAEJDOStringAnnotation>());
+		obj.setFloatAnnotations(new HashSet<GAEJDOFloatAnnotation>());
+		obj.setTextAnnotations(new HashSet<GAEJDOTextAnnotation>());
+		obj.setDateAnnotations(new HashSet<GAEJDODateAnnotation>());
+		return obj;
 	}
 
 	public static GAEJDOAnnotations clone(GAEJDOAnnotations a) {
-		GAEJDOAnnotations ans = new GAEJDOAnnotations();
+		GAEJDOAnnotations ans = newGAEJDOAnnotations();
 
 		for (GAEJDOAnnotation<String> annot : a.getStringIterable()) {
 			ans.add(annot.getAttribute(), annot.getValue());

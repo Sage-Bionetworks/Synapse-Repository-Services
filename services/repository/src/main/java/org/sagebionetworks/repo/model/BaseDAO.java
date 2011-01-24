@@ -16,8 +16,7 @@ import com.google.appengine.api.datastore.Key;
 public interface BaseDAO<T> {
 
 	/**
-	 * @param dto
-	 *            object to be created
+	 * @param dto object to be created
 	 * @return the id of the newly created object
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
