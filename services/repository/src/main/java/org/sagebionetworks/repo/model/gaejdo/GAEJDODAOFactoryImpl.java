@@ -18,56 +18,57 @@ import org.sagebionetworks.repo.model.ScriptDAO;
 
 @SuppressWarnings("unchecked")
 public class GAEJDODAOFactoryImpl implements DAOFactory {
-    
-    private static final Logger log = Logger
-    .getLogger(GAEJDODAOFactoryImpl.class.getName());
-    
-    private static final Map<Class, Class> MODEL2DAO;
-    static {
-        Map<Class, Class> model2dao = new HashMap<Class, Class>();
-        model2dao.put(Dataset.class, GAEJDODatasetDAOImpl.class);
-        MODEL2DAO = Collections.unmodifiableMap(model2dao);
 
-    }
-    
+	private static final Logger log = Logger
+			.getLogger(GAEJDODAOFactoryImpl.class.getName());
+
+	private static final Map<Class, Class> MODEL2DAO;
+	static {
+		Map<Class, Class> model2dao = new HashMap<Class, Class>();
+		model2dao.put(Dataset.class, GAEJDODatasetDAOImpl.class);
+		MODEL2DAO = Collections.unmodifiableMap(model2dao);
+
+	}
+
 	public ProjectDAO getProjectDAO() {
 		return new GAEJDOProjectDAOImpl();
 	}
-	
+
 	public ScriptDAO getScriptDAO() {
 		return new GAEJDOScriptDAOImpl();
 	}
-	
-	
+
 	public DatasetDAO getDatasetDAO() {
 		return new GAEJDODatasetDAOImpl();
 	}
-	
+
 	public InputDataLayerDAO getInputDataLayerDAO() {
 		return new GAEJDOInputDataLayerDAOImpl();
 	}
-	
+
 	public AnalysisResultDAO getAnalysisResultDAO() {
 		return new GAEJDOAnalysisResultDAOImpl();
 	}
-		
+
 	public DatasetAnalysisDAO getDatasetAnalysisDAO() {
 		return new GAEJDODatasetAnalysisDAOImpl();
 	}
 
-    public BaseDAO getDAO(Class theModelClass) {
-        if(MODEL2DAO.containsKey(theModelClass)) {
-            Class theDAOClass = MODEL2DAO.get(theModelClass);
-            try {
-                return (BaseDAO) theDAOClass.newInstance();
-            } 
-            catch (Exception e) {
-                // This should not happen since we are referring to Class objects 
-                // in the map (as opposed to class names)
-                log.log(Level.SEVERE, "Unable to instantiate DAO class of type " 
-                        + theDAOClass + " for model class " + theModelClass, e);
-            } 
-        }
-        return null;
-    }
+	public BaseDAO getDAO(Class theModelClass) {
+		if (MODEL2DAO.containsKey(theModelClass)) {
+			Class theDAOClass = MODEL2DAO.get(theModelClass);
+			try {
+				return (BaseDAO) theDAOClass.newInstance();
+			} catch (Exception e) {
+				// This should not happen since we are referring to Class
+				// objects
+				// in the map (as opposed to class names)
+				log.log(Level.SEVERE,
+						"Unable to instantiate DAO class of type "
+								+ theDAOClass + " for model class "
+								+ theModelClass, e);
+			}
+		}
+		return null;
+	}
 }

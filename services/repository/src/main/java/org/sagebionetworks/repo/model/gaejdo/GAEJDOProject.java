@@ -10,32 +10,35 @@ import javax.jdo.annotations.PrimaryKey;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
+
 /**
  * 
  * @author bhoff
- *
+ * 
  */
 @PersistenceCapable(detachable = "true")
 public class GAEJDOProject {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
-	private Key id; 
-	
+	private Key id;
+
 	@Persistent
 	private String name;
-	
-	public enum Status { PROPOSED, IN_PROGRESS, COMPLETED }
-	
+
+	public enum Status {
+		PROPOSED, IN_PROGRESS, COMPLETED
+	}
+
 	@Persistent
 	private Status status;
-	
+
 	@Persistent
 	private Text overview;
-	
+
 	@Persistent
 	private Date started;
-	
-	@Persistent(serialized="true")
+
+	@Persistent(serialized = "true")
 	private URL sharedDocs;
 
 	public Key getId() {
@@ -85,5 +88,5 @@ public class GAEJDOProject {
 	public void setSharedDocs(URL sharedDocs) {
 		this.sharedDocs = sharedDocs;
 	}
-	
+
 }

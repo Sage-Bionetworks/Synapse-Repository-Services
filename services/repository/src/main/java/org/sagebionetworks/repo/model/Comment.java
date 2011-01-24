@@ -1,4 +1,3 @@
-
 package org.sagebionetworks.repo.model;
 
 import java.io.Serializable;
@@ -11,105 +10,113 @@ import javax.jdo.annotations.PrimaryKey;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * Example model class annotated to produce XML in addition to JSON<p>
- * 
- * TODO Notice the size limit placed on the content string; Google datastore limits String properties
- * to no more than 500 characters. (Use com.google.appengine.api.datastore.Text for unlimited-size text properties.)
-
+ * Example model class annotated to produce XML in addition to JSON
  * <p>
- *
- * Code lifted from the <a href="http://code.google.com/p/maven-gae-plugin/source/browse/trunk/gae-archetype-jsp/src/main/resources/archetype-resources/src/main/java/model/Message.java?r=738">maven-gae-plugin</a> template
- *
+ * 
+ * TODO Notice the size limit placed on the content string; Google datastore
+ * limits String properties to no more than 500 characters. (Use
+ * com.google.appengine.api.datastore.Text for unlimited-size text properties.)
+ * 
+ * <p>
+ * 
+ * Code lifted from the <a href=
+ * "http://code.google.com/p/maven-gae-plugin/source/browse/trunk/gae-archetype-jsp/src/main/resources/archetype-resources/src/main/java/model/Message.java?r=738"
+ * >maven-gae-plugin</a> template
+ * 
  */
 @XmlRootElement
 @PersistenceCapable(identityType = IdentityType.APPLICATION)
 public class Comment implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    @PrimaryKey
-    @Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
-    private Long id;
+	@PrimaryKey
+	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
+	private Long id;
 
-    @Persistent
-    private String text;
+	@Persistent
+	private String text;
 
-    /**
-     * Default constructor
-     */
-    public Comment() {
-    }
+	/**
+	 * Default constructor
+	 */
+	public Comment() {
+	}
 
-    /**
-     * @return the unique identifier for the comment
-     */
-    public Long getId() {
-        return id;
-    }
+	/**
+	 * @return the unique identifier for the comment
+	 */
+	public Long getId() {
+		return id;
+	}
 
-    /**
-     * @param id
-     */
-    public void setId(Long id) {
-        this.id = id;
-    }
+	/**
+	 * @param id
+	 */
+	public void setId(Long id) {
+		this.id = id;
+	}
 
-    /**
-     * @return the text of the comment
-     */
-    public String getText() {
-        return text;
-    }
+	/**
+	 * @return the text of the comment
+	 */
+	public String getText() {
+		return text;
+	}
 
-    /**
-     * @param text
-     */
-    public void setText(String text) {
-        this.text = text;
-    }
+	/**
+	 * @param text
+	 */
+	public void setText(String text) {
+		this.text = text;
+	}
 
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((id == null) ? 0 : id.hashCode());
-        result = prime * result + ((text == null) ? 0 : text.hashCode());
-        return result;
-    }
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((text == null) ? 0 : text.hashCode());
+		return result;
+	}
 
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (!(obj instanceof Comment)) {
-            return false;
-        }
-        Comment other = (Comment) obj;
-        if (id == null) {
-            if (other.id != null) {
-                return false;
-            }
-        } else if (!id.equals(other.id)) {
-            return false;
-        }
-        if (text == null) {
-            if (other.text != null) {
-                return false;
-            }
-        } else if (!text.equals(other.text)) {
-            return false;
-        }
-        return true;
-    }
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (!(obj instanceof Comment)) {
+			return false;
+		}
+		Comment other = (Comment) obj;
+		if (id == null) {
+			if (other.id != null) {
+				return false;
+			}
+		} else if (!id.equals(other.id)) {
+			return false;
+		}
+		if (text == null) {
+			if (other.text != null) {
+				return false;
+			}
+		} else if (!text.equals(other.text)) {
+			return false;
+		}
+		return true;
+	}
 
 }

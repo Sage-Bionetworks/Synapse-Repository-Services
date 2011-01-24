@@ -14,14 +14,14 @@ public class GAEJDODatasetAnalysis {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
-	
+
 	@Persistent
 	private Collection<Key> layers;
-	
+
 	@Persistent
 	private Key script;
-	
-	@Persistent(dependent = "true") 	
+
+	@Persistent(dependent = "true")
 	private GAEJDOAnalysisResult analysisResult;
 
 	public Key getId() {
@@ -55,6 +55,5 @@ public class GAEJDODatasetAnalysis {
 	public void setAnalysisResult(GAEJDOAnalysisResult analysisResult) {
 		this.analysisResult = analysisResult;
 	}
-	
 
 }

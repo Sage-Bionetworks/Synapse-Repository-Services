@@ -8,28 +8,32 @@ import javax.jdo.annotations.PrimaryKey;
 import com.google.appengine.api.datastore.Key;
 
 @PersistenceCapable(detachable = "true")
-public class GAEJDOFloatAnnotation implements GAEJDOAnnotation<Float>{
+public class GAEJDOFloatAnnotation implements GAEJDOAnnotation<Float> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
-	
+
 	@Persistent
-	private GAEJDOAnnotations owner; // this is the backwards pointer for the 1-1 owned relationship
+	private GAEJDOAnnotations owner; // this is the backwards pointer for the
+										// 1-1 owned relationship
 
 	@Persistent
 	private String attribute;
-	
+
 	@Persistent
 	private Float value;
-	
-	public GAEJDOFloatAnnotation() {}
-	
+
+	public GAEJDOFloatAnnotation() {
+	}
+
 	public GAEJDOFloatAnnotation(String attr, Float value) {
 		setAttribute(attr);
 		setValue(value);
 	}
-	
-	public String toString() {return getAttribute()+": "+getValue();}
+
+	public String toString() {
+		return getAttribute() + ": " + getValue();
+	}
 
 	public Key getId() {
 		return id;
@@ -94,6 +98,5 @@ public class GAEJDOFloatAnnotation implements GAEJDOAnnotation<Float>{
 			return false;
 		return true;
 	}
-	
-	
+
 }

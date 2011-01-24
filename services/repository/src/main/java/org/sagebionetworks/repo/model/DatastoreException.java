@@ -5,7 +5,7 @@ package org.sagebionetworks.repo.model;
 
 /**
  * @author bhoff
- *
+ * 
  */
 public class DatastoreException extends Exception {
 
@@ -13,7 +13,6 @@ public class DatastoreException extends Exception {
 	 * 
 	 */
 	public DatastoreException() {
-		// TODO Auto-generated constructor stub
 	}
 
 	/**
@@ -21,7 +20,6 @@ public class DatastoreException extends Exception {
 	 */
 	public DatastoreException(String message) {
 		super(message);
-		// TODO Auto-generated constructor stub
 	}
 
 	/**
@@ -29,7 +27,6 @@ public class DatastoreException extends Exception {
 	 */
 	public DatastoreException(Throwable cause) {
 		super(cause);
-		// TODO Auto-generated constructor stub
 	}
 
 	/**
@@ -38,7 +35,6 @@ public class DatastoreException extends Exception {
 	 */
 	public DatastoreException(String message, Throwable cause) {
 		super(message, cause);
-		// TODO Auto-generated constructor stub
 	}
 
 }
