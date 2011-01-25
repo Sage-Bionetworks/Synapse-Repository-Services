@@ -530,6 +530,7 @@ public class DatasetControllerTest {
 		// Check our currently hard-coded layer metadata
 		assertEquals(3, results.getJSONArray("layers").length());
 		for (int i = 0; i < 3; i++) {
+			assertTrue(results.getJSONArray("layers").getJSONObject(1).has("id"));
 			assertTrue(results.getJSONArray("layers").getJSONObject(1).has("type"));
 			assertTrue(results.getJSONArray("layers").getJSONObject(1).has("uri"));
 		}

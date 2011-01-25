@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -15,6 +16,7 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LayerMetadata;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.appengine.api.datastore.Key;
@@ -103,14 +105,14 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 		// Version version = rev.getVersion();
 		// String versionString = version.toString();
 		dto.setVersion(gae.getRevision().getVersion().toString());
-		Collection<String> layers = new HashSet<String>();
+		Collection<LayerMetadata> layers = new ArrayList<LayerMetadata>();
 		Collection<Key> layerKeys = gae.getLayers();
 		if (null != layerKeys) {
 			for (Key l : layerKeys) {
-				layers.add(KeyFactory.keyToString(l));
+				layers.add(new LayerMetadata(KeyFactory.keyToString(l)));
 			}
 		}
-		dto.setLayerIds(layers);
+		dto.setLayers(layers);
 	}
 
 	/**

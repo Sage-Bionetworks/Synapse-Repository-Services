@@ -4,13 +4,15 @@
 package org.sagebionetworks.repo.model;
 
 /**
- * TODO wrote this in a hurry, think about how we might do this more cleanly
+ * LayerMetadata holds the few shallow DataLayer properties 
+ * that should be returned with a Dataset DTO
  * 
  * @author deflaux
  * 
  */
 public class LayerMetadata {
 
+	private String id;
 	private String type;
 	private String uri;
 
@@ -21,10 +23,19 @@ public class LayerMetadata {
 	}
 
 	/**
+	 * @param id
+	 */
+	public LayerMetadata(String id) {
+		this.id = id;
+	}
+
+	/**
+	 * @param id
 	 * @param type
 	 * @param uri
 	 */
-	public LayerMetadata(String type, String uri) {
+	public LayerMetadata(String id, String type, String uri) {
+		this.id = id;
 		this.type = type;
 		this.uri = uri;
 	}
@@ -34,6 +45,20 @@ public class LayerMetadata {
 	 */
 	public String getType() {
 		return type;
+	}
+
+	/**
+	 * @return the id
+	 */
+	public String getId() {
+		return id;
+	}
+
+	/**
+	 * @param id the id to set
+	 */
+	public void setId(String id) {
+		this.id = id;
 	}
 
 	/**
