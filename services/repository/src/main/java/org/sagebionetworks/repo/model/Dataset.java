@@ -23,9 +23,8 @@ public class Dataset implements Base, Revisable {
 	private String status;
 	private Date releaseDate;
 	private String version;
-	private Collection<String> layerIds;
 	private String annotations;  //URI for annotations
-	private Collection<LayerMetadata> layers;  // (type, URI) pairs for data layers
+	private Collection<LayerMetadata> layers;  // (id, type, URI) triples for data layers
 
 	public String getId() {
 		return id;
@@ -122,20 +121,6 @@ public class Dataset implements Base, Revisable {
 	}
 
 	/**
-	 * @return the layerIds
-	 */
-	public Collection<String> getLayerIds() {
-		return layerIds;
-	}
-
-	/**
-	 * @param layerIds the layerIds to set
-	 */
-	public void setLayerIds(Collection<String> layerIds) {
-		this.layerIds = layerIds;
-	}
-
-	/**
 	 * @return the annotations URI
 	 */
 	public String getAnnotations() {
@@ -164,18 +149,6 @@ public class Dataset implements Base, Revisable {
 	public void setLayers(Collection<LayerMetadata> layers) {
 		this.layers = layers;
 	}
-
-	
-	/**
-	 * @param type 
-	 * @param uri 
-	 */
-	public void addLayerMetadata(String type, String uri) {
-		if(null == layers) {
-			layers = new ArrayList<LayerMetadata>();
-		}
-		layers.add(new LayerMetadata(type, uri));
-	}
 	
 	@Override
 	public int hashCode() {
@@ -185,7 +158,7 @@ public class Dataset implements Base, Revisable {
 		result = prime * result
 				+ ((description == null) ? 0 : description.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((layerIds == null) ? 0 : layerIds.hashCode());
+		result = prime * result + ((layers == null) ? 0 : layers.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
 				+ ((releaseDate == null) ? 0 : releaseDate.hashCode());
@@ -218,10 +191,10 @@ public class Dataset implements Base, Revisable {
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
-		if (layerIds == null) {
-			if (other.layerIds != null)
+		if (layers == null) {
+			if (other.layers != null)
 				return false;
-		} else if (!layerIds.equals(other.layerIds))
+		} else if (!layers.equals(other.layers))
 			return false;
 		if (name == null) {
 			if (other.name != null)
