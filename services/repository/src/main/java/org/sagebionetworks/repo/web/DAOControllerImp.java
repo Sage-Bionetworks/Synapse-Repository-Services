@@ -67,7 +67,7 @@ public class DAOControllerImp<T extends Base> implements
 		Integer totalNumberOfEntities = dao.getCount();
 
 		return new PaginatedResults<T>(request.getServletPath()
-				+ UrlPrefixes.getUrlForModel(theModelClass), entities,
+				+ UrlHelpers.getUrlForModel(theModelClass), entities,
 				totalNumberOfEntities, offset, limit);
 	}
 
@@ -86,8 +86,8 @@ public class DAOControllerImp<T extends Base> implements
 			throw new NotFoundException("no entity with id " + id + " exists");
 		}
 
-		entity.setUri(UrlPrefixes.makeEntityUri(entity, request));
-		entity.setEtag(UrlPrefixes.makeEntityEtag(entity));
+		entity.setUri(UrlHelpers.makeEntityUri(entity, request));
+		entity.setEtag(UrlHelpers.makeEntityEtag(entity));
 
 		return entity;
 	}
@@ -104,8 +104,8 @@ public class DAOControllerImp<T extends Base> implements
 
 		dao.create(newEntity);
 
-		newEntity.setUri(UrlPrefixes.makeEntityUri(newEntity, request));
-		newEntity.setEtag(UrlPrefixes.makeEntityEtag(newEntity));
+		newEntity.setUri(UrlHelpers.makeEntityUri(newEntity, request));
+		newEntity.setEtag(UrlHelpers.makeEntityEtag(newEntity));
 
 		return newEntity;
 	}
@@ -121,7 +121,7 @@ public class DAOControllerImp<T extends Base> implements
 			HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException {
 
-		String entityId = UrlPrefixes.getEntityIdFromUriId(id);
+		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 
 		T entity = dao.get(entityId);
 		if (null == entity) {
@@ -136,8 +136,8 @@ public class DAOControllerImp<T extends Base> implements
 		}
 		dao.update(updatedEntity);
 
-		updatedEntity.setUri(UrlPrefixes.makeEntityUri(updatedEntity, request));
-		updatedEntity.setEtag(UrlPrefixes.makeEntityEtag(updatedEntity));
+		updatedEntity.setUri(UrlHelpers.makeEntityUri(updatedEntity, request));
+		updatedEntity.setEtag(UrlHelpers.makeEntityEtag(updatedEntity));
 
 		return updatedEntity;
 	}
@@ -151,7 +151,7 @@ public class DAOControllerImp<T extends Base> implements
 	 */
 	public void deleteEntity(String id) throws NotFoundException,
 			DatastoreException {
-		String entityId = UrlPrefixes.getEntityIdFromUriId(id);
+		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 
 		dao.delete(entityId);
 

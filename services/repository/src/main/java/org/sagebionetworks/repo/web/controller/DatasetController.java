@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.DAOControllerImp;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
-import org.sagebionetworks.repo.web.UrlPrefixes;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
@@ -45,7 +45,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author deflaux
  */
 @Controller
-@RequestMapping(UrlPrefixes.DATASET)
+@RequestMapping(UrlHelpers.DATASET)
 public class DatasetController extends BaseController implements
 		AbstractEntityController<Dataset>,
 		AbstractAnnotatableEntityController<Dataset> {
@@ -203,7 +203,7 @@ public class DatasetController extends BaseController implements
 	private void addServiceSpecificMetadata(Dataset dataset,
 			HttpServletRequest request) {
 
-		dataset.setAnnotations(UrlPrefixes.makeEntityAnnotationsUri(dataset,
+		dataset.setAnnotations(UrlHelpers.makeEntityAnnotationsUri(dataset,
 				request));
 
 		// Layers have not yet been implemented
@@ -212,7 +212,7 @@ public class DatasetController extends BaseController implements
 		// for(String layer : layers) {
 		// LayerDTO layerDto = layerDao.getLayer(layer);
 		// layerUris.put(layerDto.getType,
-		// UrlPrefixes.makeEntityUri(layerDto, request));
+		// UrlHelpers.makeEntityUri(layerDto, request));
 		// }
 
 		// TODO insering fake data for now, fix me!

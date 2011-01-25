@@ -19,17 +19,19 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Message;
 
 /**
- * Mapping of URLs to model classes
+ * UrlHelpers is responsible for the formatting of all URLs exposed by the service.
  * 
- * TODO rename this class
+ * The various controllers should not be formatting URLs.  They should instead call
+ * methods in this helper.  Its important to keep URL formulation logic in one place 
+ * to ensure consistency across the space of URLs that this service supports.
  * 
  * @author deflaux
  * 
  */
 @SuppressWarnings("unchecked")
-public class UrlPrefixes {
+public class UrlHelpers {
 
-	private static final Logger log = Logger.getLogger(UrlPrefixes.class
+	private static final Logger log = Logger.getLogger(UrlHelpers.class
 			.getName());
 
 	/**
@@ -96,7 +98,7 @@ public class UrlPrefixes {
 		String uri = null;
 		try {
 			uri = request.getServletPath()
-					+ UrlPrefixes.getUrlForModel(entity.getClass()) + "/"
+					+ UrlHelpers.getUrlForModel(entity.getClass()) + "/"
 					+ URLEncoder.encode(entity.getId(), "UTF-8");
 		} catch (UnsupportedEncodingException e) {
 			log.log(Level.SEVERE,
@@ -122,7 +124,7 @@ public class UrlPrefixes {
 		String uri = null;
 		try {
 			uri = request.getServletPath()
-					+ UrlPrefixes.getUrlForModel(entityClass) + "/"
+					+ UrlHelpers.getUrlForModel(entityClass) + "/"
 					+ URLEncoder.encode(annotations.getId(), "UTF-8") + "/annotations";
 		} catch (UnsupportedEncodingException e) {
 			log.log(Level.SEVERE,
@@ -147,7 +149,7 @@ public class UrlPrefixes {
 		String uri = null;
 		try {
 			uri = request.getServletPath()
-					+ UrlPrefixes.getUrlForModel(entity.getClass()) + "/"
+					+ UrlHelpers.getUrlForModel(entity.getClass()) + "/"
 					+ URLEncoder.encode(entity.getId(), "UTF-8") + "/annotations";
 		} catch (UnsupportedEncodingException e) {
 			log.log(Level.SEVERE,

@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.view.PaginatedResults;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
-import org.sagebionetworks.repo.web.UrlPrefixes;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author deflaux
  */
 @Controller
-@RequestMapping(UrlPrefixes.MESSAGE)
+@RequestMapping(UrlHelpers.MESSAGE)
 public class MessageController extends BaseController implements
 		AbstractEntityController<Message> {
 
@@ -71,7 +71,7 @@ public class MessageController extends BaseController implements
 		List<Message> messages = messageRepository.getRange(offset, limit);
 		Integer totalNumberOfMessages = messageRepository.getCount();
 		return new PaginatedResults<Message>(request.getServletPath()
-				+ UrlPrefixes.MESSAGE, messages, totalNumberOfMessages, offset,
+				+ UrlHelpers.MESSAGE, messages, totalNumberOfMessages, offset,
 				limit);
 	}
 

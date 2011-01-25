@@ -47,7 +47,7 @@ public class EntityControllerImp<T> implements AbstractEntityController<T> {
 		List<T> entities = entityRepository.getRange(offset, limit);
 		Integer totalNumberOfEntities = entityRepository.getCount();
 		return new PaginatedResults<T>(request.getServletPath()
-				+ UrlPrefixes.getUrlForModel(theModelClass), entities,
+				+ UrlHelpers.getUrlForModel(theModelClass), entities,
 				totalNumberOfEntities, offset, limit);
 	}
 
