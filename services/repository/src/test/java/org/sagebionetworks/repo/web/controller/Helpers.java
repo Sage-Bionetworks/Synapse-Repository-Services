@@ -163,7 +163,9 @@ public class Helpers {
 
 		// Check default properties
 		assertTrue(results.has("id"));
+		assertEquals(jsonEntity.getString("id"), results.getString("id"));
 		assertTrue(results.has("uri"));
+		assertEquals(jsonEntity.getString("uri"), results.getString("uri"));
 		assertTrue(results.has("etag"));
 
 		// Check our response headers
