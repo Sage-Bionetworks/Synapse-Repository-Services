@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.jdo.Extent;
+import javax.jdo.JDOHelper;
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
@@ -84,48 +85,6 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	// in particular, the JDO queries are different for revisable vs.
 	// non-revisable classes
 	abstract protected Class<T> getOwnerClass();
-
-	/**
-	 * Check whether an object has a given annotation
-	 * 
-	 * @param pm
-	 * @param owner
-	 * @param attrib
-	 * @param collectionName
-	 * @param annotationClass
-	 * @param valueClass
-	 * @param value
-	 * @return
-	 */
-	protected boolean hasAnnotation(PersistenceManager pm, T owner,
-			String attrib, String collectionName, Class annotationClass,
-			Class valueClass, Object value) {
-		Query query = pm.newQuery(GAEJDOAnnotations.class);
-		query.setFilter("this." + collectionName + ".contains(vAnnotation) && "
-				+ "vAnnotation.attribute==pAttrib && vAnnotation.value==pValue");
-		query.declareVariables(annotationClass.getName() + " vAnnotation");
-		query.declareParameters(String.class.getName() + " pAttrib, "
-				+ valueClass.getName() + " pValue");
-		@SuppressWarnings("unchecked")
-		List<GAEJDOAnnotations> annots = (List<GAEJDOAnnotations>) query
-				.execute(attrib, value);
-		// if annots is empty then no one has the given annotation, so just
-		// return 'false'
-		if (annots.isEmpty())
-			return false;
-		// Now do a query for JDOs that 'own' the GAEJDOAnnotations class(es)
-		Query ownerQuery = pm.newQuery(getOwnerClass());
-		ownerQuery
-				.setFilter("this.id==pId && pAnnots.contains(this.annotations)");
-		ownerQuery.declareParameters(Key.class.getName() + " pId, "
-				+ List.class.getName() + " pAnnots");
-		@SuppressWarnings("unchecked")
-		List<T> ans = (List<T>) query.execute(owner.getId(), annots);
-		if (ans.size() > 1)
-			throw new IllegalStateException("Expected 0 or 1 result but got "
-					+ ans.size());
-		return ans.size() > 0;
-	}
 
 	protected Collection<GAEJDOAnnotations> getAnnotationsHaving(
 			PersistenceManager pm, String attrib, String collectionName,
@@ -238,6 +197,13 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 			ans.add(owners.get(i));
 		return ans;
 	}
+	
+	protected boolean hasAnnotation(T jdo, String attribute, A value) {
+		for (GAEJDOAnnotation<A> annot: getIterable(jdo.getAnnotations())) {
+			if (annot.getAttribute().equals(attribute) && annot.getValue().equals(value)) return true;
+		}
+		return false;
+	}
 
 	public void addAnnotation(String id, String attribute, A value)
 			throws DatastoreException {
@@ -249,24 +215,23 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 			Key key = KeyFactory.stringToKey(id);
 			T jdo = (T) pm.getObjectById(getOwnerClass(), key);
 			// check whether already have this annotation
-			if (hasAnnotation(pm, jdo, attribute, value))
+			if (hasAnnotation(jdo, attribute, value))
 				return;
 			GAEJDOAnnotations annots = jdo.getAnnotations();
+			//System.out.println("addAnnotation: isDirty="+JDOHelper.isDirty(annots));
 			addAnnotation(annots, attribute, value);
+			//System.out.println("addAnnotation: isDirty="+JDOHelper.isDirty(annots));
+			//JDOHelper.makeDirty(annots, getCollectionName());
 			pm.makePersistent(jdo);
+			annots.toString(); // hack to 'touch' all the fields
 			tx.commit();
+//			pm.close();
 		} finally {
 			if (tx.isActive()) {
 				tx.rollback();
 			}
 			pm.close();
 		}
-	}
-
-	public boolean hasAnnotation(PersistenceManager pm, T jdo,
-			String attribute, A value) {
-		return hasAnnotation(pm, jdo, attribute, getCollectionName(),
-				getAnnotationClass(), getValueClass(), value);
 	}
 
 	public void removeAnnotation(String id, String attribute, A value)

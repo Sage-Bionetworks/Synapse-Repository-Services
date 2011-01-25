@@ -5,10 +5,10 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import javax.jdo.PersistenceManager;
 import javax.jdo.annotations.Element;
+import javax.jdo.annotations.FetchGroup;
+import javax.jdo.annotations.FetchPlan;
 import javax.jdo.annotations.IdGeneratorStrategy;
-import javax.jdo.annotations.NotPersistent;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
@@ -16,12 +16,25 @@ import javax.jdo.annotations.PrimaryKey;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
 
+/**
+ * Note:  equals and hashcode are based only on the id field.
+ * 
+ * @author bhoff
+ *
+ */
 @PersistenceCapable(detachable = "false")
 public class GAEJDOAnnotations {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
 	
+	/**
+	 * A factory for new objects.  (We avoid putting the creation of the collections
+	 * into the no-arg constructor, since the persistance machinery may be calling
+	 * it for other purposes.)
+	 * 
+	 * @return
+	 */
 	public static GAEJDOAnnotations newGAEJDOAnnotations() {
 		GAEJDOAnnotations obj = new GAEJDOAnnotations();
 		obj.setStringAnnotations(new HashSet<GAEJDOStringAnnotation>());
@@ -30,7 +43,22 @@ public class GAEJDOAnnotations {
 		obj.setDateAnnotations(new HashSet<GAEJDODateAnnotation>());
 		return obj;
 	}
+	
+	public String toString() {
+		StringBuffer sb = new StringBuffer();
+		sb.append("String Annots: "+getStringAnnotations()+"\n");
+		sb.append("Float Annots: "+getFloatAnnotations()+"\n");
+		sb.append("Text Annots: "+getTextAnnotations()+"\n");
+		sb.append("Date Annots: "+getDateAnnotations()+"\n");
+		return sb.toString();
+	}
 
+	/**
+	 * Create a new instance having copies of the contained collections.
+	 * Note:  This method does not persist the new instance.
+	 * @param a the object to be cloned
+	 * @return
+	 */
 	public static GAEJDOAnnotations clone(GAEJDOAnnotations a) {
 		GAEJDOAnnotations ans = newGAEJDOAnnotations();
 

@@ -3,7 +3,13 @@ package org.sagebionetworks.repo.model;
 import java.util.Collection;
 import java.util.Date;
 
-public interface RevisableDAO<T extends Revisable> {
+/**
+ * This interface defines the DAO methods for all objects of the Revisable type
+ * @author bhoff
+ *
+ * @param <T> the data transfer object type
+ */
+public interface RevisableDAO<T extends Revisable> extends BaseDAO<T> {
 	/**
 	 * Create a revision of the object specified by the 'id' field, having the
 	 * shallow properties from the given 'revision', and the deep properties of

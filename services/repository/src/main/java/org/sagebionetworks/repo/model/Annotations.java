@@ -4,6 +4,11 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
 
+/**
+ * 
+ * @author bhoff
+ *
+ */
 public class Annotations implements Base {
 	private String id; // for its parent entity
 	private String uri;

@@ -1,30 +1,36 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
 import javax.jdo.annotations.IdGeneratorStrategy;
+
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
-
+/**
+ * This is the persistable class for a Annotations whose values are Texts
+ * (i.e. strings longer than those allowed by GAE)
+ * 
+ * Note:  equals and hashcode are based on the attribute and value, allowing 
+ * distinct annotations with the same attribute.
+ * 
+ * @author bhoff
+ * 
+ */
 @PersistenceCapable(detachable = "true")
 public class GAEJDOTextAnnotation implements GAEJDOAnnotation<Text> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
 
-	// @Persistent
-	// private GAEJDOAnnotations owner; // this is the backwards pointer for the
+	 @Persistent
+	 private GAEJDOAnnotations owner; // this is the backwards pointer for the
 	// 1-1 owned relationship
 
 	@Persistent
 	private String attribute;
 
-	// @Persistent
-	// @Extension(vendorName = "datanucleus", key = "implementation-classes",
-	// value =
-	// "String,Integer,com.google.appengine.api.datastore.Text,Boolean,Float,java.util.Date")
 	private Text value;
 
 	public GAEJDOTextAnnotation() {
@@ -35,6 +41,10 @@ public class GAEJDOTextAnnotation implements GAEJDOAnnotation<Text> {
 		setValue(value);
 	}
 
+	public String toString() {
+		return getAttribute() + ": " + getValue().getValue();
+	}
+
 	public Key getId() {
 		return id;
 	}
@@ -43,13 +53,13 @@ public class GAEJDOTextAnnotation implements GAEJDOAnnotation<Text> {
 		this.id = id;
 	}
 
-	// public GAEJDOAnnotations getOwner() {
-	// return owner;
-	// }
-	//
-	// public void setOwner(GAEJDOAnnotations owner) {
-	// this.owner = owner;
-	// }
+	 public GAEJDOAnnotations getOwner() {
+	 return owner;
+	 }
+	
+	 public void setOwner(GAEJDOAnnotations owner) {
+	 this.owner = owner;
+	 }
 
 	public String getAttribute() {
 		return attribute;

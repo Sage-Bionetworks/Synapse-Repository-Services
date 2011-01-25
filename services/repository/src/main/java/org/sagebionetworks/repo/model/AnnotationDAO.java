@@ -6,20 +6,41 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 
+ * This interface defines the CRUD methods for annotations.
  * @author bhoff
  * 
- * @param <A>
- *            the annotation value type (String, Boolean, Float, Date, Integer)
+ * @param <S> the Data Transfer Object type for the annotatable object
+ * @param <A> the annotation value type (String, Float, Date)
  */
 public interface AnnotationDAO<S extends Base, A extends Comparable> {
 
+	/**
+	 * 
+	 * @param id the ID of the annotations owner
+	 * @param attribute
+	 * @param value
+	 * @throws DatastoreException
+	 */
 	public void addAnnotation(String id, String attribute, A value)
 			throws DatastoreException;
 
+	/**
+	 * 
+	 * @param id the ID of the annotations owner
+	 * @param attribute
+	 * @param value
+	 * @throws DatastoreException
+	 */
 	public void removeAnnotation(String id, String attribute, A value)
 			throws DatastoreException;
 
+	/**
+	 * Note:  Since an object may have multiple values for the same attribute,
+	 * the values for the returned Map are Collection<A> rather than A.
+	 * @param id the ID of the annotations owner
+	 * @return all the annotations of the type given by A owned by the annotatable object
+	 * @throws DatastoreException
+	 */
 	public Map<String, Collection<A>> getAnnotations(String id)
 			throws DatastoreException;
 
@@ -31,6 +52,8 @@ public interface AnnotationDAO<S extends Base, A extends Comparable> {
 
 	/**
 	 * 
+	 * Note:  Invalid range returns empty list rather than throwing exception
+	 *
 	 * @param start
 	 * @param end
 	 * @param sortByAttr
@@ -41,6 +64,18 @@ public interface AnnotationDAO<S extends Base, A extends Comparable> {
 	public List<S> getInRangeSortedBy(int start, int end, String sortByAttr,
 			boolean ascending) throws DatastoreException;
 
+	/**
+	 * 
+	 * Note:  Invalid range returns empty list rather than throwing exception
+	 * 
+	 * @param start
+	 * @param end
+	 * @param attribute
+	 * @param value
+	 * @return a subset of results, starting at index 'start' and not going
+	 *         beyond index 'end', having the given value for the given attribute
+	 * @throws DatastoreException
+	 */
 	public List<S> getInRangeHaving(int start, int end, String attribute,
 			A value) throws DatastoreException;
 
