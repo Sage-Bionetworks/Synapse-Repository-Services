@@ -159,9 +159,10 @@ public class DatasetControllerTest {
 		stringAnnotations.put("summary", summary);
 
 		// Add some numeric annotations
-		// TODO these have to be Doubles, that is what JSONObject.toString()
-		//  deserializes them as ,
-		// Jackson deserialization might be different since it has a model class
+		// 
+		// Note that we could send these numbers as floats but when the serialized version
+		// comes back from the service, Jackson will always treat them as double
+		// See http://wiki.fasterxml.com/JacksonInFiveMinutes
 		JSONObject floatAnnotations = annotations
 				.getJSONObject("floatAnnotations");
 		Double pValues[] = { new Double(0.987), new Double(0) };
@@ -169,24 +170,37 @@ public class DatasetControllerTest {
 		Double numSamples[] = { new Double(3000) };
 		floatAnnotations.put("numSamples", numSamples);
 
+		//
 		// Add some date annotations
-		// TODO these have to be Doubles, that is what JSONObject.toString()
-		//  deserializes them as ,
-		// Jackson deserialization might be different since it has a model class
+		//
+		// When dates are serialized to be sent to the service can dates
+		// expressed in epoch time (which is a Long)
+		// or ISO-8601 (which is a string).
+		//
+		// When dates are returned by the service they are always serialized as
+		// epoch time.
+		// See
+		// http://wiki.fasterxml.com/JacksonFAQDateHandling?highlight=(jackson)|(date)
 
 		Date now = new Date();
 		DateTime aWhileBack = new DateTime("2010-10-01");
-		
-		// TODO uncomment this line and comment the other to see a bug in 
-		// GAEJDOAnnotationDAOImpl.addAnnotation line 252 where when you try to add the
-		// same annotation key value pair twice, it throws an exception instead of just skipping the add
-		Long curationEvents[] = { now.getTime(), now.getTime() };
-//		Long curationEvents[] = { now.getTime(), aWhileBack.getMillis() };
+
+		Long curationEvents[] = { now.getTime(), now.getTime(),
+				aWhileBack.getMillis() };
 		JSONObject dateAnnotations = annotations
 				.getJSONObject("dateAnnotations");
 		dateAnnotations.put("curationEvents", curationEvents);
+
 		Long clinicalTrialStartDate[] = { now.getTime() };
 		dateAnnotations.put("clinicalTrialStartDate", clinicalTrialStartDate);
+
+		Long epochDates[] = { now.getTime(), aWhileBack.getMillis() };
+		dateAnnotations.put("epochDates", epochDates);
+
+		DateTime isoDates[] = { aWhileBack };
+		dateAnnotations.put("isoDates", isoDates);
+		Long isoDatesAsLong[] = { aWhileBack.getMillis() }; // for the assertion
+															// below
 
 		JSONObject results = helper.testUpdateJsonEntity(annotations);
 
@@ -199,10 +213,18 @@ public class DatasetControllerTest {
 				"floatAnnotations").getJSONArray("pValues"));
 		helper.assertJSONArrayEquals(numSamples, results.getJSONObject(
 				"floatAnnotations").getJSONArray("numSamples"));
-		 helper.assertJSONArrayEquals(curationEvents,
-		 results.getJSONObject("dateAnnotations").getJSONArray("curationEvents"));
-		 helper.assertJSONArrayEquals(clinicalTrialStartDate,
-		 results.getJSONObject("dateAnnotations").getJSONArray("clinicalTrialStartDate"));
+		helper.assertJSONArrayEquals(curationEvents, results.getJSONObject(
+				"dateAnnotations").getJSONArray("curationEvents"));
+		helper.assertJSONArrayEquals(clinicalTrialStartDate, results
+				.getJSONObject("dateAnnotations").getJSONArray(
+						"clinicalTrialStartDate"));
+		// These are sent serialized as Longs and come back serialized as Longs
+		helper.assertJSONArrayEquals(epochDates, results.getJSONObject(
+				"dateAnnotations").getJSONArray("epochDates"));
+		// These are sent serialized as Strings and come back serialized as
+		// Longs
+		helper.assertJSONArrayEquals(isoDatesAsLong, results.getJSONObject(
+				"dateAnnotations").getJSONArray("isoDates"));
 
 		// Now check that we correctly persisted them for real
 		JSONObject storedAnnotations = helper.testGetJsonEntity(newDataset
@@ -215,10 +237,18 @@ public class DatasetControllerTest {
 				"floatAnnotations").getJSONArray("pValues"));
 		helper.assertJSONArrayEquals(numSamples, storedAnnotations
 				.getJSONObject("floatAnnotations").getJSONArray("numSamples"));
-		 helper.assertJSONArrayEquals(curationEvents,
-		 results.getJSONObject("dateAnnotations").getJSONArray("curationEvents"));
-		 helper.assertJSONArrayEquals(clinicalTrialStartDate,
-		 results.getJSONObject("dateAnnotations").getJSONArray("clinicalTrialStartDate"));
+		helper.assertJSONArrayEquals(curationEvents, results.getJSONObject(
+				"dateAnnotations").getJSONArray("curationEvents"));
+		helper.assertJSONArrayEquals(clinicalTrialStartDate, results
+				.getJSONObject("dateAnnotations").getJSONArray(
+						"clinicalTrialStartDate"));
+		// These are sent serialized as Longs and come back serialized as Longs
+		helper.assertJSONArrayEquals(epochDates, results.getJSONObject(
+				"dateAnnotations").getJSONArray("epochDates"));
+		// These are sent serialized as Strings and come back serialized as
+		// Longs
+		helper.assertJSONArrayEquals(isoDatesAsLong, results.getJSONObject(
+				"dateAnnotations").getJSONArray("isoDates"));
 	}
 
 	/**
@@ -526,13 +556,16 @@ public class DatasetControllerTest {
 		// Check immutable system-defined properties
 		assertTrue(results.has("annotations"));
 		assertTrue(results.has("layers"));
-		
+
 		// Check our currently hard-coded layer metadata
 		assertEquals(3, results.getJSONArray("layers").length());
 		for (int i = 0; i < 3; i++) {
-			assertTrue(results.getJSONArray("layers").getJSONObject(1).has("id"));
-			assertTrue(results.getJSONArray("layers").getJSONObject(1).has("type"));
-			assertTrue(results.getJSONArray("layers").getJSONObject(1).has("uri"));
+			assertTrue(results.getJSONArray("layers").getJSONObject(1)
+					.has("id"));
+			assertTrue(results.getJSONArray("layers").getJSONObject(1).has(
+					"type"));
+			assertTrue(results.getJSONArray("layers").getJSONObject(1).has(
+					"uri"));
 		}
 		assertTrue(results.has("creationDate"));
 		// Check that optional properties that receive default values
