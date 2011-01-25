@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -208,22 +210,22 @@ public class DatasetController extends BaseController implements
 
 		// Layers have not yet been implemented
 		// Collection<String> layers = dataset.getLayers();
-		Map<String, String> layerUris = new HashMap<String, String>();
 		// for(String layer : layers) {
 		// LayerDTO layerDto = layerDao.getLayer(layer);
 		// layerUris.put(layerDto.getType,
 		// UrlHelpers.makeEntityUri(layerDto, request));
 		// }
 
-		// TODO insering fake data for now, fix me!
-		layerUris.put("C", "agxkZWZsYXV4LXRlc3RyEwsSDUdBRUpET0RhdGFzZXQYAQw");
-		layerUris
-				.put("E", "agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYiaECDA");
-		layerUris
-				.put("G", "agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYmfIBDA");
+		// TODO inserting fake data for now, fix me!
+		if (null == dataset.getLayers()) {
+			dataset.addLayerMetadata("C",
+					"agxkZWZsYXV4LXRlc3RyEwsSDUdBRUpET0RhdGFzZXQYAQw");
+			dataset.addLayerMetadata("E",
+					"agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYiaECDA");
+			dataset.addLayerMetadata("G",
+					"agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYmfIBDA");
+		}
 
-		dataset.setLayers(layerUris);
-		
 		return;
 	}
 
