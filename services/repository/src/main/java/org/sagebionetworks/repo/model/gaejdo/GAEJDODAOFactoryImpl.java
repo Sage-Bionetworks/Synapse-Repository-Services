@@ -16,6 +16,11 @@ import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.ProjectDAO;
 import org.sagebionetworks.repo.model.ScriptDAO;
 
+/**
+ * This class is the GAE JDO implementation of DAOFactory
+ * @author bhoff
+ *
+ */
 @SuppressWarnings("unchecked")
 public class GAEJDODAOFactoryImpl implements DAOFactory {
 

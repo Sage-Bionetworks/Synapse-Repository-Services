@@ -1,18 +1,17 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
-import javax.jdo.PersistenceManager;
-
-import org.sagebionetworks.repo.model.gaejdo.GAEJDOScript;
-import org.sagebionetworks.repo.model.gaejdo.PMF;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.google.appengine.api.datastore.Key;
-
+/**
+ * This interface defines the basic data access functionality which all DAO classes will implement.
+ * 
+ * @author bhoff
+ *
+ * @param <T>
+ */
 public interface BaseDAO<T> {
 
 	/**
@@ -37,8 +36,7 @@ public interface BaseDAO<T> {
 	/**
 	 * This updates the 'shallow' properties of an object
 	 * 
-	 * @param dto
-	 *            non-null id is required
+	 * @param dto non-null id is required
 	 * @throws DatastoreException
 	 */
 	public void update(T dto) throws DatastoreException;
@@ -46,7 +44,7 @@ public interface BaseDAO<T> {
 	/**
 	 * delete the object given by the given ID
 	 * 
-	 * @param id
+	 * @param id the id of the object to be deleted
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
@@ -60,29 +58,38 @@ public interface BaseDAO<T> {
 	public int getCount() throws DatastoreException;
 
 	/**
-	 * 
+	 * Note:  Invalid range returns empty list rather than throwing exception
 	 * @param start
 	 * @param end
-	 * @return a subset of the results, starting at index 'start' and not going
-	 *         beyond index 'end'
+	 * @return a subset of the results, starting at index 'start' and less than index 'end'
 	 */
 	public List<T> getInRange(int start, int end);
 
 	public Collection<String> getPrimaryFields();
 
 	/**
+	 * Note:  Invalid range returns empty list rather than throwing exception
 	 * 
 	 * @param start
 	 * @param end
 	 * @param sortBy
-	 * @param asc
-	 *            if true then ascending, else descending
+	 * @param asc if true then ascending, else descending
 	 * @return a subset of the results, starting at index 'start' and not going
 	 *         beyond index 'end' and sorted by the given primary field
 	 */
 	public List<T> getInRangeSortedByPrimaryField(int start, int end,
 			String sortBy, boolean asc);
 
+	/**
+	 * Note:  Invalid range returns empty list rather than throwing exception
+	 * 
+	 * @param start
+	 * @param end
+	 * @param attribute
+	 * @param value
+	 * @return a subset of results, starting at index 'start' and not going
+	 *         beyond index 'end', having the given value for the given field
+	 */
 	public List<T> getInRangeHavingPrimaryField(int start, int end,
 			String attribute, Object value);
 

@@ -7,23 +7,28 @@ import javax.jdo.annotations.PrimaryKey;
 
 import com.google.appengine.api.datastore.Key;
 
-@PersistenceCapable(detachable = "true")
+/**
+ * This is the persistable class for a Annotations whose values are Strings
+ * 
+ * Note:  equals and hashcode are based on the attribute and value, allowing 
+ * distinct annotations with the same attribute.
+ * 
+ * @author bhoff
+ * 
+ */
+@PersistenceCapable(detachable = "false")
 public class GAEJDOStringAnnotation implements GAEJDOAnnotation<String> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
 
-	// @Persistent
-	// private GAEJDOAnnotations owner; // this is the backwards pointer for the
-	// 1-1 owned relationship
+	 // this is the backwards pointer for the 1-1 owned relationship
+	 @Persistent
+	 private GAEJDOAnnotations owner;
 
 	@Persistent
 	private String attribute;
 
-	// @Persistent
-	// @Extension(vendorName = "datanucleus", key = "implementation-classes",
-	// value =
-	// "String,Integer,com.google.appengine.api.datastore.Text,Boolean,Float,java.util.Date")
 	private String value;
 
 	public GAEJDOStringAnnotation() {
@@ -34,6 +39,10 @@ public class GAEJDOStringAnnotation implements GAEJDOAnnotation<String> {
 		setValue(value);
 	}
 
+	public String toString() {
+		return getAttribute() + ": " + getValue();
+	}
+
 	public Key getId() {
 		return id;
 	}
@@ -42,13 +51,13 @@ public class GAEJDOStringAnnotation implements GAEJDOAnnotation<String> {
 		this.id = id;
 	}
 
-	// public GAEJDOAnnotations getOwner() {
-	// return owner;
-	// }
-	//
-	// public void setOwner(GAEJDOAnnotations owner) {
-	// this.owner = owner;
-	// }
+	 public GAEJDOAnnotations getOwner() {
+	 return owner;
+	 }
+	
+	 public void setOwner(GAEJDOAnnotations owner) {
+	 this.owner = owner;
+	 }
 
 	public String getAttribute() {
 		return attribute;

@@ -5,9 +5,8 @@ import java.util.Collection;
 import java.util.Date;
 
 /**
- * This is a data transfer object.
+ * This is the data transfer object for Datasets.
  * 
- * Note, this representation is independent of any implementation
  * 
  * @author bhoff
  * 
@@ -25,7 +24,7 @@ public class Dataset implements Base, Revisable {
 	private String version;
 	private String annotations;  //URI for annotations
 	private Collection<LayerMetadata> layers;  // (id, type, URI) triples for data layers
-
+	
 	public String getId() {
 		return id;
 	}
@@ -42,8 +41,7 @@ public class Dataset implements Base, Revisable {
 	}
 
 	/**
-	 * @param uri
-	 *            the uri to set
+	 * @param uri the uri to set
 	 */
 	public void setUri(String uri) {
 		this.uri = uri;
@@ -57,8 +55,7 @@ public class Dataset implements Base, Revisable {
 	}
 
 	/**
-	 * @param etag
-	 *            the etag to set
+	 * @param etag the etag to set
 	 */
 	public void setEtag(String etag) {
 		this.etag = etag;
@@ -119,7 +116,7 @@ public class Dataset implements Base, Revisable {
 	public void setVersion(String version) {
 		this.version = version;
 	}
-
+	
 	/**
 	 * @return the annotations URI
 	 */

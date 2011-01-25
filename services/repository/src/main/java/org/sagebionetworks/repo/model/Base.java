@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model;
 import java.util.Date;
 
 /**
+ * This interface defines the methods implemented by all Data Transfer Objects
+ * 
  * @author bhoff
  * 
  */

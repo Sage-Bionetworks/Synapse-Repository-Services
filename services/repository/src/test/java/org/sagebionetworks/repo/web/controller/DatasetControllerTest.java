@@ -180,8 +180,8 @@ public class DatasetControllerTest {
 		// TODO uncomment this line and comment the other to see a bug in 
 		// GAEJDOAnnotationDAOImpl.addAnnotation line 252 where when you try to add the
 		// same annotation key value pair twice, it throws an exception instead of just skipping the add
-//		Long curationEvents[] = { now.getTime(), now.getTime() };
-		Long curationEvents[] = { now.getTime(), aWhileBack.getMillis() };
+		Long curationEvents[] = { now.getTime(), now.getTime() };
+//		Long curationEvents[] = { now.getTime(), aWhileBack.getMillis() };
 		JSONObject dateAnnotations = annotations
 				.getJSONObject("dateAnnotations");
 		dateAnnotations.put("curationEvents", curationEvents);

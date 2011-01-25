@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import javax.jdo.annotations.IdGeneratorStrategy;
@@ -9,23 +11,28 @@ import javax.jdo.annotations.PrimaryKey;
 
 import com.google.appengine.api.datastore.Key;
 
+/**
+ * This is the persistable class for a Annotations whose values are Dates
+ * 
+ * Note:  equals and hashcode are based on the attribute and value, allowing 
+ * distinct annotations with the same attribute.
+ * 
+ * @author bhoff
+ * 
+ */
 @PersistenceCapable(detachable = "true")
 public class GAEJDODateAnnotation implements GAEJDOAnnotation<Date> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
 
-	// @Persistent
-	// private GAEJDOAnnotations owner; // this is the backwards pointer for the
-	// 1-1 owned relationship
+	@Persistent
+	private GAEJDOAnnotations owner; // this is the backwards pointer for the
+									// 1-1 owned relationship
 
 	@Persistent
 	private String attribute;
 
-	// @Persistent
-	// @Extension(vendorName = "datanucleus", key = "implementation-classes",
-	// value =
-	// "String,Integer,com.google.appengine.api.datastore.Text,Boolean,Float,java.util.Date")
 	private Date value;
 
 	public GAEJDODateAnnotation() {
@@ -36,6 +43,10 @@ public class GAEJDODateAnnotation implements GAEJDOAnnotation<Date> {
 		setValue(value);
 	}
 
+	private static final DateFormat df = new SimpleDateFormat("ddMMMyyyy HH:mm:ss.");
+	public String toString() {
+		return getAttribute() + ": " + df.format(getValue());
+	}
 	public Key getId() {
 		return id;
 	}
@@ -44,13 +55,13 @@ public class GAEJDODateAnnotation implements GAEJDOAnnotation<Date> {
 		this.id = id;
 	}
 
-	// public GAEJDOAnnotations getOwner() {
-	// return owner;
-	// }
-	//
-	// public void setOwner(GAEJDOAnnotations owner) {
-	// this.owner = owner;
-	// }
+	 public GAEJDOAnnotations getOwner() {
+	 return owner;
+	 }
+	
+	 public void setOwner(GAEJDOAnnotations owner) {
+	 this.owner = owner;
+	 }
 
 	public String getAttribute() {
 		return attribute;

@@ -9,6 +9,13 @@ import javax.jdo.annotations.PrimaryKey;
 
 import com.google.appengine.api.datastore.Key;
 
+/**
+ * The class for persistent objects containing the revision information for Revisable persistent objects.
+ * The Revisable objects 'point' to instances of this class in an 'owned' relationship.
+ * @author bhoff
+ *
+ * @param <T>
+ */
 @PersistenceCapable(detachable = "false")
 public class GAEJDORevision<T extends GAEJDORevisable<T>> {
 	@PrimaryKey
@@ -16,7 +23,7 @@ public class GAEJDORevision<T extends GAEJDORevisable<T>> {
 	private Key id;
 
 	@Persistent
-	private Key original; // id of original or this.id if *this* is the original
+	private Key original; // id of original (this.id if *this* is the original)
 
 	@Persistent(serialized = "true")
 	private Version version;
@@ -68,17 +75,4 @@ public class GAEJDORevision<T extends GAEJDORevisable<T>> {
 	}
 
 }
-
-// @PersistenceCapable(detachable = "true")
-// //
-// http://stackoverflow.com/questions/3808874/problem-persisting-collection-of-interfaces-in-jdo-datanucleus-unable-to-assign
-// // http://code.google.com/p/datanucleus-appengine/issues/detail?id=207
-// @Extension(vendorName = "datanucleus", key = "implementation-classes",
-// value =
-// "org.sagebionetworks.repo.model.Dataset,org.sagebionetworks.repo.model.InputDataLayer,org.sagebionetworks.repo.model.AnalysisResult,org.sagebionetworks.repo.model.Script")
-// //
-// http://code.google.com/appengine/docs/java/datastore/relationships.html#Owned_One_to_One_Relationships
-// @Persistent(mappedBy="revision")
-// private T owner; // this is the backwards pointer for the 1-1 owned
-// relationship
 

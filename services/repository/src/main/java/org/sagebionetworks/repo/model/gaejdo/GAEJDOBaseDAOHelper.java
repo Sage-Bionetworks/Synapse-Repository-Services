@@ -18,6 +18,13 @@ import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 
 /**
+ * This class contains helper methods for DAOs.  Since each DAO may need to pick and choose
+ * methods from various helpers, the chosen design pattern for the DAOs was that of a wrapper 
+ * or adapter, rather than of a base class with extensions.  
+ * 
+ * This class is parameterized by an (implementation independent) DTO type and a 
+ * JDO specific JDO type.  It's the DAO's job to translate between these types as
+ * it persists and retrieves data.
  * 
  * @author bhoff
  * 
@@ -55,7 +62,13 @@ abstract public class GAEJDOBaseDAOHelper<S, T extends GAEJDOBase> {
 	 */
 	abstract public Class<T> getJdoClass();
 
-	public String create(S dto) throws InvalidModelException {
+	/**
+	 * Create a new object, using the information in the passed DTO
+	 * @param dto
+	 * @return the ID of the created object
+	 * @throws InvalidModelException
+	 */
+	public String create(S dto) throws InvalidModelException, DatastoreException {
 		T jdo = newJDO();
 		copyFromDto(dto, jdo);
 		PersistenceManager pm = PMF.get();
@@ -66,6 +79,8 @@ abstract public class GAEJDOBaseDAOHelper<S, T extends GAEJDOBase> {
 			pm.makePersistent(jdo);
 			tx.commit();
 			return KeyFactory.keyToString(jdo.getId());
+		} catch (Exception e) {
+			throw new DatastoreException(e);
 		} finally {
 			if (tx.isActive()) {
 				tx.rollback();
@@ -74,6 +89,13 @@ abstract public class GAEJDOBaseDAOHelper<S, T extends GAEJDOBase> {
 		}
 	}
 
+	/**
+	 * 
+	 * @param id
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	public S get(String id) throws DatastoreException, NotFoundException {
 		PersistenceManager pm = PMF.get();
 		try {

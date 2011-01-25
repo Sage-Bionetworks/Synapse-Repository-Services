@@ -107,22 +107,34 @@ public class DatasetDAOTest {
 		c = dao.getInRangeSortedByPrimaryField(0, 100, "status", true);
 		Assert.assertEquals(1, c.size());
 		Assert.assertEquals(d.getName(), c.iterator().next().getName());
+		
 		// test retrieving sorted by annotation
 		c = dao.getStringAnnotationDAO().getInRangeSortedBy(0, 100,
 				"Tissue Type", true);
 		Assert.assertEquals(1, c.size());
 		Assert.assertEquals(d.getName(), c.iterator().next().getName());
+		
+		c = dao.getFloatAnnotationDAO().getInRangeSortedBy(0, 100,
+				"weight", true);
+		Assert.assertEquals(1, c.size());
+		Assert.assertEquals(d.getName(), c.iterator().next().getName());
+		
 		// test retrieving filtering by annotation
 		c = dao.getFloatAnnotationDAO().getInRangeHaving(0, 100,
 				"weight", 100F);
 		Assert.assertEquals(1, c.size());
 		Assert.assertEquals(d.getName(), c.iterator().next().getName());
 		
-		// TODO fix this test
-//		c = dao.getStringAnnotationDAO().getInRangeHaving(0, 100,
-//				"Tissue Type", "liver");
-//		Assert.assertEquals(1, c.size());
-//		Assert.assertEquals(d.getName(), c.iterator().next().getName());
+		c = dao.getStringAnnotationDAO().getInRangeHaving(0, 100,
+				"Tissue Type", "liver");
+		Assert.assertEquals(1, c.size());
+		Assert.assertEquals(d.getName(), c.iterator().next().getName());
+		
+		// try adding a new annotation for the same attribute
+		dao.getStringAnnotationDAO().addAnnotation(id, "Tissue Type", "brain");
+		
+		// try adding an annotation which was previously added
+		dao.getStringAnnotationDAO().addAnnotation(id, "Tissue Type", "liver");
 
 		// // create a new project
 		// GAEJDODataset dataset = new GAEJDODataset();
