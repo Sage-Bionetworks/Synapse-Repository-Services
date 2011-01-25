@@ -5,7 +5,6 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -19,11 +18,8 @@ import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
-import org.sagebionetworks.repo.view.PaginatedResults;
 import org.sagebionetworks.repo.web.controller.AbstractAnnotatableEntityController;
-import org.sagebionetworks.repo.web.controller.AbstractEntityController;
 
 /**
  * Implementation for REST controller for CRUD operations on Annotation DTOs and
@@ -74,7 +70,7 @@ public class AnnotatableDAOControllerImp<T extends Base> implements
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException {
 
-		String entityId = getEntityIdFromUriId(id);
+		String entityId = UrlPrefixes.getEntityIdFromUriId(id);
 
 		Annotations annotations = annotatableDao.getAnnotations(entityId);
 		if (null == annotations) {
@@ -82,8 +78,9 @@ public class AnnotatableDAOControllerImp<T extends Base> implements
 					+ " exists");
 		}
 
-		annotations.setUri(makeEntityUri(entityId, request));
-		annotations.setEtag(makeEntityEtag(annotations));
+		annotations.setId(entityId); // the url-encoded id
+		annotations.setUri(UrlPrefixes.makeEntityAnnotationsUri(theModelClass, annotations, request));
+		annotations.setEtag(UrlPrefixes.makeEntityEtag(annotations));
 
 		return annotations;
 	}
@@ -100,7 +97,7 @@ public class AnnotatableDAOControllerImp<T extends Base> implements
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException {
 
-		String entityId = getEntityIdFromUriId(id);
+		String entityId = UrlPrefixes.getEntityIdFromUriId(id);
 		//
 		// Annotations entity = dao.get(entityId);
 		// if(null == entity) {
@@ -124,6 +121,8 @@ public class AnnotatableDAOControllerImp<T extends Base> implements
 		for (Map.Entry<String, Collection<String>> annotation : stringAnnotations
 				.entrySet()) {
 			for (String value : annotation.getValue()) {
+				log.fine("Adding string annotation (" + annotation.getKey()
+						+ ", " + value + ")");
 				foo.addAnnotation(entityId, annotation.getKey(), value);
 			}
 		}
@@ -134,6 +133,8 @@ public class AnnotatableDAOControllerImp<T extends Base> implements
 		for (Map.Entry<String, Collection<Float>> annotation : floatAnnotations
 				.entrySet()) {
 			for (Float value : annotation.getValue()) {
+				log.fine("Adding float annotation (" + annotation.getKey()
+						+ ", " + value + ")");
 				bar.addAnnotation(entityId, annotation.getKey(), value);
 			}
 		}
@@ -144,78 +145,17 @@ public class AnnotatableDAOControllerImp<T extends Base> implements
 		for (Map.Entry<String, Collection<Date>> annotation : dateAnnotations
 				.entrySet()) {
 			for (Date value : annotation.getValue()) {
+				log.fine("Adding date annotation (" + annotation.getKey()
+						+ ", " + value + ")");
 				baz.addAnnotation(entityId, annotation.getKey(), value);
 			}
 		}
 
-		updatedAnnotations.setUri(makeEntityUri(entityId, request));
-		updatedAnnotations.setEtag(makeEntityEtag(updatedAnnotations));
+		updatedAnnotations.setId(entityId); // the url-encoded id
+		updatedAnnotations.setUri(UrlPrefixes.makeEntityAnnotationsUri(theModelClass, updatedAnnotations, request));
+		updatedAnnotations.setEtag(UrlPrefixes.makeEntityEtag(updatedAnnotations));
 
 		return updatedAnnotations;
-	}
-
-	/**
-	 * Helper function to translate ids found in URLs to ids used by the system
-	 * <p>
-	 * 
-	 * Specifically we currently use the serialized system id url-encoded for
-	 * use in URLs
-	 * 
-	 * @param id
-	 * @return
-	 */
-	protected String getEntityIdFromUriId(String id) {
-		String entityId = null;
-		try {
-			entityId = URLDecoder.decode(id, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			log.log(Level.SEVERE,
-					"Something is really messed up if we don't support UTF-8",
-					e);
-		}
-		return entityId;
-	}
-
-	/**
-	 * Helper function to create a relative URL for an entity
-	 * <p>
-	 * 
-	 * This includes not only the entity id but also the controller and servlet
-	 * portions of the path
-	 * 
-	 * TODO this code is duplicated
-	 * 
-	 * @param entity
-	 * @param request
-	 * @return
-	 */
-	protected String makeEntityUri(String entityId, HttpServletRequest request) {
-		String uri = null;
-		try {
-			uri = request.getServletPath()
-					+ UrlPrefixes.getUrlForModel(theModelClass) + "/"
-					+ URLEncoder.encode(entityId, "UTF-8") + "/annotations";
-		} catch (UnsupportedEncodingException e) {
-			log.log(Level.SEVERE,
-					"Something is really messed up if we don't support UTF-8",
-					e);
-		}
-		return uri;
-	}
-
-	/**
-	 * Helper function to create values for using in etags for an entity
-	 * <p>
-	 * 
-	 * The current implementation uses hash code since different versions of our
-	 * model objects will have different hash code values
-	 * 
-	 * @param entity
-	 * @return
-	 */
-	protected String makeEntityEtag(Annotations annotations) {
-		Integer hashCode = annotations.hashCode();
-		return hashCode.toString();
 	}
 
 }

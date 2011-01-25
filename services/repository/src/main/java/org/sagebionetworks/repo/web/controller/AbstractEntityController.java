@@ -137,5 +137,5 @@ public interface AbstractEntityController<T> {
 	@RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
 	public abstract void deleteEntity(@PathVariable String id)
 			throws NotFoundException, DatastoreException;
-
+	
 }

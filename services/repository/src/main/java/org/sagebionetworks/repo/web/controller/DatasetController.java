@@ -1,13 +1,19 @@
 package org.sagebionetworks.repo.web.controller;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.view.PaginatedResults;
 import org.sagebionetworks.repo.web.AnnotatableDAOControllerImp;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
@@ -32,7 +38,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>
  * 
  * Note that any controller logic common to all objects belongs in the
- * implementation of AbstractEntityController that this wraps. Only
+ * implementation of {@link AbstractEntityController} and of
+ * {@link AbstractAnnotatableEntityController} that this wraps. Only
  * functionality specific to Dataset objects belongs in this controller.
  * 
  * @author deflaux
@@ -51,6 +58,13 @@ public class DatasetController extends BaseController implements
 			Dataset.class);
 	private AbstractAnnotatableEntityController<Dataset> annotationsController = new AnnotatableDAOControllerImp<Dataset>(
 			Dataset.class);
+	private InputDataLayerDAO layerDao;
+
+	DatasetController() {
+		// TODO @Autowired, no GAE references allowed in this class
+		DAOFactory daoFactory = new GAEJDODAOFactoryImpl();
+		this.layerDao = daoFactory.getInputDataLayerDAO();
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -82,9 +96,10 @@ public class DatasetController extends BaseController implements
 	public @ResponseBody
 	Dataset getEntity(@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException {
+
 		Dataset dataset = entityController.getEntity(id, request);
 
-		dataset.setAnnotations(dataset.getUri() + "/annotations");
+		addServiceSpecificMetadata(dataset, request);
 
 		return dataset;
 	}
@@ -102,9 +117,10 @@ public class DatasetController extends BaseController implements
 	Dataset createEntity(@RequestBody Dataset newEntity,
 			HttpServletRequest request) throws DatastoreException,
 			InvalidModelException {
+
 		Dataset dataset = entityController.createEntity(newEntity, request);
 
-		dataset.setAnnotations(dataset.getUri() + "/annotations");
+		addServiceSpecificMetadata(dataset, request);
 
 		return dataset;
 	}
@@ -124,10 +140,11 @@ public class DatasetController extends BaseController implements
 			@RequestBody Dataset updatedEntity, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException {
+
 		Dataset dataset = entityController.updateEntity(id, etag,
 				updatedEntity, request);
 
-		dataset.setAnnotations(dataset.getUri() + "/annotations");
+		addServiceSpecificMetadata(dataset, request);
 
 		return dataset;
 	}
@@ -181,6 +198,33 @@ public class DatasetController extends BaseController implements
 			ConflictingUpdateException, DatastoreException {
 		return annotationsController.updateEntityAnnotations(id, etag,
 				updatedAnnotations, request);
+	}
+
+	private void addServiceSpecificMetadata(Dataset dataset,
+			HttpServletRequest request) {
+
+		dataset.setAnnotations(UrlPrefixes.makeEntityAnnotationsUri(dataset,
+				request));
+
+		// Layers have not yet been implemented
+		// Collection<String> layers = dataset.getLayers();
+		Map<String, String> layerUris = new HashMap<String, String>();
+		// for(String layer : layers) {
+		// LayerDTO layerDto = layerDao.getLayer(layer);
+		// layerUris.put(layerDto.getType,
+		// UrlPrefixes.makeEntityUri(layerDto, request));
+		// }
+
+		// TODO insering fake data for now, fix me!
+		layerUris.put("C", "agxkZWZsYXV4LXRlc3RyEwsSDUdBRUpET0RhdGFzZXQYAQw");
+		layerUris
+				.put("E", "agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYiaECDA");
+		layerUris
+				.put("G", "agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYmfIBDA");
+
+		dataset.setLayers(layerUris);
+		
+		return;
 	}
 
 }
