@@ -1,12 +1,8 @@
 package org.sagebionetworks.repo.web;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -121,7 +117,7 @@ public class AnnotatableDAOControllerImp<T extends Base> implements
 		for (Map.Entry<String, Collection<String>> annotation : stringAnnotations
 				.entrySet()) {
 			for (String value : annotation.getValue()) {
-				log.fine("Adding string annotation (" + annotation.getKey()
+				log.info("Adding string annotation (" + annotation.getKey()
 						+ ", " + value + ")");
 				foo.addAnnotation(entityId, annotation.getKey(), value);
 			}
@@ -133,7 +129,7 @@ public class AnnotatableDAOControllerImp<T extends Base> implements
 		for (Map.Entry<String, Collection<Float>> annotation : floatAnnotations
 				.entrySet()) {
 			for (Float value : annotation.getValue()) {
-				log.fine("Adding float annotation (" + annotation.getKey()
+				log.info("Adding float annotation (" + annotation.getKey()
 						+ ", " + value + ")");
 				bar.addAnnotation(entityId, annotation.getKey(), value);
 			}
@@ -145,7 +141,7 @@ public class AnnotatableDAOControllerImp<T extends Base> implements
 		for (Map.Entry<String, Collection<Date>> annotation : dateAnnotations
 				.entrySet()) {
 			for (Date value : annotation.getValue()) {
-				log.fine("Adding date annotation (" + annotation.getKey()
+				log.info("Adding date annotation (" + annotation.getKey()
 						+ ", " + value + ")");
 				baz.addAnnotation(entityId, annotation.getKey(), value);
 			}

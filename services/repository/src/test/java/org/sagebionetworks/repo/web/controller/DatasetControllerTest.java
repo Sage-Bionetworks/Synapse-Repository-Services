@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Date;
 import java.util.logging.Logger;
 
 import org.joda.time.DateTime;
@@ -154,72 +155,70 @@ public class DatasetControllerTest {
 				.getJSONObject("stringAnnotations");
 		String tissues[] = { "liver", "brain" };
 		stringAnnotations.put("tissues", tissues);
-//		String summary[] = { "this is a summary" };
-//		stringAnnotations.put("summary", summary);
+		String summary[] = { "this is a summary" };
+		stringAnnotations.put("summary", summary);
 
 		// Add some numeric annotations
-		// TODO these have to be Doubles, that is what JSONObject deserializes
-		// them as,
+		// TODO these have to be Doubles, that is what JSONObject.toString()
+		//  deserializes them as ,
 		// Jackson deserialization might be different since it has a model class
-//		JSONObject floatAnnotations = annotations
-//				.getJSONObject("floatAnnotations");
-//		Double pValues[] = { new Double(0.987), new Double(0) };
-//		floatAnnotations.put("pValues", pValues);
-//		Double numSamples[] = { new Double(3000) };
-//		floatAnnotations.put("numSamples", numSamples);
+		JSONObject floatAnnotations = annotations
+				.getJSONObject("floatAnnotations");
+		Double pValues[] = { new Double(0.987), new Double(0) };
+		floatAnnotations.put("pValues", pValues);
+		Double numSamples[] = { new Double(3000) };
+		floatAnnotations.put("numSamples", numSamples);
 
-		// TODO Add some date annotations
-		// WARNING: Handling
-		// org.springframework.mock.web.MockHttpServletRequest@2dd7e4d6
-		// org.codehaus.jackson.map.JsonMappingException: Can not construct
-		// instance of jav
-		// a.util.Date from String value 'Fri Jan 21 17:38:15 PST 2011': not a
-		// valid repres
-		// entation (error: Can not parse date "Fri Jan 21 17:38:15 PST 2011":
-		// not compatib
-		// le with any of standard forms ("yyyy-MM-dd'T'HH:mm:ss.SSSZ",
-		// "yyyy-MM-dd'T'HH:mm
-		// :ss.SSS'Z'", "EEE, dd MMM yyyy HH:mm:ss zzz", "yyyy-MM-dd"))
-//		DateTime curationEvents[] = { new DateTime("2011-01-21"),
-//				new DateTime("2010-10-01") };
-//		JSONObject dateAnnotations = annotations
-//				.getJSONObject("dateAnnotations");
-//		dateAnnotations.put("curationEvents", curationEvents);
-//		DateTime clinicalTrialStartDate[] = { new DateTime("2008-06-13") };
-//		dateAnnotations.put("clinicalTrialStartDate", clinicalTrialStartDate);
+		// Add some date annotations
+		// TODO these have to be Doubles, that is what JSONObject.toString()
+		//  deserializes them as ,
+		// Jackson deserialization might be different since it has a model class
+
+		Date now = new Date();
+		DateTime aWhileBack = new DateTime("2010-10-01");
+		
+		// TODO uncomment this line and comment the other to see a bug in 
+		// GAEJDOAnnotationDAOImpl.addAnnotation line 252 where when you try to add the
+		// same annotation key value pair twice, it throws an exception instead of just skipping the add
+//		Long curationEvents[] = { now.getTime(), now.getTime() };
+		Long curationEvents[] = { now.getTime(), aWhileBack.getMillis() };
+		JSONObject dateAnnotations = annotations
+				.getJSONObject("dateAnnotations");
+		dateAnnotations.put("curationEvents", curationEvents);
+		Long clinicalTrialStartDate[] = { now.getTime() };
+		dateAnnotations.put("clinicalTrialStartDate", clinicalTrialStartDate);
 
 		JSONObject results = helper.testUpdateJsonEntity(annotations);
 
 		// Check the update response
-//		helper.assertJSONArrayEquals(summary, results.getJSONObject(
-//				"stringAnnotations").getJSONArray("summary"));
+		helper.assertJSONArrayEquals(summary, results.getJSONObject(
+				"stringAnnotations").getJSONArray("summary"));
 		helper.assertJSONArrayEquals(tissues, results.getJSONObject(
 				"stringAnnotations").getJSONArray("tissues"));
-//		helper.assertJSONArrayEquals(pValues, results.getJSONObject(
-//				"floatAnnotations").getJSONArray("pValues"));
-//		helper.assertJSONArrayEquals(numSamples, results.getJSONObject(
-//				"floatAnnotations").getJSONArray("numSamples"));
-		// helper.assertJSONArrayEquals(curationEvents,
-		// results.getJSONObject("dateAnnotations").getJSONArray("curationEvents"));
-		// helper.assertJSONArrayEquals(clinicalTrialStartDate,
-		// results.getJSONObject("dateAnnotations").getJSONArray("clinicalTrialStartDate"));
+		helper.assertJSONArrayEquals(pValues, results.getJSONObject(
+				"floatAnnotations").getJSONArray("pValues"));
+		helper.assertJSONArrayEquals(numSamples, results.getJSONObject(
+				"floatAnnotations").getJSONArray("numSamples"));
+		 helper.assertJSONArrayEquals(curationEvents,
+		 results.getJSONObject("dateAnnotations").getJSONArray("curationEvents"));
+		 helper.assertJSONArrayEquals(clinicalTrialStartDate,
+		 results.getJSONObject("dateAnnotations").getJSONArray("clinicalTrialStartDate"));
 
 		// Now check that we correctly persisted them for real
 		JSONObject storedAnnotations = helper.testGetJsonEntity(newDataset
 				.getString("annotations"));
-//		helper.assertJSONArrayEquals(summary, storedAnnotations.getJSONObject(
-//				"stringAnnotations").getJSONArray("summary"));
+		helper.assertJSONArrayEquals(summary, storedAnnotations.getJSONObject(
+				"stringAnnotations").getJSONArray("summary"));
 		helper.assertJSONArrayEquals(tissues, storedAnnotations.getJSONObject(
 				"stringAnnotations").getJSONArray("tissues"));
-//		helper.assertJSONArrayEquals(pValues, storedAnnotations.getJSONObject(
-//				"floatAnnotations").getJSONArray("pValues"));
-//		helper.assertJSONArrayEquals(numSamples, storedAnnotations
-//				.getJSONObject("floatAnnotations").getJSONArray("numSamples"));
-		// helper.assertJSONArrayEquals(curationEvents,
-		// results.getJSONObject("dateAnnotations").getJSONArray("curationEvents"));
-		// helper.assertJSONArrayEquals(clinicalTrialStartDate,
-		// results.getJSONObject("dateAnnotations").getJSONArray("clinicalTrialStartDate"));
-
+		helper.assertJSONArrayEquals(pValues, storedAnnotations.getJSONObject(
+				"floatAnnotations").getJSONArray("pValues"));
+		helper.assertJSONArrayEquals(numSamples, storedAnnotations
+				.getJSONObject("floatAnnotations").getJSONArray("numSamples"));
+		 helper.assertJSONArrayEquals(curationEvents,
+		 results.getJSONObject("dateAnnotations").getJSONArray("curationEvents"));
+		 helper.assertJSONArrayEquals(clinicalTrialStartDate,
+		 results.getJSONObject("dateAnnotations").getJSONArray("clinicalTrialStartDate"));
 	}
 
 	/**
