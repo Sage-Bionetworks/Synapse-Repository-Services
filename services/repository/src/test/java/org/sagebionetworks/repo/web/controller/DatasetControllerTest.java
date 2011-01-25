@@ -527,6 +527,13 @@ public class DatasetControllerTest {
 		// Check immutable system-defined properties
 		assertTrue(results.has("annotations"));
 		assertTrue(results.has("layers"));
+		
+		// Check our currently hard-coded layer metadata
+		assertEquals(3, results.getJSONArray("layers").length());
+		for (int i = 0; i < 3; i++) {
+			assertTrue(results.getJSONArray("layers").getJSONObject(1).has("type"));
+			assertTrue(results.getJSONArray("layers").getJSONObject(1).has("uri"));
+		}
 		assertTrue(results.has("creationDate"));
 		// Check that optional properties that receive default values
 		assertTrue(results.has("version"));

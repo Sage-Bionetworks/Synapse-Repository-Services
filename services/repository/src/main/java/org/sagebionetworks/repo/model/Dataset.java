@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.Map;
 
 /**
  * This is a data transfer object.
@@ -25,7 +25,7 @@ public class Dataset implements Base, Revisable {
 	private String version;
 	private Collection<String> layerIds;
 	private String annotations;  //URI for annotations
-	private Map<String, String> layers;  // (type, URI) pairs for data layers
+	private Collection<LayerMetadata> layers;  // (type, URI) pairs for data layers
 
 	public String getId() {
 		return id;
@@ -154,17 +154,29 @@ public class Dataset implements Base, Revisable {
 	/**
 	 * @return the layers
 	 */
-	public Map<String, String> getLayers() {
+	public Collection<LayerMetadata> getLayers() {
 		return layers;
 	}
 
 	/**
 	 * @param layers the (type, layer URI) pairs to set
 	 */
-	public void setLayers(Map<String, String> layers) {
+	public void setLayers(Collection<LayerMetadata> layers) {
 		this.layers = layers;
 	}
 
+	
+	/**
+	 * @param type 
+	 * @param uri 
+	 */
+	public void addLayerMetadata(String type, String uri) {
+		if(null == layers) {
+			layers = new ArrayList<LayerMetadata>();
+		}
+		layers.add(new LayerMetadata(type, uri));
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
