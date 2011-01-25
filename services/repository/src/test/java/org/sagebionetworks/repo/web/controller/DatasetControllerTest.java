@@ -9,9 +9,11 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.logging.Logger;
 
+import org.joda.time.DateTime;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.view.PaginatedResults;
@@ -27,20 +29,10 @@ import org.springframework.web.servlet.DispatcherServlet;
  * with JSON request and response encoding.
  * <p>
  * 
- * TODO this patient is lying open on the surgery table, don't bother CR-ing
- * this yet
- * 
- * This unit test suite for the repository Google App Engine service uses a
- * local instance of DataStoreService.
- * <p>
- * The following unit tests are written at the servlet layer to test bugs in our
- * URL mapping, request format, response format, and response status code.
- * <p>
- * See src/main/webapp/WEB-INF/repository-servlet.xml for servlet configuration
- * <p>
- * See src/main/webapp/WEB-INF/repository-context.xml for application
- * configuration. Later on we may wish to have a test-specific version of this
- * file.
+ * Note that test logic and assertions common to operations for all DAO-backed
+ * entities can be found in the Helpers class. What follows are test cases that
+ * make use of that generic test logic with some assertions specific to
+ * datasets.
  * 
  * @author deflaux
  */
@@ -141,7 +133,7 @@ public class DatasetControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#createEntity}
+	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#updateEntityAnnotations}
 	 * .
 	 * 
 	 * @throws Exception
@@ -162,19 +154,19 @@ public class DatasetControllerTest {
 				.getJSONObject("stringAnnotations");
 		String tissues[] = { "liver", "brain" };
 		stringAnnotations.put("tissues", tissues);
-		String summary[] = { "this is a summary" };
-		stringAnnotations.put("summary", summary);
+//		String summary[] = { "this is a summary" };
+//		stringAnnotations.put("summary", summary);
 
 		// Add some numeric annotations
 		// TODO these have to be Doubles, that is what JSONObject deserializes
 		// them as,
 		// Jackson deserialization might be different since it has a model class
-		JSONObject floatAnnotations = annotations
-				.getJSONObject("floatAnnotations");
-		Double pValues[] = { new Double(0.987), new Double(0) };
-		floatAnnotations.put("pValues", pValues);
-		Double numSamples[] = { new Double(3000) };
-		floatAnnotations.put("numSamples", numSamples);
+//		JSONObject floatAnnotations = annotations
+//				.getJSONObject("floatAnnotations");
+//		Double pValues[] = { new Double(0.987), new Double(0) };
+//		floatAnnotations.put("pValues", pValues);
+//		Double numSamples[] = { new Double(3000) };
+//		floatAnnotations.put("numSamples", numSamples);
 
 		// TODO Add some date annotations
 		// WARNING: Handling
@@ -188,52 +180,45 @@ public class DatasetControllerTest {
 		// le with any of standard forms ("yyyy-MM-dd'T'HH:mm:ss.SSSZ",
 		// "yyyy-MM-dd'T'HH:mm
 		// :ss.SSS'Z'", "EEE, dd MMM yyyy HH:mm:ss zzz", "yyyy-MM-dd"))
-		// import org.joda.time.DateTime
-		// Date dates[] = {new Date(), new Date(1000000)};
-		// JSONObject dateAnnotations =
-		// annotations.getJSONObject("dateAnnotations");
-		// dateAnnotations.put("dates", dates);
-		// Date trial[] = {new Date()};
-		// dateAnnotations.put("trial", trial);
+//		DateTime curationEvents[] = { new DateTime("2011-01-21"),
+//				new DateTime("2010-10-01") };
+//		JSONObject dateAnnotations = annotations
+//				.getJSONObject("dateAnnotations");
+//		dateAnnotations.put("curationEvents", curationEvents);
+//		DateTime clinicalTrialStartDate[] = { new DateTime("2008-06-13") };
+//		dateAnnotations.put("clinicalTrialStartDate", clinicalTrialStartDate);
 
 		JSONObject results = helper.testUpdateJsonEntity(annotations);
 
 		// Check the update response
-		helper.assertJSONArrayEquals(
-				summary,
-				results.getJSONObject("stringAnnotations").getJSONArray(
-						"summary"));
-		helper.assertJSONArrayEquals(
-				tissues,
-				results.getJSONObject("stringAnnotations").getJSONArray(
-						"tissues"));
-		helper.assertJSONArrayEquals(
-				pValues,
-				results.getJSONObject("floatAnnotations").getJSONArray(
-						"pValues"));
-		helper.assertJSONArrayEquals(
-				numSamples,
-				results.getJSONObject("floatAnnotations").getJSONArray(
-						"numSamples"));
-		// helper.assertJSONArrayEquals(dates,
-		// results.getJSONObject("dateAnnotations").getJSONArray("dates"));
-		// helper.assertJSONArrayEquals(trial,
-		// results.getJSONObject("dateAnnotations").getJSONArray("trial"));
+//		helper.assertJSONArrayEquals(summary, results.getJSONObject(
+//				"stringAnnotations").getJSONArray("summary"));
+		helper.assertJSONArrayEquals(tissues, results.getJSONObject(
+				"stringAnnotations").getJSONArray("tissues"));
+//		helper.assertJSONArrayEquals(pValues, results.getJSONObject(
+//				"floatAnnotations").getJSONArray("pValues"));
+//		helper.assertJSONArrayEquals(numSamples, results.getJSONObject(
+//				"floatAnnotations").getJSONArray("numSamples"));
+		// helper.assertJSONArrayEquals(curationEvents,
+		// results.getJSONObject("dateAnnotations").getJSONArray("curationEvents"));
+		// helper.assertJSONArrayEquals(clinicalTrialStartDate,
+		// results.getJSONObject("dateAnnotations").getJSONArray("clinicalTrialStartDate"));
 
-		// Now check that we stored them for real
+		// Now check that we correctly persisted them for real
 		JSONObject storedAnnotations = helper.testGetJsonEntity(newDataset
 				.getString("annotations"));
-		helper.assertJSONArrayEquals(summary,
-				storedAnnotations.getJSONObject("stringAnnotations")
-						.getJSONArray("summary"));
-		helper.assertJSONArrayEquals(tissues,
-				storedAnnotations.getJSONObject("stringAnnotations")
-						.getJSONArray("tissues"));
-		helper.assertJSONArrayEquals(pValues,
-				storedAnnotations.getJSONObject("floatAnnotations")
-						.getJSONArray("pValues"));
-		helper.assertJSONArrayEquals(numSamples, storedAnnotations
-				.getJSONObject("floatAnnotations").getJSONArray("numSamples"));
+//		helper.assertJSONArrayEquals(summary, storedAnnotations.getJSONObject(
+//				"stringAnnotations").getJSONArray("summary"));
+		helper.assertJSONArrayEquals(tissues, storedAnnotations.getJSONObject(
+				"stringAnnotations").getJSONArray("tissues"));
+//		helper.assertJSONArrayEquals(pValues, storedAnnotations.getJSONObject(
+//				"floatAnnotations").getJSONArray("pValues"));
+//		helper.assertJSONArrayEquals(numSamples, storedAnnotations
+//				.getJSONObject("floatAnnotations").getJSONArray("numSamples"));
+		// helper.assertJSONArrayEquals(curationEvents,
+		// results.getJSONObject("dateAnnotations").getJSONArray("curationEvents"));
+		// helper.assertJSONArrayEquals(clinicalTrialStartDate,
+		// results.getJSONObject("dateAnnotations").getJSONArray("clinicalTrialStartDate"));
 
 	}
 
@@ -258,10 +243,8 @@ public class DatasetControllerTest {
 		assertEquals(10, results.getJSONArray("results").length());
 		assertFalse(results.getJSONObject("paging").has(
 				PaginatedResults.PREVIOUS_PAGE_FIELD));
-		assertEquals(
-				"/dataset?offset=11&limit=10",
-				results.getJSONObject("paging").getString(
-						PaginatedResults.NEXT_PAGE_FIELD));
+		assertEquals("/dataset?offset=11&limit=10", results.getJSONObject(
+				"paging").getString(PaginatedResults.NEXT_PAGE_FIELD));
 
 		// TODO parse the query params on the url
 		// results =
@@ -269,10 +252,8 @@ public class DatasetControllerTest {
 		results = helper.testGetJsonEntities("/dataset", 11, 10);
 		assertEquals(12, results.getInt("totalNumberOfResults"));
 		assertEquals(2, results.getJSONArray("results").length());
-		assertEquals(
-				"/dataset?offset=1&limit=10",
-				results.getJSONObject("paging").getString(
-						PaginatedResults.PREVIOUS_PAGE_FIELD));
+		assertEquals("/dataset?offset=1&limit=10", results.getJSONObject(
+				"paging").getString(PaginatedResults.PREVIOUS_PAGE_FIELD));
 		assertFalse(results.getJSONObject("paging").has(
 				PaginatedResults.NEXT_PAGE_FIELD));
 
@@ -310,7 +291,7 @@ public class DatasetControllerTest {
 		// Now make sure the stored one reflects the change too
 		JSONObject storedDataset = helper.testGetJsonEntity(newDataset
 				.getString("uri"));
-		assertEquals("MouseX", updatedDataset.getString("name"));
+		assertEquals("MouseX", storedDataset.getString("name"));
 	}
 
 	/**
@@ -376,8 +357,8 @@ public class DatasetControllerTest {
 		JSONObject results = helper.testCreateJsonEntityShouldFail("/dataset",
 				"{\"version\": \"1.0.0\"}", HttpStatus.BAD_REQUEST);
 
-		assertEquals("'name' is a required property for Dataset",
-				results.getString("reason"));
+		assertEquals("'name' is a required property for Dataset", results
+				.getString("reason"));
 	}
 
 	/**
@@ -424,8 +405,8 @@ public class DatasetControllerTest {
 
 		JSONObject results = helper.testGetJsonEntitiesShouldFail("/dataset",
 				1, 0, HttpStatus.BAD_REQUEST);
-		assertEquals("pagination limit must be 1 or greater",
-				results.getString("reason"));
+		assertEquals("pagination limit must be 1 or greater", results
+				.getString("reason"));
 	}
 
 	/**
@@ -439,8 +420,8 @@ public class DatasetControllerTest {
 	public void testGetDatasetsBadOffset() throws Exception {
 		JSONObject results = helper.testGetJsonEntitiesShouldFail("/dataset",
 				-5, 10, HttpStatus.BAD_REQUEST);
-		assertEquals("pagination offset must be 1 or greater",
-				results.getString("reason"));
+		assertEquals("pagination offset must be 1 or greater", results
+				.getString("reason"));
 	}
 
 	/*****************************************************************************************************
@@ -461,11 +442,40 @@ public class DatasetControllerTest {
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 
-		JSONObject error = helper.testGetJsonEntityShouldFail(
-				results.getString("uri"), HttpStatus.NOT_FOUND);
+		JSONObject error = helper.testGetJsonEntityShouldFail(results
+				.getString("uri"), HttpStatus.NOT_FOUND);
 		assertEquals(
 				"The resource you are attempting to retrieve cannot be found",
 				error.getString("reason"));
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#updateEntityAnnotations}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Ignore
+	@Test
+	public void testGetNonExistentDatasetAnnotations() throws Exception {
+
+		// Load up a dataset
+		JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
+				"{\"name\":\"MouseCross\"}");
+		// Get our empty annotations container
+		JSONObject annotations = helper.testGetJsonEntity(newDataset
+				.getString("annotations"));
+
+		// Delete our dataset
+		helper.testDeleteJsonEntity(newDataset.getString("uri"));
+
+		JSONObject error = helper.testGetJsonEntityShouldFail(annotations
+				.getString("uri"), HttpStatus.NOT_FOUND);
+		assertEquals(
+				"The resource you are attempting to retrieve cannot be found",
+				error.getString("reason"));
+
 	}
 
 	/**
@@ -503,8 +513,8 @@ public class DatasetControllerTest {
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 
-		JSONObject error = helper.testDeleteJsonEntityShouldFail(
-				results.getString("uri"), HttpStatus.NOT_FOUND);
+		JSONObject error = helper.testDeleteJsonEntityShouldFail(results
+				.getString("uri"), HttpStatus.NOT_FOUND);
 		assertEquals(
 				"The resource you are attempting to retrieve cannot be found",
 				error.getString("reason"));
@@ -516,6 +526,7 @@ public class DatasetControllerTest {
 		assertTrue(results.has("name"));
 		// Check immutable system-defined properties
 		assertTrue(results.has("annotations"));
+		assertTrue(results.has("layers"));
 		assertTrue(results.has("creationDate"));
 		// Check that optional properties that receive default values
 		assertTrue(results.has("version"));

@@ -110,7 +110,7 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 				layers.add(KeyFactory.keyToString(l));
 			}
 		}
-		dto.setLayers(layers);
+		dto.setLayerIds(layers);
 	}
 
 	/**

@@ -86,8 +86,8 @@ public class DAOControllerImp<T extends Base> implements
 			throw new NotFoundException("no entity with id " + id + " exists");
 		}
 
-		entity.setUri(makeEntityUri(entity, request));
-		entity.setEtag(makeEntityEtag(entity));
+		entity.setUri(UrlPrefixes.makeEntityUri(entity, request));
+		entity.setEtag(UrlPrefixes.makeEntityEtag(entity));
 
 		return entity;
 	}
@@ -104,8 +104,8 @@ public class DAOControllerImp<T extends Base> implements
 
 		dao.create(newEntity);
 
-		newEntity.setUri(makeEntityUri(newEntity, request));
-		newEntity.setEtag(makeEntityEtag(newEntity));
+		newEntity.setUri(UrlPrefixes.makeEntityUri(newEntity, request));
+		newEntity.setEtag(UrlPrefixes.makeEntityEtag(newEntity));
 
 		return newEntity;
 	}
@@ -121,7 +121,7 @@ public class DAOControllerImp<T extends Base> implements
 			HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException {
 
-		String entityId = getEntityIdFromUriId(id);
+		String entityId = UrlPrefixes.getEntityIdFromUriId(id);
 
 		T entity = dao.get(entityId);
 		if (null == entity) {
@@ -136,8 +136,8 @@ public class DAOControllerImp<T extends Base> implements
 		}
 		dao.update(updatedEntity);
 
-		updatedEntity.setUri(makeEntityUri(updatedEntity, request));
-		updatedEntity.setEtag(makeEntityEtag(updatedEntity));
+		updatedEntity.setUri(UrlPrefixes.makeEntityUri(updatedEntity, request));
+		updatedEntity.setEtag(UrlPrefixes.makeEntityEtag(updatedEntity));
 
 		return updatedEntity;
 	}
@@ -151,72 +151,11 @@ public class DAOControllerImp<T extends Base> implements
 	 */
 	public void deleteEntity(String id) throws NotFoundException,
 			DatastoreException {
-		String entityId = getEntityIdFromUriId(id);
+		String entityId = UrlPrefixes.getEntityIdFromUriId(id);
 
 		dao.delete(entityId);
 
 		return;
 	}
 
-	/**
-	 * Helper function to translate ids found in URLs to ids used by the system
-	 * <p>
-	 * 
-	 * Specifically we currently use the serialized system id url-encoded for
-	 * use in URLs
-	 * 
-	 * @param id
-	 * @return
-	 */
-	protected String getEntityIdFromUriId(String id) {
-		String entityId = null;
-		try {
-			entityId = URLDecoder.decode(id, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			log.log(Level.SEVERE,
-					"Something is really messed up if we don't support UTF-8",
-					e);
-		}
-		return entityId;
-	}
-
-	/**
-	 * Helper function to create a relative URL for an entity
-	 * <p>
-	 * 
-	 * This includes not only the entity id but also the controller and servlet
-	 * portions of the path
-	 * 
-	 * @param entity
-	 * @param request
-	 * @return
-	 */
-	protected String makeEntityUri(T entity, HttpServletRequest request) {
-		String uri = null;
-		try {
-			uri = request.getServletPath()
-					+ UrlPrefixes.getUrlForModel(theModelClass) + "/"
-					+ URLEncoder.encode(entity.getId(), "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			log.log(Level.SEVERE,
-					"Something is really messed up if we don't support UTF-8",
-					e);
-		}
-		return uri;
-	}
-
-	/**
-	 * Helper function to create values for using in etags for an entity
-	 * <p>
-	 * 
-	 * The current implementation uses hash code since different versions of our
-	 * model objects will have different hash code values
-	 * 
-	 * @param entity
-	 * @return
-	 */
-	protected String makeEntityEtag(T entity) {
-		Integer hashCode = entity.hashCode();
-		return hashCode.toString();
-	}
 }

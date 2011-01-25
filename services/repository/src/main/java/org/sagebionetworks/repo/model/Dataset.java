@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Collection;
 import java.util.Date;
+import java.util.Map;
 
 /**
  * This is a data transfer object.
@@ -22,8 +23,9 @@ public class Dataset implements Base, Revisable {
 	private String status;
 	private Date releaseDate;
 	private String version;
-	private String annotations; // uri for annotations
-	private Collection<String> layers;
+	private Collection<String> layerIds;
+	private String annotations;  //URI for annotations
+	private Map<String, String> layers;  // (type, URI) pairs for data layers
 
 	public String getId() {
 		return id;
@@ -120,25 +122,46 @@ public class Dataset implements Base, Revisable {
 	}
 
 	/**
-	 * @param annotations
-	 *            the annotations to set
+	 * @return the layerIds
 	 */
-	public void setAnnotations(String annotations) {
-		this.annotations = annotations;
+	public Collection<String> getLayerIds() {
+		return layerIds;
 	}
 
 	/**
-	 * @return the annotations
+	 * @param layerIds the layerIds to set
+	 */
+	public void setLayerIds(Collection<String> layerIds) {
+		this.layerIds = layerIds;
+	}
+
+	/**
+	 * @return the annotations URI
 	 */
 	public String getAnnotations() {
 		return annotations;
 	}
 
-	public Collection<String> getLayers() {
+	/**
+	 * @param annotations
+	 *            the URI that can be used to retrieve our annotations
+	 */
+	public void setAnnotations(String annotations) {
+		this.annotations = annotations;
+	}
+	
+	
+	/**
+	 * @return the layers
+	 */
+	public Map<String, String> getLayers() {
 		return layers;
 	}
 
-	public void setLayers(Collection<String> layers) {
+	/**
+	 * @param layers the (type, layer URI) pairs to set
+	 */
+	public void setLayers(Map<String, String> layers) {
 		this.layers = layers;
 	}
 
@@ -150,7 +173,7 @@ public class Dataset implements Base, Revisable {
 		result = prime * result
 				+ ((description == null) ? 0 : description.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((layers == null) ? 0 : layers.hashCode());
+		result = prime * result + ((layerIds == null) ? 0 : layerIds.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
 				+ ((releaseDate == null) ? 0 : releaseDate.hashCode());
@@ -183,10 +206,10 @@ public class Dataset implements Base, Revisable {
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
-		if (layers == null) {
-			if (other.layers != null)
+		if (layerIds == null) {
+			if (other.layerIds != null)
 				return false;
-		} else if (!layers.equals(other.layers))
+		} else if (!layerIds.equals(other.layerIds))
 			return false;
 		if (name == null) {
 			if (other.name != null)
