@@ -73,7 +73,7 @@ public class ResponseHeaderResolver implements ModelAndViewResolver {
 			 * 
 			 * Dev Note: if we have POST /repo/v1/message/123/annotation
 			 * something like request.getServletPath() +
-			 * UrlPrefixes.MODEL2URL.get(returnValue.getClass()) instead of
+			 * UrlHelpers.MODEL2URL.get(returnValue.getClass()) instead of
 			 * request.getRequestURI() will not work
 			 */
 			if (request.getMethod().equals("POST")) {

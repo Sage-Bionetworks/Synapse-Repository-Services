@@ -17,7 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.web.ServiceConstants;
-import org.sagebionetworks.repo.web.UrlPrefixes;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -73,7 +73,7 @@ public class ControllerTest {
 	@Test
 	public void testInvalidJsonCreateEntity() throws Exception {
 
-		Collection<String> urls = UrlPrefixes.getAllUrlPrefixes();
+		Collection<String> urls = UrlHelpers.getAllUrlPrefixes();
 		for (String url : urls) {
 
 			// Notice the missing quotes around the key
@@ -108,7 +108,7 @@ public class ControllerTest {
 	@Test
 	public void testMissingBodyCreateEntity() throws Exception {
 
-		Collection<String> urls = UrlPrefixes.getAllUrlPrefixes();
+		Collection<String> urls = UrlHelpers.getAllUrlPrefixes();
 		for (String url : urls) {
 
 			MockHttpServletRequest request = new MockHttpServletRequest();
@@ -141,7 +141,7 @@ public class ControllerTest {
 	@Test
 	public void testMissingBodyUpdateEntity() throws Exception {
 
-		Collection<String> urls = UrlPrefixes.getAllUrlPrefixes();
+		Collection<String> urls = UrlHelpers.getAllUrlPrefixes();
 		for (String url : urls) {
 
 			MockHttpServletRequest request = new MockHttpServletRequest();
@@ -174,7 +174,7 @@ public class ControllerTest {
 	 */
 	@Test
 	public void testUpdateEntityMissingEtag() throws Exception {
-		Collection<String> urls = UrlPrefixes.getAllUrlPrefixes();
+		Collection<String> urls = UrlHelpers.getAllUrlPrefixes();
 		for (String url : urls) {
 
 			MockHttpServletRequest request = new MockHttpServletRequest();

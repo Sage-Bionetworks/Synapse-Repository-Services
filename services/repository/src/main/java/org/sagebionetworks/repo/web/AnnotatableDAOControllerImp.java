@@ -70,7 +70,7 @@ public class AnnotatableDAOControllerImp<T extends Base> implements
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException {
 
-		String entityId = UrlPrefixes.getEntityIdFromUriId(id);
+		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 
 		Annotations annotations = annotatableDao.getAnnotations(entityId);
 		if (null == annotations) {
@@ -79,8 +79,8 @@ public class AnnotatableDAOControllerImp<T extends Base> implements
 		}
 
 		annotations.setId(entityId); // the url-encoded id
-		annotations.setUri(UrlPrefixes.makeEntityAnnotationsUri(theModelClass, annotations, request));
-		annotations.setEtag(UrlPrefixes.makeEntityEtag(annotations));
+		annotations.setUri(UrlHelpers.makeEntityAnnotationsUri(theModelClass, annotations, request));
+		annotations.setEtag(UrlHelpers.makeEntityEtag(annotations));
 
 		return annotations;
 	}
@@ -97,7 +97,7 @@ public class AnnotatableDAOControllerImp<T extends Base> implements
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException {
 
-		String entityId = UrlPrefixes.getEntityIdFromUriId(id);
+		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 		//
 		// Annotations entity = dao.get(entityId);
 		// if(null == entity) {
@@ -152,8 +152,8 @@ public class AnnotatableDAOControllerImp<T extends Base> implements
 		}
 
 		updatedAnnotations.setId(entityId); // the url-encoded id
-		updatedAnnotations.setUri(UrlPrefixes.makeEntityAnnotationsUri(theModelClass, updatedAnnotations, request));
-		updatedAnnotations.setEtag(UrlPrefixes.makeEntityEtag(updatedAnnotations));
+		updatedAnnotations.setUri(UrlHelpers.makeEntityAnnotationsUri(theModelClass, updatedAnnotations, request));
+		updatedAnnotations.setEtag(UrlHelpers.makeEntityEtag(updatedAnnotations));
 
 		return updatedAnnotations;
 	}
