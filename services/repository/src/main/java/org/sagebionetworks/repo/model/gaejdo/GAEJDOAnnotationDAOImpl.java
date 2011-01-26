@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.jdo.Extent;
+import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
@@ -18,6 +19,7 @@ import org.sagebionetworks.repo.model.AnnotationDAO;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
@@ -244,7 +246,7 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	}
 
 	public void addAnnotation(String id, String attribute, A value)
-			throws DatastoreException {
+			throws DatastoreException, NotFoundException {
 		PersistenceManager pm = PMF.get();
 		Transaction tx = null;
 		try {
@@ -260,6 +262,8 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 			addAnnotation(annots, attribute, value);
 			pm.makePersistent(jdo);
 			tx.commit();
+		} catch (JDOObjectNotFoundException e) {
+			throw new NotFoundException(e);
 		} catch (Exception e) {
 			throw new DatastoreException(e);
 		} finally {
@@ -271,7 +275,7 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	}
 
 	public void removeAnnotation(String id, String attribute, A value)
-			throws DatastoreException {
+			throws DatastoreException, NotFoundException {
 		PersistenceManager pm = PMF.get();
 		Transaction tx = null;
 		try {
@@ -284,6 +288,8 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 			removeAnnotation(annots, attribute, value);
 			pm.makePersistent(jdo);
 			tx.commit();
+		} catch (JDOObjectNotFoundException e) {
+			throw new NotFoundException(e);
 		} catch (Exception e) {
 			throw new DatastoreException(e);
 		} finally {
@@ -298,10 +304,11 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	 * @param id
 	 *            the id of the 'Annotatable' owner object
 	 * @return all the annotations belonging to the given object
+	 * @throws NotFoundException 
 	 */
 
 	public Map<String, Collection<A>> getAnnotations(String id)
-			throws DatastoreException {
+			throws DatastoreException, NotFoundException {
 		PersistenceManager pm = PMF.get();
 		try {
 			Key key = KeyFactory.stringToKey(id);
@@ -317,6 +324,8 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 				values.add(annot.getValue());
 			}
 			return ans;
+		} catch (JDOObjectNotFoundException e) {
+			throw new NotFoundException(e);
 		} catch (Exception e) {
 			throw new DatastoreException(e);
 		} finally {
@@ -330,9 +339,10 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	 * @param attribute
 	 * @return all the annotations of the given object having the given attribute
 	 * @throws DatastoreException
+	 * @throws NotFoundException 
 	 */
 	public Collection<A> getAnnotations(String id, String attribute)
-			throws DatastoreException {
+			throws DatastoreException, NotFoundException {
 		PersistenceManager pm = PMF.get();
 		try {
 			Key key = KeyFactory.stringToKey(id);
@@ -344,6 +354,8 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 					ans.add(annot.getValue());
 			}
 			return ans;
+		} catch (JDOObjectNotFoundException e) {
+			throw new NotFoundException(e);
 		} catch (Exception e) {
 			throw new DatastoreException(e);
 		} finally {

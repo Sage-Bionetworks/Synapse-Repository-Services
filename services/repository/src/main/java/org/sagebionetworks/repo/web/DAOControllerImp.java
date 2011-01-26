@@ -115,7 +115,7 @@ public class DAOControllerImp<T extends Base> implements
 	 */
 	public T updateEntity(String id, Integer etag, T updatedEntity,
 			HttpServletRequest request) throws NotFoundException,
-			ConflictingUpdateException, DatastoreException {
+			ConflictingUpdateException, DatastoreException, InvalidModelException {
 
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 

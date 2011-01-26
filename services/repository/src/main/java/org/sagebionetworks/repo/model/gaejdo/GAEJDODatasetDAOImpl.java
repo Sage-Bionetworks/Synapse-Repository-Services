@@ -7,6 +7,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 
+import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
 import javax.jdo.Transaction;
 
@@ -239,8 +240,10 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 	 * @param dto
 	 *            non-null id is required
 	 * @throws DatastoreException
+	 * @throws InvalidModelException 
+	 * @throws NotFoundException 
 	 */
-	public void update(Dataset dto) throws DatastoreException {
+	public void update(Dataset dto) throws DatastoreException, InvalidModelException, NotFoundException {
 		PersistenceManager pm = PMF.get();
 		Transaction tx = null;
 		try {
@@ -248,6 +251,10 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 			tx.begin();
 			revisableDAO.update(pm, dto);
 			tx.commit();
+		} catch (InvalidModelException e) {
+			throw e;
+		} catch (JDOObjectNotFoundException e) {
+			throw new NotFoundException(e);
 		} catch (Exception e) {
 			throw new DatastoreException(e);
 		} finally {
@@ -389,8 +396,9 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 	/**
 	 * @param id
 	 * @return annotations for the given object of the given type
+	 * @throws NotFoundException 
 	 */
-	public Annotations getAnnotations(String id) throws DatastoreException {
+	public Annotations getAnnotations(String id) throws DatastoreException, NotFoundException {
 		Annotations ans = new Annotations();
 		ans.setStringAnnotations(getStringAnnotationDAO().getAnnotations(id));
 		ans.setFloatAnnotations(getFloatAnnotationDAO().getAnnotations(id));

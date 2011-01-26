@@ -5,6 +5,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.web.NotFoundException;
+
 /**
  * This interface defines the CRUD methods for annotations.
  * 
@@ -24,9 +26,10 @@ public interface AnnotationDAO<S extends Base, A extends Comparable> {
 	 * @param attribute
 	 * @param value
 	 * @throws DatastoreException
+	 * @throws NotFoundException 
 	 */
 	public void addAnnotation(String id, String attribute, A value)
-			throws DatastoreException;
+			throws DatastoreException, NotFoundException;
 
 	/**
 	 * 
@@ -35,9 +38,10 @@ public interface AnnotationDAO<S extends Base, A extends Comparable> {
 	 * @param attribute
 	 * @param value
 	 * @throws DatastoreException
+	 * @throws NotFoundException 
 	 */
 	public void removeAnnotation(String id, String attribute, A value)
-			throws DatastoreException;
+			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Note: Since an object may have multiple values for the same attribute,
@@ -48,9 +52,10 @@ public interface AnnotationDAO<S extends Base, A extends Comparable> {
 	 * @return all the annotations of the type given by A owned by the
 	 *         annotatable object
 	 * @throws DatastoreException
+	 * @throws NotFoundException 
 	 */
 	public Map<String, Collection<A>> getAnnotations(String id)
-			throws DatastoreException;
+			throws DatastoreException, NotFoundException;
 
 	/**
 	 * 
