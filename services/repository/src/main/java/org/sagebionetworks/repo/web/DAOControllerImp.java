@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.web;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -34,7 +36,8 @@ public class DAOControllerImp<T extends Base> implements
 
 	protected Class<T> theModelClass;
 	protected BaseDAO<T> dao;
-
+	protected Set<String> primaryFields = new HashSet<String>();
+	
 	/**
 	 * @param theModelClass
 	 */
@@ -44,6 +47,9 @@ public class DAOControllerImp<T extends Base> implements
 		// TODO @Autowired, no GAE references allowed in this class
 		DAOFactory daoFactory = new GAEJDODAOFactoryImpl();
 		this.dao = daoFactory.getDAO(theModelClass);
+		
+		primaryFields.addAll(dao.getPrimaryFields());
+		
 	}
 
 	/*
@@ -51,20 +57,30 @@ public class DAOControllerImp<T extends Base> implements
 	 * 
 	 * @see
 	 * org.sagebionetworks.repo.web.controller.AbstractEntityController#getEntities
-	 * (java.lang.Integer, java.lang.Integer,
-	 * javax.servlet.http.HttpServletRequest)
 	 */
 	public PaginatedResults<T> getEntities(Integer offset, Integer limit,
-			HttpServletRequest request) throws DatastoreException {
+			String sort, Boolean ascending, HttpServletRequest request) throws DatastoreException {
 
 		ServiceConstants.validatePaginationParams(offset, limit);
 
-		List<T> entities = dao.getInRange(offset - 1, offset + limit - 1);
+		List<T> entities = null;
+		if(ServiceConstants.DEFAULT_SORT_BY_PARAM.equals(sort)) {
+			// The default is to not sort
+			entities = dao.getInRange(offset - 1, offset + limit - 1);
+		}
+		else {
+			if(primaryFields.contains(sort)) {
+				entities = dao.getInRangeSortedByPrimaryField(offset - 1, offset + limit - 1, sort, ascending);
+			}
+			else {
+				throw new IllegalArgumentException("Field '" + sort + "' is not sortable");
+			}
+		}
 		Integer totalNumberOfEntities = dao.getCount();
 
 		return new PaginatedResults<T>(request.getServletPath()
 				+ UrlHelpers.getUrlForModel(theModelClass), entities,
-				totalNumberOfEntities, offset, limit);
+				totalNumberOfEntities, offset, limit, sort, ascending);
 	}
 
 	/*

@@ -41,6 +41,7 @@ public class EntityControllerImp<T> implements AbstractEntityController<T> {
 	 * javax.servlet.http.HttpServletRequest)
 	 */
 	public PaginatedResults<T> getEntities(Integer offset, Integer limit,
+			String sort, Boolean ascending,
 			HttpServletRequest request) {
 
 		ServiceConstants.validatePaginationParams(offset, limit);
@@ -48,7 +49,7 @@ public class EntityControllerImp<T> implements AbstractEntityController<T> {
 		Integer totalNumberOfEntities = entityRepository.getCount();
 		return new PaginatedResults<T>(request.getServletPath()
 				+ UrlHelpers.getUrlForModel(theModelClass), entities,
-				totalNumberOfEntities, offset, limit);
+				totalNumberOfEntities, offset, limit, sort, ascending);
 	}
 
 	/*

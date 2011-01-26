@@ -197,23 +197,34 @@ public class Helpers {
 	 * @param requestUrl
 	 * @param offset
 	 * @param limit
+	 * @param sort 
+	 * @param ascending 
 	 * @return the response Json entity
 	 * @throws Exception
 	 */
 	public JSONObject testGetJsonEntities(String requestUrl, Integer offset,
-			Integer limit) throws Exception {
+			Integer limit, String sort, Boolean ascending) throws Exception {
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
-		if (null != offset)
+		if (null != offset) {
 			request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM,
 					offset.toString());
-		if (null != limit)
+		}
+		if (null != limit) {
 			request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, limit
 					.toString());
+		}
+		if (null != sort) {
+			request.setParameter(ServiceConstants.SORT_BY_PARAM, sort);
+			if (null != ascending) {
+				request.setParameter(ServiceConstants.ASCENDING_PARAM,
+						ascending.toString());
+			}
+		}
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.OK.value(), response.getStatus());
@@ -223,7 +234,7 @@ public class Helpers {
 		assertTrue(results.has("totalNumberOfResults"));
 		assertTrue(results.has("results"));
 		assertTrue(results.has("paging"));
-		
+
 		assertExpectedEntitiesProperties(results.getJSONArray("results"));
 
 		return results;
@@ -334,24 +345,35 @@ public class Helpers {
 	 * @param requestUrl
 	 * @param offset
 	 * @param limit
+	 * @param sort 
+	 * @param ascending 
 	 * @param status
 	 * @return the response Json entity
 	 * @throws Exception
 	 */
 	public JSONObject testGetJsonEntitiesShouldFail(String requestUrl,
-			Integer offset, Integer limit, HttpStatus status) throws Exception {
+			Integer offset, Integer limit, String sort, Boolean ascending, HttpStatus status) throws Exception {
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
-		if (null != offset)
+		if (null != offset) {
 			request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM,
 					offset.toString());
-		if (null != limit)
+		}
+		if (null != limit) {
 			request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, limit
 					.toString());
+		}
+		if (null != sort) {
+			request.setParameter(ServiceConstants.SORT_BY_PARAM, sort);
+			if (null != ascending) {
+				request.setParameter(ServiceConstants.ASCENDING_PARAM,
+						ascending.toString());
+			}
+		}
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertFalse(HttpStatus.OK.equals(response.getStatus()));
@@ -388,22 +410,22 @@ public class Helpers {
 
 		assertEquals(0, symmetricDiff.size());
 	}
-	
-	private void assertExpectedEntitiesProperties(JSONArray results) throws Exception {
-		for(int i = 0; i < results.length(); i++) {
+
+	private void assertExpectedEntitiesProperties(JSONArray results)
+			throws Exception {
+		for (int i = 0; i < results.length(); i++) {
 			JSONObject entity = results.getJSONObject(i);
 			assertExpectedEntityProperties(entity);
 		}
 	}
-	
+
 	private void assertExpectedEntityProperties(JSONObject results)
 			throws Exception {
-		
+
 		// Check default properties
 		assertTrue(results.has("id"));
 		assertTrue(results.has("uri"));
 		assertTrue(results.has("etag"));
 	}
-
 
 }
