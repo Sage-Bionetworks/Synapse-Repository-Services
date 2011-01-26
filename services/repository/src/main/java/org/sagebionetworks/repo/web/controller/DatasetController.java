@@ -81,11 +81,21 @@ public class DatasetController extends BaseController implements
 	@RequestMapping(value = "", method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Dataset> getEntities(
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, 
+					required = false, 
+					defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, 
+					required = false, 
+					defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, 
+					required = false, 
+					defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
+			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, 
+					required = false, 
+					defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending,
 			HttpServletRequest request) throws DatastoreException {
 		
-		PaginatedResults<Dataset> results = entityController.getEntities(offset, limit, request);
+		PaginatedResults<Dataset> results = entityController.getEntities(offset, limit, sort, ascending, request);
 		
 		for(Dataset dataset : results.getResults()) {
 			addServiceSpecificMetadata(dataset, request);

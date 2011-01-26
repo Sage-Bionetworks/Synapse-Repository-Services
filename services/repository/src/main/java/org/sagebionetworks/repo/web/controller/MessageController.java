@@ -64,15 +64,24 @@ public class MessageController extends BaseController implements
 	@RequestMapping(value = "", method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Message> getEntities(
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			HttpServletRequest request) {
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, 
+					required = false, 
+					defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, 
+					required = false, 
+					defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, 
+					required = false, 
+					defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
+			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, 
+					required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending,
+					HttpServletRequest request) {
 		ServiceConstants.validatePaginationParams(offset, limit);
 		List<Message> messages = messageRepository.getRange(offset, limit);
 		Integer totalNumberOfMessages = messageRepository.getCount();
 		return new PaginatedResults<Message>(request.getServletPath()
 				+ UrlHelpers.MESSAGE, messages, totalNumberOfMessages, offset,
-				limit);
+				limit, sort, ascending);
 	}
 
 	/**

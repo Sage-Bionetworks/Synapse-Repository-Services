@@ -62,11 +62,22 @@ public class PaginatedResults<T> implements Serializable {
 	 *            the 1-based offset for the initial result in the list
 	 * @param limit
 	 *            the upper limit on the length of results being returned
+	 * @param ascending
+	 *            whether or not the sort direction is ascending
+	 * @param sort
+	 *            the field upon which to sort
 	 */
 	public PaginatedResults(String urlPath, List<T> results,
-			int totalNumberOfResults, Integer offset, Integer limit) {
+			int totalNumberOfResults, Integer offset, Integer limit,
+			String sort, Boolean ascending) {
 		this.results = results;
 		this.totalNumberOfResults = totalNumberOfResults;
+
+		String sortUrlSuffix = (ServiceConstants.DEFAULT_SORT_BY_PARAM
+				.equals(sort)) 
+				? "" // The default is to not sort
+				: "&" + ServiceConstants.SORT_BY_PARAM + "=" + sort + "&"
+						+ ServiceConstants.ASCENDING_PARAM + "=" + ascending;
 
 		int previousOffset = ((offset - limit) > 0) ? offset - limit
 				: ServiceConstants.DEFAULT_PAGINATION_OFFSET;
@@ -82,14 +93,16 @@ public class PaginatedResults<T> implements Serializable {
 			paging.put(PREVIOUS_PAGE_FIELD, urlPath + "?"
 					+ ServiceConstants.PAGINATION_OFFSET_PARAM + "="
 					+ previousOffset + "&"
-					+ ServiceConstants.PAGINATION_LIMIT_PARAM + "=" + limit);
+					+ ServiceConstants.PAGINATION_LIMIT_PARAM + "=" + limit
+					+ sortUrlSuffix);
 		}
 		// Include a next page if we are not on the last page
 		if (nextOffset < totalNumberOfResults) {
 			paging.put(NEXT_PAGE_FIELD, urlPath + "?"
 					+ ServiceConstants.PAGINATION_OFFSET_PARAM + "="
 					+ nextOffset + "&"
-					+ ServiceConstants.PAGINATION_LIMIT_PARAM + "=" + limit);
+					+ ServiceConstants.PAGINATION_LIMIT_PARAM + "=" + limit
+					+ sortUrlSuffix);
 		}
 	}
 

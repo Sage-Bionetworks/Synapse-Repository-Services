@@ -7,7 +7,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.logging.Logger;
 
 import org.joda.time.DateTime;
@@ -15,7 +18,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.view.PaginatedResults;
@@ -47,6 +49,15 @@ public class DatasetControllerTest {
 			.getLogger(DatasetControllerTest.class.getName());
 	private Helpers helper = new Helpers();
 	private DispatcherServlet servlet;
+
+	private String sampleDatasetNames[] = { "DeLiver", "MouseCross",
+			"Harvard Brain", "Glioblastoma TCGA",
+			"Mouse Model of Diet-Induced Atherosclerosis",
+			"TCGA Curation Package",
+			"Mouse Model of Sexually Dimorphic Atherosclerotic Traits",
+			"Hepatocellular Carcinoma HongKong", "Human Liver Cohort",
+			"METABRIC Breast Cancer", "Harvard Brain Tissue Resource Center",
+			"Pediatric AML TARGET", "Flint HS Mice", };
 
 	/**
 	 * @throws java.lang.Exception
@@ -161,7 +172,8 @@ public class DatasetControllerTest {
 
 		// Add some numeric annotations
 		// 
-		// Note that we could send these numbers as floats but when the serialized version
+		// Note that we could send these numbers as floats but when the
+		// serialized version
 		// comes back from the service, Jackson will always treat them as double
 		// See http://wiki.fasterxml.com/JacksonInFiveMinutes
 		JSONObject floatAnnotations = annotations
@@ -201,7 +213,7 @@ public class DatasetControllerTest {
 		DateTime isoDates[] = { aWhileBack };
 		dateAnnotations.put("isoDates", isoDates);
 		Long isoDatesAsLong[] = { aWhileBack.getMillis() }; // for the assertion
-															// below
+		// below
 
 		JSONObject results = helper.testUpdateJsonEntity(annotations);
 
@@ -261,15 +273,17 @@ public class DatasetControllerTest {
 	 */
 	@Test
 	public void testGetDatasets() throws Exception {
-		int totalNumDatasets = 12;
+		int totalNumDatasets = sampleDatasetNames.length;
+
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
-			helper.testCreateJsonEntity("/dataset", "{\"name\":\"DeLiver" + i
-					+ "\"}");
+			helper.testCreateJsonEntity("/dataset", "{\"name\":\""
+					+ sampleDatasetNames[i] + "\"}");
 		}
 
-		JSONObject results = helper.testGetJsonEntities("/dataset", null, null);
-		assertEquals(12, results.getInt("totalNumberOfResults"));
+		JSONObject results = helper.testGetJsonEntities("/dataset", null, null,
+				null, null);
+		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
 		assertEquals(10, results.getJSONArray("results").length());
 		assertExpectedDatasetsProperties(results.getJSONArray("results"));
 		assertFalse(results.getJSONObject("paging").has(
@@ -280,14 +294,56 @@ public class DatasetControllerTest {
 		// TODO parse the query params on the url
 		// results =
 		// helper.testGetJsonEntities(results.getJSONObject("paging").getString(PaginatedResults.NEXT_PAGE_FIELD));
-		results = helper.testGetJsonEntities("/dataset", 11, 10);
-		assertEquals(12, results.getInt("totalNumberOfResults"));
-		assertEquals(2, results.getJSONArray("results").length());
+		results = helper.testGetJsonEntities("/dataset", 11, 10, null, null);
+		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
+		// TODO these tests assume there are less than 20 datasets total, make
+		// this code
+		// adapt to changes in the total number
+		assertEquals(totalNumDatasets - 10, results.getJSONArray("results")
+				.length());
 		assertExpectedDatasetsProperties(results.getJSONArray("results"));
 		assertEquals("/dataset?offset=1&limit=10", results.getJSONObject(
 				"paging").getString(PaginatedResults.PREVIOUS_PAGE_FIELD));
 		assertFalse(results.getJSONObject("paging").has(
 				PaginatedResults.NEXT_PAGE_FIELD));
+
+		results = helper.testGetJsonEntities("/dataset", null, null, "name",
+				true);
+		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
+		assertEquals(10, results.getJSONArray("results").length());
+		assertExpectedDatasetsProperties(results.getJSONArray("results"));
+		assertFalse(results.getJSONObject("paging").has(
+				PaginatedResults.PREVIOUS_PAGE_FIELD));
+		assertEquals("/dataset?offset=11&limit=10&sort=name&ascending=true",
+				results.getJSONObject("paging").getString(
+						PaginatedResults.NEXT_PAGE_FIELD));
+		List<String> sortedDatasetNames = Arrays.asList(sampleDatasetNames);
+		Collections.sort(sortedDatasetNames);
+		for (int i = 0; i < 10; i++) {
+			assertEquals(sortedDatasetNames.get(i), results.getJSONArray(
+					"results").getJSONObject(i).getString("name"));
+		}
+
+		results = helper.testGetJsonEntities("/dataset", null, null, "name",
+				false);
+		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
+		assertEquals(10, results.getJSONArray("results").length());
+		assertExpectedDatasetsProperties(results.getJSONArray("results"));
+		assertFalse(results.getJSONObject("paging").has(
+				PaginatedResults.PREVIOUS_PAGE_FIELD));
+		assertEquals("/dataset?offset=11&limit=10&sort=name&ascending=false",
+				results.getJSONObject("paging").getString(
+						PaginatedResults.NEXT_PAGE_FIELD));
+		for (int i = 0; i < 10; i++) {
+			assertEquals(sortedDatasetNames.get(sortedDatasetNames.size() - 1
+					- i), results.getJSONArray("results").getJSONObject(i)
+					.getString("name"));
+		}
+
+		// TODO this test is too long, break it up and probably toss it into 
+		// another test suite 
+		// TODO sort on a date property, sort on a numeric property
+		// TODO sort on an annotation property
 	}
 
 	/**
@@ -404,7 +460,7 @@ public class DatasetControllerTest {
 		// Create a dataset
 		JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
 				"{\"name\":\"MouseCross\"}");
-		
+
 		// Get that dataset
 		JSONObject dataset = helper.testGetJsonEntity(newDataset
 				.getString("uri"));
@@ -416,11 +472,10 @@ public class DatasetControllerTest {
 		JSONObject error = helper.testUpdateJsonEntityShouldFail(dataset,
 				HttpStatus.BAD_REQUEST);
 
-		String reason = error.getString("reason");
 		assertEquals("'name' is a required property for Dataset", error
 				.getString("reason"));
 	}
-	
+
 	/**
 	 * Test method for
 	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#updateEntity}
@@ -463,8 +518,8 @@ public class DatasetControllerTest {
 	@Test
 	public void testGetDatasetsBadLimit() throws Exception {
 
-		JSONObject error = helper.testGetJsonEntitiesShouldFail("/dataset",
-				1, 0, HttpStatus.BAD_REQUEST);
+		JSONObject error = helper.testGetJsonEntitiesShouldFail("/dataset", 1,
+				0, null, null, HttpStatus.BAD_REQUEST);
 		assertEquals("pagination limit must be 1 or greater", error
 				.getString("reason"));
 	}
@@ -478,9 +533,24 @@ public class DatasetControllerTest {
 	 */
 	@Test
 	public void testGetDatasetsBadOffset() throws Exception {
-		JSONObject error = helper.testGetJsonEntitiesShouldFail("/dataset",
-				-5, 10, HttpStatus.BAD_REQUEST);
+		JSONObject error = helper.testGetJsonEntitiesShouldFail("/dataset", -5,
+				10, null, null, HttpStatus.BAD_REQUEST);
 		assertEquals("pagination offset must be 1 or greater", error
+				.getString("reason"));
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#getEntities}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetDatasetsBadSortField() throws Exception {
+		JSONObject error = helper.testGetJsonEntitiesShouldFail("/dataset", null,
+				null, "foo", true, HttpStatus.BAD_REQUEST);
+		assertEquals("Field 'foo' is not sortable", error
 				.getString("reason"));
 	}
 
@@ -579,13 +649,14 @@ public class DatasetControllerTest {
 				error.getString("reason"));
 	}
 
-	private void assertExpectedDatasetsProperties(JSONArray results) throws Exception {
-		for(int i = 0; i < results.length(); i++) {
+	private void assertExpectedDatasetsProperties(JSONArray results)
+			throws Exception {
+		for (int i = 0; i < results.length(); i++) {
 			JSONObject dataset = results.getJSONObject(i);
 			assertExpectedDatasetProperties(dataset);
 		}
 	}
-	
+
 	private void assertExpectedDatasetProperties(JSONObject results)
 			throws Exception {
 		// Check required properties
