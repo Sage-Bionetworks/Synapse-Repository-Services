@@ -558,15 +558,50 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 		};
 	}
 
-	public void addLayer(String datasetId, LayerMetadata layer) {
+	/**
+	 * 
+	 * @param datasetId
+	 *            the ID of the dataset to which the layer is to be added
+	 * @param layer the layer to add, including the 'shallow' values
+	 * @return the id of the created layer
+	 */
+	public String createLayer(String datasetId, LayerMetadata layer) throws DatastoreException, InvalidModelException {
 		throw new RuntimeException("Not yet implemented");
 	}
 
-	public void removeLayer(String datasetId, LayerMetadata layer) {
+	/**
+	 * 
+	 * @param datasetId
+	 *            the ID of the dataset of interest
+	 * @return IDs of all the layers in the dataset
+	 */
+	public Collection<String> getLayers(String datasetId) throws DatastoreException {
+		throw new RuntimeException("Not yet implemented");
+	}
+	
+	/**
+	 * 
+	 * @param id id for the layer of interest
+	 * @return the DTO for the layer
+	 */
+	public LayerMetadata getLayer(String id) {
+		throw new RuntimeException("Not yet implemented");
+	} 
+	
+	/**
+	 * 
+	 * @param layer the layer to update (id field required)
+	 */
+	public void updateLayer(LayerMetadata layer) throws DatastoreException, InvalidModelException {
 		throw new RuntimeException("Not yet implemented");
 	}
 
-	public Collection<String> getLayers(String datasetId) {
+	
+	/**
+	 * 
+	 * @param layer the layer to remove (id field required)
+	 */
+	public void removeLayer(LayerMetadata layer) throws DatastoreException {
 		throw new RuntimeException("Not yet implemented");
 	}
 
