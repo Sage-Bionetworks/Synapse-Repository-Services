@@ -3,6 +3,8 @@
  */
 package org.sagebionetworks.repo.model;
 
+import java.util.Date;
+
 /**
  * LayerMetadata holds the few shallow DataLayer properties that should be
  * returned with a Dataset DTO
@@ -10,11 +12,13 @@ package org.sagebionetworks.repo.model;
  * @author deflaux
  * 
  */
-public class LayerMetadata {
+public class LayerMetadata implements Base {
 
 	private String id;
 	private String type;
 	private String uri;
+	private String etag;
+	private Date creationDate;
 
 	/**
 	 * 
@@ -83,6 +87,22 @@ public class LayerMetadata {
 	 */
 	public void setUri(String uri) {
 		this.uri = uri;
+	}
+
+	public String getEtag() {
+		return etag;
+	}
+
+	public void setEtag(String etag) {
+		this.etag = etag;
+	}
+
+	public Date getCreationDate() {
+		return creationDate;
+	}
+
+	public void setCreationDate(Date creationDate) {
+		this.creationDate = creationDate;
 	}
 
 }

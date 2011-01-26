@@ -48,7 +48,6 @@ public class DatasetDAOTest {
 	}
 
 	private DAOFactory fac;
-	private String id;
 
 	@Before
 	public void setUp() throws Exception {
@@ -58,24 +57,126 @@ public class DatasetDAOTest {
 
 	@After
 	public void tearDown() throws Exception {
-		if (fac != null && id != null) {
-			if (false)
-				fac.getDatasetDAO().delete(id);
-			id = null;
-		}
 		helper.tearDown();
+	}
+	
+	// create a dataset and populate the shallow properties
+	private static Dataset createShallow() {
+		Dataset d = new Dataset();
+		Date now = new Date();
+		d.setName("dataset name");
+		d.setCreator("Eric Schadt");
+		d.setDescription("This is a genome-wide cancer study.");
+		d.setCreationDate(now);
+		d.setReleaseDate(now);
+		d.setVersion("1.0");
+		d.setStatus("in progress");
+		return d;
 	}
 
 	@Test
 	public void testCreateandRetrieve() throws Exception {
+		Dataset d = createShallow();
+		
+		DatasetDAO dao = fac.getDatasetDAO();
+		String id = dao.create(d);
+		Assert.assertNotNull(id);
+		dao.getStringAnnotationDAO().addAnnotation(id, "Tissue Type", "liver");
+		// repeated annotations are to be ignored...
+		dao.getStringAnnotationDAO().addAnnotation(id, "Tissue Type", "liver");
+		// ... but multiple values for the same attribute are OK
+		dao.getStringAnnotationDAO().addAnnotation(id, "Tissue Type", "brain");
+		dao.getFloatAnnotationDAO().addAnnotation(id, "weight", 100F);
+		Date now = new Date();
+		dao.getDateAnnotationDAO().addAnnotation(id, "now", now);
+
+		// test retrieving by ID
+		Dataset d2 = dao.get(id);
+		Assert.assertEquals(d.getName(), d2.getName());
+		// test that annotations are also retrieved
+		Annotations annots = dao.getAnnotations(id);
+		Collection<String> tissueType = annots.getStringAnnotations().get(
+				"Tissue Type");
+		Assert.assertEquals(2, tissueType.size());
+		Assert.assertEquals("liver", tissueType.iterator().next());
+		Collection<Float> weightType = annots.getFloatAnnotations().get("weight");
+		Assert.assertEquals(1, weightType.size());
+		Assert.assertEquals(100F, weightType.iterator().next());
+		// test that version is retrieved
+		Assert.assertEquals(d2.getVersion(), "1.0");
+
+	}
+	
+	
+	@Test
+	public void testCreateAndUpdate() throws Exception {
+	}
+	
+	@Test
+	public void testCreateAndDelete() throws Exception {
+	}
+	
+	@Test
+	public void testGetCount() throws Exception {
+	}
+	
+	@Test
+	public void testGetInRange() throws Exception {
+	}
+	
+	
+	@Test
+	public void testGetPrimaryFields() throws Exception {
+	}
+	
+	@Test
+	public void testGetInRangeSortedByPrimaryField() throws Exception {
+		DatasetDAO dao = fac.getDatasetDAO();
+		Dataset d = null;
+		d = createShallow(); d.setName("d1"); dao.create(d);
+		d = createShallow(); d.setName("d4"); dao.create(d);
+		d = createShallow(); d.setName("d3"); dao.create(d);
+		d = createShallow(); d.setName("d3"); dao.create(d);
+		List<Dataset> ans;
+		ans = dao.getInRangeSortedByPrimaryField(0,2, "name", /*ascending*/true);
+		Assert.assertEquals(2, ans.size());
+		Assert.assertEquals("d1", ans.get(0).getName());
+		Assert.assertEquals("d3", ans.get(1).getName());
+		ans = dao.getInRangeSortedByPrimaryField(2,4, "name", /*ascending*/true);
+		Assert.assertEquals(2, ans.size());
+		Assert.assertEquals("d3", ans.get(0).getName());
+		Assert.assertEquals("d4", ans.get(1).getName());
+		ans = dao.getInRangeSortedByPrimaryField(0,3, "name", /*ascending*/false);
+		Assert.assertEquals(3, ans.size());
+		Assert.assertEquals("d4", ans.get(0).getName());
+		Assert.assertEquals("d3", ans.get(1).getName());
+		Assert.assertEquals("d3", ans.get(2).getName());
+		
+		// out of range -> no error, just no result
+		ans = dao.getInRangeSortedByPrimaryField(10,20, "name", /*ascending*/false);
+		Assert.assertEquals(0, ans.size());
+	}
+	
+	
+	@Test
+	public void testgetInRangeHavingByPrimaryField() throws Exception {
+	}
+	
+	
+	@Test
+	public void testRetrieveByAnnot() throws Exception {
+		// test querying after revision -- should only get the latest
+
+
 		Dataset d = new Dataset();
 		Date now = new Date();
 		d.setName("dataset name");
 		d.setCreationDate(now);
 		d.setVersion("1.0");
 		d.setStatus("in progress");
+
 		DatasetDAO dao = fac.getDatasetDAO();
-		id = dao.create(d);
+		String id = dao.create(d);
 		Assert.assertNotNull(id);
 		dao.getStringAnnotationDAO().addAnnotation(id, "Tissue Type", "liver");
 		dao.getFloatAnnotationDAO().addAnnotation(id, "weight", 100F);
@@ -130,94 +231,35 @@ public class DatasetDAOTest {
 		Assert.assertEquals(1, c.size());
 		Assert.assertEquals(d.getName(), c.iterator().next().getName());
 		
-		// try adding a new annotation for the same attribute
-		dao.getStringAnnotationDAO().addAnnotation(id, "Tissue Type", "brain");
-		
-		// try adding an annotation which was previously added
-		dao.getStringAnnotationDAO().addAnnotation(id, "Tissue Type", "liver");
 
-		// // create a new project
-		// GAEJDODataset dataset = new GAEJDODataset();
-		// dataset.setName("dataset name");
-		// dataset.setDescription("description");
-		// String overview =
-		// "This dataset is a megacross, and includes genotyoping data.";
-		// dataset.setOverview(new Text(overview));
-		// Date release = new Date();
-		// dataset.setReleaseDate(release);
-		// dataset.setStatus("IN_PROGRESS");
-		// List<String> contributors = Arrays.asList(new String[]{"Larry",
-		// "Curly", "Moe"});
-		// dataset.setContributors(contributors);
-		// dataset.setDownloadable(true);
-		//
-		// Collection<Key> layers = new HashSet<Key>();
-		// dataset.setLayers(layers);
-		// GAEJDOInputDataLayer idl = new GAEJDOInputDataLayer();
-		// idl.setType(GAEJDOInputDataLayer.DataType.EXPRESSION);
-		// idl.setRevision(new GAEJDORevision<GAEJDODatasetLayer>());
-		//
-		// InputDataLayerDAO dla = fac.getInputDataLayerAccessor();
-		// dla.makePersistent(idl);
-		// layers.add(idl.getId());
-		//
-		// GAEJDORevision<GAEJDODataset> r = new
-		// GAEJDORevision<GAEJDODataset>();
-		// Date revDate = new Date();
-		// r.setRevisionDate(revDate);
-		// r.setVersion(new Version("1.0.0"));
-		// dataset.setRevision(r);
-		//
-		// GAEJDOAnnotations annots = new GAEJDOAnnotations();
-		// dataset.setAnnotations(annots);
-		// GAEJDOStringAnnotation stringAnnot = new
-		// GAEJDOStringAnnotation("testKey", "testValue");
-		// annots.getStringAnnotations().add(stringAnnot);
-		//
-		// // persist it
-		// DatasetDAO da = fac.getDatasetAccessor();
-		// da.makePersistent(dataset);
-		// this.key=dataset.getId();
-		//
-		// // persisting creates a Key, which we can grab
-		// Key id = dataset.getId();
-		// Assert.assertNotNull(id);
-		//
-		// // now retrieve the object by its key
-		// GAEJDODataset d2 = da.getDataset(id);
-		// Assert.assertNotNull(d2);
-		//
-		// // check that all the fields were persisted
-		// Assert.assertEquals("dataset name", d2.getName());
-		// Assert.assertEquals("description", d2.getDescription());
-		// Assert.assertEquals(overview, d2.getOverview().getValue());
-		// Assert.assertEquals(release, d2.getReleaseDate());
-		// Assert.assertEquals("IN_PROGRESS", d2.getStatus());
-		// Assert.assertEquals(contributors, d2.getContributors());
-		// Assert.assertEquals(true, d2.isDownloadable());
-		// GAEJDORevision<GAEJDODataset> r2 = d2.getRevision();
-		// Assert.assertNotNull(r2);
-		// // Assert.assertEquals(d2, r2.getOwner());
-		// Assert.assertEquals(revDate, r2.getRevisionDate());
-		// Assert.assertEquals(new Version("1.0.0"), r2.getVersion());
-		//
-		// Collection<Key> l2 = d2.getLayers();
-		// Assert.assertEquals(1, l2.size());
-		// Key dlKey = l2.iterator().next();
-		// GAEJDOInputDataLayer idl2 = dla.getDataLayer(dlKey);
-		// // Assert.assertTrue((idl2 instanceof InputDataLayer));
-		// GAEJDOInputDataLayer.DataType type = idl2.getType();
-		// Assert.assertEquals(GAEJDOInputDataLayer.DataType.EXPRESSION, type);
-		//
-		// GAEJDOAnnotations annots2 = d2.getAnnotations();
-		// Assert.assertNotNull(annots2);
-		// Collection<GAEJDOStringAnnotation> stringAnnots =
-		// annots2.getStringAnnotations();
-		// Assert.assertNotNull(stringAnnots);
-		// Assert.assertEquals(1, stringAnnots.size());
-		// GAEJDOStringAnnotation stringAnnot2 = stringAnnots.iterator().next();
-		// Assert.assertEquals("testKey", stringAnnot2.getAttribute());
-		// Assert.assertEquals("testValue", stringAnnot2.getValue());
+
 	}
+	
+	@Test
+	public void testGetAllAnnotations() throws Exception {
+ 
+	}
+	
+	
+	@Test
+	public void testAnnotationDAO() throws Exception {
+ 
+	}
+	
+	
+	@Test
+	public void testCreateRevision() throws Exception {
+ 
+	}
+	
+	@Test
+	public void testGetLatest() throws Exception {
+ 
+	}
+	
+	@Test
+	public void testRetrieveByRevision() throws Exception {
+	}
+	
 
 }

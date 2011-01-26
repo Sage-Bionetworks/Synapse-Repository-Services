@@ -558,11 +558,11 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 		};
 	}
 
-	public void addLayer(String datasetId, String layerId) {
+	public void addLayer(String datasetId, LayerMetadata layer) {
 		throw new RuntimeException("Not yet implemented");
 	}
 
-	public void removeLayer(String datasetId, String layerId) {
+	public void removeLayer(String datasetId, LayerMetadata layer) {
 		throw new RuntimeException("Not yet implemented");
 	}
 

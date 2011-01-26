@@ -15,19 +15,17 @@ public interface DatasetDAO extends BaseDAO<Dataset>, AnnotatableDAO<Dataset>,
 	 * 
 	 * @param datasetId
 	 *            the ID of the dataset to which the layer is to be added
-	 * @param layerId
-	 *            ID of the layer to add
+	 * @param layer the layer to add
 	 */
-	public void addLayer(String datasetId, String layerId);
+	public void addLayer(String datasetId, LayerMetadata layer);
 
 	/**
 	 * 
 	 * @param datasetId
 	 *            the ID of the dataset from which the layer is to be removed
-	 * @param layerId
-	 *            ID of the layer to remove
+	 * @param layer the layer to remove
 	 */
-	public void removeLayer(String datasetId, String layerId);
+	public void removeLayer(String datasetId, LayerMetadata layer);
 
 	/**
 	 * 
