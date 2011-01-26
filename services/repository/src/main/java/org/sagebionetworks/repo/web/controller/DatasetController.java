@@ -149,7 +149,7 @@ public class DatasetController extends BaseController implements
 			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
 			@RequestBody Dataset updatedEntity, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
-			DatastoreException {
+			DatastoreException, InvalidModelException {
 
 		Dataset dataset = entityController.updateEntity(id, etag,
 				updatedEntity, request);

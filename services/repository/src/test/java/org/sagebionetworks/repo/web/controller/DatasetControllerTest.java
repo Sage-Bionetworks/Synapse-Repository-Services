@@ -356,7 +356,7 @@ public class DatasetControllerTest {
 	@Test
 	public void testInvalidModelCreateDataset() throws Exception {
 
-		JSONObject results = helper
+		JSONObject error = helper
 				.testCreateJsonEntityShouldFail(
 						"/dataset",
 						"{\"name\": \"DeLiver\", \"BOGUS\":\"this does not match our model object\"}",
@@ -370,7 +370,7 @@ public class DatasetControllerTest {
 		// org.springframework.mock.web.DelegatingServletInputStream@2501e081;
 		// line: 1, column: 19]"}
 
-		String reason = results.getString("reason");
+		String reason = error.getString("reason");
 		assertTrue(reason.matches("(?s).*\"BOGUS\".*"));
 		assertTrue(reason.matches("(?s).*not marked as ignorable.*"));
 	}
@@ -385,13 +385,42 @@ public class DatasetControllerTest {
 	@Test
 	public void testMissingRequiredFieldCreateDataset() throws Exception {
 
-		JSONObject results = helper.testCreateJsonEntityShouldFail("/dataset",
+		JSONObject error = helper.testCreateJsonEntityShouldFail("/dataset",
 				"{\"version\": \"1.0.0\"}", HttpStatus.BAD_REQUEST);
 
-		assertEquals("'name' is a required property for Dataset", results
+		assertEquals("'name' is a required property for Dataset", error
 				.getString("reason"));
 	}
 
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#updateEntity}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testMissingRequiredFieldUpdateDataset() throws Exception {
+		// Create a dataset
+		JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
+				"{\"name\":\"MouseCross\"}");
+		
+		// Get that dataset
+		JSONObject dataset = helper.testGetJsonEntity(newDataset
+				.getString("uri"));
+		assertEquals(newDataset.getString("id"), dataset.getString("id"));
+		assertEquals("MouseCross", dataset.getString("name"));
+
+		// Modify that dataset to make it invalid
+		dataset.remove("name");
+		JSONObject error = helper.testUpdateJsonEntityShouldFail(dataset,
+				HttpStatus.BAD_REQUEST);
+
+		String reason = error.getString("reason");
+		assertEquals("'name' is a required property for Dataset", error
+				.getString("reason"));
+	}
+	
 	/**
 	 * Test method for
 	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#updateEntity}
@@ -434,9 +463,9 @@ public class DatasetControllerTest {
 	@Test
 	public void testGetDatasetsBadLimit() throws Exception {
 
-		JSONObject results = helper.testGetJsonEntitiesShouldFail("/dataset",
+		JSONObject error = helper.testGetJsonEntitiesShouldFail("/dataset",
 				1, 0, HttpStatus.BAD_REQUEST);
-		assertEquals("pagination limit must be 1 or greater", results
+		assertEquals("pagination limit must be 1 or greater", error
 				.getString("reason"));
 	}
 
@@ -449,9 +478,9 @@ public class DatasetControllerTest {
 	 */
 	@Test
 	public void testGetDatasetsBadOffset() throws Exception {
-		JSONObject results = helper.testGetJsonEntitiesShouldFail("/dataset",
+		JSONObject error = helper.testGetJsonEntitiesShouldFail("/dataset",
 				-5, 10, HttpStatus.BAD_REQUEST);
-		assertEquals("pagination offset must be 1 or greater", results
+		assertEquals("pagination offset must be 1 or greater", error
 				.getString("reason"));
 	}
 
@@ -487,7 +516,6 @@ public class DatasetControllerTest {
 	 * 
 	 * @throws Exception
 	 */
-	@Ignore
 	@Test
 	public void testGetNonExistentDatasetAnnotations() throws Exception {
 

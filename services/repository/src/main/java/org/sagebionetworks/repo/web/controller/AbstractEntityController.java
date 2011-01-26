@@ -114,6 +114,7 @@ public interface AbstractEntityController<T> {
 	 * @throws NotFoundException
 	 * @throws ConflictingUpdateException
 	 * @throws DatastoreException
+	 * @throws InvalidModelException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/{id}", method = RequestMethod.PUT)
@@ -122,7 +123,7 @@ public interface AbstractEntityController<T> {
 			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
 			@RequestBody T updatedEntity, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
-			DatastoreException;
+			DatastoreException, InvalidModelException;
 
 	/**
 	 * Delete a specific entity

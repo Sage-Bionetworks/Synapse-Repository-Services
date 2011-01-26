@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.gaejdo.GAEJDOAnnotatable;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.appengine.api.datastore.Text;
 
@@ -22,8 +23,9 @@ public interface AnnotatableDAO<S extends Base> {
 	/**
 	 * @param id
 	 * @return annotations for the given object, regardless of type
+	 * @throws NotFoundException 
 	 */
-	public Annotations getAnnotations(String id) throws DatastoreException;
+	public Annotations getAnnotations(String id) throws DatastoreException, NotFoundException;
 
 	/**
 	 * @return the DAO which provides the CRUD methods for annotations of a
