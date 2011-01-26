@@ -84,7 +84,14 @@ public class DatasetController extends BaseController implements
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			HttpServletRequest request) throws DatastoreException {
-		return entityController.getEntities(offset, limit, request);
+		
+		PaginatedResults<Dataset> results = entityController.getEntities(offset, limit, request);
+		
+		for(Dataset dataset : results.getResults()) {
+			addServiceSpecificMetadata(dataset, request);
+		}
+		
+		return results;
 	}
 
 	/*

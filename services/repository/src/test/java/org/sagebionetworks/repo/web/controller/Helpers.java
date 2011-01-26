@@ -91,9 +91,7 @@ public class Helpers {
 		JSONObject results = new JSONObject(response.getContentAsString());
 
 		// Check default properties
-		assertTrue(results.has("id"));
-		assertTrue(results.has("uri"));
-		assertTrue(results.has("etag"));
+		assertExpectedEntityProperties(results);
 
 		// Check our response headers
 		String etagHeader = (String) response
@@ -126,9 +124,7 @@ public class Helpers {
 		JSONObject results = new JSONObject(response.getContentAsString());
 
 		// Check default properties
-		assertTrue(results.has("id"));
-		assertTrue(results.has("uri"));
-		assertTrue(results.has("etag"));
+		assertExpectedEntityProperties(results);
 
 		// Check our response headers
 		String etagHeader = (String) response
@@ -162,11 +158,9 @@ public class Helpers {
 		JSONObject results = new JSONObject(response.getContentAsString());
 
 		// Check default properties
-		assertTrue(results.has("id"));
+		assertExpectedEntityProperties(results);
 		assertEquals(jsonEntity.getString("id"), results.getString("id"));
-		assertTrue(results.has("uri"));
 		assertEquals(jsonEntity.getString("uri"), results.getString("uri"));
-		assertTrue(results.has("etag"));
 
 		// Check our response headers
 		String etagHeader = (String) response
@@ -229,6 +223,8 @@ public class Helpers {
 		assertTrue(results.has("totalNumberOfResults"));
 		assertTrue(results.has("results"));
 		assertTrue(results.has("paging"));
+		
+		assertExpectedEntitiesProperties(results.getJSONArray("results"));
 
 		return results;
 	}
@@ -392,5 +388,22 @@ public class Helpers {
 
 		assertEquals(0, symmetricDiff.size());
 	}
+	
+	private void assertExpectedEntitiesProperties(JSONArray results) throws Exception {
+		for(int i = 0; i < results.length(); i++) {
+			JSONObject entity = results.getJSONObject(i);
+			assertExpectedEntityProperties(entity);
+		}
+	}
+	
+	private void assertExpectedEntityProperties(JSONObject results)
+			throws Exception {
+		
+		// Check default properties
+		assertTrue(results.has("id"));
+		assertTrue(results.has("uri"));
+		assertTrue(results.has("etag"));
+	}
+
 
 }
