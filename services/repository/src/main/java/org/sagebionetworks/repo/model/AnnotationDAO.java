@@ -7,16 +7,20 @@ import java.util.Map;
 
 /**
  * This interface defines the CRUD methods for annotations.
+ * 
  * @author bhoff
  * 
- * @param <S> the Data Transfer Object type for the annotatable object
- * @param <A> the annotation value type (String, Float, Date)
+ * @param <S>
+ *            the Data Transfer Object type for the annotatable object
+ * @param <A>
+ *            the annotation value type (String, Float, Date)
  */
 public interface AnnotationDAO<S extends Base, A extends Comparable> {
 
 	/**
 	 * 
-	 * @param id the ID of the annotations owner
+	 * @param id
+	 *            the ID of the annotations owner
 	 * @param attribute
 	 * @param value
 	 * @throws DatastoreException
@@ -26,7 +30,8 @@ public interface AnnotationDAO<S extends Base, A extends Comparable> {
 
 	/**
 	 * 
-	 * @param id the ID of the annotations owner
+	 * @param id
+	 *            the ID of the annotations owner
 	 * @param attribute
 	 * @param value
 	 * @throws DatastoreException
@@ -35,10 +40,13 @@ public interface AnnotationDAO<S extends Base, A extends Comparable> {
 			throws DatastoreException;
 
 	/**
-	 * Note:  Since an object may have multiple values for the same attribute,
+	 * Note: Since an object may have multiple values for the same attribute,
 	 * the values for the returned Map are Collection<A> rather than A.
-	 * @param id the ID of the annotations owner
-	 * @return all the annotations of the type given by A owned by the annotatable object
+	 * 
+	 * @param id
+	 *            the ID of the annotations owner
+	 * @return all the annotations of the type given by A owned by the
+	 *         annotatable object
 	 * @throws DatastoreException
 	 */
 	public Map<String, Collection<A>> getAnnotations(String id)
@@ -52,8 +60,8 @@ public interface AnnotationDAO<S extends Base, A extends Comparable> {
 
 	/**
 	 * 
-	 * Note:  Invalid range returns empty list rather than throwing exception
-	 *
+	 * Note: Invalid range returns empty list rather than throwing exception
+	 * 
 	 * @param start
 	 * @param end
 	 * @param sortByAttr
@@ -66,14 +74,15 @@ public interface AnnotationDAO<S extends Base, A extends Comparable> {
 
 	/**
 	 * 
-	 * Note:  Invalid range returns empty list rather than throwing exception
+	 * Note: Invalid range returns empty list rather than throwing exception
 	 * 
 	 * @param start
 	 * @param end
 	 * @param attribute
 	 * @param value
 	 * @return a subset of results, starting at index 'start' and not going
-	 *         beyond index 'end', having the given value for the given attribute
+	 *         beyond index 'end', having the given value for the given
+	 *         attribute
 	 * @throws DatastoreException
 	 */
 	public List<S> getInRangeHaving(int start, int end, String attribute,

@@ -13,10 +13,22 @@ import org.sagebionetworks.repo.model.Base;
 
 import com.google.appengine.api.datastore.Key;
 
+/**
+ * This extension to GAEJDOAnnotationDAOImpl customizes the JDO queries for retrieval of annotations
+ * when only the *latest* revision of each annotated object is to be retrieved.
+ * 
+ * @author bhoff
+ *
+ * @param <S> the data transfer object type
+ * @param <T> the persistent object type
+ * @param <A> the annotation value type
+ */
 abstract public class GAEJDORevisableAnnotationDAOImpl<S extends Base, T extends GAEJDOAnnotatable & GAEJDOBase & GAEJDORevisable, A extends Comparable<A>>
 		extends GAEJDOAnnotationDAOImpl<S, T, A> {
-
-	// limit search to the latest revision
+	
+	/**
+	 * limit search to the latest revision
+	 */
 	protected List<T> getHavingAnnotation(PersistenceManager pm, String attrib,
 			String collectionName, Class annotationClass, Class valueClass,
 			Object value, int start, int end) {
@@ -49,8 +61,10 @@ abstract public class GAEJDORevisableAnnotationDAOImpl<S extends Base, T extends
 		}
 		return ans;
 	}
-
-	// get all attribute owner objects, but only consider the latest revision
+	
+	/**
+	 * get all attribute owner objects, but only consider the latest revision
+	 */
 	protected Collection<T> getAllOwners(PersistenceManager pm) {
 		Query ownerQuery = pm.newQuery(getOwnerClass());
 		ownerQuery.setFilter("revision==vRevision && vRevision.latest==true");

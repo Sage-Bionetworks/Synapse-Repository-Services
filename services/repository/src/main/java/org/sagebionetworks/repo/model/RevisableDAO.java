@@ -5,9 +5,11 @@ import java.util.Date;
 
 /**
  * This interface defines the DAO methods for all objects of the Revisable type
+ * 
  * @author bhoff
- *
- * @param <T> the data transfer object type
+ * 
+ * @param <T>
+ *            the data transfer object type
  */
 public interface RevisableDAO<T extends Revisable> extends BaseDAO<T> {
 	/**

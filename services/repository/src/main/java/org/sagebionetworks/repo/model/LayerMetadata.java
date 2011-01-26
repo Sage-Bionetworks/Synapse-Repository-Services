@@ -4,8 +4,8 @@
 package org.sagebionetworks.repo.model;
 
 /**
- * LayerMetadata holds the few shallow DataLayer properties 
- * that should be returned with a Dataset DTO
+ * LayerMetadata holds the few shallow DataLayer properties that should be
+ * returned with a Dataset DTO
  * 
  * @author deflaux
  * 
@@ -55,7 +55,8 @@ public class LayerMetadata {
 	}
 
 	/**
-	 * @param id the id to set
+	 * @param id
+	 *            the id to set
 	 */
 	public void setId(String id) {
 		this.id = id;

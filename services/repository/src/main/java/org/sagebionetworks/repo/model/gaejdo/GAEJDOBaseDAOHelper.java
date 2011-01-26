@@ -35,8 +35,18 @@ import com.google.appengine.api.datastore.KeyFactory;
  */
 abstract public class GAEJDOBaseDAOHelper<S, T extends GAEJDOBase> {
 
+	/**
+	 * Create a new instance of the data transfer object.  
+	 * Introducing this abstract method helps us avoid making assumptions about constructors.
+	 * @return the new object
+	 */
 	abstract public S newDTO();
 
+	/**
+	 * Create a new instance of the persistable object.
+	 * Introducing this abstract method helps us avoid making assumptions about constructors.
+	 * @return the new object
+	 */
 	abstract public T newJDO();
 
 	/**
@@ -91,8 +101,8 @@ abstract public class GAEJDOBaseDAOHelper<S, T extends GAEJDOBase> {
 
 	/**
 	 * 
-	 * @param id
-	 * @return
+	 * @param id id of the object to be retrieved
+	 * @return the DTO version of the retrieved object
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
@@ -113,6 +123,12 @@ abstract public class GAEJDOBaseDAOHelper<S, T extends GAEJDOBase> {
 		}
 	}
 
+	/**
+	 * Delete the specified object
+	 * @param id the id of the object to be deleted
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		PersistenceManager pm = PMF.get();
 		Transaction tx = null;
@@ -137,13 +153,13 @@ abstract public class GAEJDOBaseDAOHelper<S, T extends GAEJDOBase> {
 	}
 
 	/**
-	 * 
+	 * Retrieve all objects of the given type, 'paginated' by the given start and end
 	 * @param start
 	 * @param end
 	 * @return a subset of the results, starting at index 'start' and not going
 	 *         beyond index 'end'
 	 */
-	public List<S> getInRange(int start, int end) {
+	public List<S> getInRange(int start, int end) throws DatastoreException  {
 		PersistenceManager pm = PMF.get();
 		try {
 			Query query = pm.newQuery(getJdoClass());
@@ -157,13 +173,16 @@ abstract public class GAEJDOBaseDAOHelper<S, T extends GAEJDOBase> {
 				ans.add(dto);
 			}
 			return ans;
+		} catch (Exception e) {
+			throw new DatastoreException(e);
 		} finally {
 			pm.close();
 		}
 	}
 
 	/**
-	 * 
+	 * Retrieve all objects of the given type, 'paginated' by the given start and end and sorted 
+	 * by the specified primary field
 	 * @param start
 	 * @param end
 	 * @param sortBy
@@ -173,7 +192,7 @@ abstract public class GAEJDOBaseDAOHelper<S, T extends GAEJDOBase> {
 	 *         beyond index 'end' and sorted by the given primary field
 	 */
 	public List<S> getInRangeSortedByPrimaryField(int start, int end,
-			String sortBy, boolean asc) {
+			String sortBy, boolean asc) throws DatastoreException {
 		PersistenceManager pm = null;
 		try {
 			pm = PMF.get();
@@ -189,14 +208,25 @@ abstract public class GAEJDOBaseDAOHelper<S, T extends GAEJDOBase> {
 				ans.add(dto);
 			}
 			return ans;
+		} catch (Exception e) {
+			throw new DatastoreException(e);
 		} finally {
 			pm.close();
 		}
 
 	}
 
+	/**
+	 * Get the objects of the given type having the specified value in the given primary field,
+	 * and 'paginated' by the given start/end limits
+	 * @param start
+	 * @param end
+	 * @param attribute the name of the primary field
+	 * @param value
+	 * @return
+	 */
 	public List<S> getInRangeHavingPrimaryField(int start, int end,
-			String attribute, Object value) {
+			String attribute, Object value) throws DatastoreException {
 		PersistenceManager pm = null;
 		try {
 			pm = PMF.get();
@@ -213,6 +243,8 @@ abstract public class GAEJDOBaseDAOHelper<S, T extends GAEJDOBase> {
 				ans.add(dto);
 			}
 			return ans;
+		} catch (Exception e) {
+			throw new DatastoreException(e);
 		} finally {
 			pm.close();
 		}

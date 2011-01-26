@@ -22,6 +22,14 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 
+/**
+ * This is the DAO for the GAEJDO implementation of Dataset.  As such it implements 
+ * BaseDAO, RevisableDAO and AnnotatableDAO.  It wraps BaseDAOHelper, RevisableDAOHelper
+ * and GAEJDORevisableAnnotationDAOImpl, which provide much of the functionality.
+ * 
+ * @author bhoff
+ *
+ */
 public class GAEJDODatasetDAOImpl implements DatasetDAO {
 
 	// Question: is this the right spot for this sort of constant? Seems
@@ -101,9 +109,6 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 		dto.setCreationDate(gae.getCreationDate());
 		dto.setStatus(gae.getStatus());
 		dto.setReleaseDate(gae.getReleaseDate());
-		// GAEJDORevision<GAEJDODataset> rev = gae.getRevision();
-		// Version version = rev.getVersion();
-		// String versionString = version.toString();
 		dto.setVersion(gae.getRevision().getVersion().toString());
 		Collection<LayerMetadata> layers = new ArrayList<LayerMetadata>();
 		Collection<Key> layerKeys = gae.getLayers();
@@ -116,13 +121,15 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 	}
 
 	/**
+	 * 
+	 * Note: This method does NOT copy layers or revision info to the GAEJDO
+	 * object,
+	 * those being done by the 'revise' method
+
 	 * @param dto
 	 * @param gae
 	 * @throws InvalidModelException
 	 */
-	// Note: This method does NOT copy layers or revision info to the GAEJDO
-	// object,
-	// those being done by the 'revise' method
 	public void copyFromDto(Dataset dto, GAEJDODataset gae)
 			throws InvalidModelException {
 
@@ -151,18 +158,18 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 				"status", "releaseDate", "version" });
 	}
 
-	public List<Dataset> getInRange(int start, int end) {
+	public List<Dataset> getInRange(int start, int end) throws DatastoreException {
 		return revisableDAO.getInRange(start, end);
 	}
 
 	public List<Dataset> getInRangeSortedByPrimaryField(int start, int end,
-			String sortBy, boolean asc) {
+			String sortBy, boolean asc) throws DatastoreException {
 		return revisableDAO.getInRangeSortedByPrimaryField(start, end, sortBy,
 				asc);
 	}
 
 	public List<Dataset> getInRangeHavingPrimaryField(int start, int end,
-			String attribute, Object value) {
+			String attribute, Object value) throws DatastoreException {
 		return revisableDAO.getInRangeHavingPrimaryField(start, end, attribute,
 				value);
 	}
@@ -369,6 +376,8 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 				pm.deletePersistent(jdo);
 			}
 			tx.commit();
+		} catch (Exception e) {
+			throw new DatastoreException(e);
 		} finally {
 			if (tx.isActive()) {
 				tx.rollback();
@@ -400,18 +409,10 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 				return String.class;
 			}
 
-			// protected GAEJDOAnnotation<String> newAnnotation(String
-			// attribute, String value) {
-			// return new GAEJDOStringAnnotation(attribute, value);
-			// }
 			protected String getCollectionName() {
 				return "stringAnnotations";
 			}
 
-			// protected Set<GAEJDOAnnotation<String>>
-			// getAnnotationSet(GAEJDOAnnotations annots) {
-			// return annots.getStringAnnotations();
-			// }
 			public Dataset newDTO() {
 				return parent.newDTO();
 			}
@@ -447,16 +448,6 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 					GAEJDOAnnotations annots) {
 				return annots.getStringIterable();
 			}
-			// protected void addAnnotation(GAEJDOAnnotations annots,
-			// GAEJDOAnnotation<String> annot)
-			// {annots.getStringAnnotations().add(annot.getId());}
-			// protected void removeAnnotation(GAEJDOAnnotations annots,
-			// GAEJDOAnnotation<String> annot)
-			// {annots.getStringAnnotations().remove(annot.getId());}
-			// protected Collection<Key> getAnnotations(GAEJDOAnnotations
-			// annots) {return annots.getStringAnnotations();}
-			// protected GAEJDOAnnotation<String> newAnnotation(String a, String
-			// v) {return new GAEJDOStringAnnotation(a,v);}
 		};
 	}
 
@@ -472,18 +463,10 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 				return Float.class;
 			}
 
-			// protected GAEJDOAnnotation<Float> newAnnotation(String attribute,
-			// Float value) {
-			// return new GAEJDOFloatAnnotation(attribute, value);
-			// }
 			protected String getCollectionName() {
 				return "floatAnnotations";
 			}
 
-			// protected Set<GAEJDOAnnotation<Float>>
-			// getAnnotationSet(GAEJDOAnnotations annots) {
-			// return annots.getFloatAnnotations();
-			// }
 			public Dataset newDTO() {
 				return parent.newDTO();
 			}
@@ -519,15 +502,6 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 					GAEJDOAnnotations annots) {
 				return annots.getFloatIterable();
 			}
-			// protected void addAnnotation(GAEJDOAnnotations annots,
-			// GAEJDOAnnotation<Float> annot) {throw new RuntimeException();}
-			// protected void removeAnnotation(GAEJDOAnnotations annots,
-			// GAEJDOAnnotation<Float> annot) {throw new RuntimeException();}
-			// protected Collection<Key> getAnnotations(GAEJDOAnnotations
-			// annots) {throw new RuntimeException();}
-			// protected GAEJDOAnnotation<Float> newAnnotation(String a, Float
-			// v) {return new GAEJDOFloatAnnotation(a,v);}
-
 		};
 	}
 
@@ -542,18 +516,10 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 				return Date.class;
 			}
 
-			// protected GAEJDOAnnotation<Date> newAnnotation(String attribute,
-			// Date value) {
-			// return new GAEJDODateAnnotation(attribute, value);
-			// }
 			protected String getCollectionName() {
 				return "dateAnnotations";
 			}
 
-			// protected Set<GAEJDOAnnotation<Date>>
-			// getAnnotationSet(GAEJDOAnnotations annots) {
-			// return annots.getDateAnnotations();
-			// }
 			public Dataset newDTO() {
 				return parent.newDTO();
 			}
@@ -589,14 +555,6 @@ public class GAEJDODatasetDAOImpl implements DatasetDAO {
 					GAEJDOAnnotations annots) {
 				return annots.getDateIterable();
 			}
-			// protected void addAnnotation(GAEJDOAnnotations annots,
-			// GAEJDOAnnotation<Date> annot) {throw new RuntimeException();}
-			// protected void removeAnnotation(GAEJDOAnnotations annots,
-			// GAEJDOAnnotation<Date> annot) {throw new RuntimeException();}
-			// protected Collection<Key> getAnnotations(GAEJDOAnnotations
-			// annots) {throw new RuntimeException();}
-			// protected GAEJDOAnnotation<Date> newAnnotation(String a, Date v)
-			// {return new GAEJDODateAnnotation(a,v);}
 		};
 	}
 
