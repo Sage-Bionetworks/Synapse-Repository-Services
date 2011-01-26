@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.logging.Logger;
 
 import org.joda.time.DateTime;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -270,6 +271,7 @@ public class DatasetControllerTest {
 		JSONObject results = helper.testGetJsonEntities("/dataset", null, null);
 		assertEquals(12, results.getInt("totalNumberOfResults"));
 		assertEquals(10, results.getJSONArray("results").length());
+		assertExpectedDatasetsProperties(results.getJSONArray("results"));
 		assertFalse(results.getJSONObject("paging").has(
 				PaginatedResults.PREVIOUS_PAGE_FIELD));
 		assertEquals("/dataset?offset=11&limit=10", results.getJSONObject(
@@ -281,11 +283,11 @@ public class DatasetControllerTest {
 		results = helper.testGetJsonEntities("/dataset", 11, 10);
 		assertEquals(12, results.getInt("totalNumberOfResults"));
 		assertEquals(2, results.getJSONArray("results").length());
+		assertExpectedDatasetsProperties(results.getJSONArray("results"));
 		assertEquals("/dataset?offset=1&limit=10", results.getJSONObject(
 				"paging").getString(PaginatedResults.PREVIOUS_PAGE_FIELD));
 		assertFalse(results.getJSONObject("paging").has(
 				PaginatedResults.NEXT_PAGE_FIELD));
-
 	}
 
 	/**
@@ -549,6 +551,13 @@ public class DatasetControllerTest {
 				error.getString("reason"));
 	}
 
+	private void assertExpectedDatasetsProperties(JSONArray results) throws Exception {
+		for(int i = 0; i < results.length(); i++) {
+			JSONObject dataset = results.getJSONObject(i);
+			assertExpectedDatasetProperties(dataset);
+		}
+	}
+	
 	private void assertExpectedDatasetProperties(JSONObject results)
 			throws Exception {
 		// Check required properties
