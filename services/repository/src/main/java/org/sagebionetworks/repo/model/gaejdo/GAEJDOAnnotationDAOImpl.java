@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -11,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 
 import javax.jdo.Extent;
-import javax.jdo.JDOHelper;
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
@@ -25,26 +23,26 @@ import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 
 /**
- * 
- * This class manages annotations of type T.
+ * This is the DAO for managing the annotations of annotatable objects.  It is made concrete for 
+ * particular object types and particular annotation value types.  Further, it can be extended 
+ * to add complexity, e.g. for revisable-annotatable types. 
  * 
  * @author bhoff
- * 
- * @param <T>
- *            the annotatable object type
- * @param <A>
- *            the annotation value type (String, Boolean, Float, Date, Integer)
+ *
+ * @param <S> the DTO type
+ * @param <T> the JDO (persisted) type
+ * @param <A>the annotation value type (String, Boolean, Float, Date, Integer)
  */
 abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAnnotatable & GAEJDOBase, A extends Comparable<A>>
 		implements AnnotationDAO<S, A> {
 
 	// These methods are to be made concrete for particular types of annotations
+	
 	abstract protected Class<? extends GAEJDOAnnotation<A>> getAnnotationClass();
 
+	// we need this since we can't otherwise get the type of 'A' at runtime
 	abstract protected Class<A> getValueClass();
 
-	// abstract protected GAEJDOAnnotation<A> newAnnotation(String attribute, A
-	// value);
 	// this is the name of the Set field in the GAEJDOAnnotations object
 	abstract protected String getCollectionName();
 
@@ -57,11 +55,20 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	abstract protected Iterable<GAEJDOAnnotation<A>> getIterable(
 			GAEJDOAnnotations annots);
 
-	// abstract protected Collection<Key> getAnnotations(GAEJDOAnnotations
-	// annots);
+	// -------------------------------------------------------------------
 
+	/**
+	 * Create a new instance of the data transfer object.  
+	 * Introducing this abstract method helps us avoid making assumptions about constructors.
+	 * @return
+	 */
 	abstract public S newDTO();
 
+	/**
+	 * Create a new instance of the persistable object.
+	 * Introducing this abstract method helps us avoid making assumptions about constructors.
+	 * @return
+	 */
 	abstract public T newJDO();
 
 	/**
@@ -81,11 +88,18 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	 */
 	abstract public void copyFromDto(S dto, T jdo) throws InvalidModelException;
 
-	// these methods are to be made concrete for particular owner classes
-	// in particular, the JDO queries are different for revisable vs.
-	// non-revisable classes
 	abstract protected Class<T> getOwnerClass();
 
+	/**
+	 * 
+	 * @param pm
+	 * @param attrib
+	 * @param collectionName
+	 * @param annotationClass
+	 * @param valueClass
+	 * @param value
+	 * @return the GAEJDOAnnotations objects having the given attribute/value pair
+	 */
 	protected Collection<GAEJDOAnnotations> getAnnotationsHaving(
 			PersistenceManager pm, String attrib, String collectionName,
 			Class annotationClass, Class valueClass, Object value) {
@@ -101,9 +115,16 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 		return ans;
 	}
 
-	// NOTE: a different implementation is needed for Revisable objects. The
-	// implementation is found in the
-	// subclass GAEJDORevisableAnnotationDAOImpl
+	
+	/**
+	 * Find the owner objects having the given annotations, subselecting a
+	 * range of results.
+	 * 
+	 * NOTE: a different implementation is needed for Revisable objects. The
+	 * implementation is found in the
+	 * subclass GAEJDORevisableAnnotationDAOImpl
+	 * 
+	 */
 	protected List<T> getHavingAnnotation(PersistenceManager pm, String attrib,
 			String collectionName, Class annotationClass, Class valueClass,
 			Object value, int start, int end) {
@@ -143,9 +164,14 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 		return ans;
 	}
 
-	// NOTE: a different implementation is needed for Revisable objects. The
-	// implementation is found in the
-	// subclass GAEJDORevisableAnnotationDAOImpl
+	/**
+	 * 
+	 * NOTE: a different implementation is needed for Revisable objects. The
+	 * implementation is found in the
+	 * subclass GAEJDORevisableAnnotationDAOImpl
+	 * 
+	 * @return a collection of all objects of type T
+	 */
 	protected Collection<T> getAllOwners(PersistenceManager pm) {
 		Query ownerQuery = pm.newQuery(getOwnerClass());
 		@SuppressWarnings("unchecked")
@@ -153,6 +179,18 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 		return owners;
 	}
 
+	/**
+	 * 
+	 * @param pm
+	 * @param attrib
+	 * @param collectionName
+	 * @param annotationClass
+	 * @param start
+	 * @param end
+	 * @param asc
+	 * @return all objects of type 'T', sorted by the given annotation.  Nulls (owners not having the
+	 * annotation) go first in the returned list).
+	 */
 	private List<T> getSortedByAnnotation(PersistenceManager pm, String attrib,
 			String collectionName, Class annotationClass, int start, int end,
 			final boolean asc) {
@@ -218,14 +256,12 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 			if (hasAnnotation(jdo, attribute, value))
 				return;
 			GAEJDOAnnotations annots = jdo.getAnnotations();
-			//System.out.println("addAnnotation: isDirty="+JDOHelper.isDirty(annots));
-			addAnnotation(annots, attribute, value);
-			//System.out.println("addAnnotation: isDirty="+JDOHelper.isDirty(annots));
-			//JDOHelper.makeDirty(annots, getCollectionName());
-			pm.makePersistent(jdo);
 			annots.toString(); // hack to 'touch' all the fields
+			addAnnotation(annots, attribute, value);
+			pm.makePersistent(jdo);
 			tx.commit();
-//			pm.close();
+		} catch (Exception e) {
+			throw new DatastoreException(e);
 		} finally {
 			if (tx.isActive()) {
 				tx.rollback();
@@ -244,8 +280,12 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 			Key key = KeyFactory.stringToKey(id);
 			T jdo = (T) pm.getObjectById(getOwnerClass(), key);
 			GAEJDOAnnotations annots = jdo.getAnnotations();
+			annots.toString(); // hack to 'touch' all the fields
 			removeAnnotation(annots, attribute, value);
+			pm.makePersistent(jdo);
 			tx.commit();
+		} catch (Exception e) {
+			throw new DatastoreException(e);
 		} finally {
 			if (tx.isActive()) {
 				tx.rollback();
@@ -256,7 +296,7 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 
 	/**
 	 * @param id
-	 *            the id of the 'Attributable' owner object
+	 *            the id of the 'Annotatable' owner object
 	 * @return all the annotations belonging to the given object
 	 */
 
@@ -277,11 +317,20 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 				values.add(annot.getValue());
 			}
 			return ans;
+		} catch (Exception e) {
+			throw new DatastoreException(e);
 		} finally {
 			pm.close();
 		}
 	}
 
+	/**
+	 * 
+	 * @param id
+	 * @param attribute
+	 * @return all the annotations of the given object having the given attribute
+	 * @throws DatastoreException
+	 */
 	public Collection<A> getAnnotations(String id, String attribute)
 			throws DatastoreException {
 		PersistenceManager pm = PMF.get();
@@ -295,6 +344,8 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 					ans.add(annot.getValue());
 			}
 			return ans;
+		} catch (Exception e) {
+			throw new DatastoreException(e);
 		} finally {
 			pm.close();
 		}
@@ -318,6 +369,8 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 				}
 			}
 			return ans;
+		} catch (Exception e) {
+			throw new DatastoreException(e);
 		} finally {
 			pm.close();
 		}
@@ -333,13 +386,14 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 		return ans;
 	}
 
-	public List<S> getHavingAnnotation(PersistenceManager pm, String attrib,
-			String value, int start, int end) {
-		return copyToDtoList(getHavingAnnotation(pm, attrib,
-				getCollectionName(), getAnnotationClass(), getValueClass(),
-				value, start, end));
-	}
-
+	/**
+	 * 
+	 * @param start
+	 * @param end
+	 * @param attrib
+	 * @param value
+	 * @return all objects having the given annotation, paginated by the given start and end.
+	 */
 	public List<S> getInRangeHaving(int start, int end, String attribute,
 			A value) throws DatastoreException {
 		PersistenceManager pm = PMF.get();
@@ -347,17 +401,29 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 			return copyToDtoList(getHavingAnnotation(pm, attribute,
 					getCollectionName(), getAnnotationClass(), getValueClass(),
 					value, start, end));
+		} catch (Exception e) {
+			throw new DatastoreException(e);
 		} finally {
 			pm.close();
 		}
 	}
 
+	/**
+	 * @param start
+	 * @param end
+	 * @param sortByAttr
+	 * @param asc if true sort ascending, else sort descending
+	 * @return a List of all the objects in the system, paginated by the given
+	 * start and end and ordered by the given attribute.
+	 */
 	public List<S> getInRangeSortedBy(int start, int end, String sortByAttr,
 			boolean asc) throws DatastoreException {
 		PersistenceManager pm = PMF.get();
 		try {
 			return copyToDtoList(getSortedByAnnotation(pm, sortByAttr,
 					getCollectionName(), getAnnotationClass(), start, end, asc));
+		} catch (Exception e) {
+			throw new DatastoreException(e);
 		} finally {
 			pm.close();
 		}

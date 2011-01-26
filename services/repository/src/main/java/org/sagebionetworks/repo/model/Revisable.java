@@ -1,10 +1,11 @@
 package org.sagebionetworks.repo.model;
 
 /**
- * This interface defines the methods for all data transfer objects which are Revisable.
+ * This interface defines the methods for all data transfer objects which are
+ * Revisable.
  * 
  * @author bhoff
- *
+ * 
  */
 public interface Revisable extends Base {
 	/**

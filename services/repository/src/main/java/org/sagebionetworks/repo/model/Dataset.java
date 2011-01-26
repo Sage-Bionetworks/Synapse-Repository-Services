@@ -22,9 +22,10 @@ public class Dataset implements Base, Revisable {
 	private String status;
 	private Date releaseDate;
 	private String version;
-	private String annotations;  //URI for annotations
-	private Collection<LayerMetadata> layers;  // (id, type, URI) triples for data layers
-	
+	private String annotations; // URI for annotations
+	private Collection<LayerMetadata> layers; // (id, type, URI) triples for
+												// data layers
+
 	public String getId() {
 		return id;
 	}
@@ -41,7 +42,8 @@ public class Dataset implements Base, Revisable {
 	}
 
 	/**
-	 * @param uri the uri to set
+	 * @param uri
+	 *            the uri to set
 	 */
 	public void setUri(String uri) {
 		this.uri = uri;
@@ -55,7 +57,8 @@ public class Dataset implements Base, Revisable {
 	}
 
 	/**
-	 * @param etag the etag to set
+	 * @param etag
+	 *            the etag to set
 	 */
 	public void setEtag(String etag) {
 		this.etag = etag;
@@ -116,7 +119,7 @@ public class Dataset implements Base, Revisable {
 	public void setVersion(String version) {
 		this.version = version;
 	}
-	
+
 	/**
 	 * @return the annotations URI
 	 */
@@ -131,8 +134,7 @@ public class Dataset implements Base, Revisable {
 	public void setAnnotations(String annotations) {
 		this.annotations = annotations;
 	}
-	
-	
+
 	/**
 	 * @return the layers
 	 */
@@ -141,12 +143,13 @@ public class Dataset implements Base, Revisable {
 	}
 
 	/**
-	 * @param layers the (type, layer URI) pairs to set
+	 * @param layers
+	 *            the (type, layer URI) pairs to set
 	 */
 	public void setLayers(Collection<LayerMetadata> layers) {
 		this.layers = layers;
 	}
-	
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;

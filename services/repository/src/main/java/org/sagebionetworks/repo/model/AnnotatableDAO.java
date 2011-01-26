@@ -13,8 +13,9 @@ import com.google.appengine.api.datastore.Text;
  * Any DAO for an annotatable class extends this interface.
  * 
  * @author bhoff
- *
- * @param <S>  The DTO for the annotatable class
+ * 
+ * @param <S>
+ *            The DTO for the annotatable class
  */
 public interface AnnotatableDAO<S extends Base> {
 
@@ -25,17 +26,20 @@ public interface AnnotatableDAO<S extends Base> {
 	public Annotations getAnnotations(String id) throws DatastoreException;
 
 	/**
-	 * @return the DAO which provides the CRUD methods for annotations of a particular type.
+	 * @return the DAO which provides the CRUD methods for annotations of a
+	 *         particular type.
 	 */
 	public AnnotationDAO<S, String> getStringAnnotationDAO();
 
 	/**
-	 * @return the DAO which provides the CRUD methods for annotations of a particular type.
+	 * @return the DAO which provides the CRUD methods for annotations of a
+	 *         particular type.
 	 */
 	public AnnotationDAO<S, Float> getFloatAnnotationDAO();
 
 	/**
-	 * @return the DAO which provides the CRUD methods for annotations of a particular type.
+	 * @return the DAO which provides the CRUD methods for annotations of a
+	 *         particular type.
 	 */
 	public AnnotationDAO<S, Date> getDateAnnotationDAO();
 

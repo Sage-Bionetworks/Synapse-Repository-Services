@@ -18,13 +18,17 @@ import com.google.appengine.api.datastore.KeyFactory;
 
 abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GAEJDORevisable<T>> {
 
+	/**
+	 * Create a new instance of the data transfer object.  
+	 * Introducing this abstract method helps us avoid making assumptions about constructors.
+	 * @return the new object
+	 */
 	abstract public S newDTO();
 
 	/**
-	 * Note: This method is responsible for instantiating the Revision object
-	 * owned by the JDO object.
-	 * 
-	 * @return
+	 * Create a new instance of the persistable object.
+	 * Introducing this abstract method helps us avoid making assumptions about constructors.
+	 * @return the new object
 	 */
 	abstract public T newJDO();
 
@@ -45,9 +49,14 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 	 */
 	abstract public void copyFromDto(S dto, T jdo) throws InvalidModelException;
 
+	/**
+	 * @param jdoClass
+	 *            the class parameterized by T
+	 */
 	abstract public Class<T> getJdoClass();
 
 	/**
+	 * Create a new Revisable object
 	 * @param dto
 	 *            an original (not revised) object
 	 * @param createDate
@@ -85,7 +94,6 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 		if (dto.getId() == null)
 			throw new DatastoreException("id is null");
 		Key id = KeyFactory.stringToKey(dto.getId());
-		@SuppressWarnings("unchecked")
 		T jdo = (T) pm.getObjectById(getJdoClass(), id);
 		if (!jdo.getRevision().getVersion()
 				.equals(new Version(dto.getVersion())))
@@ -140,8 +148,10 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 		pm.makePersistent(latest);
 		return jdo;
 	}
-
-	// id is the key for the original revision
+	
+	/**
+	 * @param id is the key for the original revision
+	 */
 	public S getLatest(PersistenceManager pm, String id)
 			throws DatastoreException {
 		Key key = KeyFactory.stringToKey(id);
@@ -151,9 +161,13 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 		return dto;
 	}
 
-	// returns the number of objects of a certain revisable type, which are the
-	// latest
-	// in their revision history
+	
+	/**
+	 * 
+	 * returns the number of objects of a certain revisable type, which are the
+	 * latest in their revision history
+	 * 
+	 */
 	public int getCount(PersistenceManager pm) throws DatastoreException {
 		Query query = pm.newQuery(getJdoClass());
 		query.setFilter("revision==r && r.latest==true");
@@ -163,13 +177,14 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 		return c.size();
 	}
 
-	// id is the key for some revision
+	// 
+	
+	/**
+	 * @param id is the key for some revision
+	 */
 	public T getLatest(PersistenceManager pm, Key id) throws DatastoreException {
-		@SuppressWarnings("unchecked")
-		T someRev = (T) pm.getObjectById(getJdoClass(), id); // some revision,
-																// not
-																// necessarily
-																// first or last
+		// some revision, not necessarily first or last
+		T someRev = (T) pm.getObjectById(getJdoClass(), id); 
 
 		Query query = pm.newQuery(getJdoClass());
 		query.setFilter("revision==r && r.original==pFirstRevision && r.latest==true");
@@ -193,11 +208,8 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 	// id is the key for some revision
 	public T getVersion(PersistenceManager pm, Key id, Version v)
 			throws DatastoreException {
-		@SuppressWarnings("unchecked")
-		T someRev = (T) pm.getObjectById(getJdoClass(), id); // some revision,
-																// not
-																// necessarily
-																// first or last
+		// some revision, not necessarily first or last
+		T someRev = (T) pm.getObjectById(getJdoClass(), id); 
 
 		Query query = pm.newQuery(getJdoClass());
 		query.setFilter("revision==r && r.original==pFirstRevision && r.version==pVersion");
@@ -213,6 +225,9 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 		return c.iterator().next();
 	}
 
+	/**
+	 * @param id the key for some revision
+	 */
 	public Collection<S> getAllVersions(PersistenceManager pm, String id) {
 		Key key = KeyFactory.stringToKey(id);
 		Collection<T> jdos = getAllVersions(pm, key);
@@ -227,14 +242,12 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 		return dtos;
 	}
 
-	// id is the key for some revision
+	/**
+	 * @param id the key for some revision
+	 */
 	public Collection<T> getAllVersions(PersistenceManager pm, Key id) {
-		@SuppressWarnings("unchecked")
-		T someRev = (T) pm.getObjectById(getJdoClass(), id); // some revision,
-																// not
-																// necessarily
-																// first or last
-
+		// some revision, not necessarily first or last
+		T someRev = (T) pm.getObjectById(getJdoClass(), id); 
 		Query query = pm.newQuery(getJdoClass());
 		query.setFilter("revision==r && r.original==pFirstRevision");
 		query.declareVariables(GAEJDORevision.class.getName() + " r");
@@ -244,14 +257,13 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 				.getOriginal());
 		return ans;
 	}
-
-	// id is the key for some revision
+	
+	/**
+	 * @param id the key for some revision
+	 */
 	public void deleteAllVersions(PersistenceManager pm, Key id) {
-		@SuppressWarnings("unchecked")
-		T someRev = (T) pm.getObjectById(getJdoClass(), id); // some revision,
-																// not
-																// necessarily
-																// first or last
+		// some revision, not necessarily first or last
+		T someRev = (T) pm.getObjectById(getJdoClass(), id); 
 
 		Query query = pm.newQuery(getJdoClass());
 		query.setFilter("revision==r && r.original==pFirstRevision");
@@ -264,13 +276,12 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 	}
 
 	/**
-	 * 
+	 * Note:  Invalid range returns empty list rather than throwing exception
 	 * @param start
 	 * @param end
-	 * @return a subset of the results, starting at index 'start' and not going
-	 *         beyond index 'end'
+	 * @return a subset of the results, starting at index 'start' and less than index 'end'
 	 */
-	public List<S> getInRange(int start, int end) {
+	public List<S> getInRange(int start, int end) throws DatastoreException {
 		PersistenceManager pm = PMF.get();
 		try {
 			Query query = pm.newQuery(getJdoClass());
@@ -287,23 +298,25 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 				ans.add(dto);
 			}
 			return ans;
+		} catch (Exception e) {
+			throw new DatastoreException(e);
 		} finally {
 			pm.close();
 		}
 	}
 
 	/**
+	 * Note:  Invalid range returns empty list rather than throwing exception
 	 * 
 	 * @param start
 	 * @param end
 	 * @param sortBy
-	 * @param asc
-	 *            if true then ascending, else descending
+	 * @param asc if true then ascending, else descending
 	 * @return a subset of the results, starting at index 'start' and not going
 	 *         beyond index 'end' and sorted by the given primary field
 	 */
 	public List<S> getInRangeSortedByPrimaryField(int start, int end,
-			String sortBy, boolean asc) {
+			String sortBy, boolean asc) throws DatastoreException {
 		PersistenceManager pm = null;
 		try {
 			pm = PMF.get();
@@ -327,14 +340,26 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 				}
 			}
 			return ans;
+		} catch (Exception e) {
+			throw new DatastoreException(e);
 		} finally {
 			pm.close();
 		}
 
 	}
 
+	/**
+	 * Note:  Invalid range returns empty list rather than throwing exception
+	 * 
+	 * @param start
+	 * @param end
+	 * @param attribute
+	 * @param value
+	 * @return a subset of results, starting at index 'start' and not going
+	 *         beyond index 'end', having the given value for the given field
+	 */
 	public List<S> getInRangeHavingPrimaryField(int start, int end,
-			String attribute, Object value) {
+			String attribute, Object value) throws DatastoreException {
 		PersistenceManager pm = null;
 		try {
 			pm = PMF.get();
@@ -354,6 +379,8 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 				ans.add(dto);
 			}
 			return ans;
+		} catch (Exception e) {
+			throw new DatastoreException(e);
 		} finally {
 			pm.close();
 		}

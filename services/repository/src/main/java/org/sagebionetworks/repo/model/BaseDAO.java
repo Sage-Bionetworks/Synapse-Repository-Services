@@ -6,16 +6,18 @@ import java.util.List;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
- * This interface defines the basic data access functionality which all DAO classes will implement.
+ * This interface defines the basic data access functionality which all DAO
+ * classes will implement.
  * 
  * @author bhoff
- *
+ * 
  * @param <T>
  */
 public interface BaseDAO<T> {
 
 	/**
-	 * @param dto object to be created
+	 * @param dto
+	 *            object to be created
 	 * @return the id of the newly created object
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
@@ -36,7 +38,8 @@ public interface BaseDAO<T> {
 	/**
 	 * This updates the 'shallow' properties of an object
 	 * 
-	 * @param dto non-null id is required
+	 * @param dto
+	 *            non-null id is required
 	 * @throws DatastoreException
 	 */
 	public void update(T dto) throws DatastoreException;
@@ -44,7 +47,8 @@ public interface BaseDAO<T> {
 	/**
 	 * delete the object given by the given ID
 	 * 
-	 * @param id the id of the object to be deleted
+	 * @param id
+	 *            the id of the object to be deleted
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
@@ -58,30 +62,33 @@ public interface BaseDAO<T> {
 	public int getCount() throws DatastoreException;
 
 	/**
-	 * Note:  Invalid range returns empty list rather than throwing exception
+	 * Note: Invalid range returns empty list rather than throwing exception
+	 * 
 	 * @param start
 	 * @param end
-	 * @return a subset of the results, starting at index 'start' and less than index 'end'
+	 * @return a subset of the results, starting at index 'start' and less than
+	 *         index 'end'
 	 */
-	public List<T> getInRange(int start, int end);
+	public List<T> getInRange(int start, int end) throws DatastoreException;
 
 	public Collection<String> getPrimaryFields();
 
 	/**
-	 * Note:  Invalid range returns empty list rather than throwing exception
+	 * Note: Invalid range returns empty list rather than throwing exception
 	 * 
 	 * @param start
 	 * @param end
 	 * @param sortBy
-	 * @param asc if true then ascending, else descending
+	 * @param asc
+	 *            if true then ascending, else descending
 	 * @return a subset of the results, starting at index 'start' and not going
 	 *         beyond index 'end' and sorted by the given primary field
 	 */
 	public List<T> getInRangeSortedByPrimaryField(int start, int end,
-			String sortBy, boolean asc);
+			String sortBy, boolean asc) throws DatastoreException;
 
 	/**
-	 * Note:  Invalid range returns empty list rather than throwing exception
+	 * Note: Invalid range returns empty list rather than throwing exception
 	 * 
 	 * @param start
 	 * @param end
@@ -91,6 +98,6 @@ public interface BaseDAO<T> {
 	 *         beyond index 'end', having the given value for the given field
 	 */
 	public List<T> getInRangeHavingPrimaryField(int start, int end,
-			String attribute, Object value);
+			String attribute, Object value) throws DatastoreException;
 
 }
