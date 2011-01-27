@@ -32,27 +32,31 @@ import org.sagebionetworks.repo.web.controller.AbstractAnnotatableEntityControll
  * @author deflaux
  * @param <T>
  */
-public class AnnotatableDAOControllerImp<T extends Base> implements
+public class AnnotationsDAOControllerImp<T extends Base> implements
 		AbstractAnnotatableEntityController<T> {
 
 	private static final Logger log = Logger
-			.getLogger(AnnotatableDAOControllerImp.class.getName());
+			.getLogger(AnnotationsDAOControllerImp.class.getName());
 
 	protected Class<T> theModelClass;
-	protected BaseDAO<T> dao;
 	protected AnnotatableDAO<T> annotatableDao;
+	protected AnnotationDAO<T, String> stringAnnotationDAO;
+	protected AnnotationDAO<T, Float> floatAnnotationDAO;
+	protected AnnotationDAO<T, Date> dateAnnotationDAO;
 
 	/**
 	 * @param theModelClass
 	 */
 	@SuppressWarnings("unchecked")
-	public AnnotatableDAOControllerImp(Class<T> theModelClass) {
+	public AnnotationsDAOControllerImp(Class<T> theModelClass) {
 		this.theModelClass = theModelClass;
 		// TODO @Autowired, no GAE references allowed in this class
 		DAOFactory daoFactory = new GAEJDODAOFactoryImpl();
-		this.dao = daoFactory.getDAO(theModelClass);
 		this.annotatableDao = (AnnotatableDAO<T>) daoFactory
 				.getDAO(theModelClass);
+		this.stringAnnotationDAO = annotatableDao.getStringAnnotationDAO();
+		this.floatAnnotationDAO = annotatableDao.getFloatAnnotationDAO();
+		this.dateAnnotationDAO = annotatableDao.getDateAnnotationDAO();
 	}
 
 	/*
@@ -74,9 +78,7 @@ public class AnnotatableDAOControllerImp<T extends Base> implements
 					+ " exists");
 		}
 
-		annotations.setId(entityId); // the url-encoded id
-		annotations.setUri(UrlHelpers.makeEntityAnnotationsUri(theModelClass, annotations, request));
-		annotations.setEtag(UrlHelpers.makeEntityEtag(annotations));
+		addServiceSpecificMetadata(id, annotations, request);
 
 		return annotations;
 	}
@@ -94,64 +96,72 @@ public class AnnotatableDAOControllerImp<T extends Base> implements
 			DatastoreException {
 
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
-		//
-		// Annotations entity = dao.get(entityId);
-		// if(null == entity) {
-		// throw new NotFoundException("no entity with id " + entityId +
-		// " exists");
-		// }
-		// if(etag != entity.hashCode()) {
-		// throw new ConflictingUpdateException("entity with id " + entityId
-		// +
-		// "was updated since you last fetched it, retrieve it again and reapply the update");
-		// }
+
+		Annotations annotations = annotatableDao.getAnnotations(entityId);
+		if (null == annotations) {
+			throw new NotFoundException("no entity with id " + entityId
+					+ " exists");
+		}
+
+		if (etag != annotations.hashCode()) {
+			throw new ConflictingUpdateException(
+					"annotations for entity with id "
+							+ entityId
+							+ "were updated since you last fetched them, retrieve them again and reapply the update");
+		}
+
 		// dao.update(updatedAnnotations);
-		//
 
 		// TODO this isn't how we want to do this for real
-		// TODO is this additive or overwriting?
+		// TODO this is currently additive but it should be overwriting
+		// Developer Note: yes, nested loops are evil when N is large
 
-		Map<String, Collection<String>> stringAnnotations = updatedAnnotations
+		Map<String, Collection<String>> updatedStringAnnotations = updatedAnnotations
 				.getStringAnnotations();
-		AnnotationDAO<T, String> foo = annotatableDao.getStringAnnotationDAO();
-		for (Map.Entry<String, Collection<String>> annotation : stringAnnotations
+		for (Map.Entry<String, Collection<String>> updatedAnnotation : updatedStringAnnotations
 				.entrySet()) {
-			for (String value : annotation.getValue()) {
-				log.info("Adding string annotation (" + annotation.getKey()
-						+ ", " + value + ")");
-				foo.addAnnotation(entityId, annotation.getKey(), value);
+			for (String value : updatedAnnotation.getValue()) {
+				log.info("Adding string annotation ("
+						+ updatedAnnotation.getKey() + ", " + value + ")");
+				stringAnnotationDAO.addAnnotation(entityId, updatedAnnotation
+						.getKey(), value);
 			}
 		}
 
-		Map<String, Collection<Float>> floatAnnotations = updatedAnnotations
+		Map<String, Collection<Float>> updatedFloatAnnotations = updatedAnnotations
 				.getFloatAnnotations();
-		AnnotationDAO<T, Float> bar = annotatableDao.getFloatAnnotationDAO();
-		for (Map.Entry<String, Collection<Float>> annotation : floatAnnotations
+		for (Map.Entry<String, Collection<Float>> updatedAnnotation : updatedFloatAnnotations
 				.entrySet()) {
-			for (Float value : annotation.getValue()) {
-				log.info("Adding float annotation (" + annotation.getKey()
-						+ ", " + value + ")");
-				bar.addAnnotation(entityId, annotation.getKey(), value);
+			for (Float value : updatedAnnotation.getValue()) {
+				log.info("Adding float annotation ("
+						+ updatedAnnotation.getKey() + ", " + value + ")");
+				floatAnnotationDAO.addAnnotation(entityId, updatedAnnotation
+						.getKey(), value);
 			}
 		}
 
-		Map<String, Collection<Date>> dateAnnotations = updatedAnnotations
+		Map<String, Collection<Date>> updatedDateAnnotations = updatedAnnotations
 				.getDateAnnotations();
-		AnnotationDAO<T, Date> baz = annotatableDao.getDateAnnotationDAO();
-		for (Map.Entry<String, Collection<Date>> annotation : dateAnnotations
+		for (Map.Entry<String, Collection<Date>> updatedAnnotation : updatedDateAnnotations
 				.entrySet()) {
-			for (Date value : annotation.getValue()) {
-				log.info("Adding date annotation (" + annotation.getKey()
-						+ ", " + value + ")");
-				baz.addAnnotation(entityId, annotation.getKey(), value);
+			for (Date value : updatedAnnotation.getValue()) {
+				log.info("Adding date annotation ("
+						+ updatedAnnotation.getKey() + ", " + value + ")");
+				dateAnnotationDAO.addAnnotation(entityId, updatedAnnotation
+						.getKey(), value);
 			}
 		}
 
-		updatedAnnotations.setId(entityId); // the url-encoded id
-		updatedAnnotations.setUri(UrlHelpers.makeEntityAnnotationsUri(theModelClass, updatedAnnotations, request));
-		updatedAnnotations.setEtag(UrlHelpers.makeEntityEtag(updatedAnnotations));
-
+		addServiceSpecificMetadata(id, updatedAnnotations, request);
+		
 		return updatedAnnotations;
 	}
 
+	private void addServiceSpecificMetadata(String id, Annotations annotations,
+			HttpServletRequest request) {
+		annotations.setId(id); // the NON url-encoded id
+		annotations.setUri(UrlHelpers.makeEntityAnnotationsUri(theModelClass,
+				annotations, request));
+		annotations.setEtag(UrlHelpers.makeEntityEtag(annotations));
+	}
 }

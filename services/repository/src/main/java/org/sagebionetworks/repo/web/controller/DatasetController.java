@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.view.PaginatedResults;
-import org.sagebionetworks.repo.web.AnnotatableDAOControllerImp;
+import org.sagebionetworks.repo.web.AnnotationsDAOControllerImp;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.DAOControllerImp;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -59,7 +59,7 @@ public class DatasetController extends BaseController implements
 
 	private AbstractEntityController<Dataset> entityController = new DAOControllerImp<Dataset>(
 			Dataset.class);
-	private AbstractAnnotatableEntityController<Dataset> annotationsController = new AnnotatableDAOControllerImp<Dataset>(
+	private AbstractAnnotatableEntityController<Dataset> annotationsController = new AnnotationsDAOControllerImp<Dataset>(
 			Dataset.class);
 	private InputDataLayerDAO layerDao;
 
