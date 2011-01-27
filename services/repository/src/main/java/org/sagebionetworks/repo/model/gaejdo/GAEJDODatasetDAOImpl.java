@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.LayerMetadata;
+import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.appengine.api.datastore.Key;
@@ -68,11 +68,11 @@ public class GAEJDODatasetDAOImpl extends GAEJDORevisableAnnotatableDAOImpl<Data
 		dto.setStatus(gae.getStatus());
 		dto.setReleaseDate(gae.getReleaseDate());
 		dto.setVersion(gae.getRevision().getVersion().toString());
-		Collection<LayerMetadata> layers = new ArrayList<LayerMetadata>();
+		Collection<LayerPreview> layers = new ArrayList<LayerPreview>();
 		Collection<Key> layerKeys = gae.getLayers();
 		if (null != layerKeys) {
 			for (Key l : layerKeys) {
-				layers.add(new LayerMetadata(KeyFactory.keyToString(l)));
+				layers.add(new LayerPreview(KeyFactory.keyToString(l)));
 			}
 		}
 		dto.setLayers(layers);

@@ -24,7 +24,7 @@ public class Dataset implements Base, Revisable {
 	private String version;
 	private String annotations; // URI for annotations
 	
-	private Collection<LayerMetadata> layers; // (id, type, URI) triples for
+	private Collection<LayerPreview> layers; // (id, type, URI) triples for
 												// data layers
 
 	public String getId() {
@@ -139,7 +139,7 @@ public class Dataset implements Base, Revisable {
 	/**
 	 * @return the layers
 	 */
-	public Collection<LayerMetadata> getLayers() {
+	public Collection<LayerPreview> getLayers() {
 		return layers;
 	}
 
@@ -147,7 +147,7 @@ public class Dataset implements Base, Revisable {
 	 * @param layers
 	 *            the (type, layer URI) pairs to set
 	 */
-	public void setLayers(Collection<LayerMetadata> layers) {
+	public void setLayers(Collection<LayerPreview> layers) {
 		this.layers = layers;
 	}
 

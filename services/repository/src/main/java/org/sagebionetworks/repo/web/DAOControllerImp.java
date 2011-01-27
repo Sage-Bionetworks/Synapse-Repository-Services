@@ -10,6 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DAOFactory;
+import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
@@ -76,8 +77,12 @@ public class DAOControllerImp<T extends Base> implements
 				throw new IllegalArgumentException("Field '" + sort + "' is not sortable");
 			}
 		}
-		Integer totalNumberOfEntities = dao.getCount();
+		for(T entity : entities) {
+			addServiceSpecificMetadata(entity, request);
+		}
 
+		Integer totalNumberOfEntities = dao.getCount();
+		
 		return new PaginatedResults<T>(request.getServletPath()
 				+ UrlHelpers.getUrlForModel(theModelClass), entities,
 				totalNumberOfEntities, offset, limit, sort, ascending);
@@ -98,8 +103,7 @@ public class DAOControllerImp<T extends Base> implements
 			throw new NotFoundException("no entity with id " + id + " exists");
 		}
 
-		entity.setUri(UrlHelpers.makeEntityUri(entity, request));
-		entity.setEtag(UrlHelpers.makeEntityEtag(entity));
+		addServiceSpecificMetadata(entity, request);
 
 		return entity;
 	}
@@ -116,8 +120,7 @@ public class DAOControllerImp<T extends Base> implements
 
 		dao.create(newEntity);
 
-		newEntity.setUri(UrlHelpers.makeEntityUri(newEntity, request));
-		newEntity.setEtag(UrlHelpers.makeEntityEtag(newEntity));
+		addServiceSpecificMetadata(newEntity, request);
 
 		return newEntity;
 	}
@@ -148,8 +151,7 @@ public class DAOControllerImp<T extends Base> implements
 		}
 		dao.update(updatedEntity);
 
-		updatedEntity.setUri(UrlHelpers.makeEntityUri(updatedEntity, request));
-		updatedEntity.setEtag(UrlHelpers.makeEntityEtag(updatedEntity));
+		addServiceSpecificMetadata(updatedEntity, request);
 
 		return updatedEntity;
 	}
@@ -168,6 +170,11 @@ public class DAOControllerImp<T extends Base> implements
 		dao.delete(entityId);
 
 		return;
+	}
+	
+	private void addServiceSpecificMetadata(T entity, HttpServletRequest request) {
+		entity.setUri(UrlHelpers.makeEntityUri(entity, request));
+		entity.setEtag(UrlHelpers.makeEntityEtag(entity));
 	}
 
 }
