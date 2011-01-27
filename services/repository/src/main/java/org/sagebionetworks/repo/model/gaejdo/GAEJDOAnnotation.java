@@ -3,11 +3,13 @@ package org.sagebionetworks.repo.model.gaejdo;
 import com.google.appengine.api.datastore.Key;
 
 /**
- * The base interface for all annotations.  Concrete classes will have typed values.
+ * The base interface for all annotations. Concrete classes will have typed
+ * values.
  * 
  * @author bhoff
- *
- * @param <T> the type of the value of the annotation
+ * 
+ * @param <T>
+ *            the type of the value of the annotation
  */
 public interface GAEJDOAnnotation<T> {
 	/**
@@ -18,7 +20,8 @@ public interface GAEJDOAnnotation<T> {
 
 	/**
 	 * 
-	 * @param a the attribute for the annotation
+	 * @param a
+	 *            the attribute for the annotation
 	 */
 	void setAttribute(String a);
 
@@ -30,7 +33,8 @@ public interface GAEJDOAnnotation<T> {
 
 	/**
 	 * 
-	 * @param value the value for the annotation
+	 * @param value
+	 *            the value for the annotation
 	 */
 	void setValue(T value);
 

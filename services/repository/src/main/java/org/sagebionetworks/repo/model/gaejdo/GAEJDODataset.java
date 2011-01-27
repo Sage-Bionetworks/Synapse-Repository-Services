@@ -14,7 +14,7 @@ import com.google.appengine.api.datastore.Key;
 /**
  * This is the persistable class for a dataset
  * 
- * Note:  equals and hashcode are based only on the id field.
+ * Note: equals and hashcode are based only on the id field.
  * 
  * @author bhoff
  * 
@@ -54,8 +54,8 @@ public class GAEJDODataset implements GAEJDOBase,
 	private Collection<Key> layers;
 
 	public GAEJDODataset() {
-//		GAEJDOAnnotations a = GAEJDOAnnotations.newGAEJDOAnnotations();
-//		setAnnotations(a);
+		// GAEJDOAnnotations a = GAEJDOAnnotations.newGAEJDOAnnotations();
+		// setAnnotations(a);
 	}
 
 	/**
@@ -66,7 +66,8 @@ public class GAEJDODataset implements GAEJDOBase,
 	}
 
 	/**
-	 * @param id id of the persistent object
+	 * @param id
+	 *            id of the persistent object
 	 */
 	public void setId(Key id) {
 		this.id = id;
@@ -150,7 +151,7 @@ public class GAEJDODataset implements GAEJDOBase,
 	}
 
 	/**
-	 *  @return
+	 * @return
 	 */
 	public Date getCreationDate() {
 		return creationDate;
@@ -236,4 +237,7 @@ public class GAEJDODataset implements GAEJDOBase,
 		return true;
 	}
 
+	public String toString() {
+		return getName();
+	}
 }

@@ -37,19 +37,19 @@ public class DAOControllerImp<T extends Base> implements
 	protected Class<T> theModelClass;
 	protected BaseDAO<T> dao;
 	protected EntitiesAccessor<T> entitiesAccessor;
-	
+
 	/**
 	 * @param theModelClass
 	 */
 	@SuppressWarnings("unchecked")
-	public DAOControllerImp(Class<T> theModelClass, EntitiesAccessor<T> entitiesAccessor) {
+	public DAOControllerImp(Class<T> theModelClass,
+			EntitiesAccessor<T> entitiesAccessor) {
 		this.theModelClass = theModelClass;
 		this.entitiesAccessor = entitiesAccessor;
 		// TODO @Autowired, no GAE references allowed in this class
 		DAOFactory daoFactory = new GAEJDODAOFactoryImpl();
 		this.dao = daoFactory.getDAO(theModelClass);
 	}
-	
 
 	/**
 	 * @return the theModelClass
@@ -58,14 +58,13 @@ public class DAOControllerImp<T extends Base> implements
 		return theModelClass;
 	}
 
-
 	/**
-	 * @param theModelClass the theModelClass to set
+	 * @param theModelClass
+	 *            the theModelClass to set
 	 */
 	public void setTheModelClass(Class<T> theModelClass) {
 		this.theModelClass = theModelClass;
 	}
-
 
 	/**
 	 * @return the dao
@@ -74,14 +73,13 @@ public class DAOControllerImp<T extends Base> implements
 		return dao;
 	}
 
-
 	/**
-	 * @param dao the dao to set
+	 * @param dao
+	 *            the dao to set
 	 */
 	public void setDao(BaseDAO<T> dao) {
 		this.dao = dao;
 	}
-
 
 	/**
 	 * @return the entitiesAccessor
@@ -90,14 +88,13 @@ public class DAOControllerImp<T extends Base> implements
 		return entitiesAccessor;
 	}
 
-
 	/**
-	 * @param entitiesAccessor the entitiesAccessor to set
+	 * @param entitiesAccessor
+	 *            the entitiesAccessor to set
 	 */
 	public void setEntitiesAccessor(EntitiesAccessor<T> entitiesAccessor) {
 		this.entitiesAccessor = entitiesAccessor;
 	}
-
 
 	/*
 	 * (non-Javadoc)
@@ -106,18 +103,20 @@ public class DAOControllerImp<T extends Base> implements
 	 * org.sagebionetworks.repo.web.controller.AbstractEntityController#getEntities
 	 */
 	public PaginatedResults<T> getEntities(Integer offset, Integer limit,
-			String sort, Boolean ascending, HttpServletRequest request) throws DatastoreException {
+			String sort, Boolean ascending, HttpServletRequest request)
+			throws DatastoreException {
 
 		ServiceConstants.validatePaginationParams(offset, limit);
 
-		List<T> entities = entitiesAccessor.getInRangeSortedBy(offset, limit, sort, ascending);
+		List<T> entities = entitiesAccessor.getInRangeSortedBy(offset, limit,
+				sort, ascending);
 
-		for(T entity : entities) {
+		for (T entity : entities) {
 			addServiceSpecificMetadata(entity, request);
 		}
 
 		Integer totalNumberOfEntities = dao.getCount();
-		
+
 		return new PaginatedResults<T>(request.getServletPath()
 				+ UrlHelpers.getUrlForModel(theModelClass), entities,
 				totalNumberOfEntities, offset, limit, sort, ascending);
@@ -169,7 +168,8 @@ public class DAOControllerImp<T extends Base> implements
 	 */
 	public T updateEntity(String id, Integer etag, T updatedEntity,
 			HttpServletRequest request) throws NotFoundException,
-			ConflictingUpdateException, DatastoreException, InvalidModelException {
+			ConflictingUpdateException, DatastoreException,
+			InvalidModelException {
 
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 
@@ -206,7 +206,7 @@ public class DAOControllerImp<T extends Base> implements
 
 		return;
 	}
-	
+
 	private void addServiceSpecificMetadata(T entity, HttpServletRequest request) {
 		entity.setUri(UrlHelpers.makeEntityUri(entity, request));
 		entity.setEtag(UrlHelpers.makeEntityEtag(entity));

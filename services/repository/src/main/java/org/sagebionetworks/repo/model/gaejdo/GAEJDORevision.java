@@ -10,10 +10,12 @@ import javax.jdo.annotations.PrimaryKey;
 import com.google.appengine.api.datastore.Key;
 
 /**
- * The class for persistent objects containing the revision information for Revisable persistent objects.
- * The Revisable objects 'point' to instances of this class in an 'owned' relationship.
+ * The class for persistent objects containing the revision information for
+ * Revisable persistent objects. The Revisable objects 'point' to instances of
+ * this class in an 'owned' relationship.
+ * 
  * @author bhoff
- *
+ * 
  * @param <T>
  */
 @PersistenceCapable(detachable = "false")
@@ -33,7 +35,7 @@ public class GAEJDORevision<T extends GAEJDORevisable<T>> {
 
 	@Persistent
 	private Boolean latest; // true iff the latest revision
-	
+
 	public GAEJDORevision<T> cloneJdo() {
 		GAEJDORevision<T> clone = new GAEJDORevision<T>();
 		clone.setOriginal(getOriginal());
@@ -84,4 +86,3 @@ public class GAEJDORevision<T extends GAEJDORevisable<T>> {
 	}
 
 }
-

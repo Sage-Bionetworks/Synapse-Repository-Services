@@ -16,10 +16,10 @@ import org.sagebionetworks.repo.model.ScriptDAO;
 
 /**
  * This class is the GAE JDO implementation of DAOFactory
+ * 
  * @author bhoff
- *
+ * 
  */
-
 
 public class GAEJDODAOFactoryImpl implements DAOFactory {
 
@@ -46,13 +46,13 @@ public class GAEJDODAOFactoryImpl implements DAOFactory {
 		return new GAEJDODatasetDAOImpl();
 	}
 
-//	public InputDataLayerDAO getInputDataLayerDAO() {
-//		return new GAEJDOInputDataLayerDAOImpl();
-//	}
-//
-//	public AnalysisResultDAO getAnalysisResultDAO() {
-//		return new GAEJDOAnalysisResultDAOHelper();
-//	}
+	// public InputDataLayerDAO getInputDataLayerDAO() {
+	// return new GAEJDOInputDataLayerDAOImpl();
+	// }
+	//
+	// public AnalysisResultDAO getAnalysisResultDAO() {
+	// return new GAEJDOAnalysisResultDAOHelper();
+	// }
 
 	public DatasetAnalysisDAO getDatasetAnalysisDAO() {
 		return new GAEJDODatasetAnalysisDAOImpl();

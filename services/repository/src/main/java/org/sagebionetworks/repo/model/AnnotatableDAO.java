@@ -23,9 +23,10 @@ public interface AnnotatableDAO<S extends Base> extends BaseDAO<S> {
 	/**
 	 * @param id
 	 * @return annotations for the given object, regardless of type
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
 	 */
-	public Annotations getAnnotations(String id) throws DatastoreException, NotFoundException;
+	public Annotations getAnnotations(String id) throws DatastoreException,
+			NotFoundException;
 
 	/**
 	 * @return the DAO which provides the CRUD methods for annotations of a

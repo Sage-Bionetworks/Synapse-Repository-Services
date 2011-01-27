@@ -18,25 +18,23 @@ import org.sagebionetworks.repo.model.RevisableDAO;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 
-abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJDORevisable<T>> 
-	extends GAEJDOBaseDAOImpl<S,T>
-	implements RevisableDAO<S> {
-	
-	
+abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJDORevisable<T>>
+		extends GAEJDOBaseDAOImpl<S, T> implements RevisableDAO<S> {
+
 	public T cloneJdo(T jdo) {
 		T clone = super.cloneJdo(jdo);
-		
+
 		clone.setRevision(jdo.getRevision().cloneJdo());
-				
+
 		return clone;
 	}
-	
-	// Question: is this the right spot for this sort of constant? 
-	private static final String DEFAULT_VERSION = "0.0.1";
 
+	// Question: is this the right spot for this sort of constant?
+	private static final String DEFAULT_VERSION = "0.0.1";
 
 	/**
 	 * Create a new Revisable object
+	 * 
 	 * @param dto
 	 *            an original (not revised) object
 	 * @param createDate
@@ -60,7 +58,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 		r.setRevisionDate(dto.getCreationDate());
 		r.setVersion(new Version(dto.getVersion()));
 		r.setLatest(true);
-		//copyFromDto(dto, jdo);
+		// copyFromDto(dto, jdo);
 		pm.makePersistent(jdo); // persist the owned Revision object
 		r.setOriginal(r.getId()); // points to itself
 		pm.makePersistent(jdo); // not sure if it's necessary to 'persist' again
@@ -84,7 +82,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 		T jdo = (T) pm.getObjectById(getJdoClass(), id);
 		if (!jdo.getRevision().getVersion()
 				.equals(new Version(dto.getVersion())))
-			throw new InvalidModelException("Wrong version "+dto.getVersion());
+			throw new InvalidModelException("Wrong version " + dto.getVersion());
 		copyFromDto(dto, jdo);
 		pm.makePersistent(jdo);
 	}
@@ -123,7 +121,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 			throw new DatastoreException("New version " + newVersion
 					+ " must be later than latest (" + latestVersion + ").");
 		}
-		
+
 		// now copy the 'deep' properties
 		Key reviseeId = KeyFactory.stringToKey(revision.getId());
 		@SuppressWarnings("unchecked")
@@ -141,7 +139,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 		pm.makePersistent(latest);
 		return jdo;
 	}
-	
+
 	/**
 	 * Create a revision of the object specified by the 'id' and 'version'
 	 * fields, having the shallow properties from the given 'revision', and the
@@ -174,11 +172,12 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	}
 
 	/**
-	 * @param id is the key for some revision
+	 * @param id
+	 *            is the key for some revision
 	 */
 	public T getLatest(PersistenceManager pm, Key id) throws DatastoreException {
 		// some revision, not necessarily first or last
-		T someRev = (T) pm.getObjectById(getJdoClass(), id); 
+		T someRev = (T) pm.getObjectById(getJdoClass(), id);
 
 		Query query = pm.newQuery(getJdoClass());
 		query.setFilter("revision==r && r.original==pFirstRevision && r.latest==true");
@@ -194,7 +193,8 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	}
 
 	/**
-	 * @param id is the key for the original revision
+	 * @param id
+	 *            is the key for the original revision
 	 */
 	public S getLatest(PersistenceManager pm, String id)
 			throws DatastoreException {
@@ -225,7 +225,6 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 		}
 	}
 
-	
 	/**
 	 * 
 	 * returns the number of objects of a certain revisable type, which are the
@@ -242,18 +241,17 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	}
 
 	public int getCount() throws DatastoreException {
-	PersistenceManager pm = PMF.get();
-	try {
-		int count = getCount(pm);
-		return count;
-	} catch (Exception e) {
-		throw new DatastoreException(e);
-	} finally {
-		pm.close();
+		PersistenceManager pm = PMF.get();
+		try {
+			int count = getCount(pm);
+			return count;
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		} finally {
+			pm.close();
+		}
 	}
-}
 
-	
 	public T getVersion(PersistenceManager pm, String id, String v)
 			throws DatastoreException {
 		Key key = KeyFactory.stringToKey(id);
@@ -264,7 +262,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	public T getVersion(PersistenceManager pm, Key id, Version v)
 			throws DatastoreException {
 		// some revision, not necessarily first or last
-		T someRev = (T) pm.getObjectById(getJdoClass(), id); 
+		T someRev = (T) pm.getObjectById(getJdoClass(), id);
 
 		Query query = pm.newQuery(getJdoClass());
 		query.setFilter("revision==r && r.original==pFirstRevision && r.version==pVersion");
@@ -281,7 +279,8 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	}
 
 	/**
-	 * @param id the key for some revision
+	 * @param id
+	 *            the key for some revision
 	 */
 	public Collection<S> getAllVersions(PersistenceManager pm, String id) {
 		Key key = KeyFactory.stringToKey(id);
@@ -298,11 +297,12 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	}
 
 	/**
-	 * @param id the key for some revision
+	 * @param id
+	 *            the key for some revision
 	 */
 	public Collection<T> getAllVersions(PersistenceManager pm, Key id) {
 		// some revision, not necessarily first or last
-		T someRev = (T) pm.getObjectById(getJdoClass(), id); 
+		T someRev = (T) pm.getObjectById(getJdoClass(), id);
 		Query query = pm.newQuery(getJdoClass());
 		query.setFilter("revision==r && r.original==pFirstRevision");
 		query.declareVariables(GAEJDORevision.class.getName() + " r");
@@ -312,19 +312,17 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 				.getOriginal());
 		return ans;
 	}
-	
+
 	/**
 	 * Get all versions of an object
 	 * 
 	 * @param id
 	 * @return all revisions of the given object
 	 */
-	public Collection<S> getAllVersions(String id)
-			throws DatastoreException {
+	public Collection<S> getAllVersions(String id) throws DatastoreException {
 		PersistenceManager pm = PMF.get();
 		try {
-			Collection<S> allVersions = getAllVersions(pm,
-					id);
+			Collection<S> allVersions = getAllVersions(pm, id);
 			return allVersions;
 		} catch (Exception e) {
 			throw new DatastoreException(e);
@@ -332,7 +330,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 			pm.close();
 		}
 	}
-	
+
 	/**
 	 * Deletes all revisions of a S
 	 * 
@@ -364,10 +362,12 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	}
 
 	/**
-	 * Note:  Invalid range returns empty list rather than throwing exception
+	 * Note: Invalid range returns empty list rather than throwing exception
+	 * 
 	 * @param start
 	 * @param end
-	 * @return a subset of the results, starting at index 'start' and less than index 'end'
+	 * @return a subset of the results, starting at index 'start' and less than
+	 *         index 'end'
 	 */
 	public List<S> getInRange(int start, int end) throws DatastoreException {
 		PersistenceManager pm = PMF.get();
@@ -394,12 +394,13 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	}
 
 	/**
-	 * Note:  Invalid range returns empty list rather than throwing exception
+	 * Note: Invalid range returns empty list rather than throwing exception
 	 * 
 	 * @param start
 	 * @param end
 	 * @param sortBy
-	 * @param asc if true then ascending, else descending
+	 * @param asc
+	 *            if true then ascending, else descending
 	 * @return a subset of the results, starting at index 'start' and not going
 	 *         beyond index 'end' and sorted by the given primary field
 	 */
@@ -437,7 +438,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	}
 
 	/**
-	 * Note:  Invalid range returns empty list rather than throwing exception
+	 * Note: Invalid range returns empty list rather than throwing exception
 	 * 
 	 * @param start
 	 * @param end

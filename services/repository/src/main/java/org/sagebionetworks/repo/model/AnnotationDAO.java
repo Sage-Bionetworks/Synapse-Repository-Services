@@ -26,7 +26,7 @@ public interface AnnotationDAO<S extends Base, A extends Comparable> {
 	 * @param attribute
 	 * @param value
 	 * @throws DatastoreException
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
 	 */
 	public void addAnnotation(String id, String attribute, A value)
 			throws DatastoreException, NotFoundException;
@@ -38,7 +38,7 @@ public interface AnnotationDAO<S extends Base, A extends Comparable> {
 	 * @param attribute
 	 * @param value
 	 * @throws DatastoreException
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
 	 */
 	public void removeAnnotation(String id, String attribute, A value)
 			throws DatastoreException, NotFoundException;
@@ -52,7 +52,7 @@ public interface AnnotationDAO<S extends Base, A extends Comparable> {
 	 * @return all the annotations of the type given by A owned by the
 	 *         annotatable object
 	 * @throws DatastoreException
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
 	 */
 	public Map<String, Collection<A>> getAnnotations(String id)
 			throws DatastoreException, NotFoundException;

@@ -10,7 +10,7 @@ import com.google.appengine.api.datastore.Key;
 /**
  * This is the persistable class for a Annotations whose values are Strings
  * 
- * Note:  equals and hashcode are based on the attribute and value, allowing 
+ * Note: equals and hashcode are based on the attribute and value, allowing
  * distinct annotations with the same attribute.
  * 
  * @author bhoff
@@ -22,9 +22,9 @@ public class GAEJDOStringAnnotation implements GAEJDOAnnotation<String> {
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
 
-	 // this is the backwards pointer for the 1-1 owned relationship
-	 @Persistent
-	 private GAEJDOAnnotations owner;
+	// this is the backwards pointer for the 1-1 owned relationship
+	@Persistent
+	private GAEJDOAnnotations owner;
 
 	@Persistent
 	private String attribute;
@@ -51,13 +51,13 @@ public class GAEJDOStringAnnotation implements GAEJDOAnnotation<String> {
 		this.id = id;
 	}
 
-	 public GAEJDOAnnotations getOwner() {
-	 return owner;
-	 }
-	
-	 public void setOwner(GAEJDOAnnotations owner) {
-	 this.owner = owner;
-	 }
+	public GAEJDOAnnotations getOwner() {
+		return owner;
+	}
+
+	public void setOwner(GAEJDOAnnotations owner) {
+		this.owner = owner;
+	}
 
 	public String getAttribute() {
 		return attribute;

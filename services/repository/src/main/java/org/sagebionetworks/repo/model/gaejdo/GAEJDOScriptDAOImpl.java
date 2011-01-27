@@ -42,7 +42,6 @@ public class GAEJDOScriptDAOImpl implements ScriptDAO {
 		}
 	}
 
-
 	public void delete(Key id) {
 		PersistenceManager pm = PMF.get();
 		Transaction tx = null;
@@ -63,7 +62,5 @@ public class GAEJDOScriptDAOImpl implements ScriptDAO {
 			pm.close();
 		}
 	}
-
-
 
 }

@@ -19,11 +19,13 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Message;
 
 /**
- * UrlHelpers is responsible for the formatting of all URLs exposed by the service.
+ * UrlHelpers is responsible for the formatting of all URLs exposed by the
+ * service.
  * 
- * The various controllers should not be formatting URLs.  They should instead call
- * methods in this helper.  Its important to keep URL formulation logic in one place 
- * to ensure consistency across the space of URLs that this service supports.
+ * The various controllers should not be formatting URLs. They should instead
+ * call methods in this helper. Its important to keep URL formulation logic in
+ * one place to ensure consistency across the space of URLs that this service
+ * supports.
  * 
  * @author deflaux
  * 
@@ -115,17 +117,19 @@ public class UrlHelpers {
 	 * This includes not only the entity id but also the controller and servlet
 	 * portions of the path
 	 * 
-	 * @param entityClass 
-	 * @param annotations 
+	 * @param entityClass
+	 * @param annotations
 	 * @param request
 	 * @return the uri for this entity's annotations
 	 */
-	public static String makeEntityAnnotationsUri(Class entityClass, Annotations annotations,	HttpServletRequest request) {
+	public static String makeEntityAnnotationsUri(Class entityClass,
+			Annotations annotations, HttpServletRequest request) {
 		String uri = null;
 		try {
 			uri = request.getServletPath()
 					+ UrlHelpers.getUrlForModel(entityClass) + "/"
-					+ URLEncoder.encode(annotations.getId(), "UTF-8") + "/annotations";
+					+ URLEncoder.encode(annotations.getId(), "UTF-8")
+					+ "/annotations";
 		} catch (UnsupportedEncodingException e) {
 			log.log(Level.SEVERE,
 					"Something is really messed up if we don't support UTF-8",
@@ -133,7 +137,7 @@ public class UrlHelpers {
 		}
 		return uri;
 	}
-	
+
 	/**
 	 * Helper function to create a relative URL for an entity's annotations
 	 * <p>
@@ -145,12 +149,14 @@ public class UrlHelpers {
 	 * @param request
 	 * @return the uri for this entity's annotations
 	 */
-	public static String makeEntityAnnotationsUri(Base entity,	HttpServletRequest request) {
+	public static String makeEntityAnnotationsUri(Base entity,
+			HttpServletRequest request) {
 		String uri = null;
 		try {
 			uri = request.getServletPath()
 					+ UrlHelpers.getUrlForModel(entity.getClass()) + "/"
-					+ URLEncoder.encode(entity.getId(), "UTF-8") + "/annotations";
+					+ URLEncoder.encode(entity.getId(), "UTF-8")
+					+ "/annotations";
 		} catch (UnsupportedEncodingException e) {
 			log.log(Level.SEVERE,
 					"Something is really messed up if we don't support UTF-8",

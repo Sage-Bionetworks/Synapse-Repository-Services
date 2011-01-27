@@ -14,7 +14,7 @@ import com.google.appengine.api.datastore.Key;
 /**
  * This is the persistable class for a Annotations whose values are Dates
  * 
- * Note:  equals and hashcode are based on the attribute and value, allowing 
+ * Note: equals and hashcode are based on the attribute and value, allowing
  * distinct annotations with the same attribute.
  * 
  * @author bhoff
@@ -28,7 +28,7 @@ public class GAEJDODateAnnotation implements GAEJDOAnnotation<Date> {
 
 	@Persistent
 	private GAEJDOAnnotations owner; // this is the backwards pointer for the
-									// 1-1 owned relationship
+										// 1-1 owned relationship
 
 	@Persistent
 	private String attribute;
@@ -43,10 +43,13 @@ public class GAEJDODateAnnotation implements GAEJDOAnnotation<Date> {
 		setValue(value);
 	}
 
-	private static final DateFormat df = new SimpleDateFormat("ddMMMyyyy HH:mm:ss.");
+	private static final DateFormat df = new SimpleDateFormat(
+			"ddMMMyyyy HH:mm:ss.");
+
 	public String toString() {
 		return getAttribute() + ": " + df.format(getValue());
 	}
+
 	public Key getId() {
 		return id;
 	}
@@ -55,13 +58,13 @@ public class GAEJDODateAnnotation implements GAEJDOAnnotation<Date> {
 		this.id = id;
 	}
 
-	 public GAEJDOAnnotations getOwner() {
-	 return owner;
-	 }
-	
-	 public void setOwner(GAEJDOAnnotations owner) {
-	 this.owner = owner;
-	 }
+	public GAEJDOAnnotations getOwner() {
+		return owner;
+	}
+
+	public void setOwner(GAEJDOAnnotations owner) {
+		this.owner = owner;
+	}
 
 	public String getAttribute() {
 		return attribute;

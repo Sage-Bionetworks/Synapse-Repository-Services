@@ -10,7 +10,7 @@ import com.google.appengine.api.datastore.Key;
 /**
  * This is the persistable class for a Annotations whose values are numbers.
  * 
- * Note:  equals and hashcode are based on the attribute and value, allowing 
+ * Note: equals and hashcode are based on the attribute and value, allowing
  * distinct annotations with the same attribute.
  * 
  * @author bhoff

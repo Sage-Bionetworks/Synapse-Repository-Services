@@ -20,32 +20,35 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 
-public class GAEJDOInputDataLayerDAOImpl extends GAEJDORevisableAnnotatableDAOImpl<InputDataLayer, GAEJDOInputDataLayer> 
-	implements InputDataLayerDAO {
+public class GAEJDOInputDataLayerDAOImpl extends
+		GAEJDORevisableAnnotatableDAOImpl<InputDataLayer, GAEJDOInputDataLayer>
+		implements InputDataLayerDAO {
 
 	private Key datasetId = null;
-	
+
 	public GAEJDOInputDataLayerDAOImpl(Key datasetId) {
 		this.datasetId = datasetId;
 	}
-	
-	public InputDataLayer newDTO() {return new InputDataLayer();}
+
+	public InputDataLayer newDTO() {
+		return new InputDataLayer();
+	}
 
 	public GAEJDOInputDataLayer newJDO() {
 		GAEJDOInputDataLayer jdo = new GAEJDOInputDataLayer();
-		
+
 		GAEJDOAnnotations a = GAEJDOAnnotations.newGAEJDOAnnotations();
 		jdo.setAnnotations(a);
 		GAEJDORevision<GAEJDOInputDataLayer> r = new GAEJDORevision<GAEJDOInputDataLayer>();
 		jdo.setRevision(r);
-		
+
 		return jdo;
 	}
-	
+
 	public void copyToDto(GAEJDOInputDataLayer jdo, InputDataLayer dto) {
 		dto.setName(jdo.getName());
 		dto.setCreationDate(jdo.getCreationDate());
-		dto.setUri(dto.getUri()==null? null : dto.getUri().toString());
+		dto.setUri(dto.getUri() == null ? null : dto.getUri().toString());
 	}
 
 	/**
@@ -55,32 +58,36 @@ public class GAEJDOInputDataLayerDAOImpl extends GAEJDORevisableAnnotatableDAOIm
 	 * @param jdo
 	 * @throws InvalidModelException
 	 */
-	public void copyFromDto(InputDataLayer dto, GAEJDOInputDataLayer jdo) throws InvalidModelException {
+	public void copyFromDto(InputDataLayer dto, GAEJDOInputDataLayer jdo)
+			throws InvalidModelException {
 		jdo.setName(dto.getName());
 		jdo.setCreationDate(dto.getCreationDate());
 		try {
-			jdo.setUri(dto.getUri()==null ? null : new URI(dto.getUri()));
+			jdo.setUri(dto.getUri() == null ? null : new URI(dto.getUri()));
 		} catch (URISyntaxException urie) {
 			throw new InvalidModelException(urie);
 		}
 	}
-	
 
 	/**
 	 * @param jdoClass
 	 *            the class parameterized by T
 	 */
-	public Class<GAEJDOInputDataLayer> getJdoClass() {return GAEJDOInputDataLayer.class;}
-
+	public Class<GAEJDOInputDataLayer> getJdoClass() {
+		return GAEJDOInputDataLayer.class;
+	}
 
 	public Collection<String> getPrimaryFields() {
 		return GAEJDOInputDataLayer.getPrimaryFields();
 	}
-	
+
 	/**
-	 * take care of any work that has to be done before deleting the persisted object
+	 * take care of any work that has to be done before deleting the persisted
+	 * object
+	 * 
 	 * @param pm
-	 * @param jdo the object to be deleted
+	 * @param jdo
+	 *            the object to be deleted
 	 */
 	public void preDelete(PersistenceManager pm, GAEJDOInputDataLayer jdo) {
 		// no-op!

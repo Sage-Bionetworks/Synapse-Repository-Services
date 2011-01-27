@@ -27,21 +27,26 @@ import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 
 /**
- * This is the DAO for the GAEJDO implementation of Dataset.  As such it implements 
- * BaseDAO, RevisableDAO and AnnotatableDAO.  It wraps BaseDAOHelper, RevisableDAOHelper
- * and GAEJDORevisableAnnotationDAOImpl, which provide much of the functionality.
+ * This is the DAO for the GAEJDO implementation of Dataset. As such it
+ * implements BaseDAO, RevisableDAO and AnnotatableDAO. It wraps BaseDAOHelper,
+ * RevisableDAOHelper and GAEJDORevisableAnnotationDAOImpl, which provide much
+ * of the functionality.
  * 
  * @author bhoff
- *
+ * 
  */
-public class GAEJDODatasetDAOImpl extends GAEJDORevisableAnnotatableDAOImpl<Dataset, GAEJDODataset> implements DatasetDAO {
-	
+public class GAEJDODatasetDAOImpl extends
+		GAEJDORevisableAnnotatableDAOImpl<Dataset, GAEJDODataset> implements
+		DatasetDAO {
+
 	public Dataset newDTO() {
 		Dataset dto = new Dataset();
 		return dto;
 	}
-	
-	public Class<GAEJDODataset> getJdoClass() {return GAEJDODataset.class;}
+
+	public Class<GAEJDODataset> getJdoClass() {
+		return GAEJDODataset.class;
+	}
 
 	public GAEJDODataset newJDO() {
 		GAEJDODataset jdo = new GAEJDODataset();
@@ -51,7 +56,7 @@ public class GAEJDODatasetDAOImpl extends GAEJDORevisableAnnotatableDAOImpl<Data
 		jdo.setRevision(r);
 		return jdo;
 	}
-	
+
 	public GAEJDODataset cloneJdo(GAEJDODataset jdo) {
 		GAEJDODataset clone = super.cloneJdo(jdo);
 		clone.setLayers(new HashSet<Key>(jdo.getLayers()));
@@ -80,9 +85,8 @@ public class GAEJDODatasetDAOImpl extends GAEJDORevisableAnnotatableDAOImpl<Data
 	/**
 	 * 
 	 * Note: This method does NOT copy layers or revision info to the GAEJDO
-	 * object,
-	 * those being done by the 'revise' method
-
+	 * object, those being done by the 'revise' method
+	 * 
 	 * @param dto
 	 * @param gae
 	 * @throws InvalidModelException
@@ -109,16 +113,21 @@ public class GAEJDODatasetDAOImpl extends GAEJDORevisableAnnotatableDAOImpl<Data
 		gae.setStatus(dto.getStatus());
 		gae.setReleaseDate(dto.getReleaseDate());
 	}
-	
+
 	/**
-	 * take care of any work that has to be done before deleting the persisted object
+	 * take care of any work that has to be done before deleting the persisted
+	 * object
+	 * 
 	 * @param pm
-	 * @param jdo the object to be deleted
+	 * @param jdo
+	 *            the object to be deleted
 	 */
 	public void preDelete(PersistenceManager pm, GAEJDODataset jdo) {
-		GAEJDOInputDataLayerDAOImpl layerDAO = new GAEJDOInputDataLayerDAOImpl(jdo.getId());
+		GAEJDOInputDataLayerDAOImpl layerDAO = new GAEJDOInputDataLayerDAOImpl(
+				jdo.getId());
 		for (Key layerKey : jdo.getLayers()) {
-			GAEJDOInputDataLayer layer = (GAEJDOInputDataLayer) pm.getObjectById(GAEJDOInputDataLayer.class, layerKey);
+			GAEJDOInputDataLayer layer = (GAEJDOInputDataLayer) pm
+					.getObjectById(GAEJDOInputDataLayer.class, layerKey);
 			layerDAO.delete(pm, layer);
 		}
 		super.preDelete(pm, jdo);
@@ -129,11 +138,9 @@ public class GAEJDODatasetDAOImpl extends GAEJDORevisableAnnotatableDAOImpl<Data
 				"status", "releaseDate", "version" });
 	}
 
-	
 	public InputDataLayerDAO getInputDataLayerDAO(String datasetId) {
-		return new GAEJDOInputDataLayerDAOImpl(KeyFactory.stringToKey(datasetId));
+		return new GAEJDOInputDataLayerDAOImpl(
+				KeyFactory.stringToKey(datasetId));
 	}
-
-
 
 }

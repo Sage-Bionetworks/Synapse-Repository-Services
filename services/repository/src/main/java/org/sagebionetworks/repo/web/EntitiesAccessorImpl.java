@@ -15,10 +15,11 @@ import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 
 /**
  * @author deflaux
- * @param <T> 
+ * @param <T>
  * 
  */
-public class EntitiesAccessorImpl<T extends Base> implements EntitiesAccessor<T> {
+public class EntitiesAccessorImpl<T extends Base> implements
+		EntitiesAccessor<T> {
 
 	private Class<T> theModelClass;
 	private BaseDAO<T> dao;

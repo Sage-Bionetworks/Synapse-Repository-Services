@@ -66,9 +66,10 @@ public class ServiceConstants {
 			DEFAULT_PAGINATION_LIMIT_PARAM);
 
 	/**
-	 * Request parameter used to indicate upon which field(s) to sort<p>
+	 * Request parameter used to indicate upon which field(s) to sort
+	 * <p>
 	 * 
-	 * I looked both the Facebook API and the Google Data API to see what 
+	 * I looked both the Facebook API and the Google Data API to see what
 	 * parameter name they used for sorting, but did not find one, so I thought
 	 * this was a reasonable choice.
 	 */
@@ -76,29 +77,29 @@ public class ServiceConstants {
 	/**
 	 * Default value for the sort parameter, which is to not sort
 	 */
-	public static final String DEFAULT_SORT_BY_PARAM = "NONE"; 
-	
-	
+	public static final String DEFAULT_SORT_BY_PARAM = "NONE";
+
 	/**
-	 * Request parameter used to indicate whether the sort direction is ascending or not<p>
+	 * Request parameter used to indicate whether the sort direction is
+	 * ascending or not
+	 * <p>
 	 * 
-	 * I looked both the Facebook API and the Google Data API to see what 
-	 * parameter name they used for sort direction, but did not find one, so I thought
-	 * this was a reasonable choice.
+	 * I looked both the Facebook API and the Google Data API to see what
+	 * parameter name they used for sort direction, but did not find one, so I
+	 * thought this was a reasonable choice.
 	 */
 	public static final String ASCENDING_PARAM = "ascending";
 	/**
-	 * Default value for sort direction parameter used RequestParam annotations which
-	 * require a static string
+	 * Default value for sort direction parameter used RequestParam annotations
+	 * which require a static string
 	 */
 	public static final String DEFAULT_ASCENDING_PARAM = "true";
 	/**
 	 * Default value for sort direction parameter
 	 */
-	public static final Boolean DEFAULT_ASCENDING = new Boolean(DEFAULT_ASCENDING_PARAM);
+	public static final Boolean DEFAULT_ASCENDING = new Boolean(
+			DEFAULT_ASCENDING_PARAM);
 
-	
-	
 	/**
 	 * Request header used to indicate the version of the resource.
 	 * <p>

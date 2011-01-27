@@ -10,7 +10,8 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 
 @PersistenceCapable(detachable = "true")
-public class GAEJDOInputDataLayer extends GAEJDODatasetLayer<GAEJDOInputDataLayer> {
+public class GAEJDOInputDataLayer extends
+		GAEJDODatasetLayer<GAEJDOInputDataLayer> {
 
 	@Persistent
 	private String type;
@@ -77,19 +78,13 @@ public class GAEJDOInputDataLayer extends GAEJDODatasetLayer<GAEJDOInputDataLaye
 	public void setQcDate(Date qcDate) {
 		this.qcDate = qcDate;
 	}
-	
+
 	public static Collection<String> getPrimaryFields() {
-		List<String> ans = new ArrayList<String>(GAEJDODatasetLayer.getPrimaryFields());
-		ans.addAll(Arrays.asList(new String[] { 
-				"type",
-				"tissueType",
-				"platform",
-				"processingFacility",
-				"qcBy",
-				"qcDate"
-				}));
+		List<String> ans = new ArrayList<String>(
+				GAEJDODatasetLayer.getPrimaryFields());
+		ans.addAll(Arrays.asList(new String[] { "type", "tissueType",
+				"platform", "processingFacility", "qcBy", "qcDate" }));
 		return ans;
 	}
-
 
 }
