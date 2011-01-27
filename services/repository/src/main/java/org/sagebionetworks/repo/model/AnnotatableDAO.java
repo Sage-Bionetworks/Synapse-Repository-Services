@@ -18,7 +18,7 @@ import com.google.appengine.api.datastore.Text;
  * @param <S>
  *            The DTO for the annotatable class
  */
-public interface AnnotatableDAO<S extends Base> {
+public interface AnnotatableDAO<S extends Base> extends BaseDAO<S> {
 
 	/**
 	 * @param id

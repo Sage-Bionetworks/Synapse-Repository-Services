@@ -9,6 +9,7 @@ import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
 
+import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -33,7 +34,7 @@ import com.google.appengine.api.datastore.KeyFactory;
  * @param <T>
  *            the JDO class
  */
-abstract public class GAEJDOBaseDAOHelper<S, T extends GAEJDOBase> {
+abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase> implements BaseDAO<S> {
 
 	/**
 	 * Create a new instance of the data transfer object.  
@@ -73,22 +74,86 @@ abstract public class GAEJDOBaseDAOHelper<S, T extends GAEJDOBase> {
 	abstract public Class<T> getJdoClass();
 
 	/**
+	 * Create a clone of the given object in memory (no datastore operations)
+	 * Extentions of this class can go as deep as needed in copying data
+	 * to create a clone
+	 * @param jdo the object to clone
+	 * @return the clone
+	 */
+	public T cloneJdo(T jdo) {
+		S dto = newDTO();
+		
+		copyToDto(jdo, dto);
+		T clone = newJDO();
+		try {
+			copyFromDto(dto, clone);
+		} catch (InvalidModelException ime) {
+			// better not, the content just came from a jdo!
+			throw new IllegalStateException(ime);
+		}
+		
+		return clone;
+	}
+	
+	/**
+	 * take care of any work that has to be done before deleting the persistent object
+	 * but within the same transaction (for example, deleteing objects which this object 
+	 * composes, but which are not represented by owned relationships)
+	 * @param pm
+	 * @param jdo the object to be deleted
+	 */
+	public void preDelete(PersistenceManager pm, T jdo) {
+		// for the base DAO, nothing needs to be done
+	}
+	
+	/**
+	 * take care of any work that has to be done after creating the persistent 
+	 * object but within the same transaction
+	 * @param pm
+	 * @param jdo
+	 */
+	public void postCreate(PersistenceManager pm, T jdo){
+		// for the base DAO, nothing needs to be done
+	}
+
+
+	
+
+	protected T create(PersistenceManager pm, S dto)  throws InvalidModelException, DatastoreException {
+		T jdo = newJDO();
+		//
+		// Set system-controlled immutable fields
+		//
+		// Question: is this where we want to be setting immutable
+		// system-controlled fields for our
+		// objects? This should only be set at creation time so its not
+		// appropriate to put it in copyFromDTO.
+		dto.setCreationDate(new Date()); // now
+
+		copyFromDto(dto, jdo);
+		pm.makePersistent(jdo);	
+		return jdo;
+	}
+
+	/**
 	 * Create a new object, using the information in the passed DTO
 	 * @param dto
 	 * @return the ID of the created object
 	 * @throws InvalidModelException
 	 */
 	public String create(S dto) throws InvalidModelException, DatastoreException {
-		T jdo = newJDO();
-		copyFromDto(dto, jdo);
 		PersistenceManager pm = PMF.get();
 		Transaction tx = null;
 		try {
 			tx = pm.currentTransaction();
 			tx.begin();
-			pm.makePersistent(jdo);
+			T jdo = create(pm, dto);
+			postCreate(pm, jdo);
 			tx.commit();
+			copyToDto(jdo, dto);
 			return KeyFactory.keyToString(jdo.getId());
+		} catch (InvalidModelException ime) {
+			throw ime;
 		} catch (Exception e) {
 			throw new DatastoreException(e);
 		} finally {
@@ -110,7 +175,6 @@ abstract public class GAEJDOBaseDAOHelper<S, T extends GAEJDOBase> {
 		PersistenceManager pm = PMF.get();
 		try {
 			Key key = KeyFactory.stringToKey(id);
-			@SuppressWarnings("unchecked")
 			T jdo = (T) pm.getObjectById(getJdoClass(), key);
 			S dto = newDTO();
 			copyToDto(jdo, dto);
@@ -121,6 +185,12 @@ abstract public class GAEJDOBaseDAOHelper<S, T extends GAEJDOBase> {
 		} catch (Exception e) {
 			throw new DatastoreException(e);
 		}
+	}
+	
+	// sometimes we need to delete from within another transaction
+	public void delete(PersistenceManager pm, T jdo) {
+		preDelete(pm, jdo);
+		pm.deletePersistent(jdo);		
 	}
 
 	/**
@@ -136,9 +206,8 @@ abstract public class GAEJDOBaseDAOHelper<S, T extends GAEJDOBase> {
 			tx = pm.currentTransaction();
 			tx.begin();
 			Key key = KeyFactory.stringToKey(id);
-			@SuppressWarnings("unchecked")
 			T jdo = (T) pm.getObjectById(getJdoClass(), key);
-			pm.deletePersistent(jdo);
+			delete(pm, jdo);
 			tx.commit();
 		} catch (JDOObjectNotFoundException e) {
 			throw new NotFoundException(e);
@@ -150,6 +219,49 @@ abstract public class GAEJDOBaseDAOHelper<S, T extends GAEJDOBase> {
 			}
 			pm.close();
 		}
+	}
+	
+	/**
+	 * This updates the 'shallow' properties. Version doesn't change.
+	 * 
+	 * @param dto
+	 *            non-null id is required
+	 * @throws DatastoreException
+	 *             if version in dto doesn't match version of object
+	 * @throws InvalidModelException
+	 */
+	public void update(PersistenceManager pm, S dto) throws DatastoreException,
+			InvalidModelException {
+		if (dto.getId() == null)
+			throw new InvalidModelException("id is null");
+		Key id = KeyFactory.stringToKey(dto.getId());
+		T jdo = (T) pm.getObjectById(getJdoClass(), id);
+		copyFromDto(dto, jdo);
+		pm.makePersistent(jdo);
+	}
+
+	public void update(S dto) throws DatastoreException,
+				InvalidModelException, NotFoundException {
+		PersistenceManager pm = PMF.get();
+		Transaction tx = null;
+		try {
+			tx = pm.currentTransaction();
+			tx.begin();
+			update(pm, dto);
+			tx.commit();
+		} catch (InvalidModelException ime) {
+			throw ime;
+		} catch (JDOObjectNotFoundException e) {
+			throw new NotFoundException(e);
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		} finally {
+			if (tx.isActive()) {
+				tx.rollback();
+			}
+			pm.close();
+		}
+		
 	}
 
 	/**

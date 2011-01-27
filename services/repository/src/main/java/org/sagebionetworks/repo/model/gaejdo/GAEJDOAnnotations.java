@@ -59,22 +59,22 @@ public class GAEJDOAnnotations {
 	 * @param a the object to be cloned
 	 * @return
 	 */
-	public static GAEJDOAnnotations clone(GAEJDOAnnotations a) {
+	public GAEJDOAnnotations cloneJdo() {
 		GAEJDOAnnotations ans = newGAEJDOAnnotations();
 
-		for (GAEJDOAnnotation<String> annot : a.getStringIterable()) {
+		for (GAEJDOAnnotation<String> annot : getStringIterable()) {
 			ans.add(annot.getAttribute(), annot.getValue());
 		}
 
-		for (GAEJDOAnnotation<Float> annot : a.getFloatIterable()) {
+		for (GAEJDOAnnotation<Float> annot : getFloatIterable()) {
 			ans.add(annot.getAttribute(), annot.getValue());
 		}
 
-		for (GAEJDOAnnotation<Text> annot : a.getTextIterable()) {
+		for (GAEJDOAnnotation<Text> annot : getTextIterable()) {
 			ans.add(annot.getAttribute(), annot.getValue());
 		}
 
-		for (GAEJDOAnnotation<Date> annot : a.getDateIterable()) {
+		for (GAEJDOAnnotation<Date> annot : getDateIterable()) {
 			ans.add(annot.getAttribute(), annot.getValue());
 		}
 		return ans;

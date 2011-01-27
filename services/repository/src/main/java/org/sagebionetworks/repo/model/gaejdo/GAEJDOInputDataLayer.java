@@ -12,10 +12,6 @@ import javax.jdo.annotations.Persistent;
 @PersistenceCapable(detachable = "true")
 public class GAEJDOInputDataLayer extends GAEJDODatasetLayer<GAEJDOInputDataLayer> {
 
-//	public enum DataType {
-//		PHENOTYPE, EXPRESSION, GENOTYPE, SEQUENCE
-//	}
-
 	@Persistent
 	private String type;
 
