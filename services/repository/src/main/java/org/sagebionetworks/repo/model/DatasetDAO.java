@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Collection;
 
 /**
  * This interface defines the methods to be supported by any DAO for Datasets.
@@ -10,42 +9,46 @@ import java.util.Collection;
  */
 public interface DatasetDAO extends BaseDAO<Dataset>, AnnotatableDAO<Dataset>,
 		RevisableDAO<Dataset> {
-
-	/**
-	 * 
-	 * @param datasetId
-	 *            the ID of the dataset to which the layer is to be added
-	 * @param layer the layer to add, including the 'shallow' values
-	 * @return the id of the created layer
-	 */
-	public String createLayer(String datasetId, LayerMetadata layer) throws DatastoreException, InvalidModelException;
-
-	/**
-	 * 
-	 * @param datasetId
-	 *            the ID of the dataset of interest
-	 * @return IDs of all the layers in the dataset
-	 */
-	public Collection<String> getLayers(String datasetId) throws DatastoreException;
 	
-	/**
-	 * 
-	 * @param id id for the layer of interest
-	 * @return the DTO for the layer
-	 */
-	public LayerMetadata getLayer(String id);
-	/**
-	 * 
-	 * @param layer the layer to update (id field required)
-	 */
-	public void updateLayer(LayerMetadata layer) throws DatastoreException, InvalidModelException;
-
-	
-	/**
-	 * 
-	 * @param layer the layer to remove (id field required)
-	 */
-	public void removeLayer(LayerMetadata layer) throws DatastoreException;
-
+	public InputDataLayerDAO getInputDataLayerDAO(String datasetId);
 
 }
+
+//
+///**
+// * 
+// * @param datasetId
+// *            the ID of the dataset to which the layer is to be added
+// * @param datasetLayer the layer to add, including the 'shallow' values
+// * @return the id of the created layer
+// */
+//public String createInputDataLayer(String datasetId, InputDataLayer datasetLayer) throws DatastoreException, InvalidModelException;
+//
+///**
+// * 
+// * @param datasetId
+// *            the ID of the dataset of interest
+// * @return IDs of all the layers in the dataset
+// */
+//public Collection<String> getInputDataLayers(String datasetId) throws DatastoreException, NotFoundException;
+//
+///**
+// * 
+// * @param id id for the layer of interest
+// * @return the DTO for the layer
+// */
+//public InputDataLayer getInputDataLayer(String id) throws NotFoundException;
+///**
+// * 
+// * @param datasetLayer the layer to update (id field required)
+// */
+//public void updateInputDataLayer(InputDataLayer datasetLayer) throws DatastoreException, InvalidModelException, NotFoundException;
+//
+//
+///**
+// * 
+// * @param datasetLayer the layer to remove (id field required)
+// */
+//public void removeInputDataLayer(String id) throws DatastoreException, NotFoundException;
+
+

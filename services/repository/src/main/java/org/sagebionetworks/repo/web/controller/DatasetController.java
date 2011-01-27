@@ -66,7 +66,8 @@ public class DatasetController extends BaseController implements
 	DatasetController() {
 		// TODO @Autowired, no GAE references allowed in this class
 		DAOFactory daoFactory = new GAEJDODAOFactoryImpl();
-		this.layerDao = daoFactory.getInputDataLayerDAO();
+		// BH: commented this out
+		//this.layerDao = daoFactory.getInputDataLayerDAO();
 	}
 
 	/*

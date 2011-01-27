@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
 import java.net.URI;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 
 import javax.jdo.annotations.IdGeneratorStrategy;
@@ -27,26 +29,16 @@ import com.google.appengine.api.datastore.Text;
 
 @PersistenceCapable(detachable = "true")
 @Inheritance(strategy = InheritanceStrategy.SUBCLASS_TABLE)
-abstract public class GAEJDODatasetLayer implements
-		GAEJDORevisable<GAEJDODatasetLayer> {
+abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>> implements GAEJDORevisable<T>, GAEJDOBase, GAEJDOAnnotatable {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
 
-	// @Persistent
-	// private Dataset dataset; // backwards pointer for the 1-many owned
-	// relationship
-	//
-	// public Dataset getDataset() {
-	// return dataset;
-	// }
-	//
-	// public void setDataset(Dataset dataset) {
-	// this.dataset = dataset;
-	// }
-
 	@Persistent
 	private String name;
+	
+	@Persistent
+	private Date creationDate;
 
 	@Persistent(serialized = "true")
 	private URI uri;
@@ -58,14 +50,27 @@ abstract public class GAEJDODatasetLayer implements
 	private Text releaseNotes;
 
 	@Persistent(dependent = "true")
-	private GAEJDORevision<GAEJDODatasetLayer> revision;
+	private GAEJDORevision<T> revision;
+	
+	@Persistent(dependent = "true")
+	private GAEJDOAnnotations annotations;
 
-	public GAEJDORevision<GAEJDODatasetLayer> getRevision() {
+
+
+	public GAEJDORevision<T> getRevision() {
 		return revision;
 	}
 
-	public void setRevision(GAEJDORevision<GAEJDODatasetLayer> revision) {
+	public void setRevision(GAEJDORevision<T> revision) {
 		this.revision = revision;
+	}
+
+	public GAEJDOAnnotations getAnnotations() {
+		return annotations;
+	}
+
+	public void setAnnotations(GAEJDOAnnotations annotations) {
+		this.annotations = annotations;
 	}
 
 	public Key getId() {
@@ -82,6 +87,14 @@ abstract public class GAEJDODatasetLayer implements
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public Date getCreationDate() {
+		return creationDate;
+	}
+
+	public void setCreationDate(Date creationDate) {
+		this.creationDate = creationDate;
 	}
 
 	public URI getUri() {
@@ -107,5 +120,10 @@ abstract public class GAEJDODatasetLayer implements
 	public void setReleaseNotes(Text releaseNotes) {
 		this.releaseNotes = releaseNotes;
 	}
+
+	public static Collection<String> getPrimaryFields() {
+		return Arrays.asList(new String[] { "name", "creationDate", "publicationDate", "releaseNotes" });
+	}
+	
 
 }

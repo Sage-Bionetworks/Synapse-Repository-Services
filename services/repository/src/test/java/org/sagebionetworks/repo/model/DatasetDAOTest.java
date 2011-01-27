@@ -104,7 +104,36 @@ public class DatasetDAOTest {
 		Assert.assertEquals(100F, weightType.iterator().next());
 		// test that version is retrieved
 		Assert.assertEquals(d2.getVersion(), "1.0");
+		
+		// test that name is required
+		
+		d2.setName(null);
+		try {
+			dao.update(d2);
+			Assert.fail("should have thrown InvalidModelException");
+		} catch (InvalidModelException ime){
+			// as expected
+		}
 
+	}
+	
+	private static InputDataLayer createLayer() {
+		InputDataLayer ans = new InputDataLayer();
+		ans.setName("input layer");
+		return ans;
+	}
+	
+	@Test
+	public void testCreateAndRetrieveLayer() throws Exception {
+		Dataset d = createShallow();
+		
+		DatasetDAO dao = fac.getDatasetDAO();
+		String id = dao.create(d);
+		Assert.assertNotNull(id);
+
+		InputDataLayer layer = createLayer();
+		InputDataLayerDAO layerDAO = dao.getInputDataLayerDAO(id);
+		layerDAO.create(layer);
 	}
 	
 	
