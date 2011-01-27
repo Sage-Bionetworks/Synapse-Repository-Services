@@ -60,7 +60,8 @@ public class DatasetController extends BaseController implements
 			.getName());
 
 	private AbstractEntityController<Dataset> entityController = new DAOControllerImp<Dataset>(
-			Dataset.class, new AnnotatableEntitiesAccessorImpl<Dataset>(Dataset.class));
+			Dataset.class, new AnnotatableEntitiesAccessorImpl<Dataset>(
+					Dataset.class));
 	private AbstractAnnotatableEntityController<Dataset> annotationsController = new AnnotationsDAOControllerImp<Dataset>(
 			Dataset.class);
 	private InputDataLayerDAO layerDao;
@@ -69,10 +70,10 @@ public class DatasetController extends BaseController implements
 		// TODO @Autowired, no GAE references allowed in this class
 		DAOFactory daoFactory = new GAEJDODAOFactoryImpl();
 		// BH: commented this out
-		//this.layerDao = daoFactory.getInputDataLayerDAO();
-		
+		// this.layerDao = daoFactory.getInputDataLayerDAO();
+
 		// TODO if I make all the DAOs here, I don't need to do it further down
-		
+
 	}
 
 	/*
@@ -87,26 +88,19 @@ public class DatasetController extends BaseController implements
 	@RequestMapping(value = "", method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Dataset> getEntities(
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, 
-					required = false, 
-					defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, 
-					required = false, 
-					defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, 
-					required = false, 
-					defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
-			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, 
-					required = false, 
-					defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
+			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending,
 			HttpServletRequest request) throws DatastoreException {
-		
-		PaginatedResults<Dataset> results = entityController.getEntities(offset, limit, sort, ascending, request);
-		
-		for(Dataset dataset : results.getResults()) {
+
+		PaginatedResults<Dataset> results = entityController.getEntities(
+				offset, limit, sort, ascending, request);
+
+		for (Dataset dataset : results.getResults()) {
 			addServiceSpecificMetadata(dataset, request);
 		}
-		
+
 		return results;
 	}
 
@@ -244,14 +238,14 @@ public class DatasetController extends BaseController implements
 		if (0 == dataset.getLayers().size()) {
 			Collection<LayerPreview> layers = new ArrayList<LayerPreview>();
 
-			layers.add(new LayerPreview("agxkZWZsYXV4LXRlc3RyEwsSDUdBRUpET0RhdGFzZXQYAQw",
-					"C",
+			layers.add(new LayerPreview(
+					"agxkZWZsYXV4LXRlc3RyEwsSDUdBRUpET0RhdGFzZXQYAQw", "C",
 					"/datalayer/agxkZWZsYXV4LXRlc3RyEwsSDUdBRUpET0RhdGFzZXQYAQw"));
-			layers.add(new LayerPreview("agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYiaECDA",
-					"E",
+			layers.add(new LayerPreview(
+					"agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYiaECDA", "E",
 					"agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYiaECDA"));
-			layers.add(new LayerPreview("agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYmfIBDA",
-					"G",
+			layers.add(new LayerPreview(
+					"agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYmfIBDA", "G",
 					"/datalayer/agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYmfIBDA"));
 			dataset.setLayers(layers);
 		}

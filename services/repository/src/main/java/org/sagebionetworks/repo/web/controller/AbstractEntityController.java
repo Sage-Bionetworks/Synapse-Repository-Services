@@ -39,8 +39,8 @@ public interface AbstractEntityController<T> {
 	 *            1-based pagination offset
 	 * @param limit
 	 *            maximum number of results to return
-	 * @param sort 
-	 * @param ascending 
+	 * @param sort
+	 * @param ascending
 	 * @param request
 	 *            used to form return URLs in the body of the response
 	 * @return list of all entities stored in the repository
@@ -50,17 +50,10 @@ public interface AbstractEntityController<T> {
 	@RequestMapping(value = "", method = RequestMethod.GET)
 	public @ResponseBody
 	abstract PaginatedResults<T> getEntities(
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, 
-					required = false, 
-					defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, 
-					required = false, 
-					defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, 
-					required = false, 
-					defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
-			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, 
-					required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
+			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending,
 			HttpServletRequest request) throws DatastoreException;
 
 	/**

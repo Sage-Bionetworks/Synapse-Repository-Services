@@ -25,21 +25,24 @@ import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 
 /**
- * This is the DAO for managing the annotations of annotatable objects.  It is made concrete for 
- * particular object types and particular annotation value types.  Further, it can be extended 
- * to add complexity, e.g. for revisable-annotatable types. 
+ * This is the DAO for managing the annotations of annotatable objects. It is
+ * made concrete for particular object types and particular annotation value
+ * types. Further, it can be extended to add complexity, e.g. for
+ * revisable-annotatable types.
  * 
  * @author bhoff
- *
- * @param <S> the DTO type
- * @param <T> the JDO (persisted) type
+ * 
+ * @param <S>
+ *            the DTO type
+ * @param <T>
+ *            the JDO (persisted) type
  * @param <A>the annotation value type (String, Boolean, Float, Date, Integer)
  */
 abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAnnotatable & GAEJDOBase, A extends Comparable<A>>
 		implements AnnotationDAO<S, A> {
 
 	// These methods are to be made concrete for particular types of annotations
-	
+
 	abstract protected Class<? extends GAEJDOAnnotation<A>> getAnnotationClass();
 
 	// we need this since we can't otherwise get the type of 'A' at runtime
@@ -60,15 +63,17 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	// -------------------------------------------------------------------
 
 	/**
-	 * Create a new instance of the data transfer object.  
-	 * Introducing this abstract method helps us avoid making assumptions about constructors.
+	 * Create a new instance of the data transfer object. Introducing this
+	 * abstract method helps us avoid making assumptions about constructors.
+	 * 
 	 * @return
 	 */
 	abstract public S newDTO();
 
 	/**
-	 * Create a new instance of the persistable object.
-	 * Introducing this abstract method helps us avoid making assumptions about constructors.
+	 * Create a new instance of the persistable object. Introducing this
+	 * abstract method helps us avoid making assumptions about constructors.
+	 * 
 	 * @return
 	 */
 	abstract public T newJDO();
@@ -100,7 +105,8 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	 * @param annotationClass
 	 * @param valueClass
 	 * @param value
-	 * @return the GAEJDOAnnotations objects having the given attribute/value pair
+	 * @return the GAEJDOAnnotations objects having the given attribute/value
+	 *         pair
 	 */
 	protected Collection<GAEJDOAnnotations> getAnnotationsHaving(
 			PersistenceManager pm, String attrib, String collectionName,
@@ -117,14 +123,12 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 		return ans;
 	}
 
-	
 	/**
-	 * Find the owner objects having the given annotations, subselecting a
-	 * range of results.
+	 * Find the owner objects having the given annotations, subselecting a range
+	 * of results.
 	 * 
 	 * NOTE: a different implementation is needed for Revisable objects. The
-	 * implementation is found in the
-	 * subclass GAEJDORevisableAnnotationDAOImpl
+	 * implementation is found in the subclass GAEJDORevisableAnnotationDAOImpl
 	 * 
 	 */
 	protected List<T> getHavingAnnotation(PersistenceManager pm, String attrib,
@@ -169,8 +173,7 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	/**
 	 * 
 	 * NOTE: a different implementation is needed for Revisable objects. The
-	 * implementation is found in the
-	 * subclass GAEJDORevisableAnnotationDAOImpl
+	 * implementation is found in the subclass GAEJDORevisableAnnotationDAOImpl
 	 * 
 	 * @return a collection of all objects of type T
 	 */
@@ -190,8 +193,9 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	 * @param start
 	 * @param end
 	 * @param asc
-	 * @return all objects of type 'T', sorted by the given annotation.  Nulls (owners not having the
-	 * annotation) go first in the returned list).
+	 * @return all objects of type 'T', sorted by the given annotation. Nulls
+	 *         (owners not having the annotation) go first in the returned
+	 *         list).
 	 */
 	private List<T> getSortedByAnnotation(PersistenceManager pm, String attrib,
 			String collectionName, Class annotationClass, int start, int end,
@@ -216,13 +220,17 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 			ownerValueMap.put(owner.getId(), extrValue);
 		}
 
+		// System.out.println("GAEJDOAnnotationDAOImpl: ownerValueMap: "+ownerValueMap);
+		// System.out.println("GAEJDOAnnotationDAOImpl: Before sorting: "+owners);
+
 		// now sort owners
 		// nulls always go first, otherwise ascending/descending depending on
 		// input param
 		Collections.sort(owners, new Comparator<T>() {
 			public int compare(T o1, T o2) {
-				A v1 = ownerValueMap.get(o1);
-				A v2 = ownerValueMap.get(o2);
+				A v1 = ownerValueMap.get(o1.getId());
+				A v2 = ownerValueMap.get(o2.getId());
+
 				if (v1 == null && v2 == null)
 					return 0;
 				if (v1 == null)
@@ -232,15 +240,20 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 				return ((asc ? 1 : -1) * v1.compareTo(v2));
 			}
 		});
+
+		// System.out.println("GAEJDOAnnotationDAOImpl: After sorting: "+owners);
+
 		List<T> ans = new ArrayList<T>();
 		for (int i = start; i < end && i < owners.size(); i++)
 			ans.add(owners.get(i));
 		return ans;
 	}
-	
+
 	protected boolean hasAnnotation(T jdo, String attribute, A value) {
-		for (GAEJDOAnnotation<A> annot: getIterable(jdo.getAnnotations())) {
-			if (annot.getAttribute().equals(attribute) && annot.getValue().equals(value)) return true;
+		for (GAEJDOAnnotation<A> annot : getIterable(jdo.getAnnotations())) {
+			if (annot.getAttribute().equals(attribute)
+					&& annot.getValue().equals(value))
+				return true;
 		}
 		return false;
 	}
@@ -304,7 +317,7 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	 * @param id
 	 *            the id of the 'Annotatable' owner object
 	 * @return all the annotations belonging to the given object
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
 	 */
 
 	public Map<String, Collection<A>> getAnnotations(String id)
@@ -337,9 +350,10 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	 * 
 	 * @param id
 	 * @param attribute
-	 * @return all the annotations of the given object having the given attribute
+	 * @return all the annotations of the given object having the given
+	 *         attribute
 	 * @throws DatastoreException
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
 	 */
 	public Collection<A> getAnnotations(String id, String attribute)
 			throws DatastoreException, NotFoundException {
@@ -404,7 +418,8 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	 * @param end
 	 * @param attrib
 	 * @param value
-	 * @return all objects having the given annotation, paginated by the given start and end.
+	 * @return all objects having the given annotation, paginated by the given
+	 *         start and end.
 	 */
 	public List<S> getInRangeHaving(int start, int end, String attribute,
 			A value) throws DatastoreException {
@@ -424,9 +439,10 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	 * @param start
 	 * @param end
 	 * @param sortByAttr
-	 * @param asc if true sort ascending, else sort descending
+	 * @param asc
+	 *            if true sort ascending, else sort descending
 	 * @return a List of all the objects in the system, paginated by the given
-	 * start and end and ordered by the given attribute.
+	 *         start and end and ordered by the given attribute.
 	 */
 	public List<S> getInRangeSortedBy(int start, int end, String sortByAttr,
 			boolean asc) throws DatastoreException {

@@ -41,10 +41,11 @@ public interface BaseDAO<T> {
 	 * @param dto
 	 *            non-null id is required
 	 * @throws DatastoreException
-	 * @throws InvalidModelException 
-	 * @throws NotFoundException 
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
 	 */
-	public void update(T dto) throws DatastoreException, InvalidModelException, NotFoundException;
+	public void update(T dto) throws DatastoreException, InvalidModelException,
+			NotFoundException;
 
 	/**
 	 * delete the object given by the given ID

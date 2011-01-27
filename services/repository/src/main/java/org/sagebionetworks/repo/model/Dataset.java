@@ -23,7 +23,7 @@ public class Dataset implements Base, Revisable {
 	private Date releaseDate;
 	private String version;
 	private String annotations; // URI for annotations
-	
+
 	private Collection<LayerPreview> layers; // (id, type, URI) triples for
 												// data layers
 

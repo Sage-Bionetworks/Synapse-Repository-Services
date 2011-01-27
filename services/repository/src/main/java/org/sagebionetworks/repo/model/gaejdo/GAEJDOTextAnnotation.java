@@ -8,11 +8,12 @@ import javax.jdo.annotations.PrimaryKey;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
+
 /**
- * This is the persistable class for a Annotations whose values are Texts
- * (i.e. strings longer than those allowed by GAE)
+ * This is the persistable class for a Annotations whose values are Texts (i.e.
+ * strings longer than those allowed by GAE)
  * 
- * Note:  equals and hashcode are based on the attribute and value, allowing 
+ * Note: equals and hashcode are based on the attribute and value, allowing
  * distinct annotations with the same attribute.
  * 
  * @author bhoff
@@ -24,8 +25,8 @@ public class GAEJDOTextAnnotation implements GAEJDOAnnotation<Text> {
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
 
-	 @Persistent
-	 private GAEJDOAnnotations owner; // this is the backwards pointer for the
+	@Persistent
+	private GAEJDOAnnotations owner; // this is the backwards pointer for the
 	// 1-1 owned relationship
 
 	@Persistent
@@ -53,13 +54,13 @@ public class GAEJDOTextAnnotation implements GAEJDOAnnotation<Text> {
 		this.id = id;
 	}
 
-	 public GAEJDOAnnotations getOwner() {
-	 return owner;
-	 }
-	
-	 public void setOwner(GAEJDOAnnotations owner) {
-	 this.owner = owner;
-	 }
+	public GAEJDOAnnotations getOwner() {
+		return owner;
+	}
+
+	public void setOwner(GAEJDOAnnotations owner) {
+		this.owner = owner;
+	}
 
 	public String getAttribute() {
 		return attribute;

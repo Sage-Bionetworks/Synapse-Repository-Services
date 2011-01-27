@@ -6,15 +6,17 @@ import org.sagebionetworks.repo.model.Base;
 import com.google.appengine.api.datastore.Key;
 
 /**
- * This interface defines the methods to be implemented by all persistent classes
+ * This interface defines the methods to be implemented by all persistent
+ * classes
  * 
  * @author bhoff
- *
+ * 
  */
 public interface GAEJDOBase {
 	/**
 	 * 
-	 * @param id id of the persistent object
+	 * @param id
+	 *            id of the persistent object
 	 */
 	public void setId(Key id);
 
@@ -26,7 +28,8 @@ public interface GAEJDOBase {
 
 	/**
 	 * 
-	 * @param d date the persistent object was created
+	 * @param d
+	 *            date the persistent object was created
 	 */
 	public void setCreationDate(Date d);
 

@@ -23,16 +23,15 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 
-abstract public class GAEJDORevisableAnnotatableDAOImpl
-	<S extends Base & Revisable, T extends GAEJDOAnnotatable & GAEJDOBase & GAEJDORevisable<T>> 
-		extends GAEJDORevisableDAOImpl<S,T>
-		implements RevisableDAO<S>, AnnotatableDAO<S> {
+abstract public class GAEJDORevisableAnnotatableDAOImpl<S extends Base & Revisable, T extends GAEJDOAnnotatable & GAEJDOBase & GAEJDORevisable<T>>
+		extends GAEJDORevisableDAOImpl<S, T> implements RevisableDAO<S>,
+		AnnotatableDAO<S> {
 
 	public T cloneJdo(T jdo) {
 		T clone = super.cloneJdo(jdo);
-		
+
 		clone.setAnnotations(jdo.getAnnotations().cloneJdo());
-		
+
 		return clone;
 	}
 
@@ -40,7 +39,8 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl
 	 * @param id
 	 * @return annotations for the given object of the given type
 	 */
-	public Annotations getAnnotations(String id) throws DatastoreException, NotFoundException {
+	public Annotations getAnnotations(String id) throws DatastoreException,
+			NotFoundException {
 		Annotations ans = new Annotations();
 		ans.setStringAnnotations(getStringAnnotationDAO().getAnnotations(id));
 		ans.setFloatAnnotations(getFloatAnnotationDAO().getAnnotations(id));
@@ -49,7 +49,7 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl
 	}
 
 	public AnnotationDAO<S, String> getStringAnnotationDAO() {
-		final GAEJDORevisableAnnotatableDAOImpl<S,T> parent = this;
+		final GAEJDORevisableAnnotatableDAOImpl<S, T> parent = this;
 		return new GAEJDORevisableAnnotationDAOImpl<S, T, String>() {
 			protected Class<? extends GAEJDOAnnotation<String>> getAnnotationClass() {
 				return GAEJDOStringAnnotation.class;
@@ -75,8 +75,7 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl
 				parent.copyToDto(jdo, dto);
 			}
 
-			public void copyFromDto(S dto, T jdo)
-					throws InvalidModelException {
+			public void copyFromDto(S dto, T jdo) throws InvalidModelException {
 				parent.copyFromDto(dto, jdo);
 			}
 
@@ -102,7 +101,7 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl
 	}
 
 	public AnnotationDAO<S, Float> getFloatAnnotationDAO() {
-		final GAEJDORevisableAnnotatableDAOImpl<S,T> parent = this;
+		final GAEJDORevisableAnnotatableDAOImpl<S, T> parent = this;
 		return new GAEJDORevisableAnnotationDAOImpl<S, T, Float>() {
 
 			protected Class<? extends GAEJDOAnnotation<Float>> getAnnotationClass() {
@@ -129,8 +128,7 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl
 				parent.copyToDto(jdo, dto);
 			}
 
-			public void copyFromDto(S dto, T jdo)
-					throws InvalidModelException {
+			public void copyFromDto(S dto, T jdo) throws InvalidModelException {
 				parent.copyFromDto(dto, jdo);
 			}
 
@@ -156,7 +154,7 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl
 	}
 
 	public AnnotationDAO<S, Date> getDateAnnotationDAO() {
-		final GAEJDORevisableAnnotatableDAOImpl<S,T> parent = this;
+		final GAEJDORevisableAnnotatableDAOImpl<S, T> parent = this;
 		return new GAEJDORevisableAnnotationDAOImpl<S, T, Date>() {
 			protected Class<? extends GAEJDOAnnotation<Date>> getAnnotationClass() {
 				return GAEJDODateAnnotation.class;
@@ -182,8 +180,7 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl
 				parent.copyToDto(jdo, dto);
 			}
 
-			public void copyFromDto(S dto, T jdo)
-					throws InvalidModelException {
+			public void copyFromDto(S dto, T jdo) throws InvalidModelException {
 				parent.copyFromDto(dto, jdo);
 			}
 
@@ -208,5 +205,4 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl
 		};
 	}
 
-	
 }

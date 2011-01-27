@@ -18,10 +18,11 @@ import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 
 /**
  * @author deflaux
- * @param <T> 
+ * @param <T>
  * 
  */
-public class AnnotatableEntitiesAccessorImpl<T extends Base> implements EntitiesAccessor<T> {
+public class AnnotatableEntitiesAccessorImpl<T extends Base> implements
+		EntitiesAccessor<T> {
 
 	private Class<T> theModelClass;
 	protected BaseDAO<T> dao;
@@ -46,7 +47,7 @@ public class AnnotatableEntitiesAccessorImpl<T extends Base> implements Entities
 		stringAnnotationDAO = annotatableDao.getStringAnnotationDAO();
 		floatAnnotationDAO = annotatableDao.getFloatAnnotationDAO();
 		dateAnnotationDAO = annotatableDao.getDateAnnotationDAO();
-		
+
 		primaryFields.addAll(dao.getPrimaryFields());
 	}
 
@@ -78,12 +79,12 @@ public class AnnotatableEntitiesAccessorImpl<T extends Base> implements Entities
 			} else {
 				entities = stringAnnotationDAO.getInRangeSortedBy(offset - 1,
 						offset + limit - 1, sort, ascending);
-				
+
 				// TODO need to find a good way to infer the type
-//					entities = floatAnnotationDAO.getInRangeSortedBy(offset - 1,
-//							offset + limit - 1, sort, ascending);
-//					entities = dateAnnotationDAO.getInRangeSortedBy(offset - 1,
-//							offset + limit - 1, sort, ascending);
+				// entities = floatAnnotationDAO.getInRangeSortedBy(offset - 1,
+				// offset + limit - 1, sort, ascending);
+				// entities = dateAnnotationDAO.getInRangeSortedBy(offset - 1,
+				// offset + limit - 1, sort, ascending);
 			}
 		}
 		return entities;

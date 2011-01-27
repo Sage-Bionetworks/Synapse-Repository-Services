@@ -54,7 +54,7 @@ public class GAEJDOAnnotationsTest {
 	public void tearDown() throws Exception {
 		helper.tearDown();
 	}
-	
+
 	private Key createAnnotations() {
 		PersistenceManager pm = null;
 		try {
@@ -66,25 +66,28 @@ public class GAEJDOAnnotationsTest {
 			tx.commit();
 			return a.getId();
 		} finally {
-			if (pm!=null) pm.close();
+			if (pm != null)
+				pm.close();
 		}
 	}
-	
+
 	private void addString(Key id) {
 		PersistenceManager pm = null;
 		try {
 			pm = PMF.get();
 			Transaction tx = pm.currentTransaction();
 			tx.begin();
-			GAEJDOAnnotations a = (GAEJDOAnnotations)pm.getObjectById(GAEJDOAnnotations.class, id);
+			GAEJDOAnnotations a = (GAEJDOAnnotations) pm.getObjectById(
+					GAEJDOAnnotations.class, id);
 			a.toString(); // <-- here we 'touch' all the annotations
 			Set<GAEJDOStringAnnotation> ss = a.getStringAnnotations();
-		
+
 			ss.add(new GAEJDOStringAnnotation("tissue", "brain"));
 			pm.makePersistent(a);
 			tx.commit();
 		} finally {
-			if (pm!=null) pm.close();
+			if (pm != null)
+				pm.close();
 		}
 	}
 
@@ -94,16 +97,18 @@ public class GAEJDOAnnotationsTest {
 			pm = PMF.get();
 			Transaction tx = pm.currentTransaction();
 			tx.begin();
-			GAEJDOAnnotations a = (GAEJDOAnnotations)pm.getObjectById(GAEJDOAnnotations.class, id);
+			GAEJDOAnnotations a = (GAEJDOAnnotations) pm.getObjectById(
+					GAEJDOAnnotations.class, id);
 			a.toString(); // <-- here we 'touch' all the annotations
 			Set<GAEJDOFloatAnnotation> ss = a.getFloatAnnotations();
-			//System.out.println("addFloat: isDirty="+JDOHelper.isDirty(a));
+			// System.out.println("addFloat: isDirty="+JDOHelper.isDirty(a));
 			ss.add(new GAEJDOFloatAnnotation("weight", 100F));
-			//System.out.println("addFloat: isDirty="+JDOHelper.isDirty(a));
+			// System.out.println("addFloat: isDirty="+JDOHelper.isDirty(a));
 			pm.makePersistent(a);
 			tx.commit();
 		} finally {
-			if (pm!=null) pm.close();
+			if (pm != null)
+				pm.close();
 		}
 	}
 
@@ -115,13 +120,14 @@ public class GAEJDOAnnotationsTest {
 		addString(id);
 		try {
 			pm = PMF.get();
-			
-			GAEJDOAnnotations a = (GAEJDOAnnotations)pm.getObjectById(GAEJDOAnnotations.class, id);
-			//System.out.println(a);
-			
+
+			GAEJDOAnnotations a = (GAEJDOAnnotations) pm.getObjectById(
+					GAEJDOAnnotations.class, id);
+			// System.out.println(a);
+
 			Query query = null;
 			List<GAEJDOAnnotations> annots = null;
-			
+
 			// now query by the String annotation "tissue"
 			query = pm.newQuery(GAEJDOAnnotations.class);
 			query.setFilter("this.stringAnnotations.contains(vAnnotation) && "
@@ -132,9 +138,9 @@ public class GAEJDOAnnotationsTest {
 					+ String.class.getName() + " pValue");
 
 			annots = (List<GAEJDOAnnotations>) query.execute("tissue", "brain");
-			Assert.assertEquals("Can't query by String annot", 1, annots.iterator().next().getStringAnnotations().size());
+			Assert.assertEquals("Can't query by String annot", 1, annots
+					.iterator().next().getStringAnnotations().size());
 
-			
 			query = pm.newQuery(GAEJDOAnnotations.class);
 			query.setFilter("this.floatAnnotations.contains(vAnnotation) && "
 					+ "vAnnotation.attribute==pAttrib && vAnnotation.value==pValue");
@@ -142,11 +148,14 @@ public class GAEJDOAnnotationsTest {
 					+ " vAnnotation");
 			query.declareParameters(String.class.getName() + " pAttrib, "
 					+ Float.class.getName() + " pValue");
-			annots = (List<GAEJDOAnnotations>) query.execute("weight", new Float(100F));
-			Assert.assertEquals("Can't query by Float annot", 1, annots.iterator().next().getFloatAnnotations().size());	
+			annots = (List<GAEJDOAnnotations>) query.execute("weight",
+					new Float(100F));
+			Assert.assertEquals("Can't query by Float annot", 1, annots
+					.iterator().next().getFloatAnnotations().size());
 
 		} finally {
-			if (pm!=null) pm.close();
+			if (pm != null)
+				pm.close();
 		}
 	}
 }

@@ -19,12 +19,13 @@ import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 
 /**
- * This class contains helper methods for DAOs.  Since each DAO may need to pick and choose
- * methods from various helpers, the chosen design pattern for the DAOs was that of a wrapper 
- * or adapter, rather than of a base class with extensions.  
+ * This class contains helper methods for DAOs. Since each DAO may need to pick
+ * and choose methods from various helpers, the chosen design pattern for the
+ * DAOs was that of a wrapper or adapter, rather than of a base class with
+ * extensions.
  * 
- * This class is parameterized by an (implementation independent) DTO type and a 
- * JDO specific JDO type.  It's the DAO's job to translate between these types as
+ * This class is parameterized by an (implementation independent) DTO type and a
+ * JDO specific JDO type. It's the DAO's job to translate between these types as
  * it persists and retrieves data.
  * 
  * @author bhoff
@@ -34,18 +35,21 @@ import com.google.appengine.api.datastore.KeyFactory;
  * @param <T>
  *            the JDO class
  */
-abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase> implements BaseDAO<S> {
+abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
+		implements BaseDAO<S> {
 
 	/**
-	 * Create a new instance of the data transfer object.  
-	 * Introducing this abstract method helps us avoid making assumptions about constructors.
+	 * Create a new instance of the data transfer object. Introducing this
+	 * abstract method helps us avoid making assumptions about constructors.
+	 * 
 	 * @return the new object
 	 */
 	abstract public S newDTO();
 
 	/**
-	 * Create a new instance of the persistable object.
-	 * Introducing this abstract method helps us avoid making assumptions about constructors.
+	 * Create a new instance of the persistable object. Introducing this
+	 * abstract method helps us avoid making assumptions about constructors.
+	 * 
 	 * @return the new object
 	 */
 	abstract public T newJDO();
@@ -75,14 +79,16 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase> im
 
 	/**
 	 * Create a clone of the given object in memory (no datastore operations)
-	 * Extentions of this class can go as deep as needed in copying data
-	 * to create a clone
-	 * @param jdo the object to clone
+	 * Extentions of this class can go as deep as needed in copying data to
+	 * create a clone
+	 * 
+	 * @param jdo
+	 *            the object to clone
 	 * @return the clone
 	 */
 	public T cloneJdo(T jdo) {
 		S dto = newDTO();
-		
+
 		copyToDto(jdo, dto);
 		T clone = newJDO();
 		try {
@@ -91,35 +97,37 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase> im
 			// better not, the content just came from a jdo!
 			throw new IllegalStateException(ime);
 		}
-		
+
 		return clone;
 	}
-	
+
 	/**
-	 * take care of any work that has to be done before deleting the persistent object
-	 * but within the same transaction (for example, deleteing objects which this object 
-	 * composes, but which are not represented by owned relationships)
+	 * take care of any work that has to be done before deleting the persistent
+	 * object but within the same transaction (for example, deleteing objects
+	 * which this object composes, but which are not represented by owned
+	 * relationships)
+	 * 
 	 * @param pm
-	 * @param jdo the object to be deleted
+	 * @param jdo
+	 *            the object to be deleted
 	 */
 	public void preDelete(PersistenceManager pm, T jdo) {
 		// for the base DAO, nothing needs to be done
 	}
-	
+
 	/**
-	 * take care of any work that has to be done after creating the persistent 
+	 * take care of any work that has to be done after creating the persistent
 	 * object but within the same transaction
+	 * 
 	 * @param pm
 	 * @param jdo
 	 */
-	public void postCreate(PersistenceManager pm, T jdo){
+	public void postCreate(PersistenceManager pm, T jdo) {
 		// for the base DAO, nothing needs to be done
 	}
 
-
-	
-
-	protected T create(PersistenceManager pm, S dto)  throws InvalidModelException, DatastoreException {
+	protected T create(PersistenceManager pm, S dto)
+			throws InvalidModelException, DatastoreException {
 		T jdo = newJDO();
 		//
 		// Set system-controlled immutable fields
@@ -131,17 +139,19 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase> im
 		dto.setCreationDate(new Date()); // now
 
 		copyFromDto(dto, jdo);
-		pm.makePersistent(jdo);	
+		pm.makePersistent(jdo);
 		return jdo;
 	}
 
 	/**
 	 * Create a new object, using the information in the passed DTO
+	 * 
 	 * @param dto
 	 * @return the ID of the created object
 	 * @throws InvalidModelException
 	 */
-	public String create(S dto) throws InvalidModelException, DatastoreException {
+	public String create(S dto) throws InvalidModelException,
+			DatastoreException {
 		PersistenceManager pm = PMF.get();
 		Transaction tx = null;
 		try {
@@ -166,7 +176,8 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase> im
 
 	/**
 	 * 
-	 * @param id id of the object to be retrieved
+	 * @param id
+	 *            id of the object to be retrieved
 	 * @return the DTO version of the retrieved object
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -178,24 +189,27 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase> im
 			T jdo = (T) pm.getObjectById(getJdoClass(), key);
 			S dto = newDTO();
 			copyToDto(jdo, dto);
-			pm.close();
 			return dto;
 		} catch (JDOObjectNotFoundException e) {
 			throw new NotFoundException(e);
 		} catch (Exception e) {
 			throw new DatastoreException(e);
+		} finally {
+			pm.close();
 		}
 	}
-	
+
 	// sometimes we need to delete from within another transaction
 	public void delete(PersistenceManager pm, T jdo) {
 		preDelete(pm, jdo);
-		pm.deletePersistent(jdo);		
+		pm.deletePersistent(jdo);
 	}
 
 	/**
 	 * Delete the specified object
-	 * @param id the id of the object to be deleted
+	 * 
+	 * @param id
+	 *            the id of the object to be deleted
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
@@ -220,7 +234,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase> im
 			pm.close();
 		}
 	}
-	
+
 	/**
 	 * This updates the 'shallow' properties. Version doesn't change.
 	 * 
@@ -240,8 +254,8 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase> im
 		pm.makePersistent(jdo);
 	}
 
-	public void update(S dto) throws DatastoreException,
-				InvalidModelException, NotFoundException {
+	public void update(S dto) throws DatastoreException, InvalidModelException,
+			NotFoundException {
 		PersistenceManager pm = PMF.get();
 		Transaction tx = null;
 		try {
@@ -261,17 +275,19 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase> im
 			}
 			pm.close();
 		}
-		
+
 	}
 
 	/**
-	 * Retrieve all objects of the given type, 'paginated' by the given start and end
+	 * Retrieve all objects of the given type, 'paginated' by the given start
+	 * and end
+	 * 
 	 * @param start
 	 * @param end
 	 * @return a subset of the results, starting at index 'start' and not going
 	 *         beyond index 'end'
 	 */
-	public List<S> getInRange(int start, int end) throws DatastoreException  {
+	public List<S> getInRange(int start, int end) throws DatastoreException {
 		PersistenceManager pm = PMF.get();
 		try {
 			Query query = pm.newQuery(getJdoClass());
@@ -293,8 +309,9 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase> im
 	}
 
 	/**
-	 * Retrieve all objects of the given type, 'paginated' by the given start and end and sorted 
-	 * by the specified primary field
+	 * Retrieve all objects of the given type, 'paginated' by the given start
+	 * and end and sorted by the specified primary field
+	 * 
 	 * @param start
 	 * @param end
 	 * @param sortBy
@@ -329,11 +346,13 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase> im
 	}
 
 	/**
-	 * Get the objects of the given type having the specified value in the given primary field,
-	 * and 'paginated' by the given start/end limits
+	 * Get the objects of the given type having the specified value in the given
+	 * primary field, and 'paginated' by the given start/end limits
+	 * 
 	 * @param start
 	 * @param end
-	 * @param attribute the name of the primary field
+	 * @param attribute
+	 *            the name of the primary field
 	 * @param value
 	 * @return
 	 */

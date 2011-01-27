@@ -123,8 +123,8 @@ public class AnnotationsDAOControllerImp<T extends Base> implements
 			for (String value : updatedAnnotation.getValue()) {
 				log.info("Adding string annotation ("
 						+ updatedAnnotation.getKey() + ", " + value + ")");
-				stringAnnotationDAO.addAnnotation(entityId, updatedAnnotation
-						.getKey(), value);
+				stringAnnotationDAO.addAnnotation(entityId,
+						updatedAnnotation.getKey(), value);
 			}
 		}
 
@@ -135,8 +135,8 @@ public class AnnotationsDAOControllerImp<T extends Base> implements
 			for (Float value : updatedAnnotation.getValue()) {
 				log.info("Adding float annotation ("
 						+ updatedAnnotation.getKey() + ", " + value + ")");
-				floatAnnotationDAO.addAnnotation(entityId, updatedAnnotation
-						.getKey(), value);
+				floatAnnotationDAO.addAnnotation(entityId,
+						updatedAnnotation.getKey(), value);
 			}
 		}
 
@@ -147,13 +147,13 @@ public class AnnotationsDAOControllerImp<T extends Base> implements
 			for (Date value : updatedAnnotation.getValue()) {
 				log.info("Adding date annotation ("
 						+ updatedAnnotation.getKey() + ", " + value + ")");
-				dateAnnotationDAO.addAnnotation(entityId, updatedAnnotation
-						.getKey(), value);
+				dateAnnotationDAO.addAnnotation(entityId,
+						updatedAnnotation.getKey(), value);
 			}
 		}
 
 		addServiceSpecificMetadata(id, updatedAnnotations, request);
-		
+
 		return updatedAnnotations;
 	}
 

@@ -74,8 +74,7 @@ public class PaginatedResults<T> implements Serializable {
 		this.totalNumberOfResults = totalNumberOfResults;
 
 		String sortUrlSuffix = (ServiceConstants.DEFAULT_SORT_BY_PARAM
-				.equals(sort)) 
-				? "" // The default is to not sort
+				.equals(sort)) ? "" // The default is to not sort
 				: "&" + ServiceConstants.SORT_BY_PARAM + "=" + sort + "&"
 						+ ServiceConstants.ASCENDING_PARAM + "=" + ascending;
 

@@ -29,14 +29,15 @@ import com.google.appengine.api.datastore.Text;
 
 @PersistenceCapable(detachable = "true")
 @Inheritance(strategy = InheritanceStrategy.SUBCLASS_TABLE)
-abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>> implements GAEJDORevisable<T>, GAEJDOBase, GAEJDOAnnotatable {
+abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
+		implements GAEJDORevisable<T>, GAEJDOBase, GAEJDOAnnotatable {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
 
 	@Persistent
 	private String name;
-	
+
 	@Persistent
 	private Date creationDate;
 
@@ -51,11 +52,9 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>> implem
 
 	@Persistent(dependent = "true")
 	private GAEJDORevision<T> revision;
-	
+
 	@Persistent(dependent = "true")
 	private GAEJDOAnnotations annotations;
-
-
 
 	public GAEJDORevision<T> getRevision() {
 		return revision;
@@ -122,8 +121,8 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>> implem
 	}
 
 	public static Collection<String> getPrimaryFields() {
-		return Arrays.asList(new String[] { "name", "creationDate", "publicationDate", "releaseNotes" });
+		return Arrays.asList(new String[] { "name", "creationDate",
+				"publicationDate", "releaseNotes" });
 	}
-	
 
 }
