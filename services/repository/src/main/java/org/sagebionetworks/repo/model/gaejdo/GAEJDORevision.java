@@ -33,6 +33,15 @@ public class GAEJDORevision<T extends GAEJDORevisable<T>> {
 
 	@Persistent
 	private Boolean latest; // true iff the latest revision
+	
+	public GAEJDORevision<T> cloneJdo() {
+		GAEJDORevision<T> clone = new GAEJDORevision<T>();
+		clone.setOriginal(getOriginal());
+		clone.setVersion(getVersion());
+		clone.setRevisionDate(getRevisionDate());
+		clone.setLatest(getLatest());
+		return clone;
+	}
 
 	public Key getOriginal() {
 		return original;

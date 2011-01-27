@@ -131,9 +131,25 @@ public class DatasetDAOTest {
 		String id = dao.create(d);
 		Assert.assertNotNull(id);
 
-		InputDataLayer layer = createLayer();
+		InputDataLayer layer1 = createLayer();
+		layer1.setName("clinical data");
 		InputDataLayerDAO layerDAO = dao.getInputDataLayerDAO(id);
-		layerDAO.create(layer);
+		layerDAO.create(layer1);
+		
+		InputDataLayer layer2 = createLayer();
+		layer2.setName("genotyping data");
+		layerDAO.create(layer2);
+		
+		Collection<InputDataLayer> layers = layerDAO.getInRange(0, 100);
+		Assert.assertEquals(2, layers.size());
+
+		layers = layerDAO.getInRangeSortedByPrimaryField(0, 100, "name", true);
+		Assert.assertEquals(2, layers.size());
+		Assert.assertEquals("clinical data", layers.iterator().next().getName());
+		
+		layers = layerDAO.getInRangeSortedByPrimaryField(0, 100, "name", false);
+		Assert.assertEquals(2, layers.size());
+		Assert.assertEquals("genotyping data", layers.iterator().next().getName());
 	}
 	
 	
@@ -143,6 +159,17 @@ public class DatasetDAOTest {
 	
 	@Test
 	public void testCreateAndDelete() throws Exception {
+		Dataset d = createShallow();
+		
+		DatasetDAO dao = fac.getDatasetDAO();
+		String id = dao.create(d);
+		Assert.assertNotNull(id);
+
+		InputDataLayer layer = createLayer();
+		InputDataLayerDAO layerDAO = dao.getInputDataLayerDAO(id);
+		layerDAO.create(layer);
+		
+		dao.delete(id);
 	}
 	
 	@Test

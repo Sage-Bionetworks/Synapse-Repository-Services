@@ -36,13 +36,6 @@ import com.google.appengine.api.datastore.KeyFactory;
  */
 public class GAEJDODatasetDAOImpl extends GAEJDORevisableAnnotatableDAOImpl<Dataset, GAEJDODataset> implements DatasetDAO {
 	
-//	private GAEJDOInputDataLayerDAOImpl inputDataLayerDAO = null;
-
-	public GAEJDODatasetDAOImpl() {
-		final GAEJDODatasetDAOImpl parent = this;
-//		inputDataLayerDAO = new GAEJDOInputDataLayerDAOImpl();
-	}
-
 	public Dataset newDTO() {
 		Dataset dto = new Dataset();
 		return dto;
@@ -57,6 +50,12 @@ public class GAEJDODatasetDAOImpl extends GAEJDORevisableAnnotatableDAOImpl<Data
 		GAEJDORevision<GAEJDODataset> r = new GAEJDORevision<GAEJDODataset>();
 		jdo.setRevision(r);
 		return jdo;
+	}
+	
+	public GAEJDODataset cloneJdo(GAEJDODataset jdo) {
+		GAEJDODataset clone = super.cloneJdo(jdo);
+		clone.setLayers(new HashSet<Key>(jdo.getLayers()));
+		return clone;
 	}
 
 	public void copyToDto(GAEJDODataset gae, Dataset dto) {
@@ -110,200 +109,30 @@ public class GAEJDODatasetDAOImpl extends GAEJDORevisableAnnotatableDAOImpl<Data
 		gae.setStatus(dto.getStatus());
 		gae.setReleaseDate(dto.getReleaseDate());
 	}
+	
+	/**
+	 * take care of any work that has to be done before deleting the persisted object
+	 * @param pm
+	 * @param jdo the object to be deleted
+	 */
+	public void preDelete(PersistenceManager pm, GAEJDODataset jdo) {
+		GAEJDOInputDataLayerDAOImpl layerDAO = new GAEJDOInputDataLayerDAOImpl(jdo.getId());
+		for (Key layerKey : jdo.getLayers()) {
+			GAEJDOInputDataLayer layer = (GAEJDOInputDataLayer) pm.getObjectById(GAEJDOInputDataLayer.class, layerKey);
+			layerDAO.delete(pm, layer);
+		}
+		super.preDelete(pm, jdo);
+	}
 
 	public Collection<String> getPrimaryFields() {
 		return Arrays.asList(new String[] { "name", "description", "creator",
 				"status", "releaseDate", "version" });
 	}
-//<<<<<<< .mine
-//=======
-//
-//	public List<Dataset> getInRange(int start, int end) throws DatastoreException {
-//		return revisableDAO.getInRange(start, end);
-//	}
-//
-//	public List<Dataset> getInRangeSortedByPrimaryField(int start, int end,
-//			String sortBy, boolean asc) throws DatastoreException {
-//		return revisableDAO.getInRangeSortedByPrimaryField(start, end, sortBy,
-//				asc);
-//	}
-//
-//	public List<Dataset> getInRangeHavingPrimaryField(int start, int end,
-//			String attribute, Object value) throws DatastoreException {
-//		return revisableDAO.getInRangeHavingPrimaryField(start, end, attribute,
-//				value);
-//	}
-//
-//	/**
-//	 * @param dataset
-//	 *            an original (not revised) dataset
-//	 * @return the id of the newly created dataset
-//	 * @throws DatastoreException
-//	 * @throws InvalidModelException
-//	 */
-//	public String create(Dataset dataset) throws DatastoreException,
-//			InvalidModelException {
-//		PersistenceManager pm = PMF.get();
-//		Transaction tx = null;
-//		try {
-//			tx = pm.currentTransaction();
-//			tx.begin();
-//
-//			//
-//			// Set system-controlled immutable fields
-//			//
-//			// Question: is this where we want to be setting immutable
-//			// system-controlled fields for our
-//			// objects? This should only be set at creation time so its not
-//			// appropriate to put it in copyFromDTO.
-//			dataset.setCreationDate(new Date()); // now
-//
-//			//
-//			// Set default values for optional fields that have defaults
-//			//
-//			// Question: is this where we want to specify reasonable default
-//			// values?
-//			if (null == dataset.getVersion()) {
-//				dataset.setVersion(DEFAULT_VERSION);
-//			}
-//
-//			GAEJDODataset jdo = revisableDAO.create(pm, dataset);
-//			tx.commit();
-//			copyToDto(jdo, dataset);
-//			return KeyFactory.keyToString(jdo.getId());
-//		} catch (InvalidModelException e) {
-//			throw e;
-//		} catch (Exception e) {
-//			throw new DatastoreException(e);
-//		} finally {
-//			if (tx.isActive()) {
-//				tx.rollback();
-//			}
-//			pm.close();
-//		}
-//	}
-//
-//	public Dataset get(String id) throws DatastoreException, NotFoundException {
-//		return baseDAO.get(id);
-//	}
-//
-//	public void delete(String id) throws DatastoreException, NotFoundException {
-//		baseDAO.delete(id);
-//
-//	}
-//
-//	/**
-//	 * This updates the 'shallow' properties. Neither Version nor deep
-//	 * properties change.
-//	 * 
-//	 * @param dto
-//	 *            non-null id is required
-//	 * @throws DatastoreException
-//	 * @throws InvalidModelException 
-//	 * @throws NotFoundException 
-//	 */
-//	public void update(Dataset dto) throws DatastoreException, InvalidModelException, NotFoundException {
-//		PersistenceManager pm = PMF.get();
-//		Transaction tx = null;
-//		try {
-//			tx = pm.currentTransaction();
-//			tx.begin();
-//			revisableDAO.update(pm, dto);
-//			tx.commit();
-//		} catch (InvalidModelException e) {
-//			throw e;
-//		} catch (JDOObjectNotFoundException e) {
-//			throw new NotFoundException(e);
-//		} catch (Exception e) {
-//			throw new DatastoreException(e);
-//		} finally {
-//			if (tx.isActive()) {
-//				tx.rollback();
-//			}
-//			pm.close();
-//		}
-//	}
-//
-//	/**
-//	 * Create a revision of the object specified by the 'id' and 'version'
-//	 * fields, having the shallow properties from the given 'revision', and the
-//	 * deep properties of the given 'version'. The new revision will have the
-//	 * version given by the 'newVersion' parameter.
-//	 * 
-//	 * @param revision
-//	 * @param newVersion
-//	 * @param revisionDate
-//	 */
-//	public String revise(Dataset revision, Date revisionDate)
-//			throws DatastoreException {
-//		PersistenceManager pm = PMF.get();
-//		Transaction tx = null;
-//		try {
-//			tx = pm.currentTransaction();
-//			tx.begin();
-//			GAEJDODataset newRevision = revisableDAO.revise(pm, revision,
-//					revisionDate);
-//			// now copy the 'deep' properties
-//			Key reviseeId = KeyFactory.stringToKey(revision.getId());
-//			GAEJDODataset revisee = (GAEJDODataset) pm.getObjectId(reviseeId);
-//			GAEJDOAnnotations a = GAEJDOAnnotations.clone(revisee
-//					.getAnnotations());
-//			newRevision.setAnnotations(a);
-//			newRevision.setLayers(new HashSet<Key>(revisee.getLayers()));
-//			pm.makePersistent(newRevision); // don't know if this is necessary
-//			tx.commit();
-//			return KeyFactory.keyToString(newRevision.getId());
-//		} catch (Exception e) {
-//			throw new DatastoreException(e);
-//		} finally {
-//			if (tx.isActive()) {
-//				tx.rollback();
-//			}
-//			pm.close();
-//		}
-//	}
-//
-//	public int getCount() throws DatastoreException {
-//		PersistenceManager pm = PMF.get();
-//		try {
-//			int count = revisableDAO.getCount(pm);
-//			return count;
-//		} catch (Exception e) {
-//			throw new DatastoreException(e);
-//		} finally {
-//			pm.close();
-//		}
-//	}
-//
-//	/**
-//	 * 
-//	 * @param id
-//	 *            the id of any revision of the object
-//	 * @return the latest version of the object
-//	 * @throws DatastoreException
-//	 *             if no result
-//	 */
-//	public Dataset getLatest(String id) throws DatastoreException {
-//		PersistenceManager pm = PMF.get();
-//		try {
-//			Dataset latest = revisableDAO.getLatest(pm, id);
-//			return latest;
-//		} catch (Exception e) {
-//			throw new DatastoreException(e);
-//		} finally {
-//			pm.close();
-//		}
-//	}
-//
 
-//>>>>>>> .r178
 	
 	public InputDataLayerDAO getInputDataLayerDAO(String datasetId) {
 		return new GAEJDOInputDataLayerDAOImpl(KeyFactory.stringToKey(datasetId));
 	}
-
-	
-	// TODO : when deleting a dataset, delete its layers too
 
 
 

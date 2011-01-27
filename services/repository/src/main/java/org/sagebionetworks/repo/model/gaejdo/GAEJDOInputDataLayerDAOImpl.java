@@ -63,8 +63,6 @@ public class GAEJDOInputDataLayerDAOImpl extends GAEJDORevisableAnnotatableDAOIm
 		} catch (URISyntaxException urie) {
 			throw new InvalidModelException(urie);
 		}
-//		jdo.setDescription(dto.getDescription());
-//		jdo.setReleaseDate(dto.getReleaseDate());
 	}
 	
 
@@ -79,5 +77,12 @@ public class GAEJDOInputDataLayerDAOImpl extends GAEJDORevisableAnnotatableDAOIm
 		return GAEJDOInputDataLayer.getPrimaryFields();
 	}
 	
-
+	/**
+	 * take care of any work that has to be done before deleting the persisted object
+	 * @param pm
+	 * @param jdo the object to be deleted
+	 */
+	public void preDelete(PersistenceManager pm, GAEJDOInputDataLayer jdo) {
+		// no-op!
+	}
 }

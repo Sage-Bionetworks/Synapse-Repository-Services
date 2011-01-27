@@ -32,6 +32,9 @@ public class GAEJDOScript implements GAEJDORevisable<GAEJDOScript> {
 	private GAEJDORevision<GAEJDOScript> revision;
 
 	@Persistent
+	private Date creationDate;
+
+	@Persistent
 	private Date publicationDate;
 
 	@Persistent
@@ -62,6 +65,14 @@ public class GAEJDOScript implements GAEJDORevisable<GAEJDOScript> {
 
 	public void setRevision(GAEJDORevision<GAEJDOScript> revision) {
 		this.revision = revision;
+	}
+
+	public Date getCreationDate() {
+		return creationDate;
+	}
+
+	public void setCreationDate(Date creationDate) {
+		this.creationDate = creationDate;
 	}
 
 	public Date getPublicationDate() {

@@ -197,7 +197,7 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 			String collectionName, Class annotationClass, int start, int end,
 			final boolean asc) {
 		// first, get all the owners
-		List<T> owners = new ArrayList(getAllOwners(pm));
+		List<T> owners = new ArrayList<T>(getAllOwners(pm));
 
 		// now we map the owner objects to their attribute values
 		final Map<Key, A> ownerValueMap = new HashMap<Key, A>();

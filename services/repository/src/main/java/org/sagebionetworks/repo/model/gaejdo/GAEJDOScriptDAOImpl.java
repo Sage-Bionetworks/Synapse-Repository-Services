@@ -12,11 +12,6 @@ import org.sagebionetworks.repo.model.ScriptDAO;
 import com.google.appengine.api.datastore.Key;
 
 public class GAEJDOScriptDAOImpl implements ScriptDAO {
-	// PersistenceManager pm;
-	//
-	// public GAEJDOScriptDAOImpl(PersistenceManager pm) {
-	// this.pm=pm;
-	// }
 
 	public GAEJDOScript getScript(Key id) {
 		PersistenceManager pm = PMF.get();
@@ -47,21 +42,6 @@ public class GAEJDOScriptDAOImpl implements ScriptDAO {
 		}
 	}
 
-	// public void delete(Script script) {
-	// PersistenceManager pm = PMF.get();
-	// Transaction tx=null;
-	// try {
-	// tx=pm.currentTransaction();
-	// tx.begin();
-	// pm.deletePersistent(script);
-	// tx.commit();
-	// } finally {
-	// if(tx.isActive()) {
-	// tx.rollback();
-	// }
-	// pm.close();
-	// }
-	// }
 
 	public void delete(Key id) {
 		PersistenceManager pm = PMF.get();
@@ -84,20 +64,6 @@ public class GAEJDOScriptDAOImpl implements ScriptDAO {
 		}
 	}
 
-	public void makeTransient(GAEJDOScript script) {
-		PersistenceManager pm = PMF.get();
-		Transaction tx = null;
-		try {
-			tx = pm.currentTransaction();
-			tx.begin();
-			pm.makeTransient(script);
-			tx.commit();
-		} finally {
-			if (tx.isActive()) {
-				tx.rollback();
-			}
-			pm.close();
-		}
-	}
+
 
 }

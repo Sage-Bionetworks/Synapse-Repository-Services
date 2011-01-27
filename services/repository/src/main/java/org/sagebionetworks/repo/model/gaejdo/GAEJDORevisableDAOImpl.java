@@ -8,52 +8,32 @@ import java.util.List;
 
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
+import javax.jdo.Transaction;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Revisable;
+import org.sagebionetworks.repo.model.RevisableDAO;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 
-abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GAEJDORevisable<T>> {
+abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJDORevisable<T>> 
+	extends GAEJDOBaseDAOImpl<S,T>
+	implements RevisableDAO<S> {
+	
+	
+	public T cloneJdo(T jdo) {
+		T clone = super.cloneJdo(jdo);
+		
+		clone.setRevision(jdo.getRevision().cloneJdo());
+				
+		return clone;
+	}
+	
+	// Question: is this the right spot for this sort of constant? 
+	private static final String DEFAULT_VERSION = "0.0.1";
 
-	/**
-	 * Create a new instance of the data transfer object.  
-	 * Introducing this abstract method helps us avoid making assumptions about constructors.
-	 * @return the new object
-	 */
-	abstract public S newDTO();
-
-	/**
-	 * Create a new instance of the persistable object.
-	 * Introducing this abstract method helps us avoid making assumptions about constructors.
-	 * @return the new object
-	 */
-	abstract public T newJDO();
-
-	/**
-	 * Do a shallow copy from the JDO object to the DTO object.
-	 * 
-	 * @param jdo
-	 * @param dto
-	 */
-	abstract public void copyToDto(T jdo, S dto);
-
-	/**
-	 * Do a shallow copy from the DTO object to the JDO object.
-	 * 
-	 * @param dto
-	 * @param jdo
-	 * @throws InvalidModelException
-	 */
-	abstract public void copyFromDto(S dto, T jdo) throws InvalidModelException;
-
-	/**
-	 * @param jdoClass
-	 *            the class parameterized by T
-	 */
-	abstract public Class<T> getJdoClass();
 
 	/**
 	 * Create a new Revisable object
@@ -67,16 +47,23 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 	 */
 	public T create(PersistenceManager pm, S dto) throws DatastoreException,
 			InvalidModelException {
-		T jdo = newJDO();
+		//
+		// Set default values for optional fields that have defaults
+		//
+		// Question: is this where we want to specify reasonable default
+		// values?
+		if (null == dto.getVersion()) {
+			dto.setVersion(DEFAULT_VERSION);
+		}
+		T jdo = super.create(pm, dto);
 		GAEJDORevision<T> r = jdo.getRevision();
 		r.setRevisionDate(dto.getCreationDate());
 		r.setVersion(new Version(dto.getVersion()));
 		r.setLatest(true);
-		copyFromDto(dto, jdo);
-		pm.makePersistent(jdo);
+		//copyFromDto(dto, jdo);
+		pm.makePersistent(jdo); // persist the owned Revision object
 		r.setOriginal(r.getId()); // points to itself
 		pm.makePersistent(jdo); // not sure if it's necessary to 'persist' again
-		jdo.getRevision().getVersion().toString();
 		return jdo;
 	}
 
@@ -92,12 +79,12 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 	public void update(PersistenceManager pm, S dto) throws DatastoreException,
 			InvalidModelException {
 		if (dto.getId() == null)
-			throw new DatastoreException("id is null");
+			throw new InvalidModelException("id is null");
 		Key id = KeyFactory.stringToKey(dto.getId());
 		T jdo = (T) pm.getObjectById(getJdoClass(), id);
 		if (!jdo.getRevision().getVersion()
 				.equals(new Version(dto.getVersion())))
-			throw new DatastoreException("Wrong version");
+			throw new InvalidModelException("Wrong version "+dto.getVersion());
 		copyFromDto(dto, jdo);
 		pm.makePersistent(jdo);
 	}
@@ -123,9 +110,9 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 	public T revise(PersistenceManager pm, S revision, Date revisionDate)
 			throws DatastoreException, InvalidModelException {
 		if (revision.getId() == null)
-			throw new DatastoreException("id is null");
+			throw new InvalidModelException("id is null");
 		if (revision.getVersion() == null)
-			throw new DatastoreException("version is null");
+			throw new InvalidModelException("version is null");
 
 		Key id = KeyFactory.stringToKey(revision.getId());
 
@@ -136,7 +123,13 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 			throw new DatastoreException("New version " + newVersion
 					+ " must be later than latest (" + latestVersion + ").");
 		}
-		T jdo = newJDO();
+		
+		// now copy the 'deep' properties
+		Key reviseeId = KeyFactory.stringToKey(revision.getId());
+		@SuppressWarnings("unchecked")
+		T revisee = (T) pm.getObjectId(reviseeId);
+
+		T jdo = cloneJdo(revisee);
 		copyFromDto(revision, jdo);
 		GAEJDORevision<T> r = jdo.getRevision();
 		r.setRevisionDate(revisionDate);
@@ -150,35 +143,36 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 	}
 	
 	/**
-	 * @param id is the key for the original revision
+	 * Create a revision of the object specified by the 'id' and 'version'
+	 * fields, having the shallow properties from the given 'revision', and the
+	 * deep properties of the given 'version'. The new revision will have the
+	 * version given by the 'newVersion' parameter.
+	 * 
+	 * @param revision
+	 * @param newVersion
+	 * @param revisionDate
 	 */
-	public S getLatest(PersistenceManager pm, String id)
+	public String revise(S revision, Date revisionDate)
 			throws DatastoreException {
-		Key key = KeyFactory.stringToKey(id);
-		T latest = getLatest(pm, key);
-		S dto = newDTO();
-		copyToDto(latest, dto);
-		return dto;
+		PersistenceManager pm = PMF.get();
+		Transaction tx = null;
+		try {
+			tx = pm.currentTransaction();
+			tx.begin();
+			T newRevision = revise(pm, revision, revisionDate);
+			pm.makePersistent(newRevision); // don't know if this is necessary
+			tx.commit();
+			return KeyFactory.keyToString(newRevision.getId());
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		} finally {
+			if (tx.isActive()) {
+				tx.rollback();
+			}
+			pm.close();
+		}
 	}
 
-	
-	/**
-	 * 
-	 * returns the number of objects of a certain revisable type, which are the
-	 * latest in their revision history
-	 * 
-	 */
-	public int getCount(PersistenceManager pm) throws DatastoreException {
-		Query query = pm.newQuery(getJdoClass());
-		query.setFilter("revision==r && r.latest==true");
-		query.declareVariables(GAEJDORevision.class.getName() + " r");
-		@SuppressWarnings("unchecked")
-		Collection<T> c = (Collection<T>) query.execute();
-		return c.size();
-	}
-
-	// 
-	
 	/**
 	 * @param id is the key for some revision
 	 */
@@ -199,6 +193,67 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 		return c.iterator().next();
 	}
 
+	/**
+	 * @param id is the key for the original revision
+	 */
+	public S getLatest(PersistenceManager pm, String id)
+			throws DatastoreException {
+		Key key = KeyFactory.stringToKey(id);
+		T latest = getLatest(pm, key);
+		S dto = newDTO();
+		copyToDto(latest, dto);
+		return dto;
+	}
+
+	/**
+	 * 
+	 * @param id
+	 *            the id of any revision of the object
+	 * @return the latest version of the object
+	 * @throws DatastoreException
+	 *             if no result
+	 */
+	public S getLatest(String id) throws DatastoreException {
+		PersistenceManager pm = PMF.get();
+		try {
+			S latest = getLatest(pm, id);
+			return latest;
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		} finally {
+			pm.close();
+		}
+	}
+
+	
+	/**
+	 * 
+	 * returns the number of objects of a certain revisable type, which are the
+	 * latest in their revision history
+	 * 
+	 */
+	public int getCount(PersistenceManager pm) throws DatastoreException {
+		Query query = pm.newQuery(getJdoClass());
+		query.setFilter("revision==r && r.latest==true");
+		query.declareVariables(GAEJDORevision.class.getName() + " r");
+		@SuppressWarnings("unchecked")
+		Collection<T> c = (Collection<T>) query.execute();
+		return c.size();
+	}
+
+	public int getCount() throws DatastoreException {
+	PersistenceManager pm = PMF.get();
+	try {
+		int count = getCount(pm);
+		return count;
+	} catch (Exception e) {
+		throw new DatastoreException(e);
+	} finally {
+		pm.close();
+	}
+}
+
+	
 	public T getVersion(PersistenceManager pm, String id, String v)
 			throws DatastoreException {
 		Key key = KeyFactory.stringToKey(id);
@@ -259,20 +314,53 @@ abstract public class GAEJDORevisableDAOHelper<S extends Revisable, T extends GA
 	}
 	
 	/**
-	 * @param id the key for some revision
+	 * Get all versions of an object
+	 * 
+	 * @param id
+	 * @return all revisions of the given object
 	 */
-	public void deleteAllVersions(PersistenceManager pm, Key id) {
-		// some revision, not necessarily first or last
-		T someRev = (T) pm.getObjectById(getJdoClass(), id); 
-
-		Query query = pm.newQuery(getJdoClass());
-		query.setFilter("revision==r && r.original==pFirstRevision");
-		query.declareVariables(GAEJDORevision.class.getName() + " r");
-		query.declareParameters(Key.class.getName() + " pFirstRevision");
-		@SuppressWarnings("unchecked")
-		Collection<T> jdos = (Collection<T>) query.execute(someRev
-				.getRevision().getOriginal());
-		pm.deletePersistentAll(jdos);
+	public Collection<S> getAllVersions(String id)
+			throws DatastoreException {
+		PersistenceManager pm = PMF.get();
+		try {
+			Collection<S> allVersions = getAllVersions(pm,
+					id);
+			return allVersions;
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		} finally {
+			pm.close();
+		}
+	}
+	
+	/**
+	 * Deletes all revisions of a S
+	 * 
+	 * @param id
+	 *            the id of any version of a revision series
+	 * @throws DatastoreException
+	 */
+	public void deleteAllVersions(String id) throws DatastoreException {
+		PersistenceManager pm = PMF.get();
+		Transaction tx = null;
+		try {
+			tx = pm.currentTransaction();
+			tx.begin();
+			Key key = KeyFactory.stringToKey(id);
+			Collection<T> allVersions = getAllVersions(pm, key);
+			for (T jdo : allVersions) {
+				preDelete(pm, jdo);
+				pm.deletePersistent(jdo);
+			}
+			tx.commit();
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		} finally {
+			if (tx.isActive()) {
+				tx.rollback();
+			}
+			pm.close();
+		}
 	}
 
 	/**
