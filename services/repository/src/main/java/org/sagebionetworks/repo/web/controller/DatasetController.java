@@ -15,7 +15,7 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.LayerMetadata;
+import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.view.PaginatedResults;
 import org.sagebionetworks.repo.web.AnnotatableDAOControllerImp;
@@ -237,15 +237,15 @@ public class DatasetController extends BaseController implements
 
 		// TODO inserting fake data for now, fix me!
 		if (0 == dataset.getLayers().size()) {
-			Collection<LayerMetadata> layers = new ArrayList<LayerMetadata>();
+			Collection<LayerPreview> layers = new ArrayList<LayerPreview>();
 
-			layers.add(new LayerMetadata("agxkZWZsYXV4LXRlc3RyEwsSDUdBRUpET0RhdGFzZXQYAQw",
+			layers.add(new LayerPreview("agxkZWZsYXV4LXRlc3RyEwsSDUdBRUpET0RhdGFzZXQYAQw",
 					"C",
 					"/datalayer/agxkZWZsYXV4LXRlc3RyEwsSDUdBRUpET0RhdGFzZXQYAQw"));
-			layers.add(new LayerMetadata("agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYiaECDA",
+			layers.add(new LayerPreview("agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYiaECDA",
 					"E",
 					"agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYiaECDA"));
-			layers.add(new LayerMetadata("agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYmfIBDA",
+			layers.add(new LayerPreview("agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYmfIBDA",
 					"G",
 					"/datalayer/agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYmfIBDA"));
 			dataset.setLayers(layers);

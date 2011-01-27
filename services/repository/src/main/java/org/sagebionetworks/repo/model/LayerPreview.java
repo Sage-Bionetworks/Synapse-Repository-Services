@@ -6,30 +6,34 @@ package org.sagebionetworks.repo.model;
 import java.util.Date;
 
 /**
- * LayerMetadata holds the few shallow DataLayer properties that should be
+ * LayerPreview holds the few shallow DataLayer properties that should be
  * returned with a Dataset DTO
+ * <p>
+ * 
+ * This is a "preview" type of object. When looking at the parent object (a
+ * Dataset) you can see that it has layers with URIs so that users know how to
+ * request them but it also includes the type field from a layer as a teaser - a
+ * preview of what is to come if you ask for the full-on layer object
  * 
  * @author deflaux
  * 
  */
-public class LayerMetadata implements Base {
+public class LayerPreview {
 
 	private String id;
 	private String type;
 	private String uri;
-	private String etag;
-	private Date creationDate;
 
 	/**
 	 * 
 	 */
-	public LayerMetadata() {
+	public LayerPreview() {
 	}
 
 	/**
 	 * @param id
 	 */
-	public LayerMetadata(String id) {
+	public LayerPreview(String id) {
 		this.id = id;
 	}
 
@@ -38,7 +42,7 @@ public class LayerMetadata implements Base {
 	 * @param type
 	 * @param uri
 	 */
-	public LayerMetadata(String id, String type, String uri) {
+	public LayerPreview(String id, String type, String uri) {
 		this.id = id;
 		this.type = type;
 		this.uri = uri;
@@ -87,22 +91,6 @@ public class LayerMetadata implements Base {
 	 */
 	public void setUri(String uri) {
 		this.uri = uri;
-	}
-
-	public String getEtag() {
-		return etag;
-	}
-
-	public void setEtag(String etag) {
-		this.etag = etag;
-	}
-
-	public Date getCreationDate() {
-		return creationDate;
-	}
-
-	public void setCreationDate(Date creationDate) {
-		this.creationDate = creationDate;
 	}
 
 }

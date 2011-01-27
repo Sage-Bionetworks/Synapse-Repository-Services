@@ -307,41 +307,40 @@ public class DatasetControllerTest {
 		assertFalse(results.getJSONObject("paging").has(
 				PaginatedResults.NEXT_PAGE_FIELD));
 
-		results = helper.testGetJsonEntities("/dataset", null, null, "name",
-				true);
+		results = helper.testGetJsonEntities("/dataset", null, 5, "name", true);
 		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
-		assertEquals(10, results.getJSONArray("results").length());
+		assertEquals(5, results.getJSONArray("results").length());
 		assertExpectedDatasetsProperties(results.getJSONArray("results"));
 		assertFalse(results.getJSONObject("paging").has(
 				PaginatedResults.PREVIOUS_PAGE_FIELD));
-		assertEquals("/dataset?offset=11&limit=10&sort=name&ascending=true",
+		assertEquals("/dataset?offset=6&limit=5&sort=name&ascending=true",
 				results.getJSONObject("paging").getString(
 						PaginatedResults.NEXT_PAGE_FIELD));
 		List<String> sortedDatasetNames = Arrays.asList(sampleDatasetNames);
 		Collections.sort(sortedDatasetNames);
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i < 5; i++) {
 			assertEquals(sortedDatasetNames.get(i), results.getJSONArray(
 					"results").getJSONObject(i).getString("name"));
 		}
 
-		results = helper.testGetJsonEntities("/dataset", null, null, "name",
-				false);
+		results = helper
+				.testGetJsonEntities("/dataset", null, 5, "name", false);
 		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
-		assertEquals(10, results.getJSONArray("results").length());
+		assertEquals(5, results.getJSONArray("results").length());
 		assertExpectedDatasetsProperties(results.getJSONArray("results"));
 		assertFalse(results.getJSONObject("paging").has(
 				PaginatedResults.PREVIOUS_PAGE_FIELD));
-		assertEquals("/dataset?offset=11&limit=10&sort=name&ascending=false",
+		assertEquals("/dataset?offset=6&limit=5&sort=name&ascending=false",
 				results.getJSONObject("paging").getString(
 						PaginatedResults.NEXT_PAGE_FIELD));
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i < 5; i++) {
 			assertEquals(sortedDatasetNames.get(sortedDatasetNames.size() - 1
 					- i), results.getJSONArray("results").getJSONObject(i)
 					.getString("name"));
 		}
 
-		// TODO this test is too long, break it up and probably toss it into 
-		// another test suite 
+		// TODO this test is too long, break it up and probably toss it into
+		// another test suite
 		// TODO sort on a date property, sort on a numeric property
 		// TODO sort on an annotation property
 	}
@@ -548,10 +547,9 @@ public class DatasetControllerTest {
 	 */
 	@Test
 	public void testGetDatasetsBadSortField() throws Exception {
-		JSONObject error = helper.testGetJsonEntitiesShouldFail("/dataset", null,
-				null, "foo", true, HttpStatus.BAD_REQUEST);
-		assertEquals("Field 'foo' is not sortable", error
-				.getString("reason"));
+		JSONObject error = helper.testGetJsonEntitiesShouldFail("/dataset",
+				null, null, "foo", true, HttpStatus.BAD_REQUEST);
+		assertEquals("Field 'foo' is not sortable", error.getString("reason"));
 	}
 
 	/*****************************************************************************************************
@@ -661,8 +659,11 @@ public class DatasetControllerTest {
 			throws Exception {
 		// Check required properties
 		assertTrue(results.has("name"));
+		assertFalse("null".equals(results.getString("name")));
+
 		// Check immutable system-defined properties
 		assertTrue(results.has("annotations"));
+		assertFalse("null".equals(results.getString("annotations")));
 		assertTrue(results.has("layers"));
 
 		// Check our currently hard-coded layer metadata
@@ -675,8 +676,11 @@ public class DatasetControllerTest {
 			assertTrue(results.getJSONArray("layers").getJSONObject(1).has(
 					"uri"));
 		}
+
 		assertTrue(results.has("creationDate"));
+		assertFalse("null".equals(results.getString("creationDate")));
 		// Check that optional properties that receive default values
 		assertTrue(results.has("version"));
+		assertFalse("null".equals(results.getString("version")));
 	}
 }

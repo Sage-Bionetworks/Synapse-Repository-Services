@@ -262,6 +262,7 @@ public class Helpers {
 		assertEquals(status.value(), response.getStatus());
 		JSONObject results = new JSONObject(response.getContentAsString());
 		assertTrue(results.has("reason"));
+		assertFalse("null".equals(results.getString("reason")));
 
 		return results;
 	}
@@ -286,6 +287,7 @@ public class Helpers {
 		assertEquals(status.value(), response.getStatus());
 		JSONObject results = new JSONObject(response.getContentAsString());
 		assertTrue(results.has("reason"));
+		assertFalse("null".equals(results.getString("reason")));
 
 		return results;
 	}
@@ -313,6 +315,7 @@ public class Helpers {
 		assertEquals(status.value(), response.getStatus());
 		JSONObject results = new JSONObject(response.getContentAsString());
 		assertTrue(results.has("reason"));
+		assertFalse("null".equals(results.getString("reason")));
 
 		return results;
 	}
@@ -337,6 +340,7 @@ public class Helpers {
 		assertEquals(status.value(), response.getStatus());
 		JSONObject results = new JSONObject(response.getContentAsString());
 		assertTrue(results.has("reason"));
+		assertFalse("null".equals(results.getString("reason")));
 
 		return results;
 	}
@@ -380,6 +384,7 @@ public class Helpers {
 		assertEquals(status.value(), response.getStatus());
 		JSONObject results = new JSONObject(response.getContentAsString());
 		assertTrue(results.has("reason"));
+		assertFalse("null".equals(results.getString("reason")));
 
 		return results;
 	}
@@ -411,7 +416,11 @@ public class Helpers {
 		assertEquals(0, symmetricDiff.size());
 	}
 
-	private void assertExpectedEntitiesProperties(JSONArray results)
+	/**
+	 * @param results
+	 * @throws Exception
+	 */
+	public void assertExpectedEntitiesProperties(JSONArray results)
 			throws Exception {
 		for (int i = 0; i < results.length(); i++) {
 			JSONObject entity = results.getJSONObject(i);
@@ -419,13 +428,20 @@ public class Helpers {
 		}
 	}
 
-	private void assertExpectedEntityProperties(JSONObject results)
+	/**
+	 * @param results
+	 * @throws Exception
+	 */
+	public void assertExpectedEntityProperties(JSONObject results)
 			throws Exception {
 
 		// Check default properties
 		assertTrue(results.has("id"));
+		assertFalse("null".equals(results.getString("id")));
 		assertTrue(results.has("uri"));
+		assertFalse("null".equals(results.getString("uri")));
 		assertTrue(results.has("etag"));
+		assertFalse("null".equals(results.getString("etag")));
 	}
 
 }
