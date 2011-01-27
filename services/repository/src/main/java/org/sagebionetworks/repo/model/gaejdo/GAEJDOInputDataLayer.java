@@ -1,19 +1,23 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 
 @PersistenceCapable(detachable = "true")
-public class GAEJDOInputDataLayer extends GAEJDODatasetLayer {
+public class GAEJDOInputDataLayer extends GAEJDODatasetLayer<GAEJDOInputDataLayer> {
 
-	public enum DataType {
-		PHENOTYPE, EXPRESSION, GENOTYPE, SEQUENCE
-	}
+//	public enum DataType {
+//		PHENOTYPE, EXPRESSION, GENOTYPE, SEQUENCE
+//	}
 
 	@Persistent
-	private DataType type;
+	private String type;
 
 	@Persistent
 	private String tissueType;
@@ -30,11 +34,11 @@ public class GAEJDOInputDataLayer extends GAEJDODatasetLayer {
 	@Persistent
 	private Date qcDate;
 
-	public DataType getType() {
+	public String getType() {
 		return type;
 	}
 
-	public void setType(DataType type) {
+	public void setType(String type) {
 		this.type = type;
 	}
 
@@ -77,5 +81,19 @@ public class GAEJDOInputDataLayer extends GAEJDODatasetLayer {
 	public void setQcDate(Date qcDate) {
 		this.qcDate = qcDate;
 	}
+	
+	public static Collection<String> getPrimaryFields() {
+		List<String> ans = new ArrayList<String>(GAEJDODatasetLayer.getPrimaryFields());
+		ans.addAll(Arrays.asList(new String[] { 
+				"type",
+				"tissueType",
+				"platform",
+				"processingFacility",
+				"qcBy",
+				"qcDate"
+				}));
+		return ans;
+	}
+
 
 }

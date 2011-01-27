@@ -6,16 +6,9 @@ import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
 
-import org.sagebionetworks.repo.model.AnalysisResultDAO;
-
 import com.google.appengine.api.datastore.Key;
 
-public class GAEJDOAnalysisResultDAOImpl implements AnalysisResultDAO {
-	// PersistenceManager pm;
-	//
-	// public GAEJDOAnalysisResultDAOImpl() {
-	// this.pm=pm;
-	// }
+public class GAEJDOAnalysisResultDAOHelper {
 
 	public GAEJDOAnalysisResult getAnalysisResult(Key id) {
 		PersistenceManager pm = PMF.get();
@@ -41,21 +34,6 @@ public class GAEJDOAnalysisResultDAOImpl implements AnalysisResultDAO {
 		}
 	}
 
-	// public void delete(AnalysisResult analysisResult) {
-	// PersistenceManager pm = PMF.get();
-	// Transaction tx=null;
-	// try {
-	// tx=pm.currentTransaction();
-	// tx.begin();
-	// pm.deletePersistent(analysisResult);
-	// tx.commit();
-	// } finally {
-	// if(tx.isActive()) {
-	// tx.rollback();
-	// }
-	// pm.close();
-	// }
-	// }
 
 	public void delete(Key id) {
 		PersistenceManager pm = PMF.get();
@@ -63,7 +41,7 @@ public class GAEJDOAnalysisResultDAOImpl implements AnalysisResultDAO {
 		try {
 			tx = pm.currentTransaction();
 			tx.begin();
-			Query q = pm.newQuery(AnalysisResultDAO.class);
+			Query q = pm.newQuery(GAEJDOAnalysisResult.class);
 			q.setFilter("id==pId");
 			q.declareParameters(Key.class.getName() + " pId");
 			@SuppressWarnings("unchecked")

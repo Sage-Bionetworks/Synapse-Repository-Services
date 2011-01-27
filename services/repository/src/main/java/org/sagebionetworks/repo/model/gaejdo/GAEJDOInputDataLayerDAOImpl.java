@@ -1,101 +1,83 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
 
+import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InputDataLayerDAO;
+import org.sagebionetworks.repo.model.InvalidModelException;
 
 import com.google.appengine.api.datastore.Key;
+import com.google.appengine.api.datastore.KeyFactory;
 
-public class GAEJDOInputDataLayerDAOImpl implements InputDataLayerDAO {
-	// PersistenceManager pm;
-	//
-	// public GAEJDOInputDataLayerDAOImpl(PersistenceManager pm) {
-	// this.pm=pm;
-	// }
+public class GAEJDOInputDataLayerDAOImpl extends GAEJDORevisableAnnotatableDAOImpl<InputDataLayer, GAEJDOInputDataLayer> 
+	implements InputDataLayerDAO {
 
-	public GAEJDOInputDataLayer getDataLayer(Key id) {
-		PersistenceManager pm = PMF.get();
-		GAEJDOInputDataLayer ans = (GAEJDOInputDataLayer) pm.getObjectById(
-				GAEJDOInputDataLayer.class, id);
-		// pm.close();
-		return ans;
+	private Key datasetId = null;
+	
+	public GAEJDOInputDataLayerDAOImpl(Key datasetId) {
+		this.datasetId = datasetId;
+	}
+	
+	public InputDataLayer newDTO() {return new InputDataLayer();}
+
+	public GAEJDOInputDataLayer newJDO() {
+		GAEJDOInputDataLayer jdo = new GAEJDOInputDataLayer();
+		
+		GAEJDOAnnotations a = GAEJDOAnnotations.newGAEJDOAnnotations();
+		jdo.setAnnotations(a);
+		GAEJDORevision<GAEJDOInputDataLayer> r = new GAEJDORevision<GAEJDOInputDataLayer>();
+		jdo.setRevision(r);
+		
+		return jdo;
+	}
+	
+	public void copyToDto(GAEJDOInputDataLayer jdo, InputDataLayer dto) {
+		dto.setName(jdo.getName());
+		dto.setCreationDate(jdo.getCreationDate());
+		dto.setUri(dto.getUri()==null? null : dto.getUri().toString());
 	}
 
-	public void makePersistent(GAEJDOInputDataLayer inputDataLayer) {
-		PersistenceManager pm = PMF.get();
-		Transaction tx = null;
+	/**
+	 * Do a shallow copy from the DTO object to the JDO object.
+	 * 
+	 * @param dto
+	 * @param jdo
+	 * @throws InvalidModelException
+	 */
+	public void copyFromDto(InputDataLayer dto, GAEJDOInputDataLayer jdo) throws InvalidModelException {
+		jdo.setName(dto.getName());
+		jdo.setCreationDate(dto.getCreationDate());
 		try {
-			tx = pm.currentTransaction();
-			tx.begin();
-			pm.makePersistent(inputDataLayer);
-			tx.commit();
-		} finally {
-			if (tx.isActive()) {
-				tx.rollback();
-			}
-			pm.close();
+			jdo.setUri(dto.getUri()==null ? null : new URI(dto.getUri()));
+		} catch (URISyntaxException urie) {
+			throw new InvalidModelException(urie);
 		}
+//		jdo.setDescription(dto.getDescription());
+//		jdo.setReleaseDate(dto.getReleaseDate());
 	}
+	
 
-	// public void delete(InputDataLayer inputDataLayer) {
-	// PersistenceManager pm = PMF.get();
-	// Transaction tx=null;
-	// try {
-	// tx=pm.currentTransaction();
-	// tx.begin();
-	// pm.deletePersistent(inputDataLayer);
-	// tx.commit();
-	// } finally {
-	// if(tx.isActive()) {
-	// tx.rollback();
-	// }
-	// pm.close();
-	// }
-	// }
+	/**
+	 * @param jdoClass
+	 *            the class parameterized by T
+	 */
+	public Class<GAEJDOInputDataLayer> getJdoClass() {return GAEJDOInputDataLayer.class;}
 
-	public void makeTransient(GAEJDOInputDataLayer inputDataLayer) {
-		PersistenceManager pm = PMF.get();
-		Transaction tx = null;
-		try {
-			tx = pm.currentTransaction();
-			tx.begin();
-			pm.makeTransient(inputDataLayer);
-			tx.commit();
-		} finally {
-			if (tx.isActive()) {
-				tx.rollback();
-			}
-			pm.close();
-		}
+
+	public Collection<String> getPrimaryFields() {
+		return GAEJDOInputDataLayer.getPrimaryFields();
 	}
-
-	public void delete(Key id) {
-		PersistenceManager pm = PMF.get();
-		Transaction tx = null;
-		try {
-			tx = pm.currentTransaction();
-			tx.begin();
-			Query q = pm.newQuery(GAEJDOInputDataLayer.class);
-			q.setFilter("id==pId");
-			q.declareParameters(Key.class.getName() + " pId");
-			@SuppressWarnings("unchecked")
-			Collection<GAEJDOInputDataLayer> layers = (Collection<GAEJDOInputDataLayer>) q
-					.execute(id);
-			if (layers.size() != 1)
-				throw new IllegalStateException("Expected 1 but got "
-						+ layers.size());
-			pm.deletePersistent(layers.iterator().next());
-			tx.commit();
-		} finally {
-			if (tx.isActive()) {
-				tx.rollback();
-			}
-			pm.close();
-		}
-	}
+	
 
 }
