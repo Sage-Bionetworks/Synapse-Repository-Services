@@ -18,9 +18,11 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.view.PaginatedResults;
+import org.sagebionetworks.repo.web.AnnotatableEntitiesAccessorImpl;
 import org.sagebionetworks.repo.web.AnnotationsDAOControllerImp;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.DAOControllerImp;
+import org.sagebionetworks.repo.web.EntitiesAccessorImpl;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -58,7 +60,7 @@ public class DatasetController extends BaseController implements
 			.getName());
 
 	private AbstractEntityController<Dataset> entityController = new DAOControllerImp<Dataset>(
-			Dataset.class);
+			Dataset.class, new AnnotatableEntitiesAccessorImpl<Dataset>(Dataset.class));
 	private AbstractAnnotatableEntityController<Dataset> annotationsController = new AnnotationsDAOControllerImp<Dataset>(
 			Dataset.class);
 	private InputDataLayerDAO layerDao;
@@ -68,6 +70,9 @@ public class DatasetController extends BaseController implements
 		DAOFactory daoFactory = new GAEJDODAOFactoryImpl();
 		// BH: commented this out
 		//this.layerDao = daoFactory.getInputDataLayerDAO();
+		
+		// TODO if I make all the DAOs here, I don't need to do it further down
+		
 	}
 
 	/*

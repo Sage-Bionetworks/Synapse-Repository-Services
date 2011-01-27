@@ -266,87 +266,6 @@ public class DatasetControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#getEntities}
-	 * .
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testGetDatasets() throws Exception {
-		int totalNumDatasets = sampleDatasetNames.length;
-
-		// Load up a few datasets
-		for (int i = 0; i < totalNumDatasets; i++) {
-			helper.testCreateJsonEntity("/dataset", "{\"name\":\""
-					+ sampleDatasetNames[i] + "\"}");
-		}
-
-		JSONObject results = helper.testGetJsonEntities("/dataset", null, null,
-				null, null);
-		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
-		assertEquals(10, results.getJSONArray("results").length());
-		assertExpectedDatasetsProperties(results.getJSONArray("results"));
-		assertFalse(results.getJSONObject("paging").has(
-				PaginatedResults.PREVIOUS_PAGE_FIELD));
-		assertEquals("/dataset?offset=11&limit=10", results.getJSONObject(
-				"paging").getString(PaginatedResults.NEXT_PAGE_FIELD));
-
-		// TODO parse the query params on the url
-		// results =
-		// helper.testGetJsonEntities(results.getJSONObject("paging").getString(PaginatedResults.NEXT_PAGE_FIELD));
-		results = helper.testGetJsonEntities("/dataset", 11, 10, null, null);
-		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
-		// TODO these tests assume there are less than 20 datasets total, make
-		// this code
-		// adapt to changes in the total number
-		assertEquals(totalNumDatasets - 10, results.getJSONArray("results")
-				.length());
-		assertExpectedDatasetsProperties(results.getJSONArray("results"));
-		assertEquals("/dataset?offset=1&limit=10", results.getJSONObject(
-				"paging").getString(PaginatedResults.PREVIOUS_PAGE_FIELD));
-		assertFalse(results.getJSONObject("paging").has(
-				PaginatedResults.NEXT_PAGE_FIELD));
-
-		results = helper.testGetJsonEntities("/dataset", null, 5, "name", true);
-		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
-		assertEquals(5, results.getJSONArray("results").length());
-		assertExpectedDatasetsProperties(results.getJSONArray("results"));
-		assertFalse(results.getJSONObject("paging").has(
-				PaginatedResults.PREVIOUS_PAGE_FIELD));
-		assertEquals("/dataset?offset=6&limit=5&sort=name&ascending=true",
-				results.getJSONObject("paging").getString(
-						PaginatedResults.NEXT_PAGE_FIELD));
-		List<String> sortedDatasetNames = Arrays.asList(sampleDatasetNames);
-		Collections.sort(sortedDatasetNames);
-		for (int i = 0; i < 5; i++) {
-			assertEquals(sortedDatasetNames.get(i), results.getJSONArray(
-					"results").getJSONObject(i).getString("name"));
-		}
-
-		results = helper
-				.testGetJsonEntities("/dataset", null, 5, "name", false);
-		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
-		assertEquals(5, results.getJSONArray("results").length());
-		assertExpectedDatasetsProperties(results.getJSONArray("results"));
-		assertFalse(results.getJSONObject("paging").has(
-				PaginatedResults.PREVIOUS_PAGE_FIELD));
-		assertEquals("/dataset?offset=6&limit=5&sort=name&ascending=false",
-				results.getJSONObject("paging").getString(
-						PaginatedResults.NEXT_PAGE_FIELD));
-		for (int i = 0; i < 5; i++) {
-			assertEquals(sortedDatasetNames.get(sortedDatasetNames.size() - 1
-					- i), results.getJSONArray("results").getJSONObject(i)
-					.getString("name"));
-		}
-
-		// TODO this test is too long, break it up and probably toss it into
-		// another test suite
-		// TODO sort on a date property, sort on a numeric property
-		// TODO sort on an annotation property
-	}
-
-	/**
-	 * Test method for
 	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#updateEntity}
 	 * .
 	 * 
@@ -507,51 +426,6 @@ public class DatasetControllerTest {
 				.matches("entity with id .* was updated since you last fetched it, retrieve it again and reapply the update"));
 	}
 
-	/**
-	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#getEntities}
-	 * .
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testGetDatasetsBadLimit() throws Exception {
-
-		JSONObject error = helper.testGetJsonEntitiesShouldFail("/dataset", 1,
-				0, null, null, HttpStatus.BAD_REQUEST);
-		assertEquals("pagination limit must be 1 or greater", error
-				.getString("reason"));
-	}
-
-	/**
-	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#getEntities}
-	 * .
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testGetDatasetsBadOffset() throws Exception {
-		JSONObject error = helper.testGetJsonEntitiesShouldFail("/dataset", -5,
-				10, null, null, HttpStatus.BAD_REQUEST);
-		assertEquals("pagination offset must be 1 or greater", error
-				.getString("reason"));
-	}
-
-	/**
-	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#getEntities}
-	 * .
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testGetDatasetsBadSortField() throws Exception {
-		JSONObject error = helper.testGetJsonEntitiesShouldFail("/dataset",
-				null, null, "foo", true, HttpStatus.BAD_REQUEST);
-		assertEquals("Field 'foo' is not sortable", error.getString("reason"));
-	}
-
 	/*****************************************************************************************************
 	 * Not Found Tests
 	 */
@@ -647,15 +521,15 @@ public class DatasetControllerTest {
 				error.getString("reason"));
 	}
 
-	private void assertExpectedDatasetsProperties(JSONArray results)
-			throws Exception {
-		for (int i = 0; i < results.length(); i++) {
-			JSONObject dataset = results.getJSONObject(i);
-			assertExpectedDatasetProperties(dataset);
-		}
-	}
-
-	private void assertExpectedDatasetProperties(JSONObject results)
+	/*****************************************************************************************************
+	 * Dataset-specific helpers
+	 */
+	
+	/**
+	 * @param results
+	 * @throws Exception
+	 */
+	public static void assertExpectedDatasetProperties(JSONObject results)
 			throws Exception {
 		// Check required properties
 		assertTrue(results.has("name"));

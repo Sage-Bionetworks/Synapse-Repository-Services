@@ -7,11 +7,9 @@ import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.model.AnnotationDAO;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DAOFactory;
-import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
@@ -38,21 +36,68 @@ public class DAOControllerImp<T extends Base> implements
 
 	protected Class<T> theModelClass;
 	protected BaseDAO<T> dao;
-	protected Set<String> primaryFields = new HashSet<String>();
+	protected EntitiesAccessor<T> entitiesAccessor;
 	
 	/**
 	 * @param theModelClass
 	 */
 	@SuppressWarnings("unchecked")
-	public DAOControllerImp(Class<T> theModelClass) {
+	public DAOControllerImp(Class<T> theModelClass, EntitiesAccessor<T> entitiesAccessor) {
 		this.theModelClass = theModelClass;
+		this.entitiesAccessor = entitiesAccessor;
 		// TODO @Autowired, no GAE references allowed in this class
 		DAOFactory daoFactory = new GAEJDODAOFactoryImpl();
 		this.dao = daoFactory.getDAO(theModelClass);
-		
-		primaryFields.addAll(dao.getPrimaryFields());
-		
 	}
+	
+
+	/**
+	 * @return the theModelClass
+	 */
+	public Class<T> getTheModelClass() {
+		return theModelClass;
+	}
+
+
+	/**
+	 * @param theModelClass the theModelClass to set
+	 */
+	public void setTheModelClass(Class<T> theModelClass) {
+		this.theModelClass = theModelClass;
+	}
+
+
+	/**
+	 * @return the dao
+	 */
+	public BaseDAO<T> getDao() {
+		return dao;
+	}
+
+
+	/**
+	 * @param dao the dao to set
+	 */
+	public void setDao(BaseDAO<T> dao) {
+		this.dao = dao;
+	}
+
+
+	/**
+	 * @return the entitiesAccessor
+	 */
+	public EntitiesAccessor<T> getEntitiesAccessor() {
+		return entitiesAccessor;
+	}
+
+
+	/**
+	 * @param entitiesAccessor the entitiesAccessor to set
+	 */
+	public void setEntitiesAccessor(EntitiesAccessor<T> entitiesAccessor) {
+		this.entitiesAccessor = entitiesAccessor;
+	}
+
 
 	/*
 	 * (non-Javadoc)
@@ -65,19 +110,8 @@ public class DAOControllerImp<T extends Base> implements
 
 		ServiceConstants.validatePaginationParams(offset, limit);
 
-		List<T> entities = null;
-		if(ServiceConstants.DEFAULT_SORT_BY_PARAM.equals(sort)) {
-			// The default is to not sort
-			entities = dao.getInRange(offset - 1, offset + limit - 1);
-		}
-		else {
-			if(primaryFields.contains(sort)) {
-				entities = dao.getInRangeSortedByPrimaryField(offset - 1, offset + limit - 1, sort, ascending);
-			}
-			else {
-				throw new IllegalArgumentException("Field '" + sort + "' is not sortable");
-			}
-		}
+		List<T> entities = entitiesAccessor.getInRangeSortedBy(offset, limit, sort, ascending);
+
 		for(T entity : entities) {
 			addServiceSpecificMetadata(entity, request);
 		}
