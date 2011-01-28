@@ -1,18 +1,13 @@
 package org.sagebionetworks.repo.web;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
-import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.view.PaginatedResults;
 import org.sagebionetworks.repo.web.controller.AbstractEntityController;
 
@@ -31,24 +26,18 @@ import org.sagebionetworks.repo.web.controller.AbstractEntityController;
 public class DAOControllerImp<T extends Base> implements
 		AbstractEntityController<T> {
 
-	private static final Logger log = Logger.getLogger(DAOControllerImp.class
-			.getName());
-
-	protected Class<T> theModelClass;
-	protected BaseDAO<T> dao;
-	protected EntitiesAccessor<T> entitiesAccessor;
+	private Class<T> theModelClass;
+	private BaseDAO<T> dao;
+	private EntitiesAccessor<T> entitiesAccessor;
 
 	/**
 	 * @param theModelClass
+	 * @param entitiesAccessor 
 	 */
-	@SuppressWarnings("unchecked")
 	public DAOControllerImp(Class<T> theModelClass,
 			EntitiesAccessor<T> entitiesAccessor) {
 		this.theModelClass = theModelClass;
 		this.entitiesAccessor = entitiesAccessor;
-		// TODO @Autowired, no GAE references allowed in this class
-		DAOFactory daoFactory = new GAEJDODAOFactoryImpl();
-		this.dao = daoFactory.getDAO(theModelClass);
 	}
 
 	/**
@@ -132,9 +121,11 @@ public class DAOControllerImp<T extends Base> implements
 	public T getEntity(String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException {
 
-		T entity = dao.get(id);
+		String entityId = UrlHelpers.getEntityIdFromUriId(id);
+
+		T entity = dao.get(entityId);
 		if (null == entity) {
-			throw new NotFoundException("no entity with id " + id + " exists");
+			throw new NotFoundException("no entity with id " + entityId + " exists");
 		}
 
 		addServiceSpecificMetadata(entity, request);

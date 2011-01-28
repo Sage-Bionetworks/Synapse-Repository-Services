@@ -111,12 +111,17 @@ public class ControllerTest {
 		Collection<String> urls = UrlHelpers.getAllUrlPrefixes();
 		for (String url : urls) {
 
+			url = (null == UrlHelpers.getParentForChildUrl(url)) ? url
+					: UrlHelpers.getParentForChildUrl(url) + "/123" + url;
+			
 			MockHttpServletRequest request = new MockHttpServletRequest();
 			MockHttpServletResponse response = new MockHttpServletResponse();
 			request.setMethod("POST");
 			request.addHeader("Accept", "application/json");
 			request.setRequestURI(url);
-			request.addHeader("Content-Type", "application/json; charset=UTF-8");
+			request
+					.addHeader("Content-Type",
+							"application/json; charset=UTF-8");
 			// No call to request.setContent()
 			servlet.service(request, response);
 			log.info("Results: " + response.getContentAsString());
@@ -126,8 +131,8 @@ public class ControllerTest {
 			// The response should be something like:
 			// {"reason":"No content to map to Object due to end of input"}
 			assertEquals("Testing " + url,
-					"No content to map to Object due to end of input",
-					results.getString("reason"));
+					"No content to map to Object due to end of input", results
+							.getString("reason"));
 		}
 	}
 
@@ -143,13 +148,18 @@ public class ControllerTest {
 
 		Collection<String> urls = UrlHelpers.getAllUrlPrefixes();
 		for (String url : urls) {
+			
+			url = (null == UrlHelpers.getParentForChildUrl(url)) ? url
+					: UrlHelpers.getParentForChildUrl(url) + "/123" + url;
 
 			MockHttpServletRequest request = new MockHttpServletRequest();
 			MockHttpServletResponse response = new MockHttpServletResponse();
 			request.setMethod("PUT");
 			request.addHeader("Accept", "application/json");
 			request.setRequestURI(url + "/1");
-			request.addHeader("Content-Type", "application/json; charset=UTF-8");
+			request
+					.addHeader("Content-Type",
+							"application/json; charset=UTF-8");
 			request.addHeader(ServiceConstants.ETAG_HEADER, "123");
 			// No call to request.setContent()
 			servlet.service(request, response);
@@ -160,8 +170,8 @@ public class ControllerTest {
 			// The response should be something like:
 			// {"reason":"No content to map to Object due to end of input"}
 			assertEquals("Testing " + url,
-					"No content to map to Object due to end of input",
-					results.getString("reason"));
+					"No content to map to Object due to end of input", results
+							.getString("reason"));
 		}
 	}
 
@@ -176,15 +186,21 @@ public class ControllerTest {
 	public void testUpdateEntityMissingEtag() throws Exception {
 		Collection<String> urls = UrlHelpers.getAllUrlPrefixes();
 		for (String url : urls) {
+			
+			url = (null == UrlHelpers.getParentForChildUrl(url)) ? url
+					: UrlHelpers.getParentForChildUrl(url) + "/123" + url;
 
 			MockHttpServletRequest request = new MockHttpServletRequest();
 			MockHttpServletResponse response = new MockHttpServletResponse();
 			request.setMethod("PUT");
 			request.addHeader("Accept", "application/json");
 			request.setRequestURI(url + "/1");
-			request.addHeader("Content-Type", "application/json; charset=UTF-8");
-			request.setContent("{\"id\": 1, \"text\":\"updated dataset from a unit test\"}"
-					.getBytes("UTF-8"));
+			request
+					.addHeader("Content-Type",
+							"application/json; charset=UTF-8");
+			request
+					.setContent("{\"id\": 1, \"text\":\"updated dataset from a unit test\"}"
+							.getBytes("UTF-8"));
 			servlet.service(request, response);
 			log.info("Results: " + response.getContentAsString());
 			assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
@@ -197,10 +213,8 @@ public class ControllerTest {
 			// throws org.sagebionetworks.repo.web.NotFoundException]; nested
 			// exception is java.lang.IllegalStateException:
 			// Missing header 'Etag' of type [java.lang.String]"}
-			assertTrue(
-					"Testing " + url,
-					results.getString("reason").matches(
-							"(?s).*Missing header 'ETag'.*"));
+			assertTrue("Testing " + url, results.getString("reason").matches(
+					"(?s).*Missing header 'ETag'.*"));
 		}
 	}
 }

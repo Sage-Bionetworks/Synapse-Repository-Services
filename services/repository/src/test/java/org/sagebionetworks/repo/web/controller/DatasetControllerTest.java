@@ -7,20 +7,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
-import java.util.List;
 import java.util.logging.Logger;
 
 import org.joda.time.DateTime;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.view.PaginatedResults;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -49,15 +44,6 @@ public class DatasetControllerTest {
 			.getLogger(DatasetControllerTest.class.getName());
 	private Helpers helper = new Helpers();
 	private DispatcherServlet servlet;
-
-	private String sampleDatasetNames[] = { "DeLiver", "MouseCross",
-			"Harvard Brain", "Glioblastoma TCGA",
-			"Mouse Model of Diet-Induced Atherosclerosis",
-			"TCGA Curation Package",
-			"Mouse Model of Sexually Dimorphic Atherosclerotic Traits",
-			"Hepatocellular Carcinoma HongKong", "Human Liver Cohort",
-			"METABRIC Breast Cancer", "Harvard Brain Tissue Resource Center",
-			"Pediatric AML TARGET", "Flint HS Mice", };
 
 	/**
 	 * @throws java.lang.Exception

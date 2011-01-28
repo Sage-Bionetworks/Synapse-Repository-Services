@@ -47,18 +47,18 @@ public class AnnotationsDAOControllerImp<T extends Base> implements
 	/**
 	 * @param theModelClass
 	 */
-	@SuppressWarnings("unchecked")
 	public AnnotationsDAOControllerImp(Class<T> theModelClass) {
 		this.theModelClass = theModelClass;
-		// TODO @Autowired, no GAE references allowed in this class
-		DAOFactory daoFactory = new GAEJDODAOFactoryImpl();
-		this.annotatableDao = (AnnotatableDAO<T>) daoFactory
-				.getDAO(theModelClass);
-		this.stringAnnotationDAO = annotatableDao.getStringAnnotationDAO();
-		this.floatAnnotationDAO = annotatableDao.getFloatAnnotationDAO();
-		this.dateAnnotationDAO = annotatableDao.getDateAnnotationDAO();
 	}
 
+	@Override
+	public void setDao(BaseDAO<T> dao) {
+		annotatableDao = (AnnotatableDAO<T>) dao;
+		stringAnnotationDAO = annotatableDao.getStringAnnotationDAO();
+		floatAnnotationDAO = annotatableDao.getFloatAnnotationDAO();
+		dateAnnotationDAO = annotatableDao.getDateAnnotationDAO();
+	}
+	
 	/*
 	 * (non-Javadoc)
 	 * 

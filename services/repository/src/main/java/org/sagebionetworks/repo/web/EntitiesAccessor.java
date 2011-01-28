@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.Base;
+import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 
 /**
@@ -10,6 +11,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
  * entities of a particular type
  * 
  * @author deflaux
+ * @param <T> 
  * 
  */
 public interface EntitiesAccessor<T extends Base> {
@@ -21,5 +23,7 @@ public interface EntitiesAccessor<T extends Base> {
 
 	public List<T> getInRangeHaving(int offset, int limit, String attribute,
 			Object value);
+	
+	public void setDao(BaseDAO<T> dao);
 
 }
