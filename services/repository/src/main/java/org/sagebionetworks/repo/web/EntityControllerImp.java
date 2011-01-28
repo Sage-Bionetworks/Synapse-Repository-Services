@@ -5,6 +5,7 @@ import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.server.EntityRepository;
 import org.sagebionetworks.repo.view.PaginatedResults;
 import org.sagebionetworks.repo.web.controller.AbstractEntityController;
@@ -118,5 +119,11 @@ public class EntityControllerImp<T> implements AbstractEntityController<T> {
 			throw new NotFoundException("no entity with id " + id + " exists");
 		}
 		return;
+	}
+
+	@Override
+	public void setDao(BaseDAO<T> dao) {
+		// TODO Auto-generated method stub
+		
 	}
 }

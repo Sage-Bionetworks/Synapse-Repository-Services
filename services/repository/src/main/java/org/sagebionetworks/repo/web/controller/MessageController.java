@@ -5,6 +5,7 @@ import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.Message;
 import org.sagebionetworks.repo.server.EntityRepository;
 import org.sagebionetworks.repo.view.PaginatedResults;
@@ -193,6 +194,12 @@ public class MessageController extends BaseController implements
 	public String sanityCheck(ModelMap modelMap) {
 		modelMap.put("hello", "REST for Messages rocks");
 		return ""; // use the default view
+	}
+
+	@Override
+	public void setDao(BaseDAO<Message> dao) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

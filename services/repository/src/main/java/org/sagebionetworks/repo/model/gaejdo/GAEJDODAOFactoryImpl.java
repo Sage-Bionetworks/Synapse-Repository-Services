@@ -58,21 +58,4 @@ public class GAEJDODAOFactoryImpl implements DAOFactory {
 		return new GAEJDODatasetAnalysisDAOImpl();
 	}
 
-	public BaseDAO getDAO(Class theModelClass) {
-		if (MODEL2DAO.containsKey(theModelClass)) {
-			Class theDAOClass = MODEL2DAO.get(theModelClass);
-			try {
-				return (BaseDAO) theDAOClass.newInstance();
-			} catch (Exception e) {
-				// This should not happen since we are referring to Class
-				// objects
-				// in the map (as opposed to class names)
-				log.log(Level.SEVERE,
-						"Unable to instantiate DAO class of type "
-								+ theDAOClass + " for model class "
-								+ theModelClass, e);
-			}
-		}
-		return null;
-	}
 }

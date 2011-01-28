@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.web.controller;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.Base;
+import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -23,7 +25,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * 
  * @param <T>
  */
-public interface AbstractAnnotatableEntityController<T> {
+public interface AbstractAnnotatableEntityController<T extends Base> {
 
 	/**
 	 * Get annotations for a specific entity
@@ -77,4 +79,10 @@ public interface AbstractAnnotatableEntityController<T> {
 			HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException;
 
+	/**
+	 * Set the DAO for this controller to use
+	 * 
+	 * @param dao
+	 */
+	public abstract void setDao(BaseDAO<T> dao);
 }

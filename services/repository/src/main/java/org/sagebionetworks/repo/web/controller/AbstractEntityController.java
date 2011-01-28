@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.view.PaginatedResults;
@@ -142,5 +143,12 @@ public interface AbstractEntityController<T> {
 	@RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
 	public abstract void deleteEntity(@PathVariable String id)
 			throws NotFoundException, DatastoreException;
+	
+	/**
+	 * Set the Base DAO for this controller to use
+	 * 
+	 * @param dao
+	 */
+	public abstract void setDao(BaseDAO<T> dao);
 
 }

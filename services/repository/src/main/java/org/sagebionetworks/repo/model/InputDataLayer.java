@@ -162,8 +162,6 @@ public class InputDataLayer implements DatasetLayer {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
-				+ ((annotations == null) ? 0 : annotations.hashCode());
-		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result
 				+ ((description == null) ? 0 : description.hashCode());
@@ -197,11 +195,6 @@ public class InputDataLayer implements DatasetLayer {
 		if (getClass() != obj.getClass())
 			return false;
 		InputDataLayer other = (InputDataLayer) obj;
-		if (annotations == null) {
-			if (other.annotations != null)
-				return false;
-		} else if (!annotations.equals(other.annotations))
-			return false;
 		if (creationDate == null) {
 			if (other.creationDate != null)
 				return false;

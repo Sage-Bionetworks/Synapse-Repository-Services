@@ -87,7 +87,7 @@ public class GAEJDOInputDataLayerDAOImpl extends
 		// validation logic will become more complex over time
 		if (null == dto.getName()) {
 			throw new InvalidModelException(
-					"'name' is a required property for Dataset");
+					"'name' is a required property for InputDataLayer");
 		}
 		jdo.setName(dto.getName());
 		jdo.setDescription(new Text(dto.getDescription()));

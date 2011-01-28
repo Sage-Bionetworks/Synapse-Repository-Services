@@ -5,32 +5,22 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.logging.Logger;
 
 import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.view.PaginatedResults;
 import org.springframework.http.HttpStatus;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.servlet.DispatcherServlet;
 
 /**
  * Unit tests for the Dataset CRUD operations exposed by the DatasetController
@@ -49,10 +39,7 @@ import org.springframework.web.servlet.DispatcherServlet;
 		"classpath:repository-servlet.xml" })
 public class DatasetsControllerTest {
 
-	private static final Logger log = Logger
-			.getLogger(DatasetsControllerTest.class.getName());
 	private Helpers helper = new Helpers();
-	private DispatcherServlet servlet;
 
 	private String sampleDatasetNames[] = { "DeLiver", "MouseCross",
 			"Harvard Brain", "Glioblastoma TCGA",
@@ -76,7 +63,7 @@ public class DatasetsControllerTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
-		servlet = helper.setUp();
+		helper.setUp();
 	}
 
 	/**

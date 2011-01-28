@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -16,6 +18,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.Comment;
 import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.Message;
 
 /**
@@ -36,6 +39,8 @@ public class UrlHelpers {
 	private static final Logger log = Logger.getLogger(UrlHelpers.class
 			.getName());
 
+	public static final String ANNOTATIONS = "/annotations";
+	
 	/**
 	 * URL prefix for comment model objects
 	 * 
@@ -49,6 +54,12 @@ public class UrlHelpers {
 	public static final String DATASET = "/dataset";
 
 	/**
+	 * URL prefix for dataset layer model objects
+	 * 
+	 */
+	public static final String LAYER = "/layer";
+
+	/**
 	 * URL prefix for message objects
 	 * 
 	 */
@@ -59,12 +70,39 @@ public class UrlHelpers {
 	 */
 	private static final Map<Class, String> MODEL2URL;
 
+	/**
+	 * Mapping of child models to their parent models
+	 */
+	private static final Map<Class, Class> CHILD2PARENTMODEL;
+
+	/**
+	 * Mapping of child urls to their parent urls
+	 */
+	private static final Map<String, String> CHILD2PARENTURL;
+	
+	// This is a memoized cache for our URL regular expressions
+	private static Map<Class,Pattern> MODEL2REGEX = new HashMap(); 
+
 	static {
 		Map<Class, String> model2url = new HashMap<Class, String>();
 		model2url.put(Comment.class, COMMENT);
 		model2url.put(Dataset.class, DATASET);
+		model2url.put(InputDataLayer.class, LAYER);
 		model2url.put(Message.class, MESSAGE);
 		MODEL2URL = Collections.unmodifiableMap(model2url);
+
+		// TODO we don't need all these maps, and for those that we do, we can
+		// derive them from each other
+
+		Map<Class, Class> child2parent = new HashMap<Class, Class>();
+		child2parent.put(InputDataLayer.class, Dataset.class);
+		CHILD2PARENTMODEL = Collections.unmodifiableMap(child2parent);
+
+		Map<String, String> child2parenturl = new HashMap<String, String>();
+		// TODO create this using the other maps, being lazy right now
+		child2parenturl.put(LAYER, DATASET);
+		CHILD2PARENTURL = Collections.unmodifiableMap(child2parenturl);
+
 	}
 
 	/**
@@ -75,6 +113,26 @@ public class UrlHelpers {
 	 */
 	public static String getUrlForModel(Class theModelClass) {
 		return MODEL2URL.get(theModelClass);
+	}
+
+	/**
+	 * Determine the the parent model class given a child model class
+	 * 
+	 * @param theChildModelClass
+	 * @return the parent model class
+	 */
+	public static Class getParentForChildModel(Class theChildModelClass) {
+		return CHILD2PARENTMODEL.get(theChildModelClass);
+	}
+
+	/**
+	 * Determine the the parent url given a child url
+	 * 
+	 * @param childUrl
+	 * @return the parent URL
+	 */
+	public static String getParentForChildUrl(String childUrl) {
+		return CHILD2PARENTURL.get(childUrl);
 	}
 
 	/**
@@ -92,14 +150,20 @@ public class UrlHelpers {
 	 * This includes not only the entity id but also the controller and servlet
 	 * portions of the path
 	 * 
+	 * Dev Note: I can imagine that this bit of code will evolve quite a bit
+	 * over time as we expand the variety of our urls and query parameters
+	 * 
 	 * @param entity
 	 * @param request
 	 * @return the relative URI for the entity
 	 */
 	public static String makeEntityUri(Base entity, HttpServletRequest request) {
+		
+		String urlPrefix = getUrlPrefix(entity, request);
+
 		String uri = null;
 		try {
-			uri = request.getServletPath()
+			uri = urlPrefix
 					+ UrlHelpers.getUrlForModel(entity.getClass()) + "/"
 					+ URLEncoder.encode(entity.getId(), "UTF-8");
 		} catch (UnsupportedEncodingException e) {
@@ -124,18 +188,8 @@ public class UrlHelpers {
 	 */
 	public static String makeEntityAnnotationsUri(Class entityClass,
 			Annotations annotations, HttpServletRequest request) {
-		String uri = null;
-		try {
-			uri = request.getServletPath()
-					+ UrlHelpers.getUrlForModel(entityClass) + "/"
-					+ URLEncoder.encode(annotations.getId(), "UTF-8")
-					+ "/annotations";
-		} catch (UnsupportedEncodingException e) {
-			log.log(Level.SEVERE,
-					"Something is really messed up if we don't support UTF-8",
-					e);
-		}
-		return uri;
+		
+		return request.getRequestURI();
 	}
 
 	/**
@@ -151,12 +205,15 @@ public class UrlHelpers {
 	 */
 	public static String makeEntityAnnotationsUri(Base entity,
 			HttpServletRequest request) {
+		
+		String urlPrefix = getUrlPrefix(entity, request);
+		
 		String uri = null;
 		try {
-			uri = request.getServletPath()
+			uri = urlPrefix
 					+ UrlHelpers.getUrlForModel(entity.getClass()) + "/"
 					+ URLEncoder.encode(entity.getId(), "UTF-8")
-					+ "/annotations";
+					+ ANNOTATIONS;
 		} catch (UnsupportedEncodingException e) {
 			log.log(Level.SEVERE,
 					"Something is really messed up if we don't support UTF-8",
@@ -201,5 +258,32 @@ public class UrlHelpers {
 		Integer hashCode = entity.hashCode();
 		return hashCode.toString();
 	}
+	
+	
+	// TODO this class needs unit tests
+	private static String getUrlPrefix(Base entity, HttpServletRequest request) {
+		
+		String urlPrefix = request.getServletPath();
+		
+		String parentEntityPrefix = UrlHelpers.getUrlForModel(CHILD2PARENTMODEL
+				.get(entity.getClass()));
+		if(null != parentEntityPrefix) {
+			Pattern pattern = MODEL2REGEX.get(entity.getClass());
+			if(null == pattern) {
+				String regex = "^(" + urlPrefix + parentEntityPrefix + "/[^/]+)/";
+				pattern = Pattern.compile(regex);
+				MODEL2REGEX.put(entity.getClass(), pattern);
+				log.info("Let's see if " + regex + " will match " + request.getRequestURI());
+			}
+			Matcher matcher = pattern.matcher(request.getRequestURI());
+			if(matcher.find()) {
+				urlPrefix = matcher.group(1);
+			}
+			else {
+				throw new RuntimeException("Trouble making outgoing entity url from incoming url: " + request.getRequestURI());
+			}
+		}
 
+		return urlPrefix;
+	}
 }

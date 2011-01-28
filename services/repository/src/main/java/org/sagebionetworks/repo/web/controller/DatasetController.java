@@ -2,27 +2,22 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.view.PaginatedResults;
 import org.sagebionetworks.repo.web.AnnotatableEntitiesAccessorImpl;
-import org.sagebionetworks.repo.web.AnnotationsDAOControllerImp;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.DAOControllerImp;
-import org.sagebionetworks.repo.web.EntitiesAccessorImpl;
+import org.sagebionetworks.repo.web.EntitiesAccessor;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -50,74 +45,52 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author deflaux
  */
 @Controller
-@RequestMapping(UrlHelpers.DATASET)
 public class DatasetController extends BaseController implements
-		AbstractEntityController<Dataset>,
-		AbstractAnnotatableEntityController<Dataset> {
+		AbstractEntityController<Dataset> {
 
-	@SuppressWarnings("unused")
-	private static final Logger log = Logger.getLogger(DatasetController.class
-			.getName());
+	private EntitiesAccessor<Dataset> datasetAccessor;
+	private AbstractEntityController<Dataset> datasetController;
 
-	private AbstractEntityController<Dataset> entityController = new DAOControllerImp<Dataset>(
-			Dataset.class, new AnnotatableEntitiesAccessorImpl<Dataset>(
-					Dataset.class));
-	private AbstractAnnotatableEntityController<Dataset> annotationsController = new AnnotationsDAOControllerImp<Dataset>(
-			Dataset.class);
-	private InputDataLayerDAO layerDao;
+	// TODO @Autowired, no GAE references allowed in this class
+	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
+	private DatasetDAO datasetDao = DAO_FACTORY.getDatasetDAO();
 
 	DatasetController() {
-		// TODO @Autowired, no GAE references allowed in this class
-		DAOFactory daoFactory = new GAEJDODAOFactoryImpl();
-		// BH: commented this out
-		// this.layerDao = daoFactory.getInputDataLayerDAO();
 
-		// TODO if I make all the DAOs here, I don't need to do it further down
+		datasetAccessor = new AnnotatableEntitiesAccessorImpl<Dataset>();
 
+		datasetController = new DAOControllerImp<Dataset>(Dataset.class,
+				datasetAccessor);
+
+		setDao(datasetDao);  // TODO remove this when @Autowired
 	}
+
+	@Override
+	public void setDao(BaseDAO<Dataset> dao) {
+		datasetDao = (DatasetDAO) dao;
+		datasetAccessor.setDao(datasetDao);
+		datasetController.setDao(datasetDao);
+	}
+	
+	/*******************************************************************************
+	 * Dataset CRUD handlers
+	 */
 
 	/*
 	 * (non-Javadoc)
 	 * 
 	 * @see
-	 * org.sagebionetworks.repo.web.controller.AbstractEntityController#getEntities
-	 * (java.lang.Integer, java.lang.Integer,
-	 * javax.servlet.http.HttpServletRequest)
+	 * org.sagebionetworks.repo.web.controller.AbstractEntityController#createEntity
+	 * (T)
 	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "", method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.DATASET, method = RequestMethod.POST)
 	public @ResponseBody
-	PaginatedResults<Dataset> getEntities(
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
-			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending,
-			HttpServletRequest request) throws DatastoreException {
+	Dataset createEntity(@RequestBody Dataset newEntity,
+			HttpServletRequest request) throws DatastoreException,
+			InvalidModelException {
 
-		PaginatedResults<Dataset> results = entityController.getEntities(
-				offset, limit, sort, ascending, request);
-
-		for (Dataset dataset : results.getResults()) {
-			addServiceSpecificMetadata(dataset, request);
-		}
-
-		return results;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.sagebionetworks.repo.web.controller.AbstractEntityController#getEntity
-	 * (java.lang.String)
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/{id}", method = RequestMethod.GET)
-	public @ResponseBody
-	Dataset getEntity(@PathVariable String id, HttpServletRequest request)
-			throws NotFoundException, DatastoreException {
-
-		Dataset dataset = entityController.getEntity(id, request);
+		Dataset dataset = datasetController.createEntity(newEntity, request);
 
 		addServiceSpecificMetadata(dataset, request);
 
@@ -128,17 +101,16 @@ public class DatasetController extends BaseController implements
 	 * (non-Javadoc)
 	 * 
 	 * @see
-	 * org.sagebionetworks.repo.web.controller.AbstractEntityController#createEntity
-	 * (T)
+	 * org.sagebionetworks.repo.web.controller.AbstractEntityController#getEntity
+	 * (java.lang.String)
 	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "", method = RequestMethod.POST)
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{id}", method = RequestMethod.GET)
 	public @ResponseBody
-	Dataset createEntity(@RequestBody Dataset newEntity,
-			HttpServletRequest request) throws DatastoreException,
-			InvalidModelException {
+	Dataset getEntity(@PathVariable String id, HttpServletRequest request)
+			throws NotFoundException, DatastoreException {
 
-		Dataset dataset = entityController.createEntity(newEntity, request);
+		Dataset dataset = datasetController.getEntity(id, request);
 
 		addServiceSpecificMetadata(dataset, request);
 
@@ -153,7 +125,7 @@ public class DatasetController extends BaseController implements
 	 * (java.lang.String, java.lang.Integer, T)
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/{id}", method = RequestMethod.PUT)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{id}", method = RequestMethod.PUT)
 	public @ResponseBody
 	Dataset updateEntity(@PathVariable String id,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
@@ -161,7 +133,7 @@ public class DatasetController extends BaseController implements
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException {
 
-		Dataset dataset = entityController.updateEntity(id, etag,
+		Dataset dataset = datasetController.updateEntity(id, etag,
 				updatedEntity, request);
 
 		addServiceSpecificMetadata(dataset, request);
@@ -177,11 +149,39 @@ public class DatasetController extends BaseController implements
 	 * (java.lang.String)
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{id}", method = RequestMethod.DELETE)
 	public void deleteEntity(@PathVariable String id) throws NotFoundException,
 			DatastoreException {
-		entityController.deleteEntity(id);
+		datasetController.deleteEntity(id);
 		return;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.sagebionetworks.repo.web.controller.AbstractEntityController#getEntities
+	 * (java.lang.Integer, java.lang.Integer,
+	 * javax.servlet.http.HttpServletRequest)
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATASET, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<Dataset> getEntities(
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
+			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending,
+			HttpServletRequest request) throws DatastoreException {
+
+		PaginatedResults<Dataset> results = datasetController.getEntities(
+				offset, limit, sort, ascending, request);
+
+		for (Dataset dataset : results.getResults()) {
+			addServiceSpecificMetadata(dataset, request);
+		}
+
+		return results;
 	}
 
 	/**
@@ -193,31 +193,10 @@ public class DatasetController extends BaseController implements
 	 * @return a dummy hard-coded response
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "test", method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.DATASET + "/test", method = RequestMethod.GET)
 	public String sanityCheck(ModelMap modelMap) {
 		modelMap.put("hello", "REST for Datasets rocks");
 		return ""; // use the default view
-	}
-
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/{id}/annotations", method = RequestMethod.GET)
-	public @ResponseBody
-	Annotations getEntityAnnotations(@PathVariable String id,
-			HttpServletRequest request) throws NotFoundException,
-			DatastoreException {
-		return annotationsController.getEntityAnnotations(id, request);
-	}
-
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/{id}/annotations", method = RequestMethod.PUT)
-	public @ResponseBody
-	Annotations updateEntityAnnotations(@PathVariable String id,
-			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
-			@RequestBody Annotations updatedAnnotations,
-			HttpServletRequest request) throws NotFoundException,
-			ConflictingUpdateException, DatastoreException {
-		return annotationsController.updateEntityAnnotations(id, etag,
-				updatedAnnotations, request);
 	}
 
 	private void addServiceSpecificMetadata(Dataset dataset,
@@ -238,18 +217,23 @@ public class DatasetController extends BaseController implements
 		if (0 == dataset.getLayers().size()) {
 			Collection<LayerPreview> layers = new ArrayList<LayerPreview>();
 
-			layers.add(new LayerPreview(
-					"agxkZWZsYXV4LXRlc3RyEwsSDUdBRUpET0RhdGFzZXQYAQw", "C",
-					"/datalayer/agxkZWZsYXV4LXRlc3RyEwsSDUdBRUpET0RhdGFzZXQYAQw"));
+			layers
+					.add(new LayerPreview(
+							"agxkZWZsYXV4LXRlc3RyEwsSDUdBRUpET0RhdGFzZXQYAQw",
+							"C",
+							"/datalayer/agxkZWZsYXV4LXRlc3RyEwsSDUdBRUpET0RhdGFzZXQYAQw"));
 			layers.add(new LayerPreview(
 					"agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYiaECDA", "E",
 					"agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYiaECDA"));
-			layers.add(new LayerPreview(
-					"agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYmfIBDA", "G",
-					"/datalayer/agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYmfIBDA"));
+			layers
+					.add(new LayerPreview(
+							"agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYmfIBDA",
+							"G",
+							"/datalayer/agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYmfIBDA"));
 			dataset.setLayers(layers);
 		}
 
 		return;
 	}
+
 }

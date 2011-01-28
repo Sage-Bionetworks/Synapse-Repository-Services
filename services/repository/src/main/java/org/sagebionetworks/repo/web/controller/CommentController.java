@@ -4,6 +4,7 @@ import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.Comment;
 import org.sagebionetworks.repo.view.PaginatedResults;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
@@ -136,6 +137,12 @@ public class CommentController extends BaseController implements
 	public String sanityCheck(ModelMap modelMap) {
 		modelMap.put("hello", "REST for Comments rocks");
 		return ""; // use the default view
+	}
+
+	@Override
+	public void setDao(BaseDAO<Comment> dao) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

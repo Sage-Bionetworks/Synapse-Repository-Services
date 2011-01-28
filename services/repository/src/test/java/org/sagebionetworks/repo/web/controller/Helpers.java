@@ -40,6 +40,8 @@ public class Helpers {
 
 	private DispatcherServlet servlet = null;
 
+	private static final int JSON_INDENT = 2;
+	
 	/**
 	 * Setup up our mock datastore and servlet
 	 * 
@@ -85,10 +87,12 @@ public class Helpers {
 		request.setRequestURI(requestUrl);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonRequestContent.getBytes("UTF-8"));
+		log.info("About to send: " + new JSONObject(jsonRequestContent).toString(2));
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.CREATED.value(), response.getStatus());
 		JSONObject results = new JSONObject(response.getContentAsString());
+		log.info(results.toString(JSON_INDENT));
 
 		// Check default properties
 		assertExpectedEntityProperties(results);
@@ -124,6 +128,7 @@ public class Helpers {
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.OK.value(), response.getStatus());
 		JSONObject results = new JSONObject(response.getContentAsString());
+		log.info(results.toString(JSON_INDENT));
 
 		// Check default properties
 		assertExpectedEntityProperties(results);
@@ -153,11 +158,12 @@ public class Helpers {
 		request.setRequestURI(jsonEntity.getString("uri"));
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonEntity.toString().getBytes("UTF-8"));
-		log.info("About to send: " + jsonEntity.toString());
+		log.info("About to send: " + jsonEntity.toString(JSON_INDENT));
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.OK.value(), response.getStatus());
 		JSONObject results = new JSONObject(response.getContentAsString());
+		log.info(results.toString(JSON_INDENT));
 
 		// Check default properties
 		assertExpectedEntityProperties(results);
