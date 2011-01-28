@@ -2,17 +2,28 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Date;
 
+import javax.jdo.annotations.Persistent;
+
+import com.google.appengine.api.datastore.Text;
+
 public class InputDataLayer implements DatasetLayer {
 	private String id;
 	private String uri;
 	private String etag;
 	private String name;
 	private String description;
-	private String creator;
 	private Date creationDate;
-	private Date releaseDate;
 	private String version;
 	private String annotations; // URI for annotations
+
+	private Date publicationDate;
+	private String releaseNotes;
+	private String type;
+	private String tissueType;
+	private String platform;
+	private String processingFacility;
+	private String qcBy;
+	private Date qcDate;
 
 	public String getId() {
 		return id;
@@ -54,28 +65,12 @@ public class InputDataLayer implements DatasetLayer {
 		this.description = description;
 	}
 
-	public String getCreator() {
-		return creator;
-	}
-
-	public void setCreator(String creator) {
-		this.creator = creator;
-	}
-
 	public Date getCreationDate() {
 		return creationDate;
 	}
 
 	public void setCreationDate(Date creationDate) {
 		this.creationDate = creationDate;
-	}
-
-	public Date getReleaseDate() {
-		return releaseDate;
-	}
-
-	public void setReleaseDate(Date releaseDate) {
-		this.releaseDate = releaseDate;
 	}
 
 	public String getVersion() {
@@ -94,29 +89,105 @@ public class InputDataLayer implements DatasetLayer {
 		this.annotations = annotations;
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
+
+
+	public Date getPublicationDate() {
+		return publicationDate;
+	}
+
+	public void setPublicationDate(Date publicationDate) {
+		this.publicationDate = publicationDate;
+	}
+
+	public String getReleaseNotes() {
+		return releaseNotes;
+	}
+
+	public void setReleaseNotes(String releaseNotes) {
+		this.releaseNotes = releaseNotes;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public String getTissueType() {
+		return tissueType;
+	}
+
+	public void setTissueType(String tissueType) {
+		this.tissueType = tissueType;
+	}
+
+	public String getPlatform() {
+		return platform;
+	}
+
+	public void setPlatform(String platform) {
+		this.platform = platform;
+	}
+
+	public String getProcessingFacility() {
+		return processingFacility;
+	}
+
+	public void setProcessingFacility(String processingFacility) {
+		this.processingFacility = processingFacility;
+	}
+
+	public String getQcBy() {
+		return qcBy;
+	}
+
+	public void setQcBy(String qcBy) {
+		this.qcBy = qcBy;
+	}
+
+	public Date getQcDate() {
+		return qcDate;
+	}
+
+	public void setQcDate(Date qcDate) {
+		this.qcDate = qcDate;
+	}
+
+
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
+				+ ((annotations == null) ? 0 : annotations.hashCode());
+		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
-		result = prime * result + ((creator == null) ? 0 : creator.hashCode());
 		result = prime * result
 				+ ((description == null) ? 0 : description.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
-				+ ((releaseDate == null) ? 0 : releaseDate.hashCode());
+				+ ((platform == null) ? 0 : platform.hashCode());
+		result = prime
+				* result
+				+ ((processingFacility == null) ? 0 : processingFacility
+						.hashCode());
+		result = prime * result
+				+ ((publicationDate == null) ? 0 : publicationDate.hashCode());
+		result = prime * result + ((qcBy == null) ? 0 : qcBy.hashCode());
+		result = prime * result + ((qcDate == null) ? 0 : qcDate.hashCode());
+		result = prime * result
+				+ ((releaseNotes == null) ? 0 : releaseNotes.hashCode());
+		result = prime * result
+				+ ((tissueType == null) ? 0 : tissueType.hashCode());
+		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		result = prime * result + ((version == null) ? 0 : version.hashCode());
 		return result;
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -126,15 +197,15 @@ public class InputDataLayer implements DatasetLayer {
 		if (getClass() != obj.getClass())
 			return false;
 		InputDataLayer other = (InputDataLayer) obj;
+		if (annotations == null) {
+			if (other.annotations != null)
+				return false;
+		} else if (!annotations.equals(other.annotations))
+			return false;
 		if (creationDate == null) {
 			if (other.creationDate != null)
 				return false;
 		} else if (!creationDate.equals(other.creationDate))
-			return false;
-		if (creator == null) {
-			if (other.creator != null)
-				return false;
-		} else if (!creator.equals(other.creator))
 			return false;
 		if (description == null) {
 			if (other.description != null)
@@ -151,10 +222,45 @@ public class InputDataLayer implements DatasetLayer {
 				return false;
 		} else if (!name.equals(other.name))
 			return false;
-		if (releaseDate == null) {
-			if (other.releaseDate != null)
+		if (platform == null) {
+			if (other.platform != null)
 				return false;
-		} else if (!releaseDate.equals(other.releaseDate))
+		} else if (!platform.equals(other.platform))
+			return false;
+		if (processingFacility == null) {
+			if (other.processingFacility != null)
+				return false;
+		} else if (!processingFacility.equals(other.processingFacility))
+			return false;
+		if (publicationDate == null) {
+			if (other.publicationDate != null)
+				return false;
+		} else if (!publicationDate.equals(other.publicationDate))
+			return false;
+		if (qcBy == null) {
+			if (other.qcBy != null)
+				return false;
+		} else if (!qcBy.equals(other.qcBy))
+			return false;
+		if (qcDate == null) {
+			if (other.qcDate != null)
+				return false;
+		} else if (!qcDate.equals(other.qcDate))
+			return false;
+		if (releaseNotes == null) {
+			if (other.releaseNotes != null)
+				return false;
+		} else if (!releaseNotes.equals(other.releaseNotes))
+			return false;
+		if (tissueType == null) {
+			if (other.tissueType != null)
+				return false;
+		} else if (!tissueType.equals(other.tissueType))
+			return false;
+		if (type == null) {
+			if (other.type != null)
+				return false;
+		} else if (!type.equals(other.type))
 			return false;
 		if (version == null) {
 			if (other.version != null)

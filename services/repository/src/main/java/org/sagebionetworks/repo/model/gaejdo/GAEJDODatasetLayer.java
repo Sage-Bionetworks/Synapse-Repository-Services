@@ -41,11 +41,14 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 	@Persistent
 	private Date creationDate;
 
-	@Persistent(serialized = "true")
-	private URI uri;
+//	@Persistent(serialized = "true")
+//	private URI uri;
 
 	@Persistent
 	private Date publicationDate;
+	
+	@Persistent
+	private Text description;
 
 	@Persistent
 	private Text releaseNotes;
@@ -96,13 +99,13 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 		this.creationDate = creationDate;
 	}
 
-	public URI getUri() {
-		return uri;
-	}
-
-	public void setUri(URI uri) {
-		this.uri = uri;
-	}
+//	public URI getUri() {
+//		return uri;
+//	}
+//
+//	public void setUri(URI uri) {
+//		this.uri = uri;
+//	}
 
 	public Date getPublicationDate() {
 		return publicationDate;
@@ -110,6 +113,14 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 
 	public void setPublicationDate(Date publicationDate) {
 		this.publicationDate = publicationDate;
+	}
+
+	public Text getDescription() {
+		return description;
+	}
+
+	public void setDescription(Text description) {
+		this.description = description;
 	}
 
 	public Text getReleaseNotes() {

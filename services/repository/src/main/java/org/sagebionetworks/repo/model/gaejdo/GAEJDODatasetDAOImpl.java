@@ -63,17 +63,17 @@ public class GAEJDODatasetDAOImpl extends
 		return clone;
 	}
 
-	public void copyToDto(GAEJDODataset gae, Dataset dto) {
-		dto.setId(KeyFactory.keyToString(gae.getId()));
-		dto.setName(gae.getName());
-		dto.setDescription(gae.getDescription());
-		dto.setCreator(gae.getCreator());
-		dto.setCreationDate(gae.getCreationDate());
-		dto.setStatus(gae.getStatus());
-		dto.setReleaseDate(gae.getReleaseDate());
-		dto.setVersion(gae.getRevision().getVersion().toString());
+	public void copyToDto(GAEJDODataset jdo, Dataset dto) {
+		dto.setId(KeyFactory.keyToString(jdo.getId()));
+		dto.setName(jdo.getName());
+		dto.setDescription(jdo.getDescription());
+		dto.setCreator(jdo.getCreator());
+		dto.setCreationDate(jdo.getCreationDate());
+		dto.setStatus(jdo.getStatus());
+		dto.setReleaseDate(jdo.getReleaseDate());
+		dto.setVersion(jdo.getRevision().getVersion().toString());
 		Collection<LayerPreview> layers = new ArrayList<LayerPreview>();
-		Collection<Key> layerKeys = gae.getLayers();
+		Collection<Key> layerKeys = jdo.getLayers();
 		if (null != layerKeys) {
 			for (Key l : layerKeys) {
 				layers.add(new LayerPreview(KeyFactory.keyToString(l)));
@@ -88,10 +88,10 @@ public class GAEJDODatasetDAOImpl extends
 	 * object, those being done by the 'revise' method
 	 * 
 	 * @param dto
-	 * @param gae
+	 * @param jdo
 	 * @throws InvalidModelException
 	 */
-	public void copyFromDto(Dataset dto, GAEJDODataset gae)
+	public void copyFromDto(Dataset dto, GAEJDODataset jdo)
 			throws InvalidModelException {
 
 		//
@@ -106,12 +106,12 @@ public class GAEJDODatasetDAOImpl extends
 			throw new InvalidModelException(
 					"'name' is a required property for Dataset");
 		}
-		gae.setName(dto.getName());
-		gae.setDescription(dto.getDescription());
-		gae.setCreator(dto.getCreator());
-		gae.setCreationDate(dto.getCreationDate());
-		gae.setStatus(dto.getStatus());
-		gae.setReleaseDate(dto.getReleaseDate());
+		jdo.setName(dto.getName());
+		jdo.setDescription(dto.getDescription());
+		jdo.setCreator(dto.getCreator());
+		jdo.setCreationDate(dto.getCreationDate());
+		jdo.setStatus(dto.getStatus());
+		jdo.setReleaseDate(dto.getReleaseDate());
 	}
 
 	/**

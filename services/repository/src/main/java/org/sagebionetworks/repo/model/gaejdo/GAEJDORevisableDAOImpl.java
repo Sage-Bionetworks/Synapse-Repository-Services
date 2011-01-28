@@ -89,8 +89,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 
 	/**
 	 * Create a revision of the object specified by the 'id' field, having the
-	 * shallow properties from 'revision', including the new Version. It is the
-	 * callers responsibility to copy the 'deep' properties.
+	 * shallow properties from 'revision', including the new Version. 
 	 * 
 	 * @param pm
 	 *            Persistence Manager for accessing objects
@@ -105,7 +104,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	 *                the version of this revision is not greater than the
 	 *                version of the latest revision
 	 */
-	public T revise(PersistenceManager pm, S revision, Date revisionDate)
+	protected T revise(PersistenceManager pm, S revision, Date revisionDate)
 			throws DatastoreException, InvalidModelException {
 		if (revision.getId() == null)
 			throw new InvalidModelException("id is null");
@@ -129,6 +128,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 
 		T jdo = cloneJdo(revisee);
 		copyFromDto(revision, jdo);
+		jdo.setId(generateKey(pm));
 		GAEJDORevision<T> r = jdo.getRevision();
 		r.setRevisionDate(revisionDate);
 		r.setVersion(newVersion);
@@ -137,6 +137,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 		latest.getRevision().setLatest(false);
 		pm.makePersistent(jdo);
 		pm.makePersistent(latest);
+		postCreate(pm, jdo);
 		return jdo;
 	}
 
@@ -231,25 +232,13 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	 * latest in their revision history
 	 * 
 	 */
-	public int getCount(PersistenceManager pm) throws DatastoreException {
+	protected int getCount(PersistenceManager pm) throws DatastoreException {
 		Query query = pm.newQuery(getJdoClass());
 		query.setFilter("revision==r && r.latest==true");
 		query.declareVariables(GAEJDORevision.class.getName() + " r");
 		@SuppressWarnings("unchecked")
 		Collection<T> c = (Collection<T>) query.execute();
 		return c.size();
-	}
-
-	public int getCount() throws DatastoreException {
-		PersistenceManager pm = PMF.get();
-		try {
-			int count = getCount(pm);
-			return count;
-		} catch (Exception e) {
-			throw new DatastoreException(e);
-		} finally {
-			pm.close();
-		}
 	}
 
 	public T getVersion(PersistenceManager pm, String id, String v)

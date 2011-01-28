@@ -136,9 +136,20 @@ public class DatasetDAOTest {
 
 	}
 
-	private static InputDataLayer createLayer() {
+	private static InputDataLayer createLayer(Date date) {
 		InputDataLayer ans = new InputDataLayer();
 		ans.setName("input layer");
+		ans.setDescription("description");
+		ans.setCreationDate(date);
+		ans.setVersion("1.0");
+		ans.setPublicationDate(date);
+		ans.setReleaseNotes("this version contains important revisions");
+		ans.setType("clinical");
+		ans.setTissueType("cell line");
+		ans.setPlatform("Affymetrix");
+		ans.setProcessingFacility("Broad Institute");
+		ans.setQcBy("Fred");
+		ans.setQcDate(date);
 		return ans;
 	}
 
@@ -150,12 +161,13 @@ public class DatasetDAOTest {
 		String id = dao.create(d);
 		Assert.assertNotNull(id);
 
-		InputDataLayer layer1 = createLayer();
+		Date now = new Date();
+		InputDataLayer layer1 = createLayer(now);
 		layer1.setName("clinical data");
 		InputDataLayerDAO layerDAO = dao.getInputDataLayerDAO(id);
 		layerDAO.create(layer1);
 
-		InputDataLayer layer2 = createLayer();
+		InputDataLayer layer2 = createLayer(now);
 		layer2.setName("genotyping data");
 		layerDAO.create(layer2);
 
@@ -177,7 +189,6 @@ public class DatasetDAOTest {
 	}
 
 	@Test
-	@Ignore
 	public void testCreateAndDelete() throws Exception {
 		Dataset d = createShallow();
 
@@ -185,12 +196,15 @@ public class DatasetDAOTest {
 		String id = dao.create(d);
 		Assert.assertNotNull(id);
 
-		InputDataLayer layer = createLayer();
+		Date now = new Date();
+		InputDataLayer layer = createLayer(now);
 		InputDataLayerDAO layerDAO = dao.getInputDataLayerDAO(id);
 		String layerId = layerDAO.create(layer);
 
 		Assert.assertNotNull(layerId);
-		// Assert.assertNotNull(layer.getId());
+		Assert.assertNotNull(layer.getId());
+		
+		Assert.assertEquals(1, dao.getInputDataLayerDAO(id).getInRange(0, 100).size());
 		dao.delete(id);
 
 		try {
@@ -206,7 +220,9 @@ public class DatasetDAOTest {
 			Key key = KeyFactory.stringToKey(layerId);
 			GAEJDOInputDataLayer jdo = (GAEJDOInputDataLayer) pm.getObjectById(
 					GAEJDOInputDataLayer.class, key);
-			Assert.assertNull(jdo);
+			Assert.fail("exception expected");
+		} catch (Exception e) {
+			// as expected
 		} finally {
 			pm.close();
 		}
