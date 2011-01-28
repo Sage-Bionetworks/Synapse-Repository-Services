@@ -52,6 +52,7 @@ public class GAEJDOInputDataLayerDAOImpl extends
 		dto.setId(KeyFactory.keyToString(jdo.getId()));
 		dto.setName(jdo.getName());
 		dto.setCreationDate(jdo.getCreationDate());
+		dto.setVersion(jdo.getRevision().getVersion().toString());
 		dto.setUri(dto.getUri() == null ? null : dto.getUri().toString());
 	}
 
