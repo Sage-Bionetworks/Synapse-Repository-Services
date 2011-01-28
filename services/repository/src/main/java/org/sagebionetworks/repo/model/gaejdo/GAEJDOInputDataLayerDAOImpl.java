@@ -46,6 +46,10 @@ public class GAEJDOInputDataLayerDAOImpl extends
 	}
 
 	public void copyToDto(GAEJDOInputDataLayer jdo, InputDataLayer dto) {
+		// TODO InputDataLayer only has a subset of the fields in GAEJDODatasetLayer
+		// and GAEJDOInputDataLayer, the rest need to be added to the DTO
+		
+		dto.setId(KeyFactory.keyToString(jdo.getId()));
 		dto.setName(jdo.getName());
 		dto.setCreationDate(jdo.getCreationDate());
 		dto.setUri(dto.getUri() == null ? null : dto.getUri().toString());
