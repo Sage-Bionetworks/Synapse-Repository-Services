@@ -58,6 +58,11 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 
 	@Persistent(dependent = "true")
 	private GAEJDOAnnotations annotations;
+	
+	public GAEJDODatasetLayer() {
+		description = new Text("");
+		releaseNotes = new Text("");
+	}
 
 	public GAEJDORevision<T> getRevision() {
 		return revision;
@@ -120,6 +125,7 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 	}
 
 	public void setDescription(Text description) {
+		if (description.getValue()==null) throw new NullPointerException("Null Text not allowed.");
 		this.description = description;
 	}
 
@@ -128,6 +134,7 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 	}
 
 	public void setReleaseNotes(Text releaseNotes) {
+		if (description.getValue()==null) throw new NullPointerException("Null Text not allowed.");
 		this.releaseNotes = releaseNotes;
 	}
 
