@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
@@ -44,7 +45,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 	 * 
 	 * @return the new object
 	 */
-	abstract public S newDTO();
+	abstract protected S newDTO();
 
 	/**
 	 * Create a new instance of the persistable object. Introducing this
@@ -52,7 +53,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 	 * 
 	 * @return the new object
 	 */
-	abstract public T newJDO();
+	abstract protected T newJDO();
 
 	/**
 	 * Do a shallow copy from the JDO object to the DTO object.
@@ -60,7 +61,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 	 * @param jdo
 	 * @param dto
 	 */
-	abstract public void copyToDto(T jdo, S dto);
+	abstract protected void copyToDto(T jdo, S dto);
 
 	/**
 	 * Do a shallow copy from the DTO object to the JDO object.
@@ -69,13 +70,13 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 	 * @param jdo
 	 * @throws InvalidModelException
 	 */
-	abstract public void copyFromDto(S dto, T jdo) throws InvalidModelException;
+	abstract protected void copyFromDto(S dto, T jdo) throws InvalidModelException;
 
 	/**
 	 * @param jdoClass
 	 *            the class parameterized by T
 	 */
-	abstract public Class<T> getJdoClass();
+	abstract protected Class<T> getJdoClass();
 
 	/**
 	 * Create a clone of the given object in memory (no datastore operations)
@@ -86,7 +87,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 	 *            the object to clone
 	 * @return the clone
 	 */
-	public T cloneJdo(T jdo) {
+	protected T cloneJdo(T jdo) {
 		S dto = newDTO();
 
 		copyToDto(jdo, dto);
@@ -111,8 +112,18 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 	 * @param jdo
 	 *            the object to be deleted
 	 */
-	public void preDelete(PersistenceManager pm, T jdo) {
+	protected void preDelete(PersistenceManager pm, T jdo) {
 		// for the base DAO, nothing needs to be done
+	}
+	
+	/**
+	 * This may be overridden by subclasses to generate the
+	 * object's key.  Returning null causes the system to
+	 * generate the key itself.
+	 * @return the key for a new object, or null if none
+	 */
+	protected Key generateKey(PersistenceManager pm)  throws DatastoreException {
+		return null;
 	}
 
 	/**
@@ -122,7 +133,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 	 * @param pm
 	 * @param jdo
 	 */
-	public void postCreate(PersistenceManager pm, T jdo) {
+	protected void postCreate(PersistenceManager pm, T jdo) {
 		// for the base DAO, nothing needs to be done
 	}
 
@@ -139,7 +150,10 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 		dto.setCreationDate(new Date()); // now
 
 		copyFromDto(dto, jdo);
+		jdo.setId(generateKey(pm));
 		pm.makePersistent(jdo);
+		postCreate(pm, jdo);
+		dto.setId(KeyFactory.keyToString(jdo.getId()));
 		return jdo;
 	}
 
@@ -158,7 +172,6 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 			tx = pm.currentTransaction();
 			tx.begin();
 			T jdo = create(pm, dto);
-			postCreate(pm, jdo);
 			tx.commit();
 			copyToDto(jdo, dto);
 			return KeyFactory.keyToString(jdo.getId());
@@ -277,6 +290,33 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 		}
 
 	}
+	
+	/**
+	 * 
+	 * returns the number of objects of a certain revisable type, which are the
+	 * latest in their revision history
+	 * 
+	 */
+	protected int getCount(PersistenceManager pm) throws DatastoreException {
+		Query query = pm.newQuery(getJdoClass());
+		@SuppressWarnings("unchecked")
+		Collection<T> c = (Collection<T>) query.execute();
+		return c.size();
+	}
+
+	public int getCount() throws DatastoreException {
+		PersistenceManager pm = PMF.get();
+		try {
+			int count = getCount(pm);
+			return count;
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		} finally {
+			pm.close();
+		}
+	}
+
+
 
 	/**
 	 * Retrieve all objects of the given type, 'paginated' by the given start
