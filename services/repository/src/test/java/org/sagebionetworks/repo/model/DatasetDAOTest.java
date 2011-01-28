@@ -213,7 +213,7 @@ public class DatasetDAOTest {
 		} catch (NotFoundException e) {
 			// as expected
 		}
-
+ 
 		// now try to get the layer. should be gone
 		PersistenceManager pm = PMF.get();
 		try {
@@ -231,6 +231,19 @@ public class DatasetDAOTest {
 
 	@Test
 	public void testGetCount() throws Exception {
+		DatasetDAO dao = fac.getDatasetDAO();
+		String id1 = dao.create(createShallow("dataset 1"));
+		Dataset ds2 = createShallow("dataset 2");
+		String id2 = dao.create(ds2);
+		String id3 = dao.create(createShallow("dataset 3"));
+		Assert.assertEquals(3, dao.getCount());
+		dao.delete(id2);
+		Assert.assertEquals(2, dao.getCount());
+		System.out.println(ds2.getVersion());
+		// now let's create a revision of ds2!
+		ds2.setVersion("2.0");
+		Date revisionDate = new Date(); // may
+		//dao.revise(ds2, revisionDate); < THIS BREAKS!!!!
 	}
 
 	@Test
