@@ -1,34 +1,61 @@
 /** Add css rules here for your application. */
-
-
-/** Example rules used by the template application (remove for your app) */
+	/** Example rules used by the template application (remove for your app) */
 h1 {
-  font-size: 2em;
-  font-weight: bold;
-  color: #777777;
-  margin: 40px 0px 70px;
-  text-align: center;
+	font-size: 2em;
+	font-weight: bold;
+	color: #777777;
+	margin: 40px 0px 70px;
+	text-align: center;
 }
 
 .sendButton {
-  display: block;
-  font-size: 16pt;
+	display: block;
+	font-size: 16pt;
 }
 
 /** Most GWT widgets already have a style name defined */
 .gwt-DialogBox {
-  width: 400px;
+	width: 400px;
 }
 
 .dialogVPanel {
-  margin: 5px;
+	margin: 5px;
 }
 
 .serverResponseLabelError {
-  color: red;
+	color: red;
 }
 
 /** Set ids using widget.getElement().setId("idOfElement") */
 #closeButton {
-  margin: 15px 6px 6px;
+	margin: 15px 6px 6px;
+}
+
+.cellTableHyperLinkColumn {
+	border: 1px solid black;
+	font-size: 2em;
+	font-weight: bold;
+	color: blue;
+	text-align: right;
+}
+
+.datasetLayerColumn {
+	text-align: left;
+	width: 0px;
+}
+
+.mainBody {
+	margin: 15px 30px 6px;
+	width: 1060px;
+	height: 800px /*	padding: 10px;*/
+}
+
+.mainPageHeader {
+	border: 1px solid black;
+	padding: 10px;
+}
+
+.boldRight {
+	font-weight: bold;
+	text-align: right;
 }

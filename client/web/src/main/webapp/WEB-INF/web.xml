@@ -5,20 +5,36 @@
 
 <web-app>
 
-  <!-- Servlets -->
-  <servlet>
-    <servlet-name>greetServlet</servlet-name>
-    <servlet-class>org.sagebionetworks.web.server.GreetingServiceImpl</servlet-class>
-  </servlet>
+	<!-- This filter allows us to use Guice for dependency injection in the server side servlets -->
+	<filter>
+		<filter-name>guiceFilter</filter-name>
+		<filter-class>com.google.inject.servlet.GuiceFilter</filter-class>
+	</filter>
 
-  <servlet-mapping>
-    <servlet-name>greetServlet</servlet-name>
-    <url-pattern>/Portal/greet</url-pattern>
-  </servlet-mapping>
+	<filter-mapping>
+		<filter-name>guiceFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
 
-  <!-- Default page to serve -->
-  <welcome-file-list>
-    <welcome-file>Portal.html</welcome-file>
-  </welcome-file-list>
+	<!-- This is where we register the ServerModule containing all of the mapping with Guice. -->
+	<listener>
+		<listener-class>org.sagebionetworks.web.server.PortalContextListner</listener-class>
+	</listener>
+
+	<!-- Servlets -->
+	<!-- <servlet> -->
+	<!-- <servlet-name>datasetServlet</servlet-name> -->
+	<!-- <servlet-class>org.sagebionetworks.web.server.DatasetServiceImpl</servlet-class> -->
+	<!-- </servlet> -->
+<!---->
+	<!-- <servlet-mapping> -->
+	<!-- <servlet-name>datasetServlet</servlet-name> -->
+	<!-- <url-pattern>/Portal/dataset</url-pattern> -->
+	<!-- </servlet-mapping> -->
+
+	<!-- Default page to serve -->
+	<welcome-file-list>
+		<welcome-file>Portal.html</welcome-file>
+	</welcome-file-list>
 
 </web-app>

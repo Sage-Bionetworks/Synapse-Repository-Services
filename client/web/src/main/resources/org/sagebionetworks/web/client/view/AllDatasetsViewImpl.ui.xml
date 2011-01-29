@@ -1,0 +1,30 @@
+<!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
+<ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
+	xmlns:g="urn:import:com.google.gwt.user.client.ui" xmlns:c="urn:import:com.google.gwt.user.cellview.client"
+	xmlns:d="urn:import:com.google.gwt.dom.client">
+	<ui:style>
+		/* Add CSS here. See the GWT docs on UI Binder for more details */
+		.important {
+			font-weight: bold;
+		}
+	</ui:style>
+	<g:HTMLPanel>
+		<h2>All Datasets</h2>
+		<p>Nemo enim ipsam voluptatem, quia voluptas sit, aspernatur aut odit
+			aut fugit, sed quia consequuntur magni dolores eos, qui ratione
+			voluptatem sequi nesciunt, neque porro quisquam est, qui dolorem
+			ipsum, quia dolor sit amet, consectetur, adipisci velit, sed quia
+			non numquam ius modi tempora incidunt, ut labore et dolore magnam
+			aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum
+			exercitationem ullam corporis suscipit laboriosam.</p>
+		<hr />
+		<div align="right">
+			<c:SimplePager ui:field="pager" location="CENTER" />
+		</div>
+		<hr />
+		<div>
+			<c:CellTable ui:field="cellTable" />
+		</div>
+	</g:HTMLPanel>
+
+</ui:UiBinder> 
