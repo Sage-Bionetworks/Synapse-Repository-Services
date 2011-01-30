@@ -4,11 +4,14 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
 
+import javax.xml.bind.annotation.XmlRootElement;
+
 /**
  * 
  * @author bhoff
  * 
  */
+@XmlRootElement
 public class Annotations implements Base {
 	private String id; // for its parent entity
 	private String uri;

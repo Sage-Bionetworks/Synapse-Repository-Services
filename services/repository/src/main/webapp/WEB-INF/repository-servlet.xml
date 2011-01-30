@@ -55,8 +55,11 @@
     <property name="classesToBeBound">
       <list>
         <value>org.sagebionetworks.repo.model.ErrorResponse</value>
-        <value>org.sagebionetworks.repo.model.Message</value>
-        <value>org.sagebionetworks.repo.view.PaginatedResults</value>
+        <value>org.sagebionetworks.repo.model.PaginatedResults</value>
+        <!-- TODO JaxB can't handle Collection,use ArrayList instead -->
+        <!-- <value>org.sagebionetworks.repo.model.Annotations</value> -->
+        <value>org.sagebionetworks.repo.model.Dataset</value>
+        <value>org.sagebionetworks.repo.model.InputDataLayer</value>
       </list>
     </property>
   </bean>

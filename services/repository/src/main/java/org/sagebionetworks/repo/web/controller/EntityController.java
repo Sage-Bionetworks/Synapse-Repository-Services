@@ -5,7 +5,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.view.PaginatedResults;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
@@ -25,16 +25,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author deflaux
  * 
  * @param <T>
+ *            the particular type of entity the controller is managing
  */
-public interface AbstractEntityController<T> {
+public interface EntityController<T> {
 
 	/**
 	 * Get entities
-	 * <p>
-	 * <ul>
-	 * <li>TODO filter by date
-	 * <li>TODO more response bread crumb urls when we have proper DTOs
-	 * </ul>
 	 * 
 	 * @param offset
 	 *            1-based pagination offset
@@ -60,9 +56,6 @@ public interface AbstractEntityController<T> {
 	/**
 	 * Get a specific entity
 	 * <p>
-	 * <ul>
-	 * <li>TODO response bread crumb urls when we have proper DTOs
-	 * </ul>
 	 * 
 	 * @param id
 	 *            the unique identifier for the entity to be returned
@@ -81,10 +74,6 @@ public interface AbstractEntityController<T> {
 	/**
 	 * Create a new entity
 	 * <p>
-	 * <ul>
-	 * <li>TODO validate minimum requirements for new entity object
-	 * <li>TODO response bread crumb urls when we have proper DTOs
-	 * </ul>
 	 * 
 	 * @param newEntity
 	 * @param request
@@ -102,10 +91,6 @@ public interface AbstractEntityController<T> {
 	/**
 	 * Update an existing entity
 	 * <p>
-	 * <ul>
-	 * <li>TODO validate updated entity
-	 * <li>TODO response bread crumb urls when we have proper DTOs
-	 * </ul>
 	 * 
 	 * @param id
 	 *            the unique identifier for the entity to be updated
@@ -143,7 +128,7 @@ public interface AbstractEntityController<T> {
 	@RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
 	public abstract void deleteEntity(@PathVariable String id)
 			throws NotFoundException, DatastoreException;
-	
+
 	/**
 	 * Set the Base DAO for this controller to use
 	 * 

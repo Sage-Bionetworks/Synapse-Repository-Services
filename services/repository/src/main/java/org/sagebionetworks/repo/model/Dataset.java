@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * This is the data transfer object for Datasets.
@@ -11,6 +12,7 @@ import java.util.Date;
  * @author bhoff
  * 
  */
+@XmlRootElement
 public class Dataset implements Base, Revisable {
 	private String id;
 	private String uri;

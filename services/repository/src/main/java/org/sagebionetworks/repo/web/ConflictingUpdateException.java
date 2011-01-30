@@ -1,6 +1,3 @@
-/**
- * 
- */
 package org.sagebionetworks.repo.web;
 
 import javax.servlet.ServletException;

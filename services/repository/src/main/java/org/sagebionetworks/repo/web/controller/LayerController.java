@@ -9,12 +9,12 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
-import org.sagebionetworks.repo.view.PaginatedResults;
 import org.sagebionetworks.repo.web.AnnotatableEntitiesAccessorImpl;
-import org.sagebionetworks.repo.web.AnnotationsDAOControllerImp;
+import org.sagebionetworks.repo.web.AnnotationsControllerImp;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
-import org.sagebionetworks.repo.web.DAOControllerImp;
+import org.sagebionetworks.repo.web.EntityControllerImp;
 import org.sagebionetworks.repo.web.EntitiesAccessor;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
@@ -36,18 +36,18 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>
  * 
  * Note that any controller logic common to all objects belongs in the
- * implementation of {@link AbstractEntityController} and of
- * {@link AbstractAnnotatableEntityController} that this wraps. Only
- * functionality specific to Dataset objects belongs in this controller.
+ * implementation of {@link EntityController} and of
+ * {@link AnnotationsController} that this wraps. Only functionality specific to
+ * Dataset objects belongs in this controller.
  * 
  * @author deflaux
  */
 @Controller
 public class LayerController extends BaseController {
 
-	private EntitiesAccessor layerAccessor;
-	private AbstractEntityController<InputDataLayer> layerController;
-	private AbstractAnnotatableEntityController<InputDataLayer> layerAnnotationsController;
+	private EntitiesAccessor<InputDataLayer> layerAccessor;
+	private EntityController<InputDataLayer> layerController;
+	private AnnotationsController<InputDataLayer> layerAnnotationsController;
 
 	// TODO @Autowired, no GAE references allowed in this class
 	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
@@ -55,14 +55,13 @@ public class LayerController extends BaseController {
 
 	LayerController() {
 		layerAccessor = new AnnotatableEntitiesAccessorImpl<InputDataLayer>();
-		
-		layerController = new DAOControllerImp<InputDataLayer>(
-				InputDataLayer.class,
-				layerAccessor);
-		
-		layerAnnotationsController = new AnnotationsDAOControllerImp<InputDataLayer>(
+
+		layerController = new EntityControllerImp<InputDataLayer>(
+				InputDataLayer.class, layerAccessor);
+
+		layerAnnotationsController = new AnnotationsControllerImp<InputDataLayer>(
 				InputDataLayer.class);
-		
+
 	}
 
 	/*******************************************************************************

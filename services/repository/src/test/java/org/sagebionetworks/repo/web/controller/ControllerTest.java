@@ -1,6 +1,3 @@
-/**
- * 
- */
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
@@ -65,7 +62,7 @@ public class ControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.AbstractEntityController#createEntity(Object, HttpServletRequest)}
+	 * {@link org.sagebionetworks.repo.web.controller.EntityController#createEntity(Object, HttpServletRequest)}
 	 * .
 	 * 
 	 * @throws Exception
@@ -100,7 +97,7 @@ public class ControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.AbstractEntityController#createEntity(Object, HttpServletRequest)}
+	 * {@link org.sagebionetworks.repo.web.controller.EntityController#createEntity(Object, HttpServletRequest)}
 	 * .
 	 * 
 	 * @throws Exception
@@ -113,7 +110,7 @@ public class ControllerTest {
 
 			url = (null == UrlHelpers.getParentForChildUrl(url)) ? url
 					: UrlHelpers.getParentForChildUrl(url) + "/123" + url;
-			
+
 			MockHttpServletRequest request = new MockHttpServletRequest();
 			MockHttpServletResponse response = new MockHttpServletResponse();
 			request.setMethod("POST");
@@ -138,7 +135,7 @@ public class ControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.AbstractEntityController#createEntity(Object, HttpServletRequest)}
+	 * {@link org.sagebionetworks.repo.web.controller.EntityController#createEntity(Object, HttpServletRequest)}
 	 * .
 	 * 
 	 * @throws Exception
@@ -148,7 +145,7 @@ public class ControllerTest {
 
 		Collection<String> urls = UrlHelpers.getAllUrlPrefixes();
 		for (String url : urls) {
-			
+
 			url = (null == UrlHelpers.getParentForChildUrl(url)) ? url
 					: UrlHelpers.getParentForChildUrl(url) + "/123" + url;
 
@@ -177,7 +174,7 @@ public class ControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.AbstractEntityController#updateEntity(String, Integer, Object, javax.servlet.http.HttpServletRequest)}
+	 * {@link org.sagebionetworks.repo.web.controller.EntityController#updateEntity(String, Integer, Object, javax.servlet.http.HttpServletRequest)}
 	 * .
 	 * 
 	 * @throws Exception
@@ -186,7 +183,7 @@ public class ControllerTest {
 	public void testUpdateEntityMissingEtag() throws Exception {
 		Collection<String> urls = UrlHelpers.getAllUrlPrefixes();
 		for (String url : urls) {
-			
+
 			url = (null == UrlHelpers.getParentForChildUrl(url)) ? url
 					: UrlHelpers.getParentForChildUrl(url) + "/123" + url;
 
