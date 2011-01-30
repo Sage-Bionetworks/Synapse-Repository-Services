@@ -1,6 +1,3 @@
-/**
- *
- */
 package org.sagebionetworks.repo.web;
 
 import javax.servlet.ServletException;
@@ -14,7 +11,7 @@ import javax.servlet.ServletException;
 public class NotFoundException extends ServletException {
 
 	private static final long serialVersionUID = 1L;
-	private static final String DEFAULT_MESSAGE = "The resource you are attempting to retrieve cannot be found";
+	private static final String DEFAULT_MESSAGE = "The resource you are attempting to access cannot be found";
 
 	/**
 	 * Default constructor

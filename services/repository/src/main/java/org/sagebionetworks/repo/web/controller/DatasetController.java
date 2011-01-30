@@ -12,11 +12,11 @@ import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerPreview;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
-import org.sagebionetworks.repo.view.PaginatedResults;
 import org.sagebionetworks.repo.web.AnnotatableEntitiesAccessorImpl;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
-import org.sagebionetworks.repo.web.DAOControllerImp;
+import org.sagebionetworks.repo.web.EntityControllerImp;
 import org.sagebionetworks.repo.web.EntitiesAccessor;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
@@ -36,20 +36,21 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 /**
  * REST controller for CRUD operations on Dataset objects
  * <p>
- * 
+ * TODO fix LayerPreview info to be real instead of fake
+ * <p>
  * Note that any controller logic common to all objects belongs in the
- * implementation of {@link AbstractEntityController} and of
- * {@link AbstractAnnotatableEntityController} that this wraps. Only
- * functionality specific to Dataset objects belongs in this controller.
+ * implementation of {@link EntityController} and of
+ * {@link AnnotationsController} that this wraps. Only functionality specific to
+ * Dataset objects belongs in this controller.
  * 
  * @author deflaux
  */
 @Controller
 public class DatasetController extends BaseController implements
-		AbstractEntityController<Dataset> {
+		EntityController<Dataset> {
 
 	private EntitiesAccessor<Dataset> datasetAccessor;
-	private AbstractEntityController<Dataset> datasetController;
+	private EntityController<Dataset> datasetController;
 
 	// TODO @Autowired, no GAE references allowed in this class
 	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
@@ -59,10 +60,10 @@ public class DatasetController extends BaseController implements
 
 		datasetAccessor = new AnnotatableEntitiesAccessorImpl<Dataset>();
 
-		datasetController = new DAOControllerImp<Dataset>(Dataset.class,
+		datasetController = new EntityControllerImp<Dataset>(Dataset.class,
 				datasetAccessor);
 
-		setDao(datasetDao);  // TODO remove this when @Autowired
+		setDao(datasetDao); // TODO remove this when @Autowired
 	}
 
 	@Override
@@ -71,7 +72,7 @@ public class DatasetController extends BaseController implements
 		datasetAccessor.setDao(datasetDao);
 		datasetController.setDao(datasetDao);
 	}
-	
+
 	/*******************************************************************************
 	 * Dataset CRUD handlers
 	 */
@@ -80,8 +81,7 @@ public class DatasetController extends BaseController implements
 	 * (non-Javadoc)
 	 * 
 	 * @see
-	 * org.sagebionetworks.repo.web.controller.AbstractEntityController#createEntity
-	 * (T)
+	 * org.sagebionetworks.repo.web.controller.EntityController#createEntity (T)
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DATASET, method = RequestMethod.POST)
@@ -100,8 +100,7 @@ public class DatasetController extends BaseController implements
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see
-	 * org.sagebionetworks.repo.web.controller.AbstractEntityController#getEntity
+	 * @see org.sagebionetworks.repo.web.controller.EntityController#getEntity
 	 * (java.lang.String)
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -121,7 +120,7 @@ public class DatasetController extends BaseController implements
 	 * (non-Javadoc)
 	 * 
 	 * @see
-	 * org.sagebionetworks.repo.web.controller.AbstractEntityController#updateEntity
+	 * org.sagebionetworks.repo.web.controller.EntityController#updateEntity
 	 * (java.lang.String, java.lang.Integer, T)
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -145,7 +144,7 @@ public class DatasetController extends BaseController implements
 	 * (non-Javadoc)
 	 * 
 	 * @see
-	 * org.sagebionetworks.repo.web.controller.AbstractEntityController#deleteEntity
+	 * org.sagebionetworks.repo.web.controller.EntityController#deleteEntity
 	 * (java.lang.String)
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
@@ -159,8 +158,7 @@ public class DatasetController extends BaseController implements
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see
-	 * org.sagebionetworks.repo.web.controller.AbstractEntityController#getEntities
+	 * @see org.sagebionetworks.repo.web.controller.EntityController#getEntities
 	 * (java.lang.Integer, java.lang.Integer,
 	 * javax.servlet.http.HttpServletRequest)
 	 */

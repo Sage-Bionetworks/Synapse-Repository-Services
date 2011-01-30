@@ -1,6 +1,3 @@
-/**
- *
- */
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
@@ -132,7 +129,9 @@ public class DatasetControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#updateEntityAnnotations}
+	 * {@link org.sagebionetworks.repo.web.controller.DatasetAnnotationsController#updateEntityAnnotations}
+	 * and
+	 * {@link org.sagebionetworks.repo.web.controller.DatasetAnnotationsController#getEntityAnnotations}
 	 * .
 	 * 
 	 * @throws Exception
@@ -204,75 +203,50 @@ public class DatasetControllerTest {
 		JSONObject results = helper.testUpdateJsonEntity(annotations);
 
 		// Check the update response
-		helper.assertJSONArrayEquals(
-				summary,
-				results.getJSONObject("stringAnnotations").getJSONArray(
-						"summary"));
-		helper.assertJSONArrayEquals(
-				tissues,
-				results.getJSONObject("stringAnnotations").getJSONArray(
-						"tissues"));
-		helper.assertJSONArrayEquals(
-				pValues,
-				results.getJSONObject("floatAnnotations").getJSONArray(
-						"pValues"));
-		helper.assertJSONArrayEquals(
-				numSamples,
-				results.getJSONObject("floatAnnotations").getJSONArray(
-						"numSamples"));
-		helper.assertJSONArrayEquals(
-				curationEvents,
-				results.getJSONObject("dateAnnotations").getJSONArray(
-						"curationEvents"));
-		helper.assertJSONArrayEquals(
-				clinicalTrialStartDate,
-				results.getJSONObject("dateAnnotations").getJSONArray(
+		helper.assertJSONArrayEquals(summary, results.getJSONObject(
+				"stringAnnotations").getJSONArray("summary"));
+		helper.assertJSONArrayEquals(tissues, results.getJSONObject(
+				"stringAnnotations").getJSONArray("tissues"));
+		helper.assertJSONArrayEquals(pValues, results.getJSONObject(
+				"floatAnnotations").getJSONArray("pValues"));
+		helper.assertJSONArrayEquals(numSamples, results.getJSONObject(
+				"floatAnnotations").getJSONArray("numSamples"));
+		helper.assertJSONArrayEquals(curationEvents, results.getJSONObject(
+				"dateAnnotations").getJSONArray("curationEvents"));
+		helper.assertJSONArrayEquals(clinicalTrialStartDate, results
+				.getJSONObject("dateAnnotations").getJSONArray(
 						"clinicalTrialStartDate"));
 		// These are sent serialized as Longs and come back serialized as Longs
-		helper.assertJSONArrayEquals(
-				epochDates,
-				results.getJSONObject("dateAnnotations").getJSONArray(
-						"epochDates"));
+		helper.assertJSONArrayEquals(epochDates, results.getJSONObject(
+				"dateAnnotations").getJSONArray("epochDates"));
 		// These are sent serialized as Strings and come back serialized as
 		// Longs
-		helper.assertJSONArrayEquals(
-				isoDatesAsLong,
-				results.getJSONObject("dateAnnotations").getJSONArray(
-						"isoDates"));
+		helper.assertJSONArrayEquals(isoDatesAsLong, results.getJSONObject(
+				"dateAnnotations").getJSONArray("isoDates"));
 
 		// Now check that we correctly persisted them for real
 		JSONObject storedAnnotations = helper.testGetJsonEntity(newDataset
 				.getString("annotations"));
-		helper.assertJSONArrayEquals(summary,
-				storedAnnotations.getJSONObject("stringAnnotations")
-						.getJSONArray("summary"));
-		helper.assertJSONArrayEquals(tissues,
-				storedAnnotations.getJSONObject("stringAnnotations")
-						.getJSONArray("tissues"));
-		helper.assertJSONArrayEquals(pValues,
-				storedAnnotations.getJSONObject("floatAnnotations")
-						.getJSONArray("pValues"));
+		helper.assertJSONArrayEquals(summary, storedAnnotations.getJSONObject(
+				"stringAnnotations").getJSONArray("summary"));
+		helper.assertJSONArrayEquals(tissues, storedAnnotations.getJSONObject(
+				"stringAnnotations").getJSONArray("tissues"));
+		helper.assertJSONArrayEquals(pValues, storedAnnotations.getJSONObject(
+				"floatAnnotations").getJSONArray("pValues"));
 		helper.assertJSONArrayEquals(numSamples, storedAnnotations
 				.getJSONObject("floatAnnotations").getJSONArray("numSamples"));
-		helper.assertJSONArrayEquals(
-				curationEvents,
-				results.getJSONObject("dateAnnotations").getJSONArray(
-						"curationEvents"));
-		helper.assertJSONArrayEquals(
-				clinicalTrialStartDate,
-				results.getJSONObject("dateAnnotations").getJSONArray(
+		helper.assertJSONArrayEquals(curationEvents, results.getJSONObject(
+				"dateAnnotations").getJSONArray("curationEvents"));
+		helper.assertJSONArrayEquals(clinicalTrialStartDate, results
+				.getJSONObject("dateAnnotations").getJSONArray(
 						"clinicalTrialStartDate"));
 		// These are sent serialized as Longs and come back serialized as Longs
-		helper.assertJSONArrayEquals(
-				epochDates,
-				results.getJSONObject("dateAnnotations").getJSONArray(
-						"epochDates"));
+		helper.assertJSONArrayEquals(epochDates, results.getJSONObject(
+				"dateAnnotations").getJSONArray("epochDates"));
 		// These are sent serialized as Strings and come back serialized as
 		// Longs
-		helper.assertJSONArrayEquals(
-				isoDatesAsLong,
-				results.getJSONObject("dateAnnotations").getJSONArray(
-						"isoDates"));
+		helper.assertJSONArrayEquals(isoDatesAsLong, results.getJSONObject(
+				"dateAnnotations").getJSONArray("isoDates"));
 	}
 
 	/**
@@ -373,8 +347,8 @@ public class DatasetControllerTest {
 		JSONObject error = helper.testCreateJsonEntityShouldFail("/dataset",
 				"{\"version\": \"1.0.0\"}", HttpStatus.BAD_REQUEST);
 
-		assertEquals("'name' is a required property for Dataset",
-				error.getString("reason"));
+		assertEquals("'name' is a required property for Dataset", error
+				.getString("reason"));
 	}
 
 	/**
@@ -401,8 +375,8 @@ public class DatasetControllerTest {
 		JSONObject error = helper.testUpdateJsonEntityShouldFail(dataset,
 				HttpStatus.BAD_REQUEST);
 
-		assertEquals("'name' is a required property for Dataset",
-				error.getString("reason"));
+		assertEquals("'name' is a required property for Dataset", error
+				.getString("reason"));
 	}
 
 	/**
@@ -443,7 +417,7 @@ public class DatasetControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.DAOControllerImp#getEntity(java.lang.String, javax.servlet.http.HttpServletRequest)}
+	 * {@link org.sagebionetworks.repo.web.EntityControllerImp#getEntity(java.lang.String, javax.servlet.http.HttpServletRequest)}
 	 * .
 	 * 
 	 * @throws Exception
@@ -455,16 +429,16 @@ public class DatasetControllerTest {
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 
-		JSONObject error = helper.testGetJsonEntityShouldFail(
-				results.getString("uri"), HttpStatus.NOT_FOUND);
+		JSONObject error = helper.testGetJsonEntityShouldFail(results
+				.getString("uri"), HttpStatus.NOT_FOUND);
 		assertEquals(
-				"The resource you are attempting to retrieve cannot be found",
+				"The resource you are attempting to access cannot be found",
 				error.getString("reason"));
 	}
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#updateEntityAnnotations}
+	 * {@link org.sagebionetworks.repo.web.controller.DatasetAnnotationsController#updateEntityAnnotations}
 	 * .
 	 * 
 	 * @throws Exception
@@ -482,10 +456,10 @@ public class DatasetControllerTest {
 		// Delete our dataset
 		helper.testDeleteJsonEntity(newDataset.getString("uri"));
 
-		JSONObject error = helper.testGetJsonEntityShouldFail(
-				annotations.getString("uri"), HttpStatus.NOT_FOUND);
+		JSONObject error = helper.testGetJsonEntityShouldFail(annotations
+				.getString("uri"), HttpStatus.NOT_FOUND);
 		assertEquals(
-				"The resource you are attempting to retrieve cannot be found",
+				"The resource you are attempting to access cannot be found",
 				error.getString("reason"));
 
 	}
@@ -507,7 +481,7 @@ public class DatasetControllerTest {
 		JSONObject error = helper.testUpdateJsonEntityShouldFail(results,
 				HttpStatus.NOT_FOUND);
 		assertEquals(
-				"The resource you are attempting to retrieve cannot be found",
+				"The resource you are attempting to access cannot be found",
 				error.getString("reason"));
 	}
 
@@ -525,10 +499,10 @@ public class DatasetControllerTest {
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 
-		JSONObject error = helper.testDeleteJsonEntityShouldFail(
-				results.getString("uri"), HttpStatus.NOT_FOUND);
+		JSONObject error = helper.testDeleteJsonEntityShouldFail(results
+				.getString("uri"), HttpStatus.NOT_FOUND);
 		assertEquals(
-				"The resource you are attempting to retrieve cannot be found",
+				"The resource you are attempting to access cannot be found",
 				error.getString("reason"));
 	}
 
@@ -556,10 +530,10 @@ public class DatasetControllerTest {
 		for (int i = 0; i < 3; i++) {
 			assertTrue(results.getJSONArray("layers").getJSONObject(1)
 					.has("id"));
-			assertTrue(results.getJSONArray("layers").getJSONObject(1)
-					.has("type"));
-			assertTrue(results.getJSONArray("layers").getJSONObject(1)
-					.has("uri"));
+			assertTrue(results.getJSONArray("layers").getJSONObject(1).has(
+					"type"));
+			assertTrue(results.getJSONArray("layers").getJSONObject(1).has(
+					"uri"));
 		}
 
 		assertTrue(results.has("creationDate"));

@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.view;
+package org.sagebionetworks.repo.model;
 
 import java.io.Serializable;
 import java.util.HashMap;

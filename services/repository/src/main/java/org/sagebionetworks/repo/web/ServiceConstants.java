@@ -1,16 +1,3 @@
-/*
- * ServiceConstants.java
- *
- * Sage Bionetworks http://www.sagebase.org
- *
- * Original author: Nicole Deflaux (nicole.deflaux@sagebase.org)
- *
- * @file   $Id: $
- * @author $Author: $
- * @date   $DateTime: $
- *
- */
-
 package org.sagebionetworks.repo.web;
 
 /**
@@ -114,8 +101,7 @@ public class ServiceConstants {
 	 * <li><a href=
 	 * "http://code.google.com/apis/gdata/docs/2.0/reference.html#ResourceVersioning"
 	 * >Google Data API</a>
-	 * <li><a href=
-	 * "http://www.odata.org/developers/protocols/operations#ConcurrencycontrolandETags"
+	 * <li><a href="http://www.odata.org/developers/protocols/operations#ConcurrencycontrolandETags"
 	 * >OData Protocol</a>
 	 * </ul>
 	 */

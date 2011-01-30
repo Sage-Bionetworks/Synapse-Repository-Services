@@ -1,6 +1,3 @@
-/**
- *
- */
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
@@ -18,7 +15,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.view.PaginatedResults;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -27,14 +24,13 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.servlet.DispatcherServlet;
 
 /**
- * Unit tests for the DatasetLayer CRUD operations exposed by the
- * DatasetController with JSON request and response encoding.
+ * Unit tests for the Layer CRUD operations exposed by the LayerController with
+ * JSON request and response encoding.
  * <p>
  * 
  * Note that test logic and assertions common to operations for all DAO-backed
  * entities can be found in the Helpers class. What follows are test cases that
- * make use of that generic test logic with some assertions specific to
- * datasets.
+ * make use of that generic test logic with some assertions specific to layers.
  * 
  * @author deflaux
  */
@@ -47,6 +43,7 @@ public class LayerControllerTest {
 			.getLogger(LayerControllerTest.class.getName());
 	private Helpers helper = new Helpers();
 	private DispatcherServlet servlet;
+	private JSONObject dataset;
 
 	/**
 	 * @throws java.lang.Exception
@@ -54,6 +51,9 @@ public class LayerControllerTest {
 	@Before
 	public void setUp() throws Exception {
 		servlet = helper.setUp();
+
+		dataset = helper.testCreateJsonEntity("/dataset",
+				"{\"name\":\"DeLiver\"}");
 	}
 
 	/**
@@ -70,7 +70,7 @@ public class LayerControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#sanityCheck(org.springframework.ui.ModelMap)}
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#sanityCheckChild(org.springframework.ui.ModelMap)}
 	 * .
 	 * 
 	 * @throws Exception
@@ -94,15 +94,13 @@ public class LayerControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#createEntity}
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#createChildEntity}
 	 * .
 	 * 
 	 * @throws Exception
 	 */
 	@Test
 	public void testCreateLayer() throws Exception {
-		JSONObject dataset = helper.testCreateJsonEntity("/dataset",
-				"{\"name\":\"DeLiver\"}");
 
 		// TODO use dataset layer URI
 		JSONObject results = helper
@@ -118,7 +116,7 @@ public class LayerControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#getEntity}
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#getChildEntity}
 	 * .
 	 * 
 	 * @throws Exception
@@ -126,8 +124,6 @@ public class LayerControllerTest {
 	@Ignore
 	@Test
 	public void testGetLayer() throws Exception {
-		JSONObject dataset = helper.testCreateJsonEntity("/dataset",
-				"{\"name\":\"DeLiver\"}");
 
 		// TODO use dataset layer URI
 		JSONObject newLayer = helper
@@ -147,15 +143,13 @@ public class LayerControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#updateEntity}
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#updateChildEntity}
 	 * .
 	 * 
 	 * @throws Exception
 	 */
 	@Test
 	public void testUpdateLayer() throws Exception {
-		JSONObject dataset = helper.testCreateJsonEntity("/dataset",
-				"{\"name\":\"DeLiver\"}");
 
 		// TODO use dataset layer URI
 		JSONObject newLayer = helper
@@ -185,16 +179,12 @@ public class LayerControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#deleteEntity(java.lang.String)}
-	 * .
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#deleteChildEntity}
 	 * 
 	 * @throws Exception
 	 */
 	@Test
 	public void testDeleteLayer() throws Exception {
-
-		JSONObject dataset = helper.testCreateJsonEntity("/dataset",
-				"{\"name\":\"DeLiver\"}");
 
 		// TODO use dataset layer URI
 		JSONObject newLayer = helper
@@ -207,16 +197,13 @@ public class LayerControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#getEntities}
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#getChildEntities}
 	 * .
 	 * 
 	 * @throws Exception
 	 */
 	@Test
 	public void testGetLayers() throws Exception {
-
-		JSONObject dataset = helper.testCreateJsonEntity("/dataset",
-				"{\"name\":\"DeLiver\"}");
 
 		// TODO use dataset layer URI
 		helper
@@ -246,22 +233,18 @@ public class LayerControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#updateEntityAnnotations}
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#updateChildEntityAnnotations}
 	 * .
 	 * 
 	 * @throws Exception
 	 */
 	@Test
 	public void testUpdateDatasetAnnotations() throws Exception {
-
-		JSONObject dataset = helper.testCreateJsonEntity("/dataset",
-		"{\"name\":\"DeLiver\"}");
-
 		// TODO use dataset layer URI
 		JSONObject newLayer = helper
-		.testCreateJsonEntity(
-				"/dataset/" + dataset.getString("id") + "/layer",
-		"{\"name\":\"DeLiver genetic data\", \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+				.testCreateJsonEntity(
+						"/dataset/" + dataset.getString("id") + "/layer",
+						"{\"name\":\"DeLiver genetic data\", \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 
 		// Get our empty annotations container
 		JSONObject annotations = helper.testGetJsonEntity(newLayer
@@ -369,219 +352,227 @@ public class LayerControllerTest {
 				"dateAnnotations").getJSONArray("isoDates"));
 	}
 
-	// /*****************************************************************************************************
-	// * Bad parameters tests
-	// */
-	//
-	// /**
-	// * Test method for
-	// * {@link
-	// org.sagebionetworks.repo.web.controller.DatasetController#createEntity}
-	// * .
-	// *
-	// * @throws Exception
-	// */
-	// @Test
-	// public void testInvalidModelCreateDataset() throws Exception {
-	//
-	// JSONObject error = helper
-	// .testCreateJsonEntityShouldFail(
-	// "/dataset",
-	// "{\"name\": \"DeLiver\", \"BOGUS\":\"this does not match our model object\"}",
-	// HttpStatus.BAD_REQUEST);
-	//
-	// // The response should be something like: {"reason":"Unrecognized field
-	// // \"BOGUS\"
-	// // (Class org.sagebionetworks.repo.model.Dataset), not marked as
-	// // ignorable\n at
-	// // [Source:
-	// // org.springframework.mock.web.DelegatingServletInputStream@2501e081;
-	// // line: 1, column: 19]"}
-	//
-	// String reason = error.getString("reason");
-	// assertTrue(reason.matches("(?s).*\"BOGUS\".*"));
-	// assertTrue(reason.matches("(?s).*not marked as ignorable.*"));
-	// }
-	//
-	// /**
-	// * Test method for
-	// * {@link
-	// org.sagebionetworks.repo.web.controller.DatasetController#createEntity}
-	// * .
-	// *
-	// * @throws Exception
-	// */
-	// @Test
-	// public void testMissingRequiredFieldCreateDataset() throws Exception {
-	//
-	// JSONObject error = helper.testCreateJsonEntityShouldFail("/dataset",
-	// "{\"version\": \"1.0.0\"}", HttpStatus.BAD_REQUEST);
-	//
-	// assertEquals("'name' is a required property for Dataset", error
-	// .getString("reason"));
-	// }
-	//
-	// /**
-	// * Test method for
-	// * {@link
-	// org.sagebionetworks.repo.web.controller.DatasetController#updateEntity}
-	// * .
-	// *
-	// * @throws Exception
-	// */
-	// @Test
-	// public void testMissingRequiredFieldUpdateDataset() throws Exception {
-	// // Create a dataset
-	// JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-	// "{\"name\":\"MouseCross\"}");
-	//
-	// // Get that dataset
-	// JSONObject dataset = helper.testGetJsonEntity(newDataset
-	// .getString("uri"));
-	// assertEquals(newDataset.getString("id"), dataset.getString("id"));
-	// assertEquals("MouseCross", dataset.getString("name"));
-	//
-	// // Modify that dataset to make it invalid
-	// dataset.remove("name");
-	// JSONObject error = helper.testUpdateJsonEntityShouldFail(dataset,
-	// HttpStatus.BAD_REQUEST);
-	//
-	// assertEquals("'name' is a required property for Dataset", error
-	// .getString("reason"));
-	// }
-	//
-	// /**
-	// * Test method for
-	// * {@link
-	// org.sagebionetworks.repo.web.controller.DatasetController#updateEntity}
-	// * .
-	// *
-	// * @throws Exception
-	// */
-	// @Test
-	// public void testUpdateDatasetConflict() throws Exception {
-	// // Create a dataset
-	// JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-	// "{\"name\":\"MouseCross\"}");
-	// // Get that dataset
-	// JSONObject dataset = helper.testGetJsonEntity(newDataset
-	// .getString("uri"));
-	// assertEquals(newDataset.getString("id"), dataset.getString("id"));
-	// assertEquals("MouseCross", dataset.getString("name"));
-	// // Modify that dataset
-	// dataset.put("name", "MouseX");
-	// JSONObject updatedDataset = helper.testUpdateJsonEntity(dataset);
-	// assertEquals("MouseX", updatedDataset.getString("name"));
-	//
-	// // Modify the dataset we got earlier a second time
-	// dataset.put("name", "CONFLICT MouseX");
-	// JSONObject error = helper.testUpdateJsonEntityShouldFail(dataset,
-	// HttpStatus.PRECONDITION_FAILED);
-	//
-	// String reason = error.getString("reason");
-	// assertTrue(reason
-	// .matches("entity with id .* was updated since you last fetched it, retrieve it again and reapply the update"));
-	// }
-	//
-	// /*****************************************************************************************************
-	// * Not Found Tests
-	// */
-	//
-	// /**
-	// * Test method for
-	// * {@link
-	// org.sagebionetworks.repo.web.DAOControllerImp#getEntity(java.lang.String,
-	// javax.servlet.http.HttpServletRequest)}
-	// * .
-	// *
-	// * @throws Exception
-	// */
-	// @Test
-	// public void testGetNonExistentDataset() throws Exception {
-	// JSONObject results = helper.testCreateJsonEntity("/dataset",
-	// "{\"name\":\"DeLiver\"}");
-	//
-	// helper.testDeleteJsonEntity(results.getString("uri"));
-	//
-	// JSONObject error = helper.testGetJsonEntityShouldFail(results
-	// .getString("uri"), HttpStatus.NOT_FOUND);
-	// assertEquals(
-	// "The resource you are attempting to retrieve cannot be found",
-	// error.getString("reason"));
-	// }
-	//
-	// /**
-	// * Test method for
-	// * {@link
-	// org.sagebionetworks.repo.web.controller.DatasetController#updateEntityAnnotations}
-	// * .
-	// *
-	// * @throws Exception
-	// */
-	// @Test
-	// public void testGetNonExistentDatasetAnnotations() throws Exception {
-	//
-	// // Load up a dataset
-	// JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-	// "{\"name\":\"MouseCross\"}");
-	// // Get our empty annotations container
-	// JSONObject annotations = helper.testGetJsonEntity(newDataset
-	// .getString("annotations"));
-	//
-	// // Delete our dataset
-	// helper.testDeleteJsonEntity(newDataset.getString("uri"));
-	//
-	// JSONObject error = helper.testGetJsonEntityShouldFail(annotations
-	// .getString("uri"), HttpStatus.NOT_FOUND);
-	// assertEquals(
-	// "The resource you are attempting to retrieve cannot be found",
-	// error.getString("reason"));
-	//
-	// }
-	//
-	// /**
-	// * Test method for
-	// * {@link
-	// org.sagebionetworks.repo.web.controller.DatasetController#updateEntity}
-	// * .
-	// *
-	// * @throws Exception
-	// */
-	// @Test
-	// public void testUpdateNonExistentDataset() throws Exception {
-	// JSONObject results = helper.testCreateJsonEntity("/dataset",
-	// "{\"name\":\"DeLiver\"}");
-	//
-	// helper.testDeleteJsonEntity(results.getString("uri"));
-	//
-	// JSONObject error = helper.testUpdateJsonEntityShouldFail(results,
-	// HttpStatus.NOT_FOUND);
-	// assertEquals(
-	// "The resource you are attempting to retrieve cannot be found",
-	// error.getString("reason"));
-	// }
-	//
-	// /**
-	// * Test method for
-	// * {@link
-	// org.sagebionetworks.repo.web.controller.DatasetController#deleteEntity(java.lang.String)}
-	// * .
-	// *
-	// * @throws Exception
-	// */
-	// @Test
-	// public void testDeleteNonExistentDataset() throws Exception {
-	// JSONObject results = helper.testCreateJsonEntity("/dataset",
-	// "{\"name\":\"DeLiver\"}");
-	//
-	// helper.testDeleteJsonEntity(results.getString("uri"));
-	//
-	// JSONObject error = helper.testDeleteJsonEntityShouldFail(results
-	// .getString("uri"), HttpStatus.NOT_FOUND);
-	// assertEquals(
-	// "The resource you are attempting to retrieve cannot be found",
-	// error.getString("reason"));
-	// }
+	/*****************************************************************************************************
+	 * Bad parameters tests
+	 */
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#createChildEntity}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testInvalidModelCreateLayer() throws Exception {
+
+		JSONObject error = helper
+				.testCreateJsonEntityShouldFail(
+						"/dataset/" + dataset.getString("id") + "/layer",
+						"{\"name\": \"DeLiver expression data\", \"BOGUS\":\"this does not match our model object\"}",
+						HttpStatus.BAD_REQUEST);
+
+		// The response should be something like: {"reason":"Unrecognized field
+		// \"BOGUS\"
+		// (Class org.sagebionetworks.repo.model.Layer), not marked as
+		// ignorable\n at
+		// [Source:
+		// org.springframework.mock.web.DelegatingServletInputStream@2501e081;
+		// line: 1, column: 19]"}
+
+		String reason = error.getString("reason");
+		assertTrue(reason.matches("(?s).*\"BOGUS\".*"));
+		assertTrue(reason.matches("(?s).*not marked as ignorable.*"));
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#createChildEntity}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testMissingRequiredFieldCreateLayer() throws Exception {
+
+		JSONObject error = helper
+				.testCreateJsonEntityShouldFail(
+						"/dataset/" + dataset.getString("id") + "/layer",
+						"{\"version\": \"1.0.0\", \"description\": \"foo\", \"releaseNotes\":\"bar\"}",
+						HttpStatus.BAD_REQUEST);
+
+		assertEquals("'name' is a required property for InputDataLayer", error
+				.getString("reason"));
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#updateChildEntity}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testMissingRequiredFieldUpdateLayer() throws Exception {
+
+		// Create a layer
+		JSONObject newLayer = helper
+				.testCreateJsonEntity(
+						"/dataset/" + dataset.getString("id") + "/layer",
+						"{\"name\":\"MouseCross clinical data\", \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+
+		// Get that layer
+		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
+		assertEquals(newLayer.getString("id"), layer.getString("id"));
+		assertEquals("MouseCross clinical data", layer.getString("name"));
+
+		// Modify that layer to make it invalid
+		layer.remove("name");
+		JSONObject error = helper.testUpdateJsonEntityShouldFail(layer,
+				HttpStatus.BAD_REQUEST);
+
+		assertEquals("'name' is a required property for InputDataLayer", error
+				.getString("reason"));
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#updateChildEntity}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testUpdateLayerConflict() throws Exception {
+		// Create a layer
+		JSONObject newLayer = helper
+				.testCreateJsonEntity(
+						"/dataset/" + dataset.getString("id") + "/layer",
+						"{\"name\":\"MouseCross genetic data\", \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+
+		// Get that layer
+		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
+		assertEquals(newLayer.getString("id"), layer.getString("id"));
+		assertEquals("MouseCross genetic data", layer.getString("name"));
+
+		// Modify that layer
+		layer.put("name", "MouseX genetic data");
+		JSONObject updatedLayer = helper.testUpdateJsonEntity(layer);
+		assertEquals("MouseX genetic data", updatedLayer.getString("name"));
+
+		// Modify the layer we got earlier a second time
+		layer.put("name", "CONFLICT MouseX genetic data");
+		JSONObject error = helper.testUpdateJsonEntityShouldFail(layer,
+				HttpStatus.PRECONDITION_FAILED);
+
+		String reason = error.getString("reason");
+		assertTrue(reason
+				.matches("entity with id .* was updated since you last fetched it, retrieve it again and reapply the update"));
+	}
+
+	/*****************************************************************************************************
+	 * Not Found Tests
+	 */
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#getChildEntity}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetNonExistentLayer() throws Exception {
+		JSONObject results = helper
+				.testCreateJsonEntity(
+						"/dataset/" + dataset.getString("id") + "/layer",
+						"{\"name\":\"DeLiver expression data\", \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+
+		helper.testDeleteJsonEntity(results.getString("uri"));
+
+		JSONObject error = helper.testGetJsonEntityShouldFail(results
+				.getString("uri"), HttpStatus.NOT_FOUND);
+		assertEquals(
+				"The resource you are attempting to access cannot be found",
+				error.getString("reason"));
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#updateChildEntityAnnotations}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetNonExistentLayerAnnotations() throws Exception {
+
+		// Load up a layer
+		JSONObject newLayer = helper
+				.testCreateJsonEntity("/dataset/" + dataset.getString("id")
+						+ "/layer",
+						"{\"name\":\"MouseCross\", \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+
+		// Get our empty annotations container
+		JSONObject annotations = helper.testGetJsonEntity(newLayer
+				.getString("annotations"));
+
+		// Delete our layer
+		helper.testDeleteJsonEntity(newLayer.getString("uri"));
+
+		JSONObject error = helper.testGetJsonEntityShouldFail(annotations
+				.getString("uri"), HttpStatus.NOT_FOUND);
+		assertEquals(
+				"The resource you are attempting to access cannot be found",
+				error.getString("reason"));
+
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#updateChildEntity}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testUpdateNonExistentLayer() throws Exception {
+		JSONObject results = helper
+				.testCreateJsonEntity(
+						"/dataset/" + dataset.getString("id") + "/layer",
+						"{\"name\":\"DeLiver expression data\", \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+
+		helper.testDeleteJsonEntity(results.getString("uri"));
+
+		JSONObject error = helper.testUpdateJsonEntityShouldFail(results,
+				HttpStatus.NOT_FOUND);
+		assertEquals(
+				"The resource you are attempting to access cannot be found",
+				error.getString("reason"));
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#deleteChildEntity}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testDeleteNonExistentLayer() throws Exception {
+		JSONObject results = helper
+				.testCreateJsonEntity(
+						"/dataset/" + dataset.getString("id") + "/layer",
+						"{\"name\":\"DeLiver expression data\", \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+
+		helper.testDeleteJsonEntity(results.getString("uri"));
+
+		JSONObject error = helper.testDeleteJsonEntityShouldFail(results
+				.getString("uri"), HttpStatus.NOT_FOUND);
+		assertEquals(
+				"The resource you are attempting to access cannot be found",
+				error.getString("reason"));
+	}
 
 	/*****************************************************************************************************
 	 * Layer-specific helpers

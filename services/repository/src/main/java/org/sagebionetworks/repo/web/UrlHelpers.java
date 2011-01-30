@@ -39,14 +39,6 @@ public class UrlHelpers {
 	private static final Logger log = Logger.getLogger(UrlHelpers.class
 			.getName());
 
-	public static final String ANNOTATIONS = "/annotations";
-	
-	/**
-	 * URL prefix for comment model objects
-	 * 
-	 */
-	public static final String COMMENT = "/comment";
-
 	/**
 	 * URL prefix for dataset model objects
 	 * 
@@ -60,10 +52,10 @@ public class UrlHelpers {
 	public static final String LAYER = "/layer";
 
 	/**
-	 * URL prefix for message objects
+	 * URL suffix for entity annotation
 	 * 
 	 */
-	public static final String MESSAGE = "/message";
+	public static final String ANNOTATIONS = "/annotations";
 
 	/**
 	 * Mapping of type to url prefix
@@ -79,16 +71,14 @@ public class UrlHelpers {
 	 * Mapping of child urls to their parent urls
 	 */
 	private static final Map<String, String> CHILD2PARENTURL;
-	
+
 	// This is a memoized cache for our URL regular expressions
-	private static Map<Class,Pattern> MODEL2REGEX = new HashMap(); 
+	private static Map<Class, Pattern> MODEL2REGEX = new HashMap();
 
 	static {
 		Map<Class, String> model2url = new HashMap<Class, String>();
-		model2url.put(Comment.class, COMMENT);
 		model2url.put(Dataset.class, DATASET);
 		model2url.put(InputDataLayer.class, LAYER);
-		model2url.put(Message.class, MESSAGE);
 		MODEL2URL = Collections.unmodifiableMap(model2url);
 
 		// TODO we don't need all these maps, and for those that we do, we can
@@ -158,14 +148,13 @@ public class UrlHelpers {
 	 * @return the relative URI for the entity
 	 */
 	public static String makeEntityUri(Base entity, HttpServletRequest request) {
-		
+
 		String urlPrefix = getUrlPrefix(entity, request);
 
 		String uri = null;
 		try {
-			uri = urlPrefix
-					+ UrlHelpers.getUrlForModel(entity.getClass()) + "/"
-					+ URLEncoder.encode(entity.getId(), "UTF-8");
+			uri = urlPrefix + UrlHelpers.getUrlForModel(entity.getClass())
+					+ "/" + URLEncoder.encode(entity.getId(), "UTF-8");
 		} catch (UnsupportedEncodingException e) {
 			log.log(Level.SEVERE,
 					"Something is really messed up if we don't support UTF-8",
@@ -188,7 +177,7 @@ public class UrlHelpers {
 	 */
 	public static String makeEntityAnnotationsUri(Class entityClass,
 			Annotations annotations, HttpServletRequest request) {
-		
+
 		return request.getRequestURI();
 	}
 
@@ -205,14 +194,13 @@ public class UrlHelpers {
 	 */
 	public static String makeEntityAnnotationsUri(Base entity,
 			HttpServletRequest request) {
-		
+
 		String urlPrefix = getUrlPrefix(entity, request);
-		
+
 		String uri = null;
 		try {
-			uri = urlPrefix
-					+ UrlHelpers.getUrlForModel(entity.getClass()) + "/"
-					+ URLEncoder.encode(entity.getId(), "UTF-8")
+			uri = urlPrefix + UrlHelpers.getUrlForModel(entity.getClass())
+					+ "/" + URLEncoder.encode(entity.getId(), "UTF-8")
 					+ ANNOTATIONS;
 		} catch (UnsupportedEncodingException e) {
 			log.log(Level.SEVERE,
@@ -258,29 +246,31 @@ public class UrlHelpers {
 		Integer hashCode = entity.hashCode();
 		return hashCode.toString();
 	}
-	
-	
+
 	// TODO this class needs unit tests
 	private static String getUrlPrefix(Base entity, HttpServletRequest request) {
-		
+
 		String urlPrefix = request.getServletPath();
-		
+
 		String parentEntityPrefix = UrlHelpers.getUrlForModel(CHILD2PARENTMODEL
 				.get(entity.getClass()));
-		if(null != parentEntityPrefix) {
+		if (null != parentEntityPrefix) {
 			Pattern pattern = MODEL2REGEX.get(entity.getClass());
-			if(null == pattern) {
-				String regex = "^(" + urlPrefix + parentEntityPrefix + "/[^/]+)/";
+			if (null == pattern) {
+				String regex = "^(" + urlPrefix + parentEntityPrefix
+						+ "/[^/]+)/";
 				pattern = Pattern.compile(regex);
 				MODEL2REGEX.put(entity.getClass(), pattern);
-				log.info("Let's see if " + regex + " will match " + request.getRequestURI());
+				log.info("Let's see if " + regex + " will match "
+						+ request.getRequestURI());
 			}
 			Matcher matcher = pattern.matcher(request.getRequestURI());
-			if(matcher.find()) {
+			if (matcher.find()) {
 				urlPrefix = matcher.group(1);
-			}
-			else {
-				throw new RuntimeException("Trouble making outgoing entity url from incoming url: " + request.getRequestURI());
+			} else {
+				throw new RuntimeException(
+						"Trouble making outgoing entity url from incoming url: "
+								+ request.getRequestURI());
 			}
 		}
 

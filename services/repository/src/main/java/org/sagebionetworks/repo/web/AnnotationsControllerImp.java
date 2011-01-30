@@ -12,10 +12,8 @@ import org.sagebionetworks.repo.model.AnnotationDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
-import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
-import org.sagebionetworks.repo.web.controller.AbstractAnnotatableEntityController;
+import org.sagebionetworks.repo.web.controller.AnnotationsController;
 
 /**
  * Implementation for REST controller for CRUD operations on Annotation DTOs and
@@ -31,23 +29,24 @@ import org.sagebionetworks.repo.web.controller.AbstractAnnotatableEntityControll
  * 
  * @author deflaux
  * @param <T>
+ *            the particular type of entity the controller is managing
  */
-public class AnnotationsDAOControllerImp<T extends Base> implements
-		AbstractAnnotatableEntityController<T> {
+public class AnnotationsControllerImp<T extends Base> implements
+		AnnotationsController<T> {
 
 	private static final Logger log = Logger
-			.getLogger(AnnotationsDAOControllerImp.class.getName());
+			.getLogger(AnnotationsControllerImp.class.getName());
 
-	protected Class<T> theModelClass;
-	protected AnnotatableDAO<T> annotatableDao;
-	protected AnnotationDAO<T, String> stringAnnotationDAO;
-	protected AnnotationDAO<T, Float> floatAnnotationDAO;
-	protected AnnotationDAO<T, Date> dateAnnotationDAO;
+	private Class<T> theModelClass;
+	private AnnotatableDAO<T> annotatableDao;
+	private AnnotationDAO<T, String> stringAnnotationDAO;
+	private AnnotationDAO<T, Float> floatAnnotationDAO;
+	private AnnotationDAO<T, Date> dateAnnotationDAO;
 
 	/**
 	 * @param theModelClass
 	 */
-	public AnnotationsDAOControllerImp(Class<T> theModelClass) {
+	public AnnotationsControllerImp(Class<T> theModelClass) {
 		this.theModelClass = theModelClass;
 	}
 
@@ -58,7 +57,7 @@ public class AnnotationsDAOControllerImp<T extends Base> implements
 		floatAnnotationDAO = annotatableDao.getFloatAnnotationDAO();
 		dateAnnotationDAO = annotatableDao.getDateAnnotationDAO();
 	}
-	
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -123,8 +122,8 @@ public class AnnotationsDAOControllerImp<T extends Base> implements
 			for (String value : updatedAnnotation.getValue()) {
 				log.info("Adding string annotation ("
 						+ updatedAnnotation.getKey() + ", " + value + ")");
-				stringAnnotationDAO.addAnnotation(entityId,
-						updatedAnnotation.getKey(), value);
+				stringAnnotationDAO.addAnnotation(entityId, updatedAnnotation
+						.getKey(), value);
 			}
 		}
 
@@ -135,8 +134,8 @@ public class AnnotationsDAOControllerImp<T extends Base> implements
 			for (Float value : updatedAnnotation.getValue()) {
 				log.info("Adding float annotation ("
 						+ updatedAnnotation.getKey() + ", " + value + ")");
-				floatAnnotationDAO.addAnnotation(entityId,
-						updatedAnnotation.getKey(), value);
+				floatAnnotationDAO.addAnnotation(entityId, updatedAnnotation
+						.getKey(), value);
 			}
 		}
 
@@ -147,8 +146,8 @@ public class AnnotationsDAOControllerImp<T extends Base> implements
 			for (Date value : updatedAnnotation.getValue()) {
 				log.info("Adding date annotation ("
 						+ updatedAnnotation.getKey() + ", " + value + ")");
-				dateAnnotationDAO.addAnnotation(entityId,
-						updatedAnnotation.getKey(), value);
+				dateAnnotationDAO.addAnnotation(entityId, updatedAnnotation
+						.getKey(), value);
 			}
 		}
 

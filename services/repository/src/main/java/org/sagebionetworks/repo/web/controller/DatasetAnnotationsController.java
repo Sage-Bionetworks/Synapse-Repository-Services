@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
-import org.sagebionetworks.repo.web.AnnotationsDAOControllerImp;
+import org.sagebionetworks.repo.web.AnnotationsControllerImp;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
@@ -29,17 +29,17 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>
  * 
  * Note that any controller logic common to all objects belongs in the
- * implementation of {@link AbstractEntityController} and of
- * {@link AbstractAnnotatableEntityController} that this wraps. Only
- * functionality specific to Dataset objects belongs in this controller.
+ * implementation of {@link EntityController} and of
+ * {@link AnnotationsController} that this wraps. Only functionality specific to
+ * Dataset Annotations objects belongs in this controller.
  * 
  * @author deflaux
  */
 @Controller
 public class DatasetAnnotationsController extends BaseController implements
-		AbstractAnnotatableEntityController<Dataset> {
+		AnnotationsController<Dataset> {
 
-	private AbstractAnnotatableEntityController<Dataset> datasetAnnotationsController;
+	private AnnotationsController<Dataset> datasetAnnotationsController;
 
 	// TODO @Autowired, no GAE references allowed in this class
 	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
@@ -47,10 +47,10 @@ public class DatasetAnnotationsController extends BaseController implements
 
 	DatasetAnnotationsController() {
 
-		datasetAnnotationsController = new AnnotationsDAOControllerImp<Dataset>(
+		datasetAnnotationsController = new AnnotationsControllerImp<Dataset>(
 				Dataset.class);
 
-		setDao(datasetDao);  // TODO remove this when @Autowired
+		setDao(datasetDao); // TODO remove this when @Autowired
 	}
 
 	@Override
@@ -58,7 +58,7 @@ public class DatasetAnnotationsController extends BaseController implements
 		datasetDao = (DatasetDAO) dao;
 		datasetAnnotationsController.setDao(datasetDao);
 	}
-	
+
 	/*******************************************************************************
 	 * Dataset Annotation RUD handlers
 	 * 

@@ -24,15 +24,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author deflaux
  * 
  * @param <T>
+ *            the particular type of entity whose annotations the controller is
+ *            managing
  */
-public interface AbstractAnnotatableEntityController<T extends Base> {
+public interface AnnotationsController<T extends Base> {
 
 	/**
 	 * Get annotations for a specific entity
 	 * <p>
-	 * <ul>
-	 * <li>TODO response bread crumb urls when we have proper DTOs
-	 * </ul>
 	 * 
 	 * @param id
 	 *            the unique identifier for the entity's annotations to be
@@ -53,9 +52,6 @@ public interface AbstractAnnotatableEntityController<T extends Base> {
 	/**
 	 * Update existing annotations for an entity
 	 * <p>
-	 * <ul>
-	 * <li>TODO validate updated entity
-	 * </ul>
 	 * 
 	 * @param id
 	 *            the id of the entity whose annotations we will update

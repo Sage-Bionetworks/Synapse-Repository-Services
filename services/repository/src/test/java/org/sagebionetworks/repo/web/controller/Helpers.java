@@ -41,7 +41,7 @@ public class Helpers {
 	private DispatcherServlet servlet = null;
 
 	private static final int JSON_INDENT = 2;
-	
+
 	/**
 	 * Setup up our mock datastore and servlet
 	 * 
@@ -87,7 +87,8 @@ public class Helpers {
 		request.setRequestURI(requestUrl);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonRequestContent.getBytes("UTF-8"));
-		log.info("About to send: " + new JSONObject(jsonRequestContent).toString(2));
+		log.info("About to send: "
+				+ new JSONObject(jsonRequestContent).toString(2));
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.CREATED.value(), response.getStatus());
@@ -104,10 +105,8 @@ public class Helpers {
 		assertEquals(etagHeader, results.getString("etag"));
 		String locationHeader = (String) response
 				.getHeader(ServiceConstants.LOCATION_HEADER);
-		assertEquals(
-				locationHeader,
-				requestUrl + "/"
-						+ URLEncoder.encode(results.getString("id"), "UTF-8"));
+		assertEquals(locationHeader, requestUrl + "/"
+				+ URLEncoder.encode(results.getString("id"), "UTF-8"));
 		assertEquals(locationHeader, results.getString("uri"));
 
 		return results;
@@ -153,8 +152,8 @@ public class Helpers {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
-		request.addHeader(ServiceConstants.ETAG_HEADER,
-				jsonEntity.getString("etag"));
+		request.addHeader(ServiceConstants.ETAG_HEADER, jsonEntity
+				.getString("etag"));
 		request.setRequestURI(jsonEntity.getString("uri"));
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonEntity.toString().getBytes("UTF-8"));
@@ -223,8 +222,8 @@ public class Helpers {
 					offset.toString());
 		}
 		if (null != limit) {
-			request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM,
-					limit.toString());
+			request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, limit
+					.toString());
 		}
 		if (null != sort) {
 			request.setParameter(ServiceConstants.SORT_BY_PARAM, sort);
@@ -312,8 +311,8 @@ public class Helpers {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
-		request.addHeader(ServiceConstants.ETAG_HEADER,
-				jsonEntity.getString("etag"));
+		request.addHeader(ServiceConstants.ETAG_HEADER, jsonEntity
+				.getString("etag"));
 		request.setRequestURI(jsonEntity.getString("uri"));
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonEntity.toString().getBytes("UTF-8"));
@@ -377,8 +376,8 @@ public class Helpers {
 					offset.toString());
 		}
 		if (null != limit) {
-			request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM,
-					limit.toString());
+			request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, limit
+					.toString());
 		}
 		if (null != sort) {
 			request.setParameter(ServiceConstants.SORT_BY_PARAM, sort);

@@ -1,52 +1,110 @@
 package org.sagebionetworks.repo.web;
 
 import java.util.List;
-import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
-import org.sagebionetworks.repo.server.EntityRepository;
-import org.sagebionetworks.repo.view.PaginatedResults;
-import org.sagebionetworks.repo.web.controller.AbstractEntityController;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.web.controller.EntityController;
 
 /**
- * Implementation for REST controller for CRUD operations on Entity objects
+ * Implementation for REST controller for CRUD operations on Base DTOs and Base
+ * DAOs
+ * <p>
+ * 
+ * This class performs the basic CRUD operations for all our DAO-backed model
+ * objects. See controllers specific to particular models for any special
+ * handling.
  * 
  * @author deflaux
  * @param <T>
+ *            the particular type of entity the controller is managing
  */
-public class EntityControllerImp<T> implements AbstractEntityController<T> {
-
-	@SuppressWarnings("unused")
-	private static final Logger log = Logger
-			.getLogger(EntityControllerImp.class.getName());
+public class EntityControllerImp<T extends Base> implements EntityController<T> {
 
 	private Class<T> theModelClass;
-	private EntityRepository<T> entityRepository;
+	private BaseDAO<T> dao;
+	private EntitiesAccessor<T> entitiesAccessor;
 
 	/**
 	 * @param theModelClass
+	 * @param entitiesAccessor
 	 */
-	public EntityControllerImp(Class<T> theModelClass) {
+	public EntityControllerImp(Class<T> theModelClass,
+			EntitiesAccessor<T> entitiesAccessor) {
 		this.theModelClass = theModelClass;
-		this.entityRepository = new EntityRepository<T>(theModelClass);
+		this.entitiesAccessor = entitiesAccessor;
+	}
+
+	/**
+	 * @return the theModelClass
+	 */
+	public Class<T> getTheModelClass() {
+		return theModelClass;
+	}
+
+	/**
+	 * @param theModelClass
+	 *            the theModelClass to set
+	 */
+	public void setTheModelClass(Class<T> theModelClass) {
+		this.theModelClass = theModelClass;
+	}
+
+	/**
+	 * @return the dao
+	 */
+	public BaseDAO<T> getDao() {
+		return dao;
+	}
+
+	/**
+	 * @param dao
+	 *            the dao to set
+	 */
+	public void setDao(BaseDAO<T> dao) {
+		this.dao = dao;
+	}
+
+	/**
+	 * @return the entitiesAccessor
+	 */
+	public EntitiesAccessor<T> getEntitiesAccessor() {
+		return entitiesAccessor;
+	}
+
+	/**
+	 * @param entitiesAccessor
+	 *            the entitiesAccessor to set
+	 */
+	public void setEntitiesAccessor(EntitiesAccessor<T> entitiesAccessor) {
+		this.entitiesAccessor = entitiesAccessor;
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see
-	 * org.sagebionetworks.repo.web.controller.AbstractEntityController#getEntities
-	 * (java.lang.Integer, java.lang.Integer,
-	 * javax.servlet.http.HttpServletRequest)
+	 * @see org.sagebionetworks.repo.web.controller.EntityController#getEntities
 	 */
 	public PaginatedResults<T> getEntities(Integer offset, Integer limit,
-			String sort, Boolean ascending, HttpServletRequest request) {
+			String sort, Boolean ascending, HttpServletRequest request)
+			throws DatastoreException {
 
 		ServiceConstants.validatePaginationParams(offset, limit);
-		List<T> entities = entityRepository.getRange(offset, limit);
-		Integer totalNumberOfEntities = entityRepository.getCount();
+
+		List<T> entities = entitiesAccessor.getInRangeSortedBy(offset, limit,
+				sort, ascending);
+
+		for (T entity : entities) {
+			addServiceSpecificMetadata(entity, request);
+		}
+
+		Integer totalNumberOfEntities = dao.getCount();
+
 		return new PaginatedResults<T>(request.getServletPath()
 				+ UrlHelpers.getUrlForModel(theModelClass), entities,
 				totalNumberOfEntities, offset, limit, sort, ascending);
@@ -55,16 +113,22 @@ public class EntityControllerImp<T> implements AbstractEntityController<T> {
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see
-	 * org.sagebionetworks.repo.web.controller.AbstractEntityController#getEntity
+	 * @see org.sagebionetworks.repo.web.controller.EntityController#getEntity
 	 * (java.lang.String)
 	 */
 	public T getEntity(String id, HttpServletRequest request)
-			throws NotFoundException {
-		T entity = entityRepository.getById(id);
+			throws NotFoundException, DatastoreException {
+
+		String entityId = UrlHelpers.getEntityIdFromUriId(id);
+
+		T entity = dao.get(entityId);
 		if (null == entity) {
-			throw new NotFoundException("no entity with id " + id + " exists");
+			throw new NotFoundException("no entity with id " + entityId
+					+ " exists");
 		}
+
+		addServiceSpecificMetadata(entity, request);
+
 		return entity;
 	}
 
@@ -72,13 +136,15 @@ public class EntityControllerImp<T> implements AbstractEntityController<T> {
 	 * (non-Javadoc)
 	 * 
 	 * @see
-	 * org.sagebionetworks.repo.web.controller.AbstractEntityController#createEntity
-	 * (T)
+	 * org.sagebionetworks.repo.web.controller.EntityController#createEntity (T)
 	 */
-	public T createEntity(T newEntity, HttpServletRequest request) {
-		// TODO check newEntity.isValid()
-		// newEntity.getValidationErrorEntity()
-		entityRepository.create(newEntity);
+	public T createEntity(T newEntity, HttpServletRequest request)
+			throws DatastoreException, InvalidModelException {
+
+		dao.create(newEntity);
+
+		addServiceSpecificMetadata(newEntity, request);
+
 		return newEntity;
 	}
 
@@ -86,23 +152,31 @@ public class EntityControllerImp<T> implements AbstractEntityController<T> {
 	 * (non-Javadoc)
 	 * 
 	 * @see
-	 * org.sagebionetworks.repo.web.controller.AbstractEntityController#updateEntity
+	 * org.sagebionetworks.repo.web.controller.EntityController#updateEntity
 	 * (java.lang.String, java.lang.Integer, T)
 	 */
 	public T updateEntity(String id, Integer etag, T updatedEntity,
 			HttpServletRequest request) throws NotFoundException,
-			ConflictingUpdateException {
-		T entity = entityRepository.getById(id);
+			ConflictingUpdateException, DatastoreException,
+			InvalidModelException {
+
+		String entityId = UrlHelpers.getEntityIdFromUriId(id);
+
+		T entity = dao.get(entityId);
 		if (null == entity) {
-			throw new NotFoundException("no entity with id " + id + " exists");
+			throw new NotFoundException("no entity with id " + entityId
+					+ " exists");
 		}
 		if (etag != entity.hashCode()) {
 			throw new ConflictingUpdateException(
 					"entity with id "
-							+ id
-							+ "was updated since you last fetched it, retrieve it again and reapply the update");
+							+ entityId
+							+ " was updated since you last fetched it, retrieve it again and reapply the update");
 		}
-		entityRepository.create(updatedEntity);
+		dao.update(updatedEntity);
+
+		addServiceSpecificMetadata(updatedEntity, request);
+
 		return updatedEntity;
 	}
 
@@ -110,20 +184,21 @@ public class EntityControllerImp<T> implements AbstractEntityController<T> {
 	 * (non-Javadoc)
 	 * 
 	 * @see
-	 * org.sagebionetworks.repo.web.controller.AbstractEntityController#deleteEntity
+	 * org.sagebionetworks.repo.web.controller.EntityController#deleteEntity
 	 * (java.lang.String)
 	 */
-	public void deleteEntity(String id) throws NotFoundException {
+	public void deleteEntity(String id) throws NotFoundException,
+			DatastoreException {
+		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 
-		if (!entityRepository.deleteById(id)) {
-			throw new NotFoundException("no entity with id " + id + " exists");
-		}
+		dao.delete(entityId);
+
 		return;
 	}
 
-	@Override
-	public void setDao(BaseDAO<T> dao) {
-		// TODO Auto-generated method stub
-		
+	private void addServiceSpecificMetadata(T entity, HttpServletRequest request) {
+		entity.setUri(UrlHelpers.makeEntityUri(entity, request));
+		entity.setEtag(UrlHelpers.makeEntityEtag(entity));
 	}
+
 }
