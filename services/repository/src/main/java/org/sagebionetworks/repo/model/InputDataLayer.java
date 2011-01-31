@@ -2,10 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Date;
 
-import javax.jdo.annotations.Persistent;
 import javax.xml.bind.annotation.XmlRootElement;
-
-import com.google.appengine.api.datastore.Text;
 
 @XmlRootElement
 public class InputDataLayer implements DatasetLayer {
