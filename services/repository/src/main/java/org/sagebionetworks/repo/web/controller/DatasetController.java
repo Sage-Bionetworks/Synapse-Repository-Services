@@ -217,7 +217,7 @@ public class DatasetController extends BaseController implements
 					.add(new LayerPreview(
 							layer.getId(),
 							layer.getType(),	
-							UrlHelpers.makeEntityUri(layer, request)));
+							UrlHelpers.makeEntityUri(layer, dataset.getUri())));
 		}
 
 		// TODO find a better way to leave this breadcrumb for users

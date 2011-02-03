@@ -161,6 +161,33 @@ public class UrlHelpers {
 		return uri;
 	}
 
+	
+	/**
+	 * Helper function to to create a relative URL for an entity
+	 * <p>
+	 * 
+	 * This includes not only the entity id but also the controller and servlet
+	 * portions of the path
+	 *  
+	 * @param entity
+	 * @param urlPrefix
+	 * @return the relative URI for the entity
+	 */
+	public static String makeEntityUri(Base entity, String urlPrefix) {
+
+		String uri = null;
+		try {
+			uri = urlPrefix + UrlHelpers.getUrlForModel(entity.getClass())
+					+ "/" + URLEncoder.encode(entity.getId(), "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			log.log(Level.SEVERE,
+					"Something is really messed up if we don't support UTF-8",
+					e);
+		}
+		return uri;
+	}
+
+	
 	/**
 	 * Helper function to create a relative URL for an entity's annotations
 	 * <p>

@@ -5,7 +5,9 @@ import static org.junit.Assert.assertFalse;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.joda.time.DateTime;
 import org.json.JSONArray;
@@ -38,7 +40,8 @@ public class DatasetsControllerTest {
 
 	private Helpers helper = new Helpers();
 
-	private String sampleDatasetNames[] = { "DeLiver", "MouseCross",
+	private String sampleDatasetNames[] = { 
+			"DeLiver", "MouseCross",
 			"Harvard Brain", "Glioblastoma TCGA",
 			"Mouse Model of Diet-Induced Atherosclerosis",
 			"TCGA Curation Package",
@@ -53,7 +56,7 @@ public class DatasetsControllerTest {
 			new DateTime("1999-02-02"), new DateTime("2003-05-05"),
 			new DateTime("2003-05-06"), new DateTime("2007-07-30"),
 			new DateTime("2007-07-07"), new DateTime("2007-07-22"),
-			new DateTime("2007-07-22"), new DateTime("2007-07-18"), };
+			new DateTime("2007-07-23"), new DateTime("2007-07-18"), };
 
 	/**
 	 * @throws java.lang.Exception
@@ -271,129 +274,128 @@ public class DatasetsControllerTest {
 		assertExpectedDatasetsProperties(results.getJSONArray("results"));
 	}
 
-	// /**
-	// * Test method for
-	// * {@link
-	// org.sagebionetworks.repo.web.controller.DatasetController#getEntities}
-	// * .
-	// *
-	// * @throws Exception
-	// */
-	// @SuppressWarnings("unchecked")
-	// @Test
-	// @Ignore
-	// public void testGetDatasetsSortByDateAnnotationAscending() throws
-	// Exception {
-	// int totalNumDatasets = sampleDatasetNames.length;
-	// Map<String, DateTime> testCases = new HashMap<String, DateTime>();
-	//
-	// // Load up a few datasets
-	// for (int i = 0; i < totalNumDatasets; i++) {
-	// JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-	// "{\"name\":\"" + sampleDatasetNames[i] + "\"}");
-	//
-	// // Get our empty annotations container
-	// JSONObject annotations = helper.testGetJsonEntity(newDataset
-	// .getString("annotations"));
-	//
-	// // Put our date annotations
-	// Long curationEvents[] = { sampleDates[i].getMillis() };
-	// JSONObject dateAnnotations = annotations
-	// .getJSONObject("dateAnnotations");
-	// dateAnnotations.put("curationEvents", curationEvents);
-	// JSONObject results = helper.testUpdateJsonEntity(annotations);
-	//
-	// // Now check that we correctly persisted them for real
-	// JSONObject storedAnnotations = helper.testGetJsonEntity(newDataset
-	// .getString("annotations"));
-	// helper.assertJSONArrayEquals(curationEvents,
-	// storedAnnotations.getJSONObject(
-	// "dateAnnotations").getJSONArray("curationEvents"));
-	//
-	// testCases.put(newDataset.getString("id"), sampleDates[i]);
-	//
-	// }
-	//
-	// List<DateTime> sortedDates = Arrays.asList(sampleDates);
-	// Collections.sort(sortedDates);
-	//
-	// JSONObject results = helper.testGetJsonEntities("/dataset", null, 5,
-	// "curationEvents", true);
-	// assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
-	// assertEquals(5, results.getJSONArray("results").length());
-	// assertFalse(results.getJSONObject("paging").has(
-	// PaginatedResults.PREVIOUS_PAGE_FIELD));
-	// assertEquals("/dataset?offset=6&limit=5&sort=curationEvents&ascending=true",
-	// results.getJSONObject("paging").getString(
-	// PaginatedResults.NEXT_PAGE_FIELD));
-	// for (int i = 0; i < 5; i++) {
-	// DateTime expectedDate = sortedDates.get(i);
-	// DateTime actualDate = testCases.get(results.getJSONArray(
-	// "results").getJSONObject(i).getString("id"));
-	// assertEquals(expectedDate, actualDate);
-	// }
-	//
-	// assertExpectedDatasetsProperties(results.getJSONArray("results"));
-	// }
-	//
-	// /**
-	// * Test method for
-	// * {@link
-	// org.sagebionetworks.repo.web.controller.DatasetController#getEntities}
-	// * .
-	// *
-	// * @throws Exception
-	// */
-	// @SuppressWarnings("unchecked")
-	// @Test
-	// @Ignore
-	// public void testGetDatasetsSortByDateAnnotationDescending() throws
-	// Exception {
-	// int totalNumDatasets = sampleDatasetNames.length;
-	//
-	// // Load up a few datasets
-	// for (int i = 0; i < totalNumDatasets; i++) {
-	// JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-	// "{\"name\":\"" + sampleDatasetNames[i] + "\"}");
-	//
-	// // Get our empty annotations container
-	// JSONObject annotations = helper.testGetJsonEntity(newDataset
-	// .getString("annotations"));
-	//
-	// Long curationEvents[] = { sampleDates[i].getMillis() };
-	// JSONObject dateAnnotations = annotations
-	// .getJSONObject("dateAnnotations");
-	// dateAnnotations.put("curationEvents", curationEvents);
-	// JSONObject results = helper.testUpdateJsonEntity(annotations);
-	// }
-	//
-	// List<DateTime> sortedDates = Arrays.asList(sampleDates);
-	// Collections.sort(sortedDates);
-	//
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#getEntities}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testGetDatasetsSortByDateAnnotationAscending() throws Exception {
+		int totalNumDatasets = sampleDatasetNames.length;
+		Map<DateTime, String> testCases = new HashMap<DateTime, String>();
 
-	// TODO this needs more tweaks similar to those in the test above
+		// Load up a few datasets
+		for (int i = 0; i < totalNumDatasets; i++) {
+			JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
+					"{\"name\":\"" + sampleDatasetNames[i] + "\"}");
 
-	// JSONObject results = helper.testGetJsonEntities("/dataset", null, 5,
-	// "name", false);
-	// assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
-	// assertEquals(5, results.getJSONArray("results").length());
-	// assertFalse(results.getJSONObject("paging").has(
-	// PaginatedResults.PREVIOUS_PAGE_FIELD));
-	// assertEquals("/dataset?offset=6&limit=5&sort=name&ascending=false",
-	// results.getJSONObject("paging").getString(
-	// PaginatedResults.NEXT_PAGE_FIELD));
-	// for (int i = 0; i < 5; i++) {
-	// assertEquals(sortedDates.get(sortedDates.size() - 1
-	// - i), results.getJSONArray("results").getJSONObject(i)
-	// .getString("name"));
-	// }
-	//
-	// assertExpectedDatasetsProperties(results.getJSONArray("results"));
-	// }
+			// Get our empty annotations container
+			JSONObject annotations = helper.testGetJsonEntity(newDataset
+					.getString("annotations"));
 
-	// TODO sort on a date property
-	// TODO sort on a numeric property
-	// TODO sort on an annotation property
+			// Put our date annotations
+			Long curationEvents[] = { sampleDates[i].getMillis() };
+			JSONObject dateAnnotations = annotations
+					.getJSONObject("dateAnnotations");
+			dateAnnotations.put("curationEvents", curationEvents);
+			JSONObject results = helper.testUpdateJsonEntity(annotations);
+
+			// Now check that we correctly persisted them for real
+			JSONObject storedAnnotations = helper.testGetJsonEntity(newDataset
+					.getString("annotations"));
+			helper.assertJSONArrayEquals(curationEvents, storedAnnotations
+					.getJSONObject("dateAnnotations").getJSONArray(
+							"curationEvents"));
+
+			testCases.put(sampleDates[i], sampleDatasetNames[i]); //results.getString("id"));
+		}
+
+		List<DateTime> sortedDates = Arrays.asList(sampleDates);
+		Collections.sort(sortedDates);
+
+		JSONObject results = helper.testGetJsonEntities("/dataset", null, 5,
+				"curationEvents", true);
+		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
+		assertEquals(5, results.getJSONArray("results").length());
+		assertFalse(results.getJSONObject("paging").has(
+				PaginatedResults.PREVIOUS_PAGE_FIELD));
+		assertEquals(
+				"/dataset?offset=6&limit=5&sort=curationEvents&ascending=true",
+				results.getJSONObject("paging").getString(
+						PaginatedResults.NEXT_PAGE_FIELD));
+		for (int i = 0; i < 5; i++) {
+			String expectedName = testCases.get(sortedDates.get(i));
+			String actualName = results.getJSONArray("results")
+					.getJSONObject(i).getString("name");
+			assertEquals(expectedName, actualName);
+		}
+
+		assertExpectedDatasetsProperties(results.getJSONArray("results"));
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#getEntities}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testGetDatasetsSortByDateAnnotationDescending()
+			throws Exception {
+		int totalNumDatasets = sampleDatasetNames.length;
+		Map<DateTime, String> testCases = new HashMap<DateTime, String>();
+
+		// Load up a few datasets
+		for (int i = 0; i < totalNumDatasets; i++) {
+			JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
+					"{\"name\":\"" + sampleDatasetNames[i] + "\"}");
+
+			// Get our empty annotations container
+			JSONObject annotations = helper.testGetJsonEntity(newDataset
+					.getString("annotations"));
+
+			Long curationEvents[] = { sampleDates[i].getMillis() };
+			JSONObject dateAnnotations = annotations
+					.getJSONObject("dateAnnotations");
+			dateAnnotations.put("curationEvents", curationEvents);
+			JSONObject results = helper.testUpdateJsonEntity(annotations);
+
+			// Now check that we correctly persisted them for real
+			JSONObject storedAnnotations = helper.testGetJsonEntity(newDataset
+					.getString("annotations"));
+			helper.assertJSONArrayEquals(curationEvents, storedAnnotations
+					.getJSONObject("dateAnnotations").getJSONArray(
+							"curationEvents"));
+
+			testCases.put(sampleDates[i], sampleDatasetNames[i]);
+		}
+
+		List<DateTime> sortedDates = Arrays.asList(sampleDates);
+		Collections.sort(sortedDates);
+
+		JSONObject results = helper.testGetJsonEntities("/dataset", null, 5,
+				"curationEvents", false);
+		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
+		assertEquals(5, results.getJSONArray("results").length());
+		assertFalse(results.getJSONObject("paging").has(
+				PaginatedResults.PREVIOUS_PAGE_FIELD));
+		assertEquals("/dataset?offset=6&limit=5&sort=curationEvents&ascending=false",
+				results.getJSONObject("paging").getString(
+						PaginatedResults.NEXT_PAGE_FIELD));
+		for (int i = 0; i < 5; i++) {
+			String expectedName = testCases.get(sortedDates.get(sortedDates.size() - 1 - i));
+			String actualName = results.getJSONArray("results")
+					.getJSONObject(i).getString("name");
+			assertEquals(expectedName, actualName);
+		}
+
+		assertExpectedDatasetsProperties(results.getJSONArray("results"));
+	}
 
 	/*****************************************************************************************************
 	 * Bad parameters tests
