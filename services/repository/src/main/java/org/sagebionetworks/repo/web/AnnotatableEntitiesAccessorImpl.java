@@ -1,12 +1,16 @@
 package org.sagebionetworks.repo.web;
 
+import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.AnnotatableDAO;
 import org.sagebionetworks.repo.model.AnnotationDAO;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -76,19 +80,81 @@ public class AnnotatableEntitiesAccessorImpl<T extends Base> implements
 					.getInRange(offset - 1, offset + limit - 1);
 		} else {
 			if (primaryFields.contains(sort)) {
+
 				entities = annotatableDao.getInRangeSortedByPrimaryField(
 						offset - 1, offset + limit - 1, sort, ascending);
-			} else {
-				entities = stringAnnotationDAO.getInRangeSortedBy(offset - 1,
-						offset + limit - 1, sort, ascending);
 
-				// TODO need to find a good way to infer the type
-				// entities = floatAnnotationDAO.getInRangeSortedBy(offset - 1,
-				// offset + limit - 1, sort, ascending);
-				// entities = dateAnnotationDAO.getInRangeSortedBy(offset - 1,
-				// offset + limit - 1, sort, ascending);
+			} else {
+
+				// TODO this code goes with the hack below, to be addressed at a
+				// later date
+				Map<String, Integer> annotationFields = getAnnotationFields();
+				Integer type = annotationFields.get(sort);
+				if (null == type) {
+					throw new IllegalArgumentException("Field '" + sort
+							+ "' is not sortable because there is no primary"
+							+ " field or annotation with that name");
+				} else if (1 == type) {
+					entities = floatAnnotationDAO.getInRangeSortedBy(
+							offset - 1, offset + limit - 1, sort, ascending);
+				} else if (2 == type) {
+					entities = dateAnnotationDAO.getInRangeSortedBy(offset - 1,
+							offset + limit - 1, sort, ascending);
+				} else {
+					entities = stringAnnotationDAO.getInRangeSortedBy(
+							offset - 1, offset + limit - 1, sort, ascending);
+				}
 			}
 		}
 		return entities;
+	}
+
+	private Map<String, Integer> getAnnotationFields() {
+
+		/*
+		 * TODO this is a big hack and it won't scale, this is merely for demo
+		 * purposes and will need to be implemented properly. One way to
+		 * implement it property would be when ever we persist a new annotation
+		 * to store its key and type. Keep that mapping cached in memory and
+		 * persisted in the datastore.
+		 */
+		Map<String, Integer> annotationFields = new HashMap<String, Integer>();
+		List<T> entities = null;
+		try {
+			entities = annotatableDao.getInRange(0, Integer.MAX_VALUE);
+			for (T entity : entities) {
+				Annotations annotations = annotatableDao.getAnnotations(entity
+						.getId());
+
+				Map<String, Collection<String>> stringAnnotations = annotations
+						.getStringAnnotations();
+				for (Map.Entry<String, Collection<String>> annotation : stringAnnotations
+						.entrySet()) {
+					annotationFields.put(annotation.getKey(), 0);
+				}
+
+				Map<String, Collection<Float>> floatAnnotations = annotations
+						.getFloatAnnotations();
+				for (Map.Entry<String, Collection<Float>> annotation : floatAnnotations
+						.entrySet()) {
+					annotationFields.put(annotation.getKey(), 1);
+				}
+
+				Map<String, Collection<Date>> dateAnnotations = annotations
+						.getDateAnnotations();
+				for (Map.Entry<String, Collection<Date>> annotation : dateAnnotations
+						.entrySet()) {
+					annotationFields.put(annotation.getKey(), 2);
+				}
+			}
+		} catch (DatastoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return annotationFields;
 	}
 }
