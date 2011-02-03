@@ -82,12 +82,16 @@ public class GAEJDOInputDataLayerDAOImpl extends
 		// are set
 		//
 		// Question: is this where we want this sort of logic?
-		// Dev Note: right now the only required field is name but I can imagine
+		// Dev Note: right now the only required field is name and type but I can imagine
 		// that the
 		// validation logic will become more complex over time
 		if (null == dto.getName()) {
 			throw new InvalidModelException(
 					"'name' is a required property for InputDataLayer");
+		}
+		if (null == dto.getType()) {
+			throw new InvalidModelException(
+					"'type' is a required property for InputDataLayer");
 		}
 		jdo.setName(dto.getName());
 		jdo.setDescription(new Text(dto.getDescription()));
