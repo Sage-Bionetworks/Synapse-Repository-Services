@@ -10,6 +10,8 @@ import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -198,38 +200,33 @@ public class DatasetController extends BaseController implements
 	}
 
 	private void addServiceSpecificMetadata(Dataset dataset,
-			HttpServletRequest request) {
+			HttpServletRequest request) throws DatastoreException {
 
 		dataset.setAnnotations(UrlHelpers.makeEntityAnnotationsUri(dataset,
 				request));
+		
+		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(dataset.getId());
 
-		// Layers have not yet been implemented
-		// Collection<String> layers = dataset.getLayers();
-		// for(String layer : layers) {
-		// LayerDTO layerDto = layerDao.getLayer(layer);
-		// layerUris.put(layerDto.getType,
-		// UrlHelpers.makeEntityUri(layerDto, request));
-		// }
+		// Get all layers, we are making the assumption that this is not more than 10s of layers
+		Collection<InputDataLayer> layers = layerDao.getInRange(0, Integer.MAX_VALUE);
 
-		// TODO inserting fake data for now, fix me!
-		if (0 == dataset.getLayers().size()) {
-			Collection<LayerPreview> layers = new ArrayList<LayerPreview>();
+		Collection<LayerPreview> layerPreviews = new ArrayList<LayerPreview>();
 
-			layers
+		for(InputDataLayer layer : layers) {
+			layerPreviews
 					.add(new LayerPreview(
-							"agxkZWZsYXV4LXRlc3RyEwsSDUdBRUpET0RhdGFzZXQYAQw",
-							"C",
-							"/datalayer/agxkZWZsYXV4LXRlc3RyEwsSDUdBRUpET0RhdGFzZXQYAQw"));
-			layers.add(new LayerPreview(
-					"agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYiaECDA", "E",
-					"agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYiaECDA"));
-			layers
-					.add(new LayerPreview(
-							"agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYmfIBDA",
-							"G",
-							"/datalayer/agxkZWZsYXV4LXRlc3RyFQsSDUdBRUpET0RhdGFzZXQYmfIBDA"));
-			dataset.setLayers(layers);
+							layer.getId(),
+							layer.getType(),	
+							UrlHelpers.makeEntityUri(layer, request)));
 		}
+
+		// TODO find a better way to leave this breadcrumb for users
+		layerPreviews
+		.add(new LayerPreview(
+				"use this uri to make a new layer",
+				"hack",	
+				UrlHelpers.makeEntityUri(dataset, request) + "/layer"));
+		dataset.setLayers(layerPreviews);
 
 		return;
 	}

@@ -525,14 +525,13 @@ public class DatasetControllerTest {
 		assertFalse("null".equals(results.getString("annotations")));
 		assertTrue(results.has("layers"));
 
-		// Check our currently hard-coded layer metadata
-		assertEquals(3, results.getJSONArray("layers").length());
-		for (int i = 0; i < 3; i++) {
-			assertTrue(results.getJSONArray("layers").getJSONObject(1)
+		// Check our layer metadata, if present
+		for (int i = 0; i < results.getJSONArray("layers").length(); i++) {
+			assertTrue(results.getJSONArray("layers").getJSONObject(i)
 					.has("id"));
-			assertTrue(results.getJSONArray("layers").getJSONObject(1).has(
+			assertTrue(results.getJSONArray("layers").getJSONObject(i).has(
 					"type"));
-			assertTrue(results.getJSONArray("layers").getJSONObject(1).has(
+			assertTrue(results.getJSONArray("layers").getJSONObject(i).has(
 					"uri"));
 		}
 

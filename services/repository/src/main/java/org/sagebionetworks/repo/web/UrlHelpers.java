@@ -256,11 +256,9 @@ public class UrlHelpers {
 			Pattern pattern = MODEL2REGEX.get(entity.getClass());
 			if (null == pattern) {
 				String regex = "^(" + urlPrefix + parentEntityPrefix
-						+ "/[^/]+)/";
+						+ "/[^/]+)";
 				pattern = Pattern.compile(regex);
 				MODEL2REGEX.put(entity.getClass(), pattern);
-				log.info("Let's see if " + regex + " will match "
-						+ request.getRequestURI());
 			}
 			Matcher matcher = pattern.matcher(request.getRequestURI());
 			if (matcher.find()) {
