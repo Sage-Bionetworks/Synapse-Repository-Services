@@ -171,21 +171,64 @@ public class DatasetDAOTest {
 		layer2.setName("genotyping data");
 		layerDAO.create(layer2);
 
+		// test retrieval of layer by ID
+		InputDataLayer l = layerDAO.get(layer1.getId());
+		Assert.assertNotNull(l);
+		Assert.assertEquals("clinical data", l.getName());
+		// then test that all field values are returned
+		Assert.assertEquals(layer1.getCreationDate(), l.getCreationDate());
+		Assert.assertEquals(layer1.getDescription(), l.getDescription());
+		Assert.assertEquals(layer1.getPlatform(), l.getPlatform());
+		Assert.assertEquals(layer1.getProcessingFacility(), l.getProcessingFacility());
+		Assert.assertEquals(layer1.getPublicationDate(), l.getPublicationDate());
+		Assert.assertEquals(layer1.getQcBy(), l.getQcBy());
+		Assert.assertEquals(layer1.getQcDate(), l.getQcDate());
+		Assert.assertEquals(layer1.getTissueType(), l.getTissueType());
+		Assert.assertEquals(layer1.getUri(), l.getUri());
+		Assert.assertEquals(layer1.getVersion(), l.getVersion());
+
+		
 		Collection<InputDataLayer> layers = layerDAO.getInRange(0, 100);
 		Assert.assertEquals(2, layers.size());
 
 		layers = layerDAO.getInRangeSortedByPrimaryField(0, 100, "name", true);
 		Assert.assertEquals(2, layers.size());
 		Assert.assertEquals("clinical data", layers.iterator().next().getName());
+		// TODO add a layer with a null primary field and verify that it comes back
 
 		layers = layerDAO.getInRangeSortedByPrimaryField(0, 100, "name", false);
 		Assert.assertEquals(2, layers.size());
 		Assert.assertEquals("genotyping data", layers.iterator().next()
 				.getName());
+		
+		// TODO test getting ALL annotations for a layer
+		
+		// TODO: add multiple datasets, then show that retrieving layers gets
+		// just the layers for the dataset of interest
+		
+		// TODO: delete the layer then try retrieving.  Should get NotFoundException
+	
 	}
 
 	@Test
 	public void testCreateAndUpdate() throws Exception {
+		Dataset d = createShallow();
+
+		DatasetDAO dao = fac.getDatasetDAO();
+		String id = dao.create(d);
+		dao.getStringAnnotationDAO().addAnnotation(id, "Tissue Type", "liver");
+		dao.getFloatAnnotationDAO().addAnnotation(id, "weight", 100F);
+		d.setDescription("Updated description");
+		dao.update(d);
+		dao.getFloatAnnotationDAO().removeAnnotation(id, "weight", 100F);
+		dao.getFloatAnnotationDAO().addAnnotation(id, "weight", 9.11F);
+		
+		Dataset d2 = dao.get(id);
+		Assert.assertEquals("Updated description", d2.getDescription());
+		Map<String, Collection<Float>> annots = dao.getFloatAnnotationDAO().getAnnotations(id);
+		Collection<Float> floats = annots.get("weight");
+		Assert.assertEquals(floats.toString(), 1, floats.size());
+		Assert.assertEquals(9.11F, floats.iterator().next());
 	}
 
 	@Test
@@ -226,9 +269,14 @@ public class DatasetDAOTest {
 		} finally {
 			pm.close();
 		}
+		
+		// TO DO: check that deletion of the dataset deletes it's annotations and revisions
+		// too.  (Since they're owned, they should be deleted automatically.)
 
 	}
-
+ 
+	// TODO get this working.  Requires a redesign in which objects *own* their revisions.
+	@Ignore
 	@Test
 	public void testGetCount() throws Exception {
 		DatasetDAO dao = fac.getDatasetDAO();
@@ -237,44 +285,62 @@ public class DatasetDAOTest {
 		String id2 = dao.create(ds2);
 		String id3 = dao.create(createShallow("dataset 3"));
 		Assert.assertEquals(3, dao.getCount());
-		dao.delete(id2);
+		dao.delete(id1);
 		Assert.assertEquals(2, dao.getCount());
-		System.out.println(ds2.getVersion());
-		// now let's create a revision of ds2!
+		//System.out.println(ds2.getVersion());
+		// now let's create a revision of ds2, v1.0->v2.0
 		ds2.setVersion("2.0");
 		Date revisionDate = new Date(); // may
-		//dao.revise(ds2, revisionDate); < THIS BREAKS!!!!
+		dao.revise(ds2, revisionDate);
+		// the count should not change!
+		Assert.assertEquals(2, dao.getCount());
 	}
 
 	@Test
 	public void testGetInRange() throws Exception {
+		DatasetDAO dao = fac.getDatasetDAO();
+		Dataset d = null;
+		d = createShallow("d1");
+		dao.create(d);
+		d = createShallow("d4");
+		dao.create(d);
+		d = createShallow("d3");
+		dao.create(d);
+		d = createShallow("d3");
+		dao.create(d);
+		List<Dataset> ans;
+		ans = dao.getInRange(0, 2);
+		Assert.assertEquals(2, ans.size());
+		ans = dao.getInRange(0, 4);
+		Assert.assertEquals(4, ans.size());
+		ans = dao.getInRange(1, 10);
+		Assert.assertEquals(3, ans.size());
 	}
 
 	@Test
 	public void testGetPrimaryFields() throws Exception {
+		DatasetDAO dao = fac.getDatasetDAO();
+		Set s = new HashSet<String>(Arrays.asList(new String[]{"name", "description", "releaseDate", "version", "status", "creator", "creationDate"}));
+		Assert.assertEquals(s, new HashSet<String>(dao.getPrimaryFields()));
 	}
 
 	@Test
 	public void testGetInRangeSortedByPrimaryField() throws Exception {
 		DatasetDAO dao = fac.getDatasetDAO();
 		Dataset d = null;
-		d = createShallow();
-		d.setName("d1");
+		d = createShallow("d1");
 		dao.create(d);
 		dao.getStringAnnotationDAO().addAnnotation(d.getId(), "stringAttr",
 				d.getName());
-		d = createShallow();
-		d.setName("d4");
+		d = createShallow("d4");
 		dao.create(d);
 		dao.getStringAnnotationDAO().addAnnotation(d.getId(), "stringAttr",
 				d.getName());
-		d = createShallow();
-		d.setName("d3");
+		d = createShallow("d3");
 		dao.create(d);
 		dao.getStringAnnotationDAO().addAnnotation(d.getId(), "stringAttr",
 				d.getName());
-		d = createShallow();
-		d.setName("d3");
+		d = createShallow("d3");
 		dao.create(d);
 		dao.getStringAnnotationDAO().addAnnotation(d.getId(), "stringAttr",
 				d.getName());
@@ -312,10 +378,27 @@ public class DatasetDAOTest {
 		Assert.assertEquals(order, "d3", ans.get(2).getName());
 		Assert.assertEquals(order, "d4", ans.get(3).getName());
 
+		// TODO check that if value is null, the Dataset is at the top of the list
 	}
 
 	@Test
-	public void testgetInRangeHavingByPrimaryField() throws Exception {
+	public void testGetInRangeHavingPrimaryField() throws Exception {
+		DatasetDAO dao = fac.getDatasetDAO();
+		Dataset d = null;
+		d = createShallow("d1"); d.setStatus("preliminary");
+		dao.create(d); 
+		d = createShallow("d4"); d.setStatus("preliminary");
+		dao.create(d); 
+		d = createShallow("d2"); d.setStatus("released");
+		dao.create(d);
+		d = createShallow("d3"); d.setStatus(null);
+		dao.create(d);
+		List<Dataset> ans;
+		ans = dao.getInRangeHavingPrimaryField(0, 10, "status", "preliminary");
+		Assert.assertEquals(2, ans.size());
+		Set<String> s = new HashSet<String>();
+		for (Dataset ds : ans) s.add(ds.getName());
+		Assert.assertEquals(new HashSet<String>(Arrays.asList(new String[]{"d4","d1"})),s);
 	}
 
 	@Test
@@ -374,6 +457,9 @@ public class DatasetDAOTest {
 				true);
 		Assert.assertEquals(1, c.size());
 		Assert.assertEquals(d.getName(), c.iterator().next().getName());
+		
+		// TODO add more than one dataset, then retrieve
+		// TODO add a null annotation and check that it comes up on top
 
 		// test retrieving filtering by annotation
 		c = dao.getFloatAnnotationDAO()
@@ -381,35 +467,40 @@ public class DatasetDAOTest {
 		Assert.assertEquals(1, c.size());
 		Assert.assertEquals(d.getName(), c.iterator().next().getName());
 
+		// TODO add more than one dataset
 		c = dao.getStringAnnotationDAO().getInRangeHaving(0, 100,
 				"Tissue Type", "liver");
 		Assert.assertEquals(1, c.size());
 		Assert.assertEquals(d.getName(), c.iterator().next().getName());
 
+		Collection<String> allAttrs = dao.getStringAnnotationDAO().getAttributes();
+		Assert.assertEquals(new HashSet<String>(Arrays.asList(new String[]{"Tissue Type"})), allAttrs);
+		Map<String,Collection<String>> map = dao.getStringAnnotationDAO().getAnnotations(id);
+		Assert.assertEquals(1, map.size());
+		// TODO check content
+		
+		
 	}
-
+	
 	@Test
-	public void testGetAllAnnotations() throws Exception {
-
-	}
-
-	@Test
-	public void testAnnotationDAO() throws Exception {
-
+	public void testRetrieveLayerByAnnotation() throws Exception {
+		// TODO check that we retrieve just the annotations for the dataset of interest
+		// include null annotations
 	}
 
 	@Test
 	public void testCreateRevision() throws Exception {
-
+		// TODO
 	}
-
+ 
 	@Test
 	public void testGetLatest() throws Exception {
-
+		// TODO
 	}
 
 	@Test
 	public void testRetrieveByRevision() throws Exception {
+		// TODO
 	}
 
 }

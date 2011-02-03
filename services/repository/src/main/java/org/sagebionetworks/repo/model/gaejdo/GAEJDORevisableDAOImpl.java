@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Revisable;
 import org.sagebionetworks.repo.model.RevisableDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
@@ -105,7 +106,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	 *                version of the latest revision
 	 */
 	protected T revise(PersistenceManager pm, S revision, Date revisionDate)
-			throws DatastoreException, InvalidModelException {
+			throws DatastoreException, InvalidModelException, NotFoundException {
 		if (revision.getId() == null)
 			throw new InvalidModelException("id is null");
 		if (revision.getVersion() == null)
@@ -123,9 +124,8 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 
 		// now copy the 'deep' properties
 		Key reviseeId = KeyFactory.stringToKey(revision.getId());
-		@SuppressWarnings("unchecked")
-		T revisee = (T) pm.getObjectId(reviseeId);
-
+		T revisee = (T) pm.getObjectById(getJdoClass(), reviseeId);
+		if (revisee==null) throw new NotFoundException();
 		T jdo = cloneJdo(revisee);
 		copyFromDto(revision, jdo);
 		jdo.setId(generateKey(pm));

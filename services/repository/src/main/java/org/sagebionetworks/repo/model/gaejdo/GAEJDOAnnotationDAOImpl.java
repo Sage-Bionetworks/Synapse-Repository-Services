@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.jdo.Extent;
+import javax.jdo.JDOHelper;
 import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
@@ -250,12 +251,16 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	}
 
 	protected boolean hasAnnotation(T jdo, String attribute, A value) {
+		return getAnnotation(jdo, attribute, value)!=null;
+	}
+		
+	protected GAEJDOAnnotation<A> getAnnotation(T jdo, String attribute, A value) {
 		for (GAEJDOAnnotation<A> annot : getIterable(jdo.getAnnotations())) {
 			if (annot.getAttribute().equals(attribute)
 					&& annot.getValue().equals(value))
-				return true;
+				return annot;
 		}
-		return false;
+		return null;
 	}
 
 	public void addAnnotation(String id, String attribute, A value)
@@ -296,10 +301,14 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 			tx.begin();
 			Key key = KeyFactory.stringToKey(id);
 			T jdo = (T) pm.getObjectById(getOwnerClass(), key);
-			GAEJDOAnnotations annots = jdo.getAnnotations();
-			annots.toString(); // hack to 'touch' all the fields
-			removeAnnotation(annots, attribute, value);
-			pm.makePersistent(jdo);
+			GAEJDOAnnotation<A> matchingAnnot = getAnnotation(jdo, attribute, value);
+			if (matchingAnnot!=null) {
+				removeAnnotation(jdo.getAnnotations(), attribute, value);
+				// note: removing from the collection is not sufficient,
+				// we also must explicitly delete it from the datastore
+				pm.deletePersistent(matchingAnnot);
+				pm.makePersistent(jdo);
+			}
 			tx.commit();
 		} catch (JDOObjectNotFoundException e) {
 			throw new NotFoundException(e);

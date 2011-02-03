@@ -64,7 +64,7 @@ public class GAEJDODatasetDAOImpl extends
 	}
 
 	public void copyToDto(GAEJDODataset jdo, Dataset dto) {
-		dto.setId(KeyFactory.keyToString(jdo.getId()));
+		dto.setId(jdo.getId()==null ? null : KeyFactory.keyToString(jdo.getId()));
 		dto.setName(jdo.getName());
 		dto.setDescription(jdo.getDescription());
 		dto.setCreator(jdo.getCreator());
@@ -135,7 +135,7 @@ public class GAEJDODatasetDAOImpl extends
 
 	public Collection<String> getPrimaryFields() {
 		return Arrays.asList(new String[] { "name", "description", "creator",
-				"status", "releaseDate", "version" });
+				"status", "releaseDate", "version", "creationDate" });
 	}
 
 	public InputDataLayerDAO getInputDataLayerDAO(String datasetId) {

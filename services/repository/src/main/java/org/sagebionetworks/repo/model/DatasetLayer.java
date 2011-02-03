@@ -10,5 +10,9 @@ import java.util.Date;
  * 
  */
 public interface DatasetLayer extends Base, Revisable {
+	public String getReleaseNotes();
+
+	public void setReleaseNotes(String releaseNotes);
+
 
 }
