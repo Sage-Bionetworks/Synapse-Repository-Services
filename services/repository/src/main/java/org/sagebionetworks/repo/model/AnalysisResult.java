@@ -13,6 +13,7 @@ public class AnalysisResult implements DatasetLayer {
 	private Date releaseDate;
 	private String version;
 	private String annotations; // URI for annotations
+	private String releaseNotes;
 
 	public String getId() {
 		return id;
@@ -92,6 +93,14 @@ public class AnalysisResult implements DatasetLayer {
 
 	public void setAnnotations(String annotations) {
 		this.annotations = annotations;
+	}
+
+	public String getReleaseNotes() {
+		return releaseNotes;
+	}
+
+	public void setReleaseNotes(String releaseNotes) {
+		this.releaseNotes = releaseNotes;
 	}
 
 }

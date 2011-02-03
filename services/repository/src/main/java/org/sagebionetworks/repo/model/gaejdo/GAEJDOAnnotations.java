@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import javax.jdo.JDOHelper;
 import javax.jdo.annotations.Element;
 import javax.jdo.annotations.FetchGroup;
 import javax.jdo.annotations.FetchPlan;
@@ -138,7 +139,12 @@ public class GAEJDOAnnotations {
 	}
 
 	public void remove(String a, Float v) {
+		// this doesn't seem to work as is...
 		floatAnnotations.remove(new GAEJDOFloatAnnotation(a, v));
+		// ... and this doesn't work either...
+		//JDOHelper.makeDirty(this, "floatAnnotations");
+		// this doesn't work either...
+		// setFloatAnnotations(new HashSet<GAEJDOFloatAnnotation>(getFloatAnnotations()));
 	}
 
 	public Iterable<GAEJDOAnnotation<Float>> getFloatIterable() {
