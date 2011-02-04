@@ -204,29 +204,23 @@ public class DatasetController extends BaseController implements
 
 		dataset.setAnnotations(UrlHelpers.makeEntityAnnotationsUri(dataset,
 				request));
-		
-		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(dataset.getId());
 
-		// Get all layers, we are making the assumption that this is not more than 10s of layers
-		Collection<InputDataLayer> layers = layerDao.getInRange(0, Integer.MAX_VALUE);
+		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(dataset
+				.getId());
+
+		// Get all layers, we are making the assumption that this is not more
+		// than 10s of layers
+		Collection<InputDataLayer> layers = layerDao.getInRange(0,
+				Integer.MAX_VALUE);
 
 		Collection<LayerPreview> layerPreviews = new ArrayList<LayerPreview>();
 
-		for(InputDataLayer layer : layers) {
-			layerPreviews
-					.add(new LayerPreview(
-							layer.getId(),
-							layer.getType(),	
-							UrlHelpers.makeEntityUri(layer, dataset.getUri())));
+		for (InputDataLayer layer : layers) {
+			layerPreviews.add(new LayerPreview(layer.getId(), layer.getType(),
+					UrlHelpers.makeEntityUri(layer, dataset.getUri())));
 		}
-
-		// TODO find a better way to leave this breadcrumb for users
-		layerPreviews
-		.add(new LayerPreview(
-				"use this uri to make a new layer",
-				"hack",	
-				UrlHelpers.makeEntityUri(dataset, request) + "/layer"));
-		dataset.setLayers(layerPreviews);
+		dataset.setLayerPreviews(layerPreviews);
+		dataset.setLayer(UrlHelpers.makeEntityUri(dataset, request) + "/layer");
 
 		return;
 	}

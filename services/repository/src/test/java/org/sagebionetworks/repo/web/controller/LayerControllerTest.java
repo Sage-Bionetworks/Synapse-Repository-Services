@@ -102,27 +102,29 @@ public class LayerControllerTest {
 	@Test
 	public void testCreateLayer() throws Exception {
 
-		// TODO use dataset layer URI
 		JSONObject newLayer = helper
 				.testCreateJsonEntity(
-						"/dataset/" + dataset.getString("id") + "/layer",
+						dataset.getString("layer"),
 						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-						+ "\"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+								+ "\"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 
 		// Check required properties
 		assertEquals("DeLiver expression data", newLayer.getString("name"));
 
 		assertExpectedLayerProperties(newLayer);
-		
+
 		// Get the dataset and make sure our Layer Preview is correct
-		JSONObject updatedDataset = helper.testGetJsonEntity(dataset.getString("uri"));
+		JSONObject updatedDataset = helper.testGetJsonEntity(dataset
+				.getString("uri"));
 
 		DatasetControllerTest.assertExpectedDatasetProperties(updatedDataset);
-		
+
 		// Get our newly created layer using the uri in the LayerPreview
-		JSONObject results = helper.testGetJsonEntity(updatedDataset.getJSONArray("layers").getJSONObject(0).getString("uri"));
+		JSONObject results = helper.testGetJsonEntity(updatedDataset
+				.getJSONArray("layerPreviews").getJSONObject(0)
+				.getString("uri"));
 		assertExpectedLayerProperties(results);
-		
+
 		// TODO newLayer == results
 	}
 
@@ -137,12 +139,11 @@ public class LayerControllerTest {
 	@Test
 	public void testGetLayer() throws Exception {
 
-		// TODO use dataset layer URI
 		JSONObject newLayer = helper
 				.testCreateJsonEntity(
-						"/dataset/" + dataset.getString("id") + "/layer",
+						dataset.getString("layer"),
 						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-						+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 
 		// Get the layer
 		JSONObject results = helper
@@ -164,12 +165,11 @@ public class LayerControllerTest {
 	@Test
 	public void testUpdateLayer() throws Exception {
 
-		// TODO use dataset layer URI
 		JSONObject newLayer = helper
 				.testCreateJsonEntity(
-						"/dataset/" + dataset.getString("id") + "/layer",
+						dataset.getString("layer"),
 						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-						+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 
 		// Get the layer
 		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
@@ -200,12 +200,11 @@ public class LayerControllerTest {
 	@Test
 	public void testDeleteLayer() throws Exception {
 
-		// TODO use dataset layer URI
 		JSONObject newLayer = helper
 				.testCreateJsonEntity(
-						"/dataset/" + dataset.getString("id") + "/layer",
+						dataset.getString("layer"),
 						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-						+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 
 		helper.testDeleteJsonEntity(newLayer.getString("uri"));
 	}
@@ -220,22 +219,21 @@ public class LayerControllerTest {
 	@Test
 	public void testGetLayers() throws Exception {
 
-		// TODO use dataset layer URI
 		helper
 				.testCreateJsonEntity(
-						"/dataset/" + dataset.getString("id") + "/layer",
+						dataset.getString("layer"),
 						"{\"name\":\"DeLiver genetic data\", \"type\":\"C\", "
-						+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 		helper
 				.testCreateJsonEntity(
-						"/dataset/" + dataset.getString("id") + "/layer",
+						dataset.getString("layer"),
 						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-						+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 		helper
 				.testCreateJsonEntity(
-						"/dataset/" + dataset.getString("id") + "/layer",
+						dataset.getString("layer"),
 						"{\"name\":\"DeLiver clinical data\", \"type\":\"C\", "
-						+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 
 		JSONObject results = helper.testGetJsonEntities("/dataset/"
 				+ dataset.getString("id") + "/layer", null, null, null, null);
@@ -258,12 +256,11 @@ public class LayerControllerTest {
 	 */
 	@Test
 	public void testUpdateDatasetAnnotations() throws Exception {
-		// TODO use dataset layer URI
 		JSONObject newLayer = helper
 				.testCreateJsonEntity(
-						"/dataset/" + dataset.getString("id") + "/layer",
+						dataset.getString("layer"),
 						"{\"name\":\"DeLiver genetic data\", \"type\":\"C\", "
-						+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 
 		// Get our empty annotations container
 		JSONObject annotations = helper.testGetJsonEntity(newLayer
@@ -387,9 +384,9 @@ public class LayerControllerTest {
 
 		JSONObject error = helper
 				.testCreateJsonEntityShouldFail(
-						"/dataset/" + dataset.getString("id") + "/layer",
+						dataset.getString("layer"),
 						"{\"name\": \"DeLiver expression data\",  \"type\":\"C\", "
-						+ "\"BOGUS\":\"this does not match our model object\"}",
+								+ "\"BOGUS\":\"this does not match our model object\"}",
 						HttpStatus.BAD_REQUEST);
 
 		// The response should be something like: {"reason":"Unrecognized field
@@ -417,7 +414,7 @@ public class LayerControllerTest {
 
 		JSONObject error = helper
 				.testCreateJsonEntityShouldFail(
-						"/dataset/" + dataset.getString("id") + "/layer",
+						dataset.getString("layer"),
 						"{\"version\": \"1.0.0\", \"description\": \"foo\", \"releaseNotes\":\"bar\"}",
 						HttpStatus.BAD_REQUEST);
 
@@ -438,9 +435,9 @@ public class LayerControllerTest {
 		// Create a layer
 		JSONObject newLayer = helper
 				.testCreateJsonEntity(
-						"/dataset/" + dataset.getString("id") + "/layer",
+						dataset.getString("layer"),
 						"{\"name\":\"MouseCross clinical data\", \"type\":\"C\", "
-						+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 
 		// Get that layer
 		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
@@ -468,9 +465,9 @@ public class LayerControllerTest {
 		// Create a layer
 		JSONObject newLayer = helper
 				.testCreateJsonEntity(
-						"/dataset/" + dataset.getString("id") + "/layer",
+						dataset.getString("layer"),
 						"{\"name\":\"MouseCross genetic data\", \"type\":\"C\", "
-						+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 
 		// Get that layer
 		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
@@ -507,9 +504,9 @@ public class LayerControllerTest {
 	public void testGetNonExistentLayer() throws Exception {
 		JSONObject results = helper
 				.testCreateJsonEntity(
-						"/dataset/" + dataset.getString("id") + "/layer",
+						dataset.getString("layer"),
 						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-						+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 
@@ -532,10 +529,10 @@ public class LayerControllerTest {
 
 		// Load up a layer
 		JSONObject newLayer = helper
-				.testCreateJsonEntity("/dataset/" + dataset.getString("id")
-						+ "/layer",
+				.testCreateJsonEntity(
+						"/dataset/" + dataset.getString("id") + "/layer",
 						"{\"name\":\"MouseCross\", \"type\":\"C\", "
-						+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 
 		// Get our empty annotations container
 		JSONObject annotations = helper.testGetJsonEntity(newLayer
@@ -563,9 +560,9 @@ public class LayerControllerTest {
 	public void testUpdateNonExistentLayer() throws Exception {
 		JSONObject results = helper
 				.testCreateJsonEntity(
-						"/dataset/" + dataset.getString("id") + "/layer",
+						dataset.getString("layer"),
 						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-						+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 
@@ -587,9 +584,9 @@ public class LayerControllerTest {
 	public void testDeleteNonExistentLayer() throws Exception {
 		JSONObject results = helper
 				.testCreateJsonEntity(
-						"/dataset/" + dataset.getString("id") + "/layer",
+						dataset.getString("layer"),
 						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-						+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 

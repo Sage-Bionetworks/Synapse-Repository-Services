@@ -64,7 +64,8 @@ public class GAEJDODatasetDAOImpl extends
 	}
 
 	public void copyToDto(GAEJDODataset jdo, Dataset dto) {
-		dto.setId(jdo.getId()==null ? null : KeyFactory.keyToString(jdo.getId()));
+		dto.setId(jdo.getId() == null ? null : KeyFactory.keyToString(jdo
+				.getId()));
 		dto.setName(jdo.getName());
 		dto.setDescription(jdo.getDescription());
 		dto.setCreator(jdo.getCreator());
@@ -72,14 +73,6 @@ public class GAEJDODatasetDAOImpl extends
 		dto.setStatus(jdo.getStatus());
 		dto.setReleaseDate(jdo.getReleaseDate());
 		dto.setVersion(jdo.getRevision().getVersion().toString());
-		Collection<LayerPreview> layers = new ArrayList<LayerPreview>();
-		Collection<Key> layerKeys = jdo.getLayers();
-		if (null != layerKeys) {
-			for (Key l : layerKeys) {
-				layers.add(new LayerPreview(KeyFactory.keyToString(l)));
-			}
-		}
-		dto.setLayers(layers);
 	}
 
 	/**
@@ -139,8 +132,8 @@ public class GAEJDODatasetDAOImpl extends
 	}
 
 	public InputDataLayerDAO getInputDataLayerDAO(String datasetId) {
-		return new GAEJDOInputDataLayerDAOImpl(
-				KeyFactory.stringToKey(datasetId));
+		return new GAEJDOInputDataLayerDAOImpl(KeyFactory
+				.stringToKey(datasetId));
 	}
 
 }

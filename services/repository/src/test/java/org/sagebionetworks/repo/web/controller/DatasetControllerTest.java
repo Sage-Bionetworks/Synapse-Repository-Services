@@ -523,16 +523,18 @@ public class DatasetControllerTest {
 		// Check immutable system-defined properties
 		assertTrue(results.has("annotations"));
 		assertFalse("null".equals(results.getString("annotations")));
-		assertTrue(results.has("layers"));
+		assertTrue(results.has("layer"));
+		assertFalse("null".equals(results.getString("layer")));
+		assertTrue(results.has("layerPreviews"));
 
 		// Check our layer metadata, if present
-		for (int i = 0; i < results.getJSONArray("layers").length(); i++) {
-			assertTrue(results.getJSONArray("layers").getJSONObject(i)
+		for (int i = 0; i < results.getJSONArray("layerPreviews").length(); i++) {
+			assertTrue(results.getJSONArray("layerPreviews").getJSONObject(i)
 					.has("id"));
-			assertTrue(results.getJSONArray("layers").getJSONObject(i).has(
-					"type"));
-			assertTrue(results.getJSONArray("layers").getJSONObject(i).has(
-					"uri"));
+			assertTrue(results.getJSONArray("layerPreviews").getJSONObject(i)
+					.has("type"));
+			assertTrue(results.getJSONArray("layerPreviews").getJSONObject(i)
+					.has("uri"));
 		}
 
 		assertTrue(results.has("creationDate"));
