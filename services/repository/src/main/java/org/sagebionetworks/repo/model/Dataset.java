@@ -25,9 +25,11 @@ public class Dataset implements Base, Revisable {
 	private Date releaseDate;
 	private String version;
 	private String annotations; // URI for annotations
+	private String layer;
+	private Collection<LayerPreview> layerPreviews; // (id, type, URI) triples
+													// for
 
-	private Collection<LayerPreview> layers; // (id, type, URI) triples for
-												// data layers
+	// layer previews
 
 	public String getId() {
 		return id;
@@ -139,29 +141,52 @@ public class Dataset implements Base, Revisable {
 	}
 
 	/**
-	 * @return the layers
+	 * @return the layer URI
 	 */
-	public Collection<LayerPreview> getLayers() {
-		return layers;
+	public String getLayer() {
+		return layer;
 	}
 
 	/**
-	 * @param layers
-	 *            the (type, layer URI) pairs to set
+	 * @param layer
+	 *            the URI that can be used to retrieve our layer
 	 */
-	public void setLayers(Collection<LayerPreview> layers) {
-		this.layers = layers;
+	public void setLayer(String layer) {
+		this.layer = layer;
 	}
 
+	/**
+	 * @return the layer previews
+	 */
+	public Collection<LayerPreview> getLayerPreviews() {
+		return layerPreviews;
+	}
+
+	/**
+	 * @param layerPreviews
+	 *            the (it, type, layer URI) pairs to set
+	 */
+	public void setLayerPreviews(Collection<LayerPreview> layerPreviews) {
+		this.layerPreviews = layerPreviews;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#hashCode()
+	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result
+				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((creator == null) ? 0 : creator.hashCode());
 		result = prime * result
 				+ ((description == null) ? 0 : description.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((layers == null) ? 0 : layers.hashCode());
+		result = prime * result
+				+ ((layerPreviews == null) ? 0 : layerPreviews.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
 				+ ((releaseDate == null) ? 0 : releaseDate.hashCode());
@@ -170,6 +195,11 @@ public class Dataset implements Base, Revisable {
 		return result;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -179,6 +209,11 @@ public class Dataset implements Base, Revisable {
 		if (getClass() != obj.getClass())
 			return false;
 		Dataset other = (Dataset) obj;
+		if (creationDate == null) {
+			if (other.creationDate != null)
+				return false;
+		} else if (!creationDate.equals(other.creationDate))
+			return false;
 		if (creator == null) {
 			if (other.creator != null)
 				return false;
@@ -194,10 +229,10 @@ public class Dataset implements Base, Revisable {
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
-		if (layers == null) {
-			if (other.layers != null)
+		if (layerPreviews == null) {
+			if (other.layerPreviews != null)
 				return false;
-		} else if (!layers.equals(other.layers))
+		} else if (!layerPreviews.equals(other.layerPreviews))
 			return false;
 		if (name == null) {
 			if (other.name != null)
