@@ -42,15 +42,19 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl<S extends Base & Revisab
 	public Annotations getAnnotations(String id) throws DatastoreException,
 			NotFoundException {
 		Annotations ans = new Annotations();
-		ans.setStringAnnotations(getStringAnnotationDAO().getAnnotations(id));
-		ans.setFloatAnnotations(getFloatAnnotationDAO().getAnnotations(id));
-		ans.setDateAnnotations(getDateAnnotationDAO().getAnnotations(id));
+		ans.setStringAnnotations(getStringAnnotationDAO(id).getAnnotations());
+		ans.setFloatAnnotations(getFloatAnnotationDAO(id).getAnnotations());
+		ans.setDateAnnotations(getDateAnnotationDAO(id).getAnnotations());
 		return ans;
 	}
 
-	public AnnotationDAO<S, String> getStringAnnotationDAO() {
+	public AnnotationDAO<S, String> getStringAnnotationDAO() {return getStringAnnotationDAO(null);}
+	
+	public AnnotationDAO<S, String> getStringAnnotationDAO(final String owner) {
 		final GAEJDORevisableAnnotatableDAOImpl<S, T> parent = this;
 		return new GAEJDORevisableAnnotationDAOImpl<S, T, String>() {
+			protected String getOwner() {return owner;}
+			
 			protected Class<? extends GAEJDOAnnotation<String>> getAnnotationClass() {
 				return GAEJDOStringAnnotation.class;
 			}
@@ -100,10 +104,13 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl<S extends Base & Revisab
 		};
 	}
 
-	public AnnotationDAO<S, Float> getFloatAnnotationDAO() {
+	public AnnotationDAO<S, Float> getFloatAnnotationDAO() {return getFloatAnnotationDAO(null);}
+	
+	public AnnotationDAO<S, Float> getFloatAnnotationDAO(final String owner) {
 		final GAEJDORevisableAnnotatableDAOImpl<S, T> parent = this;
 		return new GAEJDORevisableAnnotationDAOImpl<S, T, Float>() {
-
+			protected String getOwner() {return owner;}
+			
 			protected Class<? extends GAEJDOAnnotation<Float>> getAnnotationClass() {
 				return GAEJDOFloatAnnotation.class;
 			}
@@ -153,9 +160,13 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl<S extends Base & Revisab
 		};
 	}
 
-	public AnnotationDAO<S, Date> getDateAnnotationDAO() {
+	public AnnotationDAO<S, Date> getDateAnnotationDAO() {return getDateAnnotationDAO(null);}
+	
+	public AnnotationDAO<S, Date> getDateAnnotationDAO(final String owner) {
 		final GAEJDORevisableAnnotatableDAOImpl<S, T> parent = this;
 		return new GAEJDORevisableAnnotationDAOImpl<S, T, Date>() {
+			protected String getOwner() {return owner;}
+			
 			protected Class<? extends GAEJDOAnnotation<Date>> getAnnotationClass() {
 				return GAEJDODateAnnotation.class;
 			}

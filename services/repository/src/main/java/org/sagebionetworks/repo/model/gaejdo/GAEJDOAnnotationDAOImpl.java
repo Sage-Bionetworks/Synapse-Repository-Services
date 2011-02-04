@@ -41,6 +41,8 @@ import com.google.appengine.api.datastore.KeyFactory;
  */
 abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAnnotatable & GAEJDOBase, A extends Comparable<A>>
 		implements AnnotationDAO<S, A> {
+	
+	abstract protected String getOwner();
 
 	// These methods are to be made concrete for particular types of annotations
 
@@ -263,8 +265,13 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 		return null;
 	}
 
+	public void addAnnotation(String attribute, A value)
+	throws DatastoreException, NotFoundException {
+		addAnnotation(getOwner(), attribute, value);
+	}
+		
 	public void addAnnotation(String id, String attribute, A value)
-			throws DatastoreException, NotFoundException {
+		throws DatastoreException, NotFoundException {
 		PersistenceManager pm = PMF.get();
 		Transaction tx = null;
 		try {
@@ -292,8 +299,13 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 		}
 	}
 
+	public void removeAnnotation(String attribute, A value)
+	throws DatastoreException, NotFoundException {
+		removeAnnotation(getOwner(), attribute, value);
+	}
+	
 	public void removeAnnotation(String id, String attribute, A value)
-			throws DatastoreException, NotFoundException {
+		throws DatastoreException, NotFoundException {
 		PersistenceManager pm = PMF.get();
 		Transaction tx = null;
 		try {
@@ -322,6 +334,11 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 		}
 	}
 
+	public Map<String, Collection<A>> getAnnotations()
+	throws DatastoreException, NotFoundException {
+		return getAnnotations(getOwner());
+	}
+	
 	/**
 	 * @param id
 	 *            the id of the 'Annotatable' owner object

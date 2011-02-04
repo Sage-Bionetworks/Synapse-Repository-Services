@@ -91,14 +91,14 @@ public class DatasetDAOTest {
 		DatasetDAO dao = fac.getDatasetDAO();
 		String id = dao.create(d);
 		Assert.assertNotNull(id);
-		dao.getStringAnnotationDAO().addAnnotation(id, "Tissue Type", "liver");
+		dao.getStringAnnotationDAO(id).addAnnotation("Tissue Type", "liver");
 		// repeated annotations are to be ignored...
-		dao.getStringAnnotationDAO().addAnnotation(id, "Tissue Type", "liver");
+		dao.getStringAnnotationDAO(id).addAnnotation("Tissue Type", "liver");
 		// ... but multiple values for the same attribute are OK
-		dao.getStringAnnotationDAO().addAnnotation(id, "Tissue Type", "brain");
-		dao.getFloatAnnotationDAO().addAnnotation(id, "weight", 100F);
+		dao.getStringAnnotationDAO(id).addAnnotation("Tissue Type", "brain");
+		dao.getFloatAnnotationDAO(id).addAnnotation("weight", 100F);
 		Date now = new Date();
-		dao.getDateAnnotationDAO().addAnnotation(id, "now", now);
+		dao.getDateAnnotationDAO(id).addAnnotation("now", now);
 
 		// test retrieving by ID
 		Dataset d2 = dao.get(id);
@@ -132,7 +132,7 @@ public class DatasetDAOTest {
 		}
 
 		// retrieve the annotations sorted
-		dao.getStringAnnotationDAO().getInRangeSortedBy(0, 2, "Tissue", true);
+		dao.getStringAnnotationDAO(null).getInRangeSortedBy(0, 2, "Tissue", true);
 
 	}
 
@@ -166,10 +166,15 @@ public class DatasetDAOTest {
 		layer1.setName("clinical data");
 		InputDataLayerDAO layerDAO = dao.getInputDataLayerDAO(id);
 		layerDAO.create(layer1);
+		layerDAO.getStringAnnotationDAO(layer1.getId()).addAnnotation("attribute1", "value1");
+		layerDAO.getStringAnnotationDAO(layer1.getId()).addAnnotation("attribute2", "value2");
 
 		InputDataLayer layer2 = createLayer(now);
 		layer2.setName("genotyping data");
+		layer2.setTissueType(null);
 		layerDAO.create(layer2);
+		layerDAO.getStringAnnotationDAO(layer2.getId()).addAnnotation("attribute1", "value1");
+		layerDAO.getStringAnnotationDAO(layer2.getId()).addAnnotation("attribute2", "value3");
 
 		// test retrieval of layer by ID
 		InputDataLayer l = layerDAO.get(layer1.getId());
@@ -194,20 +199,50 @@ public class DatasetDAOTest {
 		layers = layerDAO.getInRangeSortedByPrimaryField(0, 100, "name", true);
 		Assert.assertEquals(2, layers.size());
 		Assert.assertEquals("clinical data", layers.iterator().next().getName());
-		// TODO add a layer with a null primary field and verify that it comes back
+		// add a layer with a null primary field and verify that it comes back
+		layers = layerDAO.getInRangeSortedByPrimaryField(0, 100, "tissueType", true);
+		Assert.assertEquals(2, layers.size());
+		Assert.assertEquals("genotyping data", layers.iterator().next().getName());
 
 		layers = layerDAO.getInRangeSortedByPrimaryField(0, 100, "name", false);
 		Assert.assertEquals(2, layers.size());
 		Assert.assertEquals("genotyping data", layers.iterator().next()
 				.getName());
 		
-		// TODO test getting ALL annotations for a layer
+		// test getting ALL annotations for a layer
+		Map<String,Collection<String>> annots = layerDAO.getAnnotations(layer1.getId()).getStringAnnotations();
+		Assert.assertEquals(2, annots.size());
+		Assert.assertEquals(new HashSet(Arrays.asList(new String[]{"value1"})), annots.get("attribute1"));
+		Assert.assertEquals(new HashSet(Arrays.asList(new String[]{"value2"})), annots.get("attribute2"));
 		
-		// TODO: add multiple datasets, then show that retrieving layers gets
+		// create a second dataset, then show that retrieving layers gets
 		// just the layers for the dataset of interest
+		Dataset d2 = createShallow();
+
+		String id2 = dao.create(d2);
+		Assert.assertNotNull(id2);
+
+		InputDataLayer layer21 = createLayer(now);
+		layer21.setName("clinical data");
+		InputDataLayerDAO layerDAO2 = dao.getInputDataLayerDAO(id2);
+		layerDAO2.create(layer21);
+		layerDAO2.getStringAnnotationDAO(layer21.getId()).addAnnotation("attribute1", "value1");
+		layerDAO2.getStringAnnotationDAO(layer21.getId()).addAnnotation("attribute2", "value2");
+
+		layers = layerDAO2.getInRange(0,100);
+		// TODO Assert.assertEquals(1, layers.size());
 		
-		// TODO: delete the layer then try retrieving.  Should get NotFoundException
-	
+		layers = layerDAO.getStringAnnotationDAO(null).getInRangeHaving(0, 100, "attribute1", "value1");
+		// TODO Assert.assertEquals(1, layers.size());
+		
+		// TODO delete the layer then try retrieving.  Should get NotFoundException
+//		layerDAO2.delete(layer21.getId());
+//		try {
+//			layerDAO2.get(layer21.getId());
+//			Assert.fail("Exception expected.");
+//		} catch (DatastoreException e) {
+//			// as expected
+//		}
 	}
 
 	@Test
@@ -216,16 +251,16 @@ public class DatasetDAOTest {
 
 		DatasetDAO dao = fac.getDatasetDAO();
 		String id = dao.create(d);
-		dao.getStringAnnotationDAO().addAnnotation(id, "Tissue Type", "liver");
-		dao.getFloatAnnotationDAO().addAnnotation(id, "weight", 100F);
+		dao.getStringAnnotationDAO(id).addAnnotation("Tissue Type", "liver");
+		dao.getFloatAnnotationDAO(id).addAnnotation("weight", 100F);
 		d.setDescription("Updated description");
 		dao.update(d);
-		dao.getFloatAnnotationDAO().removeAnnotation(id, "weight", 100F);
-		dao.getFloatAnnotationDAO().addAnnotation(id, "weight", 9.11F);
+		dao.getFloatAnnotationDAO(id).removeAnnotation("weight", 100F);
+		dao.getFloatAnnotationDAO(id).addAnnotation("weight", 9.11F);
 		
 		Dataset d2 = dao.get(id);
 		Assert.assertEquals("Updated description", d2.getDescription());
-		Map<String, Collection<Float>> annots = dao.getFloatAnnotationDAO().getAnnotations(id);
+		Map<String, Collection<Float>> annots = dao.getFloatAnnotationDAO(id).getAnnotations();
 		Collection<Float> floats = annots.get("weight");
 		Assert.assertEquals(floats.toString(), 1, floats.size());
 		Assert.assertEquals(9.11F, floats.iterator().next());
@@ -330,19 +365,19 @@ public class DatasetDAOTest {
 		Dataset d = null;
 		d = createShallow("d1");
 		dao.create(d);
-		dao.getStringAnnotationDAO().addAnnotation(d.getId(), "stringAttr",
+		dao.getStringAnnotationDAO(d.getId()).addAnnotation("stringAttr",
 				d.getName());
 		d = createShallow("d4");
 		dao.create(d);
-		dao.getStringAnnotationDAO().addAnnotation(d.getId(), "stringAttr",
+		dao.getStringAnnotationDAO(d.getId()).addAnnotation("stringAttr",
 				d.getName());
 		d = createShallow("d3");
 		dao.create(d);
-		dao.getStringAnnotationDAO().addAnnotation(d.getId(), "stringAttr",
+		dao.getStringAnnotationDAO(d.getId()).addAnnotation("stringAttr",
 				d.getName());
 		d = createShallow("d3");
 		dao.create(d);
-		dao.getStringAnnotationDAO().addAnnotation(d.getId(), "stringAttr",
+		dao.getStringAnnotationDAO(d.getId()).addAnnotation("stringAttr",
 				d.getName());
 		List<Dataset> ans;
 		ans = dao.getInRangeSortedByPrimaryField(0, 2, "name", /* ascending */
@@ -367,7 +402,7 @@ public class DatasetDAOTest {
 				false);
 		Assert.assertEquals(0, ans.size());
 
-		ans = dao.getStringAnnotationDAO().getInRangeSortedBy(0, 10,
+		ans = dao.getStringAnnotationDAO(null).getInRangeSortedBy(0, 10,
 				"stringAttr", true);
 		Assert.assertEquals(4, ans.size());
 		String order = "Order:";
@@ -378,7 +413,20 @@ public class DatasetDAOTest {
 		Assert.assertEquals(order, "d3", ans.get(2).getName());
 		Assert.assertEquals(order, "d4", ans.get(3).getName());
 
-		// TODO check that if value is null, the Dataset is at the top of the list
+		// check that if value is null, the Dataset is at the top of the list
+		AnnotationDAO<Dataset, String> sdao = dao.getStringAnnotationDAO(ans.get(2).getId());
+		sdao.removeAnnotation("stringAttr", "d3");
+		ans = dao.getStringAnnotationDAO(null).getInRangeSortedBy(0, 10,
+				"stringAttr", true);
+		Assert.assertEquals(4, ans.size());
+		order = "Order:";
+		for (Dataset ds : ans)
+			order += " " + ds.getName();
+		Assert.assertEquals(order, "d3", ans.get(0).getName()); // now this one is on top
+		Assert.assertEquals(order, "d1", ans.get(1).getName());
+		Assert.assertEquals(order, "d3", ans.get(2).getName());
+		Assert.assertEquals(order, "d4", ans.get(3).getName());
+		
 	}
 
 	@Test
@@ -415,8 +463,8 @@ public class DatasetDAOTest {
 		DatasetDAO dao = fac.getDatasetDAO();
 		String id = dao.create(d);
 		Assert.assertNotNull(id);
-		dao.getStringAnnotationDAO().addAnnotation(id, "Tissue Type", "liver");
-		dao.getFloatAnnotationDAO().addAnnotation(id, "weight", 100F);
+		dao.getStringAnnotationDAO(id).addAnnotation("Tissue Type", "liver");
+		dao.getFloatAnnotationDAO(id).addAnnotation("weight", 100F);
 
 		// test retrieving by ID
 		Dataset d2 = dao.get(id);
@@ -448,46 +496,67 @@ public class DatasetDAOTest {
 		Assert.assertEquals(d.getName(), c.iterator().next().getName());
 
 		// test retrieving sorted by annotation
-		c = dao.getStringAnnotationDAO().getInRangeSortedBy(0, 100,
+		c = dao.getStringAnnotationDAO(null).getInRangeSortedBy(0, 100,
 				"Tissue Type", true);
 		Assert.assertEquals(1, c.size());
 		Assert.assertEquals(d.getName(), c.iterator().next().getName());
 
-		c = dao.getFloatAnnotationDAO().getInRangeSortedBy(0, 100, "weight",
+		c = dao.getFloatAnnotationDAO(null).getInRangeSortedBy(0, 100, "weight",
 				true);
 		Assert.assertEquals(1, c.size());
 		Assert.assertEquals(d.getName(), c.iterator().next().getName());
 		
-		// TODO add more than one dataset, then retrieve
-		// TODO add a null annotation and check that it comes up on top
+		// add more than one dataset, then retrieve
+		d2 = new Dataset();
+		d2.setName("dataset name II");
+		d2.setCreationDate(now);
+		d2.setVersion("1.0");
+		d2.setStatus("in progress");
+
+		String id2 = dao.create(d2);
+		Assert.assertNotNull(id2);
+		dao.getStringAnnotationDAO(id2).addAnnotation("Tissue Type", "brain");
+		dao.getFloatAnnotationDAO(id2).addAnnotation("weight", 101F);
+
+		c = dao.getFloatAnnotationDAO(null).getInRangeSortedBy(0, 100, "weight",
+				true);
+		Assert.assertEquals(2, c.size());
+		Assert.assertEquals(d.getName(), c.iterator().next().getName());
+		
+		
+		// add a null annotation and check that it comes up on top
+		dao.getFloatAnnotationDAO(id2).removeAnnotation("weight", 101F);
+		c = dao.getFloatAnnotationDAO(null).getInRangeSortedBy(0, 100, "weight",
+				true);
+		Assert.assertEquals(2, c.size());
+		Assert.assertEquals(d2.getName(), c.iterator().next().getName());
 
 		// test retrieving filtering by annotation
-		c = dao.getFloatAnnotationDAO()
+		c = dao.getFloatAnnotationDAO(null)
 				.getInRangeHaving(0, 100, "weight", 100F);
 		Assert.assertEquals(1, c.size());
 		Assert.assertEquals(d.getName(), c.iterator().next().getName());
 
-		// TODO add more than one dataset
-		c = dao.getStringAnnotationDAO().getInRangeHaving(0, 100,
+		c = dao.getStringAnnotationDAO(null).getInRangeHaving(0, 100,
 				"Tissue Type", "liver");
 		Assert.assertEquals(1, c.size());
 		Assert.assertEquals(d.getName(), c.iterator().next().getName());
 
-		Collection<String> allAttrs = dao.getStringAnnotationDAO().getAttributes();
+		// get all String attributes in system
+		Collection<String> allAttrs = dao.getStringAnnotationDAO(null).getAttributes();
 		Assert.assertEquals(new HashSet<String>(Arrays.asList(new String[]{"Tissue Type"})), allAttrs);
-		Map<String,Collection<String>> map = dao.getStringAnnotationDAO().getAnnotations(id);
+		
+		// get all Float attributes in system
+		allAttrs = dao.getFloatAnnotationDAO(null).getAttributes();
+		Assert.assertEquals(new HashSet<String>(Arrays.asList(new String[]{"weight"})), allAttrs);
+		
+		Map<String,Collection<String>> map = dao.getStringAnnotationDAO(id).getAnnotations();
 		Assert.assertEquals(1, map.size());
-		// TODO check content
-		
-		
+		Collection<String> values = map.get("Tissue Type");
+		Assert.assertEquals(1, values.size());
+		Assert.assertEquals("liver", values.iterator().next());
 	}
 	
-	@Test
-	public void testRetrieveLayerByAnnotation() throws Exception {
-		// TODO check that we retrieve just the annotations for the dataset of interest
-		// include null annotations
-	}
-
 	@Test
 	public void testCreateRevision() throws Exception {
 		// TODO
