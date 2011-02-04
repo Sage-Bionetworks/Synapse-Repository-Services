@@ -37,6 +37,16 @@
       <name>Maven Google App Engine Repository</name>
       <url>http://maven-gae-plugin.googlecode.com/svn/repository/</url>
     </pluginRepository>
+    <pluginRepository>
+      <id>Codehaus Snapshots</id>
+      <url>http://snapshots.repository.codehaus.org/</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+  </pluginRepository>
   </pluginRepositories>
   
   <dependencies>
@@ -174,6 +184,24 @@
 
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>javacc-maven-plugin</artifactId>
+        <version>2.6</version>
+        <executions>
+          <execution>
+            <id>jjtree-javacc</id>
+            <goals>
+              <goal>jjtree-javacc</goal>
+            </goals>
+            <configuration>
+              <!-- options for JJTree and JavaCC go here -->
+              <isStatic>false</isStatic>
+              <nodeClass>org.sagebionetworks.repo.queryparser.QueryNode</nodeClass>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <!--
           This plug-in "enhances" your domain model objects (i.e. makes them
           persistent for datanucleus)
