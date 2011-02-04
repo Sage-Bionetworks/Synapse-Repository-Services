@@ -12,6 +12,7 @@ import com.google.appengine.api.datastore.Text;
 
 /**
  * Any DAO for an annotatable class extends this interface.
+ * An instance is generated having the context of the owner object.
  * 
  * @author bhoff
  * 
@@ -32,18 +33,42 @@ public interface AnnotatableDAO<S extends Base> extends BaseDAO<S> {
 	 * @return the DAO which provides the CRUD methods for annotations of a
 	 *         particular type.
 	 */
+	@Deprecated
 	public AnnotationDAO<S, String> getStringAnnotationDAO();
 
 	/**
 	 * @return the DAO which provides the CRUD methods for annotations of a
 	 *         particular type.
 	 */
+	@Deprecated
 	public AnnotationDAO<S, Float> getFloatAnnotationDAO();
 
 	/**
 	 * @return the DAO which provides the CRUD methods for annotations of a
 	 *         particular type.
 	 */
+	@Deprecated
 	public AnnotationDAO<S, Date> getDateAnnotationDAO();
+
+	/**
+	 * @param owner the id of the object which owns the Annotations
+	 * @return the DAO which provides the CRUD methods for annotations of a
+	 *         particular type.
+	 */
+	public AnnotationDAO<S, String> getStringAnnotationDAO(String owner);
+
+	/**
+	 * @param owner the id of the object which owns the Annotations
+	 * @return the DAO which provides the CRUD methods for annotations of a
+	 *         particular type.
+	 */
+	public AnnotationDAO<S, Float> getFloatAnnotationDAO(String owner);
+
+	/**
+	 * @param owner the id of the object which owns the Annotations
+	 * @return the DAO which provides the CRUD methods for annotations of a
+	 *         particular type.
+	 */
+	public AnnotationDAO<S, Date> getDateAnnotationDAO(String owner);
 
 }

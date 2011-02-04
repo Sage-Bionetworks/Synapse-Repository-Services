@@ -28,6 +28,7 @@ public interface AnnotationDAO<S extends Base, A extends Comparable> {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	public void addAnnotation(String id, String attribute, A value)
 			throws DatastoreException, NotFoundException;
 
@@ -40,6 +41,7 @@ public interface AnnotationDAO<S extends Base, A extends Comparable> {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	public void removeAnnotation(String id, String attribute, A value)
 			throws DatastoreException, NotFoundException;
 
@@ -54,7 +56,41 @@ public interface AnnotationDAO<S extends Base, A extends Comparable> {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	public Map<String, Collection<A>> getAnnotations(String id)
+			throws DatastoreException, NotFoundException;
+
+
+	/**
+	 * 
+	 * @param attribute
+	 * @param value
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public void addAnnotation(String attribute, A value)
+			throws DatastoreException, NotFoundException;
+
+	/**
+	 * 
+	 * @param attribute
+	 * @param value
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public void removeAnnotation(String attribute, A value)
+			throws DatastoreException, NotFoundException;
+
+	/**
+	 * Note: Since an object may have multiple values for the same attribute,
+	 * the values for the returned Map are Collection<A> rather than A.
+	 * 
+	 * @return all the annotations of the type given by A owned by the
+	 *         annotatable object
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public Map<String, Collection<A>> getAnnotations()
 			throws DatastoreException, NotFoundException;
 
 	/**
