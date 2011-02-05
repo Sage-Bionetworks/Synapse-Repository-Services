@@ -27,9 +27,9 @@ public class AnnotatableEntitiesAccessorImpl<T extends Base> implements
 		EntitiesAccessor<T> {
 
 	private AnnotatableDAO<T> annotatableDao;
-//	private AnnotationDAO<T, String> stringAnnotationDAO;
-//	private AnnotationDAO<T, Float> floatAnnotationDAO;
-//	private AnnotationDAO<T, Date> dateAnnotationDAO;
+	private AnnotationDAO<T, String> stringAnnotationDAO;
+	private AnnotationDAO<T, Float> floatAnnotationDAO;
+	private AnnotationDAO<T, Date> dateAnnotationDAO;
 	private Set<String> primaryFields = new HashSet<String>();
 
 	/**
@@ -49,9 +49,9 @@ public class AnnotatableEntitiesAccessorImpl<T extends Base> implements
 	public void setDao(BaseDAO<T> dao) {
 		this.annotatableDao = (AnnotatableDAO<T>) dao;
 
-//		stringAnnotationDAO = annotatableDao.getStringAnnotationDAO();
-//		floatAnnotationDAO = annotatableDao.getFloatAnnotationDAO();
-//		dateAnnotationDAO = annotatableDao.getDateAnnotationDAO();
+		stringAnnotationDAO = annotatableDao.getStringAnnotationDAO(null);
+		floatAnnotationDAO = annotatableDao.getFloatAnnotationDAO(null);
+		dateAnnotationDAO = annotatableDao.getDateAnnotationDAO(null);
 
 		primaryFields.addAll(annotatableDao.getPrimaryFields());
 	}
@@ -65,8 +65,36 @@ public class AnnotatableEntitiesAccessorImpl<T extends Base> implements
 
 	@Override
 	public List<T> getInRangeHaving(int offset, int limit, String attribute,
-			Object value) {
-		throw new RuntimeException("Not implemented yet");
+			Object value) throws DatastoreException {
+		List<T> entities = null;
+
+		if (primaryFields.contains(attribute)) {
+
+			entities = annotatableDao.getInRangeHavingPrimaryField(offset - 1,
+					offset + limit - 1, attribute, value);
+
+		} else {
+
+			// TODO this code goes with the hack below, to be addressed at a
+			// later date
+			Map<String, Integer> annotationFields = getAnnotationFields();
+			Integer type = annotationFields.get(attribute);
+			if (null == type) {
+				throw new IllegalArgumentException("Field '" + attribute
+						+ "' is not valid because there is no primary"
+						+ " field or annotation with that name");
+			} else if (1 == type) {
+				entities = floatAnnotationDAO.getInRangeHaving(offset - 1,
+						offset + limit - 1, attribute, (Float) value);
+			} else if (2 == type) {
+				entities = dateAnnotationDAO.getInRangeHaving(offset - 1,
+						offset + limit - 1, attribute, (Date) value);
+			} else {
+				entities = stringAnnotationDAO.getInRangeHaving(offset - 1,
+						offset + limit - 1, attribute, (String) value);
+			}
+		}
+		return entities;
 	}
 
 	@Override
@@ -85,10 +113,6 @@ public class AnnotatableEntitiesAccessorImpl<T extends Base> implements
 						offset - 1, offset + limit - 1, sort, ascending);
 
 			} else {
-
-				AnnotationDAO<T, String> stringAnnotationDAO = annotatableDao.getStringAnnotationDAO(null);
-				AnnotationDAO<T, Float> floatAnnotationDAO = annotatableDao.getFloatAnnotationDAO(null);
-				AnnotationDAO<T, Date> dateAnnotationDAO = annotatableDao.getDateAnnotationDAO(null);
 
 				// TODO this code goes with the hack below, to be addressed at a
 				// later date

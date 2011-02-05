@@ -12,6 +12,7 @@ import org.codehaus.jackson.map.JsonMappingException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.TypeMismatchException;
@@ -257,6 +258,24 @@ public abstract class BaseController {
 		return handleException(ex, request);
 	}
 
+	/**
+	 * This occurs when the user specifies a query that the system cannot parse or handle
+	 * 
+	 * @param ex
+	 *            the exception to be handled
+	 * @param request
+	 *            the client request
+	 * @return an ErrorResponse object containing the exception reason or some
+	 *         other human-readable response
+	 */
+	@ExceptionHandler(ParseException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody
+	ErrorResponse handleParseException(
+			ParseException ex, HttpServletRequest request) {
+		return handleException(ex, request);
+	}
+	
 	/**
 	 * This occurs for example when the request asks for responses to be in a
 	 * content type not supported

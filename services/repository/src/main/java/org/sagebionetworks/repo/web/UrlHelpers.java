@@ -50,10 +50,16 @@ public class UrlHelpers {
 	public static final String LAYER = "/layer";
 
 	/**
-	 * URL suffix for entity annotation
+	 * URL suffix for entity annotations
 	 * 
 	 */
 	public static final String ANNOTATIONS = "/annotations";
+
+	/**
+	 * URL path for query controller
+	 * 
+	 */
+	public static final String QUERY = "/query";
 
 	/**
 	 * Mapping of type to url prefix
@@ -161,14 +167,13 @@ public class UrlHelpers {
 		return uri;
 	}
 
-	
 	/**
 	 * Helper function to to create a relative URL for an entity
 	 * <p>
 	 * 
 	 * This includes not only the entity id but also the controller and servlet
 	 * portions of the path
-	 *  
+	 * 
 	 * @param entity
 	 * @param urlPrefix
 	 * @return the relative URI for the entity
@@ -187,7 +192,6 @@ public class UrlHelpers {
 		return uri;
 	}
 
-	
 	/**
 	 * Helper function to create a relative URL for an entity's annotations
 	 * <p>

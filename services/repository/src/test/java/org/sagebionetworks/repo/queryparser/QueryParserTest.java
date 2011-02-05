@@ -92,7 +92,7 @@ public class QueryParserTest {
 		
 		assertEquals("layer", tableId);
 		assertEquals("foo", whereField);
-		assertEquals("\"foobar\"", whereValue);
+		assertEquals("foobar", whereValue);
 		
 		/*
 		 * If parsing completed without exceptions, print the resulting
@@ -174,7 +174,7 @@ public class QueryParserTest {
 		
 		assertEquals("layer", tableId);
 		assertEquals("foo", whereField);
-		assertEquals("\"2011-01-31\"", whereValue);
+		assertEquals("2011-01-31", whereValue);
 		
 		/*
 		 * If parsing completed without exceptions, print the resulting

@@ -40,7 +40,10 @@ public class DatasetsControllerTest {
 
 	private Helpers helper = new Helpers();
 
-	private String sampleDatasetNames[] = { 
+	/**
+	 * Some handy test data
+	 */
+	public static final String SAMPLE_DATASET_NAMES[] = { 
 			"DeLiver", "MouseCross",
 			"Harvard Brain", "Glioblastoma TCGA",
 			"Mouse Model of Diet-Induced Atherosclerosis",
@@ -87,12 +90,12 @@ public class DatasetsControllerTest {
 	 */
 	@Test
 	public void testGetDatasetsPageOneOfTwo() throws Exception {
-		int totalNumDatasets = sampleDatasetNames.length;
+		int totalNumDatasets = SAMPLE_DATASET_NAMES.length;
 
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
 			helper.testCreateJsonEntity("/dataset", "{\"name\":\""
-					+ sampleDatasetNames[i] + "\"}");
+					+ SAMPLE_DATASET_NAMES[i] + "\"}");
 		}
 
 		JSONObject results = helper.testGetJsonEntities("/dataset", null, null,
@@ -116,12 +119,12 @@ public class DatasetsControllerTest {
 	 */
 	@Test
 	public void testGetDatasetsPageTwoOfTwo() throws Exception {
-		int totalNumDatasets = sampleDatasetNames.length;
+		int totalNumDatasets = SAMPLE_DATASET_NAMES.length;
 
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
 			helper.testCreateJsonEntity("/dataset", "{\"name\":\""
-					+ sampleDatasetNames[i] + "\"}");
+					+ SAMPLE_DATASET_NAMES[i] + "\"}");
 		}
 
 		JSONObject results = helper.testGetJsonEntities("/dataset", 11, 10,
@@ -146,15 +149,15 @@ public class DatasetsControllerTest {
 	 */
 	@Test
 	public void testGetDatasetsSortByPrimaryFieldAscending() throws Exception {
-		int totalNumDatasets = sampleDatasetNames.length;
+		int totalNumDatasets = SAMPLE_DATASET_NAMES.length;
 
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
 			helper.testCreateJsonEntity("/dataset", "{\"name\":\""
-					+ sampleDatasetNames[i] + "\"}");
+					+ SAMPLE_DATASET_NAMES[i] + "\"}");
 		}
 
-		List<String> sortedDatasetNames = Arrays.asList(sampleDatasetNames);
+		List<String> sortedDatasetNames = Arrays.asList(SAMPLE_DATASET_NAMES);
 		Collections.sort(sortedDatasetNames);
 
 		JSONObject results = helper.testGetJsonEntities("/dataset", null, 5,
@@ -183,15 +186,15 @@ public class DatasetsControllerTest {
 	 */
 	@Test
 	public void testGetDatasetsSortByPrimaryFieldDescending() throws Exception {
-		int totalNumDatasets = sampleDatasetNames.length;
+		int totalNumDatasets = SAMPLE_DATASET_NAMES.length;
 
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
 			helper.testCreateJsonEntity("/dataset", "{\"name\":\""
-					+ sampleDatasetNames[i] + "\"}");
+					+ SAMPLE_DATASET_NAMES[i] + "\"}");
 		}
 
-		List<String> sortedDatasetNames = Arrays.asList(sampleDatasetNames);
+		List<String> sortedDatasetNames = Arrays.asList(SAMPLE_DATASET_NAMES);
 		Collections.sort(sortedDatasetNames);
 
 		JSONObject results = helper.testGetJsonEntities("/dataset", null, 5,
@@ -222,19 +225,19 @@ public class DatasetsControllerTest {
 	@Test
 	public void testGetDatasetsSortByStringAnnotationAscending()
 			throws Exception {
-		int totalNumDatasets = sampleDatasetNames.length;
+		int totalNumDatasets = SAMPLE_DATASET_NAMES.length;
 
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
 			JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-					"{\"name\":\"" + sampleDatasetNames[i] + "\"}");
+					"{\"name\":\"" + SAMPLE_DATASET_NAMES[i] + "\"}");
 
 			// Get our empty annotations container
 			JSONObject annotations = helper.testGetJsonEntity(newDataset
 					.getString("annotations"));
 
 			// Put our annotations
-			String secondaryName[] = { sampleDatasetNames[i] };
+			String secondaryName[] = { SAMPLE_DATASET_NAMES[i] };
 			JSONObject stringAnnotations = annotations
 					.getJSONObject("stringAnnotations");
 			stringAnnotations.put("secondaryName", secondaryName);
@@ -248,7 +251,7 @@ public class DatasetsControllerTest {
 							"secondaryName"));
 		}
 
-		List<String> sortedDatasetNames = Arrays.asList(sampleDatasetNames);
+		List<String> sortedDatasetNames = Arrays.asList(SAMPLE_DATASET_NAMES);
 		Collections.sort(sortedDatasetNames);
 
 		JSONObject results = helper.testGetJsonEntities("/dataset", null, 5,
@@ -284,13 +287,13 @@ public class DatasetsControllerTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testGetDatasetsSortByDateAnnotationAscending() throws Exception {
-		int totalNumDatasets = sampleDatasetNames.length;
+		int totalNumDatasets = SAMPLE_DATASET_NAMES.length;
 		Map<DateTime, String> testCases = new HashMap<DateTime, String>();
 
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
 			JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-					"{\"name\":\"" + sampleDatasetNames[i] + "\"}");
+					"{\"name\":\"" + SAMPLE_DATASET_NAMES[i] + "\"}");
 
 			// Get our empty annotations container
 			JSONObject annotations = helper.testGetJsonEntity(newDataset
@@ -310,7 +313,7 @@ public class DatasetsControllerTest {
 					.getJSONObject("dateAnnotations").getJSONArray(
 							"curationEvents"));
 
-			testCases.put(sampleDates[i], sampleDatasetNames[i]); //results.getString("id"));
+			testCases.put(sampleDates[i], SAMPLE_DATASET_NAMES[i]); //results.getString("id"));
 		}
 
 		List<DateTime> sortedDates = Arrays.asList(sampleDates);
@@ -347,13 +350,13 @@ public class DatasetsControllerTest {
 	@Test
 	public void testGetDatasetsSortByDateAnnotationDescending()
 			throws Exception {
-		int totalNumDatasets = sampleDatasetNames.length;
+		int totalNumDatasets = SAMPLE_DATASET_NAMES.length;
 		Map<DateTime, String> testCases = new HashMap<DateTime, String>();
 
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
 			JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-					"{\"name\":\"" + sampleDatasetNames[i] + "\"}");
+					"{\"name\":\"" + SAMPLE_DATASET_NAMES[i] + "\"}");
 
 			// Get our empty annotations container
 			JSONObject annotations = helper.testGetJsonEntity(newDataset
@@ -372,7 +375,7 @@ public class DatasetsControllerTest {
 					.getJSONObject("dateAnnotations").getJSONArray(
 							"curationEvents"));
 
-			testCases.put(sampleDates[i], sampleDatasetNames[i]);
+			testCases.put(sampleDates[i], SAMPLE_DATASET_NAMES[i]);
 		}
 
 		List<DateTime> sortedDates = Arrays.asList(sampleDates);
