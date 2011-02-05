@@ -39,9 +39,6 @@ public class AnnotationsControllerImp<T extends Base> implements
 
 	private Class<T> theModelClass;
 	private AnnotatableDAO<T> annotatableDao;
-//	private AnnotationDAO<T, String> stringAnnotationDAO;
-//	private AnnotationDAO<T, Float> floatAnnotationDAO;
-//	private AnnotationDAO<T, Date> dateAnnotationDAO;
 
 	/**
 	 * @param theModelClass
@@ -53,9 +50,6 @@ public class AnnotationsControllerImp<T extends Base> implements
 	@Override
 	public void setDao(BaseDAO<T> dao) {
 		annotatableDao = (AnnotatableDAO<T>) dao;
-//		stringAnnotationDAO = annotatableDao.getStringAnnotationDAO();
-//		floatAnnotationDAO = annotatableDao.getFloatAnnotationDAO();
-//		dateAnnotationDAO = annotatableDao.getDateAnnotationDAO();
 	}
 
 	/*

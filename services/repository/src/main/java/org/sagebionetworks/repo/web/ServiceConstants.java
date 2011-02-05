@@ -88,6 +88,14 @@ public class ServiceConstants {
 			DEFAULT_ASCENDING_PARAM);
 
 	/**
+	 * Request parameter for the query to be used to query the datastore.
+	 * <p>
+	 * 
+	 * This is modeled after http://developers.facebook.com/docs/reference/fql/
+	 */
+	public static final String QUERY_PARAM = "query";
+
+	/**
 	 * Request header used to indicate the version of the resource.
 	 * <p>
 	 * 

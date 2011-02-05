@@ -201,12 +201,12 @@ void IntValue() : {}
 
 void DateValue() : {} // TODO consider DateTime instead of String
 {
-	<DATE_LITERAL>  { jjtThis.value = new String(token.image); System.out.println("token where date val " + token.image); }
+	<DATE_LITERAL>  { jjtThis.value = new String(token.image.substring(1, token.image.length()-1)); System.out.println("token where date val " + token.image); }
 }
 
 void StringValue() : {}
 {
-	<STRING_LITERAL>  { jjtThis.value = new String(token.image); System.out.println("token where str val " + token.image); }
+	<STRING_LITERAL>  { jjtThis.value = new String(token.image.substring(1, token.image.length()-1)); System.out.println("token where str val " + token.image); }
 }
 
 
