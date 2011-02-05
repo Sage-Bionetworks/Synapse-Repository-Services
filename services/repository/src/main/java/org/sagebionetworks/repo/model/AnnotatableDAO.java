@@ -29,26 +29,26 @@ public interface AnnotatableDAO<S extends Base> extends BaseDAO<S> {
 	public Annotations getAnnotations(String id) throws DatastoreException,
 			NotFoundException;
 
-	/**
-	 * @return the DAO which provides the CRUD methods for annotations of a
-	 *         particular type.
-	 */
-	@Deprecated
-	public AnnotationDAO<S, String> getStringAnnotationDAO();
-
-	/**
-	 * @return the DAO which provides the CRUD methods for annotations of a
-	 *         particular type.
-	 */
-	@Deprecated
-	public AnnotationDAO<S, Float> getFloatAnnotationDAO();
-
-	/**
-	 * @return the DAO which provides the CRUD methods for annotations of a
-	 *         particular type.
-	 */
-	@Deprecated
-	public AnnotationDAO<S, Date> getDateAnnotationDAO();
+//	/**
+//	 * @return the DAO which provides the CRUD methods for annotations of a
+//	 *         particular type.
+//	 */
+//	@Deprecated
+//	public AnnotationDAO<S, String> getStringAnnotationDAO();
+//
+//	/**
+//	 * @return the DAO which provides the CRUD methods for annotations of a
+//	 *         particular type.
+//	 */
+//	@Deprecated
+//	public AnnotationDAO<S, Float> getFloatAnnotationDAO();
+//
+//	/**
+//	 * @return the DAO which provides the CRUD methods for annotations of a
+//	 *         particular type.
+//	 */
+//	@Deprecated
+//	public AnnotationDAO<S, Date> getDateAnnotationDAO();
 
 	/**
 	 * @param owner the id of the object which owns the Annotations

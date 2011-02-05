@@ -4,7 +4,8 @@ import com.google.appengine.api.datastore.Key;
 
 /**
  * The base interface for all annotations. Concrete classes will have typed
- * values.
+ * values. Note:  'equals' and 'hashcode' are defined on the ID field, not
+ * the attribute&value fields.
  * 
  * @author bhoff
  * 

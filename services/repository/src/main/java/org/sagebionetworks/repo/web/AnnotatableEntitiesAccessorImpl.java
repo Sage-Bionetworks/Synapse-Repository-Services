@@ -27,9 +27,9 @@ public class AnnotatableEntitiesAccessorImpl<T extends Base> implements
 		EntitiesAccessor<T> {
 
 	private AnnotatableDAO<T> annotatableDao;
-	private AnnotationDAO<T, String> stringAnnotationDAO;
-	private AnnotationDAO<T, Float> floatAnnotationDAO;
-	private AnnotationDAO<T, Date> dateAnnotationDAO;
+//	private AnnotationDAO<T, String> stringAnnotationDAO;
+//	private AnnotationDAO<T, Float> floatAnnotationDAO;
+//	private AnnotationDAO<T, Date> dateAnnotationDAO;
 	private Set<String> primaryFields = new HashSet<String>();
 
 	/**
@@ -49,9 +49,9 @@ public class AnnotatableEntitiesAccessorImpl<T extends Base> implements
 	public void setDao(BaseDAO<T> dao) {
 		this.annotatableDao = (AnnotatableDAO<T>) dao;
 
-		stringAnnotationDAO = annotatableDao.getStringAnnotationDAO();
-		floatAnnotationDAO = annotatableDao.getFloatAnnotationDAO();
-		dateAnnotationDAO = annotatableDao.getDateAnnotationDAO();
+//		stringAnnotationDAO = annotatableDao.getStringAnnotationDAO();
+//		floatAnnotationDAO = annotatableDao.getFloatAnnotationDAO();
+//		dateAnnotationDAO = annotatableDao.getDateAnnotationDAO();
 
 		primaryFields.addAll(annotatableDao.getPrimaryFields());
 	}
@@ -85,6 +85,10 @@ public class AnnotatableEntitiesAccessorImpl<T extends Base> implements
 						offset - 1, offset + limit - 1, sort, ascending);
 
 			} else {
+
+				AnnotationDAO<T, String> stringAnnotationDAO = annotatableDao.getStringAnnotationDAO(null);
+				AnnotationDAO<T, Float> floatAnnotationDAO = annotatableDao.getFloatAnnotationDAO(null);
+				AnnotationDAO<T, Date> dateAnnotationDAO = annotatableDao.getDateAnnotationDAO(null);
 
 				// TODO this code goes with the hack below, to be addressed at a
 				// later date
