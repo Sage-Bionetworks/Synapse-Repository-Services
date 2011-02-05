@@ -39,9 +39,9 @@ public class AnnotationsControllerImp<T extends Base> implements
 
 	private Class<T> theModelClass;
 	private AnnotatableDAO<T> annotatableDao;
-	private AnnotationDAO<T, String> stringAnnotationDAO;
-	private AnnotationDAO<T, Float> floatAnnotationDAO;
-	private AnnotationDAO<T, Date> dateAnnotationDAO;
+//	private AnnotationDAO<T, String> stringAnnotationDAO;
+//	private AnnotationDAO<T, Float> floatAnnotationDAO;
+//	private AnnotationDAO<T, Date> dateAnnotationDAO;
 
 	/**
 	 * @param theModelClass
@@ -53,9 +53,9 @@ public class AnnotationsControllerImp<T extends Base> implements
 	@Override
 	public void setDao(BaseDAO<T> dao) {
 		annotatableDao = (AnnotatableDAO<T>) dao;
-		stringAnnotationDAO = annotatableDao.getStringAnnotationDAO();
-		floatAnnotationDAO = annotatableDao.getFloatAnnotationDAO();
-		dateAnnotationDAO = annotatableDao.getDateAnnotationDAO();
+//		stringAnnotationDAO = annotatableDao.getStringAnnotationDAO();
+//		floatAnnotationDAO = annotatableDao.getFloatAnnotationDAO();
+//		dateAnnotationDAO = annotatableDao.getDateAnnotationDAO();
 	}
 
 	/*
@@ -114,6 +114,10 @@ public class AnnotationsControllerImp<T extends Base> implements
 		// TODO this isn't how we want to do this for real
 		// TODO this is currently additive but it should be overwriting
 		// Developer Note: yes, nested loops are evil when N is large
+		
+		AnnotationDAO<T, String> stringAnnotationDAO = annotatableDao.getStringAnnotationDAO(entityId);
+		AnnotationDAO<T, Float> floatAnnotationDAO = annotatableDao.getFloatAnnotationDAO(entityId);
+		AnnotationDAO<T, Date> dateAnnotationDAO = annotatableDao.getDateAnnotationDAO(entityId);
 
 		Map<String, Collection<String>> updatedStringAnnotations = updatedAnnotations
 				.getStringAnnotations();
@@ -122,7 +126,7 @@ public class AnnotationsControllerImp<T extends Base> implements
 			for (String value : updatedAnnotation.getValue()) {
 				log.info("Adding string annotation ("
 						+ updatedAnnotation.getKey() + ", " + value + ")");
-				stringAnnotationDAO.addAnnotation(entityId, updatedAnnotation
+				stringAnnotationDAO.addAnnotation(updatedAnnotation
 						.getKey(), value);
 			}
 		}
@@ -134,7 +138,7 @@ public class AnnotationsControllerImp<T extends Base> implements
 			for (Float value : updatedAnnotation.getValue()) {
 				log.info("Adding float annotation ("
 						+ updatedAnnotation.getKey() + ", " + value + ")");
-				floatAnnotationDAO.addAnnotation(entityId, updatedAnnotation
+				floatAnnotationDAO.addAnnotation(updatedAnnotation
 						.getKey(), value);
 			}
 		}
@@ -146,7 +150,7 @@ public class AnnotationsControllerImp<T extends Base> implements
 			for (Date value : updatedAnnotation.getValue()) {
 				log.info("Adding date annotation ("
 						+ updatedAnnotation.getKey() + ", " + value + ")");
-				dateAnnotationDAO.addAnnotation(entityId, updatedAnnotation
+				dateAnnotationDAO.addAnnotation(updatedAnnotation
 						.getKey(), value);
 			}
 		}
