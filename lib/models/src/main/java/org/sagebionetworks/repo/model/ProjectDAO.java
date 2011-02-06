@@ -1,9 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import org.sagebionetworks.repo.model.gaejdo.GAEJDOProject;
-
-import com.google.appengine.api.datastore.Key;
-
 /**
  * This is the Data Access Object class for the Project class, using GAE-JDO
  * 

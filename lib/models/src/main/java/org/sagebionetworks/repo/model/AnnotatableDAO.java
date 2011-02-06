@@ -1,14 +1,8 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Collection;
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
 
-import org.sagebionetworks.repo.model.gaejdo.GAEJDOAnnotatable;
 import org.sagebionetworks.repo.web.NotFoundException;
-
-import com.google.appengine.api.datastore.Text;
 
 /**
  * Any DAO for an annotatable class extends this interface.
