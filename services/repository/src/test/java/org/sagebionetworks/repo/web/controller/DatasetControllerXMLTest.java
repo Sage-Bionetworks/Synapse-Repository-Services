@@ -37,7 +37,8 @@ import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
  * 
  * TODO parse the XML to a map using XStream
  * http://xstream.codehaus.org/tutorial.html if we get more serious about
- * supporting XML encoding as a first class citizen
+ * supporting XML encoding as a first class citizen. Alternatively
+ * http://xmlunit.sourceforge.net/ could help.
  * 
  * @author deflaux
  */
