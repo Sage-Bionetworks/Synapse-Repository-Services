@@ -24,7 +24,7 @@
   <modules>
     <module>lib</module>
     <module>services</module>
-    <module>client</module>
+<!--     <module>client</module> -->
   </modules>
   
   <repositories>
