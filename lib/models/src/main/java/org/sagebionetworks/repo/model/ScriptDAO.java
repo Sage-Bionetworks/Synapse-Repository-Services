@@ -1,9 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import org.sagebionetworks.repo.model.gaejdo.GAEJDOScript;
-
-import com.google.appengine.api.datastore.Key;
-
 public interface ScriptDAO {
 	// public GAEJDOScript getScript(Key id);
 	//
