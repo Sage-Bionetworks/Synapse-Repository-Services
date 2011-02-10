@@ -77,10 +77,10 @@ public class GAEJDODatasetDAOImpl extends
 				dto.setHasExpressionData(true);
 			}
 			else if(InputDataLayer.LayerTypeNames.G == InputDataLayer.LayerTypeNames.valueOf(layer.getType())) {
-				dto.setHasExpressionData(true);
+				dto.setHasGeneticData(true);
 			}
 			else if(InputDataLayer.LayerTypeNames.C == InputDataLayer.LayerTypeNames.valueOf(layer.getType())) {
-				dto.setHasExpressionData(true);
+				dto.setHasClinicalData(true);
 			}
 		}
 	}

@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.model;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -161,9 +164,16 @@ public class DatasetDAOTest {
 		String id = dao.create(d);
 		Assert.assertNotNull(id);
 
+		// Check our layer preview info in the DTO
+		Dataset dataset = dao.get(id);
+		assertFalse(dataset.getHasExpressionData());
+		assertFalse(dataset.getHasGeneticData());
+		assertFalse(dataset.getHasClinicalData());
+		
 		Date now = new Date();
 		InputDataLayer layer1 = createLayer(now);
 		layer1.setName("clinical data");
+		layer1.setType("C");
 		InputDataLayerDAO layerDAO = dao.getInputDataLayerDAO(id);
 		layerDAO.create(layer1);
 		layerDAO.getStringAnnotationDAO(layer1.getId()).addAnnotation("attribute1", "value1");
@@ -171,11 +181,18 @@ public class DatasetDAOTest {
 
 		InputDataLayer layer2 = createLayer(now);
 		layer2.setName("genotyping data");
+		layer2.setType("G");
 		layer2.setTissueType(null);
 		layerDAO.create(layer2);
 		layerDAO.getStringAnnotationDAO(layer2.getId()).addAnnotation("attribute1", "value1");
 		layerDAO.getStringAnnotationDAO(layer2.getId()).addAnnotation("attribute2", "value3");
 
+		// Check our layer preview data in the DTO
+		Dataset datasetWithLayers = dao.get(id);
+		assertFalse(datasetWithLayers.getHasExpressionData());
+		assertTrue(datasetWithLayers.getHasGeneticData());
+		assertTrue(datasetWithLayers.getHasClinicalData());
+		
 		// test retrieval of layer by ID
 		InputDataLayer l = layerDAO.get(layer1.getId());
 		Assert.assertNotNull(l);

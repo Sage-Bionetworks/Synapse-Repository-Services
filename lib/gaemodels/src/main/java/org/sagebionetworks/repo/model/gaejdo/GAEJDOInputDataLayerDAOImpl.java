@@ -65,8 +65,8 @@ public class GAEJDOInputDataLayerDAOImpl extends
 			dto.setType(jdo.getType());
 		} catch (InvalidModelException e) {
 			throw new DatastoreException(
-					"We changed our data model but neglected to clean up data previously stored"
-							+ e.getMessage());
+					"We changed our data model but neglected to clean up data previously stored",
+					e);
 		}
 		dto.setTissueType(jdo.getTissueType());
 		dto.setPlatform(jdo.getPlatform());
