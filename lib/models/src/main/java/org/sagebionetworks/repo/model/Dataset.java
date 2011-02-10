@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Collection;
 import java.util.Date;
 
 import javax.xml.bind.annotation.XmlRootElement;
@@ -25,11 +24,11 @@ public class Dataset implements Base, Revisable {
 	private Date releaseDate;
 	private String version;
 	private String annotations; // URI for annotations
-	private String layer;
-	private Collection<LayerPreview> layerPreviews; // (id, type, URI) triples
-													// for
-
-	// layer previews
+	private String layer; // URI for layers
+	private Boolean hasExpressionData; // a preview of what type of data can be
+										// found in the layers
+	private Boolean hasGeneticData;
+	private Boolean hasClinicalData;
 
 	public String getId() {
 		return id;
@@ -69,26 +68,44 @@ public class Dataset implements Base, Revisable {
 		this.etag = etag;
 	}
 
+	/**
+	 * @return the name of this dataset
+	 */
 	public String getName() {
 		return name;
 	}
 
+	/**
+	 * @param name
+	 */
 	public void setName(String name) {
 		this.name = name;
 	}
 
+	/**
+	 * @return a narrative description of this dataset
+	 */
 	public String getDescription() {
 		return description;
 	}
 
+	/**
+	 * @param description
+	 */
 	public void setDescription(String description) {
 		this.description = description;
 	}
 
+	/**
+	 * @return the creator of this dataset
+	 */
 	public String getCreator() {
 		return creator;
 	}
 
+	/**
+	 * @param creator
+	 */
 	public void setCreator(String creator) {
 		this.creator = creator;
 	}
@@ -101,18 +118,30 @@ public class Dataset implements Base, Revisable {
 		this.creationDate = creationDate;
 	}
 
+	/**
+	 * @return the status of this dataset
+	 */
 	public String getStatus() {
 		return status;
 	}
 
+	/**
+	 * @param status
+	 */
 	public void setStatus(String status) {
 		this.status = status;
 	}
 
+	/**
+	 * @return the release date of this dataset
+	 */
 	public Date getReleaseDate() {
 		return releaseDate;
 	}
 
+	/**
+	 * @param releaseDate
+	 */
 	public void setReleaseDate(Date releaseDate) {
 		this.releaseDate = releaseDate;
 	}
@@ -156,18 +185,48 @@ public class Dataset implements Base, Revisable {
 	}
 
 	/**
-	 * @return the layer previews
+	 * @return the hasExpressionData
 	 */
-	public Collection<LayerPreview> getLayerPreviews() {
-		return layerPreviews;
+	public Boolean getHasExpressionData() {
+		return hasExpressionData;
 	}
 
 	/**
-	 * @param layerPreviews
-	 *            the (it, type, layer URI) pairs to set
+	 * @param hasExpressionData
+	 *            the hasExpressionData to set
 	 */
-	public void setLayerPreviews(Collection<LayerPreview> layerPreviews) {
-		this.layerPreviews = layerPreviews;
+	public void setHasExpressionData(Boolean hasExpressionData) {
+		this.hasExpressionData = hasExpressionData;
+	}
+
+	/**
+	 * @return the hasGeneticData
+	 */
+	public Boolean getHasGeneticData() {
+		return hasGeneticData;
+	}
+
+	/**
+	 * @param hasGeneticData
+	 *            the hasGeneticData to set
+	 */
+	public void setHasGeneticData(Boolean hasGeneticData) {
+		this.hasGeneticData = hasGeneticData;
+	}
+
+	/**
+	 * @return the hasClinicalData
+	 */
+	public Boolean getHasClinicalData() {
+		return hasClinicalData;
+	}
+
+	/**
+	 * @param hasClinicalData
+	 *            the hasClinicalData to set
+	 */
+	public void setHasClinicalData(Boolean hasClinicalData) {
+		this.hasClinicalData = hasClinicalData;
 	}
 
 	/*
@@ -184,9 +243,17 @@ public class Dataset implements Base, Revisable {
 		result = prime * result + ((creator == null) ? 0 : creator.hashCode());
 		result = prime * result
 				+ ((description == null) ? 0 : description.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime
+				* result
+				+ ((hasExpressionData == null) ? 0 : hasExpressionData
+						.hashCode());
 		result = prime * result
-				+ ((layerPreviews == null) ? 0 : layerPreviews.hashCode());
+				+ ((hasGeneticData == null) ? 0 : hasGeneticData.hashCode());
+		result = prime
+				* result
+				+ ((hasClinicalData == null) ? 0 : hasClinicalData
+						.hashCode());
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
 				+ ((releaseDate == null) ? 0 : releaseDate.hashCode());
@@ -224,15 +291,25 @@ public class Dataset implements Base, Revisable {
 				return false;
 		} else if (!description.equals(other.description))
 			return false;
+		if (hasExpressionData == null) {
+			if (other.hasExpressionData != null)
+				return false;
+		} else if (!hasExpressionData.equals(other.hasExpressionData))
+			return false;
+		if (hasGeneticData == null) {
+			if (other.hasGeneticData != null)
+				return false;
+		} else if (!hasGeneticData.equals(other.hasGeneticData))
+			return false;
+		if (hasClinicalData == null) {
+			if (other.hasClinicalData != null)
+				return false;
+		} else if (!hasClinicalData.equals(other.hasClinicalData))
+			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
-			return false;
-		if (layerPreviews == null) {
-			if (other.layerPreviews != null)
-				return false;
-		} else if (!layerPreviews.equals(other.layerPreviews))
 			return false;
 		if (name == null) {
 			if (other.name != null)

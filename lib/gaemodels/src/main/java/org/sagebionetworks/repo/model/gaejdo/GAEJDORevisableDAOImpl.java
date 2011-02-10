@@ -22,7 +22,7 @@ import com.google.appengine.api.datastore.KeyFactory;
 abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJDORevisable<T>>
 		extends GAEJDOBaseDAOImpl<S, T> implements RevisableDAO<S> {
 
-	public T cloneJdo(T jdo) {
+	public T cloneJdo(T jdo) throws DatastoreException {
 		T clone = super.cloneJdo(jdo);
 
 		clone.setRevision(jdo.getRevision().cloneJdo());
@@ -270,8 +270,9 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	/**
 	 * @param id
 	 *            the key for some revision
+	 * @throws DatastoreException 
 	 */
-	public Collection<S> getAllVersions(PersistenceManager pm, String id) {
+	public Collection<S> getAllVersions(PersistenceManager pm, String id) throws DatastoreException {
 		Key key = KeyFactory.stringToKey(id);
 		Collection<T> jdos = getAllVersions(pm, key);
 		Collection<S> dtos = new HashSet<S>();

@@ -60,8 +60,9 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 	 * 
 	 * @param jdo
 	 * @param dto
+	 * @throws DatastoreException 
 	 */
-	abstract protected void copyToDto(T jdo, S dto);
+	abstract protected void copyToDto(T jdo, S dto) throws DatastoreException;
 
 	/**
 	 * Do a shallow copy from the DTO object to the JDO object.
@@ -86,8 +87,9 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 	 * @param jdo
 	 *            the object to clone
 	 * @return the clone
+	 * @throws DatastoreException 
 	 */
-	protected T cloneJdo(T jdo) {
+	protected T cloneJdo(T jdo) throws DatastoreException {
 		S dto = newDTO();
 
 		copyToDto(jdo, dto);

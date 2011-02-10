@@ -125,9 +125,6 @@ public class ServiceConstants {
 	 * Utility method to sanity check pagination parameters
 	 * <p>
 	 * 
-	 * TODO if I can refactor my controllers such that there is only one for
-	 * CRUD for all model objects, consider moving this stuff into that file
-	 * 
 	 * @param offset
 	 * @param limit
 	 * @throws IllegalArgumentException

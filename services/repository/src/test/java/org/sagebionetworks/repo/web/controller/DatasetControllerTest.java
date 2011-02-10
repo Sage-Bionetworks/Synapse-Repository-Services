@@ -525,17 +525,9 @@ public class DatasetControllerTest {
 		assertFalse("null".equals(results.getString("annotations")));
 		assertTrue(results.has("layer"));
 		assertFalse("null".equals(results.getString("layer")));
-		assertTrue(results.has("layerPreviews"));
-
-		// Check our layer metadata, if present
-		for (int i = 0; i < results.getJSONArray("layerPreviews").length(); i++) {
-			assertTrue(results.getJSONArray("layerPreviews").getJSONObject(i)
-					.has("id"));
-			assertTrue(results.getJSONArray("layerPreviews").getJSONObject(i)
-					.has("type"));
-			assertTrue(results.getJSONArray("layerPreviews").getJSONObject(i)
-					.has("uri"));
-		}
+		assertTrue(results.has("hasExpressionData"));
+		assertTrue(results.has("hasGeneticData"));
+		assertTrue(results.has("hasClinicalData"));
 
 		assertTrue(results.has("creationDate"));
 		assertFalse("null".equals(results.getString("creationDate")));

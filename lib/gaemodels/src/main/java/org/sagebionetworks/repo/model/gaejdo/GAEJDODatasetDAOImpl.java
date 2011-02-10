@@ -1,27 +1,17 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 
-import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
-import javax.jdo.Transaction;
 
-import org.sagebionetworks.repo.model.AnnotationDAO;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatasetDAO;
-import org.sagebionetworks.repo.model.DatasetLayer;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.LayerPreview;
-import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
@@ -57,13 +47,14 @@ public class GAEJDODatasetDAOImpl extends
 		return jdo;
 	}
 
-	public GAEJDODataset cloneJdo(GAEJDODataset jdo) {
+	public GAEJDODataset cloneJdo(GAEJDODataset jdo) throws DatastoreException {
 		GAEJDODataset clone = super.cloneJdo(jdo);
 		clone.setLayers(new HashSet<Key>(jdo.getLayers()));
 		return clone;
 	}
 
-	public void copyToDto(GAEJDODataset jdo, Dataset dto) {
+	public void copyToDto(GAEJDODataset jdo, Dataset dto)
+			throws DatastoreException {
 		dto.setId(jdo.getId() == null ? null : KeyFactory.keyToString(jdo
 				.getId()));
 		dto.setName(jdo.getName());
@@ -73,6 +64,25 @@ public class GAEJDODatasetDAOImpl extends
 		dto.setStatus(jdo.getStatus());
 		dto.setReleaseDate(jdo.getReleaseDate());
 		dto.setVersion(jdo.getRevision().getVersion().toString());
+
+		// Fill in our layer preview info
+		InputDataLayerDAO layerDao = getInputDataLayerDAO(dto.getId());
+		// Get all layers, we are making the assumption that this is not
+		// more
+		// than 10s of layers
+		Collection<InputDataLayer> layers = layerDao.getInRange(0,
+				Integer.MAX_VALUE);
+		for (InputDataLayer layer : layers) {
+			if(InputDataLayer.LayerTypeNames.E == InputDataLayer.LayerTypeNames.valueOf(layer.getType())) {
+				dto.setHasExpressionData(true);
+			}
+			else if(InputDataLayer.LayerTypeNames.G == InputDataLayer.LayerTypeNames.valueOf(layer.getType())) {
+				dto.setHasExpressionData(true);
+			}
+			else if(InputDataLayer.LayerTypeNames.C == InputDataLayer.LayerTypeNames.valueOf(layer.getType())) {
+				dto.setHasExpressionData(true);
+			}
+		}
 	}
 
 	/**

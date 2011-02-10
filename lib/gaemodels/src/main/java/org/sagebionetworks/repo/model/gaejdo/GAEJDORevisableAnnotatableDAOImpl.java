@@ -27,7 +27,7 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl<S extends Base & Revisab
 		extends GAEJDORevisableDAOImpl<S, T> implements RevisableDAO<S>,
 		AnnotatableDAO<S> {
 
-	public T cloneJdo(T jdo) {
+	public T cloneJdo(T jdo) throws DatastoreException {
 		T clone = super.cloneJdo(jdo);
 
 		clone.setAnnotations(jdo.getAnnotations().cloneJdo());
@@ -75,7 +75,7 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl<S extends Base & Revisab
 				return parent.newJDO();
 			}
 
-			public void copyToDto(T jdo, S dto) {
+			public void copyToDto(T jdo, S dto) throws DatastoreException {
 				parent.copyToDto(jdo, dto);
 			}
 
@@ -131,7 +131,7 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl<S extends Base & Revisab
 				return parent.newJDO();
 			}
 
-			public void copyToDto(T jdo, S dto) {
+			public void copyToDto(T jdo, S dto) throws DatastoreException {
 				parent.copyToDto(jdo, dto);
 			}
 
@@ -187,7 +187,7 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl<S extends Base & Revisab
 				return parent.newJDO();
 			}
 
-			public void copyToDto(T jdo, S dto) {
+			public void copyToDto(T jdo, S dto) throws DatastoreException {
 				parent.copyToDto(jdo, dto);
 			}
 

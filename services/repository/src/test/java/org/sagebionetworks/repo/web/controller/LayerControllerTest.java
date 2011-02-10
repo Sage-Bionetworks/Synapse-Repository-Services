@@ -120,10 +120,8 @@ public class LayerControllerTest {
 		DatasetControllerTest.assertExpectedDatasetProperties(updatedDataset);
 
 		// Get our newly created layer using the uri in the LayerPreview
-		JSONObject results = helper.testGetJsonEntity(updatedDataset
-				.getJSONArray("layerPreviews").getJSONObject(0)
-				.getString("uri"));
-		assertExpectedLayerProperties(results);
+		JSONObject results = helper.testGetJsonEntities(updatedDataset.getString("layer"), null, null, null, null);
+		assertExpectedLayersProperties(results.getJSONArray("results"));
 
 		// TODO newLayer == results
 	}

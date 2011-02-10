@@ -24,6 +24,11 @@ public class InputDataLayer implements DatasetLayer {
 	private String qcBy;
 	private Date qcDate;
 
+	// TODO do we want to encode allowable values here?
+	public enum LayerTypeNames {
+		E, G, C;
+	}
+	
 	public String getId() {
 		return id;
 	}
@@ -88,8 +93,6 @@ public class InputDataLayer implements DatasetLayer {
 		this.annotations = annotations;
 	}
 
-
-
 	public Date getPublicationDate() {
 		return publicationDate;
 	}
@@ -110,7 +113,15 @@ public class InputDataLayer implements DatasetLayer {
 		return type;
 	}
 
-	public void setType(String type) {
+	public void setType(String type) throws InvalidModelException {
+		
+        try {
+        	LayerTypeNames.valueOf(type);
+        } catch( IllegalArgumentException e ) {
+        	throw new InvalidModelException(
+        	"'type' must be one of " + LayerTypeNames.values());
+        }
+
 		this.type = type;
 	}
 
@@ -153,8 +164,6 @@ public class InputDataLayer implements DatasetLayer {
 	public void setQcDate(Date qcDate) {
 		this.qcDate = qcDate;
 	}
-
-
 
 	@Override
 	public int hashCode() {
