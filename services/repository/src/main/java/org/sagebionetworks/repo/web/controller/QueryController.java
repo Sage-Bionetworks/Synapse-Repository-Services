@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import java.io.StringReader;
 import java.util.List;
 import java.util.Map;
 
@@ -12,11 +11,10 @@ import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.queryparser.ParseException;
-import org.sagebionetworks.repo.queryparser.QueryNode;
-import org.sagebionetworks.repo.queryparser.QueryParser;
 import org.sagebionetworks.repo.web.AnnotatableEntitiesAccessorImpl;
 import org.sagebionetworks.repo.web.EntitiesAccessor;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.QueryStatement;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.http.HttpStatus;
@@ -33,6 +31,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @Controller
 public class QueryController extends BaseController {
+
 	// TODO @Autowired, no GAE references allowed in this class
 	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
 	private DatasetDAO datasetDao = DAO_FACTORY.getDatasetDAO();
@@ -55,35 +54,10 @@ public class QueryController extends BaseController {
 			ModelMap modelMap) throws DatastoreException, ParseException,
 			NotFoundException {
 
-		// TODO stash this in ThreadLocal because its expensive to create and
-		// not threadsafe
-		QueryParser parser = new QueryParser(new StringReader(query));
-		QueryNode parseTree = (QueryNode) parser.Start();
+		QueryStatement stmt = new QueryStatement(query);
 
-		String tableId = null;
-		String whereField = null;
-		Object whereValue = null;
-
-		// TODO move this into a helper function because its going to get way
-		// more complicated
-		for (int i = 0; i < parseTree.jjtGetNumChildren(); i++) {
-			QueryNode node = (QueryNode) parseTree.jjtGetChild(i);
-			switch (node.getId()) {
-			case QueryParser.JJTWHERE:
-				whereField = (String) ((QueryNode) node.jjtGetChild(0))
-						.jjtGetValue();
-				whereValue = ((QueryNode) node.jjtGetChild(1).jjtGetChild(0))
-						.jjtGetValue();
-				break;
-			case QueryParser.JJTTABLENAME:
-				tableId = (String) node.jjtGetValue();
-				break;
-			}
-		}
-
-		// TODO ServiceConstants.validatePaginationParams(offset, limit);
-
-		if (null == tableId || !tableId.equals("dataset")) {
+		if (null == stmt.getTableName()
+				|| !stmt.getTableName().equals("dataset")) {
 			throw new ParseException(
 					"Queries are only supported for datasets at this time");
 		}
@@ -93,16 +67,18 @@ public class QueryController extends BaseController {
 		// TODO talk to Bruce to see if he would prefer that this stuff is
 		// transformed in to a query string that JDO understands
 
-		if (null != whereField && null != whereValue) {
+		if (null != stmt.getWhereField() && null != stmt.getWhereValue()) {
 			// TODO only == is supported for InRangeHaving
-			datasets = datasetAccessor.getInRangeHaving(1, Integer.MAX_VALUE,
-					whereField, whereValue);
+			datasets = datasetAccessor.getInRangeHaving(stmt.getOffset(), stmt
+					.getLimit(), stmt.getWhereField(), stmt.getWhereValue());
+		} else if (null != stmt.getSortField()) {
+			datasets = datasetAccessor.getInRangeSortedBy(stmt.getOffset(),
+					stmt.getLimit(), stmt.getSortField(), stmt
+							.getSortAcending());
 		} else {
-			datasets = datasetAccessor.getInRange(1, Integer.MAX_VALUE);
+			datasets = datasetAccessor.getInRange(stmt.getOffset(), stmt
+					.getLimit());
 		}
-		// TODO add ORDER BY, LIMIT, OFFSET, ASC, DESC to the query parser
-		// datasets = datasetAccessor.getInRangeSortedBy(1, Integer.MAX_VALUE,
-		// whereField, true);
 
 		Integer i = 0;
 		for (Dataset dataset : datasets) {
@@ -120,11 +96,7 @@ public class QueryController extends BaseController {
 			// SELECT *
 		}
 
-		modelMap
-				.put("Note to John",
-						"I can change the structure of this.  Just let me know what you want.");
 		return "";
 
 	}
-
 }

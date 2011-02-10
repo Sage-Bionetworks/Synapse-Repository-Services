@@ -155,7 +155,7 @@ TOKEN : /* IDENTIFIERS */
 
 SimpleNode Start() : {}        
 {
-  <SELECT> <WILDCARD> <FROM> TableName() [ Where() ] [ OrderBy() ] [ Limit() ]
+  <SELECT> <WILDCARD> <FROM> TableName() [ Where() ] [ OrderBy() ] [ Limit() ] [ Offset() ]
   {  return jjtThis; }
 }
 
@@ -166,22 +166,37 @@ void TableName() : {}
 
 void Where() : {}
 {
-  <WHERE> WhereField() <EQUALS> Value()
+  <WHERE> Id() <EQUALS> Value()
 }
 
 void OrderBy() : {}
 {
-  <ORDERBY>
+  <ORDERBY>  Id() [ Ascending() | Descending() ]
 }
 
 void Limit() : {}
 {
-  <LIMIT>
+  <LIMIT> IntValue()
 }
 
-void WhereField() : {}              
+void Offset() : {}
 {
-  <ID> { jjtThis.value = new String(token.image); System.out.println("token where field " + token.image); }
+  <OFFSET> IntValue()
+}
+
+void Id() : {}              
+{
+  <ID> { jjtThis.value = new String(token.image); System.out.println("token id " + token.image); }
+}
+
+void Ascending() : {}
+{
+	<ASC> { jjtThis.value = Boolean.TRUE; System.out.println("token sort direction ascending"); }
+}
+
+void Descending() : {}
+{
+	<DESC> { jjtThis.value = Boolean.FALSE; System.out.println("token sort direction descending"); }
 }
 
 void Value() : {}
@@ -208,35 +223,3 @@ void StringValue() : {}
 {
 	<STRING_LITERAL>  { jjtThis.value = new String(token.image.substring(1, token.image.length()-1)); System.out.println("token where str val " + token.image); }
 }
-
-
-/*
-void Exp() : {}                // Exp -> Factor [MulExp]
-{
-  Factor() [ MulExp() ]
-}
-
-void Factor() : {}             // Factor -> LetExp | FPLitExp | IDExp
-{
-  LetExp()
-| FPLitExp()
-| IDExp()
-}
-
-
-void MulExp() : {}             // MulExp -> "*" Exp
-{
-  "*" Exp()
-}
-
-void FPLitExp() : {}           // FPLitExp -> FPLIT
-{
-  <FPLIT>
-}
-
-
-void IDExp() : {}              // IDExp -> ID
-{
-  <ID>
-}
-*/
