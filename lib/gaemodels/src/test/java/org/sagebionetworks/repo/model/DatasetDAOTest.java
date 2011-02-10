@@ -136,7 +136,7 @@ public class DatasetDAOTest {
 
 	}
 
-	private static InputDataLayer createLayer(Date date) {
+	private static InputDataLayer createLayer(Date date) throws InvalidModelException {
 		InputDataLayer ans = new InputDataLayer();
 		ans.setName("input layer");
 		ans.setDescription("description");
@@ -144,7 +144,7 @@ public class DatasetDAOTest {
 		ans.setVersion("1.0");
 		ans.setPublicationDate(date);
 		ans.setReleaseNotes("this version contains important revisions");
-		ans.setType("clinical");
+		ans.setType("C");
 		ans.setTissueType("cell line");
 		ans.setPlatform("Affymetrix");
 		ans.setProcessingFacility("Broad Institute");

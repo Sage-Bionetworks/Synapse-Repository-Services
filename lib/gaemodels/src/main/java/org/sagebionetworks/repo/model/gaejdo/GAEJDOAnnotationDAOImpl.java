@@ -86,8 +86,9 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 	 * 
 	 * @param jdo
 	 * @param dto
+	 * @throws DatastoreException 
 	 */
-	abstract public void copyToDto(T jdo, S dto);
+	abstract public void copyToDto(T jdo, S dto) throws DatastoreException;
 
 	/**
 	 * Do a shallow copy from the DTO object to the JDO object.
@@ -428,7 +429,7 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 		}
 	}
 
-	public List<S> copyToDtoList(List<T> jdoList) {
+	public List<S> copyToDtoList(List<T> jdoList) throws DatastoreException {
 		List<S> ans = new ArrayList<S>();
 		for (T jdo : jdoList) {
 			S dto = newDTO();

@@ -47,20 +47,27 @@ public class GAEJDOInputDataLayerDAOImpl extends
 		return jdo;
 	}
 
-	protected void copyToDto(GAEJDOInputDataLayer jdo, InputDataLayer dto) {		
+	protected void copyToDto(GAEJDOInputDataLayer jdo, InputDataLayer dto) throws DatastoreException {
 		dto.setId(KeyFactory.keyToString(jdo.getId()));
-		// TODO InputDataLayer only has a subset of the fields in GAEJDODatasetLayer
+		// TODO InputDataLayer only has a subset of the fields in
+		// GAEJDODatasetLayer
 		// and GAEJDOInputDataLayer, the rest need to be added to the DTO
-		
+
 		dto.setId(KeyFactory.keyToString(jdo.getId()));
 		dto.setName(jdo.getName());
 		dto.setDescription(jdo.getDescription().getValue());
 		dto.setCreationDate(jdo.getCreationDate());
 		dto.setVersion(jdo.getRevision().getVersion().toString());
-		
+
 		dto.setPublicationDate(jdo.getPublicationDate());
 		dto.setReleaseNotes(jdo.getReleaseNotes().getValue());
-		dto.setType(jdo.getType());
+		try {
+			dto.setType(jdo.getType());
+		} catch (InvalidModelException e) {
+			throw new DatastoreException(
+					"We changed our data model but neglected to clean up data previously stored"
+							+ e.getMessage());
+		}
 		dto.setTissueType(jdo.getTissueType());
 		dto.setPlatform(jdo.getPlatform());
 		dto.setProcessingFacility(jdo.getPlatform());
@@ -82,7 +89,8 @@ public class GAEJDOInputDataLayerDAOImpl extends
 		// are set
 		//
 		// Question: is this where we want this sort of logic?
-		// Dev Note: right now the only required field is name and type but I can imagine
+		// Dev Note: right now the only required field is name and type but I
+		// can imagine
 		// that the
 		// validation logic will become more complex over time
 		if (null == dto.getName()) {
@@ -105,7 +113,7 @@ public class GAEJDOInputDataLayerDAOImpl extends
 		jdo.setProcessingFacility(dto.getPlatform());
 		jdo.setQcBy(dto.getQcBy());
 		jdo.setQcDate(dto.getQcDate());
-}
+	}
 
 	/**
 	 * @param jdoClass
@@ -131,12 +139,14 @@ public class GAEJDOInputDataLayerDAOImpl extends
 	 */
 	protected void preDelete(PersistenceManager pm, GAEJDOInputDataLayer jdo) {
 		// remove layer from parent
-		GAEJDODataset parent = (GAEJDODataset) pm.getObjectById(GAEJDODataset.class, datasetId);
+		GAEJDODataset parent = (GAEJDODataset) pm.getObjectById(
+				GAEJDODataset.class, datasetId);
 		parent.getLayers().remove(jdo.getId());
 	}
-	
+
 	protected Key generateKey(PersistenceManager pm) throws DatastoreException {
-		long n= 1000L + (long)getCount(pm); // could also use a 'sequence' to generate a unique integer
+		long n = 1000L + (long) getCount(pm); // could also use a 'sequence' to
+												// generate a unique integer
 		Key key = KeyFactory.createKey(datasetId, "GAEJDOInputDataLayer", n);
 		return key;
 	}
@@ -150,7 +160,8 @@ public class GAEJDOInputDataLayerDAOImpl extends
 	 */
 	protected void postCreate(PersistenceManager pm, GAEJDOInputDataLayer jdo) {
 		// add layer to parent
-		GAEJDODataset parent = (GAEJDODataset) pm.getObjectById(GAEJDODataset.class, datasetId);
+		GAEJDODataset parent = (GAEJDODataset) pm.getObjectById(
+				GAEJDODataset.class, datasetId);
 		parent.getLayers().add(jdo.getId());
 	}
 
