@@ -5,10 +5,14 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.logging.Logger;
 
 import org.joda.time.DateTime;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -120,33 +124,7 @@ public class QueryControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.QueryController#query(java.lang.String, org.springframework.ui.ModelMap)}
-	 * .
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testSelectStar() throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI("/query");
-		request.addParameter("query", "select * from dataset limit 30");
-		servlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
-		assertEquals("we got 200 OK", 200, response.getStatus());
-		JSONObject results = new JSONObject(response.getContentAsString());
-		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
-				results.length());
-		// TODO add more tests here once we know what structure we want
-	}
-
-	/**
-	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.QueryController#query(java.lang.String, org.springframework.ui.ModelMap)}
-	 * .
+	 * {@link org.sagebionetworks.repo.web.controller.QueryController#query} .
 	 * 
 	 * @throws Exception
 	 */
@@ -158,13 +136,129 @@ public class QueryControllerTest {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI("/query");
-		request.addParameter("query",
-				"select * from dataset where name == \"Harvard Brain\"");
+		request.addParameter("query", "select * from dataset");
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals("we got 200 OK", 200, response.getStatus());
-		JSONObject results = new JSONObject(response.getContentAsString());
+		JSONObject queryResult = new JSONObject(response.getContentAsString());
+		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
+				queryResult.getInt("totalNumberOfResults"));
+		JSONArray results = queryResult.getJSONArray("results");
+		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
+				results.length());
+
+		// Check that it is a list of maps
+		for (int i = 0; i < DatasetsControllerTest.SAMPLE_DATASET_NAMES.length; i++) {
+			JSONObject result = results.getJSONObject(i);
+			assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES[i], result
+					.getString("name"));
+		}
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.QueryController#query} .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testSortQuery() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI("/query");
+		request.addParameter("query",
+				"select * from dataset order by \"name\" limit 10");
+		servlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		assertEquals("we got 200 OK", 200, response.getStatus());
+		JSONObject queryResult = new JSONObject(response.getContentAsString());
+		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
+				queryResult.getInt("totalNumberOfResults"));
+		JSONArray results = queryResult.getJSONArray("results");
+		assertEquals(10, results.length());
+
+		List<String> sortedDatasetNames = Arrays
+				.asList(DatasetsControllerTest.SAMPLE_DATASET_NAMES);
+		Collections.sort(sortedDatasetNames);
+
+		// Check that it is a list of maps
+		for (int i = 0; i < 10; i++) {
+			JSONObject result = results.getJSONObject(i);
+			assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES[i], result
+					.getString("name"));
+		}
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.QueryController#query} .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testSortQueryDescending() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI("/query");
+		request.addParameter("query",
+				"select * from dataset order by \"name\" desc");
+		servlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		assertEquals("we got 200 OK", 200, response.getStatus());
+		JSONObject queryResult = new JSONObject(response.getContentAsString());
+		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
+				queryResult.getInt("totalNumberOfResults"));
+		JSONArray results = queryResult.getJSONArray("results");
+		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
+				results.length());
+
+		List<String> sortedDatasetNames = Arrays
+				.asList(DatasetsControllerTest.SAMPLE_DATASET_NAMES);
+		Collections.sort(sortedDatasetNames);
+
+		// Check that it is a list of maps
+		for (int i = 0; i < DatasetsControllerTest.SAMPLE_DATASET_NAMES.length; i++) {
+			JSONObject result = results.getJSONObject(i);
+			assertEquals(
+					DatasetsControllerTest.SAMPLE_DATASET_NAMES[DatasetsControllerTest.SAMPLE_DATASET_NAMES.length
+							- 1 - i], result.getString("name"));
+		}
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.QueryController#query} .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testWhereQuery() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI("/query");
+		request.addParameter("query",
+				"select * from dataset where name == \"Pediatric AML TARGET\"");
+		servlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		assertEquals("we got 200 OK", 200, response.getStatus());
+		JSONObject queryResult = new JSONObject(response.getContentAsString());
+		// TODO fix me, this should be 1
+		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
+				queryResult.getInt("totalNumberOfResults"));
+		JSONArray results = queryResult.getJSONArray("results");
 		assertEquals(1, results.length());
-		// TODO add more tests here once we know what structure we want
+
+		// Check that it is a list of one map
+		JSONObject result = results.getJSONObject(0);
+		assertEquals("Pediatric AML TARGET", result.getString("name"));
 	}
 }

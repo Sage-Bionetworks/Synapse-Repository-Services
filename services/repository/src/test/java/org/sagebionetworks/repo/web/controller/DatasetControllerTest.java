@@ -11,6 +11,7 @@ import org.joda.time.DateTime;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.http.HttpStatus;
@@ -411,6 +412,19 @@ public class DatasetControllerTest {
 				.matches("entity with id .* was updated since you last fetched it, retrieve it again and reapply the update"));
 	}
 
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#updateEntity}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	@Ignore
+	public void testUpdateDatasetAnnotationsConflict() throws Exception {
+		// TODO write me!
+	}
+	
 	/*****************************************************************************************************
 	 * Not Found Tests
 	 */
