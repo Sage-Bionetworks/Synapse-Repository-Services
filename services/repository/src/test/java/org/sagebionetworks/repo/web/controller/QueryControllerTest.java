@@ -105,9 +105,8 @@ public class QueryControllerTest {
 
 			DateTime isoDates[] = { aWhileBack };
 			dateAnnotations.put("isoDates", isoDates);
-			Long isoDatesAsLong[] = { aWhileBack.getMillis() };
 
-			JSONObject results = helper.testUpdateJsonEntity(annotations);
+			helper.testUpdateJsonEntity(annotations);
 		}
 	}
 
@@ -134,13 +133,13 @@ public class QueryControllerTest {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI("/query");
-		request.addParameter("query", "select * from dataset"); // where name ==
-																// \"foo\"");
+		request.addParameter("query", "select * from dataset limit 30");
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals("we got 200 OK", 200, response.getStatus());
 		JSONObject results = new JSONObject(response.getContentAsString());
-		assertEquals(14, results.length());
+		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
+				results.length());
 		// TODO add more tests here once we know what structure we want
 	}
 
@@ -165,7 +164,7 @@ public class QueryControllerTest {
 		log.info("Results: " + response.getContentAsString());
 		assertEquals("we got 200 OK", 200, response.getStatus());
 		JSONObject results = new JSONObject(response.getContentAsString());
-		assertEquals(2, results.length());
+		assertEquals(1, results.length());
 		// TODO add more tests here once we know what structure we want
 	}
 }
