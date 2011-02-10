@@ -22,7 +22,13 @@ public class QueryStatement {
 	private Object whereValue = null;
 	private String sortField = null;
 	private Boolean sortAcending = ServiceConstants.DEFAULT_ASCENDING;
-	private Integer limit = ServiceConstants.DEFAULT_PAGINATION_LIMIT;
+
+	/**
+	 * Note that the default is not ServiceConstants.DEFAULT_PAGINATION_LIMIT
+	 * like it is for the rest API. When people query they expect that a query
+	 * with no limit specified defaults to all.
+	 */
+	private Integer limit = Integer.MAX_VALUE;
 	private Integer offset = ServiceConstants.DEFAULT_PAGINATION_OFFSET;
 
 	/**

@@ -25,10 +25,10 @@ public class Dataset implements Base, Revisable {
 	private String version;
 	private String annotations; // URI for annotations
 	private String layer; // URI for layers
-	private Boolean hasExpressionData; // a preview of what type of data can be
+	private Boolean hasExpressionData = false; // a preview of what type of data can be
 										// found in the layers
-	private Boolean hasGeneticData;
-	private Boolean hasClinicalData;
+	private Boolean hasGeneticData = false;
+	private Boolean hasClinicalData = false;
 
 	public String getId() {
 		return id;

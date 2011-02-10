@@ -159,19 +159,21 @@ SimpleNode Start() : {}
   {  return jjtThis; }
 }
 
-void TableName() : {}             
+// This is the same as Id(), but consider how our error messages will look, might be a 
+// good reason for different names for identical methods            
+void TableName() : {}  
 {
   <ID> { jjtThis.value = new String(token.image); System.out.println("token table name " + token.image); }
 }
 
 void Where() : {}
 {
-  <WHERE> Id() <EQUALS> Value()
+  <WHERE> ( Id() | StringValue() ) <EQUALS> Value()
 }
 
 void OrderBy() : {}
 {
-  <ORDERBY>  Id() [ Ascending() | Descending() ]
+  <ORDERBY> ( Id() | StringValue() ) [ Ascending() | Descending() ]
 }
 
 void Limit() : {}
@@ -188,6 +190,7 @@ void Id() : {}
 {
   <ID> { jjtThis.value = new String(token.image); System.out.println("token id " + token.image); }
 }
+
 
 void Ascending() : {}
 {
