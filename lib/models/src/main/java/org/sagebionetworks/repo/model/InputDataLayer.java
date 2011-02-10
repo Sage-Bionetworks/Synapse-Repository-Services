@@ -24,7 +24,11 @@ public class InputDataLayer implements DatasetLayer {
 	private String qcBy;
 	private Date qcDate;
 
-	// TODO do we want to encode allowable values here?
+	/**
+	 * Allowable layer type names
+	 * 
+	 * TODO do we want to encode allowable values here?
+	 */
 	public enum LayerTypeNames {
 		E, G, C;
 	}
@@ -118,8 +122,11 @@ public class InputDataLayer implements DatasetLayer {
         try {
         	LayerTypeNames.valueOf(type);
         } catch( IllegalArgumentException e ) {
-        	throw new InvalidModelException(
-        	"'type' must be one of " + LayerTypeNames.values());
+        	StringBuilder helpfulErrorMessage = new StringBuilder("'type' must be one of:");
+        	for(LayerTypeNames name : LayerTypeNames.values()) {
+        		helpfulErrorMessage.append(" ").append(name);
+        	}
+        	throw new InvalidModelException(helpfulErrorMessage.toString());
         }
 
 		this.type = type;
