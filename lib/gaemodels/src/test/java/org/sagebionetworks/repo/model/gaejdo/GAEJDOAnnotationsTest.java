@@ -1,13 +1,10 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.jdo.JDOHelper;
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
@@ -17,14 +14,7 @@ import junit.framework.Assert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDOAnnotations;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDODataset;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDORevision;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDOStringAnnotation;
-import org.sagebionetworks.repo.model.gaejdo.Version;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
@@ -91,7 +81,7 @@ public class GAEJDOAnnotationsTest {
 		}
 	}
 
-	private void addFloat(Key id) {
+	private void addDouble(Key id) {
 		PersistenceManager pm = null;
 		try {
 			pm = PMF.get();
@@ -100,10 +90,31 @@ public class GAEJDOAnnotationsTest {
 			GAEJDOAnnotations a = (GAEJDOAnnotations) pm.getObjectById(
 					GAEJDOAnnotations.class, id);
 			a.toString(); // <-- here we 'touch' all the annotations
-			Set<GAEJDOFloatAnnotation> ss = a.getFloatAnnotations();
-			// System.out.println("addFloat: isDirty="+JDOHelper.isDirty(a));
-			ss.add(new GAEJDOFloatAnnotation("weight", 100F));
-			// System.out.println("addFloat: isDirty="+JDOHelper.isDirty(a));
+			Set<GAEJDODoubleAnnotation> ss = a.getDoubleAnnotations();
+			// System.out.println("addDouble: isDirty="+JDOHelper.isDirty(a));
+			ss.add(new GAEJDODoubleAnnotation("weight", 99.5D));
+			// System.out.println("addDouble: isDirty="+JDOHelper.isDirty(a));
+			pm.makePersistent(a);
+			tx.commit();
+		} finally {
+			if (pm != null)
+				pm.close();
+		}
+	}
+
+	private void addLong(Key id) {
+		PersistenceManager pm = null;
+		try {
+			pm = PMF.get();
+			Transaction tx = pm.currentTransaction();
+			tx.begin();
+			GAEJDOAnnotations a = (GAEJDOAnnotations) pm.getObjectById(
+					GAEJDOAnnotations.class, id);
+			a.toString(); // <-- here we 'touch' all the annotations
+			Set<GAEJDOLongAnnotation> ss = a.getLongAnnotations();
+			// System.out.println("addLong: isDirty="+JDOHelper.isDirty(a));
+			ss.add(new GAEJDOLongAnnotation("age", 71L));
+			// System.out.println("addLong: isDirty="+JDOHelper.isDirty(a));
 			pm.makePersistent(a);
 			tx.commit();
 		} finally {
@@ -116,7 +127,8 @@ public class GAEJDOAnnotationsTest {
 	public void testAnnotQuery() throws Exception {
 		PersistenceManager pm = null;
 		Key id = createAnnotations();
-		addFloat(id);
+		addDouble(id);
+		addLong(id);
 		addString(id);
 		try {
 			pm = PMF.get();
@@ -141,17 +153,31 @@ public class GAEJDOAnnotationsTest {
 			Assert.assertEquals("Can't query by String annot", 1, annots
 					.iterator().next().getStringAnnotations().size());
 
+			// now query by the Double annotation "weight"
 			query = pm.newQuery(GAEJDOAnnotations.class);
-			query.setFilter("this.floatAnnotations.contains(vAnnotation) && "
+			query.setFilter("this.doubleAnnotations.contains(vAnnotation) && "
 					+ "vAnnotation.attribute==pAttrib && vAnnotation.value==pValue");
-			query.declareVariables(GAEJDOFloatAnnotation.class.getName()
+			query.declareVariables(GAEJDODoubleAnnotation.class.getName()
 					+ " vAnnotation");
 			query.declareParameters(String.class.getName() + " pAttrib, "
-					+ Float.class.getName() + " pValue");
+					+ Double.class.getName() + " pValue");
 			annots = (List<GAEJDOAnnotations>) query.execute("weight",
-					new Float(100F));
-			Assert.assertEquals("Can't query by Float annot", 1, annots
-					.iterator().next().getFloatAnnotations().size());
+					new Double(99.5));
+			Assert.assertEquals("Can't query by Double annot", 1, annots
+					.iterator().next().getDoubleAnnotations().size());
+
+			// now query by the Long annotation "age"
+			query = pm.newQuery(GAEJDOAnnotations.class);
+			query.setFilter("this.longAnnotations.contains(vAnnotation) && "
+					+ "vAnnotation.attribute==pAttrib && vAnnotation.value==pValue");
+			query.declareVariables(GAEJDOLongAnnotation.class.getName()
+					+ " vAnnotation");
+			query.declareParameters(String.class.getName() + " pAttrib, "
+					+ Long.class.getName() + " pValue");
+			annots = (List<GAEJDOAnnotations>) query.execute("age",
+					new Long(71));
+			Assert.assertEquals("Can't query by Long annot", 1, annots
+					.iterator().next().getLongAnnotations().size());
 
 		} finally {
 			if (pm != null)

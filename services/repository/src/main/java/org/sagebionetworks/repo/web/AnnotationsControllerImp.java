@@ -110,7 +110,8 @@ public class AnnotationsControllerImp<T extends Base> implements
 		// Developer Note: yes, nested loops are evil when N is large
 		
 		AnnotationDAO<T, String> stringAnnotationDAO = annotatableDao.getStringAnnotationDAO(entityId);
-		AnnotationDAO<T, Float> floatAnnotationDAO = annotatableDao.getFloatAnnotationDAO(entityId);
+		AnnotationDAO<T, Double> doubleAnnotationDAO = annotatableDao.getDoubleAnnotationDAO(entityId);
+		AnnotationDAO<T, Long> longAnnotationDAO = annotatableDao.getLongAnnotationDAO(entityId);
 		AnnotationDAO<T, Date> dateAnnotationDAO = annotatableDao.getDateAnnotationDAO(entityId);
 
 		Map<String, Collection<String>> updatedStringAnnotations = updatedAnnotations
@@ -125,14 +126,26 @@ public class AnnotationsControllerImp<T extends Base> implements
 			}
 		}
 
-		Map<String, Collection<Float>> updatedFloatAnnotations = updatedAnnotations
-				.getFloatAnnotations();
-		for (Map.Entry<String, Collection<Float>> updatedAnnotation : updatedFloatAnnotations
+		Map<String, Collection<Double>> updatedDoubleAnnotations = updatedAnnotations
+				.getDoubleAnnotations();
+		for (Map.Entry<String, Collection<Double>> updatedAnnotation : updatedDoubleAnnotations
 				.entrySet()) {
-			for (Float value : updatedAnnotation.getValue()) {
-				log.info("Adding float annotation ("
+			for (Double value : updatedAnnotation.getValue()) {
+				log.info("Adding double annotation ("
 						+ updatedAnnotation.getKey() + ", " + value + ")");
-				floatAnnotationDAO.addAnnotation(updatedAnnotation
+				doubleAnnotationDAO.addAnnotation(updatedAnnotation
+						.getKey(), value);
+			}
+		}
+
+		Map<String, Collection<Long>> updatedLongAnnotations = updatedAnnotations
+				.getLongAnnotations();
+		for (Map.Entry<String, Collection<Long>> updatedAnnotation : updatedLongAnnotations
+				.entrySet()) {
+			for (Long value : updatedAnnotation.getValue()) {
+				log.info("Adding long annotation ("
+						+ updatedAnnotation.getKey() + ", " + value + ")");
+				longAnnotationDAO.addAnnotation(updatedAnnotation
 						.getKey(), value);
 			}
 		}

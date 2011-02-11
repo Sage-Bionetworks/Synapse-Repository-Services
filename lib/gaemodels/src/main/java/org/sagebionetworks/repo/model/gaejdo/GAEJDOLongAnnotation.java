@@ -8,7 +8,7 @@ import javax.jdo.annotations.PrimaryKey;
 import com.google.appengine.api.datastore.Key;
 
 /**
- * This is the persistable class for a Annotations whose values are numbers.
+ * This is the persistable class for a Annotations whose values are long integer numbers.
  * 
  * Note: equals and hashcode are based on the attribute and value, allowing
  * distinct annotations with the same attribute.
@@ -17,7 +17,7 @@ import com.google.appengine.api.datastore.Key;
  * 
  */
 @PersistenceCapable(detachable = "false")
-public class GAEJDOFloatAnnotation implements GAEJDOAnnotation<Float> {
+public class GAEJDOLongAnnotation implements GAEJDOAnnotation<Long> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
@@ -30,12 +30,12 @@ public class GAEJDOFloatAnnotation implements GAEJDOAnnotation<Float> {
 	private String attribute;
 
 	@Persistent
-	private Float value;
+	private Long value;
 
-	public GAEJDOFloatAnnotation() {
+	public GAEJDOLongAnnotation() {
 	}
 
-	public GAEJDOFloatAnnotation(String attr, Float value) {
+	public GAEJDOLongAnnotation(String attr, Long value) {
 		setAttribute(attr);
 		setValue(value);
 	}
@@ -68,11 +68,11 @@ public class GAEJDOFloatAnnotation implements GAEJDOAnnotation<Float> {
 		this.attribute = attribute;
 	}
 
-	public Float getValue() {
+	public Long getValue() {
 		return value;
 	}
 
-	public void setValue(Float value) {
+	public void setValue(Long value) {
 		this.value = value;
 	}
 
@@ -90,9 +90,9 @@ public class GAEJDOFloatAnnotation implements GAEJDOAnnotation<Float> {
 			return true;
 		if (obj == null)
 			return false;
-		if (!(obj instanceof GAEJDOFloatAnnotation))
+		if (!(obj instanceof GAEJDOLongAnnotation))
 			return false;
-		GAEJDOFloatAnnotation other = (GAEJDOFloatAnnotation) obj;
+		GAEJDOLongAnnotation other = (GAEJDOLongAnnotation) obj;
 		if (id == null) {
 			if (other.id != null)
 				return false;

@@ -28,7 +28,8 @@ public class AnnotatableEntitiesAccessorImpl<T extends Base> implements
 
 	private AnnotatableDAO<T> annotatableDao;
 	private AnnotationDAO<T, String> stringAnnotationDAO;
-	private AnnotationDAO<T, Float> floatAnnotationDAO;
+	private AnnotationDAO<T, Double> doubleAnnotationDAO;
+	private AnnotationDAO<T, Long> longAnnotationDAO;
 	private AnnotationDAO<T, Date> dateAnnotationDAO;
 	private Set<String> primaryFields = new HashSet<String>();
 
@@ -50,7 +51,8 @@ public class AnnotatableEntitiesAccessorImpl<T extends Base> implements
 		this.annotatableDao = (AnnotatableDAO<T>) dao;
 
 		stringAnnotationDAO = annotatableDao.getStringAnnotationDAO(null);
-		floatAnnotationDAO = annotatableDao.getFloatAnnotationDAO(null);
+		doubleAnnotationDAO = annotatableDao.getDoubleAnnotationDAO(null);
+		longAnnotationDAO = annotatableDao.getLongAnnotationDAO(null);
 		dateAnnotationDAO = annotatableDao.getDateAnnotationDAO(null);
 
 		primaryFields.addAll(annotatableDao.getPrimaryFields());
@@ -84,9 +86,12 @@ public class AnnotatableEntitiesAccessorImpl<T extends Base> implements
 						+ "' is not valid because there is no primary"
 						+ " field or annotation with that name");
 			} else if (1 == type) {
-				entities = floatAnnotationDAO.getInRangeHaving(offset - 1,
-						offset + limit - 1, attribute, (Float) value);
+				entities = doubleAnnotationDAO.getInRangeHaving(offset - 1,
+						offset + limit - 1, attribute, (Double) value);
 			} else if (2 == type) {
+				entities = longAnnotationDAO.getInRangeHaving(offset - 1,
+						offset + limit - 1, attribute, (Long) value);
+			} else if (3 == type) {
 				entities = dateAnnotationDAO.getInRangeHaving(offset - 1,
 						offset + limit - 1, attribute, (Date) value);
 			} else {
@@ -123,9 +128,12 @@ public class AnnotatableEntitiesAccessorImpl<T extends Base> implements
 							+ "' is not sortable because there is no primary"
 							+ " field or annotation with that name");
 				} else if (1 == type) {
-					entities = floatAnnotationDAO.getInRangeSortedBy(
+					entities = doubleAnnotationDAO.getInRangeSortedBy(
 							offset - 1, offset + limit - 1, sort, ascending);
 				} else if (2 == type) {
+					entities = longAnnotationDAO.getInRangeSortedBy(offset - 1,
+							offset + limit - 1, sort, ascending);
+				} else if (3 == type) {
 					entities = dateAnnotationDAO.getInRangeSortedBy(offset - 1,
 							offset + limit - 1, sort, ascending);
 				} else {
@@ -161,18 +169,25 @@ public class AnnotatableEntitiesAccessorImpl<T extends Base> implements
 					annotationFields.put(annotation.getKey(), 0);
 				}
 
-				Map<String, Collection<Float>> floatAnnotations = annotations
-						.getFloatAnnotations();
-				for (Map.Entry<String, Collection<Float>> annotation : floatAnnotations
+				Map<String, Collection<Double>> doubleAnnotations = annotations
+						.getDoubleAnnotations();
+				for (Map.Entry<String, Collection<Double>> annotation : doubleAnnotations
 						.entrySet()) {
 					annotationFields.put(annotation.getKey(), 1);
+				}
+
+				Map<String, Collection<Long>> longAnnotations = annotations
+						.getLongAnnotations();
+				for (Map.Entry<String, Collection<Long>> annotation : longAnnotations
+						.entrySet()) {
+					annotationFields.put(annotation.getKey(), 2);
 				}
 
 				Map<String, Collection<Date>> dateAnnotations = annotations
 						.getDateAnnotations();
 				for (Map.Entry<String, Collection<Date>> annotation : dateAnnotations
 						.entrySet()) {
-					annotationFields.put(annotation.getKey(), 2);
+					annotationFields.put(annotation.getKey(), 3);
 				}
 			}
 		} catch (DatastoreException e) {

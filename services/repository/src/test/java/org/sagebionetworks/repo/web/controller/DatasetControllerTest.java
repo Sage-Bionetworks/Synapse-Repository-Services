@@ -4,10 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Date;
 import java.util.logging.Logger;
 
-import org.joda.time.DateTime;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -145,109 +143,7 @@ public class DatasetControllerTest {
 				"{\"name\":\"MouseCross\"}");
 
 		// Get our empty annotations container
-		JSONObject annotations = helper.testGetJsonEntity(newDataset
-				.getString("annotations"));
-
-		// Add some string annotations
-		JSONObject stringAnnotations = annotations
-				.getJSONObject("stringAnnotations");
-		String tissues[] = { "liver", "brain" };
-		stringAnnotations.put("tissues", tissues);
-		String summary[] = { "this is a summary" };
-		stringAnnotations.put("summary", summary);
-
-		// Add some numeric annotations
-		//
-		// Note that we could send these numbers as floats but when the
-		// serialized version
-		// comes back from the service, Jackson will always treat them as double
-		// See http://wiki.fasterxml.com/JacksonInFiveMinutes
-		JSONObject floatAnnotations = annotations
-				.getJSONObject("floatAnnotations");
-		Double pValues[] = { new Double(0.987), new Double(0) };
-		floatAnnotations.put("pValues", pValues);
-		Double numSamples[] = { new Double(3000) };
-		floatAnnotations.put("numSamples", numSamples);
-
-		//
-		// Add some date annotations
-		//
-		// When dates are serialized to be sent to the service can dates
-		// expressed in epoch time (which is a Long)
-		// or ISO-8601 (which is a string).
-		//
-		// When dates are returned by the service they are always serialized as
-		// epoch time.
-		// See
-		// http://wiki.fasterxml.com/JacksonFAQDateHandling?highlight=(jackson)|(date)
-
-		Date now = new Date();
-		DateTime aWhileBack = new DateTime("2010-10-01");
-
-		Long curationEvents[] = { now.getTime(), now.getTime(),
-				aWhileBack.getMillis() };
-		JSONObject dateAnnotations = annotations
-				.getJSONObject("dateAnnotations");
-		dateAnnotations.put("curationEvents", curationEvents);
-
-		Long clinicalTrialStartDate[] = { now.getTime() };
-		dateAnnotations.put("clinicalTrialStartDate", clinicalTrialStartDate);
-
-		Long epochDates[] = { now.getTime(), aWhileBack.getMillis() };
-		dateAnnotations.put("epochDates", epochDates);
-
-		DateTime isoDates[] = { aWhileBack };
-		dateAnnotations.put("isoDates", isoDates);
-		Long isoDatesAsLong[] = { aWhileBack.getMillis() }; // for the assertion
-		// below
-
-		JSONObject results = helper.testUpdateJsonEntity(annotations);
-
-		// Check the update response
-		helper.assertJSONArrayEquals(summary, results.getJSONObject(
-				"stringAnnotations").getJSONArray("summary"));
-		helper.assertJSONArrayEquals(tissues, results.getJSONObject(
-				"stringAnnotations").getJSONArray("tissues"));
-		helper.assertJSONArrayEquals(pValues, results.getJSONObject(
-				"floatAnnotations").getJSONArray("pValues"));
-		helper.assertJSONArrayEquals(numSamples, results.getJSONObject(
-				"floatAnnotations").getJSONArray("numSamples"));
-		helper.assertJSONArrayEquals(curationEvents, results.getJSONObject(
-				"dateAnnotations").getJSONArray("curationEvents"));
-		helper.assertJSONArrayEquals(clinicalTrialStartDate, results
-				.getJSONObject("dateAnnotations").getJSONArray(
-						"clinicalTrialStartDate"));
-		// These are sent serialized as Longs and come back serialized as Longs
-		helper.assertJSONArrayEquals(epochDates, results.getJSONObject(
-				"dateAnnotations").getJSONArray("epochDates"));
-		// These are sent serialized as Strings and come back serialized as
-		// Longs
-		helper.assertJSONArrayEquals(isoDatesAsLong, results.getJSONObject(
-				"dateAnnotations").getJSONArray("isoDates"));
-
-		// Now check that we correctly persisted them for real
-		JSONObject storedAnnotations = helper.testGetJsonEntity(newDataset
-				.getString("annotations"));
-		helper.assertJSONArrayEquals(summary, storedAnnotations.getJSONObject(
-				"stringAnnotations").getJSONArray("summary"));
-		helper.assertJSONArrayEquals(tissues, storedAnnotations.getJSONObject(
-				"stringAnnotations").getJSONArray("tissues"));
-		helper.assertJSONArrayEquals(pValues, storedAnnotations.getJSONObject(
-				"floatAnnotations").getJSONArray("pValues"));
-		helper.assertJSONArrayEquals(numSamples, storedAnnotations
-				.getJSONObject("floatAnnotations").getJSONArray("numSamples"));
-		helper.assertJSONArrayEquals(curationEvents, results.getJSONObject(
-				"dateAnnotations").getJSONArray("curationEvents"));
-		helper.assertJSONArrayEquals(clinicalTrialStartDate, results
-				.getJSONObject("dateAnnotations").getJSONArray(
-						"clinicalTrialStartDate"));
-		// These are sent serialized as Longs and come back serialized as Longs
-		helper.assertJSONArrayEquals(epochDates, results.getJSONObject(
-				"dateAnnotations").getJSONArray("epochDates"));
-		// These are sent serialized as Strings and come back serialized as
-		// Longs
-		helper.assertJSONArrayEquals(isoDatesAsLong, results.getJSONObject(
-				"dateAnnotations").getJSONArray("isoDates"));
+		helper.testEntityAnnotations(newDataset.getString("annotations"));
 	}
 
 	/**
@@ -424,7 +320,7 @@ public class DatasetControllerTest {
 	public void testUpdateDatasetAnnotationsConflict() throws Exception {
 		// TODO write me!
 	}
-	
+
 	/*****************************************************************************************************
 	 * Not Found Tests
 	 */
