@@ -37,7 +37,7 @@ import com.google.appengine.api.datastore.KeyFactory;
  *            the DTO type
  * @param <T>
  *            the JDO (persisted) type
- * @param <A>the annotation value type (String, Boolean, Float, Date, Integer)
+ * @param <A>the annotation value type (String, Boolean, Double, Long, Date)
  */
 abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAnnotatable & GAEJDOBase, A extends Comparable<A>>
 		implements AnnotationDAO<S, A> {

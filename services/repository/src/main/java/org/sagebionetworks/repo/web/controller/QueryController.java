@@ -113,7 +113,8 @@ public class QueryController extends BaseController {
 			Annotations annotations = datasetDao
 					.getAnnotations(dataset.getId());
 			result.putAll(annotations.getStringAnnotations());
-			result.putAll(annotations.getFloatAnnotations());
+			result.putAll(annotations.getDoubleAnnotations());
+			result.putAll(annotations.getLongAnnotations());
 			result.putAll(annotations.getDateAnnotations());
 			results.add(result);
 			

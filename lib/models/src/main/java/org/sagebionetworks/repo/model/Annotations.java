@@ -18,7 +18,8 @@ public class Annotations implements Base {
 	private String etag;
 	private Date creationDate;
 	private Map<String, Collection<String>> stringAnnotations;
-	private Map<String, Collection<Float>> floatAnnotations;
+	private Map<String, Collection<Double>> doubleAnnotations;
+	private Map<String, Collection<Long>> longAnnotations;
 	private Map<String, Collection<Date>> dateAnnotations;
 
 	public String getId() {
@@ -76,13 +77,22 @@ public class Annotations implements Base {
 		this.stringAnnotations = stringAnnotations;
 	}
 
-	public Map<String, Collection<Float>> getFloatAnnotations() {
-		return floatAnnotations;
+	public Map<String, Collection<Double>> getDoubleAnnotations() {
+		return doubleAnnotations;
 	}
 
-	public void setFloatAnnotations(
-			Map<String, Collection<Float>> floatAnnotations) {
-		this.floatAnnotations = floatAnnotations;
+	public void setDoubleAnnotations(
+			Map<String, Collection<Double>> doubleAnnotations) {
+		this.doubleAnnotations = doubleAnnotations;
+	}
+
+	public Map<String, Collection<Long>> getLongAnnotations() {
+		return longAnnotations;
+	}
+	
+	public void setLongAnnotations(
+			Map<String, Collection<Long>> longAnnotations) {
+		this.longAnnotations = longAnnotations;
 	}
 
 	public Map<String, Collection<Date>> getDateAnnotations() {
@@ -93,9 +103,7 @@ public class Annotations implements Base {
 		this.dateAnnotations = dateAnnotations;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
+	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
@@ -103,12 +111,13 @@ public class Annotations implements Base {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
-				+ ((creationDate == null) ? 0 : creationDate.hashCode());
-		result = prime * result
 				+ ((dateAnnotations == null) ? 0 : dateAnnotations.hashCode());
 		result = prime
 				* result
-				+ ((floatAnnotations == null) ? 0 : floatAnnotations.hashCode());
+				+ ((doubleAnnotations == null) ? 0 : doubleAnnotations
+						.hashCode());
+		result = prime * result
+				+ ((longAnnotations == null) ? 0 : longAnnotations.hashCode());
 		result = prime
 				* result
 				+ ((stringAnnotations == null) ? 0 : stringAnnotations
@@ -116,9 +125,7 @@ public class Annotations implements Base {
 		return result;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
+	/* (non-Javadoc)
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
@@ -130,20 +137,20 @@ public class Annotations implements Base {
 		if (getClass() != obj.getClass())
 			return false;
 		Annotations other = (Annotations) obj;
-		if (creationDate == null) {
-			if (other.creationDate != null)
-				return false;
-		} else if (!creationDate.equals(other.creationDate))
-			return false;
 		if (dateAnnotations == null) {
 			if (other.dateAnnotations != null)
 				return false;
 		} else if (!dateAnnotations.equals(other.dateAnnotations))
 			return false;
-		if (floatAnnotations == null) {
-			if (other.floatAnnotations != null)
+		if (doubleAnnotations == null) {
+			if (other.doubleAnnotations != null)
 				return false;
-		} else if (!floatAnnotations.equals(other.floatAnnotations))
+		} else if (!doubleAnnotations.equals(other.doubleAnnotations))
+			return false;
+		if (longAnnotations == null) {
+			if (other.longAnnotations != null)
+				return false;
+		} else if (!longAnnotations.equals(other.longAnnotations))
 			return false;
 		if (stringAnnotations == null) {
 			if (other.stringAnnotations != null)

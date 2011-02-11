@@ -52,65 +52,8 @@ public class QueryControllerTest {
 							+ DatasetsControllerTest.SAMPLE_DATASET_NAMES[i]
 							+ "\"}");
 
-			// Get our empty annotations container
-			JSONObject annotations = helper.testGetJsonEntity(newDataset
-					.getString("annotations"));
-
-			// Add some string annotations
-			JSONObject stringAnnotations = annotations
-					.getJSONObject("stringAnnotations");
-			String tissues[] = { "liver", "brain" };
-			stringAnnotations.put("tissues", tissues);
-			String summary[] = { "this is a summary" };
-			stringAnnotations.put("summary", summary);
-
-			// Add some numeric annotations
-			//
-			// Note that we could send these numbers as floats but when the
-			// serialized version
-			// comes back from the service, Jackson will always treat them as
-			// double
-			// See http://wiki.fasterxml.com/JacksonInFiveMinutes
-			JSONObject floatAnnotations = annotations
-					.getJSONObject("floatAnnotations");
-			Double pValues[] = { new Double(0.987), new Double(0) };
-			floatAnnotations.put("pValues", pValues);
-			Double numSamples[] = { new Double(3000) };
-			floatAnnotations.put("numSamples", numSamples);
-
-			//
-			// Add some date annotations
-			//
-			// When dates are serialized to be sent to the service can dates
-			// expressed in epoch time (which is a Long)
-			// or ISO-8601 (which is a string).
-			//
-			// When dates are returned by the service they are always serialized
-			// as
-			// epoch time.
-			// See
-			// http://wiki.fasterxml.com/JacksonFAQDateHandling?highlight=(jackson)|(date)
-
-			Date now = new Date();
-			DateTime aWhileBack = new DateTime("2010-10-01");
-
-			Long curationEvents[] = { now.getTime(), now.getTime(),
-					aWhileBack.getMillis() };
-			JSONObject dateAnnotations = annotations
-					.getJSONObject("dateAnnotations");
-			dateAnnotations.put("curationEvents", curationEvents);
-
-			Long clinicalTrialStartDate[] = { now.getTime() };
-			dateAnnotations.put("clinicalTrialStartDate",
-					clinicalTrialStartDate);
-
-			Long epochDates[] = { now.getTime(), aWhileBack.getMillis() };
-			dateAnnotations.put("epochDates", epochDates);
-
-			DateTime isoDates[] = { aWhileBack };
-			dateAnnotations.put("isoDates", isoDates);
-
-			helper.testUpdateJsonEntity(annotations);
+			// Add some canned annotations to our dataset
+			helper.testEntityAnnotations(newDataset.getString("annotations"));
 		}
 	}
 

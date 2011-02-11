@@ -43,7 +43,8 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl<S extends Base & Revisab
 			NotFoundException {
 		Annotations ans = new Annotations();
 		ans.setStringAnnotations(getStringAnnotationDAO(id).getAnnotations());
-		ans.setFloatAnnotations(getFloatAnnotationDAO(id).getAnnotations());
+		ans.setDoubleAnnotations(getDoubleAnnotationDAO(id).getAnnotations());
+		ans.setLongAnnotations(getLongAnnotationDAO(id).getAnnotations());
 		ans.setDateAnnotations(getDateAnnotationDAO(id).getAnnotations());
 		return ans;
 	}
@@ -104,23 +105,23 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl<S extends Base & Revisab
 		};
 	}
 
-	public AnnotationDAO<S, Float> getFloatAnnotationDAO() {return getFloatAnnotationDAO(null);}
+	public AnnotationDAO<S, Double> getDoubleAnnotationDAO() {return getDoubleAnnotationDAO(null);}
 	
-	public AnnotationDAO<S, Float> getFloatAnnotationDAO(final String owner) {
+	public AnnotationDAO<S, Double> getDoubleAnnotationDAO(final String owner) {
 		final GAEJDORevisableAnnotatableDAOImpl<S, T> parent = this;
-		return new GAEJDORevisableAnnotationDAOImpl<S, T, Float>() {
+		return new GAEJDORevisableAnnotationDAOImpl<S, T, Double>() {
 			protected String getOwner() {return owner;}
 			
-			protected Class<? extends GAEJDOAnnotation<Float>> getAnnotationClass() {
-				return GAEJDOFloatAnnotation.class;
+			protected Class<? extends GAEJDOAnnotation<Double>> getAnnotationClass() {
+				return GAEJDODoubleAnnotation.class;
 			}
 
-			protected Class<Float> getValueClass() {
-				return Float.class;
+			protected Class<Double> getValueClass() {
+				return Double.class;
 			}
 
 			protected String getCollectionName() {
-				return "floatAnnotations";
+				return "doubleAnnotations";
 			}
 
 			public S newDTO() {
@@ -144,18 +145,74 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl<S extends Base & Revisab
 			}
 
 			protected void addAnnotation(GAEJDOAnnotations annots,
-					String attribute, Float value) {
+					String attribute, Double value) {
 				annots.add(attribute, value);
 			}
 
 			protected void removeAnnotation(GAEJDOAnnotations annots,
-					String attribute, Float value) {
+					String attribute, Double value) {
 				annots.remove(attribute, value);
 			}
 
-			protected Iterable<GAEJDOAnnotation<Float>> getIterable(
+			protected Iterable<GAEJDOAnnotation<Double>> getIterable(
 					GAEJDOAnnotations annots) {
-				return annots.getFloatIterable();
+				return annots.getDoubleIterable();
+			}
+		};
+	}
+
+	public AnnotationDAO<S, Long> getLongAnnotationDAO() {return getLongAnnotationDAO(null);}
+	
+	public AnnotationDAO<S, Long> getLongAnnotationDAO(final String owner) {
+		final GAEJDORevisableAnnotatableDAOImpl<S, T> parent = this;
+		return new GAEJDORevisableAnnotationDAOImpl<S, T, Long>() {
+			protected String getOwner() {return owner;}
+			
+			protected Class<? extends GAEJDOAnnotation<Long>> getAnnotationClass() {
+				return GAEJDOLongAnnotation.class;
+			}
+
+			protected Class<Long> getValueClass() {
+				return Long.class;
+			}
+
+			protected String getCollectionName() {
+				return "longAnnotations";
+			}
+
+			public S newDTO() {
+				return parent.newDTO();
+			}
+
+			public T newJDO() {
+				return parent.newJDO();
+			}
+
+			public void copyToDto(T jdo, S dto) throws DatastoreException {
+				parent.copyToDto(jdo, dto);
+			}
+
+			public void copyFromDto(S dto, T jdo) throws InvalidModelException {
+				parent.copyFromDto(dto, jdo);
+			}
+
+			protected Class<T> getOwnerClass() {
+				return parent.getJdoClass();
+			}
+
+			protected void addAnnotation(GAEJDOAnnotations annots,
+					String attribute, Long value) {
+				annots.add(attribute, value);
+			}
+
+			protected void removeAnnotation(GAEJDOAnnotations annots,
+					String attribute, Long value) {
+				annots.remove(attribute, value);
+			}
+
+			protected Iterable<GAEJDOAnnotation<Long>> getIterable(
+					GAEJDOAnnotations annots) {
+				return annots.getLongIterable();
 			}
 		};
 	}

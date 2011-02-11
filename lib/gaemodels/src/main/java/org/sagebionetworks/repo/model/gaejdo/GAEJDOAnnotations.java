@@ -39,7 +39,8 @@ public class GAEJDOAnnotations {
 	public static GAEJDOAnnotations newGAEJDOAnnotations() {
 		GAEJDOAnnotations obj = new GAEJDOAnnotations();
 		obj.setStringAnnotations(new HashSet<GAEJDOStringAnnotation>());
-		obj.setFloatAnnotations(new HashSet<GAEJDOFloatAnnotation>());
+		obj.setDoubleAnnotations(new HashSet<GAEJDODoubleAnnotation>());
+		obj.setLongAnnotations(new HashSet<GAEJDOLongAnnotation>());
 		obj.setTextAnnotations(new HashSet<GAEJDOTextAnnotation>());
 		obj.setDateAnnotations(new HashSet<GAEJDODateAnnotation>());
 		return obj;
@@ -48,7 +49,8 @@ public class GAEJDOAnnotations {
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
 		sb.append("String Annots: " + getStringAnnotations() + "\n");
-		sb.append("Float Annots: " + getFloatAnnotations() + "\n");
+		sb.append("Double Annots: " + getDoubleAnnotations() + "\n");
+		sb.append("Long Annots: " + getLongAnnotations() + "\n");
 		sb.append("Text Annots: " + getTextAnnotations() + "\n");
 		sb.append("Date Annots: " + getDateAnnotations() + "\n");
 		return sb.toString();
@@ -69,7 +71,11 @@ public class GAEJDOAnnotations {
 			ans.add(annot.getAttribute(), annot.getValue());
 		}
 
-		for (GAEJDOAnnotation<Float> annot : getFloatIterable()) {
+		for (GAEJDOAnnotation<Double> annot : getDoubleIterable()) {
+			ans.add(annot.getAttribute(), annot.getValue());
+		}
+
+		for (GAEJDOAnnotation<Long> annot : getLongIterable()) {
 			ans.add(annot.getAttribute(), annot.getValue());
 		}
 
@@ -87,7 +93,10 @@ public class GAEJDOAnnotations {
 	private Set<GAEJDOStringAnnotation> stringAnnotations;
 
 	@Element(dependent = "true")
-	private Set<GAEJDOFloatAnnotation> floatAnnotations;
+	private Set<GAEJDODoubleAnnotation> doubleAnnotations;
+
+	@Element(dependent = "true")
+	private Set<GAEJDOLongAnnotation> longAnnotations;
 
 	@Element(dependent = "true")
 	private Set<GAEJDOTextAnnotation> textAnnotations;
@@ -134,31 +143,67 @@ public class GAEJDOAnnotations {
 		};
 	}
 
-	public void add(String a, Float v) {
-		floatAnnotations.add(new GAEJDOFloatAnnotation(a, v));
+	public void add(String a, Double v) {
+		doubleAnnotations.add(new GAEJDODoubleAnnotation(a, v));
 	}
 
-	public void remove(String a, Float v) {
+	public void remove(String a, Double v) {
 		// this doesn't seem to work as is...
-		floatAnnotations.remove(new GAEJDOFloatAnnotation(a, v));
+		doubleAnnotations.remove(new GAEJDODoubleAnnotation(a, v));
 		// ... and this doesn't work either...
-		//JDOHelper.makeDirty(this, "floatAnnotations");
+		//JDOHelper.makeDirty(this, "doubleAnnotations");
 		// this doesn't work either...
-		// setFloatAnnotations(new HashSet<GAEJDOFloatAnnotation>(getFloatAnnotations()));
+		// setDoubleAnnotations(new HashSet<GAEJDODoubleAnnotation>(getDoubleAnnotations()));
 	}
 
-	public Iterable<GAEJDOAnnotation<Float>> getFloatIterable() {
-		return new Iterable<GAEJDOAnnotation<Float>>() {
-			public Iterator<GAEJDOAnnotation<Float>> iterator() {
-				return new Iterator<GAEJDOAnnotation<Float>>() {
-					private Iterator<GAEJDOFloatAnnotation> it = floatAnnotations
+	public Iterable<GAEJDOAnnotation<Double>> getDoubleIterable() {
+		return new Iterable<GAEJDOAnnotation<Double>>() {
+			public Iterator<GAEJDOAnnotation<Double>> iterator() {
+				return new Iterator<GAEJDOAnnotation<Double>>() {
+					private Iterator<GAEJDODoubleAnnotation> it = doubleAnnotations
 							.iterator();
 
 					public boolean hasNext() {
 						return it.hasNext();
 					}
 
-					public GAEJDOAnnotation<Float> next() {
+					public GAEJDOAnnotation<Double> next() {
+						return it.next();
+					}
+
+					public void remove() {
+						it.remove();
+					}
+				};
+			}
+		};
+	}
+
+	public void add(String a, Long v) {
+		longAnnotations.add(new GAEJDOLongAnnotation(a, v));
+	}
+
+	public void remove(String a, Long v) {
+		// this doesn't seem to work as is...
+		longAnnotations.remove(new GAEJDOLongAnnotation(a, v));
+		// ... and this doesn't work either...
+		//JDOHelper.makeDirty(this, "longAnnotations");
+		// this doesn't work either...
+		// setLongAnnotations(new HashSet<GAEJDODoubleAnnotation>(getLongAnnotations()));
+	}
+
+	public Iterable<GAEJDOAnnotation<Long>> getLongIterable() {
+		return new Iterable<GAEJDOAnnotation<Long>>() {
+			public Iterator<GAEJDOAnnotation<Long>> iterator() {
+				return new Iterator<GAEJDOAnnotation<Long>>() {
+					private Iterator<GAEJDOLongAnnotation> it = longAnnotations
+							.iterator();
+
+					public boolean hasNext() {
+						return it.hasNext();
+					}
+
+					public GAEJDOAnnotation<Long> next() {
 						return it.next();
 					}
 
@@ -241,12 +286,20 @@ public class GAEJDOAnnotations {
 		this.stringAnnotations = stringAnnotations;
 	}
 
-	public Set<GAEJDOFloatAnnotation> getFloatAnnotations() {
-		return floatAnnotations;
+	public Set<GAEJDODoubleAnnotation> getDoubleAnnotations() {
+		return doubleAnnotations;
 	}
 
-	public void setFloatAnnotations(Set<GAEJDOFloatAnnotation> floatAnnotations) {
-		this.floatAnnotations = floatAnnotations;
+	public void setDoubleAnnotations(Set<GAEJDODoubleAnnotation> doubleAnnotations) {
+		this.doubleAnnotations = doubleAnnotations;
+	}
+
+	public Set<GAEJDOLongAnnotation> getLongAnnotations() {
+		return longAnnotations;
+	}
+
+	public void setLongAnnotations(Set<GAEJDOLongAnnotation> longAnnotations) {
+		this.longAnnotations = longAnnotations;
 	}
 
 	public Set<GAEJDOTextAnnotation> getTextAnnotations() {
