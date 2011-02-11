@@ -2,6 +2,10 @@
  * Used MySQL's SELECT BNF as an example from which to work
  * http://dev.mysql.com/doc/refman/5.5/en/select.html
  * http://dev.mysql.com/doc/refman/5.5/en/expressions.html
+ *
+ * JJTree and JavaCC Resources
+ * http://www.softwaresecretweapons.com/jspwiki/jjtree-tutorial-for-advanced-java-parsing
+ * http://www.idevelopment.info/data/Programming/java/JavaCC/The_JavaCC_FAQ.htm
  */
 
 /* *** Specification of the parser class *** */

@@ -8,13 +8,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.StringReader;
+import java.util.logging.Logger;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.queryparser.QueryNode;
-import org.sagebionetworks.repo.queryparser.QueryParser;
 import org.sagebionetworks.repo.web.QueryStatement;
 
 /**
@@ -23,20 +20,14 @@ import org.sagebionetworks.repo.web.QueryStatement;
  */
 public class QueryParserTest {
 
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@Before
-	public void setUp() throws Exception {
-	}
+	private static final Logger log = Logger
+	.getLogger(QueryParserTest.class.getName());
 
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@After
-	public void tearDown() throws Exception {
-	}
 
+	/************************************************************************
+	 * Happy case tests
+	 */
+	
 	/**
 	 * @throws Exception
 	 */
@@ -54,10 +45,10 @@ public class QueryParserTest {
 	public void testWhereEqualsString() throws Exception {
 
 		QueryStatement stmt = new QueryStatement(
-				"select * from layer where foo == \"foobar\"");
+				"select * from layer where type == \"C\"");
 		assertEquals("layer", stmt.getTableName());
-		assertEquals("foo", stmt.getWhereField());
-		assertEquals("foobar", stmt.getWhereValue());
+		assertEquals("type", stmt.getWhereField());
+		assertEquals("C", stmt.getWhereValue());
 	}
 
 	/**
@@ -67,9 +58,9 @@ public class QueryParserTest {
 	public void testWhereEqualsNumber() throws Exception {
 
 		QueryStatement stmt = new QueryStatement(
-				"select * from layer where foo == 100");
-		assertEquals("layer", stmt.getTableName());
-		assertEquals("foo", stmt.getWhereField());
+				"select * from dataset where \"Number of Samples\" == 100");
+		assertEquals("dataset", stmt.getTableName());
+		assertEquals("Number of Samples", stmt.getWhereField());
 		assertEquals(new Long(100), stmt.getWhereValue());
 	}
 
@@ -80,9 +71,9 @@ public class QueryParserTest {
 	public void testWhereEqualsDate() throws Exception {
 
 		QueryStatement stmt = new QueryStatement(
-				"select * from layer where foo == \"2011-01-31\"");
+				"select * from layer where creationDate == \"2011-01-31\"");
 		assertEquals("layer", stmt.getTableName());
-		assertEquals("foo", stmt.getWhereField());
+		assertEquals("creationDate", stmt.getWhereField());
 		assertEquals("2011-01-31", stmt.getWhereValue());
 	}
 
@@ -117,9 +108,9 @@ public class QueryParserTest {
 	public void testOrderBy() throws Exception {
 
 		QueryStatement stmt = new QueryStatement(
-				"select * from dataset order by foo");
+				"select * from dataset order by name");
 		assertEquals("dataset", stmt.getTableName());
-		assertEquals("foo", stmt.getSortField());
+		assertEquals("name", stmt.getSortField());
 	}
 
 	/**
@@ -129,9 +120,9 @@ public class QueryParserTest {
 	public void testOrderByAscending() throws Exception {
 
 		QueryStatement stmt = new QueryStatement(
-				"select * from dataset order by foo asc");
+				"select * from dataset order by name asc");
 		assertEquals("dataset", stmt.getTableName());
-		assertEquals("foo", stmt.getSortField());
+		assertEquals("name", stmt.getSortField());
 		assertTrue(stmt.getSortAcending());
 	}
 
@@ -142,9 +133,9 @@ public class QueryParserTest {
 	public void testOrderByDescending() throws Exception {
 
 		QueryStatement stmt = new QueryStatement(
-				"select * from dataset order by foo desc");
+				"select * from dataset order by name desc");
 		assertEquals("dataset", stmt.getTableName());
-		assertEquals("foo", stmt.getSortField());
+		assertEquals("name", stmt.getSortField());
 		assertFalse(stmt.getSortAcending());
 	}
 
@@ -161,19 +152,16 @@ public class QueryParserTest {
 		assertEquals(new Integer(30), stmt.getLimit());
 	}
 
+	/************************************************************************
+	 * Error cases, make sure the messages we return are useful to humans.
+	 */
+	
 	/**
 	 * @throws Exception
 	 */
 	@Test(expected = ParseException.class)
 	public void testMissingTable() throws Exception {
-		try {
-			new QueryStatement("select * from order by foo desc");
-		} catch (ParseException e) {
-			// TODO assert that we are delivering a useful error message to
-			// users
-			System.out.println(e);
-			throw e;
-		}
+		queryShouldFail("select * from order by creationDate desc", null);
 	}
 
 	/**
@@ -182,14 +170,7 @@ public class QueryParserTest {
 	@Ignore
 	@Test(expected = ParseException.class)
 	public void testMisspelledSortDirection() throws Exception {
-		try {
-			new QueryStatement("select * from dataset order by foo dsc");
-		} catch (ParseException e) {
-			// TODO assert that we are delivering a useful error message to
-			// users
-			System.out.println(e);
-			throw e;
-		}
+		queryShouldFail("select * from dataset order by creationDate dsc", null);
 	}
 
 	/**
@@ -197,20 +178,40 @@ public class QueryParserTest {
 	 */
 	@Test(expected = IllegalArgumentException.class)
 	public void testBadLimit() throws Exception {
+		queryShouldFail("select * from dataset limit 0", 
+				"pagination limit must be 1 or greater");
+	}
+	
+	/**
+	 * @throws Exception
+	 */
+	@Ignore
+	@Test(expected = ParseException.class)
+	public void testExtraStuffAtTheEnd() throws Exception {
+		queryShouldFail("select * from dataset where Species == \"Human\" order by name desc limit 10 offset 1 this is extra stuff", null);
+	}
+	
+	private void queryShouldFail(String query, String expectedErrorMessage) throws Exception {
 		try {
-			new QueryStatement("select * from foo limit 0");
-		} catch (IllegalArgumentException e) {
-			// TODO assert that we are delivering a useful error message to
-			// users
-			System.out.println(e);
+			new QueryStatement(query);
+		} catch (Exception e) {
+			log.info("Got error \"" + e.getMessage() + "\" for query \"" + query + "\"");
+			if(null != expectedErrorMessage) {
+				assertEquals(expectedErrorMessage, e.getMessage());
+			}
 			throw e;
 		}
 	}
-
+	
+	/************************************************************************
+	 * Parser happy case tests
+	 */
+	
 	/**
 	 * @throws Exception
 	 */
 	@Test
+	@Ignore
 	public void testParserSelectStar() throws Exception {
 
 		QueryParser parser = new QueryParser(new StringReader(
@@ -239,10 +240,11 @@ public class QueryParserTest {
 	 * @throws Exception
 	 */
 	@Test
+	@Ignore
 	public void testParserWhereEqualsString() throws Exception {
 
 		QueryParser parser = new QueryParser(new StringReader(
-				"select * from layer where foo == \"foobar\""));
+				"select * from layer where type == \"C\""));
 		/*
 		 * Start parsing from the nonterminal "Start".
 		 */
@@ -268,8 +270,8 @@ public class QueryParserTest {
 		}
 
 		assertEquals("layer", tableId);
-		assertEquals("foo", whereField);
-		assertEquals("foobar", whereValue);
+		assertEquals("type", whereField);
+		assertEquals("C", whereValue);
 
 		/*
 		 * If parsing completed without exceptions, print the resulting parse
@@ -282,10 +284,11 @@ public class QueryParserTest {
 	 * @throws Exception
 	 */
 	@Test
+	@Ignore
 	public void testParserWhereEqualsNumber() throws Exception {
 
 		QueryParser parser = new QueryParser(new StringReader(
-				"select * from layer where foo == 100"));
+				"select * from dataset where \"Number of Samples\" == 100"));
 		/*
 		 * Start parsing from the nonterminal "Start".
 		 */
@@ -310,8 +313,8 @@ public class QueryParserTest {
 			}
 		}
 
-		assertEquals("layer", tableId);
-		assertEquals("foo", whereField);
+		assertEquals("dataset", tableId);
+		assertEquals("Number of Samples", whereField);
 		assertEquals(new Long(100), whereValue);
 
 		/*
@@ -325,10 +328,11 @@ public class QueryParserTest {
 	 * @throws Exception
 	 */
 	@Test
+	@Ignore
 	public void testParserWhereEqualsDate() throws Exception {
 
 		QueryParser parser = new QueryParser(new StringReader(
-				"select * from layer where foo == \"2011-01-31\""));
+				"select * from layer where creationDate == \"2011-01-31\""));
 		/*
 		 * Start parsing from the nonterminal "Start".
 		 */
@@ -354,7 +358,7 @@ public class QueryParserTest {
 		}
 
 		assertEquals("layer", tableId);
-		assertEquals("foo", whereField);
+		assertEquals("creationDate", whereField);
 		assertEquals("2011-01-31", whereValue);
 
 		/*

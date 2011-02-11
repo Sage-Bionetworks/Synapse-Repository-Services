@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.BaseDAO;
@@ -10,16 +7,13 @@ import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InputDataLayer;
-import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.web.AnnotatableEntitiesAccessorImpl;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
-import org.sagebionetworks.repo.web.EntityControllerImp;
 import org.sagebionetworks.repo.web.EntitiesAccessor;
+import org.sagebionetworks.repo.web.EntityControllerImp;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -37,8 +31,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * REST controller for CRUD operations on Dataset objects
- * <p>
- * TODO fix LayerPreview info to be real instead of fake
  * <p>
  * Note that any controller logic common to all objects belongs in the
  * implementation of {@link EntityController} and of

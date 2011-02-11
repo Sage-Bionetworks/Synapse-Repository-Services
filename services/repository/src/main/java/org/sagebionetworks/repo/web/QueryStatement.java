@@ -31,6 +31,8 @@ public class QueryStatement {
 	private Integer limit = Integer.MAX_VALUE;
 	private Integer offset = ServiceConstants.DEFAULT_PAGINATION_OFFSET;
 
+	private QueryNode parseTree = null;
+	
 	/**
 	 * @param query
 	 * @throws ParseException
@@ -40,7 +42,7 @@ public class QueryStatement {
 		// TODO stash this in ThreadLocal because its expensive to create and
 		// not threadsafe
 		QueryParser parser = new QueryParser(new StringReader(query));
-		QueryNode parseTree = (QueryNode) parser.Start();
+		parseTree = (QueryNode) parser.Start();
 
 		for (int i = 0; i < parseTree.jjtGetNumChildren(); i++) {
 			QueryNode node = (QueryNode) parseTree.jjtGetChild(i);
@@ -126,5 +128,15 @@ public class QueryStatement {
 	 */
 	public Integer getOffset() {
 		return offset;
+	}
+
+	/**
+	 * Helper method for unit tests and debugging tasks.<p>
+	 * 
+	 * If parsing completed without exceptions, print the resulting parse
+	 * tree on standard output.
+	 */
+	public void dumpParseTree() {
+		parseTree.dump("");
 	}
 }
