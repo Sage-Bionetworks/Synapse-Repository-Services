@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  
+  <parent>
+    <groupId>org.sagebionetworks</groupId>
+    <artifactId>services</artifactId>
+    <version>0.1</version>
+  </parent>
+  
+  <artifactId>services-authentication</artifactId>
+  <packaging>war</packaging>
+  <name>Platform Authentication Service</name>
+  
+  <dependencies>
+       
+    <!-- JSON -->
+    <dependency>
+      <groupId>org.json</groupId>
+      <artifactId>json</artifactId>
+      <version>20080701</version>
+    </dependency>
+
+    <!-- ATOM -->
+    <dependency>
+      <groupId>rome</groupId>
+      <artifactId>rome</artifactId>
+      <version>0.5</version>
+    </dependency>
+    
+    <!-- Spring Framework dependencies -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>org.springframework.spring-library</artifactId>
+      <type>libd</type>
+      <version>${org.springframework.version}</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>org.springframework.web</artifactId>
+      <version>${org.springframework.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-test</artifactId>
+      <version>${org.springframework.version}</version>
+      <scope>test</scope>
+    </dependency>
+    
+    <!-- Jackson JSON Mapper -->
+    <dependency>
+      <groupId>org.codehaus.jackson</groupId>
+      <artifactId>jackson-mapper-asl</artifactId>
+      <version>1.5.3</version>
+    </dependency>
+    
+    <!-- Logging dependencies -->
+    <dependency>
+      <groupId>commons-logging</groupId>
+      <artifactId>commons-logging</artifactId>
+      <version>1.0</version>
+    </dependency>
+    
+    <!-- GAE libraries for local testing as described here:
+         http://code.google.com/appengine/docs/java/howto/unittesting.html
+      -->
+    <dependency>
+      <groupId>com.google.appengine</groupId>
+      <artifactId>appengine-api-labs</artifactId>
+      <version>${gae.version}</version>
+      <scope>test</scope>
+    </dependency>
+    
+    <dependency>
+      <groupId>com.google.appengine</groupId>
+      <artifactId>appengine-api-stubs</artifactId>
+      <version>${gae.version}</version>
+      <scope>test</scope>
+    </dependency>
+    
+    <dependency>
+      <groupId>com.google.appengine</groupId>
+      <artifactId>appengine-testing</artifactId>
+      <version>${gae.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <plugins>
+
+      <!-- Make a WAR file -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-war-plugin</artifactId>
+        <version>2.1-beta-1</version>
+        <configuration>
+          <webResources>
+            <resource>
+              <directory>src/main/webapp</directory>
+              <filtering>true</filtering>
+              <includes>
+                <include>**/appengine-web.xml</include>
+              </includes>
+            </resource>
+          </webResources>
+        </configuration>
+      </plugin>
+      
+      <!--
+          The actual maven-gae-plugin. Type "mvn gae:run" to run project, "mvn
+          gae:deploy" to upload to GAE.
+        -->
+      <plugin>
+        <groupId>net.kindleit</groupId>
+        <artifactId>maven-gae-plugin</artifactId>
+        <version>0.7.3</version>
+        <dependencies>
+          <dependency>
+            <groupId>net.kindleit</groupId>
+            <artifactId>gae-runtime</artifactId>
+            <version>${gae.version}</version>
+            <type>pom</type>
+            <exclusions>
+              <exclusion>
+                <groupId>com.google.appengine.orm</groupId>
+                <artifactId>datanucleus-core</artifactId>
+              </exclusion>
+            </exclusions>
+          </dependency>
+        </dependencies>
+      </plugin>
+
+      <!--
+          Upload application to the appspot automatically, during
+          release:perform
+        -->
+      <plugin>
+        <artifactId>maven-release-plugin</artifactId>
+        <configuration>
+          <goals>gae:deploy</goals>
+        </configuration>
+      </plugin>
+
+      <!-- Added this path to the test classpath so that we do not need to
+           copy and paste our servlet config into a separate file even
+           though we want the exact same config for testing -->
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <additionalClasspathElements>
+            <element>${project.basedir}/src/main/webapp/WEB-INF/</element>
+          </additionalClasspathElements>
+        </configuration>
+      </plugin>
+      
+    </plugins>
+  </build>
+
+  <!-- Specify hard-coded project properties here -->
+  <properties>
+    <!--
+        Upload to http://test.latest.<applicationName>.appspot.com by default
+      -->
+    <gae.application.version>test</gae.application.version>
+
+    <org.springframework.version>3.0.5.RELEASE</org.springframework.version>
+  </properties>
+
+  <profiles>
+    <!--
+        We can configure our integration server to activate this profile and
+        perform gae:deploy, thus uploading latest snapshot to the
+        http://1.latest.<applicationName>.appspot.com automatically
+      -->
+    <profile>
+      <id>integration-build</id>
+      <properties>
+        <gae.application.version>stage</gae.application.version>
+      </properties>
+    </profile>
+
+    <!--
+        This profile will activate automatically during release and upload
+        application to the http://2.latest.<applicationName>.appspot.com (We
+        might want to set the 2nd version as our applications Default version
+        to be accessible at http://<applicationName>.appspot.com)
+      -->
+    <profile>
+      <id>release-build</id>
+      <activation>
+        <property>
+          <name>performRelease</name>
+          <value>true</value>
+        </property>
+      </activation>
+
+      <properties>
+        <!--
+            During release, set application version in appengine-web.xml to 2
+          -->
+        <gae.application.version>release</gae.application.version>
+      </properties>
+    </profile>
+  </profiles>
+
+</project>
