@@ -57,6 +57,7 @@ public class AuthenticationControllerTest {
 		helper.tearDown();
 	}
 
+	
 	@Test
 	public void testCreateSession() throws Exception {
 		JSONObject session = helper.testCreateJsonEntity("/session",
@@ -65,6 +66,7 @@ public class AuthenticationControllerTest {
 		assertEquals("Demo User", session.getString("displayName"));
 	}
 
+
 	@Test
 	public void testCreateSessionBadCredentials() throws Exception {
 		JSONObject session = helper.testCreateJsonEntityShouldFail("/session",
@@ -72,6 +74,7 @@ public class AuthenticationControllerTest {
 		assertEquals("Unable to authenticate", session.getString("reason"));
 		// AuthenticationURL: https://ssl.latest.deflaux-test.appspot.com/auth/v1/session
 	}
+
 
 	@Test
 	public void testRevalidate() throws Exception {
@@ -92,6 +95,7 @@ public class AuthenticationControllerTest {
 		assertEquals("demouser", userId);
 	}
 
+
 	@Test
 	public void testRevalidateBadToken() throws Exception {
 		CrowdAuthUtil cau = new CrowdAuthUtil(protocol, host, port);
@@ -104,6 +108,7 @@ public class AuthenticationControllerTest {
 		}
 	}
 
+
 	@Test
 	public void testCreateSessionThenLogout() throws Exception {
 		JSONObject session = helper.testCreateJsonEntity("/session",
@@ -114,6 +119,7 @@ public class AuthenticationControllerTest {
 		helper.testDeleteJsonEntity("/session", "{\"sessionToken\":\""+sessionToken+"\"}");
 		
 	}
+
 
 	@Test
 	public void testCreateUser() throws Exception {
@@ -133,6 +139,7 @@ public class AuthenticationControllerTest {
 
 	}
 	
+
 	@Test
 	public void testCreateAndUpdateUser() throws Exception {
 		helper.testCreateJsonEntity("/user",

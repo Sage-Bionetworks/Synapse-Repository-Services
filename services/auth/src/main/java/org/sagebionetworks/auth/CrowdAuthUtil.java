@@ -128,8 +128,9 @@ public class CrowdAuthUtil {
 					rc = conn.getResponseCode();
 					sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
 				} catch (IOException e) {
-					// workaround...
-					throw new AuthenticationException(400, "Unable to authenticate", null);
+					sessionXML = (readInputStream((InputStream)conn.getErrorStream())).getBytes();
+					throw new AuthenticationException(400, "Unable to authenticate", 
+							new Exception(new String(sessionXML)));
 				}
 //			}
 		}
@@ -151,9 +152,14 @@ public class CrowdAuthUtil {
 				HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 				conn.setRequestMethod("GET");
 				setHeaders(conn);
-				InputStream is = conn.getInputStream();
-				sessionXML = readInputStream(is).getBytes();
-				rc = conn.getResponseCode();
+				try {
+					rc = conn.getResponseCode();
+					sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
+				} catch (IOException e) {
+					sessionXML = (readInputStream((InputStream)conn.getErrorStream())).getBytes();
+					throw new AuthenticationException(500, "Server Error", 
+							new Exception(new String(sessionXML)));
+				}
 //			}
 
 		}
@@ -184,8 +190,14 @@ public class CrowdAuthUtil {
 			conn.setRequestMethod("POST");
 			setHeaders(conn);
 			setBody(conn,msg4+"\n");
-			rc = conn.getResponseCode();
-			sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
+			try {
+				rc = conn.getResponseCode();
+				sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
+			} catch (IOException e) {
+				sessionXML = (readInputStream((InputStream)conn.getErrorStream())).getBytes();
+				throw new AuthenticationException(500, "Server Error", 
+						new Exception(new String(sessionXML)));
+			}
 //		}
 
 		if (HttpStatus.OK.value()!=rc) {
@@ -198,7 +210,7 @@ public class CrowdAuthUtil {
 	}
 	
 	public void deauthenticate(String token) throws AuthenticationException, IOException {
-		//byte[] sessionXML = null;
+		byte[] sessionXML = null;
 		int rc = 0;
 		URL url = new URL(urlPrefix()+"/session/"+token);
 //		if (USE_FETCH_SERVICE) {
@@ -211,8 +223,13 @@ public class CrowdAuthUtil {
 			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 			conn.setRequestMethod("DELETE");
 			setHeaders(conn);
-			rc = conn.getResponseCode();
-			//sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
+			try {
+				rc = conn.getResponseCode();
+			} catch (IOException e) {
+				sessionXML = (readInputStream((InputStream)conn.getErrorStream())).getBytes();
+				throw new AuthenticationException(500, "Server Error", 
+						new Exception(new String(sessionXML)));
+			}
 //		}
 
 		if (HttpStatus.NO_CONTENT.value()!=rc) {
@@ -258,8 +275,14 @@ public class CrowdAuthUtil {
 			setHeaders(conn);
 			//log.info("Request body for 'createUser':"+userXML(user));
 			setBody(conn, userXML(user)+"\n");
-			rc = conn.getResponseCode();
-			sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
+			try {
+				rc = conn.getResponseCode();
+				sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
+			} catch (IOException e) {
+				sessionXML = (readInputStream((InputStream)conn.getErrorStream())).getBytes();
+				throw new AuthenticationException(500, "Server Error", 
+						new Exception(new String(sessionXML)));
+			}
 //		}
 
 		if (HttpStatus.CREATED.value()!=rc) {
@@ -274,7 +297,14 @@ public class CrowdAuthUtil {
 		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 		conn.setRequestMethod("DELETE");
 		setHeaders(conn);
-		rc = conn.getResponseCode();
+		byte[] sessionXML = null;
+		try {
+			rc = conn.getResponseCode();
+		} catch (IOException e) {
+			sessionXML = (readInputStream((InputStream)conn.getErrorStream())).getBytes();
+			throw new AuthenticationException(500, "Server Error", 
+					new Exception(new String(sessionXML)));
+		}
 
 		if (HttpStatus.NO_CONTENT.value()!=rc) {
 			throw new AuthenticationException(rc, "Unable to delete user.", null);
@@ -289,7 +319,14 @@ public class CrowdAuthUtil {
 		conn.setRequestMethod("PUT");
 		setHeaders(conn);
 		setBody(conn, userXML(user)+"\n");
-		rc = conn.getResponseCode();
+		byte[] sessionXML = null;
+		try {
+			rc = conn.getResponseCode();
+		} catch (IOException e) {
+			sessionXML = (readInputStream((InputStream)conn.getErrorStream())).getBytes();
+			throw new AuthenticationException(500, "Server Error", 
+					new Exception(new String(sessionXML)));
+		}
 		// Atlassian documentation says it will return 200 (OK) but it actually returns 204 (NO CONTENT)
 		if (HttpStatus.OK.value()!=rc && HttpStatus.NO_CONTENT.value()!=rc) {
 			throw new AuthenticationException(rc, "Unable to update user.", null);
@@ -311,8 +348,14 @@ public class CrowdAuthUtil {
 			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 			conn.setRequestMethod("POST");
 			setHeaders(conn);
-			rc = conn.getResponseCode();
-			sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
+			try {
+				rc = conn.getResponseCode();
+				sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
+			} catch (IOException e) {
+				sessionXML = (readInputStream((InputStream)conn.getErrorStream())).getBytes();
+				throw new AuthenticationException(500, "Server Error", 
+						new Exception(new String(sessionXML)));
+			}
 //		}
 
 		if (HttpStatus.NO_CONTENT.value()!=rc) {
