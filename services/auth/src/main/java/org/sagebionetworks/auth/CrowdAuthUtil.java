@@ -31,8 +31,7 @@ import org.xml.sax.InputSource;
 
 public class CrowdAuthUtil {
 //	private static URLFetchService urlFetchService = URLFetchServiceFactory.getURLFetchService();
-	private static final Logger log = Logger
-	.getLogger(AuthenticationControllerTest.class.getName());
+	private static final Logger log = Logger.getLogger(CrowdAuthUtil.class.getName());
 
 	private String protocol; // http or https
 	private String host; // the Crowd host
