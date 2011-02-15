@@ -18,6 +18,7 @@
   
   <modules>
     <module>repository</module>
+    <module>auth</module>
   </modules>
   
 </project>
