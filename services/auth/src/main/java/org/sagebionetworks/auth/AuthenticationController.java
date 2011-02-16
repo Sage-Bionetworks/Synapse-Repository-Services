@@ -32,7 +32,7 @@ public class AuthenticationController {
 //	private static int port = 8095;
 
 	private static String protocol = "https";
-	private static String host = "ec2-75-101-179-108.compute-1.amazonaws.com";
+	private static String host = "ec2-50-16-158-220.compute-1.amazonaws.com";
 	private static int port = 8443;
 
 	private CrowdAuthUtil cau = null;

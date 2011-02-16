@@ -123,7 +123,7 @@ public class CrowdAuthUtil {
 				HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 				conn.setRequestMethod("POST");
 				setHeaders(conn);
-				setBody(conn, msg1+creds.getUserId()+msg2+creds.getPw()+msg3+msg4+msg5+"\n");
+				setBody(conn, msg1+creds.getUserId()+msg2+creds.getPassword()+msg3+msg4+msg5+"\n");
 				try {
 					rc = conn.getResponseCode();
 					sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
@@ -240,8 +240,8 @@ public class CrowdAuthUtil {
 	private static String userXML(User user) {
 		return "<?xml version='1.0' encoding='UTF-8'?>"+
 		  "<user name='"+user.getUserId()+"' expand='attributes'>"+
-		  "<first-name>"+user.getFname()+"</first-name>"+
-		  "<last-name>"+user.getLname()+"</last-name>"+
+		  "<first-name>"+user.getFirstName()+"</first-name>"+
+		  "<last-name>"+user.getLastName()+"</last-name>"+
 		  "<display-name>"+user.getDisplayName()+"</display-name>"+
 		  "<email>"+user.getEmail()+"</email>"+
 		  "<active>true</active>"+
@@ -250,7 +250,7 @@ public class CrowdAuthUtil {
 		  "</attributes>"+
 		  "<password>"+
 		  "<link rel='edit' href='link_to_user_password'/>"+
-		  "<value>"+user.getPw()+"</value>"+
+		  "<value>"+user.getPassword()+"</value>"+
 		  "</password>"+
 		  "</user>";
 	}
@@ -430,12 +430,12 @@ public class CrowdAuthUtil {
 //		String host = "ec2-50-17-17-19.compute-1.amazonaws.com";
 //		int port = 8095;
 		String protocol = "https";
-		String host = "ec2-75-101-179-108.compute-1.amazonaws.com";
+		String host = "ec2-50-16-158-220.compute-1.amazonaws.com";
 		int port = 8443;
 		CrowdAuthUtil cau = new CrowdAuthUtil(protocol, host, port);
 		User user = new User();
 		user.setUserId("demouser");
-		user.setPw("demouser-pw");
+		user.setPassword("demouser-pw");
 		Session session = cau.authenticate(user);
 		System.out.println(session);
 	}

@@ -38,7 +38,7 @@ public class AuthenticationControllerTest {
 	
 	// TODO put these in some sore of configuration file
 	private static final String protocol = "https";
-	private static final String host = "ec2-75-101-179-108.compute-1.amazonaws.com";
+	private static final String host = "ec2-50-16-158-220.compute-1.amazonaws.com";
 	private static final int port = 8443;
 
 	/**
@@ -62,7 +62,7 @@ public class AuthenticationControllerTest {
 	@Test
 	public void testCreateSession() throws Exception {
 		JSONObject session = helper.testCreateJsonEntity("/session",
-				"{\"userId\":\"demouser\",\"pw\":\"demouser-pw\"}");
+				"{\"userId\":\"demouser\",\"password\":\"demouser-pw\"}");
 		assertTrue(session.has("sessionToken"));
 		assertEquals("Demo User", session.getString("displayName"));
 	}
@@ -71,7 +71,7 @@ public class AuthenticationControllerTest {
 	@Test
 	public void testCreateSessionBadCredentials() throws Exception {
 		JSONObject session = helper.testCreateJsonEntityShouldFail("/session",
-				"{\"userId\":\"demouser\",\"pw\":\"incorrectPassword\"}", HttpStatus.BAD_REQUEST);
+				"{\"userId\":\"demouser\",\"password\":\"incorrectPassword\"}", HttpStatus.BAD_REQUEST);
 		assertEquals("Unable to authenticate", session.getString("reason"));
 		// AuthenticationURL: https://ssl.latest.deflaux-test.appspot.com/auth/v1/session
 	}
@@ -81,7 +81,7 @@ public class AuthenticationControllerTest {
 	public void testRevalidate() throws Exception {
 		// start session
 		JSONObject session = helper.testCreateJsonEntity("/session",
-				"{\"userId\":\"demouser\",\"pw\":\"demouser-pw\"}");
+				"{\"userId\":\"demouser\",\"password\":\"demouser-pw\"}");
 		String sessionToken = session.getString("sessionToken");
 		assertEquals("Demo User", session.getString("displayName"));
 		
@@ -113,7 +113,7 @@ public class AuthenticationControllerTest {
 	@Test
 	public void testCreateSessionThenLogout() throws Exception {
 		JSONObject session = helper.testCreateJsonEntity("/session",
-				"{\"userId\":\"demouser\",\"pw\":\"demouser-pw\"}");
+				"{\"userId\":\"demouser\",\"password\":\"demouser-pw\"}");
 		String sessionToken = session.getString("sessionToken");
 		assertEquals("Demo User", session.getString("displayName"));
 		
@@ -126,10 +126,10 @@ public class AuthenticationControllerTest {
 	public void testCreateUser() throws Exception {
 		helper.testCreateJsonEntity("/user",
 			"{\"userId\":\"newuser\","+
-			"\"pw\":\"newuser-pw\","+
+			"\"password\":\"newuser-pw\","+
 			"\"email\":\"newuser@sagebase.org\","+
-			"\"fname\":\"New\","+
-			"\"lname\":\"User\","+
+			"\"firstName\":\"New\","+
+			"\"lastName\":\"User\","+
 			"\"displayName\":\"New User\""+
 				"}");
 		
@@ -145,19 +145,19 @@ public class AuthenticationControllerTest {
 	public void testCreateAndUpdateUser() throws Exception {
 		helper.testCreateJsonEntity("/user",
 				"{\"userId\":\"newuser\","+
-				"\"pw\":\"newuser-pw\","+
+				"\"password\":\"newuser-pw\","+
 				"\"email\":\"newuser@sagebase.org\","+
-				"\"fname\":\"New\","+
-				"\"lname\":\"User\","+
+				"\"firstName\":\"New\","+
+				"\"lastName\":\"User\","+
 				"\"displayName\":\"New User\""+
 					"}");
 			
 		helper.testUpdateJsonEntity("/user",
 				"{\"userId\":\"newuser\","+
-				"\"pw\":\"newuser-NEWpw\","+
+				"\"password\":\"newuser-NEWpw\","+
 				"\"email\":\"NEWEMAIL@sagebase.org\","+
-				"\"fname\":\"NewNEW\","+
-				"\"lname\":\"UserNEW\","+
+				"\"firstName\":\"NewNEW\","+
+				"\"lastName\":\"UserNEW\","+
 				"\"displayName\":\"New NEW User\""+
 					"}");
 			
