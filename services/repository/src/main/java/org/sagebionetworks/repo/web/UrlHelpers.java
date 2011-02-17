@@ -334,7 +334,7 @@ public class UrlHelpers {
 	}
 
 	/**
-	 * @param uri prefix
+	 * @param uriPrefix
 	 * @param type
 	 * @return the uri to be used to retrieve the metadata about the location
 	 */

@@ -26,6 +26,11 @@ public class QueryNode extends SimpleNode {
 		// TODO Auto-generated constructor stub
 	}
 	
+	/**
+	 * Get the numeric id of this node so that we know what type it is.
+	 * 
+	 * @return the numeric id
+	 */
 	public int getId() {
 		return id;
 	}
