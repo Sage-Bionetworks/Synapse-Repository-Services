@@ -1,28 +1,22 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 
 import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
-import javax.jdo.Query;
 import javax.jdo.Transaction;
 
-import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.appengine.api.datastore.Key;
@@ -54,7 +48,8 @@ public class GAEJDOInputDataLayerDAOImpl extends
 		return jdo;
 	}
 
-	protected void copyToDto(GAEJDOInputDataLayer jdo, InputDataLayer dto) throws DatastoreException {
+	protected void copyToDto(GAEJDOInputDataLayer jdo, InputDataLayer dto)
+			throws DatastoreException {
 		dto.setId(KeyFactory.keyToString(jdo.getId()));
 		// TODO InputDataLayer only has a subset of the fields in
 		// GAEJDODatasetLayer
@@ -80,7 +75,15 @@ public class GAEJDOInputDataLayerDAOImpl extends
 		dto.setProcessingFacility(jdo.getPlatform());
 		dto.setQcBy(jdo.getQcBy());
 		dto.setQcDate(jdo.getQcDate());
-	}
+		dto.setPreview(jdo.getPreview().getValue());
+		Collection<LayerLocation> dtoLocations = new HashSet<LayerLocation>();
+		if(null != jdo.getLocations()) {
+			for(GAEJDOLayerLocation location : jdo.getLocations()) {
+				dtoLocations.add(new LayerLocation(location.getType(), location.getPath()));
+			}
+		}
+		dto.setLocations(dtoLocations);
+}
 
 	/**
 	 * Do a shallow copy from the DTO object to the JDO object.
@@ -109,17 +112,28 @@ public class GAEJDOInputDataLayerDAOImpl extends
 					"'type' is a required property for InputDataLayer");
 		}
 		jdo.setName(dto.getName());
-		jdo.setDescription(new Text(dto.getDescription()));
+		String description = (null == dto.getDescription()) ? "" : dto.getDescription();
+		jdo.setDescription(new Text(description));
 		jdo.setCreationDate(dto.getCreationDate());
 
 		jdo.setPublicationDate(dto.getPublicationDate());
-		jdo.setReleaseNotes(new Text(dto.getReleaseNotes()));
+		String releaseNotes = (null == dto.getReleaseNotes()) ? "" : dto.getReleaseNotes();
+		jdo.setReleaseNotes(new Text(releaseNotes));
 		jdo.setType(dto.getType());
 		jdo.setTissueType(dto.getTissueType());
 		jdo.setPlatform(dto.getPlatform());
 		jdo.setProcessingFacility(dto.getPlatform());
 		jdo.setQcBy(dto.getQcBy());
 		jdo.setQcDate(dto.getQcDate());
+		String preview = null == dto.getPreview() ? "" : dto.getPreview();
+		jdo.setPreview(new Text(preview));
+		Collection<GAEJDOLayerLocation> jdoLocations = new HashSet<GAEJDOLayerLocation>();
+		if(null != dto.getLocations()) {
+			for(LayerLocation location : dto.getLocations()) {
+				jdoLocations.add(new GAEJDOLayerLocation(location.getType(), location.getPath()));
+			}
+		}
+		jdo.setLocations(jdoLocations);
 	}
 
 	/**
@@ -212,6 +226,12 @@ public class GAEJDOInputDataLayerDAOImpl extends
 		}
 	}
 
+	protected Key generateKey(PersistenceManager pm) throws DatastoreException {
+		long n = 1000L + (long) getCount(pm); // could also use a 'sequence' to
+		// generate a unique integer
+		Key key = KeyFactory.createKey(datasetId, "GAEJDOInputDataLayer", n);
+		return key;
+}
 
 	/**
 	 * Delete the specified object

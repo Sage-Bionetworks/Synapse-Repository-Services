@@ -25,6 +25,7 @@
       <groupId>org.sagebionetworks</groupId>
       <artifactId>lib-gaemodels</artifactId>
       <version>0.1</version>
+      <!-- TODO this should be a runtime dependency -->
     </dependency>
 
     <!-- JSON -->
@@ -75,7 +76,22 @@
       <artifactId>commons-logging</artifactId>
       <version>1.0</version>
     </dependency>
-    
+
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk</artifactId>
+      <version>1.1.5</version>
+    </dependency>
+
+    <!-- TODO this is a dependency of AWS, we should not need to include it
+    here but the AWS pom did not have sufficient repository settings for
+    this dependency to be located -->
+    <dependency>
+      <groupId>javax.mail</groupId>
+      <artifactId>mail</artifactId>
+      <version>1.4</version>
+    </dependency>
+
     <!-- GAE libraries for local testing as described here:
          http://code.google.com/appengine/docs/java/howto/unittesting.html
       -->

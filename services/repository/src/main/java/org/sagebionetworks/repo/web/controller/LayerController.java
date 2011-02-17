@@ -9,13 +9,15 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
+import org.sagebionetworks.repo.util.LocationHelpers;
 import org.sagebionetworks.repo.web.AnnotatableEntitiesAccessorImpl;
 import org.sagebionetworks.repo.web.AnnotationsControllerImp;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
-import org.sagebionetworks.repo.web.EntityControllerImp;
 import org.sagebionetworks.repo.web.EntitiesAccessor;
+import org.sagebionetworks.repo.web.EntityControllerImp;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -61,6 +63,9 @@ public class LayerController extends BaseController {
 
 		layerAnnotationsController = new AnnotationsControllerImp<InputDataLayer>(
 				InputDataLayer.class);
+
+		// TODO delete this once IAM is integrated
+		LocationHelpers.useTestKeys();
 
 	}
 
@@ -125,6 +130,13 @@ public class LayerController extends BaseController {
 		InputDataLayer datasetLayer = layerController.getEntity(id, request);
 
 		addServiceSpecificMetadata(datasetLayer, request);
+
+		// TODO a real refactor of how we are doing DTOs and CRUD for
+		// LayerLocations needs to happen in order to keep the symmetry we
+		// want, this makes it harder for folks to update layer locations
+		// because we are not giving authorized people the stuff in the
+		// clear
+		overwriteLocationMetadataWithUnrestrictedUris(datasetLayer);
 
 		return datasetLayer;
 	}
@@ -221,6 +233,12 @@ public class LayerController extends BaseController {
 
 		for (InputDataLayer layer : results.getResults()) {
 			addServiceSpecificMetadata(layer, request);
+			// TODO a real refactor of how we are doing DTOs and CRUD for
+			// LayerLocations needs to happen in order to keep the symmetry we
+			// want, this makes it harder for folks to update layer locations
+			// because we are not giving authorized people the stuff in the
+			// clear
+			overwriteLocationMetadataWithUnrestrictedUris(layer);
 		}
 
 		return results;
@@ -288,6 +306,118 @@ public class LayerController extends BaseController {
 				updatedAnnotations, request);
 	}
 
+	/*******************************************************************************
+	 * Layer Location handlers
+	 */
+
+	/**
+	 * @param parentId
+	 * @param id
+	 * @param request
+	 * @return the requested layer
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
+			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.S3_LOCATIONSUFFIX, method = RequestMethod.GET)
+	public @ResponseBody
+	LayerLocation getS3Location(@PathVariable String parentId,
+			@PathVariable String id, HttpServletRequest request)
+			throws NotFoundException, DatastoreException {
+
+		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
+		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
+		String layerId = UrlHelpers.getEntityIdFromUriId(id);
+		InputDataLayer datasetLayer = layerDao.get(layerId);
+
+		LayerLocation location = getLocationForLayer(datasetLayer,
+				LayerLocation.LocationTypeNames.awss3);
+		if (null == location) {
+			throw new NotFoundException("No AWS S3 location exists for layer "
+					+ id);
+		}
+
+		// TODO only authorized users can receive this info
+
+		String signedPath = LocationHelpers.getS3Url(null, location
+				.getPath());
+
+		location.setPath(signedPath);
+
+		return location;
+	}
+
+	/**
+	 * @param parentId
+	 * @param id
+	 * @param request
+	 * @return the requested layer
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
+			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.EBS_LOCATIONSUFFIX, method = RequestMethod.GET)
+	public @ResponseBody
+	LayerLocation getEbsLocation(@PathVariable String parentId,
+			@PathVariable String id, HttpServletRequest request)
+			throws NotFoundException, DatastoreException {
+
+		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
+		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
+		String layerId = UrlHelpers.getEntityIdFromUriId(id);
+		InputDataLayer datasetLayer = layerDao.get(layerId);
+
+		LayerLocation location = getLocationForLayer(datasetLayer,
+				LayerLocation.LocationTypeNames.awsebs);
+		if (null == location) {
+			throw new NotFoundException("No AWS EBS location exists for layer "
+					+ id);
+		}
+
+		// TODO only authorized users can receive this info
+
+		return location;
+	}
+
+	/**
+	 * @param parentId
+	 * @param id
+	 * @param request
+	 * @return the requested layer
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
+			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.SAGE_LOCATIONSUFFIX, method = RequestMethod.GET)
+	public @ResponseBody
+	LayerLocation getSageLocation(@PathVariable String parentId,
+			@PathVariable String id, HttpServletRequest request)
+			throws NotFoundException, DatastoreException {
+
+		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
+		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
+		String layerId = UrlHelpers.getEntityIdFromUriId(id);
+		InputDataLayer datasetLayer = layerDao.get(layerId);
+
+		LayerLocation location = getLocationForLayer(datasetLayer,
+				LayerLocation.LocationTypeNames.sage);
+		if (null == location) {
+			throw new NotFoundException("No Sage location exists for layer "
+					+ id);
+		}
+
+		// TODO only authorized users can receive this info
+
+		return location;
+	}
+
+	/*******************************************************************************
+	 * Helpers
+	 */
+
 	/**
 	 * Simple sanity check test request, using the default view
 	 * <p>
@@ -304,6 +434,17 @@ public class LayerController extends BaseController {
 		return ""; // use the default view
 	}
 
+	private LayerLocation getLocationForLayer(InputDataLayer layer,
+			LayerLocation.LocationTypeNames type) {
+		// We assume N is small here, a single digit number
+		for (LayerLocation location : layer.getLocations()) {
+			if (location.getType().equals(type.name())) {
+				return location;
+			}
+		}
+		return null;
+	}
+
 	private void addServiceSpecificMetadata(InputDataLayer layer,
 			HttpServletRequest request) {
 
@@ -312,4 +453,15 @@ public class LayerController extends BaseController {
 
 		return;
 	}
+
+	void overwriteLocationMetadataWithUnrestrictedUris(InputDataLayer layer) {
+		// Make URIs to get the additional metadata about locations
+		// Layer metadata can be viewed by anonymous people but Layer Location
+		// metadata cannot
+		for (LayerLocation location : layer.getLocations()) {
+			location.setPath(UrlHelpers.makeLocationUri(layer.getUri(),
+					location.getType()));
+		}
+	}
+
 }

@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.LayerLocation;
 
 /**
  * UrlHelpers is responsible for the formatting of all URLs exposed by the
@@ -62,6 +63,26 @@ public class UrlHelpers {
 	public static final String QUERY = "/query";
 
 	/**
+	 * URL suffix for S3 location metadata
+	 */
+	public static final String S3_LOCATIONSUFFIX = "/awsS3Location";
+
+	/**
+	 *  URL suffix for EBS location metadata
+	 */
+	public static final String EBS_LOCATIONSUFFIX = "/awsEBSLocation";
+
+	/**
+	 *  URL suffix for Sage location metadata
+	 */
+	public static final String SAGE_LOCATIONSUFFIX = "/sageLocation";
+	
+	/**
+	 *  URL suffix for an unsupported location type
+	 */
+	public static final String UNSUPPORTED_LOCATIONSUFFIX = "/notYetImplemented";
+
+	/**
 	 * Mapping of type to url prefix
 	 */
 	private static final Map<Class, String> MODEL2URL;
@@ -76,9 +97,12 @@ public class UrlHelpers {
 	 */
 	private static final Map<String, String> CHILD2PARENTURL;
 
+	private static final Map<String, String> LOCATIONTYPE2URL;
+
 	// This is a memoized cache for our URL regular expressions
 	private static Map<Class, Pattern> MODEL2REGEX = new HashMap();
 
+	
 	static {
 		Map<Class, String> model2url = new HashMap<Class, String>();
 		model2url.put(Dataset.class, DATASET);
@@ -97,6 +121,11 @@ public class UrlHelpers {
 		child2parenturl.put(LAYER, DATASET);
 		CHILD2PARENTURL = Collections.unmodifiableMap(child2parenturl);
 
+		Map<String, String> locationtype2url = new HashMap<String, String>();
+		locationtype2url.put(LayerLocation.LocationTypeNames.awss3.name(), S3_LOCATIONSUFFIX);
+		locationtype2url.put(LayerLocation.LocationTypeNames.awsebs.name(), EBS_LOCATIONSUFFIX);
+		locationtype2url.put(LayerLocation.LocationTypeNames.sage.name(), SAGE_LOCATIONSUFFIX);
+		LOCATIONTYPE2URL = Collections.unmodifiableMap(locationtype2url);
 	}
 
 	/**
@@ -302,5 +331,18 @@ public class UrlHelpers {
 		}
 
 		return urlPrefix;
+	}
+
+	/**
+	 * @param uri prefix
+	 * @param type
+	 * @return the uri to be used to retrieve the metadata about the location
+	 */
+	public static String makeLocationUri(String uriPrefix, String type) {
+		String suffix = LOCATIONTYPE2URL.get(type);
+		if(null == suffix) {
+			return uriPrefix;
+		}
+		return uriPrefix + suffix;
 	}
 }

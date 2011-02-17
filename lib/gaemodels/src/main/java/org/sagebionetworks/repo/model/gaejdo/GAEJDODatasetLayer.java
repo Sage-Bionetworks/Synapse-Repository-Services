@@ -57,9 +57,16 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 	@Persistent(dependent = "true")
 	private GAEJDOAnnotations annotations;
 	
+	@Persistent
+	private Text preview;
+
+	@Persistent
+	private Collection<GAEJDOLayerLocation> locations;
+	
 	public GAEJDODatasetLayer() {
-		description = new Text("");
-		releaseNotes = new Text("");
+		setDescription(new Text(""));
+		setReleaseNotes(new Text(""));
+		setPreview(new Text(""));
 	}
 
 	public GAEJDORevision<T> getRevision() {
@@ -102,14 +109,6 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 		this.creationDate = creationDate;
 	}
 
-//	public URI getUri() {
-//		return uri;
-//	}
-//
-//	public void setUri(URI uri) {
-//		this.uri = uri;
-//	}
-
 	public Date getPublicationDate() {
 		return publicationDate;
 	}
@@ -134,6 +133,34 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 	public void setReleaseNotes(Text releaseNotes) {
 		if (description.getValue()==null) throw new NullPointerException("Null Text not allowed.");
 		this.releaseNotes = releaseNotes;
+	}
+
+	/**
+	 * @param preview the preview to set
+	 */
+	public void setPreview(Text preview) {
+		this.preview = preview;
+	}
+
+	/**
+	 * @return the preview
+	 */
+	public Text getPreview() {
+		return preview;
+	}
+
+	/**
+	 * @param locations the locations to set
+	 */
+	public void setLocations(Collection<GAEJDOLayerLocation> locations) {
+		this.locations = locations;
+	}
+
+	/**
+	 * @return the locations
+	 */
+	public Collection<GAEJDOLayerLocation> getLocations() {
+		return locations;
 	}
 
 	public static Collection<String> getPrimaryFields() {
