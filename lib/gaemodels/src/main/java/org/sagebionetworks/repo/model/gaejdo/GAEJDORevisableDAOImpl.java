@@ -26,7 +26,10 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 		T clone = super.cloneJdo(jdo);
 
 		clone.setRevision(jdo.getRevision().cloneJdo());
-
+		if (null!=jdo.getNextVersion()) {
+			clone.setNextVersion(cloneJdo(jdo.getNextVersion()));
+		}
+		
 		return clone;
 	}
 
@@ -44,7 +47,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 */
-	public T create(PersistenceManager pm, S dto) throws DatastoreException,
+	protected T createIntern(S dto) throws DatastoreException,
 			InvalidModelException {
 		//
 		// Set default values for optional fields that have defaults
@@ -54,16 +57,48 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 		if (null == dto.getVersion()) {
 			dto.setVersion(DEFAULT_VERSION);
 		}
-		T jdo = super.create(pm, dto);
+		T jdo = super.createIntern(dto);
 		GAEJDORevision<T> r = jdo.getRevision();
 		r.setRevisionDate(dto.getCreationDate());
 		r.setVersion(new Version(dto.getVersion()));
 		r.setLatest(true);
-		// copyFromDto(dto, jdo);
-		pm.makePersistent(jdo); // persist the owned Revision object
-		r.setOriginal(r.getId()); // points to itself
-		pm.makePersistent(jdo); // not sure if it's necessary to 'persist' again
 		return jdo;
+	}
+
+	/**
+	 * Create a new object, using the information in the passed DTO
+	 * 
+	 * @param dto
+	 * @return the ID of the created object
+	 * @throws InvalidModelException
+	 */
+	public String create(S dto) throws InvalidModelException,
+			DatastoreException {
+		PersistenceManager pm = PMF.get();
+		Transaction tx = null;
+		try {
+			tx = pm.currentTransaction();
+			tx.begin();
+			T jdo = createIntern(dto);
+			// copyFromDto(dto, jdo);
+			pm.makePersistent(jdo); // persist the owned Revision object
+			GAEJDORevision<T> r = jdo.getRevision();
+			r.setOriginal(r.getId()); // points to itself
+			pm.makePersistent(jdo); // not sure if it's necessary to 'persist' again
+			tx.commit();
+			copyToDto(jdo, dto);
+			dto.setId(KeyFactory.keyToString(jdo.getId())); // TODO Consider putting this line in 'copyToDto'
+			return KeyFactory.keyToString(jdo.getId());
+		} catch (InvalidModelException ime) {
+			throw ime;
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		} finally {
+			if (tx.isActive()) {
+				tx.rollback();
+			}
+			pm.close();
+		}
 	}
 
 	/**
@@ -95,8 +130,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	 * @param pm
 	 *            Persistence Manager for accessing objects
 	 * @param revision
-	 *            indicates (1) the object to be revised and (2) the new
-	 *            'shallow' properties
+	 *            indicates (1) the object to be revised
 	 * @param revisionDate
 	 * @return the JDO object for the new revision
 	 * @throws DatastoreException
@@ -105,7 +139,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	 *                the version of this revision is not greater than the
 	 *                version of the latest revision
 	 */
-	protected T revise(PersistenceManager pm, S revision, Date revisionDate)
+	private T revise(PersistenceManager pm, S revision, Date revisionDate)
 			throws DatastoreException, InvalidModelException, NotFoundException {
 		if (revision.getId() == null)
 			throw new InvalidModelException("id is null");
@@ -115,7 +149,10 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 		Key id = KeyFactory.stringToKey(revision.getId());
 
 		Version newVersion = new Version(revision.getVersion());
-		T latest = getLatest(pm, id);
+		Key reviseeId = KeyFactory.stringToKey(revision.getId());
+		T revisee = (T) pm.getObjectById(getJdoClass(), reviseeId);
+		if (revisee==null) throw new NotFoundException();
+		T latest = getLatest(pm, revisee);
 		Version latestVersion = latest.getRevision().getVersion();
 		if (newVersion.compareTo(latestVersion) <= 0) {
 			throw new DatastoreException("New version " + newVersion
@@ -123,21 +160,19 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 		}
 
 		// now copy the 'deep' properties
-		Key reviseeId = KeyFactory.stringToKey(revision.getId());
-		T revisee = (T) pm.getObjectById(getJdoClass(), reviseeId);
-		if (revisee==null) throw new NotFoundException();
 		T jdo = cloneJdo(revisee);
 		copyFromDto(revision, jdo);
-		jdo.setId(generateKey(pm));
+//		jdo.setId(generateKey(pm));
 		GAEJDORevision<T> r = jdo.getRevision();
 		r.setRevisionDate(revisionDate);
 		r.setVersion(newVersion);
 		r.setOriginal(latest.getRevision().getOriginal());
 		r.setLatest(true);
 		latest.getRevision().setLatest(false);
-		pm.makePersistent(jdo);
-		pm.makePersistent(latest);
-		postCreate(pm, jdo);
+		latest.setNextVersion(jdo);
+//		pm.makePersistent(jdo); Now that 'latest' owns 'jdo' this should not be necessary
+		pm.makePersistent(latest); // because of this line, I'm afraid to make the method anything but 'private'
+//		postCreate(pm, jdo);
 		return jdo;
 	}
 
@@ -159,7 +194,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 			tx = pm.currentTransaction();
 			tx.begin();
 			T newRevision = revise(pm, revision, revisionDate);
-			pm.makePersistent(newRevision); // don't know if this is necessary
+//			pm.makePersistent(newRevision); // TODO try removing this line, which should be unnecessary
 			tx.commit();
 			return KeyFactory.keyToString(newRevision.getId());
 		} catch (Exception e) {
@@ -176,9 +211,9 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	 * @param id
 	 *            is the key for some revision
 	 */
-	public T getLatest(PersistenceManager pm, Key id) throws DatastoreException {
+	public T getLatest(PersistenceManager pm, T someRev) throws DatastoreException {
 		// some revision, not necessarily first or last
-		T someRev = (T) pm.getObjectById(getJdoClass(), id);
+		//T someRev = (T) pm.getObjectById(getJdoClass(), id);
 
 		Query query = pm.newQuery(getJdoClass());
 		query.setFilter("revision==r && r.original==pFirstRevision && r.latest==true");
@@ -200,7 +235,8 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	public S getLatest(PersistenceManager pm, String id)
 			throws DatastoreException {
 		Key key = KeyFactory.stringToKey(id);
-		T latest = getLatest(pm, key);
+		T someRev = (T) pm.getObjectById(getJdoClass(), key);
+		T latest = getLatest(pm, someRev);
 		S dto = newDTO();
 		copyToDto(latest, dto);
 		return dto;
@@ -337,7 +373,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 			Key key = KeyFactory.stringToKey(id);
 			Collection<T> allVersions = getAllVersions(pm, key);
 			for (T jdo : allVersions) {
-				preDelete(pm, jdo);
+//				preDelete(pm, jdo);
 				pm.deletePersistent(jdo);
 			}
 			tx.commit();

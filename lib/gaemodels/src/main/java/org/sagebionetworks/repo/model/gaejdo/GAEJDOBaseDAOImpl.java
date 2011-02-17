@@ -104,42 +104,42 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 		return clone;
 	}
 
-	/**
-	 * take care of any work that has to be done before deleting the persistent
-	 * object but within the same transaction (for example, deleteing objects
-	 * which this object composes, but which are not represented by owned
-	 * relationships)
-	 * 
-	 * @param pm
-	 * @param jdo
-	 *            the object to be deleted
-	 */
-	protected void preDelete(PersistenceManager pm, T jdo) {
-		// for the base DAO, nothing needs to be done
-	}
+//	/**
+//	 * take care of any work that has to be done before deleting the persistent
+//	 * object but within the same transaction (for example, deleteing objects
+//	 * which this object composes, but which are not represented by owned
+//	 * relationships)
+//	 * 
+//	 * @param pm
+//	 * @param jdo
+//	 *            the object to be deleted
+//	 */
+//	protected void preDelete(PersistenceManager pm, T jdo) {
+//		// for the base DAO, nothing needs to be done
+//	}
 	
-	/**
-	 * This may be overridden by subclasses to generate the
-	 * object's key.  Returning null causes the system to
-	 * generate the key itself.
-	 * @return the key for a new object, or null if none
-	 */
-	protected Key generateKey(PersistenceManager pm)  throws DatastoreException {
-		return null;
-	}
+//	/**
+//	 * This may be overridden by subclasses to generate the
+//	 * object's key.  Returning null causes the system to
+//	 * generate the key itself.
+//	 * @return the key for a new object, or null if none
+//	 */
+//	protected Key generateKey(PersistenceManager pm)  throws DatastoreException {
+//		return null;
+//	}
 
-	/**
-	 * take care of any work that has to be done after creating the persistent
-	 * object but within the same transaction
-	 * 
-	 * @param pm
-	 * @param jdo
-	 */
-	protected void postCreate(PersistenceManager pm, T jdo) {
-		// for the base DAO, nothing needs to be done
-	}
+//	/**
+//	 * take care of any work that has to be done after creating the persistent
+//	 * object but within the same transaction
+//	 * 
+//	 * @param pm
+//	 * @param jdo
+//	 */
+//	protected void postCreate(PersistenceManager pm, T jdo) {
+//		// for the base DAO, nothing needs to be done
+//	}
 
-	protected T create(PersistenceManager pm, S dto)
+	protected T createIntern(S dto)
 			throws InvalidModelException, DatastoreException {
 		T jdo = newJDO();
 		//
@@ -152,10 +152,6 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 		dto.setCreationDate(new Date()); // now
 
 		copyFromDto(dto, jdo);
-		jdo.setId(generateKey(pm));
-		pm.makePersistent(jdo);
-		postCreate(pm, jdo);
-		dto.setId(KeyFactory.keyToString(jdo.getId()));
 		return jdo;
 	}
 
@@ -173,9 +169,11 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 		try {
 			tx = pm.currentTransaction();
 			tx.begin();
-			T jdo = create(pm, dto);
+			T jdo = createIntern(dto);
+			pm.makePersistent(jdo);
 			tx.commit();
 			copyToDto(jdo, dto);
+			dto.setId(KeyFactory.keyToString(jdo.getId())); // TODO Consider putting this line in 'copyToDto'
 			return KeyFactory.keyToString(jdo.getId());
 		} catch (InvalidModelException ime) {
 			throw ime;
@@ -214,11 +212,11 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 		}
 	}
 
-	// sometimes we need to delete from within another transaction
-	public void delete(PersistenceManager pm, T jdo) {
-		preDelete(pm, jdo);
-		pm.deletePersistent(jdo);
-	}
+//	// sometimes we need to delete from within another transaction
+//	public void delete(PersistenceManager pm, T jdo) {
+//		preDelete(pm, jdo);
+//		pm.deletePersistent(jdo);
+//	}
 
 	/**
 	 * Delete the specified object
@@ -236,7 +234,8 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 			tx.begin();
 			Key key = KeyFactory.stringToKey(id);
 			T jdo = (T) pm.getObjectById(getJdoClass(), key);
-			delete(pm, jdo);
+//			delete(pm, jdo);
+			pm.deletePersistent(jdo);
 			tx.commit();
 		} catch (JDOObjectNotFoundException e) {
 			throw new NotFoundException(e);

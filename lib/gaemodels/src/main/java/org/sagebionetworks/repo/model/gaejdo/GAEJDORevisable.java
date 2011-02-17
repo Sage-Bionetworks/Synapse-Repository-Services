@@ -10,4 +10,10 @@ public interface GAEJDORevisable<T extends GAEJDORevisable<T>> extends
 	void setRevision(GAEJDORevision<T> r);
 
 	GAEJDORevision<T> getRevision();
+	
+	public T getNextVersion();
+
+	public void setNextVersion(T nextVersion);
+
+
 }

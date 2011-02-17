@@ -63,8 +63,6 @@ public class AnnotationsDAOTest {
 	public void testCreateandRetrieve() throws Exception {
 		// create a new dataset
 		GAEJDODataset dataset = new GAEJDODataset();
-		Collection<Key> layers = new HashSet<Key>();
-		dataset.setLayers(layers);
 
 		GAEJDORevision<GAEJDODataset> r = new GAEJDORevision<GAEJDODataset>();
 		r.setVersion(new Version("1.0.0"));

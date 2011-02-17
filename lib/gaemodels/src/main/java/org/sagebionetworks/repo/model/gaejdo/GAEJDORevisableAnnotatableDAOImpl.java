@@ -37,7 +37,7 @@ abstract public class GAEJDORevisableAnnotatableDAOImpl<S extends Base & Revisab
 
 	/**
 	 * @param id
-	 * @return annotations for the given object of the given type
+	 * @return annotations for the given object
 	 */
 	public Annotations getAnnotations(String id) throws DatastoreException,
 			NotFoundException {
