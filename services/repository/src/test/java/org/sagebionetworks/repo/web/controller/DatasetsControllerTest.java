@@ -304,7 +304,7 @@ public class DatasetsControllerTest {
 			JSONObject dateAnnotations = annotations
 					.getJSONObject("dateAnnotations");
 			dateAnnotations.put("curationEvents", curationEvents);
-			JSONObject results = helper.testUpdateJsonEntity(annotations);
+			helper.testUpdateJsonEntity(annotations);
 
 			// Now check that we correctly persisted them for real
 			JSONObject storedAnnotations = helper.testGetJsonEntity(newDataset
@@ -366,7 +366,7 @@ public class DatasetsControllerTest {
 			JSONObject dateAnnotations = annotations
 					.getJSONObject("dateAnnotations");
 			dateAnnotations.put("curationEvents", curationEvents);
-			JSONObject results = helper.testUpdateJsonEntity(annotations);
+			helper.testUpdateJsonEntity(annotations);
 
 			// Now check that we correctly persisted them for real
 			JSONObject storedAnnotations = helper.testGetJsonEntity(newDataset
