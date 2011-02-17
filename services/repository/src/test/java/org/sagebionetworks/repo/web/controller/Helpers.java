@@ -250,6 +250,29 @@ public class Helpers {
 	}
 
 	/**
+	 * Some responses from the service are successful but do not return
+	 * "entities" that we can directly do CRUD upon.
+	 * 
+	 * @param requestUrl
+	 * @return the jsonRequestContent object
+	 * @throws Exception
+	 */
+	public JSONObject testGetJsonObject(String requestUrl) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(requestUrl);
+		servlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
+		JSONObject results = new JSONObject(response.getContentAsString());
+		log.info(results.toString(JSON_INDENT));
+
+		return results;
+	}
+
+	/**
 	 * @param requestUrl
 	 * @param jsonRequestContent
 	 * @param status
@@ -401,9 +424,9 @@ public class Helpers {
 
 	/**
 	 * Add some canned annotations to our entity and persist them
-	 *
-	 * @param requestUrl 
-	 * @throws Exception 
+	 * 
+	 * @param requestUrl
+	 * @throws Exception
 	 */
 	public void testEntityAnnotations(String requestUrl) throws Exception {
 		// Get our empty annotations container
@@ -463,7 +486,7 @@ public class Helpers {
 		dateAnnotations.put("isoDates", isoDates);
 		Long isoDatesAsLong[] = { aWhileBack.getMillis() }; // for the assertion
 		// below
-		
+
 		JSONObject results = testUpdateJsonEntity(annotations);
 		// Check the update response
 		assertJSONArrayEquals(summary, results.getJSONObject(
@@ -476,9 +499,8 @@ public class Helpers {
 				"longAnnotations").getJSONArray("numSamples"));
 		assertJSONArrayEquals(curationEvents, results.getJSONObject(
 				"dateAnnotations").getJSONArray("curationEvents"));
-		assertJSONArrayEquals(clinicalTrialStartDate, results
-				.getJSONObject("dateAnnotations").getJSONArray(
-						"clinicalTrialStartDate"));
+		assertJSONArrayEquals(clinicalTrialStartDate, results.getJSONObject(
+				"dateAnnotations").getJSONArray("clinicalTrialStartDate"));
 		// These are sent serialized as Longs and come back serialized as Longs
 		assertJSONArrayEquals(epochDates, results.getJSONObject(
 				"dateAnnotations").getJSONArray("epochDates"));
@@ -494,13 +516,12 @@ public class Helpers {
 				"stringAnnotations").getJSONArray("tissues"));
 		assertJSONArrayEquals(pValues, storedAnnotations.getJSONObject(
 				"doubleAnnotations").getJSONArray("pValues"));
-		assertJSONArrayEquals(numSamples, storedAnnotations
-				.getJSONObject("longAnnotations").getJSONArray("numSamples"));
+		assertJSONArrayEquals(numSamples, storedAnnotations.getJSONObject(
+				"longAnnotations").getJSONArray("numSamples"));
 		assertJSONArrayEquals(curationEvents, results.getJSONObject(
 				"dateAnnotations").getJSONArray("curationEvents"));
-		assertJSONArrayEquals(clinicalTrialStartDate, results
-				.getJSONObject("dateAnnotations").getJSONArray(
-						"clinicalTrialStartDate"));
+		assertJSONArrayEquals(clinicalTrialStartDate, results.getJSONObject(
+				"dateAnnotations").getJSONArray("clinicalTrialStartDate"));
 		// These are sent serialized as Longs and come back serialized as Longs
 		assertJSONArrayEquals(epochDates, results.getJSONObject(
 				"dateAnnotations").getJSONArray("epochDates"));
@@ -509,7 +530,7 @@ public class Helpers {
 		assertJSONArrayEquals(isoDatesAsLong, results.getJSONObject(
 				"dateAnnotations").getJSONArray("isoDates"));
 	}
-	
+
 	/**
 	 * @param expected
 	 * @param actual

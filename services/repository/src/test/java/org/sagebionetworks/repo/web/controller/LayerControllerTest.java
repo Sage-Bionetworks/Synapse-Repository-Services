@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.logging.Logger;
@@ -10,7 +11,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -43,13 +43,21 @@ public class LayerControllerTest {
 	private DispatcherServlet servlet;
 	private JSONObject dataset;
 
+	private final String SAMPLE_LAYER = "{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
+			+ "\"description\": \"foo\", \"releaseNotes\":\"bar\", "
+			+ "\"locations\":["
+			+ "{\"type\":\"awss3\",\"path\":\"human_liver_cohort/expression/expression.txt\"},"
+			+ "{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\"},"
+			+ "{\"type\":\"sage\", \"path\":\"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz\"}"
+			+ "], \"preview\":\"this is a preview of a layer\"}";
+
 	/**
 	 * @throws java.lang.Exception
 	 */
 	@Before
 	public void setUp() throws Exception {
 		servlet = helper.setUp();
-
+		
 		dataset = helper.testCreateJsonEntity("/dataset",
 				"{\"name\":\"DeLiver\"}");
 	}
@@ -100,11 +108,8 @@ public class LayerControllerTest {
 	@Test
 	public void testCreateLayer() throws Exception {
 
-		JSONObject newLayer = helper
-				.testCreateJsonEntity(
-						dataset.getString("layer"),
-						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-								+ "\"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+		JSONObject newLayer = helper.testCreateJsonEntity(dataset
+				.getString("layer"), SAMPLE_LAYER);
 
 		// Check required properties
 		assertEquals("DeLiver expression data", newLayer.getString("name"));
@@ -132,15 +137,11 @@ public class LayerControllerTest {
 	 * 
 	 * @throws Exception
 	 */
-	@Ignore
 	@Test
 	public void testGetLayer() throws Exception {
 
-		JSONObject newLayer = helper
-				.testCreateJsonEntity(
-						dataset.getString("layer"),
-						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+		JSONObject newLayer = helper.testCreateJsonEntity(dataset
+				.getString("layer"), SAMPLE_LAYER);
 
 		// Get the layer
 		JSONObject results = helper
@@ -150,6 +151,17 @@ public class LayerControllerTest {
 		assertEquals("DeLiver expression data", results.getString("name"));
 
 		assertExpectedLayerProperties(results);
+
+		JSONArray locations = results.getJSONArray("locations");
+		for (int i = 0; i < locations.length(); i++) {
+			JSONObject location = locations.getJSONObject(i);
+			// These should be the URIs to get metadata about the layer
+			// location, not the actual location because that requires
+			// additional authorization
+			assertTrue(location.getString("path").matches(
+					"/dataset/[^/]+/layer/[^/]+/.*Location$"));
+		}
+
 	}
 
 	/**
@@ -162,11 +174,8 @@ public class LayerControllerTest {
 	@Test
 	public void testUpdateLayer() throws Exception {
 
-		JSONObject newLayer = helper
-				.testCreateJsonEntity(
-						dataset.getString("layer"),
-						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+		JSONObject newLayer = helper.testCreateJsonEntity(dataset
+				.getString("layer"), SAMPLE_LAYER);
 
 		// Get the layer
 		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
@@ -197,11 +206,8 @@ public class LayerControllerTest {
 	@Test
 	public void testDeleteLayer() throws Exception {
 
-		JSONObject newLayer = helper
-				.testCreateJsonEntity(
-						dataset.getString("layer"),
-						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+		JSONObject newLayer = helper.testCreateJsonEntity(dataset
+				.getString("layer"), SAMPLE_LAYER);
 
 		helper.testDeleteJsonEntity(newLayer.getString("uri"));
 	}
@@ -221,11 +227,7 @@ public class LayerControllerTest {
 						dataset.getString("layer"),
 						"{\"name\":\"DeLiver genetic data\", \"type\":\"C\", "
 								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
-		helper
-				.testCreateJsonEntity(
-						dataset.getString("layer"),
-						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+		helper.testCreateJsonEntity(dataset.getString("layer"), SAMPLE_LAYER);
 		helper
 				.testCreateJsonEntity(
 						dataset.getString("layer"),
@@ -242,6 +244,21 @@ public class LayerControllerTest {
 				PaginatedResults.NEXT_PAGE_FIELD));
 
 		assertExpectedLayersProperties(results.getJSONArray("results"));
+
+		JSONArray layers = results.getJSONArray("results");
+		for (int j = 0; j < layers.length(); j++) {
+			JSONArray locations = layers.getJSONObject(j).getJSONArray(
+					"locations");
+			for (int i = 0; i < locations.length(); i++) {
+				JSONObject location = locations.getJSONObject(i);
+				// These should be the URIs to get metadata about the layer
+				// location, not the actual location because that requires
+				// additional authorization
+				assertTrue(location.getString("path").matches(
+						"/dataset/[^/]+/layer/[^/]+/.*Location$"));
+			}
+		}
+
 	}
 
 	/**
@@ -253,13 +270,113 @@ public class LayerControllerTest {
 	 */
 	@Test
 	public void testUpdateDatasetAnnotations() throws Exception {
-		JSONObject newLayer = helper
-				.testCreateJsonEntity(
-						dataset.getString("layer"),
-						"{\"name\":\"DeLiver genetic data\", \"type\":\"C\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+		JSONObject newLayer = helper.testCreateJsonEntity(dataset
+				.getString("layer"), SAMPLE_LAYER);
 
 		helper.testEntityAnnotations(newLayer.getString("annotations"));
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#getS3Location}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetS3Location() throws Exception {
+
+		JSONObject newLayer = helper.testCreateJsonEntity(dataset
+				.getString("layer"), SAMPLE_LAYER);
+
+		// Get the layer
+		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
+
+		assertExpectedLayerProperties(layer);
+
+		// Get the location
+		JSONObject location = null;
+		for (int i = 0; i < layer.getJSONArray("locations").length(); i++) {
+			if (layer.getJSONArray("locations").getJSONObject(i).getString(
+					"type").equals("awss3")) {
+				location = helper.testGetJsonObject(layer.getJSONArray(
+						"locations").getJSONObject(i).getString("path"));
+				break;
+			}
+		}
+
+		// TODO
+		assertTrue(location
+				.getString("path")
+				.matches(
+						"^https://data01.sagebase.org.s3.amazonaws.com/[^?]+\\?Expires=\\d+&AWSAccessKeyId=\\w+&Signature=.+$"));
+
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#getEbsLocation}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetEBSLocation() throws Exception {
+
+		JSONObject newLayer = helper.testCreateJsonEntity(dataset
+				.getString("layer"), SAMPLE_LAYER);
+
+		// Get the layer
+		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
+
+		assertExpectedLayerProperties(layer);
+
+		// Get the location
+		JSONObject location = null;
+		for (int i = 0; i < layer.getJSONArray("locations").length(); i++) {
+			if (layer.getJSONArray("locations").getJSONObject(i).getString(
+					"type").equals("awsebs")) {
+				location = helper.testGetJsonObject(layer.getJSONArray(
+						"locations").getJSONObject(i).getString("path"));
+				break;
+			}
+		}
+		assertEquals("snap-29d33a42 (US West)", location.getString("path"));
+
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#getSageLocation}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetSageLocation() throws Exception {
+
+		JSONObject newLayer = helper.testCreateJsonEntity(dataset
+				.getString("layer"), SAMPLE_LAYER);
+
+		// Get the layer
+		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
+
+		assertExpectedLayerProperties(layer);
+
+		// Get the location
+		JSONObject location = null;
+		for (int i = 0; i < layer.getJSONArray("locations").length(); i++) {
+			if (layer.getJSONArray("locations").getJSONObject(i).getString(
+					"type").equals("sage")) {
+				location = helper.testGetJsonObject(layer.getJSONArray(
+						"locations").getJSONObject(i).getString("path"));
+				break;
+			}
+		}
+		assertEquals(
+				"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz",
+				location.getString("path"));
+
 	}
 
 	/*****************************************************************************************************
@@ -296,6 +413,32 @@ public class LayerControllerTest {
 		assertTrue(reason.matches("(?s).*not marked as ignorable.*"));
 	}
 
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#createChildEntity}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testInvalidLocationModelCreateLayer() throws Exception {
+
+		JSONObject error = helper
+				.testCreateJsonEntityShouldFail(
+						dataset.getString("layer"),
+						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
+						+ "\"description\": \"foo\", \"releaseNotes\":\"bar\", "
+						+ "\"locations\":["
+						+ "{\"type\":\"awss3\",\"path\":\"http://s3.awsamazon.com/mybucket/foo.txt\"},"
+						+ "{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\"},"
+						+ "{\"type\":\"ThisShouldFail\", \"path\":\"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz\"}"
+						+ "]}",
+						HttpStatus.BAD_REQUEST);
+
+		String reason = error.getString("reason");
+		assertEquals("'type' must be one of: awss3 awsebs sage", reason);
+	}
+	
 	/**
 	 * Test method for
 	 * {@link org.sagebionetworks.repo.web.controller.LayerController#createChildEntity}
@@ -396,11 +539,8 @@ public class LayerControllerTest {
 	 */
 	@Test
 	public void testGetNonExistentLayer() throws Exception {
-		JSONObject results = helper
-				.testCreateJsonEntity(
-						dataset.getString("layer"),
-						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+		JSONObject results = helper.testCreateJsonEntity(dataset
+				.getString("layer"), SAMPLE_LAYER);
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 
@@ -445,6 +585,34 @@ public class LayerControllerTest {
 
 	/**
 	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.LayerController#getS3Location}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetNonExistentLayerLocation() throws Exception {
+		// Load up a layer
+		JSONObject newLayer = helper
+				.testCreateJsonEntity(dataset
+				.getString("layer"), 
+				"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
+					+ "\"description\": \"foo\", \"releaseNotes\":\"bar\", "
+					+ "\"locations\":["
+					+ "{\"type\":\"awss3\",\"path\":\"http://s3.awsamazon.com/mybucket/foo.txt\"},"
+					+ "{\"type\":\"sage\", \"path\":\"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz\"}"
+					+ "]}");
+
+		helper.testGetJsonObject(newLayer.getString("uri") + "/awsS3Location");
+		helper.testGetJsonObject(newLayer.getString("uri") + "/sageLocation");
+		
+		JSONObject error = helper.testGetJsonEntityShouldFail(newLayer.getString("uri") + "/awsEBSLocation", HttpStatus.NOT_FOUND);
+		assertTrue(error.getString("reason").startsWith("No AWS EBS location exists for layer"));
+
+	}
+
+	/**
+	 * Test method for
 	 * {@link org.sagebionetworks.repo.web.controller.LayerController#updateChildEntity}
 	 * .
 	 * 
@@ -452,11 +620,8 @@ public class LayerControllerTest {
 	 */
 	@Test
 	public void testUpdateNonExistentLayer() throws Exception {
-		JSONObject results = helper
-				.testCreateJsonEntity(
-						dataset.getString("layer"),
-						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+		JSONObject results = helper.testCreateJsonEntity(dataset
+				.getString("layer"), SAMPLE_LAYER);
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 
@@ -476,11 +641,8 @@ public class LayerControllerTest {
 	 */
 	@Test
 	public void testDeleteNonExistentLayer() throws Exception {
-		JSONObject results = helper
-				.testCreateJsonEntity(
-						dataset.getString("layer"),
-						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+		JSONObject results = helper.testCreateJsonEntity(dataset
+				.getString("layer"), SAMPLE_LAYER);
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 
@@ -527,7 +689,16 @@ public class LayerControllerTest {
 
 		// Check that optional properties that receive default values
 		assertTrue(results.has("version"));
-
 		assertFalse("null".equals(results.getString("version")));
+
+		// Check that other properties are present, even if their value is null
+		assertTrue(results.has("preview"));
+		JSONArray locations = results.getJSONArray("locations");
+		assertNotNull(locations);
+		for (int i = 0; i < locations.length(); i++) {
+			JSONObject location = locations.getJSONObject(i);
+			assertFalse("null".equals(location.getString("type")));
+			assertFalse("null".equals(location.getString("path")));
+		}
 	}
 }

@@ -173,10 +173,22 @@ public class DatasetDAOTest {
 		assertFalse(dataset.getHasGeneticData());
 		assertFalse(dataset.getHasClinicalData());
 
+		Collection<LayerLocation> locations = new HashSet<LayerLocation>();
+		locations.add(new LayerLocation("awsebs", "snap-29d33a42 (US West)"));
+		locations
+				.add(new LayerLocation(
+						"sage",
+						"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz"));
+		locations
+				.add(new LayerLocation(
+						"awss3",
+						"tcga_glioblastoma/tcga_glioblastoma_data.tar.gz"));
+
 		Date now = new Date();
 		InputDataLayer layer1 = createLayer(now);
 		layer1.setName("clinical data");
 		layer1.setType("C");
+		layer1.setLocations(locations);
 		InputDataLayerDAO layerDAO = dao.getInputDataLayerDAO(id);
 		layerDAO.create(layer1);
 		layerDAO.getStringAnnotationDAO(layer1.getId()).addAnnotation(
@@ -218,6 +230,8 @@ public class DatasetDAOTest {
 		Assert.assertEquals(layer1.getTissueType(), l.getTissueType());
 		Assert.assertEquals(layer1.getUri(), l.getUri());
 		Assert.assertEquals(layer1.getVersion(), l.getVersion());
+		Collection<LayerLocation> storedLocations = layer1.getLocations();
+		Assert.assertEquals(3, storedLocations.size());
 
 		Collection<InputDataLayer> layers = layerDAO.getInRange(0, 100);
 		Assert.assertEquals(2, layers.size());
@@ -620,8 +634,8 @@ public class DatasetDAOTest {
 
 		dao.getLongAnnotationDAO(id2).addAnnotation("age", 72L);
 
-		c = dao.getLongAnnotationDAO(null).getInRangeSortedBy(0, 100,
-				"age", true);
+		c = dao.getLongAnnotationDAO(null).getInRangeSortedBy(0, 100, "age",
+				true);
 		Assert.assertEquals(2, c.size());
 		Assert.assertEquals(d.getName(), c.iterator().next().getName());
 

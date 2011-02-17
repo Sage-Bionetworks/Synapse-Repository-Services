@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Collection;
 import java.util.Date;
 
 import javax.xml.bind.annotation.XmlRootElement;
@@ -7,14 +8,10 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public class InputDataLayer implements DatasetLayer {
 	private String id;
-	private String uri;
-	private String etag;
 	private String name;
 	private String description;
 	private Date creationDate;
 	private String version;
-	private String annotations; // URI for annotations
-
 	private Date publicationDate;
 	private String releaseNotes;
 	private String type;
@@ -23,6 +20,20 @@ public class InputDataLayer implements DatasetLayer {
 	private String processingFacility;
 	private String qcBy;
 	private Date qcDate;
+	private String preview;
+	private Collection<LayerLocation> locations;
+
+	/** 
+	 * The following members are set by the service layer and should not be persisted.
+	 * 
+	 * TODO think about another DTO layer (client <-> service <-> persisted data model)
+	 * where the DTO facing the client is just a map, this will help with partial get/put
+	 * 
+	 * Be careful with the etag computation, it needs to consider some fields and ignore others 
+	 */
+	private String uri; // URI for this layer
+	private String etag; // ETag for this layer
+	private String annotations; // URI for annotations
 
 	/**
 	 * Allowable layer type names
@@ -95,6 +106,20 @@ public class InputDataLayer implements DatasetLayer {
 
 	public void setAnnotations(String annotations) {
 		this.annotations = annotations;
+	}
+
+	/**
+	 * @param preview the preview to set
+	 */
+	public void setPreview(String preview) {
+		this.preview = preview;
+	}
+
+	/**
+	 * @return the preview
+	 */
+	public String getPreview() {
+		return preview;
 	}
 
 	public Date getPublicationDate() {
@@ -172,6 +197,23 @@ public class InputDataLayer implements DatasetLayer {
 		this.qcDate = qcDate;
 	}
 
+	/**
+	 * @return the locations
+	 */
+	public Collection<LayerLocation> getLocations() {
+		return locations;
+	}
+
+	/**
+	 * @param locations the locations to set
+	 */
+	public void setLocations(Collection<LayerLocation> locations) {
+		this.locations = locations;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -181,9 +223,12 @@ public class InputDataLayer implements DatasetLayer {
 		result = prime * result
 				+ ((description == null) ? 0 : description.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result
+				+ ((locations == null) ? 0 : locations.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
 				+ ((platform == null) ? 0 : platform.hashCode());
+		result = prime * result + ((preview == null) ? 0 : preview.hashCode());
 		result = prime
 				* result
 				+ ((processingFacility == null) ? 0 : processingFacility
@@ -201,6 +246,9 @@ public class InputDataLayer implements DatasetLayer {
 		return result;
 	}
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -225,6 +273,11 @@ public class InputDataLayer implements DatasetLayer {
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
+		if (locations == null) {
+			if (other.locations != null)
+				return false;
+		} else if (!locations.equals(other.locations))
+			return false;
 		if (name == null) {
 			if (other.name != null)
 				return false;
@@ -234,6 +287,11 @@ public class InputDataLayer implements DatasetLayer {
 			if (other.platform != null)
 				return false;
 		} else if (!platform.equals(other.platform))
+			return false;
+		if (preview == null) {
+			if (other.preview != null)
+				return false;
+		} else if (!preview.equals(other.preview))
 			return false;
 		if (processingFacility == null) {
 			if (other.processingFacility != null)
