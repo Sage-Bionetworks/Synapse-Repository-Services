@@ -27,22 +27,19 @@ import com.google.appengine.api.datastore.Text;
  * 
  */
 
-@PersistenceCapable(detachable = "true")
+@PersistenceCapable(detachable = "false")
 @Inheritance(strategy = InheritanceStrategy.SUBCLASS_TABLE)
 abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 		implements GAEJDORevisable<T>, GAEJDOBase, GAEJDOAnnotatable {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
-
+	
 	@Persistent
 	private String name;
 
 	@Persistent
 	private Date creationDate;
-
-//	@Persistent(serialized = "true")
-//	private URI uri;
 
 	@Persistent
 	private Date publicationDate;
@@ -53,6 +50,7 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 	@Persistent
 	private Text releaseNotes;
 
+	// this is a reference to the version info object
 	@Persistent(dependent = "true")
 	private GAEJDORevision<T> revision;
 

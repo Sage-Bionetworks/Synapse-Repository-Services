@@ -9,9 +9,13 @@ import java.util.List;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 
-@PersistenceCapable(detachable = "true")
+@PersistenceCapable(detachable = "false")
 public class GAEJDOInputDataLayer extends
 		GAEJDODatasetLayer<GAEJDOInputDataLayer> {
+
+	// this is a link to the next revision of the layer (if any)
+	@Persistent(dependent = "true")
+	private GAEJDOInputDataLayer nextVersion;
 
 	@Persistent
 	private String type;
@@ -30,6 +34,14 @@ public class GAEJDOInputDataLayer extends
 
 	@Persistent
 	private Date qcDate;
+
+	public GAEJDOInputDataLayer getNextVersion() {
+		return nextVersion;
+	}
+
+	public void setNextVersion(GAEJDOInputDataLayer nextVersion) {
+		this.nextVersion = nextVersion;
+	}
 
 	public String getType() {
 		return type;

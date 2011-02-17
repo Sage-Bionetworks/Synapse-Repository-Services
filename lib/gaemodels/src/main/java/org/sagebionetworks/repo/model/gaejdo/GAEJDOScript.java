@@ -30,6 +30,10 @@ public class GAEJDOScript implements GAEJDORevisable<GAEJDOScript> {
 	// http://code.google.com/appengine/docs/java/datastore/relationships.html#Owned_One_to_One_Relationships
 	@Persistent(dependent = "true")
 	private GAEJDORevision<GAEJDOScript> revision;
+	
+	// this is a link to the next revision of the layer (if any)
+	@Persistent(dependent = "true")
+	private GAEJDOScript nextVersion;
 
 	@Persistent
 	private Date creationDate;
@@ -65,6 +69,14 @@ public class GAEJDOScript implements GAEJDORevisable<GAEJDOScript> {
 
 	public void setRevision(GAEJDORevision<GAEJDOScript> revision) {
 		this.revision = revision;
+	}
+
+	public GAEJDOScript getNextVersion() {
+		return nextVersion;
+	}
+
+	public void setNextVersion(GAEJDOScript nextVersion) {
+		this.nextVersion = nextVersion;
 	}
 
 	public Date getCreationDate() {

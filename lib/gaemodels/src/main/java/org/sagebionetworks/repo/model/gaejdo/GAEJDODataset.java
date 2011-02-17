@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.model.gaejdo;
 
 import java.util.Collection;
 import java.util.Date;
+import java.util.Set;
 
+import javax.jdo.annotations.Element;
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.NotPersistent;
 import javax.jdo.annotations.PersistenceCapable;
@@ -26,8 +28,13 @@ public class GAEJDODataset implements GAEJDOBase,
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
 
+	// this is a reference to the version info object
 	@Persistent(dependent = "true")
 	private GAEJDORevision<GAEJDODataset> revision;
+	
+	// this is a link to the next revision of the dataset (if any)
+	@Persistent(dependent = "true")
+	private GAEJDODataset nextVersion;
 
 	@Persistent(dependent = "true")
 	private GAEJDOAnnotations annotations;
@@ -50,8 +57,8 @@ public class GAEJDODataset implements GAEJDOBase,
 	@Persistent
 	private Date releaseDate;
 
-	@Persistent
-	private Collection<Key> layers;
+	@Element(dependent = "true")
+	private Set<GAEJDOInputDataLayer> inputLayers;
 
 	public GAEJDODataset() {
 		// GAEJDOAnnotations a = GAEJDOAnnotations.newGAEJDOAnnotations();
@@ -85,6 +92,14 @@ public class GAEJDODataset implements GAEJDOBase,
 	 */
 	public void setRevision(GAEJDORevision<GAEJDODataset> revision) {
 		this.revision = revision;
+	}
+
+	public GAEJDODataset getNextVersion() {
+		return nextVersion;
+	}
+
+	public void setNextVersion(GAEJDODataset nextVersion) {
+		this.nextVersion = nextVersion;
 	}
 
 	/**
@@ -200,16 +215,16 @@ public class GAEJDODataset implements GAEJDOBase,
 	 * 
 	 * @return
 	 */
-	public Collection<Key> getLayers() {
-		return layers;
+	public Set<GAEJDOInputDataLayer> getInputLayers() {
+		return inputLayers;
 	}
 
 	/**
 	 * 
 	 * @param layers
 	 */
-	public void setLayers(Collection<Key> layers) {
-		this.layers = layers;
+	public void setInputLayers(Set<GAEJDOInputDataLayer> inputLayers) {
+		this.inputLayers = inputLayers;
 	}
 
 	@Override

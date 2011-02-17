@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.gaejdo;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Set;
 
 import javax.jdo.PersistenceManager;
 
@@ -40,6 +41,7 @@ public class GAEJDODatasetDAOImpl extends
 
 	public GAEJDODataset newJDO() {
 		GAEJDODataset jdo = new GAEJDODataset();
+		jdo.setInputLayers(new HashSet<GAEJDOInputDataLayer>());
 		GAEJDOAnnotations a = GAEJDOAnnotations.newGAEJDOAnnotations();
 		jdo.setAnnotations(a);
 		GAEJDORevision<GAEJDODataset> r = new GAEJDORevision<GAEJDODataset>();
@@ -49,7 +51,10 @@ public class GAEJDODatasetDAOImpl extends
 
 	public GAEJDODataset cloneJdo(GAEJDODataset jdo) throws DatastoreException {
 		GAEJDODataset clone = super.cloneJdo(jdo);
-		clone.setLayers(new HashSet<Key>(jdo.getLayers()));
+		Set<GAEJDOInputDataLayer> inputLayers = new HashSet<GAEJDOInputDataLayer>();
+		GAEJDOInputDataLayerDAOImpl layerDAO = new GAEJDOInputDataLayerDAOImpl(jdo.getId());
+		for (GAEJDOInputDataLayer layer : jdo.getInputLayers()) inputLayers.add(layerDAO.cloneJdo(layer));
+		clone.setInputLayers(inputLayers);
 		return clone;
 	}
 
@@ -117,24 +122,17 @@ public class GAEJDODatasetDAOImpl extends
 		jdo.setReleaseDate(dto.getReleaseDate());
 	}
 
-	/**
-	 * take care of any work that has to be done before deleting the persisted
-	 * object
-	 * 
-	 * @param pm
-	 * @param jdo
-	 *            the object to be deleted
-	 */
-	public void preDelete(PersistenceManager pm, GAEJDODataset jdo) {
-		GAEJDOInputDataLayerDAOImpl layerDAO = new GAEJDOInputDataLayerDAOImpl(
-				jdo.getId());
-		for (Key layerKey : jdo.getLayers()) {
-			GAEJDOInputDataLayer layer = (GAEJDOInputDataLayer) pm
-					.getObjectById(GAEJDOInputDataLayer.class, layerKey);
-			layerDAO.delete(pm, layer);
-		}
-		super.preDelete(pm, jdo);
-	}
+//	/**
+//	 * take care of any work that has to be done before deleting the persisted
+//	 * object
+//	 * 
+//	 * @param pm
+//	 * @param jdo
+//	 *            the object to be deleted
+//	 */
+//	public void preDelete(PersistenceManager pm, GAEJDODataset jdo) {
+//		super.preDelete(pm, jdo);
+//	}
 
 	public Collection<String> getPrimaryFields() {
 		return Arrays.asList(new String[] { "name", "description", "creator",
