@@ -155,6 +155,10 @@ public class AsyncServiceRecorder<U,T> implements InvocationHandler {
 	public Map<Integer, MethodCall> getAllCalls() {
 		return calls;
 	}
+	
+	public MethodCall getCall(Integer index){
+		return calls.get(index);
+	}
 
 	public void clearAllCalls() {
 		calls.clear();
@@ -171,17 +175,9 @@ public class AsyncServiceRecorder<U,T> implements InvocationHandler {
 	 */
 	public void playOnSuccess(Integer callNumber) throws Exception {
 		// Get the method to call
-		MethodCall call = calls.get(callNumber);
-		if (call == null) {
-			throw new IllegalArgumentException(
-					"No call found for call number: " + callNumber);
-		}
+		MethodCall call = getcallNumber(callNumber);
 		Method asynchMethod = call.getMethod();
 		Object[] asynchArgs = call.getArgs();
-		// Asynchronous methods must have at least one argument (the callback).
-		if(asynchArgs == null || asynchArgs.length < 1){
-			throw new IllegalArgumentException("Asynchronous methods must have at least one argument (the AsyncCallback)!");
-		}
 		// We use the n-1 parameter types to find the synchronous method.
 		Class<?>[] asychParamTypes = asynchMethod.getParameterTypes();
 
@@ -211,6 +207,20 @@ public class AsyncServiceRecorder<U,T> implements InvocationHandler {
 		Method onSuccessMethod = findAccessableMethod(callbackClass, "onSuccess", callBackParamType);
 		// Invoke the callback
 		onSuccessMethod.invoke(callback, results);
+	}
+
+	private MethodCall getcallNumber(Integer callNumber) {
+		MethodCall call = calls.get(callNumber);
+		if (call == null) {
+			throw new IllegalArgumentException(
+					"No call found for call number: " + callNumber);
+		}
+		Object[] asynchArgs = call.getArgs();
+		// Asynchronous methods must have at least one argument (the callback).
+		if(asynchArgs == null || asynchArgs.length < 1){
+			throw new IllegalArgumentException("Asynchronous methods must have at least one argument (the AsyncCallback)!");
+		}
+		return call;
 	}
 	
 	/**
@@ -269,8 +279,21 @@ public class AsyncServiceRecorder<U,T> implements InvocationHandler {
 		return results;
 	}
 
-	public void playOnFailure(Integer callNumber, Throwable caught) {
-		throw new UnsupportedOperationException("needs to get done!");
+	/**
+	 * Play back a failure passing the given exception.
+	 * @param callNumber
+	 * @param caught
+	 * @throws Exception
+	 */
+	public void playOnFailure(Integer callNumber, Throwable caught) throws Exception{
+		MethodCall call = getcallNumber(callNumber);
+		Object[] asynchArgs = call.getArgs();
+		// Now pass the results to the callback.
+		Object callback = asynchArgs[asynchArgs.length - 1];
+		Class callbackClass = callback.getClass();
+		Method onFailMethod = findAccessableMethod(callbackClass, "onFailure", Throwable.class);
+		// Now invoke the method
+		onFailMethod.invoke(callback, caught);
 	}
 
 

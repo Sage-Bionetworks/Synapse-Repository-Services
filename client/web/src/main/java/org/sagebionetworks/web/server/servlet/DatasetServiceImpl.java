@@ -114,6 +114,12 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>("", headers);
+		
+		// Get the string back
+		ResponseEntity<String> testReponse = templateProvider.getTemplate().exchange(url, HttpMethod.GET, entity, String.class, map);
+		logger.info("Response Status: "+testReponse.getStatusCode());
+		logger.info(testReponse.getBody());
+		
 		// Make the actual call.
 		ResponseEntity<PaginatedDatasets> response = templateProvider.getTemplate().exchange(url, HttpMethod.GET, entity, PaginatedDatasets.class, map);
 

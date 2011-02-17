@@ -1,5 +1,6 @@
 package org.sagebionetworks.web.client.view;
 
+import org.sagebionetworks.web.client.ImagePrototypeSingleton;
 import org.sagebionetworks.web.client.SageImageBundle;
 
 import com.google.gwt.cell.client.ClickableTextCell;
@@ -19,25 +20,40 @@ import com.google.gwt.user.client.ui.AbstractImagePrototype;
  */
 public class SortableHeader extends Header<String> {
 	
+	private static String UP_ARROW = null;
+	private static String DOWN_ARROW = null;
+	
 	private String columnKey = null;
 	private String displayValue;
 	private boolean isSorting = false;
 	private boolean sortAscending = true;
-	private String upArrow = null;
-	private String downArrow = null;
-
-	SortableHeader(String displayValue, SageImageBundle bundle, String key) {
+	
+	SortableHeader(String displayValue, ImagePrototypeSingleton prototype, String key) {
 		super(new ClickableTextCell());
 		this.displayValue = displayValue;
 		this.columnKey = key;
-		upArrow = makeImage(bundle.iconUpArrow());
-		downArrow = makeImage(bundle.iconDownArrow());
+		initImages(prototype);
 	}
 
-	private static String makeImage(ImageResource resource) {
-		AbstractImagePrototype proto = AbstractImagePrototype.create(resource);
-		return proto.getHTML().replace("style='",
-				"style='position:absolute;right:0px;top:0px;");
+	/**
+	 * If the static image strings have not been created then create them.
+	 * @param prototype
+	 */
+	private static void initImages(ImagePrototypeSingleton prototype) {
+		if(UP_ARROW == null || DOWN_ARROW == null){
+			UP_ARROW = makeImage(prototype.getUpArrowIconHtml());
+			DOWN_ARROW = makeImage(prototype.getDownArrowImageHtml());
+		}
+	}
+
+	/**
+	 * Create the images
+	 * @param html
+	 * @return
+	 */
+	private static String makeImage(String html) {
+		if(html == null) return null;
+		return html.replace("style='",	"style='position:absolute;right:0px;top:0px;");
 	}
 
 	public String getColumnKey() {
@@ -76,9 +92,9 @@ public class SortableHeader extends Header<String> {
 		builder.append("padding-right:16px;'>");
 		if (isSorting) {
 			if (sortAscending) {
-				builder.append(upArrow);
+				builder.append(UP_ARROW);
 			} else {
-				builder.append(downArrow);
+				builder.append(DOWN_ARROW);
 			}
 		} else {
 			builder.append("<div style='position:absolute;display:none;'></div>");

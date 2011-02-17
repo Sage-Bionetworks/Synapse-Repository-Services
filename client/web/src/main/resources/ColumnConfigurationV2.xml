@@ -1,0 +1,112 @@
+<configuration>
+	<columns>
+		<!-- The basic columns -->
+		<column id="id">
+			<type>String</type>
+			<display>GUID</display>
+			<description>The GUID of this dataset.
+			</description>
+		</column>
+		<column id="name">
+			<type>String</type>
+			<display>Dataset Name</display>
+			<description>Name of the Dataset and link to more information
+			</description>
+		</column>
+		<column id="description">
+			<type>String</type>
+			<display>Description</display>
+			<description>The description of this datasets</description>
+		</column>
+		<column id="creator">
+			<type>String</type>
+			<display>Investigator</display>
+			<description>The person that created this dataset</description>
+		</column>
+		<column id="creationDate">
+			<type>Long</type>
+			<display>Created On</display>
+			<description>The date this dataset was created</description>
+		</column>
+		<column id="status">
+			<type>String</type>
+			<display>Status</display>
+			<description>The status of this dataset. Can be one of the follwing:
+				{"Available", "In Transition", "Future"}</description>
+		</column>
+		<column id="releaseDate">
+			<type>Long</type>
+			<display>Release Date</display>
+			<description>The date this dataset was released</description>
+		</column>
+		<column id="version">
+			<type>String</type>
+			<display>Current Version</display>
+			<description>The current version of this datasets</description>
+		</column>
+		<column id="annotations">
+			<type>String</type>
+			<display>Annotations link</display>
+			<description>Link to this dataset's annotations</description>
+		</column>
+		<column id="uri">
+			<type>String</type>
+			<display>URI</display>
+			<description>This dataset's URI</description>
+		</column>
+		<column id="etag">
+			<type>String</type>
+			<display>e-Tag</display>
+			<description>The concurrent e-Tag, which must be provide to update a
+				dataset</description>
+		</column>
+		<column id="layer">
+			<type>String</type>
+			<display>Layer URL</display>
+			<description>The link to this dataset's layers</description>
+		</column>
+		<column id="Disease">
+			<type>StringArray</type>
+			<display>Disease</display>
+			<description>What disease is this dataset about</description>
+		</column>
+		<column id="Tumor / Tissue Type">
+			<type>StringArray</type>
+			<display>Tumor / Tissue Type</display>
+			<description>Tumor / Tissue Type</description>
+		</column>
+		<column id="Institution">
+			<type>StringArray</type>
+			<display>Institution</display>
+			<description>Institution</description>
+		</column>
+		<column id="Species">
+			<type>StringArray</type>
+			<display>Species</display>
+			<description>Species</description>
+		</column>
+		<column id="Number of Samples">
+			<type>LongArray</type>
+			<display>Number of Samples</display>
+			<description>Number of Samples</description>
+		</column>
+		<column id="Reference / PubMed ID">
+			<type>LongArray</type>
+			<display>Reference / PubMed ID</display>
+			<description>Reference / PubMed ID</description>
+		</column>
+
+		<!-- The more complex/composite columns -->
+		
+		<!-- A dynamic relative URL will be built for datatasts using the ID column -->
+		<url-template id="datasetUrl">
+			<type>String</type>
+			<urlTemplate>Dataset:{id}</urlTemplate>
+		</url-template>
+		<!-- Acts as the dataset name column  -->
+		<link-column id="datasetNameLink">
+			<display reference="name" />
+			<url reference="datasetUrl" />
+		</link-column>
+	</columns>
+</configuration>

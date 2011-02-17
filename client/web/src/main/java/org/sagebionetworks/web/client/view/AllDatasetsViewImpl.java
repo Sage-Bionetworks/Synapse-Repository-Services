@@ -9,7 +9,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
 
+//import com.google.gwt.user.cellview.client.ColumnSortEvent.Handler;
+
 import org.sagebionetworks.web.client.DatasetConstants;
+import org.sagebionetworks.web.client.ImagePrototypeSingleton;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.presenter.DatasetRow;
 import org.sagebionetworks.web.shared.LayerLink;
@@ -52,6 +55,7 @@ public class AllDatasetsViewImpl extends Composite implements AllDatasetsView {
 	private DatasetConstants constants;
 	private Presenter presenter;
 	private SageImageBundle bundle;
+	private ImagePrototypeSingleton prototype;
 	private List<SortableHeader> sortableHeaders = new ArrayList<SortableHeader>();
 
 	/**
@@ -59,14 +63,13 @@ public class AllDatasetsViewImpl extends Composite implements AllDatasetsView {
 	@Inject
 	public AllDatasetsViewImpl(final Binder uiBinder,
 			DatasetConstants constants, final SageImageBundle bundle,
-			final DatasetCellTableResource cellTableResource) {
+			final DatasetCellTableResource cellTableResource, ImagePrototypeSingleton prototype) {
 		// 
 		cellTable = new CellTable<DatasetRow>(10, cellTableResource);
 		initWidget(uiBinder.createAndBindUi(this));
 		this.constants = constants;
 		this.bundle = bundle;
-		// This is our table.
-//		
+		this.prototype = prototype;
 		
 		// The name column is made up of links
 		Column<DatasetRow, String> nameColumn = new Column<DatasetRow, String>(new ClickableTextCell( new TrustedHtmlRenderer())) {
@@ -137,7 +140,7 @@ public class AllDatasetsViewImpl extends Composite implements AllDatasetsView {
 			}
 		};
 		
-		cellTable.addColumn(nameColumn, createHeader(this.constants.name(), "name"));
+		cellTable.addColumn(nameColumn, this.constants.name());
 		
 		cellTable.addColumn(allImages, this.constants.layers());
 		cellTable.addColumn(statusColumn, createHeader(this.constants.status(), "status"));
@@ -161,7 +164,7 @@ public class AllDatasetsViewImpl extends Composite implements AllDatasetsView {
 	}
 	
 	private SortableHeader createHeader(String display, String key){
-		final SortableHeader header = new SortableHeader(display, bundle, key);
+		final SortableHeader header = new SortableHeader(display, prototype, key);
 		sortableHeaders.add(header);
 		header.setUpdater(new ValueUpdater<String>() {
 			@Override

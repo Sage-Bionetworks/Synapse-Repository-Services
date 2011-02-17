@@ -7,6 +7,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.web.server.servlet.DatasetServiceImpl;
+import org.sagebionetworks.web.server.servlet.SearchServiceImpl;
 
 import com.google.inject.Singleton;
 import com.google.inject.name.Names;
@@ -28,11 +29,18 @@ public class PortalServletModule extends ServletModule {
 		// Setup the mapping
 		bind(DatasetServiceImpl.class).in(Singleton.class);
 		serve("/Portal/dataset").with(DatasetServiceImpl.class);
+		// Setup the Search service
+		// Setup the mapping
+		bind(SearchServiceImpl.class).in(Singleton.class);
+		serve("/Portal/search").with(SearchServiceImpl.class);
 		// The Rest template provider should be a singleton.
 		bind(RestTemplateProviderImpl.class).in(Singleton.class);
 		bind(RestTemplateProvider.class).to(RestTemplateProviderImpl.class);
 		// Bind the properties from the config file
 		bindPropertiesFromFile("ServerConstants.properties");
+		
+		// Bind the ConlumnConfig to singleton
+		bind(ColumnConfigProvider.class).in(Singleton.class);
 	}
 	
 	/**

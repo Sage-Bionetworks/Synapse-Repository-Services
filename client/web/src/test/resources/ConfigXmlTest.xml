@@ -1,0 +1,19 @@
+<configuration>
+  <columns>
+    <url-template id="keyZero">
+      <type>String</type>
+      <display>Display name</display>
+      <description>Some Description</description>
+      <urlTemplate>Dataset:{id}</urlTemplate>
+    </url-template>
+    <column id="keyTwo">
+      <type>BooleanArray</type>
+      <display>Display name Two</display>
+      <description>Some Description Two</description>
+    </column>
+    <link-column id="linkIdOne">
+      <display reference="keyTwo"/>
+      <url reference="keyZero"/>
+    </link-column>
+  </columns>
+</configuration>

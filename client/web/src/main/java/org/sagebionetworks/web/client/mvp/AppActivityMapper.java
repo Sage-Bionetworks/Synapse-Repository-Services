@@ -7,8 +7,10 @@ import java.util.logging.Logger;
 import org.sagebionetworks.web.client.ProtalGinInjector;
 import org.sagebionetworks.web.client.place.AllDatasets;
 import org.sagebionetworks.web.client.place.Dataset;
+import org.sagebionetworks.web.client.place.DynamicTest;
 import org.sagebionetworks.web.client.presenter.AllDatasetPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
+import org.sagebionetworks.web.client.presenter.DynamicTablePresenter;
 
 import com.google.gwt.activity.shared.Activity;
 import com.google.gwt.activity.shared.ActivityMapper;
@@ -36,6 +38,12 @@ public class AppActivityMapper implements ActivityMapper {
 		// We use GIN to generate and inject all presenters with 
 		// their dependencies.
 		if(place instanceof AllDatasets){
+			
+//			DynamicTableTest presenter = ginjector.getDynamicTableTest();
+//			// set this presenter's place
+//			presenter.setPlace(null);
+//			return presenter;
+			
 			AllDatasetPresenter presenter = ginjector.getAllDatasetsPresenter();
 			// set this presenter's place
 			presenter.setPlace((AllDatasets)place);
@@ -44,6 +52,11 @@ public class AppActivityMapper implements ActivityMapper {
 			DatasetPresenter presenter = ginjector.getDatasetPresenter();
 			// set this presenter's place
 			presenter.setPlace((Dataset)place);
+			return presenter;
+		}else if(place instanceof DynamicTest){
+			DynamicTablePresenter presenter = ginjector.getDynamicTableTest();
+			// set this presenter's place
+			presenter.setPlace((DynamicTest)place);
 			return presenter;
 		}else{
 			// Log that we have an unknown place but send the user to the default

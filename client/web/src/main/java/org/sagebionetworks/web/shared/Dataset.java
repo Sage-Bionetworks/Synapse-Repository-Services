@@ -21,8 +21,9 @@ public class Dataset implements IsSerializable {
 	private String annotations;
 	private String uri;
 	private String etag;
+	private String layer;
 	
-	private List<LayerLink> layers;
+	private List<LayerLink> layerPreviews;
 	
 	public String getUri() {
 		return uri;
@@ -108,13 +109,20 @@ public class Dataset implements IsSerializable {
 	public void setVersion(String version) {
 		this.version = version;
 	}
-	public List<LayerLink> getLayers() {
-		return layers;
+	public List<LayerLink> getLayerPreviews() {
+		return layerPreviews;
 	}
-	public void setLayers(List<LayerLink> layers) {
-		this.layers = layers;
+	public void setLayerPreviews(List<LayerLink> layers) {
+		this.layerPreviews = layers;
 	}
-	
+
+	public String getLayer() {
+		return layer;
+	}
+
+	public void setLayer(String layer) {
+		this.layer = layer;
+	}
 
 	@Override
 	public int hashCode() {
@@ -144,7 +152,7 @@ public class Dataset implements IsSerializable {
 		return "Dataset [id=" + id + ", name=" + name + ", description="
 				+ description + ", creator=" + creator + ", creationDate="
 				+ creationDate + ", status=" + status + ", releaseDate="
-				+ releaseDate + ", version=" + version + ", layers=" + layers
+				+ releaseDate + ", version=" + version + ", layers=" + layerPreviews
 				+ "]";
 	}
 

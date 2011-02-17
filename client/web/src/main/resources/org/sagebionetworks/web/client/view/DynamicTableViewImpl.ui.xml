@@ -1,0 +1,21 @@
+<!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
+<ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
+	xmlns:g="urn:import:com.google.gwt.user.client.ui" xmlns:c="urn:import:com.google.gwt.user.cellview.client"
+	xmlns:d="urn:import:com.google.gwt.dom.client">
+	<ui:style>
+		.important {
+			font-weight: bold;
+		}
+	</ui:style>
+	<g:HTMLPanel>
+		<div>
+			<div align="right">
+				<c:SimplePager ui:field="pager" location="CENTER" />
+			</div>
+			<hr />
+			<div>
+				<c:CellTable ui:field="cellTable" />
+			</div>
+		</div>
+	</g:HTMLPanel>
+</ui:UiBinder>

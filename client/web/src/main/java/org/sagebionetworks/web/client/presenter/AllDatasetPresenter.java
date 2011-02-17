@@ -2,11 +2,13 @@ package org.sagebionetworks.web.client.presenter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.web.client.DatasetServiceAsync;
 import org.sagebionetworks.web.client.place.AllDatasets;
 import org.sagebionetworks.web.client.view.AllDatasetsView;
+import org.sagebionetworks.web.server.servlet.DatasetServiceImpl;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.PaginatedDatasets;
 
@@ -74,6 +76,8 @@ public class AllDatasetPresenter extends AbstractActivity implements AllDatasets
 			
 			@Override
 			public void onFailure(Throwable caught) {
+				// Log the error.
+				logger.log(Level.SEVERE, caught.getMessage(), caught);
 				// First clear the data
 				setPaginationData(new PaginatedDatasets());
 				// Show an error in the view

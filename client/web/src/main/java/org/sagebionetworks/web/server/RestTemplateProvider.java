@@ -6,7 +6,7 @@ import org.springframework.web.client.RestTemplate;
  * Simple abstraction for getting a spring RestTemplate. This allows us
  * to use Guice injection to setup the template as needed.
  * 
- * @author John
+ * @author jmhill
  *
  */
 public interface RestTemplateProvider {

@@ -15,7 +15,7 @@ public class LayerLink implements IsSerializable {
 	 * We need to define what these mean.
 	 *
 	 */
-	public enum Type {
+	public enum Type implements IsSerializable {
 		C(0x01),
 		G(0x02),
 		E(0x04);
@@ -51,6 +51,7 @@ public class LayerLink implements IsSerializable {
 	public void setType(Type type) {
 		this.type = type;
 	}
+	
 	public String getUri() {
 		return uri;
 	}

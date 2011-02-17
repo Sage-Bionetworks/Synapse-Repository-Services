@@ -15,8 +15,8 @@ public class DatasetRow {
 		this.wrapped = toWrap;
 		// Determine the layer mask
 		layerMask = 0x00;
-		if(this.wrapped.getLayers() != null){
-			for(LayerLink layer: this.wrapped.getLayers()){
+		if(this.wrapped.getLayerPreviews() != null){
+			for(LayerLink layer: this.wrapped.getLayerPreviews()){
 				layerMask = layerMask | layer.getType().getMask();
 			}
 		}

@@ -44,7 +44,7 @@ public class RandomDataset {
 			int typeIndex = rand.nextInt(types.length);
 			layers.add(new LayerLink(""+idSequence++, types[typeIndex], RandomStrings.generateRandomUrl(4, 8)));
 		}
-		c.setLayers(layers);
+		c.setLayerPreviews(layers);
 		c.setStatus(RandomStrings.generateRandomString(1, 10));
 		c.setVersion("1.0."+rand.nextInt(9));
 		return c;

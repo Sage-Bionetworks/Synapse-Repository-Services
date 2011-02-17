@@ -166,8 +166,8 @@ public class DatasetServiceImplTest {
 		assertNotNull(first.getCreationDate());
 		assertNotNull(first.getCreator());
 		assertNotNull(first.getDescription());
-		assertNotNull(first.getLayers());
-		System.out.println(first.getLayers());
+		assertNotNull(first.getLayerPreviews());
+		System.out.println(first.getLayerPreviews());
 		assertNotNull(first.getReleaseDate());
 		assertNotNull(first.getStatus());
 		assertNotNull(first.getVersion());

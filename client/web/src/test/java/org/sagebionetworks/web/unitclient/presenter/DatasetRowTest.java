@@ -34,7 +34,7 @@ public class DatasetRowTest {
 		layerList.add(new LayerLink("0", LayerLink.Type.C, "url"));
 		layerList.add(new LayerLink("1", LayerLink.Type.C, "url"));
 		layerList.add(new LayerLink("2", LayerLink.Type.C, "url"));
-		dataset.setLayers(layerList);
+		dataset.setLayerPreviews(layerList);
 		DatasetRow row = new DatasetRow(dataset);
 		assertEquals(LayerLink.Type.C.getMask(), row.getLayersMask());
 	
@@ -48,7 +48,7 @@ public class DatasetRowTest {
 		layerList.add(new LayerLink("0", LayerLink.Type.C, "url"));
 		layerList.add(new LayerLink("1", LayerLink.Type.E, "url"));
 		layerList.add(new LayerLink("2",LayerLink.Type.C, "url"));
-		dataset.setLayers(layerList);
+		dataset.setLayerPreviews(layerList);
 		DatasetRow row = new DatasetRow(dataset);
 		assertEquals((LayerLink.Type.C.getMask() | LayerLink.Type.E.getMask()), row.getLayersMask());
 	
@@ -62,7 +62,7 @@ public class DatasetRowTest {
 		layerList.add(new LayerLink("0", LayerLink.Type.C, "url"));
 		layerList.add(new LayerLink("1", LayerLink.Type.E, "url"));
 		layerList.add(new LayerLink("2", LayerLink.Type.G, "url"));
-		dataset.setLayers(layerList);
+		dataset.setLayerPreviews(layerList);
 		DatasetRow row = new DatasetRow(dataset);
 		assertEquals((LayerLink.Type.C.getMask() | LayerLink.Type.E.getMask() | LayerLink.Type.G.getMask())  , row.getLayersMask());
 	
