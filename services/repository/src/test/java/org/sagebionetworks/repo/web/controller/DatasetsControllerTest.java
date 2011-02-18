@@ -90,7 +90,7 @@ public class DatasetsControllerTest {
 	 */
 	@Test
 	public void testGetDatasetsPageOneOfTwo() throws Exception {
-		int totalNumDatasets = SAMPLE_DATASET_NAMES.length;
+		int totalNumDatasets = 11;
 
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
@@ -119,7 +119,7 @@ public class DatasetsControllerTest {
 	 */
 	@Test
 	public void testGetDatasetsPageTwoOfTwo() throws Exception {
-		int totalNumDatasets = SAMPLE_DATASET_NAMES.length;
+		int totalNumDatasets = 11;
 
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {

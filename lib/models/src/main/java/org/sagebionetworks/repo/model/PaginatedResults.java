@@ -96,7 +96,7 @@ public class PaginatedResults<T> implements Serializable {
 					+ sortUrlSuffix);
 		}
 		// Include a next page if we are not on the last page
-		if (nextOffset < totalNumberOfResults) {
+		if (nextOffset <= totalNumberOfResults) {
 			paging.put(NEXT_PAGE_FIELD, urlPath + "?"
 					+ ServiceConstants.PAGINATION_OFFSET_PARAM + "="
 					+ nextOffset + "&"
