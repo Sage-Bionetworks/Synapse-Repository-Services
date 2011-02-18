@@ -5,6 +5,7 @@ import java.io.StringReader;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.queryparser.QueryNode;
 import org.sagebionetworks.repo.queryparser.QueryParser;
+import org.sagebionetworks.repo.queryparser.TokenMgrError;
 
 /**
  * QueryStatement encapsulates the logic that extracts values from the parse
@@ -32,7 +33,7 @@ public class QueryStatement {
 	private Integer offset = ServiceConstants.DEFAULT_PAGINATION_OFFSET;
 
 	private QueryNode parseTree = null;
-	
+
 	/**
 	 * @param query
 	 * @throws ParseException
@@ -41,8 +42,16 @@ public class QueryStatement {
 
 		// TODO stash this in ThreadLocal because its expensive to create and
 		// not threadsafe
-		QueryParser parser = new QueryParser(new StringReader(query));
-		parseTree = (QueryNode) parser.Start();
+		try {
+			QueryParser parser = new QueryParser(new StringReader(query));
+			parseTree = (QueryNode) parser.Start();
+		} catch (TokenMgrError error) {
+			// TokenMgrError is a runtime error but it is not fatal, catching
+			// and re-throwing here so that it can be properly handled upstream
+			// TODO ParseException currently does not have a constructor that
+			// takes the cause object, see if we can override it
+			throw new ParseException("TokenMgrError: " + error.getMessage());
+		}
 
 		for (int i = 0; i < parseTree.jjtGetNumChildren(); i++) {
 			QueryNode node = (QueryNode) parseTree.jjtGetChild(i);
@@ -131,10 +140,11 @@ public class QueryStatement {
 	}
 
 	/**
-	 * Helper method for unit tests and debugging tasks.<p>
+	 * Helper method for unit tests and debugging tasks.
+	 * <p>
 	 * 
-	 * If parsing completed without exceptions, print the resulting parse
-	 * tree on standard output.
+	 * If parsing completed without exceptions, print the resulting parse tree
+	 * on standard output.
 	 */
 	public void dumpParseTree() {
 		parseTree.dump("");

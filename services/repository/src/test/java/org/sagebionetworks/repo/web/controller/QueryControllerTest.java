@@ -16,6 +16,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
@@ -80,7 +81,7 @@ public class QueryControllerTest {
 		request.addParameter("query", "select * from dataset");
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
-		assertEquals("we got 200 OK", 200, response.getStatus());
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
 		JSONObject queryResult = new JSONObject(response.getContentAsString());
 		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
 				queryResult.getInt("totalNumberOfResults"));
@@ -114,7 +115,7 @@ public class QueryControllerTest {
 				"select * from dataset order by \"name\" limit 10");
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
-		assertEquals("we got 200 OK", 200, response.getStatus());
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
 		JSONObject queryResult = new JSONObject(response.getContentAsString());
 		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
 				queryResult.getInt("totalNumberOfResults"));
@@ -151,7 +152,7 @@ public class QueryControllerTest {
 				"select * from dataset order by \"name\" desc");
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
-		assertEquals("we got 200 OK", 200, response.getStatus());
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
 		JSONObject queryResult = new JSONObject(response.getContentAsString());
 		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
 				queryResult.getInt("totalNumberOfResults"));
@@ -190,7 +191,7 @@ public class QueryControllerTest {
 				"select * from dataset where name == \"Pediatric AML TARGET\"");
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
-		assertEquals("we got 200 OK", 200, response.getStatus());
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
 		JSONObject queryResult = new JSONObject(response.getContentAsString());
 		// TODO fix me, this should be 1
 		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
@@ -201,5 +202,28 @@ public class QueryControllerTest {
 		// Check that it is a list of one map
 		JSONObject result = results.getJSONObject(0);
 		assertEquals("Pediatric AML TARGET", result.getString("name"));
+	}
+	
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.QueryController#query} .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testTokenMgrError() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI("/query");
+		request.addParameter("query",
+				"select * from dataset where name == \"Pediatric AML TARGET");
+		servlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
+		JSONObject error = new JSONObject(response.getContentAsString());
+		assertEquals("TokenMgrError: Lexical error at line 1, column 58.  Encountered: <EOF> after : \"\\\"Pediatric AML TARGET\"", error.getString("reason"));
 	}
 }
