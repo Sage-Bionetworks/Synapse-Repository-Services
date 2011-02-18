@@ -20,20 +20,15 @@ public class InputDataLayer implements DatasetLayer {
 	private String processingFacility;
 	private String qcBy;
 	private Date qcDate;
-	private String preview;
-	private Collection<LayerLocation> locations;
 
 	/** 
 	 * The following members are set by the service layer and should not be persisted.
-	 * 
-	 * TODO think about another DTO layer (client <-> service <-> persisted data model)
-	 * where the DTO facing the client is just a map, this will help with partial get/put
-	 * 
-	 * Be careful with the etag computation, it needs to consider some fields and ignore others 
 	 */
 	private String uri; // URI for this layer
 	private String etag; // ETag for this layer
 	private String annotations; // URI for annotations
+	private String preview; // URI for preview
+	private Collection<String> locations; // URIs for locations
 
 	/**
 	 * Allowable layer type names
@@ -198,16 +193,16 @@ public class InputDataLayer implements DatasetLayer {
 	}
 
 	/**
-	 * @return the locations
+	 * @return the location uris
 	 */
-	public Collection<LayerLocation> getLocations() {
+	public Collection<String> getLocations() {
 		return locations;
 	}
 
 	/**
-	 * @param locations the locations to set
+	 * @param locations the uri locations to set
 	 */
-	public void setLocations(Collection<LayerLocation> locations) {
+	public void setLocations(Collection<String> locations) {
 		this.locations = locations;
 	}
 
@@ -222,13 +217,9 @@ public class InputDataLayer implements DatasetLayer {
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result
 				+ ((description == null) ? 0 : description.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result
-				+ ((locations == null) ? 0 : locations.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
 				+ ((platform == null) ? 0 : platform.hashCode());
-		result = prime * result + ((preview == null) ? 0 : preview.hashCode());
 		result = prime
 				* result
 				+ ((processingFacility == null) ? 0 : processingFacility
@@ -268,16 +259,6 @@ public class InputDataLayer implements DatasetLayer {
 				return false;
 		} else if (!description.equals(other.description))
 			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (locations == null) {
-			if (other.locations != null)
-				return false;
-		} else if (!locations.equals(other.locations))
-			return false;
 		if (name == null) {
 			if (other.name != null)
 				return false;
@@ -287,11 +268,6 @@ public class InputDataLayer implements DatasetLayer {
 			if (other.platform != null)
 				return false;
 		} else if (!platform.equals(other.platform))
-			return false;
-		if (preview == null) {
-			if (other.preview != null)
-				return false;
-		} else if (!preview.equals(other.preview))
 			return false;
 		if (processingFacility == null) {
 			if (other.processingFacility != null)
@@ -335,5 +311,6 @@ public class InputDataLayer implements DatasetLayer {
 			return false;
 		return true;
 	}
+
 
 }

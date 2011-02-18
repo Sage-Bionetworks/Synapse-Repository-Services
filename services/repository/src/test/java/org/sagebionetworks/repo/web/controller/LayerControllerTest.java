@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -29,6 +30,9 @@ import org.springframework.web.servlet.DispatcherServlet;
  * Note that test logic and assertions common to operations for all DAO-backed
  * entities can be found in the Helpers class. What follows are test cases that
  * make use of that generic test logic with some assertions specific to layers.
+ * <p>
+ * 
+ * TODO refactor me, this file is too long
  * 
  * @author deflaux
  */
@@ -43,13 +47,8 @@ public class LayerControllerTest {
 	private DispatcherServlet servlet;
 	private JSONObject dataset;
 
-	private final String SAMPLE_LAYER = "{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-			+ "\"description\": \"foo\", \"releaseNotes\":\"bar\", "
-			+ "\"locations\":["
-			+ "{\"type\":\"awss3\",\"path\":\"human_liver_cohort/expression/expression.txt\"},"
-			+ "{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\"},"
-			+ "{\"type\":\"sage\", \"path\":\"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz\"}"
-			+ "], \"preview\":\"this is a preview of a layer\"}";
+	private final String SAMPLE_LAYER = "{\"name\":\"DeLiver expression data\", \"type\":\"E\", "
+			+ "\"description\": \"foo\", \"releaseNotes\":\"bar\"}";
 
 	/**
 	 * @throws java.lang.Exception
@@ -57,7 +56,7 @@ public class LayerControllerTest {
 	@Before
 	public void setUp() throws Exception {
 		servlet = helper.setUp();
-		
+
 		dataset = helper.testCreateJsonEntity("/dataset",
 				"{\"name\":\"DeLiver\"}");
 	}
@@ -126,8 +125,6 @@ public class LayerControllerTest {
 		JSONObject results = helper.testGetJsonEntities(updatedDataset
 				.getString("layer"), null, null, null, null);
 		assertExpectedLayersProperties(results.getJSONArray("results"));
-
-		// TODO newLayer == results
 	}
 
 	/**
@@ -151,17 +148,6 @@ public class LayerControllerTest {
 		assertEquals("DeLiver expression data", results.getString("name"));
 
 		assertExpectedLayerProperties(results);
-
-		JSONArray locations = results.getJSONArray("locations");
-		for (int i = 0; i < locations.length(); i++) {
-			JSONObject location = locations.getJSONObject(i);
-			// These should be the URIs to get metadata about the layer
-			// location, not the actual location because that requires
-			// additional authorization
-			assertTrue(location.getString("path").matches(
-					"/dataset/[^/]+/layer/[^/]+/.*Location$"));
-		}
-
 	}
 
 	/**
@@ -185,11 +171,13 @@ public class LayerControllerTest {
 
 		// Modify that layer
 		layer.put("name", "DeLiver clinical data");
+		layer.put("type", "C");
 		JSONObject updatedLayer = helper.testUpdateJsonEntity(layer);
 		assertExpectedLayerProperties(updatedLayer);
 
 		// Check that the update response reflects the change
 		assertEquals("DeLiver clinical data", updatedLayer.getString("name"));
+		assertEquals("C", updatedLayer.getString("type"));
 
 		// Now make sure the stored one reflects the change too
 		JSONObject storedLayer = helper.testGetJsonEntity(newLayer
@@ -225,7 +213,7 @@ public class LayerControllerTest {
 		helper
 				.testCreateJsonEntity(
 						dataset.getString("layer"),
-						"{\"name\":\"DeLiver genetic data\", \"type\":\"C\", "
+						"{\"name\":\"DeLiver genetic data\", \"type\":\"G\", "
 								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 		helper.testCreateJsonEntity(dataset.getString("layer"), SAMPLE_LAYER);
 		helper
@@ -244,21 +232,6 @@ public class LayerControllerTest {
 				PaginatedResults.NEXT_PAGE_FIELD));
 
 		assertExpectedLayersProperties(results.getJSONArray("results"));
-
-		JSONArray layers = results.getJSONArray("results");
-		for (int j = 0; j < layers.length(); j++) {
-			JSONArray locations = layers.getJSONObject(j).getJSONArray(
-					"locations");
-			for (int i = 0; i < locations.length(); i++) {
-				JSONObject location = locations.getJSONObject(i);
-				// These should be the URIs to get metadata about the layer
-				// location, not the actual location because that requires
-				// additional authorization
-				assertTrue(location.getString("path").matches(
-						"/dataset/[^/]+/layer/[^/]+/.*Location$"));
-			}
-		}
-
 	}
 
 	/**
@@ -269,7 +242,7 @@ public class LayerControllerTest {
 	 * @throws Exception
 	 */
 	@Test
-	public void testUpdateDatasetAnnotations() throws Exception {
+	public void testUpdateLayerAnnotations() throws Exception {
 		JSONObject newLayer = helper.testCreateJsonEntity(dataset
 				.getString("layer"), SAMPLE_LAYER);
 
@@ -278,7 +251,94 @@ public class LayerControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.LayerController#getS3Location}
+	 * {@link org.sagebionetworks.repo.web.controller.LayerPreviewController#updateDependentEntity}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testUpdateLayerPreview() throws Exception {
+
+		JSONObject newLayer = helper.testCreateJsonEntity(dataset
+				.getString("layer"), SAMPLE_LAYER);
+
+		// Get the layer
+		JSONObject layerPreview = helper.testGetJsonEntity(newLayer
+				.getString("preview"));
+
+		assertEquals(newLayer.getString("id"), layerPreview.getString("id"));
+		assertEquals("", layerPreview.getString("preview"));
+
+		// Modify that layer
+		layerPreview.put("preview", "this is an updated preview of a layer");
+		JSONObject updatedLayerPreview = helper
+				.testUpdateJsonEntity(layerPreview);
+
+		// Check that the update response reflects the change
+		assertEquals("this is an updated preview of a layer",
+				updatedLayerPreview.getString("preview"));
+
+		// Now make sure the stored one reflects the change too
+		JSONObject storedLayerPreview = helper.testGetJsonEntity(newLayer
+				.getString("preview"));
+		assertEquals("this is an updated preview of a layer",
+				storedLayerPreview.getString("preview"));
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.LayerLocationsController#updateDependentEntity}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testUpdateLayerLocations() throws Exception {
+
+		JSONObject newLayer = helper.testCreateJsonEntity(dataset
+				.getString("layer"), SAMPLE_LAYER);
+
+		// Get the Locations
+		JSONObject layerLocations = helper.testGetJsonEntity(newLayer
+				.getJSONArray("locations").getString(0));
+		assertExpectedLayerLocationsProperties(layerLocations);
+		assertEquals(newLayer.getString("id"), layerLocations.getString("id"));
+		JSONArray locations = layerLocations.getJSONArray("locations");
+		assertEquals(0, locations.length());
+
+		// Modify the locations
+		locations
+				.put(new JSONObject(
+						"{\"type\":\"awss3\",\"path\":\"human_liver_cohort/expression/expression.txt\"}"));
+		locations.put(new JSONObject(
+				"{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\"}"));
+		locations
+				.put(new JSONObject(
+						"{\"type\":\"sage\", \"path\":\"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz\"}"));
+		JSONObject updatedLayerLocations = helper
+				.testUpdateJsonEntity(layerLocations);
+		assertExpectedLayerLocationsProperties(updatedLayerLocations);
+
+		// Check that the update response reflects the change
+		assertEquals(3, updatedLayerLocations.getJSONArray("locations")
+				.length());
+
+		// Now make sure the stored one reflects the change too
+		JSONObject storedLayerLocations = helper.testGetJsonEntity(newLayer
+				.getJSONArray("locations").getString(0));
+		assertEquals(3, storedLayerLocations.getJSONArray("locations").length());
+		assertExpectedLayerLocationsProperties(storedLayerLocations);
+		
+		// As a sanity check, make sure we can walk from one end to the other
+		JSONObject saneDataset = helper.testGetJsonEntity(dataset.getString("uri"));
+		JSONObject saneLayers = helper.testGetJsonEntities(saneDataset.getString("layer"), null, null, null, null);
+		JSONObject saneLayer = helper.testGetJsonEntity(saneLayers.getJSONArray("results").getJSONObject(0).getString("uri"));
+		helper.testGetJsonObject(saneLayer.getJSONArray("locations").getString(0));
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.LayerLocationsController#getS3Location}
 	 * .
 	 * 
 	 * @throws Exception
@@ -289,23 +349,39 @@ public class LayerControllerTest {
 		JSONObject newLayer = helper.testCreateJsonEntity(dataset
 				.getString("layer"), SAMPLE_LAYER);
 
+		// Get the Locations
+		JSONObject layerLocations = helper.testGetJsonEntity(newLayer
+				.getJSONArray("locations").getString(0));
+
+		assertEquals(newLayer.getString("id"), layerLocations.getString("id"));
+		JSONArray locations = layerLocations.getJSONArray("locations");
+		assertEquals(0, locations.length());
+
+		// Modify the locations
+		locations
+				.put(new JSONObject(
+						"{\"type\":\"awss3\",\"path\":\"human_liver_cohort/expression/expression.txt\"}"));
+		locations.put(new JSONObject(
+				"{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\"}"));
+		locations
+				.put(new JSONObject(
+						"{\"type\":\"sage\", \"path\":\"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz\"}"));
+		helper.testUpdateJsonEntity(layerLocations);
+
 		// Get the layer
 		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
-
 		assertExpectedLayerProperties(layer);
 
 		// Get the location
 		JSONObject location = null;
 		for (int i = 0; i < layer.getJSONArray("locations").length(); i++) {
-			if (layer.getJSONArray("locations").getJSONObject(i).getString(
-					"type").equals("awss3")) {
-				location = helper.testGetJsonObject(layer.getJSONArray(
-						"locations").getJSONObject(i).getString("path"));
+			String locationUri = layer.getJSONArray("locations").getString(i);
+			if (locationUri.endsWith(UrlHelpers.S3_LOCATIONSUFFIX)) {
+				location = helper.testGetJsonObject(locationUri);
 				break;
 			}
 		}
 
-		// TODO
 		assertTrue(location
 				.getString("path")
 				.matches(
@@ -315,7 +391,7 @@ public class LayerControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.LayerController#getEbsLocation}
+	 * {@link org.sagebionetworks.repo.web.controller.LayerLocationsController#getEbsLocation}
 	 * .
 	 * 
 	 * @throws Exception
@@ -326,28 +402,45 @@ public class LayerControllerTest {
 		JSONObject newLayer = helper.testCreateJsonEntity(dataset
 				.getString("layer"), SAMPLE_LAYER);
 
+		// Get the Locations
+		JSONObject layerLocations = helper.testGetJsonEntity(newLayer
+				.getJSONArray("locations").getString(0));
+
+		assertEquals(newLayer.getString("id"), layerLocations.getString("id"));
+		JSONArray locations = layerLocations.getJSONArray("locations");
+		assertEquals(0, locations.length());
+
+		// Modify the locations
+		locations
+				.put(new JSONObject(
+						"{\"type\":\"awss3\",\"path\":\"human_liver_cohort/expression/expression.txt\"}"));
+		locations.put(new JSONObject(
+				"{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\"}"));
+		locations
+				.put(new JSONObject(
+						"{\"type\":\"sage\", \"path\":\"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz\"}"));
+		helper.testUpdateJsonEntity(layerLocations);
+
 		// Get the layer
 		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
-
 		assertExpectedLayerProperties(layer);
 
 		// Get the location
 		JSONObject location = null;
 		for (int i = 0; i < layer.getJSONArray("locations").length(); i++) {
-			if (layer.getJSONArray("locations").getJSONObject(i).getString(
-					"type").equals("awsebs")) {
-				location = helper.testGetJsonObject(layer.getJSONArray(
-						"locations").getJSONObject(i).getString("path"));
+			String locationUri = layer.getJSONArray("locations").getString(i);
+			if (locationUri.endsWith(UrlHelpers.EBS_LOCATIONSUFFIX)) {
+				location = helper.testGetJsonObject(locationUri);
 				break;
 			}
 		}
-		assertEquals("snap-29d33a42 (US West)", location.getString("path"));
 
+		assertEquals("snap-29d33a42 (US West)", location.getString("path"));
 	}
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.LayerController#getSageLocation}
+	 * {@link org.sagebionetworks.repo.web.controller.LayerLocationsController#getSageLocation}
 	 * .
 	 * 
 	 * @throws Exception
@@ -358,21 +451,39 @@ public class LayerControllerTest {
 		JSONObject newLayer = helper.testCreateJsonEntity(dataset
 				.getString("layer"), SAMPLE_LAYER);
 
+		// Get the Locations
+		JSONObject layerLocations = helper.testGetJsonEntity(newLayer
+				.getJSONArray("locations").getString(0));
+
+		assertEquals(newLayer.getString("id"), layerLocations.getString("id"));
+		JSONArray locations = layerLocations.getJSONArray("locations");
+		assertEquals(0, locations.length());
+
+		// Modify the locations
+		locations
+				.put(new JSONObject(
+						"{\"type\":\"awss3\",\"path\":\"human_liver_cohort/expression/expression.txt\"}"));
+		locations.put(new JSONObject(
+				"{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\"}"));
+		locations
+				.put(new JSONObject(
+						"{\"type\":\"sage\", \"path\":\"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz\"}"));
+		helper.testUpdateJsonEntity(layerLocations);
+
 		// Get the layer
 		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
-
 		assertExpectedLayerProperties(layer);
 
 		// Get the location
 		JSONObject location = null;
 		for (int i = 0; i < layer.getJSONArray("locations").length(); i++) {
-			if (layer.getJSONArray("locations").getJSONObject(i).getString(
-					"type").equals("sage")) {
-				location = helper.testGetJsonObject(layer.getJSONArray(
-						"locations").getJSONObject(i).getString("path"));
+			String locationUri = layer.getJSONArray("locations").getString(i);
+			if (locationUri.endsWith(UrlHelpers.SAGE_LOCATIONSUFFIX)) {
+				location = helper.testGetJsonObject(locationUri);
 				break;
 			}
 		}
+
 		assertEquals(
 				"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz",
 				location.getString("path"));
@@ -423,22 +534,30 @@ public class LayerControllerTest {
 	@Test
 	public void testInvalidLocationModelCreateLayer() throws Exception {
 
-		JSONObject error = helper
-				.testCreateJsonEntityShouldFail(
-						dataset.getString("layer"),
-						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-						+ "\"description\": \"foo\", \"releaseNotes\":\"bar\", "
-						+ "\"locations\":["
-						+ "{\"type\":\"awss3\",\"path\":\"http://s3.awsamazon.com/mybucket/foo.txt\"},"
-						+ "{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\"},"
-						+ "{\"type\":\"ThisShouldFail\", \"path\":\"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz\"}"
-						+ "]}",
-						HttpStatus.BAD_REQUEST);
+		JSONObject newLayer = helper.testCreateJsonEntity(dataset
+				.getString("layer"), SAMPLE_LAYER);
+
+		// Get the Locations
+		JSONObject layerLocations = helper.testGetJsonEntity(newLayer
+				.getJSONArray("locations").getString(0));
+		JSONArray locations = layerLocations.getJSONArray("locations");
+
+		// Modify the locations
+		locations
+				.put(new JSONObject(
+						"{\"type\":\"awss3\",\"path\":\"human_liver_cohort/expression/expression.txt\"}"));
+		locations.put(new JSONObject(
+				"{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\"}"));
+		locations
+				.put(new JSONObject(
+						"{\"type\":\"ThisShouldFail\", \"path\":\"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz\"}"));
+		JSONObject error = helper.testUpdateJsonEntityShouldFail(
+				layerLocations, HttpStatus.BAD_REQUEST);
 
 		String reason = error.getString("reason");
 		assertEquals("'type' must be one of: awss3 awsebs sage", reason);
 	}
-	
+
 	/**
 	 * Test method for
 	 * {@link org.sagebionetworks.repo.web.controller.LayerController#createChildEntity}
@@ -585,7 +704,7 @@ public class LayerControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.LayerController#getS3Location}
+	 * {@link org.sagebionetworks.repo.web.controller.LayerLocationsController#getS3Location}
 	 * .
 	 * 
 	 * @throws Exception
@@ -594,20 +713,16 @@ public class LayerControllerTest {
 	public void testGetNonExistentLayerLocation() throws Exception {
 		// Load up a layer
 		JSONObject newLayer = helper
-				.testCreateJsonEntity(dataset
-				.getString("layer"), 
-				"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
-					+ "\"description\": \"foo\", \"releaseNotes\":\"bar\", "
-					+ "\"locations\":["
-					+ "{\"type\":\"awss3\",\"path\":\"http://s3.awsamazon.com/mybucket/foo.txt\"},"
-					+ "{\"type\":\"sage\", \"path\":\"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz\"}"
-					+ "]}");
+				.testCreateJsonEntity(
+						dataset.getString("layer"),
+						"{\"name\":\"DeLiver expression data\", \"type\":\"C\", "
+								+ "\"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 
-		helper.testGetJsonObject(newLayer.getString("uri") + "/awsS3Location");
-		helper.testGetJsonObject(newLayer.getString("uri") + "/sageLocation");
-		
-		JSONObject error = helper.testGetJsonEntityShouldFail(newLayer.getString("uri") + "/awsEBSLocation", HttpStatus.NOT_FOUND);
-		assertTrue(error.getString("reason").startsWith("No AWS EBS location exists for layer"));
+		JSONObject error = helper.testGetJsonEntityShouldFail(newLayer
+				.getString("uri")
+				+ "/awsEBSLocation", HttpStatus.NOT_FOUND);
+		assertTrue(error.getString("reason").startsWith(
+				"No AWS EBS location exists for layer"));
 
 	}
 
@@ -683,7 +798,9 @@ public class LayerControllerTest {
 
 		// Check immutable system-defined properties
 		assertTrue(results.has("annotations"));
-		assertFalse("null".equals(results.getString("annotations")));
+		assertTrue(results.getString("annotations").endsWith("/annotations"));
+		assertTrue(results.has("preview"));
+		assertTrue(results.getString("preview").endsWith("/preview"));
 		assertTrue(results.has("creationDate"));
 		assertFalse("null".equals(results.getString("creationDate")));
 
@@ -692,7 +809,23 @@ public class LayerControllerTest {
 		assertFalse("null".equals(results.getString("version")));
 
 		// Check that other properties are present, even if their value is null
-		assertTrue(results.has("preview"));
+		JSONArray locations = results.getJSONArray("locations");
+		assertNotNull(locations);
+		for (int i = 0; i < locations.length(); i++) {
+			String location = locations.getString(i);
+			assertTrue(location
+					.matches("/dataset/[^/]+/layer/[^/]+/(locations|.*Location)$"));
+		}
+	}
+
+	/**
+	 * @param results
+	 * @throws Exception
+	 */
+	public static void assertExpectedLayerLocationsProperties(JSONObject results)
+			throws Exception {
+
+		// Check that other properties are present, even if their value is null
 		JSONArray locations = results.getJSONArray("locations");
 		assertNotNull(locations);
 		for (int i = 0; i < locations.length(); i++) {
@@ -701,4 +834,5 @@ public class LayerControllerTest {
 			assertFalse("null".equals(location.getString("path")));
 		}
 	}
+
 }

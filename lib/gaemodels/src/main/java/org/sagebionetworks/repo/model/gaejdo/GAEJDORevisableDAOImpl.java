@@ -57,6 +57,16 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 		if (null == dto.getVersion()) {
 			dto.setVersion(DEFAULT_VERSION);
 		}
+		
+		//
+		// Set system-controlled immutable fields
+		//
+		// Question: is this where we want to be setting immutable
+		// system-controlled fields for our
+		// objects? This should only be set at creation time so its not
+		// appropriate to put it in copyFromDTO.
+		dto.setCreationDate(new Date()); // now
+
 		T jdo = super.createIntern(dto);
 		GAEJDORevision<T> r = jdo.getRevision();
 		r.setRevisionDate(dto.getCreationDate());

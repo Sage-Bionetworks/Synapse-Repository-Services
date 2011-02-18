@@ -15,4 +15,8 @@ public interface DAOFactory {
 	public DatasetDAO getDatasetDAO();
 
 	public DatasetAnalysisDAO getDatasetAnalysisDAO();
+
+	public LayerPreviewDAO getLayerPreviewDAO();
+
+	public LayerLocationsDAO getLayerLocationsDAO();
 }

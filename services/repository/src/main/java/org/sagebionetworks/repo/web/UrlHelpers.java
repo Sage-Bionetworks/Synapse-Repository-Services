@@ -18,6 +18,8 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.LayerLocations;
+import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.LayerLocation;
 
 /**
@@ -63,6 +65,16 @@ public class UrlHelpers {
 	public static final String QUERY = "/query";
 
 	/**
+	 * URL suffix for preview info
+	 */
+	public static final String PREVIEW = "/preview";
+	
+	/**
+	 * URL suffix for locations info
+	 */
+	public static final String LOCATIONS = "/locations";
+
+	/**
 	 * URL suffix for S3 location metadata
 	 */
 	public static final String S3_LOCATIONSUFFIX = "/awsS3Location";
@@ -96,6 +108,11 @@ public class UrlHelpers {
 	 * Mapping of child urls to their parent urls
 	 */
 	private static final Map<String, String> CHILD2PARENTURL;
+	
+	/**
+	 * Mapping of dependent property classes to their url suffixes
+	 */
+	private static final Map<Class, String> PROPERTY2URLSUFFIX;
 
 	private static final Map<String, String> LOCATIONTYPE2URL;
 
@@ -120,6 +137,12 @@ public class UrlHelpers {
 		// TODO create this using the other maps, being lazy right now
 		child2parenturl.put(LAYER, DATASET);
 		CHILD2PARENTURL = Collections.unmodifiableMap(child2parenturl);
+		
+		Map<Class, String> property2urlsuffix = new HashMap<Class, String>();
+		property2urlsuffix.put(Annotations.class, ANNOTATIONS);
+		property2urlsuffix.put(LayerPreview.class, PREVIEW);
+		property2urlsuffix.put(LayerLocations.class, LOCATIONS);
+		PROPERTY2URLSUFFIX = Collections.unmodifiableMap(property2urlsuffix);
 
 		Map<String, String> locationtype2url = new HashMap<String, String>();
 		locationtype2url.put(LayerLocation.LocationTypeNames.awss3.name(), S3_LOCATIONSUFFIX);
@@ -222,20 +245,16 @@ public class UrlHelpers {
 	}
 
 	/**
-	 * Helper function to create a relative URL for an entity's annotations
+	 * Helper function to create a relative URL for an entity's dependent property
 	 * <p>
 	 * 
 	 * This includes not only the entity id but also the controller and servlet
 	 * portions of the path
 	 * 
-	 * @param entityClass
-	 * @param annotations
 	 * @param request
 	 * @return the uri for this entity's annotations
 	 */
-	public static String makeEntityAnnotationsUri(Class entityClass,
-			Annotations annotations, HttpServletRequest request) {
-
+	public static String makeEntityPropertyUri(HttpServletRequest request) {
 		return request.getRequestURI();
 	}
 
@@ -247,10 +266,11 @@ public class UrlHelpers {
 	 * portions of the path
 	 * 
 	 * @param entity
+	 * @param propertyClass
 	 * @param request
 	 * @return the uri for this entity's annotations
 	 */
-	public static String makeEntityAnnotationsUri(Base entity,
+	public static String makeEntityPropertyUri(Base entity, Class propertyClass,
 			HttpServletRequest request) {
 
 		String urlPrefix = getUrlPrefix(entity, request);
@@ -259,7 +279,7 @@ public class UrlHelpers {
 		try {
 			uri = urlPrefix + UrlHelpers.getUrlForModel(entity.getClass())
 					+ "/" + URLEncoder.encode(entity.getId(), "UTF-8")
-					+ ANNOTATIONS;
+					+ PROPERTY2URLSUFFIX.get(propertyClass);
 		} catch (UnsupportedEncodingException e) {
 			log.log(Level.SEVERE,
 					"Something is really messed up if we don't support UTF-8",

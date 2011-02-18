@@ -5,6 +5,8 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
+import org.sagebionetworks.repo.model.LayerLocation;
+
 import com.google.appengine.api.datastore.Key;
 
 /**
@@ -24,6 +26,16 @@ public class GAEJDOLayerLocation {
 
 	@Persistent
 	private String path;
+	
+	// this is the backwards pointer for the 1-1 owned relationship
+	@Persistent
+	private GAEJDOLayerLocations owner;
+
+	/**
+	 * Default constructor
+	 */
+	public GAEJDOLayerLocation() {
+	}
 
 	/**
 	 * @param type
@@ -33,6 +45,15 @@ public class GAEJDOLayerLocation {
 		super();
 		this.type = type;
 		this.path = path;
+	}
+
+	/**
+	 * @param location
+	 */
+	public GAEJDOLayerLocation(LayerLocation location) {
+		super();
+		this.type = location.getType();
+		this.path = location.getPath();
 	}
 
 	/**
@@ -75,6 +96,29 @@ public class GAEJDOLayerLocation {
 	 */
 	public void setPath(String path) {
 		this.path = path;
+	}
+
+
+
+	/**
+	 * @param owner the owner to set
+	 */
+	public void setOwner(GAEJDOLayerLocations owner) {
+		this.owner = owner;
+	}
+
+	/**
+	 * @return the owner
+	 */
+	public GAEJDOLayerLocations getOwner() {
+		return owner;
+	}
+
+	/**
+	 * @return a LayerLocation instantiated with the values of this {@link GAEJDOLayerLocation}
+	 */
+	public LayerLocation toLayerLocation() {
+		return new LayerLocation(this.type, this.path);
 	}
 
 

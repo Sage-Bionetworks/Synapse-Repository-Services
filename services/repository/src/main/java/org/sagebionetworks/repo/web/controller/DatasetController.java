@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.Dataset;
@@ -194,12 +195,11 @@ public class DatasetController extends BaseController implements
 	private void addServiceSpecificMetadata(Dataset dataset,
 			HttpServletRequest request) throws DatastoreException {
 
-		dataset.setAnnotations(UrlHelpers.makeEntityAnnotationsUri(dataset,
-				request));
+		dataset.setAnnotations(UrlHelpers.makeEntityPropertyUri(dataset,
+				Annotations.class, request));
 
 		dataset.setLayer(UrlHelpers.makeEntityUri(dataset, request) + "/layer");
 
 		return;
 	}
-
 }

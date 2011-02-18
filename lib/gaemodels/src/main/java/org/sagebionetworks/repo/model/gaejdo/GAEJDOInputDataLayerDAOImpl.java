@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.appengine.api.datastore.Key;
@@ -44,16 +43,14 @@ public class GAEJDOInputDataLayerDAOImpl extends
 		jdo.setAnnotations(a);
 		GAEJDORevision<GAEJDOInputDataLayer> r = new GAEJDORevision<GAEJDOInputDataLayer>();
 		jdo.setRevision(r);
-
+		GAEJDOLayerLocations l = GAEJDOLayerLocations.newGAEJDOLayerLocations();
+		jdo.setLocations(l);
+		
 		return jdo;
 	}
 
 	protected void copyToDto(GAEJDOInputDataLayer jdo, InputDataLayer dto)
 			throws DatastoreException {
-		dto.setId(KeyFactory.keyToString(jdo.getId()));
-		// TODO InputDataLayer only has a subset of the fields in
-		// GAEJDODatasetLayer
-		// and GAEJDOInputDataLayer, the rest need to be added to the DTO
 
 		dto.setId(KeyFactory.keyToString(jdo.getId()));
 		dto.setName(jdo.getName());
@@ -75,15 +72,7 @@ public class GAEJDOInputDataLayerDAOImpl extends
 		dto.setProcessingFacility(jdo.getPlatform());
 		dto.setQcBy(jdo.getQcBy());
 		dto.setQcDate(jdo.getQcDate());
-		dto.setPreview(jdo.getPreview().getValue());
-		Collection<LayerLocation> dtoLocations = new HashSet<LayerLocation>();
-		if(null != jdo.getLocations()) {
-			for(GAEJDOLayerLocation location : jdo.getLocations()) {
-				dtoLocations.add(new LayerLocation(location.getType(), location.getPath()));
-			}
-		}
-		dto.setLocations(dtoLocations);
-}
+	}
 
 	/**
 	 * Do a shallow copy from the DTO object to the JDO object.
@@ -112,12 +101,14 @@ public class GAEJDOInputDataLayerDAOImpl extends
 					"'type' is a required property for InputDataLayer");
 		}
 		jdo.setName(dto.getName());
-		String description = (null == dto.getDescription()) ? "" : dto.getDescription();
+		String description = (null == dto.getDescription()) ? "" : dto
+				.getDescription();
 		jdo.setDescription(new Text(description));
 		jdo.setCreationDate(dto.getCreationDate());
 
 		jdo.setPublicationDate(dto.getPublicationDate());
-		String releaseNotes = (null == dto.getReleaseNotes()) ? "" : dto.getReleaseNotes();
+		String releaseNotes = (null == dto.getReleaseNotes()) ? "" : dto
+				.getReleaseNotes();
 		jdo.setReleaseNotes(new Text(releaseNotes));
 		jdo.setType(dto.getType());
 		jdo.setTissueType(dto.getTissueType());
@@ -125,15 +116,6 @@ public class GAEJDOInputDataLayerDAOImpl extends
 		jdo.setProcessingFacility(dto.getPlatform());
 		jdo.setQcBy(dto.getQcBy());
 		jdo.setQcDate(dto.getQcDate());
-		String preview = null == dto.getPreview() ? "" : dto.getPreview();
-		jdo.setPreview(new Text(preview));
-		Collection<GAEJDOLayerLocation> jdoLocations = new HashSet<GAEJDOLayerLocation>();
-		if(null != dto.getLocations()) {
-			for(LayerLocation location : dto.getLocations()) {
-				jdoLocations.add(new GAEJDOLayerLocation(location.getType(), location.getPath()));
-			}
-		}
-		jdo.setLocations(jdoLocations);
 	}
 
 	/**
@@ -158,36 +140,38 @@ public class GAEJDOInputDataLayerDAOImpl extends
 	 * @param jdo
 	 *            the object to be deleted
 	 */
-//	protected void preDelete(PersistenceManager pm, GAEJDOInputDataLayer jdo) {
-//		// remove layer from parent
-//		GAEJDODataset parent = (GAEJDODataset) pm.getObjectById(
-//				GAEJDODataset.class, datasetId);
-//		parent.getLayers().remove(jdo.getId());
-//	}
+	// protected void preDelete(PersistenceManager pm, GAEJDOInputDataLayer jdo)
+	// {
+	// // remove layer from parent
+	// GAEJDODataset parent = (GAEJDODataset) pm.getObjectById(
+	// GAEJDODataset.class, datasetId);
+	// parent.getLayers().remove(jdo.getId());
+	// }
 
-//	protected Key generateKey(PersistenceManager pm) throws DatastoreException {
-//		long n = 1000L + (long) getCount(pm); // could also use a 'sequence' to
-//												// generate a unique integer
-//		Key key = KeyFactory.createKey(datasetId, "GAEJDOInputDataLayer", n);
-//		return key;
-//	}
+	// protected Key generateKey(PersistenceManager pm) throws
+	// DatastoreException {
+	// long n = 1000L + (long) getCount(pm); // could also use a 'sequence' to
+	// // generate a unique integer
+	// Key key = KeyFactory.createKey(datasetId, "GAEJDOInputDataLayer", n);
+	// return key;
+	// }
 
-//	/**
-//	 * take care of any work that has to be done after creating the persistent
-//	 * object but within the same transaction
-//	 * 
-//	 * @param pm
-//	 * @param jdo
-//	 */
-//	protected void postCreate(PersistenceManager pm, GAEJDOInputDataLayer jdo) {
-//		// add layer to parent
-//		GAEJDODataset parent = (GAEJDODataset) pm.getObjectById(
-//				GAEJDODataset.class, datasetId);
-//		parent.getInputLayers().add(jdo);
-//	}
-//	
-	
-	
+	// /**
+	// * take care of any work that has to be done after creating the persistent
+	// * object but within the same transaction
+	// *
+	// * @param pm
+	// * @param jdo
+	// */
+	// protected void postCreate(PersistenceManager pm, GAEJDOInputDataLayer
+	// jdo) {
+	// // add layer to parent
+	// GAEJDODataset parent = (GAEJDODataset) pm.getObjectById(
+	// GAEJDODataset.class, datasetId);
+	// parent.getInputLayers().add(jdo);
+	// }
+	//	
+
 	/**
 	 * Create a new object, using the information in the passed DTO
 	 * 
@@ -202,7 +186,8 @@ public class GAEJDOInputDataLayerDAOImpl extends
 		try {
 			tx = pm.currentTransaction();
 			tx.begin();
-			GAEJDODataset ownerDataset = (GAEJDODataset) pm.getObjectById(GAEJDODataset.class, datasetId);
+			GAEJDODataset ownerDataset = (GAEJDODataset) pm.getObjectById(
+					GAEJDODataset.class, datasetId);
 
 			GAEJDOInputDataLayer jdo = createIntern(dto);
 			// copyFromDto(dto, jdo);
@@ -210,7 +195,8 @@ public class GAEJDOInputDataLayerDAOImpl extends
 			pm.makePersistent(ownerDataset);
 			GAEJDORevision<GAEJDOInputDataLayer> r = jdo.getRevision();
 			r.setOriginal(r.getId()); // points to itself
-			pm.makePersistent(ownerDataset); // not sure if it's necessary to 'persist' again
+			pm.makePersistent(ownerDataset); // not sure if it's necessary to
+			// 'persist' again
 			tx.commit();
 			copyToDto(jdo, dto);
 			return KeyFactory.keyToString(jdo.getId());
@@ -231,7 +217,7 @@ public class GAEJDOInputDataLayerDAOImpl extends
 		// generate a unique integer
 		Key key = KeyFactory.createKey(datasetId, "GAEJDOInputDataLayer", n);
 		return key;
-}
+	}
 
 	/**
 	 * Delete the specified object
@@ -248,8 +234,10 @@ public class GAEJDOInputDataLayerDAOImpl extends
 			tx = pm.currentTransaction();
 			tx.begin();
 			Key key = KeyFactory.stringToKey(id);
-			GAEJDOInputDataLayer jdo = (GAEJDOInputDataLayer) pm.getObjectById(getJdoClass(), key);
-			GAEJDODataset ownerDataset = (GAEJDODataset) pm.getObjectById(GAEJDODataset.class, datasetId);
+			GAEJDOInputDataLayer jdo = (GAEJDOInputDataLayer) pm.getObjectById(
+					getJdoClass(), key);
+			GAEJDODataset ownerDataset = (GAEJDODataset) pm.getObjectById(
+					GAEJDODataset.class, datasetId);
 			ownerDataset.getInputLayers().remove(jdo);
 			pm.deletePersistent(jdo);
 			tx.commit();
@@ -265,22 +253,26 @@ public class GAEJDOInputDataLayerDAOImpl extends
 		}
 	}
 
-	//---------------------------------------------------------------------------------------
-	// Modified versions of the BaseDAOImpl methods, to constrain them to dataset of interest
-	//---------------------------------------------------------------------------------------
+	// ---------------------------------------------------------------------------------------
+	// Modified versions of the BaseDAOImpl methods, to constrain them to
+	// dataset of interest
+	// ---------------------------------------------------------------------------------------
 
 	/**
 	 * @return the latest revision of all layers for the Dataset of interest
 	 */
-	private Collection<GAEJDOInputDataLayer> getInputLayers(PersistenceManager pm) throws DatastoreException {
-		GAEJDODataset jdo = (GAEJDODataset) pm.getObjectById(GAEJDODataset.class, datasetId);
+	private Collection<GAEJDOInputDataLayer> getInputLayers(
+			PersistenceManager pm) throws DatastoreException {
+		GAEJDODataset jdo = (GAEJDODataset) pm.getObjectById(
+				GAEJDODataset.class, datasetId);
 		Collection<GAEJDOInputDataLayer> originalLayers = jdo.getInputLayers();
 		Collection<GAEJDOInputDataLayer> ans = new HashSet<GAEJDOInputDataLayer>();
-		for (GAEJDOInputDataLayer layer : originalLayers) ans.add(getLatest(pm, layer));
-//		System.err.println("GAEJDInputDataLayer.getInputLayers: # layers="+originalLayers.size()+" # 'latest' layers="+ans.size());
+		for (GAEJDOInputDataLayer layer : originalLayers)
+			ans.add(getLatest(pm, layer));
+		// System.err.println("GAEJDInputDataLayer.getInputLayers: # layers="+originalLayers.size()+" # 'latest' layers="+ans.size());
 		return ans;
 	}
-	
+
 	protected int getCount(PersistenceManager pm) throws DatastoreException {
 		return getInputLayers(pm).size();
 	}
@@ -293,13 +285,14 @@ public class GAEJDOInputDataLayerDAOImpl extends
 	 * @return a subset of the results, starting at index 'start' and less than
 	 *         index 'end'
 	 */
-	public List<InputDataLayer> getInRange(int start, int end) throws DatastoreException {
+	public List<InputDataLayer> getInRange(int start, int end)
+			throws DatastoreException {
 		PersistenceManager pm = PMF.get();
 		try {
 			List<InputDataLayer> ans = new ArrayList<InputDataLayer>();
 			int cnt = 0;
 			for (GAEJDOInputDataLayer jdo : getInputLayers(pm)) {
-				if (cnt>=start && cnt<end) {
+				if (cnt >= start && cnt < end) {
 					InputDataLayer dto = newDTO();
 					copyToDto(jdo, dto);
 					ans.add(dto);
@@ -313,14 +306,16 @@ public class GAEJDOInputDataLayerDAOImpl extends
 			pm.close();
 		}
 	}
-	
+
 	private static Object getFromField(Object owner, String fieldName) {
 		try {
-		String getterName = "get"+Character.toUpperCase(fieldName.charAt(0))+fieldName.substring(1);
-		Method method = GAEJDOInputDataLayer.class.getMethod(getterName);
-		return method.invoke(owner);
+			String getterName = "get"
+					+ Character.toUpperCase(fieldName.charAt(0))
+					+ fieldName.substring(1);
+			Method method = GAEJDOInputDataLayer.class.getMethod(getterName);
+			return method.invoke(owner);
 		} catch (NoSuchMethodException nme) {
-			throw new IllegalArgumentException("No field "+fieldName);
+			throw new IllegalArgumentException("No field " + fieldName);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -337,48 +332,52 @@ public class GAEJDOInputDataLayerDAOImpl extends
 	 * @return a subset of the results, starting at index 'start' and not going
 	 *         beyond index 'end' and sorted by the given primary field
 	 */
-	public List<InputDataLayer> getInRangeSortedByPrimaryField(int start, int end,
-			final String sortBy, final boolean asc) throws DatastoreException {
+	public List<InputDataLayer> getInRangeSortedByPrimaryField(int start,
+			int end, final String sortBy, final boolean asc)
+			throws DatastoreException {
 		PersistenceManager pm = null;
 		try {
 			pm = PMF.get();
 			// get all the layers
-			List<GAEJDOInputDataLayer> layers = new ArrayList<GAEJDOInputDataLayer>(getInputLayers(pm));
+			List<GAEJDOInputDataLayer> layers = new ArrayList<GAEJDOInputDataLayer>(
+					getInputLayers(pm));
 
-			// I'm not a big fan of reflection.  Initially this was done via a database query,
-			// but constraining to the dataset of interest requires doing the sort in memory.
-//			final Field field;
-//			try {
-//				field = GAEJDOInputDataLayer.class.getField(sortBy);
-//			} catch (NoSuchFieldException nsfe) {
-//				throw new IllegalArgumentException("No such field "+sortBy, nsfe);
-//			}
+			// I'm not a big fan of reflection. Initially this was done via a
+			// database query,
+			// but constraining to the dataset of interest requires doing the
+			// sort in memory.
+			// final Field field;
+			// try {
+			// field = GAEJDOInputDataLayer.class.getField(sortBy);
+			// } catch (NoSuchFieldException nsfe) {
+			// throw new IllegalArgumentException("No such field "+sortBy,
+			// nsfe);
+			// }
 			// sort the layers
-			Collections.sort(layers, 
-				new Comparator<GAEJDOInputDataLayer>() {
-					public int compare(GAEJDOInputDataLayer o1, GAEJDOInputDataLayer o2) {
-						try {
-							Comparable v1 = (Comparable)getFromField(o1, sortBy);
-							Comparable v2 = (Comparable)getFromField(o2, sortBy);
-							if (v1 == null && v2 == null)
-								return 0;
-							if (v1 == null)
-								return -1;
-							if (v2 == null)
-								return 1;
-							return ((asc ? 1 : -1) * v1.compareTo(v2));
-						} catch (Exception e) {
-							throw new RuntimeException(e);
-						}
+			Collections.sort(layers, new Comparator<GAEJDOInputDataLayer>() {
+				public int compare(GAEJDOInputDataLayer o1,
+						GAEJDOInputDataLayer o2) {
+					try {
+						Comparable v1 = (Comparable) getFromField(o1, sortBy);
+						Comparable v2 = (Comparable) getFromField(o2, sortBy);
+						if (v1 == null && v2 == null)
+							return 0;
+						if (v1 == null)
+							return -1;
+						if (v2 == null)
+							return 1;
+						return ((asc ? 1 : -1) * v1.compareTo(v2));
+					} catch (Exception e) {
+						throw new RuntimeException(e);
 					}
 				}
-			);
-			
+			});
+
 			// return just layers start..end
 			List<InputDataLayer> ans = new ArrayList<InputDataLayer>();
 			int cnt = 0;
 			for (GAEJDOInputDataLayer jdo : layers) {
-				if (cnt>=start && cnt<end) {
+				if (cnt >= start && cnt < end) {
 					InputDataLayer dto = newDTO();
 					copyToDto(jdo, dto);
 					ans.add(dto);
@@ -405,29 +404,33 @@ public class GAEJDOInputDataLayerDAOImpl extends
 	 * @return a subset of results, starting at index 'start' and not going
 	 *         beyond index 'end', having the given value for the given field
 	 */
-	public List<InputDataLayer> getInRangeHavingPrimaryField(int start, int end,
-			String attribute, Object value) throws DatastoreException {
+	public List<InputDataLayer> getInRangeHavingPrimaryField(int start,
+			int end, String attribute, Object value) throws DatastoreException {
 		PersistenceManager pm = null;
 		try {
 			pm = PMF.get();
 			// get all the layers
-			List<GAEJDOInputDataLayer> layers = new ArrayList<GAEJDOInputDataLayer>(getInputLayers(pm));
+			List<GAEJDOInputDataLayer> layers = new ArrayList<GAEJDOInputDataLayer>(
+					getInputLayers(pm));
 
-			// I'm not a big fan of reflection.  Initially this was done via a database query,
-			// but constraining to the dataset of interest requires doing the sort in memory.
-//			final Field field;
-//			try {
-//				field = GAEJDOInputDataLayer.class.getField(attribute);
-//			} catch (NoSuchFieldException nsfe) {
-//				throw new IllegalArgumentException("No such field "+attribute, nsfe);
-//			}
-			
+			// I'm not a big fan of reflection. Initially this was done via a
+			// database query,
+			// but constraining to the dataset of interest requires doing the
+			// sort in memory.
+			// final Field field;
+			// try {
+			// field = GAEJDOInputDataLayer.class.getField(attribute);
+			// } catch (NoSuchFieldException nsfe) {
+			// throw new IllegalArgumentException("No such field "+attribute,
+			// nsfe);
+			// }
+
 			List<InputDataLayer> ans = new ArrayList<InputDataLayer>();
 			int cnt = 0;
 			for (GAEJDOInputDataLayer jdo : layers) {
 				boolean match = (value.equals(getFromField(jdo, attribute)));
 				if (match) {
-					if (cnt>=start && cnt<end) {
+					if (cnt >= start && cnt < end) {
 						InputDataLayer dto = newDTO();
 						copyToDto(jdo, dto);
 						ans.add(dto);
@@ -443,6 +446,5 @@ public class GAEJDOInputDataLayerDAOImpl extends
 			pm.close();
 		}
 	}
-
 
 }

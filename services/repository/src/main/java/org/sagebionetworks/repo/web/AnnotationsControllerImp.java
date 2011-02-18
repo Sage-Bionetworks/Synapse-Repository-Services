@@ -37,15 +37,7 @@ public class AnnotationsControllerImp<T extends Base> implements
 	private static final Logger log = Logger
 			.getLogger(AnnotationsControllerImp.class.getName());
 
-	private Class<T> theModelClass;
 	private AnnotatableDAO<T> annotatableDao;
-
-	/**
-	 * @param theModelClass
-	 */
-	public AnnotationsControllerImp(Class<T> theModelClass) {
-		this.theModelClass = theModelClass;
-	}
 
 	@Override
 	public void setDao(BaseDAO<T> dao) {
@@ -170,8 +162,7 @@ public class AnnotationsControllerImp<T extends Base> implements
 	private void addServiceSpecificMetadata(String id, Annotations annotations,
 			HttpServletRequest request) {
 		annotations.setId(id); // the NON url-encoded id
-		annotations.setUri(UrlHelpers.makeEntityAnnotationsUri(theModelClass,
-				annotations, request));
+		annotations.setUri(UrlHelpers.makeEntityPropertyUri(request));
 		annotations.setEtag(UrlHelpers.makeEntityEtag(annotations));
 	}
 }
