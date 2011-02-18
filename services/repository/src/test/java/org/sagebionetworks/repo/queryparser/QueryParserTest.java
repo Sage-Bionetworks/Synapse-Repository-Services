@@ -20,14 +20,13 @@ import org.sagebionetworks.repo.web.QueryStatement;
  */
 public class QueryParserTest {
 
-	private static final Logger log = Logger
-	.getLogger(QueryParserTest.class.getName());
-
+	private static final Logger log = Logger.getLogger(QueryParserTest.class
+			.getName());
 
 	/************************************************************************
 	 * Happy case tests
 	 */
-	
+
 	/**
 	 * @throws Exception
 	 */
@@ -155,7 +154,7 @@ public class QueryParserTest {
 	/************************************************************************
 	 * Error cases, make sure the messages we return are useful to humans.
 	 */
-	
+
 	/**
 	 * @throws Exception
 	 */
@@ -178,35 +177,49 @@ public class QueryParserTest {
 	 */
 	@Test(expected = IllegalArgumentException.class)
 	public void testBadLimit() throws Exception {
-		queryShouldFail("select * from dataset limit 0", 
+		queryShouldFail("select * from dataset limit 0",
 				"pagination limit must be 1 or greater");
 	}
-	
+
+	/**
+	 * @throws Exception
+	 */
+	@Test(expected = ParseException.class)
+	public void testMissingStringTerminator() throws Exception {
+
+		queryShouldFail("select * from layer where type == \"C", 
+				"TokenMgrError: Lexical error at line 1, column 37.  Encountered: <EOF> after : \"\\\"C\"");
+	}
+
 	/**
 	 * @throws Exception
 	 */
 	@Ignore
 	@Test(expected = ParseException.class)
 	public void testExtraStuffAtTheEnd() throws Exception {
-		queryShouldFail("select * from dataset where Species == \"Human\" order by name desc limit 10 offset 1 this is extra stuff", null);
+		queryShouldFail(
+				"select * from dataset where Species == \"Human\" order by name desc limit 10 offset 1 this is extra stuff",
+				null);
 	}
-	
-	private void queryShouldFail(String query, String expectedErrorMessage) throws Exception {
+
+	private void queryShouldFail(String query, String expectedErrorMessage)
+			throws Exception {
 		try {
 			new QueryStatement(query);
 		} catch (Exception e) {
-			log.info("Got error \"" + e.getMessage() + "\" for query \"" + query + "\"");
-			if(null != expectedErrorMessage) {
+			log.info("Got error \"" + e.getMessage() + "\" for query \""
+					+ query + "\"");
+			if (null != expectedErrorMessage) {
 				assertEquals(expectedErrorMessage, e.getMessage());
 			}
 			throw e;
 		}
 	}
-	
+
 	/************************************************************************
 	 * Parser happy case tests
 	 */
-	
+
 	/**
 	 * @throws Exception
 	 */
