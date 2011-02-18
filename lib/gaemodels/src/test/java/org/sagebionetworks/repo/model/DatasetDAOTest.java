@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -20,9 +21,7 @@ import junit.framework.Assert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDOAnnotation;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODataset;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDOInputDataLayer;
@@ -164,6 +163,9 @@ public class DatasetDAOTest {
 		Dataset d = createShallow();
 
 		DatasetDAO dao = fac.getDatasetDAO();
+		LayerLocationsDAO locationsDao = fac.getLayerLocationsDAO();
+		LayerPreviewDAO previewDao = fac.getLayerPreviewDAO();
+		
 		String id = dao.create(d);
 		Assert.assertNotNull(id);
 
@@ -173,29 +175,35 @@ public class DatasetDAOTest {
 		assertFalse(dataset.getHasGeneticData());
 		assertFalse(dataset.getHasClinicalData());
 
-		Collection<LayerLocation> locations = new HashSet<LayerLocation>();
-		locations.add(new LayerLocation("awsebs", "snap-29d33a42 (US West)"));
-		locations
-				.add(new LayerLocation(
-						"sage",
-						"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz"));
-		locations
-				.add(new LayerLocation(
-						"awss3",
-						"tcga_glioblastoma/tcga_glioblastoma_data.tar.gz"));
-
 		Date now = new Date();
 		InputDataLayer layer1 = createLayer(now);
 		layer1.setName("clinical data");
 		layer1.setType("C");
-		layer1.setLocations(locations);
+		
 		InputDataLayerDAO layerDAO = dao.getInputDataLayerDAO(id);
 		layerDAO.create(layer1);
 		layerDAO.getStringAnnotationDAO(layer1.getId()).addAnnotation(
 				"attribute1", "value1");
 		layerDAO.getStringAnnotationDAO(layer1.getId()).addAnnotation(
 				"attribute2", "value2");
-
+		
+		LayerLocations locations = locationsDao.get(layer1.getId());
+		assertEquals(0, locations.getLocations().size());
+		locations.getLocations().add(new LayerLocation("awsebs", "snap-29d33a42 (US West)"));
+		locations.getLocations()
+				.add(new LayerLocation(
+						"sage",
+						"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz"));
+		locations.getLocations()
+				.add(new LayerLocation(
+						"awss3",
+						"tcga_glioblastoma/tcga_glioblastoma_data.tar.gz"));
+		locationsDao.update(locations);
+		
+		LayerPreview preview = previewDao.get(layer1.getId());
+		preview.setPreview("foo!");
+		previewDao.update(preview);
+		
 		InputDataLayer layer2 = createLayer(now);
 		layer2.setName("genotyping data");
 		layer2.setType("G");
@@ -230,8 +238,8 @@ public class DatasetDAOTest {
 		Assert.assertEquals(layer1.getTissueType(), l.getTissueType());
 		Assert.assertEquals(layer1.getUri(), l.getUri());
 		Assert.assertEquals(layer1.getVersion(), l.getVersion());
-		Collection<LayerLocation> storedLocations = layer1.getLocations();
-		Assert.assertEquals(3, storedLocations.size());
+		LayerLocations storedLocations = locationsDao.get(layer1.getId());
+		Assert.assertEquals(3, storedLocations.getLocations().size());
 
 		Collection<InputDataLayer> layers = layerDAO.getInRange(0, 100);
 		Assert.assertEquals(2, layers.size());

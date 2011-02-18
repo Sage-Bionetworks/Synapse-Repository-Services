@@ -47,8 +47,7 @@ public class DatasetAnnotationsController extends BaseController implements
 
 	DatasetAnnotationsController() {
 
-		datasetAnnotationsController = new AnnotationsControllerImp<Dataset>(
-				Dataset.class);
+		datasetAnnotationsController = new AnnotationsControllerImp<Dataset>();
 
 		setDao(datasetDao); // TODO remove this when @Autowired
 	}

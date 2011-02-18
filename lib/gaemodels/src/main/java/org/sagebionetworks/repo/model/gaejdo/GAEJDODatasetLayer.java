@@ -1,17 +1,15 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
-import java.net.URI;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.Inheritance;
+import javax.jdo.annotations.InheritanceStrategy;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
-
-import javax.jdo.annotations.InheritanceStrategy;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
@@ -34,7 +32,7 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Key id;
-	
+
 	@Persistent
 	private String name;
 
@@ -43,7 +41,7 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 
 	@Persistent
 	private Date publicationDate;
-	
+
 	@Persistent
 	private Text description;
 
@@ -56,13 +54,20 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 
 	@Persistent(dependent = "true")
 	private GAEJDOAnnotations annotations;
-	
+
+	@Persistent(dependent = "true")
+	private GAEJDOLayerLocations locations;
+
 	@Persistent
 	private Text preview;
 
-	@Persistent
-	private Collection<GAEJDOLayerLocation> locations;
-	
+	/**
+	 * Default constructor
+	 * <p>
+	 * 
+	 * Set the values of all Text fields to the empty string because it can't
+	 * handle nulls
+	 */
 	public GAEJDODatasetLayer() {
 		setDescription(new Text(""));
 		setReleaseNotes(new Text(""));
@@ -122,7 +127,8 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 	}
 
 	public void setDescription(Text description) {
-		if (description.getValue()==null) throw new NullPointerException("Null Text not allowed.");
+		if (description.getValue() == null)
+			throw new NullPointerException("Null Text not allowed.");
 		this.description = description;
 	}
 
@@ -131,12 +137,14 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 	}
 
 	public void setReleaseNotes(Text releaseNotes) {
-		if (description.getValue()==null) throw new NullPointerException("Null Text not allowed.");
+		if (description.getValue() == null)
+			throw new NullPointerException("Null Text not allowed.");
 		this.releaseNotes = releaseNotes;
 	}
 
 	/**
-	 * @param preview the preview to set
+	 * @param preview
+	 *            the preview to set
 	 */
 	public void setPreview(Text preview) {
 		this.preview = preview;
@@ -150,16 +158,17 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 	}
 
 	/**
-	 * @param locations the locations to set
+	 * @param locations
+	 *            the locations to set
 	 */
-	public void setLocations(Collection<GAEJDOLayerLocation> locations) {
+	public void setLocations(GAEJDOLayerLocations locations) {
 		this.locations = locations;
 	}
 
 	/**
 	 * @return the locations
 	 */
-	public Collection<GAEJDOLayerLocation> getLocations() {
+	public GAEJDOLayerLocations getLocations() {
 		return locations;
 	}
 

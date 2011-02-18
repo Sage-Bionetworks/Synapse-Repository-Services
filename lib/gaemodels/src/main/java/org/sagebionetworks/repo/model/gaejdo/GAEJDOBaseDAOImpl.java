@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.gaejdo;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
 
 import javax.jdo.JDOObjectNotFoundException;
@@ -92,6 +91,9 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 	protected T cloneJdo(T jdo) throws DatastoreException {
 		S dto = newDTO();
 
+		// TODO this assumes that all DTOs reflect the contents of the JDO (a
+		// one-to-one mapping), since this may not always be the case it would
+		// be better to implement jdo.clone()
 		copyToDto(jdo, dto);
 		T clone = newJDO();
 		try {
@@ -142,15 +144,6 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 	protected T createIntern(S dto)
 			throws InvalidModelException, DatastoreException {
 		T jdo = newJDO();
-		//
-		// Set system-controlled immutable fields
-		//
-		// Question: is this where we want to be setting immutable
-		// system-controlled fields for our
-		// objects? This should only be set at creation time so its not
-		// appropriate to put it in copyFromDTO.
-		dto.setCreationDate(new Date()); // now
-
 		copyFromDto(dto, jdo);
 		return jdo;
 	}
