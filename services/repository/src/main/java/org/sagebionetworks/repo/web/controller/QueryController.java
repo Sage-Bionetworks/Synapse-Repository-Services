@@ -38,6 +38,10 @@ public class QueryController extends BaseController {
 
 	// TODO @Autowired, no GAE references allowed in this class
 	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
+	
+	// Use a static instance of this per http://wiki.fasterxml.com/JacksonBestPracticesPerformance
+	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
 	private DatasetDAO datasetDao = DAO_FACTORY.getDatasetDAO();
 	private EntitiesAccessor<Dataset> datasetAccessor = new AnnotatableEntitiesAccessorImpl<Dataset>(
 			datasetDao);
@@ -102,8 +106,7 @@ public class QueryController extends BaseController {
 		List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
 		for (Dataset dataset : datasets) {
 
-			ObjectMapper m = new ObjectMapper();
-			Map<String, Object> result = m.convertValue(dataset, Map.class);
+			Map<String, Object> result = OBJECT_MAPPER.convertValue(dataset, Map.class);
 			// Get rid of fields for REST api
 			result.remove("uri");
 			result.remove("etag");
