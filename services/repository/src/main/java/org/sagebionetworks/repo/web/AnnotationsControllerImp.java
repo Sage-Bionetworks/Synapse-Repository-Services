@@ -13,7 +13,9 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.controller.AnnotationsController;
+import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * Implementation for REST controller for CRUD operations on Annotation DTOs and
@@ -52,8 +54,9 @@ public class AnnotationsControllerImp<T extends Base> implements
 	 * #getEntity(java.lang.String)
 	 */
 	public Annotations getEntityAnnotations(String id,
+			@RequestParam(value="userId", required=false) String userId,
 			HttpServletRequest request) throws NotFoundException,
-			DatastoreException {
+			DatastoreException, UnauthorizedException {
 
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 
@@ -75,10 +78,12 @@ public class AnnotationsControllerImp<T extends Base> implements
 	 * org.sagebionetworks.repo.web.controller.AbstractAnnotatableEntityController
 	 * #updateEntity(java.lang.String, java.lang.Integer, Annotations)
 	 */
-	public Annotations updateEntityAnnotations(String id, Integer etag,
+	public Annotations updateEntityAnnotations(String id, 
+			@RequestParam(value="userId", required=false) String userId,
+			Integer etag,
 			Annotations updatedAnnotations, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
-			DatastoreException {
+			DatastoreException, UnauthorizedException {
 
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 

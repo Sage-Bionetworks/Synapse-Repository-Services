@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.LayerLocations;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.util.LocationHelpers;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -46,11 +48,13 @@ public class LayerLocationsController extends BaseController { // TODO implement
 
 	LayerLocationsController() {
 
-		controller = new DependentEntityControllerImp<LayerLocations,InputDataLayer>(DAO_FACTORY.getLayerLocationsDAO());
-
 		// TODO delete this once IAM is integrated
 		LocationHelpers.useTestKeys();
 
+	}
+	
+	private void setController(String userId) {
+		controller = new DependentEntityControllerImp<LayerLocations,InputDataLayer>(DAO_FACTORY.getLayerLocationsDAO(userId));
 	}
 
 	/*******************************************************************************
@@ -70,9 +74,11 @@ public class LayerLocationsController extends BaseController { // TODO implement
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.LOCATIONS, method = RequestMethod.GET)
 	public @ResponseBody
 	LayerLocations getDependentEntity(@PathVariable String parentId,
+			@RequestParam(value="userId", required=false) String userId,
 			@PathVariable String id, HttpServletRequest request)
-			throws NotFoundException, DatastoreException {
+			throws NotFoundException, DatastoreException, UnauthorizedException {
 
+		setController(userId);
 		// TODO only curators can call this
 		return controller.getDependentEntity(id, request);
 	}
@@ -94,13 +100,15 @@ public class LayerLocationsController extends BaseController { // TODO implement
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.LOCATIONS, method = RequestMethod.PUT)
 	public @ResponseBody
 	LayerLocations updateDependentEntity(@PathVariable String parentId,
+			@RequestParam(value="userId", required=false) String userId,
 			@PathVariable String id,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
 			@RequestBody LayerLocations updatedEntity,
 			HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException,
-			InvalidModelException {
+			InvalidModelException, UnauthorizedException {
 
+		setController(userId);
 		// TODO only curators can call this
 		return controller.updateDependentEntity(id, etag, updatedEntity, request);
 	}
@@ -123,10 +131,12 @@ public class LayerLocationsController extends BaseController { // TODO implement
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.S3_LOCATIONSUFFIX, method = RequestMethod.GET)
 	public @ResponseBody
 	LayerLocation getS3Location(@PathVariable String parentId,
+			@RequestParam(value="userId", required=false) String userId,
 			@PathVariable String id, HttpServletRequest request)
-			throws NotFoundException, DatastoreException {
+			throws NotFoundException, DatastoreException, UnauthorizedException {
 
 		// TODO only authorized users can receive this info
+		setController(userId);
 
 		LayerLocations locations = controller.getDependentEntity(id, request);
 		LayerLocation location = getLocationForLayer(locations,
@@ -157,9 +167,11 @@ public class LayerLocationsController extends BaseController { // TODO implement
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.EBS_LOCATIONSUFFIX, method = RequestMethod.GET)
 	public @ResponseBody
 	LayerLocation getEbsLocation(@PathVariable String parentId,
+			@RequestParam(value="userId", required=false) String userId,
 			@PathVariable String id, HttpServletRequest request)
-			throws NotFoundException, DatastoreException {
+			throws NotFoundException, DatastoreException, UnauthorizedException {
 
+		setController(userId);
 		// TODO only authorized users can receive this info
 		
 		LayerLocations locations = controller.getDependentEntity(id, request);
@@ -186,9 +198,11 @@ public class LayerLocationsController extends BaseController { // TODO implement
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.SAGE_LOCATIONSUFFIX, method = RequestMethod.GET)
 	public @ResponseBody
 	LayerLocation getSageLocation(@PathVariable String parentId,
+			@RequestParam(value="userId", required=false) String userId,
 			@PathVariable String id, HttpServletRequest request)
-			throws NotFoundException, DatastoreException {
+			throws NotFoundException, DatastoreException, UnauthorizedException {
 
+		setController(userId);
 		// TODO only authorized users can receive this info
 
 		LayerLocations locations = controller.getDependentEntity(id, request);

@@ -28,7 +28,8 @@ public class GAEJDOInputDataLayerDAOImpl extends
 
 	private Key datasetId = null;
 
-	public GAEJDOInputDataLayerDAOImpl(Key datasetId) {
+	public GAEJDOInputDataLayerDAOImpl(String userId, Key datasetId) {
+		super(userId);
 		this.datasetId = datasetId;
 	}
 
@@ -198,6 +199,10 @@ public class GAEJDOInputDataLayerDAOImpl extends
 			pm.makePersistent(ownerDataset); // not sure if it's necessary to
 			// 'persist' again
 			tx.commit();
+			//tx = pm.currentTransaction();
+			//tx.begin();
+			addUserAccess(pm, jdo);
+			//tx.commit();
 			copyToDto(jdo, dto);
 			return KeyFactory.keyToString(jdo.getId());
 		} catch (InvalidModelException ime) {
@@ -212,12 +217,6 @@ public class GAEJDOInputDataLayerDAOImpl extends
 		}
 	}
 
-	protected Key generateKey(PersistenceManager pm) throws DatastoreException {
-		long n = 1000L + (long) getCount(pm); // could also use a 'sequence' to
-		// generate a unique integer
-		Key key = KeyFactory.createKey(datasetId, "GAEJDOInputDataLayer", n);
-		return key;
-	}
 
 	/**
 	 * Delete the specified object

@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
@@ -46,12 +47,12 @@ public interface EntityController<T> {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "", method = RequestMethod.GET)
 	public @ResponseBody
-	abstract PaginatedResults<T> getEntities(
+	abstract PaginatedResults<T> getEntities(@RequestParam(value="userId", required=false) String userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending,
-			HttpServletRequest request) throws DatastoreException;
+			HttpServletRequest request) throws DatastoreException, UnauthorizedException;
 
 	/**
 	 * Get a specific entity
@@ -68,8 +69,8 @@ public interface EntityController<T> {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/{id}", method = RequestMethod.GET)
 	public @ResponseBody
-	abstract T getEntity(@PathVariable String id, HttpServletRequest request)
-			throws NotFoundException, DatastoreException;
+	abstract T getEntity(@PathVariable String id,  @RequestParam(value="userId", required=false) String userId, HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Create a new entity
@@ -85,8 +86,8 @@ public interface EntityController<T> {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "", method = RequestMethod.POST)
 	public @ResponseBody
-	abstract T createEntity(@RequestBody T newEntity, HttpServletRequest request)
-			throws DatastoreException, InvalidModelException;
+	abstract T createEntity(@RequestBody T newEntity,  @RequestParam(value="userId", required=false) String userId, HttpServletRequest request)
+			throws DatastoreException, InvalidModelException, UnauthorizedException ;
 
 	/**
 	 * Update an existing entity
@@ -110,10 +111,11 @@ public interface EntityController<T> {
 	@RequestMapping(value = "/{id}", method = RequestMethod.PUT)
 	public @ResponseBody
 	abstract T updateEntity(@PathVariable String id,
+			@RequestParam(value="userId", required=false) String userId, 
 			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
 			@RequestBody T updatedEntity, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
-			DatastoreException, InvalidModelException;
+			DatastoreException, InvalidModelException, UnauthorizedException ;
 
 	/**
 	 * Delete a specific entity
@@ -126,8 +128,8 @@ public interface EntityController<T> {
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
-	public abstract void deleteEntity(@PathVariable String id)
-			throws NotFoundException, DatastoreException;
+	public abstract void deleteEntity(@PathVariable String id,  @RequestParam(value="userId", required=false) String userId)
+			throws NotFoundException, DatastoreException, UnauthorizedException ;
 
 	/**
 	 * Set the Base DAO for this controller to use

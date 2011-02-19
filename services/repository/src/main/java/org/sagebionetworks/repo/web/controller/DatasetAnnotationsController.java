@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.web.AnnotationsControllerImp;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -43,13 +45,13 @@ public class DatasetAnnotationsController extends BaseController implements
 
 	// TODO @Autowired, no GAE references allowed in this class
 	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
-	private DatasetDAO datasetDao = DAO_FACTORY.getDatasetDAO();
+	private DatasetDAO datasetDao = null; //DAO_FACTORY.getDatasetDAO();
 
 	DatasetAnnotationsController() {
 
 		datasetAnnotationsController = new AnnotationsControllerImp<Dataset>();
 
-		setDao(datasetDao); // TODO remove this when @Autowired
+		//setDao(datasetDao); // TODO remove this when @Autowired
 	}
 
 	@Override
@@ -68,9 +70,12 @@ public class DatasetAnnotationsController extends BaseController implements
 			+ UrlHelpers.ANNOTATIONS, method = RequestMethod.GET)
 	public @ResponseBody
 	Annotations getEntityAnnotations(@PathVariable String id,
+			@RequestParam(value="userId", required=false) String userId,
 			HttpServletRequest request) throws NotFoundException,
-			DatastoreException {
-		return datasetAnnotationsController.getEntityAnnotations(id, request);
+			DatastoreException, UnauthorizedException {
+		setDao(DAO_FACTORY.getDatasetDAO(userId));
+
+		return datasetAnnotationsController.getEntityAnnotations(id, userId, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -78,11 +83,14 @@ public class DatasetAnnotationsController extends BaseController implements
 			+ UrlHelpers.ANNOTATIONS, method = RequestMethod.PUT)
 	public @ResponseBody
 	Annotations updateEntityAnnotations(@PathVariable String id,
+			@RequestParam(value="userId", required=false) String userId,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
 			@RequestBody Annotations updatedAnnotations,
 			HttpServletRequest request) throws NotFoundException,
-			ConflictingUpdateException, DatastoreException {
-		return datasetAnnotationsController.updateEntityAnnotations(id, etag,
+			ConflictingUpdateException, DatastoreException, UnauthorizedException {
+		setDao(DAO_FACTORY.getDatasetDAO(userId));
+
+		return datasetAnnotationsController.updateEntityAnnotations(id, userId, etag,
 				updatedAnnotations, request);
 	}
 

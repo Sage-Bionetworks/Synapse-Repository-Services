@@ -21,6 +21,8 @@ import com.google.appengine.api.datastore.KeyFactory;
 
 abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJDORevisable<T>>
 		extends GAEJDOBaseDAOImpl<S, T> implements RevisableDAO<S> {
+	
+	public GAEJDORevisableDAOImpl(String userId) {super(userId);}
 
 	public T cloneJdo(T jdo) throws DatastoreException {
 		T clone = super.cloneJdo(jdo);
@@ -96,6 +98,10 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 			r.setOriginal(r.getId()); // points to itself
 			pm.makePersistent(jdo); // not sure if it's necessary to 'persist' again
 			tx.commit();
+			//tx = pm.currentTransaction();
+			//tx.begin();
+			addUserAccess(pm, jdo); // TODO Am I do the transaction control correctly?
+			//tx.commit();
 			copyToDto(jdo, dto);
 			dto.setId(KeyFactory.keyToString(jdo.getId())); // TODO Consider putting this line in 'copyToDto'
 			return KeyFactory.keyToString(jdo.getId());

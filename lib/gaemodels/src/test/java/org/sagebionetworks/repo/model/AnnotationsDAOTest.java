@@ -51,7 +51,7 @@ public class AnnotationsDAOTest {
 	public void tearDown() throws Exception {
 		if (fac != null && id != null) {
 			if (false)
-				fac.getDatasetDAO().delete(id);
+				fac.getDatasetDAO(null).delete(id);
 			// fac.close();
 			id = null;
 		}
@@ -75,7 +75,7 @@ public class AnnotationsDAOTest {
 		// annots.getStringAnnotations().add(stringAnnot);
 
 		// persist it
-		DatasetDAO da = fac.getDatasetDAO();
+		DatasetDAO da = fac.getDatasetDAO(null);
 		// da.makePersistent(dataset);
 
 		// persisting creates a Key, which we can grab

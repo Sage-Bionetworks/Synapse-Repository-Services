@@ -5,6 +5,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DependentPropertyDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
@@ -43,7 +44,7 @@ public interface DependentEntityController<T,S> {
 	@RequestMapping(value = "/{id}", method = RequestMethod.GET)
 	public @ResponseBody
 	abstract T getDependentEntity(@PathVariable String id, HttpServletRequest request)
-			throws NotFoundException, DatastoreException;
+			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Update an existing dependent entity
@@ -70,7 +71,7 @@ public interface DependentEntityController<T,S> {
 			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
 			@RequestBody T updatedEntity, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
-			DatastoreException, InvalidModelException;
+			DatastoreException, InvalidModelException, UnauthorizedException;
 
 	/**
 	 * Set the Dependent Property DAO for this controller to use
