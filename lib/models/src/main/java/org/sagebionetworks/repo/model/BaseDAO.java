@@ -23,7 +23,7 @@ public interface BaseDAO<T> {
 	 * @throws InvalidModelException
 	 */
 	public String create(T dto) throws DatastoreException,
-			InvalidModelException;
+			InvalidModelException, UnauthorizedException;
 
 	/**
 	 * Retrieves the object given its id
@@ -33,7 +33,7 @@ public interface BaseDAO<T> {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public T get(String id) throws DatastoreException, NotFoundException;
+	public T get(String id) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * This updates the 'shallow' properties of an object
@@ -45,7 +45,7 @@ public interface BaseDAO<T> {
 	 * @throws NotFoundException
 	 */
 	public void update(T dto) throws DatastoreException, InvalidModelException,
-			NotFoundException;
+			NotFoundException, UnauthorizedException;
 
 	/**
 	 * delete the object given by the given ID
@@ -55,7 +55,7 @@ public interface BaseDAO<T> {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public void delete(String id) throws DatastoreException, NotFoundException;
+	public void delete(String id) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * 
@@ -102,5 +102,27 @@ public interface BaseDAO<T> {
 	 */
 	public List<T> getInRangeHavingPrimaryField(int start, int end,
 			String attribute, Object value) throws DatastoreException;
+	
+	// TODO need a clean way to convey Public access
+	/**
+	 * Use case:  Need to find out who has authority to add a new user to a group.
+	 * Here the 'id' refers to the group and 'accessType' = 'change'.  The method
+	 * would return the administrative group who can modify the group of interest.
+	 * 
+	 * @param id the resource of interest
+	 * @param accessType a type of access to the object
+	 * @return those user groups that have the specified type of access to the given object
+	 */
+	public Collection<UserGroup> whoHasAccess(String id, String accessType) throws NotFoundException, DatastoreException ;
+	
+	/**
+	 * Use case:  Need to find out if a user can download a resource.
+	 * 
+	 * @param id the id of the resource of interest
+	 * @param user
+	 * @param accessType
+	 * @return
+	 */
+	public boolean hasAccess(String id, String accessType) throws NotFoundException, DatastoreException ;
 
 }

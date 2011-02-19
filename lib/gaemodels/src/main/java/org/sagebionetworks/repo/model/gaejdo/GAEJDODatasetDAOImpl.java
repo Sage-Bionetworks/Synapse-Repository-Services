@@ -29,7 +29,9 @@ import com.google.appengine.api.datastore.KeyFactory;
 public class GAEJDODatasetDAOImpl extends
 		GAEJDORevisableAnnotatableDAOImpl<Dataset, GAEJDODataset> implements
 		DatasetDAO {
-
+	
+	public GAEJDODatasetDAOImpl(String userId) {super(userId);}
+	
 	public Dataset newDTO() {
 		Dataset dto = new Dataset();
 		return dto;
@@ -52,7 +54,7 @@ public class GAEJDODatasetDAOImpl extends
 	public GAEJDODataset cloneJdo(GAEJDODataset jdo) throws DatastoreException {
 		GAEJDODataset clone = super.cloneJdo(jdo);
 		Set<GAEJDOInputDataLayer> inputLayers = new HashSet<GAEJDOInputDataLayer>();
-		GAEJDOInputDataLayerDAOImpl layerDAO = new GAEJDOInputDataLayerDAOImpl(jdo.getId());
+		GAEJDOInputDataLayerDAOImpl layerDAO = new GAEJDOInputDataLayerDAOImpl(userId, jdo.getId());
 		for (GAEJDOInputDataLayer layer : jdo.getInputLayers()) inputLayers.add(layerDAO.cloneJdo(layer));
 		clone.setInputLayers(inputLayers);
 		return clone;
@@ -140,7 +142,7 @@ public class GAEJDODatasetDAOImpl extends
 	}
 
 	public InputDataLayerDAO getInputDataLayerDAO(String datasetId) {
-		return new GAEJDOInputDataLayerDAOImpl(KeyFactory
+		return new GAEJDOInputDataLayerDAOImpl(userId, KeyFactory
 				.stringToKey(datasetId));
 	}
 

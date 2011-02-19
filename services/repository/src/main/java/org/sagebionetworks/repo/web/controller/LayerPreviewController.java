@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerPreview;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.DependentEntityControllerImp;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -42,8 +44,8 @@ public class LayerPreviewController extends BaseController { // TODO implements 
 	// TODO @Autowired, no GAE references allowed in this class
 	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
 
-	LayerPreviewController() {
-		controller = new DependentEntityControllerImp<LayerPreview,InputDataLayer>(DAO_FACTORY.getLayerPreviewDAO());
+	private void setController(String userId) {
+		controller = new DependentEntityControllerImp<LayerPreview,InputDataLayer>(DAO_FACTORY.getLayerPreviewDAO(userId));
 	}
 
 	/*******************************************************************************
@@ -63,9 +65,10 @@ public class LayerPreviewController extends BaseController { // TODO implements 
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.PREVIEW, method = RequestMethod.GET)
 	public @ResponseBody
 	LayerPreview getDependentEntity(@PathVariable String parentId,
+			@RequestParam(value="userId", required=false) String userId,
 			@PathVariable String id, HttpServletRequest request)
-			throws NotFoundException, DatastoreException {
-
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		setController(userId);
 		return controller.getDependentEntity(id, request);
 	}
 	
@@ -86,13 +89,15 @@ public class LayerPreviewController extends BaseController { // TODO implements 
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.PREVIEW, method = RequestMethod.PUT)
 	public @ResponseBody
 	LayerPreview updateDependentEntity(@PathVariable String parentId,
+			@RequestParam(value="userId", required=false) String userId,
 			@PathVariable String id,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
 			@RequestBody LayerPreview updatedEntity,
 			HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException,
-			InvalidModelException {
+			InvalidModelException, UnauthorizedException {
 
+		setController(userId);
 		return controller.updateDependentEntity(id, etag, updatedEntity, request);
 	}
 	

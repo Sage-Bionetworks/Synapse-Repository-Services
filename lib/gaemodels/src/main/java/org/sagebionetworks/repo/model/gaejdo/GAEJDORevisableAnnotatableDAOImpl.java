@@ -26,6 +26,8 @@ import com.google.appengine.api.datastore.KeyFactory;
 abstract public class GAEJDORevisableAnnotatableDAOImpl<S extends Base & Revisable, T extends GAEJDOAnnotatable & GAEJDOBase & GAEJDORevisable<T>>
 		extends GAEJDORevisableDAOImpl<S, T> implements RevisableDAO<S>,
 		AnnotatableDAO<S> {
+	
+	public GAEJDORevisableAnnotatableDAOImpl(String userId) {super(userId);}
 
 	public T cloneJdo(T jdo) throws DatastoreException {
 		T clone = super.cloneJdo(jdo);

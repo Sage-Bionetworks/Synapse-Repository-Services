@@ -18,6 +18,8 @@ import com.google.appengine.api.datastore.Text;
 public class GAEJDOLayerPreviewDAOImpl extends
 		GAEJDOBaseDAOImpl<LayerPreview, GAEJDOInputDataLayer> implements
 		LayerPreviewDAO {
+	
+	public GAEJDOLayerPreviewDAOImpl(String userId) {super(userId);}
 
 	@Override
 	protected LayerPreview newDTO() {

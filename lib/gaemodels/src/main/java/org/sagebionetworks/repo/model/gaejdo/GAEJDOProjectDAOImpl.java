@@ -19,7 +19,8 @@ import com.google.appengine.api.datastore.Key;
  * @author bhoff
  * 
  */
-public class GAEJDOProjectDAOImpl implements ProjectDAO {
+public class GAEJDOProjectDAOImpl /*implements ProjectDAO*/ {
+
 
 	public GAEJDOProject getProject(Key id) {
 		PersistenceManager pm = PMF.get();
@@ -66,60 +67,5 @@ public class GAEJDOProjectDAOImpl implements ProjectDAO {
 		}
 	}
 
-	@Override
-	public String create(Object dto) throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Object get(String id) throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void update(Object r) throws DatastoreException {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void delete(String id) throws DatastoreException {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public int getCount() throws DatastoreException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public List getInRange(int start, int end) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Collection getPrimaryFields() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List getInRangeSortedByPrimaryField(int start, int end,
-			String sortBy, boolean asc) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List getInRangeHavingPrimaryField(int start, int end,
-			String attribute, Object value) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 }

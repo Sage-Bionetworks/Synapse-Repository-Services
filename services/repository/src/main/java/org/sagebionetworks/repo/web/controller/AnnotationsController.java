@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -46,8 +48,9 @@ public interface AnnotationsController<T extends Base> {
 	@RequestMapping(value = "/{id}/annotations", method = RequestMethod.GET)
 	public @ResponseBody
 	abstract Annotations getEntityAnnotations(@PathVariable String id,
+			@RequestParam(value="userId", required=false) String userId,
 			HttpServletRequest request) throws NotFoundException,
-			DatastoreException;
+			DatastoreException, UnauthorizedException;
 
 	/**
 	 * Update existing annotations for an entity
@@ -70,10 +73,11 @@ public interface AnnotationsController<T extends Base> {
 	@RequestMapping(value = "/{id}/annotations", method = RequestMethod.PUT)
 	public @ResponseBody
 	abstract Annotations updateEntityAnnotations(@PathVariable String id,
+			@RequestParam(value="userId", required=false) String userId,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
 			@RequestBody Annotations updatedAnnotations,
 			HttpServletRequest request) throws NotFoundException,
-			ConflictingUpdateException, DatastoreException;
+			ConflictingUpdateException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Set the DAO for this controller to use

@@ -24,7 +24,7 @@ public interface DependentPropertyDAO<T,S> {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public T get(String id) throws DatastoreException, NotFoundException;
+	public T get(String id) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * This update the subset of the 'shallow' properties of an object accessible via this DTO
@@ -36,7 +36,7 @@ public interface DependentPropertyDAO<T,S> {
 	 * @throws NotFoundException
 	 */
 	public void update(T dto) throws DatastoreException, InvalidModelException,
-			NotFoundException;
+			NotFoundException, UnauthorizedException;
 
 	/**
 	 * @return the names of the fields accessible via this DTO

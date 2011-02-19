@@ -84,7 +84,7 @@ public class DatasetDAOTest {
 	public void testCreateandRetrieve() throws Exception {
 		Dataset d = createShallow();
 
-		DatasetDAO dao = fac.getDatasetDAO();
+		DatasetDAO dao = fac.getDatasetDAO(null);
 		String id = dao.create(d);
 		Assert.assertNotNull(id);
 		dao.getStringAnnotationDAO(id).addAnnotation("Tissue Type", "liver");
@@ -162,9 +162,9 @@ public class DatasetDAOTest {
 	public void testCreateAndRetrieveLayer() throws Exception {
 		Dataset d = createShallow();
 
-		DatasetDAO dao = fac.getDatasetDAO();
-		LayerLocationsDAO locationsDao = fac.getLayerLocationsDAO();
-		LayerPreviewDAO previewDao = fac.getLayerPreviewDAO();
+		DatasetDAO dao = fac.getDatasetDAO(null);
+		LayerLocationsDAO locationsDao = fac.getLayerLocationsDAO(null);
+		LayerPreviewDAO previewDao = fac.getLayerPreviewDAO(null);
 		
 		String id = dao.create(d);
 		Assert.assertNotNull(id);
@@ -308,7 +308,7 @@ public class DatasetDAOTest {
 	public void testCreateAndUpdate() throws Exception {
 		Dataset d = createShallow();
 
-		DatasetDAO dao = fac.getDatasetDAO();
+		DatasetDAO dao = fac.getDatasetDAO(null);
 		String id = dao.create(d);
 		dao.getStringAnnotationDAO(id).addAnnotation("Tissue Type", "liver");
 		dao.getDoubleAnnotationDAO(id).addAnnotation("weight", 99.5D);
@@ -330,7 +330,7 @@ public class DatasetDAOTest {
 	public void testCreateAndDelete() throws Exception {
 		Dataset d = createShallow();
 
-		DatasetDAO dao = fac.getDatasetDAO();
+		DatasetDAO dao = fac.getDatasetDAO(null);
 		String id = dao.create(d);
 		Assert.assertNotNull(id);
 
@@ -417,7 +417,7 @@ public class DatasetDAOTest {
 
 	@Test
 	public void testGetCount() throws Exception {
-		DatasetDAO dao = fac.getDatasetDAO();
+		DatasetDAO dao = fac.getDatasetDAO(null);
 		String id1 = dao.create(createShallow("dataset 1"));
 		Dataset ds2 = createShallow("dataset 2");
 		String id2 = dao.create(ds2);
@@ -436,7 +436,7 @@ public class DatasetDAOTest {
 
 	@Test
 	public void testGetInRange() throws Exception {
-		DatasetDAO dao = fac.getDatasetDAO();
+		DatasetDAO dao = fac.getDatasetDAO(null);
 		Dataset d = null;
 		d = createShallow("d1");
 		dao.create(d);
@@ -457,7 +457,7 @@ public class DatasetDAOTest {
 
 	@Test
 	public void testGetPrimaryFields() throws Exception {
-		DatasetDAO dao = fac.getDatasetDAO();
+		DatasetDAO dao = fac.getDatasetDAO(null);
 		Set s = new HashSet<String>(Arrays.asList(new String[] { "name",
 				"description", "releaseDate", "version", "status", "creator",
 				"creationDate" }));
@@ -466,7 +466,7 @@ public class DatasetDAOTest {
 
 	@Test
 	public void testGetInRangeSortedByPrimaryField() throws Exception {
-		DatasetDAO dao = fac.getDatasetDAO();
+		DatasetDAO dao = fac.getDatasetDAO(null);
 		Dataset d = null;
 		d = createShallow("d1");
 		dao.create(d);
@@ -538,7 +538,7 @@ public class DatasetDAOTest {
 
 	@Test
 	public void testGetInRangeHavingPrimaryField() throws Exception {
-		DatasetDAO dao = fac.getDatasetDAO();
+		DatasetDAO dao = fac.getDatasetDAO(null);
 		Dataset d = null;
 		d = createShallow("d1");
 		d.setStatus("preliminary");
@@ -573,7 +573,7 @@ public class DatasetDAOTest {
 		d.setVersion("1.0");
 		d.setStatus("in progress");
 
-		DatasetDAO dao = fac.getDatasetDAO();
+		DatasetDAO dao = fac.getDatasetDAO(null);
 		String id = dao.create(d);
 		Assert.assertNotNull(id);
 		dao.getStringAnnotationDAO(id).addAnnotation("Tissue Type", "liver");

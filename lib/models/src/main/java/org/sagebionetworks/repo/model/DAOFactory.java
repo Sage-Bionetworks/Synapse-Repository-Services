@@ -12,11 +12,30 @@ public interface DAOFactory {
 
 	public ScriptDAO getScriptDAO();
 
-	public DatasetDAO getDatasetDAO();
+	/**
+	 * 
+	 * @param userId the unique id of the user or null if anonymous
+	 * @return
+	 */
+	public DatasetDAO getDatasetDAO(String userId);
+	
+	/**
+	 * 
+	 * @param userId the unique id of the user or null if anonymous
+	 * @return
+	 */
+	public UserDAO getUserDAO(String userId);
+	
+	/**
+	 * 
+	 * @param userId the unique id of the user or null if anonymous
+	 * @return
+	 */
+	public UserGroupDAO getUserGroupDAO(String userId);
 
 	public DatasetAnalysisDAO getDatasetAnalysisDAO();
 
-	public LayerPreviewDAO getLayerPreviewDAO();
+	public LayerPreviewDAO getLayerPreviewDAO(String userId);
 
-	public LayerLocationsDAO getLayerLocationsDAO();
+	public LayerLocationsDAO getLayerLocationsDAO(String userId);
 }

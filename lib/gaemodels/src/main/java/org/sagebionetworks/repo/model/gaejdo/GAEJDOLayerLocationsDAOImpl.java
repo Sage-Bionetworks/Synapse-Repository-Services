@@ -20,6 +20,8 @@ import com.google.appengine.api.datastore.KeyFactory;
 public class GAEJDOLayerLocationsDAOImpl extends
 		GAEJDOBaseDAOImpl<LayerLocations, GAEJDOInputDataLayer> implements
 		LayerLocationsDAO {
+	
+	public GAEJDOLayerLocationsDAOImpl(String userId) {super(userId);}
 
 	@Override
 	protected LayerLocations newDTO() {

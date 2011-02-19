@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.AnnotatableEntitiesAccessorImpl;
@@ -38,14 +39,19 @@ public class QueryController extends BaseController {
 
 	// TODO @Autowired, no GAE references allowed in this class
 	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
+	private DatasetDAO datasetDao = null;
+	private EntitiesAccessor<Dataset> datasetAccessor = null;
 	
 	// Use a static instance of this per http://wiki.fasterxml.com/JacksonBestPracticesPerformance
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-	private DatasetDAO datasetDao = DAO_FACTORY.getDatasetDAO();
-	private EntitiesAccessor<Dataset> datasetAccessor = new AnnotatableEntitiesAccessorImpl<Dataset>(
-			datasetDao);
 
+	private void setDao(DatasetDAO dao) {
+		//datasetDao = DAO_FACTORY.getDatasetDAO(userId);
+		datasetDao = dao;
+		datasetAccessor = new AnnotatableEntitiesAccessorImpl<Dataset>(datasetDao);
+		
+	}
 	/**
 	 * @param query
 	 * @param request
@@ -60,9 +66,12 @@ public class QueryController extends BaseController {
 	public @ResponseBody
 	QueryResults query(
 			@RequestParam(value = ServiceConstants.QUERY_PARAM, required = true) String query,
+			@RequestParam(value="userId", required=false) String userId,
 			HttpServletRequest request) throws DatastoreException,
-			ParseException, NotFoundException {
-
+			ParseException, NotFoundException, UnauthorizedException {
+		
+		setDao(DAO_FACTORY.getDatasetDAO(userId));
+		
 		/**
 		 * Parse and validate the query
 		 */
