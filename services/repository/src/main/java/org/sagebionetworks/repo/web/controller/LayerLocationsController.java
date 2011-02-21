@@ -51,21 +51,20 @@ public class LayerLocationsController extends BaseController implements
 	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
 
 	LayerLocationsController() {
-
+		controller = new DependentEntityControllerImp<LayerLocations, InputDataLayer>();
 		// TODO delete this once IAM is integrated
 		LocationHelpers.useTestKeys();
-
 	}
 
-	private void setController(String userId) {
-		controller = new DependentEntityControllerImp<LayerLocations, InputDataLayer>(
-				DAO_FACTORY.getLayerLocationsDAO(userId));
+	private void checkAuthorization(String userId, Boolean readOnly) {
+		DependentPropertyDAO<LayerLocations, InputDataLayer> dao = DAO_FACTORY
+				.getLayerLocationsDAO(userId);
+		setDao(dao);
 	}
 
 	@Override
 	public void setDao(DependentPropertyDAO<LayerLocations, InputDataLayer> dao) {
 		controller.setDao(dao);
-
 	}
 
 	/*******************************************************************************
@@ -82,8 +81,8 @@ public class LayerLocationsController extends BaseController implements
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-		setController(userId);
 		// TODO only curators can call this
+		checkAuthorization(userId, true);
 		return controller.getDependentEntity(userId, id, request);
 	}
 
@@ -101,8 +100,8 @@ public class LayerLocationsController extends BaseController implements
 			ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException {
 
-		setController(userId);
 		// TODO only curators can call this
+		checkAuthorization(userId, false);
 		return controller.updateDependentEntity(userId, id, etag,
 				updatedEntity, request);
 	}
@@ -130,7 +129,7 @@ public class LayerLocationsController extends BaseController implements
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
 		// TODO only authorized users can receive this info
-		setController(userId);
+		checkAuthorization(userId, true);
 
 		LayerLocations locations = controller.getDependentEntity(userId, id,
 				request);
@@ -166,9 +165,8 @@ public class LayerLocationsController extends BaseController implements
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-		setController(userId);
 		// TODO only authorized users can receive this info
-
+		checkAuthorization(userId, true);
 		LayerLocations locations = controller.getDependentEntity(userId, id,
 				request);
 		LayerLocation location = getLocationForLayer(locations,
@@ -199,9 +197,8 @@ public class LayerLocationsController extends BaseController implements
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-		setController(userId);
 		// TODO only authorized users can receive this info
-
+		checkAuthorization(userId, true);
 		LayerLocations locations = controller.getDependentEntity(userId, id,
 				request);
 		LayerLocation location = getLocationForLayer(locations,

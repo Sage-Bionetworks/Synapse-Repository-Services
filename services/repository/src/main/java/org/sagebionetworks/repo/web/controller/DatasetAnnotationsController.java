@@ -6,7 +6,6 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.Dataset;
-import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
@@ -46,19 +45,19 @@ public class DatasetAnnotationsController extends BaseController implements
 
 	// TODO @Autowired, no GAE references allowed in this class
 	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
-	private DatasetDAO datasetDao = null; // DAO_FACTORY.getDatasetDAO();
 
 	DatasetAnnotationsController() {
-
 		datasetAnnotationsController = new AnnotationsControllerImp<Dataset>();
+	}
 
-		// setDao(datasetDao); // TODO remove this when @Autowired
+	private void checkAuthorization(String userId, Boolean readOnly) {
+		BaseDAO<Dataset> dao = DAO_FACTORY.getDatasetDAO(userId);
+		setDao(dao);
 	}
 
 	@Override
 	public void setDao(BaseDAO<Dataset> dao) {
-		datasetDao = (DatasetDAO) dao;
-		datasetAnnotationsController.setDao(datasetDao);
+		datasetAnnotationsController.setDao(dao);
 	}
 
 	/*******************************************************************************
@@ -74,8 +73,8 @@ public class DatasetAnnotationsController extends BaseController implements
 			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		setDao(DAO_FACTORY.getDatasetDAO(userId));
 
+		checkAuthorization(userId, true);
 		return datasetAnnotationsController.getEntityAnnotations(userId, id,
 				request);
 	}
@@ -92,8 +91,8 @@ public class DatasetAnnotationsController extends BaseController implements
 			HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException,
 			UnauthorizedException {
-		setDao(DAO_FACTORY.getDatasetDAO(userId));
 
+		checkAuthorization(userId, false);
 		return datasetAnnotationsController.updateEntityAnnotations(userId, id,
 				etag, updatedAnnotations, request);
 	}

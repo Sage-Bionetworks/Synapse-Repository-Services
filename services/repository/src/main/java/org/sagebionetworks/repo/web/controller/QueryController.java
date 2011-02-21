@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.map.ObjectMapper;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatasetDAO;
@@ -37,21 +38,31 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @Controller
 public class QueryController extends BaseController {
 
-	// TODO @Autowired, no GAE references allowed in this class
-	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
-	private DatasetDAO datasetDao = null;
-	private EntitiesAccessor<Dataset> datasetAccessor = null;
-
+	private EntitiesAccessor<Dataset> datasetAccessor;
+	private DatasetDAO dao;
+	
 	// Use a static instance of this per
 	// http://wiki.fasterxml.com/JacksonBestPracticesPerformance
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+	// TODO @Autowired, no GAE references allowed in this class
+	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
 
-	private void setDao(DatasetDAO dao) {
-		// datasetDao = DAO_FACTORY.getDatasetDAO(userId);
-		datasetDao = dao;
-		datasetAccessor = new AnnotatableEntitiesAccessorImpl<Dataset>(
-				datasetDao);
+	
+	QueryController() {
+		datasetAccessor = new AnnotatableEntitiesAccessorImpl<Dataset>();
+	}
 
+	private void checkAuthorization(String userId) {
+		BaseDAO<Dataset> dao = DAO_FACTORY.getDatasetDAO(userId);
+		setDao(dao);
+	}
+
+	/**
+	 * @param dao
+	 */
+	public void setDao(BaseDAO<Dataset> dao) {
+		this.dao = (DatasetDAO) dao;
+		datasetAccessor.setDao(dao);
 	}
 
 	/**
@@ -74,7 +85,7 @@ public class QueryController extends BaseController {
 			HttpServletRequest request) throws DatastoreException,
 			ParseException, NotFoundException, UnauthorizedException {
 
-		setDao(DAO_FACTORY.getDatasetDAO(userId));
+		checkAuthorization(userId);
 
 		/**
 		 * Parse and validate the query
@@ -111,7 +122,7 @@ public class QueryController extends BaseController {
 		 * 
 		 * TODO we don't have this for queries with a WHERE clause
 		 */
-		Integer totalNumberOfResults = datasetDao.getCount();
+		Integer totalNumberOfResults = dao.getCount();
 
 		/**
 		 * Format the query result
@@ -127,7 +138,7 @@ public class QueryController extends BaseController {
 			result.remove("annotations");
 			result.remove("layer");
 
-			Annotations annotations = datasetDao
+			Annotations annotations = dao
 					.getAnnotations(dataset.getId());
 			result.putAll(annotations.getStringAnnotations());
 			result.putAll(annotations.getDoubleAnnotations());

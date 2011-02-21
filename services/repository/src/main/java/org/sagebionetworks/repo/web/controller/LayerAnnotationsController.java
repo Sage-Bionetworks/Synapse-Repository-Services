@@ -40,8 +40,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @Controller
 public class LayerAnnotationsController extends BaseController { // TODO
-																	// implements
-																	// AnnotationsController
+	// implements
+	// AnnotationsController
 
 	private AnnotationsController<InputDataLayer> layerAnnotationsController;
 
