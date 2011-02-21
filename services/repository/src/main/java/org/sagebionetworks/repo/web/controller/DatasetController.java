@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.web.AnnotatableEntitiesAccessorImpl;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.EntitiesAccessor;
+import org.sagebionetworks.repo.web.EntityController;
 import org.sagebionetworks.repo.web.EntityControllerImp;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
@@ -35,9 +36,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * REST controller for CRUD operations on Dataset objects
  * <p>
  * Note that any controller logic common to all objects belongs in the
- * implementation of {@link EntityController} and of
- * {@link AnnotationsController} that this wraps. Only functionality specific to
- * Dataset objects belongs in this controller.
+ * implementation of {@link EntityController} that this wraps. Only
+ * functionality specific to Dataset objects belongs in this controller.
  * 
  * @author deflaux
  */
@@ -59,7 +59,7 @@ public class DatasetController extends BaseController implements
 		datasetController = new EntityControllerImp<Dataset>(Dataset.class,
 				datasetAccessor);
 
-		//setDao(datasetDao); // TODO remove this when @Autowired
+		// setDao(datasetDao); // TODO remove this when @Autowired
 	}
 
 	@Override
@@ -82,12 +82,15 @@ public class DatasetController extends BaseController implements
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DATASET, method = RequestMethod.POST)
 	public @ResponseBody
-	Dataset createEntity(@RequestBody Dataset newEntity, @RequestParam(value="userId", required=false) String userId, 
-			HttpServletRequest request) throws DatastoreException,
-			InvalidModelException, UnauthorizedException {
+	Dataset createEntity(
+			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestBody Dataset newEntity, HttpServletRequest request)
+			throws DatastoreException, InvalidModelException,
+			UnauthorizedException {
 
 		setDao(DAO_FACTORY.getDatasetDAO(userId));
-		Dataset dataset = datasetController.createEntity(newEntity, userId, request);
+		Dataset dataset = datasetController.createEntity(userId, newEntity,
+				request);
 
 		addServiceSpecificMetadata(dataset, request);
 
@@ -103,11 +106,13 @@ public class DatasetController extends BaseController implements
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{id}", method = RequestMethod.GET)
 	public @ResponseBody
-	Dataset getEntity(@PathVariable String id,  @RequestParam(value="userId", required=false) String userId, HttpServletRequest request)
+	Dataset getEntity(
+			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		setDao(DAO_FACTORY.getDatasetDAO(userId));
 
-		Dataset dataset = datasetController.getEntity(id, userId, request);
+		Dataset dataset = datasetController.getEntity(userId, id, request);
 
 		addServiceSpecificMetadata(dataset, request);
 
@@ -124,15 +129,16 @@ public class DatasetController extends BaseController implements
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{id}", method = RequestMethod.PUT)
 	public @ResponseBody
-	Dataset updateEntity(@PathVariable String id,
-			@RequestParam(value="userId", required=false) String userId, 
+	Dataset updateEntity(
+			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
 			@RequestBody Dataset updatedEntity, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException {
 		setDao(DAO_FACTORY.getDatasetDAO(userId));
 
-		Dataset dataset = datasetController.updateEntity(id, userId, etag,
+		Dataset dataset = datasetController.updateEntity(userId, id, etag,
 				updatedEntity, request);
 
 		addServiceSpecificMetadata(dataset, request);
@@ -149,10 +155,12 @@ public class DatasetController extends BaseController implements
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{id}", method = RequestMethod.DELETE)
-	public void deleteEntity(@PathVariable String id, @RequestParam(value="userId", required=false) String userId) throws NotFoundException,
+	public void deleteEntity(
+			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		setDao(DAO_FACTORY.getDatasetDAO(userId));
-		datasetController.deleteEntity(id, userId);
+		datasetController.deleteEntity(userId, id);
 		return;
 	}
 
@@ -166,16 +174,18 @@ public class DatasetController extends BaseController implements
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<Dataset> getEntities(@RequestParam(value="userId", required=false) String userId,
+	PaginatedResults<Dataset> getEntities(
+			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending,
-			HttpServletRequest request) throws DatastoreException, UnauthorizedException {
+			HttpServletRequest request) throws DatastoreException,
+			UnauthorizedException {
 
 		setDao(DAO_FACTORY.getDatasetDAO(userId));
-		PaginatedResults<Dataset> results = datasetController.getEntities(userId,
-				offset, limit, sort, ascending, request);
+		PaginatedResults<Dataset> results = datasetController.getEntities(
+				userId, offset, limit, sort, ascending, request);
 
 		for (Dataset dataset : results.getResults()) {
 			addServiceSpecificMetadata(dataset, request);

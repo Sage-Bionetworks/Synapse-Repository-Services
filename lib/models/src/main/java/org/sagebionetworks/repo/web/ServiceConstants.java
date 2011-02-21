@@ -12,6 +12,15 @@ package org.sagebionetworks.repo.web;
  * @author deflaux
  */
 public class ServiceConstants {
+
+	/**
+	 * Request parameter for the authenticated user id or anonymous. Note that
+	 * callers of the service do not actually use this parameter. Instead they
+	 * use a token parameter which is then converted to a user id by a request
+	 * pre-processing filter.
+	 */
+	public static final String USER_ID_PARAM = "userId";
+
 	/**
 	 * Request parameter used to indicate the 1-based index of the first result
 	 * to be returned in a set of paginated results

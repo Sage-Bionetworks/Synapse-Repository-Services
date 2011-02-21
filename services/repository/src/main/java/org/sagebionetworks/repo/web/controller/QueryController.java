@@ -41,37 +41,41 @@ public class QueryController extends BaseController {
 	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
 	private DatasetDAO datasetDao = null;
 	private EntitiesAccessor<Dataset> datasetAccessor = null;
-	
-	// Use a static instance of this per http://wiki.fasterxml.com/JacksonBestPracticesPerformance
+
+	// Use a static instance of this per
+	// http://wiki.fasterxml.com/JacksonBestPracticesPerformance
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-
 	private void setDao(DatasetDAO dao) {
-		//datasetDao = DAO_FACTORY.getDatasetDAO(userId);
+		// datasetDao = DAO_FACTORY.getDatasetDAO(userId);
 		datasetDao = dao;
-		datasetAccessor = new AnnotatableEntitiesAccessorImpl<Dataset>(datasetDao);
-		
+		datasetAccessor = new AnnotatableEntitiesAccessorImpl<Dataset>(
+				datasetDao);
+
 	}
+
 	/**
+	 * @param userId
 	 * @param query
 	 * @param request
 	 * @return paginated results
 	 * @throws DatastoreException
 	 * @throws ParseException
 	 * @throws NotFoundException
+	 * @throws UnauthorizedException
 	 */
 	@SuppressWarnings("unchecked")
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.QUERY, method = RequestMethod.GET)
 	public @ResponseBody
 	QueryResults query(
+			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = ServiceConstants.QUERY_PARAM, required = true) String query,
-			@RequestParam(value="userId", required=false) String userId,
 			HttpServletRequest request) throws DatastoreException,
 			ParseException, NotFoundException, UnauthorizedException {
-		
+
 		setDao(DAO_FACTORY.getDatasetDAO(userId));
-		
+
 		/**
 		 * Parse and validate the query
 		 */
@@ -108,14 +112,15 @@ public class QueryController extends BaseController {
 		 * TODO we don't have this for queries with a WHERE clause
 		 */
 		Integer totalNumberOfResults = datasetDao.getCount();
-		
+
 		/**
 		 * Format the query result
 		 */
 		List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
 		for (Dataset dataset : datasets) {
 
-			Map<String, Object> result = OBJECT_MAPPER.convertValue(dataset, Map.class);
+			Map<String, Object> result = OBJECT_MAPPER.convertValue(dataset,
+					Map.class);
 			// Get rid of fields for REST api
 			result.remove("uri");
 			result.remove("etag");
@@ -129,10 +134,10 @@ public class QueryController extends BaseController {
 			result.putAll(annotations.getLongAnnotations());
 			result.putAll(annotations.getDateAnnotations());
 			results.add(result);
-			
+
 			// TODO filter out un-requested fields when we support more than
 			// SELECT *
-			
+
 			// TODO get rid of etag and uri
 		}
 

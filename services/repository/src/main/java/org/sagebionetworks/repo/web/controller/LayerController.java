@@ -20,9 +20,9 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.web.AnnotatableEntitiesAccessorImpl;
-import org.sagebionetworks.repo.web.AnnotationsControllerImp;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.EntitiesAccessor;
+import org.sagebionetworks.repo.web.EntityController;
 import org.sagebionetworks.repo.web.EntityControllerImp;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
@@ -40,30 +40,29 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * REST controller for CRUD operations on Dataset Layer objects
+ * REST controller for CRUD operations on Layer objects
  * <p>
  * 
  * Note that any controller logic common to all objects belongs in the
- * implementation of {@link EntityController} and of
- * {@link AnnotationsController} that this wraps. Only functionality specific to
- * Dataset objects belongs in this controller.
+ * implementation of {@link EntityController} that this wraps. Only
+ * functionality specific to Layer objects belongs in this controller.
  * 
  * @author deflaux
  */
 @Controller
-public class LayerController extends BaseController {
+public class LayerController extends BaseController { // TODO implements
+	// EntityController
 
 	private EntitiesAccessor<InputDataLayer> layerAccessor;
 	private EntityController<InputDataLayer> layerController;
-	private AnnotationsController<InputDataLayer> layerAnnotationsController;
 
 	// TODO @Autowired, no GAE references allowed in this class
 	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
-	private DatasetDAO datasetDao = null; //DAO_FACTORY.getDatasetDAO();
+	private DatasetDAO datasetDao = null; // DAO_FACTORY.getDatasetDAO();
 	private LayerLocationsDAO locationsDao = null;
-	
+
 	private void setDao(String userId) {
-		datasetDao=DAO_FACTORY.getDatasetDAO(userId);
+		datasetDao = DAO_FACTORY.getDatasetDAO(userId);
 		locationsDao = DAO_FACTORY.getLayerLocationsDAO(userId);
 	}
 
@@ -72,9 +71,6 @@ public class LayerController extends BaseController {
 
 		layerController = new EntityControllerImp<InputDataLayer>(
 				InputDataLayer.class, layerAccessor);
-
-		layerAnnotationsController = new AnnotationsControllerImp<InputDataLayer>();
-
 	}
 
 	/*******************************************************************************
@@ -86,22 +82,26 @@ public class LayerController extends BaseController {
 	 */
 
 	/**
+	 * @param userId
 	 * @param parentId
 	 * @param newEntity
 	 * @param request
 	 * @return the newly created layer
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
 			+ UrlHelpers.LAYER, method = RequestMethod.POST)
 	public @ResponseBody
-	InputDataLayer createChildEntity(@PathVariable String parentId,
-			@RequestParam(value="userId", required=false) String userId,
+	InputDataLayer createChildEntity(
+			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String parentId,
 			@RequestBody InputDataLayer newEntity, HttpServletRequest request)
-			throws DatastoreException, InvalidModelException, UnauthorizedException {
-		
+			throws DatastoreException, InvalidModelException,
+			UnauthorizedException {
+
 		setDao(userId);
 
 		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
@@ -109,7 +109,42 @@ public class LayerController extends BaseController {
 		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
 
 		layerController.setDao(layerDao);
-		InputDataLayer datasetLayer = layerController.createEntity(newEntity, userId,
+		InputDataLayer datasetLayer = layerController.createEntity(userId,
+				newEntity, request);
+
+		addServiceSpecificMetadata(datasetLayer, request);
+
+		return datasetLayer;
+	}
+
+	/**
+	 * @param userId
+	 * @param parentId
+	 * @param id
+	 * @param request
+	 * @return the requested layer
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
+			+ UrlHelpers.LAYER + "/{id}", method = RequestMethod.GET)
+	public @ResponseBody
+	InputDataLayer getChildEntity(
+			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String parentId, @PathVariable String id,
+			HttpServletRequest request) throws NotFoundException,
+			DatastoreException, UnauthorizedException {
+
+		setDao(userId);
+
+		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
+
+		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
+
+		layerController.setDao(layerDao);
+		InputDataLayer datasetLayer = layerController.getEntity(userId, id,
 				request);
 
 		addServiceSpecificMetadata(datasetLayer, request);
@@ -118,37 +153,7 @@ public class LayerController extends BaseController {
 	}
 
 	/**
-	 * @param parentId
-	 * @param id
-	 * @param request
-	 * @return the requested layer
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
-			+ UrlHelpers.LAYER + "/{id}", method = RequestMethod.GET)
-	public @ResponseBody
-	InputDataLayer getChildEntity(@PathVariable String parentId,
-			@RequestParam(value="userId", required=false) String userId,
-			@PathVariable String id, HttpServletRequest request)
-			throws NotFoundException, DatastoreException, UnauthorizedException {
-
-		setDao(userId);
-
-		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
-
-		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
-
-		layerController.setDao(layerDao);
-		InputDataLayer datasetLayer = layerController.getEntity(id, userId, request);
-
-		addServiceSpecificMetadata(datasetLayer, request);
-
-		return datasetLayer;
-	}
-
-	/**
+	 * @param userId
 	 * @param parentId
 	 * @param id
 	 * @param etag
@@ -159,14 +164,15 @@ public class LayerController extends BaseController {
 	 * @throws ConflictingUpdateException
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
 			+ UrlHelpers.LAYER + "/{id}", method = RequestMethod.PUT)
 	public @ResponseBody
-	InputDataLayer updateChildEntity(@PathVariable String parentId,
-			@RequestParam(value="userId", required=false) String userId,
-			@PathVariable String id,
+	InputDataLayer updateChildEntity(
+			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String parentId, @PathVariable String id,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
 			@RequestBody InputDataLayer updatedEntity,
 			HttpServletRequest request) throws NotFoundException,
@@ -180,8 +186,8 @@ public class LayerController extends BaseController {
 		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
 
 		layerController.setDao(layerDao);
-		InputDataLayer datasetLayer = layerController.updateEntity(id, userId, etag,
-				updatedEntity, request);
+		InputDataLayer datasetLayer = layerController.updateEntity(userId, id,
+				etag, updatedEntity, request);
 
 		addServiceSpecificMetadata(datasetLayer, request);
 
@@ -189,18 +195,20 @@ public class LayerController extends BaseController {
 	}
 
 	/**
+	 * @param userId
 	 * @param parentId
 	 * @param id
 	 * @throws NotFoundException
 	 * @throws DatastoreException
+	 * @throws UnauthorizedException
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
 			+ UrlHelpers.LAYER + "/{id}", method = RequestMethod.DELETE)
-	public void deleteChildEntity(@PathVariable String parentId,
-			@RequestParam(value="userId", required=false) String userId,
-			@PathVariable String id) throws NotFoundException,
-			DatastoreException, UnauthorizedException {
+	public void deleteChildEntity(
+			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String parentId, @PathVariable String id)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
 
 		setDao(userId);
 
@@ -209,11 +217,12 @@ public class LayerController extends BaseController {
 		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
 
 		layerController.setDao(layerDao);
-		layerController.deleteEntity(id, userId);
+		layerController.deleteEntity(userId, id);
 		return;
 	}
 
 	/**
+	 * @param userId
 	 * @param parentId
 	 * @param offset
 	 * @param limit
@@ -222,19 +231,21 @@ public class LayerController extends BaseController {
 	 * @param request
 	 * @return the layers
 	 * @throws DatastoreException
+	 * @throws UnauthorizedException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
 			+ UrlHelpers.LAYER, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<InputDataLayer> getChildEntities(
+			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String parentId,
-			@RequestParam(value="userId", required=false) String userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending,
-			HttpServletRequest request) throws DatastoreException, UnauthorizedException {
+			HttpServletRequest request) throws DatastoreException,
+			UnauthorizedException {
 
 		setDao(userId);
 
@@ -244,82 +255,14 @@ public class LayerController extends BaseController {
 
 		layerController.setDao(layerDao);
 		layerAccessor.setDao(layerDao);
-		PaginatedResults<InputDataLayer> results = layerController.getEntities(userId,
-				offset, limit, sort, ascending, request);
+		PaginatedResults<InputDataLayer> results = layerController.getEntities(
+				userId, offset, limit, sort, ascending, request);
 
 		for (InputDataLayer layer : results.getResults()) {
 			addServiceSpecificMetadata(layer, request);
 		}
 
 		return results;
-	}
-
-	/*******************************************************************************
-	 * Layer Annotation RUD handlers
-	 */
-
-	/**
-	 * @param parentId
-	 * @param id
-	 * @param request
-	 * @return the annotations for this layer
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * 
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
-			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.ANNOTATIONS, method = RequestMethod.GET)
-	public @ResponseBody
-	Annotations getChildEntityAnnotations(@PathVariable String parentId,
-			@RequestParam(value="userId", required=false) String userId,
-			@PathVariable String id, HttpServletRequest request)
-			throws NotFoundException, DatastoreException, UnauthorizedException {
-
-		setDao(userId);
-
-		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
-
-		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
-
-		layerAnnotationsController.setDao(layerDao);
-
-		return layerAnnotationsController.getEntityAnnotations(id, userId, request);
-	}
-
-	/**
-	 * @param parentId
-	 * @param id
-	 * @param etag
-	 * @param updatedAnnotations
-	 * @param request
-	 * @return the updated annotations for this layer
-	 * @throws NotFoundException
-	 * @throws ConflictingUpdateException
-	 * @throws DatastoreException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
-			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.ANNOTATIONS, method = RequestMethod.PUT)
-	public @ResponseBody
-	Annotations updateChildEntityAnnotations(@PathVariable String parentId,
-			@RequestParam(value="userId", required=false) String userId,
-			@PathVariable String id,
-			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
-			@RequestBody Annotations updatedAnnotations,
-			HttpServletRequest request) throws NotFoundException,
-			ConflictingUpdateException, DatastoreException, UnauthorizedException {
-
-		setDao(userId);
-
-		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
-
-		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
-
-		layerAnnotationsController.setDao(layerDao);
-
-		return layerAnnotationsController.updateEntityAnnotations(id, userId, etag,
-				updatedAnnotations, request);
 	}
 
 	/*******************************************************************************
@@ -343,7 +286,8 @@ public class LayerController extends BaseController {
 	}
 
 	private void addServiceSpecificMetadata(InputDataLayer layer,
-			HttpServletRequest request) throws DatastoreException, UnauthorizedException {
+			HttpServletRequest request) throws DatastoreException,
+			UnauthorizedException {
 
 		layer.setAnnotations(UrlHelpers.makeEntityPropertyUri(layer,
 				Annotations.class, request));
