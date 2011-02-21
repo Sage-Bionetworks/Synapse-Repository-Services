@@ -6,6 +6,7 @@ import java.util.HashSet;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -55,22 +56,29 @@ public class LayerController extends BaseController { // TODO implements
 
 	private EntitiesAccessor<InputDataLayer> layerAccessor;
 	private EntityController<InputDataLayer> layerController;
+	private LayerLocationsDAO locationsDao = null;
 
 	// TODO @Autowired, no GAE references allowed in this class
 	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
-	private DatasetDAO datasetDao = null; // DAO_FACTORY.getDatasetDAO();
-	private LayerLocationsDAO locationsDao = null;
-
-	private void setDao(String userId) {
-		datasetDao = DAO_FACTORY.getDatasetDAO(userId);
-		locationsDao = DAO_FACTORY.getLayerLocationsDAO(userId);
-	}
 
 	LayerController() {
 		layerAccessor = new AnnotatableEntitiesAccessorImpl<InputDataLayer>();
-
 		layerController = new EntityControllerImp<InputDataLayer>(
 				InputDataLayer.class, layerAccessor);
+	}
+
+	private void checkAuthorization(String userId, String parentId,
+			Boolean readOnly) {
+		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
+		locationsDao = DAO_FACTORY.getLayerLocationsDAO(userId);
+		DatasetDAO dao = DAO_FACTORY.getDatasetDAO(userId);
+		InputDataLayerDAO layerDao = dao.getInputDataLayerDAO(datasetId);
+		setDao(layerDao);
+	}
+
+	private void setDao(BaseDAO<InputDataLayer> dao) {
+		layerController.setDao(dao);
+		layerAccessor.setDao(dao);
 	}
 
 	/*******************************************************************************
@@ -102,16 +110,9 @@ public class LayerController extends BaseController { // TODO implements
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException {
 
-		setDao(userId);
-
-		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
-
-		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
-
-		layerController.setDao(layerDao);
+		checkAuthorization(userId, parentId, false);
 		InputDataLayer datasetLayer = layerController.createEntity(userId,
 				newEntity, request);
-
 		addServiceSpecificMetadata(datasetLayer, request);
 
 		return datasetLayer;
@@ -137,16 +138,9 @@ public class LayerController extends BaseController { // TODO implements
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 
-		setDao(userId);
-
-		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
-
-		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
-
-		layerController.setDao(layerDao);
+		checkAuthorization(userId, parentId, true);
 		InputDataLayer datasetLayer = layerController.getEntity(userId, id,
 				request);
-
 		addServiceSpecificMetadata(datasetLayer, request);
 
 		return datasetLayer;
@@ -179,16 +173,9 @@ public class LayerController extends BaseController { // TODO implements
 			ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException {
 
-		setDao(userId);
-
-		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
-
-		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
-
-		layerController.setDao(layerDao);
+		checkAuthorization(userId, parentId, false);
 		InputDataLayer datasetLayer = layerController.updateEntity(userId, id,
 				etag, updatedEntity, request);
-
 		addServiceSpecificMetadata(datasetLayer, request);
 
 		return datasetLayer;
@@ -210,14 +197,9 @@ public class LayerController extends BaseController { // TODO implements
 			@PathVariable String parentId, @PathVariable String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-		setDao(userId);
-
-		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
-
-		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
-
-		layerController.setDao(layerDao);
+		checkAuthorization(userId, parentId, false);
 		layerController.deleteEntity(userId, id);
+
 		return;
 	}
 
@@ -247,14 +229,7 @@ public class LayerController extends BaseController { // TODO implements
 			HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException {
 
-		setDao(userId);
-
-		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
-
-		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
-
-		layerController.setDao(layerDao);
-		layerAccessor.setDao(layerDao);
+		checkAuthorization(userId, parentId, true);
 		PaginatedResults<InputDataLayer> results = layerController.getEntities(
 				userId, offset, limit, sort, ascending, request);
 

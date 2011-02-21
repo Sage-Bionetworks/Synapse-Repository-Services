@@ -6,7 +6,6 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.Dataset;
-import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -50,35 +49,29 @@ public class DatasetController extends BaseController implements
 
 	// TODO @Autowired, no GAE references allowed in this class
 	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
-	private DatasetDAO datasetDao; // = DAO_FACTORY.getDatasetDAO();
 
 	DatasetController() {
-
 		datasetAccessor = new AnnotatableEntitiesAccessorImpl<Dataset>();
-
 		datasetController = new EntityControllerImp<Dataset>(Dataset.class,
 				datasetAccessor);
+	}
 
-		// setDao(datasetDao); // TODO remove this when @Autowired
+	private void checkAuthorization(String userId, Boolean readOnly) {
+		BaseDAO<Dataset> dao = DAO_FACTORY.getDatasetDAO(userId);
+		setDao(dao);
 	}
 
 	@Override
 	public void setDao(BaseDAO<Dataset> dao) {
-		datasetDao = (DatasetDAO) dao;
-		datasetAccessor.setDao(datasetDao);
-		datasetController.setDao(datasetDao);
+		datasetAccessor.setDao(dao);
+		datasetController.setDao(dao);
 	}
 
 	/*******************************************************************************
 	 * Dataset CRUD handlers
 	 */
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.sagebionetworks.repo.web.controller.EntityController#createEntity (T)
-	 */
+	@Override
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DATASET, method = RequestMethod.POST)
 	public @ResponseBody
@@ -88,21 +81,14 @@ public class DatasetController extends BaseController implements
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException {
 
-		setDao(DAO_FACTORY.getDatasetDAO(userId));
+		checkAuthorization(userId, false);
 		Dataset dataset = datasetController.createEntity(userId, newEntity,
 				request);
-
 		addServiceSpecificMetadata(dataset, request);
-
 		return dataset;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.sagebionetworks.repo.web.controller.EntityController#getEntity
-	 * (java.lang.String)
-	 */
+	@Override
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{id}", method = RequestMethod.GET)
 	public @ResponseBody
@@ -110,22 +96,14 @@ public class DatasetController extends BaseController implements
 			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		setDao(DAO_FACTORY.getDatasetDAO(userId));
 
+		checkAuthorization(userId, true);
 		Dataset dataset = datasetController.getEntity(userId, id, request);
-
 		addServiceSpecificMetadata(dataset, request);
-
 		return dataset;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.sagebionetworks.repo.web.controller.EntityController#updateEntity
-	 * (java.lang.String, java.lang.Integer, T)
-	 */
+	@Override
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{id}", method = RequestMethod.PUT)
 	public @ResponseBody
@@ -136,41 +114,28 @@ public class DatasetController extends BaseController implements
 			@RequestBody Dataset updatedEntity, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException {
-		setDao(DAO_FACTORY.getDatasetDAO(userId));
 
+		checkAuthorization(userId, false);
 		Dataset dataset = datasetController.updateEntity(userId, id, etag,
 				updatedEntity, request);
-
 		addServiceSpecificMetadata(dataset, request);
-
 		return dataset;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.sagebionetworks.repo.web.controller.EntityController#deleteEntity
-	 * (java.lang.String)
-	 */
+	@Override
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{id}", method = RequestMethod.DELETE)
 	public void deleteEntity(
 			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
-		setDao(DAO_FACTORY.getDatasetDAO(userId));
+
+		checkAuthorization(userId, false);
 		datasetController.deleteEntity(userId, id);
 		return;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.sagebionetworks.repo.web.controller.EntityController#getEntities
-	 * (java.lang.Integer, java.lang.Integer,
-	 * javax.servlet.http.HttpServletRequest)
-	 */
+	@Override
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET, method = RequestMethod.GET)
 	public @ResponseBody
@@ -183,7 +148,7 @@ public class DatasetController extends BaseController implements
 			HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException {
 
-		setDao(DAO_FACTORY.getDatasetDAO(userId));
+		checkAuthorization(userId, true);
 		PaginatedResults<Dataset> results = datasetController.getEntities(
 				userId, offset, limit, sort, ascending, request);
 

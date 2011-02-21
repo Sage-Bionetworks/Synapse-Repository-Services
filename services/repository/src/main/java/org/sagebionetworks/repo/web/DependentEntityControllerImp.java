@@ -28,19 +28,6 @@ public class DependentEntityControllerImp<T extends Base, S> implements
 
 	private DependentPropertyDAO<T, S> dao;
 
-	/**
-	 * Default constructor
-	 */
-	public DependentEntityControllerImp() {
-	}
-
-	/**
-	 * @param dao
-	 */
-	public DependentEntityControllerImp(DependentPropertyDAO<T, S> dao) {
-		this.dao = dao;
-	}
-
 	@Override
 	public void setDao(DependentPropertyDAO<T, S> dao) {
 		this.dao = dao;

@@ -47,9 +47,14 @@ public class LayerPreviewController extends BaseController implements
 	// TODO @Autowired, no GAE references allowed in this class
 	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
 
-	private void setController(String userId) {
-		controller = new DependentEntityControllerImp<LayerPreview, InputDataLayer>(
-				DAO_FACTORY.getLayerPreviewDAO(userId));
+	LayerPreviewController() {
+		controller = new DependentEntityControllerImp<LayerPreview, InputDataLayer>();
+	}
+
+	private void checkAuthorization(String userId, Boolean readOnly) {
+		DependentPropertyDAO<LayerPreview, InputDataLayer> dao = DAO_FACTORY
+				.getLayerPreviewDAO(userId);
+		setDao(dao);
 	}
 
 	@Override
@@ -71,7 +76,8 @@ public class LayerPreviewController extends BaseController implements
 			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		setController(userId);
+		
+		checkAuthorization(userId, true);
 		return controller.getDependentEntity(userId, id, request);
 	}
 
@@ -88,7 +94,7 @@ public class LayerPreviewController extends BaseController implements
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException {
 
-		setController(userId);
+		checkAuthorization(userId, false);
 		return controller.updateDependentEntity(userId, id, etag,
 				updatedEntity, request);
 	}
