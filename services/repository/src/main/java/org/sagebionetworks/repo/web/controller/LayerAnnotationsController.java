@@ -3,11 +3,11 @@ package org.sagebionetworks.repo.web.controller;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DAOFactory;
-import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.web.AnnotationsController;
@@ -28,73 +28,108 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * REST controller for RU operations on Dataset Annotation objects
+ * REST controller for RUD operations on Layer Annotations
  * <p>
  * 
  * Note that any controller logic common to all objects belongs in the
  * implementation of {@link AnnotationsController} that this wraps. Only
- * functionality specific to Dataset Annotations objects belongs in this
+ * functionality specific to Layer Annotations objects belongs in this
  * controller.
  * 
  * @author deflaux
  */
 @Controller
-public class DatasetAnnotationsController extends BaseController implements
-		AnnotationsController<Dataset> {
+public class LayerAnnotationsController extends BaseController { // TODO
+																	// implements
+																	// AnnotationsController
 
-	private AnnotationsController<Dataset> datasetAnnotationsController;
+	private AnnotationsController<InputDataLayer> layerAnnotationsController;
 
 	// TODO @Autowired, no GAE references allowed in this class
 	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
 	private DatasetDAO datasetDao = null; // DAO_FACTORY.getDatasetDAO();
 
-	DatasetAnnotationsController() {
-
-		datasetAnnotationsController = new AnnotationsControllerImp<Dataset>();
-
-		// setDao(datasetDao); // TODO remove this when @Autowired
+	private void setDao(String userId) {
+		datasetDao = DAO_FACTORY.getDatasetDAO(userId);
 	}
 
-	@Override
-	public void setDao(BaseDAO<Dataset> dao) {
-		datasetDao = (DatasetDAO) dao;
-		datasetAnnotationsController.setDao(datasetDao);
+	LayerAnnotationsController() {
+		layerAnnotationsController = new AnnotationsControllerImp<InputDataLayer>();
+
 	}
 
 	/*******************************************************************************
-	 * Dataset Annotation RUD handlers
-	 * 
+	 * Layer Annotation RUD handlers
 	 */
 
+	/**
+	 * @param userId
+	 * @param parentId
+	 * @param id
+	 * @param request
+	 * @return the annotations for this layer
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * 
+	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.DATASET + "/{id}"
-			+ UrlHelpers.ANNOTATIONS, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
+			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.ANNOTATIONS, method = RequestMethod.GET)
 	public @ResponseBody
-	Annotations getEntityAnnotations(
+	Annotations getChildEntityAnnotations(
 			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String id, HttpServletRequest request)
-			throws NotFoundException, DatastoreException, UnauthorizedException {
-		setDao(DAO_FACTORY.getDatasetDAO(userId));
+			@PathVariable String parentId, @PathVariable String id,
+			HttpServletRequest request) throws NotFoundException,
+			DatastoreException, UnauthorizedException {
 
-		return datasetAnnotationsController.getEntityAnnotations(userId, id,
+		setDao(userId);
+
+		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
+
+		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
+
+		layerAnnotationsController.setDao(layerDao);
+
+		return layerAnnotationsController.getEntityAnnotations(userId, id,
 				request);
 	}
 
+	/**
+	 * @param userId
+	 * @param parentId
+	 * @param id
+	 * @param etag
+	 * @param updatedAnnotations
+	 * @param request
+	 * @return the updated annotations for this layer
+	 * @throws NotFoundException
+	 * @throws ConflictingUpdateException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.DATASET + "/{id}"
-			+ UrlHelpers.ANNOTATIONS, method = RequestMethod.PUT)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
+			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.ANNOTATIONS, method = RequestMethod.PUT)
 	public @ResponseBody
-	Annotations updateEntityAnnotations(
+	Annotations updateChildEntityAnnotations(
 			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String id,
+			@PathVariable String parentId, @PathVariable String id,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
 			@RequestBody Annotations updatedAnnotations,
 			HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException,
 			UnauthorizedException {
-		setDao(DAO_FACTORY.getDatasetDAO(userId));
 
-		return datasetAnnotationsController.updateEntityAnnotations(userId, id,
+		setDao(userId);
+
+		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
+
+		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
+
+		layerAnnotationsController.setDao(layerDao);
+
+		return layerAnnotationsController.updateEntityAnnotations(userId, id,
 				etag, updatedAnnotations, request);
 	}
 

@@ -42,7 +42,7 @@ public interface EntitiesAccessor<T extends Base> {
 	 * @param attribute
 	 * @param value
 	 * @return the list of zero or more entities found
-	 * @throws DatastoreException 
+	 * @throws DatastoreException
 	 */
 	public List<T> getInRangeHaving(int offset, int limit, String attribute,
 			Object value) throws DatastoreException;

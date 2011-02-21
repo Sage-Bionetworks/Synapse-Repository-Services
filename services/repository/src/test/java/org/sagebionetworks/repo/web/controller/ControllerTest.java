@@ -6,8 +6,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Collection;
 import java.util.logging.Logger;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -62,8 +60,7 @@ public class ControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.EntityController#createEntity(Object, HttpServletRequest)}
-	 * .
+	 * {@link org.sagebionetworks.repo.web.EntityController#createEntity} .
 	 * 
 	 * @throws Exception
 	 */
@@ -97,8 +94,7 @@ public class ControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.EntityController#createEntity(Object, HttpServletRequest)}
-	 * .
+	 * {@link org.sagebionetworks.repo.web.EntityController#createEntity} .
 	 * 
 	 * @throws Exception
 	 */
@@ -135,8 +131,7 @@ public class ControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.EntityController#createEntity(Object, HttpServletRequest)}
-	 * .
+	 * {@link org.sagebionetworks.repo.web.EntityController#createEntity} .
 	 * 
 	 * @throws Exception
 	 */
@@ -174,8 +169,7 @@ public class ControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.EntityController#updateEntity(String, Integer, Object, javax.servlet.http.HttpServletRequest)}
-	 * .
+	 * {@link org.sagebionetworks.repo.web.EntityController#updateEntity} .
 	 * 
 	 * @throws Exception
 	 */

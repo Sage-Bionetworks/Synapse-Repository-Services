@@ -7,7 +7,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DependentPropertyDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.web.controller.DependentEntityController;
 
 /**
  * Implementation of the controller interface for all operations common to
@@ -49,8 +48,9 @@ public class DependentEntityControllerImp<T extends Base, S> implements
 	}
 
 	@Override
-	public T getDependentEntity(String id, HttpServletRequest request)
-			throws NotFoundException, DatastoreException, UnauthorizedException {
+	public T getDependentEntity(String userId, String id,
+			HttpServletRequest request) throws NotFoundException,
+			DatastoreException, UnauthorizedException {
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 		T entity = dao.get(entityId);
 		if (null == entity) {
@@ -62,10 +62,10 @@ public class DependentEntityControllerImp<T extends Base, S> implements
 	}
 
 	@Override
-	public T updateDependentEntity(String id, Integer etag, T updatedEntity,
-			HttpServletRequest request) throws NotFoundException,
-			ConflictingUpdateException, DatastoreException,
-			InvalidModelException, UnauthorizedException {
+	public T updateDependentEntity(String userId, String id,
+			Integer etag, T updatedEntity, HttpServletRequest request)
+			throws NotFoundException, ConflictingUpdateException,
+			DatastoreException, InvalidModelException, UnauthorizedException {
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 		T entity = dao.get(entityId);
 		if (null == entity) {

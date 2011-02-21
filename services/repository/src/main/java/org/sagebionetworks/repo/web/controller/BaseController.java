@@ -259,7 +259,8 @@ public abstract class BaseController {
 	}
 
 	/**
-	 * This occurs when the user specifies a query that the system cannot parse or handle
+	 * This occurs when the user specifies a query that the system cannot parse
+	 * or handle
 	 * 
 	 * @param ex
 	 *            the exception to be handled
@@ -271,11 +272,11 @@ public abstract class BaseController {
 	@ExceptionHandler(ParseException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
-	ErrorResponse handleParseException(
-			ParseException ex, HttpServletRequest request) {
+	ErrorResponse handleParseException(ParseException ex,
+			HttpServletRequest request) {
 		return handleException(ex, request);
 	}
-	
+
 	/**
 	 * This occurs for example when the request asks for responses to be in a
 	 * content type not supported

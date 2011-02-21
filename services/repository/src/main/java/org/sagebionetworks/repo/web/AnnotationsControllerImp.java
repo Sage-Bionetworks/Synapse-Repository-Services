@@ -14,8 +14,6 @@ import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.web.controller.AnnotationsController;
-import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * Implementation for REST controller for CRUD operations on Annotation DTOs and
@@ -46,15 +44,8 @@ public class AnnotationsControllerImp<T extends Base> implements
 		annotatableDao = (AnnotatableDAO<T>) dao;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.sagebionetworks.repo.web.controller.AbstractAnnotatableEntityController
-	 * #getEntity(java.lang.String)
-	 */
-	public Annotations getEntityAnnotations(String id,
-			@RequestParam(value="userId", required=false) String userId,
+	@Override
+	public Annotations getEntityAnnotations(String userId, String id,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 
@@ -71,19 +62,12 @@ public class AnnotationsControllerImp<T extends Base> implements
 		return annotations;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.sagebionetworks.repo.web.controller.AbstractAnnotatableEntityController
-	 * #updateEntity(java.lang.String, java.lang.Integer, Annotations)
-	 */
-	public Annotations updateEntityAnnotations(String id, 
-			@RequestParam(value="userId", required=false) String userId,
-			Integer etag,
-			Annotations updatedAnnotations, HttpServletRequest request)
-			throws NotFoundException, ConflictingUpdateException,
-			DatastoreException, UnauthorizedException {
+	@Override
+	public Annotations updateEntityAnnotations(String userId, String id,
+			Integer etag, Annotations updatedAnnotations,
+			HttpServletRequest request) throws NotFoundException,
+			ConflictingUpdateException, DatastoreException,
+			UnauthorizedException {
 
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 
@@ -105,11 +89,15 @@ public class AnnotationsControllerImp<T extends Base> implements
 		// TODO this isn't how we want to do this for real
 		// TODO this is currently additive but it should be overwriting
 		// Developer Note: yes, nested loops are evil when N is large
-		
-		AnnotationDAO<T, String> stringAnnotationDAO = annotatableDao.getStringAnnotationDAO(entityId);
-		AnnotationDAO<T, Double> doubleAnnotationDAO = annotatableDao.getDoubleAnnotationDAO(entityId);
-		AnnotationDAO<T, Long> longAnnotationDAO = annotatableDao.getLongAnnotationDAO(entityId);
-		AnnotationDAO<T, Date> dateAnnotationDAO = annotatableDao.getDateAnnotationDAO(entityId);
+
+		AnnotationDAO<T, String> stringAnnotationDAO = annotatableDao
+				.getStringAnnotationDAO(entityId);
+		AnnotationDAO<T, Double> doubleAnnotationDAO = annotatableDao
+				.getDoubleAnnotationDAO(entityId);
+		AnnotationDAO<T, Long> longAnnotationDAO = annotatableDao
+				.getLongAnnotationDAO(entityId);
+		AnnotationDAO<T, Date> dateAnnotationDAO = annotatableDao
+				.getDateAnnotationDAO(entityId);
 
 		Map<String, Collection<String>> updatedStringAnnotations = updatedAnnotations
 				.getStringAnnotations();
@@ -118,8 +106,8 @@ public class AnnotationsControllerImp<T extends Base> implements
 			for (String value : updatedAnnotation.getValue()) {
 				log.info("Adding string annotation ("
 						+ updatedAnnotation.getKey() + ", " + value + ")");
-				stringAnnotationDAO.addAnnotation(updatedAnnotation
-						.getKey(), value);
+				stringAnnotationDAO.addAnnotation(updatedAnnotation.getKey(),
+						value);
 			}
 		}
 
@@ -130,8 +118,8 @@ public class AnnotationsControllerImp<T extends Base> implements
 			for (Double value : updatedAnnotation.getValue()) {
 				log.info("Adding double annotation ("
 						+ updatedAnnotation.getKey() + ", " + value + ")");
-				doubleAnnotationDAO.addAnnotation(updatedAnnotation
-						.getKey(), value);
+				doubleAnnotationDAO.addAnnotation(updatedAnnotation.getKey(),
+						value);
 			}
 		}
 
@@ -142,8 +130,8 @@ public class AnnotationsControllerImp<T extends Base> implements
 			for (Long value : updatedAnnotation.getValue()) {
 				log.info("Adding long annotation ("
 						+ updatedAnnotation.getKey() + ", " + value + ")");
-				longAnnotationDAO.addAnnotation(updatedAnnotation
-						.getKey(), value);
+				longAnnotationDAO.addAnnotation(updatedAnnotation.getKey(),
+						value);
 			}
 		}
 
@@ -154,8 +142,8 @@ public class AnnotationsControllerImp<T extends Base> implements
 			for (Date value : updatedAnnotation.getValue()) {
 				log.info("Adding date annotation ("
 						+ updatedAnnotation.getKey() + ", " + value + ")");
-				dateAnnotationDAO.addAnnotation(updatedAnnotation
-						.getKey(), value);
+				dateAnnotationDAO.addAnnotation(updatedAnnotation.getKey(),
+						value);
 			}
 		}
 

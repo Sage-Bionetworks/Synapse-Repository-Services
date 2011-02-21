@@ -10,7 +10,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.web.controller.EntityController;
 
 /**
  * Implementation for REST controller for CRUD operations on Base DTOs and Base
@@ -86,14 +85,10 @@ public class EntityControllerImp<T extends Base> implements EntityController<T> 
 		this.entitiesAccessor = entitiesAccessor;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.sagebionetworks.repo.web.controller.EntityController#getEntities
-	 */
-	public PaginatedResults<T> getEntities(String userId, Integer offset, Integer limit,
-			String sort, Boolean ascending, HttpServletRequest request)
-			throws DatastoreException {
+	@Override
+	public PaginatedResults<T> getEntities(String userId, Integer offset,
+			Integer limit, String sort, Boolean ascending,
+			HttpServletRequest request) throws DatastoreException {
 
 		ServiceConstants.validatePaginationParams(offset, limit);
 
@@ -111,13 +106,8 @@ public class EntityControllerImp<T extends Base> implements EntityController<T> 
 				totalNumberOfEntities, offset, limit, sort, ascending);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.sagebionetworks.repo.web.controller.EntityController#getEntity
-	 * (java.lang.String)
-	 */
-	public T getEntity(String id, String userId, HttpServletRequest request)
+	@Override
+	public T getEntity(String userId, String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
@@ -133,14 +123,10 @@ public class EntityControllerImp<T extends Base> implements EntityController<T> 
 		return entity;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.sagebionetworks.repo.web.controller.EntityController#createEntity (T)
-	 */
-	public T createEntity(T newEntity, String userId, HttpServletRequest request)
-			throws DatastoreException, InvalidModelException , UnauthorizedException {
+	@Override
+	public T createEntity(String userId, T newEntity, HttpServletRequest request)
+			throws DatastoreException, InvalidModelException,
+			UnauthorizedException {
 
 		dao.create(newEntity);
 
@@ -149,17 +135,11 @@ public class EntityControllerImp<T extends Base> implements EntityController<T> 
 		return newEntity;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.sagebionetworks.repo.web.controller.EntityController#updateEntity
-	 * (java.lang.String, java.lang.Integer, T)
-	 */
-	public T updateEntity(String id, String userId, Integer etag, T updatedEntity,
-			HttpServletRequest request) throws NotFoundException,
-			ConflictingUpdateException, DatastoreException,
-			InvalidModelException, UnauthorizedException  {
+	@Override
+	public T updateEntity(String userId, String id, Integer etag,
+			T updatedEntity, HttpServletRequest request)
+			throws NotFoundException, ConflictingUpdateException,
+			DatastoreException, InvalidModelException, UnauthorizedException {
 
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 
@@ -181,15 +161,9 @@ public class EntityControllerImp<T extends Base> implements EntityController<T> 
 		return updatedEntity;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.sagebionetworks.repo.web.controller.EntityController#deleteEntity
-	 * (java.lang.String)
-	 */
-	public void deleteEntity(String id, String userId) throws NotFoundException,
-			DatastoreException, UnauthorizedException  {
+	@Override
+	public void deleteEntity(String userId, String id)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 
 		dao.delete(entityId);

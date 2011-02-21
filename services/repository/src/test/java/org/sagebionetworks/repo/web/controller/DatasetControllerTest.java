@@ -183,7 +183,7 @@ public class DatasetControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#deleteEntity(java.lang.String)}
+	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#deleteEntity}
 	 * .
 	 * 
 	 * @throws Exception
@@ -327,8 +327,7 @@ public class DatasetControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.EntityControllerImp#getEntity(java.lang.String, javax.servlet.http.HttpServletRequest)}
-	 * .
+	 * {@link org.sagebionetworks.repo.web.EntityControllerImp#getEntity} .
 	 * 
 	 * @throws Exception
 	 */
@@ -397,7 +396,7 @@ public class DatasetControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#deleteEntity(java.lang.String)}
+	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#deleteEntity}
 	 * .
 	 * 
 	 * @throws Exception
