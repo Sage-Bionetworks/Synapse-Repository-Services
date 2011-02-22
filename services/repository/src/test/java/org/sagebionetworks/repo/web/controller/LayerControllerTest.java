@@ -59,8 +59,7 @@ public class LayerControllerTest {
 	public void setUp() throws Exception {
 		servlet = helper.setUp();
 
-		dataset = helper.testCreateJsonEntity("/dataset",
-				"{\"name\":\"DeLiver\"}");
+		dataset = helper.testCreateJsonEntity("/dataset", DatasetControllerTest.SAMPLE_DATASET);
 	}
 
 	/**

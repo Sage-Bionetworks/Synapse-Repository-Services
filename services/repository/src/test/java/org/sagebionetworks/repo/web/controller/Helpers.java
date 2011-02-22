@@ -40,9 +40,11 @@ public class Helpers {
 	private static final LocalServiceTestHelper datastoreHelper = new LocalServiceTestHelper(
 			new LocalDatastoreServiceTestConfig());
 
-	private DispatcherServlet servlet = null;
-
 	private static final int JSON_INDENT = 2;
+
+	private DispatcherServlet servlet = null;
+	
+	private String userId = null;
 
 	/**
 	 * Setup up our mock datastore and servlet
@@ -66,10 +68,19 @@ public class Helpers {
 	}
 
 	/**
-	 * Teardown our datastore, deleting all items
+	 * Tear down our datastore, deleting all items
 	 */
 	public void tearDown() {
 		datastoreHelper.tearDown();
+	}
+	
+	/**
+	 * Add a user id to be used in requests for the lifetime of this helper object
+	 * 
+	 * @param userId
+	 */
+	public void setUserId(String userId) {
+		this.userId = userId;
 	}
 
 	/**
@@ -87,6 +98,7 @@ public class Helpers {
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
+		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonRequestContent.getBytes("UTF-8"));
 		log.info("About to send: "
@@ -125,6 +137,7 @@ public class Helpers {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
+		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.OK.value(), response.getStatus());
@@ -157,6 +170,7 @@ public class Helpers {
 		request.addHeader(ServiceConstants.ETAG_HEADER, jsonEntity
 				.getString("etag"));
 		request.setRequestURI(jsonEntity.getString("uri"));
+		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonEntity.toString().getBytes("UTF-8"));
 		log.info("About to send: " + jsonEntity.toString(JSON_INDENT));
@@ -194,6 +208,7 @@ public class Helpers {
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
+		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.NO_CONTENT.value(), response.getStatus());
@@ -219,6 +234,7 @@ public class Helpers {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
+		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		if (null != offset) {
 			request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM,
 					offset.toString());
@@ -263,6 +279,7 @@ public class Helpers {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
+		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.OK.value(), response.getStatus());
@@ -286,6 +303,7 @@ public class Helpers {
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
+		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonRequestContent.getBytes("UTF-8"));
 		servlet.service(request, response);
@@ -313,6 +331,7 @@ public class Helpers {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
+		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertFalse(HttpStatus.OK.equals(response.getStatus()));
@@ -339,6 +358,7 @@ public class Helpers {
 		request.addHeader(ServiceConstants.ETAG_HEADER, jsonEntity
 				.getString("etag"));
 		request.setRequestURI(jsonEntity.getString("uri"));
+		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonEntity.toString().getBytes("UTF-8"));
 		servlet.service(request, response);
@@ -366,6 +386,7 @@ public class Helpers {
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
+		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertFalse(HttpStatus.OK.equals(response.getStatus()));
@@ -396,6 +417,7 @@ public class Helpers {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
+		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		if (null != offset) {
 			request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM,
 					offset.toString());
