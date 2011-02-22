@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -68,7 +69,7 @@ public class UrlHelpers {
 	 * URL suffix for preview info
 	 */
 	public static final String PREVIEW = "/preview";
-	
+
 	/**
 	 * URL suffix for locations info
 	 */
@@ -77,27 +78,42 @@ public class UrlHelpers {
 	/**
 	 * URL suffix for S3 location metadata
 	 */
-	public static final String S3_LOCATIONSUFFIX = "/awsS3Location";
+	public static final String S3_LOCATION = "/awsS3Location";
 
 	/**
-	 *  URL suffix for EBS location metadata
+	 * URL suffix for EBS location metadata
 	 */
-	public static final String EBS_LOCATIONSUFFIX = "/awsEBSLocation";
+	public static final String EBS_LOCATION = "/awsEBSLocation";
 
 	/**
-	 *  URL suffix for Sage location metadata
+	 * URL suffix for Sage location metadata
 	 */
-	public static final String SAGE_LOCATIONSUFFIX = "/sageLocation";
-	
-	/**
-	 *  URL suffix for an unsupported location type
-	 */
-	public static final String UNSUPPORTED_LOCATIONSUFFIX = "/notYetImplemented";
+	public static final String SAGE_LOCATION = "/sageLocation";
 
 	/**
-	 * Mapping of type to url prefix
+	 * URL suffix for an unsupported location type
+	 */
+	public static final String UNSUPPORTED_LOCATION = "/notYetImplemented";
+
+	/**
+	 * Mapping of type to URL prefix
 	 */
 	private static final Map<Class, String> MODEL2URL;
+
+	/**
+	 * Mapping of type to property URL suffixes
+	 */
+	private static final Map<Class, Collection<String>> MODEL2PROPERTY;
+
+	/**
+	 * Mapping of dependent property classes to their URL suffixes
+	 */
+	private static final Map<Class, String> PROPERTY2URLSUFFIX;
+
+	/**
+	 * Mapping of location types to URL suffixes
+	 */
+	private static final Map<String, String> LOCATIONTYPE2URL;
 
 	/**
 	 * Mapping of child models to their parent models
@@ -105,28 +121,43 @@ public class UrlHelpers {
 	private static final Map<Class, Class> CHILD2PARENTMODEL;
 
 	/**
-	 * Mapping of child urls to their parent urls
+	 * Mapping of child URLs to their parent URLs
 	 */
 	private static final Map<String, String> CHILD2PARENTURL;
-	
+
 	/**
-	 * Mapping of dependent property classes to their url suffixes
+	 * This is a memoized cache for our URL regular expressions
 	 */
-	private static final Map<Class, String> PROPERTY2URLSUFFIX;
-
-	private static final Map<String, String> LOCATIONTYPE2URL;
-
-	// This is a memoized cache for our URL regular expressions
 	private static Map<Class, Pattern> MODEL2REGEX = new HashMap();
 
-	
 	static {
 		Map<Class, String> model2url = new HashMap<Class, String>();
 		model2url.put(Dataset.class, DATASET);
 		model2url.put(InputDataLayer.class, LAYER);
 		MODEL2URL = Collections.unmodifiableMap(model2url);
 
-		// TODO we don't need all these maps, and for those that we do, we can
+		Map<Class, Collection<String>> model2property = new HashMap<Class, Collection<String>>();
+		model2property.put(Dataset.class, Arrays.asList(new String[] { ANNOTATIONS }));
+		model2property.put(InputDataLayer.class, Arrays.asList(new String[] { ANNOTATIONS,
+				PREVIEW, LOCATIONS, S3_LOCATION, EBS_LOCATION, SAGE_LOCATION }));
+		MODEL2PROPERTY = Collections.unmodifiableMap(model2property);
+
+		Map<Class, String> property2urlsuffix = new HashMap<Class, String>();
+		property2urlsuffix.put(Annotations.class, ANNOTATIONS);
+		property2urlsuffix.put(LayerPreview.class, PREVIEW);
+		property2urlsuffix.put(LayerLocations.class, LOCATIONS);
+		PROPERTY2URLSUFFIX = Collections.unmodifiableMap(property2urlsuffix);
+		Map<String, String> locationtype2url = new HashMap<String, String>();
+		locationtype2url.put(LayerLocation.LocationTypeNames.awss3.name(),
+				S3_LOCATION);
+		locationtype2url.put(LayerLocation.LocationTypeNames.awsebs.name(),
+				EBS_LOCATION);
+		locationtype2url.put(LayerLocation.LocationTypeNames.sage.name(),
+				SAGE_LOCATION);
+		LOCATIONTYPE2URL = Collections.unmodifiableMap(locationtype2url);
+
+		// TODO we don't need both of these maps, and for those that we do, we
+		// can
 		// derive them from each other
 
 		Map<Class, Class> child2parent = new HashMap<Class, Class>();
@@ -137,18 +168,7 @@ public class UrlHelpers {
 		// TODO create this using the other maps, being lazy right now
 		child2parenturl.put(LAYER, DATASET);
 		CHILD2PARENTURL = Collections.unmodifiableMap(child2parenturl);
-		
-		Map<Class, String> property2urlsuffix = new HashMap<Class, String>();
-		property2urlsuffix.put(Annotations.class, ANNOTATIONS);
-		property2urlsuffix.put(LayerPreview.class, PREVIEW);
-		property2urlsuffix.put(LayerLocations.class, LOCATIONS);
-		PROPERTY2URLSUFFIX = Collections.unmodifiableMap(property2urlsuffix);
 
-		Map<String, String> locationtype2url = new HashMap<String, String>();
-		locationtype2url.put(LayerLocation.LocationTypeNames.awss3.name(), S3_LOCATIONSUFFIX);
-		locationtype2url.put(LayerLocation.LocationTypeNames.awsebs.name(), EBS_LOCATIONSUFFIX);
-		locationtype2url.put(LayerLocation.LocationTypeNames.sage.name(), SAGE_LOCATIONSUFFIX);
-		LOCATIONTYPE2URL = Collections.unmodifiableMap(locationtype2url);
 	}
 
 	/**
@@ -182,13 +202,26 @@ public class UrlHelpers {
 	}
 
 	/**
+	 * This is intended for usage by unit tests
 	 * 
 	 * @return The URL prefixes we currently have mapped to model classes
 	 */
-	public static Collection<String> getAllUrlPrefixes() {
+	public static Collection<String> getAllEntityUrlPrefixes() {
 		return MODEL2URL.values();
 	}
 
+	/**
+	 * This is intended for usage by unit tests
+	 * 
+	 * @param theModelClass 
+	 * 
+	 * @return The URL suffixes we currently have mapped to model classes
+	 */
+	public static Collection<String> getAllEntityUrlSuffixes(Class theModelClass) {
+		return MODEL2PROPERTY.get(theModelClass);
+	}
+	
+	
 	/**
 	 * Helper function to create a relative URL for an entity
 	 * <p>
@@ -245,7 +278,8 @@ public class UrlHelpers {
 	}
 
 	/**
-	 * Helper function to create a relative URL for an entity's dependent property
+	 * Helper function to create a relative URL for an entity's dependent
+	 * property
 	 * <p>
 	 * 
 	 * This includes not only the entity id but also the controller and servlet
@@ -270,8 +304,8 @@ public class UrlHelpers {
 	 * @param request
 	 * @return the uri for this entity's annotations
 	 */
-	public static String makeEntityPropertyUri(Base entity, Class propertyClass,
-			HttpServletRequest request) {
+	public static String makeEntityPropertyUri(Base entity,
+			Class propertyClass, HttpServletRequest request) {
 
 		String urlPrefix = getUrlPrefix(entity, request);
 
@@ -360,7 +394,7 @@ public class UrlHelpers {
 	 */
 	public static String makeLocationUri(String uriPrefix, String type) {
 		String suffix = LOCATIONTYPE2URL.get(type);
-		if(null == suffix) {
+		if (null == suffix) {
 			return uriPrefix;
 		}
 		return uriPrefix + suffix;

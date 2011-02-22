@@ -67,12 +67,15 @@ public class ControllerTest {
 	@Test
 	public void testInvalidJsonCreateEntity() throws Exception {
 
-		Collection<String> urls = UrlHelpers.getAllUrlPrefixes();
+		Collection<String> urls = UrlHelpers.getAllEntityUrlPrefixes();
 		for (String url : urls) {
+
+			url = (null == UrlHelpers.getParentForChildUrl(url)) ? url
+					: UrlHelpers.getParentForChildUrl(url) + "/123" + url;
 
 			// Notice the missing quotes around the key
 			JSONObject results = helper.testCreateJsonEntityShouldFail(
-					"/dataset", "{name:\"bad json from a unit test\"}",
+					url, "{name:\"bad json from a unit test\"}",
 					HttpStatus.BAD_REQUEST);
 
 			// The response should be something like: {"reason":"Could not read
@@ -101,7 +104,7 @@ public class ControllerTest {
 	@Test
 	public void testMissingBodyCreateEntity() throws Exception {
 
-		Collection<String> urls = UrlHelpers.getAllUrlPrefixes();
+		Collection<String> urls = UrlHelpers.getAllEntityUrlPrefixes();
 		for (String url : urls) {
 
 			url = (null == UrlHelpers.getParentForChildUrl(url)) ? url
@@ -138,7 +141,7 @@ public class ControllerTest {
 	@Test
 	public void testMissingBodyUpdateEntity() throws Exception {
 
-		Collection<String> urls = UrlHelpers.getAllUrlPrefixes();
+		Collection<String> urls = UrlHelpers.getAllEntityUrlPrefixes();
 		for (String url : urls) {
 
 			url = (null == UrlHelpers.getParentForChildUrl(url)) ? url
@@ -175,7 +178,7 @@ public class ControllerTest {
 	 */
 	@Test
 	public void testUpdateEntityMissingEtag() throws Exception {
-		Collection<String> urls = UrlHelpers.getAllUrlPrefixes();
+		Collection<String> urls = UrlHelpers.getAllEntityUrlPrefixes();
 		for (String url : urls) {
 
 			url = (null == UrlHelpers.getParentForChildUrl(url)) ? url

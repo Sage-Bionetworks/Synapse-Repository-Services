@@ -43,7 +43,8 @@ public class LayerLocationsControllerTest {
 	public void setUp() throws Exception {
 		helper.setUp();
 
-		dataset = helper.testCreateJsonEntity("/dataset", DatasetControllerTest.SAMPLE_DATASET);
+		dataset = helper.testCreateJsonEntity("/dataset",
+				DatasetControllerTest.SAMPLE_DATASET);
 	}
 
 	/**
@@ -189,7 +190,7 @@ public class LayerLocationsControllerTest {
 		JSONObject location = null;
 		for (int i = 0; i < layer.getJSONArray("locations").length(); i++) {
 			String locationUri = layer.getJSONArray("locations").getString(i);
-			if (locationUri.endsWith(UrlHelpers.S3_LOCATIONSUFFIX)) {
+			if (locationUri.endsWith(UrlHelpers.S3_LOCATION)) {
 				location = helper.testGetJsonObject(locationUri);
 				break;
 			}
@@ -242,7 +243,7 @@ public class LayerLocationsControllerTest {
 		JSONObject location = null;
 		for (int i = 0; i < layer.getJSONArray("locations").length(); i++) {
 			String locationUri = layer.getJSONArray("locations").getString(i);
-			if (locationUri.endsWith(UrlHelpers.EBS_LOCATIONSUFFIX)) {
+			if (locationUri.endsWith(UrlHelpers.EBS_LOCATION)) {
 				location = helper.testGetJsonObject(locationUri);
 				break;
 			}
@@ -291,7 +292,7 @@ public class LayerLocationsControllerTest {
 		JSONObject location = null;
 		for (int i = 0; i < layer.getJSONArray("locations").length(); i++) {
 			String locationUri = layer.getJSONArray("locations").getString(i);
-			if (locationUri.endsWith(UrlHelpers.SAGE_LOCATIONSUFFIX)) {
+			if (locationUri.endsWith(UrlHelpers.SAGE_LOCATION)) {
 				location = helper.testGetJsonObject(locationUri);
 				break;
 			}
