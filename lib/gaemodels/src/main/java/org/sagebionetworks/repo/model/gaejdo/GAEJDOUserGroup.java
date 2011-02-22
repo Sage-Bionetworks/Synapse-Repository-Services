@@ -38,7 +38,7 @@ public class GAEJDOUserGroup implements GAEJDOBase {
 	
 	// true for system generated groups like 'Public'
 	@Persistent
-	private Boolean isSystemGroup;
+	private Boolean isSystemGroup = false;
 	
 	// true for groups established for individuals (in which case group 'name'==userId)
 	@Persistent

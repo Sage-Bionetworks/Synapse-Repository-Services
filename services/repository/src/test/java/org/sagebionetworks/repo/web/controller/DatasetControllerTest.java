@@ -42,6 +42,11 @@ public class DatasetControllerTest {
 	private DispatcherServlet servlet;
 
 	/**
+	 * A few dataset properties for use in creating a new dataset object for unit tests
+	 */
+	public static final String SAMPLE_DATASET =	"{\"name\":\"DeLiver\"}";
+	
+	/**
 	 * @throws java.lang.Exception
 	 */
 	@Before

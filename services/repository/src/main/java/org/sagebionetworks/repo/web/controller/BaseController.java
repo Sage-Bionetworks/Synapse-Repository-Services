@@ -12,6 +12,7 @@ import org.codehaus.jackson.map.JsonMappingException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -125,6 +126,31 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleConflictingUpdateException(
 			ConflictingUpdateException ex, HttpServletRequest request) {
+		return handleException(ex, request);
+	}
+
+	/**
+	 * This is an application exception thrown when the user does not have
+	 * sufficient authorization to perform the activity requested
+	 * <p>
+	 * Note that per http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html the
+	 * 401 Unauthorized status code merely means that the user has not passed
+	 * the data required to determine whether or not he is authorized. This is
+	 * different than having the correct info and determining that the user is
+	 * not authorized. Hence we return forbidden.
+	 * 
+	 * @param ex
+	 *            the exception to be handled
+	 * @param request
+	 *            the client request
+	 * @return an ErrorResponse object containing the exception reason or some
+	 *         other human-readable response
+	 */
+	@ExceptionHandler(UnauthorizedException.class)
+	@ResponseStatus(HttpStatus.FORBIDDEN)
+	public @ResponseBody
+	ErrorResponse handleUnauthorizedException(UnauthorizedException ex,
+			HttpServletRequest request) {
 		return handleException(ex, request);
 	}
 

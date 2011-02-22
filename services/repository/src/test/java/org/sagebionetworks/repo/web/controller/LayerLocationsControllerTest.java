@@ -43,8 +43,7 @@ public class LayerLocationsControllerTest {
 	public void setUp() throws Exception {
 		helper.setUp();
 
-		dataset = helper.testCreateJsonEntity("/dataset",
-				"{\"name\":\"DeLiver\"}");
+		dataset = helper.testCreateJsonEntity("/dataset", DatasetControllerTest.SAMPLE_DATASET);
 	}
 
 	/**
