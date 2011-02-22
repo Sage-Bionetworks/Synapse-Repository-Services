@@ -121,7 +121,7 @@ public class LayerLocationsController extends BaseController implements
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
-			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.S3_LOCATIONSUFFIX, method = RequestMethod.GET)
+			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.S3_LOCATION, method = RequestMethod.GET)
 	public @ResponseBody
 	LayerLocation getS3Location(
 			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
@@ -158,7 +158,7 @@ public class LayerLocationsController extends BaseController implements
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
-			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.EBS_LOCATIONSUFFIX, method = RequestMethod.GET)
+			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.EBS_LOCATION, method = RequestMethod.GET)
 	public @ResponseBody
 	LayerLocation getEbsLocation(
 			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
@@ -190,7 +190,7 @@ public class LayerLocationsController extends BaseController implements
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
-			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.SAGE_LOCATIONSUFFIX, method = RequestMethod.GET)
+			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.SAGE_LOCATION, method = RequestMethod.GET)
 	public @ResponseBody
 	LayerLocation getSageLocation(
 			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
