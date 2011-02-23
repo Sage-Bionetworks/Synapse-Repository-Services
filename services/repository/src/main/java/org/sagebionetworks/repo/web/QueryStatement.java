@@ -60,8 +60,19 @@ public class QueryStatement {
 				tableName = (String) node.jjtGetValue();
 				break;
 			case QueryParser.JJTWHERE:
-				whereField = (String) ((QueryNode) node.jjtGetChild(0))
+				QueryNode whereFieldNode = (QueryNode) node.jjtGetChild(0);
+				if (QueryParser.JJTCOMPOUNDID == whereFieldNode.getId()) {
+					// TODO later we might want to return these as two separate fields table and column
+					whereField = (String) ((QueryNode) whereFieldNode.jjtGetChild(0))
+					.jjtGetValue();
+					if(2 == whereFieldNode.jjtGetNumChildren()) {
+						whereField = whereField + "." + ((QueryNode) whereFieldNode.jjtGetChild(1))
 						.jjtGetValue();
+					}
+				} else {
+					whereField = (String) ((QueryNode) node.jjtGetChild(0))
+							.jjtGetValue();
+				}
 				whereValue = ((QueryNode) node.jjtGetChild(1).jjtGetChild(0))
 						.jjtGetValue();
 				break;

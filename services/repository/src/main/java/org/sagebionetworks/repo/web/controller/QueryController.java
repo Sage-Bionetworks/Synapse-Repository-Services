@@ -13,6 +13,8 @@ import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
@@ -38,19 +40,13 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @Controller
 public class QueryController extends BaseController {
 
-	private EntitiesAccessor<Dataset> datasetAccessor;
 	private DatasetDAO dao;
-	
+
 	// Use a static instance of this per
 	// http://wiki.fasterxml.com/JacksonBestPracticesPerformance
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 	// TODO @Autowired, no GAE references allowed in this class
 	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
-
-	
-	QueryController() {
-		datasetAccessor = new AnnotatableEntitiesAccessorImpl<Dataset>();
-	}
 
 	private void checkAuthorization(String userId) {
 		BaseDAO<Dataset> dao = DAO_FACTORY.getDatasetDAO(userId);
@@ -62,7 +58,6 @@ public class QueryController extends BaseController {
 	 */
 	public void setDao(BaseDAO<Dataset> dao) {
 		this.dao = (DatasetDAO) dao;
-		datasetAccessor.setDao(dao);
 	}
 
 	/**
@@ -75,7 +70,6 @@ public class QueryController extends BaseController {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	@SuppressWarnings("unchecked")
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.QUERY, method = RequestMethod.GET)
 	public @ResponseBody
@@ -91,11 +85,27 @@ public class QueryController extends BaseController {
 		 * Parse and validate the query
 		 */
 		QueryStatement stmt = new QueryStatement(query);
-		if (null == stmt.getTableName()
-				|| !stmt.getTableName().equals("dataset")) {
+		if (stmt.getTableName().equals("dataset")) {
+			return performDatasetQuery(stmt);
+		} else if (stmt.getTableName().equals("layer")) {
+			if (null == stmt.getWhereField()
+					|| !stmt.getWhereField().equals("dataset.id")) {
+				throw new ParseException(
+						"Layer queries must include a 'WHERE dataset.id == <the id>' clause");
+			}
+			return performLayerQuery(stmt);
+		} else {
 			throw new ParseException(
-					"Queries are only supported for datasets at this time");
+					"Queries are only supported for datasets and layers at this time");
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private QueryResults performDatasetQuery(QueryStatement stmt)
+			throws DatastoreException, NotFoundException {
+
+		EntitiesAccessor<Dataset> accessor = new AnnotatableEntitiesAccessorImpl<Dataset>();
+		accessor.setDao(dao);
 
 		/**
 		 * Perform the query
@@ -103,18 +113,16 @@ public class QueryController extends BaseController {
 		 * TODO talk to Bruce to see if he would prefer that this stuff is
 		 * transformed in to a query string that JDO understands
 		 */
-		List<Dataset> datasets;
+		List<Dataset> entities;
 		if (null != stmt.getWhereField() && null != stmt.getWhereValue()) {
 			// TODO only == is supported for InRangeHaving
-			datasets = datasetAccessor.getInRangeHaving(stmt.getOffset(), stmt
+			entities = accessor.getInRangeHaving(stmt.getOffset(), stmt
 					.getLimit(), stmt.getWhereField(), stmt.getWhereValue());
 		} else if (null != stmt.getSortField()) {
-			datasets = datasetAccessor.getInRangeSortedBy(stmt.getOffset(),
-					stmt.getLimit(), stmt.getSortField(), stmt
-							.getSortAcending());
+			entities = accessor.getInRangeSortedBy(stmt.getOffset(), stmt
+					.getLimit(), stmt.getSortField(), stmt.getSortAcending());
 		} else {
-			datasets = datasetAccessor.getInRange(stmt.getOffset(), stmt
-					.getLimit());
+			entities = accessor.getInRange(stmt.getOffset(), stmt.getLimit());
 		}
 
 		/**
@@ -128,7 +136,7 @@ public class QueryController extends BaseController {
 		 * Format the query result
 		 */
 		List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
-		for (Dataset dataset : datasets) {
+		for (Dataset dataset : entities) {
 
 			Map<String, Object> result = OBJECT_MAPPER.convertValue(dataset,
 					Map.class);
@@ -138,8 +146,7 @@ public class QueryController extends BaseController {
 			result.remove("annotations");
 			result.remove("layer");
 
-			Annotations annotations = dao
-					.getAnnotations(dataset.getId());
+			Annotations annotations = dao.getAnnotations(dataset.getId());
 			result.putAll(annotations.getStringAnnotations());
 			result.putAll(annotations.getDoubleAnnotations());
 			result.putAll(annotations.getLongAnnotations());
@@ -148,8 +155,67 @@ public class QueryController extends BaseController {
 
 			// TODO filter out un-requested fields when we support more than
 			// SELECT *
+		}
 
-			// TODO get rid of etag and uri
+		return new QueryResults(results, totalNumberOfResults);
+	}
+
+	@SuppressWarnings("unchecked")
+	private QueryResults performLayerQuery(QueryStatement stmt)
+			throws DatastoreException, NotFoundException {
+
+		InputDataLayerDAO layerDao = dao.getInputDataLayerDAO(stmt
+				.getWhereValue().toString());
+		EntitiesAccessor<InputDataLayer> accessor = new AnnotatableEntitiesAccessorImpl<InputDataLayer>();
+		accessor.setDao(layerDao);
+
+		/**
+		 * Perform the query
+		 * 
+		 * TODO talk to Bruce to see if he would prefer that this stuff is
+		 * transformed in to a query string that JDO understands
+		 * 
+		 * TODO support WHERE datasetId == 123 AND foo == var
+		 */
+		List<InputDataLayer> entities;
+		if (null != stmt.getSortField()) {
+			entities = accessor.getInRangeSortedBy(stmt.getOffset(), stmt
+					.getLimit(), stmt.getSortField(), stmt.getSortAcending());
+		} else {
+			entities = accessor.getInRange(stmt.getOffset(), stmt.getLimit());
+		}
+
+		/**
+		 * Get the total number of results for this query
+		 * 
+		 * TODO we don't have this for queries with a WHERE clause
+		 */
+		Integer totalNumberOfResults = layerDao.getCount();
+
+		/**
+		 * Format the query result
+		 */
+		List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
+		for (InputDataLayer layer : entities) {
+
+			Map<String, Object> result = OBJECT_MAPPER.convertValue(layer,
+					Map.class);
+			// Get rid of fields for REST api
+			result.remove("uri");
+			result.remove("etag");
+			result.remove("annotations");
+			result.remove("preview");
+			result.remove("locations");
+
+			Annotations annotations = layerDao.getAnnotations(layer.getId());
+			result.putAll(annotations.getStringAnnotations());
+			result.putAll(annotations.getDoubleAnnotations());
+			result.putAll(annotations.getLongAnnotations());
+			result.putAll(annotations.getDateAnnotations());
+			results.add(result);
+
+			// TODO filter out un-requested fields when we support more than
+			// SELECT *
 		}
 
 		return new QueryResults(results, totalNumberOfResults);

@@ -98,6 +98,7 @@ TOKEN: {
       "\""
   >
 | < WILDCARD: "*" >
+| < DOT: "." >
 }
 
 TOKEN : /* IDENTIFIERS */
@@ -172,7 +173,7 @@ void TableName() : {}
 
 void Where() : {}
 {
-  <WHERE> ( Id() | StringValue() ) <EQUALS> Value()
+  <WHERE> ( CompoundId() | StringValue() ) <EQUALS> Value()
 }
 
 void OrderBy() : {}
@@ -190,11 +191,15 @@ void Offset() : {}
   <OFFSET> IntValue()
 }
 
+void CompoundId() : {}
+{
+	Id() [ <DOT> Id() ]
+}
+
 void Id() : {}              
 {
   <ID> { jjtThis.value = new String(token.image); System.out.println("token id " + token.image); }
 }
-
 
 void Ascending() : {}
 {

@@ -290,6 +290,28 @@ public class Helpers {
 	}
 
 	/**
+	 * @param query
+	 * @return the query result
+	 * @throws Exception
+	 */
+	public JSONObject testQuery(String query) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI("/query");
+		request.addParameter("query", query);
+		servlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
+		JSONObject queryResult = new JSONObject(response.getContentAsString());
+		assertTrue(queryResult.has("totalNumberOfResults"));
+		assertTrue(queryResult.has("results"));
+		return queryResult;
+	}
+	
+	/**
 	 * @param requestUrl
 	 * @param jsonRequestContent
 	 * @param status
@@ -444,6 +466,28 @@ public class Helpers {
 		return results;
 	}
 
+	/**
+	 * @param query
+	 * @param status 
+	 * @return the error response
+	 * @throws Exception
+	 */
+	public JSONObject testQueryShouldFail(String query, HttpStatus status) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI("/query");
+		request.addParameter("query", query);
+		servlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		assertEquals(status.value(), response.getStatus());
+		JSONObject error = new JSONObject(response.getContentAsString());
+		assertTrue(error.has("reason"));
+		assertFalse("null".equals(error.getString("reason")));
+		return error;
+	}
+	
 	/**
 	 * Add some canned annotations to our entity and persist them
 	 * 

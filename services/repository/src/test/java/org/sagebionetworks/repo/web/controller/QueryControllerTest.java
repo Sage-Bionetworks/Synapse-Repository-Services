@@ -4,6 +4,8 @@
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -53,6 +55,10 @@ public class QueryControllerTest {
 
 			// Add some canned annotations to our dataset
 			helper.testEntityAnnotations(newDataset.getString("annotations"));
+
+			// Add a layer
+			helper.testCreateJsonEntity(newDataset.getString("layer"),
+					LayerControllerTest.SAMPLE_LAYER);
 		}
 	}
 
@@ -72,17 +78,7 @@ public class QueryControllerTest {
 	 */
 	@Test
 	public void testQuery() throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI("/query");
-		request.addParameter("query", "select * from dataset");
-		servlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
-		assertEquals(HttpStatus.OK.value(), response.getStatus());
-		JSONObject queryResult = new JSONObject(response.getContentAsString());
+		JSONObject queryResult = helper.testQuery("select * from dataset");
 		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
 				queryResult.getInt("totalNumberOfResults"));
 		JSONArray results = queryResult.getJSONArray("results");
@@ -105,18 +101,8 @@ public class QueryControllerTest {
 	 */
 	@Test
 	public void testSortQuery() throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI("/query");
-		request.addParameter("query",
-				"select * from dataset order by \"name\" limit 10");
-		servlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
-		assertEquals(HttpStatus.OK.value(), response.getStatus());
-		JSONObject queryResult = new JSONObject(response.getContentAsString());
+		JSONObject queryResult = helper
+				.testQuery("select * from dataset order by \"name\" limit 10");
 		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
 				queryResult.getInt("totalNumberOfResults"));
 		JSONArray results = queryResult.getJSONArray("results");
@@ -142,18 +128,8 @@ public class QueryControllerTest {
 	 */
 	@Test
 	public void testSortQueryDescending() throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI("/query");
-		request.addParameter("query",
-				"select * from dataset order by \"name\" desc");
-		servlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
-		assertEquals(HttpStatus.OK.value(), response.getStatus());
-		JSONObject queryResult = new JSONObject(response.getContentAsString());
+		JSONObject queryResult = helper
+				.testQuery("select * from dataset order by \"name\" desc");
 		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
 				queryResult.getInt("totalNumberOfResults"));
 		JSONArray results = queryResult.getJSONArray("results");
@@ -181,18 +157,9 @@ public class QueryControllerTest {
 	 */
 	@Test
 	public void testWhereQuery() throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
 
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI("/query");
-		request.addParameter("query",
-				"select * from dataset where name == \"Pediatric AML TARGET\"");
-		servlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
-		assertEquals(HttpStatus.OK.value(), response.getStatus());
-		JSONObject queryResult = new JSONObject(response.getContentAsString());
+		JSONObject queryResult = helper
+				.testQuery("select * from dataset where name == \"Pediatric AML TARGET\"");
 		// TODO fix me, this should be 1
 		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
 				queryResult.getInt("totalNumberOfResults"));
@@ -203,7 +170,55 @@ public class QueryControllerTest {
 		JSONObject result = results.getJSONObject(0);
 		assertEquals("Pediatric AML TARGET", result.getString("name"));
 	}
-	
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.QueryController#query} .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testLayerQuery() throws Exception {
+		int numLayersExpected = 1;
+
+		JSONObject datasetResults = helper
+				.testQuery("select * from dataset where name == \"Pediatric AML TARGET\"");
+		String datasetId = datasetResults.getJSONArray("results")
+				.getJSONObject(0).getString("id");
+
+		JSONObject queryResult = helper
+				.testQuery("select * from layer where dataset.id == \""
+						+ datasetId + "\"");
+		assertEquals(numLayersExpected, queryResult
+				.getInt("totalNumberOfResults"));
+		JSONArray results = queryResult.getJSONArray("results");
+		assertEquals(numLayersExpected, results.length());
+
+		// Check that it is a list of maps
+		for (int i = 0; i < numLayersExpected; i++) {
+			JSONObject layer = results.getJSONObject(i);
+			assertTrue(layer.has("type"));
+			assertFalse("null".equals(layer.getString("type")));
+		}
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.QueryController#query} .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testLayerQueryMissingDatasetId() throws Exception {
+		JSONObject error = helper.testQueryShouldFail(
+				"select * from layer where foo == \"bar\"",
+				HttpStatus.BAD_REQUEST);
+		assertEquals("Layer queries must include a 'WHERE dataset.id == <the id>' clause", error.getString("reason"));
+		error = helper.testQueryShouldFail("select * from layer",
+				HttpStatus.BAD_REQUEST);
+		assertEquals("Layer queries must include a 'WHERE dataset.id == <the id>' clause", error.getString("reason"));
+	}
+
 	/**
 	 * Test method for
 	 * {@link org.sagebionetworks.repo.web.controller.QueryController#query} .
@@ -212,18 +227,12 @@ public class QueryControllerTest {
 	 */
 	@Test
 	public void testTokenMgrError() throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI("/query");
-		request.addParameter("query",
-				"select * from dataset where name == \"Pediatric AML TARGET");
-		servlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
-		assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
-		JSONObject error = new JSONObject(response.getContentAsString());
-		assertEquals("TokenMgrError: Lexical error at line 1, column 58.  Encountered: <EOF> after : \"\\\"Pediatric AML TARGET\"", error.getString("reason"));
+		JSONObject error = helper.testQueryShouldFail(
+				"select * from dataset where name == \"Pediatric AML TARGET",
+				HttpStatus.BAD_REQUEST);
+		assertEquals(
+				"TokenMgrError: Lexical error at line 1, column 58.  Encountered: <EOF> after : \"\\\"Pediatric AML TARGET\"",
+				error.getString("reason"));
 	}
+
 }
