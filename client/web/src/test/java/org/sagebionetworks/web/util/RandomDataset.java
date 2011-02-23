@@ -43,10 +43,22 @@ public class RandomDataset {
 		for(int i=0; i<numLayers; i++){
 			int typeIndex = rand.nextInt(types.length);
 			layers.add(new LayerLink(""+idSequence++, types[typeIndex], RandomStrings.generateRandomUrl(4, 8)));
+			switch(types[typeIndex]) {
+			case G:
+				c.setHasGeneticData(true);
+				break;
+			case C:
+				c.setHasClinicalData(true);
+				break;
+			case E:
+				c.setHasExpressionData(true);
+				break;
+			}
 		}
 		c.setLayerPreviews(layers);
 		c.setStatus(RandomStrings.generateRandomString(1, 10));
 		c.setVersion("1.0."+rand.nextInt(9));
+		
 		return c;
 	}
 
