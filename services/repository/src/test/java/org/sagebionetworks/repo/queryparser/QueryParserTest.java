@@ -151,6 +151,19 @@ public class QueryParserTest {
 		assertEquals(new Integer(30), stmt.getLimit());
 	}
 
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testLayerQuery() throws Exception {
+
+		QueryStatement stmt = new QueryStatement(
+				"select * from layer where dataset.id == \"123\"");
+		assertEquals("layer", stmt.getTableName());
+		assertEquals("dataset.id", stmt.getWhereField());
+		assertEquals("123", stmt.getWhereValue());
+	}
+
 	/************************************************************************
 	 * Error cases, make sure the messages we return are useful to humans.
 	 */
