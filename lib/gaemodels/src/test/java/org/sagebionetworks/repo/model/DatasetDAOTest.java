@@ -181,7 +181,11 @@ public class DatasetDAOTest {
 		layer1.setType("C");
 		
 		InputDataLayerDAO layerDAO = dao.getInputDataLayerDAO(id);
+		
+		Assert.assertEquals(1, dao.getCount());
 		layerDAO.create(layer1);
+		Assert.assertEquals(1, dao.getCount());
+		
 		layerDAO.getStringAnnotationDAO(layer1.getId()).addAnnotation(
 				"attribute1", "value1");
 		layerDAO.getStringAnnotationDAO(layer1.getId()).addAnnotation(

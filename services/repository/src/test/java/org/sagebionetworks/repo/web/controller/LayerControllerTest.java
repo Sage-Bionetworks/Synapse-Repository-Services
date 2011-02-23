@@ -108,14 +108,24 @@ public class LayerControllerTest {
 	@Test
 	public void testCreateLayer() throws Exception {
 
+		// Sanity check - make sure we can find our dataset
+		JSONObject allDatasets = helper.testGetJsonEntities("/dataset", null, null,
+				null, null);
+		assertEquals(1, allDatasets.getInt("totalNumberOfResults"));
+		
+		
 		JSONObject newLayer = helper.testCreateJsonEntity(dataset
 				.getString("layer"), SAMPLE_LAYER);
-
+		assertExpectedLayerProperties(newLayer);
 		// Check required properties
 		assertEquals("DeLiver expression data", newLayer.getString("name"));
 
-		assertExpectedLayerProperties(newLayer);
 
+		// Sanity check - make sure we can _STILL_ find our dataset
+		allDatasets = helper.testGetJsonEntities("/dataset", null, null,
+				null, null);
+		assertEquals(1, allDatasets.getInt("totalNumberOfResults"));
+		
 		// Get the dataset and make sure our Layer types preview is correct
 		JSONObject updatedDataset = helper.testGetJsonEntity(dataset
 				.getString("uri"));
