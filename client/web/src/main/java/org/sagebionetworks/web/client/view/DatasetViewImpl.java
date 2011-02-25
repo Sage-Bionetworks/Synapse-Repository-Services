@@ -2,36 +2,44 @@ package org.sagebionetworks.web.client.view;
 
 import org.sagebionetworks.web.client.presenter.DatasetRow;
 
+import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
 import com.google.gwt.dom.client.SpanElement;
 import com.google.gwt.i18n.client.DateTimeFormat;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.ui.DisclosurePanel;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
+import com.google.gwt.user.client.ui.FlowPanel;
+import com.google.gwt.user.client.ui.HTML;
+import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
 public class DatasetViewImpl extends Composite implements DatasetView {
 
+	private final int DESCRIPTION_SUMMARY_LENGTH = 50; // characters for summary
+
 	public interface Binder extends UiBinder<Widget, DatasetViewImpl> {
 	}
 
 	@UiField
-	SpanElement titleSpan;
+	FlowPanel overviewPanel;
 	@UiField
-	SpanElement descriptionSpan;
+	SpanElement titleSpan;
 	@UiField
 	FlexTable middleFlexTable;
 	@UiField
 	FlexTable rightFlexTable;
 
 	private Presenter presenter;
+	private PreviewDisclosurePanel previewDisclosurePanel;
 
 	@Inject
 	public DatasetViewImpl(Binder uiBinder) {
 		initWidget(uiBinder.createAndBindUi(this));
-
 	}
 
 	@Override
@@ -49,7 +57,15 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		// Clear everything
 		clearAllFields();
 		titleSpan.setInnerText(row.getName());
-		descriptionSpan.setInnerHTML(row.getDesc1ription());
+
+		// set descriptions
+		String description = row.getDesc1ription();
+		int summaryLength = description.length() >= DESCRIPTION_SUMMARY_LENGTH ? DESCRIPTION_SUMMARY_LENGTH
+				: description.length();
+		previewDisclosurePanel = new PreviewDisclosurePanel("Expand",
+				description.substring(0, summaryLength), description);
+		overviewPanel.add(previewDisclosurePanel);
+
 		// First row
 		int rowIndex = 0;
 		addRowToTable(rowIndex++, "Disease(s):", "Aging", middleFlexTable);
@@ -63,11 +79,15 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		// Now fill out the right
 		rowIndex = 0;
 		// Fill in the right from the datast
-		if(row.getCreatedOn() != null){
-			addRowToTable(rowIndex++, "Posted:", DateTimeFormat.getMediumDateTimeFormat().format(row.getCreatedOn()), rightFlexTable);			
+		if (row.getCreatedOn() != null) {
+			addRowToTable(rowIndex++, "Posted:", DateTimeFormat
+					.getMediumDateTimeFormat().format(row.getCreatedOn()),
+					rightFlexTable);
 		}
-		if(row.getModifiedColumn() != null){
-			addRowToTable(rowIndex++, "Modified:", DateTimeFormat.getMediumDateTimeFormat().format(row.getModifiedColumn()), rightFlexTable);			
+		if (row.getModifiedColumn() != null) {
+			addRowToTable(rowIndex++, "Modified:", DateTimeFormat
+					.getMediumDateTimeFormat().format(row.getModifiedColumn()),
+					rightFlexTable);
 		}
 		addRowToTable(rowIndex++, "Creator:", row.getCreator(), rightFlexTable);
 		addRowToTable(rowIndex++, "Status:", row.getStatus(), rightFlexTable);
@@ -81,7 +101,8 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	 * @param value
 	 * @param table
 	 */
-	private static void addRowToTable(int row, String key, String value, FlexTable table) {
+	private static void addRowToTable(int row, String key, String value,
+			FlexTable table) {
 		table.setText(row, 0, key);
 		table.getCellFormatter().addStyleName(row, 0, "boldRight");
 		table.setText(row, 1, value);
@@ -89,7 +110,11 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 
 	private void clearAllFields() {
 		titleSpan.setInnerText("");
-		descriptionSpan.setInnerHTML("");
+		if (previewDisclosurePanel != null) {
+			previewDisclosurePanel.setCaption("");
+			previewDisclosurePanel.setPreview("");
+			previewDisclosurePanel.setContent("");
+		}
 		middleFlexTable.clear();
 		rightFlexTable.clear();
 	}

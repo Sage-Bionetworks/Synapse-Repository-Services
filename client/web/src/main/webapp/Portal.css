@@ -59,3 +59,7 @@ h1 {
 	font-weight: bold;
 	text-align: right;
 }
+
+/* Removes annoying FireFox dotted border */
+:focus {outline:none;}
+

@@ -18,6 +18,10 @@
 		.oneThird {
 			width: 350px;
 		}
+		
+		.rowTop {
+			vertical-align: top;
+		}
 	</ui:style>
 	<g:HTMLPanel>
 		<div class="{style.title}">
@@ -25,23 +29,23 @@
 		</div>
 		<hr />
 		<table class="{style.topTable}">
-			<tr>
+			<tr class="{style.rowTop}">
 				<td>
 					<div class="{style.oneThird}">
 						<body>
-							<h2>Overview</h2>
-							<span ui:field="descriptionSpan" />
+							<h2>Overview</h2>							
+							<g:FlowPanel ui:field="overviewPanel" />							
 						</body>
 					</div>
 				</td>
 				<td>
 					<div class="{style.oneThird}">
-						<g:FlexTable ui:field="middleFlexTable"/>
+						<g:FlexTable ui:field="middleFlexTable" />
 					</div>
 				</td>
 				<td>
 					<div class="{style.oneThird}">
-						<g:FlexTable ui:field="rightFlexTable"/>
+						<g:FlexTable ui:field="rightFlexTable" />
 					</div>
 				</td>
 			</tr>
