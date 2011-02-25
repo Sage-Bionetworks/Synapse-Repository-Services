@@ -19,6 +19,9 @@ public class GAEJDOLayerPreviewDAOImpl extends
 		GAEJDOBaseDAOImpl<LayerPreview, GAEJDOInputDataLayer> implements
 		LayerPreviewDAO {
 	
+	/**
+	 * @param userId
+	 */
 	public GAEJDOLayerPreviewDAOImpl(String userId) {super(userId);}
 
 	@Override

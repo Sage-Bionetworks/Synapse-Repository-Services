@@ -23,6 +23,7 @@ public interface DependentPropertyDAO<T,S> {
 	 * @return the dependent DTO
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws UnauthorizedException 
 	 */
 	public T get(String id) throws DatastoreException, NotFoundException, UnauthorizedException;
 
@@ -34,6 +35,7 @@ public interface DependentPropertyDAO<T,S> {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
+	 * @throws UnauthorizedException 
 	 */
 	public void update(T dto) throws DatastoreException, InvalidModelException,
 			NotFoundException, UnauthorizedException;

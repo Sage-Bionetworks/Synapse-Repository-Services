@@ -25,6 +25,12 @@ public interface DAOFactory {
 	 * @return
 	 */
 	public UserDAO getUserDAO(String userId);
+
+	/**
+	 * @param userId
+	 * @return
+	 */
+	public UserCredentialsDAO getUserCredentialsDAO(String userId);
 	
 	/**
 	 * 

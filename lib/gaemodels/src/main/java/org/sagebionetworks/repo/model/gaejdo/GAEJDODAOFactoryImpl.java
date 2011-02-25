@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.LayerLocationsDAO;
 import org.sagebionetworks.repo.model.LayerPreviewDAO;
 import org.sagebionetworks.repo.model.ProjectDAO;
 import org.sagebionetworks.repo.model.ScriptDAO;
+import org.sagebionetworks.repo.model.UserCredentialsDAO;
 import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 
@@ -39,6 +40,10 @@ public class GAEJDODAOFactoryImpl implements DAOFactory {
 	 */
 	public UserDAO getUserDAO(String userId) {
 		return new GAEJDOUserDAOImpl(userId);
+	}
+	
+	public UserCredentialsDAO getUserCredentialsDAO(String userId) {
+		return new GAEJDOUserCredentialsDAOImpl(userId);
 	}
 	
 	/**
