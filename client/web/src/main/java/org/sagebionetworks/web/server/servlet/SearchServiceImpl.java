@@ -32,10 +32,6 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 		SearchService {
 
 	private static Logger logger = Logger.getLogger(SearchServiceImpl.class.getName());
-	
-	public static final String KEY_QUERY = "queryKey";
-
-	public static final String PATH_QUERY = "repo/v1/query?query={"+KEY_QUERY+"}";
 
 	/**
 	 * The template is injected with Gin
@@ -118,33 +114,18 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 		List<HeaderData> allColumnHeaderData = getColumnsForResults(allRequired);
 
 		// Execute the query
-		StringBuilder builder = new StringBuilder();
-		Map<String, String> map = new TreeMap<String, String>();
-		// Bind the type
-		String queryString = QueryStringUtils.writeQueryString(params);
-		map.put(KEY_QUERY, queryString);
-		// Map the type
-		builder.append(rootUrl);
-		builder.append(PATH_QUERY);
-		String url = builder.toString();
-		// Expand the template to see the full url
-		URI uri = UrlTemplateUtil.expandUrl(url, map);
-		logger.info("Expanded GET: " + uri.toString());
+
+		// Build the uri from the parameters
+		URI uri = QueryStringUtils.writeQueryUri(rootUrl, params);
+		logger.info("Url GET: " + uri.toString());
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>("", headers);
 
-		// String printable version.
-		// ResponseEntity<String> testReponse =
-		// templateProvider.getTemplate().exchange(url, HttpMethod.GET, entity,
-		// String.class, map);
-		// logger.info("Response Status: "+testReponse.getStatusCode());
-		// logger.info(testReponse.getBody());
-
 		// Make the actual call.
 		ResponseEntity<Object> response = templateProvider.getTemplate()
-				.exchange(url, HttpMethod.GET, entity, Object.class, map);
+				.exchange(uri, HttpMethod.GET, entity, Object.class);
 		LinkedHashMap<String, Object> body = (LinkedHashMap<String, Object>) response
 				.getBody();
 		List<Map<String, Object>> rows = (List<Map<String, Object>>) body

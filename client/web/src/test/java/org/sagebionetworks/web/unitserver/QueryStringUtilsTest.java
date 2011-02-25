@@ -2,48 +2,53 @@ package org.sagebionetworks.web.unitserver;
 
 import static org.junit.Assert.*;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+
 import org.junit.Test;
 import org.sagebionetworks.web.server.servlet.QueryStringUtils;
 import org.sagebionetworks.web.shared.SearchParameters;
 
 public class QueryStringUtilsTest {
 	
+	private static String ROOT_URL = "http://localhost:9998";
+	
 	@Test
-	public void testRoundTrip(){
+	public void testRoundTrip() throws URISyntaxException{
 		// Create a simple query
 		SearchParameters params = new SearchParameters();
 		params.setFromType(SearchParameters.FromType.dataset.name());
 		// Now create the query string for this object
-		String queryString = QueryStringUtils.writeQueryString(params);
-		assertNotNull(queryString);
-		System.out.println(queryString);
+		URI uri = QueryStringUtils.writeQueryUri(ROOT_URL, params);
+		assertNotNull(uri);
+		System.out.println(uri);
 		// Now make a copy from the string
-		SearchParameters copy = QueryStringUtils.parseQueryString(queryString);
+		SearchParameters copy = QueryStringUtils.parseQueryString(uri.toString());
 		assertNotNull(copy);
 		// It should match the original
 		assertEquals(params, copy);
 	}
 	
 	@Test
-	public void testRoundTripPaging(){
+	public void testRoundTripPaging() throws URISyntaxException{
 		// Create a simple query
 		SearchParameters params = new SearchParameters();
 		params.setLimit(20);
 		params.setOffset(50);
 		params.setFromType(SearchParameters.FromType.dataset.name());
 		// Now create the query string for this object
-		String queryString = QueryStringUtils.writeQueryString(params);
-		assertNotNull(queryString);
-		System.out.println(queryString);
+		URI uri = QueryStringUtils.writeQueryUri(ROOT_URL, params);
+		assertNotNull(uri);
+		System.out.println(uri);
 		// Now make a copy from the string
-		SearchParameters copy = QueryStringUtils.parseQueryString(queryString);
+		SearchParameters copy = QueryStringUtils.parseQueryString(uri.toString());
 		assertNotNull(copy);
 		// It should match the original
 		assertEquals(params, copy);
 	}
 	
 	@Test
-	public void testRoundTripPagingAndSorting(){
+	public void testRoundTripPagingAndSorting() throws URISyntaxException{
 		// Create a simple query
 		SearchParameters params = new SearchParameters();
 		params.setLimit(100);
@@ -52,14 +57,35 @@ public class QueryStringUtilsTest {
 		params.setAscending(false);
 		params.setSort("sortKey");
 		// Now create the query string for this object
-		String queryString = QueryStringUtils.writeQueryString(params);
-		assertNotNull(queryString);
-		System.out.println(queryString);
+		URI uri = QueryStringUtils.writeQueryUri(ROOT_URL, params);
+		assertNotNull(uri);
+		System.out.println(uri);
 		// Now make a copy from the string
-		SearchParameters copy = QueryStringUtils.parseQueryString(queryString);
+		SearchParameters copy = QueryStringUtils.parseQueryString(uri.toString());
 		assertNotNull(copy);
 		// It should match the original
 		assertEquals(params, copy);
 	}
+	
+	@Test
+	public void testRoundTripZeroOffest() throws URISyntaxException{
+		// Create a simple query
+		SearchParameters params = new SearchParameters();
+		params.setLimit(100);
+		params.setOffset(0);
+		params.setFromType(SearchParameters.FromType.dataset.name());
+		params.setAscending(true);
+		params.setSort("sortKey");
+		// Now create the query string for this object
+		URI uri = QueryStringUtils.writeQueryUri(ROOT_URL, params);
+		assertNotNull(uri);
+		System.out.println(uri);
+		// Now make a copy from the string
+		SearchParameters copy = QueryStringUtils.parseQueryString(uri.toString());
+		assertNotNull(copy);
+		// The offset should have been changed to 1
+		assertEquals(1, copy.getOffset());
+	}
+
 
 }

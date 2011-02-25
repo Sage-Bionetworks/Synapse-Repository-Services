@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.server.servlet;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.TreeMap;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -22,8 +23,10 @@ public class QueryStringUtils {
 	public static final String KEY_LIMIT = "limitKey";
 	public static final String KEY_SORT = "sortKey";
 	public static final String KEY_ASCND = "ascendingKey";
+	
+	public static final String PATH_QUERY = "repo/v1/query?query=";
 
-	public static final String PATH_QUERY = "select+*+from+{"
+	public static final String QUERY = "select+*+from+{"
 			+ KEY_FROM
 			+ "}+limit+{"
 			+ KEY_LIMIT
@@ -31,7 +34,7 @@ public class QueryStringUtils {
 			+ KEY_OFFSET
 			+ "}";
 
-	public static final String PATH_QUERY_WITH_SORT = "select+*+from+{"
+	public static final String QUERY_WITH_SORT = "select+*+from+{"
 			+ KEY_FROM
 			+ "}+order+by+\"{"
 			+ KEY_SORT
@@ -47,14 +50,16 @@ public class QueryStringUtils {
 	 * @param params
 	 * @return
 	 */
-	public static String writeQueryString(SearchParameters params){
+	public static URI writeQueryUri(String root, SearchParameters params){
 		StringBuilder builder = new StringBuilder();
+		builder.append(root);
+		builder.append(PATH_QUERY);
 		Map<String, String> map = new TreeMap<String, String>();
 		// Bind the type
 		FromType type = params.fetchType();
 		map.put(KEY_FROM, type.name());
 		if (params.getSort() != null) {
-			builder.append(PATH_QUERY_WITH_SORT);
+			builder.append(QUERY_WITH_SORT);
 			map.put(KEY_SORT, params.getSort());
 			String value = null;
 			if (params.isAscending()) {
@@ -64,24 +69,24 @@ public class QueryStringUtils {
 			}
 			map.put(KEY_ASCND, value);
 		} else {
-			builder.append(PATH_QUERY);
+			builder.append(QUERY);
 		}
-		map.put(KEY_OFFSET, Integer.toString(params.getOffset()));
 		// The limit must start at one not zero
-		int limit = params.getLimit();
-		if(limit < 1){
-			limit = 1;
+		int offset = params.getOffset();
+		if(offset < 1){
+			offset = 1;
 		}
+		map.put(KEY_OFFSET, Integer.toString(offset));
 		map.put(KEY_LIMIT, Integer.toString(params.getLimit()));
 		String url = builder.toString();
-		URI uri = UrlTemplateUtil.expandUrl(url, map);
-		return uri.toString();
+		return UrlTemplateUtil.expandUrl(url, map);
 	}
 
 	/**
 	 * Parse a query String into the original SearchParameters.
 	 * @param queryString
 	 * @return
+	 * @throws URISyntaxException 
 	 */
 	public static SearchParameters parseQueryString(String queryString) {
 		SearchParameters params = new SearchParameters();

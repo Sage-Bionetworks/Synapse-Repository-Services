@@ -2,8 +2,6 @@ package org.sagebionetworks.web.client;
 
 import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.cookie.GWTCookieImpl;
-import org.sagebionetworks.web.client.view.AllDatasetsView;
-import org.sagebionetworks.web.client.view.AllDatasetsViewImpl;
 import org.sagebionetworks.web.client.view.CellTableProvider;
 import org.sagebionetworks.web.client.view.CellTableProviderImpl;
 import org.sagebionetworks.web.client.view.DatasetView;
@@ -22,10 +20,6 @@ public class PortalGinModule extends AbstractGinModule {
 
 	@Override
 	protected void configure() {
-		// We want the view implementation to be a singleton.
-		// AllDatasetsView
-		bind(AllDatasetsViewImpl.class).in(Singleton.class);
-		bind(AllDatasetsView.class).to(AllDatasetsViewImpl.class);
 		
 		// The home page for all datasets
 		bind(DatasetsHomeViewImpl.class).in(Singleton.class);

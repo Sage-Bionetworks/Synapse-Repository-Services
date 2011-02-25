@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.util;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -64,7 +65,7 @@ public class LocalSearchServiceStub {
 
 
 	@GET @Produces("application/json")
-	public LinkedHashMap<String, Object> executeSearch(@QueryParam("query") String query) {
+	public LinkedHashMap<String, Object> executeSearch(@QueryParam("query") String query){
 		logger.info(query);
 		LinkedHashMap<String, Object> results = new LinkedHashMap<String, Object>();
 		// Extract the query
