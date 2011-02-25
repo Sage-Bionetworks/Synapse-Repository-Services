@@ -17,6 +17,15 @@ import javax.servlet.ServletException;
 import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.sagebionetworks.repo.model.DAOFactory;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.UserCredentials;
+import org.sagebionetworks.repo.model.UserCredentialsDAO;
+import org.sagebionetworks.repo.model.UserDAO;
+import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -35,25 +44,46 @@ import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
  */
 public class Helpers {
 
+	/**
+	 * A user for use in unit tests
+	 */
+	public static final String READ_ONLY_USER_ID = "unit.test@sagebase.org";
+
 	private static final Logger log = Logger.getLogger(Helpers.class.getName());
 
 	private static final LocalServiceTestHelper datastoreHelper = new LocalServiceTestHelper(
 			new LocalDatastoreServiceTestConfig());
 
+	private static final String ACCESS_ID = "thisIsAFakeAccessID";
+	private static final String SECRET_KEY = "thisIsAFakeSecretKey";
 	private static final int JSON_INDENT = 2;
 
 	private DispatcherServlet servlet = null;
-	
+
 	private String userId = null;
 
 	/**
 	 * Setup up our mock datastore and servlet
 	 * 
 	 * @return the servlet
-	 * @throws ServletException
+	 * @throws Exception
 	 */
-	public DispatcherServlet setUp() throws ServletException {
+	public DispatcherServlet setUp() throws Exception {
 		datastoreHelper.setUp();
+
+		// Make a user and his credentials
+		// TODO @Autowired, no GAE references allowed in this class
+		final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
+		UserDAO userDao = DAO_FACTORY.getUserDAO(null);
+		User user = new User();
+		user.setUserId(READ_ONLY_USER_ID);
+		userDao.create(user);
+		UserCredentialsDAO credsDao = DAO_FACTORY.getUserCredentialsDAO(READ_ONLY_USER_ID);
+		UserCredentials storedCreds;
+		storedCreds = credsDao.get(READ_ONLY_USER_ID);
+		storedCreds.setIamAccessId(ACCESS_ID);
+		storedCreds.setIamSecretKey(SECRET_KEY);
+		credsDao.update(storedCreds);
 
 		// Create a Spring MVC DispatcherServlet so that we can test our URL
 		// mapping, request format, response format, and response status code.
@@ -73,9 +103,10 @@ public class Helpers {
 	public void tearDown() {
 		datastoreHelper.tearDown();
 	}
-	
+
 	/**
-	 * Add a user id to be used in requests for the lifetime of this helper object
+	 * Add a user id to be used in requests for the lifetime of this helper
+	 * object
 	 * 
 	 * @param userId
 	 */
@@ -98,7 +129,8 @@ public class Helpers {
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
-		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
+		if (null != userId)
+			request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonRequestContent.getBytes("UTF-8"));
 		log.info("About to send: "
@@ -137,7 +169,8 @@ public class Helpers {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
-		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
+		if (null != userId)
+			request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.OK.value(), response.getStatus());
@@ -170,7 +203,8 @@ public class Helpers {
 		request.addHeader(ServiceConstants.ETAG_HEADER, jsonEntity
 				.getString("etag"));
 		request.setRequestURI(jsonEntity.getString("uri"));
-		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
+		if (null != userId)
+			request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonEntity.toString().getBytes("UTF-8"));
 		log.info("About to send: " + jsonEntity.toString(JSON_INDENT));
@@ -208,7 +242,8 @@ public class Helpers {
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
-		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
+		if (null != userId)
+			request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.NO_CONTENT.value(), response.getStatus());
@@ -234,7 +269,8 @@ public class Helpers {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
-		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
+		if (null != userId)
+			request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		if (null != offset) {
 			request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM,
 					offset.toString());
@@ -279,7 +315,8 @@ public class Helpers {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
-		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
+		if (null != userId)
+			request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.OK.value(), response.getStatus());
@@ -310,7 +347,7 @@ public class Helpers {
 		assertTrue(queryResult.has("results"));
 		return queryResult;
 	}
-	
+
 	/**
 	 * @param requestUrl
 	 * @param jsonRequestContent
@@ -325,7 +362,8 @@ public class Helpers {
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
-		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
+		if (null != userId)
+			request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonRequestContent.getBytes("UTF-8"));
 		servlet.service(request, response);
@@ -353,7 +391,8 @@ public class Helpers {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
-		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
+		if (null != userId)
+			request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertFalse(HttpStatus.OK.equals(response.getStatus()));
@@ -380,7 +419,8 @@ public class Helpers {
 		request.addHeader(ServiceConstants.ETAG_HEADER, jsonEntity
 				.getString("etag"));
 		request.setRequestURI(jsonEntity.getString("uri"));
-		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
+		if (null != userId)
+			request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonEntity.toString().getBytes("UTF-8"));
 		servlet.service(request, response);
@@ -408,7 +448,8 @@ public class Helpers {
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
-		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
+		if (null != userId)
+			request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertFalse(HttpStatus.OK.equals(response.getStatus()));
@@ -439,7 +480,8 @@ public class Helpers {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
-		if(null != userId) request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
+		if (null != userId)
+			request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		if (null != offset) {
 			request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM,
 					offset.toString());
@@ -468,11 +510,12 @@ public class Helpers {
 
 	/**
 	 * @param query
-	 * @param status 
+	 * @param status
 	 * @return the error response
 	 * @throws Exception
 	 */
-	public JSONObject testQueryShouldFail(String query, HttpStatus status) throws Exception {
+	public JSONObject testQueryShouldFail(String query, HttpStatus status)
+			throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -487,7 +530,7 @@ public class Helpers {
 		assertFalse("null".equals(error.getString("reason")));
 		return error;
 	}
-	
+
 	/**
 	 * Add some canned annotations to our entity and persist them
 	 * 

@@ -3,10 +3,14 @@ package org.sagebionetworks.repo.model.gaejdo;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import javax.jdo.PersistenceManager;
+
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserCredentialsDAO;
 import org.sagebionetworks.repo.model.UserCredentials;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.appengine.api.datastore.KeyFactory;
 
@@ -24,7 +28,32 @@ public class GAEJDOUserCredentialsDAOImpl extends
 	public GAEJDOUserCredentialsDAOImpl(String userId) {
 		super(userId);
 	}
+	
+	@Override
+	public UserCredentials get(String id) throws DatastoreException, NotFoundException,
+	UnauthorizedException {
+		
+		// TODO Bruce, is this how you want this to happen?
+		
+		PersistenceManager pm = PMF.get();
+		GAEJDOUser thisUser = (new GAEJDOUserDAOImpl(userId)).getUser(pm);
 
+		return super.get(KeyFactory.keyToString(thisUser.getId()));
+	}
+	
+	@Override
+	public void update(UserCredentials dto) throws DatastoreException, InvalidModelException,
+	NotFoundException, UnauthorizedException {
+		
+		// TODO Bruce, is this how you want this to happen?
+		
+		PersistenceManager pm = PMF.get();
+		GAEJDOUser thisUser = (new GAEJDOUserDAOImpl(userId)).getUser(pm);
+		dto.setId(KeyFactory.keyToString(thisUser.getId()));
+		super.update(dto);
+	}
+	
+	
 	@Override
 	protected UserCredentials newDTO() {
 		return new UserCredentials();
