@@ -183,6 +183,7 @@ public class LayerLocationsControllerTest {
 		helper.testUpdateJsonEntity(layerLocations);
 
 		// Get the layer
+		helper.setUserId("unit.test@sagebase.org");
 		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
 		LayerControllerTest.assertExpectedLayerProperties(layer);
 

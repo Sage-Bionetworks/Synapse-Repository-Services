@@ -140,7 +140,7 @@ public class LayerLocationsController extends BaseController implements
 					+ id);
 		}
 
-		String signedPath = LocationHelpers.getS3Url(null, location.getPath());
+		String signedPath = LocationHelpers.getS3Url(userId, location.getPath());
 
 		location.setPath(signedPath);
 

@@ -10,12 +10,13 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement
 public class LayerPreview implements Base {
+	
+	private String id; // The id of the containing layer
 	private String preview;
 
 	/** 
 	 * The following members are set by the service layer and should not be persisted.
 	 */
-	private String id; // The id of the containing layer
 	private String uri; // URI for this layer preview
 	private String etag; // ETag for this layer preview
 
