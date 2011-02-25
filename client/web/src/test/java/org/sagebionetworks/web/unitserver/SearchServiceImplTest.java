@@ -156,6 +156,7 @@ public class SearchServiceImplTest {
 		List<String> list = service.getDefaultColumnIds(FromType.dataset.name());
 		assertNotNull(list);
 		assertTrue(list.contains("datasetNameLink"));
+		assertTrue(list.contains("layerTypeIcons"));
 		assertTrue(list.contains("status"));
 		assertTrue(list.contains("Number of Samples"));
 		

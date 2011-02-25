@@ -12,7 +12,9 @@ import org.sagebionetworks.web.client.view.table.column.provider.LongColumnProvi
 import org.sagebionetworks.web.client.view.table.column.provider.StringColumnProvider;
 import org.sagebionetworks.web.shared.ColumnInfo;
 import org.sagebionetworks.web.shared.HeaderData;
+import org.sagebionetworks.web.shared.LayerColumnInfo;
 import org.sagebionetworks.web.shared.LinkColumnInfo;
+
 import com.google.gwt.user.cellview.client.Column;
 import com.google.inject.Inject;
 
@@ -27,7 +29,7 @@ public class ColumnFactoryImpl implements ColumnFactory {
 	private ColumnFactoryGinInjector injector;
 	
 	private List<ColumnProvider> providerList = new ArrayList<ColumnProvider>();
-
+	
 	/**
 	 * IoC via GIN
 	 * @param injector
@@ -56,6 +58,11 @@ public class ColumnFactoryImpl implements ColumnFactory {
 			LinkColumn link = injector.getLinkColumn();
 			link.setLinkColumnInfo((LinkColumnInfo) meta);
 			return link;
+		}else if(meta instanceof LayerColumnInfo){
+			// There must be two keys for this type
+			LayerColumn layer = injector.getLayerColumn();
+			layer.setLayerColumnInfo((LayerColumnInfo) meta);
+			return layer;
 		}else if(meta instanceof ColumnInfo){
 			// Find a provider that 
 			ColumnInfo colInfo = (ColumnInfo) meta;

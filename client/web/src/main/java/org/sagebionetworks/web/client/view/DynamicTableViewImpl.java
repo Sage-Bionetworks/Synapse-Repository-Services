@@ -158,10 +158,10 @@ public class DynamicTableViewImpl extends Composite implements DynamicTableView 
 			Column<Map<String, Object>, ?> column = columnFactory.createColumn(meta);
 			// Add the column to the table;
 			// Is this column sortable
-			boolean isSortable = true; // at the moment all columns are sortable.
-			if(isSortable){
+			String sortId = meta.getSortId();
+			if(sortId != null){
 				// the header is a sortable object
-				SortableHeader header = createHeader(meta.getDisplayName(), meta.getSortId());
+				SortableHeader header = createHeader(meta.getDisplayName(), sortId);
 				cellTable.addColumn(column, header);
 			}else{
 				// The header is a string

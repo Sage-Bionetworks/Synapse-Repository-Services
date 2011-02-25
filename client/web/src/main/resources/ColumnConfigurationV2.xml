@@ -95,7 +95,21 @@
 			<display>Reference / PubMed ID</display>
 			<description>Reference / PubMed ID</description>
 		</column>
-
+		<column id="hasExpressionData">
+			<type>Boolean</type>
+			<display>hasExpressionData</display>
+			<description>hasExpressionData</description>
+		</column>
+		<column id="hasGeneticData">
+			<type>Boolean</type>
+			<display>hasGeneticData</display>
+			<description>hasGeneticData</description>
+		</column>
+		<column id="hasClinicalData">
+			<type>Boolean</type>
+			<display>hasClinicalData</display>
+			<description>hasClinicalData</description>
+		</column>
 		<!-- The more complex/composite columns -->
 		
 		<!-- A dynamic relative URL will be built for datatasts using the ID column -->
@@ -108,5 +122,13 @@
 			<display reference="name" />
 			<url reference="datasetUrl" />
 		</link-column>
+		<!-- Renders all layer types as a single column -->
+		<layer-column id="layerTypeIcons">
+			<display>Layers</display>
+			<description>The layer types provided by this dataset</description>
+			<hasExpression reference="hasExpressionData" />
+			<hasGenetic reference="hasGeneticData" />
+			<hasClinical reference="hasClinicalData" />
+		</layer-column>
 	</columns>
 </configuration>

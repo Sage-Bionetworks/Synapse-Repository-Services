@@ -66,7 +66,9 @@ public class ColumnConfigProvider {
 		// Create a map of each value
 		map = new LinkedHashMap<String, HeaderData>();
 		List<HeaderData> list = config.getColumns();
+		logger.info("Loaded column types:");
 		for(HeaderData info: list){
+			logger.info(info.getId());
 			map.put(info.getId(), info);
 		}
 	}

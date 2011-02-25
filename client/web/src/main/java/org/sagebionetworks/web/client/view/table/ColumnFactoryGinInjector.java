@@ -7,5 +7,7 @@ import com.google.gwt.inject.client.Ginjector;
 public interface ColumnFactoryGinInjector extends Ginjector {
 	
 	public LinkColumn getLinkColumn();
+	
+	public LayerColumn getLayerColumn();
 
 }
