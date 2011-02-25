@@ -5,12 +5,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.web.client.ProtalGinInjector;
-import org.sagebionetworks.web.client.place.AllDatasets;
 import org.sagebionetworks.web.client.place.Dataset;
-import org.sagebionetworks.web.client.place.DynamicTest;
-import org.sagebionetworks.web.client.presenter.AllDatasetPresenter;
+import org.sagebionetworks.web.client.place.DatasetsHome;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
-import org.sagebionetworks.web.client.presenter.DynamicTablePresenter;
+import org.sagebionetworks.web.client.presenter.DatasetsHomePresenter;
 
 import com.google.gwt.activity.shared.Activity;
 import com.google.gwt.activity.shared.ActivityMapper;
@@ -37,26 +35,16 @@ public class AppActivityMapper implements ActivityMapper {
 	public Activity getActivity(Place place) {
 		// We use GIN to generate and inject all presenters with 
 		// their dependencies.
-		if(place instanceof AllDatasets){
-			
-//			DynamicTableTest presenter = ginjector.getDynamicTableTest();
-//			// set this presenter's place
-//			presenter.setPlace(null);
-//			return presenter;
-			
-			AllDatasetPresenter presenter = ginjector.getAllDatasetsPresenter();
+		if(place instanceof DatasetsHome){
+			// The home page for all datasets
+			DatasetsHomePresenter presenter = ginjector.getDatasetsHomePresenter();
 			// set this presenter's place
-			presenter.setPlace((AllDatasets)place);
+			presenter.setPlace((DatasetsHome)place);
 			return presenter;
 		}else if(place instanceof Dataset){
 			DatasetPresenter presenter = ginjector.getDatasetPresenter();
 			// set this presenter's place
 			presenter.setPlace((Dataset)place);
-			return presenter;
-		}else if(place instanceof DynamicTest){
-			DynamicTablePresenter presenter = ginjector.getDynamicTableTest();
-			// set this presenter's place
-			presenter.setPlace((DynamicTest)place);
 			return presenter;
 		}else{
 			// Log that we have an unknown place but send the user to the default
@@ -71,7 +59,7 @@ public class AppActivityMapper implements ActivityMapper {
 	 * @return
 	 */
 	public Place getDefaultPlace() {
-		return new AllDatasets(null);
+		return new DatasetsHome(null);
 	}
 
 }

@@ -5,30 +5,36 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.web.client.ImagePrototypeSingleton;
-import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.view.table.ColumnFactory;
 import org.sagebionetworks.web.shared.HeaderData;
 
 import com.google.gwt.cell.client.ValueUpdater;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
+import com.google.gwt.uibinder.client.UiTemplate;
 import com.google.gwt.user.cellview.client.CellTable;
 import com.google.gwt.user.cellview.client.Column;
 import com.google.gwt.user.cellview.client.SimplePager;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
+import com.google.gwt.view.client.Range;
+import com.google.gwt.view.client.RangeChangeEvent;
+import com.google.gwt.view.client.RangeChangeEvent.Handler;
 import com.google.inject.Inject;
 
 public class DynamicTableViewImpl extends Composite implements DynamicTableView {
 
+	@UiTemplate("DynamicTableViewImpl.ui.xml")
 	public interface Binder extends UiBinder<Widget, DynamicTableViewImpl> {}
 
-	// To pass the cell table the CSS, we need to call a constructor
-	// so we are providing the instance of this class
 	@UiField
+	SimplePanel tablePanel;
+	@UiField
+	SimplePanel pagerPanel;
+	
 	CellTable<Map<String, Object>> cellTable;
-	@UiField
 	SimplePager pager;
 	ImagePrototypeSingleton prototype;
 
@@ -39,6 +45,7 @@ public class DynamicTableViewImpl extends Composite implements DynamicTableView 
 	private List<SortableHeader> sortableHeaders = new ArrayList<SortableHeader>();
 	private Presenter presenter;
 	private ColumnFactory columnFactory;
+	private CellTableProvider tableProvider;
 
 	/**
 	 * Gin will inject all of the params.
@@ -46,16 +53,22 @@ public class DynamicTableViewImpl extends Composite implements DynamicTableView 
 	 * @param cellTableResource
 	 */
 	@Inject
-	public DynamicTableViewImpl(final Binder uiBinder,ImagePrototypeSingleton prototype,ColumnFactory columnFactory) {
-		// Create the tables
-//		cellTable = new CellTable<Map<String, Object>>(10, cellTableResource);
+	public DynamicTableViewImpl(final Binder uiBinder,ImagePrototypeSingleton prototype,ColumnFactory columnFactory, CellTableProvider provider) {
 		// Use the xml script to load the rest of the view.
 		initWidget(uiBinder.createAndBindUi(this));
 		this.prototype = prototype;
 		this.columnFactory = columnFactory;
+		this.tableProvider = provider;
+		removeAllColumns();
 	}
 	
-	private SortableHeader createHeader(String display, String key){
+	/**
+	 * Public for testing
+	 * @param display
+	 * @param key
+	 * @return
+	 */
+	public SortableHeader createHeader(String display, String key){
 		final SortableHeader header = new SortableHeader(display, prototype, key);
 		sortableHeaders.add(header);
 		header.setUpdater(new ValueUpdater<String>() {
@@ -71,9 +84,29 @@ public class DynamicTableViewImpl extends Composite implements DynamicTableView 
 	 * Remove all columns from the table.
 	 */
 	private void removeAllColumns() {
-		for (int i = 0; i < columnCount; i++) {
-			cellTable.removeColumn(i);
+		if(cellTable != null){
+			cellTable.removeFromParent();
+			pager.removeFromParent();
 		}
+		if(pager != null){
+			pager.removeFromParent();
+		}
+		// Create the tables
+		cellTable = tableProvider.createNewTable();
+		tablePanel.add(cellTable);
+		// Create a new pager
+		pager = tableProvider.createPager();
+		pagerPanel.add(pager);
+		pager.setDisplay(cellTable);
+
+		// The pager will trigger these
+		cellTable.addRangeChangeHandler(new Handler() {
+			@Override
+			public void onRangeChange(RangeChangeEvent event) {
+				Range newRange = event.getNewRange();
+				presenter.pageTo(newRange.getStart(), newRange.getLength());
+			}
+		});
 		// Clear all header data
 		sortableHeaders.clear();
 	}
@@ -128,7 +161,7 @@ public class DynamicTableViewImpl extends Composite implements DynamicTableView 
 			boolean isSortable = true; // at the moment all columns are sortable.
 			if(isSortable){
 				// the header is a sortable object
-				SortableHeader header = createHeader(meta.getDisplayName(), meta.getId());
+				SortableHeader header = createHeader(meta.getDisplayName(), meta.getSortId());
 				cellTable.addColumn(column, header);
 			}else{
 				// The header is a string
@@ -137,6 +170,10 @@ public class DynamicTableViewImpl extends Composite implements DynamicTableView 
 		}
 		// Keep the column count
 		columnCount = list.size();
+	}
+	
+	public int getColumnCount(){
+		return columnCount;
 	}
 
 }

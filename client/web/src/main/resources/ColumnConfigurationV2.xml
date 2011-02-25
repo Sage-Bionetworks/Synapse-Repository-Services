@@ -86,7 +86,7 @@
 			<description>Species</description>
 		</column>
 		<column id="Number of Samples">
-			<type>LongArray</type>
+			<type>IntegerArray</type>
 			<display>Number of Samples</display>
 			<description>Number of Samples</description>
 		</column>

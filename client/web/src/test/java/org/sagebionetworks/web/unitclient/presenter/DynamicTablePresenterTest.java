@@ -4,7 +4,7 @@ import static org.mockito.Mockito.*;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,6 +22,7 @@ import org.sagebionetworks.web.client.view.RowData;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.TableResults;
+import org.sagebionetworks.web.shared.SearchParameters.FromType;
 import org.sagebionetworks.web.test.helper.AsyncServiceRecorder;
 import org.sagebionetworks.web.test.helper.AsyncServiceRecorder.MethodCall;
 import org.sagebionetworks.web.unitclient.cookie.StubCookieProvider;
@@ -52,6 +53,7 @@ public class DynamicTablePresenterTest {
 		cookieProvider = new StubCookieProvider();
 		// Create the presenter
 		presenter = new DynamicTablePresenter(mockView, asynchProxy, cookieProvider);
+		presenter.setType(FromType.dataset);
 		// Make sure the view gets the presenter set
 		verify(mockView).setPresenter(presenter);
 	}
@@ -133,7 +135,7 @@ public class DynamicTablePresenterTest {
 		SearchParameters curParams = presenter.getCurrentSearchParameters();
 		// The view should get the columns set and the rows set
 		verify(mockView, times(1)).setColumns(table.getColumnInfoList());
-		RowData rowData = new RowData(table.getRows(), curParams.getOffset(), curParams.getLength(), total, curParams.getSort(), curParams.isAscending());
+		RowData rowData = new RowData(table.getRows(), curParams.getOffset(), curParams.getLimit(), total, curParams.getSort(), curParams.isAscending());
 		verify(mockView, times(1)).setRows(rowData);
 	}
 	
@@ -141,7 +143,7 @@ public class DynamicTablePresenterTest {
 	public void testRefreshFromServerFail() throws Exception{
 		// Get the search parameters that will be used by the presenter
 		SearchParameters currentParams = presenter.getCurrentSearchParameters();
-		TableResults toReturn = createResults(6, currentParams.getLength(), 10);
+		TableResults toReturn = createResults(6, currentParams.getLimit(), 10);
 		// Starting the presenter should trigger a server refresh
 		when(mockSearchService.executeSearch(currentParams)).thenReturn(toReturn);
 		// The recorder should start with zero calls
@@ -161,7 +163,7 @@ public class DynamicTablePresenterTest {
 		SearchParameters curParams = presenter.getCurrentSearchParameters();
 		int columnCount = 6;
 		int totalCount = 100;
-		TableResults toReturn = createResults(columnCount, curParams.getLength(), totalCount);
+		TableResults toReturn = createResults(columnCount, curParams.getLimit(), totalCount);
 		// Starting the presenter should trigger a server refresh
 		when(mockSearchService.executeSearch(curParams)).thenReturn(toReturn);
 		// The recorder should start with zero calls
@@ -172,7 +174,7 @@ public class DynamicTablePresenterTest {
 		// now trigger a failure
 		recorder.playOnSuccess(0);
 		verify(mockView).setColumns(toReturn.getColumnInfoList());
-		RowData rowData = new RowData(toReturn.getRows(), curParams.getOffset(), curParams.getLength(), totalCount, curParams.getSort(), curParams.isAscending());
+		RowData rowData = new RowData(toReturn.getRows(), curParams.getOffset(), curParams.getLimit(), totalCount, curParams.getSort(), curParams.isAscending());
 		verify(mockView).setRows(rowData);
 	}
 	
@@ -215,7 +217,7 @@ public class DynamicTablePresenterTest {
 		// Now fill in the rows
 		List<Map<String, Object>> rows = new ArrayList<Map<String, Object>>();
 		for(int row=0; row<numberRows; row++){
-			Map<String, Object> thisRow = new HashMap<String, Object>();
+			Map<String, Object> thisRow = new TreeMap<String, Object>();
 			// Fill in each cell
 			for(int col=0; col<numberCols; col++){
 				HeaderData header = headers.get(col);

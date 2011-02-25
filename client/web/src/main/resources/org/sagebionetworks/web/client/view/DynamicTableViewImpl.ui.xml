@@ -10,11 +10,11 @@
 	<g:HTMLPanel>
 		<div>
 			<div align="right">
-				<c:SimplePager ui:field="pager" location="CENTER" />
+				<g:SimplePanel ui:field="pagerPanel" />
 			</div>
 			<hr />
 			<div>
-				<c:CellTable ui:field="cellTable" />
+				<g:SimplePanel ui:field="tablePanel" />
 			</div>
 		</div>
 	</g:HTMLPanel>

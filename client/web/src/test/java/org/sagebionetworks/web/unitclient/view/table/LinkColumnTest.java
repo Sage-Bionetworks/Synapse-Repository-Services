@@ -6,7 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.Map;
 
 import org.junit.After;
@@ -44,7 +44,7 @@ public class LinkColumnTest {
 		when(mock.toString()).thenReturn(hyperLinkToString);
 		LinkColumn column = new LinkColumn(mock);
 		// The map holds cell data
-		Map<String, Object> row = new HashMap<String, Object>();
+		Map<String, Object> row = new TreeMap<String, Object>();
 		String displayKey = "displayKey";
 		String urlKey = "urlKey";
 		// Set the two columns

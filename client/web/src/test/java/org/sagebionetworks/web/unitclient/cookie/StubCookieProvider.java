@@ -3,7 +3,7 @@ package org.sagebionetworks.web.unitclient.cookie;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -18,7 +18,7 @@ import org.sagebionetworks.web.client.cookie.CookieProvider;
  */
 public class StubCookieProvider implements CookieProvider {
 	
-	private HashMap<String, String> map = new HashMap<String, String>();
+	private TreeMap<String, String> map = new TreeMap<String, String>();
 
 	@Override
 	public String getCookie(String key) {

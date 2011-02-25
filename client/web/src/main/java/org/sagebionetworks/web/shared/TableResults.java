@@ -11,6 +11,11 @@ public class TableResults implements IsSerializable {
 	
 	private int totalNumberResults;
 	private List<Map<String, Object>> rows;
+	/**
+	 * We want GWT to serialize every type in this class.
+	 */
+	private TableValues values = null;
+	
 	public int getTotalNumberResults() {
 		return totalNumberResults;
 	}
@@ -28,6 +33,12 @@ public class TableResults implements IsSerializable {
 	}
 	public void setColumnInfoList(List<HeaderData> columnInfoList) {
 		this.columnInfoList = columnInfoList;
+	}
+	public TableValues getValues() {
+		return values;
+	}
+	public void setValues(TableValues values) {
+		this.values = values;
 	}
 
 }

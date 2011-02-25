@@ -7,11 +7,11 @@ import org.sagebionetworks.web.client.SearchServiceAsync;
 import org.sagebionetworks.web.client.cookie.CookieKeys;
 import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.cookie.CookieUtils;
-import org.sagebionetworks.web.client.place.DynamicTest;
 import org.sagebionetworks.web.client.view.DynamicTableView;
 import org.sagebionetworks.web.client.view.RowData;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.SearchParameters;
+import org.sagebionetworks.web.shared.SearchParameters.FromType;
 import org.sagebionetworks.web.shared.TableResults;
 
 import com.google.gwt.activity.shared.AbstractActivity;
@@ -34,7 +34,16 @@ public class DynamicTablePresenter extends AbstractActivity implements DynamicTa
 	private int paginationLength = 10;
 	private CookieProvider cookieProvider;
 	private List<HeaderData> currentColumns = null;
+	private FromType type;
 	
+
+	public FromType getType() {
+		return type;
+	}
+
+	public void setType(FromType type) {
+		this.type = type;
+	}
 
 	@Inject
 	public DynamicTablePresenter(DynamicTableView view, SearchServiceAsync service, CookieProvider cookieProvider){
@@ -43,12 +52,21 @@ public class DynamicTablePresenter extends AbstractActivity implements DynamicTa
 		this.view.setPresenter(this);
 		this.cookieProvider = cookieProvider;
 	}
+	
+	/**
+	 * This flavor should be called if this presenter is contain in another location.
+	 */
+	public void start() {
+		// Refresh the view
+		refreshFromServer();
+	}
 
+	/**
+	 * This flavor of start will be called if this presenter is a true location.
+	 */
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
-		// First refresh from the server
-		refreshFromServer();
-
+		start();
 		// Add the view to the main container
 		panel.setWidget(view.asWidget());	
 	}
@@ -75,7 +93,7 @@ public class DynamicTablePresenter extends AbstractActivity implements DynamicTa
 	 * @return
 	 */
 	public SearchParameters getCurrentSearchParameters(){
-		return new SearchParameters(getDisplayColumns(), paginationOffest, paginationLength, sortKey, ascending);
+		return new SearchParameters(getDisplayColumns(), this.type.name(), paginationOffest, paginationLength, sortKey, ascending);
 	}
 
 	/**
@@ -155,11 +173,6 @@ public class DynamicTablePresenter extends AbstractActivity implements DynamicTa
 		sortKey = columnKey;
 		ascending = !ascending;
 		refreshFromServer();
-	}
-
-	public void setPlace(DynamicTest place) {
-		// TODO Auto-generated method stub
-		
 	}
 
 	public String getSortKey() {

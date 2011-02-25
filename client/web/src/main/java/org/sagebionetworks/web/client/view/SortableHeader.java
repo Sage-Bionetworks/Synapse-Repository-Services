@@ -1,16 +1,13 @@
 package org.sagebionetworks.web.client.view;
 
 import org.sagebionetworks.web.client.ImagePrototypeSingleton;
-import org.sagebionetworks.web.client.SageImageBundle;
 
-import com.google.gwt.cell.client.ClickableTextCell;
 import com.google.gwt.cell.client.Cell.Context;
-import com.google.gwt.resources.client.ImageResource;
+import com.google.gwt.cell.client.ClickableTextCell;
 import com.google.gwt.safehtml.shared.SafeHtml;
 import com.google.gwt.safehtml.shared.SafeHtmlBuilder;
 import com.google.gwt.safehtml.shared.SafeHtmlUtils;
 import com.google.gwt.user.cellview.client.Header;
-import com.google.gwt.user.client.ui.AbstractImagePrototype;
 
 /**
  * A CellTable header that shows sorting.

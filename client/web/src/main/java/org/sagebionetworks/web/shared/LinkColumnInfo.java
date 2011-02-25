@@ -1,5 +1,8 @@
 package org.sagebionetworks.web.shared;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 /**
@@ -9,7 +12,7 @@ import com.google.gwt.user.client.rpc.IsSerializable;
  * @author jmhill
  *
  */
-public class LinkColumnInfo implements HeaderData, IsSerializable{
+public class LinkColumnInfo implements HeaderData, IsSerializable, CompositeColumn {
 	
 	private String id;
 	private ColumnInfo display;
@@ -39,6 +42,15 @@ public class LinkColumnInfo implements HeaderData, IsSerializable{
 		this.url = url;
 	}
 
+	@Override
+	public List<String> getBaseDependencyIds() {
+		List<String> dependencies = new ArrayList<String>();
+		// Depends on the display name and url
+		dependencies.add(display.getId());
+		dependencies.add(url.getId());
+		return dependencies;
+	}
+	
 	@Override
 	public String getDisplayName() {
 		return display.getDisplayName();

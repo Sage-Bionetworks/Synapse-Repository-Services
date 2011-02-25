@@ -22,6 +22,7 @@ import org.sagebionetworks.web.server.servlet.DatasetServiceImpl;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.PaginatedDatasets;
 import org.sagebionetworks.web.util.LocalDatasetServiceStub;
+import org.sagebionetworks.web.util.LocalStubLauncher;
 import org.springframework.web.client.RestTemplate;
 
 import com.sun.grizzly.http.SelectorThread;
@@ -63,7 +64,7 @@ public class DatasetServiceImplTest {
 		// First setup the url
 		serviceUrl = UriBuilder.fromUri("http://"+serviceHost+"/").port(servicePort).build().toURL();
 		// Now start the container
-		selector = LocalDatasetServiceStub.startServer(serviceHost, servicePort);
+		selector = LocalStubLauncher.startServer(serviceHost, servicePort);
 		
 		// Create the RestProvider
 		int timeout = 1000*60*2; // 2 minute timeout

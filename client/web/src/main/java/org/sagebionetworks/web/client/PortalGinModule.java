@@ -4,8 +4,12 @@ import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.cookie.GWTCookieImpl;
 import org.sagebionetworks.web.client.view.AllDatasetsView;
 import org.sagebionetworks.web.client.view.AllDatasetsViewImpl;
+import org.sagebionetworks.web.client.view.CellTableProvider;
+import org.sagebionetworks.web.client.view.CellTableProviderImpl;
 import org.sagebionetworks.web.client.view.DatasetView;
 import org.sagebionetworks.web.client.view.DatasetViewImpl;
+import org.sagebionetworks.web.client.view.DatasetsHomeView;
+import org.sagebionetworks.web.client.view.DatasetsHomeViewImpl;
 import org.sagebionetworks.web.client.view.DynamicTableView;
 import org.sagebionetworks.web.client.view.DynamicTableViewImpl;
 import org.sagebionetworks.web.client.view.table.ColumnFactory;
@@ -22,10 +26,17 @@ public class PortalGinModule extends AbstractGinModule {
 		// AllDatasetsView
 		bind(AllDatasetsViewImpl.class).in(Singleton.class);
 		bind(AllDatasetsView.class).to(AllDatasetsViewImpl.class);
+		
+		// The home page for all datasets
+		bind(DatasetsHomeViewImpl.class).in(Singleton.class);
+		bind(DatasetsHomeView.class).to(DatasetsHomeViewImpl.class);
+		
 		// DatasetView
 		bind(DatasetViewImpl.class).in(Singleton.class);
 		bind(DatasetView.class).to(DatasetViewImpl.class);
-		// DatasetView
+		// For now the dynamic table is a singleton. If we need
+		// to have more than one on a page at a time then we will need
+		// to change this.
 		bind(DynamicTableViewImpl.class).in(Singleton.class);
 		bind(DynamicTableView.class).to(DynamicTableViewImpl.class);
 		
@@ -38,6 +49,9 @@ public class PortalGinModule extends AbstractGinModule {
 		
 		// The ImagePrototySingleton should be...well a singleton
 		bind(ImagePrototypeSingleton.class).in(Singleton.class);
+		
+		// The runtime provider
+		bind(CellTableProvider.class).to(CellTableProviderImpl.class);
 	}
 
 }

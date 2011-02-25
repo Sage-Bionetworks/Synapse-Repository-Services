@@ -17,4 +17,10 @@ public class ServerConstants {
 	 * The property key that tell what column configuration xml file to be used.
 	 */
 	public static final String KEY_COLUMN_CONFIG_XML_FILE = "org.sagebionetworks.column.config.xml.resource";
+	
+	
+	/**
+	 * The property key that tells where the root of the rest API can be found;
+	 */
+	public static final String KEY_REST_API_ROOT_URL = "org.sagebionetworks.rest.api.root.url";
 }

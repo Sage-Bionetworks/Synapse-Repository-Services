@@ -19,10 +19,12 @@ public class ColumnInfo implements IsSerializable, HeaderData {
 		Boolean,
 		Long,
 		Double,
+		Integer,
 		StringArray,
 		BooleanArray,
 		LongArray,
 		DoubleArray,
+		IntegerArray; 
 	}
 	
 	private String id;
@@ -46,7 +48,21 @@ public class ColumnInfo implements IsSerializable, HeaderData {
 	public void setId(String id) {
 		this.id = id;
 	}
+	/**
+	 * This object must be serialized using GWT's RPC which does not 
+	 * support enumerations.  Therefore, we use "fetch" instead of "get"
+	 * for the type.  While "get" returns a string.
+	 * @return
+	 */
+	public Type fetchType() {
+		return type;
+	}
+	/**
+	 * @see #fetchType();
+	 * @return
+	 */
 	public String getType() {
+		if(type == null) return null;
 		return type.name();
 	}
 	public void setType(String type) {

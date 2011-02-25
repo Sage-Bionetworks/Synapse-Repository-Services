@@ -4,7 +4,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.Map;
 
 /**
@@ -71,7 +71,7 @@ public class AsyncServiceRecorder<U,T> implements InvocationHandler {
 
 	private int sequence = 0;
 
-	private Map<Integer, MethodCall> calls = new HashMap<Integer, MethodCall>();
+	private Map<Integer, MethodCall> calls = new TreeMap<Integer, MethodCall>();
 
 	private U serviceImpl = null;
 	private Class<T> asynchInterface;

@@ -6,9 +6,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.web.client.DatasetServiceAsync;
-import org.sagebionetworks.web.client.place.AllDatasets;
+import org.sagebionetworks.web.client.place.DatasetsHome;
 import org.sagebionetworks.web.client.view.AllDatasetsView;
-import org.sagebionetworks.web.server.servlet.DatasetServiceImpl;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.PaginatedDatasets;
 
@@ -23,7 +22,7 @@ public class AllDatasetPresenter extends AbstractActivity implements AllDatasets
 	private static Logger logger = Logger.getLogger(AllDatasetPresenter.class.getName());
 	
 	private AllDatasetsView view;
-	private AllDatasets place;
+	private DatasetsHome place;
 	private DatasetServiceAsync service;
 	
 	private String sortKey = null;
@@ -46,7 +45,7 @@ public class AllDatasetPresenter extends AbstractActivity implements AllDatasets
 		this.view.setPresenter(this);
 	}
 	
-	public void setPlace(AllDatasets place){
+	public void setPlace(DatasetsHome place){
 		this.place = place;
 	}
 

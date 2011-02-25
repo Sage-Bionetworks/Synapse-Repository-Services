@@ -11,7 +11,6 @@ import com.google.inject.Inject;
  */
 public class ImagePrototypeSingleton {
 	
-	private SageImageBundle bundle;
 	
 	private String upArrowIconHtml;
 	private String downArrowIconHtml;
