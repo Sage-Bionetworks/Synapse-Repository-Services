@@ -31,14 +31,14 @@ import com.amazonaws.services.s3.AmazonS3Client;
  */
 public class LocationHelpers {
 
-	private static final int EXPIRES_MINUTES = 1;
+	private static final int EXPIRES_MINUTES = 10;
 	private static final String S3_BUCKET = "data01.sagebase.org";
 	private static final String READ_ONLY_GROUP = "ReadOnlyUnrestrictedDataUsers";
 	// TODO @Autowired, no GAE references allowed in this class
 	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
 
-	private static String testAccessKey = "thisIsAFakeAccessKey";
-	private static String testSecretKey = "thisIsAFakeSecretKey";
+	private static String iamCanCreateUserCredsAccessId = "thisIsAFakeAWSAccessId";
+	private static String iamCanCreateUserCredsSecretKey = "thisIsAFakeAWSSecretKey";
 
 	private static AWSCredentials iamCanCreateUsersCreds;
 	private static AmazonIdentityManagement iamClient;
@@ -51,13 +51,13 @@ public class LocationHelpers {
 	 * TODO nuke this when we have an integration instance of the user service
 	 */
 	public static void useTestKeys() {
-		if ((null != System.getenv("accessKey"))
+		if ((null != System.getenv("accessId"))
 				&& (null != System.getenv("secretKey"))) {
-			testAccessKey = System.getenv("accessKey");
-			testSecretKey = System.getenv("secretKey");
+			iamCanCreateUserCredsAccessId = System.getenv("accessId");
+			iamCanCreateUserCredsSecretKey = System.getenv("secretKey");
 		}
-		iamCanCreateUsersCreds = new BasicAWSCredentials(testAccessKey,
-				testSecretKey);
+		iamCanCreateUsersCreds = new BasicAWSCredentials(iamCanCreateUserCredsAccessId,
+				iamCanCreateUserCredsSecretKey);
 		iamClient = new AmazonIdentityManagementClient(iamCanCreateUsersCreds);
 	}
 
@@ -87,7 +87,7 @@ public class LocationHelpers {
 		DateTime now = new DateTime();
 		DateTime expires = now.plusMinutes(EXPIRES_MINUTES);
 
-		AWSCredentials creds = iamCanCreateUsersCreds; // getCredentialsForUser(userId);
+		AWSCredentials creds = getCredentialsForUser(userId);
 
 		AmazonS3 client = new AmazonS3Client(creds);
 		URL signedPath = client.generatePresignedUrl(S3_BUCKET, cleartextPath,

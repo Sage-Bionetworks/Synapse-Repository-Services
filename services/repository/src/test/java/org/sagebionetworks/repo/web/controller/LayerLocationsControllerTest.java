@@ -146,8 +146,11 @@ public class LayerLocationsControllerTest {
 				.getString("layer"), null, null, null, null);
 		JSONObject saneLayer = helper.testGetJsonEntity(saneLayers
 				.getJSONArray("results").getJSONObject(0).getString("uri"));
-		helper.testGetJsonObject(saneLayer.getJSONArray("locations").getString(
-				0));
+		helper.setUserId(Helpers.READ_ONLY_USER_ID);
+		for(int i = 0; i < saneLayer.getJSONArray("locations").length(); i++) {
+			helper.testGetJsonObject(saneLayer.getJSONArray("locations").getString(
+					i));
+		}
 	}
 
 	/**
@@ -181,9 +184,9 @@ public class LayerLocationsControllerTest {
 				.put(new JSONObject(
 						"{\"type\":\"sage\", \"path\":\"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz\"}"));
 		helper.testUpdateJsonEntity(layerLocations);
-
+		
 		// Get the layer
-		helper.setUserId("unit.test@sagebase.org");
+		helper.setUserId(Helpers.READ_ONLY_USER_ID);
 		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
 		LayerControllerTest.assertExpectedLayerProperties(layer);
 
