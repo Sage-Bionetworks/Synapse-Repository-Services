@@ -11,6 +11,7 @@ import org.sagebionetworks.web.client.view.table.column.provider.IntegerColumnPr
 import org.sagebionetworks.web.client.view.table.column.provider.LongColumnProvider;
 import org.sagebionetworks.web.client.view.table.column.provider.StringColumnProvider;
 import org.sagebionetworks.web.shared.ColumnInfo;
+import org.sagebionetworks.web.shared.DateColumnInfo;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.LayerColumnInfo;
 import org.sagebionetworks.web.shared.LinkColumnInfo;
@@ -54,15 +55,20 @@ public class ColumnFactoryImpl implements ColumnFactory {
 		if(meta == null) throw new IllegalArgumentException("HeaderData cannot be null");
 		// First determine the type
 		if(meta instanceof LinkColumnInfo){
-			// There must be two keys for this type
+			// Link
 			LinkColumn link = injector.getLinkColumn();
 			link.setLinkColumnInfo((LinkColumnInfo) meta);
 			return link;
 		}else if(meta instanceof LayerColumnInfo){
-			// There must be two keys for this type
+			// Layer
 			LayerColumn layer = injector.getLayerColumn();
 			layer.setLayerColumnInfo((LayerColumnInfo) meta);
 			return layer;
+		}else if(meta instanceof DateColumnInfo){
+			// Date
+			DateColumn date = injector.getDateColumn();
+			date.setDateColumnInfo((DateColumnInfo) meta);
+			return date;
 		}else if(meta instanceof ColumnInfo){
 			// Find a provider that 
 			ColumnInfo colInfo = (ColumnInfo) meta;

@@ -130,5 +130,8 @@
 			<hasGenetic reference="hasGeneticData" />
 			<hasClinical reference="hasClinicalData" />
 		</layer-column>
+		<date-column id="createdOnDate">
+			<baseColumn reference="creationDate"/>
+		</date-column>
 	</columns>
 </configuration>

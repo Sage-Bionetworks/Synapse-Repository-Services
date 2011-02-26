@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.web.shared.ColumnInfo;
+import org.sagebionetworks.web.shared.DateColumnInfo;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.LayerColumnInfo;
 import org.sagebionetworks.web.shared.LinkColumnInfo;
@@ -66,10 +67,12 @@ public class ColumnConfig {
 		xstream.useAttributeFor(ColumnInfo.class, "id");
 		xstream.useAttributeFor(LinkColumnInfo.class, "id");
 		xstream.useAttributeFor(LayerColumnInfo.class, "id");
+		xstream.useAttributeFor(DateColumnInfo.class, "id");
 		xstream.alias("link-column", LinkColumnInfo.class);
 		xstream.alias("url-template", UrlTemplate.class);
 		xstream.alias("layer-column", LayerColumnInfo.class);
 		xstream.aliasField("display", LayerColumnInfo.class, "displayName");
+		xstream.alias("date-column", DateColumnInfo.class);
 		return xstream;
 	}
 

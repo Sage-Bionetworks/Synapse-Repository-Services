@@ -9,5 +9,7 @@ public interface ColumnFactoryGinInjector extends Ginjector {
 	public LinkColumn getLinkColumn();
 	
 	public LayerColumn getLayerColumn();
+	
+	public DateColumn getDateColumn();
 
 }

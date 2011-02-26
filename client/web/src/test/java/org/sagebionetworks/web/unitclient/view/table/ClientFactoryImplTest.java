@@ -16,11 +16,13 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.web.client.view.table.ColumnFactoryGinInjector;
 import org.sagebionetworks.web.client.view.table.ColumnFactoryImpl;
+import org.sagebionetworks.web.client.view.table.DateColumn;
 import org.sagebionetworks.web.client.view.table.LayerColumn;
 import org.sagebionetworks.web.client.view.table.LinkColumn;
 import org.sagebionetworks.web.server.ColumnConfigProvider;
 import org.sagebionetworks.web.server.ServerConstants;
 import org.sagebionetworks.web.shared.ColumnInfo;
+import org.sagebionetworks.web.shared.DateColumnInfo;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.LayerColumnInfo;
 import org.sagebionetworks.web.shared.LinkColumnInfo;
@@ -34,6 +36,7 @@ public class ClientFactoryImplTest {
 	ColumnFactoryGinInjector mockInjector;
 	LinkColumn mockLinkColumn;
 	LayerColumn mockLayerColumn;
+	DateColumn mockDateColumn;
 	ColumnFactoryImpl factory;
 
 	private static ColumnConfigProvider serverProvider;
@@ -51,10 +54,15 @@ public class ClientFactoryImplTest {
 	public void setup() {
 		// Setup the mock injector
 		mockInjector = Mockito.mock(ColumnFactoryGinInjector.class);
+		// Link
 		mockLinkColumn = Mockito.mock(LinkColumn.class);
 		when(mockInjector.getLinkColumn()).thenReturn(mockLinkColumn);
+		// Layer
 		mockLayerColumn = Mockito.mock(LayerColumn.class);
 		when(mockInjector.getLayerColumn()).thenReturn(mockLayerColumn);
+		// Date
+		mockDateColumn = Mockito.mock(DateColumn.class);
+		when(mockInjector.getDateColumn()).thenReturn(mockDateColumn);
 		
 		// We are ready to create our factory
 		factory = new ColumnFactoryImpl(mockInjector);
@@ -106,6 +114,19 @@ public class ClientFactoryImplTest {
 		// verify that the column was passed the correct values from the
 		// metadata
 		verify(mockLayerColumn).setLayerColumnInfo(meta);
+	}
+	
+	@Test
+	public void testDateColumn() {
+		DateColumnInfo meta = new DateColumnInfo();
+		// We should get a link column from this metadat
+		Column<Map<String, Object>, ?> column = factory.createColumn(meta);
+		assertNotNull(column);
+		// It should be the layer column
+		assertEquals(mockDateColumn, column);
+		// verify that the column was passed the correct values from the
+		// metadata
+		verify(mockDateColumn).setDateColumnInfo(meta);
 	}
 
 	@Test
