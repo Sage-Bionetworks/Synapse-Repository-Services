@@ -12,21 +12,16 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
 
-import javax.servlet.ServletException;
-
 import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.DAOFactory;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserCredentials;
 import org.sagebionetworks.repo.model.UserCredentialsDAO;
 import org.sagebionetworks.repo.model.UserDAO;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.web.ServiceConstants;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -58,9 +53,26 @@ public class Helpers {
 	private static final String SECRET_KEY = "thisIsAFakeSecretKey";
 	private static final int JSON_INDENT = 2;
 
+	@Autowired
+	private DAOFactory daoFactory;
+	
 	private DispatcherServlet servlet = null;
-
 	private String userId = null;
+
+	/**
+	 * @param daoFactory
+	 *            the daoFactory to set
+	 */
+	public void setDaoFactory(DAOFactory daoFactory) {
+		this.daoFactory = daoFactory;
+	}
+
+	/**
+	 * @return the daoFactory
+	 */
+	public DAOFactory getDaoFactory() {
+		return daoFactory;
+	}
 
 	/**
 	 * Setup up our mock datastore and servlet
@@ -72,13 +84,12 @@ public class Helpers {
 		datastoreHelper.setUp();
 
 		// Make a user and his credentials
-		// TODO @Autowired, no GAE references allowed in this class
-		final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
-		UserDAO userDao = DAO_FACTORY.getUserDAO(null);
+		UserDAO userDao = daoFactory.getUserDAO(null);
 		User user = new User();
 		user.setUserId(READ_ONLY_USER_ID);
 		userDao.create(user);
-		UserCredentialsDAO credsDao = DAO_FACTORY.getUserCredentialsDAO(READ_ONLY_USER_ID);
+		UserCredentialsDAO credsDao = daoFactory
+				.getUserCredentialsDAO(READ_ONLY_USER_ID);
 		UserCredentials storedCreds;
 		storedCreds = credsDao.get(READ_ONLY_USER_ID);
 		storedCreds.setIamAccessId(ACCESS_ID);

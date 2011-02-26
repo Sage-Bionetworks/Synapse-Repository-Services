@@ -17,6 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -34,11 +35,11 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author deflaux
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:repository-context.xml",
-		"classpath:repository-servlet.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DatasetsControllerTest {
 
-	private Helpers helper = new Helpers();
+	@Autowired
+	private Helpers helper;
 
 	/**
 	 * Some handy test data

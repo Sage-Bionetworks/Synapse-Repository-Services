@@ -7,7 +7,6 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseDAO;
-import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
@@ -19,7 +18,6 @@ import org.sagebionetworks.repo.model.LayerLocationsDAO;
 import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.web.AnnotatableEntitiesAccessorImpl;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.EntitiesAccessor;
@@ -58,9 +56,6 @@ public class LayerController extends BaseController { // TODO implements
 	private EntityController<InputDataLayer> layerController;
 	private LayerLocationsDAO locationsDao = null;
 
-	// TODO @Autowired, no GAE references allowed in this class
-	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
-
 	LayerController() {
 		layerAccessor = new AnnotatableEntitiesAccessorImpl<InputDataLayer>();
 		layerController = new EntityControllerImp<InputDataLayer>(
@@ -70,8 +65,8 @@ public class LayerController extends BaseController { // TODO implements
 	private void checkAuthorization(String userId, String parentId,
 			Boolean readOnly) {
 		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
-		locationsDao = DAO_FACTORY.getLayerLocationsDAO(userId);
-		DatasetDAO dao = DAO_FACTORY.getDatasetDAO(userId);
+		locationsDao = getDaoFactory().getLayerLocationsDAO(userId);
+		DatasetDAO dao = getDaoFactory().getDatasetDAO(userId);
 		InputDataLayerDAO layerDao = dao.getInputDataLayerDAO(datasetId);
 		setDao(layerDao);
 	}

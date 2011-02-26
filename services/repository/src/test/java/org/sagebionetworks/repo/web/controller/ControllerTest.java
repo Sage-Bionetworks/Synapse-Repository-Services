@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -33,13 +34,14 @@ import org.springframework.web.servlet.DispatcherServlet;
  * 
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:repository-context.xml",
-		"classpath:repository-servlet.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class ControllerTest {
 
 	private static final Logger log = Logger
 			.getLogger(DatasetControllerTest.class.getName());
-	private Helpers helper = new Helpers();
+
+	@Autowired
+	private Helpers helper;
 	private DispatcherServlet servlet;
 
 	/**
@@ -74,8 +76,8 @@ public class ControllerTest {
 					: UrlHelpers.getParentForChildUrl(url) + "/123" + url;
 
 			// Notice the missing quotes around the key
-			JSONObject results = helper.testCreateJsonEntityShouldFail(
-					url, "{name:\"bad json from a unit test\"}",
+			JSONObject results = helper.testCreateJsonEntityShouldFail(url,
+					"{name:\"bad json from a unit test\"}",
 					HttpStatus.BAD_REQUEST);
 
 			// The response should be something like: {"reason":"Could not read

@@ -4,13 +4,11 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseDAO;
-import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.web.AnnotatableEntitiesAccessorImpl;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.EntitiesAccessor;
@@ -47,9 +45,6 @@ public class DatasetController extends BaseController implements
 	private EntitiesAccessor<Dataset> datasetAccessor;
 	private EntityController<Dataset> datasetController;
 
-	// TODO @Autowired, no GAE references allowed in this class
-	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
-
 	DatasetController() {
 		datasetAccessor = new AnnotatableEntitiesAccessorImpl<Dataset>();
 		datasetController = new EntityControllerImp<Dataset>(Dataset.class,
@@ -57,7 +52,7 @@ public class DatasetController extends BaseController implements
 	}
 
 	private void checkAuthorization(String userId, Boolean readOnly) {
-		BaseDAO<Dataset> dao = DAO_FACTORY.getDatasetDAO(userId);
+		BaseDAO<Dataset> dao = getDaoFactory().getDatasetDAO(userId);
 		setDao(dao);
 	}
 

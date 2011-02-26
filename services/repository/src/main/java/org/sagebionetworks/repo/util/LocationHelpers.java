@@ -7,9 +7,10 @@ import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserCredentials;
 import org.sagebionetworks.repo.model.UserCredentialsDAO;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
+import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.amazonaws.auth.AWSCredentials;
@@ -26,6 +27,10 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 
 /**
+ * This class is a singleton because of the hack below to bootstrap a user and a
+ * group. TODO once we have login working, decide whether this still need to be
+ * a singleton for any other reason.
+ * 
  * @author deflaux
  * 
  */
@@ -34,31 +39,77 @@ public class LocationHelpers {
 	private static final int EXPIRES_MINUTES = 10;
 	private static final String S3_BUCKET = "data01.sagebase.org";
 	private static final String READ_ONLY_GROUP = "ReadOnlyUnrestrictedDataUsers";
-	// TODO @Autowired, no GAE references allowed in this class
-	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
 
-	private static String iamCanCreateUserCredsAccessId = "thisIsAFakeAWSAccessId";
-	private static String iamCanCreateUserCredsSecretKey = "thisIsAFakeAWSSecretKey";
+	private DAOFactory daoFactory;
+	private String iamCanCreateUserCredsAccessId = "thisIsAFakeAWSAccessId";
+	private String iamCanCreateUserCredsSecretKey = "thisIsAFakeAWSSecretKey";
+	private AWSCredentials iamCanCreateUsersCreds;
+	private AmazonIdentityManagement iamClient;
 
-	private static AWSCredentials iamCanCreateUsersCreds;
-	private static AmazonIdentityManagement iamClient;
+	private volatile static LocationHelpers theInstance = null;
 
 	/**
-	 * Helper method for integration tests, spring test config could call this
-	 * method but we should not store these keys in our spring config because
-	 * then they will get checked into svn (which is bad)
-	 * 
-	 * TODO nuke this when we have an integration instance of the user service
+	 * @param daoFactory
+	 * @return the instance of the location helper
 	 */
-	public static void useTestKeys() {
+	public static LocationHelpers getHelper(DAOFactory daoFactory) {
+		if (null == theInstance) {
+			synchronized (LocationHelpers.class) {
+				if (null == theInstance) {
+					theInstance = new LocationHelpers(daoFactory);
+				}
+			}
+		}
+		return theInstance;
+	}
+
+	private LocationHelpers() {
+	}
+
+	private LocationHelpers(DAOFactory daoFactory) {
+		this.daoFactory = daoFactory;
+
+		// If we pass them as environment variables
 		if ((null != System.getenv("accessId"))
 				&& (null != System.getenv("secretKey"))) {
 			iamCanCreateUserCredsAccessId = System.getenv("accessId");
 			iamCanCreateUserCredsSecretKey = System.getenv("secretKey");
 		}
-		iamCanCreateUsersCreds = new BasicAWSCredentials(iamCanCreateUserCredsAccessId,
-				iamCanCreateUserCredsSecretKey);
+		// If we pass them as -D on the command line
+		else if ((null != System.getProperty("AWS_ACCESS_KEY_ID"))
+				&& (null != System.getProperty("AWS_SECRET_KEY"))) {
+			// Dev Note: these particular environment variable names are what
+			// Elastic Beanstalk supports for passing creds via environment
+			// properties
+			// https://forums.aws.amazon.com/thread.jspa?messageID=217139&#217139
+			iamCanCreateUserCredsAccessId = System
+					.getProperty("AWS_ACCESS_KEY_ID");
+			iamCanCreateUserCredsSecretKey = System
+					.getProperty("AWS_SECRET_KEY");
+		}
+
+		iamCanCreateUsersCreds = new BasicAWSCredentials(
+				iamCanCreateUserCredsAccessId, iamCanCreateUserCredsSecretKey);
 		iamClient = new AmazonIdentityManagementClient(iamCanCreateUsersCreds);
+
+		// Bootstrap one user, this is a temporary work around
+		// TODO delete me once we have log in stuff working
+		// TODO SERIOUSLY, DELETE THIS, IT IS A SECURITY HOLE
+		UserDAO userDao = daoFactory.getUserDAO(null);
+		User user = new User();
+		user.setUserId("integration.test@sagebase.org");
+		try {
+			userDao.create(user);
+		} catch (DatastoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidModelException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (UnauthorizedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -75,7 +126,7 @@ public class LocationHelpers {
 	 * @throws UnauthorizedException
 	 * @throws DatastoreException
 	 */
-	public static String getS3Url(String userId, String cleartextPath)
+	public String getS3Url(String userId, String cleartextPath)
 			throws DatastoreException, UnauthorizedException {
 
 		if (null == userId) {
@@ -95,10 +146,10 @@ public class LocationHelpers {
 		return signedPath.toString();
 	}
 
-	private static AWSCredentials getCredentialsForUser(String userId)
+	private AWSCredentials getCredentialsForUser(String userId)
 			throws DatastoreException, UnauthorizedException {
 
-		UserCredentialsDAO credsDao = DAO_FACTORY.getUserCredentialsDAO(userId);
+		UserCredentialsDAO credsDao = daoFactory.getUserCredentialsDAO(userId);
 
 		// Check whether we already have credentials stored for this user and
 		// return them if we do

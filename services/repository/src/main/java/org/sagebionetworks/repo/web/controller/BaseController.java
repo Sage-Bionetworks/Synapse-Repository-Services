@@ -9,6 +9,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.map.JsonMappingException;
+import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -17,6 +18,7 @@ import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.TypeMismatchException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
@@ -84,6 +86,24 @@ public abstract class BaseController {
 
 	private static final Logger log = Logger.getLogger(BaseController.class
 			.getName());
+
+	@Autowired
+	private DAOFactory daoFactory;
+
+	/**
+	 * @param daoFactory
+	 *            the daoFactory to set
+	 */
+	public void setDaoFactory(DAOFactory daoFactory) {
+		this.daoFactory = daoFactory;
+	}
+
+	/**
+	 * @return the daoFactory
+	 */
+	public DAOFactory getDaoFactory() {
+		return daoFactory;
+	}
 
 	/**
 	 * This is an application exception thrown when the request references an

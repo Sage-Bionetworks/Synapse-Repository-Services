@@ -2,14 +2,12 @@ package org.sagebionetworks.repo.web.controller;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DependentPropertyDAO;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.DependentEntityController;
 import org.sagebionetworks.repo.web.DependentEntityControllerImp;
@@ -44,15 +42,12 @@ public class LayerPreviewController extends BaseController implements
 
 	private DependentEntityController<LayerPreview, InputDataLayer> controller;
 
-	// TODO @Autowired, no GAE references allowed in this class
-	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
-
 	LayerPreviewController() {
 		controller = new DependentEntityControllerImp<LayerPreview, InputDataLayer>();
 	}
 
 	private void checkAuthorization(String userId, Boolean readOnly) {
-		DependentPropertyDAO<LayerPreview, InputDataLayer> dao = DAO_FACTORY
+		DependentPropertyDAO<LayerPreview, InputDataLayer> dao = getDaoFactory()
 				.getLayerPreviewDAO(userId);
 		setDao(dao);
 	}
@@ -76,7 +71,7 @@ public class LayerPreviewController extends BaseController implements
 			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		
+
 		checkAuthorization(userId, true);
 		return controller.getDependentEntity(userId, id, request);
 	}

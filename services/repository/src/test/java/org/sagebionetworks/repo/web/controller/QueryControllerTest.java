@@ -10,7 +10,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Logger;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -18,33 +17,28 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.servlet.DispatcherServlet;
 
 /**
  * @author deflaux
  * 
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:repository-context.xml",
-		"classpath:repository-servlet.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class QueryControllerTest {
 
-	private static final Logger log = Logger
-			.getLogger(LayerControllerTest.class.getName());
-	private Helpers helper = new Helpers();
-	private DispatcherServlet servlet;
+	@Autowired
+	private Helpers helper;
 
 	/**
 	 * @throws java.lang.Exception
 	 */
 	@Before
 	public void setUp() throws Exception {
-		servlet = helper.setUp();
+		helper.setUp();
 
 		// Load up a few datasets with annotations
 		for (int i = 0; i < DatasetsControllerTest.SAMPLE_DATASET_NAMES.length; i++) {
@@ -213,10 +207,14 @@ public class QueryControllerTest {
 		JSONObject error = helper.testQueryShouldFail(
 				"select * from layer where foo == \"bar\"",
 				HttpStatus.BAD_REQUEST);
-		assertEquals("Layer queries must include a 'WHERE dataset.id == <the id>' clause", error.getString("reason"));
+		assertEquals(
+				"Layer queries must include a 'WHERE dataset.id == <the id>' clause",
+				error.getString("reason"));
 		error = helper.testQueryShouldFail("select * from layer",
 				HttpStatus.BAD_REQUEST);
-		assertEquals("Layer queries must include a 'WHERE dataset.id == <the id>' clause", error.getString("reason"));
+		assertEquals(
+				"Layer queries must include a 'WHERE dataset.id == <the id>' clause",
+				error.getString("reason"));
 	}
 
 	/**
