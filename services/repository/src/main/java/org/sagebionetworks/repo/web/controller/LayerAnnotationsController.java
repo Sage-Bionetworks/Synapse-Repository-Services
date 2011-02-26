@@ -3,13 +3,11 @@ package org.sagebionetworks.repo.web.controller;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.web.AnnotationsController;
 import org.sagebionetworks.repo.web.AnnotationsControllerImp;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
@@ -45,12 +43,10 @@ public class LayerAnnotationsController extends BaseController { // TODO
 
 	private AnnotationsController<InputDataLayer> layerAnnotationsController;
 
-	// TODO @Autowired, no GAE references allowed in this class
-	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
 	private DatasetDAO datasetDao = null; // DAO_FACTORY.getDatasetDAO();
 
 	private void setDao(String userId) {
-		datasetDao = DAO_FACTORY.getDatasetDAO(userId);
+		datasetDao = getDaoFactory().getDatasetDAO(userId);
 	}
 
 	LayerAnnotationsController() {

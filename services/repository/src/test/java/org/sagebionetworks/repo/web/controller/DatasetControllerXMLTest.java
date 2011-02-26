@@ -13,17 +13,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.mock.web.MockServletConfig;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.servlet.DispatcherServlet;
-
-import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
-import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 
 /**
  * Unit tests for the Dataset CRUD operations exposed by the DatasetController
@@ -43,16 +40,14 @@ import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
  * @author deflaux
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:repository-context.xml",
-		"classpath:repository-servlet.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DatasetControllerXMLTest {
 
 	private static final Logger log = Logger
 			.getLogger(DatasetControllerXMLTest.class.getName());
 
-	private static final LocalServiceTestHelper datastoreHelper = new LocalServiceTestHelper(
-			new LocalDatastoreServiceTestConfig());
-
+	@Autowired
+	private Helpers helper;
 	private DispatcherServlet servlet = null;
 
 	// Dev Note: these ids cannot just be any string, they have to be parsable
@@ -67,16 +62,7 @@ public class DatasetControllerXMLTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
-		datastoreHelper.setUp();
-
-		// Create a Spring MVC DispatcherServlet so that we can test our URL
-		// mapping, request format, response format, and response status code.
-		MockServletConfig servletConfig = new MockServletConfig("repository");
-		servletConfig
-				.addInitParameter("contextConfigLocation",
-						"classpath:repository-context.xml,classpath:repository-servlet.xml");
-		servlet = new DispatcherServlet();
-		servlet.init(servletConfig);
+		servlet = helper.setUp();
 	}
 
 	/**
@@ -84,7 +70,7 @@ public class DatasetControllerXMLTest {
 	 */
 	@After
 	public void tearDown() throws Exception {
-		datastoreHelper.tearDown();
+		helper.tearDown();
 	}
 
 	/*****************************************************************************************
@@ -235,12 +221,13 @@ public class DatasetControllerXMLTest {
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		// TODO the authorization piece changes the behavior
-//		assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus());
-//		assertTrue(response
-//				.getContentAsString()
-//				.equals(
-//						"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-//								+ "<errorResponse><reason>The resource you are attempting to access cannot be found</reason></errorResponse>"));
+		// assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus());
+		// assertTrue(response
+		// .getContentAsString()
+		// .equals(
+		// "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+		// +
+		// "<errorResponse><reason>The resource you are attempting to access cannot be found</reason></errorResponse>"));
 	}
 
 	/**
@@ -261,12 +248,13 @@ public class DatasetControllerXMLTest {
 		servlet.service(request, response);
 		// TODO The authorization piece changes the behavior here
 		log.info("Results: " + response.getContentAsString());
-//		assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus());
-//		assertTrue(response
-//				.getContentAsString()
-//				.equals(
-//						"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-//								+ "<errorResponse><reason>The resource you are attempting to access cannot be found</reason></errorResponse>"));
+		// assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus());
+		// assertTrue(response
+		// .getContentAsString()
+		// .equals(
+		// "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+		// +
+		// "<errorResponse><reason>The resource you are attempting to access cannot be found</reason></errorResponse>"));
 	}
 
 	/*****************************************************************************************

@@ -13,12 +13,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -28,15 +27,15 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * 
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:repository-context.xml",
-		"classpath:repository-servlet.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class ControllerAuthorizationTest {
 
 	private static final String CURATOR1_USER_ID = "matt.furia@sagebase.org";
 	private static final String CURATOR2_USER_ID = "solly.sieberts@sagebase.org";
 	private static final String READONLY_USER_ID = "john.doe@gmail.com";
 
-	private Helpers helper = new Helpers();
+	@Autowired
+	private Helpers helper;
 
 	/**
 	 * @throws java.lang.Exception
@@ -60,10 +59,8 @@ public class ControllerAuthorizationTest {
 	@Test
 	public void testCreateAuthorization() throws Exception {
 
-		// TODO @Autowired, no GAE references allowed in this class
-		final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
-		UserDAO userDao = DAO_FACTORY.getUserDAO(null);
-		UserGroupDAO groupDao = DAO_FACTORY.getUserGroupDAO(null);
+		UserDAO userDao = helper.getDaoFactory().getUserDAO(null);
+		UserGroupDAO groupDao = helper.getDaoFactory().getUserGroupDAO(null);
 
 		User user = new User();
 		user.setUserId(READONLY_USER_ID);
@@ -100,8 +97,8 @@ public class ControllerAuthorizationTest {
 				HttpStatus.FORBIDDEN);
 
 		// Creator users opens up the permissions
-		UserGroupDAO datasetGroupDao = DAO_FACTORY
-				.getUserGroupDAO(CURATOR1_USER_ID);
+		UserGroupDAO datasetGroupDao = helper.getDaoFactory().getUserGroupDAO(
+				CURATOR1_USER_ID);
 		datasetGroupDao.addResource(datasetGroupDao.getPublicGroup(), dataset
 				.getString("id"), AuthorizationConstants.READ_ACCESS);
 		datasetGroupDao.addResource(curators, dataset.getString("id"),
@@ -148,7 +145,7 @@ public class ControllerAuthorizationTest {
 		assertEquals(
 				"You are not authorized to access the requested resource and/or perform the requested activity",
 				deleteError.getString("reason"));
-		
+
 		// Read/Write user tries to delete the dataset - should pass
 		helper.setUserId(CURATOR2_USER_ID);
 		helper.testDeleteJsonEntity(dataset.getString("uri"));

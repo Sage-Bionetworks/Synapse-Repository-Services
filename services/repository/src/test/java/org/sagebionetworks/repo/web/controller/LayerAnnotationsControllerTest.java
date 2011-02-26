@@ -7,6 +7,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -24,11 +25,11 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author deflaux
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:repository-context.xml",
-		"classpath:repository-servlet.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class LayerAnnotationsControllerTest {
 
-	private Helpers helper = new Helpers();
+	@Autowired
+	private Helpers helper;
 	private JSONObject dataset;
 
 	/**

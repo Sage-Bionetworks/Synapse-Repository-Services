@@ -25,9 +25,17 @@
       <groupId>org.sagebionetworks</groupId>
       <artifactId>lib-gaemodels</artifactId>
       <version>0.1</version>
-      <!-- TODO this should be a runtime dependency -->
+      <scope>runtime</scope>
     </dependency>
 
+    <!-- In a tomcat container, such as Elastic Beanstalk, you have to
+         include jstl.jar manually, hence this entry. -->
+    <dependency>
+	  <groupId>javax.servlet</groupId>
+	  <artifactId>jstl</artifactId>
+	  <version>1.2</version>
+    </dependency>
+    
     <!-- JSON -->
     <dependency>
       <groupId>org.json</groupId>

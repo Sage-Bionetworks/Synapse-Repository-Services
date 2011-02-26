@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.controller;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DependentPropertyDAO;
 import org.sagebionetworks.repo.model.InputDataLayer;
@@ -10,7 +9,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.LayerLocations;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.util.LocationHelpers;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.DependentEntityController;
@@ -47,17 +45,12 @@ public class LayerLocationsController extends BaseController implements
 
 	private DependentEntityController<LayerLocations, InputDataLayer> controller;
 
-	// TODO @Autowired, no GAE references allowed in this class
-	private static final DAOFactory DAO_FACTORY = new GAEJDODAOFactoryImpl();
-
 	LayerLocationsController() {
 		controller = new DependentEntityControllerImp<LayerLocations, InputDataLayer>();
-		// TODO delete this once IAM is integrated
-		LocationHelpers.useTestKeys();
 	}
 
 	private void checkAuthorization(String userId, Boolean readOnly) {
-		DependentPropertyDAO<LayerLocations, InputDataLayer> dao = DAO_FACTORY
+		DependentPropertyDAO<LayerLocations, InputDataLayer> dao = getDaoFactory()
 				.getLayerLocationsDAO(userId);
 		setDao(dao);
 	}
@@ -140,13 +133,15 @@ public class LayerLocationsController extends BaseController implements
 					+ id);
 		}
 
-		String signedPath = LocationHelpers.getS3Url(userId, location.getPath());
+		LocationHelpers locationHelper = LocationHelpers.getHelper(getDaoFactory());
+		String signedPath = locationHelper.getS3Url(userId,
+				location.getPath());
 
 		location.setPath(signedPath);
 
 		return location;
 	}
-
+	
 	/**
 	 * @param userId
 	 * @param id

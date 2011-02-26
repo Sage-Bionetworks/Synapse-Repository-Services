@@ -12,6 +12,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -32,20 +33,22 @@ import org.springframework.web.servlet.DispatcherServlet;
  * @author deflaux
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:repository-context.xml",
-		"classpath:repository-servlet.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DatasetControllerTest {
 
 	private static final Logger log = Logger
 			.getLogger(DatasetControllerTest.class.getName());
-	private Helpers helper = new Helpers();
+
+	@Autowired
+	private Helpers helper;
 	private DispatcherServlet servlet;
 
 	/**
-	 * A few dataset properties for use in creating a new dataset object for unit tests
+	 * A few dataset properties for use in creating a new dataset object for
+	 * unit tests
 	 */
-	public static final String SAMPLE_DATASET =	"{\"name\":\"DeLiver\"}";
-	
+	public static final String SAMPLE_DATASET = "{\"name\":\"DeLiver\"}";
+
 	/**
 	 * @throws java.lang.Exception
 	 */

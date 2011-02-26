@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -36,13 +37,14 @@ import org.springframework.web.servlet.DispatcherServlet;
  * @author deflaux
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:repository-context.xml",
-		"classpath:repository-servlet.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class LayerControllerTest {
 
 	private static final Logger log = Logger
 			.getLogger(LayerControllerTest.class.getName());
-	private Helpers helper = new Helpers();
+	
+	@Autowired
+	private Helpers helper;
 	private DispatcherServlet servlet;
 	private JSONObject dataset;
 
