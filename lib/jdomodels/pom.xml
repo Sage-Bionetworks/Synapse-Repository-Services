@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org\
+                    /2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0\
+                             http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  
+  <parent>
+    <groupId>org.sagebionetworks</groupId>
+    <artifactId>lib</artifactId>
+    <version>0.1</version>
+  </parent>
+  
+  <artifactId>lib-gaemodels</artifactId>
+  <packaging>jar</packaging>
+  <name>Platform Repository Model Objects - AppEngine Implementation</name>
+
+  <dependencies>
+    
+    <!-- Sage Bionetworks Dependencies -->
+    <dependency>
+      <groupId>org.sagebionetworks</groupId>
+      <artifactId>lib-models</artifactId>
+      <version>0.1</version>
+    </dependency>
+
+    <!-- Persistence-related dependencies -->
+    <dependency>
+      <groupId>com.google.appengine.orm</groupId>
+      <artifactId>datanucleus-core</artifactId>
+      <version>${datanucleus.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    
+    <dependency>
+      <groupId>javax.transaction</groupId>
+      <artifactId>jta</artifactId>
+      <version>1.1</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>javax.jdo</groupId>
+      <artifactId>jdo2-api</artifactId>
+      <version>2.3-eb</version>
+      <exclusions>
+        <exclusion>
+          <groupId>javax.transaction</groupId>
+          <artifactId>transaction-api</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <!-- Google App Engine meta-package -->
+    <dependency>
+      <groupId>net.kindleit</groupId>
+      <artifactId>gae-runtime</artifactId>
+      <version>${gae.version}</version>
+      <type>pom</type>
+      <exclusions>
+        <exclusion>
+          <groupId>com.google.appengine.orm</groupId>
+          <artifactId>datanucleus-core</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    
+    <!-- GAE libraries for local testing as described here:
+         http://code.google.com/appengine/docs/java/howto/unittesting.html
+      -->
+    <dependency>
+      <groupId>com.google.appengine</groupId>
+      <artifactId>appengine-api-labs</artifactId>
+      <version>${gae.version}</version>
+      <scope>test</scope>
+    </dependency>
+    
+    <dependency>
+      <groupId>com.google.appengine</groupId>
+      <artifactId>appengine-api-stubs</artifactId>
+      <version>${gae.version}</version>
+      <scope>test</scope>
+    </dependency>
+    
+    <dependency>
+      <groupId>com.google.appengine</groupId>
+      <artifactId>appengine-testing</artifactId>
+      <version>${gae.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <plugins>
+      
+      <!-- This plug-in "enhances" your domain model objects (i.e. makes
+           them persistent for datanucleus)
+        -->
+      <plugin>
+        <groupId>org.datanucleus</groupId>
+        <artifactId>maven-datanucleus-plugin</artifactId>
+        <version>1.1.4</version>
+        <configuration>
+          <!-- Make sure this path contains your persistent classes!
+            -->
+          <mappingIncludes>**/model/**/*.class</mappingIncludes>
+          <verbose>true</verbose>
+          <fork>false</fork>
+          <enhancerName>ASM</enhancerName>
+          <api>JDO</api>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>compile</phase>
+            <goals>
+              <goal>enhance</goal>
+            </goals>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>org.datanucleus</groupId>
+            <artifactId>datanucleus-core</artifactId>
+            <version>${datanucleus.version}</version>
+            <exclusions>
+              <exclusion>
+                <groupId>javax.transaction</groupId>
+                <artifactId>transaction-api</artifactId>
+              </exclusion>
+            </exclusions>
+          </dependency>
+          <dependency>
+            <groupId>org.datanucleus</groupId>
+            <artifactId>datanucleus-rdbms</artifactId>
+            <version>${datanucleus.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>org.datanucleus</groupId>
+            <artifactId>datanucleus-enhancer</artifactId>
+            <version>1.1.4</version>
+          </dependency>
+          <dependency>
+            <groupId>javax.jdo</groupId>
+            <artifactId>jdo2-api</artifactId>
+            <version>2.3-ec</version>
+            <scope>runtime</scope>
+          </dependency>
+        </dependencies>
+      </plugin>
+      
+    </plugins>
+  </build>
+  
+  <!-- Specify hard-coded project properties here -->
+  <properties>
+    <datanucleus.version>1.1.5</datanucleus.version>
+  </properties>
+
+</project>
+
