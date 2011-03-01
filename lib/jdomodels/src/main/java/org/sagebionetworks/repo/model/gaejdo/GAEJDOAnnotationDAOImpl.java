@@ -22,9 +22,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.KeyFactory;
-
 /**
  * This is the DAO for managing the annotations of annotatable objects. It is
  * made concrete for particular object types and particular annotation value
@@ -148,7 +145,7 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 					.setFilter("this.annotations==vAnnotations && vAnnotations.id==pId");
 			ownerQuery.declareVariables(GAEJDOAnnotations.class.getName()
 					+ " vAnnotations");
-			ownerQuery.declareParameters(Key.class.getName() + " pId");
+			ownerQuery.declareParameters(Long.class.getName() + " pId");
 			List<T> owners = new ArrayList<T>();
 			for (GAEJDOAnnotations a : annots) {
 				@SuppressWarnings("unchecked")
@@ -208,7 +205,7 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 		List<T> owners = new ArrayList<T>(getAllOwners(pm));
 
 		// now we map the owner objects to their attribute values
-		final Map<Key, A> ownerValueMap = new HashMap<Key, A>();
+		final Map<Long, A> ownerValueMap = new HashMap<Long, A>();
 		for (T owner : owners) {
 			Collection<A> annotCollection = getAnnotationValues(
 					owner.getAnnotations(), attrib);
@@ -278,7 +275,7 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 		try {
 			tx = pm.currentTransaction();
 			tx.begin();
-			Key key = KeyFactory.stringToKey(id);
+			Long key = KeyFactory.stringToKey(id);
 			T jdo = (T) pm.getObjectById(getOwnerClass(), key);
 			// check whether already have this annotation
 			if (hasAnnotation(jdo, attribute, value))
@@ -312,7 +309,7 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 		try {
 			tx = pm.currentTransaction();
 			tx.begin();
-			Key key = KeyFactory.stringToKey(id);
+			Long key = KeyFactory.stringToKey(id);
 			T jdo = (T) pm.getObjectById(getOwnerClass(), key);
 			GAEJDOAnnotation<A> matchingAnnot = getAnnotation(jdo, attribute, value);
 			if (matchingAnnot!=null) {
@@ -351,7 +348,7 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 			throws DatastoreException, NotFoundException {
 		PersistenceManager pm = PMF.get();
 		try {
-			Key key = KeyFactory.stringToKey(id);
+			Long key = KeyFactory.stringToKey(id);
 			T jdo = (T) pm.getObjectById(getOwnerClass(), key);
 			GAEJDOAnnotations annots = jdo.getAnnotations();
 			Map<String, Collection<A>> ans = new HashMap<String, Collection<A>>();
@@ -386,7 +383,7 @@ abstract public class GAEJDOAnnotationDAOImpl<S extends Base, T extends GAEJDOAn
 			throws DatastoreException, NotFoundException {
 		PersistenceManager pm = PMF.get();
 		try {
-			Key key = KeyFactory.stringToKey(id);
+			Long key = KeyFactory.stringToKey(id);
 			T jdo = (T) pm.getObjectById(getOwnerClass(), key);
 			GAEJDOAnnotations annots = jdo.getAnnotations();
 			Collection<A> ans = new HashSet<A>();

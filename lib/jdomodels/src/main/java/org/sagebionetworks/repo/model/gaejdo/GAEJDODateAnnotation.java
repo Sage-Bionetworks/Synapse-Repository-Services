@@ -9,7 +9,7 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
-import com.google.appengine.api.datastore.Key;
+
 
 /**
  * This is the persistable class for a Annotations whose values are Dates
@@ -24,7 +24,7 @@ import com.google.appengine.api.datastore.Key;
 public class GAEJDODateAnnotation implements GAEJDOAnnotation<Date> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
-	private Key id;
+	private Long id;
 
 	@Persistent
 	private GAEJDOAnnotations owner; // this is the backwards pointer for the
@@ -50,11 +50,11 @@ public class GAEJDODateAnnotation implements GAEJDOAnnotation<Date> {
 		return getAttribute() + ": " + df.format(getValue());
 	}
 
-	public Key getId() {
+	public Long getId() {
 		return id;
 	}
 
-	public void setId(Key id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 

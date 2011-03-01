@@ -3,13 +3,18 @@
              xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_1_0.xsd"
              version="1.0">
     <persistence-unit name="transactions-optional">
-        <provider>org.datanucleus.store.appengine.jpa.DatastorePersistenceProvider</provider>
-        <properties>
-            <property name="datanucleus.NontransactionalRead" value="true"/>
-            <property name="datanucleus.NontransactionalWrite" value="true"/>
-            <property name="datanucleus.ConnectionURL" value="appengine"/>
-            <property name="datanucleus.cache.collections" value="false"/>
-        </properties>
-    </persistence-unit>
-
+ 	  <provider>org.datanucleus.jdo.JDOPersistenceManagerFactory</provider>
+ 	  <properties>
+ 	    <property name="datanucleus.NontransactionalRead" value="true"/>
+ 	    <property name="datanucleus.NontransactionalWrite" value="true"/>
+ 	    <property name="datanucleus.ConnectionURL" value="jdbc:mysql://localhost/test2"/>
+ 	    <property name="datanucleus.ConnectionDriverName" value="com.mysql.jdbc.Driver"/>
+ 	    <property name="datanucleus.ConnectionUserName" value="root"/>
+ 	    <property name="datanucleus.ConnectionPassword" value=""/>
+ 	    <property name="datanucleus.autoCreateSchema" value="true"/>
+        <property name="datanucleus.cache.collections" value="false"/>
+ 	    <property name="datanucleus.validateTables" value="false"/>
+ 	    <property name="datanucleus.validateConstraints" value="false"/>
+ 	  </properties>
+ 	</persistence-unit>
 </persistence>

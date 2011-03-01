@@ -7,44 +7,44 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
-import com.google.appengine.api.datastore.Key;
+
 
 @PersistenceCapable(detachable = "true")
 public class GAEJDODatasetAnalysis {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
-	private Key id;
+	private Long id;
 
 	@Persistent
-	private Collection<Key> layers;
+	private Collection<Long> layers;
 
 	@Persistent
-	private Key script;
+	private Long script;
 
 	@Persistent(dependent = "true")
 	private GAEJDOAnalysisResult analysisResult;
 
-	public Key getId() {
+	public Long getId() {
 		return id;
 	}
 
-	public void setId(Key id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 
-	public Collection<Key> getLayers() {
+	public Collection<Long> getLayers() {
 		return layers;
 	}
 
-	public void setLayers(Collection<Key> layers) {
+	public void setLayers(Collection<Long> layers) {
 		this.layers = layers;
 	}
 
-	public Key getScript() {
+	public Long getScript() {
 		return script;
 	}
 
-	public void setScript(Key script) {
+	public void setScript(Long script) {
 		this.script = script;
 	}
 

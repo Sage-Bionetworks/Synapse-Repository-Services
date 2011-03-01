@@ -8,8 +8,8 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.LayerPreviewDAO;
 
-import com.google.appengine.api.datastore.KeyFactory;
-import com.google.appengine.api.datastore.Text;
+
+
 
 /**
  * @author deflaux
@@ -33,7 +33,7 @@ public class GAEJDOLayerPreviewDAOImpl extends
 	protected void copyToDto(GAEJDOInputDataLayer jdo, LayerPreview dto)
 			throws DatastoreException {
 		dto.setId(KeyFactory.keyToString(jdo.getId()));
-		dto.setPreview(jdo.getPreview().getValue());
+		dto.setPreview(jdo.getPreview());
 	}
 
 	@Override
@@ -52,7 +52,7 @@ public class GAEJDOLayerPreviewDAOImpl extends
 			throw new InvalidModelException(
 					"'preview' is a required property for LayerPreview");
 		}
-		jdo.setPreview(new Text(dto.getPreview()));
+		jdo.setPreview(dto.getPreview());
 	}
 
 	@Override

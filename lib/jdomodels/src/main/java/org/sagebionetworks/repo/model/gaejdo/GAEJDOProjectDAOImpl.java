@@ -11,7 +11,7 @@ import javax.jdo.Transaction;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ProjectDAO;
 
-import com.google.appengine.api.datastore.Key;
+
 
 /**
  * This is the Data Access Object class for the Project class, using GAE-JDO
@@ -22,7 +22,7 @@ import com.google.appengine.api.datastore.Key;
 public class GAEJDOProjectDAOImpl /*implements ProjectDAO*/ {
 
 
-	public GAEJDOProject getProject(Key id) {
+	public GAEJDOProject getProject(Long id) {
 		PersistenceManager pm = PMF.get();
 		GAEJDOProject ans = (GAEJDOProject) pm.getObjectById(
 				GAEJDOProject.class, id);
@@ -46,7 +46,7 @@ public class GAEJDOProjectDAOImpl /*implements ProjectDAO*/ {
 		}
 	}
 
-	public void delete(Key id) {
+	public void delete(Long id) {
 		PersistenceManager pm = PMF.get();
 		Transaction tx = null;
 		try {
@@ -54,7 +54,7 @@ public class GAEJDOProjectDAOImpl /*implements ProjectDAO*/ {
 			tx.begin();
 			Query q = pm.newQuery(GAEJDOProject.class);
 			q.setFilter("id==pId");
-			q.declareParameters(Key.class.getName() + " pId");
+			q.declareParameters(Long.class.getName() + " pId");
 			long n = q.deletePersistentAll(id);
 			if (n != 1)
 				throw new IllegalStateException("Expected 1 but got " + n);

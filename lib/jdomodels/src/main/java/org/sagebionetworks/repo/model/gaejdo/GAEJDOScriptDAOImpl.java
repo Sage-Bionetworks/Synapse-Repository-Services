@@ -9,11 +9,11 @@ import javax.jdo.Transaction;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ScriptDAO;
 
-import com.google.appengine.api.datastore.Key;
+
 
 public class GAEJDOScriptDAOImpl implements ScriptDAO {
 
-	public GAEJDOScript getScript(Key id) {
+	public GAEJDOScript getScript(Long id) {
 		PersistenceManager pm = PMF.get();
 		GAEJDOScript ans = (GAEJDOScript) pm.getObjectById(GAEJDOScript.class,
 				id);
@@ -42,7 +42,7 @@ public class GAEJDOScriptDAOImpl implements ScriptDAO {
 		}
 	}
 
-	public void delete(Key id) {
+	public void delete(Long id) {
 		PersistenceManager pm = PMF.get();
 		Transaction tx = null;
 		try {
@@ -50,7 +50,7 @@ public class GAEJDOScriptDAOImpl implements ScriptDAO {
 			tx.begin();
 			Query q = pm.newQuery(GAEJDOScript.class);
 			q.setFilter("id==pId");
-			q.declareParameters(Key.class.getName() + " pId");
+			q.declareParameters(Long.class.getName() + " pId");
 			long n = q.deletePersistentAll(id);
 			if (n != 1)
 				throw new IllegalStateException("Expected 1 but got " + n);

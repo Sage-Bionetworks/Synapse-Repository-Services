@@ -11,7 +11,7 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
-import com.google.appengine.api.datastore.Key;
+
 
 /**
  * This is the persistable class for a dataset
@@ -26,7 +26,7 @@ public class GAEJDODataset implements GAEJDOBase,
 		GAEJDORevisable<GAEJDODataset>, GAEJDOAnnotatable {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
-	private Key id;
+	private Long id;
 
 	// this is a reference to the version info object
 	@Persistent(dependent = "true")
@@ -68,7 +68,7 @@ public class GAEJDODataset implements GAEJDOBase,
 	/**
 	 * @return id of the persistent object
 	 */
-	public Key getId() {
+	public Long getId() {
 		return id;
 	}
 
@@ -76,7 +76,7 @@ public class GAEJDODataset implements GAEJDOBase,
 	 * @param id
 	 *            id of the persistent object
 	 */
-	public void setId(Key id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 

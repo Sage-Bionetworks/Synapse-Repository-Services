@@ -5,7 +5,7 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
-import com.google.appengine.api.datastore.Key;
+
 
 /**
  * This is the persistable class for a Annotations whose values are Strings
@@ -20,7 +20,7 @@ import com.google.appengine.api.datastore.Key;
 public class GAEJDOStringAnnotation implements GAEJDOAnnotation<String> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
-	private Key id;
+	private Long id;
 
 	// this is the backwards pointer for the 1-1 owned relationship
 	@Persistent
@@ -43,11 +43,11 @@ public class GAEJDOStringAnnotation implements GAEJDOAnnotation<String> {
 		return getAttribute() + ": " + getValue();
 	}
 
-	public Key getId() {
+	public Long getId() {
 		return id;
 	}
 
-	public void setId(Key id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 

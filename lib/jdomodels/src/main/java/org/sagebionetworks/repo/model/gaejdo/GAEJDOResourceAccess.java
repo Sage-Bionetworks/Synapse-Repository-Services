@@ -7,29 +7,29 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
-import com.google.appengine.api.datastore.Key;
+
 
 @PersistenceCapable(detachable = "false")
 public class GAEJDOResourceAccess {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
-	private Key id;
+	private Long id;
 	
 	@Persistent
 	private GAEJDOUserGroup owner;
 	
 	@Persistent
-	private Key resource;
+	private Long resource;
 		
 	// e.g. read, change, share
 	@Persistent
 	private String accessType;
 
-	public Key getId() {
+	public Long getId() {
 		return id;
 	}
 
-	public void setId(Key id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 
@@ -41,11 +41,11 @@ public class GAEJDOResourceAccess {
 		this.owner = owner;
 	}
 
-	public Key getResource() {
+	public Long getResource() {
 		return resource;
 	}
 
-	public void setResource(Key resource) {
+	public void setResource(Long resource) {
 		this.resource = resource;
 	}
 

@@ -9,7 +9,7 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
-import com.google.appengine.api.datastore.Key;
+
 
 /**
  * Container class for layer locations
@@ -20,7 +20,7 @@ import com.google.appengine.api.datastore.Key;
 public class GAEJDOLayerLocations {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
-	private Key id;
+	private Long id;
 
 	@Element(dependent = "true")
 	private Set<GAEJDOLayerLocation> layerLocations;
@@ -28,14 +28,14 @@ public class GAEJDOLayerLocations {
 	/**
 	 * @return the id
 	 */
-	public Key getId() {
+	public Long getId() {
 		return id;
 	}
 
 	/**
 	 * @param id
 	 */
-	public void setId(Key id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 

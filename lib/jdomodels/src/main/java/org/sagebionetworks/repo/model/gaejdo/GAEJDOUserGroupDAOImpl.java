@@ -21,8 +21,8 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.KeyFactory;
+
+
 
 public class GAEJDOUserGroupDAOImpl extends
 		GAEJDOBaseDAOImpl<UserGroup, GAEJDOUserGroup> implements UserGroupDAO {
@@ -71,7 +71,7 @@ public class GAEJDOUserGroupDAOImpl extends
 		return g;
 	}
 
-	public static void addResourceToGroup(GAEJDOUserGroup group, Key resource,
+	public static void addResourceToGroup(GAEJDOUserGroup group, Long resource,
 			List<String> accessTypes) {
 		if (resource == null)
 			throw new NullPointerException();
@@ -202,7 +202,7 @@ public class GAEJDOUserGroupDAOImpl extends
 
 	protected GAEJDOUserGroup newJDO() {
 		GAEJDOUserGroup g = new GAEJDOUserGroup();
-		g.setUsers(new HashSet<Key>());
+		g.setUsers(new HashSet<Long>());
 		g.setResourceAccess(new HashSet<GAEJDOResourceAccess>());
 		g.setCreatableTypes(new HashSet<String>());
 		return g;
@@ -238,11 +238,11 @@ public class GAEJDOUserGroupDAOImpl extends
 			throw new UnauthorizedException();
 		Transaction tx = null;
 		try {
-			Key userKey = KeyFactory.stringToKey(user.getId());
+			Long userKey = KeyFactory.stringToKey(user.getId());
 			// this is done simply to make check that the user exists
 			GAEJDOUser jdoUser = (GAEJDOUser) pm.getObjectById(
 					GAEJDOUser.class, userKey);
-			Key groupKey = KeyFactory.stringToKey(userGroup.getId());
+			Long groupKey = KeyFactory.stringToKey(userGroup.getId());
 			GAEJDOUserGroup jdoGroup = (GAEJDOUserGroup) pm.getObjectById(
 					GAEJDOUserGroup.class, groupKey);
 			tx = pm.currentTransaction();
@@ -268,11 +268,11 @@ public class GAEJDOUserGroupDAOImpl extends
 		try {
 			tx = pm.currentTransaction();
 			tx.begin();
-			Key userKey = KeyFactory.stringToKey(user.getId());
+			Long userKey = KeyFactory.stringToKey(user.getId());
 			// this is done simply to make check that the user exists
 			GAEJDOUser jdoUser = (GAEJDOUser) pm.getObjectById(
 					GAEJDOUser.class, userKey);
-			Key groupKey = KeyFactory.stringToKey(userGroup.getId());
+			Long groupKey = KeyFactory.stringToKey(userGroup.getId());
 			GAEJDOUserGroup jdoGroup = (GAEJDOUserGroup) pm.getObjectById(
 					GAEJDOUserGroup.class, groupKey);
 			if (!hasAccessIntern(pm, jdoGroup.getId(),
@@ -298,16 +298,16 @@ public class GAEJDOUserGroupDAOImpl extends
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		PersistenceManager pm = PMF.get();
 		try {
-			Key groupKey = KeyFactory.stringToKey(userGroup.getId());
+			Long groupKey = KeyFactory.stringToKey(userGroup.getId());
 			GAEJDOUserGroup jdoGroup = (GAEJDOUserGroup) pm.getObjectById(
 					GAEJDOUserGroup.class, groupKey);
 			if (!hasAccessIntern(pm, jdoGroup.getId(),
 					AuthorizationConstants.READ_ACCESS))
 				throw new UnauthorizedException();
-			Collection<Key> userKeys = jdoGroup.getUsers();
+			Collection<Long> userKeys = jdoGroup.getUsers();
 			GAEJDOUserDAOImpl userDAO = new GAEJDOUserDAOImpl(userId);
 			Collection<User> ans = new HashSet<User>();
-			for (Key userKey : userKeys) {
+			for (Long userKey : userKeys) {
 				ans.add(userDAO.get(KeyFactory.keyToString(userKey)));
 			}
 			return ans;
@@ -328,11 +328,11 @@ public class GAEJDOUserGroupDAOImpl extends
 		PersistenceManager pm = PMF.get();
 		Transaction tx = null;
 		try {
-			Key resourceKey = KeyFactory.stringToKey(resourceId);
+			Long resourceKey = KeyFactory.stringToKey(resourceId);
 			if (!hasAccessIntern(pm, resourceKey,
 					AuthorizationConstants.SHARE_ACCESS))
 				throw new UnauthorizedException();
-			Key groupKey = KeyFactory.stringToKey(userGroup.getId());
+			Long groupKey = KeyFactory.stringToKey(userGroup.getId());
 			GAEJDOUserGroup jdoGroup = (GAEJDOUserGroup) pm.getObjectById(
 					GAEJDOUserGroup.class, groupKey);
 			if (!hasAccessIntern(pm, jdoGroup.getId(),
@@ -366,8 +366,8 @@ public class GAEJDOUserGroupDAOImpl extends
 		PersistenceManager pm = PMF.get();
 		Transaction tx = null;
 		try {
-			Key resourceKey = KeyFactory.stringToKey(resourceId);
-			Key groupKey = KeyFactory.stringToKey(userGroup.getId());
+			Long resourceKey = KeyFactory.stringToKey(resourceId);
+			Long groupKey = KeyFactory.stringToKey(userGroup.getId());
 			GAEJDOUserGroup jdoGroup = (GAEJDOUserGroup) pm.getObjectById(
 					GAEJDOUserGroup.class, groupKey);
 			if (!hasAccessIntern(pm, jdoGroup.getId(),

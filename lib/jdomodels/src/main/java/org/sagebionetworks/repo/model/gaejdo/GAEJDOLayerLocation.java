@@ -7,7 +7,7 @@ import javax.jdo.annotations.PrimaryKey;
 
 import org.sagebionetworks.repo.model.LayerLocation;
 
-import com.google.appengine.api.datastore.Key;
+
 
 /**
  * Layer location metadata
@@ -19,7 +19,7 @@ import com.google.appengine.api.datastore.Key;
 public class GAEJDOLayerLocation {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
-	private Key id;
+	private Long id;
 
 	@Persistent
 	private String type;
@@ -59,14 +59,14 @@ public class GAEJDOLayerLocation {
 	/**
 	 * @return the id
 	 */
-	public Key getId() {
+	public Long getId() {
 		return id;
 	}
 
 	/**
 	 * @param id the id to set
 	 */
-	public void setId(Key id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 

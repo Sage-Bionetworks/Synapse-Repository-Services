@@ -8,8 +8,8 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.Text;
+
+
 
 /**
  * 
@@ -20,7 +20,7 @@ import com.google.appengine.api.datastore.Text;
 public class GAEJDOProject {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
-	private Key id;
+	private Long id;
 
 	@Persistent
 	private String name;
@@ -33,7 +33,7 @@ public class GAEJDOProject {
 	private Status status;
 
 	@Persistent
-	private Text overview;
+	private String overview;
 
 	@Persistent
 	private Date started;
@@ -41,11 +41,11 @@ public class GAEJDOProject {
 	@Persistent(serialized = "true")
 	private URL sharedDocs;
 
-	public Key getId() {
+	public Long getId() {
 		return id;
 	}
 
-	public void setId(Key id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 
@@ -65,11 +65,11 @@ public class GAEJDOProject {
 		this.status = status;
 	}
 
-	public Text getOverview() {
+	public String getOverview() {
 		return overview;
 	}
 
-	public void setOverview(Text overview) {
+	public void setOverview(String overview) {
 		this.overview = overview;
 	}
 

@@ -11,8 +11,8 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.Text;
+
+
 
 /**
  * We follow this approach to persist when other classes inherit from this one
@@ -31,7 +31,7 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 		implements GAEJDORevisable<T>, GAEJDOBase, GAEJDOAnnotatable {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
-	private Key id;
+	private Long id;
 
 	@Persistent
 	private String name;
@@ -43,10 +43,10 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 	private Date publicationDate;
 
 	@Persistent
-	private Text description;
+	private String description;
 
 	@Persistent
-	private Text releaseNotes;
+	private String releaseNotes;
 
 	// this is a reference to the version info object
 	@Persistent(dependent = "true")
@@ -59,20 +59,7 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 	private GAEJDOLayerLocations locations;
 
 	@Persistent
-	private Text preview;
-
-	/**
-	 * Default constructor
-	 * <p>
-	 * 
-	 * Set the values of all Text fields to the empty string because it can't
-	 * handle nulls
-	 */
-	public GAEJDODatasetLayer() {
-		setDescription(new Text(""));
-		setReleaseNotes(new Text(""));
-		setPreview(new Text(""));
-	}
+	private String preview;
 
 	public GAEJDORevision<T> getRevision() {
 		return revision;
@@ -90,11 +77,11 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 		this.annotations = annotations;
 	}
 
-	public Key getId() {
+	public Long getId() {
 		return id;
 	}
 
-	public void setId(Key id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 
@@ -122,23 +109,19 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 		this.publicationDate = publicationDate;
 	}
 
-	public Text getDescription() {
+	public String getDescription() {
 		return description;
 	}
 
-	public void setDescription(Text description) {
-		if (description.getValue() == null)
-			throw new NullPointerException("Null Text not allowed.");
+	public void setDescription(String description) {
 		this.description = description;
 	}
 
-	public Text getReleaseNotes() {
+	public String getReleaseNotes() {
 		return releaseNotes;
 	}
 
-	public void setReleaseNotes(Text releaseNotes) {
-		if (description.getValue() == null)
-			throw new NullPointerException("Null Text not allowed.");
+	public void setReleaseNotes(String releaseNotes) {
 		this.releaseNotes = releaseNotes;
 	}
 
@@ -146,14 +129,14 @@ abstract public class GAEJDODatasetLayer<T extends GAEJDODatasetLayer<T>>
 	 * @param preview
 	 *            the preview to set
 	 */
-	public void setPreview(Text preview) {
+	public void setPreview(String preview) {
 		this.preview = preview;
 	}
 
 	/**
 	 * @return the preview
 	 */
-	public Text getPreview() {
+	public String getPreview() {
 		return preview;
 	}
 

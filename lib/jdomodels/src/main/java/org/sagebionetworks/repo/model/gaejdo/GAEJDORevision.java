@@ -7,7 +7,7 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
-import com.google.appengine.api.datastore.Key;
+
 
 /**
  * The class for persistent objects containing the revision information for
@@ -22,10 +22,10 @@ import com.google.appengine.api.datastore.Key;
 public class GAEJDORevision<T extends GAEJDORevisable<T>> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
-	private Key id;
+	private Long id;
 
 	@Persistent
-	private Key original; // id of original (this.id if *this* is the original)
+	private Long original; // id of original (this.id if *this* is the original)
 
 	@Persistent(serialized = "true")
 	private Version version;
@@ -45,11 +45,11 @@ public class GAEJDORevision<T extends GAEJDORevisable<T>> {
 		return clone;
 	}
 
-	public Key getOriginal() {
+	public Long getOriginal() {
 		return original;
 	}
 
-	public void setOriginal(Key original) {
+	public void setOriginal(Long original) {
 		this.original = original;
 	}
 
@@ -61,11 +61,11 @@ public class GAEJDORevision<T extends GAEJDORevisable<T>> {
 		this.version = version;
 	}
 
-	public Key getId() {
+	public Long getId() {
 		return id;
 	}
 
-	public void setId(Key id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 

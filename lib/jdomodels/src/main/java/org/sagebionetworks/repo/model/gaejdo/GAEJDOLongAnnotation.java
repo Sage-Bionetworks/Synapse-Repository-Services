@@ -5,7 +5,7 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
-import com.google.appengine.api.datastore.Key;
+
 
 /**
  * This is the persistable class for a Annotations whose values are long integer numbers.
@@ -20,7 +20,7 @@ import com.google.appengine.api.datastore.Key;
 public class GAEJDOLongAnnotation implements GAEJDOAnnotation<Long> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
-	private Key id;
+	private Long id;
 
 	@Persistent
 	private GAEJDOAnnotations owner; // this is the backwards pointer for the
@@ -44,11 +44,11 @@ public class GAEJDOLongAnnotation implements GAEJDOAnnotation<Long> {
 		return getAttribute() + ": " + getValue();
 	}
 
-	public Key getId() {
+	public Long getId() {
 		return id;
 	}
 
-	public void setId(Key id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 

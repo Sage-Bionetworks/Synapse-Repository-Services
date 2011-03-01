@@ -19,13 +19,11 @@ import org.sagebionetworks.repo.model.gaejdo.GAEJDORevision;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDOStringAnnotation;
 import org.sagebionetworks.repo.model.gaejdo.Version;
 
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
-import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
+
+
+
 
 public class AnnotationsDAOTest {
-	private final LocalServiceTestHelper helper = new LocalServiceTestHelper(
-			new LocalDatastoreServiceTestConfig());
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -43,7 +41,6 @@ public class AnnotationsDAOTest {
 
 	@Before
 	public void setUp() throws Exception {
-		helper.setUp();
 		fac = new GAEJDODAOFactoryImpl();
 	}
 
@@ -55,7 +52,6 @@ public class AnnotationsDAOTest {
 			// fac.close();
 			id = null;
 		}
-		helper.tearDown();
 	}
 
 	@Test
@@ -71,15 +67,15 @@ public class AnnotationsDAOTest {
 		GAEJDOAnnotations annots = GAEJDOAnnotations.newGAEJDOAnnotations();
 		dataset.setAnnotations(annots);
 		GAEJDOStringAnnotation stringAnnot = new GAEJDOStringAnnotation(
-				"testKey", "testValue");
+				"testLong", "testValue");
 		// annots.getStringAnnotations().add(stringAnnot);
 
 		// persist it
 		DatasetDAO da = fac.getDatasetDAO(null);
 		// da.makePersistent(dataset);
 
-		// persisting creates a Key, which we can grab
-		Key id = dataset.getId();
+		// persisting creates a Long, which we can grab
+		Long id = dataset.getId();
 		Assert.assertNotNull(id);
 		// this.id=id;
 
@@ -93,7 +89,7 @@ public class AnnotationsDAOTest {
 		// // now, test that we can retrieve the object having the given
 		// annotation
 		// Collection<GAEJDODataset> ac =
-		// aa.getHavingStringAnnotation("testKey", "testValue");
+		// aa.getHavingStringAnnotation("testLong", "testValue");
 		// Assert.assertEquals(1, ac.size());
 		// GAEJDODataset d2 = ac.iterator().next();
 		// Assert.assertEquals(dataset.getId(), d2.getId());
