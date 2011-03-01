@@ -19,18 +19,23 @@ import org.sagebionetworks.web.client.presenter.DynamicTablePresenter;
 import org.sagebionetworks.web.client.view.CellTableProvider;
 import org.sagebionetworks.web.client.view.DynamicTableViewImpl;
 import org.sagebionetworks.web.client.view.DynamicTableViewImpl.Binder;
+import org.sagebionetworks.web.client.view.HandlerRegistrationProxy;
 import org.sagebionetworks.web.client.view.SortableHeader;
 import org.sagebionetworks.web.client.view.table.ColumnFactory;
 import org.sagebionetworks.web.shared.ColumnInfo;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.util.MockitoMockFactory;
 
+import com.google.gwt.event.shared.HandlerRegistration;
 import com.google.gwt.junit.GWTMockUtilities;
 import com.google.gwt.user.cellview.client.CellTable;
 import com.google.gwt.user.cellview.client.SimplePager;
 import com.google.gwt.user.client.ui.Widget;
+import com.google.gwt.view.client.Range;
+import com.google.gwt.view.client.RangeChangeEvent;
+import com.google.gwt.view.client.RowCountChangeEvent;
 import com.gwtplatform.tester.MockingBinder;
-
+import static org.mockito.Mockito.*;
 public class DynamicTableViewImplTest {
 	
 	/**
@@ -49,6 +54,8 @@ public class DynamicTableViewImplTest {
 	ImagePrototypeSingleton prototype;
 	DynamicTablePresenter presenter;
 	
+	CellTable<Map<String, Object>> mockCellTable;
+	
 	@Before
 	public void setup(){
 		GWTMockUtilities.disarm();
@@ -57,6 +64,8 @@ public class DynamicTableViewImplTest {
 		factory = Mockito.mock(ColumnFactory.class);
 		prototype = Mockito.mock(ImagePrototypeSingleton.class);
 		presenter = Mockito.mock(DynamicTablePresenter.class);
+		mockCellTable = Mockito.mock(CellTable.class);
+		
 		tableProvider = new CellTableProvider() {
 			@Override
 			public SimplePager createPager() {
@@ -65,8 +74,7 @@ public class DynamicTableViewImplTest {
 			}
 			@Override
 			public CellTable<Map<String, Object>> createNewTable() {
-				// TODO Auto-generated method stub
-				return Mockito.mock(CellTable.class);
+				return mockCellTable;
 			}
 		};
 		
@@ -118,6 +126,87 @@ public class DynamicTableViewImplTest {
 		// validate the state
 		validateSort(keys, map, sortIndex, ascending);
 	}
+	
+	@Test
+	public void testAddRangeChangeHandler(){
+		// Make sure the mock cell table adds the handler
+		RangeChangeEvent.Handler mockHanlder = Mockito.mock(RangeChangeEvent.Handler.class);
+		HandlerRegistration mockRegistration = Mockito.mock(HandlerRegistration.class);
+		when(mockCellTable.addRangeChangeHandler(mockHanlder)).thenReturn(mockRegistration);
+		
+		// Add this handler to the table
+		HandlerRegistration returnedReg = view.addRangeChangeHandler(mockHanlder);
+		assertNotNull(returnedReg);
+		assertTrue(returnedReg instanceof HandlerRegistrationProxy);
+		HandlerRegistrationProxy proxy = (HandlerRegistrationProxy) returnedReg;
+		assertEquals(mockRegistration, proxy.getWrapped());
+		
+		// Now setting the columns will create a new table.
+		// We need to make sure the original handler gets regestered with the new table.
+		HandlerRegistration secondRegistration = Mockito.mock(HandlerRegistration.class);
+		when(mockCellTable.addRangeChangeHandler(mockHanlder)).thenReturn(secondRegistration);
+		// Now change the columns
+		assertNotNull(view);
+		List<HeaderData> list = createEachTypeHeader();
+		// Set this on the view
+		view.setColumns(list);
+		
+		// Make sure the proxy received the new registration
+		assertEquals(secondRegistration, proxy.getWrapped());
+	}
+	
+	@Test
+	public void testAddRowCountChangeHandler(){
+		// Make sure the mock cell table adds the handler
+		RowCountChangeEvent.Handler mockHanlder = Mockito.mock(RowCountChangeEvent.Handler.class);
+		HandlerRegistration mockRegistration = Mockito.mock(HandlerRegistration.class);
+		when(mockCellTable.addRowCountChangeHandler(mockHanlder)).thenReturn(mockRegistration);
+		
+		// Add this handler to the table
+		HandlerRegistration returnedReg = view.addRowCountChangeHandler(mockHanlder);
+		assertNotNull(returnedReg);
+		assertTrue(returnedReg instanceof HandlerRegistrationProxy);
+		HandlerRegistrationProxy proxy = (HandlerRegistrationProxy) returnedReg;
+		assertEquals(mockRegistration, proxy.getWrapped());
+		
+		// Now setting the columns will create a new table.
+		// We need to make sure the original handler gets regestered with the new table.
+		HandlerRegistration secondRegistration = Mockito.mock(HandlerRegistration.class);
+		when(mockCellTable.addRowCountChangeHandler(mockHanlder)).thenReturn(secondRegistration);
+		// Now change the columns
+		assertNotNull(view);
+		List<HeaderData> list = createEachTypeHeader();
+		// Set this on the view
+		view.setColumns(list);
+		
+		// Make sure the proxy received the new registration
+		assertEquals(secondRegistration, proxy.getWrapped());
+		
+	}
+	
+	@Test
+	public void testGetRowCount(){
+		int rowCount = 1234;
+		when(mockCellTable.getRowCount()).thenReturn(rowCount);
+		int count = view.getRowCount();
+		assertEquals(rowCount, count);
+	}
+	
+	@Test
+	public void testGetVisibleRange(){
+		Range mockRange = Mockito.mock(Range.class);
+		when(mockCellTable.getVisibleRange()).thenReturn(mockRange);
+		Range results = view.getVisibleRange();
+		assertEquals(mockRange, results);
+	}
+	@Test
+	public void testIsRowCountExact(){
+		boolean yes = true;
+		when(mockCellTable.isRowCountExact()).thenReturn(yes);
+		boolean result = view.isRowCountExact();
+		assertEquals(yes, result);
+	}
+
 	
 	/**
 	 * Validates that only the column indicated by the sortIndex is sorting and the ascending bit is correct.

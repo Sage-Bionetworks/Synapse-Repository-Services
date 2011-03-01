@@ -1,14 +1,13 @@
 package org.sagebionetworks.web.client.view;
 
 import java.util.List;
-import java.util.Map;
 
-import org.sagebionetworks.web.shared.ColumnMetadata;
 import org.sagebionetworks.web.shared.HeaderData;
 
 import com.google.gwt.user.client.ui.IsWidget;
+import com.google.gwt.view.client.HasRows;
 
-public interface DynamicTableView extends IsWidget {
+public interface DynamicTableView extends IsWidget, HasRows {
 	
 	
 	/**
@@ -42,7 +41,7 @@ public interface DynamicTableView extends IsWidget {
 	 */
 	public void setColumns(List<HeaderData> columnInfoList);
 	
-	
+
 	/**
 	 * Defines the communication with the presenter.
 	 *
