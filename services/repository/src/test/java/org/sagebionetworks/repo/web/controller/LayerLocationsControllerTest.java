@@ -344,7 +344,7 @@ public class LayerLocationsControllerTest {
 				layerLocations, HttpStatus.BAD_REQUEST);
 
 		String reason = error.getString("reason");
-		assertEquals("'type' must be one of: awss3 awsebs sage", reason);
+		assertTrue(reason.startsWith("'type' must be one of: awss3 awsebs sage"));
 	}
 
 	/*****************************************************************************************************
