@@ -64,7 +64,7 @@ public class LayerController extends BaseController { // TODO implements
 	}
 
 	private void checkAuthorization(String userId, String parentId,
-			Boolean readOnly) {
+			Boolean readOnly) throws DatastoreException {
 		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
 		locationsDao = getDaoFactory().getLayerLocationsDAO(userId);
 		DatasetDAO dao = getDaoFactory().getDatasetDAO(userId);

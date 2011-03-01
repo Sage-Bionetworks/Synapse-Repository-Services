@@ -1,8 +1,13 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -39,11 +44,25 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class QueryController extends BaseController {
 
 	private DatasetDAO dao;
-
+	
 	// Use a static instance of this per
 	// http://wiki.fasterxml.com/JacksonBestPracticesPerformance
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
+	private static final String excludedDatasetProperties[] = {"uri", "etag", "annotations", "layer"};
+	private static final String excludedLayerProperties[] = {"uri", "etag", "annotations", "preview", "locations"};
+	private static final Map<String,Set<String>> EXCLUDED_PROPERTIES;
+	
+	static {
+		Set<String> datasetProperties = new HashSet<String>();
+		datasetProperties.addAll(Arrays.asList(excludedDatasetProperties));
+		Set<String> layerProperties = new HashSet<String>();
+		layerProperties.addAll(Arrays.asList(excludedLayerProperties));
+		Map<String,Set<String>> excludedProperties = new HashMap<String,Set<String>>();
+		excludedProperties.put("dataset", datasetProperties);
+		excludedProperties.put("layer", layerProperties);	
+		EXCLUDED_PROPERTIES = Collections.unmodifiableMap(excludedProperties);
+	}
+	
 	private void checkAuthorization(String userId) {
 		BaseDAO<Dataset> dao = getDaoFactory().getDatasetDAO(userId);
 		setDao(dao);
@@ -136,21 +155,13 @@ public class QueryController extends BaseController {
 
 			Map<String, Object> result = OBJECT_MAPPER.convertValue(dataset,
 					Map.class);
-			// Get rid of fields for REST api
-			result.remove("uri");
-			result.remove("etag");
-			result.remove("annotations");
-			result.remove("layer");
-
 			Annotations annotations = dao.getAnnotations(dataset.getId());
 			result.putAll(annotations.getStringAnnotations());
 			result.putAll(annotations.getDoubleAnnotations());
 			result.putAll(annotations.getLongAnnotations());
 			result.putAll(annotations.getDateAnnotations());
-			results.add(result);
 
-			// TODO filter out un-requested fields when we support more than
-			// SELECT *
+			results.add(formulateResult(stmt, result));
 		}
 
 		return new QueryResults(results, totalNumberOfResults);
@@ -196,24 +207,31 @@ public class QueryController extends BaseController {
 
 			Map<String, Object> result = OBJECT_MAPPER.convertValue(layer,
 					Map.class);
-			// Get rid of fields for REST api
-			result.remove("uri");
-			result.remove("etag");
-			result.remove("annotations");
-			result.remove("preview");
-			result.remove("locations");
 
 			Annotations annotations = layerDao.getAnnotations(layer.getId());
 			result.putAll(annotations.getStringAnnotations());
 			result.putAll(annotations.getDoubleAnnotations());
 			result.putAll(annotations.getLongAnnotations());
 			result.putAll(annotations.getDateAnnotations());
-			results.add(result);
 
-			// TODO filter out un-requested fields when we support more than
-			// SELECT *
+			results.add(formulateResult(stmt, result));
 		}
 
 		return new QueryResults(results, totalNumberOfResults);
 	}
-}
+
+	private Map<String, Object> formulateResult(QueryStatement stmt, Map<String, Object> fields) {
+		// TODO filter out un-requested fields when we support more than
+		// SELECT *
+		Map<String, Object> result = new HashMap<String,Object>();
+		for(String field : fields.keySet()) {
+			if(EXCLUDED_PROPERTIES.get("dataset").contains(field)) {
+				// skip this
+			}
+			else {
+				result.put(stmt.getTableName() + "." + field, fields.get(field));
+			}
+		}
+		return result;
+	}	
+}	

@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import org.json.JSONArray;
@@ -73,6 +74,8 @@ public class QueryControllerTest {
 	@Test
 	public void testQuery() throws Exception {
 		JSONObject queryResult = helper.testQuery("select * from dataset");
+		assertExpectedQueryResultProperties("dataset", queryResult);
+		
 		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
 				queryResult.getInt("totalNumberOfResults"));
 		JSONArray results = queryResult.getJSONArray("results");
@@ -83,7 +86,7 @@ public class QueryControllerTest {
 		for (int i = 0; i < DatasetsControllerTest.SAMPLE_DATASET_NAMES.length; i++) {
 			JSONObject result = results.getJSONObject(i);
 			assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES[i], result
-					.getString("name"));
+					.getString("dataset.name"));
 		}
 	}
 
@@ -97,6 +100,8 @@ public class QueryControllerTest {
 	public void testSortQuery() throws Exception {
 		JSONObject queryResult = helper
 				.testQuery("select * from dataset order by \"name\" limit 10");
+		assertExpectedQueryResultProperties("dataset", queryResult);
+		
 		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
 				queryResult.getInt("totalNumberOfResults"));
 		JSONArray results = queryResult.getJSONArray("results");
@@ -110,7 +115,7 @@ public class QueryControllerTest {
 		for (int i = 0; i < 10; i++) {
 			JSONObject result = results.getJSONObject(i);
 			assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES[i], result
-					.getString("name"));
+					.getString("dataset.name"));
 		}
 	}
 
@@ -124,6 +129,8 @@ public class QueryControllerTest {
 	public void testSortQueryDescending() throws Exception {
 		JSONObject queryResult = helper
 				.testQuery("select * from dataset order by \"name\" desc");
+		assertExpectedQueryResultProperties("dataset", queryResult);
+
 		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
 				queryResult.getInt("totalNumberOfResults"));
 		JSONArray results = queryResult.getJSONArray("results");
@@ -139,7 +146,7 @@ public class QueryControllerTest {
 			JSONObject result = results.getJSONObject(i);
 			assertEquals(
 					DatasetsControllerTest.SAMPLE_DATASET_NAMES[DatasetsControllerTest.SAMPLE_DATASET_NAMES.length
-							- 1 - i], result.getString("name"));
+							- 1 - i], result.getString("dataset.name"));
 		}
 	}
 
@@ -154,6 +161,8 @@ public class QueryControllerTest {
 
 		JSONObject queryResult = helper
 				.testQuery("select * from dataset where name == \"Pediatric AML TARGET\"");
+		assertExpectedQueryResultProperties("dataset", queryResult);
+
 		// TODO fix me, this should be 1
 		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
 				queryResult.getInt("totalNumberOfResults"));
@@ -162,7 +171,7 @@ public class QueryControllerTest {
 
 		// Check that it is a list of one map
 		JSONObject result = results.getJSONObject(0);
-		assertEquals("Pediatric AML TARGET", result.getString("name"));
+		assertEquals("Pediatric AML TARGET", result.getString("dataset.name"));
 	}
 
 	/**
@@ -177,12 +186,17 @@ public class QueryControllerTest {
 
 		JSONObject datasetResults = helper
 				.testQuery("select * from dataset where name == \"Pediatric AML TARGET\"");
-		String datasetId = datasetResults.getJSONArray("results")
-				.getJSONObject(0).getString("id");
+		assertExpectedQueryResultProperties("dataset", datasetResults);
 
+		String datasetId = datasetResults.getJSONArray("results")
+				.getJSONObject(0).getString("dataset.id");
+		
+		
 		JSONObject queryResult = helper
 				.testQuery("select * from layer where dataset.id == \""
 						+ datasetId + "\"");
+		assertExpectedQueryResultProperties("layer", queryResult);
+
 		assertEquals(numLayersExpected, queryResult
 				.getInt("totalNumberOfResults"));
 		JSONArray results = queryResult.getJSONArray("results");
@@ -191,8 +205,8 @@ public class QueryControllerTest {
 		// Check that it is a list of maps
 		for (int i = 0; i < numLayersExpected; i++) {
 			JSONObject layer = results.getJSONObject(i);
-			assertTrue(layer.has("type"));
-			assertFalse("null".equals(layer.getString("type")));
+			assertTrue(layer.has("layer.type"));
+			assertFalse("null".equals(layer.getString("layer.type")));
 		}
 	}
 
@@ -233,4 +247,27 @@ public class QueryControllerTest {
 				error.getString("reason"));
 	}
 
+	/*****************************************************************************************************
+	 * Query API-specific helpers
+	 */
+
+	/**
+	 * @param tableName 
+	 * @param queryResult
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public static void assertExpectedQueryResultProperties(String tableName, JSONObject queryResult)
+			throws Exception {
+
+		JSONArray results = queryResult.getJSONArray("results");
+		for(int i = 0; i < results.length(); i++) {
+			JSONObject result = results.getJSONObject(i);
+			Iterator<String> iter = result.keys();
+			while(iter.hasNext()) {
+				String key = iter.next();
+				assertTrue(key.startsWith(tableName + "."));
+			}
+		}
+	}
 }
