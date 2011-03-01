@@ -9,13 +9,13 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
-import com.google.appengine.api.datastore.Key;
+
 
 @PersistenceCapable(detachable = "false")
 public class GAEJDOUserGroup implements GAEJDOBase {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
-	private Key id;
+	private Long id;
 	
 	@Persistent
 	private String name;
@@ -24,7 +24,7 @@ public class GAEJDOUserGroup implements GAEJDOBase {
 	private Date creationDate;
 
 	@Persistent
-	private Set<Key> users;
+	private Set<Long> users;
 	
 
     @Persistent(mappedBy = "owner")
@@ -44,11 +44,11 @@ public class GAEJDOUserGroup implements GAEJDOBase {
 	@Persistent
 	private Boolean isIndividual;
 
-	public Key getId() {
+	public Long getId() {
 		return id;
 	}
 
-	public void setId(Key id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 
@@ -68,11 +68,11 @@ public class GAEJDOUserGroup implements GAEJDOBase {
 		this.creationDate = creationDate;
 	}
 
-	public Set<Key> getUsers() {
+	public Set<Long> getUsers() {
 		return users;
 	}
 
-	public void setUsers(Set<Key> users) {
+	public void setUsers(Set<Long> users) {
 		this.users = users;
 	}
 

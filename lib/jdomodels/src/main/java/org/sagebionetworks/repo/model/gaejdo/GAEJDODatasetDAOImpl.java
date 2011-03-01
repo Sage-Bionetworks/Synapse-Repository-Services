@@ -14,8 +14,8 @@ import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.KeyFactory;
+
+
 
 /**
  * This is the DAO for the GAEJDO implementation of Dataset. As such it
@@ -141,7 +141,7 @@ public class GAEJDODatasetDAOImpl extends
 				"status", "releaseDate", "version", "creationDate" });
 	}
 
-	public InputDataLayerDAO getInputDataLayerDAO(String datasetId) {
+	public InputDataLayerDAO getInputDataLayerDAO(String datasetId) throws DatastoreException {
 		return new GAEJDOInputDataLayerDAOImpl(userId, KeyFactory
 				.stringToKey(datasetId));
 	}

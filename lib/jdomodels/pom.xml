@@ -12,9 +12,9 @@
     <version>0.1</version>
   </parent>
   
-  <artifactId>lib-gaemodels</artifactId>
+  <artifactId>lib-jdomodels</artifactId>
   <packaging>jar</packaging>
-  <name>Platform Repository Model Objects - AppEngine Implementation</name>
+  <name>Platform Repository Model Objects - JDO Implementation</name>
 
   <dependencies>
     
@@ -32,6 +32,11 @@
       <version>${datanucleus.version}</version>
       <scope>runtime</scope>
     </dependency>
+	<dependency>
+	  <groupId>org.datanucleus</groupId>
+	  <artifactId>datanucleus-rdbms</artifactId>
+	  <version>${datanucleus.version}</version>
+	</dependency>
     
     <dependency>
       <groupId>javax.transaction</groupId>
@@ -51,44 +56,13 @@
       </exclusions>
     </dependency>
 
-    <!-- Google App Engine meta-package -->
-    <dependency>
-      <groupId>net.kindleit</groupId>
-      <artifactId>gae-runtime</artifactId>
-      <version>${gae.version}</version>
-      <type>pom</type>
-      <exclusions>
-        <exclusion>
-          <groupId>com.google.appengine.orm</groupId>
-          <artifactId>datanucleus-core</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
+	<!-- MySQL dependencies -->
+	<dependency>
+	  <groupId>mysql</groupId>
+	  <artifactId>mysql-connector-java</artifactId>
+	  <version>5.1.13</version>
+	</dependency>
     
-    <!-- GAE libraries for local testing as described here:
-         http://code.google.com/appengine/docs/java/howto/unittesting.html
-      -->
-    <dependency>
-      <groupId>com.google.appengine</groupId>
-      <artifactId>appengine-api-labs</artifactId>
-      <version>${gae.version}</version>
-      <scope>test</scope>
-    </dependency>
-    
-    <dependency>
-      <groupId>com.google.appengine</groupId>
-      <artifactId>appengine-api-stubs</artifactId>
-      <version>${gae.version}</version>
-      <scope>test</scope>
-    </dependency>
-    
-    <dependency>
-      <groupId>com.google.appengine</groupId>
-      <artifactId>appengine-testing</artifactId>
-      <version>${gae.version}</version>
-      <scope>test</scope>
-    </dependency>
-
   </dependencies>
 
   <build>
@@ -109,6 +83,9 @@
           <fork>false</fork>
           <enhancerName>ASM</enhancerName>
           <api>JDO</api>
+          <props>src/main/resources/datanucleus.properties</props>
+	      <log4jConfiguration>src/main/resources/log4j.properties</log4jConfiguration>
+	      <completeDdl>true</completeDdl>
         </configuration>
         <executions>
           <execution>

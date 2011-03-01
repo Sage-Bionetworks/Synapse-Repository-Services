@@ -5,17 +5,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import javax.jdo.JDOHelper;
 import javax.jdo.annotations.Element;
-import javax.jdo.annotations.FetchGroup;
-import javax.jdo.annotations.FetchPlan;
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
-
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.Text;
 
 /**
  * Note: equals and hashcode are based only on the id field.
@@ -27,7 +21,7 @@ import com.google.appengine.api.datastore.Text;
 public class GAEJDOAnnotations {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
-	private Key id;
+	private Long id;
 
 	/**
 	 * A factory for new objects. (We avoid putting the creation of the
@@ -41,7 +35,6 @@ public class GAEJDOAnnotations {
 		obj.setStringAnnotations(new HashSet<GAEJDOStringAnnotation>());
 		obj.setDoubleAnnotations(new HashSet<GAEJDODoubleAnnotation>());
 		obj.setLongAnnotations(new HashSet<GAEJDOLongAnnotation>());
-		obj.setTextAnnotations(new HashSet<GAEJDOTextAnnotation>());
 		obj.setDateAnnotations(new HashSet<GAEJDODateAnnotation>());
 		return obj;
 	}
@@ -51,7 +44,6 @@ public class GAEJDOAnnotations {
 		sb.append("String Annots: " + getStringAnnotations() + "\n");
 		sb.append("Double Annots: " + getDoubleAnnotations() + "\n");
 		sb.append("Long Annots: " + getLongAnnotations() + "\n");
-		sb.append("Text Annots: " + getTextAnnotations() + "\n");
 		sb.append("Date Annots: " + getDateAnnotations() + "\n");
 		return sb.toString();
 	}
@@ -79,10 +71,6 @@ public class GAEJDOAnnotations {
 			ans.add(annot.getAttribute(), annot.getValue());
 		}
 
-		for (GAEJDOAnnotation<Text> annot : getTextIterable()) {
-			ans.add(annot.getAttribute(), annot.getValue());
-		}
-
 		for (GAEJDOAnnotation<Date> annot : getDateIterable()) {
 			ans.add(annot.getAttribute(), annot.getValue());
 		}
@@ -99,16 +87,13 @@ public class GAEJDOAnnotations {
 	private Set<GAEJDOLongAnnotation> longAnnotations;
 
 	@Element(dependent = "true")
-	private Set<GAEJDOTextAnnotation> textAnnotations;
-
-	@Element(dependent = "true")
 	private Set<GAEJDODateAnnotation> dateAnnotations;
 
-	public Key getId() {
+	public Long getId() {
 		return id;
 	}
 
-	public void setId(Key id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 
@@ -246,37 +231,6 @@ public class GAEJDOAnnotations {
 		};
 	}
 
-	public void add(String a, Text v) {
-		textAnnotations.add(new GAEJDOTextAnnotation(a, v));
-	}
-
-	public void remove(String a, Text v) {
-		textAnnotations.remove(new GAEJDOTextAnnotation(a, v));
-	}
-
-	public Iterable<GAEJDOAnnotation<Text>> getTextIterable() {
-		return new Iterable<GAEJDOAnnotation<Text>>() {
-			public Iterator<GAEJDOAnnotation<Text>> iterator() {
-				return new Iterator<GAEJDOAnnotation<Text>>() {
-					private Iterator<GAEJDOTextAnnotation> it = textAnnotations
-							.iterator();
-
-					public boolean hasNext() {
-						return it.hasNext();
-					}
-
-					public GAEJDOAnnotation<Text> next() {
-						return it.next();
-					}
-
-					public void remove() {
-						it.remove();
-					}
-				};
-			}
-		};
-	}
-
 	public Set<GAEJDOStringAnnotation> getStringAnnotations() {
 		return stringAnnotations;
 	}
@@ -300,14 +254,6 @@ public class GAEJDOAnnotations {
 
 	public void setLongAnnotations(Set<GAEJDOLongAnnotation> longAnnotations) {
 		this.longAnnotations = longAnnotations;
-	}
-
-	public Set<GAEJDOTextAnnotation> getTextAnnotations() {
-		return textAnnotations;
-	}
-
-	public void setTextAnnotations(Set<GAEJDOTextAnnotation> textAnnotations) {
-		this.textAnnotations = textAnnotations;
 	}
 
 	public Set<GAEJDODateAnnotation> getDateAnnotations() {

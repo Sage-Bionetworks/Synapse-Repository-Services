@@ -8,10 +8,10 @@ import javax.jdo.Transaction;
 
 import org.sagebionetworks.repo.model.DatasetAnalysisDAO;
 
-import com.google.appengine.api.datastore.Key;
+
 
 public class GAEJDODatasetAnalysisDAOImpl implements DatasetAnalysisDAO {
-	public GAEJDODatasetAnalysis getDatasetAnalysis(Key id) {
+	public GAEJDODatasetAnalysis getDatasetAnalysis(Long id) {
 		PersistenceManager pm = PMF.get();
 		GAEJDODatasetAnalysis ans = (GAEJDODatasetAnalysis) pm.getObjectById(
 				GAEJDODatasetAnalysis.class, id);
@@ -56,7 +56,7 @@ public class GAEJDODatasetAnalysisDAOImpl implements DatasetAnalysisDAO {
 		}
 	}
 
-	public void delete(Key id) {
+	public void delete(Long id) {
 		PersistenceManager pm = PMF.get();
 		Transaction tx = null;
 		try {
@@ -64,7 +64,7 @@ public class GAEJDODatasetAnalysisDAOImpl implements DatasetAnalysisDAO {
 			tx.begin();
 			Query q = pm.newQuery(GAEJDODatasetAnalysis.class);
 			q.setFilter("id==pId");
-			q.declareParameters(Key.class.getName() + " pId");
+			q.declareParameters(Long.class.getName() + " pId");
 			@SuppressWarnings("unchecked")
 			Collection<GAEJDODatasetAnalysis> analyses = (Collection<GAEJDODatasetAnalysis>) q
 					.execute(id);

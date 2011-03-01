@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.model.gaejdo;
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.Base;
-import com.google.appengine.api.datastore.Key;
+
 
 /**
  * This interface defines the methods to be implemented by all persistent
@@ -18,13 +18,13 @@ public interface GAEJDOBase {
 	 * @param id
 	 *            id of the persistent object
 	 */
-	public void setId(Key id);
+	public void setId(Long id);
 
 	/**
 	 * 
 	 * @return id of the persistent object
 	 */
-	public Key getId();
+	public Long getId();
 
 	/**
 	 * 

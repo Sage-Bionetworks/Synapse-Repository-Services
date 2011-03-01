@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.google.appengine.api.datastore.KeyFactory;
+
 
 public class GAEJDOUserDAOImpl extends GAEJDOBaseDAOImpl<User,GAEJDOUser> implements UserDAO {
 

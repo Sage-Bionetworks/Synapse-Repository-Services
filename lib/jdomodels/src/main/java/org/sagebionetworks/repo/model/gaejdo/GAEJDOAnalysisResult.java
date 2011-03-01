@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model.gaejdo;
 
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
-import com.google.appengine.api.datastore.Text;
+
 
 @PersistenceCapable(detachable = "true")
 public class GAEJDOAnalysisResult extends GAEJDODatasetLayer<GAEJDOAnalysisResult> {
@@ -16,7 +16,7 @@ public class GAEJDOAnalysisResult extends GAEJDODatasetLayer<GAEJDOAnalysisResul
 
 
 	@Persistent
-	private Text notes;
+	private String notes;
 
 	public GAEJDOAnalysisResult getNextVersion() {
 		return nextVersion;
@@ -26,11 +26,11 @@ public class GAEJDOAnalysisResult extends GAEJDODatasetLayer<GAEJDOAnalysisResul
 		this.nextVersion = nextVersion;
 	}
 
-	public Text getNotes() {
+	public String getNotes() {
 		return notes;
 	}
 
-	public void setNotes(Text notes) {
+	public void setNotes(String notes) {
 		this.notes = notes;
 	}
 

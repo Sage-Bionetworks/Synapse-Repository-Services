@@ -7,7 +7,7 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
-import com.google.appengine.api.datastore.Key;
+
 
 /**
  * This is the representation of a user in the datastore.
@@ -22,7 +22,7 @@ public class GAEJDOUser implements GAEJDOBase {
 
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
-	private Key id;
+	private Long id;
 	
 	@Persistent
 	private Date creationDate;
@@ -38,11 +38,11 @@ public class GAEJDOUser implements GAEJDOBase {
 	@Persistent 
 	private String iamSecretKey;
 	
-	public Key getId() {
+	public Long getId() {
 		return id;
 	}
 
-	public void setId(Key id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 

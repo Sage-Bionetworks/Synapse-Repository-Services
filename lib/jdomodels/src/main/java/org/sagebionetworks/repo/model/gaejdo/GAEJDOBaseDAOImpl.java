@@ -20,8 +20,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.KeyFactory;
+
+
 
 /**
  * This class contains helper methods for DAOs. Since each DAO may need to pick
@@ -140,7 +140,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 	// * generate the key itself.
 	// * @return the key for a new object, or null if none
 	// */
-	// protected Key generateKey(PersistenceManager pm) throws
+	// protected Long generateKey(PersistenceManager pm) throws
 	// DatastoreException {
 	// return null;
 	// }
@@ -240,7 +240,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 	public S get(String id) throws DatastoreException, NotFoundException,
 			UnauthorizedException {
 		PersistenceManager pm = PMF.get();
-		Key key = KeyFactory.stringToKey(id);
+		Long key = KeyFactory.stringToKey(id);
 		if (!hasAccessIntern(pm, key, AuthorizationConstants.READ_ACCESS))
 			throw new UnauthorizedException();
 		try {
@@ -274,7 +274,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 	public void delete(String id) throws DatastoreException, NotFoundException,
 			UnauthorizedException {
 		PersistenceManager pm = PMF.get();
-		Key key = KeyFactory.stringToKey(id);
+		Long key = KeyFactory.stringToKey(id);
 		if (!hasAccessIntern(pm, key, AuthorizationConstants.CHANGE_ACCESS))
 			throw new UnauthorizedException();
 		Transaction tx = null;
@@ -310,7 +310,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 			InvalidModelException, NotFoundException, UnauthorizedException {
 		if (dto.getId() == null)
 			throw new InvalidModelException("id is null");
-		Key id = KeyFactory.stringToKey(dto.getId());
+		Long id = KeyFactory.stringToKey(dto.getId());
 		T jdo = (T) pm.getObjectById(getJdoClass(), id);
 		copyFromDto(dto, jdo);
 		pm.makePersistent(jdo);
@@ -321,7 +321,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 		PersistenceManager pm = PMF.get();
 		// *** NOTE, if you try to do this within the transaction, below, it
 		// breaks!!
-		Key id = KeyFactory.stringToKey(dto.getId());
+		Long id = KeyFactory.stringToKey(dto.getId());
 		if (!hasAccessIntern(pm, id, AuthorizationConstants.CHANGE_ACCESS))
 			throw new UnauthorizedException();
 		Transaction tx = null;
@@ -354,11 +354,11 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 		Query query = pm.newQuery(getJdoClass());
 		@SuppressWarnings("unchecked")
 		Collection<T> c = (Collection<T>) query.execute();
-		Collection<Key> keys = new HashSet<Key>();
+		Collection<Long> keys = new HashSet<Long>();
 		for (T elem : c)
 			keys.add(elem.getId());
 		// System.out.println("GAEJDOBaseDAOImpl.getCount: keys "+keys);
-		Collection<Key> canAccess = getCanAccess(pm,
+		Collection<Long> canAccess = getCanAccess(pm,
 				AuthorizationConstants.READ_ACCESS);
 		// System.out.println("GAEJDOBaseDAOImpl.getCount: canAccess "+canAccess);
 		keys.retainAll(canAccess);
@@ -392,7 +392,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 			Query query = pm.newQuery(getJdoClass());
 			@SuppressWarnings("unchecked")
 			List<T> list = ((List<T>) query.execute());
-			Collection<Key> canAccess = getCanAccess(pm,
+			Collection<Long> canAccess = getCanAccess(pm,
 					AuthorizationConstants.READ_ACCESS);
 			List<S> ans = new ArrayList<S>();
 			int count = 0;
@@ -434,7 +434,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 			query.setOrdering(sortBy + (asc ? " ascending" : " descending"));
 			@SuppressWarnings("unchecked")
 			List<T> list = ((List<T>) query.execute());
-			Collection<Key> canAccess = getCanAccess(pm,
+			Collection<Long> canAccess = getCanAccess(pm,
 					AuthorizationConstants.READ_ACCESS);
 			List<S> ans = new ArrayList<S>();
 			int count = 0;
@@ -478,7 +478,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 			query.declareParameters(value.getClass().getName() + " pValue");
 			@SuppressWarnings("unchecked")
 			List<T> list = ((List<T>) query.execute(value));
-			Collection<Key> canAccess = getCanAccess(pm,
+			Collection<Long> canAccess = getCanAccess(pm,
 					AuthorizationConstants.READ_ACCESS);
 			List<S> ans = new ArrayList<S>();
 			int count = 0;
@@ -513,11 +513,11 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 	// }
 
 	private static Collection<GAEJDOResourceAccess> getAccess(
-			PersistenceManager pm, Key resourceKey, String accessType) {
+			PersistenceManager pm, Long resourceKey, String accessType) {
 		Query query = pm.newQuery(GAEJDOResourceAccess.class);
 		query
 				.setFilter("this.resource==pResourceKey && this.accessType==pAccessType");
-		query.declareParameters(Key.class.getName() + " pResourceKey, "
+		query.declareParameters(Long.class.getName() + " pResourceKey, "
 				+ String.class.getName() + " pAccessType");
 		// query.setFilter("accessType==pAccessType");
 		// query.declareParameters(String.class+" pAccessType");
@@ -536,7 +536,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 		try {
 			GAEJDOUserGroupDAOImpl groupDAO = new GAEJDOUserGroupDAOImpl(userId);
 			Collection<UserGroup> ans = new HashSet<UserGroup>();
-			Key resourceKey = KeyFactory.stringToKey(id);
+			Long resourceKey = KeyFactory.stringToKey(id);
 			Collection<GAEJDOResourceAccess> ras = getAccess(pm, resourceKey,
 					accessType);
 			for (GAEJDOResourceAccess ra : ras) {
@@ -564,7 +564,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 		return group.getCreatableTypes().contains(getJdoClass().getName());
 	}
 
-	protected boolean hasAccessIntern(PersistenceManager pm, Key resourceKey,
+	protected boolean hasAccessIntern(PersistenceManager pm, Long resourceKey,
 			String accessType) {
 		GAEJDOUser thisUser = (new GAEJDOUserDAOImpl(userId)).getUser(pm);
 		Collection<GAEJDOResourceAccess> ras = getAccess(pm, resourceKey,
@@ -573,7 +573,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 		for (GAEJDOResourceAccess ra : ras) {
 			GAEJDOUserGroup group = ra.getOwner();
 			// System.out.println("GAEJDOBaseDAOImpl.hasAccessIntern: \tGroup "+group.getName()+" has "+group.getUsers().size()+" users.");
-			// for (Key u : group.getUsers()) System.out.print(u+", ");
+			// for (Long u : group.getUsers()) System.out.print(u+", ");
 			// System.out.println();
 			if (GAEJDOUserGroupDAOImpl.isPublicGroup(group)
 					|| (thisUser != null && group.getUsers().contains(
@@ -587,7 +587,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 			throws NotFoundException, DatastoreException {
 		PersistenceManager pm = PMF.get();
 		try {
-			Key resourceKey = KeyFactory.stringToKey(resourceId);
+			Long resourceKey = KeyFactory.stringToKey(resourceId);
 			return hasAccessIntern(pm, resourceKey, accessType);
 		} catch (JDOObjectNotFoundException e) {
 			throw new NotFoundException(e);
@@ -605,14 +605,14 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 	 * @return all objects in the system that the user can access with the given
 	 *         accesstype
 	 */
-	public Collection<Key> getCanAccess(PersistenceManager pm, String accessType) {
+	public Collection<Long> getCanAccess(PersistenceManager pm, String accessType) {
 		// find all the groups the user is a member of
 		Collection<GAEJDOUserGroup> groups = new HashSet<GAEJDOUserGroup>();
 		if (userId != null) {
 			GAEJDOUser user = (new GAEJDOUserDAOImpl(userId)).getUser(pm);
 			Query query = pm.newQuery(GAEJDOUserGroup.class);
 			query.setFilter("users.contains(pUser)");
-			query.declareParameters(Key.class + " pUser");
+			query.declareParameters(Long.class + " pUser");
 			@SuppressWarnings("unchecked")
 			Collection<GAEJDOUserGroup> c = (Collection<GAEJDOUserGroup>) query
 					.execute(user.getId());
@@ -626,7 +626,7 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 		query.setFilter("owner==pUserGroup && accessType==pAccessType");
 		query.declareParameters(GAEJDOUserGroup.class.getName()
 				+ " pUserGroup, " + String.class.getName() + " pAccessType");
-		Collection<Key> ans = new HashSet<Key>();
+		Collection<Long> ans = new HashSet<Long>();
 		for (GAEJDOUserGroup ug : groups) {
 			@SuppressWarnings("unchecked")
 			Collection<GAEJDOResourceAccess> ras = (Collection<GAEJDOResourceAccess>) query

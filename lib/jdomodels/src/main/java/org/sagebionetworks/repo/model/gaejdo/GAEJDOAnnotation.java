@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.gaejdo;
 
-import com.google.appengine.api.datastore.Key;
+
 
 /**
  * The base interface for all annotations. Concrete classes will have typed
@@ -17,7 +17,7 @@ public interface GAEJDOAnnotation<T> {
 	 * 
 	 * @return the datastore key for the annotation
 	 */
-	Key getId();
+	Long getId();
 
 	/**
 	 * 

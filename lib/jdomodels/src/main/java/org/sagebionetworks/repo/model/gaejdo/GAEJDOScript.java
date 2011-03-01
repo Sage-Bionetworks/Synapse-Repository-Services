@@ -8,8 +8,8 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.Text;
+
+
 
 /**
  * note 'source' may be a reference to a version control repository, like
@@ -22,7 +22,7 @@ import com.google.appengine.api.datastore.Text;
 public class GAEJDOScript implements GAEJDORevisable<GAEJDOScript> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
-	private Key id;
+	private Long id;
 
 	@Persistent
 	private String name;
@@ -42,16 +42,16 @@ public class GAEJDOScript implements GAEJDORevisable<GAEJDOScript> {
 	private Date publicationDate;
 
 	@Persistent
-	private Text overview;
+	private String overview;
 
 	@Persistent(serialized = "true")
 	private URI source;
 
-	public Key getId() {
+	public Long getId() {
 		return id;
 	}
 
-	public void setId(Key id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 
@@ -95,11 +95,11 @@ public class GAEJDOScript implements GAEJDORevisable<GAEJDOScript> {
 		this.publicationDate = publicationDate;
 	}
 
-	public Text getOverview() {
+	public String getOverview() {
 		return overview;
 	}
 
-	public void setOverview(Text overview) {
+	public void setOverview(String overview) {
 		this.overview = overview;
 	}
 

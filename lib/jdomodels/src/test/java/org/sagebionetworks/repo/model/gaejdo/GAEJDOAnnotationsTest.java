@@ -16,13 +16,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
-import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
+
+
+
 
 public class GAEJDOAnnotationsTest {
-	private final LocalServiceTestHelper helper = new LocalServiceTestHelper(
-			new LocalDatastoreServiceTestConfig());
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -37,15 +35,13 @@ public class GAEJDOAnnotationsTest {
 
 	@Before
 	public void setUp() throws Exception {
-		helper.setUp();
 	}
 
 	@After
 	public void tearDown() throws Exception {
-		helper.tearDown();
 	}
 
-	private Key createAnnotations() {
+	private Long createAnnotations() {
 		PersistenceManager pm = null;
 		try {
 			pm = PMF.get();
@@ -61,7 +57,7 @@ public class GAEJDOAnnotationsTest {
 		}
 	}
 
-	private void addString(Key id) {
+	private void addString(Long id) {
 		PersistenceManager pm = null;
 		try {
 			pm = PMF.get();
@@ -81,7 +77,7 @@ public class GAEJDOAnnotationsTest {
 		}
 	}
 
-	private void addDouble(Key id) {
+	private void addDouble(Long id) {
 		PersistenceManager pm = null;
 		try {
 			pm = PMF.get();
@@ -102,7 +98,7 @@ public class GAEJDOAnnotationsTest {
 		}
 	}
 
-	private void addLong(Key id) {
+	private void addLong(Long id) {
 		PersistenceManager pm = null;
 		try {
 			pm = PMF.get();
@@ -126,7 +122,7 @@ public class GAEJDOAnnotationsTest {
 	@Test
 	public void testAnnotQuery() throws Exception {
 		PersistenceManager pm = null;
-		Key id = createAnnotations();
+		Long id = createAnnotations();
 		addDouble(id);
 		addLong(id);
 		addString(id);

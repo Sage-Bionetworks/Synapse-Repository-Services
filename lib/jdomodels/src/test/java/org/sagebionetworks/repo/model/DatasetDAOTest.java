@@ -26,17 +26,16 @@ import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDODataset;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDOInputDataLayer;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDOStringAnnotation;
+import org.sagebionetworks.repo.model.gaejdo.KeyFactory;
 import org.sagebionetworks.repo.model.gaejdo.PMF;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.KeyFactory;
-import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
-import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
+
+
+
+
 
 public class DatasetDAOTest {
-	private final LocalServiceTestHelper helper = new LocalServiceTestHelper(
-			new LocalDatastoreServiceTestConfig());
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -53,13 +52,11 @@ public class DatasetDAOTest {
 
 	@Before
 	public void setUp() throws Exception {
-		helper.setUp();
 		fac = new GAEJDODAOFactoryImpl();
 	}
 
 	@After
 	public void tearDown() throws Exception {
-		helper.tearDown();
 	}
 
 	// create a dataset and populate the shallow properties
@@ -358,15 +355,15 @@ public class DatasetDAOTest {
 		Assert.assertEquals("value", allStringAnnots.get("annot").iterator().next());
 		
 		// hang on to the id of the annotation object just created
-		Key gaejdoAnnotKey = null;
+		Long gaejdoAnnotLong = null;
 		PersistenceManager pm = PMF.get();
 		{
-			Key key = KeyFactory.stringToKey(id);
+			Long key = KeyFactory.stringToKey(id);
 			GAEJDODataset jdo = (GAEJDODataset) pm.getObjectById(
 					GAEJDODataset.class, key);
 			Set<GAEJDOStringAnnotation> stringAnnots = jdo.getAnnotations().getStringAnnotations();
 			Assert.assertEquals(1, stringAnnots.size());
-			gaejdoAnnotKey = stringAnnots.iterator().next().getId();
+			gaejdoAnnotLong = stringAnnots.iterator().next().getId();
 		}
 		
 		dao.delete(id);
@@ -381,7 +378,7 @@ public class DatasetDAOTest {
 		
 		// now try to get the dataset.  should be gone
 		try {
-			Key key = KeyFactory.stringToKey(id);
+			Long key = KeyFactory.stringToKey(id);
 			GAEJDODataset jdo = (GAEJDODataset) pm.getObjectById(
 					GAEJDODataset.class, key);
 			Assert.fail("exception expected");
@@ -392,7 +389,7 @@ public class DatasetDAOTest {
 		// now try to get the annotation.  should be gone
 		try {
 			GAEJDOStringAnnotation jdo = (GAEJDOStringAnnotation) pm.getObjectById(
-					GAEJDOStringAnnotation.class, gaejdoAnnotKey);
+					GAEJDOStringAnnotation.class, gaejdoAnnotLong);
 			Assert.fail("exception expected");
 		} catch (Exception e) {
 			// as expected
@@ -400,7 +397,7 @@ public class DatasetDAOTest {
 
 		// now try to get the layer. should be gone
 		try {
-			Key key = KeyFactory.stringToKey(layerId);
+			Long key = KeyFactory.stringToKey(layerId);
 			GAEJDOInputDataLayer jdo = (GAEJDOInputDataLayer) pm.getObjectById(
 					GAEJDOInputDataLayer.class, key);
 			// System.out.println("Layer name: "+jdo.getName());

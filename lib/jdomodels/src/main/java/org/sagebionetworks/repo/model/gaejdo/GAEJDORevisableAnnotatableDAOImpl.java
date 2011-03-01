@@ -20,8 +20,8 @@ import org.sagebionetworks.repo.model.Revisable;
 import org.sagebionetworks.repo.model.RevisableDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.KeyFactory;
+
+
 
 abstract public class GAEJDORevisableAnnotatableDAOImpl<S extends Base & Revisable, T extends GAEJDOAnnotatable & GAEJDOBase & GAEJDORevisable<T>>
 		extends GAEJDORevisableDAOImpl<S, T> implements RevisableDAO<S>,

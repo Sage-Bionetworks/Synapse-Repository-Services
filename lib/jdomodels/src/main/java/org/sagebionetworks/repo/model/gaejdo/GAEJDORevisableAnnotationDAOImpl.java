@@ -11,7 +11,7 @@ import javax.jdo.Query;
 
 import org.sagebionetworks.repo.model.Base;
 
-import com.google.appengine.api.datastore.Key;
+
 
 /**
  * This extension to GAEJDOAnnotationDAOImpl customizes the JDO queries for
@@ -46,7 +46,7 @@ abstract public class GAEJDORevisableAnnotationDAOImpl<S extends Base, T extends
 					.setFilter("this.annotations==vAnnotations && vAnnotations.id==pId");
 			ownerQuery.declareVariables(GAEJDOAnnotations.class.getName()
 					+ " vAnnotations");
-			ownerQuery.declareParameters(Key.class.getName() + " pId");
+			ownerQuery.declareParameters(Long.class.getName() + " pId");
 			List<T> owners = new ArrayList<T>();
 			for (GAEJDOAnnotations a : annots) {
 				@SuppressWarnings("unchecked")

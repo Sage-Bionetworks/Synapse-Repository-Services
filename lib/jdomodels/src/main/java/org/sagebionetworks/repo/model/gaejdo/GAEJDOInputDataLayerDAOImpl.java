@@ -18,17 +18,13 @@ import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.KeyFactory;
-import com.google.appengine.api.datastore.Text;
-
 public class GAEJDOInputDataLayerDAOImpl extends
 		GAEJDORevisableAnnotatableDAOImpl<InputDataLayer, GAEJDOInputDataLayer>
 		implements InputDataLayerDAO {
 
-	private Key datasetId = null;
+	private Long datasetId = null;
 
-	public GAEJDOInputDataLayerDAOImpl(String userId, Key datasetId) {
+	public GAEJDOInputDataLayerDAOImpl(String userId, Long datasetId) {
 		super(userId);
 		this.datasetId = datasetId;
 	}
@@ -46,7 +42,7 @@ public class GAEJDOInputDataLayerDAOImpl extends
 		jdo.setRevision(r);
 		GAEJDOLayerLocations l = GAEJDOLayerLocations.newGAEJDOLayerLocations();
 		jdo.setLocations(l);
-		
+
 		return jdo;
 	}
 
@@ -55,12 +51,12 @@ public class GAEJDOInputDataLayerDAOImpl extends
 
 		dto.setId(KeyFactory.keyToString(jdo.getId()));
 		dto.setName(jdo.getName());
-		dto.setDescription(jdo.getDescription().getValue());
+		dto.setDescription(jdo.getDescription());
 		dto.setCreationDate(jdo.getCreationDate());
 		dto.setVersion(jdo.getRevision().getVersion().toString());
 
 		dto.setPublicationDate(jdo.getPublicationDate());
-		dto.setReleaseNotes(jdo.getReleaseNotes().getValue());
+		dto.setReleaseNotes(jdo.getReleaseNotes());
 		try {
 			dto.setType(jdo.getType());
 		} catch (InvalidModelException e) {
@@ -102,15 +98,10 @@ public class GAEJDOInputDataLayerDAOImpl extends
 					"'type' is a required property for InputDataLayer");
 		}
 		jdo.setName(dto.getName());
-		String description = (null == dto.getDescription()) ? "" : dto
-				.getDescription();
-		jdo.setDescription(new Text(description));
+		jdo.setDescription(dto.getDescription());
 		jdo.setCreationDate(dto.getCreationDate());
-
 		jdo.setPublicationDate(dto.getPublicationDate());
-		String releaseNotes = (null == dto.getReleaseNotes()) ? "" : dto
-				.getReleaseNotes();
-		jdo.setReleaseNotes(new Text(releaseNotes));
+		jdo.setReleaseNotes(dto.getReleaseNotes());
 		jdo.setType(dto.getType());
 		jdo.setTissueType(dto.getTissueType());
 		jdo.setPlatform(dto.getPlatform());
@@ -149,11 +140,11 @@ public class GAEJDOInputDataLayerDAOImpl extends
 	// parent.getLayers().remove(jdo.getId());
 	// }
 
-	// protected Key generateKey(PersistenceManager pm) throws
+	// protected Long generateKey(PersistenceManager pm) throws
 	// DatastoreException {
 	// long n = 1000L + (long) getCount(pm); // could also use a 'sequence' to
 	// // generate a unique integer
-	// Key key = KeyFactory.createKey(datasetId, "GAEJDOInputDataLayer", n);
+	// Long key = KeyFactory.createKey(datasetId, "GAEJDOInputDataLayer", n);
 	// return key;
 	// }
 
@@ -196,15 +187,16 @@ public class GAEJDOInputDataLayerDAOImpl extends
 			pm.makePersistent(ownerDataset);
 			GAEJDORevision<GAEJDOInputDataLayer> r = jdo.getRevision();
 			r.setOriginal(r.getId()); // points to itself
-			GAEJDORevision<GAEJDODataset> ownerRevision = ownerDataset.getRevision();
+			GAEJDORevision<GAEJDODataset> ownerRevision = ownerDataset
+					.getRevision();
 			ownerRevision.setLatest(true);
 			pm.makePersistent(ownerDataset); // not sure if it's necessary to
 			// 'persist' again
 			tx.commit();
-			//tx = pm.currentTransaction();
-			//tx.begin();
+			// tx = pm.currentTransaction();
+			// tx.begin();
 			addUserAccess(pm, jdo);
-			//tx.commit();
+			// tx.commit();
 			copyToDto(jdo, dto);
 			return KeyFactory.keyToString(jdo.getId());
 		} catch (InvalidModelException ime) {
@@ -218,7 +210,6 @@ public class GAEJDOInputDataLayerDAOImpl extends
 			pm.close();
 		}
 	}
-
 
 	/**
 	 * Delete the specified object
@@ -234,7 +225,7 @@ public class GAEJDOInputDataLayerDAOImpl extends
 		try {
 			tx = pm.currentTransaction();
 			tx.begin();
-			Key key = KeyFactory.stringToKey(id);
+			Long key = KeyFactory.stringToKey(id);
 			GAEJDOInputDataLayer jdo = (GAEJDOInputDataLayer) pm.getObjectById(
 					getJdoClass(), key);
 			GAEJDODataset ownerDataset = (GAEJDODataset) pm.getObjectById(

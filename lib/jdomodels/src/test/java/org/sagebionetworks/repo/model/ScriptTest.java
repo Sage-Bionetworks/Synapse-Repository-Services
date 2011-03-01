@@ -21,14 +21,12 @@ import org.sagebionetworks.repo.model.gaejdo.GAEJDORevision;
 import org.sagebionetworks.repo.model.gaejdo.GAEJDOScript;
 import org.sagebionetworks.repo.model.gaejdo.Version;
 
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.Text;
-import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
-import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
+
+
+
+
 
 public class ScriptTest {
-	private final LocalServiceTestHelper helper = new LocalServiceTestHelper(
-			new LocalDatastoreServiceTestConfig());
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -46,7 +44,6 @@ public class ScriptTest {
 
 	@Before
 	public void setUp() throws Exception {
-		helper.setUp();
 		fac = new GAEJDODAOFactoryImpl();
 		scriptIds = new ArrayList<String>();
 	}
@@ -59,7 +56,6 @@ public class ScriptTest {
 			}
 			scriptIds.clear();
 		}
-		helper.tearDown();
 	}
 
 	@Test
@@ -76,14 +72,14 @@ public class ScriptTest {
 		URI uri = new URI("https://sagebionetworks.com");
 		script.setSource(uri);
 		String overview = "This R script converts genotyping data into gene interaction networks.";
-		script.setOverview(new Text(overview));
+		script.setOverview(new String(overview));
 
 		// // persist it
 		// ScriptDAO sa = fac.getScriptAccessor();
 		// sa.makePersistent(script);
 		//
-		// // persisting creates a Key, which we can grab
-		// Key id = script.getId();
+		// // persisting creates a Long, which we can grab
+		// Long id = script.getId();
 		// scriptIds.add(id);
 		// Assert.assertNotNull(id);
 		//
@@ -123,15 +119,15 @@ public class ScriptTest {
 		// sa.makePersistent(script);
 		// scriptIds.add(script.getId());
 		//
-		// // persisting creates a Key, which we can grab
-		// Key id = script.getId();
+		// // persisting creates a Long, which we can grab
+		// Long id = script.getId();
 		// Assert.assertNotNull(id);
 		//
 		// // now retrieve the object by its key
 		// GAEJDOScript s2 = sa.getScript(id);
 		// Assert.assertNotNull(s2);
 		//
-		// Key revisionId = s2.getRevision().getId();
+		// Long revisionId = s2.getRevision().getId();
 		// Assert.assertNotNull(revisionId);
 		//
 		// // deletion of Script should delete the revision, since it's an
@@ -181,7 +177,7 @@ public class ScriptTest {
 		// GAEJDORevision<GAEJDOScript> r2 = s2.getRevision();
 		// r2.setVersion(r1.getVersion().increment());
 		//
-		// Assert.assertNotNull(r1); // when s1 was persisted, r1's Key should
+		// Assert.assertNotNull(r1); // when s1 was persisted, r1's Long should
 		// have been assigned
 		// r2.setOriginal(r1.getId()); // the revision points to the original
 		//
@@ -189,12 +185,12 @@ public class ScriptTest {
 		// sa.makePersistent(s2);
 		// scriptIds.add(s2.getId()); // queue for clean up
 		//
-		// Key s2Id = s2.getId();
+		// Long s2Id = s2.getId();
 		//
 		// // Now, using just s2Id, we should be able to retrieve the original
 		// s2 = sa.getScript(s2Id);
 		// r2 = s2.getRevision();
-		// Key originalRevisionId = r2.getOriginal();
+		// Long originalRevisionId = r2.getOriginal();
 		// RevisionAccessor<GAEJDOScript> ra = fac.getScriptRevisionAccessor();
 		// GAEJDORevision<GAEJDOScript> originalRevision =
 		// ra.getRevision(originalRevisionId);

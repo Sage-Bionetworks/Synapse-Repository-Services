@@ -16,8 +16,8 @@ import org.sagebionetworks.repo.model.Revisable;
 import org.sagebionetworks.repo.model.RevisableDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.google.appengine.api.datastore.Key;
-import com.google.appengine.api.datastore.KeyFactory;
+
+
 
 abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJDORevisable<T>>
 		extends GAEJDOBaseDAOImpl<S, T> implements RevisableDAO<S> {
@@ -130,7 +130,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 			InvalidModelException {
 		if (dto.getId() == null)
 			throw new InvalidModelException("id is null");
-		Key id = KeyFactory.stringToKey(dto.getId());
+		Long id = KeyFactory.stringToKey(dto.getId());
 		T jdo = (T) pm.getObjectById(getJdoClass(), id);
 		if (!jdo.getRevision().getVersion()
 				.equals(new Version(dto.getVersion())))
@@ -162,10 +162,10 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 		if (revision.getVersion() == null)
 			throw new InvalidModelException("version is null");
 
-		Key id = KeyFactory.stringToKey(revision.getId());
+		Long id = KeyFactory.stringToKey(revision.getId());
 
 		Version newVersion = new Version(revision.getVersion());
-		Key reviseeId = KeyFactory.stringToKey(revision.getId());
+		Long reviseeId = KeyFactory.stringToKey(revision.getId());
 		T revisee = (T) pm.getObjectById(getJdoClass(), reviseeId);
 		if (revisee==null) throw new NotFoundException();
 		T latest = getLatest(pm, revisee);
@@ -234,7 +234,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 		Query query = pm.newQuery(getJdoClass());
 		query.setFilter("revision==r && r.original==pFirstRevision && r.latest==true");
 		query.declareVariables(GAEJDORevision.class.getName() + " r");
-		query.declareParameters(Key.class.getName() + " pFirstRevision");
+		query.declareParameters(Long.class.getName() + " pFirstRevision");
 		@SuppressWarnings("unchecked")
 		Collection<T> c = (Collection<T>) query.execute(someRev.getRevision()
 				.getOriginal());
@@ -250,7 +250,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	 */
 	public S getLatest(PersistenceManager pm, String id)
 			throws DatastoreException {
-		Key key = KeyFactory.stringToKey(id);
+		Long key = KeyFactory.stringToKey(id);
 		T someRev = (T) pm.getObjectById(getJdoClass(), key);
 		T latest = getLatest(pm, someRev);
 		S dto = newDTO();
@@ -295,12 +295,12 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 
 	public T getVersion(PersistenceManager pm, String id, String v)
 			throws DatastoreException {
-		Key key = KeyFactory.stringToKey(id);
+		Long key = KeyFactory.stringToKey(id);
 		return getVersion(pm, key, new Version(v));
 	}
 
 	// id is the key for some revision
-	public T getVersion(PersistenceManager pm, Key id, Version v)
+	public T getVersion(PersistenceManager pm, Long id, Version v)
 			throws DatastoreException {
 		// some revision, not necessarily first or last
 		T someRev = (T) pm.getObjectById(getJdoClass(), id);
@@ -308,7 +308,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 		Query query = pm.newQuery(getJdoClass());
 		query.setFilter("revision==r && r.original==pFirstRevision && r.version==pVersion");
 		query.declareVariables(GAEJDORevision.class.getName() + " r");
-		query.declareParameters(Key.class.getName() + " pFirstRevision, "
+		query.declareParameters(Long.class.getName() + " pFirstRevision, "
 				+ Version.class.getName() + " pVersion");
 		@SuppressWarnings("unchecked")
 		Collection<T> c = (Collection<T>) query.execute(someRev.getRevision()
@@ -325,7 +325,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	 * @throws DatastoreException 
 	 */
 	public Collection<S> getAllVersions(PersistenceManager pm, String id) throws DatastoreException {
-		Key key = KeyFactory.stringToKey(id);
+		Long key = KeyFactory.stringToKey(id);
 		Collection<T> jdos = getAllVersions(pm, key);
 		Collection<S> dtos = new HashSet<S>();
 		for (T jdo : jdos) {
@@ -342,13 +342,13 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 	 * @param id
 	 *            the key for some revision
 	 */
-	public Collection<T> getAllVersions(PersistenceManager pm, Key id) {
+	public Collection<T> getAllVersions(PersistenceManager pm, Long id) {
 		// some revision, not necessarily first or last
 		T someRev = (T) pm.getObjectById(getJdoClass(), id);
 		Query query = pm.newQuery(getJdoClass());
 		query.setFilter("revision==r && r.original==pFirstRevision");
 		query.declareVariables(GAEJDORevision.class.getName() + " r");
-		query.declareParameters(Key.class.getName() + " pFirstRevision");
+		query.declareParameters(Long.class.getName() + " pFirstRevision");
 		@SuppressWarnings("unchecked")
 		Collection<T> ans = (Collection<T>) query.execute(someRev.getRevision()
 				.getOriginal());
@@ -386,7 +386,7 @@ abstract public class GAEJDORevisableDAOImpl<S extends Revisable, T extends GAEJ
 		try {
 			tx = pm.currentTransaction();
 			tx.begin();
-			Key key = KeyFactory.stringToKey(id);
+			Long key = KeyFactory.stringToKey(id);
 			Collection<T> allVersions = getAllVersions(pm, key);
 			for (T jdo : allVersions) {
 //				preDelete(pm, jdo);
