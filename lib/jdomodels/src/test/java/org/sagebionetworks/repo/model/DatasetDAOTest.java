@@ -22,12 +22,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDODataset;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDOInputDataLayer;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDOStringAnnotation;
-import org.sagebionetworks.repo.model.gaejdo.KeyFactory;
-import org.sagebionetworks.repo.model.gaejdo.PMF;
+import org.sagebionetworks.repo.model.jdo.GAEJDODAOFactoryImpl;
+import org.sagebionetworks.repo.model.jdo.GAEJDODataset;
+import org.sagebionetworks.repo.model.jdo.GAEJDOInputDataLayer;
+import org.sagebionetworks.repo.model.jdo.GAEJDOStringAnnotation;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.jdo.PMF;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 

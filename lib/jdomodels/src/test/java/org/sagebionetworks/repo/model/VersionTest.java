@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.gaejdo.Version;
+import org.sagebionetworks.repo.model.jdo.Version;
 
 public class VersionTest {
 

@@ -12,8 +12,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDOProject;
+import org.sagebionetworks.repo.model.jdo.GAEJDODAOFactoryImpl;
+import org.sagebionetworks.repo.model.jdo.GAEJDOProject;
 
 
 
