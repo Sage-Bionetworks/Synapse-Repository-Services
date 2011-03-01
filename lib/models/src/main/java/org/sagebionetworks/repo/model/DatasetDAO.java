@@ -9,6 +9,6 @@ package org.sagebionetworks.repo.model;
 public interface DatasetDAO extends BaseDAO<Dataset>, AnnotatableDAO<Dataset>,
 		RevisableDAO<Dataset> {
 
-	public InputDataLayerDAO getInputDataLayerDAO(String datasetId);
+	public InputDataLayerDAO getInputDataLayerDAO(String datasetId) throws DatastoreException;
 
 }
