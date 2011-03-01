@@ -330,7 +330,7 @@ public class Helpers {
 			request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
-		assertEquals(HttpStatus.OK.value(), response.getStatus());
+		assertEquals(requestUrl, HttpStatus.OK.value(), response.getStatus());
 		JSONObject results = new JSONObject(response.getContentAsString());
 		log.info(results.toString(JSON_INDENT));
 

@@ -5,6 +5,7 @@ import java.util.HashSet;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatasetDAO;
@@ -235,9 +236,30 @@ public class LayerController extends BaseController { // TODO implements
 		return results;
 	}
 
-	/*******************************************************************************
-	 * Helpers
+	/**
+	 * @return the schema
+	 * @throws DatastoreException
 	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
+			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.SCHEMA, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonSchema getEntitySchema() throws DatastoreException {
+		return layerController.getEntitySchema();
+	}
+
+	/**
+	 * @return the schema
+	 * @throws DatastoreException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
+			+ UrlHelpers.LAYER + UrlHelpers.SCHEMA, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonSchema getEntitiesSchema() throws DatastoreException {
+
+		return layerController.getEntitiesSchema();
+	}
 
 	/**
 	 * Simple sanity check test request, using the default view
@@ -254,6 +276,10 @@ public class LayerController extends BaseController { // TODO implements
 		modelMap.put("hello", "REST for Dataset Layers rocks");
 		return ""; // use the default view
 	}
+
+	/*******************************************************************************
+	 * Helpers
+	 */
 
 	private void addServiceSpecificMetadata(InputDataLayer layer,
 			HttpServletRequest request) throws DatastoreException,

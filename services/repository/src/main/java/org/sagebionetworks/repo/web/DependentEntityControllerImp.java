@@ -2,11 +2,13 @@ package org.sagebionetworks.repo.web;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DependentPropertyDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.util.SchemaHelper;
 
 /**
  * Implementation of the controller interface for all operations common to
@@ -26,7 +28,15 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 public class DependentEntityControllerImp<T extends Base, S> implements
 		DependentEntityController<T, S> {
 
+	private Class<T> theModelClass;
 	private DependentPropertyDAO<T, S> dao;
+
+	/**
+	 * @param theModelClass
+	 */
+	public DependentEntityControllerImp(Class<T> theModelClass) {
+		this.theModelClass = theModelClass;
+	}
 
 	@Override
 	public void setDao(DependentPropertyDAO<T, S> dao) {
@@ -49,8 +59,8 @@ public class DependentEntityControllerImp<T extends Base, S> implements
 	}
 
 	@Override
-	public T updateDependentEntity(String userId, String id,
-			Integer etag, T updatedEntity, HttpServletRequest request)
+	public T updateDependentEntity(String userId, String id, Integer etag,
+			T updatedEntity, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException {
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
@@ -68,6 +78,11 @@ public class DependentEntityControllerImp<T extends Base, S> implements
 		dao.update(updatedEntity);
 		addServiceSpecificMetadata(updatedEntity, request);
 		return updatedEntity;
+	}
+
+	@Override
+	public JsonSchema getDependentEntitySchema() throws DatastoreException {
+		return SchemaHelper.getSchema(theModelClass);
 	}
 
 	private void addServiceSpecificMetadata(T entity, HttpServletRequest request) {

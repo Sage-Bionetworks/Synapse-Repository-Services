@@ -2,12 +2,12 @@ package org.sagebionetworks.repo.web;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * Controller interface for all operations common to entities.
@@ -114,6 +114,28 @@ public interface EntityController<T> {
 	public abstract void deleteEntity(String userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
+	/**
+	 * Get the schema for an entity<p>
+	 * <ul>
+	 * <li> http://json-schema.org/ 
+	 * <li> http://wiki.fasterxml.com/JacksonJsonSchemaGeneration
+	 * </ul>
+	 * @return the schema
+	 * @throws DatastoreException 
+	 */
+	public abstract JsonSchema getEntitySchema() throws DatastoreException;
+
+	/**
+	 * Get the schema for a paginated list of entities<p>
+	 * <ul>
+	 * <li> http://json-schema.org/ 
+	 * <li> http://wiki.fasterxml.com/JacksonJsonSchemaGeneration
+	 * </ul>
+	 * @return the schema
+	 * @throws DatastoreException 
+	 */
+	public abstract JsonSchema getEntitiesSchema() throws DatastoreException;
+	
 	/**
 	 * Set the Base DAO for this controller to use
 	 * 

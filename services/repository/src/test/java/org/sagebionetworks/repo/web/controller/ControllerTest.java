@@ -1,9 +1,12 @@
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Logger;
 
 import org.json.JSONObject;
@@ -58,6 +61,37 @@ public class ControllerTest {
 	@After
 	public void tearDown() throws Exception {
 		helper.tearDown();
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.EntityController#getEntitySchema} .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testSchemas() throws Exception {
+
+		// TODO autogenerate these urls instead of listing them here
+		String urls[] = { "/dataset/schema", "/dataset/123/schema",
+				"/dataset/123/annotations/schema", "/dataset/123/layer/schema",
+				"/dataset/123/layer/456/schema",
+				"/dataset/123/layer/456/annotations/schema",
+				"/dataset/123/layer/456/locations/schema",
+				"/dataset/123/layer/456/preview/schema",
+				"/dataset/123/layer/456/awsS3Location/schema",
+				"/dataset/123/layer/456/awsEBSLocation/schema",
+				"/dataset/123/layer/456/sageLocation/schema", };
+
+		List<String> testCases = Arrays.asList(urls); // UrlHelpers.getAllEntityUrlPrefixes();
+		for (String url : testCases) {
+			JSONObject schema = helper.testGetJsonObject(url);
+			assertNotNull(schema);
+			assertNotNull(schema.getString("type"));
+			assertNotNull(schema.getString("optional"));
+			assertNotNull(schema.getJSONObject("items"));
+			assertNotNull(schema.getJSONObject("properties"));
+		}
 	}
 
 	/**

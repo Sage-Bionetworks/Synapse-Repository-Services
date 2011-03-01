@@ -4,12 +4,14 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.util.SchemaHelper;
 
 /**
  * Implementation for REST controller for CRUD operations on Base DTOs and Base
@@ -169,6 +171,18 @@ public class EntityControllerImp<T extends Base> implements EntityController<T> 
 		dao.delete(entityId);
 
 		return;
+	}
+
+	@Override
+	public JsonSchema getEntitySchema() throws DatastoreException {
+		return SchemaHelper.getSchema(theModelClass);
+	}
+	
+	@Override
+	public JsonSchema getEntitiesSchema() throws DatastoreException {
+		// TODO is there a better way to pass this class?
+		PaginatedResults<T> empty = new PaginatedResults<T>();
+		return SchemaHelper.getSchema(empty.getClass());
 	}
 
 	private void addServiceSpecificMetadata(T entity, HttpServletRequest request) {
