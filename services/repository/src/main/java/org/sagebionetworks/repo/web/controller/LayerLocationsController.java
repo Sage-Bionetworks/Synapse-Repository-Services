@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DependentPropertyDAO;
 import org.sagebionetworks.repo.model.InputDataLayer;
@@ -10,6 +11,7 @@ import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.LayerLocations;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.util.LocationHelpers;
+import org.sagebionetworks.repo.util.SchemaHelper;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.DependentEntityController;
 import org.sagebionetworks.repo.web.DependentEntityControllerImp;
@@ -46,7 +48,8 @@ public class LayerLocationsController extends BaseController implements
 	private DependentEntityController<LayerLocations, InputDataLayer> controller;
 
 	LayerLocationsController() {
-		controller = new DependentEntityControllerImp<LayerLocations, InputDataLayer>();
+		controller = new DependentEntityControllerImp<LayerLocations, InputDataLayer>(
+				LayerLocations.class);
 	}
 
 	private void checkAuthorization(String userId, Boolean readOnly) {
@@ -99,6 +102,16 @@ public class LayerLocationsController extends BaseController implements
 				updatedEntity, request);
 	}
 
+	@Override
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{id}" + UrlHelpers.LAYER
+			+ "/{id}" + UrlHelpers.LOCATIONS + UrlHelpers.SCHEMA, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonSchema getDependentEntitySchema() throws DatastoreException {
+
+		return controller.getDependentEntitySchema();
+	}
+
 	/*******************************************************************************
 	 * Layer Location handlers
 	 */
@@ -133,13 +146,25 @@ public class LayerLocationsController extends BaseController implements
 					+ id);
 		}
 
-		LocationHelpers locationHelper = LocationHelpers.getHelper(getDaoFactory());
-		String signedPath = locationHelper.getS3Url(userId,
-				location.getPath());
+		LocationHelpers locationHelper = LocationHelpers
+				.getHelper(getDaoFactory());
+		String signedPath = locationHelper.getS3Url(userId, location.getPath());
 
 		location.setPath(signedPath);
 
 		return location;
+	}
+
+	/**
+	 * @return the schema
+	 * @throws DatastoreException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
+			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.S3_LOCATION + UrlHelpers.SCHEMA, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonSchema getS3LocationSchema() throws DatastoreException {
+		return SchemaHelper.getSchema(LayerLocation.class);
 	}
 	
 	/**
@@ -175,6 +200,18 @@ public class LayerLocationsController extends BaseController implements
 	}
 
 	/**
+	 * @return the schema
+	 * @throws DatastoreException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
+			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.EBS_LOCATION + UrlHelpers.SCHEMA, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonSchema getEBSLocationSchema() throws DatastoreException {
+		return SchemaHelper.getSchema(LayerLocation.class);
+	}
+
+	/**
 	 * @param userId
 	 * @param id
 	 * @param request
@@ -205,6 +242,20 @@ public class LayerLocationsController extends BaseController implements
 
 		return location;
 	}
+	
+	/**
+	 * @return the schema
+	 * @throws DatastoreException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
+			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.SAGE_LOCATION + UrlHelpers.SCHEMA, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonSchema getSageLocationSchema() throws DatastoreException {
+		return SchemaHelper.getSchema(LayerLocation.class);
+	}
+
+
 
 	/**
 	 * Simple sanity check test request, using the default view

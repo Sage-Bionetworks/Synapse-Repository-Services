@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DependentPropertyDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -62,6 +63,17 @@ public interface DependentEntityController<T, S> {
 			Integer etag, T updatedEntity, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException;
+
+	/**
+	 * Get the schema for a dependent entity<p>
+	 * <ul>
+	 * <li> http://json-schema.org/ 
+	 * <li> http://wiki.fasterxml.com/JacksonJsonSchemaGeneration
+	 * </ul>
+	 * @return the schema
+	 * @throws DatastoreException 
+	 */
+	public abstract JsonSchema getDependentEntitySchema() throws DatastoreException;
 
 	/**
 	 * Set the Dependent Property DAO for this controller to use

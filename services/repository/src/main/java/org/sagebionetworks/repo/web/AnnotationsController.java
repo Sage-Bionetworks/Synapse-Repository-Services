@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
@@ -63,6 +64,17 @@ public interface AnnotationsController<T extends Base> {
 			HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException,
 			UnauthorizedException;
+
+	/**
+	 * Get the schema for an entity's annotations<p>
+	 * <ul>
+	 * <li> http://json-schema.org/ 
+	 * <li> http://wiki.fasterxml.com/JacksonJsonSchemaGeneration
+	 * </ul>
+	 * @return the schema
+	 * @throws DatastoreException 
+	 */
+	public abstract JsonSchema getEntityAnnotationsSchema() throws DatastoreException;
 
 	/**
 	 * Set the DAO for this controller to use

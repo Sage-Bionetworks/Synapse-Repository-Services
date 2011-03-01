@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.Dataset;
@@ -154,6 +155,24 @@ public class DatasetController extends BaseController implements
 		return results;
 	}
 
+	@Override
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATASET  + "/{id}" + UrlHelpers.SCHEMA, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonSchema getEntitySchema() throws DatastoreException {
+
+		return datasetController.getEntitySchema();
+	}
+	
+	@Override
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATASET + UrlHelpers.SCHEMA, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonSchema getEntitiesSchema() throws DatastoreException {
+
+		return datasetController.getEntitiesSchema();
+	}
+	
 	/**
 	 * Simple sanity check test request, using the default view
 	 * <p>

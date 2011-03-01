@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.model.AnnotatableDAO;
 import org.sagebionetworks.repo.model.AnnotationDAO;
 import org.sagebionetworks.repo.model.Annotations;
@@ -14,6 +15,7 @@ import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.util.SchemaHelper;
 
 /**
  * Implementation for REST controller for CRUD operations on Annotation DTOs and
@@ -150,6 +152,11 @@ public class AnnotationsControllerImp<T extends Base> implements
 		addServiceSpecificMetadata(id, updatedAnnotations, request);
 
 		return updatedAnnotations;
+	}
+
+	@Override
+	public JsonSchema getEntityAnnotationsSchema() throws DatastoreException {
+		return SchemaHelper.getSchema(Annotations.class);
 	}
 
 	private void addServiceSpecificMetadata(String id, Annotations annotations,

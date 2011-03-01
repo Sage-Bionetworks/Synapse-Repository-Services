@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DependentPropertyDAO;
 import org.sagebionetworks.repo.model.InputDataLayer;
@@ -43,7 +44,8 @@ public class LayerPreviewController extends BaseController implements
 	private DependentEntityController<LayerPreview, InputDataLayer> controller;
 
 	LayerPreviewController() {
-		controller = new DependentEntityControllerImp<LayerPreview, InputDataLayer>();
+		controller = new DependentEntityControllerImp<LayerPreview, InputDataLayer>(
+				LayerPreview.class);
 	}
 
 	private void checkAuthorization(String userId, Boolean readOnly) {
@@ -92,6 +94,16 @@ public class LayerPreviewController extends BaseController implements
 		checkAuthorization(userId, false);
 		return controller.updateDependentEntity(userId, id, etag,
 				updatedEntity, request);
+	}
+
+	@Override
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{id}" + UrlHelpers.LAYER
+			+ "/{id}" + UrlHelpers.PREVIEW + UrlHelpers.SCHEMA, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonSchema getDependentEntitySchema() throws DatastoreException {
+
+		return controller.getDependentEntitySchema();
 	}
 
 	/*******************************************************************************

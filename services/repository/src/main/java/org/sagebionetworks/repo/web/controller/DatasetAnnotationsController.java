@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.Dataset;
@@ -60,6 +61,7 @@ public class DatasetAnnotationsController extends BaseController implements
 	 * 
 	 */
 
+	@Override
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{id}"
 			+ UrlHelpers.ANNOTATIONS, method = RequestMethod.GET)
@@ -74,6 +76,7 @@ public class DatasetAnnotationsController extends BaseController implements
 				request);
 	}
 
+	@Override
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{id}"
 			+ UrlHelpers.ANNOTATIONS, method = RequestMethod.PUT)
@@ -90,6 +93,15 @@ public class DatasetAnnotationsController extends BaseController implements
 		checkAuthorization(userId, false);
 		return datasetAnnotationsController.updateEntityAnnotations(userId, id,
 				etag, updatedAnnotations, request);
+	}
+
+	@Override
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{id}"
+			+ UrlHelpers.ANNOTATIONS + UrlHelpers.SCHEMA, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonSchema getEntityAnnotationsSchema() throws DatastoreException {
+		return datasetAnnotationsController.getEntityAnnotationsSchema();
 	}
 
 }

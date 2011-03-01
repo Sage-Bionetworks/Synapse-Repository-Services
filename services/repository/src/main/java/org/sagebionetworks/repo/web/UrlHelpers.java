@@ -54,6 +54,11 @@ public class UrlHelpers {
 	public static final String LAYER = "/layer";
 
 	/**
+	 * URL suffix for entity schemas
+	 */
+	public static final String SCHEMA = "/schema";
+
+	/**
 	 * URL suffix for entity annotations
 	 * 
 	 */
