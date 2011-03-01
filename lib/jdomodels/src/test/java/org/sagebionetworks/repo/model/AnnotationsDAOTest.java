@@ -12,12 +12,12 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDOAnnotations;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDODataset;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDORevision;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDOStringAnnotation;
-import org.sagebionetworks.repo.model.gaejdo.Version;
+import org.sagebionetworks.repo.model.jdo.GAEJDOAnnotations;
+import org.sagebionetworks.repo.model.jdo.GAEJDODAOFactoryImpl;
+import org.sagebionetworks.repo.model.jdo.GAEJDODataset;
+import org.sagebionetworks.repo.model.jdo.GAEJDORevision;
+import org.sagebionetworks.repo.model.jdo.GAEJDOStringAnnotation;
+import org.sagebionetworks.repo.model.jdo.Version;
 
 
 

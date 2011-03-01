@@ -16,10 +16,10 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDORevision;
-import org.sagebionetworks.repo.model.gaejdo.GAEJDOScript;
-import org.sagebionetworks.repo.model.gaejdo.Version;
+import org.sagebionetworks.repo.model.jdo.GAEJDODAOFactoryImpl;
+import org.sagebionetworks.repo.model.jdo.GAEJDORevision;
+import org.sagebionetworks.repo.model.jdo.GAEJDOScript;
+import org.sagebionetworks.repo.model.jdo.Version;
 
 
 
