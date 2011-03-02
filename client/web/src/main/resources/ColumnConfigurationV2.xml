@@ -1,7 +1,7 @@
 <configuration>
 	<columns>
 		<!-- The basic columns -->
-		<column id="id">
+		<column id="dataset.id">
 			<type>String</type>
 			<display>GUID</display>
 			<description>The GUID of this dataset.
@@ -110,12 +110,37 @@
 			<display>hasClinicalData</display>
 			<description>hasClinicalData</description>
 		</column>
+		
+		<!-- These are for layers -->
+		<column id="layer.id">
+			<type>String</type>
+			<display>GUID</display>
+			<description>The GUID of this layer.
+			</description>
+		</column>
+		<column id="layer.name">
+			<type>String</type>
+			<display>Layer Name</display>
+			<description>Layer Name</description>
+		</column>
+		<column id="layer.type">
+			<type>String</type>
+			<display>Layer Type</display>
+			<description>Layer Type</description>
+		</column>
+		<column id="layer.version">
+			<type>String</type>
+			<display>Layer Version</display>
+			<description>Layer Version</description>
+		</column>
+
+		
 		<!-- The more complex/composite columns -->
 		
 		<!-- A dynamic relative URL will be built for datatasts using the ID column -->
 		<url-template id="datasetUrl">
 			<type>String</type>
-			<urlTemplate>Dataset:{id}</urlTemplate>
+			<urlTemplate>Dataset:{dataset.id}</urlTemplate>
 		</url-template>
 		<!-- Acts as the dataset name column  -->
 		<link-column id="datasetNameLink">
@@ -134,5 +159,21 @@
 		<date-column id="createdOnDate">
 			<baseColumn reference="creationDate"/>
 		</date-column>
+		<!-- Renders a Layer's Type image -->
+		<layer-type-column id="layerTypeIcon">
+			<baseColumn reference="layer.type"/>
+		</layer-type-column>		
+
+		<!-- A dynamic relative URL will be built for layers using the ID column -->
+		<url-template id="layerUrl">
+			<type>String</type>
+			<urlTemplate>Layer:{layer.id};Dataset:{dataset.id}</urlTemplate>
+		</url-template>
+		<!-- Acts as the layer name column  -->
+		<link-column id="layerNameLink">
+			<display reference="layer.name" />
+			<url reference="layerUrl" />
+		</link-column>
+
 	</columns>
 </configuration>

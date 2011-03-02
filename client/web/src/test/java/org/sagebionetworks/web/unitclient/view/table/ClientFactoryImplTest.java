@@ -148,7 +148,7 @@ public class ClientFactoryImplTest {
 		while(keyIt.hasNext()){
 			String key = keyIt.next();
 			HeaderData header = serverProvider.get(key);
-			assertNotNull(header);
+			assertNotNull(header); 
 			Column<Map<String, Object>, ?> column = factory.createColumn(header);
 			assertNotNull(column);
 		}

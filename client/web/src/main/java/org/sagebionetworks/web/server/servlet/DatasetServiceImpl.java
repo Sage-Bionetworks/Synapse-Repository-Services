@@ -4,9 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.sagebionetworks.web.client.DatasetService;
 import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.shared.Dataset;
+import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.PaginatedDatasets;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -163,6 +165,11 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 			throw new UnknownError("Status code:"
 					+ response.getStatusCode().value());
 		}
+	}
+
+	@Override
+	public Layer getLayer(String datasetId, String layerId) {
+		throw new NotImplementedException();		
 	}
 
 }

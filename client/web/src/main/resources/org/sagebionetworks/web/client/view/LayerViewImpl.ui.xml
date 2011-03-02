@@ -50,31 +50,5 @@
 				</td>
 			</tr>
 		</table>
-		<hr />
-		<table class="{style.topTable}">
-			<tr class="{style.rowTop}">
-				<td>
-					<div class="{style.oneThird}">
-						<g:VerticalPanel>					
-							<g:HTML>
-								<h3>Dataset Layers</h3>
-								<p>Select a name to <br/>view smaple data.</p>
-							</g:HTML>
-							<g:SimplePanel ui:field="tablePanel" />						
-						</g:VerticalPanel>
-					</div>
-				</td>
-				<td>
-					<div class="{style.oneThird}">
-						<h3>Conversations and events <br/>for this dataset</h3>
-					</div>
-				</td>
-				<td>
-					<div class="{style.oneThird}">
-						<h3>Projects using this dataset</h3>
-					</div>
-				</td>
-			</tr>
-		</table>
 	</g:HTMLPanel>
 </ui:UiBinder>

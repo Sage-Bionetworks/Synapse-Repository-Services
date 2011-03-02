@@ -97,6 +97,24 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 		defaultColumns.put(FromType.dataset.name(), keyList);
 	}
 
+	/**
+	 * Injects the default columns
+	 * 
+	 * @param defaults
+	 */
+	@Inject
+	public void setDefaultLayerColumns(
+			@Named(ServerConstants.KEY_DEFAULT_LAYER_COLS) String defaults) {
+		// convert from a string to a list
+		String[] split = defaults.split(",");
+		List<String> keyList = new LinkedList<String>();
+		for (int i = 0; i < split.length; i++) {
+			keyList.add(split[i].trim());
+		}
+		// Add this list to the map
+		defaultColumns.put(FromType.layers.name(), keyList);
+	}
+
 	@Override
 	public TableResults executeSearch(SearchParameters params) {
 		if(params == null) throw new IllegalArgumentException("Parameters cannot be null");

@@ -12,12 +12,13 @@ import com.google.gwt.user.client.rpc.IsSerializable;
  * @author jmhill
  *
  */
-public class DateColumnInfo implements HeaderData, IsSerializable, CompositeColumn {
+public class LayerTypeIconColumnInfo implements HeaderData, IsSerializable, CompositeColumn {
+	
 	public String id;
 	ColumnInfo baseColumn;
 
 	public Type expectedBaseType() {		
-		return ColumnInfo.Type.Long;
+		return ColumnInfo.Type.String;
 	}
 	
 	public ColumnInfo getBaseColumn() {
@@ -63,4 +64,5 @@ public class DateColumnInfo implements HeaderData, IsSerializable, CompositeColu
 	public String getSortId() {
 		return baseColumn.getSortId();
 	}
+		
 }

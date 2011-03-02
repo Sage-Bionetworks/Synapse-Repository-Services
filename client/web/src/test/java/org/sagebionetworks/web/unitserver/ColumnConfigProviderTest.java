@@ -77,18 +77,7 @@ public class ColumnConfigProviderTest {
 		assertNotNull(nameInfo.getDisplayName());
 		assertNotNull(nameInfo.getType());
 	}
-	
-	@Test
-	public void testGetDependencies(){
-		// Currently a datasets name link depends on two other columns, and one of those columns also has
-		// dependencies.
-		List<String> dependancies = provider.getColumnDependancies("datasetNameLink");
-		assertNotNull(dependancies);
-		assertTrue(dependancies.contains("name"));
-		assertTrue(dependancies.contains("datasetUrl"));
-		assertTrue(dependancies.contains("id"));
-	}
-	
+		
 	@Test
 	public void testGetDependenciesWithCycles(){
 

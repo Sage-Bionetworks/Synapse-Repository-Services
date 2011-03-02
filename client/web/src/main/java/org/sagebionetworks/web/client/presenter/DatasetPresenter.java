@@ -3,6 +3,7 @@ package org.sagebionetworks.web.client.presenter;
 import org.sagebionetworks.web.client.DatasetServiceAsync;
 import org.sagebionetworks.web.client.view.DatasetView;
 import org.sagebionetworks.web.shared.Dataset;
+import org.sagebionetworks.web.shared.SearchParameters.FromType;
 
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
@@ -15,26 +16,33 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 
 	private org.sagebionetworks.web.client.place.Dataset place;
 	private DatasetServiceAsync service;
+	private DynamicTablePresenter dynamicTablePresenter;
 	private DatasetView view;
 	private String datasetId;
 	private Dataset model;
-
+	
+	
 	/**
 	 * Everything is injected via Guice.
 	 * @param view
 	 * @param datasetService
 	 */
 	@Inject
-	public DatasetPresenter(DatasetView view, DatasetServiceAsync datasetService) {
+	public DatasetPresenter(DatasetView view, DatasetServiceAsync datasetService, DynamicTablePresenter dynamicTablePresenter) {
 		this.view = view;
 		this.service = datasetService;
-
+		this.dynamicTablePresenter = dynamicTablePresenter;
+		// Setting the type determines the default columns
+		this.dynamicTablePresenter.setType(FromType.layers);
 	}
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
 		// First refresh from the server
 		refreshFromServer();
+		
+		// Let the dynamic presenter know we are starting.
+		dynamicTablePresenter.start();
 		// add the view to the panel
 		panel.setWidget(view);
 		

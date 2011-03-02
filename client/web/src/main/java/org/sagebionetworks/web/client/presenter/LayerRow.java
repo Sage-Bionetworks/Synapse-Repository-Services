@@ -2,36 +2,22 @@ package org.sagebionetworks.web.client.presenter;
 
 import java.util.Date;
 
-import org.sagebionetworks.web.shared.Dataset;
-import org.sagebionetworks.web.shared.LayerLink;
+import org.sagebionetworks.web.shared.Layer;
 
-public class DatasetRow {
+public class LayerRow {
 	
-	private Dataset wrapped = null;
-	// Start with no layers
-	private int layerMask = 0x0;
+	private Layer wrapped = null;
 	
-	public DatasetRow(Dataset toWrap){
+	public LayerRow(Layer toWrap){
 		this.wrapped = toWrap;
-		// Determine the layer mask
-		layerMask = 0x00;
-		if(this.wrapped.getLayerPreviews() != null){
-			for(LayerLink layer: this.wrapped.getLayerPreviews()){
-				layerMask = layerMask | layer.getType().getMask();
-			}
-		}
 	}
 
 	public String getName() {
 		return wrapped.getName();
 	}
 	
-	public int getLayersMask(){
-		return layerMask;
-	}
-
-	public String getStatus() {
-		return wrapped.getStatus();
+	public String getLayersType(){
+		return wrapped.getType();
 	}
 
 	public String getCreator() {
@@ -41,9 +27,6 @@ public class DatasetRow {
 	public Date getCreatedOn() {
 		return wrapped.getCreationDate();
 		
-	}
-	public Date getModifiedColumn() {
-		return wrapped.getReleaseDate();
 	}
 
 	/**

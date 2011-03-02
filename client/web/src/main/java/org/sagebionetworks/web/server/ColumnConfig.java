@@ -9,6 +9,7 @@ import org.sagebionetworks.web.shared.ColumnInfo;
 import org.sagebionetworks.web.shared.DateColumnInfo;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.LayerColumnInfo;
+import org.sagebionetworks.web.shared.LayerTypeIconColumnInfo;
 import org.sagebionetworks.web.shared.LinkColumnInfo;
 import org.sagebionetworks.web.shared.UrlTemplate;
 
@@ -59,7 +60,7 @@ public class ColumnConfig {
 	 */
 	private static XStream createXStream(){
 		XStream xstream = new XStream();
-		// This lets us reference columns by their ids.
+		// This lets us reference columns by their ids.	
 		xstream.setMode(XStream.ID_REFERENCES);
 		xstream.alias("configuration", ColumnConfig.class);
 		xstream.alias("column", ColumnInfo.class);
@@ -68,11 +69,13 @@ public class ColumnConfig {
 		xstream.useAttributeFor(LinkColumnInfo.class, "id");
 		xstream.useAttributeFor(LayerColumnInfo.class, "id");
 		xstream.useAttributeFor(DateColumnInfo.class, "id");
+		xstream.useAttributeFor(LayerTypeIconColumnInfo.class, "id");
 		xstream.alias("link-column", LinkColumnInfo.class);
 		xstream.alias("url-template", UrlTemplate.class);
 		xstream.alias("layer-column", LayerColumnInfo.class);
 		xstream.aliasField("display", LayerColumnInfo.class, "displayName");
 		xstream.alias("date-column", DateColumnInfo.class);
+		xstream.alias("layer-type-column", LayerTypeIconColumnInfo.class);
 		return xstream;
 	}
 

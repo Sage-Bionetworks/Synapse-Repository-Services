@@ -1,15 +1,17 @@
 package com.google.gwt.cell.client.widget;
 
-import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.resources.client.ImageResource;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.CustomButton;
 import com.google.gwt.user.client.ui.FlexTable;
+import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.ToggleButton;
 import com.google.gwt.user.client.ui.VerticalPanel;
+import com.google.inject.Inject;
 
 /**
  * A DisclosurePanel that shows a preview of the content when closed.
@@ -22,14 +24,29 @@ public class PreviewDisclosurePanel extends Composite {
 	private static int ARROW_COL = 0;
 	private static int CAPTION_COL = 1;
 	
+	private FlexTable headerTable = new FlexTable();	
 	private HTML previewHtml = new HTML();
 	private HTML contentHtml = new HTML();	
-	private boolean isOpen = false;	
+	private boolean isOpen = false;		
+		
+	/**
+	 * Injected via Gin
+	 */
 	private CustomWidgetImageBundle bundle;
-	FlexTable headerTable;
 	
 	/**
-	 * Constructs an PreviewDisclosurePanel with the given caption.
+	 * Constructs a PreviewDisclosurePanel 
+	 * 
+	 * @param bundle
+	 * 		Custom Widget CliendBundle, injected via Gin 
+	 */
+	@Inject
+	public PreviewDisclosurePanel(final CustomWidgetImageBundle bundle) {
+		this.bundle = bundle;
+	}
+		
+	/**
+	 * Initializes an PreviewDisclosurePanel with the given caption.
 	 * 
 	 * @param caption
 	 *            the caption to be displayed with the arrow
@@ -37,17 +54,21 @@ public class PreviewDisclosurePanel extends Composite {
 	 *            A string of HTML to be shown as the preview (arrow up)
 	 * @param content
 	 *            A string of HTML to be shown as the content (arrow down)
-	 */	
-	public PreviewDisclosurePanel(String caption, String preview, String content) {
-		bundle = GWT.create(CustomWidgetImageBundle.class);	
-
+	 */
+	public void init(String caption, String preview, String content) {
 		// hide/show initial state
-		setContentVisibility();
+		setContentVisibility();		
 		setPreview(preview);
 		setContent(content);
-
-		Image upImage = new Image(bundle.iconArrowRight16());
-		Image downImage = new Image(bundle.iconArrowDown16());
+		if(caption == null) {
+			caption = "";
+		}
+		
+		ImageResource iconArrowRight = bundle.iconArrowRight16(); 
+		ImageResource iconArrowDown = bundle.iconArrowDown16(); 
+		Image upImage = iconArrowRight == null ? new Image() : new Image(iconArrowRight);
+		Image downImage = iconArrowDown == null ? new Image() : new Image(iconArrowDown);
+		
 		CustomButton arrowButton = new ToggleButton(upImage, downImage, new ClickHandler() {			
 			@Override
 			public void onClick(ClickEvent event) {
@@ -57,8 +78,7 @@ public class PreviewDisclosurePanel extends Composite {
 		});
 		arrowButton.setStyleName("previewDisclosureFace"); // empty style to remove standard button look
 		arrowButton.setWidth((upImage.getWidth() + ARROW_PADDING) + "px");
-			
-		headerTable = new FlexTable();
+					
 		headerTable.setWidget(0, ARROW_COL, arrowButton);
 		headerTable.setText(0, CAPTION_COL, caption);		
 		
@@ -69,12 +89,9 @@ public class PreviewDisclosurePanel extends Composite {
 		panel.add(contentHtml);
 
 		// All composites must call initWidget() in their constructors.
-		initWidget(panel);
-
-		// Give the overall composite a style name.
-		setStyleName("example-OptionalCheckBox");
+		initWidget(panel);		
 	}
-
+	
 	/**
 	 * Sets the caption associated with the arrow.
 	 * 
@@ -82,6 +99,8 @@ public class PreviewDisclosurePanel extends Composite {
 	 *            the arrow's caption
 	 */
 	public void setCaption(String caption) {
+		if(caption == null) 
+			caption = "";			
 		headerTable.setText(0, CAPTION_COL, caption);
 	}
 
@@ -97,7 +116,7 @@ public class PreviewDisclosurePanel extends Composite {
 	/**
 	 * Gets the preview HTML.
 	 * 
-	 * @return the prview HTML
+	 * @return the preview HTML
 	 */
 	public String getPreview() {
 		return previewHtml.getHTML();
@@ -110,6 +129,8 @@ public class PreviewDisclosurePanel extends Composite {
 	 *            A string of HTML to be shown as the preview
 	 */
 	public void setPreview(String preview) {
+		if(preview == null)
+			preview = "";
 		this.previewHtml.setHTML(preview);
 	}
 
@@ -129,6 +150,8 @@ public class PreviewDisclosurePanel extends Composite {
 	 *            A string of HTML to be shown as the expanded content
 	 */
 	public void setContent(String content) {
+		if(content == null)
+			content = "";
 		this.contentHtml.setHTML(content);
 	}
 

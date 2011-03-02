@@ -14,6 +14,7 @@ import org.sagebionetworks.web.shared.ColumnInfo;
 import org.sagebionetworks.web.shared.DateColumnInfo;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.LayerColumnInfo;
+import org.sagebionetworks.web.shared.LayerTypeIconColumnInfo;
 import org.sagebionetworks.web.shared.LinkColumnInfo;
 
 import com.google.gwt.user.cellview.client.Column;
@@ -73,6 +74,10 @@ public class ColumnFactoryImpl implements ColumnFactory {
 			// Find a provider that 
 			ColumnInfo colInfo = (ColumnInfo) meta;
 			return createColumn(colInfo);
+		}else if(meta instanceof LayerTypeIconColumnInfo) {
+			LayerTypeColumn layerTypeColumn = injector.getLayerTypeColumn();
+			layerTypeColumn.setLayerColumnInfo((LayerTypeIconColumnInfo) meta);
+			return layerTypeColumn; 			
 		}else{
 			throw new IllegalArgumentException("Unknown HeaderData: "+meta.getClass().getName());
 		}

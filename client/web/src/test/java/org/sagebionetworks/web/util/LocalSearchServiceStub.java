@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.logging.Logger;
 
 import javax.ws.rs.DefaultValue;
@@ -37,6 +38,7 @@ public class LocalSearchServiceStub {
 	
 	private static Logger logger = Logger.getLogger(LocalSearchServiceStub.class.getName());
 	
+	private static final Random rand = new Random(12345);
 	public final static String NULL = "NULL";
 	
 	private static List<Map<String, Object>> rows = new ArrayList<Map<String, Object>>();
@@ -137,7 +139,22 @@ public class LocalSearchServiceStub {
 			}
 			// Use the dataset data for name and id
 			newRow.put("name", dataset.getName());
-			newRow.put("id", dataset.getId());
+			newRow.put("dataset.id", dataset.getId());			
+			Integer layerInt = rand.nextInt(3);
+			String layerTypeChar = "";
+			switch (layerInt) {
+			case 0:
+				layerTypeChar = "E";
+				break;
+			case 1:
+				layerTypeChar = "C";
+				break;
+			case 2:
+				layerTypeChar = "G";
+				break;
+			}
+			newRow.put("layer.type", layerTypeChar);
+			
 			// Add this row
 			copy.add(newRow);
 		}

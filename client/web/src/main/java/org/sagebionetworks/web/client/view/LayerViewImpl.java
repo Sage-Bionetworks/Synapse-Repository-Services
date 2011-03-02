@@ -1,30 +1,23 @@
 package org.sagebionetworks.web.client.view;
 
-import org.sagebionetworks.web.client.SageImageBundle;
-import org.sagebionetworks.web.client.presenter.DatasetRow;
+import org.sagebionetworks.web.client.presenter.LayerRow;
 
 import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
 import com.google.gwt.dom.client.SpanElement;
-import com.google.gwt.i18n.client.DateTimeFormat;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.Window;
-import com.google.gwt.user.client.ui.DisclosurePanel;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
-import com.google.gwt.user.client.ui.HTML;
-import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.Panel;
-import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
-public class DatasetViewImpl extends Composite implements DatasetView {
+public class LayerViewImpl extends Composite implements LayerView {
 
 	private final int DESCRIPTION_SUMMARY_LENGTH = 50; // characters for summary
 
-	public interface Binder extends UiBinder<Widget, DatasetViewImpl> {
+	public interface Binder extends UiBinder<Widget, LayerViewImpl> {
 	}
 
 	@UiField
@@ -35,19 +28,15 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	FlexTable middleFlexTable;
 	@UiField
 	FlexTable rightFlexTable;
-	@UiField
-	SimplePanel tablePanel;
 
 	private Presenter presenter;
 	private PreviewDisclosurePanel previewDisclosurePanel;
 	private DynamicTableView dynamicTableView;
 
 	@Inject
-	public DatasetViewImpl(Binder uiBinder, final PreviewDisclosurePanel previewDisclosurePanel, DynamicTableView dynamicTableView) {
+	public LayerViewImpl(Binder uiBinder, final PreviewDisclosurePanel previewDisclosurePanel) {
 		initWidget(uiBinder.createAndBindUi(this));
 		this.previewDisclosurePanel = previewDisclosurePanel;
-		this.dynamicTableView = dynamicTableView;
-		tablePanel.add(dynamicTableView);
 	}
 
 	@Override
@@ -61,7 +50,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	}
 
 	@Override
-	public void setDatasetRow(DatasetRow row) {
+	public void setLayerRow(LayerRow row) {
 		// Clear everything
 		clearAllFields();
 		titleSpan.setInnerText(row.getName());
@@ -74,6 +63,8 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 				description.substring(0, summaryLength), description);
 		overviewPanel.add(previewDisclosurePanel);
 
+		// fake junk metadata:
+		
 		// First row
 		int rowIndex = 0;
 		addRowToTable(rowIndex++, "Disease(s):", "Aging", middleFlexTable);
@@ -84,21 +75,6 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		// Forth
 		addRowToTable(rowIndex++, "Tissue type(s):", "Brain", middleFlexTable);
 
-		// Now fill out the right
-		rowIndex = 0;
-		// Fill in the right from the datast
-		if (row.getCreatedOn() != null) {
-			addRowToTable(rowIndex++, "Posted:", DateTimeFormat
-					.getMediumDateTimeFormat().format(row.getCreatedOn()),
-					rightFlexTable);
-		}
-		if (row.getModifiedColumn() != null) {
-			addRowToTable(rowIndex++, "Modified:", DateTimeFormat
-					.getMediumDateTimeFormat().format(row.getModifiedColumn()),
-					rightFlexTable);
-		}
-		addRowToTable(rowIndex++, "Creator:", row.getCreator(), rightFlexTable);
-		addRowToTable(rowIndex++, "Status:", row.getStatus(), rightFlexTable);
 
 	}
 

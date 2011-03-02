@@ -11,5 +11,7 @@ public interface ColumnFactoryGinInjector extends Ginjector {
 	public LayerColumn getLayerColumn();
 	
 	public DateColumn getDateColumn();
+	
+	public LayerTypeColumn getLayerTypeColumn();
 
 }

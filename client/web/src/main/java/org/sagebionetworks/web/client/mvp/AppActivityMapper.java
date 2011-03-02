@@ -7,8 +7,10 @@ import java.util.logging.Logger;
 import org.sagebionetworks.web.client.ProtalGinInjector;
 import org.sagebionetworks.web.client.place.Dataset;
 import org.sagebionetworks.web.client.place.DatasetsHome;
+import org.sagebionetworks.web.client.place.Layer;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetsHomePresenter;
+import org.sagebionetworks.web.client.presenter.LayerPresenter;
 
 import com.google.gwt.activity.shared.Activity;
 import com.google.gwt.activity.shared.ActivityMapper;
@@ -46,7 +48,11 @@ public class AppActivityMapper implements ActivityMapper {
 			// set this presenter's place
 			presenter.setPlace((Dataset)place);
 			return presenter;
-		}else{
+		}else if (place instanceof Layer) {
+			// The layer detail view
+			LayerPresenter presenter = ginjector.getLayerPresenter();
+			return presenter;
+		} else {
 			// Log that we have an unknown place but send the user to the default
 			log.log(Level.WARNING, "Unknown Place: "+place.getClass().getName());
 			// Go to the default place

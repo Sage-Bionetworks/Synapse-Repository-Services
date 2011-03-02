@@ -10,6 +10,8 @@ import org.sagebionetworks.web.client.view.DatasetsHomeView;
 import org.sagebionetworks.web.client.view.DatasetsHomeViewImpl;
 import org.sagebionetworks.web.client.view.DynamicTableView;
 import org.sagebionetworks.web.client.view.DynamicTableViewImpl;
+import org.sagebionetworks.web.client.view.LayerView;
+import org.sagebionetworks.web.client.view.LayerViewImpl;
 import org.sagebionetworks.web.client.view.table.ColumnFactory;
 import org.sagebionetworks.web.client.view.table.ColumnFactoryImpl;
 
@@ -29,6 +31,11 @@ public class PortalGinModule extends AbstractGinModule {
 		// DatasetView
 		bind(DatasetViewImpl.class).in(Singleton.class);
 		bind(DatasetView.class).to(DatasetViewImpl.class);
+		
+		// LayerView
+		bind(LayerViewImpl.class).in(Singleton.class);
+		bind(LayerView.class).to(LayerViewImpl.class);
+
 		// For now the dynamic table is a singleton. If we need
 		// to have more than one on a page at a time then we will need
 		// to change this.
