@@ -10,9 +10,12 @@
 
   <context:annotation-config />
 
-  <import resource="classpath:repository-context.xml" />
   <import resource="classpath:repository-servlet.xml" />
-    
+
+  <bean id="daoFactory"
+        class="org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl"
+        scope="singleton" />
+            
   <bean id="helper"
         class="org.sagebionetworks.repo.web.controller.Helpers"
         scope="prototype"/>

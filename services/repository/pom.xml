@@ -28,6 +28,13 @@
       <scope>runtime</scope>
     </dependency>
 
+    <dependency>
+      <groupId>org.sagebionetworks</groupId>
+      <artifactId>lib-jdomodels</artifactId>
+      <version>0.1</version>
+      <scope>runtime</scope>
+    </dependency>
+
     <!-- In a tomcat container, such as Elastic Beanstalk, you have to
          include jstl.jar manually, hence this entry. -->
     <dependency>
