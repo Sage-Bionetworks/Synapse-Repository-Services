@@ -55,7 +55,7 @@ public class Helpers {
 
 	@Autowired
 	private DAOFactory daoFactory;
-	
+
 	private DispatcherServlet servlet = null;
 	private String userId = null;
 
@@ -99,9 +99,8 @@ public class Helpers {
 		// Create a Spring MVC DispatcherServlet so that we can test our URL
 		// mapping, request format, response format, and response status code.
 		MockServletConfig servletConfig = new MockServletConfig("repository");
-		servletConfig
-				.addInitParameter("contextConfigLocation",
-						"classpath:repository-context.xml,classpath:repository-servlet.xml");
+		servletConfig.addInitParameter("contextConfigLocation",
+				"classpath:test-context.xml");
 		servlet = new DispatcherServlet();
 		servlet.init(servletConfig);
 
