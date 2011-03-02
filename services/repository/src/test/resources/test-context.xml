@@ -13,7 +13,7 @@
   <import resource="classpath:repository-servlet.xml" />
 
   <bean id="daoFactory"
-        class="org.sagebionetworks.repo.model.gaejdo.GAEJDODAOFactoryImpl"
+        class="org.sagebionetworks.repo.model.jdo.GAEJDODAOFactoryImpl"
         scope="singleton" />
             
   <bean id="helper"

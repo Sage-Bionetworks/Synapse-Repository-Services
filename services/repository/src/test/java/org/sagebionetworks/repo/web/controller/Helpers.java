@@ -9,6 +9,7 @@ import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -16,10 +17,6 @@ import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.DAOFactory;
-import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.UserCredentials;
-import org.sagebionetworks.repo.model.UserCredentialsDAO;
-import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -39,25 +36,19 @@ import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
  */
 public class Helpers {
 
-	/**
-	 * A user for use in unit tests
-	 */
-	public static final String READ_ONLY_USER_ID = "unit.test@sagebase.org";
-
 	private static final Logger log = Logger.getLogger(Helpers.class.getName());
 
 	private static final LocalServiceTestHelper datastoreHelper = new LocalServiceTestHelper(
 			new LocalDatastoreServiceTestConfig());
 
-	private static final String ACCESS_ID = "thisIsAFakeAccessID";
-	private static final String SECRET_KEY = "thisIsAFakeSecretKey";
 	private static final int JSON_INDENT = 2;
 
 	@Autowired
 	private DAOFactory daoFactory;
 
-	private DispatcherServlet servlet = null;
-	private String userId = null;
+	private DispatcherServlet servlet;
+	private String userId;
+	private LinkedList<TestStateItem> testState;
 
 	/**
 	 * @param daoFactory
@@ -83,19 +74,6 @@ public class Helpers {
 	public DispatcherServlet setUp() throws Exception {
 		datastoreHelper.setUp();
 
-		// Make a user and his credentials
-		UserDAO userDao = daoFactory.getUserDAO(null);
-		User user = new User();
-		user.setUserId(READ_ONLY_USER_ID);
-		userDao.create(user);
-		UserCredentialsDAO credsDao = daoFactory
-				.getUserCredentialsDAO(READ_ONLY_USER_ID);
-		UserCredentials storedCreds;
-		storedCreds = credsDao.get(READ_ONLY_USER_ID);
-		storedCreds.setIamAccessId(ACCESS_ID);
-		storedCreds.setIamSecretKey(SECRET_KEY);
-		credsDao.update(storedCreds);
-
 		// Create a Spring MVC DispatcherServlet so that we can test our URL
 		// mapping, request format, response format, and response status code.
 		MockServletConfig servletConfig = new MockServletConfig("repository");
@@ -104,14 +82,24 @@ public class Helpers {
 		servlet = new DispatcherServlet();
 		servlet.init(servletConfig);
 
+		userId = null;
+		testState = new LinkedList<TestStateItem>();
+
 		return servlet;
 	}
 
 	/**
 	 * Tear down our datastore, deleting all items
+	 * 
+	 * @throws Exception
 	 */
-	public void tearDown() {
+	public void tearDown() throws Exception {
+		for (TestStateItem item : testState) {
+			item.delete();
+		}
+
 		datastoreHelper.tearDown();
+
 	}
 
 	/**
@@ -164,6 +152,10 @@ public class Helpers {
 		assertEquals(locationHeader, requestUrl + "/"
 				+ URLEncoder.encode(results.getString("id"), "UTF-8"));
 		assertEquals(locationHeader, results.getString("uri"));
+
+		// Stash the url for this entity so that we can clean it up at the end
+		// of our test
+		testState.addFirst(new TestStateItem(userId, locationHeader));
 
 		return results;
 	}
@@ -705,4 +697,24 @@ public class Helpers {
 		assertFalse("null".equals(results.getString("etag")));
 	}
 
+	private class TestStateItem {
+		public String userId;
+		public String requestUrl;
+
+		public TestStateItem(String userId, String requestUrl) {
+			this.userId = userId;
+			this.requestUrl = requestUrl;
+		}
+
+		public void delete() throws Exception {
+			MockHttpServletRequest request = new MockHttpServletRequest();
+			MockHttpServletResponse response = new MockHttpServletResponse();
+			request.setMethod("DELETE");
+			request.addHeader("Accept", "application/json");
+			request.setRequestURI(requestUrl);
+			if (null != userId)
+				request.setParameter(ServiceConstants.USER_ID_PARAM, userId);
+			servlet.service(request, response);
+		}
+	}
 }

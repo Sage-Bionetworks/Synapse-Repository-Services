@@ -11,6 +11,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.UserCredentials;
+import org.sagebionetworks.repo.model.UserCredentialsDAO;
+import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -33,9 +37,19 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class LayerLocationsControllerTest {
 
+	/**
+	 * A user for use in unit tests
+	 */
+	public static final String READ_ONLY_USER_ID = "unit.test@sagebase.org";
+	private static final String ACCESS_ID = "thisIsAFakeAccessID";
+	private static final String SECRET_KEY = "thisIsAFakeSecretKey";
+
 	@Autowired
 	private Helpers helper;
 	private JSONObject dataset;
+	
+	// Hack alert, not sure how bootstrap and clean up users
+	private static Boolean isInitialized = false;
 
 	/**
 	 * @throws java.lang.Exception
@@ -43,6 +57,23 @@ public class LayerLocationsControllerTest {
 	@Before
 	public void setUp() throws Exception {
 		helper.setUp();
+
+		// TODO talk to Bruce to determine the right way to bootstrap users
+		if (!isInitialized) {
+			// Make a user and his credentials
+			UserDAO userDao = helper.getDaoFactory().getUserDAO(null);
+			User user = new User();
+			user.setUserId(READ_ONLY_USER_ID);
+			userDao.create(user);
+			UserCredentialsDAO credsDao = helper.getDaoFactory()
+					.getUserCredentialsDAO(READ_ONLY_USER_ID);
+			UserCredentials storedCreds;
+			storedCreds = credsDao.get(READ_ONLY_USER_ID);
+			storedCreds.setIamAccessId(ACCESS_ID);
+			storedCreds.setIamSecretKey(SECRET_KEY);
+			credsDao.update(storedCreds);
+			isInitialized = true;
+		}
 
 		dataset = helper.testCreateJsonEntity("/dataset",
 				DatasetControllerTest.SAMPLE_DATASET);
@@ -78,7 +109,7 @@ public class LayerLocationsControllerTest {
 				.getString("preview"));
 
 		assertEquals(newLayer.getString("id"), layerPreview.getString("id"));
-		assertEquals("", layerPreview.getString("preview"));
+		assertEquals("null", layerPreview.getString("preview"));
 
 		// Modify that layer
 		layerPreview.put("preview", "this is an updated preview of a layer");
@@ -147,7 +178,7 @@ public class LayerLocationsControllerTest {
 				.getString("layer"), null, null, null, null);
 		JSONObject saneLayer = helper.testGetJsonEntity(saneLayers
 				.getJSONArray("results").getJSONObject(0).getString("uri"));
-		helper.setUserId(Helpers.READ_ONLY_USER_ID);
+		helper.setUserId(READ_ONLY_USER_ID);
 		for (int i = 0; i < saneLayer.getJSONArray("locations").length(); i++) {
 			helper.testGetJsonObject(saneLayer.getJSONArray("locations")
 					.getString(i));
@@ -187,7 +218,7 @@ public class LayerLocationsControllerTest {
 		helper.testUpdateJsonEntity(layerLocations);
 
 		// Get the layer
-		helper.setUserId(Helpers.READ_ONLY_USER_ID);
+		helper.setUserId(READ_ONLY_USER_ID);
 		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
 		LayerControllerTest.assertExpectedLayerProperties(layer);
 
@@ -344,7 +375,8 @@ public class LayerLocationsControllerTest {
 				layerLocations, HttpStatus.BAD_REQUEST);
 
 		String reason = error.getString("reason");
-		assertTrue(reason.startsWith("'type' must be one of: awss3 awsebs sage"));
+		assertTrue(reason
+				.startsWith("'type' must be one of: awss3 awsebs sage"));
 	}
 
 	/*****************************************************************************************************
