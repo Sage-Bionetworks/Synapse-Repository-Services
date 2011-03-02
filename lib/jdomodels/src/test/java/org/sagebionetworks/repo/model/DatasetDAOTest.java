@@ -21,6 +21,7 @@ import junit.framework.Assert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.jdo.GAEJDODAOFactoryImpl;
 import org.sagebionetworks.repo.model.jdo.GAEJDODataset;
@@ -134,7 +135,9 @@ public class DatasetDAOTest {
 		// retrieve the annotations sorted
 		dao.getStringAnnotationDAO(null).getInRangeSortedBy(0, 2, "Tissue",
 				true);
-
+		
+		// Clean up test data
+		dao.delete(id);
 	}
 
 	private static InputDataLayer createLayer(Date date)
@@ -303,6 +306,10 @@ public class DatasetDAOTest {
 		// } catch (DatastoreException e) {
 		// // as expected
 		// }
+
+		// Clean up test data
+		dao.delete(id);
+		dao.delete(id2);
 	}
 
 	@Test
@@ -325,6 +332,9 @@ public class DatasetDAOTest {
 		Collection<Double> doubles = annots.get("weight");
 		Assert.assertEquals(doubles.toString(), 1, doubles.size());
 		Assert.assertEquals(9.11D, doubles.iterator().next());
+		
+		// Clean up test data
+		dao.delete(id);
 	}
 
 	@Test
@@ -433,20 +443,26 @@ public class DatasetDAOTest {
 		dao.revise(ds2, revisionDate);
 		// the count should not change!
 		Assert.assertEquals(2, dao.getCount());
+		
+		// Clean up test data
+		dao.delete(id2);
+		dao.delete(id3);
 	}
 
 	@Test
 	public void testGetInRange() throws Exception {
+		Set<String> datasetIds = new HashSet<String>();
+		
 		DatasetDAO dao = fac.getDatasetDAO(null);
 		Dataset d = null;
 		d = createShallow("d1");
-		dao.create(d);
+		datasetIds.add(dao.create(d));
 		d = createShallow("d4");
-		dao.create(d);
+		datasetIds.add(dao.create(d));
 		d = createShallow("d3");
-		dao.create(d);
+		datasetIds.add(dao.create(d));
 		d = createShallow("d3");
-		dao.create(d);
+		datasetIds.add(dao.create(d));
 		List<Dataset> ans;
 		ans = dao.getInRange(0, 2);
 		Assert.assertEquals(2, ans.size());
@@ -454,6 +470,11 @@ public class DatasetDAOTest {
 		Assert.assertEquals(4, ans.size());
 		ans = dao.getInRange(1, 10);
 		Assert.assertEquals(3, ans.size());
+		
+		// Clean up test data
+		for(String datasetId : datasetIds) {
+			dao.delete(datasetId);
+		}
 	}
 
 	@Test
@@ -467,22 +488,24 @@ public class DatasetDAOTest {
 
 	@Test
 	public void testGetInRangeSortedByPrimaryField() throws Exception {
+		Set<String> datasetIds = new HashSet<String>();
+
 		DatasetDAO dao = fac.getDatasetDAO(null);
 		Dataset d = null;
 		d = createShallow("d1");
-		dao.create(d);
+		datasetIds.add(dao.create(d));
 		dao.getStringAnnotationDAO(d.getId()).addAnnotation("stringAttr",
 				d.getName());
 		d = createShallow("d4");
-		dao.create(d);
+		datasetIds.add(dao.create(d));
 		dao.getStringAnnotationDAO(d.getId()).addAnnotation("stringAttr",
 				d.getName());
 		d = createShallow("d3");
-		dao.create(d);
+		datasetIds.add(dao.create(d));
 		dao.getStringAnnotationDAO(d.getId()).addAnnotation("stringAttr",
 				d.getName());
 		d = createShallow("d3");
-		dao.create(d);
+		datasetIds.add(dao.create(d));
 		dao.getStringAnnotationDAO(d.getId()).addAnnotation("stringAttr",
 				d.getName());
 		List<Dataset> ans;
@@ -534,25 +557,31 @@ public class DatasetDAOTest {
 		Assert.assertEquals(order, "d1", ans.get(1).getName());
 		Assert.assertEquals(order, "d3", ans.get(2).getName());
 		Assert.assertEquals(order, "d4", ans.get(3).getName());
-
+		
+		// Clean up test data
+		for(String datasetId : datasetIds) {
+			dao.delete(datasetId);
+		}
 	}
 
 	@Test
 	public void testGetInRangeHavingPrimaryField() throws Exception {
+		Set<String> datasetIds = new HashSet<String>();
+
 		DatasetDAO dao = fac.getDatasetDAO(null);
 		Dataset d = null;
 		d = createShallow("d1");
 		d.setStatus("preliminary");
-		dao.create(d);
+		datasetIds.add(dao.create(d));
 		d = createShallow("d4");
 		d.setStatus("preliminary");
-		dao.create(d);
+		datasetIds.add(dao.create(d));
 		d = createShallow("d2");
 		d.setStatus("released");
-		dao.create(d);
+		datasetIds.add(dao.create(d));
 		d = createShallow("d3");
 		d.setStatus(null);
-		dao.create(d);
+		datasetIds.add(dao.create(d));
 		List<Dataset> ans;
 		ans = dao.getInRangeHavingPrimaryField(0, 10, "status", "preliminary");
 		Assert.assertEquals(2, ans.size());
@@ -561,6 +590,11 @@ public class DatasetDAOTest {
 			s.add(ds.getName());
 		Assert.assertEquals(new HashSet<String>(Arrays.asList(new String[] {
 				"d4", "d1" })), s);
+
+		// Clean up test data
+		for(String datasetId : datasetIds) {
+			dao.delete(datasetId);
+		}
 	}
 
 	@Test
@@ -683,6 +717,10 @@ public class DatasetDAOTest {
 		Collection<String> values = map.get("Tissue Type");
 		Assert.assertEquals(1, values.size());
 		Assert.assertEquals("liver", values.iterator().next());
+		
+		// Clean up test data
+		dao.delete(id);
+		dao.delete(id2);		
 	}
 
 	@Test

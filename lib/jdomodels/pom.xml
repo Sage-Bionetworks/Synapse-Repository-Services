@@ -61,7 +61,18 @@
 	  <groupId>mysql</groupId>
 	  <artifactId>mysql-connector-java</artifactId>
 	  <version>5.1.13</version>
+	  <scope>runtime</scope>
 	</dependency>
+    
+    <!-- HSQLDB http://www.hsqldb.org/ -->
+    <dependency>
+      <groupId>hsqldb</groupId>
+      <artifactId>hsqldb</artifactId>
+      <version>1.8.0.4</version>
+      <!-- TODO this should be a test dependency only once we have MySQL
+      configured in production -->
+<!--       <scope>test</scope> -->
+    </dependency>
     
   </dependencies>
 
