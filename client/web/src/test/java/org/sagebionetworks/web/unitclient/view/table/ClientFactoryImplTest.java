@@ -18,6 +18,7 @@ import org.sagebionetworks.web.client.view.table.ColumnFactoryGinInjector;
 import org.sagebionetworks.web.client.view.table.ColumnFactoryImpl;
 import org.sagebionetworks.web.client.view.table.DateColumn;
 import org.sagebionetworks.web.client.view.table.LayerColumn;
+import org.sagebionetworks.web.client.view.table.LayerTypeColumn;
 import org.sagebionetworks.web.client.view.table.LinkColumn;
 import org.sagebionetworks.web.server.ColumnConfigProvider;
 import org.sagebionetworks.web.server.ServerConstants;
@@ -37,6 +38,7 @@ public class ClientFactoryImplTest {
 	LinkColumn mockLinkColumn;
 	LayerColumn mockLayerColumn;
 	DateColumn mockDateColumn;
+	LayerTypeColumn mockLayerType;
 	ColumnFactoryImpl factory;
 
 	private static ColumnConfigProvider serverProvider;
@@ -52,17 +54,33 @@ public class ClientFactoryImplTest {
 
 	@Before
 	public void setup() {
-		// Setup the mock injector
-		mockInjector = Mockito.mock(ColumnFactoryGinInjector.class);
-		// Link
-		mockLinkColumn = Mockito.mock(LinkColumn.class);
-		when(mockInjector.getLinkColumn()).thenReturn(mockLinkColumn);
-		// Layer
-		mockLayerColumn = Mockito.mock(LayerColumn.class);
-		when(mockInjector.getLayerColumn()).thenReturn(mockLayerColumn);
-		// Date
-		mockDateColumn = Mockito.mock(DateColumn.class);
-		when(mockInjector.getDateColumn()).thenReturn(mockDateColumn);
+		// Setup the mock injector		
+		mockInjector = new ColumnFactoryGinInjector() {
+			
+			@Override
+			public LinkColumn getLinkColumn() {
+				mockLinkColumn = Mockito.mock(LinkColumn.class);
+				return mockLinkColumn;
+			}
+			
+			@Override
+			public LayerTypeColumn getLayerTypeColumn() {
+				mockLayerType = Mockito.mock(LayerTypeColumn.class);
+				return mockLayerType;
+			}
+			
+			@Override
+			public LayerColumn getLayerColumn() {
+				mockLayerColumn = Mockito.mock(LayerColumn.class);
+				return mockLayerColumn;
+			}
+			
+			@Override
+			public DateColumn getDateColumn() {
+				mockDateColumn = Mockito.mock(DateColumn.class);
+				return mockDateColumn;
+			}
+		};
 		
 		// We are ready to create our factory
 		factory = new ColumnFactoryImpl(mockInjector);
