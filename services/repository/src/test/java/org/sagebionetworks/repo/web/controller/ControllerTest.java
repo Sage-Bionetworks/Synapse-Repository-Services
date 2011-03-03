@@ -79,9 +79,10 @@ public class ControllerTest {
 				"/dataset/123/layer/456/annotations/schema",
 				"/dataset/123/layer/456/locations/schema",
 				"/dataset/123/layer/456/preview/schema",
+				"/dataset/123/layer/456/previewAsMap/schema",
 				"/dataset/123/layer/456/awsS3Location/schema",
 				"/dataset/123/layer/456/awsEBSLocation/schema",
-				"/dataset/123/layer/456/sageLocation/schema", };
+				"/dataset/123/layer/456/sageLocation/schema", "/query/schema", };
 
 		List<String> testCases = Arrays.asList(urls); // UrlHelpers.getAllEntityUrlPrefixes();
 		for (String url : testCases) {

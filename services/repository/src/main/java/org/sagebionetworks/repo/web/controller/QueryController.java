@@ -12,6 +12,7 @@ import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.Dataset;
@@ -22,6 +23,7 @@ import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
+import org.sagebionetworks.repo.util.SchemaHelper;
 import org.sagebionetworks.repo.web.AnnotatableEntitiesAccessorImpl;
 import org.sagebionetworks.repo.web.EntitiesAccessor;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -44,25 +46,27 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class QueryController extends BaseController {
 
 	private DatasetDAO dao;
-	
+
 	// Use a static instance of this per
 	// http://wiki.fasterxml.com/JacksonBestPracticesPerformance
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-	private static final String excludedDatasetProperties[] = {"uri", "etag", "annotations", "layer"};
-	private static final String excludedLayerProperties[] = {"uri", "etag", "annotations", "preview", "locations"};
-	private static final Map<String,Set<String>> EXCLUDED_PROPERTIES;
-	
+	private static final String excludedDatasetProperties[] = { "uri", "etag",
+			"annotations", "layer" };
+	private static final String excludedLayerProperties[] = { "uri", "etag",
+			"annotations", "preview", "locations" };
+	private static final Map<String, Set<String>> EXCLUDED_PROPERTIES;
+
 	static {
 		Set<String> datasetProperties = new HashSet<String>();
 		datasetProperties.addAll(Arrays.asList(excludedDatasetProperties));
 		Set<String> layerProperties = new HashSet<String>();
 		layerProperties.addAll(Arrays.asList(excludedLayerProperties));
-		Map<String,Set<String>> excludedProperties = new HashMap<String,Set<String>>();
+		Map<String, Set<String>> excludedProperties = new HashMap<String, Set<String>>();
 		excludedProperties.put("dataset", datasetProperties);
-		excludedProperties.put("layer", layerProperties);	
+		excludedProperties.put("layer", layerProperties);
 		EXCLUDED_PROPERTIES = Collections.unmodifiableMap(excludedProperties);
 	}
-	
+
 	private void checkAuthorization(String userId) {
 		BaseDAO<Dataset> dao = getDaoFactory().getDatasetDAO(userId);
 		setDao(dao);
@@ -113,6 +117,17 @@ public class QueryController extends BaseController {
 			throw new ParseException(
 					"Queries are only supported for datasets and layers at this time");
 		}
+	}
+
+	/**
+	 * @return the schema
+	 * @throws DatastoreException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.QUERY + UrlHelpers.SCHEMA, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonSchema getQuerySchema() throws DatastoreException {
+		return SchemaHelper.getSchema(QueryResults.class);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -220,18 +235,20 @@ public class QueryController extends BaseController {
 		return new QueryResults(results, totalNumberOfResults);
 	}
 
-	private Map<String, Object> formulateResult(QueryStatement stmt, Map<String, Object> fields) {
+	private Map<String, Object> formulateResult(QueryStatement stmt,
+			Map<String, Object> fields) {
 		// TODO filter out un-requested fields when we support more than
 		// SELECT *
-		Map<String, Object> result = new HashMap<String,Object>();
-		for(String field : fields.keySet()) {
-			if(EXCLUDED_PROPERTIES.get("dataset").contains(field)) {
+		Map<String, Object> result = new HashMap<String, Object>();
+		for (String field : fields.keySet()) {
+			if (EXCLUDED_PROPERTIES.get("dataset").contains(field)) {
 				// skip this
-			}
-			else {
-				result.put(stmt.getTableName() + "." + field, fields.get(field));
+			} else {
+				result
+						.put(stmt.getTableName() + "." + field, fields
+								.get(field));
 			}
 		}
 		return result;
-	}	
-}	
+	}
+}

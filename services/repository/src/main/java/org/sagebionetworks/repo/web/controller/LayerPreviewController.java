@@ -8,7 +8,9 @@ import org.sagebionetworks.repo.model.DependentPropertyDAO;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerPreview;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.util.SchemaHelper;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.DependentEntityController;
 import org.sagebionetworks.repo.web.DependentEntityControllerImp;
@@ -26,6 +28,11 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * REST controller for RU operations on LayerPreview objects
@@ -104,6 +111,75 @@ public class LayerPreviewController extends BaseController implements
 	JsonSchema getDependentEntitySchema() throws DatastoreException {
 
 		return controller.getDependentEntitySchema();
+	}
+
+	/**
+	 * This controller method attempts to interpret the preview data as tab
+	 * delimited text and return it in map format. If it is unable to transform
+	 * the preview data to a map, it returns an error.
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param request
+	 * @return preview data
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
+			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.PREVIEW_MAP, method = RequestMethod.GET)
+	public @ResponseBody
+	QueryResults getPreviewAsMap(
+			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id, HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+
+		checkAuthorization(userId, true);
+		LayerPreview preview = controller.getDependentEntity(userId, id,
+				request);
+
+		String rawPreview = preview.getPreview();
+		String lines[] = rawPreview.split("(?m)\n");
+		String header[] = lines[0].split("\t");
+
+		// Confirm that we are able to interpret this as a tab-delimited file
+		if ((4 > header.length) || (4 > lines.length)) {
+			throw new DatastoreException(
+					"Unable to convert preview data to map format");
+		}
+
+		List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
+		for (int row = 1; row < lines.length; row++) {
+			Map<String, Object> result = new HashMap<String, Object>();
+			String values[] = lines[row].split("\t");
+
+			// Confirm that the tab-delimited data is well-formed
+			if (header.length != values.length) {
+				throw new DatastoreException(
+						"Unable to convert preview data to map format");
+			}
+
+			for (int column = 0; column < values.length; column++) {
+				result.put(header[column], values[column]);
+			}
+			results.add(result);
+		}
+
+		return new QueryResults(results, results.size());
+	}
+
+	/**
+	 * @return the schema
+	 * @throws DatastoreException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
+			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.PREVIEW_MAP
+			+ UrlHelpers.SCHEMA, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonSchema getPreviewAsMapSchema() throws DatastoreException {
+		return SchemaHelper.getSchema(QueryResults.class);
 	}
 
 	/*******************************************************************************

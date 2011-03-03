@@ -76,6 +76,11 @@ public class UrlHelpers {
 	public static final String PREVIEW = "/preview";
 
 	/**
+	 * URL suffix for preview info
+	 */
+	public static final String PREVIEW_MAP = "/previewAsMap";
+
+	/**
 	 * URL suffix for locations info
 	 */
 	public static final String LOCATIONS = "/locations";
@@ -142,9 +147,11 @@ public class UrlHelpers {
 		MODEL2URL = Collections.unmodifiableMap(model2url);
 
 		Map<Class, Collection<String>> model2property = new HashMap<Class, Collection<String>>();
-		model2property.put(Dataset.class, Arrays.asList(new String[] { ANNOTATIONS }));
-		model2property.put(InputDataLayer.class, Arrays.asList(new String[] { ANNOTATIONS,
-				PREVIEW, LOCATIONS, S3_LOCATION, EBS_LOCATION, SAGE_LOCATION }));
+		model2property.put(Dataset.class, Arrays
+				.asList(new String[] { ANNOTATIONS }));
+		model2property.put(InputDataLayer.class, Arrays.asList(new String[] {
+				ANNOTATIONS, PREVIEW, LOCATIONS, S3_LOCATION, EBS_LOCATION,
+				SAGE_LOCATION }));
 		MODEL2PROPERTY = Collections.unmodifiableMap(model2property);
 
 		Map<Class, String> property2urlsuffix = new HashMap<Class, String>();
@@ -218,15 +225,14 @@ public class UrlHelpers {
 	/**
 	 * This is intended for usage by unit tests
 	 * 
-	 * @param theModelClass 
+	 * @param theModelClass
 	 * 
 	 * @return The URL suffixes we currently have mapped to model classes
 	 */
 	public static Collection<String> getAllEntityUrlSuffixes(Class theModelClass) {
 		return MODEL2PROPERTY.get(theModelClass);
 	}
-	
-	
+
 	/**
 	 * Helper function to create a relative URL for an entity
 	 * <p>
