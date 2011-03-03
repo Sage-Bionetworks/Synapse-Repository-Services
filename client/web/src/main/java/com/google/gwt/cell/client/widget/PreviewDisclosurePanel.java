@@ -3,6 +3,7 @@ package com.google.gwt.cell.client.widget;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.resources.client.ImageResource;
+import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.CustomButton;
 import com.google.gwt.user.client.ui.FlexTable;
@@ -24,16 +25,22 @@ public class PreviewDisclosurePanel extends Composite {
 	private static int ARROW_COL = 0;
 	private static int CAPTION_COL = 1;
 	
-	private FlexTable headerTable = new FlexTable();	
-	private HTML previewHtml = new HTML();
-	private HTML contentHtml = new HTML();	
+	private FlexTable headerTable;
+	private HTML previewHtml;
+	private HTML contentHtml;	
 	private boolean isOpen = false;		
-		
+	private Image upImage;
+	private Image downImage;
+	private String caption;
+	private String preview;
+	private String content;
+
+	
 	/**
 	 * Injected via Gin
 	 */
 	private CustomWidgetImageBundle bundle;
-	
+
 	/**
 	 * Constructs a PreviewDisclosurePanel 
 	 * 
@@ -41,8 +48,13 @@ public class PreviewDisclosurePanel extends Composite {
 	 * 		Custom Widget CliendBundle, injected via Gin 
 	 */
 	@Inject
-	public PreviewDisclosurePanel(final CustomWidgetImageBundle bundle) {
+	public PreviewDisclosurePanel(final CustomWidgetImageBundle bundle, final FlexTable headerTable, final HTML previewHtml, final HTML contentHtml, Image upImage, Image downImage) {
 		this.bundle = bundle;
+		this.headerTable = headerTable;
+		this.previewHtml = previewHtml;
+		this.contentHtml = contentHtml;
+		this.upImage = upImage;
+		this.downImage = downImage;
 	}
 		
 	/**
@@ -64,18 +76,29 @@ public class PreviewDisclosurePanel extends Composite {
 			caption = "";
 		}
 		
-		ImageResource iconArrowRight = bundle.iconArrowRight16(); 
-		ImageResource iconArrowDown = bundle.iconArrowDown16(); 
-		Image upImage = iconArrowRight == null ? new Image() : new Image(iconArrowRight);
-		Image downImage = iconArrowDown == null ? new Image() : new Image(iconArrowDown);
+		CustomButton arrowButton = null;		
+		if(bundle.iconArrowRight16() != null && bundle.iconArrowDown16() != null) {
+			upImage.setUrl(AbstractImagePrototype.create(bundle.iconArrowRight16()).getHTML());
+			downImage.setUrl(AbstractImagePrototype.create(bundle.iconArrowDown16()).getHTML());
+			arrowButton = new ToggleButton(upImage, downImage, new ClickHandler() {			
+				@Override
+				public void onClick(ClickEvent event) {
+					isOpen = isOpen ? false : true;
+					setContentVisibility();
+				}
+			});			
+		} else {
+			// If no real images are passed in the bundle use strings 
+			arrowButton = new ToggleButton("Expand", "Collapse", new ClickHandler() {			
+				@Override
+				public void onClick(ClickEvent event) {
+					isOpen = isOpen ? false : true;
+					setContentVisibility();
+				}
+			});
+			
+		}
 		
-		CustomButton arrowButton = new ToggleButton(upImage, downImage, new ClickHandler() {			
-			@Override
-			public void onClick(ClickEvent event) {
-				isOpen = isOpen ? false : true;
-				setContentVisibility();
-			}
-		});
 		arrowButton.setStyleName("previewDisclosureFace"); // empty style to remove standard button look
 		arrowButton.setWidth((upImage.getWidth() + ARROW_PADDING) + "px");
 					
@@ -100,8 +123,9 @@ public class PreviewDisclosurePanel extends Composite {
 	 */
 	public void setCaption(String caption) {
 		if(caption == null) 
-			caption = "";			
-		headerTable.setText(0, CAPTION_COL, caption);
+			caption = "";
+		this.caption = caption;
+		headerTable.setText(0, CAPTION_COL, this.caption);
 	}
 
 	/**
@@ -110,7 +134,7 @@ public class PreviewDisclosurePanel extends Composite {
 	 * @return the arrow's caption
 	 */
 	public String getCaption() {
-		return headerTable.getText(0, CAPTION_COL);
+		return caption;
 	}
 
 	/**
@@ -119,7 +143,7 @@ public class PreviewDisclosurePanel extends Composite {
 	 * @return the preview HTML
 	 */
 	public String getPreview() {
-		return previewHtml.getHTML();
+		return preview;
 	}
 
 	/**
@@ -131,7 +155,8 @@ public class PreviewDisclosurePanel extends Composite {
 	public void setPreview(String preview) {
 		if(preview == null)
 			preview = "";
-		this.previewHtml.setHTML(preview);
+		this.preview = preview;
+		this.previewHtml.setHTML(this.preview);
 	}
 
 	/**
@@ -140,7 +165,7 @@ public class PreviewDisclosurePanel extends Composite {
 	 * @return the content HTML
 	 */
 	public String getContent() {
-		return contentHtml.getHTML();
+		return content;
 	}
 
 	/**
@@ -152,7 +177,8 @@ public class PreviewDisclosurePanel extends Composite {
 	public void setContent(String content) {
 		if(content == null)
 			content = "";
-		this.contentHtml.setHTML(content);
+		this.content = content;
+		this.contentHtml.setHTML(this.content);
 	}
 
 	/*
