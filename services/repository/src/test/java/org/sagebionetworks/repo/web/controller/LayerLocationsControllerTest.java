@@ -47,7 +47,7 @@ public class LayerLocationsControllerTest {
 	@Autowired
 	private Helpers helper;
 	private JSONObject dataset;
-	
+
 	// Hack alert, not sure how bootstrap and clean up users
 	private static Boolean isInitialized = false;
 
@@ -90,6 +90,53 @@ public class LayerLocationsControllerTest {
 	/*************************************************************************************************************************
 	 * Happy case tests
 	 */
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.LayerPreviewController#updateDependentEntity}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testUpdateLayerPreviewAsMap() throws Exception {
+
+		String tabDelimitedSnippet = "Patient_ID	AGE_(YRS)	GENDER	self_reported_ethnicity	inferred_population	WEIGHT_(KG)\n"
+				+ "2220047	28	Male	W		81.6466266\n"
+				+ "2220074	13	Male	W	Cauc	79.83225712\n"
+				+ "2220061	67	Male	W	Cauc	80.73944186\n"
+				+ "2220035	7	Female	W		24.94758035\n"
+				+ "2220071	57	Female	W	Cauc	64.86370891\n";
+
+		JSONObject newLayer = helper.testCreateJsonEntity(dataset
+				.getString("layer"), LayerControllerTest.SAMPLE_LAYER);
+
+		// Get the layer
+		JSONObject layerPreview = helper.testGetJsonEntity(newLayer
+				.getString("preview"));
+
+		assertEquals(newLayer.getString("id"), layerPreview.getString("id"));
+		assertEquals("null", layerPreview.getString("preview"));
+
+		// Modify that layer
+		layerPreview.put("preview", tabDelimitedSnippet);
+
+		JSONObject updatedLayerPreview = helper
+				.testUpdateJsonEntity(layerPreview);
+
+		// Check that the update response reflects the change
+		assertEquals(tabDelimitedSnippet,
+				updatedLayerPreview.getString("preview"));
+
+		// Now make sure the stored one reflects the change too
+		// TODO do we want to leave a breadcrumb for this uri?
+		JSONObject layerPreviewMap = helper.testGetJsonObject(newLayer
+				.getString("uri")
+				+ UrlHelpers.PREVIEW_MAP);
+		assertNotNull(layerPreviewMap.getInt("totalNumberOfResults"));
+		assertNotNull(layerPreviewMap.getJSONArray("results"));
+		assertEquals(5, layerPreviewMap.getJSONArray("results").length());
+	}
 
 	/**
 	 * Test method for
