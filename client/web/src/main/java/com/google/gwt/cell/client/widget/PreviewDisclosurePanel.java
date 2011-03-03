@@ -29,8 +29,6 @@ public class PreviewDisclosurePanel extends Composite {
 	private HTML previewHtml;
 	private HTML contentHtml;	
 	private boolean isOpen = false;		
-	private Image upImage;
-	private Image downImage;
 	private String caption;
 	private String preview;
 	private String content;
@@ -48,13 +46,11 @@ public class PreviewDisclosurePanel extends Composite {
 	 * 		Custom Widget CliendBundle, injected via Gin 
 	 */
 	@Inject
-	public PreviewDisclosurePanel(final CustomWidgetImageBundle bundle, final FlexTable headerTable, final HTML previewHtml, final HTML contentHtml, Image upImage, Image downImage) {
+	public PreviewDisclosurePanel(final CustomWidgetImageBundle bundle, final FlexTable headerTable, final HTML previewHtml, final HTML contentHtml) {
 		this.bundle = bundle;
 		this.headerTable = headerTable;
 		this.previewHtml = previewHtml;
 		this.contentHtml = contentHtml;
-		this.upImage = upImage;
-		this.downImage = downImage;
 	}
 		
 	/**
@@ -78,15 +74,17 @@ public class PreviewDisclosurePanel extends Composite {
 		
 		CustomButton arrowButton = null;		
 		if(bundle.iconArrowRight16() != null && bundle.iconArrowDown16() != null) {
-			upImage.setUrl(AbstractImagePrototype.create(bundle.iconArrowRight16()).getHTML());
-			downImage.setUrl(AbstractImagePrototype.create(bundle.iconArrowDown16()).getHTML());
+			Image upImage = new Image(bundle.iconArrowRight16());
+			Image downImage = new Image(bundle.iconArrowDown16());
 			arrowButton = new ToggleButton(upImage, downImage, new ClickHandler() {			
 				@Override
 				public void onClick(ClickEvent event) {
 					isOpen = isOpen ? false : true;
 					setContentVisibility();
 				}
-			});			
+			});
+			arrowButton.setWidth((upImage.getWidth() + ARROW_PADDING) + "px");
+
 		} else {
 			// If no real images are passed in the bundle use strings 
 			arrowButton = new ToggleButton("Expand", "Collapse", new ClickHandler() {			
@@ -96,11 +94,10 @@ public class PreviewDisclosurePanel extends Composite {
 					setContentVisibility();
 				}
 			});
-			
+			arrowButton.setWidth("70px"); // reasonable width for expand/collapse text			
 		}
 		
 		arrowButton.setStyleName("previewDisclosureFace"); // empty style to remove standard button look
-		arrowButton.setWidth((upImage.getWidth() + ARROW_PADDING) + "px");
 					
 		headerTable.setWidget(0, ARROW_COL, arrowButton);
 		headerTable.setText(0, CAPTION_COL, caption);		

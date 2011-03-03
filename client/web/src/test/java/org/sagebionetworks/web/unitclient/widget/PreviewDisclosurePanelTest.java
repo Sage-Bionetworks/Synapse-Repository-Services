@@ -39,9 +39,7 @@ public class PreviewDisclosurePanelTest {
 		FlexTable flexTable = Mockito.mock(FlexTable.class);
 		HTML previewHtml = Mockito.mock(HTML.class);
 		HTML contentHtml = Mockito.mock(HTML.class);
-		Image upImage = Mockito.mock(Image.class);
-		Image downImage = Mockito.mock(Image.class);
-		previewDisclosurePanel = new PreviewDisclosurePanel(bundle, flexTable, previewHtml, contentHtml, upImage, downImage);
+		previewDisclosurePanel = new PreviewDisclosurePanel(bundle, flexTable, previewHtml, contentHtml);
 	}
 
 	@Test
