@@ -14,6 +14,11 @@ public class ServerConstants {
 	public static final String KEY_DEFAULT_DATASET_COLS =  "org.sagebionetworks.all.datasets.default.columns";
 	
 	/**
+	 * The property key used to list additional datsets columns
+	 */
+	public static final String KEY_ADDITIONAL_DATASET_COLS = "org.sagebionetworks.all.datasets.additional.columns";
+	
+	/**
 	 * The property key used for the list of default dataset layers
 	 */
 	public static final String KEY_DEFAULT_LAYER_COLS =  "org.sagebionetworks.all.datasets.default.layers";
@@ -28,4 +33,6 @@ public class ServerConstants {
 	 * The property key that tells where the root of the rest API can be found;
 	 */
 	public static final String KEY_REST_API_ROOT_URL = "org.sagebionetworks.rest.api.root.url";
+	
+
 }

@@ -10,7 +10,13 @@ public interface DatasetsHomeView extends IsWidget{
 	 */
 	public void setPresenter(Presenter presenter);
 	
+	
 	public interface Presenter {
+		
+		/**
+		 * Called when the edit columns button is pushed.
+		 */
+		public void onEditColumns();
 		
 	}
 

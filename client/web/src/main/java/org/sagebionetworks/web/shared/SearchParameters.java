@@ -14,7 +14,7 @@ public class SearchParameters implements IsSerializable{
 	
 	public enum FromType {
 		dataset(),
-		layers();
+		layer();
 	}
 	
 	private List<String> selectColumns;

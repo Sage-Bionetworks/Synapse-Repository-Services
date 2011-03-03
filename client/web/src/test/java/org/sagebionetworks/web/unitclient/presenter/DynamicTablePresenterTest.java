@@ -37,7 +37,6 @@ public class DynamicTablePresenterTest {
 	SearchServiceAsync asynchProxy;
 	DynamicTablePresenter presenter;
 	DynamicTableView mockView;
-	StubCookieProvider cookieProvider;
 	
 	@Before
 	public void setup(){
@@ -50,9 +49,8 @@ public class DynamicTablePresenterTest {
 		// Create the asynchronous proxy 
 		asynchProxy = recorder.createAsyncProxyToRecord();
 		// Using a stub cookie provider
-		cookieProvider = new StubCookieProvider();
 		// Create the presenter
-		presenter = new DynamicTablePresenter(mockView, asynchProxy, cookieProvider);
+		presenter = new DynamicTablePresenter(mockView, asynchProxy);
 		presenter.setType(FromType.dataset);
 		// Make sure the view gets the presenter set
 		verify(mockView).setPresenter(presenter);
@@ -102,26 +100,7 @@ public class DynamicTablePresenterTest {
 		verify(mockView , times(1)).setColumns(two);
 	}
 	
-	@Test
-	public void testGetDisplayColumns()	{
-		// With no cookie data the presenter should return an empty list
-		List<String> list = presenter.getDisplayColumns();
-		assertNotNull(list);
-		assertEquals(0, list.size());
-		// Now set a cookie
-		List<String> inList = new ArrayList<String>();
-		inList.add("idOne");
-		inList.add("idTwo");
-		inList.add("idThree");
-		String cookieString = CookieUtils.createStringFromList(inList);
-		// Add this as a cookie
-		cookieProvider.setCookie(CookieKeys.SELECTED_DATASETS_COLUMNS, cookieString);
-		// Now get the list again
-		List<String> second = presenter.getDisplayColumns();
-		assertNotNull(second);
-		// It should match the list used to create the cookie.
-		assertEquals(inList, second);	
-	}
+
 	
 	@Test
 	public void testSetTableResults(){

@@ -1,0 +1,91 @@
+<!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
+<ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
+	xmlns:g="urn:import:com.google.gwt.user.client.ui">
+	<ui:style>
+		.important {
+			font-weight: bold;
+		}
+		
+		.header {
+			font-weight: bold;
+			margin: 10px 10px 10px 10px;
+			text-align: left;
+		}
+		
+		.tableDef {
+			margin: 5px 5px 5px 5px;
+		}
+		
+		.tableHeader {
+			text-align: left;
+			margin: 5px 5px 5px 5px;
+		}
+		
+		.bodyDef {
+			margin: 10px 20px 20px;
+		}
+		
+		.dialogButtons {
+			width: 100px;
+			margin: 5px 5px 5px 5px;
+		}
+	</ui:style>
+	<g:DialogBox ui:field="dialogBox" glassEnabled="true"
+		animationEnabled="true" autoHideEnabled="true">
+		<!-- The caption is the title bar of the dialog -->
+		<g:caption>
+			<b>Add Columns</b>
+		</g:caption>
+
+		<g:HTMLPanel>
+			<div class="{style.header}">
+				Select Additional Columns to Show
+		</div>
+			<hr />
+			<div class="{style.bodyDef}">
+				<table class="{style.tableDef}">
+					<tr>
+						<th>
+							<div class="{style.tableHeader}">
+								Default Columns
+							</div>
+						</th>
+						<th>
+							<div class="{style.tableHeader}">
+								Additional Columns
+							</div>
+						</th>
+					</tr>
+					<tr valign="top">
+						<td>
+							<div>
+								<g:FlexTable ui:field="defaultColumnList" />
+							</div>
+						</td>
+						<td>
+							<div>
+								<g:FlexTable ui:field="additionalColumnList" />
+							</div>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div align="right">
+				<table class="{style.tableDef}">
+					<tr>
+						<td>
+							<g:Button ui:field="cancelButton" styleName="{style.dialogButtons}"
+								text="Cancel" />
+						</td>
+						<td>
+							<div>
+								<g:Button ui:field="applyButton" styleName="{style.dialogButtons}"
+									text="Apply" />
+							</div>
+						</td>
+					</tr>
+				</table>
+			</div>
+		</g:HTMLPanel>
+	</g:DialogBox>
+</ui:UiBinder> 

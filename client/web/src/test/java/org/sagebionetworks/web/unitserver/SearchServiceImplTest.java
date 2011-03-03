@@ -78,10 +78,10 @@ public class SearchServiceImplTest {
 		
 		// Create the service
 		service = new SearchServiceImpl();
-		service.setDefaultDatasetColumns(defultDatasetCols);
 		
 		// Create the column config from the classpath
 		columnConfigProvider = new ColumnConfigProvider(columnConfigFile);
+		columnConfigProvider.setDefaultDatasetColumns(defultDatasetCols);
 		service.setColunConfigProvider(columnConfigProvider);
 		service.setRestTemplate(provider);
 		service.setRootUrl(serviceUrl.toString());
@@ -155,10 +155,10 @@ public class SearchServiceImplTest {
 		// Now make sure we can get the list out
 		List<String> list = service.getDefaultColumnIds(FromType.dataset.name());
 		assertNotNull(list);
-		assertTrue(list.contains("datasetNameLink"));
-		assertTrue(list.contains("layerTypeIcons"));
-		assertTrue(list.contains("status"));
-		assertTrue(list.contains("Number of Samples"));
+		assertTrue(list.contains("dataset.NameLink"));
+		assertTrue(list.contains("dataset.layerTypeIcons"));
+		assertTrue(list.contains("dataset.status"));
+		assertTrue(list.contains("dataset.Number of Samples"));
 		
 		assertNotNull(columnConfigProvider);
 		// Make sure all of the columns can be found
@@ -214,27 +214,6 @@ public class SearchServiceImplTest {
 		assertEquals(0, results.getTotalNumberResults());
 		assertNotNull(results.getRows());
 	}
-	
-//	@Test
-//	public void testQueryWithData(){
-//		// Populate the stub with random data
-//		clearStubData();
-//		int totalRows = 30;
-//		generateRandomData(totalRows);
-//		
-//		SearchParameters query = new SearchParameters();
-//		int limit = 15;
-//		query.setLimit(limit);
-//		query.setOffset(1);
-//		query.setFromType(SearchParameters.FromType.dataset.name());
-//		TableResults results = service.executeSearch(query);
-//		assertNotNull(results);
-//		// There should be no rows to start
-//		assertEquals(totalRows, results.getTotalNumberResults());
-//		List<Map<String, Object>> rows = results.getRows();
-//		assertNotNull(rows);
-//		assertEquals(limit, rows.size());
-//	}
 	
 	@Test
 	public void testQueryPagination(){

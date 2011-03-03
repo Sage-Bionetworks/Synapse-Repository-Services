@@ -4,9 +4,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.web.client.SearchServiceAsync;
-import org.sagebionetworks.web.client.cookie.CookieKeys;
-import org.sagebionetworks.web.client.cookie.CookieProvider;
-import org.sagebionetworks.web.client.cookie.CookieUtils;
 import org.sagebionetworks.web.client.view.DynamicTableView;
 import org.sagebionetworks.web.client.view.RowData;
 import org.sagebionetworks.web.shared.HeaderData;
@@ -32,9 +29,9 @@ public class DynamicTablePresenter extends AbstractActivity implements DynamicTa
 	// This keeps track of which page we are on.
 	private int paginationOffest = 0;
 	private int paginationLength = 10;
-	private CookieProvider cookieProvider;
 	private List<HeaderData> currentColumns = null;
 	private FromType type;
+	private List<String> visibleColumnIds;
 	
 
 	public FromType getType() {
@@ -46,11 +43,10 @@ public class DynamicTablePresenter extends AbstractActivity implements DynamicTa
 	}
 
 	@Inject
-	public DynamicTablePresenter(DynamicTableView view, SearchServiceAsync service, CookieProvider cookieProvider){
+	public DynamicTablePresenter(DynamicTableView view, SearchServiceAsync service){
 		this.view = view;
 		this.service = service;
 		this.view.setPresenter(this);
-		this.cookieProvider = cookieProvider;
 	}
 	
 	/**
@@ -76,14 +72,11 @@ public class DynamicTablePresenter extends AbstractActivity implements DynamicTa
 	 * @return
 	 */
 	public List<String> getDisplayColumns(){
-		// This is bad as it ties directly to datastes.
-		String cookie = cookieProvider.getCookie(CookieKeys.SELECTED_DATASETS_COLUMNS);
-		// if the cookie is not null then create list
-		if(cookie != null){
-			return CookieUtils.createListFromString(cookie);
-		}else{
+		if(this.visibleColumnIds == null){
 			// Return an empty list, which will be interpreted as the default
 			return new LinkedList<String>();
+		}else{
+			return this.visibleColumnIds;
 		}
 	}
 	
@@ -189,6 +182,11 @@ public class DynamicTablePresenter extends AbstractActivity implements DynamicTa
 
 	public int getPaginationLength() {
 		return paginationLength;
+	}
+
+	@Override
+	public void setDispalyColumns(List<String> visibileColumns) {
+		this.visibleColumnIds = visibileColumns;
 	}
 	
 }

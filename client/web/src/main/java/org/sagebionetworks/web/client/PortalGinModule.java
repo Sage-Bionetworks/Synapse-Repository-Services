@@ -4,6 +4,8 @@ import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.cookie.GWTCookieImpl;
 import org.sagebionetworks.web.client.view.CellTableProvider;
 import org.sagebionetworks.web.client.view.CellTableProviderImpl;
+import org.sagebionetworks.web.client.view.ColumnsPopupView;
+import org.sagebionetworks.web.client.view.ColumnsPopupViewImpl;
 import org.sagebionetworks.web.client.view.DatasetView;
 import org.sagebionetworks.web.client.view.DatasetViewImpl;
 import org.sagebionetworks.web.client.view.DatasetsHomeView;
@@ -14,6 +16,7 @@ import org.sagebionetworks.web.client.view.LayerView;
 import org.sagebionetworks.web.client.view.LayerViewImpl;
 import org.sagebionetworks.web.client.view.table.ColumnFactory;
 import org.sagebionetworks.web.client.view.table.ColumnFactoryImpl;
+import org.sagebionetworks.web.server.ColumnConfigProvider;
 
 import com.google.gwt.cell.client.widget.CustomWidgetImageBundle;
 import com.google.gwt.inject.client.AbstractGinModule;
@@ -57,6 +60,12 @@ public class PortalGinModule extends AbstractGinModule {
 		
 		// The runtime provider
 		bind(CellTableProvider.class).to(CellTableProviderImpl.class);
+		
+		// The column popup
+		bind(ColumnsPopupViewImpl.class).in(Singleton.class);
+		bind(ColumnsPopupView.class).to(ColumnsPopupViewImpl.class);
+		
+
 	}
 
 }

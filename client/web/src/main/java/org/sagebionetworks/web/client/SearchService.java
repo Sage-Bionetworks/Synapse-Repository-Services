@@ -1,5 +1,8 @@
 package org.sagebionetworks.web.client;
 
+import java.util.List;
+
+import org.sagebionetworks.web.shared.ColumnsForType;
 import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.TableResults;
 
@@ -20,5 +23,15 @@ public interface SearchService extends RemoteService{
 	 * @return
 	 */
 	public TableResults executeSearch(SearchParameters params);
+	
+	
+	/**
+	 * Gets all of the column metadata for a given type.
+	 * @param type
+	 * @return
+	 */
+	public ColumnsForType getColumnsForType(String type);
+	
+	
 
 }

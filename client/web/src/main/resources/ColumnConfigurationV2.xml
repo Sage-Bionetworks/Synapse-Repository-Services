@@ -7,105 +7,105 @@
 			<description>The GUID of this dataset.
 			</description>
 		</column>
-		<column id="name">
+		<column id="dataset.name">
 			<type>String</type>
 			<display>Dataset Name</display>
 			<description>Name of the Dataset and link to more information
 			</description>
 		</column>
-		<column id="description">
+		<column id="dataset.description">
 			<type>String</type>
 			<display>Description</display>
 			<description>The description of this datasets</description>
 		</column>
-		<column id="creator">
+		<column id="dataset.creator">
 			<type>String</type>
 			<display>Investigator</display>
 			<description>The person that created this dataset</description>
 		</column>
-		<column id="creationDate">
+		<column id="dataset.creationDate">
 			<type>Long</type>
 			<display>Created On</display>
 			<description>The date this dataset was created</description>
 		</column>
-		<column id="status">
+		<column id="dataset.status">
 			<type>String</type>
 			<display>Status</display>
 			<description>The status of this dataset. Can be one of the follwing:
 				{"Available", "In Transition", "Future"}</description>
 		</column>
-		<column id="releaseDate">
+		<column id="dataset.releaseDate">
 			<type>Long</type>
 			<display>Release Date</display>
 			<description>The date this dataset was released</description>
 		</column>
-		<column id="version">
+		<column id="dataset.version">
 			<type>String</type>
 			<display>Current Version</display>
 			<description>The current version of this datasets</description>
 		</column>
-		<column id="annotations">
+		<column id="dataset.annotations">
 			<type>String</type>
 			<display>Annotations link</display>
 			<description>Link to this dataset's annotations</description>
 		</column>
-		<column id="uri">
+		<column id="dataset.uri">
 			<type>String</type>
 			<display>URI</display>
 			<description>This dataset's URI</description>
 		</column>
-		<column id="etag">
+		<column id="dataset.etag">
 			<type>String</type>
 			<display>e-Tag</display>
 			<description>The concurrent e-Tag, which must be provide to update a
 				dataset</description>
 		</column>
-		<column id="layer">
+		<column id="dataset.layer">
 			<type>String</type>
 			<display>Layer URL</display>
 			<description>The link to this dataset's layers</description>
 		</column>
-		<column id="Disease">
+		<column id="dataset.Disease">
 			<type>StringArray</type>
 			<display>Disease</display>
 			<description>What disease is this dataset about</description>
 		</column>
-		<column id="Tumor / Tissue Type">
+		<column id="dataset.Tumor / Tissue Type">
 			<type>StringArray</type>
 			<display>Tumor / Tissue Type</display>
 			<description>Tumor / Tissue Type</description>
 		</column>
-		<column id="Institution">
+		<column id="dataset.Institution">
 			<type>StringArray</type>
 			<display>Institution</display>
 			<description>Institution</description>
 		</column>
-		<column id="Species">
+		<column id="dataset.Species">
 			<type>StringArray</type>
 			<display>Species</display>
 			<description>Species</description>
 		</column>
-		<column id="Number of Samples">
+		<column id="dataset.Number of Samples">
 			<type>IntegerArray</type>
 			<display>Number of Samples</display>
 			<description>Number of Samples</description>
 		</column>
-		<column id="Reference / PubMed ID">
+		<column id="dataset.Reference / PubMed ID">
 			<type>LongArray</type>
 			<display>Reference / PubMed ID</display>
 			<description>Reference / PubMed ID</description>
 		</column>
-		<column id="hasExpressionData">
+		<column id="dataset.hasExpressionData">
 			<type>Boolean</type>
 			<display>hasExpressionData</display>
 			<description>hasExpressionData</description>
 		</column>
-		<column id="hasGeneticData">
+		<column id="dataset.hasGeneticData">
 			<type>Boolean</type>
 			<display>hasGeneticData</display>
 			<description>hasGeneticData</description>
 		</column>
-		<column id="hasClinicalData">
+		<column id="dataset.hasClinicalData">
 			<type>Boolean</type>
 			<display>hasClinicalData</display>
 			<description>hasClinicalData</description>
@@ -138,41 +138,41 @@
 		<!-- The more complex/composite columns -->
 		
 		<!-- A dynamic relative URL will be built for datatasts using the ID column -->
-		<url-template id="datasetUrl">
+		<url-template id="dataset.localUrl">
 			<type>String</type>
 			<urlTemplate>Dataset:{dataset.id}</urlTemplate>
 		</url-template>
 		<!-- Acts as the dataset name column  -->
-		<link-column id="datasetNameLink">
-			<display reference="name" />
-			<url reference="datasetUrl" />
+		<link-column id="dataset.NameLink">
+			<display reference="dataset.name" />
+			<url reference="dataset.localUrl" />
 		</link-column>
 		<!-- Renders all layer types as a single column -->
-		<layer-column id="layerTypeIcons">
+		<layer-column id="dataset.layerTypeIcons">
 			<display>Layers</display>
 			<description>The layer types provided by this dataset</description>
-			<hasExpression reference="hasExpressionData" />
-			<hasGenetic reference="hasGeneticData" />
-			<hasClinical reference="hasClinicalData" />
+			<hasExpression reference="dataset.hasExpressionData" />
+			<hasGenetic reference="dataset.hasGeneticData" />
+			<hasClinical reference="dataset.hasClinicalData" />
 		</layer-column>
 		<!-- The created on date -->
-		<date-column id="createdOnDate">
-			<baseColumn reference="creationDate"/>
+		<date-column id="dataset.createdOnDate">
+			<baseColumn reference="dataset.creationDate"/>
 		</date-column>
 		<!-- Renders a Layer's Type image -->
-		<layer-type-column id="layerTypeIcon">
+		<layer-type-column id="layer.TypeIcon">
 			<baseColumn reference="layer.type"/>
 		</layer-type-column>		
 
 		<!-- A dynamic relative URL will be built for layers using the ID column -->
-		<url-template id="layerUrl">
+		<url-template id="layer.Url">
 			<type>String</type>
 			<urlTemplate>Layer:{layer.id};Dataset:{dataset.id}</urlTemplate>
 		</url-template>
 		<!-- Acts as the layer name column  -->
-		<link-column id="layerNameLink">
+		<link-column id="layer.NameLink">
 			<display reference="layer.name" />
-			<url reference="layerUrl" />
+			<url reference="layer.Url" />
 		</link-column>
 
 	</columns>

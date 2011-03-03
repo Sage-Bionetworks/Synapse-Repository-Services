@@ -20,15 +20,17 @@ public class LayerTypeColumn extends Column<Map<String, Object>, String> {
 
 	private LayerTypeIconColumnInfo meta;
 
-	@Inject
+	
 	ImagePrototypeSingleton imagePrototype;
 	
 	public void setLayerColumnInfo(LayerTypeIconColumnInfo meta) {
 		this.meta = meta;
 	}
 
-	public LayerTypeColumn() {
+	@Inject
+	public LayerTypeColumn(ImagePrototypeSingleton imagePrototype) {
 		super(new ClickableTextCell(new TrustedHtmlRenderer()));
+		this.imagePrototype = imagePrototype;
 	}
 
 	@Override

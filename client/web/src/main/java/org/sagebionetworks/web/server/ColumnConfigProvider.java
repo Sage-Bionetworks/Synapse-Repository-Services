@@ -8,11 +8,16 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.web.shared.CompositeColumn;
+import org.sagebionetworks.web.shared.ColumnsForType;
 import org.sagebionetworks.web.shared.HeaderData;
+import org.sagebionetworks.web.shared.SearchParameters.FromType;
 import org.sagebionetworks.web.shared.UrlTemplate;
 
 import com.google.inject.Inject;
@@ -29,6 +34,18 @@ public class ColumnConfigProvider {
 	
 	private ColumnConfig config = null;
 	private LinkedHashMap<String, HeaderData> map = null;
+	private Map<String, List<String>> defaultColumns = new TreeMap<String, List<String>>();
+	
+	/**
+	 * Maps of additional columns for each type.
+	 */
+	private Map<String, List<String>> additoinalColumns = new TreeMap<String, List<String>>();
+	
+	
+	/**
+	 * Cache of the columns for a given type.
+	 */
+	private Map<String, ColumnsForType> columnsForTypeCache = new TreeMap<String, ColumnsForType>();
 	
 	/**
 	 * Will load the column configuration from an XML file.
@@ -66,9 +83,10 @@ public class ColumnConfigProvider {
 		// Create a map of each value
 		map = new LinkedHashMap<String, HeaderData>();
 		List<HeaderData> list = config.getColumns();
-		logger.info("Loaded column types:");
 		for(HeaderData info: list){
-			logger.info(info.getId());
+			String id = info.getId();
+			if(id == null) throw new IllegalArgumentException("Null id found for "+info.getClass().getName());
+			// Map the id to info
 			map.put(info.getId(), info);
 		}
 	}
@@ -157,6 +175,135 @@ public class ColumnConfigProvider {
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Injects the default columns
+	 * 
+	 * @param defaults
+	 */
+	@Inject
+	public void setDefaultDatasetColumns(@Named(ServerConstants.KEY_DEFAULT_DATASET_COLS) String defaults) {
+		// convert from a string to a list
+		List<String> keyList = splitCommaSeparatedString(defaults);
+		// Add this list to the map
+		defaultColumns.put(FromType.dataset.name(), keyList);
+	}
+	
+	@Inject
+	public void setAdditionalDatasetsColumns(@Named(ServerConstants.KEY_ADDITIONAL_DATASET_COLS) String additional){
+		// convert from a string to a list
+		List<String> keyList = splitCommaSeparatedString(additional);
+		additoinalColumns.put(FromType.dataset.name(), keyList);
+	}
+
+	/**
+	 * Helper to split a comma separated list of strings
+	 * @param defaults
+	 * @return
+	 */
+	private List<String> splitCommaSeparatedString(String defaults) {
+		String[] split = defaults.split(",");
+		List<String> keyList = new LinkedList<String>();
+		for (int i = 0; i < split.length; i++) {
+			keyList.add(split[i].trim());
+		}
+		return keyList;
+	}
+	
+	/**
+	 * Injects the default columns
+	 * 
+	 * @param defaults
+	 */
+	@Inject
+	public void setDefaultLayerColumns(
+			@Named(ServerConstants.KEY_DEFAULT_LAYER_COLS) String defaults) {
+		List<String> keyList = splitCommaSeparatedString(defaults);
+		// Add this list to the map
+		defaultColumns.put(FromType.layer.name(), keyList);
+	}
+	
+	/**
+	 * Get the default column ids for a given type
+	 * @param type
+	 * @return
+	 */
+	public List<String> getDefaultColumnIds(String type) {
+		return defaultColumns.get(type);
+	}
+
+	/**
+	 * Get the full list
+	 * @param type
+	 * @return
+	 */
+	public List<String> getAdditionalColumnIds(String type) {
+		return additoinalColumns.get(type);
+	}
+	
+	/**
+	 * Get the FullHeaderData for a given type.
+	 * @param type
+	 * @return
+	 */
+	public ColumnsForType getColumnsForType(String type){
+		ColumnsForType cft = columnsForTypeCache.get(type);
+		if(cft == null){
+			cft = buildCache(type);
+			columnsForTypeCache.put(type, cft);
+		}
+		return cft;
+		
+	}
+
+	/**
+	 * Used for lazy initialization
+	 * @param type
+	 * @return
+	 */
+	private ColumnsForType buildCache(String type) {
+		// Using a set to ensure we only add columns once.
+		HashSet<String> usedKeySet = new HashSet<String>();
+		// First add all of the default columns for this type.
+		List<String> defaultColumns = getDefaultColumnIds(type);
+		// We must have default columns
+		if(defaultColumns == null) throw new IllegalArgumentException("Cannot find any default columns for type: "+type);
+		List<String> additionatlColumns = getAdditionalColumnIds(type);
+		// Additional columns is optional
+		if(additionatlColumns == null){
+			additionatlColumns = new LinkedList<String>();
+		}
+		List<HeaderData> defaultHeaders = new LinkedList<HeaderData>();
+		List<HeaderData> additionalHeaders = new LinkedList<HeaderData>();
+
+		// First the defaults
+		for(String id: defaultColumns){
+			HeaderData column = this.map.get(id);
+			if(column == null) throw new IllegalArgumentException("Unknown column id: "+id);
+			if(!usedKeySet.contains(id)){
+				usedKeySet.add(id);
+				defaultHeaders.add(column);
+			}
+		}
+		// Now add any additional that is not on the list
+		for(String id: additionatlColumns){
+			HeaderData column = this.map.get(id);
+			if(column == null) throw new IllegalArgumentException("Unknown column id: "+id);
+			if(!usedKeySet.contains(id)){
+				usedKeySet.add(id);
+				additionalHeaders.add(column);
+			}
+		}
+		return new ColumnsForType(type, defaultHeaders, additionalHeaders);
+	}
+
+	/**
+	 * Exposed for testing.
+	 * @return
+	 */
+	public Map<String, ColumnsForType> getColumnsForTypeCache() {
+		return columnsForTypeCache;
 	}
 
 }

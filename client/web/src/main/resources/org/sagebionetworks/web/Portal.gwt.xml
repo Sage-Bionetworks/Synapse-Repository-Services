@@ -31,5 +31,4 @@
 	<inherits name="org.sagebionetworks.web.Portal"/>
 	<inherits name="com.gwtplatform.mvp.Mvp"/>
 
-
 </module>

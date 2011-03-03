@@ -1,7 +1,6 @@
 <!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
 <ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
-	xmlns:g="urn:import:com.google.gwt.user.client.ui" 
-	xmlns:c="urn:import:com.google.gwt.user.cellview.client"
+	xmlns:g="urn:import:com.google.gwt.user.client.ui" xmlns:c="urn:import:com.google.gwt.user.cellview.client"
 	xmlns:s="urn:import:org.sagebionetworks.web.client.view">
 	<ui:style>
 		.important {
@@ -14,18 +13,32 @@
 			aut fugit, sed quia consequuntur magni dolores eos, qui ratione
 			voluptatem sequi nesciunt, neque porro quisquam est, qui dolorem
 			ipsum, quia dolor sit amet, consectetur, adipisci velit, sed quia
-			non numquam ius modi tempora incidunt, ut labore et dolore magnam
-			aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum
+			non
+			numquam ius modi tempora incidunt, ut labore et dolore magnam
+			aliquam
+			quaerat voluptatem. Ut enim ad minima veniam, quis nostrum
 			exercitationem ullam corporis suscipit laboriosam.</p>
 		<hr />
 		<div>
 			<div align="right">
-				<c:SimplePager ui:field="pager" location="CENTER"/>
+				<c:SimplePager ui:field="pager" location="CENTER" />
 			</div>
 			<hr />
-			<div>
-				<g:SimplePanel ui:field="tablePanel" />
-			</div>
+
+			<table>
+				<tr>
+					<td>
+						<div align="right">
+							<g:Button ui:field="addColumnsButton" text="Columns..."/>
+						</div>
+					</td>
+					<td>
+						<div>
+							<g:SimplePanel ui:field="tablePanel" />
+						</div>
+					</td>
+				</tr>
+			</table>
 		</div>
 	</g:HTMLPanel>
 </ui:UiBinder> 

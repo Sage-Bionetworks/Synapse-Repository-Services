@@ -33,7 +33,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 		this.service = datasetService;
 		this.dynamicTablePresenter = dynamicTablePresenter;
 		// Setting the type determines the default columns
-		this.dynamicTablePresenter.setType(FromType.layers);
+		this.dynamicTablePresenter.setType(FromType.layer);
 	}
 
 	@Override

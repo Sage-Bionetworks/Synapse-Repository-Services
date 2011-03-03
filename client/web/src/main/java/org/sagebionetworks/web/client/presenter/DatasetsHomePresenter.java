@@ -1,5 +1,7 @@
 package org.sagebionetworks.web.client.presenter;
 
+import java.util.List;
+
 import org.sagebionetworks.web.client.place.DatasetsHome;
 import org.sagebionetworks.web.client.view.DatasetsHomeView;
 import org.sagebionetworks.web.shared.SearchParameters.FromType;
@@ -14,15 +16,17 @@ public class DatasetsHomePresenter extends AbstractActivity implements DatasetsH
 	private DatasetsHome place;
 	private DatasetsHomeView view;
 	private DynamicTablePresenter dynamicPresenter;
+	private ColumnsPopupPresenter columnsPopupPresenter;
 	
 	@Inject
-	public DatasetsHomePresenter(DatasetsHomeView view, DynamicTablePresenter dynamicPresenter){
+	public DatasetsHomePresenter(DatasetsHomeView view, DynamicTablePresenter dynamicPresenter, ColumnsPopupPresenter columnsPopupPresenter){
 		this.view = view;
+		this.columnsPopupPresenter = columnsPopupPresenter;
 		this.dynamicPresenter = dynamicPresenter;
 		// Setting the type determines the default columns
 		this.dynamicPresenter.setType(FromType.dataset);
 		// Set the presenter on the view
-		view.setPresenter(this);
+		this.view.setPresenter(this);
 	}
 
 	@Override
@@ -35,6 +39,20 @@ public class DatasetsHomePresenter extends AbstractActivity implements DatasetsH
 
 	public void setPlace(DatasetsHome place) {
 		this.place = place;
+	}
+
+	@Override
+	public void onEditColumns() {
+		List<String> currentSelection = null;
+		// Show the view.
+		columnsPopupPresenter.showPopup(FromType.dataset.name(), currentSelection, new ColumnSelectionChangeListener() {
+			
+			@Override
+			public void columnSelectionChanged(List<String> newSelection) {
+				// TODO Auto-generated method stub
+				
+			}
+		});
 	}
 
 }

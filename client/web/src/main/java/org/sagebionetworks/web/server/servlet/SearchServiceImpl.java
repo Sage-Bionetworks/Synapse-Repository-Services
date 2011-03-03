@@ -14,9 +14,9 @@ import org.sagebionetworks.web.server.ColumnConfigProvider;
 import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.server.ServerConstants;
 import org.sagebionetworks.web.server.UrlTemplateUtil;
+import org.sagebionetworks.web.shared.ColumnsForType;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.SearchParameters;
-import org.sagebionetworks.web.shared.SearchParameters.FromType;
 import org.sagebionetworks.web.shared.TableResults;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -43,7 +43,6 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 	 */
 	private ColumnConfigProvider columnConfig;
 
-	private Map<String, List<String>> defaultColumns = new TreeMap<String, List<String>>();
 	private String rootUrl;
 
 	/**
@@ -79,41 +78,7 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 
 	}
 
-	/**
-	 * Injects the default columns
-	 * 
-	 * @param defaults
-	 */
-	@Inject
-	public void setDefaultDatasetColumns(
-			@Named(ServerConstants.KEY_DEFAULT_DATASET_COLS) String defaults) {
-		// convert from a string to a list
-		String[] split = defaults.split(",");
-		List<String> keyList = new LinkedList<String>();
-		for (int i = 0; i < split.length; i++) {
-			keyList.add(split[i].trim());
-		}
-		// Add this list to the map
-		defaultColumns.put(FromType.dataset.name(), keyList);
-	}
 
-	/**
-	 * Injects the default columns
-	 * 
-	 * @param defaults
-	 */
-	@Inject
-	public void setDefaultLayerColumns(
-			@Named(ServerConstants.KEY_DEFAULT_LAYER_COLS) String defaults) {
-		// convert from a string to a list
-		String[] split = defaults.split(",");
-		List<String> keyList = new LinkedList<String>();
-		for (int i = 0; i < split.length; i++) {
-			keyList.add(split[i].trim());
-		}
-		// Add this list to the map
-		defaultColumns.put(FromType.layers.name(), keyList);
-	}
 
 	@Override
 	public TableResults executeSearch(SearchParameters params) {
@@ -223,8 +188,23 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 		return results;
 	}
 
+	/**
+	 * @see ColumnConfigProvider#getDefaultColumnIds(String)
+	 */
 	public List<String> getDefaultColumnIds(String type) {
-		return defaultColumns.get(type);
+		return columnConfig.getDefaultColumnIds(type);
+	}
+
+	/**
+	 * @see ColumnConfigProvider#getAdditionalColumnIds(String)
+	 */
+	public List<String> getAllApplicableColumnIds(String type) {
+		return columnConfig.getAdditionalColumnIds(type);
+	}
+
+	@Override
+	public ColumnsForType getColumnsForType(String type) {
+		return columnConfig.getColumnsForType(type);
 	}
 
 }

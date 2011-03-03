@@ -60,6 +60,12 @@ public interface DynamicTableView extends IsWidget, HasRows {
 		 */
 		void toggleSort(String columnKey);
 		
+		/**
+		 * Set the columns that should be displayed.
+		 * @param visibileColumns
+		 */
+		public void setDispalyColumns(List<String> visibileColumns);
+		
 		
 	}
 
