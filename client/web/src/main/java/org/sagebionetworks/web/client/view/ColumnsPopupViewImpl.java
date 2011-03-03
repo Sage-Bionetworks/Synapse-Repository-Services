@@ -43,25 +43,16 @@ public class ColumnsPopupViewImpl extends DialogBox implements ColumnsPopupView 
 		cancelButton.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
-				onCancel();
+				presenter.cancel();
 			}
 		});
 		applyButton.addClickHandler(new ClickHandler() {
 			
 			@Override
 			public void onClick(ClickEvent event) {
-				onApply();
+				presenter.apply();
 			}
 		});
-	}
-
-	protected void onApply() {
-		dialogBox.hide();	
-		
-	}
-
-	protected void onCancel() {
-		dialogBox.hide();	
 	}
 
 	@Override
@@ -72,7 +63,7 @@ public class ColumnsPopupViewImpl extends DialogBox implements ColumnsPopupView 
 
 	@Override
 	public void hide() {
-		dialogBox.show();
+		dialogBox.hide();
 	}
 
 	@Override

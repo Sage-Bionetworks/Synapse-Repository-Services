@@ -37,7 +37,12 @@ public interface ColumnsPopupView {
 		/**
 		 * The user selected apply
 		 */
-		public void applySelectedColumns();
+		public void apply();
+		
+		/**
+		 * The user selected cancel
+		 */
+		public void cancel();
 		
 		/**
 		 * Should be called when the user toggles the column selection.

@@ -10,6 +10,10 @@ public interface DatasetsHomeView extends IsWidget{
 	 */
 	public void setPresenter(Presenter presenter);
 	
+	/**
+	 * This will be called after the presenter has been started.
+	 */
+	public void onStart();
 	
 	public interface Presenter {
 		

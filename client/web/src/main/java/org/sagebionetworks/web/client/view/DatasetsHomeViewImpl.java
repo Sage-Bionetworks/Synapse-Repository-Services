@@ -29,8 +29,6 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 	public DatasetsHomeViewImpl(DatasetsHomeViewImplUiBinder binder, DynamicTableView dynamic) {
 		this.dynamicTableView = dynamic;
 		initWidget(binder.createAndBindUi(this));
-		// Add the view to the panel
-		tablePanel.add(this.dynamicTableView);
 		// The pager will listen to the dynamic table
 		pager.setDisplay(dynamic);
 		addColumnsButton.addClickHandler(new ClickHandler(){
@@ -44,6 +42,13 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 	@Override
 	public void setPresenter(Presenter presenter) {
 		this.presenter = presenter;
+	}
+
+
+	@Override
+	public void onStart() {
+		// Add the view to the panel
+		tablePanel.add(this.dynamicTableView);
 	}
 
 }

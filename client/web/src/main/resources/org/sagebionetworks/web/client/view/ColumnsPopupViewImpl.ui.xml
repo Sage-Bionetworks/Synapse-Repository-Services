@@ -29,9 +29,10 @@
 			width: 100px;
 			margin: 5px 5px 5px 5px;
 		}
+		
 	</ui:style>
 	<g:DialogBox ui:field="dialogBox" glassEnabled="true"
-		animationEnabled="true" autoHideEnabled="true">
+		animationEnabled="true" autoHideEnabled="true" >
 		<!-- The caption is the title bar of the dialog -->
 		<g:caption>
 			<b>Add Columns</b>
@@ -44,16 +45,12 @@
 			<hr />
 			<div class="{style.bodyDef}">
 				<table class="{style.tableDef}">
-					<tr>
+					<tr class="{style.tableHeader}">
 						<th>
-							<div class="{style.tableHeader}">
-								Default Columns
-							</div>
+							Default Columns
 						</th>
 						<th>
-							<div class="{style.tableHeader}">
-								Additional Columns
-							</div>
+							Additional Columns
 						</th>
 					</tr>
 					<tr valign="top">

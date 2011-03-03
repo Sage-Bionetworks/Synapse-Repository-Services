@@ -187,6 +187,7 @@ public class DynamicTablePresenter extends AbstractActivity implements DynamicTa
 	@Override
 	public void setDispalyColumns(List<String> visibileColumns) {
 		this.visibleColumnIds = visibileColumns;
+		refreshFromServer();
 	}
 	
 }

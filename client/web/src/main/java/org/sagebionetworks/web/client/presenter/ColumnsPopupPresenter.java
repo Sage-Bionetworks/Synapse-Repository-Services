@@ -1,5 +1,7 @@
 package org.sagebionetworks.web.client.presenter;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 
@@ -11,6 +13,12 @@ import org.sagebionetworks.web.shared.HeaderData;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.inject.Inject;
 
+/**
+ * The presenter for the popup dialog used to select visible columns for a given type.
+ * 
+ * @author jmhill
+ *
+ */
 public class ColumnsPopupPresenter implements ColumnsPopupView.Presenter {
 	
 	
@@ -21,7 +29,7 @@ public class ColumnsPopupPresenter implements ColumnsPopupView.Presenter {
 	List<HeaderData> additionalColumns;
 	LinkedHashSet<String> selection = new LinkedHashSet<String>();
 	private List<String> inSelection;
-	private ColumnSelectionChangeListener listner;
+	private ColumnSelectionChangeListener listener;
 
 	@Inject
 	public ColumnsPopupPresenter(SearchServiceAsync searchService, ColumnsPopupView columnPopupView){
@@ -31,10 +39,46 @@ public class ColumnsPopupPresenter implements ColumnsPopupView.Presenter {
 	}
 
 	@Override
-	public void applySelectedColumns() {
-		// Save the selection as a cookie
-		
-		
+	public void apply() {
+		// Hide the dialog
+		view.hide();
+		// Fire off a change if there was one.
+		if(hasSelectionChanged()){
+			List<String> newSelection = new ArrayList<String>();
+			// Add the columns in the same order as defined
+			for(HeaderData header: defaultColumns){
+				String key = header.getId();
+				if(isSelected(key)){
+					newSelection.add(key);
+				}
+			}
+			// Add the additional
+			for(HeaderData header: additionalColumns){
+				String key = header.getId();
+				if(isSelected(key)){
+					newSelection.add(key);
+				}
+			}
+			// Fire off the change
+			this.listener.columnSelectionChanged(newSelection);
+		}		
+	}
+	
+	private boolean hasSelectionChanged(){
+		// Compare the current selection to the input selection
+		if(selection.size() != inSelection.size()) return true;
+		for(String inKey: inSelection){
+			// Is there an input key that is not selected
+			if(!isSelected(inKey)) return true;
+		}
+		// They are the same
+		return false;
+	}
+	
+	@Override
+	public void cancel() {
+		this.selection.clear();
+		view.hide();
 	}
 
 	@Override
@@ -48,12 +92,14 @@ public class ColumnsPopupPresenter implements ColumnsPopupView.Presenter {
 	}
 
 	@Override
-	public void showPopup(String type, List<String> selected, ColumnSelectionChangeListener listner) {
+	public void showPopup(String type, List<String> selected, ColumnSelectionChangeListener listener) {
+		if(listener == null) throw new IllegalArgumentException("ColumnSelectionChangeListener cannot be null");
+		if(type == null) throw new IllegalArgumentException("Type cannot be null");
 		// Start with a clean selection
 		this.selection.clear();
 		this.type = type;
 		this.inSelection = selected;
-		this.listner = listner;
+		this.listener = listener;
 		// First get the types from the server
 		this.service.getColumnsForType(this.type, new AsyncCallback<ColumnsForType>() {
 			
@@ -71,7 +117,7 @@ public class ColumnsPopupPresenter implements ColumnsPopupView.Presenter {
 		});
 	}
 
-	protected void setColumnsFromServer(ColumnsForType result) {
+	public void setColumnsFromServer(ColumnsForType result) {
 		// Build the selection model
 		// First determine if we have a cookie
 		// Prepare the column selection model
@@ -83,9 +129,12 @@ public class ColumnsPopupPresenter implements ColumnsPopupView.Presenter {
 				this.selection.add(id);
 			}
 		}else{
+			this.inSelection = new ArrayList<String>();
 			// All of the defaults are selected
 			for(HeaderData header: defaultColumns){
 				this.selection.add(header.getId());
+				// Treat this as if they passed us these columns
+				inSelection.add(header.getId());
 			}
 		}
 		// set the columns on the view
@@ -98,6 +147,21 @@ public class ColumnsPopupPresenter implements ColumnsPopupView.Presenter {
 	public boolean isSelected(String name) {
 		return selection.contains(name);
 	}
-	
+
+	/**
+	 * Exposed for testing
+	 * @return
+	 */
+	public List<HeaderData> getDefaultColumns() {
+		return defaultColumns;
+	}
+
+	/**
+	 * Exposed for testing.
+	 * @return
+	 */
+	public List<HeaderData> getAdditionalColumns() {
+		return additionalColumns;
+	}
 
 }
