@@ -9,6 +9,12 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -46,7 +52,7 @@ public class CrowdAuthenticationFilter implements Filter {
 		String contextPath = req.getContextPath();
 		// TODO correctly construct the authentication path
 		resp.setHeader("Crowd-Authentication-Service", contextPath+"/repo/v1/session");
-		resp.getWriter().println("The session token provided was invalid or expired.");
+		resp.getWriter().println("The session token provided was missing, invalid or expired.");
 	}
 
 	@Override
@@ -64,6 +70,8 @@ public class CrowdAuthenticationFilter implements Filter {
 				reject(req, (HttpServletResponse)servletResponse);
 				// TODO log the exception 
 //				throw new RuntimeException(xee);
+				xee.printStackTrace();
+				return;
 			}
 		}
 		if (userId!=null) {
@@ -78,6 +86,7 @@ public class CrowdAuthenticationFilter implements Filter {
 			filterChain.doFilter(req, servletResponse);
 		} else {
 			reject(req, (HttpServletResponse)servletResponse);
+			return;
 		}
 	}
 
@@ -93,7 +102,7 @@ public class CrowdAuthenticationFilter implements Filter {
            	if ("crowd-port".equalsIgnoreCase(paramName)) crowdPort = Integer.parseInt(paramValue);
            	if ("allow-anonymous".equalsIgnoreCase(paramName)) allowAnonymous = Boolean.parseBoolean(paramValue);
         }
-	}
+  	}
 
 	//-----------------------------------------------------------------------------------------
 	// TODO The following code is cut-and-pasted from CrowdAuthUtil and should be factored
@@ -120,14 +129,21 @@ public class CrowdAuthenticationFilter implements Filter {
 	
 		
 	public String revalidate(String sessionToken) throws IOException, XPathExpressionException {
-		byte[] sessionXML = null;
+		byte[] sessionXML = new byte[0];
 		int rc = 0;
 		URL url = new URL(urlPrefix()+"/session/"+sessionToken);
 		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-		conn.setRequestMethod("POST");
+		conn.setRequestMethod("GET");
 		setHeaders(conn);
-		rc = conn.getResponseCode();
-		sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
+		try {
+			rc = conn.getResponseCode();
+			InputStream is = (InputStream)conn.getContent();
+			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
+		} catch (IOException e) {
+			InputStream is = (InputStream)conn.getErrorStream();
+			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
+			throw new RuntimeException(new String(sessionXML), e);
+		}
 
 		if (HttpStatus.OK.value()!=rc) {
 			throw new RuntimeException(new String(sessionXML));
@@ -146,8 +162,6 @@ public class CrowdAuthenticationFilter implements Filter {
 		} while (i>0);
 		return sb.toString().trim();
 	}
-	
-	
 
 }
 
