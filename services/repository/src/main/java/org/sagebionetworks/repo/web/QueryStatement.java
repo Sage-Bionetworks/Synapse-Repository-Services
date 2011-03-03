@@ -29,7 +29,7 @@ public class QueryStatement {
 	 * like it is for the rest API. When people query they expect that a query
 	 * with no limit specified defaults to all.
 	 */
-	private Integer limit = Integer.MAX_VALUE;
+	private Integer limit = 50000000; // MySQL upper limit
 	private Integer offset = ServiceConstants.DEFAULT_PAGINATION_OFFSET;
 
 	private QueryNode parseTree = null;
