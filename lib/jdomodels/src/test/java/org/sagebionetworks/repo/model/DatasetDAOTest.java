@@ -100,9 +100,9 @@ public class DatasetDAOTest {
 		Assert.assertEquals(d.getName(), d2.getName());
 		Assert.assertEquals(d.getDescription(), d2.getDescription());
 		Assert.assertEquals(d.getCreator(), d2.getCreator());
-		Assert.assertEquals(d.getCreationDate(), d2.getCreationDate());
+		Assert.assertEquals(d.getCreationDate().toString(), d2.getCreationDate().toString());
 		Assert.assertEquals(d.getStatus(), d2.getStatus());
-		Assert.assertEquals(d.getReleaseDate(), d2.getReleaseDate());
+		Assert.assertEquals(d.getReleaseDate().toString(), d2.getReleaseDate().toString());
 		// test that annotations are also retrieved
 		Annotations annots = dao.getAnnotations(id);
 		Collection<String> tissueType = annots.getStringAnnotations().get(
@@ -229,16 +229,16 @@ public class DatasetDAOTest {
 		Assert.assertNotNull(l);
 		Assert.assertEquals("clinical data", l.getName());
 		// then test that all field values are returned
-		Assert.assertEquals(layer1.getCreationDate(), l.getCreationDate());
+		Assert.assertEquals(layer1.getCreationDate().toString(), l.getCreationDate().toString());
 		Assert.assertEquals(layer1.getDescription(), l.getDescription());
 		Assert.assertEquals(layer1.getPlatform(), l.getPlatform());
 		Assert.assertEquals(layer1.getProcessingFacility(), l
 				.getProcessingFacility());
 		Assert
-				.assertEquals(layer1.getPublicationDate(), l
-						.getPublicationDate());
+				.assertEquals(layer1.getPublicationDate().toString(), l
+						.getPublicationDate().toString());
 		Assert.assertEquals(layer1.getQcBy(), l.getQcBy());
-		Assert.assertEquals(layer1.getQcDate(), l.getQcDate());
+		Assert.assertEquals(layer1.getQcDate().toString(), l.getQcDate().toString());
 		Assert.assertEquals(layer1.getTissueType(), l.getTissueType());
 		Assert.assertEquals(layer1.getUri(), l.getUri());
 		Assert.assertEquals(layer1.getVersion(), l.getVersion());
