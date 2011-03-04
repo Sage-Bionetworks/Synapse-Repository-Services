@@ -6,8 +6,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.web.client.view.DynamicTableViewImpl;
-import org.sagebionetworks.web.client.view.DynamicTableViewImpl.Binder;
+import org.sagebionetworks.web.client.widget.table.QueryServiceTableViewImpl;
+import org.sagebionetworks.web.client.widget.table.QueryServiceTableViewImpl.Binder;
 import org.sagebionetworks.web.util.MockitoMockFactory;
 
 import com.google.gwt.cell.client.widget.CustomWidgetImageBundle;
@@ -21,7 +21,7 @@ import com.gwtplatform.tester.MockingBinder;
 
 public class PreviewDisclosurePanelTest {
 
-	public static class TestBinder extends MockingBinder<Widget, DynamicTableViewImpl> implements Binder {
+	public static class TestBinder extends MockingBinder<Widget, QueryServiceTableViewImpl> implements Binder {
 		public TestBinder(MockitoMockFactory mockFactory) {
 			super(Widget.class, mockFactory);
 		}

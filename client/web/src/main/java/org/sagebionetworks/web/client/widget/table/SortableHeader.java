@@ -1,4 +1,4 @@
-package org.sagebionetworks.web.client.view;
+package org.sagebionetworks.web.client.widget.table;
 
 import org.sagebionetworks.web.client.ImagePrototypeSingleton;
 

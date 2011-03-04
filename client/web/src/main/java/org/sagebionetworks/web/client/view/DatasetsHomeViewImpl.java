@@ -1,5 +1,10 @@
 package org.sagebionetworks.web.client.view;
 
+import java.util.List;
+
+import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
+import org.sagebionetworks.web.shared.SearchParameters.FromType;
+
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.uibinder.client.UiBinder;
@@ -15,22 +20,24 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 
 	public interface DatasetsHomeViewImplUiBinder extends 	UiBinder<Widget, DatasetsHomeViewImpl> {}
 
-	@UiField 
-	SimplePager pager;
 	@UiField
 	SimplePanel tablePanel;
 	@UiField
 	Button addColumnsButton;
 	
 	private Presenter presenter;
-	private DynamicTableView dynamicTableView;
+	private QueryServiceTable queryServiceTable;
 	
 	@Inject
-	public DatasetsHomeViewImpl(DatasetsHomeViewImplUiBinder binder, DynamicTableView dynamic) {
-		this.dynamicTableView = dynamic;
+	public DatasetsHomeViewImpl(DatasetsHomeViewImplUiBinder binder, QueryServiceTable table) {
+		this.queryServiceTable = table;
 		initWidget(binder.createAndBindUi(this));
 		// The pager will listen to the dynamic table
-		pager.setDisplay(dynamic);
+		table.setUsePager(true);
+		table.setType(FromType.dataset);
+		// Add the table
+		tablePanel.add(table.asWidget());
+
 		addColumnsButton.addClickHandler(new ClickHandler(){
 			@Override
 			public void onClick(ClickEvent event) {
@@ -46,9 +53,8 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 
 
 	@Override
-	public void onStart() {
-		// Add the view to the panel
-		tablePanel.add(this.dynamicTableView);
+	public void setVisibleColumns(List<String> visible) {
+		this.queryServiceTable.setDispalyColumns(visible);
 	}
 
 }

@@ -2,7 +2,6 @@ package org.sagebionetworks.web.client;
 
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetsHomePresenter;
-import org.sagebionetworks.web.client.presenter.DynamicTablePresenter;
 import org.sagebionetworks.web.client.presenter.LayerPresenter;
 
 import com.google.gwt.inject.client.GinModules;
@@ -20,9 +19,7 @@ public interface ProtalGinInjector extends Ginjector {
 	public DatasetsHomePresenter getDatasetsHomePresenter();
 	
 	public DatasetPresenter getDatasetPresenter();
-	
-	public DynamicTablePresenter getDynamicTableTest();
-	
+		
 	public LayerPresenter getLayerPresenter();
 
 }

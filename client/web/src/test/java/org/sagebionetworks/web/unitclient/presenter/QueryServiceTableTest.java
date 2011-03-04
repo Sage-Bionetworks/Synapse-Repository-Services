@@ -1,48 +1,43 @@
 package org.sagebionetworks.web.unitclient.presenter;
 
-import static org.mockito.Mockito.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
-import java.util.TreeMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
 import org.sagebionetworks.web.client.SearchService;
 import org.sagebionetworks.web.client.SearchServiceAsync;
-import org.sagebionetworks.web.client.cookie.CookieKeys;
-import org.sagebionetworks.web.client.cookie.CookieUtils;
-import org.sagebionetworks.web.client.presenter.DynamicTablePresenter;
-import org.sagebionetworks.web.client.view.DynamicTableView;
 import org.sagebionetworks.web.client.view.RowData;
+import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
+import org.sagebionetworks.web.client.widget.table.QueryServiceTableView;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.SearchParameters;
-import org.sagebionetworks.web.shared.TableResults;
 import org.sagebionetworks.web.shared.SearchParameters.FromType;
+import org.sagebionetworks.web.shared.TableResults;
 import org.sagebionetworks.web.test.helper.AsyncServiceRecorder;
-import org.sagebionetworks.web.test.helper.AsyncServiceRecorder.MethodCall;
-import org.sagebionetworks.web.unitclient.cookie.StubCookieProvider;
 
-import com.google.gwt.event.shared.EventBus;
-import com.google.gwt.user.client.ui.AcceptsOneWidget;
 
-public class DynamicTablePresenterTest {
+public class QueryServiceTableTest {
 	
 	AsyncServiceRecorder<SearchService, SearchServiceAsync> recorder;
 	SearchService mockSearchService;
 	SearchServiceAsync asynchProxy;
-	DynamicTablePresenter presenter;
-	DynamicTableView mockView;
+	QueryServiceTable presenter;
+	QueryServiceTableView mockView;
 	
 	@Before
 	public void setup(){
 		// Create the mock service
 		mockSearchService = Mockito.mock(SearchService.class);
-		mockView = Mockito.mock(DynamicTableView.class);
+		mockView = Mockito.mock(QueryServiceTableView.class);
 		
 		// Create the asynchronous service recorder
 		recorder = new AsyncServiceRecorder<SearchService, SearchServiceAsync>(mockSearchService, SearchServiceAsync.class);
@@ -50,7 +45,7 @@ public class DynamicTablePresenterTest {
 		asynchProxy = recorder.createAsyncProxyToRecord();
 		// Using a stub cookie provider
 		// Create the presenter
-		presenter = new DynamicTablePresenter(mockView, asynchProxy);
+		presenter = new QueryServiceTable(mockView, asynchProxy);
 		presenter.setType(FromType.dataset);
 		// Make sure the view gets the presenter set
 		verify(mockView).setPresenter(presenter);
@@ -126,6 +121,7 @@ public class DynamicTablePresenterTest {
 		// Starting the presenter should trigger a server refresh
 		when(mockSearchService.executeSearch(currentParams)).thenReturn(toReturn);
 		// The recorder should start with zero calls
+		recorder.clearAllCalls();
 		assertEquals(0, recorder.getRecoredCallCount());
 		presenter.refreshFromServer();
 		// The recorder should have recorder one call
@@ -145,6 +141,7 @@ public class DynamicTablePresenterTest {
 		TableResults toReturn = createResults(columnCount, curParams.getLimit(), totalCount);
 		// Starting the presenter should trigger a server refresh
 		when(mockSearchService.executeSearch(curParams)).thenReturn(toReturn);
+		recorder.clearAllCalls();
 		// The recorder should start with zero calls
 		assertEquals(0, recorder.getRecoredCallCount());
 		presenter.refreshFromServer();
@@ -157,18 +154,18 @@ public class DynamicTablePresenterTest {
 		verify(mockView).setRows(rowData);
 	}
 	
-	@Test
-	public void testStart(){
-		EventBus mockBus = Mockito.mock(EventBus.class);
-		AcceptsOneWidget mockWidget = Mockito.mock(AcceptsOneWidget.class);
-		presenter.start(mockWidget, mockBus);
-		// The recorder should have recorder one call
-		assertEquals(1, recorder.getRecoredCallCount());
-		MethodCall call = recorder.getCall(0);
-		assertNotNull(call);
-		assertEquals("executeSearch", call.getMethod().getName());
-		verify(mockView).asWidget();
-	}
+//	@Test
+//	public void testStart(){
+//		EventBus mockBus = Mockito.mock(EventBus.class);
+//		AcceptsOneWidget mockWidget = Mockito.mock(AcceptsOneWidget.class);
+//		presenter.start(mockWidget, mockBus);
+//		// The recorder should have recorder one call
+//		assertEquals(1, recorder.getRecoredCallCount());
+//		MethodCall call = recorder.getCall(0);
+//		assertNotNull(call);
+//		assertEquals("executeSearch", call.getMethod().getName());
+//		verify(mockView).asWidget();
+//	}
 	
 	/**
 	 * Helper to create a list of headers

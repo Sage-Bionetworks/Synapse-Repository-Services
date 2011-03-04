@@ -1,5 +1,7 @@
 package org.sagebionetworks.web.client.view;
 
+import java.util.List;
+
 import com.google.gwt.user.client.ui.IsWidget;
 
 public interface DatasetsHomeView extends IsWidget{
@@ -10,10 +12,8 @@ public interface DatasetsHomeView extends IsWidget{
 	 */
 	public void setPresenter(Presenter presenter);
 	
-	/**
-	 * This will be called after the presenter has been started.
-	 */
-	public void onStart();
+	public void setVisibleColumns(List<String> visible);
+	
 	
 	public interface Presenter {
 		

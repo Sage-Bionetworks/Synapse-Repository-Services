@@ -2,6 +2,8 @@ package org.sagebionetworks.web.client.view;
 
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.presenter.DatasetRow;
+import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
+import org.sagebionetworks.web.shared.SearchParameters.FromType;
 
 import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
 import com.google.gwt.dom.client.SpanElement;
@@ -40,14 +42,16 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 
 	private Presenter presenter;
 	private PreviewDisclosurePanel previewDisclosurePanel;
-	private DynamicTableView dynamicTableView;
+	private QueryServiceTable table;
 
 	@Inject
-	public DatasetViewImpl(Binder uiBinder, final PreviewDisclosurePanel previewDisclosurePanel, DynamicTableView dynamicTableView) {
+	public DatasetViewImpl(Binder uiBinder, final PreviewDisclosurePanel previewDisclosurePanel, QueryServiceTable table) {
 		initWidget(uiBinder.createAndBindUi(this));
 		this.previewDisclosurePanel = previewDisclosurePanel;
-		this.dynamicTableView = dynamicTableView;
-		tablePanel.add(dynamicTableView);
+		table.setUsePager(false);
+		table.setType(FromType.layer);
+		tablePanel.add(table.asWidget());
+		this.table = table;
 	}
 
 	@Override

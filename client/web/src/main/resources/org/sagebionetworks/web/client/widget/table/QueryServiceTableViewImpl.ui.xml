@@ -8,6 +8,10 @@
 		}
 	</ui:style>
 	<g:HTMLPanel>
+		<div align="right">
+			<g:SimplePanel ui:field="pagerPanel" />
+		</div>
+		<hr />
 		<div>
 			<g:SimplePanel ui:field="tablePanel" />
 		</div>

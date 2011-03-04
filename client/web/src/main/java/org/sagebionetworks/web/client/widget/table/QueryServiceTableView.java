@@ -1,15 +1,16 @@
-package org.sagebionetworks.web.client.view;
+package org.sagebionetworks.web.client.widget.table;
 
 import java.util.List;
 
+import org.sagebionetworks.web.client.view.RowData;
 import org.sagebionetworks.web.shared.HeaderData;
 
 import com.google.gwt.user.client.ui.IsWidget;
 import com.google.gwt.view.client.HasRows;
 
-public interface DynamicTableView extends IsWidget, HasRows {
+public interface QueryServiceTableView extends IsWidget {
 	
-	
+
 	/**
 	 * Set the presenter.
 	 * @param presenter
@@ -40,6 +41,12 @@ public interface DynamicTableView extends IsWidget, HasRows {
 	 * @param columnInfoList
 	 */
 	public void setColumns(List<HeaderData> columnInfoList);
+	
+	/**
+	 * Should this view use a pager
+	 * @param use
+	 */
+	public void usePager(boolean use);
 	
 
 	/**

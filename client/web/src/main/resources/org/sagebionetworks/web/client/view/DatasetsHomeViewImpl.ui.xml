@@ -20,11 +20,6 @@
 			exercitationem ullam corporis suscipit laboriosam.</p>
 		<hr />
 		<div>
-			<div align="right">
-				<c:SimplePager ui:field="pager" location="CENTER" />
-			</div>
-			<hr />
-
 			<table>
 				<tr>
 					<td>

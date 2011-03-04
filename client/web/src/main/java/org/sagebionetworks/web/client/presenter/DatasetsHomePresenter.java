@@ -19,17 +19,13 @@ public class DatasetsHomePresenter extends AbstractActivity implements DatasetsH
 
 	private DatasetsHome place;
 	private DatasetsHomeView view;
-	private DynamicTablePresenter dynamicPresenter;
 	private ColumnsPopupPresenter columnsPopupPresenter;
 	private CookieProvider cookieProvider;
 	
 	@Inject
-	public DatasetsHomePresenter(DatasetsHomeView view, DynamicTablePresenter dynamicPresenter, ColumnsPopupPresenter columnsPopupPresenter, CookieProvider cookieProvider){
+	public DatasetsHomePresenter(DatasetsHomeView view, ColumnsPopupPresenter columnsPopupPresenter, CookieProvider cookieProvider){
 		this.view = view;
 		this.columnsPopupPresenter = columnsPopupPresenter;
-		this.dynamicPresenter = dynamicPresenter;
-		// Setting the type determines the default columns
-		this.dynamicPresenter.setType(FromType.dataset);
 		// Set the presenter on the view
 		this.view.setPresenter(this);
 		this.cookieProvider = cookieProvider;
@@ -39,11 +35,8 @@ public class DatasetsHomePresenter extends AbstractActivity implements DatasetsH
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
 		// Setup the columns
 		setVisibleColumns();
-		// Let the dynamic presenter know we are starting.
-		dynamicPresenter.start();
 		// Install the view
 		panel.setWidget(view);
-		view.onStart();
 	}
 
 	public void setPlace(DatasetsHome place) {
@@ -77,7 +70,7 @@ public class DatasetsHomePresenter extends AbstractActivity implements DatasetsH
 		String cookieValue = this.cookieProvider.getCookie(KEY_DATASETS_SELECTED_COLUMNS_COOKIE);
 		if(cookieValue != null){
 			currentSelection = CookieUtils.createListFromString(cookieValue);
-			dynamicPresenter.setDispalyColumns(currentSelection);
+			view.setVisibleColumns(currentSelection);
 		}
 	}
 

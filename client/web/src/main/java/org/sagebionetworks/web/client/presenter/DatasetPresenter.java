@@ -16,7 +16,6 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 
 	private org.sagebionetworks.web.client.place.Dataset place;
 	private DatasetServiceAsync service;
-	private DynamicTablePresenter dynamicTablePresenter;
 	private DatasetView view;
 	private String datasetId;
 	private Dataset model;
@@ -28,21 +27,15 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 	 * @param datasetService
 	 */
 	@Inject
-	public DatasetPresenter(DatasetView view, DatasetServiceAsync datasetService, DynamicTablePresenter dynamicTablePresenter) {
+	public DatasetPresenter(DatasetView view, DatasetServiceAsync datasetService) {
 		this.view = view;
 		this.service = datasetService;
-		this.dynamicTablePresenter = dynamicTablePresenter;
-		// Setting the type determines the default columns
-		this.dynamicTablePresenter.setType(FromType.layer);
 	}
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
 		// First refresh from the server
 		refreshFromServer();
-		
-		// Let the dynamic presenter know we are starting.
-		dynamicTablePresenter.start();
 		// add the view to the panel
 		panel.setWidget(view);
 		

@@ -1,27 +1,37 @@
-package org.sagebionetworks.web.client.presenter;
+package org.sagebionetworks.web.client.widget.table;
 
 import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.web.client.SearchServiceAsync;
-import org.sagebionetworks.web.client.view.DynamicTableView;
 import org.sagebionetworks.web.client.view.RowData;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.SearchParameters.FromType;
 import org.sagebionetworks.web.shared.TableResults;
 
-import com.google.gwt.activity.shared.AbstractActivity;
-import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.user.client.rpc.AsyncCallback;
-import com.google.gwt.user.client.ui.AcceptsOneWidget;
+import com.google.gwt.user.client.ui.IsWidget;
+import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
-
-public class DynamicTablePresenter extends AbstractActivity implements DynamicTableView.Presenter{
+/***
+ * This is the presenter with the business logic for this table
+ * @author jmhill
+ *
+ */
+public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presenter {
 	
-	private DynamicTableView view;
+	@Inject
+	public QueryServiceTable(QueryServiceTableView view, SearchServiceAsync service){
+		this.view = view;
+		this.service = service;
+		this.view.setPresenter(this);
+	}
+	
+	private QueryServiceTableView view;
 	private SearchServiceAsync service;
+	private boolean usePager = false;
 
 	private String sortKey = null;
 	private boolean ascending = false;
@@ -34,37 +44,21 @@ public class DynamicTablePresenter extends AbstractActivity implements DynamicTa
 	private List<String> visibleColumnIds;
 	
 
+	public boolean isUsePager() {
+		return usePager;
+	}
+
+	public void setUsePager(boolean usePager) {
+		this.view.usePager(usePager);
+	}
+
 	public FromType getType() {
 		return type;
 	}
 
 	public void setType(FromType type) {
 		this.type = type;
-	}
-
-	@Inject
-	public DynamicTablePresenter(DynamicTableView view, SearchServiceAsync service){
-		this.view = view;
-		this.service = service;
-		this.view.setPresenter(this);
-	}
-	
-	/**
-	 * This flavor should be called if this presenter is contain in another location.
-	 */
-	public void start() {
-		// Refresh the view
 		refreshFromServer();
-	}
-
-	/**
-	 * This flavor of start will be called if this presenter is a true location.
-	 */
-	@Override
-	public void start(AcceptsOneWidget panel, EventBus eventBus) {
-		start();
-		// Add the view to the main container
-		panel.setWidget(view.asWidget());	
 	}
 	
 	/**
@@ -190,4 +184,10 @@ public class DynamicTablePresenter extends AbstractActivity implements DynamicTa
 		refreshFromServer();
 	}
 	
+	@Override
+	public Widget asWidget() {
+		if(type == null) throw new IllegalStateException("The type must be set before this table can be used.");
+		return this.view.asWidget();
+	}
+
 }

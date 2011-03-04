@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.client.view;
 
 import org.sagebionetworks.web.client.presenter.LayerRow;
+import org.sagebionetworks.web.client.widget.table.QueryServiceTableView;
 
 import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
 import com.google.gwt.dom.client.SpanElement;
@@ -31,7 +32,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 
 	private Presenter presenter;
 	private PreviewDisclosurePanel previewDisclosurePanel;
-	private DynamicTableView dynamicTableView;
+	private QueryServiceTableView dynamicTableView;
 
 	@Inject
 	public LayerViewImpl(Binder uiBinder, final PreviewDisclosurePanel previewDisclosurePanel) {
