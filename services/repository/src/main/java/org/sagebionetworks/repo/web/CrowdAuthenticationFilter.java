@@ -102,6 +102,8 @@ public class CrowdAuthenticationFilter implements Filter {
            	if ("crowd-port".equalsIgnoreCase(paramName)) crowdPort = Integer.parseInt(paramValue);
            	if ("allow-anonymous".equalsIgnoreCase(paramName)) allowAnonymous = Boolean.parseBoolean(paramValue);
         }
+        
+        acceptAllCertificates();
   	}
 
 	//-----------------------------------------------------------------------------------------
@@ -162,6 +164,43 @@ public class CrowdAuthenticationFilter implements Filter {
 		} while (i>0);
 		return sb.toString().trim();
 	}
+
+	public static void acceptAllCertificates() {
+		// from http://www.exampledepot.com/egs/javax.net.ssl/trustall.html
+		// Create a trust manager that does not validate certificate chains
+		TrustManager[] trustAllCerts = new TrustManager[]{
+		    new X509TrustManager() {
+		        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+		            return null;
+		        }
+		        public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+		        }
+		        public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+		        }
+		    }
+		};
+
+		// Install the all-trusting trust manager
+		try {
+		    // SSLContext sc = SSLContext.getInstance("SSL");
+		    SSLContext sc = SSLContext.getInstance("TLS");
+		    sc.init(null, trustAllCerts, new java.security.SecureRandom());
+		    HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		// from http://stackoverflow.com/questions/2186543/java-secure-webservice
+		HostnameVerifier hv = new HostnameVerifier() {
+		    public boolean verify(String urlHostName, SSLSession session) {
+		        if (!urlHostName.equals(session.getPeerHost())) System.out.println("Warning: URL Host: " + urlHostName + " vs. " + session.getPeerHost());
+		        return true;
+		    }
+		};
+
+		HttpsURLConnection.setDefaultHostnameVerifier(hv);
+	}
+	
 
 }
 
