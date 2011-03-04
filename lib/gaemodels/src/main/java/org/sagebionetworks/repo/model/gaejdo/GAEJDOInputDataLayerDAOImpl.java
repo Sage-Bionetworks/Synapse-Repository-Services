@@ -193,12 +193,15 @@ public class GAEJDOInputDataLayerDAOImpl extends
 			GAEJDOInputDataLayer jdo = createIntern(dto);
 			// copyFromDto(dto, jdo);
 			ownerDataset.getInputLayers().add(jdo);
-			pm.makePersistent(ownerDataset);
+			////pm.makePersistent(ownerDataset);
 			GAEJDORevision<GAEJDOInputDataLayer> r = jdo.getRevision();
 			r.setOriginal(r.getId()); // points to itself
+			/* Nicole's fix */
 			GAEJDORevision<GAEJDODataset> ownerRevision = ownerDataset.getRevision();
+			/*
 			ownerRevision.setLatest(true);
-			pm.makePersistent(ownerDataset); // not sure if it's necessary to
+			*/
+			////pm.makePersistent(ownerDataset); // not sure if it's necessary to
 			// 'persist' again
 			tx.commit();
 			//tx = pm.currentTransaction();
