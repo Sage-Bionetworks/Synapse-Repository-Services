@@ -26,6 +26,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 public class AnnotatableEntitiesAccessorImpl<T extends Base> implements
 		EntitiesAccessor<T> {
 
+	private static final int MAX_ANNOTATIONS = 50000000; // MySQL's upper bound
+															// on LIMIT
 	private AnnotatableDAO<T> annotatableDao;
 	private AnnotationDAO<T, String> stringAnnotationDAO;
 	private AnnotationDAO<T, Double> doubleAnnotationDAO;
@@ -157,7 +159,7 @@ public class AnnotatableEntitiesAccessorImpl<T extends Base> implements
 		Map<String, Integer> annotationFields = new HashMap<String, Integer>();
 		List<T> entities = null;
 		try {
-			entities = annotatableDao.getInRange(0, Integer.MAX_VALUE);
+			entities = annotatableDao.getInRange(0, MAX_ANNOTATIONS);
 			for (T entity : entities) {
 				Annotations annotations = annotatableDao.getAnnotations(entity
 						.getId());
