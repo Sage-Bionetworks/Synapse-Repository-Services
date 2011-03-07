@@ -7,6 +7,7 @@ import org.sagebionetworks.web.client.SearchServiceAsync;
 import org.sagebionetworks.web.client.view.RowData;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.SearchParameters;
+import org.sagebionetworks.web.shared.WhereCondition;
 import org.sagebionetworks.web.shared.SearchParameters.FromType;
 import org.sagebionetworks.web.shared.TableResults;
 
@@ -31,34 +32,26 @@ public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presen
 	
 	private QueryServiceTableView view;
 	private SearchServiceAsync service;
-	private boolean usePager = false;
 
 	private String sortKey = null;
 	private boolean ascending = false;
 	
 	// This keeps track of which page we are on.
-	private int paginationOffest = 0;
-	private int paginationLength = 10;
+	public static final int DEFAULT_OFFSET = 0;
+	public static final int DEFAULT_LIMIT = 10;
+	private int paginationOffset = DEFAULT_OFFSET;
+	private int paginationLength = DEFAULT_LIMIT;
 	private List<HeaderData> currentColumns = null;
 	private FromType type;
 	private List<String> visibleColumnIds;
+	private WhereCondition where;
 	
-
-	public boolean isUsePager() {
-		return usePager;
-	}
-
 	public void setUsePager(boolean usePager) {
 		this.view.usePager(usePager);
 	}
 
 	public FromType getType() {
 		return type;
-	}
-
-	public void setType(FromType type) {
-		this.type = type;
-		refreshFromServer();
 	}
 	
 	/**
@@ -80,7 +73,11 @@ public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presen
 	 * @return
 	 */
 	public SearchParameters getCurrentSearchParameters(){
-		return new SearchParameters(getDisplayColumns(), this.type.name(), paginationOffest, paginationLength, sortKey, ascending);
+		return new SearchParameters(getDisplayColumns(), this.type.name(), this.where, paginationOffset, paginationLength, sortKey, ascending);
+	}
+
+	public WhereCondition getWhere() {
+		return where;
 	}
 
 	/**
@@ -105,7 +102,7 @@ public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presen
 		// First, set the columns
 		setCurrentColumns(result.getColumnInfoList());
 		// Now set the rows
-		RowData data = new RowData(result.getRows(), paginationOffest, paginationLength, result.getTotalNumberResults(), sortKey, ascending);
+		RowData data = new RowData(result.getRows(), paginationOffset, paginationLength, result.getTotalNumberResults(), sortKey, ascending);
 		view.setRows(data);
 	}
 
@@ -149,7 +146,7 @@ public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presen
 	
 	@Override
 	public void pageTo(int start, int length) {
-		this.paginationOffest = start;
+		this.paginationOffset = start;
 		this.paginationLength = length;
 		refreshFromServer();
 	}
@@ -170,8 +167,8 @@ public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presen
 		return ascending;
 	}
 
-	public int getPaginationOffest() {
-		return paginationOffest;
+	public int getPaginationOffset() {
+		return paginationOffset;
 	}
 
 	public int getPaginationLength() {
@@ -189,5 +186,27 @@ public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presen
 		if(type == null) throw new IllegalStateException("The type must be set before this table can be used.");
 		return this.view.asWidget();
 	}
+
+	@Override
+	public void setWhereCondition(WhereCondition where) {
+		this.where = where;
+		this.refreshFromServer();
+	}
+
+	@Override
+	public void initialize(FromType type, boolean usePager) {
+		this.type = type;
+		this.view.usePager(usePager);
+		if(usePager){
+			// A pager will be used.
+			this.paginationOffset = DEFAULT_OFFSET;
+			this.paginationLength = DEFAULT_LIMIT;
+		}else{
+			// Since there is no pager, the limit should be maxed
+			this.paginationOffset = DEFAULT_OFFSET;
+			this.paginationLength = Integer.MAX_VALUE;
+		}
+	}
+
 
 }

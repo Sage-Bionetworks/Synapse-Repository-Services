@@ -8,6 +8,8 @@ import java.net.URISyntaxException;
 import org.junit.Test;
 import org.sagebionetworks.web.server.servlet.QueryStringUtils;
 import org.sagebionetworks.web.shared.SearchParameters;
+import org.sagebionetworks.web.shared.WhereCondition;
+import org.sagebionetworks.web.shared.WhereCondition.Operator;
 
 public class QueryStringUtilsTest {
 	
@@ -76,6 +78,28 @@ public class QueryStringUtilsTest {
 		params.setFromType(SearchParameters.FromType.dataset.name());
 		params.setAscending(true);
 		params.setSort("sortKey");
+		// Now create the query string for this object
+		URI uri = QueryStringUtils.writeQueryUri(ROOT_URL, params);
+		assertNotNull(uri);
+		System.out.println(uri);
+		// Now make a copy from the string
+		SearchParameters copy = QueryStringUtils.parseQueryString(uri.toString());
+		assertNotNull(copy);
+		// The offset should have been changed to 1
+		assertEquals(1, copy.getOffset());
+	}
+	
+	@Test
+	public void testRoundTripWhere() throws URISyntaxException{
+		// Create a simple query
+		SearchParameters params = new SearchParameters();
+		params.setLimit(100);
+		params.setOffset(0);
+		params.setFromType(SearchParameters.FromType.dataset.name());
+		params.setAscending(true);
+		params.setSort("sortKey");
+		WhereCondition where = new WhereCondition("someId", Operator.EQUALS, "123");
+		params.setWhere(where);
 		// Now create the query string for this object
 		URI uri = QueryStringUtils.writeQueryUri(ROOT_URL, params);
 		assertNotNull(uri);

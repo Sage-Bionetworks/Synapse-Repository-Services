@@ -33,8 +33,7 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 		this.queryServiceTable = table;
 		initWidget(binder.createAndBindUi(this));
 		// The pager will listen to the dynamic table
-		table.setUsePager(true);
-		table.setType(FromType.dataset);
+		table.initialize(FromType.dataset, true);
 		// Add the table
 		tablePanel.add(table.asWidget());
 

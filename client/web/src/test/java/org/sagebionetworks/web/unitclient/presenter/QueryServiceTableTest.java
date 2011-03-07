@@ -46,7 +46,7 @@ public class QueryServiceTableTest {
 		// Using a stub cookie provider
 		// Create the presenter
 		presenter = new QueryServiceTable(mockView, asynchProxy);
-		presenter.setType(FromType.dataset);
+		presenter.initialize(FromType.dataset, true);
 		// Make sure the view gets the presenter set
 		verify(mockView).setPresenter(presenter);
 	}

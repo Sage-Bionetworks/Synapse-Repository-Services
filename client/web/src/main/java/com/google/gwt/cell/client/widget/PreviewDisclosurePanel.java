@@ -51,6 +51,14 @@ public class PreviewDisclosurePanel extends Composite {
 		this.headerTable = headerTable;
 		this.previewHtml = previewHtml;
 		this.contentHtml = contentHtml;
+		// flow the elements vertically
+		VerticalPanel panel = new VerticalPanel();
+		panel.add(headerTable); 
+		panel.add(previewHtml);
+		panel.add(contentHtml);
+
+		// All composites must call initWidget() in their constructors.
+		initWidget(panel);
 	}
 		
 	/**
@@ -102,14 +110,6 @@ public class PreviewDisclosurePanel extends Composite {
 		headerTable.setWidget(0, ARROW_COL, arrowButton);
 		headerTable.setText(0, CAPTION_COL, caption);		
 		
-		// flow the elements vertically
-		VerticalPanel panel = new VerticalPanel();
-		panel.add(headerTable); 
-		panel.add(previewHtml);
-		panel.add(contentHtml);
-
-		// All composites must call initWidget() in their constructors.
-		initWidget(panel);		
 	}
 	
 	/**

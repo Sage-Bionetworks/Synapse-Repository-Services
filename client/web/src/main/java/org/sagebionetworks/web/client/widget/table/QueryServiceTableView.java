@@ -4,9 +4,10 @@ import java.util.List;
 
 import org.sagebionetworks.web.client.view.RowData;
 import org.sagebionetworks.web.shared.HeaderData;
+import org.sagebionetworks.web.shared.SearchParameters.FromType;
+import org.sagebionetworks.web.shared.WhereCondition;
 
 import com.google.gwt.user.client.ui.IsWidget;
-import com.google.gwt.view.client.HasRows;
 
 public interface QueryServiceTableView extends IsWidget {
 	
@@ -54,18 +55,35 @@ public interface QueryServiceTableView extends IsWidget {
 	 *
 	 */
 	public interface Presenter {
+		
+		/**
+		 * Initialize the table without trigging a rebuild.
+		 * 
+		 * @param type
+		 * @param usePager
+		 * @param offest
+		 * @param limit
+		 */
+		public void initialize(FromType type, boolean usePager);
+		
+		/**
+		 * Set the where condition.  This will trigger a refresh.
+		 * @param where
+		 */
+		public void setWhereCondition(WhereCondition where);
+		
 		/**
 		 * Change the page.
 		 * @param start
 		 * @param length
 		 */
-		void pageTo(int start, int length);
+		public void pageTo(int start, int length);
 
 		/**
 		 * Toggle the sort on a column
 		 * @param columnKey
 		 */
-		void toggleSort(String columnKey);
+		public void toggleSort(String columnKey);
 		
 		/**
 		 * Set the columns that should be displayed.

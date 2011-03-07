@@ -8,7 +8,9 @@ import java.util.StringTokenizer;
 
 import org.sagebionetworks.web.server.UrlTemplateUtil;
 import org.sagebionetworks.web.shared.SearchParameters;
+import org.sagebionetworks.web.shared.WhereCondition;
 import org.sagebionetworks.web.shared.SearchParameters.FromType;
+import org.sagebionetworks.web.shared.WhereCondition.Operator;
 
 /**
  * Creates query string from SearchParameters, and parses a query string into SearchParameters.
@@ -23,28 +25,25 @@ public class QueryStringUtils {
 	public static final String KEY_LIMIT = "limitKey";
 	public static final String KEY_SORT = "sortKey";
 	public static final String KEY_ASCND = "ascendingKey";
+	public static final String KEY_WHERE = "whereKey";
+	
+	/**
+	 * The query key words
+	 */
+	public static final String SELECT = "select";
+	public static final String FROM = "from";
+	public static final String WHERE = "where";
+	public static final String LIMIT = "limit";
+	public static final String OFFSET = "offset";
+	public static final String ASCENDING = "ASC";
+	public static final String DESCENDING = "DESC";
+	public static final String ORDER = "order";
+	public static final String BY = "by";
+	public static final String STAR = "*";
+	public static final String WHITE_SPACE = "+";
 	
 	public static final String PATH_QUERY = "repo/v1/query?query=";
 
-	public static final String QUERY = "select+*+from+{"
-			+ KEY_FROM
-			+ "}+limit+{"
-			+ KEY_LIMIT
-			+ "}+offset+{"
-			+ KEY_OFFSET
-			+ "}";
-
-	public static final String QUERY_WITH_SORT = "select+*+from+{"
-			+ KEY_FROM
-			+ "}+order+by+\"{"
-			+ KEY_SORT
-			+ "}\"+{"
-			+ KEY_ASCND
-			+ "}+limit+{" + KEY_LIMIT + "}+offset+{" + KEY_OFFSET + "}";
-
-	public static final String ASCENDING = "ASC";
-	public static final String DESCENDING = "DESC";
-	
 	/**
 	 * Build up a query String from the given parameters.
 	 * @param params
@@ -55,31 +54,71 @@ public class QueryStringUtils {
 		builder.append(root);
 		builder.append(PATH_QUERY);
 		Map<String, String> map = new TreeMap<String, String>();
-		// Bind the type
-		FromType type = params.fetchType();
-		map.put(KEY_FROM, type.name());
-		if (params.getSort() != null) {
-			builder.append(QUERY_WITH_SORT);
-			map.put(KEY_SORT, params.getSort());
-			String value = null;
-			if (params.isAscending()) {
-				value = ASCENDING;
-			} else {
-				value = DESCENDING;
-			}
-			map.put(KEY_ASCND, value);
-		} else {
-			builder.append(QUERY);
+		
+		// Build up the template
+		builder.append(SELECT);
+		builder.append(WHITE_SPACE);
+		// For now all queries are select *
+		builder.append(STAR);
+		builder.append(WHITE_SPACE);
+		if(params.fetchType() == null) throw new IllegalArgumentException("From type cannot be null");
+		builder.append(FROM);
+		builder.append(WHITE_SPACE);
+		// Add the regular expression to the key
+		appendBracketedKeyAndBindValue(builder, KEY_FROM, map, params.fetchType().name());
+		// Do we have a where clause?
+		if(params.getWhere() != null){
+			builder.append(WHITE_SPACE);
+			builder.append(WHERE);
+			builder.append(WHITE_SPACE);
+			appendBracketedKeyAndBindValue(builder, KEY_WHERE, map, params.getWhere().toSql(WHITE_SPACE));
 		}
-		// The limit must start at one not zero
+		// Do we have a sort string?
+		if(params.getSort() != null){
+			builder.append(WHITE_SPACE);
+			builder.append(ORDER);
+			builder.append(WHITE_SPACE);
+			builder.append(BY);
+			builder.append(WHITE_SPACE);
+			builder.append("\"");
+			builder.append(params.getSort());
+			builder.append("\"");
+			builder.append(WHITE_SPACE);
+			String ascendingString = null;
+			if(params.isAscending()){
+				ascendingString = ASCENDING;
+			}else{
+				ascendingString = DESCENDING;
+			}
+			appendBracketedKeyAndBindValue(builder, KEY_ASCND, map, ascendingString);
+		}
+		// Set the offset and limit
 		int offset = params.getOffset();
 		if(offset < 1){
 			offset = 1;
 		}
-		map.put(KEY_OFFSET, Integer.toString(offset));
-		map.put(KEY_LIMIT, Integer.toString(params.getLimit()));
+		builder.append(WHITE_SPACE);
+		builder.append(LIMIT);
+		builder.append(WHITE_SPACE);
+		appendBracketedKeyAndBindValue(builder, LIMIT, map, Integer.toString(params.getLimit()));
+		builder.append(WHITE_SPACE);
+		builder.append(OFFSET);
+		builder.append(WHITE_SPACE);
+		appendBracketedKeyAndBindValue(builder, OFFSET, map, Integer.toString(offset));
 		String url = builder.toString();
 		return UrlTemplateUtil.expandUrl(url, map);
+	}
+	
+	/**
+	 * Will append a bracketed key: "{<key>}" and bind the value to the map
+	 * @param builder
+	 * @param key
+	 */
+	private static void appendBracketedKeyAndBindValue(StringBuilder builder, String key, Map<String, String> map, String value){
+		builder.append("{");
+		builder.append(key);
+		builder.append("}");
+		map.put(key, value);
 	}
 
 	/**
@@ -96,16 +135,16 @@ public class QueryStringUtils {
 		while(tokenizer.hasMoreTokens()){
 			String token = tokenizer.nextToken();
 			String tokenLower = token.toLowerCase();
-			if("from".equals(tokenLower)){
+			if(FROM.equals(tokenLower)){
 				params.setFromType(tokenizer.nextToken());
 				continue;
-			}else if("limit".equals(tokenLower)){
+			}else if(LIMIT.equals(tokenLower)){
 				params.setLimit(Integer.parseInt(tokenizer.nextToken()));
 				continue;
-			}else if("offset".equals(tokenLower)){
+			}else if(OFFSET.equals(tokenLower)){
 				params.setOffset(Integer.parseInt(tokenizer.nextToken()));
 				continue;
-			}else if("order".equals(tokenLower)){
+			}else if(ORDER.equals(tokenLower)){
 				// The next token should be by
 				String by = tokenizer.nextToken();
 				// after the 'by' should be the key
@@ -118,6 +157,11 @@ public class QueryStringUtils {
 					params.setAscending(false);
 				}
 				continue;
+			}else if(WHERE.equals(tokenLower)){
+				String id = tokenizer.nextToken();
+				Operator opperator = Operator.fromSql(tokenizer.nextToken());
+				String value = tokenizer.nextToken();
+				params.setWhere(new WhereCondition(id, opperator, value));
 			}
 		}
 		// Done

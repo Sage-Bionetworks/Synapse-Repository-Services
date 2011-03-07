@@ -18,6 +18,7 @@ import org.sagebionetworks.web.shared.ColumnsForType;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.TableResults;
+import org.sagebionetworks.web.shared.WhereCondition;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -121,6 +122,10 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 		results.setTotalNumberResults((Integer) body
 				.get(KEY_TOTAL_NUMBER_OF_RESULTS));
 		
+		// Add the where clause to the result table if it is not already there
+		// This is a workaround for PLFM-77
+		addWhereClauseToResults(params.getWhere(), rows);
+		
 		// The last step is to process all of the url templates
 		UrlTemplateUtil.processUrlTemplates(allColumnHeaderData, rows);
 
@@ -131,6 +136,22 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 		return results;
 	}
 	
+	/**
+	 * This is a workaround for PLFM-77
+	 * @param where
+	 * @param rows
+	 */
+	private void addWhereClauseToResults(WhereCondition where,	List<Map<String, Object>> rows) {
+		// Nothing to do if the where clause is null
+		if(where != null && rows != null){
+			for(Map<String, Object> row: rows){
+				if(!row.containsKey(where.getId())){
+					row.put(where.getId(), where.getValue());
+				}
+			}
+		}
+	}
+
 	/**
 	 * Create a map of column headers to their id.
 	 * @param list

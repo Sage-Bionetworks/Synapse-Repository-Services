@@ -1,9 +1,10 @@
 package org.sagebionetworks.web.client.view;
 
-import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.presenter.DatasetRow;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
 import org.sagebionetworks.web.shared.SearchParameters.FromType;
+import org.sagebionetworks.web.shared.WhereCondition;
+import org.sagebionetworks.web.shared.WhereCondition.Operator;
 
 import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
 import com.google.gwt.dom.client.SpanElement;
@@ -11,13 +12,9 @@ import com.google.gwt.i18n.client.DateTimeFormat;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.Window;
-import com.google.gwt.user.client.ui.DisclosurePanel;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
-import com.google.gwt.user.client.ui.HTML;
-import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
@@ -48,10 +45,10 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	public DatasetViewImpl(Binder uiBinder, final PreviewDisclosurePanel previewDisclosurePanel, QueryServiceTable table) {
 		initWidget(uiBinder.createAndBindUi(this));
 		this.previewDisclosurePanel = previewDisclosurePanel;
-		table.setUsePager(false);
-		table.setType(FromType.layer);
-		tablePanel.add(table.asWidget());
 		this.table = table;
+		this.table.initialize(FromType.layer, false);
+		tablePanel.add(table.asWidget());
+
 	}
 
 	@Override
@@ -66,12 +63,17 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 
 	@Override
 	public void setDatasetRow(DatasetRow row) {
+		// Set the where clause
+		this.table.setWhereCondition(new WhereCondition("dataset.id", Operator.EQUALS, row.getId()));
 		// Clear everything
 		clearAllFields();
 		titleSpan.setInnerText(row.getName());
 
 		// set descriptions
 		String description = row.getDescription();
+		if(description == null){
+			description = "No Description";
+		}
 		int summaryLength = description.length() >= DESCRIPTION_SUMMARY_LENGTH ? DESCRIPTION_SUMMARY_LENGTH
 				: description.length();
 		previewDisclosurePanel.init("Expand",
