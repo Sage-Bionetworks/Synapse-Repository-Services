@@ -8,13 +8,9 @@ import java.net.URL;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -27,12 +23,17 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
-import org.sagebionetworks.repo.web.Base64;
-import org.sagebionetworks.repo.web.ModParamHttpServletRequest;
+import org.sagebionetworks.repo.web.controller.BaseController;
 import org.springframework.http.HttpStatus;
 import org.xml.sax.InputSource;
 
+/**
+ *
+ */
 public class CrowdAuthenticationFilter implements Filter {
+	private static final Logger log = Logger.getLogger(CrowdAuthenticationFilter.class
+			.getName());
+	
 	private String crowdProtocol; // http or https
 	private String crowdServer;
 	private int crowdPort;
@@ -41,8 +42,6 @@ public class CrowdAuthenticationFilter implements Filter {
 	@Override
 	public void destroy() {
 	}
-	
-	public static final String USER_ID = "userId";
 	
 	private static void reject(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 		// reject
@@ -68,9 +67,7 @@ public class CrowdAuthenticationFilter implements Filter {
 				userId = revalidate(sessionToken);
 			} catch (Exception xee) {
 				reject(req, (HttpServletResponse)servletResponse);
-				// TODO log the exception 
-//				throw new RuntimeException(xee);
-				xee.printStackTrace();
+				log.log(Level.WARNING, "invalid session token", xee);
 				return;
 			}
 		}
@@ -78,7 +75,7 @@ public class CrowdAuthenticationFilter implements Filter {
 			// pass along, including the user id
 			@SuppressWarnings("unchecked")
 			Map<String,String[]> modParams = new HashMap<String,String[]>(req.getParameterMap());
-			modParams.put(USER_ID, new String[]{userId});
+			modParams.put(ServiceConstants.USER_ID_PARAM, new String[]{userId});
 			HttpServletRequest modRqst = new ModParamHttpServletRequest(req, modParams);
 			filterChain.doFilter(modRqst, servletResponse);
 		} else if (allowAnonymous) {
@@ -113,15 +110,27 @@ public class CrowdAuthenticationFilter implements Filter {
 	private static final String CLIENT = "platform";
 	private static final String CLIENT_KEY = "platform-pw";
 
+	/**
+	 * @param xPath
+	 * @param xml
+	 * @return found string matching the xpath expression
+	 * @throws XPathExpressionException
+	 */
 	public static String getFromXML(String xPath, byte[] xml) throws XPathExpressionException {
 		XPath xpath = XPathFactory.newInstance().newXPath();
 		return xpath.evaluate(xPath, new InputSource(new ByteArrayInputStream(xml)));
 	}
 	
+	/**
+	 * @return Crowd URL prefix
+	 */
 	public String urlPrefix() {
 		return crowdProtocol+"://"+crowdServer+":"+crowdPort+"/crowd/rest/usermanagement/latest";
 	}
 	
+	/**
+	 * @param conn
+	 */
 	public static void setHeaders(HttpURLConnection conn) {
 		conn.setRequestProperty("Accept", "application/xml");
 		conn.setRequestProperty("Content-Type", "application/xml");
@@ -130,6 +139,12 @@ public class CrowdAuthenticationFilter implements Filter {
 	}
 	
 		
+	/**
+	 * @param sessionToken
+	 * @return userId
+	 * @throws IOException
+	 * @throws XPathExpressionException
+	 */
 	public String revalidate(String sessionToken) throws IOException, XPathExpressionException {
 		byte[] sessionXML = new byte[0];
 		int rc = 0;
@@ -165,6 +180,9 @@ public class CrowdAuthenticationFilter implements Filter {
 		return sb.toString().trim();
 	}
 
+	/**
+	 * 
+	 */
 	public static void acceptAllCertificates() {
 		// from http://www.exampledepot.com/egs/javax.net.ssl/trustall.html
 		// Create a trust manager that does not validate certificate chains
