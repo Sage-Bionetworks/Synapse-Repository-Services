@@ -58,7 +58,7 @@ public class UserGroupDAOTest {
 		return group;
 	}
 
-	@Ignore
+//	@Ignore
 	@Test
 	public void happyPath() throws Exception {
 		// create user anonymously
@@ -89,10 +89,9 @@ public class UserGroupDAOTest {
 		Assert.assertTrue(userGroupDAO.hasAccess(group2.getId(), "read"));
 		Assert.assertTrue(userGroupDAO.hasAccess(group2.getId(), "change"));
 		Assert.assertTrue(userGroupDAO.hasAccess(group2.getId(), "share"));
-// 		TODO Fix this-- I think it has to do with cleaning up properly from previous tests
 //		// and only the 'TestUser 1' group should have access
-//		Assert.assertEquals("id="+group2.getId()+" "+userGroupDAO.whoHasAccess(group2.getId(), "read"), 1, userGroupDAO.whoHasAccess(group2.getId(), "read").size());
-//		Assert.assertEquals("TestUser 1", userGroupDAO.whoHasAccess(group2.getId(), "read").iterator().next().getName());
+		Assert.assertEquals("id="+group2.getId()+" "+userGroupDAO.whoHasAccess(group2.getId(), "read"), 1, userGroupDAO.whoHasAccess(group2.getId(), "read").size());
+		Assert.assertEquals("TestUser 1", userGroupDAO.whoHasAccess(group2.getId(), "read").iterator().next().getName());
 		// ... but the Public should also have access to the anonymously created group
 		Assert.assertEquals(""+userGroupDAO.whoHasAccess(group.getId(), "read"), 1, userGroupDAO.whoHasAccess(group.getId(), "read").size());
 		Assert.assertEquals("Public", userGroupDAO.whoHasAccess(group.getId(), "read").iterator().next().getName());
@@ -116,8 +115,7 @@ public class UserGroupDAOTest {
 		
 		try {
 			anonymousUserDAO.update(user2);
-			// TODO fix this
-			//Assert.fail("UnauthorizedException expected!");
+			Assert.fail("UnauthorizedException expected!");
 		} catch (UnauthorizedException ue) {
 			// as expected
 		}

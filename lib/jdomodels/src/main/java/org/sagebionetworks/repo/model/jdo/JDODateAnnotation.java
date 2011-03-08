@@ -23,7 +23,7 @@ import javax.jdo.annotations.PrimaryKey;
 @PersistenceCapable(detachable = "true")
 public class JDODateAnnotation implements JDOAnnotation<Date> {
 	@PrimaryKey
-	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
+	@Persistent(valueStrategy = IdGeneratorStrategy.SEQUENCE, sequence="GLOBAL_SEQ")
 	private Long id;
 
 	@Persistent

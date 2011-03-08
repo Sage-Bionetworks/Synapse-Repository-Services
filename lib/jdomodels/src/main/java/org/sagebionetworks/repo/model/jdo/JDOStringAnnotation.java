@@ -19,7 +19,7 @@ import javax.jdo.annotations.PrimaryKey;
 @PersistenceCapable(detachable = "false")
 public class JDOStringAnnotation implements JDOAnnotation<String> {
 	@PrimaryKey
-	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
+	@Persistent(valueStrategy = IdGeneratorStrategy.SEQUENCE, sequence="GLOBAL_SEQ")
 	private Long id;
 
 	// this is the backwards pointer for the 1-1 owned relationship

@@ -106,7 +106,7 @@ public class CrowdAuthenticationFilter implements Filter {
            	if ("allow-anonymous".equalsIgnoreCase(paramName)) allowAnonymous = Boolean.parseBoolean(paramValue);
         }
         
-        acceptAllCertificates();
+//        acceptAllCertificates();
   	}
 
 	//-----------------------------------------------------------------------------------------

@@ -18,6 +18,9 @@ public class User implements Base {
 	public String getUserId() {
 		return userId;
 	}
+	
+	public String toString() {return getUserId();}
+	
 	public void setUserId(String usedId) {
 		this.userId = usedId;
 	}

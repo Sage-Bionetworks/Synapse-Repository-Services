@@ -19,7 +19,7 @@ import javax.jdo.annotations.PrimaryKey;
 @PersistenceCapable(detachable = "false")
 public class JDODoubleAnnotation implements JDOAnnotation<Double> {
 	@PrimaryKey
-	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
+	@Persistent(valueStrategy = IdGeneratorStrategy.SEQUENCE, sequence="GLOBAL_SEQ")
 	private Long id;
 
 	@Persistent
