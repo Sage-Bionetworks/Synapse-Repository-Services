@@ -526,6 +526,17 @@ abstract public class GAEJDOBaseDAOImpl<S extends Base, T extends GAEJDOBase>
 				.execute(resourceKey, accessType);
 		return ras;
 	}
+	
+	public void dumpAllAccess() throws Exception {
+		PersistenceManager pm = PMF.get();
+		Query query = pm.newQuery(GAEJDOResourceAccess.class);
+		@SuppressWarnings("unchecked")
+		Collection<GAEJDOResourceAccess> ras = (Collection<GAEJDOResourceAccess>) query
+		.execute();
+		for (GAEJDOResourceAccess ra: ras) {
+			System.out.println("Owner: "+ra.getOwner()+" Resource: "+ra.getResource()+" type: "+ra.getAccessType());
+		}
+	}
 
 	public Collection<UserGroup> whoHasAccess(String id, String accessType)
 			throws NotFoundException, DatastoreException {

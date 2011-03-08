@@ -69,6 +69,8 @@ public class GAEJDOUser implements GAEJDOBase {
 	public void setUserId(String userId) {
 		this.userId = userId;
 	}
+	
+	public String toString() {return getUserId();}
 
 	/**
 	 * @return the iamAccessId
