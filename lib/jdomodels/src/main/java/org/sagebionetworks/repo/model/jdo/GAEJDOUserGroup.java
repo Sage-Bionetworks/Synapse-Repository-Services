@@ -59,6 +59,8 @@ public class GAEJDOUserGroup implements GAEJDOBase {
 	public void setName(String name) {
 		this.name = name;
 	}
+	
+	public String toString() {return getName();}
 
 	public Date getCreationDate() {
 		return creationDate;
