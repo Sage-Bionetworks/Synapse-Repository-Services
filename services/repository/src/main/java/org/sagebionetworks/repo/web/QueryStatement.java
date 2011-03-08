@@ -19,8 +19,10 @@ import org.sagebionetworks.repo.queryparser.TokenMgrError;
 public class QueryStatement {
 
 	private String tableName = null;
+	private String whereTable = null;
 	private String whereField = null;
 	private Object whereValue = null;
+	private String sortTable = null;
 	private String sortField = null;
 	private Boolean sortAcending = ServiceConstants.DEFAULT_ASCENDING;
 
@@ -62,11 +64,14 @@ public class QueryStatement {
 			case QueryParser.JJTWHERE:
 				QueryNode whereFieldNode = (QueryNode) node.jjtGetChild(0);
 				if (QueryParser.JJTCOMPOUNDID == whereFieldNode.getId()) {
-					// TODO later we might want to return these as two separate fields table and column
-					whereField = (String) ((QueryNode) whereFieldNode.jjtGetChild(0))
-					.jjtGetValue();
 					if(2 == whereFieldNode.jjtGetNumChildren()) {
-						whereField = whereField + "." + ((QueryNode) whereFieldNode.jjtGetChild(1))
+						whereTable= (String) ((QueryNode) whereFieldNode.jjtGetChild(0))
+						.jjtGetValue();
+						whereField = (String) ((QueryNode) whereFieldNode.jjtGetChild(1))
+						.jjtGetValue();
+					}
+					else {
+						whereField = (String) ((QueryNode) whereFieldNode.jjtGetChild(0))
 						.jjtGetValue();
 					}
 				} else {
@@ -77,8 +82,22 @@ public class QueryStatement {
 						.jjtGetValue();
 				break;
 			case QueryParser.JJTORDERBY:
-				sortField = (String) ((QueryNode) node.jjtGetChild(0))
+				QueryNode sortFieldNode = (QueryNode) node.jjtGetChild(0);
+				if (QueryParser.JJTCOMPOUNDID == sortFieldNode.getId()) {
+					if(2 == sortFieldNode.jjtGetNumChildren()) {
+						sortTable= (String) ((QueryNode) sortFieldNode.jjtGetChild(0))
 						.jjtGetValue();
+						sortField = (String) ((QueryNode) sortFieldNode.jjtGetChild(1))
+						.jjtGetValue();
+					}
+					else {
+						sortField = (String) ((QueryNode) sortFieldNode.jjtGetChild(0))
+						.jjtGetValue();
+					}
+				} else {
+					sortField = (String) ((QueryNode) node.jjtGetChild(0))
+							.jjtGetValue();
+				}
 				if (1 < node.jjtGetNumChildren()) {
 					sortAcending = (Boolean) ((QueryNode) node.jjtGetChild(1))
 							.jjtGetValue();
@@ -109,6 +128,13 @@ public class QueryStatement {
 	}
 
 	/**
+	 * @return the whereTable
+	 */
+	public String getWhereTable() {
+		return whereTable;
+	}
+	
+	/**
 	 * @return the whereField
 	 */
 	public String getWhereField() {
@@ -122,6 +148,13 @@ public class QueryStatement {
 		return whereValue;
 	}
 
+	/**
+	 * @return the sortTable
+	 */
+	public String getSortTable() {
+		return sortTable;
+	}
+	
 	/**
 	 * @return the sortField
 	 */

@@ -168,7 +168,7 @@ SimpleNode Start() : {}
 // good reason for different names for identical methods            
 void TableName() : {}  
 {
-  <ID> { jjtThis.value = new String(token.image); System.out.println("token table name " + token.image); }
+  <ID> { jjtThis.value = new String(token.image); /*System.out.println("token table name " + token.image);*/ }
 }
 
 void Where() : {}
@@ -178,7 +178,7 @@ void Where() : {}
 
 void OrderBy() : {}
 {
-  <ORDERBY> ( Id() | StringValue() ) [ Ascending() | Descending() ]
+  <ORDERBY> ( CompoundId() | StringValue() ) [ Ascending() | Descending() ]
 }
 
 void Limit() : {}
@@ -193,22 +193,22 @@ void Offset() : {}
 
 void CompoundId() : {}
 {
-	Id() [ <DOT> Id() ]
+	Id() [ <DOT> ( Id() | StringValue() ) ]
 }
 
 void Id() : {}              
 {
-  <ID> { jjtThis.value = new String(token.image); System.out.println("token id " + token.image); }
+  <ID> { jjtThis.value = new String(token.image); /*System.out.println("token id " + token.image);*/ }
 }
 
 void Ascending() : {}
 {
-	<ASC> { jjtThis.value = Boolean.TRUE; System.out.println("token sort direction ascending"); }
+	<ASC> { jjtThis.value = Boolean.TRUE; /*System.out.println("token sort direction ascending");*/ }
 }
 
 void Descending() : {}
 {
-	<DESC> { jjtThis.value = Boolean.FALSE; System.out.println("token sort direction descending"); }
+	<DESC> { jjtThis.value = Boolean.FALSE; /*System.out.println("token sort direction descending");*/ }
 }
 
 void Value() : {}
@@ -218,20 +218,20 @@ void Value() : {}
 
 void FpValue() : {}
 {    
-	<FLOATING_POINT_LITERAL> { jjtThis.value = new Double(token.image); System.out.println("token where float val " + token.image); }
+	<FLOATING_POINT_LITERAL> { jjtThis.value = new Double(token.image); /*System.out.println("token where float val " + token.image);*/ }
 }
 
 void IntValue() : {}
 {    
-    <INTEGER_LITERAL>  { jjtThis.value = new Long(token.image); System.out.println("token where int val " + token.image); }
+    <INTEGER_LITERAL>  { jjtThis.value = new Long(token.image); /*System.out.println("token where int val " + token.image);*/ }
 }
 
 void DateValue() : {} // TODO consider DateTime instead of String
 {
-	<DATE_LITERAL>  { jjtThis.value = new String(token.image.substring(1, token.image.length()-1)); System.out.println("token where date val " + token.image); }
+	<DATE_LITERAL>  { jjtThis.value = new String(token.image.substring(1, token.image.length()-1)); /*System.out.println("token where date val " + token.image);*/ }
 }
 
 void StringValue() : {}
 {
-	<STRING_LITERAL>  { jjtThis.value = new String(token.image.substring(1, token.image.length()-1)); System.out.println("token where str val " + token.image); }
+	<STRING_LITERAL>  { jjtThis.value = new String(token.image.substring(1, token.image.length()-1)); /*System.out.println("token where str val " + token.image);*/ }
 }

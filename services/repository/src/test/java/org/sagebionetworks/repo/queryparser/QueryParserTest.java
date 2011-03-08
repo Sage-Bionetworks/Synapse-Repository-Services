@@ -5,6 +5,7 @@ package org.sagebionetworks.repo.queryparser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.StringReader;
@@ -46,6 +47,7 @@ public class QueryParserTest {
 		QueryStatement stmt = new QueryStatement(
 				"select * from layer where type == \"C\"");
 		assertEquals("layer", stmt.getTableName());
+		assertNull(stmt.getWhereTable());
 		assertEquals("type", stmt.getWhereField());
 		assertEquals("C", stmt.getWhereValue());
 	}
@@ -59,10 +61,25 @@ public class QueryParserTest {
 		QueryStatement stmt = new QueryStatement(
 				"select * from dataset where \"Number of Samples\" == 100");
 		assertEquals("dataset", stmt.getTableName());
+		assertNull(stmt.getWhereTable());
 		assertEquals("Number of Samples", stmt.getWhereField());
 		assertEquals(new Long(100), stmt.getWhereValue());
 	}
 
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testCompoundIdWithSpaces() throws Exception {
+
+		QueryStatement stmt = new QueryStatement(
+				"select * from dataset where dataset.\"Number of Samples\" == 100");
+		assertEquals("dataset", stmt.getTableName());
+		assertEquals("dataset", stmt.getWhereTable());
+		assertEquals("Number of Samples", stmt.getWhereField());
+		assertEquals(new Long(100), stmt.getWhereValue());
+	}
+	
 	/**
 	 * @throws Exception
 	 */
@@ -72,6 +89,7 @@ public class QueryParserTest {
 		QueryStatement stmt = new QueryStatement(
 				"select * from layer where creationDate == \"2011-01-31\"");
 		assertEquals("layer", stmt.getTableName());
+		assertNull(stmt.getWhereTable());
 		assertEquals("creationDate", stmt.getWhereField());
 		assertEquals("2011-01-31", stmt.getWhereValue());
 	}
@@ -109,6 +127,7 @@ public class QueryParserTest {
 		QueryStatement stmt = new QueryStatement(
 				"select * from dataset order by name");
 		assertEquals("dataset", stmt.getTableName());
+		assertNull(stmt.getSortTable());
 		assertEquals("name", stmt.getSortField());
 	}
 
@@ -119,8 +138,9 @@ public class QueryParserTest {
 	public void testOrderByAscending() throws Exception {
 
 		QueryStatement stmt = new QueryStatement(
-				"select * from dataset order by name asc");
+				"select * from dataset order by dataset.name asc");
 		assertEquals("dataset", stmt.getTableName());
+		assertEquals("dataset", stmt.getSortTable());
 		assertEquals("name", stmt.getSortField());
 		assertTrue(stmt.getSortAcending());
 	}
@@ -134,6 +154,7 @@ public class QueryParserTest {
 		QueryStatement stmt = new QueryStatement(
 				"select * from dataset order by name desc");
 		assertEquals("dataset", stmt.getTableName());
+		assertNull(stmt.getSortTable());
 		assertEquals("name", stmt.getSortField());
 		assertFalse(stmt.getSortAcending());
 	}
@@ -145,8 +166,9 @@ public class QueryParserTest {
 	public void testOrderByWithLimit() throws Exception {
 
 		QueryStatement stmt = new QueryStatement(
-				"select * from dataset order by \"name\" limit 30");
+				"select * from dataset order by dataset.\"name\" limit 30");
 		assertEquals("dataset", stmt.getTableName());
+		assertEquals("dataset", stmt.getSortTable());
 		assertEquals("name", stmt.getSortField());
 		assertEquals(new Integer(30), stmt.getLimit());
 	}
@@ -160,7 +182,8 @@ public class QueryParserTest {
 		QueryStatement stmt = new QueryStatement(
 				"select * from layer where dataset.id == \"123\"");
 		assertEquals("layer", stmt.getTableName());
-		assertEquals("dataset.id", stmt.getWhereField());
+		assertEquals("dataset", stmt.getWhereTable());
+		assertEquals("id", stmt.getWhereField());
 		assertEquals("123", stmt.getWhereValue());
 	}
 

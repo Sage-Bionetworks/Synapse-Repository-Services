@@ -107,8 +107,10 @@ public class QueryController extends BaseController {
 		if (stmt.getTableName().equals("dataset")) {
 			return performDatasetQuery(stmt);
 		} else if (stmt.getTableName().equals("layer")) {
-			if (null == stmt.getWhereField()
-					|| !stmt.getWhereField().equals("dataset.id")) {
+			if (null == stmt.getWhereTable()
+					|| null == stmt.getWhereField()
+					|| ! (stmt.getWhereTable().equals("dataset")
+							&& stmt.getWhereField().equals("id"))) {
 				throw new ParseException(
 						"Layer queries must include a 'WHERE dataset.id == <the id>' clause");
 			}
