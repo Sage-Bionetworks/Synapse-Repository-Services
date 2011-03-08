@@ -25,9 +25,6 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.web.servlet.DispatcherServlet;
 
-import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
-import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
-
 /**
  * Test helper class to consolidate some generic testing code
  * 
@@ -37,9 +34,6 @@ import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 public class Helpers {
 
 	private static final Logger log = Logger.getLogger(Helpers.class.getName());
-
-	private static final LocalServiceTestHelper datastoreHelper = new LocalServiceTestHelper(
-			new LocalDatastoreServiceTestConfig());
 
 	private static final int JSON_INDENT = 2;
 
@@ -66,13 +60,12 @@ public class Helpers {
 	}
 
 	/**
-	 * Setup up our mock datastore and servlet
+	 * Setup up our mock servlet
 	 * 
 	 * @return the servlet
 	 * @throws Exception
 	 */
 	public DispatcherServlet setUp() throws Exception {
-		datastoreHelper.setUp();
 
 		// Create a Spring MVC DispatcherServlet so that we can test our URL
 		// mapping, request format, response format, and response status code.
@@ -97,8 +90,6 @@ public class Helpers {
 		for (TestStateItem item : testState) {
 			item.delete();
 		}
-
-		datastoreHelper.tearDown();
 
 	}
 

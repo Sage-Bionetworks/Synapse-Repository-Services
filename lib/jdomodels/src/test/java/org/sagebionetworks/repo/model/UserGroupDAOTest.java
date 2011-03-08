@@ -11,8 +11,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.jdo.GAEJDODAOFactoryImpl;
-import org.sagebionetworks.repo.model.jdo.GAEJDOUserGroupDAOImpl;
+import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
+import org.sagebionetworks.repo.model.jdo.JDOUserGroupDAOImpl;
 
 
 
@@ -36,7 +36,7 @@ public class UserGroupDAOTest {
 	@Before
 	public void setUp() throws Exception {
 //		helper.setUp();
-		fac = new GAEJDODAOFactoryImpl();
+		fac = new JDODAOFactoryImpl();
 	}
 
 	@After
@@ -81,7 +81,7 @@ public class UserGroupDAOTest {
 		// create group under a user's credentials
 		UserGroupDAO userGroupDAO = fac.getUserGroupDAO(user.getUserId());
 		UserGroup group2 = createUserGroup("TestGroup 2");
-		//((GAEJDOUserGroupDAOImpl)userGroupDAO).dumpAllAccess();
+		//((JDOUserGroupDAOImpl)userGroupDAO).dumpAllAccess();
 		userGroupDAO.create(group2);
 		
 		// now 'TestUser 1' should have access to 'TestGroup 2'

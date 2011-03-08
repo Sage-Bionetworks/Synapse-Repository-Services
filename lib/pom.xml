@@ -18,7 +18,6 @@
   
   <modules>
     <module>models</module>
-    <module>gaemodels</module>
     <module>jdomodels</module>
   </modules>
   

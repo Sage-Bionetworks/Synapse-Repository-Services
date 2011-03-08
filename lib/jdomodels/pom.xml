@@ -27,7 +27,7 @@
 
     <!-- Persistence-related dependencies -->
     <dependency>
-      <groupId>com.google.appengine.orm</groupId>
+      <groupId>org.datanucleus</groupId>
       <artifactId>datanucleus-core</artifactId>
       <version>${datanucleus.version}</version>
       <scope>runtime</scope>

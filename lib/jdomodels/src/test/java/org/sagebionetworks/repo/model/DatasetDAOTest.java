@@ -23,10 +23,10 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.jdo.GAEJDODAOFactoryImpl;
-import org.sagebionetworks.repo.model.jdo.GAEJDODataset;
-import org.sagebionetworks.repo.model.jdo.GAEJDOInputDataLayer;
-import org.sagebionetworks.repo.model.jdo.GAEJDOStringAnnotation;
+import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
+import org.sagebionetworks.repo.model.jdo.JDODataset;
+import org.sagebionetworks.repo.model.jdo.JDOInputDataLayer;
+import org.sagebionetworks.repo.model.jdo.JDOStringAnnotation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.PMF;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -53,7 +53,7 @@ public class DatasetDAOTest {
 
 	@Before
 	public void setUp() throws Exception {
-		fac = new GAEJDODAOFactoryImpl();
+		fac = new JDODAOFactoryImpl();
 	}
 
 	@After
@@ -369,9 +369,9 @@ public class DatasetDAOTest {
 		PersistenceManager pm = PMF.get();
 		{
 			Long key = KeyFactory.stringToKey(id);
-			GAEJDODataset jdo = (GAEJDODataset) pm.getObjectById(
-					GAEJDODataset.class, key);
-			Set<GAEJDOStringAnnotation> stringAnnots = jdo.getAnnotations().getStringAnnotations();
+			JDODataset jdo = (JDODataset) pm.getObjectById(
+					JDODataset.class, key);
+			Set<JDOStringAnnotation> stringAnnots = jdo.getAnnotations().getStringAnnotations();
 			Assert.assertEquals(1, stringAnnots.size());
 			gaejdoAnnotLong = stringAnnots.iterator().next().getId();
 		}
@@ -389,8 +389,8 @@ public class DatasetDAOTest {
 		// now try to get the dataset.  should be gone
 		try {
 			Long key = KeyFactory.stringToKey(id);
-			GAEJDODataset jdo = (GAEJDODataset) pm.getObjectById(
-					GAEJDODataset.class, key);
+			JDODataset jdo = (JDODataset) pm.getObjectById(
+					JDODataset.class, key);
 			Assert.fail("exception expected");
 		} catch (Exception e) {
 			// as expected
@@ -398,8 +398,8 @@ public class DatasetDAOTest {
 
 		// now try to get the annotation.  should be gone
 		try {
-			GAEJDOStringAnnotation jdo = (GAEJDOStringAnnotation) pm.getObjectById(
-					GAEJDOStringAnnotation.class, gaejdoAnnotLong);
+			JDOStringAnnotation jdo = (JDOStringAnnotation) pm.getObjectById(
+					JDOStringAnnotation.class, gaejdoAnnotLong);
 			Assert.fail("exception expected");
 		} catch (Exception e) {
 			// as expected
@@ -408,8 +408,8 @@ public class DatasetDAOTest {
 		// now try to get the layer. should be gone
 		try {
 			Long key = KeyFactory.stringToKey(layerId);
-			GAEJDOInputDataLayer jdo = (GAEJDOInputDataLayer) pm.getObjectById(
-					GAEJDOInputDataLayer.class, key);
+			JDOInputDataLayer jdo = (JDOInputDataLayer) pm.getObjectById(
+					JDOInputDataLayer.class, key);
 			// System.out.println("Layer name: "+jdo.getName());
 			//
 			// TODO Why aren't the (owned) layers deleted when the parent dataset is????
