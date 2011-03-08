@@ -3,13 +3,12 @@ package org.sagebionetworks.web.client.view;
 import java.util.List;
 
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
-import org.sagebionetworks.web.shared.SearchParameters.FromType;
+import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
-import com.google.gwt.user.cellview.client.SimplePager;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.SimplePanel;
@@ -33,7 +32,7 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 		this.queryServiceTable = table;
 		initWidget(binder.createAndBindUi(this));
 		// The pager will listen to the dynamic table
-		table.initialize(FromType.dataset, true);
+		table.initialize(ObjectType.dataset, true);
 		// Add the table
 		tablePanel.add(table.asWidget());
 

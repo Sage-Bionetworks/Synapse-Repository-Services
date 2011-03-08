@@ -85,6 +85,11 @@
 			<display>Species</display>
 			<description>Species</description>
 		</column>
+		<column id="dataset.Study Size">
+			<type>StringArray</type>
+			<display>Study Size</display>
+			<description>Study Size</description>
+		</column>
 		<column id="dataset.Number of Samples">
 			<type>IntegerArray</type>
 			<display>Number of Samples</display>

@@ -6,7 +6,7 @@ import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.cookie.CookieUtils;
 import org.sagebionetworks.web.client.place.DatasetsHome;
 import org.sagebionetworks.web.client.view.DatasetsHomeView;
-import org.sagebionetworks.web.shared.SearchParameters.FromType;
+import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
@@ -53,7 +53,7 @@ public class DatasetsHomePresenter extends AbstractActivity implements DatasetsH
 		}
 
 		// Show the view.
-		columnsPopupPresenter.showPopup(FromType.dataset.name(), currentSelection, new ColumnSelectionChangeListener() {
+		columnsPopupPresenter.showPopup(ObjectType.dataset.name(), currentSelection, new ColumnSelectionChangeListener() {
 			
 			@Override
 			public void columnSelectionChanged(List<String> newSelection) {

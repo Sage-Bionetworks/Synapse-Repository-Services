@@ -17,6 +17,7 @@ import org.sagebionetworks.web.client.view.ColumnsPopupView;
 import org.sagebionetworks.web.shared.ColumnsForType;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.SearchParameters;
+import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.test.helper.AsyncServiceRecorder;
 
 public class ColumnsPopupPresenterTest {
@@ -62,7 +63,7 @@ public class ColumnsPopupPresenterTest {
 		additional = new ArrayList<HeaderData>();
 		additional.add(c);
 		additional.add(a);
-		type = SearchParameters.FromType.dataset.name();
+		type = ObjectType.dataset.name();
 		columnsForType = new ColumnsForType(type, defaults, additional);
 		// We want the service to return the following when asked for the columns.
 		when(mockSearchService.getColumnsForType(type)).thenReturn(columnsForType);

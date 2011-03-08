@@ -7,9 +7,10 @@ import java.net.URISyntaxException;
 
 import org.junit.Test;
 import org.sagebionetworks.web.server.servlet.QueryStringUtils;
+import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.WhereCondition;
-import org.sagebionetworks.web.shared.WhereCondition.Operator;
+import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
 
 public class QueryStringUtilsTest {
 	
@@ -19,7 +20,7 @@ public class QueryStringUtilsTest {
 	public void testRoundTrip() throws URISyntaxException{
 		// Create a simple query
 		SearchParameters params = new SearchParameters();
-		params.setFromType(SearchParameters.FromType.dataset.name());
+		params.setFromType(ObjectType.dataset.name());
 		// Now create the query string for this object
 		URI uri = QueryStringUtils.writeQueryUri(ROOT_URL, params);
 		assertNotNull(uri);
@@ -37,7 +38,7 @@ public class QueryStringUtilsTest {
 		SearchParameters params = new SearchParameters();
 		params.setLimit(20);
 		params.setOffset(50);
-		params.setFromType(SearchParameters.FromType.dataset.name());
+		params.setFromType(ObjectType.dataset.name());
 		// Now create the query string for this object
 		URI uri = QueryStringUtils.writeQueryUri(ROOT_URL, params);
 		assertNotNull(uri);
@@ -55,7 +56,7 @@ public class QueryStringUtilsTest {
 		SearchParameters params = new SearchParameters();
 		params.setLimit(100);
 		params.setOffset(31);
-		params.setFromType(SearchParameters.FromType.dataset.name());
+		params.setFromType(ObjectType.dataset.name());
 		params.setAscending(false);
 		params.setSort("sortKey");
 		// Now create the query string for this object
@@ -75,7 +76,7 @@ public class QueryStringUtilsTest {
 		SearchParameters params = new SearchParameters();
 		params.setLimit(100);
 		params.setOffset(0);
-		params.setFromType(SearchParameters.FromType.dataset.name());
+		params.setFromType(ObjectType.dataset.name());
 		params.setAscending(true);
 		params.setSort("sortKey");
 		// Now create the query string for this object
@@ -95,10 +96,10 @@ public class QueryStringUtilsTest {
 		SearchParameters params = new SearchParameters();
 		params.setLimit(100);
 		params.setOffset(0);
-		params.setFromType(SearchParameters.FromType.dataset.name());
+		params.setFromType(ObjectType.dataset.name());
 		params.setAscending(true);
 		params.setSort("sortKey");
-		WhereCondition where = new WhereCondition("someId", Operator.EQUALS, "123");
+		WhereCondition where = new WhereCondition("someId", WhereOperator.EQUALS, "123");
 		params.setWhere(where);
 		// Now create the query string for this object
 		URI uri = QueryStringUtils.writeQueryUri(ROOT_URL, params);

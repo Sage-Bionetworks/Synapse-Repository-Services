@@ -9,8 +9,7 @@ import java.util.StringTokenizer;
 import org.sagebionetworks.web.server.UrlTemplateUtil;
 import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.WhereCondition;
-import org.sagebionetworks.web.shared.SearchParameters.FromType;
-import org.sagebionetworks.web.shared.WhereCondition.Operator;
+import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
 
 /**
  * Creates query string from SearchParameters, and parses a query string into SearchParameters.
@@ -159,7 +158,7 @@ public class QueryStringUtils {
 				continue;
 			}else if(WHERE.equals(tokenLower)){
 				String id = tokenizer.nextToken();
-				Operator opperator = Operator.fromSql(tokenizer.nextToken());
+				WhereOperator opperator = WhereOperator.fromSql(tokenizer.nextToken());
 				String value = tokenizer.nextToken();
 				params.setWhere(new WhereCondition(id, opperator, value));
 			}

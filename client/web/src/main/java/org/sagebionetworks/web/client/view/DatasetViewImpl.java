@@ -2,9 +2,9 @@ package org.sagebionetworks.web.client.view;
 
 import org.sagebionetworks.web.client.presenter.DatasetRow;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
-import org.sagebionetworks.web.shared.SearchParameters.FromType;
+import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.WhereCondition;
-import org.sagebionetworks.web.shared.WhereCondition.Operator;
+import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
 
 import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
 import com.google.gwt.dom.client.SpanElement;
@@ -46,7 +46,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		initWidget(uiBinder.createAndBindUi(this));
 		this.previewDisclosurePanel = previewDisclosurePanel;
 		this.table = table;
-		this.table.initialize(FromType.layer, false);
+		this.table.initialize(ObjectType.layer, false);
 		tablePanel.add(table.asWidget());
 
 	}
@@ -64,7 +64,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	@Override
 	public void setDatasetRow(DatasetRow row) {
 		// Set the where clause
-		this.table.setWhereCondition(new WhereCondition("dataset.id", Operator.EQUALS, row.getId()));
+		this.table.setWhereCondition(new WhereCondition("dataset.id", WhereOperator.EQUALS, row.getId()));
 		// Clear everything
 		clearAllFields();
 		titleSpan.setInnerText(row.getName());

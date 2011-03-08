@@ -17,7 +17,7 @@ import java.util.logging.Logger;
 import org.sagebionetworks.web.shared.CompositeColumn;
 import org.sagebionetworks.web.shared.ColumnsForType;
 import org.sagebionetworks.web.shared.HeaderData;
-import org.sagebionetworks.web.shared.SearchParameters.FromType;
+import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.UrlTemplate;
 
 import com.google.inject.Inject;
@@ -187,14 +187,14 @@ public class ColumnConfigProvider {
 		// convert from a string to a list
 		List<String> keyList = splitCommaSeparatedString(defaults);
 		// Add this list to the map
-		defaultColumns.put(FromType.dataset.name(), keyList);
+		defaultColumns.put(ObjectType.dataset.name(), keyList);
 	}
 	
 	@Inject
 	public void setAdditionalDatasetsColumns(@Named(ServerConstants.KEY_ADDITIONAL_DATASET_COLS) String additional){
 		// convert from a string to a list
 		List<String> keyList = splitCommaSeparatedString(additional);
-		additoinalColumns.put(FromType.dataset.name(), keyList);
+		additoinalColumns.put(ObjectType.dataset.name(), keyList);
 	}
 
 	/**
@@ -221,7 +221,7 @@ public class ColumnConfigProvider {
 			@Named(ServerConstants.KEY_DEFAULT_LAYER_COLS) String defaults) {
 		List<String> keyList = splitCommaSeparatedString(defaults);
 		// Add this list to the map
-		defaultColumns.put(FromType.layer.name(), keyList);
+		defaultColumns.put(ObjectType.layer.name(), keyList);
 	}
 	
 	/**

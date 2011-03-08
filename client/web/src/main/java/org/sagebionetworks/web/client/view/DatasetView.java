@@ -1,7 +1,6 @@
 package org.sagebionetworks.web.client.view;
 
 import org.sagebionetworks.web.client.presenter.DatasetRow;
-import org.sagebionetworks.web.shared.SearchParameters.FromType;
 
 import com.google.gwt.user.client.ui.IsWidget;
 

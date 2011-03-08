@@ -13,7 +13,7 @@ import org.sagebionetworks.web.server.ColumnConfigProvider;
 import org.sagebionetworks.web.shared.ColumnInfo;
 import org.sagebionetworks.web.shared.ColumnsForType;
 import org.sagebionetworks.web.shared.HeaderData;
-import org.sagebionetworks.web.shared.SearchParameters.FromType;
+import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.unitclient.presenter.SampleHeaderData;
 
 public class ColumnConfigProviderTest {
@@ -145,7 +145,7 @@ public class ColumnConfigProviderTest {
 		// Add the additional columns with one duplicate from the defaults
 		providerWithCycles.setAdditionalDatasetsColumns(a.getId()+","+c.getId());
 		// Now get the columns for datasts
-		ColumnsForType cft = providerWithCycles.getColumnsForType(FromType.dataset.name());
+		ColumnsForType cft = providerWithCycles.getColumnsForType(ObjectType.dataset.name());
 		assertNotNull(cft);
 		assertNotNull(cft.getType());
 		assertNotNull(cft.getDefaultColumns());
@@ -163,7 +163,7 @@ public class ColumnConfigProviderTest {
 		cache = providerWithCycles.getColumnsForTypeCache();
 		assertNotNull(cache);
 		assertEquals(1, cache.size());
-		assertEquals(cft, cache.get(FromType.dataset.name()));
+		assertEquals(cft, cache.get(ObjectType.dataset.name()));
 	}
 
 }

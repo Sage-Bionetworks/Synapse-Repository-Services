@@ -168,11 +168,6 @@
 			<artifactId>gwtp-all</artifactId>
 			<version>0.5</version>
 		</dependency>
-		<dependency>
-			<groupId>com.google.gwt</groupId>
-			<artifactId>gwt-dev</artifactId>
-			<version>${gwtVersion}</version>
-		</dependency>
 
 		<!-- We are using this to serialize column metadata. We can drop it when 
 			the API provides this functionality -->
@@ -183,6 +178,12 @@
 		</dependency>
 
 		<!-- Test only dependencies -->
+		<dependency>
+			<groupId>com.google.gwt</groupId>
+			<artifactId>gwt-dev</artifactId>
+			<version>${gwtVersion}</version>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>com.sun.grizzly</groupId>
 			<artifactId>grizzly-servlet-webserver</artifactId>

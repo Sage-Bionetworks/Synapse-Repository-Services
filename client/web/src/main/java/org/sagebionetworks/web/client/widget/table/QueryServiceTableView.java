@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.web.client.view.RowData;
 import org.sagebionetworks.web.shared.HeaderData;
-import org.sagebionetworks.web.shared.SearchParameters.FromType;
+import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.WhereCondition;
 
 import com.google.gwt.user.client.ui.IsWidget;
@@ -64,7 +64,7 @@ public interface QueryServiceTableView extends IsWidget {
 		 * @param offest
 		 * @param limit
 		 */
-		public void initialize(FromType type, boolean usePager);
+		public void initialize(ObjectType type, boolean usePager);
 		
 		/**
 		 * Set the where condition.  This will trigger a refresh.

@@ -8,16 +8,15 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.TreeMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
 
 import javax.ws.rs.core.UriBuilder;
 
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.web.server.ColumnConfigProvider;
@@ -26,8 +25,8 @@ import org.sagebionetworks.web.server.RestTemplateProviderImpl;
 import org.sagebionetworks.web.server.ServerConstants;
 import org.sagebionetworks.web.server.servlet.SearchServiceImpl;
 import org.sagebionetworks.web.shared.HeaderData;
+import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.SearchParameters;
-import org.sagebionetworks.web.shared.SearchParameters.FromType;
 import org.sagebionetworks.web.shared.TableResults;
 import org.sagebionetworks.web.util.LocalStubLauncher;
 import org.sagebionetworks.web.util.ServerPropertiesUtils;
@@ -120,7 +119,7 @@ public class SearchServiceImplTest {
 	@Test
 	public void testDatasetDefaults(){
 		String[] split = defultDatasetCols.split(",");
-		List<String> datasetDefautls = service.getDefaultColumnIds(FromType.dataset.name());
+		List<String> datasetDefautls = service.getDefaultColumnIds(ObjectType.dataset.name());
 		assertNotNull(datasetDefautls);
 		// It should contain all of the splits
 		for(int i=0; i<split.length; i++){
@@ -131,19 +130,19 @@ public class SearchServiceImplTest {
 	@Test
 	public void testPreprocessSelect(){
 		// If we pass a null or empty list then we should get the defaults
-		List<String> processed = service.getVisibleColumns(FromType.dataset.name(), null);
+		List<String> processed = service.getVisibleColumns(ObjectType.dataset.name(), null);
 		assertNotNull(processed);
 		// Should match the defaults
-		List<String> defaults = service.getDefaultColumnIds(FromType.dataset.name());
+		List<String> defaults = service.getDefaultColumnIds(ObjectType.dataset.name());
 		assertEquals(defaults, processed);
 		// Same for an empty list
-		processed = service.getVisibleColumns(FromType.dataset.name(), new ArrayList<String>());
+		processed = service.getVisibleColumns(ObjectType.dataset.name(), new ArrayList<String>());
 		assertEquals(defaults, processed);
 		
 		// Now use non-null non-empty
 		List<String> select = new ArrayList<String>();
 		select.add("someId");
-		processed = service.getVisibleColumns(FromType.dataset.name(), select);
+		processed = service.getVisibleColumns(ObjectType.dataset.name(), select);
 		assertEquals(select, processed);
 		
 	}
@@ -153,7 +152,7 @@ public class SearchServiceImplTest {
 	public void testDefaultDatasetColumns() throws IOException{
 		// Create a new 
 		// Now make sure we can get the list out
-		List<String> list = service.getDefaultColumnIds(FromType.dataset.name());
+		List<String> list = service.getDefaultColumnIds(ObjectType.dataset.name());
 		assertNotNull(list);
 		assertTrue(list.contains("dataset.NameLink"));
 		assertTrue(list.contains("dataset.layerTypeIcons"));
@@ -207,7 +206,7 @@ public class SearchServiceImplTest {
 	public void testQueryWithNoData(){
 		clearStubData();
 		SearchParameters query = new SearchParameters();
-		query.setFromType(SearchParameters.FromType.dataset.name());
+		query.setFromType(ObjectType.dataset.name());
 		TableResults results = service.executeSearch(query);
 		assertNotNull(results);
 		// There should be no rows to start
@@ -226,7 +225,7 @@ public class SearchServiceImplTest {
 		int limit = 15;
 		query.setLimit(limit);
 		query.setOffset(3);
-		query.setFromType(SearchParameters.FromType.dataset.name());
+		query.setFromType(ObjectType.dataset.name());
 		TableResults results = service.executeSearch(query);
 		assertNotNull(results);
 		// There should be no rows to start

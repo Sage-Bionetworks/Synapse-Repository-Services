@@ -6,9 +6,9 @@ import java.util.List;
 import org.sagebionetworks.web.client.SearchServiceAsync;
 import org.sagebionetworks.web.client.view.RowData;
 import org.sagebionetworks.web.shared.HeaderData;
+import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.WhereCondition;
-import org.sagebionetworks.web.shared.SearchParameters.FromType;
 import org.sagebionetworks.web.shared.TableResults;
 
 import com.google.gwt.user.client.rpc.AsyncCallback;
@@ -42,7 +42,7 @@ public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presen
 	private int paginationOffset = DEFAULT_OFFSET;
 	private int paginationLength = DEFAULT_LIMIT;
 	private List<HeaderData> currentColumns = null;
-	private FromType type;
+	private ObjectType type;
 	private List<String> visibleColumnIds;
 	private WhereCondition where;
 	
@@ -50,7 +50,7 @@ public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presen
 		this.view.usePager(usePager);
 	}
 
-	public FromType getType() {
+	public ObjectType getType() {
 		return type;
 	}
 	
@@ -194,7 +194,7 @@ public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presen
 	}
 
 	@Override
-	public void initialize(FromType type, boolean usePager) {
+	public void initialize(ObjectType type, boolean usePager) {
 		this.type = type;
 		this.view.usePager(usePager);
 		if(usePager){

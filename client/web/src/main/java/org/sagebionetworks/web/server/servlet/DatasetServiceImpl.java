@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import org.apache.commons.lang.NotImplementedException;
 import org.sagebionetworks.web.client.DatasetService;
 import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.shared.Dataset;
@@ -169,7 +168,7 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 
 	@Override
 	public Layer getLayer(String datasetId, String layerId) {
-		throw new NotImplementedException();		
+		throw new UnsupportedOperationException();		
 	}
 
 }

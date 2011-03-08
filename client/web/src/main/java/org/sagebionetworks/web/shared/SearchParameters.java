@@ -2,6 +2,8 @@ package org.sagebionetworks.web.shared;
 
 import java.util.List;
 
+import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
+
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 /**
@@ -12,13 +14,8 @@ import com.google.gwt.user.client.rpc.IsSerializable;
  */
 public class SearchParameters implements IsSerializable{
 	
-	public enum FromType {
-		dataset(),
-		layer();
-	}
-	
 	private List<String> selectColumns;
-	private FromType fromType;
+	private ObjectType fromType;
 	private int offset = 1;
 	private int limit = 10;
 	private String sort;
@@ -34,7 +31,7 @@ public class SearchParameters implements IsSerializable{
 	public SearchParameters(List<String> selectColumns, String fromType, WhereCondition where, int offset, int limit,
 			String sort, boolean ascending) {
 		super();
-		this.fromType = FromType.valueOf(fromType);
+		this.fromType = ObjectType.valueOf(fromType);
 		this.selectColumns = selectColumns;
 		this.where = where;
 		this.offset = offset;
@@ -84,11 +81,11 @@ public class SearchParameters implements IsSerializable{
 	 * problem with enums and RPC serialization.
 	 * @return
 	 */
-	public FromType fetchType(){
+	public ObjectType fetchType(){
 		return fromType;
 	}
 	public void setFromType(String fromType) {
-		this.fromType = FromType.valueOf(fromType);
+		this.fromType = ObjectType.valueOf(fromType);
 	}
 	
 	public WhereCondition getWhere() {

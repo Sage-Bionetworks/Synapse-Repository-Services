@@ -1,38 +1,13 @@
 package org.sagebionetworks.web.shared;
 
+import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
+
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 public class WhereCondition implements IsSerializable{
 	
-	public enum Operator{
-		
-		EQUALS("==");
-		
-		String sqlString;
-		Operator(String sqlString){
-			this.sqlString = sqlString;
-		};
-		
-		public String toSql(){
-			return sqlString;
-		}
-		
-		/**
-		 * Get the operator for the given SQL
-		 * @param operatorSql
-		 * @return
-		 */
-		public static Operator fromSql(String operatorSql){
-			if("==".equals(operatorSql)){
-				return EQUALS;
-			}else{
-				throw new IllegalArgumentException("Unknown opperator: "+operatorSql);
-			}
-		}
-	}
-	
 	private String id;
-	private Operator operator;
+	private WhereOperator operator;
 	private String value;
 	
 	/**
@@ -49,7 +24,7 @@ public class WhereCondition implements IsSerializable{
 	 * @param operator
 	 * @param value
 	 */
-	public WhereCondition(String id, Operator operator, String value) {
+	public WhereCondition(String id, WhereOperator operator, String value) {
 		super();
 		this.id = id;
 		this.operator = operator;
@@ -65,14 +40,14 @@ public class WhereCondition implements IsSerializable{
 		return operator.name();
 	}
 	public void setOperator(String operator) {
-		this.operator = Operator.valueOf(operator);
+		this.operator = WhereOperator.valueOf(operator);
 	}
 	/**
 	 * We are using "fetch" to get the real operator 
 	 * since GWT RPC does not support enums
 	 * @return
 	 */
-	public Operator fetchOperator(){
+	public WhereOperator fetchOperator(){
 		return this.operator;
 	}
 	public String getValue() {

@@ -3,7 +3,6 @@ package org.sagebionetworks.web.client.presenter;
 import org.sagebionetworks.web.client.DatasetServiceAsync;
 import org.sagebionetworks.web.client.view.DatasetView;
 import org.sagebionetworks.web.shared.Dataset;
-import org.sagebionetworks.web.shared.SearchParameters.FromType;
 
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;

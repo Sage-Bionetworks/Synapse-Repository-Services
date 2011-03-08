@@ -20,7 +20,7 @@ import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableView;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.SearchParameters;
-import org.sagebionetworks.web.shared.SearchParameters.FromType;
+import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.TableResults;
 import org.sagebionetworks.web.test.helper.AsyncServiceRecorder;
 
@@ -46,7 +46,7 @@ public class QueryServiceTableTest {
 		// Using a stub cookie provider
 		// Create the presenter
 		presenter = new QueryServiceTable(mockView, asynchProxy);
-		presenter.initialize(FromType.dataset, true);
+		presenter.initialize(ObjectType.dataset, true);
 		// Make sure the view gets the presenter set
 		verify(mockView).setPresenter(presenter);
 	}
