@@ -20,6 +20,9 @@ public class UserGroup implements Base {
 	public void setName(String name) {
 		this.name = name;
 	}
+	
+	public String toString() {return getName();}
+	
 	public String getUri() {
 		return uri;
 	}
