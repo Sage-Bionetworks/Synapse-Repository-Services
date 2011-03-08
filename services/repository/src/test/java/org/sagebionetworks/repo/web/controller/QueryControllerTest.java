@@ -128,7 +128,7 @@ public class QueryControllerTest {
 	@Test
 	public void testSortQueryDescending() throws Exception {
 		JSONObject queryResult = helper
-				.testQuery("select * from dataset order by \"name\" desc");
+				.testQuery("select * from dataset order by dataset.\"name\" desc");
 		assertExpectedQueryResultProperties("dataset", queryResult);
 
 		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
@@ -160,7 +160,7 @@ public class QueryControllerTest {
 	public void testWhereQuery() throws Exception {
 
 		JSONObject queryResult = helper
-				.testQuery("select * from dataset where name == \"Pediatric AML TARGET\"");
+				.testQuery("select * from dataset where dataset.name == \"Pediatric AML TARGET\"");
 		assertExpectedQueryResultProperties("dataset", queryResult);
 
 		// TODO fix me, this should be 1
