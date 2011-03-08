@@ -10,14 +10,19 @@ import java.util.Set;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+/**
+ *
+ */
 public class CrowdAuthenticationFilterTest {
-	private final Map<String,String> filterParams = new HashMap();
+	private final Map<String,String> filterParams = new HashMap<String, String>();
 
+	/**
+	 * @throws Exception
+	 */
 	@Before
 	public void setUp() throws Exception {
 		filterParams.clear();
@@ -27,6 +32,9 @@ public class CrowdAuthenticationFilterTest {
 		filterParams.put("allow-anonymous", "true");
 	}
 	
+	/**
+	 * @throws Exception
+	 */
 	@Ignore
 	@Test
 	public void test() throws Exception {
