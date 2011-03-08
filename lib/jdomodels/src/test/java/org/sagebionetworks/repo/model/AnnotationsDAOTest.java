@@ -12,11 +12,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.jdo.GAEJDOAnnotations;
-import org.sagebionetworks.repo.model.jdo.GAEJDODAOFactoryImpl;
-import org.sagebionetworks.repo.model.jdo.GAEJDODataset;
-import org.sagebionetworks.repo.model.jdo.GAEJDORevision;
-import org.sagebionetworks.repo.model.jdo.GAEJDOStringAnnotation;
+import org.sagebionetworks.repo.model.jdo.JDOAnnotations;
+import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
+import org.sagebionetworks.repo.model.jdo.JDODataset;
+import org.sagebionetworks.repo.model.jdo.JDORevision;
+import org.sagebionetworks.repo.model.jdo.JDOStringAnnotation;
 import org.sagebionetworks.repo.model.jdo.Version;
 
 
@@ -41,7 +41,7 @@ public class AnnotationsDAOTest {
 
 	@Before
 	public void setUp() throws Exception {
-		fac = new GAEJDODAOFactoryImpl();
+		fac = new JDODAOFactoryImpl();
 	}
 
 	@After
@@ -58,15 +58,15 @@ public class AnnotationsDAOTest {
 	@Ignore
 	public void testCreateandRetrieve() throws Exception {
 		// create a new dataset
-		GAEJDODataset dataset = new GAEJDODataset();
+		JDODataset dataset = new JDODataset();
 
-		GAEJDORevision<GAEJDODataset> r = new GAEJDORevision<GAEJDODataset>();
+		JDORevision<JDODataset> r = new JDORevision<JDODataset>();
 		r.setVersion(new Version("1.0.0"));
 		dataset.setRevision(r);
 
-		GAEJDOAnnotations annots = GAEJDOAnnotations.newGAEJDOAnnotations();
+		JDOAnnotations annots = JDOAnnotations.newJDOAnnotations();
 		dataset.setAnnotations(annots);
-		GAEJDOStringAnnotation stringAnnot = new GAEJDOStringAnnotation(
+		JDOStringAnnotation stringAnnot = new JDOStringAnnotation(
 				"testLong", "testValue");
 		// annots.getStringAnnotations().add(stringAnnot);
 
@@ -83,15 +83,15 @@ public class AnnotationsDAOTest {
 		// Dataset d2 = da.getDataset(id);
 		// Assert.assertNotNull(d2);
 
-		// AnnotatableDAO<GAEJDODataset> aa =
+		// AnnotatableDAO<JDODataset> aa =
 		// fac.getDatasetAnnotationsAccessor();
 		//
 		// // now, test that we can retrieve the object having the given
 		// annotation
-		// Collection<GAEJDODataset> ac =
+		// Collection<JDODataset> ac =
 		// aa.getHavingStringAnnotation("testLong", "testValue");
 		// Assert.assertEquals(1, ac.size());
-		// GAEJDODataset d2 = ac.iterator().next();
+		// JDODataset d2 = ac.iterator().next();
 		// Assert.assertEquals(dataset.getId(), d2.getId());
 		// aa.close();
 	}

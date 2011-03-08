@@ -16,9 +16,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.jdo.GAEJDODAOFactoryImpl;
-import org.sagebionetworks.repo.model.jdo.GAEJDORevision;
-import org.sagebionetworks.repo.model.jdo.GAEJDOScript;
+import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
+import org.sagebionetworks.repo.model.jdo.JDORevision;
+import org.sagebionetworks.repo.model.jdo.JDOScript;
 import org.sagebionetworks.repo.model.jdo.Version;
 
 
@@ -44,7 +44,7 @@ public class ScriptTest {
 
 	@Before
 	public void setUp() throws Exception {
-		fac = new GAEJDODAOFactoryImpl();
+		fac = new JDODAOFactoryImpl();
 		scriptIds = new ArrayList<String>();
 	}
 
@@ -61,9 +61,9 @@ public class ScriptTest {
 	@Test
 	@Ignore
 	public void testCreateandRetrieve() throws Exception {
-		GAEJDOScript script = new GAEJDOScript();
+		JDOScript script = new JDOScript();
 		script.setName("script name");
-		script.setRevision(new GAEJDORevision<GAEJDOScript>());
+		script.setRevision(new JDORevision<JDOScript>());
 		Date now = new Date();
 		script.getRevision().setVersion(new Version("1.0"));
 		script.getRevision().setRevisionDate(now);
@@ -84,7 +84,7 @@ public class ScriptTest {
 		// Assert.assertNotNull(id);
 		//
 		// // now retrieve the object by its key
-		// GAEJDOScript s2 = sa.getScript(id);
+		// JDOScript s2 = sa.getScript(id);
 		// Assert.assertNotNull(s2);
 		//
 		// // check that all the fields were persisted
@@ -110,9 +110,9 @@ public class ScriptTest {
 	@Test
 	@Ignore
 	public void testCreateandDelete() throws Exception {
-		GAEJDOScript script = new GAEJDOScript();
+		JDOScript script = new JDOScript();
 		script.setName("script name");
-		script.setRevision(new GAEJDORevision<GAEJDOScript>());
+		script.setRevision(new JDORevision<JDOScript>());
 
 		// // persist it
 		// ScriptDAO sa = fac.getScriptAccessor();
@@ -124,7 +124,7 @@ public class ScriptTest {
 		// Assert.assertNotNull(id);
 		//
 		// // now retrieve the object by its key
-		// GAEJDOScript s2 = sa.getScript(id);
+		// JDOScript s2 = sa.getScript(id);
 		// Assert.assertNotNull(s2);
 		//
 		// Long revisionId = s2.getRevision().getId();
@@ -147,7 +147,7 @@ public class ScriptTest {
 		// }
 		//
 		//
-		// RevisionAccessor<GAEJDOScript> ra = fac.getScriptRevisionAccessor();
+		// RevisionAccessor<JDOScript> ra = fac.getScriptRevisionAccessor();
 		// try {
 		// ra.getRevision(revisionId);
 		// Assert.fail(revisionId+" should be gone.");
@@ -159,10 +159,10 @@ public class ScriptTest {
 	@Test
 	@Ignore
 	public void testMultipleRevisions() throws Exception {
-		// GAEJDOScript s1 = new GAEJDOScript();
+		// JDOScript s1 = new JDOScript();
 		// s1.setName("script1");
-		// s1.setRevision(new GAEJDORevision<GAEJDOScript>());
-		// GAEJDORevision<GAEJDOScript> r1 = s1.getRevision();
+		// s1.setRevision(new JDORevision<JDOScript>());
+		// JDORevision<JDOScript> r1 = s1.getRevision();
 		// r1.setVersion(new Version("1.0"));
 		//
 		// // persist it
@@ -171,10 +171,10 @@ public class ScriptTest {
 		// scriptIds.add(s1.getId()); // queue for clean up
 		//
 		// // now create a revision
-		// GAEJDOScript s2 = new GAEJDOScript();
-		// s2.setRevision(new GAEJDORevision<GAEJDOScript>());
+		// JDOScript s2 = new JDOScript();
+		// s2.setRevision(new JDORevision<JDOScript>());
 		// s2.setName("script1"); // same script, just new version
-		// GAEJDORevision<GAEJDOScript> r2 = s2.getRevision();
+		// JDORevision<JDOScript> r2 = s2.getRevision();
 		// r2.setVersion(r1.getVersion().increment());
 		//
 		// Assert.assertNotNull(r1); // when s1 was persisted, r1's Long should
@@ -191,8 +191,8 @@ public class ScriptTest {
 		// s2 = sa.getScript(s2Id);
 		// r2 = s2.getRevision();
 		// Long originalRevisionId = r2.getOriginal();
-		// RevisionAccessor<GAEJDOScript> ra = fac.getScriptRevisionAccessor();
-		// GAEJDORevision<GAEJDOScript> originalRevision =
+		// RevisionAccessor<JDOScript> ra = fac.getScriptRevisionAccessor();
+		// JDORevision<JDOScript> originalRevision =
 		// ra.getRevision(originalRevisionId);
 		// Assert.assertNotNull(originalRevision);
 		// // // now, do I automatically get the script that owns the revision?
@@ -200,7 +200,7 @@ public class ScriptTest {
 		// // Assert.assertNotNull(s1);
 		//
 		// // finally, try the helper function to return the latest
-		// GAEJDOScript latestRevision = sa.getLatest(s2);
+		// JDOScript latestRevision = sa.getLatest(s2);
 		// Assert.assertEquals(s2Id, latestRevision.getId());
 		// latestRevision = sa.getLatest(s1);
 		// Assert.assertEquals(s2Id, latestRevision.getId());

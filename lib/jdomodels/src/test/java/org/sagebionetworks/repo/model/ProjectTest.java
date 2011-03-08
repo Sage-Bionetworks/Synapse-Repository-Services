@@ -12,8 +12,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.jdo.GAEJDODAOFactoryImpl;
-import org.sagebionetworks.repo.model.jdo.GAEJDOProject;
+import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
+import org.sagebionetworks.repo.model.jdo.JDOProject;
 
 
 
@@ -38,7 +38,7 @@ public class ProjectTest {
 
 	@Before
 	public void setUp() throws Exception {
-		fac = new GAEJDODAOFactoryImpl();
+		fac = new JDODAOFactoryImpl();
 	}
 
 	@After
@@ -54,10 +54,10 @@ public class ProjectTest {
 	@Ignore
 	public void testCreateandRetrieve() throws Exception {
 		// create a new project
-		GAEJDOProject project = new GAEJDOProject();
+		JDOProject project = new JDOProject();
 
 		project.setName("project name");
-		project.setStatus(GAEJDOProject.Status.IN_PROGRESS);
+		project.setStatus(JDOProject.Status.IN_PROGRESS);
 		String overview = "This project is a megacross, and includes genotyoping data.";
 		project.setOverview(new String(overview));
 		Date started = new Date();
@@ -75,12 +75,12 @@ public class ProjectTest {
 		Assert.assertNotNull(id);
 
 		// now retrieve the object by its key
-		GAEJDOProject p2 = null; // pa.getProject(id);
+		JDOProject p2 = null; // pa.getProject(id);
 		Assert.assertNotNull(p2);
 
 		// check that all the fields were persisted
 		Assert.assertEquals("project name", p2.getName());
-		Assert.assertEquals(GAEJDOProject.Status.IN_PROGRESS, p2.getStatus());
+		Assert.assertEquals(JDOProject.Status.IN_PROGRESS, p2.getStatus());
 		Assert.assertEquals(overview, p2.getOverview());
 		Assert.assertEquals(started, p2.getStarted());
 		Assert.assertEquals(url, p2.getSharedDocs());

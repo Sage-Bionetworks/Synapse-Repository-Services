@@ -11,7 +11,7 @@
   <context:annotation-config />
 
   <bean id="daoFactory"
-        class="org.sagebionetworks.repo.model.jdo.GAEJDODAOFactoryImpl"
+        class="org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl"
         scope="singleton" />
   
 </beans>
