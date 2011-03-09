@@ -32,6 +32,7 @@ import javax.xml.xpath.XPathFactory;
 import org.sagebionetworks.repo.web.controller.BaseController;
 import org.springframework.http.HttpStatus;
 import org.xml.sax.InputSource;
+import java.security.Security;
 
 /**
  *
@@ -55,14 +56,13 @@ public class CrowdAuthenticationFilter implements Filter {
 		resp.setHeader("WWW-Authenticate", "authenticate Crowd");
 		//String reqUri = req.getRequestURI();
 		String contextPath = req.getContextPath();
-		// TODO correctly construct the authentication path
-		resp.setHeader("Crowd-Authentication-Service", contextPath+"/repo/v1/session");
 		resp.getWriter().println("The session token provided was missing, invalid or expired.");
 	}
 
 	@Override
 	public void doFilter(ServletRequest servletRqst, ServletResponse servletResponse,
 			FilterChain filterChain) throws IOException, ServletException {
+
 		// If token present, ask Crowd to validate and get user id
 		HttpServletRequest req = (HttpServletRequest)servletRqst;
 		String sessionToken = req.getHeader("sessionToken");
@@ -106,7 +106,7 @@ public class CrowdAuthenticationFilter implements Filter {
            	if ("allow-anonymous".equalsIgnoreCase(paramName)) allowAnonymous = Boolean.parseBoolean(paramValue);
         }
         
-//        acceptAllCertificates();
+        acceptAllCertificates();
   	}
 
 	//-----------------------------------------------------------------------------------------
@@ -186,10 +186,29 @@ public class CrowdAuthenticationFilter implements Filter {
 		return sb.toString().trim();
 	}
 
+
+	public static void acceptAllCertificates() {
+		System.out.println("CrowdAuthenticationFilter.acceptAllCertificates");
+		Security.addProvider( new MyProvider() );
+		Security.setProperty("ssl.TrustManagerFactory.algorithm", "TrustAllCertificates");
+		
+		// from http://stackoverflow.com/questions/2186543/java-secure-webservice
+		HostnameVerifier hv = new HostnameVerifier() {
+		    public boolean verify(String urlHostName, SSLSession session) {
+		        if (!urlHostName.equals(session.getPeerHost())) System.out.println("Warning: URL Host: " + urlHostName + " vs. " + session.getPeerHost());
+		        return true;
+		    }
+		};
+
+		HttpsURLConnection.setDefaultHostnameVerifier(hv);
+
+	}
+	
 	/**
 	 * 
 	 */
-	public static void acceptAllCertificates() {
+	public static void acceptAllCertificates2() {
+		System.out.println("CrowdAuthenticationFilter.acceptAllCertificates2");
 		// from http://www.exampledepot.com/egs/javax.net.ssl/trustall.html
 		// Create a trust manager that does not validate certificate chains
 		TrustManager[] trustAllCerts = new TrustManager[]{
