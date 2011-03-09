@@ -26,6 +26,7 @@ import org.springframework.web.servlet.DispatcherServlet;
 /**
  * 
  */
+
 @Ignore
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:authentication-context.xml", "classpath:authentication-servlet.xml" })
@@ -78,13 +79,14 @@ public class AuthenticationControllerTest {
 
 
 	@Test
-	public void testRevalidate() throws Exception {
+	public void testRevalidateUtil() throws Exception {
 		// start session
 		JSONObject session = helper.testCreateJsonEntity("/session",
 				"{\"userId\":\"demouser\",\"password\":\"demouser-pw\"}");
 		String sessionToken = session.getString("sessionToken");
 		assertEquals("Demo User", session.getString("displayName"));
 		
+		// revalidate via utility function
 		CrowdAuthUtil cau = new CrowdAuthUtil(protocol, host, port);
 		String userId = null;
 		try {
@@ -96,9 +98,22 @@ public class AuthenticationControllerTest {
 		assertEquals("demouser", userId);
 	}
 
+	@Test
+	public void testRevalidateSvc() throws Exception {
+		// start session
+		JSONObject session = helper.testCreateJsonEntity("/session",
+				"{\"userId\":\"demouser\",\"password\":\"demouser-pw\"}");
+		String sessionToken = session.getString("sessionToken");
+		assertEquals("Demo User", session.getString("displayName"));
+		
+		// revalidate via web service
+		helper.testUpdateJsonEntity("/session",	"{\"sessionToken\":\""+sessionToken+"\"}");
+		
+	}
+
 
 	@Test
-	public void testRevalidateBadToken() throws Exception {
+	public void testRevalidateBadTokenUtil() throws Exception {
 		CrowdAuthUtil cau = new CrowdAuthUtil(protocol, host, port);
 		try {
 			cau.revalidate("invalidToken");
@@ -107,6 +122,14 @@ public class AuthenticationControllerTest {
 			// as expected
 			//log.log(Level.INFO, "this exception is expected", e);
 		}
+	}
+
+
+	@Test
+	public void testRevalidateBadTokenSvc() throws Exception {
+		
+		// revalidate via web service
+		helper.testUpdateJsonEntityShouldFail("/session", "{\"sessionToken\":\"invalid-token\"}", HttpStatus.NOT_FOUND);
 	}
 
 
@@ -124,26 +147,8 @@ public class AuthenticationControllerTest {
 
 	@Test
 	public void testCreateUser() throws Exception {
-		helper.testCreateJsonEntity("/user",
-			"{\"userId\":\"newuser\","+
-			"\"password\":\"newuser-pw\","+
-			"\"email\":\"newuser@sagebase.org\","+
-			"\"firstName\":\"New\","+
-			"\"lastName\":\"User\","+
-			"\"displayName\":\"New User\""+
-				"}");
-		
-		CrowdAuthUtil cau = new CrowdAuthUtil(protocol, host, port);
-		User user = new User();
-		user.setUserId("newuser");
-		cau.deleteUser(user);
-
-	}
-	
-
-	@Test
-	public void testCreateAndUpdateUser() throws Exception {
-		helper.testCreateJsonEntity("/user",
+		try {
+			helper.testCreateJsonEntity("/user",
 				"{\"userId\":\"newuser\","+
 				"\"password\":\"newuser-pw\","+
 				"\"email\":\"newuser@sagebase.org\","+
@@ -151,21 +156,42 @@ public class AuthenticationControllerTest {
 				"\"lastName\":\"User\","+
 				"\"displayName\":\"New User\""+
 					"}");
-			
-		helper.testUpdateJsonEntity("/user",
-				"{\"userId\":\"newuser\","+
-				"\"password\":\"newuser-NEWpw\","+
-				"\"email\":\"NEWEMAIL@sagebase.org\","+
-				"\"firstName\":\"NewNEW\","+
-				"\"lastName\":\"UserNEW\","+
-				"\"displayName\":\"New NEW User\""+
-					"}");
-			
-		CrowdAuthUtil cau = new CrowdAuthUtil(protocol, host, port);
-		User user = new User();
-		user.setUserId("newuser");
-		cau.deleteUser(user);
+		} finally {
+			CrowdAuthUtil cau = new CrowdAuthUtil(protocol, host, port);
+			User user = new User();
+			user.setUserId("newuser");
+			cau.deleteUser(user);
+		}
 
+	}
+	
+
+	@Test
+	public void testCreateAndUpdateUser() throws Exception {
+		try {
+			helper.testCreateJsonEntity("/user",
+					"{\"userId\":\"newuser\","+
+					"\"password\":\"newuser-pw\","+
+					"\"email\":\"newuser@sagebase.org\","+
+					"\"firstName\":\"New\","+
+					"\"lastName\":\"User\","+
+					"\"displayName\":\"New User\""+
+						"}");
+				
+			helper.testUpdateJsonEntity("/user",
+					"{\"userId\":\"newuser\","+
+					"\"password\":\"newuser-NEWpw\","+
+					"\"email\":\"NEWEMAIL@sagebase.org\","+
+					"\"firstName\":\"NewNEW\","+
+					"\"lastName\":\"UserNEW\","+
+					"\"displayName\":\"New NEW User\""+
+						"}");
+		} finally {
+			CrowdAuthUtil cau = new CrowdAuthUtil(protocol, host, port);
+			User user = new User();
+			user.setUserId("newuser");
+			cau.deleteUser(user);
+		}
 	}
 	
 	@Ignore

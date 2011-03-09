@@ -55,10 +55,16 @@ public class AuthenticationController {
 		}
 	}
 
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/session", method = RequestMethod.PUT)
+	public @ResponseBody
+	void revalidate(@RequestBody Session session) throws Exception {
+			cau.revalidate(session.getSessionToken());
+	}
+
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/session", method = RequestMethod.DELETE)
 	public void deauthenticate(@RequestBody Session session) throws Exception {
-		
 			cau.deauthenticate(session.getSessionToken());
 	}
 	

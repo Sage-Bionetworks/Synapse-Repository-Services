@@ -179,26 +179,18 @@ public class CrowdAuthUtil {
 		URL url = new URL(urlPrefix()+"/session/"+sessionToken);
 		
 		log.info("Revalidating: "+sessionToken);
-//		if (USE_FETCH_SERVICE) {
-//			HTTPRequest request = new HTTPRequest(url, HTTPMethod.POST);
-//			setHeaders(request);
-//			HTTPResponse response = urlFetchService.fetch(request);
-//			sessionXML = response.getContent();
-//			rc = response.getResponseCode();
-//		} else {
-			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-			conn.setRequestMethod("POST");
-			setHeaders(conn);
-			setBody(conn,msg4+"\n");
-			try {
-				rc = conn.getResponseCode();
-				sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
-			} catch (IOException e) {
-				sessionXML = (readInputStream((InputStream)conn.getErrorStream())).getBytes();
-				throw new AuthenticationException(500, "Server Error", 
-						new Exception(new String(sessionXML)));
-			}
-//		}
+		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+		conn.setRequestMethod("POST");
+		setHeaders(conn);
+		setBody(conn,msg4+"\n");
+		try {
+			rc = conn.getResponseCode();
+			sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
+		} catch (IOException e) {
+			sessionXML = (readInputStream((InputStream)conn.getErrorStream())).getBytes();
+			throw new AuthenticationException(HttpStatus.NOT_FOUND.value(), "Unable to validate session.", 
+					new Exception(new String(sessionXML)));
+		}
 
 		if (HttpStatus.OK.value()!=rc) {
 			throw new AuthenticationException(rc, "Unable to validate session.", 
