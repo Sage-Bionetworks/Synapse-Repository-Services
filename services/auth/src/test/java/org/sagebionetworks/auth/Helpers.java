@@ -259,27 +259,34 @@ public class Helpers {
 	}
 
 	/**
-	 * @param jsonEntity
+	 * @param jsonRequestContent
 	 * @param status
 	 * @return the error entity
 	 * @throws Exception
 	 */
-	public JSONObject testUpdateJsonEntityShouldFail(JSONObject jsonEntity,
+	public JSONObject testUpdateJsonEntityShouldFail(String requestUrl,
+			String jsonRequestContent,
 			HttpStatus status) throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setRequestURI(requestUrl);
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
 
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		request.setContent(jsonEntity.toString().getBytes("UTF-8"));
+		request.setContent(jsonRequestContent.getBytes("UTF-8"));
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertFalse(HttpStatus.OK.equals(response.getStatus()));
 		assertEquals(status.value(), response.getStatus());
-		JSONObject results = new JSONObject(response.getContentAsString());
-		assertTrue(results.has("reason"));
-		assertFalse("null".equals(results.getString("reason")));
+		JSONObject results = null;
+		try {
+			results = new JSONObject(response.getContentAsString());
+			assertTrue(results.has("reason"));
+			assertFalse("null".equals(results.getString("reason")));
+		} catch (Exception e) {
+			throw new RuntimeException(">"+response.getContentAsString()+"<", e);
+		}
 
 		return results;
 	}
