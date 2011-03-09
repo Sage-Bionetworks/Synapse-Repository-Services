@@ -23,6 +23,7 @@ public class ModParamHttpServletRequest extends HttpServletRequestWrapper {
 	 */
 	ModParamHttpServletRequest(HttpServletRequest request, Map<String,String[]> params) {
 		super(request);
+		this.params=params;
 	}
 	public String getParameter(String name) {return (params.containsKey(name) ? params.get(name)[0]: null);}
 	public Map<String,String[]> getParameterMap() {return params;}
