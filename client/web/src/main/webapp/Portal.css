@@ -1,5 +1,5 @@
 /** Add css rules here for your application. */
-	/** Example rules used by the template application (remove for your app) */
+/** Example rules used by the template application (remove for your app) */
 h1 {
 	font-size: 2em;
 	font-weight: bold;
@@ -61,5 +61,11 @@ h1 {
 }
 
 /* Removes annoying FireFox dotted border */
-:focus {outline:none;}
+:focus {
+	outline: none;
+}
 
+.imageButton {
+	cursor: pointer;
+	cursor: hand;
+}

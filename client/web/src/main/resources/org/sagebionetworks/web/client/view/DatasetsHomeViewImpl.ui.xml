@@ -6,6 +6,10 @@
 		.important {
 			font-weight: bold;
 		}
+		
+		.rowTop {
+			vertical-align: top;
+		}
 	</ui:style>
 	<g:HTMLPanel>
 		<h2>All Datasets</h2>
@@ -21,11 +25,54 @@
 		<hr />
 		<div>
 			<table>
-				<tr>
+				<tr class="{style.rowTop}">
 					<td>
-						<div align="right">
-							<g:Button ui:field="addColumnsButton" text="Columns..."/>
+						<div>
+							<table>
+								<tr>
+									<td>
+										<table>
+											<tr>
+												<td>
+													Filter the List:
+												</td>
+											</tr>
+											<tr>
+												<td>
+													By Keyword(s):
+												</td>
+											</tr>
+											<tr >
+												<td>
+													<g:TextBox ui:field="searchTextBox" width="100px" />
+												</td>
+												<td>
+													<g:PushButton ui:field="searchButton" />
+												</td>
+											</tr>
+
+										</table>
+
+
+									</td>
+								</tr>
+								<tr>
+									<td>
+										<div>
+											<g:SimplePanel ui:field="filterPanel" />
+										</div>
+									</td>
+								</tr>
+								<tr>
+									<td>
+										<div align="right">
+											<g:Button ui:field="addColumnsButton" text="Columns..." />
+										</div>
+									</td>
+								</tr>
+							</table>
 						</div>
+
 					</td>
 					<td>
 						<div>

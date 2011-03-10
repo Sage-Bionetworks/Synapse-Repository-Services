@@ -2,16 +2,24 @@ package org.sagebionetworks.web.client.view;
 
 import java.util.List;
 
+import org.sagebionetworks.web.client.SageImageBundle;
+import org.sagebionetworks.web.client.widget.filter.QueryFilter;
+import org.sagebionetworks.web.client.widget.filter.QueryFilter.SelectionListner;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
+import org.sagebionetworks.web.shared.WhereCondition;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.resources.client.ImageResource;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.Image;
+import com.google.gwt.user.client.ui.PushButton;
 import com.google.gwt.user.client.ui.SimplePanel;
+import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
@@ -23,24 +31,51 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 	SimplePanel tablePanel;
 	@UiField
 	Button addColumnsButton;
+	@UiField
+	SimplePanel filterPanel;
+	@UiField
+	TextBox searchTextBox;
+	@UiField (provided=true)
+	PushButton searchButton;
 	
 	private Presenter presenter;
 	private QueryServiceTable queryServiceTable;
 	
 	@Inject
-	public DatasetsHomeViewImpl(DatasetsHomeViewImplUiBinder binder, QueryServiceTable table) {
+	public DatasetsHomeViewImpl(DatasetsHomeViewImplUiBinder binder, QueryServiceTable table, QueryFilter filter, SageImageBundle imageBundle) {
 		this.queryServiceTable = table;
+		ImageResource searchIR = imageBundle.searchButtonIcon();
+		searchButton = new PushButton(new Image(searchIR));
 		initWidget(binder.createAndBindUi(this));
+//		searchButton.setWidth("37px");
+//		searchButton.setHeight("28px");
+		searchButton.setStyleName("imageButton");
+
 		// The pager will listen to the dynamic table
 		table.initialize(ObjectType.dataset, true);
 		// Add the table
 		tablePanel.add(table.asWidget());
+		// Add the filter
+		filterPanel.add(filter);
 
 		addColumnsButton.addClickHandler(new ClickHandler(){
 			@Override
 			public void onClick(ClickEvent event) {
 				presenter.onEditColumns();
 			}});
+		
+		// We need to listen to filter changes
+		filter.addSelectionListner(new SelectionListner() {
+			
+			@Override
+			public void selectionChanged(List<WhereCondition> newConditions) {
+				if(newConditions.size() < 1){
+					queryServiceTable.setWhereCondition(null);
+				}else{
+					queryServiceTable.setWhereCondition(newConditions.get(0));
+				}
+			}
+		});
 	}
 
 

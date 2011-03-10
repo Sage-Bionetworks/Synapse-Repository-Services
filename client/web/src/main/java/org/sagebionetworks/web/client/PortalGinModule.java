@@ -14,6 +14,8 @@ import org.sagebionetworks.web.client.view.LayerView;
 import org.sagebionetworks.web.client.view.LayerViewImpl;
 import org.sagebionetworks.web.client.view.table.ColumnFactory;
 import org.sagebionetworks.web.client.view.table.ColumnFactoryImpl;
+import org.sagebionetworks.web.client.widget.filter.QueryFilterView;
+import org.sagebionetworks.web.client.widget.filter.QueryFilterViewImpl;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableView;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableViewImpl;
 import com.google.gwt.cell.client.widget.CustomWidgetImageBundle;
@@ -60,6 +62,9 @@ public class PortalGinModule extends AbstractGinModule {
 		bind(ColumnsPopupViewImpl.class).in(Singleton.class);
 		bind(ColumnsPopupView.class).to(ColumnsPopupViewImpl.class);
 		
+		// Query filter
+		bind(QueryFilterViewImpl.class).in(Singleton.class);
+		bind(QueryFilterView.class).to(QueryFilterViewImpl.class);
 
 	}
 

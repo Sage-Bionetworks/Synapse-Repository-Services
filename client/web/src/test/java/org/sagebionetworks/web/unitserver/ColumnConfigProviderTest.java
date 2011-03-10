@@ -12,6 +12,7 @@ import org.sagebionetworks.web.server.ColumnConfig;
 import org.sagebionetworks.web.server.ColumnConfigProvider;
 import org.sagebionetworks.web.shared.ColumnInfo;
 import org.sagebionetworks.web.shared.ColumnsForType;
+import org.sagebionetworks.web.shared.FilterEnumeration;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.unitclient.presenter.SampleHeaderData;
@@ -32,6 +33,8 @@ public class ColumnConfigProviderTest {
 	public void setup(){
 		// This provide is setup with config xml
 		provider = new ColumnConfigProvider("ColumnConfigurationV2.xml");
+		// Load the filter enumerations
+		provider.setFilterEnumerations("FilterEnumerations.xml");
 		
 		// Now the cyclic dependencies
 		// Create some cyclic dependencies
@@ -164,6 +167,13 @@ public class ColumnConfigProviderTest {
 		assertNotNull(cache);
 		assertEquals(1, cache.size());
 		assertEquals(cft, cache.get(ObjectType.dataset.name()));
+	}
+	
+	@Test
+	public void testGetFilterEnumerations(){
+		List<FilterEnumeration> list = provider.getFilterEnumerations();
+		assertNotNull(list);
+		assertTrue(list.size() > 0);
 	}
 
 }

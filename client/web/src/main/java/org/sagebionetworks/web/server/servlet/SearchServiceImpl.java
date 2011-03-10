@@ -15,6 +15,7 @@ import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.server.ServerConstants;
 import org.sagebionetworks.web.server.UrlTemplateUtil;
 import org.sagebionetworks.web.shared.ColumnsForType;
+import org.sagebionetworks.web.shared.FilterEnumeration;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.TableResults;
@@ -223,9 +224,20 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 		return columnConfig.getAdditionalColumnIds(type);
 	}
 
+	/**
+	 * @see ColumnConfigProvider#getColumnsForType(String)
+	 */
 	@Override
 	public ColumnsForType getColumnsForType(String type) {
 		return columnConfig.getColumnsForType(type);
+	}
+
+	/**
+	 * @see ColumnConfigProvider#getFilterEnumerations()
+	 */
+	@Override
+	public List<FilterEnumeration> getFilterEnumerations() {
+		return columnConfig.getFilterEnumerations();
 	}
 
 }

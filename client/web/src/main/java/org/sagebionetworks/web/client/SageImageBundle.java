@@ -28,5 +28,8 @@ public interface SageImageBundle extends ClientBundle {
 	
 	@Source("images/downArrow.png")
 	ImageResource iconDownArrow();
+	
+	@Source("images/searchButtonIcon.png")
+	ImageResource searchButtonIcon();
 
 }

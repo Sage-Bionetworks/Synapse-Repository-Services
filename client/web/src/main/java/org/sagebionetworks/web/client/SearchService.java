@@ -3,6 +3,7 @@ package org.sagebionetworks.web.client;
 import java.util.List;
 
 import org.sagebionetworks.web.shared.ColumnsForType;
+import org.sagebionetworks.web.shared.FilterEnumeration;
 import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.TableResults;
 
@@ -31,6 +32,12 @@ public interface SearchService extends RemoteService{
 	 * @return
 	 */
 	public ColumnsForType getColumnsForType(String type);
+	
+	/**
+	 * Get the list of filter enumerations.
+	 * @return
+	 */
+	public List<FilterEnumeration> getFilterEnumerations();
 	
 	
 

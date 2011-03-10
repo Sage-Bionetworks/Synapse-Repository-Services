@@ -67,6 +67,9 @@ public class FilterEnumeration implements IsSerializable {
 	public String getOperator() {
 		return operator.name();
 	}
+	public WhereOperator fetchOperator(){
+		return operator;
+	}
 	/**
 	 * Enums are not supported in GWT RPC serialization.
 	 * @param operator
@@ -74,6 +77,16 @@ public class FilterEnumeration implements IsSerializable {
 	public void setOperator(String operator) {
 		this.operator = WhereOperator.valueOf(operator);
 	}
+	
+	/**
+	 * Get a value by index
+	 * @param realIndex
+	 * @return
+	 */
+	public DisplayableValue getValue(int realIndex) {
+		return values.get(realIndex);
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;

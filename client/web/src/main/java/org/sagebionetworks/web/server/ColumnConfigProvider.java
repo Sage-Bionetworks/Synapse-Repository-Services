@@ -16,6 +16,7 @@ import java.util.logging.Logger;
 
 import org.sagebionetworks.web.shared.CompositeColumn;
 import org.sagebionetworks.web.shared.ColumnsForType;
+import org.sagebionetworks.web.shared.FilterEnumeration;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.UrlTemplate;
@@ -33,6 +34,7 @@ public class ColumnConfigProvider {
 	private static Logger logger = Logger.getLogger(ColumnConfigProvider.class.getName());
 	
 	private ColumnConfig config = null;
+	private FilterConfig filterConfig = null;
 	private LinkedHashMap<String, HeaderData> map = null;
 	private Map<String, List<String>> defaultColumns = new TreeMap<String, List<String>>();
 	
@@ -69,7 +71,7 @@ public class ColumnConfigProvider {
 			logger.severe("Cannot find ColumnConfiguration file on classpath: "+resourceName); 
 		}
 	}
-	
+
 	/**
 	 * Provided for testing purposes.
 	 * @param config
@@ -196,6 +198,44 @@ public class ColumnConfigProvider {
 		List<String> keyList = splitCommaSeparatedString(additional);
 		additoinalColumns.put(ObjectType.dataset.name(), keyList);
 	}
+	
+	/**
+	 * Load the given filter enumeration xml file.
+	 * @param filterResource
+	 */
+	@Inject
+	public void setFilterEnumerations(@Named(ServerConstants.KEY_FILTER_ENUMERATION_CONFIG_XML_FILE) String filterResource){
+		InputStream in = ColumnConfigProvider.class.getClassLoader().getResourceAsStream(filterResource);
+		if(in != null){
+			try{
+				InputStreamReader reader = new InputStreamReader(in);
+				// Load the from the xml
+				this.filterConfig = FilterConfig.fromXml(reader);
+				validateFilters();
+			}finally{
+				try {
+					in.close();
+				} catch (IOException e) {}
+			}
+		}else{
+			logger.severe("Cannot find FilterEnumeration file on classpath: "+filterResource); 
+		}
+	}
+	
+	/**
+	 * Validate all of the filter enumerations.
+	 */
+	private void validateFilters() {
+		// There should be a column matching each filter
+		List<FilterEnumeration> list = this.filterConfig.getFilters();
+		if(list != null){
+			for(FilterEnumeration filter: list){
+				// Do we have a column matching this filter?
+				HeaderData header = map.get(filter.getColumnId());
+				if(header == null) throw new IllegalArgumentException("Cannot find a column matching FilterEnumeration colum id: "+filter.getColumnId());
+			}			
+		}
+	}
 
 	/**
 	 * Helper to split a comma separated list of strings
@@ -304,6 +344,14 @@ public class ColumnConfigProvider {
 	 */
 	public Map<String, ColumnsForType> getColumnsForTypeCache() {
 		return columnsForTypeCache;
+	}
+	
+	/**
+	 * Get the list of filters.
+	 * @return
+	 */
+	public List<FilterEnumeration> getFilterEnumerations(){
+		return this.filterConfig.getFilters();
 	}
 
 }

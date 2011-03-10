@@ -28,6 +28,11 @@ public class ServerConstants {
 	 */
 	public static final String KEY_COLUMN_CONFIG_XML_FILE = "org.sagebionetworks.column.config.xml.resource";
 	
+	/**
+	 * The property key that tell what FilterEnumeration.xml file to load.
+	 */
+	public static final String KEY_FILTER_ENUMERATION_CONFIG_XML_FILE = "org.sagebionetworks.fileter.enumeration.xml.resource";
+	
 	
 	/**
 	 * The property key that tells where the root of the rest API can be found;
