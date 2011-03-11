@@ -194,9 +194,8 @@ public class AuthenticationControllerTest {
 		}
 	}
 	
-	@Ignore
 	@Test
 	public void testSendResetPasswordEmail() throws Exception {
-		 helper.testCreateJsonEntity("/userPasswordEmail","{\"userId\":\"demouser\"}");
+		 helper.testCreateJsonEntity("/userPasswordEmail","{\"userId\":\"demouser\"}", HttpStatus.NO_CONTENT);
 	}
 }
