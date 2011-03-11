@@ -115,9 +115,6 @@
             <resource>
               <directory>src/main/webapp</directory>
               <filtering>true</filtering>
-              <includes>
-                <include>**/appengine-web.xml</include>
-              </includes>
             </resource>
           </webResources>
         </configuration>
