@@ -146,6 +146,21 @@ public class AuthenticationControllerTest {
 
 
 	@Test
+	public void testCreateExistingUser() throws Exception {
+			helper.testCreateJsonEntityShouldFail("/user",
+				"{\"userId\":\"demouser\","+
+				"\"password\":\"demouser-pw\","+
+				"\"email\":\"demouser@sagebase.org\","+
+				"\"firstName\":\"Demo\","+
+				"\"lastName\":\"User\","+
+				"\"displayName\":\"Demo User\""+
+					"}", HttpStatus.BAD_REQUEST);
+
+
+	}
+	
+
+	@Test
 	public void testCreateUser() throws Exception {
 		try {
 			helper.testCreateJsonEntity("/user",

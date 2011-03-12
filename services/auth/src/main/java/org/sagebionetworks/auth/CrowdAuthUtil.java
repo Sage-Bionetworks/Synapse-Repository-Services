@@ -206,7 +206,6 @@ public class CrowdAuthUtil {
 		  "</user>";
 	}
 	
-	// TODO Reject if email is already used
 	public void createUser(User user) throws AuthenticationException, IOException {
 		// input:  userid, pw, email, fname, lname, display name
 		// POST /user
@@ -220,16 +219,21 @@ public class CrowdAuthUtil {
 			setBody(conn, userXML(user)+"\n");
 			try {
 				rc = conn.getResponseCode();
-				sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
+				InputStream is = (InputStream)conn.getContent();
+				if (is!=null) sessionXML = (readInputStream(is)).getBytes();
 			} catch (IOException e) {
-				sessionXML = (readInputStream((InputStream)conn.getErrorStream())).getBytes();
-				throw new AuthenticationException(500, "Server Error", 
-						new Exception(new String(sessionXML)));
+				if (rc==0) rc=500;
+				InputStream is = (InputStream)conn.getErrorStream();
+				if (is!=null) sessionXML = (readInputStream(is)).getBytes();
+				Exception chainedException = null;
+				if (sessionXML!=null) chainedException = new Exception(new String(sessionXML));
+				throw new AuthenticationException(rc, "Server Error", chainedException);
 			}
 
 		if (HttpStatus.CREATED.value()!=rc) {
-			throw new AuthenticationException(rc, "Unable to create user.", 
-					new Exception(new String(sessionXML)));
+			Exception chainedException = null;
+			if (sessionXML!=null) chainedException = new Exception(new String(sessionXML));
+			throw new AuthenticationException(rc, "Unable to create user.", chainedException);
 		}
 	}
 	
