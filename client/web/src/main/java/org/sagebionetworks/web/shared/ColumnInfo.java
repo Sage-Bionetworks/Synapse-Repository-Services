@@ -1,5 +1,7 @@
 package org.sagebionetworks.web.shared;
 
+import org.sagebionetworks.web.client.DisplayConstants;
+
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 /**
@@ -129,6 +131,12 @@ public class ColumnInfo implements IsSerializable, HeaderData {
 		if (type != other.type)
 			return false;
 		return true;
+	}
+
+	@Override
+	public int getColumnWidth() {
+		// TODO set to reasonable value
+		return DisplayConstants.DEFAULT_GRID_COLUMN_WIDTH_PX;
 	}
 
 	

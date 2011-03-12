@@ -7,6 +7,11 @@ import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.WhereCondition;
 
+import com.extjs.gxt.ui.client.data.BaseModelData;
+import com.extjs.gxt.ui.client.data.BasePagingLoader;
+import com.extjs.gxt.ui.client.data.ModelData;
+import com.extjs.gxt.ui.client.data.PagingLoadResult;
+import com.extjs.gxt.ui.client.store.ListStore;
 import com.google.gwt.user.client.ui.IsWidget;
 
 public interface QueryServiceTableView extends IsWidget {
@@ -17,14 +22,33 @@ public interface QueryServiceTableView extends IsWidget {
 	 * @param presenter
 	 */
 	public void setPresenter(Presenter presenter);
-	
-
+		
 	/**
 	 * Display a message in a pop-up dialog.
 	 * @param message
 	 */
 	public void showMessage(String message);
+		
+	/**
+	 * Sets the title at the top of the table
+	 * @param title
+	 */
+	public void setTitle(String title);
 	
+	/**
+	 * Sets the width and height of the grid
+	 * @param width
+	 * @param height
+	 */
+	public void setDimensions(int width, int height);
+	
+	/**
+	 * Set paging loader for store
+	 * @param store Ext GWT ListStore for the query async service 
+	 * @param loader BasePagingLoader for query async service
+	 */
+	public void setStoreAndLoader(ListStore<BaseModelData> store, BasePagingLoader<PagingLoadResult<ModelData>> loader);
+		
 	/**
 	 * Set the current rows to display
 	 * @param rows
@@ -34,8 +58,7 @@ public interface QueryServiceTableView extends IsWidget {
 	 * @param sortKey
 	 * @param ascending
 	 */
-	public void setRows(RowData data);
-	
+	public void setRows(RowData data);	
 
 	/**
 	 * The view should synch with the given columns.
@@ -49,13 +72,18 @@ public interface QueryServiceTableView extends IsWidget {
 	 */
 	public void usePager(boolean use);
 	
-
+	/** 
+	 * Set the current pagination offset and length
+	 * @param offset which page is viewed
+	 * @param length the number of rows shown
+	 */
+	public void setPaginationOffsetAndLength(int offset, int length);
+	
 	/**
 	 * Defines the communication with the presenter.
 	 *
 	 */
 	public interface Presenter {
-		
 		/**
 		 * Initialize the table without trigging a rebuild.
 		 * 
@@ -65,7 +93,7 @@ public interface QueryServiceTableView extends IsWidget {
 		 * @param limit
 		 */
 		public void initialize(ObjectType type, boolean usePager);
-		
+				
 		/**
 		 * Set the where condition.  This will trigger a refresh.
 		 * @param where

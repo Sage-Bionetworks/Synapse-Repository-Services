@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.view;
 
 import org.sagebionetworks.web.client.presenter.DatasetRow;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
+import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.WhereCondition;
 import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
@@ -39,15 +40,18 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 
 	private Presenter presenter;
 	private PreviewDisclosurePanel previewDisclosurePanel;
-	private QueryServiceTable table;
+	private QueryServiceTable queryServiceTable;
 
 	@Inject
-	public DatasetViewImpl(Binder uiBinder, final PreviewDisclosurePanel previewDisclosurePanel, QueryServiceTable table) {
+	public DatasetViewImpl(Binder uiBinder, final PreviewDisclosurePanel previewDisclosurePanel, QueryServiceTableResourceProvider queryServiceTableResourceProvider) {
 		initWidget(uiBinder.createAndBindUi(this));
 		this.previewDisclosurePanel = previewDisclosurePanel;
-		this.table = table;
-		this.table.initialize(ObjectType.layer, false);
-		tablePanel.add(table.asWidget());
+
+
+		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.layer, "Layers", true, 300, 400);
+		// TODO : fix this use of the table!
+		this.queryServiceTable.initialize(ObjectType.layer, false);
+		tablePanel.add(queryServiceTable.asWidget());
 
 	}
 
@@ -64,7 +68,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	@Override
 	public void setDatasetRow(DatasetRow row) {
 		// Set the where clause
-		this.table.setWhereCondition(new WhereCondition("dataset.id", WhereOperator.EQUALS, row.getId()));
+		this.queryServiceTable.setWhereCondition(new WhereCondition("dataset.id", WhereOperator.EQUALS, row.getId()));
 		// Clear everything
 		clearAllFields();
 		titleSpan.setInnerText(row.getName());

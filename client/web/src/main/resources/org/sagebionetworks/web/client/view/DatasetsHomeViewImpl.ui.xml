@@ -1,7 +1,9 @@
 <!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
 <ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
-	xmlns:g="urn:import:com.google.gwt.user.client.ui" xmlns:c="urn:import:com.google.gwt.user.cellview.client"
+	xmlns:g="urn:import:com.google.gwt.user.client.ui" 
+	xmlns:c="urn:import:com.google.gwt.user.cellview.client"
 	xmlns:s="urn:import:org.sagebionetworks.web.client.view">
+		
 	<ui:style>
 		.important {
 			font-weight: bold;
@@ -74,9 +76,10 @@
 						</div>
 
 					</td>
-					<td>
+					<td>						
 						<div>
 							<g:SimplePanel ui:field="tablePanel" />
+							<!-- <gxt:ContentPanel headerVisible="false" layout="FitLayout" ui:field="tablePanel"></gxt:ContentPanel> -->
 						</div>
 					</td>
 				</tr>

@@ -64,4 +64,10 @@ public class SampleHeaderData implements HeaderData, CompositeColumn{
 		this.dependencyList = dependencyList;
 	}
 
+	@Override
+	public int getColumnWidth() {
+		// TODO Auto-generated method stub
+		return 150;
+	}
+
 }

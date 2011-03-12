@@ -28,7 +28,11 @@
 	<!-- Specify the paths for translatable code -->
 	<source path='client' />
 	<source path='shared' />
+	
+	<!-- GWT Inherits  -->
 	<inherits name="org.sagebionetworks.web.Portal"/>
 	<inherits name="com.gwtplatform.mvp.Mvp"/>
+	<inherits name="com.extjs.gxt.ui.GXT" />
+
 
 </module>

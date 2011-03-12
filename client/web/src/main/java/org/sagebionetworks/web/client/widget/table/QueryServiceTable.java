@@ -1,18 +1,29 @@
 package org.sagebionetworks.web.client.widget.table;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.web.client.SearchServiceAsync;
 import org.sagebionetworks.web.client.view.RowData;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.SearchParameters;
-import org.sagebionetworks.web.shared.WhereCondition;
 import org.sagebionetworks.web.shared.TableResults;
+import org.sagebionetworks.web.shared.WhereCondition;
 
+import com.extjs.gxt.ui.client.Style.SortDir;
+import com.extjs.gxt.ui.client.data.BaseModelData;
+import com.extjs.gxt.ui.client.data.BasePagingLoadResult;
+import com.extjs.gxt.ui.client.data.BasePagingLoader;
+import com.extjs.gxt.ui.client.data.ModelData;
+import com.extjs.gxt.ui.client.data.PagingLoadConfig;
+import com.extjs.gxt.ui.client.data.PagingLoadResult;
+import com.extjs.gxt.ui.client.data.RpcProxy;
+import com.extjs.gxt.ui.client.store.ListStore;
 import com.google.gwt.user.client.rpc.AsyncCallback;
-import com.google.gwt.user.client.ui.IsWidget;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
@@ -21,14 +32,7 @@ import com.google.inject.Inject;
  * @author jmhill
  *
  */
-public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presenter {
-	
-	@Inject
-	public QueryServiceTable(QueryServiceTableView view, SearchServiceAsync service){
-		this.view = view;
-		this.service = service;
-		this.view.setPresenter(this);
-	}
+public class QueryServiceTable implements QueryServiceTableView.Presenter {
 	
 	private QueryServiceTableView view;
 	private SearchServiceAsync service;
@@ -37,14 +41,76 @@ public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presen
 	private boolean ascending = false;
 	
 	// This keeps track of which page we are on.
+	private boolean usePager = true;
 	public static final int DEFAULT_OFFSET = 0;
 	public static final int DEFAULT_LIMIT = 10;
 	private int paginationOffset = DEFAULT_OFFSET;
-	private int paginationLength = DEFAULT_LIMIT;
+	private int paginationLimit = DEFAULT_LIMIT;
+	public static final int DEFAULT_WIDTH = 600;
+	public static final int DEFAULT_HEIGHT = 300;
 	private List<HeaderData> currentColumns = null;
 	private ObjectType type;
 	private List<String> visibleColumnIds;
 	private WhereCondition where;
+	private BasePagingLoader<PagingLoadResult<ModelData>> loader;
+	private ListStore<BaseModelData> store;	
+	private PagingLoadResult<BaseModelData> loadResultData;
+	
+	@Inject
+	public QueryServiceTable() {		
+	}
+		
+	public QueryServiceTable(QueryServiceTableResourceProvider provider, ObjectType type, boolean usePager){
+		this(provider, type, null, usePager, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+	}
+	
+	public QueryServiceTable(QueryServiceTableResourceProvider provider, ObjectType type, String tableTitle, boolean usePager, int width, int height){
+		this.view = provider.getView();
+		this.service = provider.getService();
+
+		this.view.setPresenter(this);		
+		this.view.setTitle(tableTitle);
+		this.view.usePager(usePager);
+		this.view.setPaginationOffsetAndLength(paginationOffset, paginationLimit);
+		this.view.setDimensions(width, height);
+		initialize(type, usePager);
+		
+        RpcProxy<PagingLoadResult<BaseModelData>> proxy = new RpcProxy<PagingLoadResult<BaseModelData>>() {
+            @Override
+            public void load(Object loadConfig, final AsyncCallback<PagingLoadResult<BaseModelData>> callback) {
+            	setCurrentSearchParameters((PagingLoadConfig) loadConfig);            	
+            	SearchParameters searchParams = getCurrentSearchParameters();
+        		service.executeSearch(searchParams, new AsyncCallback<TableResults>() {
+        			
+        			@Override
+        			public void onSuccess(TableResults result) {
+        				setTableResults(result, callback);
+        				view.setPaginationOffsetAndLength(paginationOffset, paginationLimit);        				
+        				loadResultData.setOffset(paginationOffset);
+        				callback.onSuccess(loadResultData);
+        			}
+        			
+        			@Override
+        			public void onFailure(Throwable caught) {
+        				view.showMessage(caught.getMessage());
+        				callback.onFailure(caught);
+        			}
+        		});
+            }
+        };
+		
+        // create a paging loader from the proxy
+        loader = new BasePagingLoader<PagingLoadResult<ModelData>>(proxy);
+        loader.setRemoteSort(true);
+        loader.setReuseLoadConfig(true);                      
+        // create the data store from the loader
+        store = new ListStore<BaseModelData>(loader);
+
+        // send to view
+        view.setStoreAndLoader(store, loader);
+        refreshFromServer();		
+	}	
+
 	
 	public void setUsePager(boolean usePager) {
 		this.view.usePager(usePager);
@@ -53,7 +119,7 @@ public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presen
 	public ObjectType getType() {
 		return type;
 	}
-	
+			
 	/**
 	 * Get the columns to display.
 	 * @return
@@ -73,36 +139,54 @@ public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presen
 	 * @return
 	 */
 	public SearchParameters getCurrentSearchParameters(){
-		return new SearchParameters(getDisplayColumns(), this.type.name(), this.where, paginationOffset, paginationLength, sortKey, ascending);
+		return new SearchParameters(getDisplayColumns(), this.type.name(), this.where, paginationOffset, paginationLimit, sortKey, ascending);
 	}
 
+	private void setCurrentSearchParameters(PagingLoadConfig loadConfig) {
+		paginationOffset = loadConfig.getOffset();
+		paginationLimit = loadConfig.getLimit();
+		view.setPaginationOffsetAndLength(paginationOffset, paginationLimit);
+		if(loadConfig.getSortField() != null) 
+			sortKey = loadConfig.getSortField().replaceAll("_",".");
+		if(loadConfig.getSortDir() != null)
+			ascending = loadConfig.getSortDir() == SortDir.ASC ? true : false; // TODO : support NONE?		
+	}
+	
+	
 	public WhereCondition getWhere() {
 		return where;
 	}
-
-	/**
-	 * Asynchronous call that will execute the current query and set the results.
-	 */
-	public void refreshFromServer() {
-		service.executeSearch(getCurrentSearchParameters(), new AsyncCallback<TableResults>() {
-			
-			@Override
-			public void onSuccess(TableResults result) {
-				setTableResults(result);
-			}
-			
-			@Override
-			public void onFailure(Throwable caught) {
-				view.showMessage(caught.getMessage());
-			}
-		});
-	}
-
+	
 	public void setTableResults(TableResults result) {
 		// First, set the columns
 		setCurrentColumns(result.getColumnInfoList());
 		// Now set the rows
-		RowData data = new RowData(result.getRows(), paginationOffset, paginationLength, result.getTotalNumberResults(), sortKey, ascending);
+		RowData data = new RowData(result.getRows(), paginationOffset, paginationLimit, result.getTotalNumberResults(), sortKey, ascending);
+		view.setRows(data);
+	}	
+
+	public void setTableResults(TableResults result, AsyncCallback<PagingLoadResult<BaseModelData>> callback) {
+		// First, set the columns
+		setCurrentColumns(result.getColumnInfoList());
+		
+		List<BaseModelData> dataList = new ArrayList<BaseModelData>();
+		for(Map<String,Object> rowMap : result.getRows()) {			
+			Map<String,Object> cleanMap = new LinkedHashMap<String, Object>();						
+			BaseModelData dataPt = new BaseModelData();
+			for(String key : rowMap.keySet()) {
+				String cleanKey = key.replaceAll("\\.", "_");
+				Object value = rowMap.get(key); 								
+				dataPt.set(cleanKey, value);
+			}
+			dataList.add(dataPt);
+		}
+		loadResultData = new BasePagingLoadResult<BaseModelData>(dataList);
+		loadResultData.setTotalLength(result.getTotalNumberResults());
+		
+
+		// TODO : not needed with GXT loader
+		// Now set the rows
+		RowData data = new RowData(result.getRows(), paginationOffset, paginationLimit, result.getTotalNumberResults(), sortKey, ascending);		
 		view.setRows(data);
 	}
 
@@ -117,6 +201,30 @@ public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presen
 			// The columns have change so we need to update the view
 			this.currentColumns = columnInfoList;
 			view.setColumns(columnInfoList);
+		}
+	}
+	
+	/**
+	 *  Reloads the data from the server given the current parameters
+	 */
+	public void refreshFromServer() {
+		if(loader != null) {
+			loader.load(paginationOffset, paginationLimit);
+		} else {
+			// if loader not available (GWT celltable impl) use service
+			// TODO : remove this when we move to GXT
+			service.executeSearch(getCurrentSearchParameters(), new AsyncCallback<TableResults>() {
+				
+				@Override
+				public void onSuccess(TableResults result) {
+					setTableResults(result);
+				}
+				
+				@Override
+				public void onFailure(Throwable caught) {
+					view.showMessage(caught.getMessage());
+				}
+			});
 		}
 	}
 	
@@ -147,8 +255,8 @@ public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presen
 	@Override
 	public void pageTo(int start, int length) {
 		this.paginationOffset = start;
-		this.paginationLength = length;
-		refreshFromServer();
+		this.paginationLimit = length;
+		this.refreshFromServer();
 	}
 
 	@Override
@@ -156,7 +264,7 @@ public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presen
 		// We need to resynch
 		sortKey = columnKey;
 		ascending = !ascending;
-		refreshFromServer();
+		this.refreshFromServer();		
 	}
 
 	public String getSortKey() {
@@ -172,21 +280,20 @@ public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presen
 	}
 
 	public int getPaginationLength() {
-		return paginationLength;
+		return paginationLimit;
 	}
 
 	@Override
 	public void setDispalyColumns(List<String> visibileColumns) {
 		this.visibleColumnIds = visibileColumns;
-		refreshFromServer();
+		this.refreshFromServer();
 	}
-	
-	@Override
+		
 	public Widget asWidget() {
 		if(type == null) throw new IllegalStateException("The type must be set before this table can be used.");
 		return this.view.asWidget();
 	}
-
+	
 	@Override
 	public void setWhereCondition(WhereCondition where) {
 		this.where = where;
@@ -200,13 +307,12 @@ public class QueryServiceTable implements IsWidget, QueryServiceTableView.Presen
 		if(usePager){
 			// A pager will be used.
 			this.paginationOffset = DEFAULT_OFFSET;
-			this.paginationLength = DEFAULT_LIMIT;
+			this.paginationLimit = DEFAULT_LIMIT;
 		}else{
 			// Since there is no pager, the limit should be maxed
 			this.paginationOffset = DEFAULT_OFFSET;
-			this.paginationLength = Integer.MAX_VALUE;
+			this.paginationLimit = Integer.MAX_VALUE;
 		}
 	}
-
 
 }

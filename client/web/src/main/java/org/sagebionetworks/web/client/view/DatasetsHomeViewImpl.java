@@ -6,8 +6,9 @@ import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.widget.filter.QueryFilter;
 import org.sagebionetworks.web.client.widget.filter.QueryFilter.SelectionListner;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
-import org.sagebionetworks.web.shared.WhereCondition;
+import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
+import org.sagebionetworks.web.shared.WhereCondition;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
@@ -29,6 +30,7 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 
 	@UiField
 	SimplePanel tablePanel;
+	//ContentPanel tablePanel;
 	@UiField
 	Button addColumnsButton;
 	@UiField
@@ -42,8 +44,8 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 	private QueryServiceTable queryServiceTable;
 	
 	@Inject
-	public DatasetsHomeViewImpl(DatasetsHomeViewImplUiBinder binder, QueryServiceTable table, QueryFilter filter, SageImageBundle imageBundle) {
-		this.queryServiceTable = table;
+	public DatasetsHomeViewImpl(DatasetsHomeViewImplUiBinder binder, QueryFilter filter, SageImageBundle imageBundle, QueryServiceTableResourceProvider queryServiceTableResourceProvider) {		
+		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, null, true, 880, 420);
 		ImageResource searchIR = imageBundle.searchButtonIcon();
 		searchButton = new PushButton(new Image(searchIR));
 		initWidget(binder.createAndBindUi(this));
@@ -52,9 +54,10 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 		searchButton.setStyleName("imageButton");
 
 		// The pager will listen to the dynamic table
-		table.initialize(ObjectType.dataset, true);
+		queryServiceTable.initialize(ObjectType.dataset, true);
+
 		// Add the table
-		tablePanel.add(table.asWidget());
+		tablePanel.add(queryServiceTable.asWidget());
 		// Add the filter
 		filterPanel.add(filter);
 

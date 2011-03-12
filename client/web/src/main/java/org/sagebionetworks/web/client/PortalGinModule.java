@@ -17,6 +17,7 @@ import org.sagebionetworks.web.client.view.table.ColumnFactoryImpl;
 import org.sagebionetworks.web.client.widget.filter.QueryFilterView;
 import org.sagebionetworks.web.client.widget.filter.QueryFilterViewImpl;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableView;
+import org.sagebionetworks.web.client.widget.table.QueryServiceTableViewGxtImpl;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableViewImpl;
 import com.google.gwt.cell.client.widget.CustomWidgetImageBundle;
 import com.google.gwt.inject.client.AbstractGinModule;
@@ -40,7 +41,8 @@ public class PortalGinModule extends AbstractGinModule {
 		bind(LayerView.class).to(LayerViewImpl.class);
 
 		// QueryService View
-		bind(QueryServiceTableView.class).to(QueryServiceTableViewImpl.class);
+		//bind(QueryServiceTableView.class).to(QueryServiceTableViewImpl.class);
+		bind(QueryServiceTableView.class).to(QueryServiceTableViewGxtImpl.class);
 		
 		// Bind the cookie provider
 		bind(GWTCookieImpl.class).in(Singleton.class);

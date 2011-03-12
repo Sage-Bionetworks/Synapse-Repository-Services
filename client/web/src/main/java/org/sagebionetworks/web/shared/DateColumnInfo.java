@@ -3,6 +3,7 @@ package org.sagebionetworks.web.shared;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.shared.ColumnInfo.Type;
 
 import com.google.gwt.user.client.rpc.IsSerializable;
@@ -63,4 +64,11 @@ public class DateColumnInfo implements HeaderData, IsSerializable, CompositeColu
 	public String getSortId() {
 		return baseColumn.getSortId();
 	}
+	
+	@Override
+	public int getColumnWidth() {
+		// TODO set to reasonable value
+		return DisplayConstants.DEFULAT_GRID_DATE_COLUMN_WIDTH_PX;
+	}
+	
 }

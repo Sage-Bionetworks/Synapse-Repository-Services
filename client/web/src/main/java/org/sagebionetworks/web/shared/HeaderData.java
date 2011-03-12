@@ -35,4 +35,9 @@ public interface HeaderData extends IsSerializable{
 	 */
 	public String getSortId();
 
+	/**
+	 * Returns the column's default display width in pixels
+	 * @return default width for the column
+	 */
+	public int getColumnWidth();
 }

@@ -3,6 +3,8 @@ package org.sagebionetworks.web.shared;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.web.client.DisplayConstants;
+
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 /**
@@ -102,6 +104,12 @@ public class LinkColumnInfo implements HeaderData, IsSerializable, CompositeColu
 		} else if (!url.equals(other.url))
 			return false;
 		return true;
+	}
+
+	@Override
+	public int getColumnWidth() {
+		// TODO set to reasonable value
+		return DisplayConstants.DEFAULT_GRID_COLUMN_WIDTH_PX;
 	}
 
 }

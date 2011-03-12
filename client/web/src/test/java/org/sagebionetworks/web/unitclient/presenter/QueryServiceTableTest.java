@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -17,12 +18,15 @@ import org.sagebionetworks.web.client.SearchService;
 import org.sagebionetworks.web.client.SearchServiceAsync;
 import org.sagebionetworks.web.client.view.RowData;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
+import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableView;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.TableResults;
 import org.sagebionetworks.web.test.helper.AsyncServiceRecorder;
+
+import com.google.gwt.junit.GWTMockUtilities;
 
 
 public class QueryServiceTableTest {
@@ -35,6 +39,7 @@ public class QueryServiceTableTest {
 	
 	@Before
 	public void setup(){
+		GWTMockUtilities.disarm();
 		// Create the mock service
 		mockSearchService = Mockito.mock(SearchService.class);
 		mockView = Mockito.mock(QueryServiceTableView.class);
@@ -45,10 +50,17 @@ public class QueryServiceTableTest {
 		asynchProxy = recorder.createAsyncProxyToRecord();
 		// Using a stub cookie provider
 		// Create the presenter
-		presenter = new QueryServiceTable(mockView, asynchProxy);
+		QueryServiceTableResourceProvider queryServiceTableResourceProvider = new QueryServiceTableResourceProvider(mockView, asynchProxy);		
+		presenter = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true);
 		presenter.initialize(ObjectType.dataset, true);
 		// Make sure the view gets the presenter set
 		verify(mockView).setPresenter(presenter);
+	}
+	
+	@After
+	public void tearDown(){
+		// Be kind to the next test
+		GWTMockUtilities.restore();
 	}
 	
 	@Test
@@ -105,7 +117,7 @@ public class QueryServiceTableTest {
 		int total = 50;
 		TableResults table = createResults(cols, rows, total);
 		// Now set this table
-		presenter.setTableResults(table);
+		presenter.setTableResults(table, null); // TOPO : need to mock callback
 		SearchParameters curParams = presenter.getCurrentSearchParameters();
 		// The view should get the columns set and the rows set
 		verify(mockView, times(1)).setColumns(table.getColumnInfoList());

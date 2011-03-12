@@ -10,10 +10,14 @@ import org.sagebionetworks.web.client.view.RowData;
 import org.sagebionetworks.web.client.view.table.ColumnFactory;
 import org.sagebionetworks.web.shared.HeaderData;
 
+import com.extjs.gxt.ui.client.data.BaseModelData;
+import com.extjs.gxt.ui.client.data.BasePagingLoader;
+import com.extjs.gxt.ui.client.data.ModelData;
+import com.extjs.gxt.ui.client.data.PagingLoadResult;
+import com.extjs.gxt.ui.client.store.ListStore;
 import com.google.gwt.cell.client.ValueUpdater;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
-import com.google.gwt.uibinder.client.UiTemplate;
 import com.google.gwt.user.cellview.client.CellTable;
 import com.google.gwt.user.cellview.client.Column;
 import com.google.gwt.user.cellview.client.SimplePager;
@@ -27,7 +31,7 @@ import com.google.gwt.view.client.RangeChangeEvent.Handler;
 import com.google.inject.Inject;
 
 public class QueryServiceTableViewImpl extends Composite implements QueryServiceTableView {
-
+ 
 //	@UiTemplate("QueryServiceTableViewImpl.ui.xml")
 	public interface Binder extends UiBinder<Widget, QueryServiceTableViewImpl> {}
 
@@ -188,6 +192,22 @@ public class QueryServiceTableViewImpl extends Composite implements QueryService
 	public void usePager(boolean use) {
 		this.usePager = use;
 	}
+	
+	/*
+	 *  Methods of the view interface that are not designed for this impl
+	 */
+	@Override
+	public void setPaginationOffsetAndLength(int offset, int length) {
+		// not applicable to this View Impl	
+	}
 
+	@Override
+	public void setStoreAndLoader(ListStore<BaseModelData> store, BasePagingLoader<PagingLoadResult<ModelData>> loader) {
+		// not applicable to this View Impl	
+	}
 
+	@Override
+	public void setDimensions(int width, int height) {
+		// not applicable to this View Impl	
+	}
 }
