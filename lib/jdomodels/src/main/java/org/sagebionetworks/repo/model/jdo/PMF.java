@@ -36,8 +36,17 @@ public final class PMF {
 	public static PersistenceManager get() {
 		if (null == pmfInstance) {
 			synchronized (PMF.class) {
-				if ((null == System.getProperty("JDBC_CONNECTION_STRING"))
-						&& (null == System.getenv("JDBC_CONNECTION_STRING"))) {
+				// Prefer the value specified by the property over that in the
+				// environment
+				String jdbcConnectionString = (null != System
+						.getProperty("JDBC_CONNECTION_STRING")) ? System
+						.getProperty("JDBC_CONNECTION_STRING") : System
+						.getenv("JDBC_CONNECTION_STRING");
+
+				// Elastic Beanstalk passes the empty string by default so check
+				// for that too
+				if ((null == jdbcConnectionString)
+						|| (0 == jdbcConnectionString.length())) {
 					log.info("JDO Persistence unit to be used: "
 							+ memoryPersistenceImpl);
 					pmfInstance = JDOHelper
