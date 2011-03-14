@@ -364,7 +364,7 @@ public class Helpers {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(servletPrefix + "/query");
-		request.addParameter("query", URLEncoder.encode(query, "UTF-8"));
+		request.addParameter("query", query);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.OK.value(), response.getStatus());
@@ -547,7 +547,7 @@ public class Helpers {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI("/query");
-		request.addParameter("query", URLEncoder.encode(query, "UTF-8"));
+		request.addParameter("query", query);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(status.value(), response.getStatus());
