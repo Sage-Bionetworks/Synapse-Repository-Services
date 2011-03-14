@@ -82,8 +82,9 @@ public class ControllerAuthorizationTest {
 
 		// Create a dataset
 		helper.setUserId(CURATOR1_USER_ID);
-		JSONObject dataset = helper.testCreateJsonEntity("/dataset",
-				DatasetControllerTest.SAMPLE_DATASET);
+		JSONObject dataset = helper.testCreateJsonEntity(helper
+				.getServletPrefix()
+				+ "/dataset", DatasetControllerTest.SAMPLE_DATASET);
 		assertTrue(dataset.has("id"));
 
 		// Only the creator can currently access it

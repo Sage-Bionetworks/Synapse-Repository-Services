@@ -75,8 +75,8 @@ public class LayerLocationsControllerTest {
 			isInitialized = true;
 		}
 
-		dataset = helper.testCreateJsonEntity("/dataset",
-				DatasetControllerTest.SAMPLE_DATASET);
+		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/dataset", DatasetControllerTest.SAMPLE_DATASET);
 	}
 
 	/**
@@ -125,8 +125,8 @@ public class LayerLocationsControllerTest {
 				.testUpdateJsonEntity(layerPreview);
 
 		// Check that the update response reflects the change
-		assertEquals(tabDelimitedSnippet,
-				updatedLayerPreview.getString("preview"));
+		assertEquals(tabDelimitedSnippet, updatedLayerPreview
+				.getString("preview"));
 
 		// Now make sure the stored one reflects the change too
 		// TODO do we want to leave a breadcrumb for this uri?
@@ -217,7 +217,20 @@ public class LayerLocationsControllerTest {
 				.getJSONArray("locations").getString(0));
 		assertEquals(3, storedLayerLocations.getJSONArray("locations").length());
 		assertExpectedLayerLocationsProperties(storedLayerLocations);
+	}
+	
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.LayerLocationsController#updateDependentEntity}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testLayerLocationsSanityCheck() throws Exception {
 
+		testUpdateLayerLocations();
+		
 		// As a sanity check, make sure we can walk from one end to the other
 		JSONObject saneDataset = helper.testGetJsonEntity(dataset
 				.getString("uri"));

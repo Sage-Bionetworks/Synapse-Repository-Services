@@ -4,8 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.logging.Logger;
-
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -14,11 +12,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.servlet.DispatcherServlet;
 
 /**
  * Unit tests for the Dataset CRUD operations exposed by the DatasetController
@@ -36,12 +31,8 @@ import org.springframework.web.servlet.DispatcherServlet;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DatasetControllerTest {
 
-	private static final Logger log = Logger
-			.getLogger(DatasetControllerTest.class.getName());
-
 	@Autowired
 	private Helpers helper;
-	private DispatcherServlet servlet;
 
 	/**
 	 * A few dataset properties for use in creating a new dataset object for
@@ -54,7 +45,7 @@ public class DatasetControllerTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
-		servlet = helper.setUp();
+		helper.setUp();
 	}
 
 	/**
@@ -71,29 +62,6 @@ public class DatasetControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#sanityCheck(org.springframework.ui.ModelMap)}
-	 * .
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testSanityCheck() throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI("/dataset/test");
-		servlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
-		assertEquals("we got 200 OK", 200, response.getStatus());
-		JSONObject results = new JSONObject(response.getContentAsString());
-		// The response should be: {"hello":"REST for Datasets rocks"}
-		assertEquals("REST for Datasets rocks", results.getString("hello"));
-	}
-
-	/**
-	 * Test method for
 	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#createEntity}
 	 * .
 	 * 
@@ -101,8 +69,9 @@ public class DatasetControllerTest {
 	 */
 	@Test
 	public void testCreateDataset() throws Exception {
-		JSONObject results = helper.testCreateJsonEntity("/dataset",
-				"{\"name\":\"DeLiver\"}");
+		JSONObject results = helper.testCreateJsonEntity(helper
+				.getServletPrefix()
+				+ "/dataset", "{\"name\":\"DeLiver\"}");
 
 		// Check required properties
 		assertEquals("DeLiver", results.getString("name"));
@@ -120,10 +89,13 @@ public class DatasetControllerTest {
 	@Test
 	public void testGetDataset() throws Exception {
 		// Load up a few datasets
-		helper.testCreateJsonEntity("/dataset", "{\"name\":\"DeLiver\"}");
-		helper.testCreateJsonEntity("/dataset", "{\"name\":\"Harvard Brain\"}");
-		JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-				"{\"name\":\"MouseCross\"}");
+		helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
+				"{\"name\":\"DeLiver\"}");
+		helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
+				"{\"name\":\"Harvard Brain\"}");
+		JSONObject newDataset = helper.testCreateJsonEntity(helper
+				.getServletPrefix()
+				+ "/dataset", "{\"name\":\"MouseCross\"}");
 
 		JSONObject results = helper.testGetJsonEntity(newDataset
 				.getString("uri"));
@@ -147,8 +119,9 @@ public class DatasetControllerTest {
 	public void testUpdateDatasetAnnotations() throws Exception {
 
 		// Load up a few datasets
-		JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-				"{\"name\":\"MouseCross\"}");
+		JSONObject newDataset = helper.testCreateJsonEntity(helper
+				.getServletPrefix()
+				+ "/dataset", "{\"name\":\"MouseCross\"}");
 
 		// Get our empty annotations container
 		helper.testEntityAnnotations(newDataset.getString("annotations"));
@@ -164,10 +137,13 @@ public class DatasetControllerTest {
 	@Test
 	public void testUpdateDataset() throws Exception {
 		// Load up a few datasets
-		helper.testCreateJsonEntity("/dataset", "{\"name\":\"DeLiver\"}");
-		helper.testCreateJsonEntity("/dataset", "{\"name\":\"Harvard Brain\"}");
-		JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-				"{\"name\":\"MouseCross\"}");
+		helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
+				"{\"name\":\"DeLiver\"}");
+		helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
+				"{\"name\":\"Harvard Brain\"}");
+		JSONObject newDataset = helper.testCreateJsonEntity(helper
+				.getServletPrefix()
+				+ "/dataset", "{\"name\":\"MouseCross\"}");
 
 		// Get one dataset
 		JSONObject dataset = helper.testGetJsonEntity(newDataset
@@ -199,10 +175,13 @@ public class DatasetControllerTest {
 	@Test
 	public void testDeleteDataset() throws Exception {
 		// Load up a few datasets
-		helper.testCreateJsonEntity("/dataset", "{\"name\":\"DeLiver\"}");
-		helper.testCreateJsonEntity("/dataset", "{\"name\":\"Harvard Brain\"}");
-		JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-				"{\"name\":\"MouseCross\"}");
+		helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
+				"{\"name\":\"DeLiver\"}");
+		helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
+				"{\"name\":\"Harvard Brain\"}");
+		JSONObject newDataset = helper.testCreateJsonEntity(helper
+				.getServletPrefix()
+				+ "/dataset", "{\"name\":\"MouseCross\"}");
 		helper.testDeleteJsonEntity(newDataset.getString("uri"));
 	}
 
@@ -222,7 +201,7 @@ public class DatasetControllerTest {
 
 		JSONObject error = helper
 				.testCreateJsonEntityShouldFail(
-						"/dataset",
+						helper.getServletPrefix() + "/dataset",
 						"{\"name\": \"DeLiver\", \"BOGUS\":\"this does not match our model object\"}",
 						HttpStatus.BAD_REQUEST);
 
@@ -249,8 +228,10 @@ public class DatasetControllerTest {
 	@Test
 	public void testMissingRequiredFieldCreateDataset() throws Exception {
 
-		JSONObject error = helper.testCreateJsonEntityShouldFail("/dataset",
-				"{\"version\": \"1.0.0\"}", HttpStatus.BAD_REQUEST);
+		JSONObject error = helper.testCreateJsonEntityShouldFail(helper
+				.getServletPrefix()
+				+ "/dataset", "{\"version\": \"1.0.0\"}",
+				HttpStatus.BAD_REQUEST);
 
 		assertEquals("'name' is a required property for Dataset", error
 				.getString("reason"));
@@ -266,8 +247,9 @@ public class DatasetControllerTest {
 	@Test
 	public void testMissingRequiredFieldUpdateDataset() throws Exception {
 		// Create a dataset
-		JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-				"{\"name\":\"MouseCross\"}");
+		JSONObject newDataset = helper.testCreateJsonEntity(helper
+				.getServletPrefix()
+				+ "/dataset", "{\"name\":\"MouseCross\"}");
 
 		// Get that dataset
 		JSONObject dataset = helper.testGetJsonEntity(newDataset
@@ -294,8 +276,9 @@ public class DatasetControllerTest {
 	@Test
 	public void testUpdateDatasetConflict() throws Exception {
 		// Create a dataset
-		JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-				"{\"name\":\"MouseCross\"}");
+		JSONObject newDataset = helper.testCreateJsonEntity(helper
+				.getServletPrefix()
+				+ "/dataset", "{\"name\":\"MouseCross\"}");
 		// Get that dataset
 		JSONObject dataset = helper.testGetJsonEntity(newDataset
 				.getString("uri"));
@@ -341,8 +324,9 @@ public class DatasetControllerTest {
 	 */
 	@Test
 	public void testGetNonExistentDataset() throws Exception {
-		JSONObject results = helper.testCreateJsonEntity("/dataset",
-				"{\"name\":\"DeLiver\"}");
+		JSONObject results = helper.testCreateJsonEntity(helper
+				.getServletPrefix()
+				+ "/dataset", "{\"name\":\"DeLiver\"}");
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 
@@ -364,8 +348,9 @@ public class DatasetControllerTest {
 	public void testGetNonExistentDatasetAnnotations() throws Exception {
 
 		// Load up a dataset
-		JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-				"{\"name\":\"MouseCross\"}");
+		JSONObject newDataset = helper.testCreateJsonEntity(helper
+				.getServletPrefix()
+				+ "/dataset", "{\"name\":\"MouseCross\"}");
 		// Get our empty annotations container
 		JSONObject annotations = helper.testGetJsonEntity(newDataset
 				.getString("annotations"));
@@ -390,8 +375,9 @@ public class DatasetControllerTest {
 	 */
 	@Test
 	public void testUpdateNonExistentDataset() throws Exception {
-		JSONObject results = helper.testCreateJsonEntity("/dataset",
-				"{\"name\":\"DeLiver\"}");
+		JSONObject results = helper.testCreateJsonEntity(helper
+				.getServletPrefix()
+				+ "/dataset", "{\"name\":\"DeLiver\"}");
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 
@@ -411,8 +397,9 @@ public class DatasetControllerTest {
 	 */
 	@Test
 	public void testDeleteNonExistentDataset() throws Exception {
-		JSONObject results = helper.testCreateJsonEntity("/dataset",
-				"{\"name\":\"DeLiver\"}");
+		JSONObject results = helper.testCreateJsonEntity(helper
+				.getServletPrefix()
+				+ "/dataset", "{\"name\":\"DeLiver\"}");
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 

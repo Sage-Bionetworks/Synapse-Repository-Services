@@ -5,8 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.logging.Logger;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
@@ -16,11 +14,8 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.servlet.DispatcherServlet;
 
 /**
  * Unit tests for the Layer CRUD operations exposed by the LayerController with
@@ -40,12 +35,8 @@ import org.springframework.web.servlet.DispatcherServlet;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class LayerControllerTest {
 
-	private static final Logger log = Logger
-			.getLogger(LayerControllerTest.class.getName());
-	
 	@Autowired
 	private Helpers helper;
-	private DispatcherServlet servlet;
 	private JSONObject dataset;
 
 	/**
@@ -59,9 +50,10 @@ public class LayerControllerTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
-		servlet = helper.setUp();
+		helper.setUp();
 
-		dataset = helper.testCreateJsonEntity("/dataset", DatasetControllerTest.SAMPLE_DATASET);
+		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/dataset", DatasetControllerTest.SAMPLE_DATASET);
 	}
 
 	/**
@@ -78,30 +70,6 @@ public class LayerControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.LayerController#sanityCheckChild(org.springframework.ui.ModelMap)}
-	 * .
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testSanityCheck() throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI("/dataset/123/layer/test");
-		servlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
-		assertEquals("we got 200 OK", 200, response.getStatus());
-		JSONObject results = new JSONObject(response.getContentAsString());
-		// The response should be: {"hello":"REST for Dataset Layers rocks"}
-		assertEquals("REST for Dataset Layers rocks", results
-				.getString("hello"));
-	}
-
-	/**
-	 * Test method for
 	 * {@link org.sagebionetworks.repo.web.controller.LayerController#createChildEntity}
 	 * .
 	 * 
@@ -111,23 +79,22 @@ public class LayerControllerTest {
 	public void testCreateLayer() throws Exception {
 
 		// Sanity check - make sure we can find our dataset
-		JSONObject allDatasets = helper.testGetJsonEntities("/dataset", null, null,
-				null, null);
+		JSONObject allDatasets = helper.testGetJsonEntities(helper
+				.getServletPrefix()
+				+ "/dataset", null, null, null, null);
 		assertEquals(1, allDatasets.getInt("totalNumberOfResults"));
-		
-		
+
 		JSONObject newLayer = helper.testCreateJsonEntity(dataset
 				.getString("layer"), SAMPLE_LAYER);
 		assertExpectedLayerProperties(newLayer);
 		// Check required properties
 		assertEquals("DeLiver expression data", newLayer.getString("name"));
 
-
 		// Sanity check - make sure we can _STILL_ find our dataset
-		allDatasets = helper.testGetJsonEntities("/dataset", null, null,
-				null, null);
+		allDatasets = helper.testGetJsonEntities(helper.getServletPrefix()
+				+ "/dataset", null, null, null, null);
 		assertEquals(1, allDatasets.getInt("totalNumberOfResults"));
-		
+
 		// Get the dataset and make sure our Layer types preview is correct
 		JSONObject updatedDataset = helper.testGetJsonEntity(dataset
 				.getString("uri"));
@@ -235,8 +202,10 @@ public class LayerControllerTest {
 						"{\"name\":\"DeLiver clinical data\", \"type\":\"C\", "
 								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 
-		JSONObject results = helper.testGetJsonEntities("/dataset/"
-				+ dataset.getString("id") + "/layer", null, null, null, null);
+		JSONObject results = helper.testGetJsonEntities(helper
+				.getServletPrefix()
+				+ "/dataset/" + dataset.getString("id") + "/layer", null, null,
+				null, null);
 		assertEquals(3, results.getInt("totalNumberOfResults"));
 		assertEquals(3, results.getJSONArray("results").length());
 		assertFalse(results.getJSONObject("paging").has(
@@ -481,7 +450,7 @@ public class LayerControllerTest {
 		for (int i = 0; i < locations.length(); i++) {
 			String location = locations.getString(i);
 			assertTrue(location
-					.matches("/dataset/[^/]+/layer/[^/]+/(locations|.*Location)$"));
+					.matches(".*/dataset/[^/]+/layer/[^/]+/(locations|.*Location)$"));
 		}
 	}
 

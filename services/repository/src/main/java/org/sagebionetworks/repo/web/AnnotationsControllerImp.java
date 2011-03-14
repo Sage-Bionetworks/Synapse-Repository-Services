@@ -106,8 +106,6 @@ public class AnnotationsControllerImp<T extends Base> implements
 		for (Map.Entry<String, Collection<String>> updatedAnnotation : updatedStringAnnotations
 				.entrySet()) {
 			for (String value : updatedAnnotation.getValue()) {
-				log.info("Adding string annotation ("
-						+ updatedAnnotation.getKey() + ", " + value + ")");
 				stringAnnotationDAO.addAnnotation(updatedAnnotation.getKey(),
 						value);
 			}
@@ -118,8 +116,6 @@ public class AnnotationsControllerImp<T extends Base> implements
 		for (Map.Entry<String, Collection<Double>> updatedAnnotation : updatedDoubleAnnotations
 				.entrySet()) {
 			for (Double value : updatedAnnotation.getValue()) {
-				log.info("Adding double annotation ("
-						+ updatedAnnotation.getKey() + ", " + value + ")");
 				doubleAnnotationDAO.addAnnotation(updatedAnnotation.getKey(),
 						value);
 			}
@@ -130,8 +126,6 @@ public class AnnotationsControllerImp<T extends Base> implements
 		for (Map.Entry<String, Collection<Long>> updatedAnnotation : updatedLongAnnotations
 				.entrySet()) {
 			for (Long value : updatedAnnotation.getValue()) {
-				log.info("Adding long annotation ("
-						+ updatedAnnotation.getKey() + ", " + value + ")");
 				longAnnotationDAO.addAnnotation(updatedAnnotation.getKey(),
 						value);
 			}
@@ -142,8 +136,6 @@ public class AnnotationsControllerImp<T extends Base> implements
 		for (Map.Entry<String, Collection<Date>> updatedAnnotation : updatedDateAnnotations
 				.entrySet()) {
 			for (Date value : updatedAnnotation.getValue()) {
-				log.info("Adding date annotation ("
-						+ updatedAnnotation.getKey() + ", " + value + ")");
 				dateAnnotationDAO.addAnnotation(updatedAnnotation.getKey(),
 						value);
 			}
