@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Random;
 
 import org.sagebionetworks.web.shared.ColumnInfo;
+import org.sagebionetworks.web.shared.DisplayableValue;
+import org.sagebionetworks.web.shared.FilterEnumeration;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.ColumnInfo.Type;
 
@@ -132,6 +134,29 @@ public class RandomColumnData {
 			}			
 		}
 		return map;
+	}
+
+	public static Object createRandomValue(FilterEnumeration filter, HeaderData hd) {
+		// Randomly select a value from the filters values
+		List<DisplayableValue> list = filter.getValues();
+		int randomIndex = random.nextInt(list.size());
+		DisplayableValue dv = list.get(randomIndex);
+		String value = dv.getValue();
+		if(hd instanceof ColumnInfo){
+			ColumnInfo ci = (ColumnInfo)hd;
+			if(ci.fetchType() == Type.StringArray){
+				return new String[]{(String)value};
+			}else if(ci.fetchType() == Type.String){
+				return value;
+			}else if(ci.fetchType() == Type.IntegerArray){
+				return new Integer[]{Integer.parseInt(value)};
+			}else if(ci.fetchType() == Type.Integer){
+				return Integer.parseInt(value);
+			}else{
+				throw new IllegalArgumentException("Unsupported type: "+ci.fetchType());
+			}
+		}
+		return value;
 	}
 
 }

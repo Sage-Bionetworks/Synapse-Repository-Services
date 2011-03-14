@@ -108,8 +108,9 @@ public class QueryStringUtilsTest {
 		// Now make a copy from the string
 		SearchParameters copy = QueryStringUtils.parseQueryString(uri.toString());
 		assertNotNull(copy);
+		assertNotNull(copy.getWhere());
 		// The offset should have been changed to 1
-		assertEquals(1, copy.getOffset());
+		assertEquals(where, copy.getWhere());
 	}
 
 

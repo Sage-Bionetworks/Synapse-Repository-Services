@@ -25,6 +25,7 @@ import org.sagebionetworks.web.server.ServerConstants;
 import org.sagebionetworks.web.server.servlet.QueryStringUtils;
 import org.sagebionetworks.web.shared.ColumnInfo;
 import org.sagebionetworks.web.shared.Dataset;
+import org.sagebionetworks.web.shared.FilterEnumeration;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.SearchParameters;
 
@@ -52,6 +53,11 @@ public class LocalSearchServiceStub {
 		String columnConfigFile = props.getProperty(ServerConstants.KEY_COLUMN_CONFIG_XML_FILE);
 		// Create the column config from the classpath
 		columnConfigProvider = new ColumnConfigProvider(columnConfigFile);
+		
+		// Load the filter enumeration file
+		String filterFile = props.getProperty(ServerConstants.KEY_FILTER_ENUMERATION_CONFIG_XML_FILE);
+		columnConfigProvider.setFilterEnumerations(filterFile);
+		
 		// Determine what the valid columns are
 		validColumns = new ArrayList<ColumnInfo>();
 		Iterator<String> keyIt = columnConfigProvider.getKeyIterator();
@@ -73,12 +79,18 @@ public class LocalSearchServiceStub {
 		// Extract the query
 		SearchParameters params = QueryStringUtils.parseQueryString(query);
 		
+		// First apply the filter
+		List<Map<String, Object>> start = rows;
+		if(params.getWhere() != null){
+			start = ListUtils.getFilteredCopy(params.getWhere(), rows);
+		}
+		
 		// First sort
-		List<Map<String, Object>> fullList = ListUtils.getSortedCopy(params.getSort(), params.isAscending(), rows, Map.class);
+		List<Map<String, Object>> fullList = ListUtils.getSortedCopy(params.getSort(), params.isAscending(), start, Map.class);
 		// Get the sub-set based on pagination
 		List<Map<String, Object>> subList = ListUtils.getSubList(params.getOffset(), params.getLimit(), fullList);
 		
-		results.put(SearchService.KEY_TOTAL_NUMBER_OF_RESULTS, rows.size());
+		results.put(SearchService.KEY_TOTAL_NUMBER_OF_RESULTS, start.size());
 		results.put(SearchService.KEY_RESULTS, subList);
 		return results;
 	}
@@ -154,6 +166,16 @@ public class LocalSearchServiceStub {
 				break;
 			}
 			newRow.put("layer.type", layerTypeChar);
+			
+			List<FilterEnumeration> filters = columnConfigProvider.getFilterEnumerations();
+			// For each filter create random data from the enumeration
+			if(filters != null){
+				for(FilterEnumeration filter: filters){
+					HeaderData hd = columnConfigProvider.get(filter.getColumnId());
+					Object value = RandomColumnData.createRandomValue(filter, hd);
+					newRow.put(filter.getColumnId(), value);
+				}
+			}
 			
 			// Add this row
 			copy.add(newRow);

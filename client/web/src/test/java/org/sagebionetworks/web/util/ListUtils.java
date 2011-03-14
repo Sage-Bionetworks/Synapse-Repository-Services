@@ -6,6 +6,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.web.shared.WhereCondition;
+
 
 /**
  * Helper utils for lists of datasets.
@@ -71,6 +73,33 @@ public class ListUtils {
 			Collections.reverse(copy);			
 		}
 		return copy;
+	}
+	
+	/**
+	 * Filter all rows that meet the passed condition.
+	 * @param condition
+	 * @param original
+	 * @return
+	 */
+	public static List<Map<String, Object>> getFilteredCopy(WhereCondition condition, List<Map<String, Object>> original){
+		// First make a copy
+		List<Map<String, Object>> filtered = new ArrayList<Map<String,Object>>();
+		// Go through each row and look for matches to the condition
+		for(int i=0; i<original.size(); i++){
+			Map<String, Object> row = original.get(i);
+			// First does the row have the value
+			Object value = row.get(condition.getId());
+			if(value != null){
+				if(value instanceof Object[]){
+					value = ((Object[])value)[0];
+				}
+				// only equals for now
+				if(value.equals(condition.getValue())){
+					filtered.add(row);
+				}
+			}
+		}
+		return filtered;
 	}
 	
 

@@ -130,6 +130,7 @@ public class QueryStringUtils {
 		SearchParameters params = new SearchParameters();
 		queryString = queryString.replaceAll("%22", "");
 		queryString = queryString.replaceAll("\\+", " ");
+		queryString = queryString.replaceAll("\"", "");
 		StringTokenizer tokenizer = new StringTokenizer(queryString, " ");
 		while(tokenizer.hasMoreTokens()){
 			String token = tokenizer.nextToken();
