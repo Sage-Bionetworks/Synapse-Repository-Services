@@ -9,6 +9,8 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.servlet.http.HttpServlet;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,7 +22,6 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
-import org.springframework.web.servlet.DispatcherServlet;
 
 /**
  * Unit tests for the Dataset CRUD operations exposed by the DatasetController
@@ -48,7 +49,7 @@ public class DatasetControllerXMLTest {
 
 	@Autowired
 	private Helpers helper;
-	private DispatcherServlet servlet = null;
+	private HttpServlet servlet = null;
 
 	// Dev Note: these ids cannot just be any string, they have to be parsable
 	// by our key utility
@@ -90,7 +91,7 @@ public class DatasetControllerXMLTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/xml");
-		request.setRequestURI("/dataset");
+		request.setRequestURI(helper.getServletPrefix() + "/dataset");
 		request.addHeader("Content-Type", "application/xml; charset=UTF-8");
 		request
 				.setContent("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><dataset><name>dataset from a unit test</name></dataset>"
@@ -122,7 +123,8 @@ public class DatasetControllerXMLTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/xml");
-		request.setRequestURI("/dataset/" + newDatasetId);
+		request.setRequestURI(helper.getServletPrefix() + "/dataset/"
+				+ newDatasetId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.OK.value(), response.getStatus());
@@ -152,7 +154,8 @@ public class DatasetControllerXMLTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/xml");
-		request.setRequestURI("/dataset/" + newDatasetId);
+		request.setRequestURI(helper.getServletPrefix() + "/dataset/"
+				+ newDatasetId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.NO_CONTENT.value(), response.getStatus());
@@ -176,7 +179,7 @@ public class DatasetControllerXMLTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/xml");
-		request.setRequestURI("/dataset");
+		request.setRequestURI(helper.getServletPrefix() + "/dataset");
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.OK.value(), response.getStatus());
@@ -217,7 +220,8 @@ public class DatasetControllerXMLTest {
 
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/xml");
-		request.setRequestURI("/dataset/" + NON_EXISTENT_DATASET_ID);
+		request.setRequestURI(helper.getServletPrefix() + "/dataset/"
+				+ NON_EXISTENT_DATASET_ID);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		// TODO the authorization piece changes the behavior
@@ -244,7 +248,8 @@ public class DatasetControllerXMLTest {
 
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/xml");
-		request.setRequestURI("/dataset/" + NON_EXISTENT_DATASET_ID);
+		request.setRequestURI(helper.getServletPrefix() + "/dataset/"
+				+ NON_EXISTENT_DATASET_ID);
 		servlet.service(request, response);
 		// TODO The authorization piece changes the behavior here
 		log.info("Results: " + response.getContentAsString());
@@ -275,7 +280,7 @@ public class DatasetControllerXMLTest {
 
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/xml");
-		request.setRequestURI("/dataset/test");
+		request.setRequestURI(helper.getServletPrefix() + "/dataset/test");
 		try {
 			servlet.service(request, response);
 		} catch (Exception e) {
@@ -308,7 +313,7 @@ public class DatasetControllerXMLTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/xml");
-		request.setRequestURI("/dataset");
+		request.setRequestURI(helper.getServletPrefix() + "/dataset");
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request
 				.setContent("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><dataset><name>dataset from a unit test</name></dataset>"
@@ -334,7 +339,7 @@ public class DatasetControllerXMLTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/xml");
-		request.setRequestURI("/dataset");
+		request.setRequestURI(helper.getServletPrefix() + "/dataset");
 		request.addHeader("Content-Type", "application/xml; charset=UTF-8");
 		// Notice the malformed XML
 		request
@@ -361,7 +366,7 @@ public class DatasetControllerXMLTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/xml");
-		request.setRequestURI("/dataset");
+		request.setRequestURI(helper.getServletPrefix() + "/dataset");
 		request.addHeader("Content-Type", "application/xml; charset=UTF-8");
 		// No call to request.setContent()
 		servlet.service(request, response);
@@ -389,7 +394,7 @@ public class DatasetControllerXMLTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/javascript");
-		request.setRequestURI("/dataset");
+		request.setRequestURI(helper.getServletPrefix() + "/dataset");
 		try {
 			servlet.service(request, response);
 		} catch (HttpMediaTypeNotAcceptableException e) {
@@ -425,7 +430,7 @@ public class DatasetControllerXMLTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/xml");
-		request.setRequestURI("/dataset/1/foo");
+		request.setRequestURI(helper.getServletPrefix() + "/dataset/1/foo");
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus());
@@ -440,7 +445,7 @@ public class DatasetControllerXMLTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/xml");
-		request.setRequestURI("/dataset");
+		request.setRequestURI(helper.getServletPrefix() + "/dataset");
 		request.addHeader("Content-Type", "application/xml; charset=UTF-8");
 		request
 				.setContent("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><dataset><name>dataset from a unit test</name></dataset>"

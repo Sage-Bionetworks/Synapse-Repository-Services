@@ -44,9 +44,8 @@ public class DatasetsControllerTest {
 	/**
 	 * Some handy test data
 	 */
-	public static final String SAMPLE_DATASET_NAMES[] = { 
-			"DeLiver", "MouseCross",
-			"Harvard Brain", "Glioblastoma TCGA",
+	public static final String SAMPLE_DATASET_NAMES[] = { "DeLiver",
+			"MouseCross", "Harvard Brain", "Glioblastoma TCGA",
 			"Mouse Model of Diet-Induced Atherosclerosis",
 			"TCGA Curation Package",
 			"Mouse Model of Sexually Dimorphic Atherosclerotic Traits",
@@ -95,18 +94,20 @@ public class DatasetsControllerTest {
 
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
-			helper.testCreateJsonEntity("/dataset", "{\"name\":\""
-					+ SAMPLE_DATASET_NAMES[i] + "\"}");
+			helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
+					"{\"name\":\"" + SAMPLE_DATASET_NAMES[i] + "\"}");
 		}
 
-		JSONObject results = helper.testGetJsonEntities("/dataset", null, null,
-				null, null);
+		JSONObject results = helper.testGetJsonEntities(helper
+				.getServletPrefix()
+				+ "/dataset", null, null, null, null);
 		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
 		assertEquals(10, results.getJSONArray("results").length());
 		assertFalse(results.getJSONObject("paging").has(
 				PaginatedResults.PREVIOUS_PAGE_FIELD));
-		assertEquals("/dataset?offset=11&limit=10", results.getJSONObject(
-				"paging").getString(PaginatedResults.NEXT_PAGE_FIELD));
+		assertEquals(helper.getServletPrefix() + "/dataset?offset=11&limit=10",
+				results.getJSONObject("paging").getString(
+						PaginatedResults.NEXT_PAGE_FIELD));
 
 		assertExpectedDatasetsProperties(results.getJSONArray("results"));
 	}
@@ -124,17 +125,19 @@ public class DatasetsControllerTest {
 
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
-			helper.testCreateJsonEntity("/dataset", "{\"name\":\""
-					+ SAMPLE_DATASET_NAMES[i] + "\"}");
+			helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
+					"{\"name\":\"" + SAMPLE_DATASET_NAMES[i] + "\"}");
 		}
 
-		JSONObject results = helper.testGetJsonEntities("/dataset", 11, 10,
-				null, null);
+		JSONObject results = helper.testGetJsonEntities(helper
+				.getServletPrefix()
+				+ "/dataset", 11, 10, null, null);
 		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
 		assertEquals(totalNumDatasets - 10, results.getJSONArray("results")
 				.length());
-		assertEquals("/dataset?offset=1&limit=10", results.getJSONObject(
-				"paging").getString(PaginatedResults.PREVIOUS_PAGE_FIELD));
+		assertEquals(helper.getServletPrefix() + "/dataset?offset=1&limit=10",
+				results.getJSONObject("paging").getString(
+						PaginatedResults.PREVIOUS_PAGE_FIELD));
 		assertFalse(results.getJSONObject("paging").has(
 				PaginatedResults.NEXT_PAGE_FIELD));
 
@@ -154,21 +157,23 @@ public class DatasetsControllerTest {
 
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
-			helper.testCreateJsonEntity("/dataset", "{\"name\":\""
-					+ SAMPLE_DATASET_NAMES[i] + "\"}");
+			helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
+					"{\"name\":\"" + SAMPLE_DATASET_NAMES[i] + "\"}");
 		}
 
 		List<String> sortedDatasetNames = Arrays.asList(SAMPLE_DATASET_NAMES);
 		Collections.sort(sortedDatasetNames);
 
-		JSONObject results = helper.testGetJsonEntities("/dataset", null, 5,
-				"name", true);
+		JSONObject results = helper.testGetJsonEntities(helper
+				.getServletPrefix()
+				+ "/dataset", null, 5, "name", true);
 		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
 		assertEquals(5, results.getJSONArray("results").length());
 		assertFalse(results.getJSONObject("paging").has(
 				PaginatedResults.PREVIOUS_PAGE_FIELD));
-		assertEquals("/dataset?offset=6&limit=5&sort=name&ascending=true",
-				results.getJSONObject("paging").getString(
+		assertEquals(helper.getServletPrefix()
+				+ "/dataset?offset=6&limit=5&sort=name&ascending=true", results
+				.getJSONObject("paging").getString(
 						PaginatedResults.NEXT_PAGE_FIELD));
 		for (int i = 0; i < 5; i++) {
 			assertEquals(sortedDatasetNames.get(i), results.getJSONArray(
@@ -191,20 +196,22 @@ public class DatasetsControllerTest {
 
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
-			helper.testCreateJsonEntity("/dataset", "{\"name\":\""
-					+ SAMPLE_DATASET_NAMES[i] + "\"}");
+			helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
+					"{\"name\":\"" + SAMPLE_DATASET_NAMES[i] + "\"}");
 		}
 
 		List<String> sortedDatasetNames = Arrays.asList(SAMPLE_DATASET_NAMES);
 		Collections.sort(sortedDatasetNames);
 
-		JSONObject results = helper.testGetJsonEntities("/dataset", null, 5,
-				"name", false);
+		JSONObject results = helper.testGetJsonEntities(helper
+				.getServletPrefix()
+				+ "/dataset", null, 5, "name", false);
 		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
 		assertEquals(5, results.getJSONArray("results").length());
 		assertFalse(results.getJSONObject("paging").has(
 				PaginatedResults.PREVIOUS_PAGE_FIELD));
-		assertEquals("/dataset?offset=6&limit=5&sort=name&ascending=false",
+		assertEquals(helper.getServletPrefix()
+				+ "/dataset?offset=6&limit=5&sort=name&ascending=false",
 				results.getJSONObject("paging").getString(
 						PaginatedResults.NEXT_PAGE_FIELD));
 		for (int i = 0; i < 5; i++) {
@@ -230,8 +237,10 @@ public class DatasetsControllerTest {
 
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
-			JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-					"{\"name\":\"" + SAMPLE_DATASET_NAMES[i] + "\"}");
+			JSONObject newDataset = helper.testCreateJsonEntity(helper
+					.getServletPrefix()
+					+ "/dataset", "{\"name\":\"" + SAMPLE_DATASET_NAMES[i]
+					+ "\"}");
 
 			// Get our empty annotations container
 			JSONObject annotations = helper.testGetJsonEntity(newDataset
@@ -255,14 +264,16 @@ public class DatasetsControllerTest {
 		List<String> sortedDatasetNames = Arrays.asList(SAMPLE_DATASET_NAMES);
 		Collections.sort(sortedDatasetNames);
 
-		JSONObject results = helper.testGetJsonEntities("/dataset", null, 5,
-				"secondaryName", true);
+		JSONObject results = helper.testGetJsonEntities(helper
+				.getServletPrefix()
+				+ "/dataset", null, 5, "secondaryName", true);
 		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
 		assertEquals(5, results.getJSONArray("results").length());
 		assertFalse(results.getJSONObject("paging").has(
 				PaginatedResults.PREVIOUS_PAGE_FIELD));
 		assertEquals(
-				"/dataset?offset=6&limit=5&sort=secondaryName&ascending=true",
+				helper.getServletPrefix()
+						+ "/dataset?offset=6&limit=5&sort=secondaryName&ascending=true",
 				results.getJSONObject("paging").getString(
 						PaginatedResults.NEXT_PAGE_FIELD));
 		for (int i = 0; i < 5; i++) {
@@ -293,8 +304,10 @@ public class DatasetsControllerTest {
 
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
-			JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-					"{\"name\":\"" + SAMPLE_DATASET_NAMES[i] + "\"}");
+			JSONObject newDataset = helper.testCreateJsonEntity(helper
+					.getServletPrefix()
+					+ "/dataset", "{\"name\":\"" + SAMPLE_DATASET_NAMES[i]
+					+ "\"}");
 
 			// Get our empty annotations container
 			JSONObject annotations = helper.testGetJsonEntity(newDataset
@@ -314,20 +327,22 @@ public class DatasetsControllerTest {
 					.getJSONObject("dateAnnotations").getJSONArray(
 							"curationEvents"));
 
-			testCases.put(sampleDates[i], SAMPLE_DATASET_NAMES[i]); //results.getString("id"));
+			testCases.put(sampleDates[i], SAMPLE_DATASET_NAMES[i]); // results.getString("id"));
 		}
 
 		List<DateTime> sortedDates = Arrays.asList(sampleDates);
 		Collections.sort(sortedDates);
 
-		JSONObject results = helper.testGetJsonEntities("/dataset", null, 5,
-				"curationEvents", true);
+		JSONObject results = helper.testGetJsonEntities(helper
+				.getServletPrefix()
+				+ "/dataset", null, 5, "curationEvents", true);
 		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
 		assertEquals(5, results.getJSONArray("results").length());
 		assertFalse(results.getJSONObject("paging").has(
 				PaginatedResults.PREVIOUS_PAGE_FIELD));
 		assertEquals(
-				"/dataset?offset=6&limit=5&sort=curationEvents&ascending=true",
+				helper.getServletPrefix()
+						+ "/dataset?offset=6&limit=5&sort=curationEvents&ascending=true",
 				results.getJSONObject("paging").getString(
 						PaginatedResults.NEXT_PAGE_FIELD));
 		for (int i = 0; i < 5; i++) {
@@ -356,8 +371,10 @@ public class DatasetsControllerTest {
 
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
-			JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-					"{\"name\":\"" + SAMPLE_DATASET_NAMES[i] + "\"}");
+			JSONObject newDataset = helper.testCreateJsonEntity(helper
+					.getServletPrefix()
+					+ "/dataset", "{\"name\":\"" + SAMPLE_DATASET_NAMES[i]
+					+ "\"}");
 
 			// Get our empty annotations container
 			JSONObject annotations = helper.testGetJsonEntity(newDataset
@@ -382,17 +399,22 @@ public class DatasetsControllerTest {
 		List<DateTime> sortedDates = Arrays.asList(sampleDates);
 		Collections.sort(sortedDates);
 
-		JSONObject results = helper.testGetJsonEntities("/dataset", null, 5,
-				"curationEvents", false);
+		JSONObject results = helper.testGetJsonEntities(helper
+				.getServletPrefix()
+				+ "/dataset", null, 5, "curationEvents", false);
 		assertEquals(totalNumDatasets, results.getInt("totalNumberOfResults"));
 		assertEquals(5, results.getJSONArray("results").length());
 		assertFalse(results.getJSONObject("paging").has(
 				PaginatedResults.PREVIOUS_PAGE_FIELD));
-		assertEquals("/dataset?offset=6&limit=5&sort=curationEvents&ascending=false",
+		assertEquals(
+				helper.getServletPrefix()
+						+ "/dataset?offset=6&limit=5&sort=curationEvents&ascending=false",
 				results.getJSONObject("paging").getString(
 						PaginatedResults.NEXT_PAGE_FIELD));
 		for (int i = 0; i < 5; i++) {
-			String expectedName = testCases.get(sortedDates.get(sortedDates.size() - 1 - i));
+			String expectedName = testCases.get(sortedDates.get(sortedDates
+					.size()
+					- 1 - i));
 			String actualName = results.getJSONArray("results")
 					.getJSONObject(i).getString("name");
 			assertEquals(expectedName, actualName);
@@ -415,8 +437,9 @@ public class DatasetsControllerTest {
 	@Test
 	public void testGetDatasetsBadLimit() throws Exception {
 
-		JSONObject error = helper.testGetJsonEntitiesShouldFail("/dataset", 1,
-				0, null, null, HttpStatus.BAD_REQUEST);
+		JSONObject error = helper.testGetJsonEntitiesShouldFail(helper
+				.getServletPrefix()
+				+ "/dataset", 1, 0, null, null, HttpStatus.BAD_REQUEST);
 		assertEquals("pagination limit must be 1 or greater", error
 				.getString("reason"));
 	}
@@ -430,8 +453,9 @@ public class DatasetsControllerTest {
 	 */
 	@Test
 	public void testGetDatasetsBadOffset() throws Exception {
-		JSONObject error = helper.testGetJsonEntitiesShouldFail("/dataset", -5,
-				10, null, null, HttpStatus.BAD_REQUEST);
+		JSONObject error = helper.testGetJsonEntitiesShouldFail(helper
+				.getServletPrefix()
+				+ "/dataset", -5, 10, null, null, HttpStatus.BAD_REQUEST);
 		assertEquals("pagination offset must be 1 or greater", error
 				.getString("reason"));
 	}

@@ -9,6 +9,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Logger;
 
+import javax.servlet.http.HttpServlet;
+
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -22,7 +24,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.servlet.DispatcherServlet;
 
 /**
  * Suite for tests not specific to any particular model.
@@ -45,7 +46,7 @@ public class ControllerTest {
 
 	@Autowired
 	private Helpers helper;
-	private DispatcherServlet servlet;
+	private HttpServlet servlet;
 
 	/**
 	 * @throws java.lang.Exception
@@ -86,7 +87,9 @@ public class ControllerTest {
 
 		List<String> testCases = Arrays.asList(urls); // UrlHelpers.getAllEntityUrlPrefixes();
 		for (String url : testCases) {
-			JSONObject schema = helper.testGetJsonObject(url);
+			JSONObject schema = helper.testGetJsonObject(helper
+					.getServletPrefix()
+					+ url);
 			assertNotNull(schema);
 			assertNotNull(schema.getString("type"));
 			assertNotNull(schema.getString("optional"));
@@ -106,8 +109,10 @@ public class ControllerTest {
 		Collection<String> urls = UrlHelpers.getAllEntityUrlPrefixes();
 		for (String url : urls) {
 
-			url = (null == UrlHelpers.getParentForChildUrl(url)) ? url
-					: UrlHelpers.getParentForChildUrl(url) + "/123" + url;
+			url = (null == UrlHelpers.getParentForChildUrl(url)) ? helper
+					.getServletPrefix()
+					+ url : helper.getServletPrefix()
+					+ UrlHelpers.getParentForChildUrl(url) + "/123" + url;
 
 			// Notice the missing quotes around the key
 			JSONObject results = helper.testCreateJsonEntityShouldFail(url,
@@ -143,8 +148,10 @@ public class ControllerTest {
 		Collection<String> urls = UrlHelpers.getAllEntityUrlPrefixes();
 		for (String url : urls) {
 
-			url = (null == UrlHelpers.getParentForChildUrl(url)) ? url
-					: UrlHelpers.getParentForChildUrl(url) + "/123" + url;
+			url = (null == UrlHelpers.getParentForChildUrl(url)) ? helper
+					.getServletPrefix()
+					+ url : helper.getServletPrefix()
+					+ UrlHelpers.getParentForChildUrl(url) + "/123" + url;
 
 			MockHttpServletRequest request = new MockHttpServletRequest();
 			MockHttpServletResponse response = new MockHttpServletResponse();
@@ -180,8 +187,10 @@ public class ControllerTest {
 		Collection<String> urls = UrlHelpers.getAllEntityUrlPrefixes();
 		for (String url : urls) {
 
-			url = (null == UrlHelpers.getParentForChildUrl(url)) ? url
-					: UrlHelpers.getParentForChildUrl(url) + "/123" + url;
+			url = (null == UrlHelpers.getParentForChildUrl(url)) ? helper
+					.getServletPrefix()
+					+ url : helper.getServletPrefix()
+					+ UrlHelpers.getParentForChildUrl(url) + "/123" + url;
 
 			MockHttpServletRequest request = new MockHttpServletRequest();
 			MockHttpServletResponse response = new MockHttpServletResponse();
@@ -217,8 +226,12 @@ public class ControllerTest {
 		Collection<String> urls = UrlHelpers.getAllEntityUrlPrefixes();
 		for (String url : urls) {
 
-			url = (null == UrlHelpers.getParentForChildUrl(url)) ? url
-					: UrlHelpers.getParentForChildUrl(url) + "/123" + url;
+			url = (null == UrlHelpers.getParentForChildUrl(url)) ? helper
+					.getServletPrefix()
+					+ helper.getServletPrefix() + url : helper
+					.getServletPrefix()
+					+ helper.getServletPrefix()
+					+ UrlHelpers.getParentForChildUrl(url) + "/123" + url;
 
 			MockHttpServletRequest request = new MockHttpServletRequest();
 			MockHttpServletResponse response = new MockHttpServletResponse();

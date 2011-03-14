@@ -13,6 +13,8 @@ import java.util.LinkedList;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import javax.servlet.http.HttpServlet;
+
 import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -26,23 +28,37 @@ import org.springframework.mock.web.MockServletConfig;
 import org.springframework.web.servlet.DispatcherServlet;
 
 /**
- * Test helper class to consolidate some generic testing code
+ * Test helper class to consolidate some generic testing code. It reads optional
+ * system properties to change this from a unit test to an integration test
+ * INTEGRATION_TEST_ENDPOINT and SERVLET_PREFIX
  * 
  * @author deflaux
- * 
  */
 public class Helpers {
 
 	private static final Logger log = Logger.getLogger(Helpers.class.getName());
-
 	private static final int JSON_INDENT = 2;
+	private static final String DEFAULT_SERVLET_PREFIX = "/repo/v1";
 
 	@Autowired
 	private DAOFactory daoFactory;
 
-	private DispatcherServlet servlet;
+	private HttpServlet servlet;
+	private String servletPrefix;
+	private String integrationTestEndpoint;
 	private String userId;
 	private LinkedList<TestStateItem> testState;
+
+	/**
+	 * Default constructor reads optional system properties to change this from
+	 * a unit test to an integration test INTEGRATION_TEST_ENDPOINT and
+	 * SERVLET_PREFIX
+	 */
+	public Helpers() {
+		integrationTestEndpoint = System
+				.getProperty("INTEGRATION_TEST_ENDPOINT");
+		servletPrefix = System.getProperty("SERVLET_PREFIX");
+	}
 
 	/**
 	 * @param daoFactory
@@ -60,20 +76,37 @@ public class Helpers {
 	}
 
 	/**
+	 * @return the URI prefix of the servlet being tested
+	 */
+	public String getServletPrefix() {
+		return servletPrefix;
+	}
+
+	/**
 	 * Setup up our mock servlet
 	 * 
 	 * @return the servlet
 	 * @throws Exception
 	 */
-	public DispatcherServlet setUp() throws Exception {
+	public HttpServlet setUp() throws Exception {
 
-		// Create a Spring MVC DispatcherServlet so that we can test our URL
-		// mapping, request format, response format, and response status code.
-		MockServletConfig servletConfig = new MockServletConfig("repository");
-		servletConfig.addInitParameter("contextConfigLocation",
-				"classpath:test-context.xml");
-		servlet = new DispatcherServlet();
-		servlet.init(servletConfig);
+		if (null != integrationTestEndpoint) {
+			servlet = new IntegrationTestMockServlet(integrationTestEndpoint);
+			if (null == servletPrefix) {
+				servletPrefix = DEFAULT_SERVLET_PREFIX;
+			}
+		} else {
+			servletPrefix = "";
+			// Create a Spring MVC DispatcherServlet so that we can test our URL
+			// mapping, request format, response format, and response status
+			// code.
+			MockServletConfig servletConfig = new MockServletConfig(
+					"repository");
+			servletConfig.addInitParameter("contextConfigLocation",
+					"classpath:test-context.xml");
+			servlet = new DispatcherServlet();
+			servlet.init(servletConfig);
+		}
 
 		userId = null;
 		testState = new LinkedList<TestStateItem>();
@@ -140,9 +173,9 @@ public class Helpers {
 		assertEquals(etagHeader, results.getString("etag"));
 		String locationHeader = (String) response
 				.getHeader(ServiceConstants.LOCATION_HEADER);
-		assertEquals(locationHeader, requestUrl + "/"
-				+ URLEncoder.encode(results.getString("id"), "UTF-8"));
-		assertEquals(locationHeader, results.getString("uri"));
+		assertTrue(locationHeader.endsWith(requestUrl + "/"
+				+ URLEncoder.encode(results.getString("id"), "UTF-8")));
+		assertTrue(locationHeader.endsWith(results.getString("uri")));
 
 		// Stash the url for this entity so that we can clean it up at the end
 		// of our test
@@ -330,8 +363,8 @@ public class Helpers {
 
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI("/query");
-		request.addParameter("query", query);
+		request.setRequestURI(servletPrefix + "/query");
+		request.addParameter("query", URLEncoder.encode(query, "UTF-8"));
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.OK.value(), response.getStatus());
@@ -514,7 +547,7 @@ public class Helpers {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI("/query");
-		request.addParameter("query", query);
+		request.addParameter("query", URLEncoder.encode(query, "UTF-8"));
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(status.value(), response.getStatus());

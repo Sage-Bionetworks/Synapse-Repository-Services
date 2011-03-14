@@ -39,7 +39,8 @@ public class LayerAnnotationsControllerTest {
 	public void setUp() throws Exception {
 		helper.setUp();
 
-		dataset = helper.testCreateJsonEntity("/dataset", DatasetControllerTest.SAMPLE_DATASET);
+		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/dataset", DatasetControllerTest.SAMPLE_DATASET);
 	}
 
 	/**
@@ -86,7 +87,8 @@ public class LayerAnnotationsControllerTest {
 		// Load up a layer
 		JSONObject newLayer = helper
 				.testCreateJsonEntity(
-						"/dataset/" + dataset.getString("id") + "/layer",
+						helper.getServletPrefix() + "/dataset/"
+								+ dataset.getString("id") + "/layer",
 						"{\"name\":\"MouseCross\", \"type\":\"C\", "
 								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
 

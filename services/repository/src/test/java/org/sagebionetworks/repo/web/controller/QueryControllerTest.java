@@ -43,10 +43,10 @@ public class QueryControllerTest {
 
 		// Load up a few datasets with annotations
 		for (int i = 0; i < DatasetsControllerTest.SAMPLE_DATASET_NAMES.length; i++) {
-			JSONObject newDataset = helper.testCreateJsonEntity("/dataset",
-					"{\"name\":\""
-							+ DatasetsControllerTest.SAMPLE_DATASET_NAMES[i]
-							+ "\"}");
+			JSONObject newDataset = helper.testCreateJsonEntity(helper
+					.getServletPrefix()
+					+ "/dataset", "{\"name\":\""
+					+ DatasetsControllerTest.SAMPLE_DATASET_NAMES[i] + "\"}");
 
 			// Add some canned annotations to our dataset
 			helper.testEntityAnnotations(newDataset.getString("annotations"));
@@ -75,7 +75,7 @@ public class QueryControllerTest {
 	public void testQuery() throws Exception {
 		JSONObject queryResult = helper.testQuery("select * from dataset");
 		assertExpectedQueryResultProperties("dataset", queryResult);
-		
+
 		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
 				queryResult.getInt("totalNumberOfResults"));
 		JSONArray results = queryResult.getJSONArray("results");
@@ -101,7 +101,7 @@ public class QueryControllerTest {
 		JSONObject queryResult = helper
 				.testQuery("select * from dataset order by \"name\" limit 10");
 		assertExpectedQueryResultProperties("dataset", queryResult);
-		
+
 		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
 				queryResult.getInt("totalNumberOfResults"));
 		JSONArray results = queryResult.getJSONArray("results");
@@ -190,8 +190,7 @@ public class QueryControllerTest {
 
 		String datasetId = datasetResults.getJSONArray("results")
 				.getJSONObject(0).getString("dataset.id");
-		
-		
+
 		JSONObject queryResult = helper
 				.testQuery("select * from layer where dataset.id == \""
 						+ datasetId + "\"");
@@ -252,19 +251,19 @@ public class QueryControllerTest {
 	 */
 
 	/**
-	 * @param tableName 
+	 * @param tableName
 	 * @param queryResult
 	 * @throws Exception
 	 */
 	@SuppressWarnings("unchecked")
-	public static void assertExpectedQueryResultProperties(String tableName, JSONObject queryResult)
-			throws Exception {
+	public static void assertExpectedQueryResultProperties(String tableName,
+			JSONObject queryResult) throws Exception {
 
 		JSONArray results = queryResult.getJSONArray("results");
-		for(int i = 0; i < results.length(); i++) {
+		for (int i = 0; i < results.length(); i++) {
 			JSONObject result = results.getJSONObject(i);
 			Iterator<String> iter = result.keys();
-			while(iter.hasNext()) {
+			while (iter.hasNext()) {
 				String key = iter.next();
 				assertTrue(key.startsWith(tableName + "."));
 			}
