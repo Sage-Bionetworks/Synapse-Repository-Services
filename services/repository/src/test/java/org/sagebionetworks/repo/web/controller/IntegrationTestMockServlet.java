@@ -26,15 +26,22 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
- * TODO
- * <ol>
- * <li>have unit tests use servlet path
- * <li>use a maven profile to switch to integration test config?
- * <li>have a way to explicitly run integration tests via some main method?
- * <li>configuration (1) which servletImpl (2) service endpoint (3) servlet path
- * <li>get wiki output to work too
- * <li>turn up http client logging
- * </ol>
+ * IntegrationTestMockServlet allows our service unit test to substitute this
+ * for DispatcherServlet to turn our unit tests in to integration tests.
+ * <p>
+ * 
+ * To enable this, run one of the following:
+ * <ul>
+ * <li>mvn test -DINTEGRATION_TEST_ENDPOINT=http://localhost:8080 -DSERVLET_PREFIX=/repo/v1
+ * <li>mvn test -DINTEGRATION_TEST_ENDPOINT=http://repositoryserviceb.elasticbeanstalk.com -DSERVLET_PREFIX=/repo/v1
+ * <li>mvn test -DINTEGRATION_TEST_ENDPOINT=http://localhost:8080 -DSERVLET_PREFIX=/auth/v1
+ * <li>or pass these properties in your JUnit eclipse settings
+ * </ul>
+ * 
+ * Also note that the unit tests do not use web.xml and therefore urls are not
+ * prefixed with /repo/v1. For integration tests we do need the servlet prefix.
+ * Call Helpers.getServletPrefix from your unit tests to get the url prefix, if
+ * any.
  * 
  * @author deflaux
  * 

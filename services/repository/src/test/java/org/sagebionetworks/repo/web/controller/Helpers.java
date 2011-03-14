@@ -28,9 +28,23 @@ import org.springframework.mock.web.MockServletConfig;
 import org.springframework.web.servlet.DispatcherServlet;
 
 /**
- * Test helper class to consolidate some generic testing code. It reads optional
- * system properties to change this from a unit test to an integration test
- * INTEGRATION_TEST_ENDPOINT and SERVLET_PREFIX
+ * Test helper class to consolidate some generic testing code.
+ * <p>
+ * 
+ * It reads optional system properties to change this from a unit test to an
+ * integration test INTEGRATION_TEST_ENDPOINT and SERVLET_PREFIX. To enable
+ * this, run one of the following:
+ * <ul>
+ * <li>mvn test -DINTEGRATION_TEST_ENDPOINT=http://localhost:8080 -DSERVLET_PREFIX=/repo/v1
+ * <li>mvn test -DINTEGRATION_TEST_ENDPOINT=http://repositoryserviceb.elasticbeanstalk.com -DSERVLET_PREFIX=/repo/v1
+ * <li>mvn test -DINTEGRATION_TEST_ENDPOINT=http://localhost:8080 -DSERVLET_PREFIX=/auth/v1
+ * <li>or pass these properties in your JUnit eclipse settings
+ * </ul>
+ * 
+ * Also note that the unit tests do not use web.xml and therefore urls are not
+ * prefixed with /repo/v1. For integration tests we do need the servlet prefix.
+ * Call Helpers.getServletPrefix from your unit tests to get the url prefix, if
+ * any.
  * 
  * @author deflaux
  */
