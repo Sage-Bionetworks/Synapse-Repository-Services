@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.web;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
-import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -35,9 +34,6 @@ import org.sagebionetworks.repo.util.SchemaHelper;
  */
 public class AnnotationsControllerImp<T extends Base> implements
 		AnnotationsController<T> {
-
-	private static final Logger log = Logger
-			.getLogger(AnnotationsControllerImp.class.getName());
 
 	private AnnotatableDAO<T> annotatableDao;
 

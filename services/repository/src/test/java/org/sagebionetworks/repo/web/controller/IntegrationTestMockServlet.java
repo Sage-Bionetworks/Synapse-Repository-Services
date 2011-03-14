@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.URLEncoder;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -100,7 +101,7 @@ public class IntegrationTestMockServlet extends HttpServlet {
 			for (String value : parameter.getValue()) {
 				queryString.append(parameter.getKey());
 				queryString.append("=");
-				queryString.append(value);
+				queryString.append(URLEncoder.encode(value, "UTF-8"));
 				queryString.append("&");
 			}
 		}
