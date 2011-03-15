@@ -28,6 +28,12 @@
   </pluginRepositories>
   
   <dependencies>
+
+    <dependency>
+      <groupId>org.sagebionetworks</groupId>
+      <artifactId>auth-util</artifactId>
+      <version>0.1</version>
+    </dependency>
        
     <!-- JSON -->
     <dependency>

@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web;
+package org.sagebionetworks.authutil;
 
 import java.util.Enumeration;
 import java.util.Iterator;

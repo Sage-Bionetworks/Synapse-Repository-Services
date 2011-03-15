@@ -13,6 +13,7 @@ import javax.servlet.ServletContext;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.authutil.CrowdAuthenticationFilter;
 
 /**
  *
@@ -53,7 +54,7 @@ public class CrowdAuthenticationFilterTest {
 			}
 			public ServletContext getServletContext() {return null;}
 		});
-		f.revalidate("Gr53Xi399cK00ZjvlBxeRg00");
+		//f.revalidate("Gr53Xi399cK00ZjvlBxeRg00");
 	}
 
 }

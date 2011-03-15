@@ -54,7 +54,7 @@
   
  	<filter>  
  		<filter-name>CrowdAuth</filter-name>  
-         <filter-class>org.sagebionetworks.repo.web.CrowdAuthenticationFilter</filter-class>  
+         <filter-class>org.sagebionetworks.authutil.CrowdAuthenticationFilter</filter-class>  
          <init-param>  
  			<param-name>crowd-protocol</param-name> 
  			<param-value>https</param-value>  

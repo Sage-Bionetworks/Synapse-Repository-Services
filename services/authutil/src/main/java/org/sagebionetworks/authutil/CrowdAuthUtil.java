@@ -1,4 +1,4 @@
-package org.sagebionetworks.auth;
+package org.sagebionetworks.authutil;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -7,6 +7,9 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.security.Security;
+import java.util.Collection;
+import java.util.TreeSet;
 import java.util.logging.Logger;
 
 import javax.net.ssl.HostnameVerifier;
@@ -16,10 +19,12 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
 import org.springframework.http.HttpStatus;
+import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
 public class CrowdAuthUtil {
@@ -39,10 +44,7 @@ public class CrowdAuthUtil {
 		this.host=host;
 		this.port=port;
 	}
-
-	private static final String CLIENT = "platform";
-	private static final String CLIENT_KEY = "platform-pw";
-
+	
 	private static final String msg1 = //"<?xml version='1.0' encoding='UTF-8'?>"+
 		"<authentication-context>"+
 		"<username>";
@@ -53,24 +55,32 @@ public class CrowdAuthUtil {
 		
 		// used for validation and also for re-validation
 		private static final String msg4 = "<validation-factors>"+
-		"<validation-factor>"+
-		"<name>remote_address</name>"+
-		"<value>140.107.179.234</value>"+
-		"</validation-factor>"+
+//		"<validation-factor>"+
+//		"<name>remote_address</name>"+
+//		"<value>140.107.179.234</value>"+
+//		"</validation-factor>"+
 		"</validation-factors>";
 		
 		private static final String msg5 =  "</authentication-context>";
 		
 		
-	public static String getFromXML(String xPath, byte[] xml) throws XPathExpressionException {
+		public static String getFromXML(String xPath, byte[] xml) throws XPathExpressionException {
 			XPath xpath = XPathFactory.newInstance().newXPath();
 			return xpath.evaluate(xPath, new InputSource(new ByteArrayInputStream(xml)));
+	}
+	
+		public static Collection<String> getMultiFromXML(String xPath, byte[] xml) throws XPathExpressionException {
+			XPath xpath = XPathFactory.newInstance().newXPath();
+			NodeList nl = (NodeList) xpath.evaluate(xPath, new InputSource(new ByteArrayInputStream(xml)), XPathConstants.NODESET);
+			Collection<String> ans = new TreeSet<String>();
+			for (int i=0; i<nl.getLength(); i++) ans.add(nl.item(i).getTextContent());
+			return ans;
 	}
 	
 	public static void setHeaders(HttpURLConnection conn) {
 		conn.setRequestProperty("Accept", "application/xml");
 		conn.setRequestProperty("Content-Type", "application/xml");
-		String authString=CLIENT+":"+CLIENT_KEY;
+		String authString=AuthUtilConstants.CLIENT+":"+AuthUtilConstants.CLIENT_KEY;
 		conn.setRequestProperty("Authorization", "Basic "+Base64.encodeBytes(authString.getBytes())); 
 	}
 	
@@ -140,30 +150,62 @@ public class CrowdAuthUtil {
 		return new Session(token, displayName);
 	}
 	
-	public String revalidate(String sessionToken) throws AuthenticationException, IOException, XPathExpressionException {
-		byte[] sessionXML = null;
+//	public String revalidate(String sessionToken) throws AuthenticationException, IOException, XPathExpressionException {
+//		byte[] sessionXML = null;
+//		int rc = 0;
+//		URL url = new URL(urlPrefix()+"/session/"+sessionToken);
+//		
+//		log.info("Revalidating: "+sessionToken);
+//		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+//		conn.setRequestMethod("POST");
+//		setHeaders(conn);
+//		setBody(conn,msg4+"\n");
+//		try {
+//			rc = conn.getResponseCode();
+//			sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
+//		} catch (IOException e) {
+//			sessionXML = (readInputStream((InputStream)conn.getErrorStream())).getBytes();
+//			throw new AuthenticationException(HttpStatus.NOT_FOUND.value(), "Unable to validate session.", 
+//					new Exception(new String(sessionXML)));
+//		}
+//
+//		if (HttpStatus.OK.value()!=rc) {
+//			throw new AuthenticationException(rc, "Unable to validate session.", 
+//					new Exception(new String(sessionXML)));
+//		}
+//		
+//		return getFromXML("/session/user/@name", sessionXML);
+//
+//	}
+	
+	/**
+	 * @param sessionToken
+	 * @return userId
+	 * @throws IOException
+	 * @throws XPathExpressionException
+	 */
+	public String revalidate(String sessionToken) throws IOException, XPathExpressionException {
+		log.info("Revalidating: "+sessionToken);
+		byte[] sessionXML = new byte[0];
 		int rc = 0;
 		URL url = new URL(urlPrefix()+"/session/"+sessionToken);
-		
-		log.info("Revalidating: "+sessionToken);
 		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-		conn.setRequestMethod("POST");
+		conn.setRequestMethod("GET");
 		setHeaders(conn);
-		setBody(conn,msg4+"\n");
 		try {
 			rc = conn.getResponseCode();
-			sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
+			InputStream is = (InputStream)conn.getContent();
+			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
 		} catch (IOException e) {
-			sessionXML = (readInputStream((InputStream)conn.getErrorStream())).getBytes();
-			throw new AuthenticationException(HttpStatus.NOT_FOUND.value(), "Unable to validate session.", 
-					new Exception(new String(sessionXML)));
+			InputStream is = (InputStream)conn.getErrorStream();
+			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
+			throw new RuntimeException(new String(sessionXML), e);
 		}
 
 		if (HttpStatus.OK.value()!=rc) {
-			throw new AuthenticationException(rc, "Unable to validate session.", 
-					new Exception(new String(sessionXML)));
+			throw new RuntimeException(new String(sessionXML));
 		}
-		
+
 		return getFromXML("/session/user/@name", sessionXML);
 
 	}
@@ -199,10 +241,12 @@ public class CrowdAuthUtil {
 		  "<attributes>"+
 		  "<link rel='self' href='link_to_user_attributes'/>"+
 		  "</attributes>"+
-		  "<password>"+
-		  "<link rel='edit' href='link_to_user_password'/>"+
-		  "<value>"+user.getPassword()+"</value>"+
-		  "</password>"+
+		  (user.getPassword()==null ? "" : 
+			  "<password>"+
+			  "<link rel='edit' href='link_to_user_password'/>"+
+			  "<value>"+user.getPassword()+"</value>"+
+			  "</password>"
+		  )+
 		  "</user>";
 	}
 	
@@ -212,29 +256,31 @@ public class CrowdAuthUtil {
 		byte[] sessionXML = null;
 		int rc = 0;
 		URL url = new URL(urlPrefix()+"/user");
-			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-			conn.setRequestMethod("POST");
-			setHeaders(conn);
-			//log.info("Request body for 'createUser':"+userXML(user));
-			setBody(conn, userXML(user)+"\n");
-			try {
-				rc = conn.getResponseCode();
-				InputStream is = (InputStream)conn.getContent();
-				if (is!=null) sessionXML = (readInputStream(is)).getBytes();
-			} catch (IOException e) {
-				if (rc==0) rc=500;
-				InputStream is = (InputStream)conn.getErrorStream();
-				if (is!=null) sessionXML = (readInputStream(is)).getBytes();
-				Exception chainedException = null;
-				if (sessionXML!=null) chainedException = new Exception(new String(sessionXML));
-				throw new AuthenticationException(rc, "Server Error", chainedException);
-			}
+		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+		conn.setRequestMethod("POST");
+		setHeaders(conn);
+		//log.info("Request body for 'createUser':"+userXML(user));
+		setBody(conn, userXML(user)+"\n");
+		try {
+			rc = conn.getResponseCode();
+			InputStream is = (InputStream)conn.getContent();
+			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
+		} catch (IOException e) {
+			if (rc==0) rc=500;
+			InputStream is = (InputStream)conn.getErrorStream();
+			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
+			Exception chainedException = null;
+			if (sessionXML!=null) chainedException = new Exception(new String(sessionXML));
+			throw new AuthenticationException(rc, "Server Error", chainedException);
+		}
 
 		if (HttpStatus.CREATED.value()!=rc) {
 			Exception chainedException = null;
 			if (sessionXML!=null) chainedException = new Exception(new String(sessionXML));
 			throw new AuthenticationException(rc, "Unable to create user.", chainedException);
 		}
+		
+		addUserToGroup(AuthUtilConstants.PLATFORM_GROUP, user.getUserId());
 	}
 	
 	public void deleteUser(User user) throws AuthenticationException, IOException {
@@ -307,18 +353,59 @@ public class CrowdAuthUtil {
 					new Exception(new String(sessionXML)));
 		}
 	}
-	
-	public void getUsersGroups() throws IOException {
-		// TODO GET /user/group/direct?username=USERNAME
-		// Optional start-index and max-results query params 
+		
+	// Note, this seems to be 'idempotent', i.e. you CAN add a user to a group which the user is already in
+	public void addUserToGroup(String group, String userId) throws AuthenticationException, IOException {
+		byte[] sessionXML = null;
+		int rc = 0;
+		URL url = new URL(urlPrefix()+"/group/user/direct?groupname="+group);
+		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+		conn.setRequestMethod("POST");
+		setHeaders(conn);
+		setBody(conn, "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <user name=\""+userId+"\"/>\n");
+		try {
+			rc = conn.getResponseCode();
+			InputStream is = (InputStream)conn.getContent();
+			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
+		} catch (IOException e) {
+			if (rc==0) rc = 500;
+			InputStream es = (InputStream)conn.getErrorStream();
+			if (es!=null) sessionXML = (readInputStream(es)).getBytes();
+			Exception chainedException = null;
+			if (sessionXML!=null) chainedException = new Exception(new String(sessionXML));
+			throw new AuthenticationException(rc, "Server Error",  chainedException);
+		}
+
+		if (HttpStatus.CREATED.value()!=rc) {
+			throw new AuthenticationException(rc, "Unable to add user "+userId+" to group "+group+".", 
+					new Exception(new String(sessionXML)));
+		}
 	}
 	
-	public void addUserToGroup() throws IOException {
-		// TODO POST /user/group/direct?username=USERNAME
-	}
-	
-	public void removeUserFromGroup() throws IOException {
-		// TODO DELETE /user/group/direct?username=USERNAME&groupname=GROUPNAME
+	public Collection<String> getUsersInGroup(String group) throws AuthenticationException, IOException {
+		URL url = new URL(urlPrefix()+"/group/user/direct?groupname="+group);
+		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+		conn.setRequestMethod("GET");
+		setHeaders(conn);
+		byte[] sessionXML = null;
+		int rc = 0;
+		try {
+			rc = conn.getResponseCode();
+			InputStream is = (InputStream)conn.getContent();
+			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
+		} catch (IOException e) {
+			if (rc==0) rc=500;
+			InputStream is = (InputStream)conn.getErrorStream();
+			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
+			Exception chainedException = null;
+			if (sessionXML!=null) chainedException = new Exception(new String(sessionXML));
+			throw new AuthenticationException(rc, "Server Error", chainedException);
+		}
+		try {
+			return getMultiFromXML("users/user/@name", sessionXML);
+		} catch (XPathExpressionException xee) {
+			throw new AuthenticationException(500, "Server Error", xee);
+		}
 	}
 	
 	private static String readInputStream(InputStream is) throws IOException {
@@ -331,7 +418,28 @@ public class CrowdAuthUtil {
 		return sb.toString().trim();
 	}
 	
-	public static void setUpSSLForTesting() {
+	public static void acceptAllCertificates() {
+		System.out.println("CrowdAuthenticationFilter.acceptAllCertificates");
+		Security.addProvider( new MyProvider() );
+		Security.setProperty("ssl.TrustManagerFactory.algorithm", "TrustAllCertificates");
+		
+		// from http://stackoverflow.com/questions/2186543/java-secure-webservice
+		HostnameVerifier hv = new HostnameVerifier() {
+		    public boolean verify(String urlHostName, SSLSession session) {
+		        if (!urlHostName.equals(session.getPeerHost())) System.out.println("Warning: URL Host: " + urlHostName + " vs. " + session.getPeerHost());
+		        return true;
+		    }
+		};
+
+		HttpsURLConnection.setDefaultHostnameVerifier(hv);
+
+	}
+	
+	/**
+	 * 
+	 */
+	public static void acceptAllCertificates2() {
+		System.out.println("CrowdAuthenticationFilter.acceptAllCertificates2");
 		// from http://www.exampledepot.com/egs/javax.net.ssl/trustall.html
 		// Create a trust manager that does not validate certificate chains
 		TrustManager[] trustAllCerts = new TrustManager[]{
@@ -367,8 +475,9 @@ public class CrowdAuthUtil {
 		HttpsURLConnection.setDefaultHostnameVerifier(hv);
 	}
 	
+
 	public static void main(String[] args) throws Exception {
-		setUpSSLForTesting();
+		acceptAllCertificates();
 
 //		String protocol = "http";
 //		String host = "ec2-50-17-17-19.compute-1.amazonaws.com";

@@ -1,4 +1,4 @@
-package org.sagebionetworks.auth;
+package org.sagebionetworks.authutil;
 
 
 @SuppressWarnings("serial")
