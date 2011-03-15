@@ -64,6 +64,10 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 		this(provider, type, null, usePager, DEFAULT_WIDTH, DEFAULT_HEIGHT);
 	}
 	
+	public QueryServiceTable(QueryServiceTableResourceProvider provider, ObjectType type, boolean usePager, int width, int height){
+		this(provider, type, null, usePager, width, height);
+	}
+	
 	public QueryServiceTable(QueryServiceTableResourceProvider provider, ObjectType type, String tableTitle, boolean usePager, int width, int height){
 		this.view = provider.getView();
 		this.service = provider.getService();
@@ -108,7 +112,7 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 
         // send to view
         view.setStoreAndLoader(store, loader);
-        refreshFromServer();		
+        //refreshFromServer();		
 	}	
 
 	

@@ -1,6 +1,5 @@
 package org.sagebionetworks.web.client.view;
 
-import org.sagebionetworks.web.client.presenter.DatasetRow;
 import org.sagebionetworks.web.client.presenter.LayerRow;
 
 import com.google.gwt.user.client.ui.IsWidget;

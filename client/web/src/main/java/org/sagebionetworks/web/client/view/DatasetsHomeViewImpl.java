@@ -45,12 +45,10 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 	
 	@Inject
 	public DatasetsHomeViewImpl(DatasetsHomeViewImplUiBinder binder, QueryFilter filter, SageImageBundle imageBundle, QueryServiceTableResourceProvider queryServiceTableResourceProvider) {		
-		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, null, true, 880, 420);
+		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, 880, 440);
 		ImageResource searchIR = imageBundle.searchButtonIcon();
 		searchButton = new PushButton(new Image(searchIR));
 		initWidget(binder.createAndBindUi(this));
-//		searchButton.setWidth("37px");
-//		searchButton.setHeight("28px");
 		searchButton.setStyleName("imageButton");
 
 		// The pager will listen to the dynamic table

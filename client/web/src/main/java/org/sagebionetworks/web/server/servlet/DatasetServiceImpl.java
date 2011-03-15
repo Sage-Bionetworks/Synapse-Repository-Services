@@ -9,6 +9,7 @@ import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.PaginatedDatasets;
+import org.sagebionetworks.web.shared.TableResults;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -47,6 +48,12 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 	public static final String KEY_DATASET_ID = "idKey";
 	public static final String PATH_DATASET = "repo/v1/dataset/{"+KEY_DATASET_ID+"}";
 
+	public static final String KEY_LAYER_ID = "idLayerKey";
+	public static final String PATH_LAYER = "repo/v1/dataset/{"+KEY_DATASET_ID+"}/layer/{"+ KEY_LAYER_ID +"}";
+
+	public static final String PATH_LAYER_PREVIEW_MAP = "repo/v1/dataset/{"+KEY_DATASET_ID+"}/layer/{"+ KEY_LAYER_ID +"}/previewAsMap";
+
+	
 	private RestTemplateProvider templateProvider = null;
 	private String rootUrl = null;
 
@@ -168,7 +175,62 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 
 	@Override
 	public Layer getLayer(String datasetId, String layerId) {
-		throw new UnsupportedOperationException();		
+		// First make sure the service is ready to go.
+		validateService();
+		// Build up the path
+		StringBuilder builder = new StringBuilder();
+		builder.append(rootUrl);
+		builder.append(PATH_LAYER);
+		// the values to the keys
+		Map<String, String> map = new HashMap<String, String>();
+		map.put(KEY_DATASET_ID, datasetId);
+		map.put(KEY_LAYER_ID, layerId);
+		String url = builder.toString();
+		logger.info("GET: " + url);
+		// Setup the header
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<String>("", headers);
+		// Make the actual call.
+		ResponseEntity<Layer> response = templateProvider.getTemplate().exchange(url, HttpMethod.GET, entity, Layer.class, map);
+
+		if (response.getStatusCode() == HttpStatus.OK) {
+			return response.getBody();
+		} else {
+			// TODO: better error handling
+			throw new UnknownError("Status code:"
+					+ response.getStatusCode().value());
+		}
+	}
+
+	@Override
+	public TableResults getLayerPreviewMap(String datasetId, String layerId) {
+		// First make sure the service is ready to go.
+		validateService();
+		// Build up the path
+		StringBuilder builder = new StringBuilder();
+		builder.append(rootUrl);
+		builder.append(PATH_LAYER_PREVIEW_MAP);
+		// the values to the keys
+		Map<String, String> map = new HashMap<String, String>();
+		map.put(KEY_DATASET_ID, datasetId);
+		map.put(KEY_LAYER_ID, layerId);
+		String url = builder.toString();
+		logger.info("GET: " + url);
+		// Setup the header
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<String>("", headers);
+		// Make the actual call.
+		ResponseEntity<TableResults> response = templateProvider.getTemplate().exchange(url, HttpMethod.GET, entity, TableResults.class, map);
+
+		if (response.getStatusCode() == HttpStatus.OK) {
+			return response.getBody();
+		} else {
+			// TODO: better error handling
+			throw new UnknownError("Status code:"
+					+ response.getStatusCode().value());
+		}
 	}
 
 }

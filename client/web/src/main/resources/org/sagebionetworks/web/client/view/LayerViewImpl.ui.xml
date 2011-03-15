@@ -50,5 +50,9 @@
 				</td>
 			</tr>
 		</table>
+		<hr/>
+		<div>
+			<g:SimplePanel ui:field="previewTablePanel" />
+		</div>
 	</g:HTMLPanel>
 </ui:UiBinder>

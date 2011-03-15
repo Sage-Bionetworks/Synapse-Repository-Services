@@ -112,10 +112,10 @@ public class QueryServiceTableViewGxtImpl extends LayoutContainer implements Que
 		// grid a unique id to be commanded by the filter view. should go
 		// through presenter?
 		grid.setStateful(true);
-
-		// grid.setAutoExpandColumn("probesetId");
+		
 		grid.setLoadMask(true);
 		grid.getView().setForceFit(true);
+		grid.setAutoWidth(false);
 
 		grid.setStyleAttribute("borderTop", "none");
 		grid.setBorders(false);
@@ -193,8 +193,8 @@ public class QueryServiceTableViewGxtImpl extends LayoutContainer implements Que
 				final Column<Map<String, Object>, ?> columnRenderer = columnFactory.createColumn(meta);
 				// TODO : check if column is allowed to be sortable?				
 
-				String columnId = meta.getId().replaceAll("\\.", "_");
-				ColumnConfig colConfig = new ColumnConfig(columnId, meta.getDisplayName(), meta.getColumnWidth());
+				String columnId = meta.getId().replaceAll("\\.", "_");	
+				ColumnConfig colConfig = new ColumnConfig(columnId, meta.getDisplayName(), meta.getColumnWidth());				
 				
 				// configure cell renderer
 				GridCellRenderer<BaseModelData> cellRenderer = new GridCellRenderer<BaseModelData>() {
@@ -216,9 +216,7 @@ public class QueryServiceTableViewGxtImpl extends LayoutContainer implements Que
 						} else {
 							// catch all for types that don't need specific rendering beyond string
 							if(value != null)
-								return "<div style=\"white-space: normal; width:"
-										+ (DisplayConstants.DEFAULT_GRID_COLUMN_WIDTH_PX - 10) + "px;\">"
-										+ value.toString() + "</div>";
+								return "<div style=\"white-space: normal;\">"+ value.toString() + "</div>"; // allow text to wrap to multiple lines
 							else
 								return null;
 						}
@@ -233,6 +231,7 @@ public class QueryServiceTableViewGxtImpl extends LayoutContainer implements Que
 		columnModel = new ColumnModel(columns);
 		// update the grid with the new columnModel
 		grid.reconfigure(store, columnModel);
+		
 		updateToolBar();
 	}
 	
