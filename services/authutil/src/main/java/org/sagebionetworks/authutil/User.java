@@ -1,4 +1,4 @@
-package org.sagebionetworks.auth;
+package org.sagebionetworks.authutil;
 
 import javax.xml.bind.annotation.XmlRootElement;
 

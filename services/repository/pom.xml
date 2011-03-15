@@ -28,6 +28,12 @@
       <scope>runtime</scope>
     </dependency>
 
+    <dependency>
+      <groupId>org.sagebionetworks</groupId>
+      <artifactId>auth-util</artifactId>
+      <version>0.1</version>
+    </dependency>
+
     <!-- This was being pulled in as a child dependency of the
     springframework but the tomcat plugin needs this to be in scope
     "provided" -->
