@@ -30,6 +30,7 @@ import org.springframework.web.servlet.DispatcherServlet;
  * 
  */
 
+@Ignore
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:authentication-context.xml", "classpath:authentication-servlet.xml", "classpath:authutil-context.xml" })
 public class AuthenticationControllerTest {
