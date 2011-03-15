@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -8,6 +10,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -44,6 +48,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @Controller
 public class QueryController extends BaseController {
+
+	private static final Logger log = Logger.getLogger(QueryController.class
+			.getName());
 
 	private DatasetDAO dao;
 
@@ -103,14 +110,22 @@ public class QueryController extends BaseController {
 		/**
 		 * Parse and validate the query
 		 */
-		QueryStatement stmt = new QueryStatement(query);
+		QueryStatement stmt = null;
+		try {
+			stmt = new QueryStatement(URLDecoder.decode(query, "UTF-8"));
+		} catch (UnsupportedEncodingException e) {
+			log.log(Level.SEVERE,
+					"Something is really messed up if we don't support UTF-8",
+					e);
+		}
+
 		if (stmt.getTableName().equals("dataset")) {
 			return performDatasetQuery(stmt);
 		} else if (stmt.getTableName().equals("layer")) {
 			if (null == stmt.getWhereTable()
 					|| null == stmt.getWhereField()
-					|| ! (stmt.getWhereTable().equals("dataset")
-							&& stmt.getWhereField().equals("id"))) {
+					|| !(stmt.getWhereTable().equals("dataset") && stmt
+							.getWhereField().equals("id"))) {
 				throw new ParseException(
 						"Layer queries must include a 'WHERE dataset.id == <the id>' clause");
 			}
