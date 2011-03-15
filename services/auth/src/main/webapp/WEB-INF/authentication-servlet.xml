@@ -55,8 +55,8 @@
     <property name="classesToBeBound">
       <list>
         <value>org.sagebionetworks.auth.ErrorResponse</value>
-        <value>org.sagebionetworks.auth.User</value>
-        <value>org.sagebionetworks.auth.Session</value>
+        <value>org.sagebionetworks.authutil.User</value>
+        <value>org.sagebionetworks.authutil.Session</value>
       </list>
     </property>
   </bean>

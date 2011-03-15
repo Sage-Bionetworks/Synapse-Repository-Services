@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web;
+package org.sagebionetworks.authutil;
 
 
 import java.util.Enumeration;
@@ -27,9 +27,6 @@ public class CrowdAuthenticationFilterTest {
 	@Before
 	public void setUp() throws Exception {
 		filterParams.clear();
-		filterParams.put("crowd-protocol", "https");
-		filterParams.put("crowd-host", "ec2-50-16-158-220.compute-1.amazonaws.com");
-		filterParams.put("crowd-port", "8443");
 		filterParams.put("allow-anonymous", "true");
 	}
 	
