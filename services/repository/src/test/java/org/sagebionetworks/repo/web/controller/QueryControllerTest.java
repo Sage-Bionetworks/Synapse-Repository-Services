@@ -127,6 +127,8 @@ public class QueryControllerTest {
 	 */
 	@Test
 	public void testSortQueryDescending() throws Exception {
+		
+		// This test case also has the "dataset." prefix on the column name
 		JSONObject queryResult = helper
 				.testQuery("select * from dataset order by dataset.\"name\" desc");
 		assertExpectedQueryResultProperties("dataset", queryResult);
@@ -184,8 +186,9 @@ public class QueryControllerTest {
 	public void testLayerQuery() throws Exception {
 		int numLayersExpected = 1;
 
+		// This test case also checks that we are URL decoding the queries
 		JSONObject datasetResults = helper
-				.testQuery("select * from dataset where name == \"Pediatric AML TARGET\"");
+				.testQuery("select+*+from+dataset+where+name+%3d%3d+%22Pediatric+AML+TARGET%22");
 		assertExpectedQueryResultProperties("dataset", datasetResults);
 
 		String datasetId = datasetResults.getJSONArray("results")
