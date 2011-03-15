@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+	   xsi:schemaLocation="
+		                   http://www.springframework.org/schema/beans
+		                   http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+                           http://www.springframework.org/schema/context
+                           http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+            
+  <!--  settings for unit testing, before building the jar file to be used elsewhere  -->
+  <bean id="crowdAuthUtil"
+        class="org.sagebionetworks.authutil.CrowdAuthUtil"
+        scope="prototype">
+        
+         <property name="protocol"><value>https</value></property>
+         <property name="host"><value>ec2-50-16-158-220.compute-1.amazonaws.com</value></property>
+         <property name="port"><value>8443</value></property>
+        
+   </bean>
+    
+</beans>

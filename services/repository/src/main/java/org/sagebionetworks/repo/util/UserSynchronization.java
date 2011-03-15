@@ -43,10 +43,8 @@ public class UserSynchronization {
 		return daoFactory;
 	}
 
-	// TODO put this elsewhere
-	private static String protocol = "https";
-	private static String host = "ec2-50-16-158-220.compute-1.amazonaws.com";
-	private static int port = 8443;
+	@Autowired
+	CrowdAuthUtil crowdAuthUtil = null;
 
 	/**
 	 	- get users in Crowd
@@ -59,9 +57,8 @@ public class UserSynchronization {
 									IOException, DatastoreException, InvalidModelException, 
 									UnauthorizedException, NotFoundException {
 
-		CrowdAuthUtil cau = new CrowdAuthUtil(protocol, host, port);
 
-		Collection<String> crowdUserIds = cau.getUsersInGroup(AuthUtilConstants.PLATFORM_GROUP);
+		Collection<String> crowdUserIds = crowdAuthUtil.getUsersInGroup(AuthUtilConstants.PLATFORM_GROUP);
 
 		// TODO do we need an admin' user having permissions to get at all users?
 		String adminUserId = null; 

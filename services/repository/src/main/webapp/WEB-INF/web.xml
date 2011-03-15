@@ -27,12 +27,15 @@
   </error-page>
     
   <!-- The context params that read by ContextLoaderListener  -->        
+  <!--  authutil-context.xml tells the authentication filter where to find Crowd -->     
   <context-param>
     <param-name>contextConfigLocation</param-name>
     <param-value>
-      /WEB-INF/repository-context.xml
+      /WEB-INF/repository-context.xml,
+      authutil-context.xml
     </param-value>
   </context-param>
+ 
   
   <!-- This listener will load other application context file in addition to springweb-servlet.xml -->
   <listener>
@@ -55,18 +58,6 @@
  	<filter>  
  		<filter-name>CrowdAuth</filter-name>  
          <filter-class>org.sagebionetworks.authutil.CrowdAuthenticationFilter</filter-class>  
-         <init-param>  
- 			<param-name>crowd-protocol</param-name> 
- 			<param-value>https</param-value>  
-         </init-param>  
-         <init-param>  
- 			<param-name>crowd-host</param-name> 
- 			<param-value>ec2-50-16-158-220.compute-1.amazonaws.com</param-value>  
-         </init-param>  
-         <init-param>  
- 			<param-name>crowd-port</param-name> 
- 			<param-value>8443</param-value>  
-         </init-param>  
          <init-param>  
  			<param-name>allow-anonymous</param-name> 
  			<param-value>true</param-value>             

@@ -16,6 +16,8 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
 /**
  *
  */
@@ -23,10 +25,11 @@ public class CrowdAuthenticationFilter implements Filter {
 	private static final Logger log = Logger.getLogger(CrowdAuthenticationFilter.class
 			.getName());
 	
-	private String crowdProtocol; // http or https
-	private String crowdServer;
-	private int crowdPort;
 	private boolean allowAnonymous = false;
+	
+	@Autowired
+	CrowdAuthUtil crowdAuthUtil = null;
+
 	
 	@Override
 	public void destroy() {
@@ -51,8 +54,7 @@ public class CrowdAuthenticationFilter implements Filter {
 		if (null!=sessionToken) {
 			// validate against crowd
 			try {
-				CrowdAuthUtil cau = new CrowdAuthUtil(crowdProtocol, crowdServer, crowdPort);
-				userId = cau.revalidate(sessionToken);
+				userId = crowdAuthUtil.revalidate(sessionToken);
 			} catch (Exception xee) {
 				reject(req, (HttpServletResponse)servletResponse);
 				log.log(Level.WARNING, "invalid session token", xee);
@@ -82,9 +84,6 @@ public class CrowdAuthenticationFilter implements Filter {
         while (paramNames.hasMoreElements()) {
         	String paramName = paramNames.nextElement();
         	String paramValue = filterConfig.getInitParameter(paramName);
-           	if ("crowd-protocol".equalsIgnoreCase(paramName)) crowdProtocol = paramValue;
-           	if ("crowd-host".equalsIgnoreCase(paramName)) crowdServer = paramValue;
-           	if ("crowd-port".equalsIgnoreCase(paramName)) crowdPort = Integer.parseInt(paramValue);
            	if ("allow-anonymous".equalsIgnoreCase(paramName)) allowAnonymous = Boolean.parseBoolean(paramValue);
         }
         

@@ -34,17 +34,31 @@ public class CrowdAuthUtil {
 	private String host; // the Crowd host
 	private int port; // the Crowd port
 	
-	/**
-	 * 
-	 * @param host the Crowd host (name or IP address)
-	 * @param port the Crowd port
-	 */
-	public CrowdAuthUtil(String protocol, String host, int port) {
-		this.protocol=protocol;
-		this.host=host;
-		this.port=port;
+	public String getProtocol() {
+		return protocol;
 	}
-	
+
+	public void setProtocol(String protocol) {
+		this.protocol = protocol;
+	}
+
+	public String getHost() {
+		return host;
+	}
+
+	public void setHost(String host) {
+		this.host = host;
+	}
+
+	public int getPort() {
+		return port;
+	}
+
+	public void setPort(int port) {
+		this.port = port;
+	}
+
+
 	private static final String msg1 = //"<?xml version='1.0' encoding='UTF-8'?>"+
 		"<authentication-context>"+
 		"<username>";
@@ -150,65 +164,65 @@ public class CrowdAuthUtil {
 		return new Session(token, displayName);
 	}
 	
-//	public String revalidate(String sessionToken) throws AuthenticationException, IOException, XPathExpressionException {
-//		byte[] sessionXML = null;
-//		int rc = 0;
-//		URL url = new URL(urlPrefix()+"/session/"+sessionToken);
-//		
-//		log.info("Revalidating: "+sessionToken);
-//		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-//		conn.setRequestMethod("POST");
-//		setHeaders(conn);
-//		setBody(conn,msg4+"\n");
-//		try {
-//			rc = conn.getResponseCode();
-//			sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
-//		} catch (IOException e) {
-//			sessionXML = (readInputStream((InputStream)conn.getErrorStream())).getBytes();
-//			throw new AuthenticationException(HttpStatus.NOT_FOUND.value(), "Unable to validate session.", 
-//					new Exception(new String(sessionXML)));
-//		}
-//
-//		if (HttpStatus.OK.value()!=rc) {
-//			throw new AuthenticationException(rc, "Unable to validate session.", 
-//					new Exception(new String(sessionXML)));
-//		}
-//		
-//		return getFromXML("/session/user/@name", sessionXML);
-//
-//	}
-	
-	/**
-	 * @param sessionToken
-	 * @return userId
-	 * @throws IOException
-	 * @throws XPathExpressionException
-	 */
-	public String revalidate(String sessionToken) throws IOException, XPathExpressionException {
-		log.info("Revalidating: "+sessionToken);
-		byte[] sessionXML = new byte[0];
+	public String revalidate(String sessionToken) throws AuthenticationException, IOException, XPathExpressionException {
+		byte[] sessionXML = null;
 		int rc = 0;
 		URL url = new URL(urlPrefix()+"/session/"+sessionToken);
+		
+		log.info("Revalidating: "+sessionToken);
 		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-		conn.setRequestMethod("GET");
+		conn.setRequestMethod("POST");
 		setHeaders(conn);
+		setBody(conn,msg4+"\n");
 		try {
 			rc = conn.getResponseCode();
-			InputStream is = (InputStream)conn.getContent();
-			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
+			sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
 		} catch (IOException e) {
-			InputStream is = (InputStream)conn.getErrorStream();
-			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
-			throw new RuntimeException(new String(sessionXML), e);
+			sessionXML = (readInputStream((InputStream)conn.getErrorStream())).getBytes();
+			throw new AuthenticationException(HttpStatus.NOT_FOUND.value(), "Unable to validate session.", 
+					new Exception(new String(sessionXML)));
 		}
 
 		if (HttpStatus.OK.value()!=rc) {
-			throw new RuntimeException(new String(sessionXML));
+			throw new AuthenticationException(rc, "Unable to validate session.", 
+					new Exception(new String(sessionXML)));
 		}
-
+		
 		return getFromXML("/session/user/@name", sessionXML);
 
 	}
+	
+//	/**
+//	 * @param sessionToken
+//	 * @return userId
+//	 * @throws IOException
+//	 * @throws XPathExpressionException
+//	 */
+//	public String revalidate(String sessionToken) throws IOException, XPathExpressionException {
+//		log.info("Revalidating: "+sessionToken);
+//		byte[] sessionXML = new byte[0];
+//		int rc = 0;
+//		URL url = new URL(urlPrefix()+"/session/"+sessionToken);
+//		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+//		conn.setRequestMethod("POST");
+//		setHeaders(conn);
+//		try {
+//			rc = conn.getResponseCode();
+//			InputStream is = (InputStream)conn.getContent();
+//			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
+//		} catch (IOException e) {
+//			InputStream is = (InputStream)conn.getErrorStream();
+//			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
+//			throw new RuntimeException(new String(sessionXML), e);
+//		}
+//
+//		if (HttpStatus.OK.value()!=rc) {
+//			throw new RuntimeException(new String(sessionXML));
+//		}
+//
+//		return getFromXML("/session/user/@name", sessionXML);
+//
+//	}
 	
 	public void deauthenticate(String token) throws AuthenticationException, IOException {
 		byte[] sessionXML = null;
@@ -419,7 +433,6 @@ public class CrowdAuthUtil {
 	}
 	
 	public static void acceptAllCertificates() {
-		System.out.println("CrowdAuthenticationFilter.acceptAllCertificates");
 		Security.addProvider( new MyProvider() );
 		Security.setProperty("ssl.TrustManagerFactory.algorithm", "TrustAllCertificates");
 		
@@ -439,7 +452,6 @@ public class CrowdAuthUtil {
 	 * 
 	 */
 	public static void acceptAllCertificates2() {
-		System.out.println("CrowdAuthenticationFilter.acceptAllCertificates2");
 		// from http://www.exampledepot.com/egs/javax.net.ssl/trustall.html
 		// Create a trust manager that does not validate certificate chains
 		TrustManager[] trustAllCerts = new TrustManager[]{
@@ -474,24 +486,4 @@ public class CrowdAuthUtil {
 
 		HttpsURLConnection.setDefaultHostnameVerifier(hv);
 	}
-	
-
-	public static void main(String[] args) throws Exception {
-		acceptAllCertificates();
-
-//		String protocol = "http";
-//		String host = "ec2-50-17-17-19.compute-1.amazonaws.com";
-//		int port = 8095;
-		String protocol = "https";
-		String host = "ec2-50-16-158-220.compute-1.amazonaws.com";
-		int port = 8443;
-		CrowdAuthUtil cau = new CrowdAuthUtil(protocol, host, port);
-		User user = new User();
-		user.setUserId("demouser");
-		user.setPassword("demouser-pw");
-		Session session = cau.authenticate(user);
-		System.out.println(session);
-	}
-
-
 }

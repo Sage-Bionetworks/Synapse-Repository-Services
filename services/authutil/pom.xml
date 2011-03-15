@@ -33,6 +33,16 @@
       <version>${org.springframework.version}</version>
       <scope>test</scope>
     </dependency>
+    
+        <!-- Logging dependencies -->
+    <dependency>
+      <groupId>commons-logging</groupId>
+      <artifactId>commons-logging</artifactId>
+      <version>1.0</version>
+    </dependency>
+
+    
+    
   </dependencies>    
 
   <!-- Specify hard-coded project properties here -->

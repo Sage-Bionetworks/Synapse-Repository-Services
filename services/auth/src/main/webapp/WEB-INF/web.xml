@@ -7,11 +7,13 @@
   
   
     
-  <!-- The context params that read by ContextLoaderListener  -->        
+  <!-- The context params that read by ContextLoaderListener  -->   
+  <!--  authutil-context.xml tells the authentication filter where to find Crowd -->     
   <context-param>
     <param-name>contextConfigLocation</param-name>
     <param-value>
-      /WEB-INF/authentication-context.xml
+      /WEB-INF/authentication-context.xml,
+      authutil-context.xml
     </param-value>
   </context-param>
   
