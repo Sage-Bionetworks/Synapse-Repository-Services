@@ -4,11 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.json.JSONObject;
 import org.junit.After;
@@ -20,11 +17,8 @@ import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.authutil.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.servlet.DispatcherServlet;
 
 /**
  * 
@@ -38,7 +32,7 @@ public class AuthenticationControllerTest {
 	private static final Logger log = Logger
 			.getLogger(AuthenticationControllerTest.class.getName());
 	private Helpers helper = new Helpers();
-	private DispatcherServlet servlet;
+	//private DispatcherServlet servlet;
 		
 	@Autowired
 	CrowdAuthUtil crowdAuthUtil = null;
@@ -49,7 +43,8 @@ public class AuthenticationControllerTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
-		servlet = helper.setUp();
+		//DispatcherServlet servlet = 
+			helper.setUp();
 		CrowdAuthUtil.acceptAllCertificates();
 	}
 

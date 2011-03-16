@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.jdo;
 
 import java.util.Date;
-import javax.jdo.annotations.Extension;
+
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
@@ -101,7 +101,8 @@ public class JDORevision<T extends JDORevisable<T>> {
 			return false;
 		if (!(obj instanceof JDORevision))
 			return false;
-		JDORevision other = (JDORevision) obj;
+		@SuppressWarnings("unchecked")
+		JDORevision<T> other = (JDORevision<T>) obj;
 		if (id == null) {
 			if (other.id != null)
 				return false;

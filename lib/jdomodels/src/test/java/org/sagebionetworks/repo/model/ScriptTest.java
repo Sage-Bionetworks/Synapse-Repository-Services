@@ -1,22 +1,15 @@
 package org.sagebionetworks.repo.model;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.jdo.JDOObjectNotFoundException;
-
-import junit.framework.Assert;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
 import org.sagebionetworks.repo.model.jdo.JDORevision;
 import org.sagebionetworks.repo.model.jdo.JDOScript;
 import org.sagebionetworks.repo.model.jdo.Version;
@@ -39,23 +32,23 @@ public class ScriptTest {
 		Logger.getLogger("DataNucleus.Persistence").setLevel(Level.WARNING);
 	}
 
-	private DAOFactory fac;
-	private Collection<String> scriptIds;
+//	private DAOFactory fac;
+//	private Collection<String> scriptIds;
 
 	@Before
 	public void setUp() throws Exception {
-		fac = new JDODAOFactoryImpl();
-		scriptIds = new ArrayList<String>();
+//		fac = new JDODAOFactoryImpl();
+//		scriptIds = new ArrayList<String>();
 	}
 
 	@After
 	public void tearDown() throws Exception {
-		if (fac != null) {
-			for (String id : scriptIds) {
-				// fac.getScriptDAO().delete(id);
-			}
-			scriptIds.clear();
-		}
+//		if (fac != null) {
+//			for (String id : scriptIds) {
+//				// fac.getScriptDAO().delete(id);
+//			}
+//			scriptIds.clear();
+//		}
 	}
 
 	@Test

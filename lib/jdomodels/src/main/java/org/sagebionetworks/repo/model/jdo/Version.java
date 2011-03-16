@@ -12,6 +12,7 @@ import java.util.StringTokenizer;
  * @author bhoff
  * 
  */
+@SuppressWarnings("rawtypes")
 public class Version implements Comparable<Version>, Serializable {
 	public static final long serialVersionUID = 1348752384765098375L;
 	private List<Comparable> l;
@@ -69,6 +70,7 @@ public class Version implements Comparable<Version>, Serializable {
 		List<Comparable> thisL = getL();
 		List<Comparable> thatL = that.getL();
 		for (int i = 0; i < thisL.size() && i < thatL.size(); i++) {
+			@SuppressWarnings("unchecked")
 			int c = thisL.get(i).compareTo(thatL.get(i));
 			if (c != 0)
 				return c;

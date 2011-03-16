@@ -1,12 +1,9 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import java.util.Collection;
-
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
 
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ScriptDAO;
 
 

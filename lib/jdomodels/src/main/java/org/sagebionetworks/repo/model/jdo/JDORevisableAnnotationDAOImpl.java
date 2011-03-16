@@ -2,9 +2,7 @@ package org.sagebionetworks.repo.model.jdo;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
@@ -27,6 +25,7 @@ import org.sagebionetworks.repo.model.Base;
  * @param <A>
  *            the annotation value type
  */
+@SuppressWarnings("rawtypes")
 abstract public class JDORevisableAnnotationDAOImpl<S extends Base, T extends JDOAnnotatable & JDOBase & JDORevisable, A extends Comparable<A>>
 		extends JDOAnnotationDAOImpl<S, T, A> {
 

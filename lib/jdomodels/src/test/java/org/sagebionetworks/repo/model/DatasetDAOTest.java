@@ -21,7 +21,6 @@ import junit.framework.Assert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
 import org.sagebionetworks.repo.model.jdo.JDODataset;
@@ -269,9 +268,9 @@ public class DatasetDAOTest {
 		Map<String, Collection<String>> annots = layerDAO.getAnnotations(
 				layer1.getId()).getStringAnnotations();
 		Assert.assertEquals(2, annots.size());
-		Assert.assertEquals(new HashSet(Arrays
+		Assert.assertEquals(new HashSet<String>(Arrays
 				.asList(new String[] { "value1" })), annots.get("attribute1"));
-		Assert.assertEquals(new HashSet(Arrays
+		Assert.assertEquals(new HashSet<String>(Arrays
 				.asList(new String[] { "value2" })), annots.get("attribute2"));
 
 		// create a second dataset, then show that retrieving layers gets
@@ -389,8 +388,8 @@ public class DatasetDAOTest {
 		// now try to get the dataset.  should be gone
 		try {
 			Long key = KeyFactory.stringToKey(id);
-			JDODataset jdo = (JDODataset) pm.getObjectById(
-					JDODataset.class, key);
+			//JDODataset jdo = (JDODataset)
+				 pm.getObjectById(JDODataset.class, key);
 			Assert.fail("exception expected");
 		} catch (Exception e) {
 			// as expected
@@ -398,7 +397,8 @@ public class DatasetDAOTest {
 
 		// now try to get the annotation.  should be gone
 		try {
-			JDOStringAnnotation jdo = (JDOStringAnnotation) pm.getObjectById(
+			//JDOStringAnnotation jdo = (JDOStringAnnotation)
+				 pm.getObjectById(
 					JDOStringAnnotation.class, gaejdoAnnotLong);
 			Assert.fail("exception expected");
 		} catch (Exception e) {
@@ -408,8 +408,8 @@ public class DatasetDAOTest {
 		// now try to get the layer. should be gone
 		try {
 			Long key = KeyFactory.stringToKey(layerId);
-			JDOInputDataLayer jdo = (JDOInputDataLayer) pm.getObjectById(
-					JDOInputDataLayer.class, key);
+			//JDOInputDataLayer jdo = (JDOInputDataLayer)
+			pm.getObjectById(JDOInputDataLayer.class, key);
 			// System.out.println("Layer name: "+jdo.getName());
 			//
 			// TODO Why aren't the (owned) layers deleted when the parent dataset is????
@@ -480,7 +480,7 @@ public class DatasetDAOTest {
 	@Test
 	public void testGetPrimaryFields() throws Exception {
 		DatasetDAO dao = fac.getDatasetDAO(null);
-		Set s = new HashSet<String>(Arrays.asList(new String[] { "name",
+		Set<String> s = new HashSet<String>(Arrays.asList(new String[] { "name",
 				"description", "releaseDate", "version", "status", "creator",
 				"creationDate" }));
 		Assert.assertEquals(s, new HashSet<String>(dao.getPrimaryFields()));
