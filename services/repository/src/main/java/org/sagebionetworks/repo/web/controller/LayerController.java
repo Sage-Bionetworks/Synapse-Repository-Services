@@ -6,6 +6,7 @@ import java.util.HashSet;
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.schema.JsonSchema;
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatasetDAO;
@@ -100,7 +101,7 @@ public class LayerController extends BaseController { // TODO implements
 			+ UrlHelpers.LAYER, method = RequestMethod.POST)
 	public @ResponseBody
 	InputDataLayer createChildEntity(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String parentId,
 			@RequestBody InputDataLayer newEntity, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
@@ -129,7 +130,7 @@ public class LayerController extends BaseController { // TODO implements
 			+ UrlHelpers.LAYER + "/{id}", method = RequestMethod.GET)
 	public @ResponseBody
 	InputDataLayer getChildEntity(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String parentId, @PathVariable String id,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
@@ -161,7 +162,7 @@ public class LayerController extends BaseController { // TODO implements
 			+ UrlHelpers.LAYER + "/{id}", method = RequestMethod.PUT)
 	public @ResponseBody
 	InputDataLayer updateChildEntity(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String parentId, @PathVariable String id,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
 			@RequestBody InputDataLayer updatedEntity,
@@ -189,7 +190,7 @@ public class LayerController extends BaseController { // TODO implements
 	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
 			+ UrlHelpers.LAYER + "/{id}", method = RequestMethod.DELETE)
 	public void deleteChildEntity(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String parentId, @PathVariable String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
@@ -216,7 +217,7 @@ public class LayerController extends BaseController { // TODO implements
 			+ UrlHelpers.LAYER, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<InputDataLayer> getChildEntities(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String parentId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,

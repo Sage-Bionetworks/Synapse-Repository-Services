@@ -6,6 +6,7 @@ import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.authutil.Session;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -66,7 +68,10 @@ public class AuthenticationController {
 	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/user", method = RequestMethod.PUT)
-	public void updateUser(@RequestBody User user) throws Exception {
+	public void updateUser(@RequestBody User user,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
+			if (userId==null || !userId.equals(user.getUserId())) 
+				throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
 			crowdAuthUtil.updateUser(user);
 	}
 	

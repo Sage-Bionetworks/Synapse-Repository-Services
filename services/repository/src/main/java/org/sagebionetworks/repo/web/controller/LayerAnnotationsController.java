@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.schema.JsonSchema;
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -75,7 +76,7 @@ public class LayerAnnotationsController extends BaseController { // TODO
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.ANNOTATIONS, method = RequestMethod.GET)
 	public @ResponseBody
 	Annotations getChildEntityAnnotations(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String parentId, @PathVariable String id,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
@@ -110,7 +111,7 @@ public class LayerAnnotationsController extends BaseController { // TODO
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.ANNOTATIONS, method = RequestMethod.PUT)
 	public @ResponseBody
 	Annotations updateChildEntityAnnotations(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String parentId, @PathVariable String id,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
 			@RequestBody Annotations updatedAnnotations,

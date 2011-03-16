@@ -349,6 +349,7 @@ public class JDOInputDataLayerDAOImpl extends
 			// }
 			// sort the layers
 			Collections.sort(layers, new Comparator<JDOInputDataLayer>() {
+				@SuppressWarnings("rawtypes")
 				public int compare(JDOInputDataLayer o1,
 						JDOInputDataLayer o2) {
 					try {

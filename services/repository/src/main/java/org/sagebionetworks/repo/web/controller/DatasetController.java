@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.schema.JsonSchema;
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.Dataset;
@@ -72,7 +73,7 @@ public class DatasetController extends BaseController implements
 	@RequestMapping(value = UrlHelpers.DATASET, method = RequestMethod.POST)
 	public @ResponseBody
 	Dataset createEntity(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestBody Dataset newEntity, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException {
@@ -89,7 +90,7 @@ public class DatasetController extends BaseController implements
 	@RequestMapping(value = UrlHelpers.DATASET + "/{id}", method = RequestMethod.GET)
 	public @ResponseBody
 	Dataset getEntity(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
@@ -104,7 +105,7 @@ public class DatasetController extends BaseController implements
 	@RequestMapping(value = UrlHelpers.DATASET + "/{id}", method = RequestMethod.PUT)
 	public @ResponseBody
 	Dataset updateEntity(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
 			@RequestBody Dataset updatedEntity, HttpServletRequest request)
@@ -122,7 +123,7 @@ public class DatasetController extends BaseController implements
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{id}", method = RequestMethod.DELETE)
 	public void deleteEntity(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 
@@ -136,7 +137,7 @@ public class DatasetController extends BaseController implements
 	@RequestMapping(value = UrlHelpers.DATASET, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Dataset> getEntities(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,

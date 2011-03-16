@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.schema.JsonSchema;
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DependentPropertyDAO;
 import org.sagebionetworks.repo.model.InputDataLayer;
@@ -77,7 +78,7 @@ public class LayerPreviewController extends BaseController implements
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.PREVIEW, method = RequestMethod.GET)
 	public @ResponseBody
 	LayerPreview getDependentEntity(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
@@ -91,7 +92,7 @@ public class LayerPreviewController extends BaseController implements
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.PREVIEW, method = RequestMethod.PUT)
 	public @ResponseBody
 	LayerPreview updateDependentEntity(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
 			@RequestBody LayerPreview updatedEntity, HttpServletRequest request)
@@ -131,7 +132,7 @@ public class LayerPreviewController extends BaseController implements
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.PREVIEW_MAP, method = RequestMethod.GET)
 	public @ResponseBody
 	QueryResults getPreviewAsMap(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 

@@ -26,7 +26,8 @@
     <location>/errorPages/generic_error.jsp</location>
   </error-page>
     
-  <!-- The context params that read by ContextLoaderListener  -->        
+  <!-- The context params that read by ContextLoaderListener  -->    
+      
   <!--  authutil-context.xml tells the authentication filter where to find Crowd -->     
   <context-param>
     <param-name>contextConfigLocation</param-name>

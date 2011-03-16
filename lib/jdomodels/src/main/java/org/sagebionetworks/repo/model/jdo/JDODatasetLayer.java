@@ -178,7 +178,8 @@ abstract public class JDODatasetLayer<T extends JDODatasetLayer<T>>
 			return false;
 		if (!(obj instanceof JDODatasetLayer))
 			return false;
-		JDODatasetLayer other = (JDODatasetLayer) obj;
+		@SuppressWarnings("unchecked")
+		JDODatasetLayer<T> other = (JDODatasetLayer<T>) obj;
 		if (id == null) {
 			if (other.id != null)
 				return false;

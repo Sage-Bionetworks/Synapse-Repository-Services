@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.schema.JsonSchema;
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DependentPropertyDAO;
 import org.sagebionetworks.repo.model.InputDataLayer;
@@ -73,7 +74,7 @@ public class LayerLocationsController extends BaseController implements
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.LOCATIONS, method = RequestMethod.GET)
 	public @ResponseBody
 	LayerLocations getDependentEntity(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
@@ -88,7 +89,7 @@ public class LayerLocationsController extends BaseController implements
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.LOCATIONS, method = RequestMethod.PUT)
 	public @ResponseBody
 	LayerLocations updateDependentEntity(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
 			@RequestBody LayerLocations updatedEntity,
@@ -130,7 +131,7 @@ public class LayerLocationsController extends BaseController implements
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.S3_LOCATION, method = RequestMethod.GET)
 	public @ResponseBody
 	LayerLocation getS3Location(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
@@ -181,7 +182,7 @@ public class LayerLocationsController extends BaseController implements
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.EBS_LOCATION, method = RequestMethod.GET)
 	public @ResponseBody
 	LayerLocation getEbsLocation(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
@@ -225,7 +226,7 @@ public class LayerLocationsController extends BaseController implements
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.SAGE_LOCATION, method = RequestMethod.GET)
 	public @ResponseBody
 	LayerLocation getSageLocation(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 

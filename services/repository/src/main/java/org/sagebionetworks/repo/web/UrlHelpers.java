@@ -35,7 +35,8 @@ import org.sagebionetworks.repo.model.LayerLocation;
  * @author deflaux
  * 
  */
-@SuppressWarnings("unchecked")
+
+@SuppressWarnings("rawtypes")
 public class UrlHelpers {
 
 	private static final Logger log = Logger.getLogger(UrlHelpers.class
@@ -104,6 +105,14 @@ public class UrlHelpers {
 	 * URL suffix for an unsupported location type
 	 */
 	public static final String UNSUPPORTED_LOCATION = "/notYetImplemented";
+	
+	/**
+	 * URL prefix for User mirroring service
+	 * 
+	 */
+	public static final String USER_MIRROR = "/userMirror";
+
+
 
 	/**
 	 * Mapping of type to URL prefix
@@ -138,7 +147,7 @@ public class UrlHelpers {
 	/**
 	 * This is a memoized cache for our URL regular expressions
 	 */
-	private static Map<Class, Pattern> MODEL2REGEX = new HashMap();
+	private static Map<Class, Pattern> MODEL2REGEX = new HashMap<Class, Pattern>();
 
 	static {
 		Map<Class, String> model2url = new HashMap<Class, String>();

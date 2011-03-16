@@ -27,7 +27,7 @@ public class SchemaHelper {
 	 * @return the Schema
 	 * @throws DatastoreException
 	 */
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings("rawtypes")
 	public static JsonSchema getSchema(Class theModelClass) throws DatastoreException {
 		try {
 			return OBJECT_MAPPER.generateJsonSchema(theModelClass);
