@@ -48,9 +48,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		this.previewDisclosurePanel = previewDisclosurePanel;
 
 
-		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.layer, true, 300, 300);
-		// TODO : fix this use of the table!
-		this.queryServiceTable.initialize(ObjectType.layer, false);
+		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.layer, false, 300, 300);
 		tablePanel.add(queryServiceTable.asWidget());
 
 	}

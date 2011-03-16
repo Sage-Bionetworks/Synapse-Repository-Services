@@ -150,13 +150,30 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 		paginationOffset = loadConfig.getOffset();
 		paginationLimit = loadConfig.getLimit();
 		view.setPaginationOffsetAndLength(paginationOffset, paginationLimit);
-		if(loadConfig.getSortField() != null) 
-			sortKey = loadConfig.getSortField().replaceAll("_",".");
+		if(loadConfig.getSortField() != null) {
+			String sortColumn = loadConfig.getSortField().replaceAll("_",".");
+			sortKey = getSortColumnForColumnId(sortColumn);
+		}
+
 		if(loadConfig.getSortDir() != null)
 			ascending = loadConfig.getSortDir() == SortDir.ASC ? true : false; // TODO : support NONE?		
 	}
 	
-	
+	/**
+	 * Get the sort Id for a given column
+	 * @param sortColumn
+	 * @return
+	 */
+	private String getSortColumnForColumnId(String sortColumn) {
+		// Look at the current columns and determine what the sort key is
+		for(HeaderData header: currentColumns){
+			if(header.getId().equals(sortColumn)){
+				return header.getSortId();
+			}
+		}
+		throw new IllegalArgumentException("Cannot find HeaderData for column id: "+sortColumn);
+	}
+
 	public WhereCondition getWhere() {
 		return where;
 	}
@@ -212,24 +229,7 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 	 *  Reloads the data from the server given the current parameters
 	 */
 	public void refreshFromServer() {
-		if(loader != null) {
-			loader.load(paginationOffset, paginationLimit);
-		} else {
-			// if loader not available (GWT celltable impl) use service
-			// TODO : remove this when we move to GXT
-			service.executeSearch(getCurrentSearchParameters(), new AsyncCallback<TableResults>() {
-				
-				@Override
-				public void onSuccess(TableResults result) {
-					setTableResults(result);
-				}
-				
-				@Override
-				public void onFailure(Throwable caught) {
-					view.showMessage(caught.getMessage());
-				}
-			});
-		}
+		loader.load(paginationOffset, paginationLimit);
 	}
 	
 	/**
@@ -304,8 +304,7 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 		this.refreshFromServer();
 	}
 
-	@Override
-	public void initialize(ObjectType type, boolean usePager) {
+	private void initialize(ObjectType type, boolean usePager) {
 		this.type = type;
 		this.view.usePager(usePager);
 		if(usePager){

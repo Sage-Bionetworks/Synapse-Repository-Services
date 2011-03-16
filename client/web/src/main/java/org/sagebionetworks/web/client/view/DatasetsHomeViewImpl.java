@@ -50,9 +50,8 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 		searchButton = new PushButton(new Image(searchIR));
 		initWidget(binder.createAndBindUi(this));
 		searchButton.setStyleName("imageButton");
-
-		// The pager will listen to the dynamic table
-		queryServiceTable.initialize(ObjectType.dataset, true);
+		// Start on the first page and trigger a data fetch from the server
+		queryServiceTable.pageTo(0, 10);
 
 		// Add the table
 		tablePanel.add(queryServiceTable.asWidget());

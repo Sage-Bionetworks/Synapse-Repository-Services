@@ -84,15 +84,7 @@ public interface QueryServiceTableView extends IsWidget {
 	 *
 	 */
 	public interface Presenter {
-		/**
-		 * Initialize the table without trigging a rebuild.
-		 * 
-		 * @param type
-		 * @param usePager
-		 * @param offest
-		 * @param limit
-		 */
-		public void initialize(ObjectType type, boolean usePager);
+
 				
 		/**
 		 * Set the where condition.  This will trigger a refresh.

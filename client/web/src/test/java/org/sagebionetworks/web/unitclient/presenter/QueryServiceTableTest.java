@@ -52,7 +52,7 @@ public class QueryServiceTableTest {
 		// Create the presenter
 		QueryServiceTableResourceProvider queryServiceTableResourceProvider = new QueryServiceTableResourceProvider(mockView, asynchProxy);		
 		presenter = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true);
-		presenter.initialize(ObjectType.dataset, true);
+
 		// Make sure the view gets the presenter set
 		verify(mockView).setPresenter(presenter);
 	}
@@ -165,19 +165,6 @@ public class QueryServiceTableTest {
 		RowData rowData = new RowData(toReturn.getRows(), curParams.getOffset(), curParams.getLimit(), totalCount, curParams.getSort(), curParams.isAscending());
 		verify(mockView).setRows(rowData);
 	}
-	
-//	@Test
-//	public void testStart(){
-//		EventBus mockBus = Mockito.mock(EventBus.class);
-//		AcceptsOneWidget mockWidget = Mockito.mock(AcceptsOneWidget.class);
-//		presenter.start(mockWidget, mockBus);
-//		// The recorder should have recorder one call
-//		assertEquals(1, recorder.getRecoredCallCount());
-//		MethodCall call = recorder.getCall(0);
-//		assertNotNull(call);
-//		assertEquals("executeSearch", call.getMethod().getName());
-//		verify(mockView).asWidget();
-//	}
 	
 	/**
 	 * Helper to create a list of headers

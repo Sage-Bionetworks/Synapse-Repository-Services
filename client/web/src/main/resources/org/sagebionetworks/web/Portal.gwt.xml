@@ -22,7 +22,7 @@
 	<entry-point class='org.sagebionetworks.web.client.Portal' />
 	
 	<set-property name="gwt.logging.logLevel" value="SEVERE"/>
-    <set-property name="gwt.logging.enabled" value="TRUE"/>            
+    <set-property name="gwt.logging.enabled" value="FALSE"/>            
     <set-property name="gwt.logging.consoleHandler" value="DISABLED"/> 
 
 	<!-- Specify the paths for translatable code -->
