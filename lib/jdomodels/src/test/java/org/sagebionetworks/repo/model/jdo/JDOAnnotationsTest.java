@@ -24,7 +24,7 @@ import org.sagebionetworks.repo.model.jdo.PMF;
 
 
 
-
+@SuppressWarnings("unchecked")
 public class JDOAnnotationsTest {
 
 	@BeforeClass
@@ -134,12 +134,12 @@ public class JDOAnnotationsTest {
 		try {
 			pm = PMF.get();
 
-			JDOAnnotations a = (JDOAnnotations) pm.getObjectById(
-					JDOAnnotations.class, id);
+			//JDOAnnotations a = (JDOAnnotations)
+			pm.getObjectById(JDOAnnotations.class, id);
 			// System.out.println(a);
 
 			Query query = null;
-			List<JDOAnnotations> annots = null;
+//			List<JDOAnnotations> annots = null;
 
 			// now query by the String annotation "tissue"
 			query = pm.newQuery(JDOAnnotations.class);
@@ -150,7 +150,7 @@ public class JDOAnnotationsTest {
 			query.declareParameters(String.class.getName() + " pAttrib, "
 					+ String.class.getName() + " pValue");
 
-			annots = (List<JDOAnnotations>) query.execute("tissue", "brain");
+			List<JDOAnnotations> annots = (List<JDOAnnotations>) query.execute("tissue", "brain");
 			Assert.assertEquals("Can't query by String annot", 1, annots
 					.iterator().next().getStringAnnotations().size());
 

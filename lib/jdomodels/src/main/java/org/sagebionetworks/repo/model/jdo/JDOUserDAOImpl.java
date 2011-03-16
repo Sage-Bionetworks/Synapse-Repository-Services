@@ -6,13 +6,10 @@ import java.util.Collection;
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 
-import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserDAO;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.web.NotFoundException;
 
 
 
@@ -47,7 +44,7 @@ public class JDOUserDAOImpl extends JDOBaseDAOImpl<User,JDOUser> implements User
 	}
 
 	@Override
-	protected Class getJdoClass() {
+	protected Class<JDOUser> getJdoClass() {
 		return JDOUser.class;
 	}
 	

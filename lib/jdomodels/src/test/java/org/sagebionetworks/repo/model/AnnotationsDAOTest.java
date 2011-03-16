@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -16,7 +14,6 @@ import org.sagebionetworks.repo.model.jdo.JDOAnnotations;
 import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
 import org.sagebionetworks.repo.model.jdo.JDODataset;
 import org.sagebionetworks.repo.model.jdo.JDORevision;
-import org.sagebionetworks.repo.model.jdo.JDOStringAnnotation;
 import org.sagebionetworks.repo.model.jdo.Version;
 
 
@@ -47,9 +44,8 @@ public class AnnotationsDAOTest {
 	@After
 	public void tearDown() throws Exception {
 		if (fac != null && id != null) {
-			if (false)
-				fac.getDatasetDAO(null).delete(id);
-			// fac.close();
+//			if (false)
+//				fac.getDatasetDAO(null).delete(id);
 			id = null;
 		}
 	}
@@ -66,12 +62,12 @@ public class AnnotationsDAOTest {
 
 		JDOAnnotations annots = JDOAnnotations.newJDOAnnotations();
 		dataset.setAnnotations(annots);
-		JDOStringAnnotation stringAnnot = new JDOStringAnnotation(
-				"testLong", "testValue");
+//		JDOStringAnnotation stringAnnot = new JDOStringAnnotation(
+//				"testLong", "testValue");
 		// annots.getStringAnnotations().add(stringAnnot);
 
 		// persist it
-		DatasetDAO da = fac.getDatasetDAO(null);
+//		DatasetDAO da = fac.getDatasetDAO(null);
 		// da.makePersistent(dataset);
 
 		// persisting creates a Long, which we can grab

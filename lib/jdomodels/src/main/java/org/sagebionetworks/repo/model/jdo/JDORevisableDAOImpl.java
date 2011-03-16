@@ -162,7 +162,7 @@ abstract public class JDORevisableDAOImpl<S extends Revisable, T extends JDORevi
 		if (revision.getVersion() == null)
 			throw new InvalidModelException("version is null");
 
-		Long id = KeyFactory.stringToKey(revision.getId());
+//		Long id = KeyFactory.stringToKey(revision.getId());
 
 		Version newVersion = new Version(revision.getVersion());
 		Long reviseeId = KeyFactory.stringToKey(revision.getId());

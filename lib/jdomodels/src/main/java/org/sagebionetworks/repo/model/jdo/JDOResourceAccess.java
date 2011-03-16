@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import java.util.Date;
-
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;

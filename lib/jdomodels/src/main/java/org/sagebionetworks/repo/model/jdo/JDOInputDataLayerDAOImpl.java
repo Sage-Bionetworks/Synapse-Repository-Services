@@ -361,7 +361,9 @@ public class JDOInputDataLayerDAOImpl extends
 							return -1;
 						if (v2 == null)
 							return 1;
-						return ((asc ? 1 : -1) * v1.compareTo(v2));
+						@SuppressWarnings("unchecked")
+						int c = v1.compareTo(v2);
+						return ((asc ? 1 : -1) * c);
 					} catch (Exception e) {
 						throw new RuntimeException(e);
 					}

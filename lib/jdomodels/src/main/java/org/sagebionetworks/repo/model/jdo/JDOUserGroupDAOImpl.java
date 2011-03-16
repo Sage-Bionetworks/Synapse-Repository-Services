@@ -22,8 +22,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 
-
-
 public class JDOUserGroupDAOImpl extends
 		JDOBaseDAOImpl<UserGroup, JDOUserGroup> implements UserGroupDAO {
 
@@ -222,7 +220,7 @@ public class JDOUserGroupDAOImpl extends
 		jdo.setCreationDate(dto.getCreationDate());
 	}
 
-	protected Class getJdoClass() {
+	protected Class<JDOUserGroup> getJdoClass() {
 		return JDOUserGroup.class;
 	}
 
@@ -240,8 +238,8 @@ public class JDOUserGroupDAOImpl extends
 		try {
 			Long userKey = KeyFactory.stringToKey(user.getId());
 			// this is done simply to make check that the user exists
-			JDOUser jdoUser = (JDOUser) pm.getObjectById(
-					JDOUser.class, userKey);
+			//JDOUser jdoUser = (JDOUser) 
+			pm.getObjectById(JDOUser.class, userKey);
 			Long groupKey = KeyFactory.stringToKey(userGroup.getId());
 			JDOUserGroup jdoGroup = (JDOUserGroup) pm.getObjectById(
 					JDOUserGroup.class, groupKey);
@@ -270,8 +268,8 @@ public class JDOUserGroupDAOImpl extends
 			tx.begin();
 			Long userKey = KeyFactory.stringToKey(user.getId());
 			// this is done simply to make check that the user exists
-			JDOUser jdoUser = (JDOUser) pm.getObjectById(
-					JDOUser.class, userKey);
+			//JDOUser jdoUser = (JDOUser) 
+			pm.getObjectById(JDOUser.class, userKey);
 			Long groupKey = KeyFactory.stringToKey(userGroup.getId());
 			JDOUserGroup jdoGroup = (JDOUserGroup) pm.getObjectById(
 					JDOUserGroup.class, groupKey);

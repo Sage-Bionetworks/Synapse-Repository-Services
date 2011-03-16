@@ -1,19 +1,11 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import java.util.Collection;
 import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-
-import javax.jdo.PersistenceManager;
-import javax.jdo.Transaction;
 
 import org.sagebionetworks.repo.model.AnnotatableDAO;
 import org.sagebionetworks.repo.model.AnnotationDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
-import org.sagebionetworks.repo.model.BaseDAO;
-import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Revisable;
