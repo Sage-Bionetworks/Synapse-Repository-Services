@@ -9,7 +9,12 @@ import org.sagebionetworks.web.shared.LayerColumnInfo;
 import com.google.gwt.cell.client.ClickableTextCell;
 import com.google.gwt.user.cellview.client.Column;
 import com.google.inject.Inject;
-
+/**
+ * Renders a single column containing icons for each layer type supported by a datasets.
+ * 
+ * @author jmhill
+ *
+ */
 public class LayerColumn extends Column<Map<String, Object>, String>{
 	
 	/**
@@ -29,7 +34,7 @@ public class LayerColumn extends Column<Map<String, Object>, String>{
 		// We need three columns to render this
 		Boolean hasExpression = (Boolean) row.get(meta.getHasExpression().getId());
 		Boolean hasGenetic = (Boolean) row.get(meta.getHasGenetic().getId());
-		Boolean hasPheontype = (Boolean) row.get(meta.getHasGenetic().getId());
+		Boolean hasPheontype = (Boolean) row.get(meta.getHasClinical().getId());
 		if(hasExpression != null && hasGenetic != null && hasPheontype != null){
 			StringBuilder builder = new StringBuilder();
 			// Expression
