@@ -17,6 +17,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.schema.JsonSchema;
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.Dataset;
@@ -100,7 +101,7 @@ public class QueryController extends BaseController {
 	@RequestMapping(value = UrlHelpers.QUERY, method = RequestMethod.GET)
 	public @ResponseBody
 	QueryResults query(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = ServiceConstants.QUERY_PARAM, required = true) String query,
 			HttpServletRequest request) throws DatastoreException,
 			ParseException, NotFoundException, UnauthorizedException {

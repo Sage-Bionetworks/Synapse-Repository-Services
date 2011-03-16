@@ -1,12 +1,10 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import java.util.Collection;
 import java.util.Date;
 import java.util.Set;
 
 import javax.jdo.annotations.Element;
 import javax.jdo.annotations.IdGeneratorStrategy;
-import javax.jdo.annotations.NotPersistent;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;

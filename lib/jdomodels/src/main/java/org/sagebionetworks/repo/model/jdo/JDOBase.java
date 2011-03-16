@@ -2,8 +2,6 @@ package org.sagebionetworks.repo.model.jdo;
 
 import java.util.Date;
 
-import org.sagebionetworks.repo.model.Base;
-
 
 /**
  * This interface defines the methods to be implemented by all persistent

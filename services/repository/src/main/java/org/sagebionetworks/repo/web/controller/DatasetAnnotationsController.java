@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.schema.JsonSchema;
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.Dataset;
@@ -67,7 +68,7 @@ public class DatasetAnnotationsController extends BaseController implements
 			+ UrlHelpers.ANNOTATIONS, method = RequestMethod.GET)
 	public @ResponseBody
 	Annotations getEntityAnnotations(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
@@ -82,7 +83,7 @@ public class DatasetAnnotationsController extends BaseController implements
 			+ UrlHelpers.ANNOTATIONS, method = RequestMethod.PUT)
 	public @ResponseBody
 	Annotations updateEntityAnnotations(
-			@RequestParam(value = ServiceConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) Integer etag,
 			@RequestBody Annotations updatedAnnotations,

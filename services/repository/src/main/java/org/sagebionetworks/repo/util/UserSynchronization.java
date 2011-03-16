@@ -7,10 +7,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
-import org.sagebionetworks.authutil.AuthUtilConstants;
-import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -26,25 +25,14 @@ public class UserSynchronization {
 			.getName());
 
 	@Autowired
-	private DAOFactory daoFactory;
-
-	/**
-	 * @param daoFactory
-	 *            the daoFactory to set
-	 */
-	public void setDaoFactory(DAOFactory daoFactory) {
-		this.daoFactory = daoFactory;
+	private CrowdAuthUtil crowdAuthUtil = null;
+	
+	private UserDAO userDAO = null;
+	
+	public UserSynchronization(UserDAO userDAO) {
+		this.userDAO=userDAO;
 	}
-
-	/**
-	 * @return the daoFactory
-	 */
-	public DAOFactory getDaoFactory() {
-		return daoFactory;
-	}
-
-	@Autowired
-	CrowdAuthUtil crowdAuthUtil = null;
+	
 
 	/**
 	 	- get users in Crowd
@@ -59,10 +47,7 @@ public class UserSynchronization {
 
 
 		Collection<String> crowdUserIds = crowdAuthUtil.getUsersInGroup(AuthUtilConstants.PLATFORM_GROUP);
-
-		// TODO do we need an admin' user having permissions to get at all users?
-		String adminUserId = null; 
-		UserDAO userDAO = daoFactory.getUserDAO(adminUserId);
+ 
 		Collection<User> users = userDAO.getInRange(0, Integer.MAX_VALUE);
 		Map<String,User> idToUserMap = new HashMap<String,User>();
 		for (User user : users) {

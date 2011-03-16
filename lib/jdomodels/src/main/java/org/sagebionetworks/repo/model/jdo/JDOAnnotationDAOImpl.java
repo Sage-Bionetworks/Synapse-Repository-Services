@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 
 import javax.jdo.Extent;
-import javax.jdo.JDOHelper;
 import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
@@ -109,6 +108,7 @@ abstract public class JDOAnnotationDAOImpl<S extends Base, T extends JDOAnnotata
 	 * @return the JDOAnnotations objects having the given attribute/value
 	 *         pair
 	 */
+	@SuppressWarnings("rawtypes")
 	protected Collection<JDOAnnotations> getAnnotationsHaving(
 			PersistenceManager pm, String attrib, String collectionName,
 			Class annotationClass, Class valueClass, Object value) {
@@ -132,6 +132,7 @@ abstract public class JDOAnnotationDAOImpl<S extends Base, T extends JDOAnnotata
 	 * implementation is found in the subclass JDORevisableAnnotationDAOImpl
 	 * 
 	 */
+	@SuppressWarnings("rawtypes")
 	protected List<T> getHavingAnnotation(PersistenceManager pm, String attrib,
 			String collectionName, Class annotationClass, Class valueClass,
 			Object value, int start, int end) {
@@ -198,6 +199,7 @@ abstract public class JDOAnnotationDAOImpl<S extends Base, T extends JDOAnnotata
 	 *         (owners not having the annotation) go first in the returned
 	 *         list).
 	 */
+	@SuppressWarnings("rawtypes")
 	private List<T> getSortedByAnnotation(PersistenceManager pm, String attrib,
 			String collectionName, Class annotationClass, int start, int end,
 			final boolean asc) {
