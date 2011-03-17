@@ -33,7 +33,7 @@
     <param-name>contextConfigLocation</param-name>
     <param-value>
       /WEB-INF/repository-context.xml,
-      authutil-context.xml
+      classpath:authutil-context.xml
     </param-value>
   </context-param>
  
