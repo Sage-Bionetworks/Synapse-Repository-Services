@@ -60,7 +60,8 @@
 								<h3>Dataset Layers</h3>
 								<p>Select a name to <br/>view smaple data.</p>
 							</g:HTML>
-							<g:SimplePanel ui:field="tablePanel" />						
+							<g:SimplePanel ui:field="tablePanel" />												
+							<g:SimplePanel ui:field="downloadPanel" />
 						</g:VerticalPanel>
 					</div>
 				</td>

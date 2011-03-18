@@ -68,4 +68,14 @@ public class LayerPresenter extends AbstractActivity implements DatasetView.Pres
 		this.layerId = place.toToken();
 	}
 
+	@Override
+	public void licenseAccepted() {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void logDownload() {
+		// TODO Auto-generated method stub
+	}
+
 }

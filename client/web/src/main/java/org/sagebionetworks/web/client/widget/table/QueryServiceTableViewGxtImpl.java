@@ -192,9 +192,9 @@ public class QueryServiceTableViewGxtImpl extends LayoutContainer implements Que
 				// Now create the column.
 				final Column<Map<String, Object>, ?> columnRenderer = columnFactory.createColumn(meta);
 				// TODO : check if column is allowed to be sortable?				
-
+				
 				String columnId = meta.getId().replaceAll("\\.", "_");	
-				ColumnConfig colConfig = new ColumnConfig(columnId, meta.getDisplayName(), meta.getColumnWidth());				
+				ColumnConfig colConfig = new ColumnConfig(columnId, meta.getDisplayName(), meta.getColumnWidth());			
 				
 				// configure cell renderer
 				GridCellRenderer<BaseModelData> cellRenderer = new GridCellRenderer<BaseModelData>() {

@@ -1,18 +1,28 @@
 package org.sagebionetworks.web.client.view;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.sagebionetworks.web.client.presenter.DatasetRow;
+import org.sagebionetworks.web.client.widget.licensebox.LicensedDownloader;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
+import org.sagebionetworks.web.shared.FileDownload;
+import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
-import org.sagebionetworks.web.shared.WhereCondition;
 import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
+import org.sagebionetworks.web.shared.WhereCondition;
 
 import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
 import com.google.gwt.dom.client.SpanElement;
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.i18n.client.DateTimeFormat;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.rpc.AsyncCallback;
+import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
@@ -37,20 +47,35 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	FlexTable rightFlexTable;
 	@UiField
 	SimplePanel tablePanel;
+	@UiField
+	SimplePanel downloadPanel;
 
 	private Presenter presenter;
 	private PreviewDisclosurePanel previewDisclosurePanel;
 	private QueryServiceTable queryServiceTable;
+	private final LicensedDownloader datasetLicensedDownloader;
+	private boolean disableDownloads;
 
 	@Inject
-	public DatasetViewImpl(Binder uiBinder, final PreviewDisclosurePanel previewDisclosurePanel, QueryServiceTableResourceProvider queryServiceTableResourceProvider) {
+	public DatasetViewImpl(Binder uiBinder, final PreviewDisclosurePanel previewDisclosurePanel, QueryServiceTableResourceProvider queryServiceTableResourceProvider, LicensedDownloader dsLicensedDownloader) {		
+		disableDownloads = false;
 		initWidget(uiBinder.createAndBindUi(this));
 		this.previewDisclosurePanel = previewDisclosurePanel;
+		this.datasetLicensedDownloader = dsLicensedDownloader;
+		setupDatasetLicensedDownloaderCallbacks();
 
-
+		// layers table
 		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.layer, false, 300, 300);
 		tablePanel.add(queryServiceTable.asWidget());
-
+		
+		// download dataset button
+		Button downloadDatasetButton = new Button("Download Dataset", new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {
+				datasetLicensedDownloader.showWindow();			
+			}
+		}); 		
+		downloadPanel.add(downloadDatasetButton);	
 	}
 
 	@Override
@@ -130,4 +155,44 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		rightFlexTable.clear();
 	}
 
+	@Override
+	public void setLicenseAgreement(LicenseAgreement agreement) {		
+		datasetLicensedDownloader.setLicenseAgreement(agreement);		
+	}
+
+	@Override
+	public void requireLicenseAcceptance(boolean requireLicense) {
+		datasetLicensedDownloader.setRequireLicenseAcceptance(requireLicense);		
+	}
+
+	@Override
+	public void disableLicensedDownloads(boolean disable) {
+		this.disableDownloads = true;
+	}
+
+	@Override
+	public void setDatasetDownloads(List<FileDownload> downloads) {
+		datasetLicensedDownloader.setDownloadUrls(downloads);
+	}
+
+	/*
+	 * Private Methods
+	 */
+	private void setupDatasetLicensedDownloaderCallbacks() {
+		// give the LicensedDownloader something to call when the view accepts the license
+		datasetLicensedDownloader.setLicenseAcceptedCallback(new AsyncCallback<Void>() {
+			// called when the user agrees to the license 
+			@Override
+			public void onSuccess(Void result) {
+				// let presenter know so it can persist this
+				presenter.licenseAccepted();
+			}
+
+			// not used
+			@Override
+			public void onFailure(Throwable caught) { }
+
+		});
+	}
+	
 }

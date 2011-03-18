@@ -7,6 +7,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.web.server.servlet.DatasetServiceImpl;
+import org.sagebionetworks.web.server.servlet.LicenseServiceImpl;
 import org.sagebionetworks.web.server.servlet.SearchServiceImpl;
 
 import com.google.inject.Singleton;
@@ -33,6 +34,11 @@ public class PortalServletModule extends ServletModule {
 		// Setup the mapping
 		bind(SearchServiceImpl.class).in(Singleton.class);
 		serve("/Portal/search").with(SearchServiceImpl.class);
+
+		// Setup the License service mapping
+		bind(LicenseServiceImpl.class).in(Singleton.class);
+		serve("/Portal/license").with(LicenseServiceImpl.class);
+		
 		// The Rest template provider should be a singleton.
 		bind(RestTemplateProviderImpl.class).in(Singleton.class);
 		bind(RestTemplateProvider.class).to(RestTemplateProviderImpl.class);
