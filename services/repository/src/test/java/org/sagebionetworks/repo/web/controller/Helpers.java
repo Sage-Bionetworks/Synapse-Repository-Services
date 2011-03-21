@@ -63,6 +63,7 @@ public class Helpers {
 	private String integrationTestEndpoint;
 	private String userId;
 	private LinkedList<TestStateItem> testState;
+	private Boolean isIntegrationTest = false;
 
 	/**
 	 * Default constructor reads optional system properties to change this from
@@ -98,6 +99,13 @@ public class Helpers {
 	}
 
 	/**
+	 * @return whether or not the current scenario is an integration test
+	 */
+	public Boolean isIntegrationTest() {
+		return isIntegrationTest;
+	}
+	
+	/**
 	 * Setup up our mock servlet
 	 * 
 	 * @return the servlet
@@ -106,6 +114,7 @@ public class Helpers {
 	public HttpServlet setUp() throws Exception {
 
 		if (null != integrationTestEndpoint) {
+			isIntegrationTest = true;
 			servlet = new IntegrationTestMockServlet(integrationTestEndpoint);
 			if (null == servletPrefix) {
 				servletPrefix = DEFAULT_SERVLET_PREFIX;

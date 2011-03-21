@@ -6,15 +6,16 @@ import static org.junit.Assert.fail;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.web.ServiceConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -51,12 +52,9 @@ public class DatasetControllerXMLTest {
 	private Helpers helper;
 	private HttpServlet servlet = null;
 
-	// Dev Note: these ids cannot just be any string, they have to be parsable
+	// Dev Note: these ids cannot just be any string, they have to be paresable
 	// by our key utility
 	private static final String NON_EXISTENT_DATASET_ID = "agR0ZXN0chMLEg1HQUVKRE9EYXRhc2V0GAEM";
-
-	private static final Pattern ENTITY_ID_PATTERN = Pattern
-			.compile("<id>([^<]+)</id>");
 
 	/**
 	 * @throws java.lang.Exception
@@ -104,6 +102,12 @@ public class DatasetControllerXMLTest {
 				.startsWith(
 						"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><dataset>"));
 		assertTrue(response.getContentAsString().endsWith("</dataset>"));
+
+		// Clean up from this test 
+		String locationHeader = (String) response
+				.getHeader(ServiceConstants.LOCATION_HEADER);
+		helper.testDeleteJsonEntity(locationHeader);
+		
 	}
 
 	/**
@@ -283,7 +287,7 @@ public class DatasetControllerXMLTest {
 		request.setRequestURI(helper.getServletPrefix() + "/dataset/test");
 		try {
 			servlet.service(request, response);
-		} catch (Exception e) {
+		} catch (ServletException e) {
 			// Unfortunately this exception is uncaught via the
 			// DispatcherServlet so that the service does not
 			// have an opportunity to handle it. It would be better if were able
@@ -295,6 +299,12 @@ public class DatasetControllerXMLTest {
 			// So this test passes because it did what we expected
 			// javax.servlet.ServletException: Could not resolve view with name
 			// '' in servlet with name 'repository'
+			return;
+		}
+		if (helper.isIntegrationTest()) {
+			log.info("Results: " + response.getContentAsString());
+			assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), response
+					.getStatus());
 			return;
 		}
 		fail("something changed!");
@@ -410,6 +420,12 @@ public class DatasetControllerXMLTest {
 			// Could not find acceptable representation
 			return;
 		}
+		if (helper.isIntegrationTest()) {
+			log.info("Results: " + response.getContentAsString());
+			assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), response
+					.getStatus());
+			return;
+		}
 		fail("something changed!");
 	}
 
@@ -434,37 +450,17 @@ public class DatasetControllerXMLTest {
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus());
-		// Note that an error page configured via web.xml will actually be
-		// served
-		assertEquals("", response.getContentAsString());
+		if (!helper.isIntegrationTest()) {
+			// Note that an error page configured via web.xml will actually be
+			// served
+			assertEquals("", response.getContentAsString());
+		}
 	}
 
 	private String createDatasetHelper() throws Exception {
-
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("POST");
-		request.addHeader("Accept", "application/xml");
-		request.setRequestURI(helper.getServletPrefix() + "/dataset");
-		request.addHeader("Content-Type", "application/xml; charset=UTF-8");
-		request
-				.setContent("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><dataset><name>dataset from a unit test</name></dataset>"
-						.getBytes("UTF-8"));
-		servlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
-		assertEquals(HttpStatus.CREATED.value(), response.getStatus());
-		String result = response.getContentAsString();
-		assertTrue(result
-				.startsWith("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><dataset>"));
-		assertTrue(result.endsWith("</dataset>"));
-
-		String id = null;
-
-		Matcher matcher = ENTITY_ID_PATTERN.matcher(result);
-		if (matcher.find()) {
-			id = matcher.group(1);
-		}
-		return id;
+		JSONObject dataset = helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
+				"{\"name\":\"dataset from a unit test\"}");
+		return dataset.getString("id");
 	}
 
 }
