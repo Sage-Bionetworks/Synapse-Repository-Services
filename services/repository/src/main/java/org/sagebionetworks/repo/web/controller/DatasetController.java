@@ -190,7 +190,7 @@ public class DatasetController extends BaseController implements
 	}
 
 	private void addServiceSpecificMetadata(Dataset dataset,
-			HttpServletRequest request) throws DatastoreException {
+			HttpServletRequest request) {
 
 		dataset.setAnnotations(UrlHelpers.makeEntityPropertyUri(dataset,
 				Annotations.class, request));

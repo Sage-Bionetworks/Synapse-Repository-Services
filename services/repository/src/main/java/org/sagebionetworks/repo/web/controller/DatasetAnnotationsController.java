@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.AnnotationsController;
 import org.sagebionetworks.repo.web.AnnotationsControllerImp;
@@ -89,7 +90,7 @@ public class DatasetAnnotationsController extends BaseController implements
 			@RequestBody Annotations updatedAnnotations,
 			HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException,
-			UnauthorizedException {
+			UnauthorizedException, InvalidModelException {
 
 		checkAuthorization(userId, false);
 		return datasetAnnotationsController.updateEntityAnnotations(userId, id,

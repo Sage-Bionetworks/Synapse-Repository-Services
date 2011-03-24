@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InputDataLayerDAO;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.AnnotationsController;
 import org.sagebionetworks.repo.web.AnnotationsControllerImp;
@@ -105,6 +106,7 @@ public class LayerAnnotationsController extends BaseController { // TODO
 	 * @throws ConflictingUpdateException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
+	 * @throws InvalidModelException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
@@ -117,7 +119,7 @@ public class LayerAnnotationsController extends BaseController { // TODO
 			@RequestBody Annotations updatedAnnotations,
 			HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException,
-			UnauthorizedException {
+			UnauthorizedException, InvalidModelException {
 
 		setDao(userId);
 
