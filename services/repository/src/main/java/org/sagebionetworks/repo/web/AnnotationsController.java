@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -58,12 +59,13 @@ public interface AnnotationsController<T extends Base> {
 	 * @throws ConflictingUpdateException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
+	 * @throws InvalidModelException 
 	 */
 	abstract Annotations updateEntityAnnotations(String userId, String id,
 			Integer etag, Annotations updatedAnnotations,
 			HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException,
-			UnauthorizedException;
+			UnauthorizedException, InvalidModelException;
 
 	/**
 	 * Get the schema for an entity's annotations<p>

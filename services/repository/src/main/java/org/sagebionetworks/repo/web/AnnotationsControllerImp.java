@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.web;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -13,6 +15,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.util.SchemaHelper;
 
@@ -26,7 +29,20 @@ import org.sagebionetworks.repo.util.SchemaHelper;
  * any special handling.
  * <p>
  * 
- * TODO this patient is still lying open on the operating table, don't CR it yet
+ * TODO
+ * <ol>
+ * <li>improve the AnnotationDAO API so that we no longer need to do the loops
+ * below when updating an annotations model object in its entirety OR always
+ * work with the annotations individually for CUD operations
+ * http://sagebionetworks.jira.com/browse/PLFM-64
+ * <li>add new functionality to register an annotation with a particular display
+ * name, data type and validation rules (e.g. must be a term from ontology X).
+ * From then on out if anyone tries to make an annotation of that annotation
+ * type, the storage type must match.
+ * <li>the annotation type also includes the display name which is separate from
+ * the name used in the persistence layer
+ * http://sagebionetworks.jira.com/browse/PLFM-65
+ * </ol>
  * 
  * @author deflaux
  * @param <T>
@@ -34,6 +50,9 @@ import org.sagebionetworks.repo.util.SchemaHelper;
  */
 public class AnnotationsControllerImp<T extends Base> implements
 		AnnotationsController<T> {
+
+	// match one or more whitespace characters
+	private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
 
 	private AnnotatableDAO<T> annotatableDao;
 
@@ -65,7 +84,7 @@ public class AnnotationsControllerImp<T extends Base> implements
 			Integer etag, Annotations updatedAnnotations,
 			HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException,
-			UnauthorizedException {
+			UnauthorizedException, InvalidModelException {
 
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 
@@ -79,12 +98,13 @@ public class AnnotationsControllerImp<T extends Base> implements
 			throw new ConflictingUpdateException(
 					"annotations for entity with id "
 							+ entityId
-							+ "were updated since you last fetched them, retrieve them again and reapply the update");
+							+ " were updated since you last fetched them, retrieve them again and reapply the update");
 		}
 
+		// TODO below isn't how we want to do this for real, it should be like
+		// this
 		// dao.update(updatedAnnotations);
 
-		// TODO this isn't how we want to do this for real
 		// TODO this is currently additive but it should be overwriting
 		// Developer Note: yes, nested loops are evil when N is large
 
@@ -101,6 +121,7 @@ public class AnnotationsControllerImp<T extends Base> implements
 				.getStringAnnotations();
 		for (Map.Entry<String, Collection<String>> updatedAnnotation : updatedStringAnnotations
 				.entrySet()) {
+			checkAnnotationName(updatedAnnotation.getKey());
 			for (String value : updatedAnnotation.getValue()) {
 				stringAnnotationDAO.addAnnotation(updatedAnnotation.getKey(),
 						value);
@@ -111,6 +132,7 @@ public class AnnotationsControllerImp<T extends Base> implements
 				.getDoubleAnnotations();
 		for (Map.Entry<String, Collection<Double>> updatedAnnotation : updatedDoubleAnnotations
 				.entrySet()) {
+			checkAnnotationName(updatedAnnotation.getKey());
 			for (Double value : updatedAnnotation.getValue()) {
 				doubleAnnotationDAO.addAnnotation(updatedAnnotation.getKey(),
 						value);
@@ -121,6 +143,7 @@ public class AnnotationsControllerImp<T extends Base> implements
 				.getLongAnnotations();
 		for (Map.Entry<String, Collection<Long>> updatedAnnotation : updatedLongAnnotations
 				.entrySet()) {
+			checkAnnotationName(updatedAnnotation.getKey());
 			for (Long value : updatedAnnotation.getValue()) {
 				longAnnotationDAO.addAnnotation(updatedAnnotation.getKey(),
 						value);
@@ -131,6 +154,7 @@ public class AnnotationsControllerImp<T extends Base> implements
 				.getDateAnnotations();
 		for (Map.Entry<String, Collection<Date>> updatedAnnotation : updatedDateAnnotations
 				.entrySet()) {
+			checkAnnotationName(updatedAnnotation.getKey());
 			for (Date value : updatedAnnotation.getValue()) {
 				dateAnnotationDAO.addAnnotation(updatedAnnotation.getKey(),
 						value);
@@ -152,5 +176,18 @@ public class AnnotationsControllerImp<T extends Base> implements
 		annotations.setId(id); // the NON url-encoded id
 		annotations.setUri(UrlHelpers.makeEntityPropertyUri(request));
 		annotations.setEtag(UrlHelpers.makeEntityEtag(annotations));
+	}
+
+	private void checkAnnotationName(String key) throws InvalidModelException {
+		Matcher matcher = WHITESPACE_PATTERN.matcher(key);
+		if (matcher.find()) {
+			throw new InvalidModelException(
+					"Annotation names may not contain whitespace");
+		}
+		// TODO eventually deeper in the Annotation DAO is where we might
+		// confirm that this annotation has been registered and the value is
+		// valid and perhaps allow users to refer to annotations either by their
+		// display name or persistence key
+		return;
 	}
 }

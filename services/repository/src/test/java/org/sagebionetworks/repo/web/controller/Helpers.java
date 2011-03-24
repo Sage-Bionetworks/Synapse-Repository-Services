@@ -36,9 +36,13 @@ import org.springframework.web.servlet.DispatcherServlet;
  * integration test INTEGRATION_TEST_ENDPOINT and SERVLET_PREFIX. To enable
  * this, run one of the following:
  * <ul>
- * <li>mvn test -DINTEGRATION_TEST_ENDPOINT=http://localhost:8080 -DSERVLET_PREFIX=/repo/v1
- * <li>mvn test -DINTEGRATION_TEST_ENDPOINT=http://repositoryserviceb.elasticbeanstalk.com -DSERVLET_PREFIX=/repo/v1
- * <li>mvn test -DINTEGRATION_TEST_ENDPOINT=http://localhost:8080 -DSERVLET_PREFIX=/auth/v1
+ * <li>mvn test -DINTEGRATION_TEST_ENDPOINT=http://localhost:8080
+ * -DSERVLET_PREFIX=/repo/v1
+ * <li>mvn test
+ * -DINTEGRATION_TEST_ENDPOINT=http://repositoryserviceb.elasticbeanstalk.com
+ * -DSERVLET_PREFIX=/repo/v1
+ * <li>mvn test -DINTEGRATION_TEST_ENDPOINT=http://localhost:8080
+ * -DSERVLET_PREFIX=/auth/v1
  * <li>or pass these properties in your JUnit eclipse settings
  * </ul>
  * 
@@ -104,7 +108,7 @@ public class Helpers {
 	public Boolean isIntegrationTest() {
 		return isIntegrationTest;
 	}
-	
+
 	/**
 	 * Setup up our mock servlet
 	 * 
@@ -688,6 +692,23 @@ public class Helpers {
 		// Longs
 		assertJSONArrayEquals(isoDatesAsLong, results.getJSONObject(
 				"dateAnnotations").getJSONArray("isoDates"));
+
+		// Try to overwrite using an obsolete version of the annotations and it
+		// should fail
+		JSONObject preconditionError = testUpdateJsonEntityShouldFail(
+				annotations, HttpStatus.PRECONDITION_FAILED);
+		assertTrue(preconditionError
+				.getString("reason")
+				.endsWith(
+						"were updated since you last fetched them, retrieve them again and reapply the update"));
+
+		// Whitespace in annotation names is invalid
+		storedAnnotations.getJSONObject("stringAnnotations").put(
+				"tissue types", tissues);
+		JSONObject badRequestError = testUpdateJsonEntityShouldFail(
+				storedAnnotations, HttpStatus.BAD_REQUEST);
+		assertTrue(badRequestError.getString("reason").equals(
+				"Annotation names may not contain whitespace"));
 	}
 
 	/**
