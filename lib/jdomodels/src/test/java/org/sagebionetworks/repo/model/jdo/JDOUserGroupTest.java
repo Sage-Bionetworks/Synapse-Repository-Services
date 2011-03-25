@@ -54,6 +54,7 @@ public class JDOUserGroupTest {
 		return g.getId();
 	}
 
+	@Ignore
 	@Test
 	public void testGroup() throws Exception {
 		makeGroup("group1", 111L);

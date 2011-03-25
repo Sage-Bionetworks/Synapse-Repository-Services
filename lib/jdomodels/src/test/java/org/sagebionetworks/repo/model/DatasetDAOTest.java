@@ -15,6 +15,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.jdo.PersistenceManager;
+import javax.jdo.Transaction;
 
 import junit.framework.Assert;
 
@@ -22,11 +23,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.jdo.JDOAnnotations;
 import org.sagebionetworks.repo.model.jdo.JDOBootstrapperImpl;
 import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
 import org.sagebionetworks.repo.model.jdo.JDODataset;
 import org.sagebionetworks.repo.model.jdo.JDOInputDataLayer;
 import org.sagebionetworks.repo.model.jdo.JDOStringAnnotation;
+import org.sagebionetworks.repo.model.jdo.JDOUser;
+import org.sagebionetworks.repo.model.jdo.JDOUserGroup;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.PMF;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -50,15 +54,30 @@ public class DatasetDAOTest {
 	}
 
 	private DAOFactory fac;
+	private Collection<Long> dsIds =null;
 
 	@Before
 	public void setUp() throws Exception {
+		dsIds = new HashSet<Long>();
 		fac = new JDODAOFactoryImpl();
 		(new JDOBootstrapperImpl()).bootstrap(); // creat admin user, public group, etc.
 	}
 
 	@After
 	public void tearDown() throws Exception {
+		PersistenceManager pm = null;
+		try {
+			pm = PMF.get();
+			Transaction tx = pm.currentTransaction();
+			for (Long id : dsIds) {
+				tx.begin();
+				if (id!=null) pm.deletePersistent(pm.getObjectById(JDODataset.class, id));
+				tx.commit();
+			}
+		} finally {
+			if (pm != null)
+				pm.close();
+		}
 	}
 
 	// create a dataset and populate the shallow properties
@@ -85,6 +104,7 @@ public class DatasetDAOTest {
 
 		DatasetDAO dao = fac.getDatasetDAO(null);
 		String id = dao.create(d);
+		this.dsIds.add(KeyFactory.stringToKey(id));
 		Assert.assertNotNull(id);
 		dao.getStringAnnotationDAO(id).addAnnotation("Tissue Type", "liver");
 		// repeated annotations are to be ignored...
@@ -139,6 +159,8 @@ public class DatasetDAOTest {
 		
 		// Clean up test data
 		dao.delete(id);
+		this.dsIds.remove(KeyFactory.stringToKey(id));
+		
 	}
 
 	private static InputDataLayer createLayer(Date date)
@@ -169,6 +191,7 @@ public class DatasetDAOTest {
 		
 		String id = dao.create(d);
 		Assert.assertNotNull(id);
+		this.dsIds.add(KeyFactory.stringToKey(id));
 
 		// Check our layer preview info in the DTO
 		Dataset dataset = dao.get(id);
@@ -281,6 +304,7 @@ public class DatasetDAOTest {
 
 		String id2 = dao.create(d2);
 		Assert.assertNotNull(id2);
+		this.dsIds.add(KeyFactory.stringToKey(id));
 
 		InputDataLayer layer21 = createLayer(now);
 		layer21.setName("clinical data");
@@ -310,7 +334,9 @@ public class DatasetDAOTest {
 
 		// Clean up test data
 		dao.delete(id);
+		this.dsIds.remove(KeyFactory.stringToKey(id));
 		dao.delete(id2);
+		this.dsIds.remove(KeyFactory.stringToKey(id2));
 	}
 
 	@Test
@@ -319,6 +345,7 @@ public class DatasetDAOTest {
 
 		DatasetDAO dao = fac.getDatasetDAO(null);
 		String id = dao.create(d);
+		this.dsIds.add(KeyFactory.stringToKey(id));
 		dao.getStringAnnotationDAO(id).addAnnotation("Tissue Type", "liver");
 		dao.getDoubleAnnotationDAO(id).addAnnotation("weight", 99.5D);
 		d.setDescription("Updated description");
@@ -336,6 +363,7 @@ public class DatasetDAOTest {
 		
 		// Clean up test data
 		dao.delete(id);
+		this.dsIds.remove(KeyFactory.stringToKey(id));
 	}
 
 	@Test
@@ -344,6 +372,7 @@ public class DatasetDAOTest {
 
 		DatasetDAO dao = fac.getDatasetDAO(null);
 		String id = dao.create(d);
+		this.dsIds.add(KeyFactory.stringToKey(id));
 		Assert.assertNotNull(id);
 
 		Date now = new Date();
@@ -378,6 +407,7 @@ public class DatasetDAOTest {
 		}
 		
 		dao.delete(id);
+		this.dsIds.remove(KeyFactory.stringToKey(id));
 
 		// now try to get the dataset.  should be gone
 		try {
@@ -426,17 +456,23 @@ public class DatasetDAOTest {
 		// TODO: check that deletion of the dataset deletes its revisions
 		// too. (Since they're owned, they should be deleted automatically.)
 
+		
+
 	}
 
 	@Test
 	public void testGetCount() throws Exception {
 		DatasetDAO dao = fac.getDatasetDAO(null);
 		String id1 = dao.create(createShallow("dataset 1"));
+		this.dsIds.add(KeyFactory.stringToKey(id1));
 		Dataset ds2 = createShallow("dataset 2");
 		String id2 = dao.create(ds2);
+		this.dsIds.add(KeyFactory.stringToKey(id2));
 		String id3 = dao.create(createShallow("dataset 3"));
+		this.dsIds.add(KeyFactory.stringToKey(id3));
 		Assert.assertEquals(3, dao.getCount());
 		dao.delete(id1);
+		this.dsIds.remove(KeyFactory.stringToKey(id1));
 		Assert.assertEquals(2, dao.getCount());
 		// System.out.println(ds2.getVersion());
 		// now let's create a revision of ds2, v1.0->v2.0
@@ -448,7 +484,9 @@ public class DatasetDAOTest {
 		
 		// Clean up test data
 		dao.delete(id2);
+		this.dsIds.remove(KeyFactory.stringToKey(id2));
 		dao.delete(id3);
+		this.dsIds.remove(KeyFactory.stringToKey(id3));
 	}
 
 	@Test
@@ -465,6 +503,8 @@ public class DatasetDAOTest {
 		datasetIds.add(dao.create(d));
 		d = createShallow("d3");
 		datasetIds.add(dao.create(d));
+		for (String id : datasetIds) this.dsIds.add(KeyFactory.stringToKey(id));
+
 		List<Dataset> ans;
 		ans = dao.getInRange(0, 2);
 		Assert.assertEquals(2, ans.size());
@@ -476,6 +516,7 @@ public class DatasetDAOTest {
 		// Clean up test data
 		for(String datasetId : datasetIds) {
 			dao.delete(datasetId);
+			this.dsIds.remove(KeyFactory.stringToKey(datasetId));
 		}
 	}
 
@@ -510,6 +551,8 @@ public class DatasetDAOTest {
 		datasetIds.add(dao.create(d));
 		dao.getStringAnnotationDAO(d.getId()).addAnnotation("stringAttr",
 				d.getName());
+		for (String id : datasetIds) this.dsIds.add(KeyFactory.stringToKey(id));
+
 		List<Dataset> ans;
 		ans = dao.getInRangeSortedByPrimaryField(0, 2, "name", /* ascending */
 		true);
@@ -563,6 +606,7 @@ public class DatasetDAOTest {
 		// Clean up test data
 		for(String datasetId : datasetIds) {
 			dao.delete(datasetId);
+			this.dsIds.remove(KeyFactory.stringToKey(datasetId));
 		}
 	}
 
@@ -584,6 +628,8 @@ public class DatasetDAOTest {
 		d = createShallow("d3");
 		d.setStatus(null);
 		datasetIds.add(dao.create(d));
+		for (String id : datasetIds) this.dsIds.add(KeyFactory.stringToKey(id));
+
 		List<Dataset> ans;
 		ans = dao.getInRangeHavingPrimaryField(0, 10, "status", "preliminary");
 		Assert.assertEquals(2, ans.size());
@@ -596,6 +642,7 @@ public class DatasetDAOTest {
 		// Clean up test data
 		for(String datasetId : datasetIds) {
 			dao.delete(datasetId);
+			this.dsIds.remove(KeyFactory.stringToKey(datasetId));
 		}
 	}
 
@@ -612,6 +659,7 @@ public class DatasetDAOTest {
 
 		DatasetDAO dao = fac.getDatasetDAO(null);
 		String id = dao.create(d);
+		this.dsIds.add(KeyFactory.stringToKey(id));
 		Assert.assertNotNull(id);
 		dao.getStringAnnotationDAO(id).addAnnotation("Tissue Type", "liver");
 		dao.getDoubleAnnotationDAO(id).addAnnotation("weight", 99.5D);
@@ -669,6 +717,7 @@ public class DatasetDAOTest {
 
 		String id2 = dao.create(d2);
 		Assert.assertNotNull(id2);
+		this.dsIds.add(KeyFactory.stringToKey(id2));
 		dao.getStringAnnotationDAO(id2).addAnnotation("Tissue Type", "brain");
 		dao.getDoubleAnnotationDAO(id2).addAnnotation("weight", 101D);
 
@@ -722,7 +771,9 @@ public class DatasetDAOTest {
 		
 		// Clean up test data
 		dao.delete(id);
+		this.dsIds.remove(KeyFactory.stringToKey(id));
 		dao.delete(id2);		
+		this.dsIds.remove(KeyFactory.stringToKey(id2));
 	}
 
 	@Test

@@ -96,6 +96,7 @@
           <!-- Make sure this path contains your persistent classes!
             -->
           <mappingIncludes>**/model/**/*.class</mappingIncludes>
+          <mappingExcludes>**/model/**/*DAOImpl.class</mappingExcludes>
           <verbose>true</verbose>
           <fork>false</fork>
           <enhancerName>ASM</enhancerName>
