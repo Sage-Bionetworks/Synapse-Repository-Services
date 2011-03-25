@@ -42,10 +42,24 @@ public class JDOAnnotationsTest {
 
 	@Before
 	public void setUp() throws Exception {
+		this.annotsId = null;
 	}
 
 	@After
 	public void tearDown() throws Exception {
+		PersistenceManager pm = null;
+		try {
+			pm = PMF.get();
+			Transaction tx = pm.currentTransaction();
+			tx.begin();
+			if (annotsId!=null) {
+				pm.deletePersistent(pm.getObjectById(JDOAnnotations.class, annotsId));
+			}
+			tx.commit();
+		} finally {
+			if (pm != null)
+				pm.close();
+		}
 	}
 	
 	@Ignore
@@ -117,18 +131,25 @@ public class JDOAnnotationsTest {
 	}
 	
 	private static void o(Object s) {System.out.println(s);}
+	
+	private Long annotsId  = null;
 
 	private Long createAnnotations() {
 		PersistenceManager pm = null;
+		Transaction tx = null;
 		try {
 			pm = PMF.get();
-			Transaction tx = pm.currentTransaction();
+			tx = pm.currentTransaction();
 			tx.begin();
 			JDOAnnotations a = JDOAnnotations.newJDOAnnotations();
 			pm.makePersistent(a);
 			tx.commit();
+			annotsId = a.getId();
 			return a.getId();
 		} finally {
+			if (tx.isActive()) {
+				tx.rollback();
+			}
 			if (pm != null)
 				pm.close();
 		}
@@ -140,9 +161,10 @@ public class JDOAnnotationsTest {
 	
 	private void addString(Long id, String attr, String value) {
 		PersistenceManager pm = null;
+		Transaction tx = null;
 		try {
 			pm = PMF.get();
-			Transaction tx = pm.currentTransaction();
+			 tx = pm.currentTransaction();
 			tx.begin();
 			JDOAnnotations a = (JDOAnnotations) pm.getObjectById(
 					JDOAnnotations.class, id);
@@ -153,6 +175,9 @@ public class JDOAnnotationsTest {
 			pm.makePersistent(a);
 			tx.commit();
 		} finally {
+			if (tx.isActive()) {
+				tx.rollback();
+			}
 			if (pm != null)
 				pm.close();
 		}
@@ -160,9 +185,10 @@ public class JDOAnnotationsTest {
 
 	private void addDouble(Long id) {
 		PersistenceManager pm = null;
+		Transaction tx = null;
 		try {
 			pm = PMF.get();
-			Transaction tx = pm.currentTransaction();
+			tx = pm.currentTransaction();
 			tx.begin();
 			JDOAnnotations a = (JDOAnnotations) pm.getObjectById(
 					JDOAnnotations.class, id);
@@ -174,6 +200,9 @@ public class JDOAnnotationsTest {
 			pm.makePersistent(a);
 			tx.commit();
 		} finally {
+			if (tx.isActive()) {
+				tx.rollback();
+			}
 			if (pm != null)
 				pm.close();
 		}
@@ -181,9 +210,10 @@ public class JDOAnnotationsTest {
 
 	private void addLong(Long id) {
 		PersistenceManager pm = null;
+		Transaction tx = null;
 		try {
 			pm = PMF.get();
-			Transaction tx = pm.currentTransaction();
+			 tx = pm.currentTransaction();
 			tx.begin();
 			JDOAnnotations a = (JDOAnnotations) pm.getObjectById(
 					JDOAnnotations.class, id);
@@ -195,6 +225,9 @@ public class JDOAnnotationsTest {
 			pm.makePersistent(a);
 			tx.commit();
 		} finally {
+			if (tx.isActive()) {
+				tx.rollback();
+			}
 			if (pm != null)
 				pm.close();
 		}

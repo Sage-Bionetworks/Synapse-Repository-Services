@@ -8,13 +8,21 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.jdo.PersistenceManager;
+import javax.jdo.Transaction;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.jdo.JDOAnnotations;
 import org.sagebionetworks.repo.model.jdo.JDOBootstrapperImpl;
 import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
+import org.sagebionetworks.repo.model.jdo.JDOUser;
+import org.sagebionetworks.repo.model.jdo.JDOUserGroup;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.jdo.PMF;
 
 
 
@@ -34,17 +42,37 @@ public class UserGroupDAOTest {
 	}
 
 	private DAOFactory fac;
+	private Collection<Long> userIds =null;
+	private Collection<Long> groupIds = null;
 
 	@Before
 	public void setUp() throws Exception {
-//		helper.setUp();
+		userIds = new HashSet<Long>();
+		groupIds = new HashSet<Long>();
 		fac = new JDODAOFactoryImpl();
 		(new JDOBootstrapperImpl()).bootstrap(); // creat admin user, public group, etc.
 	}
 
 	@After
 	public void tearDown() throws Exception {
-//		helper.tearDown();
+		PersistenceManager pm = null;
+		try {
+			pm = PMF.get();
+			Transaction tx = pm.currentTransaction();
+			for (Long id : userIds) {
+				tx.begin();
+				if (id!=null) pm.deletePersistent(pm.getObjectById(JDOUser.class, id));
+				tx.commit();
+			}
+			for (Long id : groupIds) {
+				tx.begin();
+				if (id!=null) pm.deletePersistent(pm.getObjectById(JDOUserGroup.class, id));
+				tx.commit();
+			}
+		} finally {
+			if (pm != null)
+				pm.close();
+		}
 	}
 
 	private User createUser(String userId) {
@@ -68,12 +96,14 @@ public class UserGroupDAOTest {
 		UserDAO anonymousUserDAO = fac.getUserDAO(null);
 		User user = createUser("TestUser 1");
 		anonymousUserDAO.create(user);
+		this.userIds.add(KeyFactory.stringToKey(user.getId()));
 		
 		// create group anonymously
 		UserGroupDAO anonymousGroupDAO = fac.getUserGroupDAO(null);
 		//anonymousGroupDAO.getCount();
 		UserGroup group = createUserGroup("TestGroup");
 		anonymousGroupDAO.create(group);
+		this.groupIds.add(KeyFactory.stringToKey(group.getId()));
 		
 		Assert.assertNotNull(group.getId());
 		// now 'TestUser 1' should have access to 'TestGroup', since it was created anonymously
@@ -86,6 +116,7 @@ public class UserGroupDAOTest {
 		UserGroup group2 = createUserGroup("TestGroup 2");
 		//((JDOUserGroupDAOImpl)userGroupDAO).dumpAllAccess();
 		userGroupDAO.create(group2);
+		this.groupIds.add(KeyFactory.stringToKey(group2.getId()));
 		
 		// now 'TestUser 1' should have access to 'TestGroup 2'
 		Assert.assertNotNull(group2.getId());
@@ -120,6 +151,7 @@ public class UserGroupDAOTest {
 		UserDAO userDAO2 = fac.getUserDAO(user.getUserId());
 		User user2 = createUser("TestUser 2");
 		userDAO2.create(user2);
+		this.userIds.add(KeyFactory.stringToKey(user2.getId()));
 		
 		try {
 			anonymousUserDAO.update(user2);
