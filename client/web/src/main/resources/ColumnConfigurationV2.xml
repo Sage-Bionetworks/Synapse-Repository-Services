@@ -70,7 +70,7 @@
 			<display>Disease</display>
 			<description>What disease is this dataset about</description>
 		</column>
-		<column id="dataset.Tumor / Tissue Type">
+		<column id="dataset.Tissue/Tumor">
 			<type>StringArray</type>
 			<display>Tumor / Tissue Type</display>
 			<description>Tumor / Tissue Type</description>
@@ -85,17 +85,17 @@
 			<display>Species</display>
 			<description>Species</description>
 		</column>
-		<column id="dataset.Study Size">
+		<column id="dataset.Study_Size">
 			<type>StringArray</type>
 			<display>Study Size</display>
 			<description>Study Size</description>
 		</column>
-		<column id="dataset.Number of Samples">
+		<column id="dataset.Number_of_Samples">
 			<type>IntegerArray</type>
 			<display>Number of Samples</display>
 			<description>Number of Samples</description>
 		</column>
-		<column id="dataset.Reference / PubMed ID">
+		<column id="dataset.Reference/PubMed ID">
 			<type>LongArray</type>
 			<display>Reference / PubMed ID</display>
 			<description>Reference / PubMed ID</description>

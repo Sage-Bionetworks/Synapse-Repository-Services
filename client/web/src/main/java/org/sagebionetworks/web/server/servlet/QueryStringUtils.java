@@ -79,9 +79,7 @@ public class QueryStringUtils {
 			builder.append(WHITE_SPACE);
 			builder.append(BY);
 			builder.append(WHITE_SPACE);
-			builder.append("\"");
 			builder.append(params.getSort());
-			builder.append("\"");
 			builder.append(WHITE_SPACE);
 			String ascendingString = null;
 			if(params.isAscending()){

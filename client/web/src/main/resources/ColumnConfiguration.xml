@@ -81,7 +81,7 @@
 			<description>What disease is this dataset about</description>
 		</column>
 		<column>
-			<key>Tumor / Tissue Type</key>
+			<key>Tumor / Tissue TypeXX</key>
 			<type>StringArray</type>
 			<display>Tumor / Tissue Type</display>
 			<description>Tumor / Tissue Type</description>

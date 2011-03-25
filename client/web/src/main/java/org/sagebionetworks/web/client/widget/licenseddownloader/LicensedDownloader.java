@@ -1,4 +1,4 @@
-package org.sagebionetworks.web.client.widget.licensebox;
+package org.sagebionetworks.web.client.widget.licenseddownloader;
 
 import java.util.List;
 
@@ -73,8 +73,4 @@ public class LicensedDownloader implements LicensedDownloaderView.Presenter {
 		downloader.showWindow();		
 	}
 
-	@Override
-	public void logUserDownload() {
-		// TODO Auto-generated method stub		
-	}
 }

@@ -1,4 +1,4 @@
-package org.sagebionetworks.web.client.widget.licensebox;
+package org.sagebionetworks.web.client.widget.licenseddownloader;
 
 import java.util.List;
 
@@ -62,13 +62,6 @@ public interface LicensedDownloaderView extends IsWidget {
 		 */
 		public void setLicenseAccepted();
 		
-		/**
-		 * Call when the user clicks the download link for the file
-		 */
-		public void logUserDownload();
 	}
-
-
-	
 	
 }

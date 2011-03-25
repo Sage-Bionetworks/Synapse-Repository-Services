@@ -67,7 +67,7 @@
 			</values>
 		</filter>
 		<filter>
-			<columnId>dataset.Study Size</columnId>
+			<columnId>dataset.Study_Size</columnId>
 			<defaultValue>All Study Sizes</defaultValue>
 			<operator>GREATER_THAN</operator>
 			<values>

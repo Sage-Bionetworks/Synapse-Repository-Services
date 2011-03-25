@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.web.client.presenter.DatasetRow;
-import org.sagebionetworks.web.client.widget.licensebox.LicensedDownloader;
+import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloader;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
 import org.sagebionetworks.web.shared.FileDownload;

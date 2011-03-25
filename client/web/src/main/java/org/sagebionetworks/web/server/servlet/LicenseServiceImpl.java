@@ -2,7 +2,7 @@ package org.sagebionetworks.web.server.servlet;
 
 import java.util.logging.Logger;
 
-import org.sagebionetworks.web.client.widget.licensebox.LicenceService;
+import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceService;
 import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;

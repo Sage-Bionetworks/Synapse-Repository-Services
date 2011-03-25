@@ -151,7 +151,7 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 		paginationLimit = loadConfig.getLimit();
 		view.setPaginationOffsetAndLength(paginationOffset, paginationLimit);
 		if(loadConfig.getSortField() != null) {
-			String sortColumn = loadConfig.getSortField().replaceAll("_",".");
+			String sortColumn = loadConfig.getSortField().replaceFirst("_",".");
 			sortKey = getSortColumnForColumnId(sortColumn);
 		}
 
@@ -192,10 +192,9 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 		
 		List<BaseModelData> dataList = new ArrayList<BaseModelData>();
 		for(Map<String,Object> rowMap : result.getRows()) {			
-			Map<String,Object> cleanMap = new LinkedHashMap<String, Object>();						
 			BaseModelData dataPt = new BaseModelData();
 			for(String key : rowMap.keySet()) {
-				String cleanKey = key.replaceAll("\\.", "_");
+				String cleanKey = key.replaceFirst("\\.", "_");
 				Object value = rowMap.get(key); 								
 				dataPt.set(cleanKey, value);
 			}

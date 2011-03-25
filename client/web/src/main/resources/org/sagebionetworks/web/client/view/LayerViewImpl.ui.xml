@@ -8,6 +8,7 @@
 			color: #777777;
 			margin: 10px 20px 10px;
 			text-align: left;
+			width: 650px;
 		}
 		
 		.topTable {
@@ -19,19 +20,34 @@
 			width: 350px;
 		}
 		
+		.twoThirds {
+			width: 700px;
+		}
+		
 		.rowTop {
 			vertical-align: top;
 		}
 	</ui:style>
 	<g:HTMLPanel>
-		<div class="{style.title}">
-			<span ui:field="titleSpan" />
-		</div>
+		<table>
+			<tr valign="bottom">
+				<td>					
+					<div class="{style.title}">
+						<span ui:field="titleSpan" />
+					</div>
+				</td>
+				<td>					
+					<div class="{style.oneThird}" style="text-align: right;">
+						Privacy Setting: <span ui:field="securitySpan" />
+					</div>
+				</td>
+			</tr>
+		</table>
 		<hr />
 		<table class="{style.topTable}">
 			<tr class="{style.rowTop}">
 				<td>
-					<div class="{style.oneThird}">
+					<div class="{style.twoThirds}">
 						<body>
 							<h3>Overview</h3>							
 							<g:FlowPanel ui:field="overviewPanel" />							
@@ -40,13 +56,14 @@
 				</td>
 				<td>
 					<div class="{style.oneThird}">
-						<g:FlexTable ui:field="middleFlexTable" />
-					</div>
-				</td>
-				<td>
-					<div class="{style.oneThird}">
 						<g:FlexTable ui:field="rightFlexTable" />
 					</div>
+				</td>
+			</tr>
+			<tr colspan="2">
+				<td>
+					<span ui:field="downloadSpan" />
+					<span ui:field="termsOfUseSpan" />
 				</td>
 			</tr>
 		</table>

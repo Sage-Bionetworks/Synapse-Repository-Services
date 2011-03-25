@@ -1,5 +1,6 @@
 package org.sagebionetworks.web.client.view;
 
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.web.client.presenter.DatasetRow;
@@ -30,6 +31,24 @@ public interface DatasetView extends IsWidget {
 	 * @param message
 	 */
 	public void showErrorMessage(String message);
+	
+	
+//	public void setDatasetDetails(String name,
+//								  String overviewText,
+//								  String[] diseases,
+//								  String[] species,
+//								  int studySize,
+//								  String[] tissueTypes,
+//								  String referencePublicationDisplay,
+//								  String referencePublicationUrl,
+//								  int nOtherPublications,
+//								  String viewOtherPublicationsUrl,
+//								  Date postedDate,
+//								  Date curationDate,
+//								  String[] contributors,
+//								  int nFollowers,
+//								  String viewFollowersUrl,
+//								  );
 	
 	public void setDatasetRow(DatasetRow row);
 	

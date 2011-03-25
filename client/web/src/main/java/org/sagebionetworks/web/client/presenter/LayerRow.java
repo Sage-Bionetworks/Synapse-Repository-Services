@@ -20,10 +20,6 @@ public class LayerRow {
 		return wrapped.getType();
 	}
 
-	public String getCreator() {
-		return wrapped.getCreator();
-	}
-
 	public Date getCreatedOn() {
 		return wrapped.getCreationDate();
 		

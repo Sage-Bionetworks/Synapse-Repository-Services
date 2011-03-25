@@ -398,8 +398,8 @@ html,body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,form,fieldset,input,p,bloc
   position: absolute;
   z-index: 10;
   background-color: black;
-  filter: alpha(opacity =                         10);
-  opacity: .1;
+  filter: alpha(opacity =                         50);
+  opacity: .5;
   left: 0px;
   top: 0px;
 }
@@ -557,8 +557,8 @@ html,body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,form,fieldset,input,p,bloc
   position: absolute;
   z-index: 10;
   background-color: black;
-  filter: alpha(opacity =                         10);
-  opacity: .1;
+  filter: alpha(opacity =                         50);
+  opacity: .5;
   left: 0px;
   top: 0px;
 }

@@ -1,4 +1,4 @@
-package org.sagebionetworks.web.client.widget.licensebox;
+package org.sagebionetworks.web.client.widget.licenseddownloader;
 
 import com.google.gwt.user.client.rpc.AsyncCallback;
 

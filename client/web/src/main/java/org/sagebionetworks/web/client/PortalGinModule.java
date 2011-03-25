@@ -16,8 +16,10 @@ import org.sagebionetworks.web.client.view.table.ColumnFactory;
 import org.sagebionetworks.web.client.view.table.ColumnFactoryImpl;
 import org.sagebionetworks.web.client.widget.filter.QueryFilterView;
 import org.sagebionetworks.web.client.widget.filter.QueryFilterViewImpl;
-import org.sagebionetworks.web.client.widget.licensebox.LicensedDownloaderView;
-import org.sagebionetworks.web.client.widget.licensebox.LicensedDownloaderViewImpl;
+import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloaderView;
+import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloaderViewImpl;
+import org.sagebionetworks.web.client.widget.statictable.StaticTableView;
+import org.sagebionetworks.web.client.widget.statictable.StaticTableViewImpl;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableView;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableViewGxtImpl;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableViewImpl;
@@ -45,6 +47,9 @@ public class PortalGinModule extends AbstractGinModule {
 		// QueryService View
 		//bind(QueryServiceTableView.class).to(QueryServiceTableViewImpl.class);
 		bind(QueryServiceTableView.class).to(QueryServiceTableViewGxtImpl.class);
+		
+		// StaticTable
+		bind(StaticTableView.class).to(StaticTableViewImpl.class);
 		
 		// LicenseBox
 		bind(LicensedDownloaderView.class).to(LicensedDownloaderViewImpl.class);

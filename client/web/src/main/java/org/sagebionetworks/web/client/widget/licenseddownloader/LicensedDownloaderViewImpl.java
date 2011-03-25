@@ -1,4 +1,4 @@
-package org.sagebionetworks.web.client.widget.licensebox;
+package org.sagebionetworks.web.client.widget.licenseddownloader;
 
 import java.util.List;
 
@@ -180,7 +180,7 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 		panel.setLayoutData(new RowLayout(Orientation.VERTICAL));		
 		panel.setBorders(false);
 		panel.setBodyBorder(false);
-		panel.setHeaderVisible(false);
+		panel.setHeaderVisible(false);		
 		panel.setBodyStyle("backgroundColor: #e8e8e8");
 
 		Label topTxtLabel = new Label("End-User License Agreement<br/>");

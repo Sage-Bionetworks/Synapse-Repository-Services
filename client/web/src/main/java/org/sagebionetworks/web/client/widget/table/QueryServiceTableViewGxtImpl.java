@@ -19,6 +19,7 @@ import com.extjs.gxt.ui.client.data.BasePagingLoader;
 import com.extjs.gxt.ui.client.data.ModelData;
 import com.extjs.gxt.ui.client.data.PagingLoadResult;
 import com.extjs.gxt.ui.client.store.ListStore;
+import com.extjs.gxt.ui.client.util.Margins;
 import com.extjs.gxt.ui.client.widget.ContentPanel;
 import com.extjs.gxt.ui.client.widget.LayoutContainer;
 import com.extjs.gxt.ui.client.widget.MessageBox;
@@ -80,7 +81,10 @@ public class QueryServiceTableViewGxtImpl extends LayoutContainer implements Que
 	@Override
 	protected void onRender(Element parent, int index) {
 		super.onRender(parent, index);		
-		setLayout(new FlowLayout(10));
+		FlowLayout layout = new FlowLayout();
+		layout.setMargins(new Margins(10, 0, 10, 0));
+		setLayout(layout);
+
 		
 		// setup grid and components for first time
 		if(tableTitle != null) {
@@ -193,7 +197,7 @@ public class QueryServiceTableViewGxtImpl extends LayoutContainer implements Que
 				final Column<Map<String, Object>, ?> columnRenderer = columnFactory.createColumn(meta);
 				// TODO : check if column is allowed to be sortable?				
 				
-				String columnId = meta.getId().replaceAll("\\.", "_");	
+				String columnId = meta.getId().replaceFirst("\\.", "_");	
 				ColumnConfig colConfig = new ColumnConfig(columnId, meta.getDisplayName(), meta.getColumnWidth());			
 				
 				// configure cell renderer
@@ -238,7 +242,7 @@ public class QueryServiceTableViewGxtImpl extends LayoutContainer implements Que
 	private Map<String, Object> convertBackToDot(Map<String, Object> properties) {
 		Map<String, Object> dotMap = new HashMap<String, Object>();
 		for(String key : properties.keySet()) {
-			String dotKey = key.replaceAll("_", ".");
+			String dotKey = key.replaceFirst("_", ".");
 			dotMap.put(dotKey, properties.get(key));
 		}		
 		return dotMap;

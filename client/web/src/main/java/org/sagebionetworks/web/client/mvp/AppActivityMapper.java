@@ -51,6 +51,7 @@ public class AppActivityMapper implements ActivityMapper {
 		}else if (place instanceof Layer) {
 			// The layer detail view
 			LayerPresenter presenter = ginjector.getLayerPresenter();
+			presenter.setPlace((Layer)place);
 			return presenter;
 		} else {
 			// Log that we have an unknown place but send the user to the default

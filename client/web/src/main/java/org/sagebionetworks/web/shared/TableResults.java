@@ -40,5 +40,20 @@ public class TableResults implements IsSerializable {
 	public void setValues(TableValues values) {
 		this.values = values;
 	}
-
+	
+	/**
+	 * Duplicate setter to allow for "rows" to also be called "results"
+	 * @param rows
+	 */
+	public void setResults(List<Map<String, Object>> rows) {
+		this.rows = rows;
+	}
+	
+	/**
+	 * Duplicate setter to allow for "totalNumberResults" to also be called "totalNumberOfResults"
+	 * @param totalNumberResults
+	 */
+	public void setTotalNumberOfResults(int totalNumberResults) {
+		this.totalNumberResults = totalNumberResults;
+	}
 }

@@ -7,7 +7,9 @@ import java.util.logging.Logger;
 import org.sagebionetworks.web.client.DatasetService;
 import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.shared.Dataset;
+import org.sagebionetworks.web.shared.DatasetAnnotations;
 import org.sagebionetworks.web.shared.Layer;
+import org.sagebionetworks.web.shared.LayerPreview;
 import org.sagebionetworks.web.shared.PaginatedDatasets;
 import org.sagebionetworks.web.shared.TableResults;
 import org.springframework.http.HttpEntity;
@@ -47,11 +49,12 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 	
 	public static final String KEY_DATASET_ID = "idKey";
 	public static final String PATH_DATASET = "repo/v1/dataset/{"+KEY_DATASET_ID+"}";
+	public static final String PATH_DATASET_ANNOTATIONS = "repo/v1/dataset/{"+KEY_DATASET_ID+"}/annotations";
 
 	public static final String KEY_LAYER_ID = "idLayerKey";
 	public static final String PATH_LAYER = "repo/v1/dataset/{"+KEY_DATASET_ID+"}/layer/{"+ KEY_LAYER_ID +"}";
-
-	public static final String PATH_LAYER_PREVIEW_MAP = "repo/v1/dataset/{"+KEY_DATASET_ID+"}/layer/{"+ KEY_LAYER_ID +"}/previewAsMap";
+	public static final String PATH_LAYER_PREVIEW = "repo/v1/dataset/{"+KEY_DATASET_ID+"}/layer/{"+ KEY_LAYER_ID +"}/preview";
+	public static final String PATH_LAYER_PREVIEW_AS_MAP = "repo/v1/dataset/{"+KEY_DATASET_ID+"}/layer/{"+ KEY_LAYER_ID +"}/previewAsMap";
 
 	
 	private RestTemplateProvider templateProvider = null;
@@ -173,6 +176,37 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 		}
 	}
 
+
+	@Override
+	public DatasetAnnotations getDatasetAnnotations(String id) {
+		// First make sure the service is ready to go.
+		validateService();
+		// Build up the path
+		StringBuilder builder = new StringBuilder();
+		builder.append(rootUrl);
+		builder.append(PATH_DATASET_ANNOTATIONS);
+		// the values to the keys
+		Map<String, String> map = new HashMap<String, String>();
+		map.put(KEY_DATASET_ID, id);
+		String url = builder.toString();
+		logger.info("GET: " + url);
+		// Setup the header
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<String>("", headers);
+		// Make the actual call.
+		ResponseEntity<DatasetAnnotations> response = templateProvider.getTemplate().exchange(url, HttpMethod.GET, entity, DatasetAnnotations.class, map);
+
+		if (response.getStatusCode() == HttpStatus.OK) {
+			return response.getBody();
+		} else {
+			// TODO: better error handling
+			throw new UnknownError("Status code:"
+					+ response.getStatusCode().value());
+		}
+	}	
+	
+	
 	@Override
 	public Layer getLayer(String datasetId, String layerId) {
 		// First make sure the service is ready to go.
@@ -204,13 +238,43 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 	}
 
 	@Override
+	public LayerPreview getLayerPreview(String datasetId, String layerId) {
+		// First make sure the service is ready to go.
+		validateService();
+		// Build up the path
+		StringBuilder builder = new StringBuilder();
+		builder.append(rootUrl);
+		builder.append(PATH_LAYER_PREVIEW);
+		// the values to the keys
+		Map<String, String> map = new HashMap<String, String>();
+		map.put(KEY_DATASET_ID, datasetId);
+		map.put(KEY_LAYER_ID, layerId);
+		String url = builder.toString();
+		logger.info("GET: " + url);
+		// Setup the header
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<String>("", headers);
+		// Make the actual call.
+		ResponseEntity<LayerPreview> response = templateProvider.getTemplate().exchange(url, HttpMethod.GET, entity, LayerPreview.class, map);
+
+		if (response.getStatusCode() == HttpStatus.OK) {
+			return response.getBody();
+		} else {
+			// TODO: better error handling
+			throw new UnknownError("Status code:"
+					+ response.getStatusCode().value());
+		}
+	}
+
+	@Override
 	public TableResults getLayerPreviewMap(String datasetId, String layerId) {
 		// First make sure the service is ready to go.
 		validateService();
 		// Build up the path
 		StringBuilder builder = new StringBuilder();
 		builder.append(rootUrl);
-		builder.append(PATH_LAYER_PREVIEW_MAP);
+		builder.append(PATH_LAYER_PREVIEW_AS_MAP);
 		// the values to the keys
 		Map<String, String> map = new HashMap<String, String>();
 		map.put(KEY_DATASET_ID, datasetId);
@@ -232,5 +296,5 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 					+ response.getStatusCode().value());
 		}
 	}
-
+	
 }

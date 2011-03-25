@@ -45,7 +45,7 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 	
 	@Inject
 	public DatasetsHomeViewImpl(DatasetsHomeViewImplUiBinder binder, QueryFilter filter, SageImageBundle imageBundle, QueryServiceTableResourceProvider queryServiceTableResourceProvider) {		
-		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, 880, 440);
+		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, 890, 440);
 		ImageResource searchIR = imageBundle.searchButtonIcon();
 		searchButton = new PushButton(new Image(searchIR));
 		initWidget(binder.createAndBindUi(this));
