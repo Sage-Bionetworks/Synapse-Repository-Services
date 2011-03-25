@@ -22,7 +22,7 @@ import javax.jdo.annotations.Unique;
 public class JDOUser implements JDOBase {
 
 	@PrimaryKey
-	@Persistent(valueStrategy = IdGeneratorStrategy.SEQUENCE, sequence="GLOBAL_SEQ")
+	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 	
 	@Persistent

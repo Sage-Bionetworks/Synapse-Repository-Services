@@ -3,6 +3,7 @@ package org.sagebionetworks.auth;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -13,6 +14,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.authutil.User;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -144,8 +146,7 @@ public class AuthenticationControllerTest {
 	public void testCreateExistingUser() throws Exception {
 			helper.testCreateJsonEntityShouldFail("/user",
 				"{\"userId\":\"demouser\","+
-				"\"password\":\"demouser-pw\","+
-				"\"email\":\"demouser@sagebase.org\","+
+				"\"email\":\"notused@sagebase.org\","+
 				"\"firstName\":\"Demo\","+
 				"\"lastName\":\"User\","+
 				"\"displayName\":\"Demo User\""+
@@ -156,20 +157,32 @@ public class AuthenticationControllerTest {
 	
 
 	@Test
-	public void testCreateUser() throws Exception {
+	public void testCreateNewUser() throws Exception {
+		// special userId for testing -- no confirmation email is sent!
+		String userId = crowdAuthUtil.getIntegrationTestUser();
+		assertNotNull(userId);
 		try {
 			helper.testCreateJsonEntity("/user",
-				"{\"userId\":\"newuser\","+
-				"\"password\":\"newuser-pw\","+
-				"\"email\":\"newuser@sagebase.org\","+
+					"{\"userId\":\""+userId+"\","+
+					"\"email\":\"notused@sagebase.org\","+
+					 // integration testing with this special user is the only time a password may be specified
+					"\"password\":\""+userId+"\","+
 				"\"firstName\":\"New\","+
 				"\"lastName\":\"User\","+
 				"\"displayName\":\"New User\""+
 					"}");
 		} finally {
 			User user = new User();
-			user.setUserId("newuser");
-			crowdAuthUtil.deleteUser(user);
+			user.setUserId(userId);
+			try {
+				crowdAuthUtil.deleteUser(user);
+			} catch (AuthenticationException ae) {
+				if (ae.getRespStatus()==HttpStatus.NOT_FOUND.value()) {
+					// that's OK, it just means that the user never was created in the first place
+				} else {
+					throw ae;
+				}
+			}
 		}
 
 	}
@@ -177,31 +190,37 @@ public class AuthenticationControllerTest {
 
 	@Test
 	public void testCreateAndUpdateUser() throws Exception {
+		
+		// special userId for testing -- no confirmation email is sent!
+		String userId = crowdAuthUtil.getIntegrationTestUser();
+		assertNotNull(userId);
 		try {
+			
 			helper.testCreateJsonEntity("/user",
-					"{\"userId\":\"newuser\","+
-					"\"password\":\"newuser-pw\","+
-					"\"email\":\"newuser@sagebase.org\","+
+					"{\"userId\":\""+userId+"\","+
+					 // integration testing with this special user is the only time a password may be specified
+					"\"password\":\""+userId+"\","+
+					"\"email\":\"notused@sagebase.org\","+
 					"\"firstName\":\"New\","+
 					"\"lastName\":\"User\","+
 					"\"displayName\":\"New User\""+
 						"}");
 				
 			helper.testUpdateJsonEntity("/user",
-					"{\"userId\":\"newuser\","+
-					"\"password\":\"newuser-NEWpw\","+
-					"\"email\":\"NEWEMAIL@sagebase.org\","+
+					"{\"userId\":\""+userId+"\","+
+					"\"email\":\"notused@sagebase.org\","+
 					"\"firstName\":\"NewNEW\","+
 					"\"lastName\":\"UserNEW\","+
 					"\"displayName\":\"New NEW User\""+
 						"}");
 		} finally {
 			User user = new User();
-			user.setUserId("newuser");
+			user.setUserId(userId);
 			crowdAuthUtil.deleteUser(user);
 		}
 	}
 	
+	@Ignore
 	@Test
 	public void testSendResetPasswordEmail() throws Exception {
 		 helper.testCreateJsonEntity("/userPasswordEmail","{\"userId\":\"demouser\"}", HttpStatus.NO_CONTENT);

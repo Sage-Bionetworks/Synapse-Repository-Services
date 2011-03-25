@@ -25,6 +25,12 @@
       <version>0.1</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.sagebionetworks</groupId>
+      <artifactId>auth-util</artifactId>
+      <version>0.1</version>
+    </dependency>
+
     <!-- Persistence-related dependencies -->
     <dependency>
       <groupId>org.datanucleus</groupId>

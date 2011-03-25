@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -19,6 +20,7 @@ import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.sagebionetworks.authutil.AuthUtilConstants;
+import org.sagebionetworks.repo.model.Bootstrapper;
 import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +63,10 @@ public class Helpers {
 
 	@Autowired
 	private DAOFactory daoFactory;
+	
+	
+	@Autowired
+	Bootstrapper modelBootstrapper;
 
 	private HttpServlet servlet;
 	private String servletPrefix;
@@ -116,7 +122,7 @@ public class Helpers {
 	 * @throws Exception
 	 */
 	public HttpServlet setUp() throws Exception {
-
+		modelBootstrapper.bootstrap();
 		if (null != integrationTestEndpoint) {
 			isIntegrationTest = true;
 			servlet = new IntegrationTestMockServlet(integrationTestEndpoint);
@@ -131,7 +137,7 @@ public class Helpers {
 			MockServletConfig servletConfig = new MockServletConfig(
 					"repository");
 			servletConfig.addInitParameter("contextConfigLocation",
-					"classpath:test-context.xml");
+		"classpath:test-context.xml,classpath:authutil-context.xml");
 			servlet = new DispatcherServlet();
 			servlet.init(servletConfig);
 		}
@@ -210,6 +216,54 @@ public class Helpers {
 		testState.addFirst(new TestStateItem(userId, locationHeader));
 
 		return results;
+	}
+
+	/**
+	 * Creation of JSON entities, when there is no response expected
+	 * 
+	 * @param requestUrl
+	 * @param jsonRequestContent
+	 * @throws Exception
+	 */
+	public void testCreateNoResponse(String requestUrl,
+			String jsonRequestContent/*, Map<String,String> headers*/) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+//		for (String s : headers.keySet()) request.addHeader(s, headers.get(s));
+		request.setRequestURI(requestUrl);
+		if (null != userId)
+			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setContent(jsonRequestContent.getBytes("UTF-8"));
+		log.info("About to send: "
+				+ new JSONObject(jsonRequestContent).toString(2));
+		servlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		assertEquals(HttpStatus.CREATED.value(), response.getStatus());
+//		JSONObject results = new JSONObject(response.getContentAsString());
+//		log.info(results.toString(JSON_INDENT));
+//
+//		// Check default properties
+//		assertExpectedEntityProperties(results);
+//
+//		// Check our response headers
+//		String etagHeader = (String) response
+//				.getHeader(ServiceConstants.ETAG_HEADER);
+//		assertNotNull(etagHeader);
+//		assertEquals(etagHeader, results.getString("etag"));
+//		String locationHeader = (String) response
+//				.getHeader(ServiceConstants.LOCATION_HEADER);
+//		assertTrue(locationHeader.endsWith(requestUrl + "/"
+//				+ URLEncoder.encode(results.getString("id"), "UTF-8")));
+//		assertTrue(locationHeader.endsWith(results.getString("uri")));
+//
+//		// Stash the url for this entity so that we can clean it up at the end
+//		// of our test
+//		testState.addFirst(new TestStateItem(userId, locationHeader));
+//
+//		return results;
 	}
 
 	/**

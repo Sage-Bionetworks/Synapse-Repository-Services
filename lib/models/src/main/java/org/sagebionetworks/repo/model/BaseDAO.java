@@ -101,28 +101,28 @@ public interface BaseDAO<T> {
 	 *         beyond index 'end', having the given value for the given field
 	 */
 	public List<T> getInRangeHavingPrimaryField(int start, int end,
-			String attribute, Object value) throws DatastoreException;
+			String attribute, Object value) throws NotFoundException, DatastoreException;
 	
 	// TODO need a clean way to convey Public access
 	/**
 	 * Use case:  Need to find out who has authority to add a new user to a group.
-	 * Here the 'id' refers to the group and 'accessType' = 'change'.  The method
+	 * Here the 'resource' refers to the group and 'accessType' = 'change'.  The method
 	 * would return the administrative group who can modify the group of interest.
 	 * 
-	 * @param id the resource of interest
+	 * @param resource the resource of interest
 	 * @param accessType a type of access to the object
 	 * @return those user groups that have the specified type of access to the given object
 	 */
-	public Collection<UserGroup> whoHasAccess(String id, String accessType) throws NotFoundException, DatastoreException ;
+	public Collection<UserGroup> whoHasAccess(T resource, String accessType) throws NotFoundException, DatastoreException ;
 	
 	/**
 	 * Use case:  Need to find out if a user can download a resource.
 	 * 
-	 * @param id the id of the resource of interest
+	 * @param resource the resource of interest
 	 * @param user
 	 * @param accessType
 	 * @return
 	 */
-	public boolean hasAccess(String id, String accessType) throws NotFoundException, DatastoreException ;
+	public boolean hasAccess(T resource, String accessType) throws NotFoundException, DatastoreException ;
 
 }

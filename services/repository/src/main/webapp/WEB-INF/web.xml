@@ -43,6 +43,11 @@
     <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
   </listener>
   
+  <!-- This listener will ensure that the persistence layer is initialized. -->
+  <listener>     
+  	<listener-class>org.sagebionetworks.repo.web.PersistenceInitializer</listener-class> 
+  </listener> 
+  
   <!-- Some browsers do not support PUT and DELETE methods, this filter will examine the form field parameter _method -->
   <filter>
     <filter-name>httpMethodFilter</filter-name>

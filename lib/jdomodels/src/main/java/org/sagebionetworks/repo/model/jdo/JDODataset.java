@@ -23,7 +23,7 @@ import javax.jdo.annotations.PrimaryKey;
 public class JDODataset implements JDOBase,
 		JDORevisable<JDODataset>, JDOAnnotatable {
 	@PrimaryKey
-	@Persistent(valueStrategy = IdGeneratorStrategy.SEQUENCE, sequence="GLOBAL_SEQ")
+	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 
 	// this is a reference to the version info object

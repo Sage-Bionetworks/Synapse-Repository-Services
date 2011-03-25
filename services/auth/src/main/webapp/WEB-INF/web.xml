@@ -13,11 +13,11 @@
     <param-name>contextConfigLocation</param-name>
     <param-value>
       /WEB-INF/authentication-context.xml,
-      authutil-context.xml
+      classpath:authutil-context.xml
     </param-value>
   </context-param>
   
-  <!-- This listener will load other application context file in addition to springweb-servlet.xml -->
+    <!-- This listener will load other application context file in addition to springweb-servlet.xml -->
   <listener>
     <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
   </listener>

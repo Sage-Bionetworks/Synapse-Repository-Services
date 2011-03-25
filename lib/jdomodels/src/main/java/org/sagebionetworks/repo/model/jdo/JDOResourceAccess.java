@@ -10,14 +10,17 @@ import javax.jdo.annotations.PrimaryKey;
 @PersistenceCapable(detachable = "false")
 public class JDOResourceAccess {
 	@PrimaryKey
-	@Persistent(valueStrategy = IdGeneratorStrategy.SEQUENCE, sequence="GLOBAL_SEQ")
+	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 	
 	@Persistent
 	private JDOUserGroup owner;
 	
 	@Persistent
-	private Long resource;
+	private String resourceType;
+	
+	@Persistent
+	private Long resourceId;
 		
 	// e.g. read, change, share
 	@Persistent
@@ -39,12 +42,20 @@ public class JDOResourceAccess {
 		this.owner = owner;
 	}
 
-	public Long getResource() {
-		return resource;
+	public String getResourceType() {
+		return resourceType;
 	}
 
-	public void setResource(Long resource) {
-		this.resource = resource;
+	public void setResourceType(String resourceType) {
+		this.resourceType = resourceType;
+	}
+
+	public Long getResourceId() {
+		return resourceId;
+	}
+
+	public void setResourceId(Long resourceId) {
+		this.resourceId = resourceId;
 	}
 
 	public String getAccessType() {

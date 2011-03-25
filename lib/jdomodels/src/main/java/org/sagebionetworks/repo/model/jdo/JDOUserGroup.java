@@ -5,16 +5,15 @@ import java.util.Set;
 
 import javax.jdo.annotations.Element;
 import javax.jdo.annotations.IdGeneratorStrategy;
+import javax.jdo.annotations.Join;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
-
-
 @PersistenceCapable(detachable = "false")
 public class JDOUserGroup implements JDOBase {
 	@PrimaryKey
-	@Persistent(valueStrategy = IdGeneratorStrategy.SEQUENCE, sequence="GLOBAL_SEQ")
+	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 	
 	@Persistent
@@ -23,11 +22,11 @@ public class JDOUserGroup implements JDOBase {
 	@Persistent
 	private Date creationDate;
 
-	@Persistent
+	@Persistent(serialized="false")
+	@Join
 	private Set<Long> users;
-	
 
-    @Persistent(mappedBy = "owner")
+    @Persistent(mappedBy = "owner", serialized="false")
 	@Element(dependent = "true")
 	private Set<JDOResourceAccess> resourceAccess;
 	

@@ -1,5 +1,11 @@
 package org.sagebionetworks.auth;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Properties;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,11 +32,23 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class AuthenticationController {
 	private static final Logger log = Logger.getLogger(AuthenticationController.class
 			.getName());
+	
+	private String repositoryServicesURL;
+	
+
 
 	@Autowired
 	private CrowdAuthUtil crowdAuthUtil = null;
 	
 	public AuthenticationController() {
+        Properties props = new Properties();
+        URL url = ClassLoader.getSystemResource("mirrorservice.properties");
+        try {
+        	props.load(url.openStream());
+        } catch (IOException e) {
+        	throw new RuntimeException(e);
+        }
+        repositoryServicesURL = props.getProperty("repositoryServicesURL");
 	}
 
 	@ResponseStatus(HttpStatus.CREATED)
@@ -60,19 +78,77 @@ public class AuthenticationController {
 			crowdAuthUtil.deauthenticate(session.getSessionToken());
 	}
 	
+	private Random rand = new Random();
+	
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/user", method = RequestMethod.POST)
 	public void createUser(@RequestBody User user) throws Exception {
-			crowdAuthUtil.createUser(user);
+		String itu = crowdAuthUtil.getIntegrationTestUser();
+		boolean isITU = (itu!=null && user.getUserId().equals(itu));
+		if (!isITU) {
+			user.setPassword(""+rand.nextLong());
+		}
+		crowdAuthUtil.createUser(user);
+		if (!isITU) {
+			crowdAuthUtil.sendResetPWEmail(user);
+		}
+		mirrorToPersistenceLayer();
+	}
+	
+	// call repo' services to perform mirror
+	private void mirrorToPersistenceLayer() throws Exception {
+		// log-in as admin and get session token
+		User adminCredentials = new User();
+		adminCredentials.setUserId(AuthUtilConstants.ADMIN_USER_ID);
+		adminCredentials.setPassword(AuthUtilConstants.ADMIN_PW);
+		Session adminSession = crowdAuthUtil.authenticate(adminCredentials);
+		// execute mirror 
+		byte[] sessionXML = null;
+		int rc = 0;
+		{
+			URL url = new URL(repositoryServicesURL+"/session?validate-password=true");
+			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+			conn.setRequestMethod("POST");
+			conn.setRequestProperty("Accept", "application/json");
+			conn.setRequestProperty("Content-Type", "application/json");
+			conn.setRequestProperty("sessionToken", adminSession.getSessionToken());
+			CrowdAuthUtil.setBody(conn, "{}\n");
+			try {
+				rc = conn.getResponseCode();
+				sessionXML = (CrowdAuthUtil.readInputStream((InputStream)conn.getContent())).getBytes();
+			} catch (IOException e) {
+				sessionXML = (CrowdAuthUtil.readInputStream((InputStream)conn.getErrorStream())).getBytes();
+				throw new Exception(new String(sessionXML));
+			}
+			if (rc!=HttpStatus.CREATED.value()) throw new Exception("Failed to mirror users.  status="+rc);
+		}
+		// log-out
+		crowdAuthUtil.deauthenticate(adminSession.getSessionToken());
+	}
+	
+	// for integration testing
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = "/user", method = RequestMethod.DELETE)
+	public void deleteUser(@RequestBody User user) throws Exception {
+		String itu = crowdAuthUtil.getIntegrationTestUser();
+		boolean isITU = (itu!=null && user.getUserId().equals(itu));
+		if (!isITU) throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not allowed outside of integration testing.", null);
+		crowdAuthUtil.deleteUser(user);
+		mirrorToPersistenceLayer();
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/user", method = RequestMethod.PUT)
 	public void updateUser(@RequestBody User user,
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-			if (userId==null || !userId.equals(user.getUserId())) 
-				throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
-			crowdAuthUtil.updateUser(user);
+		String itu = crowdAuthUtil.getIntegrationTestUser();
+		boolean isITU = (itu!=null && user.getUserId().equals(itu));
+		if (!isITU) {
+			user.setPassword(null);
+		}
+		if (!isITU && (userId==null || !userId.equals(user.getUserId()))) 
+			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
+		crowdAuthUtil.updateUser(user);
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)

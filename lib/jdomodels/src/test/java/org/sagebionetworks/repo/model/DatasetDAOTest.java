@@ -22,6 +22,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.jdo.JDOBootstrapperImpl;
 import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
 import org.sagebionetworks.repo.model.jdo.JDODataset;
 import org.sagebionetworks.repo.model.jdo.JDOInputDataLayer;
@@ -53,6 +54,7 @@ public class DatasetDAOTest {
 	@Before
 	public void setUp() throws Exception {
 		fac = new JDODAOFactoryImpl();
+		(new JDOBootstrapperImpl()).bootstrap(); // creat admin user, public group, etc.
 	}
 
 	@After

@@ -21,16 +21,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class UserSynchronization {
 	
-	private static final Logger log = Logger.getLogger(BaseController.class
-			.getName());
+	private static final Logger log = Logger.getLogger(UserSynchronization.class.getName());
 
-	@Autowired
 	private CrowdAuthUtil crowdAuthUtil = null;
 	
 	private UserDAO userDAO = null;
 	
-	public UserSynchronization(UserDAO userDAO) {
+	public UserSynchronization(UserDAO userDAO, CrowdAuthUtil crowdAuthUtil) {
 		this.userDAO=userDAO;
+		this.crowdAuthUtil=crowdAuthUtil;
 	}
 	
 
@@ -47,8 +46,10 @@ public class UserSynchronization {
 
 
 		Collection<String> crowdUserIds = crowdAuthUtil.getUsersInGroup(AuthUtilConstants.PLATFORM_GROUP);
+		log.info("Crowd users: "+crowdUserIds);
  
 		Collection<User> users = userDAO.getInRange(0, Integer.MAX_VALUE);
+		log.info("JDO Users: "+users);
 		Map<String,User> idToUserMap = new HashMap<String,User>();
 		for (User user : users) {
 			String userId = user.getUserId();
@@ -59,6 +60,7 @@ public class UserSynchronization {
 		for (String crowdUserId : crowdUserIds) {
 			if (!idToUserMap.containsKey(crowdUserId)) {
 				// then we need to make the new user in the persistence layer
+				log.info("Adding "+crowdUserId+" to JDO");
 				User user = new User();
 				user.setUserId(crowdUserId);
 				user.setCreationDate(new Date());
@@ -69,6 +71,7 @@ public class UserSynchronization {
 		for (String userId : idToUserMap.keySet()) {
 			if (!crowdUserIds.contains(userId)) {
 				// then we need to remove it from the persistence layer
+				log.info("Deleting "+userId+" from JDO");
 				userDAO.delete(idToUserMap.get(userId).getId());
 			}
 		}
