@@ -10,6 +10,9 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.LayerLocations;
 import org.sagebionetworks.repo.model.LayerLocationsDAO;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOInputDataLayer;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOLayerLocation;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOLayerLocations;
 
 
 

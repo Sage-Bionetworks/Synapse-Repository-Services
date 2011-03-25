@@ -4,6 +4,8 @@ import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
 
+import org.sagebionetworks.repo.model.jdo.persistence.JDOProject;
+
 
 
 /**

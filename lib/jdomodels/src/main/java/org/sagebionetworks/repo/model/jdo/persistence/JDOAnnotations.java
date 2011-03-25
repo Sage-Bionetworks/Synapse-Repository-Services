@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.jdo;
+package org.sagebionetworks.repo.model.jdo.persistence;
 
 import java.util.Date;
 import java.util.HashSet;
@@ -10,6 +10,8 @@ import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
+
+import org.sagebionetworks.repo.model.jdo.JDOAnnotation;
 
 /**
  * Note: equals and hashcode are based only on the id field.

@@ -27,14 +27,17 @@ import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.query.BasicQuery;
+import org.sagebionetworks.repo.model.query.ObjectType;
+import org.sagebionetworks.repo.model.query.QueryDAO;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.util.SchemaHelper;
 import org.sagebionetworks.repo.web.AnnotatableEntitiesAccessorImpl;
 import org.sagebionetworks.repo.web.EntitiesAccessor;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.QueryStatement;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.query.QueryStatement;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -54,6 +57,8 @@ public class QueryController extends BaseController {
 			.getName());
 
 	private DatasetDAO dao;
+
+	private QueryDAO queryDao;
 
 	// Use a static instance of this per
 	// http://wiki.fasterxml.com/JacksonBestPracticesPerformance
@@ -78,6 +83,8 @@ public class QueryController extends BaseController {
 	private void checkAuthorization(String userId) {
 		BaseDAO<Dataset> dao = getDaoFactory().getDatasetDAO(userId);
 		setDao(dao);
+		QueryDAO queryDao = getDaoFactory().getQueryDao();
+		setQueryDao(queryDao);
 	}
 
 	/**
@@ -85,6 +92,10 @@ public class QueryController extends BaseController {
 	 */
 	public void setDao(BaseDAO<Dataset> dao) {
 		this.dao = (DatasetDAO) dao;
+	}
+	
+	public void setQueryDao(QueryDAO dao){
+		this.queryDao = dao;
 	}
 
 	/**
@@ -119,22 +130,35 @@ public class QueryController extends BaseController {
 					"Something is really messed up if we don't support UTF-8",
 					e);
 		}
+		// Convert from a query statement to a basic query
+		BasicQuery basic = new BasicQuery();
+		basic.setFrom(ObjectType.valueOf(stmt.getTableName()));
+		basic.setSort(stmt.getSortField());
+		basic.setAscending(stmt.getSortAcending());
+		basic.setLimit(stmt.getLimit());
+		basic.setOffset(stmt.getOffset()-1);
+		basic.setFilters(stmt.getSearchCondition());
+		
+		QueryResults results = queryDao.executeQuery(basic);
+		results.setResults(formulateResult(stmt, results.getResults()));
+		return results;
+		
 
-		if (stmt.getTableName().equals("dataset")) {
-			return performDatasetQuery(stmt);
-		} else if (stmt.getTableName().equals("layer")) {
-			if (null == stmt.getWhereTable()
-					|| null == stmt.getWhereField()
-					|| !(stmt.getWhereTable().equals("dataset") && stmt
-							.getWhereField().equals("id"))) {
-				throw new ParseException(
-						"Layer queries must include a 'WHERE dataset.id == <the id>' clause");
-			}
-			return performLayerQuery(stmt);
-		} else {
-			throw new ParseException(
-					"Queries are only supported for datasets and layers at this time");
-		}
+//		if (stmt.getTableName().equals("dataset")) {
+//			return performDatasetQuery(stmt);
+//		} else if (stmt.getTableName().equals("layer")) {
+////			if (null == stmt.getWhereTable()
+////					|| null == stmt.getWhereField()
+////					|| !(stmt.getWhereTable().equals("dataset") && stmt
+////							.getWhereField().equals("id"))) {
+////				throw new ParseException(
+////						"Layer queries must include a 'WHERE dataset.id == <the id>' clause");
+////			}
+//			return performLayerQuery(stmt);
+//		} else {
+//			throw new ParseException(
+//					"Queries are only supported for datasets and layers at this time");
+//		}
 	}
 
 	/**
@@ -154,6 +178,9 @@ public class QueryController extends BaseController {
 
 		EntitiesAccessor<Dataset> accessor = new AnnotatableEntitiesAccessorImpl<Dataset>();
 		accessor.setDao(dao);
+		
+		// The first step is to translate the input query
+		
 
 		/**
 		 * Perform the query
@@ -252,6 +279,20 @@ public class QueryController extends BaseController {
 
 		return new QueryResults(results, totalNumberOfResults);
 	}
+	
+	/**
+	 * Process all of the results.
+	 * @param stmt
+	 * @param rows
+	 * @return
+	 */
+	private List<Map<String, Object>> formulateResult(QueryStatement stmt, List<Map<String, Object>> rows) {
+		List<Map<String, Object>> results = new ArrayList<Map<String,Object>>();
+		for(Map<String, Object> row: rows){
+			results.add(formulateResult(stmt, row));
+		}
+		return results;
+	}
 
 	private Map<String, Object> formulateResult(QueryStatement stmt,
 			Map<String, Object> fields) {
@@ -269,4 +310,5 @@ public class QueryController extends BaseController {
 		}
 		return result;
 	}
+	
 }

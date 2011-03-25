@@ -8,6 +8,8 @@ import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 
 import org.sagebionetworks.repo.model.Base;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotations;
+import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
 
 
 

@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.jdo;
+package org.sagebionetworks.repo.model.jdo.persistence;
 
 import java.net.URL;
 import java.util.Date;

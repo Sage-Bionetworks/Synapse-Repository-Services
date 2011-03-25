@@ -3,6 +3,7 @@
  */
 package org.sagebionetworks.repo.queryparser;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -13,7 +14,10 @@ import java.util.logging.Logger;
 
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.web.QueryStatement;
+import org.sagebionetworks.repo.model.query.Compartor;
+import org.sagebionetworks.repo.model.query.Expression;
+import org.sagebionetworks.repo.model.query.Operator;
+import org.sagebionetworks.repo.web.query.QueryStatement;
 
 /**
  * @author deflaux
@@ -47,9 +51,12 @@ public class QueryParserTest {
 		QueryStatement stmt = new QueryStatement(
 				"select * from layer where type == \"C\"");
 		assertEquals("layer", stmt.getTableName());
-		assertNull(stmt.getWhereTable());
-		assertEquals("type", stmt.getWhereField());
-		assertEquals("C", stmt.getWhereValue());
+		assertNotNull(stmt.getSearchCondition());
+		assertEquals(1, stmt.getSearchCondition().size());
+		assertTrue(stmt.getSearchCondition().get(0) instanceof Expression);
+		Expression expression = (Expression) stmt.getSearchCondition().get(0);
+		assertEquals("type", expression.getId().getFieldName());
+		assertEquals("C", expression.getValue());
 	}
 
 	/**
@@ -61,11 +68,37 @@ public class QueryParserTest {
 		QueryStatement stmt = new QueryStatement(
 				"select * from dataset where \"Number of Samples\" == 100");
 		assertEquals("dataset", stmt.getTableName());
-		assertNull(stmt.getWhereTable());
-		assertEquals("Number of Samples", stmt.getWhereField());
-		assertEquals(new Long(100), stmt.getWhereValue());
+		assertNotNull(stmt.getSearchCondition());
+		assertEquals(1, stmt.getSearchCondition().size());
+		assertTrue(stmt.getSearchCondition().get(0) instanceof Expression);
+		Expression expression = (Expression) stmt.getSearchCondition().get(0);
+		assertEquals("Number of Samples", expression.getId().getFieldName());
+		assertEquals(new Long(100), expression.getValue());
 	}
 
+	@Test
+	public void testMultipleWhere() throws Exception {
+		QueryStatement stmt = new QueryStatement(
+				"select * from dataset where dataset.Species == \"Human\" and dataset.Disease == \"Cancer\"");
+		assertEquals("dataset", stmt.getTableName());
+		assertNotNull(stmt.getSearchCondition());
+		assertEquals(2, stmt.getSearchCondition().size());
+		// The results should be in postfix form
+		// Next should be an expression.
+		Expression expression = stmt.getSearchCondition().get(1);
+		assertEquals("dataset", expression.getId().getTableName());
+		assertEquals("Disease", expression.getId().getFieldName());
+		assertEquals(Compartor.EQUALS, expression.getCompare());
+		assertEquals("Cancer", expression.getValue());
+		
+		// Next should be an expression.
+		expression = stmt.getSearchCondition().get(0);
+		assertEquals("dataset", expression.getId().getTableName());
+		assertEquals("Species", expression.getId().getFieldName());
+		assertEquals(Compartor.EQUALS, expression.getCompare());
+		assertEquals("Human", expression.getValue());
+		
+	}
 	/**
 	 * @throws Exception
 	 */
@@ -75,9 +108,13 @@ public class QueryParserTest {
 		QueryStatement stmt = new QueryStatement(
 				"select * from dataset where dataset.\"Number of Samples\" == 100");
 		assertEquals("dataset", stmt.getTableName());
-		assertEquals("dataset", stmt.getWhereTable());
-		assertEquals("Number of Samples", stmt.getWhereField());
-		assertEquals(new Long(100), stmt.getWhereValue());
+		assertNotNull(stmt.getSearchCondition());
+		assertEquals(1, stmt.getSearchCondition().size());
+		assertTrue(stmt.getSearchCondition().get(0) instanceof Expression);
+		Expression expression = (Expression) stmt.getSearchCondition().get(0);
+		assertEquals("dataset", expression.getId().getTableName());
+		assertEquals("Number of Samples", expression.getId().getFieldName());
+		assertEquals(new Long(100), expression.getValue());
 	}
 	
 	/**
@@ -89,9 +126,12 @@ public class QueryParserTest {
 		QueryStatement stmt = new QueryStatement(
 				"select * from layer where creationDate == \"2011-01-31\"");
 		assertEquals("layer", stmt.getTableName());
-		assertNull(stmt.getWhereTable());
-		assertEquals("creationDate", stmt.getWhereField());
-		assertEquals("2011-01-31", stmt.getWhereValue());
+		assertNotNull(stmt.getSearchCondition());
+		assertEquals(1, stmt.getSearchCondition().size());
+		assertTrue(stmt.getSearchCondition().get(0) instanceof Expression);
+		Expression expression = (Expression) stmt.getSearchCondition().get(0);
+		assertEquals("creationDate", expression.getId().getFieldName());
+		assertEquals("2011-01-31", expression.getValue());
 	}
 
 	/**
@@ -182,9 +222,13 @@ public class QueryParserTest {
 		QueryStatement stmt = new QueryStatement(
 				"select * from layer where dataset.id == \"123\"");
 		assertEquals("layer", stmt.getTableName());
-		assertEquals("dataset", stmt.getWhereTable());
-		assertEquals("id", stmt.getWhereField());
-		assertEquals("123", stmt.getWhereValue());
+		assertNotNull(stmt.getSearchCondition());
+		assertEquals(1, stmt.getSearchCondition().size());
+		assertTrue(stmt.getSearchCondition().get(0) instanceof Expression);
+		Expression expression = (Expression) stmt.getSearchCondition().get(0);
+		assertEquals("dataset", expression.getId().getTableName());
+		assertEquals("id", expression.getId().getFieldName());
+		assertEquals("123", expression.getValue());
 	}
 
 	/************************************************************************

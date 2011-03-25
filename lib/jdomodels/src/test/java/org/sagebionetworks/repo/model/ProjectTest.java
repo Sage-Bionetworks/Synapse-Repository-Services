@@ -13,7 +13,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
-import org.sagebionetworks.repo.model.jdo.JDOProject;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOProject;
 
 
 

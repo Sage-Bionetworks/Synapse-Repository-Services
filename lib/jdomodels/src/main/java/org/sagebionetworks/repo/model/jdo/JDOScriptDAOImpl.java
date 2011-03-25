@@ -5,6 +5,7 @@ import javax.jdo.Query;
 import javax.jdo.Transaction;
 
 import org.sagebionetworks.repo.model.ScriptDAO;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOScript;
 
 
 

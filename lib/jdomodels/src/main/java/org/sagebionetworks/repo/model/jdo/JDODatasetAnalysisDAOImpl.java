@@ -7,6 +7,7 @@ import javax.jdo.Query;
 import javax.jdo.Transaction;
 
 import org.sagebionetworks.repo.model.DatasetAnalysisDAO;
+import org.sagebionetworks.repo.model.jdo.persistence.JDODatasetAnalysis;
 
 
 

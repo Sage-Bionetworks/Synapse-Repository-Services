@@ -10,6 +10,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Revisable;
 import org.sagebionetworks.repo.model.RevisableDAO;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotations;
+import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
+import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 

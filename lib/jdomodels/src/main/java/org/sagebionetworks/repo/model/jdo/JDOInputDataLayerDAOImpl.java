@@ -16,6 +16,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotations;
+import org.sagebionetworks.repo.model.jdo.persistence.JDODataset;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOInputDataLayer;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOLayerLocations;
+import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public class JDOInputDataLayerDAOImpl extends
