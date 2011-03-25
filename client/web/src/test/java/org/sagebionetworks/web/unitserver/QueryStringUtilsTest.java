@@ -4,6 +4,8 @@ import static org.junit.Assert.*;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.web.server.servlet.QueryStringUtils;
@@ -100,7 +102,9 @@ public class QueryStringUtilsTest {
 		params.setAscending(true);
 		params.setSort("sortKey");
 		WhereCondition where = new WhereCondition("someId", WhereOperator.EQUALS, "123");
-		params.setWhere(where);
+		List<WhereCondition> list = new ArrayList<WhereCondition>();
+		list.add(where);
+		params.setWhere(list);
 		// Now create the query string for this object
 		URI uri = QueryStringUtils.writeQueryUri(ROOT_URL, params);
 		assertNotNull(uri);
@@ -109,8 +113,38 @@ public class QueryStringUtilsTest {
 		SearchParameters copy = QueryStringUtils.parseQueryString(uri.toString());
 		assertNotNull(copy);
 		assertNotNull(copy.getWhere());
+		assertEquals(1, copy.getWhere().size());
 		// The offset should have been changed to 1
-		assertEquals(where, copy.getWhere());
+		assertEquals(where, copy.getWhere().get(0));
+	}
+	
+	@Test
+	public void testRoundTripWhereMultiple() throws URISyntaxException{
+		// Create a simple query
+		SearchParameters params = new SearchParameters();
+		params.setLimit(100);
+		params.setOffset(0);
+		params.setFromType(ObjectType.dataset.name());
+		params.setAscending(true);
+		params.setSort("sortKey");
+		WhereCondition whereOne = new WhereCondition("someId", WhereOperator.EQUALS, "123");
+		WhereCondition wheretwo = new WhereCondition("someOtherId", WhereOperator.GREATER_THAN, "123");
+		List<WhereCondition> list = new ArrayList<WhereCondition>();
+		list.add(whereOne);
+		list.add(wheretwo);
+		params.setWhere(list);
+		// Now create the query string for this object
+		URI uri = QueryStringUtils.writeQueryUri(ROOT_URL, params);
+		assertNotNull(uri);
+		System.out.println(uri);
+		// Now make a copy from the string
+		SearchParameters copy = QueryStringUtils.parseQueryString(uri.toString());
+		assertNotNull(copy);
+		assertNotNull(copy.getWhere());
+		assertEquals(2, copy.getWhere().size());
+		// Check both
+		assertEquals(whereOne, copy.getWhere().get(0));
+		assertEquals(wheretwo, copy.getWhere().get(1));
 	}
 
 

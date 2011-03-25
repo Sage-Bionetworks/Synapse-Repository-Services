@@ -142,12 +142,14 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 	 * @param where
 	 * @param rows
 	 */
-	private void addWhereClauseToResults(WhereCondition where,	List<Map<String, Object>> rows) {
+	private void addWhereClauseToResults(List<WhereCondition>  list,	List<Map<String, Object>> rows) {
 		// Nothing to do if the where clause is null
-		if(where != null && rows != null){
+		if(list != null && rows != null){
 			for(Map<String, Object> row: rows){
-				if(!row.containsKey(where.getId())){
-					row.put(where.getId(), where.getValue());
+				for(WhereCondition where: list){
+					if(!row.containsKey(where.getId())){
+						row.put(where.getId(), where.getValue());
+					}
 				}
 			}
 		}

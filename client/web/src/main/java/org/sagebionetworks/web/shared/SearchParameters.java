@@ -1,5 +1,6 @@
 package org.sagebionetworks.web.shared;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
@@ -24,11 +25,11 @@ public class SearchParameters implements IsSerializable{
 	 * Currently the query service only supports one of these.
 	 * In the future we support multiples with 'and' and 'or'
 	 */
-	private WhereCondition where;
+	private List<WhereCondition> where;
 	
 	public SearchParameters(){
 	}
-	public SearchParameters(List<String> selectColumns, String fromType, WhereCondition where, int offset, int limit,
+	public SearchParameters(List<String> selectColumns, String fromType, List<WhereCondition>  where, int offset, int limit,
 			String sort, boolean ascending) {
 		super();
 		this.fromType = ObjectType.valueOf(fromType);
@@ -88,11 +89,17 @@ public class SearchParameters implements IsSerializable{
 		this.fromType = ObjectType.valueOf(fromType);
 	}
 	
-	public WhereCondition getWhere() {
+	public List<WhereCondition>  getWhere() {
 		return where;
 	}
-	public void setWhere(WhereCondition where) {
+	public void setWhere(List<WhereCondition>  where) {
 		this.where = where;
+	}
+	public void addWhere(WhereCondition toAdd){
+		if(this.where == null){
+			this.where = new ArrayList<WhereCondition>();
+		}
+		this.where.add(toAdd);
 	}
 	@Override
 	public int hashCode() {

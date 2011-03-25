@@ -72,7 +72,7 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 				if(newConditions.size() < 1){
 					queryServiceTable.setWhereCondition(null);
 				}else{
-					queryServiceTable.setWhereCondition(newConditions.get(0));
+					queryServiceTable.setWhereCondition(newConditions);
 				}
 			}
 		});

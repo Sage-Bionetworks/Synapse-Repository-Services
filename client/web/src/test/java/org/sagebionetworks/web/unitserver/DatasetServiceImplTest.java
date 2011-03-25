@@ -201,7 +201,7 @@ public class DatasetServiceImplTest {
 		datasets = results.getResults();
 		assertNotNull(datasets);
 		// There should only be two items the last page.
-		assertEquals(2, datasets.size());
+		assertEquals(3, datasets.size());
 	}
 	
 	public void testGetDataset(){

@@ -1,5 +1,7 @@
 package org.sagebionetworks.web.shared;
 
+import java.util.List;
+
 import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
 
 import com.google.gwt.user.client.rpc.IsSerializable;
@@ -106,6 +108,18 @@ public class WhereCondition implements IsSerializable{
 		builder.append("\"");
 		builder.append(value);
 		builder.append("\"");
+		return builder.toString();
+	}
+	
+	public static String toSql(List<WhereCondition> list, String whiteSpace){
+		if(list == null) throw new IllegalStateException("List cannot be null");
+		StringBuilder builder = new StringBuilder();
+		for(int i=0; i<list.size(); i++){
+			if(i != 0){
+				builder.append(" and ");
+			}
+			builder.append(list.get(i).toSql(whiteSpace));
+		}
 		return builder.toString();
 	}
 	

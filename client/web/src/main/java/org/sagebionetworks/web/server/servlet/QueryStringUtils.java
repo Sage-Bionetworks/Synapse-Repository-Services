@@ -36,6 +36,7 @@ public class QueryStringUtils {
 	public static final String OFFSET = "offset";
 	public static final String ASCENDING = "ASC";
 	public static final String DESCENDING = "DESC";
+	public static final String AND = "and";
 	public static final String ORDER = "order";
 	public static final String BY = "by";
 	public static final String STAR = "*";
@@ -70,7 +71,7 @@ public class QueryStringUtils {
 			builder.append(WHITE_SPACE);
 			builder.append(WHERE);
 			builder.append(WHITE_SPACE);
-			appendBracketedKeyAndBindValue(builder, KEY_WHERE, map, params.getWhere().toSql(WHITE_SPACE));
+			appendBracketedKeyAndBindValue(builder, KEY_WHERE, map, WhereCondition.toSql(params.getWhere(), WHITE_SPACE));
 		}
 		// Do we have a sort string?
 		if(params.getSort() != null){
@@ -127,6 +128,8 @@ public class QueryStringUtils {
 	public static SearchParameters parseQueryString(String queryString) {
 		SearchParameters params = new SearchParameters();
 		queryString = queryString.replaceAll("%22", "");
+		queryString = queryString.replaceAll("%20", " ");
+		queryString = queryString.replaceAll("%3E", ">");
 		queryString = queryString.replaceAll("\\+", " ");
 		queryString = queryString.replaceAll("\"", "");
 		StringTokenizer tokenizer = new StringTokenizer(queryString, " ");
@@ -155,11 +158,11 @@ public class QueryStringUtils {
 					params.setAscending(false);
 				}
 				continue;
-			}else if(WHERE.equals(tokenLower)){
+			}else if(WHERE.equals(tokenLower) || AND.equals(tokenLower) ){
 				String id = tokenizer.nextToken();
 				WhereOperator opperator = WhereOperator.fromSql(tokenizer.nextToken());
 				String value = tokenizer.nextToken();
-				params.setWhere(new WhereCondition(id, opperator, value));
+				params.addWhere(new WhereCondition(id, opperator, value));
 			}
 		}
 		// Done

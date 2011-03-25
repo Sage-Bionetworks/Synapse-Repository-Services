@@ -90,7 +90,7 @@ public interface QueryServiceTableView extends IsWidget {
 		 * Set the where condition.  This will trigger a refresh.
 		 * @param where
 		 */
-		public void setWhereCondition(WhereCondition where);
+		public void setWhereCondition(List<WhereCondition> where);
 		
 		/**
 		 * Change the page.

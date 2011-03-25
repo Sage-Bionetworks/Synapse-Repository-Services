@@ -43,10 +43,10 @@ public class LocalDatasetServiceStubTest {
 		subList = ListUtils.getSubList(45, 10, stub.getAllForTests());
 		assertNotNull(subList);
 		// There should be 10 datasets in the list
-		assertEquals(5, subList.size());
+		assertEquals(6, subList.size());
 		
 		// Request past the limit
-		subList = ListUtils.getSubList(50, 10, stub.getAllForTests());
+		subList = ListUtils.getSubList(51, 10, stub.getAllForTests());
 		assertNotNull(subList);
 		// There should be 10 datasets in the list
 		assertEquals(0, subList.size());

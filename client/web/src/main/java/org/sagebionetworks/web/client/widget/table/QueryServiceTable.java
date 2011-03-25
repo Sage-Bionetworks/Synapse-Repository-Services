@@ -51,7 +51,7 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 	private List<HeaderData> currentColumns = null;
 	private ObjectType type;
 	private List<String> visibleColumnIds;
-	private WhereCondition where;
+	private List<WhereCondition> where;
 	private BasePagingLoader<PagingLoadResult<ModelData>> loader;
 	private ListStore<BaseModelData> store;	
 	private PagingLoadResult<BaseModelData> loadResultData;
@@ -174,7 +174,7 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 		throw new IllegalArgumentException("Cannot find HeaderData for column id: "+sortColumn);
 	}
 
-	public WhereCondition getWhere() {
+	public List<WhereCondition> getWhere() {
 		return where;
 	}
 	
@@ -298,7 +298,7 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 	}
 	
 	@Override
-	public void setWhereCondition(WhereCondition where) {
+	public void setWhereCondition(List<WhereCondition> where) {
 		this.where = where;
 		this.refreshFromServer();
 	}

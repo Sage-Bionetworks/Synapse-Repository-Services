@@ -91,7 +91,9 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	@Override
 	public void setDatasetRow(DatasetRow row) {
 		// Set the where clause
-		this.queryServiceTable.setWhereCondition(new WhereCondition("dataset.id", WhereOperator.EQUALS, row.getId()));
+		List<WhereCondition> whereList = new ArrayList<WhereCondition>();
+		whereList.add(new WhereCondition("dataset.id", WhereOperator.EQUALS, row.getId()));
+		this.queryServiceTable.setWhereCondition(whereList);
 		// Clear everything
 		clearAllFields();
 		titleSpan.setInnerText(row.getName());
