@@ -11,7 +11,7 @@
 	<property name="javax.jdo.option.ConnectionURL" value="jdbc:mysql://localhost/test2"/>
 	<property name="javax.jdo.option.ConnectionDriverName" value="com.mysql.jdbc.Driver"/>
 	<property name="javax.jdo.option.ConnectionUserName" value="root"/>
-	<property name="javax.jdo.option.ConnectionPassword" value=""/>
+	<property name="javax.jdo.option.ConnectionPassword" value="platform"/>
     <property name="javax.jdo.option.RetainValues" value="true"/>
 	<property name="datanucleus.autoCreateSchema" value="true"/>
 	<property name="datanucleus.validateConstraints" value="false"/>

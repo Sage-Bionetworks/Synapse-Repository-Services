@@ -1,11 +1,19 @@
-package org.sagebionetworks.repo.web;
+package org.sagebionetworks.repo.web.query;
 
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
 
+import org.sagebionetworks.repo.model.query.Compartor;
+import org.sagebionetworks.repo.model.query.CompoundId;
+import org.sagebionetworks.repo.model.query.Expression;
+import org.sagebionetworks.repo.model.query.Operator;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.queryparser.QueryNode;
 import org.sagebionetworks.repo.queryparser.QueryParser;
 import org.sagebionetworks.repo.queryparser.TokenMgrError;
+import org.sagebionetworks.repo.web.ServiceConstants;
 
 /**
  * QueryStatement encapsulates the logic that extracts values from the parse
@@ -24,6 +32,8 @@ public class QueryStatement {
 	private Object whereValue = null;
 	private String sortTable = null;
 	private String sortField = null;
+	// The list of expressions
+	List<Expression> searchCondition = null;
 	private Boolean sortAcending = ServiceConstants.DEFAULT_ASCENDING;
 
 	/**
@@ -63,23 +73,27 @@ public class QueryStatement {
 				break;
 			case QueryParser.JJTWHERE:
 				QueryNode whereFieldNode = (QueryNode) node.jjtGetChild(0);
-				if (QueryParser.JJTCOMPOUNDID == whereFieldNode.getId()) {
-					if(2 == whereFieldNode.jjtGetNumChildren()) {
-						whereTable= (String) ((QueryNode) whereFieldNode.jjtGetChild(0))
-						.jjtGetValue();
-						whereField = (String) ((QueryNode) whereFieldNode.jjtGetChild(1))
-						.jjtGetValue();
+				if(QueryParser.JJTSEARCHCONDITION == whereFieldNode.getId()){
+					// This list is the infix representation of the search condition.
+					searchCondition = new ArrayList<Expression>();
+					// Process each child
+					for(int j=0; j< whereFieldNode.jjtGetNumChildren();j++){
+						QueryNode child = (QueryNode) whereFieldNode.jjtGetChild(j);
+						if(QueryParser.JJTEXPRESSION == child.getId()){
+							// Create our Expression
+							Expression expression = parseExpression(child);
+							searchCondition.add(expression);
+							
+						}else if(QueryParser.JJTOPERATOR == child.getId()){
+							// What is the comparator?
+							Operator operator = (Operator)child.jjtGetValue();
+							// Currently the only valid operator is and
+							if(Operator.AND != operator) throw new IllegalArgumentException("Currenlty, only the 'and' opperator is supported.");
+						}else{
+							 throw new IllegalArgumentException("Encountered: "+child.jjtGetValue()+" but was expecting: exression or operator");
+						}
 					}
-					else {
-						whereField = (String) ((QueryNode) whereFieldNode.jjtGetChild(0))
-						.jjtGetValue();
-					}
-				} else {
-					whereField = (String) ((QueryNode) node.jjtGetChild(0))
-							.jjtGetValue();
 				}
-				whereValue = ((QueryNode) node.jjtGetChild(1).jjtGetChild(0))
-						.jjtGetValue();
 				break;
 			case QueryParser.JJTORDERBY:
 				QueryNode sortFieldNode = (QueryNode) node.jjtGetChild(0);
@@ -119,6 +133,44 @@ public class QueryStatement {
 		}
 		ServiceConstants.validatePaginationParams(offset, limit);
 	}
+	
+	/**
+	 * Pull an expression from the tree
+	 * @param expressionNode
+	 * @return
+	 */
+	private Expression parseExpression(QueryNode expressionNode){
+		// The Expressions always have three parts
+		QueryNode idNode = (QueryNode) expressionNode.jjtGetChild(0);
+		CompoundId id = parseId(idNode);
+		QueryNode compareNode = (QueryNode) expressionNode.jjtGetChild(1);
+		Compartor comp = (Compartor)compareNode.jjtGetValue();
+		QueryNode valueNode = (QueryNode) ((QueryNode) expressionNode.jjtGetChild(2)).jjtGetChild(0);
+		Object value = valueNode.jjtGetValue();
+		return new Expression(id, comp, value);
+	}
+	
+	/**
+	 * Pull a CompoundId from the tree
+	 * @param idNode
+	 * @return
+	 */
+	private CompoundId parseId(QueryNode idNode){
+		
+		String table = null;
+		String field = null;
+		if(2 == idNode.jjtGetNumChildren()) {
+			table= (String) ((QueryNode) idNode.jjtGetChild(0)).jjtGetValue();
+			field  = (String) ((QueryNode) idNode.jjtGetChild(1))
+			.jjtGetValue();
+		}else if (1 == idNode.jjtGetNumChildren()){
+			field = (String) ((QueryNode) idNode.jjtGetChild(0))
+			.jjtGetValue();
+		}else{
+			field = (String) idNode.jjtGetValue();
+		}
+		return new CompoundId(table, field);
+	}
 
 	/**
 	 * @return the tableName
@@ -146,6 +198,10 @@ public class QueryStatement {
 	 */
 	public Object getWhereValue() {
 		return whereValue;
+	}
+
+	public List<Expression> getSearchCondition() {
+		return searchCondition;
 	}
 
 	/**
@@ -193,4 +249,6 @@ public class QueryStatement {
 	public void dumpParseTree() {
 		parseTree.dump("");
 	}
+	
+	
 }

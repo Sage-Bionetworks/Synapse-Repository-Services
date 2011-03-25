@@ -10,9 +10,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.jdo.JDORevision;
-import org.sagebionetworks.repo.model.jdo.JDOScript;
 import org.sagebionetworks.repo.model.jdo.Version;
+import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOScript;
 
 
 

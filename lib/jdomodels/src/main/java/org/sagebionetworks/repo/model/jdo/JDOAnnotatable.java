@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.jdo;
 
+import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotations;
+
 /**
  * The interface implemented by all annotatable persistent objects
  * 

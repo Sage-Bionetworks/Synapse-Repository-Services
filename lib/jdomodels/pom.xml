@@ -80,6 +80,13 @@
 <!--       <scope>test</scope> -->
     </dependency>
     
+        <!-- Jackson JSON Mapper -->
+    <dependency>
+      <groupId>org.codehaus.jackson</groupId>
+      <artifactId>jackson-mapper-asl</artifactId>
+      <version>1.7.1</version>
+    </dependency>
+    
   </dependencies>
 
   <build>
@@ -95,11 +102,11 @@
         <configuration>
           <!-- Make sure this path contains your persistent classes!
             -->
-          <mappingIncludes>**/model/**/*.class</mappingIncludes>
-          <mappingExcludes>**/model/**/*DAOImpl.class</mappingExcludes>
+          <mappingIncludes>**/model/jdo/persistence/*.class</mappingIncludes>
           <verbose>true</verbose>
           <fork>false</fork>
           <enhancerName>ASM</enhancerName>
+<!--          <outputFile>target/schema.ddl</outputFile>-->
           <api>JDO</api>
           <props>src/main/resources/datanucleus.properties</props>
 	      <log4jConfiguration>src/main/resources/log4j.properties</log4jConfiguration>

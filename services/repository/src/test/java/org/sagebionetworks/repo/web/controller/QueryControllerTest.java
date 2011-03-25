@@ -165,9 +165,7 @@ public class QueryControllerTest {
 				.testQuery("select * from dataset where dataset.name == \"Pediatric AML TARGET\"");
 		assertExpectedQueryResultProperties("dataset", queryResult);
 
-		// TODO fix me, this should be 1
-		assertEquals(DatasetsControllerTest.SAMPLE_DATASET_NAMES.length,
-				queryResult.getInt("totalNumberOfResults"));
+		assertEquals(1,	queryResult.getInt("totalNumberOfResults"));
 		JSONArray results = queryResult.getJSONArray("results");
 		assertEquals(1, results.length());
 
@@ -221,15 +219,15 @@ public class QueryControllerTest {
 	@Test
 	public void testLayerQueryMissingDatasetId() throws Exception {
 		JSONObject error = helper.testQueryShouldFail(
-				"select * from layer where foo == \"bar\"",
+				"select * from layer where name == \"bar\"",
 				HttpStatus.BAD_REQUEST);
 		assertEquals(
-				"Layer queries must include a 'WHERE dataset.id == <the id>' clause",
+				"java.lang.IllegalArgumentException: Layer queries must include a 'WHERE dataset.id == <the id>' clause",
 				error.getString("reason"));
 		error = helper.testQueryShouldFail("select * from layer",
 				HttpStatus.BAD_REQUEST);
 		assertEquals(
-				"Layer queries must include a 'WHERE dataset.id == <the id>' clause",
+				"java.lang.IllegalArgumentException: Layer queries must include a 'WHERE dataset.id == <the id>' clause",
 				error.getString("reason"));
 	}
 

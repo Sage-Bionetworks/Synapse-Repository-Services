@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.AnnotationDAO;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotations;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**

@@ -23,16 +23,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.jdo.JDOAnnotations;
 import org.sagebionetworks.repo.model.jdo.JDOBootstrapperImpl;
 import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
-import org.sagebionetworks.repo.model.jdo.JDODataset;
-import org.sagebionetworks.repo.model.jdo.JDOInputDataLayer;
-import org.sagebionetworks.repo.model.jdo.JDOStringAnnotation;
-import org.sagebionetworks.repo.model.jdo.JDOUser;
-import org.sagebionetworks.repo.model.jdo.JDOUserGroup;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.PMF;
+import org.sagebionetworks.repo.model.jdo.persistence.JDODataset;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOInputDataLayer;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 

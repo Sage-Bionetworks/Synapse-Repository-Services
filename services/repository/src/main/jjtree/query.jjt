@@ -12,6 +12,10 @@
 
 PARSER_BEGIN(QueryParser)
 package org.sagebionetworks.repo.queryparser;
+
+import org.sagebionetworks.repo.model.query.Compartor;
+import org.sagebionetworks.repo.model.query.Operator;
+
 public class QueryParser {}
 PARSER_END(QueryParser)
 
@@ -45,6 +49,12 @@ TOKEN: {
 | < LT: "<" >
 | < GTE: ">=" >
 | < LTE: "<=" >
+}
+
+/* Operators */
+TOKEN [IGNORE_CASE]:{
+  < AND: "AND" | "&&" >
+| < OR: "OR" | "||" >
 }
 
 /* Literals */
@@ -144,7 +154,6 @@ TOKEN : /* IDENTIFIERS */
   >
 }
 
-
 /* *** Context-free grammar (EBNF) *** */
 
 /* Each nonterminal is written like a kind of method, containing all its
@@ -173,7 +182,29 @@ void TableName() : {}
 
 void Where() : {}
 {
-  <WHERE> ( CompoundId() | StringValue() ) <EQUALS> Value()
+  <WHERE> SearchCondition()
+}
+
+void SearchCondition() : {}
+{
+    Expression() ( Operator() Expression() )*
+}
+
+void Operator() : {}
+{
+  <AND>  { jjtThis.value = Operator.AND; }
+  |<OR>  { jjtThis.value = Operator.OR; }
+}
+
+void Expression() : {}
+{
+  ( CompoundId() | StringValue() ) Comparators() Value()
+}
+
+void Comparators() : {}
+{
+  <EQUALS> { jjtThis.value = Compartor.EQUALS; }
+  | <NEQUALS> { jjtThis.value = Compartor.NOT_EQUALS; }
 }
 
 void OrderBy() : {}

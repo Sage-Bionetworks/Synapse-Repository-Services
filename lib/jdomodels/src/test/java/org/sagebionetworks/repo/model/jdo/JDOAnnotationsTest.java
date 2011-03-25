@@ -17,11 +17,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.jdo.JDOAnnotations;
-import org.sagebionetworks.repo.model.jdo.JDODoubleAnnotation;
-import org.sagebionetworks.repo.model.jdo.JDOLongAnnotation;
-import org.sagebionetworks.repo.model.jdo.JDOStringAnnotation;
 import org.sagebionetworks.repo.model.jdo.PMF;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotations;
+import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
 
 
 

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model;
 
+import org.sagebionetworks.repo.model.query.QueryDAO;
+
 /**
  * This is the interface implemented by DAO Factories
  * 
@@ -44,4 +46,6 @@ public interface DAOFactory {
 	public LayerPreviewDAO getLayerPreviewDAO(String userId);
 
 	public LayerLocationsDAO getLayerLocationsDAO(String userId);
+	
+	public QueryDAO getQueryDao();
 }

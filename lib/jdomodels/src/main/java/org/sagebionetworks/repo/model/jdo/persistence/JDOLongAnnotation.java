@@ -1,14 +1,16 @@
-package org.sagebionetworks.repo.model.jdo;
+package org.sagebionetworks.repo.model.jdo.persistence;
 
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
+import org.sagebionetworks.repo.model.jdo.JDOAnnotation;
+
 
 
 /**
- * This is the persistable class for a Annotations whose values are Strings
+ * This is the persistable class for a Annotations whose values are long integer numbers.
  * 
  * Note: equals and hashcode are based on the attribute and value, allowing
  * distinct annotations with the same attribute.
@@ -17,24 +19,25 @@ import javax.jdo.annotations.PrimaryKey;
  * 
  */
 @PersistenceCapable(detachable = "false")
-public class JDOStringAnnotation implements JDOAnnotation<String> {
+public class JDOLongAnnotation implements JDOAnnotation<Long> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 
-	// this is the backwards pointer for the 1-1 owned relationship
 	@Persistent
-	private JDOAnnotations owner;
+	private JDOAnnotations owner; // this is the backwards pointer for the
+										// 1-1 owned relationship
 
 	@Persistent
 	private String attribute;
 
-	private String value;
+	@Persistent
+	private Long value;
 
-	public JDOStringAnnotation() {
+	public JDOLongAnnotation() {
 	}
 
-	public JDOStringAnnotation(String attr, String value) {
+	public JDOLongAnnotation(String attr, Long value) {
 		setAttribute(attr);
 		setValue(value);
 	}
@@ -67,11 +70,11 @@ public class JDOStringAnnotation implements JDOAnnotation<String> {
 		this.attribute = attribute;
 	}
 
-	public String getValue() {
+	public Long getValue() {
 		return value;
 	}
 
-	public void setValue(String value) {
+	public void setValue(Long value) {
 		this.value = value;
 	}
 
@@ -89,9 +92,9 @@ public class JDOStringAnnotation implements JDOAnnotation<String> {
 			return true;
 		if (obj == null)
 			return false;
-		if (!(obj instanceof JDOStringAnnotation))
+		if (!(obj instanceof JDOLongAnnotation))
 			return false;
-		JDOStringAnnotation other = (JDOStringAnnotation) obj;
+		JDOLongAnnotation other = (JDOLongAnnotation) obj;
 		if (id == null) {
 			if (other.id != null)
 				return false;

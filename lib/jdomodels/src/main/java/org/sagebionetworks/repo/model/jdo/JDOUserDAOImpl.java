@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserDAO;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
 
 
 

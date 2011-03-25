@@ -8,6 +8,8 @@ import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Bootstrapper;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 
 public class JDOBootstrapperImpl implements Bootstrapper {
 	/**

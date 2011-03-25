@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.jdo;
+package org.sagebionetworks.repo.model.jdo.persistence;
 
 import java.util.Date;
 
@@ -6,6 +6,9 @@ import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
+
+import org.sagebionetworks.repo.model.jdo.JDORevisable;
+import org.sagebionetworks.repo.model.jdo.Version;
 
 
 

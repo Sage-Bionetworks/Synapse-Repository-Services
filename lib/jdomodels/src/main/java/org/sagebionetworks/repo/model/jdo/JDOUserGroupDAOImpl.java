@@ -25,6 +25,11 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.jdo.persistence.JDODataset;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOInputDataLayer;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.jdo;
 
+import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
+
 /**
  * Interfaced implemented by all classes which have versions.
  * 

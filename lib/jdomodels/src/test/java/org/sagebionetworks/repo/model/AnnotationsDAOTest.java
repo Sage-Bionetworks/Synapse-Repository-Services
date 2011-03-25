@@ -10,12 +10,12 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.jdo.JDOAnnotations;
 import org.sagebionetworks.repo.model.jdo.JDOBootstrapperImpl;
 import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
-import org.sagebionetworks.repo.model.jdo.JDODataset;
-import org.sagebionetworks.repo.model.jdo.JDORevision;
 import org.sagebionetworks.repo.model.jdo.Version;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotations;
+import org.sagebionetworks.repo.model.jdo.persistence.JDODataset;
+import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
 
 
 
