@@ -51,6 +51,9 @@ public class ControllerAuthorizationTest {
 	 */
 	@After
 	public void tearDown() throws Exception {
+		// TODO use an admin user in helpers to delete stuff for post-test
+		// cleanup
+		helper.setUserId(CURATOR1_USER_ID);
 		helper.tearDown();
 	}
 
@@ -59,6 +62,13 @@ public class ControllerAuthorizationTest {
 	 */
 	@Test
 	public void testCreateAuthorization() throws Exception {
+
+		if (helper.isIntegrationTest()) {
+			// TODO once our remote service is properly bootstrapped with users
+			// we'll be able to do integration tests that perform stuff
+			// requiring authorization
+			return;
+		}
 
 		UserDAO userDao = helper.getDaoFactory().getUserDAO(null);
 		UserGroupDAO groupDao = helper.getDaoFactory().getUserGroupDAO(null);

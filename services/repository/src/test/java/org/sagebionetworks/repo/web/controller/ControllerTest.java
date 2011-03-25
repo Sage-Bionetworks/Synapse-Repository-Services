@@ -228,9 +228,7 @@ public class ControllerTest {
 
 			url = (null == UrlHelpers.getParentForChildUrl(url)) ? helper
 					.getServletPrefix()
-					+ helper.getServletPrefix() + url : helper
-					.getServletPrefix()
-					+ helper.getServletPrefix()
+					+ url : helper.getServletPrefix()
 					+ UrlHelpers.getParentForChildUrl(url) + "/123" + url;
 
 			MockHttpServletRequest request = new MockHttpServletRequest();

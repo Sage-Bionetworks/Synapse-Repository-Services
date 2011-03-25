@@ -628,7 +628,7 @@ public class Helpers {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI("/query");
+		request.setRequestURI(servletPrefix + "/query");
 		request.addParameter("query", query);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
