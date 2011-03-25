@@ -157,7 +157,7 @@ public class SearchServiceImplTest {
 		assertTrue(list.contains("dataset.NameLink"));
 		assertTrue(list.contains("dataset.layerTypeIcons"));
 		assertTrue(list.contains("dataset.status"));
-		assertTrue(list.contains("dataset.Number of Samples"));
+		assertTrue(list.contains("dataset.Number_of_Samples"));
 		
 		assertNotNull(columnConfigProvider);
 		// Make sure all of the columns can be found
