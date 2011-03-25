@@ -29,7 +29,7 @@ import javax.jdo.annotations.PrimaryKey;
 abstract public class JDODatasetLayer<T extends JDODatasetLayer<T>>
 		implements JDORevisable<T>, JDOBase, JDOAnnotatable {
 	@PrimaryKey
-	@Persistent(valueStrategy = IdGeneratorStrategy.SEQUENCE, sequence="GLOBAL_SEQ")
+	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 
 	@Persistent

@@ -174,14 +174,14 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 		JDOUserGroupDAOImpl groupDAO = new JDOUserGroupDAOImpl(userId);
 		JDOUserGroup group = null;
 		if (userId == null) {
-			group = groupDAO.getOrCreatePublicGroup(pm);
+			group = JDOUserGroupDAOImpl.getPublicGroup(pm);
 
 		} else {
 			group = groupDAO.getOrCreateIndividualGroup(pm);
 		}
 		// System.out.println("addUserAccess: Group is "+group.getName());
 		// now add the object to the group
-		JDOUserGroupDAOImpl.addResourceToGroup(group, jdo.getId(), Arrays
+		JDOUserGroupDAOImpl.addResourceToGroup(group, jdo, Arrays
 				.asList(new String[] { AuthorizationConstants.READ_ACCESS,
 						AuthorizationConstants.CHANGE_ACCESS,
 						AuthorizationConstants.SHARE_ACCESS }));
@@ -197,9 +197,13 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 	public String create(S dto) throws InvalidModelException,
 			DatastoreException, UnauthorizedException {
 		PersistenceManager pm = PMF.get();
-		if (!canCreate(pm))
+		try {
+		if (!(new JDOUserGroupDAOImpl(null)).canCreate(userId, getJdoClass(), pm))
 			throw new UnauthorizedException(
 					"Cannot create objects of this type.");
+		} catch (NotFoundException nfe) {
+			throw new DatastoreException();
+		}
 		Transaction tx = null;
 		try {
 			tx = pm.currentTransaction();
@@ -207,11 +211,11 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 			T jdo = createIntern(dto);
 			pm.makePersistent(jdo);
 			tx.commit();
-			tx = pm.currentTransaction();
-			tx.begin();
+//			tx = pm.currentTransaction();
+//			tx.begin();
 			addUserAccess(pm, jdo); // TODO Am I do the transaction control
 									// correctly?
-			tx.commit();
+//			tx.commit();
 			copyToDto(jdo, dto);
 			dto.setId(KeyFactory.keyToString(jdo.getId())); // TODO Consider
 															// putting this line
@@ -241,7 +245,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 			UnauthorizedException {
 		PersistenceManager pm = PMF.get();
 		Long key = KeyFactory.stringToKey(id);
-		if (!hasAccessIntern(pm, key, AuthorizationConstants.READ_ACCESS))
+		if (!JDOUserGroupDAOImpl.canAccess(userId, getJdoClass().getName(), key, AuthorizationConstants.READ_ACCESS, pm))
 			throw new UnauthorizedException();
 		try {
 			T jdo = (T) pm.getObjectById(getJdoClass(), key);
@@ -275,7 +279,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 			UnauthorizedException {
 		PersistenceManager pm = PMF.get();
 		Long key = KeyFactory.stringToKey(id);
-		if (!hasAccessIntern(pm, key, AuthorizationConstants.CHANGE_ACCESS))
+		if (!JDOUserGroupDAOImpl.canAccess(userId, getJdoClass().getName(), key, AuthorizationConstants.CHANGE_ACCESS, pm))
 			throw new UnauthorizedException();
 		Transaction tx = null;
 		try {
@@ -322,7 +326,9 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 		// *** NOTE, if you try to do this within the transaction, below, it
 		// breaks!!
 		Long id = KeyFactory.stringToKey(dto.getId());
-		if (!hasAccessIntern(pm, id, AuthorizationConstants.CHANGE_ACCESS))
+//		if (!hasAccessIntern(pm, getJdoClass().getName(), id, AuthorizationConstants.CHANGE_ACCESS))
+//			throw new UnauthorizedException();
+		if (!JDOUserGroupDAOImpl.canAccess(userId, getJdoClass().getName(), id, AuthorizationConstants.CHANGE_ACCESS, pm))
 			throw new UnauthorizedException();
 		Transaction tx = null;
 		try {
@@ -350,7 +356,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 	 * returns the number of objects of a certain type
 	 * 
 	 */
-	protected int getCount(PersistenceManager pm) throws DatastoreException {
+	protected int getCount(PersistenceManager pm) throws DatastoreException, NotFoundException {
 		Query query = pm.newQuery(getJdoClass());
 		@SuppressWarnings("unchecked")
 		Collection<T> c = (Collection<T>) query.execute();
@@ -358,7 +364,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 		for (T elem : c)
 			keys.add(elem.getId());
 		// System.out.println("JDOBaseDAOImpl.getCount: keys "+keys);
-		Collection<Long> canAccess = getCanAccess(pm,
+		Collection<Long> canAccess = getCanAccess(pm, getJdoClass(), 
 				AuthorizationConstants.READ_ACCESS);
 		// System.out.println("JDOBaseDAOImpl.getCount: canAccess "+canAccess);
 		keys.retainAll(canAccess);
@@ -392,7 +398,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 			Query query = pm.newQuery(getJdoClass());
 			@SuppressWarnings("unchecked")
 			List<T> list = ((List<T>) query.execute());
-			Collection<Long> canAccess = getCanAccess(pm,
+			Collection<Long> canAccess = getCanAccess(pm, getJdoClass(), 
 					AuthorizationConstants.READ_ACCESS);
 			List<S> ans = new ArrayList<S>();
 			int count = 0;
@@ -434,7 +440,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 			query.setOrdering(sortBy + (asc ? " ascending" : " descending"));
 			@SuppressWarnings("unchecked")
 			List<T> list = ((List<T>) query.execute());
-			Collection<Long> canAccess = getCanAccess(pm,
+			Collection<Long> canAccess = getCanAccess(pm, getJdoClass(), 
 					AuthorizationConstants.READ_ACCESS);
 			List<S> ans = new ArrayList<S>();
 			int count = 0;
@@ -468,7 +474,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 	 * @return
 	 */
 	public List<S> getInRangeHavingPrimaryField(int start, int end,
-			String attribute, Object value) throws DatastoreException {
+			String attribute, Object value) throws DatastoreException, NotFoundException {
 		PersistenceManager pm = null;
 		try {
 			pm = PMF.get();
@@ -478,7 +484,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 			query.declareParameters(value.getClass().getName() + " pValue");
 			@SuppressWarnings("unchecked")
 			List<T> list = ((List<T>) query.execute(value));
-			Collection<Long> canAccess = getCanAccess(pm,
+			Collection<Long> canAccess = getCanAccess(pm, getJdoClass(),
 					AuthorizationConstants.READ_ACCESS);
 			List<S> ans = new ArrayList<S>();
 			int count = 0;
@@ -493,6 +499,8 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 				}
 			}
 			return ans;
+		} catch (NotFoundException nfe) {
+			throw nfe;
 		} catch (Exception e) {
 			throw new DatastoreException(e);
 		} finally {
@@ -512,21 +520,6 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 	// KeyFactory.stringToKey(userId));
 	// }
 
-	private static Collection<JDOResourceAccess> getAccess(
-			PersistenceManager pm, Long resourceKey, String accessType) {
-		Query query = pm.newQuery(JDOResourceAccess.class);
-		query
-				.setFilter("this.resource==pResourceKey && this.accessType==pAccessType");
-		query.declareParameters(Long.class.getName() + " pResourceKey, "
-				+ String.class.getName() + " pAccessType");
-		// query.setFilter("accessType==pAccessType");
-		// query.declareParameters(String.class+" pAccessType");
-		@SuppressWarnings("unchecked")
-		Collection<JDOResourceAccess> ras = (Collection<JDOResourceAccess>) query
-				.execute(resourceKey, accessType);
-		return ras;
-	}
-	
 	public void dumpAllAccess() throws Exception {
 		PersistenceManager pm = PMF.get();
 		Query query = pm.newQuery(JDOResourceAccess.class);
@@ -534,72 +527,52 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 		Collection<JDOResourceAccess> ras = (Collection<JDOResourceAccess>) query
 		.execute();
 		for (JDOResourceAccess ra: ras) {
-			System.out.println("Owner: "+ra.getOwner()+" Resource: "+ra.getResource()+" type: "+ra.getAccessType());
+			System.out.println("Owner: "+ra.getOwner()+" Resource: "+ra.getResourceType()+"-"+ra.getResourceId()+" type: "+ra.getAccessType());
 		}
 	}
 
-	public Collection<UserGroup> whoHasAccess(String id, String accessType)
+	public Collection<UserGroup> whoHasAccess(S resource, String accessType)
 			throws NotFoundException, DatastoreException {
 		// search for all JDOResourceAccess objects having the given object
 		// and access type
 		// return a collection of the user groups
-		PersistenceManager pm = PMF.get();
 		try {
 			JDOUserGroupDAOImpl groupDAO = new JDOUserGroupDAOImpl(userId);
-			Collection<UserGroup> ans = new HashSet<UserGroup>();
-			Long resourceKey = KeyFactory.stringToKey(id);
-			Collection<JDOResourceAccess> ras = getAccess(pm, resourceKey,
-					accessType);
-			for (JDOResourceAccess ra : ras) {
-				ans.add(groupDAO.get(KeyFactory.keyToString(ra.getOwner()
-						.getId())));
-			}
+			Collection<UserGroup> ans = groupDAO.getAccessGroups(resource, accessType);
 			return ans;
 		} catch (JDOObjectNotFoundException e) {
 			throw new NotFoundException(e);
 		} catch (Exception e) {
 			throw new DatastoreException(e);
-		} finally {
-			pm.close();
 		}
 	}
 
-	protected boolean canCreate(PersistenceManager pm) {
-		JDOUserGroupDAOImpl groupDAO = new JDOUserGroupDAOImpl(userId);
-		JDOUserGroup group = null;
-		if (userId == null) {
-			group = groupDAO.getOrCreatePublicGroup(pm);
-		} else {
-			group = groupDAO.getOrCreateIndividualGroup(pm);
-		}
-		return group.getCreatableTypes().contains(getJdoClass().getName());
-	}
+// THIS REPLICATES LOGIC IN JDOUserGroupDAOImpl, which belongs THERE
+//	protected boolean hasAccessIntern(PersistenceManager pm, String resourceType, Long resourceKey,
+//			String accessType) {
+//		JDOUser thisUser = (new JDOUserDAOImpl(userId)).getUser(pm);
+//		Collection<JDOResourceAccess> ras = getAccess(pm, resourceType, resourceKey,
+//				accessType);
+//		// System.out.println("JDOBaseDAOImpl.hasAccessIntern: ras.size()=="+ras.size());
+//		for (JDOResourceAccess ra : ras) {
+//			JDOUserGroup group = ra.getOwner();
+//			// System.out.println("JDOBaseDAOImpl.hasAccessIntern: \tGroup "+group.getName()+" has "+group.getUsers().size()+" users.");
+//			// for (Long u : group.getUsers()) System.out.print(u+", ");
+//			// System.out.println();
+//			if (JDOUserGroupDAOImpl.isPublicGroup(group)
+//					|| (thisUser != null && group.getUsers().contains(
+//							thisUser.getId())))
+//				return true;
+//		}
+//		return false;
+//	}
 
-	protected boolean hasAccessIntern(PersistenceManager pm, Long resourceKey,
-			String accessType) {
-		JDOUser thisUser = (new JDOUserDAOImpl(userId)).getUser(pm);
-		Collection<JDOResourceAccess> ras = getAccess(pm, resourceKey,
-				accessType);
-		// System.out.println("JDOBaseDAOImpl.hasAccessIntern: ras.size()=="+ras.size());
-		for (JDOResourceAccess ra : ras) {
-			JDOUserGroup group = ra.getOwner();
-			// System.out.println("JDOBaseDAOImpl.hasAccessIntern: \tGroup "+group.getName()+" has "+group.getUsers().size()+" users.");
-			// for (Long u : group.getUsers()) System.out.print(u+", ");
-			// System.out.println();
-			if (JDOUserGroupDAOImpl.isPublicGroup(group)
-					|| (thisUser != null && group.getUsers().contains(
-							thisUser.getId())))
-				return true;
-		}
-		return false;
-	}
-
-	public boolean hasAccess(String resourceId, String accessType)
+	public boolean hasAccess(S resource, String accessType)
 			throws NotFoundException, DatastoreException {
 		PersistenceManager pm = PMF.get();
 		try {
-			Long resourceKey = KeyFactory.stringToKey(resourceId);
-			return hasAccessIntern(pm, resourceKey, accessType);
+			Long resourceKey = KeyFactory.stringToKey(resource.getId());
+			return JDOUserGroupDAOImpl.canAccess(userId, getJdoClass().getName(), resourceKey, accessType, pm);
 		} catch (JDOObjectNotFoundException e) {
 			throw new NotFoundException(e);
 		} catch (Exception e) {
@@ -614,17 +587,18 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 	 * that joins of any complexity had to be done in
 	 * memory. We can now update this code to push that logic back into the relational database.
 	 * 
-	 * @return all objects in the system that the user can access with the given
+	 * @return all objects of the given class in the system that the user can access with the given
 	 *         accesstype
 	 */
-	public Collection<Long> getCanAccess(PersistenceManager pm, String accessType) {
+	public Collection<Long> getCanAccess(PersistenceManager pm, Class<T> jdoClass, String accessType) throws NotFoundException{
 		// find all the groups the user is a member of
 		Collection<JDOUserGroup> groups = new HashSet<JDOUserGroup>();
 		if (userId != null) {
 			JDOUser user = (new JDOUserDAOImpl(userId)).getUser(pm);
+			if (user==null) throw new NotFoundException(userId+" does not exist");
 			Query query = pm.newQuery(JDOUserGroup.class);
 			query.setFilter("users.contains(pUser)");
-			query.declareParameters(Long.class + " pUser");
+			query.declareParameters(Long.class.getName() + " pUser");
 			@SuppressWarnings("unchecked")
 			Collection<JDOUserGroup> c = (Collection<JDOUserGroup>) query
 					.execute(user.getId());
@@ -635,16 +609,17 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 		// get all objects that these groups can access
 
 		Query query = pm.newQuery(JDOResourceAccess.class);
-		query.setFilter("owner==pUserGroup && accessType==pAccessType");
-		query.declareParameters(JDOUserGroup.class.getName()
-				+ " pUserGroup, " + String.class.getName() + " pAccessType");
+		query.setFilter("owner==pUserGroup && resourceType==pResourceType && accessType==pAccessType");
+		query.declareParameters(JDOUserGroup.class.getName()+ " pUserGroup, " + 
+				String.class.getName() + " pResourceType, "+
+				String.class.getName() + " pAccessType");
 		Collection<Long> ans = new HashSet<Long>();
 		for (JDOUserGroup ug : groups) {
 			@SuppressWarnings("unchecked")
 			Collection<JDOResourceAccess> ras = (Collection<JDOResourceAccess>) query
-					.execute(ug, accessType);
+					.execute(ug, jdoClass.getName(), accessType);
 			for (JDOResourceAccess ra : ras)
-				ans.add(ra.getResource());
+				ans.add(ra.getResourceId());
 		}
 		return ans;
 	}

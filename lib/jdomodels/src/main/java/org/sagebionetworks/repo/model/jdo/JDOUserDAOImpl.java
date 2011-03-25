@@ -49,6 +49,9 @@ public class JDOUserDAOImpl extends JDOBaseDAOImpl<User,JDOUser> implements User
 	}
 	
 	protected JDOUser getUser(PersistenceManager pm) {
+		return getUser(userId, pm);
+	}
+	protected JDOUser getUser(String userId, PersistenceManager pm) {
 		if (userId==null) return null;
 		Query query = pm.newQuery(JDOUser.class);
 		query.setFilter("userId==pUserId");
@@ -59,5 +62,5 @@ public class JDOUserDAOImpl extends JDOBaseDAOImpl<User,JDOUser> implements User
 		if (users.size()==0) return null;
 		return users.iterator().next();
 	}
-
+		
 }

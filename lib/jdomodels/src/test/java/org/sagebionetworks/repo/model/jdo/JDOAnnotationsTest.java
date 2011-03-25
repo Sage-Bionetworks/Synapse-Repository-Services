@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.jdo;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -14,6 +15,7 @@ import junit.framework.Assert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.jdo.JDOAnnotations;
 import org.sagebionetworks.repo.model.jdo.JDODoubleAnnotation;
@@ -45,6 +47,76 @@ public class JDOAnnotationsTest {
 	@After
 	public void tearDown() throws Exception {
 	}
+	
+	@Ignore
+	@Test
+	public void testOuterJoin() throws Exception {
+		Long id;
+		id= createAnnotations();
+		addString(id, "Tissue", "Brain");
+		id= createAnnotations();
+		PersistenceManager pm = PMF.get();
+		{
+			Query query = pm.newQuery(JDOAnnotations.class);
+			Collection<JDOAnnotations> ans = (Collection<JDOAnnotations>)query.execute();
+			o("Total number of JDOAnnotations objects: "+ans.size());
+		}	
+		{
+			Query query = pm.newQuery(JDOAnnotations.class);
+			query.setFilter("stringAnnotations.contains(vAnnot) && vAnnot.attribute==pAttr");
+			query.declareParameters("String pAttr");
+			query.declareVariables(JDOStringAnnotation.class.getName()+" vAnnot");
+			Collection<JDOAnnotations> ans = (Collection<JDOAnnotations>)query.execute("Tissue");
+			o("Number of JDOAnnotations objects having a 'Tissue' attribute: "+ans.size());
+		}	
+//		{
+//			Query query = pm.newQuery(JDOAnnotations.class);
+//			query.setFilter("stringAnnotations.contains(vAnnot) && vAnnot.attribute==pAttr");
+//			query.declareParameters("String pAttr");
+//			query.declareVariables(JDOStringAnnotation.class.getName()+" vAnnot");
+//			query.setResult("this.id, vAnnot.value");
+//			Collection<Object[]> ans = (Collection<Object[]>)query.execute("Tissue");
+//			for (Object[] row : ans) {
+//				o("AnnotationsID: "+row[0]+", annot value: "+row[1]+", total number of col's: "+row.length);
+//			}
+//		}	
+		{
+			Query query = pm.newQuery(JDOAnnotations.class);
+			query.setFilter("(stringAnnotations.contains(vAnnot)&& vAnnot.attribute==pAttr) "+
+					"|| !(stringAnnotations.contains(vAnnot)&& vAnnot.attribute==pAttr)");
+			query.declareParameters("String pAttr");
+			query.declareVariables(JDOStringAnnotation.class.getName()+" vAnnot");
+			//query.setResult("this.id");
+			Collection<JDOAnnotations> ans = (Collection<JDOAnnotations>)query.execute("Tissue");
+			o("\n"+ans.size()+" row(s):");
+			for (JDOAnnotations row : ans) {
+				o("AnnotationsID: "+row.getId());
+			}
+//			for (Object[] row : ans) {
+//				o("AnnotationsID: "+row[0]+", total number of col's: "+row.length);
+//			}
+		}	
+
+//		{
+//			Query subQuery = pm.newQuery(JDOStringAnnotation.class);
+//			subQuery.setFilter("attribute==\"Tissue\"");
+//			subQuery.setResult("this.id");
+//			
+//			Query query = pm.newQuery(JDOAnnotations.class);
+//			query.setFilter("stringAnnotations.contains(vAnnot) && selectedAnnots.contains(vAnnot)");
+//			//query.declareParameters("String pAttr");
+//			query.declareVariables(JDOStringAnnotation.class.getName()+" vAnnot");
+//			query.setResult("this.id, vAnnot.value");
+//			query.addSubquery(subQuery, JDOStringAnnotation.class.getName()+" selectedAnnots", null, "Tissue");
+//			Collection<Object[]> ans = (Collection<Object[]>)query.execute();
+//			o("\n"+ans.size()+" row(s):");
+//			for (Object[] row : ans) {
+//				o(row.length+" col's: AnnotationsID: "+row[0]+", annot value: "+row[1]);
+//			}
+//		}	
+	}
+	
+	private static void o(Object s) {System.out.println(s);}
 
 	private Long createAnnotations() {
 		PersistenceManager pm = null;
@@ -63,6 +135,10 @@ public class JDOAnnotationsTest {
 	}
 
 	private void addString(Long id) {
+		addString(id, "tissue", "brain");
+	}
+	
+	private void addString(Long id, String attr, String value) {
 		PersistenceManager pm = null;
 		try {
 			pm = PMF.get();
@@ -73,7 +149,7 @@ public class JDOAnnotationsTest {
 			a.toString(); // <-- here we 'touch' all the annotations
 			Set<JDOStringAnnotation> ss = a.getStringAnnotations();
 
-			ss.add(new JDOStringAnnotation("tissue", "brain"));
+			ss.add(new JDOStringAnnotation(attr, value));
 			pm.makePersistent(a);
 			tx.commit();
 		} finally {
@@ -124,6 +200,7 @@ public class JDOAnnotationsTest {
 		}
 	}
 
+	
 	@Test
 	public void testAnnotQuery() throws Exception {
 		PersistenceManager pm = null;

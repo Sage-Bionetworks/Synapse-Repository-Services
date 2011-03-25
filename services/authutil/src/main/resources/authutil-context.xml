@@ -17,6 +17,7 @@
          <property name="protocol"><value>https</value></property>
          <property name="host"><value>ec2-50-16-158-220.compute-1.amazonaws.com</value></property>
          <property name="port"><value>8443</value></property>
+        <property name="integrationTestUser"><value>test-user-2897498797928734</value></property>
         
    </bean>
     

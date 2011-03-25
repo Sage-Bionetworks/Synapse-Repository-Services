@@ -20,7 +20,7 @@ import javax.jdo.annotations.PrimaryKey;
 @PersistenceCapable(detachable = "false")
 public class JDOAnnotations {
 	@PrimaryKey
-	@Persistent(valueStrategy = IdGeneratorStrategy.SEQUENCE, sequence="GLOBAL_SEQ")
+	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 
 	/**

@@ -20,7 +20,8 @@ public class AuthorizationConstants {
 	public static final String CHANGE_ACCESS = "change";
 
 	/**
-	 * TODO not sure what this is, whether it includes write permssions or not
+	 * Gives the group having this permission the ability to 
+	 * extend access on the group's resources in turn to other groups.
 	 */
 	public static final String SHARE_ACCESS = "share";
 
@@ -29,5 +30,11 @@ public class AuthorizationConstants {
 	 * resources to all (including anonymous users)
 	 */
 	public static final String PUBLIC_GROUP_NAME = "Public";
+	
+	/**
+	 * The group name for those users that have all kinds of access to all resources.
+	 */
+	public static final String ADMIN_GROUP_NAME = "Administrators";
+	
 
 }

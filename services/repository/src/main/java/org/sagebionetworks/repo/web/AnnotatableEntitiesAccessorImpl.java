@@ -73,9 +73,12 @@ public class AnnotatableEntitiesAccessorImpl<T extends Base> implements
 		List<T> entities = null;
 
 		if (primaryFields.contains(attribute)) {
-
+			try {
 			entities = annotatableDao.getInRangeHavingPrimaryField(offset - 1,
 					offset + limit - 1, attribute, value);
+			} catch (NotFoundException nfe) {
+				throw new RuntimeException(nfe);
+			}
 
 		} else {
 

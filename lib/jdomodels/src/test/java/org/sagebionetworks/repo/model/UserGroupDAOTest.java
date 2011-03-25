@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -10,6 +13,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.jdo.JDOBootstrapperImpl;
 import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
 
 
@@ -35,6 +39,7 @@ public class UserGroupDAOTest {
 	public void setUp() throws Exception {
 //		helper.setUp();
 		fac = new JDODAOFactoryImpl();
+		(new JDOBootstrapperImpl()).bootstrap(); // creat admin user, public group, etc.
 	}
 
 	@After
@@ -72,9 +77,9 @@ public class UserGroupDAOTest {
 		
 		Assert.assertNotNull(group.getId());
 		// now 'TestUser 1' should have access to 'TestGroup', since it was created anonymously
-		Assert.assertTrue(anonymousGroupDAO.hasAccess(group.getId(), "read"));
-		Assert.assertTrue(anonymousGroupDAO.hasAccess(group.getId(), "change"));
-		Assert.assertTrue(anonymousGroupDAO.hasAccess(group.getId(), "share"));
+		Assert.assertTrue(anonymousGroupDAO.hasAccess(group, "read"));
+		Assert.assertTrue(anonymousGroupDAO.hasAccess(group, "change"));
+		Assert.assertTrue(anonymousGroupDAO.hasAccess(group, "share"));
 		
 		// create group under a user's credentials
 		UserGroupDAO userGroupDAO = fac.getUserGroupDAO(user.getUserId());
@@ -84,18 +89,23 @@ public class UserGroupDAOTest {
 		
 		// now 'TestUser 1' should have access to 'TestGroup 2'
 		Assert.assertNotNull(group2.getId());
-		Assert.assertTrue(userGroupDAO.hasAccess(group2.getId(), "read"));
-		Assert.assertTrue(userGroupDAO.hasAccess(group2.getId(), "change"));
-		Assert.assertTrue(userGroupDAO.hasAccess(group2.getId(), "share"));
-//		// and only the 'TestUser 1' group should have access
-		Assert.assertEquals("id="+group2.getId()+" "+userGroupDAO.whoHasAccess(group2.getId(), "read"), 1, userGroupDAO.whoHasAccess(group2.getId(), "read").size());
-		Assert.assertEquals("TestUser 1", userGroupDAO.whoHasAccess(group2.getId(), "read").iterator().next().getName());
-		// ... but the Public should also have access to the anonymously created group
-		Assert.assertEquals(""+userGroupDAO.whoHasAccess(group.getId(), "read"), 1, userGroupDAO.whoHasAccess(group.getId(), "read").size());
-		Assert.assertEquals("Public", userGroupDAO.whoHasAccess(group.getId(), "read").iterator().next().getName());
+		Assert.assertTrue(userGroupDAO.hasAccess(group2, "read"));
+		Assert.assertTrue(userGroupDAO.hasAccess(group2, "change"));
+		Assert.assertTrue(userGroupDAO.hasAccess(group2, "share"));
+//		// and only the 'TestUser 1' group and admin group should have access
+		Assert.assertEquals("id="+group2.getId()+" "+userGroupDAO.whoHasAccess(group2, "read"), 2, userGroupDAO.whoHasAccess(group2, "read").size());
+		Set<String> expected = new HashSet<String>(Arrays.asList(new String[]{"TestUser 1", "Administrators"}));
+		Set<String> actual = new HashSet<String>();
+		for (UserGroup ug: userGroupDAO.whoHasAccess(group2, "read")) actual.add(ug.getName());
+		Assert.assertEquals(expected, actual);
+		// ... but the Public should have access to the anonymously created group
+		expected = new HashSet<String>(Arrays.asList(new String[]{"Public", "Administrators"}));
+		actual = new HashSet<String>();
+		for (UserGroup ug: userGroupDAO.whoHasAccess(group, "read")) actual.add(ug.getName());
+		Assert.assertEquals(expected, actual);
 		
-		// the 'anonymous' DAO shouldn't see the user's group,
-		// just the Public one, and 'TestGroup'
+		// the 'anonymous' DAO shouldn't see the user's group or the admin group,
+		// just the Public one and 'TestGroup'
 		Assert.assertEquals(2, anonymousGroupDAO.getCount());
 		Collection<UserGroup> publicGroups = anonymousGroupDAO.getInRange(0,100);
 //		for (UserGroup ug : publicGroups) {
@@ -122,7 +132,7 @@ public class UserGroupDAOTest {
 		// to 'TestGroup 2' as a user
 		userGroupDAO.addUser(group2, user2);
 		// now as a **resource**
-		userGroupDAO.addResource(group2, user2.getId(), "read");
+		userGroupDAO.addResource(group2, user2, "read");
 		// now get the users in the group
 		Assert.assertEquals(1, userGroupDAO.getUsers(group2).size());
 		

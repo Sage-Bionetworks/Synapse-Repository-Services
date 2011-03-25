@@ -64,7 +64,7 @@ public interface AnnotationDAO<S extends Base, A extends Comparable> {
 	 * @param start
 	 * @param end
 	 * @param sortByAttr
-	 * @params ascending if true then ascending, otherwise descending
+	 * @param ascending if true then ascending, otherwise descending
 	 * @return a subset of the results, starting at index 'start' and not going
 	 *         beyond index 'end' and sorted by the given attribute
 	 */

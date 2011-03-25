@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -100,11 +101,13 @@ public class ControllerAuthorizationTest {
 		// Creator users opens up the permissions
 		UserGroupDAO datasetGroupDao = helper.getDaoFactory().getUserGroupDAO(
 				CURATOR1_USER_ID);
-		datasetGroupDao.addResource(datasetGroupDao.getPublicGroup(), dataset
-				.getString("id"), AuthorizationConstants.READ_ACCESS);
-		datasetGroupDao.addResource(curators, dataset.getString("id"),
+		// for 'add resource' we actually have to pass in the DTO object, not just the ID
+		Dataset ds = new Dataset(); ds.setId(dataset.getString("id"));
+		datasetGroupDao.addResource(datasetGroupDao.getPublicGroup(), ds,
 				AuthorizationConstants.READ_ACCESS);
-		datasetGroupDao.addResource(curators, dataset.getString("id"),
+		datasetGroupDao.addResource(curators, ds,
+				AuthorizationConstants.READ_ACCESS);
+		datasetGroupDao.addResource(curators, ds,
 				AuthorizationConstants.CHANGE_ACCESS);
 
 		// Read/Write user tries to get the dataset - should pass

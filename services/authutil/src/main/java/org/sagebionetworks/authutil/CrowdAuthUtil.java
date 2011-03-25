@@ -34,6 +34,25 @@ public class CrowdAuthUtil {
 	private String host; // the Crowd host
 	private int port; // the Crowd port
 	
+//	   a system parameter for a special userId that's used for integration testing
+//	   we need a way to specify a 'back door' userId for integration testing
+//	   visible both both the the authentication servlet and the authentication filter
+//	   this should not be present in the production deployment
+//	   The behavior is as follows
+//	  	If passed to the user creation service, there is no confirmation email generated.
+//	  	Instead the userId becomes the password.
+//	  	If passed as a session token, then no session validation takes place in the 
+//	  	authentication filter.  Instead the userId is passed along as a request param.
+	private String integrationTestUser;
+	
+	public String getIntegrationTestUser() {
+		return integrationTestUser;
+	}
+
+	public void setIntegrationTestUser(String integrationTestUser) {
+		this.integrationTestUser = integrationTestUser;
+	}
+
 	public String getProtocol() {
 		return protocol;
 	}
@@ -245,23 +264,23 @@ public class CrowdAuthUtil {
 	}
 	
 	private static String userXML(User user) {
-		return "<?xml version='1.0' encoding='UTF-8'?>"+
-		  "<user name='"+user.getUserId()+"' expand='attributes'>"+
-		  "<first-name>"+user.getFirstName()+"</first-name>"+
-		  "<last-name>"+user.getLastName()+"</last-name>"+
-		  "<display-name>"+user.getDisplayName()+"</display-name>"+
-		  "<email>"+user.getEmail()+"</email>"+
-		  "<active>true</active>"+
-		  "<attributes>"+
+		return "<?xml version='1.0' encoding='UTF-8'?>\n"+
+		  "<user name='"+user.getUserId()+"' expand='attributes'>\n"+
+		  "\t<first-name>"+user.getFirstName()+"</first-name>\n"+
+		  "\t<last-name>"+user.getLastName()+"</last-name>\n"+
+		  "\t<display-name>"+user.getDisplayName()+"</display-name>\n"+
+		  "\t<email>"+user.getEmail()+"</email>\n"+
+		  "\t<active>true</active>\n"+
+		  "\t<attributes>"+
 		  "<link rel='self' href='link_to_user_attributes'/>"+
-		  "</attributes>"+
+		  "</attributes>\n"+
 		  (user.getPassword()==null ? "" : 
-			  "<password>"+
+			  "\t<password>"+
 			  "<link rel='edit' href='link_to_user_password'/>"+
 			  "<value>"+user.getPassword()+"</value>"+
-			  "</password>"
+			  "</password>\n"
 		  )+
-		  "</user>";
+		  "</user>\n";
 	}
 	
 	public void createUser(User user) throws AuthenticationException, IOException {
@@ -285,7 +304,7 @@ public class CrowdAuthUtil {
 			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
 			Exception chainedException = null;
 			if (sessionXML!=null) chainedException = new Exception(new String(sessionXML));
-			throw new AuthenticationException(rc, "Server Error", chainedException);
+			throw new AuthenticationException(rc, "Server Error for:\n"+userXML(user), chainedException);
 		}
 
 		if (HttpStatus.CREATED.value()!=rc) {
@@ -313,7 +332,7 @@ public class CrowdAuthUtil {
 		}
 
 		if (HttpStatus.NO_CONTENT.value()!=rc) {
-			throw new AuthenticationException(rc, "Unable to delete user.", null);
+			throw new AuthenticationException(rc, "Unable to delete "+user.getUserId()+" "+rc, null);
 		}
 	}
 
@@ -422,7 +441,7 @@ public class CrowdAuthUtil {
 		}
 	}
 	
-	private static String readInputStream(InputStream is) throws IOException {
+	public static String readInputStream(InputStream is) throws IOException {
 		StringBuffer sb = new StringBuffer();
 		int i=-1;
 		do {

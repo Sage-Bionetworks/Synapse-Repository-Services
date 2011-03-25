@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.model.LayerLocation;
 @PersistenceCapable(detachable = "false")
 public class JDOLayerLocation {
 	@PrimaryKey
-	@Persistent(valueStrategy = IdGeneratorStrategy.SEQUENCE, sequence="GLOBAL_SEQ")
+	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 
 	@Persistent

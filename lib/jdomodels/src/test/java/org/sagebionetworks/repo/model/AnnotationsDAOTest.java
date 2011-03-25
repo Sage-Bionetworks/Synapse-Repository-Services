@@ -11,6 +11,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.jdo.JDOAnnotations;
+import org.sagebionetworks.repo.model.jdo.JDOBootstrapperImpl;
 import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
 import org.sagebionetworks.repo.model.jdo.JDODataset;
 import org.sagebionetworks.repo.model.jdo.JDORevision;
@@ -39,6 +40,7 @@ public class AnnotationsDAOTest {
 	@Before
 	public void setUp() throws Exception {
 		fac = new JDODAOFactoryImpl();
+		(new JDOBootstrapperImpl()).bootstrap(); // creat admin user, public group, etc.
 	}
 
 	@After
