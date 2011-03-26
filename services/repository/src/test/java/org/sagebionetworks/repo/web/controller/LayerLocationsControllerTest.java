@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserCredentials;
 import org.sagebionetworks.repo.model.UserCredentialsDAO;
 import org.sagebionetworks.repo.model.UserDAO;
+import org.sagebionetworks.repo.util.LocationHelpers;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -40,16 +41,14 @@ public class LayerLocationsControllerTest {
 	/**
 	 * A user for use in unit tests
 	 */
-	public static final String READ_ONLY_USER_ID = "unit.test@sagebase.org";
-	private static final String ACCESS_ID = "thisIsAFakeAccessID";
-	private static final String SECRET_KEY = "thisIsAFakeSecretKey";
+	public static final String UNIT_TEST_READ_ONLY_USER_ID = "unit.test@sagebase.org";
 
 	@Autowired
 	private Helpers helper;
 	private JSONObject dataset;
-
-	// Hack alert, not sure how bootstrap and clean up users
-	private static Boolean isInitialized = false;
+	private String readOnlyUserId;
+	private UserDAO userDao;
+	private User user;
 
 	/**
 	 * @throws java.lang.Exception
@@ -58,23 +57,25 @@ public class LayerLocationsControllerTest {
 	public void setUp() throws Exception {
 		helper.setUp();
 
-		// TODO talk to Bruce to determine the right way to bootstrap users
-		// TODO once this is reconciled, see if we can enable the S3 integration
-		// tests below
-		if (!isInitialized) {
+		if (helper.isIntegrationTest()) {
+			readOnlyUserId = LocationHelpers.INTEGRATION_TEST_READ_ONLY_USER_ID;
+		} else {
+			readOnlyUserId = UNIT_TEST_READ_ONLY_USER_ID;
+
+			// TODO talk to Bruce to determine the right way to bootstrap users
+
 			// Make a user and his credentials
-			UserDAO userDao = helper.getDaoFactory().getUserDAO(null);
-			User user = new User();
-			user.setUserId(READ_ONLY_USER_ID);
+			userDao = helper.getDaoFactory().getUserDAO(null);
+			user = new User();
+			user.setUserId(readOnlyUserId);
 			userDao.create(user);
 			UserCredentialsDAO credsDao = helper.getDaoFactory()
-					.getUserCredentialsDAO(READ_ONLY_USER_ID);
+					.getUserCredentialsDAO(readOnlyUserId);
 			UserCredentials storedCreds;
-			storedCreds = credsDao.get(READ_ONLY_USER_ID);
-			storedCreds.setIamAccessId(ACCESS_ID);
-			storedCreds.setIamSecretKey(SECRET_KEY);
+			storedCreds = credsDao.get(readOnlyUserId);
+			storedCreds.setIamAccessId(LocationHelpers.FAKE_ACCESS_ID);
+			storedCreds.setIamSecretKey(LocationHelpers.FAKE_SECRET_KEY);
 			credsDao.update(storedCreds);
-			isInitialized = true;
 		}
 
 		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()
@@ -86,6 +87,10 @@ public class LayerLocationsControllerTest {
 	 */
 	@After
 	public void tearDown() throws Exception {
+		if (!helper.isIntegrationTest()) {
+			userDao.delete(user.getId());
+		}
+
 		helper.tearDown();
 	}
 
@@ -240,7 +245,7 @@ public class LayerLocationsControllerTest {
 				.getString("layer"), null, null, null, null);
 		JSONObject saneLayer = helper.testGetJsonEntity(saneLayers
 				.getJSONArray("results").getJSONObject(0).getString("uri"));
-		helper.setUserId(READ_ONLY_USER_ID);
+		helper.setUserId(readOnlyUserId);
 
 		for (int i = 0; i < saneLayer.getJSONArray("locations").length(); i++) {
 			String locationUri = saneLayer.getJSONArray("locations").getString(
@@ -250,7 +255,8 @@ public class LayerLocationsControllerTest {
 				// skip this integration test
 
 				// TODO get this to work as an integration test, that means the
-				// remote service was properly bootstrapped with READ_ONLY_USER_ID
+				// remote service was properly bootstrapped with
+				// READ_ONLY_USER_ID
 			} else {
 				helper.testGetJsonObject(locationUri);
 			}
@@ -290,7 +296,7 @@ public class LayerLocationsControllerTest {
 		helper.testUpdateJsonEntity(layerLocations);
 
 		// Get the layer
-		helper.setUserId(READ_ONLY_USER_ID);
+		helper.setUserId(readOnlyUserId);
 		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
 		LayerControllerTest.assertExpectedLayerProperties(layer);
 
@@ -300,11 +306,11 @@ public class LayerLocationsControllerTest {
 			String locationUri = layer.getJSONArray("locations").getString(i);
 			if (locationUri.endsWith(UrlHelpers.S3_LOCATION)) {
 				// TODO get this to work as an integration test, that means the
-				// remote service was properly bootstrapped with READ_ONLY_USER_ID
+				// remote service was properly bootstrapped with
+				// READ_ONLY_USER_ID
 				if (helper.isIntegrationTest()) {
 					return;
 				}
-
 				location = helper.testGetJsonObject(locationUri);
 				break;
 			}

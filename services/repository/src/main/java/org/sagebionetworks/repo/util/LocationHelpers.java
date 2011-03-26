@@ -36,13 +36,26 @@ import com.amazonaws.services.s3.AmazonS3Client;
  */
 public class LocationHelpers {
 
+	/**
+	 * A user for use in integration tests
+	 */
+	public static final String INTEGRATION_TEST_READ_ONLY_USER_ID = "integration.test@sagebase.org";
+	/**
+	 * 
+	 */
+	public static final String FAKE_ACCESS_ID = "thisIsAFakeAWSAccessId";
+	/**
+	 * 
+	 */
+	public static final String FAKE_SECRET_KEY = "thisIsAFakeAWSSecretKey";
+
 	private static final int EXPIRES_MINUTES = 10;
 	private static final String S3_BUCKET = "data01.sagebase.org";
 	private static final String READ_ONLY_GROUP = "ReadOnlyUnrestrictedDataUsers";
 
 	private DAOFactory daoFactory;
-	private String iamCanCreateUserCredsAccessId = "thisIsAFakeAWSAccessId";
-	private String iamCanCreateUserCredsSecretKey = "thisIsAFakeAWSSecretKey";
+	private String iamCanCreateUserCredsAccessId = FAKE_ACCESS_ID;
+	private String iamCanCreateUserCredsSecretKey = FAKE_SECRET_KEY;
 	private AWSCredentials iamCanCreateUsersCreds;
 	private AmazonIdentityManagement iamClient;
 
@@ -96,10 +109,20 @@ public class LocationHelpers {
 		// TODO delete me once we have log in stuff working
 		// TODO SERIOUSLY, DELETE THIS, IT IS A SECURITY HOLE
 		UserDAO userDao = daoFactory.getUserDAO(null);
-		User user = new User();
-		user.setUserId("integration.test@sagebase.org");
 		try {
-			userDao.create(user);
+			if (0 == userDao.getInRangeHavingPrimaryField(0, 1, "userId",
+					INTEGRATION_TEST_READ_ONLY_USER_ID).size()) {
+				User user = new User();
+				user.setUserId(INTEGRATION_TEST_READ_ONLY_USER_ID);
+				userDao.create(user);
+				UserCredentialsDAO credsDao = daoFactory
+						.getUserCredentialsDAO(INTEGRATION_TEST_READ_ONLY_USER_ID);
+				UserCredentials storedCreds;
+				storedCreds = credsDao.get(INTEGRATION_TEST_READ_ONLY_USER_ID);
+				storedCreds.setIamAccessId(FAKE_ACCESS_ID);
+				storedCreds.setIamSecretKey(FAKE_SECRET_KEY);
+				credsDao.update(storedCreds);
+			}
 		} catch (DatastoreException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -107,6 +130,9 @@ public class LocationHelpers {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (UnauthorizedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -132,8 +158,8 @@ public class LocationHelpers {
 		if (null == userId) {
 			// We should really be checking this further upstream but a little
 			// defensive coding here is okay
-//			throw new UnauthorizedException();
-			
+			// throw new UnauthorizedException();
+
 			// TODO delete me once we have log in stuff working
 			// TODO SERIOUSLY, DELETE THIS, IT IS A SECURITY HOLE
 			userId = "integration.test@sagebase.org";
