@@ -12,8 +12,7 @@
   <context-param>
     <param-name>contextConfigLocation</param-name>
     <param-value>
-      /WEB-INF/authentication-context.xml,
-      classpath:authutil-context.xml
+      /WEB-INF/authentication-context.xml
     </param-value>
   </context-param>
   
@@ -41,6 +40,11 @@
          <init-param>  
  			<param-name>allow-anonymous</param-name> 
  			<param-value>true</param-value>             
+         </init-param>  
+         <!-- false for google-app-engine, true for tomcat/beanstalk -->
+         <init-param>  
+ 			<param-name>accept-all-certificates</param-name> 
+ 			<param-value>false</param-value>             
          </init-param>  
  	</filter> 
 

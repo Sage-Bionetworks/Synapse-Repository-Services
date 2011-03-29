@@ -43,7 +43,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author bhoff
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml", "classpath:authutil-context.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class UserMirrorControllerTest {
 
 	@Autowired
@@ -52,8 +52,7 @@ public class UserMirrorControllerTest {
 	@Autowired
 	private DAOFactory daoFactory;
 	
-	@Autowired
-	private CrowdAuthUtil crowdAuthUtil;
+	private CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 
 	public static Iterable<String> iterableFromEnumeration(final Enumeration<String> e) {
 		return new Iterable<String>() {

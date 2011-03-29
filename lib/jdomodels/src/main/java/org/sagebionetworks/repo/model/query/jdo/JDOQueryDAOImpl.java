@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
  * @author jmhill
  * 
  */
+@SuppressWarnings("rawtypes")
 public class JDOQueryDAOImpl implements QueryDAO {
 
 	private static Logger log = Logger.getLogger(JDOQueryDAOImpl.class

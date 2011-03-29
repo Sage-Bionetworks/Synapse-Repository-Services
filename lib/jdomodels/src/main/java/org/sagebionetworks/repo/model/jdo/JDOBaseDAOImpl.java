@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.logging.Logger;
 
 import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
@@ -45,6 +46,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
  */
 abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 		implements BaseDAO<S> {
+	
+	private static final Logger log = Logger
+	.getLogger(JDOBaseDAOImpl.class.getName());
+
 
 	protected String userId; // the id of the user performing the DAO
 								// operations;
@@ -366,11 +371,11 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 		Collection<Long> keys = new HashSet<Long>();
 		for (T elem : c)
 			keys.add(elem.getId());
-		// System.out.println("JDOBaseDAOImpl.getCount: keys "+keys);
-		Collection<Long> canAccess = getCanAccess(pm, getJdoClass(), 
+		if (!JDOUserGroupDAOImpl.isAdmin(userId, pm)) {
+			Collection<Long> canAccess = getCanAccess(pm, getJdoClass(), 
 				AuthorizationConstants.READ_ACCESS);
-		// System.out.println("JDOBaseDAOImpl.getCount: canAccess "+canAccess);
-		keys.retainAll(canAccess);
+			keys.retainAll(canAccess);
+		}
 		return keys.size();
 	}
 
@@ -401,12 +406,15 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 			Query query = pm.newQuery(getJdoClass());
 			@SuppressWarnings("unchecked")
 			List<T> list = ((List<T>) query.execute());
-			Collection<Long> canAccess = getCanAccess(pm, getJdoClass(), 
-					AuthorizationConstants.READ_ACCESS);
+			boolean isAdmin = JDOUserGroupDAOImpl.isAdmin(userId, pm);
+			Collection<Long> canAccess = null;
+			if (!isAdmin) {
+				canAccess = getCanAccess(pm, getJdoClass(), AuthorizationConstants.READ_ACCESS);
+			}
 			List<S> ans = new ArrayList<S>();
 			int count = 0;
 			for (T jdo : list) {
-				if (canAccess.contains(jdo.getId())) {
+				if (isAdmin || canAccess.contains(jdo.getId())) {
 					if (count >= start && count < end) {
 						S dto = newDTO();
 						copyToDto(jdo, dto);
@@ -443,12 +451,15 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 			query.setOrdering(sortBy + (asc ? " ascending" : " descending"));
 			@SuppressWarnings("unchecked")
 			List<T> list = ((List<T>) query.execute());
-			Collection<Long> canAccess = getCanAccess(pm, getJdoClass(), 
-					AuthorizationConstants.READ_ACCESS);
+			boolean isAdmin = JDOUserGroupDAOImpl.isAdmin(userId, pm);
+			Collection<Long> canAccess = null;
+			if (!isAdmin) {
+				canAccess = getCanAccess(pm, getJdoClass(), AuthorizationConstants.READ_ACCESS);
+			}
 			List<S> ans = new ArrayList<S>();
 			int count = 0;
 			for (T jdo : list) {
-				if (canAccess.contains(jdo.getId())) {
+				if (isAdmin || canAccess.contains(jdo.getId())) {
 					if (count >= start && count < end) {
 						S dto = newDTO();
 						copyToDto(jdo, dto);
@@ -487,12 +498,15 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 			query.declareParameters(value.getClass().getName() + " pValue");
 			@SuppressWarnings("unchecked")
 			List<T> list = ((List<T>) query.execute(value));
-			Collection<Long> canAccess = getCanAccess(pm, getJdoClass(),
-					AuthorizationConstants.READ_ACCESS);
+			boolean isAdmin = JDOUserGroupDAOImpl.isAdmin(userId, pm);
+			Collection<Long> canAccess = null;
+			if (!isAdmin) {
+				canAccess = getCanAccess(pm, getJdoClass(), AuthorizationConstants.READ_ACCESS);
+			}
 			List<S> ans = new ArrayList<S>();
 			int count = 0;
 			for (T jdo : list) {
-				if (canAccess.contains(jdo.getId())) {
+				if (isAdmin || canAccess.contains(jdo.getId())) {
 					if (count >= start && count < end) {
 						S dto = newDTO();
 						copyToDto(jdo, dto);
@@ -593,7 +607,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 	 * @return all objects of the given class in the system that the user can access with the given
 	 *         accesstype
 	 */
-	public Collection<Long> getCanAccess(PersistenceManager pm, Class<T> jdoClass, String accessType) throws NotFoundException{
+	private Collection<Long> getCanAccess(PersistenceManager pm, Class<T> jdoClass, String accessType) throws NotFoundException{
 		// find all the groups the user is a member of
 		Collection<JDOUserGroup> groups = new HashSet<JDOUserGroup>();
 		if (userId != null) {

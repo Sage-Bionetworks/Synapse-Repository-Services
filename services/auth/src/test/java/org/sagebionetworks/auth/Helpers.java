@@ -43,7 +43,7 @@ public class Helpers {
 		MockServletConfig servletConfig = new MockServletConfig("authentication");
 		servletConfig
 				.addInitParameter("contextConfigLocation",
-						"classpath:authentication-context.xml,classpath:authentication-servlet.xml,classpath:authutil-context.xml");
+						"classpath:authentication-context.xml,classpath:authentication-servlet.xml");
 		servlet = new DispatcherServlet();
 		servlet.init(servletConfig);
 

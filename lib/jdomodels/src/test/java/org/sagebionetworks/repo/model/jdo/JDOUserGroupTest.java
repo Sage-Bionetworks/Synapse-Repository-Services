@@ -31,7 +31,6 @@ public class JDOUserGroupTest {
 		(new JDOBootstrapperImpl()).bootstrap(); // creat admin user, public group, etc.
 	}
 
-	
 	private long  makeGroup(String name, Long resourceId) {
 		JDOUserGroup g = new JDOUserGroup();
 		g.setUsers(new HashSet<Long>());
@@ -56,6 +55,7 @@ public class JDOUserGroupTest {
 		return g.getId();
 	}
 
+	// the following was written to experiment with doing outer joins in JDO
 	@Ignore
 	@Test
 	public void testGroup() throws Exception {

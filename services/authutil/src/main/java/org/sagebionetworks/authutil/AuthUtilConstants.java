@@ -9,9 +9,6 @@ public class AuthUtilConstants {
 	 */
 	public static final String ADMIN_USER_ID = "admin";
 	
-
-	public static final String ADMIN_PW = "admin28729784";
-	
 	/**
 	 * Request parameter for the authenticated user id or anonymous. Note that
 	 * callers of the service do not actually use this parameter. Instead they

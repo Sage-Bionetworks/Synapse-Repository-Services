@@ -1,9 +1,9 @@
 package org.sagebionetworks.auth;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.Assert.assertNotNull;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -17,7 +17,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.authutil.User;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -28,7 +27,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @Ignore
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:authentication-context.xml", "classpath:authentication-servlet.xml", "classpath:authutil-context.xml" })
+@ContextConfiguration(locations = { "classpath:authentication-context.xml", "classpath:authentication-servlet.xml" })
 public class AuthenticationControllerTest {
 
 	private static final Logger log = Logger
@@ -36,8 +35,7 @@ public class AuthenticationControllerTest {
 	private Helpers helper = new Helpers();
 	//private DispatcherServlet servlet;
 		
-	@Autowired
-	CrowdAuthUtil crowdAuthUtil = null;
+	private CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 
 
 	/**

@@ -136,8 +136,7 @@ public class Helpers {
 			// code.
 			MockServletConfig servletConfig = new MockServletConfig(
 					"repository");
-			servletConfig.addInitParameter("contextConfigLocation",
-		"classpath:test-context.xml,classpath:authutil-context.xml");
+			servletConfig.addInitParameter("contextConfigLocation", "classpath:test-context.xml");
 			servlet = new DispatcherServlet();
 			servlet.init(servletConfig);
 		}

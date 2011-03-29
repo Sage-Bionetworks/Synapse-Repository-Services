@@ -6,7 +6,6 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.authutil.AuthenticationException;
-import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -14,7 +13,6 @@ import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.util.UserSynchronization;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,10 +28,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @Controller
 public class UserMirrorController extends BaseController {
 
-
-	@Autowired
-	private CrowdAuthUtil crowdAuthUtil;
-	
 	UserMirrorController() {
 	}
 	
@@ -53,11 +47,8 @@ public class UserMirrorController extends BaseController {
 			UnauthorizedException, NotFoundException, 
 			IOException, AuthenticationException {
 		
-		// DEBUG
-		if (crowdAuthUtil==null) throw new NullPointerException();
-
 		checkAuthorization(userId, false);
-		UserSynchronization us = new UserSynchronization(userDAO, crowdAuthUtil);
+		UserSynchronization us = new UserSynchronization(userDAO);
 		us.synchronizeUsers();
 	}
 
