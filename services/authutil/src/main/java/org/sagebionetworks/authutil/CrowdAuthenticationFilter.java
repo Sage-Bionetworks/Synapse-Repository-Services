@@ -16,8 +16,6 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.springframework.beans.factory.annotation.Autowired;
-
 /**
  *
  */
@@ -26,9 +24,9 @@ public class CrowdAuthenticationFilter implements Filter {
 			.getName());
 	
 	private boolean allowAnonymous = false;
+	private boolean acceptAllCerts = true;
 	
-	@Autowired
-	CrowdAuthUtil crowdAuthUtil = null;
+	CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 	
 	@Override
 	public void destroy() {
@@ -39,7 +37,7 @@ public class CrowdAuthenticationFilter implements Filter {
 		resp.setStatus(401);
 		resp.setHeader("WWW-Authenticate", "authenticate Crowd");
 //		String contextPath = req.getContextPath();
-		resp.getWriter().println("The session token provided was missing, invalid or expired.");
+		resp.getWriter().println("{\"reason\", \"The session token provided was missing, invalid or expired.\"}");
 	}
 
 	@Override
@@ -89,9 +87,10 @@ public class CrowdAuthenticationFilter implements Filter {
         	String paramName = paramNames.nextElement();
         	String paramValue = filterConfig.getInitParameter(paramName);
            	if ("allow-anonymous".equalsIgnoreCase(paramName)) allowAnonymous = Boolean.parseBoolean(paramValue);
+           	if ("accept-all-certificates".equalsIgnoreCase(paramName)) acceptAllCerts = Boolean.parseBoolean(paramValue);
         }
         
-        CrowdAuthUtil.acceptAllCertificates();
+       if (acceptAllCerts) CrowdAuthUtil.acceptAllCertificates();
   	}
 
 		

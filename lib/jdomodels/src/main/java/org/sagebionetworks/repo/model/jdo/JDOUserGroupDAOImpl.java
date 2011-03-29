@@ -5,16 +5,15 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
 
-import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.Dataset;
@@ -35,6 +34,9 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public class JDOUserGroupDAOImpl extends
 		JDOBaseDAOImpl<UserGroup, JDOUserGroup> implements UserGroupDAO {
+	
+	private static final Logger log = Logger.getLogger(JDOUserGroupDAOImpl.class.getName());
+
 
 	public JDOUserGroupDAOImpl(String userId) {
 		super(userId);
@@ -144,6 +146,23 @@ public class JDOUserGroupDAOImpl extends
 		return getSystemGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false, pm);
 	}
 		
+	/**
+	 * 
+	 * @param user
+	 * @return true iff the given user is in the admin group
+	 */
+	public static boolean isAdmin(JDOUser user, PersistenceManager pm) {
+		JDOUserGroup adminGroup = getAdminGroup(pm);
+		return adminGroup.getUsers().contains(user.getId());
+	}
+	
+	public static boolean isAdmin(String userId, PersistenceManager pm) {
+		if (userId==null) return false;
+		JDOUser user = (new JDOUserDAOImpl(userId)).getUser(pm);
+		if (user==null) throw new IllegalArgumentException("No user "+userId);
+		return isAdmin(user, pm);
+	}
+	
 	/**
 	 * Retrieves system-generated groups
 	 * @param name
@@ -259,7 +278,10 @@ public class JDOUserGroupDAOImpl extends
 		try {
 			tx = pm.currentTransaction();
 			tx.begin();
-			jdoGroup.getUsers().add(jdoUser.getId());
+			Set<Long> users = jdoGroup.getUsers();
+			if (!users.contains(jdoUser.getId())) {
+				users.add(jdoUser.getId());
+			}
 			tx.commit();
 		} catch (JDOObjectNotFoundException e) {
 			throw new NotFoundException(e);

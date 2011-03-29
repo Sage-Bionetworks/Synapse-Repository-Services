@@ -17,7 +17,6 @@ import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.authutil.Session;
 import org.sagebionetworks.authutil.User;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -34,21 +33,21 @@ public class AuthenticationController {
 			.getName());
 	
 	private String repositoryServicesURL;
+	private String adminPW;
 	
-
-
-	@Autowired
-	private CrowdAuthUtil crowdAuthUtil = null;
+	private CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 	
 	public AuthenticationController() {
         Properties props = new Properties();
-        URL url = ClassLoader.getSystemResource("mirrorservice.properties");
+        //InputStream is = ClassLoader.getSystemResourceAsStream("mirrorservice.properties");
+        InputStream is = AuthenticationController.class.getClassLoader().getResourceAsStream("mirrorservice.properties");
         try {
-        	props.load(url.openStream());
+        	props.load(is);
         } catch (IOException e) {
         	throw new RuntimeException(e);
         }
         repositoryServicesURL = props.getProperty("repositoryServicesURL");
+        adminPW=props.getProperty("adminPW");
 	}
 
 	@ResponseStatus(HttpStatus.CREATED)
@@ -100,13 +99,13 @@ public class AuthenticationController {
 		// log-in as admin and get session token
 		User adminCredentials = new User();
 		adminCredentials.setUserId(AuthUtilConstants.ADMIN_USER_ID);
-		adminCredentials.setPassword(AuthUtilConstants.ADMIN_PW);
+		adminCredentials.setPassword(adminPW);
 		Session adminSession = crowdAuthUtil.authenticate(adminCredentials);
 		// execute mirror 
 		byte[] sessionXML = null;
 		int rc = 0;
 		{
-			URL url = new URL(repositoryServicesURL+"/session?validate-password=true");
+			URL url = new URL(repositoryServicesURL+"/userMirror");
 			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 			conn.setRequestMethod("POST");
 			conn.setRequestProperty("Accept", "application/json");
@@ -115,10 +114,14 @@ public class AuthenticationController {
 			CrowdAuthUtil.setBody(conn, "{}\n");
 			try {
 				rc = conn.getResponseCode();
-				sessionXML = (CrowdAuthUtil.readInputStream((InputStream)conn.getContent())).getBytes();
+				// unfortunately the next line throws an IOException when there is no content
+//				InputStream is = (InputStream)conn.getContent();
+//				if (is!=null) sessionXML = (CrowdAuthUtil.readInputStream(is)).getBytes();
 			} catch (IOException e) {
-				sessionXML = (CrowdAuthUtil.readInputStream((InputStream)conn.getErrorStream())).getBytes();
-				throw new Exception(new String(sessionXML));
+				InputStream is = (InputStream)conn.getErrorStream();
+				if (is!=null) sessionXML = (CrowdAuthUtil.readInputStream(is)).getBytes();
+				throw new Exception(url+"\nsessionToken: "+adminSession.getSessionToken()+"\nrc: "+rc+"\n"+
+						(sessionXML==null?null:new String(sessionXML)));
 			}
 			if (rc!=HttpStatus.CREATED.value()) throw new Exception("Failed to mirror users.  status="+rc);
 		}

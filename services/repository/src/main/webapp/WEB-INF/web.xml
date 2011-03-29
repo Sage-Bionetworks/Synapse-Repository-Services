@@ -28,20 +28,37 @@
     
   <!-- The context params that read by ContextLoaderListener  -->    
       
-  <!--  authutil-context.xml tells the authentication filter where to find Crowd -->     
   <context-param>
     <param-name>contextConfigLocation</param-name>
     <param-value>
-      /WEB-INF/repository-context.xml,
-      classpath:authutil-context.xml
+      /WEB-INF/repository-context.xml
     </param-value>
   </context-param>
- 
+  
   
   <!-- This listener will load other application context file in addition to springweb-servlet.xml -->
   <listener>
     <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
   </listener>
+  
+<!--   	can't inject dependencies in a ServletContextListener -->
+<!-- 	http://stackoverflow.com/questions/4746041/spring-injecting-a-dependency-into-a-servletcontextlistener -->
+<!--    so we define context param's instead -->
+  <context-param>
+    <param-name>org.sagebionetworks.repo.web.PersistenceInitializer.daoFactory</param-name>
+    <param-value>org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl</param-value>
+  </context-param>
+ 
+  <context-param>
+    <param-name>org.sagebionetworks.repo.web.PersistenceInitializer.modelBootstrapper</param-name>
+    <param-value>org.sagebionetworks.repo.model.jdo.JDOBootstrapperImpl</param-value>
+  </context-param>
+ 
+  <context-param>
+    <param-name>accept-all-ssl-certs</param-name>
+    <param-value>true</param-value>
+  </context-param>
+ 
   
   <!-- This listener will ensure that the persistence layer is initialized. -->
   <listener>     

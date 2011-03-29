@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.model.query.ObjectType;
 
+@SuppressWarnings("rawtypes")
 public class SqlConstants {
 	// The alias used for the dataset table.
 	public static final String PRIMARY_ALIAS	= "prm";

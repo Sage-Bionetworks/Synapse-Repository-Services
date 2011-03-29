@@ -12,8 +12,6 @@
 
   <import resource="classpath:repository-servlet.xml" />
   
-  <import resource="classpath:authutil-context.xml" />
-
   <bean id="daoFactory"
         class="org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl"
         scope="singleton" />

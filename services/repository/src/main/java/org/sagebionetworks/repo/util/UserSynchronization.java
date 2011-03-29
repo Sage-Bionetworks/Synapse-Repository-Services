@@ -16,20 +16,17 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.controller.BaseController;
-import org.springframework.beans.factory.annotation.Autowired;
 
 public class UserSynchronization {
 	
 	private static final Logger log = Logger.getLogger(UserSynchronization.class.getName());
 
-	private CrowdAuthUtil crowdAuthUtil = null;
+	private CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 	
 	private UserDAO userDAO = null;
 	
-	public UserSynchronization(UserDAO userDAO, CrowdAuthUtil crowdAuthUtil) {
+	public UserSynchronization(UserDAO userDAO) {
 		this.userDAO=userDAO;
-		this.crowdAuthUtil=crowdAuthUtil;
 	}
 	
 

@@ -9,13 +9,8 @@
                            http://www.springframework.org/schema/context/spring-context-3.0.xsd">
 
   <context:annotation-config />
-
-  <bean id="daoFactory"
+  
+    <bean id="daoFactory"
         class="org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl"
         scope="singleton" />
-        
-  <bean id="modelBootstrapper"
-        class="org.sagebionetworks.repo.model.jdo.JDOBootstrapperImpl"
-        scope="singleton" />
-  
 </beans>

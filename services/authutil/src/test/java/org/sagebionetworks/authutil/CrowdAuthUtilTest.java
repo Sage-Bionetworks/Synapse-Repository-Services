@@ -2,23 +2,36 @@ package org.sagebionetworks.authutil;
 
 import static org.junit.Assert.assertEquals;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import java.util.Arrays;
+import java.util.Collection;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:authutil-test-context.xml" })
+import org.junit.Before;
+import org.junit.Test;
+
 public class CrowdAuthUtilTest {
-	@Autowired
-	CrowdAuthUtil crowdAuthUtil = null;
+	
+	@Before
+	public void setUp() {
+		CrowdAuthUtil.acceptAllCertificates();
+	}
 
 
 	@Test
 	public void testGetFromXML() throws Exception {
 		String s = CrowdAuthUtil.getFromXML("/root/name/@attr", new String("<root><name attr='value'/></root>").getBytes());
 		assertEquals("value", s);
+	}
+	
+	@Test
+	public void testGetMultiFromXML() throws Exception {
+		Collection<String> ss = CrowdAuthUtil.getMultiFromXML("/root/name/@attr", new String("<root><name attr='value'/><name attr='value2'/></root>").getBytes());
+		assertEquals(Arrays.asList(new String[]{"value","value2"}), ss);
+	}
+	
+	@Test
+	public void testGetGroups() throws Exception {
+		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
+		Collection<String> crowdUserIds = crowdAuthUtil.getUsersInGroup(AuthUtilConstants.PLATFORM_GROUP);
 	}
 
 }
