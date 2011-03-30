@@ -54,6 +54,9 @@
     <param-value>org.sagebionetworks.repo.model.jdo.JDOBootstrapperImpl</param-value>
   </context-param>
  
+ <!-- This parameter is used by the user-mirroring service when it makes an SSL connection to Crowd -->
+ <!-- setting it to 'true' makes the repo' application accept all SSL certificates, i.e. when it is -->
+ <!--  acting as a web CLIENT -->
   <context-param>
     <param-name>accept-all-ssl-certs</param-name>
     <param-value>true</param-value>
