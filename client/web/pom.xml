@@ -7,7 +7,7 @@
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>portal</artifactId>
 	<packaging>war</packaging>
-	<version>1.0-SNAPSHOT</version>
+	<version>0.1</version>
 	<name>GWT Maven Archetype</name>
 
 	<properties>
