@@ -25,6 +25,7 @@
     <module>lib</module>
     <module>services</module>
     <module>client</module>
+    <module>integration-test</module>
   </modules>
   
   <repositories>

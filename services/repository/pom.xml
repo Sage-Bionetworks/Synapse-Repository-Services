@@ -10,6 +10,7 @@
   
   <artifactId>services-repository</artifactId>
   <packaging>war</packaging>
+  <version>0.1</version>
   <name>Platform Repository Service</name>
   
   <dependencies>
