@@ -699,12 +699,12 @@ public class JDOQueryDAOImpl implements QueryDAO {
 		// }
 		// }else{
 		// It is empty so we do this manually
-		map.put(JDODataset.class, "jdodataset");
-		map.put(JDOInputDataLayer.class, "jdoinputdatalayer");
-		map.put(JDOStringAnnotation.class, "jdostringannotation");
-		map.put(JDOLongAnnotation.class, "jdolongannotation");
-		map.put(JDODoubleAnnotation.class, "jdodoubleannotation");
-		map.put(JDODateAnnotation.class, "jdodateannotation");
+		map.put(JDODataset.class, "JDODATASET");
+		map.put(JDOInputDataLayer.class, "JDOINPUTDATALAYER");
+		map.put(JDOStringAnnotation.class, "JDOSTRINGANNOTATION");
+		map.put(JDOLongAnnotation.class, "JDOLONGANNOTATION");
+		map.put(JDODoubleAnnotation.class, "JDODOUBLEANNOTATION");
+		map.put(JDODateAnnotation.class, "JDODATEANNOTATION");
 		// }
 
 		return map;
