@@ -381,8 +381,12 @@ public class JDOUserGroupDAOImpl extends
 		Long groupKey = KeyFactory.stringToKey(userGroup.getId());
 		JDOUserGroup jdoGroup = (JDOUserGroup) pm.getObjectById(
 				JDOUserGroup.class, groupKey);
-		if (!canAccess(userId, getJdoClass().getName(), jdoGroup.getId(), AuthorizationConstants.CHANGE_ACCESS, pm))
-			throw new UnauthorizedException();
+		// The original idea was that you can only share something with a group if you have write-access
+		// to the group, but that's too restrictive, as sharing then requires two steps (first get permission
+		// to share with a group, then share the resource).  It's easier to simply say that a user can share
+		// their resource with *any* group
+//		if (!canAccess(userId, getJdoClass().getName(), jdoGroup.getId(), AuthorizationConstants.CHANGE_ACCESS, pm))
+//			throw new UnauthorizedException();
 
 		Transaction tx = null;
 		try {
@@ -421,8 +425,9 @@ public class JDOUserGroupDAOImpl extends
 			Long groupKey = KeyFactory.stringToKey(userGroup.getId());
 			JDOUserGroup jdoGroup = (JDOUserGroup) pm.getObjectById(
 					JDOUserGroup.class, groupKey);
-			if (!canAccess(userId, getJdoClass().getName(), jdoGroup.getId(), AuthorizationConstants.CHANGE_ACCESS, pm))
-				throw new UnauthorizedException();
+			// see comments in 'addResource' as to why this was removed
+//			if (!canAccess(userId, getJdoClass().getName(), jdoGroup.getId(), AuthorizationConstants.CHANGE_ACCESS, pm))
+//				throw new UnauthorizedException();
 			Collection<JDOResourceAccess> ras = jdoGroup.getResourceAccess();
 			tx = pm.currentTransaction();
 			tx.begin();
