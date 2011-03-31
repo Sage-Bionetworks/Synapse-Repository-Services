@@ -18,13 +18,13 @@ public class CrowdAuthUtilTest {
 
 	@Test
 	public void testGetFromXML() throws Exception {
-		String s = CrowdAuthUtil.getFromXML("/root/name/@attr", new String("<root><name attr='value'/></root>").getBytes());
+		String s = CrowdAuthUtil.getFromXML("/root/name/@attr", new String("<?xml version='1.0' encoding='UTF-8'?><root><name attr='value'/></root>").getBytes());
 		assertEquals("value", s);
 	}
 	
 	@Test
 	public void testGetMultiFromXML() throws Exception {
-		Collection<String> ss = CrowdAuthUtil.getMultiFromXML("/root/name/@attr", new String("<root><name attr='value'/><name attr='value2'/></root>").getBytes());
+		Collection<String> ss = CrowdAuthUtil.getMultiFromXML("/root/name/@attr", new String("<?xml version='1.0' encoding='UTF-8'?><root><name attr='value'/><name attr='value2'/></root>").getBytes());
 		assertEquals(Arrays.asList(new String[]{"value","value2"}), ss);
 	}
 	
