@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.jdo.persistence;
 
+import javax.jdo.annotations.Column;
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
@@ -31,6 +32,8 @@ public class JDOStringAnnotation implements JDOAnnotation<String> {
 	@Persistent
 	private String attribute;
 
+	@Persistent
+	@Column(jdbcType="VARCHAR", length=3000)
 	private String value;
 
 	public JDOStringAnnotation() {
