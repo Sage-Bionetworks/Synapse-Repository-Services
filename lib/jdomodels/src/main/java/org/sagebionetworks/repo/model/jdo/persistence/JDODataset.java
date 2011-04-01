@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.jdo.persistence;
 import java.util.Date;
 import java.util.Set;
 
+import javax.jdo.annotations.Column;
 import javax.jdo.annotations.Element;
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.PersistenceCapable;
@@ -45,6 +46,7 @@ public class JDODataset implements JDOBase,
 	private String name;
 
 	@Persistent
+	@Column(jdbcType="VARCHAR", length=3000)
 	private String description;
 
 	@Persistent
