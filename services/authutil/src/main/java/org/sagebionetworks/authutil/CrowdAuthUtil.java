@@ -46,7 +46,7 @@ public class CrowdAuthUtil {
 //	  	Instead the userId becomes the password.
 //	  	If passed as a session token, then no session validation takes place in the 
 //	  	authentication filter.  Instead the userId is passed along as a request param.
-	private String integrationTestUser;
+//	private String integrationTestUser;
 	
 	public CrowdAuthUtil() {
         Properties props = new Properties();
@@ -59,17 +59,17 @@ public class CrowdAuthUtil {
         setProtocol(props.getProperty("protocol"));
         setHost(props.getProperty("host"));
         setPort(Integer.parseInt(props.getProperty("port")));
-        setIntegrationTestUser(props.getProperty("integrationTestUser"));
+//        setIntegrationTestUser(props.getProperty("integrationTestUser"));
 	}
 
 	
-	public String getIntegrationTestUser() {
-		return integrationTestUser;
-	}
-
-	public void setIntegrationTestUser(String integrationTestUser) {
-		this.integrationTestUser = integrationTestUser;
-	}
+//	public String getIntegrationTestUser() {
+//		return integrationTestUser;
+//	}
+//
+//	public void setIntegrationTestUser(String integrationTestUser) {
+//		this.integrationTestUser = integrationTestUser;
+//	}
 
 	public String getProtocol() {
 		return protocol;

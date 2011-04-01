@@ -39,6 +39,24 @@ public class CrowdAuthenticationFilter implements Filter {
 //		String contextPath = req.getContextPath();
 		resp.getWriter().println("{\"reason\", \"The session token provided was missing, invalid or expired.\"}");
 	}
+	
+	private String integrationTestUser;
+	
+
+
+	/**
+	 * @return the integrationTestUser
+	 */
+	public String getIntegrationTestUser() {
+		return integrationTestUser;
+	}
+
+	/**
+	 * @param integrationTestUser the integrationTestUser to set
+	 */
+	public void setIntegrationTestUser(String integrationTestUser) {
+		this.integrationTestUser = integrationTestUser;
+	}
 
 	@Override
 	public void doFilter(ServletRequest servletRqst, ServletResponse servletResponse,
@@ -51,7 +69,7 @@ public class CrowdAuthenticationFilter implements Filter {
 		if (null!=sessionToken) {
 			// validate against crowd
 			try {
-				String itu = crowdAuthUtil.getIntegrationTestUser();
+				String itu = getIntegrationTestUser();
 				if (itu!=null && sessionToken.equals(itu)) {
 					userId= itu;
 				} else {
@@ -88,6 +106,7 @@ public class CrowdAuthenticationFilter implements Filter {
         	String paramValue = filterConfig.getInitParameter(paramName);
            	if ("allow-anonymous".equalsIgnoreCase(paramName)) allowAnonymous = Boolean.parseBoolean(paramValue);
            	if ("accept-all-certificates".equalsIgnoreCase(paramName)) acceptAllCerts = Boolean.parseBoolean(paramValue);
+           	if ("integration-test-user".equalsIgnoreCase(paramName)) setIntegrationTestUser(paramValue);
         }
         
        if (acceptAllCerts) CrowdAuthUtil.acceptAllCertificates();
