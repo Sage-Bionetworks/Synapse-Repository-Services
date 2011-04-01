@@ -23,6 +23,9 @@
 			vertical-align: top;
 		}
 	</ui:style>
+	
+	 <ui:with field='icons' type='org.sagebionetworks.web.client.IconsImageBundle'/>
+	 
 	<g:HTMLPanel>
 		<div class="{style.title}">
 			<span ui:field="titleSpan" />
@@ -52,14 +55,15 @@
 		</table>
 		<hr />
 		<table class="{style.topTable}">
-			<tr class="{style.rowTop}">
+			<tr class="{style.rowTop}" valign="top">
 				<td>
 					<div class="{style.oneThird}">
 						<g:VerticalPanel>					
 							<g:HTML>
 								<h3>Dataset Layers</h3>
-								<p>Select a name to <br/>view smaple data.</p>
-							</g:HTML>
+								<p>Select a name to view smaple data. 
+								<span ui:field="downloadSpan"/></p>
+							</g:HTML>							
 							<g:SimplePanel ui:field="tablePanel" />												
 							<g:SimplePanel ui:field="downloadPanel" />
 						</g:VerticalPanel>

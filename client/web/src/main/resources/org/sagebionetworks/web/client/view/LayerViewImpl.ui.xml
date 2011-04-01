@@ -62,7 +62,7 @@
 			</tr>
 			<tr colspan="2">
 				<td>
-					<span ui:field="downloadSpan" />
+					<g:SimplePanel ui:field="downloadPanel" />
 					<span ui:field="termsOfUseSpan" />
 				</td>
 			</tr>

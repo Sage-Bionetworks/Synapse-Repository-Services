@@ -190,14 +190,14 @@ public class QueryServiceTableViewGxtImpl extends LayoutContainer implements Que
 	public void setColumns(List<HeaderData> list) {
 		// create columns
 		List<ColumnConfig> columns = new ArrayList<ColumnConfig>();
-		for (HeaderData meta : list) {
+		for (final HeaderData meta : list) {
 			if (meta != null && meta.getId() != null
 					&& meta.getDisplayName() != null) {
 				// Now create the column.
 				final Column<Map<String, Object>, ?> columnRenderer = columnFactory.createColumn(meta);
 				// TODO : check if column is allowed to be sortable?				
 				
-				String columnId = meta.getId().replaceFirst("\\.", "_");	
+				final String columnId = meta.getId().replaceFirst("\\.", "_");	
 				ColumnConfig colConfig = new ColumnConfig(columnId, meta.getDisplayName(), meta.getColumnWidth());			
 				
 				// configure cell renderer
@@ -206,7 +206,7 @@ public class QueryServiceTableViewGxtImpl extends LayoutContainer implements Que
 							int rowIndex, int colIndex, ListStore<BaseModelData> store, Grid<BaseModelData> grid) {
 						// render column with appropriate renderer
 						Map<String, Object> dotMap = convertBackToDot(model.getProperties());
-						Object value = columnRenderer.getValue(dotMap);
+						Object value = columnRenderer.getValue(dotMap);							
 						// determine type of value and return reasonable string
 						if (columnRenderer instanceof DateColumn) {
 							 // Date

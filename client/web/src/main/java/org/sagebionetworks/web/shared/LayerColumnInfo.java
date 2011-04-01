@@ -51,9 +51,9 @@ public class LayerColumnInfo implements HeaderData, IsSerializable, CompositeCol
 	public List<String> getBaseDependencyIds() {
 		List<String> dependencies = new ArrayList<String>();
 		// Depends on the display name and url
-		dependencies.add(hasExpression.getId());
 		dependencies.add(hasGenetic.getId());
 		dependencies.add(hasClinical.getId());
+		dependencies.add(hasExpression.getId());
 		return dependencies;
 	}
 	

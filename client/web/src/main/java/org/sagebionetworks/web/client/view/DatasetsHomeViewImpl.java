@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.view;
 
 import java.util.List;
 
+import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.widget.filter.QueryFilter;
 import org.sagebionetworks.web.client.widget.filter.QueryFilter.SelectionListner;
@@ -15,6 +16,8 @@ import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.resources.client.ImageResource;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
+import com.google.gwt.user.client.ui.AbstractImagePrototype;
+import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.Image;
@@ -32,24 +35,18 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 	SimplePanel tablePanel;
 	//ContentPanel tablePanel;
 	@UiField
-	Button addColumnsButton;
+	Anchor addColumnsAnchor;
 	@UiField
 	SimplePanel filterPanel;
-	@UiField
-	TextBox searchTextBox;
-	@UiField (provided=true)
-	PushButton searchButton;
 	
 	private Presenter presenter;
 	private QueryServiceTable queryServiceTable;
 	
 	@Inject
-	public DatasetsHomeViewImpl(DatasetsHomeViewImplUiBinder binder, QueryFilter filter, SageImageBundle imageBundle, QueryServiceTableResourceProvider queryServiceTableResourceProvider) {		
-		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, 890, 440);
+	public DatasetsHomeViewImpl(DatasetsHomeViewImplUiBinder binder, IconsImageBundle icons, QueryFilter filter, SageImageBundle imageBundle, QueryServiceTableResourceProvider queryServiceTableResourceProvider) {		
+		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, 1000, 440);
 		ImageResource searchIR = imageBundle.searchButtonIcon();
-		searchButton = new PushButton(new Image(searchIR));
 		initWidget(binder.createAndBindUi(this));
-		searchButton.setStyleName("imageButton");
 		// Start on the first page and trigger a data fetch from the server
 		queryServiceTable.pageTo(0, 10);
 
@@ -57,13 +54,15 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 		tablePanel.add(queryServiceTable.asWidget());
 		// Add the filter
 		filterPanel.add(filter);
-
-		addColumnsButton.addClickHandler(new ClickHandler(){
+		
+		addColumnsAnchor.setHTML(AbstractImagePrototype.create(icons.tableInsertColumn16()).getHTML() + "&nbsp;<span class=\"add_remove\">Add / remove columns</span>");
+		addColumnsAnchor.addClickHandler(new ClickHandler() {			
 			@Override
 			public void onClick(ClickEvent event) {
 				presenter.onEditColumns();
-			}});
-		
+			}
+		});		
+				
 		// We need to listen to filter changes
 		filter.addSelectionListner(new SelectionListner() {
 			

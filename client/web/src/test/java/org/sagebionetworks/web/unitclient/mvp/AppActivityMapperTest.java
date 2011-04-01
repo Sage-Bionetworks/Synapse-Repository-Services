@@ -1,19 +1,25 @@
 package org.sagebionetworks.web.unitclient.mvp;
 
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import org.junit.Test;
 import org.sagebionetworks.web.client.ProtalGinInjector;
 import org.sagebionetworks.web.client.mvp.AppActivityMapper;
-import org.sagebionetworks.web.client.place.DatasetsHome;
 import org.sagebionetworks.web.client.place.Dataset;
+import org.sagebionetworks.web.client.place.DatasetsHome;
+import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetsHomePresenter;
-
+import org.sagebionetworks.web.client.presenter.HomePresenter;
 
 import com.google.gwt.activity.shared.Activity;
 import com.google.gwt.place.shared.Place;
-
-import static org.easymock.EasyMock.*;
-import static org.junit.Assert.*;
 
 /**
  * Test the activity mapper.
@@ -75,14 +81,14 @@ public class AppActivityMapperTest {
 		// Mock the views
 		ProtalGinInjector mockInjector = createMock(ProtalGinInjector.class);
 		// Mock the presenter
-		DatasetsHomePresenter mockAll = createMock(DatasetsHomePresenter.class);
-		expect(mockInjector.getDatasetsHomePresenter()).andReturn(mockAll);
+		HomePresenter mockAll = createMock(HomePresenter.class);
+		expect(mockInjector.getHomePresenter()).andReturn(mockAll);
 		// This is the place we will pass in
 		Place unknownPlace = new Place(){}; 
 		// This is the place we expect to be used.
-		DatasetsHome allDatestsPlace = new DatasetsHome(null);
+		Home allDatestsPlace = new Home(null);
 		// The place must be set on the presenter
-		mockAll.setPlace((DatasetsHome) anyObject());
+		mockAll.setPlace((Home) anyObject());
 		replay(mockAll);
 		replay(mockInjector);
 		// Create the mapper
@@ -90,7 +96,7 @@ public class AppActivityMapperTest {
 
 		Activity object = mapper.getActivity(unknownPlace);
 		assertNotNull(object);
-		assertTrue(object instanceof DatasetsHomePresenter);
+		assertTrue(object instanceof HomePresenter);
 		// Validate that the place was set.
 		verify(mockAll);
 	}

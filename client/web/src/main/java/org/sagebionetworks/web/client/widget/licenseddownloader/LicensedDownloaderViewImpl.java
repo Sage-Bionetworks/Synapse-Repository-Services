@@ -13,6 +13,7 @@ import com.extjs.gxt.ui.client.event.Listener;
 import com.extjs.gxt.ui.client.event.SelectionListener;
 import com.extjs.gxt.ui.client.util.Margins;
 import com.extjs.gxt.ui.client.widget.ContentPanel;
+import com.extjs.gxt.ui.client.widget.Html;
 import com.extjs.gxt.ui.client.widget.Label;
 import com.extjs.gxt.ui.client.widget.LayoutContainer;
 import com.extjs.gxt.ui.client.widget.Text;
@@ -82,7 +83,7 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 				acceptLicenseCheckBox.setValue(false);
 				acceptLicenseButton.disable();
 			}
-			eulaWindow.show();						
+			eulaWindow.show();		
 		} else {
 			// show download window
 			if(!downloadWindowCreated) {
@@ -120,8 +121,7 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 		
 		// replace the view content if this is after initialization
 		if(licenseTextContainer != null) {
-			licenseTextContainer.removeAll();
-			licenseTextContainer.addText(licenseTextHtml);
+			licenseTextContainer.add(new Html(licenseTextHtml));
 		}
 	}
 	
@@ -149,7 +149,6 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 
 			// replace the view content if this is after initialization
 			if(downloadContentContainer != null) {
-				downloadContentContainer.removeAll();
 				downloadContentContainer.addText(sb.toString());
 			}
 		}

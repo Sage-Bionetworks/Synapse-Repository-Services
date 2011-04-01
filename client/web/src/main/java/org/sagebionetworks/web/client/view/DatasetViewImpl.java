@@ -1,8 +1,11 @@
 package org.sagebionetworks.web.client.view;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
+import org.sagebionetworks.web.client.DisplayConstants;
+import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.presenter.DatasetRow;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloader;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
@@ -22,10 +25,15 @@ import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
+import com.google.gwt.user.client.ui.AbstractImagePrototype;
+import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Button;
+import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
+import com.google.gwt.user.client.ui.FocusWidget;
+import com.google.gwt.user.client.ui.Hyperlink;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
@@ -49,6 +57,8 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	SimplePanel tablePanel;
 	@UiField
 	SimplePanel downloadPanel;
+	@UiField
+	SpanElement downloadSpan;
 
 	private Presenter presenter;
 	private PreviewDisclosurePanel previewDisclosurePanel;
@@ -57,15 +67,18 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	private boolean disableDownloads;
 
 	@Inject
-	public DatasetViewImpl(Binder uiBinder, final PreviewDisclosurePanel previewDisclosurePanel, QueryServiceTableResourceProvider queryServiceTableResourceProvider, LicensedDownloader dsLicensedDownloader) {		
+	public DatasetViewImpl(Binder uiBinder, IconsImageBundle icons, final PreviewDisclosurePanel previewDisclosurePanel, QueryServiceTableResourceProvider queryServiceTableResourceProvider, LicensedDownloader licensedDownloader) {		
 		disableDownloads = false;
 		initWidget(uiBinder.createAndBindUi(this));
 		this.previewDisclosurePanel = previewDisclosurePanel;
-		this.datasetLicensedDownloader = dsLicensedDownloader;
+		this.datasetLicensedDownloader = licensedDownloader;
 		setupDatasetLicensedDownloaderCallbacks();
+		
+		middleFlexTable.setCellSpacing(5);
+		rightFlexTable.setCellSpacing(5);
 
 		// layers table
-		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.layer, false, 300, 300);
+		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.layer, false, 320, 275);
 		tablePanel.add(queryServiceTable.asWidget());
 		
 		// download dataset button
@@ -75,7 +88,18 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 				datasetLicensedDownloader.showWindow();			
 			}
 		}); 		
-		downloadPanel.add(downloadDatasetButton);	
+//		downloadPanel.add(downloadDatasetButton);
+		
+		// download link		
+		Anchor downloadLink = new Anchor();
+		downloadLink.setHTML(AbstractImagePrototype.create(icons.download16()).getHTML() + " Download Dataset");
+		downloadLink.addClickHandler(new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {
+				datasetLicensedDownloader.showWindow();
+			}
+		});
+		downloadPanel.add(downloadLink);
 	}
 
 	@Override
@@ -89,51 +113,65 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	}
 
 	@Override
-	public void setDatasetRow(DatasetRow row) {
+	public void setDatasetDetails(String id, String name, String overviewText,
+			String[] diseases, String[] species, int studySize,
+			String[] tissueTypes, String referencePublicationDisplay,
+			String referencePublicationUrl, int nOtherPublications,
+			String viewOtherPublicationsUrl, Date postedDate,
+			Date curationDate, String[] contributors, int nFollowers,
+			String viewFollowersUrl, String downloadAvailability,
+			String releaseNotesUrl) {
+
+		// assure reasonable values
+		if(id == null) id = "";
+		if(name == null) name = "";
+		if(overviewText == null) overviewText = "";
+		if(diseases == null) diseases = new String[0];
+		if(species == null) species = new String[0];
+		if(tissueTypes == null) tissueTypes = new String[0];
+		if(referencePublicationDisplay == null) referencePublicationDisplay = "";
+		if(referencePublicationUrl == null) referencePublicationUrl = "";
+		if(viewOtherPublicationsUrl == null) viewOtherPublicationsUrl = "";
+		if(contributors == null) contributors = new String[0];
+		if(viewFollowersUrl == null) viewFollowersUrl = "";
+		if(downloadAvailability == null) downloadAvailability = "";
+		if(releaseNotesUrl == null) releaseNotesUrl = "";
+		
 		// Set the where clause
 		List<WhereCondition> whereList = new ArrayList<WhereCondition>();
-		whereList.add(new WhereCondition("dataset.id", WhereOperator.EQUALS, row.getId()));
+		whereList.add(new WhereCondition("dataset.id", WhereOperator.EQUALS, id));
 		this.queryServiceTable.setWhereCondition(whereList);
 		// Clear everything
 		clearAllFields();
-		titleSpan.setInnerText(row.getName());
-
-		// set descriptions
-		String description = row.getDescription();
-		if(description == null){
-			description = "No Description";
-		}
-		int summaryLength = description.length() >= DESCRIPTION_SUMMARY_LENGTH ? DESCRIPTION_SUMMARY_LENGTH
-				: description.length();
-		previewDisclosurePanel.init("Expand",
-				description.substring(0, summaryLength), description);
+		titleSpan.setInnerText(name);
+		
+		int summaryLength = overviewText.length() >= DESCRIPTION_SUMMARY_LENGTH ? DESCRIPTION_SUMMARY_LENGTH : overviewText.length();
+		previewDisclosurePanel.init("Expand", overviewText.substring(0, summaryLength), overviewText);
 		overviewPanel.add(previewDisclosurePanel);
-
-		// First row
+		
+		// add metadata to tables
 		int rowIndex = 0;
-		addRowToTable(rowIndex++, "Disease(s):", "Aging", middleFlexTable);
-		// Second row
-		addRowToTable(rowIndex++, "Species:", "Human, Mouse", middleFlexTable);
-		// Third
-		addRowToTable(rowIndex++, "Study size:", "200", middleFlexTable);
-		// Forth
-		addRowToTable(rowIndex++, "Tissue type(s):", "Brain", middleFlexTable);
+		addRowToTable(rowIndex++, "Disease(s):", join(diseases, ", "), middleFlexTable);
+		addRowToTable(rowIndex++, "Species:", join(species, ", "), middleFlexTable);
+		addRowToTable(rowIndex++, "Tissue Type(s):", join(tissueTypes, ", "), middleFlexTable);
+		addRowToTable(rowIndex++, "Reference Publication:", "<a href=\""+ referencePublicationUrl + "\" target=\"_new\">" + referencePublicationDisplay + "</a>", middleFlexTable);
+		addRowToTable(rowIndex++, "Other Publications:", nOtherPublications + " <a href=\""+ viewOtherPublicationsUrl + "\" target=\"_new\">view</a>", middleFlexTable);
 
-		// Now fill out the right
 		rowIndex = 0;
-		// Fill in the right from the datast
-		if (row.getCreatedOn() != null) {
-			addRowToTable(rowIndex++, "Posted:", DateTimeFormat
-					.getMediumDateTimeFormat().format(row.getCreatedOn()),
-					rightFlexTable);
-		}
-		if (row.getModifiedColumn() != null) {
-			addRowToTable(rowIndex++, "Modified:", DateTimeFormat
-					.getMediumDateTimeFormat().format(row.getModifiedColumn()),
-					rightFlexTable);
-		}
-		addRowToTable(rowIndex++, "Creator:", row.getCreator(), rightFlexTable);
-		addRowToTable(rowIndex++, "Status:", row.getStatus(), rightFlexTable);
+		if(postedDate != null)
+			addRowToTable(rowIndex++, "Posted:", DisplayConstants.DATE_FORMAT.format(postedDate), rightFlexTable);
+		if(curationDate != null)
+			addRowToTable(rowIndex++, "Curated:", DisplayConstants.DATE_FORMAT.format(curationDate), rightFlexTable);				
+		addRowToTable(rowIndex++, "Contributor(s)/Institution:", join(contributors, "<br/>"), rightFlexTable);
+		addRowToTable(rowIndex++, "Followers:", nFollowers + " <a href=\""+ viewFollowersUrl + "\" target=\"_new\">view</a>", rightFlexTable);
+		addRowToTable(rowIndex++, "Download Availability:", downloadAvailability, rightFlexTable);
+		addRowToTable(rowIndex++, "Release Notes:", "<a href=\""+ releaseNotesUrl + "\" target=\"_new\">view</a>", rightFlexTable);			
+
+	}
+	
+	
+	@Override
+	public void setDatasetRow(DatasetRow row) {
 
 	}
 
@@ -146,15 +184,17 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	 */
 	private static void addRowToTable(int row, String key, String value,
 			FlexTable table) {
-		table.setText(row, 0, key);
+		table.setHTML(row, 0, key);
 		table.getCellFormatter().addStyleName(row, 0, "boldRight");
-		table.setText(row, 1, value);
+		table.setHTML(row, 1, value);
 	}
 
 	private void clearAllFields() {
 		titleSpan.setInnerText("");
 		middleFlexTable.clear();
+		middleFlexTable.removeAllRows();
 		rightFlexTable.clear();
+		rightFlexTable.removeAllRows();
 	}
 
 	@Override
@@ -196,5 +236,13 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 
 		});
 	}
-	
+
+	private String join(String[] list, String delimiter) {
+		String returnStr = "";
+		for(String str : list) {
+			if(!"".equals(returnStr)) returnStr += delimiter;
+			returnStr += str;
+		}
+		return returnStr;
+	}
 }

@@ -5,13 +5,13 @@ import com.google.gwt.resources.client.ImageResource;
 
 public interface SageImageBundle extends ClientBundle {
 
-	@Source("images/icon-gene-expression-16.png")
+	@Source("images/icon-gene-expression-16.gif")
 	ImageResource iconGeneExpression16();
 
-	@Source("images/icon-phenotypes-16.png")
+	@Source("images/icon-phenotypes-16.gif")
 	ImageResource iconPhenotypes16();
 	
-	@Source("images/icon-genotypes-16.png")
+	@Source("images/icon-genotypes-16.gif")
 	ImageResource iconGenotype16();
 
 	@Source("images/SagebionetworksLogo.png")

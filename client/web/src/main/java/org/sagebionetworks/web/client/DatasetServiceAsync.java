@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client;
 
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.DatasetAnnotations;
+import org.sagebionetworks.web.shared.DownloadLocation;
 import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
 import org.sagebionetworks.web.shared.PaginatedDatasets;
@@ -28,5 +29,7 @@ public interface DatasetServiceAsync {
 	void getLayerPreviewMap(String datasetId, String layerId,
 			AsyncCallback<TableResults> callback);
 
+	void getLayerDownloadLocation(String datasetId, String layerId,
+			AsyncCallback<DownloadLocation> callback);
 
 }

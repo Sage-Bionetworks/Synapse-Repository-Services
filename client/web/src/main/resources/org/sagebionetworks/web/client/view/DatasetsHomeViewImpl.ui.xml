@@ -13,77 +13,56 @@
 			vertical-align: top;
 		}
 	</ui:style>
+	
+	
 	<g:HTMLPanel>
-		<h2>All Datasets</h2>
-		<p>Nemo enim ipsam voluptatem, quia voluptas sit, aspernatur aut odit
-			aut fugit, sed quia consequuntur magni dolores eos, qui ratione
-			voluptatem sequi nesciunt, neque porro quisquam est, qui dolorem
-			ipsum, quia dolor sit amet, consectetur, adipisci velit, sed quia
-			non
-			numquam ius modi tempora incidunt, ut labore et dolore magnam
-			aliquam
-			quaerat voluptatem. Ut enim ad minima veniam, quis nostrum
-			exercitationem ullam corporis suscipit laboriosam.</p>
-		<hr />
-		<div>
-			<table>
-				<tr class="{style.rowTop}">
-					<td>
-						<div>
-							<table>
-								<tr>
-									<td>
-										<table>
-											<tr>
-												<td>
-													Filter the List:
-												</td>
-											</tr>
-											<tr>
-												<td>
-													By Keyword(s):
-												</td>
-											</tr>
-											<tr >
-												<td>
-													<g:TextBox ui:field="searchTextBox" width="100px" />
-												</td>
-												<td>
-													<g:PushButton ui:field="searchButton" />
-												</td>
-											</tr>
+			<div id="main_content" class="clearfix">
 
-										</table>
+				<ul class="breadcrumbs">
+					<li class="breadcrumb"><a href="index.html">Home</a> > </li>
+				</ul>
+				<h2>All Datasets</h2>
+				<div class="info">
+					Sage Bionetworks has established a catalog of datasets for use in integrative genomics analysis and building predictive computational disease models. The goal is to collate, curate, and host these datasets for use by the entire research community.
+					<br />
 
+					<a href="" class="bulleted">Read more...</a>
+				</div>
+			</div>
+			<div id="sidebar">
+				<div id="participate" class="clearfix">
+						<h5>Invitation to Participate</h5>
+						<br />
+						Do you know of or have you generated a dataset that you would like to have curated and quality controlled to Sage Bionetworks standards?
+						<br /><br />
 
-									</td>
-								</tr>
-								<tr>
-									<td>
-										<div>
-											<g:SimplePanel ui:field="filterPanel" />
-										</div>
-									</td>
-								</tr>
-								<tr>
-									<td>
-										<div align="right">
-											<g:Button ui:field="addColumnsButton" text="Columns..." />
-										</div>
-									</td>
-								</tr>
-							</table>
-						</div>
+						<span class="large_button left">
+							<span class="large_button_left">&nbsp;</span>
+							<span class="large_button_center">Contact Us</span>
+							<span class="large_button_right">&nbsp;</span>
+						</span>
+				</div>
+			</div>
 
-					</td>
-					<td>						
-						<div>
-							<g:SimplePanel ui:field="tablePanel" />
-							<!-- <gxt:ContentPanel headerVisible="false" layout="FitLayout" ui:field="tablePanel"></gxt:ContentPanel> -->
-						</div>
-					</td>
-				</tr>
-			</table>
-		</div>
+			<div id="data">
+				<div id="options">			
+					<g:HorizontalPanel>								
+						<g:SimplePanel ui:field="filterPanel" />					
+						<g:Anchor ui:field="addColumnsAnchor"/>						
+					</g:HorizontalPanel>
+				</div>
+				<div>
+					<g:SimplePanel ui:field="tablePanel" />
+				</div>
+				<div id="legend">
+					<span class="layers_legend">
+						<strong>Layers Legend</strong>
+						<span class="item"><img src="static/images/icon_helix_gradient.gif" /> Genetic</span>
+
+						<span class="item"><img src="static/images/icon_serpent_gradient.gif" /> Phenotypic</span>
+						<span class="item"><img src="static/images/icon_array_gradient.gif" /> Gene Expression</span>
+					</span>
+				</div>				
+			</div>				
 	</g:HTMLPanel>
 </ui:UiBinder> 

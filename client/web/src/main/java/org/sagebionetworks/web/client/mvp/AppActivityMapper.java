@@ -7,9 +7,11 @@ import java.util.logging.Logger;
 import org.sagebionetworks.web.client.ProtalGinInjector;
 import org.sagebionetworks.web.client.place.Dataset;
 import org.sagebionetworks.web.client.place.DatasetsHome;
+import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.place.Layer;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetsHomePresenter;
+import org.sagebionetworks.web.client.presenter.HomePresenter;
 import org.sagebionetworks.web.client.presenter.LayerPresenter;
 
 import com.google.gwt.activity.shared.Activity;
@@ -37,7 +39,11 @@ public class AppActivityMapper implements ActivityMapper {
 	public Activity getActivity(Place place) {
 		// We use GIN to generate and inject all presenters with 
 		// their dependencies.
-		if(place instanceof DatasetsHome){
+		if(place instanceof Home) {
+			HomePresenter presenter = ginjector.getHomePresenter();
+			presenter.setPlace((Home)place);
+			return presenter;
+		} else if(place instanceof DatasetsHome){
 			// The home page for all datasets
 			DatasetsHomePresenter presenter = ginjector.getDatasetsHomePresenter();
 			// set this presenter's place
@@ -66,7 +72,7 @@ public class AppActivityMapper implements ActivityMapper {
 	 * @return
 	 */
 	public Place getDefaultPlace() {
-		return new DatasetsHome(null);
+		return new Home(null);
 	}
 
 }

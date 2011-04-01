@@ -40,7 +40,14 @@ public class LinkColumn extends Column<Map<String, Object>, String> {
 	@Override
 	public String getValue(Map<String, Object> row) {
 		// Since the renderer will not escape html, we must do it here
-		String displayValue = (String) row.get(metadata.getDisplay().getId());
+		String displayId = metadata.getDisplay().getId();
+		String displayValue;		
+		if(displayId.matches("^staticdisplay.+")) {
+			// display description for link text with staticdisplays
+			displayValue = metadata.getDisplay().getDescription();
+		} else {
+			displayValue = (String) row.get(metadata.getDisplay().getId());
+		}
 		String urlValue = (String) row.get(metadata.getUrl().getId());
 		if(displayValue != null && urlValue != null){
 			String safeName = SafeHtmlUtils.htmlEscape(displayValue);

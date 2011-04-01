@@ -8,6 +8,7 @@ import org.sagebionetworks.web.client.DatasetService;
 import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.DatasetAnnotations;
+import org.sagebionetworks.web.shared.DownloadLocation;
 import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
 import org.sagebionetworks.web.shared.PaginatedDatasets;
@@ -55,6 +56,7 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 	public static final String PATH_LAYER = "repo/v1/dataset/{"+KEY_DATASET_ID+"}/layer/{"+ KEY_LAYER_ID +"}";
 	public static final String PATH_LAYER_PREVIEW = "repo/v1/dataset/{"+KEY_DATASET_ID+"}/layer/{"+ KEY_LAYER_ID +"}/preview";
 	public static final String PATH_LAYER_PREVIEW_AS_MAP = "repo/v1/dataset/{"+KEY_DATASET_ID+"}/layer/{"+ KEY_LAYER_ID +"}/previewAsMap";
+	public static final String PATH_LAYER_DOWNLOAD_S3 = "repo/v1/dataset/{"+KEY_DATASET_ID+"}/layer/{"+ KEY_LAYER_ID +"}/awsS3Location";
 
 	
 	private RestTemplateProvider templateProvider = null;
@@ -287,6 +289,36 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 		HttpEntity<String> entity = new HttpEntity<String>("", headers);
 		// Make the actual call.
 		ResponseEntity<TableResults> response = templateProvider.getTemplate().exchange(url, HttpMethod.GET, entity, TableResults.class, map);
+
+		if (response.getStatusCode() == HttpStatus.OK) {
+			return response.getBody();
+		} else {
+			// TODO: better error handling
+			throw new UnknownError("Status code:"
+					+ response.getStatusCode().value());
+		}
+	}
+
+	@Override
+	public DownloadLocation getLayerDownloadLocation(String datasetId, String layerId) {
+		// First make sure the service is ready to go.
+		validateService();
+		// Build up the path
+		StringBuilder builder = new StringBuilder();
+		builder.append(rootUrl);
+		builder.append(PATH_LAYER_DOWNLOAD_S3);
+		// the values to the keys
+		Map<String, String> map = new HashMap<String, String>();
+		map.put(KEY_DATASET_ID, datasetId);
+		map.put(KEY_LAYER_ID, layerId);
+		String url = builder.toString();
+		logger.info("GET: " + url);
+		// Setup the header
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<String>("", headers);
+		// Make the actual call.
+		ResponseEntity<DownloadLocation> response = templateProvider.getTemplate().exchange(url, HttpMethod.GET, entity, DownloadLocation.class, map);
 
 		if (response.getStatusCode() == HttpStatus.OK) {
 			return response.getBody();

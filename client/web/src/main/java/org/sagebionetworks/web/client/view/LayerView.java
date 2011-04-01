@@ -1,9 +1,12 @@
 package org.sagebionetworks.web.client.view;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.web.client.presenter.LayerRow;
+import org.sagebionetworks.web.shared.FileDownload;
+import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.TableResults;
 
 import com.google.gwt.user.client.ui.IsWidget;
@@ -61,6 +64,36 @@ public interface LayerView extends IsWidget {
 								String privacyLevel);
 	
 	/**
+	 * require the view to show the license agreement
+	 * @param requireLicense
+	 */
+	public void requireLicenseAcceptance(boolean requireLicense);
+	
+	/**
+	 * the license agreement to be shown
+	 * @param agreement
+	 */
+	public void setLicenseAgreement(LicenseAgreement agreement);
+	
+	/**
+	 * Set the list of files available via the whole dataset download
+	 * @param downloads
+	 */
+	public void setLicensedDownloads(List<FileDownload> downloads);
+	
+	/**
+	 * Disables the downloading of files
+	 * @param disable
+	 */
+	public void disableLicensedDownloads(boolean disable);
+
+	
+	/**
+	 * Shows a download modal for this layer
+	 */
+	public void showDownload();
+	
+	/**
 	 * This sets the data to be shown in the preview table
 	 * @param preview
 	 * @param columnDisplayOrder
@@ -75,6 +108,7 @@ public interface LayerView extends IsWidget {
 	 */
 	public interface Presenter {
 
+		public void licenseAccepted();
 		
 	}
 

@@ -5,12 +5,14 @@ import com.google.gwt.place.shared.PlaceTokenizer;
 
 public class DatasetsHome extends Place{
 	
+	private String token;
+
 	public DatasetsHome(String token) {
+		this.token = token;
 	}
 
 	public String toToken() {
-		// For now we do not need any tokens for datasets.
-		return "";
+		return token;
 	}
 	
 	public static class Tokenizer implements PlaceTokenizer<DatasetsHome> {

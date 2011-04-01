@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.mvp;
 
 import org.sagebionetworks.web.client.place.DatasetsHome;
 import org.sagebionetworks.web.client.place.Dataset;
+import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.place.Layer;
 
 import com.google.gwt.place.shared.PlaceHistoryMapper;
@@ -13,6 +14,6 @@ import com.google.gwt.place.shared.WithTokenizers;
  * annotation or by extending PlaceHistoryMapperWithFactory and creating a
  * separate TokenizerFactory.
  */
-@WithTokenizers( { DatasetsHome.Tokenizer.class, Dataset.Tokenizer.class, Layer.Tokenizer.class})
+@WithTokenizers( { Home.Tokenizer.class, DatasetsHome.Tokenizer.class, Dataset.Tokenizer.class, Layer.Tokenizer.class})
 public interface AppPlaceHistoryMapper extends PlaceHistoryMapper {
 }

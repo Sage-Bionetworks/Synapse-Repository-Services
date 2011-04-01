@@ -33,22 +33,24 @@ public interface DatasetView extends IsWidget {
 	public void showErrorMessage(String message);
 	
 	
-//	public void setDatasetDetails(String name,
-//								  String overviewText,
-//								  String[] diseases,
-//								  String[] species,
-//								  int studySize,
-//								  String[] tissueTypes,
-//								  String referencePublicationDisplay,
-//								  String referencePublicationUrl,
-//								  int nOtherPublications,
-//								  String viewOtherPublicationsUrl,
-//								  Date postedDate,
-//								  Date curationDate,
-//								  String[] contributors,
-//								  int nFollowers,
-//								  String viewFollowersUrl,
-//								  );
+	public void setDatasetDetails(String id,
+								  String name,
+								  String overviewText,
+								  String[] diseases,
+								  String[] species,
+								  int studySize,
+								  String[] tissueTypes,
+								  String referencePublicationDisplay,
+								  String referencePublicationUrl,
+								  int nOtherPublications,
+								  String viewOtherPublicationsUrl,
+								  Date postedDate,
+								  Date curationDate,
+								  String[] contributors,
+								  int nFollowers,
+								  String viewFollowersUrl,
+								  String downloadAvailability,
+								  String releaseNotesUrl);
 	
 	public void setDatasetRow(DatasetRow row);
 	
@@ -84,7 +86,6 @@ public interface DatasetView extends IsWidget {
 
 		public void licenseAccepted();
 		
-		public void logDownload();
 	}
 
 	

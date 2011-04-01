@@ -2,11 +2,13 @@ package org.sagebionetworks.web.client.presenter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.web.client.DatasetServiceAsync;
 import org.sagebionetworks.web.client.view.DatasetView;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAsync;
 import org.sagebionetworks.web.shared.Dataset;
+import org.sagebionetworks.web.shared.DatasetAnnotations;
 import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 
@@ -60,7 +62,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 			@Override
 			public void onFailure(Throwable caught) {
 				setDataset(null);
-				view.showErrorMessage(caught.getMessage());				
+				view.showErrorMessage("An error retrieving the Dataset occured. Please try reloading the page.");				
 			}
 		});
 		
@@ -70,6 +72,54 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 		this.model = result;
 		view.setDatasetRow(new DatasetRow(result));
 
+		service.getDatasetAnnotations(model.getId(), new AsyncCallback<DatasetAnnotations>() {
+			@Override
+			public void onSuccess(DatasetAnnotations annotations) {
+				Map<String,List<Long>> longAnnotations = annotations.getLongAnnotations();
+				Map<String,List<String>> stringAnnotations = annotations.getStringAnnotations();
+				List<String> diseases = stringAnnotations.containsKey("Disease") ? stringAnnotations.get("Disease") : new ArrayList<String>();
+				List<String> species = stringAnnotations.containsKey("Species") ? stringAnnotations.get("Species") : new ArrayList<String>();
+				List<String> tissueTypes = stringAnnotations.containsKey("Tissue_Tumor") ? stringAnnotations.get("Tissue_Tumor") : new ArrayList<String>();
+				
+				
+				String[] contributors = new String[0]; // TODO : change this to be real				
+								
+				int studySize = 0;
+				if(longAnnotations.containsKey("Number_of_Samples")) {
+					studySize = longAnnotations.get("Number_of_Samples").get(0).intValue();
+				}
+				int nOtherPublications = 0; // TODO : get number of other pubs
+				int nFollowers = 0; // TODO : change this to be real
+				
+				 view.setDatasetDetails(model.getId(),
+				 model.getName(),
+				 model.getDescription(),
+				 diseases.toArray(new String[diseases.size()]), 
+				 species.toArray(new String[species.size()]),
+				 studySize,
+				 tissueTypes.toArray(new String[tissueTypes.size()]),
+				 "PubMed", // TODO : change this to be real
+				 "#", // TODO : change this to be real
+				 nOtherPublications,
+				 "#", // TODO : change this to be real
+				 model.getCreationDate(),
+				 model.getReleaseDate(),
+				 contributors,  
+				 nFollowers,
+				 "#", // TODO : change this to be real
+				 "Available", // TODO : change this to be real. "Posting_Restriction"?
+				 "#" // TODO : change this to be real
+				 );
+			}
+
+
+			@Override
+			public void onFailure(Throwable caught) {
+				view.showErrorMessage("An error retrieving Dataset details occured. Please try reloading the page.");
+			}
+
+		});		
+		
 		// check if license agreement has been accepted
 		// TODO !!!! use real username !!!!
 		licenseService.hasAccepted("GET-USERNAME", result.getUri(), new AsyncCallback<Boolean>() {
@@ -117,9 +167,6 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 		});		
 	}
 
-	@Override
-	public void logDownload() {		
-	}
 }
 
 

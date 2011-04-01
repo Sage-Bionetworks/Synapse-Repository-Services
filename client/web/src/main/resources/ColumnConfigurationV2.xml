@@ -70,7 +70,7 @@
 			<display>Disease</display>
 			<description>What disease is this dataset about</description>
 		</column>
-		<column id="dataset.Tissue/Tumor">
+		<column id="dataset.Tissue_Tumor">
 			<type>StringArray</type>
 			<display>Tumor / Tissue Type</display>
 			<description>Tumor / Tissue Type</description>
@@ -138,6 +138,11 @@
 			<display>Layer Version</display>
 			<description>Layer Version</description>
 		</column>
+		<column id="staticdisplay.download">
+			<type>String</type>
+			<display>Download</display>
+			<description>download</description>
+		</column>		
 
 		
 		<!-- The more complex/composite columns -->
@@ -179,6 +184,19 @@
 			<display reference="layer.name" />
 			<url reference="layer.Url" />
 		</link-column>
+		
+		<!-- A dynamic relative URL will be built for downloading layers using the ID column -->
+		<url-template id="layer.DownloadUrl">
+			<type>String</type>
+			<urlTemplate>Layer:{layer.id};Dataset:{dataset.id};Download:true</urlTemplate>
+		</url-template>
+		<!-- Acts as the layer name column  -->
+		<link-column id="layer.DownloadLink">
+			<display reference="staticdisplay.download" />
+			<url reference="layer.DownloadUrl" />
+		</link-column>
+		
+		
 
 	</columns>
 </configuration>

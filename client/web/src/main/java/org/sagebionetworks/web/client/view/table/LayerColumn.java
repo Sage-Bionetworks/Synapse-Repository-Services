@@ -37,15 +37,6 @@ public class LayerColumn extends Column<Map<String, Object>, String>{
 		Boolean hasPheontype = (Boolean) row.get(meta.getHasClinical().getId());
 		if(hasExpression != null && hasGenetic != null && hasPheontype != null){
 			StringBuilder builder = new StringBuilder();
-			// Expression
-			if(hasExpression.booleanValue()){
-				// show icon
-				builder.append(imagePrototype.getIconGeneExpression16());
-			}else{
-				// show transparent icon
-				builder.append(imagePrototype.getIconTransparent16Html());				
-			}
-			builder.append(" ");
 			// genetic
 			if(hasGenetic.booleanValue()){
 				// show icon
@@ -54,7 +45,9 @@ public class LayerColumn extends Column<Map<String, Object>, String>{
 				// show transparent icon
 				builder.append(imagePrototype.getIconTransparent16Html());				
 			}
+			
 			builder.append(" ");
+
 			//phenotype
 			if(hasPheontype.booleanValue()){
 				// show icon
@@ -63,6 +56,18 @@ public class LayerColumn extends Column<Map<String, Object>, String>{
 				// show transparent icon
 				builder.append(imagePrototype.getIconTransparent16Html());				
 			}
+
+			builder.append(" ");
+			
+			// Expression
+			if(hasExpression.booleanValue()){
+				// show icon
+				builder.append(imagePrototype.getIconGeneExpression16());
+			}else{
+				// show transparent icon
+				builder.append(imagePrototype.getIconTransparent16Html());				
+			}
+
 			return builder.toString();
 		}
 		return null;
