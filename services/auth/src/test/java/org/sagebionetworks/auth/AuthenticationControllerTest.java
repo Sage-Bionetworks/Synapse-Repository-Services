@@ -5,6 +5,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -157,7 +160,15 @@ public class AuthenticationControllerTest {
 	@Test
 	public void testCreateNewUser() throws Exception {
 		// special userId for testing -- no confirmation email is sent!
-		String userId = crowdAuthUtil.getIntegrationTestUser();
+		Properties props = new Properties();
+        InputStream is = AuthenticationControllerTest.class.getClassLoader().getResourceAsStream("authenticationcontroller.properties");
+        try {
+        	props.load(is);
+        } catch (IOException e) {
+        	throw new RuntimeException(e);
+        }
+        String userId = props.getProperty("integrationTestUser");
+
 		assertNotNull(userId);
 		try {
 			helper.testCreateJsonEntity("/user",
@@ -190,7 +201,15 @@ public class AuthenticationControllerTest {
 	public void testCreateAndUpdateUser() throws Exception {
 		
 		// special userId for testing -- no confirmation email is sent!
-		String userId = crowdAuthUtil.getIntegrationTestUser();
+		// special userId for testing -- no confirmation email is sent!
+		Properties props = new Properties();
+        InputStream is = AuthenticationControllerTest.class.getClassLoader().getResourceAsStream("authenticationcontroller.properties");
+        try {
+        	props.load(is);
+        } catch (IOException e) {
+        	throw new RuntimeException(e);
+        }
+        String userId = props.getProperty("integrationTestUser");
 		assertNotNull(userId);
 		try {
 			

@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class CrowdAuthUtilTest {
@@ -28,6 +29,7 @@ public class CrowdAuthUtilTest {
 		assertEquals(Arrays.asList(new String[]{"value","value2"}), ss);
 	}
 	
+	@Ignore
 	@Test
 	public void testGetGroups() throws Exception {
 		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();

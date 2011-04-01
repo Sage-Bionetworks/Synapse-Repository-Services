@@ -112,12 +112,13 @@ public class UserMirrorControllerTest {
 		
 		String authenticationServiceURL = System.getProperty("AUTHENTICATION_SERVICE_URL");
 		if (authenticationServiceURL==null) return; // we are not in 'integration test' mode
-		String userId = crowdAuthUtil.getIntegrationTestUser();
+		String userId = "user-org.sagebionetworks.repo.web.controller.UserMirrorControllerTest"; // crowdAuthUtil.getIntegrationTestUser();
 //		'log in' as admin
 		UserDAO userDAO  = daoFactory.getUserDAO(AuthUtilConstants.ADMIN_USER_ID);
 //		check that account doesn't exist in persistence layer
 		try {
-			Collection<User> users = userDAO.getInRangeHavingPrimaryField(0, 1, "userId", userId);
+			/*Collection<User> users = */
+			userDAO.getInRangeHavingPrimaryField(0, 1, "userId", userId);
 			// exception occurs because the userId passed to the DAO doesn't exist
 			fail("Exception expected");
 		} catch (NotFoundException nfe) {

@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+
 @Controller
 public class AuthenticationController {
 	private static final Logger log = Logger.getLogger(AuthenticationController.class
@@ -37,9 +38,32 @@ public class AuthenticationController {
 	
 	private CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 	
+//	   a special userId that's used for integration testing
+//	   we need a way to specify a 'back door' userId for integration testing
+//	   the authentication servlet
+//	   this should not be present in the production deployment
+//	   The behavior is as follows
+//	  	If passed to the user creation service, there is no confirmation email generated.
+//	  	Instead the userId becomes the password.
+	private String integrationTestUser = null;
+
+	
+	/**
+	 * @return the integrationTestUser
+	 */
+	public String getIntegrationTestUser() {
+		return integrationTestUser;
+	}
+
+	/**
+	 * @param integrationTestUser the integrationTestUser to set
+	 */
+	public void setIntegrationTestUser(String integrationTestUser) {
+		this.integrationTestUser = integrationTestUser;
+	}
+
 	public AuthenticationController() {
         Properties props = new Properties();
-        //InputStream is = ClassLoader.getSystemResourceAsStream("mirrorservice.properties");
         InputStream is = AuthenticationController.class.getClassLoader().getResourceAsStream("mirrorservice.properties");
         try {
         	props.load(is);
@@ -48,6 +72,22 @@ public class AuthenticationController {
         }
         repositoryServicesURL = props.getProperty("repositoryServicesURL");
         adminPW=props.getProperty("adminPW");
+        try {
+	        is.close();
+	    } catch (IOException e) {
+	    	throw new RuntimeException(e);
+	    }
+        // optional, only used for testing
+        props = new Properties();
+        is = AuthenticationController.class.getClassLoader().getResourceAsStream("authenticationcontroller.properties");
+        if (is!=null) {
+	        try {
+	        	props.load(is);
+	        } catch (IOException e) {
+	        	throw new RuntimeException(e);
+	        }
+	        setIntegrationTestUser(props.getProperty("integrationTestUser"));
+        }
 	}
 
 	@ResponseStatus(HttpStatus.CREATED)
@@ -82,7 +122,7 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/user", method = RequestMethod.POST)
 	public void createUser(@RequestBody User user) throws Exception {
-		String itu = crowdAuthUtil.getIntegrationTestUser();
+		String itu = getIntegrationTestUser();
 		boolean isITU = (itu!=null && user.getUserId().equals(itu));
 		if (!isITU) {
 			user.setPassword(""+rand.nextLong());
@@ -133,7 +173,7 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/user", method = RequestMethod.DELETE)
 	public void deleteUser(@RequestBody User user) throws Exception {
-		String itu = crowdAuthUtil.getIntegrationTestUser();
+		String itu = getIntegrationTestUser();
 		boolean isITU = (itu!=null && user.getUserId().equals(itu));
 		if (!isITU) throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not allowed outside of integration testing.", null);
 		crowdAuthUtil.deleteUser(user);
@@ -144,7 +184,7 @@ public class AuthenticationController {
 	@RequestMapping(value = "/user", method = RequestMethod.PUT)
 	public void updateUser(@RequestBody User user,
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-		String itu = crowdAuthUtil.getIntegrationTestUser();
+		String itu = getIntegrationTestUser();
 		boolean isITU = (itu!=null && user.getUserId().equals(itu));
 		if (!isITU) {
 			user.setPassword(null);
