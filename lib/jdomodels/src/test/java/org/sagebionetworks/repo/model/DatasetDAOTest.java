@@ -792,5 +792,57 @@ public class DatasetDAOTest {
 	public void testRetrieveByRevision() throws Exception {
 		// TODO
 	}
+	
+
+	@Test
+	public void TestCreateDatasetWithLongDescription() throws Exception {
+		//	Description with more than 256 chars (should be 2880 chars) 
+//		String desc = new String(new char[10]).replace("\0", "Lorem ipsum vis alia possit dolores an, id quo apeirian consequat. Te usu nihil facilis forensibus, graece populo deserunt vel an. Populo semper eu quo, ne ignota deleniti salutatus mea. Ullum petentium et duo, adhuc detracto vel ei. Disputando delicatissimi et eos, eam no labore mollis,");
+		String desc = "Lorem ipsum vis alia possit dolores an, id quo apeirian consequat. Te usu nihil facilis forensibus, graece populo deserunt vel an. Populo semper eu quo, ne ignota deleniti salutatus mea. Ullum petentium et duo, adhuc detracto vel ei. Disputando delicatissimi et eos, eam no labore mollis,";
+		//	Dataset
+		Dataset d = new Dataset();
+		Date now = new Date();
+		d.setName("ADatasetWithLongDesc");
+		d.setCreator("Xa");
+		d.setDescription(desc);
+		d.setCreationDate(now);
+		d.setReleaseDate(now);
+		d.setVersion("1.0");
+		d.setStatus("in progress");
+		
+		DatasetDAO dao = fac.getDatasetDAO(null);
+		String id = dao.create(d);
+		this.dsIds.add(KeyFactory.stringToKey(id));
+		Assert.assertNotNull(id);
+		
+		Dataset d2 = dao.get(id);
+		Assert.assertEquals(d.getDescription(), d2.getDescription());
+	}
+	
+	@Test
+	public void TestCreateDatasetWithTooLongDescription() throws Exception {
+		//	Description with more than 256 chars (should be > 3000 chars)
+		String s = "Lorem ipsum vis alia possit dolores an, id quo apeirian consequat. Te usu nihil facilis forensibus, graece populo deserunt vel an. Populo semper eu quo, ne ignota deleniti salutatus mea. Ullum petentium et duo, adhuc detracto vel ei. Disputando delicatissimi et eos, eam no labore mollis,";
+		String desc = new String(new char[11]).replace("\0", s);
+		//	Dataset
+		Dataset d = new Dataset();
+		Date now = new Date();
+		d.setName("ADatasetWithLongDesc");
+		d.setCreator("Xa");
+		d.setDescription(desc);
+		d.setCreationDate(now);
+		d.setReleaseDate(now);
+		d.setVersion("1.0");
+		d.setStatus("in progress");
+		
+		try {
+			DatasetDAO dao = fac.getDatasetDAO(null);
+			String id = dao.create(d);
+			Assert.fail("Exception expected");
+		} catch (Exception e) {
+			// as expected
+		}
+		
+	}
 
 }
