@@ -46,7 +46,7 @@ public class SqlConstantsTest {
 	}
 	
 	@Test
-	public void testGetSqlForComparator(){
+	public void testGetSqlForAllComparator(){
 		// Make sure we support all types
 		Compartor[] all = Compartor.values();
 		for(Compartor comp: all){
@@ -54,5 +54,29 @@ public class SqlConstantsTest {
 			assertNotNull(sql);
 		}
 	}
+	
+	@Test
+	public void testEquals(){
+		assertEquals("=", SqlConstants.getSqlForComparator(Compartor.EQUALS));
+	}
 
+	@Test
+	public void testGreater(){
+		assertEquals(">", SqlConstants.getSqlForComparator(Compartor.GREATER_THAN));
+	}
+	
+	@Test
+	public void testLesss(){
+		assertEquals("<", SqlConstants.getSqlForComparator(Compartor.LESS_THAN));
+	}
+	
+	@Test
+	public void testGreaterThanOrEquals(){
+		assertEquals(">=", SqlConstants.getSqlForComparator(Compartor.GREATER_THAN_OR_EQUALS));
+	}
+	
+	@Test
+	public void testLessThanOrEquals(){
+		assertEquals("<=", SqlConstants.getSqlForComparator(Compartor.LESS_THAN_OR_EQUALS));
+	}
 }
