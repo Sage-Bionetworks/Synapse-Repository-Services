@@ -16,7 +16,7 @@ import com.google.gwt.user.client.rpc.IsSerializable;
 public class SearchParameters implements IsSerializable{
 	
 	private List<String> selectColumns;
-	private ObjectType fromType;
+	private String fromType;
 	private int offset = 1;
 	private int limit = 10;
 	private String sort;
@@ -32,7 +32,7 @@ public class SearchParameters implements IsSerializable{
 	public SearchParameters(List<String> selectColumns, String fromType, List<WhereCondition>  where, int offset, int limit,
 			String sort, boolean ascending) {
 		super();
-		this.fromType = ObjectType.valueOf(fromType);
+		this.fromType = ObjectType.valueOf(fromType).name();
 		this.selectColumns = selectColumns;
 		this.where = where;
 		this.offset = offset;
@@ -75,7 +75,7 @@ public class SearchParameters implements IsSerializable{
 	 * @return
 	 */
 	public String getFromType() {
-		return fromType.name();
+		return fromType;
 	}
 	/**
 	 * Using "fetch" instead of "get" to work around the
@@ -83,10 +83,10 @@ public class SearchParameters implements IsSerializable{
 	 * @return
 	 */
 	public ObjectType fetchType(){
-		return fromType;
+		return ObjectType.valueOf(fromType);
 	}
 	public void setFromType(String fromType) {
-		this.fromType = ObjectType.valueOf(fromType);
+		this.fromType = ObjectType.valueOf(fromType).name();
 	}
 	
 	public List<WhereCondition>  getWhere() {

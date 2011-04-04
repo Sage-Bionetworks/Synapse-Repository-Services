@@ -1,5 +1,6 @@
 package org.sagebionetworks.web.server.servlet;
 
+import java.lang.reflect.Proxy;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -8,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Logger;
+
+import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.web.client.SearchService;
 import org.sagebionetworks.web.server.ColumnConfigProvider;
@@ -27,6 +30,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
+import com.google.gwt.user.server.rpc.SerializationPolicy;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 
@@ -44,8 +48,12 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 	 * Injected with Gin
 	 */
 	private ColumnConfigProvider columnConfig;
-
-	private String rootUrl;
+	
+	/**
+	 * Injected with Gin
+	 */
+	private ServiceUrlProvider urlProvider;
+	
 
 	/**
 	 * Injected via Gin.
@@ -57,6 +65,7 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 		this.templateProvider = template;
 	}
 
+
 	/**
 	 * Injected via Gin
 	 * 
@@ -66,20 +75,15 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 	public void setColunConfigProvider(ColumnConfigProvider columnConfig) {
 		this.columnConfig = columnConfig;
 	}
-
+	
 	/**
-	 * Injected via Guice from the ServerConstants.properties file.
-	 * 
-	 * @param url
+	 * Injected vid Gin
+	 * @param provider
 	 */
 	@Inject
-	public void setRootUrl(
-			@Named(ServerConstants.KEY_REST_API_ROOT_URL) String url) {
-		this.rootUrl = url;
-		logger.info("rootUrl:" + this.rootUrl);
-
+	public void setServiceUrlProvider(ServiceUrlProvider provider){
+		this.urlProvider = provider;
 	}
-
 
 
 	@Override
@@ -101,7 +105,7 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 		// Execute the query
 
 		// Build the uri from the parameters
-		URI uri = QueryStringUtils.writeQueryUri(rootUrl, params);
+		URI uri = QueryStringUtils.writeQueryUri(urlProvider.getBaseUrl(), params);
 		logger.info("Url GET: " + uri.toString());
 
 		HttpHeaders headers = new HttpHeaders();
@@ -136,7 +140,7 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 
 		return results;
 	}
-	
+
 	/**
 	 * This is a workaround for PLFM-77
 	 * @param where
@@ -240,6 +244,11 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 	@Override
 	public List<FilterEnumeration> getFilterEnumerations() {
 		return columnConfig.getFilterEnumerations();
+	}
+
+	@Override
+	protected void checkPermutationStrongName() throws SecurityException {
+		// No-opp here allows us to make RPC calls for integration testing.
 	}
 
 }

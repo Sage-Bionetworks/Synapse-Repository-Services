@@ -2,6 +2,7 @@ package org.sagebionetworks.web.server;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,11 +28,13 @@ public class PortalServletModule extends ServletModule {
 
 	@Override
 	protected void configureServlets() {
+		// filter all call through this filter
+		filter("/Portal/*").through(RPCValidationFilter.class);
+		bind(RPCValidationFilter.class).in(Singleton.class);
 		// Setup the mapping
 		bind(DatasetServiceImpl.class).in(Singleton.class);
 		serve("/Portal/dataset").with(DatasetServiceImpl.class);
 		// Setup the Search service
-		// Setup the mapping
 		bind(SearchServiceImpl.class).in(Singleton.class);
 		serve("/Portal/search").with(SearchServiceImpl.class);
 
@@ -49,6 +52,8 @@ public class PortalServletModule extends ServletModule {
 		bind(ColumnConfigProvider.class).in(Singleton.class);
 	}
 	
+	
+	
 	/**
 	 * Attempt to bind all properties found in the given property file.
 	 * The property file should be on the classpath.
@@ -59,7 +64,23 @@ public class PortalServletModule extends ServletModule {
 		if(in != null){
 			try{
 				Properties props = new Properties();
+				// First load the properties from the server config file.
 				props.load(in);
+				// Override any property that is in the System properties.
+				Properties systemProps = System.getProperties();
+				Iterator<Object> it = systemProps.keySet().iterator();
+				while(it.hasNext()){
+					Object obKey = it.next();
+					if(obKey instanceof String){
+						String key = (String) obKey;
+						// Add all system properites
+						String newValue = systemProps.getProperty(key);
+						String previous = (String) props.setProperty(key, newValue);
+						if(previous != null){
+							logger.info("Overriding a ServerConstants.properties key: "+key+" with a value from System.properties(). New value: "+newValue);
+						}
+					}
+				}
 				// Bind the properties
 				Names.bindProperties(binder(),props);
 			} catch (IOException e) {

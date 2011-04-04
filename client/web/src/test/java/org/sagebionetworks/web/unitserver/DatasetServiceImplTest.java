@@ -19,6 +19,7 @@ import org.junit.Test;
 import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.server.RestTemplateProviderImpl;
 import org.sagebionetworks.web.server.servlet.DatasetServiceImpl;
+import org.sagebionetworks.web.server.servlet.ServiceUrlProvider;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.PaginatedDatasets;
 import org.sagebionetworks.web.util.LocalDatasetServiceStub;
@@ -74,7 +75,10 @@ public class DatasetServiceImplTest {
 		service = new DatasetServiceImpl();
 		// Inject the required values
 		service.setRestTemplate(provider);
-		service.setRootUrl(serviceUrl.toString());
+		ServiceUrlProvider urlProvider = new ServiceUrlProvider();
+		urlProvider.setRestEndpoint(serviceUrl.toString());
+		urlProvider.setServletPrefix("repo/v1/");
+		service.setServiceUrlProvider(urlProvider);
 	}
 	
 	/**
@@ -132,7 +136,10 @@ public class DatasetServiceImplTest {
 			//expected;
 		}
 		// After setting the url it should pass validation.
-		dummy.setRootUrl("dummy url");
+		ServiceUrlProvider urlProvider = new ServiceUrlProvider();
+		urlProvider.setRestEndpoint(serviceUrl.toString());
+		urlProvider.setServletPrefix("repo/v1");
+		dummy.setServiceUrlProvider(urlProvider);
 	}
 	
 	@Test
