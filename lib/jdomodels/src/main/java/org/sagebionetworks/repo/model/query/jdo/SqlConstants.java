@@ -30,10 +30,13 @@ public class SqlConstants {
 	// This is the alias of the sub-query used for sorting on annotations.
 	public static final String ANNOTATION_SORT_SUB_ALIAS 	= "assa";
 	
-	public static final String OPERATOR_SQL_EQUALS			= "=";
-	public static final String OPERATOR_SQL_DOES_NOT_EQUAL	= "!=";
-	public static final String OPERATOR_SQL_GREATER_THAN	= ">";
-	public static final String OPERATOR_SQL_LESS_THAN		= "<";
+	public static final String OPERATOR_SQL_EQUALS					= "=";
+	public static final String OPERATOR_SQL_DOES_NOT_EQUAL			= "!=";
+	public static final String OPERATOR_SQL_GREATER_THAN			= ">";
+	public static final String OPERATOR_SQL_LESS_THAN				= "<";
+	public static final String OPERATOR_SQL_GREATER_THAN_OR_EQUALS	= ">=";
+	public static final String OPERATOR_SQL_LESS_THAN_OR_EQUALS		= "<=";
+	
 	
 	public static final String INPUT_DATA_LAYER_DATASET_ID = "INPUT_LAYERS_ID_OWN";
 	
@@ -107,6 +110,10 @@ public class SqlConstants {
 			return OPERATOR_SQL_GREATER_THAN;
 		}else if(Compartor.LESS_THAN == comp){
 			return OPERATOR_SQL_LESS_THAN;
+		}else if(Compartor.GREATER_THAN_OR_EQUALS == comp){
+			return OPERATOR_SQL_GREATER_THAN_OR_EQUALS;
+		}else if(Compartor.LESS_THAN_OR_EQUALS == comp){
+			return OPERATOR_SQL_LESS_THAN_OR_EQUALS;
 		}else{
 			throw new IllegalArgumentException("Unsupported Compartor: "+comp);
 		}

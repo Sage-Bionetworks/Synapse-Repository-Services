@@ -58,6 +58,81 @@ public class QueryParserTest {
 		assertEquals("type", expression.getId().getFieldName());
 		assertEquals("C", expression.getValue());
 	}
+	
+	@Test
+	public void testWhereGreaterThanLong() throws Exception {
+		QueryStatement stmt = new QueryStatement(
+				"select * from datasets where datasets.Number_of_Samples > 101");
+		assertEquals("datasets", stmt.getTableName());
+		assertNotNull(stmt.getSearchCondition());
+		assertEquals(1, stmt.getSearchCondition().size());
+		assertTrue(stmt.getSearchCondition().get(0) instanceof Expression);
+		Expression expression = (Expression) stmt.getSearchCondition().get(0);
+		assertEquals("Number_of_Samples", expression.getId().getFieldName());
+		assertTrue(expression.getValue() instanceof Long);
+		assertEquals(101, ((Long)expression.getValue()).longValue());
+		assertEquals(Compartor.GREATER_THAN, expression.getCompare());
+	}
+	
+	@Test
+	public void testWhereGreaterThanOrEqualsLong() throws Exception {
+		QueryStatement stmt = new QueryStatement(
+				"select * from datasets where datasets.Number_of_Samples >= 101");
+		assertEquals("datasets", stmt.getTableName());
+		assertNotNull(stmt.getSearchCondition());
+		assertEquals(1, stmt.getSearchCondition().size());
+		assertTrue(stmt.getSearchCondition().get(0) instanceof Expression);
+		Expression expression = (Expression) stmt.getSearchCondition().get(0);
+		assertEquals("Number_of_Samples", expression.getId().getFieldName());
+		assertTrue(expression.getValue() instanceof Long);
+		assertEquals(101, ((Long)expression.getValue()).longValue());
+		assertEquals(Compartor.GREATER_THAN_OR_EQUALS, expression.getCompare());
+	}
+	
+	@Test
+	public void testLessThanLong() throws Exception {
+		QueryStatement stmt = new QueryStatement(
+				"select * from datasets where datasets.Number_of_Samples < 101");
+		assertEquals("datasets", stmt.getTableName());
+		assertNotNull(stmt.getSearchCondition());
+		assertEquals(1, stmt.getSearchCondition().size());
+		assertTrue(stmt.getSearchCondition().get(0) instanceof Expression);
+		Expression expression = (Expression) stmt.getSearchCondition().get(0);
+		assertEquals("Number_of_Samples", expression.getId().getFieldName());
+		assertTrue(expression.getValue() instanceof Long);
+		assertEquals(101, ((Long)expression.getValue()).longValue());
+		assertEquals(Compartor.LESS_THAN, expression.getCompare());
+	}
+	
+	@Test
+	public void testLessThanOrEqualsLong() throws Exception {
+		QueryStatement stmt = new QueryStatement(
+				"select * from datasets where datasets.Number_of_Samples <= 101");
+		assertEquals("datasets", stmt.getTableName());
+		assertNotNull(stmt.getSearchCondition());
+		assertEquals(1, stmt.getSearchCondition().size());
+		assertTrue(stmt.getSearchCondition().get(0) instanceof Expression);
+		Expression expression = (Expression) stmt.getSearchCondition().get(0);
+		assertEquals("Number_of_Samples", expression.getId().getFieldName());
+		assertTrue(expression.getValue() instanceof Long);
+		assertEquals(101, ((Long)expression.getValue()).longValue());
+		assertEquals(Compartor.LESS_THAN_OR_EQUALS, expression.getCompare());
+	}
+	
+	@Test
+	public void testNotEqualsString() throws Exception {
+		QueryStatement stmt = new QueryStatement(
+				"select * from datasets where datasets.SomeString != \"Value String\"");
+		assertEquals("datasets", stmt.getTableName());
+		assertNotNull(stmt.getSearchCondition());
+		assertEquals(1, stmt.getSearchCondition().size());
+		assertTrue(stmt.getSearchCondition().get(0) instanceof Expression);
+		Expression expression = (Expression) stmt.getSearchCondition().get(0);
+		assertEquals("SomeString", expression.getId().getFieldName());
+		assertTrue(expression.getValue() instanceof String);
+		assertEquals("Value String", expression.getValue());
+		assertEquals(Compartor.NOT_EQUALS, expression.getCompare());
+	}
 
 	/**
 	 * @throws Exception
