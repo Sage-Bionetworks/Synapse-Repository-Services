@@ -19,7 +19,6 @@ public class ITBasicRepository {
 	
 	public static List<String> urlsToTest = new ArrayList<String>();
 	public static String baseUrl = "http://localhost:8080/services-repository-0.1/";
-	public static String urlPrefix;
 	public static RestTemplate template;
 	
 	@BeforeClass
