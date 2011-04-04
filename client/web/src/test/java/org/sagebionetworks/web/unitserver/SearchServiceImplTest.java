@@ -24,6 +24,7 @@ import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.server.RestTemplateProviderImpl;
 import org.sagebionetworks.web.server.ServerConstants;
 import org.sagebionetworks.web.server.servlet.SearchServiceImpl;
+import org.sagebionetworks.web.server.servlet.ServiceUrlProvider;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.SearchParameters;
@@ -83,7 +84,10 @@ public class SearchServiceImplTest {
 		columnConfigProvider.setDefaultDatasetColumns(defultDatasetCols);
 		service.setColunConfigProvider(columnConfigProvider);
 		service.setRestTemplate(provider);
-		service.setRootUrl(serviceUrl.toString());
+		ServiceUrlProvider urlProvider = new ServiceUrlProvider();
+		urlProvider.setRestEndpoint(serviceUrl.toString());
+		urlProvider.setServletPrefix("repo/v1/");
+		service.setServiceUrlProvider(urlProvider);
 	}
 	
 	@AfterClass

@@ -35,9 +35,14 @@ public class ServerConstants {
 	
 	
 	/**
-	 * The property key that tells where the root of the rest API can be found;
+	 * The property key that tells where the rest API service endpoint is.
 	 */
-	public static final String KEY_REST_API_ROOT_URL = "org.sagebionetworks.rest.api.root.url";
+	public static final String KEY_REST_API_ENDPOINT = "org.sagebionetworks.rest.api.endpoint";
+	
+	/**
+	 * The property key for the rest api servlet prefix.
+	 */
+	public static final String KEY_REST_API_SERVLET_PREFIX = "org.sagebionetworks.rest.api.servlet.prefix";
 	
 
 }

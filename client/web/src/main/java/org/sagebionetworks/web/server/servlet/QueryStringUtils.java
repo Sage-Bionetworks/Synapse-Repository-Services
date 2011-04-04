@@ -42,7 +42,7 @@ public class QueryStringUtils {
 	public static final String STAR = "*";
 	public static final String WHITE_SPACE = "+";
 	
-	public static final String PATH_QUERY = "repo/v1/query?query=";
+	public static final String PATH_QUERY = "query?query=";
 
 	/**
 	 * Build up a query String from the given parameters.

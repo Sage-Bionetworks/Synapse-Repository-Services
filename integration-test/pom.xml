@@ -15,15 +15,35 @@
 	<version>0.1</version>
 	<name>Integration Tests for All services</name>
 
+	<repositories>
+		<repository>
+			<id>sagebionetworks</id>
+			<name>sagebionetworks-releases</name>
+			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local</url>
+		</repository>
+		<repository>
+			<id>maven-central-rep-1</id>
+			<url>http://repo1.maven.org/maven2/</url>
+		</repository>
+		<repository>
+			<id>sun-maven-repository</id>
+			<url>http://download.java.net/maven/2/</url>
+		</repository>
+	</repositories>
+
 	<properties>
 		<org.springframework.version>3.0.5.RELEASE</org.springframework.version>
 		<tomcat-version>6.0.32</tomcat-version>
 		<tomcat-file>apache-tomcat-${tomcat-version}</tomcat-file>
 		<!-- This is where the repository war will be deployed -->
-		<sage.repository.deploy>services-repository-${project.version}</sage.repository.deploy>
+		<org.sagebionetworks.repository.context>services-repository-${project.version}</org.sagebionetworks.repository.context>
+		<org.sagebionetworks.protal.context>portal-${project.version}</org.sagebionetworks.protal.context>
+		<tomcat.endpoint>http://localhost:8080</tomcat.endpoint>
+		<org.sagebionetworks.repository.servlet.prefix>/repo/v1</org.sagebionetworks.repository.servlet.prefix>
+		<org.sagebionetworks.portal.servlet.prefix>/Portal</org.sagebionetworks.portal.servlet.prefix>
+		<org.sagebionetworks.repository.service.base.url>${tomcat.endpoint}/${org.sagebionetworks.repository.context}${org.sagebionetworks.repository.servlet.prefix}/</org.sagebionetworks.repository.service.base.url>
+		<org.sagebionetworks.portal.base.url>${tomcat.endpoint}/${org.sagebionetworks.protal.context}${org.sagebionetworks.portal.servlet.prefix}/</org.sagebionetworks.portal.base.url>
 	</properties>
-
-
 
 	<build>
 		<plugins>
@@ -65,6 +85,12 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
 				<version>2.8</version>
+				<configuration>
+					<systemPropertyVariables>
+						<org.sagebionetworks.repository.service.base.url>${org.sagebionetworks.repository.service.base.url}</org.sagebionetworks.repository.service.base.url>
+						<org.sagebionetworks.portal.base.url>${org.sagebionetworks.portal.base.url}</org.sagebionetworks.portal.base.url>
+					</systemPropertyVariables>
+				</configuration>
 				<executions>
 					<execution>
 						<id>integration-test</id>
@@ -97,6 +123,9 @@
 							<url>http://download.filehat.com/apache/tomcat/tomcat-6/v${tomcat-version}/bin/${tomcat-file}.zip</url>
 							<installDir>${project.build.directory}/tomcat6x/container</installDir>
 						</zipUrlInstaller>
+						<systemProperties>
+							<org.sagebionetworks.rest.api.endpoint>${tomcat.endpoint}/${org.sagebionetworks.repository.context}</org.sagebionetworks.rest.api.endpoint>
+						</systemProperties>
 					</container>
 					<configuration>
 						<type>standalone</type>
@@ -106,10 +135,19 @@
 								<groupId>org.sagebionetworks</groupId>
 								<artifactId>services-repository</artifactId>
 								<type>war</type>
-								<!-- url to ping to know if deployable is done ornot -->
-								<pingURL>http://localhost:8080/${sage.repository.deploy}/repo/v1/dataset/test</pingURL>
+								<!-- url to ping to know if deployable is done or not -->
+<!--								<pingURL>${org.sagebionetworks.repository.service.base.url}/dataset/test</pingURL>-->
 								<!-- How long do we wait until the we timeout (in ms) -->
-								<pingTimeout>2000</pingTimeout>
+<!--								<pingTimeout>2000</pingTimeout>-->
+							</deployable>
+							<deployable>
+								<groupId>org.sagebionetworks</groupId>
+								<artifactId>portal</artifactId>
+								<type>war</type>
+								<!-- url to ping to know if deployable is done or not -->
+<!--								<pingURL>${org.sagebionetworks.portal.base.url}</pingURL>-->
+								 How long do we wait until the we timeout (in ms) 
+<!--								<pingTimeout>2000</pingTimeout>-->
 							</deployable>
 						</deployables>
 					</configuration>
@@ -155,6 +193,27 @@
 			<type>war</type>
 		</dependency>
 
+		<!-- Pull in the GWT RPC data so we can make RPC calls -->
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>portal</artifactId>
+			<version>${project.version}</version>
+			<classifier>gwt-rpc-assembly</classifier>
+			<type>jar</type>
+		</dependency>
+
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-models</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.google.develop</groupId>
+			<artifactId>gwt-syncproxy</artifactId>
+			<version>0.2</version>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>org.springframework.web</artifactId>

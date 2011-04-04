@@ -9,7 +9,7 @@ import com.google.gwt.user.client.rpc.IsSerializable;
 public class WhereCondition implements IsSerializable{
 	
 	private String id;
-	private WhereOperator operator;
+	private String operator;
 	private String value;
 	
 	/**
@@ -29,7 +29,7 @@ public class WhereCondition implements IsSerializable{
 	public WhereCondition(String id, WhereOperator operator, String value) {
 		super();
 		this.id = id;
-		this.operator = operator;
+		this.operator = operator.name();
 		this.value = value;
 	}
 	public String getId() {
@@ -39,10 +39,10 @@ public class WhereCondition implements IsSerializable{
 		this.id = id;
 	}
 	public String getOperator() {
-		return operator.name();
+		return operator;
 	}
 	public void setOperator(String operator) {
-		this.operator = WhereOperator.valueOf(operator);
+		this.operator = WhereOperator.valueOf(operator).name();
 	}
 	/**
 	 * We are using "fetch" to get the real operator 
@@ -50,7 +50,7 @@ public class WhereCondition implements IsSerializable{
 	 * @return
 	 */
 	public WhereOperator fetchOperator(){
-		return this.operator;
+		return WhereOperator.valueOf(operator);
 	}
 	public String getValue() {
 		return value;
@@ -103,7 +103,7 @@ public class WhereCondition implements IsSerializable{
 		StringBuilder builder = new StringBuilder();
 		builder.append(id);
 		builder.append(whiteSpace);
-		builder.append(operator.toSql());
+		builder.append(fetchOperator().toSql());
 		builder.append(whiteSpace);
 		builder.append("\"");
 		builder.append(value);

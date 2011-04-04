@@ -30,7 +30,7 @@ public class ColumnInfo implements IsSerializable, HeaderData {
 	}
 	
 	private String id;
-	private Type type;
+	private String type;
 	private String displayName;
 	private String description;
 	
@@ -39,7 +39,7 @@ public class ColumnInfo implements IsSerializable, HeaderData {
 	public ColumnInfo(String id, String type, String displayName,String description) {
 		super();
 		this.id = id;
-		this.type = Type.valueOf(type);
+		this.type = Type.valueOf(type).name();
 		this.displayName = displayName;
 		this.description = description;
 	}
@@ -57,7 +57,7 @@ public class ColumnInfo implements IsSerializable, HeaderData {
 	 * @return
 	 */
 	public Type fetchType() {
-		return type;
+		return Type.valueOf(type);
 	}
 	/**
 	 * @see #fetchType();
@@ -65,10 +65,10 @@ public class ColumnInfo implements IsSerializable, HeaderData {
 	 */
 	public String getType() {
 		if(type == null) return null;
-		return type.name();
+		return type;
 	}
 	public void setType(String type) {
-		this.type = Type.valueOf(type);
+		this.type = Type.valueOf(type).name();
 	}
 	@Override
 	public String getDisplayName() {
@@ -92,6 +92,13 @@ public class ColumnInfo implements IsSerializable, HeaderData {
 		return id;
 	}
 	
+
+	@Override
+	public int getColumnWidth() {
+		// TODO set to reasonable value
+		return DisplayConstants.DEFAULT_GRID_COLUMN_WIDTH_PX;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -104,6 +111,7 @@ public class ColumnInfo implements IsSerializable, HeaderData {
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		return result;
 	}
+
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -128,16 +136,15 @@ public class ColumnInfo implements IsSerializable, HeaderData {
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
-		if (type != other.type)
+		if (type == null) {
+			if (other.type != null)
+				return false;
+		} else if (!type.equals(other.type))
 			return false;
 		return true;
 	}
-
-	@Override
-	public int getColumnWidth() {
-		// TODO set to reasonable value
-		return DisplayConstants.DEFAULT_GRID_COLUMN_WIDTH_PX;
-	}
+	
+	
 
 	
 }
