@@ -32,9 +32,11 @@ CSV_TO_PRIMARY_FIELDS = {
     'Investigator': 'creator',
     'Creation Date': 'creationDate',
     'Status': 'status',
-    'Date Posted': 'releaseDate',
-    'Version': 'version',
+    'date_released': 'releaseDate',
+    'version':'version'
     }
+
+CSV_SKIP_FIELDS = ["db_id","user_agreement_file_path", "readme_file_path"];
 
 HEADERS = {
     "Content-type": "application/json",
@@ -219,7 +221,7 @@ def loadDatasets():
     annotations['doubleAnnotations'] = doubleAnnotations
     annotations['longAnnotations'] = longAnnotations
     annotations['dateAnnotations'] = dateAnnotations
-    stringAnnotations['Tissue/Tumor'] = []
+    stringAnnotations['Tissue_Tumor'] = []
     
     for row in reader:
         rownum += 1
@@ -254,7 +256,7 @@ def loadDatasets():
             annotations['doubleAnnotations'] = doubleAnnotations
             annotations['longAnnotations'] = longAnnotations
             annotations['dateAnnotations'] = dateAnnotations
-            stringAnnotations['Tissue/Tumor'] = []
+            stringAnnotations['Tissue_Tumor'] = []
                         
         # Load the row data from the dataset CSV into our datastructure    
         colnum = 0
@@ -266,12 +268,12 @@ def loadDatasets():
                     dataset[CSV_TO_PRIMARY_FIELDS[header[colnum]]] = cleanName
                 else:
                     dataset[CSV_TO_PRIMARY_FIELDS[header[colnum]]] = col
-            else:
+            elif(header[colnum] in CSV_SKIP_FIELDS):
+                print 'SKIPPING %-8s: %s' % (header[colnum], col)
                 # TODO consider reading these into fields
-                #             abstract_file_path
-                #             citation_file_path
                 #             user_agreement_file_path
                 #             readme_file_path
+            else:
                 if( re.search('date', string.lower(header[colnum])) ):
                     dateAnnotations[header[colnum]] = [col]
                 else:
@@ -285,7 +287,7 @@ def loadDatasets():
                         # Note that all values in the spreadsheet from the
                         # mysql db are single values except for this one
                         if("Tissue/Tumor" == header[colnum]): 
-                            stringAnnotations['Tissue/Tumor'].append(col)
+                            stringAnnotations['Tissue_Tumor'].append(col)
                         else:
                             stringAnnotations[header[colnum]] = [col]
             colnum += 1
@@ -315,9 +317,9 @@ def loadLayers():
         layerUri = gDATASET_NAME_2_LAYER_URI[row[0]]
         layer = {}
         layer["type"] = row[1]
-        layer["status"] = row[2]
+#        layer["status"] = row[2]
         layer["name"] = row[3]
-        layer["numSamples"] = row[4]
+#        layer["numSamples"] = row[4]
         layer["platform"] = row[5]
         layer["version"] = row[6]
         
