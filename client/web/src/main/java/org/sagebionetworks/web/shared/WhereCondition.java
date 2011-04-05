@@ -58,6 +58,31 @@ public class WhereCondition implements IsSerializable{
 	public void setValue(String value) {
 		this.value = value;
 	}
+	
+	/**
+	 * Is this string a number
+	 * @param toTest
+	 * @return
+	 */
+	public static boolean isNumber(String toTest){
+		if(toTest == null) return false;
+		// Use java to do the parsing
+		try{
+			// Is it a long?
+			Long.valueOf(toTest);
+			return true;
+		}catch(NumberFormatException e){
+		}
+		try{
+			// Is it a double?
+			Double.valueOf(toTest);
+			return true;
+		}catch(NumberFormatException e){
+		}
+		return false;
+	}
+	
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -105,9 +130,15 @@ public class WhereCondition implements IsSerializable{
 		builder.append(whiteSpace);
 		builder.append(fetchOperator().toSql());
 		builder.append(whiteSpace);
-		builder.append("\"");
+		boolean isNumber = WhereCondition.isNumber(value);
+		// Add quotes to non-numbers
+		if(!isNumber){
+			builder.append("\"");
+		}
 		builder.append(value);
-		builder.append("\"");
+		if(!isNumber){
+			builder.append("\"");
+		}
 		return builder.toString();
 	}
 	
@@ -116,7 +147,9 @@ public class WhereCondition implements IsSerializable{
 		StringBuilder builder = new StringBuilder();
 		for(int i=0; i<list.size(); i++){
 			if(i != 0){
-				builder.append(" and ");
+				builder.append(whiteSpace);
+				builder.append("and");
+				builder.append(whiteSpace);
 			}
 			builder.append(list.get(i).toSql(whiteSpace));
 		}

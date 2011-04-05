@@ -100,7 +100,10 @@ public class ListUtils {
 				Object value = row.get(condition.getId());
 				if (value != null) {
 					if (value instanceof Object[]) {
-						value = ((Object[]) value)[0];
+						Object[] obArray = (Object[]) value;
+						if(obArray.length > 0){
+							value = obArray[0];
+						}
 					}
 					// only equals for now
 					if (value.equals(condition.getValue())) {
