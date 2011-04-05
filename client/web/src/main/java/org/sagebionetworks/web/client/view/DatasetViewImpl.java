@@ -16,6 +16,7 @@ import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
 import org.sagebionetworks.web.shared.WhereCondition;
 
+import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
 import com.google.gwt.dom.client.SpanElement;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -38,9 +39,7 @@ import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
-public class DatasetViewImpl extends Composite implements DatasetView {
-
-	private final int DESCRIPTION_SUMMARY_LENGTH = 50; // characters for summary
+public class DatasetViewImpl extends Composite implements DatasetView {	
 
 	public interface Binder extends UiBinder<Widget, DatasetViewImpl> {
 	}
@@ -49,6 +48,8 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	FlowPanel overviewPanel;
 	@UiField
 	SpanElement titleSpan;
+	@UiField 
+	SpanElement breadcrumbTitleSpan;
 	@UiField
 	FlexTable middleFlexTable;
 	@UiField
@@ -57,8 +58,6 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	SimplePanel tablePanel;
 	@UiField
 	SimplePanel downloadPanel;
-	@UiField
-	SpanElement downloadSpan;
 
 	private Presenter presenter;
 	private PreviewDisclosurePanel previewDisclosurePanel;
@@ -78,18 +77,9 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		rightFlexTable.setCellSpacing(5);
 
 		// layers table
-		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.layer, false, 320, 275);
+		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.layer, false, 320, 237);
 		tablePanel.add(queryServiceTable.asWidget());
-		
-		// download dataset button
-		Button downloadDatasetButton = new Button("Download Dataset", new ClickHandler() {			
-			@Override
-			public void onClick(ClickEvent event) {
-				datasetLicensedDownloader.showWindow();			
-			}
-		}); 		
-//		downloadPanel.add(downloadDatasetButton);
-		
+				
 		// download link		
 		Anchor downloadLink = new Anchor();
 		downloadLink.setHTML(AbstractImagePrototype.create(icons.download16()).getHTML() + " Download Dataset");
@@ -109,7 +99,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 
 	@Override
 	public void showErrorMessage(String message) {
-		Window.alert(message);
+		MessageBox.info("Message", message, null);
 	}
 
 	@Override
@@ -144,8 +134,9 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		// Clear everything
 		clearAllFields();
 		titleSpan.setInnerText(name);
+		breadcrumbTitleSpan.setInnerText(name);
 		
-		int summaryLength = overviewText.length() >= DESCRIPTION_SUMMARY_LENGTH ? DESCRIPTION_SUMMARY_LENGTH : overviewText.length();
+		int summaryLength = overviewText.length() >= DisplayConstants.DESCRIPTION_SUMMARY_LENGTH ? DisplayConstants.DESCRIPTION_SUMMARY_LENGTH : overviewText.length();
 		previewDisclosurePanel.init("Expand", overviewText.substring(0, summaryLength), overviewText);
 		overviewPanel.add(previewDisclosurePanel);
 		

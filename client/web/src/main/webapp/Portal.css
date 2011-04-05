@@ -45,9 +45,9 @@ h1 {
 }
 
 .mainBody {
-	margin: 15px 30px 6px;
+/*	margin: 15px 30px 6px;
 	width: 1060px;
-	height: 800px /*	padding: 10px;*/
+	height: 800px;*/ 
 }
 
 .mainPageHeader {
@@ -56,8 +56,10 @@ h1 {
 }
 
 .boldRight {
-	font-weight: bold;
-	text-align: right;
+	text-align: left;
+	width: 100px;
+	color: #939598;
+	font-size: 11px;
 }
 
 /* Removes annoying FireFox dotted border */
@@ -73,4 +75,19 @@ h1 {
 .gwt-Anchor {
 	cursor: pointer;
 	cursor: hand;
+}
+
+/* Search loading image */
+.ui-autocomplete-loading { background: white url('http://jqueryui.com/demos/autocomplete/images/ui-anim_basic_16x16.gif') right center no-repeat; }
+
+
+.ui-menu .ui-menu-item a {
+    display: block;
+    line-height: 1.5;
+    padding: 0.2em 0.4em;
+    text-decoration: none;
+}
+.ui-widget {
+    font-family: Verdana,Arial,sans-serif;
+    font-size: 0.8em;
 }

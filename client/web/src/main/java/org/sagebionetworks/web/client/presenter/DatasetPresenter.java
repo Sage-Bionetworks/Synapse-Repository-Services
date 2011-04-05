@@ -139,8 +139,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 				
 				// set download files
 				// TODO : !!!! get real downloads from dataset object !!!!		
-				List<FileDownload> downloads = new ArrayList<FileDownload>();
-				downloads.add(new FileDownload("http://google.com", "Lusis Dataset", "3f37dba446d160543ab5732f04726fe0"));
+				List<FileDownload> downloads = new ArrayList<FileDownload>(); 
 				view.setDatasetDownloads(downloads);
 			}
 		});

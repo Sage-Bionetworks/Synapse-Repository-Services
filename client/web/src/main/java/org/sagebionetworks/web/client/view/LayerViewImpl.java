@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.web.client.DisplayConstants;
+import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloader;
 import org.sagebionetworks.web.client.widget.statictable.StaticTable;
 import org.sagebionetworks.web.client.widget.statictable.StaticTableColumn;
@@ -14,6 +15,7 @@ import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.TableResults;
 
 import com.extjs.gxt.ui.client.GXT;
+import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
 import com.google.gwt.dom.client.SpanElement;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -22,6 +24,8 @@ import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
+import com.google.gwt.user.client.ui.AbstractImagePrototype;
+import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
@@ -32,8 +36,6 @@ import com.google.inject.Inject;
 
 public class LayerViewImpl extends Composite implements LayerView {
 
-	private final int DESCRIPTION_SUMMARY_LENGTH = 50; // characters for summary
-
 	public interface Binder extends UiBinder<Widget, LayerViewImpl> {
 	}
 
@@ -42,28 +44,28 @@ public class LayerViewImpl extends Composite implements LayerView {
 	@UiField
 	SpanElement titleSpan;
 	@UiField
-	SpanElement securitySpan;
-	@UiField
 	FlexTable rightFlexTable;
 	@UiField 
 	SimplePanel previewTablePanel;	
 	@UiField
 	SimplePanel downloadPanel;
 	@UiField
-	SpanElement termsOfUseSpan;	
+	SimplePanel termsOfUseSpan;	
 
 	private Presenter presenter;
 	private PreviewDisclosurePanel previewDisclosurePanel;
 	private StaticTable staticTable;
 	private final LicensedDownloader licensedDownloader;
 	private boolean disableDownloads = false;
+	private IconsImageBundle icons;
 
 	@Inject
-	public LayerViewImpl(Binder uiBinder, final PreviewDisclosurePanel previewDisclosurePanel, StaticTable staticTable, LicensedDownloader licensedDownloader) {
+	public LayerViewImpl(Binder uiBinder, IconsImageBundle icons, final PreviewDisclosurePanel previewDisclosurePanel, StaticTable staticTable, LicensedDownloader licensedDownloader) {
 		initWidget(uiBinder.createAndBindUi(this));
 		this.previewDisclosurePanel = previewDisclosurePanel;
 		this.staticTable = staticTable;
 		this.licensedDownloader = licensedDownloader;
+		this.icons = icons;
 		
 		setupLicensedDownloaderCallbacks();
 		// style FlexTables
@@ -78,7 +80,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 
 	@Override
 	public void showErrorMessage(String message) {
-		Window.alert(message);
+		MessageBox.info("Message", message, null);
 	}
 
 	@Override
@@ -100,23 +102,33 @@ public class LayerViewImpl extends Composite implements LayerView {
 		clear(); // clear old values from view
 
 		titleSpan.setInnerText(layerName);
-		securitySpan.setInnerHTML(privacyLevel);
 		
-		// download layer button
-		Button downloadDatasetButton = new Button("Download Layer", new ClickHandler() {			
+		// download link		
+		Anchor downloadLink = new Anchor();
+		downloadLink.setHTML(AbstractImagePrototype.create(icons.download16()).getHTML() + " Download Layer");
+		downloadLink.addClickHandler(new ClickHandler() {			
 			@Override
 			public void onClick(ClickEvent event) {
-				licensedDownloader.showWindow();			
+				licensedDownloader.showWindow();
 			}
-		}); 		
-		
-		
-		downloadPanel.add(downloadDatasetButton);			
-		termsOfUseSpan.setInnerHTML("<a href=\"#\">See terms of use</a>");
+		});
+		downloadPanel.add(downloadLink);
+
+		// see terms
+		Anchor termsLink = new Anchor();
+		termsLink.setHTML(AbstractImagePrototype.create(icons.documentText16()).getHTML() + " See terms of use");
+		termsLink.addClickHandler(new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {
+				licensedDownloader.showWindow();
+			}
+		});
+			
+		termsOfUseSpan.add(termsLink);
 		
 		// set description
 		if(overviewText == null) overviewText = "";
-		int summaryLength = overviewText.length() >= DESCRIPTION_SUMMARY_LENGTH ? DESCRIPTION_SUMMARY_LENGTH : overviewText.length();
+		int summaryLength = overviewText.length() >= DisplayConstants.DESCRIPTION_SUMMARY_LENGTH ? DisplayConstants.DESCRIPTION_SUMMARY_LENGTH : overviewText.length();
 		previewDisclosurePanel.init("Expand", overviewText.substring(0, summaryLength), overviewText);
 		overviewPanel.add(previewDisclosurePanel);
 		
@@ -163,7 +175,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 			Map<String, String> columnDescriptions,
 			Map<String, String> columnUnits) {
 		// TODO : add data to static table		
-		staticTable.setDimensions(1059, 175);
+		staticTable.setDimensions(1002, 175);
 		staticTable.setTitle("Data Preview");		
 		
 		// create static table columns

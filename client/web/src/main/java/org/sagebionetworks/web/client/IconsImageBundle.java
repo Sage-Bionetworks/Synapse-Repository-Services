@@ -26,6 +26,9 @@ public interface IconsImageBundle extends ClientBundle {
 	@Source("images/icons/flag-16.png")
 	ImageResource flag16();
 
+	@Source("images/icons/hand-16.png")
+	ImageResource hand16();	
+	
 	@Source("images/icons/hand-point-16.png")
 	ImageResource handPoint16();	
 	

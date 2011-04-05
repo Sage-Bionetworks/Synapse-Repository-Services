@@ -57,7 +57,7 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 	public static final String PATH_LAYER = "dataset/{"+KEY_DATASET_ID+"}/layer/{"+ KEY_LAYER_ID +"}";
 	public static final String PATH_LAYER_PREVIEW = "dataset/{"+KEY_DATASET_ID+"}/layer/{"+ KEY_LAYER_ID +"}/preview";
 	public static final String PATH_LAYER_PREVIEW_AS_MAP = "dataset/{"+KEY_DATASET_ID+"}/layer/{"+ KEY_LAYER_ID +"}/previewAsMap";
-	public static final String PATH_LAYER_DOWNLOAD_S3 = "repo/v1/dataset/{"+KEY_DATASET_ID+"}/layer/{"+ KEY_LAYER_ID +"}/awsS3Location";
+	public static final String PATH_LAYER_DOWNLOAD_S3 = "dataset/{"+KEY_DATASET_ID+"}/layer/{"+ KEY_LAYER_ID +"}/awsS3Location";
 
 	
 	private RestTemplateProvider templateProvider = null;

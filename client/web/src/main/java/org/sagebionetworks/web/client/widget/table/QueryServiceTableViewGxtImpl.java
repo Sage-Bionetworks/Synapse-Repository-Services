@@ -82,7 +82,8 @@ public class QueryServiceTableViewGxtImpl extends LayoutContainer implements Que
 	protected void onRender(Element parent, int index) {
 		super.onRender(parent, index);		
 		FlowLayout layout = new FlowLayout();
-		layout.setMargins(new Margins(10, 0, 10, 0));
+		//layout.setMargins(new Margins(10, 0, 10, 0));
+		layout.setMargins(new Margins(0));
 		setLayout(layout);
 
 		

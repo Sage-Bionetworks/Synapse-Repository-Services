@@ -1,0 +1,38 @@
+#dataset_search {
+	left: -1px;
+	top:2px;
+}
+.search_submit {
+	top: 2px;
+	left: -1px;
+}
+#data {
+	position: relative;
+	top:40px;
+}
+#data.sample_data {
+	top:-10px;
+}
+#data .add_remove {
+	margin-top: -25px;
+}
+#data #legend .controls {
+	margin-top: -25px;
+}
+#data #legend .controls img, #data #legend .controls select {
+	position: relative;
+	top: 3px;
+}
+.register_button {
+	margin-top:20px;
+}
+#contributors {
+	height: 440px;
+}
+.callout_text {
+	line-height: 1.5em;
+}
+.contact_button {
+	position: relative;
+	top: 4px;
+}

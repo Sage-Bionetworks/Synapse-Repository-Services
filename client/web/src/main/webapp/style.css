@@ -308,10 +308,11 @@ h2 {
 .data_options {
 	float:right;
 	margin-right: 30px;
+	margin-top: 8px;
 }
 .data_options img {
 	position: relative;
-	top: 5px;
+	top: 2px;
 }
 #data_controls {
 	margin-top:20px;
@@ -485,6 +486,9 @@ h2 {
 	color: #FFFFFF;
 	padding: 15px;
 }
+.data_detail_section .header a {
+	color:#fff;
+}
 .data_detail_section .header .title {
 	font-size: 14px;
 	font-weight: 500;
@@ -496,11 +500,11 @@ h2 {
 	clear: left;
 }
 .data_detail_section .header .icon {
-	margin-top: -15px;
+	margin-top: -5px;
 }
 .data_detail_section .header .icon img {
 	position: relative;
-	top: 6px;
+	top: 2px;
 }
 .data_detail_section table {
 }
@@ -516,7 +520,16 @@ h2 {
 	border-right: 2px solid #d8d8da;
 	height:35px;
 }
-.data_detail_section th {
+.head_table th {
+	background-color: #f9f498;
+	padding-top: 5px;
+	padding-bottom: 3px;
+	vertical-align: bottom;
+	border-bottom: 2px solid #d8d8da;
+	font-size: 10px;
+	color: #861b19;	
+}
+.data_detail_section table.detail th {
 	background-color: #f9f498;
 	padding-top: 5px;
 	padding-bottom: 3px;
@@ -525,7 +538,7 @@ h2 {
 	font-size: 10px;
 	color: #861b19;
 }
-.data_detail_section td {
+.data_detail_section table.detail td {
 	padding-top:4px;
 	padding-bottom: 3px;
 	font-size: 10px;
@@ -868,9 +881,11 @@ h6 .wide {
 	clear:left;
 	width:100%;
 }
+.footer hr {
+	margin-top:20px;
+}
 .footer_nav ul {
 	width: 600px;
-	margin-top:20px;
 	margin-left:15px;
 }
 .footer_nav ul li {
@@ -883,7 +898,6 @@ h6 .wide {
 	padding-right: 115px;
 }
 .contact {
-	margin-top:20px;
 }
 .logo {
 	float: right;

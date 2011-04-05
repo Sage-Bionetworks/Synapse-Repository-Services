@@ -29,47 +29,45 @@
 		}
 	</ui:style>
 	<g:HTMLPanel>
-		<table>
-			<tr valign="bottom">
-				<td>					
-					<div class="{style.title}">
-						<span ui:field="titleSpan" />
-					</div>
-				</td>
-				<td>					
-					<div class="{style.oneThird}" style="text-align: right;">
-						Privacy Setting: <span ui:field="securitySpan" />
-					</div>
-				</td>
-			</tr>
-		</table>
-		<hr />
-		<table class="{style.topTable}">
-			<tr class="{style.rowTop}">
-				<td>
-					<div class="{style.twoThirds}">
-						<body>
-							<h3>Overview</h3>							
-							<g:FlowPanel ui:field="overviewPanel" />							
-						</body>
-					</div>
-				</td>
-				<td>
-					<div class="{style.oneThird}">
+			<div id="content" class="clearfix">
+
+				<ul class="breadcrumbs">
+					<li class="breadcrumb"><a href="#">Home</a> > <a href="#DatasetsHome:0">All Datasets</a> > <span ui:field="breadcrumbTitleSpan" /></li>
+				</ul>
+				<h2><span ui:field="titleSpan" /></h2>
+				
+				
+				<div id="privacy_setting" class="right">
+
+					<span class="setting_label">Privacy Setting:</span>
+					<span class="setting_level">Public</span> &raquo; <a href="" style="display:inline;">Learn more...</a>
+				</div>
+				<div class="data_info">
+					<span class="info_head">
+						<h2>Overview</h2>
+
+						<span class="data_options">
+							<g:SimplePanel ui:field="downloadPanel" />
+							<g:SimplePanel ui:field="termsOfUseSpan" />							
+						</span>
+					</span>
+					<span class="info_text_narrow">
+						<g:FlowPanel ui:field="overviewPanel" />
+						<br /><br />
+					</span>
+					<span class="data_details">
+						<g:FlexTable ui:field="middleFlexTable" />
+					</span>
+					<span class="data_details data_details_right">
 						<g:FlexTable ui:field="rightFlexTable" />
-					</div>
-				</td>
-			</tr>
-			<tr colspan="2">
-				<td>
-					<g:SimplePanel ui:field="downloadPanel" />
-					<span ui:field="termsOfUseSpan" />
-				</td>
-			</tr>
-		</table>
-		<hr/>
-		<div>
-			<g:SimplePanel ui:field="previewTablePanel" />
-		</div>
+					</span>
+				</div>
+			</div>
+			<div class="data_detail_sections">
+				<g:SimplePanel ui:field="previewTablePanel" />
+
+				
+																																			
+			</div>	
 	</g:HTMLPanel>
 </ui:UiBinder>

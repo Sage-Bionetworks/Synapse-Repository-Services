@@ -153,6 +153,7 @@ public class PreviewDisclosurePanel extends Composite {
 		if(preview == null)
 			preview = "";
 		this.preview = preview;
+		if(!"".equals(this.preview)) this.preview += "..."; // add elipses if preview has characters
 		this.previewHtml.setHTML(this.preview);
 	}
 

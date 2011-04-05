@@ -189,7 +189,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 
 					@Override
 					public void onFailure(Throwable caught) {
-						view.showErrorMessage("An error occured. Please try again.");
+						view.showErrorMessage("An error occured retrieving layer download information. Please try reloading the page.");
 					}
 				});
 			}

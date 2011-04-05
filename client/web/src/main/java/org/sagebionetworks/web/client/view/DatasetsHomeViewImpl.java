@@ -11,6 +11,7 @@ import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProv
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.WhereCondition;
 
+import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.resources.client.ImageResource;
@@ -87,6 +88,12 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 	@Override
 	public void setVisibleColumns(List<String> visible) {
 		this.queryServiceTable.setDispalyColumns(visible);
+	}
+
+
+	@Override
+	public void showErrorMessage(String message) {
+		MessageBox.info("Message", message, null);
 	}
 
 }

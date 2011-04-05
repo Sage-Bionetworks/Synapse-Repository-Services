@@ -14,6 +14,12 @@ public interface DatasetsHomeView extends IsWidget{
 	
 	public void setVisibleColumns(List<String> visible);
 	
+	/**
+	 * The view pops-up an error dialog.
+	 * @param message
+	 */
+	public void showErrorMessage(String message);
+	
 	
 	public interface Presenter {
 		
