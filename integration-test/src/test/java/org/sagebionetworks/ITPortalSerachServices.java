@@ -21,8 +21,10 @@ import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.query.ObjectType;
 import org.springframework.web.client.RestTemplate;
 import org.sagebionetworks.web.client.SearchService;
+import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
 import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.TableResults;
+import org.sagebionetworks.web.shared.WhereCondition;
 
 //import org.sagebionetworks.web.shared.SearchParameters_FieldSerializer;
 
@@ -124,6 +126,9 @@ public class ITPortalSerachServices {
 		assertNotNull(proxy);
 		SearchParameters params = new SearchParameters();
 		params.setFromType(ObjectType.dataset.name());
+		long now = System.currentTimeMillis();
+		long future = now+(1000*60*60*5);
+//		params.addWhere(new WhereCondition("creationDate", WhereOperator.LESS_THAN, ""+future));
 		TableResults results = proxy.executeSearch(params);
 		assertNotNull(results);
 		assertEquals(totalNumberOfDatasets, results.getTotalNumberResults());

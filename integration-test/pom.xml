@@ -43,6 +43,10 @@
 		<org.sagebionetworks.portal.servlet.prefix>/Portal</org.sagebionetworks.portal.servlet.prefix>
 		<org.sagebionetworks.repository.service.base.url>${tomcat.endpoint}/${org.sagebionetworks.repository.context}${org.sagebionetworks.repository.servlet.prefix}/</org.sagebionetworks.repository.service.base.url>
 		<org.sagebionetworks.portal.base.url>${tomcat.endpoint}/${org.sagebionetworks.protal.context}${org.sagebionetworks.portal.servlet.prefix}/</org.sagebionetworks.portal.base.url>
+		
+		<!-- Setting this to true will cause Cargo to setup and start both web applications and then wait for shutdown (ctrl-c)
+			This is useful for debugging the deployed applications. -->
+		<org.sagebionetworks.integration.debug>false</org.sagebionetworks.integration.debug>
 	</properties>
 
 	<build>
@@ -114,7 +118,7 @@
 				<artifactId>cargo-maven2-plugin</artifactId>
 				<version>1.0.6</version>
 				<configuration>
-					<wait>false</wait>
+					<wait>${org.sagebionetworks.integration.debug}</wait>
 					<!-- Container configuration -->
 					<container>
 						<containerId>tomcat6x</containerId>
