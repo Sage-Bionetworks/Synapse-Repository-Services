@@ -1,0 +1,20 @@
+{toc}
+
+h1. Introduction
+
+See [PLFM:Service API Design] for the rationale and design details for this api.
+
+See [Developer Bootstrap#DeveloperBootstrap-ServiceDevelopment|PLFM:Developer Bootstrap#DeveloperBootstrap-ServiceDevelopment] for instructions on how to run a local instance of this service.
+
+h2. Encoding
+
+The primary request and response encoding for the service is JSON.  Here's a handy tool to make a blob of JSON more readable: [http://jsonformatter.curiousconcept.com/]
+
+In responses from the service, dates are serialized as long integers expressing epoch time - the number of seconds elapsed since midnight Coordinated Universal Time (UTC) of January 1, 1970, not counting leap seconds.  Here's a handy tool to convert from epoch time to human readable dates: [http://www.epochconverter.com/]
+
+In requests to the service, dates can be serialized either as long integers expressing epoch time or human readable dates in [http://www.ietf.org/rfc/rfc3339.txt |RFC 3339] format such as '2011-01-31' or '2011-01-31T22:00:00'
+
+h2. Security
+
+Eventually these services will be HTTPS only and disallow HTTP.  Users will pass something like _?access_token=..._ as a query parameter for every request to the service
+
