@@ -634,7 +634,7 @@ public class JDOQueryDAOImplTest {
 	}
 	
 	@Test
-	public void testLayerQuery() throws DatastoreException{
+	public void testLayerQueryStringId() throws DatastoreException{
 		BasicQuery query = new BasicQuery();
 		query.setFrom(ObjectType.layer);
 		query.setSort("name");
@@ -643,6 +643,31 @@ public class JDOQueryDAOImplTest {
 		query.setOffset(0);
 		List<Expression> filters = new ArrayList<Expression>();
 		Expression expression = new Expression(new CompoundId("dataset", "id"), Compartor.EQUALS, datasetIds.get(1));
+		filters.add(expression);
+		query.setFilters(filters);
+		// Execute the query.
+		QueryResults results = queryDao.executeQuery(query);
+		assertNotNull(results);
+		// There should only be one layer
+		assertEquals(1, results.getTotalNumberOfResults());
+		List<Map<String, Object>> list = results.getResults();
+		assertNotNull(list);
+		assertEquals(1, list.size());
+		Map<String, Object> row = list.get(0);
+		assertEquals("layerName1", row.get("name"));	
+	}
+
+	@Test
+	public void testLayerQueryNumericId() throws DatastoreException{
+		BasicQuery query = new BasicQuery();
+		query.setFrom(ObjectType.layer);
+		query.setSort("name");
+		query.setAscending(true);
+		query.setLimit(3);
+		query.setOffset(0);
+		List<Expression> filters = new ArrayList<Expression>();
+		Long id = new Long(datasetIds.get(1));
+		Expression expression = new Expression(new CompoundId("dataset", "id"), Compartor.EQUALS, id);
 		filters.add(expression);
 		query.setFilters(filters);
 		// Execute the query.

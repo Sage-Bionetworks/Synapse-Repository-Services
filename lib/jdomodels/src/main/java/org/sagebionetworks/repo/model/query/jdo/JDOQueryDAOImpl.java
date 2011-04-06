@@ -270,8 +270,14 @@ public class JDOQueryDAOImpl implements QueryDAO {
 				throw new IllegalArgumentException(
 						"Compound id cannot be null");
 			if ("id".equals(expressiom.getId().getFieldName())) {
-				layerDatasetId = (String) expressiom.getValue();
-				// Replace this id with the real table id
+				// TODO John, I doubt this is how you really want to fix this,
+                // let me know what you want me to do instead and I will re-fix
+                // it
+                try {
+                	layerDatasetId = (String) expressiom.getValue();
+                } catch (ClassCastException e) {
+                	layerDatasetId = ((Long) expressiom.getValue()).toString();
+                }				// Replace this id with the real table id
 				expressiom.setId(new CompoundId("layer",SqlConstants.INPUT_DATA_LAYER_DATASET_ID));
 			}
 		}
