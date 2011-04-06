@@ -7,6 +7,7 @@ import java.util.List;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.presenter.DatasetRow;
+import org.sagebionetworks.web.client.widget.breadcrumb.Breadcrumb;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloader;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
@@ -58,15 +59,18 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	SimplePanel tablePanel;
 	@UiField
 	SimplePanel downloadPanel;
+	@UiField
+	SimplePanel followDatasetPanel;
 
 	private Presenter presenter;
 	private PreviewDisclosurePanel previewDisclosurePanel;
 	private QueryServiceTable queryServiceTable;
 	private final LicensedDownloader datasetLicensedDownloader;
+	private Breadcrumb breadcrumb;
 	private boolean disableDownloads;
 
 	@Inject
-	public DatasetViewImpl(Binder uiBinder, IconsImageBundle icons, final PreviewDisclosurePanel previewDisclosurePanel, QueryServiceTableResourceProvider queryServiceTableResourceProvider, LicensedDownloader licensedDownloader) {		
+	public DatasetViewImpl(Binder uiBinder, IconsImageBundle icons, final PreviewDisclosurePanel previewDisclosurePanel, QueryServiceTableResourceProvider queryServiceTableResourceProvider, LicensedDownloader licensedDownloader, Breadcrumb breadcrumb) {		
 		disableDownloads = false;
 		initWidget(uiBinder.createAndBindUi(this));
 		this.previewDisclosurePanel = previewDisclosurePanel;
@@ -90,6 +94,11 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 			}
 		});
 		downloadPanel.add(downloadLink);
+		
+		// breadcrumb
+//		breadcrumb.appendLocation(new Hyperlink("Home", ""));
+//		breadcrumb.appendLocation(new Hyperlink("All Datasets", "DatasetsHome:0"));
+//		breadcrumbPanel.add(breadcrumb.asWidget());
 	}
 
 	@Override
@@ -135,10 +144,12 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		clearAllFields();
 		titleSpan.setInnerText(name);
 		breadcrumbTitleSpan.setInnerText(name);
+//		breadcrumb.setCurrentLocation(name);
+//		breadcrumbPanel.add(breadcrumb.asWidget());
 		
 		int summaryLength = overviewText.length() >= DisplayConstants.DESCRIPTION_SUMMARY_LENGTH ? DisplayConstants.DESCRIPTION_SUMMARY_LENGTH : overviewText.length();
 		previewDisclosurePanel.init("Expand", overviewText.substring(0, summaryLength), overviewText);
-		overviewPanel.add(previewDisclosurePanel);
+		overviewPanel.add(previewDisclosurePanel);		
 		
 		// add metadata to tables
 		int rowIndex = 0;

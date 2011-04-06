@@ -21,6 +21,7 @@ import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.AcceptsOneWidget;
+import com.google.gwt.user.client.ui.Hyperlink;
 import com.google.inject.Inject;
 
 public class LayerPresenter extends AbstractActivity implements LayerView.Presenter{	
@@ -152,7 +153,8 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 							 model.getDescription(),
 							 5,
 							 Integer.MAX_VALUE, // TODO : get total number of rows in layer
-							 "Public"); // TODO : replace with security object
+							 "Public", // TODO : replace with security object
+							 "<a href=\"#Dataset:"+ this.datasetId +"\">Dataset</a>");
 
 		// see if license is required for doanload
 		licenseService.hasAccepted("GET-USERNAME", model.getUri(), new AsyncCallback<Boolean>() {

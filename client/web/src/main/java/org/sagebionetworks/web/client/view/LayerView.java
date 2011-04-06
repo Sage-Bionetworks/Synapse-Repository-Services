@@ -4,11 +4,11 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.web.client.presenter.LayerRow;
 import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.TableResults;
 
+import com.google.gwt.user.client.ui.Hyperlink;
 import com.google.gwt.user.client.ui.IsWidget;
 
 
@@ -51,7 +51,7 @@ public interface LayerView extends IsWidget {
 	 * @param totalDataRows
 	 * @param privacyLevel
 	 */
-	public void setLayerDetails(String layerName,
+	public void setLayerDetails(String layerName,								
 								String processingFacility, 
 								String qcByDisplay,
 								String qcByUrl, 
@@ -61,7 +61,8 @@ public interface LayerView extends IsWidget {
 								String overviewText, 
 								int nDataRowsShown,
 								int totalDataRows, 
-								String privacyLevel);
+								String privacyLevel,
+								String datasetLink);
 	
 	/**
 	 * require the view to show the license agreement

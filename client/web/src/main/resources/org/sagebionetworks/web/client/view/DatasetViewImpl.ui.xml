@@ -43,6 +43,7 @@
 						<h2>Overview</h2>
 
 						<span class="data_options">
+							<g:SimplePanel ui:field="followDatasetPanel" />
 							<g:Image resource='{icons.arrowCurve16}'/> Follow this dataset<br />
 							<g:Image resource='{icons.documentText16}'/> See terms of use
 						</span>

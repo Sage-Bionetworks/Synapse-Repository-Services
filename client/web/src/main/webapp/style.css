@@ -123,6 +123,10 @@ h3 {
 	color: #df8337;
 	float:left;
 }
+#logo .large a {
+	color: #df8337;
+	text-decoration: none;
+}
 #logo .tagline {
 	display: block;
 	float:left;
@@ -132,6 +136,11 @@ h3 {
 	color: #481506;
 	letter-spacing: 0.3em;
 }
+#logo .tagline a {
+	color: #481506;
+	text-decoration: none;
+}
+
 #user_tools {
 	color: #7a0402;
 }
@@ -187,8 +196,10 @@ h3 {
 	padding-right: 15px;
 }
 .search_box {
+	position: relative;
+	top: -1px;
 	width: 170px;
-	height: 18px;
+	height: 20px;
 	border: 1px solid #333333;
 	border-right:none;
 	padding-left:10px;
@@ -202,6 +213,11 @@ h3 {
 	position: relative;
 	top: 7px;
 	left:-4px;
+}
+.search_submit img {
+	position: relative;
+	top: -1px;
+	left: -2px;
 }
 .advanced {
 	position: relative;
@@ -221,6 +237,16 @@ h3 {
 }
 #main_content a.bulleted, #content a.bulleted, li.bulleted {
 	background-image: url(static/images/arrow_dark_red.png);
+}
+#main_content a.dot, #content a.dot, li.dot {
+	list-style-type: disc;
+}
+li.dot {
+	margin-left: 25px;
+	margin-bottom: 8px;
+}
+ul.dot {	
+	margin-top: 8px;
 }
 li.bulleted {
 	background-position-y: 5px;
@@ -652,7 +678,7 @@ h2 {
 	display: block;
 	float:left;
 }
-.box ul li {
+.box ul li.bulleted {
 	margin-bottom: 12px;
 }
 .box .body_text {
@@ -885,17 +911,15 @@ h6 .wide {
 	margin-top:20px;
 }
 .footer_nav ul {
-	width: 600px;
-	margin-left:15px;
+	width: 810px;
+	/*margin-left:15px;*/
 }
 .footer_nav ul li {
 	float: left;
 	display: table-cell;
-	padding-right: 60px;
+	padding-right: 25px;
 	margin-bottom: 8px;
-}
-.footer_nav ul li.faq_link {
-	padding-right: 115px;
+	font-size: 10px;
 }
 .contact {
 }
@@ -906,7 +930,7 @@ h6 .wide {
 .vcard {
 	font-size: 10px;
 	display:block;
-	margin-right:30px;
+	margin-right:10px;
 	margin-top:10px;
 }
 .organization-name {

@@ -17,14 +17,12 @@ import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.resources.client.ImageResource;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
+import com.google.gwt.user.client.DOM;
+import com.google.gwt.user.client.Element;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.Anchor;
-import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.Image;
-import com.google.gwt.user.client.ui.PushButton;
 import com.google.gwt.user.client.ui.SimplePanel;
-import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
@@ -45,9 +43,26 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 	
 	@Inject
 	public DatasetsHomeViewImpl(DatasetsHomeViewImplUiBinder binder, IconsImageBundle icons, QueryFilter filter, SageImageBundle imageBundle, QueryServiceTableResourceProvider queryServiceTableResourceProvider) {		
-		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, 1000, 440);
+		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, 1000, 380);
 		ImageResource searchIR = imageBundle.searchButtonIcon();
 		initWidget(binder.createAndBindUi(this));
+		
+		// set navbar active
+//		Element navbarDatasets = DOM.getElementById("navbar_datasets_li");
+//		DOM.setStyleAttribute(navbarDatasets, "backgroundColor", "#fec84c");
+//		DOM.setStyleAttribute(navbarDatasets, "color", "#861b19");
+//		DOM.setStyleAttribute(navbarDatasets, "backgroundImage", "url(static/images/nav-gaps.gif)");
+//		DOM.setStyleAttribute(navbarDatasets, "backgroundRepeat", "no-repeat");
+//		DOM.setStyleAttribute(navbarDatasets, "backgroundPosition", "right");		
+//
+//		navbarDatasets = DOM.getElementById("navbar_datasets_a");
+//		DOM.setStyleAttribute(navbarDatasets, "backgroundColor", "#fec84c");
+//		DOM.setStyleAttribute(navbarDatasets, "color", "#861b19");
+//		DOM.setStyleAttribute(navbarDatasets, "backgroundImage", "none");
+//		DOM.setStyleAttribute(navbarDatasets, "backgroundRepeat", "no-repeat");
+//		DOM.setStyleAttribute(navbarDatasets, "backgroundPosition", "left");
+			
+		
 		// Start on the first page and trigger a data fetch from the server
 		queryServiceTable.pageTo(0, 10);
 

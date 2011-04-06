@@ -19,15 +19,14 @@
 				
 					<strong class="left clear_both">On Synapse you can:</strong><br />
 
-					<ul class="left clear">
-						<li class="bulleted">Discover and explore new <a href="#DatasetsHome:0">Datasets</a></li>
-						<li class="bulleted">Learn new <a href="">Tools</a> and run powerful analysis</li>
-						<li class="bulleted">Explore cutting edge <a href="">Network Models</a></li>
-						<li class="bulleted">Find <a href="">People</a> to collaborate with</li>
-
-						<li class="bulleted">Start new research <a href="">Projects</a>, with anyone working anywhere</li>
+					<ul class="left clear dot">
+						<li class="dot">Discover and explore new <a href="#DatasetsHome:0">Datasets</a></li>
+						<li class="dot">Learn new <a href="">Tools</a> and run powerful analysis</li>
+						<li class="dot">Explore cutting edge <a href="">Network Models</a></li>
+						<li class="dot">Find <a href="">People</a> to collaborate with</li>
+						<li class="dot">Start new research <a href="">Projects</a>, with anyone working anywhere</li>
 					</ul>
-					<a class="bulleted left" href="">Learn more...</a>
+					<!-- <a class="bulleted left" href="">Learn more...</a>  -->
 				</div>
 				<div class="box smaller">
 					<div class="hosting_text">
@@ -88,7 +87,7 @@
 			</div>
 			<div id="sidebar">
 				<div id="publication">
-					<h3><span class="narrow">Featured</span> <span class="wide">PUBLICATION</span></h3>
+					<h3><span class="narrow">Featured</span> <span class="wide">PROJECT</span></h3>
 
 					The Federation Aging project is exploring the 
 					large effect of age on human gene expression 
@@ -120,9 +119,11 @@
 						<span class="text">
 							<strong>Beatriz Carvalho &amp; Gerrit Meijer, VUMC</strong><br/>
 
-							DNA copy number, mRNA expression, and tumor traits from 36 colorectal adenocarcinoma and 33 adenoma tumors.<br /><br />
-							<a class="bulleted" href="">See all contributors...</a>
+							DNA copy number, mRNA expression, and tumor traits from 36 colorectal adenocarcinoma and 33 adenoma tumors.<br />							
 						</span>
+					</span>
+					<span class="contributor">
+						<a class="bulleted" href="">See all contributors...</a>
 					</span>
 					<hr/>
 					<span class="contributor">

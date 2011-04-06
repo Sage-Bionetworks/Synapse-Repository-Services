@@ -16,6 +16,8 @@ import org.sagebionetworks.web.client.view.LayerView;
 import org.sagebionetworks.web.client.view.LayerViewImpl;
 import org.sagebionetworks.web.client.view.table.ColumnFactory;
 import org.sagebionetworks.web.client.view.table.ColumnFactoryImpl;
+import org.sagebionetworks.web.client.widget.breadcrumb.BreadcrumbView;
+import org.sagebionetworks.web.client.widget.breadcrumb.BreadcrumbViewImpl;
 import org.sagebionetworks.web.client.widget.filter.QueryFilterView;
 import org.sagebionetworks.web.client.widget.filter.QueryFilterViewImpl;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloaderView;
@@ -59,6 +61,9 @@ public class PortalGinModule extends AbstractGinModule {
 		
 		// LicenseBox
 		bind(LicensedDownloaderView.class).to(LicensedDownloaderViewImpl.class);
+		
+		// Breadcrumb
+		bind(BreadcrumbView.class).to(BreadcrumbViewImpl.class);
 		
 		// Bind the cookie provider
 		bind(GWTCookieImpl.class).in(Singleton.class);

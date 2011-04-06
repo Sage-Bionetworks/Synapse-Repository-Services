@@ -32,7 +32,7 @@
 			<div id="content" class="clearfix">
 
 				<ul class="breadcrumbs">
-					<li class="breadcrumb"><a href="#">Home</a> > <a href="#DatasetsHome:0">All Datasets</a> > <span ui:field="breadcrumbTitleSpan" /></li>
+					<li class="breadcrumb"><a href="#">Home</a> > <a href="#DatasetsHome:0">All Datasets</a> > <span ui:field="breadcrumbDatasetSpan" /> > <span ui:field="breadcrumbTitleSpan" /></li>
 				</ul>
 				<h2><span ui:field="titleSpan" /></h2>
 				

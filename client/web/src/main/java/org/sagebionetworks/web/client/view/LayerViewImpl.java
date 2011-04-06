@@ -30,6 +30,7 @@ import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
+import com.google.gwt.user.client.ui.Hyperlink;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
@@ -50,7 +51,11 @@ public class LayerViewImpl extends Composite implements LayerView {
 	@UiField
 	SimplePanel downloadPanel;
 	@UiField
-	SimplePanel termsOfUseSpan;	
+	SimplePanel termsOfUseSpan;
+	@UiField
+	SpanElement breadcrumbDatasetSpan;
+	@UiField
+	SpanElement breadcrumbTitleSpan;
 
 	private Presenter presenter;
 	private PreviewDisclosurePanel previewDisclosurePanel;
@@ -87,7 +92,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 	public void setLayerDetails(String layerName, String processingFacility, String qcByDisplay,
 			String qcByUrl, String qcAnalysisDisplay, String qcAnalysisUrl,
 			Date qcDate, String overviewText, int nDataRowsShown,
-			int totalDataRows, String privacyLevel) {
+			int totalDataRows, String privacyLevel, String datasetLink) {
 		
 		// make sure displayed values are clean
 		if(layerName == null) layerName = "";
@@ -124,6 +129,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 			}
 		});
 			
+		termsOfUseSpan.clear();
 		termsOfUseSpan.add(termsLink);
 		
 		// set description
@@ -139,6 +145,11 @@ public class LayerViewImpl extends Composite implements LayerView {
 		addRowToTable(rowIndex++, "QC Analysis:", "<a href=\"" + qcAnalysisUrl + "\">" + qcAnalysisDisplay + "</a>", rightFlexTable);		
 		if(qcDate != null)
 			addRowToTable(rowIndex++, "QC Date:", DisplayConstants.DATE_FORMAT.format(qcDate), rightFlexTable);
+		
+		// breadcrumbs
+		breadcrumbDatasetSpan.setInnerHTML(datasetLink);
+		breadcrumbTitleSpan.setInnerText(layerName);
+		
 		
 	}
 	
