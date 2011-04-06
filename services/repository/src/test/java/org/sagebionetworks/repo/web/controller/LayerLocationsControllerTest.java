@@ -207,7 +207,7 @@ public class LayerLocationsControllerTest {
 				.put(new JSONObject(
 						"{\"type\":\"awss3\",\"path\":\"human_liver_cohort/expression/expression.txt\"}"));
 		locations.put(new JSONObject(
-				"{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\"}"));
+				"{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\"}"));
 		locations
 				.put(new JSONObject(
 						"{\"type\":\"sage\", \"path\":\"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz\"}"));
