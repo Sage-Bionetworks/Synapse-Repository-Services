@@ -66,6 +66,12 @@ abstract public class JDODatasetLayer<T extends JDODatasetLayer<T>>
 	@Persistent
 	@Column(jdbcType="LONGVARCHAR")
 	private String preview;
+	
+	@Persistent
+	private String status;
+	
+	@Persistent
+	private Long numSamples;
 
 	public JDORevision<T> getRevision() {
 		return revision;
@@ -159,6 +165,22 @@ abstract public class JDODatasetLayer<T extends JDODatasetLayer<T>>
 	 */
 	public JDOLayerLocations getLocations() {
 		return locations;
+	}
+	
+	public void setStatus(String status) {
+		this.status = status;
+	}
+	
+	public String getStatus() {
+		return status;
+	}
+	
+	public void setNumSamples(Long numSamples) {
+		this.numSamples = numSamples;
+	}
+	
+	public Long getNumSamples() {
+		return numSamples;
 	}
 
 	public static Collection<String> getPrimaryFields() {
