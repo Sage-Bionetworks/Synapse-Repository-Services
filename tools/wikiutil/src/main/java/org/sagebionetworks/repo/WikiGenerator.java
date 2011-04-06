@@ -65,7 +65,7 @@ public class WikiGenerator {
 				"Right now only a subset of query functionality is supported\n"
 						+ "{code}SELECT * FROM <data type> ORDER BY <field name> [ASC|DESC] [LIMIT <#>] [OFFSET #]{code}");
 		JSONObject results = doGet(
-				"/repo/v1/query?query=select+*+from+dataset+where+name+==+%22Human+Liver+Cohort%22",
+				"/repo/v1/query?query=select+*+from+dataset+where+name+==+%22MSKCC+Prostate+Cancer%22",
 				"h2. 'Where Equal To' Query",
 				"Right now only a subset of query functionality is supported\n"
 						+ "{code}SELECT * FROM <data type> WHERE <field name> == \"<value>\" [LIMIT <#>] [OFFSET #]{code}");
@@ -73,7 +73,8 @@ public class WikiGenerator {
 		JSONObject dataset = null;
 		for (int i = 0; i < datasets.length(); i++) {
 			dataset = datasets.getJSONObject(i);
-			if (dataset.getString("dataset.name").equals("Human Liver Cohort")) {
+			if (dataset.getString("dataset.name").equals(
+					"MSKCC Prostate Cancer")) {
 				break;
 			}
 		}
@@ -146,6 +147,9 @@ public class WikiGenerator {
 					"h3. Get preview data as a map for a " + type
 							+ " Dataset Layer",
 					"This returns the preview data for a dataset layer.");
+			doGet(layer.getString("uri") + "/locations",
+					"h3. Get the locations for a " + type + " Dataset Layer",
+					"This returns all the locations metadata for a dataset layer.");
 			JSONArray locations = layer.getJSONArray("locations");
 			for (int j = 0; j < locations.length(); j++) {
 				String location = locations.getString(j);
@@ -237,11 +241,17 @@ public class WikiGenerator {
 				+ requestUrl + "'{code}");
 		log.info("*Response*{code}");
 
-		String response = HttpClientHelper.performRequest(requestUrl, "GET",
-				null, requestHeaders);
-		JSONObject results = new JSONObject(response);
-
-		log.info(results.toString(JSON_INDENT) + "{code}");
-		return results;
+		String response = null;
+		try {
+			response = HttpClientHelper.performRequest(requestUrl, "GET",
+					null, requestHeaders);
+			JSONObject results = new JSONObject(response);
+			log.info(results.toString(JSON_INDENT) + "{code}");
+			return results;
+		}
+		catch(Exception e) {
+			log.info("{code}");
+		}
+		return null;
 	}
 }
