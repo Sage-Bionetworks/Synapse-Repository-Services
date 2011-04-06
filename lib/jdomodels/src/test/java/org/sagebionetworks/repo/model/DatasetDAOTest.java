@@ -174,6 +174,8 @@ public class DatasetDAOTest {
 		ans.setProcessingFacility("Broad Institute");
 		ans.setQcBy("Fred");
 		ans.setQcDate(date);
+		ans.setStatus("curated");
+		ans.setNumSamples(221L);
 		return ans;
 	}
 
@@ -267,6 +269,8 @@ public class DatasetDAOTest {
 		Assert.assertEquals(layer1.getVersion(), l.getVersion());
 		LayerLocations storedLocations = locationsDao.get(layer1.getId());
 		Assert.assertEquals(3, storedLocations.getLocations().size());
+                Assert.assertEquals(layer1.getStatus(), l.getStatus());
+		Assert.assertEquals(layer1.getNumSamples(), l.getNumSamples());
 
 		Collection<InputDataLayer> layers = layerDAO.getInRange(0, 100);
 		Assert.assertEquals(2, layers.size());
@@ -851,5 +855,4 @@ public class DatasetDAOTest {
 		}
 
 	}
-
 }

@@ -74,6 +74,8 @@ public class JDOInputDataLayerDAOImpl extends
 		dto.setProcessingFacility(jdo.getProcessingFacility());
 		dto.setQcBy(jdo.getQcBy());
 		dto.setQcDate(jdo.getQcDate());
+		dto.setStatus(jdo.getStatus());
+		dto.setNumSamples(jdo.getNumSamples());
 	}
 
 	/**
@@ -113,6 +115,8 @@ public class JDOInputDataLayerDAOImpl extends
 		jdo.setProcessingFacility(dto.getProcessingFacility());
 		jdo.setQcBy(dto.getQcBy());
 		jdo.setQcDate(dto.getQcDate());
+		jdo.setStatus(dto.getStatus());
+		jdo.setNumSamples(dto.getNumSamples());
 	}
 
 	/**

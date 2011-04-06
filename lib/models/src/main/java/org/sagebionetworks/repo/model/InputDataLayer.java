@@ -20,7 +20,11 @@ public class InputDataLayer implements DatasetLayer {
 	private String processingFacility;
 	private String qcBy;
 	private Date qcDate;
-
+	// xschildw: Additional properties
+	private String status;
+	private Long numSamples;
+	// version defined in base class
+	
 	/** 
 	 * The following members are set by the service layer and should not be persisted.
 	 */
@@ -204,6 +208,22 @@ public class InputDataLayer implements DatasetLayer {
 	 */
 	public void setLocations(Collection<String> locations) {
 		this.locations = locations;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setNumSamples(Long numSamples) {
+		this.numSamples = numSamples;
+	}
+
+	public Long getNumSamples() {
+		return numSamples;
 	}
 
 	/* (non-Javadoc)
