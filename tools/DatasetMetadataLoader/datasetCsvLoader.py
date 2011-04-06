@@ -11,6 +11,8 @@ parser.add_argument('--datasetsCsv', '-d', help='the file path to the CSV file h
 
 parser.add_argument('--layersCsv', '-l', help='the file path to the CSV file holding layer metadata, defaults to AllDatasetLayerLocations.csv', default='AllDatasetLayerLocations.csv')
 
+parser.add_argument('--md5sumCsv', '-m', help='the file path to the CSV file holding the md5sums for files, defaults to ../platform.md5sums.csv', default='../platform.md5sums.csv')
+
 parser.add_argument('--serviceEndpoint', '-e', help='the host and optionally port to which to send the metadata', required=True)
 
 parser.add_argument('--servletPrefix', '-p', help='the servlet URL prefix, defaults to /repo/v1', default='/repo/v1')
@@ -45,10 +47,15 @@ HEADERS = {
 
 #-------------------[ Global Variables ]----------------------
 
+# Command line arguments
+gARGS = {}
+
 # A mapping we build over time of dataset names to layer uris.  In our
 # layer CSV file we have the dataset name to which each layer belongs.
 gDATASET_NAME_2_LAYER_URI = {}
 
+# A mapping of files to their md5sums
+gFILE_PATH_2_MD5SUM = {}
 
 #-----[ Classes to deal with latin_1 extended chars] ---------
 class UTF8Recoder:
@@ -112,18 +119,19 @@ class UnicodeWriter:
 
 #--------------------[ createObject ]-----------------------------
 def createObject(uri, object):
-    if(0 != string.find(uri, args.servletPrefix)):
-            uri = args.servletPrefix + uri
+    if(0 != string.find(uri, gARGS.servletPrefix)):
+            uri = gARGS.servletPrefix + uri
     
-    conn = httplib.HTTPConnection(args.serviceEndpoint, timeout=30)
-    if(args.debug):
+    conn = httplib.HTTPConnection(gARGS.serviceEndpoint, timeout=30)
+    if(gARGS.debug):
         conn.set_debuglevel(10);
+        print 'About to create %s with %s' % (uri, json.dumps(object))
     try:
         try:
             conn.request("POST", uri, json.dumps(object), HEADERS)
             resp = conn.getresponse()
             output = resp.read()
-            if args.debug:
+            if gARGS.debug:
                 print output
             if resp.status == 201:
                 object = json.loads(output)
@@ -141,9 +149,10 @@ def putProperty(uri, property):
     if(uri == None):
         return
 
-    conn = httplib.HTTPConnection(args.serviceEndpoint, timeout=30)
-    if(args.debug):
+    conn = httplib.HTTPConnection(gARGS.serviceEndpoint, timeout=30)
+    if(gARGS.debug):
         conn.set_debuglevel(2);
+        print 'About to update %s with %s' % (uri, json.dumps(property))
 
     putHeaders = HEADERS
     oldProperty = {}
@@ -153,7 +162,7 @@ def putProperty(uri, property):
             conn.request("GET", uri, None, HEADERS)
             resp = conn.getresponse()
             output = resp.read()
-            if args.debug:
+            if gARGS.debug:
                 print output
             if resp.status == 200:
                 oldProperty = json.loads(output)
@@ -173,7 +182,7 @@ def putProperty(uri, property):
             conn.request("PUT", uri, json.dumps(oldProperty), HEADERS)
             resp = conn.getresponse()
             output = resp.read()
-            if args.debug:
+            if gARGS.debug:
                 print output
             if resp.status == 200:
                 object = json.loads(output)
@@ -188,22 +197,29 @@ def putProperty(uri, property):
 
 #--------------------[ createDataset ]-----------------------------
 def createDataset(dataset, annotations):
-    print json.dumps(dataset)
     newDataset = createObject("/dataset", dataset)
     # Put our annotations
-    print json.dumps(annotations)
     putProperty(newDataset["annotations"], annotations)
     # Stash the layer uri for later use
     gDATASET_NAME_2_LAYER_URI[dataset['name']] = newDataset['layer']
-    print
-    print
+    print 'Created Dataset %s\n\n' % (dataset['name'])
       
+#--------------------[ loadMd5sums ]-----------------------------
+def loadMd5sums():
+    ifile  = open(gARGS.md5sumCsv, "rU")
+    for line in ifile:
+        row = string.split(line.rstrip())
+        md5sum = row[0]
+        # strip off any leading forward slashes
+        filePath = string.lstrip(row[1], "/")
+        gFILE_PATH_2_MD5SUM[filePath] = md5sum
+        
 #--------------------[ loadDatasets ]-----------------------------
 # What follows is code that expects a dataset CSV in a particular format,
 # sorry its so brittle and ugly
 def loadDatasets():
     # xschildw: Use codecs.open and UnicodeReader class to handle extended chars
-    ifile  = open(args.datasetsCsv, "r")
+    ifile  = open(gARGS.datasetsCsv, "r")
     reader = UnicodeReader(ifile, encoding='latin_1')
 
     # loop variables
@@ -261,7 +277,8 @@ def loadDatasets():
         # Load the row data from the dataset CSV into our datastructure    
         colnum = 0
         for col in row:
-            print '%-8s: %s' % (header[colnum], col)
+            if(gARGS.debug):
+                print '%-8s: %s' % (header[colnum], col)
             if(header[colnum] in CSV_TO_PRIMARY_FIELDS):
                 if("name" == header[colnum]):
                     cleanName = col.replace("_", " ")
@@ -269,7 +286,8 @@ def loadDatasets():
                 else:
                     dataset[CSV_TO_PRIMARY_FIELDS[header[colnum]]] = col
             elif(header[colnum] in CSV_SKIP_FIELDS):
-                print 'SKIPPING %-8s: %s' % (header[colnum], col)
+                if(gARGS.debug):
+                    print 'SKIPPING %-8s: %s' % (header[colnum], col)
                 # TODO consider reading these into fields
                 #             user_agreement_file_path
                 #             readme_file_path
@@ -300,7 +318,7 @@ def loadDatasets():
 def loadLayers():
     # What follows is code that expects a layerCsv in a particular format,
     # sorry its so brittle and ugly
-    ifile  = open(args.layersCsv, "rU")
+    ifile  = open(gARGS.layersCsv, "rU")
     reader = csv.reader(ifile)
     rownum = -1
     for row in reader:
@@ -317,13 +335,14 @@ def loadLayers():
         layerUri = gDATASET_NAME_2_LAYER_URI[row[0]]
         layer = {}
         layer["type"] = row[1]
-#        layer["status"] = row[2]
+        layer["status"] = row[2]
         layer["name"] = row[3]
-#        layer["numSamples"] = row[4]
+        layer["numSamples"] = row[4]
         layer["platform"] = row[5]
         layer["version"] = row[6]
         
         newLayer = createObject(layerUri, layer)
+        print 'Created layer %s for %s\n\n' % (layer["name"], row[0])
         
         layerLocations = {}
         layerLocations["locations"] = []
@@ -331,12 +350,14 @@ def loadLayers():
             if(row[col] != ""):
                 location = {}
                 location["type"] = header[col]
-                location["path"] = row[col];
+                location["path"] = row[col]
+                if(row[col] in gFILE_PATH_2_MD5SUM):
+                    location["md5sum"] = gFILE_PATH_2_MD5SUM[row[col]]
                 layerLocations["locations"].append(location)
         putProperty(newLayer["locations"][0], layerLocations);
         
         layerPreview = {}
-        
+       
         if(row[7] != ""):
             with open(row[7]) as myfile:
                 # Slurp in the first six lines of the file and store
@@ -348,10 +369,11 @@ def loadLayers():
 
 #--------------------[ Main ]-----------------------------
 
-args = parser.parse_args()
+gARGS = parser.parse_args()
 
+loadMd5sums()
 loadDatasets()
 
-if(None != args.layersCsv):
+if(None != gARGS.layersCsv):
     loadLayers()
 
