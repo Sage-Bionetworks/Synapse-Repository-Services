@@ -348,11 +348,13 @@ def loadLayers():
         layerLocations["locations"] = []
         for col in [8,9,10]:
             if(row[col] != ""):
+                # trim whitespace off both sides
+                path = row[col].strip()
                 location = {}
                 location["type"] = header[col]
-                location["path"] = row[col]
-                if(row[col] in gFILE_PATH_2_MD5SUM):
-                    location["md5sum"] = gFILE_PATH_2_MD5SUM[row[col]]
+                location["path"] = path
+                if(path in gFILE_PATH_2_MD5SUM):
+                    location["md5sum"] = gFILE_PATH_2_MD5SUM[path]
                 layerLocations["locations"].append(location)
         putProperty(newLayer["locations"][0], layerLocations);
         

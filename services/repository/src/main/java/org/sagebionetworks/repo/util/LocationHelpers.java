@@ -54,9 +54,17 @@ public class LocationHelpers {
 	private static final String READ_ONLY_GROUP = "ReadOnlyUnrestrictedDataUsers";
 
 	private DAOFactory daoFactory;
+
+	// The IAM user who has permissions to make new IAM users
 	private String iamCanCreateUserCredsAccessId = FAKE_ACCESS_ID;
 	private String iamCanCreateUserCredsSecretKey = FAKE_SECRET_KEY;
 	private AWSCredentials iamCanCreateUsersCreds;
+
+	// The integration test IAM user
+	private String iamIntegrationTestCredsAccessId = FAKE_ACCESS_ID;
+	private String iamIntegrationTestCredsSecretKey = FAKE_SECRET_KEY;
+	private AWSCredentials iamIntegrationTestCreds;
+
 	private AmazonIdentityManagement iamClient;
 
 	private volatile static LocationHelpers theInstance = null;
@@ -105,37 +113,19 @@ public class LocationHelpers {
 				iamCanCreateUserCredsAccessId, iamCanCreateUserCredsSecretKey);
 		iamClient = new AmazonIdentityManagementClient(iamCanCreateUsersCreds);
 
-		// Bootstrap one user, this is a temporary work around
-		// TODO delete me once we have log in stuff working
-		// TODO SERIOUSLY, DELETE THIS, IT IS A SECURITY HOLE
-		UserDAO userDao = daoFactory.getUserDAO(null);
-		try {
-			if (0 == userDao.getInRangeHavingPrimaryField(0, 1, "userId",
-					INTEGRATION_TEST_READ_ONLY_USER_ID).size()) {
-				User user = new User();
-				user.setUserId(INTEGRATION_TEST_READ_ONLY_USER_ID);
-				userDao.create(user);
-				UserCredentialsDAO credsDao = daoFactory
-						.getUserCredentialsDAO(INTEGRATION_TEST_READ_ONLY_USER_ID);
-				UserCredentials storedCreds;
-				storedCreds = credsDao.get(INTEGRATION_TEST_READ_ONLY_USER_ID);
-				storedCreds.setIamAccessId(FAKE_ACCESS_ID);
-				storedCreds.setIamSecretKey(FAKE_SECRET_KEY);
-				credsDao.update(storedCreds);
-			}
-		} catch (DatastoreException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InvalidModelException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (UnauthorizedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		// TODO hack, delete this once authentication and authorization are in
+		// place
+		if ((null != System.getProperty("PARAM3"))
+				&& (null != System.getProperty("PARAM4"))) {
+			// Dev Note: these particular environment variable names are what
+			// Elastic Beanstalk supports
+			iamIntegrationTestCredsAccessId = System.getProperty("PARAM3");
+			iamIntegrationTestCredsSecretKey = System.getProperty("PARAM4");
 		}
+
+		iamIntegrationTestCreds = new BasicAWSCredentials(
+				iamIntegrationTestCredsAccessId,
+				iamIntegrationTestCredsSecretKey);
 	}
 
 	/**
@@ -178,6 +168,10 @@ public class LocationHelpers {
 
 	private AWSCredentials getCredentialsForUser(String userId)
 			throws DatastoreException, UnauthorizedException {
+
+		if (userId.equals(INTEGRATION_TEST_READ_ONLY_USER_ID)) {
+			return iamIntegrationTestCreds;
+		}
 
 		UserCredentialsDAO credsDao = daoFactory.getUserCredentialsDAO(userId);
 
