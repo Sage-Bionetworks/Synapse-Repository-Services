@@ -253,8 +253,10 @@ public class DatasetDAOTest {
 		Assert.assertEquals(layer1.getCreationDate().toString(), l.getCreationDate().toString());
 		Assert.assertEquals(layer1.getDescription(), l.getDescription());
 		Assert.assertEquals(layer1.getPlatform(), l.getPlatform());
+		Assert.assertEquals("Affymetrix", layer1.getPlatform());
 		Assert.assertEquals(layer1.getProcessingFacility(), l
 				.getProcessingFacility());
+		Assert.assertEquals("Broad Institute", layer1.getProcessingFacility());
 		Assert
 				.assertEquals(layer1.getPublicationDate().toString(), l
 						.getPublicationDate().toString());

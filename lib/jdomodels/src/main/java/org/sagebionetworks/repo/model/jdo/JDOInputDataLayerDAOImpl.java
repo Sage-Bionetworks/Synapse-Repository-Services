@@ -71,7 +71,7 @@ public class JDOInputDataLayerDAOImpl extends
 		}
 		dto.setTissueType(jdo.getTissueType());
 		dto.setPlatform(jdo.getPlatform());
-		dto.setProcessingFacility(jdo.getPlatform());
+		dto.setProcessingFacility(jdo.getProcessingFacility());
 		dto.setQcBy(jdo.getQcBy());
 		dto.setQcDate(jdo.getQcDate());
 	}
@@ -110,7 +110,7 @@ public class JDOInputDataLayerDAOImpl extends
 		jdo.setType(dto.getType());
 		jdo.setTissueType(dto.getTissueType());
 		jdo.setPlatform(dto.getPlatform());
-		jdo.setProcessingFacility(dto.getPlatform());
+		jdo.setProcessingFacility(dto.getProcessingFacility());
 		jdo.setQcBy(dto.getQcBy());
 		jdo.setQcDate(dto.getQcDate());
 	}
