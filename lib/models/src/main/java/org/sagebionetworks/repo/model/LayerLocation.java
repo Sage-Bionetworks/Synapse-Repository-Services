@@ -11,6 +11,7 @@ public class LayerLocation {
 
 	private String type;
 	private String path;
+	private String md5sum;
 	// TODO probably need a collection of string properties
 	
 	/**
@@ -43,10 +44,11 @@ public class LayerLocation {
 	 * @param type
 	 * @param path
 	 */
-	public LayerLocation(String type, String path) {
+	public LayerLocation(String type, String path, String md5sum) {
 		super();
 		this.type = type;
 		this.path = path;
+		this.md5sum = md5sum;
 	}
 
 	/**
@@ -89,6 +91,20 @@ public class LayerLocation {
 		return path;
 	}
 
+	/**
+	 * @param md5sum the md5sum to set
+	 */
+	public void setMd5sum(String md5sum) {
+		this.md5sum = md5sum;
+	}
+
+	/**
+	 * @return the md5sum
+	 */
+	public String getMd5sum() {
+		return md5sum;
+	}
+
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */
@@ -96,6 +112,7 @@ public class LayerLocation {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((md5sum == null) ? 0 : md5sum.hashCode());
 		result = prime * result + ((path == null) ? 0 : path.hashCode());
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		return result;
@@ -113,6 +130,11 @@ public class LayerLocation {
 		if (getClass() != obj.getClass())
 			return false;
 		LayerLocation other = (LayerLocation) obj;
+		if (md5sum == null) {
+			if (other.md5sum != null)
+				return false;
+		} else if (!md5sum.equals(other.md5sum))
+			return false;
 		if (path == null) {
 			if (other.path != null)
 				return false;
@@ -125,4 +147,6 @@ public class LayerLocation {
 			return false;
 		return true;
 	}
+
+
 }

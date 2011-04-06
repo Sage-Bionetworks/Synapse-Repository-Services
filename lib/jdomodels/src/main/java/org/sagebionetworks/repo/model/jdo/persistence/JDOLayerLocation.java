@@ -27,6 +27,9 @@ public class JDOLayerLocation {
 	@Persistent
 	private String path;
 	
+	@Persistent
+	private String md5sum;
+	
 	// this is the backwards pointer for the 1-1 owned relationship
 	@Persistent
 	private JDOLayerLocations owner;
@@ -40,11 +43,13 @@ public class JDOLayerLocation {
 	/**
 	 * @param type
 	 * @param path
+	 * @param md5sum
 	 */
-	public JDOLayerLocation(String type, String path) {
+	public JDOLayerLocation(String type, String path, String md5sum) {
 		super();
 		this.type = type;
 		this.path = path;
+		this.md5sum = md5sum;
 	}
 
 	/**
@@ -54,6 +59,7 @@ public class JDOLayerLocation {
 		super();
 		this.type = location.getType();
 		this.path = location.getPath();
+		this.md5sum = location.getMd5sum();
 	}
 
 	/**
@@ -101,6 +107,20 @@ public class JDOLayerLocation {
 
 
 	/**
+	 * @param md5sum the md5sum to set
+	 */
+	public void setMd5sum(String md5sum) {
+		this.md5sum = md5sum;
+	}
+
+	/**
+	 * @return the md5sum
+	 */
+	public String getMd5sum() {
+		return md5sum;
+	}
+
+	/**
 	 * @param owner the owner to set
 	 */
 	public void setOwner(JDOLayerLocations owner) {
@@ -118,7 +138,7 @@ public class JDOLayerLocation {
 	 * @return a LayerLocation instantiated with the values of this {@link JDOLayerLocation}
 	 */
 	public LayerLocation toLayerLocation() {
-		return new LayerLocation(this.type, this.path);
+		return new LayerLocation(this.type, this.path, this.md5sum);
 	}
 
 

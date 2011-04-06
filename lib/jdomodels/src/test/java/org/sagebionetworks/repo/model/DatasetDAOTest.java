@@ -32,11 +32,6 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDOInputDataLayer;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-
-
-
-
-
 public class DatasetDAOTest {
 
 	@BeforeClass
@@ -51,13 +46,14 @@ public class DatasetDAOTest {
 	}
 
 	private DAOFactory fac;
-	private Collection<Long> dsIds =null;
+	private Collection<Long> dsIds = null;
 
 	@Before
 	public void setUp() throws Exception {
 		dsIds = new HashSet<Long>();
 		fac = new JDODAOFactoryImpl();
-		(new JDOBootstrapperImpl()).bootstrap(); // creat admin user, public group, etc.
+		(new JDOBootstrapperImpl()).bootstrap(); // creat admin user, public
+													// group, etc.
 	}
 
 	@After
@@ -68,7 +64,8 @@ public class DatasetDAOTest {
 			Transaction tx = pm.currentTransaction();
 			for (Long id : dsIds) {
 				tx.begin();
-				if (id!=null) pm.deletePersistent(pm.getObjectById(JDODataset.class, id));
+				if (id != null)
+					pm.deletePersistent(pm.getObjectById(JDODataset.class, id));
 				tx.commit();
 			}
 		} finally {
@@ -118,9 +115,11 @@ public class DatasetDAOTest {
 		Assert.assertEquals(d.getName(), d2.getName());
 		Assert.assertEquals(d.getDescription(), d2.getDescription());
 		Assert.assertEquals(d.getCreator(), d2.getCreator());
-		Assert.assertEquals(d.getCreationDate().toString(), d2.getCreationDate().toString());
+		Assert.assertEquals(d.getCreationDate().toString(), d2
+				.getCreationDate().toString());
 		Assert.assertEquals(d.getStatus(), d2.getStatus());
-		Assert.assertEquals(d.getReleaseDate().toString(), d2.getReleaseDate().toString());
+		Assert.assertEquals(d.getReleaseDate().toString(), d2.getReleaseDate()
+				.toString());
 		// test that annotations are also retrieved
 		Annotations annots = dao.getAnnotations(id);
 		Collection<String> tissueType = annots.getStringAnnotations().get(
@@ -153,11 +152,11 @@ public class DatasetDAOTest {
 		// retrieve the annotations sorted
 		dao.getStringAnnotationDAO(null).getInRangeSortedBy(0, 2, "Tissue",
 				true);
-		
+
 		// Clean up test data
 		dao.delete(id);
 		this.dsIds.remove(KeyFactory.stringToKey(id));
-		
+
 	}
 
 	private static InputDataLayer createLayer(Date date)
@@ -214,17 +213,18 @@ public class DatasetDAOTest {
 		
 		LayerLocations locations = locationsDao.get(layer1.getId());
 		assertEquals(0, locations.getLocations().size());
-		locations.getLocations().add(new LayerLocation("awsebs", "snap-29d33a42 (US West)"));
+		locations.getLocations().add(new LayerLocation("awsebs", "snap-29d33a42 (US West)", null)); // no md5sum here
 		locations.getLocations()
 				.add(new LayerLocation(
 						"sage",
-						"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz"));
+						"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz",
+						"7e60e91e5c168103201150f01c3e2bac"));
 		locations.getLocations()
 				.add(new LayerLocation(
 						"awss3",
-						"tcga_glioblastoma/tcga_glioblastoma_data.tar.gz"));
+						"tcga_glioblastoma/tcga_glioblastoma_data.tar.gz",
+						"b4c1e441ecb754271e0dee5020fd38e4"));
 		locationsDao.update(locations);
-		
 		LayerPreview preview = previewDao.get(layer1.getId());
 		preview.setPreview("foo!");
 		previewDao.update(preview);
@@ -357,7 +357,7 @@ public class DatasetDAOTest {
 		Collection<Double> doubles = annots.get("weight");
 		Assert.assertEquals(doubles.toString(), 1, doubles.size());
 		Assert.assertEquals(9.11D, doubles.iterator().next());
-		
+
 		// Clean up test data
 		dao.delete(id);
 		this.dsIds.remove(KeyFactory.stringToKey(id));
@@ -382,53 +382,55 @@ public class DatasetDAOTest {
 
 		Assert.assertEquals(1, dao.getInputDataLayerDAO(id).getInRange(0, 100)
 				.size());
-		
-		
-		AnnotationDAO<Dataset, String> annotDao = dao.getStringAnnotationDAO(id);
+
+		AnnotationDAO<Dataset, String> annotDao = dao
+				.getStringAnnotationDAO(id);
 		annotDao.addAnnotation("annot", "value");
-		Map<String, Collection<String>> allStringAnnots = annotDao.getAnnotations();
+		Map<String, Collection<String>> allStringAnnots = annotDao
+				.getAnnotations();
 		Assert.assertEquals(1, allStringAnnots.size());
 		Assert.assertEquals(1, allStringAnnots.get("annot").size());
-		Assert.assertEquals("value", allStringAnnots.get("annot").iterator().next());
-		
+		Assert.assertEquals("value", allStringAnnots.get("annot").iterator()
+				.next());
+
 		// hang on to the id of the annotation object just created
 		Long gaejdoAnnotLong = null;
 		PersistenceManager pm = PMF.get();
 		{
 			Long key = KeyFactory.stringToKey(id);
-			JDODataset jdo = (JDODataset) pm.getObjectById(
-					JDODataset.class, key);
-			Set<JDOStringAnnotation> stringAnnots = jdo.getAnnotations().getStringAnnotations();
+			JDODataset jdo = (JDODataset) pm.getObjectById(JDODataset.class,
+					key);
+			Set<JDOStringAnnotation> stringAnnots = jdo.getAnnotations()
+					.getStringAnnotations();
 			Assert.assertEquals(1, stringAnnots.size());
 			gaejdoAnnotLong = stringAnnots.iterator().next().getId();
 		}
-		
+
 		dao.delete(id);
 		this.dsIds.remove(KeyFactory.stringToKey(id));
 
-		// now try to get the dataset.  should be gone
+		// now try to get the dataset. should be gone
 		try {
 			dao.get(id);
 			Assert.fail("exception expected");
 		} catch (NotFoundException e) {
 			// as expected
 		}
-		
-		// now try to get the dataset.  should be gone
+
+		// now try to get the dataset. should be gone
 		try {
 			Long key = KeyFactory.stringToKey(id);
-			//JDODataset jdo = (JDODataset)
-				 pm.getObjectById(JDODataset.class, key);
+			// JDODataset jdo = (JDODataset)
+			pm.getObjectById(JDODataset.class, key);
 			Assert.fail("exception expected");
 		} catch (Exception e) {
 			// as expected
 		}
 
-		// now try to get the annotation.  should be gone
+		// now try to get the annotation. should be gone
 		try {
-			//JDOStringAnnotation jdo = (JDOStringAnnotation)
-				 pm.getObjectById(
-					JDOStringAnnotation.class, gaejdoAnnotLong);
+			// JDOStringAnnotation jdo = (JDOStringAnnotation)
+			pm.getObjectById(JDOStringAnnotation.class, gaejdoAnnotLong);
 			Assert.fail("exception expected");
 		} catch (Exception e) {
 			// as expected
@@ -437,23 +439,23 @@ public class DatasetDAOTest {
 		// now try to get the layer. should be gone
 		try {
 			Long key = KeyFactory.stringToKey(layerId);
-			//JDOInputDataLayer jdo = (JDOInputDataLayer)
+			// JDOInputDataLayer jdo = (JDOInputDataLayer)
 			pm.getObjectById(JDOInputDataLayer.class, key);
 			// System.out.println("Layer name: "+jdo.getName());
 			//
-			// TODO Why aren't the (owned) layers deleted when the parent dataset is????
-			// (it works for annotations, but not layers.  Is it because the class is inherited
+			// TODO Why aren't the (owned) layers deleted when the parent
+			// dataset is????
+			// (it works for annotations, but not layers. Is it because the
+			// class is inherited
 			// from another persistent class??
 			//
-			//Assert.fail("exception expected");
+			// Assert.fail("exception expected");
 		} catch (Exception e) {
 			// as expected
 		}
 
 		// TODO: check that deletion of the dataset deletes its revisions
 		// too. (Since they're owned, they should be deleted automatically.)
-
-		
 
 	}
 
@@ -474,11 +476,11 @@ public class DatasetDAOTest {
 		// System.out.println(ds2.getVersion());
 		// now let's create a revision of ds2, v1.0->v2.0
 		ds2.setVersion("2.0");
-		Date revisionDate = new Date(); 
+		Date revisionDate = new Date();
 		dao.revise(ds2, revisionDate);
 		// the count should not change!
 		Assert.assertEquals(2, dao.getCount());
-		
+
 		// Clean up test data
 		dao.delete(id2);
 		this.dsIds.remove(KeyFactory.stringToKey(id2));
@@ -489,7 +491,7 @@ public class DatasetDAOTest {
 	@Test
 	public void testGetInRange() throws Exception {
 		Set<String> datasetIds = new HashSet<String>();
-		
+
 		DatasetDAO dao = fac.getDatasetDAO(null);
 		Dataset d = null;
 		d = createShallow("d1");
@@ -500,7 +502,8 @@ public class DatasetDAOTest {
 		datasetIds.add(dao.create(d));
 		d = createShallow("d3");
 		datasetIds.add(dao.create(d));
-		for (String id : datasetIds) this.dsIds.add(KeyFactory.stringToKey(id));
+		for (String id : datasetIds)
+			this.dsIds.add(KeyFactory.stringToKey(id));
 
 		List<Dataset> ans;
 		ans = dao.getInRange(0, 2);
@@ -509,9 +512,9 @@ public class DatasetDAOTest {
 		Assert.assertEquals(4, ans.size());
 		ans = dao.getInRange(1, 10);
 		Assert.assertEquals(3, ans.size());
-		
+
 		// Clean up test data
-		for(String datasetId : datasetIds) {
+		for (String datasetId : datasetIds) {
 			dao.delete(datasetId);
 			this.dsIds.remove(KeyFactory.stringToKey(datasetId));
 		}
@@ -520,9 +523,9 @@ public class DatasetDAOTest {
 	@Test
 	public void testGetPrimaryFields() throws Exception {
 		DatasetDAO dao = fac.getDatasetDAO(null);
-		Set<String> s = new HashSet<String>(Arrays.asList(new String[] { "name",
-				"description", "releaseDate", "version", "status", "creator",
-				"creationDate" }));
+		Set<String> s = new HashSet<String>(Arrays.asList(new String[] {
+				"name", "description", "releaseDate", "version", "status",
+				"creator", "creationDate" }));
 		Assert.assertEquals(s, new HashSet<String>(dao.getPrimaryFields()));
 	}
 
@@ -548,7 +551,8 @@ public class DatasetDAOTest {
 		datasetIds.add(dao.create(d));
 		dao.getStringAnnotationDAO(d.getId()).addAnnotation("stringAttr",
 				d.getName());
-		for (String id : datasetIds) this.dsIds.add(KeyFactory.stringToKey(id));
+		for (String id : datasetIds)
+			this.dsIds.add(KeyFactory.stringToKey(id));
 
 		List<Dataset> ans;
 		ans = dao.getInRangeSortedByPrimaryField(0, 2, "name", /* ascending */
@@ -599,9 +603,9 @@ public class DatasetDAOTest {
 		Assert.assertEquals(order, "d1", ans.get(1).getName());
 		Assert.assertEquals(order, "d3", ans.get(2).getName());
 		Assert.assertEquals(order, "d4", ans.get(3).getName());
-		
+
 		// Clean up test data
-		for(String datasetId : datasetIds) {
+		for (String datasetId : datasetIds) {
 			dao.delete(datasetId);
 			this.dsIds.remove(KeyFactory.stringToKey(datasetId));
 		}
@@ -625,7 +629,8 @@ public class DatasetDAOTest {
 		d = createShallow("d3");
 		d.setStatus(null);
 		datasetIds.add(dao.create(d));
-		for (String id : datasetIds) this.dsIds.add(KeyFactory.stringToKey(id));
+		for (String id : datasetIds)
+			this.dsIds.add(KeyFactory.stringToKey(id));
 
 		List<Dataset> ans;
 		ans = dao.getInRangeHavingPrimaryField(0, 10, "status", "preliminary");
@@ -637,7 +642,7 @@ public class DatasetDAOTest {
 				"d4", "d1" })), s);
 
 		// Clean up test data
-		for(String datasetId : datasetIds) {
+		for (String datasetId : datasetIds) {
 			dao.delete(datasetId);
 			this.dsIds.remove(KeyFactory.stringToKey(datasetId));
 		}
@@ -765,11 +770,11 @@ public class DatasetDAOTest {
 		Collection<String> values = map.get("Tissue Type");
 		Assert.assertEquals(1, values.size());
 		Assert.assertEquals("liver", values.iterator().next());
-		
+
 		// Clean up test data
 		dao.delete(id);
 		this.dsIds.remove(KeyFactory.stringToKey(id));
-		dao.delete(id2);		
+		dao.delete(id2);
 		this.dsIds.remove(KeyFactory.stringToKey(id2));
 	}
 
@@ -792,14 +797,14 @@ public class DatasetDAOTest {
 	public void testRetrieveByRevision() throws Exception {
 		// TODO
 	}
-	
 
 	@Test
 	public void TestCreateDatasetWithLongDescription() throws Exception {
-		//	Description with more than 256 chars (should be 2880 chars) 
-//		String desc = new String(new char[10]).replace("\0", "Lorem ipsum vis alia possit dolores an, id quo apeirian consequat. Te usu nihil facilis forensibus, graece populo deserunt vel an. Populo semper eu quo, ne ignota deleniti salutatus mea. Ullum petentium et duo, adhuc detracto vel ei. Disputando delicatissimi et eos, eam no labore mollis,");
+		// Description with more than 256 chars (should be 2880 chars)
+		// String desc = new String(new char[10]).replace("\0",
+		// "Lorem ipsum vis alia possit dolores an, id quo apeirian consequat. Te usu nihil facilis forensibus, graece populo deserunt vel an. Populo semper eu quo, ne ignota deleniti salutatus mea. Ullum petentium et duo, adhuc detracto vel ei. Disputando delicatissimi et eos, eam no labore mollis,");
 		String desc = "Lorem ipsum vis alia possit dolores an, id quo apeirian consequat. Te usu nihil facilis forensibus, graece populo deserunt vel an. Populo semper eu quo, ne ignota deleniti salutatus mea. Ullum petentium et duo, adhuc detracto vel ei. Disputando delicatissimi et eos, eam no labore mollis,";
-		//	Dataset
+		// Dataset
 		Dataset d = new Dataset();
 		Date now = new Date();
 		d.setName("ADatasetWithLongDesc");
@@ -809,22 +814,22 @@ public class DatasetDAOTest {
 		d.setReleaseDate(now);
 		d.setVersion("1.0");
 		d.setStatus("in progress");
-		
+
 		DatasetDAO dao = fac.getDatasetDAO(null);
 		String id = dao.create(d);
 		this.dsIds.add(KeyFactory.stringToKey(id));
 		Assert.assertNotNull(id);
-		
+
 		Dataset d2 = dao.get(id);
 		Assert.assertEquals(d.getDescription(), d2.getDescription());
 	}
-	
+
 	@Test
 	public void TestCreateDatasetWithTooLongDescription() throws Exception {
-		//	Description with more than 256 chars (should be > 3000 chars)
+		// Description with more than 256 chars (should be > 3000 chars)
 		String s = "Lorem ipsum vis alia possit dolores an, id quo apeirian consequat. Te usu nihil facilis forensibus, graece populo deserunt vel an. Populo semper eu quo, ne ignota deleniti salutatus mea. Ullum petentium et duo, adhuc detracto vel ei. Disputando delicatissimi et eos, eam no labore mollis,";
 		String desc = new String(new char[11]).replace("\0", s);
-		//	Dataset
+		// Dataset
 		Dataset d = new Dataset();
 		Date now = new Date();
 		d.setName("ADatasetWithLongDesc");
@@ -834,7 +839,7 @@ public class DatasetDAOTest {
 		d.setReleaseDate(now);
 		d.setVersion("1.0");
 		d.setStatus("in progress");
-		
+
 		try {
 			DatasetDAO dao = fac.getDatasetDAO(null);
 			String id = dao.create(d);
@@ -842,7 +847,7 @@ public class DatasetDAOTest {
 		} catch (Exception e) {
 			// as expected
 		}
-		
+
 	}
 
 }

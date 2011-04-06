@@ -49,7 +49,7 @@ public class LocationHelpers {
 	 */
 	public static final String FAKE_SECRET_KEY = "thisIsAFakeAWSSecretKey";
 
-	private static final int EXPIRES_MINUTES = 10;
+	private static final int EXPIRES_MINUTES = 24 * 60; // 1 day
 	private static final String S3_BUCKET = "data01.sagebase.org";
 	private static final String READ_ONLY_GROUP = "ReadOnlyUnrestrictedDataUsers";
 
