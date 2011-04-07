@@ -318,8 +318,8 @@ def loadDatasets():
 def loadLayers():
     # What follows is code that expects a layerCsv in a particular format,
     # sorry its so brittle and ugly
-    ifile  = open(gARGS.layersCsv, "rU")
-    reader = csv.reader(ifile)
+    ifile  = open(gARGS.layersCsv, "r")
+    reader = UnicodeReader(ifile, encoding='latin_1')
     rownum = -1
     for row in reader:
         rownum += 1
