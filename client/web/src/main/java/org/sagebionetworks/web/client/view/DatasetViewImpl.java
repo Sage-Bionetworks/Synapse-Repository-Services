@@ -112,14 +112,33 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	}
 
 	@Override
-	public void setDatasetDetails(String id, String name, String overviewText,
-			String[] diseases, String[] species, int studySize,
-			String[] tissueTypes, String referencePublicationDisplay,
-			String referencePublicationUrl, int nOtherPublications,
-			String viewOtherPublicationsUrl, Date postedDate,
-			Date curationDate, String[] contributors, int nFollowers,
-			String viewFollowersUrl, String downloadAvailability,
-			String releaseNotesUrl) {
+	public void setDatasetDetails(String id, 
+								  String name, 
+								  String overviewText,
+								  String[] diseases, 
+								  String[] species, 
+								  int studySize,
+								  String tissueTumor,
+								  String[] tissueTypes, 
+								  String referencePublicationDisplay,
+								  String referencePublicationUrl, 
+								  int nOtherPublications,
+								  String viewOtherPublicationsUrl, 
+								  Date postedDate,
+								  Date curationDate, 
+								  Date lastModifiedDate,
+								  String creator, 
+								  String[] contributors, 
+								  int nFollowers,
+								  String viewFollowersUrl, 
+								  String downloadAvailability,
+								  String releaseNotesUrl, 
+								  String status, 
+								  String version,
+								  int nSamples, 
+								  int nDownloads, 
+								  String citation, 
+								  Integer pubmedId) {
 
 		// assure reasonable values
 		if(id == null) id = "";
@@ -135,6 +154,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		if(viewFollowersUrl == null) viewFollowersUrl = "";
 		if(downloadAvailability == null) downloadAvailability = "";
 		if(releaseNotesUrl == null) releaseNotesUrl = "";
+		
 		
 		// Set the where clause
 		List<WhereCondition> whereList = new ArrayList<WhereCondition>();
@@ -154,21 +174,32 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		// add metadata to tables
 		int rowIndex = 0;
 		addRowToTable(rowIndex++, "Disease(s):", join(diseases, ", "), middleFlexTable);
-		addRowToTable(rowIndex++, "Species:", join(species, ", "), middleFlexTable);
+		addRowToTable(rowIndex++, "Species:", join(species, ", "), middleFlexTable);		
 		addRowToTable(rowIndex++, "Tissue Type(s):", join(tissueTypes, ", "), middleFlexTable);
-		addRowToTable(rowIndex++, "Reference Publication:", "<a href=\""+ referencePublicationUrl + "\" target=\"_new\">" + referencePublicationDisplay + "</a>", middleFlexTable);
+		addRowToTable(rowIndex++, "Tissue/Tumor:", tissueTumor, middleFlexTable);
+		if(referencePublicationUrl != null)
+			addRowToTable(rowIndex++, "Reference Publication:", "<a href=\""+ referencePublicationUrl + "\" target=\"_new\">" + referencePublicationDisplay + "</a>", middleFlexTable);
+		else 
+			addRowToTable(rowIndex++, "Reference Publication:", referencePublicationDisplay, middleFlexTable);
 		addRowToTable(rowIndex++, "Other Publications:", nOtherPublications + " <a href=\""+ viewOtherPublicationsUrl + "\" target=\"_new\">view</a>", middleFlexTable);
+		addRowToTable(rowIndex++, "Status:", status, middleFlexTable);
+		addRowToTable(rowIndex++, "Version:", version, middleFlexTable);
 
 		rowIndex = 0;
 		if(postedDate != null)
 			addRowToTable(rowIndex++, "Posted:", DisplayConstants.DATE_FORMAT.format(postedDate), rightFlexTable);
+		addRowToTable(rowIndex++, "Curator:", creator, rightFlexTable);
 		if(curationDate != null)
-			addRowToTable(rowIndex++, "Curated:", DisplayConstants.DATE_FORMAT.format(curationDate), rightFlexTable);				
+			addRowToTable(rowIndex++, "Curated On:", DisplayConstants.DATE_FORMAT.format(curationDate), rightFlexTable);
+		if(lastModifiedDate != null)
+			addRowToTable(rowIndex++, "Last Modified On:", DisplayConstants.DATE_FORMAT.format(lastModifiedDate), rightFlexTable);						
 		addRowToTable(rowIndex++, "Contributor(s)/Institution:", join(contributors, "<br/>"), rightFlexTable);
 		addRowToTable(rowIndex++, "Followers:", nFollowers + " <a href=\""+ viewFollowersUrl + "\" target=\"_new\">view</a>", rightFlexTable);
+		addRowToTable(rowIndex++, "Number of Samples:", Integer.toString(nSamples), rightFlexTable);
+		addRowToTable(rowIndex++, "Number of Downloads:", Integer.toString(nDownloads), rightFlexTable);
 		addRowToTable(rowIndex++, "Download Availability:", downloadAvailability, rightFlexTable);
 		addRowToTable(rowIndex++, "Release Notes:", "<a href=\""+ releaseNotesUrl + "\" target=\"_new\">view</a>", rightFlexTable);			
-
+		
 	}
 	
 	

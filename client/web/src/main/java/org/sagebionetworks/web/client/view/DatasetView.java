@@ -39,6 +39,7 @@ public interface DatasetView extends IsWidget {
 								  String[] diseases,
 								  String[] species,
 								  int studySize,
+								  String tissueTumor, 
 								  String[] tissueTypes,
 								  String referencePublicationDisplay,
 								  String referencePublicationUrl,
@@ -46,11 +47,19 @@ public interface DatasetView extends IsWidget {
 								  String viewOtherPublicationsUrl,
 								  Date postedDate,
 								  Date curationDate,
+								  Date lastModifiedDate, 
+								  String creator, 
 								  String[] contributors,
 								  int nFollowers,
 								  String viewFollowersUrl,
 								  String downloadAvailability,
-								  String releaseNotesUrl);
+								  String releaseNotesUrl,
+								  String status,
+								  String version, 
+								  int nSamples, 
+								  int nDownloads, 
+								  String citation, 
+								  Integer pubmedId);
 	
 	public void setDatasetRow(DatasetRow row);
 	
