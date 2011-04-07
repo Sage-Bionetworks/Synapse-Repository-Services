@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
 import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
 import org.sagebionetworks.repo.model.jdo.JDODatasetDAOImpl;
 import org.sagebionetworks.repo.model.jdo.PMF;
@@ -58,6 +59,7 @@ public class JDOQueryDAOImpl implements QueryDAO {
 
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 	private static final HashSet<String> primaryFields;
+
 	// Import the primary fields from the dao
 	static {
 		primaryFields = new HashSet<String>();
@@ -412,7 +414,7 @@ public class JDOQueryDAOImpl implements QueryDAO {
 		// Write the expression
 		primaryWhere.append(SqlConstants.PRIMARY_ALIAS);
 		primaryWhere.append(".");
-		primaryWhere.append(exp.getId().getFieldName());
+		primaryWhere.append(SqlConstants.getColumnNameForPrimaryField(exp.getId().getFieldName()));
 		primaryWhere.append(" ");
 		primaryWhere.append(SqlConstants.getSqlForComparator(exp.getCompare()));
 		primaryWhere.append(" :");
@@ -452,7 +454,7 @@ public class JDOQueryDAOImpl implements QueryDAO {
 			throw new AttributeDoesNotExist("No attribute found for: " + sort);
 		if (FieldType.PRIMARY_FIELD == type) {
 			sortOnAlias = SqlConstants.PRIMARY_ALIAS;
-			sortColumnName = sort;
+			sortColumnName = SqlConstants.getColumnNameForPrimaryField(sort);
 		} else {
 			// We are sorting on an attribute which means we need a left outer
 			// join.
@@ -687,31 +689,16 @@ public class JDOQueryDAOImpl implements QueryDAO {
 	 */
 	private static Map<Class, String> getAllClassTables(PersistenceManager pm) {
 		// Load all table names from the database
-		// Query query = pm.newQuery("javax.jdo.query.SQL",
-		// "SELECT CLASS_NAME, TABLE_NAME FROM NUCLEUS_TABLES");
-		// List resultSet = (List) query.execute();
+		// Use the BasicIdentifierFactory to create the table names.
 		Map<Class, String> map = new HashMap<Class, String>();
-		// // If the list is empty then do this manually
-		// if(!resultSet.isEmpty() || resultSet.size() < 20){
-		// for(int i=0; i<resultSet.size(); i++){
-		// Object[] array = (Object[]) resultSet.get(i);
-		// Class clazz;
-		// try {
-		// clazz = Class.forName((String) array[0]);
-		// map.put(clazz, (String)array[1]);
-		// } catch (ClassNotFoundException e) {
-		// e.printStackTrace();
-		// }
-		// }
-		// }else{
-		// It is empty so we do this manually
-		map.put(JDODataset.class, "JDODATASET");
-		map.put(JDOInputDataLayer.class, "JDOINPUTDATALAYER");
-		map.put(JDOStringAnnotation.class, "JDOSTRINGANNOTATION");
-		map.put(JDOLongAnnotation.class, "JDOLONGANNOTATION");
-		map.put(JDODoubleAnnotation.class, "JDODOUBLEANNOTATION");
-		map.put(JDODateAnnotation.class, "JDODATEANNOTATION");
-		// }
+		BasicIdentifierFactory nameFactory = new BasicIdentifierFactory();
+		nameFactory.setWordSeparator("");
+		map.put(JDODataset.class, nameFactory.generateIdentifierNameForJavaName(JDODataset.class.getSimpleName()));
+		map.put(JDOInputDataLayer.class, nameFactory.generateIdentifierNameForJavaName(JDOInputDataLayer.class.getSimpleName()));
+		map.put(JDOStringAnnotation.class, nameFactory.generateIdentifierNameForJavaName(JDOStringAnnotation.class.getSimpleName()));
+		map.put(JDOLongAnnotation.class, nameFactory.generateIdentifierNameForJavaName(JDOLongAnnotation.class.getSimpleName()));
+		map.put(JDODoubleAnnotation.class, nameFactory.generateIdentifierNameForJavaName(JDODoubleAnnotation.class.getSimpleName()));
+		map.put(JDODateAnnotation.class, nameFactory.generateIdentifierNameForJavaName(JDODateAnnotation.class.getSimpleName()));
 
 		return map;
 	}

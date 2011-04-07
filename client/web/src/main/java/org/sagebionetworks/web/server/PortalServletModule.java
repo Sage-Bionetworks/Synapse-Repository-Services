@@ -29,6 +29,9 @@ public class PortalServletModule extends ServletModule {
 	@Override
 	protected void configureServlets() {
 		// filter all call through this filter
+		filter("/Portal/*").through(TimingFilter.class);
+		bind(TimingFilter.class).in(Singleton.class);
+		// This supports RPC
 		filter("/Portal/*").through(RPCValidationFilter.class);
 		bind(RPCValidationFilter.class).in(Singleton.class);
 		// Setup the mapping

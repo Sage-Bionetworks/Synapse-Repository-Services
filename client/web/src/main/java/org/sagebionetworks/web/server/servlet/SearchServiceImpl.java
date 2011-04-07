@@ -106,19 +106,22 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 
 		// Build the uri from the parameters
 		URI uri = QueryStringUtils.writeQueryUri(urlProvider.getBaseUrl(), params);
-		logger.info("Url GET: " + uri.toString());
+
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>("", headers);
 
 		// Make the actual call.
+		long start = System.currentTimeMillis();
 		ResponseEntity<Object> response = templateProvider.getTemplate()
 				.exchange(uri, HttpMethod.GET, entity, Object.class);
 		LinkedHashMap<String, Object> body = (LinkedHashMap<String, Object>) response
 				.getBody();
 		List<Map<String, Object>> rows = (List<Map<String, Object>>) body
 				.get(KEY_RESULTS);
+		long end = System.currentTimeMillis();
+		logger.info("Url GET: " + uri.toString()+" in "+(end-start)+" ms");
 		// Before we set the rows we need to validate types
 		Map<String, HeaderData> allColumnsHeaderMap = createMap(allColumnHeaderData);
 		rows = TypeValidation.validateTypes(rows, allColumnsHeaderMap);

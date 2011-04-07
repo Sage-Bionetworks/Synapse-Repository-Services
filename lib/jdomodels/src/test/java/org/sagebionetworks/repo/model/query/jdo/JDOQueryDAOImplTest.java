@@ -456,6 +456,35 @@ public class JDOQueryDAOImplTest {
 			}
 		}
 	}
+	
+	/**
+	 * This is a test for bug http://sagebionetworks.jira.com/browse/PLFM-111
+	 * @throws DatastoreException
+	 */
+	@Test
+	public void testSortOnPrimaryDate() throws DatastoreException {
+		BasicQuery query = new BasicQuery();
+		query.setFrom(ObjectType.dataset);
+		query.setSort("creationDate");
+		query.setAscending(false);
+		QueryResults results = queryDao.executeQuery(query);
+		assertNotNull(results);
+		assertEquals(totalNumberOfDatasets, results.getTotalNumberOfResults());
+		// Validate the sort
+		List<Map<String, Object>> rows = results.getResults();
+		assertNotNull(rows);
+		// Each row should have each primary field
+		Long previousDate = null;
+		Long creation = null;
+		for (Map<String, Object> row : rows) {
+			previousDate = creation;
+			creation = (Long) row.get("creationDate");
+			System.out.println(creation);
+			if (previousDate != null) {
+				assertTrue(previousDate.compareTo(creation) > 0);
+			}
+		}
+	}
 
 	// Sorting on a string attribute
 	@Test
@@ -493,6 +522,27 @@ public class JDOQueryDAOImplTest {
 		// query.setAscending(false);
 		Expression expression = new Expression(new CompoundId("dataset",
 				"creator"), Compartor.EQUALS, "magic");
+		List<Expression> filters = new ArrayList<Expression>();
+		filters.add(expression);
+		query.setFilters(filters);
+		QueryResults results = queryDao.executeQuery(query);
+		assertNotNull(results);
+		// Every dataset should have this creator so the count should match the
+		// total
+		assertEquals(totalNumberOfDatasets, results.getTotalNumberOfResults());
+		List<Map<String, Object>> list = results.getResults();
+		assertNotNull(list);
+		assertEquals(totalNumberOfDatasets, list.size());
+	}
+	
+	@Test
+	public void testFilterOnSinglePrimaryDate() throws DatastoreException {
+		BasicQuery query = new BasicQuery();
+		query.setFrom(ObjectType.dataset);
+		// query.setSort(attString);
+		// query.setAscending(false);
+		Expression expression = new Expression(new CompoundId("dataset",
+				"creationDate"), Compartor.GREATER_THAN, "1");
 		List<Expression> filters = new ArrayList<Expression>();
 		filters.add(expression);
 		query.setFilters(filters);

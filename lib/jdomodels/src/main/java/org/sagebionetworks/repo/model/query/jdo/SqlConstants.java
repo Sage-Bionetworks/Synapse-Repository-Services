@@ -1,5 +1,12 @@
 package org.sagebionetworks.repo.model.query.jdo;
 
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODataset;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
@@ -9,6 +16,7 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.model.query.ObjectType;
+import org.sagebionetworks.repo.model.query.jdo.JDOQueryDAOImpl.AttributeDoesNotExist;
 
 @SuppressWarnings("rawtypes")
 public class SqlConstants {
@@ -39,6 +47,48 @@ public class SqlConstants {
 	
 	
 	public static final String INPUT_DATA_LAYER_DATASET_ID = "INPUT_LAYERS_ID_OWN";
+	
+	private static final Map<String, String> primaryFieldColumns;
+	static{
+		// Map column names to the field names
+		// RELEASE_DATE,STATUS,PLATFORM,PROCESSING_FACILITY,QC_BY,QC_DATE,TISSUE_TYPE,TYPE,CREATION_DATE,DESCRIPTION,PREVIEW,PUBLICATION_DATE,RELEASE_NOTES
+		primaryFieldColumns = new HashMap<String, String>();
+		SqlConstants.addAllFields(Dataset.class, primaryFieldColumns);
+		SqlConstants.addAllFields(InputDataLayer.class, primaryFieldColumns);
+		primaryFieldColumns.put("INPUT_LAYERS_ID_OWN", "INPUT_LAYERS_ID_OWN");
+	}
+	
+	/**
+	 * Add all of the fields for a given object.
+	 * @param clazz
+	 * @param map
+	 */
+	private static void addAllFields(Class clazz, Map<String, String> map){
+		// This class generates the names the same way as datanucleus.
+		BasicIdentifierFactory factory = new BasicIdentifierFactory();
+		Field[] fields = clazz.getDeclaredFields();
+		for(int i=0; i<fields.length; i++){
+			if(!fields[i].isAccessible()){
+				fields[i].setAccessible(true);
+			}
+			String fieldName = fields[i].getName();
+			map.put(fieldName, factory.generateIdentifierNameForJavaName(fieldName));
+		}
+	}
+	
+	/**
+	 * Get the database column name for a given primary field name.
+	 * @param field
+	 * @return
+	 */
+	public static String getColumnNameForPrimaryField(String field){
+		if(field == null) return null;
+		String column = primaryFieldColumns.get(field);
+		if(column == null) throw new IllegalArgumentException("Unknown field: "+field);
+		return column;
+	}
+	
+	
 	
 	/**
 	 * Get the JDO class for each field type.
