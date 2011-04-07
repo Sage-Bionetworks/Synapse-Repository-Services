@@ -19,6 +19,7 @@ public class Layer implements IsSerializable {
 	private String id;
 	private List<String> locations;
 	private String name;
+	private Integer numSamples;	
 	private String platform;
 	private String preview;
 	private String processingFacility;	
@@ -26,6 +27,7 @@ public class Layer implements IsSerializable {
 	private String qcBy;
 	private Date qcDate;
 	private String releaseNotes;
+	private String status;
 	private String tissueType;
 	private LayerType type;	
 	private String uri;
@@ -120,6 +122,13 @@ public class Layer implements IsSerializable {
 		this.name = name;
 	}
 
+	public Integer getNumSamples() {
+		return numSamples;
+	}
+
+	public void setNumSamples(Integer numSamples) {
+		this.numSamples = numSamples;
+	}
 
 	public String getPlatform() {
 		return platform;
@@ -190,6 +199,13 @@ public class Layer implements IsSerializable {
 		this.releaseNotes = releaseNotes;
 	}
 
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
 
 	public String getTissueType() {
 		return tissueType;

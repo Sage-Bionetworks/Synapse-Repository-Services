@@ -89,10 +89,19 @@ public class LayerViewImpl extends Composite implements LayerView {
 	}
 
 	@Override
-	public void setLayerDetails(String layerName, String processingFacility, String qcByDisplay,
-			String qcByUrl, String qcAnalysisDisplay, String qcAnalysisUrl,
-			Date qcDate, String overviewText, int nDataRowsShown,
-			int totalDataRows, String privacyLevel, String datasetLink) {
+	public void setLayerDetails(String layerName, 
+								String processingFacility, 
+								String qcByDisplay,
+								String qcByUrl, 
+								String qcAnalysisDisplay, 
+								String qcAnalysisUrl,
+								Date qcDate, 
+								String overviewText, 
+								int nDataRowsShown,
+								int totalDataRows, 
+								String privacyLevel, 
+								String datasetLink, 
+								String platform) {
 		
 		// make sure displayed values are clean
 		if(layerName == null) layerName = "";
@@ -103,6 +112,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 		if(qcAnalysisUrl == null) qcAnalysisUrl = "";
 		if(overviewText == null) overviewText  = "";
 		if(privacyLevel == null) privacyLevel = "";
+		if(platform == null) platform = "";
 
 		clear(); // clear old values from view
 
@@ -140,6 +150,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 		
 		// add metadata to table
 		int rowIndex = 0;
+		addRowToTable(rowIndex++, "Platform:", platform, rightFlexTable);
 		addRowToTable(rowIndex++, "Processing Facility:", processingFacility, rightFlexTable);
 		addRowToTable(rowIndex++, "QC By:", "<a href=\"" + qcByUrl + "\">" + qcByDisplay + "</a>", rightFlexTable);
 		addRowToTable(rowIndex++, "QC Analysis:", "<a href=\"" + qcAnalysisUrl + "\">" + qcAnalysisDisplay + "</a>", rightFlexTable);		

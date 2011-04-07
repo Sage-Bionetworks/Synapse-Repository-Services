@@ -62,7 +62,8 @@ public interface LayerView extends IsWidget {
 								int nDataRowsShown,
 								int totalDataRows, 
 								String privacyLevel,
-								String datasetLink);
+								String datasetLink,
+								String platform);
 	
 	/**
 	 * require the view to show the license agreement

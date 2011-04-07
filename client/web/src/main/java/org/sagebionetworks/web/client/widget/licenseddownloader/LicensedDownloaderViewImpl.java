@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.widget.licenseddownloader;
 
 import java.util.List;
 
+import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.shared.FileDownload;
 
 import com.extjs.gxt.ui.client.Style;
@@ -24,6 +25,7 @@ import com.extjs.gxt.ui.client.widget.layout.FitLayout;
 import com.extjs.gxt.ui.client.widget.layout.RowData;
 import com.extjs.gxt.ui.client.widget.layout.RowLayout;
 import com.google.gwt.user.client.Element;
+import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
@@ -43,12 +45,15 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 	private Button acceptLicenseButton;
 	private LayoutContainer licenseTextContainer;
 	private LayoutContainer downloadContentContainer;
+	private IconsImageBundle icons;
 
 	/*
 	 * Constructors
 	 */
 	@Inject
-	public LicensedDownloaderViewImpl() {
+	public LicensedDownloaderViewImpl(IconsImageBundle icons) {
+		this.icons = icons;
+		
 		// defaults
 		licenseAcceptanceRequired = true;
 		eluaWindowCreated = false;
@@ -139,7 +144,7 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 			StringBuilder sb = new StringBuilder();
 			for(int i=0; i<downloads.size(); i++) {
 				FileDownload dl = downloads.get(i);
-				sb.append("<a href=\"" + dl.getUrl() + "\" target=\"new\">" + dl.getDisplay() + "</a>");
+				sb.append("<a href=\"" + dl.getUrl() + "\" target=\"new\">" + dl.getDisplay() + "</a> " + AbstractImagePrototype.create(icons.external16()).getHTML());
 				if(dl.getChecksum() != null) {
 					sb.append("&nbsp;<small>md5 checksum: " + dl.getChecksum() + "</small>");
 				}

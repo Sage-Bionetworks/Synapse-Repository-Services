@@ -154,7 +154,8 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 							 5,
 							 Integer.MAX_VALUE, // TODO : get total number of rows in layer
 							 "Public", // TODO : replace with security object
-							 "<a href=\"#Dataset:"+ this.datasetId +"\">Dataset</a>");
+							 "<a href=\"#Dataset:"+ this.datasetId +"\">Dataset</a>",
+							 model.getPlatform());
 
 		// see if license is required for doanload
 		licenseService.hasAccepted("GET-USERNAME", model.getUri(), new AsyncCallback<Boolean>() {
@@ -178,7 +179,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 					public void onSuccess(DownloadLocation downloadLocation) {
 						List<FileDownload> downloads = new ArrayList<FileDownload>();
 						if(downloadLocation != null && downloadLocation.getPath() != null) {
-							FileDownload dl = new FileDownload(downloadLocation.getPath(), "Download " + model.getName(), "");
+							FileDownload dl = new FileDownload(downloadLocation.getPath(), "Download " + model.getName(), downloadLocation.getMd5sum());
 							downloads.add(dl);
 						}
 						view.setLicensedDownloads(downloads);

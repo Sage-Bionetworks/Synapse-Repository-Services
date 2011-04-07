@@ -128,6 +128,11 @@
 			<display>Layer Name</display>
 			<description>Layer Name</description>
 		</column>
+		<column id="layer.numSamples">
+			<type>Long</type>
+			<display># of Samples</display>
+			<description>Number of Samples in this layer</description>
+		</column>
 		<column id="layer.type">
 			<type>String</type>
 			<display>Layer Type</display>
