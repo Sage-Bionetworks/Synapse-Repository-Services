@@ -481,7 +481,7 @@ public class JDOQueryDAOImplTest {
 			creation = (Long) row.get("creationDate");
 			System.out.println(creation);
 			if (previousDate != null) {
-				assertTrue(previousDate.compareTo(creation) > 0);
+				assertTrue(previousDate.compareTo(creation) >= 0);
 			}
 		}
 	}
