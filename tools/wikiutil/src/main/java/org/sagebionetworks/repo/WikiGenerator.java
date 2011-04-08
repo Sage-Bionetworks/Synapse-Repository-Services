@@ -85,7 +85,7 @@ public class WikiGenerator {
 		for(Entry<String, String> header : requestHeaders.entrySet()) {
 			curl += " -H " + header.getKey() + ":" + header.getValue();
 		}
-		curl += " " + requestUrl + "'{code}";
+		curl += " '" + requestUrl + "'{code}";
 		log.info("*Request*{code}" + curl);
 		log.info("*Response*{code}");
 		
