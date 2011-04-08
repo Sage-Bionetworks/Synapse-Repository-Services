@@ -98,14 +98,16 @@
 				</div>
 				<div id="contributors" class="clearfix">
 					<h3><span class="narrow">Top Synapse</span> <span class="wide">CONTRIBUTORS</span></h3>
+					<a href="people_charles.html">
 					<span class="contributor">
-
+				
 						<img class="left" src="static/images/people/charles.jpg"/>
 						<span class="text">
 							<strong>Charles Sawyers et al, MSKCC</strong><br/>
 							DNA copy number, mRNA expression profiles, candidate gene resequencing, and clinical traits from 218 prostate 		tumors. 
 						</span>
 					</span>
+					</a>
 					<span class="contributor">
 						<img class="left" src="static/images/people/amanda.jpg"/>
 						<span class="text">
@@ -123,7 +125,7 @@
 						</span>
 					</span>
 					<span class="contributor">
-						<a class="bulleted" href="">See all contributors...</a>
+						<a class="bulleted" href="people.html">See all contributors...</a>
 					</span>
 					<hr/>
 					<span class="contributor">
