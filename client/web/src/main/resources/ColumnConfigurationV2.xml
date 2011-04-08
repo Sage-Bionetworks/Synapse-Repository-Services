@@ -125,7 +125,7 @@
 		</column>
 		<column id="layer.name">
 			<type>String</type>
-			<display>Layer Name</display>
+			<display>Name</display>
 			<description>Layer Name</description>
 		</column>
 		<column id="layer.numSamples">
@@ -135,13 +135,13 @@
 		</column>
 		<column id="layer.type">
 			<type>String</type>
-			<display>Layer Type</display>
+			<display>Type</display>
 			<description>Layer Type</description>
 		</column>
 		<column id="layer.version">
 			<type>String</type>
-			<display>Layer Version</display>
-			<description>Layer Version</description>
+			<display>Version</display>
+			<description>Version</description>
 		</column>
 		<column id="staticdisplay.download">
 			<type>String</type>
