@@ -2,9 +2,14 @@
 
 h1. Introduction
 
-See [PLFM:Service API Design] for the rationale and design details for this api.
+The Query API is loosely modeled after Facebook's [Query Language|https://developers.facebook.com/docs/reference/fql/].
 
-See [Developer Bootstrap#DeveloperBootstrap-ServiceDevelopment|PLFM:Developer Bootstrap#DeveloperBootstrap-ServiceDevelopment] for instructions on how to run a local instance of this service.
+The REST API took inspiration from several successful REST APIs:
+* Facebook's [Graph API|https://developers.facebook.com/docs/reference/api/]
+* Google's [Data Protocol|http://code.google.com/apis/gdata/docs/2.0/basics.html]
+* The [Open Data Protocol|http://www.odata.org/developers/protocols/overview]
+
+See [PLFM:Service API Design] for more information regarding the rationale and design details.
 
 h2. Encoding
 
