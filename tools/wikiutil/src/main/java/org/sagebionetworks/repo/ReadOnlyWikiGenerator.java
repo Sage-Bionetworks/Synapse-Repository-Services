@@ -44,7 +44,9 @@ public class ReadOnlyWikiGenerator {
 
 		WikiGenerator wiki = new WikiGenerator(serviceEndpoint);
 		
-		log.info("h1. Query API Examples");
+		log.info("h1. Query API");
+		log.info("The Query API is loosely modelled after Facebook's [Query Language|https://developers.facebook.com/docs/reference/fql/].");
+		log.info("h2. Examples");
 		wiki.doGet(
 				"/repo/v1/query?query=select+*+from+dataset+limit+3+offset+1",
 				"h2. 'Select *' Query",
@@ -90,14 +92,26 @@ public class ReadOnlyWikiGenerator {
 				"Right now only a subset of query functionality is supported\n"
 						+ "{code}SELECT * FROM layer WHERE dataset.id == <datasetId> ORDER BY <field name> [ASC|DESC] [LIMIT <#>] [OFFSET <#>]{code}");
 
-		log.info("h1. REST API Examples (Read Only)");
+		log.info("h2. Schema");
+		wiki.doGet(
+				"/repo/v1/query/schema",
+				"h2. Query Response Schema",
+				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
+
+		log.info("h1. REST API");
+		log.info("The REST API took inspiration from several successful REST APIs:");
+		log.info("* Facebook's [Graph API|https://developers.facebook.com/docs/reference/api/]");
+		log.info("* Google's [Data Protocol|http://code.google.com/apis/gdata/docs/2.0/basics.html]");
+		log.info("* The [Open Data Protocol|http://www.odata.org/developers/protocols/overview]\n");
+		
+		log.info("h2. Read-Only Examples");
 		wiki.doGet(
 				"/repo/v1/dataset/test",
-				"h2. Sanity check request",
+				"h3. Sanity check request",
 				"This is just a 'hello world' type request that you can make to ensure that the service is running.");
 		wiki.doGet(
 				"/repo/v1/dataset?sort=name&limit=3",
-				"h2. Get All Datasets",
+				"h3. Get All Datasets",
 				"Optional Parameters\n"
 						+ "* offset - _integer_ - 1-based pagination offset\n"
 						+ "* limit - _integer_ - maximum number of results to return\n"
@@ -105,13 +119,13 @@ public class ReadOnlyWikiGenerator {
 						+ "* ascending - _boolean_ - whether or not to sort ascending");
 		dataset = wiki.doGet(
 				"/repo/v1/dataset/" + dataset.getString("dataset.id"),
-				"h2. Get a Dataset",
+				"h3. Get a Dataset",
 				"This returns the primary fields of a dataset and links to get additional info.");
 		wiki.doGet(dataset.getString("annotations"),
-				"h2. Get Annotations for a Dataset",
+				"h3. Get Annotations for a Dataset",
 				"This returns the annotations for a dataset.");
 		results = wiki.doGet(dataset.getString("layer"),
-				"h2. Get all the Layers for a Dataset",
+				"h3. Get all the Layers for a Dataset",
 				"This returns the primary fields for all the layers of a dataset.");
 		JSONArray layers = results.getJSONArray("results");
 		JSONObject layer = null;
@@ -125,21 +139,21 @@ public class ReadOnlyWikiGenerator {
 			} else if (type.equals("C")) {
 				type = "Clinical";
 			}
-			wiki.doGet(layer.getString("uri"), "h2. Get a " + type
+			wiki.doGet(layer.getString("uri"), "h3. Get a " + type
 					+ " Dataset Layer",
 					"This returns the metadata for a dataset layer.");
-			wiki.doGet(layer.getString("annotations"), "h3. Get Annotations for a "
+			wiki.doGet(layer.getString("annotations"), "h4. Get Annotations for a "
 					+ type + " Dataset Layer",
 					"This returns the annotations for a dataset layer.");
-			wiki.doGet(layer.getString("preview"), "h3. Get preview data for a "
+			wiki.doGet(layer.getString("preview"), "h4. Get preview data for a "
 					+ type + " Dataset Layer",
 					"This returns the preview data for a dataset layer.");
 			wiki.doGet(layer.getString("uri") + "/previewAsMap",
-					"h3. Get preview data as a map for a " + type
+					"h4. Get preview data as a map for a " + type
 							+ " Dataset Layer",
 					"This returns the preview data for a dataset layer.");
 			wiki.doGet(layer.getString("uri") + "/locations",
-					"h3. Get the locations for a " + type + " Dataset Layer",
+					"h4. Get the locations for a " + type + " Dataset Layer",
 					"This returns all the locations metadata for a dataset layer.");
 			JSONArray locations = layer.getJSONArray("locations");
 			for (int j = 0; j < locations.length(); j++) {
@@ -147,47 +161,41 @@ public class ReadOnlyWikiGenerator {
 				if (location.endsWith("Location")) {
 					int slash = location.lastIndexOf("/");
 					String locationType = location.substring(slash + 1);
-					wiki.doGet(location, "h3. Get the " + locationType + " for a "
+					wiki.doGet(location, "h4. Get the " + locationType + " for a "
 							+ type + " Dataset Layer",
 							"This returns the location data for a dataset layer.");
 				}
 			}
 		}
 
-		log.info("h1. Query API Schema");
-		wiki.doGet(
-				"/repo/v1/query/schema",
-				"h2. Query Response Schema",
-				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-
-		log.info("h1. REST API Schemas");
+		log.info("h2. Schemas");
 		wiki.doGet(
 				"/repo/v1/dataset/schema",
-				"h2. Datasets List Schema",
+				"h3. Datasets List Schema",
 				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 		wiki.doGet(
 				dataset.getString("uri") + "/schema",
-				"h2. Dataset Schema",
+				"h3. Dataset Schema",
 				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 		wiki.doGet(
 				dataset.getString("annotations") + "/schema",
-				"h2. Dataset Annotations Schema",
+				"h3. Dataset Annotations Schema",
 				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 		wiki.doGet(
 				dataset.getString("layer") + "/schema",
-				"h2. Dataset Layers List Schema",
+				"h3. Dataset Layers List Schema",
 				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 		wiki.doGet(
 				layer.getString("uri") + "/schema",
-				"h2. Layer Schema",
+				"h3. Layer Schema",
 				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 		wiki.doGet(
 				layer.getString("preview") + "/schema",
-				"h2. Layer Preview Schema",
+				"h3. Layer Preview Schema",
 				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 		wiki.doGet(
 				layer.getString("uri") + "/previewAsMap/schema",
-				"h2. Layer Preview as Map Schema",
+				"h3. Layer Preview as Map Schema",
 				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 		JSONArray locations = layer.getJSONArray("locations");
 		for (int j = 0; j < locations.length(); j++) {
@@ -195,7 +203,7 @@ public class ReadOnlyWikiGenerator {
 			if (!location.endsWith("Location")) {
 				wiki.doGet(
 						location + "/schema",
-						"h2. Layer Locations Schema",
+						"h3. Layer Locations Schema",
 						"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 
 			}
@@ -207,7 +215,7 @@ public class ReadOnlyWikiGenerator {
 				String locationType = location.substring(slash + 1);
 				wiki.doGet(
 						location + "/schema",
-						"h3. Get the " + locationType + " for a "
+						"h4. Get the " + locationType + " for a "
 								+ " Dataset Layer",
 						"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 			}
