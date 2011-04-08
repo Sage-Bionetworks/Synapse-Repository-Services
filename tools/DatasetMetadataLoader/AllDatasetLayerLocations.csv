@@ -1,42 +1,42 @@
 Dataset Name,type,status,name,Number of samples,Platform,Version,preview,sage,awsebs,awss3
 Mouse Model of Sexually Dimorphic Atherosclerotic Traits,C,curated,clinical data,347,,1.0.0,/work/platform/source/bxh_apoe/phenotype/phenotype.txt,/Shares/external-data/DAT_022__bxh_apoe,snap-e513fa8e (US West),mouse_model_of_sexually_dimorphic_atherosclerotic_traits.phenotype.zip
-Mouse Model of Sexually Dimorphic Atherosclerotic Traits,E,curated,expression data,294,,1.0.0,/work/platform/source/bxh_apoe/expression/adipose_gene_expression.txt,/Shares/external-data/DAT_022__bxh_apoe,snap-e513fa8e (US West),mouse_model_of_sexually_dimorphic_atherosclerotic_traits.expression.zip
+Mouse Model of Sexually Dimorphic Atherosclerotic Traits,E,curated,expression data,294,Agilent Custom array,1.0.0,/work/platform/source/bxh_apoe/expression/adipose_gene_expression.txt,/Shares/external-data/DAT_022__bxh_apoe,snap-e513fa8e (US West),mouse_model_of_sexually_dimorphic_atherosclerotic_traits.expression.zip
 Mouse Model of Sexually Dimorphic Atherosclerotic Traits,G,curated,genetic data,320,,1.0.0,/work/platform/source/bxh_apoe/genotype/genotype.txt,/Shares/external-data/DAT_022__bxh_apoe,snap-e513fa8e (US West),mouse_model_of_sexually_dimorphic_atherosclerotic_traits.genotype.zip
 Human Liver Cohort,C,curated,clinical data,836,,1.0.0,/work/platform/source/human_liver_cohort/phenotype/phenotype.txt,/Shares/external-data/DAT_030__human_liver_cohort,snap-29d33a42 (US West),human_liver_cohort.phenotype.zip
-Human Liver Cohort,E,curated,expression data,465,,1.0.0,/work/platform/source/human_liver_cohort/expression/expression.txt,/Shares/external-data/DAT_030__human_liver_cohort,snap-29d33a42 (US West),human_liver_cohort.expression.zip
-MSKCC Prostate Cancer,C,curated,phenotypes,261,,1.0.0,/work/platform/source/sawyers_prostate_cancer/phenotype/phenotype.txt,/Shares/external-data/DAT_011__sawyers_prostate_cancer,,mskcc_prostate_cancer.phenotype.zip
+Human Liver Cohort,E,curated,expression data,465,Custom Agilent 44K,1.0.0,/work/platform/source/human_liver_cohort/expression/expression.txt,/Shares/external-data/DAT_030__human_liver_cohort,snap-29d33a42 (US West),human_liver_cohort.expression.zip
+MSKCC Prostate Cancer,C,curated,Curated phenotypes,261,,1.0.0,/work/platform/source/sawyers_prostate_cancer/phenotype/phenotype.txt,/Shares/external-data/DAT_011__sawyers_prostate_cancer,,mskcc_prostate_cancer.phenotype.zip
 MSKCC Prostate Cancer,G,curated,sequencing,50,iPLEX Sequenom ,1.0.0,/work/platform/source/sawyers_prostate_cancer/sequence/iplex/sequence.txt,/Shares/external-data/DAT_011__sawyers_prostate_cancer,, mskcc_prostate_cancer.sequence.zip
 MSKCC Prostate Cancer,G,curated,CNV,230,Agilent 244K array comparative genomic hybridization (aCGH) microarrays,1.0.0,/work/platform/source/sawyers_prostate_cancer/cnv/agilent/cnv_gMeanSignal.txt,/Shares/external-data/DAT_011__sawyers_prostate_cancer,, mskcc_prostate_cancer.cnv.zip
 MSKCC Prostate Cancer,E,curated,miRNA expression,142,Agilent microRNA V2 arrays,1.0.0,/work/platform/source/sawyers_prostate_cancer/mirna/agilent/mirna_gMeanSignal.txt,/Shares/external-data/DAT_011__sawyers_prostate_cancer,, mskcc_prostate_cancer.mirna.zip
 MSKCC Prostate Cancer,E,curated,exon expression,184,Affymetrix Human Exon 1.0 ST array,1.0.0,/work/platform/source/sawyers_prostate_cancer/expression/affymetrix/expression_pm.txt,/Shares/external-data/DAT_011__sawyers_prostate_cancer,,mskcc_prostate_cancer.expression.zip
-MSKCC Prostate Cancer,C,QCed,phenotypes,261,,1.0.0,/work/platform/source/sawyers_prostate_cancer/phenotype/phenotype.txt,/Shares/external-data/DAT_011__sawyers_prostate_cancer,, mskcc_prostate_cancer.phenotype.zip
-Breast Cancer NKI,E,curated,expression data,295,,1.0.0,/work/platform/source/nki_breast_cancer/expression/agilent/breast/expression.txt,/Shares/work/DAT_027__NKI,,breast_cancer_nki.expression.zip
+MSKCC Prostate Cancer,C,QCed,QCed phenotypes,261,,1.0.0,/work/platform/source/sawyers_prostate_cancer/phenotype/phenotype.txt,/Shares/external-data/DAT_011__sawyers_prostate_cancer,, mskcc_prostate_cancer.phenotype.zip
+Breast Cancer NKI,E,curated,expression data,295,Hu25k microarray,1.0.0,/work/platform/source/nki_breast_cancer/expression/agilent/breast/expression.txt,/Shares/work/DAT_027__NKI,,breast_cancer_nki.expression.zip
 Breast Cancer NKI,C,curated,clinical data,295,,1.0.0,/work/platform/source/nki_breast_cancer/phenotype/phenotype.txt,/Shares/work/DAT_027__NKI,,breast_cancer_nki.phenotype.zip
-Cancer Cell line Panel,G,curated,genetic data,649,,1.0.0,/work/platform/source/gsk_cell_lines/genotype/genotype_calls.txt,/Shares/work/DAT_023__GSKCellLines,,cancer_call_line_panel.genotype.zip
-Cancer Cell line Panel,E,curated,expression data,649,,1.0.0,/work/platform/source/gsk_cell_lines/expression/affymetrix/replicate1/expression_mm.txt,/Shares/work/DAT_023__GSKCellLines,,cancer_call_line_panel.expression.zip
+Cancer Cell line Panel,G,curated,genetic data,649,Affymetrix GeneChip Mapping 500K,1.0.0,/work/platform/source/gsk_cell_lines/genotype/genotype_calls.txt,/Shares/work/DAT_023__GSKCellLines,,cancer_call_line_panel.genotype.zip
+Cancer Cell line Panel,E,curated,expression data,649,Affymetrix HG-U133 Plus2.0,1.0.0,/work/platform/source/gsk_cell_lines/expression/affymetrix/replicate1/expression_mm.txt,/Shares/work/DAT_023__GSKCellLines,,cancer_call_line_panel.expression.zip
 Cancer Cell line Panel,C,curated,clinical data,649,,1.0.0,/work/platform/source/gsk_cell_lines/phenotype/phenotype.txt,/Shares/work/DAT_023__GSKCellLines,,cancer_call_line_panel.phenotype.zip
 Glioblastoma TCGA,G,curated,genetic data,413,,1.0.0,,/Shares/work/DAT_001__TCGA_Glioblastoma,,
 Glioblastoma TCGA,E,curated,expression data,413,,1.0.0,,/Shares/work/DAT_001__TCGA_Glioblastoma,,
 Glioblastoma TCGA,C,curated,clinical data,413,,1.0.0,,/Shares/work/DAT_001__TCGA_Glioblastoma,,
-Harvard Brain Tissue Resource Center,G,curated,genetic data,803,,1.0.0,/work/platform/source/hbtrc/genotype/illumina/genotype.txt,/Shares/work/DAT_024__HBTRC,,harvard_brain_tissue_resource_center.genotype.zip
-Harvard Brain Tissue Resource Center,E,curated,expression data,803,,1.0.0,/work/platform/source/hbtrc/expression/agilent/cerebellum/gene_expression.txt,/Shares/work/DAT_024__HBTRC,,harvard_brain_tissue_resource_center.expression.zip
+Harvard Brain Tissue Resource Center,G,curated,genetic data,803,Illumina HumanHap650Y and Perlegen 300K,1.0.0,/work/platform/source/hbtrc/genotype/illumina/genotype.txt,/Shares/work/DAT_024__HBTRC,,harvard_brain_tissue_resource_center.genotype.zip
+Harvard Brain Tissue Resource Center,E,curated,expression data,803,Agilent 44K,1.0.0,/work/platform/source/hbtrc/expression/agilent/cerebellum/gene_expression.txt,/Shares/work/DAT_024__HBTRC,,harvard_brain_tissue_resource_center.expression.zip
 Harvard Brain Tissue Resource Center,C,curated,clinical data,803,,1.0.0,/work/platform/source/hbtrc/phenotype/phenotype.txt,/Shares/work/DAT_024__HBTRC,,harvard_brain_tissue_resource_center.phenotype.zip
-Heterogeneous Stock Mice,G,curated,genetic data,1900,,1.0.0,,,,heterogeneous_stock_mice.genotype.zip
-Heterogeneous Stock Mice,E,curated,expression data,1900,,1.0.0,,,,heterogeneous_stock_mice.expression.zip
-Heterogeneous Stock Mice,C,curated,clinical data,1900,,1.0.0,,,,heterogeneous_stock_mice.phenotype.zip
+Heterogeneous Stock Mice,G,curated,genetic data,1940,,1.0.0,,,,heterogeneous_stock_mice.genotype.zip
+Heterogeneous Stock Mice,E,curated,expression data,273,Illumina,1.0.0,,,,heterogeneous_stock_mice.expression.zip
+Heterogeneous Stock Mice,C,curated,clinical data,2519,,1.0.0,,,,heterogeneous_stock_mice.phenotype.zip
 LFN-Kronos-PHASE I,G,curated,genetic data,364,,1.0.0,,,,lfn-kronos-phase_i.genotype.zip
 LFN-Kronos-PHASE I,E,curated,expression data,364,,1.0.0,,,,lfn-kronos-phase_i.expression.zip
 LFN-Kronos-PHASE I,C,curated,clinical data,364,,1.0.0,,,,lfn-kronos-phase_i.phenotype.zip
-Mouse Model of Blood Pressure,G,curated,genetic data,350,,1.0.0,/work/platform/source/mci_bxa/genotype/Affymetrix/genotype_call.txt,/Shares/work/DAT_039__MCI_BxA,,mouse_model_of_blood_pressure.genotype.zip
-Mouse Model of Blood Pressure,E,curated,expression data,350,,1.0.0,/work/platform/source/mci_bxa/expression/Agilent/adipose/expression_ansi.txt,/Shares/work/DAT_039__MCI_BxA,,mouse_model_of_blood_pressure.expression.zip
+Mouse Model of Blood Pressure,G,curated,genetic data,350,Affymetrix GeneChip Mouse Mapping 5K,1.0.0,/work/platform/source/mci_bxa/genotype/Affymetrix/genotype_call.txt,/Shares/work/DAT_039__MCI_BxA,,mouse_model_of_blood_pressure.genotype.zip
+Mouse Model of Blood Pressure,E,curated,expression data,350,Rosetta/Merck Mouse 44k 1.0 microarray (GLP3677),1.0.0,/work/platform/source/mci_bxa/expression/Agilent/adipose/expression_ansi.txt,/Shares/work/DAT_039__MCI_BxA,,mouse_model_of_blood_pressure.expression.zip
 Mouse Model of Blood Pressure,C,curated,clinical data,350,,1.0.0,/work/platform/source/mci_bxa/phenotype/phenotype.txt,/Shares/work/DAT_039__MCI_BxA,,mouse_model_of_blood_pressure.phenotype.zip
-Mouse Model of Diet-Induced Atherosclerosis,G,curated,genetic data,111,,1.0.0,,,,mouse_model_of_diet-induced_atherosclerosis.genotype.zip
+Mouse Model of Diet-Induced Atherosclerosis,G,curated,genetic data,111,Rosetta Custom 25K,1.0.0,,,,mouse_model_of_diet-induced_atherosclerosis.genotype.zip
 Mouse Model of Diet-Induced Atherosclerosis,E,curated,expression data,111,,1.0.0,,,,mouse_model_of_diet-induced_atherosclerosis.expression.zip
 Mouse Model of Diet-Induced Atherosclerosis,C,curated,clinical data,111,,1.0.0,,,,mouse_model_of_diet-induced_atherosclerosis.phenotype.zip
 Mouse Model of Diet-Induced BreastCancer,G,curated,genetic data,131,,1.0.0,,,,mouse_model_of_diet-induced_breastcancer.genotype.zip
-Mouse Model of Diet-Induced BreastCancer,E,curated,expression data,131,,1.0.0,,,,mouse_model_of_diet-induced_breastcancer.expression.zip
+Mouse Model of Diet-Induced BreastCancer,E,curated,expression data,131,Illumina,1.0.0,,,,mouse_model_of_diet-induced_breastcancer.expression.zip
 Mouse Model of Diet-Induced BreastCancer,C,curated,clinical data,131,,1.0.0,,,,mouse_model_of_diet-induced_breastcancer.phenotype.zip
-Sanger Cell Line Project,G,curated,genetic data,749,,1.0.0,,/Shares/work/DAT_032__Sanger_Cell_Lines,,
+Sanger Cell Line Project,G,curated,genetic data,749,Affymetrix U1332.0 Plus array,1.0.0,,/Shares/work/DAT_032__Sanger_Cell_Lines,,
 Sanger Cell Line Project,E,curated,expression data,749,,1.0.0,/work/platform/source/sanger_cell_lines/expression/affymetrix/replicate1/expression_mm.txt,/Shares/work/DAT_032__Sanger_Cell_Lines,,sanger_cell_line_project.expression.zip
 Sanger Cell Line Project,C,curated,clinical data,749,,1.0.0,/work/platform/source/sanger_cell_lines/phenotype/phenotype.txt,/Shares/work/DAT_032__Sanger_Cell_Lines,,sanger_cell_line_project.phenotype.zip
 TCGA curation package,G,curated,genetic data,500,,1.0.0,,/Shares/work/DAT_021__tcga_general,,
