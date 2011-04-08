@@ -43,6 +43,7 @@ public class LayerLocation {
 	/**
 	 * @param type
 	 * @param path
+	 * @param md5sum 
 	 */
 	public LayerLocation(String type, String path, String md5sum) {
 		super();
