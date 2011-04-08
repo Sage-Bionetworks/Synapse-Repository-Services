@@ -57,10 +57,10 @@
 				<div id="legend">
 					<span class="layers_legend">
 						<strong>Layers Legend</strong>
-						<span class="item"><img src="static/images/icon_helix_gradient.gif" /> Genetic</span>
+						<span class="item"><img src="static/images/icon_helix_gradient.gif" /> Genetic Sequence Data</span>
 
-						<span class="item"><img src="static/images/icon_serpent_gradient.gif" /> Phenotypic</span>
-						<span class="item"><img src="static/images/icon_array_gradient.gif" /> Gene Expression</span>
+						<span class="item"><img src="static/images/icon_serpent_gradient.gif" /> Clinical / Phenotypic</span>
+						<span class="item"><img src="static/images/icon_array_gradient.gif" /> Molecular Expression Data</span>
 					</span>
 				</div>				
 			</div>				
