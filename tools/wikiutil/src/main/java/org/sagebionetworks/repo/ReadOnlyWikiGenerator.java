@@ -45,21 +45,21 @@ public class ReadOnlyWikiGenerator {
 		WikiGenerator wiki = new WikiGenerator(serviceEndpoint);
 		
 		log.info("h1. Query API");
-		log.info("The Query API is loosely modelled after Facebook's [Query Language|https://developers.facebook.com/docs/reference/fql/].");
+		log.info("The Query API is loosely modeled after Facebook's [Query Language|https://developers.facebook.com/docs/reference/fql/].");
 		log.info("h2. Examples");
 		wiki.doGet(
 				"/repo/v1/query?query=select+*+from+dataset+limit+3+offset+1",
-				"h2. 'Select *' Query",
+				"h3. 'Select *' Query",
 				"Right now only a subset of query functionality is supported\n"
 						+ "{code}SELECT * FROM <data type> [LIMIT <#>] [OFFSET <#>]{code}");
 		wiki.doGet(
 				"/repo/v1/query?query=select+*+from+dataset+order+by+Number_of_Samples+DESC+limit+3+offset+1",
-				"h2. 'Order By' Query",
+				"h3. 'Order By' Query",
 				"Right now only a subset of query functionality is supported\n"
 						+ "{code}SELECT * FROM <data type> ORDER BY <field name> [ASC|DESC] [LIMIT <#>] [OFFSET #]{code}");
 		JSONObject results = wiki.doGet(
 				"/repo/v1/query?query=select+*+from+dataset+where+name+==+%22MSKCC+Prostate+Cancer%22",
-				"h2. 'Where Equal To' Query",
+				"h3. 'Where Equal To' Query",
 				"Right now only a subset of query functionality is supported\n"
 						+ "{code}SELECT * FROM <data type> WHERE <field name> == \"<value>\" [LIMIT <#>] [OFFSET #]{code}");
 		JSONArray datasets = results.getJSONArray("results");
@@ -74,28 +74,28 @@ public class ReadOnlyWikiGenerator {
 
 		wiki.doGet(
 				"/repo/v1/query?query=select+*+from+dataset+where+Species+==+%22Human%22+limit+3+offset+1",
-				"h2. 'Where Equal To' Query with a Limit",
+				"h3. 'Where Equal To' Query with a Limit",
 				"Right now only a subset of query functionality is supported\n"
 						+ "{code}SELECT * FROM <data type> WHERE <field name> == \"<value>\" [LIMIT <#>] [OFFSET #]{code}");
 
 		wiki.doGet(
 				"/repo/v1/query?query=select+*+from+layer+where+dataset.id+==+%22"
 						+ dataset.getString("dataset.id") + "%22",
-				"h2. 'Select *' Query for the Layers of a Dataset",
+				"h3. 'Select *' Query for the Layers of a Dataset",
 				"Right now only a subset of query functionality is supported\n"
 						+ "{code}SELECT * FROM layer WHERE dataset.id == <datasetId> [LIMIT <#>] [OFFSET <#>]{code}");
 
 		wiki.doGet(
 				"/repo/v1/query?query=select+*+from+layer+where+dataset.id+==+%22"
 						+ dataset.getString("dataset.id") + "%22+ORDER+BY+type",
-				"h2. 'Order By' Query for the Layers of a Dataset",
+				"h3. 'Order By' Query for the Layers of a Dataset",
 				"Right now only a subset of query functionality is supported\n"
 						+ "{code}SELECT * FROM layer WHERE dataset.id == <datasetId> ORDER BY <field name> [ASC|DESC] [LIMIT <#>] [OFFSET <#>]{code}");
 
 		log.info("h2. Schema");
 		wiki.doGet(
 				"/repo/v1/query/schema",
-				"h2. Query Response Schema",
+				"h3. Query Response Schema",
 				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 
 		log.info("h1. REST API");
