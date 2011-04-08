@@ -7,6 +7,8 @@ import com.google.inject.Inject;
 
 public class ModalWindowViewImpl extends LayoutContainer implements ModalWindowView {
 
+	private Presenter presenter;
+	
 	@Inject
 	public ModalWindowViewImpl() {		
 	}
@@ -24,7 +26,7 @@ public class ModalWindowViewImpl extends LayoutContainer implements ModalWindowV
 
 	@Override
 	public void setPresenter(Presenter presenter) {
-		// TODO Auto-generated method stub		
+		this.presenter = presenter;		
 	}
 
 }
