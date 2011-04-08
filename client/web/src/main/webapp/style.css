@@ -282,6 +282,10 @@ h2 {
 	margin-top: 15px;
 	width: 100%;
 }
+.data_info_narrow {
+	width: 650px;
+	margin-right:20px;
+}
 .info_head {
 	background-color: #FBF399;
 	display: block;
@@ -296,7 +300,18 @@ h2 {
 	float:left;
 	color: #512010;
 	margin-left: 15px;
+	margin-top: 10px;
 }
+
+.warning_text {
+	float: left;
+	clear: left;
+	margin-left: 15px;
+	font-style: italic;
+	font-size: 12px;
+	color: #7a0402;
+}
+
 .info_text {
 	float:left;
 	width: 475px;
@@ -309,11 +324,25 @@ h2 {
 	padding-top: 15px;
 	padding-left:15px;
 }
+
+/* START EDIT Added this rule */
+.info_text_2col {
+	float:left;
+	width: 500px;
+	padding-top: 15px;
+	padding-left:15px;
+	padding-right: 141px;
+}
+/* END EDIT */
+
 .data_details {
 	float:left;
 	padding-top: 15px;
 	padding-left: 30px;
 	width: 316px;
+}
+.data_info_narrow .data_details {
+	width: 305px;
 }
 .data_details th {
 	text-align: left;
@@ -389,16 +418,16 @@ h2 {
 #data .add_remove a {
 	text-decoration: none;
 }
-#datasets {
+#datasets, #projects {/* LINE EDIT: Added #projects selector */
 	border-bottom: 2px solid #cdced0;
 }
-#datasets th {
+#datasets th, #projects th {/* LINE EDIT: Added #projects selector */
 	vertical-align: bottom;
 }
-#datasets.no-border {
+#datasets.no-border, #projects.no-border {/* LINE EDIT: Added #projects selector */
 	border-bottom:0px;
 }
-#datasets.align-bottom th {
+#datasets.align-bottom th #projects.align-bottom th {/* LINE EDIT: Added #projects selector */
 	vertical-align: bottom;
 }
 /*
@@ -441,10 +470,14 @@ h2 {
 #data #legend .item img {
 	margin-bottom: -4px;
 }
+
+/* START EDIT Added margin-bottom */
 #data #legend .controls {
 	float:right;
 	margin-right:8px;
 }
+/* END EDIT */
+
 #data #legend .controls .displaying {
 	margin-right: 30px;
 }
@@ -457,14 +490,16 @@ h2 {
 	margin-right: 3px;
 	margin-top: -3px;
 }
-#dataset_input {
+
+/* START EDIT Added selector #project_input */
+#dataset_input, #project_input {
 	width: 120px;
 	border: 1px solid #bcbdc0;
 	height:17px;
 	padding-left: 5px;
 	font-size:11px;
 }
-#dataset_search {
+#dataset_search, #project_search {
 	width: 23px;
 	height:21px;
 	border:0px;
@@ -475,6 +510,24 @@ h2 {
 	top: 8px;
 	left: -5px;
 }
+#projects .project_name {
+	width: 200px;
+}
+#projects .project_study_area {
+	width: 80px;
+}
+#projects .project_leaders {
+	width: 80px;
+}
+#projects .project_team_member_count, #projects .project_dataset_count, #projects .project_followers {
+	width: 45px;
+	text-align: right;
+}
+#projects .project_last_activity {
+	width: 65px;
+}
+/* END EDIT */
+
 #datasets .dataset_name {
 	width: 150px;
 }
@@ -532,6 +585,23 @@ h2 {
 	position: relative;
 	top: 2px;
 }
+.data_detail_main {
+	margin-top: 15px;
+	height:
+}
+.data_detail_main .header {
+	height: 32px;
+}
+.data_detail_large_section {
+	width:1000px;
+	margin-right: 0px;
+}
+.data_detail_large_section .header {
+	width:970px;
+}
+.data_detail_large_section .header .secondary_text {
+	font-size: 12px;
+}
 .data_detail_section table {
 }
 .scrollable {
@@ -579,6 +649,10 @@ h2 {
 .data_detail_section .longer {
 	height: 235px;
 }
+.data_detail_main .longer {
+	height: 181px;
+	margin-bottom: 15px;
+}
 .data_detail_section .check {
 	width: 30px;
 	text-align: center;
@@ -587,8 +661,11 @@ h2 {
 	width: 100px;
 	text-align: left;
 }
-.scrollable .name, .scrollable .type, .scrollable .total_samples, .scrollable .analysis, .scrollable .project {
+.scrollable .name, .scrollable .type, .scrollable .total_samples, .scrollable .analysis, .scrollable .project, .scrollable .latest_activity, .scrollable .analysis_name, .scrollable .action, .scrollable .user {
 	border-right: 1px solid #d8d8da;
+}
+.data_detail_large_section .scrollable {
+	height: 832px;
 }
 .data_detail_section .type {
 	width: 35px;
@@ -623,6 +700,50 @@ h2 {
 	text-align: left;
 	padding-left:10px;
 }
+
+/* START EDIT Added rules for tables on Project Details page */
+.data_detail_section .analysis_name {
+	text-align: left;
+	padding-left: 5px;
+	width: 110px;
+}
+.data_detail_section .latest_activity {
+	text-align: left;
+	padding-left: 5px;
+	width: 80px;
+}
+.data_detail_section .mod_by_and_date {
+	text-align: left;
+	padding-left: 5px;
+}
+.data_detail_section .action {
+	text-align: left;
+	padding-left: 5px;
+	width: 130px;
+}
+.data_detail_section .user {
+	text-align: left;
+	padding-left: 5px;
+	width: 80px;
+}
+.data_detail_section .project_history_date {
+	text-align: left;
+	padding-left: 5px;
+}
+.scrollable .analysis_name a, .scrollable .analysis_name a:visited, .scrollable .action a, .scrollable .action a:visited {
+	color: #5C2E1F;
+}
+.scrollable .analysis_name a:hover, .scrollable .action a:hover {
+	color: #7a0402;
+}
+.data_details a, .data_details a:visited {
+	color: #58585A;
+}
+.data_details a:hover {
+	color: #7a0402;
+}
+/* END EDIT */
+
 .scrollable_header {
 	background-color: #f9f498;
 	display: block;

@@ -1,6 +1,9 @@
-#dataset_search {
+#dataset_search, #project_search {
 	left: -1px;
 	top:2px;
+}
+#project_search {
+	top: 3px;
 }
 .search_submit {
 	top: 2px;
@@ -19,6 +22,9 @@
 #data #legend .controls {
 	margin-top: -25px;
 }
+#data #legend .project_controls {
+	margin-top: 0px;
+}
 #data #legend .controls img, #data #legend .controls select {
 	position: relative;
 	top: 3px;
@@ -35,4 +41,11 @@
 .contact_button {
 	position: relative;
 	top: 4px;
+}
+.secondary_text {
+	width:250px;
+}
+
+.warning_text {
+	width:450px;
 }

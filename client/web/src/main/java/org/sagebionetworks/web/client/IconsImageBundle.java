@@ -5,6 +5,12 @@ import com.google.gwt.resources.client.ImageResource;
 
 public interface IconsImageBundle extends ClientBundle {
 
+	@Source("images/icons/plus-button-16.png")
+	ImageResource addSquare16();	
+
+	@Source("images/icons/application--plus-16.png")
+	ImageResource applicationPlus16();	
+
 	@Source("images/icons/application-resize-16.png")
 	ImageResource applicationResize16();
 
@@ -37,13 +43,17 @@ public interface IconsImageBundle extends ClientBundle {
 
 	@Source("images/icons/information-balloon-16.png")
 	ImageResource informationBalloon16();	
-	
+		
 	@Source("images/icons/sticky-note--plus-16.png")
 	ImageResource notePlus16();
 
+	@Source("images/icons/arrow-circle-315-16.png")
+	ImageResource reload16();
+	
 	@Source("images/icons/table-insert-column-16.png")
 	ImageResource tableInsertColumn16();
 	
-//	@Source("images/icons/16.png")
-//	ImageResource 16();
+	@Source("images/icons/task--plus-16.png")
+	ImageResource taskPlus16();
+	
 }
