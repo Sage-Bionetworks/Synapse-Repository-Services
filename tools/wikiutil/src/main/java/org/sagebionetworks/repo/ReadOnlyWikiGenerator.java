@@ -22,7 +22,7 @@ import org.json.JSONObject;
  * https://sagebionetworks.jira.com/svn/PLFM/trunk/tools/wikiutil cd wikiutil
  * ~/platform/trunk/tools/wikiutil>mvn clean compile
  * ~/platform/trunk/tools/wikiutil>./generateRepositoryServiceWiki.sh
- * http://localhost:8888 > wiki.txt {code}
+ * http://localhost:8080 > wiki.txt {code}
  * 
  */
 public class ReadOnlyWikiGenerator {
@@ -30,7 +30,7 @@ public class ReadOnlyWikiGenerator {
 	private static final Logger log = Logger.getLogger(WikiGenerator.class
 			.getName());
 
-	private static String serviceEndpoint = "http://localhost:8888";
+	private static String serviceEndpoint = "http://localhost:8080";
 
 	/**
 	 * @param args
