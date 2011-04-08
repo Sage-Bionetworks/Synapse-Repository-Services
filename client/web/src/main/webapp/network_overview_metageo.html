@@ -7,6 +7,43 @@
 	<!--[if IE 7]>
 	<link href="ie7.css" rel="stylesheet">
 	<![endif]-->
+<!-- jQuery and jQuery UI -->
+<link rel="stylesheet" href="http://jqueryui.com/themes/base/jquery.ui.all.css">
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.11/jquery-ui.min.js"></script>
+
+<!-- Search autocomplete script. Temporary -->
+	<script>
+	var TRANSMART_SEARCH = "http://transmart.sagebase.org/transmart/search/search?sourcepage=search&id=";
+	$(function() {
+		$( "#query" ).autocomplete({
+			source: function( request, response ) {
+				$.ajax({
+					url: "http://transmart.sagebase.org/transmart/search/loadSearch",
+					dataType: "jsonp",
+					data: {
+						query: "all:" + request.term						
+					},
+					success: function( data ) {
+						response( $.map( data.rows, function( item ) {
+							return {
+								label: item.display + ": " + item.keyword,
+								value: item.name,
+								id: item.id
+							}
+						}));
+					}
+				});
+			},
+			minLength: 1,
+			select: function( event, ui ) {
+				if(ui.item.id) {					
+					document.location =  TRANSMART_SEARCH + ui.item.id;
+				}
+			}
+		});
+	});
+	</script>
 </head>
 <body>
 	<div id="container" class="clearfix">
@@ -31,11 +68,12 @@
 					<li class="last active"><a href="projects.html">Projects</a></li>
 				</ul>
 				<div id="search" class="right">
-					<form action="" method="get">
-						<input type="input" class="search_box" name="q" value="Search">
+					<!-- <form action="" method="get">  -->
+						<input id="query" type="input" class="search_box" name="q" value="">
+
 						<button class="search_submit"><img src="static/images/search_button.png" /></button>
 						<span class="advanced"><a href="">Advanced<br>Search</a></span>
-					</form>
+					<!-- </form>  -->
 				</div>
 			</div>
 		</div>
