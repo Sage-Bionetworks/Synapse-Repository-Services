@@ -1,7 +1,5 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-
 import java.net.URL;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -38,12 +36,38 @@ public class HttpClientHelper {
 	 * @return response body
 	 * @throws Exception
 	 */
-	@SuppressWarnings("deprecation")
 	public static String performRequest(URL requestUrl, String requestMethod,
-			String requestContent, Map<String,String> requestHeaders) throws Exception {
+			String requestContent, Map<String, String> requestHeaders)
+			throws Exception {
 
-		int expectedReponseStatus = 200;
-		
+		return performRequest(requestUrl, requestMethod, requestContent,
+				requestHeaders, null);
+	}
+
+	/**
+	 * @param requestUrl
+	 * @param requestMethod
+	 * @param requestContent
+	 * @param requestHeaders
+	 * @param overridingExpectedResponseStatus
+	 * @return response body
+	 * @throws Exception
+	 */
+	public static String performRequestShouldFail(URL requestUrl,
+			String requestMethod, String requestContent,
+			Map<String, String> requestHeaders,
+			Integer overridingExpectedResponseStatus) throws Exception {
+		return performRequest(requestUrl, requestMethod, requestContent,
+				requestHeaders, overridingExpectedResponseStatus);
+	}
+
+	@SuppressWarnings("deprecation")
+	private static String performRequest(URL requestUrl, String requestMethod,
+			String requestContent, Map<String, String> requestHeaders,
+			Integer overridingExpectedResponseStatus) throws Exception {
+
+		int defaultExpectedReponseStatus = 200;
+
 		HttpMethodBase method = null;
 		if (requestMethod.equals("GET")) {
 			method = new GetMethod(requestUrl.getPath());
@@ -52,28 +76,47 @@ public class HttpClientHelper {
 			if (null != requestContent) {
 				((EntityEnclosingMethod) method).setRequestBody(requestContent);
 			}
+			defaultExpectedReponseStatus = 201;
 		} else if (requestMethod.equals("PUT")) {
 			method = new PutMethod(requestUrl.getPath());
 			if (null != requestContent) {
 				((EntityEnclosingMethod) method).setRequestBody(requestContent);
 			}
-			expectedReponseStatus = 201;
 		} else if (requestMethod.equals("DELETE")) {
 			method = new DeleteMethod(requestUrl.getPath());
-			expectedReponseStatus = 204;
+			defaultExpectedReponseStatus = 204;
 		}
+
+		int expectedResponseStatus = (null == overridingExpectedResponseStatus) ? defaultExpectedReponseStatus
+				: overridingExpectedResponseStatus;
 
 		method.setQueryString(requestUrl.getQuery());
 
-		for(Entry<String, String> header : requestHeaders.entrySet()) {
+		for (Entry<String, String> header : requestHeaders.entrySet()) {
 			method.addRequestHeader(header.getKey(), header.getValue());
 		}
 
 		HostConfiguration hostConfig = new HostConfiguration();
-		hostConfig.setHost(requestUrl.getHost(), requestUrl.getPort(), requestUrl.getProtocol());
-		
+		hostConfig.setHost(requestUrl.getHost(), requestUrl.getPort(),
+				requestUrl.getProtocol());
+
 		int responseStatus = webClient.executeMethod(hostConfig, method);
-		assertEquals(expectedReponseStatus, responseStatus);
+
+		if (expectedResponseStatus != responseStatus) {
+			System.err.println("FAILURE: Expected "
+					+ defaultExpectedReponseStatus + " but got "
+					+ responseStatus + " for " + requestUrl);
+			if (0 < requestHeaders.size()) {
+				System.err.println("Headers: ");
+				for (Entry<String, String> entry : requestHeaders.entrySet()) {
+					System.err.println("\t" + entry.getKey() + ": "
+							+ entry.getValue());
+				}
+			}
+			if (null != requestContent) {
+				System.err.println("Content: " + requestContent);
+			}
+		}
 
 		return method.getResponseBodyAsString();
 	}
