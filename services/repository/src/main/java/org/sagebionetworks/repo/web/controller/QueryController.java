@@ -18,13 +18,10 @@ import javax.servlet.http.HttpServletRequest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.authutil.AuthUtilConstants;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InputDataLayer;
-import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.query.BasicQuery;
@@ -32,8 +29,6 @@ import org.sagebionetworks.repo.model.query.ObjectType;
 import org.sagebionetworks.repo.model.query.QueryDAO;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.util.SchemaHelper;
-import org.sagebionetworks.repo.web.AnnotatableEntitiesAccessorImpl;
-import org.sagebionetworks.repo.web.EntitiesAccessor;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -142,23 +137,6 @@ public class QueryController extends BaseController {
 		QueryResults results = queryDao.executeQuery(basic);
 		results.setResults(formulateResult(stmt, results.getResults()));
 		return results;
-		
-
-//		if (stmt.getTableName().equals("dataset")) {
-//			return performDatasetQuery(stmt);
-//		} else if (stmt.getTableName().equals("layer")) {
-////			if (null == stmt.getWhereTable()
-////					|| null == stmt.getWhereField()
-////					|| !(stmt.getWhereTable().equals("dataset") && stmt
-////							.getWhereField().equals("id"))) {
-////				throw new ParseException(
-////						"Layer queries must include a 'WHERE dataset.id == <the id>' clause");
-////			}
-//			return performLayerQuery(stmt);
-//		} else {
-//			throw new ParseException(
-//					"Queries are only supported for datasets and layers at this time");
-//		}
 	}
 
 	/**
@@ -172,114 +150,6 @@ public class QueryController extends BaseController {
 		return SchemaHelper.getSchema(QueryResults.class);
 	}
 
-	@SuppressWarnings("unchecked")
-	private QueryResults performDatasetQuery(QueryStatement stmt)
-			throws DatastoreException, NotFoundException {
-
-		EntitiesAccessor<Dataset> accessor = new AnnotatableEntitiesAccessorImpl<Dataset>();
-		accessor.setDao(dao);
-		
-		// The first step is to translate the input query
-		
-
-		/**
-		 * Perform the query
-		 * 
-		 * TODO talk to Bruce to see if he would prefer that this stuff is
-		 * transformed in to a query string that JDO understands
-		 */
-		List<Dataset> entities;
-		if (null != stmt.getWhereField() && null != stmt.getWhereValue()) {
-			// TODO only == is supported for InRangeHaving
-			entities = accessor.getInRangeHaving(stmt.getOffset(), stmt
-					.getLimit(), stmt.getWhereField(), stmt.getWhereValue());
-		} else if (null != stmt.getSortField()) {
-			entities = accessor.getInRangeSortedBy(stmt.getOffset(), stmt
-					.getLimit(), stmt.getSortField(), stmt.getSortAcending());
-		} else {
-			entities = accessor.getInRange(stmt.getOffset(), stmt.getLimit());
-		}
-
-		/**
-		 * Get the total number of results for this query
-		 * 
-		 * TODO we don't have this for queries with a WHERE clause
-		 */
-		Integer totalNumberOfResults = dao.getCount();
-
-		/**
-		 * Format the query result
-		 */
-		List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
-		for (Dataset dataset : entities) {
-
-			Map<String, Object> result = OBJECT_MAPPER.convertValue(dataset,
-					Map.class);
-			Annotations annotations = dao.getAnnotations(dataset.getId());
-			result.putAll(annotations.getStringAnnotations());
-			result.putAll(annotations.getDoubleAnnotations());
-			result.putAll(annotations.getLongAnnotations());
-			result.putAll(annotations.getDateAnnotations());
-
-			results.add(formulateResult(stmt, result));
-		}
-
-		return new QueryResults(results, totalNumberOfResults);
-	}
-
-	@SuppressWarnings("unchecked")
-	private QueryResults performLayerQuery(QueryStatement stmt)
-			throws DatastoreException, NotFoundException {
-
-		InputDataLayerDAO layerDao = dao.getInputDataLayerDAO(stmt
-				.getWhereValue().toString());
-		EntitiesAccessor<InputDataLayer> accessor = new AnnotatableEntitiesAccessorImpl<InputDataLayer>();
-		accessor.setDao(layerDao);
-
-		/**
-		 * Perform the query
-		 * 
-		 * TODO talk to Bruce to see if he would prefer that this stuff is
-		 * transformed in to a query string that JDO understands
-		 * 
-		 * TODO support WHERE datasetId == 123 AND foo == var
-		 */
-		List<InputDataLayer> entities;
-		if (null != stmt.getSortField()) {
-			entities = accessor.getInRangeSortedBy(stmt.getOffset(), stmt
-					.getLimit(), stmt.getSortField(), stmt.getSortAcending());
-		} else {
-			entities = accessor.getInRange(stmt.getOffset(), stmt.getLimit());
-		}
-
-		/**
-		 * Get the total number of results for this query
-		 * 
-		 * TODO we don't have this for queries with a WHERE clause
-		 */
-		Integer totalNumberOfResults = layerDao.getCount();
-
-		/**
-		 * Format the query result
-		 */
-		List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
-		for (InputDataLayer layer : entities) {
-
-			Map<String, Object> result = OBJECT_MAPPER.convertValue(layer,
-					Map.class);
-
-			Annotations annotations = layerDao.getAnnotations(layer.getId());
-			result.putAll(annotations.getStringAnnotations());
-			result.putAll(annotations.getDoubleAnnotations());
-			result.putAll(annotations.getLongAnnotations());
-			result.putAll(annotations.getDateAnnotations());
-
-			results.add(formulateResult(stmt, result));
-		}
-
-		return new QueryResults(results, totalNumberOfResults);
-	}
-	
 	/**
 	 * Process all of the results.
 	 * @param stmt

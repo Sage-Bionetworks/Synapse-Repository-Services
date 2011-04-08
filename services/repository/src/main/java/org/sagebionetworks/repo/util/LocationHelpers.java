@@ -7,10 +7,8 @@ import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserCredentials;
 import org.sagebionetworks.repo.model.UserCredentialsDAO;
-import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.amazonaws.auth.AWSCredentials;

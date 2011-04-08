@@ -24,9 +24,10 @@ public class InputDataLayer implements DatasetLayer {
 	private String status;
 	private Long numSamples;
 	// version defined in base class
-	
-	/** 
-	 * The following members are set by the service layer and should not be persisted.
+
+	/**
+	 * The following members are set by the service layer and should not be
+	 * persisted.
 	 */
 	private String uri; // URI for this layer
 	private String etag; // ETag for this layer
@@ -42,7 +43,7 @@ public class InputDataLayer implements DatasetLayer {
 	public enum LayerTypeNames {
 		E, G, C;
 	}
-	
+
 	public String getId() {
 		return id;
 	}
@@ -108,7 +109,8 @@ public class InputDataLayer implements DatasetLayer {
 	}
 
 	/**
-	 * @param preview the preview to set
+	 * @param preview
+	 *            the preview to set
 	 */
 	public void setPreview(String preview) {
 		this.preview = preview;
@@ -142,16 +144,17 @@ public class InputDataLayer implements DatasetLayer {
 	}
 
 	public void setType(String type) throws InvalidModelException {
-		
-        try {
-        	LayerTypeNames.valueOf(type);
-        } catch( IllegalArgumentException e ) {
-        	StringBuilder helpfulErrorMessage = new StringBuilder("'type' must be one of:");
-        	for(LayerTypeNames name : LayerTypeNames.values()) {
-        		helpfulErrorMessage.append(" ").append(name);
-        	}
-        	throw new InvalidModelException(helpfulErrorMessage.toString());
-        }
+
+		try {
+			LayerTypeNames.valueOf(type);
+		} catch (IllegalArgumentException e) {
+			StringBuilder helpfulErrorMessage = new StringBuilder(
+					"'type' must be one of:");
+			for (LayerTypeNames name : LayerTypeNames.values()) {
+				helpfulErrorMessage.append(" ").append(name);
+			}
+			throw new InvalidModelException(helpfulErrorMessage.toString());
+		}
 
 		this.type = type;
 	}
@@ -204,7 +207,8 @@ public class InputDataLayer implements DatasetLayer {
 	}
 
 	/**
-	 * @param locations the uri locations to set
+	 * @param locations
+	 *            the uri locations to set
 	 */
 	public void setLocations(Collection<String> locations) {
 		this.locations = locations;
@@ -237,7 +241,10 @@ public class InputDataLayer implements DatasetLayer {
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result
 				+ ((description == null) ? 0 : description.hashCode());
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result
+				+ ((numSamples == null) ? 0 : numSamples.hashCode());
 		result = prime * result
 				+ ((platform == null) ? 0 : platform.hashCode());
 		result = prime
@@ -250,6 +257,7 @@ public class InputDataLayer implements DatasetLayer {
 		result = prime * result + ((qcDate == null) ? 0 : qcDate.hashCode());
 		result = prime * result
 				+ ((releaseNotes == null) ? 0 : releaseNotes.hashCode());
+		result = prime * result + ((status == null) ? 0 : status.hashCode());
 		result = prime * result
 				+ ((tissueType == null) ? 0 : tissueType.hashCode());
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
@@ -279,10 +287,20 @@ public class InputDataLayer implements DatasetLayer {
 				return false;
 		} else if (!description.equals(other.description))
 			return false;
+		if (id == null) {
+			if (other.id != null)
+				return false;
+		} else if (!id.equals(other.id))
+			return false;
 		if (name == null) {
 			if (other.name != null)
 				return false;
 		} else if (!name.equals(other.name))
+			return false;
+		if (numSamples == null) {
+			if (other.numSamples != null)
+				return false;
+		} else if (!numSamples.equals(other.numSamples))
 			return false;
 		if (platform == null) {
 			if (other.platform != null)
@@ -314,6 +332,11 @@ public class InputDataLayer implements DatasetLayer {
 				return false;
 		} else if (!releaseNotes.equals(other.releaseNotes))
 			return false;
+		if (status == null) {
+			if (other.status != null)
+				return false;
+		} else if (!status.equals(other.status))
+			return false;
 		if (tissueType == null) {
 			if (other.tissueType != null)
 				return false;
@@ -331,6 +354,4 @@ public class InputDataLayer implements DatasetLayer {
 			return false;
 		return true;
 	}
-
-
 }
