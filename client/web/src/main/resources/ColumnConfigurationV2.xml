@@ -130,7 +130,7 @@
 		</column>
 		<column id="layer.numSamples">
 			<type>Long</type>
-			<display># of Samples</display>
+			<display>Number of Samples</display>
 			<description>Number of Samples in this layer</description>
 		</column>
 		<column id="layer.type">

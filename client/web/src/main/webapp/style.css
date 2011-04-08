@@ -625,7 +625,7 @@ h2 {
 	font-size: 10px;
 	color: #861b19;	
 }
-.data_detail_section table.detail th {
+table.detail th {
 	background-color: #f9f498;
 	padding-top: 5px;
 	padding-bottom: 3px;
@@ -634,7 +634,7 @@ h2 {
 	font-size: 10px;
 	color: #861b19;
 }
-.data_detail_section table.detail td {
+table.detail td {
 	padding-top:4px;
 	padding-bottom: 3px;
 	font-size: 10px;

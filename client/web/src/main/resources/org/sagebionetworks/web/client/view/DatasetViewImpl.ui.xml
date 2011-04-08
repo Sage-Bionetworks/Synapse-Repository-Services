@@ -149,24 +149,24 @@
 					<div class="scrollable">
 						<table width="100%" class="detail">
 							<tr>
-								<td class="analysis">Network Generation</td>
-								<td class="project">Federation Warburg</td>
+								<td class="analysis"><a href="network_overview.html">Network Generation</a></td>
+								<td class="project"><a href="project_details.html">Federation Warburg</a></td>
 								<td class="last_modified">12-Apr-2011</td>
 							</tr>
 							<tr class="gray">
-								<td class="analysis">Network Survey</td>
-								<td class="project">Federation Warburg</td>
+								<td class="analysis"><a href="network_overview.html">Network Survey</a></td>
+								<td class="project"><a href="project_details.html">Federation Warburg</a></td>
 								<td class="last_modified">23-Mar-2011</td>
 							</tr>
 
 							<tr>
-								<td class="analysis">Interactome</td>
-								<td class="project">Federation Warburg</td>
+								<td class="analysis"><a href="network_overview.html">Interactome</a></td>
+								<td class="project"><a href="project_details.html">Federation Warburg</a></td>
 								<td class="last_modified">04-Mar-2011</td>
 							</tr>
 							<tr class="gray">
-								<td class="analysis">GSE 21034</td>
-								<td class="project">MetaGeo</td>
+								<td class="analysis"><a href="network_overview_metageo.html">GSE 21034</a></td>
+								<td class="project"><a href="project_details_metageo.html">Federation Warburg</a></td>
 								<td class="last_modified">2-Apr-2011</td>
 							</tr>
 						</table>
