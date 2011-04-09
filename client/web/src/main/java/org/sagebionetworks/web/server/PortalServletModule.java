@@ -10,6 +10,8 @@ import java.util.logging.Logger;
 import org.sagebionetworks.web.server.servlet.DatasetServiceImpl;
 import org.sagebionetworks.web.server.servlet.LicenseServiceImpl;
 import org.sagebionetworks.web.server.servlet.SearchServiceImpl;
+import org.sagebionetworks.web.server.servlet.filter.RPCValidationFilter;
+import org.sagebionetworks.web.server.servlet.filter.TimingFilter;
 
 import com.google.inject.Singleton;
 import com.google.inject.name.Names;
@@ -28,6 +30,10 @@ public class PortalServletModule extends ServletModule {
 
 	@Override
 	protected void configureServlets() {
+//		// This is not working yet
+//		filter("/Portal/*").through(SimpleAuthFilter.class);
+//		bind(SimpleAuthFilter.class).in(Singleton.class);
+		
 		// filter all call through this filter
 		filter("/Portal/*").through(TimingFilter.class);
 		bind(TimingFilter.class).in(Singleton.class);

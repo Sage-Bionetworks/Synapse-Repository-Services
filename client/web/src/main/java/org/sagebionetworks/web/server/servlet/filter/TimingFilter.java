@@ -1,4 +1,4 @@
-package org.sagebionetworks.web.server;
+package org.sagebionetworks.web.server.servlet.filter;
 
 import java.io.IOException;
 import java.util.logging.Logger;

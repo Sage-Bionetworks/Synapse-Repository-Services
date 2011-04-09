@@ -9,10 +9,12 @@ import org.sagebionetworks.web.client.place.Dataset;
 import org.sagebionetworks.web.client.place.DatasetsHome;
 import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.place.Layer;
+import org.sagebionetworks.web.client.place.LoginPlace;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetsHomePresenter;
 import org.sagebionetworks.web.client.presenter.HomePresenter;
 import org.sagebionetworks.web.client.presenter.LayerPresenter;
+import org.sagebionetworks.web.client.presenter.LoginPresenter;
 
 import com.google.gwt.activity.shared.Activity;
 import com.google.gwt.activity.shared.ActivityMapper;
@@ -37,6 +39,15 @@ public class AppActivityMapper implements ActivityMapper {
 
 	@Override
 	public Activity getActivity(Place place) {
+		// If the user is not logged in then we redirect them to the login screen
+		if(!(place  instanceof LoginPlace)){
+			if(!this.ginjector.getAuthenticationController().isLoggedIn()){
+				// Redirect them to the login screen
+				LoginPlace loginPlace = new LoginPlace(place);
+				return getActivity(loginPlace);
+			}
+		}
+		
 		// We use GIN to generate and inject all presenters with 
 		// their dependencies.
 		if(place instanceof Home) {
@@ -58,6 +69,11 @@ public class AppActivityMapper implements ActivityMapper {
 			// The layer detail view
 			LayerPresenter presenter = ginjector.getLayerPresenter();
 			presenter.setPlace((Layer)place);
+			return presenter;
+		}else if (place instanceof LoginPlace) {
+			// The layer detail view
+			LoginPresenter presenter = ginjector.getLoginPresenter();
+			presenter.setPlace((LoginPlace)place);
 			return presenter;
 		} else {
 			// Log that we have an unknown place but send the user to the default

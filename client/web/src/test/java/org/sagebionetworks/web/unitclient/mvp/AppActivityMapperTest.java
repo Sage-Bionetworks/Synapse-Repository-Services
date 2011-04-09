@@ -1,14 +1,11 @@
 package org.sagebionetworks.web.unitclient.mvp;
 
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.sagebionetworks.web.client.ProtalGinInjector;
 import org.sagebionetworks.web.client.mvp.AppActivityMapper;
 import org.sagebionetworks.web.client.place.Dataset;
@@ -17,6 +14,7 @@ import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetsHomePresenter;
 import org.sagebionetworks.web.client.presenter.HomePresenter;
+import org.sagebionetworks.web.client.security.AuthenticationController;
 
 import com.google.gwt.activity.shared.Activity;
 import com.google.gwt.place.shared.Place;
@@ -29,19 +27,37 @@ import com.google.gwt.place.shared.Place;
  */
 public class AppActivityMapperTest {
 	
+	ProtalGinInjector mockInjector;
+	AuthenticationController mockController;
+	DatasetsHomePresenter mockHome;
+	DatasetPresenter mockPresenter;
+	HomePresenter mockAll;
+	
+	@Before
+	public void before(){
+		// Mock the views
+		mockInjector = Mockito.mock(ProtalGinInjector.class);
+		// Controller
+		mockController = Mockito.mock(AuthenticationController.class);
+		when(mockController.isLoggedIn()).thenReturn(true);
+		when(mockInjector.getAuthenticationController()).thenReturn(mockController);
+		// Dataset home
+		mockHome = Mockito.mock(DatasetsHomePresenter.class);
+		when(mockInjector.getDatasetsHomePresenter()).thenReturn(mockHome);
+		// Dataset presenter
+		mockPresenter = Mockito.mock(DatasetPresenter.class);
+		when(mockInjector.getDatasetPresenter()).thenReturn(mockPresenter);
+		// Home
+		mockAll = Mockito.mock(HomePresenter.class);
+		when(mockInjector.getHomePresenter()).thenReturn(mockAll);
+
+	}
+	
 	@Test
 	public void testDatasetsHome(){
-		// Mock the views
-		ProtalGinInjector mockInjector = createMock(ProtalGinInjector.class);
-		// Mock the v
-//		AllDatasetPresenter allDatasetsPresenter = new AllDatasetPresenter(view, datasetService);
-		DatasetsHomePresenter mockHome = createMock(DatasetsHomePresenter.class);
-		expect(mockInjector.getDatasetsHomePresenter()).andReturn(mockHome);
+		// Test this place
 		DatasetsHome allDatestsPlace = new DatasetsHome(null);
-		// The place must be set on the presenter
-		mockHome.setPlace(allDatestsPlace);
-		replay(mockHome);
-		replay(mockInjector);
+
 		// Create the mapper
 		AppActivityMapper mapper = new AppActivityMapper(mockInjector);
 
@@ -49,21 +65,23 @@ public class AppActivityMapperTest {
 		assertNotNull(object);
 		assertTrue(object instanceof DatasetsHomePresenter);
 		// Validate that the place was set.
-		verify(mockHome);
+		verify(mockHome).setPlace(allDatestsPlace);
 	}
 	
 	@Test
 	public void testDatasets(){
 		// Mock the views
-		ProtalGinInjector mockInjector = createMock(ProtalGinInjector.class);
+		ProtalGinInjector mockInjector = Mockito.mock(ProtalGinInjector.class);
+		// Controller
+		AuthenticationController mockController = Mockito.mock(AuthenticationController.class);
+		when(mockController.isLoggedIn()).thenReturn(true);
+		when(mockInjector.getAuthenticationController()).thenReturn(mockController);
 		// Mock the v
-		DatasetPresenter mockPresenter = createMock(DatasetPresenter.class);
-		expect(mockInjector.getDatasetPresenter()).andReturn(mockPresenter);
+		DatasetPresenter mockPresenter = Mockito.mock(DatasetPresenter.class);
+		when(mockInjector.getDatasetPresenter()).thenReturn(mockPresenter);
+		// This is the place
 		Dataset datasetPlace = new Dataset("ID");
-		// The place must be set on the presenter
-		mockPresenter.setPlace(datasetPlace);
-		replay(mockPresenter);
-		replay(mockInjector);
+
 		// Create the mapper
 		AppActivityMapper mapper = new AppActivityMapper(mockInjector);
 
@@ -72,25 +90,16 @@ public class AppActivityMapperTest {
 		assertTrue(object instanceof DatasetPresenter);
 //		AllDatasetPresenter resultPresenter =  (AllDatasetPresenter) object;
 		// Validate that the place was set.
-		verify(mockPresenter);
+		verify(mockPresenter).setPlace(datasetPlace);
 	}
 	
 	
 	@Test
 	public void testUnknown(){
-		// Mock the views
-		ProtalGinInjector mockInjector = createMock(ProtalGinInjector.class);
-		// Mock the presenter
-		HomePresenter mockAll = createMock(HomePresenter.class);
-		expect(mockInjector.getHomePresenter()).andReturn(mockAll);
+
 		// This is the place we will pass in
 		Place unknownPlace = new Place(){}; 
-		// This is the place we expect to be used.
-		Home allDatestsPlace = new Home(null);
-		// The place must be set on the presenter
-		mockAll.setPlace((Home) anyObject());
-		replay(mockAll);
-		replay(mockInjector);
+
 		// Create the mapper
 		AppActivityMapper mapper = new AppActivityMapper(mockInjector);
 
@@ -98,7 +107,7 @@ public class AppActivityMapperTest {
 		assertNotNull(object);
 		assertTrue(object instanceof HomePresenter);
 		// Validate that the place was set.
-		verify(mockAll);
+		verify(mockAll).setPlace((Home) anyObject());
 	}
 
 }
