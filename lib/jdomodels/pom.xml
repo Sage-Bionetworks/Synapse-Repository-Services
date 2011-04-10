@@ -108,8 +108,8 @@
           <enhancerName>ASM</enhancerName>
 <!--          <outputFile>target/schema.ddl</outputFile>-->
           <api>JDO</api>
-          <props>src/main/resources/datanucleus.properties</props>
-	      <log4jConfiguration>src/main/resources/log4j.properties</log4jConfiguration>
+          <props>${basedir}/src/main/resources/datanucleus.properties</props>
+	      <log4jConfiguration>${basedir}/src/main/resources/log4j.properties</log4jConfiguration>
 	      <completeDdl>true</completeDdl>
         </configuration>
         <executions>
