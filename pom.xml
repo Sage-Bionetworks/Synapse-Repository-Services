@@ -27,7 +27,8 @@
     <module>client</module>
     <module>integration-test</module>
   </modules>
-  
+
+  <!-- TODO set up our own artifactory -->
   <repositories>
     <repository>
       <id>springsource-milestone</id>
