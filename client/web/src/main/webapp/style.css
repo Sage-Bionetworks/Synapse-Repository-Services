@@ -211,13 +211,15 @@ h3 {
 	padding: 0px;
 	margin-right:15px;
 	position: relative;
-	top: 7px;
+	top: 8px;
 	left:-4px;
+	color: #fec84c;
+	background-color: #fec84c;
 }
 .search_submit img {
 	position: relative;
 	top: -1px;
-	left: -2px;
+	left: -3px;
 }
 .advanced {
 	position: relative;
@@ -324,8 +326,6 @@ h2 {
 	padding-top: 15px;
 	padding-left:15px;
 }
-
-/* START EDIT Added this rule */
 .info_text_2col {
 	float:left;
 	width: 500px;
@@ -333,8 +333,12 @@ h2 {
 	padding-left:15px;
 	padding-right: 141px;
 }
-/* END EDIT */
-
+.info_text_2col_wide {
+	float:left;
+	width: 650px;
+	padding-top: 15px;
+	padding-left:15px;	
+}
 .data_details {
 	float:left;
 	padding-top: 15px;
@@ -629,15 +633,21 @@ table.detail th {
 	background-color: #f9f498;
 	padding-top: 5px;
 	padding-bottom: 3px;
+	padding-right: 5px;
 	vertical-align: bottom;
 	border-bottom: 2px solid #d8d8da;
 	font-size: 10px;
 	color: #861b19;
+	
 }
 table.detail td {
 	padding-top:4px;
 	padding-bottom: 3px;
+	padding-right: 5px;	
 	font-size: 10px;
+}
+table.detail tr.gray {
+	background-color: #f3f3f4;
 }
 .data_detail_section tr.gray {
 	background-color: #f3f3f4;
@@ -1031,16 +1041,37 @@ h6 .wide {
 .footer hr {
 	margin-top:20px;
 }
-.footer_nav ul {
-	width: 810px;
-	/*margin-left:15px;*/
-}
-.footer_nav ul li {
+.footer a {
+	color: #999;
+}	
+.footer_nav {
+	position: relative; 
 	float: left;
+}
+.footer_nav table {
+	width: 360px;
+	cellspacing: 25px;	
+}
+.footer_nav td {
+	padding: 8px;
+	/*padding-right: 25px;*/
+	margin-bottom: 8px;
+	font-size: 10px;
+}
+.footer_logos {
+	position: relative; 
+	float: left;
+	text-align: center;
+}
+.footer_logos ul {
+	width: 390px;
+}
+.footer_logos ul li {
+	float: right;
 	display: table-cell;
 	padding-right: 25px;
 	margin-bottom: 8px;
-	font-size: 10px;
+	font-size: 10px;	
 }
 .contact {
 }

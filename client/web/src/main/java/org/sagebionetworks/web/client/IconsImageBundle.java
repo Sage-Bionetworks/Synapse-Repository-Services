@@ -44,6 +44,9 @@ public interface IconsImageBundle extends ClientBundle {
 	@Source("images/icons/information-balloon-16.png")
 	ImageResource informationBalloon16();	
 		
+	@Source("images/icons/mail--arrow-16.png")
+	ImageResource mailArrow16();	
+		
 	@Source("images/icons/sticky-note--plus-16.png")
 	ImageResource notePlus16();
 
