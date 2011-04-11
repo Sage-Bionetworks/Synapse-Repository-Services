@@ -2,194 +2,162 @@
 "http://www.w3.org/TR/html4/loose.dtd">
 <html lang="en">
 <head>
-	<title>Synapse : Expression Normalization</title>
-	<link href="style.css" rel="stylesheet">
-	<!--[if IE 7]>
+<title>Synapse : Expression Normalization</title>
+<link href="style.css" rel="stylesheet">
+<!--[if IE 7]>
 	<link href="ie7.css" rel="stylesheet">
 	<![endif]-->
 <!-- jQuery and jQuery UI -->
-<link rel="stylesheet" href="http://jqueryui.com/themes/base/jquery.ui.all.css">
-<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
-<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.11/jquery-ui.min.js"></script>
+<link rel="stylesheet"
+	href="http://jqueryui.com/themes/base/jquery.ui.all.css">
+<script type="text/javascript"
+	src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.11/jquery-ui.min.js"></script>
 
 <!-- Search autocomplete script. Temporary -->
-	<script>
+<script>
 	var TRANSMART_SEARCH = "http://transmart.sagebase.org/transmart/search/search?sourcepage=search&id=";
 	$(function() {
-		$( "#query" ).autocomplete({
-			source: function( request, response ) {
-				$.ajax({
-					url: "http://transmart.sagebase.org/transmart/search/loadSearch",
-					dataType: "jsonp",
-					data: {
-						query: "all:" + request.term						
-					},
-					success: function( data ) {
-						response( $.map( data.rows, function( item ) {
-							return {
-								label: item.display + ": " + item.keyword,
-								value: item.name,
-								id: item.id
-							}
-						}));
-					}
-				});
-			},
-			minLength: 1,
-			select: function( event, ui ) {
-				if(ui.item.id) {					
-					document.location =  TRANSMART_SEARCH + ui.item.id;
-				}
-			}
-		});
-	});
-	</script>
+		$("#query")
+				.autocomplete(
+						{
+							source : function(request, response) {
+								$
+										.ajax({
+											url : "http://transmart.sagebase.org/transmart/search/loadSearch",
+											dataType : "jsonp",
+											data : {
+												query : "all:" + request.term
+											},
+											success : function(data) {
+												response($
+														.map(
+																data.rows,
+																function(item) {
+																	return {
+																		label : item.display
+																				+ ": "
+																				+ item.keyword,
+																		value : item.name,
+																		id : item.id
+																	}
+																}));
+											}
+										});
+							},
+							minLength : 1,
+							select : function(event, ui) {
+								if (ui.
+</script>
 </head>
 <body>
-	<div id="container" class="clearfix">
-		<div class="header">
-			<div id="header_top" class="clearfix">
-				<div id="logo" class="left">					
-						<span class="large"><a href="Portal.html">Synapse</a></span>
-						<span class="tagline"><a href="Portal.html">CONTRIBUTE TO<br>
-						THE CURE</a></span>					
-				</div>
-				<div id="user_tools" class="right">
-					<span class="hello">Welcome Michael K.</span><br />
-					<span class="tools right"><a href="">My profile</a> | <a href="">Logout</a></span>
-				</div>
-			</div>	
-			<div class="global_nav">
-				<ul>
-					<li class="first" id="navbar_datasets_li"><a href="Portal.html#DatasetsHome:0" id="navbar_datasets_a">Datasets</a></li>
-					<li id="navbar_tools_li"><a href="">Tools</a></li>
-					<li id="navbar_networks_li"><a href="">Networks</a></li>
-					<li id="navbar_people_li"><a href="people.html">People</a></li>
-					<li class="last active" id="navbar_projects_li"><a href="projects.html">Projects</a></li>
-				</ul>
-				<div id="search" class="right">
-					<!-- <form action="" method="get">  -->
-						<input id="query" type="input" class="search_box" name="q" value="" style="height:18px;">
+<div id="container" class="clearfix">
+<div class="header">
+<div id="header_top" class="clearfix">
+<div id="logo" class="left"><span class="large"><a
+	href="Portal.html">Synapse</a></span> <span class="tagline"><a
+	href="Portal.html">CONTRIBUTE TO<br>
+THE CURE</a></span></div>
+<div id="user_tools" class="right"><span class="hello">Welcome
+Michael K.</span><br />
+<span class="tools right"><a href="">My profile</a> | <a href="">Logout</a></span>
+</div>
+</div>
+<div class="global_nav">
+<ul>
+	<li class="first" id="navbar_datasets_li"><a
+		href="Portal.html#DatasetsHome:0" id="navbar_datasets_a">Datasets</a></li>
+	<li id="navbar_tools_li"><a href="">Tools</a></li>
+	<li id="navbar_networks_li"><a href="">Networks</a></li>
+	<li id="navbar_people_li"><a href="people.html">People</a></li>
+	<li class="last active" id="navbar_projects_li"><a
+		href="projects.html">Projects</a></li>
+</ul>
+<div id="search" class="right"><!-- <form action="" method="get">  -->
+<input id="query" type="input" class="search_box" name="q" value="" style="height:18px;">
 
-						<button class="search_submit"><img src="static/images/search_button.png" /></button>
-						<span class="advanced"><a href="">Advanced<br>Search</a></span>
-					<!-- </form>  -->
-				</div>
-			</div>
-		</div>
-		<div id="main" role="main">
-			<div id="content" class="clearfix">
-				<ul class="breadcrumbs">
-					<li class="breadcrumb"><a href="Portal.html">Home</a> > <a href="projects.html">All Projects</a> > <a href="project_details.html">Federation Warburg</a> > <a href="network_overview.html">Network Generation</a> > </li>
-				</ul>
-				<h2>Expression Normalization</h2>
-				<div id="privacy_setting" class="right">
-					<span class="setting_label">Privacy Setting:</span>
-					<span class="setting_level">Public</span> &raquo; <a href="" style="display:inline;">Learn more...</a>
-				</div>
-				<div class="data_info data_info_narrow">
-					<span class="info_head">
-						<h2>Overview</h2>
-						<span class="data_options">
-							<img src="images/icons/arrow-curve-16.png" /> Follow this analysis<br />
-							<img src="images/icons/task--plus-16.png" /> Add a step
-						</span>
-					</span>
-					<span class="info_text_narrow">
-					The data for this study was normalized using the Supervised Normalization of Microarrays (SNM) framework. The central premise of this framework is that the study under investigation should inform the normalization process. The SNM framework consists of three components: a set of criteria that deﬁne a goal for normalization, a modeling strategy, and a set of algorithms. The normalization goal deﬁnes the normalization process as a procedure that preserves the biological relationships of interest while removing the effects of adjustment variables from the data. The modeling strategy is designed to express the observed data as a function of the study-speciﬁc variables. And the algorithms are designed to ﬁt these models to the data, respecting constrains imposed by the normalization goal.  
-					<br />
-					<a href="" class="bulleted">Read more...</a>
-					<br />
-					</span>
-					<span class="data_details">
-						<table>
-													<tr>
-								<th>Created by:</th>
-								<td>Brig M., 02-Mar-2011</td>
-							</tr>
-							<tr>
-								<th>Last modified:</th>
-								<td>02-Mar-2011</td>
-							</tr>
-							<tr>
-								<th>Public datasets <br/>used:<br /><br /></th>
-								<td>MSKCC Prostate Cancer exon expression</td>
-							</tr>
-						</table>
-					</span>
-				</div>
-				<div class="data_detail_section data_detail_main last">
-				<span class="header">
-					<span class="icon right">
-						<img src="images/icons/application-resize-16.png" /> View All<br/>
-						<img src="images/icons/sticky-note--plus-16.png" /> Add a note
-					</span>
-					<span class="title">Notes for this step</span>
-				</span>
-				<div class="scrollable longer">
-					<div id="scrollable_item">
-						<span class="scrollable_header">
-							<img src="static/images/down_arrow.png" class="right" />
-							<span class="scroll_text">Please explain for your process</span>
-							<span class="author"><a href="">Henry T</a></span><br />
-							<span class="date">21-Nov-2010</span>
-						</span>
-						<span class="scrollable_comments">
-							<span class="scrollable_comment">
-								<span class="comment_text">Thanks Henry. Please post your algorithm as well so we can compare.</span>
-								<span class="comment_author">Sam S.</span>
-								<span class="comment_date">22-Nov-2010</span>
-							</span>
-							<span class="scrollable_comment">
-								<span class="comment_text">Posted.</span>
-								<span class="comment_author">Henry T.</span>
-								<span class="comment_date">22-Nov-2010</span>
-							</span>
-							<span class="scrollable_comment">
-								<span class="comment_text">Annotation included for your normalization steps</span>
-								<span class="comment_author">Sam S.</span>
-								<span class="comment_date">22-Nov-2010</span>
-							</span>
-						</span>
-					</div>
-					<div id="scrollable_item">
-						<span class="scrollable_header">
-							<img src="static/images/down_arrow.png" class="right" />
-							<span class="scroll_text">New analysis using this dataset in the Federation Warburg Project</span>
-							<span class="author"><a href="">Henry T</a></span>
-							<span class="date">21-Nov-2010</span>
-						</span>
-						<span class="scrollable_comments">
-							<span class="scrollable_comment">
-								<span class="comment_text">Thanks Henry. Please post your algorithm as well so we can compare.</span>
-								<span class="comment_author">Sam S.</span>
-								<span class="comment_date">22-Nov-2010</span>
-							</span>
-							<span class="scrollable_comment">
-								<span class="comment_text">Posted.</span>
-								<span class="comment_author">Henry T.</span>
-								<span class="comment_date">22-Nov-2010</span>
-							</span>
-						</span>
-					</div>
-				</div>
-			</div>
-			</div>
-			<div class="data_detail_sections">
-				<div class="data_detail_large_section data_detail_section">
-					<span class="header">
-						<span class="icon right">
-							<img src="images/icons/cog-16.png" /> Load in Taverna
-						</span>
-						<span class="title">Analysis</span>
-						<span class="secondary_text">Select a step to view its details and resources</span>
-					</span>
-					<div class="scrollable">
-						<img src="static/images/expression-norm-imagemap.png" BORDER=0 WIDTH=983 HEIGHT=823 usemap="#map1">
-					</div>
-				</div>
-			</div>
-		</div>
+<button class="search_submit"><img
+	src="static/images/search_button.png" /></button>
+<span class="advanced"><a href="">Advanced<br>
+Search</a></span> <!-- </form>  --></div>
+</div>
+</div>
+<div id="main" role="main">
+<div id="content" class="clearfix">
+<ul class="breadcrumbs">
+	<li class="breadcrumb"><a href="Portal.html">Home</a> > <a
+		href="projects.html">All Projects</a> > <a href="project_details.html">Federation
+	Warburg Project</a> > <a href="network_overview.html">Network Generation Analysis</a> > Expression Normalization Step</li>
+</ul>
+<h2>Expression Normalization Step</h2>
+<div id="privacy_setting" class="right"><span
+	class="setting_label">Privacy Setting:</span> <span
+	class="setting_level">Public</span> &raquo; <a href=""
+	style="display: inline;">Learn more...</a></div>
+<div class="data_info data_info_narrow"><span class="info_head">
+<h2>Overview</h2>
+<span class="data_options">  </span> </span> <span
+	class="info_text_narrow"> The data for this study was normalized
+using the Supervised Normalization of Microarrays (SNM) framework. The
+central premise of this framework is that the study under investigation
+should inform the normalization process. The SNM framework consists of
+three components <br />
+<a href="" class="bulleted">Read more...</a> <br />
+</span> <span class="data_details">
+<table>
+	<tr>
+		<th>Created by:</th>
+		<td>Xudong Dai on 02-Jan-2011</td>
+	</tr>
+	<tr>
+		<th>Last modified by:</th>
+		<td>Xudong Dai on 12-Apr-2011</td>
+	</tr>
+	<tr>
+		<th>Inputs:</th>
+		<td><a HREF="Portal.html#Layer:953;Dataset:468">MSKCC
+		Prostate Cancer - exon expression</a><br />
+		</td>
+	</tr>
+	<tr>
+		<th>Outputs:</th>
+		<td><a HREF="">Normalized Expression</a><br />
+		</td>
+	</tr>
+</table>
+</span></div>
+<div class="data_detail_section data_detail_main last"><span
+	class="header"> <span class="icon right"> <img
+	src="images/icons/application-resize-16.png" /> View All<br />
+<img src="images/icons/sticky-note--plus-16.png" /> Add a note </span> <span
+	class="title">Notes for this step</span> </span>
+<div class="scrollable longer"><span class="scrollable_comments"><span
+	class="scrollable_comment"> <span class="comment_text">Thanks
+Brig, can you have a look at my new results?</span> <span
+	class="comment_author">Xudong D.</span> <span class="comment_date">12-Apr-2011</span>
+</span> <span class="scrollable_comment"> <span class="comment_text">I've
+looked at this data and found a huge batch effect. You may get cleaner
+results if you use my normalization method, let me know if you need
+help.</span> <span class="comment_author">Brig M.</span> <span
+	class="comment_date">09-Nov-2010</span> </span> <span
+	class="scrollable_comment"> <span class="comment_text">Looks
+good to me.</span> <span class="comment_author">Marino A.</span> <span
+	class="comment_date">22-Mar-2011</span> </span> </span></div>
+</div>
+</div>
+<div class="data_detail_sections">
+<div class="data_detail_large_section data_detail_section"><span
+	class="header"> <span class="icon right"> <img
+	src="images/icons/cog-16.png" /> Load in Taverna <br/><img src="images/icons/task--plus-16.png" /> Add a step</span> <span class="title">Analysis</span>
+<span class="secondary_text">Select a step to view its details
+and resources</span> </span>
+<div class="scrollable"><img
+	src="static/images/expression-norm-imagemap.png" BORDER=0 WIDTH=983
+	HEIGHT=823 usemap="#map1"></div>
+</div>
+</div>
+</div>
 <!-- This is the static footer -->
 		<div class="footer">
 			<hr />
