@@ -39,7 +39,7 @@ public class PersistenceInitializer implements ServletContextListener {
 			
 			
 			UserSynchronization us = new UserSynchronization(userDAO);
-			us.synchronizeUsers();
+			// us.synchronizeUsers();
 		} catch (Exception e) {
 			if (e instanceof RuntimeException) throw (RuntimeException)e; else throw new RuntimeException(e);
 		}
