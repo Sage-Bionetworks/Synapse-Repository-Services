@@ -73,10 +73,20 @@ public class ReadOnlyWikiGenerator {
 		}
 
 		wiki.doGet(
-				"/repo/v1/query?query=select+*+from+dataset+where+Species+==+%22Human%22+limit+3+offset+1",
-				"h3. 'Where Equal To' Query with a Limit",
-				"Right now only a subset of query functionality is supported\n"
-						+ "{code}SELECT * FROM <data type> WHERE <field name> == \"<value>\" [LIMIT <#>] [OFFSET #]{code}");
+				"/repo/v1/query?query=select+*+from+dataset+where+dataset.Species+==+%22Human%22+and+dataset.Number_of_Samples+%3E+100+limit+3+offset+1",
+				"h3. Supported Where clause with limits",
+				"Right now only a subset of query functionality is supported\n" +
+				"{code}<expresssion> := <field name> <operator> <value>{code}" +
+				"Curently supported <operators> with their required URL escape codes:\n"
+				+"||Operator ||Value|| URL Escape Code \n"
+				+"| Equal| == | %3D%3D|\n"
+				+"| Does Not equal| != | !%3D|\n"
+				+"| Greater Than | > | %3E |\n"
+				+"| Less than | < | %3C |\n"
+				+"| Greater than or equals | >= | %3E%3D |\n"
+				+"| Less than or equals | <= | %3C%3D |\n"
+				+"<value> should be in quotes for strings, but not numbers (i.e. name == \"Smith and size > 10)"
+						+ "{code}SELECT * FROM <data type> WHERE <expression> (and <expression>)* [LIMIT <#>] [OFFSET #]{code}");
 
 		wiki.doGet(
 				"/repo/v1/query?query=select+*+from+layer+where+dataset.id+==+%22"
