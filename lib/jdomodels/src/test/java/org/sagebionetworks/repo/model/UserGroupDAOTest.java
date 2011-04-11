@@ -15,6 +15,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.jdo.JDOBootstrapperImpl;
 import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
@@ -88,7 +89,7 @@ public class UserGroupDAOTest {
 		return group;
 	}
 
-//	@Ignore
+	@Ignore
 	@Test
 	public void happyPath() throws Exception {
 		// create user anonymously
