@@ -2,12 +2,35 @@
 <ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
 	xmlns:g="urn:import:com.google.gwt.user.client.ui">
 	<ui:style>
-		
+		div.center {   
+			margin-left: auto;   
+			margin-right: auto;   
+			width: 8em;
+			padding:15px; 
+		}
 	</ui:style>
 	<g:HTMLPanel>
-		<div style="padding:15px; align:center; width:1000px">
-			<g:SimplePanel ui:field="loginWidgetPanel" />
-		</div>
+
+	<!-- start header -->
+		<div id="container" class="clearfix">		
+			<g:SimplePanel ui:field="header" />
+			<div id="main" role="main">
+	<!-- end header -->
+				<div id="logo" style="clear: right">					
+						<span class="large">Synapse</span>
+						<span class="tagline">CONTRIBUTE TO<br /> THE CURE</span>					
+				</div>
+				<p>&nbsp;</p>
+				<p>&nbsp;</p>
+				<p>&nbsp;</p>
+				<p>&nbsp;</p>
+				<g:SimplePanel ui:field="loginWidgetPanel" />				
+
+<!-- start footer -->
+				<g:SimplePanel ui:field="footer" />
+			</div> <!-- id: main -->				
+		</div> <!-- id: container -->
+<!-- end footer -->
 
 	</g:HTMLPanel>
 </ui:UiBinder> 

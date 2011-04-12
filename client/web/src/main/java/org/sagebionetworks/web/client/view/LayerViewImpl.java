@@ -7,6 +7,8 @@ import java.util.Map;
 
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.IconsImageBundle;
+import org.sagebionetworks.web.client.widget.footer.Footer;
+import org.sagebionetworks.web.client.widget.header.Header;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloader;
 import org.sagebionetworks.web.client.widget.modal.ModalWindow;
 import org.sagebionetworks.web.client.widget.statictable.StaticTable;
@@ -38,6 +40,10 @@ public class LayerViewImpl extends Composite implements LayerView {
 	}
 
 	@UiField
+	SimplePanel header;
+	@UiField
+	SimplePanel footer;	
+	@UiField
 	FlowPanel overviewPanel;
 	@UiField
 	SpanElement titleSpan;
@@ -63,12 +69,15 @@ public class LayerViewImpl extends Composite implements LayerView {
 	private ModalWindow seeTermsModal;
 
 	@Inject
-	public LayerViewImpl(Binder uiBinder, IconsImageBundle icons, final PreviewDisclosurePanel previewDisclosurePanel, StaticTable staticTable, LicensedDownloader licensedDownloader, final ModalWindow seeTermsModal) {
+	public LayerViewImpl(Binder uiBinder, Header headerWidget, Footer footerWidget, IconsImageBundle icons, final PreviewDisclosurePanel previewDisclosurePanel, StaticTable staticTable, LicensedDownloader licensedDownloader, final ModalWindow seeTermsModal) {
 		initWidget(uiBinder.createAndBindUi(this));
 		this.previewDisclosurePanel = previewDisclosurePanel;
 		this.staticTable = staticTable;
 		this.licensedDownloader = licensedDownloader;
 		this.icons = icons;
+		
+		header.add(headerWidget.asWidget());
+		footer.add(footerWidget.asWidget());			
 		
 		setupLicensedDownloaderCallbacks();
 		// style FlexTables

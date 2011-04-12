@@ -24,11 +24,14 @@ import org.sagebionetworks.web.client.widget.breadcrumb.BreadcrumbView;
 import org.sagebionetworks.web.client.widget.breadcrumb.BreadcrumbViewImpl;
 import org.sagebionetworks.web.client.widget.filter.QueryFilterView;
 import org.sagebionetworks.web.client.widget.filter.QueryFilterViewImpl;
+import org.sagebionetworks.web.client.widget.footer.FooterView;
+import org.sagebionetworks.web.client.widget.footer.FooterViewImpl;
+import org.sagebionetworks.web.client.widget.header.HeaderView;
+import org.sagebionetworks.web.client.widget.header.HeaderViewImpl;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloaderView;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloaderViewImpl;
 import org.sagebionetworks.web.client.widget.login.LoginWidgetView;
 import org.sagebionetworks.web.client.widget.login.LoginWidgetViewImpl;
-import org.sagebionetworks.web.client.widget.modal.ModalWindow;
 import org.sagebionetworks.web.client.widget.modal.ModalWindowView;
 import org.sagebionetworks.web.client.widget.modal.ModalWindowViewImpl;
 import org.sagebionetworks.web.client.widget.statictable.StaticTableView;
@@ -48,6 +51,10 @@ public class PortalGinModule extends AbstractGinModule {
 		// AuthenticationController
 		bind(AuthenticationControllerImpl.class).in(Singleton.class);
 		bind(AuthenticationController.class).to(AuthenticationControllerImpl.class);
+
+		// Header & Footer
+		bind(HeaderView.class).to(HeaderViewImpl.class);
+		bind(FooterView.class).to(FooterViewImpl.class);
 		
 		// The home page
 		bind(HomeViewImpl.class).in(Singleton.class);

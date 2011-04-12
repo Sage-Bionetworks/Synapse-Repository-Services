@@ -7,6 +7,13 @@
 	<ui:style>
 	</ui:style>	
 	<g:HTMLPanel>
+
+	<!-- start header -->
+		<div id="container" class="clearfix">		
+			<g:SimplePanel ui:field="header" />
+			<div id="main" role="main">
+	<!-- end header -->
+
 			<div id="main_content" class="clearfix">
 
 				<h3 class="welcome"><span class="narrow">Welcome to</span> <span class="wide">SYNAPSE</span></h3>
@@ -146,5 +153,12 @@
 					</span>
 				</div>
 			</div>
+
+<!-- start footer -->
+				<g:SimplePanel ui:field="footer" />
+			</div> <!-- id: main -->				
+		</div> <!-- id: container -->
+<!-- end footer -->
+
 	</g:HTMLPanel>
 </ui:UiBinder> 

@@ -6,6 +6,8 @@ import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.widget.filter.QueryFilter;
 import org.sagebionetworks.web.client.widget.filter.QueryFilter.SelectionListner;
+import org.sagebionetworks.web.client.widget.footer.Footer;
+import org.sagebionetworks.web.client.widget.header.Header;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
@@ -17,8 +19,6 @@ import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.resources.client.ImageResource;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
-import com.google.gwt.user.client.DOM;
-import com.google.gwt.user.client.Element;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Composite;
@@ -31,6 +31,10 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 	public interface DatasetsHomeViewImplUiBinder extends 	UiBinder<Widget, DatasetsHomeViewImpl> {}
 
 	@UiField
+	SimplePanel header;
+	@UiField
+	SimplePanel footer;	
+	@UiField
 	SimplePanel tablePanel;
 	//ContentPanel tablePanel;
 	@UiField
@@ -42,27 +46,14 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 	private QueryServiceTable queryServiceTable;
 	
 	@Inject
-	public DatasetsHomeViewImpl(DatasetsHomeViewImplUiBinder binder, IconsImageBundle icons, QueryFilter filter, SageImageBundle imageBundle, QueryServiceTableResourceProvider queryServiceTableResourceProvider) {		
+	public DatasetsHomeViewImpl(DatasetsHomeViewImplUiBinder binder, Header headerWidget, Footer footerWidget, IconsImageBundle icons, QueryFilter filter, SageImageBundle imageBundle, QueryServiceTableResourceProvider queryServiceTableResourceProvider) {		
 		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, 1000, 480);
 		ImageResource searchIR = imageBundle.searchButtonIcon();
 		initWidget(binder.createAndBindUi(this));
-		
-		// set navbar active
-//		Element navbarDatasets = DOM.getElementById("navbar_datasets_li");
-//		DOM.setStyleAttribute(navbarDatasets, "backgroundColor", "#fec84c");
-//		DOM.setStyleAttribute(navbarDatasets, "color", "#861b19");
-//		DOM.setStyleAttribute(navbarDatasets, "backgroundImage", "url(static/images/nav-gaps.gif)");
-//		DOM.setStyleAttribute(navbarDatasets, "backgroundRepeat", "no-repeat");
-//		DOM.setStyleAttribute(navbarDatasets, "backgroundPosition", "right");		
-//
-//		navbarDatasets = DOM.getElementById("navbar_datasets_a");
-//		DOM.setStyleAttribute(navbarDatasets, "backgroundColor", "#fec84c");
-//		DOM.setStyleAttribute(navbarDatasets, "color", "#861b19");
-//		DOM.setStyleAttribute(navbarDatasets, "backgroundImage", "none");
-//		DOM.setStyleAttribute(navbarDatasets, "backgroundRepeat", "no-repeat");
-//		DOM.setStyleAttribute(navbarDatasets, "backgroundPosition", "left");
-			
-		
+
+		header.add(headerWidget.asWidget());
+		footer.add(footerWidget.asWidget());
+				
 		// Start on the first page and trigger a data fetch from the server
 		queryServiceTable.pageTo(0, 10);
 

@@ -29,6 +29,13 @@
 		}
 	</ui:style>
 	<g:HTMLPanel>
+
+	<!-- start header -->
+		<div id="container" class="clearfix">		
+			<g:SimplePanel ui:field="header" />
+			<div id="main" role="main">
+	<!-- end header -->
+
 			<div id="content" class="clearfix">
 
 				<ul class="breadcrumbs">
@@ -69,5 +76,12 @@
 				
 																																			
 			</div>	
+
+<!-- start footer -->
+				<g:SimplePanel ui:field="footer" />
+			</div> <!-- id: main -->				
+		</div> <!-- id: container -->
+<!-- end footer -->
+
 	</g:HTMLPanel>
 </ui:UiBinder>

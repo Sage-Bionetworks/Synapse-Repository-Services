@@ -9,6 +9,8 @@ import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.presenter.DatasetRow;
 import org.sagebionetworks.web.client.widget.breadcrumb.Breadcrumb;
+import org.sagebionetworks.web.client.widget.footer.Footer;
+import org.sagebionetworks.web.client.widget.header.Header;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloader;
 import org.sagebionetworks.web.client.widget.modal.ModalWindow;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
@@ -42,6 +44,10 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	}
 
 	@UiField
+	SimplePanel header;
+	@UiField
+	SimplePanel footer;	
+	@UiField
 	FlowPanel overviewPanel;
 	@UiField
 	SpanElement titleSpan;
@@ -70,14 +76,16 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	private ModalWindow seeTermsModal;
 
 	@Inject
-	public DatasetViewImpl(Binder uiBinder, IconsImageBundle icons, final PreviewDisclosurePanel previewDisclosurePanel, QueryServiceTableResourceProvider queryServiceTableResourceProvider, LicensedDownloader licensedDownloader, Breadcrumb breadcrumb, final ModalWindow followDatasetModal, final ModalWindow seeTermsModal) {		
+	public DatasetViewImpl(Binder uiBinder, Header headerWidget, Footer footerWidget, IconsImageBundle icons, final PreviewDisclosurePanel previewDisclosurePanel, QueryServiceTableResourceProvider queryServiceTableResourceProvider, LicensedDownloader licensedDownloader, Breadcrumb breadcrumb, final ModalWindow followDatasetModal, final ModalWindow seeTermsModal) {		
 		disableDownloads = false;
 		initWidget(uiBinder.createAndBindUi(this));
 		this.previewDisclosurePanel = previewDisclosurePanel;
 		this.datasetLicensedDownloader = licensedDownloader;
 		this.followDatasetModal = followDatasetModal; 
 		setupDatasetLicensedDownloaderCallbacks();
-		
+
+		header.add(headerWidget.asWidget());
+		footer.add(footerWidget.asWidget());	
 
 		// Button: Follow dataset 
 		followDatasetModal.setHeading("Follow this Dataset");
