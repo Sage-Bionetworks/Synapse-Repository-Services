@@ -203,6 +203,7 @@
 			<artifactId>portal</artifactId>
 			<version>${project.version}</version>
 			<classifier>gwt-rpc-assembly</classifier>
+			<scope>integration-test</scope>
 			<type>jar</type>
 		</dependency>
 
