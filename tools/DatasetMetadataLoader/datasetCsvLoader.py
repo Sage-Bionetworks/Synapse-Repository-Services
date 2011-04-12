@@ -330,7 +330,7 @@ def loadLayers():
             continue
         
         # xschildw: new format is
-        # Dataset Name,type,status,name,Number of samples,Platform,Version,preview,sage,awsebs,awss3
+        # Dataset Name,type,status,name,Number of samples,Platform,Version,preview,sage,awsebs,awss3,qcby
         colnum = 0
         layerUri = gDATASET_NAME_2_LAYER_URI[row[0]]
         layer = {}
@@ -340,6 +340,7 @@ def loadLayers():
         layer["numSamples"] = row[4]
         layer["platform"] = row[5]
         layer["version"] = row[6]
+        layer["qcBy"] = row[11]
         
         newLayer = createObject(layerUri, layer)
         print 'Created layer %s for %s\n\n' % (layer["name"], row[0])
