@@ -102,7 +102,10 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 	public void hideWindow() {
 		if(eulaWindow != null && eulaWindow.isVisible()) {
 			eulaWindow.hide();			
-		}		
+		}
+		if(downloadWindow != null && downloadWindow.isVisible()) {
+			downloadWindow.hide();
+		}
 	}
 	
 	@Override

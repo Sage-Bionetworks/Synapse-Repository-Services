@@ -1,0 +1,278 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+	<title>Synapse : All Projects : Project Details</title>
+	<link href="style.css" rel="stylesheet">
+	<!--[if IE 7]>
+	<link href="ie7.css" rel="stylesheet">
+	<![endif]-->
+<!-- jQuery and jQuery UI -->
+<link rel="stylesheet" href="http://jqueryui.com/themes/base/jquery.ui.all.css">
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.11/jquery-ui.min.js"></script>
+
+<!-- Search autocomplete script. Temporary -->
+	<script>
+	var TRANSMART_SEARCH = "http://transmart.sagebase.org/transmart/search/search?sourcepage=search&id=";
+	$(function() {
+		$( "#query" ).autocomplete({
+			source: function( request, response ) {
+				$.ajax({
+					url: "http://transmart.sagebase.org/transmart/search/loadSearch",
+					dataType: "jsonp",
+					data: {
+						query: "all:" + request.term						
+					},
+					success: function( data ) {
+						response( $.map( data.rows, function( item ) {
+							return {
+								label: item.display + ": " + item.keyword,
+								value: item.name,
+								id: item.id
+							}
+						}));
+					}
+				});
+			},
+			minLength: 1,
+			select: function( event, ui ) {
+				if(ui.item.id) {					
+					document.location =  TRANSMART_SEARCH + ui.item.id;
+				}
+			}
+		});
+	});
+	</script>
+</head>
+<body>
+	<div id="container" class="clearfix">
+		<div class="header">
+			<div id="header_top" class="clearfix">
+				<div id="logo" class="left">					
+						<span class="large"><a href="Portal.html">Synapse</a></span>
+						<span class="tagline"><a href="Portal.html">CONTRIBUTE TO<br>
+						THE CURE</a></span>					
+				</div>
+				<div id="user_tools" class="right">
+					<span class="hello">Welcome Michael K.</span><br />
+					<span class="tools right"><a href="edit_profile.html">My profile</a> | <a href="">Logout</a></span>
+				</div>
+			</div>	
+			<div class="global_nav">
+				<ul>
+					<li class="first" id="navbar_datasets_li"><a href="Portal.html#DatasetsHome:0" id="navbar_datasets_a">Datasets</a></li>
+					<li id="navbar_tools_li"><a href="">Tools</a></li>
+					<li id="navbar_networks_li"><a href="">Networks</a></li>
+					<li class="active" id="navbar_people_li"><a href="people.html">People</a></li>
+					<li class="last" id="navbar_projects_li"><a href="projects.html">Projects</a></li>
+				</ul>
+				<div id="search" class="right">
+					<!-- <form action="" method="get">  -->
+						<input id="query" type="input" class="search_box" name="q" value="" style="height:18px;">
+
+						<button class="search_submit"><img src="static/images/search_button.png" /></button>
+						<span class="advanced"><a href="">Advanced<br>Search</a></span>
+					<!-- </form>  -->
+				</div>
+			</div>
+		</div>
+		<div id="main" role="main">
+			<div id="content" class="clearfix">
+				<ul class="breadcrumbs">
+					<li class="breadcrumb"><a href="Portal.html">Home</a> > <a href="projects.html">All Projects</a> > </li>
+				</ul>
+				<h2>Michael Kellen, Sage Bionetworks</h2>
+				<div class="data_info">
+					<span class="info_head" style="height: 70px;">						
+						<h2>My Profile</h2>
+						<span class="data_options">
+						</span>
+					</span>
+					<span class="info_text">
+					<table style="width: 1000px;">
+						<tr>
+							<td>
+								<span class="data_details">
+									<table>
+										<tr>
+											<td><b style="font-size: 1.2em; color: #402019; font-weight: bold;">Synapse Login</b>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+											<td><a href="">Edit</a></td>											
+										</tr>
+										<tr>
+											<th>Username:</th>
+											<td>mkellen</td>
+										</tr>
+										<tr>
+											<th>Email:</th>
+											<td><a href="mailto:mike.kellen@sagebase.org">mike.kellen@sagebase.org</a></td>
+										</tr>
+										<tr>
+											<th>Password</th>
+											<td>***********</td>
+										</tr>
+									</table>
+								</span>
+							</td>
+							<td>
+								<span class="data_details">
+									<table>
+										<tr>
+											<td><b style="font-size: 1.2em; color: #402019; font-weight: bold;">Following</b>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+											<td></td>											
+										</tr>
+										<tr>
+											<th>Projects:</th>
+											<td><a href="project_details.html">Federation Warburg</a></td>
+										</tr>
+										<tr>
+											<th>Analyses:</th>
+											<td>Federation Warburg <a href="network_overview.html">Network Generation</a></td>
+										</tr>
+										<tr>
+											<th>Datasets</th>
+											<td><a href="">MSKCC Prostate Cancer</a></td>
+										</tr>
+									</table>
+								</span>
+							</td>
+						</tr>
+						<tr><td colspan="2">&nbsp;</td></tr>
+						<tr>
+							<td>
+								<span class="data_details">
+									<table>
+										<tr>
+											<td><b style="font-size: 1.2em; color: #402019; font-weight: bold;">LinkedIn Information</b>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+											<td><a href="">Edit</a></td>											
+										</tr>
+										<tr>
+											<th>First Name:</th>
+											<td>Michael</td>
+										</tr>
+										<tr>
+											<th>Last Name:</th>
+											<td>Kellen</td>
+										</tr>
+										<tr>
+											<th>Affiliation:</th>
+											<td>Sage Bionetworks</td>
+										</tr>
+										<tr>
+											<th>Display Image:</th>
+											<td><img src="static/images/people/mike.png"><br/><br/></td>
+										</tr>
+										<tr>
+											<th>Summary:</th>
+											<td>Michael has built teams of software developers, test engineers, and technical writers that consistently deliver professional enterprise software products. He has over 10 years experience developing software for academic and corporate users in the life sciences, and has brought several innovative and award-winning products to market in this space covering simulation, data capture and analysis workflow, data integration, and team collaboration. At Sage Bionetworks, Michael is working to bring support for large scale analysis of biological networks and data into the public domain.</td>
+										</tr>
+									</table>
+								</span>
+							</td>
+							<td>
+								<span class="data_details">
+									<table>
+										<tr>
+											<td><b style="font-size: 1.2em; color: #402019; font-weight: bold;">Notificants</b>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+											<td></td>											
+										</tr>
+										<tr>
+											<th>Project Emails:</th>
+											<td>
+												<input type="checkbox"> Never<br/><br/>
+												When my followed projects have:<br/><br/>
+												<input type="checkbox" checked> A new member<br/>
+												<input type="checkbox" checked> A new dataset<br/>
+												<input type="checkbox"> A new action<br/>
+												<input type="checkbox" checked> A new status<br/>										
+												<br/>																						
+											</td>
+										</tr>
+										<tr>
+											<th>Analysis Emails:</th>
+											<td>
+												<input type="checkbox"> Never<br/><br/>
+												When my followed analyses have:<br/><br/>
+												<input type="checkbox" checked> A new step<br/>
+												<input type="checkbox"> A new note<br/>
+												<input type="checkbox"> A revised step<br/>										
+												<br/>																						
+											</td>
+										</tr>
+										<tr>
+											<th>Dataset Emails:</th>
+											<td>
+												<input type="checkbox"> Never<br/><br/>
+												When my followed datasets have:<br/><br/>
+												<input type="checkbox"> A new comment<br/>
+												<input type="checkbox" checked> A new layer/sample set<br/>
+												<input type="checkbox"> Used in a new project<br/>
+												<input type="checkbox" checked> Referenced by a new publication<br/>										
+												<br/>																						
+											</td>
+										</tr>
+									</table>
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<span class="data_details">
+									<table>
+										<tr>
+											<td>&nbsp;</td>
+											<td><button>Save</button> <button>Cancel</button></td>											
+										</tr>
+									</table>
+								</span>
+							</td>
+							<td>
+							</td>
+						</tr>
+					</table>
+					</span>
+				</div>
+			</div>
+		</div>
+<!-- This is the static footer -->
+		<div class="footer">
+			<hr />
+			<div class="footer_nav clearfix left">
+				<table>
+					<tr>
+						<td><a href="">Privacy Policy</a></td>
+						<td><a href="">Platform support</a></td>
+						<td><a href="">Creative Commons License</a></td>
+					</tr>
+					<tr>
+						<td><a href="">FAQ</a></td>
+						<td><a href="">Submit feedback</a></td>
+						<td><a href="">Visit the Sage website</a></td>
+					</tr>
+				</table>
+			</div>
+			<div class="footer_logos">
+				<ul>
+					<li><a href="http://www.lsdfa.org/" target="_new"><img src="images/LSDF_logo.jpg"/></a></li>
+					<li><a href="http://www.cancer.gov/" target="_new"><img src="images/NCI_logo.jpg"/></a></li>
+				</ul>
+			</div>
+			<div class="contact right">
+				<div class="vcard right">
+					<p class="fn"><span class="organization-name">Sage Bionetworks</span><p>
+					<p class="adr">
+						<span class="street-address">1100 Fairview Ave N</span><br>
+						<span class="locality">Seattle</span>
+
+						<span class="region">WA</span>
+						<span class="postal-code">98109</span><br>
+						<a href="mailto:sage@sagebase.org">sage@sagebase.org</a>
+					</p>
+				</div> 
+				<img src="static/images/sage_logo.png" class="logo" alt="sage logo">
+			</div>
+		</div>
+	</div>
+
+</body>
+</html>

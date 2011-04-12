@@ -48,7 +48,7 @@
 
 						<span class="data_options">
 							<g:SimplePanel ui:field="downloadPanel" />
-							<g:SimplePanel ui:field="termsOfUseSpan" />							
+							<g:SimplePanel ui:field="seeTermsPanel" />							
 						</span>
 					</span>
 					<span class="info_text_narrow">

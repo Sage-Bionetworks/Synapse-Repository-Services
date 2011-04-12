@@ -67,12 +67,7 @@ h1 {
 	outline: none;
 }
 
-.imageButton {
-	cursor: pointer;
-	cursor: hand;
-}
-
-.gwt-Anchor {
+.imageButton, .gwt-Anchor, .previewDisclosureFace {
 	cursor: pointer;
 	cursor: hand;
 }
@@ -91,3 +86,4 @@ h1 {
     font-family: Verdana,Arial,sans-serif;
     font-size: 0.8em;
 }
+

@@ -44,8 +44,7 @@
 
 						<span class="data_options">
 							<g:SimplePanel ui:field="followDatasetPanel" />
-							<g:Image resource='{icons.arrowCurve16}'/> Follow this dataset<br />
-							<g:Image resource='{icons.documentText16}'/> See terms of use
+							<g:SimplePanel ui:field="seeTermsPanel" /> <!-- <g:Image resource='{icons.documentText16}'/> See Terms of Use -->
 						</span>
 					</span>
 					<span class="info_text_narrow">

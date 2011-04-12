@@ -8,13 +8,13 @@ import java.util.Map;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloader;
+import org.sagebionetworks.web.client.widget.modal.ModalWindow;
 import org.sagebionetworks.web.client.widget.statictable.StaticTable;
 import org.sagebionetworks.web.client.widget.statictable.StaticTableColumn;
 import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.TableResults;
 
-import com.extjs.gxt.ui.client.GXT;
 import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
 import com.google.gwt.dom.client.SpanElement;
@@ -22,15 +22,12 @@ import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
-import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.Anchor;
-import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
-import com.google.gwt.user.client.ui.Hyperlink;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
@@ -51,7 +48,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 	@UiField
 	SimplePanel downloadPanel;
 	@UiField
-	SimplePanel termsOfUseSpan;
+	SimplePanel seeTermsPanel;
 	@UiField
 	SpanElement breadcrumbDatasetSpan;
 	@UiField
@@ -63,9 +60,10 @@ public class LayerViewImpl extends Composite implements LayerView {
 	private final LicensedDownloader licensedDownloader;
 	private boolean disableDownloads = false;
 	private IconsImageBundle icons;
+	private ModalWindow seeTermsModal;
 
 	@Inject
-	public LayerViewImpl(Binder uiBinder, IconsImageBundle icons, final PreviewDisclosurePanel previewDisclosurePanel, StaticTable staticTable, LicensedDownloader licensedDownloader) {
+	public LayerViewImpl(Binder uiBinder, IconsImageBundle icons, final PreviewDisclosurePanel previewDisclosurePanel, StaticTable staticTable, LicensedDownloader licensedDownloader, final ModalWindow seeTermsModal) {
 		initWidget(uiBinder.createAndBindUi(this));
 		this.previewDisclosurePanel = previewDisclosurePanel;
 		this.staticTable = staticTable;
@@ -75,6 +73,23 @@ public class LayerViewImpl extends Composite implements LayerView {
 		setupLicensedDownloaderCallbacks();
 		// style FlexTables
 		rightFlexTable.setCellSpacing(5);
+		
+		// Button: See terms of use
+		this.seeTermsModal = seeTermsModal;
+		seeTermsModal.setHeading("Terms of Use");
+		seeTermsModal.setDimensions(400, 500);
+		seeTermsModal.setHtml(DisplayConstants.DEFAULT_TERMS_OF_USE); // TODO : get this from a service
+		// download link		
+		Anchor seeTermsAnchor = new Anchor();
+		seeTermsAnchor.setHTML(AbstractImagePrototype.create(icons.documentText16()).getHTML() + " See Terms of Use");
+		seeTermsAnchor.addClickHandler(new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {
+				seeTermsModal.showWindow();
+			}
+		});		
+		seeTermsPanel.add(seeTermsAnchor);
+		
 		
 	}
 
@@ -138,10 +153,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 				licensedDownloader.showWindow();
 			}
 		});
-			
-		termsOfUseSpan.clear();
-		termsOfUseSpan.add(termsLink);
-		
+					
 		// set description
 		if(overviewText == null) overviewText = "";
 		int summaryLength = overviewText.length() >= DisplayConstants.DESCRIPTION_SUMMARY_LENGTH ? DisplayConstants.DESCRIPTION_SUMMARY_LENGTH : overviewText.length();

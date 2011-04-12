@@ -4,11 +4,13 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.xpath.operations.Mod;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.presenter.DatasetRow;
 import org.sagebionetworks.web.client.widget.breadcrumb.Breadcrumb;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloader;
+import org.sagebionetworks.web.client.widget.modal.ModalWindow;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
 import org.sagebionetworks.web.shared.FileDownload;
@@ -22,20 +24,14 @@ import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
 import com.google.gwt.dom.client.SpanElement;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.i18n.client.DateTimeFormat;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
-import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.Anchor;
-import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.ClickListener;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
-import com.google.gwt.user.client.ui.FocusWidget;
-import com.google.gwt.user.client.ui.Hyperlink;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
@@ -61,6 +57,8 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	SimplePanel downloadPanel;
 	@UiField
 	SimplePanel followDatasetPanel;
+	@UiField
+	SimplePanel seeTermsPanel;
 
 	private Presenter presenter;
 	private PreviewDisclosurePanel previewDisclosurePanel;
@@ -68,14 +66,62 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	private final LicensedDownloader datasetLicensedDownloader;
 	private Breadcrumb breadcrumb;
 	private boolean disableDownloads;
+	private ModalWindow followDatasetModal;
+	private ModalWindow seeTermsModal;
 
 	@Inject
-	public DatasetViewImpl(Binder uiBinder, IconsImageBundle icons, final PreviewDisclosurePanel previewDisclosurePanel, QueryServiceTableResourceProvider queryServiceTableResourceProvider, LicensedDownloader licensedDownloader, Breadcrumb breadcrumb) {		
+	public DatasetViewImpl(Binder uiBinder, IconsImageBundle icons, final PreviewDisclosurePanel previewDisclosurePanel, QueryServiceTableResourceProvider queryServiceTableResourceProvider, LicensedDownloader licensedDownloader, Breadcrumb breadcrumb, final ModalWindow followDatasetModal, final ModalWindow seeTermsModal) {		
 		disableDownloads = false;
 		initWidget(uiBinder.createAndBindUi(this));
 		this.previewDisclosurePanel = previewDisclosurePanel;
 		this.datasetLicensedDownloader = licensedDownloader;
+		this.followDatasetModal = followDatasetModal; 
 		setupDatasetLicensedDownloaderCallbacks();
+		
+
+		// Button: Follow dataset 
+		followDatasetModal.setHeading("Follow this Dataset");
+		followDatasetModal.setDimensions(180, 500);		
+		followDatasetModal.setHtml(DisplayConstants.FOLLOW_DATASET_HTML);
+		followDatasetModal.setCallbackButton("Confirm", new AsyncCallback<Void>() {
+			@Override
+			public void onSuccess(Void result) {
+				// TODO : call a service layer to follow the dataset				
+				followDatasetModal.hideWindow();
+			}
+
+			@Override
+			public void onFailure(Throwable caught) {			}
+		});
+		// download link		
+		Anchor followDatasetAnchor = new Anchor();
+		followDatasetAnchor.setHTML(AbstractImagePrototype.create(icons.arrowCurve16()).getHTML() + " Follow this Dataset");
+		followDatasetAnchor.addClickHandler(new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {
+				followDatasetModal.showWindow();
+			}
+		});		
+		followDatasetPanel.add(followDatasetAnchor);
+		
+
+		// Button: See terms of use
+		this.seeTermsModal = seeTermsModal;
+		seeTermsModal.setHeading("Terms of Use");
+		seeTermsModal.setDimensions(400, 500);
+		seeTermsModal.setHtml(DisplayConstants.DEFAULT_TERMS_OF_USE); // TODO : get this from a service
+		// download link		
+		Anchor seeTermsAnchor = new Anchor();
+		seeTermsAnchor.setHTML(AbstractImagePrototype.create(icons.documentText16()).getHTML() + " See Terms of Use");
+		seeTermsAnchor.addClickHandler(new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {
+				seeTermsModal.showWindow();
+			}
+		});		
+		seeTermsPanel.add(seeTermsAnchor);
+		
+		
 		
 		middleFlexTable.setCellSpacing(5);
 		rightFlexTable.setCellSpacing(5);
@@ -188,7 +234,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		rowIndex = 0;
 		if(postedDate != null)
 			addRowToTable(rowIndex++, "Posted:", DisplayConstants.DATE_FORMAT.format(postedDate), rightFlexTable);
-		addRowToTable(rowIndex++, "Curator:", creator, rightFlexTable);
+		addRowToTable(rowIndex++, "Creator:", creator, rightFlexTable);
 		if(curationDate != null)
 			addRowToTable(rowIndex++, "Curated On:", DisplayConstants.DATE_FORMAT.format(curationDate), rightFlexTable);
 		if(lastModifiedDate != null)

@@ -154,7 +154,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 							 5,
 							 Integer.MAX_VALUE, // TODO : get total number of rows in layer
 							 "Public", // TODO : replace with security object
-							 "<a href=\"#Dataset:"+ this.datasetId +"\">Dataset</a>",
+							 "<a href=\"#Dataset:"+ this.datasetId +"\">MSKCC Prostate Cancer</a>", // TODO : have dataset name included in layer metadata
 							 model.getPlatform());
 
 		// see if license is required for doanload

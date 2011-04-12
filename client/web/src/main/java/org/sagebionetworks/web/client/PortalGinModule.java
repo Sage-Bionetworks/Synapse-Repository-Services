@@ -28,6 +28,9 @@ import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownload
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloaderViewImpl;
 import org.sagebionetworks.web.client.widget.login.LoginWidgetView;
 import org.sagebionetworks.web.client.widget.login.LoginWidgetViewImpl;
+import org.sagebionetworks.web.client.widget.modal.ModalWindow;
+import org.sagebionetworks.web.client.widget.modal.ModalWindowView;
+import org.sagebionetworks.web.client.widget.modal.ModalWindowViewImpl;
 import org.sagebionetworks.web.client.widget.statictable.StaticTableView;
 import org.sagebionetworks.web.client.widget.statictable.StaticTableViewImpl;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableView;
@@ -79,6 +82,9 @@ public class PortalGinModule extends AbstractGinModule {
 		
 		// LicenseBox
 		bind(LicensedDownloaderView.class).to(LicensedDownloaderViewImpl.class);
+		
+		// Modal View
+		bind(ModalWindowView.class).to(ModalWindowViewImpl.class);
 		
 		// Breadcrumb
 		bind(BreadcrumbView.class).to(BreadcrumbViewImpl.class);
