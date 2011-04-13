@@ -1,0 +1,80 @@
+<!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
+<ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
+	xmlns:g="urn:import:com.google.gwt.user.client.ui" 
+	xmlns:c="urn:import:com.google.gwt.user.cellview.client"
+	xmlns:s="urn:import:org.sagebionetworks.web.client.view">
+		
+	<ui:style>
+		.important {
+			font-weight: bold;
+		}
+		
+		.rowTop {
+			vertical-align: top;
+		}
+	</ui:style>
+		
+	<g:HTMLPanel>
+
+	<!-- start header -->
+		<div id="container" class="clearfix">		
+			<g:SimplePanel ui:field="header" />
+			<div id="main" role="main">
+	<!-- end header -->
+
+				<div id="main_content" class="clearfix">	
+					<ul class="breadcrumbs">
+						<li class="breadcrumb"><a href="#">Home</a> > All Datasets</li>
+					</ul>
+					<h2>All Datasets</h2>
+					<div class="info">
+						Sage Bionetworks has established a catalog of datasets for use in integrative genomics analysis and building predictive computational disease models. The goal is to collate, curate, and host these datasets for use by the entire research community.
+						<br />
+	
+						<a href="" class="bulleted">Read more...</a>
+					</div>
+				</div>
+				<div id="sidebar">
+					<div id="participate" class="clearfix">
+							<h5>Invitation to Participate</h5>
+							<br />
+							Do you know of or have you generated a dataset that you would like to have curated and quality controlled to Sage Bionetworks standards?
+							<br /><br />
+	
+							<span class="large_button left">
+								<span class="large_button_left">&nbsp;</span>
+								<span class="large_button_center">Contact Us</span>
+								<span class="large_button_right">&nbsp;</span>
+							</span>
+					</div>
+				</div>
+	
+				<div id="data">
+					<div id="options">			
+						<g:HorizontalPanel>								
+							<g:SimplePanel ui:field="filterPanel" />					
+							<g:Anchor ui:field="addColumnsAnchor"/>						
+						</g:HorizontalPanel>
+					</div>
+					<div>
+						<g:SimplePanel ui:field="tablePanel" />
+					</div>
+					<div id="legend">
+						<span class="layers_legend">
+							<strong>Layers Legend</strong>
+							<span class="item"><img src="static/images/icon_helix_gradient.gif" /> Genetic Sequence Data</span>
+	
+							<span class="item"><img src="static/images/icon_serpent_gradient.gif" /> Clinical / Phenotypic</span>
+							<span class="item"><img src="static/images/icon_array_gradient.gif" /> Molecular Expression Data</span>
+						</span>
+					</div>				
+				</div>
+
+<!-- start footer -->
+				<g:SimplePanel ui:field="footer" />
+			</div> <!-- id: main -->				
+		</div> <!-- id: container -->
+<!-- end footer -->
+
+	</g:HTMLPanel>
+</ui:UiBinder> 

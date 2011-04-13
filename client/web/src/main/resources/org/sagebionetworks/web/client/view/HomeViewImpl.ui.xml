@@ -1,0 +1,164 @@
+<!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
+<ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
+	xmlns:g="urn:import:com.google.gwt.user.client.ui" 
+	xmlns:c="urn:import:com.google.gwt.user.cellview.client"
+	xmlns:s="urn:import:org.sagebionetworks.web.client.view">
+		
+	<ui:style>
+	</ui:style>	
+	<g:HTMLPanel>
+
+	<!-- start header -->
+		<div id="container" class="clearfix">		
+			<g:SimplePanel ui:field="header" />
+			<div id="main" role="main">
+	<!-- end header -->
+
+			<div id="main_content" class="clearfix">
+
+				<h3 class="welcome"><span class="narrow">Welcome to</span> <span class="wide">SYNAPSE</span></h3>
+				<div class="box normal">
+					<span class="body_text">
+						Synapse is an online community built for a new biology... more open, more collaborative, more data-driven, and more reproducible.  
+					</span>
+					<br />
+					<br /><br />
+				
+					<strong class="left clear_both">On Synapse you can:</strong><br />
+
+					<ul class="left clear dot">
+						<li class="dot">Discover and explore new <a href="#DatasetsHome:0">Datasets</a></li>
+						<li class="dot">Learn new <a href="">Tools</a> and run powerful analysis in the cloud</li>
+						<li class="dot">Explore cutting edge <a href="">Network Models</a></li>
+						<li class="dot">Find <a href="">People</a> to collaborate with</li>
+						<li class="dot">Start new research <a href="">Projects</a>, with anyone working anywhere</li>
+					</ul>
+					<!-- <a class="bulleted left" href="">Learn more...</a>  -->
+				</div>
+				<div class="box smaller">
+					<div class="hosting_text">
+						<span class="text">Synapse is currently hosting over 20 curated global coherent datasets in which genomic variation and molecular traits are combined with clinically-relevant phenotypes.  <br/><br/>
+
+						We are actively working to build an open repository of high value studies.  
+						</span>
+					</div>
+					<span class="callout">
+						<h6><span class="narrow">Call for</span> <span class="wide">DATA</span></h6>
+						<span class="callout_text">Do you know of a dataset that you would like to see made available?</span>
+						<div class="small_button contact_button">
+
+							<div class="small_button_left"></div>
+							<div class="small_button_text">Contact Us</div>
+							<div class="small_button_right"></div>
+						</div>
+					</span>
+					<span class="callout last">
+						<h6><span class="narrow">Synapse</span> <span class="wide">STATS</span></h6>
+
+						<ul>
+							<li><a class="bulleted" href="">134 People</a></li>
+							<li><a class="bulleted" href="">45 Projects</a></li>
+							<li><a class="bulleted" href="">78 Networks</a></li>
+							<li><a class="bulleted" href="">14 Tools</a></li>
+						</ul>
+						<div class="small_button register_button">
+
+							<div class="small_button_left"></div>
+							<div class="small_button_text register">Register</div>
+							<div class="small_button_right"></div>
+						</div>
+					</span>
+				</div>
+				<div class="experience">
+					<h3><span class="narrow">Example of an</span> <span class="wide">EXPERIENCE IN SYNAPSE:</span></h3>
+
+					<img class="first" src="http://placehold.it/75x75/ffffff"/>
+					<img src="http://placehold.it/75x75/ffffff"/>
+					<img src="http://placehold.it/75x75/ffffff"/>
+					<img src="http://placehold.it/75x75/ffffff"/>
+					<img src="http://placehold.it/75x75/ffffff"/>
+					<img src="http://placehold.it/75x75/ffffff"/>
+					<img class="last" src="http://placehold.it/75x75/ffffff"/>
+					<ul class="lozenges clearfix">
+						<li class="first"><a href="">Browse<br/>datasets &amp;<br />projects</a></li>
+
+						<li class="vcenter"><a href="">Download<br/>datasets</a></li>
+						<li class="vcenter"><a href="">Upload your<br/>analyses</a></li>
+						<li class="vcenter"><a href="">Upload your<br/>own dataset</a></li>
+						<li class="vcenter"><a href="">Create a new<br/>project</a></li>
+						<li><a href="">Collaborate<br/>with other<br/>users</a></li>
+
+						<li class="last vcenter"><a href="">Discover<br/>new insights</a></li>
+					</ul>
+				</div>
+			</div>
+			<div id="sidebar">
+				<div id="publication">
+					<h3><span class="narrow">Featured</span> <span class="wide">PROJECT</span></h3>
+
+					The Federation Aging project is exploring the 
+					large effect of age on human gene expression 
+					by exploring a set of genes whose expression 
+					levels are tightly associated with age.
+					<br/>
+					<a class="bulleted" href="">Learn more...</a>
+				</div>
+				<div id="contributors" class="clearfix">
+					<h3><span class="narrow">Top Synapse</span> <span class="wide">CONTRIBUTORS</span></h3>
+					<a href="people_charles.html">
+					<span class="contributor">
+				
+						<img class="left" src="static/images/people/charles.jpg"/>
+						<span class="text">
+							<strong>Charles Sawyers et al, MSKCC</strong><br/>
+							DNA copy number, mRNA expression profiles, candidate gene resequencing, and clinical traits from 218 prostate 		tumors. 
+						</span>
+					</span>
+					</a>
+					<span class="contributor">
+						<img class="left" src="static/images/people/amanda.jpg"/>
+						<span class="text">
+
+							<strong>Amanda Myers, University of Miami</strong><br/>
+							Genotypes, mRNA expression profiles, and clinical traits from 176 Alzheimer disease and 188 non-diseased brain samples.
+						</span>
+					</span>
+					<span class="contributor">
+						<img class="left" src="static/images/people/beatriz.jpg"/>
+						<span class="text">
+							<strong>Beatriz Carvalho &amp; Gerrit Meijer, VUMC</strong><br/>
+
+							DNA copy number, mRNA expression, and tumor traits from 36 colorectal adenocarcinoma and 33 adenoma tumors.<br />							
+						</span>
+					</span>
+					<span class="contributor">
+						<a class="bulleted" href="people.html">See all contributors...</a>
+					</span>
+					<hr/>
+					<span class="contributor">
+						<h3><span class="narrow">Synapse</span> <span class="wide">NEWS</span></h3>
+
+						<div class="news">
+							<div class="news_item">
+								<strong>12-Apr-2011:</strong> A new analysis method for normalizing data was published by Brig Mecham. 
+								<a href="" class="bulleted" style="display:inline;">Learn more...</a>
+							</div>
+							<div class="news_item">
+								<strong>08-Apr-2011:</strong> Eric Schadt and colleagues have published an article on a new model for diabetes.
+								<a href="" class="bulleted" style="display:inline;">Learn more...</a>
+
+							</div>
+						</div>
+						
+					</span>
+				</div>
+			</div>
+
+<!-- start footer -->
+				<g:SimplePanel ui:field="footer" />
+			</div> <!-- id: main -->				
+		</div> <!-- id: container -->
+<!-- end footer -->
+
+	</g:HTMLPanel>
+</ui:UiBinder> 

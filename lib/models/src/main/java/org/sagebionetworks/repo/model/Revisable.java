@@ -1,0 +1,35 @@
+package org.sagebionetworks.repo.model;
+
+import java.util.Date;
+
+/**
+ * This interface defines the methods for all data transfer objects which are
+ * Revisable.
+ * 
+ * @author bhoff
+ * 
+ */
+public interface Revisable extends Base {
+	/**
+	 * 
+	 * @param version
+	 */
+	public void setVersion(String version);
+
+	/**
+	 * 
+	 * @return the current version
+	 */
+	public String getVersion();
+
+	/**
+	 * @param createDate
+	 */
+	public void setCreationDate(Date createDate);
+
+	/**
+	 * @return the creation date
+	 */
+	public Date getCreationDate();
+	
+}

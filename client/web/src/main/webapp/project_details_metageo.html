@@ -1,0 +1,386 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Synapse : All Projects : Project Details</title>
+<link href="style.css" rel="stylesheet">
+<!--[if IE 7]>
+	<link href="ie7.css" rel="stylesheet">
+	<![endif]-->
+<!-- jQuery and jQuery UI -->
+<link rel="stylesheet"
+	href="http://jqueryui.com/themes/base/jquery.ui.all.css">
+<script type="text/javascript"
+	src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.11/jquery-ui.min.js"></script>
+
+<!-- Search autocomplete script. Temporary -->
+<script>
+	var TRANSMART_SEARCH = "http://transmart.sagebase.org/transmart/search/search?sourcepage=search&id=";
+	$(function() {
+		$("#query")
+				.autocomplete(
+						{
+							source : function(request, response) {
+								$
+										.ajax({
+											url : "http://transmart.sagebase.org/transmart/search/loadSearch",
+											dataType : "jsonp",
+											data : {
+												query : "all:" + request.term
+											},
+											success : function(data) {
+												response($
+														.map(
+																data.rows,
+																function(item) {
+																	return {
+																		label : item.display
+																				+ ": "
+																				+ item.keyword,
+																		value : item.name,
+																		id : item.id
+																	}
+																}));
+											}
+										});
+							},
+							minLength : 1,
+							select : function(event, ui) {
+								if (ui.item.id) {
+									document.location = TRANSMART_SEARCH
+											+ ui.item.id;
+								}
+							}
+						});
+	});
+</script>
+</head>
+<body>
+	<div id="container" class="clearfix">
+		<div class="header">
+			<div id="header_top" class="clearfix">
+				<div id="logo" class="left">					
+						<a href="Portal.html"><img src="static/images/SagebionetworksLogo-g.png"/></a>
+				</div>
+				<div id="user_tools" class="right">
+					<span class="hello">Welcome Michael K.</span><br />
+					<span class="tools right"><a href="edit_profile.html">My profile</a> | <a href="">Logout</a></span>
+				</div>
+			</div>	
+			<div class="global_nav">
+				<ul>
+					<li class="first" id="navbar_datasets_li"><a href="Portal.html#DatasetsHome:0" id="navbar_datasets_a">Datasets</a></li>
+					<li id="navbar_tools_li"><a href="">Tools</a></li>
+					<li id="navbar_networks_li"><a href="">Networks</a></li>
+					<li id="navbar_people_li"><a href="people.html">People</a></li>
+					<li class="last active" id="navbar_projects_li"><a href="projects.html">Projects</a></li>
+				</ul>
+				<div id="search" class="right">
+					<!-- <form action="" method="get">  -->
+						<input id="query" type="input" class="search_box" name="q" value="" style="height:18px;">
+
+						<button class="search_submit"><img src="static/images/search_button.png" /></button>
+						<span class="advanced"><a href="">Advanced<br>Search</a></span>
+					<!-- </form>  -->
+				</div>
+			</div>
+		</div>
+		<div id="main" role="main">
+			<div id="content" class="clearfix">
+				<ul class="breadcrumbs">
+					<li class="breadcrumb"><a href="Portal.html">Home</a> > <a href="projects.html">All Projects</a> > MetaGEO Project</li>
+				</ul>
+				<h2>MetaGEO Project</h2>
+				<div id="privacy_setting" class="right">
+					<span class="setting_label">Access:</span>
+					<span class="setting_level"><img src="images/icons/lock-unlock-16.png"/> Public</span>
+				</div>
+				<div class="data_info">
+					<span class="info_head">
+						<h2>Overview</h2>
+						<span class="data_options">
+							<img src="images/icons/arrow-curve-16.png" /> Follow this project<br />
+							<img src="images/icons/mail--arrow-16.png" /> Send leaders a message
+						</span>
+					</span>
+					<span class="info_text_2col">
+The metaGEO project was designed to
+build curated versions of all publicly available gene expression data.
+The curation process is based on a method that called Supervised
+Normalization of Microarrays (SNM). This method utilizes an iterative
+4-step process to remove confounding variation that arises from issues
+related to the experimental design. All analyses undertaken within the
+metaGEO project utilize open source software and the resulting data sets
+are provided for use with no restrictions. <br />
+<a href="" class="bulleted">Read more...</a> <br />
+<br />					</span>
+					<span class="data_details data_details_right">
+<table>
+	<tr>
+		<th>Project formed:</th>
+		<td>01-Nov-2010</td>
+	</tr>
+	<tr>
+		<th>Leaders:</th>
+		<td><a href="#">Brig Mecham</a></td>
+	</tr>
+	<tr>
+		<th>Members:</th>
+		<td>2 <a href="#">view</a></td>
+	</tr>
+	<tr>
+		<th>Publications:</th>
+		<td>1 <a href="#">view</a></td>
+	</tr>
+	<tr>
+		<th>Status:</th>
+		<td>Active</td>
+	</tr>
+	<tr>
+		<th>Project Web Site:<br />
+		<br />
+		</th>
+		<td><a href="http://sagebionetworks.jira.com/wiki/display/METAGEO/Home">Jira Wiki</a><br />
+		<br />
+		</td>
+	</tr>
+</table>
+</span></div>
+</div>
+<div class="data_detail_sections">
+<div class="data_detail_section"><span class="header"> <span
+	class="icon right"> <img
+	src="images/icons/application--plus-16.png" /> Add analysis </span> <span
+	class="title">Analyses</span> <span class="secondary_text">Select
+a name to view the analysis<br />
+details and resources</span> </span>
+<table width="100%" class="head_table">
+	<tr>
+		<th class="analysis_name">Analysis Name</th>
+		<th class="latest_activity">Latest<br />
+		Activity</th>
+		<th class="mod_by_and_date">Modified by /<br />
+		Date</th>
+	</tr>
+</table>
+<div class="scrollable">
+<table width="100%">
+	<tr class="gray">
+		<td class="analysis_name"><a href="network_overview_metageo.html">GSE
+		21034</a></td>
+		<td class="latest_activity">Normalization<br />
+		posted</td>
+		<td class="mod_by_and_date">Brig M.<br />
+		03-Mar-2011</td>
+	</tr>
+	<tr class="gray">
+		<td class="analysis_name"><a href="network_overview_metageo.html">GSE
+		21034</a></td>
+		<td class="latest_activity">Normalization<br />
+		posted</td>
+		<td class="mod_by_and_date">Brig M.<br />
+		03-Mar-2011</td>
+	</tr>
+	<tr class="white">
+		<td class="analysis_name"><a href="network_overview_metageo.html">GSE
+		19987</a></td>
+		<td class="latest_activity">Normalization<br />
+		posted</td>
+		<td class="mod_by_and_date">Brig M.<br />
+		03-Mar-2011</td>
+	</tr>
+	<tr class="gray">
+		<td class="analysis_name"><a href="network_overview_metageo.html">GSE
+		6530</a></td>
+		<td class="latest_activity">Normalization<br />
+		posted</td>
+		<td class="mod_by_and_date">Brig M.<br />
+		03-Mar-2011</td>
+	</tr>
+	<tr class="white">
+		<td class="analysis_name"><a href="network_overview_metageo.html">GSE
+		46651</a></td>
+		<td class="latest_activity">Normalization<br />
+		posted</td>
+		<td class="mod_by_and_date">Brig M.<br />
+		03-Mar-2011</td>
+	</tr>
+	<tr class="gray">
+		<td class="analysis_name"><a href="network_overview_metageo.html">GSE
+		128414</a></td>
+		<td class="latest_activity">Normalization<br />
+		posted</td>
+		<td class="mod_by_and_date">Brig M.<br />
+		03-Mar-2011</td>
+	</tr>
+	<tr class="white">
+		<td class="analysis_name"><a href="network_overview_metageo.html">GSE
+		67513</a></td>
+		<td class="latest_activity">Normalization<br />
+		posted</td>
+		<td class="mod_by_and_date">Brig M.<br />
+		03-Mar-2011</td>
+	</tr>
+	<tr class="gray">
+		<td class="analysis_name"><a href="network_overview_metageo.html">GSE
+		463154</a></td>
+		<td class="latest_activity">Normalization<br />
+		posted</td>
+		<td class="mod_by_and_date">Brig M.<br />
+		03-Mar-2011</td>
+	</tr>
+	<tr class="white">
+		<td class="analysis_name"><a href="network_overview_metageo.html">GSE
+		56487</a></td>
+		<td class="latest_activity">Normalization<br />
+		posted</td>
+		<td class="mod_by_and_date">Brig M.<br />
+		03-Mar-2011</td>
+	</tr>
+	<tr class="gray">
+		<td class="analysis_name"><a href="network_overview_metageo.html">GSE
+		346413</a></td>
+		<td class="latest_activity">Normalization<br />
+		posted</td>
+		<td class="mod_by_and_date">Brig M.<br />
+		03-Mar-2011</td>
+	</tr>
+	<tr class="white">
+		<td class="analysis_name"><a href="network_overview_metageo.html">GSE
+		56644</a></td>
+		<td class="latest_activity">Normalization<br />
+		posted</td>
+		<td class="mod_by_and_date">Brig M.<br />
+		03-Mar-2011</td>
+	</tr>
+	<tr class="gray">
+		<td class="analysis_name"><a href="network_overview_metageo.html">GSE
+		23555</a></td>
+		<td class="latest_activity">Normalization<br />
+		posted</td>
+		<td class="mod_by_and_date">Brig M.<br />
+		03-Mar-2011</td>
+	</tr>
+	<tr class="white">
+		<td class="analysis_name"><a href="network_overview_metageo.html">GSE
+		214445</a></td>
+		<td class="latest_activity">Normalization<br />
+		posted</td>
+		<td class="mod_by_and_date">Brig M.<br />
+		03-Mar-2011</td>
+	</tr>
+</table>
+</div>
+</div>
+<div class="data_detail_section"><span class="header"> <span
+	class="icon right"> <img
+	src="images/icons/application-resize-16.png" /> View All<br />
+<img src="images/icons/sticky-note--plus-16.png" /> Add a note </span> <span
+	class="title">Conversations and<br />
+Events for this Project</span> </span>
+<div class="scrollable longer">
+
+<div id="scrollable_item"> <span
+	class="scrollable_comments"> <span class="scrollable_comment">
+<span class="comment_text">I can help fix this one.</span> <span class="comment_author">Pete N.</span> <span class="comment_date">29-Mar-2011</span> </span> <span
+	class="scrollable_comment"> <span class="comment_text">Do you know what is going on with GSE6530?</span>
+<span class="comment_author">Brig M.</span> <span class="comment_date">29-Mar-2011</span>
+</span> </span></div>
+<div id="scrollable_item"><span class="scrollable_header">
+<img src="static/images/down_arrow.png" class="right" /> <span
+	class="scroll_text">Analysis created</span> <span
+	class="author"><a href="">Brig M.</a></span> <span class="date">03-Mar-2011</span>
+</span> <span class="scrollable_header">
+<img src="static/images/down_arrow.png" class="right" /> <span
+	class="scroll_text">Analysis created</span> <span
+	class="author"><a href="">Brig M.</a></span> <span class="date">03-Mar-2011</span>
+</span><span class="scrollable_header">
+<img src="static/images/down_arrow.png" class="right" /> <span
+	class="scroll_text">Analysis created</span> <span
+	class="author"><a href="">Brig M.</a></span> <span class="date">03-Mar-2011</span>
+</span><span class="scrollable_header">
+<img src="static/images/down_arrow.png" class="right" /> <span
+	class="scroll_text">Analysis created</span> <span
+	class="author"><a href="">Brig M.</a></span> <span class="date">03-Mar-2011</span>
+</span> <span class="scrollable_header">
+<img src="static/images/down_arrow.png" class="right" /> <span
+	class="scroll_text">Analysis created</span> <span
+	class="author"><a href="">Brig M.</a></span> <span class="date">03-Mar-2011</span>
+</span><span class="scrollable_header">
+<img src="static/images/down_arrow.png" class="right" /> <span
+	class="scroll_text">Analysis created</span> <span
+	class="author"><a href="">Brig M.</a></span> <span class="date">03-Mar-2011</span>
+</span></div>
+</div>
+</div>
+<div class="data_detail_section last"><span class="header">
+<span class="icon right"> <img
+	src="images/icons/application-resize-16.png" /> View All </span> <span
+	class="title">Project History</span> </span>
+<table width="100%" class="head_table">
+	<tr>
+		<th class="action">Action</th>
+		<th class="user">User</th>
+		<th class="project_history_date">Date</th>
+	</tr>
+</table>
+<div class="scrollable">
+<table width="100%">
+	<tr>
+		<td class="action"><a href="#">Document updated</a></td>
+		<td class="user">Brig M.</td>
+		<td class="project_history_date">12-Apr-2011</td>
+	</tr>
+	<tr class="gray">
+		<td class="action">Document created</td>
+		<td class="user">Brig M.</td>
+		<td class="project_history_date">10-Apr-2011</td>
+	</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<!-- This is the static footer -->
+		<div class="footer">
+			<hr />
+			<div class="footer_nav clearfix left">
+				<table>
+					<tr>
+						<td><a href="">Privacy Policy</a></td>
+						<td><a href="">Platform support</a></td>
+						<td><a href="">Creative Commons License</a></td>
+					</tr>
+					<tr>
+						<td><a href="">FAQ</a></td>
+						<td><a href="">Submit feedback</a></td>
+						<td><a href="">Visit the Sage website</a></td>
+					</tr>
+				</table>
+			</div>
+			<div class="footer_logos">
+				<ul>
+					<li><a href="http://www.lsdfa.org/" target="_new"><img src="images/LSDF_logo.jpg"/></a></li>
+					<li><a href="http://www.cancer.gov/" target="_new"><img src="images/NCI_logo.jpg"/></a></li>
+				</ul>
+			</div>
+			<div class="contact right">
+				<div class="vcard right">
+					<p class="fn"><span class="organization-name">Sage Bionetworks</span><p>
+					<p class="adr">
+						<span class="street-address">1100 Fairview Ave N</span><br>
+						<span class="locality">Seattle</span>
+
+						<span class="region">WA</span>
+						<span class="postal-code">98109</span><br>
+						<a href="mailto:sage@sagebase.org">sage@sagebase.org</a>
+					</p>
+				</div> 
+				<img src="static/images/sage_logo.png" class="logo" alt="sage logo">
+			</div>
+		</div>
+	</div>
+</body>
+</html>

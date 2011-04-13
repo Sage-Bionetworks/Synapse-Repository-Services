@@ -1,0 +1,239 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+	<title>Synapse : All Projects</title>
+	<link href="style.css" rel="stylesheet">
+	<!--[if IE 7]>
+	<link href="ie7.css" rel="stylesheet">
+	<![endif]-->
+<!-- jQuery and jQuery UI -->
+<link rel="stylesheet" href="http://jqueryui.com/themes/base/jquery.ui.all.css">
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.11/jquery-ui.min.js"></script>
+
+<!-- Search autocomplete script. Temporary -->
+	<script>
+	var TRANSMART_SEARCH = "http://transmart.sagebase.org/transmart/search/search?sourcepage=search&id=";
+	$(function() {
+		$( "#query" ).autocomplete({
+			source: function( request, response ) {
+				$.ajax({
+					url: "http://transmart.sagebase.org/transmart/search/loadSearch",
+					dataType: "jsonp",
+					data: {
+						query: "all:" + request.term						
+					},
+					success: function( data ) {
+						response( $.map( data.rows, function( item ) {
+							return {
+								label: item.display + ": " + item.keyword,
+								value: item.name,
+								id: item.id
+							}
+						}));
+					}
+				});
+			},
+			minLength: 1,
+			select: function( event, ui ) {
+				if(ui.item.id) {					
+					document.location =  TRANSMART_SEARCH + ui.item.id;
+				}
+			}
+		});
+	});
+	</script>
+	
+</head>
+<body>
+	<div id="container" class="clearfix">
+		<div class="header">
+			<div id="header_top" class="clearfix">
+				<div id="logo" class="left">					
+						<a href="Portal.html"><img src="static/images/SagebionetworksLogo-g.png"/></a>
+				</div>
+				<div id="user_tools" class="right">
+					<span class="hello">Welcome Michael K.</span><br />
+					<span class="tools right"><a href="edit_profile.html">My profile</a> | <a href="">Logout</a></span>
+				</div>
+			</div>	
+			<div class="global_nav">
+				<ul>
+					<li class="first" id="navbar_datasets_li"><a href="Portal.html#DatasetsHome:0" id="navbar_datasets_a">Datasets</a></li>
+					<li id="navbar_tools_li"><a href="">Tools</a></li>
+					<li id="navbar_networks_li"><a href="">Networks</a></li>
+					<li id="navbar_people_li"><a href="people.html">People</a></li>
+					<li class="last active" id="navbar_projects_li"><a href="projects.html">Projects</a></li>
+				</ul>
+				<div id="search" class="right">
+					<!-- <form action="" method="get">  -->
+						<input id="query" type="input" class="search_box" name="q" value="" style="height:18px;">
+
+						<button class="search_submit"><img src="static/images/search_button.png" /></button>
+						<span class="advanced"><a href="">Advanced<br>Search</a></span>
+					<!-- </form>  -->
+				</div>
+			</div>
+		</div>
+		<div id="main" role="main">
+			<div id="main_content" class="clearfix">
+				<ul class="breadcrumbs">
+					<li class="breadcrumb"><a href="Portal.html">Home</a> > All Projects </li>
+				</ul>
+				<h2>All Projects</h2>
+				<div class="info">
+					Praesent nec sapien eget nulla sagittis tempus non sed purus. Sed purus quam, eleifend at viverra id, adipiscing non diam. Sed ultrices nisi a velit elementum eget consequat quam semper. Donec bibendum vulputate sapien vitae dignissim. Sed dapibus justo eget nibh venenatis vehicula. Cras ut sapien arcu, sed pharetra magna.
+					<br />
+					<a href="" class="bulleted">Read more...</a>
+				</div>
+			</div>
+			<div id="sidebar">
+				<div id="participate" class="clearfix">
+						<h5>Invitation to Participate</h5>
+						<br />
+						Would you like to create a project to make use of the available datasets and analytical capabilities of Synapse?
+						<br /><br />
+						<span class="large_button left">
+							<span class="large_button_left">&nbsp;</span>
+							<span class="large_button_center">Start a Project</span>
+							<span class="large_button_right">&nbsp;</span>
+						</span>
+				</div>
+			</div>
+			<div id="data">
+				<div id="options">
+					<span class="filter_label">FILTER LIST:</span>
+					<input type="text" id="project_input" value="By Keywords(s)" />
+					<button id="project_search"><img src="static/images/dataset_search.png" /></button>
+					<select>
+						<option>All Diseases</option>
+					</select>
+					<select>
+						<option>All Status Types</option>
+					</select>
+					<span class="add_remove">
+						<a href="">
+						<img src="images/icons/table-insert-column-16.png" />&nbsp;Add / remove columns
+						</a>
+					</span>
+				</div>
+				<table id="projects" width="100%" class="detail">
+					<tr class="thead">
+						<th class="first project_name">Project Name</th>
+						<th class="project_study_area">Disease /<br/>Study Area</th>
+						<th class="project_leaders">Project<br/>Leaders</th>
+						<th class="project_team_member_count">Team<br/>Members</th>
+						<th class="project_dataset_count">Datasets</th>
+						<th class="project_followers"># of<br/>Followers</th>
+						<th class="project_last_activity">Last Activity</th>
+						<th class="last project_status">Status</th>
+					</tr>
+					<tr class="white">
+						<td class="first project_name"><a href="project_details.html">Federation Warburg</a></td>
+						<td class="project_study_area">Cancer</td>
+						<td class="project_leaders">Xudong Dai, Mariano Alverez, Andrew Beck </td>
+						<td class="project_team_member_count">8</td>
+						<td class="project_dataset_count">3</td>
+						<td class="project_followers">6</td>
+						<td class="project_last_activity">12-Apr-2011</td>
+						<td class="last project_status">Active</td>
+					</tr>
+					<tr class="gray">
+						<td class="first project_name"><a href="project_details.html">Federation Aging</a></td>
+						<td class="project_study_area">Aging</td>
+						<td class="project_leaders">Justin Guinney, Joel Dudley, Greg Hannum</td>
+						<td class="project_team_member_count">6</td>
+						<td class="project_dataset_count">7</td>
+						<td class="project_followers">664</td>
+						<td class="project_last_activity">09-Mar-2011</td>
+						<td class="last project_status">Active</td>
+					</tr>
+					<tr class="white">
+						<td class="first project_name"><a href="project_details.html">Federation Diabetes</a></td>
+						<td class="project_study_area">Diabetes</td>
+						<td class="project_leaders">Eric Schadt</td>
+						<td class="project_team_member_count">5</td>
+						<td class="project_dataset_count">8</td>
+						<td class="project_followers">12</td>
+						<td class="project_last_activity">17-Feb-2011</td>
+						<td class="last project_status">Active</td>
+					</tr>
+					<tr class="gray">
+						<td class="first project_name"><a href="project_details_metageo.html">MetaGEO</a></td>
+						<td class="project_study_area">Cancer</td>
+						<td class="project_leaders">Brig Mecham</td>
+						<td class="project_team_member_count">2</td>
+						<td class="project_dataset_count">30</td>
+						<td class="project_followers">15</td>
+						<td class="project_last_activity">03-Mar-2011</td>
+						<td class="last project_status">Active</td>
+					</tr>
+					<tr class="white">
+						<td class="first project_name"><a href="project_details.html">Cancer Consortium</a></td>
+						<td class="project_study_area">Cander</td>
+						<td class="project_leaders">Kelly N</td>
+						<td class="project_team_member_count">6</td>
+						<td class="project_dataset_count">7</td>
+						<td class="project_followers">664</td>
+						<td class="project_last_activity">09-Mar-2011</td>
+						<td class="last project_status">In Progress</td>
+					</tr>
+				</table>
+				<div id="legend">
+					<span class="controls project_controls">
+						<span class="displaying">
+							Displaying <select><option>20</option></select> of 711
+						</span>
+						<span class="pagination">
+							<img src="static/images/paginate_first.png" />
+							<img src="static/images/paginate_previous.png" />
+							Page <select><option>1</option></select> of 36
+							<img src="static/images/paginate_next.png" />
+							<img src="static/images/paginate_last.png" />
+						</span>
+					</span>
+				</div>
+			</div>
+		</div>
+<!-- This is the static footer -->
+		<div class="footer">
+			<hr />
+			<div class="footer_nav clearfix left">
+				<table>
+					<tr>
+						<td><a href="">Privacy Policy</a></td>
+						<td><a href="">Platform support</a></td>
+						<td><a href="">Creative Commons License</a></td>
+					</tr>
+					<tr>
+						<td><a href="">FAQ</a></td>
+						<td><a href="">Submit feedback</a></td>
+						<td><a href="">Visit the Sage website</a></td>
+					</tr>
+				</table>
+			</div>
+			<div class="footer_logos">
+				<ul>
+					<li><a href="http://www.lsdfa.org/" target="_new"><img src="images/LSDF_logo.jpg"/></a></li>
+					<li><a href="http://www.cancer.gov/" target="_new"><img src="images/NCI_logo.jpg"/></a></li>
+				</ul>
+			</div>
+			<div class="contact right">
+				<div class="vcard right">
+					<p class="fn"><span class="organization-name">Sage Bionetworks</span><p>
+					<p class="adr">
+						<span class="street-address">1100 Fairview Ave N</span><br>
+						<span class="locality">Seattle</span>
+
+						<span class="region">WA</span>
+						<span class="postal-code">98109</span><br>
+						<a href="mailto:sage@sagebase.org">sage@sagebase.org</a>
+					</p>
+				</div> 
+				<img src="static/images/sage_logo.png" class="logo" alt="sage logo">
+			</div>
+		</div>
+	</div>
+</body>
+</html>

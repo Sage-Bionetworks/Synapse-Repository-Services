@@ -1,0 +1,15 @@
+{       
+    "Statement":
+        [
+            {
+                "Effect":"Allow",
+                "Action":"iam:AddUserToGroup",
+                "Resource":"arn:aws:iam::325565585839:group/ReadOnlyUnrestrictedDataUsers"
+            },
+            {
+                "Effect":"Allow",
+                "Action":["iam:GetUser","iam:CreateUser","iam:CreateAccessKey"],
+                "Resource":"arn:aws:iam::325565585839:user/*"
+            }
+        ]
+    }

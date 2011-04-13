@@ -1,0 +1,355 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Synapse : All Projects : Project Details</title>
+<link href="style.css" rel="stylesheet">
+<!--[if IE 7]>
+	<link href="ie7.css" rel="stylesheet">
+	<![endif]-->
+<!-- jQuery and jQuery UI -->
+<link rel="stylesheet"
+	href="http://jqueryui.com/themes/base/jquery.ui.all.css">
+<script type="text/javascript"
+	src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.11/jquery-ui.min.js"></script>
+
+<!-- Search autocomplete script. Temporary -->
+<script>
+	var TRANSMART_SEARCH = "http://transmart.sagebase.org/transmart/search/search?sourcepage=search&id=";
+	$(function() {
+		$("#query")
+				.autocomplete(
+						{
+							source : function(request, response) {
+								$
+										.ajax({
+											url : "http://transmart.sagebase.org/transmart/search/loadSearch",
+											dataType : "jsonp",
+											data : {
+												query : "all:" + request.term
+											},
+											success : function(data) {
+												response($
+														.map(
+																data.rows,
+																function(item) {
+																	return {
+																		label : item.display
+																				+ ": "
+																				+ item.keyword,
+																		value : item.name,
+																		id : item.id
+																	}
+																}));
+											}
+										});
+							},
+							minLength : 1,
+							select : function(event, ui) {
+								if (ui.item.id) {
+									document.location = TRANSMART_SEARCH
+											+ ui.item.id;
+								}
+							}
+						});
+	});
+</script>
+</head>
+<body>
+<div id="container" class="clearfix">
+<div class="header">
+<div id="header_top" class="clearfix">
+<div id="logo" class="left"><span class="large">
+						<a href="Portal.html"><img src="static/images/SagebionetworksLogo-g.png"/></a>
+</div>
+<div id="user_tools" class="right"><span class="hello">Welcome
+Michael K.</span><br />
+<span class="tools right"><a href="edit_profile.html">My profile</a> | <a href="">Logout</a></span>
+</div>
+</div>
+<div class="global_nav">
+<ul>
+	<li class="first" id="navbar_datasets_li"><a href="Portal.html#DatasetsHome:0" id="navbar_datasets_a">Datasets</a></li>
+	<li id="navbar_tools_li"><a href="">Tools</a></li>
+	<li id="navbar_networks_li"><a href="">Networks</a></li>
+	<li id="navbar_people_li"><a href="people.html">People</a></li>
+	<li class="last active" id="navbar_projects_li"><a
+		href="projects.html">Projects</a></li>
+</ul>
+<div id="search" class="right"><!-- <form action="" method="get">  -->
+<input id="query" type="input" class="search_box" name="q" value="" style="height:18px;">
+
+<button class="search_submit"><img
+	src="static/images/search_button.png" /></button>
+<span class="advanced"><a href="">Advanced<br>
+Search</a></span> <!-- </form>  --></div>
+</div>
+</div>
+<div id="main" role="main">
+<div id="content" class="clearfix">
+<ul class="breadcrumbs">
+	<li class="breadcrumb"><a href="Portal.html">Home</a> > <a
+		href="projects.html">All Projects</a> > Federation Warburg Project</li>
+</ul>
+<h2>Federation Warburg Project</h2>
+<div id="privacy_setting" class="right">
+					<span class="setting_label">Access:</span>
+					<span class="setting_level"><img src="images/icons/lock-unlock-16.png"/> Public</span>
+</div>
+<div class="data_info"><span class="info_head">
+<h2>Overview</h2>
+<span class="data_options"> <img
+	src="images/icons/arrow-curve-16.png" /> Follow this project<br />
+<img src="images/icons/mail--arrow-16.png" /> Send leaders a message </span> </span> <span
+	class="info_text_2col_wide"> In oncology, the Warburg effect is the
+observation that most cancer cells predominantly produce energy by a
+high rate of glycolysis followed by lactic acid fermentation in the
+cytosol, rather than by a comparatively low rate of glycolysis followed
+by oxidation of pyruvate in mitochondria like most normal cells. The
+latter process is aerobic (uses oxygen). Malignant rapidly-growing tumor
+cells typically have glycolytic rates that are up to 200 times higher
+than those of their normal tissues of origin; this occurs even if oxygen
+is plentiful. <br />
+<br />
+The aim of this project is to improve understanding of the mechanism by
+which cancer cells undergo a transition in their metabolic state
+associated with immortalization. <br />
+<a href="" class="bulleted">Read more...</a> <br />
+<br />
+</span> <span class="data_details data_details_right">
+<table>
+	<tr>
+		<th>Project formed:</th>
+		<td>01-Nov-2010</td>
+	</tr>
+	<tr>
+		<th>Leaders:</th>
+		<td><a href="#">Xudong Dai</a>, <a href="#">Mariano Alvarez</a>,
+		<a href="#">Andrew Beck</a></td>
+	</tr>
+	<tr>
+		<th>Members:</th>
+		<td>8 <a href="#">view</a></td>
+	</tr>
+	<tr>
+		<th>Publications:</th>
+		<td>5 <a href="#">view</a></td>
+	</tr>
+	<tr>
+		<th>Status:</th>
+		<td>Active</td>
+	</tr>
+	<tr>
+		<th>Project Web Site:<br />
+		<br />
+		</th>
+		<td><a href="https://sites.google.com/federation">Federation Google Site</a><br />
+		<br />
+		</td>
+	</tr>
+</table>
+</span></div>
+</div>
+<div class="data_detail_sections">
+<div class="data_detail_section"><span class="header"> <span
+	class="icon right"> <img
+	src="images/icons/application--plus-16.png" /> Add analysis </span> <span
+	class="title">Analyses</span> <span class="secondary_text">Select
+a name to view the analysis<br />
+details and resources</span> </span>
+<table width="100%" class="head_table">
+	<tr>
+		<th class="analysis_name">Analysis Name</th>
+		<th class="latest_activity">Latest<br />
+		Activity</th>
+		<th class="mod_by_and_date">Modified by /<br />
+		Date</th>
+	</tr>
+</table>
+<div class="scrollable">
+<table width="100%">
+	<tr class="white">
+		<td><a href="network_overview.html">Network<br />
+		generation</a></td>
+		<td>Expression Normalization<br />
+		Step updated<br /></td>
+		<td>Xudong D.<br />
+		12-Apr-2011</td>
+	</tr>
+	<tr class="gray">
+		<td><a href="network_overview.html">Interactome</a></td>
+		<td>Transcription Factor Prediction<br />
+		Step created<br /></td>
+		<td>Mariano A.<br />
+		02-Mar-2011</td>
+	</tr>
+	<tr gray="white">
+		<td><a href="network_overview.html">Network<br />
+		survey</a></td>
+		<td>Correlation calculation<br />
+		Step updated<br /></td>
+		<td>Andrew B.<br />
+		25-Mar-2011</td>
+	</tr>
+</table>
+</div>
+</div>
+<div class="data_detail_section"><span class="header"> <span
+	class="icon right"> <img
+	src="images/icons/application-resize-16.png" /> View All<br />
+<img src="images/icons/sticky-note--plus-16.png" /> Add a note </span> <span
+	class="title">Conversations and<br />
+Events for this Project</span> </span>
+<div class="scrollable longer">
+<div id="scrollable_item"><span class="scrollable_header">
+<img src="static/images/down_arrow.png" class="right" /> <span
+	class="scroll_text">Expression Normalization step in Network Generation updated</span> <span
+	class="author"><a href="">Xudong D.</a></span> <span class="date">12-Apr-2011</span>
+</span> <span class="scrollable_comments"><span
+	class="scrollable_comment"> <span class="comment_text">Thanks Brig, can you have a look at my new results?</span>
+<span class="comment_author">Xudong D.</span> <span class="comment_date">12-Apr-2011</span>
+</span> <span
+	class="scrollable_comment"> <span class="comment_text">I've looked at this data and found a huge batch effect.  You may get cleaner results if you use my normalization method, let me know if you need help.</span> <span class="comment_author">Brig M.</span> <span
+	class="comment_date">09-Nov-2010</span> </span> <span
+	class="scrollable_comment"> <span class="comment_text">Looks good to me.</span>
+<span class="comment_author">Marino A.</span> <span class="comment_date">22-Mar-2011</span>
+</span> </span></div>
+<div id="scrollable_item">
+
+<span class="scrollable_header">
+<img src="static/images/down_arrow.png" class="right" /> 
+<span
+	class="scroll_text">New analysis Network Survey created</span> <span class="author"><a href="">Andrew Beck</a></span> <span class="date">21-Mar-2011</span> </span> 
+<span
+	class="scrollable_comments"> <span class="scrollable_comment">
+<span class="comment_text">Can someone please have a look at the way we're normalizing expression data?</span> <span class="comment_author">Andrew B.
+S.</span> <span class="comment_date">21-Mar-2011</span> </span>  </span>
+</div>
+
+</div>
+</div>
+<div class="data_detail_section last"><span class="header">
+<span class="icon right"> <img
+	src="images/icons/application-resize-16.png" /> View All </span> <span
+	class="title">Project History</span> </span>
+<table width="100%" class="head_table">
+	<tr>
+		<th class="action">Action</th>
+		<th class="user">User</th>
+		<th class="project_history_date">Date</th>
+	</tr>
+</table>
+<div class="scrollable">
+<table width="100%">
+	<tr>
+		<td class="action"><a href="#">Step updated</a></td>
+		<td class="user">Xudong D.</td>
+		<td class="project_history_date">12-Apr-2011</td>
+	</tr>
+	<tr class="gray">
+		<td class="action"><a href="#">Document updated</a></td>
+		<td class="user">Eric S.</td>
+		<td class="project_history_date">11-Apr-2011</td>
+	</tr>
+	<tr>
+		<td class="action"><a href="#">Document updated</a></td>
+		<td class="user">Marino A.</td>
+		<td class="project_history_date">11-Apr-2011</td>
+	</tr>
+	<tr class="gray">
+		<td class="action"><a href="#">Document updated</a></td>
+		<td class="user">Xudong D.</td>
+		<td class="project_history_date">09-Apr-2011</td>
+	</tr>
+	<tr>
+		<td class="action"><a href="#">Step created</a></td>
+		<td class="user">Andrew B.</td>
+		<td class="project_history_date">21-Mar-2011</td>
+	</tr>
+	<tr class="gray">
+		<td class="action"><a href="#">Step created</a></td>
+		<td class="user">Andrew B.</td>
+		<td class="project_history_date">20-Mar-2011</td>
+	</tr>
+	<tr>
+		<td class="action"><a href="#">Analysis created</a></td>
+		<td class="user">Andrew B.</td>
+		<td class="project_history_date">20-Mar-2011</td>
+	</tr>
+	<tr class="gray">
+		<td class="action"><a href="#">Document created</a></td>
+		<td class="user">Xudong D.</td>
+		<td class="project_history_date">19-Mar-2011</td>
+	</tr>
+	<tr>
+		<td class="action"><a href="#">Member added</a></td>
+		<td class="user">Antonina M.</td>
+		<td class="project_history_date">18-Mar-2011</td>
+	<tr>
+		<td class="action"><a href="#">Step updated</a></td>
+		<td class="user">Mariano A.</td>
+		<td class="project_history_date">02-Mar-2011</td>
+	</tr>
+	<tr class="gray">
+		<td class="action"><a href="#">Step created</a></td>
+		<td class="user">Mariano A.</td>
+		<td class="project_history_date">01-Mar-2011</td>
+	</tr>
+		<tr class="gray">
+		<td class="action"><a href="#">Step created</a></td>
+		<td class="user">Mariano A.</td>
+		<td class="project_history_date">01-Mar-2011</td>
+	</tr>
+		<tr class="gray">
+		<td class="action"><a href="#">Step created</a></td>
+		<td class="user">Mariano A.</td>
+		<td class="project_history_date">01-Mar-2011</td>
+	</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<!-- This is the static footer -->
+		<div class="footer">
+			<hr />
+			<div class="footer_nav clearfix left">
+				<table>
+					<tr>
+						<td><a href="">Privacy Policy</a></td>
+						<td><a href="">Platform support</a></td>
+						<td><a href="">Creative Commons License</a></td>
+					</tr>
+					<tr>
+						<td><a href="">FAQ</a></td>
+						<td><a href="">Submit feedback</a></td>
+						<td><a href="">Visit the Sage website</a></td>
+					</tr>
+				</table>
+			</div>
+			<div class="footer_logos">
+				<ul>
+					<li><a href="http://www.lsdfa.org/" target="_new"><img src="images/LSDF_logo.jpg"/></a></li>
+					<li><a href="http://www.cancer.gov/" target="_new"><img src="images/NCI_logo.jpg"/></a></li>
+				</ul>
+			</div>
+			<div class="contact right">
+				<div class="vcard right">
+					<p class="fn"><span class="organization-name">Sage Bionetworks</span><p>
+					<p class="adr">
+						<span class="street-address">1100 Fairview Ave N</span><br>
+						<span class="locality">Seattle</span>
+
+						<span class="region">WA</span>
+						<span class="postal-code">98109</span><br>
+						<a href="mailto:sage@sagebase.org">sage@sagebase.org</a>
+					</p>
+				</div> 
+				<img src="static/images/sage_logo.png" class="logo" alt="sage logo">
+			</div>
+		</div>
+</div>
+</body>
+</html>

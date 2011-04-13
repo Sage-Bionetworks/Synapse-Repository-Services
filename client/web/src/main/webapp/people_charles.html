@@ -1,0 +1,173 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+	<title>Synapse : All People : Person Details</title>
+	<link href="style.css" rel="stylesheet">
+	<!--[if IE 7]>
+	<link href="ie7.css" rel="stylesheet">
+	<![endif]-->
+<!-- jQuery and jQuery UI -->
+<link rel="stylesheet" href="http://jqueryui.com/themes/base/jquery.ui.all.css">
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.11/jquery-ui.min.js"></script>
+
+<!-- Search autocomplete script. Temporary -->
+	<script>
+	var TRANSMART_SEARCH = "http://transmart.sagebase.org/transmart/search/search?sourcepage=search&id=";
+	$(function() {
+		$( "#query" ).autocomplete({
+			source: function( request, response ) {
+				$.ajax({
+					url: "http://transmart.sagebase.org/transmart/search/loadSearch",
+					dataType: "jsonp",
+					data: {
+						query: "all:" + request.term						
+					},
+					success: function( data ) {
+						response( $.map( data.rows, function( item ) {
+							return {
+								label: item.display + ": " + item.keyword,
+								value: item.name,
+								id: item.id
+							}
+						}));
+					}
+				});
+			},
+			minLength: 1,
+			select: function( event, ui ) {
+				if(ui.item.id) {					
+					document.location =  TRANSMART_SEARCH + ui.item.id;
+				}
+			}
+		});
+	});
+	</script>
+</head>
+<body>
+	<div id="container" class="clearfix">
+		<div class="header">
+			<div id="header_top" class="clearfix">
+				<div id="logo" class="left">					
+						<a href="Portal.html"><img src="static/images/SagebionetworksLogo-g.png"/></a>
+				</div>
+				<div id="user_tools" class="right">
+					<span class="hello">Welcome Michael K.</span><br />
+					<span class="tools right"><a href="edit_profile.html">My profile</a> | <a href="">Logout</a></span>
+				</div>
+			</div>	
+			<div class="global_nav">
+				<ul>
+					<li class="first" id="navbar_datasets_li"><a href="Portal.html#DatasetsHome:0" id="navbar_datasets_a">Datasets</a></li>
+					<li id="navbar_tools_li"><a href="">Tools</a></li>
+					<li id="navbar_networks_li"><a href="">Networks</a></li>
+					<li class="active" id="navbar_people_li"><a href="people.html">People</a></li>
+					<li class="last" id="navbar_projects_li"><a href="projects.html">Projects</a></li>
+				</ul>
+				<div id="search" class="right">
+					<!-- <form action="" method="get">  -->
+						<input id="query" type="input" class="search_box" name="q" value="" style="height:18px;">
+
+						<button class="search_submit"><img src="static/images/search_button.png" /></button>
+						<span class="advanced"><a href="">Advanced<br>Search</a></span>
+					<!-- </form>  -->
+				</div>
+			</div>
+		</div>
+		<div id="main" role="main">
+			<div id="content" class="clearfix">
+				<ul class="breadcrumbs">
+					<li class="breadcrumb"><a href="Portal.html">Home</a> > <a href="people.html">All People</a> > </li>
+				</ul>
+				<h2>Charles Sawyers, Howard Hughes Medical Institute</h2>
+				<div class="data_info">
+					<span class="info_head" style="height: 70px;">						
+						<h2><img src="static/images/people/charles.jpg"> Profile</h2>
+						<span class="data_options">
+						</span>
+					</span>
+					<span class="info_text">
+						Dr. Sawyers is investigating the signaling pathways that drive the growth of cancer cells, with an eye toward designing new treatment options for patients with chronic myeloid leukemia, prostate cancer, and glioblastoma.
+						<br/><br/>
+						Our laboratory is focused on characterizing signal transduction pathway abnormalities in various cancers with an eye toward translational implications. One example is chronic myeloid leukemia (CML) which is caused by the BCR-ABL fusion gene, expressed as a consequence of the Philadelphia chromosome translocation. 
+					<p>&nbsp;</p>					
+					<p>&nbsp;</p>					
+					<p>&nbsp;</p>					
+					</span>
+					<span class="data_details">
+						<table>
+							<tr>
+								<th>Profession/Title:</th>
+								<td>Chair, Human Oncology and Pathogenesis Program Investigator</td>
+							</tr>
+							<tr>
+								<th>Affiliation:</th>
+								<td>Howard Hughes Medical Institute</td>
+							</tr>
+							<tr>
+								<th>Contact Info:</th>
+								<td><a href="mailto:martinb@mskcc.org">martinb@mskcc.org</a></td>
+							</tr>
+							<tr>
+								<th>Website(s):</th>
+								<td>															
+									<a href="www.mskcc.org/mskcc/html/72308.cfm">www.mskcc.org/mskcc/html/72308.cfm</a><br/>
+									<a href="http://www.mskcc.org/prg/prg/bios/994.cfm">http://www.mskcc.org/prg/prg/bios/994.cfm</a>
+								</td>
+							</tr>
+							<tr>
+								<th>Followed </br>Projects:</th>
+								<td><a href="project_details.html">Federation Warburg</a></td>
+							</tr>
+							<tr>
+								<th>Followed </br>Datasets:</th>
+								<td><a href="Portal.html#Dataset:353">MSKCC Prostate Cancer</a></td>
+							</tr>							
+						</table>
+					</span>
+				</div>
+			</div>
+		</div>
+<!-- This is the static footer -->
+		<div class="footer">
+			<hr />
+			<div class="footer_nav clearfix left">
+				<table>
+					<tr>
+						<td><a href="">Privacy Policy</a></td>
+						<td><a href="">Platform support</a></td>
+						<td><a href="">Creative Commons License</a></td>
+					</tr>
+					<tr>
+						<td><a href="">FAQ</a></td>
+						<td><a href="">Submit feedback</a></td>
+						<td><a href="">Visit the Sage website</a></td>
+					</tr>
+				</table>
+			</div>
+			<div class="footer_logos">
+				<ul>
+					<li><a href="http://www.lsdfa.org/" target="_new"><img src="images/LSDF_logo.jpg"/></a></li>
+					<li><a href="http://www.cancer.gov/" target="_new"><img src="images/NCI_logo.jpg"/></a></li>
+				</ul>
+			</div>
+			<div class="contact right">
+				<div class="vcard right">
+					<p class="fn"><span class="organization-name">Sage Bionetworks</span><p>
+					<p class="adr">
+						<span class="street-address">1100 Fairview Ave N</span><br>
+						<span class="locality">Seattle</span>
+
+						<span class="region">WA</span>
+						<span class="postal-code">98109</span><br>
+						<a href="mailto:sage@sagebase.org">sage@sagebase.org</a>
+					</p>
+				</div> 
+				<img src="static/images/sage_logo.png" class="logo" alt="sage logo">
+			</div>
+		</div>
+	</div>
+
+</body>
+</html>

@@ -1,0 +1,114 @@
+<configuration>
+	<columns>
+		<column>
+			<key>id</key>
+			<type>String</type>
+			<display>GUID</display>
+			<description>The GUID of this dataset.
+			</description>
+		</column>
+		<column>
+			<key>name</key>
+			<type>String</type>
+			<display>Dataset Name</display>
+			<description>Name of the Dataset and link to more information
+			</description>
+		</column>
+		<column>
+			<key>description</key>
+			<type>String</type>
+			<display>Description</display>
+			<description>The description of this datasets</description>
+		</column>
+		<column>
+			<key>creator</key>
+			<type>String</type>
+			<display>Investigator</display>
+			<description>The person that created this dataset</description>
+		</column>
+		<column>
+			<key>creationDate</key>
+			<type>Long</type>
+			<display>Created On</display>
+			<description>The date this dataset was created</description>
+		</column>
+		<column>
+			<key>status</key>
+			<type>String</type>
+			<display>Status</display>
+			<description>The status of this dataset. Can be one of the follwing: {"Available", "In Transition", "Future"}</description>
+		</column>
+		<column>
+			<key>releaseDate</key>
+			<type>Long</type>
+			<display>Release Date</display>
+			<description>The date this dataset was released</description>
+		</column>
+		<column>
+			<key>version</key>
+			<type>String</type>
+			<display>Current Version</display>
+			<description>The current version of this datasets</description>
+		</column>
+		<column>
+			<key>annotations</key>
+			<type>String</type>
+			<display>Annotations link</display>
+			<description>Link to this dataset's annotations</description>
+		</column>
+		<column>
+			<key>uri</key>
+			<type>String</type>
+			<display>URI</display>
+			<description>This dataset's URI</description>
+		</column>
+		<column>
+			<key>etag</key>
+			<type>String</type>
+			<display>e-Tag</display>
+			<description>The concurrent e-Tag, which must be provide to update a dataset</description>
+		</column>
+		<column>
+			<key>layer</key>
+			<type>String</type>
+			<display>Layer URL</display>
+			<description>The link to this dataset's layers</description>
+		</column>
+		<column>
+			<key>Disease</key>
+			<type>StringArray</type>
+			<display>Disease</display>
+			<description>What disease is this dataset about</description>
+		</column>
+		<column>
+			<key>Tumor / Tissue TypeXX</key>
+			<type>StringArray</type>
+			<display>Tumor / Tissue Type</display>
+			<description>Tumor / Tissue Type</description>
+		</column>
+		<column>
+			<key>Institution</key>
+			<type>StringArray</type>
+			<display>Institution</display>
+			<description>Institution</description>
+		</column>
+		<column>
+			<key>Species</key>
+			<type>StringArray</type>
+			<display>Species</display>
+			<description>Species</description>
+		</column>
+		<column>
+			<key>Number of Samples</key>
+			<type>LongArray</type>
+			<display>Number of Samples</display>
+			<description>Number of Samples</description>
+		</column>
+		<column>
+			<key>Reference / PubMed ID</key>
+			<type>LongArray</type>
+			<display>Reference / PubMed ID</display>
+			<description>Reference / PubMed ID</description>
+		</column>
+	</columns>
+</configuration>

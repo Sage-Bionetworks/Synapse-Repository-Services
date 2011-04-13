@@ -1,0 +1,225 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+	<title>Synapse : All Projects</title>
+	<link href="style.css" rel="stylesheet">
+	<!--[if IE 7]>
+	<link href="ie7.css" rel="stylesheet">
+	<![endif]-->
+<!-- jQuery and jQuery UI -->
+<link rel="stylesheet" href="http://jqueryui.com/themes/base/jquery.ui.all.css">
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.11/jquery-ui.min.js"></script>
+
+<!-- Search autocomplete script. Temporary -->
+	<script>
+	var TRANSMART_SEARCH = "http://transmart.sagebase.org/transmart/search/search?sourcepage=search&id=";
+	$(function() {
+		$( "#query" ).autocomplete({
+			source: function( request, response ) {
+				$.ajax({
+					url: "http://transmart.sagebase.org/transmart/search/loadSearch",
+					dataType: "jsonp",
+					data: {
+						query: "all:" + request.term						
+					},
+					success: function( data ) {
+						response( $.map( data.rows, function( item ) {
+							return {
+								label: item.display + ": " + item.keyword,
+								value: item.name,
+								id: item.id
+							}
+						}));
+					}
+				});
+			},
+			minLength: 1,
+			select: function( event, ui ) {
+				if(ui.item.id) {					
+					document.location =  TRANSMART_SEARCH + ui.item.id;
+				}
+			}
+		});
+	});
+	</script>
+</head>
+<body>
+	<div id="container" class="clearfix">
+		<div class="header">
+			<div id="header_top" class="clearfix">
+				<div id="logo" class="left">					
+						<a href="Portal.html"><img src="static/images/SagebionetworksLogo-g.png"/></a>
+				</div>
+				<div id="user_tools" class="right">
+					<span class="hello">Welcome Michael K.</span><br />
+					<span class="tools right"><a href="edit_profile.html">My profile</a> | <a href="">Logout</a></span>
+				</div>
+			</div>	
+			<div class="global_nav">
+				<ul>
+					<li class="first" id="navbar_datasets_li"><a href="Portal.html#DatasetsHome:0" id="navbar_datasets_a">Datasets</a></li>
+					<li id="navbar_tools_li"><a href="">Tools</a></li>
+					<li id="navbar_networks_li"><a href="">Networks</a></li>
+					<li class="active" id="navbar_people_li"><a href="people.html">People</a></li>
+					<li class="last" id="navbar_projects_li"><a href="projects.html">Projects</a></li>
+				</ul>
+				<div id="search" class="right">
+					<!-- <form action="" method="get">  -->
+						<input id="query" type="input" class="search_box" name="q" value="" style="height:18px;">
+
+						<button class="search_submit"><img src="static/images/search_button.png" /></button>
+						<span class="advanced"><a href="">Advanced<br>Search</a></span>
+					<!-- </form>  -->
+				</div>
+			</div>
+		</div>
+		<div id="main" role="main">
+			<div id="main_content" class="clearfix">
+				<ul class="breadcrumbs">
+					<li class="breadcrumb"><a href="Portal.html">Home</a> > </li>
+				</ul>
+				<h2>People using Synapse</h2>
+				<div class="info">
+					Browse and search to see others using Synapse.
+				</div>
+			</div>
+			<div id="sidebar">
+				<div id="participate" class="clearfix">
+						<h5>Join Synapse</h5>
+						<br />
+						Our open access, integrative bionetwork starts with scientists contributing data. Register your free account to view all the available data and projects.
+						<br /><br />
+						<span class="large_button left">
+							<span class="large_button_left">&nbsp;</span>
+							<span class="large_button_center">Register</span>
+							<span class="large_button_right">&nbsp;</span>
+						</span>
+				</div>
+			</div>
+			<div id="data">
+				<div id="options">
+					<span class="filter_label">FILTER LIST:</span>
+					<input type="text" id="dataset_input" value="By Keywords(s)" />
+					<button id="dataset_search"><img src="static/images/dataset_search.png" /></button>
+					<select id="study_sizes">
+						<option>By Affiliation</option>
+					</select>
+					<select>
+						<option>By Profession</option>
+					</select>
+				</div>
+				<table id="datasets" width="100%" class="detail">
+					<tr class="thead">
+						<th>&nbsp;</th>
+						<th>Name</th>
+						<th>Affiliation</th>
+						<th>Position/Title</th>
+						<th>Member Since</th>
+					</tr>
+					<tr class="white">
+						<td><img src="static/images/people/mike.png" width="50" height="50" style="padding-left:5px;"/></td>
+						<td><a href="people_mike.html">Michael Kellen</a></td>
+						<td>Sage Bionetworks</td>
+						<td>Director of Technology and Software Development</td>
+						<td>09-Mar-2011</td>
+					</tr>
+					<tr class="gray">
+						<td><img src="static/images/people/charles.jpg" width="50" height="50" style="padding-left:5px;"/></td>
+						<td><a href="people_charles.html">Charles Sawyers</a></td>
+						<td>Howard Hughes Medical Institute</td>
+						<td>Chair, Human Oncology and Pathogenesis Program Investigator</td>
+						<td>07-Mar-2011</td>
+					</tr>
+					<tr class="white">
+						<td><img src="static/images/people/amanda.jpg" width="50" height="50" style="padding-left:5px;"/></td>
+						<td><a href="people_mike.html">Amanda Meyers</a></td>
+						<td>University of Miami</td>
+						<td>Assistant Professor</br>Division of Neuroscience, Department of Psychiatry & Behavioral Sciences</td>
+						<td>06-Mar-2011</td>
+					</tr>
+					<tr class="gray">
+						<td><img src="static/images/people/beatriz.jpg" width="50" height="50" style="padding-left:5px;"/></td>
+						<td><a href="people_charles.html">Beatriz Carvalho</a></td>
+						<td>VU University Medical Center</td>
+						<td>Senior Researcher, Department of Pathology</td>
+						<td>04-Mar-2011</td>
+					</tr>
+					<tr class="white">
+						<td><img src="static/images/people/gerrit.png" width="50" height="50" style="padding-left:5px;"/></td>
+						<td><a href="people_mike.html">Gerrit Meijer</a></td>
+						<td>VU University Medical Center</td>
+						<td>Professor of Pathology</td>
+						<td>02-Mar-2011</td>
+					</tr>
+				</table>
+				<div id="legend">
+					<span class="layers_legend">
+						<strong>Layers Legend</strong>
+						<span class="item"><img src="static/images/icon_helix_gradient.gif" /> Genetic</span>
+						<span class="item"><img src="static/images/icon_serpent_gradient.gif" /> Phenotypic</span>
+
+						<span class="item"><img src="static/images/icon_array_gradient.gif" /> Gene Expression</span>
+					</span>
+					<span class="controls">
+						<span class="displaying">
+							Displaying <select><option>5</option></select> of 134
+						</span>
+						<span class="pagination">
+
+							<img src="static/images/paginate_first.png" />
+							<img src="static/images/paginate_previous.png" />
+							Page <select><option>1</option></select> of 27
+							<img src="static/images/paginate_next.png" />
+							<img src="static/images/paginate_last.png" />
+						</span>
+					</span>
+				</div>
+			</div>
+		</div>
+
+<!-- This is the static footer -->
+		<div class="footer">
+			<hr />
+			<div class="footer_nav clearfix left">
+				<table>
+					<tr>
+						<td><a href="">Privacy Policy</a></td>
+						<td><a href="">Platform support</a></td>
+						<td><a href="">Creative Commons License</a></td>
+					</tr>
+					<tr>
+						<td><a href="">FAQ</a></td>
+						<td><a href="">Submit feedback</a></td>
+						<td><a href="">Visit the Sage website</a></td>
+					</tr>
+				</table>
+			</div>
+			<div class="footer_logos">
+				<ul>
+					<li><a href="http://www.lsdfa.org/" target="_new"><img src="images/LSDF_logo.jpg"/></a></li>
+					<li><a href="http://www.cancer.gov/" target="_new"><img src="images/NCI_logo.jpg"/></a></li>
+				</ul>
+			</div>
+			<div class="contact right">
+				<div class="vcard right">
+					<p class="fn"><span class="organization-name">Sage Bionetworks</span><p>
+					<p class="adr">
+						<span class="street-address">1100 Fairview Ave N</span><br>
+						<span class="locality">Seattle</span>
+
+						<span class="region">WA</span>
+						<span class="postal-code">98109</span><br>
+						<a href="mailto:sage@sagebase.org">sage@sagebase.org</a>
+					</p>
+				</div> 
+				<img src="static/images/sage_logo.png" class="logo" alt="sage logo">
+			</div>
+		</div>
+
+	</div>
+	
+	
+</body>
+</html>

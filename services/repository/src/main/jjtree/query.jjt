@@ -1,0 +1,272 @@
+/**
+ * Used MySQL's SELECT BNF as an example from which to work
+ * http://dev.mysql.com/doc/refman/5.5/en/select.html
+ * http://dev.mysql.com/doc/refman/5.5/en/expressions.html
+ *
+ * JJTree and JavaCC Resources
+ * http://www.softwaresecretweapons.com/jspwiki/jjtree-tutorial-for-advanced-java-parsing
+ * http://www.idevelopment.info/data/Programming/java/JavaCC/The_JavaCC_FAQ.htm
+ */
+
+/* *** Specification of the parser class *** */
+
+PARSER_BEGIN(QueryParser)
+package org.sagebionetworks.repo.queryparser;
+
+import org.sagebionetworks.repo.model.query.Compartor;
+import org.sagebionetworks.repo.model.query.Operator;
+
+public class QueryParser {}
+PARSER_END(QueryParser)
+
+/* *** Token specification *** */
+
+/* Skip whitespace */
+SKIP : /* WHITE SPACE */
+{ 
+        " " | "\t" | "\r" | "\f"
+        | "\n" 
+        | < NONPRINTABLE: (["\u0000"-"\u0020", "\u0080"-"\u00ff"])+ >
+}
+
+/* Reserved words */
+TOKEN [IGNORE_CASE]: {
+  < SELECT: "select">
+| < FROM: "from">
+| < WHERE: "where">
+| < LIMIT: "limit">
+| < OFFSET: "offset">
+| < ORDERBY: "order by">
+| < ASC: "asc">
+| < DESC: "desc">
+}
+
+/* Comparators */
+TOKEN: {
+  < EQUALS: "==" >
+| < NOT_EQUALS: "!=" >
+| < GREATER_THAN: ">" >
+| < LESS_THAN: "<" >
+| < GREATER_THAN_OR_EQUALS: ">=" >
+| < LESS_THAN_OR_EQUALS: "<=" >
+}
+
+/* Operators */
+TOKEN [IGNORE_CASE]:{
+  < AND: "AND" | "&&" >
+| < OR: "OR" | "||" >
+}
+
+/* Literals */
+TOKEN: {
+  < INTEGER_LITERAL:
+        <DECIMAL_LITERAL> (["l","L"])?
+      | <HEX_LITERAL> (["l","L"])?
+      | <OCTAL_LITERAL> (["l","L"])?
+  >
+|
+  < #DECIMAL_LITERAL: ["1"-"9"] (["0"-"9"])* >
+|
+  < #HEX_LITERAL: "0" ["x","X"] (["0"-"9","a"-"f","A"-"F"])+ >
+|
+  < #OCTAL_LITERAL: "0" (["0"-"7"])* >
+|
+  < FLOATING_POINT_LITERAL:
+        (["0"-"9"])+ "." (["0"-"9"])* (<EXPONENT>)? (["f","F","d","D"])?
+      | "." (["0"-"9"])+ (<EXPONENT>)? (["f","F","d","D"])?
+      | (["0"-"9"])+ <EXPONENT> (["f","F","d","D"])?
+      | (["0"-"9"])+ (<EXPONENT>)? ["f","F","d","D"]
+  >
+|
+  < #EXPONENT: ["e","E"] (["+","-"])? (["0"-"9"])+ >
+|
+  < DATE_LITERAL: "\""["0"-"9"]["0"-"9"]["0"-"9"]["0"-"9"]["-"]["0"-"9"]["0"-"9"]["-"]["0"-"9"]["0"-"9"]"\"" >
+|
+  < CHARACTER_LITERAL:
+      "'"
+      (   (~["'","\\","\n","\r"])
+        | ("\\"
+            ( ["n","t","b","r","f","\\","'","\""]
+            | ["0"-"7"] ( ["0"-"7"] )?
+            | ["0"-"3"] ["0"-"7"] ["0"-"7"]
+            )
+          )
+      )
+      "'"
+  >
+|
+  < STRING_LITERAL:
+      "\""
+      (   (~["\"","\\","\n","\r"])
+        | ("\\"
+            ( ["n","t","b","r","f","\\","'","\""]
+            | ["0"-"7"] ( ["0"-"7"] )?
+            | ["0"-"3"] ["0"-"7"] ["0"-"7"]
+            )
+          )
+      )*
+      "\""
+  >
+| < WILDCARD: "*" >
+| < DOT: "." >
+}
+
+TOKEN : /* IDENTIFIERS */
+{
+  < ID: <LETTER> (<LETTER>|<DIGIT>)* >
+|
+  < #LETTER:
+      [
+       "\u0024",
+       "\u0041"-"\u005a",
+       "\u005f",
+       "\u0061"-"\u007a",
+       "\u00c0"-"\u00d6",
+       "\u00d8"-"\u00f6",
+       "\u00f8"-"\u00ff",
+       "\u0100"-"\u1fff",
+       "\u3040"-"\u318f",
+       "\u3300"-"\u337f",
+       "\u3400"-"\u3d2d",
+       "\u4e00"-"\u9fff",
+       "\uf900"-"\ufaff"
+      ]
+  >
+|
+  < #DIGIT:
+      [
+       "\u0030"-"\u0039",
+       "\u0660"-"\u0669",
+       "\u06f0"-"\u06f9",
+       "\u0966"-"\u096f",
+       "\u09e6"-"\u09ef",
+       "\u0a66"-"\u0a6f",
+       "\u0ae6"-"\u0aef",
+       "\u0b66"-"\u0b6f",
+       "\u0be7"-"\u0bef",
+       "\u0c66"-"\u0c6f",
+       "\u0ce6"-"\u0cef",
+       "\u0d66"-"\u0d6f",
+       "\u0e50"-"\u0e59",
+       "\u0ed0"-"\u0ed9",
+       "\u1040"-"\u1049"
+      ]
+  >
+}
+
+/* *** Context-free grammar (EBNF) *** */
+
+/* Each nonterminal is written like a kind of method, containing all its
+   productions. JavaCC will generate a parsing method for each nonterminal.
+
+   Note: In the start nonterminal, the action "return jjtThis;" instructs
+   JavaCC to return the resulting parse tree from the generated parsing
+   method. Therefore the start nonterminal has a result type (SimpleNode).
+   All other nonterminals have no result type (void). 
+*/
+
+/* The start nonterminal and its productions. */
+
+SimpleNode Start() : {}        
+{
+  <SELECT> <WILDCARD> <FROM> TableName() [ Where() ] [ OrderBy() ] [ Limit() ] [ Offset() ]
+  {  return jjtThis; }
+}
+
+// This is the same as Id(), but consider how our error messages will look, might be a 
+// good reason for different names for identical methods            
+void TableName() : {}  
+{
+  <ID> { jjtThis.value = new String(token.image); /*System.out.println("token table name " + token.image);*/ }
+}
+
+void Where() : {}
+{
+  <WHERE> SearchCondition()
+}
+
+void SearchCondition() : {}
+{
+    Expression() ( Operator() Expression() )*
+}
+
+void Operator() : {}
+{
+  <AND>  { jjtThis.value = Operator.AND; }
+  |<OR>  { jjtThis.value = Operator.OR; }
+}
+
+void Expression() : {}
+{
+  ( CompoundId() | StringValue() ) Comparators() Value()
+}
+
+void Comparators() : {}
+{
+  <EQUALS> { jjtThis.value = Compartor.EQUALS; }
+  | <NOT_EQUALS> { jjtThis.value = Compartor.NOT_EQUALS; }
+  | <GREATER_THAN> { jjtThis.value = Compartor.GREATER_THAN; }
+  | <LESS_THAN> { jjtThis.value = Compartor.LESS_THAN; }
+  | <GREATER_THAN_OR_EQUALS> { jjtThis.value = Compartor.GREATER_THAN_OR_EQUALS; }
+  | <LESS_THAN_OR_EQUALS> { jjtThis.value = Compartor.LESS_THAN_OR_EQUALS; }
+}
+
+void OrderBy() : {}
+{
+  <ORDERBY> ( CompoundId() | StringValue() ) [ Ascending() | Descending() ]
+}
+
+void Limit() : {}
+{
+  <LIMIT> IntValue()
+}
+
+void Offset() : {}
+{
+  <OFFSET> IntValue()
+}
+
+void CompoundId() : {}
+{
+	Id() [ <DOT> ( Id() | StringValue() ) ]
+}
+
+void Id() : {}              
+{
+  <ID> { jjtThis.value = new String(token.image); /*System.out.println("token id " + token.image);*/ }
+}
+
+void Ascending() : {}
+{
+	<ASC> { jjtThis.value = Boolean.TRUE; /*System.out.println("token sort direction ascending");*/ }
+}
+
+void Descending() : {}
+{
+	<DESC> { jjtThis.value = Boolean.FALSE; /*System.out.println("token sort direction descending");*/ }
+}
+
+void Value() : {}
+{
+    FpValue() | IntValue() | DateValue() | StringValue()
+}
+
+void FpValue() : {}
+{    
+	<FLOATING_POINT_LITERAL> { jjtThis.value = new Double(token.image); /*System.out.println("token where float val " + token.image);*/ }
+}
+
+void IntValue() : {}
+{    
+    <INTEGER_LITERAL>  { jjtThis.value = new Long(token.image); /*System.out.println("token where int val " + token.image);*/ }
+}
+
+void DateValue() : {} // TODO consider DateTime instead of String
+{
+	<DATE_LITERAL>  { jjtThis.value = new String(token.image.substring(1, token.image.length()-1)); /*System.out.println("token where date val " + token.image);*/ }
+}
+
+void StringValue() : {}
+{
+	<STRING_LITERAL>  { jjtThis.value = new String(token.image.substring(1, token.image.length()-1)); /*System.out.println("token where str val " + token.image);*/ }
+}

@@ -1,0 +1,21 @@
+<!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
+<ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
+	xmlns:g="urn:import:com.google.gwt.user.client.ui">
+	<ui:style>
+		.important {
+			font-weight: bold;
+		}
+	</ui:style>
+	<g:HTMLPanel>
+		<g:HorizontalPanel>
+			<g:HTML ui:field="searchHtml">
+					<div style="top:-8px; position:relative;"> <!-- needed to move this whole block up 8px to align with the filter selects boxes -->
+						<span class="filter_label">FILTER LIST:</span>
+						<input type="text" id="dataset_input" value="By Keywords(s)" />
+						<button id="dataset_search"><img src="static/images/dataset_search.png" /></button>
+					</div>
+			</g:HTML>
+			<g:HorizontalPanel ui:field="horizPanel" />
+		</g:HorizontalPanel>
+	</g:HTMLPanel>
+</ui:UiBinder> 

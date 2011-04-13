@@ -1,0 +1,39 @@
+<!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
+<ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
+	xmlns:g="urn:import:com.google.gwt.user.client.ui" xmlns:d="urn:import:com.google.gwt.dom.client">
+	
+	<ui:with field='icons' type='org.sagebionetworks.web.client.IconsImageBundle'/>
+	<ui:with field='sageImages' type='org.sagebionetworks.web.client.SageImageBundle'/>
+	<g:HTMLPanel>	
+		<div class="header">
+			<div id="header_top" class="clearfix">				
+				<div id="logo" class="left">
+						<a href="#"><g:Image resource="{sageImages.sageLogoAndTitle}"/></a>
+				</div>
+				<div id="user_tools" class="right">
+					<span class="hello">Welcome Michael K.</span><br />
+
+					<span class="tools right"><a href="edit_profile.html">My profile</a> | <a href="">Logout</a></span>
+				</div>
+			</div>	
+			<div class="global_nav">
+				<ul id="navbar_ul">
+					<li class="first" ui:field="navbarDatasets"><a href="#DatasetsHome:0" id="navbar_datasets_a">Datasets</a></li>
+					<li ui:field="navbarTools"><a href="">Tools</a></li>
+					<li ui:field="navbarNetworks"><a href="">Networks</a></li>
+					<li ui:field="navbarPeople"><a href="people.html">People</a></li>
+					<li class="last" ui:field="navbarProjects"><a href="projects.html">Projects</a></li>
+				</ul>
+				
+				<div id="search" class="right">
+					<!-- <form action="" method="get">  -->
+						<input id="query" type="input" class="search_box" name="q" value="" />
+
+						<button class="search_submit"><img src="static/images/search_button.png" /></button>
+						<span class="advanced"><a href="">Advanced<br />Search</a></span>
+					<!-- </form>  -->
+				</div>
+			</div>
+		</div>
+	</g:HTMLPanel>	
+</ui:UiBinder>

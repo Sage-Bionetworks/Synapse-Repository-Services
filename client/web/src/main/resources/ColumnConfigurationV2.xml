@@ -1,0 +1,207 @@
+<configuration>
+	<columns>
+		<!-- The basic columns -->
+		<column id="dataset.id">
+			<type>String</type>
+			<display>GUID</display>
+			<description>The GUID of this dataset.
+			</description>
+		</column>
+		<column id="dataset.name">
+			<type>String</type>
+			<display>Dataset Name</display>
+			<description>Name of the Dataset and link to more information
+			</description>
+		</column>
+		<column id="dataset.description">
+			<type>String</type>
+			<display>Description</display>
+			<description>The description of this datasets</description>
+		</column>
+		<column id="dataset.creator">
+			<type>String</type>
+			<display>Investigator</display>
+			<description>The person that created this dataset</description>
+		</column>
+		<column id="dataset.creationDate">
+			<type>Long</type>
+			<display>Created On</display>
+			<description>The date this dataset was created</description>
+		</column>
+		<column id="dataset.status">
+			<type>String</type>
+			<display>Status</display>
+			<description>The status of this dataset. Can be one of the follwing:
+				{"Available", "In Transition", "Future"}</description>
+		</column>
+		<column id="dataset.releaseDate">
+			<type>Long</type>
+			<display>Release Date</display>
+			<description>The date this dataset was released</description>
+		</column>
+		<column id="dataset.version">
+			<type>String</type>
+			<display>Current Version</display>
+			<description>The current version of this datasets</description>
+		</column>
+		<column id="dataset.annotations">
+			<type>String</type>
+			<display>Annotations link</display>
+			<description>Link to this dataset's annotations</description>
+		</column>
+		<column id="dataset.uri">
+			<type>String</type>
+			<display>URI</display>
+			<description>This dataset's URI</description>
+		</column>
+		<column id="dataset.etag">
+			<type>String</type>
+			<display>e-Tag</display>
+			<description>The concurrent e-Tag, which must be provide to update a
+				dataset</description>
+		</column>
+		<column id="dataset.layer">
+			<type>String</type>
+			<display>Layer URL</display>
+			<description>The link to this dataset's layers</description>
+		</column>
+		<column id="dataset.Disease">
+			<type>StringArray</type>
+			<display>Disease</display>
+			<description>What disease is this dataset about</description>
+		</column>
+		<column id="dataset.Tissue_Tumor">
+			<type>StringArray</type>
+			<display>Tumor / Tissue Type</display>
+			<description>Tumor / Tissue Type</description>
+		</column>
+		<column id="dataset.Institution">
+			<type>StringArray</type>
+			<display>Institution</display>
+			<description>Institution</description>
+		</column>
+		<column id="dataset.Species">
+			<type>StringArray</type>
+			<display>Species</display>
+			<description>Species</description>
+		</column>
+		<column id="dataset.Study_Size">
+			<type>StringArray</type>
+			<display>Study Size</display>
+			<description>Study Size</description>
+		</column>
+		<column id="dataset.Number_of_Samples">
+			<type>IntegerArray</type>
+			<display>Number of Samples</display>
+			<description>Number of Samples</description>
+		</column>
+		<column id="dataset.Reference/PubMed ID">
+			<type>LongArray</type>
+			<display>Reference / PubMed ID</display>
+			<description>Reference / PubMed ID</description>
+		</column>
+		<column id="dataset.hasExpressionData">
+			<type>Boolean</type>
+			<display>hasExpressionData</display>
+			<description>hasExpressionData</description>
+		</column>
+		<column id="dataset.hasGeneticData">
+			<type>Boolean</type>
+			<display>hasGeneticData</display>
+			<description>hasGeneticData</description>
+		</column>
+		<column id="dataset.hasClinicalData">
+			<type>Boolean</type>
+			<display>hasClinicalData</display>
+			<description>hasClinicalData</description>
+		</column>
+		
+		<!-- These are for layers -->
+		<column id="layer.id">
+			<type>String</type>
+			<display>GUID</display>
+			<description>The GUID of this layer.
+			</description>
+		</column>
+		<column id="layer.name">
+			<type>String</type>
+			<display>Name</display>
+			<description>Layer Name</description>
+		</column>
+		<column id="layer.numSamples">
+			<type>Long</type>
+			<display>Number of Samples</display>
+			<description>Number of Samples in this layer</description>
+		</column>
+		<column id="layer.type">
+			<type>String</type>
+			<display>Type</display>
+			<description>Layer Type</description>
+		</column>
+		<column id="layer.version">
+			<type>String</type>
+			<display>Version</display>
+			<description>Version</description>
+		</column>
+		<column id="staticdisplay.download">
+			<type>String</type>
+			<display>Download</display>
+			<description>download</description>
+		</column>		
+
+		
+		<!-- The more complex/composite columns -->
+		
+		<!-- A dynamic relative URL will be built for datatasts using the ID column -->
+		<url-template id="dataset.localUrl">
+			<type>String</type>
+			<urlTemplate>Dataset:{dataset.id}</urlTemplate>
+		</url-template>
+		<!-- Acts as the dataset name column  -->
+		<link-column id="dataset.NameLink">
+			<display reference="dataset.name" />
+			<url reference="dataset.localUrl" />
+		</link-column>
+		<!-- Renders all layer types as a single column -->
+		<layer-column id="dataset.layerTypeIcons">
+			<display>Layers</display>
+			<description>The layer types provided by this dataset</description>
+			<hasExpression reference="dataset.hasExpressionData" />
+			<hasGenetic reference="dataset.hasGeneticData" />
+			<hasClinical reference="dataset.hasClinicalData" />
+		</layer-column>
+		<!-- The created on date -->
+		<date-column id="dataset.createdOnDate">
+			<baseColumn reference="dataset.creationDate"/>
+		</date-column>
+		<!-- Renders a Layer's Type image -->
+		<layer-type-column id="layer.TypeIcon">
+			<baseColumn reference="layer.type"/>
+		</layer-type-column>		
+
+		<!-- A dynamic relative URL will be built for layers using the ID column -->
+		<url-template id="layer.Url">
+			<type>String</type>
+			<urlTemplate>Layer:{layer.id};Dataset:{dataset.id}</urlTemplate>
+		</url-template>
+		<!-- Acts as the layer name column  -->
+		<link-column id="layer.NameLink">
+			<display reference="layer.name" />
+			<url reference="layer.Url" />
+		</link-column>
+		
+		<!-- A dynamic relative URL will be built for downloading layers using the ID column -->
+		<url-template id="layer.DownloadUrl">
+			<type>String</type>
+			<urlTemplate>Layer:{layer.id};Dataset:{dataset.id};Download:true</urlTemplate>
+		</url-template>
+		<!-- Acts as the layer name column  -->
+		<link-column id="layer.DownloadLink">
+			<display reference="staticdisplay.download" />
+			<url reference="layer.DownloadUrl" />
+		</link-column>
+		
+		
+
+	</columns>
+</configuration>

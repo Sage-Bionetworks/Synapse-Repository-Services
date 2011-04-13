@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  
+  <parent>
+    <groupId>org.sagebionetworks</groupId>
+    <artifactId>services</artifactId>
+    <version>0.1</version>
+  </parent>
+  
+  <artifactId>services-repository</artifactId>
+  <packaging>war</packaging>
+  <version>0.1</version>
+  <name>Platform Repository Service</name>
+  
+  <dependencies>
+    
+    <!-- Sage Bionetworks Dependencies -->
+    <dependency>
+      <groupId>org.sagebionetworks</groupId>
+      <artifactId>lib-models</artifactId>
+      <version>0.1</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.sagebionetworks</groupId>
+      <artifactId>lib-jdomodels</artifactId>
+      <version>0.1</version>
+      <scope>runtime</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.sagebionetworks</groupId>
+      <artifactId>auth-util</artifactId>
+      <version>0.1</version>
+    </dependency>
+
+    <!-- This was being pulled in as a child dependency of the
+    springframework but the tomcat plugin needs this to be in scope
+    "provided" -->
+    <dependency>
+      <groupId>javax.servlet</groupId>
+      <artifactId>com.springsource.javax.servlet</artifactId>
+	  <version>2.5.0</version>
+      <scope>provided</scope>
+    </dependency>
+
+      <!-- In a tomcat container, such as Elastic Beanstalk, you have to
+         include jstl.jar manually, hence this entry. -->
+    <dependency>
+	  <groupId>javax.servlet</groupId>
+	  <artifactId>jstl</artifactId>
+	  <version>1.2</version>
+    </dependency>
+    
+    <!-- JSON -->
+    <dependency>
+      <groupId>org.json</groupId>
+      <artifactId>json</artifactId>
+      <version>20080701</version>
+    </dependency>
+
+    <!-- ATOM -->
+    <dependency>
+      <groupId>rome</groupId>
+      <artifactId>rome</artifactId>
+      <version>0.5</version>
+    </dependency>
+    
+    <!-- Spring Framework dependencies -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>org.springframework.spring-library</artifactId>
+      <type>libd</type>
+      <version>${org.springframework.version}</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>org.springframework.web</artifactId>
+      <version>${org.springframework.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-test</artifactId>
+      <version>${org.springframework.version}</version>
+      <scope>test</scope>
+    </dependency>
+    
+    <!-- Jackson JSON Mapper -->
+    <dependency>
+      <groupId>org.codehaus.jackson</groupId>
+      <artifactId>jackson-mapper-asl</artifactId>
+      <version>1.7.1</version>
+    </dependency>
+    
+    <!-- Logging dependencies -->
+    <dependency>
+      <groupId>commons-logging</groupId>
+      <artifactId>commons-logging</artifactId>
+      <version>1.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>1.2.14</version>
+    </dependency>
+
+    <!-- AWS dependencies -->
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk</artifactId>
+      <version>1.1.5</version>
+    </dependency>
+
+    <!-- TODO this is a dependency of AWS, we should not need to include it
+    here but the AWS pom did not have sufficient repository settings for
+    this dependency to be located -->
+    <dependency>
+      <groupId>javax.mail</groupId>
+      <artifactId>mail</artifactId>
+      <version>1.4</version>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <plugins>
+
+      <!-- Make a WAR file -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-war-plugin</artifactId>
+        <version>2.1-beta-1</version>
+        <configuration>
+          <webResources>
+            <resource>
+              <directory>src/main/webapp</directory>
+              <filtering>true</filtering>
+            </resource>
+          </webResources>
+        </configuration>
+      </plugin>
+
+      <!-- This allows use to run the servlet container from maven via
+           mvn tomcat:run or deploy to a local tomcat via tomcat:deploy -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>tomcat-maven-plugin</artifactId>
+        <configuration>
+          <!-- Deploy this as the root application -->
+          <path>/</path>
+        </configuration>
+      </plugin>
+          
+      <!-- JavaCC and JJTree parser code generator tool -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>javacc-maven-plugin</artifactId>
+        <version>2.6</version>
+        <executions>
+          <execution>
+            <id>jjtree-javacc</id>
+            <goals>
+              <goal>jjtree-javacc</goal>
+            </goals>
+            <configuration>
+              <!-- options for JJTree and JavaCC go here -->
+              <isStatic>false</isStatic>
+              <nodeClass>org.sagebionetworks.repo.queryparser.QueryNode</nodeClass>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      
+      <!-- Added this path to the test classpath so that we do not need to
+           copy and paste our servlet config into a separate file even
+           though we want the exact same config for testing -->
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <additionalClasspathElements>
+            <element>${project.basedir}/src/main/webapp/WEB-INF/</element>
+          </additionalClasspathElements>
+        </configuration>
+      </plugin>
+      
+    </plugins>
+  </build>
+
+  <!-- Specify hard-coded project properties here -->
+  <properties>
+    <org.springframework.version>3.0.5.RELEASE</org.springframework.version>
+  </properties>
+
+</project>

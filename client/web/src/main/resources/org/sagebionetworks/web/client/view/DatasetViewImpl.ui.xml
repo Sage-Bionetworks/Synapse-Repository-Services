@@ -1,0 +1,189 @@
+<!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
+<ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
+	xmlns:g="urn:import:com.google.gwt.user.client.ui" xmlns:d="urn:import:com.google.gwt.dom.client">
+	<ui:style>
+		.title {
+			font-size: 2em;
+			font-weight: bold;
+			color: #777777;
+			margin: 10px 20px 10px;
+			text-align: left;
+		}
+		
+		.topTable {
+			padding: 10px;
+			cellspacing: 50px;
+		}
+		
+		.oneThird {
+			width: 350px;
+		}
+		
+		.rowTop {
+			vertical-align: top;
+		}
+	</ui:style>
+	
+	<ui:with field='icons' type='org.sagebionetworks.web.client.IconsImageBundle'/>
+	 
+	<g:HTMLPanel>
+
+	<!-- start header -->
+		<div id="container" class="clearfix">		
+			<g:SimplePanel ui:field="header" />
+			<div id="main" role="main">
+	<!-- end header -->
+
+			<div id="content" class="clearfix">
+
+				<ul class="breadcrumbs">
+					<li class="breadcrumb"><a href="#">Home</a> > <a href="#DatasetsHome:0">All Datasets</a> > <span ui:field="breadcrumbTitleSpan" /></li>
+				</ul>
+				<h2><span ui:field="titleSpan" /></h2>
+				<div id="privacy_setting" class="right">
+					<span class="setting_label">Access:</span>
+					<span class="setting_level"><g:Image resource="{icons.lockUnlocked}"/> Public</span>
+				</div>
+				<div class="data_info">
+					<span class="info_head">
+						<h2>Overview</h2>
+
+						<span class="data_options">
+							<g:SimplePanel ui:field="followDatasetPanel" />
+							<g:SimplePanel ui:field="seeTermsPanel" /> <!-- <g:Image resource='{icons.documentText16}'/> See Terms of Use -->
+						</span>
+					</span>
+					<span class="info_text_narrow">
+						<g:FlowPanel ui:field="overviewPanel" />
+						<br /><br />
+					</span>
+					<span class="data_details">
+						<g:FlexTable ui:field="middleFlexTable" />
+					</span>
+					<span class="data_details data_details_right">
+						<g:FlexTable ui:field="rightFlexTable" />
+					</span>
+				</div>
+			</div>
+			<div class="data_detail_sections">
+				<div class="data_detail_section">
+					<span class="header">
+						<span class="icon right">
+							<g:SimplePanel ui:field="downloadPanel" />						
+						</span>
+						<span class="title">Dataset Layers</span>
+						<span class="secondary_text">Select a name to view sample data</span>
+					</span>
+					<g:SimplePanel ui:field="tablePanel" />												
+				</div>
+				<div class="data_detail_section">
+					<span class="header">
+						<span class="icon right">
+							<g:Image resource='{icons.applicationResize16}'/> View All<br/>
+							<g:Image resource='{icons.notePlus16}'/> Add a note
+						</span>
+
+						<span class="title">Conversations and<br/>Events for this Dataset</span>
+					</span>
+					<div class="scrollable longer">
+						<div id="scrollable_item">
+							<span class="scrollable_header">
+								<img src="static/images/down_arrow.png" class="right" />
+								<span class="scroll_text">New analysis using this dataset in the Federation Warburg Project</span>
+
+								<span class="author"><a href="">Xudong D.</a></span>
+								<span class="date">21-Nov-2010</span>
+							</span>
+							<span class="scrollable_comments">
+								<span class="scrollable_comment">
+									<span class="comment_text">The paper references 149 matched normal samples.  Do you have this data?</span>
+									<span class="comment_author">Sam S.</span>
+
+									<span class="comment_date">22-Dec-2010</span>
+								</span>
+								<span class="scrollable_comment">
+									<span class="comment_text">We have only able to obtain 29 matched normal samples.</span>
+									<span class="comment_author">Matt F.</span>
+									<span class="comment_date">22-Nov-2010</span>
+								</span>
+
+							</span>
+						</div>
+						<div id="scrollable_item">
+							<span class="scrollable_header">
+								<img src="static/images/down_arrow.png" class="right" />
+								<span class="scroll_text">New analysis using this dataset in the MetaGEO Project</span>
+								<span class="author"><a href="">Brig M</a></span>
+								<span class="date">01-Apr-2011</span>
+
+							</span>
+							<span class="scrollable_comments">
+								<span class="scrollable_comment">
+									<span class="comment_text">Look out, there is a large batch effect in this data.  Have been working on a way to remove it.</span>
+									<span class="comment_author">Brig M.</span>
+									<span class="comment_date">02-Apr-2011</span>
+								</span>
+
+								<span class="scrollable_comment">
+									<span class="comment_text">Appreciate the help.  We can post new version of the normalized data.</span>
+									<span class="comment_author">Matt F.</span>
+									<span class="comment_date">02-Apr-2011</span>
+								</span>
+							</span>
+						</div>
+
+					</div>
+				</div>
+				<div class="data_detail_section last">
+					<span class="header">
+						<span class="icon right">
+							<g:Image resource='{icons.applicationResize16}'/> View All<br/>
+							<g:Image resource='{icons.hand16}'/> Suggest an analysis
+						</span>
+
+						<span class="title">Analyses using<br /> this Dataset</span>
+					</span>
+					<table width="100%" class="head_table">
+						<tr>
+							<th class="analysis">Analysis</th>
+							<th class="project">Project</th>
+
+							<th class="last_modified">Last Modified</th>
+						</tr>
+					</table>
+					<div class="scrollable">
+						<table width="100%" class="detail">
+							<tr>
+								<td class="analysis"><a href="network_overview.html">Network Generation</a></td>
+								<td class="project"><a href="project_details.html">Federation Warburg</a></td>
+								<td class="last_modified">12-Apr-2011</td>
+							</tr>
+							<tr class="gray">
+								<td class="analysis"><a href="network_overview.html">Network Survey</a></td>
+								<td class="project"><a href="project_details.html">Federation Warburg</a></td>
+								<td class="last_modified">23-Mar-2011</td>
+							</tr>
+
+							<tr>
+								<td class="analysis"><a href="network_overview.html">Interactome</a></td>
+								<td class="project"><a href="project_details.html">Federation Warburg</a></td>
+								<td class="last_modified">04-Mar-2011</td>
+							</tr>
+							<tr class="gray">
+								<td class="analysis"><a href="network_overview_metageo.html">GSE 21034</a></td>
+								<td class="project"><a href="project_details_metageo.html">MetaGEO</a></td>
+								<td class="last_modified">2-Apr-2011</td>
+							</tr>
+						</table>
+					</div>
+				</div>
+			</div>	
+
+<!-- start footer -->
+				<g:SimplePanel ui:field="footer" />
+			</div> <!-- id: main -->				
+		</div> <!-- id: container -->
+<!-- end footer -->
+
+	</g:HTMLPanel>
+</ui:UiBinder>

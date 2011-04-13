@@ -1,0 +1,89 @@
+<!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
+<ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
+	xmlns:g="urn:import:com.google.gwt.user.client.ui" xmlns:d="urn:import:com.google.gwt.dom.client">
+	<ui:style>
+		.title {
+			font-size: 2em;
+			font-weight: bold;
+			color: #777777;
+			margin: 10px 20px 10px;
+			text-align: left;
+			width: 650px;
+		}
+		
+		.topTable {
+			padding: 10px;
+			cellspacing: 50px;
+		}
+		
+		.oneThird {
+			width: 350px;
+		}
+		
+		.twoThirds {
+			width: 700px;
+		}
+		
+		.rowTop {
+			vertical-align: top;
+		}
+	</ui:style>
+	
+	<ui:with field='icons' type='org.sagebionetworks.web.client.IconsImageBundle'/>
+
+	<g:HTMLPanel>
+
+	<!-- start header -->
+		<div id="container" class="clearfix">		
+			<g:SimplePanel ui:field="header" />
+			<div id="main" role="main">
+	<!-- end header -->
+
+			<div id="content" class="clearfix">
+
+				<ul class="breadcrumbs">
+					<li class="breadcrumb"><a href="#">Home</a> > <a href="#DatasetsHome:0">All Datasets</a> > <span ui:field="breadcrumbDatasetSpan" /> > <span ui:field="breadcrumbTitleSpan" /></li>
+				</ul>
+				<h2><span ui:field="titleSpan" /></h2>
+				
+				
+				<div id="privacy_setting" class="right">
+					<span class="setting_label">Access:</span>
+					<span class="setting_level"><g:Image resource="{icons.lockUnlocked}"/> Public</span>
+				</div>
+				<div class="data_info">
+					<span class="info_head">
+						<h2>Overview</h2>
+
+						<span class="data_options">
+							<g:SimplePanel ui:field="downloadPanel" />
+							<g:SimplePanel ui:field="seeTermsPanel" />							
+						</span>
+					</span>
+					<span class="info_text_narrow">
+						<g:FlowPanel ui:field="overviewPanel" />
+						<br /><br />
+					</span>
+					<span class="data_details">
+						<g:FlexTable ui:field="middleFlexTable" />
+					</span>
+					<span class="data_details data_details_right">
+						<g:FlexTable ui:field="rightFlexTable" />
+					</span>
+				</div>
+			</div>
+			<div class="data_detail_sections">
+				<g:SimplePanel ui:field="previewTablePanel" />
+
+				
+																																			
+			</div>	
+
+<!-- start footer -->
+				<g:SimplePanel ui:field="footer" />
+			</div> <!-- id: main -->				
+		</div> <!-- id: container -->
+<!-- end footer -->
+
+	</g:HTMLPanel>
+</ui:UiBinder>

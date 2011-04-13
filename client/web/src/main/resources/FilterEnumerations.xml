@@ -1,0 +1,125 @@
+<configuration>
+	<filters>
+		<filter>
+			<columnId>dataset.Number_of_Samples</columnId>
+			<defaultValue>Any Sample Size</defaultValue>
+			<operator>GREATER_THAN</operator>
+			<values>
+				<displayable>
+					<display>&gt;25</display>
+					<value>25</value>
+				</displayable>
+				<displayable>
+					<display>&gt;50</display>
+					<value>50</value>
+				</displayable>
+				<displayable>
+					<display>&gt;100</display>
+					<value>100</value>
+				</displayable>
+				<displayable>
+					<display>&gt;1000</display>
+					<value>1000</value>
+				</displayable>
+				<displayable>
+					<display>&gt;5,000</display>
+					<value>5000</value>
+				</displayable>
+				<displayable>
+					<display>&gt;10,000</display>
+					<value>10000</value>
+				</displayable>
+			</values>
+		</filter>
+		<filter>
+			<columnId>dataset.Species</columnId>
+			<defaultValue>All Species</defaultValue>
+			<operator>EQUALS</operator>
+			<values>
+				<displayable>
+					<value>Human</value>
+				</displayable>
+				<displayable>
+					<value>Mouse</value>
+				</displayable>
+				<displayable>
+					<value>Rat</value>
+				</displayable>
+				<displayable>
+					<value>Pig</value>
+				</displayable>
+				<displayable>
+					<value>Yeast</value>
+				</displayable>
+			</values>
+		</filter>
+		<filter>
+			<columnId>dataset.Tissue_Tumor</columnId>
+			<defaultValue>All Tissues</defaultValue>
+			<operator>EQUALS</operator>
+			<values>
+				<displayable>
+					<value>Prostate</value>
+				</displayable>
+				<displayable>
+					<value>Breast</value>
+				</displayable>
+				<displayable>
+					<value>Liver</value>
+				</displayable>
+				<displayable>
+					<value>Muscle</value>
+				</displayable>
+				<displayable>
+					<value>Lung</value>
+				</displayable>
+			</values>
+		</filter>
+		<filter>
+			<columnId>dataset.Disease</columnId>
+			<defaultValue>All Diseases</defaultValue>
+			<operator>EQUALS</operator>
+			<values>
+				<displayable>
+					<display>Alzheimer's</display>
+					<value>Alzheimers</value>
+				</displayable>
+				<displayable>
+					<value>Asthma</value>
+				</displayable>
+				<displayable>
+					<value>Cancer</value>
+				</displayable>
+				<displayable>
+					<value>Cardiovascular Disease</value>
+				</displayable>
+				<displayable>
+					<value>Diabetes</value>
+				</displayable>
+				<displayable>
+					<value>Drug Response</value>
+				</displayable>
+				<displayable>
+					<value>Health</value>
+				</displayable>
+				<displayable>
+					<value>Inflammatory Disease</value>
+				</displayable>
+				<displayable>
+					<value>Metabolic Disease</value>
+				</displayable>
+				<displayable>
+					<value>Neurological Disease</value>
+				</displayable>
+				<displayable>
+					<value>Sarcopenia</value>
+				</displayable>
+				<displayable>
+					<value>Respiratory diseases</value>
+				</displayable>
+			</values>
+		</filter>
+
+
+	</filters>
+</configuration>
