@@ -28,6 +28,9 @@
 			vertical-align: top;
 		}
 	</ui:style>
+	
+	<ui:with field='icons' type='org.sagebionetworks.web.client.IconsImageBundle'/>
+
 	<g:HTMLPanel>
 
 	<!-- start header -->
@@ -45,9 +48,8 @@
 				
 				
 				<div id="privacy_setting" class="right">
-
-					<span class="setting_label">Privacy Setting:</span>
-					<span class="setting_level">Public</span> &raquo; <a href="" style="display:inline;">Learn more...</a>
+					<span class="setting_label">Access:</span>
+					<span class="setting_level"><g:Image resource="{icons.lockUnlocked}"/> Public</span>
 				</div>
 				<div class="data_info">
 					<span class="info_head">
