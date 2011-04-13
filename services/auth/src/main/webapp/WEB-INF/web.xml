@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://java.sun.com/xml/ns/javaee"
+         xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+         version="2.5">
+  
+  
+    
+  <!-- The context params that read by ContextLoaderListener  -->   
+  <!--  authutil-context.xml tells the authentication filter where to find Crowd -->     
+  <context-param>
+    <param-name>contextConfigLocation</param-name>
+    <param-value>
+      /WEB-INF/authentication-context.xml
+    </param-value>
+  </context-param>
+  
+    <!-- This listener will load other application context file in addition to springweb-servlet.xml -->
+  <listener>
+    <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+  </listener>
+  
+  <!-- Some browsers do not support PUT and DELETE methods, this filter will examine the form field parameter _method -->
+  <filter>
+    <filter-name>httpMethodFilter</filter-name>
+    <filter-class>
+      org.springframework.web.filter.HiddenHttpMethodFilter
+    </filter-class>
+  </filter>
+  
+  <filter-mapping>
+    <filter-name>httpMethodFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+  
+   	<filter>  
+ 		<filter-name>CrowdAuth</filter-name>  
+         <filter-class>org.sagebionetworks.authutil.CrowdAuthenticationFilter</filter-class>  
+         <init-param>  
+ 			<param-name>allow-anonymous</param-name> 
+ 			<param-value>true</param-value>             
+         </init-param>  
+         <!-- false for google-app-engine, true for tomcat/beanstalk -->
+         <init-param>  
+ 			<param-name>accept-all-certificates</param-name> 
+ 			<param-value>true</param-value>             
+         </init-param>  
+ 	</filter> 
+
+	<!--  only apply this filter to the user service -->
+     <filter-mapping>  
+         <filter-name>CrowdAuth</filter-name>  
+         <url-pattern>/auth/v1/user</url-pattern>  
+     </filter-mapping>  
+  
+  
+  <servlet>
+    <servlet-name>authentication</servlet-name>
+    <servlet-class>
+      org.springframework.web.servlet.DispatcherServlet
+    </servlet-class>
+    <load-on-startup>1</load-on-startup>
+  </servlet>
+  
+  <servlet-mapping>
+    <servlet-name>authentication</servlet-name>
+    <url-pattern>/auth/v1/*</url-pattern>
+  </servlet-mapping>
+  
+</web-app>
