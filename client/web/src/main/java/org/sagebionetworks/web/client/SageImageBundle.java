@@ -13,11 +13,8 @@ public interface SageImageBundle extends ClientBundle {
 	
 	@Source("images/icon-genotypes-16.gif")
 	ImageResource iconGenotype16();
-
-	@Source("images/SagebionetworksLogo.png")
-	ImageResource sageLogo();
-	
-	@Source("images/SagebionetworksLogo&Title.png")
+		
+	@Source("images/SagebionetworksLogo-g.png")
 	ImageResource sageLogoAndTitle();
 	
 	@Source("images/transparent-16.png")

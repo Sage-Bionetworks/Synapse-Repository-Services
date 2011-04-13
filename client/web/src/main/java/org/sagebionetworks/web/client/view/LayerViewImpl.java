@@ -9,6 +9,7 @@ import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
+import org.sagebionetworks.web.client.widget.header.Header.MenuItem;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloader;
 import org.sagebionetworks.web.client.widget.modal.ModalWindow;
 import org.sagebionetworks.web.client.widget.statictable.StaticTable;
@@ -77,7 +78,8 @@ public class LayerViewImpl extends Composite implements LayerView {
 		this.icons = icons;
 		
 		header.add(headerWidget.asWidget());
-		footer.add(footerWidget.asWidget());			
+		footer.add(footerWidget.asWidget());	
+		headerWidget.setMenuItemActive(MenuItem.DATASETS);
 		
 		setupLicensedDownloaderCallbacks();
 		// style FlexTables
@@ -165,6 +167,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 					
 		// set description
 		if(overviewText == null) overviewText = "";
+		overviewText = DisplayConstants.TEMP_MSKCC_DESCRIPTION; // TODO : remove after demo!
 		int summaryLength = overviewText.length() >= DisplayConstants.DESCRIPTION_SUMMARY_LENGTH ? DisplayConstants.DESCRIPTION_SUMMARY_LENGTH : overviewText.length();
 		previewDisclosurePanel.init("Expand", overviewText.substring(0, summaryLength), overviewText);
 		overviewPanel.add(previewDisclosurePanel);

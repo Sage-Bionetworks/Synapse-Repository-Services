@@ -3,13 +3,12 @@
 	xmlns:g="urn:import:com.google.gwt.user.client.ui" xmlns:d="urn:import:com.google.gwt.dom.client">
 	
 	<ui:with field='icons' type='org.sagebionetworks.web.client.IconsImageBundle'/>
+	<ui:with field='sageImages' type='org.sagebionetworks.web.client.SageImageBundle'/>
 	<g:HTMLPanel>	
 		<div class="header">
 			<div id="header_top" class="clearfix">				
-				<div id="logo" class="left">					
-						<span class="large"><a href="#">Synapse</a></span>
-						<span class="tagline"><a href="#">CONTRIBUTE TO<br />
-						THE CURE</a></span>					
+				<div id="logo" class="left">
+						<a href="#"><g:Image resource="{sageImages.sageLogoAndTitle}"/></a>
 				</div>
 				<div id="user_tools" class="right">
 					<span class="hello">Welcome Michael K.</span><br />
@@ -18,13 +17,14 @@
 				</div>
 			</div>	
 			<div class="global_nav">
-				<ul>
-					<li class="first" id="navbar_datasets_li"><a href="#DatasetsHome:0" id="navbar_datasets_a">Datasets</a></li>
-					<li id="navbar_tools_li"><a href="">Tools</a></li>
-					<li id="navbar_networks_li"><a href="">Networks</a></li>
-					<li id="navbar_people_li"><a href="people.html">People</a></li>
-					<li class="last" id="navbar_projects_li"><a href="projects.html">Projects</a></li>
+				<ul id="navbar_ul">
+					<li class="first" ui:field="navbarDatasets"><a href="#DatasetsHome:0" id="navbar_datasets_a">Datasets</a></li>
+					<li ui:field="navbarTools"><a href="">Tools</a></li>
+					<li ui:field="navbarNetworks"><a href="">Networks</a></li>
+					<li ui:field="navbarPeople"><a href="people.html">People</a></li>
+					<li class="last" ui:field="navbarProjects"><a href="projects.html">Projects</a></li>
 				</ul>
+				
 				<div id="search" class="right">
 					<!-- <form action="" method="get">  -->
 						<input id="query" type="input" class="search_box" name="q" value="" />

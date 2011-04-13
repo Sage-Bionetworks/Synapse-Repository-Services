@@ -11,6 +11,7 @@ import org.sagebionetworks.web.client.presenter.DatasetRow;
 import org.sagebionetworks.web.client.widget.breadcrumb.Breadcrumb;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
+import org.sagebionetworks.web.client.widget.header.Header.MenuItem;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloader;
 import org.sagebionetworks.web.client.widget.modal.ModalWindow;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
@@ -85,7 +86,8 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		setupDatasetLicensedDownloaderCallbacks();
 
 		header.add(headerWidget.asWidget());
-		footer.add(footerWidget.asWidget());	
+		footer.add(footerWidget.asWidget());
+		headerWidget.setMenuItemActive(MenuItem.DATASETS);
 
 		// Button: Follow dataset 
 		followDatasetModal.setHeading("Follow this Dataset");

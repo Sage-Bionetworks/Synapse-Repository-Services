@@ -8,6 +8,7 @@ import org.sagebionetworks.web.client.widget.filter.QueryFilter;
 import org.sagebionetworks.web.client.widget.filter.QueryFilter.SelectionListner;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
+import org.sagebionetworks.web.client.widget.header.Header.MenuItem;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
@@ -53,6 +54,7 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
+		headerWidget.setMenuItemActive(MenuItem.DATASETS);
 				
 		// Start on the first page and trigger a data fetch from the server
 		queryServiceTable.pageTo(0, 10);
