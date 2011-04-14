@@ -12,10 +12,12 @@
     <version>0.1</version>
   </parent>
   
+  <groupId>org.sagebionetworks</groupId>
   <artifactId>client</artifactId>
   <packaging>pom</packaging>
   <name>Platform Clients</name>
   
+  <version>0.1</version>
   <modules>
     <module>web</module>
   </modules>
