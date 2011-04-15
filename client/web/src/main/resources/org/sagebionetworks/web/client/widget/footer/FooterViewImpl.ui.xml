@@ -43,5 +43,6 @@
 				<img src="static/images/sage_logo.png" class="logo" alt="sage logo" />
 			</div>
 		</div>
+		<script ui:field="searchScript"/>
 	</g:HTMLPanel>
 </ui:UiBinder>

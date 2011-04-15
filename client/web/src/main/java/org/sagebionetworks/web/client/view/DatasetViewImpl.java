@@ -244,7 +244,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		rowIndex = 0;
 		if(postedDate != null)
 			addRowToTable(rowIndex++, "Posted:", DisplayConstants.DATE_FORMAT.format(postedDate), rightFlexTable);
-		addRowToTable(rowIndex++, "Creator:", creator, rightFlexTable);
+		addRowToTable(rowIndex++, "Creator:", "<a href=\"people_charles.html\">"+ creator + "</a>", rightFlexTable);
 		if(curationDate != null)
 			addRowToTable(rowIndex++, "Curated On:", DisplayConstants.DATE_FORMAT.format(curationDate), rightFlexTable);
 		if(lastModifiedDate != null)
