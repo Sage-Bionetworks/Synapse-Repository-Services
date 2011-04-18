@@ -3,11 +3,16 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
 	<!-- POM file generated with GWT webAppCreator -->
+	<parent>
+		<artifactId>client</artifactId>
+		<groupId>org.sagebionetworks</groupId>
+		<version>parent-1.0</version>
+	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>portal</artifactId>
 	<packaging>war</packaging>
-	<version>0.1</version>
+	<version>${applicationVersion}</version>
 	<name>GWT Maven Archetype</name>
 
 	<properties>
@@ -19,43 +24,6 @@
 		<webappDirectory>${project.build.directory}/${project.build.finalName}</webappDirectory>
 		<org.springframework.version>3.0.5.RELEASE</org.springframework.version>
 	</properties>
-
-	<repositories>
-		<repository>
-			<id>sagebionetworks</id>
-			<name>sagebionetworks-releases</name>
-			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local</url>
-		</repository>
-
-		<repository>
-			<id>springsource-milestone</id>
-			<url>http://repository.springsource.com/maven/bundles/milestone</url>
-		</repository>
-		<repository>
-			<id>springsource-release</id>
-			<url>http://repository.springsource.com/maven/bundles/release</url>
-		</repository>
-		<repository>
-			<id>springsource-external</id>
-			<url>http://repository.springsource.com/maven/bundles/snapshot</url>
-		</repository>
-		<repository>
-			<id>atlassian-m2-repository</id>
-			<url>https://m2proxy.atlassian.com/repository/public</url>
-		</repository>
-		<repository>
-			<id>mvn-gae-plugin-repo</id>
-			<url>http://maven-gae-plugin.googlecode.com/svn/repository/</url>
-		</repository>
-		<repository>
-			<id>maven-central-rep-1</id>
-			<url>http://repo1.maven.org/maven2/</url>
-		</repository>
-		<repository>
-			<id>sun-maven-repository</id>
-			<url>http://download.java.net/maven/2/</url>
-		</repository>
-	</repositories>
 
 	<build>
 		<!-- Generate compiled stuff in the folder used for developing mode -->

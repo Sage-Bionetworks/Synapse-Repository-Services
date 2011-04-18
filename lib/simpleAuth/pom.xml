@@ -9,13 +9,15 @@
   <parent>
     <groupId>org.sagebionetworks</groupId>
     <artifactId>lib</artifactId>
-    <version>0.1</version>
+    <version>parent-1.0</version>
   </parent>
   
+  <groupId>org.sagebionetworks</groupId>
   <artifactId>lib-simpleAuth</artifactId>
   <packaging>jar</packaging>
   <name>Platform Repository Simple Auth Filter and Controller</name>
 
+  <version>${applicationVersion}</version>
   <dependencies>
     <!-- Spring Framework dependencies -->
     <dependency>
