@@ -8,7 +8,8 @@
 
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>platform</artifactId>
-	<version>0.1</version>
+	<!-- This is not the same as the application version. This is a constant. -->
+	<version>parent-1.0</version>
 	<packaging>pom</packaging>
 	<url>http://www.sagebase.org/</url>
 	<scm>
@@ -154,6 +155,8 @@
 		<!-- This is just for "eclipse:eclipse" goal to always attempt downloading 
 			sources -->
 		<downloadSources>true</downloadSources>
+		<!-- This is the version of all modules that make us Synapse -->
+		<applicationVersion>0.4-SNAPSHOT</applicationVersion>
 	</properties>
 
 	<distributionManagement>

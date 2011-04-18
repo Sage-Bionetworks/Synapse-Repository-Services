@@ -6,13 +6,13 @@
 	<parent>
 		<artifactId>client</artifactId>
 		<groupId>org.sagebionetworks</groupId>
-		<version>0.1</version>
+		<version>parent-1.0</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>portal</artifactId>
 	<packaging>war</packaging>
-	<version>0.1</version>
+	<version>${applicationVersion}</version>
 	<name>GWT Maven Archetype</name>
 
 	<properties>
