@@ -5,10 +5,12 @@
   <parent>
     <groupId>org.sagebionetworks</groupId>
     <artifactId>services</artifactId>
-    <version>0.1</version>
+    <version>parent-1.0</version>
   </parent>
   
+  <groupId>org.sagebionetworks</groupId>
   <artifactId>services-authentication</artifactId>
+  <version>${applicationVersion}</version>
   <packaging>war</packaging>
   <name>Platform Authentication Service</name>
 
@@ -32,7 +34,7 @@
     <dependency>
       <groupId>org.sagebionetworks</groupId>
       <artifactId>auth-util</artifactId>
-      <version>0.1</version>
+      <version>${applicationVersion}</version>
     </dependency>
        
     <!-- JSON -->

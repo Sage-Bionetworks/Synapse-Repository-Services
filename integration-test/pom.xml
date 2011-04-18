@@ -6,30 +6,14 @@
 	<parent>
 		<groupId>org.sagebionetworks</groupId>
 		<artifactId>platform</artifactId>
-		<version>0.1</version>
+		<version>parent-1.0</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>integration-test</artifactId>
 	<packaging>pom</packaging>
-	<version>0.1</version>
+	<version>${applicationVersion}</version>
 	<name>Integration Tests for All services</name>
-
-	<repositories>
-		<repository>
-			<id>sagebionetworks</id>
-			<name>sagebionetworks-releases</name>
-			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local</url>
-		</repository>
-		<repository>
-			<id>maven-central-rep-1</id>
-			<url>http://repo1.maven.org/maven2/</url>
-		</repository>
-		<repository>
-			<id>sun-maven-repository</id>
-			<url>http://download.java.net/maven/2/</url>
-		</repository>
-	</repositories>
 
 	<properties>
 		<org.springframework.version>3.0.5.RELEASE</org.springframework.version>
@@ -186,14 +170,14 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>services-repository</artifactId>
-			<version>${project.version}</version>
+			<version>${applicationVersion}</version>
 			<type>war</type>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>portal</artifactId>
-			<version>${project.version}</version>
+			<version>${applicationVersion}</version>
 			<type>war</type>
 		</dependency>
 
@@ -201,7 +185,7 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>portal</artifactId>
-			<version>${project.version}</version>
+			<version>${applicationVersion}</version>
 			<classifier>gwt-rpc-assembly</classifier>
 			<scope>integration-test</scope>
 			<type>jar</type>
@@ -211,7 +195,7 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-models</artifactId>
-			<version>${project.version}</version>
+			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>

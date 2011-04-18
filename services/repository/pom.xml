@@ -5,12 +5,13 @@
   <parent>
     <groupId>org.sagebionetworks</groupId>
     <artifactId>services</artifactId>
-    <version>0.1</version>
+    <version>parent-1.0</version>
   </parent>
   
+  <groupId>org.sagebionetworks</groupId>
   <artifactId>services-repository</artifactId>
   <packaging>war</packaging>
-  <version>0.1</version>
+  <version>${applicationVersion}</version>
   <name>Platform Repository Service</name>
   
   <dependencies>
@@ -19,20 +20,20 @@
     <dependency>
       <groupId>org.sagebionetworks</groupId>
       <artifactId>lib-models</artifactId>
-      <version>0.1</version>
+      <version>${applicationVersion}</version>
     </dependency>
     
     <dependency>
       <groupId>org.sagebionetworks</groupId>
       <artifactId>lib-jdomodels</artifactId>
-      <version>0.1</version>
+      <version>${applicationVersion}</version>
       <scope>runtime</scope>
     </dependency>
 
     <dependency>
       <groupId>org.sagebionetworks</groupId>
       <artifactId>auth-util</artifactId>
-      <version>0.1</version>
+      <version>${applicationVersion}</version>
     </dependency>
 
     <!-- This was being pulled in as a child dependency of the
