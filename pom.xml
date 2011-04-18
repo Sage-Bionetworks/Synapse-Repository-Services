@@ -156,7 +156,7 @@
 			sources -->
 		<downloadSources>true</downloadSources>
 		<!-- This is the version of all modules that make us Synapse -->
-		<applicationVersion>0.4-SNAPSHOT</applicationVersion>
+		<applicationVersion>0.1</applicationVersion>
 	</properties>
 
 	<distributionManagement>
