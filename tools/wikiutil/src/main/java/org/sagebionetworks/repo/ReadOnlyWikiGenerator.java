@@ -31,6 +31,19 @@ public class ReadOnlyWikiGenerator {
 			.getName());
 
 	private static String serviceEndpoint = "http://localhost:8080";
+	
+	private static final String QUERY_SYNTAX = 
+	"{code}SELECT * FROM <data type> WHERE <expression> (AND <expression>)* [LIMIT <#>] [OFFSET #]\n\n"
+	+ "<expresssion> := <field name> <operator> <value>{code}\n"
+	+ "{{<value>}} should be in quotes for strings, but not numbers (i.e. {{name == \"Smith\" AND size > 10}})\n\n" 
+	+ "Curently supported {{<operators>}} with their required URL escape codes:\n"
+	+ "||Operator ||Value|| URL Escape Code \n"
+	+ "| Equal| == | %3D%3D|\n"
+	+ "| Does Not equal| != | !%3D|\n"
+	+ "| Greater Than | > | %3E |\n"
+	+ "| Less than | < | %3C |\n"
+	+ "| Greater than or equals | >= | %3E%3D |\n"
+	+ "| Less than or equals | <= | %3C%3D |\n";
 
 	/**
 	 * @param args
@@ -50,18 +63,18 @@ public class ReadOnlyWikiGenerator {
 		wiki.doGet(
 				"/repo/v1/query?query=select+*+from+dataset+limit+3+offset+1",
 				"h3. 'Select *' Query",
-				"Right now only a subset of query functionality is supported\n"
+				"These queries are generally of the form:\n"
 						+ "{code}SELECT * FROM <data type> [LIMIT <#>] [OFFSET <#>]{code}");
 		wiki.doGet(
 				"/repo/v1/query?query=select+*+from+dataset+order+by+Number_of_Samples+DESC+limit+3+offset+1",
 				"h3. 'Order By' Query",
-				"Right now only a subset of query functionality is supported\n"
+				"These queries are generally of the form:\n"
 						+ "{code}SELECT * FROM <data type> ORDER BY <field name> [ASC|DESC] [LIMIT <#>] [OFFSET #]{code}");
+
 		JSONObject results = wiki.doGet(
 				"/repo/v1/query?query=select+*+from+dataset+where+name+==+%22MSKCC+Prostate+Cancer%22",
-				"h3. 'Where Equal To' Query",
-				"Right now only a subset of query functionality is supported\n"
-						+ "{code}SELECT * FROM <data type> WHERE <field name> == \"<value>\" [LIMIT <#>] [OFFSET #]{code}");
+				"h3. Single clause 'Where' Query",
+				"These queries are generally of the form:\n" + QUERY_SYNTAX);
 		JSONArray datasets = results.getJSONArray("results");
 		JSONObject dataset = null;
 		for (int i = 0; i < datasets.length(); i++) {
@@ -74,32 +87,21 @@ public class ReadOnlyWikiGenerator {
 
 		wiki.doGet(
 				"/repo/v1/query?query=select+*+from+dataset+where+dataset.Species+==+%22Human%22+and+dataset.Number_of_Samples+%3E+100+limit+3+offset+1",
-				"h3. Supported Where clause with limits",
-				"Right now only a subset of query functionality is supported\n" +
-				"{code}<expresssion> := <field name> <operator> <value>{code}" +
-				"Curently supported <operators> with their required URL escape codes:\n"
-				+"||Operator ||Value|| URL Escape Code \n"
-				+"| Equal| == | %3D%3D|\n"
-				+"| Does Not equal| != | !%3D|\n"
-				+"| Greater Than | > | %3E |\n"
-				+"| Less than | < | %3C |\n"
-				+"| Greater than or equals | >= | %3E%3D |\n"
-				+"| Less than or equals | <= | %3C%3D |\n"
-				+"<value> should be in quotes for strings, but not numbers (i.e. name == \"Smith and size > 10)"
-						+ "{code}SELECT * FROM <data type> WHERE <expression> (and <expression>)* [LIMIT <#>] [OFFSET #]{code}");
-
+				"h3. Multiple clause 'Where' Query",
+				"These queries are generally of the form:\n" + QUERY_SYNTAX);
+		
 		wiki.doGet(
 				"/repo/v1/query?query=select+*+from+layer+where+dataset.id+==+%22"
 						+ dataset.getString("dataset.id") + "%22",
 				"h3. 'Select *' Query for the Layers of a Dataset",
-				"Right now only a subset of query functionality is supported\n"
+				"These queries are generally of the form:\n"
 						+ "{code}SELECT * FROM layer WHERE dataset.id == <datasetId> [LIMIT <#>] [OFFSET <#>]{code}");
 
 		wiki.doGet(
 				"/repo/v1/query?query=select+*+from+layer+where+dataset.id+==+%22"
 						+ dataset.getString("dataset.id") + "%22+ORDER+BY+type",
 				"h3. 'Order By' Query for the Layers of a Dataset",
-				"Right now only a subset of query functionality is supported\n"
+				"These queries are generally of the form:\n"
 						+ "{code}SELECT * FROM layer WHERE dataset.id == <datasetId> ORDER BY <field name> [ASC|DESC] [LIMIT <#>] [OFFSET <#>]{code}");
 
 		log.info("h2. Schema");
