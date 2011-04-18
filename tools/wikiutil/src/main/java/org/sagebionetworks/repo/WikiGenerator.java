@@ -44,11 +44,13 @@ public class WikiGenerator {
 	private static final Map<String, String> defaultPOSTPUTHeaders;
 
 	static {
-		Map<String, String> headers = new HashMap<String, String>();
-		headers.put("Accept", "application/json");
-		defaultGETDELETEHeaders = Collections.unmodifiableMap(headers);
-		headers.put("Content-Type", "application/json");
-		defaultPOSTPUTHeaders = Collections.unmodifiableMap(headers);
+		Map<String, String> readOnlyHeaders = new HashMap<String, String>();
+		readOnlyHeaders.put("Accept", "application/json");
+		defaultGETDELETEHeaders = Collections.unmodifiableMap(readOnlyHeaders);
+		Map<String, String> readWriteHeaders = new HashMap<String, String>();
+		readWriteHeaders.putAll(readOnlyHeaders);
+		readWriteHeaders.put("Content-Type", "application/json");
+		defaultPOSTPUTHeaders = Collections.unmodifiableMap(readWriteHeaders);
 	}
 		
 	/**
