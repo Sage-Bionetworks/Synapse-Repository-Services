@@ -5,13 +5,15 @@
   <parent>
     <groupId>org.sagebionetworks</groupId>
     <artifactId>services</artifactId>
-    <version>0.1</version>
+    <version>parent-1.0</version>
   </parent>
   
+  <groupId>org.sagebionetworks</groupId>
   <artifactId>auth-util</artifactId>
   <packaging>jar</packaging>
   <name>Platform Authentication and Authorization Utilities</name>
-
+  <version>${applicationVersion}</version>
+  
   <dependencies>
     <!-- Spring Framework dependencies -->
     <dependency>
