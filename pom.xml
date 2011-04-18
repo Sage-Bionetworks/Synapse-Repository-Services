@@ -1,128 +1,177 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org\
+	xmlns:xsi="http://www.w3.org\
                     /2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0\
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0\
                              http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  
-  <groupId>org.sagebionetworks</groupId>
-  <artifactId>platform</artifactId>
-  <version>0.1</version>
-  <packaging>pom</packaging>
-  <url>http://www.sagebase.org/</url>
-  <scm>
-    <connection>scm:svn:https://sagebionetworks.jira.com/svn/PLFM/trunk
-    </connection>
-    <url>http://sagebionetworks.jira.com/source/browse/PLFM</url>
-  </scm>
-  <name>Sage Bionetworks Platform</name>
-  <description>
-    Sage Bionetworks Platform
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>org.sagebionetworks</groupId>
+	<artifactId>platform</artifactId>
+	<!-- This is not the same as the application version. This is a constant. -->
+	<version>parent-1.0</version>
+	<packaging>pom</packaging>
+	<url>http://www.sagebase.org/</url>
+	<scm>
+		<connection>scm:svn:https://sagebionetworks.jira.com/svn/PLFM/trunk
+		</connection>
+		<url>http://sagebionetworks.jira.com/source/browse/PLFM</url>
+	</scm>
+	<name>Sage Bionetworks Platform</name>
+	<description>
+		Sage Bionetworks Platform
   </description>
-  
-  <modules>
-    <module>lib</module>
-    <module>services</module>
-    <module>client</module>
-    <module>integration-test</module>
-  </modules>
 
-  <!-- TODO set up our own artifactory -->
-  <repositories>
-    <repository>
-      <id>springsource-milestone</id>
-      <url>http://repository.springsource.com/maven/bundles/milestone</url>
-    </repository>
-    <repository>
-      <id>springsource-release</id>
-      <url>http://repository.springsource.com/maven/bundles/release</url>
-    </repository>
-    <repository>
-      <id>springsource-external</id>
-      <url>http://repository.springsource.com/maven/bundles/snapshot</url>
-    </repository>
-    <repository>
-      <id>atlassian-m2-repository</id>
-      <url>https://m2proxy.atlassian.com/repository/public</url>
-    </repository>
-  </repositories>
-  
-  <pluginRepositories>
-    <pluginRepository>
-      <id>Codehaus Snapshots</id>
-      <url>http://snapshots.repository.codehaus.org/</url>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-    </pluginRepository>
-  </pluginRepositories>
+	<modules>
+		<module>lib</module>
+		<module>services</module>
+		<module>client</module>
+		<module>integration-test</module>
+	</modules>
 
-  <!-- Only list global dependencies in this file -->
-  <dependencies>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.5</version>
-      <scope>test</scope>
-    </dependency>
-    
-    <dependency>
-      <groupId>joda-time</groupId>
-      <artifactId>joda-time</artifactId>
-      <version>1.6</version>
-    </dependency>
+	<repositories>
+		<repository>
+			<id>sagebionetworks</id>
+			<name>sagebionetworks-releases</name>
+			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local</url>
+		</repository>
+		<repository>
+			<id>springsource-milestone</id>
+			<url>http://repository.springsource.com/maven/bundles/milestone</url>
+		</repository>
+		<repository>
+			<id>springsource-release</id>
+			<url>http://repository.springsource.com/maven/bundles/release</url>
+		</repository>
+		<repository>
+			<id>springsource-external</id>
+			<url>http://repository.springsource.com/maven/bundles/snapshot</url>
+		</repository>
+		<repository>
+			<id>atlassian-m2-repository</id>
+			<url>https://m2proxy.atlassian.com/repository/public</url>
+		</repository>
+				<repository>
+			<id>springsource-milestone</id>
+			<url>http://repository.springsource.com/maven/bundles/milestone</url>
+		</repository>
+		<repository>
+			<id>springsource-release</id>
+			<url>http://repository.springsource.com/maven/bundles/release</url>
+		</repository>
+		<repository>
+			<id>springsource-external</id>
+			<url>http://repository.springsource.com/maven/bundles/snapshot</url>
+		</repository>
+		<repository>
+			<id>atlassian-m2-repository</id>
+			<url>https://m2proxy.atlassian.com/repository/public</url>
+		</repository>
+		<repository>
+			<id>mvn-gae-plugin-repo</id>
+			<url>http://maven-gae-plugin.googlecode.com/svn/repository/</url>
+		</repository>
+		<repository>
+			<id>maven-central-rep-1</id>
+			<url>http://repo1.maven.org/maven2/</url>
+		</repository>
+		<repository>
+			<id>sun-maven-repository</id>
+			<url>http://download.java.net/maven/2/</url>
+		</repository>
+	</repositories>
 
-  </dependencies>
+	<pluginRepositories>
+		<pluginRepository>
+			<id>Codehaus Snapshots</id>
+			<url>http://snapshots.repository.codehaus.org/</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+		</pluginRepository>
+	</pluginRepositories>
 
-  <!-- Only list globally used plugins in this file -->
-  <build>
-    <plugins>
+	<!-- Only list global dependencies in this file -->
+	<dependencies>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.5</version>
+			<scope>test</scope>
+		</dependency>
 
-      <!-- Java compiler version -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>2.0</version>
-        <configuration>
-          <source>1.6</source>
-          <target>1.6</target>
-        </configuration>
-      </plugin>
-      
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.4.2</version>
-      </plugin>
+		<dependency>
+			<groupId>joda-time</groupId>
+			<artifactId>joda-time</artifactId>
+			<version>1.6</version>
+		</dependency>
 
-      <!-- Build JavaDocs -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>attach-javadocs</id>
-            <goals>
-              <goal>jar</goal>
-              <goal>test-jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      
-    </plugins>
-  </build>
+	</dependencies>
 
-  <!-- Specify hard-coded project properties that should be shared here -->
-  <properties>
-    <!-- This is just for "eclipse:eclipse" goal to always attempt
-         downloading sources
-      -->
-    <downloadSources>true</downloadSources>
-  </properties>
-  
+	<!-- Only list globally used plugins in this file -->
+	<build>
+		<plugins>
+
+			<!-- Java compiler version -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.0</version>
+				<configuration>
+					<source>1.6</source>
+					<target>1.6</target>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.4.2</version>
+			</plugin>
+
+			<!-- Build JavaDocs -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+							<goal>test-jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+		</plugins>
+	</build>
+
+	<!-- Specify hard-coded project properties that should be shared here -->
+	<properties>
+		<!-- This is just for "eclipse:eclipse" goal to always attempt downloading 
+			sources -->
+		<downloadSources>true</downloadSources>
+		<!-- This is the version of all modules that make us Synapse -->
+		<applicationVersion>0.4-SNAPSHOT</applicationVersion>
+	</properties>
+
+	<distributionManagement>
+		<repository>
+			<id>sagebionetworks</id>
+			<name>sagebionetworks-releases</name>
+			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local
+			</url>
+		</repository>
+		<snapshotRepository>
+			<id>sagebionetworks</id>
+			<name>sagebionetworks-snapshots</name>
+			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-snapshots-local
+			</url>
+		</snapshotRepository>
+	</distributionManagement>
+
 </project>
