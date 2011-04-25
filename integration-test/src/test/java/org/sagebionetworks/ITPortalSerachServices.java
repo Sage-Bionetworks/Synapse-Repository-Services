@@ -14,13 +14,15 @@ import static org.junit.Assert.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.query.ObjectType;
 import org.springframework.web.client.RestTemplate;
+import org.sagebionetworks.web.client.DatasetService;
 import org.sagebionetworks.web.client.SearchService;
+import org.sagebionetworks.web.shared.Annotations;
+import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
 import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.TableResults;
@@ -32,13 +34,27 @@ import com.gdevelop.gwt.syncrpc.SyncProxy;
 
 public class ITPortalSerachServices {
 
-	private static Logger log = Logger.getLogger(ITPortalSerachServices.class.getName());
+	private static Logger log = Logger.getLogger(ITPortalSerachServices.class
+			.getName());
 
 	public static String repoBaseUrl = null;
 	public static String portalBaseUrl = null;
 	static RestTemplate template;
 	static List<String> datasetIds = new ArrayList<String>();
 	static int totalNumberOfDatasets = 5;
+
+	static SearchService searchService;
+	static DatasetService datasetService;
+	
+	
+	private static String attOnall = "onAll";
+	private static String attOnEven = "onEven";
+	private static String attOnOdd = "onOdd";
+	private static String attString = "aStringAtt";
+	private static String attDate = "aDateAtt";
+	private static String attLong = "aLongAtt";
+	private static String attDouble = "aDoubleAtt";
+
 
 	@BeforeClass
 	public static void beforeClass() {
@@ -55,8 +71,14 @@ public class ITPortalSerachServices {
 				portalBaseUrl);
 		log.info("Loaded system property: " + propName + " = " + portalBaseUrl);
 
-		template = new RestTemplate();
-		String url = repoBaseUrl + "dataset";
+		// The search service.
+		searchService = (SearchService) SyncProxy.newProxyInstance(
+				SearchService.class, portalBaseUrl, "search");
+		assertNotNull(searchService);
+		// The dataset service
+		datasetService = (DatasetService) SyncProxy.newProxyInstance(
+				DatasetService.class, portalBaseUrl, "dataset");
+
 		for (int i = 0; i < totalNumberOfDatasets; i++) {
 			Dataset ds = new Dataset();
 			ds.setName("dsName" + i);
@@ -74,9 +96,9 @@ public class ITPortalSerachServices {
 			ds.setVersion("1.0." + i);
 
 			// Create this dataset
-			Dataset reponse = template.postForObject(url, ds, Dataset.class);
-			assertNotNull(reponse);
-			String id = reponse.getId();
+			String id = datasetService.createDataset(ds);
+			assertNotNull(id);
+			// Make sure we delete this datasets.
 			datasetIds.add(id);
 			// // Add a layer to the dataset
 			// InputDataLayer layer = createLayer(now, i);
@@ -85,26 +107,23 @@ public class ITPortalSerachServices {
 			// dao.getInputDataLayerDAO(id).getStringAnnotationDAO(layerId).addAnnotation("layerAnnotation",
 			// "layerAnnotValue"+i);
 			//
-			// // add this attribute to all datasets
-			// dao.getStringAnnotationDAO(id).addAnnotation(attOnall,
-			// "someNumber" + i);
+			// add this attribute to all datasets
+			Annotations annoations = datasetService.getDatasetAnnotations(id);
+			annoations.addAnnotation(attOnall, "someNumber" + i);
 			// // Add some attributes to others.
-			// if ((i % 2) == 0) {
-			// dao.getLongAnnotationDAO(id).addAnnotation(attOnEven,
-			// new Long(i));
-			// } else {
-			// dao.getDateAnnotationDAO(id).addAnnotation(attOnOdd, now);
-			// }
-			//
-			// // Make sure we add one of each type
-			// dao.getStringAnnotationDAO(id).addAnnotation(attString,
-			// "someString" + i);
-			// dao.getDateAnnotationDAO(id).addAnnotation(attDate,
-			// new Date(System.currentTimeMillis() + i));
-			// dao.getLongAnnotationDAO(id).addAnnotation(attLong,
-			// new Long(123456));
-			// dao.getDoubleAnnotationDAO(id).addAnnotation(attDouble,
-			// new Double(123456.3));
+			 if ((i % 2) == 0) {
+				 annoations.addAnnotation(attOnEven, new Long(i));
+			 } else {
+				 annoations.addAnnotation(attOnOdd, now);
+			 }
+			
+			 // Make sure we add one of each type
+			 annoations.addAnnotation(attString, "someString" + i);
+			 annoations.addAnnotation(attDate, new Date(System.currentTimeMillis() + i));
+			 annoations.addAnnotation(attLong, new Long(123456));
+			 annoations.addAnnotation(attDouble, new Double(123456.3));
+			 // Update the datasets
+			 datasetService.updateDatasetAnnotations(id, annoations);
 		}
 	}
 
@@ -127,8 +146,31 @@ public class ITPortalSerachServices {
 		SearchParameters params = new SearchParameters();
 		params.setFromType(ObjectType.dataset.name());
 		long now = System.currentTimeMillis();
-		long future = now+(1000*60*60*5);
-//		params.addWhere(new WhereCondition("creationDate", WhereOperator.LESS_THAN, ""+future));
+		long future = now + (1000 * 60 * 60 * 5);
+		// params.addWhere(new WhereCondition("creationDate",
+		// WhereOperator.LESS_THAN, ""+future));
+		TableResults results = proxy.executeSearch(params);
+		assertNotNull(results);
+		assertEquals(totalNumberOfDatasets, results.getTotalNumberResults());
+	}
+	
+	@Test
+	public void testQuery() {
+		SearchService proxy = (SearchService) SyncProxy.newProxyInstance(
+				SearchService.class, portalBaseUrl, "search");
+		assertNotNull(proxy);
+		SearchParameters params = new SearchParameters();
+		params.setFromType(ObjectType.dataset.name());
+		params.addWhere(new WhereCondition("dataset."+attOnall, WhereOperator.GREATER_THAN, "0"));
+		params.setSort("dataset.name");
+		params.setLimit(100);
+		params.setOffset(0);
+		params.setAscending(false);
+		List<String> selectList = new ArrayList<String>();
+		selectList.add("dataset.name");
+		params.setSelectColumns(selectList);
+		// params.addWhere(new WhereCondition("creationDate",
+		// WhereOperator.LESS_THAN, ""+future));
 		TableResults results = proxy.executeSearch(params);
 		assertNotNull(results);
 		assertEquals(totalNumberOfDatasets, results.getTotalNumberResults());
