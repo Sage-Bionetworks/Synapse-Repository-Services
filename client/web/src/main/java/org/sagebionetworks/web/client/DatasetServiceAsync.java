@@ -1,7 +1,7 @@
 package org.sagebionetworks.web.client;
 
 import org.sagebionetworks.web.shared.Dataset;
-import org.sagebionetworks.web.shared.DatasetAnnotations;
+import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.DownloadLocation;
 import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
@@ -18,7 +18,7 @@ public interface DatasetServiceAsync {
 	void getDataset(String id, AsyncCallback<Dataset> callback);
 
 	void getDatasetAnnotations(String id,
-			AsyncCallback<DatasetAnnotations> callback);
+			AsyncCallback<Annotations> callback);
 
 	void getLayer(String datasetId, String layerId,
 			AsyncCallback<Layer> callback);
@@ -31,5 +31,10 @@ public interface DatasetServiceAsync {
 
 	void getLayerDownloadLocation(String datasetId, String layerId,
 			AsyncCallback<DownloadLocation> callback);
+
+	void createDataset(Dataset toCreate, AsyncCallback<String> callback);
+
+	void updateDatasetAnnotations(String datasetId, Annotations newAnnotations,
+			AsyncCallback<String> callback);
 
 }

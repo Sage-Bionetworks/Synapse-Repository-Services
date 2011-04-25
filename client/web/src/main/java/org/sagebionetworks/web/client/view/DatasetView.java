@@ -3,11 +3,9 @@ package org.sagebionetworks.web.client.view;
 import java.util.Date;
 import java.util.List;
 
-import org.sagebionetworks.web.client.presenter.DatasetRow;
 import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 
-import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.IsWidget;
 
 
@@ -61,7 +59,7 @@ public interface DatasetView extends IsWidget {
 								  String citation, 
 								  Integer pubmedId);
 	
-	public void setDatasetRow(DatasetRow row);
+//	public void setDatasetRow(DatasetRow row);
 	
 	/**
 	 * require the view to show the license agreement

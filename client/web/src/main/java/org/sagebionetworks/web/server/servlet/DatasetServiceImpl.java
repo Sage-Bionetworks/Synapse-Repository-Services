@@ -8,7 +8,7 @@ import org.sagebionetworks.web.client.DatasetService;
 import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.server.ServerConstants;
 import org.sagebionetworks.web.shared.Dataset;
-import org.sagebionetworks.web.shared.DatasetAnnotations;
+import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.DownloadLocation;
 import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
@@ -58,6 +58,10 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 	public static final String PATH_LAYER_PREVIEW = "dataset/{"+KEY_DATASET_ID+"}/layer/{"+ KEY_LAYER_ID +"}/preview";
 	public static final String PATH_LAYER_PREVIEW_AS_MAP = "dataset/{"+KEY_DATASET_ID+"}/layer/{"+ KEY_LAYER_ID +"}/previewAsMap";
 	public static final String PATH_LAYER_DOWNLOAD_S3 = "dataset/{"+KEY_DATASET_ID+"}/layer/{"+ KEY_LAYER_ID +"}/awsS3Location";
+	
+	public static final String POST_DATASET = "dataset";
+	
+	public static final String POST_DATASET_ANNOTATOINS = "dataset/{"+KEY_DATASET_ID+"}/annotations";
 
 	
 	private RestTemplateProvider templateProvider = null;
@@ -176,7 +180,7 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 
 
 	@Override
-	public DatasetAnnotations getDatasetAnnotations(String id) {
+	public Annotations getDatasetAnnotations(String id) {
 		// First make sure the service is ready to go.
 		validateService();
 		// Build up the path
@@ -193,7 +197,7 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>("", headers);
 		// Make the actual call.
-		ResponseEntity<DatasetAnnotations> response = templateProvider.getTemplate().exchange(url, HttpMethod.GET, entity, DatasetAnnotations.class, map);
+		ResponseEntity<Annotations> response = templateProvider.getTemplate().exchange(url, HttpMethod.GET, entity, Annotations.class, map);
 
 		if (response.getStatusCode() == HttpStatus.OK) {
 			return response.getBody();
@@ -324,5 +328,57 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 					+ response.getStatusCode().value());
 		}
 	}
+
+	@Override
+	public String createDataset(Dataset toCreate) {
+		if(toCreate == null) throw new IllegalArgumentException("Dataset cannot be null");
+		String url = urlProvider.getBaseUrl() + POST_DATASET;;
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<Dataset> entity = new HttpEntity<Dataset>(toCreate, headers);
+		// Make the actual call.
+		ResponseEntity<Dataset> response = templateProvider.getTemplate().exchange(url, HttpMethod.POST, entity, Dataset.class);
+		if (response.getStatusCode() == HttpStatus.CREATED || response.getStatusCode() == HttpStatus.OK) {
+			return response.getBody().getId();
+		} else {
+			// TODO: better error handling
+			throw new UnknownError("Status code:"
+					+ response.getStatusCode().value());
+		}
+	}
+
+	@Override
+	public String updateDatasetAnnotations(String datasetId,
+			Annotations newAnnotations) {
+		if(datasetId == null) throw new IllegalArgumentException("Dataset id cannot be null");
+		if(newAnnotations == null) throw new IllegalArgumentException("Annotations cannot be null");
+		if(newAnnotations.getEtag() == null) throw new IllegalArgumentException("The eTag cannot be null for the annotations.  Get a valid eTab by calling getDatasetAnnotations()");
+		StringBuilder builder = new StringBuilder();
+		builder.append(urlProvider.getBaseUrl());
+		builder.append(POST_DATASET_ANNOTATOINS);
+		// the values to the keys
+		Map<String, String> map = new HashMap<String, String>();
+		map.put(KEY_DATASET_ID, datasetId);
+		
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		headers.set("ETag", newAnnotations.getEtag());
+		HttpEntity<Annotations> entity = new HttpEntity<Annotations>(newAnnotations, headers);
+		// Make the actual call.
+		ResponseEntity<Annotations> response = templateProvider.getTemplate().exchange(builder.toString(), HttpMethod.PUT, entity, Annotations.class, map);
+		if (response.getStatusCode() == HttpStatus.CREATED || response.getStatusCode() == HttpStatus.OK) {
+			return response.getBody().getEtag();
+		} else {
+			// TODO: better error handling
+			throw new UnknownError("Status code:"
+					+ response.getStatusCode().value());
+		}
+	}
+	
+	@Override
+	protected void checkPermutationStrongName() throws SecurityException {
+		// No-opp here allows us to make RPC calls for integration testing.
+	}
+
 	
 }

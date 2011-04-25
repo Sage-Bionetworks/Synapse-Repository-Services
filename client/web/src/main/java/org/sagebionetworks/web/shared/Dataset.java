@@ -26,7 +26,7 @@ public class Dataset implements IsSerializable {
 	private Boolean hasGeneticData = false;
 	private Boolean hasClinicalData = false;
 
-	private List<LayerLink> layerPreviews;
+//	private List<LayerLink> layerPreviews;
 
 	public String getUri() {
 		return uri;
@@ -123,13 +123,13 @@ public class Dataset implements IsSerializable {
 		this.version = version;
 	}
 
-	public List<LayerLink> getLayerPreviews() {
-		return layerPreviews;
-	}
-
-	public void setLayerPreviews(List<LayerLink> layers) {
-		this.layerPreviews = layers;
-	}	
+//	public List<LayerLink> getLayerPreviews() {
+//		return layerPreviews;
+//	}
+//
+//	public void setLayerPreviews(List<LayerLink> layers) {
+//		this.layerPreviews = layers;
+//	}	
 	
 	public String getLayer() {
 		return layer;
@@ -194,8 +194,7 @@ public class Dataset implements IsSerializable {
 		return "Dataset [id=" + id + ", name=" + name + ", description="
 				+ description + ", creator=" + creator + ", creationDate="
 				+ creationDate + ", status=" + status + ", releaseDate="
-				+ releaseDate + ", version=" + version + ", layers="
-				+ layerPreviews + ", hasExpressionData=" + hasExpressionData 
+				+ releaseDate + ", version=" + version + ", hasExpressionData=" + hasExpressionData 
 				+ ", hasGeneticsData=" + hasGeneticData + ", hasClinicalData="
 				+ hasClinicalData + "]";
 	}

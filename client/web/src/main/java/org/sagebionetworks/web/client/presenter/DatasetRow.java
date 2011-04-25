@@ -5,7 +5,7 @@ import java.util.Date;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.LayerLink;
 
-public class DatasetRow {
+abstract class DatasetRow {
 
 	private Dataset wrapped = null;
 	// Start with no layers
@@ -16,11 +16,11 @@ public class DatasetRow {
 		if (wrapped != null) {
 			// Determine the layer mask
 			layerMask = 0x00;
-			if (this.wrapped.getLayerPreviews() != null) {
-				for (LayerLink layer : this.wrapped.getLayerPreviews()) {
-					layerMask = layerMask | layer.getType().getMask();
-				}
-			}
+//			if (this.wrapped.getLayerPreviews() != null) {
+//				for (LayerLink layer : this.wrapped.getLayerPreviews()) {
+//					layerMask = layerMask | layer.getType().getMask();
+//				}
+//			}
 		}
 	}
 

@@ -1,15 +1,21 @@
 package org.sagebionetworks.web.util;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 
+import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.PaginatedDatasets;
 
@@ -28,6 +34,7 @@ public class LocalDatasetServiceStub {
 	 * This is the shared list of datasets
 	 */
 	private static List<Dataset> allDataSets = new ArrayList<Dataset>();
+	private static Map<String, Annotations> datasetAnnoations = new HashMap<String, Annotations>();
 	
 	public LocalDatasetServiceStub(){
 	}
@@ -71,6 +78,49 @@ public class LocalDatasetServiceStub {
 		return null;		
 	}
 	
+	@POST 
+	@Consumes("application/json")@Produces("application/json")
+	public Dataset createDataset(Dataset ds){
+		if(ds == null) return null;
+		ds.setId(RandomDataset.nextSequenceId());
+		ds.setEtag("eTag"+ds.getId());
+		allDataSets.add(ds);
+		return ds;	
+	}
+	
+	@GET @Produces("application/json")
+	@Path("/{id}/annotations")
+	public Annotations getDatasetAnnotations(@PathParam("id") String id){
+		if(id == null) return null;
+		id  = id.trim();
+		if("".equals(id)) return null;
+		// Get the annotations from the map
+		Annotations result  = datasetAnnoations.get(id);
+		if(result == null){
+			result = new Annotations();
+			datasetAnnoations.put(id, result);
+		}
+		// Give it a new eTag
+		result.setEtag("eTag:"+RandomDataset.nextSequenceId());
+		return result;
+	}
+	
+	@PUT
+	@Consumes("application/json")@Produces("application/json")
+	@Path("/{id}/annotations")
+	public Annotations updateAnnotations(@PathParam("id") String id, Annotations annotations){
+		if(id == null) throw new IllegalArgumentException("Id cannot be null");
+		if(annotations == null) return null;
+		if(annotations.getEtag() == null) throw new IllegalArgumentException("The annotations eTag cannot be null");
+		// Make sure the eTag matches
+		Annotations current  = datasetAnnoations.get(id);
+		if(current == null) throw new IllegalArgumentException("Annotations do not exist for id: "+id);
+		if(current.getEtag().equals(annotations)) throw new IllegalArgumentException("The eTag does not macth the current. The annotations have changed since last getAnnotations()");
+		datasetAnnoations.put(id, annotations);
+		// Create a new eTag
+		annotations.setEtag(RandomDataset.nextSequenceId());
+		return annotations;
+	}
 	
 	// Generates random data
 	@GET @Produces("text/html")

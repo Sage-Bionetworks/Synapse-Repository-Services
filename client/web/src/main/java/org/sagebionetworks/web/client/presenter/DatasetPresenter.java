@@ -9,7 +9,7 @@ import org.sagebionetworks.web.client.DatasetServiceAsync;
 import org.sagebionetworks.web.client.view.DatasetView;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAsync;
 import org.sagebionetworks.web.shared.Dataset;
-import org.sagebionetworks.web.shared.DatasetAnnotations;
+import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 
@@ -72,11 +72,11 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 	protected void setDataset(Dataset result) {
 		if(result != null) {
 			this.model = result;
-			view.setDatasetRow(new DatasetRow(result));
+//			view.setDatasetRow(new DatasetRow(result));
 	
-			service.getDatasetAnnotations(model.getId(), new AsyncCallback<DatasetAnnotations>() {
+			service.getDatasetAnnotations(model.getId(), new AsyncCallback<Annotations>() {
 				@Override
-				public void onSuccess(DatasetAnnotations annotations) {
+				public void onSuccess(Annotations annotations) {
 					Map<String,List<Long>> longAnnotations = annotations.getLongAnnotations();
 					Map<String,List<String>> stringAnnotations = annotations.getStringAnnotations();
 					Map<String,List<Date>> dateAnnotations = annotations.getDateAnnotations();

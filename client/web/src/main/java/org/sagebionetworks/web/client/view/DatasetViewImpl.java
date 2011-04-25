@@ -4,10 +4,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.xpath.operations.Mod;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.IconsImageBundle;
-import org.sagebionetworks.web.client.presenter.DatasetRow;
 import org.sagebionetworks.web.client.widget.breadcrumb.Breadcrumb;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
@@ -259,10 +257,10 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	}
 	
 	
-	@Override
-	public void setDatasetRow(DatasetRow row) {
-
-	}
+//	@Override
+//	public void setDatasetRow(DatasetRow row) {
+//
+//	}
 
 	/**
 	 * Add a row to the provided FlexTable.

@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,7 @@ import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.server.RestTemplateProviderImpl;
 import org.sagebionetworks.web.server.servlet.DatasetServiceImpl;
 import org.sagebionetworks.web.server.servlet.ServiceUrlProvider;
+import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.PaginatedDatasets;
 import org.sagebionetworks.web.util.LocalDatasetServiceStub;
@@ -174,8 +176,8 @@ public class DatasetServiceImplTest {
 		assertNotNull(first.getCreationDate());
 		assertNotNull(first.getCreator());
 		assertNotNull(first.getDescription());
-		assertNotNull(first.getLayerPreviews());
-		System.out.println(first.getLayerPreviews());
+//		assertNotNull(first.getLayerPreviews());
+//		System.out.println(first.getLayerPreviews());
 		assertNotNull(first.getReleaseDate());
 		assertNotNull(first.getStatus());
 		assertNotNull(first.getVersion());
@@ -243,6 +245,68 @@ public class DatasetServiceImplTest {
 		assertNotNull(found);
 		assertTrue(last.equals(found));
 		
+	}
+	
+	@Test
+	public void testCreateDatasets(){
+		Dataset newDs = new Dataset();
+		newDs.setName("createName");
+		newDs.setDescription("nothing");
+		newDs.setCreator("me");
+		String id = service.createDataset(newDs);
+		assertNotNull(id);
+		// Make sure we can get what we created
+		Dataset copy = service.getDataset(id);
+		assertNotNull(copy);
+		assertEquals(newDs.getName(), copy.getName());
+	}
+	
+	@Test
+	public void testGetDatasetsAnnotations(){
+		// create a datasets
+		Dataset newDs = new Dataset();
+		newDs.setName("createName");
+		newDs.setDescription("nothing");
+		newDs.setCreator("me");
+		String id = service.createDataset(newDs);
+		assertNotNull(id);
+		Annotations anno = service.getDatasetAnnotations(id);
+		assertNotNull(anno);
+		// We should have an etag
+		assertNotNull(anno.getEtag());
+		// Add some data
+		Map<String, List<Long>> longAnnotations = new HashMap<String, List<Long>>();
+		List<Long> values = new ArrayList<Long>();
+		values.add(new Long(42));
+		longAnnotations.put("someLongAnnotations", values);
+		anno.setLongAnnotations(longAnnotations);
+		// Make sure we can update it
+		String newEtag = service.updateDatasetAnnotations(id, anno);
+		assertNotNull(newEtag);
+	}
+	
+	@Test
+	public void testAddDatasetAnnotatoin(){
+		Dataset newDs = new Dataset();
+		newDs.setName("createName");
+		newDs.setDescription("nothing");
+		newDs.setCreator("me");
+		String id = service.createDataset(newDs);
+		assertNotNull(id);
+		// Now add an annotation
+		Annotations anno = service.getDatasetAnnotations(id);
+		assertNotNull(anno);
+		String key = "someKey";
+		String value = "someValue";
+		anno.addAnnotation(key, value);
+		service.updateDatasetAnnotations(id, anno);
+		// Make sure we can get it back
+		Annotations updated = service.getDatasetAnnotations(id);
+		assertNotNull(updated);
+		Object returnVale = (String) updated.findFirstAnnotationValue(key);
+		assertNotNull(returnVale);
+		assertTrue(returnVale instanceof String);
+		assertEquals(value, (String)returnVale);
 	}
 
 }

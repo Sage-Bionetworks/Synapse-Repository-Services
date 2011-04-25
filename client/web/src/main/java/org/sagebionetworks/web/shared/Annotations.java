@@ -1,6 +1,8 @@
 package org.sagebionetworks.web.shared;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -10,7 +12,7 @@ import com.google.gwt.user.client.rpc.IsSerializable;
  * This is a data transfer object that will be populated from REST JSON.
  * 
  */
-public class DatasetAnnotations implements IsSerializable {
+public class Annotations implements IsSerializable {
 
 	private Date creationDate;
 	private Map<String, List<Date>> dateAnnotations;
@@ -70,6 +72,153 @@ public class DatasetAnnotations implements IsSerializable {
 	public void setUri(String uri) {
 		this.uri = uri;
 	}
+	/**
+	 * Add an an annotation.
+	 * @param anno
+	 * @param key
+	 * @param value must be String, Long, Double, or Date.
+	 */
+	public void addAnnotation(String key, Object value) {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(value == null) throw new IllegalArgumentException("Value cannot be null");
+		// Add the correct type
+		if(value instanceof String){
+			addStringAnnotation(key, (String) value);
+		}else if(value instanceof Date){
+			addDateAnnotation(key, (Date)value);
+		}else if(value instanceof Long){
+			addLongAnnotation(key, (Long) value);
+		}else if(value instanceof Double){
+			addDoubleAnnotation(key, (Double) value);
+		}else{
+			throw new IllegalArgumentException("Unkown object type: "+value.getClass().getName());
+		}
+	}
+	
+	/**
+	 * Add a single String annotation.
+	 * @param anno
+	 * @param key
+	 * @param value
+	 */
+	public void addStringAnnotation(String key, String value) {
+		// First get the strings
+		Map<String, List<String>> map = getStringAnnotations();
+		if(map == null){
+			map = new HashMap<String, List<String>>();
+			setStringAnnotations(map);
+		}
+		// Create a new value
+		List<String> values = new ArrayList<String>();
+		values.add(value);
+		map.put(key, values);
+	}
+	
+	/**
+	 * Add a single date annotation.
+	 * @param anno
+	 * @param key
+	 * @param value
+	 */
+	public void addDateAnnotation(String key, Date value){
+		// First get the map
+		Map<String, List<Date>> map = getDateAnnotations();
+		if(map == null){
+			map = new HashMap<String, List<Date>>();
+			setDateAnnotations(map);
+		}
+		// Create a new value
+		List<Date> values = new ArrayList<Date>();
+		values.add(value);
+		map.put(key, values);
+	}
+	
+	/**
+	 * Add a single long annotation.
+	 * @param anno
+	 * @param key
+	 * @param value
+	 */
+	public void addLongAnnotation(String key, Long value){
+		// First get the map
+		Map<String, List<Long>> map = getLongAnnotations();
+		if(map == null){
+			map = new HashMap<String, List<Long>>();
+			setLongAnnotations(map);
+		}
+		// Create a new value
+		List<Long> values = new ArrayList<Long>();
+		values.add(value);
+		map.put(key, values);
+	}
+	
+	/**
+	 * Add a single double annotation.
+	 * @param anno
+	 * @param key
+	 * @param value
+	 */
+	public void addDoubleAnnotation(String key, Double value){
+		// First get the map
+		Map<String, List<Double>> map = getDoubleAnnotations();
+		if(map == null){
+			map = new HashMap<String, List<Double>>();
+			setDoubleAnnotations(map);
+		}
+		// Create a new value
+		List<Double> values = new ArrayList<Double>();
+		values.add(value);
+		map.put(key, values);
+	}
+
+	/**
+	 * Find 
+	 * @param anno
+	 * @param key
+	 * @return
+	 */
+	public Object findFirstAnnotationValue(String key) {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		// Look in each type
+		// Double
+		Map<String, List<Double>> doubleMap = getDoubleAnnotations();
+		if(doubleMap != null){
+			List<Double> list = doubleMap.get(key);
+			if(list != null && list.size() > 0){
+				// Return the first
+				return list.get(0);
+			}
+		}
+		// String
+		Map<String, List<String>> stringMap = getStringAnnotations();
+		if(stringMap != null){
+			List<String> list = stringMap.get(key);
+			if(list != null && list.size() > 0){
+				// Return the first
+				return list.get(0);
+			}
+		}
+		// Date
+		Map<String, List<Date>> dateMap = getDateAnnotations();
+		if(dateMap != null){
+			List<Date> list = dateMap.get(key);
+			if(list != null && list.size() > 0){
+				// Return the first
+				return list.get(0);
+			}
+		}
+		// Long
+		Map<String, List<Long>> longMap = getLongAnnotations();
+		if(longMap != null){
+			List<Long> list = longMap.get(key);
+			if(list != null && list.size() > 0){
+				// Return the first
+				return list.get(0);
+			}
+		}
+		// It does not exist
+		return null;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -101,7 +250,7 @@ public class DatasetAnnotations implements IsSerializable {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		DatasetAnnotations other = (DatasetAnnotations) obj;
+		Annotations other = (Annotations) obj;
 		if (creationDate == null) {
 			if (other.creationDate != null)
 				return false;

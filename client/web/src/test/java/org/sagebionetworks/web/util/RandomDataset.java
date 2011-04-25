@@ -55,11 +55,17 @@ public class RandomDataset {
 				break;
 			}
 		}
-		c.setLayerPreviews(layers);
+//		c.setLayerPreviews(layers);
 		c.setStatus(RandomStrings.generateRandomString(1, 10));
 		c.setVersion("1.0."+rand.nextInt(9));
 		
 		return c;
+	}
+	
+	public static String nextSequenceId(){
+		// Increment and return
+		idSequence++;
+		return ""+idSequence;
 	}
 
 }
