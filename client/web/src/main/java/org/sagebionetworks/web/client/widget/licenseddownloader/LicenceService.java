@@ -1,7 +1,5 @@
 package org.sagebionetworks.web.client.widget.licenseddownloader;
 
-import org.sagebionetworks.web.shared.LicenseAgreement;
-
 import com.google.gwt.user.client.rpc.RemoteService;
 import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
 

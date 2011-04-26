@@ -1,4 +1,4 @@
-package org.sagebionetworks.web.unitclient.presenter;
+package org.sagebionetworks.web.unitclient.widget.table;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.times;
@@ -21,10 +21,11 @@ import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableView;
 import org.sagebionetworks.web.shared.HeaderData;
-import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
+import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.TableResults;
 import org.sagebionetworks.web.test.helper.AsyncServiceRecorder;
+import org.sagebionetworks.web.unitclient.presenter.SampleHeaderData;
 
 import com.google.gwt.junit.GWTMockUtilities;
 

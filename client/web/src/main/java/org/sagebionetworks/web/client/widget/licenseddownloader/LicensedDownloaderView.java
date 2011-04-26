@@ -49,7 +49,7 @@ public interface LicensedDownloaderView extends IsWidget {
 	 * @param fileUrls
 	 * @param checksums
 	 */
-	void setDownloadUrls(List<FileDownload> downloads);
+	public void setDownloadUrls(List<FileDownload> downloads);
 	
 	
 	/**

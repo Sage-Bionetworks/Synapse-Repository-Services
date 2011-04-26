@@ -1,7 +1,5 @@
 package org.sagebionetworks.web.client.place;
 
-import org.sagebionetworks.web.client.view.LoginView;
-
 import com.google.gwt.place.shared.Place;
 import com.google.gwt.place.shared.PlaceTokenizer;
 

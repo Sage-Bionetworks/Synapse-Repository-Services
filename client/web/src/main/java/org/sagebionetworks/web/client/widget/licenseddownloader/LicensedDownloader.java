@@ -64,13 +64,12 @@ public class LicensedDownloader implements LicensedDownloaderView.Presenter {
 	}
 	
 	@Override
-	public void setLicenseAccepted() {
-		final LicensedDownloader downloader = this;
+	public void setLicenseAccepted() {		
 		// send out to using class to let know of acceptance
 		licenseAcceptedCallback.onSuccess(null);
 		// allow the view to skip the license agreement now and show the download view
-		downloader.setRequireLicenseAcceptance(false);
-		downloader.showWindow();		
+		setRequireLicenseAcceptance(false);
+		showWindow();		
 	}
 
 }
