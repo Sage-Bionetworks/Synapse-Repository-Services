@@ -21,7 +21,7 @@ import com.google.inject.Inject;
 
 public class DatasetPresenter extends AbstractActivity implements DatasetView.Presenter{	
 
-	private org.sagebionetworks.web.client.place.DatasetPlace place;
+	private org.sagebionetworks.web.client.place.Dataset place;
 	private DatasetServiceAsync service;
 	private LicenceServiceAsync licenseService;
 	private DatasetView view;
@@ -174,7 +174,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 		} 				
 	}
 
-	public void setPlace(org.sagebionetworks.web.client.place.DatasetPlace place) {
+	public void setPlace(org.sagebionetworks.web.client.place.Dataset place) {
 		this.place = place;
 		this.datasetId = place.toToken();
 	}

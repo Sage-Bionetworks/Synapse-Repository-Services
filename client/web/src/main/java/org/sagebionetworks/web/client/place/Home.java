@@ -3,9 +3,9 @@ package org.sagebionetworks.web.client.place;
 import com.google.gwt.place.shared.Place;
 import com.google.gwt.place.shared.PlaceTokenizer;
 
-public class HomePlace extends Place{
+public class Home extends Place{
 	
-	public HomePlace(String token) {
+	public Home(String token) {
 	}
 
 	public String toToken() {
@@ -13,15 +13,15 @@ public class HomePlace extends Place{
 		return "";
 	}
 	
-	public static class Tokenizer implements PlaceTokenizer<HomePlace> {
+	public static class Tokenizer implements PlaceTokenizer<Home> {
         @Override
-        public String getToken(HomePlace place) {
+        public String getToken(Home place) {
             return place.toToken();
         }
 
         @Override
-        public HomePlace getPlace(String token) {
-            return new HomePlace(token);
+        public Home getPlace(String token) {
+            return new Home(token);
         }
     }
 

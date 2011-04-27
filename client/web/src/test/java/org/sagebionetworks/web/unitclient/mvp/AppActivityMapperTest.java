@@ -8,9 +8,9 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.web.client.ProtalGinInjector;
 import org.sagebionetworks.web.client.mvp.AppActivityMapper;
-import org.sagebionetworks.web.client.place.DatasetPlace;
-import org.sagebionetworks.web.client.place.DatasetsHomePlace;
-import org.sagebionetworks.web.client.place.HomePlace;
+import org.sagebionetworks.web.client.place.Dataset;
+import org.sagebionetworks.web.client.place.DatasetsHome;
+import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetsHomePresenter;
 import org.sagebionetworks.web.client.presenter.HomePresenter;
@@ -56,7 +56,7 @@ public class AppActivityMapperTest {
 	@Test
 	public void testDatasetsHome(){
 		// Test this place
-		DatasetsHomePlace allDatestsPlace = new DatasetsHomePlace(null);
+		DatasetsHome allDatestsPlace = new DatasetsHome(null);
 
 		// Create the mapper
 		AppActivityMapper mapper = new AppActivityMapper(mockInjector);
@@ -80,7 +80,7 @@ public class AppActivityMapperTest {
 		DatasetPresenter mockPresenter = Mockito.mock(DatasetPresenter.class);
 		when(mockInjector.getDatasetPresenter()).thenReturn(mockPresenter);
 		// This is the place
-		DatasetPlace datasetPlace = new DatasetPlace("ID");
+		Dataset datasetPlace = new Dataset("ID");
 
 		// Create the mapper
 		AppActivityMapper mapper = new AppActivityMapper(mockInjector);
@@ -107,7 +107,7 @@ public class AppActivityMapperTest {
 		assertNotNull(object);
 		assertTrue(object instanceof HomePresenter);
 		// Validate that the place was set.
-		verify(mockAll).setPlace((HomePlace) anyObject());
+		verify(mockAll).setPlace((Home) anyObject());
 	}
 
 }
