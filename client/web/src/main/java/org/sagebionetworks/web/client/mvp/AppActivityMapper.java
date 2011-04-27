@@ -5,10 +5,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.web.client.ProtalGinInjector;
-import org.sagebionetworks.web.client.place.Dataset;
-import org.sagebionetworks.web.client.place.DatasetsHome;
-import org.sagebionetworks.web.client.place.Home;
-import org.sagebionetworks.web.client.place.Layer;
+import org.sagebionetworks.web.client.place.DatasetPlace;
+import org.sagebionetworks.web.client.place.DatasetsHomePlace;
+import org.sagebionetworks.web.client.place.HomePlace;
+import org.sagebionetworks.web.client.place.LayerPlace;
 import org.sagebionetworks.web.client.place.LoginPlace;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetsHomePresenter;
@@ -50,25 +50,25 @@ public class AppActivityMapper implements ActivityMapper {
 		
 		// We use GIN to generate and inject all presenters with 
 		// their dependencies.
-		if(place instanceof Home) {
+		if(place instanceof HomePlace) {
 			HomePresenter presenter = ginjector.getHomePresenter();
-			presenter.setPlace((Home)place);
+			presenter.setPlace((HomePlace)place);
 			return presenter;
-		} else if(place instanceof DatasetsHome){
+		} else if(place instanceof DatasetsHomePlace){
 			// The home page for all datasets
 			DatasetsHomePresenter presenter = ginjector.getDatasetsHomePresenter();
 			// set this presenter's place
-			presenter.setPlace((DatasetsHome)place);
+			presenter.setPlace((DatasetsHomePlace)place);
 			return presenter;
-		}else if(place instanceof Dataset){
+		}else if(place instanceof DatasetPlace){
 			DatasetPresenter presenter = ginjector.getDatasetPresenter();
 			// set this presenter's place
-			presenter.setPlace((Dataset)place);
+			presenter.setPlace((DatasetPlace)place);
 			return presenter;
-		}else if (place instanceof Layer) {
+		}else if (place instanceof LayerPlace) {
 			// The layer detail view
 			LayerPresenter presenter = ginjector.getLayerPresenter();
-			presenter.setPlace((Layer)place);
+			presenter.setPlace((LayerPlace)place);
 			return presenter;
 		}else if (place instanceof LoginPlace) {
 			// The layer detail view
@@ -88,7 +88,7 @@ public class AppActivityMapper implements ActivityMapper {
 	 * @return
 	 */
 	public Place getDefaultPlace() {
-		return new Home(null);
+		return new HomePlace(null);
 	}
 
 }

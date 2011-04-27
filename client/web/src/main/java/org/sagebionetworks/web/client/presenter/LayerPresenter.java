@@ -26,7 +26,7 @@ import com.google.inject.Inject;
 
 public class LayerPresenter extends AbstractActivity implements LayerView.Presenter{	
 
-	private org.sagebionetworks.web.client.place.Layer place;
+	private org.sagebionetworks.web.client.place.LayerPlace place;
 	private DatasetServiceAsync service;
 	
 	private LayerView view;
@@ -113,7 +113,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	}
 
 
-	public void setPlace(org.sagebionetworks.web.client.place.Layer place) {
+	public void setPlace(org.sagebionetworks.web.client.place.LayerPlace place) {
 		this.place = place;
 		this.layerId = place.getLayerId();
 		this.datasetId = place.getDatasetId();

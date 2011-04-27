@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.cookie.CookieUtils;
-import org.sagebionetworks.web.client.place.DatasetsHome;
+import org.sagebionetworks.web.client.place.DatasetsHomePlace;
 import org.sagebionetworks.web.client.view.DatasetsHomeView;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 
@@ -17,7 +17,7 @@ public class DatasetsHomePresenter extends AbstractActivity implements DatasetsH
 	
 	public static final String KEY_DATASETS_SELECTED_COLUMNS_COOKIE = "org.sagebionetworks.selected.dataset.columns";
 
-	private DatasetsHome place;
+	private DatasetsHomePlace place;
 	private DatasetsHomeView view;
 	private ColumnsPopupPresenter columnsPopupPresenter;
 	private CookieProvider cookieProvider;
@@ -39,7 +39,7 @@ public class DatasetsHomePresenter extends AbstractActivity implements DatasetsH
 		panel.setWidget(view);
 	}
 
-	public void setPlace(DatasetsHome place) {
+	public void setPlace(DatasetsHomePlace place) {
 		this.place = place;
 	}
 

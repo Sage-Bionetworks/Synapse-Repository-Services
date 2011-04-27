@@ -1,7 +1,7 @@
 package org.sagebionetworks.web.client.presenter;
 
 import org.sagebionetworks.web.client.cookie.CookieProvider;
-import org.sagebionetworks.web.client.place.Home;
+import org.sagebionetworks.web.client.place.HomePlace;
 import org.sagebionetworks.web.client.view.HomeView;
 
 import com.google.gwt.activity.shared.AbstractActivity;
@@ -12,7 +12,7 @@ import com.google.inject.Inject;
 public class HomePresenter extends AbstractActivity implements HomeView.Presenter {
 	public static final String KEY_DATASETS_SELECTED_COLUMNS_COOKIE = "org.sagebionetworks.selected.dataset.columns";
 	
-	private Home place;
+	private HomePlace place;
 	private HomeView view;
 	private CookieProvider cookieProvider;
 	
@@ -30,7 +30,7 @@ public class HomePresenter extends AbstractActivity implements HomeView.Presente
 		panel.setWidget(view);
 	}
 
-	public void setPlace(Home place) {
+	public void setPlace(HomePlace place) {
 		this.place = place;
 	}
 

@@ -3,11 +3,11 @@ package org.sagebionetworks.web.client.place;
 import com.google.gwt.place.shared.Place;
 import com.google.gwt.place.shared.PlaceTokenizer;
 
-public class Dataset extends Place {
+public class DatasetPlace extends Place {
 	
 	private String token;
 
-	public Dataset(String token) {
+	public DatasetPlace(String token) {
 		this.token = token;
 	}
 
@@ -15,15 +15,15 @@ public class Dataset extends Place {
 		return token;
 	}
 	
-	public static class Tokenizer implements PlaceTokenizer<Dataset> {
+	public static class Tokenizer implements PlaceTokenizer<DatasetPlace> {
         @Override
-        public String getToken(Dataset place) {
+        public String getToken(DatasetPlace place) {
             return place.toToken();
         }
 
         @Override
-        public Dataset getPlace(String token) {
-            return new Dataset(token);
+        public DatasetPlace getPlace(String token) {
+            return new DatasetPlace(token);
         }
     }
 

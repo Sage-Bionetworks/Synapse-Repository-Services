@@ -3,13 +3,13 @@ package org.sagebionetworks.web.client.place;
 import com.google.gwt.place.shared.Place;
 import com.google.gwt.place.shared.PlaceTokenizer;
 
-public class Layer extends Place {
+public class LayerPlace extends Place {
 	
 	private String layerId;
 	private String datasetId;
 	private Boolean download;
 	
-	public Layer(String layerId, String datasetId, Boolean download) {
+	public LayerPlace(String layerId, String datasetId, Boolean download) {
 		this.layerId = layerId;
 		this.datasetId = datasetId;
 		this.download = download;
@@ -37,14 +37,14 @@ public class Layer extends Place {
 		return download;
 	}
 	
-	public static class Tokenizer implements PlaceTokenizer<Layer> {
+	public static class Tokenizer implements PlaceTokenizer<LayerPlace> {
         @Override
-        public String getToken(Layer place) {
+        public String getToken(LayerPlace place) {
             return place.toToken();
         }
 
         @Override
-        public Layer getPlace(String token) {        	
+        public LayerPlace getPlace(String token) {        	
         	String layerId = token.replaceAll(";.*", "");
         	String datasetId = null;
         	Boolean download = null;
@@ -65,7 +65,7 @@ public class Layer extends Place {
 	        		}
 	        	}
         	        	
-            return new Layer(layerId, datasetId, download); 
+            return new LayerPlace(layerId, datasetId, download); 
         }
     }
 
