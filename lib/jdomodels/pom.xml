@@ -1,171 +1,225 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org\
+	xmlns:xsi="http://www.w3.org\
                     /2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0\
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0\
                              http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  
-  <parent>
-    <groupId>org.sagebionetworks</groupId>
-    <artifactId>lib</artifactId>
-    <version>parent-1.0</version>
-  </parent>
-  
-  <groupId>org.sagebionetworks</groupId>
-  <artifactId>lib-jdomodels</artifactId>
-  <packaging>jar</packaging>
-  <name>Platform Repository Model Objects - JDO Implementation</name>
+	<modelVersion>4.0.0</modelVersion>
 
-  <dependencies>
-    
-    <!-- Sage Bionetworks Dependencies -->
-    <dependency>
-      <groupId>org.sagebionetworks</groupId>
-      <artifactId>lib-models</artifactId>
-      <version>${applicationVersion}</version>
-    </dependency>
+	<parent>
+		<groupId>org.sagebionetworks</groupId>
+		<artifactId>lib</artifactId>
+		<version>parent-1.0</version>
+	</parent>
 
-    <dependency>
-      <groupId>org.sagebionetworks</groupId>
-      <artifactId>auth-util</artifactId>
-      <version>${applicationVersion}</version>
-    </dependency>
+	<groupId>org.sagebionetworks</groupId>
+	<artifactId>lib-jdomodels</artifactId>
+	<packaging>jar</packaging>
+	<name>Platform Repository Model Objects - JDO Implementation</name>
 
-    <!-- Persistence-related dependencies -->
-    <dependency>
-      <groupId>org.datanucleus</groupId>
-      <artifactId>datanucleus-core</artifactId>
-      <version>${datanucleus.version}</version>
-      <scope>runtime</scope>
-    </dependency>
-	<dependency>
-	  <groupId>org.datanucleus</groupId>
-	  <artifactId>datanucleus-rdbms</artifactId>
-	  <version>${datanucleus.version}</version>
-	</dependency>
-    
-    <dependency>
-      <groupId>javax.transaction</groupId>
-      <artifactId>jta</artifactId>
-      <version>1.1</version>
-    </dependency>
-    
-    <dependency>
-      <groupId>javax.jdo</groupId>
-      <artifactId>jdo2-api</artifactId>
-      <version>2.3-eb</version>
-      <exclusions>
-        <exclusion>
-          <groupId>javax.transaction</groupId>
-          <artifactId>transaction-api</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
+	<dependencies>
 
-	<!-- MySQL dependencies -->
-	<dependency>
-	  <groupId>mysql</groupId>
-	  <artifactId>mysql-connector-java</artifactId>
-	  <version>5.1.13</version>
-	  <scope>runtime</scope>
-	</dependency>
-    
-    <!-- HSQLDB http://www.hsqldb.org/ -->
-    <dependency>
-      <groupId>hsqldb</groupId>
-      <artifactId>hsqldb</artifactId>
-      <version>1.8.0.4</version>
-      <!-- TODO this should be a test dependency only once we have MySQL
-      configured in production -->
-<!--       <scope>test</scope> -->
-    </dependency>
-    
-        <!-- Jackson JSON Mapper -->
-    <dependency>
-      <groupId>org.codehaus.jackson</groupId>
-      <artifactId>jackson-mapper-asl</artifactId>
-      <version>1.7.1</version>
-    </dependency>
-    
-  </dependencies>
+		<!-- Sage Bionetworks Dependencies -->
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-models</artifactId>
+			<version>${applicationVersion}</version>
+		</dependency>
 
-  <version>${applicationVersion}</version>
-  <build>
-    <plugins>
-      
-      <!-- This plug-in "enhances" your domain model objects (i.e. makes
-           them persistent for datanucleus)
-        -->
-      <plugin>
-        <groupId>org.datanucleus</groupId>
-        <artifactId>maven-datanucleus-plugin</artifactId>
-        <version>1.1.4</version>
-        <configuration>
-          <!-- Make sure this path contains your persistent classes!
-            -->
-          <mappingIncludes>**/model/jdo/persistence/*.class</mappingIncludes>
-          <verbose>true</verbose>
-          <fork>false</fork>
-          <enhancerName>ASM</enhancerName>
-<!--          <outputFile>target/schema.ddl</outputFile>-->
-          <api>JDO</api>
-          <props>${basedir}/src/main/resources/datanucleus.properties</props>
-	      <log4jConfiguration>${basedir}/src/main/resources/log4j.properties</log4jConfiguration>
-	      <completeDdl>true</completeDdl>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>compile</phase>
-            <goals>
-              <goal>enhance</goal>
-            </goals>
-          </execution>
-        </executions>
-        <dependencies>
-          <dependency>
-            <groupId>org.datanucleus</groupId>
-            <artifactId>datanucleus-core</artifactId>
-            <version>${datanucleus.version}</version>
-            <exclusions>
-              <exclusion>
-                <groupId>javax.transaction</groupId>
-                <artifactId>transaction-api</artifactId>
-              </exclusion>
-            </exclusions>
-          </dependency>
-          <dependency>
-            <groupId>org.datanucleus</groupId>
-            <artifactId>datanucleus-rdbms</artifactId>
-            <version>${datanucleus.version}</version>
-          </dependency>
-          <dependency>
-            <groupId>org.datanucleus</groupId>
-            <artifactId>datanucleus-enhancer</artifactId>
-            <version>1.1.4</version>
-          </dependency>
-          <dependency>
-            <groupId>javax.jdo</groupId>
-            <artifactId>jdo2-api</artifactId>
-            <version>2.3-ec</version>
-            <scope>runtime</scope>
-          </dependency>
-	      <dependency>
-	        <groupId>mysql</groupId>
-	        <artifactId>mysql-connector-java</artifactId>
-	        <version>5.1.13</version>
-	        <scope>runtime</scope>
-	      </dependency>
-        </dependencies>
-      </plugin>
-      
-    </plugins>
-  </build>
-  
-  <!-- Specify hard-coded project properties here -->
-  <properties>
-    <datanucleus.version>1.1.5</datanucleus.version>
-  </properties>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>auth-util</artifactId>
+			<version>${applicationVersion}</version>
+		</dependency>
+
+		<!-- Persistence-related dependencies -->
+		<dependency>
+			<groupId>org.datanucleus</groupId>
+			<artifactId>datanucleus-core</artifactId>
+			<version>${datanucleus.version}</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.datanucleus</groupId>
+			<artifactId>datanucleus-rdbms</artifactId>
+			<version>${datanucleus.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.transaction</groupId>
+			<artifactId>jta</artifactId>
+			<version>1.1</version>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.jdo</groupId>
+			<artifactId>jdo2-api</artifactId>
+			<version>2.3-eb</version>
+			<exclusions>
+				<exclusion>
+					<groupId>javax.transaction</groupId>
+					<artifactId>transaction-api</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<!-- MySQL dependencies -->
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>5.1.13</version>
+			<scope>runtime</scope>
+		</dependency>
+
+		<!-- HSQLDB http://www.hsqldb.org/ -->
+		<dependency>
+			<groupId>hsqldb</groupId>
+			<artifactId>hsqldb</artifactId>
+			<version>1.8.0.4</version>
+			<!-- TODO this should be a test dependency only once we have MySQL configured 
+				in production -->
+			<!-- <scope>test</scope> -->
+		</dependency>
+
+		<!-- Jackson JSON Mapper -->
+		<dependency>
+			<groupId>org.codehaus.jackson</groupId>
+			<artifactId>jackson-mapper-asl</artifactId>
+			<version>1.7.1</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring</artifactId>
+			<version>2.5.6</version>
+			<type>jar</type>
+			<scope>compile</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.7</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.jukito</groupId>
+			<artifactId>jukito</artifactId>
+			<version>1.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-test</artifactId>
+			<version>3.0.5.RELEASE</version>
+			<type>jar</type>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-aspects</artifactId>
+			<version>3.0.5.RELEASE</version>
+			<type>jar</type>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.aspectj</groupId>
+			<artifactId>aspectjlib</artifactId>
+			<version>1.6.2</version>
+			<type>jar</type>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.aspectj</groupId>
+			<artifactId>aspectjweaver</artifactId>
+			<version>1.6.10</version>
+			<type>jar</type>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.aspectj</groupId>
+			<artifactId>aspectjrt</artifactId>
+			<version>1.6.10</version>
+			<type>jar</type>
+			<scope>compile</scope>
+		</dependency>
+	</dependencies>
+
+	<version>${applicationVersion}</version>
+	<build>
+		<plugins>
+
+			<!-- This plug-in "enhances" your domain model objects (i.e. makes them 
+				persistent for datanucleus) -->
+			<plugin>
+				<groupId>org.datanucleus</groupId>
+				<artifactId>maven-datanucleus-plugin</artifactId>
+				<version>1.1.4</version>
+				<configuration>
+					<!-- Make sure this path contains your persistent classes! -->
+					<mappingIncludes>**/model/jdo/persistence/*.class</mappingIncludes>
+					<verbose>true</verbose>
+					<fork>false</fork>
+					<enhancerName>ASM</enhancerName>
+					<!-- <outputFile>target/schema.ddl</outputFile> -->
+					<api>JDO</api>
+					<props>${basedir}/src/main/resources/datanucleus.properties</props>
+					<log4jConfiguration>${basedir}/src/main/resources/log4j.properties
+					</log4jConfiguration>
+					<completeDdl>true</completeDdl>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>compile</phase>
+						<goals>
+							<goal>enhance</goal>
+						</goals>
+					</execution>
+				</executions>
+				<dependencies>
+					<dependency>
+						<groupId>org.datanucleus</groupId>
+						<artifactId>datanucleus-core</artifactId>
+						<version>${datanucleus.version}</version>
+						<exclusions>
+							<exclusion>
+								<groupId>javax.transaction</groupId>
+								<artifactId>transaction-api</artifactId>
+							</exclusion>
+						</exclusions>
+					</dependency>
+					<dependency>
+						<groupId>org.datanucleus</groupId>
+						<artifactId>datanucleus-rdbms</artifactId>
+						<version>${datanucleus.version}</version>
+					</dependency>
+					<dependency>
+						<groupId>org.datanucleus</groupId>
+						<artifactId>datanucleus-enhancer</artifactId>
+						<version>1.1.4</version>
+					</dependency>
+					<dependency>
+						<groupId>javax.jdo</groupId>
+						<artifactId>jdo2-api</artifactId>
+						<version>2.3-ec</version>
+						<scope>runtime</scope>
+					</dependency>
+					<dependency>
+						<groupId>mysql</groupId>
+						<artifactId>mysql-connector-java</artifactId>
+						<version>5.1.13</version>
+						<scope>runtime</scope>
+					</dependency>
+				</dependencies>
+			</plugin>
+
+		</plugins>
+	</build>
+
+	<!-- Specify hard-coded project properties here -->
+	<properties>
+		<datanucleus.version>1.1.5</datanucleus.version>
+	</properties>
 
 </project>
 
