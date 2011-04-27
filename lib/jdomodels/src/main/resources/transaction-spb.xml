@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.0.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.0.xsd">
+
+	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
+	<aop:aspectj-autoproxy />
+	
+	<!-- This properties object will contain all of Persistence Manager Factory configuration properties. -->
+	<bean id="pmfProperties" class="org.sagebionetworks.repo.model.jdo.PMFProperties" />
+
+	<!-- PMF Bean -->
+	<bean id="pmf"
+		class="org.springframework.orm.jdo.LocalPersistenceManagerFactoryBean">
+		<property name="jdoProperties" ref="pmfProperties"/>
+	</bean>
+
+	<!-- enable the configuration of transactional behavior based on annotations -->
+	<tx:annotation-driven transaction-manager="jdoTransactionManager" />
+
+	<!-- Transaction Manager for PMF -->
+	<bean id="jdoTransactionManager" class="org.springframework.orm.jdo.JdoTransactionManager">
+		<property name="persistenceManagerFactory">
+			<ref local="pmf" />
+		</property>
+	</bean>
+
+	<!-- Template hides most of the actions from our daos -->
+	<bean id="jdoTemplate" class="org.springframework.orm.jdo.JdoTemplate">
+		<property name="persistenceManagerFactory">
+			<ref local="pmf" />
+		</property>
+	</bean>
+	
+	<!-- Starting with a temp DAO -->
+	<bean id="datasetDao" class="org.sagebionetworks.repo.model.jdo.temp.TempDatasetDaoImpl" />
+
+
+</beans>

@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.xml.bind.annotation.XmlRootElement;
@@ -21,7 +23,7 @@ public class Annotations implements Base {
 	private Map<String, Collection<Double>> doubleAnnotations;
 	private Map<String, Collection<Long>> longAnnotations;
 	private Map<String, Collection<Date>> dateAnnotations;
-
+	
 	public String getId() {
 		return id;
 	}
@@ -102,6 +104,81 @@ public class Annotations implements Base {
 	public void setDateAnnotations(Map<String, Collection<Date>> dateAnnotations) {
 		this.dateAnnotations = dateAnnotations;
 	}
+	
+	/**
+	 * Helper for adding a string
+	 * @param key
+	 * @param value
+	 */
+	public void addAnnotation(String key, String value){
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(value == null) throw new IllegalArgumentException("Value cannot be null");
+		if(this.stringAnnotations == null){
+			this.stringAnnotations = new HashMap<String, Collection<String>>();
+		}
+		Collection<String> current = this.stringAnnotations.get(key);
+		if(current == null){
+			current = new ArrayList<String>();
+			this.stringAnnotations.put(key, current);
+		}
+		current.add(value);	
+	}
+	
+	/**
+	 * Helper for adding a long
+	 * @param key
+	 * @param value
+	 */
+	public void addAnnotation(String key, Long value){
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(value == null) throw new IllegalArgumentException("Value cannot be null");
+		if(this.longAnnotations == null){
+			this.longAnnotations = new HashMap<String, Collection<Long>>();
+		}
+		Collection<Long> current = this.longAnnotations.get(key);
+		if(current == null){
+			current = new ArrayList<Long>();
+			this.longAnnotations.put(key, current);
+		}
+		current.add(value);		
+	}
+	
+	/**
+	 * Helper for adding a double
+	 * @param key
+	 * @param value
+	 */
+	public void addAnnotation(String key, Double value){
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(value == null) throw new IllegalArgumentException("Value cannot be null");
+		if(this.doubleAnnotations == null){
+			this.doubleAnnotations = new HashMap<String, Collection<Double>>();
+		}
+		Collection<Double> current = this.doubleAnnotations.get(key);
+		if(current == null){
+			current = new ArrayList<Double>();
+			this.doubleAnnotations.put(key, current);
+		}
+		current.add(value);
+	}
+	/**
+	 * Helper for adding a date
+	 * @param key
+	 * @param value
+	 */
+	public void addAnnotation(String key, Date value){
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(value == null) throw new IllegalArgumentException("Value cannot be null");
+		if(this.dateAnnotations == null){
+			this.dateAnnotations = new HashMap<String, Collection<Date>>();
+		}
+		Collection<Date> current = this.dateAnnotations.get(key);
+		if(current == null){
+			current = new ArrayList<Date>();
+			this.dateAnnotations.put(key, current);
+		}
+		current.add(value);
+	}
 
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
@@ -158,6 +235,15 @@ public class Annotations implements Base {
 		} else if (!stringAnnotations.equals(other.stringAnnotations))
 			return false;
 		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "Annotations [id=" + id + ", uri=" + uri + ", etag=" + etag
+				+ ", creationDate=" + creationDate + ", stringAnnotations="
+				+ stringAnnotations + ", doubleAnnotations="
+				+ doubleAnnotations + ", longAnnotations=" + longAnnotations
+				+ ", dateAnnotations=" + dateAnnotations + "]";
 	}
 
 }
