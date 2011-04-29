@@ -17,18 +17,26 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.jdo.JDOBootstrapperImpl;
 import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
+import org.sagebionetworks.repo.model.jdo.JDOUserGroupDAOImpl;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.PMF;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
-
 
 
 public class UserGroupDAOTest {
 //	private final LocalServiceTestHelper helper = new LocalServiceTestHelper(
 //			new LocalDatastoreServiceTestConfig());
+	
+	private static final Logger log = Logger
+	.getLogger(UserGroupDAOTest.class.getName());
+
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -55,24 +63,22 @@ public class UserGroupDAOTest {
 
 	@After
 	public void tearDown() throws Exception {
-		PersistenceManager pm = null;
-		try {
-			pm = PMF.get();
-			Transaction tx = pm.currentTransaction();
+			UserDAO userDAO = fac.getUserDAO(AuthUtilConstants.ADMIN_USER_ID);
 			for (Long id : userIds) {
-				tx.begin();
-				if (id!=null) pm.deletePersistent(pm.getObjectById(JDOUser.class, id));
-				tx.commit();
+				if (id!=null) userDAO.delete(KeyFactory.keyToString(id));
 			}
+			UserGroupDAO groupDAO = fac.getUserGroupDAO(AuthUtilConstants.ADMIN_USER_ID);
 			for (Long id : groupIds) {
-				tx.begin();
-				if (id!=null) pm.deletePersistent(pm.getObjectById(JDOUserGroup.class, id));
-				tx.commit();
+				if (id!=null) groupDAO.delete(KeyFactory.keyToString(id));
 			}
-		} finally {
-			if (pm != null)
-				pm.close();
-		}
+
+			PersistenceManager pm = PMF.get();
+			{
+				JDOUserGroup publicGroup = JDOUserGroupDAOImpl.getPublicGroup(pm);
+				// here are the publicly available resources:
+				log.info("Public can access: "+publicGroup.getResourceAccess());
+			}
+
 	}
 
 	private User createUser(String userId) {
@@ -88,8 +94,58 @@ public class UserGroupDAOTest {
 		group.setCreationDate(new Date());
 		return group;
 	}
+	
+	private static boolean isInGroup(JDOUserGroup group, String type, String id) throws Exception {
+		Set<JDOResourceAccess> ras = group.getResourceAccess();
+		boolean foundit=false;
+		for (JDOResourceAccess ra : ras) {
+			if (ra.getResourceType().equals(type) &&
+					ra.getResourceId().longValue()==KeyFactory.stringToKey(id)) {
+				foundit=true;
+			}
+		}
+		return foundit;
+	}
+	
+	@Test
+	public void testCleanUpAccess() throws Exception {
+		// get the public group
+		PersistenceManager pm = PMF.get();
+		{
+			JDOUserGroup publicGroup = JDOUserGroupDAOImpl.getPublicGroup(pm);
+			// here are the publicly available resources:
+//			log.info("Public can access: "+publicGroup.getResourceAccess());
+		}
+		// create a resource, anonymously
+		UserDAO anonymousUserDAO = fac.getUserDAO(null);
+		User user = createUser("TestUser 1");
+		anonymousUserDAO.create(user);
+		this.userIds.add(KeyFactory.stringToKey(user.getId()));
+		
+		 pm = PMF.get();
+		// here are the publicly available resources:
+		JDOUserGroup publicGroup = JDOUserGroupDAOImpl.getPublicGroup(pm);
+		// here are the publicly available resources:
+//		log.info("After creating user, public can access: "+publicGroup.getResourceAccess());
 
-	@Ignore
+		// the resource should be publicly accessible
+//		log.info("type="+ JDOUser.class.getName());
+//		log.info("id="+user.getId());
+		Assert.assertTrue(isInGroup(publicGroup, JDOUser.class.getName(), user.getId()));
+		
+		// delete the resource
+		// can't do it anonymously
+		UserDAO adminUserDAO = fac.getUserDAO(AuthUtilConstants.ADMIN_USER_ID);
+		adminUserDAO.delete(user.getId());
+		this.userIds.remove(KeyFactory.stringToKey(user.getId()));
+		
+		// the resource should be gone from the public group
+		 pm = PMF.get();
+		 publicGroup = JDOUserGroupDAOImpl.getPublicGroup(pm);
+		Assert.assertFalse(isInGroup(publicGroup, JDOUser.class.getName(), user.getId()));
+	}
+
+//	@Ignore
 	@Test
 	public void happyPath() throws Exception {
 		// create user anonymously
@@ -97,6 +153,13 @@ public class UserGroupDAOTest {
 		User user = createUser("TestUser 1");
 		anonymousUserDAO.create(user);
 		this.userIds.add(KeyFactory.stringToKey(user.getId()));
+		
+		// Get a DAO with 'TestUser 1's credentials
+		UserGroupDAO userGroupDAO = fac.getUserGroupDAO(user.getUserId());
+		
+//		log.info("Groups visible to "+user.getUserId()+": "+userGroupDAO.getInRange(0,100));
+		UserGroupDAO adminUserGroupDAO = fac.getUserGroupDAO(AuthUtilConstants.ADMIN_USER_ID);
+//		log.info("Groups visible to "+AuthUtilConstants.ADMIN_USER_ID+": "+adminUserGroupDAO.getInRange(0,100));
 		
 		// create group anonymously
 		UserGroupDAO anonymousGroupDAO = fac.getUserGroupDAO(null);
@@ -106,13 +169,17 @@ public class UserGroupDAOTest {
 		this.groupIds.add(KeyFactory.stringToKey(group.getId()));
 		
 		Assert.assertNotNull(group.getId());
-		// now 'TestUser 1' should have access to 'TestGroup', since it was created anonymously
+		// now anonymous (Public) should have access to 'TestGroup', since it was created anonymously
 		Assert.assertTrue(anonymousGroupDAO.hasAccess(group, "read"));
 		Assert.assertTrue(anonymousGroupDAO.hasAccess(group, "change"));
 		Assert.assertTrue(anonymousGroupDAO.hasAccess(group, "share"));
 		
-		// create group under a user's credentials
-		UserGroupDAO userGroupDAO = fac.getUserGroupDAO(user.getUserId());
+		// now 'TestUser 1' should have access to 'TestGroup', since it was created anonymously
+		Assert.assertTrue(userGroupDAO.hasAccess(group, "read"));
+		Assert.assertTrue(userGroupDAO.hasAccess(group, "change"));
+		Assert.assertTrue(userGroupDAO.hasAccess(group, "share"));
+		
+		// create group under 'TestUser 1's credentials
 		UserGroup group2 = createUserGroup("TestGroup 2");
 		//((JDOUserGroupDAOImpl)userGroupDAO).dumpAllAccess();
 		userGroupDAO.create(group2);
@@ -164,7 +231,7 @@ public class UserGroupDAOTest {
 		// to 'TestGroup 2' as a user
 		userGroupDAO.addUser(group2, user2);
 		// now as a **resource**
-		userGroupDAO.addResource(group2, user2, "read");
+		userGroupDAO.addResource(group2, user2, Arrays.asList(new String[]{"read"}));
 		// now get the users in the group
 		Assert.assertEquals(1, userGroupDAO.getUsers(group2).size());
 		

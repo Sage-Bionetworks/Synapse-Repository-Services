@@ -61,15 +61,6 @@ abstract public class JDORevisableDAOImpl<S extends Revisable, T extends JDORevi
 			dto.setVersion(DEFAULT_VERSION);
 		}
 		
-		//
-		// Set system-controlled immutable fields
-		//
-		// Question: is this where we want to be setting immutable
-		// system-controlled fields for our
-		// objects? This should only be set at creation time so its not
-		// appropriate to put it in copyFromDTO.
-		dto.setCreationDate(new Date()); // now
-
 		T jdo = super.createIntern(dto);
 		JDORevision<T> r = jdo.getRevision();
 		r.setRevisionDate(dto.getCreationDate());
@@ -389,8 +380,9 @@ abstract public class JDORevisableDAOImpl<S extends Revisable, T extends JDORevi
 			tx.begin();
 			Long key = KeyFactory.stringToKey(id);
 			Collection<T> allVersions = getAllVersions(pm, key);
+			JDOUserGroupDAOImpl groupDAO = new JDOUserGroupDAOImpl(null);
 			for (T jdo : allVersions) {
-//				preDelete(pm, jdo);
+				groupDAO.removeResourceFromAllGroups(jdo);
 				pm.deletePersistent(jdo);
 			}
 			tx.commit();

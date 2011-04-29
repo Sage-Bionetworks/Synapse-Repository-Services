@@ -741,7 +741,7 @@ public class JDOQueryDAOImplTest {
 		query.setLimit(3);
 		query.setOffset(0);
 		List<Expression> filters = new ArrayList<Expression>();
-		Expression expression = new Expression(new CompoundId("dataset", "invlaid name"), Compartor.EQUALS, datasetIds.get(1));
+		Expression expression = new Expression(new CompoundId("dataset", "invalid name"), Compartor.EQUALS, datasetIds.get(1));
 		filters.add(expression);
 		query.setFilters(filters);
 		// Execute the query.

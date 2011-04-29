@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.jdo;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -41,7 +42,7 @@ public class JDOUserGroupTest {
 			JDOResourceAccess ra = new JDOResourceAccess();
 			ra.setResourceType("foo");
 			ra.setResourceId(resourceId); // fake pointer.  we won't actually 'follow' it
-			ra.setAccessType(AuthorizationConstants.READ_ACCESS);
+			ra.setAccessType(new HashSet<String>(Arrays.asList(new String[]{AuthorizationConstants.READ_ACCESS})));
 			ras.add(ra);
 		}
 		g.setResourceAccess(ras);

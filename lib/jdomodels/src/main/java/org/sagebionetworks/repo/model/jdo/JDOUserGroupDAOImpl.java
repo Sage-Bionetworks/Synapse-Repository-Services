@@ -102,7 +102,7 @@ public class JDOUserGroupDAOImpl extends
 			tx.begin();
 			pm.makePersistent(g);
 			// now give the group members read-access to the group itself
-			addResourceToGroup(g, g, selfAccess);
+			addResourceToGroup(g, JDOUserGroup.class.getName(), g.getId(), selfAccess);
 			tx.commit();
 		} finally {
 			if (tx.isActive()) {
@@ -110,20 +110,6 @@ public class JDOUserGroupDAOImpl extends
 			}
 		}
 		return g;
-	}
-
-	public static void addResourceToGroup(JDOUserGroup group, JDOBase resource,
-			Collection<String> accessTypes) {
-		if (resource == null)
-			throw new NullPointerException();
-		Set<JDOResourceAccess> ras = group.getResourceAccess();
-		for (String accessType : accessTypes) {
-			JDOResourceAccess ra = new JDOResourceAccess();
-			ra.setResourceType(resource.getClass().getName());
-			ra.setResourceId(resource.getId());
-			ra.setAccessType(accessType);
-			ras.add(ra);
-		}
 	}
 
 	/**
@@ -185,7 +171,7 @@ public class JDOUserGroupDAOImpl extends
 	}
 
 	/**
-	 * Create a group for a particular user. Give the user READ and CHANGE
+	 * Create a group for a particular user. Give the user READ
 	 * access to their own group.
 	 * 
 	 * @param pm
@@ -246,6 +232,10 @@ public class JDOUserGroupDAOImpl extends
 
 	protected void copyFromDto(UserGroup dto, JDOUserGroup jdo)
 			throws InvalidModelException {
+		if (null == dto.getName()) {
+			throw new InvalidModelException(
+					"'name' is a required property for UserGroup");
+		}
 		jdo.setName(dto.getName());
 		jdo.setCreationDate(dto.getCreationDate());
 	}
@@ -326,6 +316,68 @@ public class JDOUserGroupDAOImpl extends
 			pm.close();
 		}
 	}
+	
+	/**
+	 * This is used, for example before deleting a user from the system, at which time it is to be removed from all groups to which it belongs.
+	 */
+	public void removeUserFromAllGroups(JDOUser user) throws NotFoundException, DatastoreException {
+		// query for all groups having the user as a member
+		PersistenceManager pm = PMF.get();
+		Transaction tx = null;
+		try {
+			tx = pm.currentTransaction();
+			tx.begin();
+			Query query = pm.newQuery(JDOUserGroup.class);
+			query.setFilter("this.users.contains(pUser)");
+			query.declareParameters(java.lang.Long.class.getName()+" pUser");
+			@SuppressWarnings("unchecked")
+			Collection<JDOUserGroup> groups = (Collection<JDOUserGroup>)query.execute(user.getId());
+			for (JDOUserGroup g : groups) {
+				g.getUsers().remove(user.getId());
+			}
+			tx.commit();
+		} catch (JDOObjectNotFoundException e) {
+			throw new NotFoundException(e);
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		} finally {
+			if (tx.isActive()) {
+				tx.rollback();
+			}
+			pm.close();
+		}
+	}
+
+	/**
+	 * This is used, for example before deleting a resource from the system, at which time it is to be removed from all groups to which it belongs.
+	 */
+	public void removeResourceFromAllGroups(JDOBase resource) throws NotFoundException, DatastoreException {
+		// query for all groups having the resource
+		PersistenceManager pm = PMF.get();
+		Transaction tx = null;
+		try {
+			tx = pm.currentTransaction();
+			tx.begin();
+			Query query = pm.newQuery(JDOResourceAccess.class);
+			query.setFilter("resourceType==pType && resourceId==pId");
+			query.declareParameters(java.lang.String.class.getName()+" pType, "+java.lang.Long.class.getName()+" pId");
+			@SuppressWarnings("unchecked")
+			Collection<JDOResourceAccess> ras = (Collection<JDOResourceAccess>)query.execute(getResourceType(resource), resource.getId());
+			for (JDOResourceAccess ra : ras) {
+				ra.getOwner().getResourceAccess().remove(ra);
+			}
+			tx.commit();
+		} catch (JDOObjectNotFoundException e) {
+			throw new NotFoundException(e);
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		} finally {
+			if (tx.isActive()) {
+				tx.rollback();
+			}
+			pm.close();
+		}
+	}
 
 	public Collection<User> getUsers(UserGroup userGroup)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -370,39 +422,32 @@ public class JDOUserGroupDAOImpl extends
 		if (type==null) throw new IllegalArgumentException("Unrecognized type "+resource.getClass().getName());
 		return type;
 	}
-
+	
+	private static String getResourceType(JDOBase resource) {
+		String type = resource.getClass().getName();
+		return type;
+	}
+	
 	public void addResource(UserGroup userGroup, Base resource,
-			String accessType) throws NotFoundException, DatastoreException,
+			Collection<String> accessType) throws NotFoundException, DatastoreException,
 			UnauthorizedException {
 		PersistenceManager pm = PMF.get();
 		Long resourceKey = KeyFactory.stringToKey(resource.getId());
+		String type = getResourceType(resource);
 		if (!canAccess(userId, getResourceType(resource), resourceKey, AuthorizationConstants.SHARE_ACCESS, pm))
 			throw new UnauthorizedException();
 		Long groupKey = KeyFactory.stringToKey(userGroup.getId());
 		JDOUserGroup jdoGroup = (JDOUserGroup) pm.getObjectById(
 				JDOUserGroup.class, groupKey);
-		// The original idea was that you can only share something with a group if you have write-access
-		// to the group, but that's too restrictive, as sharing then requires two steps (first get permission
-		// to share with a group, then share the resource).  It's easier to simply say that a user can share
-		// their resource with *any* group
-//		if (!canAccess(userId, getJdoClass().getName(), jdoGroup.getId(), AuthorizationConstants.CHANGE_ACCESS, pm))
-//			throw new UnauthorizedException();
 
 		Transaction tx = null;
-		try {
-			tx = pm.currentTransaction();
-			tx.begin();
-			JDOResourceAccess ra = new JDOResourceAccess();
-			ra.setResourceType(getResourceType(resource));
-			ra.setResourceId(resourceKey);
-			ra.setAccessType(accessType);
-			// TODO make sure it's not a duplicate
-			jdoGroup.getResourceAccess().add(ra);
+		tx = pm.currentTransaction();
+		tx.begin();
+ 		try {
+ 			addResourceToGroup(jdoGroup, type, resourceKey, accessType);
 			tx.commit();
 		} catch (JDOObjectNotFoundException e) {
 			throw new NotFoundException(e);
-//		} catch (UnauthorizedException e) {
-//			throw e;
 		} catch (Exception e) {
 			throw new DatastoreException(e);
 		} finally {
@@ -413,14 +458,40 @@ public class JDOUserGroupDAOImpl extends
 		}
 	}
 
-	public void removeResource(UserGroup userGroup, Base resource,
-			String accessType) throws NotFoundException, DatastoreException,
+	public static void addResourceToGroup(JDOUserGroup group, String type, Long resourceKey,
+			Collection<String> accessTypes) {
+	
+		Set<JDOResourceAccess> ras = group.getResourceAccess();
+		boolean foundit = false;
+		// if you can find the reference resource, then update it...
+		for (JDOResourceAccess ra: ras) {
+			if (type.equals(ra.getResourceType()) && resourceKey.equals(ra.getResourceId())) {
+				foundit = true;
+				ra.setAccessType(new HashSet<String>(accessTypes));
+				break;
+			}
+		}
+		// ... else add a new record for the resource, with the specified access types.
+		if (!foundit) {
+			JDOResourceAccess ra = new JDOResourceAccess();
+			ra.setResourceType(type);
+			ra.setResourceId(resourceKey);
+			ra.setAccessType(new HashSet<String>(accessTypes));
+			group.getResourceAccess().add(ra);
+		}
+	}
+	
+
+
+
+	public void removeResource(UserGroup userGroup, Base resource) throws NotFoundException, DatastoreException,
 			UnauthorizedException {
 		PersistenceManager pm = PMF.get();
 		Transaction tx = null;
 		try {
+			String type = getResourceType(resource);
 			Long resourceKey = KeyFactory.stringToKey(resource.getId());
-			if (!canAccess(userId, getResourceType(resource), resourceKey, AuthorizationConstants.SHARE_ACCESS, pm))
+			if (!canAccess(userId, type, resourceKey, AuthorizationConstants.SHARE_ACCESS, pm))
 				throw new UnauthorizedException();
 			Long groupKey = KeyFactory.stringToKey(userGroup.getId());
 			JDOUserGroup jdoGroup = (JDOUserGroup) pm.getObjectById(
@@ -432,9 +503,8 @@ public class JDOUserGroupDAOImpl extends
 			tx = pm.currentTransaction();
 			tx.begin();
 			for (JDOResourceAccess ra : ras) {
-				if (ra.getResourceType().equals(getResourceType(resource)) && 
-						ra.getResourceId().equals(resourceKey)
-						&& ra.getAccessType().equals(accessType)) {
+				if (ra.getResourceType().equals(type) && 
+						ra.getResourceId().equals(resourceKey)) {
 					ras.remove(ra);
 				}
 			}
@@ -453,33 +523,25 @@ public class JDOUserGroupDAOImpl extends
 		}
 	}
 
-//	public Collection<String> getResources(UserGroup userGroup)
-//			throws NotFoundException, DatastoreException, UnauthorizedException {
-//		throw new RuntimeException("Not yet implemented");
-//	}
-//
-//	public Collection<String> getResources(UserGroup userGroup,
-//			String accessType) throws NotFoundException, DatastoreException,
-//			UnauthorizedException {
-//		throw new RuntimeException("Not yet implemented");
-//	}
-//
-//	public Collection<String> getAccessTypes(UserGroup userGroup, String resourceType,
-//			String resourceId) throws NotFoundException, DatastoreException,
-//			UnauthorizedException {
-//		PersistenceManager pm = PMF.get();
-//		Long rId = Long.parseLong(userGroup.getId());
-//		if (!canAccess(userId, rId, AuthorizationConstants.READ_ACCESS, pm)) throw new UnauthorizedException();
-//		JDOUserGroup group = pm.getObjectById(JDOUserGroup.class, userGroup.getId());
-//		return getAccessTypes(group, resourceType, rId);
-//	}
+	public Collection<String> getAccessTypes(UserGroup userGroup, Base resource) throws NotFoundException, DatastoreException,
+			UnauthorizedException {
+		PersistenceManager pm = PMF.get();
+		Long gId = Long.parseLong(userGroup.getId());
+		Long rId = Long.parseLong(resource.getId());
+		if (!canAccess(userId, JDOUserGroup.class.getName(), gId, AuthorizationConstants.READ_ACCESS, pm)) throw new UnauthorizedException();
+		JDOUserGroup group = pm.getObjectById(JDOUserGroup.class, gId);
+		return getAccessTypes(group, getResourceType(resource), rId);
+	}
 	
 	// the internal method, with no authorization filter
-	private static Collection<String> getAccessTypes(JDOUserGroup userGroup,
+	public static Collection<String> getAccessTypes(JDOUserGroup userGroup,
 			String resourceType, Long resourceId) throws NotFoundException, DatastoreException {
 		Collection<String> ans = new HashSet<String>();
 		for (JDOResourceAccess ra : userGroup.getResourceAccess()) {
-			if (ra.getResourceType().equals(resourceType) && ra.getResourceId().equals(resourceId)) ans.add(ra.getAccessType());
+			if (ra.getResourceType().equals(resourceType) && ra.getResourceId().equals(resourceId)) {
+				ans = ra.getAccessType();
+				break;
+			}
 		}
 		return ans;
 	}
@@ -500,20 +562,30 @@ public class JDOUserGroupDAOImpl extends
 		JDOUserDAOImpl userDAO = new JDOUserDAOImpl(userId);
 		JDOUser user = userDAO.getUser(pm);
 		if (user==null) throw new NotFoundException(userId+" does not exist");
-		// must look-up access, allowing that admin's can access anything
+		// if is an administrator, return true
+		if (isAdmin(user, pm)) return true;
+		// must look-up access
 		Query query = pm.newQuery(JDOUserGroup.class);
-		query.setFilter("users.contains(pUser) && ((isSystemGroup==true && name==pAdminName) || "+
-				"(resourceAccess.contains(vra) && vra.resourceType==pResourceType && vra.resourceId==pResourceId && vra.accessType==pAccessType))");
+		query.setFilter("resourceAccess.contains(vra) && "+
+		//		query.setFilter("users.contains(pUser) && resourceAccess.contains(vra) && "+
+				"vra.resourceType==pResourceType && vra.resourceId==pResourceId");
 		query.declareVariables(JDOResourceAccess.class.getName()+" vra");
-		query.declareParameters(Long.class.getName()+" pUser, "+
-				String.class.getName()+" pAdminName, "+
+		query.declareParameters(/*Long.class.getName()+" pUser, "+*/
 				String.class.getName()+" pResourceType, "+
-				Long.class.getName() + " pResourceId, "+
-				String.class.getName()+" pAccessType");
+				Long.class.getName() + " pResourceId");
 		@SuppressWarnings("unchecked")
 		Collection<JDOUserGroup> c = (Collection<JDOUserGroup>) query.
-		executeWithArray(new Object[]{user.getId(), AuthorizationConstants.ADMIN_GROUP_NAME, resourceType, resourceId, accessType});
-		return c.size()>0;
+		//executeWithArray(new Object[]{user.getId(), resourceType, resourceId});
+		executeWithArray(new Object[]{resourceType, resourceId});
+		for (JDOUserGroup g: c) {
+			if (!g.getUsers().contains(user.getId())) continue;
+			for (JDOResourceAccess ra: g.getResourceAccess()) {
+				if (ra.getResourceType().equals(resourceType) && ra.getResourceId().equals(resourceId)) {
+					if (ra.getAccessType().contains(accessType)) return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -524,7 +596,9 @@ public class JDOUserGroupDAOImpl extends
 	@SuppressWarnings("rawtypes")
 	public boolean canCreate(String userId, Class createableType, PersistenceManager pm) throws NotFoundException, DatastoreException {
 		// if the public can access the resource, then no need to check the user, just return true
-		if(getPublicGroup(pm).getCreatableTypes().contains(createableType.getName())) return true;
+		JDOUserGroup publicGroup = getPublicGroup(pm);
+		Set<String> publicCreatableTypes = publicGroup.getCreatableTypes();
+		if(publicCreatableTypes.contains(createableType.getName())) return true;
 		// if not publicly accessible, then we WILL have to check the user, so a null userId->false
 		if (userId==null) return false;
 		JDOUserDAOImpl userDAO = new JDOUserDAOImpl(userId);
@@ -545,17 +619,18 @@ public class JDOUserGroupDAOImpl extends
 			PersistenceManager pm, String resourceType, Long resourceKey, String accessType) {
 		Query query = pm.newQuery(JDOResourceAccess.class);
 		query
-				.setFilter("this.resourceType==pResourceType && this.resourceId==pResourceKey && this.accessType==pAccessType");
+				.setFilter("this.resourceType==pResourceType && this.resourceId==pResourceKey");
 		query.declareParameters(
 				String.class.getName() + " pResourceType, "+
-				Long.class.getName() + " pResourceKey, "
-				+ String.class.getName() + " pAccessType");
-		// query.setFilter("accessType==pAccessType");
-		// query.declareParameters(String.class+" pAccessType");
+				Long.class.getName() + " pResourceKey");
 		@SuppressWarnings("unchecked")
 		Collection<JDOResourceAccess> ras = (Collection<JDOResourceAccess>) query
-				.execute(resourceType, resourceKey, accessType);
-		return ras;
+				.execute(resourceType, resourceKey);
+		Collection<JDOResourceAccess> ans = new HashSet<JDOResourceAccess>();
+		for (JDOResourceAccess ra : ras) {
+			if (ra.getAccessType().contains(accessType)) ans.add(ra);
+		}
+		return ans;
 	}
 	/**
 	 * @return the user-groups that have the given access to the given resource
@@ -568,7 +643,11 @@ public class JDOUserGroupDAOImpl extends
 		Collection<JDOResourceAccess> ras = getAccess(pm, resourceType, resourceKey,
 				accessType);
 		for (JDOResourceAccess ra : ras) {
-			ans.add(get(KeyFactory.keyToString(ra.getOwner().getId())));
+			try {
+				ans.add(get(KeyFactory.keyToString(ra.getOwner().getId())));
+			} catch (UnauthorizedException ue) {
+				// don't have read-access to the group, so skip it
+			}
 		}
 		
 		// now just add the Admin group, which can access anything

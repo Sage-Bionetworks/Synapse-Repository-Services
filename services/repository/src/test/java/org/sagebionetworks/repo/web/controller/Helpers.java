@@ -154,7 +154,11 @@ public class Helpers {
 	 */
 	public void tearDown() throws Exception {
 		for (TestStateItem item : testState) {
-			item.delete();
+			try {
+				item.delete();
+			} catch (Exception e) {
+				log.info(e.toString());
+			}
 		}
 
 	}
@@ -206,7 +210,7 @@ public class Helpers {
 		assertEquals(etagHeader, results.getString("etag"));
 		String locationHeader = (String) response
 				.getHeader(ServiceConstants.LOCATION_HEADER);
-		assertTrue(locationHeader.endsWith(requestUrl + "/"
+		assertTrue(locationHeader, locationHeader.endsWith(requestUrl + "/"
 				+ URLEncoder.encode(results.getString("id"), "UTF-8")));
 		assertTrue(locationHeader.endsWith(results.getString("uri")));
 
@@ -241,28 +245,6 @@ public class Helpers {
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.CREATED.value(), response.getStatus());
-//		JSONObject results = new JSONObject(response.getContentAsString());
-//		log.info(results.toString(JSON_INDENT));
-//
-//		// Check default properties
-//		assertExpectedEntityProperties(results);
-//
-//		// Check our response headers
-//		String etagHeader = (String) response
-//				.getHeader(ServiceConstants.ETAG_HEADER);
-//		assertNotNull(etagHeader);
-//		assertEquals(etagHeader, results.getString("etag"));
-//		String locationHeader = (String) response
-//				.getHeader(ServiceConstants.LOCATION_HEADER);
-//		assertTrue(locationHeader.endsWith(requestUrl + "/"
-//				+ URLEncoder.encode(results.getString("id"), "UTF-8")));
-//		assertTrue(locationHeader.endsWith(results.getString("uri")));
-//
-//		// Stash the url for this entity so that we can clean it up at the end
-//		// of our test
-//		testState.addFirst(new TestStateItem(userId, locationHeader));
-//
-//		return results;
 	}
 
 	/**
@@ -339,10 +321,61 @@ public class Helpers {
 	}
 
 	/**
+	 * This method calls a URI with the PUT method, without any payload
+	 * @param uri
+	 * @return the json object holding the updated entity
+	 * @throws Exception
+	 */
+	public void testUpdate(String uri)
+			throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("PUT");
+		request.addHeader("Accept", "application/json");
+//		request.addHeader(ServiceConstants.ETAG_HEADER, jsonEntity
+//				.getString("etag"));
+		request.setRequestURI(uri);
+		if (null != userId)
+			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+//		request.setContent(jsonEntity.toString().getBytes("UTF-8"));
+//		log.info("About to send: " + jsonEntity.toString(JSON_INDENT));
+		servlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		assertEquals(HttpStatus.CREATED.value(), response.getStatus());
+//		JSONObject results = new JSONObject(response.getContentAsString());
+//		log.info(results.toString(JSON_INDENT));
+//
+//		// Check default properties
+//		assertExpectedEntityProperties(results);
+//		assertEquals(jsonEntity.getString("id"), results.getString("id"));
+//		assertEquals(jsonEntity.getString("uri"), results.getString("uri"));
+//
+//		// Check our response headers
+//		String etagHeader = (String) response
+//				.getHeader(ServiceConstants.ETAG_HEADER);
+//		assertNotNull(etagHeader);
+//		assertEquals(etagHeader, results.getString("etag"));
+//
+//		// Make sure we got an updated etag
+//		assertFalse(etagHeader.equals(jsonEntity.getString("etag")));
+
+		return;
+	}
+
+	/**
 	 * @param requestUrl
 	 * @throws Exception
 	 */
 	public void testDeleteJsonEntity(String requestUrl) throws Exception {
+		testDeleteJsonEntity(requestUrl, true);
+	}
+	
+	/**
+	 * @param requestUrl
+	* @throws Exception
+	 */
+	public void testDeleteJsonEntity(String requestUrl, boolean tryGet) throws Exception {
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
@@ -353,10 +386,10 @@ public class Helpers {
 			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
-		assertEquals(HttpStatus.NO_CONTENT.value(), response.getStatus());
+		assertEquals(requestUrl+" -> "+response.getContentAsString(), HttpStatus.NO_CONTENT.value(), response.getStatus());
 		assertEquals("", response.getContentAsString());
 
-		testGetJsonEntityShouldFail(requestUrl, HttpStatus.NOT_FOUND);
+		if (tryGet) testGetJsonEntityShouldFail(requestUrl, HttpStatus.NOT_FOUND);
 	}
 
 	/**

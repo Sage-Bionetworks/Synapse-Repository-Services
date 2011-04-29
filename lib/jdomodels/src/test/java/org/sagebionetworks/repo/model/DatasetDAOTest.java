@@ -23,8 +23,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.jdo.JDOBootstrapperImpl;
 import org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl;
+import org.sagebionetworks.repo.model.jdo.JDODatasetDAOImpl;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.PMF;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODataset;
@@ -58,19 +60,9 @@ public class DatasetDAOTest {
 
 	@After
 	public void tearDown() throws Exception {
-		PersistenceManager pm = null;
-		try {
-			pm = PMF.get();
-			Transaction tx = pm.currentTransaction();
-			for (Long id : dsIds) {
-				tx.begin();
-				if (id != null)
-					pm.deletePersistent(pm.getObjectById(JDODataset.class, id));
-				tx.commit();
-			}
-		} finally {
-			if (pm != null)
-				pm.close();
+		DatasetDAO datasetDAO = fac.getDatasetDAO(AuthUtilConstants.ADMIN_USER_ID);
+		for (Long id : dsIds) {
+			datasetDAO.delete(KeyFactory.keyToString(id));
 		}
 	}
 
@@ -247,8 +239,12 @@ public class DatasetDAOTest {
 		assertTrue(datasetWithLayers.getHasGeneticData());
 		assertTrue(datasetWithLayers.getHasClinicalData());
 
+		// what if you initialize a new Layer DAO?
+		InputDataLayerDAO layerDAOii = dao.getInputDataLayerDAO(id);
+
 		// test retrieval of layer by ID
-		InputDataLayer l = layerDAO.get(layer1.getId());
+		InputDataLayer l = layerDAOii.get(layer1.getId());
+		
 		Assert.assertNotNull(l);
 		Assert.assertEquals("clinical data", l.getName());
 		// then test that all field values are returned

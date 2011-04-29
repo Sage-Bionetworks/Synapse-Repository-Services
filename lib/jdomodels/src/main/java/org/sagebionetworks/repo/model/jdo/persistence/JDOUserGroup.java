@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.jdo.persistence;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Set;
 
 import javax.jdo.annotations.Element;
@@ -9,6 +10,7 @@ import javax.jdo.annotations.Join;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
+import javax.jdo.annotations.Unique;
 
 import org.sagebionetworks.repo.model.jdo.JDOBase;
 
@@ -19,6 +21,7 @@ public class JDOUserGroup implements JDOBase {
 	private Long id;
 	
 	@Persistent
+	@Unique
 	private String name;
 	
 	@Persistent
@@ -26,11 +29,11 @@ public class JDOUserGroup implements JDOBase {
 
 	@Persistent(serialized="false")
 	@Join
-	private Set<Long> users;
+	private Set<Long> users = new HashSet<Long>();
 
     @Persistent(mappedBy = "owner", serialized="false")
 	@Element(dependent = "true")
-	private Set<JDOResourceAccess> resourceAccess;
+	private Set<JDOResourceAccess> resourceAccess = new HashSet<JDOResourceAccess>();
 	
 	// the types of objects that the group can create, 
 	// as represented by JDOxxxxx.class.getName()

@@ -11,7 +11,6 @@ import javax.jdo.annotations.Unique;
 import org.sagebionetworks.repo.model.jdo.JDOBase;
 
 
-
 /**
  * This is the representation of a user in the datastore.
  * Note:  Most of the attributes (name, email, password) are stored

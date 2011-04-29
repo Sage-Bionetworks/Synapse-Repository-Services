@@ -14,6 +14,11 @@ import org.sagebionetworks.repo.web.NotFoundException;
  * @param <T>
  */
 public interface BaseDAO<T> {
+	
+	/**
+	 * @return the type of the object which the DAO serves
+	 */
+	public String getType();
 
 	/**
 	 * @param dto
