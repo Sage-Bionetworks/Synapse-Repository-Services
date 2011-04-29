@@ -7,6 +7,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
+
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -118,11 +120,11 @@ public class ControllerAuthorizationTest {
 		// for 'add resource' we actually have to pass in the DTO object, not just the ID
 		Dataset ds = new Dataset(); ds.setId(dataset.getString("id"));
 		datasetGroupDao.addResource(datasetGroupDao.getPublicGroup(), ds,
-				AuthorizationConstants.READ_ACCESS);
+				Arrays.asList(new String[]{AuthorizationConstants.READ_ACCESS}));
 		datasetGroupDao.addResource(curators, ds,
-				AuthorizationConstants.READ_ACCESS);
+				Arrays.asList(new String[]{AuthorizationConstants.READ_ACCESS}));
 		datasetGroupDao.addResource(curators, ds,
-				AuthorizationConstants.CHANGE_ACCESS);
+				Arrays.asList(new String[]{AuthorizationConstants.CHANGE_ACCESS}));
 
 		// Read/Write user tries to get the dataset - should pass
 		helper.setUserId(CURATOR2_USER_ID);

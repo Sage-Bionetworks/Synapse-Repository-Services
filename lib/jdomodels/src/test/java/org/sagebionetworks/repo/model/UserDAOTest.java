@@ -36,36 +36,17 @@ public class UserDAOTest {
 
 	private DAOFactory fac;
 	private Collection<Long> userIds =null;
-	private Collection<Long> groupIds = null;
 
 	@Before
 	public void setUp() throws Exception {
 		userIds = new HashSet<Long>();
-		groupIds = new HashSet<Long>();
 		fac = new JDODAOFactoryImpl();
 		(new JDOBootstrapperImpl()).bootstrap(); // creat admin user, public group, etc.
 	}
 
 	@After
 	public void tearDown() throws Exception {
-		PersistenceManager pm = null;
-		try {
-			pm = PMF.get();
-			Transaction tx = pm.currentTransaction();
-			for (Long id : userIds) {
-				tx.begin();
-				if (id!=null) pm.deletePersistent(pm.getObjectById(JDOUser.class, id));
-				tx.commit();
-			}
-			for (Long id : groupIds) {
-				tx.begin();
-				if (id!=null) pm.deletePersistent(pm.getObjectById(JDOUserGroup.class, id));
-				tx.commit();
-			}
-		} finally {
-			if (pm != null)
-				pm.close();
-		}
+
 	}
 
 	private User createUser(String userId) {

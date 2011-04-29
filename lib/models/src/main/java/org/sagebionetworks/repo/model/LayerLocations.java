@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.Collection;
+import java.util.Date;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -21,6 +22,8 @@ public class LayerLocations implements Base {
 	 */
 	private String uri; // URI for this layer preview
 	private String etag; // ETag for this layer preview
+	
+	private Date creationDate;
 
 	/**
 	 * @return the locations
@@ -65,6 +68,20 @@ public class LayerLocations implements Base {
 	@Override
 	public void setEtag(String etag) {
 		this.etag = etag;
+	}
+
+	/**
+	 * @return the creationDate
+	 */
+	public Date getCreationDate() {
+		return creationDate;
+	}
+
+	/**
+	 * @param creationDate the creationDate to set
+	 */
+	public void setCreationDate(Date creationDate) {
+		this.creationDate = creationDate;
 	}
 
 	/*

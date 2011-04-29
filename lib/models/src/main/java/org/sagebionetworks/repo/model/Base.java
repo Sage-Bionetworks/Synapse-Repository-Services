@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Date;
+
 
 /**
  * This interface defines the methods implemented by all Data Transfer Objects
@@ -19,5 +21,16 @@ public interface Base {
 	public void setEtag(String etag);
 
 	public String getEtag();
+
+	/**
+	 * @param createDate
+	 */
+	public void setCreationDate(Date createDate);
+
+	/**
+	 * @return the creation date
+	 */
+	public Date getCreationDate();
+	
 
 }

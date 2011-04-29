@@ -177,7 +177,11 @@ public class LayerControllerTest {
 		JSONObject newLayer = helper.testCreateJsonEntity(dataset
 				.getString("layer"), SAMPLE_LAYER);
 
-		helper.testDeleteJsonEntity(newLayer.getString("uri"));
+		try {
+			helper.testDeleteJsonEntity(newLayer.getString("uri"));
+		} catch (Exception e) {
+			throw new Exception("Exception deleting "+newLayer.getString("uri"), e);
+		}
 	}
 
 	/**

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Date;
+
 /**
  * This class holds credentials we store on behalf of users to facilitate access
  * to resources.
@@ -18,6 +20,8 @@ public class UserCredentials implements Base {
 	private String iamAccessId;
 	private String iamSecretKey;
 
+	private Date creationDate;
+	
 	/**
 	 * @return the id
 	 */
@@ -89,6 +93,20 @@ public class UserCredentials implements Base {
 		// Not applicable since we currently do not plan to expose these
 		// credentials outside of the service
 
+	}
+
+	/**
+	 * @return the creationDate
+	 */
+	public Date getCreationDate() {
+		return creationDate;
+	}
+
+	/**
+	 * @param creationDate the creationDate to set
+	 */
+	public void setCreationDate(Date creationDate) {
+		this.creationDate = creationDate;
 	}
 
 }

@@ -22,6 +22,8 @@ import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.LayerLocations;
 import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.LayerLocation;
+import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.UserGroup;
 
 /**
  * UrlHelpers is responsible for the formatting of all URLs exposed by the
@@ -47,7 +49,7 @@ public class UrlHelpers {
 	 * 
 	 */
 	public static final String DATASET = "/dataset";
-
+	
 	/**
 	 * URL prefix for dataset layer model objects
 	 * 
@@ -105,8 +107,33 @@ public class UrlHelpers {
 	 * URL suffix for an unsupported location type
 	 */
 	public static final String UNSUPPORTED_LOCATION = "/notYetImplemented";
+
+	/**
+	 * URL prefix for Users in the system
+	 * 
+	 */
+	public static final String USER = "/user";
+
 	
 	/**
+	 * URL prefix for User Group model objects
+	 * 
+	 */
+	public static final String USERGROUP = "/usergroup";
+
+	/**
+	 * URL prefix for Users in a UserGroup
+	 * 
+	 */
+	public static final String USERS = "/users";
+	
+	/**
+	 * URL prefix for Users in a UserGroup
+	 * 
+	 */
+	public static final String RESOURCES = "/resources";
+	
+		/**
 	 * URL prefix for User mirroring service
 	 * 
 	 */
@@ -153,6 +180,8 @@ public class UrlHelpers {
 		Map<Class, String> model2url = new HashMap<Class, String>();
 		model2url.put(Dataset.class, DATASET);
 		model2url.put(InputDataLayer.class, LAYER);
+		model2url.put(User.class, USER);
+		model2url.put(UserGroup.class, USERGROUP);
 		MODEL2URL = Collections.unmodifiableMap(model2url);
 
 		Map<Class, Collection<String>> model2property = new HashMap<Class, Collection<String>>();

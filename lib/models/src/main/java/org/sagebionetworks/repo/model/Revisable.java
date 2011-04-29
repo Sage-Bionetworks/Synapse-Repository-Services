@@ -22,14 +22,4 @@ public interface Revisable extends Base {
 	 */
 	public String getVersion();
 
-	/**
-	 * @param createDate
-	 */
-	public void setCreationDate(Date createDate);
-
-	/**
-	 * @return the creation date
-	 */
-	public Date getCreationDate();
-	
 }

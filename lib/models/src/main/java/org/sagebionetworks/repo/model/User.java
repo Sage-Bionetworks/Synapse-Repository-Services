@@ -8,6 +8,9 @@ public class User implements Base {
 	private String uri;
 	private String etag;
 	private Date creationDate;
+	private String iamAccessId;
+	private String iamSecretKey;
+
 	
 	public String getId() {
 		return id;
@@ -42,16 +45,50 @@ public class User implements Base {
 	public void setCreationDate(Date creationDate) {
 		this.creationDate = creationDate;
 	}
+	/**
+	 * @return the iamAccessId
+	 */
+	public String getIamAccessId() {
+		return iamAccessId;
+	}
+	/**
+	 * @param iamAccessId the iamAccessId to set
+	 */
+	public void setIamAccessId(String iamAccessId) {
+		this.iamAccessId = iamAccessId;
+	}
+	/**
+	 * @return the iamSecretKey
+	 */
+	public String getIamSecretKey() {
+		return iamSecretKey;
+	}
+	/**
+	 * @param iamSecretKey the iamSecretKey to set
+	 */
+	public void setIamSecretKey(String iamSecretKey) {
+		this.iamSecretKey = iamSecretKey;
+	}
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
+		result = prime * result
+				+ ((iamAccessId == null) ? 0 : iamAccessId.hashCode());
+		result = prime * result
+				+ ((iamSecretKey == null) ? 0 : iamSecretKey.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
 		return result;
 	}
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -65,6 +102,16 @@ public class User implements Base {
 			if (other.creationDate != null)
 				return false;
 		} else if (!creationDate.equals(other.creationDate))
+			return false;
+		if (iamAccessId == null) {
+			if (other.iamAccessId != null)
+				return false;
+		} else if (!iamAccessId.equals(other.iamAccessId))
+			return false;
+		if (iamSecretKey == null) {
+			if (other.iamSecretKey != null)
+				return false;
+		} else if (!iamSecretKey.equals(other.iamSecretKey))
 			return false;
 		if (id == null) {
 			if (other.id != null)
