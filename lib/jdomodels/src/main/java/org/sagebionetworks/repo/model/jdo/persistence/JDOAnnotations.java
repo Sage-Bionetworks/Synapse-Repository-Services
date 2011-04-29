@@ -100,6 +100,9 @@ public class JDOAnnotations {
 	}
 
 	public void add(String a, String v) {
+		if(stringAnnotations == null){
+			stringAnnotations = new HashSet<JDOStringAnnotation>();
+		}
 		stringAnnotations.add(new JDOStringAnnotation(a, v));
 	}
 
@@ -131,6 +134,9 @@ public class JDOAnnotations {
 	}
 
 	public void add(String a, Double v) {
+		if(doubleAnnotations == null){
+			doubleAnnotations = new HashSet<JDODoubleAnnotation>();
+		}
 		doubleAnnotations.add(new JDODoubleAnnotation(a, v));
 	}
 
@@ -167,6 +173,9 @@ public class JDOAnnotations {
 	}
 
 	public void add(String a, Long v) {
+		if(longAnnotations == null){
+			longAnnotations = new HashSet<JDOLongAnnotation>();
+		}
 		longAnnotations.add(new JDOLongAnnotation(a, v));
 	}
 
@@ -203,6 +212,9 @@ public class JDOAnnotations {
 	}
 
 	public void add(String a, Date v) {
+		if(dateAnnotations == null){
+			dateAnnotations = new HashSet<JDODateAnnotation>();
+		}
 		dateAnnotations.add(new JDODateAnnotation(a, v));
 	}
 
