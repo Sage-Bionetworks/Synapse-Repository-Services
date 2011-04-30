@@ -253,29 +253,29 @@ public class Helpers {
 	 * @throws Exception
 	 */
 	public JSONObject testGetJsonEntity(String requestUrl) throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(requestUrl);
-		if (null != userId)
-			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
-		servlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
-		assertEquals(HttpStatus.OK.value(), response.getStatus());
-		JSONObject results = new JSONObject(response.getContentAsString());
-		log.info(results.toString(JSON_INDENT));
-
-		// Check default properties
-		assertExpectedEntityProperties(results);
-
-		// Check our response headers
-		String etagHeader = (String) response
-				.getHeader(ServiceConstants.ETAG_HEADER);
-		assertNotNull(etagHeader);
-		assertEquals(etagHeader, results.getString("etag"));
-
-		return results;
+			MockHttpServletRequest request = new MockHttpServletRequest();
+			MockHttpServletResponse response = new MockHttpServletResponse();
+			request.setMethod("GET");
+			request.addHeader("Accept", "application/json");
+			request.setRequestURI(requestUrl);
+			if (null != userId)
+				request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+			servlet.service(request, response);
+			log.info("Results: " + response.getContentAsString());
+			assertEquals("helper-servletprefix="+getServletPrefix()+", requestUrl="+requestUrl, HttpStatus.OK.value(), response.getStatus());
+			JSONObject results = new JSONObject(response.getContentAsString());
+			log.info(results.toString(JSON_INDENT));
+	
+			// Check default properties
+			assertExpectedEntityProperties(results);
+	
+			// Check our response headers
+			String etagHeader = (String) response
+					.getHeader(ServiceConstants.ETAG_HEADER);
+			assertNotNull(etagHeader);
+			assertEquals(etagHeader, results.getString("etag"));
+	
+			return results;
 	}
 
 	/**
