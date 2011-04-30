@@ -68,7 +68,9 @@ public class UserControllerTest {
 		user.setIamSecretKey("bar");
 		userDAO.create(user);
 		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.setRequestURI("/user");
+		// 4-30-11 I think I had omitted 'helper.getServletPrefix()' below
+		// which caused the unit tests to pass but the integration tests to fail
+		request.setRequestURI(helper.getServletPrefix()+"/user");
 		user.setUri(UrlHelpers.makeEntityUri(user, request));
 		user.setEtag(UrlHelpers.makeEntityEtag(user));
 		String uid = user.getId();
