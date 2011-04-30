@@ -39,5 +39,10 @@
 	<!-- Starting with a temp DAO -->
 	<bean id="datasetDao" class="org.sagebionetworks.repo.model.jdo.temp.TempDatasetDaoImpl" />
 
+	<!-- Starting with a temp DAO -->
+	<bean id="nodeDao" class="org.sagebionetworks.repo.model.jdo.NodeDAOImpl" />
+	
+		<!-- Starting with a temp DAO -->
+	<bean id="authorizationDao" class="org.sagebionetworks.repo.model.jdo.JDOAuthorizationDAOImpl" />
 
 </beans>
