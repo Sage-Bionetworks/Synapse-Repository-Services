@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model.jdo;
 
 import static org.junit.Assert.*;
 
+import java.util.Date;
+
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
@@ -19,6 +21,11 @@ public class JDONodeUtilsTest {
 		node.setName("myName");
 		node.setDescription("someDescription");
 		node.setId("101");
+		node.setType("someType");
+		node.setCreatedBy("createdByMe");
+		node.setModifiedBy("modifiedByMe");
+		node.setCreatedOn(new Date(System.currentTimeMillis()+99));
+		node.setModifiedOn(new Date(System.currentTimeMillis()+2993));
 		JDONode jdo = JDONodeUtils.copyFromDto(node);
 		assertNotNull(jdo);
 		// Make a copy form the jdo

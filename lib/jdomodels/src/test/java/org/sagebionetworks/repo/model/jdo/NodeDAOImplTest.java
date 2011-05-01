@@ -53,8 +53,7 @@ public class NodeDAOImplTest {
 	
 	@Test 
 	public void testCreateNode(){
-		Node toCreate = new Node();
-		toCreate.setName("firstNodeEver");
+		Node toCreate = Node.createNew("firstNodeEver");
 		String id = nodeDao.createNew(null, toCreate);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -66,14 +65,12 @@ public class NodeDAOImplTest {
 	
 	@Test 
 	public void testAddChild(){
-		Node parent = new Node();
-		parent.setName("parent");
+		Node parent = Node.createNew("parent");
 		String parentId = nodeDao.createNew(null, parent);
 		assertNotNull(parentId);
 		toDelete.add(parentId);
 		//Now add an child
-		Node child = new Node();
-		child.setName("child");
+		Node child = Node.createNew("child");
 		String childId = nodeDao.createNew(parentId, child);
 		assertNotNull(childId);
 		toDelete.add(parentId);
@@ -104,8 +101,7 @@ public class NodeDAOImplTest {
 	 */
 	@Test(expected=IllegalTransactionStateException.class)
 	public void testGetETagForUpdate(){
-		Node toCreate = new Node();
-		toCreate.setName("testGetETagForUpdate");
+		Node toCreate = Node.createNew("testGetETagForUpdate");
 		String id = nodeDao.createNew(null, toCreate);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -115,8 +111,7 @@ public class NodeDAOImplTest {
 	
 	@Test
 	public void testUpdateNode(){
-		Node node = new Node();
-		node.setName("testUpdateNode");
+		Node node = Node.createNew("testUpdateNode");
 		String id = nodeDao.createNew(null, node);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -135,8 +130,7 @@ public class NodeDAOImplTest {
 	
 	@Test
 	public void testCreateAnnotations(){
-		Node node = new Node();
-		node.setName("testCreateAnnotations");
+		Node node = Node.createNew("testCreateAnnotations");
 		String id = nodeDao.createNew(null, node);
 		toDelete.add(id);
 		assertNotNull(id);

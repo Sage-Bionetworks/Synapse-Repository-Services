@@ -49,8 +49,7 @@ public class NodeLockTest {
 		assertNotNull(nodeLockerB);
 		assertNotNull(nodeDao);
 		// Create a node
-		Node theNode = new Node();
-		theNode.setName("NodeLockTest");
+		Node theNode = Node.createNew("NodeLockTest");
 		nodeId = nodeDao.createNew(null, theNode);
 		assertNotNull(nodeId);
 	}

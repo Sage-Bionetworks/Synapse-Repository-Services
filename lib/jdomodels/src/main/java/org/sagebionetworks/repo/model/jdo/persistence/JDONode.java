@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.jdo.persistence;
 
+import java.util.Date;
 import java.util.Set;
 
 import javax.jdo.annotations.Column;
@@ -36,6 +37,16 @@ public class JDONode {
 
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
 	private Long eTag = new Long(0);
+	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
+	private String createdBy;
+	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
+	private Date createdOn;
+	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
+	private String modifiedBy;
+	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
+	private Date modifiedOn;
+	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
+	private String type;
 	
 	public Set<JDONode> getChildren() {
 		return children;
@@ -91,6 +102,46 @@ public class JDONode {
 
 	public void seteTag(Long eTag) {
 		this.eTag = eTag;
+	}
+
+	public String getCreatedBy() {
+		return createdBy;
+	}
+
+	public void setCreatedBy(String createdBy) {
+		this.createdBy = createdBy;
+	}
+
+	public Date getCreatedOn() {
+		return createdOn;
+	}
+
+	public void setCreatedOn(Date createdOn) {
+		this.createdOn = createdOn;
+	}
+
+	public String getModifiedBy() {
+		return modifiedBy;
+	}
+
+	public void setModifiedBy(String modifiedBy) {
+		this.modifiedBy = modifiedBy;
+	}
+
+	public Date getModifiedOn() {
+		return modifiedOn;
+	}
+
+	public void setModifiedOn(Date modifiedOn) {
+		this.modifiedOn = modifiedOn;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
 	}
 
 	@Override
