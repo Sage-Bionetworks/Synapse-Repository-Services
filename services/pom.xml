@@ -12,8 +12,8 @@
   <artifactId>services</artifactId>
   <packaging>pom</packaging>
   <name>Services</name>
-  
   <version>parent-1.0</version>
+  
   <modules>
     <module>repository</module>
     <module>auth</module>
