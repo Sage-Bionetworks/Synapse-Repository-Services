@@ -191,9 +191,4 @@
     </plugins>
   </build>
 
-  <!-- Specify hard-coded project properties here -->
-  <properties>
-    <org.springframework.version>3.0.5.RELEASE</org.springframework.version>
-  </properties>
-
 </project>

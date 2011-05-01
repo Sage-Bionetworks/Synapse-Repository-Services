@@ -36,34 +36,6 @@
 			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local</url>
 		</repository>
 		<repository>
-			<id>springsource-milestone</id>
-			<url>http://repository.springsource.com/maven/bundles/milestone</url>
-		</repository>
-		<repository>
-			<id>springsource-release</id>
-			<url>http://repository.springsource.com/maven/bundles/release</url>
-		</repository>
-		<repository>
-			<id>springsource-external</id>
-			<url>http://repository.springsource.com/maven/bundles/snapshot</url>
-		</repository>
-		<repository>
-			<id>atlassian-m2-repository</id>
-			<url>https://m2proxy.atlassian.com/repository/public</url>
-		</repository>
-				<repository>
-			<id>springsource-milestone</id>
-			<url>http://repository.springsource.com/maven/bundles/milestone</url>
-		</repository>
-		<repository>
-			<id>springsource-release</id>
-			<url>http://repository.springsource.com/maven/bundles/release</url>
-		</repository>
-		<repository>
-			<id>springsource-external</id>
-			<url>http://repository.springsource.com/maven/bundles/snapshot</url>
-		</repository>
-		<repository>
 			<id>atlassian-m2-repository</id>
 			<url>https://m2proxy.atlassian.com/repository/public</url>
 		</repository>
@@ -157,6 +129,8 @@
 		<downloadSources>true</downloadSources>
 		<!-- This is the version of all modules that make us Synapse -->
 		<applicationVersion>0.4-SNAPSHOT</applicationVersion>
+		
+		<org.springframework.version>3.0.5.RELEASE</org.springframework.version>
 	</properties>
 
 	<distributionManagement>
