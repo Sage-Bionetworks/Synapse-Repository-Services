@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web;
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.schema.JsonSchema;
+import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -17,7 +18,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
  * @param <T>
  *            the particular type of entity the controller is managing
  */
-public interface EntityController<T> {
+public interface EntityController<T extends Base> {
 
 	/**
 	 * Get entities

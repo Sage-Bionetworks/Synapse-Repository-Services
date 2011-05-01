@@ -35,7 +35,8 @@ public class NodeDAOImpl implements NodeDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public String createNew(String parentId, Node dto) {
+	public String createNew(Node dto) {
+		String parentId = dto.getParentId();
 		JDONode node = JDONodeUtils.copyFromDto(dto);
 		// Make sure it has annotations
 		node.setAnnotations(JDOAnnotations.newJDOAnnotations());

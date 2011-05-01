@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
  * 
  * @param <T>
  */
-public interface BaseDAO<T> {
+public interface BaseDAO<T extends Base> {
 	
 	/**
 	 * @return the type of the object which the DAO serves

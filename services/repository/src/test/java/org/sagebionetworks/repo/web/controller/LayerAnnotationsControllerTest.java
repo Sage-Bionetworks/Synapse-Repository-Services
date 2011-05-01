@@ -4,16 +4,11 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.logging.Logger;
 
-import javax.jdo.Extent;
-import javax.jdo.PersistenceManager;
-
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.jdo.PMF;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOInputDataLayer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;

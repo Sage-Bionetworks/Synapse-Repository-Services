@@ -2,28 +2,23 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Collection;
 
+import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.User;
 
-
-
-public interface NodeManager {
-	
+public interface DTOManager<T extends Base> {
 	/**
-	 * Create a new node
-	 * @param user
-	 * @param newNode
-	 * @return
+	 * @param dto
+	 *            object to be created
+	 * @return the id of the newly created object
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
 	 */
-	public String createNewNode(User user, Node newNode) throws DatastoreException,
+	public String create(T dto) throws DatastoreException,
 			InvalidModelException, UnauthorizedException;
-
 
 	/**
 	 * Retrieves the object given its id
@@ -33,7 +28,7 @@ public interface NodeManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Node get(String id, String userId) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public T get(String id) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * This updates the 'shallow' properties of an object
@@ -44,7 +39,7 @@ public interface NodeManager {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
-	public void update(Node dto, String userId) throws DatastoreException, InvalidModelException,
+	public void update(T dto) throws DatastoreException, InvalidModelException,
 			NotFoundException, UnauthorizedException;
 
 	/**
@@ -55,8 +50,9 @@ public interface NodeManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public void delete(String id, String userId) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public void delete(String id) throws DatastoreException, NotFoundException, UnauthorizedException;
 
+	// TODO need a clean way to convey Public access
 	/**
 	 * Use case:  Need to find out who has authority to add a new user to a group.
 	 * Here the 'resource' refers to the group and 'accessType' = 'change'.  The method
@@ -66,7 +62,7 @@ public interface NodeManager {
 	 * @param accessType a type of access to the object
 	 * @return those user groups that have the specified type of access to the given object
 	 */
-	public Collection<UserGroup> whoHasAccess(Node resource, String accessType) throws NotFoundException, DatastoreException ;
+	public Collection<UserGroup> whoHasAccess(T resource, String accessType) throws NotFoundException, DatastoreException ;
 	
 	/**
 	 * Use case:  Need to find out if a user can download a resource.
@@ -76,6 +72,7 @@ public interface NodeManager {
 	 * @param accessType
 	 * @return
 	 */
-	public boolean hasAccess(Node resource, String accessType, String userId) throws NotFoundException, DatastoreException ;
+	public boolean hasAccess(T resource, String accessType) throws NotFoundException, DatastoreException ;
+
 
 }

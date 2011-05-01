@@ -17,7 +17,7 @@ public interface NodeDAO {
 	 * @param node
 	 * @return
 	 */
-	public String createNew(String parentId, Node node);
+	public String createNew(Node node);
 	
 	/**
 	 * Fetch a node using its id.
