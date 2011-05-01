@@ -31,9 +31,19 @@ public class JDOAnnotationsUtils {
 	 * @return
 	 * @throws InvalidModelException
 	 */
-	@SuppressWarnings("unchecked")
 	public static JDOAnnotations createFromDTO(Annotations dto){
 		JDOAnnotations jdo = new JDOAnnotations();
+		updateFromJdoFromDto(dto, jdo);
+		return jdo;
+	}
+
+	/**
+	 * Update the JDO from the DTO
+	 * @param dto
+	 * @param jdo
+	 */
+	@SuppressWarnings("unchecked")
+	public static void updateFromJdoFromDto(Annotations dto, JDOAnnotations jdo) {
 		if(dto.getId() != null){
 			jdo.setId(Long.valueOf(dto.getId()));
 		}
@@ -41,7 +51,6 @@ public class JDOAnnotationsUtils {
 		jdo.setDateAnnotations((Set<JDODateAnnotation>)createFromMap(jdo, dto.getDateAnnotations()));
 		jdo.setLongAnnotations((Set<JDOLongAnnotation>)createFromMap(jdo, dto.getLongAnnotations()));
 		jdo.setDoubleAnnotations((Set<JDODoubleAnnotation>)createFromMap(jdo, dto.getDoubleAnnotations()));
-		return jdo;
 	}
 	
 	/**
@@ -50,6 +59,7 @@ public class JDOAnnotationsUtils {
 	 * @return
 	 */
 	public static Annotations createFromJDO(JDOAnnotations jdo){
+		if(jdo == null) throw new IllegalArgumentException("JDOAnnotations cannot be null");
 		Annotations dto = new Annotations();
 		if(jdo.getId() != null){
 			dto.setId(jdo.getId().toString());
