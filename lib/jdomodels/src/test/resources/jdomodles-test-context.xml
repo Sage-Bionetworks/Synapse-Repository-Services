@@ -11,6 +11,11 @@
   <context:annotation-config />
 
   <import resource="classpath:transaction-spb.xml" />
-            
+  
+  	<!-- Used to test node locking -->
+	<bean id="nodeLockerA" class="org.sagebionetworks.repo.model.jdo.JDONodeLockCheckerImpl" scope="prototype"/>
+	
+	<!-- Used to test node locking -->
+	<bean id="nodeLockerB" class="org.sagebionetworks.repo.model.jdo.JDONodeLockCheckerImpl" scope="prototype"/>
     
 </beans>

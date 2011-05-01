@@ -19,12 +19,22 @@ public class JDONodeUtils {
 	public static JDONode copyFromDto(Node dto){
 		if(dto == null) throw new IllegalArgumentException("Dto cannot be null");
 		JDONode jdo = new JDONode();
+		updateFromDto(dto, jdo);
+		return jdo;
+	}
+	
+	/**
+	 * Used to update an existing object
+	 * @param dto
+	 * @param jdo
+	 * @return
+	 */
+	public static void updateFromDto(Node dto, JDONode jdo) {
 		jdo.setName(dto.getName());
 		jdo.setDescription(dto.getDescription());
 		if(dto.getId() != null){
 			jdo.setId(Long.parseLong(dto.getId()));
 		}
-		return jdo;
 	}
 	
 	/**

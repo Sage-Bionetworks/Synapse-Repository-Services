@@ -2,17 +2,31 @@ package org.sagebionetworks.repo.model.jdo;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
+
+import javax.jdo.JDOException;
+import javax.jdo.JDOObjectNotFoundException;
+import javax.jdo.PersistenceManager;
+import javax.jdo.Query;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotations;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.orm.jdo.JdoCallback;
 import org.springframework.orm.jdo.JdoTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * This is a basic JDO implementation of the NodeDAO.
+ * 
+ * @author jmhill
+ *
+ */
 @Transactional(readOnly = true)
 public class NodeDAOImpl implements NodeDAO {
 	
@@ -23,6 +37,8 @@ public class NodeDAOImpl implements NodeDAO {
 	@Override
 	public String createNew(String parentId, Node dto) {
 		JDONode node = JDONodeUtils.copyFromDto(dto);
+		// Make sure it has annotations
+		node.setAnnotations(JDOAnnotations.newJDOAnnotations());
 		// Fist create the node
 		node = jdoTemplate.makePersistent(node);
 		if(parentId != null){
@@ -45,20 +61,22 @@ public class NodeDAOImpl implements NodeDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void delete(String id) {
-		JDONode toDelete = jdoTemplate.getObjectById(JDONode.class, id);
+		JDONode toDelete = jdoTemplate.getObjectById(JDONode.class, Long.parseLong(id));
 		if(toDelete != null){
 			jdoTemplate.deletePersistent(toDelete);
 		}
 	}
 
+	@Transactional(readOnly = true)
 	@Override
 	public Annotations getAnnotations(String id) {
+		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		JDONode jdo =  jdoTemplate.getObjectById(JDONode.class, Long.parseLong(id));
-		if(jdo == null) throw new IllegalArgumentException("Cannot find a node with id: "+id);
-		
-		return null;
+		// Get the annotations and make a copy
+		return JDOAnnotationsUtils.createFromJDO(jdo.getAnnotations());
 	}
 
+	@Transactional(readOnly = true)
 	@Override
 	public Set<Node> getChildren(String id) {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
@@ -76,5 +94,49 @@ public class NodeDAOImpl implements NodeDAO {
 		return null;
 	}
 
+	/**
+	 * Note: You cannot call this method outside of a transaction.
+	 */
+	@Transactional(readOnly = false, propagation = Propagation.MANDATORY)
+	@Override
+	public Long getETagForUpdate(String stringId) {
+		// Create a Select for update query
+		final Long longId = Long.parseLong(stringId);
+		Long eTag = jdoTemplate.execute(new JdoCallback<Long>(){
+			@Override
+			public Long doInJdo(PersistenceManager pm) throws JDOException {
+				// Create a select for update query
+				Query query = pm.newQuery(JDONode.class);
+				// Make sure this is a "SELECT FOR UPDATE"
+				query.addExtension("datanucleus.rdbms.query.useUpdateLock", "true"); 
+				query.setFilter("id == inputId");
+				query.declareParameters("java.lang.Long inputId");
+				List<JDONode> result = (List<JDONode>) query.execute(longId);
+				if(result == null ||result.size() != 1 ) throw new JDOObjectNotFoundException("Cannot find a node with id: "+longId);
+				return result.get(0).geteTag();
+			}});
+		System.out.println("ETag for id:"+stringId+" was: "+eTag);
+		return eTag;
+	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void updateNode(Node updatedNode) {
+		if(updatedNode == null) throw new IllegalArgumentException("Node to update cannot be null");
+		if(updatedNode.getId() == null) throw new IllegalArgumentException("Node to update cannot have a null ID");
+		JDONode jdoToUpdate = jdoTemplate.getObjectById(JDONode.class, Long.parseLong(updatedNode.getId()));
+		// Update is as simple as copying the values from the passed node.
+		JDONodeUtils.updateFromDto(updatedNode, jdoToUpdate);		
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void updateAnnotations(String id, Annotations updatedAnnotations) {
+		if(id == null) throw new IllegalArgumentException("Node ID cannot be null");
+		if(updatedAnnotations == null) throw new IllegalArgumentException("Updateded Annotations cannot be null");
+		JDONode jdo =  jdoTemplate.getObjectById(JDONode.class, Long.parseLong(id));
+		// now update the annotations from the passed values.
+		JDOAnnotationsUtils.updateFromJdoFromDto(updatedAnnotations, jdo.getAnnotations());
+	}
+	
 }

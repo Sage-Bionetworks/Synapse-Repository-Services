@@ -5,6 +5,7 @@ import java.util.Set;
 import javax.jdo.annotations.Column;
 import javax.jdo.annotations.Element;
 import javax.jdo.annotations.IdGeneratorStrategy;
+import javax.jdo.annotations.NullValue;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
@@ -19,7 +20,7 @@ public class JDONode {
 	@Persistent
 	private JDONode parent;
 
-	@Persistent
+	@Persistent(nullValue = NullValue.EXCEPTION) // cannot be null
 	private String name;
 	
 	@Persistent (mappedBy = "parent")
@@ -32,6 +33,9 @@ public class JDONode {
 	@Persistent
 	@Column(jdbcType="VARCHAR", length=3000)
 	private String description;
+
+	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
+	private Long eTag = new Long(0);
 	
 	public Set<JDONode> getChildren() {
 		return children;
@@ -79,6 +83,14 @@ public class JDONode {
 
 	public void setParent(JDONode parentId) {
 		this.parent = parentId;
+	}
+
+	public Long geteTag() {
+		return eTag;
+	}
+
+	public void seteTag(Long eTag) {
+		this.eTag = eTag;
 	}
 
 	@Override
