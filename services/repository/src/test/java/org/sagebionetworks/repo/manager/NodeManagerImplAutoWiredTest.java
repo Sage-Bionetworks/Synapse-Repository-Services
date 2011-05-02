@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
@@ -55,12 +56,12 @@ public class NodeManagerImplAutoWiredTest {
 	}
 	
 	@Test
-	public void testCreateAndUpdate() throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException{
+	public void testCreateAndUpdate() throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
 		// Create a node
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testCreateNode");
 		newNode.setType("someType");
-		String id = nodeManager.createNewNode(null, newNode);
+		String id = nodeManager.createNewNode(newNode, null);
 		assertNotNull(id);
 		nodesToDelete.add(id);
 		//Make sure we can get the node
