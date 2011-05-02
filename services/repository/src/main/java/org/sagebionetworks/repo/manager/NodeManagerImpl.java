@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import java.util.Date;
 import java.util.logging.Logger;
 
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -231,6 +232,41 @@ public class NodeManagerImpl implements NodeManager {
 	public boolean hasAccess(Node resource, String accessType, String userName) throws NotFoundException, DatastoreException  {
 		return true;
 //		return authorizationDao.canAccess(userName, resource.getId(), accessType);
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public Annotations getAnnotations(String username, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
+		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
+		username = NodeManagerImpl.validateUsername(username);
+		Annotations annos = nodeDao.getAnnotations(nodeId);
+		log.info("username "+username+" fetched Annotations for node: "+nodeId);
+		return annos;
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public Annotations updateAnnotations(String username, String nodeId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException {
+		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
+		username = NodeManagerImpl.validateUsername(username);
+		validateAnnotations(updated);
+		// Now lock the node if we can
+		String nextETag = validateETagAndLockNode(nodeId, updated.getEtag());
+		// We have the lock
+		// Increment the eTag
+		updated.setEtag(nextETag);
+		nodeDao.updateAnnotations(nodeId, updated);
+		log.info("username "+username+" updated Annotations for node: "+nodeId);
+		return updated;
+	}
+	
+	/**
+	 * Validate the passed annotations
+	 * @param updated
+	 */
+	public static void validateAnnotations(Annotations updated){
+		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
+		if(updated.getEtag() == null) throw new IllegalArgumentException("Cannot update Annotations with a null eTag");
 	}
 
 }

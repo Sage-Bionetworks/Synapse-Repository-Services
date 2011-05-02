@@ -73,7 +73,9 @@ public class NodeDAOImpl implements NodeDAO {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		JDONode jdo =  jdoTemplate.getObjectById(JDONode.class, Long.parseLong(id));
 		// Get the annotations and make a copy
-		return JDOAnnotationsUtils.createFromJDO(jdo.getAnnotations());
+		Annotations annos = JDOAnnotationsUtils.createFromJDO(jdo.getAnnotations());
+		annos.setEtag(jdo.geteTag().toString());
+		return annos;
 	}
 
 	@Transactional(readOnly = true)
@@ -134,7 +136,10 @@ public class NodeDAOImpl implements NodeDAO {
 	public void updateAnnotations(String id, Annotations updatedAnnotations) {
 		if(id == null) throw new IllegalArgumentException("Node ID cannot be null");
 		if(updatedAnnotations == null) throw new IllegalArgumentException("Updateded Annotations cannot be null");
+		if(updatedAnnotations.getEtag() == null) throw new IllegalArgumentException("Annotations must have a valid eTag");
 		JDONode jdo =  jdoTemplate.getObjectById(JDONode.class, Long.parseLong(id));
+		// Update the eTag
+		jdo.seteTag(Long.parseLong(updatedAnnotations.getEtag()));
 		// now update the annotations from the passed values.
 		JDOAnnotationsUtils.updateFromJdoFromDto(updatedAnnotations, jdo.getAnnotations());
 	}

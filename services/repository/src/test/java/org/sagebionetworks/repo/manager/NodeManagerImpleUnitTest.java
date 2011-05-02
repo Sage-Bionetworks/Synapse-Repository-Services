@@ -9,9 +9,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationDAO;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.web.ConflictingUpdateException;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * This is the unit test version of this class.
@@ -23,7 +28,7 @@ public class NodeManagerImpleUnitTest {
 	
 	private NodeDAO mockNodeDao = null;
 	private AuthorizationDAO mockAuthDao = null;
-	private NodeManager nodeManager = null;
+	private NodeManagerImpl nodeManager = null;
 	
 	@Before
 	public void before(){
@@ -157,5 +162,68 @@ public class NodeManagerImpleUnitTest {
 		assertNotNull(processedNode.getModifiedOn());
 		assertNotNull(processedNode.getModifiedBy());
 	}
+	
+	@Test(expected=ConflictingUpdateException.class)
+	public void testValidateETagAndLockNodeConfilict() throws ConflictingUpdateException{
+		String nodeId = "101";
+		String eTag = "899";
+		when(mockNodeDao.getETagForUpdate(nodeId)).thenReturn(new Long(900));
+		// Since the eTag will not match an exception should be thrown.
+		nodeManager.validateETagAndLockNode(nodeId, eTag);
+	}
+	
+	@Test
+	public void testValidateETagAndLockNodePass() throws ConflictingUpdateException{
+		String nodeId = "101";
+		String eTag = "899";
+		when(mockNodeDao.getETagForUpdate(nodeId)).thenReturn(new Long(899));
+		// Since the eTag will not match an exception should be thrown.
+		String nextTag = nodeManager.validateETagAndLockNode(nodeId, eTag);
+		assertNotNull(nextTag);
+		assertEquals("900",nextTag);
+	}
+	
+	@Test
+	public void testUpdate() throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException{
+		// Test that we can update a node.
+		Node newNode = new Node();
+		newNode.setName("testUpdate");
+		newNode.setId("101");
+		newNode.seteTag("9");;
+		newNode.setType("someType");
+		when(mockNodeDao.getETagForUpdate("101")).thenReturn(new Long(9));
+		// Make the actual call
+		Node result = nodeManager.update("updateUser", newNode);
+		assertNotNull(result);
+		assertEquals("updateUser", result.getModifiedBy());
+		assertNotNull(result.getModifiedOn());
+		// The eTag should have been incremented
+		assertNotNull("10", result.geteTag());
+	}
+	
+	@Test
+	public void testGetAnnotations() throws NotFoundException, DatastoreException, UnauthorizedException{
+		String id = "101";
+		Annotations annos = new Annotations();
+		annos.addAnnotation("stringKey", "a");
+		annos.addAnnotation("longKey", Long.MAX_VALUE);
+		when(mockNodeDao.getAnnotations(id)).thenReturn(annos);
+		Annotations copy = nodeManager.getAnnotations(null, id);
+		assertEquals(copy, annos);
+	}
+	
+	
+	@Test
+	public void testUpdateAnnotations() throws NotFoundException, DatastoreException, UnauthorizedException{
+		// To update the annotations 
+		String id = "101";
+		Annotations annos = new Annotations();
+		annos.addAnnotation("stringKey", "b");
+		annos.addAnnotation("longKey", Long.MIN_VALUE);
+		when(mockNodeDao.getAnnotations(id)).thenReturn(annos);
+		Annotations copy = nodeManager.getAnnotations(null, id);
+		assertEquals(copy, annos);
+	}
+
 
 }
