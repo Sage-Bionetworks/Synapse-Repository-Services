@@ -1,62 +1,53 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Collection;
-
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
-
-
 
 public interface NodeManager {
 	
 	/**
-	 * Create a new node
-	 * @param user
+	 * Create a new no
+	 * @param userId
 	 * @param newNode
 	 * @return
 	 */
-	public String createNewNode(Node newNode, String userName) throws DatastoreException,
-			InvalidModelException;
-
-
+	public String createNewNode(String userName, Node newNode);
+	
 	/**
-	 * Retrieves the object given its id
-	 * 
-	 * @param id
-	 * @param user
+	 * Delete a node using its id.
+	 * @param userName
+	 * @param nodeId
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public void delete(String userName, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	/**
+	 * Get a node using its id.
+	 * @param userName
+	 * @param nodeId
 	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
 	 */
-	public Node get(String id, String userName) throws DatastoreException, NotFoundException, UnauthorizedException;
-
+	public Node get(String userName, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
+	
 	/**
-	 * This updates the 'shallow' properties of an object
-	 * 
-	 * @param node
-	 *            non-null id is required
-	 * @param user
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws NotFoundException
+	 * Update a node using the provided node.
+	 * @param userName
+	 * @param updated
+	 * @return 
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
 	 */
-	public void update(Node dto, String userName) throws DatastoreException, InvalidModelException,
-			NotFoundException, UnauthorizedException;
-
-	/**
-	 * delete the object given by the given ID
-	 * 
-	 * @param id
-	 *            the id of the object to be deleted
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	public void delete(String id, String userName) throws DatastoreException, NotFoundException, UnauthorizedException;
-
+	public Node update(String userName, Node updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException;
+	
 	/**
 	 * Use case:  Need to find out if a user can download a resource.
 	 * 
@@ -66,5 +57,7 @@ public interface NodeManager {
 	 * @return
 	 */
 	public boolean hasAccess(Node resource, String accessType, String userName) throws NotFoundException, DatastoreException ;
+
+	
 
 }

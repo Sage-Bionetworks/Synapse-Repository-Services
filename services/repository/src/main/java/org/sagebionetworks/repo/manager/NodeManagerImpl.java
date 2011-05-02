@@ -1,16 +1,17 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Collection;
+import java.util.Date;
+import java.util.logging.Logger;
 
 import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -21,80 +22,194 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class NodeManagerImpl implements NodeManager {
 	
+	private static final Logger log = Logger.getLogger(NodeManagerImpl.class.getName());
+	
+	public static final String ANNONYMOUS = "anonymous";
+	
 	@Autowired
 	NodeDAO nodeDao;
-	
 	@Autowired
 	AuthorizationDAO authorizationDao;
 	
 	/**
-	 * Creates a new Node object.  
-	 * Note:  There is no authorization check.  The caller must perform 
-	 * any such checks prior to calling this method.
-	 * @param node
-	 *            object to be created
-	 * @return the id of the newly created object
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
+	 * This is used for unit test.
+	 * @param nodeDao
+	 * @param authDoa
 	 */
-	@Override
-	@Transactional(readOnly = false)
-	public String createNewNode(Node node, String userName) throws DatastoreException,
-			InvalidModelException {
-		nodeDao.createNew(node);
-		return node.getId();
+	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationDAO authDoa){
+		this.nodeDao = nodeDao;
+		this.authorizationDao = authDoa;
 	}
-
+	
 	/**
-	 * Retrieves the object given its id
-	 * 
-	 * @param id
+	 * Used by Spring
+	 */
+	public NodeManagerImpl(){
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public String createNewNode(String userName, Node newNode) {
+		// First valid the node
+		NodeManagerImpl.validateNode(newNode);
+		// Also validate the username
+		userName  = NodeManagerImpl.validateUsername(userName);
+		// Validate the creations data
+		NodeManagerImpl.validateNodeCreationData(userName, newNode);
+		// Validate the modified data.
+		NodeManagerImpl.validateNodeModifiedData(userName, newNode);
+		// TODO: Add authz code
+		
+		// If they are allowed then let them create the node
+		String id = nodeDao.createNew(newNode);
+		log.info("username: "+userName+" created node: "+id);
+		return id;
+	}
+	
+	/**
+	 * Validate a node
+	 * @param userName
+	 * @param node
+	 */
+	public static void validateNode(Node node){
+		if(node == null) throw new IllegalArgumentException("Node cannot be null");
+		if(node.getType() == null) throw new IllegalArgumentException("Node.type cannot be null");
+		if(node.getName() == null) throw new IllegalArgumentException("Node.name cannot be null");		
+	}
+	
+	/**
+	 * Validate the passed user name.
+	 * @param userName
 	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
 	 */
-	@Override
-	public Node get(String id, String userName) throws DatastoreException, NotFoundException, UnauthorizedException {
-		if (!authorizationDao.canAccess(userName, id, AuthorizationDAO.READ_ACCESS)) {
-			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
+	public static String validateUsername(String userName){
+		if(userName == null || "".equals(userName.trim())){
+			return ANNONYMOUS;
+		}else{
+			return userName.trim();
 		}
-		return nodeDao.getNode(id);
+	}
+	
+	/**
+	 * Make sure the creation data is set, and if not then set it.
+	 * @param userName
+	 * @param newNode
+	 * @return
+	 */
+	public static void validateNodeCreationData(String userName, Node newNode){
+		if(userName == null) throw new IllegalArgumentException("Username cannot be null");
+		if(newNode == null) throw new IllegalArgumentException("New node cannot be null");
+		// If createdBy is not set then set it
+		if(newNode.getCreatedBy() == null ){
+			newNode.setCreatedBy(userName);
+		}
+		// If createdOn is not set then set it with the current time.
+		if(newNode.getCreatedOn() == null){
+			newNode.setCreatedOn(new Date(System.currentTimeMillis()));
+		}
+	}
+	
+	/**
+	 * Make sure the creation data is set, and if not then set it.
+	 * @param userName
+	 * @param newNode
+	 * @return
+	 */
+	public static void validateNodeModifiedData(String userName, Node newNode){
+		if(userName == null) throw new IllegalArgumentException("Username cannot be null");
+		if(newNode == null) throw new IllegalArgumentException("New node cannot be null");
+		// If createdBy is not set then set it
+		if(newNode.getModifiedBy() == null ){
+			newNode.setModifiedBy(userName);
+		}
+		// If createdOn is not set then set it with the current time.
+		if(newNode.getModifiedOn() == null){
+			newNode.setModifiedOn(new Date(System.currentTimeMillis()));
+		}
 	}
 
-	/**
-	 * This updates the 'shallow' properties of an object
-	 * 
-	 * @param node
-	 *            non-null id is required
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws NotFoundException
-	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	@Transactional(readOnly = false)
-	public void update(Node node, String userName) throws DatastoreException, InvalidModelException,
-			NotFoundException, UnauthorizedException {
-		if (!authorizationDao.canAccess(userName, node.getId(), AuthorizationDAO.CHANGE_ACCESS)) {
-			throw new UnauthorizedException(userName+" lacks change access to the requested object.");
+	public void delete(String username, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
+		if (!authorizationDao.canAccess(username, nodeId, AuthorizationDAO.CHANGE_ACCESS)) {
+			throw new UnauthorizedException(username+" lacks change access to the requested object.");
 		}
-		nodeDao.updateNode(node);
+		// First validate the username
+		username = NodeManagerImpl.validateUsername(username);
+		// Add authz
+		
+		nodeDao.delete(nodeId);
+		log.info("username "+username+" deleted node: "+nodeId);
+		
+	}
+	
+	@Transactional(readOnly = true)
+	@Override
+	public Node get(String username, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
+		if (!authorizationDao.canAccess(username, nodeId, AuthorizationDAO.READ_ACCESS)) {
+			throw new UnauthorizedException(username+" lacks read access to the requested object.");
+		}
+		// Validate the username
+		username = NodeManagerImpl.validateUsername(username);
+		// TODO: add authz
+		
+		Node result = nodeDao.getNode(nodeId);
+		log.info("username "+username+" fetched node: "+result.getId());
+		return result;
 	}
 
-	/**
-	 * delete the object given by the given ID
-	 * 
-	 * @param id
-	 *            the id of the object to be deleted
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	@Transactional(readOnly = false)
-	public void delete(String id, String userName) throws DatastoreException, NotFoundException, UnauthorizedException {
-		if (!authorizationDao.canAccess(userName, id, AuthorizationDAO.CHANGE_ACCESS)) {
-			throw new UnauthorizedException(userName+" lacks change access to the requested object.");
+	public Node update(String username, Node updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException {
+		if (!authorizationDao.canAccess(username, updated.getId(), AuthorizationDAO.CHANGE_ACCESS)) {
+			throw new UnauthorizedException(username+" lacks change access to the requested object.");
 		}
-		nodeDao.delete(id);
+		username = NodeManagerImpl.validateUsername(username);
+		NodeManagerImpl.validateNode(updated);
+		// TODO: Authorization should occur before we lock
+		
+		
+		// Now lock this node
+		String nextETag = validateETagAndLockNode(updated.getId(), updated.geteTag());
+		// We have the lock
+		// Increment the eTag
+		updated.seteTag(nextETag);
+		
+		// Clear the modified data and fill it in with the new data
+		updated.setModifiedBy(null);
+		updated.setModifiedOn(null);
+		NodeManagerImpl.validateNodeModifiedData(username, updated);
+		// Now make the actual update.
+		nodeDao.updateNode(updated);
+		log.info("username "+username+" updated node: "+updated.getId()+", with a new eTag: "+nextETag);
+		// Return the new node
+		return updated;
+	}
+	
+	/**
+	 * Note: This must be called from within a Transaction.
+	 * Calling this method will validate the passed eTag against the current eTag for the given node.
+	 * A lock will also me maintained on this node until the transaction either rolls back or commits.
+	 * 
+	 * Note: This is a blocking call.  If another transaction is currently holding the lock on this node
+	 * this method will be blocked, until the lock is released.
+	 * 
+	 * @param nodeId
+	 * @param eTag
+	 * @throws ConflictingUpdateException
+	 */
+	protected String validateETagAndLockNode(String nodeId, String eTag) throws ConflictingUpdateException{
+		if(eTag == null) throw new IllegalArgumentException("Must have a non-null eTag to update a node");
+		if(nodeId == null) throw new IllegalArgumentException("Must have a non-null ID to update a node");
+		long passedTag = Long.parseLong(eTag);
+		// Get the etag
+		long currentTag = nodeDao.getETagForUpdate(nodeId);
+		if(passedTag != currentTag){
+			throw new ConflictingUpdateException("Node: "+nodeId+" was updated since you last fetched it, retrieve it again and reapply the update");
+		}
+		// Increment the eTag
+		currentTag++;
+		return new Long(currentTag).toString();
 	}
 
 	/**
@@ -107,7 +222,8 @@ public class NodeManagerImpl implements NodeManager {
 	 */
 	@Override
 	public boolean hasAccess(Node resource, String accessType, String userName) throws NotFoundException, DatastoreException  {
-		return authorizationDao.canAccess(userName, resource.getId(), accessType);
+		return true;
+//		return authorizationDao.canAccess(userName, resource.getId(), accessType);
 	}
 
 }
