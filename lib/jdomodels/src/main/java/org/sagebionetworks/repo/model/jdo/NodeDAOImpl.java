@@ -36,15 +36,14 @@ public class NodeDAOImpl implements NodeDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String createNew(Node dto) {
-		String parentId = dto.getParentId();
 		JDONode node = JDONodeUtils.copyFromDto(dto);
 		// Make sure it has annotations
 		node.setAnnotations(JDOAnnotations.newJDOAnnotations());
 		// Fist create the node
 		node = jdoTemplate.makePersistent(node);
-		if(parentId != null){
+		if(dto.getParentId() != null){
 			// Get the parent
-			JDONode parent = jdoTemplate.getObjectById(JDONode.class, Long.parseLong(parentId));
+			JDONode parent = jdoTemplate.getObjectById(JDONode.class, Long.parseLong(dto.getParentId()));
 			parent.getChildren().add(node);
 		}
 		return node.getId().toString();

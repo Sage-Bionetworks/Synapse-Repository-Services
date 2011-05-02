@@ -18,6 +18,7 @@ public class Node {
 	String modifiedBy;
 	Date modifiedOn;
 	String type;
+	String eTag;
 	
 	/**
 	 * Create a new node using basic data.
@@ -89,6 +90,15 @@ public class Node {
 	public void setParentId(String parentId) {
 		this.parentId = parentId;
 	}
+	
+	public String geteTag() {
+		return eTag;
+	}
+
+	public void seteTag(String eTag) {
+		this.eTag = eTag;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -99,6 +109,7 @@ public class Node {
 				+ ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result
 				+ ((description == null) ? 0 : description.hashCode());
+		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
 				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
@@ -134,6 +145,11 @@ public class Node {
 				return false;
 		} else if (!description.equals(other.description))
 			return false;
+		if (eTag == null) {
+			if (other.eTag != null)
+				return false;
+		} else if (!eTag.equals(other.eTag))
+			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
@@ -165,6 +181,15 @@ public class Node {
 		} else if (!type.equals(other.type))
 			return false;
 		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "Node [id=" + id + ", name=" + name + ", description="
+				+ description + ", parentId=" + parentId + ", createdBy="
+				+ createdBy + ", createdOn=" + createdOn + ", modifiedBy="
+				+ modifiedBy + ", modifiedOn=" + modifiedOn + ", type=" + type
+				+ ", eTag=" + eTag + "]";
 	}
 
 }
