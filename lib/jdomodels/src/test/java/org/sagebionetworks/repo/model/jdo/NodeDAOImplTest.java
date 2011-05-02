@@ -1,9 +1,10 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
@@ -14,7 +15,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
 import org.springframework.test.context.ContextConfiguration;
@@ -61,6 +61,7 @@ public class NodeDAOImplTest {
 		Node loaded = nodeDao.getNode(id);
 		assertNotNull(id);
 		assertEquals(id, loaded.getId());
+		assertNotNull(loaded.geteTag());
 	}
 	
 	@Test 
@@ -138,17 +139,26 @@ public class NodeDAOImplTest {
 		// Now get the annotations for this node.
 		Annotations annos = nodeDao.getAnnotations(id);
 		assertNotNull(annos);
+		assertNotNull(annos.getEtag());
 		// Now add some annotations to this node.
 		annos.addAnnotation("stringOne", "one");
 		annos.addAnnotation("doubleKey", new Double(23.5));
 		annos.addAnnotation("longKey", new Long(1234));
-//		annos.addAnnotation("dateKey", new Date(System.currentTimeMillis()));
+		// update the eTag
+		long currentETag = Long.parseLong(annos.getEtag());
+		currentETag++;
+		String newETagString = new Long(currentETag).toString();
+		annos.setEtag(newETagString);
 		// Update them
 		nodeDao.updateAnnotations(id, annos);
 		// Now get a copy and ensure it equals what we sent
 		Annotations copy = nodeDao.getAnnotations(id);
 		assertNotNull(copy);
 		assertEquals(annos, copy);
+		// Make sure the node has a new eTag
+		Node nodeCopy = nodeDao.getNode(id);
+		assertNotNull(nodeCopy);
+		assertEquals(newETagString, nodeCopy.geteTag());
 	}
 	
 }

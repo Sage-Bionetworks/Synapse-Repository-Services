@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -59,6 +60,34 @@ public interface NodeManager {
 	 * @return
 	 */
 	public boolean hasAccess(Node resource, String accessType, String userName) throws NotFoundException, DatastoreException ;
+	
+	/**
+	 * Get the annotations for a node
+	 * @param username
+	 * @param nodeId
+	 * @return
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public Annotations getAnnotations(String username, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	/**
+	 * Update the annotations of a node.
+	 * @param username
+	 * @param nodeId
+	 * @return
+	 * @throws ConflictingUpdateException 
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public Annotations updateAnnotations(String username, String nodeId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException;
+
+	
+	
+	
+	
 
 	
 

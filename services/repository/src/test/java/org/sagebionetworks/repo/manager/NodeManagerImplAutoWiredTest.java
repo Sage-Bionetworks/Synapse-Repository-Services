@@ -9,6 +9,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -91,6 +92,36 @@ public class NodeManagerImplAutoWiredTest {
 
 	}
 	
+	@Test
+	public void testUpdateAnnotations() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
+		// Create a node
+		Node newNode = new Node();
+		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
+		newNode.setType("someType");
+		String id = nodeManager.createNewNode(newNode, null);
+		assertNotNull(id);
+		nodesToDelete.add(id);
+		// First get the annotations for this node
+		Annotations annos = nodeManager.getAnnotations(null, id);
+		assertNotNull(annos);
+		assertNotNull(annos.getEtag());
+		String eTagBeforeUpdate = annos.getEtag();
+		long before = Long.parseLong(eTagBeforeUpdate);
+		String expectedEtagAfterUpdate = new Long(++before).toString();
+		// Add some values
+		annos.addAnnotation("longKey", new Long(1));
+		// Now update the node
+		Annotations updated = nodeManager.updateAnnotations(null, id, annos);
+		assertNotNull(updated);
+		Annotations copy = nodeManager.getAnnotations(null, id);
+		assertEquals(updated,copy);
+		// Make sure the eTag has changed
+		assertEquals(expectedEtagAfterUpdate, copy.getEtag());
+		Node nodeCopy = nodeManager.get(null, id);
+		assertNotNull(nodeCopy);
+		assertNotNull(nodeCopy.geteTag());
+		assertEquals(expectedEtagAfterUpdate, nodeCopy.geteTag().toString());
+	}
 	
 
 }
