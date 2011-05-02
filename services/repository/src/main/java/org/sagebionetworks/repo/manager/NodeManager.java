@@ -8,8 +8,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.User;
 
 
 
@@ -21,30 +19,32 @@ public interface NodeManager {
 	 * @param newNode
 	 * @return
 	 */
-	public String createNewNode(User user, Node newNode) throws DatastoreException,
-			InvalidModelException, UnauthorizedException;
+	public String createNewNode(Node newNode, String userName) throws DatastoreException,
+			InvalidModelException;
 
 
 	/**
 	 * Retrieves the object given its id
 	 * 
 	 * @param id
+	 * @param user
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Node get(String id, String userId) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public Node get(String id, String userName) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * This updates the 'shallow' properties of an object
 	 * 
-	 * @param dto
+	 * @param node
 	 *            non-null id is required
+	 * @param user
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
-	public void update(Node dto, String userId) throws DatastoreException, InvalidModelException,
+	public void update(Node dto, String userName) throws DatastoreException, InvalidModelException,
 			NotFoundException, UnauthorizedException;
 
 	/**
@@ -55,19 +55,8 @@ public interface NodeManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public void delete(String id, String userId) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public void delete(String id, String userName) throws DatastoreException, NotFoundException, UnauthorizedException;
 
-	/**
-	 * Use case:  Need to find out who has authority to add a new user to a group.
-	 * Here the 'resource' refers to the group and 'accessType' = 'change'.  The method
-	 * would return the administrative group who can modify the group of interest.
-	 * 
-	 * @param resource the resource of interest
-	 * @param accessType a type of access to the object
-	 * @return those user groups that have the specified type of access to the given object
-	 */
-	public Collection<UserGroup> whoHasAccess(Node resource, String accessType) throws NotFoundException, DatastoreException ;
-	
 	/**
 	 * Use case:  Need to find out if a user can download a resource.
 	 * 
@@ -76,6 +65,6 @@ public interface NodeManager {
 	 * @param accessType
 	 * @return
 	 */
-	public boolean hasAccess(Node resource, String accessType, String userId) throws NotFoundException, DatastoreException ;
+	public boolean hasAccess(Node resource, String accessType, String userName) throws NotFoundException, DatastoreException ;
 
 }
