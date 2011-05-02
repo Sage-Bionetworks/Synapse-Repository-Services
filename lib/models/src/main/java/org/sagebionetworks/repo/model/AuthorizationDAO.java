@@ -52,6 +52,20 @@ public interface AuthorizationDAO {
 	public boolean canAccess(String userName, String nodeId, String accessType) 
 		throws NotFoundException, DatastoreException;
 	
+	/**
+	 * Provide access to the given resource for the given user.
+	 * If user==null, then provide Public access to the resource.
+	 * 
+	 */
+	public void addUserAccess(Node node, String userName) throws NotFoundException, DatastoreException;
+	
+	/**
+	 * @param nodeId the resource whose authorization is to be removed
+	 * 
+	 * Removes all authorization for this resource, e.g. just before deletion.
+	 */
+	public void removeAuthorization(String nodeId) throws NotFoundException, DatastoreException;
+	
 	// at this level there is no representation of distinct resource types
 	// either (1) have to add a 'type' attribute to a Node; or (2) have to
 	// do the check at a higher level, prior to reaching this one

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
@@ -14,8 +15,9 @@ public interface NodeManager {
 	 * @param newNode
 	 * @return
 	 */
-	public String createNewNode(String userName, Node newNode);
-	
+	public String createNewNode(Node newNode, String userName) throws DatastoreException,
+			InvalidModelException, NotFoundException;
+
 	/**
 	 * Delete a node using its id.
 	 * @param userName

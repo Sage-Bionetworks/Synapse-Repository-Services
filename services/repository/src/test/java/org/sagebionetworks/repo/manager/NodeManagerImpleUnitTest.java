@@ -138,7 +138,7 @@ public class NodeManagerImpleUnitTest {
 	}
 	
 	@Test
-	public void testCreateNode(){
+	public void testCreateNode() throws Exception {
 		// Test creating a new node with nothing but the name and type set
 		Node newNode = new Node();
 		newNode.setName("testCreateNode");
@@ -147,7 +147,7 @@ public class NodeManagerImpleUnitTest {
 		ArgumentCaptor<Node> argument = ArgumentCaptor.forClass(Node.class);
 		when(mockNodeDao.createNew(argument.capture())).thenReturn("101");
 		// Make the actual call
-		String id = nodeManager.createNewNode(null, newNode);
+		String id = nodeManager.createNewNode(newNode, null);
 		// Now validate that t
 		assertEquals("101", id);
 		Node processedNode = argument.getValue();
