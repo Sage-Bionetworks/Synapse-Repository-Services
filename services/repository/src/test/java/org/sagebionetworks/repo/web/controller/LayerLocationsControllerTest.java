@@ -319,7 +319,7 @@ public class LayerLocationsControllerTest {
 		assertTrue(location
 				.getString("path")
 				.matches(
-						"^https://data01.sagebase.org.s3.amazonaws.com/[^?]+\\?Expires=\\d+&AWSAccessKeyId=\\w+&Signature=.+$"));
+						"^https://s3.amazonaws.com/data01.sagebase.org/[^?]+\\?Expires=\\d+&AWSAccessKeyId=\\w+&Signature=.+$"));
 
 	}
 

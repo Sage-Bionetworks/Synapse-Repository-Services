@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.util;
 
 import java.net.URL;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.DAOFactory;
@@ -49,7 +51,11 @@ public class LocationHelpers {
 
 	private static final int EXPIRES_MINUTES = 24 * 60; // 1 day
 	private static final String S3_BUCKET = "data01.sagebase.org";
+	private static final String S3_DOMAIN = "s3.amazonaws.com";
 	private static final String READ_ONLY_GROUP = "ReadOnlyUnrestrictedDataUsers";
+	private static final String CORRECT_DOMAIN = S3_DOMAIN + "/" + S3_BUCKET;
+	private static final Pattern INCORRECT_DOMAIN = Pattern.compile(Matcher.quoteReplacement(S3_BUCKET + "." + S3_DOMAIN));
+
 
 	private DAOFactory daoFactory;
 
@@ -159,9 +165,16 @@ public class LocationHelpers {
 		AWSCredentials creds = getCredentialsForUser(userId);
 
 		AmazonS3 client = new AmazonS3Client(creds);
-		URL signedPath = client.generatePresignedUrl(S3_BUCKET, cleartextPath,
+		URL presignedUrl= client.generatePresignedUrl(S3_BUCKET, cleartextPath,
 				expires.toDate());
-		return signedPath.toString();
+		
+		// By default the AmazonS3 library makes an https url that will result
+		// in an SSL cert error if the bucket name has any dots in it. Therefore
+		// rewrite the url to put the bucket name in the path instead of the
+		// domain.
+		Matcher matcher = INCORRECT_DOMAIN.matcher(presignedUrl.toString());
+		String correctedPresignedUrl = matcher.replaceFirst(CORRECT_DOMAIN);
+		return correctedPresignedUrl;
 	}
 
 	private AWSCredentials getCredentialsForUser(String userId)
