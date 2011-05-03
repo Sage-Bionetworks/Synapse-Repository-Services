@@ -167,6 +167,34 @@ public class DatasetControllerTest {
 
 	/**
 	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#updateEntity}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Ignore // enable this test for issue PLFM-121
+	@Test
+	public void testUpdateNewlyCreatedDataset() throws Exception {
+		JSONObject newDataset = helper.testCreateJsonEntity(helper
+				.getServletPrefix()
+				+ "/dataset", "{\"name\":\"MouseCross\"}");
+
+		// Modify the newly created dataset
+		newDataset.put("name", "MouseX");
+		JSONObject updatedDataset = helper.testUpdateJsonEntity(newDataset);
+		assertExpectedDatasetProperties(updatedDataset);
+
+		// Check that the update response reflects the change
+		assertEquals("MouseX", updatedDataset.getString("name"));
+
+		// Now make sure the stored one reflects the change too
+		JSONObject storedDataset = helper.testGetJsonEntity(newDataset
+				.getString("uri"));
+		assertEquals("MouseX", storedDataset.getString("name"));
+	}
+	
+	/**
+	 * Test method for
 	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#deleteEntity}
 	 * .
 	 * 
