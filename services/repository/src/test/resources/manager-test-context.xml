@@ -11,4 +11,8 @@
 
 	<import resource="classpath:managers-spb.xml" />
 
+  <bean id="modelBootstrapper"
+        class="org.sagebionetworks.repo.model.jdo.JDOBootstrapperImpl"
+        scope="singleton" />
+
 </beans>

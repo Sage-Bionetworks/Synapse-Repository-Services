@@ -9,12 +9,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -66,16 +68,16 @@ public class NodeManagerImpleUnitTest {
 	
 	@Test
 	public void testValidateUsernameNull(){
-		// Null user names should be treated as ANNONYMOUS
+		// Null user names should NOT be treated as ANNONYMOUS
 		String validated = NodeManagerImpl.validateUsername(null);
-		assertEquals(NodeManagerImpl.ANNONYMOUS, validated);
+		assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, validated);
 	}
 	
 	@Test
 	public void testValidateUsernameEmpty(){
-		// Empty user names should be treated as ANNONYMOUS
+		// Empty user names should NOT be treated as ANNONYMOUS
 		String validated = NodeManagerImpl.validateUsername(" ");
-		assertEquals(NodeManagerImpl.ANNONYMOUS, validated);
+		assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, validated);
 	}
 	
 	@Test
@@ -94,7 +96,7 @@ public class NodeManagerImpleUnitTest {
 		node.setCreatedBy(presetCreatedBy);
 		node.setCreatedOn(presetCreatedOn);
 		// Now validate the node
-		NodeManagerImpl.validateNodeCreationData(NodeManagerImpl.ANNONYMOUS, node);
+		NodeManagerImpl.validateNodeCreationData(AuthUtilConstants.ANONYMOUS_USER_ID, node);
 		// the values should not have changed
 		assertEquals(presetCreatedOn, node.getCreatedOn());
 		assertEquals(presetCreatedBy, node.getCreatedBy());
@@ -108,10 +110,10 @@ public class NodeManagerImpleUnitTest {
 		node.setCreatedBy(presetCreatedBy);
 		node.setCreatedOn(presetCreatedOn);
 		// Now validate the node
-		NodeManagerImpl.validateNodeCreationData(NodeManagerImpl.ANNONYMOUS, node);
+		NodeManagerImpl.validateNodeCreationData(AuthUtilConstants.ANONYMOUS_USER_ID, node);
 		// the values should not have changed
 		assertNotNull(node.getCreatedOn());
-		assertEquals(NodeManagerImpl.ANNONYMOUS, node.getCreatedBy());
+		assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, node.getCreatedBy());
 	}
 	
 	@Test
@@ -122,7 +124,7 @@ public class NodeManagerImpleUnitTest {
 		node.setModifiedBy(presetModifiedBy);
 		node.setModifiedOn(presetModifiedOn);
 		// Now validate the node
-		NodeManagerImpl.validateNodeModifiedData(NodeManagerImpl.ANNONYMOUS, node);
+		NodeManagerImpl.validateNodeModifiedData(AuthUtilConstants.ANONYMOUS_USER_ID, node);
 		// the values should not have changed
 		assertEquals(presetModifiedOn, node.getModifiedOn());
 		assertEquals(presetModifiedBy, node.getModifiedBy());
@@ -136,10 +138,10 @@ public class NodeManagerImpleUnitTest {
 		node.setModifiedBy(presetModifiedBy);
 		node.setModifiedOn(presetModifiedOn);
 		// Now validate the node
-		NodeManagerImpl.validateNodeModifiedData(NodeManagerImpl.ANNONYMOUS, node);
+		NodeManagerImpl.validateNodeModifiedData(AuthUtilConstants.ANONYMOUS_USER_ID, node);
 		// the values should not have changed
 		assertNotNull(node.getModifiedOn());
-		assertEquals(NodeManagerImpl.ANNONYMOUS, node.getModifiedBy());
+		assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, node.getModifiedBy());
 	}
 	
 	@Test
@@ -152,13 +154,13 @@ public class NodeManagerImpleUnitTest {
 		ArgumentCaptor<Node> argument = ArgumentCaptor.forClass(Node.class);
 		when(mockNodeDao.createNew(argument.capture())).thenReturn("101");
 		// Make the actual call
-		String id = nodeManager.createNewNode(newNode, null);
+		String id = nodeManager.createNewNode(newNode, AuthUtilConstants.ANONYMOUS_USER_ID);
 		// Now validate that t
 		assertEquals("101", id);
 		Node processedNode = argument.getValue();
 		assertNotNull(processedNode);
-		assertEquals(NodeManagerImpl.ANNONYMOUS, processedNode.getCreatedBy());
-		assertEquals(NodeManagerImpl.ANNONYMOUS, processedNode.getModifiedBy());
+		assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, processedNode.getCreatedBy());
+		assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, processedNode.getModifiedBy());
 		assertNotNull(processedNode.getModifiedOn());
 		assertNotNull(processedNode.getModifiedBy());
 	}
@@ -192,10 +194,14 @@ public class NodeManagerImpleUnitTest {
 		newNode.seteTag("9");;
 		newNode.setType("someType");
 		when(mockNodeDao.getETagForUpdate("101")).thenReturn(new Long(9));
+		
+		when(mockAuthDao.canAccess("updateUser", "101", ACCESS_TYPE.CHANGE)).thenReturn(true);
 		// Make the actual call
 		Node result = nodeManager.update("updateUser", newNode);
+		//Node result = nodeManager.update(AuthUtilConstants.ANONYMOUS_USER_ID, newNode);
 		assertNotNull(result);
 		assertEquals("updateUser", result.getModifiedBy());
+		//assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, result.getModifiedBy());
 		assertNotNull(result.getModifiedOn());
 		// The eTag should have been incremented
 		assertNotNull("10", result.geteTag());
@@ -208,7 +214,7 @@ public class NodeManagerImpleUnitTest {
 		annos.addAnnotation("stringKey", "a");
 		annos.addAnnotation("longKey", Long.MAX_VALUE);
 		when(mockNodeDao.getAnnotations(id)).thenReturn(annos);
-		Annotations copy = nodeManager.getAnnotations(null, id);
+		Annotations copy = nodeManager.getAnnotations(AuthUtilConstants.ANONYMOUS_USER_ID, id);
 		assertEquals(copy, annos);
 	}
 	
@@ -221,7 +227,7 @@ public class NodeManagerImpleUnitTest {
 		annos.addAnnotation("stringKey", "b");
 		annos.addAnnotation("longKey", Long.MIN_VALUE);
 		when(mockNodeDao.getAnnotations(id)).thenReturn(annos);
-		Annotations copy = nodeManager.getAnnotations(null, id);
+		Annotations copy = nodeManager.getAnnotations(AuthUtilConstants.ANONYMOUS_USER_ID, id);
 		assertEquals(copy, annos);
 	}
 

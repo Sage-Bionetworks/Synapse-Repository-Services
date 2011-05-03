@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -66,12 +67,12 @@ public class JDOAuthorizationDAOImpl implements AuthorizationDAO {
 		return adminGroup.getUsers().contains(user.getId());
 	}
 	
-	public static Collection<String> getAccessTypes(JDOUserGroup userGroup,
+	public static Collection<AuthorizationConstants.ACCESS_TYPE> getAccessTypes(JDOUserGroup userGroup,
 			String resourceType, Long resourceId) throws NotFoundException, DatastoreException {
-		Collection<String> ans = new HashSet<String>();
+		Collection<AuthorizationConstants.ACCESS_TYPE> ans = new HashSet<AuthorizationConstants.ACCESS_TYPE>();
 		for (JDOResourceAccess ra : userGroup.getResourceAccess()) {
 			if (ra.getResourceType().equals(resourceType) && ra.getResourceId().equals(resourceId)) {
-				ans = ra.getAccessType();
+				ans = ra.getAccessTypeAsEnum();
 				break;
 			}
 		}
@@ -90,13 +91,14 @@ public class JDOAuthorizationDAOImpl implements AuthorizationDAO {
 	 * @exception NotFoundException if the group or node is invalid
 	 * 
 	 */
-	public boolean canAccess(String userName, String nodeId, String accessType) 
+	public boolean canAccess(String userName, String nodeId, AuthorizationConstants.ACCESS_TYPE accessType) 
 		throws NotFoundException, DatastoreException {
+		if (userName==null) throw new IllegalArgumentException();
 		Long resourceId = Long.parseLong(nodeId);
 		// if the public can access the resource, then no need to check the user, just return true
 		if(getAccessTypes(getPublicGroup(), NODE_RESOURCE_TYPE, resourceId).contains(accessType)) return true;
 		// if not publicly accessible, then we WILL have to check the user, so a null userId->false
-		if (userName==null) return false;
+		if (userName==AuthUtilConstants.ADMIN_USER_ID) return false;
 		JDOUser user = getUser(userName);
 		if (user==null) throw new NotFoundException(userName+" does not exist");
 		// if is an administrator, return true
@@ -148,23 +150,24 @@ public class JDOAuthorizationDAOImpl implements AuthorizationDAO {
 	
 	public void addUserAccess(Node node, String userName) throws NotFoundException, DatastoreException {
 		JDOUserGroup group = null;
-		if (userName == null) {
+		if (userName == AuthUtilConstants.ANONYMOUS_USER_ID) {
 			group = getPublicGroup();
-
+			if (group==null) throw new DatastoreException("Public group not found.");
 		} else {
 			group = getIndividualGroup(userName);
+			if (group==null) throw new DatastoreException("Individual group for "+userName+" not found.");
 		}
 		// now add the object to the group
 
 		addResourceToGroup(group, NODE_RESOURCE_TYPE, Long.parseLong(node.getId()), Arrays
-					.asList(new String[] { AuthorizationConstants.READ_ACCESS,
-							AuthorizationConstants.CHANGE_ACCESS,
-							AuthorizationConstants.SHARE_ACCESS }));
+					.asList(new AuthorizationConstants.ACCESS_TYPE[] { AuthorizationConstants.ACCESS_TYPE.READ,
+							AuthorizationConstants.ACCESS_TYPE.CHANGE,
+							AuthorizationConstants.ACCESS_TYPE.SHARE }));
 
 	}
 	
 	public static void addResourceToGroup(JDOUserGroup group, String type, Long resourceKey,
-			Collection<String> accessTypes) {
+			Collection<AuthorizationConstants.ACCESS_TYPE> accessTypes) {
 	
 		Set<JDOResourceAccess> ras = group.getResourceAccess();
 		boolean foundit = false;
@@ -172,7 +175,7 @@ public class JDOAuthorizationDAOImpl implements AuthorizationDAO {
 		for (JDOResourceAccess ra: ras) {
 			if (type.equals(ra.getResourceType()) && resourceKey.equals(ra.getResourceId())) {
 				foundit = true;
-				ra.setAccessType(new HashSet<String>(accessTypes));
+				ra.setAccessTypeByEnum(new HashSet<AuthorizationConstants.ACCESS_TYPE>(accessTypes));
 				break;
 			}
 		}
@@ -181,7 +184,7 @@ public class JDOAuthorizationDAOImpl implements AuthorizationDAO {
 			JDOResourceAccess ra = new JDOResourceAccess();
 			ra.setResourceType(type);
 			ra.setResourceId(resourceKey);
-			ra.setAccessType(new HashSet<String>(accessTypes));
+			ra.setAccessTypeByEnum(new HashSet<AuthorizationConstants.ACCESS_TYPE>(accessTypes));
 			group.getResourceAccess().add(ra);
 		}
 	}

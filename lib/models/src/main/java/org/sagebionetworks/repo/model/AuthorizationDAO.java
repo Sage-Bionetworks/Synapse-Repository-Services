@@ -5,8 +5,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AuthorizationDAO {
 	
-	public static final String READ_ACCESS = "READ";
-	public static final String CHANGE_ACCESS = "READ";
 	
 //	/**
 //	 * @param groupId
@@ -49,7 +47,7 @@ public interface AuthorizationDAO {
 	 * @exception NotFoundException if the group or node is invalid
 	 * 
 	 */
-	public boolean canAccess(String userName, String nodeId, String accessType) 
+	public boolean canAccess(String userName, String nodeId, AuthorizationConstants.ACCESS_TYPE accessType) 
 		throws NotFoundException, DatastoreException;
 	
 	/**

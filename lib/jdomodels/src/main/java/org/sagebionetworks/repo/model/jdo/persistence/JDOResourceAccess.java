@@ -8,6 +8,8 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+
 
 
 
@@ -74,6 +76,22 @@ public class JDOResourceAccess {
 	 */
 	public void setAccessType(Set<String> accessType) {
 		this.accessType = accessType;
+	}
+
+	/**
+	 * @param accessType the accessType to set
+	 */
+	public void setAccessTypeByEnum(Set<AuthorizationConstants.ACCESS_TYPE> accessType) {
+		Set<String> stringSet = new HashSet<String>();
+		for (AuthorizationConstants.ACCESS_TYPE t : accessType) stringSet.add(t.name());
+		this.accessType = stringSet;
+	}
+	
+	public Set<AuthorizationConstants.ACCESS_TYPE> getAccessTypeAsEnum() {
+		Set<AuthorizationConstants.ACCESS_TYPE> ans = new HashSet<AuthorizationConstants.ACCESS_TYPE>();
+		Set<String> strSet = getAccessType();
+		for (String s : strSet) ans.add(AuthorizationConstants.ACCESS_TYPE.valueOf(s));
+		return ans;
 	}
 
 	/* (non-Javadoc)

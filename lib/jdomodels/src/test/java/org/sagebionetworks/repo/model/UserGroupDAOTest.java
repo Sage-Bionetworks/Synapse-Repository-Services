@@ -170,14 +170,14 @@ public class UserGroupDAOTest {
 		
 		Assert.assertNotNull(group.getId());
 		// now anonymous (Public) should have access to 'TestGroup', since it was created anonymously
-		Assert.assertTrue(anonymousGroupDAO.hasAccess(group, "read"));
-		Assert.assertTrue(anonymousGroupDAO.hasAccess(group, "change"));
-		Assert.assertTrue(anonymousGroupDAO.hasAccess(group, "share"));
+		Assert.assertTrue(anonymousGroupDAO.hasAccess(group, AuthorizationConstants.ACCESS_TYPE.READ));
+		Assert.assertTrue(anonymousGroupDAO.hasAccess(group, AuthorizationConstants.ACCESS_TYPE.CHANGE));
+		Assert.assertTrue(anonymousGroupDAO.hasAccess(group, AuthorizationConstants.ACCESS_TYPE.SHARE));
 		
 		// now 'TestUser 1' should have access to 'TestGroup', since it was created anonymously
-		Assert.assertTrue(userGroupDAO.hasAccess(group, "read"));
-		Assert.assertTrue(userGroupDAO.hasAccess(group, "change"));
-		Assert.assertTrue(userGroupDAO.hasAccess(group, "share"));
+		Assert.assertTrue(userGroupDAO.hasAccess(group, AuthorizationConstants.ACCESS_TYPE.READ));
+		Assert.assertTrue(userGroupDAO.hasAccess(group, AuthorizationConstants.ACCESS_TYPE.CHANGE));
+		Assert.assertTrue(userGroupDAO.hasAccess(group, AuthorizationConstants.ACCESS_TYPE.SHARE));
 		
 		// create group under 'TestUser 1's credentials
 		UserGroup group2 = createUserGroup("TestGroup 2");
@@ -187,19 +187,19 @@ public class UserGroupDAOTest {
 		
 		// now 'TestUser 1' should have access to 'TestGroup 2'
 		Assert.assertNotNull(group2.getId());
-		Assert.assertTrue(userGroupDAO.hasAccess(group2, "read"));
-		Assert.assertTrue(userGroupDAO.hasAccess(group2, "change"));
-		Assert.assertTrue(userGroupDAO.hasAccess(group2, "share"));
+		Assert.assertTrue(userGroupDAO.hasAccess(group2, AuthorizationConstants.ACCESS_TYPE.READ));
+		Assert.assertTrue(userGroupDAO.hasAccess(group2, AuthorizationConstants.ACCESS_TYPE.CHANGE));
+		Assert.assertTrue(userGroupDAO.hasAccess(group2, AuthorizationConstants.ACCESS_TYPE.SHARE));
 //		// and only the 'TestUser 1' group and admin group should have access
-		Assert.assertEquals("id="+group2.getId()+" "+userGroupDAO.whoHasAccess(group2, "read"), 2, userGroupDAO.whoHasAccess(group2, "read").size());
+		Assert.assertEquals("id="+group2.getId()+" "+userGroupDAO.whoHasAccess(group2, AuthorizationConstants.ACCESS_TYPE.READ), 2, userGroupDAO.whoHasAccess(group2, AuthorizationConstants.ACCESS_TYPE.READ).size());
 		Set<String> expected = new HashSet<String>(Arrays.asList(new String[]{"TestUser 1", "Administrators"}));
 		Set<String> actual = new HashSet<String>();
-		for (UserGroup ug: userGroupDAO.whoHasAccess(group2, "read")) actual.add(ug.getName());
+		for (UserGroup ug: userGroupDAO.whoHasAccess(group2, AuthorizationConstants.ACCESS_TYPE.READ)) actual.add(ug.getName());
 		Assert.assertEquals(expected, actual);
 		// ... but the Public should have access to the anonymously created group
 		expected = new HashSet<String>(Arrays.asList(new String[]{"Public", "Administrators"}));
 		actual = new HashSet<String>();
-		for (UserGroup ug: userGroupDAO.whoHasAccess(group, "read")) actual.add(ug.getName());
+		for (UserGroup ug: userGroupDAO.whoHasAccess(group, AuthorizationConstants.ACCESS_TYPE.READ)) actual.add(ug.getName());
 		Assert.assertEquals(expected, actual);
 		
 		// the 'anonymous' DAO shouldn't see the user's group or the admin group,
@@ -231,7 +231,7 @@ public class UserGroupDAOTest {
 		// to 'TestGroup 2' as a user
 		userGroupDAO.addUser(group2, user2);
 		// now as a **resource**
-		userGroupDAO.addResource(group2, user2, Arrays.asList(new String[]{"read"}));
+		userGroupDAO.addResource(group2, user2, Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{AuthorizationConstants.ACCESS_TYPE.READ}));
 		// now get the users in the group
 		Assert.assertEquals(1, userGroupDAO.getUsers(group2).size());
 		

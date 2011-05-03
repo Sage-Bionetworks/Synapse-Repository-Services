@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.authutil.AuthUtilConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -339,7 +340,7 @@ public class UserGroupController extends BaseController implements
 		userGroup.setId(id);
 		Base resource = typeToBase(rtype);
 		resource.setId(rid);
-		Collection<String> results = dao.getAccessTypes(userGroup, resource);
+		Collection<AuthorizationConstants.ACCESS_TYPE> results = dao.getAccessTypes(userGroup, resource);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(results);
 		return ra;
