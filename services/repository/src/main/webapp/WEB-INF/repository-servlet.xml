@@ -56,7 +56,9 @@
       <list>
         <value>org.sagebionetworks.repo.model.ErrorResponse</value>
         <value>org.sagebionetworks.repo.model.PaginatedResults</value>
-        <!-- TODO JaxB can't handle Collection,use ArrayList instead -->
+        <!-- TODO JaxB can't handle nested interfaces, see http://stackoverflow.com/questions/298733/java-util-list-is-an-interface-and-jaxb-cant-handle-interfaces -->
+        <!-- <value>org.sagebionetworks.repo.model.QueryResults</value> -->
+        <!-- TODO JaxB can't handle Collection, use List instead -->
         <!-- <value>org.sagebionetworks.repo.model.Annotations</value> -->
         <value>org.sagebionetworks.repo.model.Dataset</value>
         <value>org.sagebionetworks.repo.model.InputDataLayer</value>
