@@ -120,11 +120,11 @@ public class ControllerAuthorizationTest {
 		// for 'add resource' we actually have to pass in the DTO object, not just the ID
 		Dataset ds = new Dataset(); ds.setId(dataset.getString("id"));
 		datasetGroupDao.addResource(datasetGroupDao.getPublicGroup(), ds,
-				Arrays.asList(new String[]{AuthorizationConstants.READ_ACCESS}));
+				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{AuthorizationConstants.ACCESS_TYPE.READ}));
 		datasetGroupDao.addResource(curators, ds,
-				Arrays.asList(new String[]{AuthorizationConstants.READ_ACCESS}));
+				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{AuthorizationConstants.ACCESS_TYPE.READ}));
 		datasetGroupDao.addResource(curators, ds,
-				Arrays.asList(new String[]{AuthorizationConstants.CHANGE_ACCESS}));
+				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{AuthorizationConstants.ACCESS_TYPE.CHANGE}));
 
 		// Read/Write user tries to get the dataset - should pass
 		helper.setUserId(CURATOR2_USER_ID);

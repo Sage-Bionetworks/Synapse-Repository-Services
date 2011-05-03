@@ -3,19 +3,19 @@ package org.sagebionetworks.repo.model;
 import java.util.Collection;
 
 public class ResourceAccess {
-	private Collection<String> accessType;
+	private Collection<AuthorizationConstants.ACCESS_TYPE> accessType;
 
 	/**
 	 * @return the accessTypes
 	 */
-	public Collection<String> getAccessType() {
+	public Collection<AuthorizationConstants.ACCESS_TYPE> getAccessType() {
 		return accessType;
 	}
 
 	/**
 	 * @param accessTypes the accessTypes to set
 	 */
-	public void setAccessType(Collection<String> accessType) {
+	public void setAccessType(Collection<AuthorizationConstants.ACCESS_TYPE> accessType) {
 		this.accessType = accessType;
 	}
 	

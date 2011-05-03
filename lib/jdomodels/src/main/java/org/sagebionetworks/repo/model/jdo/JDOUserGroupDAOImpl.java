@@ -59,9 +59,9 @@ public class JDOUserGroupDAOImpl extends
 		return createSystemGroup(
 				AuthorizationConstants.PUBLIC_GROUP_NAME, 
 				false,
-				Arrays.asList(new String[] {
-						AuthorizationConstants.READ_ACCESS, 
-						AuthorizationConstants.CHANGE_ACCESS}),
+				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[] {
+						AuthorizationConstants.ACCESS_TYPE.READ, 
+						AuthorizationConstants.ACCESS_TYPE.CHANGE}),
 
 				creatableTypes, 
 				pm);
@@ -77,15 +77,15 @@ public class JDOUserGroupDAOImpl extends
 		return createSystemGroup(
 				AuthorizationConstants.ADMIN_GROUP_NAME, 
 				false,
-				Arrays.asList(new String[] {
-						AuthorizationConstants.READ_ACCESS}),
+				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[] {
+						AuthorizationConstants.ACCESS_TYPE.READ}),
 				creatableTypes,  // for admin' group, don't have to explicitly declare types, rather anything can be created
 				pm);
 	}
 	
 	public JDOUserGroup createSystemGroup(String name, 
 			boolean isIndividualGroup, 
-			Collection<String> selfAccess, // the type of access members have on the group itself
+			Collection<AuthorizationConstants.ACCESS_TYPE> selfAccess, // the type of access members have on the group itself
 			Set<String> creatableTypes,
 			PersistenceManager pm) {
 		JDOUserGroup g = newJDO();
@@ -93,6 +93,8 @@ public class JDOUserGroupDAOImpl extends
 		g.setCreationDate(new Date());
 		g.setIsSystemGroup(true);
 		g.setIsIndividual(isIndividualGroup);
+//		Set<String> ts = new HashSet<String>();
+//		for (AuthorizationConstants.ACCESS_TYPE t: creatableTypes) ts.add(t.name());
 		g.getCreatableTypes().addAll(creatableTypes);
 		g.setResourceAccess(new HashSet<JDOResourceAccess>());
 		g.setUsers(new HashSet<Long>());
@@ -183,8 +185,8 @@ public class JDOUserGroupDAOImpl extends
 		JDOUserGroup  g =  createSystemGroup(
 				user.getUserId(), 
 				true,
-				Arrays.asList(new String[] {
-						AuthorizationConstants.READ_ACCESS}),
+				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[] {
+						AuthorizationConstants.ACCESS_TYPE.READ}),
 				creatableTypes, 
 				pm);
 		g.getUsers().add(user.getId());
@@ -251,7 +253,7 @@ public class JDOUserGroupDAOImpl extends
 	public void addUser(UserGroup userGroup, User user)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		PersistenceManager pm = PMF.get();
-		if (!canAccess(userId, getJdoClass().getName(), KeyFactory.stringToKey(userGroup.getId()), AuthorizationConstants.CHANGE_ACCESS, pm))
+		if (!canAccess(userId, getJdoClass().getName(), KeyFactory.stringToKey(userGroup.getId()), AuthorizationConstants.ACCESS_TYPE.CHANGE, pm))
 			throw new UnauthorizedException();
 		Long userKey = KeyFactory.stringToKey(user.getId());
 		// this is done simply to make check that the user exists
@@ -299,7 +301,7 @@ public class JDOUserGroupDAOImpl extends
 			Long groupKey = KeyFactory.stringToKey(userGroup.getId());
 			JDOUserGroup jdoGroup = (JDOUserGroup) pm.getObjectById(
 					JDOUserGroup.class, groupKey);
-			if (!canAccess(userId, getJdoClass().getName(), jdoGroup.getId(), AuthorizationConstants.CHANGE_ACCESS, pm))
+			if (!canAccess(userId, getJdoClass().getName(), jdoGroup.getId(), AuthorizationConstants.ACCESS_TYPE.CHANGE, pm))
 				throw new UnauthorizedException();
 			jdoGroup.getUsers().remove(userKey);
 			tx.commit();
@@ -386,7 +388,7 @@ public class JDOUserGroupDAOImpl extends
 			Long groupKey = KeyFactory.stringToKey(userGroup.getId());
 			JDOUserGroup jdoGroup = (JDOUserGroup) pm.getObjectById(
 					JDOUserGroup.class, groupKey);
-			if (!canAccess(userId, getJdoClass().getName(), jdoGroup.getId(), AuthorizationConstants.READ_ACCESS, pm))
+			if (!canAccess(userId, getJdoClass().getName(), jdoGroup.getId(), AuthorizationConstants.ACCESS_TYPE.READ, pm))
 				throw new UnauthorizedException();
 
 			Collection<Long> userKeys = jdoGroup.getUsers();
@@ -429,12 +431,12 @@ public class JDOUserGroupDAOImpl extends
 	}
 	
 	public void addResource(UserGroup userGroup, Base resource,
-			Collection<String> accessType) throws NotFoundException, DatastoreException,
+			Collection<AuthorizationConstants.ACCESS_TYPE> accessType) throws NotFoundException, DatastoreException,
 			UnauthorizedException {
 		PersistenceManager pm = PMF.get();
 		Long resourceKey = KeyFactory.stringToKey(resource.getId());
 		String type = getResourceType(resource);
-		if (!canAccess(userId, getResourceType(resource), resourceKey, AuthorizationConstants.SHARE_ACCESS, pm))
+		if (!canAccess(userId, getResourceType(resource), resourceKey, AuthorizationConstants.ACCESS_TYPE.SHARE, pm))
 			throw new UnauthorizedException();
 		Long groupKey = KeyFactory.stringToKey(userGroup.getId());
 		JDOUserGroup jdoGroup = (JDOUserGroup) pm.getObjectById(
@@ -459,7 +461,7 @@ public class JDOUserGroupDAOImpl extends
 	}
 
 	public static void addResourceToGroup(JDOUserGroup group, String type, Long resourceKey,
-			Collection<String> accessTypes) {
+			Collection<AuthorizationConstants.ACCESS_TYPE> accessTypes) {
 	
 		Set<JDOResourceAccess> ras = group.getResourceAccess();
 		boolean foundit = false;
@@ -467,7 +469,7 @@ public class JDOUserGroupDAOImpl extends
 		for (JDOResourceAccess ra: ras) {
 			if (type.equals(ra.getResourceType()) && resourceKey.equals(ra.getResourceId())) {
 				foundit = true;
-				ra.setAccessType(new HashSet<String>(accessTypes));
+				ra.setAccessTypeByEnum(new HashSet<AuthorizationConstants.ACCESS_TYPE>(accessTypes));
 				break;
 			}
 		}
@@ -476,7 +478,7 @@ public class JDOUserGroupDAOImpl extends
 			JDOResourceAccess ra = new JDOResourceAccess();
 			ra.setResourceType(type);
 			ra.setResourceId(resourceKey);
-			ra.setAccessType(new HashSet<String>(accessTypes));
+			ra.setAccessTypeByEnum(new HashSet<AuthorizationConstants.ACCESS_TYPE>(accessTypes));
 			group.getResourceAccess().add(ra);
 		}
 	}
@@ -491,7 +493,7 @@ public class JDOUserGroupDAOImpl extends
 		try {
 			String type = getResourceType(resource);
 			Long resourceKey = KeyFactory.stringToKey(resource.getId());
-			if (!canAccess(userId, type, resourceKey, AuthorizationConstants.SHARE_ACCESS, pm))
+			if (!canAccess(userId, type, resourceKey, AuthorizationConstants.ACCESS_TYPE.SHARE, pm))
 				throw new UnauthorizedException();
 			Long groupKey = KeyFactory.stringToKey(userGroup.getId());
 			JDOUserGroup jdoGroup = (JDOUserGroup) pm.getObjectById(
@@ -523,23 +525,23 @@ public class JDOUserGroupDAOImpl extends
 		}
 	}
 
-	public Collection<String> getAccessTypes(UserGroup userGroup, Base resource) throws NotFoundException, DatastoreException,
+	public Collection<AuthorizationConstants.ACCESS_TYPE> getAccessTypes(UserGroup userGroup, Base resource) throws NotFoundException, DatastoreException,
 			UnauthorizedException {
 		PersistenceManager pm = PMF.get();
 		Long gId = Long.parseLong(userGroup.getId());
 		Long rId = Long.parseLong(resource.getId());
-		if (!canAccess(userId, JDOUserGroup.class.getName(), gId, AuthorizationConstants.READ_ACCESS, pm)) throw new UnauthorizedException();
+		if (!canAccess(userId, JDOUserGroup.class.getName(), gId, AuthorizationConstants.ACCESS_TYPE.READ, pm)) throw new UnauthorizedException();
 		JDOUserGroup group = pm.getObjectById(JDOUserGroup.class, gId);
 		return getAccessTypes(group, getResourceType(resource), rId);
 	}
 	
 	// the internal method, with no authorization filter
-	public static Collection<String> getAccessTypes(JDOUserGroup userGroup,
+	public static Collection<AuthorizationConstants.ACCESS_TYPE> getAccessTypes(JDOUserGroup userGroup,
 			String resourceType, Long resourceId) throws NotFoundException, DatastoreException {
-		Collection<String> ans = new HashSet<String>();
+		Collection<AuthorizationConstants.ACCESS_TYPE> ans = new HashSet<AuthorizationConstants.ACCESS_TYPE>();
 		for (JDOResourceAccess ra : userGroup.getResourceAccess()) {
 			if (ra.getResourceType().equals(resourceType) && ra.getResourceId().equals(resourceId)) {
-				ans = ra.getAccessType();
+				ans = ra.getAccessTypeAsEnum();
 				break;
 			}
 		}
@@ -554,7 +556,7 @@ public class JDOUserGroupDAOImpl extends
 	 * This is a utility method, not exposed by a service, and has no authorization filter
 	 * @throws NotFoundException if 'userId' is not a user in the system
 	 */
-	public static boolean canAccess(String userId, String resourceType, Long resourceId, String accessType, PersistenceManager pm) throws NotFoundException, DatastoreException {
+	public static boolean canAccess(String userId, String resourceType, Long resourceId, AuthorizationConstants.ACCESS_TYPE accessType, PersistenceManager pm) throws NotFoundException, DatastoreException {
 		// if the public can access the resource, then no need to check the user, just return true
 		if(getAccessTypes(getPublicGroup(pm), resourceType, resourceId).contains(accessType)) return true;
 		// if not publicly accessible, then we WILL have to check the user, so a null userId->false
@@ -581,7 +583,7 @@ public class JDOUserGroupDAOImpl extends
 			if (!g.getUsers().contains(user.getId())) continue;
 			for (JDOResourceAccess ra: g.getResourceAccess()) {
 				if (ra.getResourceType().equals(resourceType) && ra.getResourceId().equals(resourceId)) {
-					if (ra.getAccessType().contains(accessType)) return true;
+					if (ra.getAccessTypeAsEnum().contains(accessType)) return true;
 				}
 			}
 		}
@@ -616,7 +618,7 @@ public class JDOUserGroupDAOImpl extends
 	}
 	
 	private static Collection<JDOResourceAccess> getAccess(
-			PersistenceManager pm, String resourceType, Long resourceKey, String accessType) {
+			PersistenceManager pm, String resourceType, Long resourceKey, AuthorizationConstants.ACCESS_TYPE accessType) {
 		Query query = pm.newQuery(JDOResourceAccess.class);
 		query
 				.setFilter("this.resourceType==pResourceType && this.resourceId==pResourceKey");
@@ -628,14 +630,14 @@ public class JDOUserGroupDAOImpl extends
 				.execute(resourceType, resourceKey);
 		Collection<JDOResourceAccess> ans = new HashSet<JDOResourceAccess>();
 		for (JDOResourceAccess ra : ras) {
-			if (ra.getAccessType().contains(accessType)) ans.add(ra);
+			if (ra.getAccessType().contains(accessType.name())) ans.add(ra);
 		}
 		return ans;
 	}
 	/**
 	 * @return the user-groups that have the given access to the given resource
 	 */
-	public Collection<UserGroup> getAccessGroups(Base resource, String accessType) throws DatastoreException, UnauthorizedException, NotFoundException {
+	public Collection<UserGroup> getAccessGroups(Base resource, AuthorizationConstants.ACCESS_TYPE accessType) throws DatastoreException, UnauthorizedException, NotFoundException {
 		Collection<UserGroup> ans = new HashSet<UserGroup>();
 		Long resourceKey = KeyFactory.stringToKey(resource.getId());
 		String resourceType = getResourceType(resource);

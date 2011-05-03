@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -59,7 +60,7 @@ public interface NodeManager {
 	 * @param accessType
 	 * @return
 	 */
-	public boolean hasAccess(Node resource, String accessType, String userName) throws NotFoundException, DatastoreException ;
+	public boolean hasAccess(Node resource, AuthorizationConstants.ACCESS_TYPE  accessType, String userName) throws NotFoundException, DatastoreException ;
 	
 	/**
 	 * Get the annotations for a node

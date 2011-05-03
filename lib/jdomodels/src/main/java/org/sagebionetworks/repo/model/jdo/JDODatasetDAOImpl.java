@@ -166,7 +166,7 @@ public class JDODatasetDAOImpl extends
 		JDODataset ds = pm.getObjectById(JDODataset.class, key);
 		//  authorization check comes AFTER the retrieval step, so that we get a 'not found' result
 		// rather than 'forbidden' when an object does not exist.
-		if (!JDOUserGroupDAOImpl.canAccess(userId, getJdoClass().getName(), key, AuthorizationConstants.CHANGE_ACCESS, pm))
+		if (!JDOUserGroupDAOImpl.canAccess(userId, getJdoClass().getName(), key, AuthorizationConstants.ACCESS_TYPE.CHANGE, pm))
 			throw new UnauthorizedException();
 		JDOInputDataLayerDAOImpl idlDAO = (JDOInputDataLayerDAOImpl)getInputDataLayerDAO(id);
 		Set<JDOInputDataLayer> idls = ds.getInputLayers();

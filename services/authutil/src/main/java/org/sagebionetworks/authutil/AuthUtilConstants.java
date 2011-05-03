@@ -7,6 +7,14 @@ public class AuthUtilConstants {
 	 * would have privileges equal to this users'.  This is the user that the authentication
 	 * service uses to connect to the repository service.
 	 */
+	public static final String ANONYMOUS_USER_ID = "anonymous";
+	
+	
+	/**
+	 * The reserved userId for an administrator.  Note:  Other users in the admin group
+	 * would have privileges equal to this users'.  This is the user that the authentication
+	 * service uses to connect to the repository service.
+	 */
 	public static final String ADMIN_USER_ID = "admin";
 	
 	/**

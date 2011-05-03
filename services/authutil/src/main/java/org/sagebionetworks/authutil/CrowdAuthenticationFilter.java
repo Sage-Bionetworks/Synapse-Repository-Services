@@ -81,20 +81,18 @@ public class CrowdAuthenticationFilter implements Filter {
 				return;
 			}
 		}
-		if (userId!=null) {
-			// pass along, including the user id
-			@SuppressWarnings("unchecked")
-			Map<String,String[]> modParams = new HashMap<String,String[]>(req.getParameterMap());
-			modParams.put(AuthUtilConstants.USER_ID_PARAM, new String[]{userId});
-			HttpServletRequest modRqst = new ModParamHttpServletRequest(req, modParams);
-			filterChain.doFilter(modRqst, servletResponse);
-		} else if (allowAnonymous) {
-			// proceed anonymously
-			filterChain.doFilter(req, servletResponse);
-		} else {
+		if (userId==null && !allowAnonymous) {
 			reject(req, (HttpServletResponse)servletResponse);
 			return;
 		}
+		if (userId==null) userId = AuthUtilConstants.ANONYMOUS_USER_ID;
+
+		// pass along, including the user id
+		@SuppressWarnings("unchecked")
+		Map<String,String[]> modParams = new HashMap<String,String[]>(req.getParameterMap());
+		modParams.put(AuthUtilConstants.USER_ID_PARAM, new String[]{userId});
+		HttpServletRequest modRqst = new ModParamHttpServletRequest(req, modParams);
+		filterChain.doFilter(modRqst, servletResponse);
 	}
 
 	@Override

@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,6 +11,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.authutil.AuthUtilConstants;
+import org.sagebionetworks.repo.model.Bootstrapper;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -34,20 +38,25 @@ public class NodeManagerImplAutoWiredTest {
 	@Autowired
 	public NodeManager nodeManager;
 	
+	@Autowired
+	Bootstrapper modelBootstrapper;
+
+	
 	List<String> nodesToDelete;
 	
 	@Before
-	public void before(){
+	public void before() throws Exception{
+		modelBootstrapper.bootstrap();
 		assertNotNull(nodeManager);
 		nodesToDelete = new ArrayList<String>();
 	}
 	
 	@After
-	public void after(){
+	public void after() throws Exception {
 		if(nodeManager != null && nodesToDelete != null){
 			for(String id: nodesToDelete){
 				try {
-					nodeManager.delete(null, id);
+					nodeManager.delete(AuthUtilConstants.ANONYMOUS_USER_ID, id);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -56,20 +65,41 @@ public class NodeManagerImplAutoWiredTest {
 		}
 	}
 	
+//	private void createUser(String userName) {
+//		JDOUserDAOImpl userDAO = new JDOUserDAOImpl(null/*AuthUtilConstants.ADMIN_USER_ID*/);
+//		JDOExecutor<JDOUser> exec = new JDOExecutor<JDOUser>(jdoTemplate, JDOUser.class);
+//		Collection<JDOUser> c = exec.execute("userId==pUserId", String.class.getName()+" pUserId", null, userName);
+//		if (c.size()>1) throw new IllegalStateException(""+c.size()+" users with name "+userName);
+//		JDOUser user = c.iterator().next();
+//		if (user==null) {
+//			user = new JDOUser();
+//			user.setCreationDate(new Date());
+//			user.setUserId(userName);
+//			jdoTemplate.makePersistent(user);
+//		}
+//		// ensure individual group is created, and that <userName> is a member
+//		JDOUserGroup ag = JDOUserGroupDAOImpl.getAdminGroup(pm);
+//		if (ag==null) {
+//			groupDAO.createAdminGroup(pm);
+//			ag = JDOUserGroupDAOImpl.getAdminGroup(pm);
+//		}
+//		groupDAO.addUser(ag, user, pm);
+//	}
+	
 	@Test
 	public void testCreateAndUpdate() throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
 		// Create a node
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testCreateNode");
 		newNode.setType("someType");
-		String id = nodeManager.createNewNode(newNode, null);
+		String id = nodeManager.createNewNode(newNode, AuthUtilConstants.ANONYMOUS_USER_ID);
 		assertNotNull(id);
 		nodesToDelete.add(id);
 		//Make sure we can get the node
-		Node fetched = nodeManager.get(null, id);
+		Node fetched = nodeManager.get(AuthUtilConstants.ANONYMOUS_USER_ID, id);
 		assertNotNull(fetched);
-		assertEquals(NodeManagerImpl.ANNONYMOUS, fetched.getCreatedBy());
-		assertEquals(NodeManagerImpl.ANNONYMOUS, fetched.getModifiedBy());
+		assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, fetched.getCreatedBy());
+		assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, fetched.getModifiedBy());
 		assertNotNull(fetched.getCreatedOn());
 		assertNotNull(fetched.getModifiedOn());
 		assertEquals(id, fetched.getId());
@@ -80,12 +110,12 @@ public class NodeManagerImplAutoWiredTest {
 		// Now try to update the node
 		String startingETag = fetched.geteTag();
 		fetched.setName("mySecondName");
-		Node updated = nodeManager.update(null, fetched);
+		Node updated = nodeManager.update(AuthUtilConstants.ANONYMOUS_USER_ID, fetched);
 		assertNotNull(updated);
 		// Make sure the result has a new eTag
 		assertFalse(startingETag.equals(updated.geteTag()));
 		// Now get it again
-		Node fetchedAgain = nodeManager.get(null, id);
+		Node fetchedAgain = nodeManager.get(AuthUtilConstants.ANONYMOUS_USER_ID, id);
 		assertNotNull(fetchedAgain);
 		assertEquals("mySecondName", fetchedAgain.getName());
 		assertEquals(updated.geteTag(), fetchedAgain.geteTag());
@@ -98,7 +128,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
 		newNode.setType("someType");
-		String id = nodeManager.createNewNode(newNode, null);
+		String id = nodeManager.createNewNode(newNode, AuthUtilConstants.ANONYMOUS_USER_ID);
 		assertNotNull(id);
 		nodesToDelete.add(id);
 		// First get the annotations for this node

@@ -42,7 +42,7 @@ public class JDOUserGroupTest {
 			JDOResourceAccess ra = new JDOResourceAccess();
 			ra.setResourceType("foo");
 			ra.setResourceId(resourceId); // fake pointer.  we won't actually 'follow' it
-			ra.setAccessType(new HashSet<String>(Arrays.asList(new String[]{AuthorizationConstants.READ_ACCESS})));
+			ra.setAccessTypeByEnum(new HashSet<AuthorizationConstants.ACCESS_TYPE>(Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{AuthorizationConstants.ACCESS_TYPE.READ})));
 			ras.add(ra);
 		}
 		g.setResourceAccess(ras);

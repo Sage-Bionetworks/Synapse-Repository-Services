@@ -13,6 +13,7 @@ import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
 
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
@@ -197,7 +198,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 	protected void addUserAccess(PersistenceManager pm, T jdo) {
 		JDOUserGroupDAOImpl groupDAO = new JDOUserGroupDAOImpl(userId);
 		JDOUserGroup group = null;
-		if (userId == null) {
+		if (userId == null || userId.equals(AuthUtilConstants.ANONYMOUS_USER_ID)) {
 			group = JDOUserGroupDAOImpl.getPublicGroup(pm);
 
 		} else {
@@ -209,9 +210,9 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 		try {
 			tx.begin();
 			JDOUserGroupDAOImpl.addResourceToGroup(group, jdo.getClass().getName(), jdo.getId(), Arrays
-					.asList(new String[] { AuthorizationConstants.READ_ACCESS,
-							AuthorizationConstants.CHANGE_ACCESS,
-							AuthorizationConstants.SHARE_ACCESS }));
+					.asList(new  AuthorizationConstants.ACCESS_TYPE[] { AuthorizationConstants.ACCESS_TYPE.READ,
+							AuthorizationConstants.ACCESS_TYPE.CHANGE,
+							AuthorizationConstants.ACCESS_TYPE.SHARE }));
 			tx.commit();
 		} finally {
 			if (tx.isActive()) {
@@ -279,7 +280,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 			T jdo = (T) pm.getObjectById(getJdoClass(), key);
 			//  authorization check comes AFTER the retrieval step, so that we get a 'not found' result
 			// rather than 'forbidden' when an object does not exist.
-			if (!JDOUserGroupDAOImpl.canAccess(userId, getJdoClass().getName(), key, AuthorizationConstants.READ_ACCESS, pm))
+			if (!JDOUserGroupDAOImpl.canAccess(userId, getJdoClass().getName(), key, AuthorizationConstants.ACCESS_TYPE.READ, pm))
 				throw new UnauthorizedException();
 			S dto = newDTO();
 			copyToDto(jdo, dto);
@@ -319,7 +320,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 			tx.begin();
 			T jdo = (T) pm.getObjectById(getJdoClass(), key);
 			JDOUserGroupDAOImpl groupDAO = new JDOUserGroupDAOImpl(null);
-			if (!groupDAO.canAccess(userId, getJdoClass().getName(), key, AuthorizationConstants.CHANGE_ACCESS, pm))
+			if (!groupDAO.canAccess(userId, getJdoClass().getName(), key, AuthorizationConstants.ACCESS_TYPE.CHANGE, pm))
 				throw new UnauthorizedException();
 			groupDAO.removeResourceFromAllGroups(jdo);
 			// delete(pm, jdo);
@@ -364,9 +365,9 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 		// *** NOTE, if you try to do this within the transaction, below, it
 		// breaks!!
 		Long id = KeyFactory.stringToKey(dto.getId());
-//		if (!hasAccessIntern(pm, getJdoClass().getName(), id, AuthorizationConstants.CHANGE_ACCESS))
+//		if (!hasAccessIntern(pm, getJdoClass().getName(), id, AuthorizationConstants.ACCESS_TYPE.CHANGE))
 //			throw new UnauthorizedException();
-		if (!JDOUserGroupDAOImpl.canAccess(userId, getJdoClass().getName(), id, AuthorizationConstants.CHANGE_ACCESS, pm))
+		if (!JDOUserGroupDAOImpl.canAccess(userId, getJdoClass().getName(), id, AuthorizationConstants.ACCESS_TYPE.CHANGE, pm))
 			throw new UnauthorizedException();
 		Transaction tx = null;
 		try {
@@ -403,7 +404,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 			keys.add(elem.getId());
 		if (!JDOUserGroupDAOImpl.isAdmin(userId, pm)) {
 			Collection<Long> canAccess = getCanAccess(pm, getJdoClass(), 
-				AuthorizationConstants.READ_ACCESS);
+				AuthorizationConstants.ACCESS_TYPE.READ);
 			keys.retainAll(canAccess);
 		}
 		return keys.size();
@@ -439,7 +440,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 			boolean isAdmin = JDOUserGroupDAOImpl.isAdmin(userId, pm);
 			Collection<Long> canAccess = null;
 			if (!isAdmin) {
-				canAccess = getCanAccess(pm, getJdoClass(), AuthorizationConstants.READ_ACCESS);
+				canAccess = getCanAccess(pm, getJdoClass(), AuthorizationConstants.ACCESS_TYPE.READ);
 			}
 			List<S> ans = new ArrayList<S>();
 			int count = 0;
@@ -484,7 +485,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 			boolean isAdmin = JDOUserGroupDAOImpl.isAdmin(userId, pm);
 			Collection<Long> canAccess = null;
 			if (!isAdmin) {
-				canAccess = getCanAccess(pm, getJdoClass(), AuthorizationConstants.READ_ACCESS);
+				canAccess = getCanAccess(pm, getJdoClass(), AuthorizationConstants.ACCESS_TYPE.READ);
 			}
 			List<S> ans = new ArrayList<S>();
 			int count = 0;
@@ -531,7 +532,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 			boolean isAdmin = JDOUserGroupDAOImpl.isAdmin(userId, pm);
 			Collection<Long> canAccess = null;
 			if (!isAdmin) {
-				canAccess = getCanAccess(pm, getJdoClass(), AuthorizationConstants.READ_ACCESS);
+				canAccess = getCanAccess(pm, getJdoClass(), AuthorizationConstants.ACCESS_TYPE.READ);
 			}
 			List<S> ans = new ArrayList<S>();
 			int count = 0;
@@ -578,7 +579,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 		}
 	}
 
-	public Collection<UserGroup> whoHasAccess(S resource, String accessType)
+	public Collection<UserGroup> whoHasAccess(S resource, AuthorizationConstants.ACCESS_TYPE accessType)
 			throws NotFoundException, DatastoreException {
 		// search for all JDOResourceAccess objects having the given object
 		// and access type
@@ -614,7 +615,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 //		return false;
 //	}
 
-	public boolean hasAccess(S resource, String accessType)
+	public boolean hasAccess(S resource, AuthorizationConstants.ACCESS_TYPE accessType)
 			throws NotFoundException, DatastoreException {
 		PersistenceManager pm = PMF.get();
 		try {
@@ -637,7 +638,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 	 * @return all objects of the given class in the system that the user can access with the given
 	 *         accesstype
 	 */
-	private Collection<Long> getCanAccess(PersistenceManager pm, Class<T> jdoClass, String accessType) throws NotFoundException{
+	private Collection<Long> getCanAccess(PersistenceManager pm, Class<T> jdoClass, AuthorizationConstants.ACCESS_TYPE accessType) throws NotFoundException{
 		// find all the groups the user is a member of
 		Collection<JDOUserGroup> groups = new HashSet<JDOUserGroup>();
 		if (userId != null) {
@@ -665,7 +666,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 			Collection<JDOResourceAccess> ras = (Collection<JDOResourceAccess>) query
 					.execute(ug, jdoClass.getName());
 			for (JDOResourceAccess ra : ras)
-				if (ra.getAccessType().contains(accessType)) {
+				if (ra.getAccessType().contains(accessType.name())) {
 					ans.add(ra.getResourceId());
 				}
 		}

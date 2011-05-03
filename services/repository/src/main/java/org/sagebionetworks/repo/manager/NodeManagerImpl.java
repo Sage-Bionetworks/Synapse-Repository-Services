@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.manager;
 import java.util.Date;
 import java.util.logging.Logger;
 
+import org.sagebionetworks.authutil.AuthUtilConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -26,7 +28,7 @@ public class NodeManagerImpl implements NodeManager {
 	
 	private static final Logger log = Logger.getLogger(NodeManagerImpl.class.getName());
 	
-	public static final String ANNONYMOUS = "anonymous";
+//	public static final String ANNONYMOUS = "anonymous";
 	
 	@Autowired
 	NodeDAO nodeDao;
@@ -49,6 +51,10 @@ public class NodeManagerImpl implements NodeManager {
 	public NodeManagerImpl(){
 	}
 	
+	/**
+	 * Note: Cannot do authorization here, since it is object specific and "Node" is generic.
+	 * Authorization must be done at the layer that calls this one.
+	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String createNewNode(Node newNode, String userName)  throws DatastoreException,
@@ -61,14 +67,11 @@ public class NodeManagerImpl implements NodeManager {
 		NodeManagerImpl.validateNodeCreationData(userName, newNode);
 		// Validate the modified data.
 		NodeManagerImpl.validateNodeModifiedData(userName, newNode);
-		// TODO: Add authz code
 		
 		// If they are allowed then let them create the node
 		String id = nodeDao.createNew(newNode);
 		newNode.setId(id);
-		// TODO enable the following after intializing 
-		// unit tests properly (creating Public group)
-		//authorizationDao.addUserAccess(newNode, userName);
+		authorizationDao.addUserAccess(newNode, userName);
 		log.info("username: "+userName+" created node: "+id);
 		return id;
 	}
@@ -91,7 +94,7 @@ public class NodeManagerImpl implements NodeManager {
 	 */
 	public static String validateUsername(String userName){
 		if(userName == null || "".equals(userName.trim())){
-			return ANNONYMOUS;
+			return AuthUtilConstants.ANONYMOUS_USER_ID;
 		}else{
 			return userName.trim();
 		}
@@ -138,12 +141,12 @@ public class NodeManagerImpl implements NodeManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void delete(String username, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
-//		if (!authorizationDao.canAccess(username, nodeId, AuthorizationDAO.CHANGE_ACCESS)) {
-//			throw new UnauthorizedException(username+" lacks change access to the requested object.");
-//		}
 		// First validate the username
 		username = NodeManagerImpl.validateUsername(username);
-		// Add authz
+		if (!authorizationDao.canAccess(username, nodeId, AuthorizationConstants.ACCESS_TYPE.CHANGE)) {
+			throw new UnauthorizedException(username+" lacks change access to the requested object.");
+		}
+
 		
 		nodeDao.delete(nodeId);
 		authorizationDao.removeAuthorization(nodeId);
@@ -154,12 +157,11 @@ public class NodeManagerImpl implements NodeManager {
 	@Transactional(readOnly = true)
 	@Override
 	public Node get(String username, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
-//		if (!authorizationDao.canAccess(username, nodeId, AuthorizationDAO.READ_ACCESS)) {
-//			throw new UnauthorizedException(username+" lacks read access to the requested object.");
-//		}
 		// Validate the username
 		username = NodeManagerImpl.validateUsername(username);
-		// TODO: add authz
+		if (!authorizationDao.canAccess(username, nodeId, AuthorizationConstants.ACCESS_TYPE.READ)) {
+			throw new UnauthorizedException(username+" lacks read access to the requested object.");
+		}
 		
 		Node result = nodeDao.getNode(nodeId);
 		log.info("username "+username+" fetched node: "+result.getId());
@@ -169,12 +171,11 @@ public class NodeManagerImpl implements NodeManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Node update(String username, Node updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException {
-//		if (!authorizationDao.canAccess(username, updated.getId(), AuthorizationDAO.CHANGE_ACCESS)) {
-//			throw new UnauthorizedException(username+" lacks change access to the requested object.");
-//		}
 		username = NodeManagerImpl.validateUsername(username);
 		NodeManagerImpl.validateNode(updated);
-		// TODO: Authorization should occur before we lock
+		if (!authorizationDao.canAccess(username, updated.getId(), AuthorizationConstants.ACCESS_TYPE.CHANGE)) {
+			throw new UnauthorizedException(username+" lacks change access to the requested object.");
+		}
 		
 		
 		// Now lock this node
@@ -229,9 +230,8 @@ public class NodeManagerImpl implements NodeManager {
 	 * @return
 	 */
 	@Override
-	public boolean hasAccess(Node resource, String accessType, String userName) throws NotFoundException, DatastoreException  {
-		return true;
-//		return authorizationDao.canAccess(userName, resource.getId(), accessType);
+	public boolean hasAccess(Node resource, AuthorizationConstants.ACCESS_TYPE accessType, String userName) throws NotFoundException, DatastoreException  {
+		return authorizationDao.canAccess(userName, resource.getId(), accessType);
 	}
 
 	@Transactional(readOnly = true)

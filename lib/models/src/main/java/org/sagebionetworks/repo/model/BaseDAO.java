@@ -118,7 +118,7 @@ public interface BaseDAO<T extends Base> {
 	 * @param accessType a type of access to the object
 	 * @return those user groups that have the specified type of access to the given object
 	 */
-	public Collection<UserGroup> whoHasAccess(T resource, String accessType) throws NotFoundException, DatastoreException ;
+	public Collection<UserGroup> whoHasAccess(T resource, AuthorizationConstants.ACCESS_TYPE accessType) throws NotFoundException, DatastoreException ;
 	
 	/**
 	 * Use case:  Need to find out if a user can download a resource.
@@ -128,6 +128,6 @@ public interface BaseDAO<T extends Base> {
 	 * @param accessType
 	 * @return
 	 */
-	public boolean hasAccess(T resource, String accessType) throws NotFoundException, DatastoreException ;
+	public boolean hasAccess(T resource, AuthorizationConstants.ACCESS_TYPE accessType) throws NotFoundException, DatastoreException ;
 
 }
