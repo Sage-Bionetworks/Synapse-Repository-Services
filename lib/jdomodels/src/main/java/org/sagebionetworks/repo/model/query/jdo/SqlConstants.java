@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODataset;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
@@ -24,6 +25,8 @@ public class SqlConstants {
 	public static final String PRIMARY_ALIAS	= "prm";
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
+	
+	public static final String TYPE_COLUMN_NAME = "type";
 	// This is the column on a primary that that annotations can be joined with.
 	public static final String PRIMARY_ANNOTATION_ID = "ANNOTATIONS_ID_OID";
 	// The annotation table's foreign keys
@@ -53,9 +56,16 @@ public class SqlConstants {
 		// Map column names to the field names
 		// RELEASE_DATE,STATUS,PLATFORM,PROCESSING_FACILITY,QC_BY,QC_DATE,TISSUE_TYPE,TYPE,CREATION_DATE,DESCRIPTION,PREVIEW,PUBLICATION_DATE,RELEASE_NOTES
 		primaryFieldColumns = new HashMap<String, String>();
+		
+		SqlConstants.addAllFields(Node.class, primaryFieldColumns);
+		// This is a special case for nodes.
+		primaryFieldColumns.put("parentId", "PARENT_ID_OID");
+		
+		// These will be deleted once we move to NodeDao
 		SqlConstants.addAllFields(Dataset.class, primaryFieldColumns);
 		SqlConstants.addAllFields(InputDataLayer.class, primaryFieldColumns);
 		primaryFieldColumns.put("INPUT_LAYERS_ID_OWN", "INPUT_LAYERS_ID_OWN");
+		
 	}
 	
 	/**
