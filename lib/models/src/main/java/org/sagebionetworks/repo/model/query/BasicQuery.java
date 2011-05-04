@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.query;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -60,6 +61,13 @@ public class BasicQuery {
 	}
 	public void setFilters(List<Expression> filters) {
 		this.filters = filters;
+	}
+	
+	public void addExpression(Expression filter){
+		if(this.filters == null){
+			this.filters = new ArrayList<Expression>();
+		}
+		this.filters.add(filter);
 	}
 	
 }
