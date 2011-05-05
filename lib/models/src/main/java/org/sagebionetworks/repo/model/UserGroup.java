@@ -2,12 +2,16 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Date;
 
-public class UserGroup implements Base {
+public class UserGroup implements Base{
 	private String id;
 	private String name;
 	private String uri;
 	private String etag;
 	private Date creationDate;
+	
+//	public String getType() {return UserGroup.class.getName();}
+
+	
 	public String getId() {
 		return id;
 	}

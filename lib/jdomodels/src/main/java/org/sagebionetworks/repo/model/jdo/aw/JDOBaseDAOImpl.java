@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 	
 	@Autowired
-	protected JdoTemplate jdoTemplate;
+	JdoTemplate jdoTemplate;
 	
 	
 	private static final Logger log = Logger
@@ -35,7 +35,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 	 * 
 	 * @return the new object
 	 */
-	abstract protected S newDTO();
+	abstract S newDTO();
 	
 	/**
 	 * Create a new instance of the persistable object. Introducing this
@@ -43,7 +43,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 	 * 
 	 * @return the new object
 	 */
-	abstract protected T newJDO();
+	abstract T newJDO();
 
 	/**
 	 * Do a shallow copy from the JDO object to the DTO object.
@@ -52,7 +52,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 	 * @param dto
 	 * @throws DatastoreException
 	 */
-	abstract protected void copyToDto(T jdo, S dto) throws DatastoreException;
+	abstract void copyToDto(T jdo, S dto) throws DatastoreException;
 
 	/**
 	 * Do a shallow copy from the DTO object to the JDO object.
@@ -61,16 +61,16 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 	 * @param jdo
 	 * @throws InvalidModelException
 	 */
-	abstract protected void copyFromDto(S dto, T jdo)
+	abstract void copyFromDto(S dto, T jdo)
 			throws InvalidModelException;
 
 	/**
 	 * @param jdoClass
 	 *            the class parameterized by T
 	 */
-	abstract protected Class<T> getJdoClass();
+	abstract Class<T> getJdoClass();
 
-
+	public String getType() {return getJdoClass().getName();}
 
 	/**
 	* Create a new object, using the information in the passed DTO

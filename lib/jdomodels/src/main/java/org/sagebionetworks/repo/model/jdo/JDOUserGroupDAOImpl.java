@@ -659,4 +659,21 @@ public class JDOUserGroupDAOImpl extends
 		ans.add(dto);
 		return ans;
 	}
+	
+	public void setCreatableTypes(UserGroup userGroup, Collection<String> creatableTypes) throws NotFoundException, DatastoreException {
+		PersistenceManager pm = PMF.get();
+		Long key = KeyFactory.stringToKey(userGroup.getId());
+		try {
+			JDOUserGroup jdo = (JDOUserGroup) pm.getObjectById(getJdoClass(), key);
+			jdo.setCreatableTypes(new HashSet<String>(creatableTypes));
+		} catch (JDOObjectNotFoundException e) {
+			throw new NotFoundException(e);
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		} finally {
+			pm.close();
+		}
+
+	}
+
 }

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -11,6 +12,9 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface NodeManager {
 	
+	// for testing (in prod it's autowired)
+	public void setAuthorizationDAO(AuthorizationDAO authorizationDao);
+	
 	/**
 	 * Create a new no
 	 * @param userId
@@ -18,7 +22,7 @@ public interface NodeManager {
 	 * @return
 	 */
 	public String createNewNode(Node newNode, String userName) throws DatastoreException,
-			InvalidModelException, NotFoundException;
+			InvalidModelException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * Delete a node using its id.

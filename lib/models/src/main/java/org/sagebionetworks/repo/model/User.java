@@ -10,8 +10,9 @@ public class User implements Base {
 	private Date creationDate;
 	private String iamAccessId;
 	private String iamSecretKey;
-
 	
+//	public String getType() {return User.class.getName();}
+
 	public String getId() {
 		return id;
 	}
