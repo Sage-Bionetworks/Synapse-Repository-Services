@@ -46,21 +46,21 @@ public class JDOFieldTypeDAOImpl implements FieldTypeDAO, InitializingBean {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void addNewType(String name, FieldType type) throws DatastoreException {
+	public boolean addNewType(String name, FieldType type) throws DatastoreException {
 		if(name == null) throw new IllegalArgumentException("Name cannot be null");
 		if(type == null) throw new IllegalArgumentException("FieldType cannot be null");
 		// First check the local cache
 		FieldType currentType = localCache.get(type.name());
 		if(currentType != null){
 			validateType(name, type, currentType);
-			return;
+			return true;
 		}
 		// First determine if this type already exists
 		try {
 			JDOAnnotationType exists = jdoTemplate.getObjectById(JDOAnnotationType.class, name);
 			currentType = FieldType.valueOf(exists.getTypeClass());
 			validateType(name, type, currentType);
-			return;
+			return true;
 		} catch (Exception e) {
 			// this means the type does not exist so create it
 			JDOAnnotationType jdoType = new JDOAnnotationType();
@@ -69,6 +69,7 @@ public class JDOFieldTypeDAOImpl implements FieldTypeDAO, InitializingBean {
 			jdoTemplate.makePersistent(jdoType);
 			// Add this to the local map
 			localCache.put(name, type);
+			return false;
 		}
 	}
 

@@ -61,7 +61,7 @@ public class NodeDAOImplTest {
 		Node loaded = nodeDao.getNode(id);
 		assertNotNull(id);
 		assertEquals(id, loaded.getId());
-		assertNotNull(loaded.geteTag());
+		assertNotNull(loaded.getETag());
 	}
 	
 	@Test 
@@ -158,7 +158,7 @@ public class NodeDAOImplTest {
 		// Make sure the node has a new eTag
 		Node nodeCopy = nodeDao.getNode(id);
 		assertNotNull(nodeCopy);
-		assertEquals(newETagString, nodeCopy.geteTag());
+		assertEquals(newETagString, nodeCopy.getETag());
 	}
 	
 }

@@ -24,7 +24,7 @@ public class JDONodeUtilsTest {
 		node.setType("someType");
 		node.setCreatedBy("createdByMe");
 		node.setModifiedBy("modifiedByMe");
-		node.seteTag("1013");
+		node.setETag("1013");
 		node.setCreatedOn(new Date(System.currentTimeMillis()+99));
 		node.setModifiedOn(new Date(System.currentTimeMillis()+2993));
 		JDONode jdo = JDONodeUtils.copyFromDto(node);

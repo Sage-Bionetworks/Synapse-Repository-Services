@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import javax.xml.bind.annotation.XmlRootElement;
@@ -103,6 +104,78 @@ public class Annotations implements Base {
 
 	public void setDateAnnotations(Map<String, Collection<Date>> dateAnnotations) {
 		this.dateAnnotations = dateAnnotations;
+	}
+	
+	/**
+	 * Get a value from the annoations.
+	 * @param key
+	 * @return
+	 */
+	public Object getSingleValue(String key){
+		// Look in each set
+		
+		if(this.stringAnnotations != null){
+			Collection<String> result = this.stringAnnotations.get(key);
+			if(result != null){
+				if(result.size() == 1) return result.iterator().next();
+				return result;
+			}
+		}
+		if(this.dateAnnotations != null){
+			Collection<Date> result = this.dateAnnotations.get(key);
+			if(result != null){
+				if(result.size() == 1) return result.iterator().next();
+				return result;
+			}
+		}
+		if(this.longAnnotations != null){
+			Collection<Long> result = this.longAnnotations.get(key);
+			if(result != null){
+				if(result.size() == 1) return result.iterator().next();
+				return result;
+			}
+		}
+		if(this.doubleAnnotations != null){
+			Collection<Double> result = this.doubleAnnotations.get(key);
+			if(result != null){
+				if(result.size() == 1) return result.iterator().next();
+				return result;
+			}
+		}
+		// did not find it.
+		return null;
+	}
+	
+	/**
+	 * Add a value of object.  Note: Must be of the supported types: {String, Long, Double, Date}.
+	 * @param key
+	 * @param value
+	 */
+	public void addAnnotation(String key, Object value) {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(value == null) throw new IllegalArgumentException("Value cannot be null");
+		if(value instanceof String){
+			addAnnotation(key, (String)value);
+		}else if(value instanceof Date){
+			addAnnotation(key, (Date)value);
+		}else if(value instanceof Long){
+			addAnnotation(key, (Long)value);
+		}else if(value instanceof Double){
+			addAnnotation(key, (Double)value);
+		}else if(value instanceof Boolean){
+			addAnnotation(key, ((Boolean)value).toString());
+		}else if(value instanceof Collection ){
+			Collection col = (Collection) value;
+			Iterator it = col.iterator();
+			// Add each
+			while(it.hasNext()){
+				addAnnotation(key, it.next());
+			}
+		}
+		else{
+			throw new IllegalArgumentException("Unknown annotatoin type: "+value.getClass().getName());
+		}
+		
 	}
 	
 	/**
@@ -245,5 +318,7 @@ public class Annotations implements Base {
 				+ doubleAnnotations + ", longAnnotations=" + longAnnotations
 				+ ", dateAnnotations=" + dateAnnotations + "]";
 	}
+
+
 
 }
