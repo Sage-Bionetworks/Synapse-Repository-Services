@@ -12,6 +12,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.User;
@@ -37,6 +38,22 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class UserGroupControllerTest {
+	
+	// TODO enable as integration test:
+	// the services layer does not expose USER creation/deletion, therefore
+	// setting up the user for testing is either done in the local container
+	// (in the case of unit testing) or by creating/deleting the user in Crowd
+	// followed by a call to the 'mirror' service.  At this time, only the
+	// former is implemented.  During integration testing SOME OF the tests in this
+	// suite are bypassed.  Though unit testing should be sufficient for exercising
+	// the service's logic, rerunning as an integration test would be a nice
+	// addition.
+	private boolean isIntegrationTest() {
+		String integrationTestEndpoint = System.getProperty("INTEGRATION_TEST_ENDPOINT");
+		return integrationTestEndpoint!=null && integrationTestEndpoint.length()>0;
+	}
+
+
 
 	@Autowired
 	private Helpers helper;
@@ -91,6 +108,8 @@ public class UserGroupControllerTest {
 	 */
 	@Test
 	public void testAddandRemoveUser() throws Exception {
+		if (isIntegrationTest()) return; // can't create a User in another container
+
 		// create a group
 		JSONObject group = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
@@ -143,6 +162,8 @@ public class UserGroupControllerTest {
 	 */
 	@Test
 	public void testAddandRemoveResource() throws Exception {
+		if (isIntegrationTest()) return; // can't create a User in another container
+
 		// create a group
 		JSONObject group = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
