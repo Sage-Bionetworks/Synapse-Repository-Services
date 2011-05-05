@@ -120,20 +120,20 @@ public class NodeManagerImplAutoWiredTest {
 		assertEquals(id, fetched.getId());
 		assertEquals(newNode.getName(), fetched.getName());
 		assertEquals(newNode.getType(), fetched.getType());
-		assertNotNull(fetched.geteTag());
+		assertNotNull(fetched.getETag());
 		
 		// Now try to update the node
-		String startingETag = fetched.geteTag();
+		String startingETag = fetched.getETag();
 		fetched.setName("mySecondName");
 		Node updated = nodeManager.update(AuthUtilConstants.ANONYMOUS_USER_ID, fetched);
 		assertNotNull(updated);
 		// Make sure the result has a new eTag
-		assertFalse(startingETag.equals(updated.geteTag()));
+		assertFalse(startingETag.equals(updated.getETag()));
 		// Now get it again
 		Node fetchedAgain = nodeManager.get(AuthUtilConstants.ANONYMOUS_USER_ID, id);
 		assertNotNull(fetchedAgain);
 		assertEquals("mySecondName", fetchedAgain.getName());
-		assertEquals(updated.geteTag(), fetchedAgain.geteTag());
+		assertEquals(updated.getETag(), fetchedAgain.getETag());
 
 	}
 	
@@ -164,8 +164,8 @@ public class NodeManagerImplAutoWiredTest {
 		assertEquals(expectedEtagAfterUpdate, copy.getEtag());
 		Node nodeCopy = nodeManager.get(null, id);
 		assertNotNull(nodeCopy);
-		assertNotNull(nodeCopy.geteTag());
-		assertEquals(expectedEtagAfterUpdate, nodeCopy.geteTag().toString());
+		assertNotNull(nodeCopy.getETag());
+		assertEquals(expectedEtagAfterUpdate, nodeCopy.getETag().toString());
 	}
 	
 

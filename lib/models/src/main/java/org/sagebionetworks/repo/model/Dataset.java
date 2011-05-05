@@ -334,4 +334,16 @@ public class Dataset implements Base, Revisable {
 		return true;
 	}
 
+	@Override
+	public String toString() {
+		return "Dataset [id=" + id + ", uri=" + uri + ", etag=" + etag
+				+ ", name=" + name + ", description=" + description
+				+ ", creator=" + creator + ", creationDate=" + creationDate
+				+ ", status=" + status + ", releaseDate=" + releaseDate
+				+ ", version=" + version + ", annotations=" + annotations
+				+ ", layer=" + layer + ", hasExpressionData="
+				+ hasExpressionData + ", hasGeneticData=" + hasGeneticData
+				+ ", hasClinicalData=" + hasClinicalData + "]";
+	}
+
 }

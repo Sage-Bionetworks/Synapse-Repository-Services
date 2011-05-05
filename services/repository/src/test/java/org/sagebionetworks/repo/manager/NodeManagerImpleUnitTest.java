@@ -15,12 +15,14 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.Bootstrapper;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +38,7 @@ public class NodeManagerImpleUnitTest {
 	private NodeDAO mockNodeDao = null;
 	private AuthorizationDAO mockAuthDao = null;
 	private NodeManagerImpl nodeManager = null;
+	private FieldTypeDAO mockFieldTypeDao = null;
 		
 	@Before
 	public void before() throws Exception {
@@ -43,9 +46,10 @@ public class NodeManagerImpleUnitTest {
 
 		mockNodeDao = Mockito.mock(NodeDAO.class);
 		mockAuthDao = Mockito.mock(AuthorizationDAO.class);
+		mockFieldTypeDao = Mockito.mock(FieldTypeDAO.class);
 		// Create the manager dao with mocked dependent daos.
-		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao);
-		nodeManager.setAuthorizationDAO(mockAuthDao);
+		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockFieldTypeDao);
+
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -201,7 +205,7 @@ public class NodeManagerImpleUnitTest {
 		Node newNode = new Node();
 		newNode.setName("testUpdate");
 		newNode.setId("101");
-		newNode.seteTag("9");;
+		newNode.setETag("9");;
 		newNode.setType("someType");
 		when(mockNodeDao.getETagForUpdate("101")).thenReturn(new Long(9));
 		
@@ -214,7 +218,7 @@ public class NodeManagerImpleUnitTest {
 		//assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, result.getModifiedBy());
 		assertNotNull(result.getModifiedOn());
 		// The eTag should have been incremented
-		assertNotNull("10", result.geteTag());
+		assertNotNull("10", result.getETag());
 	}
 	
 	@Test
@@ -230,16 +234,104 @@ public class NodeManagerImpleUnitTest {
 	
 	
 	@Test
-	public void testUpdateAnnotations() throws NotFoundException, DatastoreException, UnauthorizedException{
+	public void testUpdateAnnotations() throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException{
 		// To update the annotations 
 		String id = "101";
 		Annotations annos = new Annotations();
 		annos.addAnnotation("stringKey", "b");
 		annos.addAnnotation("longKey", Long.MIN_VALUE);
+		annos.setEtag("9");
 		when(mockNodeDao.getAnnotations(id)).thenReturn(annos);
+		when(mockNodeDao.getETagForUpdate("101")).thenReturn(new Long(9));
+		when(mockAuthDao.canAccess(AuthUtilConstants.ANONYMOUS_USER_ID, "101", ACCESS_TYPE.CHANGE)).thenReturn(true);
+
 		Annotations copy = nodeManager.getAnnotations(AuthUtilConstants.ANONYMOUS_USER_ID, id);
 		assertEquals(copy, annos);
+		// Now update the copy
+		copy.addAnnotation("dateAnnos", new Date(System.currentTimeMillis()));
+		nodeManager.updateAnnotations(AuthUtilConstants.ANONYMOUS_USER_ID,id,copy);
 	}
-
+	
+	@Test
+	public void testValidateAnnoationsAssignedToAnotherType() throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException{
+		// To update the annotations 
+		String id = "101";
+		Annotations annos = new Annotations();
+		String annotationName = "dateKeyKey";
+		annos.setEtag("9");
+		when(mockNodeDao.getETagForUpdate("101")).thenReturn(new Long(9));
+		when(mockAuthDao.canAccess(AuthUtilConstants.ANONYMOUS_USER_ID, "101", ACCESS_TYPE.CHANGE)).thenReturn(true);
+		// The mockFieldTypeDao with throw an exception i 
+		annos.addAnnotation(annotationName, new Date(System.currentTimeMillis()));
+		nodeManager.updateAnnotations(AuthUtilConstants.ANONYMOUS_USER_ID,id,annos);
+		// Make sure this annotation name is checked against FieldType.DATE_ATTRIBUTE.
+		verify(mockFieldTypeDao, atLeastOnce()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
+	}
+	
+	@Test
+	public void testValidateStringAnnotation() throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException{
+		// To update the annotations 
+		Annotations annos = new Annotations();
+		annos.setEtag("123");
+		String annotationName = "stringKey";
+		// The mockFieldTypeDao with throw an exception i 
+		annos.addAnnotation(annotationName, "stringValue");
+		nodeManager.validateAnnotations(annos);
+		// Make sure this annotation name is checked against FieldType.DATE_ATTRIBUTE.
+		verify(mockFieldTypeDao, atLeastOnce()).addNewType(annotationName, FieldType.STRING_ATTRIBUTE);
+		// Should not have been called
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.LONG_ATTRIBUTE);
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DOUBLE_ATTRIBUTE);
+	}
+	
+	@Test
+	public void testValidateDoubleAnnotation() throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException{
+		// To update the annotations 
+		Annotations annos = new Annotations();
+		annos.setEtag("123");
+		String annotationName = "doubleKey";
+		// The mockFieldTypeDao with throw an exception i 
+		annos.addAnnotation(annotationName, new Double(123.5));
+		nodeManager.validateAnnotations(annos);
+		// Make sure this annotation name is checked against FieldType.DATE_ATTRIBUTE.
+		verify(mockFieldTypeDao, atLeastOnce()).addNewType(annotationName, FieldType.DOUBLE_ATTRIBUTE);
+		// Should not have been called
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.LONG_ATTRIBUTE);
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.STRING_ATTRIBUTE);
+	}
+	
+	@Test
+	public void testValidateLongAnnotation() throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException{
+		// To update the annotations 
+		Annotations annos = new Annotations();
+		annos.setEtag("123");
+		String annotationName = "longKey";
+		annos.addAnnotation(annotationName, new Long(1235));
+		nodeManager.validateAnnotations(annos);
+		// Make sure this annotation name is checked against FieldType.DATE_ATTRIBUTE.
+		verify(mockFieldTypeDao, atLeastOnce()).addNewType(annotationName, FieldType.LONG_ATTRIBUTE);
+		// Should not have been called
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DOUBLE_ATTRIBUTE);
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.STRING_ATTRIBUTE);
+	}
+	
+	@Test
+	public void testValidateDateAnnotation() throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException{
+		// To update the annotations 
+		Annotations annos = new Annotations();
+		annos.setEtag("123");
+		String annotationName = "dateKey";
+		annos.addAnnotation(annotationName, new Date(1235));
+		nodeManager.validateAnnotations(annos);
+		// Make sure this annotation name is checked against FieldType.DATE_ATTRIBUTE.
+		verify(mockFieldTypeDao, atLeastOnce()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
+		// Should not have been called
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.LONG_ATTRIBUTE);
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DOUBLE_ATTRIBUTE);
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.STRING_ATTRIBUTE);
+	}
 
 }

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.Date;
+import java.util.Iterator;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.authutil.AuthUtilConstants;
@@ -8,10 +9,12 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +38,8 @@ public class NodeManagerImpl implements NodeManager {
 	
 	@Autowired
 	AuthorizationDAO authorizationDao;
+	@Autowired
+	FieldTypeDAO fieldTypeDao;
 	
 	// for testing (in prod it's autowired)
 	public void setAuthorizationDAO(AuthorizationDAO authorizationDao) {
@@ -46,9 +51,10 @@ public class NodeManagerImpl implements NodeManager {
 	 * @param nodeDao
 	 * @param authDoa
 	 */
-	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationDAO authDoa){
+	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationDAO authDoa, FieldTypeDAO fieldTypeday){
 		this.nodeDao = nodeDao;
 		this.authorizationDao = authDoa;
+		this.fieldTypeDao = fieldTypeday;
 	}
 	
 	/**
@@ -189,10 +195,10 @@ public class NodeManagerImpl implements NodeManager {
 		
 		
 		// Now lock this node
-		String nextETag = validateETagAndLockNode(updated.getId(), updated.geteTag());
+		String nextETag = validateETagAndLockNode(updated.getId(), updated.getETag());
 		// We have the lock
 		// Increment the eTag
-		updated.seteTag(nextETag);
+		updated.setETag(nextETag);
 		
 		// Clear the modified data and fill it in with the new data
 		updated.setModifiedBy(null);
@@ -259,6 +265,7 @@ public class NodeManagerImpl implements NodeManager {
 	public Annotations updateAnnotations(String username, String nodeId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		username = NodeManagerImpl.validateUsername(username);
+		// Validate that the annotations
 		validateAnnotations(updated);
 		// Now lock the node if we can
 		String nextETag = validateETagAndLockNode(nodeId, updated.getEtag());
@@ -271,12 +278,43 @@ public class NodeManagerImpl implements NodeManager {
 	}
 	
 	/**
-	 * Validate the passed annotations
+	 * Validate the passed annotations.  Once a name is used for a type it cannot be used for another type.
 	 * @param updated
+	 * @throws DatastoreException 
 	 */
-	public static void validateAnnotations(Annotations updated){
+	public void validateAnnotations(Annotations updated) throws DatastoreException{
 		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
 		if(updated.getEtag() == null) throw new IllegalArgumentException("Cannot update Annotations with a null eTag");
+		// Validate the annotation names
+		
+		// Validate the strings
+		if(updated.getStringAnnotations() != null){
+			Iterator<String> it = updated.getStringAnnotations().keySet().iterator();
+			while(it.hasNext()){
+				fieldTypeDao.addNewType(it.next(), FieldType.STRING_ATTRIBUTE);
+			}
+		}
+		// Validate the longs
+		if(updated.getLongAnnotations() != null){
+			Iterator<String> it = updated.getLongAnnotations().keySet().iterator();
+			while(it.hasNext()){
+				fieldTypeDao.addNewType(it.next(), FieldType.LONG_ATTRIBUTE);
+			}
+		}
+		// Validate the dates
+		if(updated.getDateAnnotations() != null){
+			Iterator<String> it = updated.getDateAnnotations().keySet().iterator();
+			while(it.hasNext()){
+				fieldTypeDao.addNewType(it.next(), FieldType.DATE_ATTRIBUTE);
+			}
+		}
+		// Validate the Doubles
+		if(updated.getDoubleAnnotations() != null){
+			Iterator<String> it = updated.getDoubleAnnotations().keySet().iterator();
+			while(it.hasNext()){
+				fieldTypeDao.addNewType(it.next(), FieldType.DOUBLE_ATTRIBUTE);
+			}
+		}
 	}
 
 }

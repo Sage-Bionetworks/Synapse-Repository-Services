@@ -354,4 +354,19 @@ public class InputDataLayer implements DatasetLayer {
 			return false;
 		return true;
 	}
+
+	@Override
+	public String toString() {
+		return "InputDataLayer [id=" + id + ", name=" + name + ", description="
+				+ description + ", creationDate=" + creationDate + ", version="
+				+ version + ", publicationDate=" + publicationDate
+				+ ", releaseNotes=" + releaseNotes + ", type=" + type
+				+ ", tissueType=" + tissueType + ", platform=" + platform
+				+ ", processingFacility=" + processingFacility + ", qcBy="
+				+ qcBy + ", qcDate=" + qcDate + ", status=" + status
+				+ ", numSamples=" + numSamples + ", uri=" + uri + ", etag="
+				+ etag + ", annotations=" + annotations + ", preview="
+				+ preview + ", locations=" + locations + "]";
+	}
+	
 }

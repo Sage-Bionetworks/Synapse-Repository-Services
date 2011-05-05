@@ -15,8 +15,9 @@ public interface FieldTypeDAO {
 	 * @param name
 	 * @param type
 	 * @throws DatastoreException 
+	 * @return true if the definitions already exists, else false.
 	 */
-	public void addNewType(String name, FieldType type) throws DatastoreException;
+	public boolean addNewType(String name, FieldType type) throws DatastoreException;
 	
 	/**
 	 * Get the type for a given attribute name.

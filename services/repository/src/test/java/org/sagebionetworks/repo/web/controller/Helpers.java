@@ -196,7 +196,7 @@ public class Helpers {
 				+ new JSONObject(jsonRequestContent).toString(2));
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
-		assertEquals(HttpStatus.CREATED.value(), response.getStatus());
+		assertEquals("Reason: "+response.getErrorMessage(),HttpStatus.CREATED.value(), response.getStatus());
 		JSONObject results = new JSONObject(response.getContentAsString());
 		log.info(results.toString(JSON_INDENT));
 
@@ -428,7 +428,7 @@ public class Helpers {
 		}
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
-		assertEquals(HttpStatus.OK.value(), response.getStatus());
+		assertEquals("Reason: "+response.getErrorMessage(), HttpStatus.OK.value(), response.getStatus());
 		JSONObject results = new JSONObject(response.getContentAsString());
 
 		// Check that the response has the correct structure

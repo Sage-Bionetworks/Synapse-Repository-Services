@@ -40,8 +40,8 @@ public class JDONodeUtils {
 		jdo.setCreatedBy(dto.getCreatedBy());
 		jdo.setModifiedBy(dto.getModifiedBy());
 		jdo.setModifiedOn(dto.getModifiedOn());
-		if(dto.geteTag() != null){
-			jdo.seteTag(Long.parseLong(dto.geteTag()));
+		if(dto.getETag() != null){
+			jdo.seteTag(Long.parseLong(dto.getETag()));
 		}
 	}
 	
@@ -61,7 +61,7 @@ public class JDONodeUtils {
 			dto.setParentId(jdo.getParent().getId().toString());
 		}
 		if(jdo.geteTag() != null){
-			dto.seteTag(jdo.geteTag().toString());
+			dto.setETag(jdo.geteTag().toString());
 		}
 		dto.setType(jdo.getType());
 		dto.setCreatedOn(jdo.getCreatedOn());
