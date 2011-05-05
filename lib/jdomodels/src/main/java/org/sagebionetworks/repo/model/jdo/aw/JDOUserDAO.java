@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.model.jdo.aw;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
+import org.sagebionetworks.repo.model.User;
 
-public interface JDOUserDAO {
+public interface JDOUserDAO extends JDOBaseDAO<User> {
 
-	JDOUser getUser(String adminUserId) throws DatastoreException;
+	User getUser(String userName) throws DatastoreException;
 
 }

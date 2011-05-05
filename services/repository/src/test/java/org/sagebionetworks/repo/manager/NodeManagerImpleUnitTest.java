@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
+import java.util.Arrays;
 import java.util.Date;
 
 import org.junit.Before;
@@ -12,13 +13,17 @@ import org.mockito.Mockito;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationDAO;
+import org.sagebionetworks.repo.model.Bootstrapper;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * This is the unit test version of this class.
@@ -31,13 +36,16 @@ public class NodeManagerImpleUnitTest {
 	private NodeDAO mockNodeDao = null;
 	private AuthorizationDAO mockAuthDao = null;
 	private NodeManagerImpl nodeManager = null;
-	
+		
 	@Before
-	public void before(){
+	public void before() throws Exception {
+
+
 		mockNodeDao = Mockito.mock(NodeDAO.class);
 		mockAuthDao = Mockito.mock(AuthorizationDAO.class);
 		// Create the manager dao with mocked dependent daos.
 		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao);
+		nodeManager.setAuthorizationDAO(mockAuthDao);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -150,9 +158,11 @@ public class NodeManagerImpleUnitTest {
 		Node newNode = new Node();
 		newNode.setName("testCreateNode");
 		newNode.setType("someType");
+		
 		// Sure the mock is ready.
 		ArgumentCaptor<Node> argument = ArgumentCaptor.forClass(Node.class);
 		when(mockNodeDao.createNew(argument.capture())).thenReturn("101");
+		when(mockAuthDao.canCreate(AuthUtilConstants.ANONYMOUS_USER_ID, "someType")).thenReturn(true);
 		// Make the actual call
 		String id = nodeManager.createNewNode(newNode, AuthUtilConstants.ANONYMOUS_USER_ID);
 		// Now validate that t

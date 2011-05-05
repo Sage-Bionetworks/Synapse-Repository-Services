@@ -22,6 +22,8 @@ public interface UserGroupDAO extends BaseDAO<UserGroup> {
 	public void removeResource(UserGroup userGroup, Base resource) throws NotFoundException, DatastoreException, UnauthorizedException;
 	public Collection<AuthorizationConstants.ACCESS_TYPE> getAccessTypes(UserGroup userGroup, Base resource) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
+	public void setCreatableTypes(UserGroup userGroup, Collection<String> creatableTypes) throws NotFoundException, DatastoreException, UnauthorizedException;
+
 	public UserGroup getPublicGroup() throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 }

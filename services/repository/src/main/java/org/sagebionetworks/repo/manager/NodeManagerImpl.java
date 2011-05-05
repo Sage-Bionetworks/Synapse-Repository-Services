@@ -32,8 +32,14 @@ public class NodeManagerImpl implements NodeManager {
 	
 	@Autowired
 	NodeDAO nodeDao;
+	
 	@Autowired
 	AuthorizationDAO authorizationDao;
+	
+	// for testing (in prod it's autowired)
+	public void setAuthorizationDAO(AuthorizationDAO authorizationDao) {
+		 this.authorizationDao =  authorizationDao;
+	}
 	
 	/**
 	 * This is used for unit test.
@@ -58,7 +64,7 @@ public class NodeManagerImpl implements NodeManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String createNewNode(Node newNode, String userName)  throws DatastoreException,
-			InvalidModelException, NotFoundException {
+			InvalidModelException, NotFoundException, UnauthorizedException {
 		// First valid the node
 		NodeManagerImpl.validateNode(newNode);
 		// Also validate the username
@@ -67,7 +73,11 @@ public class NodeManagerImpl implements NodeManager {
 		NodeManagerImpl.validateNodeCreationData(userName, newNode);
 		// Validate the modified data.
 		NodeManagerImpl.validateNodeModifiedData(userName, newNode);
-		
+		// check whether the user is allowed to create this type of node
+		if (!authorizationDao.canCreate(userName, newNode.getType())) {
+			throw new UnauthorizedException(userName+" is not allowed to create items of type "+newNode.getType());
+		}
+
 		// If they are allowed then let them create the node
 		String id = nodeDao.createNew(newNode);
 		newNode.setId(id);

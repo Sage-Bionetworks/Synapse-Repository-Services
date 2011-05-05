@@ -2,9 +2,11 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.After;
@@ -12,12 +14,16 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.authutil.AuthUtilConstants;
+import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.Bootstrapper;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.jdo.aw.JDOUserGroupDAO;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +46,9 @@ public class NodeManagerImplAutoWiredTest {
 	
 	@Autowired
 	Bootstrapper modelBootstrapper;
+	
+	@Autowired
+	JDOUserGroupDAO userGroupDAO;
 
 	
 	List<String> nodesToDelete;
@@ -91,6 +100,12 @@ public class NodeManagerImplAutoWiredTest {
 		// Create a node
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testCreateNode");
+		
+		// need to enable Public to have 'create' access to 'someType'
+		UserGroup publicGroup = userGroupDAO.getPublicGroup();
+		assertNotNull(publicGroup);
+		userGroupDAO.setCreatableTypes(publicGroup, Arrays.asList(new String[]{"someType"}));
+		assertTrue(userGroupDAO.getCreatableTypes(publicGroup).toString(), userGroupDAO.getCreatableTypes(publicGroup).contains("someType"));
 		newNode.setType("someType");
 		String id = nodeManager.createNewNode(newNode, AuthUtilConstants.ANONYMOUS_USER_ID);
 		assertNotNull(id);

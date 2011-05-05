@@ -53,6 +53,7 @@ public interface AuthorizationDAO {
 	/**
 	 * Provide access to the given resource for the given user.
 	 * If user==null, then provide Public access to the resource.
+	 * All defined access types are added: READ, CHANGE, SHARE
 	 * 
 	 */
 	public void addUserAccess(Node node, String userName) throws NotFoundException, DatastoreException;
@@ -64,9 +65,11 @@ public interface AuthorizationDAO {
 	 */
 	public void removeAuthorization(String nodeId) throws NotFoundException, DatastoreException;
 	
-	// at this level there is no representation of distinct resource types
-	// either (1) have to add a 'type' attribute to a Node; or (2) have to
-	// do the check at a higher level, prior to reaching this one
-	// public void canCreate(user, resource-type)
+	/**
+	 * @param userName
+	 * @param nodeType
+	 * @return true iff the user has 'create' permission for the given type
+	 */
+	public boolean canCreate(String userName, String nodeType) throws NotFoundException, DatastoreException;
 
 }

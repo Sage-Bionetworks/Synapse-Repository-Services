@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.jdo.aw;
 
-import java.util.Arrays;
 import java.util.Collection;
 
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -10,22 +9,20 @@ import org.sagebionetworks.repo.model.jdo.JDOExecutor;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.transaction.annotation.Transactional;
 
+@Transactional
 public class JDOUserDAOImpl extends JDOBaseDAOImpl<User,JDOUser> implements JDOUserDAO {
 	
-	public Collection<String> getPrimaryFields() {
-		return Arrays.asList(new String[] { "userId" });
-	}
-
-	protected User newDTO() {
+	User newDTO() {
 		return new User();
 	}
 
-	protected JDOUser newJDO() {
+	JDOUser newJDO() {
 		return new JDOUser();
 	}
 
-	protected void copyToDto(JDOUser jdo, User dto)
+	void copyToDto(JDOUser jdo, User dto)
 			throws DatastoreException {
 		dto.setId(jdo.getId() == null ? null : KeyFactory.keyToString(jdo
 				.getId()));
@@ -35,7 +32,7 @@ public class JDOUserDAOImpl extends JDOBaseDAOImpl<User,JDOUser> implements JDOU
 		dto.setIamSecretKey(jdo.getIamSecretKey());
 	}
 
-	protected void copyFromDto(User dto, JDOUser jdo)
+	void copyFromDto(User dto, JDOUser jdo)
 			throws InvalidModelException {
 		if (null == dto.getUserId()) {
 			throw new InvalidModelException(
@@ -48,16 +45,19 @@ public class JDOUserDAOImpl extends JDOBaseDAOImpl<User,JDOUser> implements JDOU
 	}
 
 	@Override
-	protected Class<JDOUser> getJdoClass() {
+	Class<JDOUser> getJdoClass() {
 		return JDOUser.class;
 	}
 		
-	public JDOUser getUser(String userName) throws DatastoreException {
+	public User getUser(String userName) throws DatastoreException {
 		JDOExecutor<JDOUser> exec = new JDOExecutor<JDOUser>(jdoTemplate, JDOUser.class);
 		Collection<JDOUser> u = exec.execute("userId==pUserId", String.class.getName()+" pUserId", null, userName);
 		if (u.size()>1) throw new DatastoreException("Expected one user named "+userName+" but found "+u.size());
 		if (u.size()==0) return null;
-		return u.iterator().next();
+		JDOUser jdo = u.iterator().next();
+		User dto = newDTO();
+		copyToDto(jdo, dto);
+		return dto;
 	}
 	
 	
