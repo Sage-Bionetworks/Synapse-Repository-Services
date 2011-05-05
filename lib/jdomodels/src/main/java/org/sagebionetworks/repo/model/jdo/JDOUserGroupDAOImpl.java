@@ -14,6 +14,7 @@ import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
 
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.Dataset;
@@ -145,7 +146,7 @@ public class JDOUserGroupDAOImpl extends
 	}
 	
 	public static boolean isAdmin(String userId, PersistenceManager pm) {
-		if (userId==null) return false;
+		if (userId==null || AuthUtilConstants.ANONYMOUS_USER_ID.equals(userId)) return false;
 		JDOUser user = (new JDOUserDAOImpl(userId)).getUser(pm);
 		if (user==null) throw new IllegalArgumentException("No user "+userId);
 		return isAdmin(user, pm);

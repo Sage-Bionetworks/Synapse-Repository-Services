@@ -112,7 +112,7 @@ public class JDOAuthorizationDAOImpl implements AuthorizationDAO {
 	
 	public void addUserAccess(Node node, String userName) throws NotFoundException, DatastoreException {
 		UserGroup group = null;
-		if (userName == AuthUtilConstants.ANONYMOUS_USER_ID) {
+		if (AuthUtilConstants.ANONYMOUS_USER_ID.equals(userName)) {
 			group = userGroupDAO.getPublicGroup();
 			if (group==null) throw new DatastoreException("Public group not found.");
 		} else {
@@ -138,7 +138,7 @@ public class JDOAuthorizationDAOImpl implements AuthorizationDAO {
 		Collection<String> publicCreatableTypes = userGroupDAO.getCreatableTypes(publicGroup);
 		if(publicCreatableTypes.contains(nodeType)) return true;
 		// if not publicly accessible, then we WILL have to check the user, so a null userId->false
-		if (userName==AuthUtilConstants.ANONYMOUS_USER_ID) return false;
+		if (AuthUtilConstants.ANONYMOUS_USER_ID.equals(userName)) return false;
 		User user = userDAO.getUser(userName);
 		if (user==null) throw new NotFoundException(userName+" does not exist");
 		// must look-up access, allowing that admin's can access anything

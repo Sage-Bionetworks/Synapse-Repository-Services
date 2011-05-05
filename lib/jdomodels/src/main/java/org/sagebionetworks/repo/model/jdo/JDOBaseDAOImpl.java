@@ -198,9 +198,9 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 	protected void addUserAccess(PersistenceManager pm, T jdo) {
 		JDOUserGroupDAOImpl groupDAO = new JDOUserGroupDAOImpl(userId);
 		JDOUserGroup group = null;
+
 		if (userId == null || userId.equals(AuthUtilConstants.ANONYMOUS_USER_ID)) {
 			group = JDOUserGroupDAOImpl.getPublicGroup(pm);
-
 		} else {
 			group = groupDAO.getOrCreateIndividualGroup(pm);
 		}
@@ -643,7 +643,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase>
 	private Collection<Long> getCanAccess(PersistenceManager pm, Class<T> jdoClass, AuthorizationConstants.ACCESS_TYPE accessType) throws NotFoundException{
 		// find all the groups the user is a member of
 		Collection<JDOUserGroup> groups = new HashSet<JDOUserGroup>();
-		if (userId != null) {
+		if (userId != null && !AuthUtilConstants.ANONYMOUS_USER_ID.equals(userId)) {
 			JDOUser user = (new JDOUserDAOImpl(userId)).getUser(pm);
 			if (user==null) throw new NotFoundException(userId+" does not exist");
 			Query query = pm.newQuery(JDOUserGroup.class);
