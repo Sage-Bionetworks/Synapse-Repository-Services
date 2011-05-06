@@ -69,7 +69,7 @@ public interface NodeDAO {
 	 * @param id
 	 * @param updatedAnnotations
 	 */
-	public void updateAnnotations(String id, Annotations updatedAnnotations);
+	public void updateAnnotations(Annotations updatedAnnotations);
 	
 
 }

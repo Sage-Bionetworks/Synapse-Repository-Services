@@ -150,7 +150,7 @@ public class NodeDAOImplTest {
 		String newETagString = new Long(currentETag).toString();
 		annos.setEtag(newETagString);
 		// Update them
-		nodeDao.updateAnnotations(id, annos);
+		nodeDao.updateAnnotations(annos);
 		// Now get a copy and ensure it equals what we sent
 		Annotations copy = nodeDao.getAnnotations(id);
 		assertNotNull(copy);

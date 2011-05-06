@@ -12,7 +12,13 @@
 	
 	<import resource="classpath:transaction-spb.xml"/>
 	
-		<!-- Starting with a temp DAO -->
+	<!-- The real Node DAO -->
 	<bean id="nodeManager" class="org.sagebionetworks.repo.manager.NodeManagerImpl" />
+	
+	<!-- The Entity manager-->
+	<bean id="entityManager" class="org.sagebionetworks.repo.manager.EntityManagerImpl" />
+	
+	<!-- The Entity accessor-->
+	<bean id="entitiesAccessor" class="org.sagebionetworks.repo.web.EntitiesAccessorImpl2" />
 
 </beans>

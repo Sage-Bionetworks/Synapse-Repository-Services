@@ -183,32 +183,49 @@ public class NodeManagerImpl implements NodeManager {
 		log.info("username "+username+" fetched node: "+result.getId());
 		return result;
 	}
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public Node update(String userName, Node updated)
+			throws ConflictingUpdateException, NotFoundException,
+			DatastoreException, UnauthorizedException {
+		return update(userName, updated, null);
+	}
+
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public Node update(String username, Node updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException {
+	public Node update(String username, Node updatedNode, Annotations updatedAnnos) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException {
 		username = NodeManagerImpl.validateUsername(username);
-		NodeManagerImpl.validateNode(updated);
-		if (!authorizationDao.canAccess(username, updated.getId(), AuthorizationConstants.ACCESS_TYPE.CHANGE)) {
+		NodeManagerImpl.validateNode(updatedNode);
+		if (!authorizationDao.canAccess(username, updatedNode.getId(), AuthorizationConstants.ACCESS_TYPE.CHANGE)) {
 			throw new UnauthorizedException(username+" lacks change access to the requested object.");
 		}
-		
-		
+		// make sure the eTags match
+		if(updatedAnnos != null){
+			if(!updatedNode.getETag().equals(updatedAnnos.getEtag())) throw new IllegalArgumentException("The passed node and annotations do not have the same eTag");
+			if(!updatedNode.getId().equals(updatedAnnos.getId())) throw new IllegalArgumentException("The passed node and annotations do not have the same ID");
+		}
 		// Now lock this node
-		String nextETag = validateETagAndLockNode(updated.getId(), updated.getETag());
+		String nextETag = validateETagAndLockNode(updatedNode.getId(), updatedNode.getETag());
 		// We have the lock
 		// Increment the eTag
-		updated.setETag(nextETag);
+		updatedNode.setETag(nextETag);
 		
 		// Clear the modified data and fill it in with the new data
-		updated.setModifiedBy(null);
-		updated.setModifiedOn(null);
-		NodeManagerImpl.validateNodeModifiedData(username, updated);
+		updatedNode.setModifiedBy(null);
+		updatedNode.setModifiedOn(null);
+		NodeManagerImpl.validateNodeModifiedData(username, updatedNode);
 		// Now make the actual update.
-		nodeDao.updateNode(updated);
-		log.info("username "+username+" updated node: "+updated.getId()+", with a new eTag: "+nextETag);
+		nodeDao.updateNode(updatedNode);
+		// Also update the Annotations if provided
+		if(updatedAnnos != null){
+			updatedAnnos.setEtag(nextETag);
+			validateAnnotations(updatedAnnos);
+			nodeDao.updateAnnotations(updatedAnnos);
+		}
+		log.info("username "+username+" updated node: "+updatedNode.getId()+", with a new eTag: "+nextETag);
 		// Return the new node
-		return updated;
+		return updatedNode;
 	}
 	
 	/**
@@ -262,18 +279,19 @@ public class NodeManagerImpl implements NodeManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public Annotations updateAnnotations(String username, String nodeId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException {
-		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
+	public Annotations updateAnnotations(String username, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException {
+		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
+		if(updated.getId() == null) throw new IllegalArgumentException("Annotations ID cannot be null");
 		username = NodeManagerImpl.validateUsername(username);
 		// Validate that the annotations
 		validateAnnotations(updated);
 		// Now lock the node if we can
-		String nextETag = validateETagAndLockNode(nodeId, updated.getEtag());
+		String nextETag = validateETagAndLockNode(updated.getId(), updated.getEtag());
 		// We have the lock
 		// Increment the eTag
 		updated.setEtag(nextETag);
-		nodeDao.updateAnnotations(nodeId, updated);
-		log.info("username "+username+" updated Annotations for node: "+nodeId);
+		nodeDao.updateAnnotations(updated);
+		log.info("username "+username+" updated Annotations for node: "+updated.getId());
 		return updated;
 	}
 	
