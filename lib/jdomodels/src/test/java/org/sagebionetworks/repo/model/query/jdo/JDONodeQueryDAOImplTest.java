@@ -160,7 +160,7 @@ public class JDONodeQueryDAOImplTest {
 					new Long(123456));
 			parentAnnos.addAnnotation(attDouble,
 					new Double(123456.3));
-			nodeDao.updateAnnotations(parentId, parentAnnos);
+			nodeDao.updateAnnotations(parentAnnos);
 			
 			// Add a child to the parent
 			Node child = createChild(now, i);
@@ -180,7 +180,7 @@ public class JDONodeQueryDAOImplTest {
 			}
 			
 			// Update the child annoations.
-			nodeDao.updateAnnotations(childId, childAnnos);
+			nodeDao.updateAnnotations(childAnnos);
 
 		}
 	}

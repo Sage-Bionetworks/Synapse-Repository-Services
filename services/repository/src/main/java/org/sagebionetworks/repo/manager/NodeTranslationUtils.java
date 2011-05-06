@@ -46,6 +46,17 @@ public class NodeTranslationUtils {
 	public static <T> Node createFromBase(T base){
 		if(base == null) throw new IllegalArgumentException("Base Object cannot be null");
 		Node node = new Node();
+		updateNodeFromObject(base, node);
+		return node;
+	}
+
+	/**
+	 * Use the passed object to update a node.
+	 * @param <T>
+	 * @param base
+	 * @param node
+	 */
+	public static <T> void updateNodeFromObject(T base, Node node) {
 		Field[] fields = base.getClass().getDeclaredFields();
 		for(Field field: fields){
 			String name = field.getName();
@@ -65,13 +76,12 @@ public class NodeTranslationUtils {
 					if(value != null){
 						nodeField.set(node, value);
 					}
-				} catch (Exception e) {
+				} catch (IllegalAccessException e) {
 					// This should never occur
 					log.log(Level.WARNING, e.getMessage(), e);
 				}
 			}
 		}
-		return node;
 	}
 	
 	/**
@@ -88,8 +98,12 @@ public class NodeTranslationUtils {
 		Field[] fields = base.getClass().getDeclaredFields();
 		for(Field field: fields){
 			String name = field.getName();
+			String nodeName = nameConvertion.get(name);
+			if(nodeName == null){
+				nodeName = name;
+			}
 			// Is this a field already on Node?
-			if(!nodeFieldNames.containsKey(name)){
+			if(!nodeFieldNames.containsKey(nodeName)){
 				// Make sure we can call it.
 				field.setAccessible(true);
 				Object value;
@@ -98,7 +112,7 @@ public class NodeTranslationUtils {
 					if(value != null){
 						annos.addAnnotation(name, value);
 					}
-				} catch (Exception e) {
+				} catch (IllegalAccessException e) {
 					// This should never occur
 					log.log(Level.WARNING, e.getMessage(), e);
 				}
@@ -134,7 +148,7 @@ public class NodeTranslationUtils {
 					if(value != null){
 						field.set(base, value);
 					}
-				} catch (Exception e) {
+				} catch (IllegalAccessException e) {
 					// This should never occur
 					log.log(Level.WARNING, e.getMessage(), e);
 				}
@@ -155,8 +169,12 @@ public class NodeTranslationUtils {
 		Field[] fields = base.getClass().getDeclaredFields();
 		for(Field field: fields){
 			String name = field.getName();
+			String nodeName = nameConvertion.get(name);
+			if(nodeName == null){
+				nodeName = name;
+			}
 			// Is this a field already on Node?
-			if(!nodeFieldNames.containsKey(name)){
+			if(!nodeFieldNames.containsKey(nodeName)){
 				// Make sure we can call it.
 				field.setAccessible(true);
 				try {
@@ -168,7 +186,7 @@ public class NodeTranslationUtils {
 						}
 						field.set(base, value);
 					}
-				} catch (Exception e) {
+				} catch (IllegalAccessException e) {
 					// This should never occur
 					log.log(Level.WARNING, e.getMessage(), e);
 				}

@@ -36,6 +36,9 @@ public class NodeDAOImpl implements NodeDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String createNew(Node dto) {
+		if(dto == null) throw new IllegalArgumentException("Node cannot be null");
+		// Make sure the nodes does not come in with an id
+		dto.setId(null);
 		JDONode node = JDONodeUtils.copyFromDto(dto);
 		// Make sure it has annotations
 		node.setAnnotations(JDOAnnotations.newJDOAnnotations());
@@ -75,6 +78,7 @@ public class NodeDAOImpl implements NodeDAO {
 		// Get the annotations and make a copy
 		Annotations annos = JDOAnnotationsUtils.createFromJDO(jdo.getAnnotations());
 		annos.setEtag(jdo.geteTag().toString());
+		annos.setId(id);
 		return annos;
 	}
 
@@ -111,11 +115,13 @@ public class NodeDAOImpl implements NodeDAO {
 				Query query = pm.newQuery(JDONode.class);
 				// Make sure this is a "SELECT FOR UPDATE"
 				query.addExtension("datanucleus.rdbms.query.useUpdateLock", "true"); 
+				query.setResult("eTag");
 				query.setFilter("id == inputId");
 				query.declareParameters("java.lang.Long inputId");
-				List<JDONode> result = (List<JDONode>) query.execute(longId);
-				if(result == null ||result.size() != 1 ) throw new JDOObjectNotFoundException("Cannot find a node with id: "+longId);
-				return result.get(0).geteTag();
+				List<Long> result = (List<Long>) query.execute(longId);
+				if(result == null ||result.size() < 1 ) throw new JDOObjectNotFoundException("Cannot find a node with id: "+longId);
+				if(result.size() > 1 ) throw new JDOObjectNotFoundException("More than one node found with id: "+longId);
+				return result.get(0);
 			}});
 		System.out.println("ETag for id:"+stringId+" was: "+eTag);
 		return eTag;
@@ -133,11 +139,12 @@ public class NodeDAOImpl implements NodeDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void updateAnnotations(String id, Annotations updatedAnnotations) {
-		if(id == null) throw new IllegalArgumentException("Node ID cannot be null");
+	public void updateAnnotations(Annotations updatedAnnotations) {
 		if(updatedAnnotations == null) throw new IllegalArgumentException("Updateded Annotations cannot be null");
+		if(updatedAnnotations.getId() == null) throw new IllegalArgumentException("Node ID cannot be null");
 		if(updatedAnnotations.getEtag() == null) throw new IllegalArgumentException("Annotations must have a valid eTag");
-		JDONode jdo =  jdoTemplate.getObjectById(JDONode.class, Long.parseLong(id));
+		JDONode jdo =  jdoTemplate.getObjectById(JDONode.class, Long.parseLong(updatedAnnotations.getId()));
+		updatedAnnotations.setId(null);
 		// Update the eTag
 		jdo.seteTag(Long.parseLong(updatedAnnotations.getEtag()));
 		// now update the annotations from the passed values.

@@ -57,6 +57,18 @@ public interface NodeManager {
 	public Node update(String userName, Node updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
+	 * Update a node and its annotations in the same call.  This means we only need to acquire the lock once.
+	 * @param username
+	 * @param updatedNode
+	 * @param updatedAnnoations
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 * @throws ConflictingUpdateException 
+	 */
+	public Node update(String username, Node updatedNode, Annotations updatedAnnoations) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException;
+	
+	/**
 	 * Use case:  Need to find out if a user can download a resource.
 	 * 
 	 * @param resource the resource of interest
@@ -87,13 +99,6 @@ public interface NodeManager {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public Annotations updateAnnotations(String username, String nodeId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException;
-
-	
-	
-	
-	
-
-	
+	public Annotations updateAnnotations(String username, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException;
 
 }

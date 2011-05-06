@@ -49,7 +49,7 @@ public class NodeTranslationUtilsTest {
 	
 	@Test
 	public void testLayerRoundTrip() throws InstantiationException, IllegalAccessException, InvalidModelException{
-		// First we create a dataset with all fields filled in.
+		// First we create a layer with all fields filled in.
 		InputDataLayer layer = new InputDataLayer();
 		layer.setAnnotations("someAnnoUrl");
 		layer.setCreationDate(new Date(System.currentTimeMillis()));
@@ -79,7 +79,7 @@ public class NodeTranslationUtilsTest {
 		// Create a clone using node translation
 		InputDataLayer clone = cloneUsingNodeTranslation(layer);
 		
-		// Now our clone should match the original dataset.
+		// Now our clone should match the original layer.
 		System.out.println("Original: "+layer.toString());
 		System.out.println("Clone: "+clone.toString());
 		assertEquals(layer, clone);
