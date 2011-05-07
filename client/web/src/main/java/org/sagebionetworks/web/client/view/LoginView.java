@@ -1,17 +1,17 @@
 package org.sagebionetworks.web.client.view;
 
-import org.sagebionetworks.web.client.security.user.UserData;
+import org.sagebionetworks.web.shared.users.UserData;
 
+import com.google.gwt.place.shared.Place;
 import com.google.gwt.user.client.ui.IsWidget;
 
 public interface LoginView extends IsWidget{
 	
-	public interface Presenter {
-
-		void setNewUser(UserData newUser);
-		
-	}
-
 	void setPresenter(Presenter loginPresenter);
 
+	public interface Presenter {
+		void goTo(Place place);
+		
+		void setNewUser(UserData newUser);		
+	}
 }

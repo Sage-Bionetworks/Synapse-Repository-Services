@@ -5,6 +5,8 @@ import org.sagebionetworks.web.client.presenter.DatasetsHomePresenter;
 import org.sagebionetworks.web.client.presenter.HomePresenter;
 import org.sagebionetworks.web.client.presenter.LayerPresenter;
 import org.sagebionetworks.web.client.presenter.LoginPresenter;
+import org.sagebionetworks.web.client.presenter.users.PasswordResetPresenter;
+import org.sagebionetworks.web.client.presenter.users.RegisterAccountPresenter;
 import org.sagebionetworks.web.client.security.AuthenticationController;
 
 import com.google.gwt.inject.client.GinModules;
@@ -30,5 +32,9 @@ public interface ProtalGinInjector extends Ginjector {
 	public LoginPresenter getLoginPresenter();
 	
 	public AuthenticationController getAuthenticationController();
+	
+	public PasswordResetPresenter getPasswordResetPresenter();
+	
+	public RegisterAccountPresenter getRegisterAccountPresenter();
 
 }

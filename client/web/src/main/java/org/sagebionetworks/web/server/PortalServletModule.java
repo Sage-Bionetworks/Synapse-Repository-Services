@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 import org.sagebionetworks.web.server.servlet.DatasetServiceImpl;
 import org.sagebionetworks.web.server.servlet.LicenseServiceImpl;
 import org.sagebionetworks.web.server.servlet.SearchServiceImpl;
+import org.sagebionetworks.web.server.servlet.UserAccountServiceImpl;
 import org.sagebionetworks.web.server.servlet.filter.RPCValidationFilter;
 import org.sagebionetworks.web.server.servlet.filter.TimingFilter;
 
@@ -46,10 +47,14 @@ public class PortalServletModule extends ServletModule {
 		// Setup the Search service
 		bind(SearchServiceImpl.class).in(Singleton.class);
 		serve("/Portal/search").with(SearchServiceImpl.class);
-
+		
 		// Setup the License service mapping
 		bind(LicenseServiceImpl.class).in(Singleton.class);
 		serve("/Portal/license").with(LicenseServiceImpl.class);
+		
+		// Setup the User Account service mapping
+		bind(UserAccountServiceImpl.class).in(Singleton.class);
+		serve("/Portal/users").with(UserAccountServiceImpl.class);
 		
 		// The Rest template provider should be a singleton.
 		bind(RestTemplateProviderImpl.class).in(Singleton.class);

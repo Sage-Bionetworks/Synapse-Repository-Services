@@ -44,5 +44,15 @@ public class ServerConstants {
 	 */
 	public static final String KEY_REST_API_SERVLET_PREFIX = "org.sagebionetworks.rest.api.servlet.prefix";
 	
+	/**
+	 * The property key that tells where the auth API service endpoint is.
+	 */
+	public static final String KEY_AUTH_API_ENDPOINT = "org.sagebionetworks.auth.api.endpoint";
+	
+	/**
+	 * The property key for the auth api servlet prefix.
+	 */
+	public static final String KEY_AUTH_API_SERVLET_PREFIX = "org.sagebionetworks.auth.api.servlet.prefix";
+	
 
 }

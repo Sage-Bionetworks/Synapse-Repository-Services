@@ -1,6 +1,8 @@
 package org.sagebionetworks.web.client.security;
 
-import org.sagebionetworks.web.client.security.user.UserData;
+import org.sagebionetworks.web.shared.users.UserData;
+
+import com.google.gwt.user.client.rpc.AsyncCallback;
 
 public interface AuthenticationController {
 	
@@ -16,6 +18,12 @@ public interface AuthenticationController {
 	 * @param password
 	 * @return
 	 */
-	public UserData loginUser(String username, String password) throws AuthenticationException;
+	public void loginUser(String username, String password, AsyncCallback<UserData> callback);
+	
+	/**
+	 * Get the currently logged in user, if any.
+	 * @return the current user
+	 */
+	public UserData getLoggedInUser();
 
 }

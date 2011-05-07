@@ -19,6 +19,7 @@ public interface LoginWidgetView extends IsWidget {
 		public void setUsernameAndPassword(String username, String password);
 	}
 
-
+	public void showAuthenticationFailed();
+	
 	public void showError(String message);
 }

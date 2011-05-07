@@ -10,11 +10,15 @@ import org.sagebionetworks.web.client.place.DatasetsHome;
 import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.place.Layer;
 import org.sagebionetworks.web.client.place.LoginPlace;
+import org.sagebionetworks.web.client.place.users.PasswordReset;
+import org.sagebionetworks.web.client.place.users.RegisterAccount;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetsHomePresenter;
 import org.sagebionetworks.web.client.presenter.HomePresenter;
 import org.sagebionetworks.web.client.presenter.LayerPresenter;
 import org.sagebionetworks.web.client.presenter.LoginPresenter;
+import org.sagebionetworks.web.client.presenter.users.PasswordResetPresenter;
+import org.sagebionetworks.web.client.presenter.users.RegisterAccountPresenter;
 
 import com.google.gwt.activity.shared.Activity;
 import com.google.gwt.activity.shared.ActivityMapper;
@@ -40,7 +44,8 @@ public class AppActivityMapper implements ActivityMapper {
 	@Override
 	public Activity getActivity(Place place) {
 		// If the user is not logged in then we redirect them to the login screen
-		if(!(place  instanceof LoginPlace)){
+		// except for the fully public pages: LoginPlace, PasswordReset and RegisterAccount
+		if(!(place  instanceof LoginPlace) && !(place instanceof PasswordReset) && !(place instanceof RegisterAccount)){
 			if(!this.ginjector.getAuthenticationController().isLoggedIn()){
 				// Redirect them to the login screen
 				LoginPlace loginPlace = new LoginPlace(place);
@@ -71,9 +76,19 @@ public class AppActivityMapper implements ActivityMapper {
 			presenter.setPlace((Layer)place);
 			return presenter;
 		}else if (place instanceof LoginPlace) {
-			// The layer detail view
+			// login view
 			LoginPresenter presenter = ginjector.getLoginPresenter();
 			presenter.setPlace((LoginPlace)place);
+			return presenter;
+		} else if (place instanceof PasswordReset) {
+			// reset passwords
+			PasswordResetPresenter presenter = ginjector.getPasswordResetPresenter();
+			presenter.setPlace((PasswordReset)place);
+			return presenter;
+		} else if (place instanceof RegisterAccount) {
+			// register for a new account
+			RegisterAccountPresenter presenter = ginjector.getRegisterAccountPresenter();
+			presenter.setPlace((RegisterAccount)place);
 			return presenter;
 		} else {
 			// Log that we have an unknown place but send the user to the default

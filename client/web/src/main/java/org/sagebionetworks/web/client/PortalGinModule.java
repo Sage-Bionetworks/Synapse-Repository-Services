@@ -20,6 +20,10 @@ import org.sagebionetworks.web.client.view.LoginView;
 import org.sagebionetworks.web.client.view.LoginViewImpl;
 import org.sagebionetworks.web.client.view.table.ColumnFactory;
 import org.sagebionetworks.web.client.view.table.ColumnFactoryImpl;
+import org.sagebionetworks.web.client.view.users.PasswordResetView;
+import org.sagebionetworks.web.client.view.users.PasswordResetViewImpl;
+import org.sagebionetworks.web.client.view.users.RegisterAccountView;
+import org.sagebionetworks.web.client.view.users.RegisterAccountViewImpl;
 import org.sagebionetworks.web.client.widget.breadcrumb.BreadcrumbView;
 import org.sagebionetworks.web.client.widget.breadcrumb.BreadcrumbViewImpl;
 import org.sagebionetworks.web.client.widget.filter.QueryFilterView;
@@ -80,6 +84,14 @@ public class PortalGinModule extends AbstractGinModule {
 		bind(LoginViewImpl.class).in(Singleton.class);
 		bind(LoginView.class).to(LoginViewImpl.class);
 		
+		// PasswordResetView
+		bind(PasswordResetViewImpl.class).in(Singleton.class);
+		bind(PasswordResetView.class).to(PasswordResetViewImpl.class);
+
+		// RegisterAccountView
+		bind(RegisterAccountViewImpl.class).in(Singleton.class);
+		bind(RegisterAccountView.class).to(RegisterAccountViewImpl.class);
+
 		// LoginWidget
 		bind(LoginWidgetViewImpl.class).in(Singleton.class);
 		bind(LoginWidgetView.class).to(LoginWidgetViewImpl.class);

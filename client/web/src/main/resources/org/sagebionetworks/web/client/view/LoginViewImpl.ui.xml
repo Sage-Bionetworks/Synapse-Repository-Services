@@ -10,11 +10,11 @@
 		}
 	</ui:style>
 	<g:HTMLPanel>
-
 	<!-- start header -->
 		<div id="container" class="clearfix">		
 			<g:SimplePanel ui:field="header" />
 			<div id="main" role="main">
+			<div style="margin-left: 35%;">
 	<!-- end header -->
 				<div id="logo" style="clear: right">					
 						<span class="large">Synapse</span>
@@ -24,13 +24,20 @@
 				<p>&nbsp;</p>
 				<p>&nbsp;</p>
 				<p>&nbsp;</p>
-				<g:SimplePanel ui:field="loginWidgetPanel" />				
+				<g:SimplePanel ui:field="loginWidgetPanel" />
+				<br/>
+				<table style="width: 350px;">
+					<tr>
+						<td><g:SimplePanel ui:field="passwordReset" /></td>
+						<td class="right" style="text-align: right"><g:SimplePanel ui:field="register" /></td>
+					</tr>
+				</table>		
 
 <!-- start footer -->
 				<g:SimplePanel ui:field="footer" />
-			</div> <!-- id: main -->				
+			</div>				
+			</div> <!-- id: main -->
 		</div> <!-- id: container -->
 <!-- end footer -->
-
 	</g:HTMLPanel>
 </ui:UiBinder> 

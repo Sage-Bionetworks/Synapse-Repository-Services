@@ -3,7 +3,7 @@ package org.sagebionetworks.web.unitclient.security.user;
 import static org.junit.Assert.*;
 
 import org.junit.Test;
-import org.sagebionetworks.web.client.security.user.UserData;
+import org.sagebionetworks.web.shared.users.UserData;
 
 public class UserDataTest {
 	

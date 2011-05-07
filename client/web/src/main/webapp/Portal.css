@@ -87,3 +87,6 @@ h1 {
     font-size: 0.8em;
 }
 
+.gwt-Hyperlink img {
+	text-decoration: none;
+}

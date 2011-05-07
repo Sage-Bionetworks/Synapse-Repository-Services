@@ -17,6 +17,9 @@ public interface SageImageBundle extends ClientBundle {
 	@Source("images/SagebionetworksLogo-g.png")
 	ImageResource sageLogoAndTitle();
 	
+	@Source("images/loading-16.gif")
+	ImageResource loading16();	
+	
 	@Source("images/transparent-16.png")
 	ImageResource iconTransparent16();
 	
@@ -29,4 +32,7 @@ public interface SageImageBundle extends ClientBundle {
 	@Source("images/searchButtonIcon.png")
 	ImageResource searchButtonIcon();
 
+	@Source("images/headerSearchButtonIcon.png")
+	ImageResource searchButtonHeaderIcon();
+	
 }

@@ -26,6 +26,9 @@ public interface IconsImageBundle extends ClientBundle {
 	@Source("images/icons/download-16.png")
 	ImageResource download16();
 
+	@Source("images/icons/exclamation-red-16.png")
+	ImageResource error16();
+	
 	@Source("images/icons/external-16.png")
 	ImageResource external16();
 
@@ -64,5 +67,11 @@ public interface IconsImageBundle extends ClientBundle {
 	
 	@Source("images/icons/task--plus-16.png")
 	ImageResource taskPlus16();
+
+	@Source("images/icons/user-business-16.png")
+	ImageResource userBusiness16();
+
+	@Source("images/icons/exclamation-16.png")
+	ImageResource warning16();	
 	
 }

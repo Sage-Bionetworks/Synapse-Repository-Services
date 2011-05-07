@@ -1,11 +1,13 @@
-package org.sagebionetworks.web.client.security.user;
+package org.sagebionetworks.web.shared.users;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.web.client.cookie.CookieUtils;
 
-public class UserData  {
+import com.google.gwt.user.client.rpc.IsSerializable;
+
+public class UserData implements IsSerializable {
 	
 	// The internal user id.
 	private String userId;
@@ -13,6 +15,12 @@ public class UserData  {
 	private String userName;
 	// The user's token
 	private String token;
+	
+	/*
+	 * Default Constructor is required
+	 */
+	public UserData() {		
+	}
 	
 	public UserData(String userId, String userName, String token) {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");

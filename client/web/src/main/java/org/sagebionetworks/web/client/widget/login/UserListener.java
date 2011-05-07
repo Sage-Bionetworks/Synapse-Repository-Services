@@ -1,6 +1,6 @@
 package org.sagebionetworks.web.client.widget.login;
 
-import org.sagebionetworks.web.client.security.user.UserData;
+import org.sagebionetworks.web.shared.users.UserData;
 
 public interface UserListener {
 	

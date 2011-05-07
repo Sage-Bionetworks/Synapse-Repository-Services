@@ -27,9 +27,10 @@
 				
 				<div id="search" class="right">
 					<!-- <form action="" method="get">  -->
-						<input id="query" type="input" class="search_box" name="q" value="" />
-
-						<button class="search_submit"><img src="static/images/search_button.png" /></button>
+						<input id="query" type="input" class="search_box" name="q" value="" />						
+						<span class="search_button">
+							<g:Anchor ui:field="searchAnchor" />
+						</span>
 						<span class="advanced"><a href="">Advanced<br />Search</a></span>
 					<!-- </form>  -->
 				</div>

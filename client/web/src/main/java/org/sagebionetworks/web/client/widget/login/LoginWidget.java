@@ -3,18 +3,19 @@ package org.sagebionetworks.web.client.widget.login;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.web.client.UserAccountServiceAsync;
 import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.security.AuthenticationException;
-import org.sagebionetworks.web.client.security.user.UserData;
+import org.sagebionetworks.web.shared.users.UserData;
 
+import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
 public class LoginWidget implements LoginWidgetView.Presenter {
 
 	private LoginWidgetView view;
-	private AuthenticationController controller;
-	
+	private AuthenticationController controller;	
 	private List<UserListener> listeners = new ArrayList<UserListener>();
 	
 	@Inject
@@ -33,15 +34,21 @@ public class LoginWidget implements LoginWidgetView.Presenter {
 	}
 
 	@Override
-	public void setUsernameAndPassword(String username, String password) {
-		try{
-			UserData user = controller.loginUser(username, password);
-			fireUserChage(user);
-		}catch(AuthenticationException e){
-			view.showError(e.getMessage());
-		}
+	public void setUsernameAndPassword(String username, String password) {		
+		controller.loginUser(username, password, new AsyncCallback<UserData>() {
+			@Override
+			public void onSuccess(UserData result) {
+				fireUserChage(result);
+			}
+
+			@Override
+			public void onFailure(Throwable caught) {
+				view.showAuthenticationFailed();
+			}
+		});
 	}
 
+	// needed?
 	private void fireUserChage(UserData user) {
 		for(UserListener listener: listeners){
 			listener.userChanged(user);

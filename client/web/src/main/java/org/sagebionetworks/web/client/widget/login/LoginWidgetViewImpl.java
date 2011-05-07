@@ -1,9 +1,12 @@
 package org.sagebionetworks.web.client.widget.login;
 
+import org.sagebionetworks.web.client.IconsImageBundle;
+
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
 import com.extjs.gxt.ui.client.event.BaseEvent;
 import com.extjs.gxt.ui.client.event.Events;
 import com.extjs.gxt.ui.client.event.Listener;
+import com.extjs.gxt.ui.client.widget.Label;
 import com.extjs.gxt.ui.client.widget.LayoutContainer;
 import com.extjs.gxt.ui.client.widget.VerticalPanel;
 import com.extjs.gxt.ui.client.widget.button.Button;
@@ -12,6 +15,7 @@ import com.extjs.gxt.ui.client.widget.form.FormPanel;
 import com.extjs.gxt.ui.client.widget.form.TextField;
 import com.extjs.gxt.ui.client.widget.layout.FormData;
 import com.google.gwt.user.client.Element;
+import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
@@ -21,10 +25,13 @@ public class LoginWidgetViewImpl extends LayoutContainer implements
 	private Presenter presenter;
 	private VerticalPanel vp;
 	private FormData formData;
+	private Label messageLabel;
+	private IconsImageBundle iconsImageBundle;
 
 	@Inject
-	public LoginWidgetViewImpl() {
-
+	public LoginWidgetViewImpl(IconsImageBundle iconsImageBundle) {
+		this.iconsImageBundle = iconsImageBundle;
+		messageLabel = new Label();
 	}
 
 	@Override
@@ -39,12 +46,13 @@ public class LoginWidgetViewImpl extends LayoutContainer implements
 
 	private void createForm1() {
 		FormPanel simple = new FormPanel();
-		simple.setHeading("Login:");
+		simple.setHeading("Login");
 		simple.setFrame(true);
 		simple.setWidth(350);
+		simple.setLabelWidth(85);
 
 		final TextField<String> firstName = new TextField<String>();
-		firstName.setFieldLabel("Name");
+		firstName.setFieldLabel("Email Address");
 		firstName.setAllowBlank(false);
 		firstName.getFocusSupport()
 				.setPreviousId(simple.getButtonBar().getId());
@@ -56,18 +64,20 @@ public class LoginWidgetViewImpl extends LayoutContainer implements
 		password.setPassword(true);
 		simple.add(password, formData);
 
+		simple.add(messageLabel);
+		
 		Button b = new Button("Login");
 		simple.addButton(b);
 		b.addListener(Events.OnClick, new Listener<BaseEvent>() {
 			@Override
 			public void handleEvent(BaseEvent be) {
+				messageLabel.setText(""); 
 				presenter.setUsernameAndPassword(firstName.getValue(), password.getValue());
 			}
 		});
-		simple.addButton(new Button("Cancel"));
 
 		simple.setButtonAlign(HorizontalAlignment.CENTER);
-
+		
 		FormButtonBinding binding = new FormButtonBinding(simple);
 		binding.addButton(b);
 
@@ -87,6 +97,12 @@ public class LoginWidgetViewImpl extends LayoutContainer implements
 	@Override
 	public void showError(String message) {
 		com.google.gwt.user.client.Window.alert(message);
+	}
+
+	@Override
+	public void showAuthenticationFailed() {
+		messageLabel.setStyleAttribute("color", "red");
+		messageLabel.setText(AbstractImagePrototype.create(iconsImageBundle.warning16()).getHTML() + " Invalid username or password.");
 	}
 
 }

@@ -3,6 +3,7 @@ package org.sagebionetworks.web.unitclient.widget.login;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -14,6 +15,7 @@ import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownload
 import org.sagebionetworks.web.client.widget.login.LoginWidget;
 import org.sagebionetworks.web.client.widget.login.LoginWidgetView;
 import org.sagebionetworks.web.shared.LicenseAgreement;
+import org.sagebionetworks.web.shared.users.UserData;
 
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
@@ -43,11 +45,7 @@ public class LoginWidgetTest {
 		String p = "pass";
 		loginWidget.setUsernameAndPassword(u, p);
 		
-		try {
-			verify(mockAuthController).loginUser(u, p);
-		} catch (AuthenticationException e) {
-			e.printStackTrace();
-		}
+		verify(mockAuthController).loginUser(u, p, (AsyncCallback<UserData>) any());
 	}
 
 }
