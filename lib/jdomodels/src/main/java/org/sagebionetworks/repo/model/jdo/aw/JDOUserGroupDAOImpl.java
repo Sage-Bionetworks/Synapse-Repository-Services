@@ -1,10 +1,14 @@
 package org.sagebionetworks.repo.model.jdo.aw;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
 import javax.jdo.JDOObjectNotFoundException;
+import javax.jdo.PersistenceManager;
+import javax.jdo.Transaction;
 
 import org.sagebionetworks.repo.model.Authorizable;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -13,6 +17,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.jdo.AuthorizableImpl;
 import org.sagebionetworks.repo.model.jdo.JDOExecutor;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
@@ -30,7 +35,9 @@ public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> 
 	}
 
 	JDOUserGroup newJDO() {
-		return new JDOUserGroup();
+		JDOUserGroup g = new JDOUserGroup();
+		g.setCreatableTypes(new HashSet<String>());
+		return g;
 	}
 
 	void copyToDto(JDOUserGroup jdo, UserGroup dto)
@@ -50,26 +57,6 @@ public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> 
 	Class<JDOUserGroup> getJdoClass() {
 		return JDOUserGroup.class;
 	}
-
-//	@Override
-//	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-//	public String create(UserGroup dto) throws DatastoreException,
-//			InvalidModelException, UnauthorizedException {
-//		jdoTemplate.makePersistent(g);
-//	}
-//	
-//	@Override 
-//	@Transactional
-//	public JDOUserGroup get(Long id) {
-//		return jdoTemplate.getObjectById(JDOUserGroup.class, id);
-//	}
-//
-//	@Override
-//	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-//	public void delete(JDOUserGroup g) {
-//		jdoTemplate.deletePersistent(g);
-//	}
-	
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void addUser(UserGroup userGroup, Long user) throws DatastoreException {
@@ -133,14 +120,63 @@ public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> 
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public UserGroup createPublicGroup() {
-		throw new RuntimeException("Not yet implemented.");
+	public UserGroup createPublicGroup()  throws DatastoreException {
+		Set<String> creatableTypes = new HashSet<String>();
+		creatableTypes.add(JDOUser.class.getName());
+		creatableTypes.add(JDOUserGroup.class.getName());
+		return createSystemGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false, 
+				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[] {
+				AuthorizationConstants.ACCESS_TYPE.READ, 
+				AuthorizationConstants.ACCESS_TYPE.CHANGE}),
+				creatableTypes);
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public UserGroup createAdminGroup() {
-		throw new RuntimeException("Not yet implemented.");
+	public UserGroup createAdminGroup()  throws DatastoreException {
+		Set<String> creatableTypes = new HashSet<String>();
+		return createSystemGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false,
+				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[] {
+						AuthorizationConstants.ACCESS_TYPE.READ}),
+				creatableTypes // for admin' group, don't have to explicitly declare types, rather anything can be created
+		);
 	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public UserGroup createIndividualGroup(String userName)  throws DatastoreException {
+		Set<String> creatableTypes = new HashSet<String>();
+		return createSystemGroup(userName, true,
+				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[] {
+						AuthorizationConstants.ACCESS_TYPE.READ}),
+				creatableTypes // no specific creatable types...
+		);
+	}
+	
+	public UserGroup createSystemGroup(String name, 
+			boolean isIndividualGroup, 
+			Collection<AuthorizationConstants.ACCESS_TYPE> selfAccess, // the type of access members have on the group itself
+			Set<String> creatableTypes) throws DatastoreException {
+		JDOUserGroup g = newJDO();
+		g.setName(name);
+		g.setCreationDate(new Date());
+		g.setIsSystemGroup(true);
+		g.setIsIndividual(isIndividualGroup);
+		g.getCreatableTypes().addAll(creatableTypes);
+		g.setResourceAccess(new HashSet<JDOResourceAccess>());
+		g.setUsers(new HashSet<Long>());
+		jdoTemplate.makePersistent(g);
+		// now give the group members read-access to the group itself
+		try {
+			addResourceIntern(g.getId(), new AuthorizableImpl(g.getId().toString(), JDOUserGroup.class.getName()), selfAccess);
+		} catch (NotFoundException nfe) {
+			// shouldn't happen, since we just created the object that's not found!
+			throw new DatastoreException(nfe);
+		}
+		UserGroup dto = newDTO();
+		copyToDto(g, dto);
+		return dto;
+	}
+
+
 	
 	@Transactional
 	public Collection<String> getCreatableTypes(UserGroup userGroup) throws NotFoundException, DatastoreException {
@@ -170,15 +206,22 @@ public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> 
 	}
 
 	// TODO this could be done more quickly by querying directly against JDOResourceAccess
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void addResource(UserGroup userGroup, Authorizable resource, 
 			Collection<AuthorizationConstants.ACCESS_TYPE> accessTypes) 
 				throws NotFoundException, DatastoreException {
+		Long userGroupId = KeyFactory.stringToKey(userGroup.getId());
+		addResourceIntern(userGroupId, resource, accessTypes);
+	}
+	
+	private void addResourceIntern(Long userGroupId, Authorizable resource, 
+				Collection<AuthorizationConstants.ACCESS_TYPE> accessTypes) 
+					throws NotFoundException, DatastoreException {
 
-		Long key = KeyFactory.stringToKey(userGroup.getId());
 		Long resourceKey = KeyFactory.stringToKey(resource.getId());
 		String type = resource.getType();
 		try {
-			JDOUserGroup jdo = (JDOUserGroup) jdoTemplate.getObjectById(JDOUserGroup.class, key);
+			JDOUserGroup jdo = (JDOUserGroup) jdoTemplate.getObjectById(JDOUserGroup.class, userGroupId);
 			Set<JDOResourceAccess> ras = jdo.getResourceAccess();
 			boolean foundit = false;
 			// if you can find the reference resource, then update it...
@@ -205,6 +248,7 @@ public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> 
 	}
 
 	// TODO this could be done more quickly by querying directly against JDOResourceAccess
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void removeResource(UserGroup userGroup, Authorizable resource) 
 				throws NotFoundException, DatastoreException {
 
@@ -228,6 +272,7 @@ public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> 
 	}
 
 	// TODO this could be done more quickly by querying directly against JDOResourceAccess
+	@Transactional
 	public Collection<AuthorizationConstants.ACCESS_TYPE> getAccessTypes(UserGroup userGroup, Authorizable resource) 
 		throws NotFoundException, DatastoreException {
 

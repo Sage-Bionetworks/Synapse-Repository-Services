@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import javax.jdo.annotations.IdGeneratorStrategy;
+import javax.jdo.annotations.Join;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
@@ -29,7 +30,8 @@ public class JDOResourceAccess {
 	private Long resourceId;
 		
 	// e.g. read, change, share
-	@Persistent
+	@Persistent(serialized="false")
+	@Join
 	private Set<String> accessType = new HashSet<String>();
 
 	public Long getId() {

@@ -21,7 +21,7 @@ public interface JDOBaseDAO<T extends Base> {
 	 * @throws InvalidModelException
 	 */
 	public String create(T dto) throws DatastoreException,
-			InvalidModelException, UnauthorizedException;
+			InvalidModelException;
 
 	/**
 	 * Retrieves the object given its id
@@ -31,7 +31,7 @@ public interface JDOBaseDAO<T extends Base> {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public T get(String id) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public T get(String id) throws DatastoreException, NotFoundException;
 
 	/**
 	 * This updates the 'shallow' properties of an object
@@ -43,7 +43,7 @@ public interface JDOBaseDAO<T extends Base> {
 	 * @throws NotFoundException
 	 */
 	public void update(T dto) throws DatastoreException, InvalidModelException,
-			NotFoundException, UnauthorizedException;
+			NotFoundException;
 
 	/**
 	 * delete the object given by the given ID
@@ -53,6 +53,6 @@ public interface JDOBaseDAO<T extends Base> {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public void delete(String id) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public void delete(String id) throws DatastoreException, NotFoundException;
 
 }

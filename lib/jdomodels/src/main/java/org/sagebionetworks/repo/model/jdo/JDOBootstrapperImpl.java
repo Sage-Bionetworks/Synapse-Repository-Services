@@ -1,13 +1,11 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import java.util.Collection;
 import java.util.Date;
 
 import javax.jdo.PersistenceManager;
+
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Bootstrapper;
-import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 
@@ -42,21 +40,5 @@ public class JDOBootstrapperImpl implements Bootstrapper {
 			ag = JDOUserGroupDAOImpl.getAdminGroup(pm);
 		}
 		groupDAO.addUser(ag, adminUser, pm);
-		
-		// Don't think that an explicit 'anonymous user' has to be created...
-//		// ensure that anonymous user is created
-//		JDOUser anonUser = userDAO.getUser(AuthUtilConstants.ANONYMOUS_USER_ID, pm);
-//		if (anonUser==null) {
-//			anonUser = new JDOUser();
-//			anonUser.setCreationDate(new Date());
-//			anonUser.setUserId(AuthUtilConstants.ANONYMOUS_USER_ID);
-//			pm.makePersistent(anonUser);
-//		}
-//		// ensure admin group is created, and that 'admin' is a member
-//		JDOUserGroup ang = JDOUserGroupDAOImpl.getSystemGroup(AuthUtilConstants.ANONYMOUS_USER_ID, true, pm);
-//		if (ang==null) {
-//			ang = groupDAO.createIndividualGroup(pm, anonUser);
-//		}
-		
 	}
 }
