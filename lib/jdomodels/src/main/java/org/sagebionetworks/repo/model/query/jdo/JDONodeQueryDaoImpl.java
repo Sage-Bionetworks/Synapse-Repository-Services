@@ -65,6 +65,13 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	
 	private void initClassTables() {
 		Map<String, Object> parameters = new HashMap<String, Object>();
+//		List<Object[]> schema = (List<Object[]>)executeQuery("show tables", parameters);
+//		StringBuffer sb = new StringBuffer();
+//		for (Object[] row : schema) {
+//			sb.append(row[0]+"\n");
+//		}
+//		System.out.println(sb.toString());
+		
 		@SuppressWarnings("unchecked")
 		List<Object[]> resultsSet = (List<Object[]>)executeQuery("select class_name, table_name from nucleus_tables", parameters);
 		classTables = new HashMap<String,String>();
