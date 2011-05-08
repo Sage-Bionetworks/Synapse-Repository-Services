@@ -88,7 +88,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	
 	private void initAuthorizationSQL() {
 		if (classTables==null) initClassTables();
-		authorizationSQL = "select distinct ra.resource_id from "+
+		authorizationSQL = ("select distinct ra.resource_id from "+
 			getFromClassTables(JDOResourceAccess.class.getName())+" ra, "+
 			getFromClassTables(JDOResourceAccess.class.getName()+".accessType")+" t, "+
 			getFromClassTables(JDOUserGroup.class.getName())+" ug, "+
@@ -102,16 +102,14 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			"(ug.id = ugu.id_oid and ugu.long_ele=u.id and u.user_id = :userName) or"+
 			// the user group is Public
 			"(ug.is_system_group=true and ug.is_individual=false and ug.name='"+AuthorizationConstants.PUBLIC_GROUP_NAME+"')"+
-			")"
-			;
-	
+			")").toUpperCase();
 	}
 	
 	private void initAdminSQL() {
 		if (classTables==null) initClassTables();
 		// count the users matching the given user name in the admin group
 		// thus it returns 1 if an admin, 0 otherwise
-		adminSQL = "select count(*) from "+
+		adminSQL = ("select count(*) from "+
 			getFromClassTables(JDOUserGroup.class.getName())+" ug, "+
 			getFromClassTables(JDOUserGroup.class.getName()+".users")+" ugu, "+
 			getFromClassTables(JDOUser.class.getName())+" u "+
@@ -119,9 +117,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			// it's the admin group
 			"ug.is_system_group=true and ug.is_individual=false and ug.name='"+AuthorizationConstants.ADMIN_GROUP_NAME+"' and "+
 			// and the user is in it
-			"ug.id = ugu.id_oid and ugu.long_ele=u.id and u.user_id = :userName"
-			;
-
+			"ug.id = ugu.id_oid and ugu.long_ele=u.id and u.user_id = :userName").toUpperCase();
 	}
 	
 	
