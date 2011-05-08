@@ -36,7 +36,29 @@ public class JDOAuthorizationDAOImpl implements AuthorizationDAO {
 	@Autowired
 	JDOUserDAO userDAO;
 	
-	private static final String NODE_RESOURCE_TYPE = JDONode.class.getName();
+	public static final String NODE_RESOURCE_TYPE = JDONode.class.getName();
+	
+	public User createUser(String userName) throws DatastoreException {
+		try {
+			User user = new User();
+			user.setUserId(userName);
+			userDAO.create(user);
+			UserGroup individualGroup = userGroupDAO.createIndividualGroup(userName);
+			userGroupDAO.addUser(individualGroup, KeyFactory.stringToKey(user.getId()));
+			return user;
+		} catch (DatastoreException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		}
+	}
+	
+	public void deleteUser(String userName) throws DatastoreException, NotFoundException {
+		UserGroup individualGroup = userGroupDAO.getIndividualGroup(userName);
+		userGroupDAO.delete(individualGroup.getId());
+		User user = userDAO.getUser(userName);
+		userDAO.delete(user.getId());
+	}
 	
 	public boolean isAdmin(User user) throws DatastoreException, NotFoundException {
 		UserGroup adminGroup = userGroupDAO.getAdminGroup();

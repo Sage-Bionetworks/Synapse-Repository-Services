@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
-import java.util.TreeSet;
 import java.util.logging.Logger;
 
 import javax.net.ssl.HostnameVerifier;

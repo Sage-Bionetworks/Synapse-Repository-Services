@@ -11,18 +11,23 @@ import javax.jdo.JDOException;
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
+import org.sagebionetworks.repo.model.jdo.JDOAuthorizationDAOImpl;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.CompoundId;
@@ -52,6 +57,58 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 
 	public static final int MAX_LIMIT = 50000000; // MySQL's upper bound on
 	// LIMIT
+	
+	private static final Map<Class, String> classTables;
+	private static final String authorizationSQL;
+	private static final String adminSQL;
+	static {
+		classTables = getAllClassTables();
+		authorizationSQL = "select distinct ra.resource_id from "+
+			classTables.get(JDOResourceAccess.class)+" ra, "+
+			classTables.get(JDOResourceAccess.class)+"_accesstype t, "+
+			classTables.get(JDOUserGroup.class)+" ug, "+
+			classTables.get(JDOUserGroup.class)+"_users ugu, "+
+			classTables.get(JDOUser.class)+" u "+
+			"where "+
+			"ra.owner_id_oid=ug.id and ra.id=t.id_oid and t.string_ele = :accessType and "+
+			" ra.resource_type='"+JDOAuthorizationDAOImpl.NODE_RESOURCE_TYPE+"' and "+
+			"( "+
+			// the user group contains the given user
+			"(ug.id = ugu.id_oid and ugu.long_ele=u.id and u.user_id = :userName) or"+
+			// the user group is Public
+			"(ug.is_system_group=true and ug.is_individual=false and ug.name='"+AuthorizationConstants.PUBLIC_GROUP_NAME+"')"+
+			")"
+			;
+		
+		// count the users matching the given user name in the admin group
+		// thus it returns 1 if an admin, 0 otherwise
+		adminSQL = "select count(*) from "+
+			classTables.get(JDOUserGroup.class)+" ug, "+
+			classTables.get(JDOUserGroup.class)+"_users ugu, "+
+			classTables.get(JDOUser.class)+" u "+
+			"where "+
+			// it's the admin group
+			"ug.is_system_group=true and ug.is_individual=false and ug.name='"+AuthorizationConstants.ADMIN_GROUP_NAME+"' and "+
+			// and the user is in it
+			"ug.id = ugu.id_oid and ugu.long_ele=u.id and u.user_id = :userName"
+			;
+	}
+	
+	/**
+	 * @return the SQL to find the root-accessible nodes that a specified user can access
+	 * using a specified access type
+	 */
+	public String authorizationSQL() {
+		return authorizationSQL;
+	}
+	
+	/**
+	 * @return the SQL to determine whether a user is an administrator
+	 * Returns 1 if an admin, 0 otherwise
+	 */
+	public String adminSQL() {
+		return adminSQL;
+	}
 
 	/**
 	 * Execute the actual query
@@ -193,7 +250,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @param parameters
 	 * @return
 	 */
-	private List executeQuery(final String sql, final Map<String, Object> parameters){
+	public List executeQuery(final String sql, final Map<String, Object> parameters){
 		return this.jdoTemplate.execute(new JdoCallback<List>() {
 			@SuppressWarnings("unchecked")
 			@Override
@@ -530,6 +587,9 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		map.put(JDOLongAnnotation.class, nameFactory.generateIdentifierNameForJavaName(JDOLongAnnotation.class.getSimpleName()));
 		map.put(JDODoubleAnnotation.class, nameFactory.generateIdentifierNameForJavaName(JDODoubleAnnotation.class.getSimpleName()));
 		map.put(JDODateAnnotation.class, nameFactory.generateIdentifierNameForJavaName(JDODateAnnotation.class.getSimpleName()));
+		map.put(JDOUser.class, nameFactory.generateIdentifierNameForJavaName(JDOUser.class.getSimpleName()));
+		map.put(JDOUserGroup.class, nameFactory.generateIdentifierNameForJavaName(JDOUserGroup.class.getSimpleName()));
+		map.put(JDOResourceAccess.class, nameFactory.generateIdentifierNameForJavaName(JDOResourceAccess.class.getSimpleName()));
 		return map;
 	}
 

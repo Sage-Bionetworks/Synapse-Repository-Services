@@ -25,10 +25,12 @@ public interface JDOUserGroupDAO extends JDOBaseDAO<UserGroup> {
 
 	public UserGroup getAdminGroup() throws DatastoreException;
 	
-	public UserGroup getIndividualGroup(String userName) throws DatastoreException;
-
 	public UserGroup createAdminGroup() throws DatastoreException;
 	
+	public UserGroup getIndividualGroup(String userName) throws DatastoreException;
+
+	public UserGroup createIndividualGroup(String userName) throws DatastoreException;
+
 	public void setCreatableTypes(UserGroup userGroup, Collection<String> creatableTypes) throws NotFoundException, DatastoreException;
 
 	public Collection<String> getCreatableTypes(UserGroup g) throws NotFoundException, DatastoreException;

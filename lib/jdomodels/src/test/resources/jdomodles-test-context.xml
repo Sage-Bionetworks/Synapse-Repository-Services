@@ -22,6 +22,10 @@
         class="org.sagebionetworks.repo.model.jdo.aw.JDOUserGroupDAOImpl"
         scope="singleton" />
     
+      <bean id="authorizationDAO"
+        class="org.sagebionetworks.repo.model.jdo.JDOAuthorizationDAOImpl"
+        scope="singleton" />
+    
     
       <bean id="userDAO"
         class="org.sagebionetworks.repo.model.jdo.aw.JDOUserDAOImpl"
