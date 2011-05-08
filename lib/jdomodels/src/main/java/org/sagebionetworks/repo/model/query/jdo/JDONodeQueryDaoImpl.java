@@ -73,7 +73,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 //		System.out.println(sb.toString());
 		
 		@SuppressWarnings("unchecked")
-		List<Object[]> resultsSet = (List<Object[]>)executeQuery("select class_name, table_name from nucleus_tables", parameters);
+		List<Object[]> resultsSet = (List<Object[]>)executeQuery("select class_name, table_name from nucleus_tables".toUpperCase(), parameters);
 		classTables = new HashMap<String,String>();
 		for (Object[] row : resultsSet) {
 			if (row.length!=2) throw new IllegalStateException("Unexpected number of columns: "+row.length);
@@ -102,7 +102,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			"(ug.id = ugu.id_oid and ugu.long_ele=u.id and u.user_id = :userName) or"+
 			// the user group is Public
 			"(ug.is_system_group=true and ug.is_individual=false and ug.name='"+AuthorizationConstants.PUBLIC_GROUP_NAME+"')"+
-			")").toUpperCase();
+			")")/*.toUpperCase()*/;
 	}
 	
 	private void initAdminSQL() {
@@ -117,7 +117,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			// it's the admin group
 			"ug.is_system_group=true and ug.is_individual=false and ug.name='"+AuthorizationConstants.ADMIN_GROUP_NAME+"' and "+
 			// and the user is in it
-			"ug.id = ugu.id_oid and ugu.long_ele=u.id and u.user_id = :userName").toUpperCase();
+			"ug.id = ugu.id_oid and ugu.long_ele=u.id and u.user_id = :userName")/*.toUpperCase()*/;
 	}
 	
 	
