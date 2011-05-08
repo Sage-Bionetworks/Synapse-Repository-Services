@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.query.jdo;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,17 +59,34 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	public static final int MAX_LIMIT = 50000000; // MySQL's upper bound on
 	// LIMIT
 	
-	private static final Map<Class, String> classTables;
-	private static final String authorizationSQL;
-	private static final String adminSQL;
-	static {
-		classTables = getAllClassTables();
+	private Map<String, String> classTables = null;
+	private String authorizationSQL = null;
+	private String adminSQL = null;
+	
+	private void initClassTables() {
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		@SuppressWarnings("unchecked")
+		List<Object[]> resultsSet = (List<Object[]>)executeQuery("select class_name, table_name from nucleus_tables", parameters);
+		classTables = new HashMap<String,String>();
+		for (Object[] row : resultsSet) {
+			if (row.length!=2) throw new IllegalStateException("Unexpected number of columns: "+row.length);
+			classTables.put((String)row[0], (String)row[1]);
+		}
+	}
+	
+	private String getFromClassTables(String key) {
+		if (!classTables.containsKey(key)) throw new IllegalStateException("ClassTables is missing "+key);
+		return classTables.get(key);
+	}
+	
+	private void initAuthorizationSQL() {
+		if (classTables==null) initClassTables();
 		authorizationSQL = "select distinct ra.resource_id from "+
-			classTables.get(JDOResourceAccess.class)+" ra, "+
-			classTables.get(JDOResourceAccess.class)+"_accesstype t, "+
-			classTables.get(JDOUserGroup.class)+" ug, "+
-			classTables.get(JDOUserGroup.class)+"_users ugu, "+
-			classTables.get(JDOUser.class)+" u "+
+			getFromClassTables(JDOResourceAccess.class.getName())+" ra, "+
+			getFromClassTables(JDOResourceAccess.class.getName()+".accessType")+" t, "+
+			getFromClassTables(JDOUserGroup.class.getName())+" ug, "+
+			getFromClassTables(JDOUserGroup.class.getName()+".users")+" ugu, "+
+			getFromClassTables(JDOUser.class.getName())+" u "+
 			"where "+
 			"ra.owner_id_oid=ug.id and ra.id=t.id_oid and t.string_ele = :accessType and "+
 			" ra.resource_type='"+JDOAuthorizationDAOImpl.NODE_RESOURCE_TYPE+"' and "+
@@ -79,26 +97,33 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			"(ug.is_system_group=true and ug.is_individual=false and ug.name='"+AuthorizationConstants.PUBLIC_GROUP_NAME+"')"+
 			")"
 			;
-		
+	
+	}
+	
+	private void initAdminSQL() {
+		if (classTables==null) initClassTables();
 		// count the users matching the given user name in the admin group
 		// thus it returns 1 if an admin, 0 otherwise
 		adminSQL = "select count(*) from "+
-			classTables.get(JDOUserGroup.class)+" ug, "+
-			classTables.get(JDOUserGroup.class)+"_users ugu, "+
-			classTables.get(JDOUser.class)+" u "+
+			getFromClassTables(JDOUserGroup.class.getName())+" ug, "+
+			getFromClassTables(JDOUserGroup.class.getName()+".users")+" ugu, "+
+			getFromClassTables(JDOUser.class.getName())+" u "+
 			"where "+
 			// it's the admin group
 			"ug.is_system_group=true and ug.is_individual=false and ug.name='"+AuthorizationConstants.ADMIN_GROUP_NAME+"' and "+
 			// and the user is in it
 			"ug.id = ugu.id_oid and ugu.long_ele=u.id and u.user_id = :userName"
 			;
+
 	}
+	
 	
 	/**
 	 * @return the SQL to find the root-accessible nodes that a specified user can access
 	 * using a specified access type
 	 */
 	public String authorizationSQL() {
+		if (authorizationSQL==null) initAuthorizationSQL();
 		return authorizationSQL;
 	}
 	
@@ -107,6 +132,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * Returns 1 if an admin, 0 otherwise
 	 */
 	public String adminSQL() {
+		if (adminSQL==null) initAdminSQL();
 		return adminSQL;
 	}
 
