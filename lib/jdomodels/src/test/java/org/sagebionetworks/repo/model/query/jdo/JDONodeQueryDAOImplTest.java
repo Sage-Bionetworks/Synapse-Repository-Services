@@ -270,15 +270,14 @@ public class JDONodeQueryDAOImplTest {
 
 	// this works locally on my Windows PC, but not under Elastic Bamboo
 	@Test
-	@Ignore
 	public void testAuthQueryComponent() throws Exception {
 		
 		String sql = nodeQueryDao.authorizationSQL();
 		Map<String, Object> parameters = new HashMap<String,Object>();
 		
 		// check accessible objects from a non-existent user
-		parameters.put("userName", "foo");
-		parameters.put("accessType", AuthorizationConstants.ACCESS_TYPE.READ.name());
+		parameters.put("userName"/*.toUpperCase()*/, "foo");
+		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.READ.name());
 		List list = nodeQueryDao.executeQuery(sql, parameters);
 		
 		// anything in this list must be leftovers from another test in the Public group
@@ -290,15 +289,15 @@ public class JDONodeQueryDAOImplTest {
 		}
 		
 		// test that anonymous can't access any nodes
-		parameters.put("userName", AuthUtilConstants.ANONYMOUS_USER_ID);
-		parameters.put("accessType", AuthorizationConstants.ACCESS_TYPE.READ.name());
+		parameters.put("userName"/*.toUpperCase()*/, AuthUtilConstants.ANONYMOUS_USER_ID);
+		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.READ.name());
 		list = nodeQueryDao.executeQuery(sql, parameters);
 		assertTrue(list.toString(), list.size()==0);
 		
 		// there is a non-admin user, created by this test suite
 		// test that the user can't access any nodes
-		parameters.put("userName", user.getUserId());
-		parameters.put("accessType", AuthorizationConstants.ACCESS_TYPE.READ.name());
+		parameters.put("userName"/*.toUpperCase()*/, user.getUserId());
+		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.READ.name());
 		list = nodeQueryDao.executeQuery(sql, parameters);
 		assertTrue(list.toString(), list.size()==0);
 		
@@ -311,18 +310,18 @@ public class JDONodeQueryDAOImplTest {
 		assertTrue(list.toString(), list.size()==1);
 		
 		// test that the user CANNOT access the node with a different access type
-		parameters.put("userName", user.getUserId());
-		parameters.put("accessType", "foo");
+		parameters.put("userName"/*.toUpperCase()*/, user.getUserId());
+		parameters.put("accessType"/*.toUpperCase()*/, "foo");
 		list = nodeQueryDao.executeQuery(sql, parameters);
 		assertTrue(list.toString(), list.size()==0);
 
 		// test that anonymous CANNOT access the node
-		parameters.put("userName", AuthUtilConstants.ANONYMOUS_USER_ID);
-		parameters.put("accessType", AuthorizationConstants.ACCESS_TYPE.READ.name());
+		parameters.put("userName"/*.toUpperCase()*/, AuthUtilConstants.ANONYMOUS_USER_ID);
+		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.READ.name());
 		list = nodeQueryDao.executeQuery(sql, parameters);
 		assertTrue(list.toString(), list.size()==0);
 
-		parameters.put("accessType", AuthorizationConstants.ACCESS_TYPE.SHARE.name());
+		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.SHARE.name());
 		list = nodeQueryDao.executeQuery(sql, parameters);
 		assertTrue(list.toString(), list.size()==0);
 
@@ -335,40 +334,39 @@ public class JDONodeQueryDAOImplTest {
 						AuthorizationConstants.ACCESS_TYPE.READ}));
 		
 		// check that anonymous can access the node for 'read'...
-		parameters.put("userName", AuthUtilConstants.ANONYMOUS_USER_ID);
-		parameters.put("accessType", AuthorizationConstants.ACCESS_TYPE.READ.name());
+		parameters.put("userName"/*.toUpperCase()*/, AuthUtilConstants.ANONYMOUS_USER_ID);
+		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.READ.name());
 		list = nodeQueryDao.executeQuery(sql, parameters);
 		assertTrue(list.toString(), list.size()==1);
 		
 		// ... but not for 'change'
-		parameters.put("userName", AuthUtilConstants.ANONYMOUS_USER_ID);
-		parameters.put("accessType", AuthorizationConstants.ACCESS_TYPE.CHANGE.name());
+		parameters.put("userName"/*.toUpperCase()*/, AuthUtilConstants.ANONYMOUS_USER_ID);
+		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.CHANGE.name());
 		list = nodeQueryDao.executeQuery(sql, parameters);
 		assertTrue(list.toString(), list.size()==0);
 		
 		// check that the user can access the node
-		parameters.put("userName", user.getUserId());
-		parameters.put("accessType", AuthorizationConstants.ACCESS_TYPE.READ.name());
+		parameters.put("userName"/*.toUpperCase()*/, user.getUserId());
+		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.READ.name());
 		list = nodeQueryDao.executeQuery(sql, parameters);
 		assertTrue(list.toString(), list.size()==2);
 	}
 	
 	// this works locally on my Windows PC, but not under Elastic Bamboo
 	@Test
-	@Ignore
 	public void testAdminQueryComponent() throws Exception {
 		String sql = nodeQueryDao.adminSQL();
 		Map<String, Object> parameters = new HashMap<String,Object>();
-		parameters.put("userName", AuthUtilConstants.ANONYMOUS_USER_ID);
+		parameters.put("userName"/*.toUpperCase()*/, AuthUtilConstants.ANONYMOUS_USER_ID);
 		List list = nodeQueryDao.executeQuery(sql, parameters);
 		assertEquals(new Integer(0), new Integer(list.get(0).toString()));
-		parameters.put("userName", "admin");
+		parameters.put("userName"/*.toUpperCase()*/, "admin");
 		list = nodeQueryDao.executeQuery(sql, parameters);
 		assertEquals(new Integer(1), new Integer(list.get(0).toString()));
-		parameters.put("userName", "undefinedUserFoo");
+		parameters.put("userName"/*.toUpperCase()*/, "undefinedUserFoo");
 		list = nodeQueryDao.executeQuery(sql, parameters);
 		assertEquals(new Integer(0), new Integer(list.get(0).toString()));
-		parameters.put("userName", user.getUserId());
+		parameters.put("userName"/*.toUpperCase()*/, user.getUserId());
 		list = nodeQueryDao.executeQuery(sql, parameters);
 		assertEquals(new Integer(0), new Integer(list.get(0).toString()));
 	}
