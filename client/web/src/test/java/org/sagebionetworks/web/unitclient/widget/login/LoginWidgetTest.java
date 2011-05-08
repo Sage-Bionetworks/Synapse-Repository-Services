@@ -45,7 +45,7 @@ public class LoginWidgetTest {
 		String p = "pass";
 		loginWidget.setUsernameAndPassword(u, p);
 		
-		verify(mockAuthController).loginUser(u, p, (AsyncCallback<UserData>) any());
+		verify(mockAuthController).loginUser(anyString(), anyString(), (AsyncCallback<UserData>) any());
 	}
 
 }
