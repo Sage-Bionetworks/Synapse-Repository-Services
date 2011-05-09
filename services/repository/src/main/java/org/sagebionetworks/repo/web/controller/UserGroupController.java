@@ -9,6 +9,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -87,6 +88,7 @@ public class UserGroupController extends BaseController implements
 			UnauthorizedException {
 
 		checkAuthorization(userId, false);
+		// TODO: may only change specify types if 'userId' is an administrator
 		UserGroup userGroup = userGroupController.createEntity(userId, newEntity,
 				request);
 		addServiceSpecificMetadata(userGroup, request);
@@ -121,6 +123,7 @@ public class UserGroupController extends BaseController implements
 			DatastoreException, InvalidModelException, UnauthorizedException {
 
 		checkAuthorization(userId, false);
+		// TODO:  may only change 'creatableTypes' if userId is an administrator
 		UserGroup userGroup = userGroupController.updateEntity(userId, id, etag,
 				updatedEntity, request);
 		addServiceSpecificMetadata(userGroup, request);
@@ -288,11 +291,10 @@ public class UserGroupController extends BaseController implements
 	}
 
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.USERGROUP + "/{id}" + UrlHelpers.RESOURCES+"/{rtype}/{rid}", method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.USERGROUP + "/{id}" + UrlHelpers.RESOURCES+"/{rid}", method = RequestMethod.POST)
 	public void addResource(
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String id, 
-			@PathVariable String rtype, 
+			@PathVariable String id,  
 			@PathVariable String rid,
 			@RequestBody ResourceAccess accessTypes)
 			throws NotFoundException, DatastoreException, InvalidModelException,
@@ -301,36 +303,36 @@ public class UserGroupController extends BaseController implements
 		checkAuthorization(userId, false);
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId(id);
-		Base resource = typeToBase(rtype);
+		String rtype = AuthorizationDAO.NODE_RESOURCE_TYPE;
+		Base resource = typeToBase(rtype);  // TODO this will break until we replace with new AuthorizationDAO
 		resource.setId(rid);
 		dao.addResource(userGroup, resource, accessTypes.getAccessType());
 	}
 
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.USERGROUP + "/{id}" + UrlHelpers.RESOURCES + "/{rtype}/{rid}", method = RequestMethod.DELETE)
+	@RequestMapping(value = UrlHelpers.USERGROUP + "/{id}" + UrlHelpers.RESOURCES + "/{rid}", method = RequestMethod.DELETE)
 	public void removeResource(
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, 
-			@PathVariable String rtype,
 			@PathVariable String rid) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 
 		checkAuthorization(userId, false);
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId(id);
-		Base resource = typeToBase(rtype);
+		String rtype = AuthorizationDAO.NODE_RESOURCE_TYPE;
+		Base resource = typeToBase(rtype); // TODO this will break until we replace with new AuthorizationDAO
 		resource.setId(rid);
 		dao.removeResource(userGroup, resource);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.USERGROUP + "/{id}" + UrlHelpers.RESOURCES + "/{rtype}/{rid}", method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.USERGROUP + "/{id}" + UrlHelpers.RESOURCES + "/{rid}", method = RequestMethod.GET)
 	public @ResponseBody
 	ResourceAccess getAccessTypes(
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, 
-			@PathVariable String rtype,
 			@PathVariable String rid
 			) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
@@ -338,7 +340,8 @@ public class UserGroupController extends BaseController implements
 		checkAuthorization(userId, true);
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId(id);
-		Base resource = typeToBase(rtype);
+		String rtype = AuthorizationDAO.NODE_RESOURCE_TYPE;
+		Base resource = typeToBase(rtype); // TODO this will break until we replace with new AuthorizationDAO
 		resource.setId(rid);
 		Collection<AuthorizationConstants.ACCESS_TYPE> results = dao.getAccessTypes(userGroup, resource);
 		ResourceAccess ra = new ResourceAccess();
@@ -346,5 +349,63 @@ public class UserGroupController extends BaseController implements
 		return ra;
 	}
 
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.USERGROUP + "/{id}" + UrlHelpers.USERGROUP+"/{rid}", method = RequestMethod.POST)
+	public void addGroup(
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id,  
+			@PathVariable String rid,
+			@RequestBody ResourceAccess accessTypes)
+			throws NotFoundException, DatastoreException, InvalidModelException,
+			UnauthorizedException {
+
+		checkAuthorization(userId, false);
+		UserGroup userGroup = new UserGroup();
+		userGroup.setId(id);
+		String rtype = UserGroup.class.getName();
+		Base resource = typeToBase(rtype);
+		resource.setId(rid);
+		dao.addResource(userGroup, resource, accessTypes.getAccessType());
+	}
+
+	
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.USERGROUP + "/{id}" + UrlHelpers.USERGROUP + "/{rid}", method = RequestMethod.DELETE)
+	public void removeGroup(
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id, 
+			@PathVariable String rid) throws NotFoundException,
+			DatastoreException, UnauthorizedException {
+
+		checkAuthorization(userId, false);
+		UserGroup userGroup = new UserGroup();
+		userGroup.setId(id);
+		String rtype = UserGroup.class.getName();
+		Base resource = typeToBase(rtype);
+		resource.setId(rid);
+		dao.removeResource(userGroup, resource);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.USERGROUP + "/{id}" + UrlHelpers.USERGROUP + "/{rid}", method = RequestMethod.GET)
+	public @ResponseBody
+	ResourceAccess getGroupAccessTypes(
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id, 
+			@PathVariable String rid
+			) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+
+		checkAuthorization(userId, true);
+		UserGroup userGroup = new UserGroup();
+		userGroup.setId(id);
+		String rtype = UserGroup.class.getName();
+		Base resource = typeToBase(rtype);
+		resource.setId(rid);
+		Collection<AuthorizationConstants.ACCESS_TYPE> results = dao.getAccessTypes(userGroup, resource);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setAccessType(results);
+		return ra;
+	}
 
 }

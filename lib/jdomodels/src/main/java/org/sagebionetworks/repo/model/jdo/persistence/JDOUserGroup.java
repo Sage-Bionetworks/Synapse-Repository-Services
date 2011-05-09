@@ -35,8 +35,7 @@ public class JDOUserGroup implements JDOBase {
 	@Element(dependent = "true")
 	private Set<JDOResourceAccess> resourceAccess = new HashSet<JDOResourceAccess>();
 	
-	// the types of objects that the group can create, 
-	// as represented by JDOxxxxx.class.getName()
+	// the types of objects that the group can create
 	@Persistent
 	private Set<String> creatableTypes;
 	

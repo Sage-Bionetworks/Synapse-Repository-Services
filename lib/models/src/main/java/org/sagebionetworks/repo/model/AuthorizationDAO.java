@@ -50,5 +50,9 @@ public interface AuthorizationDAO {
 	 * @return true iff the user has 'create' permission for the given type
 	 */
 	public boolean canCreate(String userName, String nodeType) throws NotFoundException, DatastoreException;
+	
+	public static final String NODE_RESOURCE_TYPE = Node.class.getName();
+	
+
 
 }

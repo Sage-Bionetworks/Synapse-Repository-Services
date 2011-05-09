@@ -13,6 +13,7 @@ import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
@@ -96,7 +97,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			getFromClassTables(JDOUser.class.getName())+" u "+
 			"where "+
 			"ra.owner_id_oid=ug.id and ra.id=t.id_oid and t.string_ele = :accessType and "+
-			" ra.resource_type='"+JDOAuthorizationDAOImpl.NODE_RESOURCE_TYPE+"' and "+
+			" ra.resource_type='"+AuthorizationDAO.NODE_RESOURCE_TYPE+"' and "+
 			"( "+
 			// the user group contains the given user
 			"(ug.id = ugu.id_oid and ugu.long_ele=u.id and u.user_id = :userName) or"+

@@ -7,15 +7,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 import javax.jdo.JDOObjectNotFoundException;
-import javax.jdo.PersistenceManager;
-import javax.jdo.Transaction;
 
 import org.sagebionetworks.repo.model.Authorizable;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.jdo.AuthorizableImpl;
 import org.sagebionetworks.repo.model.jdo.JDOExecutor;
@@ -31,7 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> implements JDOUserGroupDAO {
 	
 	UserGroup newDTO() {
-		return new UserGroup();
+		UserGroup ug = new UserGroup();
+		ug.setCreatableTypes(new HashSet<String>());
+		return ug;
 	}
 
 	JDOUserGroup newJDO() {
@@ -46,12 +44,16 @@ public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> 
 				.getId()));
 		dto.setName(jdo.getName());
 		dto.setCreationDate(jdo.getCreationDate());
+		dto.setCreatableTypes(new HashSet<String>(jdo.getCreatableTypes()));
 	}
 
 	void copyFromDto(UserGroup dto, JDOUserGroup jdo)
 		throws InvalidModelException {
 		jdo.setName(dto.getName());
 		jdo.setCreationDate(dto.getCreationDate());
+		Set<String> cts = new HashSet<String>();
+		if (dto.getCreatableTypes()!=null) cts.addAll(dto.getCreatableTypes());
+		jdo.setCreatableTypes(cts);
 	}
 
 	Class<JDOUserGroup> getJdoClass() {

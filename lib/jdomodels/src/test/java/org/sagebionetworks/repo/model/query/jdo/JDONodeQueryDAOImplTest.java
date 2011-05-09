@@ -285,7 +285,7 @@ public class JDONodeQueryDAOImplTest {
 		UserGroup publicGroup = userGroupDAO.getPublicGroup();
 		for (Object o : list) {
 			userGroupDAO.removeResource(publicGroup, new AuthorizableImpl(o.toString(), 
-				JDOAuthorizationDAOImpl.NODE_RESOURCE_TYPE));
+				AuthorizationDAO.NODE_RESOURCE_TYPE));
 		}
 		
 		// test that anonymous can't access any nodes
@@ -329,7 +329,7 @@ public class JDONodeQueryDAOImplTest {
 		Node n2 = nodeDao.getNode(nodeIds.get(1));
 		userGroupDAO.addResource(publicGroup, 
 				new AuthorizableImpl(n2.getId(), 
-						JDOAuthorizationDAOImpl.NODE_RESOURCE_TYPE), 
+						AuthorizationDAO.NODE_RESOURCE_TYPE), 
 						Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[] {
 						AuthorizationConstants.ACCESS_TYPE.READ}));
 		

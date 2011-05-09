@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.Date;
+import java.util.Set;
 
 public class UserGroup implements Base{
 	private String id;
@@ -8,10 +9,23 @@ public class UserGroup implements Base{
 	private String uri;
 	private String etag;
 	private Date creationDate;
+	private Set<String> creatableTypes;
 	
 //	public String getType() {return UserGroup.class.getName();}
 
 	
+	/**
+	 * @return the creatableTypes
+	 */
+	public Set<String> getCreatableTypes() {
+		return creatableTypes;
+	}
+	/**
+	 * @param creatableTypes the creatableTypes to set
+	 */
+	public void setCreatableTypes(Set<String> creatableTypes) {
+		this.creatableTypes = creatableTypes;
+	}
 	public String getId() {
 		return id;
 	}
