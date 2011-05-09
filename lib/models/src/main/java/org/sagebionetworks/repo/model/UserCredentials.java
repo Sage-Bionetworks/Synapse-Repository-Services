@@ -22,6 +22,19 @@ public class UserCredentials implements Base {
 
 	private Date creationDate;
 	
+	public UserCredentials(){
+		
+	}
+	
+	public UserCredentials(String id, String iamAccessId, String iamSecretKey,
+			Date creationDate) {
+		super();
+		this.id = id;
+		this.iamAccessId = iamAccessId;
+		this.iamSecretKey = iamSecretKey;
+		this.creationDate = creationDate;
+	}
+
 	/**
 	 * @return the id
 	 */

@@ -85,6 +85,35 @@ public class NodeTranslationUtilsTest {
 		assertEquals(layer, clone);
 	}
 	
+	@Test
+	public void testDoubleAdd() throws InvalidModelException{
+		InputDataLayer layer = new InputDataLayer();
+		layer.setType("C");
+		Annotations annos = new Annotations();
+		NodeTranslationUtils.updateAnnoationsFromObject(layer, annos);
+		layer.setType("E");
+		// update again
+		NodeTranslationUtils.updateAnnoationsFromObject(layer, annos);
+		// The E should replace the C
+		Object result = annos.getSingleValue("type");
+		assertEquals("E", result);
+	}
+	
+	@Test
+	public void testSingleValueCollection(){
+		InputDataLayer layer = new InputDataLayer();
+		Collection<String> locations = new ArrayList();
+		locations.add("locationOne");
+		layer.setLocations(locations);
+		Annotations annos = new Annotations();
+		NodeTranslationUtils.updateAnnoationsFromObject(layer, annos);
+		// Now go back
+		InputDataLayer copy = new InputDataLayer();
+		NodeTranslationUtils.updateObjectFromAnnotations(copy, annos);
+		Collection<String> copyLocations = copy.getLocations();
+		assertEquals(locations, copyLocations);
+	}
+	
 	/**
 	 * Will clone an object by first creating a node and annotations for the passed object.
 	 * A new object will then be created and populated using the node and annotations.

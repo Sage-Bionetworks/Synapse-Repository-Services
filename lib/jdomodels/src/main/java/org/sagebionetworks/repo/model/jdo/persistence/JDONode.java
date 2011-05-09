@@ -46,7 +46,7 @@ public class JDONode {
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
 	private Date modifiedOn;
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
-	private String type;
+	private String nodeType;
 	
 	public Set<JDONode> getChildren() {
 		return children;
@@ -136,12 +136,12 @@ public class JDONode {
 		this.modifiedOn = modifiedOn;
 	}
 
-	public String getType() {
-		return type;
+	public String getNodeType() {
+		return nodeType;
 	}
 
-	public void setType(String type) {
-		this.type = type;
+	public void setNodeType(String nodeType) {
+		this.nodeType = nodeType;
 	}
 
 	@Override

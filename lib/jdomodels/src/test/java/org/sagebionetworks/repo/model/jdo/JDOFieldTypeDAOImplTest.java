@@ -61,7 +61,7 @@ public class JDOFieldTypeDAOImplTest {
 	}
 
 	@Test
-	public void testAdd() throws DatastoreException {
+	public void testAdd() throws Exception {
 		// First make sure the type does not exist
 		String name = "JDOAnnotationTypeDAOImplTest.addDate";
 		toDelete.add(name);

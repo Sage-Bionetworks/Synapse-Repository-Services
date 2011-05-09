@@ -26,7 +26,7 @@ public class QueryResults implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
-	private int totalNumberOfResults;
+	private long totalNumberOfResults;
 	private List<Map<String, Object>> results;
 
 	/**
@@ -45,7 +45,7 @@ public class QueryResults implements Serializable {
 	 *            the total number of results regardless of limit or offset
 	 */
 	public QueryResults(List<Map<String, Object>> results,
-			int totalNumberOfResults) {
+			long totalNumberOfResults) {
 		this.results = results;
 		this.totalNumberOfResults = totalNumberOfResults;
 	}
@@ -53,7 +53,7 @@ public class QueryResults implements Serializable {
 	/**
 	 * @return the total number of results in the system
 	 */
-	public int getTotalNumberOfResults() {
+	public long getTotalNumberOfResults() {
 		return totalNumberOfResults;
 	}
 
@@ -77,4 +77,11 @@ public class QueryResults implements Serializable {
 	public void setResults(List<Map<String, Object>> results) {
 		this.results = results;
 	}
+
+	@Override
+	public String toString() {
+		return "QueryResults [totalNumberOfResults=" + totalNumberOfResults
+				+ ", results=" + results + "]";
+	}
+	
 }

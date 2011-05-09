@@ -26,7 +26,7 @@ public class SqlConstants {
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	
-	public static final String TYPE_COLUMN_NAME = "type";
+	public static final String TYPE_COLUMN_NAME = "nodeType";
 	// This is the column on a primary that that annotations can be joined with.
 	public static final String PRIMARY_ANNOTATION_ID = "ANNOTATIONS_ID_OID";
 	// The annotation table's foreign keys
@@ -64,6 +64,7 @@ public class SqlConstants {
 		// These will be deleted once we move to NodeDao
 		SqlConstants.addAllFields(Dataset.class, primaryFieldColumns);
 		SqlConstants.addAllFields(InputDataLayer.class, primaryFieldColumns);
+		primaryFieldColumns.put("parentId", "PARENT_ID_OID");
 		primaryFieldColumns.put("INPUT_LAYERS_ID_OWN", "INPUT_LAYERS_ID_OWN");
 		
 	}
@@ -133,7 +134,6 @@ public class SqlConstants {
 		}else{
 			throw new IllegalArgumentException("There is class for type: "+type);
 		}
-		
 	}
 	
 	/**

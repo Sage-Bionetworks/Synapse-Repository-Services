@@ -21,7 +21,7 @@ public class JDONodeUtilsTest {
 		node.setName("myName");
 		node.setDescription("someDescription");
 		node.setId("101");
-		node.setType("someType");
+		node.setNodeType("someType");
 		node.setCreatedBy("createdByMe");
 		node.setModifiedBy("modifiedByMe");
 		node.setETag("1013");

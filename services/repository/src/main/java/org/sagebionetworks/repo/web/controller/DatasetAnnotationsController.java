@@ -13,9 +13,11 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.AnnotationsController;
 import org.sagebionetworks.repo.web.AnnotationsControllerImp;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
+import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,20 +44,23 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class DatasetAnnotationsController extends BaseController implements
 		AnnotationsController<Dataset> {
 
-	private AnnotationsController<Dataset> datasetAnnotationsController;
+//	private AnnotationsController<Dataset> datasetAnnotationsController;
 
-	DatasetAnnotationsController() {
-		datasetAnnotationsController = new AnnotationsControllerImp<Dataset>();
-	}
+//	DatasetAnnotationsController() {
+//		datasetAnnotationsController = new AnnotationsControllerImp<Dataset>();
+//	}
 
-	private void checkAuthorization(String userId, Boolean readOnly) {
-		BaseDAO<Dataset> dao = getDaoFactory().getDatasetDAO(userId);
-		setDao(dao);
-	}
+//	private void checkAuthorization(String userId, Boolean readOnly) {
+//		BaseDAO<Dataset> dao = getDaoFactory().getDatasetDAO(userId);
+//		setDao(dao);
+//	}
 
+	@Autowired
+	GenericEntityController entityController;
+	
 	@Override
 	public void setDao(BaseDAO<Dataset> dao) {
-		datasetAnnotationsController.setDao(dao);
+//		datasetAnnotationsController.setDao(dao);
 	}
 
 	/*******************************************************************************
@@ -73,9 +78,8 @@ public class DatasetAnnotationsController extends BaseController implements
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-		checkAuthorization(userId, true);
-		return datasetAnnotationsController.getEntityAnnotations(userId, id,
-				request);
+//		checkAuthorization(userId, true);
+		return entityController.getEntityAnnotations(userId, id,request);
 	}
 
 	@Override
@@ -92,9 +96,13 @@ public class DatasetAnnotationsController extends BaseController implements
 			ConflictingUpdateException, DatastoreException,
 			UnauthorizedException, InvalidModelException {
 
-		checkAuthorization(userId, false);
-		return datasetAnnotationsController.updateEntityAnnotations(userId, id,
-				etag, updatedAnnotations, request);
+		if(etag != null){
+			updatedAnnotations.setEtag(etag.toString());
+		}
+		if(id != null){
+			updatedAnnotations.setId(id);
+		}
+		return entityController.updateEntityAnnotations(userId,id, updatedAnnotations, request);
 	}
 
 	@Override
@@ -103,7 +111,7 @@ public class DatasetAnnotationsController extends BaseController implements
 			+ UrlHelpers.ANNOTATIONS + UrlHelpers.SCHEMA, method = RequestMethod.GET)
 	public @ResponseBody
 	JsonSchema getEntityAnnotationsSchema() throws DatastoreException {
-		return datasetAnnotationsController.getEntityAnnotationsSchema();
+		return entityController.getEntityAnnotationsSchema();
 	}
 
 }

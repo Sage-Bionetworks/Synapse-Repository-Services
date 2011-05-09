@@ -2,7 +2,10 @@ package org.sagebionetworks.repo.manager;
 
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -110,7 +113,7 @@ public class NodeTranslationUtils {
 				try {
 					value = field.get(base);
 					if(value != null){
-						annos.addAnnotation(name, value);
+						annos.replaceAnnotation(name, value);
 					}
 				} catch (IllegalAccessException e) {
 					// This should never occur
@@ -184,7 +187,13 @@ public class NodeTranslationUtils {
 							// We need to convert the string to a boolean
 							value = Boolean.parseBoolean((String)value);
 						}
-						field.set(base, value);
+						if(field.getType().isAssignableFrom(Collection.class)){
+							List list = new ArrayList();
+							list.add(value);
+							field.set(base, list);
+						}else{
+							field.set(base, value);
+						}
 					}
 				} catch (IllegalAccessException e) {
 					// This should never occur

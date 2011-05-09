@@ -719,7 +719,7 @@ public class Helpers {
 		Date now = new Date();
 		DateTime aWhileBack = new DateTime("2010-10-01");
 
-		Long curationEvents[] = { now.getTime(), now.getTime(),
+		Long curationEvents[] = { now.getTime(), now.getTime()+1000,
 				aWhileBack.getMillis() };
 		JSONObject dateAnnotations = annotations
 				.getJSONObject("dateAnnotations");
@@ -785,8 +785,7 @@ public class Helpers {
 				annotations, HttpStatus.PRECONDITION_FAILED);
 		assertTrue(preconditionError
 				.getString("reason")
-				.endsWith(
-						"were updated since you last fetched them, retrieve them again and reapply the update"));
+				.endsWith("was updated since you last fetched it, retrieve it again and reapply the update"));
 
 		// Whitespace in annotation names is invalid
 		storedAnnotations.getJSONObject("stringAnnotations").put(

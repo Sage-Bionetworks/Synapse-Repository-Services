@@ -11,6 +11,9 @@
   <!-- Discover all our controllers -->
   <context:component-scan base-package="org.sagebionetworks.repo.web.controller" />
   
+  <!-- Import the manager beans -->
+  <import resource="classpath:managers-spb.xml"/>
+  
   <!-- To enable @RequestMapping process on type level and method level -->
   <bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping" />
   

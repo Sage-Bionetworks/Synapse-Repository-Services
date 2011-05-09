@@ -6,10 +6,7 @@ import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.orm.jdo.JdoTemplate;
 
 public class JDOBootstrapperImpl implements JDOBootstrapper {
 	/**
@@ -18,18 +15,14 @@ public class JDOBootstrapperImpl implements JDOBootstrapper {
 	 * The method has no authorization restraints and is not be exposed by any web service.
 	 * 
 	 */
-	
-	@Autowired
-	JdoTemplate jdoTemplate;
+
 	
 	@Autowired
 	JDOUserDAO userDAO;
 	
 	@Autowired
 	JDOUserGroupDAO groupDAO;
-	
 
-	
 	
 	public void bootstrap() throws Exception {
 		// ensure public group is created
@@ -51,13 +44,11 @@ public class JDOBootstrapperImpl implements JDOBootstrapper {
 		if (ag==null) {
 			groupDAO.createAdminGroup();
 			ag = groupDAO.getAdminGroup();
+			groupDAO.addUser(ag, KeyFactory.stringToKey(adminUser.getId()));
 		}
-		groupDAO.addUser(ag, KeyFactory.stringToKey(adminUser.getId()));
+
 				
 	}
-
-
-
 
 	@Override
 	public void afterPropertiesSet() throws Exception {

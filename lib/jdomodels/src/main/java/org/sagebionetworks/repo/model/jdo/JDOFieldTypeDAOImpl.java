@@ -3,9 +3,12 @@ package org.sagebionetworks.repo.model.jdo;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotationType;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
@@ -27,6 +30,9 @@ public class JDOFieldTypeDAOImpl implements FieldTypeDAO, InitializingBean {
 
 	@Autowired
 	JdoTemplate jdoTemplate;
+	
+	// match one or more whitespace characters
+	private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
 
 	/**
 	 * Since the types never change once they are set, we can safely cache the results.
@@ -46,9 +52,10 @@ public class JDOFieldTypeDAOImpl implements FieldTypeDAO, InitializingBean {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public boolean addNewType(String name, FieldType type) throws DatastoreException {
+	public boolean addNewType(String name, FieldType type) throws DatastoreException, InvalidModelException {
 		if(name == null) throw new IllegalArgumentException("Name cannot be null");
 		if(type == null) throw new IllegalArgumentException("FieldType cannot be null");
+		checkKeyName(name);
 		// First check the local cache
 		FieldType currentType = localCache.get(type.name());
 		if(currentType != null){
@@ -76,7 +83,7 @@ public class JDOFieldTypeDAOImpl implements FieldTypeDAO, InitializingBean {
 	/**
 	 * Validate that the passed type matches the current type.
 	 * @param name
-	 * @param type
+	 * @param nodeType
 	 * @param currentType
 	 * @throws DatastoreException
 	 */
@@ -117,6 +124,20 @@ public class JDOFieldTypeDAOImpl implements FieldTypeDAO, InitializingBean {
 		JDOAnnotationType mapping = jdoTemplate.getObjectById(JDOAnnotationType.class, name);
 		jdoTemplate.deletePersistent(mapping);
 		localCache.remove(name);
+	}
+	
+	/**
+	 * Validate the name
+	 * @param key
+	 * @throws InvalidModelException
+	 */
+	private void checkKeyName(String key) throws InvalidModelException {
+		Matcher matcher = WHITESPACE_PATTERN.matcher(key);
+		if (matcher.find()) {
+			throw new InvalidModelException(
+					"Annotation names may not contain whitespace");
+		}
+		return;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

@@ -11,7 +11,7 @@
 
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>integration-test</artifactId>
-	<packaging>pom</packaging>
+	<packaging>jar</packaging>
 	<version>${applicationVersion}</version>
 	<name>Integration Tests for All services</name>
 

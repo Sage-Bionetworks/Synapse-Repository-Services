@@ -18,6 +18,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.authutil.AuthUtilConstants;
+import org.sagebionetworks.repo.manager.QueryManager;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatasetDAO;
@@ -33,6 +34,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.query.QueryStatement;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -46,14 +48,13 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * 
  */
 @Controller
-public class QueryController extends BaseController {
+public class QueryController extends BaseController2 {
 
 	private static final Logger log = Logger.getLogger(QueryController.class
 			.getName());
 
-	private DatasetDAO dao;
-
-	private QueryDAO queryDao;
+	@Autowired
+	QueryManager queryManager;
 
 	// Use a static instance of this per
 	// http://wiki.fasterxml.com/JacksonBestPracticesPerformance
@@ -75,23 +76,23 @@ public class QueryController extends BaseController {
 		EXCLUDED_PROPERTIES = Collections.unmodifiableMap(excludedProperties);
 	}
 
-	private void checkAuthorization(String userId) {
-		BaseDAO<Dataset> dao = getDaoFactory().getDatasetDAO(userId);
-		setDao(dao);
-		QueryDAO queryDao = getDaoFactory().getQueryDao();
-		setQueryDao(queryDao);
-	}
+//	private void checkAuthorization(String userId) {
+//		BaseDAO<Dataset> dao = getDaoFactory().getDatasetDAO(userId);
+//		setDao(dao);
+//		QueryDAO queryDao = getDaoFactory().getQueryDao();
+//		setQueryDao(queryDao);
+//	}
 
-	/**
-	 * @param dao
-	 */
-	public void setDao(BaseDAO<Dataset> dao) {
-		this.dao = (DatasetDAO) dao;
-	}
-	
-	public void setQueryDao(QueryDAO dao){
-		this.queryDao = dao;
-	}
+//	/**
+//	 * @param dao
+//	 */
+//	public void setDao(BaseDAO<Dataset> dao) {
+//		this.dao = (DatasetDAO) dao;
+//	}
+//	
+//	public void setQueryDao(QueryDAO dao){
+//		this.queryDao = dao;
+//	}
 
 	/**
 	 * @param userId
@@ -112,7 +113,7 @@ public class QueryController extends BaseController {
 			HttpServletRequest request) throws DatastoreException,
 			ParseException, NotFoundException, UnauthorizedException {
 
-		checkAuthorization(userId);
+//		checkAuthorization(userId);
 
 		/**
 		 * Parse and validate the query
@@ -127,14 +128,15 @@ public class QueryController extends BaseController {
 		}
 		// Convert from a query statement to a basic query
 		BasicQuery basic = new BasicQuery();
-		basic.setFrom(ObjectType.valueOf(stmt.getTableName()));
+		ObjectType type = ObjectType.valueOf(stmt.getTableName());
+		basic.setFrom(type);
 		basic.setSort(stmt.getSortField());
 		basic.setAscending(stmt.getSortAcending());
 		basic.setLimit(stmt.getLimit());
 		basic.setOffset(stmt.getOffset()-1);
 		basic.setFilters(stmt.getSearchCondition());
 		
-		QueryResults results = queryDao.executeQuery(basic);
+		QueryResults results = queryManager.executeQuery(userId, basic, type.getClassForType());
 		results.setResults(formulateResult(stmt, results.getResults()));
 		return results;
 	}

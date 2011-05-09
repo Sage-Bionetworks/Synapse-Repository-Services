@@ -73,7 +73,7 @@ public class NodeManagerImpleUnitTest {
 	public void testValidateNode(){
 		Node node = new Node();
 		node.setName("notNull");
-		node.setType("some type");
+		node.setNodeType("some type");
 		NodeManagerImpl.validateNode(node);
 	}
 	
@@ -160,7 +160,7 @@ public class NodeManagerImpleUnitTest {
 		// Test creating a new node with nothing but the name and type set
 		Node newNode = new Node();
 		newNode.setName("testCreateNode");
-		newNode.setType("someType");
+		newNode.setNodeType("someType");
 		
 		// Sure the mock is ready.
 		ArgumentCaptor<Node> argument = ArgumentCaptor.forClass(Node.class);
@@ -179,7 +179,7 @@ public class NodeManagerImpleUnitTest {
 	}
 	
 	@Test(expected=ConflictingUpdateException.class)
-	public void testValidateETagAndLockNodeConfilict() throws ConflictingUpdateException{
+	public void testValidateETagAndLockNodeConfilict() throws Exception{
 		String nodeId = "101";
 		String eTag = "899";
 		when(mockNodeDao.getETagForUpdate(nodeId)).thenReturn(new Long(900));
@@ -188,7 +188,7 @@ public class NodeManagerImpleUnitTest {
 	}
 	
 	@Test
-	public void testValidateETagAndLockNodePass() throws ConflictingUpdateException{
+	public void testValidateETagAndLockNodePass() throws Exception{
 		String nodeId = "101";
 		String eTag = "899";
 		when(mockNodeDao.getETagForUpdate(nodeId)).thenReturn(new Long(899));
@@ -199,13 +199,13 @@ public class NodeManagerImpleUnitTest {
 	}
 	
 	@Test
-	public void testUpdate() throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException{
+	public void testUpdate() throws Exception, NotFoundException, DatastoreException, UnauthorizedException{
 		// Test that we can update a node.
 		Node newNode = new Node();
 		newNode.setName("testUpdate");
 		newNode.setId("101");
 		newNode.setETag("9");;
-		newNode.setType("someType");
+		newNode.setNodeType("someType");
 		when(mockNodeDao.getETagForUpdate("101")).thenReturn(new Long(9));
 		
 		when(mockAuthDao.canAccess("updateUser", "101", ACCESS_TYPE.CHANGE)).thenReturn(true);
@@ -233,7 +233,7 @@ public class NodeManagerImpleUnitTest {
 	
 	
 	@Test
-	public void testUpdateAnnotations() throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException{
+	public void testUpdateAnnotations() throws Exception, DatastoreException, UnauthorizedException, ConflictingUpdateException{
 		// To update the annotations 
 		String id = "101";
 		Annotations annos = new Annotations();
@@ -249,12 +249,12 @@ public class NodeManagerImpleUnitTest {
 		assertEquals(copy, annos);
 		// Now update the copy
 		copy.addAnnotation("dateAnnos", new Date(System.currentTimeMillis()));
-		copy = nodeManager.updateAnnotations(AuthUtilConstants.ANONYMOUS_USER_ID,copy);
+		copy = nodeManager.updateAnnotations(AuthUtilConstants.ANONYMOUS_USER_ID,id,copy);
 		assertEquals("The eTag should have been incremented", "10", copy.getEtag());
 	}
 	
 	@Test
-	public void testValidateAnnoationsAssignedToAnotherType() throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException{
+	public void testValidateAnnoationsAssignedToAnotherType() throws Exception, DatastoreException, UnauthorizedException, ConflictingUpdateException{
 		// To update the annotations 
 		String id = "101";
 		Annotations annos = new Annotations();
@@ -265,13 +265,13 @@ public class NodeManagerImpleUnitTest {
 		when(mockAuthDao.canAccess(AuthUtilConstants.ANONYMOUS_USER_ID, "101", ACCESS_TYPE.CHANGE)).thenReturn(true);
 		// The mockFieldTypeDao with throw an exception i 
 		annos.addAnnotation(annotationName, new Date(System.currentTimeMillis()));
-		nodeManager.updateAnnotations(AuthUtilConstants.ANONYMOUS_USER_ID,annos);
+		nodeManager.updateAnnotations(AuthUtilConstants.ANONYMOUS_USER_ID,id,annos);
 		// Make sure this annotation name is checked against FieldType.DATE_ATTRIBUTE.
 		verify(mockFieldTypeDao, atLeastOnce()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
 	}
 	
 	@Test
-	public void testValidateStringAnnotation() throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException{
+	public void testValidateStringAnnotation() throws Exception, DatastoreException, UnauthorizedException, ConflictingUpdateException{
 		// To update the annotations 
 		Annotations annos = new Annotations();
 		annos.setEtag("123");
@@ -288,7 +288,7 @@ public class NodeManagerImpleUnitTest {
 	}
 	
 	@Test
-	public void testValidateDoubleAnnotation() throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException{
+	public void testValidateDoubleAnnotation() throws Exception, DatastoreException, UnauthorizedException, ConflictingUpdateException{
 		// To update the annotations 
 		Annotations annos = new Annotations();
 		annos.setEtag("123");
@@ -305,7 +305,7 @@ public class NodeManagerImpleUnitTest {
 	}
 	
 	@Test
-	public void testValidateLongAnnotation() throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException{
+	public void testValidateLongAnnotation() throws Exception, DatastoreException, UnauthorizedException, ConflictingUpdateException{
 		// To update the annotations 
 		Annotations annos = new Annotations();
 		annos.setEtag("123");
@@ -321,7 +321,7 @@ public class NodeManagerImpleUnitTest {
 	}
 	
 	@Test
-	public void testValidateDateAnnotation() throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException{
+	public void testValidateDateAnnotation() throws Exception, DatastoreException, UnauthorizedException, ConflictingUpdateException{
 		// To update the annotations 
 		Annotations annos = new Annotations();
 		annos.setEtag("123");

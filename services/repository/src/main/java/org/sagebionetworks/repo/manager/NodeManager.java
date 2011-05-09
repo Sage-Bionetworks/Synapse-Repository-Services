@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.List;
+import java.util.Set;
+
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationDAO;
@@ -53,8 +56,9 @@ public interface NodeManager {
 	 * @throws UnauthorizedException 
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
+	 * @throws Exception 
 	 */
-	public Node update(String userName, Node updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException;
+	public Node update(String userName, Node updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 	
 	/**
 	 * Update a node and its annotations in the same call.  This means we only need to acquire the lock once.
@@ -65,8 +69,9 @@ public interface NodeManager {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 * @throws ConflictingUpdateException 
+	 * @throws InvalidModelException 
 	 */
-	public Node update(String username, Node updatedNode, Annotations updatedAnnoations) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException;
+	public Node update(String username, Node updatedNode, Annotations updatedAnnoations) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 	
 	/**
 	 * Use case:  Need to find out if a user can download a resource.
@@ -98,7 +103,17 @@ public interface NodeManager {
 	 * @throws UnauthorizedException 
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
+	 * @throws InvalidModelException 
 	 */
-	public Annotations updateAnnotations(String username, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException;
+	public Annotations updateAnnotations(String username, String nodeId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
+
+	/**
+	 * Get the children of a node
+	 * @param userId
+	 * @param parentId
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public Set<Node> getChildren(String userId, String parentId) throws NotFoundException;
 
 }

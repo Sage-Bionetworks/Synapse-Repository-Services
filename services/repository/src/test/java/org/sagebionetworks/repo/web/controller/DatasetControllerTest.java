@@ -261,7 +261,7 @@ public class DatasetControllerTest {
 				+ "/dataset", "{\"version\": \"1.0.0\"}",
 				HttpStatus.BAD_REQUEST);
 
-		assertEquals("'name' is a required property for Dataset", error
+		assertEquals("Node.name cannot be null", error
 				.getString("reason"));
 	}
 
@@ -272,6 +272,7 @@ public class DatasetControllerTest {
 	 * 
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testMissingRequiredFieldUpdateDataset() throws Exception {
 		// Create a dataset
@@ -290,7 +291,7 @@ public class DatasetControllerTest {
 		JSONObject error = helper.testUpdateJsonEntityShouldFail(dataset,
 				HttpStatus.BAD_REQUEST);
 
-		assertEquals("'name' is a required property for Dataset", error
+		assertEquals("Node.name cannot be null", error
 				.getString("reason"));
 	}
 
@@ -323,8 +324,9 @@ public class DatasetControllerTest {
 				HttpStatus.PRECONDITION_FAILED);
 
 		String reason = error.getString("reason");
+		System.out.println(reason);
 		assertTrue(reason
-				.matches("entity with id .* was updated since you last fetched it, retrieve it again and reapply the update"));
+				.matches("Node: .* was updated since you last fetched it, retrieve it again and reapply the update"));
 	}
 
 	/*****************************************************************************************************

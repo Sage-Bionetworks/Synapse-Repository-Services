@@ -19,6 +19,7 @@ import javax.jws.Oneway;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.model.Dataset;
@@ -239,6 +240,7 @@ public class JDOQueryDAOImplTest {
 		assertNotNull(tableName);
 	}
 
+	@Ignore
 	@Test
 	public void testGetTableNameForObjectType() {
 		// There should be a table name for each object type

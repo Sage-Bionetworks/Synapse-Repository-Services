@@ -21,4 +21,12 @@
 	<!-- The Entity accessor-->
 	<bean id="entitiesAccessor" class="org.sagebionetworks.repo.web.EntitiesAccessorImpl2" />
 
+	<!-- The Query Manager-->
+	<bean id="queryManager" class="org.sagebionetworks.repo.manager.QueryManagerImpl" />
+	
+	<!-- The Generic Entity Controller-->
+	<bean id="entityController" class="org.sagebionetworks.repo.web.GenericEntityControllerImpl" />
+	
+	<!-- The Location helper-->
+	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
 </beans>

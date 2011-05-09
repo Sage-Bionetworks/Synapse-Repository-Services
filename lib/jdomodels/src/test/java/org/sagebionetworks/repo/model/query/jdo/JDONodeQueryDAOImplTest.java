@@ -143,8 +143,7 @@ public class JDONodeQueryDAOImplTest {
 	}
 
 
-	private void populateNodesForTest() throws DatastoreException,
-			InvalidModelException {
+	private void populateNodesForTest() throws Exception {
 		Iterator<String> it = fieldTypeMap.keySet().iterator();
 		while(it.hasNext()){
 			String key = it.next();
@@ -159,7 +158,7 @@ public class JDONodeQueryDAOImplTest {
 			Date now = new Date(System.currentTimeMillis());
 			parent.setDescription("description" + i);
 			parent.setCreatedBy("magic");
-			parent.setType(ObjectType.dataset.name());
+			parent.setNodeType(ObjectType.dataset.name());
 
 			// Create this dataset
 			String parentId = nodeDao.createNew(parent);
@@ -185,7 +184,7 @@ public class JDONodeQueryDAOImplTest {
 					new Long(123456));
 			parentAnnos.addAnnotation(attDouble,
 					new Double(123456.3));
-			nodeDao.updateAnnotations(parentAnnos);
+			nodeDao.updateAnnotations(parentId, parentAnnos);
 			
 			// Add a child to the parent
 			Node child = createChild(now, i);
@@ -205,7 +204,7 @@ public class JDONodeQueryDAOImplTest {
 			}
 			
 			// Update the child annoations.
-			nodeDao.updateAnnotations(childAnnos);
+			nodeDao.updateAnnotations(childId, childAnnos);
 
 		}
 	}
@@ -215,7 +214,7 @@ public class JDONodeQueryDAOImplTest {
 		Node ans = Node.createNew("layerName"+i);
 		ans.setDescription("description"+i);
 		ans.setCreatedOn(date);
-		ans.setType(ObjectType.layer.name());
+		ans.setNodeType(ObjectType.layer.name());
 //		ans.setTissueType("cell line"+i);
 //		ans.setPlatform("Affymetrix");
 //		ans.setProcessingFacility("Broad Institute");
@@ -375,7 +374,7 @@ public class JDONodeQueryDAOImplTest {
 
 	// Test basic query
 	@Test
-	public void testBasicQuery() throws DatastoreException {
+	public void testBasicQuery() throws Exception {
 		// This query is basically "select * from datasets"
 		BasicQuery query = new BasicQuery();
 		query.setFrom(ObjectType.dataset);
@@ -391,7 +390,7 @@ public class JDONodeQueryDAOImplTest {
 			// Get the node with this id
 			Node node = nodeDao.getNode(id);
 			assertNotNull(node);
-			assertEquals(ObjectType.dataset.name(), node.getType());
+			assertEquals(ObjectType.dataset.name(), node.getNodeType());
 			// Load the annotations for this node
 			Annotations annos = nodeDao.getAnnotations(id);
 			
@@ -515,7 +514,7 @@ public class JDONodeQueryDAOImplTest {
 	 * @throws DatastoreException
 	 */
 	@Test
-	public void testSortOnPrimaryDate() throws DatastoreException {
+	public void testSortOnPrimaryDate() throws Exception {
 		BasicQuery query = new BasicQuery();
 		query.setFrom(ObjectType.dataset);
 		query.setSort("createdOn");
@@ -542,7 +541,7 @@ public class JDONodeQueryDAOImplTest {
 
 	// Sorting on a string attribute
 	@Test
-	public void testSortOnStringAttribute() throws DatastoreException {
+	public void testSortOnStringAttribute() throws Exception {
 		BasicQuery query = new BasicQuery();
 		query.setFrom(ObjectType.dataset);
 		query.setSort(attString);
@@ -570,7 +569,7 @@ public class JDONodeQueryDAOImplTest {
 	}
 
 	@Test
-	public void testFilterOnSinglePrimary() throws DatastoreException {
+	public void testFilterOnSinglePrimary() throws Exception {
 		BasicQuery query = new BasicQuery();
 		query.setFrom(ObjectType.dataset);
 		// query.setSort(attString);
@@ -612,7 +611,7 @@ public class JDONodeQueryDAOImplTest {
 	}
 
 	@Test
-	public void testFilterOnMultiplePrimary() throws DatastoreException {
+	public void testFilterOnMultiplePrimary() throws Exception {
 		BasicQuery query = new BasicQuery();
 		query.setFrom(ObjectType.dataset);
 		List<Expression> filters = new ArrayList<Expression>();
@@ -639,7 +638,7 @@ public class JDONodeQueryDAOImplTest {
 	}
 
 	@Test
-	public void testFilterOnSingleAttribute() throws DatastoreException {
+	public void testFilterOnSingleAttribute() throws Exception {
 		BasicQuery query = new BasicQuery();
 		query.setFrom(ObjectType.dataset);
 		query.setSort(attOnOdd);
@@ -663,7 +662,7 @@ public class JDONodeQueryDAOImplTest {
 
 	@Test
 	public void testFilterOnSingleAttributeAndSinglePrimary()
-			throws DatastoreException {
+			throws Exception {
 		BasicQuery query = new BasicQuery();
 		query.setFrom(ObjectType.dataset);
 		query.setSort(attOnOdd);
@@ -700,7 +699,7 @@ public class JDONodeQueryDAOImplTest {
 	}
 
 	@Test
-	public void testFilterMultiple() throws DatastoreException {
+	public void testFilterMultiple() throws Exception {
 		BasicQuery query = new BasicQuery();
 		query.setFrom(ObjectType.dataset);
 		query.setSort(attOnOdd);
@@ -746,7 +745,7 @@ public class JDONodeQueryDAOImplTest {
 	}
 	
 	@Test
-	public void testLayerQueryStringId() throws DatastoreException{
+	public void testLayerQueryStringId() throws Exception{
 		BasicQuery query = new BasicQuery();
 		query.setFrom(ObjectType.layer);
 		query.setSort("name");
@@ -772,7 +771,7 @@ public class JDONodeQueryDAOImplTest {
 	}
 
 	@Test
-	public void testLayerQueryNumericId() throws DatastoreException{
+	public void testLayerQueryNumericId() throws Exception{
 		BasicQuery query = new BasicQuery();
 		query.setFrom(ObjectType.layer);
 		query.setSort("name");

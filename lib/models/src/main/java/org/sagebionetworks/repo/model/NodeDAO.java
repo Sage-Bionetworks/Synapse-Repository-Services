@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Set;
 
+import org.sagebionetworks.repo.web.NotFoundException;
+
 
 /**
  * Interface for all Node C.R.U.D. operations.
@@ -16,35 +18,41 @@ public interface NodeDAO {
 	 * @param parentId can be null, or an existing parent node, to add this node to.
 	 * @param node
 	 * @return
+	 * @throws NotFoundException 
+	 * @throws NumberFormatException 
 	 */
-	public String createNew(Node node);
+	public String createNew(Node node) throws NotFoundException;
 	
 	/**
 	 * Fetch a node using its id.
 	 * @param id
 	 * @return
+	 * @throws NotFoundException 
 	 */
-	public Node getNode(String id);
+	public Node getNode(String id) throws NotFoundException;
 	
 	/**
 	 * Delete a node using its id.
 	 * @param id
+	 * @throws NotFoundException 
 	 */
-	public void delete(String id);
+	public void delete(String id) throws NotFoundException;
 	
 	/**
 	 * Get the Annotations for a node. 
 	 * @param id
 	 * @return
+	 * @throws NotFoundException 
 	 */
-	public Annotations getAnnotations(String id);
+	public Annotations getAnnotations(String id) throws NotFoundException;
 	
 	/**
 	 * Get all of the children nodes of a given node.
 	 * @param id
 	 * @return
+	 * @throws NotFoundException 
 	 */
-	public Set<Node> getChildren(String id);
+	public Set<Node> getChildren(String id) throws NotFoundException;
 	
 	/**
 	 * Fetch the eTag for a given node with the intentions of updating
@@ -55,21 +63,24 @@ public interface NodeDAO {
 	 * the lock will be released when this call returns.
 	 * @param id
 	 * @return
+	 * @throws NotFoundException 
 	 */
-	public Long getETagForUpdate(String id);
+	public Long getETagForUpdate(String id) throws NotFoundException;
 	
 	/**
 	 * Make changes to an existing node.
 	 * @param updatedNode
+	 * @throws NotFoundException 
 	 */
-	public void updateNode(Node updatedNode);
+	public void updateNode(Node updatedNode) throws NotFoundException;
 	
 	/**
 	 * Update a nodes annotations.
 	 * @param id
 	 * @param updatedAnnotations
+	 * @throws NotFoundException 
 	 */
-	public void updateAnnotations(Annotations updatedAnnotations);
+	public void updateAnnotations(String nodeId, Annotations updatedAnnotations) throws NotFoundException;
 	
 
 }

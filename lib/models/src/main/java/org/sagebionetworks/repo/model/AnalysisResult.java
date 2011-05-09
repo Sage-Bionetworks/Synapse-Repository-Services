@@ -6,6 +6,7 @@ public class AnalysisResult implements DatasetLayer {
 	private String id;
 	private String uri;
 	private String etag;
+	private String parentId;
 	private String name;
 	private String description;
 	private String creator;
@@ -14,6 +15,14 @@ public class AnalysisResult implements DatasetLayer {
 	private String version;
 	private String annotations; // URI for annotations
 	private String releaseNotes;
+
+	public String getParentId() {
+		return parentId;
+	}
+
+	public void setParentId(String parentId) {
+		this.parentId = parentId;
+	}
 
 	public String getId() {
 		return id;

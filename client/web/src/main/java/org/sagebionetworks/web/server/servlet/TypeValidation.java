@@ -1,10 +1,11 @@
 package org.sagebionetworks.web.server.servlet;
 
 import java.util.ArrayList;
-import java.util.TreeMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.logging.Logger;
 
 import org.sagebionetworks.web.shared.ColumnInfo;
 import org.sagebionetworks.web.shared.ColumnInfo.Type;
@@ -19,6 +20,7 @@ import org.sagebionetworks.web.shared.HeaderData;
  */
 public class TypeValidation {
 	
+	private static Logger logger = Logger.getLogger(TypeValidation.class.getName());
 	/**
 	 * Creates a new list of rows based on the expected columns.
 	 * Any column type not found in the expected columns will be filtered out.
@@ -46,8 +48,12 @@ public class TypeValidation {
 						if(header instanceof ColumnInfo){
 							ColumnInfo column = (ColumnInfo) header;
 							Object currentValue = row.get(key);
-							Object convertedValue = convert(currentValue, column.fetchType());
-							newRow.put(key, convertedValue);
+							try{
+								Object convertedValue = convert(currentValue, column.fetchType());
+								newRow.put(key, convertedValue);
+							}catch(IllegalArgumentException e){
+								logger.info("Failed to convert: "+key+" with value class: "+currentValue.getClass().getName()+" to "+column.getType());
+							}
 						}else{
 							newRow.put(key, row.get(key));
 						}

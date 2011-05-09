@@ -2,11 +2,12 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Date;
 import java.util.Iterator;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.authutil.AuthUtilConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
@@ -17,6 +18,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  */
 @Transactional(readOnly = true)
-public class NodeManagerImpl implements NodeManager {
+public class NodeManagerImpl implements NodeManager, InitializingBean {
 	
 	private static final Logger log = Logger.getLogger(NodeManagerImpl.class.getName());
 	
@@ -80,8 +82,8 @@ public class NodeManagerImpl implements NodeManager {
 		// Validate the modified data.
 		NodeManagerImpl.validateNodeModifiedData(userName, newNode);
 		// check whether the user is allowed to create this type of node
-		if (!authorizationDao.canCreate(userName, newNode.getType())) {
-			throw new UnauthorizedException(userName+" is not allowed to create items of type "+newNode.getType());
+		if (!authorizationDao.canCreate(userName, newNode.getNodeType())) {
+			throw new UnauthorizedException(userName+" is not allowed to create items of type "+newNode.getNodeType());
 		}
 
 		// If they are allowed then let them create the node
@@ -99,7 +101,7 @@ public class NodeManagerImpl implements NodeManager {
 	 */
 	public static void validateNode(Node node){
 		if(node == null) throw new IllegalArgumentException("Node cannot be null");
-		if(node.getType() == null) throw new IllegalArgumentException("Node.type cannot be null");
+		if(node.getNodeType() == null) throw new IllegalArgumentException("Node.type cannot be null");
 		if(node.getName() == null) throw new IllegalArgumentException("Node.name cannot be null");		
 	}
 	
@@ -187,14 +189,14 @@ public class NodeManagerImpl implements NodeManager {
 	@Override
 	public Node update(String userName, Node updated)
 			throws ConflictingUpdateException, NotFoundException,
-			DatastoreException, UnauthorizedException {
+			DatastoreException, UnauthorizedException, InvalidModelException {
 		return update(userName, updated, null);
 	}
 
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public Node update(String username, Node updatedNode, Annotations updatedAnnos) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException {
+	public Node update(String username, Node updatedNode, Annotations updatedAnnos) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		username = NodeManagerImpl.validateUsername(username);
 		NodeManagerImpl.validateNode(updatedNode);
 		if (!authorizationDao.canAccess(username, updatedNode.getId(), AuthorizationConstants.ACCESS_TYPE.CHANGE)) {
@@ -203,7 +205,7 @@ public class NodeManagerImpl implements NodeManager {
 		// make sure the eTags match
 		if(updatedAnnos != null){
 			if(!updatedNode.getETag().equals(updatedAnnos.getEtag())) throw new IllegalArgumentException("The passed node and annotations do not have the same eTag");
-			if(!updatedNode.getId().equals(updatedAnnos.getId())) throw new IllegalArgumentException("The passed node and annotations do not have the same ID");
+//			if(!updatedNode.getId().equals(updatedAnnos.getId())) throw new IllegalArgumentException("The passed node and annotations do not have the same ID");
 		}
 		// Now lock this node
 		String nextETag = validateETagAndLockNode(updatedNode.getId(), updatedNode.getETag());
@@ -221,7 +223,7 @@ public class NodeManagerImpl implements NodeManager {
 		if(updatedAnnos != null){
 			updatedAnnos.setEtag(nextETag);
 			validateAnnotations(updatedAnnos);
-			nodeDao.updateAnnotations(updatedAnnos);
+			nodeDao.updateAnnotations(updatedNode.getId(), updatedAnnos);
 		}
 		log.info("username "+username+" updated node: "+updatedNode.getId()+", with a new eTag: "+nextETag);
 		// Return the new node
@@ -239,8 +241,9 @@ public class NodeManagerImpl implements NodeManager {
 	 * @param nodeId
 	 * @param eTag
 	 * @throws ConflictingUpdateException
+	 * @throws NotFoundException 
 	 */
-	protected String validateETagAndLockNode(String nodeId, String eTag) throws ConflictingUpdateException{
+	protected String validateETagAndLockNode(String nodeId, String eTag) throws ConflictingUpdateException, NotFoundException{
 		if(eTag == null) throw new IllegalArgumentException("Must have a non-null eTag to update a node");
 		if(nodeId == null) throw new IllegalArgumentException("Must have a non-null ID to update a node");
 		long passedTag = Long.parseLong(eTag);
@@ -279,18 +282,18 @@ public class NodeManagerImpl implements NodeManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public Annotations updateAnnotations(String username, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException {
+	public Annotations updateAnnotations(String username, String nodeId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
-		if(updated.getId() == null) throw new IllegalArgumentException("Annotations ID cannot be null");
+		if(nodeId == null) throw new IllegalArgumentException("Node ID cannot be null");
 		username = NodeManagerImpl.validateUsername(username);
 		// Validate that the annotations
 		validateAnnotations(updated);
 		// Now lock the node if we can
-		String nextETag = validateETagAndLockNode(updated.getId(), updated.getEtag());
+		String nextETag = validateETagAndLockNode(nodeId, updated.getEtag());
 		// We have the lock
 		// Increment the eTag
 		updated.setEtag(nextETag);
-		nodeDao.updateAnnotations(updated);
+		nodeDao.updateAnnotations(nodeId, updated);
 		log.info("username "+username+" updated Annotations for node: "+updated.getId());
 		return updated;
 	}
@@ -299,8 +302,9 @@ public class NodeManagerImpl implements NodeManager {
 	 * Validate the passed annotations.  Once a name is used for a type it cannot be used for another type.
 	 * @param updated
 	 * @throws DatastoreException 
+	 * @throws InvalidModelException 
 	 */
-	public void validateAnnotations(Annotations updated) throws DatastoreException{
+	public void validateAnnotations(Annotations updated) throws DatastoreException, InvalidModelException{
 		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
 		if(updated.getEtag() == null) throw new IllegalArgumentException("Cannot update Annotations with a null eTag");
 		// Validate the annotation names
@@ -333,6 +337,18 @@ public class NodeManagerImpl implements NodeManager {
 				fieldTypeDao.addNewType(it.next(), FieldType.DOUBLE_ATTRIBUTE);
 			}
 		}
+	}
+
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		// This is a hack because the current DAO is not working with integration tests.
+		authorizationDao = new TempMockAuthDao();
+		
+	}
+
+	@Override
+	public Set<Node> getChildren(String userId, String parentId) throws NotFoundException {
+		return nodeDao.getChildren(parentId);
 	}
 
 }

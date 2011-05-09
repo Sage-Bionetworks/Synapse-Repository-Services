@@ -16,6 +16,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -193,7 +194,7 @@ public class QueryControllerTest {
 				.getJSONObject(0).getString("dataset.id");
 
 		JSONObject queryResult = helper
-				.testQuery("select * from layer where dataset.id == \""
+				.testQuery("select * from layer where dataset.parentId == \""
 						+ datasetId + "\"");
 		assertExpectedQueryResultProperties("layer", queryResult);
 
@@ -216,6 +217,7 @@ public class QueryControllerTest {
 	 * 
 	 * @throws Exception
 	 */
+	@Ignore // This is no longer true
 	@Test
 	public void testLayerQueryMissingDatasetId() throws Exception {
 		JSONObject error = helper.testQueryShouldFail(
