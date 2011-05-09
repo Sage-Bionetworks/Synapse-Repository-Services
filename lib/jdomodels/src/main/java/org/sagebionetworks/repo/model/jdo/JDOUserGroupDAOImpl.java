@@ -214,7 +214,9 @@ public class JDOUserGroupDAOImpl extends
 	}
 
 	protected UserGroup newDTO() {
-		return new UserGroup();
+		UserGroup ug = new UserGroup();
+		ug.setCreatableTypes(new HashSet<String>());
+		return ug;
 	}
 
 	protected JDOUserGroup newJDO() {
@@ -231,6 +233,7 @@ public class JDOUserGroupDAOImpl extends
 				.getId()));
 		dto.setCreationDate(jdo.getCreationDate());
 		dto.setName(jdo.getName());
+		dto.setCreatableTypes(new HashSet<String>(jdo.getCreatableTypes()));
 	}
 
 	protected void copyFromDto(UserGroup dto, JDOUserGroup jdo)
@@ -241,6 +244,9 @@ public class JDOUserGroupDAOImpl extends
 		}
 		jdo.setName(dto.getName());
 		jdo.setCreationDate(dto.getCreationDate());
+		Set<String> cts = new HashSet<String>();
+		if (dto.getCreatableTypes()!=null) cts.addAll(dto.getCreatableTypes());
+		jdo.setCreatableTypes(cts);
 	}
 
 	protected Class<JDOUserGroup> getJdoClass() {

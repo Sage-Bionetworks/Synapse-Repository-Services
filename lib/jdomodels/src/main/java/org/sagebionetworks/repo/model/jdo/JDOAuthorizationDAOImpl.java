@@ -36,8 +36,6 @@ public class JDOAuthorizationDAOImpl implements AuthorizationDAO {
 	@Autowired
 	JDOUserDAO userDAO;
 	
-	public static final String NODE_RESOURCE_TYPE = JDONode.class.getName();
-	
 	public User createUser(String userName) throws DatastoreException {
 		try {
 			User user = new User();
@@ -45,6 +43,12 @@ public class JDOAuthorizationDAOImpl implements AuthorizationDAO {
 			userDAO.create(user);
 			UserGroup individualGroup = userGroupDAO.createIndividualGroup(userName);
 			userGroupDAO.addUser(individualGroup, KeyFactory.stringToKey(user.getId()));
+			// let the user access (READ, CHANGE) herself
+			userGroupDAO.addResource(individualGroup, 
+					new AuthorizableImpl(user.getId(), User.class.getName()), 
+					Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[] { 
+							AuthorizationConstants.ACCESS_TYPE.READ,
+							AuthorizationConstants.ACCESS_TYPE.CHANGE}));
 			return user;
 		} catch (DatastoreException e) {
 			throw e;
