@@ -55,7 +55,7 @@ public class PersistenceInitializer implements ServletContextListener {
 			
 			
 			UserSynchronization us = new UserSynchronization(userDAO);
-			us.synchronizeUsers();
+			//us.synchronizeUsers();
 	}
 
 	@Override
