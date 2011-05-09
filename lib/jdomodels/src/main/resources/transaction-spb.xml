@@ -42,12 +42,10 @@
 	<!-- Starting with a temp DAO -->
 	<bean id="nodeDao" class="org.sagebionetworks.repo.model.jdo.NodeDAOImpl" />
 	
-		<!-- Starting with a temp DAO -->
-	<bean id="authorizationDao" class="org.sagebionetworks.repo.model.jdo.JDOAuthorizationDAOImpl" />
-	
 	<bean id="userDAO" class="org.sagebionetworks.repo.model.jdo.aw.JDOUserDAOImpl" />
 	<bean id="groupDAO" class="org.sagebionetworks.repo.model.jdo.aw.JDOUserGroupDAOImpl" />
-	<!--bean id="securityBootstrapper" class="org.sagebionetworks.repo.model.jdo.aw.JDOBootstrapperImpl" /-->
+	<bean id="securityBootstrapper" class="org.sagebionetworks.repo.model.jdo.aw.JDOBootstrapperImpl" />
+	<bean id="authorizationDao" class="org.sagebionetworks.repo.model.jdo.JDOAuthorizationDAOImpl" />
 
 
 	<!-- The node query dao singleton -->

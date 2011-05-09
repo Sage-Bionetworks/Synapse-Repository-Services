@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.jdo;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +33,7 @@ public class JDONodeLockCheckerImpl implements JDONodeLockChecker {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
-	public void aquireAndHoldLock(String stringId) throws InterruptedException {
+	public void aquireAndHoldLock(String stringId) throws InterruptedException, NotFoundException {
 		holdLock = true;
 		lockAcquired = false;
 		nodeId = Long.parseLong(stringId);

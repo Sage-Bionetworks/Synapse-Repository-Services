@@ -2,32 +2,28 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.BaseDAO;
-import org.sagebionetworks.repo.model.DatasetDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
-import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.LayerLocations;
-import org.sagebionetworks.repo.model.LayerLocationsDAO;
 import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.web.AnnotatableEntitiesAccessorImpl;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
-import org.sagebionetworks.repo.web.EntitiesAccessor;
 import org.sagebionetworks.repo.web.EntityController;
-import org.sagebionetworks.repo.web.EntityControllerImp;
+import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
@@ -51,32 +47,35 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author deflaux
  */
 @Controller
-public class LayerController extends BaseController { // TODO implements
+public class LayerController extends BaseController2 { // TODO implements
 	// EntityController
+	
+	@Autowired
+	GenericEntityController entityController;
 
-	private EntitiesAccessor<InputDataLayer> layerAccessor;
-	private EntityController<InputDataLayer> layerController;
-	private LayerLocationsDAO locationsDao = null;
-
-	LayerController() {
-		layerAccessor = new AnnotatableEntitiesAccessorImpl<InputDataLayer>();
-		layerController = new EntityControllerImp<InputDataLayer>(
-				InputDataLayer.class, layerAccessor);
-	}
-
-	private void checkAuthorization(String userId, String parentId,
-			Boolean readOnly) throws DatastoreException {
-		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
-		locationsDao = getDaoFactory().getLayerLocationsDAO(userId);
-		DatasetDAO dao = getDaoFactory().getDatasetDAO(userId);
-		InputDataLayerDAO layerDao = dao.getInputDataLayerDAO(datasetId);
-		setDao(layerDao);
-	}
-
-	private void setDao(BaseDAO<InputDataLayer> dao) {
-		layerController.setDao(dao);
-		layerAccessor.setDao(dao);
-	}
+//	private EntitiesAccessor<InputDataLayer> layerAccessor;
+//	private EntityController<InputDataLayer> layerController;
+//	private LayerLocationsDAO locationsDao = null;
+//
+//	LayerController() {
+//		layerAccessor = new AnnotatableEntitiesAccessorImpl<InputDataLayer>();
+//		layerController = new EntityControllerImp<InputDataLayer>(
+//				InputDataLayer.class, layerAccessor);
+//	}
+//
+//	private void checkAuthorization(String userId, String parentId,
+//			Boolean readOnly) throws DatastoreException {
+//		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
+//		locationsDao = getDaoFactory().getLayerLocationsDAO(userId);
+//		DatasetDAO dao = getDaoFactory().getDatasetDAO(userId);
+//		InputDataLayerDAO layerDao = dao.getInputDataLayerDAO(datasetId);
+//		setDao(layerDao);
+//	}
+//
+//	private void setDao(BaseDAO<InputDataLayer> dao) {
+//		layerController.setDao(dao);
+//		layerAccessor.setDao(dao);
+//	}
 
 	/*******************************************************************************
 	 * Layers CRUD handlers
@@ -95,6 +94,7 @@ public class LayerController extends BaseController { // TODO implements
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
+	 * @throws NotFoundException 
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
@@ -105,12 +105,20 @@ public class LayerController extends BaseController { // TODO implements
 			@PathVariable String parentId,
 			@RequestBody InputDataLayer newEntity, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
-			UnauthorizedException {
+			UnauthorizedException, NotFoundException {
 
-		checkAuthorization(userId, parentId, false);
-		InputDataLayer datasetLayer = layerController.createEntity(userId,
-				newEntity, request);
-		addServiceSpecificMetadata(datasetLayer, request);
+		if(parentId != null){
+			newEntity.setParentId(parentId);
+		}
+		if(newEntity.getVersion() == null){
+			// Temp hack until we have real revisions
+			newEntity.setVersion("1.0.0");
+		}
+		if(newEntity.getParentId() == null){
+			throw new IllegalArgumentException("InputDataLayer must have a parent ID");
+		}
+		InputDataLayer datasetLayer = entityController.createEntity(userId, newEntity, request);
+		addServiceSpecificMetadata(userId, datasetLayer, request);
 
 		return datasetLayer;
 	}
@@ -135,10 +143,8 @@ public class LayerController extends BaseController { // TODO implements
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 
-		checkAuthorization(userId, parentId, true);
-		InputDataLayer datasetLayer = layerController.getEntity(userId, id,
-				request);
-		addServiceSpecificMetadata(datasetLayer, request);
+		InputDataLayer datasetLayer = entityController.getEntity(userId, id, request, InputDataLayer.class);
+		addServiceSpecificMetadata(userId, datasetLayer, request);
 
 		return datasetLayer;
 	}
@@ -170,10 +176,11 @@ public class LayerController extends BaseController { // TODO implements
 			ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException {
 
-		checkAuthorization(userId, parentId, false);
-		InputDataLayer datasetLayer = layerController.updateEntity(userId, id,
-				etag, updatedEntity, request);
-		addServiceSpecificMetadata(datasetLayer, request);
+		if(etag != null){
+			updatedEntity.setEtag(etag.toString());
+		}
+		InputDataLayer datasetLayer = entityController.updateEntity(userId, id, updatedEntity, request);
+		addServiceSpecificMetadata(userId, datasetLayer, request);
 
 		return datasetLayer;
 	}
@@ -194,8 +201,7 @@ public class LayerController extends BaseController { // TODO implements
 			@PathVariable String parentId, @PathVariable String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-		checkAuthorization(userId, parentId, false);
-		layerController.deleteEntity(userId, id);
+		entityController.deleteEntity(userId, id);
 
 		return;
 	}
@@ -211,6 +217,7 @@ public class LayerController extends BaseController { // TODO implements
 	 * @return the layers
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
+	 * @throws NotFoundException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
@@ -224,14 +231,16 @@ public class LayerController extends BaseController { // TODO implements
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending,
 			HttpServletRequest request) throws DatastoreException,
-			UnauthorizedException {
+			UnauthorizedException, NotFoundException {
 
-		checkAuthorization(userId, parentId, true);
-		PaginatedResults<InputDataLayer> results = layerController.getEntities(
-				userId, offset, limit, sort, ascending, request);
+		if(ServiceConstants.DEFAULT_SORT_BY_PARAM.equals(sort)){
+			sort = null;
+		}
+		PaginatedResults<InputDataLayer> results = entityController.getEntities(
+				userId, offset, limit, sort, ascending, request, InputDataLayer.class);
 
 		for (InputDataLayer layer : results.getResults()) {
-			addServiceSpecificMetadata(layer, request);
+			addServiceSpecificMetadata(userId, layer, request);
 		}
 
 		return results;
@@ -246,7 +255,7 @@ public class LayerController extends BaseController { // TODO implements
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.SCHEMA, method = RequestMethod.GET)
 	public @ResponseBody
 	JsonSchema getEntitySchema() throws DatastoreException {
-		return layerController.getEntitySchema();
+		return entityController.getEntitySchema(InputDataLayer.class);
 	}
 
 	/**
@@ -259,7 +268,7 @@ public class LayerController extends BaseController { // TODO implements
 	public @ResponseBody
 	JsonSchema getEntitiesSchema() throws DatastoreException {
 
-		return layerController.getEntitiesSchema();
+		return entityController.getEntitiesSchema(InputDataLayer.class);
 	}
 
 	/**
@@ -282,7 +291,7 @@ public class LayerController extends BaseController { // TODO implements
 	 * Helpers
 	 */
 
-	private void addServiceSpecificMetadata(InputDataLayer layer,
+	private void addServiceSpecificMetadata(String userId, InputDataLayer layer,
 			HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException {
 
@@ -290,6 +299,7 @@ public class LayerController extends BaseController { // TODO implements
 				Annotations.class, request));
 		layer.setPreview(UrlHelpers.makeEntityPropertyUri(layer,
 				LayerPreview.class, request));
+		layer.setUri(UrlHelpers.makeEntityUri(layer, request));
 
 		//
 		// Make URIs to get the additional metadata about locations
@@ -300,19 +310,19 @@ public class LayerController extends BaseController { // TODO implements
 		layerLocations.add(UrlHelpers.makeEntityPropertyUri(layer,
 				LayerLocations.class, request));
 
-		LayerLocations locations;
 		try {
-			locations = locationsDao.get(layer.getId());
+			List<LayerLocation> list = entityController.getEntityChildrenOfType(userId, layer.getId(), LayerLocation.class);
+			for (LayerLocation location : list) {
+				layerLocations.add(UrlHelpers.makeLocationUri(layer.getUri(),
+						location.getType()));
+			}
+			layer.setLocations(layerLocations);
 		} catch (NotFoundException e) {
 			// This should not happen because we were just create/get/update
 			// this layer
 			throw new DatastoreException(e);
 		}
-		for (LayerLocation location : locations.getLocations()) {
-			layerLocations.add(UrlHelpers.makeLocationUri(layer.getUri(),
-					location.getType()));
-		}
-		layer.setLocations(layerLocations);
+
 
 	}
 

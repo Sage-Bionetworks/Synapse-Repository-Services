@@ -4,7 +4,9 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.Base;
+import org.sagebionetworks.repo.model.BaseChild;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 
@@ -27,7 +29,7 @@ public interface EntitiesAccessor2 {
 	 * @throws UnauthorizedException 
 	 * @throws NotFoundException 
 	 */
-	public <T extends Base> List<T> getInRange(String userId, int offset, int limit, Class<? extends T>  clazz) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public <T extends Base> PaginatedResults<T> getInRange(String userId, int offset, int limit, Class<? extends T>  clazz) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * @param offset
@@ -39,7 +41,7 @@ public interface EntitiesAccessor2 {
 	 * @throws UnauthorizedException 
 	 * @throws NotFoundException 
 	 */
-	public <T extends Base> List<T> getInRangeSortedBy(String userI, int offset, int limit, String sortBy,
+	public <T extends Base> PaginatedResults<T> getInRangeSortedBy(String userI, int offset, int limit, String sortBy,
 			Boolean ascending, Class<? extends T>  clazz) throws DatastoreException, NotFoundException, UnauthorizedException;
 	
 	/**
@@ -53,9 +55,21 @@ public interface EntitiesAccessor2 {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Base> List<T> executeQuery(String userId, Class<? extends T> clazz, BasicQuery query) throws DatastoreException, NotFoundException,	UnauthorizedException;
+	public <T extends Base> PaginatedResults<T> executeQuery(String userId, Class<? extends T> clazz, BasicQuery query) throws DatastoreException, NotFoundException,	UnauthorizedException;
 
 
+	/**
+	 * Get all of the children of a given type
+	 * @param <T>
+	 * @param userId
+	 * @param parentId
+	 * @param clazz
+	 * @return
+	 * @throws UnauthorizedException 
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public <T extends BaseChild> List<T> getChildrenOfType(String userId, String parentId, Class<? extends T> clazz) throws DatastoreException, NotFoundException, UnauthorizedException;
 	/**
 	 * Used to override this dao for a test.
 	 * @param mockAuth

@@ -17,7 +17,7 @@ public class Node {
 	Date createdOn;
 	String modifiedBy;
 	Date modifiedOn;
-	String type;
+	String nodeType;
 	String eTag;
 	
 	/**
@@ -32,7 +32,7 @@ public class Node {
 		node.setModifiedBy("anonymous");
 		node.setCreatedOn(new Date(System.currentTimeMillis()));
 		node.setModifiedOn(node.getCreatedOn());
-		node.setType("unknown");
+		node.setNodeType("unknown");
 		return node;
 	}
 		
@@ -60,12 +60,15 @@ public class Node {
 	public void setModifiedOn(Date modifiedOn) {
 		this.modifiedOn = modifiedOn;
 	}
-	public String getType() {
-		return type;
+
+	public String getNodeType() {
+		return nodeType;
 	}
-	public void setType(String type) {
-		this.type = type;
+
+	public void setNodeType(String nodeType) {
+		this.nodeType = nodeType;
 	}
+
 	public String getId() {
 		return id;
 	}
@@ -118,7 +121,7 @@ public class Node {
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
 				+ ((parentId == null) ? 0 : parentId.hashCode());
-		result = prime * result + ((type == null) ? 0 : type.hashCode());
+		result = prime * result + ((nodeType == null) ? 0 : nodeType.hashCode());
 		return result;
 	}
 	@Override
@@ -175,10 +178,10 @@ public class Node {
 				return false;
 		} else if (!parentId.equals(other.parentId))
 			return false;
-		if (type == null) {
-			if (other.type != null)
+		if (nodeType == null) {
+			if (other.nodeType != null)
 				return false;
-		} else if (!type.equals(other.type))
+		} else if (!nodeType.equals(other.nodeType))
 			return false;
 		return true;
 	}
@@ -188,7 +191,7 @@ public class Node {
 		return "Node [id=" + id + ", name=" + name + ", description="
 				+ description + ", parentId=" + parentId + ", createdBy="
 				+ createdBy + ", createdOn=" + createdOn + ", modifiedBy="
-				+ modifiedBy + ", modifiedOn=" + modifiedOn + ", type=" + type
+				+ modifiedBy + ", modifiedOn=" + modifiedOn + ", type=" + nodeType
 				+ ", eTag=" + eTag + "]";
 	}
 

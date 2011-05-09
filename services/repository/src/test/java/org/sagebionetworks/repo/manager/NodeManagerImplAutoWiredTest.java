@@ -83,7 +83,7 @@ public class NodeManagerImplAutoWiredTest {
 		newNode.setName("NodeManagerImplAutoWiredTest.testCreateNode");
 		
 		// need to enable Public to have 'create' access to 'someType'
-		newNode.setType("someType");
+		newNode.setNodeType("someType");
 		String id = nodeManager.createNewNode(newNode, AuthUtilConstants.ANONYMOUS_USER_ID);
 		assertNotNull(id);
 		nodesToDelete.add(id);
@@ -96,7 +96,7 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(fetched.getModifiedOn());
 		assertEquals(id, fetched.getId());
 		assertEquals(newNode.getName(), fetched.getName());
-		assertEquals(newNode.getType(), fetched.getType());
+		assertEquals(newNode.getNodeType(), fetched.getNodeType());
 		assertNotNull(fetched.getETag());
 		
 		// Now try to update the node
@@ -119,7 +119,7 @@ public class NodeManagerImplAutoWiredTest {
 		// Create a node
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
-		newNode.setType("someType");
+		newNode.setNodeType("someType");
 		String id = nodeManager.createNewNode(newNode, AuthUtilConstants.ANONYMOUS_USER_ID);
 		assertNotNull(id);
 		nodesToDelete.add(id);
@@ -133,7 +133,7 @@ public class NodeManagerImplAutoWiredTest {
 		// Add some values
 		annos.addAnnotation("longKey", new Long(1));
 		// Now update the node
-		Annotations updated = nodeManager.updateAnnotations(null, annos);
+		Annotations updated = nodeManager.updateAnnotations(null,id, annos);
 		assertNotNull(updated);
 		Annotations copy = nodeManager.getAnnotations(null, id);
 		assertEquals(updated,copy);

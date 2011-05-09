@@ -146,6 +146,41 @@ public class Annotations implements Base {
 		return null;
 	}
 	
+	
+	public void replaceAnnotation(String key, Object value) {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(value == null) throw new IllegalArgumentException("Value cannot be null");
+		if(value instanceof String){
+			replaceAnnotation(key, (String)value);
+		}else if(value instanceof Date){
+			replaceAnnotation(key, (Date)value);
+		}else if(value instanceof Long){
+			replaceAnnotation(key, (Long)value);
+		}else if(value instanceof Double){
+			replaceAnnotation(key, (Double)value);
+		}else if(value instanceof Boolean){
+			replaceAnnotation(key, ((Boolean)value).toString());
+		}else if(value instanceof Collection ){
+			Collection col = (Collection) value;
+			Iterator it = col.iterator();
+			// Add each
+			int count = 0;
+			while(it.hasNext()){
+				// The first is a replace
+				if(count == 0){
+					replaceAnnotation(key, it.next());
+				}else{
+					// The rest are adds.
+					addAnnotation(key, it.next());
+				}
+				count++;
+			}
+		}
+		else{
+			throw new IllegalArgumentException("Unknown annotatoin type: "+value.getClass().getName());
+		}
+	}
+	
 	/**
 	 * Add a value of object.  Note: Must be of the supported types: {String, Long, Double, Date}.
 	 * @param key
@@ -176,6 +211,50 @@ public class Annotations implements Base {
 			throw new IllegalArgumentException("Unknown annotatoin type: "+value.getClass().getName());
 		}
 		
+	}
+	
+	public void replaceAnnotation(String key, String value){
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(value == null) throw new IllegalArgumentException("Value cannot be null");
+		if(this.stringAnnotations == null){
+			this.stringAnnotations = new HashMap<String, Collection<String>>();
+		}
+		Collection<String> current = new ArrayList<String>();
+		this.stringAnnotations.put(key, current);
+		current.add(value);	
+	}
+	
+	public void replaceAnnotation(String key, Long value){
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(value == null) throw new IllegalArgumentException("Value cannot be null");
+		if(this.longAnnotations == null){
+			this.longAnnotations = new HashMap<String, Collection<Long>>();
+		}
+		Collection<Long> current = new ArrayList<Long>();
+		this.longAnnotations.put(key, current);
+		current.add(value);	
+	}
+	
+	public void replaceAnnotation(String key, Date value){
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(value == null) throw new IllegalArgumentException("Value cannot be null");
+		if(this.dateAnnotations == null){
+			this.dateAnnotations = new HashMap<String, Collection<Date>>();
+		}
+		Collection<Date> current = new ArrayList<Date>();
+		this.dateAnnotations.put(key, current);
+		current.add(value);	
+	}
+	
+	public void replaceAnnotation(String key, Double value){
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(value == null) throw new IllegalArgumentException("Value cannot be null");
+		if(this.doubleAnnotations == null){
+			this.doubleAnnotations = new HashMap<String, Collection<Double>>();
+		}
+		Collection<Double> current = new ArrayList<Double>();
+		this.doubleAnnotations.put(key, current);
+		current.add(value);	
 	}
 	
 	/**
@@ -318,7 +397,5 @@ public class Annotations implements Base {
 				+ doubleAnnotations + ", longAnnotations=" + longAnnotations
 				+ ", dateAnnotations=" + dateAnnotations + "]";
 	}
-
-
 
 }

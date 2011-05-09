@@ -35,7 +35,7 @@ public class JDONodeUtils {
 		if(dto.getId() != null){
 			jdo.setId(Long.parseLong(dto.getId()));
 		}
-		jdo.setType(dto.getType());
+		jdo.setNodeType(dto.getNodeType());
 		jdo.setCreatedOn(dto.getCreatedOn());
 		jdo.setCreatedBy(dto.getCreatedBy());
 		jdo.setModifiedBy(dto.getModifiedBy());
@@ -63,7 +63,7 @@ public class JDONodeUtils {
 		if(jdo.geteTag() != null){
 			dto.setETag(jdo.geteTag().toString());
 		}
-		dto.setType(jdo.getType());
+		dto.setNodeType(jdo.getNodeType());
 		dto.setCreatedOn(jdo.getCreatedOn());
 		dto.setCreatedBy(jdo.getCreatedBy());
 		dto.setModifiedBy(jdo.getModifiedBy());

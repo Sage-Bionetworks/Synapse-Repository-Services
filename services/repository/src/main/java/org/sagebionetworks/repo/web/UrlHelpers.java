@@ -404,6 +404,7 @@ public class UrlHelpers {
 	 * @return the ETag for the entity
 	 */
 	public static String makeEntityEtag(Base entity) {
+//		throw new UnsupportedOperationException("This should no longer be used.");
 		Integer hashCode = entity.hashCode();
 		return hashCode.toString();
 	}

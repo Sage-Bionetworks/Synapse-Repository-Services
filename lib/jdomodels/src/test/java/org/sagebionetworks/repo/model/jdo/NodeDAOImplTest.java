@@ -15,6 +15,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
 import org.springframework.test.context.ContextConfiguration;
@@ -44,7 +45,7 @@ public class NodeDAOImplTest {
 				// Delete each
 				try{
 					nodeDao.delete(id);
-				}catch (JdoObjectRetrievalFailureException e){
+				}catch (NotFoundException e) {
 					// happens if the object no longer exists.
 				}
 			}
@@ -52,7 +53,7 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test 
-	public void testCreateNode(){
+	public void testCreateNode() throws NotFoundException{
 		Node toCreate = Node.createNew("firstNodeEver");
 		String id = nodeDao.createNew(toCreate);
 		toDelete.add(id);
@@ -65,7 +66,7 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test 
-	public void testAddChild(){
+	public void testAddChild() throws NotFoundException{
 		Node parent = Node.createNew("parent");
 		String parentId = nodeDao.createNew(parent);
 		assertNotNull(parentId);
@@ -93,16 +94,19 @@ public class NodeDAOImplTest {
 		try{
 			childLoaded = nodeDao.getNode(childId);
 			fail("The child should not exist after the parent was deleted");
-		}catch (JdoObjectRetrievalFailureException e){
+		}catch (NotFoundException e){
 			// expected.
+		}catch (JdoObjectRetrievalFailureException e){
+			System.out.println(e);
 		}
 	}
 	
 	/**
 	 * Calling getETagForUpdate() outside of a transaction in not allowed, and will throw an exception.
+	 * @throws NotFoundException 
 	 */
 	@Test(expected=IllegalTransactionStateException.class)
-	public void testGetETagForUpdate(){
+	public void testGetETagForUpdate() throws NotFoundException{
 		Node toCreate = Node.createNew("testGetETagForUpdate");
 		String id = nodeDao.createNew(toCreate);
 		toDelete.add(id);
@@ -112,7 +116,7 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testUpdateNode(){
+	public void testUpdateNode() throws NotFoundException{
 		Node node = Node.createNew("testUpdateNode");
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
@@ -131,7 +135,7 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testCreateAnnotations(){
+	public void testCreateAnnotations() throws NotFoundException{
 		Node node = Node.createNew("testCreateAnnotations");
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
@@ -150,7 +154,7 @@ public class NodeDAOImplTest {
 		String newETagString = new Long(currentETag).toString();
 		annos.setEtag(newETagString);
 		// Update them
-		nodeDao.updateAnnotations(annos);
+		nodeDao.updateAnnotations(id, annos);
 		// Now get a copy and ensure it equals what we sent
 		Annotations copy = nodeDao.getAnnotations(id);
 		assertNotNull(copy);

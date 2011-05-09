@@ -20,6 +20,7 @@ public class InputDataLayer implements DatasetLayer {
 	private String processingFacility;
 	private String qcBy;
 	private Date qcDate;
+	String parentId; 
 	// xschildw: Additional properties
 	private String status;
 	private Long numSamples;
@@ -265,6 +266,14 @@ public class InputDataLayer implements DatasetLayer {
 		return result;
 	}
 
+	public String getParentId() {
+		return parentId;
+	}
+
+	public void setParentId(String parentId) {
+		this.parentId = parentId;
+	}
+
 	/* (non-Javadoc)
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
@@ -368,5 +377,6 @@ public class InputDataLayer implements DatasetLayer {
 				+ etag + ", annotations=" + annotations + ", preview="
 				+ preview + ", locations=" + locations + "]";
 	}
+
 	
 }

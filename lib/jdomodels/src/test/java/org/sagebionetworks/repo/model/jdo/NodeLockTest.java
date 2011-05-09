@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -44,7 +45,7 @@ public class NodeLockTest {
 	
 	
 	@Before
-	public void before(){
+	public void before() throws NotFoundException{
 		assertNotNull(nodeLockerA);
 		assertNotNull(nodeLockerB);
 		assertNotNull(nodeDao);
@@ -64,7 +65,11 @@ public class NodeLockTest {
 			nodeLockerB.releaseLock();
 		}
 		if(nodeDao != null && nodeId != null){
-			nodeDao.delete(nodeId);
+			try {
+				nodeDao.delete(nodeId);
+			} catch (NotFoundException e) {
+
+			}
 		}
 	}
 	
@@ -87,6 +92,8 @@ public class NodeLockTest {
 					nodeLockerA.aquireAndHoldLock(theNodeId);
 				} catch (InterruptedException e) {
 					fail(e.getMessage());
+				} catch (NotFoundException e) {
+					fail(e.getMessage());
 				}
 			}
 		});
@@ -108,6 +115,8 @@ public class NodeLockTest {
 				try {
 					nodeLockerB.aquireAndHoldLock(theNodeId);
 				} catch (InterruptedException e) {
+					fail(e.getMessage());
+				} catch (NotFoundException e) {
 					fail(e.getMessage());
 				}
 			}

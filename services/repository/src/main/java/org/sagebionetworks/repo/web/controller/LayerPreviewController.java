@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DependentPropertyDAO;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LayerLocations;
 import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -15,9 +16,11 @@ import org.sagebionetworks.repo.util.SchemaHelper;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.DependentEntityController;
 import org.sagebionetworks.repo.web.DependentEntityControllerImp;
+import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
@@ -46,33 +49,38 @@ import java.util.Map;
  * @author deflaux
  */
 @Controller
-public class LayerPreviewController extends BaseController implements
-		DependentEntityController<LayerPreview, InputDataLayer> {
+public class LayerPreviewController extends BaseController2
+//implements
+//		DependentEntityController<LayerPreview, InputDataLayer> 
+{
+	
+	@Autowired
+	GenericEntityController entityController;
 
-	private DependentEntityController<LayerPreview, InputDataLayer> controller;
+//	private DependentEntityController<LayerPreview, InputDataLayer> controller;
 
 	LayerPreviewController() {
-		controller = new DependentEntityControllerImp<LayerPreview, InputDataLayer>(
-				LayerPreview.class);
+//		controller = new DependentEntityControllerImp<LayerPreview, InputDataLayer>(
+//				LayerPreview.class);
 	}
 
-	private void checkAuthorization(String userId, Boolean readOnly) {
-		DependentPropertyDAO<LayerPreview, InputDataLayer> dao = getDaoFactory()
-				.getLayerPreviewDAO(userId);
-		setDao(dao);
-	}
-
-	@Override
-	public void setDao(DependentPropertyDAO<LayerPreview, InputDataLayer> dao) {
-		controller.setDao(dao);
-
-	}
+//	private void checkAuthorization(String userId, Boolean readOnly) {
+//		DependentPropertyDAO<LayerPreview, InputDataLayer> dao = getDaoFactory()
+//				.getLayerPreviewDAO(userId);
+//		setDao(dao);
+//	}
+//
+//	@Override
+//	public void setDao(DependentPropertyDAO<LayerPreview, InputDataLayer> dao) {
+//		controller.setDao(dao);
+//
+//	}
 
 	/*******************************************************************************
 	 * Layer Preview handlers
 	 */
 
-	@Override
+//	@Override
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.PREVIEW, method = RequestMethod.GET)
@@ -82,11 +90,26 @@ public class LayerPreviewController extends BaseController implements
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-		checkAuthorization(userId, true);
-		return controller.getDependentEntity(userId, id, request);
+//		checkAuthorization(userId, true);
+		InputDataLayer layer = entityController.getEntity(userId, id, request, InputDataLayer.class);
+		return createFromLayer(request, layer);
 	}
 
-	@Override
+private LayerPreview createFromLayer(HttpServletRequest request,
+		InputDataLayer layer) {
+	LayerPreview preview = new LayerPreview();
+	preview.setCreationDate(layer.getCreationDate());
+	preview.setEtag(layer.getEtag());
+	preview.setId(layer.getId());
+	preview.setPreview(layer.getPreview());
+	addServiceSpecificMetadata(preview, request);
+	return preview;
+}
+	
+	private void addServiceSpecificMetadata(LayerPreview entity, HttpServletRequest request) {
+		entity.setUri(UrlHelpers.makeEntityPropertyUri(request));
+	}
+//	@Override
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.PREVIEW, method = RequestMethod.PUT)
@@ -99,19 +122,21 @@ public class LayerPreviewController extends BaseController implements
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException {
 
-		checkAuthorization(userId, false);
-		return controller.updateDependentEntity(userId, id, etag,
-				updatedEntity, request);
+//		checkAuthorization(userId, false);
+		InputDataLayer layer = entityController.getEntity(userId, id, request, InputDataLayer.class);
+		layer.setPreview(updatedEntity.getPreview());
+		layer = entityController.updateEntity(userId, id, layer, request);
+		return createFromLayer(request, layer);
 	}
 
-	@Override
+//	@Override
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{id}" + UrlHelpers.LAYER
 			+ "/{id}" + UrlHelpers.PREVIEW + UrlHelpers.SCHEMA, method = RequestMethod.GET)
 	public @ResponseBody
 	JsonSchema getDependentEntitySchema() throws DatastoreException {
 
-		return controller.getDependentEntitySchema();
+		return SchemaHelper.getSchema(LayerPreview.class);
 	}
 
 	/**
@@ -136,9 +161,8 @@ public class LayerPreviewController extends BaseController implements
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-		checkAuthorization(userId, true);
-		LayerPreview preview = controller.getDependentEntity(userId, id,
-				request);
+//		checkAuthorization(userId, true);
+		LayerPreview preview = this.getDependentEntity(userId, id, request);
 
 		String rawPreview = preview.getPreview();
 		String lines[] = rawPreview.split("(?m)\n");

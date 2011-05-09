@@ -20,6 +20,12 @@ import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.query.ObjectType;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 import org.sagebionetworks.web.client.DatasetService;
 import org.sagebionetworks.web.client.SearchService;
@@ -88,7 +94,7 @@ public class ITPortalSerachServices {
 			ds.setCreationDate(now);
 			ds.setDescription("description" + i);
 			ds.setCreator("magic");
-			ds.setEtag("someETag" + i);
+//			ds.setEtag("someETag" + i);
 			if ((i % 2) == 0) {
 				ds.setStatus("Started");
 			} else {
@@ -177,7 +183,7 @@ public class ITPortalSerachServices {
 		assertNotNull(results);
 		assertEquals(totalNumberOfDatasets, results.getTotalNumberResults());
 	}
-	
+		
 	// Note: This test will fail until PLFM-150 is resolved.
 	@Ignore
 	@Test

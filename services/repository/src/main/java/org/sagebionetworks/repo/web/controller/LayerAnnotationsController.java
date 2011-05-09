@@ -11,12 +11,15 @@ import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InputDataLayerDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.util.SchemaHelper;
 import org.sagebionetworks.repo.web.AnnotationsController;
 import org.sagebionetworks.repo.web.AnnotationsControllerImp;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
+import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -40,22 +43,25 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author deflaux
  */
 @Controller
-public class LayerAnnotationsController extends BaseController { // TODO
+public class LayerAnnotationsController extends BaseController2 { // TODO
 	// implements
 	// AnnotationsController
+	
+	@Autowired
+	GenericEntityController entityController;
 
-	private AnnotationsController<InputDataLayer> layerAnnotationsController;
-
-	private DatasetDAO datasetDao = null; // DAO_FACTORY.getDatasetDAO();
-
-	private void setDao(String userId) {
-		datasetDao = getDaoFactory().getDatasetDAO(userId);
-	}
-
-	LayerAnnotationsController() {
-		layerAnnotationsController = new AnnotationsControllerImp<InputDataLayer>();
-
-	}
+//	private AnnotationsController<InputDataLayer> layerAnnotationsController;
+//
+//	private DatasetDAO datasetDao = null; // DAO_FACTORY.getDatasetDAO();
+//
+//	private void setDao(String userId) {
+//		datasetDao = getDaoFactory().getDatasetDAO(userId);
+//	}
+//
+//	LayerAnnotationsController() {
+//		layerAnnotationsController = new AnnotationsControllerImp<InputDataLayer>();
+//
+//	}
 
 	/*******************************************************************************
 	 * Layer Annotation RUD handlers
@@ -82,16 +88,7 @@ public class LayerAnnotationsController extends BaseController { // TODO
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 
-		setDao(userId);
-
-		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
-
-		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
-
-		layerAnnotationsController.setDao(layerDao);
-
-		return layerAnnotationsController.getEntityAnnotations(userId, id,
-				request);
+		return entityController.getEntityAnnotations(userId, id, request);
 	}
 
 	/**
@@ -121,16 +118,7 @@ public class LayerAnnotationsController extends BaseController { // TODO
 			ConflictingUpdateException, DatastoreException,
 			UnauthorizedException, InvalidModelException {
 
-		setDao(userId);
-
-		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
-
-		InputDataLayerDAO layerDao = datasetDao.getInputDataLayerDAO(datasetId);
-
-		layerAnnotationsController.setDao(layerDao);
-
-		return layerAnnotationsController.updateEntityAnnotations(userId, id,
-				etag, updatedAnnotations, request);
+		return entityController.updateEntityAnnotations(userId, id, updatedAnnotations, request);
 	}
 
 	/**
@@ -143,6 +131,6 @@ public class LayerAnnotationsController extends BaseController { // TODO
 	public @ResponseBody
 	JsonSchema getEntityAnnotationsSchema() throws DatastoreException {
 
-		return layerAnnotationsController.getEntityAnnotationsSchema();
+		return SchemaHelper.getSchema(Annotations.class);
 	}
 }

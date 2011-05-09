@@ -5,20 +5,19 @@ import javax.servlet.http.HttpServletRequest;
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.web.AnnotatableEntitiesAccessorImpl;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
-import org.sagebionetworks.repo.web.EntitiesAccessor;
 import org.sagebionetworks.repo.web.EntityController;
-import org.sagebionetworks.repo.web.EntityControllerImp;
+import org.sagebionetworks.repo.web.EntityController2;
+import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
@@ -41,31 +40,15 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author deflaux
  */
 @Controller
-public class DatasetController extends BaseController implements
-		EntityController<Dataset> {
+public class DatasetController extends BaseController2 implements
+		EntityController2<Dataset> {
 
-	private EntitiesAccessor<Dataset> datasetAccessor;
-	private EntityController<Dataset> datasetController;
-
-	DatasetController() {
-		datasetAccessor = new AnnotatableEntitiesAccessorImpl<Dataset>();
-		datasetController = new EntityControllerImp<Dataset>(Dataset.class,
-				datasetAccessor);
-	}
-
-	private void checkAuthorization(String userId, Boolean readOnly) {
-		BaseDAO<Dataset> dao = getDaoFactory().getDatasetDAO(userId);
-		setDao(dao);
-	}
-
-	@Override
-	public void setDao(BaseDAO<Dataset> dao) {
-		datasetAccessor.setDao(dao);
-		datasetController.setDao(dao);
-	}
+	@Autowired
+	GenericEntityController entityController;
 
 	/*******************************************************************************
 	 * Dataset CRUD handlers
+	 * @throws NotFoundException 
 	 */
 
 	@Override
@@ -76,11 +59,14 @@ public class DatasetController extends BaseController implements
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestBody Dataset newEntity, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
-			UnauthorizedException {
+			UnauthorizedException, NotFoundException {
 
-		checkAuthorization(userId, false);
-		Dataset dataset = datasetController.createEntity(userId, newEntity,
-				request);
+		if(newEntity == null) throw new IllegalArgumentException("Dataset cannot be null");
+		if(newEntity.getVersion() == null){
+			// Temp hack until we have real revisions
+			newEntity.setVersion("1.0.0");
+		}
+		Dataset dataset = entityController.createEntity(userId, newEntity, request);
 		addServiceSpecificMetadata(dataset, request);
 		return dataset;
 	}
@@ -94,8 +80,7 @@ public class DatasetController extends BaseController implements
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-		checkAuthorization(userId, true);
-		Dataset dataset = datasetController.getEntity(userId, id, request);
+		Dataset dataset = entityController.getEntity(userId, id, request, Dataset.class);
 		addServiceSpecificMetadata(dataset, request);
 		return dataset;
 	}
@@ -112,8 +97,10 @@ public class DatasetController extends BaseController implements
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException {
 
-		checkAuthorization(userId, false);
-		Dataset dataset = datasetController.updateEntity(userId, id, etag,
+		if(etag != null){
+			updatedEntity.setEtag(etag.toString());
+		}
+		Dataset dataset = entityController.updateEntity(userId, id,
 				updatedEntity, request);
 		addServiceSpecificMetadata(dataset, request);
 		return dataset;
@@ -127,8 +114,7 @@ public class DatasetController extends BaseController implements
 			@PathVariable String id) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 
-		checkAuthorization(userId, false);
-		datasetController.deleteEntity(userId, id);
+		entityController.deleteEntity(userId, id);
 		return;
 	}
 
@@ -143,11 +129,13 @@ public class DatasetController extends BaseController implements
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending,
 			HttpServletRequest request) throws DatastoreException,
-			UnauthorizedException {
+			UnauthorizedException, NotFoundException {
 
-		checkAuthorization(userId, true);
-		PaginatedResults<Dataset> results = datasetController.getEntities(
-				userId, offset, limit, sort, ascending, request);
+		if(ServiceConstants.DEFAULT_SORT_BY_PARAM.equals(sort)){
+			sort = null;
+		}
+		PaginatedResults<Dataset> results = entityController.getEntities(
+				userId, offset, limit, sort, ascending, request, Dataset.class);
 
 		for (Dataset dataset : results.getResults()) {
 			addServiceSpecificMetadata(dataset, request);
@@ -162,7 +150,7 @@ public class DatasetController extends BaseController implements
 	public @ResponseBody
 	JsonSchema getEntitySchema() throws DatastoreException {
 
-		return datasetController.getEntitySchema();
+		return entityController.getEntitySchema(Dataset.class);
 	}
 	
 	@Override
@@ -171,7 +159,7 @@ public class DatasetController extends BaseController implements
 	public @ResponseBody
 	JsonSchema getEntitiesSchema() throws DatastoreException {
 
-		return datasetController.getEntitiesSchema();
+		return entityController.getEntitiesSchema(Dataset.class);
 	}
 	
 	/**

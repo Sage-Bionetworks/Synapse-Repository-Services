@@ -9,6 +9,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -270,7 +271,7 @@ public class LayerControllerTest {
 						"{\"version\": \"1.0.0\", \"description\": \"foo\", \"releaseNotes\":\"bar\"}",
 						HttpStatus.BAD_REQUEST);
 
-		assertEquals("'name' is a required property for InputDataLayer", error
+		assertEquals("Node.name cannot be null", error
 				.getString("reason"));
 	}
 
@@ -281,6 +282,7 @@ public class LayerControllerTest {
 	 * 
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testMissingRequiredFieldUpdateLayer() throws Exception {
 
@@ -338,7 +340,7 @@ public class LayerControllerTest {
 
 		String reason = error.getString("reason");
 		assertTrue(reason
-				.matches("entity with id .* was updated since you last fetched it, retrieve it again and reapply the update"));
+				.matches("Node: .* was updated since you last fetched it, retrieve it again and reapply the update"));
 	}
 
 	/*****************************************************************************************************
