@@ -104,8 +104,8 @@ public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> 
 
 	@Transactional
 	public UserGroup getSystemGroup(String name, boolean isIndividualGroup) throws DatastoreException {
-		JDOExecutor<JDOUserGroup> exec = new JDOExecutor<JDOUserGroup>(jdoTemplate, JDOUserGroup.class);
-		Collection<JDOUserGroup> ans = exec.execute(
+		JDOExecutor exec = new JDOExecutor(jdoTemplate);
+		Collection<JDOUserGroup> ans = exec.execute(JDOUserGroup.class, 
 				"isSystemGroup==true && name==pName && isIndividual==pIsIndividual",
 				String.class.getName()+" pName, "+Boolean.class.getName()+" pIsIndividual",
 				null,

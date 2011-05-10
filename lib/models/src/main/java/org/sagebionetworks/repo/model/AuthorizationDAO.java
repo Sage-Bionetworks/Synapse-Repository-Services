@@ -4,6 +4,18 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AuthorizationDAO {
 	
+	/**
+	 * @return the SQL to find the root-accessible nodes that a specified user can access
+	 * using a specified access type
+	 */
+	public String authorizationSQL();
+	
+//	/**
+//	 * @return the SQL to determine whether a user is an administrator
+//	 * Returns 1 if an admin, 0 otherwise
+//	 */
+//	public String adminSQL();
+	
 	
 	/**
 	 * Creates a user with the given name, along with the 'individual group' 
@@ -53,6 +65,16 @@ public interface AuthorizationDAO {
 	
 	public static final String NODE_RESOURCE_TYPE = Node.class.getName();
 	
-
+	/**
+	 * @param user
+	 * @return true iff the given user is a member of the admin group
+	 */ 
+	public boolean isAdmin(User user) throws DatastoreException, NotFoundException;
+		
+	/**
+	 * @param userName 
+	 * @return true iff the user indicated by userName is a member of the admin group
+	 */ 
+	public boolean isAdmin(String userName) throws DatastoreException, NotFoundException;
 
 }

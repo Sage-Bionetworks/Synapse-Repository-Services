@@ -5,14 +5,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -20,13 +18,9 @@ import java.util.logging.Logger;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
@@ -35,21 +29,13 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.UserDAO;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.jdo.AuthorizableImpl;
-import org.sagebionetworks.repo.model.jdo.JDOAuthorizationDAOImpl;
 import org.sagebionetworks.repo.model.jdo.JDOBootstrapperImpl;
-import org.sagebionetworks.repo.model.jdo.aw.JDOUserDAO;
-import org.sagebionetworks.repo.model.jdo.aw.JDOUserGroupDAO;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.model.query.ObjectType;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -91,9 +77,6 @@ public class JDONodeQueryDAOImplTest {
 
 	private static int totalNumberOfDatasets = 5;
 
-	private static final String TEST_USER_NAME = "test-user";
-	private User user = null;
-
 	@Autowired
 	private NodeQueryDao nodeQueryDao;
 	
@@ -103,12 +86,6 @@ public class JDONodeQueryDAOImplTest {
 	@Autowired
 	private FieldTypeDAO fieldTypeDao;
 	
-	@Autowired
-	private JDOUserGroupDAO userGroupDAO;
-	
-	@Autowired
-	private AuthorizationDAO authorizationDAO;
-
 
 	@Before
 	public void before() throws Exception {
@@ -118,7 +95,6 @@ public class JDONodeQueryDAOImplTest {
 		assertNotNull(nodeQueryDao);
 		assertNotNull(nodeDao);
 		assertNotNull(fieldTypeDao);
-		assertNotNull(authorizationDAO);
 		// from
 		// http://groups.google.com/group/google-appengine-java/browse_thread/thread/96baed75e3c30a58/00d5afb2e0445882?lnk=gst&q=DataNucleus+plugin#00d5afb2e0445882
 		// This one caused all the WARNING and SEVERE logs about eclipse UI
@@ -139,7 +115,7 @@ public class JDONodeQueryDAOImplTest {
 		
 		populateNodesForTest();
 		
-		createTestUser();
+
 	}
 
 
@@ -223,11 +199,6 @@ public class JDONodeQueryDAOImplTest {
 		return ans;
 	}
 
-	private void createTestUser() throws Exception {
-		deleteTestUser();
-		this.user = authorizationDAO.createUser(TEST_USER_NAME);
-	}
-	
 	/**
 	 * Cleanup
 	 * 
@@ -256,120 +227,8 @@ public class JDONodeQueryDAOImplTest {
 			}
 		}
 		
-		deleteTestUser();
+
 	}
-	
-	private void deleteTestUser() throws Exception {
-		if (user!=null) {
-			authorizationDAO.deleteUser(user.getUserId());
-			user=null;
-		}
-	}
-
-
-	// this works locally on my Windows PC, but not under Elastic Bamboo
-	@Test
-	public void testAuthQueryComponent() throws Exception {
-		
-		String sql = nodeQueryDao.authorizationSQL();
-		Map<String, Object> parameters = new HashMap<String,Object>();
-		
-		// check accessible objects from a non-existent user
-		parameters.put("userName"/*.toUpperCase()*/, "foo");
-		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.READ.name());
-		List list = nodeQueryDao.executeQuery(sql, parameters);
-		
-		// anything in this list must be leftovers from another test in the Public group
-		// so remove them
-		UserGroup publicGroup = userGroupDAO.getPublicGroup();
-		for (Object o : list) {
-			userGroupDAO.removeResource(publicGroup, new AuthorizableImpl(o.toString(), 
-				AuthorizationDAO.NODE_RESOURCE_TYPE));
-		}
-		
-		// test that anonymous can't access any nodes
-		parameters.put("userName"/*.toUpperCase()*/, AuthUtilConstants.ANONYMOUS_USER_ID);
-		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.READ.name());
-		list = nodeQueryDao.executeQuery(sql, parameters);
-		assertTrue(list.toString(), list.size()==0);
-		
-		// there is a non-admin user, created by this test suite
-		// test that the user can't access any nodes
-		parameters.put("userName"/*.toUpperCase()*/, user.getUserId());
-		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.READ.name());
-		list = nodeQueryDao.executeQuery(sql, parameters);
-		assertTrue(list.toString(), list.size()==0);
-		
-		// add access for the user
-		String nodeId = nodeIds.get(0);
-		Node n = nodeDao.getNode(nodeId);
-		authorizationDAO.addUserAccess(n, user.getUserId());
-		// test that the user CAN access the node in a query
-		list = nodeQueryDao.executeQuery(sql, parameters);
-		assertTrue(list.toString(), list.size()==1);
-		
-		// test that the user CANNOT access the node with a different access type
-		parameters.put("userName"/*.toUpperCase()*/, user.getUserId());
-		parameters.put("accessType"/*.toUpperCase()*/, "foo");
-		list = nodeQueryDao.executeQuery(sql, parameters);
-		assertTrue(list.toString(), list.size()==0);
-
-		// test that anonymous CANNOT access the node
-		parameters.put("userName"/*.toUpperCase()*/, AuthUtilConstants.ANONYMOUS_USER_ID);
-		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.READ.name());
-		list = nodeQueryDao.executeQuery(sql, parameters);
-		assertTrue(list.toString(), list.size()==0);
-
-		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.SHARE.name());
-		list = nodeQueryDao.executeQuery(sql, parameters);
-		assertTrue(list.toString(), list.size()==0);
-
-		// give public access to another node
-		Node n2 = nodeDao.getNode(nodeIds.get(1));
-		userGroupDAO.addResource(publicGroup, 
-				new AuthorizableImpl(n2.getId(), 
-						AuthorizationDAO.NODE_RESOURCE_TYPE), 
-						Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[] {
-						AuthorizationConstants.ACCESS_TYPE.READ}));
-		
-		// check that anonymous can access the node for 'read'...
-		parameters.put("userName"/*.toUpperCase()*/, AuthUtilConstants.ANONYMOUS_USER_ID);
-		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.READ.name());
-		list = nodeQueryDao.executeQuery(sql, parameters);
-		assertTrue(list.toString(), list.size()==1);
-		
-		// ... but not for 'change'
-		parameters.put("userName"/*.toUpperCase()*/, AuthUtilConstants.ANONYMOUS_USER_ID);
-		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.CHANGE.name());
-		list = nodeQueryDao.executeQuery(sql, parameters);
-		assertTrue(list.toString(), list.size()==0);
-		
-		// check that the user can access the node
-		parameters.put("userName"/*.toUpperCase()*/, user.getUserId());
-		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.READ.name());
-		list = nodeQueryDao.executeQuery(sql, parameters);
-		assertTrue(list.toString(), list.size()==2);
-	}
-	
-	// this works locally on my Windows PC, but not under Elastic Bamboo
-	@Test
-	public void testAdminQueryComponent() throws Exception {
-		String sql = nodeQueryDao.adminSQL();
-		Map<String, Object> parameters = new HashMap<String,Object>();
-		parameters.put("userName"/*.toUpperCase()*/, AuthUtilConstants.ANONYMOUS_USER_ID);
-		List list = nodeQueryDao.executeQuery(sql, parameters);
-		assertEquals(new Integer(0), new Integer(list.get(0).toString()));
-		parameters.put("userName"/*.toUpperCase()*/, "admin");
-		list = nodeQueryDao.executeQuery(sql, parameters);
-		assertEquals(new Integer(1), new Integer(list.get(0).toString()));
-		parameters.put("userName"/*.toUpperCase()*/, "undefinedUserFoo");
-		list = nodeQueryDao.executeQuery(sql, parameters);
-		assertEquals(new Integer(0), new Integer(list.get(0).toString()));
-		parameters.put("userName"/*.toUpperCase()*/, user.getUserId());
-		list = nodeQueryDao.executeQuery(sql, parameters);
-		assertEquals(new Integer(0), new Integer(list.get(0).toString()));
-	}
-	
 	
 
 	// Test basic query

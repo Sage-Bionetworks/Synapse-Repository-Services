@@ -16,18 +16,6 @@ import org.sagebionetworks.repo.model.query.FieldType;
 public interface NodeQueryDao {
 	
 	/**
-	 * @return the SQL to find the root-accessible nodes that a specified user can access
-	 * using a specified access type
-	 */
-	public String authorizationSQL();
-	
-	/**
-	 * @return the SQL to determine whether a user is an administrator
-	 * Returns 1 if an admin, 0 otherwise
-	 */
-	public String adminSQL();
-	
-	/**
 	 * Execute a query, and return a paginated list of node ids.
 	 * @param query
 	 * @return
