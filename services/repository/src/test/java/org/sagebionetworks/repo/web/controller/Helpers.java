@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.URLEncoder;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -715,11 +716,13 @@ public class Helpers {
 		// epoch time.
 		// See
 		// http://wiki.fasterxml.com/JacksonFAQDateHandling?highlight=(jackson)|(date)
-
-		Date now = new Date();
+		
+		// Start with a date with no milliseconds as they will be lost
+		// going to MySQL
+		Date now = new Date(1305050350000L);
 		DateTime aWhileBack = new DateTime("2010-10-01");
 
-		Long curationEvents[] = { now.getTime(), now.getTime()+1000,
+		Long curationEvents[] = { now.getTime(), now.getTime()+100000,
 				aWhileBack.getMillis() };
 		JSONObject dateAnnotations = annotations
 				.getJSONObject("dateAnnotations");
