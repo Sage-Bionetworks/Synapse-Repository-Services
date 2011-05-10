@@ -44,10 +44,12 @@ public class QueryControllerTest {
 
 		// Load up a few datasets with annotations
 		for (int i = 0; i < DatasetsControllerTest.SAMPLE_DATASET_NAMES.length; i++) {
+			String status = (0 == (i % 2)) ? "pending" : "complete";
 			JSONObject newDataset = helper.testCreateJsonEntity(helper
 					.getServletPrefix()
 					+ "/dataset", "{\"name\":\""
-					+ DatasetsControllerTest.SAMPLE_DATASET_NAMES[i] + "\"}");
+					+ DatasetsControllerTest.SAMPLE_DATASET_NAMES[i]
+					+ "\", \"status\":\"" + status + "\"}");
 
 			// Add some canned annotations to our dataset
 			helper.testEntityAnnotations(newDataset.getString("annotations"));
@@ -128,7 +130,7 @@ public class QueryControllerTest {
 	 */
 	@Test
 	public void testSortQueryDescending() throws Exception {
-		
+
 		// This test case also has the "dataset." prefix on the column name
 		JSONObject queryResult = helper
 				.testQuery("select * from dataset order by dataset.\"name\" desc");
@@ -166,7 +168,7 @@ public class QueryControllerTest {
 				.testQuery("select * from dataset where dataset.name == \"Pediatric AML TARGET\"");
 		assertExpectedQueryResultProperties("dataset", queryResult);
 
-		assertEquals(1,	queryResult.getInt("totalNumberOfResults"));
+		assertEquals(1, queryResult.getInt("totalNumberOfResults"));
 		JSONArray results = queryResult.getJSONArray("results");
 		assertEquals(1, results.length());
 
@@ -209,6 +211,25 @@ public class QueryControllerTest {
 			assertTrue(layer.has("layer.type"));
 			assertFalse("null".equals(layer.getString("layer.type")));
 		}
+	}
+
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.QueryController#query} .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testSingleQuoteStringLiteral() throws Exception {
+		JSONObject queryResult = helper
+				.testQuery("select * from dataset where dataset.name == 'Pediatric AML TARGET'");
+		assertExpectedQueryResultProperties("dataset", queryResult);
+		assertEquals(1, queryResult.getInt("totalNumberOfResults"));
+		JSONArray results = queryResult.getJSONArray("results");
+		assertEquals(1, results.length());
+		// Check that it is a list of one map
+		JSONObject result = results.getJSONObject(0);
+		assertEquals("Pediatric AML TARGET", result.getString("dataset.name"));
 	}
 
 	/**
