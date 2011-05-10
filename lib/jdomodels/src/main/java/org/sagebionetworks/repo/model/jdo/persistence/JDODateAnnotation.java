@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.jdo.persistence;
 
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -35,6 +34,7 @@ public class JDODateAnnotation implements JDOAnnotation<Date> {
 	@Persistent
 	private String attribute;
 
+	@Persistent
 	private Date value;
 
 	public JDODateAnnotation() {
@@ -45,11 +45,8 @@ public class JDODateAnnotation implements JDOAnnotation<Date> {
 		setValue(value);
 	}
 
-	private static final DateFormat df = new SimpleDateFormat(
-			"ddMMMyyyy HH:mm:ss.");
-
 	public String toString() {
-		return getAttribute() + ": " + df.format(getValue());
+		return getAttribute() + ": " + new SimpleDateFormat("ddMMMyyyy HH:mm:ss.").format(getValue());
 	}
 
 	public Long getId() {
