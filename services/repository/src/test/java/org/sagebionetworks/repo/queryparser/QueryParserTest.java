@@ -305,6 +305,24 @@ public class QueryParserTest {
 		assertEquals("id", expression.getId().getFieldName());
 		assertEquals("123", expression.getValue());
 	}
+	
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testSingleQuoteStringLiteral() throws Exception {
+
+		QueryStatement stmt = new QueryStatement(
+				"select * from layer where dataset.id == '123'");
+		assertEquals("layer", stmt.getTableName());
+		assertNotNull(stmt.getSearchCondition());
+		assertEquals(1, stmt.getSearchCondition().size());
+		assertTrue(stmt.getSearchCondition().get(0) instanceof Expression);
+		Expression expression = (Expression) stmt.getSearchCondition().get(0);
+		assertEquals("dataset", expression.getId().getTableName());
+		assertEquals("id", expression.getId().getFieldName());
+		assertEquals("123", expression.getValue());
+	}
 
 	/************************************************************************
 	 * Error cases, make sure the messages we return are useful to humans.
