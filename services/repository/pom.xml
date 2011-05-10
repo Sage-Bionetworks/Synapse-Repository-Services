@@ -191,6 +191,7 @@
           <additionalClasspathElements>
             <element>${project.basedir}/src/main/webapp/WEB-INF/</element>
           </additionalClasspathElements>
+          <argLine>-Xmx512m -Xms128m</argLine>
         </configuration>
       </plugin>
       
