@@ -51,4 +51,24 @@ public class TempMockAuthDao implements AuthorizationDAO{
 		return true;
 	}
 
+	@Override
+	public String authorizationSQL() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean isAdmin(User user) throws DatastoreException,
+			NotFoundException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean isAdmin(String userName) throws DatastoreException,
+			NotFoundException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 }

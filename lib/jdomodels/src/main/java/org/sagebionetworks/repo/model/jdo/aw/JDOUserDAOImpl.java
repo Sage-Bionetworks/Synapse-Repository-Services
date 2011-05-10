@@ -50,8 +50,8 @@ public class JDOUserDAOImpl extends JDOBaseDAOImpl<User,JDOUser> implements JDOU
 	}
 		
 	public User getUser(String userName) throws DatastoreException {
-		JDOExecutor<JDOUser> exec = new JDOExecutor<JDOUser>(jdoTemplate, JDOUser.class);
-		Collection<JDOUser> u = exec.execute("userId==pUserId", String.class.getName()+" pUserId", null, userName);
+		JDOExecutor exec = new JDOExecutor(jdoTemplate);
+		Collection<JDOUser> u = exec.execute(JDOUser.class, "userId==pUserId", String.class.getName()+" pUserId", null, userName);
 		if (u.size()>1) throw new DatastoreException("Expected one user named "+userName+" but found "+u.size());
 		if (u.size()==0) return null;
 		JDOUser jdo = u.iterator().next();

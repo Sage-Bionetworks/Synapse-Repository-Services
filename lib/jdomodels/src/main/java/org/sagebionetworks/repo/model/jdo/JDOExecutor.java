@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.jdo;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.jdo.JDOException;
 import javax.jdo.PersistenceManager;
@@ -10,16 +11,37 @@ import org.springframework.orm.jdo.JdoCallback;
 import org.springframework.orm.jdo.JdoTemplate;
 
 @SuppressWarnings("unchecked")
-public class JDOExecutor<T> {
+public class JDOExecutor {
 	private JdoTemplate jdoTemplate;
-	private Class<T> t; // return type
 	
-	public JDOExecutor(JdoTemplate jdoTemplate, Class<T> t) {
+	public JDOExecutor(JdoTemplate jdoTemplate) {
 		this.jdoTemplate = jdoTemplate;
-		this.t = t;
 	}
+	
+	public List<Object[]> execute(final String sql) {
+		return (List<Object[]>) jdoTemplate.execute(new JdoCallback<List<Object[]>>() {
+			@Override
+			public List<Object[]> doInJdo(PersistenceManager pm) throws JDOException {
+				Query query = pm.newQuery("javax.jdo.query.SQL", sql);
+				List<Object[]> ans = (List<Object[]>)query.execute();
+				return ans;
+			}
+		});
+	}
+	
+	public List<Object[]> execute(final String sql, final Map<String,Object> parameters ) {
+		return (List<Object[]>) jdoTemplate.execute(new JdoCallback<List<Object[]>>() {
+			@Override
+			public List<Object[]> doInJdo(PersistenceManager pm) throws JDOException {
+				Query query = pm.newQuery("javax.jdo.query.SQL", sql);
+				List<Object[]> ans = (List<Object[]>)query.executeWithMap(parameters);
+				return ans;
+			}
+		});
+	}
+	
 
-	public List<T> execute(final String filter,
+	public <T> List<T> execute(final Class<T> t, final String filter,
 			final String params,
 			final String vars) {
 		return (List<T>) jdoTemplate.execute(new JdoCallback<List<T>>() {
@@ -37,7 +59,7 @@ public class JDOExecutor<T> {
 	
 
 	
-	public List<T> execute(final String filter,
+	public <T> List<T> execute(final Class<T> t, final String filter,
 			final String params,
 			final String vars,
 			final Object arg) {
@@ -54,7 +76,7 @@ public class JDOExecutor<T> {
 		});
 	}
 	
-	public List<T> execute(final String filter,
+	public <T> List<T> execute(final Class<T> t, final String filter,
 			final String params,
 			final String vars,
 			final Object arg1,
@@ -72,7 +94,7 @@ public class JDOExecutor<T> {
 		});
 	}
 	
-	public List<T> execute(final String filter,
+	public <T> List<T> execute(final Class<T> t, final String filter,
 			final String params,
 			final String vars,
 			final Object arg1,
