@@ -1,13 +1,13 @@
 package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationDAO;
+import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public class TempMockAuthDao implements AuthorizationDAO{
+public class TempMockAuthDao implements AuthorizationManager{
 
 	@Override
 	public User createUser(String userName) throws DatastoreException {

@@ -9,7 +9,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationDAO;
+import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -303,7 +303,7 @@ public class UserGroupController extends BaseController implements
 		checkAuthorization(userId, false);
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId(id);
-		String rtype = AuthorizationDAO.NODE_RESOURCE_TYPE;
+		String rtype = AuthorizationManager.NODE_RESOURCE_TYPE;
 		Base resource = typeToBase(rtype);  // TODO this will break until we replace with new AuthorizationDAO
 		resource.setId(rid);
 		dao.addResource(userGroup, resource, accessTypes.getAccessType());
@@ -321,7 +321,7 @@ public class UserGroupController extends BaseController implements
 		checkAuthorization(userId, false);
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId(id);
-		String rtype = AuthorizationDAO.NODE_RESOURCE_TYPE;
+		String rtype = AuthorizationManager.NODE_RESOURCE_TYPE;
 		Base resource = typeToBase(rtype); // TODO this will break until we replace with new AuthorizationDAO
 		resource.setId(rid);
 		dao.removeResource(userGroup, resource);
@@ -340,7 +340,7 @@ public class UserGroupController extends BaseController implements
 		checkAuthorization(userId, true);
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId(id);
-		String rtype = AuthorizationDAO.NODE_RESOURCE_TYPE;
+		String rtype = AuthorizationManager.NODE_RESOURCE_TYPE;
 		Base resource = typeToBase(rtype); // TODO this will break until we replace with new AuthorizationDAO
 		resource.setId(rid);
 		Collection<AuthorizationConstants.ACCESS_TYPE> results = dao.getAccessTypes(userGroup, resource);

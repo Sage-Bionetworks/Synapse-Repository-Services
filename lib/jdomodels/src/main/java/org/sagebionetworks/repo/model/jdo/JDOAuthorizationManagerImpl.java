@@ -9,7 +9,7 @@ import java.util.Map;
 
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationDAO;
+import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.User;
@@ -23,7 +23,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.jdo.JdoTemplate;
 
-public class JDOAuthorizationDAOImpl implements AuthorizationDAO {
+public class JDOAuthorizationManagerImpl implements AuthorizationManager {
 	
 	@Autowired
 	private JdoTemplate jdoTemplate;
@@ -211,7 +211,7 @@ public class JDOAuthorizationDAOImpl implements AuthorizationDAO {
 			getFromClassTables(JDOUser.class.getName())+" u "+
 			"where "+
 			"ra.owner_id_oid=ug.id and ra.id=t.id_oid and t.string_ele = :accessType and "+
-			" ra.resource_type='"+AuthorizationDAO.NODE_RESOURCE_TYPE+"' and "+
+			" ra.resource_type='"+AuthorizationManager.NODE_RESOURCE_TYPE+"' and "+
 			"( "+
 			// the user group contains the given user
 			"(ug.id = ugu.id_oid and ugu.long_ele=u.id and u.user_id = :userName) or"+

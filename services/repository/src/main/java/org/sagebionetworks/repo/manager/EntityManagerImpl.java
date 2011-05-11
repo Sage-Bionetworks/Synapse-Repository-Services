@@ -11,7 +11,7 @@ import java.util.logging.Logger;
 import javax.swing.text.html.parser.Entity;
 
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationDAO;
+import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseChild;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -145,8 +145,8 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public void overrideAuthDaoForTest(AuthorizationDAO mockAuth) {
-		nodeManager.setAuthorizationDAO(mockAuth);
+	public void overrideAuthDaoForTest(AuthorizationManager mockAuth) {
+		nodeManager.setAuthorizationManager(mockAuth);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

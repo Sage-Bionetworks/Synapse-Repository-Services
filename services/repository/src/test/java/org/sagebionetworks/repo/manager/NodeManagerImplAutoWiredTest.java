@@ -20,7 +20,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationDAO;
+import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.Bootstrapper;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -49,17 +49,17 @@ public class NodeManagerImplAutoWiredTest {
 	public NodeManager nodeManager;
 	
 	// We use a mock auth DAO for this test.
-	private AuthorizationDAO mockAuth;
+	private AuthorizationManager mockAuth;
 	List<String> nodesToDelete;
 	
 	@Before
 	public void before() throws Exception{
 		assertNotNull(nodeManager);
 		nodesToDelete = new ArrayList<String>();
-		mockAuth = Mockito.mock(AuthorizationDAO.class);
+		mockAuth = Mockito.mock(AuthorizationManager.class);
 		when(mockAuth.canAccess(anyString(), anyString(), any(AuthorizationConstants.ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuth.canCreate(anyString(), anyString())).thenReturn(true);
-		nodeManager.setAuthorizationDAO(mockAuth);
+		nodeManager.setAuthorizationManager(mockAuth);
 	}
 	
 	@After
