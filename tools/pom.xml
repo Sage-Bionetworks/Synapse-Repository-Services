@@ -7,5 +7,6 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>tools</artifactId>
+	<packaging>pom</packaging>
 	<version>parent-1.0</version>
 </project>
