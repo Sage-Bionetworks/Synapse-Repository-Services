@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.jdo;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +24,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.jdo.JdoTemplate;
 
-public class JDOAuthorizationManagerImpl implements AuthorizationManager {
+public class JDOAuthorizationManagerImpl implements JDOAuthorizationManager {
 	
 	@Autowired
 	private JdoTemplate jdoTemplate;
@@ -254,5 +255,20 @@ public class JDOAuthorizationManagerImpl implements AuthorizationManager {
 //		return adminSQL;
 //	}
 
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		// ensure admin user is created
+		User adminUser = userDAO.getUser(AuthUtilConstants.ADMIN_USER_ID);
+		if (adminUser==null) {
+			adminUser = new User();
+			adminUser.setCreationDate(new Date());
+			adminUser.setUserId(AuthUtilConstants.ADMIN_USER_ID);
+			userDAO.create(adminUser);
+		}
+		// ensure admin group is created, and that 'admin' is a member
+		UserGroup ag = userGroupDAO.getAdminGroup();
+		if (ag==null) throw new IllegalStateException("Admin Group should have been created during UserGroupDAO autowiring!");
+		userGroupDAO.addUser(ag, KeyFactory.stringToKey(adminUser.getId()));
+	}
 
 }
