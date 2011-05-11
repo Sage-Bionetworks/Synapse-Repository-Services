@@ -19,7 +19,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationDAO;
+import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
@@ -41,7 +41,7 @@ public class EntitiesAccessorImplAutoWiredTest {
 	@Autowired
 	EntityManager entityManager;
 	
-	private AuthorizationDAO mockAuth;
+	private AuthorizationManager mockAuth;
 	
 	List<String> toDelete = null;
 	
@@ -53,7 +53,7 @@ public class EntitiesAccessorImplAutoWiredTest {
 	public void before() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException{
 		assertNotNull(entitiesAccessor);
 		assertNotNull(entityManager);
-		mockAuth = Mockito.mock(AuthorizationDAO.class);
+		mockAuth = Mockito.mock(AuthorizationManager.class);
 		entityManager.overrideAuthDaoForTest(mockAuth);
 		entitiesAccessor.overrideAuthDaoForTest(mockAuth);
 		when(mockAuth.canAccess(anyString(), anyString(), any(AuthorizationConstants.ACCESS_TYPE.class))).thenReturn(true);

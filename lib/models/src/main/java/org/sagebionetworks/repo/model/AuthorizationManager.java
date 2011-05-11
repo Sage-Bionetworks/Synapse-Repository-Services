@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface AuthorizationDAO {
+public interface AuthorizationManager {
 	
 	/**
 	 * @return the SQL to find the root-accessible nodes that a specified user can access

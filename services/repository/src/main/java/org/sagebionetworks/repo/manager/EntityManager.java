@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationDAO;
+import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseChild;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -137,6 +137,6 @@ public interface EntityManager {
 	 * Used to override this dao for a test.
 	 * @param mockAuth
 	 */
-	public void overrideAuthDaoForTest(AuthorizationDAO mockAuth);
+	public void overrideAuthDaoForTest(AuthorizationManager mockAuth);
 
 }

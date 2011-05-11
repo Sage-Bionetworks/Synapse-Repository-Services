@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.model.AuthorizationDAO;
+import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseChild;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -83,7 +83,7 @@ public class EntitiesAccessorImpl2 implements EntitiesAccessor2 {
 	}
 
 	@Override
-	public void overrideAuthDaoForTest(AuthorizationDAO mockAuth) {
+	public void overrideAuthDaoForTest(AuthorizationManager mockAuth) {
 		entityManager.overrideAuthDaoForTest(mockAuth);
 	}
 

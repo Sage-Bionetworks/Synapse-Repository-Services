@@ -18,6 +18,31 @@ public class JDOExecutor {
 		this.jdoTemplate = jdoTemplate;
 	}
 	
+	// call when sql specifies just one col to return
+	public List<Object> executeSingleCol(final String sql) {
+		return (List<Object>) jdoTemplate.execute(new JdoCallback<List<Object>>() {
+			@Override
+			public List<Object> doInJdo(PersistenceManager pm) throws JDOException {
+				Query query = pm.newQuery("javax.jdo.query.SQL", sql);
+				List<Object> ans = (List<Object>)query.execute();
+				return ans;
+			}
+		});
+	}
+	
+	// call when sql specifies just one col to return
+	public List<Object> executeSingleCol(final String sql, final Map<String,Object> parameters ) {
+		return (List<Object>) jdoTemplate.execute(new JdoCallback<List<Object>>() {
+			@Override
+			public List<Object> doInJdo(PersistenceManager pm) throws JDOException {
+				Query query = pm.newQuery("javax.jdo.query.SQL", sql);
+				List<Object> ans = (List<Object>)query.executeWithMap(parameters);
+				return ans;
+			}
+		});
+	}
+	
+	// call when sql specifies multiple col's to return
 	public List<Object[]> execute(final String sql) {
 		return (List<Object[]>) jdoTemplate.execute(new JdoCallback<List<Object[]>>() {
 			@Override
@@ -29,6 +54,7 @@ public class JDOExecutor {
 		});
 	}
 	
+	// call when sql specifies multiple col's to return
 	public List<Object[]> execute(final String sql, final Map<String,Object> parameters ) {
 		return (List<Object[]>) jdoTemplate.execute(new JdoCallback<List<Object[]>>() {
 			@Override

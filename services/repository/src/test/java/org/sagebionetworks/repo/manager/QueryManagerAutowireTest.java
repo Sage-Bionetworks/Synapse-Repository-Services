@@ -20,7 +20,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationDAO;
+import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -46,7 +46,7 @@ public class QueryManagerAutowireTest {
 	@Autowired
 	EntityManager entityManager;
 	
-	private AuthorizationDAO mockAuth;
+	private AuthorizationManager mockAuth;
 	
 	List<String> toDelete = null;
 	
@@ -56,7 +56,7 @@ public class QueryManagerAutowireTest {
 	public void before() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		assertNotNull(queryManager);
 		assertNotNull(queryManager);
-		mockAuth = Mockito.mock(AuthorizationDAO.class);
+		mockAuth = Mockito.mock(AuthorizationManager.class);
 		entityManager.overrideAuthDaoForTest(mockAuth);
 		when(mockAuth.canAccess(anyString(), anyString(), any(AuthorizationConstants.ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuth.canCreate(anyString(), anyString())).thenReturn(true);

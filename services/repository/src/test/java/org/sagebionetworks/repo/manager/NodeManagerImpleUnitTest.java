@@ -16,7 +16,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationDAO;
+import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.Node;
@@ -35,7 +35,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public class NodeManagerImpleUnitTest {
 	
 	private NodeDAO mockNodeDao = null;
-	private AuthorizationDAO mockAuthDao = null;
+	private AuthorizationManager mockAuthDao = null;
 	private NodeManagerImpl nodeManager = null;
 	private FieldTypeDAO mockFieldTypeDao = null;
 		
@@ -44,7 +44,7 @@ public class NodeManagerImpleUnitTest {
 
 
 		mockNodeDao = Mockito.mock(NodeDAO.class);
-		mockAuthDao = Mockito.mock(AuthorizationDAO.class);
+		mockAuthDao = Mockito.mock(AuthorizationManager.class);
 		mockFieldTypeDao = Mockito.mock(FieldTypeDAO.class);
 		// Create the manager dao with mocked dependent daos.
 		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockFieldTypeDao);

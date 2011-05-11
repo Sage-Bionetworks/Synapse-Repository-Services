@@ -17,7 +17,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationDAO;
+import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.User;
@@ -31,10 +31,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodles-test-context.xml" })
-public class JDOAuthorizationDAOImplTest {
+public class JDOAuthorizationManagerImplTest {
 
 	@Autowired
-	AuthorizationDAO authorizationDao;
+	AuthorizationManager authorizationManager;
 	
 	@Autowired
 	JdoTemplate jdoTemplate;
@@ -56,7 +56,7 @@ public class JDOAuthorizationDAOImplTest {
 	
 	@Before
 	public void before() throws Exception {
-		assertNotNull(authorizationDao);
+		assertNotNull(authorizationManager);
 		toDelete = new ArrayList<String>();
 		populateNodesForTest();
 		createTestUser();
@@ -99,12 +99,12 @@ public class JDOAuthorizationDAOImplTest {
 	
 	private void createTestUser() throws Exception {
 		deleteTestUser();
-		this.user = authorizationDao.createUser(TEST_USER_NAME);
+		this.user = authorizationManager.createUser(TEST_USER_NAME);
 	}
 	
 	private void deleteTestUser() throws Exception {
 		if (user!=null) {
-			authorizationDao.deleteUser(user.getUserId());
+			authorizationManager.deleteUser(user.getUserId());
 			user=null;
 		}
 	}
@@ -112,7 +112,7 @@ public class JDOAuthorizationDAOImplTest {
 	@Test
 	public void testAuthQueryComponent() throws Exception {
 		
-		String sql = authorizationDao.authorizationSQL();
+		String sql = authorizationManager.authorizationSQL();
 		Map<String, Object> parameters = new HashMap<String,Object>();
 		
 		// check accessible objects from a non-existent user
@@ -120,77 +120,77 @@ public class JDOAuthorizationDAOImplTest {
 		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.READ.name());
 		JDOExecutor exec = new JDOExecutor(jdoTemplate);
 
-		List<Object[]> list = exec.execute(sql, parameters);
+		List<Object> list = exec.executeSingleCol(sql, parameters);
 		
 		// anything in this list must be leftovers from another test in the Public group
 		// so remove them
 		UserGroup publicGroup = userGroupDAO.getPublicGroup();
 		for (Object o : list) {
 			userGroupDAO.removeResource(publicGroup, new AuthorizableImpl(o.toString(), 
-				AuthorizationDAO.NODE_RESOURCE_TYPE));
+				AuthorizationManager.NODE_RESOURCE_TYPE));
 		}
 		
 		// test that anonymous can't access any nodes
 		parameters.put("userName"/*.toUpperCase()*/, AuthUtilConstants.ANONYMOUS_USER_ID);
 		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.READ.name());
-		list = exec.execute(sql, parameters);
+		list = exec.executeSingleCol(sql, parameters);
 		assertTrue(list.toString(), list.size()==0);
 		
 		// there is a non-admin user, created by this test suite
 		// test that the user can't access any nodes
 		parameters.put("userName"/*.toUpperCase()*/, user.getUserId());
 		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.READ.name());
-		list = exec.execute(sql, parameters);
+		list = exec.executeSingleCol(sql, parameters);
 		assertTrue(list.toString(), list.size()==0);
 		
 		// add access for the user
 		String nodeId = nodeIds.get(0);
 		Node n = nodeDao.getNode(nodeId);
-		authorizationDao.addUserAccess(n, user.getUserId());
+		authorizationManager.addUserAccess(n, user.getUserId());
 		// test that the user CAN access the node in a query
-		list = exec.execute(sql, parameters);
+		list = exec.executeSingleCol(sql, parameters);
 		assertTrue(list.toString(), list.size()==1);
 		
 		// test that the user CANNOT access the node with a different access type
 		parameters.put("userName"/*.toUpperCase()*/, user.getUserId());
 		parameters.put("accessType"/*.toUpperCase()*/, "foo");
-		list = exec.execute(sql, parameters);
+		list = exec.executeSingleCol(sql, parameters);
 		assertTrue(list.toString(), list.size()==0);
 
 		// test that anonymous CANNOT access the node
 		parameters.put("userName"/*.toUpperCase()*/, AuthUtilConstants.ANONYMOUS_USER_ID);
 		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.READ.name());
-		list = exec.execute(sql, parameters);
+		list = exec.executeSingleCol(sql, parameters);
 		assertTrue(list.toString(), list.size()==0);
 
 		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.SHARE.name());
-		list = exec.execute(sql, parameters);
+		list = exec.executeSingleCol(sql, parameters);
 		assertTrue(list.toString(), list.size()==0);
 
 		// give public access to another node
 		Node n2 = nodeDao.getNode(nodeIds.get(1));
 		userGroupDAO.addResource(publicGroup, 
 				new AuthorizableImpl(n2.getId(), 
-						AuthorizationDAO.NODE_RESOURCE_TYPE), 
+						AuthorizationManager.NODE_RESOURCE_TYPE), 
 						Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[] {
 						AuthorizationConstants.ACCESS_TYPE.READ}));
 		
 		// check that anonymous can access the node for 'read'...
 		parameters.put("userName"/*.toUpperCase()*/, AuthUtilConstants.ANONYMOUS_USER_ID);
 		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.READ.name());
-		list = exec.execute(sql, parameters);
+		list = exec.executeSingleCol(sql, parameters);
 		assertTrue(list.toString(), list.size()==1);
 		
 		// ... but not for 'change'
 		parameters.put("userName"/*.toUpperCase()*/, AuthUtilConstants.ANONYMOUS_USER_ID);
 		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.CHANGE.name());
-		list = exec.execute(sql, parameters);
+		list = exec.executeSingleCol(sql, parameters);
 		assertTrue(list.toString(), list.size()==0);
 		
 		// check that the user can access the node
 		parameters.put("userName"/*.toUpperCase()*/, user.getUserId());
 		parameters.put("accessType"/*.toUpperCase()*/, AuthorizationConstants.ACCESS_TYPE.READ.name());
-		list = exec.execute(sql, parameters);
+		list = exec.executeSingleCol(sql, parameters);
 		assertTrue(list.toString(), list.size()==2);
 	}
 	

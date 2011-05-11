@@ -8,7 +8,7 @@ import java.util.logging.Logger;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationDAO;
+import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -39,13 +39,13 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	NodeDAO nodeDao;
 	
 	@Autowired
-	AuthorizationDAO authorizationDao;
+	AuthorizationManager authorizationManager;
 	@Autowired
 	FieldTypeDAO fieldTypeDao;
 	
 	// for testing (in prod it's autowired)
-	public void setAuthorizationDAO(AuthorizationDAO authorizationDao) {
-		 this.authorizationDao =  authorizationDao;
+	public void setAuthorizationManager(AuthorizationManager authorizationManager) {
+		 this.authorizationManager =  authorizationManager;
 	}
 	
 	/**
@@ -53,9 +53,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 * @param nodeDao
 	 * @param authDoa
 	 */
-	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationDAO authDoa, FieldTypeDAO fieldTypeday){
+	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, FieldTypeDAO fieldTypeday){
 		this.nodeDao = nodeDao;
-		this.authorizationDao = authDoa;
+		this.authorizationManager = authDoa;
 		this.fieldTypeDao = fieldTypeday;
 	}
 	
@@ -82,14 +82,14 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// Validate the modified data.
 		NodeManagerImpl.validateNodeModifiedData(userName, newNode);
 		// check whether the user is allowed to create this type of node
-		if (!authorizationDao.canCreate(userName, newNode.getNodeType())) {
+		if (!authorizationManager.canCreate(userName, newNode.getNodeType())) {
 			throw new UnauthorizedException(userName+" is not allowed to create items of type "+newNode.getNodeType());
 		}
 
 		// If they are allowed then let them create the node
 		String id = nodeDao.createNew(newNode);
 		newNode.setId(id);
-		authorizationDao.addUserAccess(newNode, userName);
+		authorizationManager.addUserAccess(newNode, userName);
 		log.info("username: "+userName+" created node: "+id);
 		return id;
 	}
@@ -161,13 +161,13 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public void delete(String username, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// First validate the username
 		username = NodeManagerImpl.validateUsername(username);
-		if (!authorizationDao.canAccess(username, nodeId, AuthorizationConstants.ACCESS_TYPE.CHANGE)) {
+		if (!authorizationManager.canAccess(username, nodeId, AuthorizationConstants.ACCESS_TYPE.CHANGE)) {
 			throw new UnauthorizedException(username+" lacks change access to the requested object.");
 		}
 
 		
 		nodeDao.delete(nodeId);
-		authorizationDao.removeAuthorization(nodeId);
+		authorizationManager.removeAuthorization(nodeId);
 		log.info("username "+username+" deleted node: "+nodeId);
 		
 	}
@@ -177,7 +177,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public Node get(String username, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Validate the username
 		username = NodeManagerImpl.validateUsername(username);
-		if (!authorizationDao.canAccess(username, nodeId, AuthorizationConstants.ACCESS_TYPE.READ)) {
+		if (!authorizationManager.canAccess(username, nodeId, AuthorizationConstants.ACCESS_TYPE.READ)) {
 			throw new UnauthorizedException(username+" lacks read access to the requested object.");
 		}
 		
@@ -199,7 +199,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public Node update(String username, Node updatedNode, Annotations updatedAnnos) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		username = NodeManagerImpl.validateUsername(username);
 		NodeManagerImpl.validateNode(updatedNode);
-		if (!authorizationDao.canAccess(username, updatedNode.getId(), AuthorizationConstants.ACCESS_TYPE.CHANGE)) {
+		if (!authorizationManager.canAccess(username, updatedNode.getId(), AuthorizationConstants.ACCESS_TYPE.CHANGE)) {
 			throw new UnauthorizedException(username+" lacks change access to the requested object.");
 		}
 		// make sure the eTags match
@@ -267,7 +267,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 */
 	@Override
 	public boolean hasAccess(Node resource, AuthorizationConstants.ACCESS_TYPE accessType, String userName) throws NotFoundException, DatastoreException  {
-		return authorizationDao.canAccess(userName, resource.getId(), accessType);
+		return authorizationManager.canAccess(userName, resource.getId(), accessType);
 	}
 
 	@Transactional(readOnly = true)
@@ -342,7 +342,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		// This is a hack because the current DAO is not working with integration tests.
-		authorizationDao = new TempMockAuthDao();
+		authorizationManager = new TempMockAuthDao();
 		
 	}
 

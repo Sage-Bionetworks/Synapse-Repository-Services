@@ -5,7 +5,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationDAO;
+import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface NodeManager {
 	
 	// for testing (in prod it's autowired)
-	public void setAuthorizationDAO(AuthorizationDAO authorizationDao);
+	public void setAuthorizationManager(AuthorizationManager authorizationManager);
 	
 	/**
 	 * Create a new no
