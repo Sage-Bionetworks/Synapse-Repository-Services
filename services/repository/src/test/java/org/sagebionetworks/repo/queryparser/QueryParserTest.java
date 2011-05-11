@@ -3,20 +3,18 @@
  */
 package org.sagebionetworks.repo.queryparser;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.StringReader;
 import java.util.logging.Logger;
 
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.Expression;
-import org.sagebionetworks.repo.model.query.Operator;
 import org.sagebionetworks.repo.web.query.QueryStatement;
 
 /**

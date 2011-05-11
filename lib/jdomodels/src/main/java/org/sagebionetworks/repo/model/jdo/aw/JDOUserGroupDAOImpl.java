@@ -72,7 +72,7 @@ public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> 
 
 		JDOUserGroup jdo = (JDOUserGroup) jdoTemplate.getObjectById(getJdoClass(), key);
 
-		jdo.getUsers().add(user);
+		if (!jdo.getUsers().contains(user)) jdo.getUsers().add(user);
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -305,6 +305,7 @@ public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> 
 	
 	// initialization of UserGroups
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void afterPropertiesSet() throws Exception {
 		// ensure public group is created
 		UserGroup pg = getPublicGroup();

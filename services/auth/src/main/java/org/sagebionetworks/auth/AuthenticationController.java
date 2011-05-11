@@ -33,7 +33,7 @@ public class AuthenticationController {
 	private static final Logger log = Logger.getLogger(AuthenticationController.class
 			.getName());
 	
-	private String repositoryServicesURL;
+//	private String repositoryServicesURL;  // this is to be discontinued
 	private String adminPW;
 	
 	private CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
@@ -70,7 +70,7 @@ public class AuthenticationController {
         } catch (IOException e) {
         	throw new RuntimeException(e);
         }
-        repositoryServicesURL = props.getProperty("repositoryServicesURL");
+//        repositoryServicesURL = props.getProperty("repositoryServicesURL");
         adminPW=props.getProperty("adminPW");
         try {
 	        is.close();
@@ -131,43 +131,43 @@ public class AuthenticationController {
 		if (!isITU) {
 			crowdAuthUtil.sendResetPWEmail(user);
 		}
-		mirrorToPersistenceLayer();
+//		mirrorToPersistenceLayer();
 	}
 	
-	// call repo' services to perform mirror
-	private void mirrorToPersistenceLayer() throws Exception {
-		// log-in as admin and get session token
-		User adminCredentials = new User();
-		adminCredentials.setUserId(AuthUtilConstants.ADMIN_USER_ID);
-		adminCredentials.setPassword(adminPW);
-		Session adminSession = crowdAuthUtil.authenticate(adminCredentials);
-		// execute mirror 
-		byte[] sessionXML = null;
-		int rc = 0;
-		{
-			URL url = new URL(repositoryServicesURL+"/userMirror");
-			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-			conn.setRequestMethod("POST");
-			conn.setRequestProperty("Accept", "application/json");
-			conn.setRequestProperty("Content-Type", "application/json");
-			conn.setRequestProperty("sessionToken", adminSession.getSessionToken());
-			CrowdAuthUtil.setBody(conn, "{}\n");
-			try {
-				rc = conn.getResponseCode();
-				// unfortunately the next line throws an IOException when there is no content
-//				InputStream is = (InputStream)conn.getContent();
+//	// call repo' services to perform mirror
+//	private void mirrorToPersistenceLayer() throws Exception {
+//		// log-in as admin and get session token
+//		User adminCredentials = new User();
+//		adminCredentials.setUserId(AuthUtilConstants.ADMIN_USER_ID);
+//		adminCredentials.setPassword(adminPW);
+//		Session adminSession = crowdAuthUtil.authenticate(adminCredentials);
+//		// execute mirror 
+//		byte[] sessionXML = null;
+//		int rc = 0;
+//		{
+//			URL url = new URL(repositoryServicesURL+"/userMirror");
+//			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+//			conn.setRequestMethod("POST");
+//			conn.setRequestProperty("Accept", "application/json");
+//			conn.setRequestProperty("Content-Type", "application/json");
+//			conn.setRequestProperty("sessionToken", adminSession.getSessionToken());
+//			CrowdAuthUtil.setBody(conn, "{}\n");
+//			try {
+//				rc = conn.getResponseCode();
+//				// unfortunately the next line throws an IOException when there is no content
+////				InputStream is = (InputStream)conn.getContent();
+////				if (is!=null) sessionXML = (CrowdAuthUtil.readInputStream(is)).getBytes();
+//			} catch (IOException e) {
+//				InputStream is = (InputStream)conn.getErrorStream();
 //				if (is!=null) sessionXML = (CrowdAuthUtil.readInputStream(is)).getBytes();
-			} catch (IOException e) {
-				InputStream is = (InputStream)conn.getErrorStream();
-				if (is!=null) sessionXML = (CrowdAuthUtil.readInputStream(is)).getBytes();
-				throw new Exception(url+"\nsessionToken: "+adminSession.getSessionToken()+"\nrc: "+rc+"\n"+
-						(sessionXML==null?null:new String(sessionXML)));
-			}
-			if (rc!=HttpStatus.CREATED.value()) throw new Exception("Failed to mirror users.  status="+rc);
-		}
-		// log-out
-		crowdAuthUtil.deauthenticate(adminSession.getSessionToken());
-	}
+//				throw new Exception(url+"\nsessionToken: "+adminSession.getSessionToken()+"\nrc: "+rc+"\n"+
+//						(sessionXML==null?null:new String(sessionXML)));
+//			}
+//			if (rc!=HttpStatus.CREATED.value()) throw new Exception("Failed to mirror users.  status="+rc);
+//		}
+//		// log-out
+//		crowdAuthUtil.deauthenticate(adminSession.getSessionToken());
+//	}
 	
 	// for integration testing
 	@ResponseStatus(HttpStatus.NO_CONTENT)
@@ -177,7 +177,7 @@ public class AuthenticationController {
 		boolean isITU = (itu!=null && user.getUserId().equals(itu));
 		if (!isITU) throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not allowed outside of integration testing.", null);
 		crowdAuthUtil.deleteUser(user);
-		mirrorToPersistenceLayer();
+//		mirrorToPersistenceLayer();
 	}
 	
 	@ResponseStatus(HttpStatus.OK)

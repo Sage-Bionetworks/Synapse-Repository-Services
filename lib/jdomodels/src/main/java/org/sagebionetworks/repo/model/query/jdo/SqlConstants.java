@@ -8,16 +8,14 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
-import org.sagebionetworks.repo.model.jdo.persistence.JDODataset;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOInputDataLayer;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.model.query.ObjectType;
-import org.sagebionetworks.repo.model.query.jdo.JDOQueryDAOImpl.AttributeDoesNotExist;
+import org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl.AttributeDoesNotExist;
 
 @SuppressWarnings("rawtypes")
 public class SqlConstants {
@@ -118,21 +116,6 @@ public class SqlConstants {
 			return JDODoubleAnnotation.class;
 		}else{
 			throw new IllegalArgumentException("No class for : "+type);
-		}
-	}
-	
-	/**
-	 * Get the JDO class for a given object type.
-	 * @param type
-	 * @return
-	 */
-	public static Class getJdoClassForObjectType(ObjectType type){
-		if(ObjectType.dataset == type){
-			return JDODataset.class;
-		}else if(ObjectType.layer == type){
-			return JDOInputDataLayer.class;
-		}else{
-			throw new IllegalArgumentException("There is class for type: "+type);
 		}
 	}
 	

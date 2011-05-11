@@ -7,11 +7,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.URLEncoder;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -21,10 +19,7 @@ import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.sagebionetworks.authutil.AuthUtilConstants;
-import org.sagebionetworks.repo.model.Bootstrapper;
-import org.sagebionetworks.repo.model.DAOFactory;
 import org.sagebionetworks.repo.web.ServiceConstants;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -62,13 +57,6 @@ public class Helpers {
 	private static final int JSON_INDENT = 2;
 	private static final String DEFAULT_SERVLET_PREFIX = "/repo/v1";
 
-	@Autowired
-	private DAOFactory daoFactory;
-	
-	
-	@Autowired
-	Bootstrapper modelBootstrapper;
-
 	private HttpServlet servlet;
 	private String servletPrefix;
 	private String integrationTestEndpoint;
@@ -87,20 +75,20 @@ public class Helpers {
 		servletPrefix = System.getProperty("SERVLET_PREFIX");
 	}
 
-	/**
-	 * @param daoFactory
-	 *            the daoFactory to set
-	 */
-	public void setDaoFactory(DAOFactory daoFactory) {
-		this.daoFactory = daoFactory;
-	}
-
-	/**
-	 * @return the daoFactory
-	 */
-	public DAOFactory getDaoFactory() {
-		return daoFactory;
-	}
+//	/**
+//	 * @param daoFactory
+//	 *            the daoFactory to set
+//	 */
+//	public void setDaoFactory(DAOFactory daoFactory) {
+//		this.daoFactory = daoFactory;
+//	}
+//
+//	/**
+//	 * @return the daoFactory
+//	 */
+//	public DAOFactory getDaoFactory() {
+//		return daoFactory;
+//	}
 
 	/**
 	 * @return the URI prefix of the servlet being tested
@@ -123,7 +111,6 @@ public class Helpers {
 	 * @throws Exception
 	 */
 	public HttpServlet setUp() throws Exception {
-		modelBootstrapper.bootstrap();
 		if (null != integrationTestEndpoint) {
 			isIntegrationTest = true;
 			servlet = new IntegrationTestMockServlet(integrationTestEndpoint);

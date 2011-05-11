@@ -19,9 +19,9 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.LayerLocations;
 import org.sagebionetworks.repo.model.LayerPreview;
-import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 
@@ -108,11 +108,11 @@ public class UrlHelpers {
 	 */
 	public static final String UNSUPPORTED_LOCATION = "/notYetImplemented";
 
-	/**
-	 * URL prefix for Users in the system
-	 * 
-	 */
-	public static final String USER = "/user";
+//	/**
+//	 * URL prefix for Users in the system
+//	 * 
+//	 */
+//	public static final String USER = "/user";
 
 	
 	/**
@@ -180,8 +180,8 @@ public class UrlHelpers {
 		Map<Class, String> model2url = new HashMap<Class, String>();
 		model2url.put(Dataset.class, DATASET);
 		model2url.put(InputDataLayer.class, LAYER);
-		model2url.put(User.class, USER);
-		model2url.put(UserGroup.class, USERGROUP);
+//		model2url.put(User.class, USER);
+//		model2url.put(UserGroup.class, USERGROUP);
 		MODEL2URL = Collections.unmodifiableMap(model2url);
 
 		Map<Class, Collection<String>> model2property = new HashMap<Class, Collection<String>>();

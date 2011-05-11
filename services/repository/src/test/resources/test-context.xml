@@ -11,18 +11,10 @@
   <context:annotation-config />
 
   <import resource="classpath:repository-servlet.xml" />
-  
-  <bean id="daoFactory"
-        class="org.sagebionetworks.repo.model.jdo.JDODAOFactoryImpl"
-        scope="singleton" />
+ 
             
   <bean id="helper"
         class="org.sagebionetworks.repo.web.controller.Helpers"
         scope="prototype"/>
-    
-  <bean id="modelBootstrapper"
-        class="org.sagebionetworks.repo.model.jdo.JDOBootstrapperImpl"
-        scope="singleton" />
-            
-    
+
 </beans>

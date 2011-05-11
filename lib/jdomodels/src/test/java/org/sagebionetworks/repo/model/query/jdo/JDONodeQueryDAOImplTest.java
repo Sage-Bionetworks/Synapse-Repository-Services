@@ -23,13 +23,11 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
-import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.jdo.JDOBootstrapperImpl;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.CompoundId;
@@ -42,8 +40,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * Test for JDONodeQueryDAOImplTest.
- * 
- * @author jmhill
+ *  * @author jmhill
  * 
  */
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -89,8 +86,6 @@ public class JDONodeQueryDAOImplTest {
 
 	@Before
 	public void before() throws Exception {
-		(new JDOBootstrapperImpl()).bootstrap(); // creat admin user, public
-		// group, etc.
 		// Make sure the Autowire is working
 		assertNotNull(nodeQueryDao);
 		assertNotNull(nodeDao);
@@ -106,12 +101,12 @@ public class JDONodeQueryDAOImplTest {
 		Logger.getLogger("DataNucleus.Query").setLevel(Level.INFO);
 		Logger.getLogger("DataNucleus.JDO").setLevel(Level.ALL);
 		// Turn on logging for the dao.
-		Logger.getLogger(JDOQueryDAOImpl.class.getName()).setLevel(Level.ALL);
+//		Logger.getLogger(JDOQueryDAOImpl.class.getName()).setLevel(Level.ALL);
 		ConsoleHandler conHandler = new ConsoleHandler();
-		Logger.getLogger(JDOQueryDAOImpl.class.getName())
-				.addHandler(conHandler);
-		Handler[] handlers = Logger.getLogger(JDOQueryDAOImpl.class.getName())
-				.getHandlers();
+//		Logger.getLogger(JDOQueryDAOImpl.class.getName())
+//				.addHandler(conHandler);
+//		Handler[] handlers = Logger.getLogger(JDOQueryDAOImpl.class.getName())
+//				.getHandlers();
 		
 		populateNodesForTest();
 		
@@ -184,6 +179,9 @@ public class JDONodeQueryDAOImplTest {
 
 		}
 	}
+	
+	// this was formerly defined in the (now defunct) InputDataLayer class
+    public enum LayerTypeNames {                E, G, C;        }
 
 	private static Node createChild(Date date, int i)
 			throws InvalidModelException {

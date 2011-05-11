@@ -5,13 +5,11 @@ import javax.servlet.http.HttpServletRequest;
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.AnnotationsController;
-import org.sagebionetworks.repo.web.AnnotationsControllerImp;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -41,7 +39,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author deflaux
  */
 @Controller
-public class DatasetAnnotationsController extends BaseController implements
+public class DatasetAnnotationsController extends BaseController2 implements
 		AnnotationsController<Dataset> {
 
 //	private AnnotationsController<Dataset> datasetAnnotationsController;
@@ -58,10 +56,10 @@ public class DatasetAnnotationsController extends BaseController implements
 	@Autowired
 	GenericEntityController entityController;
 	
-	@Override
-	public void setDao(BaseDAO<Dataset> dao) {
-//		datasetAnnotationsController.setDao(dao);
-	}
+//	@Override
+//	public void setDao(BaseDAO<Dataset> dao) {
+////		datasetAnnotationsController.setDao(dao);
+//	}
 
 	/*******************************************************************************
 	 * Dataset Annotation RUD handlers

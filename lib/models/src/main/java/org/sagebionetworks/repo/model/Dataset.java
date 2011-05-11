@@ -12,7 +12,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  * 
  */
 @XmlRootElement
-public class Dataset implements Base, Revisable {
+public class Dataset implements Base {
 	private String id;
 	private String uri;
 	private String etag;

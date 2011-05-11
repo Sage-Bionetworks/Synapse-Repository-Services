@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.web.query;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Stack;
 
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.CompoundId;

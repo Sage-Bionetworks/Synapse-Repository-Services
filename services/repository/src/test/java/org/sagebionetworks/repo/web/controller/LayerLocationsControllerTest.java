@@ -12,10 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.UserCredentials;
-import org.sagebionetworks.repo.model.UserCredentialsDAO;
-import org.sagebionetworks.repo.model.UserDAO;
-import org.sagebionetworks.repo.util.LocationHelpers;
+import org.sagebionetworks.repo.model.jdo.aw.JDOUserDAO;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -47,35 +44,56 @@ public class LayerLocationsControllerTest {
 	private Helpers helper;
 	private JSONObject dataset;
 	private String readOnlyUserId;
-	private UserDAO userDao;
+//	private UserDAO userDao;
 	private User user;
+	
+	@Autowired
+	private JDOUserDAO userDao;
+	
+	/**
+	 * A user for use in integration tests
+	 */
+	public static final String INTEGRATION_TEST_READ_ONLY_USER_ID = "integration.test@sagebase.org";
+	/**
+	 * 
+	 */
+	public static final String FAKE_ACCESS_ID = "thisIsAFakeAWSAccessId";
+	/**
+	 * 
+	 */
+	public static final String FAKE_SECRET_KEY = "thisIsAFakeAWSSecretKey";
+
+	
+
 
 	/**
 	 * @throws java.lang.Exception
 	 */
 	@Before
 	public void setUp() throws Exception {
+		
 		helper.setUp();
 
 		if (helper.isIntegrationTest()) {
-			readOnlyUserId = LocationHelpers.INTEGRATION_TEST_READ_ONLY_USER_ID;
+			readOnlyUserId = INTEGRATION_TEST_READ_ONLY_USER_ID;
 		} else {
 			readOnlyUserId = UNIT_TEST_READ_ONLY_USER_ID;
 
 			// TODO talk to Bruce to determine the right way to bootstrap users
 
 			// Make a user and his credentials
-			userDao = helper.getDaoFactory().getUserDAO(null);
+//			userDao = helper.getDaoFactory().getUserDAO(null);
 			user = new User();
 			user.setUserId(readOnlyUserId);
 			userDao.create(user);
-			UserCredentialsDAO credsDao = helper.getDaoFactory()
-					.getUserCredentialsDAO(readOnlyUserId);
-			UserCredentials storedCreds;
-			storedCreds = credsDao.get(readOnlyUserId);
-			storedCreds.setIamAccessId(LocationHelpers.FAKE_ACCESS_ID);
-			storedCreds.setIamSecretKey(LocationHelpers.FAKE_SECRET_KEY);
-			credsDao.update(storedCreds);
+//			UserCredentialsDAO credsDao = helper.getDaoFactory()
+//					.getUserCredentialsDAO(readOnlyUserId);
+//			UserCredentials storedCre/ds;
+//			storedCreds = credsDao.get(readOnlyUserId);
+			user.setIamAccessId(FAKE_ACCESS_ID);
+			user.setIamSecretKey(FAKE_SECRET_KEY);
+			userDao.update(user);
+//			credsDao.update(storedCreds);
 		}
 
 		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()

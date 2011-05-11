@@ -1,12 +1,13 @@
 package org.sagebionetworks.repo.model.jdo.aw;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.logging.Logger;
 
 import javax.jdo.JDOObjectNotFoundException;
 
 import org.sagebionetworks.repo.model.Base;
-import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.jdo.JDOBase;
@@ -112,6 +113,21 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 			return dto;
 		} catch (JDOObjectNotFoundException e) {
 			throw new NotFoundException(e);
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		}
+	}
+	
+	public Collection<S> getAll() throws DatastoreException {
+		try {
+			Collection<T> all = jdoTemplate.find(getJdoClass());
+			Collection<S> ans = new ArrayList<S>();
+			for (T jdo: all) {
+				S dto = newDTO();
+				copyToDto(jdo, dto);
+				ans.add(dto);
+			}
+			return ans;
 		} catch (Exception e) {
 			throw new DatastoreException(e);
 		}
