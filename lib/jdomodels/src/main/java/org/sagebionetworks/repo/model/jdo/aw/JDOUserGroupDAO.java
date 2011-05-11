@@ -9,8 +9,9 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.InitializingBean;
 
-public interface JDOUserGroupDAO extends JDOBaseDAO<UserGroup> {
+public interface JDOUserGroupDAO extends JDOBaseDAO<UserGroup>, InitializingBean {
 	public void addUser(UserGroup userGroup, Long user) throws NotFoundException, DatastoreException;
 	public void removeUser(UserGroup userGroup, Long user) throws NotFoundException, DatastoreException;
 	public Collection<Long> getUsers(UserGroup userGroup) throws NotFoundException, DatastoreException;

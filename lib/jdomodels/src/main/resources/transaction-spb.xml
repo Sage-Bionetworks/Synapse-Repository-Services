@@ -44,7 +44,6 @@
 	
 	<bean id="userDAO" class="org.sagebionetworks.repo.model.jdo.aw.JDOUserDAOImpl" />
 	<bean id="groupDAO" class="org.sagebionetworks.repo.model.jdo.aw.JDOUserGroupDAOImpl" />
-	<bean id="securityBootstrapper" class="org.sagebionetworks.repo.model.jdo.aw.JDOBootstrapperImpl" />
 	<bean id="authorizationManager" class="org.sagebionetworks.repo.model.jdo.JDOAuthorizationManagerImpl" />
 
 

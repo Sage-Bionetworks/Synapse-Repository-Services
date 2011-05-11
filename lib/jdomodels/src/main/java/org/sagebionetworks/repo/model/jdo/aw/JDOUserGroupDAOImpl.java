@@ -8,10 +8,12 @@ import java.util.Set;
 
 import javax.jdo.JDOObjectNotFoundException;
 
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Authorizable;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.jdo.AuthorizableImpl;
 import org.sagebionetworks.repo.model.jdo.JDOExecutor;
@@ -44,7 +46,11 @@ public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> 
 				.getId()));
 		dto.setName(jdo.getName());
 		dto.setCreationDate(jdo.getCreationDate());
-		dto.setCreatableTypes(new HashSet<String>(jdo.getCreatableTypes()));
+		Set<String> cts = new HashSet<String>();
+		// the following condition should never be false, but it happened in practice
+		// so we do this step to prevent passing a null pointer to the HashSet constructor
+		if (jdo.getCreatableTypes()!=null) cts.addAll(jdo.getCreatableTypes());
+		dto.setCreatableTypes(new HashSet<String>(cts));
 	}
 
 	void copyFromDto(UserGroup dto, JDOUserGroup jdo)
@@ -296,5 +302,24 @@ public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> 
 			throw new DatastoreException(e);
 		}
 	}
+	
+	// initialization of UserGroups
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		// ensure public group is created
+		UserGroup pg = getPublicGroup();
+		if (pg==null) {
+			createPublicGroup();				
+		}
+		// ensure admin group is created, and that 'admin' is a member
+		UserGroup ag = getAdminGroup();
+		if (ag==null) {
+			createAdminGroup();
+			ag = getAdminGroup();
+		}
+
+	}
+	
+	
 }
 
