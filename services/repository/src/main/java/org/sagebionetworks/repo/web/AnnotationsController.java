@@ -5,11 +5,9 @@ import javax.servlet.http.HttpServletRequest;
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
-import org.sagebionetworks.repo.model.BaseDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * Controller interface for all operations common to annotate-able entities.
@@ -78,10 +76,10 @@ public interface AnnotationsController<T extends Base> {
 	 */
 	public abstract JsonSchema getEntityAnnotationsSchema() throws DatastoreException;
 
-	/**
-	 * Set the DAO for this controller to use
-	 * 
-	 * @param dao
-	 */
-	public abstract void setDao(BaseDAO<T> dao);
+//	/**
+//	 * Set the DAO for this controller to use
+//	 * 
+//	 * @param dao
+//	 */
+//	public abstract void setDao(BaseDAO<T> dao);
 }

@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.util.LocationHelper2;
 import org.sagebionetworks.repo.util.SchemaHelper;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
-import org.sagebionetworks.repo.web.DependentEntityController;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;

@@ -23,6 +23,8 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.jdo.JdoTemplate;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 public class JDOAuthorizationManagerImpl implements JDOAuthorizationManager {
 	
@@ -256,6 +258,7 @@ public class JDOAuthorizationManagerImpl implements JDOAuthorizationManager {
 //	}
 
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void afterPropertiesSet() throws Exception {
 		// ensure admin user is created
 		User adminUser = userDAO.getUser(AuthUtilConstants.ADMIN_USER_ID);

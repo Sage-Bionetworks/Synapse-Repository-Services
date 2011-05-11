@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -10,9 +10,9 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 
 public class NodeTranslationUtilsTest {
 	

@@ -9,7 +9,7 @@ import java.util.Date;
  * @author bhoff
  * 
  */
-public interface DatasetLayer extends BaseChild, Revisable {
+public interface DatasetLayer extends BaseChild {
 	public String getReleaseNotes();
 
 	public void setReleaseNotes(String releaseNotes);

@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationManager;

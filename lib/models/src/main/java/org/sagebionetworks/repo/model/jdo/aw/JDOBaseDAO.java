@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.jdo.aw;
 
+import java.util.Collection;
+
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -32,6 +34,14 @@ public interface JDOBaseDAO<T extends Base> {
 	 * @throws NotFoundException
 	 */
 	public T get(String id) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Retrieves all objects of type T in the datastore
+	 *
+	 * @return all objects of type T in the datastore
+	 * @throws DatastoreException
+	 */
+	public Collection<T> getAll() throws DatastoreException;
 
 	/**
 	 * This updates the 'shallow' properties of an object
