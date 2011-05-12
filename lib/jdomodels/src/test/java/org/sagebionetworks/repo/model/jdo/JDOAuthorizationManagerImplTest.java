@@ -16,6 +16,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationManager;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.User;
@@ -27,7 +28,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:jdomodles-test-context.xml" })
+@ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class JDOAuthorizationManagerImplTest {
 
 	@Autowired
@@ -43,7 +44,7 @@ public class JDOAuthorizationManagerImplTest {
 	private User user = null;
 
 	@Autowired
-	private JDOUserGroupDAO userGroupDAO;
+	private UserGroupDAO userGroupDAO;
 	
 	@Autowired
 	private NodeDAO nodeDao;

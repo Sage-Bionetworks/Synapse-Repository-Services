@@ -15,8 +15,8 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.jdo.aw.JDOUserDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
@@ -58,7 +58,7 @@ public class UserGroupControllerTest {
 	private Helpers helper;
 
 	@Autowired
-	JDOUserDAO userDAO;
+	UserDAO userDAO;
 	
 	List<User> users = new ArrayList<User>(); // list of things to delete
 	/**

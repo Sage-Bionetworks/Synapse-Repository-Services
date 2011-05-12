@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.jdo.aw;
+package org.sagebionetworks.repo.model.jdo;
 
 import static org.junit.Assert.*;
 
@@ -12,9 +12,10 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.jdo.JDOUserGroupDAO;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,14 +23,14 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:jdomodles-test-context.xml" })
+@ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class JDOUserGroupDAOImplTest {
 	
 	@Autowired
-	JDOUserGroupDAO userGroupDAO;
+	UserGroupDAO userGroupDAO;
 	
 	@Autowired
-	JDOUserDAO userDAO;
+	UserDAO userDAO;
 	
 	private Collection<String> users = new HashSet<String>();
 	private Collection<String> userGroups = new HashSet<String>();

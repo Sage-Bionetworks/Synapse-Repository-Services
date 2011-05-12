@@ -23,7 +23,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.IllegalTransactionStateException;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:jdomodles-test-context.xml" })
+@ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class NodeDAOImplTest {
 
 	@Autowired

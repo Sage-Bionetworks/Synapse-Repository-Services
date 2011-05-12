@@ -7,8 +7,8 @@ import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.jdo.aw.JDOUserDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -19,7 +19,7 @@ public class UserSynchronization {
 	private CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 	
 	@Autowired
-	private JDOUserDAO userDAO = null;
+	private UserDAO userDAO = null;
 		
 
 	/**

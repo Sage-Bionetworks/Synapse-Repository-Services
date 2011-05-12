@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.Authorizable;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
@@ -23,7 +24,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional(readOnly = true)
-public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> implements JDOUserGroupDAO {
+public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> implements UserGroupDAOInitializingBean {
 	
 	UserGroup newDTO() {
 		UserGroup ug = new UserGroup();
