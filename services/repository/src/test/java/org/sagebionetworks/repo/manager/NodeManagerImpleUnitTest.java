@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -116,10 +117,6 @@ public class NodeManagerImpleUnitTest {
 	@Test
 	public void testValidateNodeCreatedDataWithNulls(){
 		Node node = new Node();
-		String presetCreatedBy = null;
-		Date presetCreatedOn = null;
-		node.setCreatedBy(presetCreatedBy);
-		node.setCreatedOn(presetCreatedOn);
 		// Now validate the node
 		NodeManagerImpl.validateNodeCreationData(AuthUtilConstants.ANONYMOUS_USER_ID, node);
 		// the values should not have changed
@@ -136,18 +133,14 @@ public class NodeManagerImpleUnitTest {
 		node.setModifiedOn(presetModifiedOn);
 		// Now validate the node
 		NodeManagerImpl.validateNodeModifiedData(AuthUtilConstants.ANONYMOUS_USER_ID, node);
-		// the values should not have changed
-		assertEquals(presetModifiedOn, node.getModifiedOn());
-		assertEquals(presetModifiedBy, node.getModifiedBy());
+		// the values should have changed
+		assertTrue(!presetModifiedOn.equals( node.getModifiedOn()));
+		assertTrue(!presetModifiedBy.equals( node.getModifiedBy()));
 	}
 	
 	@Test
 	public void testValidateNodeModifiedDataWithNulls(){
 		Node node = new Node();
-		String presetModifiedBy = null;
-		Date presetModifiedOn = null;
-		node.setModifiedBy(presetModifiedBy);
-		node.setModifiedOn(presetModifiedOn);
 		// Now validate the node
 		NodeManagerImpl.validateNodeModifiedData(AuthUtilConstants.ANONYMOUS_USER_ID, node);
 		// the values should not have changed

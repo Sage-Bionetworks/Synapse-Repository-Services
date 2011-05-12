@@ -45,39 +45,17 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author deflaux
  */
 @Controller
-public class LayerLocationsController extends BaseController2
-//implements
-//		DependentEntityController<LayerLocations, InputDataLayer> 
-{
+public class LayerLocationsController extends BaseController{
 	
 	@Autowired
 	GenericEntityController entityController;
 	@Autowired
 	LocationHelper2 locationHelper;
 
-//	private DependentEntityController<LayerLocations, InputDataLayer> controller;
-
-//	LayerLocationsController() {
-//		controller = new DependentEntityControllerImp<LayerLocations, InputDataLayer>(
-//				LayerLocations.class);
-//	}
-//
-//	private void checkAuthorization(String userId, Boolean readOnly) {
-//		DependentPropertyDAO<LayerLocations, InputDataLayer> dao = getDaoFactory()
-//				.getLayerLocationsDAO(userId);
-//		setDao(dao);
-//	}
-//
-//	@Override
-//	public void setDao(DependentPropertyDAO<LayerLocations, InputDataLayer> dao) {
-//		controller.setDao(dao);
-//	}
-
 	/*******************************************************************************
 	 * LayerLocations RU handlers
 	 */
 
-//	@Override
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.LOCATIONS, method = RequestMethod.GET)
@@ -87,14 +65,8 @@ public class LayerLocationsController extends BaseController2
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-		// TODO only curators can call this
-//		checkAuthorization(userId, true);
-		List<LayerLocation> list = entityController.getEntityChildrenOfType(userId, id, LayerLocation.class);
+		List<LayerLocation> list = entityController.getEntityChildrenOfType(userId, id, LayerLocation.class, request);
 		LayerLocations locations = new LayerLocations();
-		Iterator<LayerLocation> it = list.iterator();
-		while(it.hasNext()){
-			addServiceSpecificMetadata(it.next(), request);
-		}
 		// Use the parent id as the locations id
 		locations.setId(id);
 		locations.setLocations(list);
@@ -103,8 +75,7 @@ public class LayerLocationsController extends BaseController2
 		locations.setUri(UrlHelpers.makeEntityPropertyUri(request));
 		return locations;
 	}
-
-//	@Override
+	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.LOCATIONS, method = RequestMethod.PUT)
@@ -134,7 +105,6 @@ public class LayerLocationsController extends BaseController2
 		return updatedEntity;
 	}
 
-//	@Override
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{id}" + UrlHelpers.LAYER
 			+ "/{id}" + UrlHelpers.LOCATIONS + UrlHelpers.SCHEMA, method = RequestMethod.GET)
@@ -165,10 +135,7 @@ public class LayerLocationsController extends BaseController2
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-
-		// TODO only authorized users can receive this info
-//		checkAuthorization(userId, true);
-
+		
 		LayerLocations locations = this.getDependentEntity(userId, id, request);
 		LayerLocation location = getLocationForLayer(locations,
 				LayerLocation.LocationTypeNames.awss3);
@@ -177,7 +144,6 @@ public class LayerLocationsController extends BaseController2
 					+ id);
 		}
 
-//		LocationHelpers locationHelper = LocationHelpers.getHelper(getDaoFactory());
 		String signedPath = locationHelper.getS3Url(userId, location.getPath());
 
 		location.setPath(signedPath);
@@ -215,8 +181,6 @@ public class LayerLocationsController extends BaseController2
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-		// TODO only authorized users can receive this info
-//		checkAuthorization(userId, true);
 		LayerLocations locations = this.getDependentEntity(userId, id, request);
 		LayerLocation location = getLocationForLayer(locations,
 				LayerLocation.LocationTypeNames.awsebs);
@@ -258,8 +222,6 @@ public class LayerLocationsController extends BaseController2
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-		// TODO only authorized users can receive this info
-//		checkAuthorization(userId, true);
 		LayerLocations locations = this.getDependentEntity(userId, id, request);
 		LayerLocation location = getLocationForLayer(locations,
 				LayerLocation.LocationTypeNames.sage);
@@ -313,10 +275,6 @@ public class LayerLocationsController extends BaseController2
 			}
 		}
 		return null;
-	}
-	
-	private void addServiceSpecificMetadata(LayerLocation entity, HttpServletRequest request) {
-		entity.setUri(UrlHelpers.makeEntityPropertyUri(request));
 	}
 
 }

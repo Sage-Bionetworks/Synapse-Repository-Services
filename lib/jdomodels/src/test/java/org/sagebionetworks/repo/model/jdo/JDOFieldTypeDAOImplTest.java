@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.jdo;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
@@ -13,8 +14,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotationType;
 import org.sagebionetworks.repo.model.query.FieldType;
@@ -104,4 +105,46 @@ public class JDOFieldTypeDAOImplTest {
 		assertEquals(FieldType.DOUBLE_ATTRIBUTE, fetchedType);
 	}
 
+	@Test
+	public void testInvalidNames() {
+		// There are all invalid names
+		String[] invalidNames = new String[] { "~", "!", "@", "#", "$", "%",
+				"^", "&", "*", "(", ")", "\"", "\n\t", "'", "?", "<", ">", "/",
+				";", "{", "}", "|", "=", "+", "-", "White\n\t Space", null, "" };
+		for (int i = 0; i < invalidNames.length; i++) {
+			try {
+				// These are all bad names
+				JDOFieldTypeDAOImpl.checkKeyName(invalidNames[i]);
+				fail("Name: " + invalidNames[i] + " is invalid");
+			} catch (InvalidModelException e) {
+				// Expected
+			}
+		}
+	}
+
+	@Test
+	public void testValidNames() throws InvalidModelException {
+		// There are all invalid names
+		List<String> vlaidNames = new ArrayList<String>();
+		// All lower
+		for (char ch = 'a'; ch <= 'z'; ch++) {
+			vlaidNames.add("" + ch);
+		}
+		// All upper
+		for (char ch = 'A'; ch <= 'Z'; ch++) {
+			vlaidNames.add("" + ch);
+		}
+		// all numbers
+		for (char ch = '0'; ch <= '9'; ch++) {
+			vlaidNames.add("" + ch);
+		}
+		// underscore
+		vlaidNames.add("_");
+		vlaidNames.add(" Trimable ");
+		vlaidNames.add("A1_b3po");
+		for (int i = 0; i < vlaidNames.size(); i++) {
+			// These are all bad names
+			JDOFieldTypeDAOImpl.checkKeyName(vlaidNames.get(i));
+		}
+	}
 }

@@ -45,38 +45,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author deflaux
  */
 @Controller
-public class LayerPreviewController extends BaseController2
-//implements
-//		DependentEntityController<LayerPreview, InputDataLayer> 
-{
-	
+public class LayerPreviewController extends BaseController {
+
 	@Autowired
 	GenericEntityController entityController;
-
-//	private DependentEntityController<LayerPreview, InputDataLayer> controller;
-
-	LayerPreviewController() {
-//		controller = new DependentEntityControllerImp<LayerPreview, InputDataLayer>(
-//				LayerPreview.class);
-	}
-
-//	private void checkAuthorization(String userId, Boolean readOnly) {
-//		DependentPropertyDAO<LayerPreview, InputDataLayer> dao = getDaoFactory()
-//				.getLayerPreviewDAO(userId);
-//		setDao(dao);
-//	}
-//
-//	@Override
-//	public void setDao(DependentPropertyDAO<LayerPreview, InputDataLayer> dao) {
-//		controller.setDao(dao);
-//
-//	}
 
 	/*******************************************************************************
 	 * Layer Preview handlers
 	 */
-
-//	@Override
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.PREVIEW, method = RequestMethod.GET)
@@ -86,26 +62,27 @@ public class LayerPreviewController extends BaseController2
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-//		checkAuthorization(userId, true);
-		InputDataLayer layer = entityController.getEntity(userId, id, request, InputDataLayer.class);
+		InputDataLayer layer = entityController.getEntity(userId, id, request,
+				InputDataLayer.class);
 		return createFromLayer(request, layer);
 	}
 
-private LayerPreview createFromLayer(HttpServletRequest request,
-		InputDataLayer layer) {
-	LayerPreview preview = new LayerPreview();
-	preview.setCreationDate(layer.getCreationDate());
-	preview.setEtag(layer.getEtag());
-	preview.setId(layer.getId());
-	preview.setPreview(layer.getPreview());
-	addServiceSpecificMetadata(preview, request);
-	return preview;
-}
-	
-	private void addServiceSpecificMetadata(LayerPreview entity, HttpServletRequest request) {
+	private LayerPreview createFromLayer(HttpServletRequest request,
+			InputDataLayer layer) {
+		LayerPreview preview = new LayerPreview();
+		preview.setCreationDate(layer.getCreationDate());
+		preview.setEtag(layer.getEtag());
+		preview.setId(layer.getId());
+		preview.setPreview(layer.getPreview());
+		addServiceSpecificMetadata(preview, request);
+		return preview;
+	}
+
+	private void addServiceSpecificMetadata(LayerPreview entity,
+			HttpServletRequest request) {
 		entity.setUri(UrlHelpers.makeEntityPropertyUri(request));
 	}
-//	@Override
+
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{parentId}"
 			+ UrlHelpers.LAYER + "/{id}" + UrlHelpers.PREVIEW, method = RequestMethod.PUT)
@@ -118,14 +95,13 @@ private LayerPreview createFromLayer(HttpServletRequest request,
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException {
 
-//		checkAuthorization(userId, false);
-		InputDataLayer layer = entityController.getEntity(userId, id, request, InputDataLayer.class);
+		InputDataLayer layer = entityController.getEntity(userId, id, request,
+				InputDataLayer.class);
 		layer.setPreview(updatedEntity.getPreview());
 		layer = entityController.updateEntity(userId, id, layer, request);
 		return createFromLayer(request, layer);
 	}
 
-//	@Override
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.DATASET + "/{id}" + UrlHelpers.LAYER
 			+ "/{id}" + UrlHelpers.PREVIEW + UrlHelpers.SCHEMA, method = RequestMethod.GET)
@@ -157,7 +133,7 @@ private LayerPreview createFromLayer(HttpServletRequest request,
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-//		checkAuthorization(userId, true);
+		// checkAuthorization(userId, true);
 		LayerPreview preview = this.getDependentEntity(userId, id, request);
 
 		String rawPreview = preview.getPreview();

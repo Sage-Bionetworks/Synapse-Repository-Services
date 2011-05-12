@@ -11,7 +11,7 @@ import org.springframework.stereotype.Controller;
  * @author bhoff
  */
 @Controller
-public class UserMirrorController extends BaseController2 {
+public class UserMirrorController extends BaseController {
 
 	UserMirrorController() {
 	}

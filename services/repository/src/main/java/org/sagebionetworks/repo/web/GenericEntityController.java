@@ -75,7 +75,7 @@ public interface GenericEntityController {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public <T extends BaseChild> List<T> getEntityChildrenOfType(String userId, String parentId, Class<? extends T> clazz) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public <T extends BaseChild> List<T> getEntityChildrenOfType(String userId, String parentId, Class<? extends T> clazz, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * Create a new entity

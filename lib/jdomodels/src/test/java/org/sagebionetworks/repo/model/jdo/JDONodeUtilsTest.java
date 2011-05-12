@@ -1,12 +1,14 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.Date;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
+import org.sagebionetworks.repo.model.query.ObjectType;
 
 /**
  * Test to convert from JDO to DTO
@@ -41,7 +43,13 @@ public class JDONodeUtilsTest {
 		JDONode parent = new JDONode();
 		parent.setId(new Long(123));
 		JDONode child = new JDONode();
+		child.setName("name");
+		child.setNodeType(ObjectType.dataset.name());
 		child.setParent(parent);
+		child.setModifiedBy("mod");
+		child.setModifiedOn(new Date(System.currentTimeMillis()));
+		child.setCreatedOn(new Date(System.currentTimeMillis()));
+		child.setCreatedBy("createdBy");
 		// Make sure the parent id goes to the child
 		Node dto = JDONodeUtils.copyFromJDO(child);
 		assertNotNull(dto);

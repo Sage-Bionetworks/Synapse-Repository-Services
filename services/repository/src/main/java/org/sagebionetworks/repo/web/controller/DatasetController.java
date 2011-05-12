@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
-import org.sagebionetworks.repo.web.EntityController2;
+import org.sagebionetworks.repo.web.EntityController;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
@@ -39,8 +39,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author deflaux
  */
 @Controller
-public class DatasetController extends BaseController2 implements
-		EntityController2<Dataset> {
+public class DatasetController extends BaseController implements
+		EntityController<Dataset> {
 
 	@Autowired
 	GenericEntityController entityController;

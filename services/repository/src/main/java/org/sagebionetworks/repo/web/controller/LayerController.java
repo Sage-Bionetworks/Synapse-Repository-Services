@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
+import org.sagebionetworks.repo.web.EntityController;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
@@ -46,35 +47,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author deflaux
  */
 @Controller
-public class LayerController extends BaseController2 { // TODO implements
+public class LayerController extends BaseController { // TODO implements
 	// EntityController
 	
 	@Autowired
 	GenericEntityController entityController;
-
-//	private EntitiesAccessor<InputDataLayer> layerAccessor;
-//	private EntityController<InputDataLayer> layerController;
-//	private LayerLocationsDAO locationsDao = null;
-//
-//	LayerController() {
-//		layerAccessor = new AnnotatableEntitiesAccessorImpl<InputDataLayer>();
-//		layerController = new EntityControllerImp<InputDataLayer>(
-//				InputDataLayer.class, layerAccessor);
-//	}
-//
-//	private void checkAuthorization(String userId, String parentId,
-//			Boolean readOnly) throws DatastoreException {
-//		String datasetId = UrlHelpers.getEntityIdFromUriId(parentId);
-//		locationsDao = getDaoFactory().getLayerLocationsDAO(userId);
-//		DatasetDAO dao = getDaoFactory().getDatasetDAO(userId);
-//		InputDataLayerDAO layerDao = dao.getInputDataLayerDAO(datasetId);
-//		setDao(layerDao);
-//	}
-//
-//	private void setDao(BaseDAO<InputDataLayer> dao) {
-//		layerController.setDao(dao);
-//		layerAccessor.setDao(dao);
-//	}
 
 	/*******************************************************************************
 	 * Layers CRUD handlers
@@ -310,7 +287,7 @@ public class LayerController extends BaseController2 { // TODO implements
 				LayerLocations.class, request));
 
 		try {
-			List<LayerLocation> list = entityController.getEntityChildrenOfType(userId, layer.getId(), LayerLocation.class);
+			List<LayerLocation> list = entityController.getEntityChildrenOfType(userId, layer.getId(), LayerLocation.class, request);
 			for (LayerLocation location : list) {
 				layerLocations.add(UrlHelpers.makeLocationUri(layer.getUri(),
 						location.getType()));

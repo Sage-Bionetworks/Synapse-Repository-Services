@@ -782,8 +782,7 @@ public class Helpers {
 				"tissue types", tissues);
 		JSONObject badRequestError = testUpdateJsonEntityShouldFail(
 				storedAnnotations, HttpStatus.BAD_REQUEST);
-		assertTrue(badRequestError.getString("reason").equals(
-				"Annotation names may not contain whitespace"));
+		assertTrue(badRequestError.getString("reason").startsWith("Invalid annotation name"));
 	}
 
 	/**

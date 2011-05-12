@@ -5,20 +5,26 @@ import java.util.Set;
 
 import javax.jdo.annotations.Column;
 import javax.jdo.annotations.Element;
+import javax.jdo.annotations.ForeignKey;
+import javax.jdo.annotations.ForeignKeyAction;
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.NullValue;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+
 @PersistenceCapable(detachable = "true")
 public class JDONode {
-	
+		
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 	
 	@Persistent
+	@Column(name=SqlConstants.COL_NODE_PARENT_ID)
+    @ForeignKey(name="NODE_PARENT_FK", deleteAction=ForeignKeyAction.CASCADE)
 	private JDONode parent;
 
 	@Persistent(nullValue = NullValue.EXCEPTION) // cannot be null
@@ -47,6 +53,17 @@ public class JDONode {
 	private Date modifiedOn;
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
 	private String nodeType;
+	
+	// Indicates the node that this node gets its permissions from.
+	@Persistent 
+	@Column(name=SqlConstants.COL_NODE_BENEFACTOR_ID)
+    @ForeignKey(name="NODE_BENEFACTOR_FK", deleteAction=ForeignKeyAction.CASCADE)
+	private JDONode permissionsBenefactor;
+	// These are the nodes that that benefit from this nodes permissions
+	@Persistent (mappedBy = "permissionsBenefactor")
+	@Element(dependent = "true")
+	private Set<JDONode> permissionsBeneficiaries;
+	
 	
 	public Set<JDONode> getChildren() {
 		return children;
@@ -142,6 +159,22 @@ public class JDONode {
 
 	public void setNodeType(String nodeType) {
 		this.nodeType = nodeType;
+	}
+
+	public JDONode getPermissionsBenefactor() {
+		return permissionsBenefactor;
+	}
+
+	public void setPermissionsBenefactor(JDONode permissionsBenefactor) {
+		this.permissionsBenefactor = permissionsBenefactor;
+	}
+
+	public Set<JDONode> getPermissionsBeneficiaries() {
+		return permissionsBeneficiaries;
+	}
+
+	public void setPermissionsBeneficiaries(Set<JDONode> permissionsBeneficiaries) {
+		this.permissionsBeneficiaries = permissionsBeneficiaries;
 	}
 
 	@Override

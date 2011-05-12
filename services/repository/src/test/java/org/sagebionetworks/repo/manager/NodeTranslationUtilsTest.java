@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -112,6 +113,31 @@ public class NodeTranslationUtilsTest {
 		NodeTranslationUtils.updateObjectFromAnnotations(copy, annos);
 		Collection<String> copyLocations = copy.getLocations();
 		assertEquals(locations, copyLocations);
+	}
+	
+	@Test
+	public void testSetNullOnNode(){
+		Node node = createNew("notNull");
+		node.setParentId("90");
+		Node copy = new Node();
+		NodeTranslationUtils.updateNodeFromObject(node, copy);
+		assertTrue(copy.getParentId() != null);
+		// Now clear the node parent id
+		node.setParentId(null);
+		NodeTranslationUtils.updateNodeFromObject(node, copy);
+		// The copy should have a null parent id.
+		assertTrue(copy.getParentId() == null);
+	}
+	
+	private static Node createNew(String name){
+		Node node = new Node();
+		node.setName(name);
+		node.setCreatedBy("anonymous");
+		node.setModifiedBy("anonymous");
+		node.setCreatedOn(new Date(System.currentTimeMillis()));
+		node.setModifiedOn(node.getCreatedOn());
+		node.setNodeType("unknown");
+		return node;
 	}
 	
 	/**

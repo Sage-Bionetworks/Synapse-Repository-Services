@@ -54,7 +54,7 @@ public class NodeDAOImplTest {
 	
 	@Test 
 	public void testCreateNode() throws NotFoundException{
-		Node toCreate = Node.createNew("firstNodeEver");
+		Node toCreate = NodeTestUtils.createNew("firstNodeEver");
 		String id = nodeDao.createNew(toCreate);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -67,12 +67,12 @@ public class NodeDAOImplTest {
 	
 	@Test 
 	public void testAddChild() throws NotFoundException{
-		Node parent = Node.createNew("parent");
+		Node parent = NodeTestUtils.createNew("parent");
 		String parentId = nodeDao.createNew(parent);
 		assertNotNull(parentId);
 		toDelete.add(parentId);
 		//Now add an child
-		Node child = Node.createNew("child");
+		Node child = NodeTestUtils.createNew("child");
 		child.setParentId(parentId);
 		String childId = nodeDao.createNew(child);
 		assertNotNull(childId);
@@ -107,7 +107,7 @@ public class NodeDAOImplTest {
 	 */
 	@Test(expected=IllegalTransactionStateException.class)
 	public void testGetETagForUpdate() throws NotFoundException{
-		Node toCreate = Node.createNew("testGetETagForUpdate");
+		Node toCreate = NodeTestUtils.createNew("testGetETagForUpdate");
 		String id = nodeDao.createNew(toCreate);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -117,7 +117,7 @@ public class NodeDAOImplTest {
 	
 	@Test
 	public void testUpdateNode() throws NotFoundException{
-		Node node = Node.createNew("testUpdateNode");
+		Node node = NodeTestUtils.createNew("testUpdateNode");
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -134,9 +134,17 @@ public class NodeDAOImplTest {
 		assertEquals(copy, updatedCopy);
 	}
 	
+	@Test(expected=Exception.class)
+	public void testNullName() throws NotFoundException{
+		Node node = NodeTestUtils.createNew("setNameNull");
+		node.setName(null);
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+	}
+	
 	@Test
 	public void testCreateAnnotations() throws NotFoundException{
-		Node node = Node.createNew("testCreateAnnotations");
+		Node node = NodeTestUtils.createNew("testCreateAnnotations");
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -159,6 +167,12 @@ public class NodeDAOImplTest {
 		Annotations copy = nodeDao.getAnnotations(id);
 		assertNotNull(copy);
 		assertEquals(annos, copy);
+		// clear an and update
+		assertNotNull(copy.getStringAnnotations().remove("stringOne"));
+		nodeDao.updateAnnotations(id, copy);
+		Annotations copy2 = nodeDao.getAnnotations(id);
+		assertNotNull(copy2);
+		assertEquals(copy, copy2);
 		// Make sure the node has a new eTag
 		Node nodeCopy = nodeDao.getNode(id);
 		assertNotNull(nodeCopy);

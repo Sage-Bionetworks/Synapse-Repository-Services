@@ -39,27 +39,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author deflaux
  */
 @Controller
-public class DatasetAnnotationsController extends BaseController2 implements
+public class DatasetAnnotationsController extends BaseController implements
 		AnnotationsController<Dataset> {
-
-//	private AnnotationsController<Dataset> datasetAnnotationsController;
-
-//	DatasetAnnotationsController() {
-//		datasetAnnotationsController = new AnnotationsControllerImp<Dataset>();
-//	}
-
-//	private void checkAuthorization(String userId, Boolean readOnly) {
-//		BaseDAO<Dataset> dao = getDaoFactory().getDatasetDAO(userId);
-//		setDao(dao);
-//	}
 
 	@Autowired
 	GenericEntityController entityController;
-	
-//	@Override
-//	public void setDao(BaseDAO<Dataset> dao) {
-////		datasetAnnotationsController.setDao(dao);
-//	}
 
 	/*******************************************************************************
 	 * Dataset Annotation RUD handlers
@@ -76,7 +60,6 @@ public class DatasetAnnotationsController extends BaseController2 implements
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-//		checkAuthorization(userId, true);
 		return entityController.getEntityAnnotations(userId, id,request);
 	}
 

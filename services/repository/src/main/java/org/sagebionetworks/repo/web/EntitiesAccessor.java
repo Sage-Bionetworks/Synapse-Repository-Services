@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.query.BasicQuery;
  *            the particular type of entity we are querying
  * 
  */
-public interface EntitiesAccessor2 {
+public interface EntitiesAccessor {
 
 	/**
 	 * @param offset

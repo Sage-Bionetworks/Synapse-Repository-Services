@@ -1,7 +1,9 @@
 package org.sagebionetworks;
 
-import java.net.URI;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -9,24 +11,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import org.junit.Before;
-import static org.junit.Assert.*;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.InputDataLayer;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.query.ObjectType;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
 import org.sagebionetworks.web.client.DatasetService;
 import org.sagebionetworks.web.client.SearchService;
 import org.sagebionetworks.web.shared.Annotations;
@@ -35,8 +27,7 @@ import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
 import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.TableResults;
 import org.sagebionetworks.web.shared.WhereCondition;
-
-//import org.sagebionetworks.web.shared.SearchParameters_FieldSerializer;
+import org.springframework.web.client.RestTemplate;
 
 import com.gdevelop.gwt.syncrpc.SyncProxy;
 

@@ -40,7 +40,6 @@ public class EntityManagerImpl implements EntityManager {
 		Node node = NodeTranslationUtils.createFromBase(newEntity);
 		// Set the type for this object
 		node.setNodeType(ObjectType.getNodeTypeForClass(newEntity.getClass()).toString());
-		node.setId(null);
 		// We are ready to create this node
 		String nodeId = nodeManager.createNewNode(node, userId);
 		// Now get the annotations for this node

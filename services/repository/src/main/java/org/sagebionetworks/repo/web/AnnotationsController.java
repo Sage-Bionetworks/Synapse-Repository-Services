@@ -76,10 +76,4 @@ public interface AnnotationsController<T extends Base> {
 	 */
 	public abstract JsonSchema getEntityAnnotationsSchema() throws DatastoreException;
 
-//	/**
-//	 * Set the DAO for this controller to use
-//	 * 
-//	 * @param dao
-//	 */
-//	public abstract void setDao(BaseDAO<T> dao);
 }

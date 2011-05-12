@@ -39,25 +39,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author deflaux
  */
 @Controller
-public class LayerAnnotationsController extends BaseController2 { // TODO
+public class LayerAnnotationsController extends BaseController { // TODO
 	// implements
 	// AnnotationsController
 	
 	@Autowired
 	GenericEntityController entityController;
-
-//	private AnnotationsController<InputDataLayer> layerAnnotationsController;
-//
-//	private DatasetDAO datasetDao = null; // DAO_FACTORY.getDatasetDAO();
-//
-//	private void setDao(String userId) {
-//		datasetDao = getDaoFactory().getDatasetDAO(userId);
-//	}
-//
-//	LayerAnnotationsController() {
-//		layerAnnotationsController = new AnnotationsControllerImp<InputDataLayer>();
-//
-//	}
 
 	/*******************************************************************************
 	 * Layer Annotation RUD handlers

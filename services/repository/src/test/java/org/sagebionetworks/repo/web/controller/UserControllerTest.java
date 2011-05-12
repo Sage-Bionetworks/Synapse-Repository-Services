@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -18,7 +17,6 @@ import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -75,7 +73,6 @@ public class UserControllerTest {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setRequestURI("/user");
 		user.setUri(helper.getServletPrefix()+UrlHelpers.makeEntityUri(user, request));
-		user.setEtag(UrlHelpers.makeEntityEtag(user));
 		String uid = user.getId();
 		this.users.add(user);
 		assertNotNull(uid);

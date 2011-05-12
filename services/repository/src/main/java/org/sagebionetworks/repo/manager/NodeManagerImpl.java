@@ -3,8 +3,9 @@ package org.sagebionetworks.repo.manager;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.logging.Logger;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -31,7 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class NodeManagerImpl implements NodeManager, InitializingBean {
 	
-	private static final Logger log = Logger.getLogger(NodeManagerImpl.class.getName());
+	static private Log log = LogFactory.getLog(NodeManagerImpl.class);
 	
 //	public static final String ANNONYMOUS = "anonymous";
 	
@@ -90,7 +91,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		String id = nodeDao.createNew(newNode);
 		newNode.setId(id);
 		authorizationManager.addUserAccess(newNode, userName);
-		log.info("username: "+userName+" created node: "+id);
+		if(log.isDebugEnabled()){
+			log.debug("username: "+userName+" created node: "+id);
+		}
 		return id;
 	}
 	
@@ -147,13 +150,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(userName == null) throw new IllegalArgumentException("Username cannot be null");
 		if(newNode == null) throw new IllegalArgumentException("New node cannot be null");
 		// If createdBy is not set then set it
-		if(newNode.getModifiedBy() == null ){
-			newNode.setModifiedBy(userName);
-		}
-		// If createdOn is not set then set it with the current time.
-		if(newNode.getModifiedOn() == null){
-			newNode.setModifiedOn(new Date(System.currentTimeMillis()));
-		}
+		newNode.setModifiedBy(userName);
+		newNode.setModifiedOn(new Date(System.currentTimeMillis()));
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -168,7 +166,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		
 		nodeDao.delete(nodeId);
 		authorizationManager.removeAuthorization(nodeId);
-		log.info("username "+username+" deleted node: "+nodeId);
+		if(log.isDebugEnabled()){
+			log.debug("username "+username+" deleted node: "+nodeId);
+		}
 		
 	}
 	
@@ -182,7 +182,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 		
 		Node result = nodeDao.getNode(nodeId);
-		log.info("username "+username+" fetched node: "+result.getId());
+		if(log.isDebugEnabled()){
+			log.debug("username "+username+" fetched node: "+result.getId());
+		}
 		return result;
 	}
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -214,8 +216,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		updatedNode.setETag(nextETag);
 		
 		// Clear the modified data and fill it in with the new data
-		updatedNode.setModifiedBy(null);
-		updatedNode.setModifiedOn(null);
 		NodeManagerImpl.validateNodeModifiedData(username, updatedNode);
 		// Now make the actual update.
 		nodeDao.updateNode(updatedNode);
@@ -225,7 +225,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			validateAnnotations(updatedAnnos);
 			nodeDao.updateAnnotations(updatedNode.getId(), updatedAnnos);
 		}
-		log.info("username "+username+" updated node: "+updatedNode.getId()+", with a new eTag: "+nextETag);
+		if(log.isDebugEnabled()){
+			log.debug("username "+username+" updated node: "+updatedNode.getId()+", with a new eTag: "+nextETag);
+		}
 		// Return the new node
 		return updatedNode;
 	}
@@ -276,7 +278,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		username = NodeManagerImpl.validateUsername(username);
 		Annotations annos = nodeDao.getAnnotations(nodeId);
-		log.info("username "+username+" fetched Annotations for node: "+nodeId);
+		if(log.isDebugEnabled()){
+			log.debug("username "+username+" fetched Annotations for node: "+nodeId);
+		}
 		return annos;
 	}
 
@@ -294,7 +298,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// Increment the eTag
 		updated.setEtag(nextETag);
 		nodeDao.updateAnnotations(nodeId, updated);
-		log.info("username "+username+" updated Annotations for node: "+updated.getId());
+		if(log.isDebugEnabled()){
+			log.debug("username "+username+" updated Annotations for node: "+updated.getId());
+		}
 		return updated;
 	}
 	
@@ -343,7 +349,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public void afterPropertiesSet() throws Exception {
 		// This is a hack because the current DAO is not working with integration tests.
 		authorizationManager = new TempMockAuthDao();
-		
 	}
 
 	@Override

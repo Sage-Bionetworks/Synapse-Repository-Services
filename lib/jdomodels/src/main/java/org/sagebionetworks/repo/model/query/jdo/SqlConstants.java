@@ -14,11 +14,14 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.FieldType;
-import org.sagebionetworks.repo.model.query.ObjectType;
 import org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl.AttributeDoesNotExist;
 
 @SuppressWarnings("rawtypes")
 public class SqlConstants {
+	
+	public static final String COL_NODE_PARENT_ID		= "PARENT_ID";
+	public static final String COL_NODE_BENEFACTOR_ID	= "BENEFACTOR_ID";
+	
 	// The alias used for the dataset table.
 	public static final String PRIMARY_ALIAS	= "prm";
 	// This seems to be the name of the id column for all tables.
@@ -62,7 +65,7 @@ public class SqlConstants {
 		// These will be deleted once we move to NodeDao
 		SqlConstants.addAllFields(Dataset.class, primaryFieldColumns);
 		SqlConstants.addAllFields(InputDataLayer.class, primaryFieldColumns);
-		primaryFieldColumns.put("parentId", "PARENT_ID_OID");
+		primaryFieldColumns.put("parentId", "PARENT_ID");
 		primaryFieldColumns.put("INPUT_LAYERS_ID_OWN", "INPUT_LAYERS_ID_OWN");
 		
 	}

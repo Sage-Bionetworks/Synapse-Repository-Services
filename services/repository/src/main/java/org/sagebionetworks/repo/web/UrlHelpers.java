@@ -22,8 +22,6 @@ import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.LayerLocations;
 import org.sagebionetworks.repo.model.LayerPreview;
-import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.UserGroup;
 
 /**
  * UrlHelpers is responsible for the formatting of all URLs exposed by the
@@ -393,21 +391,6 @@ public class UrlHelpers {
 		return entityId;
 	}
 
-	/**
-	 * Helper function to create values for using in etags for an entity
-	 * <p>
-	 * 
-	 * The current implementation uses hash code since different versions of our
-	 * model objects will have different hash code values
-	 * 
-	 * @param entity
-	 * @return the ETag for the entity
-	 */
-	public static String makeEntityEtag(Base entity) {
-//		throw new UnsupportedOperationException("This should no longer be used.");
-		Integer hashCode = entity.hashCode();
-		return hashCode.toString();
-	}
 
 	// TODO this class needs unit tests
 	private static String getUrlPrefix(Base entity, HttpServletRequest request) {

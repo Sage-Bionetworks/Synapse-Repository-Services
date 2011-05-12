@@ -272,7 +272,6 @@ public class DatasetControllerTest {
 	 * 
 	 * @throws Exception
 	 */
-	@Ignore
 	@Test
 	public void testMissingRequiredFieldUpdateDataset() throws Exception {
 		// Create a dataset
