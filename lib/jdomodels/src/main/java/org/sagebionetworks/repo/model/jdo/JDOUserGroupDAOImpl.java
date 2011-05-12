@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.jdo.aw;
+package org.sagebionetworks.repo.model.jdo;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -15,9 +15,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.jdo.AuthorizableImpl;
-import org.sagebionetworks.repo.model.jdo.JDOExecutor;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;

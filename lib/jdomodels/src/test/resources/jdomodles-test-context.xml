@@ -19,7 +19,7 @@
 	<bean id="nodeLockerB" class="org.sagebionetworks.repo.model.jdo.JDONodeLockCheckerImpl" scope="prototype"/>
     
       <bean id="userGroupDAO"
-        class="org.sagebionetworks.repo.model.jdo.aw.JDOUserGroupDAOImpl"
+        class="org.sagebionetworks.repo.model.jdo.JDOUserGroupDAOImpl"
         scope="singleton" />
     
       <bean id="authorizationManager"
@@ -28,7 +28,7 @@
     
     
       <bean id="userDAO"
-        class="org.sagebionetworks.repo.model.jdo.aw.JDOUserDAOImpl"
+        class="org.sagebionetworks.repo.model.jdo.JDOUserDAOImpl"
         scope="singleton" />
     
 </beans>
