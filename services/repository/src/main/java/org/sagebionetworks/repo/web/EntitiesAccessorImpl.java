@@ -25,7 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author jmhill
  *
  */
-public class EntitiesAccessorImpl2 implements EntitiesAccessor2 {
+public class EntitiesAccessorImpl implements EntitiesAccessor {
 	
 	@Autowired
 	EntityManager entityManager;

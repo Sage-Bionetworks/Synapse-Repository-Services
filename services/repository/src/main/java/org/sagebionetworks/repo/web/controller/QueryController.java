@@ -44,7 +44,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * 
  */
 @Controller
-public class QueryController extends BaseController2 {
+public class QueryController extends BaseController {
 
 	private static final Logger log = Logger.getLogger(QueryController.class
 			.getName());
@@ -71,24 +71,6 @@ public class QueryController extends BaseController2 {
 		excludedProperties.put("layer", layerProperties);
 		EXCLUDED_PROPERTIES = Collections.unmodifiableMap(excludedProperties);
 	}
-
-//	private void checkAuthorization(String userId) {
-//		BaseDAO<Dataset> dao = getDaoFactory().getDatasetDAO(userId);
-//		setDao(dao);
-//		QueryDAO queryDao = getDaoFactory().getQueryDao();
-//		setQueryDao(queryDao);
-//	}
-
-//	/**
-//	 * @param dao
-//	 */
-//	public void setDao(BaseDAO<Dataset> dao) {
-//		this.dao = (DatasetDAO) dao;
-//	}
-//	
-//	public void setQueryDao(QueryDAO dao){
-//		this.queryDao = dao;
-//	}
 
 	/**
 	 * @param userId

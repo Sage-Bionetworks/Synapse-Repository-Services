@@ -2,10 +2,8 @@ package org.sagebionetworks.repo.model;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.query.BasicQuery;
-import org.sagebionetworks.repo.model.query.FieldType;
 
 /**
  * Used to query for Node IDs.

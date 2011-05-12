@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Date;
 
 /**
  * This is the data transfer object for Dataset Layers.

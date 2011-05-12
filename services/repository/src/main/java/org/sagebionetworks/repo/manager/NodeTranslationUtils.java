@@ -76,9 +76,7 @@ public class NodeTranslationUtils {
 				Object value;
 				try {
 					value = field.get(base);
-					if(value != null){
-						nodeField.set(node, value);
-					}
+					nodeField.set(node, value);
 				} catch (IllegalAccessException e) {
 					// This should never occur
 					log.log(Level.WARNING, e.getMessage(), e);

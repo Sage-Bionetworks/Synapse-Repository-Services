@@ -11,8 +11,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -28,6 +26,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
+import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.CompoundId;
@@ -100,14 +99,7 @@ public class JDONodeQueryDAOImplTest {
 
 		Logger.getLogger("DataNucleus.Query").setLevel(Level.INFO);
 		Logger.getLogger("DataNucleus.JDO").setLevel(Level.ALL);
-		// Turn on logging for the dao.
-//		Logger.getLogger(JDOQueryDAOImpl.class.getName()).setLevel(Level.ALL);
-		ConsoleHandler conHandler = new ConsoleHandler();
-//		Logger.getLogger(JDOQueryDAOImpl.class.getName())
-//				.addHandler(conHandler);
-//		Handler[] handlers = Logger.getLogger(JDOQueryDAOImpl.class.getName())
-//				.getHandlers();
-		
+
 		populateNodesForTest();
 		
 
@@ -125,7 +117,7 @@ public class JDONodeQueryDAOImplTest {
 		// Create a few datasets
 		nodeIds = new ArrayList<String>();
 		for (int i = 0; i < totalNumberOfDatasets; i++) {
-			Node parent = Node.createNew("dsName" + i);
+			Node parent = NodeTestUtils.createNew("dsName" + i);
 			Date now = new Date(System.currentTimeMillis());
 			parent.setDescription("description" + i);
 			parent.setCreatedBy("magic");
@@ -185,7 +177,7 @@ public class JDONodeQueryDAOImplTest {
 
 	private static Node createChild(Date date, int i)
 			throws InvalidModelException {
-		Node ans = Node.createNew("layerName"+i);
+		Node ans = NodeTestUtils.createNew("layerName"+i);
 		ans.setDescription("description"+i);
 		ans.setCreatedOn(date);
 		ans.setNodeType(ObjectType.layer.name());

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -35,10 +36,26 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 
 
 	@Autowired
-	EntitiesAccessor2 entitiesAccessor;
+	EntitiesAccessor entitiesAccessor;
 	@Autowired
 	EntityManager entityManager;
 
+	public GenericEntityControllerImpl(){
+		
+	}
+	
+
+	/**
+	 * Provided for tests
+	 * @param entitiesAccessor
+	 * @param entityManager
+	 */
+	GenericEntityControllerImpl(EntitiesAccessor entitiesAccessor,
+			EntityManager entityManager) {
+		super();
+		this.entitiesAccessor = entitiesAccessor;
+		this.entityManager = entityManager;
+	}
 
 	@Override
 	public <T extends Base> PaginatedResults<T> getEntities(String userId, Integer offset,
@@ -128,14 +145,12 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 
 	private <T extends Base> void addServiceSpecificMetadata(T entity, HttpServletRequest request) {
 		entity.setUri(UrlHelpers.makeEntityUri(entity, request));
-//		entity.setEtag(UrlHelpers.makeEntityEtag(entity));
 	}
 
 	private void addServiceSpecificMetadata(String id, Annotations annotations,
 			HttpServletRequest request) {
 		annotations.setId(id); // the NON url-encoded id
 		annotations.setUri(UrlHelpers.makeEntityPropertyUri(request));
-//		annotations.setEtag(UrlHelpers.makeEntityEtag(annotations));
 	}
 
 	@Override
@@ -165,23 +180,28 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 
 	@Override
 	public <T extends BaseChild> List<T> getEntityChildrenOfType(String userId,
-			String parentId, Class<? extends T> clazz) throws DatastoreException, NotFoundException, UnauthorizedException {
-		// TODO Auto-generated method stub
-		return entitiesAccessor.getChildrenOfType(userId, parentId, clazz);
+			String parentId, Class<? extends T> clazz, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
+		List<T> list =  entitiesAccessor.getChildrenOfType(userId, parentId, clazz);
+		Iterator<T> it = list.iterator();
+		while(it.hasNext()){
+			addServiceSpecificMetadata(it.next(), request);
+		}
+		return list;
 	}
 
 	@Override
 	public <T extends BaseChild> Collection<T> aggregateEntityUpdate(String userId, String parentId, Collection<T> update,	HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException {
+		if(update == null) return null;
+		if(update.isEmpty()) return update;
 		// First try the updated
 		List<String> updatedIds = entityManager.aggregateEntityUpdate(userId, parentId, update);
 		// Now create the update object
 		List<T> newList = new ArrayList<T>();
-		update.iterator().next();
+		Class tClass = update.iterator().next().getClass();
 		for(int i=0; i<updatedIds.size(); i++){
-			T updated = update.iterator().next();
-			newList.add((T) entityManager.getEntity(userId, updatedIds.get(i), updated.getClass()));
+			newList.add((T) entityManager.getEntity(userId, updatedIds.get(i), tClass));
 		}
 		return newList;
 	}

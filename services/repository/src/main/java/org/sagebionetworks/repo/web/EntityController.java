@@ -17,7 +17,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
  * @param <T>
  *            the particular type of entity the controller is managing
  */
-public interface EntityController2<T extends Base> {
+public interface EntityController<T extends Base> {
 
 	/**
 	 * Get entities

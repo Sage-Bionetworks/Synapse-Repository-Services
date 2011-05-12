@@ -19,45 +19,33 @@ public class Node {
 	Date modifiedOn;
 	String nodeType;
 	String eTag;
-	
-	/**
-	 * Create a new node using basic data.
-	 * @param name
-	 * @return
-	 */
-	public static Node createNew(String name){
-		Node node = new Node();
-		node.setName(name);
-		node.setCreatedBy("anonymous");
-		node.setModifiedBy("anonymous");
-		node.setCreatedOn(new Date(System.currentTimeMillis()));
-		node.setModifiedOn(node.getCreatedOn());
-		node.setNodeType("unknown");
-		return node;
-	}
-		
+			
 	public String getCreatedBy() {
 		return createdBy;
 	}
 	public void setCreatedBy(String createdBy) {
+		if(createdBy == null) throw new IllegalArgumentException("Cannot set a Node CreatedBy to null");
 		this.createdBy = createdBy;
 	}
 	public Date getCreatedOn() {
 		return createdOn;
 	}
 	public void setCreatedOn(Date createdOn) {
+		if(createdOn == null) throw new IllegalArgumentException("Cannot set a Node CreatedOn to null");
 		this.createdOn = createdOn;
 	}
 	public String getModifiedBy() {
 		return modifiedBy;
 	}
 	public void setModifiedBy(String modifiedBy) {
+		if(modifiedBy == null) throw new IllegalArgumentException("Cannot set a Node ModifiedBy to null");
 		this.modifiedBy = modifiedBy;
 	}
 	public Date getModifiedOn() {
 		return modifiedOn;
 	}
 	public void setModifiedOn(Date modifiedOn) {
+		if(modifiedOn == null) throw new IllegalArgumentException("Cannot set a Node ModifiedOn to null");
 		this.modifiedOn = modifiedOn;
 	}
 
@@ -66,6 +54,7 @@ public class Node {
 	}
 
 	public void setNodeType(String nodeType) {
+		if(nodeType == null) throw new IllegalArgumentException("Cannot set a Node Type to null");
 		this.nodeType = nodeType;
 	}
 
@@ -73,12 +62,14 @@ public class Node {
 		return id;
 	}
 	public void setId(String id) {
+		if(id == null) throw new IllegalArgumentException("Cannot set a Node ID to null");
 		this.id = id;
 	}
 	public String getName() {
 		return name;
 	}
 	public void setName(String name) {
+		if(name == null) throw new IllegalArgumentException("Cannot set a Node Name to null");
 		this.name = name;
 	}
 	public String getDescription() {
@@ -99,6 +90,7 @@ public class Node {
 	}
 
 	public void setETag(String eTag) {
+		if(eTag == null) throw new IllegalArgumentException("Cannot set a Node eTag to null");
 		this.eTag = eTag;
 	}
 

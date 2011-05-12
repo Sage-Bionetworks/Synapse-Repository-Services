@@ -6,12 +6,11 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotationType;
-import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +31,8 @@ public class JDOFieldTypeDAOImpl implements FieldTypeDAO, InitializingBean {
 	JdoTemplate jdoTemplate;
 	
 	// match one or more whitespace characters
-	private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
+//	private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
+	private static final Pattern ALLOWABLE_CHARS = Pattern.compile("^[a-z,A-Z,0-9,_,.]+");
 
 	/**
 	 * Since the types never change once they are set, we can safely cache the results.
@@ -55,7 +55,8 @@ public class JDOFieldTypeDAOImpl implements FieldTypeDAO, InitializingBean {
 	public boolean addNewType(String name, FieldType type) throws DatastoreException, InvalidModelException {
 		if(name == null) throw new IllegalArgumentException("Name cannot be null");
 		if(type == null) throw new IllegalArgumentException("FieldType cannot be null");
-		checkKeyName(name);
+		// check the name
+		name = checkKeyName(name);
 		// First check the local cache
 		FieldType currentType = localCache.get(type.name());
 		if(currentType != null){
@@ -131,13 +132,15 @@ public class JDOFieldTypeDAOImpl implements FieldTypeDAO, InitializingBean {
 	 * @param key
 	 * @throws InvalidModelException
 	 */
-	private void checkKeyName(String key) throws InvalidModelException {
-		Matcher matcher = WHITESPACE_PATTERN.matcher(key);
-		if (matcher.find()) {
-			throw new InvalidModelException(
-					"Annotation names may not contain whitespace");
+	static String checkKeyName(String key) throws InvalidModelException {
+		if(key == null) throw new InvalidModelException("Annotation names cannot be null");
+		key = key.trim();
+		if("".equals(key)) throw new InvalidModelException("Annotation names cannot be empty strings");
+		Matcher matcher = ALLOWABLE_CHARS.matcher(key);
+		if (!matcher.matches()) {
+			throw new InvalidModelException("Invalid annotation name: '"+key+"'. Annotation names may only contain; letters, numbers, '_' and '.'");
 		}
-		return;
+		return key;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

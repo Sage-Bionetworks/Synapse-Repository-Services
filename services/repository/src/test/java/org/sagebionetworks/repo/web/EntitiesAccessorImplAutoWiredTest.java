@@ -35,7 +35,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class EntitiesAccessorImplAutoWiredTest {
 	
 	@Autowired
-	EntitiesAccessor2 entitiesAccessor;
+	EntitiesAccessor entitiesAccessor;
 	
 	@Autowired
 	EntityManager entityManager;

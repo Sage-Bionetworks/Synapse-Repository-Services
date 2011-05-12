@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +68,7 @@ public class JDOAuthorizationManagerImplTest {
 		// Create a few datasets
 		nodeIds = new ArrayList<String>();
 		for (int i = 0; i < 5; i++) {
-			Node parent = Node.createNew("dsName" + i);
+			Node parent = createNew("dsName" + i);
 			parent.setDescription("description" + i);
 			parent.setCreatedBy("magic");
 			parent.setNodeType("dataset");
@@ -77,6 +78,17 @@ public class JDOAuthorizationManagerImplTest {
 //			idToNameMap.put(parentId, parent.getName());
 			nodeIds.add(parentId);
 		}
+	}
+	
+	public Node createNew(String name){
+		Node node = new Node();
+		node.setName(name);
+		node.setCreatedBy("anonymous");
+		node.setModifiedBy("anonymous");
+		node.setCreatedOn(new Date(System.currentTimeMillis()));
+		node.setModifiedOn(node.getCreatedOn());
+		node.setNodeType("unknown");
+		return node;
 	}
 	
 	@After

@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
+import org.sagebionetworks.repo.web.EntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -34,11 +35,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * 
  */
 @Controller
-public class UserGroupController extends BaseController2  {
-
-//	private EntitiesAccessor<UserGroup> userGroupAccessor;
-//	private JDOUserGroupDAO dao = null;
-//	private EntityController<UserGroup> userGroupController;
+public class UserGroupController extends BaseController  {
 
 	UserGroupController() {
 //		userGroupAccessor = new EntitiesAccessorImpl<UserGroup>();

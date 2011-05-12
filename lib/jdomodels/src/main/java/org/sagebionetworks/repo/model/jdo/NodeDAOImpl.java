@@ -39,15 +39,17 @@ public class NodeDAOImpl implements NodeDAO {
 	@Override
 	public String createNew(Node dto) throws NotFoundException {
 		if(dto == null) throw new IllegalArgumentException("Node cannot be null");
-		// Make sure the nodes does not come in with an id
-		dto.setId(null);
 		JDONode node = JDONodeUtils.copyFromDto(dto);
+		// Make sure the nodes does not come in with an id
+		node.setId(null);
 		// Start it with an eTag of zero
 		node.seteTag(new Long(0));
 		// Make sure it has annotations
 		node.setAnnotations(JDOAnnotations.newJDOAnnotations());
 		// Fist create the node
 		node = jdoTemplate.makePersistent(node);
+		// Nodes start off as their own benefactor.
+		node.setPermissionsBenefactor(node);
 		if(dto.getParentId() != null){
 			// Get the parent
 			JDONode parent = getNodeById(Long.parseLong(dto.getParentId()));
@@ -111,15 +113,19 @@ public class NodeDAOImpl implements NodeDAO {
 		JDONode parent = getNodeById(Long.parseLong(id));
 		if(parent != null){
 			Set<JDONode> childrenSet = parent.getChildren();
-			if(childrenSet == null)return null;
-			HashSet<Node> children = new HashSet<Node>();
-			Iterator<JDONode> it = childrenSet.iterator();
-			while(it.hasNext()){
-				children.add(JDONodeUtils.copyFromJDO(it.next()));
-			}
-			return children;
+			return extractNodeSet(childrenSet);
 		}
 		return null;
+	}
+
+	private Set<Node> extractNodeSet(Set<JDONode> childrenSet) {
+		if(childrenSet == null)return null;
+		HashSet<Node> children = new HashSet<Node>();
+		Iterator<JDONode> it = childrenSet.iterator();
+		while(it.hasNext()){
+			children.add(JDONodeUtils.copyFromJDO(it.next()));
+		}
+		return children;
 	}
 
 	/**

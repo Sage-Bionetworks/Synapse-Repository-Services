@@ -16,7 +16,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -232,27 +231,6 @@ public class QueryControllerTest {
 		assertEquals("Pediatric AML TARGET", result.getString("dataset.name"));
 	}
 
-	/**
-	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.QueryController#query} .
-	 * 
-	 * @throws Exception
-	 */
-	@Ignore // This is no longer true
-	@Test
-	public void testLayerQueryMissingDatasetId() throws Exception {
-		JSONObject error = helper.testQueryShouldFail(
-				"select * from layer where name == \"bar\"",
-				HttpStatus.BAD_REQUEST);
-		assertEquals(
-				"java.lang.IllegalArgumentException: Layer queries must include a 'WHERE dataset.id == <the id>' clause",
-				error.getString("reason"));
-		error = helper.testQueryShouldFail("select * from layer",
-				HttpStatus.BAD_REQUEST);
-		assertEquals(
-				"java.lang.IllegalArgumentException: Layer queries must include a 'WHERE dataset.id == <the id>' clause",
-				error.getString("reason"));
-	}
 
 	/**
 	 * Test method for

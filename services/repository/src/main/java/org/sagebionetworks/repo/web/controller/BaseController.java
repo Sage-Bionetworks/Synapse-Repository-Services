@@ -79,9 +79,9 @@ import org.springframework.web.util.NestedServletException;
  * @author deflaux
  */
 
-public abstract class BaseController2 {
+public abstract class BaseController {
 
-	private static final Logger log = Logger.getLogger(BaseController2.class
+	private static final Logger log = Logger.getLogger(BaseController.class
 			.getName());
 
 	/**

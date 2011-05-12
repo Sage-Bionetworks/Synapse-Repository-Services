@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.jdo.persistence;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import javax.jdo.annotations.Column;
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
@@ -35,6 +36,7 @@ public class JDODateAnnotation implements JDOAnnotation<Date> {
 	private String attribute;
 
 	@Persistent
+	@Column(jdbcType="TIMESTAMP")
 	private Date value;
 
 	public JDODateAnnotation() {
