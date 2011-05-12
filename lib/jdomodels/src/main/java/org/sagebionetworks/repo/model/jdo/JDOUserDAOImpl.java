@@ -1,12 +1,11 @@
-package org.sagebionetworks.repo.model.jdo.aw;
+package org.sagebionetworks.repo.model.jdo;
 
 import java.util.Collection;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.jdo.JDOExecutor;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.jdo.aw.JDOUserDAO;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.transaction.annotation.Transactional;

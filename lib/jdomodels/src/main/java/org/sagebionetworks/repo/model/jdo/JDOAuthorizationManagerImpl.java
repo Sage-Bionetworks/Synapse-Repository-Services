@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.jdo.aw.JDOUserDAO;
-import org.sagebionetworks.repo.model.jdo.aw.JDOUserGroupDAO;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;

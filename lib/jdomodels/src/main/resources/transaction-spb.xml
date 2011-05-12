@@ -38,8 +38,8 @@
 	
 	<bean id="nodeDao" class="org.sagebionetworks.repo.model.jdo.NodeDAOImpl" />
 	
-	<bean id="userDAO" class="org.sagebionetworks.repo.model.jdo.aw.JDOUserDAOImpl" />
-	<bean id="groupDAO" class="org.sagebionetworks.repo.model.jdo.aw.JDOUserGroupDAOImpl" />
+	<bean id="userDAO" class="org.sagebionetworks.repo.model.jdo.JDOUserDAOImpl" />
+	<bean id="groupDAO" class="org.sagebionetworks.repo.model.jdo.JDOUserGroupDAOImpl" />
 	<bean id="authorizationManager" class="org.sagebionetworks.repo.model.jdo.JDOAuthorizationManagerImpl" />
 
 

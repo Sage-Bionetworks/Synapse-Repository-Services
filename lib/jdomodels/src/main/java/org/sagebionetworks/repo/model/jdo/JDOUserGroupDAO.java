@@ -1,13 +1,12 @@
-package org.sagebionetworks.repo.model.jdo.aw;
+package org.sagebionetworks.repo.model.jdo;
 
 import java.util.Collection;
 
 import org.sagebionetworks.repo.model.Authorizable;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.jdo.aw.JDOBaseDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 
