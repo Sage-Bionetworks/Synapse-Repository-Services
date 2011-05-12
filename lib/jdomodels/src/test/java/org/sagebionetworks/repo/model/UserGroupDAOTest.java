@@ -12,22 +12,20 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.jdo.JDOUserGroupDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.jdo.aw.JDOUserDAO;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:jdomodles-test-context.xml" })
+@ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class UserGroupDAOTest {
 	@Autowired
-	JDOUserDAO userDAO;
+	UserDAO userDAO;
 	
 	@Autowired
-	JDOUserGroupDAO userGroupDAO;
+	UserGroupDAO userGroupDAO;
 	
 	
 	private static final Logger log = Logger

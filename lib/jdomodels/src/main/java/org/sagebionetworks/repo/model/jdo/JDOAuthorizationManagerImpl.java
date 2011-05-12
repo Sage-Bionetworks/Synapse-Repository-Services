@@ -12,10 +12,11 @@ import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.jdo.aw.JDOUserDAO;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
@@ -30,10 +31,10 @@ public class JDOAuthorizationManagerImpl implements JDOAuthorizationManager {
 	@Autowired
 	private JdoTemplate jdoTemplate;
 	@Autowired
-	JDOUserGroupDAO userGroupDAO;
+	UserGroupDAO userGroupDAO;
 	
 	@Autowired
-	JDOUserDAO userDAO;
+	UserDAO userDAO;
 	
 	public User createUser(String userName) throws DatastoreException {
 		try {
