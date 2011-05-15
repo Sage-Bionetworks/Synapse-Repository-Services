@@ -3,9 +3,7 @@ package org.sagebionetworks.web.client.widget.login;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sagebionetworks.web.client.UserAccountServiceAsync;
 import org.sagebionetworks.web.client.security.AuthenticationController;
-import org.sagebionetworks.web.client.security.AuthenticationException;
 import org.sagebionetworks.web.shared.users.UserData;
 
 import com.google.gwt.user.client.rpc.AsyncCallback;
@@ -46,6 +44,10 @@ public class LoginWidget implements LoginWidgetView.Presenter {
 				view.showAuthenticationFailed();
 			}
 		});
+	}
+	
+	public void clear() {
+		view.clear();
 	}
 
 	// needed?

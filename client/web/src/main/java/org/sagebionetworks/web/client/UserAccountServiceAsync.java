@@ -13,6 +13,8 @@ public interface UserAccountServiceAsync {
 
 	void createUser(UserRegistration userInfo, AsyncCallback<Void> callback);
 
+	void terminateSession(String sessionToken, AsyncCallback<Void> callback);
+
 	// Not needed, provided by crowd
 //	void resetPassword(String securityToken, String newPassword, AsyncCallback<String> callback);
 //	void isActivePasswordResetToken(String securityToken, AsyncCallback<Boolean> callback);

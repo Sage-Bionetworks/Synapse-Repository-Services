@@ -38,15 +38,17 @@ public class LoginViewImpl extends Composite implements LoginView {
 	
 
 	private Presenter presenter;
+	private LoginWidget loginWidget;
 
 	public interface Binder extends UiBinder<Widget, LoginViewImpl> {}
 	
 	@Inject
-	public LoginViewImpl(Binder uiBinder, IconsImageBundle icons, LoginWidget widget){
+	public LoginViewImpl(Binder uiBinder, IconsImageBundle icons, LoginWidget loginWidget){
 		initWidget(uiBinder.createAndBindUi(this));
+		this.loginWidget = loginWidget;
 		// Add the widget to the panel
-		loginWidgetPanel.add(widget.asWidget());
-		widget.addUserListener(new UserListener() {
+		loginWidgetPanel.add(loginWidget.asWidget());
+		loginWidget.addUserListener(new UserListener() {
 			
 			@Override
 			public void userChanged(UserData newUser) {
@@ -78,6 +80,9 @@ public class LoginViewImpl extends Composite implements LoginView {
 		this.presenter = loginPresenter;
 	}
 
-
+	@Override
+	public void clear() {
+		loginWidget.clear();
+	}
 
 }

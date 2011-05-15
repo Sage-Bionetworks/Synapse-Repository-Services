@@ -22,4 +22,6 @@ public interface LoginWidgetView extends IsWidget {
 	public void showAuthenticationFailed();
 	
 	public void showError(String message);
+	
+	public void clear();
 }

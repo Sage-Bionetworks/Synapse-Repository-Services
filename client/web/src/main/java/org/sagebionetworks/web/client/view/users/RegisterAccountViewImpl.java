@@ -1,5 +1,6 @@
 package org.sagebionetworks.web.client.view.users;
 
+import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.place.Home;
@@ -10,7 +11,12 @@ import org.sagebionetworks.web.shared.users.UserRegistration;
 
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
 import com.extjs.gxt.ui.client.event.ButtonEvent;
+import com.extjs.gxt.ui.client.event.ComponentEvent;
+import com.extjs.gxt.ui.client.event.EventType;
+import com.extjs.gxt.ui.client.event.Events;
 import com.extjs.gxt.ui.client.event.SelectionListener;
+import com.extjs.gxt.ui.client.util.KeyNav;
+import com.extjs.gxt.ui.client.widget.Label;
 import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.button.Button;
 import com.extjs.gxt.ui.client.widget.form.FieldSet;
@@ -95,7 +101,10 @@ public class RegisterAccountViewImpl extends Composite implements RegisterAccoun
 		     final TextField<String> lastName = new TextField<String>();  
 		     lastName.setFieldLabel("Last Name");
 		     lastName.setAllowBlank(false);
-		     fieldSet.add(lastName, formData);  
+		     fieldSet.add(lastName, formData);
+		     
+		     Label passwordLabel = new Label(DisplayUtils.getIconHtml(iconsImageBundle.lock16()) + " Password setup insturctions will be sent via email.");
+		     fieldSet.add(passwordLabel);
 		   		   		   
 		     formPanel.add(fieldSet);  
 		     formPanel.setButtonAlign(HorizontalAlignment.CENTER);  
@@ -110,13 +119,25 @@ public class RegisterAccountViewImpl extends Composite implements RegisterAccoun
 		     
  			 FormButtonBinding binding = new FormButtonBinding(formPanel);
 			 binding.addButton(registerButton);
-		   }
+
+			// Enter key submits form 
+			new KeyNav<ComponentEvent>(formPanel) {
+				@Override
+				public void onEnter(ComponentEvent ce) {
+					super.onEnter(ce);
+					if(registerButton.isEnabled()) {
+						registerButton.fireEvent(Events.Select);
+					}
+				}
+			};
+ 
+	 }
 
 
 	@Override
 	public void showAccountCreated() {
 		registerAccountPanel.clear();		
-		contentHtml.setInnerHTML(AbstractImagePrototype.create(iconsImageBundle.informationBalloon16()).getHTML() + " Your Synapse account has been created. We have sent you an email with instructions on how to setup a password for your account. Follow the directions in the email, and then <a href=\"#LoginPlace:0\">login here</a>.");				
+		contentHtml.setInnerHTML(DisplayUtils.getIconHtml(iconsImageBundle.informationBalloon16()) + " Your Synapse account has been created. We have sent you an email with instructions on how to setup a password for your account. Follow the directions in the email, and then <a href=\"#LoginPlace:0\">login here</a>.");				
 	}
 
 	@Override

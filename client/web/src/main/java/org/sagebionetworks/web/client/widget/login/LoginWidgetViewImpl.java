@@ -4,8 +4,12 @@ import org.sagebionetworks.web.client.IconsImageBundle;
 
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
 import com.extjs.gxt.ui.client.event.BaseEvent;
+import com.extjs.gxt.ui.client.event.ButtonEvent;
+import com.extjs.gxt.ui.client.event.ComponentEvent;
 import com.extjs.gxt.ui.client.event.Events;
 import com.extjs.gxt.ui.client.event.Listener;
+import com.extjs.gxt.ui.client.event.SelectionListener;
+import com.extjs.gxt.ui.client.util.KeyNav;
 import com.extjs.gxt.ui.client.widget.Label;
 import com.extjs.gxt.ui.client.widget.LayoutContainer;
 import com.extjs.gxt.ui.client.widget.VerticalPanel;
@@ -27,6 +31,8 @@ public class LoginWidgetViewImpl extends LayoutContainer implements
 	private FormData formData;
 	private Label messageLabel;
 	private IconsImageBundle iconsImageBundle;
+	private TextField<String> firstName = new TextField<String>();
+	private TextField<String> password = new TextField<String>();
 
 	@Inject
 	public LoginWidgetViewImpl(IconsImageBundle iconsImageBundle) {
@@ -45,43 +51,49 @@ public class LoginWidgetViewImpl extends LayoutContainer implements
 	}
 
 	private void createForm1() {
-		FormPanel simple = new FormPanel();
-		simple.setHeading("Login");
-		simple.setFrame(true);
-		simple.setWidth(350);
-		simple.setLabelWidth(85);
-
-		final TextField<String> firstName = new TextField<String>();
+		FormPanel formPanel = new FormPanel();
+		formPanel.setHeading("Login");
+		formPanel.setFrame(true);
+		formPanel.setWidth(350);
+		formPanel.setLabelWidth(85);
+		
 		firstName.setFieldLabel("Email Address");
 		firstName.setAllowBlank(false);
 		firstName.getFocusSupport()
-				.setPreviousId(simple.getButtonBar().getId());
-		simple.add(firstName, formData);
+				.setPreviousId(formPanel.getButtonBar().getId());
+		formPanel.add(firstName, formData);
 
-		final TextField<String> password = new TextField<String>();
 		password.setFieldLabel("Password");
 		password.setAllowBlank(false);
 		password.setPassword(true);
-		simple.add(password, formData);
+		formPanel.add(password, formData);
 
-		simple.add(messageLabel);
+		formPanel.add(messageLabel);
 		
-		Button b = new Button("Login");
-		simple.addButton(b);
-		b.addListener(Events.OnClick, new Listener<BaseEvent>() {
+		final Button loginButton = new Button("Login", new SelectionListener<ButtonEvent>(){			
 			@Override
-			public void handleEvent(BaseEvent be) {
+			public void componentSelected(ButtonEvent ce) {
 				messageLabel.setText(""); 
 				presenter.setUsernameAndPassword(firstName.getValue(), password.getValue());
 			}
 		});
-
-		simple.setButtonAlign(HorizontalAlignment.CENTER);
+		formPanel.addButton(loginButton);
+		formPanel.setButtonAlign(HorizontalAlignment.CENTER);
 		
-		FormButtonBinding binding = new FormButtonBinding(simple);
-		binding.addButton(b);
+		FormButtonBinding binding = new FormButtonBinding(formPanel);
+		binding.addButton(loginButton);
 
-		vp.add(simple);
+		// Enter key submits login 
+		new KeyNav<ComponentEvent>(formPanel) {
+			@Override
+			public void onEnter(ComponentEvent ce) {
+				super.onEnter(ce);
+				if(loginButton.isEnabled())
+					loginButton.fireEvent(Events.Select);
+			}
+		};
+		
+		vp.add(formPanel);
 	}
 
 	@Override
@@ -103,6 +115,13 @@ public class LoginWidgetViewImpl extends LayoutContainer implements
 	public void showAuthenticationFailed() {
 		messageLabel.setStyleAttribute("color", "red");
 		messageLabel.setText(AbstractImagePrototype.create(iconsImageBundle.warning16()).getHTML() + " Invalid username or password.");
+		clear();
+	}
+
+	@Override
+	public void clear() {
+		firstName.clear();
+		password.clear();
 	}
 
 }

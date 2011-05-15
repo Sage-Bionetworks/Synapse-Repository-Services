@@ -22,10 +22,20 @@ public class UserData implements IsSerializable {
 	public UserData() {		
 	}
 	
+	public UserData(String cookieString) {
+		List<String> cookieList = CookieUtils.createListFromString(cookieString);
+		if(cookieList.size() == 3) {
+			validateFields(cookieList.get(0), cookieList.get(1), cookieList.get(2));
+			this.userId = cookieList.get(0);
+			this.userName = cookieList.get(1);
+			this.token = cookieList.get(2);
+		} else {
+			throw new IllegalArgumentException("Session cookie contains the wrong number of elements.");
+		}
+	}
+	
 	public UserData(String userId, String userName, String token) {
-		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
-		if(userName == null) throw new IllegalArgumentException("UserName cannot be null");
-		if(token == null) throw new IllegalArgumentException("Token cannot be null");
+		validateFields(userId, userName, token);
 		this.userId = userId;
 		this.userName = userName;
 		this.token = token;
@@ -44,8 +54,19 @@ public class UserData implements IsSerializable {
 		List<String> fieldList = CookieUtils.createListFromString(cookie);
 		if(fieldList.size() != 3) throw new IllegalArgumentException("There should be three fields in this object");
 		return new UserData(fieldList.get(0), fieldList.get(1), fieldList.get(2));
+	}	
+
+	public String getUserId() {
+		return userId;
 	}
 
+	public String getUserName() {
+		return userName;
+	}
+
+	public String getToken() {
+		return token;
+	}
 
 	@Override
 	public int hashCode() {
@@ -85,4 +106,12 @@ public class UserData implements IsSerializable {
 		return true;
 	}
 
+	/*
+	 * Private Methods
+	 */
+	private void validateFields(String userId, String userName, String token) {
+		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		if(userName == null) throw new IllegalArgumentException("UserName cannot be null");
+		if(token == null) throw new IllegalArgumentException("Token cannot be null");
+	}
 }

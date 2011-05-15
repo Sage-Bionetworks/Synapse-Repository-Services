@@ -8,10 +8,12 @@ import org.sagebionetworks.web.client.widget.header.Header;
 
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
 import com.extjs.gxt.ui.client.event.ButtonEvent;
+import com.extjs.gxt.ui.client.event.ComponentEvent;
+import com.extjs.gxt.ui.client.event.Events;
 import com.extjs.gxt.ui.client.event.SelectionListener;
+import com.extjs.gxt.ui.client.util.KeyNav;
 import com.extjs.gxt.ui.client.widget.Info;
 import com.extjs.gxt.ui.client.widget.MessageBox;
-import com.extjs.gxt.ui.client.widget.MessageBox.MessageBoxType;
 import com.extjs.gxt.ui.client.widget.button.Button;
 import com.extjs.gxt.ui.client.widget.form.FieldSet;
 import com.extjs.gxt.ui.client.widget.form.FormButtonBinding;
@@ -94,7 +96,7 @@ public class PasswordResetViewImpl extends Composite implements PasswordResetVie
 	     requestFormPanel.add(fieldSet);  
 	   
 	     requestFormPanel.setButtonAlign(HorizontalAlignment.CENTER);  
-	     Button sendChangeRequest = new Button("Send", new SelectionListener<ButtonEvent>() {				
+	     final Button sendChangeRequest = new Button("Send", new SelectionListener<ButtonEvent>() {				
 				@Override
 				public void componentSelected(ButtonEvent ce) {
 					presenter.requestPasswordReset(emailAddress.getValue());
@@ -105,6 +107,14 @@ public class PasswordResetViewImpl extends Composite implements PasswordResetVie
 	     FormButtonBinding binding = new FormButtonBinding(requestFormPanel);
 		 binding.addButton(sendChangeRequest);
 
+			// Enter key submits form 
+			new KeyNav<ComponentEvent>(requestFormPanel) {
+				@Override
+				public void onEnter(ComponentEvent ce) {
+					super.onEnter(ce);
+					sendChangeRequest.fireEvent(Events.Select);
+				}
+			};
 	   }  
 
 	 private void createResetForm() {  

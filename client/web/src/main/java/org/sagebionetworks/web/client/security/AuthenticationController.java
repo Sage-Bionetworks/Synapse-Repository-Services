@@ -21,6 +21,11 @@ public interface AuthenticationController {
 	public void loginUser(String username, String password, AsyncCallback<UserData> callback);
 	
 	/**
+	 * Terminates the session of the current user
+	 */
+	public void logoutUser();
+	
+	/**
 	 * Get the currently logged in user, if any.
 	 * @return the current user
 	 */

@@ -90,3 +90,8 @@ h1 {
 .gwt-Hyperlink img {
 	text-decoration: none;
 }
+
+.iconSpan img {
+	position: relative;
+	top: 3px;		
+}

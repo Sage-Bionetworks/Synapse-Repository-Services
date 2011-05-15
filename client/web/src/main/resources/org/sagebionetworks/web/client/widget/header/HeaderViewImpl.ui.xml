@@ -11,9 +11,16 @@
 						<a href="#"><g:Image resource="{sageImages.sageLogoAndTitle}"/></a>
 				</div>
 				<div id="user_tools" class="right">
-					<span class="hello">Welcome Michael K.</span><br />
-
-					<span class="tools right"><a href="edit_profile.html">My profile</a> | <a href="">Logout</a></span>
+					<span class="hello" ui:field="userName" /><br />
+					<span class="tools right">
+					<table>
+						<tr>
+							<td><a href="edit_profile.html">My profile</a><g:Hyperlink ui:field="editProfileLink" /></td>
+							<td>&nbsp;|&nbsp;</td>
+							<td><g:Hyperlink ui:field="logoutLink" /></td>
+						</tr>
+					</table>					
+					</span>
 				</div>
 			</div>	
 			<div class="global_nav">

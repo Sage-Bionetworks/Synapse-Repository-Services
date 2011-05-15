@@ -1,6 +1,8 @@
 package org.sagebionetworks.web.client.presenter;
 
 import org.sagebionetworks.web.client.place.LoginPlace;
+import org.sagebionetworks.web.client.security.AuthenticationController;
+import org.sagebionetworks.web.client.security.AuthenticationControllerImpl;
 import org.sagebionetworks.web.client.view.LoginView;
 import org.sagebionetworks.web.shared.users.UserData;
 
@@ -18,11 +20,13 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 	private LoginView view;
 	private EventBus bus;
 	private PlaceController placeController;
+	private AuthenticationController authenticationController;
 	
 	@Inject
-	public LoginPresenter(LoginView view){
+	public LoginPresenter(LoginView view, AuthenticationController authenticationController){
 		this.view = view;
 		this.view.setPresenter(this);
+		this.authenticationController = authenticationController;
 	}
 
 	@Override
@@ -34,11 +38,14 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 
 	public void setPlace(LoginPlace place) {
 		this.loginPlace = place;
-		
+		view.clear();
+		if(LoginPlace.LOGOUT_TOKEN.equals(place.toToken())) {
+			authenticationController.logoutUser();
+		}
 	}
 
 	@Override
-	public void setNewUser(UserData newUser) {
+	public void setNewUser(UserData newUser) {	
 		// Allow the user to proceed.
 		bus.fireEvent( new PlaceChangeEvent(loginPlace.getForwardPlace()));
 		

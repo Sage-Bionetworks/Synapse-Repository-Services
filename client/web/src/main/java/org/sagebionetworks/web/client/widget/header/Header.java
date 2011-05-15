@@ -27,6 +27,6 @@ public class Header implements HeaderView.Presenter {
 
 	public Widget asWidget() {
 		return view.asWidget();
-	}	
+	}
 	
 }

@@ -13,7 +13,9 @@ import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 import org.sagebionetworks.web.shared.users.InitiateSession;
 import org.sagebionetworks.web.shared.users.UserData;
 import org.sagebionetworks.web.shared.users.UserRegistration;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +41,10 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 	private static final String CREATE_USER_FIRSTNAME_PARAM = "firstName";
 	private static final String CREATE_USER_LASTNAME_PARAM = "lastName";
 	private static final String CREATE_USER_DISPLAYNAME_PARAM = "displayName";
+
+	private static final String TERMINATE_SESSION_PATH = "session";
+	private static final String TERMINATE_SESSION_TOKEN_PARAM = "sessionToken";
+
 	
 	/**
 	 * The template is injected with Gin
@@ -166,6 +172,55 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 
 		long end = System.currentTimeMillis();
 		logger.info("Url GET: " + uri.toString()+" in "+(end-start)+" ms");		
+	}
+
+	@Override
+	public void terminateSession(String sessionToken) throws RestServiceException {
+		URI uri = null;
+		try {
+			uri = new URI(urlProvider.getAuthBaseUrl() + TERMINATE_SESSION_PATH);
+		} catch (URISyntaxException e) {
+			e.printStackTrace();
+		}
+		
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+
+		// Make the actual call.
+		long start = System.currentTimeMillis();
+		Map<String, String> params = new LinkedHashMap<String, String>();
+		params.put(TERMINATE_SESSION_TOKEN_PARAM, sessionToken);
+
+		
+		try {
+			ResponseEntity<Object> response = templateProvider.getTemplate().exchange(uri.toString(), HttpMethod.DELETE, new HttpEntity<String>("", headers), Object.class, params);
+			if(response.getStatusCode() != HttpStatus.NO_CONTENT && response.hasBody()) {
+				throw new RestServiceException("Unable to create user. Please try again.");
+			}
+		} catch (RestClientException ex) {
+			// ignore these. template provider can not handle a no content responses
+		} catch (Exception ex) {
+			throw new RestServiceException("Logout failed. Please try again.");
+		}
+		
+		long end = System.currentTimeMillis();
+		logger.info("Url GET: " + uri.toString()+" in "+(end-start)+" ms");		
+	}
+
+	/**
+	 * Validate that the service is ready to go. If any of the injected data is
+	 * missing then it cannot run. Public for tests.
+	 */
+	public void validateService() {
+		if (templateProvider == null)
+			throw new IllegalStateException(
+					"The org.sagebionetworks.web.server.RestTemplateProvider was not injected into this service");
+		if (templateProvider.getTemplate() == null)
+			throw new IllegalStateException(
+					"The org.sagebionetworks.web.server.RestTemplateProvider returned a null template");
+		if (urlProvider == null)
+			throw new IllegalStateException(
+					"The org.sagebionetworks.rest.api.root.url was not set");
 	}
 
 }

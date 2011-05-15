@@ -3,8 +3,12 @@ package org.sagebionetworks.web.client.security;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
 import org.sagebionetworks.web.client.cookie.CookieKeys;
 import org.sagebionetworks.web.client.cookie.CookieProvider;
+import org.sagebionetworks.web.client.cookie.CookieUtils;
 import org.sagebionetworks.web.shared.users.UserData;
 
+import com.extjs.gxt.ui.client.widget.Info;
+import com.extjs.gxt.ui.client.widget.InfoConfig;
+import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.inject.Inject;
 
@@ -24,8 +28,12 @@ public class AuthenticationControllerImpl implements AuthenticationController {
 
 	@Override
 	public boolean isLoggedIn() {
-		String login = cookies.getCookie(CookieKeys.USER_LOGIN_DATA);
-		return login != null;
+		String loginCookieString = cookies.getCookie(CookieKeys.USER_LOGIN_DATA);
+		if(loginCookieString != null) {
+			currentUser = new UserData(loginCookieString);
+			return true;
+		} 
+		return false;
 	}
 
 	@Override
@@ -36,6 +44,7 @@ public class AuthenticationControllerImpl implements AuthenticationController {
 			public void onSuccess(UserData userData) {				
 				String cookie = userData.getCookieString();
 				cookies.setCookie(CookieKeys.USER_LOGIN_DATA, cookie);
+				
 				AuthenticationControllerImpl.currentUser = userData;
 				callback.onSuccess(userData);
 			}
@@ -45,21 +54,29 @@ public class AuthenticationControllerImpl implements AuthenticationController {
 				callback.onFailure(new AuthenticationException(AUTHENTICATION_MESSAGE));
 			}
 		});
-
-		// This is hard-coded for the moment
-//		if(!"sage".equals(username))throw new AuthenticationException(AUTHENTICATION_MESSAGE);
-//		if(!"genetics12".equals(password)) throw new AuthenticationException(AUTHENTICATION_MESSAGE);
-//		UserData userData =  new UserData("Mike Kellen", "Mike Kellen", "someToken");
-//		// Store this in a cookie
-//		String cookie = userData.getCookieString();
-//		cookies.setCookie(CookieKeys.USER_LOGIN_DATA, cookie);
-//		return userData;
-
 	}
 
 	@Override
 	public UserData getLoggedInUser() {
 		return currentUser;
+	}
+
+	@Override
+	public void logoutUser() {
+		if(currentUser != null) {
+			userAccountService.terminateSession(currentUser.getToken(), new AsyncCallback<Void>() {	
+				@Override
+				public void onSuccess(Void result) {					
+					Info.display("Message", "You have been logged out.");
+					cookies.removeCookie(CookieKeys.USER_LOGIN_DATA);
+				}
+
+				@Override
+				public void onFailure(Throwable caught) {
+					MessageBox.alert("Message", "An error occured while logging you out. Please try again.", null);
+				}
+			});
+		}
 	}
 
 }

@@ -85,6 +85,7 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 	public void setServiceUrlProvider(ServiceUrlProvider provider){
 		this.urlProvider = provider;
 	}
+	
 	/**
 	 * Validate that the service is ready to go. If any of the injected data is
 	 * missing then it cannot run. Public for tests.
