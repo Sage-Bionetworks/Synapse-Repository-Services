@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotations;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
+import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
 
 /**
@@ -31,8 +32,8 @@ public class JDOAnnotationsUtils {
 	 * @return
 	 * @throws InvalidModelException
 	 */
-	public static JDOAnnotations createFromDTO(Annotations dto){
-		JDOAnnotations jdo = new JDOAnnotations();
+	public static JDONode createFromDTO(Annotations dto){
+		JDONode jdo = new JDONode();
 		updateFromJdoFromDto(dto, jdo);
 		return jdo;
 	}
@@ -43,7 +44,7 @@ public class JDOAnnotationsUtils {
 	 * @param jdo
 	 */
 	@SuppressWarnings("unchecked")
-	public static void updateFromJdoFromDto(Annotations dto, JDOAnnotations jdo) {
+	public static void updateFromJdoFromDto(Annotations dto, JDONode jdo) {
 		if(dto.getId() != null){
 			jdo.setId(Long.valueOf(dto.getId()));
 		}
@@ -58,7 +59,7 @@ public class JDOAnnotationsUtils {
 	 * @param jdo
 	 * @return
 	 */
-	public static Annotations createFromJDO(JDOAnnotations jdo){
+	public static Annotations createFromJDO(JDONode jdo){
 		if(jdo == null) throw new IllegalArgumentException("JDOAnnotations cannot be null");
 		Annotations dto = new Annotations();
 		if(jdo.getId() != null){
@@ -103,7 +104,7 @@ public class JDOAnnotationsUtils {
 	 * @param annotation
 	 * @return
 	 */
-	public static <T> Set<? extends JDOAnnotation<T>> createFromMap(JDOAnnotations owner, Map<String, Collection<T>> annotation){
+	public static <T> Set<? extends JDOAnnotation<T>> createFromMap(JDONode owner, Map<String, Collection<T>> annotation){
 		Set<JDOAnnotation<T>> set = new HashSet<JDOAnnotation<T>>();
 		if(annotation != null){
 			Iterator<String> keyIt = annotation.keySet().iterator();
@@ -130,7 +131,7 @@ public class JDOAnnotationsUtils {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> JDOAnnotation<T> createAnnotaion(JDOAnnotations owner, String key, T value){
+	public static <T> JDOAnnotation<T> createAnnotaion(JDONode owner, String key, T value){
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(value == null) throw new IllegalArgumentException("Value cannot be null");
 		JDOAnnotation<T>  jdo = null;

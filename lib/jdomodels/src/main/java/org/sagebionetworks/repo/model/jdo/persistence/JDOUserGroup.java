@@ -13,8 +13,9 @@ import javax.jdo.annotations.PrimaryKey;
 import javax.jdo.annotations.Unique;
 
 import org.sagebionetworks.repo.model.jdo.JDOBase;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
-@PersistenceCapable(detachable = "false")
+@PersistenceCapable(detachable = "false", table=SqlConstants.TABLE_USER_GROUP)
 public class JDOUserGroup implements JDOBase {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
@@ -28,7 +29,7 @@ public class JDOUserGroup implements JDOBase {
 	private Date creationDate;
 
 	@Persistent(serialized="false")
-	@Join
+	@Join (table=SqlConstants.TABLE_USER_GROUP_USERS)
 	private Set<Long> users = new HashSet<Long>();
 
     @Persistent(mappedBy = "owner", serialized="false")

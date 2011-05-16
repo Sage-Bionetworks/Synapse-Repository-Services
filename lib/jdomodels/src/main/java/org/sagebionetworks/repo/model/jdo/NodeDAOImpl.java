@@ -13,9 +13,15 @@ import javax.jdo.Query;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotations;
+import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
+import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
+import org.sagebionetworks.repo.model.jdo.persistence.JDONodeType;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
+import org.sagebionetworks.repo.model.query.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.jdo.JdoCallback;
 import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
@@ -30,7 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  */
 @Transactional(readOnly = true)
-public class NodeDAOImpl implements NodeDAO {
+public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	@Autowired
 	private JdoTemplate jdoTemplate;
@@ -40,12 +46,19 @@ public class NodeDAOImpl implements NodeDAO {
 	public String createNew(Node dto) throws NotFoundException {
 		if(dto == null) throw new IllegalArgumentException("Node cannot be null");
 		JDONode node = JDONodeUtils.copyFromDto(dto);
+		// Look up this type
+		if(dto.getNodeType() == null) throw new IllegalArgumentException("Node type cannot be null");
+		JDONodeType type = getNodeType(ObjectType.valueOf(dto.getNodeType()));
+		node.setNodeType(type);
 		// Make sure the nodes does not come in with an id
 		node.setId(null);
 		// Start it with an eTag of zero
 		node.seteTag(new Long(0));
 		// Make sure it has annotations
-		node.setAnnotations(JDOAnnotations.newJDOAnnotations());
+		node.setStringAnnotations(new HashSet<JDOStringAnnotation>());
+		node.setDateAnnotations(new HashSet<JDODateAnnotation>());
+		node.setLongAnnotations(new HashSet<JDOLongAnnotation>());
+		node.setDoubleAnnotations(new HashSet<JDODoubleAnnotation>());
 		// Fist create the node
 		node = jdoTemplate.makePersistent(node);
 		// Nodes start off as their own benefactor.
@@ -94,6 +107,19 @@ public class NodeDAOImpl implements NodeDAO {
 			throw new NotFoundException(e);
 		}
 	}
+	
+	private JDONodeType getNodeType(ObjectType type) throws NotFoundException{
+		if(type == null) throw new IllegalArgumentException("Node Type cannot be null");
+		try{
+			return jdoTemplate.getObjectById(JDONodeType.class, type.getId());
+		}catch (JDOObjectNotFoundException e){
+			// Convert to a not found exception
+			throw new NotFoundException(e);
+		}catch (JdoObjectRetrievalFailureException e){
+			// Convert to a not found exception
+			throw new NotFoundException(e);
+		}
+	}
 
 	@Transactional(readOnly = true)
 	@Override
@@ -101,7 +127,7 @@ public class NodeDAOImpl implements NodeDAO {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		JDONode jdo =  getNodeById(Long.parseLong(id));
 		// Get the annotations and make a copy
-		Annotations annos = JDOAnnotationsUtils.createFromJDO(jdo.getAnnotations());
+		Annotations annos = JDOAnnotationsUtils.createFromJDO(jdo);
 		annos.setEtag(jdo.geteTag().toString());
 		return annos;
 	}
@@ -181,7 +207,28 @@ public class NodeDAOImpl implements NodeDAO {
 		// Update the eTag
 		jdo.seteTag(Long.parseLong(updatedAnnotations.getEtag()));
 		// now update the annotations from the passed values.
-		JDOAnnotationsUtils.updateFromJdoFromDto(updatedAnnotations, jdo.getAnnotations());
+		JDOAnnotationsUtils.updateFromJdoFromDto(updatedAnnotations, jdo);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		// Make sure all of the known types are there
+		ObjectType[] types = ObjectType.values();
+		for(ObjectType type: types){
+			try{
+				// Try to get the type.
+				// If the type does not already exist then an exception will be thrown
+				JDONodeType jdo = getNodeType(type);
+			}catch(NotFoundException e){
+				// The type does not exist so create it.
+				JDONodeType jdo = new JDONodeType();
+				jdo.setId(type.getId());
+				jdo.setName(type.name());
+				this.jdoTemplate.makePersistent(jdo);
+			}
+		}
+		
 	}
 	
 }

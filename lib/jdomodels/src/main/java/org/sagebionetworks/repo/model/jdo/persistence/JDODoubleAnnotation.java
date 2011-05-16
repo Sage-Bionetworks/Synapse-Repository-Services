@@ -1,11 +1,16 @@
 package org.sagebionetworks.repo.model.jdo.persistence;
 
+import javax.jdo.annotations.Column;
+import javax.jdo.annotations.ForeignKey;
+import javax.jdo.annotations.ForeignKeyAction;
 import javax.jdo.annotations.IdGeneratorStrategy;
+import javax.jdo.annotations.NullValue;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
 import org.sagebionetworks.repo.model.jdo.JDOAnnotation;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 
 
@@ -18,20 +23,23 @@ import org.sagebionetworks.repo.model.jdo.JDOAnnotation;
  * @author bhoff
  * 
  */
-@PersistenceCapable(detachable = "false")
+@PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_DOUBLE_ANNOTATIONS)
 public class JDODoubleAnnotation implements JDOAnnotation<Double> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 
-	@Persistent
-	private JDOAnnotations owner; // this is the backwards pointer for the
-										// 1-1 owned relationship
+	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
+	@Column(name=SqlConstants.ANNOTATION_OWNER_ID_COLUMN)
+    @ForeignKey(name="DOUBLE_ANNON_OWNER_FK", deleteAction=ForeignKeyAction.CASCADE)
+	private JDONode owner; // this is the backwards pointer for the			// 1-1 owned relationship
 
 	@Persistent
+	@Column(name=SqlConstants.ANNOTATION_ATTRIBUTE_COLUMN)
 	private String attribute;
 
 	@Persistent
+	@Column(name=SqlConstants.ANNOTATION_VALUE_COLUMN)
 	private Double value;
 
 	public JDODoubleAnnotation() {
@@ -54,11 +62,11 @@ public class JDODoubleAnnotation implements JDOAnnotation<Double> {
 		this.id = id;
 	}
 
-	public JDOAnnotations getOwner() {
+	public JDONode getOwner() {
 		return owner;
 	}
 
-	public void setOwner(JDOAnnotations owner) {
+	public void setOwner(JDONode owner) {
 		this.owner = owner;
 	}
 

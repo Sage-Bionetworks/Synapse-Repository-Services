@@ -32,6 +32,17 @@ public class Layer implements IsSerializable {
 	private LayerType type;	
 	private String uri;
 	private String version;
+	private String parentId;
+
+	public String getParentId() {
+		return parentId;
+	}
+
+
+	public void setParentId(String parentId) {
+		this.parentId = parentId;
+	}
+
 
 	/**
 	 * Default constructor is required
@@ -253,6 +264,10 @@ public class Layer implements IsSerializable {
 				+ ((locations == null) ? 0 : locations.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
+				+ ((numSamples == null) ? 0 : numSamples.hashCode());
+		result = prime * result
+				+ ((parentId == null) ? 0 : parentId.hashCode());
+		result = prime * result
 				+ ((platform == null) ? 0 : platform.hashCode());
 		result = prime * result + ((preview == null) ? 0 : preview.hashCode());
 		result = prime
@@ -265,6 +280,7 @@ public class Layer implements IsSerializable {
 		result = prime * result + ((qcDate == null) ? 0 : qcDate.hashCode());
 		result = prime * result
 				+ ((releaseNotes == null) ? 0 : releaseNotes.hashCode());
+		result = prime * result + ((status == null) ? 0 : status.hashCode());
 		result = prime * result
 				+ ((tissueType == null) ? 0 : tissueType.hashCode());
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
@@ -318,6 +334,16 @@ public class Layer implements IsSerializable {
 				return false;
 		} else if (!name.equals(other.name))
 			return false;
+		if (numSamples == null) {
+			if (other.numSamples != null)
+				return false;
+		} else if (!numSamples.equals(other.numSamples))
+			return false;
+		if (parentId == null) {
+			if (other.parentId != null)
+				return false;
+		} else if (!parentId.equals(other.parentId))
+			return false;
 		if (platform == null) {
 			if (other.platform != null)
 				return false;
@@ -353,6 +379,11 @@ public class Layer implements IsSerializable {
 				return false;
 		} else if (!releaseNotes.equals(other.releaseNotes))
 			return false;
+		if (status == null) {
+			if (other.status != null)
+				return false;
+		} else if (!status.equals(other.status))
+			return false;
 		if (tissueType == null) {
 			if (other.tissueType != null)
 				return false;
@@ -379,12 +410,13 @@ public class Layer implements IsSerializable {
 		return "Layer [annotations=" + annotations + ", creationDate="
 				+ creationDate + ", description=" + description + ", etag="
 				+ etag + ", id=" + id + ", locations=" + locations + ", name="
-				+ name + ", platform=" + platform + ", preview=" + preview
-				+ ", processingFacility=" + processingFacility
-				+ ", publicationDate=" + publicationDate + ", qcBy=" + qcBy
-				+ ", qcDate=" + qcDate + ", releaseNotes=" + releaseNotes
-				+ ", tissueType=" + tissueType + ", type=" + type + ", uri="
-				+ uri + ", version=" + version + "]";
+				+ name + ", numSamples=" + numSamples + ", platform="
+				+ platform + ", preview=" + preview + ", processingFacility="
+				+ processingFacility + ", publicationDate=" + publicationDate
+				+ ", qcBy=" + qcBy + ", qcDate=" + qcDate + ", releaseNotes="
+				+ releaseNotes + ", status=" + status + ", tissueType="
+				+ tissueType + ", type=" + type + ", uri=" + uri + ", version="
+				+ version + ", parentId=" + parentId + "]";
 	}
 
 

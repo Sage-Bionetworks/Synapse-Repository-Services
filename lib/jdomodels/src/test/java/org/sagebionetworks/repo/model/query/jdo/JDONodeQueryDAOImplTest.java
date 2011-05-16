@@ -169,6 +169,7 @@ public class JDONodeQueryDAOImplTest {
 			// Update the child annoations.
 			nodeDao.updateAnnotations(childId, childAnnos);
 
+//			Thread.sleep(1000);
 		}
 	}
 	

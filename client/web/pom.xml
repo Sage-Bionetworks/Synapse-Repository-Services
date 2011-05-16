@@ -202,6 +202,17 @@
 			<version>1.0</version>
 			<scope>test</scope>
 		</dependency>
+		<!-- There are two sets of objects that are serialized into JSON and passed 
+		back and forth from the client to server.  The server-side objects can be found
+		in the lib-models project.  We include this jar as a test dependency so that
+		we can detect when the client and server version of the objects are out-of-sych.
+		The scope of this dependency should remain as 'test' only. See: ClientAndServerObjectSynchTest.java  -->
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-models</artifactId>
+			<version>${applicationVersion}</version>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>com.extjs</groupId>
 			<artifactId>gxt</artifactId>

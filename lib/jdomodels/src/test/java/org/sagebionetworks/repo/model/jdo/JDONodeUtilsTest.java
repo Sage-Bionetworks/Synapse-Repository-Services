@@ -23,7 +23,7 @@ public class JDONodeUtilsTest {
 		node.setName("myName");
 		node.setDescription("someDescription");
 		node.setId("101");
-		node.setNodeType("someType");
+//		node.setNodeType(ObjectType.project.name());
 		node.setCreatedBy("createdByMe");
 		node.setModifiedBy("modifiedByMe");
 		node.setETag("1013");
@@ -44,11 +44,11 @@ public class JDONodeUtilsTest {
 		parent.setId(new Long(123));
 		JDONode child = new JDONode();
 		child.setName("name");
-		child.setNodeType(ObjectType.dataset.name());
+//		child.setNodeType(ObjectType.dataset);
 		child.setParent(parent);
 		child.setModifiedBy("mod");
-		child.setModifiedOn(new Date(System.currentTimeMillis()));
-		child.setCreatedOn(new Date(System.currentTimeMillis()));
+		child.setModifiedOn(System.currentTimeMillis());
+		child.setCreatedOn(System.currentTimeMillis());
 		child.setCreatedBy("createdBy");
 		// Make sure the parent id goes to the child
 		Node dto = JDONodeUtils.copyFromJDO(child);

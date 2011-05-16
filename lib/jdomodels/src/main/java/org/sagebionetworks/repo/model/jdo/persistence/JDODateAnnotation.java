@@ -4,12 +4,16 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import javax.jdo.annotations.Column;
+import javax.jdo.annotations.ForeignKey;
+import javax.jdo.annotations.ForeignKeyAction;
 import javax.jdo.annotations.IdGeneratorStrategy;
+import javax.jdo.annotations.NullValue;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
 import org.sagebionetworks.repo.model.jdo.JDOAnnotation;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 
 
@@ -22,21 +26,24 @@ import org.sagebionetworks.repo.model.jdo.JDOAnnotation;
  * @author bhoff
  * 
  */
-@PersistenceCapable(detachable = "true")
+@PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_DATE_ANNOTATIONS)
 public class JDODateAnnotation implements JDOAnnotation<Date> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 
-	@Persistent
-	private JDOAnnotations owner; // this is the backwards pointer for the
+	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
+	@Column(name=SqlConstants.ANNOTATION_OWNER_ID_COLUMN)
+    @ForeignKey(name="DATE_ANNON_OWNER_FK", deleteAction=ForeignKeyAction.CASCADE)
+	private JDONode owner; // this is the backwards pointer for the
 										// 1-1 owned relationship
 
 	@Persistent
+	@Column(name=SqlConstants.ANNOTATION_ATTRIBUTE_COLUMN)
 	private String attribute;
 
 	@Persistent
-	@Column(jdbcType="TIMESTAMP")
+	@Column(name=SqlConstants.ANNOTATION_VALUE_COLUMN, jdbcType="TIMESTAMP")
 	private Date value;
 
 	public JDODateAnnotation() {
@@ -59,11 +66,11 @@ public class JDODateAnnotation implements JDOAnnotation<Date> {
 		this.id = id;
 	}
 
-	public JDOAnnotations getOwner() {
+	public JDONode getOwner() {
 		return owner;
 	}
 
-	public void setOwner(JDOAnnotations owner) {
+	public void setOwner(JDONode owner) {
 		this.owner = owner;
 	}
 

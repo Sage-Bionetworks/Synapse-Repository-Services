@@ -2,16 +2,23 @@ package org.sagebionetworks.repo.model.query.jdo;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotationType;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
+import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
+import org.sagebionetworks.repo.model.jdo.persistence.JDONodeType;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl.AttributeDoesNotExist;
@@ -19,8 +26,49 @@ import org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl.AttributeDoe
 @SuppressWarnings("rawtypes")
 public class SqlConstants {
 	
+	// Node table constants
+	public static final String TABLE_NODE 				= "JDONODE";
+	public static final String COL_NODE_ID				= "ID";
 	public static final String COL_NODE_PARENT_ID		= "PARENT_ID";
 	public static final String COL_NODE_BENEFACTOR_ID	= "BENEFACTOR_ID";
+	public static final String COL_NODE_NAME			= "NAME";
+	public static final String COL_NODE_ANNOATIONS		= "ANNOTATIONS_ID_OID";
+	public static final String COL_NODE_DESCRIPTION 	= "DESCRIPTION";
+	public static final String COL_NODE_ETAG 			= "ETAG";
+	public static final String COL_NODE_CREATED_BY 		= "CREATED_BY";
+	public static final String COL_NODE_CREATED_ON 		= "CREATED_ON";
+	public static final String COL_NODE_MODIFIED_BY 	= "MODIFIED_BY";
+	public static final String COL_NODE_MODIFIED_ON 	= "MODIFIED_ON";
+	public static final String COL_NODE_TYPE			= "NODE_TYPE";
+	
+	// Annotations tableS
+	public static final String TABLE_STRING_ANNOTATIONS	= "JDOSTRINGANNOTATION";
+	public static final String TABLE_DOUBLE_ANNOTATIONS	= "JDODOUBLEANNOTATION";
+	public static final String TABLE_LONG_ANNOTATIONS	= "JDOLONGANNOTATION";
+	public static final String TABLE_DATE_ANNOTATIONS	= "JDODATEANNOTATION";
+	// There are the column names that all annotation tables have.
+	public static final String ANNOTATION_ATTRIBUTE_COLUMN 		= "ATTRIBUTE";
+	public static final String ANNOTATION_VALUE_COLUMN			= "VALUE";
+	public static final String ANNOTATION_OWNER_ID_COLUMN		= "OWNER_ID";
+	
+	// The name of the node type table.
+	public static final String TABLE_NODE_TYPE				= "NODE_TYPE";
+	public static final String TABLE_ANNOTATION_TYPE		= "ANNOTATION_TYPE";
+
+	public static final String TABLE_USER					= "JDOUSER";
+	public static final String TABLE_USER_GROUP				= "JDOUSERGROUP";
+	public static final String TABLE_USER_GROUP_USERS		= "JDOUSERGROUPUSERS";
+	
+	// The resource access table
+	public static final String TABLE_RESOURCE_ACCESS			= "JDORESOURCEACCESS";
+	public static final String COL_RESOURCE_ACCESS_OWNER		= "OWNER_ID_OID";
+	public static final String COL_RESOURCE_ACCESS_TYPE			= "RESOURCE_TYPE";
+	public static final String COL_RESOURCE_ACCESS_RESOURCE_ID	= "RESOURCE_ID";
+	
+	// The resource access join table
+	public static final String TABLE_RESOURCE_ACCESS_TYPE		= "JDORESOURCEACCESSTYPE";
+	public static final String COL_RESOURCE_ACCESS_TYPE_ID		= "ID_OID";
+	public static final String COL_RESOURCE_ACCESS_TYPE_ELEMENT	= "STRING_ELE";
 	
 	// The alias used for the dataset table.
 	public static final String PRIMARY_ALIAS	= "prm";
@@ -28,16 +76,8 @@ public class SqlConstants {
 	public static final String COLUMN_ID		= "id";
 	
 	public static final String TYPE_COLUMN_NAME = "nodeType";
-	// This is the column on a primary that that annotations can be joined with.
-	public static final String PRIMARY_ANNOTATION_ID = "ANNOTATIONS_ID_OID";
-	// The annotation table's foreign keys
-	public static final String FOREIGN_KEY_LONG_ANNOTATION		= "LONG_ANNOTATIONS_ID_OWN";
-	public static final String FOREIGN_KEY_STRING_ANNOTATION	= "STRING_ANNOTATIONS_ID_OWN";
-	public static final String FOREIGN_KEY_DATE_ANNOTATION		= "DATE_ANNOTATIONS_ID_OWN";
-	public static final String FOREIGN_KEY_DOUBLE_ANNOTATION	= "DOUBLE_ANNOTATIONS_ID_OWN";
 	
-	public static final String ANNOTATION_ATTRIBUTE_COLUMN = "attribute";
-	public static final String ANNOTATION_VALUE_COLUMN = "value";
+
 	
 	// This is the alias of the sub-query used for sorting on annotations.
 	public static final String ANNOTATION_SORT_SUB_ALIAS 	= "assa";
@@ -53,6 +93,8 @@ public class SqlConstants {
 	public static final String INPUT_DATA_LAYER_DATASET_ID = "INPUT_LAYERS_ID_OWN";
 	
 	private static final Map<String, String> primaryFieldColumns;
+	private static final Map<String, String> mapClassToTable;
+
 	static{
 		// Map column names to the field names
 		// RELEASE_DATE,STATUS,PLATFORM,PROCESSING_FACILITY,QC_BY,QC_DATE,TISSUE_TYPE,TYPE,CREATION_DATE,DESCRIPTION,PREVIEW,PUBLICATION_DATE,RELEASE_NOTES
@@ -68,8 +110,45 @@ public class SqlConstants {
 		primaryFieldColumns.put("parentId", "PARENT_ID");
 		primaryFieldColumns.put("INPUT_LAYERS_ID_OWN", "INPUT_LAYERS_ID_OWN");
 		
+		// This is the map of varrious classes to their table names
+		mapClassToTable = new HashMap<String, String>();
+		mapClassToTable.put(JDONode.class.getName(),				TABLE_NODE);
+		mapClassToTable.put(JDONodeType.class.getName(),			TABLE_NODE_TYPE);
+		mapClassToTable.put(JDOAnnotationType.class.getName(),		TABLE_ANNOTATION_TYPE);
+		mapClassToTable.put(JDOLongAnnotation.class.getName(),		TABLE_LONG_ANNOTATIONS);
+		mapClassToTable.put(JDODoubleAnnotation.class.getName(),	TABLE_DOUBLE_ANNOTATIONS);
+		mapClassToTable.put(JDODateAnnotation.class.getName(), 		TABLE_DATE_ANNOTATIONS);
+		mapClassToTable.put(JDOStringAnnotation.class.getName(),	TABLE_STRING_ANNOTATIONS);
+		// security
+		mapClassToTable.put(JDOResourceAccess.class.getName(),		TABLE_RESOURCE_ACCESS);
+		mapClassToTable.put(JDOUser.class.getName(), 				TABLE_USER);
+		mapClassToTable.put(JDOUserGroup.class.getName(), 			TABLE_USER_GROUP);
+		// Join tables
+		mapClassToTable.put(JDOResourceAccess.class.getName()+".accessType",	TABLE_RESOURCE_ACCESS_TYPE);
+		mapClassToTable.put(JDOUserGroup.class.getName()+".users",				TABLE_USER_GROUP_USERS);
 	}
 	
+	/**
+	 * Get the table name for a class.
+	 * @param clazz
+	 * @return
+	 */
+	public static String getTableForClass(Class clazz){
+		if(clazz == null) throw new IllegalArgumentException("Class cannot be null");
+		return getTableForClassName(clazz.getName());
+	}
+	
+	/**
+	 * Get the table for a class name.
+	 * @param className
+	 * @return
+	 */
+	public static String getTableForClassName(String className){
+		if(className == null) throw new IllegalArgumentException("Class cannot be null");
+		String table = mapClassToTable.get(className);
+		if(table == null) throw new IllegalArgumentException("Cannot find table for Class: "+className);
+		return table;
+	}
 	/**
 	 * Add all of the fields for a given object.
 	 * @param clazz
@@ -119,26 +198,6 @@ public class SqlConstants {
 			return JDODoubleAnnotation.class;
 		}else{
 			throw new IllegalArgumentException("No class for : "+type);
-		}
-	}
-	
-	/**
-	 * For a given type, what is the foreign key column name of the associated 
-	 * annotation table.
-	 * @param type
-	 * @return
-	 */
-	public static String getForeignKeyColumnNameForType(FieldType type){
-		if(FieldType.STRING_ATTRIBUTE == type){
-			return FOREIGN_KEY_STRING_ANNOTATION;
-		}else if(FieldType.DATE_ATTRIBUTE == type){
-			return FOREIGN_KEY_DATE_ANNOTATION;
-		}else if(FieldType.LONG_ATTRIBUTE == type){
-			return FOREIGN_KEY_LONG_ANNOTATION;
-		}else if(FieldType.DOUBLE_ATTRIBUTE == type){
-			return FOREIGN_KEY_DOUBLE_ANNOTATION;
-		}else{
-			throw new IllegalArgumentException("There is no table for type: "+type);
 		}
 	}
 	

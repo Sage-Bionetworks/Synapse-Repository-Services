@@ -25,11 +25,20 @@ public class Dataset implements IsSerializable {
 	private Boolean hasExpressionData = false;
 	private Boolean hasGeneticData = false;
 	private Boolean hasClinicalData = false;
+	private String parentId;
 
 //	private List<LayerLink> layerPreviews;
 
 	public String getUri() {
 		return uri;
+	}
+
+	public String getParentId() {
+		return parentId;
+	}
+
+	public void setParentId(String parentId) {
+		this.parentId = parentId;
 	}
 
 	public String getEtag() {

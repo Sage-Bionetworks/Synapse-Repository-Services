@@ -9,6 +9,7 @@ import javax.jdo.annotations.PrimaryKey;
 import javax.jdo.annotations.Unique;
 
 import org.sagebionetworks.repo.model.jdo.JDOBase;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 
 /**
@@ -19,7 +20,7 @@ import org.sagebionetworks.repo.model.jdo.JDOBase;
  * @author bhoff
  *
  */
-@PersistenceCapable(detachable = "false")
+@PersistenceCapable(detachable = "false", table=SqlConstants.TABLE_USER)
 public class JDOUser implements JDOBase {
 
 	@PrimaryKey

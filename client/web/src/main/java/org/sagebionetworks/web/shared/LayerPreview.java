@@ -1,5 +1,7 @@
 package org.sagebionetworks.web.shared;
 
+import java.util.Date;
+
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 /**
@@ -12,6 +14,15 @@ public class LayerPreview implements IsSerializable {
 	private String id;
 	private String preview;
 	private String uri;
+	private Date creationDate;
+	
+	public Date getCreationDate() {
+		return creationDate;
+	}
+
+	public void setCreationDate(Date creationDate) {
+		this.creationDate = creationDate;
+	}
 
 	/**
 	 * Default constructor is required
@@ -56,6 +67,8 @@ public class LayerPreview implements IsSerializable {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result
+				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((preview == null) ? 0 : preview.hashCode());
@@ -72,6 +85,11 @@ public class LayerPreview implements IsSerializable {
 		if (getClass() != obj.getClass())
 			return false;
 		LayerPreview other = (LayerPreview) obj;
+		if (creationDate == null) {
+			if (other.creationDate != null)
+				return false;
+		} else if (!creationDate.equals(other.creationDate))
+			return false;
 		if (etag == null) {
 			if (other.etag != null)
 				return false;
@@ -98,7 +116,8 @@ public class LayerPreview implements IsSerializable {
 	@Override
 	public String toString() {
 		return "LayerPreview [etag=" + etag + ", id=" + id + ", preview="
-				+ preview + ", uri=" + uri + "]";
+				+ preview + ", uri=" + uri + ", creationDate=" + creationDate
+				+ "]";
 	}
 	
 }

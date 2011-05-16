@@ -131,6 +131,7 @@
 		<applicationVersion>0.4-SNAPSHOT</applicationVersion>
 		
 		<org.springframework.version>3.0.5.RELEASE</org.springframework.version>
+		<datanucleus.version>3.0.0-m4</datanucleus.version>
 	</properties>
 
 	<distributionManagement>

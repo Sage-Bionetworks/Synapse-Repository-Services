@@ -4,13 +4,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.jdo.JDOException;
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
@@ -45,8 +45,7 @@ import org.springframework.orm.jdo.JdoTemplate;
  */
 public class JDONodeQueryDaoImpl implements NodeQueryDao {
 
-	private static Logger log = Logger.getLogger(JDONodeQueryDaoImpl.class
-			.getName());
+	static private Log log = LogFactory.getLog(JDONodeQueryDaoImpl.class);
 
 	@Autowired
 	JdoTemplate jdoTemplate;
@@ -95,7 +94,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			throw new IllegalArgumentException(
 					"The query 'from' cannot be null");
 		// Add the type to the filter
-		in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Compartor.EQUALS, in.getFrom().name()));
+		in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Compartor.EQUALS, in.getFrom().getId()));
 
 		// A count query is composed of the following parts
 		// <select> + <primaryFrom> + (<inner_join_attribute_filter>)* +
@@ -132,7 +131,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			}
 		} catch (AttributeDoesNotExist e) {
 			// log this and return an empty result
-			log.log(Level.INFO, e.getMessage(), e);
+			log.warn(e.getMessage(), e);
 			// Return an empty result
 			return new NodeQueryResults(new ArrayList<String>(), 0);
 		}
@@ -150,9 +149,6 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		builder.append(" ");
 		builder.append(primaryWhere);
 		String countQueryString = builder.toString();
-		if (log.isLoggable(Level.FINEST)) {
-			log.finest("SQL Count query: " + countQueryString);
-		}
 		// Now build the full query
 		builder = new StringBuilder();
 		builder.append(selectId);
@@ -171,11 +167,6 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 
 		// Query
 		String queryString = builder.toString();
-		if (log.isLoggable(Level.FINEST)) {
-			log.finest("SQL query: " + queryString);
-			System.out.println(queryString);
-		}
-
 		// Run the count query
 		List countResults = executeQuery(countQueryString, parameters);
 		Object countObject = countResults.get(0);
@@ -201,6 +192,12 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			@SuppressWarnings("unchecked")
 			@Override
 			public List doInJdo(PersistenceManager pm) throws JDOException {
+				if(log.isDebugEnabled()){
+					log.debug("Runing SQL query:\n"+sql);
+					if(parameters != null){
+						log.debug("Using Parameters:\n"+parameters.toString());
+					}
+				}
 				Query query = pm.newQuery("javax.jdo.query.SQL", sql);
 				return (List) query.executeWithMap(parameters);
 			}
@@ -286,8 +283,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			FieldType type, Map<String, Object> parameters,
 			int attributeFilterCount) {
 		String attTableName = QueryUtils.getTableNameForFieldType(type);
-		String joinColumnName = SqlConstants
-				.getForeignKeyColumnNameForType(type);
+		String joinColumnName = SqlConstants.ANNOTATION_OWNER_ID_COLUMN;;
 		innerJoinAttributeFilters.append("inner join (select * from ");
 		innerJoinAttributeFilters.append(attTableName);
 		innerJoinAttributeFilters.append(" where ");
@@ -312,7 +308,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		String filterAlias = "filter" + attributeFilterCount;
 		innerJoinAttributeFilters.append(filterAlias);
 		buildJoinOn(innerJoinAttributeFilters, SqlConstants.PRIMARY_ALIAS,
-				SqlConstants.PRIMARY_ANNOTATION_ID, filterAlias, joinColumnName);
+				SqlConstants.COL_NODE_ID, filterAlias, joinColumnName);
 	}
 
 	/**
@@ -381,8 +377,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			// We are sorting on an attribute which means we need a left outer
 			// join.
 			String tableName = QueryUtils.getTableNameForFieldType(type);
-			String foreignKey = SqlConstants
-					.getForeignKeyColumnNameForType(type);
+			String foreignKey = SqlConstants.ANNOTATION_OWNER_ID_COLUMN;
 			sortColumnName = SqlConstants.ANNOTATION_VALUE_COLUMN;
 			// We are going to be sorting on a sub query
 			sortOnAlias = SqlConstants.ANNOTATION_SORT_SUB_ALIAS;
@@ -397,7 +392,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			outerJoinAttributeSort
 					.append(SqlConstants.ANNOTATION_SORT_SUB_ALIAS);
 			buildJoinOn(outerJoinAttributeSort, SqlConstants.PRIMARY_ALIAS,
-					SqlConstants.PRIMARY_ANNOTATION_ID,
+					SqlConstants.COL_NODE_ID,
 					SqlConstants.ANNOTATION_SORT_SUB_ALIAS, foreignKey);
 		}
 		// Add the order by
