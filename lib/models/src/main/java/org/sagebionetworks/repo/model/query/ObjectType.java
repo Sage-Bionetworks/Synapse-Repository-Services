@@ -4,6 +4,7 @@ import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.LayerLocation;
+import org.sagebionetworks.repo.model.Project;
 
 /**
  * The types of objects that can queried.
@@ -12,14 +13,16 @@ import org.sagebionetworks.repo.model.LayerLocation;
  *
  */
 public enum ObjectType {
-	dataset(Dataset.class),
-	layer(InputDataLayer.class),
-	layerlocation(LayerLocation.class);
+	dataset(Dataset.class, (short)0),
+	layer(InputDataLayer.class, (short)1),
+	layerlocation(LayerLocation.class, (short)2),
+	project(Project.class, (short)3);
 	
 	private Class<? extends Base> clazz;
-	
-	ObjectType(Class<? extends Base> clazz){
+	private short id;
+	ObjectType(Class<? extends Base> clazz, short id){
 		this.clazz = clazz;
+		this.id = id;
 	}
 	
 	/**
@@ -28,6 +31,18 @@ public enum ObjectType {
 	 */
 	public Class<? extends Base> getClassForType(){
 		return this.clazz;
+	}
+	
+	public short getId(){
+		return id;
+	}
+	
+	public static ObjectType getTypeForId(short id){
+		ObjectType[] array  = ObjectType.values();
+		for(ObjectType type: array){
+			if(type.getId() == id) return type;
+		}
+		throw new IllegalArgumentException("Unkown id for ObjectType: "+id);
 	}
 	
 	

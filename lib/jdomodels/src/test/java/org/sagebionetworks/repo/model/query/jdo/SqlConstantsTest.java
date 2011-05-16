@@ -8,10 +8,16 @@ import java.lang.reflect.Field;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotationType;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
+import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
+import org.sagebionetworks.repo.model.jdo.persistence.JDONodeType;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.FieldType;
 
@@ -32,22 +38,6 @@ public class SqlConstantsTest {
 		// Double
 		clazz = SqlConstants.getJdoClassForFieldType(FieldType.DOUBLE_ATTRIBUTE);
 		assertEquals(JDODoubleAnnotation.class, clazz);
-	}
-	
-	@Test
-	public void testGetForeignKeyColumnNameForType(){
-		// Test each type
-		String columnName = SqlConstants.getForeignKeyColumnNameForType(FieldType.DATE_ATTRIBUTE);
-		assertEquals(SqlConstants.FOREIGN_KEY_DATE_ANNOTATION, columnName);
-		// Long
-		columnName = SqlConstants.getForeignKeyColumnNameForType(FieldType.LONG_ATTRIBUTE);
-		assertEquals(SqlConstants.FOREIGN_KEY_LONG_ANNOTATION, columnName);
-		// String
-		columnName = SqlConstants.getForeignKeyColumnNameForType(FieldType.STRING_ATTRIBUTE);
-		assertEquals(SqlConstants.FOREIGN_KEY_STRING_ANNOTATION, columnName);
-		// Double
-		columnName = SqlConstants.getForeignKeyColumnNameForType(FieldType.DOUBLE_ATTRIBUTE);
-		assertEquals(SqlConstants.FOREIGN_KEY_DOUBLE_ANNOTATION, columnName);
 	}
 	
 	@Test
@@ -113,5 +103,46 @@ public class SqlConstantsTest {
 			assertNotNull(column);
 			System.out.println("Field: "+fieldName+" maps to column: "+column);
 		}
+	}
+	
+	@Test
+	public void testNodeClass(){
+		assertEquals(SqlConstants.TABLE_NODE, SqlConstants.getTableForClass(JDONode.class));
+	}
+	@Test
+	public void testNodeTypeClass(){
+		assertEquals(SqlConstants.TABLE_NODE_TYPE, SqlConstants.getTableForClass(JDONodeType.class));
+	}
+	@Test
+	public void testAnnotationTypeClass(){
+		assertEquals(SqlConstants.TABLE_ANNOTATION_TYPE, SqlConstants.getTableForClass(JDOAnnotationType.class));
+	}
+	@Test
+	public void testStringAnnotationClass(){
+		assertEquals(SqlConstants.TABLE_STRING_ANNOTATIONS, SqlConstants.getTableForClass(JDOStringAnnotation.class));
+	}
+	@Test
+	public void testLongAnnotationClass(){
+		assertEquals(SqlConstants.TABLE_LONG_ANNOTATIONS, SqlConstants.getTableForClass(JDOLongAnnotation.class));
+	}
+	@Test
+	public void testDoubleAnnotationClass(){
+		assertEquals(SqlConstants.TABLE_DOUBLE_ANNOTATIONS, SqlConstants.getTableForClass(JDODoubleAnnotation.class));
+	}
+	@Test
+	public void testDateAnnotationClass(){
+		assertEquals(SqlConstants.TABLE_DATE_ANNOTATIONS, SqlConstants.getTableForClass(JDODateAnnotation.class));
+	}
+	@Test
+	public void testUserClass(){
+		assertEquals(SqlConstants.TABLE_USER, SqlConstants.getTableForClass(JDOUser.class));
+	}
+	@Test
+	public void testUserGroupClass(){
+		assertEquals(SqlConstants.TABLE_USER_GROUP, SqlConstants.getTableForClass(JDOUserGroup.class));
+	}
+	@Test
+	public void testResourceAccessClass(){
+		assertEquals(SqlConstants.TABLE_RESOURCE_ACCESS, SqlConstants.getTableForClass(JDOResourceAccess.class));
 	}
 }

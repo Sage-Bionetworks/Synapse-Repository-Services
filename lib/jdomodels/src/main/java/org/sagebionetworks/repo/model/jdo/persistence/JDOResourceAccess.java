@@ -3,6 +3,10 @@ package org.sagebionetworks.repo.model.jdo.persistence;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.jdo.annotations.Column;
+import javax.jdo.annotations.Columns;
+import javax.jdo.annotations.ForeignKey;
+import javax.jdo.annotations.ForeignKeyAction;
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.Join;
 import javax.jdo.annotations.PersistenceCapable;
@@ -10,28 +14,30 @@ import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 
-
-
-@PersistenceCapable(detachable = "false")
+@PersistenceCapable(detachable = "false", table=SqlConstants.TABLE_RESOURCE_ACCESS)
 public class JDOResourceAccess {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 	
 	@Persistent
+	@Column (name=SqlConstants.COL_RESOURCE_ACCESS_OWNER)
 	private JDOUserGroup owner;
 	
 	@Persistent
+	@Column (name=SqlConstants.COL_RESOURCE_ACCESS_TYPE)
 	private String resourceType;
 	
 	@Persistent
+	@Column (name=SqlConstants.COL_RESOURCE_ACCESS_RESOURCE_ID)
 	private Long resourceId;
 		
 	// e.g. read, change, share
 	@Persistent(serialized="false")
-	@Join
+	@Join (table=SqlConstants.TABLE_RESOURCE_ACCESS_TYPE, column=SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID)
 	private Set<String> accessType = new HashSet<String>();
 
 	public Long getId() {

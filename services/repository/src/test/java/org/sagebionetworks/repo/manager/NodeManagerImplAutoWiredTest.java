@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.query.ObjectType;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,7 +79,7 @@ public class NodeManagerImplAutoWiredTest {
 		newNode.setName("NodeManagerImplAutoWiredTest.testCreateNode");
 		
 		// need to enable Public to have 'create' access to 'someType'
-		newNode.setNodeType("someType");
+		newNode.setNodeType(ObjectType.project.name());
 		String id = nodeManager.createNewNode(newNode, AuthUtilConstants.ANONYMOUS_USER_ID);
 		assertNotNull(id);
 		nodesToDelete.add(id);
@@ -114,7 +115,7 @@ public class NodeManagerImplAutoWiredTest {
 		// Create a node
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
-		newNode.setNodeType("someType");
+		newNode.setNodeType(ObjectType.project.name());
 		String id = nodeManager.createNewNode(newNode, AuthUtilConstants.ANONYMOUS_USER_ID);
 		assertNotNull(id);
 		nodesToDelete.add(id);

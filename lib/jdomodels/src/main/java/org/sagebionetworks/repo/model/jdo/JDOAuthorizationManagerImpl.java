@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.jdo.JdoTemplate;
@@ -189,23 +190,24 @@ public class JDOAuthorizationManagerImpl implements JDOAuthorizationManager {
 	private String authorizationSQL = null;
 //	private String adminSQL = null;
 	
-	private void initClassTables() {
-		JDOExecutor exec = new JDOExecutor(jdoTemplate);
-		List<Object[]> resultsSet = exec.execute("select class_name, table_name from nucleus_tables".toUpperCase());
-		classTables = new HashMap<String,String>();
-		for (Object[] row : resultsSet) {
-			if (row.length!=2) throw new IllegalStateException("Unexpected number of columns: "+row.length);
-			classTables.put((String)row[0], (String)row[1]);
-		}
-	}
+//	private void initClassTables() {
+//		JDOExecutor exec = new JDOExecutor(jdoTemplate);
+//		List<Object[]> resultsSet = exec.execute("select class_name, table_name from nucleus_tables".toUpperCase());
+//		classTables = new HashMap<String,String>();
+//		for (Object[] row : resultsSet) {
+//			if (row.length!=2) throw new IllegalStateException("Unexpected number of columns: "+row.length);
+//			classTables.put((String)row[0], (String)row[1]);
+//		}
+//	}
 	
 	private String getFromClassTables(String key) {
-		if (!classTables.containsKey(key)) throw new IllegalStateException("ClassTables is missing "+key);
-		return classTables.get(key);
+		return SqlConstants.getTableForClassName(key);
+//		if (!classTables.containsKey(key)) throw new IllegalStateException("ClassTables is missing "+key);
+//		return classTables.get(key);
 	}
 	
 	private void initAuthorizationSQL() {
-		if (classTables==null) initClassTables();
+//		if (classTables==null) initClassTables();
 		authorizationSQL = ("select distinct ra.resource_id from "+
 			getFromClassTables(JDOResourceAccess.class.getName())+" ra, "+
 			getFromClassTables(JDOResourceAccess.class.getName()+".accessType")+" t, "+

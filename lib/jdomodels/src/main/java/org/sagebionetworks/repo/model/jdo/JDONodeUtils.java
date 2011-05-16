@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.model.jdo;
 
+import java.util.Date;
+
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
+import org.sagebionetworks.repo.model.query.ObjectType;
 
 /**
  * Translates JDOs and DTOs.
@@ -35,11 +38,10 @@ public class JDONodeUtils {
 		if(dto.getId() != null){
 			jdo.setId(Long.parseLong(dto.getId()));
 		}
-		jdo.setNodeType(dto.getNodeType());
-		jdo.setCreatedOn(dto.getCreatedOn());
+		jdo.setCreatedOn(dto.getCreatedOn().getTime());
 		jdo.setCreatedBy(dto.getCreatedBy());
 		jdo.setModifiedBy(dto.getModifiedBy());
-		jdo.setModifiedOn(dto.getModifiedOn());
+		jdo.setModifiedOn(dto.getModifiedOn().getTime());
 		if(dto.getETag() != null){
 			jdo.seteTag(Long.parseLong(dto.getETag()));
 		}
@@ -63,11 +65,13 @@ public class JDONodeUtils {
 		if(jdo.geteTag() != null){
 			dto.setETag(jdo.geteTag().toString());
 		}
-		dto.setNodeType(jdo.getNodeType());
-		dto.setCreatedOn(jdo.getCreatedOn());
+		if(jdo.getNodeType() != null){
+			dto.setNodeType(jdo.getNodeType().getName());
+		}
+		dto.setCreatedOn(new Date(jdo.getCreatedOn()));
 		dto.setCreatedBy(jdo.getCreatedBy());
 		dto.setModifiedBy(jdo.getModifiedBy());
-		dto.setModifiedOn(jdo.getModifiedOn());
+		dto.setModifiedOn(new Date(jdo.getModifiedOn()));
 		return dto;
 	}
 	

@@ -41,8 +41,15 @@
 		</dependency>
 		<dependency>
 			<groupId>org.datanucleus</groupId>
+			<artifactId>datanucleus-api-jdo</artifactId>
+			<version>${datanucleus.version}</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.datanucleus</groupId>
 			<artifactId>datanucleus-rdbms</artifactId>
 			<version>${datanucleus.version}</version>
+			<scope>runtime</scope>
 		</dependency>
 
 		<dependency>
@@ -50,17 +57,12 @@
 			<artifactId>jta</artifactId>
 			<version>1.1</version>
 		</dependency>
-
+		
 		<dependency>
 			<groupId>javax.jdo</groupId>
-			<artifactId>jdo2-api</artifactId>
-			<version>2.3-eb</version>
-			<exclusions>
-				<exclusion>
-					<groupId>javax.transaction</groupId>
-					<artifactId>transaction-api</artifactId>
-				</exclusion>
-			</exclusions>
+			<artifactId>jdo-api</artifactId>
+			<version>3.0</version>
+			<type>jar</type>
 		</dependency>
 
 		<!-- MySQL dependencies -->
@@ -138,82 +140,87 @@
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
+
+
 	</dependencies>
 
 	<version>${applicationVersion}</version>
 	<build>
-		<plugins>
+	<plugins>
 
-			<!-- This plug-in "enhances" your domain model objects (i.e. makes them 
-				persistent for datanucleus) -->
-			<plugin>
+	<!-- This plug-in "enhances" your domain model objects (i.e. makes them 
+		persistent for datanucleus) -->
+	<plugin>
+		<groupId>org.datanucleus</groupId>
+		<artifactId>maven-datanucleus-plugin</artifactId>
+		<version>3.0.0-m2</version>
+		<configuration>
+			<!-- Make sure this path contains your persistent classes! -->
+			<mappingIncludes>**/model/jdo/persistence/*.class</mappingIncludes>
+			<verbose>true</verbose>
+			<fork>false</fork>
+			<enhancerName>ASM</enhancerName>
+			<!-- <outputFile>target/schema.ddl</outputFile> -->
+			<api>JDO</api>
+			<props>${basedir}/src/main/resources/datanucleus.properties</props>
+			<log4jConfiguration>${basedir}/src/main/resources/log4j.properties
+			</log4jConfiguration>
+			<completeDdl>true</completeDdl>
+		</configuration>
+		<executions>
+			<execution>
+				<phase>compile</phase>
+				<goals>
+					<goal>enhance</goal>
+				</goals>
+			</execution>
+		</executions>
+		<dependencies>
+			<dependency>
 				<groupId>org.datanucleus</groupId>
-				<artifactId>maven-datanucleus-plugin</artifactId>
-				<version>1.1.4</version>
-				<configuration>
-					<!-- Make sure this path contains your persistent classes! -->
-					<mappingIncludes>**/model/jdo/persistence/*.class</mappingIncludes>
-					<verbose>true</verbose>
-					<fork>false</fork>
-					<enhancerName>ASM</enhancerName>
-					<!-- <outputFile>target/schema.ddl</outputFile> -->
-					<api>JDO</api>
-					<props>${basedir}/src/main/resources/datanucleus.properties</props>
-					<log4jConfiguration>${basedir}/src/main/resources/log4j.properties
-					</log4jConfiguration>
-					<completeDdl>true</completeDdl>
-				</configuration>
-				<executions>
-					<execution>
-						<phase>compile</phase>
-						<goals>
-							<goal>enhance</goal>
-						</goals>
-					</execution>
-				</executions>
-				<dependencies>
-					<dependency>
-						<groupId>org.datanucleus</groupId>
-						<artifactId>datanucleus-core</artifactId>
-						<version>${datanucleus.version}</version>
-						<exclusions>
-							<exclusion>
-								<groupId>javax.transaction</groupId>
-								<artifactId>transaction-api</artifactId>
-							</exclusion>
-						</exclusions>
-					</dependency>
-					<dependency>
-						<groupId>org.datanucleus</groupId>
-						<artifactId>datanucleus-rdbms</artifactId>
-						<version>${datanucleus.version}</version>
-					</dependency>
-					<dependency>
-						<groupId>org.datanucleus</groupId>
-						<artifactId>datanucleus-enhancer</artifactId>
-						<version>1.1.4</version>
-					</dependency>
-					<dependency>
-						<groupId>javax.jdo</groupId>
-						<artifactId>jdo2-api</artifactId>
-						<version>2.3-ec</version>
-						<scope>runtime</scope>
-					</dependency>
-					<dependency>
-						<groupId>mysql</groupId>
-						<artifactId>mysql-connector-java</artifactId>
-						<version>5.1.13</version>
-						<scope>runtime</scope>
-					</dependency>
-				</dependencies>
-			</plugin>
-
+				<artifactId>datanucleus-core</artifactId>
+				<version>${datanucleus.version}</version>
+				<exclusions>
+					<exclusion>
+						<groupId>javax.transaction</groupId>
+						<artifactId>transaction-api</artifactId>
+					</exclusion>
+				</exclusions>
+			</dependency>
+			<dependency>
+				<groupId>org.datanucleus</groupId>
+				<artifactId>datanucleus-rdbms</artifactId>
+				<version>${datanucleus.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.datanucleus</groupId>
+				<artifactId>datanucleus-enhancer</artifactId>
+				<version>${datanucleus.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.datanucleus</groupId>
+				<artifactId>datanucleus-api-jdo</artifactId>
+				<version>${datanucleus.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>javax.jdo</groupId>
+				<artifactId>jdo-api</artifactId>
+				<version>3.0</version>
+			</dependency>
+			<dependency>
+				<groupId>mysql</groupId>
+				<artifactId>mysql-connector-java</artifactId>
+				<version>5.1.13</version>
+				<scope>runtime</scope>
+			</dependency>
+		</dependencies>
+	</plugin>
 		</plugins>
 	</build>
 
 	<!-- Specify hard-coded project properties here -->
 	<properties>
-		<datanucleus.version>1.1.5</datanucleus.version>
+		<datanucleus.version>3.0.0-m4</datanucleus.version>
 	</properties>
 
 </project>

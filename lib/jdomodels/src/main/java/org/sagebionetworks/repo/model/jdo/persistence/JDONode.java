@@ -13,9 +13,10 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
+import org.sagebionetworks.repo.model.query.ObjectType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
-@PersistenceCapable(detachable = "true")
+@PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_NODE)
 public class JDONode {
 		
 	@PrimaryKey
@@ -27,32 +28,55 @@ public class JDONode {
     @ForeignKey(name="NODE_PARENT_FK", deleteAction=ForeignKeyAction.CASCADE)
 	private JDONode parent;
 
+	@Column(name=SqlConstants.COL_NODE_NAME)
 	@Persistent(nullValue = NullValue.EXCEPTION) // cannot be null
 	private String name;
 	
 	@Persistent (mappedBy = "parent")
 	@Element(dependent = "true")
 	private Set<JDONode> children;
+		
+	@Element(dependent = "true")
+	private Set<JDOStringAnnotation> stringAnnotations;
 	
-	@Persistent(dependent = "true")
-	private JDOAnnotations annotations;
+	@Element(dependent = "true")
+	private Set<JDOLongAnnotation> longAnnotations;
 	
+	@Element(dependent = "true")
+	private Set<JDODoubleAnnotation> doubleAnnotations;
+	
+	@Element(dependent = "true")
+	private Set<JDODateAnnotation> dateAnnotations;
+
 	@Persistent
-	@Column(jdbcType="VARCHAR", length=3000)
+	@Column(name=SqlConstants.COL_NODE_DESCRIPTION ,jdbcType="VARCHAR", length=3000)
 	private String description;
 
+	@Column(name=SqlConstants.COL_NODE_ETAG)
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
 	private Long eTag = new Long(0);
+	
+	@Column(name=SqlConstants.COL_NODE_CREATED_BY)
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
 	private String createdBy;
+	
+	@Column(name=SqlConstants.COL_NODE_CREATED_ON)
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
-	private Date createdOn;
+	private Long createdOn;
+	
+	@Column(name=SqlConstants.COL_NODE_MODIFIED_BY)
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
 	private String modifiedBy;
+	
+	@Column(name=SqlConstants.COL_NODE_MODIFIED_ON)
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
-	private Date modifiedOn;
+	private Long modifiedOn;
+	
+	// The type is enforced by a Foreign key.
+	@Column(name=SqlConstants.COL_NODE_TYPE)
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
-	private String nodeType;
+	@ForeignKey(name="NODE_TYPE_FK", deleteAction=ForeignKeyAction.RESTRICT)
+	private JDONodeType nodeType;
 	
 	// Indicates the node that this node gets its permissions from.
 	@Persistent 
@@ -63,7 +87,6 @@ public class JDONode {
 	@Persistent (mappedBy = "permissionsBenefactor")
 	@Element(dependent = "true")
 	private Set<JDONode> permissionsBeneficiaries;
-	
 	
 	public Set<JDONode> getChildren() {
 		return children;
@@ -89,12 +112,36 @@ public class JDONode {
 		this.name = name;
 	}
 
-	public JDOAnnotations getAnnotations() {
-		return annotations;
+	public Set<JDOStringAnnotation> getStringAnnotations() {
+		return stringAnnotations;
 	}
 
-	public void setAnnotations(JDOAnnotations annotations) {
-		this.annotations = annotations;
+	public void setStringAnnotations(Set<JDOStringAnnotation> stringAnnotations) {
+		this.stringAnnotations = stringAnnotations;
+	}
+
+	public Set<JDOLongAnnotation> getLongAnnotations() {
+		return longAnnotations;
+	}
+
+	public void setLongAnnotations(Set<JDOLongAnnotation> longAnnotations) {
+		this.longAnnotations = longAnnotations;
+	}
+
+	public Set<JDODoubleAnnotation> getDoubleAnnotations() {
+		return doubleAnnotations;
+	}
+
+	public void setDoubleAnnotations(Set<JDODoubleAnnotation> doubleAnnotations) {
+		this.doubleAnnotations = doubleAnnotations;
+	}
+
+	public Set<JDODateAnnotation> getDateAnnotations() {
+		return dateAnnotations;
+	}
+
+	public void setDateAnnotations(Set<JDODateAnnotation> dateAnnotations) {
+		this.dateAnnotations = dateAnnotations;
 	}
 
 	public String getDescription() {
@@ -129,11 +176,11 @@ public class JDONode {
 		this.createdBy = createdBy;
 	}
 
-	public Date getCreatedOn() {
+	public Long getCreatedOn() {
 		return createdOn;
 	}
 
-	public void setCreatedOn(Date createdOn) {
+	public void setCreatedOn(Long createdOn) {
 		this.createdOn = createdOn;
 	}
 
@@ -145,19 +192,27 @@ public class JDONode {
 		this.modifiedBy = modifiedBy;
 	}
 
-	public Date getModifiedOn() {
+	public Long getModifiedOn() {
 		return modifiedOn;
 	}
 
-	public void setModifiedOn(Date modifiedOn) {
+	public void setModifiedOn(Long modifiedOn) {
 		this.modifiedOn = modifiedOn;
 	}
 
-	public String getNodeType() {
+	public JDONodeType getNodeType() {
 		return nodeType;
 	}
+	
+//	public void setNodeType(ObjectType nodeType) {
+//		if(nodeType == null) throw new IllegalArgumentException("ObjectType cannot be null");
+//		JDONodeType jdo = new JDONodeType();
+//		jdo.setId(nodeType.getId());
+//		jdo.setName(nodeType.name());
+//		this.nodeType = jdo;
+//	}
 
-	public void setNodeType(String nodeType) {
+	public void setNodeType(JDONodeType nodeType) {
 		this.nodeType = nodeType;
 	}
 

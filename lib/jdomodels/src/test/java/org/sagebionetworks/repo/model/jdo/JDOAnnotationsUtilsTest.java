@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotations;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
+import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
 
 /**
@@ -30,12 +31,12 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
  */
 public class JDOAnnotationsUtilsTest {
 	
-	JDOAnnotations owner;
+	JDONode owner;
 	
 	@Before
 	public void before(){
 		// Each test starts with a new owner
-		owner = new JDOAnnotations();
+		owner = new JDONode();
 	}
 	
 	@Test
@@ -139,7 +140,7 @@ public class JDOAnnotationsUtilsTest {
 		dto.addAnnotation("doubleOne", new Double(32.4));
 		dto.addAnnotation("dateOne", new Date(System.currentTimeMillis()));
 		// Now create the jdo
-		JDOAnnotations jdo = JDOAnnotationsUtils.createFromDTO(dto);
+		JDONode jdo = JDOAnnotationsUtils.createFromDTO(dto);
 		assertNotNull(jdo);
 		Annotations dtoCopy = JDOAnnotationsUtils.createFromJDO(jdo);
 		assertNotNull(dtoCopy);

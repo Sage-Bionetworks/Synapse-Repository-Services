@@ -5,7 +5,7 @@
 
   <persistence-manager-factory name="mysql-transactions-optional">
 	<property name="javax.jdo.PersistenceManagerFactoryClass"
-	          value="org.datanucleus.jdo.JDOPersistenceManagerFactory"/>
+	          value="org.datanucleus.api.jdo.JDOPersistenceManagerFactory"/>
 	<property name="datanucleus.NontransactionalRead" value="true"/>
 	<property name="datanucleus.NontransactionalWrite" value="true"/>
 	<property name="javax.jdo.option.ConnectionURL" value="jdbc:mysql://localhost/test2"/>
@@ -20,7 +20,7 @@
 
   <persistence-manager-factory name="memorydb-transactions-optional">
 	<property name="javax.jdo.PersistenceManagerFactoryClass"
-	          value="org.datanucleus.jdo.JDOPersistenceManagerFactory"/>
+	          value="org.datanucleus.api.jdo.JDOPersistenceManagerFactory"/>
 	<property name="datanucleus.NontransactionalRead" value="true"/>
 	<property name="datanucleus.NontransactionalWrite" value="true"/>
 	<property name="javax.jdo.option.ConnectionURL" value="jdbc:hsqldb:mem:nucleus1"/>

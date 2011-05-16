@@ -5,12 +5,14 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+
 /**
  * Enforces annotation types.  Once an annotation name is used for a type it cannot be re-used for another.
  * @author jmhill
  *
  */
-@PersistenceCapable(detachable = "true")
+@PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_ANNOTATION_TYPE)
 public class JDOAnnotationType {
 	
 	

@@ -175,47 +175,6 @@ public class ITPortalSerachServices {
 		assertEquals(totalNumberOfDatasets, results.getTotalNumberResults());
 	}
 		
-	// Note: This test will fail until PLFM-150 is resolved.
-	@Ignore
-	@Test
-	public void testUpdateAnnoations(){
-		Dataset newDs = new Dataset();
-		newDs.setName("updateAnnoations");
-		String id = datasetService.createDataset(newDs);
-		assertNotNull(id);
-		datasetIds.add(id);
-		Annotations anno = datasetService.getDatasetAnnotations(id);
-		assertNotNull(anno);
-		anno.addStringAnnotation("keyA", "value1");
-		// update 
-		datasetService.updateDatasetAnnotations(id, anno);
-		// Fetch the results
-		anno = datasetService.getDatasetAnnotations(id);
-		assertNotNull(anno);
-		Map<String, List<String>> stringMap = anno.getStringAnnotations();
-		assertNotNull(stringMap);
-		assertEquals(1, stringMap.size());
-		List<String> value = stringMap.get("keyA");
-		assertNotNull(value);
-		assertEquals(1, value.size());
-		assertEquals("value1", value.get(0));
-		// Now update this annoations
-		value.clear();
-		value.add("value2");
-		// update
-		datasetService.updateDatasetAnnotations(id, anno);
-		// Get the new values
-		anno = datasetService.getDatasetAnnotations(id);
-		assertNotNull(anno);
-		stringMap = anno.getStringAnnotations();
-		assertNotNull(stringMap);
-		assertEquals(1, stringMap.size());
-		value = stringMap.get("keyA");
-		assertNotNull(value);
-		assertEquals(1, value.size());
-		assertEquals("value2", value.get(0));		
-	}
-
 	private static InputDataLayer createLayer(Date date, int i)
 			throws InvalidModelException {
 		InputDataLayer ans = new InputDataLayer();

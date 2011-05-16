@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.jdo;
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.query.ObjectType;
 
 public class NodeTestUtils {
 
@@ -18,7 +19,7 @@ public class NodeTestUtils {
 		node.setModifiedBy("anonymous");
 		node.setCreatedOn(new Date(System.currentTimeMillis()));
 		node.setModifiedOn(node.getCreatedOn());
-		node.setNodeType("unknown");
+		node.setNodeType(ObjectType.project.name());
 		return node;
 	}
 
