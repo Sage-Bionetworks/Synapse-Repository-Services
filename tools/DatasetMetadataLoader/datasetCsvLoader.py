@@ -1,4 +1,4 @@
-#!/usr/local/python/2.7.1/bin/python
+#!/usr/bin/env python2.7
 
 # To debug this, python -m pdb myscript.py
 
