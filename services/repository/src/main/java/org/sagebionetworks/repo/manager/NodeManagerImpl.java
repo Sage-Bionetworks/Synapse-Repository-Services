@@ -9,13 +9,13 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -41,6 +41,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	
 	@Autowired
 	AuthorizationManager authorizationManager;
+	
 	@Autowired
 	FieldTypeDAO fieldTypeDao;
 	
@@ -72,25 +73,27 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public String createNewNode(Node newNode, String userName)  throws DatastoreException,
+	public String createNewNode(Node newNode, UserInfo userInfo)  throws DatastoreException,
 			InvalidModelException, NotFoundException, UnauthorizedException {
 		// First valid the node
 		NodeManagerImpl.validateNode(newNode);
 		// Also validate the username
+		String userName = userInfo.getUser().getUserId();
 		userName  = NodeManagerImpl.validateUsername(userName);
 		// Validate the creations data
 		NodeManagerImpl.validateNodeCreationData(userName, newNode);
 		// Validate the modified data.
 		NodeManagerImpl.validateNodeModifiedData(userName, newNode);
 		// check whether the user is allowed to create this type of node
-		if (!authorizationManager.canCreate(userName, newNode.getNodeType())) {
+		if (!authorizationManager.canCreate(userInfo, newNode.getNodeType())) {
 			throw new UnauthorizedException(userName+" is not allowed to create items of type "+newNode.getNodeType());
 		}
 
 		// If they are allowed then let them create the node
 		String id = nodeDao.createNew(newNode);
 		newNode.setId(id);
-		authorizationManager.addUserAccess(newNode, userName);
+		// adding access is done at a higher level, not here
+		//authorizationManager.addUserAccess(newNode, userInfo);
 		if(log.isDebugEnabled()){
 			log.debug("username: "+userName+" created node: "+id);
 		}
@@ -156,53 +159,54 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void delete(String username, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
+	public void delete(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// First validate the username
-		username = NodeManagerImpl.validateUsername(username);
-		if (!authorizationManager.canAccess(username, nodeId, AuthorizationConstants.ACCESS_TYPE.CHANGE)) {
-			throw new UnauthorizedException(username+" lacks change access to the requested object.");
+		String userName = userInfo.getUser().getUserId();
+		userName = NodeManagerImpl.validateUsername(userName);
+		if (!authorizationManager.canAccess(userInfo, nodeId, AuthorizationConstants.ACCESS_TYPE.CHANGE)) {
+			throw new UnauthorizedException(userName+" lacks change access to the requested object.");
 		}
-
-		
 		nodeDao.delete(nodeId);
 		authorizationManager.removeAuthorization(nodeId);
 		if(log.isDebugEnabled()){
-			log.debug("username "+username+" deleted node: "+nodeId);
+			log.debug("username "+userName+" deleted node: "+nodeId);
 		}
 		
 	}
 	
 	@Transactional(readOnly = true)
 	@Override
-	public Node get(String username, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
+	public Node get(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Validate the username
-		username = NodeManagerImpl.validateUsername(username);
-		if (!authorizationManager.canAccess(username, nodeId, AuthorizationConstants.ACCESS_TYPE.READ)) {
-			throw new UnauthorizedException(username+" lacks read access to the requested object.");
+		String userName = userInfo.getUser().getUserId();
+		userName = NodeManagerImpl.validateUsername(userName);
+		if (!authorizationManager.canAccess(userInfo, nodeId, AuthorizationConstants.ACCESS_TYPE.READ)) {
+			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
 		}
 		
 		Node result = nodeDao.getNode(nodeId);
 		if(log.isDebugEnabled()){
-			log.debug("username "+username+" fetched node: "+result.getId());
+			log.debug("username "+userName+" fetched node: "+result.getId());
 		}
 		return result;
 	}
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public Node update(String userName, Node updated)
+	public Node update(UserInfo userInfo, Node updated)
 			throws ConflictingUpdateException, NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
-		return update(userName, updated, null);
+		return update(userInfo, updated, null);
 	}
 
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public Node update(String username, Node updatedNode, Annotations updatedAnnos) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-		username = NodeManagerImpl.validateUsername(username);
+	public Node update(UserInfo userInfo, Node updatedNode, Annotations updatedAnnos) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
+		String userName = userInfo.getUser().getUserId();
+		userName = NodeManagerImpl.validateUsername(userName);
 		NodeManagerImpl.validateNode(updatedNode);
-		if (!authorizationManager.canAccess(username, updatedNode.getId(), AuthorizationConstants.ACCESS_TYPE.CHANGE)) {
-			throw new UnauthorizedException(username+" lacks change access to the requested object.");
+		if (!authorizationManager.canAccess(userInfo, updatedNode.getId(), AuthorizationConstants.ACCESS_TYPE.CHANGE)) {
+			throw new UnauthorizedException(userName+" lacks change access to the requested object.");
 		}
 		// make sure the eTags match
 		if(updatedAnnos != null){
@@ -216,7 +220,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		updatedNode.setETag(nextETag);
 		
 		// Clear the modified data and fill it in with the new data
-		NodeManagerImpl.validateNodeModifiedData(username, updatedNode);
+		NodeManagerImpl.validateNodeModifiedData(userName, updatedNode);
 		// Now make the actual update.
 		nodeDao.updateNode(updatedNode);
 		// Also update the Annotations if provided
@@ -226,7 +230,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			nodeDao.updateAnnotations(updatedNode.getId(), updatedAnnos);
 		}
 		if(log.isDebugEnabled()){
-			log.debug("username "+username+" updated node: "+updatedNode.getId()+", with a new eTag: "+nextETag);
+			log.debug("username "+userName+" updated node: "+updatedNode.getId()+", with a new eTag: "+nextETag);
 		}
 		// Return the new node
 		return updatedNode;
@@ -268,28 +272,30 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 * @return
 	 */
 	@Override
-	public boolean hasAccess(Node resource, AuthorizationConstants.ACCESS_TYPE accessType, String userName) throws NotFoundException, DatastoreException  {
-		return authorizationManager.canAccess(userName, resource.getId(), accessType);
+	public boolean hasAccess(Node resource, AuthorizationConstants.ACCESS_TYPE accessType, UserInfo userInfo) throws NotFoundException, DatastoreException  {
+		return authorizationManager.canAccess(userInfo, resource.getId(), accessType);
 	}
 
 	@Transactional(readOnly = true)
 	@Override
-	public Annotations getAnnotations(String username, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
+	public Annotations getAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
-		username = NodeManagerImpl.validateUsername(username);
+		String userName = userInfo.getUser().getUserId();
+		userName = NodeManagerImpl.validateUsername(userName);
 		Annotations annos = nodeDao.getAnnotations(nodeId);
 		if(log.isDebugEnabled()){
-			log.debug("username "+username+" fetched Annotations for node: "+nodeId);
+			log.debug("username "+userName+" fetched Annotations for node: "+nodeId);
 		}
 		return annos;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public Annotations updateAnnotations(String username, String nodeId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
+	public Annotations updateAnnotations(UserInfo userInfo, String nodeId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
 		if(nodeId == null) throw new IllegalArgumentException("Node ID cannot be null");
-		username = NodeManagerImpl.validateUsername(username);
+		String userName = userInfo.getUser().getUserId();
+		userName = NodeManagerImpl.validateUsername(userName);
 		// Validate that the annotations
 		validateAnnotations(updated);
 		// Now lock the node if we can
@@ -299,7 +305,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		updated.setEtag(nextETag);
 		nodeDao.updateAnnotations(nodeId, updated);
 		if(log.isDebugEnabled()){
-			log.debug("username "+username+" updated Annotations for node: "+updated.getId());
+			log.debug("username "+userName+" updated Annotations for node: "+updated.getId());
 		}
 		return updated;
 	}
@@ -352,7 +358,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	}
 
 	@Override
-	public Set<Node> getChildren(String userId, String parentId) throws NotFoundException {
+	public Set<Node> getChildren(UserInfo userInfo, String parentId) throws NotFoundException {
 		return nodeDao.getChildren(parentId);
 	}
 

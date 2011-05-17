@@ -4,10 +4,29 @@
 </head>
 <body>
 <h1>Welcome Page</h1>
+
+<!--  
 This is a service, not a web app.
 
 Documentation can be found here: http://sagebionetworks.jira.com/wiki/display/PLFM/Authentication+and+Authorization+API
-
+-->
+<form accept-charset="UTF-8" action="http://localhost:8080/auth/v1/openid" class="aui" id="openid-form" method="post"
+      name="openid-form">
+    
+    <input name="OPEN_ID_PROVIDER" type="hidden" value="https://www.google.com/accounts/o8/id"/>
+    
+    <h3>Log in using your sagebase.org account</h3>
+ 
+    <div class="buttons-container">
+        <div class="buttons">
+            <button id="login-via-google" type="submit">
+                <img alt="Proceed to Google login"
+                     src="http://www.google.com/favicon.ico"/>
+                &nbsp; Proceed to Google login
+            </button>
+        </div>
+    </div>
+</form>
 
 </body>
 </html>

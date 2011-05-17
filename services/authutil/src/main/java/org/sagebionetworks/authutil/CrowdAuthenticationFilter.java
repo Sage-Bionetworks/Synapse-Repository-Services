@@ -107,7 +107,10 @@ public class CrowdAuthenticationFilter implements Filter {
            	if ("integration-test-user".equalsIgnoreCase(paramName)) setIntegrationTestUser(paramValue);
         }
         
-       if (acceptAllCerts) CrowdAuthUtil.acceptAllCertificates();
+       if (acceptAllCerts) CrowdAuthUtil.acceptAllCertificates2();
+       
+       
+//       System.out.println("CrowdAuthenticationFilter.init: acceptAllCerts="+acceptAllCerts);
   	}
 
 		

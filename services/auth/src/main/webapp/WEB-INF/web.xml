@@ -54,6 +54,12 @@
          <url-pattern>/auth/v1/user</url-pattern>  
      </filter-mapping>  
   
+  <welcome-file-list>
+    <welcome-file>index.html</welcome-file>
+    <welcome-file>index.htm</welcome-file>
+  </welcome-file-list>
+  
+  
   
   <servlet>
     <servlet-name>authentication</servlet-name>
@@ -67,5 +73,6 @@
     <servlet-name>authentication</servlet-name>
     <url-pattern>/auth/v1/*</url-pattern>
   </servlet-mapping>
+  
   
 </web-app>

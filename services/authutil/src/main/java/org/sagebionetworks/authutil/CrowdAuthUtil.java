@@ -10,7 +10,9 @@ import java.net.URL;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -150,12 +152,19 @@ public class CrowdAuthUtil {
 		return protocol+"://"+host+":"+port+"/crowd/rest/usermanagement/latest";
 	}
 	
-	
-	public Session authenticate(User creds) throws AuthenticationException, IOException, XPathExpressionException {
+	/**
+	 * Authenticates a user/password combination, returning a session token if valid
+	 * 
+	 * The option validatePassword=false is available for SSO applications:  A service
+	 * which has independently validated the user may use this variation to get a session token
+	 * for the named user.  Note:  In this case the password must not be omitted, according to Atlassian.  
+	 * For more info, see   http://jira.atlassian.com/browse/CWD-2152
+	 */
+	public Session authenticate(User creds, boolean validatePassword) throws AuthenticationException, IOException, XPathExpressionException {
 		byte[] sessionXML = null;
 		int rc = 0;
 		{
-			URL url = new URL(urlPrefix()+"/session?validate-password=true");
+			URL url = new URL(urlPrefix()+"/session?validate-password="+validatePassword);
 			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 			conn.setRequestMethod("POST");
 			setHeaders(conn);
@@ -427,6 +436,38 @@ public class CrowdAuthUtil {
 		}
 	}
 	
+	public Map<String,Collection<String>> getUserAttributes(String userId, Collection<String> attributes) throws AuthenticationException, IOException {
+		URL url = new URL(urlPrefix()+"/user?expand=attributes&username="+userId);
+		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+		conn.setRequestMethod("GET");
+		setHeaders(conn);
+		byte[] sessionXML = null;
+		int rc = 0;
+		try {
+			rc = conn.getResponseCode();
+			InputStream is = (InputStream)conn.getContent();
+			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
+		} catch (IOException e) {
+			Exception chainedException = new Exception(url.toString()+" rc: "+rc);
+			if (rc==0) rc=500;
+			InputStream is = (InputStream)conn.getErrorStream();
+			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
+			if (sessionXML!=null) chainedException = new Exception(url.toString()+"\n"+(new String(sessionXML)));
+			chainedException.printStackTrace();
+			throw new AuthenticationException(rc, "Server Error", chainedException);
+		}
+		try {
+			Map<String,Collection<String>> ans = new HashMap<String,Collection<String>>();
+			for (String attribute: attributes) {
+				Collection<String> values = getMultiFromXML("/user/attributes/attribute[@name="+attribute+"]/values/value", sessionXML);
+				ans.put(attribute, values);
+			}
+			return ans;
+		} catch (XPathExpressionException xee) {
+			throw new AuthenticationException(500, "Server Error", xee);
+		}
+	}
+	
 	public static String readInputStream(InputStream is) throws IOException {
 		StringBuffer sb = new StringBuffer();
 		int i=-1;
@@ -438,7 +479,7 @@ public class CrowdAuthUtil {
 	}
 	
 	/**
-	 * This is the version currently being used.
+	 * This is an alternate solution to the one above.
 	 */
 	public static void acceptAllCertificates() {
 		Security.addProvider( new MyProvider() );
@@ -453,11 +494,10 @@ public class CrowdAuthUtil {
 		};
 
 		HttpsURLConnection.setDefaultHostnameVerifier(hv);
-
 	}
 	
 	/**
-	 * This is an alternate solution to the one above.
+	 * This is the version currently being used.
 	 */
 	public static void acceptAllCertificates2() {
 		// from http://www.exampledepot.com/egs/javax.net.ssl/trustall.html
@@ -493,5 +533,7 @@ public class CrowdAuthUtil {
 		};
 
 		HttpsURLConnection.setDefaultHostnameVerifier(hv);
+		
+//		System.out.println("\n<<<<acceptAllCerts2>>>>\n");
 	}
 }

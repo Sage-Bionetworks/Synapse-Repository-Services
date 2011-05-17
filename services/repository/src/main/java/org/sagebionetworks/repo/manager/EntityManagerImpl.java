@@ -10,13 +10,13 @@ import java.util.logging.Logger;
 import javax.swing.text.html.parser.Entity;
 
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseChild;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.ObjectType;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -34,21 +34,21 @@ public class EntityManagerImpl implements EntityManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends Base> String createEntity(String userId, T newEntity) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
+	public <T extends Base> String createEntity(UserInfo userInfo, T newEntity) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
 		if(newEntity == null) throw new IllegalArgumentException("Dataset cannot be null");
 		// First create a node the represent the dataset
 		Node node = NodeTranslationUtils.createFromBase(newEntity);
 		// Set the type for this object
 		node.setNodeType(ObjectType.getNodeTypeForClass(newEntity.getClass()).toString());
 		// We are ready to create this node
-		String nodeId = nodeManager.createNewNode(node, userId);
+		String nodeId = nodeManager.createNewNode(node, userInfo);
 		// Now get the annotations for this node
-		Annotations annos = nodeManager.getAnnotations(userId, nodeId);
+		Annotations annos = nodeManager.getAnnotations(userInfo, nodeId);
 		// Now add all of the annotations from the dataset
 		NodeTranslationUtils.updateAnnoationsFromObject(newEntity, annos);
 		// Now update the annotations
 		try {
-			nodeManager.updateAnnotations(userId,nodeId, annos);
+			nodeManager.updateAnnotations(userInfo,nodeId, annos);
 		} catch (ConflictingUpdateException e) {
 			// This should never happen
 			throw new DatastoreException("A confilct occured on a node create", e);
@@ -60,15 +60,15 @@ public class EntityManagerImpl implements EntityManager {
 	
 	@Transactional(readOnly = true)
 	@Override
-	public <T extends Base> EntityWithAnnotations<T> getEntityWithAnnotations(String userId, String entityId, Class<? extends T> entityClass)
+	public <T extends Base> EntityWithAnnotations<T> getEntityWithAnnotations(UserInfo userInfo, String entityId, Class<? extends T> entityClass)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Return the new object from the database
 		T newEntity = createNewEntity(entityClass);
 		// Get the annotations for this entity
-		Annotations annos = nodeManager.getAnnotations(userId, entityId);
+		Annotations annos = nodeManager.getAnnotations(userInfo, entityId);
 		NodeTranslationUtils.updateObjectFromAnnotations(newEntity, annos);
 		// Fetch the current node from the server
-		Node node = nodeManager.get(userId, entityId);
+		Node node = nodeManager.get(userInfo, entityId);
 		NodeTranslationUtils.updateObjectFromNode(newEntity, node);
 		EntityWithAnnotations<T> ewa = new EntityWithAnnotations<T>();
 		ewa.setEntity(newEntity);
@@ -78,11 +78,11 @@ public class EntityManagerImpl implements EntityManager {
 
 	@Transactional(readOnly = true)
 	@Override
-	public <T extends Base> T getEntity(String userId, String entityId, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException {
+	public <T extends Base> T getEntity(UserInfo userInfo, String entityId, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException {
 		if(entityId == null) throw new IllegalArgumentException("Entity ID cannot be null");
 		// To fully populate an entity we must also load its annotations.
 		// Therefore, we get both but only return the entity for this call.
-		EntityWithAnnotations<T> ewa = getEntityWithAnnotations(userId, entityId, entityClass);
+		EntityWithAnnotations<T> ewa = getEntityWithAnnotations(userInfo, entityId, entityClass);
 		return ewa.getEntity();
 	}
 
@@ -106,40 +106,40 @@ public class EntityManagerImpl implements EntityManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void deleteEntity(String userId, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException {
+	public void deleteEntity(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		if(entityId == null) throw new IllegalArgumentException("Dataset ID cannot be null");
-		nodeManager.delete(userId, entityId);
+		nodeManager.delete(userInfo, entityId);
 	}
 
 	@Transactional(readOnly = true)
 	@Override
-	public Annotations getAnnoations(String userId, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException {
+	public Annotations getAnnotations(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		if(entityId == null) throw new IllegalArgumentException("Dataset ID cannot be null");
 		// This is a simple pass through
-		return nodeManager.getAnnotations(userId, entityId);
+		return nodeManager.getAnnotations(userInfo, entityId);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void updateAnnotations(String userId, String entityId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
+	public void updateAnnotations(UserInfo userInfo, String entityId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		if(updated == null) throw new IllegalArgumentException("Annoations cannot be null");
-		nodeManager.updateAnnotations(userId,entityId, updated);
+		nodeManager.updateAnnotations(userInfo,entityId, updated);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends Base> void updateEntity(String userId, T updated) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException {
+	public <T extends Base> void updateEntity(UserInfo userInfo, T updated) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException {
 		if(updated == null) throw new IllegalArgumentException("Dataset cannot be null");
 		if(updated.getId() == null) throw new IllegalArgumentException("The updated Entity cannot have a null ID");
 		// Now get the annotations for this node
-		Annotations annos = nodeManager.getAnnotations(userId, updated.getId());
+		Annotations annos = nodeManager.getAnnotations(userInfo, updated.getId());
 		// Now add all of the annotations from the entity
 		NodeTranslationUtils.updateAnnoationsFromObject(updated, annos);
-		Node node = nodeManager.get(userId, updated.getId());
+		Node node = nodeManager.get(userInfo, updated.getId());
 		NodeTranslationUtils.updateNodeFromObject(updated, node);
 		annos.setEtag(updated.getEtag());
 		// NOw update both at the same time
-		nodeManager.update(userId, node, annos);
+		nodeManager.update(userInfo, node, annos);
 	}
 
 	@Override
@@ -149,13 +149,13 @@ public class EntityManagerImpl implements EntityManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends BaseChild> List<String> aggregateEntityUpdate(String userName, String parentId, Collection<T> update) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException {
+	public <T extends BaseChild> List<String> aggregateEntityUpdate(UserInfo userInfo, String parentId, Collection<T> update) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException {
 		if(update == null) throw new IllegalArgumentException("AggregateUpdate cannot be null");
 		// We are going to lock on the parent so the first step is to get the parent
-		Node parentNode = nodeManager.get(userName, parentId);
+		Node parentNode = nodeManager.get(userInfo, parentId);
 		// We start by updating the parent, this will lock the parent for this transaction
 		// If we do not lock on the parent then we could get DEADLOCK while attempting to lock the children.
-		nodeManager.update(userName, parentNode);
+		nodeManager.update(userInfo, parentNode);
 		Iterator<T> it = update.iterator();
 		List<String> ids = new ArrayList<String>();
 		while(it.hasNext()){
@@ -165,10 +165,10 @@ public class EntityManagerImpl implements EntityManager {
 			// Update each child.
 			String id = null;
 			if(child.getId() == null){
-				id = this.createEntity(userName, child);
+				id = this.createEntity(userInfo, child);
 			}else{
 				id = child.getId();
-				updateEntity(userName, child);
+				updateEntity(userInfo, child);
 			}
 			ids.add(id);
 		}
@@ -177,17 +177,17 @@ public class EntityManagerImpl implements EntityManager {
 
 
 	@Override
-	public <T extends BaseChild> List<T> getEntityChildren(String userId,
+	public <T extends BaseChild> List<T> getEntityChildren(UserInfo userInfo,
 			String parentId, Class<? extends T> childrenClass)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		List<T> resultSet = new ArrayList<T>();
-		Set<Node> children = nodeManager.getChildren(userId, parentId);
+		Set<Node> children = nodeManager.getChildren(userInfo, parentId);
 		Iterator<Node> it = children.iterator();
 		ObjectType type = ObjectType.getNodeTypeForClass(childrenClass);
 		while(it.hasNext()){
 			Node child = it.next();
 			if(ObjectType.valueOf(child.getNodeType()) == type){
-				resultSet.add(this.getEntity(userId, child.getId(), childrenClass));
+				resultSet.add(this.getEntity(userInfo, child.getId(), childrenClass));
 			}
 		}
 		return resultSet;

@@ -9,9 +9,11 @@ import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.openid4java.discovery.Identifier;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
@@ -34,7 +36,7 @@ public class AuthenticationController {
 			.getName());
 	
 //	private String repositoryServicesURL;  // this is to be discontinued
-	private String adminPW;
+//	private String adminPW;
 	
 	private CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 	
@@ -64,22 +66,22 @@ public class AuthenticationController {
 
 	public AuthenticationController() {
         Properties props = new Properties();
-        InputStream is = AuthenticationController.class.getClassLoader().getResourceAsStream("mirrorservice.properties");
-        try {
-        	props.load(is);
-        } catch (IOException e) {
-        	throw new RuntimeException(e);
-        }
+//        InputStream is = AuthenticationController.class.getClassLoader().getResourceAsStream("mirrorservice.properties");
+//        try {
+//        	props.load(is);
+//        } catch (IOException e) {
+//        	throw new RuntimeException(e);
+//        }
 //        repositoryServicesURL = props.getProperty("repositoryServicesURL");
-        adminPW=props.getProperty("adminPW");
-        try {
-	        is.close();
-	    } catch (IOException e) {
-	    	throw new RuntimeException(e);
-	    }
+//        adminPW=props.getProperty("adminPW");
+//        try {
+//	        is.close();
+//	    } catch (IOException e) {
+//	    	throw new RuntimeException(e);
+//	    }
         // optional, only used for testing
         props = new Properties();
-        is = AuthenticationController.class.getClassLoader().getResourceAsStream("authenticationcontroller.properties");
+        InputStream is = AuthenticationController.class.getClassLoader().getResourceAsStream("authenticationcontroller.properties");
         if (is!=null) {
 	        try {
 	        	props.load(is);
@@ -96,13 +98,64 @@ public class AuthenticationController {
 	Session authenticate(@RequestBody User credentials,
 			HttpServletRequest request) throws Exception {
 		try { 
-			return crowdAuthUtil.authenticate(credentials);
+			return crowdAuthUtil.authenticate(credentials, true);
 		} catch (AuthenticationException ae) {
 			// include the URL used to authenticate
 			ae.setAuthURL(request.getRequestURL().toString());
 			throw ae;
 		}
 	}
+	
+	private SampleConsumer sampleConsumer = new SampleConsumer();
+	
+	private static final String RETURN_TO_URI = "/openidcallback";
+	
+	private static final String OPEN_ID_PROVIDER = "OPEN_ID_PROVIDER";
+		// e.g. https://www.google.com/accounts/o8/id
+	
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = "/openid", method = RequestMethod.POST)
+	public String openID(
+			@RequestParam(value = OPEN_ID_PROVIDER, required = true) String openIdProvider,
+			 // HttpServlet servlet,
+              HttpServletRequest request,
+              HttpServletResponse response) throws Exception {
+//		if (servlet==null) throw new NullPointerException("No servlet reference"); // not sure if I've specified it right...
+		HttpServlet servlet = null;
+		// TODO construct the URL from the original request, don't hardcode the host
+		return sampleConsumer.authRequest(openIdProvider, 
+				"http://localhost:8080/auth/v1"+RETURN_TO_URI, servlet, request, response);
+	}
+
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = RETURN_TO_URI, method = RequestMethod.GET)
+	public @ResponseBody
+	Session openIDCallback(
+			HttpServletRequest request) throws Exception {
+		try { 
+			
+			String email = sampleConsumer.verifyResponse(request);
+			
+			if (email==null) throw new AuthenticationException(400, "Unable to authenticate", null);
+			
+			User credentials = new User();
+			
+			System.out.println("ID returned by google: "+email);
+			credentials.setUserId(email); // this is a guess
+			
+			// if user does not exist, create them
+			
+			// get the SSO token 
+			return crowdAuthUtil.authenticate(credentials, false);
+			
+		} catch (AuthenticationException ae) {
+			// include the URL used to authenticate
+			ae.setAuthURL(request.getRequestURL().toString());
+			throw ae;
+		}
+	}
+	
+
 
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/session", method = RequestMethod.PUT)

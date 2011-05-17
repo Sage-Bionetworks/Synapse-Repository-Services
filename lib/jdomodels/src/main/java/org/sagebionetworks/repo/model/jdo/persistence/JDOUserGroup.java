@@ -29,7 +29,7 @@ public class JDOUserGroup implements JDOBase {
 	private Date creationDate;
 
 	@Persistent(serialized="false")
-	@Join (table=SqlConstants.TABLE_USER_GROUP_USERS)
+	@Join(table=SqlConstants.TABLE_USER_GROUP_USERS)
 	private Set<Long> users = new HashSet<Long>();
 
     @Persistent(mappedBy = "owner", serialized="false")
@@ -46,7 +46,7 @@ public class JDOUserGroup implements JDOBase {
 	
 	// true for groups established for individuals (in which case group 'name'==userId)
 	@Persistent
-	private Boolean isIndividual;
+	private Boolean isIndividual = false;
 
 	public Long getId() {
 		return id;
@@ -74,13 +74,13 @@ public class JDOUserGroup implements JDOBase {
 		this.creationDate = creationDate;
 	}
 
-	public Set<Long> getUsers() {
-		return users;
-	}
-
-	public void setUsers(Set<Long> users) {
-		this.users = users;
-	}
+//	public Set<Long> getUsers() {
+//		return users;
+//	}
+//
+//	public void setUsers(Set<Long> users) {
+//		this.users = users;
+//	}
 
 	public Set<JDOResourceAccess> getResourceAccess() {
 		return resourceAccess;

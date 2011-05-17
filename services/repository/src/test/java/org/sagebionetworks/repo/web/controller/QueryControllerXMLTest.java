@@ -12,6 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -75,6 +76,7 @@ public class QueryControllerXMLTest {
 		request.addHeader("Accept", "application/xml");
 		request.setRequestURI(helper.getServletPrefix() + "/query");
 		request.addParameter("query", "select+*+from+dataset");
+		request.addParameter(AuthUtilConstants.USER_ID_PARAM, AuthUtilConstants.ANONYMOUS_USER_ID);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.NOT_ACCEPTABLE.value(), response.getStatus());

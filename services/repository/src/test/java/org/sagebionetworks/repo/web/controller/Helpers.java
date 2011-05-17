@@ -129,7 +129,7 @@ public class Helpers {
 			servlet.init(servletConfig);
 		}
 
-		userId = null;
+		userId = AuthUtilConstants.ANONYMOUS_USER_ID;
 		testState = new LinkedList<TestStateItem>();
 
 		return servlet;
@@ -467,6 +467,7 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(servletPrefix + "/query");
 		request.addParameter("query", query);
+		request.addParameter(AuthUtilConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.OK.value(), response.getStatus());

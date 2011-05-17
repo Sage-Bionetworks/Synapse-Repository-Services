@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +30,7 @@ public class QueryManagerImpl implements QueryManager {
 
 
 	@Override
-	public <T extends Base> QueryResults executeQuery(String userId, BasicQuery query, Class<? extends T> clazz) throws DatastoreException {
+	public <T extends Base> QueryResults executeQuery(UserInfo userInfo, BasicQuery query, Class<? extends T> clazz) throws DatastoreException {
 		if(query == null) throw new IllegalArgumentException("Query cannot be null");
 		if(query.getFrom() == null) throw new IllegalArgumentException("Query.getFrom() cannot be null");
 		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query);
@@ -39,7 +40,7 @@ public class QueryManagerImpl implements QueryManager {
 		for(String id: ids){
 			EntityWithAnnotations<T> entityWithAnnos;
 			try {
-				entityWithAnnos = entityManager.getEntityWithAnnotations(userId, id, clazz);
+				entityWithAnnos = entityManager.getEntityWithAnnotations(userInfo, id, clazz);
 				Map<String, Object> row = EntityToMapUtil.createMapFromEntity(entityWithAnnos);
 				// Add this row
 				allRows.add(row);

@@ -4,11 +4,11 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -23,7 +23,7 @@ public interface NodeManager {
 	 * @param newNode
 	 * @return
 	 */
-	public String createNewNode(Node newNode, String userName) throws DatastoreException,
+	public String createNewNode(Node newNode, UserInfo userInfo) throws DatastoreException,
 			InvalidModelException, NotFoundException, UnauthorizedException;
 
 	/**
@@ -34,7 +34,7 @@ public interface NodeManager {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public void delete(String userName, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public void delete(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * Get a node using its id.
@@ -45,7 +45,7 @@ public interface NodeManager {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public Node get(String userName, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public Node get(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * Update a node using the provided node.
@@ -57,7 +57,7 @@ public interface NodeManager {
 	 * @throws NotFoundException 
 	 * @throws Exception 
 	 */
-	public Node update(String userName, Node updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
+	public Node update(UserInfo userInfo, Node updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 	
 	/**
 	 * Update a node and its annotations in the same call.  This means we only need to acquire the lock once.
@@ -70,7 +70,7 @@ public interface NodeManager {
 	 * @throws ConflictingUpdateException 
 	 * @throws InvalidModelException 
 	 */
-	public Node update(String username, Node updatedNode, Annotations updatedAnnoations) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
+	public Node update(UserInfo userInfo, Node updatedNode, Annotations updatedAnnoations) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 	
 	/**
 	 * Use case:  Need to find out if a user can download a resource.
@@ -80,7 +80,7 @@ public interface NodeManager {
 	 * @param accessType
 	 * @return
 	 */
-	public boolean hasAccess(Node resource, AuthorizationConstants.ACCESS_TYPE  accessType, String userName) throws NotFoundException, DatastoreException ;
+	public boolean hasAccess(Node resource, AuthorizationConstants.ACCESS_TYPE  accessType, UserInfo userInfo) throws NotFoundException, DatastoreException ;
 	
 	/**
 	 * Get the annotations for a node
@@ -91,7 +91,7 @@ public interface NodeManager {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public Annotations getAnnotations(String username, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public Annotations getAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * Update the annotations of a node.
@@ -104,7 +104,7 @@ public interface NodeManager {
 	 * @throws NotFoundException 
 	 * @throws InvalidModelException 
 	 */
-	public Annotations updateAnnotations(String username, String nodeId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
+	public Annotations updateAnnotations(UserInfo userInfo, String nodeId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 
 	/**
 	 * Get the children of a node
@@ -113,6 +113,6 @@ public interface NodeManager {
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public Set<Node> getChildren(String userId, String parentId) throws NotFoundException;
+	public Set<Node> getChildren(UserInfo userInfo, String parentId) throws NotFoundException;
 
 }
