@@ -4,6 +4,7 @@ import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -27,6 +28,6 @@ public interface QueryManager {
 	 * @throws UnauthorizedException 
 	 * @throws NotFoundException 
 	 */
-	public <T extends Base> QueryResults executeQuery(String userId, BasicQuery query, Class<? extends T> clazz) throws DatastoreException;
+	public <T extends Base> QueryResults executeQuery(UserInfo userInfo, BasicQuery query, Class<? extends T> clazz) throws DatastoreException;
 
 }

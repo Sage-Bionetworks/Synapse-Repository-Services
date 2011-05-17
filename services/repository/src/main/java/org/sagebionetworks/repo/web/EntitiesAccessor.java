@@ -2,12 +2,13 @@ package org.sagebionetworks.repo.web;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseChild;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 
 /**
@@ -29,7 +30,7 @@ public interface EntitiesAccessor {
 	 * @throws UnauthorizedException 
 	 * @throws NotFoundException 
 	 */
-	public <T extends Base> PaginatedResults<T> getInRange(String userId, int offset, int limit, Class<? extends T>  clazz) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public <T extends Base> PaginatedResults<T> getInRange(UserInfo userInfo, int offset, int limit, Class<? extends T>  clazz) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * @param offset
@@ -41,7 +42,7 @@ public interface EntitiesAccessor {
 	 * @throws UnauthorizedException 
 	 * @throws NotFoundException 
 	 */
-	public <T extends Base> PaginatedResults<T> getInRangeSortedBy(String userI, int offset, int limit, String sortBy,
+	public <T extends Base> PaginatedResults<T> getInRangeSortedBy(UserInfo userInfo, int offset, int limit, String sortBy,
 			Boolean ascending, Class<? extends T>  clazz) throws DatastoreException, NotFoundException, UnauthorizedException;
 	
 	/**
@@ -55,7 +56,7 @@ public interface EntitiesAccessor {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Base> PaginatedResults<T> executeQuery(String userId, Class<? extends T> clazz, BasicQuery query) throws DatastoreException, NotFoundException,	UnauthorizedException;
+	public <T extends Base> PaginatedResults<T> executeQuery(UserInfo userInfo, Class<? extends T> clazz, BasicQuery query) throws DatastoreException, NotFoundException,	UnauthorizedException;
 
 
 	/**
@@ -69,7 +70,7 @@ public interface EntitiesAccessor {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public <T extends BaseChild> List<T> getChildrenOfType(String userId, String parentId, Class<? extends T> clazz) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public <T extends BaseChild> List<T> getChildrenOfType(UserInfo userInfo, String parentId, Class<? extends T> clazz) throws DatastoreException, NotFoundException, UnauthorizedException;
 	/**
 	 * Used to override this dao for a test.
 	 * @param mockAuth

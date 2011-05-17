@@ -38,9 +38,13 @@
 	
 	<bean id="nodeDao" class="org.sagebionetworks.repo.model.jdo.NodeDAOImpl" />
 	
-	<bean id="userDAO" class="org.sagebionetworks.repo.model.jdo.JDOUserDAOImpl" />
-	<bean id="groupDAO" class="org.sagebionetworks.repo.model.jdo.JDOUserGroupDAOImpl" />
-	<bean id="authorizationManager" class="org.sagebionetworks.repo.model.jdo.JDOAuthorizationManagerImpl" />
+	<bean id="userDAO" class="org.sagebionetworks.repo.model.CrowdUserDAO" scope="singleton"/>
+	
+	<bean id="groupMembershipDAO" class="org.sagebionetworks.repo.model.CrowdGroupMembershipDAO" scope="singleton"/>
+	
+	<bean id="groupPermissionsDAO" class="org.sagebionetworks.repo.model.jdo.JDOGroupPermissionsDAOImpl" />
+	
+	<!--bean id="authorizationManager" class="org.sagebionetworks.repo.model.jdo.JDOAuthorizationManagerImpl" /-->
 
 
 	<!-- The node query dao singleton -->

@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.jdo.JdoTemplate;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 
@@ -78,6 +79,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 	* @return the ID of the created object
 	* @throws InvalidModelException
 	*/
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String create(S dto) throws InvalidModelException, DatastoreException {
 		try {
 			dto.setCreationDate(new Date());
@@ -102,6 +104,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 	* @throws DatastoreException
 	* @throws NotFoundException
 	*/
+	@Transactional(readOnly = true)
 	public S get(String id) throws DatastoreException, NotFoundException {
 		Long key = KeyFactory.stringToKey(id);
 		try {
@@ -116,6 +119,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 		}
 	}
 	
+	@Transactional(readOnly = true)	
 	public Collection<S> getAll() throws DatastoreException {
 		try {
 			Collection<T> all = jdoTemplate.find(getJdoClass());
@@ -139,6 +143,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 	* @throws DatastoreException
 	* @throws NotFoundException
 	*/
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		Long key = KeyFactory.stringToKey(id);
 		try {
@@ -151,6 +156,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 		}
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void update(S dto) throws DatastoreException, InvalidModelException,
 		NotFoundException {
 		try {

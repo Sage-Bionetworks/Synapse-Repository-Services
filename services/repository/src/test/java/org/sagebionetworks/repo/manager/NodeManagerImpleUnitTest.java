@@ -17,12 +17,13 @@ import org.mockito.Mockito;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -40,6 +41,9 @@ public class NodeManagerImpleUnitTest {
 	private NodeManagerImpl nodeManager = null;
 	private FieldTypeDAO mockFieldTypeDao = null;
 		
+	private final UserInfo mockUserInfo = new UserInfo();
+	private final UserInfo anonUserInfo = new UserInfo();
+
 	@Before
 	public void before() throws Exception {
 
@@ -50,6 +54,13 @@ public class NodeManagerImpleUnitTest {
 		// Create the manager dao with mocked dependent daos.
 		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockFieldTypeDao);
 
+		User mockUser = new User();
+		mockUser.setUserId("test-user");
+		mockUserInfo.setUser(mockUser);
+		
+		User anonUser = new User();
+		anonUser.setUserId(AuthUtilConstants.ANONYMOUS_USER_ID);
+		anonUserInfo.setUser(anonUser);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -158,9 +169,10 @@ public class NodeManagerImpleUnitTest {
 		// Sure the mock is ready.
 		ArgumentCaptor<Node> argument = ArgumentCaptor.forClass(Node.class);
 		when(mockNodeDao.createNew(argument.capture())).thenReturn("101");
-		when(mockAuthDao.canCreate(AuthUtilConstants.ANONYMOUS_USER_ID, "someType")).thenReturn(true);
+		UserInfo userInfo = anonUserInfo;
+		when(mockAuthDao.canCreate(userInfo, "someType")).thenReturn(true);
 		// Make the actual call
-		String id = nodeManager.createNewNode(newNode, AuthUtilConstants.ANONYMOUS_USER_ID);
+		String id = nodeManager.createNewNode(newNode, userInfo);
 		// Now validate that t
 		assertEquals("101", id);
 		Node processedNode = argument.getValue();
@@ -201,12 +213,13 @@ public class NodeManagerImpleUnitTest {
 		newNode.setNodeType("someType");
 		when(mockNodeDao.getETagForUpdate("101")).thenReturn(new Long(9));
 		
-		when(mockAuthDao.canAccess("updateUser", "101", ACCESS_TYPE.CHANGE)).thenReturn(true);
+		UserInfo userInfo = mockUserInfo;
+		when(mockAuthDao.canAccess(userInfo, "101", ACCESS_TYPE.CHANGE)).thenReturn(true);
 		// Make the actual call
-		Node result = nodeManager.update("updateUser", newNode);
+		Node result = nodeManager.update(userInfo, newNode);
 		//Node result = nodeManager.update(AuthUtilConstants.ANONYMOUS_USER_ID, newNode);
 		assertNotNull(result);
-		assertEquals("updateUser", result.getModifiedBy());
+		assertEquals("test-user", result.getModifiedBy());
 		//assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, result.getModifiedBy());
 		assertNotNull(result.getModifiedOn());
 		// The eTag should have been incremented
@@ -220,7 +233,8 @@ public class NodeManagerImpleUnitTest {
 		annos.addAnnotation("stringKey", "a");
 		annos.addAnnotation("longKey", Long.MAX_VALUE);
 		when(mockNodeDao.getAnnotations(id)).thenReturn(annos);
-		Annotations copy = nodeManager.getAnnotations(AuthUtilConstants.ANONYMOUS_USER_ID, id);
+		UserInfo userInfo = anonUserInfo;
+		Annotations copy = nodeManager.getAnnotations(userInfo, id);
 		assertEquals(copy, annos);
 	}
 	
@@ -236,13 +250,14 @@ public class NodeManagerImpleUnitTest {
 		annos.setId(id);
 		when(mockNodeDao.getAnnotations(id)).thenReturn(annos);
 		when(mockNodeDao.getETagForUpdate("101")).thenReturn(new Long(9));
-		when(mockAuthDao.canAccess(AuthUtilConstants.ANONYMOUS_USER_ID, "101", ACCESS_TYPE.CHANGE)).thenReturn(true);
+		UserInfo userInfo = anonUserInfo;
+		when(mockAuthDao.canAccess(userInfo, "101", ACCESS_TYPE.CHANGE)).thenReturn(true);
 
-		Annotations copy = nodeManager.getAnnotations(AuthUtilConstants.ANONYMOUS_USER_ID, id);
+		Annotations copy = nodeManager.getAnnotations(userInfo, id);
 		assertEquals(copy, annos);
 		// Now update the copy
 		copy.addAnnotation("dateAnnos", new Date(System.currentTimeMillis()));
-		copy = nodeManager.updateAnnotations(AuthUtilConstants.ANONYMOUS_USER_ID,id,copy);
+		copy = nodeManager.updateAnnotations(userInfo,id,copy);
 		assertEquals("The eTag should have been incremented", "10", copy.getEtag());
 	}
 	
@@ -255,10 +270,11 @@ public class NodeManagerImpleUnitTest {
 		annos.setId(id);
 		annos.setEtag("9");
 		when(mockNodeDao.getETagForUpdate("101")).thenReturn(new Long(9));
-		when(mockAuthDao.canAccess(AuthUtilConstants.ANONYMOUS_USER_ID, "101", ACCESS_TYPE.CHANGE)).thenReturn(true);
+		UserInfo userInfo = anonUserInfo;
+		when(mockAuthDao.canAccess(userInfo, "101", ACCESS_TYPE.CHANGE)).thenReturn(true);
 		// The mockFieldTypeDao with throw an exception i 
 		annos.addAnnotation(annotationName, new Date(System.currentTimeMillis()));
-		nodeManager.updateAnnotations(AuthUtilConstants.ANONYMOUS_USER_ID,id,annos);
+		nodeManager.updateAnnotations(userInfo,id,annos);
 		// Make sure this annotation name is checked against FieldType.DATE_ATTRIBUTE.
 		verify(mockFieldTypeDao, atLeastOnce()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
 	}

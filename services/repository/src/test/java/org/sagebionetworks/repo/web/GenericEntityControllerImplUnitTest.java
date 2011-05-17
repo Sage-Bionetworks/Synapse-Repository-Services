@@ -11,8 +11,13 @@ import javax.servlet.http.HttpServletRequest;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.LayerLocation;
+import org.sagebionetworks.repo.model.UserInfo;
 
 public class GenericEntityControllerImplUnitTest {
 	
@@ -30,7 +35,7 @@ public class GenericEntityControllerImplUnitTest {
 	}
 	
 	@Test
-	public void testAggregateUpdtae() throws Exception{
+	public void testAggregateUpdate() throws Exception{
 		List<String> idList = new ArrayList<String>();
 		idList.add("201");
 //		idList.add("301");
@@ -38,12 +43,12 @@ public class GenericEntityControllerImplUnitTest {
 		String userId = "someUser";
 		String parentId = "0";
 		Collection<LayerLocation> toUpdate = new ArrayList<LayerLocation>();
-		when(mockEntityManager.aggregateEntityUpdate(userId, parentId, toUpdate)).thenReturn(idList);
+		when(mockEntityManager.aggregateEntityUpdate((UserInfo)any(),eq(parentId), eq(toUpdate))).thenReturn(idList);
 		LayerLocation existingLocation = new LayerLocation();
 		existingLocation.setId("201");
 		existingLocation.setMd5sum("someMD5");
 		existingLocation.setPath("somePath");
-		when(mockEntityManager.getEntity(userId, "201", LayerLocation.class)).thenReturn(existingLocation);
+		when(mockEntityManager.getEntity((UserInfo)any(), eq("201"), eq(LayerLocation.class))).thenReturn(existingLocation);
 		// Now make the call
 		controller.aggregateEntityUpdate(userId, parentId, toUpdate, mockRequest);
 	}

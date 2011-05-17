@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.authutil.AuthUtilConstants;
-import org.sagebionetworks.repo.model.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -287,7 +287,6 @@ public class UserGroupController extends BaseController  {
 		checkAuthorization(userId, false);
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId(id);
-		String rtype = AuthorizationManager.NODE_RESOURCE_TYPE;
 //		Base resource = typeToBase(rtype);  // TODO this will break until we replace with new AuthorizationDAO
 //		resource.setId(rid);
 //		dao.addResource(userGroup, resource, accessTypes.getAccessType());
@@ -306,7 +305,6 @@ public class UserGroupController extends BaseController  {
 		checkAuthorization(userId, false);
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId(id);
-		String rtype = AuthorizationManager.NODE_RESOURCE_TYPE;
 //		Base resource = typeToBase(rtype); // TODO this will break until we replace with new AuthorizationDAO
 //		resource.setId(rid);
 //		dao.removeResource(userGroup, resource);
@@ -326,7 +324,6 @@ public class UserGroupController extends BaseController  {
 		checkAuthorization(userId, true);
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId(id);
-		String rtype = AuthorizationManager.NODE_RESOURCE_TYPE;
 //		Base resource = typeToBase(rtype); // TODO this will break until we replace with new AuthorizationDAO
 //		resource.setId(rid);
 //		Collection<AuthorizationConstants.ACCESS_TYPE> results = dao.getAccessTypes(userGroup, resource);

@@ -48,7 +48,7 @@ public class AuthenticationControllerTest {
 	public void setUp() throws Exception {
 		//DispatcherServlet servlet = 
 			helper.setUp();
-		CrowdAuthUtil.acceptAllCertificates();
+		CrowdAuthUtil.acceptAllCertificates2();
 	}
 
 	/**
@@ -69,6 +69,7 @@ public class AuthenticationControllerTest {
 	}
 
 
+	
 	@Test
 	public void testCreateSessionBadCredentials() throws Exception {
 		JSONObject session = helper.testCreateJsonEntityShouldFail("/session",
@@ -77,7 +78,7 @@ public class AuthenticationControllerTest {
 		// AuthenticationURL: https://ssl.latest.deflaux-test.appspot.com/auth/v1/session
 	}
 
-
+	
 	@Test
 	public void testRevalidateUtil() throws Exception {
 		// start session
@@ -96,7 +97,8 @@ public class AuthenticationControllerTest {
 		log.info("UserId: "+userId);
 		assertEquals("demouser", userId);
 	}
-
+	
+	
 	@Test
 	public void testRevalidateSvc() throws Exception {
 		// start session
@@ -110,7 +112,7 @@ public class AuthenticationControllerTest {
 		
 	}
 
-
+	
 	@Test
 	public void testRevalidateBadTokenUtil() throws Exception {
 		try {
@@ -122,7 +124,7 @@ public class AuthenticationControllerTest {
 		}
 	}
 
-
+	
 	@Test
 	public void testRevalidateBadTokenSvc() throws Exception {
 		
@@ -130,7 +132,7 @@ public class AuthenticationControllerTest {
 		helper.testUpdateJsonEntityShouldFail("/session", "{\"sessionToken\":\"invalid-token\"}", HttpStatus.NOT_FOUND);
 	}
 
-
+	
 	@Test
 	public void testCreateSessionThenLogout() throws Exception {
 		JSONObject session = helper.testCreateJsonEntity("/session",
@@ -142,7 +144,7 @@ public class AuthenticationControllerTest {
 		
 	}
 
-
+	
 	@Test
 	public void testCreateExistingUser() throws Exception {
 			helper.testCreateJsonEntityShouldFail("/user",
@@ -156,7 +158,7 @@ public class AuthenticationControllerTest {
 
 	}
 	
-
+	
 	@Test
 	public void testCreateNewUser() throws Exception {
 		// special userId for testing -- no confirmation email is sent!
@@ -196,7 +198,7 @@ public class AuthenticationControllerTest {
 
 	}
 	
-
+	
 	@Test
 	public void testCreateAndUpdateUser() throws Exception {
 		

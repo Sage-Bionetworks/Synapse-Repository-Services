@@ -18,12 +18,13 @@ import org.mockito.Mockito;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +43,9 @@ public class EntityManagerImplAutowireTest {
 
 	private List<String> toDelete;
 	
+	private final UserInfo anonUserInfo = new UserInfo();
+
+	
 	@Before
 	public void before() throws Exception{
 		assertNotNull(entityManager);
@@ -49,8 +53,12 @@ public class EntityManagerImplAutowireTest {
 		toDelete = new ArrayList<String>();
 		mockAuth = Mockito.mock(AuthorizationManager.class);
 		entityManager.overrideAuthDaoForTest(mockAuth);
-		when(mockAuth.canAccess(anyString(), anyString(), any(AuthorizationConstants.ACCESS_TYPE.class))).thenReturn(true);
-		when(mockAuth.canCreate(anyString(), anyString())).thenReturn(true);
+		when(mockAuth.canAccess((UserInfo)any(), anyString(), any(AuthorizationConstants.ACCESS_TYPE.class))).thenReturn(true);
+		when(mockAuth.canCreate((UserInfo)any(), anyString())).thenReturn(true);
+
+		User anonUser = new User();
+		anonUser.setUserId(AuthUtilConstants.ANONYMOUS_USER_ID);
+		anonUserInfo.setUser(anonUser);
 	}
 	
 	@After
@@ -58,7 +66,8 @@ public class EntityManagerImplAutowireTest {
 		if(entityManager != null && toDelete != null){
 			for(String id: toDelete){
 				try{
-					entityManager.deleteEntity(AuthUtilConstants.ANONYMOUS_USER_ID, id);
+					UserInfo userInfo = anonUserInfo;
+					entityManager.deleteEntity(userInfo, id);
 				}catch(Exception e){}
 			}
 		}
@@ -68,15 +77,16 @@ public class EntityManagerImplAutowireTest {
 	public void testAllInOne() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		// Create a datset
 		Dataset ds = createDataset();
-		String id = entityManager.createEntity(AuthUtilConstants.ANONYMOUS_USER_ID, ds);
+		UserInfo userInfo = anonUserInfo;
+		String id = entityManager.createEntity(userInfo, ds);
 		assertNotNull(id);
 		toDelete.add(id);
 		// Get another copy
-		EntityWithAnnotations<Dataset> ewa = entityManager.getEntityWithAnnotations(null, id, Dataset.class);
+		EntityWithAnnotations<Dataset> ewa = entityManager.getEntityWithAnnotations(userInfo, id, Dataset.class);
 		assertNotNull(ewa);
 		assertNotNull(ewa.getAnnotations());
 		assertNotNull(ewa.getEntity());
-		Dataset fetched = entityManager.getEntity(null, id, Dataset.class);
+		Dataset fetched = entityManager.getEntity(userInfo, id, Dataset.class);
 		assertNotNull(fetched);
 		assertEquals(ewa.getEntity(), fetched);
 		System.out.println("Original: "+ds.toString());
@@ -85,21 +95,21 @@ public class EntityManagerImplAutowireTest {
 		assertEquals(ds.getStatus(), fetched.getStatus());
 		assertEquals(ds.getVersion(), fetched.getVersion());
 		// Now get the Annotations
-		Annotations annos = entityManager.getAnnoations(null, id);
+		Annotations annos = entityManager.getAnnotations(userInfo, id);
 		assertNotNull(annos);
 		assertEquals(ewa.getAnnotations(), annos);
 		annos.addAnnotation("someNewTestAnnotation", "someStringValue");
 		// Update
-		entityManager.updateAnnotations(null,id, annos);
+		entityManager.updateAnnotations(userInfo,id, annos);
 		// Now make sure it changed
-		annos = entityManager.getAnnoations(null, id);
+		annos = entityManager.getAnnotations(userInfo, id);
 		assertNotNull(annos);
 		assertEquals("someStringValue", annos.getSingleValue("someNewTestAnnotation"));
 		// Now update the dataset
-		fetched = entityManager.getEntity(null, id, Dataset.class);
+		fetched = entityManager.getEntity(userInfo, id, Dataset.class);
 		fetched.setName("myNewName");
-		entityManager.updateEntity(null, fetched);
-		fetched = entityManager.getEntity(null, id, Dataset.class);
+		entityManager.updateEntity(userInfo, fetched);
+		fetched = entityManager.getEntity(userInfo, id, Dataset.class);
 		assertNotNull(fetched);
 		assertEquals("myNewName", fetched.getName());
 	}
@@ -107,7 +117,8 @@ public class EntityManagerImplAutowireTest {
 	@Test
 	public void testAggregateUpdate() throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
 		Dataset ds = createDataset();
-		String parentId = entityManager.createEntity(AuthUtilConstants.ANONYMOUS_USER_ID, ds);
+		UserInfo userInfo = anonUserInfo;
+		String parentId = entityManager.createEntity(userInfo, ds);
 		assertNotNull(parentId);
 		toDelete.add(parentId);
 		List<InputDataLayer> layerList = new ArrayList<InputDataLayer>();
@@ -116,11 +127,11 @@ public class EntityManagerImplAutowireTest {
 			InputDataLayer layer = createLayerForTest(i);
 			layerList.add(layer);
 		}
-		List<String> childrenIds = entityManager.aggregateEntityUpdate(null, parentId, layerList);
+		List<String> childrenIds = entityManager.aggregateEntityUpdate(userInfo, parentId, layerList);
 		assertNotNull(childrenIds);
 		assertEquals(layers, childrenIds.size());
 		
-		List<InputDataLayer> children = entityManager.getEntityChildren(null, parentId, InputDataLayer.class);
+		List<InputDataLayer> children = entityManager.getEntityChildren(userInfo, parentId, InputDataLayer.class);
 		assertNotNull(children);
 		assertEquals(layers, children.size());
 		InputDataLayer toUpdate = children.get(0);
@@ -128,12 +139,12 @@ public class EntityManagerImplAutowireTest {
 		assertNotNull(udpatedId);
 		toUpdate.setName("updatedName");
 		// Do it again
-		entityManager.aggregateEntityUpdate(null, parentId, children);
-		children = entityManager.getEntityChildren(null, parentId, InputDataLayer.class);
+		entityManager.aggregateEntityUpdate(userInfo, parentId, children);
+		children = entityManager.getEntityChildren(userInfo, parentId, InputDataLayer.class);
 		assertNotNull(children);
 		assertEquals(layers, children.size());
 		// find the one with the updated name
-		InputDataLayer updatedLayer = entityManager.getEntity(null, udpatedId, InputDataLayer.class);
+		InputDataLayer updatedLayer = entityManager.getEntity(userInfo, udpatedId, InputDataLayer.class);
 		assertNotNull(updatedLayer);
 		assertEquals("updatedName", updatedLayer.getName());
 	}

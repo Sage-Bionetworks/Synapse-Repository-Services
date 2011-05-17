@@ -57,7 +57,7 @@ public class UserControllerTest {
 	/**
 	 * @throws java.lang.Exception
 	 */
-	@Before
+	//@Before
 	public void setUp() throws Exception {
 		helper.setUp();
 		makeUser();
@@ -82,7 +82,7 @@ public class UserControllerTest {
 	/**
 	 * @throws java.lang.Exception
 	 */
-	@After
+	//@After
 	public void tearDown() throws Exception {
 		for (User user: users) {
 			userDAO.delete(user.getId());

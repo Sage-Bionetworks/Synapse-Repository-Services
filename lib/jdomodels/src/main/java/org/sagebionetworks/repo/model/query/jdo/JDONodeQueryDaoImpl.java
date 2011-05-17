@@ -24,7 +24,6 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Compartor;
@@ -528,7 +527,6 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		map.put(JDOLongAnnotation.class, nameFactory.generateIdentifierNameForJavaName(JDOLongAnnotation.class.getSimpleName()));
 		map.put(JDODoubleAnnotation.class, nameFactory.generateIdentifierNameForJavaName(JDODoubleAnnotation.class.getSimpleName()));
 		map.put(JDODateAnnotation.class, nameFactory.generateIdentifierNameForJavaName(JDODateAnnotation.class.getSimpleName()));
-		map.put(JDOUser.class, nameFactory.generateIdentifierNameForJavaName(JDOUser.class.getSimpleName()));
 		map.put(JDOUserGroup.class, nameFactory.generateIdentifierNameForJavaName(JDOUserGroup.class.getSimpleName()));
 		map.put(JDOResourceAccess.class, nameFactory.generateIdentifierNameForJavaName(JDOResourceAccess.class.getSimpleName()));
 		return map;

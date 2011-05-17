@@ -21,12 +21,13 @@ import org.mockito.Mockito;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationManager;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.CompoundId;
@@ -53,22 +54,36 @@ public class QueryManagerAutowireTest {
 	
 	private long totalEntities = 10;
 	
+	final UserInfo mockUserInfo = new UserInfo();
+	final UserInfo anonUserInfo = new UserInfo();
+
+	
 	@Before
 	public void before() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		assertNotNull(queryManager);
 		assertNotNull(queryManager);
 		mockAuth = Mockito.mock(AuthorizationManager.class);
 		entityManager.overrideAuthDaoForTest(mockAuth);
-		when(mockAuth.canAccess(anyString(), anyString(), any(AuthorizationConstants.ACCESS_TYPE.class))).thenReturn(true);
-		when(mockAuth.canCreate(anyString(), anyString())).thenReturn(true);
+		when(mockAuth.canAccess((UserInfo)any(), anyString(), any(AuthorizationConstants.ACCESS_TYPE.class))).thenReturn(true);
+		when(mockAuth.canCreate((UserInfo)any(), anyString())).thenReturn(true);
 		
+		User mockUser = new User();
+		mockUser.setUserId("test-user");
+		mockUserInfo.setUser(mockUser);
+//		when(mockAuth.getUserInfo("test-user")).thenReturn(mockUserInfo);
+		
+		User anonUser = new User();
+		anonUser.setUserId(AuthUtilConstants.ANONYMOUS_USER_ID);
+		anonUserInfo.setUser(anonUser);
+//		when(mockAuth.getUserInfo(AuthUtilConstants.ANONYMOUS_USER_ID)).thenReturn(anonUserInfo);
+
 		toDelete = new ArrayList<String>();
-		// Create some datasetst.
+		// Create some datasets
 		for(int i=0; i<totalEntities; i++){
 			Dataset ds = createForTest(i);
-			String id = entityManager.createEntity(null, ds);
+			String id = entityManager.createEntity(anonUserInfo, ds);
 			toDelete.add(id);
-			Annotations annos = entityManager.getAnnoations(null, id);
+			Annotations annos = entityManager.getAnnotations(anonUserInfo, id);
 			assertNotNull(annos);
 			// Add some annotations
 			annos.addAnnotation("stringKey", "string"+i);
@@ -78,7 +93,7 @@ public class QueryManagerAutowireTest {
 			annos.addAnnotation("longKey", new Long(i));
 			annos.addAnnotation("dateKey", new Date(10000+i));
 			annos.addAnnotation("doubleKey", new Double(42*i));
-			entityManager.updateAnnotations(null,id, annos);
+			entityManager.updateAnnotations(anonUserInfo,id, annos);
 		}
 	}
 	
@@ -105,7 +120,8 @@ public class QueryManagerAutowireTest {
 		if(entityManager != null && toDelete != null){
 			for(String id: toDelete){
 				try{
-					entityManager.deleteEntity(AuthUtilConstants.ANONYMOUS_USER_ID, id);
+//					UserInfo userInfo = mockAuth.getUserInfo(AuthUtilConstants.ANONYMOUS_USER_ID);
+					entityManager.deleteEntity(anonUserInfo, id);
 				}catch(Exception e){}
 			}
 		}
@@ -123,7 +139,7 @@ public class QueryManagerAutowireTest {
 		query.addExpression(new Expression(new CompoundId("dataset", "doubleKey"), Compartor.GREATER_THAN, "0.0"));
 		// Execute it.
 		long start = System.currentTimeMillis();
-		QueryResults results = queryManager.executeQuery(null, query, Dataset.class);
+		QueryResults results = queryManager.executeQuery(anonUserInfo, query, Dataset.class);
 		long end = System.currentTimeMillis();
 		System.out.println("Executed the query in: "+(end-start)+" ms");
 		assertNotNull(results);
@@ -138,7 +154,7 @@ public class QueryManagerAutowireTest {
 		assertNotNull(row);
 		Object ob = row.get("stringListKey");
 		assertTrue(ob instanceof Collection);
-		Collection collect = (Collection) ob;
+		Collection<String> collect = (Collection<String>) ob;
 		assertTrue(collect.contains("three"));
 	}
 

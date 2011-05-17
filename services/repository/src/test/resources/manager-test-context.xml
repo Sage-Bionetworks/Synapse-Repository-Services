@@ -11,8 +11,6 @@
 
 	<import resource="classpath:managers-spb.xml" />
 
-  <bean id="userGroupDAO"
-        class="org.sagebionetworks.repo.model.jdo.JDOUserGroupDAOImpl"
-        scope="singleton" />
+
 
 </beans>

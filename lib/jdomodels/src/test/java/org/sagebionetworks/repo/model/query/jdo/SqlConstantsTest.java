@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONodeType;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.FieldType;
@@ -133,10 +132,7 @@ public class SqlConstantsTest {
 	public void testDateAnnotationClass(){
 		assertEquals(SqlConstants.TABLE_DATE_ANNOTATIONS, SqlConstants.getTableForClass(JDODateAnnotation.class));
 	}
-	@Test
-	public void testUserClass(){
-		assertEquals(SqlConstants.TABLE_USER, SqlConstants.getTableForClass(JDOUser.class));
-	}
+
 	@Test
 	public void testUserGroupClass(){
 		assertEquals(SqlConstants.TABLE_USER_GROUP, SqlConstants.getTableForClass(JDOUserGroup.class));

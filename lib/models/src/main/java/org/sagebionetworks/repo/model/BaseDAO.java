@@ -5,11 +5,6 @@ import java.util.Collection;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface BaseDAO<T extends Base> {
-	
-	/**
-	 * @return the type of the object which the DAO serves
-	 */
-	public String getType();
 
 	/**
 	 * @param dto

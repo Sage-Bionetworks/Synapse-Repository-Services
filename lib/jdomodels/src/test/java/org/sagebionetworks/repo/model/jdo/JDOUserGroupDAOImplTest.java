@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -12,12 +14,10 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserDAO;
+import org.sagebionetworks.repo.model.GroupPermissionsDAO;
 import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -27,10 +27,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class JDOUserGroupDAOImplTest {
 	
 	@Autowired
-	UserGroupDAO userGroupDAO;
+	GroupPermissionsDAO groupPermissionsDAO;
 	
-	@Autowired
-	UserDAO userDAO;
+//	@Autowired
+//	UserDAO userDAO;
 	
 	private Collection<String> users = new HashSet<String>();
 	private Collection<String> userGroups = new HashSet<String>();
@@ -39,19 +39,19 @@ public class JDOUserGroupDAOImplTest {
 	public void setUp() throws Exception {
 		UserGroup g = new UserGroup();
 		g.setName("Test group");
-		userGroupDAO.create(g);
+		groupPermissionsDAO.create(g);
 		userGroups.add(g.getId());
 	}
 
 	@After
 	public void tearDown() throws Exception {
 		for (String id : userGroups) {
-			userGroupDAO.delete(id);
+			groupPermissionsDAO.delete(id);
 			userGroups.remove(id);
 		}
 		for (String id : users) {
-			userDAO.delete(id);
-			users.remove(id);
+//			userDAO.delete(id);
+//			users.remove(id);
 		}
 	}
 
@@ -59,15 +59,15 @@ public class JDOUserGroupDAOImplTest {
 	@Ignore
 	public void testAddUser() throws Exception {
 		String gId = userGroups.iterator().next();
-		UserGroup g = userGroupDAO.get(gId);
+		UserGroup g = groupPermissionsDAO.get(gId);
 		
 		User u = new User();
 		u.setUserId("TestUser");
 //		userDAO.create(u);
 		users.add(u.getId());
-		userGroupDAO.addUser(g, Long.parseLong(u.getId()));
-		Long uId2 =  userGroupDAO.getUsers(g).iterator().next();
-		assertEquals(u.getId(), uId2);
+//		groupPermissionsDAO.addUser(g, Long.parseLong(u.getId()));
+//		Long uId2 =  groupPermissionsDAO.getUsers(g).iterator().next();
+//		assertEquals(u.getId(), uId2);
 	}
 
 	@Test
@@ -87,14 +87,14 @@ public class JDOUserGroupDAOImplTest {
 	@Test
 	public void testCreatableTypes() throws Exception {
 		String gId = userGroups.iterator().next();
-		UserGroup g = userGroupDAO.get(gId);
+		UserGroup g = groupPermissionsDAO.get(gId);
 		Set<String> creatableTypes = new HashSet<String>(Arrays.asList(new String[]{"foo"}));
-		userGroupDAO.setCreatableTypes(g, creatableTypes);
-		UserGroup g2 =userGroupDAO.get(g.getId());
+		groupPermissionsDAO.setCreatableTypes(g, creatableTypes);
+		UserGroup g2 =groupPermissionsDAO.get(g.getId());
 		assertFalse(g==g2);
 		assertEquals(g.getId(), g2.getId());
 		assertEquals(g.getName(), g2.getName());
-		assertEquals(creatableTypes, userGroupDAO.getCreatableTypes(g2));
+		assertEquals(creatableTypes, groupPermissionsDAO.getCreatableTypes(g2));
 	}
 
 }

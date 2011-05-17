@@ -3,19 +3,17 @@ package org.sagebionetworks.authutil;
 public class AuthUtilConstants {
 	
 	/**
-	 * The reserved userId for an administrator.  Note:  Other users in the admin group
-	 * would have privileges equal to this users'.  This is the user that the authentication
-	 * service uses to connect to the repository service.
+	 * The reserved userId for an anonymous user.
 	 */
 	public static final String ANONYMOUS_USER_ID = "anonymous";
 	
 	
-	/**
-	 * The reserved userId for an administrator.  Note:  Other users in the admin group
-	 * would have privileges equal to this users'.  This is the user that the authentication
-	 * service uses to connect to the repository service.
-	 */
-	public static final String ADMIN_USER_ID = "admin";
+//	/**
+//	 * The reserved userId for an administrator.  Note:  Other users in the admin group
+//	 * would have privileges equal to this users'.  This is the user that the authentication
+//	 * service uses to connect to the repository service.
+//	 */
+//	public static final String ADMIN_USER_ID = "admin";
 	
 	/**
 	 * Request parameter for the authenticated user id or anonymous. Note that

@@ -133,7 +133,7 @@ public class LocationHelpersImpl implements LocationHelper2{
 	 */
 	@Override
 	public String getS3Url(String userId, String cleartextPath)
-			throws DatastoreException, UnauthorizedException {
+			throws DatastoreException, UnauthorizedException, NotFoundException {
 
 		if (null == userId) {
 			// We should really be checking this further upstream but a little
@@ -164,7 +164,7 @@ public class LocationHelpersImpl implements LocationHelper2{
 	}
 
 	private AWSCredentials getCredentialsForUser(String userId)
-			throws DatastoreException, UnauthorizedException {
+			throws DatastoreException, UnauthorizedException, NotFoundException {
 
 		if (userId.equals(INTEGRATION_TEST_READ_ONLY_USER_ID)) {
 			return iamIntegrationTestCreds;

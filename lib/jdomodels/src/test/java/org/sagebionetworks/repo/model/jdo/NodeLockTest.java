@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.Node;
@@ -73,6 +74,7 @@ public class NodeLockTest {
 		}
 	}
 	
+	@Ignore
 	@Test
 	public void testNodeLocking() throws InterruptedException{
 		// Locking does not work with in-memory database, so only run this 

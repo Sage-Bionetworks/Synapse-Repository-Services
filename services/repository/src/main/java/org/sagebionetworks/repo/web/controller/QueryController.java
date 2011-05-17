@@ -18,10 +18,13 @@ import javax.servlet.http.HttpServletRequest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.authutil.AuthUtilConstants;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.QueryManager;
+import org.sagebionetworks.repo.manager.UserGroupManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.ObjectType;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -51,6 +54,12 @@ public class QueryController extends BaseController {
 
 	@Autowired
 	QueryManager queryManager;
+	
+	@Autowired
+	UserGroupManager userGroupManager;
+	
+
+
 
 	// Use a static instance of this per
 	// http://wiki.fasterxml.com/JacksonBestPracticesPerformance
@@ -104,6 +113,8 @@ public class QueryController extends BaseController {
 					"Something is really messed up if we don't support UTF-8",
 					e);
 		}
+		UserInfo userInfo = userGroupManager.getUserInfo(userId);
+
 		// Convert from a query statement to a basic query
 		BasicQuery basic = new BasicQuery();
 		ObjectType type = ObjectType.valueOf(stmt.getTableName());
@@ -114,7 +125,7 @@ public class QueryController extends BaseController {
 		basic.setOffset(stmt.getOffset()-1);
 		basic.setFilters(stmt.getSearchCondition());
 		
-		QueryResults results = queryManager.executeQuery(userId, basic, type.getClassForType());
+		QueryResults results = queryManager.executeQuery(userInfo, basic, type.getClassForType());
 		results.setResults(formulateResult(stmt, results.getResults()));
 		return results;
 	}

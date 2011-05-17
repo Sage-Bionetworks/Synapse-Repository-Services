@@ -11,6 +11,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.TestGroupMembershipDAO;
+import org.sagebionetworks.repo.manager.TestUserDAO;
+import org.sagebionetworks.repo.manager.UserGroupManager;
+import org.sagebionetworks.repo.model.GroupMembershipDAO;
 import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -44,10 +48,12 @@ public class LayerLocationsControllerTest {
 	private Helpers helper;
 	private JSONObject dataset;
 	private String readOnlyUserId;
-//	private UserDAO userDao;
+	
 	private User user;
 	
 	@Autowired
+	private UserGroupManager userGroupManager;
+	
 	private UserDAO userDao;
 	
 	/**
@@ -78,6 +84,11 @@ public class LayerLocationsControllerTest {
 			readOnlyUserId = INTEGRATION_TEST_READ_ONLY_USER_ID;
 		} else {
 			readOnlyUserId = UNIT_TEST_READ_ONLY_USER_ID;
+			
+			this.userDao=new TestUserDAO();
+			userGroupManager.setUserDAO(userDao);
+			GroupMembershipDAO groupMembershipDAO = new TestGroupMembershipDAO();
+			userGroupManager.setGroupMembershipDAO(groupMembershipDAO);
 
 			// TODO talk to Bruce to determine the right way to bootstrap users
 
@@ -264,7 +275,12 @@ public class LayerLocationsControllerTest {
 		JSONObject saneLayer = helper.testGetJsonEntity(saneLayers
 				.getJSONArray("results").getJSONObject(0).getString("uri"));
 		helper.setUserId(readOnlyUserId);
-
+		
+		// make sure our fake userDAO has the user set up
+		if (!helper.isIntegrationTest()) {
+			assertEquals(readOnlyUserId, userDao.getUser(readOnlyUserId).getUserId());
+		}
+		
 		for (int i = 0; i < saneLayer.getJSONArray("locations").length(); i++) {
 			String locationUri = saneLayer.getJSONArray("locations").getString(
 					i);

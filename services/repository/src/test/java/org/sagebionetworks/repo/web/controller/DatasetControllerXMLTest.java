@@ -15,6 +15,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -94,6 +95,7 @@ public class DatasetControllerXMLTest {
 		request
 				.setContent("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><dataset><name>dataset from a unit test</name></dataset>"
 						.getBytes("UTF-8"));
+		request.addParameter(AuthUtilConstants.USER_ID_PARAM, AuthUtilConstants.ANONYMOUS_USER_ID);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.CREATED.value(), response.getStatus());
@@ -129,6 +131,7 @@ public class DatasetControllerXMLTest {
 		request.addHeader("Accept", "application/xml");
 		request.setRequestURI(helper.getServletPrefix() + "/dataset/"
 				+ newDatasetId);
+		request.addParameter(AuthUtilConstants.USER_ID_PARAM, AuthUtilConstants.ANONYMOUS_USER_ID);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.OK.value(), response.getStatus());
@@ -160,6 +163,7 @@ public class DatasetControllerXMLTest {
 		request.addHeader("Accept", "application/xml");
 		request.setRequestURI(helper.getServletPrefix() + "/dataset/"
 				+ newDatasetId);
+		request.addParameter(AuthUtilConstants.USER_ID_PARAM, AuthUtilConstants.ANONYMOUS_USER_ID);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.NO_CONTENT.value(), response.getStatus());
@@ -184,6 +188,7 @@ public class DatasetControllerXMLTest {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/xml");
 		request.setRequestURI(helper.getServletPrefix() + "/dataset");
+		request.addParameter(AuthUtilConstants.USER_ID_PARAM, AuthUtilConstants.ANONYMOUS_USER_ID);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.OK.value(), response.getStatus());
@@ -405,6 +410,7 @@ public class DatasetControllerXMLTest {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/javascript");
 		request.setRequestURI(helper.getServletPrefix() + "/dataset");
+		request.setParameter(AuthUtilConstants.USER_ID_PARAM, AuthUtilConstants.ANONYMOUS_USER_ID);
 		try {
 			servlet.service(request, response);
 		} catch (HttpMediaTypeNotAcceptableException e) {

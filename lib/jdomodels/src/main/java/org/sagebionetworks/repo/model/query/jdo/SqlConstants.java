@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.query.jdo;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.Dataset;
@@ -17,7 +16,6 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONodeType;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOUser;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.FieldType;
@@ -58,6 +56,9 @@ public class SqlConstants {
 	public static final String TABLE_USER					= "JDOUSER";
 	public static final String TABLE_USER_GROUP				= "JDOUSERGROUP";
 	public static final String TABLE_USER_GROUP_USERS		= "JDOUSERGROUPUSERS";
+	public static final String COL_USER_GROUP_NAME			 = "NAME";
+	public static final String COL_USER_GROUP_IS_SYSTEM_GROUP = "ISSYSTEMGROUP";
+	public static final String COL_USER_GROUP_IS_INDIVIDUAL = "ISINDIVIDUAL";
 	
 	// The resource access table
 	public static final String TABLE_RESOURCE_ACCESS			= "JDORESOURCEACCESS";
@@ -66,9 +67,9 @@ public class SqlConstants {
 	public static final String COL_RESOURCE_ACCESS_RESOURCE_ID	= "RESOURCE_ID";
 	
 	// The resource access join table
-	public static final String TABLE_RESOURCE_ACCESS_TYPE		= "JDORESOURCEACCESSTYPE";
+	public static final String TABLE_RESOURCE_ACCESS_TYPE		= "JDORESOURCEACCESS_ACCESSTYPE";
 	public static final String COL_RESOURCE_ACCESS_TYPE_ID		= "ID_OID";
-	public static final String COL_RESOURCE_ACCESS_TYPE_ELEMENT	= "STRING_ELE";
+	public static final String COL_RESOURCE_ACCESS_TYPE_ELEMENT	= "ELEMENT";
 	
 	// The alias used for the dataset table.
 	public static final String PRIMARY_ALIAS	= "prm";
@@ -121,7 +122,6 @@ public class SqlConstants {
 		mapClassToTable.put(JDOStringAnnotation.class.getName(),	TABLE_STRING_ANNOTATIONS);
 		// security
 		mapClassToTable.put(JDOResourceAccess.class.getName(),		TABLE_RESOURCE_ACCESS);
-		mapClassToTable.put(JDOUser.class.getName(), 				TABLE_USER);
 		mapClassToTable.put(JDOUserGroup.class.getName(), 			TABLE_USER_GROUP);
 		// Join tables
 		mapClassToTable.put(JDOResourceAccess.class.getName()+".accessType",	TABLE_RESOURCE_ACCESS_TYPE);
