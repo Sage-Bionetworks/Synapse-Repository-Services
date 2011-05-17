@@ -69,7 +69,9 @@ public class SqlConstants {
 	// The resource access join table
 	public static final String TABLE_RESOURCE_ACCESS_TYPE		= "JDORESOURCEACCESS_ACCESSTYPE";
 	public static final String COL_RESOURCE_ACCESS_TYPE_ID		= "ID_OID";
-	public static final String COL_RESOURCE_ACCESS_TYPE_ELEMENT	= "ELEMENT";
+	public static final String COL_RESOURCE_ACCESS_TYPE_ELEMENT	= "STRING_ELE";
+	
+	
 	
 	// The alias used for the dataset table.
 	public static final String PRIMARY_ALIAS	= "prm";

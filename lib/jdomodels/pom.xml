@@ -41,12 +41,6 @@
 		</dependency>
 		<dependency>
 			<groupId>org.datanucleus</groupId>
-			<artifactId>datanucleus-api-jdo</artifactId>
-			<version>${datanucleus.version}</version>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.datanucleus</groupId>
 			<artifactId>datanucleus-rdbms</artifactId>
 			<version>${datanucleus.version}</version>
 			<scope>runtime</scope>
@@ -60,9 +54,14 @@
 		
 		<dependency>
 			<groupId>javax.jdo</groupId>
-			<artifactId>jdo-api</artifactId>
-			<version>3.0</version>
-			<type>jar</type>
+			<artifactId>jdo2-api</artifactId>
+			<version>2.3-eb</version>
+			<exclusions>
+				<exclusion>
+					<groupId>javax.transaction</groupId>
+					<artifactId>transaction-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<!-- MySQL dependencies -->
@@ -153,7 +152,7 @@
 	<plugin>
 		<groupId>org.datanucleus</groupId>
 		<artifactId>maven-datanucleus-plugin</artifactId>
-		<version>3.0.0-m2</version>
+		<version>1.1.4</version>
 		<configuration>
 			<!-- Make sure this path contains your persistent classes! -->
 			<mappingIncludes>**/model/jdo/persistence/*.class</mappingIncludes>
@@ -195,17 +194,13 @@
 			<dependency>
 				<groupId>org.datanucleus</groupId>
 				<artifactId>datanucleus-enhancer</artifactId>
-				<version>${datanucleus.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>org.datanucleus</groupId>
-				<artifactId>datanucleus-api-jdo</artifactId>
-				<version>${datanucleus.version}</version>
+				<version>1.1.4</version>
 			</dependency>
 			<dependency>
 				<groupId>javax.jdo</groupId>
-				<artifactId>jdo-api</artifactId>
-				<version>3.0</version>
+				<artifactId>jdo2-api</artifactId>
+				<version>2.3-ec</version>
+				<scope>runtime</scope>
 			</dependency>
 			<dependency>
 				<groupId>mysql</groupId>
@@ -217,11 +212,6 @@
 	</plugin>
 		</plugins>
 	</build>
-
-	<!-- Specify hard-coded project properties here -->
-	<properties>
-		<datanucleus.version>3.0.0-m4</datanucleus.version>
-	</properties>
 
 </project>
 

@@ -34,8 +34,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	
 	static private Log log = LogFactory.getLog(NodeManagerImpl.class);
 	
-//	public static final String ANNONYMOUS = "anonymous";
-	
 	@Autowired
 	NodeDAO nodeDao;
 	

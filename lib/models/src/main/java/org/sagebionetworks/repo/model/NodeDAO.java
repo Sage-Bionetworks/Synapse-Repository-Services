@@ -55,6 +55,14 @@ public interface NodeDAO {
 	public Set<Node> getChildren(String id) throws NotFoundException;
 	
 	/**
+	 * Get all of the IDs for a given node's children
+	 * @param id
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public Set<String> getChildrenIds(String id) throws NotFoundException;
+	
+	/**
 	 * Fetch the eTag for a given node with the intentions of updating
 	 * the node.  
 	 * Note: It is likely that an implementation will start/join a transaction

@@ -74,7 +74,6 @@ public class NodeLockTest {
 		}
 	}
 	
-	@Ignore
 	@Test
 	public void testNodeLocking() throws InterruptedException{
 		// Locking does not work with in-memory database, so only run this 
