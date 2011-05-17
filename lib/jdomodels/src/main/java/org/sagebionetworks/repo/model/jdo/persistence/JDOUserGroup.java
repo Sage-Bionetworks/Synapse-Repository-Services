@@ -21,7 +21,7 @@ public class JDOUserGroup implements JDOBase {
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 	
-	@Persistent
+	@Persistent (column=SqlConstants.COL_USER_GROUP_NAME)
 	@Unique
 	private String name;
 	
@@ -41,11 +41,11 @@ public class JDOUserGroup implements JDOBase {
 	private Set<String> creatableTypes;
 	
 	// true for system generated groups like 'Public'
-	@Persistent
+	@Persistent (column=SqlConstants.COL_USER_GROUP_IS_SYSTEM_GROUP)
 	private Boolean isSystemGroup = false;
 	
 	// true for groups established for individuals (in which case group 'name'==userId)
-	@Persistent
+	@Persistent (column=SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL)
 	private Boolean isIndividual = false;
 
 	public Long getId() {

@@ -79,7 +79,7 @@ public class JDONode {
 	private JDONodeType nodeType;
 	
 	// Indicates the node that this node gets its permissions from.
-	@Persistent 
+	@Persistent
 	@Column(name=SqlConstants.COL_NODE_BENEFACTOR_ID)
     @ForeignKey(name="NODE_BENEFACTOR_FK", deleteAction=ForeignKeyAction.CASCADE)
 	private JDONode permissionsBenefactor;

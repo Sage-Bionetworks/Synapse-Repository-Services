@@ -4,9 +4,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import javax.jdo.annotations.Column;
-import javax.jdo.annotations.Columns;
-import javax.jdo.annotations.ForeignKey;
-import javax.jdo.annotations.ForeignKeyAction;
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.Join;
 import javax.jdo.annotations.PersistenceCapable;

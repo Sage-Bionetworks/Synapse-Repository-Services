@@ -75,7 +75,7 @@ public class NodeInheritanceDAOImplTest {
 		toDelete.add(childId);
 		assertNotNull(childId);
 		benefactor = nodenheritanceDao.getBenefactor(childId);
-		assertEquals(childId, benefactor);
+		assertEquals(parentId, benefactor);
 		// Now add this child to the parent
 		nodenheritanceDao.addBeneficiary(childId, parentId);
 		// Check the change.
@@ -87,6 +87,13 @@ public class NodeInheritanceDAOImplTest {
 		assertEquals(2, beneficiaries.size());
 		assertTrue(beneficiaries.contains(parentId));
 		assertTrue(beneficiaries.contains(childId));
+		
+		// Now add this child to the parent
+		nodenheritanceDao.addBeneficiary(childId, parentId);
+		// Check the change.
+		benefactor = nodenheritanceDao.getBenefactor(childId);
+		assertEquals(parentId, benefactor);
+		
 		// Make sure we can delete the parent
 		nodeDao.delete(parentId);
 	}

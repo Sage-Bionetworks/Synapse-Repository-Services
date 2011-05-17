@@ -15,6 +15,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
@@ -28,6 +29,8 @@ public class NodeDAOImplTest {
 
 	@Autowired
 	NodeDAO nodeDao;
+	@Autowired
+	NodeInheritanceDAO nodeInheritanceDAO;
 	
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
@@ -35,6 +38,7 @@ public class NodeDAOImplTest {
 	@Before
 	public void before(){
 		assertNotNull(nodeDao);
+		assertNotNull(nodeInheritanceDAO);
 		toDelete = new ArrayList<String>();
 	}
 	
@@ -63,6 +67,10 @@ public class NodeDAOImplTest {
 		assertNotNull(id);
 		assertEquals(id, loaded.getId());
 		assertNotNull(loaded.getETag());
+		
+		// Since this node has no parent, it should be its own benefactor.
+		String benefactorId = nodeInheritanceDAO.getBenefactor(id);
+		assertEquals(id, benefactorId);
 	}
 	
 	@Test 
@@ -71,6 +79,8 @@ public class NodeDAOImplTest {
 		String parentId = nodeDao.createNew(parent);
 		assertNotNull(parentId);
 		toDelete.add(parentId);
+
+		
 		//Now add an child
 		Node child = NodeTestUtils.createNew("child");
 		child.setParentId(parentId);
@@ -87,6 +97,9 @@ public class NodeDAOImplTest {
 		childLoaded = nodeDao.getNode(childId);
 		assertNotNull(childLoaded);
 		assertEquals(parentId, childLoaded.getParentId());
+		// This child should be inheriting from its parent by default
+		String childBenefactorId = nodeInheritanceDAO.getBenefactor(childId);
+		assertEquals(parentId, childBenefactorId);
 		
 		// Now delete the parent and confirm the child is gone too
 		nodeDao.delete(parentId);
