@@ -18,7 +18,6 @@ import javax.servlet.http.HttpServletRequest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.authutil.AuthUtilConstants;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.QueryManager;
 import org.sagebionetworks.repo.manager.UserGroupManager;
 import org.sagebionetworks.repo.model.DatastoreException;

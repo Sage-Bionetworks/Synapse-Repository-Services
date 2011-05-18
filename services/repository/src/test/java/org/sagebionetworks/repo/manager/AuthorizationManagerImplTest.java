@@ -26,6 +26,7 @@ import org.springframework.orm.jdo.JdoTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+@SuppressWarnings("unchecked")
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:manager-test-context.xml" })
 public class AuthorizationManagerImplTest {

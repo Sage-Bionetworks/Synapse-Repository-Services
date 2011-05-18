@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.Date;
-import java.util.Set;
 
 public class UserGroup implements Base{
 	private String id;
@@ -9,23 +8,8 @@ public class UserGroup implements Base{
 	private String uri;
 	private String etag;
 	private Date creationDate;
-	private Set<String> creatableTypes;
+	boolean isIndividual;
 	
-//	public String getType() {return UserGroup.class.getName();}
-
-	
-	/**
-	 * @return the creatableTypes
-	 */
-	public Set<String> getCreatableTypes() {
-		return creatableTypes;
-	}
-	/**
-	 * @param creatableTypes the creatableTypes to set
-	 */
-	public void setCreatableTypes(Set<String> creatableTypes) {
-		this.creatableTypes = creatableTypes;
-	}
 	public String getId() {
 		return id;
 	}
@@ -59,6 +43,9 @@ public class UserGroup implements Base{
 	public void setCreationDate(Date creationDate) {
 		this.creationDate = creationDate;
 	}
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -66,9 +53,13 @@ public class UserGroup implements Base{
 		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + (isIndividual ? 1231 : 1237);
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		return result;
 	}
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -87,6 +78,8 @@ public class UserGroup implements Base{
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
+			return false;
+		if (isIndividual != other.isIndividual)
 			return false;
 		if (name == null) {
 			if (other.name != null)

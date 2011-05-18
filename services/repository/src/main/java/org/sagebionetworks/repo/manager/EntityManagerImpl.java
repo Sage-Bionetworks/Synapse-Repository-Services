@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Logger;
 
 import javax.swing.text.html.parser.Entity;
 
@@ -27,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class EntityManagerImpl implements EntityManager {
 	
-	private static final Logger log = Logger.getLogger(EntityManagerImpl.class.getName());
+//	private static final Logger log = Logger.getLogger(EntityManagerImpl.class.getName());
 	
 	@Autowired
 	NodeManager nodeManager;

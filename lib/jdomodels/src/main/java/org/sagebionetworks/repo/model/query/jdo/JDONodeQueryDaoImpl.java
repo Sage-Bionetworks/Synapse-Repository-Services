@@ -42,6 +42,8 @@ import org.springframework.orm.jdo.JdoTemplate;
  * @author jmhill
  * 
  */
+
+@SuppressWarnings("rawtypes")
 public class JDONodeQueryDaoImpl implements NodeQueryDao {
 
 	static private Log log = LogFactory.getLog(JDONodeQueryDaoImpl.class);
@@ -188,7 +190,6 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 */
 	public List executeQuery(final String sql, final Map<String, Object> parameters){
 		return this.jdoTemplate.execute(new JdoCallback<List>() {
-			@SuppressWarnings("unchecked")
 			@Override
 			public List doInJdo(PersistenceManager pm) throws JDOException {
 				if(log.isDebugEnabled()){
@@ -516,6 +517,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @return
 	 * @throws ClassNotFoundException
 	 */
+	
 	private static Map<Class, String> getAllClassTables() {
 		// Load all table names from the database
 		// Use the BasicIdentifierFactory to create the table names.

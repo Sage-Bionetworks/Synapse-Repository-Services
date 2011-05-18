@@ -33,10 +33,10 @@ public class CrowdAuthenticationFilterTest {
 	/**
 	 * @throws Exception
 	 */
-	@Ignore
+
 	@Test
 	public void test() throws Exception {
-//		Assert.fail("Hello world");
+
 		CrowdAuthenticationFilter f = new CrowdAuthenticationFilter();
 		f.init(new FilterConfig() {
 			public String getFilterName() {return "";}
@@ -51,7 +51,6 @@ public class CrowdAuthenticationFilterTest {
 			}
 			public ServletContext getServletContext() {return null;}
 		});
-		//f.revalidate("Gr53Xi399cK00ZjvlBxeRg00");
 	}
 
 }

@@ -28,7 +28,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * 
  */
 
-@Ignore
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:authentication-context.xml", "classpath:authentication-servlet.xml" })
 public class AuthenticationControllerTest {
@@ -39,6 +38,12 @@ public class AuthenticationControllerTest {
 	//private DispatcherServlet servlet;
 		
 	private CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
+	
+	private boolean isIntegrationTest() {
+		String integrationTestEndpoint = System.getProperty("INTEGRATION_TEST_ENDPOINT");
+		return integrationTestEndpoint!=null && integrationTestEndpoint.length()>0;
+	}
+
 
 
 	/**
@@ -62,6 +67,7 @@ public class AuthenticationControllerTest {
 	
 	@Test
 	public void testCreateSession() throws Exception {
+		if (!isIntegrationTest()) return;
 		JSONObject session = helper.testCreateJsonEntity("/session",
 				"{\"userId\":\"demouser\",\"password\":\"demouser-pw\"}");
 		assertTrue(session.has("sessionToken"));
@@ -72,6 +78,7 @@ public class AuthenticationControllerTest {
 	
 	@Test
 	public void testCreateSessionBadCredentials() throws Exception {
+		if (!isIntegrationTest()) return;
 		JSONObject session = helper.testCreateJsonEntityShouldFail("/session",
 				"{\"userId\":\"demouser\",\"password\":\"incorrectPassword\"}", HttpStatus.BAD_REQUEST);
 		assertEquals("Unable to authenticate", session.getString("reason"));
@@ -81,6 +88,7 @@ public class AuthenticationControllerTest {
 	
 	@Test
 	public void testRevalidateUtil() throws Exception {
+		if (!isIntegrationTest()) return;
 		// start session
 		JSONObject session = helper.testCreateJsonEntity("/session",
 				"{\"userId\":\"demouser\",\"password\":\"demouser-pw\"}");
@@ -101,6 +109,7 @@ public class AuthenticationControllerTest {
 	
 	@Test
 	public void testRevalidateSvc() throws Exception {
+		if (!isIntegrationTest()) return;
 		// start session
 		JSONObject session = helper.testCreateJsonEntity("/session",
 				"{\"userId\":\"demouser\",\"password\":\"demouser-pw\"}");
@@ -115,6 +124,7 @@ public class AuthenticationControllerTest {
 	
 	@Test
 	public void testRevalidateBadTokenUtil() throws Exception {
+		if (!isIntegrationTest()) return;
 		try {
 			crowdAuthUtil.revalidate("invalidToken");
 			fail("exception expected");
@@ -127,6 +137,7 @@ public class AuthenticationControllerTest {
 	
 	@Test
 	public void testRevalidateBadTokenSvc() throws Exception {
+		if (!isIntegrationTest()) return;
 		
 		// revalidate via web service
 		helper.testUpdateJsonEntityShouldFail("/session", "{\"sessionToken\":\"invalid-token\"}", HttpStatus.NOT_FOUND);
@@ -135,6 +146,7 @@ public class AuthenticationControllerTest {
 	
 	@Test
 	public void testCreateSessionThenLogout() throws Exception {
+		if (!isIntegrationTest()) return;
 		JSONObject session = helper.testCreateJsonEntity("/session",
 				"{\"userId\":\"demouser\",\"password\":\"demouser-pw\"}");
 		String sessionToken = session.getString("sessionToken");
@@ -147,6 +159,7 @@ public class AuthenticationControllerTest {
 	
 	@Test
 	public void testCreateExistingUser() throws Exception {
+		if (!isIntegrationTest()) return;
 			helper.testCreateJsonEntityShouldFail("/user",
 				"{\"userId\":\"demouser\","+
 				"\"email\":\"notused@sagebase.org\","+
@@ -161,6 +174,7 @@ public class AuthenticationControllerTest {
 	
 	@Test
 	public void testCreateNewUser() throws Exception {
+		if (!isIntegrationTest()) return;
 		// special userId for testing -- no confirmation email is sent!
 		Properties props = new Properties();
         InputStream is = AuthenticationControllerTest.class.getClassLoader().getResourceAsStream("authenticationcontroller.properties");
@@ -169,22 +183,22 @@ public class AuthenticationControllerTest {
         } catch (IOException e) {
         	throw new RuntimeException(e);
         }
-        String userId = props.getProperty("integrationTestUser");
+        String userEmail = props.getProperty("integrationTestUser");
 
-		assertNotNull(userId);
+		assertNotNull(userEmail);
 		try {
 			helper.testCreateJsonEntity("/user",
-					"{\"userId\":\""+userId+"\","+
-					"\"email\":\"notused@sagebase.org\","+
+					"{"+
+					"\"email\":"+userEmail+","+
 					 // integration testing with this special user is the only time a password may be specified
-					"\"password\":\""+userId+"\","+
+					"\"password\":\""+userEmail+"\","+
 				"\"firstName\":\"New\","+
 				"\"lastName\":\"User\","+
 				"\"displayName\":\"New User\""+
 					"}");
 		} finally {
 			User user = new User();
-			user.setUserId(userId);
+			user.setEmail(userEmail);
 			try {
 				crowdAuthUtil.deleteUser(user);
 			} catch (AuthenticationException ae) {
@@ -201,6 +215,7 @@ public class AuthenticationControllerTest {
 	
 	@Test
 	public void testCreateAndUpdateUser() throws Exception {
+		if (!isIntegrationTest()) return;
 		
 		// special userId for testing -- no confirmation email is sent!
 		// special userId for testing -- no confirmation email is sent!
@@ -211,38 +226,41 @@ public class AuthenticationControllerTest {
         } catch (IOException e) {
         	throw new RuntimeException(e);
         }
-        String userId = props.getProperty("integrationTestUser");
-		assertNotNull(userId);
+        String userEmail = props.getProperty("integrationTestUser");
+		assertNotNull(userEmail);
 		try {
 			
+
 			helper.testCreateJsonEntity("/user",
-					"{\"userId\":\""+userId+"\","+
+					"{"+
+					"\"email\":"+userEmail+","+
 					 // integration testing with this special user is the only time a password may be specified
-					"\"password\":\""+userId+"\","+
-					"\"email\":\"notused@sagebase.org\","+
-					"\"firstName\":\"New\","+
-					"\"lastName\":\"User\","+
-					"\"displayName\":\"New User\""+
-						"}");
+					"\"password\":\""+userEmail+"\","+
+				"\"firstName\":\"New\","+
+				"\"lastName\":\"User\","+
+				"\"displayName\":\"New User\""+
+					"}");
 				
+
 			helper.testUpdateJsonEntity("/user",
-					"{\"userId\":\""+userId+"\","+
-					"\"email\":\"notused@sagebase.org\","+
+					"{"+
+					"\"email\":"+userEmail+","+
 					"\"firstName\":\"NewNEW\","+
 					"\"lastName\":\"UserNEW\","+
 					"\"displayName\":\"New NEW User\""+
-						"}");
+					"}");
 		} finally {
 			User user = new User();
-			user.setUserId(userId);
+			user.setEmail(userEmail);
 			crowdAuthUtil.deleteUser(user);
 		}
 	}
 	
+	// can't expect to do this regularly, as it generates email messages
 	@Ignore
 	@Test
 	public void testSendResetPasswordEmail() throws Exception {
-		 helper.testCreateJsonEntity("/userPasswordEmail","{\"userId\":\"demouser\"}", HttpStatus.NO_CONTENT);
+		 helper.testCreateJsonEntity("/userPasswordEmail","{\"email\":\"demouser@sagebase.org\"}", HttpStatus.NO_CONTENT);
 	}
 }
 

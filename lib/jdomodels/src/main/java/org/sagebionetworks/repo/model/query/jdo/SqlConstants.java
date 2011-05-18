@@ -66,6 +66,8 @@ public class SqlConstants {
 	public static final String COL_RESOURCE_ACCESS_TYPE			= "RESOURCE_TYPE";
 	public static final String COL_RESOURCE_ACCESS_RESOURCE_ID	= "RESOURCE_ID";
 	
+	public static final String TABLE_RESOURCE_ACCESS_2			= "JDORESOURCEACCESS2";
+	
 	// The resource access join table
 	public static final String TABLE_RESOURCE_ACCESS_TYPE		= "JDORESOURCEACCESS_ACCESSTYPE";
 	public static final String COL_RESOURCE_ACCESS_TYPE_ID		= "ID_OID";

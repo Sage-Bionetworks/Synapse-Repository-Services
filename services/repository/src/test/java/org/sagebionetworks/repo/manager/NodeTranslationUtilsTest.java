@@ -57,7 +57,7 @@ public class NodeTranslationUtilsTest {
 		layer.setDescription("someDescr");
 		layer.setEtag("12");
 		layer.setId("44");
-		Collection<String> locations = new ArrayList();
+		Collection<String> locations = new ArrayList<String>();
 		locations.add("locationOne");
 		locations.add("locatoinTwo");
 		locations.add("locationThree");
@@ -103,7 +103,7 @@ public class NodeTranslationUtilsTest {
 	@Test
 	public void testSingleValueCollection(){
 		InputDataLayer layer = new InputDataLayer();
-		Collection<String> locations = new ArrayList();
+		Collection<String> locations = new ArrayList<String>();
 		locations.add("locationOne");
 		layer.setLocations(locations);
 		Annotations annos = new Annotations();
@@ -155,6 +155,7 @@ public class NodeTranslationUtilsTest {
 		Annotations annos = new Annotations();
 		NodeTranslationUtils.updateAnnoationsFromObject(toClone, annos);
 		// Now crate the clone
+		@SuppressWarnings("unchecked")
 		T clone = (T) toClone.getClass().newInstance();
 		// first apply the annotations
 		NodeTranslationUtils.updateObjectFromAnnotations(clone, annos);

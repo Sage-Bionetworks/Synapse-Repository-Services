@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.jdo.persistence;
 
-import java.util.Date;
 import java.util.Set;
 
 import javax.jdo.annotations.Column;
@@ -13,7 +12,6 @@ import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 
-import org.sagebionetworks.repo.model.query.ObjectType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 @PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_NODE)

@@ -27,7 +27,7 @@ public class JDOGroupPermissionsDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUser
 	
 	UserGroup newDTO() {
 		UserGroup ug = new UserGroup();
-		ug.setCreatableTypes(new HashSet<String>());
+//		ug.setCreatableTypes(new HashSet<String>());
 		return ug;
 	}
 
@@ -47,7 +47,7 @@ public class JDOGroupPermissionsDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUser
 		// the following condition should never be false, but it happened in practice
 		// so we do this step to prevent passing a null pointer to the HashSet constructor
 		if (jdo.getCreatableTypes()!=null) cts.addAll(jdo.getCreatableTypes());
-		dto.setCreatableTypes(new HashSet<String>(cts));
+//		dto.setCreatableTypes(new HashSet<String>(cts));
 	}
 
 	void copyFromDto(UserGroup dto, JDOUserGroup jdo)
@@ -55,7 +55,7 @@ public class JDOGroupPermissionsDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUser
 		jdo.setName(dto.getName());
 		jdo.setCreationDate(dto.getCreationDate());
 		Set<String> cts = new HashSet<String>();
-		if (dto.getCreatableTypes()!=null) cts.addAll(dto.getCreatableTypes());
+//		if (dto.getCreatableTypes()!=null) cts.addAll(dto.getCreatableTypes());
 		jdo.setCreatableTypes(cts);
 	}
 

@@ -36,4 +36,9 @@
 	
 	<bean id="userGroupManager" class="org.sagebionetworks.repo.manager.UserGroupManagerImpl" />
 	
+	<!-- TODO: should these be in a different xml file? -->
+	<bean id="userDAO" class="org.sagebionetworks.repo.model.CrowdUserDAO" scope="singleton"/>
+	
+	<bean id="groupMembershipDAO" class="org.sagebionetworks.repo.model.CrowdGroupMembershipDAO" scope="singleton"/>
+	
 </beans>

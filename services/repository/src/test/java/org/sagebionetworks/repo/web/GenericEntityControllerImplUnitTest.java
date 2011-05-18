@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -11,10 +13,6 @@ import javax.servlet.http.HttpServletRequest;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-
-import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.UserInfo;

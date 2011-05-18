@@ -2,8 +2,6 @@ package org.sagebionetworks.auth;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.Properties;
 import java.util.Random;
 import java.util.logging.Level;
@@ -13,7 +11,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.openid4java.discovery.Identifier;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
@@ -141,9 +138,9 @@ public class AuthenticationController {
 			User credentials = new User();
 			
 			System.out.println("ID returned by google: "+email);
-			credentials.setUserId(email); // this is a guess
+			credentials.setEmail(email);
 			
-			// if user does not exist, create them
+			// TODO: if user does not exist, create them
 			
 			// get the SSO token 
 			return crowdAuthUtil.authenticate(credentials, false);
@@ -176,7 +173,7 @@ public class AuthenticationController {
 	@RequestMapping(value = "/user", method = RequestMethod.POST)
 	public void createUser(@RequestBody User user) throws Exception {
 		String itu = getIntegrationTestUser();
-		boolean isITU = (itu!=null && user.getUserId().equals(itu));
+		boolean isITU = (itu!=null && user.getEmail().equals(itu));
 		if (!isITU) {
 			user.setPassword(""+rand.nextLong());
 		}
@@ -227,7 +224,7 @@ public class AuthenticationController {
 	@RequestMapping(value = "/user", method = RequestMethod.DELETE)
 	public void deleteUser(@RequestBody User user) throws Exception {
 		String itu = getIntegrationTestUser();
-		boolean isITU = (itu!=null && user.getUserId().equals(itu));
+		boolean isITU = (itu!=null && user.getEmail().equals(itu));
 		if (!isITU) throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not allowed outside of integration testing.", null);
 		crowdAuthUtil.deleteUser(user);
 //		mirrorToPersistenceLayer();
@@ -238,11 +235,11 @@ public class AuthenticationController {
 	public void updateUser(@RequestBody User user,
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		String itu = getIntegrationTestUser();
-		boolean isITU = (itu!=null && user.getUserId().equals(itu));
+		boolean isITU = (itu!=null && user.getEmail().equals(itu));
 		if (!isITU) {
 			user.setPassword(null);
 		}
-		if (!isITU && (userId==null || !userId.equals(user.getUserId()))) 
+		if (!isITU && (userId==null || !userId.equals(user.getEmail()))) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
 		crowdAuthUtil.updateUser(user);
 	}
