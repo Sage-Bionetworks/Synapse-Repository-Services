@@ -27,8 +27,8 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 	JdoTemplate jdoTemplate;
 	
 	
-	private static final Logger log = Logger
-	.getLogger(JDOBaseDAOImpl.class.getName());
+//	private static final Logger log = Logger
+//	.getLogger(JDOBaseDAOImpl.class.getName());
 	/**
 	 * Create a new instance of the data transfer object. Introducing this
 	 * abstract method helps us avoid making assumptions about constructors.

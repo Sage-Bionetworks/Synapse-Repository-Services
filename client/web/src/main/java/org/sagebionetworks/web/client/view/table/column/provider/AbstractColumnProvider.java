@@ -15,6 +15,7 @@ import com.google.gwt.user.cellview.client.TextColumn;
  * @author jmhill
  *
  */
+@SuppressWarnings({"unchecked"})
 public abstract class AbstractColumnProvider<T> implements ColumnProvider {
 
 	@Override

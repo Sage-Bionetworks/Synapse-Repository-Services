@@ -1,12 +1,11 @@
 package org.sagebionetworks.web.unitclient.view.table;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
 
 import org.jukito.JukitoRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.web.client.view.table.ColumnFactoryGinInjector;
-import org.sagebionetworks.web.client.view.table.LinkColumn;
 
 import com.google.inject.Inject;
 

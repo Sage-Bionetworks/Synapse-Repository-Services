@@ -13,8 +13,6 @@ import org.sagebionetworks.web.shared.users.UserData;
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.dom.client.LIElement;
 import com.google.gwt.dom.client.SpanElement;
-import com.google.gwt.event.dom.client.ClickEvent;
-import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
@@ -24,6 +22,7 @@ import com.google.gwt.user.client.ui.Hyperlink;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
+@SuppressWarnings("unused")
 public class HeaderViewImpl extends Composite implements HeaderView {
 
 	public interface Binder extends UiBinder<Widget, HeaderViewImpl> {

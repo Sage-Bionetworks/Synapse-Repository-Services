@@ -6,9 +6,8 @@ import java.util.logging.Logger;
 
 import org.sagebionetworks.web.client.DatasetService;
 import org.sagebionetworks.web.server.RestTemplateProvider;
-import org.sagebionetworks.web.server.ServerConstants;
-import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.Annotations;
+import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.DownloadLocation;
 import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
@@ -23,7 +22,6 @@ import org.springframework.http.ResponseEntity;
 
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import com.google.inject.Inject;
-import com.google.inject.name.Named;
 
 /**
  * The server-side implementation of the DatasetService. This serverlet will

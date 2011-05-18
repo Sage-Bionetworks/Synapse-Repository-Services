@@ -1,10 +1,11 @@
 package org.sagebionetworks.web.unitclient.view;
 
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.verify;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import static org.mockito.Mockito.*;
-
 import org.sagebionetworks.web.client.view.HandlerRegistrationProxy;
 
 import com.google.gwt.event.shared.HandlerRegistration;

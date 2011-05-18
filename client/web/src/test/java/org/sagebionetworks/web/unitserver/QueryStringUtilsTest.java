@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.unitserver;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -10,9 +11,9 @@ import java.util.List;
 import org.junit.Test;
 import org.sagebionetworks.web.server.servlet.QueryStringUtils;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
+import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
 import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.WhereCondition;
-import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
 
 public class QueryStringUtilsTest {
 	

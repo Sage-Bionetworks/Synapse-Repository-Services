@@ -14,6 +14,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  * @author bhoff
  * 
  */
+@SuppressWarnings("rawtypes")
 @XmlRootElement
 public class Annotations implements Base {
 	private String id; // for its parent entity

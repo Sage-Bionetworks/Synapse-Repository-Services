@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Dataset;
 
+@SuppressWarnings("rawtypes")
 public class EntityToMapUtilTest {
 
 	@Test

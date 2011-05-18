@@ -15,6 +15,13 @@
   <version>${applicationVersion}</version>
   
   <dependencies>
+    <!-- Sage Bionetworks Dependencies -->
+    <dependency>
+      <groupId>org.sagebionetworks</groupId>
+      <artifactId>lib-models</artifactId>
+      <version>${applicationVersion}</version>
+    </dependency>
+    
     <!-- Spring Framework dependencies -->
     <dependency>
       <groupId>org.springframework</groupId>

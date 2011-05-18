@@ -5,8 +5,6 @@ import static org.mockito.Mockito.verify;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.web.client.widget.modal.ModalWindow;
-import org.sagebionetworks.web.client.widget.modal.ModalWindowView;
 import org.sagebionetworks.web.client.widget.statictable.StaticTable;
 import org.sagebionetworks.web.client.widget.statictable.StaticTableView;
 

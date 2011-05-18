@@ -1,7 +1,13 @@
 package org.sagebionetworks.web.unitclient.presenter;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +22,6 @@ import org.sagebionetworks.web.client.presenter.ColumnsPopupPresenter;
 import org.sagebionetworks.web.client.view.ColumnsPopupView;
 import org.sagebionetworks.web.shared.ColumnsForType;
 import org.sagebionetworks.web.shared.HeaderData;
-import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.test.helper.AsyncServiceRecorder;
 

@@ -1,8 +1,9 @@
 package org.sagebionetworks.web.unitserver;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.net.URL;
@@ -24,7 +25,6 @@ import org.sagebionetworks.web.server.servlet.ServiceUrlProvider;
 import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.PaginatedDatasets;
-import org.sagebionetworks.web.util.LocalDatasetServiceStub;
 import org.sagebionetworks.web.util.LocalStubLauncher;
 import org.springframework.web.client.RestTemplate;
 
@@ -39,6 +39,8 @@ import com.sun.istack.logging.Logger;
  * @author jmhill
  *
  */
+
+@SuppressWarnings({"rawtypes","unchecked"})
 public class DatasetServiceImplTest {
 	
 	public static Logger logger = Logger.getLogger(DatasetServiceImplTest.class);

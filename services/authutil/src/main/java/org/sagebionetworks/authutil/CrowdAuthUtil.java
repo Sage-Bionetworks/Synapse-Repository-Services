@@ -11,6 +11,7 @@ import java.security.Security;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -27,6 +28,7 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -168,7 +170,7 @@ public class CrowdAuthUtil {
 			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 			conn.setRequestMethod("POST");
 			setHeaders(conn);
-			setBody(conn, msg1+creds.getUserId()+msg2+creds.getPassword()+msg3+msg4+msg5+"\n");
+			setBody(conn, msg1+creds.getEmail()+msg2+creds.getPassword()+msg3+msg4+msg5+"\n");
 			try {
 				rc = conn.getResponseCode();
 				sessionXML = (readInputStream((InputStream)conn.getContent())).getBytes();
@@ -185,7 +187,7 @@ public class CrowdAuthUtil {
 		}
 		String token = getFromXML("/session/token", sessionXML);
 		{
-			URL url = new URL(urlPrefix()+"/user?username="+creds.getUserId());
+			URL url = new URL(urlPrefix()+"/user?username="+creds.getEmail());
 			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 			conn.setRequestMethod("GET");
 			setHeaders(conn);
@@ -201,7 +203,7 @@ public class CrowdAuthUtil {
 		}
 		if (HttpStatus.OK.value()!=rc) {
 			// this simply shouldn't happen
-			throw new IllegalStateException("Authenticated user "+creds.getUserId()+
+			throw new IllegalStateException("Authenticated user "+creds.getEmail()+
 					" but subsequentially could not retrieve attributes from server. \n"+
 					(new String(sessionXML)));
 		}
@@ -259,7 +261,7 @@ public class CrowdAuthUtil {
 	
 	private static String userXML(User user) {
 		return "<?xml version='1.0' encoding='UTF-8'?>\n"+
-		  "<user name='"+user.getUserId()+"' expand='attributes'>\n"+
+		  "<user name='"+user.getEmail()+"' expand='attributes'>\n"+
 		  "\t<first-name>"+user.getFirstName()+"</first-name>\n"+
 		  "\t<last-name>"+user.getLastName()+"</last-name>\n"+
 		  "\t<display-name>"+user.getDisplayName()+"</display-name>\n"+
@@ -307,12 +309,12 @@ public class CrowdAuthUtil {
 			throw new AuthenticationException(rc, "Unable to create user.", chainedException);
 		}
 		
-		addUserToGroup(AuthUtilConstants.PLATFORM_GROUP, user.getUserId());
+		addUserToGroup(AuthUtilConstants.PLATFORM_GROUP, user.getEmail());
 	}
 	
 	public void deleteUser(User user) throws AuthenticationException, IOException {
 		int rc = 0;
-		URL url = new URL(urlPrefix()+"/user?username="+user.getUserId());
+		URL url = new URL(urlPrefix()+"/user?username="+user.getEmail());
 		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 		conn.setRequestMethod("DELETE");
 		setHeaders(conn);
@@ -326,14 +328,14 @@ public class CrowdAuthUtil {
 		}
 
 		if (HttpStatus.NO_CONTENT.value()!=rc) {
-			throw new AuthenticationException(rc, "Unable to delete "+user.getUserId()+" "+rc, null);
+			throw new AuthenticationException(rc, "Unable to delete "+user.getEmail()+" "+rc, null);
 		}
 	}
 
 	
 	public void updateUser(User user) throws AuthenticationException, IOException {
 		int rc = 0;
-		URL url = new URL(urlPrefix()+"/user?username="+user.getUserId());
+		URL url = new URL(urlPrefix()+"/user?username="+user.getEmail());
 		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 		conn.setRequestMethod("PUT");
 		setHeaders(conn);
@@ -356,7 +358,7 @@ public class CrowdAuthUtil {
 		// POST /user/mail/password?username=USERNAME
 		byte[] sessionXML = null;
 		int rc = 0;
-		URL url = new URL(urlPrefix()+"/user/mail/password?username="+user.getUserId());
+		URL url = new URL(urlPrefix()+"/user/mail/password?username="+user.getEmail());
 		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 		conn.setRequestMethod("POST");
 		setHeaders(conn);
@@ -436,7 +438,12 @@ public class CrowdAuthUtil {
 		}
 	}
 	
-	public Map<String,Collection<String>> getUserAttributes(String userId, Collection<String> attributes) throws AuthenticationException, IOException {
+	public boolean userExists(String userId) throws IOException {
+		throw new RuntimeException("Not yet implemented.");
+		// uri: /user?username=USERNAME (GET), 404 if user can't be found
+	}
+	
+	public Map<String,Collection<String>> getUserAttributes(String userId, Collection<String> attributes) throws IOException, NotFoundException {
 		URL url = new URL(urlPrefix()+"/user?expand=attributes&username="+userId);
 		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 		conn.setRequestMethod("GET");
@@ -448,23 +455,57 @@ public class CrowdAuthUtil {
 			InputStream is = (InputStream)conn.getContent();
 			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
 		} catch (IOException e) {
-			Exception chainedException = new Exception(url.toString()+" rc: "+rc);
+			IOException chainedException = new IOException(url.toString()+" rc: "+rc);
 			if (rc==0) rc=500;
 			InputStream is = (InputStream)conn.getErrorStream();
 			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
-			if (sessionXML!=null) chainedException = new Exception(url.toString()+"\n"+(new String(sessionXML)));
-			chainedException.printStackTrace();
-			throw new AuthenticationException(rc, "Server Error", chainedException);
+			if (sessionXML!=null) chainedException = new IOException(url.toString()+"\n"+(new String(sessionXML)));
+			//chainedException.printStackTrace();
+			throw new NotFoundException(chainedException);
 		}
 		try {
+//			System.out.println(new String(sessionXML));
 			Map<String,Collection<String>> ans = new HashMap<String,Collection<String>>();
 			for (String attribute: attributes) {
-				Collection<String> values = getMultiFromXML("/user/attributes/attribute[@name="+attribute+"]/values/value", sessionXML);
+				Collection<String> values = getMultiFromXML("/user/attributes/attribute[@name=\""+attribute+"\"]/values/value", sessionXML);
 				ans.put(attribute, values);
 			}
 			return ans;
 		} catch (XPathExpressionException xee) {
-			throw new AuthenticationException(500, "Server Error", xee);
+			throw new RuntimeException(xee);
+		}
+	}
+	
+	public Collection<String> getUsersGroups(String userId) throws IOException, NotFoundException {
+		// first, just see if the user exists (throwing NotFoundException if not)
+		getUserAttributes(userId, new HashSet<String>());
+		
+		// second, get the Groups
+		URL url = new URL(urlPrefix()+"/user/group/direct?username="+userId);
+		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+		conn.setRequestMethod("GET");
+		setHeaders(conn);
+		byte[] sessionXML = null;
+		int rc = 0;
+		try {
+			rc = conn.getResponseCode();
+			InputStream is = (InputStream)conn.getContent();
+			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
+		} catch (IOException e) {
+			IOException chainedException = new IOException(url.toString()+" rc: "+rc);
+			if (rc==0) rc=500;
+			InputStream is = (InputStream)conn.getErrorStream();
+			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
+			if (sessionXML!=null) chainedException = new IOException(url.toString()+"\n"+(new String(sessionXML)));
+			//chainedException.printStackTrace();
+			throw new NotFoundException(chainedException);
+		}
+		System.out.println("For user "+userId+":\n"+new String(sessionXML)+"\n");
+		try {
+			Collection<String> ans = getMultiFromXML("/groups/group/@name", sessionXML);
+			return ans;
+		} catch (XPathExpressionException xee) {
+			throw new RuntimeException(xee);
 		}
 	}
 	

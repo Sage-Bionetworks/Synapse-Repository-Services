@@ -3,7 +3,6 @@ package org.sagebionetworks.web.client.presenter;
 import java.util.Date;
 
 import org.sagebionetworks.web.shared.Dataset;
-import org.sagebionetworks.web.shared.LayerLink;
 
 abstract class DatasetRow {
 

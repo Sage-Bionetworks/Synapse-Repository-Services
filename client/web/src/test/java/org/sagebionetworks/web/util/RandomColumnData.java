@@ -2,16 +2,15 @@ package org.sagebionetworks.web.util;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
 import org.sagebionetworks.web.shared.ColumnInfo;
+import org.sagebionetworks.web.shared.ColumnInfo.Type;
 import org.sagebionetworks.web.shared.DisplayableValue;
 import org.sagebionetworks.web.shared.FilterEnumeration;
 import org.sagebionetworks.web.shared.HeaderData;
-import org.sagebionetworks.web.shared.ColumnInfo.Type;
 
 /**
  * Generates random data for each type of ColumnInfo

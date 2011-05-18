@@ -2,14 +2,14 @@ package org.sagebionetworks.web.server.servlet;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.TreeMap;
 import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.TreeMap;
 
 import org.sagebionetworks.web.server.UrlTemplateUtil;
+import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
 import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.WhereCondition;
-import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
 
 /**
  * Creates query string from SearchParameters, and parses a query string into SearchParameters.

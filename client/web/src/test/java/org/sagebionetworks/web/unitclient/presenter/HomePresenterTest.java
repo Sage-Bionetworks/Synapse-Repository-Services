@@ -1,17 +1,15 @@
 package org.sagebionetworks.web.unitclient.presenter;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.place.Home;
-import org.sagebionetworks.web.client.place.LoginPlace;
 import org.sagebionetworks.web.client.presenter.HomePresenter;
-import org.sagebionetworks.web.client.presenter.LoginPresenter;
 import org.sagebionetworks.web.client.view.HomeView;
-import org.sagebionetworks.web.client.view.LoginView;
 
 public class HomePresenterTest {
 

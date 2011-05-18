@@ -18,6 +18,8 @@ import org.sagebionetworks.repo.model.Node;
  * @author jmhill
  *
  */
+
+@SuppressWarnings("rawtypes")
 public class NodeTranslationUtils {
 	
 	private static final Logger log = Logger.getLogger(NodeTranslationUtils.class.getName());

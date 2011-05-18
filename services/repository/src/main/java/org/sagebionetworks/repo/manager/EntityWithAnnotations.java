@@ -42,6 +42,7 @@ public class EntityWithAnnotations <T extends Base>{
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
+		@SuppressWarnings("rawtypes")
 		EntityWithAnnotations other = (EntityWithAnnotations) obj;
 		if (annotations == null) {
 			if (other.annotations != null)

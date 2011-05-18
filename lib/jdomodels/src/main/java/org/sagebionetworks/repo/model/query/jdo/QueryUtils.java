@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl.AttributeDoesNotExist;
 
+@SuppressWarnings("rawtypes")
 public class QueryUtils {
 	
 	private static final HashSet<String> primaryFields;

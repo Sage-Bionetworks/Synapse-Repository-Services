@@ -1,6 +1,9 @@
 package org.sagebionetworks.web.unitserver;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -11,8 +14,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.web.server.servlet.TypeValidation;
 import org.sagebionetworks.web.shared.ColumnInfo;
-import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.ColumnInfo.Type;
+import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.util.RandomColumnData;
 
 public class TypeValidationTest {

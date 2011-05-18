@@ -1,13 +1,16 @@
 package org.sagebionetworks.web.unitshared;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
-import org.sagebionetworks.web.shared.WhereCondition;
 import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
+import org.sagebionetworks.web.shared.WhereCondition;
 
 public class WhereConditionTest {
 	

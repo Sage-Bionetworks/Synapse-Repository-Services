@@ -3,7 +3,6 @@ package org.sagebionetworks.web.client.widget.breadcrumb;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Hyperlink;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;

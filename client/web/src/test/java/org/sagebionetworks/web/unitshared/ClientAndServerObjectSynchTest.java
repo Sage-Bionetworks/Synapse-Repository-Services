@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.unitshared;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.lang.reflect.Field;
 import java.util.HashSet;
@@ -21,6 +22,8 @@ import org.junit.Test;
  * @author jmhill
  *
  */
+
+@SuppressWarnings({"rawtypes","unused"})
 public class ClientAndServerObjectSynchTest {
 	
 	/**

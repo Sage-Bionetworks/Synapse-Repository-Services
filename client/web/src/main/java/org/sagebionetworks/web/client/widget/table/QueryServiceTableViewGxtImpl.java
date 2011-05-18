@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.ImagePrototypeSingleton;
 import org.sagebionetworks.web.client.view.RowData;
 import org.sagebionetworks.web.client.view.table.ColumnFactory;
@@ -38,6 +37,7 @@ import com.google.gwt.user.client.Element;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
+@SuppressWarnings("unused")
 public class QueryServiceTableViewGxtImpl extends LayoutContainer implements QueryServiceTableView {
 	
 	ImagePrototypeSingleton prototype;

@@ -1,7 +1,5 @@
 package org.sagebionetworks.web.server;
 
-import javax.servlet.ServletContextEvent;
-
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.servlet.GuiceServletContextListener;

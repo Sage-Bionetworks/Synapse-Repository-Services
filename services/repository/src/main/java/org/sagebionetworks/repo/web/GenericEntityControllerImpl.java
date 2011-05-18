@@ -35,6 +35,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @param <T>
  *            the particular type of entity the controller is managing
  */
+@SuppressWarnings({"rawtypes","unchecked"})
 public class GenericEntityControllerImpl implements GenericEntityController {
 
 

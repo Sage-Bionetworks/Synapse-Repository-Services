@@ -24,6 +24,8 @@ import org.sagebionetworks.web.test.helper.examples.SampleDTO;
  * @author jmhill
  *
  */
+
+@SuppressWarnings({"rawtypes","unused"})
 public class AsyncServiceRecorderTest {
 	
 	ExampleService serviceStub = null;

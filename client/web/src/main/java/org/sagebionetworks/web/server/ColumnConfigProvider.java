@@ -14,8 +14,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Logger;
 
-import org.sagebionetworks.web.shared.CompositeColumn;
 import org.sagebionetworks.web.shared.ColumnsForType;
+import org.sagebionetworks.web.shared.CompositeColumn;
 import org.sagebionetworks.web.shared.FilterEnumeration;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;

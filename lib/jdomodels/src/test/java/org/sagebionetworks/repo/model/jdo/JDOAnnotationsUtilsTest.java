@@ -16,7 +16,6 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotations;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
@@ -29,6 +28,7 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
  * @author jmhill
  *
  */
+@SuppressWarnings("unchecked")
 public class JDOAnnotationsUtilsTest {
 	
 	JDONode owner;

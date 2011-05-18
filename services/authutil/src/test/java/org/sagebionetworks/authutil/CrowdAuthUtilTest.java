@@ -33,7 +33,7 @@ public class CrowdAuthUtilTest {
 	@Test
 	public void testGetGroups() throws Exception {
 		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
-		Collection<String> crowdUserIds = crowdAuthUtil.getUsersInGroup(AuthUtilConstants.PLATFORM_GROUP);
+		crowdAuthUtil.getUsersInGroup(AuthUtilConstants.PLATFORM_GROUP);
 	}
 
 }

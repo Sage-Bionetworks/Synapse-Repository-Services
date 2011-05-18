@@ -5,13 +5,14 @@ import static org.junit.Assert.assertEquals;
 import java.util.Date;
 
 import org.junit.Test;
-import org.sagebionetworks.web.shared.Dataset;
 
 /**
  * Simple test of the dataset DatasetComparator
  * @author jmhill
  *
  */
+
+@SuppressWarnings("unused")
 public class FieldComparatorTest {
 	
 	private static class TestClass{

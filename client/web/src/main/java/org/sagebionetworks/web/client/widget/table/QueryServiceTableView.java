@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.sagebionetworks.web.client.view.RowData;
 import org.sagebionetworks.web.shared.HeaderData;
-import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.WhereCondition;
 
 import com.extjs.gxt.ui.client.data.BaseModelData;

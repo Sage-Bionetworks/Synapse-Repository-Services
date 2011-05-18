@@ -1,12 +1,11 @@
 package org.sagebionetworks.web.unitshared;
 
-import org.sagebionetworks.web.shared.Identifer;
-
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.junit.Test;
+import org.sagebionetworks.web.shared.Identifer;
 
 /**
  * Test for the immutable identifier.

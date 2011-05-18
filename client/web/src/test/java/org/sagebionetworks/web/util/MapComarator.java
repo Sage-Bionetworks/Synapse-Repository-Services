@@ -9,6 +9,8 @@ import java.util.Map;
  * @author jmhill
  *
  */
+
+@SuppressWarnings("rawtypes")
 public class MapComarator implements Comparator<Map<String, Object>>{
 	
 	private String compareKey;

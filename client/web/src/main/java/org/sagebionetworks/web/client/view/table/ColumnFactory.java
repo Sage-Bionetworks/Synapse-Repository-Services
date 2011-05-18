@@ -2,7 +2,6 @@ package org.sagebionetworks.web.client.view.table;
 
 import java.util.Map;
 
-import org.sagebionetworks.web.shared.ColumnMetadata;
 import org.sagebionetworks.web.shared.HeaderData;
 
 import com.google.gwt.user.cellview.client.Column;

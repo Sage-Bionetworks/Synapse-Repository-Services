@@ -15,6 +15,7 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.AcceptsOneWidget;
 import com.google.inject.Inject;
 
+@SuppressWarnings("unused")
 public class PasswordResetPresenter extends AbstractActivity implements PasswordResetView.Presenter {
 	
 	private PlaceController placeController;

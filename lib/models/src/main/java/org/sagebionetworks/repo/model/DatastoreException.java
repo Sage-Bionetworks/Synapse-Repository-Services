@@ -7,6 +7,7 @@ package org.sagebionetworks.repo.model;
  * @author bhoff
  * 
  */
+@SuppressWarnings("serial")
 public class DatastoreException extends Exception {
 
 	/**

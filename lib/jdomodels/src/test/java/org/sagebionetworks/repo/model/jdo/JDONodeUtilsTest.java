@@ -8,7 +8,6 @@ import java.util.Date;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
-import org.sagebionetworks.repo.model.query.ObjectType;
 
 /**
  * Test to convert from JDO to DTO

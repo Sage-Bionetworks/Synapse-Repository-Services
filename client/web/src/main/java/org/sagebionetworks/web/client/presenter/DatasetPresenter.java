@@ -8,8 +8,8 @@ import java.util.Map;
 import org.sagebionetworks.web.client.DatasetServiceAsync;
 import org.sagebionetworks.web.client.view.DatasetView;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAsync;
-import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.Annotations;
+import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 
@@ -19,6 +19,7 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.AcceptsOneWidget;
 import com.google.inject.Inject;
 
+@SuppressWarnings("unused")
 public class DatasetPresenter extends AbstractActivity implements DatasetView.Presenter{	
 
 	private org.sagebionetworks.web.client.place.Dataset place;

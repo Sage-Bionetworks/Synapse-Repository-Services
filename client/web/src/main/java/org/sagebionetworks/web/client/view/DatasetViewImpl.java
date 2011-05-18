@@ -37,6 +37,7 @@ import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
+@SuppressWarnings("unused")
 public class DatasetViewImpl extends Composite implements DatasetView {	
 
 	public interface Binder extends UiBinder<Widget, DatasetViewImpl> {

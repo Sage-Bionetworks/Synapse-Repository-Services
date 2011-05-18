@@ -3,9 +3,8 @@ package org.sagebionetworks.web.test.helper;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.Arrays;
-import java.util.TreeMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * A test helper to aid with testing Asynchronous service calls. The class
@@ -67,6 +66,8 @@ import java.util.Map;
  * @author jmhill
  * 
  */
+
+@SuppressWarnings({"rawtypes","unchecked"})
 public class AsyncServiceRecorder<U,T> implements InvocationHandler {
 
 	private int sequence = 0;
@@ -128,7 +129,7 @@ public class AsyncServiceRecorder<U,T> implements InvocationHandler {
 	 *            implemented.
 	 * @return
 	 */
-	@SuppressWarnings("unchecked")
+	
 	public T createAsyncProxyToRecord() {
 		return (T) Proxy.newProxyInstance(asynchInterface.getClassLoader(),
 				new Class[] { asynchInterface }, this);

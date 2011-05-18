@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.web.client.DatasetServiceAsync;
-import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.view.LayerView;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAsync;
 import org.sagebionetworks.web.shared.DownloadLocation;
@@ -21,7 +20,6 @@ import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.AcceptsOneWidget;
-import com.google.gwt.user.client.ui.Hyperlink;
 import com.google.inject.Inject;
 
 public class LayerPresenter extends AbstractActivity implements LayerView.Presenter{	

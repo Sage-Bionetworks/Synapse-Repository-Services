@@ -4,7 +4,6 @@ import java.util.Date;
 
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
-import org.sagebionetworks.repo.model.query.ObjectType;
 
 /**
  * Translates JDOs and DTOs.

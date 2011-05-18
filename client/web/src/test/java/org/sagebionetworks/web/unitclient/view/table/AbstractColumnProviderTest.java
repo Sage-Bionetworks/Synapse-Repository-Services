@@ -7,9 +7,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.TreeMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.junit.Test;
 import org.sagebionetworks.web.client.view.table.column.provider.AbstractColumnProvider;
@@ -18,6 +18,7 @@ import org.sagebionetworks.web.shared.ColumnInfo.Type;
 
 import com.google.gwt.user.cellview.client.Column;
 
+@SuppressWarnings({"unchecked"})
 public class AbstractColumnProviderTest {
 	
 	/**

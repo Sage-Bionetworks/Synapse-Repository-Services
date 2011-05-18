@@ -2,7 +2,6 @@ package org.sagebionetworks.web.client.presenter;
 
 import org.sagebionetworks.web.client.place.LoginPlace;
 import org.sagebionetworks.web.client.security.AuthenticationController;
-import org.sagebionetworks.web.client.security.AuthenticationControllerImpl;
 import org.sagebionetworks.web.client.view.LoginView;
 import org.sagebionetworks.web.shared.users.UserData;
 

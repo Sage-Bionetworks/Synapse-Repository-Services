@@ -14,6 +14,7 @@ import java.util.Comparator;
  * 
  * @param <T>
  */
+@SuppressWarnings({"rawtypes","unchecked"})
 public class FieldComparator<T> implements Comparator<T> {
 
 	Field compareField = null;

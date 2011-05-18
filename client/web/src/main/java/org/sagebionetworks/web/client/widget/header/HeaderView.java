@@ -2,7 +2,6 @@ package org.sagebionetworks.web.client.widget.header;
 
 import org.sagebionetworks.web.client.widget.header.Header.MenuItem;
 
-import com.google.gwt.place.shared.Place;
 import com.google.gwt.user.client.ui.IsWidget;
 
 public interface HeaderView extends IsWidget {

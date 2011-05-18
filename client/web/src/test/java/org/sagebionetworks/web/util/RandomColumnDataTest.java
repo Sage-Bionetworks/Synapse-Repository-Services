@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.util;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.sagebionetworks.web.shared.ColumnInfo.Type;

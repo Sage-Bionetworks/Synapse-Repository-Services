@@ -1,21 +1,16 @@
 package org.sagebionetworks.web.server.servlet;
 
-import java.lang.reflect.Proxy;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Logger;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.web.client.SearchService;
 import org.sagebionetworks.web.server.ColumnConfigProvider;
 import org.sagebionetworks.web.server.RestTemplateProvider;
-import org.sagebionetworks.web.server.ServerConstants;
 import org.sagebionetworks.web.server.UrlTemplateUtil;
 import org.sagebionetworks.web.shared.ColumnsForType;
 import org.sagebionetworks.web.shared.FilterEnumeration;
@@ -30,9 +25,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
-import com.google.gwt.user.server.rpc.SerializationPolicy;
 import com.google.inject.Inject;
-import com.google.inject.name.Named;
 
 public class SearchServiceImpl extends RemoteServiceServlet implements
 		SearchService {

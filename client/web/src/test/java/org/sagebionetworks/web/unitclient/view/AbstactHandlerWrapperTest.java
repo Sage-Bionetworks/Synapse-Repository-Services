@@ -1,11 +1,13 @@
 package org.sagebionetworks.web.unitclient.view;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
 import org.mockito.Mockito;
 import org.sagebionetworks.web.client.view.AbstactHandlerWrapper;
 import org.sagebionetworks.web.client.view.HandlerRegistrationProxy;
