@@ -16,12 +16,13 @@ public interface HeaderView extends IsWidget {
 
 	public void removeMenuItemActive(MenuItem menuItem);
 
+	public void refresh();
 	
 	/**
 	 * Presenter interface
 	 */
 	public interface Presenter {
-	
+		
 	}
 
 }

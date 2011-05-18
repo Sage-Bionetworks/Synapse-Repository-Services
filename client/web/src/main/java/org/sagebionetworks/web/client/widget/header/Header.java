@@ -29,4 +29,8 @@ public class Header implements HeaderView.Presenter {
 		return view.asWidget();
 	}
 	
+	public void refresh() {
+		view.refresh();
+	}
+	
 }

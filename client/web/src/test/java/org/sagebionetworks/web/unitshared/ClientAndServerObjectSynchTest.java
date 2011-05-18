@@ -69,7 +69,6 @@ public class ClientAndServerObjectSynchTest {
 		};
 	}
 	
-	@Ignore
 	@Test
 	public void testAllPairs(){
 		for(Pair pair: classPairs){

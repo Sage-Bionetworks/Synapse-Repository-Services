@@ -20,14 +20,18 @@ public class HomeViewImpl extends Composite implements HomeView {
 	@UiField
 	SimplePanel header;
 	@UiField
-	SimplePanel footer;	
-
+	SimplePanel footer;
+	
 	private Presenter presenter;
+	private Header headerWidget;
+	private Footer footerWidget;
 	
 	@Inject
 	public HomeViewImpl(HomeViewImplUiBinder binder, Header headerWidget, Footer footerWidget, IconsImageBundle icons, QueryFilter filter, SageImageBundle imageBundle) {		
 		initWidget(binder.createAndBindUi(this));
-
+		this.headerWidget = headerWidget;
+		this.footerWidget = footerWidget;
+		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());	
 	}
@@ -36,6 +40,11 @@ public class HomeViewImpl extends Composite implements HomeView {
 	@Override
 	public void setPresenter(Presenter presenter) {
 		this.presenter = presenter;
+	}
+
+	@Override
+	public void refresh() {
+		headerWidget.refresh();
 	}
 
 }

@@ -68,15 +68,7 @@ public class HeaderViewImpl extends Composite implements HeaderView {
 		searchAnchor.setHTML(AbstractImagePrototype.create(sageImageBundle.searchButtonHeaderIcon()).getHTML());
 		//searchAnchor.setStyleName("search_button");
 		
-		// setup user
-		UserData userData = authenticationController.getLoggedInUser();
-		if(userData != null) {
-			userName.setInnerHTML("Welcome " + userData.getUserName());			
-			logoutLink.setText("Logout");		
-			logoutLink.setTargetHistoryToken("LoginPlace:"+ LoginPlace.LOGOUT_TOKEN);			
-//			editProfileLink.setText("My Profile");
-//			editProfileLink.setTargetHistoryToken( ... some edit profile place ... );			
-		}
+		setUser();		
 	}
 	
 	@Override
@@ -102,11 +94,30 @@ public class HeaderViewImpl extends Composite implements HeaderView {
 		}
 	}
 
+	@Override
+	public void refresh() {
+		setUser();
+	}
+
+	
 	/*
 	 * Private Methods
 	 */
 	// load elements after page has rendered
 	private void loadMap() {
 	}
+	
+	private void setUser() {
+		// setup user
+		UserData userData = authenticationController.getLoggedInUser();
+		if(userData != null) {
+			userName.setInnerHTML("Welcome " + userData.getUserName());			
+			logoutLink.setText("Logout");		
+			logoutLink.setTargetHistoryToken("LoginPlace:"+ LoginPlace.LOGOUT_TOKEN);			
+//			editProfileLink.setText("My Profile");
+//			editProfileLink.setTargetHistoryToken( ... some edit profile place ... );			
+		}
+	}
 }
+
 

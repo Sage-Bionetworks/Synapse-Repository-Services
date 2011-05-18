@@ -10,6 +10,7 @@ public interface HomeView extends IsWidget{
 	 */
 	public void setPresenter(Presenter presenter);
 		
+	public void refresh();
 	
 	public interface Presenter {		
 	}

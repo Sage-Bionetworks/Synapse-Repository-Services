@@ -33,6 +33,7 @@ public class HomePresenter extends AbstractActivity implements HomeView.Presente
 
 	public void setPlace(Home place) {
 		this.place = place;
+		view.refresh();
 	}
 
 }
