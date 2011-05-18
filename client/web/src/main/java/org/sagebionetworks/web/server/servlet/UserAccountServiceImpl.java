@@ -2,23 +2,23 @@ package org.sagebionetworks.web.server.servlet;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.web.client.UserAccountService;
 import org.sagebionetworks.web.client.security.AuthenticationException;
 import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
-import org.sagebionetworks.web.shared.users.InitiateSession;
 import org.sagebionetworks.web.shared.users.UserData;
+import org.sagebionetworks.web.shared.users.UserLogin;
 import org.sagebionetworks.web.shared.users.UserRegistration;
+import org.sagebionetworks.web.shared.users.UserSession;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
@@ -29,21 +29,12 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 	private static Logger logger = Logger.getLogger(UserAccountServiceImpl.class.getName());
 
 	private static final String SEND_PASSWORD_CHANGE_PATH = "userPasswordEmail";
-	private static final String SEND_PASSWORD_CHANGE_USER_ID_PARAM = "userId";
 
 	private static final String INITIATE_SESSION_PATH = "session";
-	private static final String INITIATE_SESSION_USERID_PARAM = "userId";
-	private static final String INITIATE_SESSION_PASSWORD_PARAM = "password";
 	
 	private static final String CREATE_USER_PATH = "user";
-	private static final String CREATE_USER_USERID_PARAM = "userId";
-	private static final String CREATE_USER_EMAIL_PARAM = "email";
-	private static final String CREATE_USER_FIRSTNAME_PARAM = "firstName";
-	private static final String CREATE_USER_LASTNAME_PARAM = "lastName";
-	private static final String CREATE_USER_DISPLAYNAME_PARAM = "displayName";
 
 	private static final String TERMINATE_SESSION_PATH = "session";
-	private static final String TERMINATE_SESSION_TOKEN_PARAM = "sessionToken";
 
 	
 	/**
@@ -87,14 +78,12 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<String>(userId, headers);
 
 		// Make the actual call.
-		long start = System.currentTimeMillis();
-		Map<String, String> params = new LinkedHashMap<String, String>();
-		params.put(SEND_PASSWORD_CHANGE_USER_ID_PARAM, userId);
-		
+		long start = System.currentTimeMillis();		
 		try {
-			ResponseEntity<Object> response = templateProvider.getTemplate().postForEntity(uri, params, Object.class);
+			ResponseEntity<Void> response = templateProvider.getTemplate().exchange(uri, HttpMethod.POST, entity, Void.class);
 		} catch (RestClientException ex) {
 			// ignore these. template provider can not handle a no content responses
 		} catch (Exception ex) {
@@ -106,7 +95,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 	}
 
 	@Override
-	public UserData authenticateUser(String username, String password) throws AuthenticationException {
+	public UserData initiateSession(String username, String password) throws AuthenticationException {
 		URI uri = null;
 		try {
 			uri = new URI(urlProvider.getAuthBaseUrl() + INITIATE_SESSION_PATH);
@@ -116,19 +105,22 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<UserLogin> entity = new HttpEntity<UserLogin>(new UserLogin(username, password), headers);
 
 		// Make the actual call.
 		long start = System.currentTimeMillis();
-		Map<String, String> params = new LinkedHashMap<String, String>();
-		params.put(INITIATE_SESSION_USERID_PARAM, username);
-		params.put(INITIATE_SESSION_PASSWORD_PARAM, password);
-		ResponseEntity<InitiateSession> response = templateProvider.getTemplate().postForEntity(uri, params, InitiateSession.class);
+		ResponseEntity<UserSession> response = null;
+		try {
+			response = templateProvider.getTemplate().exchange(uri, HttpMethod.POST, entity, UserSession.class);
+		} catch (HttpClientErrorException ex) {
+			throw new AuthenticationException("Unable to authenticate.");
+		}
 		long end = System.currentTimeMillis();
 		logger.info("Url GET: " + uri.toString()+" in "+(end-start)+" ms");
 		
 		UserData userData = null;		
-		if(response.getStatusCode() == HttpStatus.CREATED && response.hasBody()) {
-			InitiateSession initSession = response.getBody();
+		if((response.getStatusCode() == HttpStatus.CREATED || response.getStatusCode() == HttpStatus.OK) && response.hasBody()) {
+			UserSession initSession = response.getBody();
 			String displayName = initSession.getDisplayName();
 			String sessionToken = initSession.getSessionToken();
 			userData = new UserData(username, displayName, sessionToken);
@@ -149,19 +141,14 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<UserRegistration> entity = new HttpEntity<UserRegistration>(userInfo, headers);
 
 		// Make the actual call.
 		long start = System.currentTimeMillis();
-		Map<String, String> params = new LinkedHashMap<String, String>();
-		params.put(CREATE_USER_USERID_PARAM, userInfo.getUserId());
-		params.put(CREATE_USER_EMAIL_PARAM, userInfo.getEmail());
-		params.put(CREATE_USER_FIRSTNAME_PARAM, userInfo.getFirstName());
-		params.put(CREATE_USER_LASTNAME_PARAM, userInfo.getLastName());
-		params.put(CREATE_USER_DISPLAYNAME_PARAM, userInfo.getDisplayName());
 		
 		try {
-			ResponseEntity<Void> response = templateProvider.getTemplate().postForEntity(uri, params, Void.class);
-			if(response.getStatusCode() != HttpStatus.CREATED && response.hasBody()) {
+			ResponseEntity<Void> response = templateProvider.getTemplate().exchange(uri, HttpMethod.POST, entity, Void.class);
+			if((response.getStatusCode() == HttpStatus.CREATED || response.getStatusCode() == HttpStatus.OK) && response.hasBody()) {
 				throw new RestServiceException("Unable to create user. Please try again.");
 			}
 		} catch (RestClientException ex) {
@@ -185,17 +172,14 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<String>(sessionToken, headers);
 
 		// Make the actual call.
-		long start = System.currentTimeMillis();
-		Map<String, String> params = new LinkedHashMap<String, String>();
-		params.put(TERMINATE_SESSION_TOKEN_PARAM, sessionToken);
-
-		
+		long start = System.currentTimeMillis();		
 		try {
-			ResponseEntity<Object> response = templateProvider.getTemplate().exchange(uri.toString(), HttpMethod.DELETE, new HttpEntity<String>("", headers), Object.class, params);
+			ResponseEntity<Object> response = templateProvider.getTemplate().exchange(uri.toString(), HttpMethod.DELETE, entity, Object.class);
 			if(response.getStatusCode() != HttpStatus.NO_CONTENT && response.hasBody()) {
-				throw new RestServiceException("Unable to create user. Please try again.");
+				throw new RestServiceException("Unable to terminate session. Please try again.");
 			}
 		} catch (RestClientException ex) {
 			// ignore these. template provider can not handle a no content responses

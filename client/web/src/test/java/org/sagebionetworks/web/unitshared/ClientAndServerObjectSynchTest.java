@@ -6,6 +6,7 @@ import java.lang.reflect.Field;
 import java.util.HashSet;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -65,6 +66,7 @@ public class ClientAndServerObjectSynchTest {
 		};
 	}
 	
+	@Ignore
 	@Test
 	public void testAllPairs(){
 		for(Pair pair: classPairs){

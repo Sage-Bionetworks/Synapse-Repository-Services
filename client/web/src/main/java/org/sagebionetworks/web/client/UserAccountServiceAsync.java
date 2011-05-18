@@ -9,7 +9,7 @@ public interface UserAccountServiceAsync {
 
 	void sendPasswordResetEmail(String emailAddress, AsyncCallback<Void> callback);
 
-	void authenticateUser(String username, String password, AsyncCallback<UserData> callback);
+	void initiateSession(String username, String password, AsyncCallback<UserData> callback);
 
 	void createUser(UserRegistration userInfo, AsyncCallback<Void> callback);
 

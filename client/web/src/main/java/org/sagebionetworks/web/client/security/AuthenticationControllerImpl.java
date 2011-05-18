@@ -39,7 +39,7 @@ public class AuthenticationControllerImpl implements AuthenticationController {
 	@Override
 	public void loginUser(final String username, String password, final AsyncCallback<UserData> callback) {
 		if(username == null || password == null) callback.onFailure(new AuthenticationException(AUTHENTICATION_MESSAGE));		
-		userAccountService.authenticateUser(username, password, new AsyncCallback<UserData>() {		
+		userAccountService.initiateSession(username, password, new AsyncCallback<UserData>() {		
 			@Override
 			public void onSuccess(UserData userData) {				
 				String cookie = userData.getCookieString();

@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.net.URL;
-import java.util.HashMap;
 
 import javax.ws.rs.core.UriBuilder;
 
@@ -22,7 +21,6 @@ import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 import org.sagebionetworks.web.shared.users.UserData;
 import org.sagebionetworks.web.shared.users.UserRegistration;
 import org.sagebionetworks.web.util.LocalAuthStubLauncher;
-import org.springframework.web.client.RestTemplate;
 
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.istack.logging.Logger;
@@ -144,20 +142,36 @@ public class UserAccountServiceImplTest {
 		} catch (RestServiceException e) {
 			fail(e.getMessage());
 		}
+		
+		// assure user was actually created		
+		try {
+			UserData userData = service.initiateSession(user1.getUserId(), user1password);
+			assertEquals(userData.getUserId(), user1.getUserId());
+		} catch (AuthenticationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
-	@Ignore
 	@Test
 	public void testAuthenticateUser() {
+		// try fake user
 		try {
-			UserData userdata = service.authenticateUser(user1.getUserId(), user1password);
+			service.initiateSession("junk", "junk");
+			fail("unknown user was authenticated!");
+		} catch (AuthenticationException e1) {
+			// expected
+		}
+		
+		// auth real user
+		try {
+			UserData userdata = service.initiateSession(user1.getUserId(), user1password);
 			assertEquals(user1.getUserId(), userdata.getUserId());
 		} catch (AuthenticationException e) {
 			fail("user not created properly");
 		}		
 	}
-	
-	@Ignore
+		
 	@Test
 	public void testSendPasswordResetEmail(){
 		try {
@@ -167,18 +181,25 @@ public class UserAccountServiceImplTest {
 		}
 	}
 	
-	@Ignore
 	@Test
 	public void testTerminateSession() {
 		UserData userdata = null;
 		try {
-			userdata = service.authenticateUser(user1.getUserId(), user1password);
+			userdata = service.initiateSession(user1.getUserId(), user1password);
 		} catch (AuthenticationException e) {
 			fail(e.getMessage());
 		}
 		
 		if(userdata == null) fail("test setup error: user doesn't exist");
 		
+		// terminate unknown session
+		try {
+			service.terminateSession("junk");
+		} catch (Exception e) {
+			fail("termination of an unknown session should not throw an exception");			
+		}
+		
+		// terminate real session
 		try {
 			service.terminateSession(userdata.getToken());			
 		} catch (RestServiceException e) {

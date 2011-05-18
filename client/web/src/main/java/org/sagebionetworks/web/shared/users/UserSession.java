@@ -1,15 +1,12 @@
 package org.sagebionetworks.web.shared.users;
 
-import java.util.Date;
-import java.util.List;
-
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 /**
  * This is a data transfer object that will be populated from REST JSON.
  * 
  */
-public class InitiateSession implements IsSerializable {
+public class UserSession implements IsSerializable {
 
 	private String displayName;
 	private String sessionToken;
@@ -44,7 +41,7 @@ public class InitiateSession implements IsSerializable {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		InitiateSession other = (InitiateSession) obj;
+		UserSession other = (UserSession) obj;
 		if (displayName == null) {
 			if (other.displayName != null)
 				return false;

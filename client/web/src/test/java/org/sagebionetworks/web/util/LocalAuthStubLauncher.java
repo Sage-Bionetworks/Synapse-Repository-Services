@@ -8,17 +8,25 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
 
-import org.sagebionetworks.web.shared.users.InitiateSession;
+import org.sagebionetworks.web.shared.users.UserLogin;
+import org.sagebionetworks.web.shared.users.UserRegistration;
+import org.sagebionetworks.web.shared.users.UserSession;
 
 import com.sun.grizzly.http.SelectorThread;
+import com.sun.jersey.api.Responses;
 import com.sun.jersey.api.container.grizzly.GrizzlyWebContainerFactory;
 
 /**
@@ -29,53 +37,46 @@ import com.sun.jersey.api.container.grizzly.GrizzlyWebContainerFactory;
 @Path("/auth/v1")
 public class LocalAuthStubLauncher {
 	
-	
 	private static List<User> users = new ArrayList<User>();
 	private static Map<String, User> sessions = new LinkedHashMap<String, User>();
 	
 	@POST 
+	@Consumes("application/json")@Produces("application/json")
 	@Path("/user")
-	public void createUser(@QueryParam("userId") String userId,
-			@QueryParam("email") String email,
-			@QueryParam("firstName") String firstName,
-			@QueryParam("lastName") String lastName,
-			@QueryParam("displayName") String displayName) {
-		users.add(new User(userId, email, firstName, lastName, displayName));
-		// return 201?
+	public void createUser(UserRegistration userInfo) {
+		users.add(new User(userInfo.getUserId(), userInfo.getEmail(), userInfo.getFirstName(), userInfo.getLastName(), userInfo.getDisplayName()));
 	}
 	
 	@PUT
-	public void updateUser(@QueryParam("userId") String userId,
-			@QueryParam("email") String email,
-			@QueryParam("firstName") String firstName,
-			@QueryParam("lastName") String lastName,
-			@QueryParam("displayName") String displayName) {
+	@Consumes("application/json")@Produces("application/json")
+	@Path("/user")
+	public void updateUser(UserRegistration updatedUser) {
 		boolean found = false;
+		String userId = updatedUser.getUserId();
 		for(User user : users) {
 			if(userId.equals(user.userId)) {
-				user = new User(userId, email, firstName, lastName, displayName);
+				user = new User(updatedUser.getUserId(), updatedUser.getEmail(), updatedUser.getFirstName(), updatedUser.getLastName(), updatedUser.getDisplayName());
 				found = true;
 				break;
 			}
 		}
 		
 		if(!found) {
-			// throw 400 
+			throw new BadRequestException();			
 		}
-		// return 200
 	}
 
 	@POST
 	@Path("/userPasswordEmail")
 	public void sendPasswordChangeEmail(@QueryParam("userId") String userId) {
-		// return 200
 	}
 		
 	@POST
-	@Produces("application/json")
+	@Consumes("application/json")@Produces("application/json")	
 	@Path("/session")
-	public InitiateSession initiateSession(@QueryParam("userId") String userId, @QueryParam("password") String password) {
+	public UserSession initiateSession(UserLogin userLogin) throws BadRequestException {
 		User foundUser = null;
+		String userId = userLogin.getUserId();
 		for(User user : users) {
 			if(userId.equals(user.userId)) {
 				foundUser = user;
@@ -84,10 +85,10 @@ public class LocalAuthStubLauncher {
 		}
 		
 		if(foundUser == null) {
-			return null; // throw 400
+			throw new BadRequestException();
 		}
 		
-		InitiateSession session = new InitiateSession();
+		UserSession session = new UserSession();
 		session.setDisplayName(foundUser.displayName);
 		session.setSessionToken(foundUser.toString());
 		sessions.put(session.getSessionToken(), foundUser);
@@ -96,21 +97,19 @@ public class LocalAuthStubLauncher {
 	
 	@PUT
 	@Path("/session")
-	public void refreshSession(@QueryParam("sessionToken") String token) {
+	public void refreshSession(@QueryParam("sessionToken") String token) throws NotFoundException {
 		if(!sessions.containsKey(token)) { 
-			// throw 404
+			throw new NotFoundException();
 		}
-		// return 200
 	}
 	
 	@PUT
-	@Produces("application/json")
+	@Consumes("application/json")@Produces("application/json")
 	@Path("/session")
-	public void deleteSession(@QueryParam("sessionToken") String token) {
+	public void terminateSession(String token) {
 		if(sessions.containsKey(token)) { 
 			sessions.remove(token);
 		}
-		// return 204
 	}
 	
 	@GET
@@ -181,6 +180,49 @@ public class LocalAuthStubLauncher {
 			this.displayName = displayName;
 		}
 		
+	}
+	/*
+	 * Response/exception mappings
+	 */	
+	public class BadRequestException extends WebApplicationException {
+		/**
+		 * Create a HTTP 404 (Not Found) exception.
+		 */
+		public BadRequestException() {
+			super(401);
+		}
+
+		/**
+		 * Create a HTTP 401 (Unauthorized) exception.
+		 * 
+		 * @param message
+		 *            the String that is the entity of the 401 response.
+		 */
+		public BadRequestException(String message) {
+			super(Response.status(401).entity(message)
+					.type("text/plain").build());
+		}
+
+	}
+	public class NotFoundException extends WebApplicationException {
+		/**
+		 * Create a HTTP 404 (Not Found) exception.
+		 */
+		public NotFoundException() {
+			super(Responses.notFound().build());
+		}
+
+		/**
+		 * Create a HTTP 404 (Not Found) exception.
+		 * 
+		 * @param message
+		 *            the String that is the entity of the 404 response.
+		 */
+		public NotFoundException(String message) {
+			super(Response.status(Responses.NOT_FOUND).entity(message)
+					.type("text/plain").build());
+		}
+
 	}
 	
 }
