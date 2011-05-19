@@ -10,13 +10,41 @@
 	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 	
-	<!-- This properties object will contain all of Persistence Manager Factory configuration properties. -->
+	<!-- This properties object will contain all of Persistence Manager Factory 
+	configuration properties. -->
 	<bean id="pmfProperties" class="org.sagebionetworks.repo.model.jdo.PMFProperties" />
 
+	<bean id="propertyPlaceholder"	class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer" depends-on="pmfProperties">
+		<property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE" ></property>
+	</bean>
+
+ 	<!-- This is serving as the JDBC connection pool -->
+	<bean id="dataSourcePool" class="org.apache.commons.dbcp.BasicDataSource"	destroy-method="close">
+		<property name="driverClassName">
+			<value>${javax.jdo.option.ConnectionDriverName}</value>
+		</property>
+		<property name="url">
+			<value>${javax.jdo.option.ConnectionURL}</value>
+		</property>
+		<property name="username">
+			<value>${javax.jdo.option.ConnectionUserName}</value>
+		</property>
+		<property name="password">
+			<value>${javax.jdo.option.ConnectionPassword}</value>
+		</property>
+		<property name="minIdle">
+			<value>2</value>
+		</property>
+		<property name="maxActive">
+			<value>40</value>
+		</property>
+	</bean>
+
 	<!-- PMF Bean -->
-	<bean id="pmf"
-		class="org.springframework.orm.jdo.LocalPersistenceManagerFactoryBean">
-		<property name="jdoProperties" ref="pmfProperties"/>
+	<bean id="pmf" class="org.datanucleus.jdo.JDOPersistenceManagerFactory" destroy-method="close">
+		<property name="connectionFactory" ref="dataSourcePool" />
+		<property name="nontransactionalRead" value="true"/>
+		<property name="nontransactionalWrite" value="true"/>
 	</bean>
 
 	<!-- enable the configuration of transactional behavior based on annotations -->
@@ -35,21 +63,23 @@
 			<ref local="pmf" />
 		</property>
 	</bean>
-	
+
 	<bean id="nodeDao" class="org.sagebionetworks.repo.model.jdo.NodeDAOImpl" />
-	
+
 	<bean id="groupPermissionsDAO" class="org.sagebionetworks.repo.model.jdo.JDOGroupPermissionsDAOImpl" />
 	
 	<!--bean id="authorizationManager" class="org.sagebionetworks.repo.model.jdo.JDOAuthorizationManagerImpl" /-->
 
 
+
 	<!-- The node query dao singleton -->
 	<bean id="fieldTypeDao" class="org.sagebionetworks.repo.model.jdo.JDOFieldTypeDAOImpl" />
-	
+
 	<!-- The node query dao singleton -->
 	<bean id="nodeQueryDao" class="org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl" />
-	
+
 	<!-- Controls how nodes inherit their permissions -->
-	<bean id="nodeInheritanceDao" class="org.sagebionetworks.repo.model.jdo.JDONodeInheritanceDAOImpl" />
+	<bean id="nodeInheritanceDao"
+		class="org.sagebionetworks.repo.model.jdo.JDONodeInheritanceDAOImpl" />
 
 </beans>

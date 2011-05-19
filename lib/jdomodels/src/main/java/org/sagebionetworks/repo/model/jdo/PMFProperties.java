@@ -28,6 +28,9 @@ public class PMFProperties extends Properties implements InitializingBean {
 				Object key = it.next();
 				Object value = map.get(key);
 				this.put(key, value);
+				// Adding these properties to the system makes them
+				// availabe for Spring to use in injection.
+				System.setProperty((String) key,(String) value);
 			}
 		}
 	}
