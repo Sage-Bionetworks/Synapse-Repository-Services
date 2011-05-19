@@ -478,7 +478,7 @@ public class CrowdAuthUtil {
 	
 	public Collection<String> getUsersGroups(String userId) throws IOException, NotFoundException {
 		// first, just see if the user exists (throwing NotFoundException if not)
-		getUserAttributes(userId, new HashSet<String>());
+		//getUserAttributes(userId, new HashSet<String>());
 		
 		// second, get the Groups
 		URL url = new URL(urlPrefix()+"/user/group/direct?username="+userId);
