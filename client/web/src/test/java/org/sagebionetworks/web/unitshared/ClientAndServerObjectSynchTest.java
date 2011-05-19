@@ -66,6 +66,8 @@ public class ClientAndServerObjectSynchTest {
 				new Pair(org.sagebionetworks.web.shared.LayerPreview.class, org.sagebionetworks.repo.model.LayerPreview.class),
 				// LayerLocation
 				new Pair(org.sagebionetworks.web.shared.DownloadLocation.class, org.sagebionetworks.repo.model.LayerLocation.class),
+				// Annotations
+				new Pair(org.sagebionetworks.web.shared.Annotations.class, org.sagebionetworks.repo.model.Annotations.class),
 		};
 	}
 	

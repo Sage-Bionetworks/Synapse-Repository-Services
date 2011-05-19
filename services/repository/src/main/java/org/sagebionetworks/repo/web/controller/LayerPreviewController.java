@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,6 +15,7 @@ import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.StoredLayerPreview;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.util.SchemaHelper;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
@@ -62,18 +64,50 @@ public class LayerPreviewController extends BaseController {
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-		InputDataLayer layer = entityController.getEntity(userId, id, request,
-				InputDataLayer.class);
-		return createFromLayer(request, layer);
+		StoredLayerPreview stored = getStoredPreviewForLayer(userId, id,request);
+
+		return createFromStoredPreview(request, stored, id);
 	}
 
-	private LayerPreview createFromLayer(HttpServletRequest request,
-			InputDataLayer layer) {
+	/**
+	 * Fetch the stored preview for for a given layer.
+	 * @param userId
+	 * @param id
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	private StoredLayerPreview getStoredPreviewForLayer(String userId,
+			String id, HttpServletRequest request) throws DatastoreException,
+			NotFoundException, UnauthorizedException {
+		List<StoredLayerPreview> list = entityController.getEntityChildrenOfType(userId, id, StoredLayerPreview.class, request);
+		if(list == null) throw new DatastoreException("All layers should have one LayerPreview Child");
+		if(list.size() != 1)  throw new DatastoreException("All layers should have only onle LayerPreview Child.  Found: "+list.size());
+		StoredLayerPreview stored = list.get(0);
+		return stored;
+	}
+
+	/**
+	 * Create a LayerPreview from a StoredLayerPreview.
+	 * @param request
+	 * @param stored
+	 * @param layerId
+	 * @return
+	 * @throws DatastoreException
+	 */
+	private LayerPreview createFromStoredPreview(HttpServletRequest request,
+			StoredLayerPreview stored, String layerId) throws DatastoreException {
 		LayerPreview preview = new LayerPreview();
-		preview.setCreationDate(layer.getCreationDate());
-		preview.setEtag(layer.getEtag());
-		preview.setId(layer.getId());
-		preview.setPreview(layer.getPreview());
+		preview.setCreationDate(stored.getCreationDate());
+		preview.setEtag(stored.getEtag());
+		preview.setId(layerId);
+		try {
+			preview.setPreview(stored.getPreviewAsString());
+		} catch (UnsupportedEncodingException e) {
+			throw new DatastoreException(e);
+		}
 		addServiceSpecificMetadata(preview, request);
 		return preview;
 	}
@@ -95,11 +129,20 @@ public class LayerPreviewController extends BaseController {
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException {
 
-		InputDataLayer layer = entityController.getEntity(userId, id, request,
-				InputDataLayer.class);
-		layer.setPreview(updatedEntity.getPreview());
-		layer = entityController.updateEntity(userId, id, layer, request);
-		return createFromLayer(request, layer);
+		// First get the stored preview
+		StoredLayerPreview stored = getStoredPreviewForLayer(userId, id, request);
+		updateStoredLayerPreviewFromLayerPreview(stored, updatedEntity);
+		stored = entityController.updateEntity(userId, stored.getId(), stored, request);
+		return createFromStoredPreview(request, stored, id);
+	}
+	
+	private void updateStoredLayerPreviewFromLayerPreview(StoredLayerPreview stored, LayerPreview preview) throws DatastoreException{
+		stored.setEtag(preview.getEtag());
+		try {
+			stored.setPreviewAsString(preview.getPreview());
+		} catch (UnsupportedEncodingException e) {
+			throw new DatastoreException(e);
+		}
 	}
 
 	@ResponseStatus(HttpStatus.OK)

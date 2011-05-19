@@ -1,10 +1,13 @@
 package org.sagebionetworks.repo.model.jdo;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
@@ -156,7 +159,48 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testCreateAnnotations() throws NotFoundException{
+	public void testCreateAllAnnotationsTypes() throws Exception{
+		Node node = NodeTestUtils.createNew("testCreateAnnotations");
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		assertNotNull(id);
+		// Now get the annotations for this node.
+		Annotations annos = nodeDao.getAnnotations(id);
+		assertNotNull(annos);
+		assertNotNull(annos.getEtag());
+		// Now add some annotations to this node.
+		annos.addAnnotation("stringOne", "one");
+		annos.addAnnotation("doubleKey", new Double(23.5));
+		annos.addAnnotation("longKey", new Long(1234));
+		annos.addAnnotation("blobKey", "StringToBlob".getBytes("UTF-8"));
+		byte[] bigBlob = new byte[6000];
+		Arrays.fill(bigBlob, (byte)0xa3);
+		annos.addAnnotation("bigBlob", bigBlob);
+		annos.addAnnotation("dateKey", new Date(System.currentTimeMillis()));
+		// update the eTag
+		long currentETag = Long.parseLong(annos.getEtag());
+		currentETag++;
+		String newETagString = new Long(currentETag).toString();
+		annos.setEtag(newETagString);
+		// Update them
+		nodeDao.updateAnnotations(id, annos);
+		// Now get a copy and ensure it equals what we sent
+		Annotations copy = nodeDao.getAnnotations(id);
+		assertNotNull(copy);
+		assertEquals("one", copy.getSingleValue("stringOne"));
+		assertEquals(new Double(23.5), copy.getSingleValue("doubleKey"));
+		assertEquals(new Long(1234), copy.getSingleValue("longKey"));
+		byte[] blob = (byte[]) copy.getSingleValue("blobKey");
+		assertNotNull(blob);
+		String blobString = new String(blob, "UTF-8");
+		assertEquals("StringToBlob", blobString);
+		byte[] bigCopy = (byte[]) copy.getSingleValue("bigBlob");
+		assertNotNull(bigCopy);
+		assertTrue(Arrays.equals(bigBlob, bigCopy));
+	}
+	
+	@Test
+	public void testCreateAnnotations() throws Exception{
 		Node node = NodeTestUtils.createNew("testCreateAnnotations");
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);

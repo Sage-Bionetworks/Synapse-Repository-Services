@@ -209,7 +209,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// make sure the eTags match
 		if(updatedAnnos != null){
 			if(!updatedNode.getETag().equals(updatedAnnos.getEtag())) throw new IllegalArgumentException("The passed node and annotations do not have the same eTag");
-//			if(!updatedNode.getId().equals(updatedAnnos.getId())) throw new IllegalArgumentException("The passed node and annotations do not have the same ID");
 		}
 		// Now lock this node
 		String nextETag = validateETagAndLockNode(updatedNode.getId(), updatedNode.getETag());
@@ -345,6 +344,13 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			Iterator<String> it = updated.getDoubleAnnotations().keySet().iterator();
 			while(it.hasNext()){
 				fieldTypeDao.addNewType(it.next(), FieldType.DOUBLE_ATTRIBUTE);
+			}
+		}
+		// Validate the Doubles
+		if(updated.getBlobAnnotations() != null){
+			Iterator<String> it = updated.getBlobAnnotations().keySet().iterator();
+			while(it.hasNext()){
+				fieldTypeDao.addNewType(it.next(), FieldType.BLOB_ATTRIBUTE);
 			}
 		}
 	}

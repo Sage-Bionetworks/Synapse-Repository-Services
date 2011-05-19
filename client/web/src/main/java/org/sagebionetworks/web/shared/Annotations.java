@@ -21,8 +21,8 @@ public class Annotations implements IsSerializable {
 	private String id;
 	private Map<String, List<Long>> longAnnotations;
 	private Map<String, List<String>> stringAnnotations;
+	private Map<String, List<byte[]>> blobAnnotations;
 	private String uri;
-	
 	
 	public Date getCreationDate() {
 		return creationDate;
@@ -72,6 +72,13 @@ public class Annotations implements IsSerializable {
 	public void setUri(String uri) {
 		this.uri = uri;
 	}
+	
+	public Map<String, List<byte[]>> getBlobAnnotations() {
+		return blobAnnotations;
+	}
+	public void setBlobAnnotations(Map<String, List<byte[]>> blobAnnotations) {
+		this.blobAnnotations = blobAnnotations;
+	}
 	/**
 	 * Add an an annotation.
 	 * @param anno
@@ -90,6 +97,8 @@ public class Annotations implements IsSerializable {
 			addLongAnnotation(key, (Long) value);
 		}else if(value instanceof Double){
 			addDoubleAnnotation(key, (Double) value);
+		}else if(value instanceof byte[]){
+			addBlobAnnotation(key, (byte[]) value);
 		}else{
 			throw new IllegalArgumentException("Unkown object type: "+value.getClass().getName());
 		}
@@ -110,6 +119,19 @@ public class Annotations implements IsSerializable {
 		}
 		// Create a new value
 		List<String> values = new ArrayList<String>();
+		values.add(value);
+		map.put(key, values);
+	}
+	
+	public void addBlobAnnotation(String key, byte[] value) {
+		// First get the strings
+		Map<String, List<byte[]>> map = getBlobAnnotations();
+		if(map == null){
+			map = new HashMap<String, List<byte[]>>();
+			setBlobAnnotations(map);
+		}
+		// Create a new value
+		List<byte[]> values = new ArrayList<byte[]>();
 		values.add(value);
 		map.put(key, values);
 	}
@@ -216,6 +238,15 @@ public class Annotations implements IsSerializable {
 				return list.get(0);
 			}
 		}
+		// byte
+		Map<String, List<byte[]>> byteMap = getBlobAnnotations();
+		if(byteMap != null){
+			List<byte[]> list = byteMap.get(key);
+			if(list != null && list.size() > 0){
+				// Return the first
+				return list.get(0);
+			}
+		}
 		// It does not exist
 		return null;
 	}
@@ -223,6 +254,8 @@ public class Annotations implements IsSerializable {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result
+				+ ((blobAnnotations == null) ? 0 : blobAnnotations.hashCode());
 		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result
@@ -251,6 +284,11 @@ public class Annotations implements IsSerializable {
 		if (getClass() != obj.getClass())
 			return false;
 		Annotations other = (Annotations) obj;
+		if (blobAnnotations == null) {
+			if (other.blobAnnotations != null)
+				return false;
+		} else if (!blobAnnotations.equals(other.blobAnnotations))
+			return false;
 		if (creationDate == null) {
 			if (other.creationDate != null)
 				return false;
@@ -293,14 +331,15 @@ public class Annotations implements IsSerializable {
 			return false;
 		return true;
 	}
+	
 	@Override
 	public String toString() {
-		return "DatasetAnnotations [creationDate=" + creationDate
+		return "Annotations [creationDate=" + creationDate
 				+ ", dateAnnotations=" + dateAnnotations
 				+ ", doubleAnnotations=" + doubleAnnotations + ", etag=" + etag
 				+ ", id=" + id + ", longAnnotations=" + longAnnotations
-				+ ", stringAnnotations=" + stringAnnotations + ", uri=" + uri
-				+ "]";
+				+ ", stringAnnotations=" + stringAnnotations
+				+ ", blobAnnotations=" + blobAnnotations + ", uri=" + uri + "]";
 	}
 
 }

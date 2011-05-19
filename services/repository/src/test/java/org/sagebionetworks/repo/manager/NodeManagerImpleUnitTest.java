@@ -294,6 +294,7 @@ public class NodeManagerImpleUnitTest {
 		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
 		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.LONG_ATTRIBUTE);
 		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DOUBLE_ATTRIBUTE);
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.BLOB_ATTRIBUTE);
 	}
 	
 	@Test
@@ -311,6 +312,7 @@ public class NodeManagerImpleUnitTest {
 		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
 		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.LONG_ATTRIBUTE);
 		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.STRING_ATTRIBUTE);
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.BLOB_ATTRIBUTE);
 	}
 	
 	@Test
@@ -327,6 +329,7 @@ public class NodeManagerImpleUnitTest {
 		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
 		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DOUBLE_ATTRIBUTE);
 		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.STRING_ATTRIBUTE);
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.BLOB_ATTRIBUTE);
 	}
 	
 	@Test
@@ -340,6 +343,25 @@ public class NodeManagerImpleUnitTest {
 		// Make sure this annotation name is checked against FieldType.DATE_ATTRIBUTE.
 		verify(mockFieldTypeDao, atLeastOnce()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
 		// Should not have been called
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.LONG_ATTRIBUTE);
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DOUBLE_ATTRIBUTE);
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.STRING_ATTRIBUTE);
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.BLOB_ATTRIBUTE);
+	}
+	
+	@Test
+	public void testValidateBlobAnnotation() throws Exception, DatastoreException, UnauthorizedException, ConflictingUpdateException{
+		// To update the annotations 
+		Annotations annos = new Annotations();
+		annos.setEtag("123");
+		String annotationName = "blobKey";
+		// The mockFieldTypeDao with throw an exception i 
+		annos.addAnnotation(annotationName, "Some very long string".getBytes("UTF-8"));
+		nodeManager.validateAnnotations(annos);
+		// Make sure this annotation name is checked against FieldType.DATE_ATTRIBUTE.
+		verify(mockFieldTypeDao, atLeastOnce()).addNewType(annotationName, FieldType.BLOB_ATTRIBUTE);
+		// Should not have been called
+		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
 		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.LONG_ATTRIBUTE);
 		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DOUBLE_ATTRIBUTE);
 		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.STRING_ATTRIBUTE);

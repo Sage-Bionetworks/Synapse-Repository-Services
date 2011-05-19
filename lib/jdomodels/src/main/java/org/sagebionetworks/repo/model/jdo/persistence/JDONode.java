@@ -45,6 +45,9 @@ public class JDONode {
 	
 	@Element(dependent = "true")
 	private Set<JDODateAnnotation> dateAnnotations;
+	
+	@Element(dependent = "true")
+	private Set<JDOBlobAnnotation> blobAnnotations;
 
 	@Persistent
 	@Column(name=SqlConstants.COL_NODE_DESCRIPTION ,jdbcType="VARCHAR", length=3000)
@@ -201,14 +204,14 @@ public class JDONode {
 	public JDONodeType getNodeType() {
 		return nodeType;
 	}
-	
-//	public void setNodeType(ObjectType nodeType) {
-//		if(nodeType == null) throw new IllegalArgumentException("ObjectType cannot be null");
-//		JDONodeType jdo = new JDONodeType();
-//		jdo.setId(nodeType.getId());
-//		jdo.setName(nodeType.name());
-//		this.nodeType = jdo;
-//	}
+
+	public Set<JDOBlobAnnotation> getBlobAnnotations() {
+		return blobAnnotations;
+	}
+
+	public void setBlobAnnotations(Set<JDOBlobAnnotation> blobAnnotations) {
+		this.blobAnnotations = blobAnnotations;
+	}
 
 	public void setNodeType(JDONodeType nodeType) {
 		this.nodeType = nodeType;

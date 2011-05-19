@@ -132,13 +132,14 @@ public class JDOAnnotationsUtilsTest {
 	}
 	
 	@Test
-	public void testRoundTrip(){
+	public void testRoundTrip() throws Exception{
 		Annotations dto = new Annotations();
 		dto.addAnnotation("stringOne", "one");
 		dto.addAnnotation("StringTwo", "3");
 		dto.addAnnotation("longOne", new Long(324));
 		dto.addAnnotation("doubleOne", new Double(32.4));
 		dto.addAnnotation("dateOne", new Date(System.currentTimeMillis()));
+		dto.addAnnotation("blobOne", "Imagine some very long string".getBytes("UTF-8"));
 		// Now create the jdo
 		JDONode jdo = JDOAnnotationsUtils.createFromDTO(dto);
 		assertNotNull(jdo);

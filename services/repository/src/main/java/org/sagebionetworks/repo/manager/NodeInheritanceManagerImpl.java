@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -26,10 +27,10 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 	@Autowired
 	NodeDAO nodeDao;
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void nodeParentChanged(String nodeId) {
-		// TODO Auto-generated method stub
-		
+		throw new IllegalArgumentException("This method is not yet supported");
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -40,18 +41,53 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 		String currentBenefactorId = nodeInheritanceDao.getBenefactor(nodeId);
 		// There is nothing to do if a node already inherits from itself
 		if(nodeId.equals(currentBenefactorId)) return;
+		// Change all the required children
+		changeAllChildrenTo(currentBenefactorId, nodeId, nodeId);
+	}
+	
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void setNodeToInheritFromNearestParent(String nodeId) throws NotFoundException {
+		// First determine who this node is inheriting from.
+		String currentBenefactorId = nodeInheritanceDao.getBenefactor(nodeId);
+		Node node = nodeDao.getNode(nodeId);
+		String changeToId = null;
+		if(node.getParentId() == null){
+			// this node should inherit from itself.
+			// If this node is already inheriting from itself then there is nothing to do
+			if(currentBenefactorId == nodeId) return;
+			// Change to this node
+			changeToId = nodeId;
+		}else{
+			// Change to the parent's benefactor
+			changeToId = nodeInheritanceDao.getBenefactor(node.getParentId());
+		}
+		// Do the change
+		// Change all the required children
+		changeAllChildrenTo(currentBenefactorId, nodeId, changeToId);
+	}
+	
+	/**
+	 * Change all children of the given parent(parentId), that are currently inheriting from the given id (currentlyInheritingFromId),
+	 * to now inherit from given id (changeToInheritFromId).
+	 * @param currentlyInheritingFromId - Children currently inheriting from this nodeId will be changed.
+	 * @param parentId - The parent 
+	 * @param changeToInheritFromId
+	 * @throws NotFoundException
+	 */
+	private void changeAllChildrenTo(String currentlyInheritingFromId, String parentId, String changeToInheritFromId) throws NotFoundException{
 		// This is the set of nodes that will need to change.
 		Set<String> toChange = new HashSet<String>();
 		// Recursively build up the set to change
 		// Now add all children
-		addChildrenToChange(currentBenefactorId, nodeId, toChange);
+		addChildrenToChange(currentlyInheritingFromId, parentId, toChange);
 		// We sort the Ids to prevent deadlock on concurrent updates
 		String[] sortedArrayIds = toChange.toArray(new String[toChange.size()]);
 		Arrays.sort(sortedArrayIds);
 		// Now update each node.
 		for(String idToChange: sortedArrayIds){
-			nodeInheritanceDao.addBeneficiary(idToChange, nodeId);
+			nodeInheritanceDao.addBeneficiary(idToChange, changeToInheritFromId);
 		}
 	}
 	
@@ -75,12 +111,6 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 				addChildrenToChange(currentBenefactorId, childId, toChange);
 			}
 		}
-	}
-
-	@Override
-	public void setNodeToInheritFromNearestParent(String nodeId) throws NotFoundException {
-		// First determine who this node is inheriting from.
-		String currentBenefactorId = nodeInheritanceDao.getBenefactor(nodeId);
 	}
 
 }

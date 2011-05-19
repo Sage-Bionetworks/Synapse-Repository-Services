@@ -11,6 +11,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOBlobAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
@@ -51,6 +52,7 @@ public class JDOAnnotationsUtils {
 		jdo.setDateAnnotations((Set<JDODateAnnotation>)createFromMap(jdo, dto.getDateAnnotations()));
 		jdo.setLongAnnotations((Set<JDOLongAnnotation>)createFromMap(jdo, dto.getLongAnnotations()));
 		jdo.setDoubleAnnotations((Set<JDODoubleAnnotation>)createFromMap(jdo, dto.getDoubleAnnotations()));
+		jdo.setBlobAnnotations((Set<JDOBlobAnnotation>)createFromMap(jdo, dto.getBlobAnnotations()));
 	}
 	
 	/**
@@ -68,6 +70,7 @@ public class JDOAnnotationsUtils {
 		dto.setLongAnnotations(createFromSet(jdo.getLongAnnotations()));
 		dto.setDateAnnotations(createFromSet(jdo.getDateAnnotations()));
 		dto.setDoubleAnnotations(createFromSet(jdo.getDoubleAnnotations()));
+		dto.setBlobAnnotations(createFromSet(jdo.getBlobAnnotations()));
 		return dto;
 	}
 	
@@ -148,6 +151,10 @@ public class JDOAnnotationsUtils {
 			jdo = (JDOAnnotation<T>) temp;
 		}else if(value instanceof Double){
 			JDODoubleAnnotation temp =  new JDODoubleAnnotation();
+			temp.setOwner(owner);
+			jdo = (JDOAnnotation<T>) temp;
+		}else if(value instanceof byte[]){
+			JDOBlobAnnotation temp =  new JDOBlobAnnotation();
 			temp.setOwner(owner);
 			jdo = (JDOAnnotation<T>) temp;
 		}else{
