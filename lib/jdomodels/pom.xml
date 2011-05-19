@@ -139,8 +139,13 @@
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
-
-
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-dbcp</artifactId>
+			<version>1.4</version>
+			<type>jar</type>
+			<scope>compile</scope>
+		</dependency>
 	</dependencies>
 
 	<version>${applicationVersion}</version>
