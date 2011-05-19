@@ -51,7 +51,12 @@ public class UserGroupManagerImpl implements UserGroupManager {
 			if (user==null) throw new NullPointerException("No user named "+userName+". Users: "+userDAO.getAll());
 		}
 		userInfo.setUser(user);
-		Collection<String> groupNames = groupMembershipDAO.getUserGroupNames(userName);
+		Collection<String> groupNames = null;
+		if (AuthUtilConstants.ANONYMOUS_USER_ID.equals(userName)) {
+			groupNames = new HashSet<String>();
+		} else {
+			groupNames = groupMembershipDAO.getUserGroupNames(userName);
+		}
 		Map<String, UserGroup> existingGroups = groupPermissionsDAO.getGroupsByNames(groupNames);
 		Set<UserGroup> groups = new HashSet<UserGroup>();
 		for (String groupName : groupNames) {
@@ -77,12 +82,15 @@ public class UserGroupManagerImpl implements UserGroupManager {
 				}
 			}
 		}
-		UserGroup individualGroup = groupPermissionsDAO.getIndividualGroup(userName);
-		if (individualGroup==null) {
-			individualGroup = groupPermissionsDAO.createIndividualGroup(userName);
+		if (!AuthUtilConstants.ANONYMOUS_USER_ID.equals(userName)) {
+			UserGroup individualGroup = groupPermissionsDAO.getIndividualGroup(userName);
+			if (individualGroup==null) {
+				individualGroup = groupPermissionsDAO.createIndividualGroup(userName);
+			}
+			userInfo.setIndividualGroup(individualGroup);
 		}
-		userInfo.setIndividualGroup(individualGroup);
-	userInfo.setGroups(groups);
+		groups.add(groupPermissionsDAO.getPublicGroup());
+		userInfo.setGroups(groups);
 		return userInfo;
 	}	
 	
