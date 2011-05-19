@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.LayerLocations;
 import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.StoredLayerPreview;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.EntityController;
@@ -94,6 +95,11 @@ public class LayerController extends BaseController { // TODO implements
 			throw new IllegalArgumentException("InputDataLayer must have a parent ID");
 		}
 		InputDataLayer datasetLayer = entityController.createEntity(userId, newEntity, request);
+		// Also create a preview for this layer
+		StoredLayerPreview preview = new StoredLayerPreview();
+		preview.setParentId(datasetLayer.getId());
+		entityController.createEntity(userId, preview, request);
+		
 		addServiceSpecificMetadata(userId, datasetLayer, request);
 
 		return datasetLayer;

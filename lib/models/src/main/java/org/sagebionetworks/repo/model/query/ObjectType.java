@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.StoredLayerPreview;
 
 /**
  * The types of objects that can queried.
@@ -16,7 +17,8 @@ public enum ObjectType {
 	dataset(Dataset.class, (short)0),
 	layer(InputDataLayer.class, (short)1),
 	layerlocation(LayerLocation.class, (short)2),
-	project(Project.class, (short)3);
+	project(Project.class, (short)3),
+	layerpreview(StoredLayerPreview.class, (short)4);
 	
 	private Class<? extends Base> clazz;
 	private short id;

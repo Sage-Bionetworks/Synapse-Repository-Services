@@ -25,6 +25,7 @@ public class Annotations implements Base {
 	private Map<String, Collection<Double>> doubleAnnotations;
 	private Map<String, Collection<Long>> longAnnotations;
 	private Map<String, Collection<Date>> dateAnnotations;
+	private Map<String, Collection<byte[]>> blobAnnotations;
 	
 	public String getId() {
 		return id;
@@ -107,6 +108,14 @@ public class Annotations implements Base {
 		this.dateAnnotations = dateAnnotations;
 	}
 	
+	public Map<String, Collection<byte[]>> getBlobAnnotations() {
+		return blobAnnotations;
+	}
+
+	public void setBlobAnnotations(Map<String, Collection<byte[]>> blobAnnotations) {
+		this.blobAnnotations = blobAnnotations;
+	}
+
 	/**
 	 * Get a value from the annoations.
 	 * @param key
@@ -114,7 +123,6 @@ public class Annotations implements Base {
 	 */
 	public Object getSingleValue(String key){
 		// Look in each set
-		
 		if(this.stringAnnotations != null){
 			Collection<String> result = this.stringAnnotations.get(key);
 			if(result != null){
@@ -143,6 +151,13 @@ public class Annotations implements Base {
 				return result;
 			}
 		}
+		if(this.blobAnnotations != null){
+			Collection<byte[]> result = this.blobAnnotations.get(key);
+			if(result != null){
+				if(result.size() == 1) return result.iterator().next();
+				return result;
+			}
+		}
 		// did not find it.
 		return null;
 	}
@@ -161,6 +176,8 @@ public class Annotations implements Base {
 			replaceAnnotation(key, (Double)value);
 		}else if(value instanceof Boolean){
 			replaceAnnotation(key, ((Boolean)value).toString());
+		}else if(value instanceof byte[]){
+			replaceAnnotation(key, ((byte[])value));
 		}else if(value instanceof Collection ){
 			Collection col = (Collection) value;
 			Iterator it = col.iterator();
@@ -200,6 +217,8 @@ public class Annotations implements Base {
 			addAnnotation(key, (Double)value);
 		}else if(value instanceof Boolean){
 			addAnnotation(key, ((Boolean)value).toString());
+		}else if(value instanceof byte[]){
+			addAnnotation(key, ((byte[])value));
 		}else if(value instanceof Collection ){
 			Collection col = (Collection) value;
 			Iterator it = col.iterator();
@@ -258,6 +277,17 @@ public class Annotations implements Base {
 		current.add(value);	
 	}
 	
+	public void replaceAnnotation(String key, byte[] value){
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(value == null) throw new IllegalArgumentException("Value cannot be null");
+		if(this.blobAnnotations == null){
+			this.blobAnnotations = new HashMap<String, Collection<byte[]>>();
+		}
+		Collection<byte[]> current = new ArrayList<byte[]>();
+		this.blobAnnotations.put(key, current);
+		current.add(value);	
+	}
+	
 	/**
 	 * Helper for adding a string
 	 * @param key
@@ -273,6 +303,25 @@ public class Annotations implements Base {
 		if(current == null){
 			current = new ArrayList<String>();
 			this.stringAnnotations.put(key, current);
+		}
+		current.add(value);	
+	}
+	
+	/**
+	 * Helper for adding a string
+	 * @param key
+	 * @param value
+	 */
+	public void addAnnotation(String key, byte[] value){
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(value == null) throw new IllegalArgumentException("Value cannot be null");
+		if(this.blobAnnotations == null){
+			this.blobAnnotations = new HashMap<String, Collection<byte[]>>();
+		}
+		Collection<byte[]> current = this.blobAnnotations.get(key);
+		if(current == null){
+			current = new ArrayList<byte[]>();
+			this.blobAnnotations.put(key, current);
 		}
 		current.add(value);	
 	}
@@ -333,31 +382,32 @@ public class Annotations implements Base {
 		current.add(value);
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result
+				+ ((blobAnnotations == null) ? 0 : blobAnnotations.hashCode());
+		result = prime * result
+				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result
 				+ ((dateAnnotations == null) ? 0 : dateAnnotations.hashCode());
 		result = prime
 				* result
 				+ ((doubleAnnotations == null) ? 0 : doubleAnnotations
 						.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
 				+ ((longAnnotations == null) ? 0 : longAnnotations.hashCode());
 		result = prime
 				* result
 				+ ((stringAnnotations == null) ? 0 : stringAnnotations
 						.hashCode());
+		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
 		return result;
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -367,6 +417,16 @@ public class Annotations implements Base {
 		if (getClass() != obj.getClass())
 			return false;
 		Annotations other = (Annotations) obj;
+		if (blobAnnotations == null) {
+			if (other.blobAnnotations != null)
+				return false;
+		} else if (!blobAnnotations.equals(other.blobAnnotations))
+			return false;
+		if (creationDate == null) {
+			if (other.creationDate != null)
+				return false;
+		} else if (!creationDate.equals(other.creationDate))
+			return false;
 		if (dateAnnotations == null) {
 			if (other.dateAnnotations != null)
 				return false;
@@ -376,6 +436,16 @@ public class Annotations implements Base {
 			if (other.doubleAnnotations != null)
 				return false;
 		} else if (!doubleAnnotations.equals(other.doubleAnnotations))
+			return false;
+		if (etag == null) {
+			if (other.etag != null)
+				return false;
+		} else if (!etag.equals(other.etag))
+			return false;
+		if (id == null) {
+			if (other.id != null)
+				return false;
+		} else if (!id.equals(other.id))
 			return false;
 		if (longAnnotations == null) {
 			if (other.longAnnotations != null)
@@ -387,6 +457,11 @@ public class Annotations implements Base {
 				return false;
 		} else if (!stringAnnotations.equals(other.stringAnnotations))
 			return false;
+		if (uri == null) {
+			if (other.uri != null)
+				return false;
+		} else if (!uri.equals(other.uri))
+			return false;
 		return true;
 	}
 
@@ -396,7 +471,8 @@ public class Annotations implements Base {
 				+ ", creationDate=" + creationDate + ", stringAnnotations="
 				+ stringAnnotations + ", doubleAnnotations="
 				+ doubleAnnotations + ", longAnnotations=" + longAnnotations
-				+ ", dateAnnotations=" + dateAnnotations + "]";
+				+ ", dateAnnotations=" + dateAnnotations + ", blobAnnotations="
+				+ blobAnnotations + "]";
 	}
 
 }

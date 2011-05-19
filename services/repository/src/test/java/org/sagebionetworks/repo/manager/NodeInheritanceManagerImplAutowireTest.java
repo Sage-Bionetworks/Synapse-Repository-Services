@@ -188,5 +188,44 @@ public class NodeInheritanceManagerImplAutowireTest {
 		assertEquals("B should not have been affected by the change to a sibling.", rootId , benefacrorId);
 	}
 	
+	@Test
+	public void testSetNodeToInheritFromNearestParent() throws Exception{
+		// First make sure we can change the root which has a null parent
+		nodeInheritanceManager.setNodeToInheritFromNearestParent(rootId);
+		String benefacrorId = nodeInheritanceDao.getBenefactor(rootId);
+		assertEquals("The root should still inherit from itself",benefacrorId, rootId );
+		
+		// Now set Node A to override
+		// Now set A to override
+		nodeInheritanceManager.setNodeToInheritFromItself(aId);
+		// This should not effect these children
+		benefacrorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		assertEquals("A.override should not have changed and should still be its own benefactor",aOverrideId, benefacrorId);
+		// A.override.child
+		benefacrorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		assertEquals("A.override.child should not have changed and should still be inhertiting from its own parent",aOverrideId, benefacrorId);
+		
+		// Now restore A.override to inherit from its nearest parent
+		nodeInheritanceManager.setNodeToInheritFromNearestParent(aOverrideId);
+		// Check A.override
+		benefacrorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		assertEquals("A.override should now inherit from A", aId, benefacrorId);
+		// Check A.override.child
+		benefacrorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		assertEquals("A.override should now inherit from A", aId, benefacrorId);
+		
+		// Now set node a back to inherit from its parent
+		nodeInheritanceManager.setNodeToInheritFromNearestParent(aId);
+		// Check A
+		benefacrorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		assertEquals("A.override should now inherit from A", rootId, benefacrorId);
+		// Check A.override
+		benefacrorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		assertEquals("A.override should now inherit from A", rootId, benefacrorId);
+		// Check A.override.child
+		benefacrorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		assertEquals("A.override should now inherit from A", rootId, benefacrorId);
+	}
+	
 
 }

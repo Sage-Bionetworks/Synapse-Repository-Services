@@ -43,6 +43,7 @@ public class SqlConstants {
 	public static final String TABLE_STRING_ANNOTATIONS	= "JDOSTRINGANNOTATION";
 	public static final String TABLE_DOUBLE_ANNOTATIONS	= "JDODOUBLEANNOTATION";
 	public static final String TABLE_LONG_ANNOTATIONS	= "JDOLONGANNOTATION";
+	public static final String TABLE_BLOB_ANNOTATIONS	= "JDOBLOBANNOTATION";
 	public static final String TABLE_DATE_ANNOTATIONS	= "JDODATEANNOTATION";
 	// There are the column names that all annotation tables have.
 	public static final String ANNOTATION_ATTRIBUTE_COLUMN 		= "ATTRIBUTE";

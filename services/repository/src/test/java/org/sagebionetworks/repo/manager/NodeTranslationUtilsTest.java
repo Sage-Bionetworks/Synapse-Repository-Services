@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -11,8 +12,10 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.StoredLayerPreview;
 import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.Node;
 
 public class NodeTranslationUtilsTest {
@@ -84,6 +87,18 @@ public class NodeTranslationUtilsTest {
 		System.out.println("Original: "+layer.toString());
 		System.out.println("Clone: "+clone.toString());
 		assertEquals(layer, clone);
+	}
+
+	@Test
+	public void testLayerPreviewRoundTrip() throws Exception{
+		StoredLayerPreview preview = new StoredLayerPreview();
+		preview.setPreviewBlob("Pretend this a very long string and needs to be stored as a blob".getBytes("UTF-8"));
+		// Create a clone using node translation
+		StoredLayerPreview clone = cloneUsingNodeTranslation(preview);
+		// Now our clone should match the original layer.
+		System.out.println("Original: "+preview.toString());
+		System.out.println("Clone: "+clone.toString());
+		assertEquals(preview, clone);
 	}
 	
 	@Test
