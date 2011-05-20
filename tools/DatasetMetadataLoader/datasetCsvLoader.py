@@ -57,7 +57,7 @@ gFILE_PATH_2_MD5SUM = {}
 def createDataset(dataset, annotations):
     newDataset = gSYNAPSE.createEntity("/dataset", dataset)
     # Put our annotations
-    gSYNAPSE.putEntity(newDataset["annotations"], annotations)
+    gSYNAPSE.updateEntity(newDataset["annotations"], annotations)
     # Stash the layer uri for later use
     gDATASET_NAME_2_LAYER_URI[dataset['name']] = newDataset['layer']
     print 'Created Dataset %s\n\n' % (dataset['name'])
@@ -200,7 +200,7 @@ def loadLayers():
         layer["version"] = row[6]
         layer["qcBy"] = row[11]
         
-        newLayer = createObject(layerUri, layer)
+        newLayer = gSYNAPSE.createEntity(layerUri, layer)
         print 'Created layer %s for %s\n\n' % (layer["name"], row[0])
         
         layerLocations = {}
@@ -215,7 +215,7 @@ def loadLayers():
                 if(path in gFILE_PATH_2_MD5SUM):
                     location["md5sum"] = gFILE_PATH_2_MD5SUM[path]
                 layerLocations["locations"].append(location)
-        putProperty(newLayer["locations"][0], layerLocations);
+        gSYNAPSE.updateEntity(newLayer["locations"][0], layerLocations);
         
         layerPreview = {}
        
@@ -225,7 +225,7 @@ def loadLayers():
                 # it in our property
                 head = ""
                 layerPreview["preview"] = head.join(itertools.islice(myfile,6))
-                putProperty(newLayer["preview"], layerPreview)
+                gSYNAPSE.updateEntity(newLayer["preview"], layerPreview)
     ifile.close()     
 
 #--------------------[ Main ]-----------------------------
