@@ -80,7 +80,7 @@
 		<dependency>
 			<groupId>org.codehaus.jackson</groupId>
 			<artifactId>jackson-mapper-asl</artifactId>
-			<version>1.7.1</version>
+			<version>${jackson.version}</version>
 		</dependency>
 
 		<dependency>
