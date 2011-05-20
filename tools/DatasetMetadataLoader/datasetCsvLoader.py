@@ -2,10 +2,10 @@
 
 # To debug this, python -m pdb myscript.py
 
-import os, csv, json, re, string, datetime, pwd, urllib, httplib, ConfigParser, itertools, argparse, codecs, cStringIO
+import os, csv, json, re, string, datetime, pwd, urllib, httplib, ConfigParser, itertools, argparse, codecs, cStringIO, synapse.client, synapse.utils
 
 #-------[ Documentation embedded in Command Line Arguments ]----------------
-parser = argparse.ArgumentParser(description='Tool to load metadata into a Sage Platform Repository Service.  Note that this script always create instance of a dataset in the repository service (the repository service does not enforce uniqueness of dataset names).  Use the datasetNuker.py script first if you want to start with a clean datastore.')
+parser = synapse.utils.createBasicArgParser('Tool to load metadata into a Sage Platform Repository Service.  Note that this script always create instance of a dataset in the repository service (the repository service does not enforce uniqueness of dataset names).  Use the datasetNuker.py script first if you want to start with a clean datastore.')
 
 parser.add_argument('--datasetsCsv', '-d', help='the file path to the CSV file holding dataset metadata, defaults to AllDatasets.csv', default='AllDatasets.csv')
 
@@ -13,13 +13,7 @@ parser.add_argument('--layersCsv', '-l', help='the file path to the CSV file hol
 
 parser.add_argument('--md5sumCsv', '-m', help='the file path to the CSV file holding the md5sums for files, defaults to ../platform.md5sums.csv', default='../platform.md5sums.csv')
 
-parser.add_argument('--serviceEndpoint', '-e', help='the host and optionally port to which to send the metadata', required=True)
-
-parser.add_argument('--servletPrefix', '-p', help='the servlet URL prefix, defaults to /repo/v1', default='/repo/v1')
-
-parser.add_argument('--https', '--secure', '-s', help='whether to do HTTPS instead of HTTP, defaults to False', action='store_true', default=False)
-
-parser.add_argument('--debug', help='whether to output verbose information for debugging purposes, defaults to False', action='store_true', default=False)
+synapse.client.addArguments(parser)
 
 #-------------------[ Constants ]----------------------
 
@@ -49,6 +43,8 @@ HEADERS = {
 
 # Command line arguments
 gARGS = {}
+gARGS = parser.parse_args()
+gSYNAPSE = synapse.client.factory(gARGS)
 
 # A mapping we build over time of dataset names to layer uris.  In our
 # layer CSV file we have the dataset name to which each layer belongs.
@@ -57,149 +53,11 @@ gDATASET_NAME_2_LAYER_URI = {}
 # A mapping of files to their md5sums
 gFILE_PATH_2_MD5SUM = {}
 
-#-----[ Classes to deal with latin_1 extended chars] ---------
-class UTF8Recoder:
-    """
-    Iterator that reads an encoded stream and reencodes the input to UTF-8
-    """
-    def __init__(self, f, encoding):
-        self.reader = codecs.getreader(encoding)(f)
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        return self.reader.next().encode("utf-8")
-
-class UnicodeReader:
-    """
-    A CSV reader which will iterate over lines in the CSV file "f",
-    which is encoded in the given encoding.
-    """
-
-    def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
-        f = UTF8Recoder(f, encoding)
-        self.reader = csv.reader(f, dialect=dialect, **kwds)
-
-    def next(self):
-        row = self.reader.next()
-        return [unicode(s, "utf-8") for s in row]
-
-    def __iter__(self):
-        return self
-
-class UnicodeWriter:
-    """
-    A CSV writer which will write rows to CSV file "f",
-    which is encoded in the given encoding.
-    """
-
-    def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
-        # Redirect output to a queue
-        self.queue = cStringIO.StringIO()
-        self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
-        self.stream = f
-        self.encoder = codecs.getincrementalencoder(encoding)()
-
-    def writerow(self, row):
-        self.writer.writerow([s.encode("utf-8") for s in row])
-        # Fetch UTF-8 output from the queue ...
-        data = self.queue.getvalue()
-        data = data.decode("utf-8")
-        # ... and reencode it into the target encoding
-        data = self.encoder.encode(data)
-        # write to the target stream
-        self.stream.write(data)
-        # empty queue
-        self.queue.truncate(0)
-
-    def writerows(self, rows):
-        for row in rows:
-            self.writerow(row)
-
-#--------------------[ createObject ]-----------------------------
-def createObject(uri, object):
-    if(0 != string.find(uri, gARGS.servletPrefix)):
-            uri = gARGS.servletPrefix + uri
-    
-    conn = httplib.HTTPConnection(gARGS.serviceEndpoint, timeout=30)
-    if(gARGS.debug):
-        conn.set_debuglevel(10);
-        print 'About to create %s with %s' % (uri, json.dumps(object))
-    try:
-        try:
-            conn.request("POST", uri, json.dumps(object), HEADERS)
-            resp = conn.getresponse()
-            output = resp.read()
-            if gARGS.debug:
-                print output
-            if resp.status == 201:
-                object = json.loads(output)
-                return object
-            else:
-                print resp.status, resp.reason
-                return None;
-        except Exception, err:
-            print(err)
-    finally:
-        conn.close()
-
-#--------------------[ putProperty ]-----------------------------
-def putProperty(uri, property):
-    if(uri == None):
-        return
-
-    conn = httplib.HTTPConnection(gARGS.serviceEndpoint, timeout=30)
-    if(gARGS.debug):
-        conn.set_debuglevel(2);
-        print 'About to update %s with %s' % (uri, json.dumps(property))
-
-    putHeaders = HEADERS
-    oldProperty = {}
-
-    try:
-        try:
-            conn.request("GET", uri, None, HEADERS)
-            resp = conn.getresponse()
-            output = resp.read()
-            if gARGS.debug:
-                print output
-            if resp.status == 200:
-                oldProperty = json.loads(output)
-            else:
-                print resp.status, resp.reason
-        except Exception, err:
-            print(err)
-            
-        putHeaders['ETag'] = oldProperty["etag"]
-
-        # Overwrite our stored fields with our updated fields
-        keys = property.keys()
-        for key in keys:
-            oldProperty[key] = property[key]
-        
-        try:
-            conn.request("PUT", uri, json.dumps(oldProperty), HEADERS)
-            resp = conn.getresponse()
-            output = resp.read()
-            if gARGS.debug:
-                print output
-            if resp.status == 200:
-                object = json.loads(output)
-                return object
-            else:
-                print resp.status, resp.reason
-                return None;
-        except Exception, err:
-            print(err)
-    finally:
-        conn.close()
-
 #--------------------[ createDataset ]-----------------------------
 def createDataset(dataset, annotations):
-    newDataset = createObject("/dataset", dataset)
+    newDataset = gSYNAPSE.createEntity("/dataset", dataset)
     # Put our annotations
-    putProperty(newDataset["annotations"], annotations)
+    gSYNAPSE.putEntity(newDataset["annotations"], annotations)
     # Stash the layer uri for later use
     gDATASET_NAME_2_LAYER_URI[dataset['name']] = newDataset['layer']
     print 'Created Dataset %s\n\n' % (dataset['name'])
@@ -220,7 +78,7 @@ def loadMd5sums():
 def loadDatasets():
     # xschildw: Use codecs.open and UnicodeReader class to handle extended chars
     ifile  = open(gARGS.datasetsCsv, "r")
-    reader = UnicodeReader(ifile, encoding='latin_1')
+    reader = synapse.utils.UnicodeReader(ifile, encoding='latin_1')
 
     # loop variables
     rownum = -1
@@ -319,7 +177,7 @@ def loadLayers():
     # What follows is code that expects a layerCsv in a particular format,
     # sorry its so brittle and ugly
     ifile  = open(gARGS.layersCsv, "r")
-    reader = UnicodeReader(ifile, encoding='latin_1')
+    reader = synapse.utils.UnicodeReader(ifile, encoding='latin_1')
     rownum = -1
     for row in reader:
         rownum += 1
@@ -371,8 +229,6 @@ def loadLayers():
     ifile.close()     
 
 #--------------------[ Main ]-----------------------------
-
-gARGS = parser.parse_args()
 
 loadMd5sums()
 loadDatasets()
