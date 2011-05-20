@@ -62,7 +62,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nodesToDelete = new ArrayList<String>();
 		mockAuth = Mockito.mock(AuthorizationManager.class);
 		when(mockAuth.canAccess((UserInfo)any(), anyString(), any(AuthorizationConstants.ACCESS_TYPE.class))).thenReturn(true);
-		when(mockAuth.canCreate((UserInfo)any(), anyString())).thenReturn(true);
+		when(mockAuth.canCreate((UserInfo)any(), (Node)any())).thenReturn(true);
 		nodeManager.setAuthorizationManager(mockAuth);
 		
 		// For this test we need a complex hierarchy of nodes

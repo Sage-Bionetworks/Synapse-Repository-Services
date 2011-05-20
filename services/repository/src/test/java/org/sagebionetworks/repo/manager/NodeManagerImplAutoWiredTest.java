@@ -58,7 +58,7 @@ public class NodeManagerImplAutoWiredTest {
 		nodesToDelete = new ArrayList<String>();
 		mockAuth = Mockito.mock(AuthorizationManager.class);
 		when(mockAuth.canAccess((UserInfo)any(), anyString(), any(AuthorizationConstants.ACCESS_TYPE.class))).thenReturn(true);
-		when(mockAuth.canCreate((UserInfo)any(), anyString())).thenReturn(true);
+		when(mockAuth.canCreate((UserInfo)any(), (Node)any())).thenReturn(true);
 		
 		User mockUser = new User();
 		mockUser.setUserId("test-user");
@@ -71,7 +71,7 @@ public class NodeManagerImplAutoWiredTest {
 //		when(mockAuth.getUserInfo(AuthUtilConstants.ANONYMOUS_USER_ID)).thenReturn(anonUserInfo);
 		
 		nodeManager.setAuthorizationManager(mockAuth);
-		when(mockAuth.canCreate((UserInfo)any(), anyString())).thenReturn(true);
+		when(mockAuth.canCreate((UserInfo)any(), (Node)any())).thenReturn(true);
 	}
 	
 	@After

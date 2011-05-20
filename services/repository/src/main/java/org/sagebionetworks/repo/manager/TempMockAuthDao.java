@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -23,27 +24,16 @@ public class TempMockAuthDao implements AuthorizationManager{
 		return true;
 	}
 
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.AuthorizationManager#canCreate(org.sagebionetworks.repo.model.UserInfo, java.lang.String)
-	 */
 	@Override
-	public boolean canCreate(UserInfo userInfo, String nodeType)
-			throws NotFoundException, DatastoreException {
-		// TODO Auto-generated method stub
-		return true;
-	}
-
-	@Override
-	public void removeAuthorization(String nodeId) throws NotFoundException,
-			DatastoreException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public String authorizationSQL(ACCESS_TYPE accessType, List<String> groupIds) {
+	public String authorizationSQL() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public boolean canCreate(UserInfo userInfo, Node node) {
+		// TODO Auto-generated method stub
+		return true;
 	}
 
 

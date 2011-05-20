@@ -10,9 +10,11 @@ package org.sagebionetworks.repo.model;
 public class AuthorizationConstants {
 	
 	public enum ACCESS_TYPE {
+		CREATE, // i.e. permission to add a child to a Node
 		READ,
-		CHANGE,
-		SHARE
+		UPDATE,
+		DELETE,
+		CHANGE_PERMISSIONS
 	};
 	
 	/**

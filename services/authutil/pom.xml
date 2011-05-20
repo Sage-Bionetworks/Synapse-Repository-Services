@@ -22,7 +22,7 @@
       <version>${applicationVersion}</version>
     </dependency>
     
-    <!-- Spring Framework dependencies -->
+   <!-- Spring Framework dependencies -->
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>org.springframework.spring-library</artifactId>
@@ -42,7 +42,7 @@
       <version>${org.springframework.version}</version>
       <scope>test</scope>
     </dependency>
-    
+
         <!-- Logging dependencies -->
     <dependency>
       <groupId>commons-logging</groupId>
@@ -50,13 +50,7 @@
       <version>1.0</version>
     </dependency>
 
-    
-    
   </dependencies>    
 
-  <!-- Specify hard-coded project properties here -->
-  <properties>
-    <org.springframework.version>3.0.5.RELEASE</org.springframework.version>
-  </properties>
 
 </project>

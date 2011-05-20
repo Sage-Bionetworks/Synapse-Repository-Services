@@ -10,7 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.UserGroupManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseChild;
@@ -45,7 +45,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	EntityManager entityManager;
 	
 	@Autowired
-	UserGroupManager userGroupManager;
+	UserManager userManager;
 	
 	@Autowired
 	AuthorizationManager authorizationManager;
@@ -74,7 +74,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 
 		ServiceConstants.validatePaginationParams(offset, limit);
 		
-		UserInfo userInfo = userGroupManager.getUserInfo(userId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		PaginatedResults<T> results = entitiesAccessor.getInRangeSortedBy(userInfo, offset, limit,
 				sort, ascending, clazz);
 		List<T> entities = results.getResults();
@@ -93,7 +93,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 
-		UserInfo userInfo = userGroupManager.getUserInfo(userId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		T entity = entityManager.getEntity(userInfo, entityId, clazz);
 		if (null == entity) {
 			throw new NotFoundException("no entity with id " + entityId
@@ -110,7 +110,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException {
 
-		UserInfo userInfo = userGroupManager.getUserInfo(userId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		String id = entityManager.createEntity(userInfo, newEntity);
 		newEntity = (T) entityManager.getEntity(userInfo, id, newEntity.getClass());
 
@@ -126,7 +126,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 			DatastoreException, InvalidModelException, UnauthorizedException {
 
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
-		UserInfo userInfo = userGroupManager.getUserInfo(userId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		entityManager.updateEntity(userInfo, updatedEntity);
 		updatedEntity = (T) entityManager.getEntity(userInfo, entityId, updatedEntity.getClass());
 
@@ -140,7 +140,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 
-		UserInfo userInfo = userGroupManager.getUserInfo(userId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		entityManager.deleteEntity(userInfo, entityId);
 
 		return;
@@ -171,7 +171,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	@Override
 	public Annotations getEntityAnnotations(String userId, String id,
 			HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
-		UserInfo userInfo = userGroupManager.getUserInfo(userId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		Annotations annotations = entityManager.getAnnotations(userInfo, id);
 		addServiceSpecificMetadata(id, annotations, request);
 		return annotations;
@@ -182,7 +182,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	public Annotations updateEntityAnnotations(String userId, String entityId,
 			Annotations updatedAnnotations, HttpServletRequest request) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		if(updatedAnnotations.getId() == null) throw new IllegalArgumentException("Annotations must have a non-null id");
-		UserInfo userInfo = userGroupManager.getUserInfo(userId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		entityManager.updateAnnotations(userInfo,entityId, updatedAnnotations);
 		Annotations annos = entityManager.getAnnotations(userInfo, updatedAnnotations.getId());
 		addServiceSpecificMetadata(updatedAnnotations.getId(), annos, request);
@@ -197,7 +197,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	@Override
 	public <T extends BaseChild> List<T> getEntityChildrenOfType(String userId,
 			String parentId, Class<? extends T> clazz, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
-		UserInfo userInfo = userGroupManager.getUserInfo(userId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		List<T> list =  entitiesAccessor.getChildrenOfType(userInfo, parentId, clazz);
 		Iterator<T> it = list.iterator();
 		while(it.hasNext()){
@@ -213,7 +213,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		if(update == null) return null;
 		if(update.isEmpty()) return update;
 		// First try the updated
-		UserInfo userInfo = userGroupManager.getUserInfo(userId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		List<String> updatedIds = entityManager.aggregateEntityUpdate(userInfo, parentId, update);
 		// Now create the update object
 		List<T> newList = new ArrayList<T>();

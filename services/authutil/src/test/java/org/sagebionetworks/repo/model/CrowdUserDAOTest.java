@@ -6,11 +6,16 @@ import static org.junit.Assert.fail;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
+import org.sagebionetworks.authutil.CrowdUserDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public class CrowdUserDAOTest {
@@ -54,4 +59,30 @@ public class CrowdUserDAOTest {
 		fail("exception expected");
 	}
 	
+	@Test
+	public void testGetUserGroups() throws Exception {
+		if (!isIntegrationTest()) return;
+		CrowdUserDAO userDAO = new CrowdUserDAO();
+		Collection<String> groups = userDAO.getUserGroupNames(TEST_USER);
+		Set<String> expected = new HashSet<String>(
+				Arrays.asList(new String[]{"platform"})
+		);
+		Set<String> actual = new HashSet<String>(groups);
+		assertEquals(expected, actual);
+	}
+	
+	@Test
+	public void testGetGroupsForNonexistentUser() throws Exception {
+		if (!isIntegrationTest()) return;
+		CrowdUserDAO userDAO = new CrowdUserDAO();
+		try {
+			System.out.println(userDAO.getUserGroupNames("foo"));
+		} catch (NotFoundException nfe) {
+			// as expected
+			return;
+		}
+		fail("exception expected");
+	}
+	
+
 }

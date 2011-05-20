@@ -1,9 +1,12 @@
 package org.sagebionetworks.repo.model.jdo.persistence;
 
+import java.util.Date;
 import java.util.Set;
 
 import javax.jdo.annotations.Column;
 import javax.jdo.annotations.Element;
+import javax.jdo.annotations.ForeignKey;
+import javax.jdo.annotations.ForeignKeyAction;
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.NullValue;
 import javax.jdo.annotations.PersistenceCapable;
@@ -11,22 +14,26 @@ import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 import javax.jdo.annotations.Unique;
 
+import org.sagebionetworks.repo.model.jdo.JDOBase;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
-@PersistenceCapable(detachable = "true")
-public class JDOAccessControlList {
+@PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_ACCESS_CONTROL_LIST)
+public class JDOAccessControlList implements JDOBase {
 
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 	
+
 	@Persistent
 	@Unique
+	@Column(name=SqlConstants.COL_ACL_OWNER_ID)
+    @ForeignKey(name="ACL_OWNER_FK", deleteAction=ForeignKeyAction.CASCADE)
 	private JDONode resource;
 	
     @Persistent(mappedBy = "owner", serialized="false")
 	@Element(dependent = "true")
-	private Set<JDOResourceAccess> resourceAccess;
+	private Set<JDOResourceAccess2> resourceAccess;
 
 	@Column(name=SqlConstants.COL_NODE_ETAG)
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
@@ -38,7 +45,7 @@ public class JDOAccessControlList {
 	
 	@Column(name=SqlConstants.COL_NODE_CREATED_ON)
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
-	private Long createdOn;
+	private Long creationDate;
 	
 	@Column(name=SqlConstants.COL_NODE_MODIFIED_BY)
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
@@ -65,14 +72,14 @@ public class JDOAccessControlList {
 	/**
 	 * @return the resourceAccess
 	 */
-	public Set<JDOResourceAccess> getResourceAccess() {
+	public Set<JDOResourceAccess2> getResourceAccess() {
 		return resourceAccess;
 	}
 
 	/**
 	 * @param resourceAccess the resourceAccess to set
 	 */
-	public void setResourceAccess(Set<JDOResourceAccess> resourceAccess) {
+	public void setResourceAccess(Set<JDOResourceAccess2> resourceAccess) {
 		this.resourceAccess = resourceAccess;
 	}
 
@@ -105,17 +112,31 @@ public class JDOAccessControlList {
 	}
 
 	/**
-	 * @return the createdOn
+	 * @return the id
 	 */
-	public Long getCreatedOn() {
-		return createdOn;
+	public Long getId() {
+		return id;
 	}
 
 	/**
-	 * @param createdOn the createdOn to set
+	 * @param id the id to set
 	 */
-	public void setCreatedOn(Long createdOn) {
-		this.createdOn = createdOn;
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	/**
+	 * @return the creationDate
+	 */
+	public Date getCreationDate() {
+		return new Date(creationDate);
+	}
+
+	/**
+	 * @param creationDate the creationDate to set
+	 */
+	public void setCreationDate(Date creationDate) {
+		this.creationDate = creationDate.getTime();
 	}
 
 	/**

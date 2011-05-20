@@ -84,6 +84,7 @@ public class JDONode {
 	@Column(name=SqlConstants.COL_NODE_BENEFACTOR_ID)
     @ForeignKey(name="NODE_BENEFACTOR_FK", deleteAction=ForeignKeyAction.CASCADE)
 	private JDONode permissionsBenefactor;
+	
 	// These are the nodes that that benefit from this nodes permissions
 	@Persistent (mappedBy = "permissionsBenefactor")
 	@Element(dependent = "true")

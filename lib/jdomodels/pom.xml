@@ -26,12 +26,6 @@
 			<version>${applicationVersion}</version>
 		</dependency>
 
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>auth-util</artifactId>
-			<version>${applicationVersion}</version>
-		</dependency>
-
 		<!-- Persistence-related dependencies -->
 		<dependency>
 			<groupId>org.datanucleus</groupId>
@@ -118,6 +112,12 @@
 			<artifactId>spring-aspects</artifactId>
 			<version>${org.springframework.version}</version>
 		</dependency>
+		<dependency>
+      		<groupId>org.springframework</groupId>
+      		<artifactId>org.springframework.spring-library</artifactId>
+      		<type>libd</type>
+     		 <version>${org.springframework.version}</version>
+    	</dependency>
 		<dependency>
 			<groupId>org.aspectj</groupId>
 			<artifactId>aspectjlib</artifactId>

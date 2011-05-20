@@ -15,9 +15,9 @@
   <version>parent-1.0</version>
   
   <modules>
+    <module>authutil</module>
     <module>repository</module>
     <module>auth</module>
-    <module>authutil</module>
   </modules>
   
 </project>
