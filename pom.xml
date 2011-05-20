@@ -132,6 +132,7 @@
 		
 		<org.springframework.version>3.0.5.RELEASE</org.springframework.version>
 		<datanucleus.version>1.1.5</datanucleus.version>
+		<jackson.version>1.8.1</jackson.version>
 	</properties>
 
 	<distributionManagement>

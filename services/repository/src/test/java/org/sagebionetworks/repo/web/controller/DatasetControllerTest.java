@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -172,7 +171,6 @@ public class DatasetControllerTest {
 	 * 
 	 * @throws Exception
 	 */
-	@Ignore // enable this test for issue PLFM-121
 	@Test
 	public void testUpdateNewlyCreatedDataset() throws Exception {
 		JSONObject newDataset = helper.testCreateJsonEntity(helper

@@ -92,7 +92,6 @@ public class ControllerTest {
 					+ url);
 			assertNotNull(schema);
 			assertNotNull(schema.getString("type"));
-			assertNotNull(schema.getString("optional"));
 			assertNotNull(schema.getJSONObject("properties"));
 		}
 	}
