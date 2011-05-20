@@ -35,6 +35,11 @@
 			<name>sagebionetworks-releases</name>
 			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local</url>
 		</repository>
+        <repository>
+          <id>sagebionetworks-ext</id>
+          <name>sagebionetworks-releases-ext</name>
+          <url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/ext-releases-local</url>
+        </repository>
 		<repository>
 			<id>atlassian-m2-repository</id>
 			<url>https://m2proxy.atlassian.com/repository/public</url>
