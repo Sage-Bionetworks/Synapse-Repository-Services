@@ -27,7 +27,6 @@
       <groupId>org.sagebionetworks</groupId>
       <artifactId>lib-jdomodels</artifactId>
       <version>${applicationVersion}</version>
-      <scope>runtime</scope>
     </dependency>
 
     <dependency>

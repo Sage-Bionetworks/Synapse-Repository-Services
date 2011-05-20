@@ -28,22 +28,6 @@ public class JDOUserGroup implements JDOBase {
 	@Persistent
 	private Date creationDate;
 
-	@Persistent(serialized="false")
-	@Join(table=SqlConstants.TABLE_USER_GROUP_USERS)
-	private Set<Long> users = new HashSet<Long>();
-
-    @Persistent(mappedBy = "owner", serialized="false")
-	@Element(dependent = "true")
-	private Set<JDOResourceAccess> resourceAccess = new HashSet<JDOResourceAccess>();
-	
-	// the types of objects that the group can create
-	@Persistent
-	private Set<String> creatableTypes;
-	
-	// true for system generated groups like 'Public'
-	@Persistent (column=SqlConstants.COL_USER_GROUP_IS_SYSTEM_GROUP)
-	private Boolean isSystemGroup = false;
-	
 	// true for groups established for individuals (in which case group 'name'==userId)
 	@Persistent (column=SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL)
 	private Boolean isIndividual = false;
@@ -72,38 +56,6 @@ public class JDOUserGroup implements JDOBase {
 
 	public void setCreationDate(Date creationDate) {
 		this.creationDate = creationDate;
-	}
-
-//	public Set<Long> getUsers() {
-//		return users;
-//	}
-//
-//	public void setUsers(Set<Long> users) {
-//		this.users = users;
-//	}
-
-	public Set<JDOResourceAccess> getResourceAccess() {
-		return resourceAccess;
-	}
-
-	public void setResourceAccess(Set<JDOResourceAccess> resourceAccess) {
-		this.resourceAccess = resourceAccess;
-	}
-
-	public Set<String> getCreatableTypes() {
-		return creatableTypes;
-	}
-
-	public void setCreatableTypes(Set<String> creatableTypes) {
-		this.creatableTypes = creatableTypes;
-	}
-
-	public Boolean getIsSystemGroup() {
-		return isSystemGroup;
-	}
-
-	public void setIsSystemGroup(Boolean isSystemGroup) {
-		this.isSystemGroup = isSystemGroup;
 	}
 
 	public Boolean getIsIndividual() {

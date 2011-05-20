@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -170,7 +172,7 @@ public class NodeManagerImpleUnitTest {
 		ArgumentCaptor<Node> argument = ArgumentCaptor.forClass(Node.class);
 		when(mockNodeDao.createNew(argument.capture())).thenReturn("101");
 		UserInfo userInfo = anonUserInfo;
-		when(mockAuthDao.canCreate(userInfo, "someType")).thenReturn(true);
+		when(mockAuthDao.canCreate(eq(userInfo), (Node)any())).thenReturn(true);
 		// Make the actual call
 		String id = nodeManager.createNewNode(newNode, userInfo);
 		// Now validate that t
@@ -214,7 +216,7 @@ public class NodeManagerImpleUnitTest {
 		when(mockNodeDao.getETagForUpdate("101")).thenReturn(new Long(9));
 		
 		UserInfo userInfo = mockUserInfo;
-		when(mockAuthDao.canAccess(userInfo, "101", ACCESS_TYPE.CHANGE)).thenReturn(true);
+		when(mockAuthDao.canAccess(userInfo, "101", ACCESS_TYPE.UPDATE)).thenReturn(true);
 		// Make the actual call
 		Node result = nodeManager.update(userInfo, newNode);
 		//Node result = nodeManager.update(AuthUtilConstants.ANONYMOUS_USER_ID, newNode);
@@ -251,7 +253,7 @@ public class NodeManagerImpleUnitTest {
 		when(mockNodeDao.getAnnotations(id)).thenReturn(annos);
 		when(mockNodeDao.getETagForUpdate("101")).thenReturn(new Long(9));
 		UserInfo userInfo = anonUserInfo;
-		when(mockAuthDao.canAccess(userInfo, "101", ACCESS_TYPE.CHANGE)).thenReturn(true);
+		when(mockAuthDao.canAccess(userInfo, "101", ACCESS_TYPE.UPDATE)).thenReturn(true);
 
 		Annotations copy = nodeManager.getAnnotations(userInfo, id);
 		assertEquals(copy, annos);
@@ -271,7 +273,7 @@ public class NodeManagerImpleUnitTest {
 		annos.setEtag("9");
 		when(mockNodeDao.getETagForUpdate("101")).thenReturn(new Long(9));
 		UserInfo userInfo = anonUserInfo;
-		when(mockAuthDao.canAccess(userInfo, "101", ACCESS_TYPE.CHANGE)).thenReturn(true);
+		when(mockAuthDao.canAccess(userInfo, "101", ACCESS_TYPE.UPDATE)).thenReturn(true);
 		// The mockFieldTypeDao with throw an exception i 
 		annos.addAnnotation(annotationName, new Date(System.currentTimeMillis()));
 		nodeManager.updateAnnotations(userInfo,id,annos);

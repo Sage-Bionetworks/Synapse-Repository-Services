@@ -18,8 +18,8 @@
 	<!-- Used to test node locking -->
 	<bean id="nodeLockerB" class="org.sagebionetworks.repo.model.jdo.JDONodeLockCheckerImpl" scope="prototype"/>
     
-      <bean id="groupPermissionsDAO"
-        class="org.sagebionetworks.repo.model.jdo.JDOGroupPermissionsDAOImpl"
+      <bean id="userGroupDAO"
+        class="org.sagebionetworks.repo.model.jdo.JDOUserGroupDAOImpl"
         scope="singleton" />
     
     

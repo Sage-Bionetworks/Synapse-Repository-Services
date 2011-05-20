@@ -60,9 +60,10 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 	 * @param dto
 	 * @param jdo
 	 * @throws InvalidModelException
+	 * @throws DatastoreException 
 	 */
 	abstract void copyFromDto(S dto, T jdo)
-			throws InvalidModelException;
+			throws InvalidModelException, DatastoreException;
 
 	/**
 	 * @param jdoClass

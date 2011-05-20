@@ -83,7 +83,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// Validate the modified data.
 		NodeManagerImpl.validateNodeModifiedData(userName, newNode);
 		// check whether the user is allowed to create this type of node
-		if (!authorizationManager.canCreate(userInfo, newNode.getNodeType())) {
+		if (!authorizationManager.canCreate(userInfo, newNode)) {
 			throw new UnauthorizedException(userName+" is not allowed to create items of type "+newNode.getNodeType());
 		}
 
@@ -161,11 +161,10 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// First validate the username
 		String userName = userInfo.getUser().getUserId();
 		userName = NodeManagerImpl.validateUsername(userName);
-		if (!authorizationManager.canAccess(userInfo, nodeId, AuthorizationConstants.ACCESS_TYPE.CHANGE)) {
+		if (!authorizationManager.canAccess(userInfo, nodeId, AuthorizationConstants.ACCESS_TYPE.DELETE)) {
 			throw new UnauthorizedException(userName+" lacks change access to the requested object.");
 		}
 		nodeDao.delete(nodeId);
-		authorizationManager.removeAuthorization(nodeId);
 		if(log.isDebugEnabled()){
 			log.debug("username "+userName+" deleted node: "+nodeId);
 		}
@@ -203,7 +202,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		String userName = userInfo.getUser().getUserId();
 		userName = NodeManagerImpl.validateUsername(userName);
 		NodeManagerImpl.validateNode(updatedNode);
-		if (!authorizationManager.canAccess(userInfo, updatedNode.getId(), AuthorizationConstants.ACCESS_TYPE.CHANGE)) {
+		if (!authorizationManager.canAccess(userInfo, updatedNode.getId(), AuthorizationConstants.ACCESS_TYPE.UPDATE)) {
 			throw new UnauthorizedException(userName+" lacks change access to the requested object.");
 		}
 		// make sure the eTags match

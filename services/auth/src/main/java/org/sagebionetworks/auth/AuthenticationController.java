@@ -154,7 +154,7 @@ public class AuthenticationController {
 	
 
 
-	@ResponseStatus(HttpStatus.OK)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/session", method = RequestMethod.PUT)
 	public @ResponseBody
 	void revalidate(@RequestBody Session session) throws Exception {
@@ -230,7 +230,7 @@ public class AuthenticationController {
 //		mirrorToPersistenceLayer();
 	}
 	
-	@ResponseStatus(HttpStatus.OK)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/user", method = RequestMethod.PUT)
 	public void updateUser(@RequestBody User user,
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId) throws Exception {

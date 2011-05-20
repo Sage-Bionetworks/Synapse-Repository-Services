@@ -149,6 +149,34 @@ public class Helpers {
 	}
 
 	/**
+	 * @param jsonEntity
+	 * @return the json object holding the updated entity
+	 * @throws Exception
+	 */
+	public JSONObject testUpdateJsonEntity(String requestUrl, String stringEntity, HttpStatus status)
+			throws Exception {
+		JSONObject jsonEntity = new JSONObject(stringEntity);
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("PUT");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(requestUrl);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setContent(jsonEntity.toString().getBytes("UTF-8"));
+		log.info("About to send: " + jsonEntity.toString(JSON_INDENT));
+		servlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		assertEquals(status, response.getStatus());
+		JSONObject results = null;
+		String s = response.getContentAsString();
+		if (s!=null && s.length()>0) {
+			results = new JSONObject(s);
+		}
+
+		return results;
+	}
+
+	/**
 	 * @param requestUrl
 	 * @throws Exception
 	 */

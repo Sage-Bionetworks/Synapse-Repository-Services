@@ -112,7 +112,7 @@ public class AuthenticationControllerTest {
 		if (!isIntegrationTest()) return;
 		// start session
 		JSONObject session = helper.testCreateJsonEntity("/session",
-				"{\"userId\":\"demouser\",\"password\":\"demouser-pw\"}");
+				"{\"userId\":\"demouser\",\"password\":\"demouser-pw\"}", HttpStatus.NO_CONTENT);
 		String sessionToken = session.getString("sessionToken");
 		assertEquals("Demo User", session.getString("displayName"));
 		
@@ -248,7 +248,7 @@ public class AuthenticationControllerTest {
 					"\"firstName\":\"NewNEW\","+
 					"\"lastName\":\"UserNEW\","+
 					"\"displayName\":\"New NEW User\""+
-					"}");
+					"}", HttpStatus.NO_CONTENT);
 		} finally {
 			User user = new User();
 			user.setEmail(userEmail);

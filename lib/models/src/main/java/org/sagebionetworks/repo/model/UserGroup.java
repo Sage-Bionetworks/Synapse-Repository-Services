@@ -5,10 +5,10 @@ import java.util.Date;
 public class UserGroup implements Base{
 	private String id;
 	private String name;
-	private String uri;
-	private String etag;
 	private Date creationDate;
 	boolean isIndividual;
+	private String uri;
+	private String etag;
 	
 	public String getId() {
 		return id;
@@ -18,6 +18,18 @@ public class UserGroup implements Base{
 	}
 	public String getName() {
 		return name;
+	}
+	/**
+	 * @return the isIndividual
+	 */
+	public boolean isIndividual() {
+		return isIndividual;
+	}
+	/**
+	 * @param isIndividual the isIndividual to set
+	 */
+	public void setIndividual(boolean isIndividual) {
+		this.isIndividual = isIndividual;
 	}
 	public void setName(String name) {
 		this.name = name;

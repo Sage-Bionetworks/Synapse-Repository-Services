@@ -1,8 +1,9 @@
 /**
  * 
  */
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.authutil;
 
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -11,7 +12,10 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
 
-import org.sagebionetworks.authutil.CrowdAuthUtil;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -73,7 +77,6 @@ public class CrowdUserDAO implements UserDAO {
 	private static final String IAM_SECRET_KEY_FIELD = "iamSecretKey";
 
 
-	// TODO: map non-existant user into 'NotFoundException'
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.UserDAO#getUser(java.lang.String)
 	 */
@@ -120,5 +123,15 @@ public class CrowdUserDAO implements UserDAO {
 		
 		return user;
 	}
+	
+	@Override
+	public Collection<String> getUserGroupNames(String userName) throws NotFoundException, DatastoreException {
+		try {
+			return crowdAuthUtil.getUsersGroups(userName);
+		} catch (IOException e) {
+			throw new DatastoreException(e);
+		}
+	}
+
 	
 }

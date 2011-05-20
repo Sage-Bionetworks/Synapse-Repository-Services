@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl.AttributeDoesNotExist;
-
+ 
 @SuppressWarnings("rawtypes")
 public class SqlConstants {
 	
@@ -58,8 +58,11 @@ public class SqlConstants {
 	public static final String TABLE_USER_GROUP				= "JDOUSERGROUP";
 	public static final String TABLE_USER_GROUP_USERS		= "JDOUSERGROUPUSERS";
 	public static final String COL_USER_GROUP_NAME			 = "NAME";
-	public static final String COL_USER_GROUP_IS_SYSTEM_GROUP = "ISSYSTEMGROUP";
+//	public static final String COL_USER_GROUP_IS_SYSTEM_GROUP = "ISSYSTEMGROUP";
 	public static final String COL_USER_GROUP_IS_INDIVIDUAL = "ISINDIVIDUAL";
+	
+	public static final String TABLE_ACCESS_CONTROL_LIST = "ACL";
+	public static final String COL_ACL_ID				= "ID";
 	
 	// The resource access table
 	public static final String TABLE_RESOURCE_ACCESS			= "JDORESOURCEACCESS";
@@ -74,7 +77,7 @@ public class SqlConstants {
 	public static final String COL_RESOURCE_ACCESS_TYPE_ID		= "ID_OID";
 	public static final String COL_RESOURCE_ACCESS_TYPE_ELEMENT	= "STRING_ELE";
 	
-	
+	public static final String 	COL_ACL_OWNER_ID = "ID_OID";
 	
 	// The alias used for the dataset table.
 	public static final String PRIMARY_ALIAS	= "prm";

@@ -18,8 +18,6 @@
         class="org.sagebionetworks.repo.web.controller.Helpers"
         scope="prototype"/>
                 
-	<bean id="groupMembershipDAO" class="org.sagebionetworks.repo.manager.TestGroupMembershipDAO" scope="singleton"/>
-	
 	<bean id="userDAO" class="org.sagebionetworks.repo.manager.TestUserDAO" scope="singleton"/>
         
         

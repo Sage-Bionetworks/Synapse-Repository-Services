@@ -3,17 +3,45 @@ package org.sagebionetworks.repo.model;
 import java.util.Date;
 import java.util.Set;
 
-public class AccessControlList {
+public class AccessControlList implements Base {
 	private String id;
+	private String resourceId;
 	private String createdBy;
-	private Date createdOn;
+	private Date creationDate;
 	private String modifiedBy;
 	private Date modifiedOn;
-	private String eTag;
-	
-	private String resourceId;
+	private String etag;
+	private String uri;
 	
 	private Set<ResourceAccess2> resourceAccess;
+	
+	/**
+	 * @return the creationDate
+	 */
+	public Date getCreationDate() {
+		return creationDate;
+	}
+
+	/**
+	 * @param creationDate the creationDate to set
+	 */
+	public void setCreationDate(Date creationDate) {
+		this.creationDate = creationDate;
+	}
+
+	/**
+	 * @return the uri
+	 */
+	public String getUri() {
+		return uri;
+	}
+
+	/**
+	 * @param uri the uri to set
+	 */
+	public void setUri(String uri) {
+		this.uri = uri;
+	}
 
 	/**
 	 * @return the id
@@ -41,20 +69,6 @@ public class AccessControlList {
 	 */
 	public void setCreatedBy(String createdBy) {
 		this.createdBy = createdBy;
-	}
-
-	/**
-	 * @return the createdOn
-	 */
-	public Date getCreatedOn() {
-		return createdOn;
-	}
-
-	/**
-	 * @param createdOn the createdOn to set
-	 */
-	public void setCreatedOn(Date createdOn) {
-		this.createdOn = createdOn;
 	}
 
 	/**
@@ -86,17 +100,17 @@ public class AccessControlList {
 	}
 
 	/**
-	 * @return the eTag
+	 * @return the etag
 	 */
-	public String geteTag() {
-		return eTag;
+	public String getEtag() {
+		return etag;
 	}
 
 	/**
-	 * @param eTag the eTag to set
+	 * @param etag the etag to set
 	 */
-	public void seteTag(String eTag) {
-		this.eTag = eTag;
+	public void setEtag(String etag) {
+		this.etag = etag;
 	}
 
 	/**
@@ -137,8 +151,7 @@ public class AccessControlList {
 		result = prime * result
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result
-				+ ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
+				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
 				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
@@ -168,15 +181,10 @@ public class AccessControlList {
 				return false;
 		} else if (!createdBy.equals(other.createdBy))
 			return false;
-		if (createdOn == null) {
-			if (other.createdOn != null)
+		if (creationDate == null) {
+			if (other.creationDate != null)
 				return false;
-		} else if (!createdOn.equals(other.createdOn))
-			return false;
-		if (eTag == null) {
-			if (other.eTag != null)
-				return false;
-		} else if (!eTag.equals(other.eTag))
+		} else if (!creationDate.equals(other.creationDate))
 			return false;
 		if (id == null) {
 			if (other.id != null)

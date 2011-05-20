@@ -23,10 +23,10 @@ public class JDOResourceAccess2 {
 	private JDOAccessControlList owner;
 	
 	@Persistent
-	@Column
+	@Column(name=SqlConstants.COL_USER_GROUP_NAME)
 	private JDOUserGroup userGroup;
 				
-	// e.g. read, change, share
+	// e.g. read, write, delete, as defined in AuthorizationConstants.ACCESS_TYPE
 	@Persistent(serialized="false")
 	@Join (table=SqlConstants.TABLE_RESOURCE_ACCESS_TYPE, column=SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID)
 	private Set<String> accessType = new HashSet<String>();

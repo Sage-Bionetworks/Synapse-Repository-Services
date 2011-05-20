@@ -19,7 +19,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.manager.QueryManager;
-import org.sagebionetworks.repo.manager.UserGroupManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -55,7 +55,7 @@ public class QueryController extends BaseController {
 	QueryManager queryManager;
 	
 	@Autowired
-	UserGroupManager userGroupManager;
+	UserManager userManager;
 	
 
 
@@ -112,7 +112,7 @@ public class QueryController extends BaseController {
 					"Something is really messed up if we don't support UTF-8",
 					e);
 		}
-		UserInfo userInfo = userGroupManager.getUserInfo(userId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
 
 		// Convert from a query statement to a basic query
 		BasicQuery basic = new BasicQuery();

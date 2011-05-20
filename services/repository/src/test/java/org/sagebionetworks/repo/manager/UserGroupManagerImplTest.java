@@ -18,7 +18,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class UserGroupManagerImplTest {
 	
 	@Autowired
-	UserGroupManager userGroupManager;
+	UserManager userGroupManager;
 
 	@Before
 	public void setUp() throws Exception {

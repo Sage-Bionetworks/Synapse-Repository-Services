@@ -2,98 +2,76 @@ package org.sagebionetworks.repo.model.jdo;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertTrue;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Set;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.GroupPermissionsDAO;
-import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
+
 public class JDOUserGroupDAOImplTest {
 	
 	@Autowired
-	GroupPermissionsDAO groupPermissionsDAO;
-	
-//	@Autowired
-//	UserDAO userDAO;
-	
-	private Collection<String> users = new HashSet<String>();
-	private Collection<String> userGroups = new HashSet<String>();
+	private UserGroupDAO userGroupDAO;
 
 	@Before
 	public void setUp() throws Exception {
-		UserGroup g = new UserGroup();
-		g.setName("Test group");
-		groupPermissionsDAO.create(g);
-		userGroups.add(g.getId());
 	}
 
 	@After
 	public void tearDown() throws Exception {
-		for (String id : userGroups) {
-			groupPermissionsDAO.delete(id);
-			userGroups.remove(id);
-		}
-		for (String id : users) {
-//			userDAO.delete(id);
-//			users.remove(id);
+		Collection<String> groupNames = new HashSet<String>();
+		groupNames.add(GROUP_NAME);
+		Map<String,UserGroup> map = userGroupDAO.getGroupsByNames(groupNames);
+		UserGroup toDelete = map.get(GROUP_NAME);
+		if (toDelete!=null) {
+			userGroupDAO.delete(toDelete.getId());
 		}
 	}
 
+	private static final String GROUP_NAME = "test-group";
 	@Test
-	@Ignore
-	public void testAddUser() throws Exception {
-		String gId = userGroups.iterator().next();
-		UserGroup g = groupPermissionsDAO.get(gId);
+	public void testGetGroupsByNames() throws Exception {
+		Collection<UserGroup> allGroups = null; 
+		allGroups = userGroupDAO.getAll();
+		assertEquals(allGroups.toString(), 2, allGroups.size()); // Public and Administrators
+	
+		Collection<String> groupNames = new HashSet<String>();
+		groupNames.add(GROUP_NAME);
+		Map<String,UserGroup> map = null;
+		map = userGroupDAO.getGroupsByNames(groupNames);
+		assertFalse(map.containsKey(GROUP_NAME));
 		
-		User u = new User();
-		u.setUserId("TestUser");
-//		userDAO.create(u);
-		users.add(u.getId());
-//		groupPermissionsDAO.addUser(g, Long.parseLong(u.getId()));
-//		Long uId2 =  groupPermissionsDAO.getUsers(g).iterator().next();
-//		assertEquals(u.getId(), uId2);
-	}
+		UserGroup group = new UserGroup();
+		group.setName(GROUP_NAME);
+		userGroupDAO.create(group);
+		
+		allGroups = userGroupDAO.getAll();
+		assertEquals(allGroups.toString(), 3, allGroups.size()); // now the new group should be there
+			
+		groupNames.clear(); 	groupNames.add(GROUP_NAME);	
+		map = userGroupDAO.getGroupsByNames(groupNames);
+		assertTrue(groupNames.toString()+" -> "+map.toString(), map.containsKey(GROUP_NAME));
+		
+		
+		groupNames.clear(); groupNames.add(AuthorizationConstants.ADMIN_GROUP_NAME);
+		map = userGroupDAO.getGroupsByNames(groupNames);
+		assertTrue(map.toString(), map.containsKey(AuthorizationConstants.ADMIN_GROUP_NAME));
 
-	@Test
-	@Ignore
-	public void testGetPublicGroup() {
-		fail("Not yet implemented");
-	}
-
-	@Test
-	@Ignore
-	public void testGetIndividualGroup() {
-		fail("Not yet implemented");
-	}
-
-
-
-	@Test
-	public void testCreatableTypes() throws Exception {
-		String gId = userGroups.iterator().next();
-		UserGroup g = groupPermissionsDAO.get(gId);
-		Set<String> creatableTypes = new HashSet<String>(Arrays.asList(new String[]{"foo"}));
-		groupPermissionsDAO.setCreatableTypes(g, creatableTypes);
-		UserGroup g2 =groupPermissionsDAO.get(g.getId());
-		assertFalse(g==g2);
-		assertEquals(g.getId(), g2.getId());
-		assertEquals(g.getName(), g2.getName());
-		assertEquals(creatableTypes, groupPermissionsDAO.getCreatableTypes(g2));
 	}
 
 }

@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -54,7 +55,7 @@ public class EntityManagerImplAutowireTest {
 		mockAuth = Mockito.mock(AuthorizationManager.class);
 		entityManager.overrideAuthDaoForTest(mockAuth);
 		when(mockAuth.canAccess((UserInfo)any(), anyString(), any(AuthorizationConstants.ACCESS_TYPE.class))).thenReturn(true);
-		when(mockAuth.canCreate((UserInfo)any(), anyString())).thenReturn(true);
+		when(mockAuth.canCreate((UserInfo)any(), (Node)any())).thenReturn(true);
 
 		User anonUser = new User();
 		anonUser.setUserId(AuthUtilConstants.ANONYMOUS_USER_ID);
