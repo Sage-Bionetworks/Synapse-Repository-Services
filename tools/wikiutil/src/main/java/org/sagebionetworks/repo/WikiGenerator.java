@@ -8,7 +8,7 @@ import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
-import org.sagebionetworks.HttpClientHelper;
+import org.sagebionetworks.utils.HttpClientHelper;
 
 /**
  * WikiGenerator is used to auto-generate the wiki for the Platform Repository
