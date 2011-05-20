@@ -42,6 +42,36 @@ public class Synapse {
 	}
 
 	/**
+	 * Create a new dataset, layer, etc ...
+	 * 
+	 * @param uri
+	 * @param entity
+	 * @return the newly created entity
+	 * @throws Exception
+	 */
+	public JSONObject createEntity(String uri, JSONObject entity)
+			throws Exception {
+		if (null == uri) {
+			throw new IllegalArgumentException("must provide uri");
+		}
+		if (null == entity) {
+			throw new IllegalArgumentException("must provide entity");
+		}
+		URL requestUrl = new URL(serviceEndpoint + uri);
+		Map<String, String> requestHeaders = new HashMap<String, String>();
+		requestHeaders.putAll(defaultPOSTPUTHeaders);
+		String response = HttpClientHelper.performRequest(requestUrl, "POST",
+				entity.toString(), requestHeaders);
+		JSONObject results = new JSONObject(response);
+		if (log.isDebugEnabled()) {
+			log.debug("Created " + uri + " : " + results.toString(JSON_INDENT));
+		}
+		return results;
+	}
+
+	/**
+	 * Get a dataset, layer, preview, annotations, etc...
+	 * 
 	 * @param uri
 	 * @return the retrieved entity
 	 * @throws Exception
@@ -59,65 +89,53 @@ public class Synapse {
 				null, requestHeaders);
 		JSONObject results = new JSONObject(response);
 		if (log.isDebugEnabled()) {
-			log.debug("Retrieved " + uri + " : " + results.toString(JSON_INDENT));
+			log.debug("Retrieved " + uri + " : "
+					+ results.toString(JSON_INDENT));
 		}
 		return results;
 	}
 
 	/**
+	 * Update a dataset, layer, preview, annotations, etc...
+	 * 
+	 * This convenience method first grabs a copy of the currently stored
+	 * entity, then overwrites fields from the entity passed in on top of the
+	 * stored entity we retrieved and then PUTs the entity. This essentially
+	 * does a partial update from the point of view of the user of this API.
+	 * 
+	 * Note that users of this API may want to inspect what they are overwriting
+	 * before they do so. Another approach would be to do a GET, display the
+	 * field to the user, allow them to edit the fields, and then do a PUT.
+	 * 
 	 * @param uri
 	 * @param entity
 	 * @return the updated entity
 	 * @throws Exception
 	 */
-	public JSONObject createEntity(String uri, JSONObject entity)
+	public JSONObject updateEntity(String uri, JSONObject entity)
 			throws Exception {
-		if (null == uri) {
-			throw new IllegalArgumentException("must provide uri");
-		}
-		if (null == entity) {
-			throw new IllegalArgumentException("must provide entity");
-		}
 
-		URL requestUrl = new URL(serviceEndpoint + uri);
-		Map<String, String> requestHeaders = new HashMap<String, String>();
-		requestHeaders.putAll(defaultPOSTPUTHeaders);
-
-		String response = HttpClientHelper.performRequest(requestUrl, "POST",
-				entity.toString(), requestHeaders);
-		JSONObject results = new JSONObject(response);
-		if (log.isDebugEnabled()) {
-			log.debug("Created " + uri + " : " + results.toString(JSON_INDENT));
-		}
-		return results;
-	}
-
-	/**
-	 * @param uri
-	 * @param entity
-	 * @return the updated entity
-	 * @throws Exception
-	 */
-	public JSONObject updateEntity(String uri, JSONObject entity) throws Exception {
-		
 		JSONObject storedEntity = getEntity(uri);
-		
+
 		Iterator<String> keyIter = entity.keys();
-		while(keyIter.hasNext()) {
+		while (keyIter.hasNext()) {
 			String key = keyIter.next();
 			storedEntity.put(key, entity.get(key));
 		}
-		
-		return doPut(uri, storedEntity);
+
+		return putEntity(uri, storedEntity);
 
 	}
+
 	/**
+	 * Update a dataset, layer, preview, annotations, etc...
+	 *
 	 * @param uri
 	 * @param entity
 	 * @return the updated entity
 	 * @throws Exception
 	 */
-	public JSONObject doPut(String uri, JSONObject entity) throws Exception {
+	public JSONObject putEntity(String uri, JSONObject entity) throws Exception {
 		if (null == uri) {
 			throw new IllegalArgumentException("must provide uri");
 		}
@@ -140,11 +158,12 @@ public class Synapse {
 	}
 
 	/**
+	 * Delete a dataset, layer, etc..
+	 * 
 	 * @param uri
 	 * @throws Exception
 	 */
-	public void deleteEntity(String uri)
-			throws Exception {
+	public void deleteEntity(String uri) throws Exception {
 		if (null == uri) {
 			throw new IllegalArgumentException("must provide uri");
 		}
