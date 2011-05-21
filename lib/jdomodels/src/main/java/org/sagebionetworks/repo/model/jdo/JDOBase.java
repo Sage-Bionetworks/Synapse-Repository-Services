@@ -23,6 +23,16 @@ public interface JDOBase {
 	 * @return id of the persistent object
 	 */
 	public Long getId();
+	
+	/**
+	 * set the etag, indicating the the peristant object has changed
+	 */
+	public void setEtag(Long etag);
+	
+	/**
+	 * get the etag
+	 */
+	public Long getEtag();
 
 	/**
 	 * 

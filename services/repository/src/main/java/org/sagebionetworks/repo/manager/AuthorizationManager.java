@@ -35,9 +35,11 @@ public interface AuthorizationManager {
 	public boolean canCreate(UserInfo userInfo, final Node node) throws NotFoundException, DatastoreException ;
 	
 	/**
+	 * @param n the number of items in the group-id list
+	 * 
 	 * @return the SQL to find the root-accessible nodes that a specified user-group list can access
 	 * using a specified access type
 	 */
-	public String authorizationSQL();
+	public String authorizationSQL(int n);
 
 }

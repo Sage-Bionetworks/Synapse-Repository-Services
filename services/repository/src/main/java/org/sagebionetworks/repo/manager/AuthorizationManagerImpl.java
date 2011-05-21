@@ -23,7 +23,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private AccessControlListDAO accessControlListDAO;
 	
-	
 	private boolean isAdmin(UserInfo userInfo) throws DatastoreException, NotFoundException {
 		Collection<UserGroup> userGroups = userInfo.getGroups();
 		UserGroup adminGroup = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false);
@@ -73,11 +72,13 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 	
 	/**
+	 * @param n the number of items in the group-id list
+	 * 
 	 * @return the SQL to find the root-accessible nodes that a specified user-group list can access
 	 * using a specified access type
 	 */
 	@Override
-	public String authorizationSQL() {
-		return accessControlListDAO.authorizationSQL();
+	public String authorizationSQL(int n) {
+		return accessControlListDAO.authorizationSQL(n);
 	}
 }

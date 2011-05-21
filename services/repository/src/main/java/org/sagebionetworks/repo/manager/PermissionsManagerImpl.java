@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.Collection;
+import java.util.List;
+
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -9,6 +12,8 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ResourceAccess2;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +34,9 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	
 	@Autowired
 	private NodeManager nodeManager;
+	
+	@Autowired
+	private UserGroupDAO userGroupDAO;
 
 	@Override
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException {
@@ -103,4 +111,25 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		return aclDAO.getForResource(benefactor);
 	}
 
+	@Override
+	public Collection<UserGroup> getGroups() throws DatastoreException {
+		return userGroupDAO.getAll(false);
+	}
+
+	@Override
+	public Collection<UserGroup> getIndividuals() throws DatastoreException {
+		return userGroupDAO.getAll(true);
+	}
+
+	@Override
+	public List<UserGroup> getGroupsInRange(long startIncl, long endExcl) throws DatastoreException {
+		return userGroupDAO.getInRange(startIncl, endExcl, false);
+	}
+
+	@Override
+	public List<UserGroup> getIndividualsInRange(long startIncl, long endExcl) throws DatastoreException {
+		return userGroupDAO.getInRange(startIncl, endExcl, true);
+	}
+
+	
 }

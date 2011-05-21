@@ -15,6 +15,8 @@ public class AccessControlList implements Base {
 	
 	private Set<ResourceAccess2> resourceAccess;
 	
+	public String toString() {return resourceId+" "+resourceAccess;}
+	
 	/**
 	 * @return the creationDate
 	 */

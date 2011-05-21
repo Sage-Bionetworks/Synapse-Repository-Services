@@ -20,6 +20,11 @@ public interface AccessControlListDAO extends BaseDAO<AccessControlList> {
 	 * @return the SQL to find the root-accessible nodes that a specified user-group list can access
 	 * using a specified access type
 	 */
-	public String authorizationSQL();
-	
+	public String authorizationSQL(int n);
+
+	/**
+	 * executes the authorization query returned by authorizationSQL()
+	 */
+	public Collection<Object> execAuthorizationSQL(Collection<Long> groupIds, AuthorizationConstants.ACCESS_TYPE type);
+
 }

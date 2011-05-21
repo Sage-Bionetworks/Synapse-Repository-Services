@@ -31,8 +31,8 @@ public class JDOAccessControlList implements JDOBase {
     @ForeignKey(name="ACL_OWNER_FK", deleteAction=ForeignKeyAction.CASCADE)
 	private JDONode resource;
 	
-    @Persistent(mappedBy = "owner", serialized="false")
-	@Element(dependent = "true")
+    @Persistent(serialized="false", mappedBy = "owner")
+    @Element(dependent = "true")
 	private Set<JDOResourceAccess2> resourceAccess;
 
 	@Column(name=SqlConstants.COL_NODE_ETAG)
@@ -86,14 +86,14 @@ public class JDOAccessControlList implements JDOBase {
 	/**
 	 * @return the eTag
 	 */
-	public Long geteTag() {
+	public Long getEtag() {
 		return eTag;
 	}
 
 	/**
 	 * @param eTag the eTag to set
 	 */
-	public void seteTag(Long eTag) {
+	public void setEtag(Long eTag) {
 		this.eTag = eTag;
 	}
 

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.jdo;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.logging.Logger;
 
 import javax.jdo.JDOObjectNotFoundException;
@@ -12,6 +13,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
 import org.springframework.orm.jdo.JdoTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,6 +66,13 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 	 */
 	abstract void copyFromDto(S dto, T jdo)
 			throws InvalidModelException, DatastoreException;
+	
+	/**
+	 * When retrieving objects by range, there has to be some
+	 * nominal ordering strategy.  The DAO has to choose a default
+	 * sort column, e.g. a 'name' field.
+	 */
+	abstract String defaultSortField();
 
 	/**
 	 * @param jdoClass
@@ -87,6 +96,8 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 			
 			T jdo = newJDO();
 			copyFromDto(dto, jdo);
+			jdo.setId(null); // system will generate the ID
+			jdo.setEtag(0L);
 			jdoTemplate.makePersistent(jdo);
 			copyToDto(jdo, dto);
 			return KeyFactory.keyToString(jdo.getId());
@@ -113,6 +124,8 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 			S dto = newDTO();
 			copyToDto(jdo, dto);
 			return dto;
+		} catch (JdoObjectRetrievalFailureException e) {
+			throw new NotFoundException(e);
 		} catch (JDOObjectNotFoundException e) {
 			throw new NotFoundException(e);
 		} catch (Exception e) {
@@ -120,17 +133,38 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 		}
 	}
 	
+	List<S> copyToDtoCollection(Collection<T> jdos) throws DatastoreException {
+		List<S> ans = new ArrayList<S>();
+		for (T jdo: jdos) {
+			S dto = newDTO();
+			copyToDto(jdo, dto);
+			ans.add(dto);
+		}
+		return ans;
+	}
+	
 	@Transactional(readOnly = true)	
 	public Collection<S> getAll() throws DatastoreException {
 		try {
 			Collection<T> all = jdoTemplate.find(getJdoClass());
-			Collection<S> ans = new ArrayList<S>();
-			for (T jdo: all) {
-				S dto = newDTO();
-				copyToDto(jdo, dto);
-				ans.add(dto);
-			}
-			return ans;
+			return copyToDtoCollection(all);
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		}
+	}
+
+	@Transactional(readOnly = true)	
+	public Collection<S> getInRange(long fromIncl, long toExcl) throws DatastoreException {
+		try {
+			JDOExecutor exec = new JDOExecutor(jdoTemplate);
+			List<T> all = exec.execute(getJdoClass(), 
+					null,
+					null,
+					null,
+					fromIncl,
+					toExcl,
+					defaultSortField());
+			return copyToDtoCollection(all);
 		} catch (Exception e) {
 			throw new DatastoreException(e);
 		}
@@ -157,6 +191,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 		}
 	}
 
+	// TODO: Need to add a locking mechanism like that used for JDONode
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void update(S dto) throws DatastoreException, InvalidModelException,
 		NotFoundException {
@@ -166,6 +201,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 			Long id = KeyFactory.stringToKey(dto.getId());
 			T jdo = (T) jdoTemplate.getObjectById(getJdoClass(), id);
 			copyFromDto(dto, jdo);
+			jdo.setEtag(jdo.getEtag()+1L);
 			jdoTemplate.makePersistent(jdo);
 		} catch (InvalidModelException ime) {
 			throw ime;

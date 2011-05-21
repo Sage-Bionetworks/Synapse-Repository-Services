@@ -4,6 +4,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import javax.jdo.annotations.Column;
+import javax.jdo.annotations.ForeignKey;
+import javax.jdo.annotations.ForeignKeyAction;
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.Join;
 import javax.jdo.annotations.PersistenceCapable;
@@ -12,7 +14,7 @@ import javax.jdo.annotations.PrimaryKey;
 
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
-@PersistenceCapable(detachable = "false", table=SqlConstants.TABLE_RESOURCE_ACCESS_2)
+@PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_RESOURCE_ACCESS)
 public class JDOResourceAccess2 {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
@@ -23,12 +25,13 @@ public class JDOResourceAccess2 {
 	private JDOAccessControlList owner;
 	
 	@Persistent
-	@Column(name=SqlConstants.COL_USER_GROUP_NAME)
-	private JDOUserGroup userGroup;
+	@Column(name=SqlConstants.COL_USER_GROUP_ID)
+//	@ForeignKey(name="RESOURCE_ACCESS_USER_GROUP_FK", deleteAction=ForeignKeyAction.NONE)
+	private long userGroupId;
 				
 	// e.g. read, write, delete, as defined in AuthorizationConstants.ACCESS_TYPE
 	@Persistent(serialized="false")
-	@Join (table=SqlConstants.TABLE_RESOURCE_ACCESS_TYPE, column=SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID)
+	@Join(table=SqlConstants.TABLE_RESOURCE_ACCESS_TYPE, column=SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID)
 	private Set<String> accessType = new HashSet<String>();
 
 	/**
@@ -45,18 +48,19 @@ public class JDOResourceAccess2 {
 		this.id = id;
 	}
 
+
 	/**
-	 * @return the userGroup
+	 * @return the userGroupId
 	 */
-	public JDOUserGroup getUserGroup() {
-		return userGroup;
+	public long getUserGroupId() {
+		return userGroupId;
 	}
 
 	/**
-	 * @param userGroup the userGroup to set
+	 * @param userGroupId the userGroupId to set
 	 */
-	public void setUserGroup(JDOUserGroup userGroup) {
-		this.userGroup = userGroup;
+	public void setUserGroupId(long userGroupId) {
+		this.userGroupId = userGroupId;
 	}
 
 	/**

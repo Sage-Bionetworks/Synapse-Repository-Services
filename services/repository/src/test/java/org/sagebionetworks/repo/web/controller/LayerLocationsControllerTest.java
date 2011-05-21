@@ -50,7 +50,7 @@ public class LayerLocationsControllerTest {
 	private User user;
 	
 	@Autowired
-	private UserManager userGroupManager;
+	private UserManager userManager;
 	
 	private UserDAO userDao;
 	
@@ -84,7 +84,7 @@ public class LayerLocationsControllerTest {
 			readOnlyUserId = UNIT_TEST_READ_ONLY_USER_ID;
 			
 			this.userDao=new TestUserDAO();
-			userGroupManager.setUserDAO(userDao);
+			userManager.setUserDAO(userDao);
 
 			// TODO talk to Bruce to determine the right way to bootstrap users
 

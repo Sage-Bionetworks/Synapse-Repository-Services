@@ -1,24 +1,16 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
-import javax.jdo.JDOObjectNotFoundException;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -95,10 +87,45 @@ public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> 
 		}
 		return ans;
 	}
-
-
 	
+	/**
+	 * a variant of the generic 'getAll' query, this allows the caller to
+	 * separately retrieve the individual and non-individual groups.
+	 */
+	@Transactional(readOnly = true)	
+	public Collection<UserGroup> getAll(boolean isIndividual) throws DatastoreException {
+		try {
+			JDOExecutor exec = new JDOExecutor(jdoTemplate);
+			List<JDOUserGroup> all = exec.execute(getJdoClass(), 
+					"isIndividual=="+isIndividual,
+					null,
+					null);
+			return copyToDtoCollection(all);
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		}
+	}
 
+	/**
+	 * a variant of the generic 'getInRange' query, this allows the caller to
+	 * separately retrieve the individual and non-individual groups.
+	 */
+	@Transactional(readOnly = true)	
+	public List<UserGroup> getInRange(long fromIncl, long toExcl, boolean isIndividual) throws DatastoreException {
+		try {
+			JDOExecutor exec = new JDOExecutor(jdoTemplate);
+			List<JDOUserGroup> all = exec.execute(getJdoClass(), 
+					"isIndividual=="+isIndividual,
+					null,
+					null,
+					fromIncl,
+					toExcl,
+					defaultSortField());
+			return copyToDtoCollection(all);
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		}
+	}
 	
 	// initialization of UserGroups
 	@Override
@@ -126,18 +153,12 @@ public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> 
 		}
 	}
 	
-	
-	public static String sqlCollection(Collection<? extends Object> c) {
-		StringBuffer ans = new StringBuffer("(");
-		boolean first = true;
-		for (Object o : c) {
-			if (first) first=false; else ans.append(",");
-			ans.append(o.toString());
-		}
-		ans.append(")");
-		return ans.toString();
+	@Override
+	String defaultSortField() {
+		return "name";
 	}
 
+	
 	
 }
 
