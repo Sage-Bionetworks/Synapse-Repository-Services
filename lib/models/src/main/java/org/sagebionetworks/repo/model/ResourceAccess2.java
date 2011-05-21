@@ -11,6 +11,9 @@ import java.util.Set;
 public class ResourceAccess2 {
 	private String userGroupId;
 	private Set<AuthorizationConstants.ACCESS_TYPE> accessType;
+	
+	public String toString() {return userGroupId+" "+accessType;}
+	
 	/**
 	 * @return the userGroupId
 	 */

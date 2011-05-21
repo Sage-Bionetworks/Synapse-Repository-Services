@@ -25,7 +25,7 @@ public class TempMockAuthDao implements AuthorizationManager{
 	}
 
 	@Override
-	public String authorizationSQL() {
+	public String authorizationSQL(int n) {
 		// TODO Auto-generated method stub
 		return null;
 	}

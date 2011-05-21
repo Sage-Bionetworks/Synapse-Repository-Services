@@ -30,6 +30,7 @@ public class JDOUserGroupDAOImplTest {
 
 	@Before
 	public void setUp() throws Exception {
+		cleanUpGroups();
 	}
 
 	@After
@@ -40,6 +41,19 @@ public class JDOUserGroupDAOImplTest {
 		UserGroup toDelete = map.get(GROUP_NAME);
 		if (toDelete!=null) {
 			userGroupDAO.delete(toDelete.getId());
+		}
+		cleanUpGroups();
+	}
+	
+	public void cleanUpGroups() throws Exception {
+		for (UserGroup g: userGroupDAO.getAll()) {
+			if (g.getName().equals(AuthorizationConstants.ADMIN_GROUP_NAME)) {
+				// leave it
+			} else if (g.getName().equals(AuthorizationConstants.PUBLIC_GROUP_NAME)) {
+				// leave it
+			} else {
+				userGroupDAO.delete(g.getId());
+			}
 		}
 	}
 

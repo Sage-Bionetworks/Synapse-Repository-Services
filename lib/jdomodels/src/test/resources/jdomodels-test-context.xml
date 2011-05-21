@@ -22,5 +22,9 @@
         class="org.sagebionetworks.repo.model.jdo.JDOUserGroupDAOImpl"
         scope="singleton" />
     
+      <bean id="accessControlListDAO"
+        class="org.sagebionetworks.repo.model.jdo.JDOAccessControlListDAOImpl"
+        scope="singleton" />
+    
     
 </beans>

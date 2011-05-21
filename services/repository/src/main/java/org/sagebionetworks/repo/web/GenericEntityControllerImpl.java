@@ -47,9 +47,6 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	@Autowired
 	UserManager userManager;
 	
-	@Autowired
-	AuthorizationManager authorizationManager;
-
 	public GenericEntityControllerImpl(){
 		
 	}

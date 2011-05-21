@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONodeType;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess2;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.sagebionetworks.repo.model.query.Compartor;
@@ -139,6 +139,6 @@ public class SqlConstantsTest {
 	}
 	@Test
 	public void testResourceAccessClass(){
-		assertEquals(SqlConstants.TABLE_RESOURCE_ACCESS, SqlConstants.getTableForClass(JDOResourceAccess.class));
+		assertEquals(SqlConstants.TABLE_RESOURCE_ACCESS, SqlConstants.getTableForClass(JDOResourceAccess2.class));
 	}
 }

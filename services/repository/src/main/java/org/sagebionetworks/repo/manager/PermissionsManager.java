@@ -1,9 +1,13 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.Collection;
+import java.util.List;
+
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -57,4 +61,32 @@ public interface PermissionsManager {
 	 */
 	public AccessControlList restoreInheritance(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException;
 
+	// the following methods provide the principals (individuals and groups) 
+	// to which resource access permission may be granted
+	
+	/**
+	 * 
+	 * get all non-individual user groups
+	 * @throws DatastoreException 
+	 * 
+	 **/
+	public Collection<UserGroup> getGroups() throws DatastoreException;
+	
+	/**
+	 * get all individual user groups
+	 * 
+	 **/
+	public Collection<UserGroup> getIndividuals() throws DatastoreException;
+	
+	/**
+	 * get non-individual user groups in range
+	 * 
+	 **/
+	public List<UserGroup> getGroupsInRange(long startIncl, long endExcl) throws DatastoreException;
+	
+	/**
+	 * get individual user groups in range
+	 * 
+	 **/
+	public List<UserGroup> getIndividualsInRange(long startIncl, long endExcl) throws DatastoreException;
 }

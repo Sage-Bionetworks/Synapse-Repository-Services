@@ -84,6 +84,28 @@ public class JDOExecutor {
 	}
 	
 
+	public <T> List<T> execute(final Class<T> t, final String filter,
+			final String params,
+			final String vars,
+			final long fromIncl,
+			final long toExcl,
+			final String ordering) {
+		return (List<T>) jdoTemplate.execute(new JdoCallback<List<T>>() {
+			@Override
+			public List<T> doInJdo(PersistenceManager pm) throws JDOException {
+				Query query = pm.newQuery(t);
+				if (filter!=null) query.setFilter(filter);
+				if (vars!=null) query.declareVariables(vars);
+				if (params!=null) query.declareParameters(params);
+				query.setRange(fromIncl, toExcl);
+				query.setOrdering(ordering);
+				List<T> ans = (List<T>)query.execute();
+				return ans;
+			}
+		});
+	}
+	
+
 	
 	public <T> List<T> execute(final Class<T> t, final String filter,
 			final String params,

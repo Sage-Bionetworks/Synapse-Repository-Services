@@ -4,9 +4,11 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.jdo.annotations.Column;
 import javax.jdo.annotations.Element;
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.Join;
+import javax.jdo.annotations.NullValue;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
@@ -21,9 +23,13 @@ public class JDOUserGroup implements JDOBase {
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 	
-	@Persistent (column=SqlConstants.COL_USER_GROUP_NAME)
+	@Persistent (column=SqlConstants.COL_USER_GROUP_ID)
 	@Unique
 	private String name;
+	
+	@Column(name=SqlConstants.COL_NODE_ETAG)
+	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
+	private Long eTag = new Long(0);
 	
 	@Persistent
 	private Date creationDate;
@@ -91,5 +97,19 @@ public class JDOUserGroup implements JDOBase {
 		return true;
 	}
 	
-	
+	/**
+	 * @return the eTag
+	 */
+	public Long getEtag() {
+		return eTag;
+	}
+
+	/**
+	 * @param eTag the eTag to set
+	 */
+	public void setEtag(Long eTag) {
+		this.eTag = eTag;
+	}
+
+
 }

@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONodeType;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess2;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.sagebionetworks.repo.model.query.Compartor;
@@ -57,27 +57,26 @@ public class SqlConstants {
 	public static final String TABLE_USER					= "JDOUSER";
 	public static final String TABLE_USER_GROUP				= "JDOUSERGROUP";
 	public static final String TABLE_USER_GROUP_USERS		= "JDOUSERGROUPUSERS";
-	public static final String COL_USER_GROUP_NAME			 = "NAME";
-//	public static final String COL_USER_GROUP_IS_SYSTEM_GROUP = "ISSYSTEMGROUP";
+	public static final String COL_USER_GROUP_ID			 = "GROUP_ID";
 	public static final String COL_USER_GROUP_IS_INDIVIDUAL = "ISINDIVIDUAL";
 	
 	public static final String TABLE_ACCESS_CONTROL_LIST = "ACL";
 	public static final String COL_ACL_ID				= "ID";
+	public static final String COL_ACL_OWNER_ID			= "ID_OID";
 	
 	// The resource access table
 	public static final String TABLE_RESOURCE_ACCESS			= "JDORESOURCEACCESS";
-	public static final String COL_RESOURCE_ACCESS_OWNER		= "OWNER_ID_OID";
+	public static final String COL_RESOURCE_ACCESS_OWNER		= "OWNER_ID";
 	public static final String COL_RESOURCE_ACCESS_TYPE			= "RESOURCE_TYPE";
 	public static final String COL_RESOURCE_ACCESS_RESOURCE_ID	= "RESOURCE_ID";
-	
-	public static final String TABLE_RESOURCE_ACCESS_2			= "JDORESOURCEACCESS2";
-	
+		
 	// The resource access join table
-	public static final String TABLE_RESOURCE_ACCESS_TYPE		= "JDORESOURCEACCESS_ACCESSTYPE";
+	// datanucleus doesn't seem to be respecting the join table name when creating the schema
+	// so I've modified the string to match the generated name
+	public static final String TABLE_RESOURCE_ACCESS_TYPE		= "JDORESOURCEACCESS2_ACCESSTYPE"; 
 	public static final String COL_RESOURCE_ACCESS_TYPE_ID		= "ID_OID";
 	public static final String COL_RESOURCE_ACCESS_TYPE_ELEMENT	= "STRING_ELE";
 	
-	public static final String 	COL_ACL_OWNER_ID = "ID_OID";
 	
 	// The alias used for the dataset table.
 	public static final String PRIMARY_ALIAS	= "prm";
@@ -129,10 +128,10 @@ public class SqlConstants {
 		mapClassToTable.put(JDODateAnnotation.class.getName(), 		TABLE_DATE_ANNOTATIONS);
 		mapClassToTable.put(JDOStringAnnotation.class.getName(),	TABLE_STRING_ANNOTATIONS);
 		// security
-		mapClassToTable.put(JDOResourceAccess.class.getName(),		TABLE_RESOURCE_ACCESS);
+		mapClassToTable.put(JDOResourceAccess2.class.getName(),		TABLE_RESOURCE_ACCESS);
 		mapClassToTable.put(JDOUserGroup.class.getName(), 			TABLE_USER_GROUP);
 		// Join tables
-		mapClassToTable.put(JDOResourceAccess.class.getName()+".accessType",	TABLE_RESOURCE_ACCESS_TYPE);
+//		mapClassToTable.put(JDOResourceAccess.class.getName()+".accessType",	TABLE_RESOURCE_ACCESS_TYPE);
 		mapClassToTable.put(JDOUserGroup.class.getName()+".users",				TABLE_USER_GROUP_USERS);
 	}
 	
