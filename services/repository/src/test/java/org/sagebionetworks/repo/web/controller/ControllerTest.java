@@ -130,8 +130,8 @@ public class ControllerTest {
 			// name\n at [Source:
 			// org.springframework.mock.web.DelegatingServletInputStream@11e3c2c6;
 			// line: 1, column: 3]"}
-			assertTrue("Testing " + url, results.getString("reason")
-					.startsWith("Could not read JSON: Unexpected character"));
+			int index = results.getString("reason").indexOf("Could not read JSON: Unexpected character");
+			assertTrue("Testing " + url, index >= 0);
 		}
 	}
 
@@ -168,9 +168,8 @@ public class ControllerTest {
 			JSONObject results = new JSONObject(response.getContentAsString());
 			// The response should be something like:
 			// {"reason":"No content to map to Object due to end of input"}
-			assertEquals("Testing " + url,
-					"No content to map to Object due to end of input", results
-							.getString("reason"));
+			int index = results.getString("reason").indexOf("No content to map to Object due to end of input");
+			assertTrue("Testing " + url, index >= 0);
 		}
 	}
 
@@ -208,9 +207,8 @@ public class ControllerTest {
 			JSONObject results = new JSONObject(response.getContentAsString());
 			// The response should be something like:
 			// {"reason":"No content to map to Object due to end of input"}
-			assertEquals("Testing " + url,
-					"No content to map to Object due to end of input", results
-							.getString("reason"));
+			int index = results.getString("reason").indexOf("No content to map to Object due to end of input");
+			assertTrue("Testing " + url, index >= 0);
 		}
 	}
 
