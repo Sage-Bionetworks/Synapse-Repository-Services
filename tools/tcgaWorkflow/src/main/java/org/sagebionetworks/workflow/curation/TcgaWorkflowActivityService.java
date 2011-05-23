@@ -8,9 +8,9 @@
 package org.sagebionetworks.workflow.curation;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import org.sagebionetworks.workflow.curation.ConfigHelper;
 
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.AsynchronyExecutorService;
@@ -87,9 +87,16 @@ public class TcgaWorkflowActivityService {
 		System.out.println("Starting Agent Service...");
 
 		activityExecutor = new AsynchronyExecutorService(swfService);
+
+		// Discover and register all activities exposed by this package
 		activityExecutor
 				.addActivitiesFromPackage(TcgaWorkflowActivityService.class
 						.getPackage().getName());
+
+		// Enable routing to specific hosts
+		List<String> capabilities = new ArrayList<String>();
+		capabilities.add(TcgaWorkflow.getHostName());
+		activityExecutor.setCapabilities(capabilities);
 
 		// Start ActivityExecutor Service
 		activityExecutor.start();

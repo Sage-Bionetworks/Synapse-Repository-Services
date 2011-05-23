@@ -3,16 +3,14 @@ package org.sagebionetworks.workflow.curation;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import org.sagebionetworks.workflow.curation.ConfigHelper;
-
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.AsynchronyExecutorService;
 
 /**
  * This is the process which hosts all the SWF deciders exposed in this package.
  * 
- * Note that the TCGA Curation pipeline decider has no external dependencies (e.g., it does not need
- * to run on a machine with R and Bioconductor)
+ * Note that the TCGA Curation pipeline decider has no external dependencies
+ * (e.g., it does not need to run on a machine with R and Bioconductor)
  * 
  */
 public class TcgaWorkflowDeciderService {

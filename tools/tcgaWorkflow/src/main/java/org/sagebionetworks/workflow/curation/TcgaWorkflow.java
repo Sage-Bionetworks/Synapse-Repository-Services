@@ -152,8 +152,8 @@ public class TcgaWorkflow {
 		 * simple for now, later on we'll want to check their communication
 		 * preferences and batch up these notifications as configured
 		 */
-		Value<String> result8 = flow.dispatchNotifyFollowers(result7,
-				processedLayerId, processedDataMessage);
+		flow.dispatchNotifyFollowers(result7, processedLayerId,
+				processedDataMessage);
 		// }
 	}
 
@@ -207,12 +207,11 @@ public class TcgaWorkflow {
 
 	@Activity
 	@ExponentialRetry(minimumAttempts = 5, maximumAttempts = 10)
-	private static Value<String> doUploadDataToS3(String param,
+	private static Value<String> doUploadDataToS3(
+			String param,
 			Integer rawLayerId,
-			// TODO I seem to have a bug here with the scheduling requirement
-			// @ActivitySchedulingOption(option =
-			// ActivitySchedulingElement.requirement)
-			String machineName, String localFilepath, String md5) {
+			@ActivitySchedulingOption(option = ActivitySchedulingElement.requirement) String machineName,
+			String localFilepath, String md5) {
 		// - get the pre-signed S3 URL to which to upload the data from the
 		// repository service
 		// - upload the data to the pre-signed S3 URL
@@ -242,12 +241,9 @@ public class TcgaWorkflow {
 			String param,
 			String script,
 			Integer rawLayerId,
-			// TODO I seem to have a bug here with the scheduling requirement
-			// @ActivitySchedulingOption(option =
-			// ActivitySchedulingElement.requirement)
-			String machineName, String localFilepath,
-			Settable<Integer> processedLayerId, Settable<String> stdout,
-			Settable<String> stderr) throws Exception {
+			@ActivitySchedulingOption(option = ActivitySchedulingElement.requirement) String machineName,
+			String localFilepath, Settable<Integer> processedLayerId,
+			Settable<String> stdout, Settable<String> stderr) throws Exception {
 
 		// When these R scripts are run via this workflow, a value will be
 		// passed in for --localFilepath, the script will get the layer metadata

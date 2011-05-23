@@ -12,6 +12,8 @@ import java.io.FileInputStream;
 import java.net.URL;
 import java.util.Properties;
 
+import org.sagebionetworks.client.Synapse;
+
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -27,6 +29,7 @@ public class ConfigHelper {
 
 	private static final String PROPERTIES_FILENAME = "workflow.properties";
 
+	private static final String SYNAPSE_SERVICE_URL_KEY = "synapse.url";
 	private static final String SWF_SERVICE_URL_KEY = "service.url";
 	private static final String SWF_ACCESS_ID_KEY = "AWS_ACCESS_KEY_ID";
 	private static final String SWF_SECRET_KEY_KEY = "AWS_SECRET_KEY";
@@ -34,6 +37,8 @@ public class ConfigHelper {
 	private static final String S3_ACCESS_ID_KEY = "AWS.Access.ID";
 	private static final String S3_SECRET_KEY_KEY = "AWS.Secret.Key";
 	private static final String S3_BUCKET_NAME_KEY = "S3.Bucket.Name";
+
+	private String synapseServiceUrl;
 
 	private String swfServiceUrl;
 	private String swfAccessId;
@@ -52,12 +57,13 @@ public class ConfigHelper {
 		Properties serviceProperties = new Properties();
 		serviceProperties.load(new FileInputStream(new File(url.getFile())));
 
+		this.synapseServiceUrl = serviceProperties.getProperty(SYNAPSE_SERVICE_URL_KEY);
 		this.swfServiceUrl = serviceProperties.getProperty(SWF_SERVICE_URL_KEY);
 		this.swfAccessId = System.getProperty(SWF_ACCESS_ID_KEY); // serviceProperties.getProperty(SWF_ACCESS_ID_KEY);
 		this.swfSecretKey = System.getProperty(SWF_SECRET_KEY_KEY); // serviceProperties.getProperty(SWF_SECRET_KEY_KEY);
 
-		this.s3AccessId = serviceProperties.getProperty(S3_ACCESS_ID_KEY);
-		this.s3SecretKey = serviceProperties.getProperty(S3_SECRET_KEY_KEY);
+		this.s3AccessId = System.getProperty(SWF_ACCESS_ID_KEY); // serviceProperties.getProperty(S3_ACCESS_ID_KEY);
+		this.s3SecretKey = System.getProperty(SWF_SECRET_KEY_KEY); // serviceProperties.getProperty(S3_SECRET_KEY_KEY);
 		this.s3BucketName = serviceProperties.getProperty(S3_BUCKET_NAME_KEY);
 	}
 
@@ -83,6 +89,11 @@ public class ConfigHelper {
 				this.s3AccessId, this.s3SecretKey);
 		AmazonS3 client = new AmazonS3Client(s3AWSCredentials);
 		return client;
+	}
+
+	public Synapse createSynapseClient() {
+		Synapse synapse = new Synapse(this.synapseServiceUrl);
+		return synapse;
 	}
 
 	public String getS3BucketName() {
