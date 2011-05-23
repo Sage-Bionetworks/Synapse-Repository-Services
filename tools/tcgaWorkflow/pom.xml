@@ -17,6 +17,12 @@
 
   <dependencies>
 
+    <dependency>
+      <groupId>org.sagebionetworks</groupId>
+      <artifactId>synapseJavaClient</artifactId>
+      <version>${applicationVersion}</version>
+    </dependency>
+
     <!-- AWS dependencies -->
     <dependency>
       <groupId>com.amazonaws</groupId>
