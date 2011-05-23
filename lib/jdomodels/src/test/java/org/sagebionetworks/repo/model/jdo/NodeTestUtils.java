@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.model.jdo;
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.query.ObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 
 public class NodeTestUtils {
 

@@ -22,6 +22,8 @@ import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.LayerLocations;
 import org.sagebionetworks.repo.model.LayerPreview;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Project;
 
 /**
  * UrlHelpers is responsible for the formatting of all URLs exposed by the
@@ -85,6 +87,11 @@ public class UrlHelpers {
 	 * URL suffix for locations info
 	 */
 	public static final String LOCATIONS = "/locations";
+	
+	/**
+	 * URL suffix for Project info
+	 */
+	public static final String PROJECT = "/project";
 
 	/**
 	 * URL suffix for S3 location metadata
@@ -178,6 +185,7 @@ public class UrlHelpers {
 		Map<Class, String> model2url = new HashMap<Class, String>();
 		model2url.put(Dataset.class, DATASET);
 		model2url.put(InputDataLayer.class, LAYER);
+		model2url.put(Project.class, PROJECT);
 //		model2url.put(User.class, USER);
 //		model2url.put(UserGroup.class, USERGROUP);
 		MODEL2URL = Collections.unmodifiableMap(model2url);
@@ -432,4 +440,5 @@ public class UrlHelpers {
 		}
 		return uriPrefix + suffix;
 	}
+	
 }

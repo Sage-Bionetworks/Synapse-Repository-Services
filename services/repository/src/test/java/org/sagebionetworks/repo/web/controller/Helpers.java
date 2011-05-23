@@ -122,8 +122,7 @@ public class Helpers {
 			// Create a Spring MVC DispatcherServlet so that we can test our URL
 			// mapping, request format, response format, and response status
 			// code.
-			MockServletConfig servletConfig = new MockServletConfig(
-					"repository");
+			MockServletConfig servletConfig = new MockServletConfig("repository");
 			servletConfig.addInitParameter("contextConfigLocation", "classpath:test-context.xml");
 			servlet = new DispatcherServlet();
 			servlet.init(servletConfig);

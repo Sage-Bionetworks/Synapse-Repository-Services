@@ -19,6 +19,7 @@ public class Project implements BaseChild {
 	private String creator;
 	private Date creationDate;
 	private String parentId;
+	private String annotations;
 
 	public String getId() {
 		return id;
@@ -26,6 +27,14 @@ public class Project implements BaseChild {
 
 	public void setId(String id) {
 		this.id = id;
+	}
+
+	public String getAnnotations() {
+		return annotations;
+	}
+
+	public void setAnnotations(String annotations) {
+		this.annotations = annotations;
 	}
 
 	/**
@@ -124,6 +133,8 @@ public class Project implements BaseChild {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
+				+ ((annotations == null) ? 0 : annotations.hashCode());
+		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((creator == null) ? 0 : creator.hashCode());
 		result = prime * result
@@ -146,6 +157,11 @@ public class Project implements BaseChild {
 		if (getClass() != obj.getClass())
 			return false;
 		Project other = (Project) obj;
+		if (annotations == null) {
+			if (other.annotations != null)
+				return false;
+		} else if (!annotations.equals(other.annotations))
+			return false;
 		if (creationDate == null) {
 			if (other.creationDate != null)
 				return false;
@@ -194,7 +210,8 @@ public class Project implements BaseChild {
 		return "Project [id=" + id + ", uri=" + uri + ", etag=" + etag
 				+ ", name=" + name + ", description=" + description
 				+ ", creator=" + creator + ", creationDate=" + creationDate
-				+ ", parentId=" + parentId + "]";
+				+ ", parentId=" + parentId + ", annotations=" + annotations
+				+ "]";
 	}
 
 }
