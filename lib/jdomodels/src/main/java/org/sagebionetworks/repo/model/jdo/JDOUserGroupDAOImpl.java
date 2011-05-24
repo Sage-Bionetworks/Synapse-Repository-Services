@@ -151,6 +151,17 @@ public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> 
 				create(ag);				
 			}
 		}
+		
+		{
+			// ensure the anonymous principal is created
+			UserGroup anon = findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
+			if (anon==null) {
+				anon = new UserGroup();
+				anon.setName(AuthorizationConstants.ANONYMOUS_USER_ID);
+				anon.setIndividual(true);
+				create(anon);				
+			}
+		}
 	}
 	
 	@Override

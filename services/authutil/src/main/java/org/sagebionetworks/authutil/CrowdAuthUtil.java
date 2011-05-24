@@ -443,7 +443,7 @@ public class CrowdAuthUtil {
 		// uri: /user?username=USERNAME (GET), 404 if user can't be found
 	}
 	
-	public Map<String,Collection<String>> getUserAttributes(String userId, Collection<String> attributes) throws IOException, NotFoundException {
+	public Map<String,Collection<String>> getUserAttributes(String userId/*, Collection<String> attributes*/) throws IOException, NotFoundException {
 		URL url = new URL(urlPrefix()+"/user?expand=attributes&username="+userId);
 		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 		conn.setRequestMethod("GET");
@@ -464,16 +464,32 @@ public class CrowdAuthUtil {
 			throw new NotFoundException(chainedException);
 		}
 		try {
+			Collection<String> attributes = getMultiFromXML("/user/attributes/attribute/@name", sessionXML);
+//			System.out.println("attribute names: "+attributes);
 //			System.out.println(new String(sessionXML));
 			Map<String,Collection<String>> ans = new HashMap<String,Collection<String>>();
 			for (String attribute: attributes) {
 				Collection<String> values = getMultiFromXML("/user/attributes/attribute[@name=\""+attribute+"\"]/values/value", sessionXML);
 				ans.put(attribute, values);
 			}
+//			System.out.println("attribute map: "+ans);
 			return ans;
 		} catch (XPathExpressionException xee) {
 			throw new RuntimeException(xee);
 		}
+	}
+	
+	public void setUserAttributes(String userId, Map<String,Collection<String>> attributes) throws IOException, NotFoundException {
+		// API is here: http://confluence.atlassian.com/display/CROWDDEV/Crowd+REST+Resources
+		// not that format of body of POST is not explicitly documented.  May have to infer it from sample.
+		//
+		// To get sample:
+		// curl -u platform:platform-pw -H "Accept: application/xml" -H "Content-Type: application/xml" -v -k  -X GET "https://ec2-50-16-158-220.compute-1.amazonaws.com:8443/crowd/rest/usermanagement/1/user/attribute?username=demouser"
+		//
+		// idea for mapping bet. XML and Java (marshalling/unmarshalling):
+		// http://jxm.sourceforge.net/index.html
+		//
+		throw new RuntimeException("Not yet implemented.");
 	}
 	
 	public Collection<String> getUsersGroups(String userId) throws IOException, NotFoundException {

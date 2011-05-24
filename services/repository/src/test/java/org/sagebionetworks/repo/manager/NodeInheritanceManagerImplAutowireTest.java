@@ -51,7 +51,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 	
 	@Before
 	public void before() throws Exception{
-		userInfo = new UserInfo();
+		userInfo = new UserInfo(false);
 		User anonUser = new User();
 		anonUser.setUserId(AuthUtilConstants.ANONYMOUS_USER_ID);
 		userInfo.setUser(anonUser);

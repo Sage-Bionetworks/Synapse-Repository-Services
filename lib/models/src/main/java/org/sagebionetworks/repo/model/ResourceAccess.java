@@ -8,7 +8,7 @@ import java.util.Set;
  * belonging to an AccessControlList, which has only one
  * object for each group.
  */
-public class ResourceAccess2 {
+public class ResourceAccess {
 	private String userGroupId;
 	private Set<AuthorizationConstants.ACCESS_TYPE> accessType;
 	
@@ -58,9 +58,9 @@ public class ResourceAccess2 {
 			return true;
 		if (obj == null)
 			return false;
-		if (!(obj instanceof ResourceAccess2))
+		if (!(obj instanceof ResourceAccess))
 			return false;
-		ResourceAccess2 other = (ResourceAccess2) obj;
+		ResourceAccess other = (ResourceAccess) obj;
 		if (userGroupId == null) {
 			if (other.userGroupId != null)
 				return false;

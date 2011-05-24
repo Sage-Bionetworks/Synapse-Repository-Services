@@ -6,8 +6,8 @@ package org.sagebionetworks.auth;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
-import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -33,13 +33,18 @@ import org.openid4java.message.ax.FetchResponse;
 // http://code.google.com/p/openid4java/wiki/QuickStart
 public class SampleConsumer
 {
-    public ConsumerManager manager;
+    private ConsumerManager manager;
 
-    public SampleConsumer() {
+    public SampleConsumer(ConsumerManager manager) {
         // instantiate a ConsumerManager object
-        manager = new ConsumerManager();
+//        manager = new ConsumerManager();
+    	this.manager = manager;
     }
 
+    public static final String AX_EMAIL = "Email";
+    public static final String AX_FIRST_NAME = "FirstName";
+    public static final String AX_LAST_NAME = "LastName";
+    
     // --- placing the authentication request ---
     public String authRequest(String userSuppliedString,
     						  String returnToUrl,
@@ -71,16 +76,19 @@ public class SampleConsumer
 
             // Attribute Exchange example: fetching the 'email' attribute
             FetchRequest fetch = FetchRequest.createFetchRequest();
-            fetch.addAttribute("email",
-                    // attribute alias
-                    "http://schema.openid.net/contact/email",   // type URI
-                    true);                                      // required
+            // doesn't work unless you replace 'schema.openid.net' with 'axschema.org'
+//            fetch.addAttribute("email", "http://schema.openid.net/contact/email", true);
+//            fetch.addAttribute("FirstName", "http://schema.openid.net/namePerson/first", true);
+//            fetch.addAttribute("LastName", "http://schema.openid.net/namePerson/last", true);
+            fetch.addAttribute(AX_EMAIL, "http://axschema.org/contact/email", true);
+            fetch.addAttribute(AX_FIRST_NAME, "http://axschema.org/namePerson/first", true);
+            fetch.addAttribute(AX_LAST_NAME, "http://axschema.org/namePerson/last", true);
 
             // attach the extension to the authentication request
             authReq.addExtension(fetch);
 
 
-            if (true || ! discovered.isVersion2() )
+            /* if (true  ! discovered.isVersion2() ) */
             {
                 // Option 1: GET HTTP-redirect to the OpenID Provider endpoint
                 // The only method supported in OpenID 1.x
@@ -88,27 +96,25 @@ public class SampleConsumer
                 httpResp.sendRedirect(authReq.getDestinationUrl(true));
                 return null;
             }
-            else
-            {
-                // Option 2: HTML FORM Redirection (Allows payloads >2048 bytes)
-
-                RequestDispatcher dispatcher =
-                        servlet.getServletContext().getRequestDispatcher("formredirection.jsp");
-                httpReq.setAttribute("parameterMap", authReq.getParameterMap());
-                httpReq.setAttribute("destinationUrl", authReq.getDestinationUrl(false));
-                dispatcher.forward(httpReq, httpResp);
-            }
+//            else
+//            {
+//                // Option 2: HTML FORM Redirection (Allows payloads >2048 bytes)
+//
+//                RequestDispatcher dispatcher =
+//                        servlet.getServletContext().getRequestDispatcher("formredirection.jsp");
+//                httpReq.setAttribute("parameterMap", authReq.getParameterMap());
+//                httpReq.setAttribute("destinationUrl", authReq.getDestinationUrl(false));
+//                dispatcher.forward(httpReq, httpResp);
+//            }
         }
         catch (OpenIDException e)
         {
             throw new RuntimeException(e);
         }
-
-        return null;
     }
 
     // --- processing the authentication response ---
-    public String verifyResponse(HttpServletRequest httpReq)
+    public OpenIDInfo verifyResponse(HttpServletRequest httpReq)
     {
         try
         {
@@ -127,31 +133,46 @@ public class SampleConsumer
             if (queryString != null && queryString.length() > 0)
                 receivingURL.append("?").append(httpReq.getQueryString());
 
-            // verify the response; ConsumerManager needs to be the same
-            // (static) instance used to place the authentication request
-            VerificationResult verification = manager.verify(
-                    receivingURL.toString(),
-                    response, discovered);
+            AuthSuccess authSuccess = null;
+            boolean success = false;
+            OpenIDInfo result = new OpenIDInfo();
+            // modification needed to get it working with hosted google apps.  From 
+            // http://groups.google.com/group/openid4java/browse_thread/thread/2349e5e3a29f5c5d?pli=1
+            if (false) {
+                // verify the response
+                VerificationResult verification = manager.verify(
+                        receivingURL.toString(), response, discovered);
+                Identifier verified = verification.getVerifiedId();
+                if (verified != null) {
+                	success = true;
+                    authSuccess = (AuthSuccess) verification.getAuthResponse();
+                    result.setIdentifier(verified.getIdentifier());
+                }
+           } else {
+            	authSuccess = AuthSuccess.createAuthSuccess(response);
+            	boolean nonceVerified = manager.verifyNonce(authSuccess, discovered);
+            	success = nonceVerified;
+            	if (success) {
+            		result.setIdentifier(httpReq.getParameter("openid.identity"));
+            	}
+            }
+            
 
             // examine the verification result and extract the verified identifier
-            Identifier verified = verification.getVerifiedId();
-            if (verified != null)
-            {
-                AuthSuccess authSuccess =
-                        (AuthSuccess) verification.getAuthResponse();
+           if (success) {
 
+ 
                 if (authSuccess.hasExtension(AxMessage.OPENID_NS_AX))
                 {
                     FetchResponse fetchResp = (FetchResponse) authSuccess
                             .getExtension(AxMessage.OPENID_NS_AX);
 
                     @SuppressWarnings("unchecked")
-                    List<String> emails = (List<String>)fetchResp.getAttributeValues("email");
-                    String email = emails.get(0);
-                    return email;
+                    Map<String,List<String>>  attributes = (Map<String,List<String>>)fetchResp.getAttributes();
+                    result.setMap(attributes);
                 }
 
-                return null; // verified;  // success
+                return result;
             }
         }
         catch (OpenIDException e)
@@ -159,6 +180,6 @@ public class SampleConsumer
             throw new RuntimeException(e);
         }
 
-        return null;
+        return null; // not verified
     }
 }

@@ -92,7 +92,7 @@ public class CrowdUserDAO implements UserDAO {
 		});
 		Map<String,Collection<String>> userAttrValues = null;
 		try {
-			userAttrValues = crowdAuthUtil.getUserAttributes(userName, userAttributes);
+			userAttrValues = crowdAuthUtil.getUserAttributes(userName);
 			System.out.println("CrowdUserDAO: "+userAttrValues);
 		} catch (NotFoundException nfe) {
 			throw nfe;
@@ -105,7 +105,7 @@ public class CrowdUserDAO implements UserDAO {
 //		DateFormat df = new SimpleDateFormat("yyyy-mm-dd HH:MM:SS.SSS");
 		DateFormat df = new SimpleDateFormat("yyyy-mm-dd");
 		
-		if (values.size()>0) {
+		if (values!=null && values.size()>0) {
 			String dateString = values.iterator().next();
 			if (dateString!=null && dateString.length()>0) {
 				try {
@@ -117,9 +117,9 @@ public class CrowdUserDAO implements UserDAO {
 			}
 		}
 		values = userAttrValues.get(IAM_ACCESS_ID_FIELD);
-		if (values.size()>0) user.setIamAccessId(values.iterator().next());
+		if (values!=null && values.size()>0) user.setIamAccessId(values.iterator().next());
 		values = userAttrValues.get(IAM_SECRET_KEY_FIELD);
-		if (values.size()>0) user.setIamSecretKey(values.iterator().next());
+		if (values!=null && values.size()>0) user.setIamSecretKey(values.iterator().next());
 		
 		return user;
 	}

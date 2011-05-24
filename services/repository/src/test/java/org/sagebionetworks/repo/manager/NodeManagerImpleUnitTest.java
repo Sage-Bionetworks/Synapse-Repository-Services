@@ -43,8 +43,8 @@ public class NodeManagerImpleUnitTest {
 	private NodeManagerImpl nodeManager = null;
 	private FieldTypeDAO mockFieldTypeDao = null;
 		
-	private final UserInfo mockUserInfo = new UserInfo();
-	private final UserInfo anonUserInfo = new UserInfo();
+	private final UserInfo mockUserInfo = new UserInfo(false);
+	private final UserInfo anonUserInfo = new UserInfo(false);
 
 	@Before
 	public void before() throws Exception {

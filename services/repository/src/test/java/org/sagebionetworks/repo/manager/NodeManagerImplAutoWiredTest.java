@@ -49,8 +49,8 @@ public class NodeManagerImplAutoWiredTest {
 	private AuthorizationManager mockAuth;
 	List<String> nodesToDelete;
 	
-	private final UserInfo mockUserInfo = new UserInfo();
-	private final UserInfo anonUserInfo = new UserInfo();
+	private final UserInfo mockUserInfo = new UserInfo(false);
+	private final UserInfo anonUserInfo = new UserInfo(false);
 	
 	@Before
 	public void before() throws Exception{

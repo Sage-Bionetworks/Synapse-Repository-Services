@@ -2,20 +2,32 @@ package org.sagebionetworks.auth;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
+import org.openid4java.consumer.ConsumerManager;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
+import org.sagebionetworks.authutil.ModParamHttpServletRequest;
 import org.sagebionetworks.authutil.Session;
 import org.sagebionetworks.authutil.User;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -63,19 +75,6 @@ public class AuthenticationController {
 
 	public AuthenticationController() {
         Properties props = new Properties();
-//        InputStream is = AuthenticationController.class.getClassLoader().getResourceAsStream("mirrorservice.properties");
-//        try {
-//        	props.load(is);
-//        } catch (IOException e) {
-//        	throw new RuntimeException(e);
-//        }
-//        repositoryServicesURL = props.getProperty("repositoryServicesURL");
-//        adminPW=props.getProperty("adminPW");
-//        try {
-//	        is.close();
-//	    } catch (IOException e) {
-//	    	throw new RuntimeException(e);
-//	    }
         // optional, only used for testing
         props = new Properties();
         InputStream is = AuthenticationController.class.getClassLoader().getResourceAsStream("authenticationcontroller.properties");
@@ -103,44 +102,117 @@ public class AuthenticationController {
 		}
 	}
 	
-	private SampleConsumer sampleConsumer = new SampleConsumer();
+	private static final String OPEN_ID_URI = "/openid";
 	
 	private static final String RETURN_TO_URI = "/openidcallback";
 	
 	private static final String OPEN_ID_PROVIDER = "OPEN_ID_PROVIDER";
-		// e.g. https://www.google.com/accounts/o8/id
+	// 		e.g. https://www.google.com/accounts/o8/id
+	
+	private static final String MANAGER_KEY = AuthenticationController.class.getName()+".MANAGER_KEY";
+		
+	private static final String OPEN_ID_ATTRIBUTE = "OPENID";
 	
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/openid", method = RequestMethod.POST)
+	@RequestMapping(value = OPEN_ID_URI, method = RequestMethod.POST)
 	public String openID(
 			@RequestParam(value = OPEN_ID_PROVIDER, required = true) String openIdProvider,
 			 // HttpServlet servlet,
               HttpServletRequest request,
               HttpServletResponse response) throws Exception {
-//		if (servlet==null) throw new NullPointerException("No servlet reference"); // not sure if I've specified it right...
+
 		HttpServlet servlet = null;
-		// TODO construct the URL from the original request, don't hardcode the host
-		return sampleConsumer.authRequest(openIdProvider, 
-				"http://localhost:8080/auth/v1"+RETURN_TO_URI, servlet, request, response);
+		
+		ConsumerManager manager = new ConsumerManager();
+		request.getSession().setAttribute(MANAGER_KEY, manager);
+		SampleConsumer sampleConsumer = new SampleConsumer(manager);
+		
+		String thisUrl = request.getRequestURL().toString();
+		int i = thisUrl.indexOf(OPEN_ID_URI);
+		if (i<0) throw new RuntimeException("Current URI, "+OPEN_ID_URI+", not found in "+thisUrl);
+		String returnToUrl = thisUrl.substring(0, i)+RETURN_TO_URI;
+
+		return sampleConsumer.authRequest(openIdProvider, returnToUrl, servlet, request, response);
 	}
 
+	private static String dumpParamsArray(Map<String,String[]> p, String prefix) {
+		StringBuilder sb = new StringBuilder();
+		for (String s : p.keySet()) {
+			sb.append(prefix+s+" -> "+Arrays.asList(p.get(s))+"\n");
+		}
+		return sb.toString();
+	}
+	
+	private static String dumpParamsList(Map<String,List<String>> p, String prefix) {
+		StringBuilder sb = new StringBuilder();
+		for (String s : p.keySet()) {
+			sb.append(prefix+s+" -> "+p.get(s)+"\n");
+		}
+		return sb.toString();
+	}
+	
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = RETURN_TO_URI, method = RequestMethod.GET)
 	public @ResponseBody
 	Session openIDCallback(
 			HttpServletRequest request) throws Exception {
-		try { 
+		try {
 			
-			String email = sampleConsumer.verifyResponse(request);
+//			System.out.println(
+//					"Request Params:\n"+
+//					dumpParamsArray(request.getParameterMap(), "\t")
+//					
+//			);
+			HttpSession session = request.getSession();
+			ConsumerManager manager = (ConsumerManager)session.getAttribute(MANAGER_KEY);
+			if (manager==null) throw new NullPointerException();
+			
+			session.removeAttribute(MANAGER_KEY);
+			
+			SampleConsumer sampleConsumer = new SampleConsumer(manager);
+			
+			OpenIDInfo openIDInfo = sampleConsumer.verifyResponse(request);
+			String openID = openIDInfo.getIdentifier();
+			
+//			System.out.println("Identity: "+openID);
+			
+//			System.out.println("OpenIDInfo:\n"+dumpParamsList(openIDInfo.getMap(), "\t"));
+			
+			List<String> emails = openIDInfo.getMap().get(SampleConsumer.AX_EMAIL);
+			String email = (emails==null || emails.size()<1 ? null : emails.get(0));
+			List<String> fnames = openIDInfo.getMap().get(SampleConsumer.AX_FIRST_NAME);
+			String fname = (fnames==null || fnames.size()<1 ? null : fnames.get(0));
+			List<String> lnames = openIDInfo.getMap().get(SampleConsumer.AX_LAST_NAME);
+			String lname = (lnames==null || lnames.size()<1 ? null : lnames.get(0));
 			
 			if (email==null) throw new AuthenticationException(400, "Unable to authenticate", null);
 			
-			User credentials = new User();
-			
-			System.out.println("ID returned by google: "+email);
+			User credentials = new User();			
 			credentials.setEmail(email);
-			
-			// TODO: if user does not exist, create them
+
+			Map<String,Collection<String>> attrs = null;
+			try {
+				attrs = new HashMap<String,Collection<String>>(crowdAuthUtil.getUserAttributes(email));
+			} catch (NotFoundException nfe) {
+				// user doesn't exist yet, so create them
+				credentials.setPassword((new Long(rand.nextLong())).toString());
+				credentials.setFirstName(fname);
+				credentials.setLastName(lname);
+				if (fname!=null && lname!=null) credentials.setDisplayName(fname+" "+lname);
+				crowdAuthUtil.createUser(credentials);
+				attrs = new HashMap<String,Collection<String>>(crowdAuthUtil.getUserAttributes(email));
+			}
+			// save the OpenID in Crowd
+			Collection<String> openIDs = attrs.get(OPEN_ID_ATTRIBUTE);
+			if (openIDs==null) {
+				attrs.put(OPEN_ID_ATTRIBUTE, Arrays.asList(new String[]{openID}));
+			} else {
+				Set<String> modOpenIDs = new HashSet<String>(openIDs);
+				modOpenIDs.add(openID);
+				attrs.put(OPEN_ID_ATTRIBUTE, modOpenIDs);
+			}
+			// TODO: now write the attributes back to Crowd
+			// crowdAuthUtil.setUserAttributes(email, attrs);
 			
 			// get the SSO token 
 			return crowdAuthUtil.authenticate(credentials, false);

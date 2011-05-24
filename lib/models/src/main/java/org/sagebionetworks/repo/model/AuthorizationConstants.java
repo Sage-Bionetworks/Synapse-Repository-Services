@@ -21,12 +21,18 @@ public class AuthorizationConstants {
 	 * The group name for a system defined group which allows access to its
 	 * resources to all (including anonymous users)
 	 */
-	public static final String PUBLIC_GROUP_NAME = "Public";
+	public static final String PUBLIC_GROUP_NAME = "Identified Users";
 	
 	/**
 	 * The group name for those users that have all kinds of access to all resources.
 	 */
 	public static final String ADMIN_GROUP_NAME = "Administrators";
+	
+	/**
+	 * The reserved userId for an anonymous user.
+	 */
+	public static final String ANONYMOUS_USER_ID = "anonymous";
+
 	
 
 }

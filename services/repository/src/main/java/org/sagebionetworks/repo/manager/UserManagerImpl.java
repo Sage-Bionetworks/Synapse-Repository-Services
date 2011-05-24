@@ -29,6 +29,12 @@ public class UserManagerImpl implements UserManager {
 	public void setUserDAO(UserDAO userDAO) {this.userDAO=userDAO;}
 	public void setUserGroupDAO(UserGroupDAO userGroupDAO) {this.userGroupDAO=userGroupDAO;}
 
+	private boolean isAdmin(Collection<UserGroup> userGroups) throws DatastoreException, NotFoundException {
+		UserGroup adminGroup = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false);
+		for (UserGroup ug: userGroups) if (ug.getId().equals(adminGroup.getId())) return true;
+		return false;
+	}
+	
 	
 	/**
 	 *
@@ -38,12 +44,14 @@ public class UserManagerImpl implements UserManager {
 	 * and is mirrored in the system managing group permissions.
 	 */
 	public UserInfo getUserInfo(String userName) throws DatastoreException, NotFoundException {
-		UserInfo userInfo = new UserInfo();
 		User user = null;
 		Set<UserGroup> groups = new HashSet<UserGroup>();
+		UserGroup individualGroup = null;
 		if (AuthUtilConstants.ANONYMOUS_USER_ID.equals(userName)) {
 			user = new User();
 			user.setUserId(AuthUtilConstants.ANONYMOUS_USER_ID);
+			individualGroup = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
+			if (individualGroup==null) throw new DatastoreException("Anonymous user should exist.");
 		} else {
 			user = userDAO.getUser(userName);
 			if (user==null) throw new NullPointerException("No user named "+userName+". Users: "+userDAO.getAll());
@@ -74,7 +82,7 @@ public class UserManagerImpl implements UserManager {
 					}
 				}
 			}
-			UserGroup individualGroup = userGroupDAO.findGroup(userName, true);
+			individualGroup = userGroupDAO.findGroup(userName, true);
 			if (individualGroup==null) {
 				individualGroup = new UserGroup();
 				individualGroup.setName(userName);
@@ -87,13 +95,14 @@ public class UserManagerImpl implements UserManager {
 					throw new DatastoreException(ime);
 				}
 			}
-			userInfo.setIndividualGroup(individualGroup);
 			groups.add(individualGroup);
+			UserGroup publicGroup = userGroupDAO.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false);
+			if (publicGroup==null) throw new DatastoreException("Public group should exist.");
+			groups.add(publicGroup);
 		}
+		UserInfo userInfo = new UserInfo(isAdmin(groups));
+		userInfo.setIndividualGroup(individualGroup);
 		userInfo.setUser(user);
-		UserGroup publicGroup = userGroupDAO.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false);
-		if (publicGroup==null) throw new DatastoreException("Public group should exist.");
-		groups.add(publicGroup);
 		userInfo.setGroups(groups);
 		return userInfo;
 	}	

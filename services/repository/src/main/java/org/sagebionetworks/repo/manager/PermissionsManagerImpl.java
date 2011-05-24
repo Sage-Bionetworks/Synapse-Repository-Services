@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
-import org.sagebionetworks.repo.model.ResourceAccess2;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -47,7 +47,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	
 	public void validateContent(AccessControlList acl) throws InvalidModelException {
 		if (acl.getId()==null) throw new InvalidModelException("Resource ID is null");
-		for (ResourceAccess2 ra : acl.getResourceAccess()) {
+		for (ResourceAccess ra : acl.getResourceAccess()) {
 			if (ra.getUserGroupId()==null) throw new InvalidModelException("Group ID is null");
 			if (ra.getAccessType().isEmpty()) throw new InvalidModelException("No access types specified.");
 		}

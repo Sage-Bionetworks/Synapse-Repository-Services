@@ -24,16 +24,15 @@ public class JDOAccessControlList implements JDOBase {
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 	
-
-	@Persistent
-	@Unique
-	@Column(name=SqlConstants.COL_ACL_OWNER_ID)
+	@Persistent(nullValue = NullValue.EXCEPTION)
+//	@Unique << We get errors if we try to include this
+	@Column(name=SqlConstants.ACL_OWNER_ID_COLUMN)
     @ForeignKey(name="ACL_OWNER_FK", deleteAction=ForeignKeyAction.CASCADE)
 	private JDONode resource;
 	
     @Persistent(serialized="false", mappedBy = "owner")
     @Element(dependent = "true")
-	private Set<JDOResourceAccess2> resourceAccess;
+	private Set<JDOResourceAccess> resourceAccess;
 
 	@Column(name=SqlConstants.COL_NODE_ETAG)
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
@@ -72,14 +71,14 @@ public class JDOAccessControlList implements JDOBase {
 	/**
 	 * @return the resourceAccess
 	 */
-	public Set<JDOResourceAccess2> getResourceAccess() {
+	public Set<JDOResourceAccess> getResourceAccess() {
 		return resourceAccess;
 	}
 
 	/**
 	 * @param resourceAccess the resourceAccess to set
 	 */
-	public void setResourceAccess(Set<JDOResourceAccess2> resourceAccess) {
+	public void setResourceAccess(Set<JDOResourceAccess> resourceAccess) {
 		this.resourceAccess = resourceAccess;
 	}
 

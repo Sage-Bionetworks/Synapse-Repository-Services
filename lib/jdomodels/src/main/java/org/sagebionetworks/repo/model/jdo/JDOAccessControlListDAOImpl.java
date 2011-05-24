@@ -13,11 +13,11 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.ResourceAccess2;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOAccessControlList;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess2;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,24 +48,24 @@ public class JDOAccessControlListDAOImpl extends JDOBaseDAOImpl<AccessControlLis
 	@Override
 	AccessControlList newDTO() {
 		AccessControlList dto = new AccessControlList();
-		dto.setResourceAccess(new HashSet<ResourceAccess2>());
+		dto.setResourceAccess(new HashSet<ResourceAccess>());
 		return dto;
 	}
 
 	@Override
 	JDOAccessControlList newJDO() {
 		JDOAccessControlList jdo = new JDOAccessControlList();
-		jdo.setResourceAccess(new HashSet<JDOResourceAccess2>());
+		jdo.setResourceAccess(new HashSet<JDOResourceAccess>());
 		return jdo;
 	}
 	
-	private ResourceAccess2 newRaDTO() {
-		ResourceAccess2 raDto = new ResourceAccess2();
+	private ResourceAccess newRaDTO() {
+		ResourceAccess raDto = new ResourceAccess();
 		raDto.setAccessType(new HashSet<AuthorizationConstants.ACCESS_TYPE>());
 		return raDto;
 	}
 	
-	private void copyToRaDto(JDOResourceAccess2 raJdo, ResourceAccess2 raDto) throws DatastoreException {
+	private void copyToRaDto(JDOResourceAccess raJdo, ResourceAccess raDto) throws DatastoreException {
 		raDto.setUserGroupId(KeyFactory.keyToString(raJdo.getUserGroupId()));
 		Set<AuthorizationConstants.ACCESS_TYPE> dtoAccessTypes = new HashSet<AuthorizationConstants.ACCESS_TYPE>();
 		for (String jdoAccessType : raJdo.getAccessType()) {
@@ -83,9 +83,9 @@ public class JDOAccessControlListDAOImpl extends JDOBaseDAOImpl<AccessControlLis
 		dto.setId(jdo.getId()==null ? null : KeyFactory.keyToString(jdo.getId()));
 		dto.setModifiedBy(jdo.getModifiedBy());
 		dto.setModifiedOn(new Date(jdo.getModifiedOn()));
-		Set<ResourceAccess2> ras = new HashSet<ResourceAccess2>();
-		for (JDOResourceAccess2 raJdo: jdo.getResourceAccess()) {
-			ResourceAccess2 raDto = newRaDTO();
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		for (JDOResourceAccess raJdo: jdo.getResourceAccess()) {
+			ResourceAccess raDto = newRaDTO();
 			copyToRaDto(raJdo, raDto);
 			ras.add(raDto);
 		}
@@ -93,13 +93,13 @@ public class JDOAccessControlListDAOImpl extends JDOBaseDAOImpl<AccessControlLis
 		dto.setResourceId(KeyFactory.keyToString(jdo.getResource().getId()));
 	}
 
-	private JDOResourceAccess2 newRaJDO() {
-		JDOResourceAccess2 raJdo = new JDOResourceAccess2();
+	private JDOResourceAccess newRaJDO() {
+		JDOResourceAccess raJdo = new JDOResourceAccess();
 		raJdo.setAccessType(new HashSet<String>());
 		return raJdo;
 	}
 	
-	private void copyFromRaDto(ResourceAccess2 raDto, JDOResourceAccess2 raJdo) throws DatastoreException {
+	private void copyFromRaDto(ResourceAccess raDto, JDOResourceAccess raJdo) throws DatastoreException {
 //		JDOUserGroup g = jdoTemplate.getObjectById(JDOUserGroup.class, KeyFactory.stringToKey(raDto.getUserGroupId()));
 		raJdo.setUserGroupId(KeyFactory.stringToKey(raDto.getUserGroupId()));
 		Set<String> jdoAccessTypes = new HashSet<String>();
@@ -120,9 +120,9 @@ public class JDOAccessControlListDAOImpl extends JDOBaseDAOImpl<AccessControlLis
 		jdo.setModifiedOn(dto.getModifiedOn()==null ? null : dto.getModifiedOn().getTime());
 		JDONode node = jdoTemplate.getObjectById(JDONode.class, KeyFactory.stringToKey(dto.getResourceId()));
 		jdo.setResource(node);
-		Set<JDOResourceAccess2> ras = new HashSet<JDOResourceAccess2>();
-		for (ResourceAccess2 raDto : dto.getResourceAccess()) {
-			JDOResourceAccess2 raJdo = newRaJDO();
+		Set<JDOResourceAccess> ras = new HashSet<JDOResourceAccess>();
+		for (ResourceAccess raDto : dto.getResourceAccess()) {
+			JDOResourceAccess raJdo = newRaJDO();
 			copyFromRaDto(raDto, raJdo);
 			ras.add(raJdo);
 		}
@@ -159,7 +159,7 @@ public class JDOAccessControlListDAOImpl extends JDOBaseDAOImpl<AccessControlLis
 			Long.class.getName()+" pResourceId, "+
 			Collection.class.getName()+" pGroups, "+
 			String.class.getName()+" pAccessType",
-			JDOResourceAccess2.class.getName()+" vResourceAccess",
+			JDOResourceAccess.class.getName()+" vResourceAccess",
 			KeyFactory.stringToKey(resourceId),
 			groupIds,
 			accessType.name());
@@ -178,10 +178,9 @@ public class JDOAccessControlListDAOImpl extends JDOBaseDAOImpl<AccessControlLis
 	 * ra.oid_id=acl.id and ra.groupId in :groups and at.oid_id=ra.id and at.type=:type
 	 */
 	private static final String AUTHORIZATION_SQL_1 = 
-		"select distinct acl."+SqlConstants.COL_ACL_OWNER_ID+" from "+SqlConstants.TABLE_ACCESS_CONTROL_LIST+" acl, "+
+		"select distinct acl."+SqlConstants.ACL_OWNER_ID_COLUMN+" from "+SqlConstants.TABLE_ACCESS_CONTROL_LIST+" acl, "+
 		SqlConstants.TABLE_RESOURCE_ACCESS+" ra, "+
 		SqlConstants.TABLE_RESOURCE_ACCESS_TYPE+" at where ra."+
-//		"RESOURCE_ACCESS_ID_OWN"+
 		SqlConstants.COL_RESOURCE_ACCESS_OWNER+
 		"=acl."+SqlConstants.COL_ACL_ID+" and (ra."+SqlConstants.COL_USER_GROUP_ID+
 		" in (";
