@@ -1,10 +1,18 @@
 package org.sagebionetworks.workflow.curation;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import org.sagebionetworks.workflow.UnrecoverableException;
+import org.sagebionetworks.workflow.curation.activity.DownloadFromTcga;
+import org.sagebionetworks.workflow.curation.activity.ProcessTcgaSourceLayer;
+import org.sagebionetworks.workflow.curation.activity.DownloadFromTcga.DownloadResult;
+import org.sagebionetworks.workflow.curation.activity.ProcessTcgaSourceLayer.ScriptResult;
+
+import com.amazonaws.services.simpleworkflow.client.activity.ActivityFailureException;
 import com.amazonaws.services.simpleworkflow.client.asynchrony.Settable;
 import com.amazonaws.services.simpleworkflow.client.asynchrony.Value;
 import com.amazonaws.services.simpleworkflow.client.asynchrony.annotations.Asynchronous;
@@ -136,25 +144,8 @@ public class TcgaWorkflow {
 				rawLayerId, machineName, localFilepath, processedLayerId,
 				stdout, stderr);
 
-		// TODO this is not the correct way to branch a workflow, do I have the
-		// activity call a subworkflow instead?
-		// if (-1 < processedLayerId.get()) {
-		/**
-		 * Formulate the message to be sent to all interested parties about the
-		 * new processed data from TCGA
-		 */
-		Settable<String> processedDataMessage = new Settable<String>();
-		Value<String> result7 = flow.dispatchFormulateNotificationMessage(
-				result6, processedLayerId, processedDataMessage);
+		flow.dispatchNotifyDataProcessed(result6, processedLayerId);
 
-		/**
-		 * Send the email notification to all interested parties, keeping this
-		 * simple for now, later on we'll want to check their communication
-		 * preferences and batch up these notifications as configured
-		 */
-		flow.dispatchNotifyFollowers(result7, processedLayerId,
-				processedDataMessage);
-		// }
 	}
 
 	@Asynchronous
@@ -181,7 +172,8 @@ public class TcgaWorkflow {
 	@Asynchronous
 	private Value<String> dispatchDownloadDataFromTcga(Value<String> param,
 			Value<String> tcgaUrl, Settable<String> machineName,
-			Settable<String> localFilepath, Settable<String> md5) {
+			Settable<String> localFilepath, Settable<String> md5)
+			throws UnrecoverableException {
 		return doDownloadDataFromTcga(param.get(), tcgaUrl.get(), machineName,
 				localFilepath, md5);
 	}
@@ -190,10 +182,19 @@ public class TcgaWorkflow {
 	@ExponentialRetry(minimumAttempts = 5, maximumAttempts = 10)
 	private static Value<String> doDownloadDataFromTcga(String param,
 			String tcgaUrl, Settable<String> machineName,
-			Settable<String> localFilepath, Settable<String> md5) {
-		localFilepath.set("/dev/null");
-		md5.set("d131dd02c5e6eec4693d9a0698aff95c");
-		machineName.set(getHostName());
+			Settable<String> localFilepath, Settable<String> md5)
+			throws UnrecoverableException {
+
+		try {
+			DownloadResult result = DownloadFromTcga
+					.doDownloadFromTcga(tcgaUrl);
+			localFilepath.set(result.getLocalFilepath());
+			md5.set(result.getMd5());
+			machineName.set(getHostName());
+		} catch (IOException e) {
+			// This particular exception is retryable
+			throw new ActivityFailureException(500, "IOException", e);
+		}
 		return Value.asValue(param + ":DownloadDataFromTcga");
 	}
 
@@ -225,9 +226,38 @@ public class TcgaWorkflow {
 			Value<String> machineName, Value<String> localFilepath,
 			Settable<Integer> processedLayerId, Settable<String> stdout,
 			Settable<String> stderr) throws Exception {
+
 		return doProcessData(param.get(), script.get(), rawLayerId.get(),
 				machineName.get(), localFilepath.get(), processedLayerId,
 				stdout, stderr);
+	}
+
+	@Asynchronous
+	private Value<String> dispatchNotifyDataProcessed(Value<String> param,
+			Value<Integer> processedLayerId) throws Exception {
+
+		if (-1 < processedLayerId.get()) {
+			/**
+			 * Formulate the message to be sent to all interested parties about
+			 * the new processed data from TCGA
+			 */
+			Settable<String> processedDataMessage = new Settable<String>();
+			Value<String> result1 = dispatchFormulateNotificationMessage(param,
+					processedLayerId, processedDataMessage);
+
+			/**
+			 * Send the email notification to all interested parties, keeping
+			 * this simple for now, later on we'll want to check their
+			 * communication preferences and batch up these notifications as
+			 * configured
+			 */
+			Value<String> result2 = dispatchNotifyFollowers(result1,
+					processedLayerId, processedDataMessage);
+
+			return result2;
+		}
+
+		return Value.asValue(param + ":noop");
 	}
 
 	@Activity
@@ -244,65 +274,18 @@ public class TcgaWorkflow {
 			@ActivitySchedulingOption(option = ActivitySchedulingElement.requirement) String machineName,
 			String localFilepath, Settable<Integer> processedLayerId,
 			Settable<String> stdout, Settable<String> stderr) throws Exception {
+		
+		// TODO heartbeat thread
+		ScriptResult result = ProcessTcgaSourceLayer.doProcessTcgaSourceLayer(
+				script, rawLayerId, localFilepath);
 
-		// When these R scripts are run via this workflow, a value will be
-		// passed in for --localFilepath, the script will get the layer metadata
-		// from the repository service which includes the md5 checksum and it
-		// will confirm those match before proceeding.
-		//
-		// When these R scripts are run by hand via scientists, the lack of
-		// localFilepath will cause the file to be downloaded from S3url in the
-		// layer metadata and stored in the local R file cache. The scientists
-		// will work this way when developing new scripts or modifying existing
-		// scripts.
-		Process process = Runtime.getRuntime().exec(
-				new String[] { script, "--rawLayerId", rawLayerId.toString(),
-						"--localFilepath", localFilepath });
-
-		// TODO heartbeat thread and threads for slurping in stdout and
-		// stderr
-
-		String line;
-
-		// Collect stdout from the script
-		BufferedReader inputStream = new BufferedReader(new InputStreamReader(
-				process.getInputStream()));
-		StringBuilder stdoutAccumulator = new StringBuilder();
-		while ((line = inputStream.readLine()) != null) {
-			stdoutAccumulator.append(line);
-			// TODO log this
-			System.out.println(line);
-		}
-		inputStream.close();
-		stdout
-				.set((MAX_SCRIPT_OUTPUT > stdoutAccumulator.length()) ? stdoutAccumulator
-						.toString()
-						: stdoutAccumulator.substring(0, MAX_SCRIPT_OUTPUT));
-
-		// Collect stderr from the script
-		BufferedReader errorStream = new BufferedReader(new InputStreamReader(
-				process.getErrorStream()));
-		StringBuilder stderrAccumulator = new StringBuilder();
-		while ((line = errorStream.readLine()) != null) {
-			stderrAccumulator.append(line);
-			// TODO log this
-			System.out.println(line);
-		}
-		errorStream.close();
-		stderr
-				.set((MAX_SCRIPT_OUTPUT > stderrAccumulator.length()) ? stderrAccumulator
-						.toString()
-						: stderrAccumulator.substring(0, MAX_SCRIPT_OUTPUT));
-
-		int returnCode = process.waitFor();
-		if (0 != returnCode) {
-			throw new Exception("activity failed(" + returnCode + ": "
-					+ stderr.get());
-		}
-
-		// TODO parse JSON output from R script sent to stdout to get the
-		// processed layer id
-		processedLayerId.set(42);
+		processedLayerId.set(result.getProcessedLayerId());
+		stdout.set((MAX_SCRIPT_OUTPUT > result.getStdout().length()) ? result
+				.getStdout() : result.getStdout().substring(0,
+				MAX_SCRIPT_OUTPUT));
+		stderr.set((MAX_SCRIPT_OUTPUT > result.getStderr().length()) ? result
+				.getStderr() : result.getStderr().substring(0,
+				MAX_SCRIPT_OUTPUT));
 		return Value.asValue(param + ":ProcessData");
 	}
 
