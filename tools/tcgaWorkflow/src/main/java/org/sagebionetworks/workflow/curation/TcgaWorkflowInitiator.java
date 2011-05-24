@@ -26,8 +26,7 @@ public class TcgaWorkflowInitiator {
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
-		ConfigHelper configHelper = ConfigHelper.createConfig(
-				"TcgaWorkflowInitiatorMain", args);
+		ConfigHelper configHelper = ConfigHelper.createConfig();
 
 		// Running Annotation Processor is very important, otherwise it will
 		// treat Workflows and Activities as regular java method calls

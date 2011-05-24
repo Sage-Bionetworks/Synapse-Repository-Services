@@ -50,8 +50,7 @@ public class TcgaWorkflowActivityService {
 		// Return a helpful error message to the user if the environment is not
 		// sufficient for this service to run.
 
-		ConfigHelper configHelper = ConfigHelper.createConfig(
-				"TcgaWorkflowActivityService", args);
+		ConfigHelper configHelper = ConfigHelper.createConfig();
 
 		// Create the client for Simple Workflow Service
 		swfService = configHelper.createSWFClient();
