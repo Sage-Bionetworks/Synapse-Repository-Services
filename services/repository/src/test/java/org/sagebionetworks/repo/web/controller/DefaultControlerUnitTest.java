@@ -32,4 +32,10 @@ public class DefaultControlerUnitTest {
 		ObjectType type = ObjectType.getTypeForUrl(UrlHelpers.LAYER);
 		assertEquals(ObjectType.layer, type);
 	}
+	
+	@Test
+	public void testObjectTypeForFullFurlUrl(){
+		ObjectType type = ObjectType.getTypeForUrl("/reop/v1"+UrlHelpers.LAYER);
+		assertEquals(ObjectType.layer, type);
+	}
 }
