@@ -87,7 +87,8 @@ public enum ObjectType {
 		if(url == null) throw new IllegalArgumentException("URL cannot be null");
 		ObjectType[] array  = ObjectType.values();
 		for(ObjectType type: array){
-			if(url.startsWith(type.getUrlPrefix())) return type;
+			int index = url.indexOf(type.getUrlPrefix());
+			if(index >= 0) return type;
 		}
 		throw new IllegalArgumentException("Unkown Object type for URL: "+url);
 	}

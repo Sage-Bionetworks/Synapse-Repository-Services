@@ -131,7 +131,7 @@ public class ControllerTest {
 			// org.springframework.mock.web.DelegatingServletInputStream@11e3c2c6;
 			// line: 1, column: 3]"}
 			int index = results.getString("reason").indexOf("Could not read JSON: Unexpected character");
-			assertTrue("Testing " + url, index >= 0);
+			assertTrue("Testing " + url +" "+ results.getString("reason"), index >= 0);
 		}
 	}
 
