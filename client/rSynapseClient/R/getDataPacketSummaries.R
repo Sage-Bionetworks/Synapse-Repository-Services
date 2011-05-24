@@ -4,16 +4,16 @@ getDataPacketSummaries <- function(query.params = list(limit=10, offset=1), curl
 	}
 	# constants
 	kPath <- "repo/v1/query?query"
-	kQueryRoot <- "select+*+from+dataset"
+	kQueryRoot <- "select * from dataset"
 	kHeader <- c(Accept = "application/json")
 	# end constants
 	
 	#add queary parameters to the uri
 	query <- kQueryRoot
 	for(n in names(query.params)){
-		query <- paste(query, n, query.params[n], sep='+')
+		query <- paste(query, n, query.params[n], sep=' ')
 	}
-	uri <- paste(paste(sbnHostName(), kPath,sep="/"), query, sep="=")
+	uri <- paste(paste(sbnHostName(), kPath,sep="/"), curlEscape(query), sep="=")
 	
 	#prepare the header. If not an anonymouse request, stuff the session token into the header
 	header <- kHeader
@@ -22,8 +22,9 @@ getDataPacketSummaries <- function(query.params = list(limit=10, offset=1), curl
 	}
 	
 	#submit request and check response code
-	
-	response <- getURL(uri, httpheader = header, curl = curl.handle)
+    d = debugGatherer()
+    response <- getURL(uri, debugfunction=d$update, verbose = TRUE, httpheader = header, curl = curl.handle)
+    d$value()
 	checkCurlResponse(curl.handle, response)
 	
 	#parse response and prepare return value
