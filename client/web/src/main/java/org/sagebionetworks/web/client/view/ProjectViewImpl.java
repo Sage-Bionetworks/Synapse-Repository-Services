@@ -1,0 +1,244 @@
+package org.sagebionetworks.web.client.view;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import org.sagebionetworks.web.client.DisplayConstants;
+import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.IconsImageBundle;
+import org.sagebionetworks.web.client.SageImageBundle;
+import org.sagebionetworks.web.client.widget.footer.Footer;
+import org.sagebionetworks.web.client.widget.header.Header;
+import org.sagebionetworks.web.client.widget.header.Header.MenuItems;
+import org.sagebionetworks.web.client.widget.modal.ModalWindow;
+import org.sagebionetworks.web.client.widget.sharing.AccessMenuButton;
+import org.sagebionetworks.web.client.widget.sharing.AccessMenuButton.AccessLevel;
+import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
+import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
+import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
+import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
+import org.sagebionetworks.web.shared.WhereCondition;
+
+import com.extjs.gxt.ui.client.widget.MessageBox;
+import com.extjs.gxt.ui.client.widget.button.Button;
+import com.extjs.gxt.ui.client.widget.menu.Menu;
+import com.extjs.gxt.ui.client.widget.menu.MenuItem;
+import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
+import com.google.gwt.dom.client.SpanElement;
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.resources.client.ImageResource;
+import com.google.gwt.uibinder.client.UiBinder;
+import com.google.gwt.uibinder.client.UiField;
+import com.google.gwt.user.client.rpc.AsyncCallback;
+import com.google.gwt.user.client.ui.AbstractImagePrototype;
+import com.google.gwt.user.client.ui.Anchor;
+import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.FlexTable;
+import com.google.gwt.user.client.ui.FlowPanel;
+import com.google.gwt.user.client.ui.SimplePanel;
+import com.google.gwt.user.client.ui.Widget;
+import com.google.inject.Inject;
+
+public class ProjectViewImpl extends Composite implements ProjectView {
+
+	public interface ProjectViewImplUiBinder extends UiBinder<Widget, ProjectViewImpl> {}
+
+	@UiField
+	SimplePanel header;
+	@UiField
+	SimplePanel footer;
+	@UiField
+	SpanElement titleSpan;
+	@UiField 
+	SpanElement breadcrumbTitleSpan;
+	@UiField
+	FlexTable rightFlexTable;
+	@UiField
+	SimplePanel followProjectButtonPanel;
+	@UiField
+	SimplePanel seeTermsButtonPanel;
+	@UiField
+	FlowPanel overviewPanel;
+	@UiField
+	SimplePanel datasetListTablePanel;
+	@UiField
+	SimplePanel accessPanel;
+	@UiField
+	SpanElement accessSpan;
+	@UiField
+	SimplePanel adminPanel;
+	
+	private Presenter presenter;
+	private PreviewDisclosurePanel previewDisclosurePanel;
+	private QueryServiceTable datasetsListQueryServiceTable;
+	private IconsImageBundle iconsImageBundle;
+	private boolean userIsAdmin = false; 
+	private AccessMenuButton accessMenuButton;
+	
+	@Inject
+	public ProjectViewImpl(ProjectViewImplUiBinder binder, Header headerWidget,
+			Footer footerWidget, IconsImageBundle iconsImageBundle,
+			SageImageBundle imageBundle, final ModalWindow followProjectModal,
+			final ModalWindow seeTermsModal,
+			PreviewDisclosurePanel previewDisclosurePanel,
+			QueryServiceTableResourceProvider queryServiceTableResourceProvider,
+			AccessMenuButton accessMenuButton) {		
+		initWidget(binder.createAndBindUi(this));
+
+		this.previewDisclosurePanel = previewDisclosurePanel;
+		this.iconsImageBundle = iconsImageBundle;
+		this.accessMenuButton = accessMenuButton;
+		
+		header.add(headerWidget.asWidget());
+		footer.add(footerWidget.asWidget());
+		headerWidget.setMenuItemActive(MenuItems.PROJECTS);
+				
+		followProjectButtonPanel.add(createFollowProjectButton(iconsImageBundle, followProjectModal));			
+
+		// List of datasets table
+		datasetsListQueryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, false, 320, 237);
+		datasetListTablePanel.add(datasetsListQueryServiceTable.asWidget());		
+		
+	}
+
+	@Override
+	public void setPresenter(Presenter presenter) {
+		this.presenter = presenter;
+	}
+
+	@Override
+	public void showErrorMessage(String message) {
+		MessageBox.info("Message", message, null);
+	}
+
+
+	@Override
+	public void setProjectDetails(String id, String name, String description,
+			String creator, Date creationDate, String status) {
+		// Assure reasonable values
+		if(id == null) id = "";
+		if(name == null) name = "";
+		if(description == null) description = "";
+		if(creator == null) creator = "";		
+		if(status == null) status = "";
+		
+		// check authorization
+		userIsAdmin = true; // TODO : get ACL from authorization service
+		
+		// clear out any previous values in the view
+		clearAllFields();
+		
+		titleSpan.setInnerText(name);
+		breadcrumbTitleSpan.setInnerText(name);
+		
+		// project overview
+		int summaryLength = description.length() >= DisplayConstants.DESCRIPTION_SUMMARY_LENGTH ? DisplayConstants.DESCRIPTION_SUMMARY_LENGTH : description.length();
+		previewDisclosurePanel.init("Expand", description.substring(0, summaryLength), description);
+		overviewPanel.add(previewDisclosurePanel);		
+
+		// add values to annotation table
+		int rowIndex = 0;
+		if(creationDate != null) DisplayUtils.addRowToTable(rowIndex++, "Project Formed:", DisplayConstants.DATE_FORMAT.format(creationDate), rightFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "Leaders:", "", rightFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "Members:", "", rightFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "Publications:", "", rightFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "Status:", status, rightFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "Project Web Site:", "", rightFlexTable);
+		
+		// load the datasets for this project
+		List<WhereCondition> whereList = new ArrayList<WhereCondition>();
+		whereList.add(new WhereCondition("dataset.parentId", WhereOperator.EQUALS, id));
+		datasetsListQueryServiceTable.setWhereCondition(whereList);
+		
+		// create security access panel
+		createAccessPanel();
+		// create admin panel if user is authorized
+		createAdminPanel();
+		
+		
+	}
+
+	/*
+	 * Private Methods
+	 */
+	private void clearAllFields() {
+		titleSpan.setInnerText("");
+		rightFlexTable.clear();
+		rightFlexTable.removeAllRows();		
+	}
+
+	private Anchor createFollowProjectButton(IconsImageBundle icons,
+			final ModalWindow followProjectModal) {
+		followProjectModal.setHeading("Follow this Project");
+		followProjectModal.setDimensions(180, 500);		
+		followProjectModal.setHtml(DisplayConstants.FOLLOW_PROJECT_HTML);
+		followProjectModal.setCallbackButton("Confirm", new AsyncCallback<Void>() {
+			@Override
+			public void onSuccess(Void result) {
+				// TODO : call a service layer to follow the dataset				
+				followProjectModal.hideWindow();
+			}
+
+			@Override
+			public void onFailure(Throwable caught) {			}
+		});
+		// follow link		
+		Anchor followDatasetAnchor = new Anchor();
+		followDatasetAnchor.setHTML(AbstractImagePrototype.create(icons.arrowCurve16()).getHTML() + " Follow this Project");
+		followDatasetAnchor.addClickHandler(new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {
+				followProjectModal.showWindow();
+			}
+		});		
+		return followDatasetAnchor;		
+	}
+
+	private void createAdminPanel() {		
+		if(userIsAdmin) {
+			Button button = new Button("Project Admin Menu");
+			button.setIcon(AbstractImagePrototype.create(iconsImageBundle.adminTools16()));
+			//adminButton.setIconAlign(IconAlign.LEFT);
+			button.setMenu(createAdminMenu());
+			button.setHeight(25);
+			adminPanel.add(button);
+		}
+	}
+
+	private Menu createAdminMenu() {
+		Menu menu = new Menu();		
+		MenuItem item = null; 
+			
+		item = new MenuItem("Edit Project Details");
+		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));
+		menu.add(item);
+		
+		item = new MenuItem("Add Dataset to Project");
+		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.documentAdd16()));
+		menu.add(item);
+		
+		return menu;
+	}
+
+	private void createAccessPanel() {		
+		// TODO : get access level from Authorization service
+		AccessLevel accessLevel = AccessLevel.PUBLIC;		
+		ImageResource icon = null;
+		if(accessLevel == AccessLevel.PUBLIC) {
+			icon = iconsImageBundle.lockUnlocked16();
+		} else {
+			icon = iconsImageBundle.lock16();
+		}		
+
+		if(userIsAdmin) {		
+			accessMenuButton.setAccessLevel(accessLevel);
+			accessPanel.add(accessMenuButton.asWidget());
+		} else {
+			accessSpan.setInnerHTML("<span class=\"setting_label\">Access: </span><span class=\"setting_level\">"+ DisplayUtils.getIconHtml(icon) +" "+ accessLevel +"</span>");
+		}
+	}
+
+
+}

@@ -49,7 +49,7 @@
 				
 				<div id="privacy_setting" class="right">
 					<span class="setting_label">Access:</span>
-					<span class="setting_level"><g:Image resource="{icons.lockUnlocked}"/> Public</span>
+					<span class="setting_level"><g:Image resource="{icons.lockUnlocked16}"/> Public</span>
 				</div>
 				<div class="data_info">
 					<span class="info_head">
@@ -60,7 +60,7 @@
 							<g:SimplePanel ui:field="seeTermsPanel" />							
 						</span>
 					</span>
-					<span class="info_text_narrow">
+					<span class="info_text_2col">
 						<g:FlowPanel ui:field="overviewPanel" />
 						<br /><br />
 					</span>

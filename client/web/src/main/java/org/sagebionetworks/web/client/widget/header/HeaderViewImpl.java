@@ -7,7 +7,7 @@ import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.place.LoginPlace;
 import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.security.AuthenticationControllerImpl;
-import org.sagebionetworks.web.client.widget.header.Header.MenuItem;
+import org.sagebionetworks.web.client.widget.header.Header.MenuItems;
 import org.sagebionetworks.web.shared.users.UserData;
 
 import com.google.gwt.dom.client.Element;
@@ -48,7 +48,7 @@ public class HeaderViewImpl extends Composite implements HeaderView {
 	Hyperlink editProfileLink;
 		
 	private Presenter presenter;
-	private Map<MenuItem, Element> itemToElement;
+	private Map<MenuItems, Element> itemToElement;
 	private AuthenticationController authenticationController;	
 	
 	@Inject
@@ -57,12 +57,12 @@ public class HeaderViewImpl extends Composite implements HeaderView {
 		
 		this.authenticationController = authenticationController;
 		
-		itemToElement = new HashMap<Header.MenuItem, Element>();		
-		itemToElement.put(MenuItem.DATASETS, navbarDatasets);
-		itemToElement.put(MenuItem.TOOLS, navbarTools);
-		itemToElement.put(MenuItem.NETWORKS, navbarNetworks);
-		itemToElement.put(MenuItem.PEOPLE, navbarPeople);
-		itemToElement.put(MenuItem.PROJECTS, navbarProjects);		
+		itemToElement = new HashMap<Header.MenuItems, Element>();		
+		itemToElement.put(MenuItems.DATASETS, navbarDatasets);
+		itemToElement.put(MenuItems.TOOLS, navbarTools);
+		itemToElement.put(MenuItems.NETWORKS, navbarNetworks);
+		itemToElement.put(MenuItems.PEOPLE, navbarPeople);
+		itemToElement.put(MenuItems.PROJECTS, navbarProjects);		
 
 		// search button
 		searchAnchor.setHTML(AbstractImagePrototype.create(sageImageBundle.searchButtonHeaderIcon()).getHTML());
@@ -77,7 +77,7 @@ public class HeaderViewImpl extends Composite implements HeaderView {
 	}
 
 	@Override
-	public void setMenuItemActive(MenuItem menuItem) {
+	public void setMenuItemActive(MenuItems menuItem) {
 		if(itemToElement == null) loadMap();
 		Element el = itemToElement.get(menuItem);
 		if(el != null) {
@@ -86,7 +86,7 @@ public class HeaderViewImpl extends Composite implements HeaderView {
 	}
 
 	@Override
-	public void removeMenuItemActive(MenuItem menuItem) {
+	public void removeMenuItemActive(MenuItems menuItem) {
 		if(itemToElement == null) loadMap();
 		Element el = itemToElement.get(menuItem);
 		if(el != null) {

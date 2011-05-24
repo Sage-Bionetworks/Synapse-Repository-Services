@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.web.client.ProtalGinInjector;
+import org.sagebionetworks.web.client.PortalGinInjector;
 import org.sagebionetworks.web.client.mvp.AppActivityMapper;
 import org.sagebionetworks.web.client.place.Dataset;
 import org.sagebionetworks.web.client.place.DatasetsHome;
@@ -30,7 +30,7 @@ import com.google.gwt.place.shared.Place;
  */
 public class AppActivityMapperTest {
 	
-	ProtalGinInjector mockInjector;
+	PortalGinInjector mockInjector;
 	AuthenticationController mockController;
 	DatasetsHomePresenter mockHome;
 	DatasetPresenter mockPresenter;
@@ -39,7 +39,7 @@ public class AppActivityMapperTest {
 	@Before
 	public void before(){
 		// Mock the views
-		mockInjector = Mockito.mock(ProtalGinInjector.class);
+		mockInjector = Mockito.mock(PortalGinInjector.class);
 		// Controller
 		mockController = Mockito.mock(AuthenticationController.class);
 		when(mockController.isLoggedIn()).thenReturn(true);
@@ -74,7 +74,7 @@ public class AppActivityMapperTest {
 	@Test
 	public void testDatasets(){
 		// Mock the views
-		ProtalGinInjector mockInjector = Mockito.mock(ProtalGinInjector.class);
+		PortalGinInjector mockInjector = Mockito.mock(PortalGinInjector.class);
 		// Controller
 		AuthenticationController mockController = Mockito.mock(AuthenticationController.class);
 		when(mockController.isLoggedIn()).thenReturn(true);

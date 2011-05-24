@@ -1,0 +1,82 @@
+<!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
+<ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
+	xmlns:g="urn:import:com.google.gwt.user.client.ui" 
+	xmlns:c="urn:import:com.google.gwt.user.cellview.client"
+	xmlns:s="urn:import:org.sagebionetworks.web.client.view">
+		
+	<ui:style>
+		.important {
+			font-weight: bold;
+		}
+		
+		.rowTop {
+			vertical-align: top;
+		}
+	</ui:style>
+	
+	<ui:with field='icons' type='org.sagebionetworks.web.client.IconsImageBundle'/>	
+		
+	<g:HTMLPanel>
+
+	<!-- start header -->
+		<div id="container" class="clearfix">		
+			<g:SimplePanel ui:field="header" />
+			<div id="main" role="main">
+	<!-- end header -->
+				<div id="content" class="clearfix">
+
+					<ul class="breadcrumbs">
+						<li class="breadcrumb"><a href="#">Home</a> > <a href="#ProjectsHome:0">All Projects</a> > <span ui:field="breadcrumbTitleSpan" /></li>
+					</ul>
+				<h2><span ui:field="titleSpan" /></h2>
+				<div id="privacy_setting" class="right">
+					<table>
+						<tr valign="bottom">
+							<td style="padding-right: 10px">
+								<g:SimplePanel ui:field="adminPanel" />
+							</td>
+							<td>
+								<g:SimplePanel ui:field="accessPanel" />								
+								<span ui:field="accessSpan" />
+							</td>
+						</tr>
+					</table>					
+				</div>
+				<div class="data_info">
+					<span class="info_head">
+						<h2>Overview</h2>
+
+						<span class="data_options">
+							<g:SimplePanel ui:field="followProjectButtonPanel" />
+							<g:SimplePanel ui:field="seeTermsButtonPanel" /> 
+						</span>
+					</span>
+					<span class="info_text_2col">
+						<g:FlowPanel ui:field="overviewPanel" />
+						<br /><br />
+					</span>
+					<span class="data_details data_details_right">
+						<g:FlexTable ui:field="rightFlexTable" />
+					</span>
+				</div>
+			</div>
+			<div class="data_detail_sections">
+				<div class="data_detail_section">
+					<span class="header">
+						<span class="icon right">
+						</span>
+						<span class="title">Project Datasets</span>
+						<span class="secondary_text">Select a dataset to view its details</span>
+					</span>
+					<g:SimplePanel ui:field="datasetListTablePanel" />												
+				</div>
+			</div>
+					
+<!-- start footer -->
+				<g:SimplePanel ui:field="footer" />
+			</div> <!-- id: main -->				
+		</div> <!-- id: container -->
+<!-- end footer -->
+
+	</g:HTMLPanel>
+</ui:UiBinder> 

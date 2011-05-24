@@ -5,11 +5,12 @@ import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.web.client.DisplayConstants;
+import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.widget.breadcrumb.Breadcrumb;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
-import org.sagebionetworks.web.client.widget.header.Header.MenuItem;
+import org.sagebionetworks.web.client.widget.header.Header.MenuItems;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloader;
 import org.sagebionetworks.web.client.widget.modal.ModalWindow;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
@@ -86,7 +87,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
-		headerWidget.setMenuItemActive(MenuItem.DATASETS);
+		headerWidget.setMenuItemActive(MenuItems.DATASETS);
 
 		// Button: Follow dataset 
 		followDatasetModal.setHeading("Follow this Dataset");
@@ -102,7 +103,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 			@Override
 			public void onFailure(Throwable caught) {			}
 		});
-		// download link		
+		// follow link		
 		Anchor followDatasetAnchor = new Anchor();
 		followDatasetAnchor.setHTML(AbstractImagePrototype.create(icons.arrowCurve16()).getHTML() + " Follow this Dataset");
 		followDatasetAnchor.addClickHandler(new ClickHandler() {			
@@ -228,32 +229,32 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		
 		// add metadata to tables
 		int rowIndex = 0;
-		addRowToTable(rowIndex++, "Disease(s):", join(diseases, ", "), middleFlexTable);
-		addRowToTable(rowIndex++, "Species:", join(species, ", "), middleFlexTable);		
-		addRowToTable(rowIndex++, "Tissue Type(s):", join(tissueTypes, ", "), middleFlexTable);
-		addRowToTable(rowIndex++, "Tissue/Tumor:", tissueTumor, middleFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "Disease(s):", join(diseases, ", "), middleFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "Species:", join(species, ", "), middleFlexTable);		
+		DisplayUtils.addRowToTable(rowIndex++, "Tissue Type(s):", join(tissueTypes, ", "), middleFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "Tissue/Tumor:", tissueTumor, middleFlexTable);
 		if(referencePublicationUrl != null)
-			addRowToTable(rowIndex++, "Reference Publication:", "<a href=\""+ referencePublicationUrl + "\" target=\"_new\">" + referencePublicationDisplay + "</a>", middleFlexTable);
+			DisplayUtils.addRowToTable(rowIndex++, "Reference Publication:", "<a href=\""+ referencePublicationUrl + "\" target=\"_new\">" + referencePublicationDisplay + "</a>", middleFlexTable);
 		else 
-			addRowToTable(rowIndex++, "Reference Publication:", referencePublicationDisplay, middleFlexTable);
-		addRowToTable(rowIndex++, "Other Publications:", nOtherPublications + " <a href=\""+ viewOtherPublicationsUrl + "\" target=\"_new\">view</a>", middleFlexTable);
-		addRowToTable(rowIndex++, "Status:", status, middleFlexTable);
-		addRowToTable(rowIndex++, "Version:", version, middleFlexTable);
+			DisplayUtils.addRowToTable(rowIndex++, "Reference Publication:", referencePublicationDisplay, middleFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "Other Publications:", nOtherPublications + " <a href=\""+ viewOtherPublicationsUrl + "\" target=\"_new\">view</a>", middleFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "Status:", status, middleFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "Version:", version, middleFlexTable);
 
 		rowIndex = 0;
 		if(postedDate != null)
-			addRowToTable(rowIndex++, "Posted:", DisplayConstants.DATE_FORMAT.format(postedDate), rightFlexTable);
-		addRowToTable(rowIndex++, "Creator:", "<a href=\"people_charles.html\">"+ creator + "</a>", rightFlexTable);
+			DisplayUtils.addRowToTable(rowIndex++, "Posted:", DisplayConstants.DATE_FORMAT.format(postedDate), rightFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "Creator:", "<a href=\"people_charles.html\">"+ creator + "</a>", rightFlexTable);
 		if(curationDate != null)
-			addRowToTable(rowIndex++, "Curated On:", DisplayConstants.DATE_FORMAT.format(curationDate), rightFlexTable);
+			DisplayUtils.addRowToTable(rowIndex++, "Curated On:", DisplayConstants.DATE_FORMAT.format(curationDate), rightFlexTable);
 		if(lastModifiedDate != null)
-			addRowToTable(rowIndex++, "Last Modified On:", DisplayConstants.DATE_FORMAT.format(lastModifiedDate), rightFlexTable);						
-		addRowToTable(rowIndex++, "Contributor(s)/Institution:", join(contributors, "<br/>"), rightFlexTable);
-		addRowToTable(rowIndex++, "Followers:", nFollowers + " <a href=\""+ viewFollowersUrl + "\" target=\"_new\">view</a>", rightFlexTable);
-		addRowToTable(rowIndex++, "Number of Samples:", Integer.toString(nSamples), rightFlexTable);
-		addRowToTable(rowIndex++, "Number of Downloads:", Integer.toString(nDownloads), rightFlexTable);
-		addRowToTable(rowIndex++, "Download Availability:", downloadAvailability, rightFlexTable);
-		addRowToTable(rowIndex++, "Release Notes:", "<a href=\""+ releaseNotesUrl + "\" target=\"_new\">view</a>", rightFlexTable);			
+			DisplayUtils.addRowToTable(rowIndex++, "Last Modified On:", DisplayConstants.DATE_FORMAT.format(lastModifiedDate), rightFlexTable);						
+		DisplayUtils.addRowToTable(rowIndex++, "Contributor(s)/Institution:", join(contributors, "<br/>"), rightFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "Followers:", nFollowers + " <a href=\""+ viewFollowersUrl + "\" target=\"_new\">view</a>", rightFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "Number of Samples:", Integer.toString(nSamples), rightFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "Number of Downloads:", Integer.toString(nDownloads), rightFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "Download Availability:", downloadAvailability, rightFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "Release Notes:", "<a href=\""+ releaseNotesUrl + "\" target=\"_new\">view</a>", rightFlexTable);			
 		
 	}
 	
@@ -263,19 +264,6 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 //
 //	}
 
-	/**
-	 * Add a row to the provided FlexTable.
-	 * 
-	 * @param key
-	 * @param value
-	 * @param table
-	 */
-	private static void addRowToTable(int row, String key, String value,
-			FlexTable table) {
-		table.setHTML(row, 0, key);
-		table.getCellFormatter().addStyleName(row, 0, "boldRight");
-		table.setHTML(row, 1, value);
-	}
 
 	private void clearAllFields() {
 		titleSpan.setInnerText("");

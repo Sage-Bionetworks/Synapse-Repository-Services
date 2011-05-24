@@ -4,9 +4,18 @@ import com.google.gwt.resources.client.ClientBundle;
 import com.google.gwt.resources.client.ImageResource;
 
 public interface IconsImageBundle extends ClientBundle {
-
+	
+	@Source("images/icons/application-form-16.png")
+	ImageResource applicationForm16();	
+	
 	@Source("images/icons/plus-button-16.png")
 	ImageResource addSquare16();	
+
+	@Source("images/icons/wrench-screwdriver-16.png")
+	ImageResource adminTools16();		
+	
+	@Source("images/icons/application--pencil-16.png")
+	ImageResource applicationEdit16();	
 
 	@Source("images/icons/application--plus-16.png")
 	ImageResource applicationPlus16();	
@@ -20,15 +29,24 @@ public interface IconsImageBundle extends ClientBundle {
 	@Source("images/icons/cog-16.png")
 	ImageResource cog16();
 
+	@Source("images/icons/document--plus-16.png")
+	ImageResource documentAdd16();
+	
+	@Source("images/icons/document--pencil-16.png")
+	ImageResource documentEdit16();
+
 	@Source("images/icons/document-text-16.png")
 	ImageResource documentText16();
-	
+		
 	@Source("images/icons/download-16.png")
 	ImageResource download16();
 
 	@Source("images/icons/exclamation-red-16.png")
 	ImageResource error16();
 	
+	@Source("images/icons/equalizer-24.png")
+	ImageResource equalizer24();
+
 	@Source("images/icons/external-16.png")
 	ImageResource external16();
 
@@ -51,7 +69,7 @@ public interface IconsImageBundle extends ClientBundle {
 	ImageResource lock16();	
 		
 	@Source("images/icons/lock-unlock-16.png")
-	ImageResource lockUnlocked();	
+	ImageResource lockUnlocked16();	
 		
 	@Source("images/icons/mail--arrow-16.png")
 	ImageResource mailArrow16();	
@@ -71,6 +89,9 @@ public interface IconsImageBundle extends ClientBundle {
 	@Source("images/icons/user-business-16.png")
 	ImageResource userBusiness16();
 
+	@Source("images/icons/users-16.png")
+	ImageResource users16();
+	
 	@Source("images/icons/exclamation-16.png")
 	ImageResource warning16();	
 	

@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 
 import org.sagebionetworks.web.server.servlet.DatasetServiceImpl;
 import org.sagebionetworks.web.server.servlet.LicenseServiceImpl;
+import org.sagebionetworks.web.server.servlet.ProjectServiceImpl;
 import org.sagebionetworks.web.server.servlet.SearchServiceImpl;
 import org.sagebionetworks.web.server.servlet.UserAccountServiceImpl;
 import org.sagebionetworks.web.server.servlet.filter.RPCValidationFilter;
@@ -47,6 +48,10 @@ public class PortalServletModule extends ServletModule {
 		// Setup the Search service
 		bind(SearchServiceImpl.class).in(Singleton.class);
 		serve("/Portal/search").with(SearchServiceImpl.class);
+		// setup the project service
+		bind(ProjectServiceImpl.class).in(Singleton.class);
+		serve("/Portal/project").with(ProjectServiceImpl.class);
+	
 		
 		// Setup the License service mapping
 		bind(LicenseServiceImpl.class).in(Singleton.class);

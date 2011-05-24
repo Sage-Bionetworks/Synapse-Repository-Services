@@ -4,12 +4,14 @@ package org.sagebionetworks.web.client.mvp;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.sagebionetworks.web.client.ProtalGinInjector;
+import org.sagebionetworks.web.client.PortalGinInjector;
 import org.sagebionetworks.web.client.place.Dataset;
 import org.sagebionetworks.web.client.place.DatasetsHome;
 import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.place.Layer;
 import org.sagebionetworks.web.client.place.LoginPlace;
+import org.sagebionetworks.web.client.place.Project;
+import org.sagebionetworks.web.client.place.ProjectsHome;
 import org.sagebionetworks.web.client.place.users.PasswordReset;
 import org.sagebionetworks.web.client.place.users.RegisterAccount;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
@@ -17,6 +19,8 @@ import org.sagebionetworks.web.client.presenter.DatasetsHomePresenter;
 import org.sagebionetworks.web.client.presenter.HomePresenter;
 import org.sagebionetworks.web.client.presenter.LayerPresenter;
 import org.sagebionetworks.web.client.presenter.LoginPresenter;
+import org.sagebionetworks.web.client.presenter.ProjectPresenter;
+import org.sagebionetworks.web.client.presenter.ProjectsHomePresenter;
 import org.sagebionetworks.web.client.presenter.users.PasswordResetPresenter;
 import org.sagebionetworks.web.client.presenter.users.RegisterAccountPresenter;
 
@@ -27,7 +31,7 @@ import com.google.gwt.place.shared.Place;
 public class AppActivityMapper implements ActivityMapper {
 	
 	private static Logger log = Logger.getLogger(AppActivityMapper.class.getName());
-	private ProtalGinInjector ginjector;
+	private PortalGinInjector ginjector;
 	
 
 	/**
@@ -36,7 +40,7 @@ public class AppActivityMapper implements ActivityMapper {
 	 * @param clientFactory
 	 *            Factory to be passed to activities
 	 */
-	public AppActivityMapper(ProtalGinInjector ginjector) {
+	public AppActivityMapper(PortalGinInjector ginjector) {
 		super();
 		this.ginjector = ginjector;
 	}
@@ -74,6 +78,16 @@ public class AppActivityMapper implements ActivityMapper {
 			// The layer detail view
 			LayerPresenter presenter = ginjector.getLayerPresenter();
 			presenter.setPlace((Layer)place);
+			return presenter;
+		}else if (place instanceof ProjectsHome) {
+			// Projects Home 
+			ProjectsHomePresenter presenter = ginjector.getProjectsHomePresenter();
+			presenter.setPlace((ProjectsHome)place);
+			return presenter;
+		}else if (place instanceof Project) {
+			// Projects Home 
+			ProjectPresenter presenter = ginjector.getProjectPresenter();
+			presenter.setPlace((Project)place);
 			return presenter;
 		}else if (place instanceof LoginPlace) {
 			// login view

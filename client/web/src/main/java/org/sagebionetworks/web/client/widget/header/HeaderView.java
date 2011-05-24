@@ -1,6 +1,6 @@
 package org.sagebionetworks.web.client.widget.header;
 
-import org.sagebionetworks.web.client.widget.header.Header.MenuItem;
+import org.sagebionetworks.web.client.widget.header.Header.MenuItems;
 
 import com.google.gwt.user.client.ui.IsWidget;
 
@@ -12,9 +12,9 @@ public interface HeaderView extends IsWidget {
 	 */
 	public void setPresenter(Presenter presenter);
 
-	public void setMenuItemActive(MenuItem menuItem);
+	public void setMenuItemActive(MenuItems menuItem);
 
-	public void removeMenuItemActive(MenuItem menuItem);
+	public void removeMenuItemActive(MenuItems menuItem);
 
 	public void refresh();
 	

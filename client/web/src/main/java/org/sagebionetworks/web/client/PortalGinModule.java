@@ -18,6 +18,10 @@ import org.sagebionetworks.web.client.view.LayerView;
 import org.sagebionetworks.web.client.view.LayerViewImpl;
 import org.sagebionetworks.web.client.view.LoginView;
 import org.sagebionetworks.web.client.view.LoginViewImpl;
+import org.sagebionetworks.web.client.view.ProjectView;
+import org.sagebionetworks.web.client.view.ProjectViewImpl;
+import org.sagebionetworks.web.client.view.ProjectsHomeView;
+import org.sagebionetworks.web.client.view.ProjectsHomeViewImpl;
 import org.sagebionetworks.web.client.view.table.ColumnFactory;
 import org.sagebionetworks.web.client.view.table.ColumnFactoryImpl;
 import org.sagebionetworks.web.client.view.users.PasswordResetView;
@@ -38,6 +42,8 @@ import org.sagebionetworks.web.client.widget.login.LoginWidgetView;
 import org.sagebionetworks.web.client.widget.login.LoginWidgetViewImpl;
 import org.sagebionetworks.web.client.widget.modal.ModalWindowView;
 import org.sagebionetworks.web.client.widget.modal.ModalWindowViewImpl;
+import org.sagebionetworks.web.client.widget.sharing.AccessMenuButtonView;
+import org.sagebionetworks.web.client.widget.sharing.AccessMenuButtonViewImpl;
 import org.sagebionetworks.web.client.widget.statictable.StaticTableView;
 import org.sagebionetworks.web.client.widget.statictable.StaticTableViewImpl;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableView;
@@ -71,11 +77,19 @@ public class PortalGinModule extends AbstractGinModule {
 		// DatasetView
 		bind(DatasetViewImpl.class).in(Singleton.class);
 		bind(DatasetView.class).to(DatasetViewImpl.class);
-		
+
 		// LayerView
 		bind(LayerViewImpl.class).in(Singleton.class);
 		bind(LayerView.class).to(LayerViewImpl.class);
 
+		// ProjectsHomeView
+		bind(ProjectsHomeViewImpl.class).in(Singleton.class);
+		bind(ProjectsHomeView.class).to(ProjectsHomeViewImpl.class);		
+		
+		// ProjectView
+		bind(ProjectViewImpl.class).in(Singleton.class);
+		bind(ProjectView.class).to(ProjectViewImpl.class);		
+		
 		// QueryService View
 		//bind(QueryServiceTableView.class).to(QueryServiceTableViewImpl.class);
 		bind(QueryServiceTableView.class).to(QueryServiceTableViewGxtImpl.class);
@@ -131,6 +145,10 @@ public class PortalGinModule extends AbstractGinModule {
 		// Query filter
 		bind(QueryFilterViewImpl.class).in(Singleton.class);
 		bind(QueryFilterView.class).to(QueryFilterViewImpl.class);
+		
+		// Access Menu Button
+		bind(AccessMenuButtonViewImpl.class).in(Singleton.class);
+		bind(AccessMenuButtonView.class).to(AccessMenuButtonViewImpl.class);
 
 	}
 

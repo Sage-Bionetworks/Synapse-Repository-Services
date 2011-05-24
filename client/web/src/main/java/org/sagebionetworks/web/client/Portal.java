@@ -19,7 +19,7 @@ import com.google.gwt.user.client.ui.SimplePanel;
 public class Portal implements EntryPoint {
 	
 	//  We are using gin to create all of our objects
-	private final ProtalGinInjector ginjector = GWT.create(ProtalGinInjector.class);
+	private final PortalGinInjector ginjector = GWT.create(PortalGinInjector.class);
 
 	private SimplePanel appWidget = new SimplePanel();
 

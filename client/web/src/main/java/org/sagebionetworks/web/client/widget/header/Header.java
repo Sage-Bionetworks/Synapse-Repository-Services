@@ -5,7 +5,7 @@ import com.google.inject.Inject;
 
 public class Header implements HeaderView.Presenter {
 
-	public static enum MenuItem {
+	public static enum MenuItems {
 		DATASETS, TOOLS, NETWORKS, PEOPLE, PROJECTS
 	}
 	
@@ -17,11 +17,11 @@ public class Header implements HeaderView.Presenter {
 		view.setPresenter(this);
 	}
 	
-	public void setMenuItemActive(MenuItem menuItem) {
+	public void setMenuItemActive(MenuItems menuItem) {
 		view.setMenuItemActive(menuItem);
 	}
 
-	public void removeMenuItemActive(MenuItem menuItem) {
+	public void removeMenuItemActive(MenuItems menuItem) {
 		view.removeMenuItemActive(menuItem);
 	}
 

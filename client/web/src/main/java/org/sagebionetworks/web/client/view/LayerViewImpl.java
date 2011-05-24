@@ -6,10 +6,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.web.client.DisplayConstants;
+import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
-import org.sagebionetworks.web.client.widget.header.Header.MenuItem;
+import org.sagebionetworks.web.client.widget.header.Header.MenuItems;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloader;
 import org.sagebionetworks.web.client.widget.modal.ModalWindow;
 import org.sagebionetworks.web.client.widget.statictable.StaticTable;
@@ -79,7 +80,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());	
-		headerWidget.setMenuItemActive(MenuItem.DATASETS);
+		headerWidget.setMenuItemActive(MenuItems.DATASETS);
 		
 		setupLicensedDownloaderCallbacks();
 		// style FlexTables
@@ -174,12 +175,12 @@ public class LayerViewImpl extends Composite implements LayerView {
 		
 		// add metadata to table
 		int rowIndex = 0;
-		addRowToTable(rowIndex++, "Platform:", platform, rightFlexTable);
-		addRowToTable(rowIndex++, "Processing Facility:", processingFacility, rightFlexTable);
-		addRowToTable(rowIndex++, "QC By:", "<a href=\"" + qcByUrl + "\">" + qcByDisplay + "</a>", rightFlexTable);
-		addRowToTable(rowIndex++, "QC Analysis:", "<a href=\"" + qcAnalysisUrl + "\">" + qcAnalysisDisplay + "</a>", rightFlexTable);		
+		DisplayUtils.addRowToTable(rowIndex++, "Platform:", platform, rightFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "Processing Facility:", processingFacility, rightFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "QC By:", "<a href=\"" + qcByUrl + "\">" + qcByDisplay + "</a>", rightFlexTable);
+		DisplayUtils.addRowToTable(rowIndex++, "QC Analysis:", "<a href=\"" + qcAnalysisUrl + "\">" + qcAnalysisDisplay + "</a>", rightFlexTable);		
 		if(qcDate != null)
-			addRowToTable(rowIndex++, "QC Date:", DisplayConstants.DATE_FORMAT.format(qcDate), rightFlexTable);
+			DisplayUtils.addRowToTable(rowIndex++, "QC Date:", DisplayConstants.DATE_FORMAT.format(qcDate), rightFlexTable);
 		
 		// breadcrumbs
 		breadcrumbDatasetSpan.setInnerHTML(datasetLink);
@@ -260,18 +261,6 @@ public class LayerViewImpl extends Composite implements LayerView {
 	/*
 	 * Private Methods
 	 */
-	/**
-	 * Add a row to the provided FlexTable.
-	 * 
-	 * @param key
-	 * @param value
-	 * @param table
-	 */
-	private static void addRowToTable(int row, String key, String value, FlexTable table) {
-		table.setHTML(row, 0, key);
-		table.getCellFormatter().addStyleName(row, 0, "boldRight");
-		table.setHTML(row, 1, value);		
-	}
 
 	private void setupLicensedDownloaderCallbacks() {
 		// give the LicensedDownloader something to call when the view accepts the license
