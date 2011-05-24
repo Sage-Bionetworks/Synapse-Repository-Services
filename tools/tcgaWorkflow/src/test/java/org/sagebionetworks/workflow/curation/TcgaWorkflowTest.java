@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.workflow.curation.activity.CreateMetadataForTcgaSourceLayer;
 import org.sagebionetworks.workflow.curation.activity.DownloadFromTcga;
@@ -15,6 +16,7 @@ import org.sagebionetworks.workflow.curation.activity.DownloadFromTcga.DownloadR
 import org.sagebionetworks.workflow.curation.activity.ProcessTcgaSourceLayer.ScriptResult;
 
 /**
+ * TODO these are integration tests
  * @author deflaux
  * 
  */
@@ -35,6 +37,7 @@ public class TcgaWorkflowTest {
 	 * @throws Exception
 	 */
 	@Test
+	@Ignore
 	public void testDoCreateMetadata() throws Exception {
 		Integer newLayerId = CreateMetadataForTcgaSourceLayer
 				.doCreateMetadataForTcgaSourceLayer(
@@ -51,6 +54,7 @@ public class TcgaWorkflowTest {
 	 * @throws Exception
 	 */
 	@Test
+	@Ignore
 	public void testDoDownloadDataFromTcga() throws Exception {
 
 		DownloadResult result = DownloadFromTcga
