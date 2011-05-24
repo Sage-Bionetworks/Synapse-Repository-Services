@@ -48,16 +48,20 @@ public class ConfigHelper {
 	private String s3SecretKey;
 	private String s3BucketName;
 
+	private volatile static ConfigHelper theInstance = null;
+
 	private ConfigHelper() throws Exception {
 
 		URL url = ClassLoader.getSystemResource(PROPERTIES_FILENAME);
-		if(null == url) {
-			throw new Exception("unable to find in classpath " + PROPERTIES_FILENAME);
+		if (null == url) {
+			throw new Exception("unable to find in classpath "
+					+ PROPERTIES_FILENAME);
 		}
 		Properties serviceProperties = new Properties();
 		serviceProperties.load(new FileInputStream(new File(url.getFile())));
 
-		this.synapseServiceUrl = serviceProperties.getProperty(SYNAPSE_SERVICE_URL_KEY);
+		this.synapseServiceUrl = serviceProperties
+				.getProperty(SYNAPSE_SERVICE_URL_KEY);
 		this.swfServiceUrl = serviceProperties.getProperty(SWF_SERVICE_URL_KEY);
 		this.swfAccessId = System.getProperty(SWF_ACCESS_ID_KEY); // serviceProperties.getProperty(SWF_ACCESS_ID_KEY);
 		this.swfSecretKey = System.getProperty(SWF_SECRET_KEY_KEY); // serviceProperties.getProperty(SWF_SECRET_KEY_KEY);
@@ -67,10 +71,15 @@ public class ConfigHelper {
 		this.s3BucketName = serviceProperties.getProperty(S3_BUCKET_NAME_KEY);
 	}
 
-	public static ConfigHelper createConfig(String name, String[] args)
-			throws Exception {
-		ConfigHelper configHelper = new ConfigHelper();
-		return configHelper;
+	public static ConfigHelper createConfig() throws Exception {
+		if (null == theInstance) {
+			synchronized (ConfigHelper.class) {
+				if (null == theInstance) {
+					theInstance = new ConfigHelper();
+				}
+			}
+		}
+		return theInstance;
 	}
 
 	public AmazonSimpleWorkflow createSWFClient() {

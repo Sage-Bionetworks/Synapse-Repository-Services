@@ -28,7 +28,14 @@
       <artifactId>commons-httpclient</artifactId>
       <version>3.1</version>
     </dependency>
-    
+
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>4.1.1</version>
+    </dependency>
+
+
     <!-- Logging dependencies -->
     <dependency>
       <groupId>log4j</groupId>
