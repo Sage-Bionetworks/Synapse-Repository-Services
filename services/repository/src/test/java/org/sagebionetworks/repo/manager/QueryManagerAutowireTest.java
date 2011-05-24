@@ -55,8 +55,8 @@ public class QueryManagerAutowireTest {
 	
 	private long totalEntities = 10;
 	
-	final UserInfo mockUserInfo = new UserInfo();
-	final UserInfo anonUserInfo = new UserInfo();
+	final UserInfo mockUserInfo = new UserInfo(false);
+	final UserInfo anonUserInfo = new UserInfo(false);
 
 	
 	@Before

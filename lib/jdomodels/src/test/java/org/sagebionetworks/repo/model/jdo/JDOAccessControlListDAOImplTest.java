@@ -27,8 +27,11 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+
+import org.sagebionetworks.repo.model.ResourceAccess;
+
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.ResourceAccess2;
+
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -89,14 +92,16 @@ public class JDOAccessControlListDAOImplTest {
 		assertNotNull(group.getId());
 		groupList.add(group);
 		
-		acl = new AccessControlList();
-		acl.setCreationDate(new Date());
-		acl.setCreatedBy("me");
-		acl.setModifiedOn(new Date());
-		acl.setModifiedBy("you");
-		acl.setResourceId(node.getId());
-		Set<ResourceAccess2> ras = new HashSet<ResourceAccess2>();
-		ResourceAccess2 ra = new ResourceAccess2();
+		acl = accessControlListDAO.getForResource(node.getId());
+		assertNotNull(acl);
+//		acl = new AccessControlList();
+//		acl.setCreationDate(new Date());
+//		acl.setCreatedBy("me");
+//		acl.setModifiedOn(new Date());
+//		acl.setModifiedBy("you");
+//		acl.setResourceId(node.getId());
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ResourceAccess ra = new ResourceAccess();
 		ra.setUserGroupId(group.getId());
 		ra.setAccessType(new HashSet<AuthorizationConstants.ACCESS_TYPE>(
 				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{
@@ -104,8 +109,8 @@ public class JDOAccessControlListDAOImplTest {
 				})));
 		ras.add(ra);
 		acl.setResourceAccess(ras);
-		String id = accessControlListDAO.create(acl);
-		acl.setId(id);
+		accessControlListDAO.update(acl);
+//		acl.setId(id);
 		aclList.add(acl);
 	}
 
@@ -114,7 +119,6 @@ public class JDOAccessControlListDAOImplTest {
 	 */
 	@After
 	public void tearDown() throws Exception {
-		for (AccessControlList acl : aclList) accessControlListDAO.delete(acl.getId());
 		for (Node n : nodeList) nodeDAO.delete(n.getId());
 		for (UserGroup g : groupList) userGroupDAO.delete(g.getId());
 		this.node=null;
@@ -227,8 +231,8 @@ public class JDOAccessControlListDAOImplTest {
 		Node node = nodeList.iterator().next();
 		String rid = node.getId();
 		AccessControlList acl = accessControlListDAO.getForResource(rid);
-		Set<ResourceAccess2> ras = acl.getResourceAccess();
-		ResourceAccess2 ra = ras.iterator().next();
+		Set<ResourceAccess> ras = acl.getResourceAccess();
+		ResourceAccess ra = ras.iterator().next();
 		ra.setAccessType(new HashSet<AuthorizationConstants.ACCESS_TYPE>(
 				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{
 						AuthorizationConstants.ACCESS_TYPE.UPDATE,

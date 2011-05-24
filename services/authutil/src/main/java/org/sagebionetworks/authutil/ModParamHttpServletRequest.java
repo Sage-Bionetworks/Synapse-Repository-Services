@@ -21,7 +21,7 @@ public class ModParamHttpServletRequest extends HttpServletRequestWrapper {
 	 * @param request the request to be 'cloned'
 	 * @param params the parameters for the new request
 	 */
-	ModParamHttpServletRequest(HttpServletRequest request, Map<String,String[]> params) {
+	public ModParamHttpServletRequest(HttpServletRequest request, Map<String,String[]> params) {
 		super(request);
 		this.params=params;
 	}

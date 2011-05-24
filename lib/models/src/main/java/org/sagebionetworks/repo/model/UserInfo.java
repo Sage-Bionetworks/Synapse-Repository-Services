@@ -10,7 +10,22 @@ public class UserInfo {
 	private Collection<UserGroup> groups; // ALL the groups the user belongs to, 
 						// except "Public", which everyone implicitly belongs to
 	private UserGroup individualGroup; // the user's individual group
+	private boolean isAdmin;
 	
+	public UserInfo(boolean isAdmin) {setAdmin(isAdmin);}
+	
+	/**
+	 * @return the isAdmin
+	 */
+	public boolean isAdmin() {
+		return isAdmin;
+	}
+	/**
+	 * @param isAdmin the isAdmin to set
+	 */
+	private  void setAdmin(boolean isAdmin) {
+		this.isAdmin = isAdmin;
+	}
 	/**
 	 * @return the user
 	 */

@@ -90,6 +90,9 @@ public class JDONode {
 	@Element(dependent = "true")
 	private Set<JDONode> permissionsBeneficiaries;
 	
+//	@Persistent
+//	private JDOAccessControlList accessControlList;
+	
 	public Set<JDONode> getChildren() {
 		return children;
 	}
@@ -233,6 +236,20 @@ public class JDONode {
 	public void setPermissionsBeneficiaries(Set<JDONode> permissionsBeneficiaries) {
 		this.permissionsBeneficiaries = permissionsBeneficiaries;
 	}
+
+//	/**
+//	 * @return the accessControlList
+//	 */
+//	public JDOAccessControlList getAccessControlList() {
+//		return accessControlList;
+//	}
+//
+//	/**
+//	 * @param accessControlList the accessControlList to set
+//	 */
+//	public void setAccessControlList(JDOAccessControlList accessControlList) {
+//		this.accessControlList = accessControlList;
+//	}
 
 	@Override
 	public int hashCode() {

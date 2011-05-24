@@ -51,7 +51,7 @@ public class EntitiesAccessorImplAutoWiredTest {
 	private int layers = 5;
 	private int locations = 2;
 	
-	final UserInfo anonUserInfo = new UserInfo();
+	final UserInfo anonUserInfo = new UserInfo(false);
 	
 	@Before
 	public void before() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException{

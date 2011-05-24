@@ -15,13 +15,14 @@ import javax.jdo.annotations.PrimaryKey;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 @PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_RESOURCE_ACCESS)
-public class JDOResourceAccess2 {
+public class JDOResourceAccess {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 	
 	@Persistent
 	@Column (name=SqlConstants.COL_RESOURCE_ACCESS_OWNER)
+	@ForeignKey(name="RESOURCE_ACCESS_OWNER_FK", deleteAction=ForeignKeyAction.CASCADE)
 	private JDOAccessControlList owner;
 	
 	@Persistent
@@ -31,7 +32,8 @@ public class JDOResourceAccess2 {
 				
 	// e.g. read, write, delete, as defined in AuthorizationConstants.ACCESS_TYPE
 	@Persistent(serialized="false")
-	@Join(table=SqlConstants.TABLE_RESOURCE_ACCESS_TYPE, column=SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID)
+	@Join(table=SqlConstants.TABLE_RESOURCE_ACCESS_TYPE, column=SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID, deleteAction=ForeignKeyAction.CASCADE)
+	@ForeignKey(name="ACCESS_TYPE_RESOURCE_ACCESS_FK", deleteAction=ForeignKeyAction.CASCADE)
 	private Set<String> accessType = new HashSet<String>();
 
 	/**
@@ -97,9 +99,9 @@ public class JDOResourceAccess2 {
 			return true;
 		if (obj == null)
 			return false;
-		if (!(obj instanceof JDOResourceAccess2))
+		if (!(obj instanceof JDOResourceAccess))
 			return false;
-		JDOResourceAccess2 other = (JDOResourceAccess2) obj;
+		JDOResourceAccess other = (JDOResourceAccess) obj;
 		if (id == null) {
 			if (other.id != null)
 				return false;

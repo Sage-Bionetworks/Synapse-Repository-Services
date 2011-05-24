@@ -44,7 +44,7 @@ public class EntityManagerImplAutowireTest {
 
 	private List<String> toDelete;
 	
-	private final UserInfo anonUserInfo = new UserInfo();
+	private final UserInfo anonUserInfo = new UserInfo(false);
 
 	
 	@Before

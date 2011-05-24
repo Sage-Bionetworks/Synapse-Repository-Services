@@ -66,7 +66,7 @@ public interface PermissionsManager {
 	
 	/**
 	 * 
-	 * get all non-individual user groups
+	 * get all non-individual user groups, including Public
 	 * @throws DatastoreException 
 	 * 
 	 **/
@@ -79,7 +79,7 @@ public interface PermissionsManager {
 	public Collection<UserGroup> getIndividuals() throws DatastoreException;
 	
 	/**
-	 * get non-individual user groups in range
+	 * get non-individual user groups (including Public) in range
 	 * 
 	 **/
 	public List<UserGroup> getGroupsInRange(long startIncl, long endExcl) throws DatastoreException;

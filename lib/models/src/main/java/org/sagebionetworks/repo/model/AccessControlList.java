@@ -13,7 +13,7 @@ public class AccessControlList implements Base {
 	private String etag;
 	private String uri;
 	
-	private Set<ResourceAccess2> resourceAccess;
+	private Set<ResourceAccess> resourceAccess;
 	
 	public String toString() {return resourceId+" "+resourceAccess;}
 	
@@ -132,14 +132,14 @@ public class AccessControlList implements Base {
 	/**
 	 * @return the resourceAccess
 	 */
-	public Set<ResourceAccess2> getResourceAccess() {
+	public Set<ResourceAccess> getResourceAccess() {
 		return resourceAccess;
 	}
 
 	/**
 	 * @param resourceAccess the resourceAccess to set
 	 */
-	public void setResourceAccess(Set<ResourceAccess2> resourceAccess) {
+	public void setResourceAccess(Set<ResourceAccess> resourceAccess) {
 		this.resourceAccess = resourceAccess;
 	}
 
