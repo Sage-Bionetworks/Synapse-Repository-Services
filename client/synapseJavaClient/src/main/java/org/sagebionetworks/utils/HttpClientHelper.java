@@ -8,6 +8,7 @@ import java.util.Map.Entry;
 
 import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.commons.httpclient.methods.DeleteMethod;
@@ -23,6 +24,8 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 
 /**
+ * TODO
+ * - improve the code to better handle large request entities
  */
 public class HttpClientHelper {
 
@@ -38,6 +41,8 @@ public class HttpClientHelper {
 	}
 
 	/**
+	 * Perform a REST API request
+	 * 
 	 * @param requestUrl
 	 * @param requestMethod
 	 * @param requestContent
@@ -54,6 +59,8 @@ public class HttpClientHelper {
 	}
 
 	/**
+	 * Perform a REST API request, expecting a non-standard HTTP status
+	 * 
 	 * @param requestUrl
 	 * @param requestMethod
 	 * @param requestContent
@@ -73,7 +80,7 @@ public class HttpClientHelper {
 	@SuppressWarnings("deprecation")
 	private static String performRequest(URL requestUrl, String requestMethod,
 			String requestContent, Map<String, String> requestHeaders,
-			Integer overridingExpectedResponseStatus) throws Exception {
+			Integer overridingExpectedResponseStatus) throws HttpException, IOException, HttpClientHelperException {
 
 		int defaultExpectedReponseStatus = 200;
 
@@ -112,21 +119,21 @@ public class HttpClientHelper {
 		int responseStatus = webClient.executeMethod(hostConfig, method);
 
 		if (expectedResponseStatus != responseStatus) {
-			System.err.println("FAILURE: Expected "
-					+ defaultExpectedReponseStatus + " but got "
-					+ responseStatus + " for " + requestUrl);
+			StringBuilder verboseMessage = new StringBuilder(
+					"FAILURE: Expected " + defaultExpectedReponseStatus
+							+ " but got " + responseStatus + " for "
+							+ requestUrl);
 			if (0 < requestHeaders.size()) {
-				System.err.println("Headers: ");
+				verboseMessage.append("\nHeaders: ");
 				for (Entry<String, String> entry : requestHeaders.entrySet()) {
-					System.err.println("\t" + entry.getKey() + ": "
-							+ entry.getValue());
+					verboseMessage.append("\n\t" + entry.getKey() + ": " + entry.getValue());
 				}
 			}
 			if (null != requestContent) {
-				System.err.println("Content: " + requestContent);
+				verboseMessage.append("\nContent: " + requestContent);
 			}
+			throw new HttpClientHelperException(verboseMessage.toString(), method);
 		}
-
 		return method.getResponseBodyAsString();
 	}
 

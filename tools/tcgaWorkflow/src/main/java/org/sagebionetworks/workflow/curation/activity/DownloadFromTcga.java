@@ -3,7 +3,6 @@ package org.sagebionetworks.workflow.curation.activity;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.http.client.ClientProtocolException;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.workflow.UnrecoverableException;
 

@@ -1,6 +1,7 @@
 package org.sagebionetworks.client;
 
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -9,9 +10,10 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.utils.HttpClientHelper;
+import org.sagebionetworks.utils.HttpClientHelperException;
 
 /**
- *
+ * Low-level Java Client API for Synapse REST APIs
  */
 public class Synapse {
 
@@ -21,6 +23,7 @@ public class Synapse {
 
 	private String serviceEndpoint;
 
+	private static final String QUERY_URI = "/query?query=";
 	private static final Map<String, String> defaultGETDELETEHeaders;
 	private static final Map<String, String> defaultPOSTPUTHeaders;
 
@@ -60,13 +63,8 @@ public class Synapse {
 		URL requestUrl = new URL(serviceEndpoint + uri);
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultPOSTPUTHeaders);
-		String response = HttpClientHelper.performRequest(requestUrl, "POST",
-				entity.toString(), requestHeaders);
-		JSONObject results = new JSONObject(response);
-		if (log.isDebugEnabled()) {
-			log.debug("Created " + uri + " : " + results.toString(JSON_INDENT));
-		}
-		return results;
+		return dispatchRequest(requestUrl, "POST", entity.toString(),
+				requestHeaders);
 	}
 
 	/**
@@ -85,14 +83,7 @@ public class Synapse {
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultGETDELETEHeaders);
 
-		String response = HttpClientHelper.performRequest(requestUrl, "GET",
-				null, requestHeaders);
-		JSONObject results = new JSONObject(response);
-		if (log.isDebugEnabled()) {
-			log.debug("Retrieved " + uri + " : "
-					+ results.toString(JSON_INDENT));
-		}
-		return results;
+		return dispatchRequest(requestUrl, "GET", null, requestHeaders);
 	}
 
 	/**
@@ -112,6 +103,7 @@ public class Synapse {
 	 * @return the updated entity
 	 * @throws Exception
 	 */
+	@SuppressWarnings("unchecked")
 	public JSONObject updateEntity(String uri, JSONObject entity)
 			throws Exception {
 
@@ -129,7 +121,7 @@ public class Synapse {
 
 	/**
 	 * Update a dataset, layer, preview, annotations, etc...
-	 *
+	 * 
 	 * @param uri
 	 * @param entity
 	 * @return the updated entity
@@ -148,13 +140,8 @@ public class Synapse {
 		requestHeaders.putAll(defaultPOSTPUTHeaders);
 		requestHeaders.put("ETag", entity.getString("etag"));
 
-		String response = HttpClientHelper.performRequest(requestUrl, "PUT",
-				entity.toString(), requestHeaders);
-		JSONObject results = new JSONObject(response);
-		if (log.isDebugEnabled()) {
-			log.debug("Updated " + uri + " : " + results.toString(JSON_INDENT));
-		}
-		return results;
+		return dispatchRequest(requestUrl, "PUT", entity.toString(),
+				requestHeaders);
 	}
 
 	/**
@@ -177,4 +164,79 @@ public class Synapse {
 		return;
 	}
 
+	/**
+	 * Perform a query
+	 * 
+	 * @param query
+	 *            the query to perform
+	 * @return the query result
+	 * @throws Exception
+	 */
+	public JSONObject query(String query) throws Exception {
+		if (null == query) {
+			throw new IllegalArgumentException("must provide a query");
+		}
+
+		URL requestUrl = new URL(serviceEndpoint + QUERY_URI
+				+ URLEncoder.encode(query, "UTF-8"));
+		Map<String, String> requestHeaders = new HashMap<String, String>();
+		requestHeaders.putAll(defaultGETDELETEHeaders);
+
+		return dispatchRequest(requestUrl, "GET", null, requestHeaders);
+	}
+
+	/**
+	 * Convert exceptions emanating from the service to
+	 * Synapse[User|Service]Exception but let all other types of exceptions
+	 * bubble up as usual
+	 * 
+	 * @param requestUrl
+	 * @param requestMethod
+	 * @param requestContent
+	 * @param requestHeaders
+	 * @return
+	 * @throws Exception
+	 */
+	private JSONObject dispatchRequest(URL requestUrl, String requestMethod,
+			String requestContent, Map<String, String> requestHeaders)
+			throws Exception {
+
+		JSONObject results = null;
+		try {
+			String response = HttpClientHelper.performRequest(requestUrl,
+					requestMethod, requestContent, requestHeaders);
+			if (null != response) {
+				results = new JSONObject(response);
+				if (log.isDebugEnabled()) {
+					log.debug(requestMethod + " " + requestUrl + " : "
+							+ results.toString(JSON_INDENT));
+				}
+			}
+		} catch (HttpClientHelperException e) {
+			// Well-handled server side exceptions come back as JSON, attempt to
+			// deserialize and convert the error
+			int statusCode = 500; // assume a service exception
+			try {
+				statusCode = e.getMethod().getStatusCode();
+				String response = e.getMethod().getResponseBodyAsString();
+				results = new JSONObject(response);
+				if (log.isDebugEnabled()) {
+					log.debug("Retrieved " + requestUrl + " : "
+							+ results.toString(JSON_INDENT));
+				}
+			} catch (Exception conversionException) {
+				// We could not convert it, just re-throw the original exception
+				throw e;
+			}
+
+			if ((400 <= statusCode) && (500 > statusCode)) {
+				throw new SynapseUserException("User Error(" + statusCode
+						+ "): " + results.getString("reason"));
+			}
+			throw new SynapseServiceException("Service Error(" + statusCode
+					+ "): " + results.getString("reason"));
+		} // end catch
+
+		return results;
+	}
 }
