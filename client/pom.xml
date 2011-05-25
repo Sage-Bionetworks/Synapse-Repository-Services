@@ -17,8 +17,10 @@
   <packaging>pom</packaging>
   <name>Platform Clients</name>
   <version>parent-1.0</version>
+
   <modules>
     <module>web</module>
+    <module>synapseJavaClient</module>
   </modules>
   
 </project>

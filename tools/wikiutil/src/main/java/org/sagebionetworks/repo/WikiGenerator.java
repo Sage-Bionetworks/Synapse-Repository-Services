@@ -52,7 +52,7 @@ public class WikiGenerator {
 		readWriteHeaders.put("Content-Type", "application/json");
 		defaultPOSTPUTHeaders = Collections.unmodifiableMap(readWriteHeaders);
 	}
-		
+
 	/**
 	 * @param serviceEndpoint
 	 */
@@ -80,17 +80,17 @@ public class WikiGenerator {
 		}
 
 		URL requestUrl = new URL(serviceEndpoint + uri);
-		Map<String,String> requestHeaders = new HashMap<String, String>();
+		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultGETDELETEHeaders);
 
 		String curl = "curl -i ";
-		for(Entry<String, String> header : requestHeaders.entrySet()) {
+		for (Entry<String, String> header : requestHeaders.entrySet()) {
 			curl += " -H " + header.getKey() + ":" + header.getValue();
 		}
 		curl += " '" + requestUrl + "'{code}";
 		log.info("*Request*{code}" + curl);
 		log.info("*Response*{code}");
-		
+
 		String response = null;
 		try {
 			response = HttpClientHelper.performRequest(requestUrl, "GET", null,
@@ -99,6 +99,7 @@ public class WikiGenerator {
 			log.info(results.toString(JSON_INDENT) + "{code}");
 			return results;
 		} catch (Exception e) {
+			log.info("failure: ", e);
 			log.info("{code}");
 		}
 		return null;
@@ -125,25 +126,27 @@ public class WikiGenerator {
 		}
 
 		URL requestUrl = new URL(serviceEndpoint + uri);
-		Map<String,String> requestHeaders = new HashMap<String, String>();
+		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultPOSTPUTHeaders);
 
 		String curl = "curl -i ";
-		for(Entry<String, String> header : requestHeaders.entrySet()) {
+		for (Entry<String, String> header : requestHeaders.entrySet()) {
 			curl += " -H " + header.getKey() + ":" + header.getValue();
 		}
-		curl += " -d '" + entity.toString(JSON_INDENT) + "' " + requestUrl + "{code}";
+		curl += " -d '" + entity.toString(JSON_INDENT) + "' " + requestUrl
+				+ "{code}";
 		log.info("*Request*{code}" + curl);
 		log.info("*Response*{code}");
 
 		String response = null;
 		try {
-			response = HttpClientHelper.performRequest(requestUrl, "POST", entity.toString(),
-					requestHeaders);
+			response = HttpClientHelper.performRequest(requestUrl, "POST",
+					entity.toString(), requestHeaders);
 			JSONObject results = new JSONObject(response);
 			log.info(results.toString(JSON_INDENT) + "{code}");
 			return results;
 		} catch (Exception e) {
+			log.info("failure: ", e);
 			log.info("{code}");
 		}
 		return null;
@@ -170,26 +173,28 @@ public class WikiGenerator {
 		}
 
 		URL requestUrl = new URL(serviceEndpoint + uri);
-		Map<String,String> requestHeaders = new HashMap<String, String>();
+		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultPOSTPUTHeaders);
 		requestHeaders.put("ETag", entity.getString("etag"));
-		
+
 		String curl = "curl -i ";
-		for(Entry<String, String> header : requestHeaders.entrySet()) {
+		for (Entry<String, String> header : requestHeaders.entrySet()) {
 			curl += " -H " + header.getKey() + ":" + header.getValue();
 		}
-		curl += " -X PUT -d '" + entity.toString(JSON_INDENT) + "' " + requestUrl + "{code}";
+		curl += " -X PUT -d '" + entity.toString(JSON_INDENT) + "' "
+				+ requestUrl + "{code}";
 		log.info("*Request*{code}" + curl);
 		log.info("*Response*{code}");
 
 		String response = null;
 		try {
-			response = HttpClientHelper.performRequest(requestUrl, "PUT", entity.toString(),
-					requestHeaders);
+			response = HttpClientHelper.performRequest(requestUrl, "PUT",
+					entity.toString(), requestHeaders);
 			JSONObject results = new JSONObject(response);
 			log.info(results.toString(JSON_INDENT) + "{code}");
 			return results;
 		} catch (Exception e) {
+			log.info("failure: ", e);
 			log.info("{code}");
 		}
 		return null;
@@ -213,22 +218,23 @@ public class WikiGenerator {
 			return;
 		}
 		URL requestUrl = new URL(serviceEndpoint + uri);
-		Map<String,String> requestHeaders = new HashMap<String, String>();
+		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultGETDELETEHeaders);
 		String curl = "curl -i ";
-		for(Entry<String, String> header : requestHeaders.entrySet()) {
+		for (Entry<String, String> header : requestHeaders.entrySet()) {
 			curl += " -H " + header.getKey() + ":" + header.getValue();
 		}
 		curl += " -X DELETE " + requestUrl + "{code}";
 		log.info("*Request*{code}" + curl);
 		log.info("*Response*{code}");
-		
+
 		try {
 			HttpClientHelper.performRequest(requestUrl, "DELETE", null,
 					requestHeaders);
 			log.info("{code}");
 			return;
 		} catch (Exception e) {
+			log.info("failure: ", e);
 			log.info("{code}");
 		}
 		return;

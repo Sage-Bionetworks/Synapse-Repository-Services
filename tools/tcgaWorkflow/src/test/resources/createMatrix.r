@@ -1,6 +1,9 @@
 #!/usr/bin/env Rscript
 
-# pass args like --args --layerId 42 --localFilepath ./foo.txt
+library(sbnClient)
 
-args <- commandArgs(trailingOnly = TRUE)
-print(args)
+inputLayer <- getInputLayerId()
+
+data <- read.table(getLocalFilepath(), sep='\t')
+
+setOutputLayerId(inputLayer)

@@ -2,8 +2,24 @@ package org.sagebionetworks.workflow.curation.activity;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.log4j.Logger;
+import org.json.JSONObject;
 
 public class ProcessTcgaSourceLayer {
+
+	private static final Logger log = Logger
+			.getLogger(ProcessTcgaSourceLayer.class.getName());
+
+	private static final String INPUT_LAYER_PARAMETER_KEY = "--layerId";
+	private static final String LOCAL_FILEPATH_INPUT_PARAMETER_KEY = "--localFilepath";
+
+	private static final String OUTPUT_LAYER_JSON_KEY = "layerId";
+	private static final Pattern OUTPUT_DELIMITER_PATTERN = Pattern.compile(
+			"TcgaWorkflowResult_START(.*)TcgaWorkflowResult_END",
+			Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
 
 	public static class ScriptResult {
 
@@ -39,8 +55,13 @@ public class ProcessTcgaSourceLayer {
 	public static ScriptResult doProcessTcgaSourceLayer(String script,
 			Integer rawLayerId, String localFilepath) throws Exception {
 
+		String scriptInput[] = new String[] { script,
+				INPUT_LAYER_PARAMETER_KEY, rawLayerId.toString(),
+				LOCAL_FILEPATH_INPUT_PARAMETER_KEY, localFilepath };
+		
 		ScriptResult scriptResult = new ScriptResult();
 
+		// TODO
 		// When these R scripts are run via this workflow, a value will be
 		// passed in for --localFilepath, the script will get the layer metadata
 		// from the repository service which includes the md5 checksum and it
@@ -51,10 +72,9 @@ public class ProcessTcgaSourceLayer {
 		// layer metadata and stored in the local R file cache. The scientists
 		// will work this way when developing new scripts or modifying existing
 		// scripts.
-		Process process = Runtime.getRuntime().exec(
-				new String[] { script, "--rawLayerId", rawLayerId.toString(),
-						"--localFilepath", localFilepath });
 
+		log.debug("Running: " + script);
+		Process process = Runtime.getRuntime().exec(scriptInput);
 		// TODO threads for slurping in stdout and stderr
 
 		String line;
@@ -65,8 +85,7 @@ public class ProcessTcgaSourceLayer {
 		StringBuilder stdoutAccumulator = new StringBuilder();
 		while ((line = inputStream.readLine()) != null) {
 			stdoutAccumulator.append(line);
-			// TODO log this
-			System.out.println(line);
+			log.debug(line);
 		}
 		inputStream.close();
 		scriptResult.setStdout(stdoutAccumulator.toString());
@@ -77,8 +96,7 @@ public class ProcessTcgaSourceLayer {
 		StringBuilder stderrAccumulator = new StringBuilder();
 		while ((line = errorStream.readLine()) != null) {
 			stderrAccumulator.append(line);
-			// TODO log this
-			System.out.println(line);
+			log.debug(line);
 		}
 		errorStream.close();
 		scriptResult.setStderr(stderrAccumulator.toString());
@@ -89,9 +107,14 @@ public class ProcessTcgaSourceLayer {
 					+ stderrAccumulator);
 		}
 
-		// TODO parse JSON output from R script sent to stdout to get the
-		// processed layer id
-		scriptResult.setProcessedLayerId(42);
+		Matcher resultMatcher = OUTPUT_DELIMITER_PATTERN.matcher(scriptResult
+				.getStdout());
+		if (resultMatcher.matches()) {
+			JSONObject result = new JSONObject(resultMatcher.group(1));
+			if (result.has(OUTPUT_LAYER_JSON_KEY)) {
+				scriptResult.setProcessedLayerId(result.getInt(OUTPUT_LAYER_JSON_KEY));
+			}
+		}
 		return scriptResult;
 	}
 }
