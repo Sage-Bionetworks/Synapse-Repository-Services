@@ -183,7 +183,12 @@ public class Helpers {
 				+ new JSONObject(jsonRequestContent).toString(2));
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
-		assertEquals("Reason: "+response.getErrorMessage(),HttpStatus.CREATED.value(), response.getStatus());
+//		assertEquals("Reason: "+response.getErrorMessage(),HttpStatus.CREATED.value(), response.getStatus());
+		assertEquals("Reason: "+
+				
+				(response.getErrorMessage()==null ? response.getContentAsString(): response.getErrorMessage())
+				
+				,HttpStatus.CREATED.value(), response.getStatus());
 		JSONObject results = new JSONObject(response.getContentAsString());
 		log.info(results.toString(JSON_INDENT));
 

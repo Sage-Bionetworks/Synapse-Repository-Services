@@ -1,6 +1,13 @@
 package org.sagebionetworks.repo.web.controller;
 
+import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -81,8 +88,23 @@ import org.springframework.web.util.NestedServletException;
 
 public abstract class BaseController {
 
-	private static final Logger log = Logger.getLogger(BaseController.class
-			.getName());
+	private static final Logger log;
+	
+	static {
+		log = Logger.getLogger(BaseController.class
+				.getName());
+		try {
+			Date d = new Date();
+			DateFormat df = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss");
+			
+		    // Create a file handler that write log record to a file called my.log
+		    FileHandler handler = new FileHandler(BaseController.class.getName()+df.format(d)+".txt");
+//		    log.addHandler(handler);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}	
+		
+	}
 
 	/**
 	 * This is an application exception thrown when the request references an
@@ -470,6 +492,18 @@ public abstract class BaseController {
 			HttpServletRequest request) {
 		log.log(Level.WARNING, "Handling " + request.toString(), ex);
 		return new ErrorResponse(ex.getMessage());
+//		return new ErrorResponse(stackTraceToString(ex));
+	}
+	
+	public static String stackTraceToString(Throwable ex) {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		ex.printStackTrace(new PrintStream(baos));
+		try {
+			baos.flush();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		return baos.toString();
 	}
 
 }

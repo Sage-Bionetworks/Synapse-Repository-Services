@@ -17,6 +17,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -97,8 +98,19 @@ public class AuthorizationManagerImplTest {
 		for (Node n : nodeList) nodeDAO.delete(n.getId());
 		this.node=null;
 		
-		for (UserGroup g : userGroupDAO.getAll(true)) 
-			userGroupDAO.delete(g.getId());
+//		for (UserGroup g : userGroupDAO.getAll(true)) 
+//			userGroupDAO.delete(g.getId());
+		for (UserGroup g: userGroupDAO.getAll(true)) {
+			if (g.getName().equals(AuthorizationConstants.ADMIN_GROUP_NAME)) {
+				// leave it
+			} else if (g.getName().equals(AuthorizationConstants.PUBLIC_GROUP_NAME)) {
+				// leave it
+			} else if (g.getName().equals(AuthorizationConstants.ANONYMOUS_USER_ID)) {
+				// leave it
+			} else {
+				userGroupDAO.delete(g.getId());
+			}
+		}
 		
 	}
 	
