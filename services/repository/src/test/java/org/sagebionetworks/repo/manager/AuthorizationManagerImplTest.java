@@ -143,16 +143,57 @@ public class AuthorizationManagerImplTest {
 		// now they should be able to access
 		b = authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ);
 		assertTrue(b);
+		// but they do not have a different kind of access
+		b = authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.DELETE);
+		assertFalse(b);
 	}
 	
 	@Test 
 	public void testCanAccessGroup() throws Exception {
 		// test that a user can access something accessible to a group they belong to
+		boolean b = authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ);
+		// no access yet
+		assertFalse(b);
+		AccessControlList acl = accessControlListDAO.getForResource(node.getId());
+		assertNotNull(acl);
+		UserGroup g = userGroupDAO.findGroup(TestUserDAO.TEST_GROUP_NAME, false);
+		addToACL(acl, g, ACCESS_TYPE.READ);
+		// now they should be able to access
+		b = authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ);
+		assertTrue(b);
+	}
+	
+	@Test 
+	public void testCanAccessPublicGroup() throws Exception {
+		// test that a user can access something accessible to a group they belong to
+		boolean b = authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ);
+		// no access yet
+		assertFalse(b);
+		AccessControlList acl = accessControlListDAO.getForResource(node.getId());
+		assertNotNull(acl);
+		UserGroup pg = userGroupDAO.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false);
+		addToACL(acl, pg, ACCESS_TYPE.READ);
+		// now they should be able to access
+		b = authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ);
+		assertTrue(b);
+	}
+	
+	@Test
+	public void testCanAccessAsAnonymous() throws Exception {
+		UserInfo anonInfo = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
+		AccessControlList acl = accessControlListDAO.getForResource(node.getId());
+		assertNotNull(acl);
+		// give some other group access
+		UserGroup g = userGroupDAO.findGroup(TestUserDAO.TEST_GROUP_NAME, false);
+		addToACL(acl, g, ACCESS_TYPE.READ);
+
+		// anonymous does not have access
+		boolean b = authorizationManager.canAccess(anonInfo, node.getId(), ACCESS_TYPE.READ);
+		assertFalse(b);
 	}
 	
 	@Test
 	public void testCanAccessx() {
-		// test that a user can't access something they haven't been given access to
 		// test that anonymous can't access something a group can access
 		// test that an admin can access anything
 		// test that a user can access a Public resource

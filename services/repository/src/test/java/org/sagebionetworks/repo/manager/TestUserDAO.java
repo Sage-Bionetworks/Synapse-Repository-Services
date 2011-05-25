@@ -24,6 +24,11 @@ public class TestUserDAO implements UserDAO {
 	 */
 	public static final String FAKE_SECRET_KEY = "thisIsAFakeAWSSecretKey";
 	
+	public static final String TEST_GROUP_NAME = "test-group";
+	
+	public static final String ADMIN_USER_NAME = "admin";
+	
+	
 	private Map<String,User> map = new HashMap<String,User>(); // maps userId to User
 
 	/* (non-Javadoc)
@@ -99,8 +104,13 @@ public class TestUserDAO implements UserDAO {
 	@Override
 	public Collection<String> getUserGroupNames(String userName) {
 		Collection<String> ans = new HashSet<String>();
-		ans.add("test-group");
-		if ("admin".equals(userName)) ans.add(AuthorizationConstants.ADMIN_GROUP_NAME);
+		if (ADMIN_USER_NAME.equals(userName)) {
+			ans.add(AuthorizationConstants.ADMIN_GROUP_NAME);
+		} else if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userName)) {
+			// not in any group
+		} else {
+			ans.add(TEST_GROUP_NAME);
+		}
 		return ans;
 	}
 
