@@ -43,7 +43,7 @@ public class CreateMetadataForTcgaSourceLayer {
 		Synapse synapse = ConfigHelper.createConfig().createSynapseClient();
 		
 		// TODO get rid of servlet prefix
-		String layerUri = "/repo/v1/dataset/" + datasetId + "/layer";
+		String layerUri = "/dataset/" + datasetId + "/layer";
 		JSONObject layers = synapse.getEntity(layerUri);
 		JSONArray results = layers.getJSONArray("results");
 		// TODO query for existing layer
