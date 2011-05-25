@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.jdo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -51,10 +52,17 @@ public class JDOUserGroupDAOImplTest {
 				// leave it
 			} else if (g.getName().equals(AuthorizationConstants.PUBLIC_GROUP_NAME)) {
 				// leave it
+			} else if (g.getName().equals(AuthorizationConstants.ANONYMOUS_USER_ID)) {
+				// leave it
 			} else {
 				userGroupDAO.delete(g.getId());
 			}
 		}
+	}
+	
+	@Test
+	public void findAnonymousUser() throws Exception {
+		assertNotNull(userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true));
 	}
 
 	private static final String GROUP_NAME = "test-group";
@@ -62,7 +70,7 @@ public class JDOUserGroupDAOImplTest {
 	public void testGetGroupsByNames() throws Exception {
 		Collection<UserGroup> allGroups = null; 
 		allGroups = userGroupDAO.getAll();
-		assertEquals(allGroups.toString(), 2, allGroups.size()); // Public and Administrators
+		assertEquals(allGroups.toString(), 3, allGroups.size()); // Public and Administrators
 	
 		Collection<String> groupNames = new HashSet<String>();
 		groupNames.add(GROUP_NAME);
@@ -75,7 +83,7 @@ public class JDOUserGroupDAOImplTest {
 		userGroupDAO.create(group);
 		
 		allGroups = userGroupDAO.getAll();
-		assertEquals(allGroups.toString(), 3, allGroups.size()); // now the new group should be there
+		assertEquals(allGroups.toString(), 4, allGroups.size()); // now the new group should be there
 			
 		groupNames.clear(); 	groupNames.add(GROUP_NAME);	
 		map = userGroupDAO.getGroupsByNames(groupNames);
