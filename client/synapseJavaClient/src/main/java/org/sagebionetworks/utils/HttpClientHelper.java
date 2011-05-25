@@ -130,8 +130,9 @@ public class HttpClientHelper {
 				}
 			}
 			if (null != requestContent) {
-				verboseMessage.append("\nContent: " + requestContent);
+				verboseMessage.append("\nRequest Content: " + requestContent);
 			}
+			verboseMessage.append("\nResponse Content: " + method.getResponseBodyAsString());
 			throw new HttpClientHelperException(verboseMessage.toString(), method);
 		}
 		return method.getResponseBodyAsString();
