@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
-import org.junit.Test;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -112,12 +111,6 @@ public class TestUserDAO implements UserDAO {
 			ans.add(TEST_GROUP_NAME);
 		}
 		return ans;
-	}
-
-
-	@Test
-	public void fake() {
-	}
-	
+	}	
 
 }
