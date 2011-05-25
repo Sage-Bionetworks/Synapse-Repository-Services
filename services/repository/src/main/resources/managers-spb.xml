@@ -34,10 +34,12 @@
 	
 	<bean id="authorizationManager" class="org.sagebionetworks.repo.manager.AuthorizationManagerImpl" />
 	
+	<bean id="permissionsManager" class="org.sagebionetworks.repo.manager.PermissionsManagerImpl" />
+	
 	<bean id="userManager" class="org.sagebionetworks.repo.manager.UserManagerImpl" />
 
-	<!-- TODO: should these be in a different xml file? -->
-	<bean id="userDAO" class="org.sagebionetworks.authutil.CrowdUserDAO" scope="singleton"/>
+	<bean id="userDAO" class="org.sagebionetworks.repo.util.UserDAOProxy" scope="singleton"/>
+	<bean id="userDAOImpl" class="org.sagebionetworks.authutil.CrowdUserDAO" scope="singleton"/>
 	
 	<bean id="accessControlListDAO" class="org.sagebionetworks.repo.model.jdo.JDOAccessControlListDAOImpl" scope="singleton"/>
 		

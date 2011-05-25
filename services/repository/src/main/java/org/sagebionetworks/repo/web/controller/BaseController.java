@@ -91,18 +91,18 @@ public abstract class BaseController {
 	private static final Logger log;
 	
 	// this is one way to get stack traces from the server process when running 'forked off' from the main process
-	// to enable, uncomment the 'addHandler' line, below
+	// to enable, uncomment the  lines below
 	static {
 		log = Logger.getLogger(BaseController.class
 				.getName());
-		try {
-			Date d = new Date();
-			DateFormat df = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss");
-		    FileHandler handler = new FileHandler(BaseController.class.getName()+df.format(d)+".txt");
+//		try {
+//			Date d = new Date();
+//			DateFormat df = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss");
+//		    FileHandler handler = new FileHandler(BaseController.class.getName()+df.format(d)+".txt");
 //		    log.addHandler(handler);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}	
+//		} catch (IOException e) {
+//			throw new RuntimeException(e);
+//		}	
 		
 	}
 

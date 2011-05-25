@@ -164,6 +164,8 @@ public class JDOAccessControlListDAOImpl extends JDOBaseDAOImpl<AccessControlLis
 			groupIds,
 			accessType.name());
 		
+		int resultSize = result.size();
+		
 		return result.size()>0;
 	}
 

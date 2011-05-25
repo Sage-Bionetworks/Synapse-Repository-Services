@@ -41,52 +41,45 @@ public class AuthorizationManagerImplTest {
 	private UserManager userManager;
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-	
 	@Autowired
 	AccessControlListDAO accessControlListDAO;
+	@Autowired
+	PermissionsManager permissionsManager;
 		
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node node = null;
+	private Node childNode = null;
 	private UserInfo userInfo = null;
 	
 	private static final String TEST_USER = "test-user";
 	
-	private AccessControlList acl;
+	private Node createDTO(String name, String createdBy, String modifiedBy, String parentId) {
+		Node node = new Node();
+		node.setName(name);
+		node.setCreatedOn(new Date());
+		node.setCreatedBy(createdBy);
+		node.setModifiedOn(new Date());
+		node.setModifiedBy(modifiedBy);
+		node.setNodeType(ObjectType.project.name());
+		if (parentId!=null) node.setParentId(parentId);
+		return node;
+	}
+	
+	private Node createNode(String name, String createdBy, String modifiedBy, String parentId) throws Exception {
+		Node node = createDTO(name, createdBy, modifiedBy, parentId);
+		String nodeId = nodeDAO.createNew(node);
+		assertNotNull(nodeId);
+		node.setId(nodeId);
+		return node;
+	}
 
 	@Before
 	public void setUp() throws Exception {
 		// create a resource
-		node = new Node();
-		node.setName("foo");
-		node.setCreatedOn(new Date());
-		node.setCreatedBy("me");
-		node.setModifiedOn(new Date());
-		node.setModifiedBy("metoo");
-		node.setNodeType(ObjectType.project.name());
-		String nodeId = nodeDAO.createNew(node);
-		assertNotNull(nodeId);
-		node.setId(nodeId);
+		node = createNode("foo", "me", "metoo", null);
 		nodeList.add(node);
-		
-		
-//		acl = new AccessControlList();
-//		acl.setCreationDate(new Date());
-//		acl.setCreatedBy("me");
-//		acl.setModifiedOn(new Date());
-//		acl.setModifiedBy("you");
-//		acl.setResourceId(node.getId());
-//		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-////		ResourceAccess ra = new ResourceAccess();
-////		ra.setUserGroupId(group.getId());
-////		ra.setAccessType(new HashSet<AuthorizationConstants.ACCESS_TYPE>(
-////				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{
-////						AuthorizationConstants.ACCESS_TYPE.READ
-////				})));
-////		ras.add(ra);
-//		acl.setResourceAccess(ras);
-//		String id = accessControlListDAO.create(acl);
-//		acl.setId(id);
-////		aclList.add(acl);
+				
+		childNode = createNode("foo2", "me2", "metoo2", node.getId());
 		
 		// userInfo
 		userManager.setUserDAO(new TestUserDAO()); // could use Mockito here
@@ -98,8 +91,6 @@ public class AuthorizationManagerImplTest {
 		for (Node n : nodeList) nodeDAO.delete(n.getId());
 		this.node=null;
 		
-//		for (UserGroup g : userGroupDAO.getAll(true)) 
-//			userGroupDAO.delete(g.getId());
 		for (UserGroup g: userGroupDAO.getAll(true)) {
 			if (g.getName().equals(AuthorizationConstants.ADMIN_GROUP_NAME)) {
 				// leave it
@@ -121,31 +112,37 @@ public class AuthorizationManagerImplTest {
 		} else {
 			ras = new HashSet<ResourceAccess>(acl.getResourceAccess());
 		}
-		ResourceAccess ra = new ResourceAccess();
-		ra.setUserGroupId(ug.getId());
-		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
-		ats.add(ACCESS_TYPE.READ);
-		ra.setAccessType(ats);
-		ras.add(ra);
 		acl.setResourceAccess(ras);
+		ResourceAccess ra = null;
+		for (ResourceAccess r : ras) {
+			if (r.getUserGroupId()==ug.getId()) {
+				ra=r;
+				break;
+			}
+		}
+		if (ra==null) {
+			ra = new ResourceAccess();
+			ra.setUserGroupId(ug.getId());
+			Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
+			ra.setAccessType(ats);
+			ras.add(ra);
+		}
+		ra.getAccessType().add(at);
 		accessControlListDAO.update(acl);
 	}
 	
 	@Test
 	public void testCanAccessAsIndividual() throws Exception {
 		// test that a user can access something they've been given access to individually
-		boolean b = authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ);
 		// no access yet
-		assertFalse(b);
+		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));
 		AccessControlList acl = accessControlListDAO.getForResource(node.getId());
 		assertNotNull(acl);
 		addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
 		// now they should be able to access
-		b = authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ);
-		assertTrue(b);
+		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));
 		// but they do not have a different kind of access
-		b = authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.DELETE);
-		assertFalse(b);
+		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.DELETE));
 	}
 	
 	@Test 
@@ -165,7 +162,7 @@ public class AuthorizationManagerImplTest {
 	
 	@Test 
 	public void testCanAccessPublicGroup() throws Exception {
-		// test that a user can access something accessible to a group they belong to
+		// test that a user can access a Public resource
 		boolean b = authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ);
 		// no access yet
 		assertFalse(b);
@@ -176,6 +173,18 @@ public class AuthorizationManagerImplTest {
 		// now they should be able to access
 		b = authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ);
 		assertTrue(b);
+	}
+	
+	@Test 
+	public void testAnonymousCantAccessPublicGroup() throws Exception {
+		AccessControlList acl = accessControlListDAO.getForResource(node.getId());
+		assertNotNull(acl);
+		UserGroup pg = userGroupDAO.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false);
+		addToACL(acl, pg, ACCESS_TYPE.READ);
+		
+		UserInfo anonInfo = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
+		boolean b = authorizationManager.canAccess(anonInfo, node.getId(), ACCESS_TYPE.READ);
+		assertFalse(b);
 	}
 	
 	@Test
@@ -192,33 +201,101 @@ public class AuthorizationManagerImplTest {
 		assertFalse(b);
 	}
 	
-	@Test
-	public void testCanAccessx() {
-		// test that anonymous can't access something a group can access
+	@Test 
+	public void testCanAccessAdmin() throws Exception {
 		// test that an admin can access anything
-		// test that a user can access a Public resource
-		// test that anonymous can access a Public resource
+		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		// test that admin can access anything
+		boolean b = authorizationManager.canAccess(adminInfo, node.getId(), ACCESS_TYPE.READ);
+		assertTrue(b);
+	}
+	
+	@Test
+	public void testCanAccessInherited() throws Exception {		
+		// no access yet to parent
+		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));
+
+		AccessControlList acl = accessControlListDAO.getForResource(node.getId());
+		assertNotNull(acl);
+		addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		// now they should be able to access
+		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));
+		// and the child as well
+		assertTrue(authorizationManager.canAccess(userInfo, childNode.getId(), ACCESS_TYPE.READ));
+	}
+
+	// test lack of access to something that doesn't inherit its permissions, whose parent you CAN access
+	@Test
+	public void testCantAccessNotInherited() throws Exception {		
+		// no access yet to parent
+		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));
+
+		AccessControlList acl = accessControlListDAO.getForResource(node.getId());
+		assertNotNull(acl);
+		acl.setResourceId(childNode.getId());
+		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		permissionsManager.overrideInheritance(acl, adminInfo); // must do as admin!
+		// permissions haven't changed (yet)
+		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));
+		assertFalse(authorizationManager.canAccess(userInfo, childNode.getId(), ACCESS_TYPE.READ));
 		
-		// test access to something that inherits its permissions
-		// test lack of access to something that doesn't inherit its permissions, whose parent you CAN access
-//		fail("Not yet implemented");
+		// get a new copy of parent ACL
+		acl = accessControlListDAO.getForResource(node.getId());
+		addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		// should be able to access parent but not child
+		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));
+		assertFalse(authorizationManager.canAccess(userInfo, childNode.getId(), ACCESS_TYPE.READ));
+	}
+	
+	@Test
+	public void testCreate() throws Exception {
+		// make an object on which you have READ and WRITE permission
+		AccessControlList acl = accessControlListDAO.getForResource(node.getId());
+		assertNotNull(acl);
+		addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.UPDATE);
+		// now they should be able to access
+		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));				
+		// but can't add a child 
+		Node child = createDTO("child", "me4", "you4", node.getId());
+		assertFalse(authorizationManager.canCreate(userInfo, child));
+		
+		// but give them create access to the parent
+		addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.CREATE);
+		// now it can
+		assertTrue(authorizationManager.canCreate(userInfo, child));
 	}
 
 	@Test
-	public void testCanCreate() {
-		// make an object on which you have READ and WRITE permission
-		// try to add a child
-		// should fail
-		// add CREATE permission on the parent
-		// try to add the child
-		// should be successful
+	public void testCreateSpecialUsers() throws Exception {
+		// admin always has access 
+		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		Node child = createDTO("child", "me4", "you4", node.getId());
+		assertTrue(authorizationManager.canCreate(adminInfo, child));
+
+		// allow some access
+		AccessControlList acl = accessControlListDAO.getForResource(node.getId());
+		assertNotNull(acl);
+		addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.CREATE);
+		// now they should be able to access
+		assertTrue(authorizationManager.canCreate(userInfo, child));
 		
-		// admin should be able to add child, without any explicit permissions
-		// anonymous should not be able to add child
-		
+		// but anonymous cannot
+		UserInfo anonInfo = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
+		assertFalse(authorizationManager.canCreate(anonInfo, child));
+	}
+
+	@Test
+	public void testCreateNoParent() throws Exception {
+	
 		// try to create node with no parent.  should fail
+		Node orphan = createDTO("orphan", "me4", "you4", null);
+		assertFalse(authorizationManager.canCreate(userInfo, orphan));
+		
 		// admin creates a node with no parent.  should work
-//		fail("Not yet implemented");
+		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		assertTrue(authorizationManager.canCreate(adminInfo, orphan));
+
 	}
 
 }
