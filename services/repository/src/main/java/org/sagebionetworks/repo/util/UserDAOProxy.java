@@ -6,23 +6,27 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserDAO;
+import org.sagebionetworks.repo.model.jdo.UserGroupDAOInitializingBean;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class UserDAOProxy implements UserDAO {
+public class UserDAOProxy implements UserDAO, InitializingBean {
 	
 	@Autowired
 	private UserDAO userDAOImpl;
-
 	
-	public UserDAOProxy() throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-		String implementingClassName = System.getProperty(getClass().getName());
+	public static final String USER_DAO_INTEGRATION_TEST_SWITCH = "org.sagebionetworks.mockCrowdDAOClass";
+
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		String implementingClassName = System.getProperty(USER_DAO_INTEGRATION_TEST_SWITCH);
 		if (implementingClassName==null || implementingClassName.length()==0) {
 			return;
 		}
 		userDAOImpl = (UserDAO)Class.forName(implementingClassName).newInstance();
 	}
-
+	
 	@Override
 	public String create(User dto) throws DatastoreException,
 			InvalidModelException {
@@ -61,5 +65,6 @@ public class UserDAOProxy implements UserDAO {
 			throws NotFoundException, DatastoreException {
 		return userDAOImpl.getUserGroupNames(userName);
 	}
+
 
 }

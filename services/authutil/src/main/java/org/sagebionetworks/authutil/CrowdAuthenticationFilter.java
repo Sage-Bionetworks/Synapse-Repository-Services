@@ -104,13 +104,12 @@ public class CrowdAuthenticationFilter implements Filter {
         	String paramValue = filterConfig.getInitParameter(paramName);
            	if ("allow-anonymous".equalsIgnoreCase(paramName)) allowAnonymous = Boolean.parseBoolean(paramValue);
            	if ("accept-all-certificates".equalsIgnoreCase(paramName)) acceptAllCerts = Boolean.parseBoolean(paramValue);
-           	if ("integration-test-user".equalsIgnoreCase(paramName)) setIntegrationTestUser(paramValue);
         }
         
        if (acceptAllCerts) CrowdAuthUtil.acceptAllCertificates2();
        
-       
-//       System.out.println("CrowdAuthenticationFilter.init: acceptAllCerts="+acceptAllCerts);
+       String itu = System.getProperty("org.sagebionetworks.integrationTestUser");
+       if (itu!=null && itu.length()>0) setIntegrationTestUser(itu);
   	}
 
 		
