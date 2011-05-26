@@ -13,6 +13,7 @@ public class ProcessTcgaSourceLayer {
 	private static final Logger log = Logger
 			.getLogger(ProcessTcgaSourceLayer.class.getName());
 
+	private static final String INPUT_DATASET_PARAMETER_KEY = "--datasetId";
 	private static final String INPUT_LAYER_PARAMETER_KEY = "--layerId";
 	private static final String LOCAL_FILEPATH_INPUT_PARAMETER_KEY = "--localFilepath";
 
@@ -52,10 +53,11 @@ public class ProcessTcgaSourceLayer {
 		}
 	}
 
-	public static ScriptResult doProcessTcgaSourceLayer(String script,
+	public static ScriptResult doProcessTcgaSourceLayer(String script, Integer datasetId,
 			Integer rawLayerId, String localFilepath) throws Exception {
 
 		String scriptInput[] = new String[] { script,
+				INPUT_DATASET_PARAMETER_KEY, datasetId.toString(),
 				INPUT_LAYER_PARAMETER_KEY, rawLayerId.toString(),
 				LOCAL_FILEPATH_INPUT_PARAMETER_KEY, localFilepath };
 		

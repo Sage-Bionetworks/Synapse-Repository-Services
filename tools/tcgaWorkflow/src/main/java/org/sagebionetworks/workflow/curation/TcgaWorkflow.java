@@ -3,7 +3,9 @@ package org.sagebionetworks.workflow.curation;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.security.NoSuchAlgorithmException;
 
+import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.workflow.UnrecoverableException;
 import org.sagebionetworks.workflow.curation.activity.DownloadFromTcga;
 import org.sagebionetworks.workflow.curation.activity.ProcessTcgaSourceLayer;
@@ -139,7 +141,7 @@ public class TcgaWorkflow {
 		Settable<String> stdout = new Settable<String>();
 		Settable<String> stderr = new Settable<String>();
 		Value<String> result6 = flow.dispatchProcessData(result5, script,
-				rawLayerId, machineName, localFilepath, processedLayerId,
+				datasetId, rawLayerId, machineName, localFilepath, processedLayerId,
 				stdout, stderr);
 
 		flow.dispatchNotifyDataProcessed(result6, processedLayerId);
@@ -171,7 +173,7 @@ public class TcgaWorkflow {
 	private Value<String> dispatchDownloadDataFromTcga(Value<String> param,
 			Value<String> tcgaUrl, Settable<String> machineName,
 			Settable<String> localFilepath, Settable<String> md5)
-			throws UnrecoverableException {
+			throws UnrecoverableException, NoSuchAlgorithmException, HttpClientHelperException {
 		return doDownloadDataFromTcga(param.get(), tcgaUrl.get(), machineName,
 				localFilepath, md5);
 	}
@@ -181,7 +183,7 @@ public class TcgaWorkflow {
 	private static Value<String> doDownloadDataFromTcga(String param,
 			String tcgaUrl, Settable<String> machineName,
 			Settable<String> localFilepath, Settable<String> md5)
-			throws UnrecoverableException {
+			throws UnrecoverableException, NoSuchAlgorithmException, HttpClientHelperException {
 
 		try {
 			DownloadResult result = DownloadFromTcga
@@ -220,12 +222,12 @@ public class TcgaWorkflow {
 
 	@Asynchronous
 	private Value<String> dispatchProcessData(Value<String> param,
-			Value<String> script, Value<Integer> rawLayerId,
+			Value<String> script, Integer datasetId, Value<Integer> rawLayerId,
 			Value<String> machineName, Value<String> localFilepath,
 			Settable<Integer> processedLayerId, Settable<String> stdout,
 			Settable<String> stderr) throws Exception {
 
-		return doProcessData(param.get(), script.get(), rawLayerId.get(),
+		return doProcessData(param.get(), script.get(), datasetId, rawLayerId.get(),
 				machineName.get(), localFilepath.get(), processedLayerId,
 				stdout, stderr);
 	}
@@ -268,6 +270,7 @@ public class TcgaWorkflow {
 	private static Value<String> doProcessData(
 			String param,
 			String script,
+			Integer datasetId,
 			Integer rawLayerId,
 			@ActivitySchedulingOption(option = ActivitySchedulingElement.requirement) String machineName,
 			String localFilepath, Settable<Integer> processedLayerId,
@@ -275,7 +278,7 @@ public class TcgaWorkflow {
 		
 		// TODO heartbeat thread
 		ScriptResult result = ProcessTcgaSourceLayer.doProcessTcgaSourceLayer(
-				script, rawLayerId, localFilepath);
+				script, datasetId, rawLayerId, localFilepath);
 
 		processedLayerId.set(result.getProcessedLayerId());
 		stdout.set((MAX_SCRIPT_OUTPUT > result.getStdout().length()) ? result
