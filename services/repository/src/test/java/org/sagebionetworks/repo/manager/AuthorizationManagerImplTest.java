@@ -105,32 +105,6 @@ public class AuthorizationManagerImplTest {
 		
 	}
 	
-	private void addToACL(AccessControlList acl, UserGroup ug, ACCESS_TYPE at) throws Exception {
-		Set<ResourceAccess> ras = null;
-		if (acl.getResourceAccess()==null) {
-			ras = new HashSet<ResourceAccess>();
-		} else {
-			ras = new HashSet<ResourceAccess>(acl.getResourceAccess());
-		}
-		acl.setResourceAccess(ras);
-		ResourceAccess ra = null;
-		for (ResourceAccess r : ras) {
-			if (r.getUserGroupId()==ug.getId()) {
-				ra=r;
-				break;
-			}
-		}
-		if (ra==null) {
-			ra = new ResourceAccess();
-			ra.setUserGroupId(ug.getId());
-			Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
-			ra.setAccessType(ats);
-			ras.add(ra);
-		}
-		ra.getAccessType().add(at);
-		accessControlListDAO.update(acl);
-	}
-	
 	@Test
 	public void testCanAccessAsIndividual() throws Exception {
 		// test that a user can access something they've been given access to individually
@@ -138,7 +112,7 @@ public class AuthorizationManagerImplTest {
 		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));
 		AccessControlList acl = accessControlListDAO.getForResource(node.getId());
 		assertNotNull(acl);
-		addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ, accessControlListDAO);
 		// now they should be able to access
 		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));
 		// but they do not have a different kind of access
@@ -154,7 +128,7 @@ public class AuthorizationManagerImplTest {
 		AccessControlList acl = accessControlListDAO.getForResource(node.getId());
 		assertNotNull(acl);
 		UserGroup g = userGroupDAO.findGroup(TestUserDAO.TEST_GROUP_NAME, false);
-		addToACL(acl, g, ACCESS_TYPE.READ);
+		AuthorizationHelper.addToACL(acl, g, ACCESS_TYPE.READ, accessControlListDAO);
 		// now they should be able to access
 		b = authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ);
 		assertTrue(b);
@@ -169,7 +143,7 @@ public class AuthorizationManagerImplTest {
 		AccessControlList acl = accessControlListDAO.getForResource(node.getId());
 		assertNotNull(acl);
 		UserGroup pg = userGroupDAO.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false);
-		addToACL(acl, pg, ACCESS_TYPE.READ);
+		AuthorizationHelper.addToACL(acl, pg, ACCESS_TYPE.READ, accessControlListDAO);
 		// now they should be able to access
 		b = authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ);
 		assertTrue(b);
@@ -180,7 +154,7 @@ public class AuthorizationManagerImplTest {
 		AccessControlList acl = accessControlListDAO.getForResource(node.getId());
 		assertNotNull(acl);
 		UserGroup pg = userGroupDAO.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false);
-		addToACL(acl, pg, ACCESS_TYPE.READ);
+		AuthorizationHelper.addToACL(acl, pg, ACCESS_TYPE.READ, accessControlListDAO);
 		
 		UserInfo anonInfo = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
 		boolean b = authorizationManager.canAccess(anonInfo, node.getId(), ACCESS_TYPE.READ);
@@ -194,7 +168,7 @@ public class AuthorizationManagerImplTest {
 		assertNotNull(acl);
 		// give some other group access
 		UserGroup g = userGroupDAO.findGroup(TestUserDAO.TEST_GROUP_NAME, false);
-		addToACL(acl, g, ACCESS_TYPE.READ);
+		AuthorizationHelper.addToACL(acl, g, ACCESS_TYPE.READ, accessControlListDAO);
 
 		// anonymous does not have access
 		boolean b = authorizationManager.canAccess(anonInfo, node.getId(), ACCESS_TYPE.READ);
@@ -217,7 +191,7 @@ public class AuthorizationManagerImplTest {
 
 		AccessControlList acl = accessControlListDAO.getForResource(node.getId());
 		assertNotNull(acl);
-		addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ, accessControlListDAO);
 		// now they should be able to access
 		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));
 		// and the child as well
@@ -241,7 +215,7 @@ public class AuthorizationManagerImplTest {
 		
 		// get a new copy of parent ACL
 		acl = accessControlListDAO.getForResource(node.getId());
-		addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ, accessControlListDAO);
 		// should be able to access parent but not child
 		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));
 		assertFalse(authorizationManager.canAccess(userInfo, childNode.getId(), ACCESS_TYPE.READ));
@@ -252,8 +226,8 @@ public class AuthorizationManagerImplTest {
 		// make an object on which you have READ and WRITE permission
 		AccessControlList acl = accessControlListDAO.getForResource(node.getId());
 		assertNotNull(acl);
-		addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
-		addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.UPDATE);
+		AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ, accessControlListDAO);
+		AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.UPDATE, accessControlListDAO);
 		// now they should be able to access
 		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));				
 		// but can't add a child 
@@ -261,7 +235,7 @@ public class AuthorizationManagerImplTest {
 		assertFalse(authorizationManager.canCreate(userInfo, child));
 		
 		// but give them create access to the parent
-		addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.CREATE);
+		AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.CREATE, accessControlListDAO);
 		// now it can
 		assertTrue(authorizationManager.canCreate(userInfo, child));
 	}
@@ -276,7 +250,7 @@ public class AuthorizationManagerImplTest {
 		// allow some access
 		AccessControlList acl = accessControlListDAO.getForResource(node.getId());
 		assertNotNull(acl);
-		addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.CREATE);
+		AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.CREATE, accessControlListDAO);
 		// now they should be able to access
 		assertTrue(authorizationManager.canCreate(userInfo, child));
 		

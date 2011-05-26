@@ -42,7 +42,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException {
 		// get the id that this node inherits its permissions from
 		String benefactor = nodeInheritanceDAO.getBenefactor(nodeId);
-		return aclDAO.get(benefactor);
+		return aclDAO.getForResource(benefactor);
 	}
 	
 	public void validateContent(AccessControlList acl) throws InvalidModelException {

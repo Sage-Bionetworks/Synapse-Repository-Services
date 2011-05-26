@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -49,7 +50,7 @@ public class PermissionsManagerImplTest {
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node node = null;
 	private Node childNode = null;
-//	private UserInfo userInfo = null;
+	private UserInfo userInfo = null;
 	
 	private static final String TEST_USER = "test-user";
 	
@@ -83,7 +84,7 @@ public class PermissionsManagerImplTest {
 		
 		// userInfo
 		userManager.setUserDAO(new TestUserDAO()); // could use Mockito here
-//		userInfo = userManager.getUserInfo(TEST_USER);
+		userInfo = userManager.getUserInfo(TEST_USER);
 	}
 
 	@After
@@ -99,6 +100,7 @@ public class PermissionsManagerImplTest {
 			} else if (g.getName().equals(AuthorizationConstants.ANONYMOUS_USER_ID)) {
 				// leave it
 			} else {
+				System.out.println("Deleting: "+g);
 				userGroupDAO.delete(g.getId());
 			}
 		}
@@ -106,7 +108,6 @@ public class PermissionsManagerImplTest {
 	}
 	
 	@Test
-	@Ignore
 	public void testGetACL() throws Exception {
 		// retrieve parent acl
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
@@ -124,6 +125,13 @@ public class PermissionsManagerImplTest {
 
 	@Test
 	public void testUpdateACL() throws Exception {
+		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		AccessControlList acl = permissionsManager.getACL(node.getId(), adminInfo);
+		AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ, accessControlListDAO);
+		// now get it again and see that the permission is there
+		acl = permissionsManager.getACL(node.getId(), userInfo);
+		
+		
 		// check that you get an exception if
 		// group id is null
 		// resource id is null
