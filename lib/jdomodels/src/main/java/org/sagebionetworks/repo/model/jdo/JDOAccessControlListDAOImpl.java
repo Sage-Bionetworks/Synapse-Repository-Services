@@ -99,9 +99,12 @@ public class JDOAccessControlListDAOImpl extends JDOBaseDAOImpl<AccessControlLis
 		return raJdo;
 	}
 	
-	private void copyFromRaDto(ResourceAccess raDto, JDOResourceAccess raJdo) throws DatastoreException {
+	private void copyFromRaDto(ResourceAccess raDto, JDOResourceAccess raJdo) throws DatastoreException, InvalidModelException {
 //		JDOUserGroup g = jdoTemplate.getObjectById(JDOUserGroup.class, KeyFactory.stringToKey(raDto.getUserGroupId()));
+		if (raDto.getUserGroupId()==null) throw new InvalidModelException("UserGroup ID cannot be null.");
 		raJdo.setUserGroupId(KeyFactory.stringToKey(raDto.getUserGroupId()));
+		if (raDto.getAccessType().isEmpty()) 
+			throw new InvalidModelException("ACL permissions for a group must include at least one access type.");
 		Set<String> jdoAccessTypes = new HashSet<String>();
 		for (AuthorizationConstants.ACCESS_TYPE jdoAccessType : raDto.getAccessType()) {
 			jdoAccessTypes.add(jdoAccessType.name());
@@ -118,6 +121,7 @@ public class JDOAccessControlListDAOImpl extends JDOBaseDAOImpl<AccessControlLis
 		jdo.setId(dto.getId()==null ? null : KeyFactory.stringToKey(dto.getId()));
 		jdo.setModifiedBy(dto.getModifiedBy());
 		jdo.setModifiedOn(dto.getModifiedOn()==null ? null : dto.getModifiedOn().getTime());
+		if (dto.getResourceId()==null) throw new InvalidModelException("Missing resource ID");
 		JDONode node = jdoTemplate.getObjectById(JDONode.class, KeyFactory.stringToKey(dto.getResourceId()));
 		jdo.setResource(node);
 		Set<JDOResourceAccess> ras = new HashSet<JDOResourceAccess>();
