@@ -2,10 +2,14 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -15,9 +19,12 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -100,7 +107,7 @@ public class PermissionsManagerImplTest {
 			} else if (g.getName().equals(AuthorizationConstants.ANONYMOUS_USER_ID)) {
 				// leave it
 			} else {
-				System.out.println("Deleting: "+g);
+//				System.out.println("Deleting: "+g);
 				userGroupDAO.delete(g.getId());
 			}
 		}
@@ -127,33 +134,142 @@ public class PermissionsManagerImplTest {
 	public void testUpdateACL() throws Exception {
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		AccessControlList acl = permissionsManager.getACL(node.getId(), adminInfo);
+		assertEquals(0, acl.getResourceAccess().size());
 		AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ, accessControlListDAO);
 		// now get it again and see that the permission is there
 		acl = permissionsManager.getACL(node.getId(), userInfo);
-		
-		
-		// check that you get an exception if
-		// group id is null
-		// resource id is null
-		// no access type is specified
-//		fail("Not yet implemented");
+		Set<ResourceAccess> ras = acl.getResourceAccess();
+		assertEquals(1, ras.size());
+		ResourceAccess ra = ras.iterator().next();
+		assertEquals(userInfo.getIndividualGroup().getId(), ra.getUserGroupId());
+		assertEquals(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ})),
+				ra.getAccessType());
 	}
 
 	@Test
-	public void testOverrideInheritance() {
-		// should get exception if object already has an acl
-		// should get exception if you don't have authority to change permissions
+	// check that you get an exception if...
+	public void testUpdateInvalidACL() throws Exception {
+		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		AccessControlList acl = permissionsManager.getACL(node.getId(), adminInfo);
+		assertEquals(0, acl.getResourceAccess().size());
+		// ...resource id is null...
+		acl.setResourceId(null);
+		try {
+			AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ, accessControlListDAO);
+			fail("exception expected");
+		} catch (InvalidModelException e) {
+			//as expected
+		}
+		acl.setResourceId(node.getId());
+		// ...group id is null...
+		ResourceAccess ra = new ResourceAccess();
+		ra.setUserGroupId(null);
+		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
+		ra.setAccessType(ats);
+		ra.getAccessType().add(ACCESS_TYPE.READ);
+		acl.getResourceAccess().add(ra);
+		try {
+			accessControlListDAO.update(acl);
+			fail("exception expected");
+		} catch (InvalidModelException e) {
+			//as expected
+		}
+		// ... no access type is specified
+		acl.setResourceAccess(new HashSet<ResourceAccess>());
+		ra = new ResourceAccess();
+		ra.setUserGroupId(userInfo.getIndividualGroup().getId());
+		ats = new HashSet<ACCESS_TYPE>();
+		ra.setAccessType(ats);
+		acl.getResourceAccess().add(ra);
+		try {
+			accessControlListDAO.update(acl);
+			fail("exception expected");
+		} catch (InvalidModelException e) {
+			//as expected
+		}
+	}
+
+	@Test
+	public void testOverrideInheritance() throws Exception {
+		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		AccessControlList acl = permissionsManager.getACL(node.getId(), adminInfo);
+		acl.setResourceId(childNode.getId());
+		permissionsManager.overrideInheritance(acl, adminInfo);
 		// call 'getACL':  the ACL should match the requested settings and specify the resource as the owner of the ACL
-//		fail("Not yet implemented");
+		AccessControlList acl2 = permissionsManager.getACL(childNode.getId(), adminInfo);
+		assertEquals(childNode.getId(), acl2.getResourceId());
+		assertEquals(acl, acl2);
 	}
 
 	@Test
-	public void testRestoreInheritance() {
+	public void testOverrideInheritanceEdgeCases() throws Exception {
+		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		AccessControlList acl = permissionsManager.getACL(node.getId(), adminInfo);
+		// should get exception if object already has an acl
+		try {
+			permissionsManager.overrideInheritance(acl, adminInfo);
+			fail("exception expected");
+		} catch (UnauthorizedException ue) {
+			// as expected
+		}
+		// should get exception if you don't have authority to change permissions
+		try {
+			permissionsManager.overrideInheritance(acl, userInfo);
+			fail("exception expected");
+		} catch (UnauthorizedException ue) {
+			// as expected
+		}
+	}
+
+	@Test
+	public void testRestoreInheritance() throws Exception {
+		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		AccessControlList acl = permissionsManager.getACL(childNode.getId(), adminInfo);
+		acl.setResourceId(childNode.getId());
+		permissionsManager.overrideInheritance(acl, adminInfo);
+		AccessControlList acl2 = permissionsManager.getACL(childNode.getId(), adminInfo);
+		assertEquals(childNode.getId(), acl2.getResourceId());
+		assertEquals(acl, acl2);
+		
+		permissionsManager.restoreInheritance(childNode.getId(), adminInfo);
+		// call 'getACL' on the resource.  The returned ACL should specify parent as the ACL owner
+		AccessControlList acl3 = permissionsManager.getACL(childNode.getId(), adminInfo);
+		assertEquals(node.getId(), acl3.getResourceId());
+
+		
+	}
+
+	@Test
+	public void testRestoreInheritanceEdgeCases() throws Exception {
+		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		// should get exception if resource already inherits
+		try {
+			permissionsManager.restoreInheritance(childNode.getId(), adminInfo);
+			fail("exception expected");
+		} catch (UnauthorizedException ue) {
+			// as expected
+		}
+		
+		AccessControlList acl = permissionsManager.getACL(childNode.getId(), adminInfo);
+		acl.setResourceId(childNode.getId());
+		permissionsManager.overrideInheritance(acl, adminInfo);
+		
 		// should get exception if don't have authority to change permissions
-		// should get exception if resource doen't have a parent
-		// call 'getACL' on the resource.  The returned ACL should specify someone else as the ACL owner
-//		fail("Not yet implemented");
+		try {
+			permissionsManager.restoreInheritance(childNode.getId(), userInfo);
+			fail("exception expected");
+		} catch (UnauthorizedException ue) {
+			// as expected
+		}
+		
+		// should get exception if resource doesn't have a parent
+		try {
+			permissionsManager.restoreInheritance(node.getId(), adminInfo);
+			fail("exception expected");
+		} catch (UnauthorizedException ue) {
+			// as expected
+		}
+		
 	}
 
 }

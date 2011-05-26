@@ -96,8 +96,8 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		String benefactor = nodeInheritanceDAO.getBenefactor(rId);
 		if (!benefactor.equals(rId)) throw new UnauthorizedException("Resource already inherits its permissions.");	
 		// get parent; if null then I cannot continue!!
-		Node parent = nodeManager.get(userInfo, rId);
-		if (parent==null) throw new UnauthorizedException("Cannot restore inheritance for resource which has no parent.");
+		Node resource = nodeManager.get(userInfo, rId);
+		if (resource.getParentId()==null) throw new UnauthorizedException("Cannot restore inheritance for resource which has no parent.");
 
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(rId);
 		
