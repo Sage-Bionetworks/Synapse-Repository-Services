@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Set;
+
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 
 public class AccessControlList implements Base {
 	private String id;
@@ -14,8 +17,7 @@ public class AccessControlList implements Base {
 	private String uri;
 	
 	private Set<ResourceAccess> resourceAccess;
-	
-	public String toString() {return resourceId+" "+resourceAccess;}
+
 	
 	/**
 	 * @return the creationDate
@@ -142,6 +144,35 @@ public class AccessControlList implements Base {
 	public void setResourceAccess(Set<ResourceAccess> resourceAccess) {
 		this.resourceAccess = resourceAccess;
 	}
+	/**
+	 * Will create an ACL that will grant all permissions to a given user for the given node.
+	 * @param nodeId
+	 * @param userId
+	 * @return
+	 */
+	public static AccessControlList createACLToGrantAll(String nodeId, UserInfo info){
+		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
+		UserInfo.validateUserInfo(info);
+		AccessControlList acl = new AccessControlList();
+		acl.setCreatedBy(info.getUser().getUserId());
+		acl.setCreationDate(new Date(System.currentTimeMillis()));
+		acl.setResourceId(nodeId);
+		acl.setModifiedBy(acl.getCreatedBy());
+		acl.setModifiedOn(acl.getCreationDate());
+		Set<ResourceAccess> set = new HashSet<ResourceAccess>();
+		acl.setResourceAccess(set);
+		ResourceAccess access = new ResourceAccess();
+		set.add(access);
+		// This user should be able to do everything.
+		Set<ACCESS_TYPE> typeSet = new HashSet<AuthorizationConstants.ACCESS_TYPE>();
+		ACCESS_TYPE array[] = ACCESS_TYPE.values();
+		for(ACCESS_TYPE type: array){
+			typeSet.add(type);
+		}
+		access.setAccessType(typeSet);
+		access.setUserGroupId(info.getIndividualGroup().getId());
+		return acl;
+	}
 
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
@@ -214,6 +245,15 @@ public class AccessControlList implements Base {
 		} else if (!resourceId.equals(other.resourceId))
 			return false;
 		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "AccessControlList [id=" + id + ", resourceId=" + resourceId
+				+ ", createdBy=" + createdBy + ", creationDate=" + creationDate
+				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
+				+ ", etag=" + etag + ", uri=" + uri + ", resourceAccess="
+				+ resourceAccess + "]";
 	}
 	
 	

@@ -10,7 +10,9 @@ import javax.servlet.http.HttpServletRequest;
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseChild;
@@ -43,6 +45,9 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	EntitiesAccessor entitiesAccessor;
 	@Autowired
 	EntityManager entityManager;
+	
+	@Autowired
+	PermissionsManager permissionsManager;
 	
 	@Autowired
 	UserManager userManager;
@@ -219,6 +224,24 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 			newList.add((T) entityManager.getEntity(userInfo, updatedIds.get(i), tClass));
 		}
 		return newList;
+	}
+
+
+	@Override
+	public AccessControlList getEntityACL(String entityId, String userId)
+			throws NotFoundException, DatastoreException {
+		// First try the updated
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return permissionsManager.getACL(entityId, userInfo);
+	}
+
+
+	@Override
+	public AccessControlList updateEntityACL(String userId,
+			AccessControlList updated) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException {
+		// Resolve the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return permissionsManager.updateACL(updated, userInfo);
 	}
 
 

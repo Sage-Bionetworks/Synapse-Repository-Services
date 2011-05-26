@@ -55,6 +55,16 @@ public class UserGroup implements Base{
 	public void setCreationDate(Date creationDate) {
 		this.creationDate = creationDate;
 	}
+	
+	/**
+	 * Is the passed UserGroup valid?
+	 * @param userGroup
+	 */
+	public static void validate(UserGroup userGroup){
+		if(userGroup == null) throw new IllegalArgumentException("UserGroup cannot be null");
+		if(userGroup.getId() == null) throw new IllegalArgumentException("UserGroup.id cannot be null");
+		if(userGroup.getName() == null) throw new IllegalArgumentException("UserGrup.name cannot be null");
+	}
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */

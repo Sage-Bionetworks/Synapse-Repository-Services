@@ -1,19 +1,24 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.authutil.AuthUtilConstants;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.FieldType;
@@ -43,6 +48,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Autowired
 	FieldTypeDAO fieldTypeDao;
 	
+	@Autowired
+	private AccessControlListDAO aclDAO;
+	
 	// for testing (in prod it's autowired)
 	public void setAuthorizationManager(AuthorizationManager authorizationManager) {
 		 this.authorizationManager =  authorizationManager;
@@ -53,10 +61,11 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 * @param nodeDao
 	 * @param authDoa
 	 */
-	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, FieldTypeDAO fieldTypeday){
+	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, FieldTypeDAO fieldTypeday, AccessControlListDAO aclDao){
 		this.nodeDao = nodeDao;
 		this.authorizationManager = authDoa;
 		this.fieldTypeDao = fieldTypeday;
+		this.aclDAO = aclDao;
 	}
 	
 	/**
@@ -75,9 +84,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			InvalidModelException, NotFoundException, UnauthorizedException {
 		// First valid the node
 		NodeManagerImpl.validateNode(newNode);
+		UserInfo.validateUserInfo(userInfo);
 		// Also validate the username
 		String userName = userInfo.getUser().getUserId();
-		userName  = NodeManagerImpl.validateUsername(userName);
 		// Validate the creations data
 		NodeManagerImpl.validateNodeCreationData(userName, newNode);
 		// Validate the modified data.
@@ -90,6 +99,13 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// If they are allowed then let them create the node
 		String id = nodeDao.createNew(newNode);
 		newNode.setId(id);
+		
+		// If this is a root node then it must have an ACL.
+		if(newNode.getParentId() == null){
+			AccessControlList rootAcl = AccessControlList.createACLToGrantAll(id, userInfo);
+			aclDAO.create(rootAcl);
+		}
+		
 		// adding access is done at a higher level, not here
 		//authorizationManager.addUserAccess(newNode, userInfo);
 		if(log.isDebugEnabled()){
@@ -97,6 +113,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 		return id;
 	}
+	
+
 	
 	/**
 	 * Validate a node
@@ -109,18 +127,18 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(node.getName() == null) throw new IllegalArgumentException("Node.name cannot be null");		
 	}
 	
-	/**
-	 * Validate the passed user name.
-	 * @param userName
-	 * @return
-	 */
-	public static String validateUsername(String userName){
-		if(userName == null || "".equals(userName.trim())){
-			return AuthUtilConstants.ANONYMOUS_USER_ID;
-		}else{
-			return userName.trim();
-		}
-	}
+//	/**
+//	 * Validate the passed user name.
+//	 * @param userName
+//	 * @return
+//	 */
+//	public static String validateUsername(UserInfo userInfo){
+//		if(userName == null || "".equals(userName.trim())){
+//			return AuthUtilConstants.ANONYMOUS_USER_ID;
+//		}else{
+//			return userName.trim();
+//		}
+//	}
 	
 	/**
 	 * Make sure the creation data is set, and if not then set it.
@@ -159,8 +177,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public void delete(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// First validate the username
+		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getUser().getUserId();
-		userName = NodeManagerImpl.validateUsername(userName);
 		if (!authorizationManager.canAccess(userInfo, nodeId, AuthorizationConstants.ACCESS_TYPE.DELETE)) {
 			throw new UnauthorizedException(userName+" lacks change access to the requested object.");
 		}
@@ -175,8 +193,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public Node get(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Validate the username
+		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getUser().getUserId();
-		userName = NodeManagerImpl.validateUsername(userName);
 		if (!authorizationManager.canAccess(userInfo, nodeId, AuthorizationConstants.ACCESS_TYPE.READ)) {
 			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
 		}
@@ -199,8 +217,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Node update(UserInfo userInfo, Node updatedNode, Annotations updatedAnnos) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
+		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getUser().getUserId();
-		userName = NodeManagerImpl.validateUsername(userName);
 		NodeManagerImpl.validateNode(updatedNode);
 		if (!authorizationManager.canAccess(userInfo, updatedNode.getId(), AuthorizationConstants.ACCESS_TYPE.UPDATE)) {
 			throw new UnauthorizedException(userName+" lacks change access to the requested object.");
@@ -276,8 +294,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public Annotations getAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
+		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getUser().getUserId();
-		userName = NodeManagerImpl.validateUsername(userName);
 		Annotations annos = nodeDao.getAnnotations(nodeId);
 		if(log.isDebugEnabled()){
 			log.debug("username "+userName+" fetched Annotations for node: "+nodeId);
@@ -290,8 +308,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public Annotations updateAnnotations(UserInfo userInfo, String nodeId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
 		if(nodeId == null) throw new IllegalArgumentException("Node ID cannot be null");
+		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getUser().getUserId();
-		userName = NodeManagerImpl.validateUsername(userName);
 		// Validate that the annotations
 		validateAnnotations(updated);
 		// Now lock the node if we can

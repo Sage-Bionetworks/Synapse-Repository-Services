@@ -19,7 +19,10 @@ import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.sagebionetworks.authutil.AuthUtilConstants;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ServiceConstants;
+import org.sagebionetworks.repo.web.util.UserProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -61,8 +64,12 @@ public class Helpers {
 	private String servletPrefix;
 	private String integrationTestEndpoint;
 	private String userId;
+	private UserInfo userInfo;
 	private LinkedList<TestStateItem> testState;
 	private Boolean isIntegrationTest = false;
+	
+	@Autowired
+	public UserProvider testUserProvider;
 
 	/**
 	 * Default constructor reads optional system properties to change this from
@@ -74,21 +81,6 @@ public class Helpers {
 				.getProperty("INTEGRATION_TEST_ENDPOINT");
 		servletPrefix = System.getProperty("SERVLET_PREFIX");
 	}
-
-//	/**
-//	 * @param daoFactory
-//	 *            the daoFactory to set
-//	 */
-//	public void setDaoFactory(DAOFactory daoFactory) {
-//		this.daoFactory = daoFactory;
-//	}
-//
-//	/**
-//	 * @return the daoFactory
-//	 */
-//	public DAOFactory getDaoFactory() {
-//		return daoFactory;
-//	}
 
 	/**
 	 * @return the URI prefix of the servlet being tested
@@ -127,8 +119,11 @@ public class Helpers {
 			servlet = new DispatcherServlet();
 			servlet.init(servletConfig);
 		}
-
-		userId = AuthUtilConstants.ANONYMOUS_USER_ID;
+		assertNotNull(testUserProvider);
+		userInfo = testUserProvider.getTestAdiminUserInfo();
+		UserInfo.validateUserInfo(userInfo);
+		assertNotNull(userInfo);
+		userId = userInfo.getUser().getUserId();
 		testState = new LinkedList<TestStateItem>();
 
 		return servlet;
@@ -156,9 +151,9 @@ public class Helpers {
 	 * 
 	 * @param userId
 	 */
-	public void setUserId(String userId) {
-		this.userId = userId;
-	}
+//	public void setUserId(String userId) {
+//		this.userId = userId;
+//	}
 
 	/**
 	 * Creation of JSON entities
@@ -864,5 +859,13 @@ public class Helpers {
 				request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
 			servlet.service(request, response);
 		}
+	}
+
+	public String getUserId() {
+		return this.userId;
+	}
+
+	public UserInfo getUserInfo() {
+		return userInfo;
 	}
 }

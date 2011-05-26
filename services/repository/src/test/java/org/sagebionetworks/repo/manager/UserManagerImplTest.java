@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import org.junit.runner.RunWith;
@@ -39,7 +40,7 @@ public class UserManagerImplTest {
 	public void tearDown() throws Exception {
 		for (UserGroup g : toDelete) userGroupDAO.delete(g.getId());
 	}
-	
+	@Ignore
 	@Test
 	public void testGetAnonymous() throws Exception {
 		UserInfo ui = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);

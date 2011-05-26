@@ -25,18 +25,19 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:manager-test-context.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class AuthorizationManagerImplTest {
 	
 	@Autowired
 	AuthorizationManager authorizationManager;
 	@Autowired
-	private NodeDAO nodeDAO;
+	NodeManager nodeManager;
 	@Autowired
 	private UserManager userManager;
 	@Autowired
@@ -45,6 +46,7 @@ public class AuthorizationManagerImplTest {
 	AccessControlListDAO accessControlListDAO;
 	@Autowired
 	PermissionsManager permissionsManager;
+	
 		
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node node = null;
@@ -66,8 +68,9 @@ public class AuthorizationManagerImplTest {
 	}
 	
 	private Node createNode(String name, String createdBy, String modifiedBy, String parentId) throws Exception {
+		UserInfo adminUser = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		Node node = createDTO(name, createdBy, modifiedBy, parentId);
-		String nodeId = nodeDAO.createNew(node);
+		String nodeId = nodeManager.createNewNode(node, adminUser);
 		assertNotNull(nodeId);
 		node.setId(nodeId);
 		return node;
@@ -88,7 +91,8 @@ public class AuthorizationManagerImplTest {
 
 	@After
 	public void tearDown() throws Exception {
-		for (Node n : nodeList) nodeDAO.delete(n.getId());
+		UserInfo adminUser = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		for (Node n : nodeList) nodeManager.delete(adminUser, n.getId());
 		this.node=null;
 		
 		for (UserGroup g: userGroupDAO.getAll(true)) {

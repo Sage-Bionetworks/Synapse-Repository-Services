@@ -113,4 +113,12 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 		}
 	}
 
+	/**
+	 * Get the benefactor of a node.
+	 */
+	@Override
+	public String getBenefactor(String nodeId) throws NotFoundException {
+		return nodeInheritanceDao.getBenefactor(nodeId);
+	}
+
 }

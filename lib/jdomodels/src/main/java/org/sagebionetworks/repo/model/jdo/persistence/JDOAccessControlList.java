@@ -25,7 +25,7 @@ public class JDOAccessControlList implements JDOBase {
 	private Long id;
 	
 	@Persistent(nullValue = NullValue.EXCEPTION)
-//	@Unique << We get errors if we try to include this
+	@Unique (name="ACL_UNIQUE_RESOURCE")
 	@Column(name=SqlConstants.ACL_OWNER_ID_COLUMN)
     @ForeignKey(name="ACL_OWNER_FK", deleteAction=ForeignKeyAction.CASCADE)
 	private JDONode resource;

@@ -18,7 +18,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Dataset;
@@ -28,7 +27,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Compartor;
@@ -36,18 +34,21 @@ import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:manager-test-context.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class QueryManagerAutowireTest {
 	
 	@Autowired
 	QueryManager queryManager;
 	@Autowired
 	EntityManager entityManager;
+	@Autowired
+	public UserProvider testUserProvider;
 	
 	private AuthorizationManager mockAuth;
 	
@@ -55,36 +56,27 @@ public class QueryManagerAutowireTest {
 	
 	private long totalEntities = 10;
 	
-	final UserInfo mockUserInfo = new UserInfo(false);
-	final UserInfo anonUserInfo = new UserInfo(false);
+	private UserInfo userInfo;
 
 	
 	@Before
 	public void before() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		assertNotNull(queryManager);
-		assertNotNull(queryManager);
+		assertNotNull(entityManager);
+		assertNotNull(testUserProvider);
+		userInfo=testUserProvider.getTestAdiminUserInfo();
 		mockAuth = Mockito.mock(AuthorizationManager.class);
 		entityManager.overrideAuthDaoForTest(mockAuth);
 		when(mockAuth.canAccess((UserInfo)any(), anyString(), any(AuthorizationConstants.ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuth.canCreate((UserInfo)any(), (Node)any())).thenReturn(true);
-		
-		User mockUser = new User();
-		mockUser.setUserId("test-user");
-		mockUserInfo.setUser(mockUser);
-//		when(mockAuth.getUserInfo("test-user")).thenReturn(mockUserInfo);
-		
-		User anonUser = new User();
-		anonUser.setUserId(AuthUtilConstants.ANONYMOUS_USER_ID);
-		anonUserInfo.setUser(anonUser);
-//		when(mockAuth.getUserInfo(AuthUtilConstants.ANONYMOUS_USER_ID)).thenReturn(anonUserInfo);
 
 		toDelete = new ArrayList<String>();
 		// Create some datasets
 		for(int i=0; i<totalEntities; i++){
 			Dataset ds = createForTest(i);
-			String id = entityManager.createEntity(anonUserInfo, ds);
+			String id = entityManager.createEntity(userInfo, ds);
 			toDelete.add(id);
-			Annotations annos = entityManager.getAnnotations(anonUserInfo, id);
+			Annotations annos = entityManager.getAnnotations(userInfo, id);
 			assertNotNull(annos);
 			// Add some annotations
 			annos.addAnnotation("stringKey", "string"+i);
@@ -94,7 +86,7 @@ public class QueryManagerAutowireTest {
 			annos.addAnnotation("longKey", new Long(i));
 			annos.addAnnotation("dateKey", new Date(10000+i));
 			annos.addAnnotation("doubleKey", new Double(42*i));
-			entityManager.updateAnnotations(anonUserInfo,id, annos);
+			entityManager.updateAnnotations(userInfo,id, annos);
 		}
 	}
 	
@@ -121,8 +113,7 @@ public class QueryManagerAutowireTest {
 		if(entityManager != null && toDelete != null){
 			for(String id: toDelete){
 				try{
-//					UserInfo userInfo = mockAuth.getUserInfo(AuthUtilConstants.ANONYMOUS_USER_ID);
-					entityManager.deleteEntity(anonUserInfo, id);
+					entityManager.deleteEntity(userInfo, id);
 				}catch(Exception e){}
 			}
 		}
@@ -140,7 +131,7 @@ public class QueryManagerAutowireTest {
 		query.addExpression(new Expression(new CompoundId("dataset", "doubleKey"), Compartor.GREATER_THAN, "0.0"));
 		// Execute it.
 		long start = System.currentTimeMillis();
-		QueryResults results = queryManager.executeQuery(anonUserInfo, query, Dataset.class);
+		QueryResults results = queryManager.executeQuery(userInfo, query, Dataset.class);
 		long end = System.currentTimeMillis();
 		System.out.println("Executed the query in: "+(end-start)+" ms");
 		assertNotNull(results);
