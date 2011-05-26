@@ -6,6 +6,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.schema.JsonSchema;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseChild;
@@ -13,6 +14,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 
 /**
  * Controller interface for all operations common to entities.
@@ -179,6 +181,28 @@ public interface GenericEntityController {
 			Annotations updatedAnnotations, HttpServletRequest request) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 
 	public JsonSchema getEntityAnnotationsSchema() throws DatastoreException;
+	
+	/**
+	 * Get the ACL for a given entity
+	 * @param nodeId
+	 * @param userId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public AccessControlList getEntityACL(String entityId, String userId) throws NotFoundException, DatastoreException;
+	
+	/**
+	 * Update an entity ACL.
+	 * @param userId
+	 * @param updated
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 * @throws UnauthorizedException 
+	 * @throws InvalidModelException 
+	 */
+	public AccessControlList updateEntityACL(String userId, AccessControlList updated) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException;
 	
 
 }

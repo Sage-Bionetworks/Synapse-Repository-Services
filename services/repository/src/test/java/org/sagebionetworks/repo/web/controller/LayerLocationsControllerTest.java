@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserDAO;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -86,17 +87,8 @@ public class LayerLocationsControllerTest {
 			this.userDao=new TestUserDAO();
 			userManager.setUserDAO(userDao);
 
-			// TODO talk to Bruce to determine the right way to bootstrap users
-
-			// Make a user and his credentials
-//			userDao = helper.getDaoFactory().getUserDAO(null);
-			user = new User();
-			user.setUserId(readOnlyUserId);
-			userDao.create(user);
-//			UserCredentialsDAO credsDao = helper.getDaoFactory()
-//					.getUserCredentialsDAO(readOnlyUserId);
-//			UserCredentials storedCre/ds;
-//			storedCreds = credsDao.get(readOnlyUserId);
+			UserInfo userInfo  = helper.getUserInfo();
+			user = userInfo.getUser();
 			user.setIamAccessId(FAKE_ACCESS_ID);
 			user.setIamSecretKey(FAKE_SECRET_KEY);
 			userDao.update(user);
@@ -270,7 +262,7 @@ public class LayerLocationsControllerTest {
 				.getString("layer"), null, null, null, null);
 		JSONObject saneLayer = helper.testGetJsonEntity(saneLayers
 				.getJSONArray("results").getJSONObject(0).getString("uri"));
-		helper.setUserId(readOnlyUserId);
+//		helper.setUserId(readOnlyUserId);
 		
 		// make sure our fake userDAO has the user set up
 		if (!helper.isIntegrationTest()) {
@@ -326,7 +318,7 @@ public class LayerLocationsControllerTest {
 		helper.testUpdateJsonEntity(layerLocations);
 
 		// Get the layer
-		helper.setUserId(readOnlyUserId);
+//		helper.setUserId(readOnlyUserId);
 		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
 		LayerControllerTest.assertExpectedLayerProperties(layer);
 

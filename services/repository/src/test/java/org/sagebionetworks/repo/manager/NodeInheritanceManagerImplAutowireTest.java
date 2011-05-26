@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -14,19 +14,18 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:manager-test-context.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class NodeInheritanceManagerImplAutowireTest {
 	
 	@Autowired
@@ -35,6 +34,8 @@ public class NodeInheritanceManagerImplAutowireTest {
 	public NodeInheritanceManager nodeInheritanceManager;
 	@Autowired
 	public NodeInheritanceDAO nodeInheritanceDao;
+	@Autowired
+	public UserProvider testUserProvider;
 	// We use a mock auth DAO for this test.
 	AuthorizationManager mockAuth;
 	List<String> nodesToDelete;
@@ -51,11 +52,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 	
 	@Before
 	public void before() throws Exception{
-		userInfo = new UserInfo(false);
-		User anonUser = new User();
-		anonUser.setUserId(AuthUtilConstants.ANONYMOUS_USER_ID);
-		userInfo.setUser(anonUser);
-		
+		userInfo = testUserProvider.getTestAdiminUserInfo();
 		assertNotNull(nodeManager);
 		assertNotNull(nodeInheritanceManager);
 		assertNotNull(nodeInheritanceDao);

@@ -1,12 +1,10 @@
 package org.sagebionetworks.repo.model.jdo;
 
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -18,7 +16,6 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOAccessControlList;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,80 +55,19 @@ public class JDOAccessControlListDAOImpl extends JDOBaseDAOImpl<AccessControlLis
 		jdo.setResourceAccess(new HashSet<JDOResourceAccess>());
 		return jdo;
 	}
-	
-	private ResourceAccess newRaDTO() {
-		ResourceAccess raDto = new ResourceAccess();
-		raDto.setAccessType(new HashSet<AuthorizationConstants.ACCESS_TYPE>());
-		return raDto;
-	}
-	
-	private void copyToRaDto(JDOResourceAccess raJdo, ResourceAccess raDto) throws DatastoreException {
-		raDto.setUserGroupId(KeyFactory.keyToString(raJdo.getUserGroupId()));
-		Set<AuthorizationConstants.ACCESS_TYPE> dtoAccessTypes = new HashSet<AuthorizationConstants.ACCESS_TYPE>();
-		for (String jdoAccessType : raJdo.getAccessType()) {
-			dtoAccessTypes.add(AuthorizationConstants.ACCESS_TYPE.valueOf(jdoAccessType));
-		}
-		raDto.setAccessType(dtoAccessTypes);
-	}
 
 	@Override
 	void copyToDto(JDOAccessControlList jdo, AccessControlList dto)
 			throws DatastoreException {
-		dto.setCreatedBy(jdo.getCreatedBy());
-		dto.setCreationDate(jdo.getCreationDate());
-		dto.setEtag(jdo.getEtag()==null ? null : KeyFactory.keyToString(jdo.getEtag()));
-		dto.setId(jdo.getId()==null ? null : KeyFactory.keyToString(jdo.getId()));
-		dto.setModifiedBy(jdo.getModifiedBy());
-		dto.setModifiedOn(new Date(jdo.getModifiedOn()));
-		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-		for (JDOResourceAccess raJdo: jdo.getResourceAccess()) {
-			ResourceAccess raDto = newRaDTO();
-			copyToRaDto(raJdo, raDto);
-			ras.add(raDto);
-		}
-		dto.setResourceAccess(ras);
-		dto.setResourceId(KeyFactory.keyToString(jdo.getResource().getId()));
-	}
-
-	private JDOResourceAccess newRaJDO() {
-		JDOResourceAccess raJdo = new JDOResourceAccess();
-		raJdo.setAccessType(new HashSet<String>());
-		return raJdo;
-	}
-	
-	private void copyFromRaDto(ResourceAccess raDto, JDOResourceAccess raJdo) throws DatastoreException, InvalidModelException {
-//		JDOUserGroup g = jdoTemplate.getObjectById(JDOUserGroup.class, KeyFactory.stringToKey(raDto.getUserGroupId()));
-		if (raDto.getUserGroupId()==null) throw new InvalidModelException("UserGroup ID cannot be null.");
-		raJdo.setUserGroupId(KeyFactory.stringToKey(raDto.getUserGroupId()));
-		if (raDto.getAccessType().isEmpty()) 
-			throw new InvalidModelException("ACL permissions for a group must include at least one access type.");
-		Set<String> jdoAccessTypes = new HashSet<String>();
-		for (AuthorizationConstants.ACCESS_TYPE jdoAccessType : raDto.getAccessType()) {
-			jdoAccessTypes.add(jdoAccessType.name());
-		}
-		raJdo.setAccessType(jdoAccessTypes);
+		AccessControlListUtil.updateDtoFromJdo(jdo, dto);
 	}
 
 	@Override
 	void copyFromDto(AccessControlList dto, JDOAccessControlList jdo)
 			throws InvalidModelException, DatastoreException {
-		jdo.setCreatedBy(dto.getCreatedBy());
-		jdo.setCreationDate(dto.getCreationDate());
-		jdo.setEtag(dto.getEtag()==null ? null : KeyFactory.stringToKey(dto.getEtag()));
-		jdo.setId(dto.getId()==null ? null : KeyFactory.stringToKey(dto.getId()));
-		jdo.setModifiedBy(dto.getModifiedBy());
-		jdo.setModifiedOn(dto.getModifiedOn()==null ? null : dto.getModifiedOn().getTime());
-		if (dto.getResourceId()==null) throw new InvalidModelException("Missing resource ID");
-		JDONode node = jdoTemplate.getObjectById(JDONode.class, KeyFactory.stringToKey(dto.getResourceId()));
-		jdo.setResource(node);
-		Set<JDOResourceAccess> ras = new HashSet<JDOResourceAccess>();
-		for (ResourceAccess raDto : dto.getResourceAccess()) {
-			JDOResourceAccess raJdo = newRaJDO();
-			copyFromRaDto(raDto, raJdo);
-			ras.add(raJdo);
-		}
-		jdo.setResourceAccess(ras);
-		
+		if(dto.getResourceId() == null) throw new InvalidModelException("Cannot set a ResourceAccess owner to null");
+		JDONode owner = jdoTemplate.getObjectById(JDONode.class, KeyFactory.stringToKey(dto.getResourceId()));
+		AccessControlListUtil.updateJdoFromDto(jdo, dto, owner);
 	}
 
 	@Override
@@ -227,18 +163,5 @@ public class JDOAccessControlListDAOImpl extends JDOBaseDAOImpl<AccessControlLis
 		parameters.put("type", type.name());
 		return exec.executeSingleCol(authorizationSQL(groupIds.size()), parameters);
 	}
-	
-//	public static String sqlCollection(Collection<? extends Object> c) {
-//		StringBuffer ans = new StringBuffer("(");
-//		boolean first = true;
-//		for (Object o : c) {
-//			if (first) first=false; else ans.append(",");
-//			ans.append(o.toString());
-//		}
-//		ans.append(")");
-//		return ans.toString();
-//	}
-
-
 
 }

@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -39,18 +40,20 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  *
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:manager-test-context.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class NodeManagerImplAutoWiredTest {
 	
 	@Autowired
 	public NodeManager nodeManager;
 	
+	@Autowired
+	public UserProvider testUserProvider;
+	
 	// We use a mock auth DAO for this test.
 	private AuthorizationManager mockAuth;
 	List<String> nodesToDelete;
 	
-	private final UserInfo mockUserInfo = new UserInfo(false);
-	private final UserInfo anonUserInfo = new UserInfo(false);
+	private UserInfo testUser;
 	
 	@Before
 	public void before() throws Exception{
@@ -59,19 +62,13 @@ public class NodeManagerImplAutoWiredTest {
 		mockAuth = Mockito.mock(AuthorizationManager.class);
 		when(mockAuth.canAccess((UserInfo)any(), anyString(), any(AuthorizationConstants.ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuth.canCreate((UserInfo)any(), (Node)any())).thenReturn(true);
+		// Make sure we have a valid user.
+		testUser = testUserProvider.getTestAdiminUserInfo();
 		
-		User mockUser = new User();
-		mockUser.setUserId("test-user");
-		mockUserInfo.setUser(mockUser);
-//		when(mockAuth.getUserInfo("test-user")).thenReturn(mockUserInfo);
+		UserInfo.validateUserInfo(testUser);
 		
-		User anonUser = new User();
-		anonUser.setUserId(AuthUtilConstants.ANONYMOUS_USER_ID);
-		anonUserInfo.setUser(anonUser);
-//		when(mockAuth.getUserInfo(AuthUtilConstants.ANONYMOUS_USER_ID)).thenReturn(anonUserInfo);
-		
-		nodeManager.setAuthorizationManager(mockAuth);
-		when(mockAuth.canCreate((UserInfo)any(), (Node)any())).thenReturn(true);
+//		nodeManager.setAuthorizationManager(mockAuth);
+//		when(mockAuth.canCreate((UserInfo)any(), (Node)any())).thenReturn(true);
 	}
 	
 	@After
@@ -79,8 +76,7 @@ public class NodeManagerImplAutoWiredTest {
 		if(nodeManager != null && nodesToDelete != null){
 			for(String id: nodesToDelete){
 				try {
-					UserInfo userInfo = anonUserInfo;
-					nodeManager.delete(userInfo, id);
+					nodeManager.delete(testUser, id);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -97,15 +93,14 @@ public class NodeManagerImplAutoWiredTest {
 		
 		// need to enable Public to have 'create' access to 'someType'
 		newNode.setNodeType(ObjectType.project.name());
-		UserInfo userInfo = anonUserInfo;
-		String id = nodeManager.createNewNode(newNode, userInfo);
+		String id = nodeManager.createNewNode(newNode, testUser);
 		assertNotNull(id);
 		nodesToDelete.add(id);
 		//Make sure we can get the node
-		Node fetched = nodeManager.get(userInfo, id);
+		Node fetched = nodeManager.get(testUser, id);
 		assertNotNull(fetched);
-		assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, fetched.getCreatedBy());
-		assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, fetched.getModifiedBy());
+		assertEquals(testUser.getUser().getUserId(), fetched.getCreatedBy());
+		assertEquals(testUser.getUser().getUserId(), fetched.getModifiedBy());
 		assertNotNull(fetched.getCreatedOn());
 		assertNotNull(fetched.getModifiedOn());
 		assertEquals(id, fetched.getId());
@@ -116,12 +111,12 @@ public class NodeManagerImplAutoWiredTest {
 		// Now try to update the node
 		String startingETag = fetched.getETag();
 		fetched.setName("mySecondName");
-		Node updated = nodeManager.update(userInfo, fetched);
+		Node updated = nodeManager.update(testUser, fetched);
 		assertNotNull(updated);
 		// Make sure the result has a new eTag
 		assertFalse(startingETag.equals(updated.getETag()));
 		// Now get it again
-		Node fetchedAgain = nodeManager.get(userInfo, id);
+		Node fetchedAgain = nodeManager.get(testUser, id);
 		assertNotNull(fetchedAgain);
 		assertEquals("mySecondName", fetchedAgain.getName());
 		assertEquals(updated.getETag(), fetchedAgain.getETag());
@@ -134,7 +129,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
 		newNode.setNodeType(ObjectType.project.name());
-		UserInfo userInfo = anonUserInfo;
+		UserInfo userInfo = testUser;
 		String id = nodeManager.createNewNode(newNode, userInfo);
 		assertNotNull(id);
 		nodesToDelete.add(id);

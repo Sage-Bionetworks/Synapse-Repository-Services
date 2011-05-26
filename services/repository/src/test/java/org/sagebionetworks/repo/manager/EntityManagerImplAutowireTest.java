@@ -28,28 +28,36 @@ import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:manager-test-context.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class EntityManagerImplAutowireTest {
 	
 	@Autowired
 	private EntityManager entityManager;
+	
+	@Autowired
+	public UserProvider testUserProvider;
 	
 	// We use a mock auth DAO for this test.
 	private AuthorizationManager mockAuth;
 
 	private List<String> toDelete;
 	
-	private final UserInfo anonUserInfo = new UserInfo(false);
+	private UserInfo userInfo;
+	
+//	private final UserInfo anonUserInfo = new UserInfo(false);
 
 	
 	@Before
 	public void before() throws Exception{
 		assertNotNull(entityManager);
+		assertNotNull(testUserProvider);
+		userInfo = testUserProvider.getTestAdiminUserInfo();
 		
 		toDelete = new ArrayList<String>();
 		mockAuth = Mockito.mock(AuthorizationManager.class);
@@ -57,9 +65,9 @@ public class EntityManagerImplAutowireTest {
 		when(mockAuth.canAccess((UserInfo)any(), anyString(), any(AuthorizationConstants.ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuth.canCreate((UserInfo)any(), (Node)any())).thenReturn(true);
 
-		User anonUser = new User();
-		anonUser.setUserId(AuthUtilConstants.ANONYMOUS_USER_ID);
-		anonUserInfo.setUser(anonUser);
+//		User anonUser = new User();
+//		anonUser.setUserId(AuthUtilConstants.ANONYMOUS_USER_ID);
+//		anonUserInfo.setUser(anonUser);
 	}
 	
 	@After
@@ -67,7 +75,6 @@ public class EntityManagerImplAutowireTest {
 		if(entityManager != null && toDelete != null){
 			for(String id: toDelete){
 				try{
-					UserInfo userInfo = anonUserInfo;
 					entityManager.deleteEntity(userInfo, id);
 				}catch(Exception e){}
 			}
@@ -78,7 +85,6 @@ public class EntityManagerImplAutowireTest {
 	public void testAllInOne() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		// Create a datset
 		Dataset ds = createDataset();
-		UserInfo userInfo = anonUserInfo;
 		String id = entityManager.createEntity(userInfo, ds);
 		assertNotNull(id);
 		toDelete.add(id);
@@ -118,7 +124,6 @@ public class EntityManagerImplAutowireTest {
 	@Test
 	public void testAggregateUpdate() throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
 		Dataset ds = createDataset();
-		UserInfo userInfo = anonUserInfo;
 		String parentId = entityManager.createEntity(userInfo, ds);
 		assertNotNull(parentId);
 		toDelete.add(parentId);

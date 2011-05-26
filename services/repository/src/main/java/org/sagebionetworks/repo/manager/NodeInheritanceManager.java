@@ -3,6 +3,14 @@ package org.sagebionetworks.repo.manager;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface NodeInheritanceManager {
+	
+	/**
+	 * Get the benefactor of a node.
+	 * @param nodeId
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public String getBenefactor(String nodeId) throws NotFoundException;
 
 	/**
 	 * This method should be called when a node's parent changes.

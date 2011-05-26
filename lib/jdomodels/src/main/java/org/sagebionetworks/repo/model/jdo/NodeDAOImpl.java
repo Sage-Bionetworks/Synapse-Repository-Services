@@ -92,19 +92,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			// to itself.
 			node.setPermissionsBenefactor(node);
 		}
-		if(dto.getParentId() == null){
-			JDOAccessControlList acl = new JDOAccessControlList();
-			acl.setCreatedBy(dto.getCreatedBy());
-			acl.setCreationDate(dto.getCreatedOn());
-			acl.setEtag(0L);
-			acl.setModifiedBy(dto.getModifiedBy());
-			acl.setModifiedOn(dto.getModifiedOn().getTime());
-			acl.setResourceAccess(new HashSet<JDOResourceAccess>());
-			acl.setResource(node);
-			jdoTemplate.makePersistent(acl);
-		}
-//		if (node.getAccessControlList().getId()==null) throw new NullPointerException();
-
 		return node.getId().toString();
 	}
 

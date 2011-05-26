@@ -45,16 +45,47 @@ public class UrlHelpers {
 			.getName());
 
 	/**
+	 * URL prefix for all objects that are referenced by their ID.
+	 * 
+	 */
+	public static final String ID = "/{id}";
+	
+	/**
+	 * The URL prefix for all object's Access Control List (ACL).
+	 */
+	public static final String ACL = "/acl";
+	
+	/**
 	 * URL prefix for dataset model objects
 	 * 
 	 */
 	public static final String DATASET = "/dataset";
 	
 	/**
+	 * URL suffix for a dataset info with its ID.
+	 */
+	public static final String DATASET_ID = DATASET+ID;
+	
+	/**
+	 * URL to get a dataset's ACL: /dataset/{id}/acl
+	 */
+	public static final String DATASET_ACL = DATASET_ID+ACL;
+	
+	/**
 	 * URL prefix for dataset layer model objects
 	 * 
 	 */
 	public static final String LAYER = "/layer";
+	
+	/**
+	 * URL suffix for a layer info with its ID.
+	 */
+	public static final String LAYER_ID = LAYER+ID;
+	
+	/**
+	 * URL to get a layer's ACL: /layer/{id}/acl
+	 */
+	public static final String LAYER_ACL = LAYER_ID+ACL;
 
 	/**
 	 * URL suffix for entity schemas
@@ -89,9 +120,34 @@ public class UrlHelpers {
 	public static final String LOCATIONS = "/locations";
 	
 	/**
+	 * URL suffix for a locations info with its ID.
+	 */
+	public static final String LOCATIONS_ID = LOCATIONS+ID;
+	
+	/**
+	 * URL to get a location's ACL: /locations/{id}/acl
+	 */
+	public static final String LOCATIONS_ACL = LOCATIONS_ID+ACL;
+	
+	/**
 	 * URL suffix for Project info
 	 */
 	public static final String PROJECT = "/project";
+	
+	/**
+	 * URL suffix for a Project info with its ID.
+	 */
+	public static final String PROJECT_ID = PROJECT+ID;
+	
+	/**
+	 * URL to get a project's ACL: /project/{id}/acl
+	 */
+	public static final String PROJECT_ACL = PROJECT_ID+ACL;
+	
+	/**
+	 * URL for a project's annotations.
+	 */
+	public static final String PROJECT_ANNOTATIONS = PROJECT_ID+ANNOTATIONS;
 
 	/**
 	 * URL suffix for S3 location metadata

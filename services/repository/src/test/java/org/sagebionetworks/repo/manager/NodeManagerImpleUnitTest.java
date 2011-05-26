@@ -17,6 +17,8 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.authutil.AuthUtilConstants;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -25,6 +27,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
@@ -41,6 +44,7 @@ public class NodeManagerImpleUnitTest {
 	private NodeDAO mockNodeDao = null;
 	private AuthorizationManager mockAuthDao = null;
 	private NodeManagerImpl nodeManager = null;
+	private AccessControlListDAO mockAclDao = null;
 	private FieldTypeDAO mockFieldTypeDao = null;
 		
 	private final UserInfo mockUserInfo = new UserInfo(false);
@@ -53,16 +57,24 @@ public class NodeManagerImpleUnitTest {
 		mockNodeDao = Mockito.mock(NodeDAO.class);
 		mockAuthDao = Mockito.mock(AuthorizationManager.class);
 		mockFieldTypeDao = Mockito.mock(FieldTypeDAO.class);
+		mockAclDao = Mockito.mock(AccessControlListDAO.class);
 		// Create the manager dao with mocked dependent daos.
-		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockFieldTypeDao);
+		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockFieldTypeDao, mockAclDao);
 
+		UserGroup userGroup = new UserGroup();
+		userGroup.setId("2");
+		userGroup.setName("two");
 		User mockUser = new User();
+		mockUser.setId("101");
 		mockUser.setUserId("test-user");
 		mockUserInfo.setUser(mockUser);
+		mockUserInfo.setIndividualGroup(userGroup);
 		
 		User anonUser = new User();
+		anonUser.setId("102");
 		anonUser.setUserId(AuthUtilConstants.ANONYMOUS_USER_ID);
 		anonUserInfo.setUser(anonUser);
+		anonUserInfo.setIndividualGroup(userGroup);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -91,28 +103,6 @@ public class NodeManagerImpleUnitTest {
 		NodeManagerImpl.validateNode(node);
 	}
 	
-	@Test
-	public void testValidateUsernameNull(){
-		// Null user names should NOT be treated as ANNONYMOUS
-		String validated = NodeManagerImpl.validateUsername(null);
-		assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, validated);
-	}
-	
-	@Test
-	public void testValidateUsernameEmpty(){
-		// Empty user names should NOT be treated as ANNONYMOUS
-		String validated = NodeManagerImpl.validateUsername(" ");
-		assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, validated);
-	}
-	
-	@Test
-	public void testValidateUsernameTrim(){
-		// Empty user names should be treated as ANNONYMOUS
-		String userName = "someUserName";
-		// Add some white space to the name
-		String validated = NodeManagerImpl.validateUsername("  \n"+userName+" ");
-		assertEquals(userName, validated);
-	}
 	@Test
 	public void testValidateNodeCreatedDataWithPreset(){
 		Node node = new Node();

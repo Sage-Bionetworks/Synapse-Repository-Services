@@ -56,9 +56,7 @@ public class JDOAccessControlListDAOImplTest {
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-	
-	@Autowired
-	private JdoTemplate jdoTemplate;
+
 
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Collection<UserGroup> groupList = new ArrayList<UserGroup>();
@@ -67,6 +65,7 @@ public class JDOAccessControlListDAOImplTest {
 	private Node node = null;
 	private AccessControlList acl = null;
 	private UserGroup group = null;
+	private UserGroup group2 = null;
 	/**
 	 * @throws java.lang.Exception
 	 */
@@ -92,6 +91,23 @@ public class JDOAccessControlListDAOImplTest {
 		assertNotNull(group.getId());
 		groupList.add(group);
 		
+		// Create a second user
+		group2 = new UserGroup();
+		group2.setName("bar2");
+		group2.setId(userGroupDAO.create(group2));
+		assertNotNull(group2.getId());
+		groupList.add(group2);
+		
+		// Create an ACL for this node
+		AccessControlList acl = new AccessControlList();
+		acl.setResourceId(nodeId);
+		acl.setCreatedBy("someDude");
+		acl.setCreationDate(new Date(System.currentTimeMillis()));
+		acl.setModifiedBy(acl.getCreatedBy());
+		acl.setModifiedOn(acl.getCreationDate());
+		acl.setResourceAccess(new HashSet<ResourceAccess>());
+		accessControlListDAO.create(acl);
+		
 		acl = accessControlListDAO.getForResource(node.getId());
 		assertNotNull(acl);
 //		acl = new AccessControlList();
@@ -110,7 +126,8 @@ public class JDOAccessControlListDAOImplTest {
 		ras.add(ra);
 		acl.setResourceAccess(ras);
 		accessControlListDAO.update(acl);
-//		acl.setId(id);
+		acl = accessControlListDAO.getForResource(node.getId());
+		assertNotNull(acl);
 		aclList.add(acl);
 	}
 
@@ -226,7 +243,6 @@ public class JDOAccessControlListDAOImplTest {
 	 * Test method for {@link org.sagebionetworks.repo.model.jdo.JDOBaseDAOImpl#update(org.sagebionetworks.repo.model.Base)}.
 	 */
 	@Test
-	@Ignore
 	public void testUpdate() throws Exception {
 		Node node = nodeList.iterator().next();
 		String rid = node.getId();
@@ -246,6 +262,44 @@ public class JDOAccessControlListDAOImplTest {
 		
 		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), AuthorizationConstants.ACCESS_TYPE.UPDATE));
 		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), AuthorizationConstants.ACCESS_TYPE.CREATE));
+		
+	}
+	
+	@Test
+	public void testUpdateMultipleGroups() throws Exception {
+		Node node = nodeList.iterator().next();
+		String rid = node.getId();
+		AccessControlList acl = accessControlListDAO.getForResource(rid);
+		Set<ResourceAccess> ras = acl.getResourceAccess();
+		ResourceAccess ra = ras.iterator().next();
+		ra.setAccessType(new HashSet<AuthorizationConstants.ACCESS_TYPE>(
+				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{
+						AuthorizationConstants.ACCESS_TYPE.UPDATE,
+						AuthorizationConstants.ACCESS_TYPE.CREATE
+				})));
+		// Now add a new resource access for group 2
+		ResourceAccess ra2 = new ResourceAccess();
+		ra2.setUserGroupId(group2.getId());
+		ra2.setAccessType(new HashSet<AuthorizationConstants.ACCESS_TYPE>(
+				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{
+						AuthorizationConstants.ACCESS_TYPE.READ,
+				})));
+		acl.getResourceAccess().add(ra2);
+		accessControlListDAO.update(acl);
+		
+		Collection<UserGroup> gs = new ArrayList<UserGroup>();
+		gs.add(group);
+		Collection<UserGroup> gs2 = new ArrayList<UserGroup>();
+		gs2.add(group2);
+		assertFalse(accessControlListDAO.canAccess(gs, node.getId(), AuthorizationConstants.ACCESS_TYPE.READ));
+		assertTrue(accessControlListDAO.canAccess(gs2, node.getId(), AuthorizationConstants.ACCESS_TYPE.READ));
+		
+		// Group one can do this but 2 cannot.
+		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), AuthorizationConstants.ACCESS_TYPE.UPDATE));
+		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), AuthorizationConstants.ACCESS_TYPE.CREATE));
+		// Now try 2
+		assertFalse(accessControlListDAO.canAccess(gs2, node.getId(), AuthorizationConstants.ACCESS_TYPE.UPDATE));
+		assertFalse(accessControlListDAO.canAccess(gs2, node.getId(), AuthorizationConstants.ACCESS_TYPE.CREATE));
 		
 	}
 

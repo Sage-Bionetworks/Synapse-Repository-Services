@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -20,8 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class PermissionsManagerImpl implements PermissionsManager {
 	
-	@Autowired
-	private NodeInheritanceDAO nodeInheritanceDAO;
 	
 	@Autowired
 	private AccessControlListDAO aclDAO;
@@ -33,7 +31,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	private NodeInheritanceManager nodeInheritanceManager;
 	
 	@Autowired
-	private NodeManager nodeManager;
+	NodeDAO nodeDao;
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
@@ -41,7 +39,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	@Override
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException {
 		// get the id that this node inherits its permissions from
-		String benefactor = nodeInheritanceDAO.getBenefactor(nodeId);
+		String benefactor = nodeInheritanceManager.getBenefactor(nodeId);
 		return aclDAO.getForResource(benefactor);
 	}
 	
@@ -56,7 +54,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	@Override
 	public AccessControlList updateACL(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException {
 		String rId = acl.getResourceId();
-		String benefactor = nodeInheritanceDAO.getBenefactor(rId);
+		String benefactor = nodeInheritanceManager.getBenefactor(rId);
 		if (!benefactor.equals(rId)) throw new UnauthorizedException("Cannot update ACL for a resource which inherits its permissions.");
 		// check permissions of user to change permissions for the resource
 		if (!authorizationManager.canAccess(userInfo, rId, AuthorizationConstants.ACCESS_TYPE.CHANGE_PERMISSIONS)) {
@@ -71,7 +69,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	@Override
 	public AccessControlList overrideInheritance(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException {
 		String rId = acl.getResourceId();
-		String benefactor = nodeInheritanceDAO.getBenefactor(rId);
+		String benefactor = nodeInheritanceManager.getBenefactor(rId);
 		if (benefactor.equals(rId)) throw new UnauthorizedException("Resource already has an ACL.");
 		// check permissions of user to change permissions for the resource
 		if (!authorizationManager.canAccess(userInfo, benefactor, AuthorizationConstants.ACCESS_TYPE.CHANGE_PERMISSIONS)) {
@@ -93,11 +91,11 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		if (!authorizationManager.canAccess(userInfo, rId, AuthorizationConstants.ACCESS_TYPE.CHANGE_PERMISSIONS)) {
 			throw new UnauthorizedException("Not authorized.");
 		}
-		String benefactor = nodeInheritanceDAO.getBenefactor(rId);
+		String benefactor = nodeInheritanceManager.getBenefactor(rId);
 		if (!benefactor.equals(rId)) throw new UnauthorizedException("Resource already inherits its permissions.");	
 		// get parent; if null then I cannot continue!!
-		Node resource = nodeManager.get(userInfo, rId);
-		if (resource.getParentId()==null) throw new UnauthorizedException("Cannot restore inheritance for resource which has no parent.");
+		Node node = nodeDao.getNode(rId);
+		if (node.getParentId()==null) throw new UnauthorizedException("Cannot restore inheritance for resource which has no parent.");
 
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(rId);
 		
@@ -106,7 +104,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		aclDAO.delete(acl.getId());
 		
 		// now find the newly governing ACL
-		benefactor = nodeInheritanceDAO.getBenefactor(rId);
+		benefactor = nodeInheritanceManager.getBenefactor(rId);
 		
 		return aclDAO.getForResource(benefactor);
 	}
