@@ -146,23 +146,25 @@ public class HttpClientHelper {
 	 * @return the contents of the file in a string
 	 * @throws ClientProtocolException
 	 * @throws IOException
+	 * @throws HttpClientHelperException 
 	 */
 	public static String getFileContents(final String requestUrl)
-			throws ClientProtocolException, IOException {
+			throws ClientProtocolException, IOException, HttpClientHelperException {
 		String fileContents = null;
 
 		HttpGet get = new HttpGet(requestUrl);
 		DefaultHttpClient client = new DefaultHttpClient();
 		HttpResponse response = client.execute(get);
 		if (300 <= response.getStatusLine().getStatusCode()) {
-			throw new IllegalArgumentException("Request(" + requestUrl
-					+ ") failed: " + response.getStatusLine().getReasonPhrase());
+			throw new HttpClientHelperException("Request(" + requestUrl
+					+ ") failed: " + response.getStatusLine().getReasonPhrase(),
+					response.getStatusLine().getStatusCode());
 		}
 		HttpEntity fileEntity = response.getEntity();
 		if (null != fileEntity) {
 			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < fileEntity
 					.getContentLength()) {
-				throw new IllegalArgumentException("Requested content("
+				throw new HttpClientHelperException("Requested content("
 						+ requestUrl + ") is too large("
 						+ fileEntity.getContentLength()
 						+ "), download it to a file instead");
@@ -181,16 +183,18 @@ public class HttpClientHelper {
 	 * @param filePath
 	 * @throws ClientProtocolException
 	 * @throws IOException
+	 * @throws HttpClientHelperException 
 	 */
 	public static void downloadFile(final String requestUrl,
-			final String filePath) throws ClientProtocolException, IOException {
+			final String filePath) throws ClientProtocolException, IOException, HttpClientHelperException {
 
 		HttpGet get = new HttpGet(requestUrl);
 		DefaultHttpClient client = new DefaultHttpClient();
 		HttpResponse response = client.execute(get);
 		if (300 <= response.getStatusLine().getStatusCode()) {
-			throw new IllegalArgumentException("Request(" + requestUrl
-					+ ") failed: " + response.getStatusLine().getReasonPhrase());
+			throw new HttpClientHelperException("Request(" + requestUrl
+					+ ") failed: " + response.getStatusLine().getReasonPhrase(),
+					response.getStatusLine().getStatusCode());
 		}
 		HttpEntity fileEntity = response.getEntity();
 		if (null != fileEntity) {

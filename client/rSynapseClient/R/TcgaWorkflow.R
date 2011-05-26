@@ -8,6 +8,7 @@ setClass(
          representation(
                         kUsage = 'character',
                         kInputLayerIdKey = 'character',
+                        kInputDatasetIdKey = 'character',
                         kInputLocalFilepathKey = 'character',
                         kOutputLayerIdKey = 'character',
                         kOutputStartDelimiterPattern = 'character',
@@ -15,6 +16,7 @@ setClass(
                         ),
          prototype = prototype(
            kUsage = 'Usage: R script.r --layerId 42 --localFilepath ./foo.txt',
+           kInputDatasetIdKey = '--datasetId',
            kInputLayerIdKey = '--layerId',
            kInputLocalFilepathKey = '--localFilepath',
            kOutputLayerIdKey = 'layerId',
@@ -29,6 +31,18 @@ getLocalFilepath <- function() {
   args <- commandArgs()
   for(i in 1:length(args)) {
     if(args[i] == constants@kInputLocalFilepathKey) {
+      return(args[i+1])
+    }
+  }
+  stop(constants@kUsage)
+}
+
+getInputDatasetId <- function() {
+  constants <- new('TcgaWorkflowConstants')
+
+  args <- commandArgs()
+  for(i in 1:length(args)) {
+    if(args[i] == constants@kInputDatasetIdKey) {
       return(args[i+1])
     }
   }
