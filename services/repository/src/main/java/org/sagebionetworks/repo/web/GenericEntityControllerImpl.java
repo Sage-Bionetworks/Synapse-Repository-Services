@@ -244,7 +244,9 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 			HttpServletRequest request) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);		
-		return permissionsManager.overrideInheritance(newEntity, userInfo);
+		AccessControlList acl = permissionsManager.overrideInheritance(newEntity, userInfo);
+		addServiceSpecificMetadata(newEntity, request);
+		return acl;
 	}
 
 	

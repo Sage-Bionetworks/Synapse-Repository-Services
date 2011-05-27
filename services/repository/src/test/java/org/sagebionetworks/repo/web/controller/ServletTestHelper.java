@@ -296,6 +296,41 @@ public class ServletTestHelper {
 	}
 	
 	/**
+	 * create the Access Control List (ACL) for an entity.
+	 * @param <T>
+	 * @param dispatchServlet
+	 * @param clazz
+	 * @param id
+	 * @param userId
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public static <T extends Base> AccessControlList createEntityACL(HttpServlet dispatchServlet, Class<? extends T> clazz, AccessControlList entityACL, String userId) throws ServletException, IOException{
+		if(dispatchServlet == null) throw new IllegalArgumentException("Servlet cannot be null");
+		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(type.getUrlPrefix() + "/" + entityACL.getResourceId() + UrlHelpers.ACL);
+		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		StringWriter out = new StringWriter();
+		objectMapper.writeValue(out, entityACL);
+		String body = out.toString();
+		request.setContent(body.getBytes("UTF-8"));
+		dispatchServlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		if(response.getStatus() != HttpStatus.CREATED.value()){
+			throw new IllegalArgumentException(response.getErrorMessage()+" "+response.getStatus()+" for\n"+body);
+		}
+		return objectMapper.readValue(response.getContentAsString(),AccessControlList.class);		
+	}
+	
+
+	
+	/**
 	 * Get the Access Control List (ACL) for an entity.
 	 * @param <T>
 	 * @param dispatchServlet
@@ -354,6 +389,33 @@ public class ServletTestHelper {
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
 		return objectMapper.readValue(response.getContentAsString(), AccessControlList.class);
+	}
+
+	/**
+	 * Delete an entity ACL
+	 * @param <T>
+	 * @param dispatchServlet
+	 * @param clazz
+	 * @param entityACL
+	 * @param userId
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public static <T extends Base> void deleteEntityACL(HttpServlet dispatchServlet, Class<? extends T> clazz, String resourceId, String userId) throws ServletException, IOException {
+		if(dispatchServlet == null) throw new IllegalArgumentException("Servlet cannot be null");
+		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("DELETE");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(type.getUrlPrefix() + "/" + resourceId+UrlHelpers.ACL);
+		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);	
+		dispatchServlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
+			throw new IllegalArgumentException(response.getErrorMessage());
+		}
 	}
 
 

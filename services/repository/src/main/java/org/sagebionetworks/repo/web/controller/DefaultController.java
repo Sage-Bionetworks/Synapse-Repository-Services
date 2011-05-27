@@ -410,7 +410,6 @@ public class DefaultController extends BaseController {
 			DatastoreException, UnauthorizedException {
 		// Determine the object type from the url.
 		entityController.deleteEntityACL(userId, id);
-		return;
 	}
 
 	

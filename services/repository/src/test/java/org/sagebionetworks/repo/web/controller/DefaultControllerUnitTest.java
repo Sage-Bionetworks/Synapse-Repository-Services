@@ -6,7 +6,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.web.UrlHelpers;
 
-public class DefaultControlerUnitTest {
+public class DefaultControllerUnitTest {
 	
 
 	@Test (expected=IllegalArgumentException.class)
