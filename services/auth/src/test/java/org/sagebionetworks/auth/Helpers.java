@@ -66,6 +66,7 @@ public class Helpers {
 	 */
 	public JSONObject testCreateJsonEntity(String requestUrl,
 			String jsonRequestContent) throws Exception {	
+//		System.out.println("Helpers.testCreateJsonEntity: "+jsonRequestContent);
 		return testCreateJsonEntity(requestUrl, jsonRequestContent, HttpStatus.CREATED);
 	}
 		
@@ -166,7 +167,7 @@ public class Helpers {
 		log.info("About to send: " + jsonEntity.toString(JSON_INDENT));
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
-		assertEquals(status, response.getStatus());
+		assertEquals(status.value(), response.getStatus());
 		JSONObject results = null;
 		String s = response.getContentAsString();
 		if (s!=null && s.length()>0) {

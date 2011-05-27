@@ -516,7 +516,7 @@ public class CrowdAuthUtil {
 			//chainedException.printStackTrace();
 			throw new NotFoundException(chainedException);
 		}
-		System.out.println("For user "+userId+":\n"+new String(sessionXML)+"\n");
+//		System.out.println("For user "+userId+":\n"+new String(sessionXML)+"\n");
 		try {
 			Collection<String> ans = getMultiFromXML("/groups/group/@name", sessionXML);
 			return ans;

@@ -9,6 +9,10 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -28,39 +32,66 @@ public class UserManagerImplTest {
 	
 	@Autowired
 	UserGroupDAO userGroupDAO;
+	
+	private static final String TEST_USER = "test-user";
+	
+	private void cleanUpGroups() throws Exception {
+		
+		for (UserGroup g: userGroupDAO.getAll(true)) {
+			if (g.getName().equals(AuthorizationConstants.ADMIN_GROUP_NAME)) {
+				// leave it
+			} else if (g.getName().equals(AuthorizationConstants.PUBLIC_GROUP_NAME)) {
+				// leave it
+			} else if (g.getName().equals(AuthorizationConstants.ANONYMOUS_USER_ID)) {
+				// leave it
+			} else {
+//				System.out.println("Deleting: "+g);
+				userGroupDAO.delete(g.getId());
+			}
+		}
 
-	private List<UserGroup> toDelete = new ArrayList<UserGroup>();
+	}
 	
 	@Before
 	public void setUp() throws Exception {
+		cleanUpGroups();
 		userManager.setUserDAO(new TestUserDAO());
 	}
 
 	@After
 	public void tearDown() throws Exception {
-		for (UserGroup g : toDelete) userGroupDAO.delete(g.getId());
-	}
-	@Ignore
-	@Test
-	public void testGetAnonymous() throws Exception {
-		UserInfo ui = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
-		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, ui.getUser().getId());
-		
-		
+		cleanUpGroups();
 	}
 	
 	// invoke getUserInfo for Anonymous and check returned userInfo
-	//	should include Public group
-	// call for a user in the User system but not the Permissions system.  
-	//		verify the user gets created
-	//		check the returned userInfo
-	//		should include Public group
-	// call for a user in a Group not in the Permissions system
-	//		verify the group is created in the Permissions system
-	//		check the returned userInfo
-	// call for a user in the Admin group; with no Admin group in the Permissions system
-	//		verify that an exception is thrown
+	@Test
+	public void testGetAnonymous() throws Exception {
+		UserInfo ui = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
+		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, ui.getUser().getUserId());
+		assertNotNull(ui.getUser().getId());
+		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, ui.getIndividualGroup().getName());
+		assertEquals(1, ui.getGroups().size());
+		assertEquals(ui.getIndividualGroup(), ui.getGroups().iterator().next());
+		// does not include Public group
+		assertFalse(ui.getGroups().contains(userGroupDAO.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false)));
+	}
 	
+	@Test
+	public void testStandardUser() throws Exception {
+		System.out.println("Groups in the system: "+userGroupDAO.getAll());
+		// call for a user in the User system but not the Permissions system.  
+		assertNull(userGroupDAO.findGroup(TEST_USER, true));
+		UserInfo ui = userManager.getUserInfo(TEST_USER);
+		//		check the returned userInfo
+		//		verify the user gets created
+		assertNotNull(userGroupDAO.findGroup(TEST_USER, true));
+		//		should include Public group
+		assertTrue(ui.getGroups().contains(userGroupDAO.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false)));
+		// call for a user in a Group not in the Permissions system
+		//		verify the group is created in the Permissions system
+		assertTrue(ui.getGroups().contains(userGroupDAO.findGroup(TestUserDAO.TEST_GROUP_NAME, false)));
+	}
+		
 	@Test
 	public void testGetAnonymousUserInfo() throws Exception {
 		userManager.getUserInfo(AuthUtilConstants.ANONYMOUS_USER_ID);

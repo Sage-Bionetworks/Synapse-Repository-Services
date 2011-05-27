@@ -305,6 +305,38 @@ public class DefaultController extends BaseController {
 	}
 	
 	/**
+	 * Create a new ACL, overriding inheritance.
+	 * @param <T>
+	 * @param userId - The user that is doing the create.
+	 * @param request - The body is extracted from the request.
+	 * @return The new ACL, which includes the id of the affected entity
+	 * @throws DatastoreException - Thrown when an there is a server failure.
+	 * @throws InvalidModelException - Thrown if the passed object does not match the expected entity schema.
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException - Thrown only for the case where the entity is assigned a parent that does not exist.
+	 * @throws IOException - Thrown if there is a failure to read the header.
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+@RequestMapping(value = { 
+			UrlHelpers.DATASET_ACL,
+			UrlHelpers.LAYER_ACL,
+			UrlHelpers.PROJECT_ACL,
+			UrlHelpers.LOCATIONS_ACL
+			}, method = RequestMethod.POST)	
+	public @ResponseBody
+	AccessControlList createEntityAcl(
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestBody AccessControlList newAcl,
+			HttpServletRequest request)
+			throws DatastoreException, InvalidModelException,
+			UnauthorizedException, NotFoundException, IOException {
+		// pass it along.
+		return entityController.createEntityACL(userId, newAcl, request);
+	}
+	
+	
+
+	/**
 	 * Get the Access Control List (ACL) for a given entity.
 	 * @param id - The ID of the entity to get the ACL for.
 	 * @param userId - The user that is making the request.
@@ -356,5 +388,30 @@ public class DefaultController extends BaseController {
 		return entityController.updateEntityACL(userId, updatedACL);
 	}
 	
+
+	/**
+	 * Called to restore inheritance (vs. defining ones own ACL)
+	 * @param userId - The user that is deleting the entity.
+	 * @param id - The entity whose inheritance is to be restored
+	 * @throws NotFoundException - Thrown when the entity to delete does not exist.
+	 * @throws DatastoreException - Thrown when there is a server side problem.
+	 * @throws UnauthorizedException
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = { 
+			UrlHelpers.DATASET_ACL,
+			UrlHelpers.LAYER_ACL,
+			UrlHelpers.PROJECT_ACL,
+			UrlHelpers.LOCATIONS_ACL
+			}, method = RequestMethod.DELETE)
+	public void deleteEntityACL(
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id) throws NotFoundException,
+			DatastoreException, UnauthorizedException {
+		// Determine the object type from the url.
+		entityController.deleteEntityACL(userId, id);
+		return;
+	}
+
 	
 }

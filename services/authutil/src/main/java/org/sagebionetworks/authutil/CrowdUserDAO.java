@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
@@ -85,11 +84,12 @@ public class CrowdUserDAO implements UserDAO {
 		User user = new User();
 		user.setUserId(userName);
 		user.setId(userName);  //  i.e. user name == user id
-		Collection<String> userAttributes = Arrays.asList(new String[]{
-			CREATION_DATE_FIELD,
-			IAM_ACCESS_ID_FIELD,
-			IAM_SECRET_KEY_FIELD
-		});
+		if (AuthUtilConstants.ANONYMOUS_USER_ID.equals(userName)) return user;
+//		Collection<String> userAttributes = Arrays.asList(new String[]{
+//			CREATION_DATE_FIELD,
+//			IAM_ACCESS_ID_FIELD,
+//			IAM_SECRET_KEY_FIELD
+//		});
 		Map<String,Collection<String>> userAttrValues = null;
 		try {
 			userAttrValues = crowdAuthUtil.getUserAttributes(userName);

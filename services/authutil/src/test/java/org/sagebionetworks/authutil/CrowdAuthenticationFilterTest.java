@@ -11,9 +11,7 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.authutil.CrowdAuthenticationFilter;
 
 /**
  *

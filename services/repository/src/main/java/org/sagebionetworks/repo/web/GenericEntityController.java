@@ -183,6 +183,25 @@ public interface GenericEntityController {
 	public JsonSchema getEntityAnnotationsSchema() throws DatastoreException;
 	
 	/**
+	 * Create a new entity
+	 * <p>
+	 * 
+	 * @param userId
+	 * @param newEntity
+	 * @param request
+	 *            used to get the servlet URL prefix
+	 * @return the newly created entity
+	 * @throws InvalidModelException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException 
+	 */
+	public AccessControlList createEntityACL(String userId, AccessControlList newEntity,
+			HttpServletRequest request) throws DatastoreException,
+			InvalidModelException, UnauthorizedException, NotFoundException;
+
+	
+	/**
 	 * Get the ACL for a given entity
 	 * @param nodeId
 	 * @param userId
@@ -204,5 +223,19 @@ public interface GenericEntityController {
 	 */
 	public AccessControlList updateEntityACL(String userId, AccessControlList updated) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException;
 	
+
+	/**
+	 * Delete a specific entity
+	 * <p>
+	 * 
+	 * @param userId
+	 * @param id the id of the node whose inheritance is to be restored
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public  void deleteEntityACL(String userId, String id)
+			throws NotFoundException, DatastoreException, UnauthorizedException;
+
 
 }

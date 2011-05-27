@@ -44,16 +44,13 @@ public class UserManagerImpl implements UserManager {
 	 * and is mirrored in the system managing group permissions.
 	 */
 	public UserInfo getUserInfo(String userName) throws DatastoreException, NotFoundException {
-		User user = null;
+		User user = userDAO.getUser(userName);
 		Set<UserGroup> groups = new HashSet<UserGroup>();
 		UserGroup individualGroup = null;
 		if (AuthUtilConstants.ANONYMOUS_USER_ID.equals(userName)) {
-			user = new User();
-			user.setUserId(AuthUtilConstants.ANONYMOUS_USER_ID);
 			individualGroup = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
 			if (individualGroup==null) throw new DatastoreException("Anonymous user should exist.");
 		} else {
-			user = userDAO.getUser(userName);
 			if (user==null) throw new NullPointerException("No user named "+userName+". Users: "+userDAO.getAll());
 			Collection<String> groupNames = userDAO.getUserGroupNames(userName);
 			// these groups omit the individual group
@@ -95,11 +92,11 @@ public class UserManagerImpl implements UserManager {
 					throw new DatastoreException(ime);
 				}
 			}
-			groups.add(individualGroup);
 			UserGroup publicGroup = userGroupDAO.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false);
 			if (publicGroup==null) throw new DatastoreException("Public group should exist.");
 			groups.add(publicGroup);
 		}
+		groups.add(individualGroup);
 		UserInfo userInfo = new UserInfo(isAdmin(groups));
 		userInfo.setIndividualGroup(individualGroup);
 		userInfo.setUser(user);

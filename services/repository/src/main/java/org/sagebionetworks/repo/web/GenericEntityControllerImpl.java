@@ -226,6 +226,28 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		return newList;
 	}
 
+	/**
+	 * Create a new entity
+	 * <p>
+	 * 
+	 * @param userId
+	 * @param newEntity
+	 * @param request
+	 *            used to get the servlet URL prefix
+	 * @return the newly created entity
+	 * @throws InvalidModelException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException 
+	 */
+	public AccessControlList createEntityACL(String userId, AccessControlList newEntity,
+			HttpServletRequest request) throws DatastoreException,
+			InvalidModelException, UnauthorizedException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);		
+		return permissionsManager.overrideInheritance(newEntity, userInfo);
+	}
+
+	
 
 	@Override
 	public AccessControlList getEntityACL(String entityId, String userId)
@@ -242,6 +264,22 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// Resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return permissionsManager.updateACL(updated, userInfo);
+	}
+
+	/**
+	 * Delete a specific entity
+	 * <p>
+	 * 
+	 * @param userId
+	 * @param id the id of the node whose inheritance is to be restored
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public  void deleteEntityACL(String userId, String id)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		permissionsManager.restoreInheritance(id, userInfo);
 	}
 
 

@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.BeforeClass;
@@ -75,13 +76,14 @@ public class CrowdUserDAOTest {
 	public void testGetGroupsForNonexistentUser() throws Exception {
 		if (!isIntegrationTest()) return;
 		CrowdUserDAO userDAO = new CrowdUserDAO();
+		Collection<String> groupNames = null;
 		try {
-			System.out.println(userDAO.getUserGroupNames("foo"));
+			groupNames = userDAO.getUserGroupNames("foo");
 		} catch (NotFoundException nfe) {
 			// as expected
 			return;
 		}
-		fail("exception expected");
+		assertEquals(0, groupNames.size());
 	}
 	
 
