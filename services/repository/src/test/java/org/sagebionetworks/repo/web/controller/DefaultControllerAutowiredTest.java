@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -273,5 +274,50 @@ public class DefaultControllerAutowiredTest {
 		assertNotNull(acl);
 		ServletTestHelper.updateEntityAcl(dispatchServlet, Project.class, acl, userName);
 	}
+	
+	@Test
+	public void testCreateEntityAcl() throws ServletException, IOException{
+		// Create a project
+		Project project = new Project();
+		project.setName("testCreateProject");
+		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
+		assertNotNull(clone);
+		toDelete.add(clone.getId());
+		
+		// create a dataset in the project
+		Dataset ds = new Dataset();
+		ds.setName("testDataset");
+		ds.setParentId(clone.getId());
+		Dataset dsClone = ServletTestHelper.createEntity(dispatchServlet, ds, userName);
+		assertNotNull(dsClone);
+		toDelete.add(dsClone.getId());
+		
+		AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, Dataset.class, dsClone.getId(), userName);
+		assertNotNull(acl);
+		// the returned ACL should refer to the parent
+		assertEquals(clone.getId(), acl.getResourceId());
+		
+		// now switch to child
+		acl.setResourceId(dsClone.getId());
+		acl.setId(null);
+		// (Is this OK, or do we have to make new ResourceAccess objects inside?)
+		// now POST to /dataset/{id}/acl with this acl as the body
+		AccessControlList acl2 = ServletTestHelper.createEntityACL(dispatchServlet, Dataset.class, acl, userName);
+		// now retrieve the acl for the child. should get its own back
+		AccessControlList acl3 = ServletTestHelper.getEntityACL(dispatchServlet, Dataset.class, dsClone.getId(), userName);
+		assertEquals(dsClone.getId(), acl3.getResourceId());
+		
+		
+		// now delete the ACL (restore inheritance)
+		ServletTestHelper.deleteEntityACL(dispatchServlet, Dataset.class,  dsClone.getId(), userName);
+		// try retrieving the ACL for the child
+		
+		// should get the parent's ACL
+		AccessControlList acl4 = ServletTestHelper.getEntityACL(dispatchServlet, Dataset.class, dsClone.getId(), userName);
+		assertNotNull(acl4);
+		// the returned ACL should refer to the parent
+		assertEquals(clone.getId(), acl4.getResourceId());
+	}
+	
 
 }
