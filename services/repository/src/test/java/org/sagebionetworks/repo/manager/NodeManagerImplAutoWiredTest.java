@@ -78,7 +78,6 @@ public class NodeManagerImplAutoWiredTest {
 				try {
 					nodeManager.delete(testUser, id);
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} 				
 			}

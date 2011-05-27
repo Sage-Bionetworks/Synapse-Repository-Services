@@ -169,24 +169,24 @@ public class UrlHelpers {
 	 */
 	public static final String UNSUPPORTED_LOCATION = "/notYetImplemented";
 
-//	/**
-//	 * URL prefix for Users in the system
-//	 * 
-//	 */
-//	public static final String USER = "/user";
+	/**
+	 * URL prefix for Users in the system
+	 * 
+	 */
+	public static final String USER = "/user";
 
 	
 	/**
 	 * URL prefix for User Group model objects
 	 * 
 	 */
-	public static final String USERGROUP = "/usergroup";
+	public static final String USERGROUP = "/userGroup";
 
-	/**
-	 * URL prefix for Users in a UserGroup
-	 * 
-	 */
-	public static final String USERS = "/users";
+//	/**
+//	 * URL prefix for Users in a UserGroup
+//	 * 
+//	 */
+//	public static final String USERS = "/users";
 	
 	/**
 	 * URL prefix for Users in a UserGroup

@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class CrowdAuthUtilTest {
@@ -27,13 +26,6 @@ public class CrowdAuthUtilTest {
 	public void testGetMultiFromXML() throws Exception {
 		Collection<String> ss = CrowdAuthUtil.getMultiFromXML("/root/name/@attr", new String("<?xml version='1.0' encoding='UTF-8'?><root><name attr='value'/><name attr='value2'/></root>").getBytes());
 		assertEquals(Arrays.asList(new String[]{"value","value2"}), ss);
-	}
-	
-	@Ignore
-	@Test
-	public void testGetGroups() throws Exception {
-		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
-		crowdAuthUtil.getUsersInGroup(AuthUtilConstants.PLATFORM_GROUP);
 	}
 
 }

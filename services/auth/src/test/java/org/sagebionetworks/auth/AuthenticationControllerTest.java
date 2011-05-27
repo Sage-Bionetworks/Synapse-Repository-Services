@@ -69,7 +69,7 @@ public class AuthenticationControllerTest {
 	public void testCreateSession() throws Exception {
 		if (!isIntegrationTest()) return;
 		JSONObject session = helper.testCreateJsonEntity("/session",
-				"{\"userId\":\"demouser\",\"password\":\"demouser-pw\"}");
+				"{\"email\":\"demouser@sagebase.org\",\"password\":\"demouser-pw\"}");
 		assertTrue(session.has("sessionToken"));
 		assertEquals("Demo User", session.getString("displayName"));
 	}
@@ -80,7 +80,7 @@ public class AuthenticationControllerTest {
 	public void testCreateSessionBadCredentials() throws Exception {
 		if (!isIntegrationTest()) return;
 		JSONObject session = helper.testCreateJsonEntityShouldFail("/session",
-				"{\"userId\":\"demouser\",\"password\":\"incorrectPassword\"}", HttpStatus.BAD_REQUEST);
+				"{\"email\":\"demouser@sagebase.org\",\"password\":\"incorrectPassword\"}", HttpStatus.BAD_REQUEST);
 		assertEquals("Unable to authenticate", session.getString("reason"));
 		// AuthenticationURL: https://ssl.latest.deflaux-test.appspot.com/auth/v1/session
 	}
@@ -91,7 +91,7 @@ public class AuthenticationControllerTest {
 		if (!isIntegrationTest()) return;
 		// start session
 		JSONObject session = helper.testCreateJsonEntity("/session",
-				"{\"userId\":\"demouser\",\"password\":\"demouser-pw\"}");
+				"{\"email\":\"demouser@sagebase.org\",\"password\":\"demouser-pw\"}");
 		String sessionToken = session.getString("sessionToken");
 		assertEquals("Demo User", session.getString("displayName"));
 		
@@ -103,7 +103,7 @@ public class AuthenticationControllerTest {
 			log.log(Level.WARNING, "exception during 'revalidate'", e);
 		}
 		log.info("UserId: "+userId);
-		assertEquals("demouser", userId);
+		assertEquals("demouser@sagebase.org", userId);
 	}
 	
 	
@@ -112,12 +112,12 @@ public class AuthenticationControllerTest {
 		if (!isIntegrationTest()) return;
 		// start session
 		JSONObject session = helper.testCreateJsonEntity("/session",
-				"{\"userId\":\"demouser\",\"password\":\"demouser-pw\"}", HttpStatus.NO_CONTENT);
+				"{\"email\":\"demouser@sagebase.org\",\"password\":\"demouser-pw\"}", HttpStatus.CREATED);
 		String sessionToken = session.getString("sessionToken");
 		assertEquals("Demo User", session.getString("displayName"));
 		
 		// revalidate via web service
-		helper.testUpdateJsonEntity("/session",	"{\"sessionToken\":\""+sessionToken+"\"}");
+		helper.testUpdateJsonEntity("/session",	"{\"sessionToken\":\""+sessionToken+"\"}", HttpStatus.NO_CONTENT);
 		
 	}
 
@@ -148,7 +148,7 @@ public class AuthenticationControllerTest {
 	public void testCreateSessionThenLogout() throws Exception {
 		if (!isIntegrationTest()) return;
 		JSONObject session = helper.testCreateJsonEntity("/session",
-				"{\"userId\":\"demouser\",\"password\":\"demouser-pw\"}");
+				"{\"email\":\"demouser@sagebase.org\",\"password\":\"demouser-pw\"}");
 		String sessionToken = session.getString("sessionToken");
 		assertEquals("Demo User", session.getString("displayName"));
 		
@@ -161,8 +161,7 @@ public class AuthenticationControllerTest {
 	public void testCreateExistingUser() throws Exception {
 		if (!isIntegrationTest()) return;
 			helper.testCreateJsonEntityShouldFail("/user",
-				"{\"userId\":\"demouser\","+
-				"\"email\":\"notused@sagebase.org\","+
+				"{\"email\":\"demouser@sagebase.org\","+
 				"\"firstName\":\"Demo\","+
 				"\"lastName\":\"User\","+
 				"\"displayName\":\"Demo User\""+
@@ -189,7 +188,7 @@ public class AuthenticationControllerTest {
 		try {
 			helper.testCreateJsonEntity("/user",
 					"{"+
-					"\"email\":"+userEmail+","+
+					"\"email\":\""+userEmail+"\","+
 					 // integration testing with this special user is the only time a password may be specified
 					"\"password\":\""+userEmail+"\","+
 				"\"firstName\":\"New\","+
@@ -233,7 +232,7 @@ public class AuthenticationControllerTest {
 
 			helper.testCreateJsonEntity("/user",
 					"{"+
-					"\"email\":"+userEmail+","+
+					"\"email\":\""+userEmail+"\","+
 					 // integration testing with this special user is the only time a password may be specified
 					"\"password\":\""+userEmail+"\","+
 				"\"firstName\":\"New\","+
@@ -252,7 +251,10 @@ public class AuthenticationControllerTest {
 		} finally {
 			User user = new User();
 			user.setEmail(userEmail);
-			crowdAuthUtil.deleteUser(user);
+//			try {
+				crowdAuthUtil.deleteUser(user);
+//			} catch (Exception e) {
+//			}
 		}
 	}
 	

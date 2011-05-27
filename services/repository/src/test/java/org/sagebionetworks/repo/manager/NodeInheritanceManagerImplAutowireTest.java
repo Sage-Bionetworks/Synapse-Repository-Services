@@ -125,7 +125,6 @@ public class NodeInheritanceManagerImplAutowireTest {
 				try {
 					nodeManager.delete(userInfo, id);
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} 				
 			}
