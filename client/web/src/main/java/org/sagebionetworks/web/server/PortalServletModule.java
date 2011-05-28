@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 
 import org.sagebionetworks.web.server.servlet.DatasetServiceImpl;
 import org.sagebionetworks.web.server.servlet.LicenseServiceImpl;
+import org.sagebionetworks.web.server.servlet.NodeServiceImpl;
 import org.sagebionetworks.web.server.servlet.ProjectServiceImpl;
 import org.sagebionetworks.web.server.servlet.SearchServiceImpl;
 import org.sagebionetworks.web.server.servlet.UserAccountServiceImpl;
@@ -51,6 +52,10 @@ public class PortalServletModule extends ServletModule {
 		// setup the project service
 		bind(ProjectServiceImpl.class).in(Singleton.class);
 		serve("/Portal/project").with(ProjectServiceImpl.class);
+	
+		// setup the node service
+		bind(NodeServiceImpl.class).in(Singleton.class);
+		serve("/Portal/node").with(NodeServiceImpl.class);
 	
 		
 		// Setup the License service mapping

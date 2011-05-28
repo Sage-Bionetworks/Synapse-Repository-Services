@@ -8,6 +8,7 @@ import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
+import org.sagebionetworks.web.client.widget.editpanels.NodeEditor;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
 import org.sagebionetworks.web.client.widget.header.Header.MenuItems;
@@ -18,10 +19,19 @@ import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
+import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.WhereCondition;
 
+import com.extjs.gxt.ui.client.event.ButtonEvent;
+import com.extjs.gxt.ui.client.event.MenuEvent;
+import com.extjs.gxt.ui.client.event.SelectionListener;
+import com.extjs.gxt.ui.client.event.WindowEvent;
+import com.extjs.gxt.ui.client.event.WindowListener;
 import com.extjs.gxt.ui.client.widget.MessageBox;
+import com.extjs.gxt.ui.client.widget.Window;
 import com.extjs.gxt.ui.client.widget.button.Button;
+import com.extjs.gxt.ui.client.widget.layout.FitData;
+import com.extjs.gxt.ui.client.widget.layout.FitLayout;
 import com.extjs.gxt.ui.client.widget.menu.Menu;
 import com.extjs.gxt.ui.client.widget.menu.MenuItem;
 import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
@@ -76,6 +86,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 	private IconsImageBundle iconsImageBundle;
 	private boolean userIsAdmin = false; 
 	private AccessMenuButton accessMenuButton;
+	private NodeEditor nodeEditor;
 	
 	@Inject
 	public ProjectViewImpl(ProjectViewImplUiBinder binder, Header headerWidget,
@@ -84,12 +95,14 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 			final ModalWindow seeTermsModal,
 			PreviewDisclosurePanel previewDisclosurePanel,
 			QueryServiceTableResourceProvider queryServiceTableResourceProvider,
-			AccessMenuButton accessMenuButton) {		
+			AccessMenuButton accessMenuButton,
+			NodeEditor nodeEditor) {		
 		initWidget(binder.createAndBindUi(this));
 
 		this.previewDisclosurePanel = previewDisclosurePanel;
 		this.iconsImageBundle = iconsImageBundle;
 		this.accessMenuButton = accessMenuButton;
+		this.nodeEditor = nodeEditor;
 		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
@@ -155,7 +168,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		// create security access panel
 		createAccessPanel();
 		// create admin panel if user is authorized
-		createAdminPanel();
+		createAdminPanel(id);
 		
 		
 	}
@@ -166,7 +179,8 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 	private void clearAllFields() {
 		titleSpan.setInnerText("");
 		rightFlexTable.clear();
-		rightFlexTable.removeAllRows();		
+		rightFlexTable.removeAllRows();
+		adminPanel.clear();
 	}
 
 	private Anchor createFollowProjectButton(IconsImageBundle icons,
@@ -196,27 +210,53 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		return followDatasetAnchor;		
 	}
 
-	private void createAdminPanel() {		
+	private void createAdminPanel(String projectId) {		
 		if(userIsAdmin) {
 			Button button = new Button("Project Admin Menu");
 			button.setIcon(AbstractImagePrototype.create(iconsImageBundle.adminTools16()));
 			//adminButton.setIconAlign(IconAlign.LEFT);
-			button.setMenu(createAdminMenu());
+			button.setMenu(createAdminMenu(projectId));
 			button.setHeight(25);
 			adminPanel.add(button);
 		}
 	}
 
-	private Menu createAdminMenu() {
+	private Menu createAdminMenu(final String projectId) {
 		Menu menu = new Menu();		
 		MenuItem item = null; 
 			
 		item = new MenuItem("Edit Project Details");
-		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));
+		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
+		item.addSelectionListener(new SelectionListener<MenuEvent>() {
+			public void componentSelected(MenuEvent menuEvent) {													
+				final Window window = new Window();  
+				window.setSize(600, 300);
+				window.setPlain(true);
+				window.setModal(true);
+				window.setBlinkModal(true);
+				window.setHeading("Edit Project");
+				window.setLayout(new FitLayout());								
+				window.add(nodeEditor.asWidget(NodeType.PROJECT, projectId), new FitData(4));
+				window.show();
+			}
+		});
 		menu.add(item);
 		
 		item = new MenuItem("Add Dataset to Project");
 		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.documentAdd16()));
+		item.addSelectionListener(new SelectionListener<MenuEvent>() {
+			public void componentSelected(MenuEvent menuEvent) {													
+				final Window window = new Window();  
+				window.setSize(600, 300);
+				window.setPlain(true);
+				window.setModal(true);
+				window.setBlinkModal(true);
+				window.setHeading("Create Dataset");
+				window.setLayout(new FitLayout());				
+				window.add(nodeEditor.asWidget(NodeType.DATASET, null), new FitData(4));
+				window.show();
+			}
+		});
 		menu.add(item);
 		
 		return menu;
