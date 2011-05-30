@@ -13,6 +13,8 @@ parser.add_argument('--layersCsv', '-l', help='the file path to the CSV file hol
 
 parser.add_argument('--md5sumCsv', '-m', help='the file path to the CSV file holding the md5sums for files, defaults to ../platform.md5sums.csv', default='../platform.md5sums.csv')
 
+parser.add_argument('--fakeLocalData', '-f', help='use fake data when we would normally read something from the actual Sage Bionetworks datasets, defaults to False', action='store_true', default=False)
+
 synapse.client.addArguments(parser)
 
 #-------------------[ Constants ]----------------------
@@ -214,23 +216,30 @@ def loadLayers():
                 location["path"] = path
                 if(path in gFILE_PATH_2_MD5SUM):
                     location["md5sum"] = gFILE_PATH_2_MD5SUM[path]
+                elif(gARGS.fakeLocalData):
+                    location["md5sum"] = 'thisIsAFakeMD5Checksum'
                 layerLocations["locations"].append(location)
         gSYNAPSE.updateEntity(newLayer["locations"][0], layerLocations);
         
         layerPreview = {}
        
         if(row[7] != ""):
-            with open(row[7]) as myfile:
-                # Slurp in the first six lines of the file and store
-                # it in our property
-                head = ""
-                layerPreview["preview"] = head.join(itertools.islice(myfile,6))
-                gSYNAPSE.updateEntity(newLayer["preview"], layerPreview)
+            if(gARGS.fakeLocalData):
+                layerPreview["preview"] = 'this\tis\ta\tfake\tpreview\nthis\tis\ta\tfake\tpreview\n'
+            else:
+                with open(row[7]) as myfile:
+                    # Slurp in the first six lines of the file and store
+                    # it in our property
+                    head = ""
+                    layerPreview["preview"] = head.join(itertools.islice(myfile,6))
+            gSYNAPSE.updateEntity(newLayer["preview"], layerPreview)
     ifile.close()     
 
 #--------------------[ Main ]-----------------------------
 
-loadMd5sums()
+if(not gARGS.fakeLocalData):
+    loadMd5sums()
+    
 loadDatasets()
 
 if(None != gARGS.layersCsv):
