@@ -459,7 +459,9 @@ public class UrlHelpers {
 	// TODO this class needs unit tests
 	private static String getUrlPrefix(Base entity, HttpServletRequest request) {
 
-		String urlPrefix = request.getServletPath();
+		String urlPrefix = (null != request.getContextPath()) 
+		? request.getContextPath() + request.getServletPath() 
+				: request.getServletPath();
 
 		String parentEntityPrefix = UrlHelpers.getUrlForModel(CHILD2PARENTMODEL
 				.get(entity.getClass()));
