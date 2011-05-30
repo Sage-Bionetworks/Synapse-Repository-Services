@@ -52,7 +52,7 @@ public class CRUDWikiGenerator {
 
 		JSONObject dataset = wiki
 				.doPost(
-						"/repo/v1/dataset",
+						"/dataset",
 						new JSONObject(
 								"{\"status\": \"Pending\", \"description\": \"Genetic and epigenetic alterations have been identified that ...\", "
 										+ "\"creator\": \"Charles Sawyers\", \"releaseDate\": \"2008-09-14\", \"version\": \"1.0.0\", \"name\": \"MSKCC Prostate Cancer\"}"),

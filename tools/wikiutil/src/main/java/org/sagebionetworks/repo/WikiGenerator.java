@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,6 +40,8 @@ public class WikiGenerator {
 	private static final int JSON_INDENT = 2;
 
 	private String serviceEndpoint;
+	private String serviceLocation;
+	private String servicePrefix;
 
 	private static final Map<String, String> defaultGETDELETEHeaders;
 	private static final Map<String, String> defaultPOSTPUTHeaders;
@@ -55,9 +58,14 @@ public class WikiGenerator {
 
 	/**
 	 * @param serviceEndpoint
+	 * @throws MalformedURLException
 	 */
-	public WikiGenerator(String serviceEndpoint) {
+	public WikiGenerator(String serviceEndpoint) throws MalformedURLException {
 		this.serviceEndpoint = serviceEndpoint;
+		URL parsedServiceEndpoint = new URL(serviceEndpoint);
+		servicePrefix = parsedServiceEndpoint.getPath();
+		serviceLocation = serviceEndpoint.substring(0, serviceEndpoint.length()
+				- servicePrefix.length());
 	}
 
 	/**
@@ -79,7 +87,14 @@ public class WikiGenerator {
 			return null;
 		}
 
-		URL requestUrl = new URL(serviceEndpoint + uri);
+		URL requestUrl;
+		if(uri.startsWith(servicePrefix)) {
+			requestUrl = new URL(serviceLocation + uri);
+		}
+		else {
+			requestUrl = new URL(serviceEndpoint + uri);
+		}
+		
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultGETDELETEHeaders);
 
@@ -89,7 +104,7 @@ public class WikiGenerator {
 		}
 		curl += " '" + requestUrl + "'{code}";
 		log.info("*Request*{code}" + curl);
-		log.info("*Response*{code}");
+		log.info("*Response* {code}");
 
 		String response = null;
 		try {
@@ -125,7 +140,14 @@ public class WikiGenerator {
 			return null;
 		}
 
-		URL requestUrl = new URL(serviceEndpoint + uri);
+		URL requestUrl;
+		if(uri.startsWith(servicePrefix)) {
+			requestUrl = new URL(serviceLocation + uri);
+		}
+		else {
+			requestUrl = new URL(serviceEndpoint + uri);
+		}
+		
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultPOSTPUTHeaders);
 
@@ -135,8 +157,8 @@ public class WikiGenerator {
 		}
 		curl += " -d '" + entity.toString(JSON_INDENT) + "' " + requestUrl
 				+ "{code}";
-		log.info("*Request*{code}" + curl);
-		log.info("*Response*{code}");
+		log.info("*Request* {code}" + curl);
+		log.info("*Response* {code}");
 
 		String response = null;
 		try {
@@ -172,7 +194,13 @@ public class WikiGenerator {
 			return null;
 		}
 
-		URL requestUrl = new URL(serviceEndpoint + uri);
+		URL requestUrl;
+		if(uri.startsWith(servicePrefix)) {
+			requestUrl = new URL(serviceLocation + uri);
+		}
+		else {
+			requestUrl = new URL(serviceEndpoint + uri);
+		}
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultPOSTPUTHeaders);
 		requestHeaders.put("ETag", entity.getString("etag"));
@@ -183,8 +211,8 @@ public class WikiGenerator {
 		}
 		curl += " -X PUT -d '" + entity.toString(JSON_INDENT) + "' "
 				+ requestUrl + "{code}";
-		log.info("*Request*{code}" + curl);
-		log.info("*Response*{code}");
+		log.info("*Request* {code}" + curl);
+		log.info("*Response* {code}");
 
 		String response = null;
 		try {
@@ -217,7 +245,15 @@ public class WikiGenerator {
 			log.info("TODO add an example here");
 			return;
 		}
-		URL requestUrl = new URL(serviceEndpoint + uri);
+
+		URL requestUrl;
+		if(uri.startsWith(servicePrefix)) {
+			requestUrl = new URL(serviceLocation + uri);
+		}
+		else {
+			requestUrl = new URL(serviceEndpoint + uri);
+		}
+
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultGETDELETEHeaders);
 		String curl = "curl -i ";
@@ -225,8 +261,8 @@ public class WikiGenerator {
 			curl += " -H " + header.getKey() + ":" + header.getValue();
 		}
 		curl += " -X DELETE " + requestUrl + "{code}";
-		log.info("*Request*{code}" + curl);
-		log.info("*Response*{code}");
+		log.info("*Request* {code}" + curl);
+		log.info("*Response* {code}");
 
 		try {
 			HttpClientHelper.performRequest(requestUrl, "DELETE", null,
