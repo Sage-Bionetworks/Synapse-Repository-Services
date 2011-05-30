@@ -61,18 +61,18 @@ public class ReadOnlyWikiGenerator {
 		log.info("The Query API is loosely modeled after Facebook's [Query Language|https://developers.facebook.com/docs/reference/fql/].");
 		log.info("h2. Examples");
 		wiki.doGet(
-				"/repo/v1/query?query=select+*+from+dataset+limit+3+offset+1",
+				"/query?query=select+*+from+dataset+limit+3+offset+1",
 				"h3. 'Select *' Query",
 				"These queries are generally of the form:\n"
 						+ "{code}SELECT * FROM <data type> [LIMIT <#>] [OFFSET <#>]{code}");
 		wiki.doGet(
-				"/repo/v1/query?query=select+*+from+dataset+order+by+Number_of_Samples+DESC+limit+3+offset+1",
+				"/query?query=select+*+from+dataset+order+by+Number_of_Samples+DESC+limit+3+offset+1",
 				"h3. 'Order By' Query",
 				"These queries are generally of the form:\n"
 						+ "{code}SELECT * FROM <data type> ORDER BY <field name> [ASC|DESC] [LIMIT <#>] [OFFSET #]{code}");
 
 		JSONObject results = wiki.doGet(
-				"/repo/v1/query?query=select+*+from+dataset+where+name+==+%22MSKCC+Prostate+Cancer%22",
+				"/query?query=select+*+from+dataset+where+name+==+%22MSKCC+Prostate+Cancer%22",
 				"h3. Single clause 'Where' Query",
 				"These queries are generally of the form:\n" + QUERY_SYNTAX);
 		JSONArray datasets = results.getJSONArray("results");
@@ -86,19 +86,19 @@ public class ReadOnlyWikiGenerator {
 		}
 
 		wiki.doGet(
-				"/repo/v1/query?query=select+*+from+dataset+where+dataset.Species+==+%22Human%22+and+dataset.Number_of_Samples+%3E+100+limit+3+offset+1",
+				"/query?query=select+*+from+dataset+where+dataset.Species+==+%22Human%22+and+dataset.Number_of_Samples+%3E+100+limit+3+offset+1",
 				"h3. Multiple clause 'Where' Query",
 				"These queries are generally of the form:\n" + QUERY_SYNTAX);
 		
 		wiki.doGet(
-				"/repo/v1/query?query=select+*+from+layer+where+dataset.id+==+%22"
+				"/query?query=select+*+from+layer+where+dataset.id+==+%22"
 						+ dataset.getString("dataset.id") + "%22",
 				"h3. 'Select *' Query for the Layers of a Dataset",
 				"These queries are generally of the form:\n"
 						+ "{code}SELECT * FROM layer WHERE dataset.id == <datasetId> [LIMIT <#>] [OFFSET <#>]{code}");
 
 		wiki.doGet(
-				"/repo/v1/query?query=select+*+from+layer+where+dataset.id+==+%22"
+				"/query?query=select+*+from+layer+where+dataset.id+==+%22"
 						+ dataset.getString("dataset.id") + "%22+ORDER+BY+type",
 				"h3. 'Order By' Query for the Layers of a Dataset",
 				"These queries are generally of the form:\n"
@@ -106,7 +106,7 @@ public class ReadOnlyWikiGenerator {
 
 		log.info("h2. Schema");
 		wiki.doGet(
-				"/repo/v1/query/schema",
+				"/query/schema",
 				"h3. Query Response Schema",
 				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 
@@ -118,11 +118,11 @@ public class ReadOnlyWikiGenerator {
 		
 		log.info("h2. Read-Only Examples");
 		wiki.doGet(
-				"/repo/v1/dataset/test",
+				"/dataset/test",
 				"h3. Sanity check request",
 				"This is just a 'hello world' type request that you can make to ensure that the service is running.");
 		wiki.doGet(
-				"/repo/v1/dataset?sort=name&limit=3",
+				"/dataset?sort=name&limit=3",
 				"h3. Get All Datasets",
 				"Optional Parameters\n"
 						+ "* offset - _integer_ - 1-based pagination offset\n"
@@ -130,7 +130,7 @@ public class ReadOnlyWikiGenerator {
 						+ "* sort - _string_ - the name of the field upon which to sort\n"
 						+ "* ascending - _boolean_ - whether or not to sort ascending");
 		dataset = wiki.doGet(
-				"/repo/v1/dataset/" + dataset.getString("dataset.id"),
+				"/dataset/" + dataset.getString("dataset.id"),
 				"h3. Get a Dataset",
 				"This returns the primary fields of a dataset and links to get additional info.");
 		wiki.doGet(dataset.getString("annotations"),
@@ -182,7 +182,7 @@ public class ReadOnlyWikiGenerator {
 
 		log.info("h2. Schemas");
 		wiki.doGet(
-				"/repo/v1/dataset/schema",
+				"/dataset/schema",
 				"h3. Datasets List Schema",
 				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 		wiki.doGet(
