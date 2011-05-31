@@ -3,16 +3,21 @@ package org.sagebionetworks.workflow.curation;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.workflow.UnrecoverableException;
-import org.sagebionetworks.workflow.curation.activity.CreateMetadataForTcgaSourceLayer;
-import org.sagebionetworks.workflow.curation.activity.DownloadFromTcga;
-import org.sagebionetworks.workflow.curation.activity.ProcessTcgaSourceLayer;
-import org.sagebionetworks.workflow.curation.activity.DownloadFromTcga.DownloadResult;
-import org.sagebionetworks.workflow.curation.activity.ProcessTcgaSourceLayer.ScriptResult;
+import org.sagebionetworks.workflow.activity.Curation;
+import org.sagebionetworks.workflow.activity.DataIngestion;
+import org.sagebionetworks.workflow.activity.Notification;
+import org.sagebionetworks.workflow.activity.Processing;
+import org.sagebionetworks.workflow.activity.Storage;
+import org.sagebionetworks.workflow.activity.DataIngestion.DownloadResult;
+import org.sagebionetworks.workflow.activity.Processing.ScriptResult;
+
+import com.amazonaws.AmazonServiceException;
 
 /**
  * Note that this integration test should pass when the system is clean (no
@@ -24,6 +29,9 @@ import org.sagebionetworks.workflow.curation.activity.ProcessTcgaSourceLayer.Scr
  * 
  */
 public class TcgaWorkflowITCase {
+
+	private static final Logger log = Logger.getLogger(TcgaWorkflowITCase.class
+			.getName());
 
 	// These variables are used to pass data between tests
 	static private int datasetId = -1;
@@ -70,7 +78,7 @@ public class TcgaWorkflowITCase {
 	 */
 	@Test
 	public void testDoCreateExpressionMetadata() throws Exception {
-		rawLayerId = CreateMetadataForTcgaSourceLayer
+		rawLayerId = Curation
 				.doCreateMetadataForTcgaSourceLayer(
 						datasetId,
 						"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
@@ -83,14 +91,14 @@ public class TcgaWorkflowITCase {
 	@Test
 	public void testDoDownloadExpressionDataFromTcga() throws Exception {
 
-		expressionDownloadResult = DownloadFromTcga
+		expressionDownloadResult = DataIngestion
 				.doDownloadFromTcga("http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
 
 		assertTrue(expressionDownloadResult.getLocalFilepath().endsWith(
 				"unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz"));
 
-		assertEquals("33183779e53ce0cfc35f59cc2a762cbd", expressionDownloadResult
-				.getMd5());
+		assertEquals("33183779e53ce0cfc35f59cc2a762cbd",
+				expressionDownloadResult.getMd5());
 	}
 
 	/**
@@ -98,7 +106,7 @@ public class TcgaWorkflowITCase {
 	 */
 	@Test
 	public void testDoCreateClinicalMetadata() throws Exception {
-		clinicalLayerId = CreateMetadataForTcgaSourceLayer
+		clinicalLayerId = Curation
 				.doCreateMetadataForTcgaSourceLayer(
 						datasetId,
 						"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/bcr/minbiotab/clin/clinical_patient_public_coad.txt");
@@ -111,7 +119,7 @@ public class TcgaWorkflowITCase {
 	@Test
 	public void testDoDownloadClinicalDataFromTcga() throws Exception {
 
-		DownloadResult clinicalDownloadResult = DownloadFromTcga
+		DownloadResult clinicalDownloadResult = DataIngestion
 				.doDownloadFromTcga("http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/bcr/minbiotab/clin/clinical_patient_public_coad.txt");
 
 		assertTrue(clinicalDownloadResult.getLocalFilepath().endsWith(
@@ -126,13 +134,12 @@ public class TcgaWorkflowITCase {
 	 */
 	@Test
 	public void testRScript() throws Exception {
-		
+
 		ScriptResult scriptResult = null;
-		
-		scriptResult = ProcessTcgaSourceLayer
-				.doProcessTcgaSourceLayer(
-						"./src/test/resources/createMatrix.r", datasetId, rawLayerId,
-						expressionDownloadResult.getLocalFilepath());
+
+		scriptResult = Processing.doProcessLayer(
+				"./src/test/resources/createMatrix.r", datasetId, rawLayerId,
+				expressionDownloadResult.getLocalFilepath());
 
 		// TODO assert not equals, our script makes them the same right now
 		assertEquals(rawLayerId, scriptResult.getProcessedLayerId());
@@ -140,9 +147,13 @@ public class TcgaWorkflowITCase {
 	}
 
 	/**
+	 * @throws Exception
 	 */
 	@Test
-	public void testDoUploadDataToS3() {
+	public void testDoUploadDataToS3() throws Exception {
+		Storage.doUploadLayerToStorage(datasetId, rawLayerId,
+				expressionDownloadResult.getLocalFilepath(),
+				expressionDownloadResult.getMd5());
 	}
 
 	/**
@@ -150,10 +161,9 @@ public class TcgaWorkflowITCase {
 	 */
 	@Test
 	public void testDoProcessData() throws Exception {
-		ScriptResult scriptResult = ProcessTcgaSourceLayer
-				.doProcessTcgaSourceLayer(
-						"./src/test/resources/stdoutKeepAlive.sh", datasetId, rawLayerId,
-						expressionDownloadResult.getLocalFilepath());
+		ScriptResult scriptResult = Processing.doProcessLayer(
+				"./src/test/resources/stdoutKeepAlive.sh", datasetId,
+				rawLayerId, expressionDownloadResult.getLocalFilepath());
 		assertTrue(0 <= scriptResult.getProcessedLayerId());
 
 	}
@@ -168,6 +178,19 @@ public class TcgaWorkflowITCase {
 	 */
 	@Test
 	public void testDoNotifyFollowers() {
+		try {
+			String topic = ConfigHelper.createConfig().getSnsTopic();
+			Notification.doSnsSubscribeFollower(topic,
+					"nicole.deflaux@gmail.com");
+			Notification.doSnsSubscribeFollower(topic,
+					"nicole.deflaux.guest@gmail.com");
+			Notification.doSnsSubscribeFollower(topic,
+					"nicole.deflaux@sagebase.org");
+			Notification.doSnsNotifyFollowers(topic,
+					"integration test subject", "integration test message");
+		} catch (AmazonServiceException e) {
+			log.error(e);
+		}
 	}
 
 }
