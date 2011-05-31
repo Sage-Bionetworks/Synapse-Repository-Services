@@ -1,5 +1,6 @@
 package org.sagebionetworks;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.CRUDWikiGenerator;
 import org.sagebionetworks.repo.ReadOnlyWikiGenerator;
@@ -18,6 +19,7 @@ public class IT550WikiGenerator {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testCRUDWikiGenerator() throws Exception {
 		String args[] = { Helpers.getRepositoryServiceBaseUrl() };
@@ -27,6 +29,7 @@ public class IT550WikiGenerator {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testReadOnlyWikiGenerator() throws Exception {
 		String args[] = { Helpers.getRepositoryServiceBaseUrl() };

@@ -2,6 +2,7 @@ package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.Helpers.ExternalProcessResult;
 
@@ -16,6 +17,7 @@ public class IT015DatasetMetadataLoader {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testDatasetMetadataLoader() throws Exception {
 		String cmd[] = {
