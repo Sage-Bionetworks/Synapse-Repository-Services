@@ -1,5 +1,6 @@
 package org.sagebionetworks.client;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Collections;
@@ -21,8 +22,19 @@ public class Synapse {
 
 	private static final int JSON_INDENT = 2;
 
-	private String serviceEndpoint;
+	// KEEP THE DEFAULT ENDPOINTS LOCAL UNTIL WE HAVE MORE PROTECTION IN PLACE TO NOT STOMP ON PROD DATA
+	private static final String DEFAULT_REPO_ENDPOINT = "http://localhost:8080/repo/v1";
+	private static final String DEFAULT_AUTH_ENDPOINT = "http://localhost:8081/repo/v1";
 
+	private String repoEndpoint;
+	private String repoLocation;
+	private String repoPrefix;
+	
+	@SuppressWarnings("unused")
+	private String authEndpoint;  // TODO add login or token mechanism?
+	private String authLocation;
+	private String authPrefix;
+	
 	private static final String QUERY_URI = "/query?query=";
 	private static final Map<String, String> defaultGETDELETEHeaders;
 	private static final Map<String, String> defaultPOSTPUTHeaders;
@@ -38,10 +50,42 @@ public class Synapse {
 	}
 
 	/**
-	 * @param serviceEndpoint
+	 * Default constructor uses the default repository and auth services endpoints.
 	 */
-	public Synapse(String serviceEndpoint) {
-		this.serviceEndpoint = serviceEndpoint;
+	public Synapse() {
+		try {
+			setRepositoryEndpoint(DEFAULT_REPO_ENDPOINT);
+			setAuthEndpoint(DEFAULT_AUTH_ENDPOINT);
+		} catch (MalformedURLException e) {
+			// This really should not happen since we are using defaults here
+			throw new Error(e);
+		}
+		
+	}
+
+	/**
+	 * @param repoEndpoint the repoEndpoint to set
+	 * @throws MalformedURLException 
+	 */
+	public void setRepositoryEndpoint(String repoEndpoint) throws MalformedURLException {
+		this.repoEndpoint = repoEndpoint;
+		URL parsedRepoEndpoint = new URL(repoEndpoint);
+		this.repoPrefix = parsedRepoEndpoint.getPath();
+		this.repoLocation = repoEndpoint.substring(0, repoEndpoint.length()
+				- repoPrefix.length());
+	}
+
+	/**
+	 * @param authEndpoint
+	 *            the authEndpoint to set
+	 * @throws MalformedURLException
+	 */
+	public void setAuthEndpoint(String authEndpoint) throws MalformedURLException {
+		this.authEndpoint = authEndpoint;
+		URL parsedAuthEndpoint = new URL(authEndpoint);
+		this.authPrefix = parsedAuthEndpoint.getPath();
+		this.authLocation = authEndpoint.substring(0, authEndpoint.length()
+				- authPrefix.length());
 	}
 
 	/**
@@ -60,7 +104,11 @@ public class Synapse {
 		if (null == entity) {
 			throw new IllegalArgumentException("must provide entity");
 		}
-		URL requestUrl = new URL(serviceEndpoint + uri);
+		
+		URL requestUrl = (uri.startsWith(repoPrefix))
+		? new URL(repoLocation + uri)
+		: new URL(repoEndpoint + uri);
+
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultPOSTPUTHeaders);
 		return dispatchRequest(requestUrl, "POST", entity.toString(),
@@ -79,7 +127,10 @@ public class Synapse {
 			throw new IllegalArgumentException("must provide uri");
 		}
 
-		URL requestUrl = new URL(serviceEndpoint + uri);
+		URL requestUrl = (uri.startsWith(repoPrefix))
+		? new URL(repoLocation + uri)
+		: new URL(repoEndpoint + uri);
+		
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultGETDELETEHeaders);
 
@@ -135,7 +186,10 @@ public class Synapse {
 			throw new IllegalArgumentException("must provide entity");
 		}
 
-		URL requestUrl = new URL(serviceEndpoint + uri);
+		URL requestUrl = (uri.startsWith(repoPrefix))
+		? new URL(repoLocation + uri)
+		: new URL(repoEndpoint + uri);
+		
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultPOSTPUTHeaders);
 		requestHeaders.put("ETag", entity.getString("etag"));
@@ -155,7 +209,10 @@ public class Synapse {
 			throw new IllegalArgumentException("must provide uri");
 		}
 
-		URL requestUrl = new URL(serviceEndpoint + uri);
+		URL requestUrl = (uri.startsWith(repoPrefix))
+		? new URL(repoLocation + uri)
+		: new URL(repoEndpoint + uri);
+		
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultGETDELETEHeaders);
 
@@ -177,7 +234,7 @@ public class Synapse {
 			throw new IllegalArgumentException("must provide a query");
 		}
 
-		URL requestUrl = new URL(serviceEndpoint + QUERY_URI
+		URL requestUrl = new URL(repoEndpoint + QUERY_URI
 				+ URLEncoder.encode(query, "UTF-8"));
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultGETDELETEHeaders);

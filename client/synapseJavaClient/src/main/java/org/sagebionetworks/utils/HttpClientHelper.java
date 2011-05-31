@@ -1,5 +1,6 @@
 package org.sagebionetworks.utils;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
@@ -20,12 +21,15 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.entity.FileEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 
 /**
- * TODO
- * - improve the code to better handle large request entities
+ * TODO - improve the code to better handle large request entities - this code
+ * is using two different versions of HttpClient, convert to which ever one is
+ * the dominant one
  */
 public class HttpClientHelper {
 
@@ -80,7 +84,8 @@ public class HttpClientHelper {
 	@SuppressWarnings("deprecation")
 	private static String performRequest(URL requestUrl, String requestMethod,
 			String requestContent, Map<String, String> requestHeaders,
-			Integer overridingExpectedResponseStatus) throws HttpException, IOException, HttpClientHelperException {
+			Integer overridingExpectedResponseStatus) throws HttpException,
+			IOException, HttpClientHelperException {
 
 		int defaultExpectedReponseStatus = 200;
 
@@ -126,14 +131,17 @@ public class HttpClientHelper {
 			if (0 < requestHeaders.size()) {
 				verboseMessage.append("\nHeaders: ");
 				for (Entry<String, String> entry : requestHeaders.entrySet()) {
-					verboseMessage.append("\n\t" + entry.getKey() + ": " + entry.getValue());
+					verboseMessage.append("\n\t" + entry.getKey() + ": "
+							+ entry.getValue());
 				}
 			}
 			if (null != requestContent) {
 				verboseMessage.append("\nRequest Content: " + requestContent);
 			}
-			verboseMessage.append("\nResponse Content: " + method.getResponseBodyAsString());
-			throw new HttpClientHelperException(verboseMessage.toString(), method);
+			verboseMessage.append("\nResponse Content: "
+					+ method.getResponseBodyAsString());
+			throw new HttpClientHelperException(verboseMessage.toString(),
+					method);
 		}
 		return method.getResponseBodyAsString();
 	}
@@ -146,18 +154,20 @@ public class HttpClientHelper {
 	 * @return the contents of the file in a string
 	 * @throws ClientProtocolException
 	 * @throws IOException
-	 * @throws HttpClientHelperException 
+	 * @throws HttpClientHelperException
 	 */
 	public static String getFileContents(final String requestUrl)
-			throws ClientProtocolException, IOException, HttpClientHelperException {
+			throws ClientProtocolException, IOException,
+			HttpClientHelperException {
 		String fileContents = null;
 
 		HttpGet get = new HttpGet(requestUrl);
 		DefaultHttpClient client = new DefaultHttpClient();
 		HttpResponse response = client.execute(get);
 		if (300 <= response.getStatusLine().getStatusCode()) {
-			throw new HttpClientHelperException("Request(" + requestUrl
-					+ ") failed: " + response.getStatusLine().getReasonPhrase(),
+			throw new HttpClientHelperException(
+					"Request(" + requestUrl + ") failed: "
+							+ response.getStatusLine().getReasonPhrase(),
 					response.getStatusLine().getStatusCode());
 		}
 		HttpEntity fileEntity = response.getEntity();
@@ -180,27 +190,69 @@ public class HttpClientHelper {
 	 * of the error response
 	 * 
 	 * @param requestUrl
-	 * @param filePath
+	 * @param filepath
 	 * @throws ClientProtocolException
 	 * @throws IOException
-	 * @throws HttpClientHelperException 
+	 * @throws HttpClientHelperException
 	 */
 	public static void downloadFile(final String requestUrl,
-			final String filePath) throws ClientProtocolException, IOException, HttpClientHelperException {
+			final String filepath) throws ClientProtocolException, IOException,
+			HttpClientHelperException {
 
 		HttpGet get = new HttpGet(requestUrl);
 		DefaultHttpClient client = new DefaultHttpClient();
 		HttpResponse response = client.execute(get);
 		if (300 <= response.getStatusLine().getStatusCode()) {
-			throw new HttpClientHelperException("Request(" + requestUrl
-					+ ") failed: " + response.getStatusLine().getReasonPhrase(),
+			throw new HttpClientHelperException(
+					"Request(" + requestUrl + ") failed: "
+							+ response.getStatusLine().getReasonPhrase(),
 					response.getStatusLine().getStatusCode());
 		}
 		HttpEntity fileEntity = response.getEntity();
 		if (null != fileEntity) {
-			FileOutputStream fileOutputStream = new FileOutputStream(filePath);
+			FileOutputStream fileOutputStream = new FileOutputStream(filepath);
 			fileEntity.writeTo(fileOutputStream);
 			fileOutputStream.close();
+		}
+	}
+
+	/**
+	 * TODO - large uploads (e.g., 5TB upload from S3) - multipart uploads -
+	 * restartable uploads - more useful error diagnostics such as the body of
+	 * the error response
+	 * 
+	 * @param requestUrl
+	 * @param filepath
+	 * @param requestHeaders
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 * @throws HttpClientHelperException
+	 */
+	public static void uploadFile(final String requestUrl,
+			final String filepath, Map<String, String> requestHeaders)
+			throws ClientProtocolException, IOException,
+			HttpClientHelperException {
+
+		HttpPut put = new HttpPut(requestUrl);
+
+		// TODO look up the correct content type and stick it in a constant
+		FileEntity fileEntity = new FileEntity(new File(filepath),
+				"application/binary");
+		put.setEntity(fileEntity);
+
+		if (null != requestHeaders) {
+			for (Entry<String, String> header : requestHeaders.entrySet()) {
+				put.addHeader(header.getKey(), header.getValue());
+			}
+		}
+
+		DefaultHttpClient client = new DefaultHttpClient();
+		HttpResponse response = client.execute(put);
+		if (300 <= response.getStatusLine().getStatusCode()) {
+			throw new HttpClientHelperException(
+					"Request(" + requestUrl + ") failed: "
+							+ response.getStatusLine().getReasonPhrase(),
+					response.getStatusLine().getStatusCode());
 		}
 	}
 }
