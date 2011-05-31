@@ -1,4 +1,4 @@
-package org.sagebionetworks.workflow.curation.activity;
+package org.sagebionetworks.workflow.activity;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,14 +10,17 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.sagebionetworks.workflow.UnrecoverableException;
 
 /**
+ * Workflow activities relevant to data ingestion from non-Synapse sources. (Use
+ * the Synapse client to pull down data managed by Synapse.)
+ * 
  * @author deflaux
- *
+ * 
  */
-public class DownloadFromTcga {
+public class DataIngestion {
 
 	/**
 	 * @author deflaux
-	 *
+	 * 
 	 */
 	public static class DownloadResult {
 
@@ -67,6 +70,9 @@ public class DownloadFromTcga {
 	}
 
 	/**
+	 * TCGA typically but not always provides an md5 checksum in a particular
+	 * file format.
+	 * 
 	 * @param tcgaUrl
 	 * @return DownloadResult
 	 * @throws IOException
@@ -103,22 +109,21 @@ public class DownloadFromTcga {
 			}
 		}
 
-		File dataFile = new File("./" + filename);
+		File dataFile = new File(filename);
 		if (dataFile.exists() && dataFile.canRead() && dataFile.isFile()) {
 			// Ensure that the local copy of the file we have cached is the
 			// right one
 			String localMd5 = MD5ChecksumHelper.getMD5Checksum(dataFile
 					.getAbsolutePath());
 			if ((null == remoteMd5) || (localMd5.equals(remoteMd5))) {
-				return new DownloadResult(dataFile.getAbsolutePath(),
-						localMd5);
+				return new DownloadResult(dataFile.getAbsolutePath(), localMd5);
 			}
 		}
 
 		HttpClientHelper.downloadFile(tcgaUrl, dataFile.getAbsolutePath());
 		String localMd5 = MD5ChecksumHelper.getMD5Checksum(dataFile
 				.getAbsolutePath());
-		if ((null != remoteMd5) || (localMd5.equals(remoteMd5))) {
+		if ((null != remoteMd5) && (!localMd5.equals(remoteMd5))) {
 			throw new UnrecoverableException(
 					"md5 of downloaded file does not match that reported by TCGA");
 		}

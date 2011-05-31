@@ -1,27 +1,39 @@
-package org.sagebionetworks.workflow.curation.activity;
+package org.sagebionetworks.workflow.activity;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.workflow.UnrecoverableException;
 import org.sagebionetworks.workflow.curation.ConfigHelper;
 
-public class CreateMetadataForTcgaSourceLayer {
+/**
+ * Workflow activities relevant to curation - specifically the metadata creation
+ * tasks that can be automated.
+ * 
+ * @author deflaux
+ * 
+ */
+public class Curation {
 	private static final int datasetIndex = 6;
 	private static final int layerTypeIndex = 7;
 	private static final int expressionPlatformIndex = 9;
 	private static final int expressionFilenameIndex = 11;
 
+	/**
+	 * TCGA URLs are well-formed.  Extract metadata from the path and filename
+	 * portions of the TCGA URL.
+	 * 
+	 * @param datasetId
+	 * @param tcgaUrl
+	 * @return the layerId for the layer metadata created
+	 * @throws Exception
+	 */
 	public static Integer doCreateMetadataForTcgaSourceLayer(Integer datasetId,
 			String tcgaUrl) throws Exception {
 
 		Integer layerId = -1;
 
-		// Tcga URLs are well-formed, extract metadata from the path and
-		// filename portions of the URL
 		URL parsedUrl = new URL(tcgaUrl);
 		String pathComponents[] = parsedUrl.getPath().split("/");
 
@@ -33,7 +45,8 @@ public class CreateMetadataForTcgaSourceLayer {
 
 		String layerName;
 		String layerType;
-		
+		String layerPlatform;
+
 		if ("cgcc".equals(pathComponents[layerTypeIndex])) {
 			layerType = "E";
 
@@ -42,22 +55,27 @@ public class CreateMetadataForTcgaSourceLayer {
 						+ pathComponents[expressionFilenameIndex]);
 			}
 
-			// Use the filename portion of the url as the layer name, it includes
-			// the TCGA version so in the future when we have versioning in place,
-			// we may want to remove the TCGA version from the layer name and bump
+			// Use the filename portion of the url as the layer name, it
+			// includes
+			// the TCGA version so in the future when we have versioning in
+			// place,
+			// we may want to remove the TCGA version from the layer name and
+			// bump
 			// the revision of the layer when the TCGA version has changed
 			layerName = pathComponents[expressionFilenameIndex].substring(0,
-					pathComponents[expressionFilenameIndex].length() - ".tar.gz".length());
+					pathComponents[expressionFilenameIndex].length()
+							- ".tar.gz".length());
+			layerPlatform = pathComponents[expressionPlatformIndex];
 
-		}
-		else if ("bcr".equals(pathComponents[layerTypeIndex])) {
+		} else if ("bcr".equals(pathComponents[layerTypeIndex])) {
 			layerType = "C";
-			// Use the last part of the url as the layer name, but get rid of any .txt or .tar.gz endings
+			// Use the last part of the url as the layer name, but get rid of
+			// any .txt or .tar.gz endings
 			String filename = pathComponents[pathComponents.length - 1];
 			String filenameComponents[] = filename.split("\\.");
 			layerName = filenameComponents[0];
-		}
-		else {
+			layerPlatform = null;
+		} else {
 			throw new UnrecoverableException(
 					"only able to handle expression and clinical data right now: "
 							+ pathComponents[layerTypeIndex]);
@@ -67,14 +85,15 @@ public class CreateMetadataForTcgaSourceLayer {
 		// not already exist
 		Synapse synapse = ConfigHelper.createConfig().createSynapseClient();
 		JSONObject results = synapse
-				.query("select * from layer where layer.parentId == " + datasetId
-						+ " and layer.name == '" + layerName + "'");
+				.query("select * from layer where layer.parentId == "
+						+ datasetId + " and layer.name == '" + layerName + "'");
 		int numLayersFound = results.getInt("totalNumberOfResults");
 
 		if (0 == numLayersFound) {
 			JSONObject layer = new JSONObject();
 			layer.put("name", layerName);
 			layer.put("type", layerType);
+			layer.put("platform", layerPlatform);
 			String layerUri = "/dataset/" + datasetId + "/layer";
 
 			// TODO put a unique constraint on the layer name, and if we catch
