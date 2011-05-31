@@ -1,12 +1,12 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.net.MalformedURLException;
 
 import org.json.JSONObject;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 
@@ -36,6 +36,7 @@ public class IT500SynapseJavaClient {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testJavaClientGetADataset() throws Exception {
 		JSONObject results = synapse.query("select * from dataset");
