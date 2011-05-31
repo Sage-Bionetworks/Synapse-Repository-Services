@@ -375,7 +375,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		// This is a hack because the current DAO is not working with integration tests.
-		authorizationManager = new TempMockAuthDao();
+//		authorizationManager = new TempMockAuthDao();
 	}
 
 	@Override

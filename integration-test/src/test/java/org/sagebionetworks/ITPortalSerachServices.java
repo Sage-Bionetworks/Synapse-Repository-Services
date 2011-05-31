@@ -2,10 +2,11 @@ package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -13,14 +14,16 @@ import java.util.logging.Logger;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.utils.CookieSessionManager;
+import org.sagebionetworks.utils.PublicCookieManager;
 import org.sagebionetworks.web.client.DatasetService;
 import org.sagebionetworks.web.client.SearchService;
+import org.sagebionetworks.web.client.cookie.CookieKeys;
 import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
@@ -53,10 +56,12 @@ public class ITPortalSerachServices {
 	private static String attDate = "aDateAtt";
 	private static String attLong = "aLongAtt";
 	private static String attDouble = "aDoubleAtt";
+	
+	private static CookieSessionManager sessionManager;
 
 
 	@BeforeClass
-	public static void beforeClass() {
+	public static void beforeClass() throws UnsupportedEncodingException {
 		// Load the required system properties
 		String propName = "org.sagebionetworks.repository.service.base.url";
 		repoBaseUrl = System.getProperty(propName);
@@ -69,80 +74,89 @@ public class ITPortalSerachServices {
 		assertNotNull("Failed to find the system property: " + propName,
 				portalBaseUrl);
 		log.info("Loaded system property: " + propName + " = " + portalBaseUrl);
+		
+		// The dataset service
+		sessionManager = new CookieSessionManager();
+		PublicCookieManager cookies = (PublicCookieManager) sessionManager.getCookieManager();
+		// We will use this id as a token.
+		String userId = URLEncoder.encode("admin", "UTF-8");
+		
+		// Add this user data as a cookie
+		cookies.putCookie(CookieKeys.USER_LOGIN_TOKEN, userId);
 
 		// The search service.
 		searchService = (SearchService) SyncProxy.newProxyInstance(
-				SearchService.class, portalBaseUrl, "search");
+				SearchService.class, portalBaseUrl, "search", sessionManager);
 		assertNotNull(searchService);
-		// The dataset service
+		
 		datasetService = (DatasetService) SyncProxy.newProxyInstance(
-				DatasetService.class, portalBaseUrl, "dataset");
+				DatasetService.class, portalBaseUrl, "dataset", sessionManager);
 
-// Caused by: java.io.IOException: Server returned HTTP response code: 500 for URL: http://localhost:8080/portal-0.4-SNAPSHOT/Portal/dataset
-//		for (int i = 0; i < totalNumberOfDatasets; i++) {
-//			Dataset ds = new Dataset();
-//			ds.setName("dsName" + i);
-//			Date now = new Date(System.currentTimeMillis());
-//			ds.setCreationDate(now);
-//			ds.setDescription("description" + i);
-//			ds.setCreator("magic");
-////			ds.setEtag("someETag" + i);
-//			if ((i % 2) == 0) {
-//				ds.setStatus("Started");
-//			} else {
-//				ds.setStatus("Completed");
-//			}
-//			ds.setReleaseDate(now);
-//			ds.setVersion("1.0." + i);
-//
-//			// Create this dataset
-//			String id = datasetService.createDataset(ds);
-//			assertNotNull(id);
-//			// Make sure we delete this datasets.
-//			datasetIds.add(id);
-//			// // Add a layer to the dataset
-//			// InputDataLayer layer = createLayer(now, i);
-//			// // Add a layer attribute
-//			// String layerId = dao.getInputDataLayerDAO(id).create(layer);
-//			// dao.getInputDataLayerDAO(id).getStringAnnotationDAO(layerId).addAnnotation("layerAnnotation",
-//			// "layerAnnotValue"+i);
-//			//
-//			// add this attribute to all datasets
-//			Annotations annoations = datasetService.getDatasetAnnotations(id);
-//			annoations.addAnnotation(attOnall, new Long(i));
-//			// // Add some attributes to others.
-//			 if ((i % 2) == 0) {
-//				 annoations.addAnnotation(attOnEven, new Long(i));
-//			 } else {
-//				 annoations.addAnnotation(attOnOdd, now);
-//			 }
-//			
-//			 // Make sure we add one of each type
-//			 annoations.addAnnotation(attString, "someString" + i);
-//			 annoations.addAnnotation(attDate, new Date(System.currentTimeMillis() + i));
-//			 annoations.addAnnotation(attLong, new Long(123456));
-//			 annoations.addAnnotation(attDouble, new Double(123456.3));
-//			 // Update the datasets
-//			 datasetService.updateDatasetAnnotations(id, annoations);
-//		}
+		for (int i = 0; i < totalNumberOfDatasets; i++) {
+			Dataset ds = new Dataset();
+			ds.setName("dsName" + i);
+			Date now = new Date(System.currentTimeMillis());
+			ds.setCreationDate(now);
+			ds.setDescription("description" + i);
+			ds.setCreator("magic");
+//			ds.setEtag("someETag" + i);
+			if ((i % 2) == 0) {
+				ds.setStatus("Started");
+			} else {
+				ds.setStatus("Completed");
+			}
+			ds.setReleaseDate(now);
+			ds.setVersion("1.0." + i);
+
+			// Create this dataset
+			String id = datasetService.createDataset(ds);
+			assertNotNull(id);
+			// Make sure we delete this datasets.
+			datasetIds.add(id);
+			// // Add a layer to the dataset
+			// InputDataLayer layer = createLayer(now, i);
+			// // Add a layer attribute
+			// String layerId = dao.getInputDataLayerDAO(id).create(layer);
+			// dao.getInputDataLayerDAO(id).getStringAnnotationDAO(layerId).addAnnotation("layerAnnotation",
+			// "layerAnnotValue"+i);
+			//
+			// add this attribute to all datasets
+			Annotations annoations = datasetService.getDatasetAnnotations(id);
+			annoations.addAnnotation(attOnall, "someNumber" + i);
+			// // Add some attributes to others.
+			 if ((i % 2) == 0) {
+				 annoations.addAnnotation(attOnEven, new Long(i));
+			 } else {
+				 annoations.addAnnotation(attOnOdd, now);
+			 }
+			
+			 // Make sure we add one of each type
+			 annoations.addAnnotation(attString, "someString" + i);
+			 annoations.addAnnotation(attDate, new Date(System.currentTimeMillis() + i));
+			 annoations.addAnnotation(attLong, new Long(123456));
+			 annoations.addAnnotation(attDouble, new Double(123456.3));
+			 // Update the datasets
+			 datasetService.updateDatasetAnnotations(id, annoations);
+		}
 	}
 
 	@AfterClass
 	public static void after() throws URISyntaxException {
-		if (datasetIds != null && template != null) {
+		if (datasetIds != null && datasetService != null) {
 			// Delete all datastest
 			for (String id : datasetIds) {
-				URI url = new URI(repoBaseUrl + "dataset/" + id);
-				template.delete(url);
+				try {
+					datasetService.delete(id);
+				} catch (Throwable e) {
+				}
 			}
 		}
 	}
 
-	@Ignore
 	@Test
 	public void testSelectAll() {
 		SearchService proxy = (SearchService) SyncProxy.newProxyInstance(
-				SearchService.class, portalBaseUrl, "search");
+				SearchService.class, portalBaseUrl, "search", sessionManager);
 		assertNotNull(proxy);
 		SearchParameters params = new SearchParameters();
 		params.setFromType(ObjectType.dataset.name());
@@ -152,18 +166,17 @@ public class ITPortalSerachServices {
 		// WhereOperator.LESS_THAN, ""+future));
 		TableResults results = proxy.executeSearch(params);
 		assertNotNull(results);
-		assertTrue(totalNumberOfDatasets <= results.getTotalNumberResults());
+		assertEquals(totalNumberOfDatasets, results.getTotalNumberResults());
 	}
 	
-	@Ignore
 	@Test
 	public void testQuery() {
 		SearchService proxy = (SearchService) SyncProxy.newProxyInstance(
-				SearchService.class, portalBaseUrl, "search");
+				SearchService.class, portalBaseUrl, "search", sessionManager);
 		assertNotNull(proxy);
 		SearchParameters params = new SearchParameters();
 		params.setFromType(ObjectType.dataset.name());
-		params.addWhere(new WhereCondition("dataset."+attOnall, WhereOperator.GREATER_THAN_OR_EQUALS, "0"));
+		params.addWhere(new WhereCondition("dataset."+attOnEven, WhereOperator.GREATER_THAN, "0"));
 		params.setSort("dataset.name");
 		params.setLimit(100);
 		params.setOffset(0);
@@ -175,8 +188,7 @@ public class ITPortalSerachServices {
 		// WhereOperator.LESS_THAN, ""+future));
 		TableResults results = proxy.executeSearch(params);
 		assertNotNull(results);
-//		assertEquals(totalNumberOfDatasets - 1, results.getTotalNumberResults());
-		assertEquals(0, results.getTotalNumberResults());
+		assertEquals(2, results.getTotalNumberResults());
 	}
 		
 	private static InputDataLayer createLayer(Date date, int i)
