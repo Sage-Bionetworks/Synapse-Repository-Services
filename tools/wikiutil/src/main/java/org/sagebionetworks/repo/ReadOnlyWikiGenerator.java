@@ -84,6 +84,10 @@ public class ReadOnlyWikiGenerator {
 				break;
 			}
 		}
+		if(null == dataset) {
+			throw new Exception("Attempting to run the wiki generator against a repository service that has not been "
+					+ "bootstrapped with the Sawyers MSKCC Prostate Cancer dataset");
+		}
 
 		wiki.doGet(
 				"/query?query=select+*+from+dataset+where+dataset.Species+==+%22Human%22+and+dataset.Number_of_Samples+%3E+100+limit+3+offset+1",

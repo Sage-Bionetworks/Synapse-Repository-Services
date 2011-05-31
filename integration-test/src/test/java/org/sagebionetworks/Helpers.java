@@ -1,5 +1,6 @@
 package org.sagebionetworks;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
@@ -12,13 +13,20 @@ import org.apache.log4j.Logger;
  * In .m2/settings.xml add something like the following specific to your
  * machine, see http://maven.apache.org/settings.html#Profiles for more info
  * 
- * <profiles> 
- *   ...
- *   <properties>
- *     <local.python27.path>/usr/local/bin/python2.7</local.python27.path>
- *     <local.r.path>/usr/bin/r</local.r.path>
- *   </properties>
- *   ...
+ * <profiles>
+ * 
+ * ...
+ * 
+ * <properties>
+ * 
+ * <local.python27.path>/usr/local/bin/python2.7</local.python27.path>
+ * 
+ * <local.r.path>/usr/bin/r</local.r.path>
+ * 
+ * </properties>
+ * 
+ * ...
+ * 
  * </profiles>
  * 
  * @author deflaux
@@ -36,16 +44,16 @@ public class Helpers {
 	}
 
 	public static String getPython27Path() {
-		if(null == System.getProperty("local.python27.path")) {
-			throw new Error("Missing properties from .m2/settings.xml, see the javadoc for details");
-		}
+		assertNotNull(
+				"Missing properties from .m2/settings.xml, see the javadoc for details",
+				System.getProperty("local.python27.path"));
 		return System.getProperty("local.python27.path");
 	}
 
 	public static String getRPath() {
-		if(null == System.getProperty("local.r.path")) {
-			throw new Error("Missing properties from .m2/settings.xml, see the javadoc for details");
-		}
+		assertNotNull(
+				"Missing properties from .m2/settings.xml, see the javadoc for details",
+				System.getProperty("local.r.path"));
 		return System.getProperty("local.r.path");
 	}
 
@@ -103,7 +111,8 @@ public class Helpers {
 
 	/**
 	 * @param cmd
-	 * @return the ExternalProcessResult holding stdout, stderr, and the return code
+	 * @return the ExternalProcessResult holding stdout, stderr, and the return
+	 *         code
 	 * @throws Exception
 	 */
 	public static ExternalProcessResult runExternalProcess(String cmd[])
@@ -138,8 +147,8 @@ public class Helpers {
 		result.setStderr(stderrAccumulator.toString());
 
 		result.setReturnCode(process.waitFor());
-		log.info("Completed exec: " + StringUtils.join(cmd, " ") + ", exit code: "
-				+ result.getReturnCode());
+		log.info("Completed exec: " + StringUtils.join(cmd, " ")
+				+ ", exit code: " + result.getReturnCode());
 		assertTrue(0 == result.getReturnCode());
 
 		return result;
