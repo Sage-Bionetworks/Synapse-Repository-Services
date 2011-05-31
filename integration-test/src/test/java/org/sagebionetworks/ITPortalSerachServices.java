@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
@@ -137,6 +138,7 @@ public class ITPortalSerachServices {
 		}
 	}
 
+	@Ignore
 	@Test
 	public void testSelectAll() {
 		SearchService proxy = (SearchService) SyncProxy.newProxyInstance(
@@ -153,6 +155,7 @@ public class ITPortalSerachServices {
 		assertTrue(totalNumberOfDatasets <= results.getTotalNumberResults());
 	}
 	
+	@Ignore
 	@Test
 	public void testQuery() {
 		SearchService proxy = (SearchService) SyncProxy.newProxyInstance(
