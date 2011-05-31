@@ -36,10 +36,16 @@ public class Helpers {
 	}
 
 	public static String getPython27Path() {
+		if(null == System.getProperty("local.python27.path")) {
+			throw new Error("Missing properties from .m2/settings.xml, see the javadoc for details");
+		}
 		return System.getProperty("local.python27.path");
 	}
 
 	public static String getRPath() {
+		if(null == System.getProperty("local.r.path")) {
+			throw new Error("Missing properties from .m2/settings.xml, see the javadoc for details");
+		}
 		return System.getProperty("local.r.path");
 	}
 
