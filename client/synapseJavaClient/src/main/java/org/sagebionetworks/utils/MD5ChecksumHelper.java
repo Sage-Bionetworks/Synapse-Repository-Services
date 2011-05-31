@@ -10,21 +10,42 @@ import java.security.NoSuchAlgorithmException;
 /**
  * Code lifted from http://www.rgagnon.com/javadetails/java-0416.html
  * 
+ * Found similar code later in org/apache/commons/codec/digest/DigestUtils.java
+ * 
  * @author deflaux
  * 
  */
 public class MD5ChecksumHelper {
 
-	public static String getMD5Checksum(String filename) throws NoSuchAlgorithmException, IOException  {
+	/**
+	 * @param filename
+	 * @return the hex version of the checksum
+	 * @throws NoSuchAlgorithmException
+	 * @throws IOException
+	 */
+	public static String getMD5Checksum(String filename)
+			throws NoSuchAlgorithmException, IOException {
 		byte[] b = createChecksum(filename);
 		return getHexString(b);
 	}
 
-	public static byte[] createChecksum(String filename) throws IOException, NoSuchAlgorithmException  {
+	/**
+	 * @param filename
+	 * @return the checksum as a byte array
+	 * @throws IOException
+	 * @throws NoSuchAlgorithmException
+	 */
+	public static byte[] createChecksum(String filename) throws IOException,
+			NoSuchAlgorithmException {
 		InputStream fis = new FileInputStream(filename);
 
 		byte[] buffer = new byte[1024];
-		MessageDigest complete = MessageDigest.getInstance("MD5");
+		MessageDigest complete;
+		try {
+			complete = MessageDigest.getInstance("MD5");
+		} catch (NoSuchAlgorithmException e) {
+			throw new RuntimeException(e.getMessage());
+		}
 		int numRead;
 		do {
 			numRead = fis.read(buffer);
@@ -41,6 +62,11 @@ public class MD5ChecksumHelper {
 			(byte) '8', (byte) '9', (byte) 'a', (byte) 'b', (byte) 'c',
 			(byte) 'd', (byte) 'e', (byte) 'f' };
 
+	/**
+	 * @param raw
+	 * @return convert a byte array to hex
+	 * @throws UnsupportedEncodingException
+	 */
 	public static String getHexString(byte[] raw)
 			throws UnsupportedEncodingException {
 		byte[] hex = new byte[2 * raw.length];
