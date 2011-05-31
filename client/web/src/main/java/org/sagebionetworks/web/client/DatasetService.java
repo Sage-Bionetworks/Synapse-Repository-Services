@@ -30,6 +30,8 @@ public interface DatasetService extends RemoteService {
 	
 	public String createDataset(Dataset toCreate);
 	
+	public void delete(String id);
+	
 	/**
 	 * Set the new annotations on a datasets.  Note: The new annotations must have a valid eTag.
 	 * @see DatasetService.getDatasetAnnotations(String)

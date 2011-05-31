@@ -37,4 +37,6 @@ public interface DatasetServiceAsync {
 	void updateDatasetAnnotations(String datasetId, Annotations newAnnotations,
 			AsyncCallback<String> callback);
 
+	void delete(String id, AsyncCallback<Void> callback);
+
 }

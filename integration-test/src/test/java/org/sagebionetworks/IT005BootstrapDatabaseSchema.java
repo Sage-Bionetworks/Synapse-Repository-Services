@@ -18,6 +18,7 @@ public class IT005BootstrapDatabaseSchema {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testCRUDWikiGenerator() throws Exception {
 		String args[] = { Helpers.getRepositoryServiceBaseUrl() };

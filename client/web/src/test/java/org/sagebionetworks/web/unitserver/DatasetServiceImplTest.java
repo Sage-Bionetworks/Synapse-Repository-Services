@@ -6,18 +6,23 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.lang.reflect.Proxy;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.UriBuilder;
 
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.server.RestTemplateProviderImpl;
 import org.sagebionetworks.web.server.servlet.DatasetServiceImpl;
@@ -85,6 +90,11 @@ public class DatasetServiceImplTest {
 		service.setServiceUrlProvider(urlProvider);
 	}
 	
+//	@Before
+//	public void before(){
+//		Proxy.newProxyInstance(loader, interfaces, h)
+//		service.doPost(mockRequest, mockResponse);
+//	}
 	/**
 	 * Clear all of the data in the stub service.
 	 */

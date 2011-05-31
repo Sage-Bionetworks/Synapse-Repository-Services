@@ -42,6 +42,7 @@ public class AuthenticationControllerImpl implements AuthenticationController {
 			public void onSuccess(UserData userData) {				
 				String cookie = userData.getCookieString();
 				cookies.setCookie(CookieKeys.USER_LOGIN_DATA, cookie);
+				cookies.setCookie(CookieKeys.USER_LOGIN_TOKEN, userData.getToken());
 				
 				AuthenticationControllerImpl.currentUser = userData;
 				callback.onSuccess(userData);
@@ -67,6 +68,7 @@ public class AuthenticationControllerImpl implements AuthenticationController {
 				public void onSuccess(Void result) {					
 					Info.display("Message", "You have been logged out.");
 					cookies.removeCookie(CookieKeys.USER_LOGIN_DATA);
+					cookies.removeCookie(CookieKeys.USER_LOGIN_TOKEN);
 				}
 
 				@Override

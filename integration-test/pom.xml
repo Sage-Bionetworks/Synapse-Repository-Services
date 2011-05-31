@@ -111,12 +111,16 @@
 						<containerId>tomcat6x</containerId>
 						<!-- Download and install tomcat -->
 						<zipUrlInstaller>
-							<url>http://download.filehat.com/apache/tomcat/tomcat-6/v${tomcat-version}/bin/${tomcat-file}.zip</url>
+							<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local/apache/tomcat/${tomcat-version}/tomcat-${tomcat-version}.zip</url>
 							<installDir>${project.build.directory}/tomcat6x/container</installDir>
 						</zipUrlInstaller>
 						<systemProperties>
 							<JDBC_CONNECTION_STRING>jdbc:mysql://localhost/test2</JDBC_CONNECTION_STRING>
 							<org.sagebionetworks.rest.api.endpoint>${tomcat.endpoint}/${org.sagebionetworks.repository.context}</org.sagebionetworks.rest.api.endpoint>
+							<!-- This will force the user of a Mock UserDao -->
+							<org.sagebionetworks.mockCrowdDAOClass>org.sagebionetworks.repo.manager.TestUserDAO</org.sagebionetworks.mockCrowdDAOClass>
+							<!-- Tells the authentication filter to allow this user through without really authenticating -->
+							<org.sagebionetworks.integrationTestUser>admin</org.sagebionetworks.integrationTestUser>
 						</systemProperties>
 					</container>
 					<configuration>

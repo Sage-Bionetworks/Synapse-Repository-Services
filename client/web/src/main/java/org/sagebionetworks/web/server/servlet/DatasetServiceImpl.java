@@ -2,8 +2,9 @@ package org.sagebionetworks.web.server.servlet;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.web.client.DatasetService;
 import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.shared.Annotations;
@@ -34,8 +35,7 @@ import com.google.inject.Inject;
 public class DatasetServiceImpl extends RemoteServiceServlet implements
 		DatasetService {
 
-	private static Logger logger = Logger.getLogger(DatasetServiceImpl.class
-			.getName());
+	static private Log logger = LogFactory.getLog(DatasetServiceImpl.class);
 
 	public static final String KEY_OFFSET = "offestKey";
 	public static final String KEY_LIMIT = "limitKey";
@@ -163,6 +163,8 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 		logger.info("GET: " + url);
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>("", headers);
 		// Make the actual call.
@@ -193,6 +195,8 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 		logger.info("GET: " + url);
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>("", headers);
 		// Make the actual call.
@@ -224,6 +228,8 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 		logger.info("GET: " + url);
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>("", headers);
 		// Make the actual call.
@@ -254,6 +260,8 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 		logger.info("GET: " + url);
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>("", headers);
 		// Make the actual call.
@@ -284,6 +292,8 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 		logger.info("GET: " + url);
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>("", headers);
 		// Make the actual call.
@@ -314,6 +324,8 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 		logger.info("GET: " + url);
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>("", headers);
 		// Make the actual call.
@@ -331,9 +343,16 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 	@Override
 	public String createDataset(Dataset toCreate) {
 		if(toCreate == null) throw new IllegalArgumentException("Dataset cannot be null");
+		
+		// First make sure the service is ready to go.
+		validateService();
+		
 		String url = urlProvider.getBaseUrl() + POST_DATASET;;
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
+
 		HttpEntity<Dataset> entity = new HttpEntity<Dataset>(toCreate, headers);
 		// Make the actual call.
 		ResponseEntity<Dataset> response = templateProvider.getTemplate().exchange(url, HttpMethod.POST, entity, Dataset.class);
@@ -345,6 +364,7 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 					+ response.getStatusCode().value());
 		}
 	}
+
 
 	@Override
 	public String updateDatasetAnnotations(String datasetId,
@@ -360,6 +380,8 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 		map.put(KEY_DATASET_ID, datasetId);
 		
 		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		headers.set("ETag", newAnnotations.getEtag());
 		HttpEntity<Annotations> entity = new HttpEntity<Annotations>(newAnnotations, headers);
@@ -377,6 +399,20 @@ public class DatasetServiceImpl extends RemoteServiceServlet implements
 	@Override
 	protected void checkPermutationStrongName() throws SecurityException {
 		// No-opp here allows us to make RPC calls for integration testing.
+	}
+
+	@Override
+	public void delete(String id) {
+		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
+		Map<String, String> map = new HashMap<String, String>();
+		map.put(KEY_DATASET_ID, id);
+		StringBuilder builder = new StringBuilder();
+		builder.append(urlProvider.getBaseUrl());
+		builder.append(PATH_DATASET);
+		HttpEntity<String> entity = new HttpEntity<String>("", headers);
+		templateProvider.getTemplate().exchange(builder.toString(), HttpMethod.DELETE, entity, Dataset.class, map);
 	}
 
 	

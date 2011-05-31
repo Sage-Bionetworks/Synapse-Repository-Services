@@ -17,5 +17,10 @@ public class CookieKeys {
 	 * Login data
 	 */
 	public static String USER_LOGIN_DATA = "org.sagbionetworks.security.user.login.data";
+	
+	/**
+	 * Login token
+	 */
+	public static String USER_LOGIN_TOKEN = "org.sagbionetworks.security.user.login.token";
 
 }
