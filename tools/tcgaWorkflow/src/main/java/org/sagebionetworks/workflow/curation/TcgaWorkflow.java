@@ -69,6 +69,9 @@ public class TcgaWorkflow {
 	// file, include a portion of that output in the workflow history for
 	// convenience. We only want to dig through the logs if we need to.
 	private static final int MAX_SCRIPT_OUTPUT = 1024;
+	
+	private static final String NOTIFICATION_SUBJECT = "TCGA Workflow Notification";
+	private static final String NOTIFICATION_SNS_TOPIC = ConfigHelper.createConfig().getSnsTopic();;
 
 	/**
 	 * @param param
@@ -119,11 +122,13 @@ public class TcgaWorkflow {
 		 * simple for now, later on we'll want to check their communication
 		 * preferences and batch up these notifications as configured
 		 */
-		// TODO get a recipient list and fire off one activity for each
 		Settable<String> recipient = new Settable<String>();
-		recipient.set("nicole.deflaux@sagebase.org");
+		recipient.set(NOTIFICATION_SNS_TOPIC);
+		Settable<String> subject = new Settable<String>();
+		subject.set(NOTIFICATION_SUBJECT);
+
 		Value<String> result5 = flow.dispatchNotifyFollower(result4,
-				recipient, rawDataMessage);
+				recipient, subject, rawDataMessage);
 
 		/**
 		 * Dynamically discover the R scripts to run on this data
@@ -133,7 +138,7 @@ public class TcgaWorkflow {
 		// and kick off one processData task per script in parallel
 		Settable<String> script = new Settable<String>();
 		script
-				.set("/Users/deflaux/platform/deflaux/scripts/stdoutKeepAlive.sh");
+				.set("./src/test/resources/createMatrix.r");
 
 		// TODO once we have that list of scripts, split the workflow here into
 		// parallel tasks for the remainder of this pipeline,
@@ -230,7 +235,7 @@ public class TcgaWorkflow {
 		// repository service
 		// - upload the data to the pre-signed S3 URL
 		// - set the S3 URL and md5 in the layer metadata
-		Storage.doUploadLayerToStorage(datasetId, rawLayerId, localFilepath, md5);
+		//Storage.doUploadLayerToStorage(datasetId, rawLayerId, localFilepath, md5);
 		
 		return Value.asValue(param + ":UploadLayerToS3");
 	}
@@ -287,9 +292,10 @@ public class TcgaWorkflow {
 			Value<String> result1 = dispatchFormulateNotificationMessage(param,
 					processedLayerId, processedDataMessage);
 
-			// TODO get a recipient list and fire off one activity for each
 			Settable<String> recipient = new Settable<String>();
-			recipient.set("nicole.deflaux@sagebase.org");
+			recipient.set(NOTIFICATION_SNS_TOPIC);
+			Settable<String> subject = new Settable<String>();
+			subject.set(NOTIFICATION_SUBJECT);
 			
 			/**
 			 * Send the email notification to all interested parties, keeping
@@ -298,7 +304,7 @@ public class TcgaWorkflow {
 			 * configured
 			 */
 			Value<String> result2 = dispatchNotifyFollower(result1,
-					recipient, processedDataMessage);
+					recipient, subject, processedDataMessage);
 
 			return result2;
 		}
@@ -318,17 +324,21 @@ public class TcgaWorkflow {
 	private static Value<String> doFormulateNotificationMessage(String param,
 			Integer layerId, Settable<String> message) {
 		// TODO add more to the message such as dataset and layer name
-		message.set("some data has been processed and is in layer" + layerId);
+		message.set("some data has been processed and is in layer " + layerId);
 		return Value.asValue(param + ":FormulateNotificationMessage");
 	}
 
 	@Asynchronous
 	private Value<String> dispatchNotifyFollower(Value<String> param,
-			Value<String> recipient, Value<String> message) {
-		// TODO take an array of recipients and call an activity for each
-		//Notification.doNotifyFollower(recipient.get(), message.get());
+			Value<String> recipient, Value<String> subject, Value<String> message) {
+		return doNotifyFollower(param, recipient, subject, message);
+	}
+	
+	@Activity
+	private static Value<String> doNotifyFollower(Value<String> param,
+			Value<String> recipient, Value<String> subject, Value<String> message) {
+		Notification.doSnsNotifyFollowers(recipient.get(), subject.get(), message.get());
 		return Value.asValue(param + ":NotifyFollowers");
-
 	}
 
 	/**

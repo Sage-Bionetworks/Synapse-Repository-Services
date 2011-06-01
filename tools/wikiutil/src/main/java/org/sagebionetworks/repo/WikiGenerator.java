@@ -103,7 +103,7 @@ public class WikiGenerator {
 			curl += " -H " + header.getKey() + ":" + header.getValue();
 		}
 		curl += " '" + requestUrl + "'{code}";
-		log.info("*Request*{code}" + curl);
+		log.info("*Request* {code}" + curl);
 		log.info("*Response* {code}");
 
 		String response = null;

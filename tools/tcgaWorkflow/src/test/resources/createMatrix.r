@@ -14,10 +14,13 @@ layer <- synapseGet(paste('/dataset', inputDatasetId, 'layer', inputLayerId, sep
 
 queryResult <- synapseQuery(paste('select * from layer where layer.parentId == ', inputDatasetId, ' and layer.name == "clinical_patient_public_', dataset$name, '"', sep=''))
 
-if(1 != attr(queryResult,'totalNumberOfResults')) {
-  stop('found too many clinical datasets, something is busted')
+if(0 == attr(queryResult,'totalNumberOfResults')) {
+  warning('did not find the clinical dataset')
 }
-                      
+if(1 < attr(queryResult,'totalNumberOfResults')) {
+	stop('found too many clinical datasets, something is busted')
+}
+
 data <- read.table(getLocalFilepath(), sep='\t')
 
 setOutputLayerId(inputLayerId)
