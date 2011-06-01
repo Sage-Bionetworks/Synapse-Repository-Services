@@ -79,7 +79,6 @@
 	<bean id="nodeQueryDao" class="org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl" />
 
 	<!-- Controls how nodes inherit their permissions -->
-	<bean id="nodeInheritanceDao"
-		class="org.sagebionetworks.repo.model.jdo.JDONodeInheritanceDAOImpl" />
+	<bean id="nodeInheritanceDao" class="org.sagebionetworks.repo.model.jdo.JDONodeInheritanceDAOImpl" />
 
 </beans>

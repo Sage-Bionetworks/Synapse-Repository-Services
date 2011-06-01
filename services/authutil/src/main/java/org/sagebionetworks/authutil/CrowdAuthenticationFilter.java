@@ -40,23 +40,8 @@ public class CrowdAuthenticationFilter implements Filter {
 		resp.getWriter().println("{\"reason\", \"The session token provided was missing, invalid or expired.\"}");
 	}
 	
-	private String integrationTestUser;
+	private boolean usingMockCrowd;
 	
-
-
-	/**
-	 * @return the integrationTestUser
-	 */
-	public String getIntegrationTestUser() {
-		return integrationTestUser;
-	}
-
-	/**
-	 * @param integrationTestUser the integrationTestUser to set
-	 */
-	public void setIntegrationTestUser(String integrationTestUser) {
-		this.integrationTestUser = integrationTestUser;
-	}
 
 	@Override
 	public void doFilter(ServletRequest servletRqst, ServletResponse servletResponse,
@@ -66,12 +51,15 @@ public class CrowdAuthenticationFilter implements Filter {
 		HttpServletRequest req = (HttpServletRequest)servletRqst;
 		String sessionToken = req.getHeader("sessionToken");
 		String userId = null;
+		if(usingMockCrowd){
+			// Some tests provide a user name.
+			userId = req.getParameter(AuthUtilConstants.USER_ID_PARAM);
+		}
 		if (null!=sessionToken) {
 			// validate against crowd
 			try {
-				String itu = getIntegrationTestUser();
-				if (itu!=null && sessionToken.equals(itu)) {
-					userId= itu;
+				if (usingMockCrowd) {
+					userId= sessionToken;
 				} else {
 					userId = crowdAuthUtil.revalidate(sessionToken);
 				}
@@ -108,10 +96,13 @@ public class CrowdAuthenticationFilter implements Filter {
         
        if (acceptAllCerts) CrowdAuthUtil.acceptAllCertificates2();
        
-       String itu = System.getProperty("org.sagebionetworks.integrationTestUser");
-       if (itu!=null && itu.length()>0) setIntegrationTestUser(itu);
+       
+		String implementingClassName = System.getProperty(AuthUtilConstants.USER_DAO_INTEGRATION_TEST_SWITCH);
+		if (implementingClassName!=null && implementingClassName.length()>0) {
+			usingMockCrowd = true;
+		}else{
+			usingMockCrowd = false;
+		}
   	}
-
-		
 }
 

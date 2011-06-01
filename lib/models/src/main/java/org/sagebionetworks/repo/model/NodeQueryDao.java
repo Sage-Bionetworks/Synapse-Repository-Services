@@ -19,7 +19,7 @@ public interface NodeQueryDao {
 	 * @return
 	 * @throws DatastoreException 
 	 */
-	public NodeQueryResults executeQuery(BasicQuery query) throws DatastoreException;
+	public NodeQueryResults executeQuery(BasicQuery query, UserInfo userInfo) throws DatastoreException;
 
 	/**
 	 * Execute a given SQL query using the JDO template.

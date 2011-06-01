@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.query.jdo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -18,6 +19,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
@@ -27,6 +29,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Compartor;
@@ -82,6 +85,8 @@ public class JDONodeQueryDAOImplTest {
 	@Autowired
 	private FieldTypeDAO fieldTypeDao;
 	
+	private UserInfo mockUserInfo = null;
+	
 
 	@Before
 	public void before() throws Exception {
@@ -89,6 +94,11 @@ public class JDONodeQueryDAOImplTest {
 		assertNotNull(nodeQueryDao);
 		assertNotNull(nodeDao);
 		assertNotNull(fieldTypeDao);
+		
+		mockUserInfo = Mockito.mock(UserInfo.class);
+		// All tests in the suite assume the user is an admin.
+		when(mockUserInfo.isAdmin()).thenReturn(true);
+		
 		// from
 		// http://groups.google.com/group/google-appengine-java/browse_thread/thread/96baed75e3c30a58/00d5afb2e0445882?lnk=gst&q=DataNucleus+plugin#00d5afb2e0445882
 		// This one caused all the WARNING and SEVERE logs about eclipse UI
@@ -228,7 +238,7 @@ public class JDONodeQueryDAOImplTest {
 		// This query is basically "select * from datasets"
 		BasicQuery query = new BasicQuery();
 		query.setFrom(ObjectType.dataset);
-		NodeQueryResults results = nodeQueryDao.executeQuery(query);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		assertEquals(totalNumberOfDatasets, results.getTotalNumberOfResults());
 		// Validate all of the data is there
@@ -267,7 +277,7 @@ public class JDONodeQueryDAOImplTest {
 		query.setFrom(ObjectType.dataset);
 		query.setOffset(0);
 		query.setLimit(2);
-		NodeQueryResults results = nodeQueryDao.executeQuery(query);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		// The total count should not change with paging
 		assertEquals(totalNumberOfDatasets, results.getTotalNumberOfResults());
@@ -291,7 +301,7 @@ public class JDONodeQueryDAOImplTest {
 		query.setFrom(ObjectType.dataset);
 		query.setOffset(2);
 		query.setLimit(2);
-		NodeQueryResults results = nodeQueryDao.executeQuery(query);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		// The total count should not change with paging
 		assertEquals(totalNumberOfDatasets, results.getTotalNumberOfResults());
@@ -315,7 +325,7 @@ public class JDONodeQueryDAOImplTest {
 		query.setFrom(ObjectType.dataset);
 		query.setSort("name");
 		query.setAscending(true);
-		NodeQueryResults results = nodeQueryDao.executeQuery(query);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		assertEquals(totalNumberOfDatasets, results.getTotalNumberOfResults());
 		// Validate the sort
@@ -340,7 +350,7 @@ public class JDONodeQueryDAOImplTest {
 		query.setFrom(ObjectType.dataset);
 		query.setSort("name");
 		query.setAscending(false);
-		NodeQueryResults results = nodeQueryDao.executeQuery(query);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		assertEquals(totalNumberOfDatasets, results.getTotalNumberOfResults());
 		// Validate the sort
@@ -369,7 +379,7 @@ public class JDONodeQueryDAOImplTest {
 		query.setFrom(ObjectType.dataset);
 		query.setSort("createdOn");
 		query.setAscending(false);
-		NodeQueryResults results = nodeQueryDao.executeQuery(query);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		assertEquals(totalNumberOfDatasets, results.getTotalNumberOfResults());
 		// Validate the sort
@@ -396,7 +406,7 @@ public class JDONodeQueryDAOImplTest {
 		query.setFrom(ObjectType.dataset);
 		query.setSort(attString);
 		query.setAscending(false);
-		NodeQueryResults results = nodeQueryDao.executeQuery(query);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		// Sorting should not reduce the number of columns
 		assertEquals(totalNumberOfDatasets, results.getTotalNumberOfResults());
@@ -429,7 +439,7 @@ public class JDONodeQueryDAOImplTest {
 		List<Expression> filters = new ArrayList<Expression>();
 		filters.add(expression);
 		query.setFilters(filters);
-		NodeQueryResults results = nodeQueryDao.executeQuery(query);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		// Every dataset should have this creator so the count should match the
 		// total
@@ -450,7 +460,7 @@ public class JDONodeQueryDAOImplTest {
 		List<Expression> filters = new ArrayList<Expression>();
 		filters.add(expression);
 		query.setFilters(filters);
-		NodeQueryResults results = nodeQueryDao.executeQuery(query);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		// Every dataset should have this creator so the count should match the
 		// total
@@ -474,7 +484,7 @@ public class JDONodeQueryDAOImplTest {
 		filters.add(expression);
 		filters.add(expression2);
 		query.setFilters(filters);
-		NodeQueryResults results = nodeQueryDao.executeQuery(query);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		// Only one data has the name so the filter should limit to it.
 		assertEquals(1, results.getTotalNumberOfResults());
@@ -500,7 +510,7 @@ public class JDONodeQueryDAOImplTest {
 		List<Expression> filters = new ArrayList<Expression>();
 		filters.add(expression);
 		query.setFilters(filters);
-		NodeQueryResults results = nodeQueryDao.executeQuery(query);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		// Every dataset should have this creator so the count should match the
 		// total
@@ -529,7 +539,7 @@ public class JDONodeQueryDAOImplTest {
 		filters.add(expression);
 		filters.add(expression2);
 		query.setFilters(filters);
-		NodeQueryResults results = nodeQueryDao.executeQuery(query);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		// Every dataset should have this creator so the count should match the
 		// total
@@ -575,7 +585,7 @@ public class JDONodeQueryDAOImplTest {
 		filters.add(expression3);
 		filters.add(expression4);
 		query.setFilters(filters);
-		NodeQueryResults results = nodeQueryDao.executeQuery(query);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		// Every dataset should have this creator so the count should match the
 		// total
@@ -607,7 +617,7 @@ public class JDONodeQueryDAOImplTest {
 		filters.add(expression);
 		query.setFilters(filters);
 		// Execute the query.
-		NodeQueryResults results = nodeQueryDao.executeQuery(query);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		// There should only be one layer
 		assertEquals(1, results.getTotalNumberOfResults());
@@ -634,7 +644,7 @@ public class JDONodeQueryDAOImplTest {
 		filters.add(expression);
 		query.setFilters(filters);
 		// Execute the query.
-		NodeQueryResults results = nodeQueryDao.executeQuery(query);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		// There should only be one layer
 		assertEquals(1, results.getTotalNumberOfResults());
@@ -661,7 +671,7 @@ public class JDONodeQueryDAOImplTest {
 		filters.add(expression);
 		query.setFilters(filters);
 		// Execute the query.
-		NodeQueryResults results = nodeQueryDao.executeQuery(query);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		// No results should be found
 		assertEquals(0, results.getTotalNumberOfResults());

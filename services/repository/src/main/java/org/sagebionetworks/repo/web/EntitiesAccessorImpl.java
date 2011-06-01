@@ -69,7 +69,7 @@ public class EntitiesAccessorImpl implements EntitiesAccessor {
 	 */
 	public <T extends Base> PaginatedResults<T> executeQuery(UserInfo userInfo, Class<? extends T> clazz, BasicQuery query) throws DatastoreException, NotFoundException,
 			UnauthorizedException {
-		NodeQueryResults queryResults = nodeQueryDao.executeQuery(query);
+		NodeQueryResults queryResults = nodeQueryDao.executeQuery(query, userInfo);
 		List<String> ids = queryResults.getResultIds();
 		// Convert the list of ids to entities.
 		List<T> list = new ArrayList<T>();
