@@ -4,7 +4,9 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.codec.net.BCodec;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -24,6 +26,9 @@ import org.sagebionetworks.workflow.curation.ConfigHelper;
  */
 public class Storage {
 
+	private static final Logger log = Logger.getLogger(Storage.class
+			.getName());
+	
 	/**
 	 * @param datasetId
 	 * @param layerId
@@ -50,13 +55,21 @@ public class Storage {
 		JSONObject s3Location = synapse.createEntity(layerS3LocationUri,
 				s3LocationRequest);
 
+		// TODO find a more direct way to go from hex to base64
+		byte[] encoded = Base64.encodeBase64(Hex.decodeHex(md5.toCharArray()));
+		String base64Md5 = new String(encoded, "ASCII");
+		
 		// TODO can we do a conditional PUT, fail if the file already exists?
 		Map<String, String> headerMap = new HashMap<String, String>();
 		headerMap.put("x-amz-acl", "bucket-owner-full-control");
-		// TODO find a more direct way to go from hex to base64
-		// Base64.encode(Hex.decodeHex(md5.toCharArray())));
-		BCodec encoder = new BCodec();
-		headerMap.put("Content-MD5", encoder.encode(md5));
+		headerMap.put("Content-MD5", base64Md5);
+		
+//		if(log.isDebugEnabled()) {
+			log.warn("curl -f -X PUT -H Content-MD5:" + base64Md5
+            + " --data-binary @" + localFilepath
+            + " -H x-amz-acl:bucket-owner-full-control " + s3Location.getString("path"));
+//		}
+	
 		HttpClientHelper.uploadFile(s3Location.getString("path"),
 				localFilepath, headerMap);
 	}

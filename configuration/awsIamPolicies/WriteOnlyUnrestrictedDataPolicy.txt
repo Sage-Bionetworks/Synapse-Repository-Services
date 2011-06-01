@@ -1,0 +1,12 @@
+{
+    "Statement":[
+        {
+            "Effect":"Allow",
+            "Action": [
+                "s3:PutObject",
+                "s3:PutObjectVersion"
+            ],
+            "Resource": "arn:aws:s3:::data01.sagebase.org/*"
+        }
+    ]
+}
