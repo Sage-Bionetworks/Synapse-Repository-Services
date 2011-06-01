@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOAccessControlList;
@@ -61,9 +62,9 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * Execute the actual query
 	 */
 	@Override
-	public NodeQueryResults executeQuery(BasicQuery query) throws DatastoreException {
+	public NodeQueryResults executeQuery(BasicQuery query, UserInfo userInfo) throws DatastoreException {
 		try {
-			return executeQueryImpl(query);
+			return executeQueryImpl(query, userInfo);
 		} catch (IllegalArgumentException e) {
 			throw new IllegalArgumentException(e);
 		} catch (Exception e) {
@@ -90,7 +91,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	private NodeQueryResults executeQueryImpl(BasicQuery in)
+	private NodeQueryResults executeQueryImpl(BasicQuery in, UserInfo userInfo)
 			throws DatastoreException, NotFoundException {
 		if (in.getFrom() == null)
 			throw new IllegalArgumentException(

@@ -33,7 +33,7 @@ public class QueryManagerImpl implements QueryManager {
 	public <T extends Base> QueryResults executeQuery(UserInfo userInfo, BasicQuery query, Class<? extends T> clazz) throws DatastoreException {
 		if(query == null) throw new IllegalArgumentException("Query cannot be null");
 		if(query.getFrom() == null) throw new IllegalArgumentException("Query.getFrom() cannot be null");
-		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query);
+		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
 		List<String> ids = nodeResults.getResultIds();
 		// Convert the list of ids to entities.
 		List<Map<String, Object>> allRows = new ArrayList<Map<String, Object>>();

@@ -37,4 +37,9 @@ public class AuthUtilConstants {
 	 */
 	public static final String PLATFORM_GROUP = "platform";
 	
+	/**
+	 * Used to set a mock crowd.
+	 */
+	public static final String USER_DAO_INTEGRATION_TEST_SWITCH = "org.sagebionetworks.mockCrowdDAOClass";
+	
 }
