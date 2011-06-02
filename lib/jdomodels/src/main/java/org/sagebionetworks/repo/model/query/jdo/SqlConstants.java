@@ -87,6 +87,8 @@ public class SqlConstants {
 	
 	public static final String TYPE_COLUMN_NAME = "nodeType";
 	
+	public static final String AUTH_FILTER_ALIAS = "auth";
+	
 
 	
 	// This is the alias of the sub-query used for sorting on annotations.
