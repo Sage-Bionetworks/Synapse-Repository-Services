@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.jdo;
 
 import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -31,13 +32,12 @@ public class JDOFieldTypeDAOImpl implements FieldTypeDAO, InitializingBean {
 	JdoTemplate jdoTemplate;
 	
 	// match one or more whitespace characters
-//	private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
 	private static final Pattern ALLOWABLE_CHARS = Pattern.compile("^[a-z,A-Z,0-9,_,.]+");
 
 	/**
 	 * Since the types never change once they are set, we can safely cache the results.
 	 */
-	private Map<String, FieldType> localCache = new HashMap<String, FieldType>();
+	private Map<String, FieldType> localCache = Collections.synchronizedMap(new HashMap<String, FieldType>());
 	
 	public JDOFieldTypeDAOImpl(){
 	}
