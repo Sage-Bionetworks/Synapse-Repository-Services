@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.model.query.jdo;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -11,13 +13,17 @@ import javax.jdo.Query;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOAccessControlList;
@@ -138,6 +144,8 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			// Return an empty result
 			return new NodeQueryResults(new ArrayList<String>(), 0);
 		}
+		// Build the authorization filter
+		String authorizationFilter = buildAuthorizationFilter(userInfo, parameters);
 		// Build the paging
 		String paging = buildPaging(in.getOffset(), in.getLimit(), parameters);
 
@@ -150,6 +158,8 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		builder.append(" ");
 		builder.append(innerJoinAttributeFilters);
 		builder.append(" ");
+		builder.append(authorizationFilter);
+		builder.append(" ");
 		builder.append(primaryWhere);
 		String countQueryString = builder.toString();
 		// Now build the full query
@@ -159,6 +169,8 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		builder.append(fromString);
 		builder.append(" ");
 		builder.append(innerJoinAttributeFilters);
+		builder.append(" ");
+		builder.append(authorizationFilter);
 		builder.append(" ");
 		builder.append(outerJoinAttributeSort);
 		builder.append(" ");
@@ -182,6 +194,46 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		return new NodeQueryResults(allRows, count);
 	}
 	
+	/**
+	 * Build up the authorzation filter
+	 * @param userInfo
+	 * @param parameters
+	 * @return
+	 */
+	public static String buildAuthorizationFilter(UserInfo userInfo, Map<String, Object> parameters) {
+		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if(parameters == null) throw new IllegalArgumentException("Parameters cannot be null");
+		// First off, if the user is an administrator then thers is no filter
+		if(userInfo.isAdmin()){
+			return "";
+		}
+		// For all other cases we build up a filter
+		Collection<UserGroup> groups = userInfo.getGroups();
+		if(groups == null) throw new IllegalArgumentException("User's groups cannot be null");
+		if(groups.size() < 1) throw new IllegalArgumentException("User must belong to at least one group");
+		String sql = AuthorizationSqlUtil.authorizationSQL(groups.size());
+		// Bind the variables
+		parameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.READ.name());
+		// Bind each group
+		Iterator<UserGroup> it = groups.iterator();
+		int index = 0;
+		while(it.hasNext()){
+			UserGroup ug = it.next();
+			if(ug == null) throw new IllegalArgumentException("UserGroup was null");
+			if(ug.getId() == null) throw new IllegalArgumentException("UserGroup.id cannot be null");
+			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX+index, Long.parseLong(ug.getId()));
+			index++;
+		}
+		StringBuilder builder = new StringBuilder();
+		builder.append("inner join (");
+		builder.append(sql);
+		builder.append(") ");
+		builder.append(SqlConstants.AUTH_FILTER_ALIAS);
+		buildJoinOn(builder, SqlConstants.PRIMARY_ALIAS,
+				SqlConstants.COL_NODE_BENEFACTOR_ID, SqlConstants.AUTH_FILTER_ALIAS, SqlConstants.ACL_OWNER_ID_COLUMN);
+		return builder.toString();
+	}
+
 	/**
 	 * Execute a given SQL query using the JDO template.
 	 * @param <T>
@@ -415,7 +467,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @param twoAlias
 	 * @param twoColumn
 	 */
-	private void buildJoinOn(StringBuilder builder, String oneAlias,
+	private static void buildJoinOn(StringBuilder builder, String oneAlias,
 			String oneColumn, String twoAlias, String twoColumn) {
 		builder.append(" on (");
 		builder.append(oneAlias);

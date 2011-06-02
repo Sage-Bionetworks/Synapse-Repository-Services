@@ -113,25 +113,6 @@ public class JDOAccessControlListDAOImpl extends JDOBaseDAOImpl<AccessControlLis
 		"this.resource.id==pResourceId && this.resourceAccess.contains(vResourceAccess) "+
 		"&& pGroups.contains(vResourceAccess.userGroupId) "+
 		"&& vResourceAccess.accessType.contains(pAccessType)";
-	
-	/*
-	 * select acl.id from jdoaccesscontrollist acl, jdoresourceaccess ra, access_type at
-	 * where
-	 * ra.oid_id=acl.id and ra.groupId in :groups and at.oid_id=ra.id and at.type=:type
-	 */
-	private static final String AUTHORIZATION_SQL_1 = 
-		"select distinct acl."+SqlConstants.ACL_OWNER_ID_COLUMN+" from "+SqlConstants.TABLE_ACCESS_CONTROL_LIST+" acl, "+
-		SqlConstants.TABLE_RESOURCE_ACCESS+" ra, "+
-		SqlConstants.TABLE_RESOURCE_ACCESS_TYPE+" at where ra."+
-		SqlConstants.COL_RESOURCE_ACCESS_OWNER+
-		"=acl."+SqlConstants.COL_ACL_ID+" and (ra."+SqlConstants.COL_USER_GROUP_ID+
-		" in (";
-
-	private static final String AUTHORIZATION_SQL_2 = 
-		"))"+
-		" and at."+SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID+"=ra."+SqlConstants.COL_NODE_ID+
-		" and at."+SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT+"=:type";
-
 
 	/**
 	 * @return the SQL to find the root-accessible nodes that a specified user-group list can access
@@ -141,13 +122,7 @@ public class JDOAccessControlListDAOImpl extends JDOBaseDAOImpl<AccessControlLis
 	 * for a collection of length n.  :^(
 	 */
 	public String authorizationSQL(int n) {
-		StringBuilder sb = new StringBuilder(AUTHORIZATION_SQL_1);
-		for (int i=0; i<n; i++) {
-			if (i>0) sb.append(",");
-			sb.append(":g"+i);
-		}
-		sb.append(AUTHORIZATION_SQL_2);
-		return sb.toString();
+		return AuthorizationSqlUtil.authorizationSQL(n);
 	}
 	
 
