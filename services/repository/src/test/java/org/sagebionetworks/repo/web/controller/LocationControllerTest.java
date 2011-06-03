@@ -57,7 +57,8 @@ public class LocationControllerTest {
 		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()
 				+ "/dataset", DatasetControllerTest.SAMPLE_DATASET);
 
-		layer = helper.testCreateJsonEntity(dataset.getString("layer"), LayerControllerTest.SAMPLE_LAYER);
+		layer = helper.testCreateJsonEntity(dataset.getString("layer"),
+				LayerControllerTest.SAMPLE_LAYER);
 
 		datasetLocation = new JSONObject(SAMPLE_LOCATION).put("parentId",
 				dataset.getString("id"));
@@ -155,9 +156,8 @@ public class LocationControllerTest {
 
 		// TODO fix this part of the test to just ensure that the layer has the
 		// correct number of location children
-		JSONObject layerLocations = helper.testGetJsonEntity("/dataset/"
-				+ dataset.getString("id") + "/layer/" + layer.getString("id")
-				+ "/locations");
+		JSONObject layerLocations = helper.testGetJsonEntity(
+				layer.getString("uri") + "/locations");
 		assertNotNull(layerLocations);
 		assertEquals(1, layerLocations.getJSONArray("locations").length());
 	}
@@ -351,13 +351,15 @@ public class LocationControllerTest {
 		JSONObject location = helper.testGetJsonEntity(newLocation
 				.getString("uri"));
 		assertEquals(newLocation.getString("id"), location.getString("id"));
-		assertTrue(0 < location.getString("path").indexOf("unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz"));
-		
+		assertTrue(0 < location.getString("path").indexOf(
+				"unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz"));
+
 		// Modify that location
 		location.put("path",
 				"unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.zip");
 		JSONObject updatedLocation = helper.testUpdateJsonEntity(location);
-		assertTrue(0 < updatedLocation.getString("path").indexOf("unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.zip"));
+		assertTrue(0 < updatedLocation.getString("path").indexOf(
+				"unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.zip"));
 
 		// Modify the location we got earlier a second time
 		location.put("path",
