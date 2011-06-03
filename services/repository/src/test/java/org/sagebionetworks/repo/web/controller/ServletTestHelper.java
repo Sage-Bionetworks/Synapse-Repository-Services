@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.Collection;
+import java.util.Map;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -15,6 +17,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.http.HttpStatus;
@@ -418,5 +421,55 @@ public class ServletTestHelper {
 		}
 	}
 
+	/**
+	 * Get the principals
+	 * @param dispatchServlet
+	 * @param userId
+	 * @return the principals
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public static Collection<Map<String,Object>> getUsers(HttpServlet dispatchServlet, String userId) throws ServletException, IOException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.USER);
+		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		dispatchServlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		if(response.getStatus() != HttpStatus.OK.value()){
+			throw new IllegalArgumentException(response.getErrorMessage());
+		}
+		@SuppressWarnings("unchecked")
+		Collection<Map<String,Object>> us = objectMapper.readValue(response.getContentAsString(),Collection.class);
+		return us;
+	}
+	
+	/**
+	 * Get the principals
+	 * @param dispatchServlet
+	 * @param userId
+	 * @return the principals
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public static Collection<Map<String,Object>> getGroups(HttpServlet dispatchServlet, String userId) throws ServletException, IOException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.USERGROUP);
+		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		dispatchServlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		if(response.getStatus() != HttpStatus.OK.value()){
+			throw new IllegalArgumentException(response.getErrorMessage());
+		}
+		@SuppressWarnings("unchecked")
+		Collection<Map<String,Object>> us = objectMapper.readValue(response.getContentAsString(),Collection.class);
+		return us;
+	}
+	
 
 }

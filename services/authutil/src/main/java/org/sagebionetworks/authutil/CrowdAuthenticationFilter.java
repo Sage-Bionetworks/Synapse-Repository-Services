@@ -1,6 +1,8 @@
 package org.sagebionetworks.authutil;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,6 +18,8 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.repo.model.UserInfo;
+
 /**
  *
  */
@@ -25,6 +29,7 @@ public class CrowdAuthenticationFilter implements Filter {
 	
 	private boolean allowAnonymous = false;
 	private boolean acceptAllCerts = true;
+	private boolean usingMockCrowd;
 	
 	CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 	
@@ -40,8 +45,21 @@ public class CrowdAuthenticationFilter implements Filter {
 		resp.getWriter().println("{\"reason\", \"The session token provided was missing, invalid or expired.\"}");
 	}
 	
-	private boolean usingMockCrowd;
 	
+	private static Map<String,String> tokenCache = null; // maps authenticated tokens to userIds
+	private static Long cacheTimeout = null;
+	private static Date lastCacheDump = null;
+	
+	private void initTokenCache() {
+		tokenCache = Collections.synchronizedMap(new HashMap<String,String>());
+		lastCacheDump = new Date();
+		String s = System.getProperty(AuthUtilConstants.AUTH_CACHE_TIMEOUT_MILLIS);
+		if (s!=null && s.length()>0) {
+			cacheTimeout = Long.parseLong(s);
+		} else {
+			cacheTimeout = AuthUtilConstants.AUTH_CACHE_TIMEOUT_DEFAULT;
+		}
+	}
 
 	@Override
 	public void doFilter(ServletRequest servletRqst, ServletResponse servletResponse,
@@ -61,7 +79,21 @@ public class CrowdAuthenticationFilter implements Filter {
 				if (usingMockCrowd) {
 					userId= sessionToken;
 				} else {
-					userId = crowdAuthUtil.revalidate(sessionToken);
+					userId = null;
+					if (cacheTimeout>0) { // then use cache
+						Date now = new Date();
+						if (lastCacheDump.getTime()+cacheTimeout<now.getTime()) {
+							tokenCache.clear();
+							lastCacheDump = now;
+						}
+						userId = tokenCache.get(sessionToken);
+					}
+					if (userId==null) { // not using cache or not found in cache
+						userId = crowdAuthUtil.revalidate(sessionToken);
+						if (cacheTimeout>0) {
+							tokenCache.put(sessionToken, userId);
+						}
+					}
 				}
 			} catch (Exception xee) {
 				reject(req, (HttpServletResponse)servletResponse);
@@ -85,6 +117,7 @@ public class CrowdAuthenticationFilter implements Filter {
 
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
+		initTokenCache();
 		@SuppressWarnings("unchecked")
         Enumeration<String> paramNames = filterConfig.getInitParameterNames();
         while (paramNames.hasMoreElements()) {

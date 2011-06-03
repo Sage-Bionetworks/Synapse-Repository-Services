@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -25,6 +27,21 @@ public class UserManagerImpl implements UserManager {
 	@Autowired
 	UserGroupDAO userGroupDAO;
 	
+	private static Map<String,UserInfo> userInfoCache = null;
+	private static Long cacheTimeout = null;
+	private static Date lastCacheDump = null;
+	
+	public UserManagerImpl() {
+		userInfoCache = Collections.synchronizedMap(new HashMap<String,UserInfo>());
+		lastCacheDump = new Date();
+		String s = System.getProperty(AuthUtilConstants.AUTH_CACHE_TIMEOUT_MILLIS);
+		if (s!=null && s.length()>0) {
+			cacheTimeout = Long.parseLong(s);
+		} else {
+			cacheTimeout = AuthUtilConstants.AUTH_CACHE_TIMEOUT_DEFAULT;
+		}
+	}
+	
 	// for testing
 	public void setUserDAO(UserDAO userDAO) {this.userDAO=userDAO;}
 	public void setUserGroupDAO(UserGroupDAO userGroupDAO) {this.userGroupDAO=userGroupDAO;}
@@ -44,6 +61,15 @@ public class UserManagerImpl implements UserManager {
 	 * and is mirrored in the system managing group permissions.
 	 */
 	public UserInfo getUserInfo(String userName) throws DatastoreException, NotFoundException {
+		if (cacheTimeout>0) { // then use cache
+			Date now = new Date();
+			if (lastCacheDump.getTime()+cacheTimeout<now.getTime()) {
+				userInfoCache.clear();
+				lastCacheDump = now;
+			}
+			UserInfo ui = userInfoCache.get(userName);
+			if (ui!=null) return ui;
+		}
 		User user = userDAO.getUser(userName);
 		Set<UserGroup> groups = new HashSet<UserGroup>();
 		UserGroup individualGroup = null;
@@ -101,6 +127,9 @@ public class UserManagerImpl implements UserManager {
 		userInfo.setIndividualGroup(individualGroup);
 		userInfo.setUser(user);
 		userInfo.setGroups(groups);
+		if (cacheTimeout>0) { // then use cache
+			userInfoCache.put(userName, userInfo);
+		}
 		return userInfo;
 	}	
 	

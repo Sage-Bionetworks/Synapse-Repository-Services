@@ -11,6 +11,7 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -18,6 +19,9 @@ import org.junit.Test;
  */
 public class CrowdAuthenticationFilterTest {
 	private final Map<String,String> filterParams = new HashMap<String, String>();
+	
+	private CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
+
 
 	/**
 	 * @throws Exception
@@ -49,6 +53,23 @@ public class CrowdAuthenticationFilterTest {
 			}
 			public ServletContext getServletContext() {return null;}
 		});
+	}
+	
+	// this is a performance test, not necessary to run in the regression test suite
+	@Ignore
+	@Test
+	public void testMultiRevalidations() throws Exception {
+		User creds = new User();
+		creds.setEmail("demouser@sagebase.org");
+		Session session = crowdAuthUtil.authenticate(creds, false);
+		int n = 100;
+		long start = System.currentTimeMillis();
+		String userId="";
+		for (int i=0; i<n; i++) {
+			userId = crowdAuthUtil.revalidate(session.getSessionToken());
+		}
+		System.out.println("userId="+userId+" time for "+n+" revalidation events="+
+				(System.currentTimeMillis()-start)/1000L +" seconds.");
 	}
 
 }
