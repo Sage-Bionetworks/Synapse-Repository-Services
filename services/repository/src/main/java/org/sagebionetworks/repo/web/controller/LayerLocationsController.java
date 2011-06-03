@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.LayerLocations;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.util.LocationHelper2;
+import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.util.SchemaHelper;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.GenericEntityController;
@@ -50,7 +50,7 @@ public class LayerLocationsController extends BaseController{
 	@Autowired
 	GenericEntityController entityController;
 	@Autowired
-	LocationHelper2 locationHelper;
+	LocationHelper locationHelper;
 
 	/*******************************************************************************
 	 * LayerLocations RU handlers
