@@ -57,8 +57,7 @@ public class LocationControllerTest {
 		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()
 				+ "/dataset", DatasetControllerTest.SAMPLE_DATASET);
 
-		layer = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ dataset.getString("layer"), LayerControllerTest.SAMPLE_LAYER);
+		layer = helper.testCreateJsonEntity(dataset.getString("layer"), LayerControllerTest.SAMPLE_LAYER);
 
 		datasetLocation = new JSONObject(SAMPLE_LOCATION).put("parentId",
 				dataset.getString("id"));
