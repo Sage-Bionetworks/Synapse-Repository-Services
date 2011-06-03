@@ -193,9 +193,9 @@ public class JDOAccessControlListDAOImplTest {
 		Collection<Long> groupIds = new HashSet<Long>();
 		groupIds.add(KeyFactory.stringToKey(group.getId()));
 		System.out.println("testAuthorizationSQL: all ACLs: ");
-		for (AccessControlList acl : accessControlListDAO.getAll()) {
-			System.out.println("\t"+acl);
-		}
+//		for (AccessControlList acl : accessControlListDAO.getAll()) {
+//			System.out.println("\t"+acl);
+//		}
 		Collection<Object> nodeIds = 
 			accessControlListDAO.execAuthorizationSQL(
 					groupIds, 

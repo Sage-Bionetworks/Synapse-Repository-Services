@@ -42,4 +42,18 @@ public class AuthUtilConstants {
 	 */
 	public static final String USER_DAO_INTEGRATION_TEST_SWITCH = "org.sagebionetworks.mockCrowdDAOClass";
 	
+	
+	/**
+	 * The name of a system property which indicates the interval at which that the Authentication filter
+	 * and the UserManager should invalidate the cached the auth' info, in units of milliseconds.
+	 * 
+	 * A value of zero means that caching is not used.
+	 */
+	public static final String AUTH_CACHE_TIMEOUT_MILLIS = "org.sagebionetworks.authCacheTimeoutMillis";
+	
+	/**
+	 * The default auth cache invalidation interval
+	 */
+	public static final long AUTH_CACHE_TIMEOUT_DEFAULT = 60000L;
+	
 }

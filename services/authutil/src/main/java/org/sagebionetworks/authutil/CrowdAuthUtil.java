@@ -36,22 +36,11 @@ import org.xml.sax.InputSource;
 public class CrowdAuthUtil {
 	private static final Logger log = Logger.getLogger(CrowdAuthUtil.class.getName());
 
-	private String protocol; // http or https
-	private String host; // the Crowd host
-	private int port; // the Crowd port
-	
-//	   a system parameter for a special userId that's used for integration testing
-//	   we need a way to specify a 'back door' userId for integration testing
-//	   visible both both the the authentication servlet and the authentication filter
-//	   this should not be present in the production deployment
-//	   The behavior is as follows
-//	  	If passed to the user creation service, there is no confirmation email generated.
-//	  	Instead the userId becomes the password.
-//	  	If passed as a session token, then no session validation takes place in the 
-//	  	authentication filter.  Instead the userId is passed along as a request param.
-//	private String integrationTestUser;
-	
 	public CrowdAuthUtil() {
+		crowdUrl = System.getProperty("org.sagebionetworks.crowdUrl");
+		if (crowdUrl!=null && crowdUrl.length()>0) return;
+		
+		// else read it from the properties file
         Properties props = new Properties();
         InputStream is = CrowdAuthUtil.class.getClassLoader().getResourceAsStream("authutil.properties");
         try {
@@ -59,47 +48,15 @@ public class CrowdAuthUtil {
         } catch (IOException e) {
         	throw new RuntimeException(e);
         }
-        setProtocol(props.getProperty("protocol"));
-        setHost(props.getProperty("host"));
-        setPort(Integer.parseInt(props.getProperty("port")));
-//        setIntegrationTestUser(props.getProperty("integrationTestUser"));
-	}
 
+        crowdUrl = props.getProperty("org.sagebionetworks.crowdUrl");
+	}
 	
-//	public String getIntegrationTestUser() {
-//		return integrationTestUser;
-//	}
-//
-//	public void setIntegrationTestUser(String integrationTestUser) {
-//		this.integrationTestUser = integrationTestUser;
-//	}
 
-	public String getProtocol() {
-		return protocol;
-	}
+	private String crowdUrl; // e.g. https://ec2-50-16-158-220.compute-1.amazonaws.com:8443
+	
 
-	public void setProtocol(String protocol) {
-		this.protocol = protocol;
-	}
-
-	public String getHost() {
-		return host;
-	}
-
-	public void setHost(String host) {
-		this.host = host;
-	}
-
-	public int getPort() {
-		return port;
-	}
-
-	public void setPort(int port) {
-		this.port = port;
-	}
-
-
-	private static final String msg1 = //"<?xml version='1.0' encoding='UTF-8'?>"+
+	private static final String msg1 = 
 		"<authentication-context>"+
 		"<username>";
 		
@@ -109,10 +66,6 @@ public class CrowdAuthUtil {
 	
 	// used for validation and also for re-validation
 	private static final String msg4 = "<validation-factors>"+
-//		"<validation-factor>"+
-//		"<name>remote_address</name>"+
-//		"<value>140.107.179.234</value>"+
-//		"</validation-factor>"+
 	"</validation-factors>";
 	
 	private static final String msg5 =  "</authentication-context>";
@@ -151,7 +104,7 @@ public class CrowdAuthUtil {
 	}
 	
 	public String urlPrefix() {
-		return protocol+"://"+host+":"+port+"/crowd/rest/usermanagement/latest";
+		return crowdUrl+"/crowd/rest/usermanagement/latest";
 	}
 	
 	/**
@@ -481,7 +434,7 @@ public class CrowdAuthUtil {
 	
 	public void setUserAttributes(String userId, Map<String,Collection<String>> attributes) throws IOException, NotFoundException {
 		// API is here: http://confluence.atlassian.com/display/CROWDDEV/Crowd+REST+Resources
-		// not that format of body of POST is not explicitly documented.  May have to infer it from sample.
+		// note that format of body of POST is not explicitly documented.  May have to infer it from sample.
 		//
 		// To get sample:
 		// curl -u platform:platform-pw -H "Accept: application/xml" -H "Content-Type: application/xml" -v -k  -X GET "https://ec2-50-16-158-220.compute-1.amazonaws.com:8443/crowd/rest/usermanagement/1/user/attribute?username=demouser"
