@@ -150,6 +150,24 @@ public class UrlHelpers {
 	public static final String PROJECT_ANNOTATIONS = PROJECT_ID+ANNOTATIONS;
 
 	/**
+	 * URL suffix for location entity
+	 */
+	public static final String LOCATION = "/location";
+	/**
+	 * URL suffix for location entity
+	 */
+	public static final String LOCATION_ID = LOCATION+ID;
+	/**
+	 * URL to get a location's ACL: /location/{id}/acl
+	 */
+	public static final String LOCATION_ACL = LOCATION_ID+ACL;
+	
+	/**
+	 * URL for a location's annotations.
+	 */
+	public static final String LOCATION_ANNOTATIONS = LOCATION_ID+ANNOTATIONS;
+
+	/**
 	 * URL suffix for S3 location metadata
 	 */
 	public static final String S3_LOCATION = "/awsS3Location";
@@ -242,6 +260,7 @@ public class UrlHelpers {
 		model2url.put(Dataset.class, DATASET);
 		model2url.put(InputDataLayer.class, LAYER);
 		model2url.put(Project.class, PROJECT);
+		model2url.put(LayerLocation.class, LOCATION);
 //		model2url.put(User.class, USER);
 //		model2url.put(UserGroup.class, USERGROUP);
 		MODEL2URL = Collections.unmodifiableMap(model2url);
