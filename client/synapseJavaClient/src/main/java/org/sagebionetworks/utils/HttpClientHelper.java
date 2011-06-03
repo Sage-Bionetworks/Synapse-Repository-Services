@@ -34,7 +34,7 @@ import org.apache.http.util.EntityUtils;
 public class HttpClientHelper {
 
 	private static final HttpClient webClient;
-	private static final long MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH = 1024 * 64;
+	private static final int MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH = 1024 * 1024;
 
 	static {
 		final MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
@@ -139,11 +139,13 @@ public class HttpClientHelper {
 				verboseMessage.append("\nRequest Content: " + requestContent);
 			}
 			verboseMessage.append("\nResponse Content: "
-					+ method.getResponseBodyAsString());
+					+ method.getResponseBodyAsString(MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH));
+			
+			
 			throw new HttpClientHelperException(verboseMessage.toString(),
 					method);
 		}
-		return method.getResponseBodyAsString();
+		return method.getResponseBodyAsString(MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH);
 	}
 
 	/**
