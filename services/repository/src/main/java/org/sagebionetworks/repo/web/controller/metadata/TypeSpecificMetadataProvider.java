@@ -3,6 +3,9 @@ package org.sagebionetworks.repo.web.controller.metadata;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Base;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * <p>
@@ -20,20 +23,22 @@ import org.sagebionetworks.repo.model.Base;
  * @param <T>
  */
 public interface TypeSpecificMetadataProvider<T extends Base> {
-	
+
 	/**
 	 * Validate that the passed entity.
 	 * @param entity
-	 * @return
+	 * @throws InvalidModelException 
 	 */
-	public void validateEntity(T entity);
+	public void validateEntity(T entity) throws InvalidModelException;
 	
 	/**
 	 * This method will be called before the given entity is returned to the client.
 	 * Any type specific metadata should be added here.
 	 * @param entity
 	 * @param request
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
-	public void addTypeSpecificMetadata(T entity, HttpServletRequest request);
+	public void addTypeSpecificMetadata(T entity, HttpServletRequest request) throws DatastoreException, NotFoundException;
 
 }

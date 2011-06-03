@@ -62,7 +62,7 @@ public class DefaultController extends BaseController {
 	 * @throws IOException - Thrown if there is a failure to read the header.
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { UrlHelpers.PROJECT }, method = RequestMethod.POST)
+	@RequestMapping(value = { UrlHelpers.PROJECT, UrlHelpers.LOCATION }, method = RequestMethod.POST)
 	public @ResponseBody
 	<T extends Base> T createEntity(
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
@@ -99,7 +99,7 @@ public class DefaultController extends BaseController {
 	 * @throws UnauthorizedException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.PROJECT_ID }, method = RequestMethod.GET)
+	@RequestMapping(value = { UrlHelpers.PROJECT_ID, UrlHelpers.LOCATION_ID }, method = RequestMethod.GET)
 	public @ResponseBody
 	<T extends Base> T getEntity(
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
@@ -135,7 +135,7 @@ public class DefaultController extends BaseController {
 	 * @throws IOException - There is a problem reading the contents.
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.PROJECT_ID }, method = RequestMethod.PUT)
+	@RequestMapping(value = { UrlHelpers.PROJECT_ID, UrlHelpers.LOCATION_ID }, method = RequestMethod.PUT)
 	public @ResponseBody
 	<T extends Base> T updateEntity(
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
@@ -173,7 +173,7 @@ public class DefaultController extends BaseController {
 	 * @throws UnauthorizedException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.PROJECT_ANNOTATIONS }, method = RequestMethod.GET)
+	@RequestMapping(value = { UrlHelpers.PROJECT_ANNOTATIONS, UrlHelpers.LOCATION_ANNOTATIONS }, method = RequestMethod.GET)
 	public @ResponseBody
 	Annotations getEntityAnnotations(
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
@@ -200,7 +200,7 @@ public class DefaultController extends BaseController {
 	 * @throws InvalidModelException - Thrown if the passed entity contents doe not match the expected schema.
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.PROJECT_ANNOTATIONS }, method = RequestMethod.PUT)
+	@RequestMapping(value = { UrlHelpers.PROJECT_ANNOTATIONS, UrlHelpers.LOCATION_ANNOTATIONS }, method = RequestMethod.PUT)
 	public @ResponseBody
 	Annotations updateEntityAnnotations(
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
@@ -221,7 +221,7 @@ public class DefaultController extends BaseController {
 	 * @throws UnauthorizedException
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = { UrlHelpers.PROJECT_ID }, method = RequestMethod.DELETE)
+	@RequestMapping(value = { UrlHelpers.PROJECT_ID, UrlHelpers.LOCATION_ID }, method = RequestMethod.DELETE)
 	public void deleteEntity(
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id) throws NotFoundException,
@@ -246,7 +246,7 @@ public class DefaultController extends BaseController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.PROJECT }, method = RequestMethod.GET)
+	@RequestMapping(value = { UrlHelpers.PROJECT, UrlHelpers.LOCATION }, method = RequestMethod.GET)
 	public @ResponseBody
 	<T extends Base> PaginatedResults<T> getEntities(
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
@@ -282,7 +282,7 @@ public class DefaultController extends BaseController {
 	 * @throws DatastoreException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value ={ UrlHelpers.PROJECT_ID + UrlHelpers.SCHEMA }, method = RequestMethod.GET)
+	@RequestMapping(value ={ UrlHelpers.PROJECT_ID + UrlHelpers.SCHEMA, UrlHelpers.LOCATION_ID + UrlHelpers.SCHEMA }, method = RequestMethod.GET)
 	public @ResponseBody
 	JsonSchema getEntitySchema(@PathVariable String id, HttpServletRequest request) throws DatastoreException {
 		ObjectType type = ObjectType.getTypeForUrl(request.getRequestURI());
@@ -297,7 +297,7 @@ public class DefaultController extends BaseController {
 	 * @throws DatastoreException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.PROJECT + UrlHelpers.SCHEMA }, method = RequestMethod.GET)
+	@RequestMapping(value = { UrlHelpers.PROJECT + UrlHelpers.SCHEMA, UrlHelpers.LOCATION + UrlHelpers.SCHEMA }, method = RequestMethod.GET)
 	public @ResponseBody
 	JsonSchema getEntitiesSchema(HttpServletRequest request) throws DatastoreException {
 		ObjectType type = ObjectType.getTypeForUrl(request.getRequestURI());
@@ -321,6 +321,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.DATASET_ACL,
 			UrlHelpers.LAYER_ACL,
 			UrlHelpers.PROJECT_ACL,
+			UrlHelpers.LOCATION_ACL,
 			UrlHelpers.LOCATIONS_ACL
 			}, method = RequestMethod.POST)	
 	public @ResponseBody
@@ -350,6 +351,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.DATASET_ACL,
 			UrlHelpers.LAYER_ACL,
 			UrlHelpers.PROJECT_ACL,
+			UrlHelpers.LOCATION_ACL,
 			UrlHelpers.LOCATIONS_ACL
 			}, method = RequestMethod.GET)
 	public @ResponseBody
@@ -377,6 +379,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.DATASET_ACL,
 			UrlHelpers.LAYER_ACL,
 			UrlHelpers.PROJECT_ACL,
+			UrlHelpers.LOCATION_ACL,
 			UrlHelpers.LOCATIONS_ACL
 			}, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -402,6 +405,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.DATASET_ACL,
 			UrlHelpers.LAYER_ACL,
 			UrlHelpers.PROJECT_ACL,
+			UrlHelpers.LOCATION_ACL,
 			UrlHelpers.LOCATIONS_ACL
 			}, method = RequestMethod.DELETE)
 	public void deleteEntityACL(

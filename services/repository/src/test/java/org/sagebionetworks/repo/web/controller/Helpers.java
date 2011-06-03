@@ -67,7 +67,7 @@ public class Helpers {
 	private UserInfo userInfo;
 	private LinkedList<TestStateItem> testState;
 	private Boolean isIntegrationTest = false;
-	
+
 	@Autowired
 	public UserProvider testUserProvider;
 
@@ -114,8 +114,10 @@ public class Helpers {
 			// Create a Spring MVC DispatcherServlet so that we can test our URL
 			// mapping, request format, response format, and response status
 			// code.
-			MockServletConfig servletConfig = new MockServletConfig("repository");
-			servletConfig.addInitParameter("contextConfigLocation", "classpath:test-context.xml");
+			MockServletConfig servletConfig = new MockServletConfig(
+					"repository");
+			servletConfig.addInitParameter("contextConfigLocation",
+					"classpath:test-context.xml");
 			servlet = new DispatcherServlet();
 			servlet.init(servletConfig);
 		}
@@ -145,16 +147,14 @@ public class Helpers {
 
 	}
 
-	/**
-	 * Add a user id to be used in requests for the lifetime of this helper
-	 * object
-	 * 
-	 * @param userId
-	 */
-//	public void setUserId(String userId) {
-//		this.userId = userId;
-//	}
+	public String getUserId() {
+		return this.userId;
+	}
 
+	public UserInfo getUserInfo() {
+		return userInfo;
+	}
+	
 	/**
 	 * Creation of JSON entities
 	 * 
@@ -178,12 +178,13 @@ public class Helpers {
 				+ new JSONObject(jsonRequestContent).toString(2));
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
-//		assertEquals("Reason: "+response.getErrorMessage(),HttpStatus.CREATED.value(), response.getStatus());
-		assertEquals("Reason: "+
-				
-				(response.getErrorMessage()==null ? response.getContentAsString(): response.getErrorMessage())
-				
-				,HttpStatus.CREATED.value(), response.getStatus());
+		assertEquals("Reason: "
+				+
+
+				(response.getErrorMessage() == null ? response
+						.getContentAsString() : response.getErrorMessage())
+
+		, HttpStatus.CREATED.value(), response.getStatus());
 		JSONObject results = new JSONObject(response.getContentAsString());
 		log.info(results.toString(JSON_INDENT));
 
@@ -216,12 +217,11 @@ public class Helpers {
 	 * @throws Exception
 	 */
 	public void testCreateNoResponse(String requestUrl,
-			String jsonRequestContent/*, Map<String,String> headers*/) throws Exception {
+			String jsonRequestContent) throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
-//		for (String s : headers.keySet()) request.addHeader(s, headers.get(s));
 		request.setRequestURI(requestUrl);
 		if (null != userId)
 			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
@@ -240,29 +240,31 @@ public class Helpers {
 	 * @throws Exception
 	 */
 	public JSONObject testGetJsonEntity(String requestUrl) throws Exception {
-			MockHttpServletRequest request = new MockHttpServletRequest();
-			MockHttpServletResponse response = new MockHttpServletResponse();
-			request.setMethod("GET");
-			request.addHeader("Accept", "application/json");
-			request.setRequestURI(requestUrl);
-			if (null != userId)
-				request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
-			servlet.service(request, response);
-			log.info("Results: " + response.getContentAsString());
-			assertEquals("helper-servletprefix="+getServletPrefix()+", requestUrl="+requestUrl, HttpStatus.OK.value(), response.getStatus());
-			JSONObject results = new JSONObject(response.getContentAsString());
-			log.info(results.toString(JSON_INDENT));
-	
-			// Check default properties
-			assertExpectedEntityProperties(results);
-	
-			// Check our response headers
-			String etagHeader = (String) response
-					.getHeader(ServiceConstants.ETAG_HEADER);
-			assertNotNull(etagHeader);
-			assertEquals(etagHeader, results.getString("etag"));
-	
-			return results;
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(requestUrl);
+		if (null != userId)
+			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		servlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		assertEquals("helper-servletprefix=" + getServletPrefix()
+				+ ", requestUrl=" + requestUrl, HttpStatus.OK.value(), response
+				.getStatus());
+		JSONObject results = new JSONObject(response.getContentAsString());
+		log.info(results.toString(JSON_INDENT));
+
+		// Check default properties
+		assertExpectedEntityProperties(results);
+
+		// Check our response headers
+		String etagHeader = (String) response
+				.getHeader(ServiceConstants.ETAG_HEADER);
+		assertNotNull(etagHeader);
+		assertEquals(etagHeader, results.getString("etag"));
+
+		return results;
 	}
 
 	/**
@@ -309,44 +311,22 @@ public class Helpers {
 
 	/**
 	 * This method calls a URI with the PUT method, without any payload
+	 * 
 	 * @param uri
-	 * @return the json object holding the updated entity
 	 * @throws Exception
 	 */
-	public void testUpdate(String uri)
-			throws Exception {
+	public void testUpdateNoPayload(String uri) throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
-//		request.addHeader(ServiceConstants.ETAG_HEADER, jsonEntity
-//				.getString("etag"));
 		request.setRequestURI(uri);
 		if (null != userId)
 			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-//		request.setContent(jsonEntity.toString().getBytes("UTF-8"));
-//		log.info("About to send: " + jsonEntity.toString(JSON_INDENT));
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.CREATED.value(), response.getStatus());
-//		JSONObject results = new JSONObject(response.getContentAsString());
-//		log.info(results.toString(JSON_INDENT));
-//
-//		// Check default properties
-//		assertExpectedEntityProperties(results);
-//		assertEquals(jsonEntity.getString("id"), results.getString("id"));
-//		assertEquals(jsonEntity.getString("uri"), results.getString("uri"));
-//
-//		// Check our response headers
-//		String etagHeader = (String) response
-//				.getHeader(ServiceConstants.ETAG_HEADER);
-//		assertNotNull(etagHeader);
-//		assertEquals(etagHeader, results.getString("etag"));
-//
-//		// Make sure we got an updated etag
-//		assertFalse(etagHeader.equals(jsonEntity.getString("etag")));
-
 		return;
 	}
 
@@ -357,12 +337,14 @@ public class Helpers {
 	public void testDeleteJsonEntity(String requestUrl) throws Exception {
 		testDeleteJsonEntity(requestUrl, true);
 	}
-	
+
 	/**
 	 * @param requestUrl
-	* @throws Exception
+	 * @param tryGet
+	 * @throws Exception
 	 */
-	public void testDeleteJsonEntity(String requestUrl, boolean tryGet) throws Exception {
+	public void testDeleteJsonEntity(String requestUrl, boolean tryGet)
+			throws Exception {
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
@@ -373,10 +355,12 @@ public class Helpers {
 			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
-		assertEquals(requestUrl+" -> "+response.getContentAsString(), HttpStatus.NO_CONTENT.value(), response.getStatus());
+		assertEquals(requestUrl + " -> " + response.getContentAsString(),
+				HttpStatus.NO_CONTENT.value(), response.getStatus());
 		assertEquals("", response.getContentAsString());
 
-		if (tryGet) testGetJsonEntityShouldFail(requestUrl, HttpStatus.NOT_FOUND);
+		if (tryGet)
+			testGetJsonEntityShouldFail(requestUrl, HttpStatus.NOT_FOUND);
 	}
 
 	/**
@@ -415,7 +399,8 @@ public class Helpers {
 		}
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
-		assertEquals("Reason: "+response.getErrorMessage(), HttpStatus.OK.value(), response.getStatus());
+		assertEquals("Reason: " + response.getErrorMessage(), HttpStatus.OK
+				.value(), response.getStatus());
 		JSONObject results = new JSONObject(response.getContentAsString());
 
 		// Check that the response has the correct structure
@@ -703,13 +688,13 @@ public class Helpers {
 		// epoch time.
 		// See
 		// http://wiki.fasterxml.com/JacksonFAQDateHandling?highlight=(jackson)|(date)
-		
+
 		// Start with a date with no milliseconds as they will be lost
 		// going to MySQL
 		Date now = new Date(1305050350000L);
 		DateTime aWhileBack = new DateTime("2010-10-01");
 
-		Long curationEvents[] = { now.getTime(), now.getTime()+100000,
+		Long curationEvents[] = { now.getTime(), now.getTime() + 100000,
 				aWhileBack.getMillis() };
 		JSONObject dateAnnotations = annotations
 				.getJSONObject("dateAnnotations");
@@ -775,14 +760,16 @@ public class Helpers {
 				annotations, HttpStatus.PRECONDITION_FAILED);
 		assertTrue(preconditionError
 				.getString("reason")
-				.endsWith("was updated since you last fetched it, retrieve it again and reapply the update"));
+				.endsWith(
+						"was updated since you last fetched it, retrieve it again and reapply the update"));
 
 		// Whitespace in annotation names is invalid
 		storedAnnotations.getJSONObject("stringAnnotations").put(
 				"tissue types", tissues);
 		JSONObject badRequestError = testUpdateJsonEntityShouldFail(
 				storedAnnotations, HttpStatus.BAD_REQUEST);
-		assertTrue(badRequestError.getString("reason").startsWith("Invalid annotation name"));
+		assertTrue(badRequestError.getString("reason").startsWith(
+				"Invalid annotation name"));
 	}
 
 	/**
@@ -859,13 +846,5 @@ public class Helpers {
 				request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
 			servlet.service(request, response);
 		}
-	}
-
-	public String getUserId() {
-		return this.userId;
-	}
-
-	public UserInfo getUserInfo() {
-		return userInfo;
 	}
 }
