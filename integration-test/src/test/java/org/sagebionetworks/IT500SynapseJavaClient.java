@@ -2,11 +2,9 @@ package org.sagebionetworks;
 
 import static org.junit.Assert.assertTrue;
 
-import java.net.MalformedURLException;
-
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 
@@ -23,38 +21,45 @@ public class IT500SynapseJavaClient {
 	private static Synapse synapse = null;
 
 	/**
-	 * @throws MalformedURLException 
+	 * @throws Exception
 	 * 
 	 */
 	@BeforeClass
-	public static void beforeClass() throws MalformedURLException {
+	public static void beforeClass() throws Exception {
 
 		synapse = new Synapse();
+		synapse.setRepositoryEndpoint(Helpers.getAuthServiceBaseUrl());
 		synapse.setRepositoryEndpoint(Helpers.getRepositoryServiceBaseUrl());
+		synapse.login(Helpers.getIntegrationTestUser(), Helpers
+				.getIntegrationTestUser());
 	}
 
 	/**
 	 * @throws Exception
 	 */
-	@Ignore
 	@Test
 	public void testJavaClientGetADataset() throws Exception {
 		JSONObject results = synapse.query("select * from dataset");
 
-		assertTrue(0 < results.getInt("totalNumberOfResults"));
-
-		int datasetId = results.getJSONArray("results").getJSONObject(0)
-				.getInt("dataset.id");
-
-		JSONObject dataset = synapse.getEntity("/dataset/" + datasetId);
-		assertTrue(dataset.has("annotations"));
+		assertTrue(0 <= results.getInt("totalNumberOfResults"));
 		
-		JSONObject annotations = synapse.getEntity(dataset.getString("annotations"));
-		assertTrue(annotations.has("stringAnnotations"));
-		assertTrue(annotations.has("dateAnnotations"));
-		assertTrue(annotations.has("longAnnotations"));
-		assertTrue(annotations.has("doubleAnnotations"));
-		assertTrue(annotations.has("blobAnnotations"));
+		JSONArray datasets = results.getJSONArray("results");
+
+		if (0 < datasets.length()) {
+			int datasetId = datasets.getJSONObject(0)
+					.getInt("dataset.id");
+
+			JSONObject dataset = synapse.getEntity("/dataset/" + datasetId);
+			assertTrue(dataset.has("annotations"));
+
+			JSONObject annotations = synapse.getEntity(dataset
+					.getString("annotations"));
+			assertTrue(annotations.has("stringAnnotations"));
+			assertTrue(annotations.has("dateAnnotations"));
+			assertTrue(annotations.has("longAnnotations"));
+			assertTrue(annotations.has("doubleAnnotations"));
+			assertTrue(annotations.has("blobAnnotations"));
+		}
 	}
 
 }

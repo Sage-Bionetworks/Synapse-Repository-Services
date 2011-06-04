@@ -19,10 +19,13 @@ public class IT550WikiGenerator {
 	/**
 	 * @throws Exception
 	 */
-	@Ignore
 	@Test
 	public void testCRUDWikiGenerator() throws Exception {
-		String args[] = { Helpers.getRepositoryServiceBaseUrl() };
+		String args[] = { "--repoEndpoint",
+				Helpers.getRepositoryServiceBaseUrl(), "--authEndpoint",
+				Helpers.getAuthServiceBaseUrl(), "--username",
+				Helpers.getIntegrationTestUser(), "--password",
+				Helpers.getIntegrationTestUser() };
 		CRUDWikiGenerator.main(args);
 	}
 
@@ -32,7 +35,11 @@ public class IT550WikiGenerator {
 	@Ignore
 	@Test
 	public void testReadOnlyWikiGenerator() throws Exception {
-		String args[] = { Helpers.getRepositoryServiceBaseUrl() };
+		String args[] = { "--repoEndpoint",
+				Helpers.getRepositoryServiceBaseUrl(), "--authEndpoint",
+				Helpers.getAuthServiceBaseUrl(), "--username",
+				Helpers.getIntegrationTestUser(), "--password",
+				Helpers.getIntegrationTestUser() };
 		ReadOnlyWikiGenerator.main(args);
 	}
 }
