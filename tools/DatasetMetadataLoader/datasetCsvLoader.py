@@ -36,11 +36,6 @@ CSV_TO_PRIMARY_FIELDS = {
 
 CSV_SKIP_FIELDS = ["db_id","user_agreement_file_path", "readme_file_path"];
 
-HEADERS = {
-    "Content-type": "application/json",
-    "Accept": "application/json",
-    }
-
 #-------------------[ Global Variables ]----------------------
 
 # Command line arguments

@@ -49,8 +49,7 @@ public class ReadOnlyWikiGenerator {
 	 */
 	public static void main(String[] args) throws Exception {
 
-		// TODO proper command line arg parser
-		WikiGenerator wiki = new WikiGenerator(args[0], args[1], args[2], args[3]);
+		WikiGenerator wiki = WikiGenerator.createWikiGeneratorFromArgs(args);
 		
 		log.info("h1. Query API");
 		log.info("The Query API is loosely modeled after Facebook's [Query Language|https://developers.facebook.com/docs/reference/fql/].");

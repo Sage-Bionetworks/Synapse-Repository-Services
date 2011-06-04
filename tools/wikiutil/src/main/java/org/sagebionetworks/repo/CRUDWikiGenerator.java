@@ -35,8 +35,7 @@ public class CRUDWikiGenerator {
 	 */
 	public static void main(String[] args) throws Exception {
 
-		// TODO proper command line arg parser
-		WikiGenerator wiki = new WikiGenerator(args[0], args[1], args[2], args[3]);
+		WikiGenerator wiki = WikiGenerator.createWikiGeneratorFromArgs(args);
 
 		log.info("h2. Create/Update/Delete Examples");
 		log
