@@ -49,7 +49,9 @@ import org.springframework.mock.web.MockHttpServletResponse;
 public class IntegrationTestMockServlet extends HttpServlet {
 
 	private static final long serialVersionUID = 1L;
+	private static final int MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH = 1024 * 1024;
 	private static final HttpClient webClient;
+	
 
 	private final String serviceEndpoint;
 
@@ -129,10 +131,10 @@ public class IntegrationTestMockServlet extends HttpServlet {
 			response.setHeader(header.getName(), header.getValue());
 		}
 
-		String result = method.getResponseBodyAsString();
+		String result = method.getResponseBodyAsString(MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH);
 		if (null != result) {
 			PrintWriter writer = response.getWriter();
-			writer.write(method.getResponseBodyAsString());
+			writer.write(result);
 		}
 	}
 }
