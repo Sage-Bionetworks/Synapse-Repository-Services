@@ -76,7 +76,7 @@ public class DatasetsControllerTest {
 	public void tearDown() throws Exception {
 		helper.tearDown();
 	}
-
+	
 	/*************************************************************************************************************************
 	 * Happy case tests
 	 */
@@ -459,6 +459,21 @@ public class DatasetsControllerTest {
 		assertEquals("pagination offset must be 1 or greater", error
 				.getString("reason"));
 	}
+	
+	// edge case:  ask for list of datasets when database is empty
+	@Test
+	public void testGetDatasetsFromEmptyDB() throws Exception {
+		JSONObject results = helper.testGetJsonEntities(helper
+				.getServletPrefix()
+				+ "/dataset", null, null, null, null);
+		assertEquals(0, results.getInt("totalNumberOfResults"));
+		assertEquals(0, results.getJSONArray("results").length());
+		assertFalse(results.getJSONObject("paging").has(
+				PaginatedResults.PREVIOUS_PAGE_FIELD));
+	}
+	
+
+
 
 	/*****************************************************************************************************
 	 * Datasets-specific helpers

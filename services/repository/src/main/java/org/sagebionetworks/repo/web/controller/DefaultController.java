@@ -416,5 +416,19 @@ public class DefaultController extends BaseController {
 		entityController.deleteEntityACL(userId, id);
 	}
 
+	/**
+	 * Get the schema for an ACL
+	 * @param id
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value ={UrlHelpers.ACL + UrlHelpers.SCHEMA}, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonSchema getAclSchema() throws DatastoreException {
+		return entityController.getAclSchema();
+	}
 	
+
 }
