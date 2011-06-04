@@ -12,6 +12,7 @@ public class DisplayConstants {
 	public static final int DESCRIPTION_SUMMARY_LENGTH = 450; // characters for summary
 	
 	public static final DateTimeFormat DATE_FORMAT = DateTimeFormat.getFormat("dd-MMM-yyyy");
+	public static final DateTimeFormat DATE_FORMAT_SERVICES = DateTimeFormat.getFormat("yyyy-MM-dd");
 	
 	// content
 	public static final String FOLLOW_DATASET_HTML = "Following a dataset allows you to be notified when the dataset has new comments, additional layers or data, is used in a project, or referenced by a new publication.<br/><br/>Click Confirm to Follow this dataset. You can adjust your notifications settings through your Profile.";  
@@ -26,7 +27,19 @@ public class DisplayConstants {
 	public static final String EDIT_LAYER_TEXT = "edit layer text..."; 
 	public static final String CREATE_PROJECT_TEXT = "create project text...";
 	public static final String EDIT_PROJECT_TEXT = "edit project text..."; 
-
+	public static final String EDIT_ANNOTATIONS_TEXT = "Edit Annotations for this object. You can add new annotations by using the form fields at the bottom.";
+	
 	public static final String NODE_DESCRIPTION_KEY = "description";
 
+	/*
+	 * Service Constants (move to another file?)
+	 */
+	public static final String SERVICE_PARENT_ID_KEY = "parentId";
+	public static final String SERVICE_ETAG_KEY = "etag";
+	public static final String SERVICE_STATUS_KEY = "status";
+	public static final String SERVICE_LAYER_TYPE_KEY = "type";
+	
+	public static final String SERVICE_HEADER_ETAG_KEY = "ETag";
+	
+	
 }

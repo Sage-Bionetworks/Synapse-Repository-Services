@@ -26,6 +26,9 @@ public interface IconsImageBundle extends ClientBundle {
 	@Source("images/icons/arrow-curve-16.png")
 	ImageResource arrowCurve16();
 
+	@Source("images/icons/tick-16.png")
+	ImageResource checkGreen16();
+
 	@Source("images/icons/cog-16.png")
 	ImageResource cog16();
 
@@ -53,6 +56,9 @@ public interface IconsImageBundle extends ClientBundle {
 	@Source("images/icons/flag-16.png")
 	ImageResource flag16();
 
+	@Source("images/icons/google-16.png")
+	ImageResource google16();	
+	
 	@Source("images/icons/hand-16.png")
 	ImageResource hand16();	
 	

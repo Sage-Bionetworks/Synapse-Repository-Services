@@ -61,6 +61,8 @@ public class LayerViewImpl extends Composite implements LayerView {
 	SpanElement breadcrumbDatasetSpan;
 	@UiField
 	SpanElement breadcrumbTitleSpan;
+	@UiField
+	SpanElement previewTableMessage;
 
 	private Presenter presenter;
 	private PreviewDisclosurePanel previewDisclosurePanel;
@@ -115,6 +117,12 @@ public class LayerViewImpl extends Composite implements LayerView {
 		MessageBox.info("Message", message, null);
 	}
 
+	@Override
+	public void showLayerPreviewUnavailable() {
+		// check if user is admin? show create preview?
+		previewTableMessage.setInnerHTML("Preview of this layer is unavailable.");
+	}
+	
 	@Override
 	public void setLayerDetails(String layerName, 
 								String processingFacility, 
@@ -278,6 +286,10 @@ public class LayerViewImpl extends Composite implements LayerView {
 
 		});
 	}
-	
+
+	@Override
+	public void setDownloadUnavailable() {
+		downloadPanel.clear();
+	}
 	
 }

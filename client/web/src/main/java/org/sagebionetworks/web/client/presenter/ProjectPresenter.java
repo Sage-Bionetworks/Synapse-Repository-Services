@@ -56,7 +56,7 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 			@Override
 			public void onFailure(Throwable caught) {
 				setProject(null);
-				view.showErrorMessage("An error retrieving the Dataset occured. Please try reloading the page.");				
+				view.showErrorMessage("An error retrieving the Project occured. Please try reloading the page.");				
 			}
 		});
 	}
@@ -66,15 +66,12 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 	 * @param project
 	 */
 	protected void setProject(Project project) {
-		view.setProjectDetails(
-				project.getId(),
-				project.getName(), 
-				project.getDescription(),
-				project.getCreator(),
-				project.getCreationDate(),
-				project.getStatus());
+		if (project != null) {
+			view.setProjectDetails(project.getId(), project.getName(),
+					project.getDescription(), project.getCreator(),
+					project.getCreationDate(), project.getStatus());
+		} 
 	}
-	
 	
 	/*
 	 * Private Methods

@@ -7,25 +7,40 @@ import java.util.List;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
+import org.sagebionetworks.web.client.widget.adminmenu.AdminMenu;
 import org.sagebionetworks.web.client.widget.breadcrumb.Breadcrumb;
+import org.sagebionetworks.web.client.widget.editpanels.AnnotationEditor;
+import org.sagebionetworks.web.client.widget.editpanels.NodeEditor;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
 import org.sagebionetworks.web.client.widget.header.Header.MenuItems;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloader;
 import org.sagebionetworks.web.client.widget.modal.ModalWindow;
+import org.sagebionetworks.web.client.widget.sharing.AccessMenuButton;
+import org.sagebionetworks.web.client.widget.sharing.AccessMenuButton.AccessLevel;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
 import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LicenseAgreement;
+import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
 import org.sagebionetworks.web.shared.WhereCondition;
 
+import com.extjs.gxt.ui.client.event.MenuEvent;
+import com.extjs.gxt.ui.client.event.SelectionListener;
 import com.extjs.gxt.ui.client.widget.MessageBox;
+import com.extjs.gxt.ui.client.widget.Window;
+import com.extjs.gxt.ui.client.widget.button.Button;
+import com.extjs.gxt.ui.client.widget.layout.FitData;
+import com.extjs.gxt.ui.client.widget.layout.FitLayout;
+import com.extjs.gxt.ui.client.widget.menu.Menu;
+import com.extjs.gxt.ui.client.widget.menu.MenuItem;
 import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
 import com.google.gwt.dom.client.SpanElement;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.resources.client.ImageResource;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.rpc.AsyncCallback;
@@ -66,23 +81,57 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	SimplePanel followDatasetPanel;
 	@UiField
 	SimplePanel seeTermsPanel;
+	@UiField
+	SimplePanel accessPanel;
+	@UiField
+	SpanElement accessSpan;
+	@UiField
+	SimplePanel adminPanel;
+
 
 	private Presenter presenter;
 	private PreviewDisclosurePanel previewDisclosurePanel;
+	private IconsImageBundle iconsImageBundle;
 	private QueryServiceTable queryServiceTable;
 	private final LicensedDownloader datasetLicensedDownloader;
 	private Breadcrumb breadcrumb;
 	private boolean disableDownloads;
 	private ModalWindow followDatasetModal;
 	private ModalWindow seeTermsModal;
-
+	private AccessMenuButton accessMenuButton;
+	private NodeEditor nodeEditor;
+	private AnnotationEditor annotationEditor;
+	private AdminMenu adminMenu;
+	private boolean userIsAdmin = false;
+	
+	
 	@Inject
-	public DatasetViewImpl(Binder uiBinder, Header headerWidget, Footer footerWidget, IconsImageBundle icons, final PreviewDisclosurePanel previewDisclosurePanel, QueryServiceTableResourceProvider queryServiceTableResourceProvider, LicensedDownloader licensedDownloader, Breadcrumb breadcrumb, final ModalWindow followDatasetModal, final ModalWindow seeTermsModal) {		
+	public DatasetViewImpl(
+			Binder uiBinder,
+			Header headerWidget,
+			Footer footerWidget,
+			IconsImageBundle iconsImageBundle,
+			final PreviewDisclosurePanel previewDisclosurePanel,
+			QueryServiceTableResourceProvider queryServiceTableResourceProvider,
+			LicensedDownloader licensedDownloader, Breadcrumb breadcrumb,
+			final ModalWindow followDatasetModal,
+			final ModalWindow seeTermsModal,
+			AccessMenuButton accessMenuButton,
+			NodeEditor nodeEditor,
+			AnnotationEditor annotationEditor,
+			AdminMenu adminMenu) {		
+
 		disableDownloads = false;
 		initWidget(uiBinder.createAndBindUi(this));
+		this.iconsImageBundle = iconsImageBundle;
 		this.previewDisclosurePanel = previewDisclosurePanel;
 		this.datasetLicensedDownloader = licensedDownloader;
-		this.followDatasetModal = followDatasetModal; 
+		this.followDatasetModal = followDatasetModal;
+		this.accessMenuButton = accessMenuButton;
+		this.nodeEditor = nodeEditor;
+		this.annotationEditor = annotationEditor;
+		this.adminMenu = adminMenu;
+		
 		setupDatasetLicensedDownloaderCallbacks();
 
 		header.add(headerWidget.asWidget());
@@ -105,7 +154,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		});
 		// follow link		
 		Anchor followDatasetAnchor = new Anchor();
-		followDatasetAnchor.setHTML(AbstractImagePrototype.create(icons.arrowCurve16()).getHTML() + " Follow this Dataset");
+		followDatasetAnchor.setHTML(AbstractImagePrototype.create(iconsImageBundle.arrowCurve16()).getHTML() + " Follow this Dataset");
 		followDatasetAnchor.addClickHandler(new ClickHandler() {			
 			@Override
 			public void onClick(ClickEvent event) {
@@ -122,7 +171,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		seeTermsModal.setHtml(DisplayConstants.DEFAULT_TERMS_OF_USE); // TODO : get this from a service
 		// download link		
 		Anchor seeTermsAnchor = new Anchor();
-		seeTermsAnchor.setHTML(AbstractImagePrototype.create(icons.documentText16()).getHTML() + " See Terms of Use");
+		seeTermsAnchor.setHTML(AbstractImagePrototype.create(iconsImageBundle.documentText16()).getHTML() + " See Terms of Use");
 		seeTermsAnchor.addClickHandler(new ClickHandler() {			
 			@Override
 			public void onClick(ClickEvent event) {
@@ -142,7 +191,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 				
 		// download link		
 		Anchor downloadLink = new Anchor();
-		downloadLink.setHTML(AbstractImagePrototype.create(icons.download16()).getHTML() + " Download Dataset");
+		downloadLink.setHTML(AbstractImagePrototype.create(iconsImageBundle.download16()).getHTML() + " Download Dataset");
 		downloadLink.addClickHandler(new ClickHandler() {			
 			@Override
 			public void onClick(ClickEvent event) {
@@ -210,11 +259,13 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		if(viewFollowersUrl == null) viewFollowersUrl = "";
 		if(downloadAvailability == null) downloadAvailability = "";
 		if(releaseNotesUrl == null) releaseNotesUrl = "";
-		
+	
+		// check authorization
+		userIsAdmin = true; // TODO : get ACL from authorization service
 		
 		// Set the where clause
 		List<WhereCondition> whereList = new ArrayList<WhereCondition>();
-		whereList.add(new WhereCondition("dataset.id", WhereOperator.EQUALS, id));
+		whereList.add(new WhereCondition("layer.parentId", WhereOperator.EQUALS, id));
 		this.queryServiceTable.setWhereCondition(whereList);
 		// Clear everything
 		clearAllFields();
@@ -255,24 +306,15 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		DisplayUtils.addRowToTable(rowIndex++, "Number of Downloads:", Integer.toString(nDownloads), rightFlexTable);
 		DisplayUtils.addRowToTable(rowIndex++, "Download Availability:", downloadAvailability, rightFlexTable);
 		DisplayUtils.addRowToTable(rowIndex++, "Release Notes:", "<a href=\""+ releaseNotesUrl + "\" target=\"_new\">view</a>", rightFlexTable);			
+	
+		
+		// create security access panel
+		createAccessPanel();
+		// create admin panel if user is authorized
+		createAdminPanel(id);
 		
 	}
 	
-	
-//	@Override
-//	public void setDatasetRow(DatasetRow row) {
-//
-//	}
-
-
-	private void clearAllFields() {
-		titleSpan.setInnerText("");
-		middleFlexTable.clear();
-		middleFlexTable.removeAllRows();
-		rightFlexTable.clear();
-		rightFlexTable.removeAllRows();
-	}
-
 	@Override
 	public void setLicenseAgreement(LicenseAgreement agreement) {		
 		datasetLicensedDownloader.setLicenseAgreement(agreement);		
@@ -296,6 +338,106 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	/*
 	 * Private Methods
 	 */
+	private void clearAllFields() {
+		titleSpan.setInnerText("");
+		middleFlexTable.clear();
+		middleFlexTable.removeAllRows();
+		rightFlexTable.clear();
+		rightFlexTable.removeAllRows();
+	}
+
+	private void createAdminPanel(String id) {		
+		if(userIsAdmin) {
+			annotationEditor.setResource(NodeType.DATASET, id);
+			
+			Button button = new Button("Project Admin Menu");
+			button.setIcon(AbstractImagePrototype.create(iconsImageBundle.adminTools16()));
+			//adminButton.setIconAlign(IconAlign.LEFT);
+			button.setMenu(createAdminMenu(id));
+			button.setHeight(25);
+			adminPanel.clear();
+			adminPanel.add(button);
+		}
+	}
+
+	private Menu createAdminMenu(final String datasetId) {
+		Menu menu = new Menu();		
+		MenuItem item = null; 
+			
+		item = new MenuItem("Edit Dataset Details");
+		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
+		item.addSelectionListener(new SelectionListener<MenuEvent>() {
+			public void componentSelected(MenuEvent menuEvent) {													
+				final Window window = new Window();  
+				window.setSize(600, 345);
+				window.setPlain(true);
+				window.setModal(true);
+				window.setBlinkModal(true);
+				window.setHeading("Edit Dataset");
+				window.setLayout(new FitLayout());								
+				window.add(nodeEditor.asWidget(NodeType.DATASET, datasetId), new FitData(4));
+				window.show();
+			}
+		});
+		menu.add(item);
+		
+		item = new MenuItem("Edit Dataset Annotations");
+		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
+		item.addSelectionListener(new SelectionListener<MenuEvent>() {
+			public void componentSelected(MenuEvent menuEvent) {													
+				final Window window = new Window();  
+				window.setSize(650, 550);
+				window.setPlain(true);
+				window.setModal(true);
+				window.setBlinkModal(true);
+				window.setHeading("Edit Dataset Annotations");
+				window.setLayout(new FitLayout());					
+				window.add(annotationEditor.asWidget(), new FitData(4));
+				window.show();
+			}
+		});
+		menu.add(item);
+		
+		item = new MenuItem("Add a Layer to Dataset");
+		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.documentAdd16()));
+		item.addSelectionListener(new SelectionListener<MenuEvent>() {
+			public void componentSelected(MenuEvent menuEvent) {													
+				final Window window = new Window();  
+				window.setSize(600, 500);
+				window.setPlain(true);
+				window.setModal(true);
+				window.setBlinkModal(true);
+				window.setHeading("Create Layer");
+				window.setLayout(new FitLayout());				
+				window.add(nodeEditor.asWidget(NodeType.LAYER, null, datasetId), new FitData(4));
+				window.show();
+			}
+		});
+		menu.add(item);
+		
+		return menu;
+	}
+
+	private void createAccessPanel() {		
+		// TODO : get access level from Authorization service
+		AccessLevel accessLevel = AccessLevel.PUBLIC;		
+		ImageResource icon = null;
+		if(accessLevel == AccessLevel.PUBLIC) {
+			icon = iconsImageBundle.lockUnlocked16();
+		} else {
+			icon = iconsImageBundle.lock16();
+		}		
+
+		if(userIsAdmin) {		
+			accessMenuButton.setAccessLevel(accessLevel);
+			accessPanel.clear();
+			accessPanel.add(accessMenuButton.asWidget());
+		} else {
+			accessSpan.setInnerHTML("<span class=\"setting_label\">Access: </span><span class=\"setting_level\">"+ DisplayUtils.getIconHtml(icon) +" "+ accessLevel +"</span>");
+		}
+	}
+	
+	
 	private void setupDatasetLicensedDownloaderCallbacks() {
 		// give the LicensedDownloader something to call when the view accepts the license
 		datasetLicensedDownloader.setLicenseAcceptedCallback(new AsyncCallback<Void>() {

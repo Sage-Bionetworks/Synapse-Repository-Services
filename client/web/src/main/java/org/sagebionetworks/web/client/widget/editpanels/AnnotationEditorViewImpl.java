@@ -1,6 +1,5 @@
 package org.sagebionetworks.web.client.widget.editpanels;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,106 +12,53 @@ import org.sagebionetworks.web.client.ontology.OntologyTerm;
 
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
 import com.extjs.gxt.ui.client.Style.Scroll;
-import com.extjs.gxt.ui.client.data.BaseModelData;
 import com.extjs.gxt.ui.client.event.ButtonEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
-import com.extjs.gxt.ui.client.store.ListStore;
 import com.extjs.gxt.ui.client.widget.Html;
 import com.extjs.gxt.ui.client.widget.LayoutContainer;
 import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.button.Button;
-import com.extjs.gxt.ui.client.widget.form.ComboBox.TriggerAction;
 import com.extjs.gxt.ui.client.widget.form.DateField;
-import com.extjs.gxt.ui.client.widget.form.Field;
 import com.extjs.gxt.ui.client.widget.form.FormButtonBinding;
 import com.extjs.gxt.ui.client.widget.form.FormPanel;
 import com.extjs.gxt.ui.client.widget.form.SimpleComboBox;
-import com.extjs.gxt.ui.client.widget.form.SimpleComboValue;
 import com.extjs.gxt.ui.client.widget.form.TextArea;
 import com.extjs.gxt.ui.client.widget.form.TextField;
+import com.extjs.gxt.ui.client.widget.form.ComboBox.TriggerAction;
 import com.extjs.gxt.ui.client.widget.layout.FormData;
 import com.extjs.gxt.ui.client.widget.layout.MarginData;
-import com.google.gwt.json.client.JSONBoolean;
-import com.google.gwt.json.client.JSONNumber;
-import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.Element;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
-
-public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorView {
-
-	private Presenter presenter;
+ 
+public class AnnotationEditorViewImpl extends LayoutContainer implements AnnotationEditorView {
+ 
+    private Presenter presenter;
 	private SageImageBundle sageImageBundle;
 	private IconsImageBundle iconsImageBundle;
-	private Button formButton;
 	private String formButtonOriginalString;
 	private String formButtonResultString;
-		
-	@Inject
-	public NodeEditorViewImpl(SageImageBundle sageImageBundle, IconsImageBundle iconsImageBundle) {
+	private Button formButton;
+
+ 
+    @Inject
+    public AnnotationEditorViewImpl(SageImageBundle sageImageBundle, IconsImageBundle iconsImageBundle) {
 		this.sageImageBundle = sageImageBundle;
 		this.iconsImageBundle = iconsImageBundle;
 		this.setScrollMode(Scroll.AUTOY);
-	}
-	
-	@Override
-	protected void onRender(Element parent, int pos) {
-		super.onRender(parent, pos);
-	}
-	
-	@Override
-	public Widget asWidget() {
-		return this;
-	}	
-
-	@Override 
-	public void setPresenter(Presenter presenter) {
-		this.presenter = presenter;
-	}
-	
-	@Override
-	public void generateCreateForm(List<FormField> formFields,
-			String typeDisplay, String topText, List<String> ignoreFields,
-			Map<String, OntologyTerm[]> keyToOntologyTerms) {
-		buildNodeForm(formFields, typeDisplay, topText, ignoreFields, keyToOntologyTerms, false, null);
-	}
+    }
+ 
+    @Override
+    protected void onRender(Element parent, int pos) {
+        super.onRender(parent, pos);
+    }
 
 	@Override
-	public void generateEditForm(List<FormField> formFields,
-			String typeDisplay, String topText, List<String> ignoreFields,
-			Map<String, OntologyTerm[]> keyToOntologyTerms,
-			JSONObject editorValues) {
-		buildNodeForm(formFields, typeDisplay, topText, ignoreFields, keyToOntologyTerms, true, editorValues);
-	}
-		
-	@Override
-	public void showLoading() {
-		Html html = new Html(DisplayUtils.getIconHtml(sageImageBundle.loading16()) + " Loading...");
-		this.add(html);
-	}
-	
-	@Override
-	public void showErrorMessage(String message) {
-		MessageBox.info("Error", message, null);
-	}
-
-	@Override
-	public void clear() {
-		this.removeAll();
-	}
-
-	
-	/*
-	 * Private Methods 
-	 */
-	private void buildNodeForm(final List<FormField> formFields,
-			String typeDisplay, String topText, List<String> ignoreFields,
-			Map<String, OntologyTerm[]> keyToOntologyTerms, boolean isEditor,
-			JSONObject editorValues) {
+	public void generateAnnotationForm(final List<FormField> formFields, String displayString, String topText) {
 		// remove any old forms, this is a singleton afterall
-		this.removeAll();
+		this.clear();
+		
 
 		// add description text
 		if(topText != null) {
@@ -130,15 +76,10 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 		nodeFormPanel.setHeaderVisible(false);			
 		nodeFormPanel.setFrame(false);
 		nodeFormPanel.setAutoWidth(true);
-		nodeFormPanel.setLabelWidth(100);
-
-		if(isEditor) addValuesToFormFields(formFields, editorValues);
+		nodeFormPanel.setLabelWidth(120);
 		
 		final Map<String, FormField> keyToFormFieldMap = new HashMap<String, FormField>();
 		for(FormField formField : formFields) {
-			// skip some fields
-			if(ignoreFields.contains(formField.getKey()))
-				continue;
 			String key = formField.getKey();
 			switch(formField.getType()) {
 			case STRING:
@@ -149,29 +90,20 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 					description.setPreventScrollbars(false);
 					description.setHeight(82);
 					description.setFieldLabel(key);  
-					if(isEditor) description.setValue(formField.getValue());
+					description.setValue(formField.getValue());
 					nodeFormPanel.add(description, formData);				
-				} else if(keyToOntologyTerms.containsKey(key)) {
-					SimpleComboBox<OntologyTerm> combo = new SimpleComboBox<OntologyTerm>();					
-					combo.setFieldLabel(key);  
-					combo.setForceSelection(true);					 
-					combo.setTriggerAction(TriggerAction.ALL);
-					for(OntologyTerm term : keyToOntologyTerms.get(key)) {
-						combo.add(term);
-					}
-					nodeFormPanel.add(combo, formData);  					
 				} else {				
 					TextField<String> stringField = new TextField<String>();
 					stringField.setFieldLabel(key);
 					stringField.setAllowBlank(false);
-					if(isEditor) stringField.setValue(formField.getValue());
+					stringField.setValue(formField.getValue());
 					nodeFormPanel.add(stringField, formData);
 				}
 				break;
 			case DATE:
 				DateField dateField = new DateField();
 				dateField.setFieldLabel(key);
-				if(isEditor) dateField.setValue(DisplayConstants.DATE_FORMAT_SERVICES.parse(formField.getValue()));
+				dateField.setValue(DisplayConstants.DATE_FORMAT_SERVICES.parse(formField.getValue()));
 				nodeFormPanel.add(dateField, formData);				
 				break;
 			}
@@ -181,8 +113,8 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 		}
 			
 		final FormButtonBinding binding = new FormButtonBinding(nodeFormPanel);		
-		formButtonOriginalString = isEditor ? "Save" : "Create " + typeDisplay;
-		formButtonResultString = isEditor ? "Changes Saved" : typeDisplay + " Created";
+		formButtonOriginalString = "Save";
+		formButtonResultString = "Changes Saved";
 		formButton = new Button(formButtonOriginalString);
 		formButton.addSelectionListener(new SelectionListener<ButtonEvent>() {			
 			@Override
@@ -202,62 +134,39 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 		
 		nodeFormPanel.layout();
 		this.add(nodeFormPanel);
-		this.layout();
+		this.layout();		
 	}
 
-	private void addValuesToFormFields(List<FormField> formFields,
-			JSONObject editorValues) {
-		for(FormField formField : formFields) {
-			String key = formField.getKey();
-			if(editorValues.containsKey(key)) {
-				switch (formField.getType()) {
-				case STRING:
-					String strString = "";
-					JSONString jsonStr = editorValues.get(key).isString();
-					if(jsonStr != null) {
-						strString = jsonStr.stringValue();
-					}
-					formField.setValue(strString);
-					break;
-				case DATE:
-					String dateString = "";
-					JSONNumber dateDouble = editorValues.get(key).isNumber();
-					if(dateDouble != null) {
-						Date date = new Date(((Double)dateDouble.doubleValue()).longValue());
-						if(date != null) {							
-							dateString = DisplayConstants.DATE_FORMAT_SERVICES.format(date);
-						}
-					}					
-					formField.setValue(dateString);					
-					break;
-				case INTEGER:
-				case DECIMAL:
-					String decimalString = "";
-					JSONNumber decimalDouble = editorValues.get(key).isNumber();
-					if(decimalDouble != null) {
-						decimalString = ((Double)decimalDouble.doubleValue()).toString();
-					}					
-					formField.setValue(decimalString);					
-					break;
-				case BOOLEAN:
-					String boolString = "";
-					JSONBoolean boolValue = editorValues.get(key).isBoolean();
-					if(boolValue != null) {
-						boolString = ((Boolean)boolValue.booleanValue()).toString();
-					}
-					formField.setValue(boolString);
-					break;
-				case LIST_STRING:
-					// TODO : finish this for lists
-					break;
-				case LIST_INTEGER:
-					break;
-				case LIST_DECIMAL:
-					break;
-				}
-			}
-		}
+	@Override
+	public void showErrorMessage(String message) {
+		MessageBox.info("Error", message, null);
 	}
+
+    @Override
+    public Widget asWidget() {
+        return this;
+    }
+
+    
+	@Override
+	public void showLoading() {
+		Html html = new Html(DisplayUtils.getIconHtml(sageImageBundle.loading16()) + " Loading...");
+		this.add(html);
+	}
+    
+	@Override
+	public void clear() {
+		this.removeAll();
+		this.formButtonOriginalString = null;
+		this.formButtonResultString = null;
+		this.formButton = null;
+
+	}
+ 
+    @Override
+    public void setPresenter(Presenter presenter) {
+        this.presenter = presenter;
+    }
 
 	@Override
 	public void showPersistSuccess() {
@@ -284,5 +193,5 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 		}		
 		MessageBox.info("Message", "An error occuring attempting to save. Please try again.", null);
 	}
-
+ 
 }

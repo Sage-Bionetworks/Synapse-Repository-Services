@@ -63,19 +63,10 @@ public class AuthenticationControllerImpl implements AuthenticationController {
 	@Override
 	public void logoutUser() {
 		if(currentUser != null) {
-			userAccountService.terminateSession(currentUser.getToken(), new AsyncCallback<Void>() {	
-				@Override
-				public void onSuccess(Void result) {					
-					Info.display("Message", "You have been logged out.");
-					cookies.removeCookie(CookieKeys.USER_LOGIN_DATA);
-					cookies.removeCookie(CookieKeys.USER_LOGIN_TOKEN);
-				}
-
-				@Override
-				public void onFailure(Throwable caught) {
-					MessageBox.alert("Message", "An error occured while logging you out. Please try again.", null);
-				}
-			});
+			// don't actually terminate session, just remove the cookie
+			Info.display("Message", "You have been logged out.");
+			cookies.removeCookie(CookieKeys.USER_LOGIN_DATA);
+			cookies.removeCookie(CookieKeys.USER_LOGIN_TOKEN);			
 		}
 	}
 

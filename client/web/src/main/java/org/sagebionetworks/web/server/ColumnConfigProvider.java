@@ -198,6 +198,15 @@ public class ColumnConfigProvider {
 		List<String> keyList = splitCommaSeparatedString(additional);
 		additoinalColumns.put(ObjectType.dataset.name(), keyList);
 	}
+
+	@Inject
+	public void setDefaultProjectColumns(@Named(ServerConstants.KEY_DEFAULT_PROJECT_COLS) String defaults) {
+		// convert from a string to a list
+		List<String> keyList = splitCommaSeparatedString(defaults);
+		// Add this list to the map
+		defaultColumns.put(ObjectType.project.name(), keyList);
+	}
+	
 	
 	/**
 	 * Load the given filter enumeration xml file.

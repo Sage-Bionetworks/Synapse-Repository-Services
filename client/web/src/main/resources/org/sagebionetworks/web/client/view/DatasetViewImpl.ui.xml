@@ -41,8 +41,17 @@
 				</ul>
 				<h2><span ui:field="titleSpan" /></h2>
 				<div id="privacy_setting" class="right">
-					<span class="setting_label">Access:</span>
-					<span class="setting_level"><g:Image resource="{icons.lockUnlocked16}"/> Public</span>
+					<table>
+						<tr valign="bottom">
+							<td style="padding-right: 10px">
+								<g:SimplePanel ui:field="adminPanel" />
+							</td>
+							<td>
+								<g:SimplePanel ui:field="accessPanel" />								
+								<span ui:field="accessSpan" />
+							</td>
+						</tr>
+					</table>					
 				</div>
 				<div class="data_info">
 					<span class="info_head">

@@ -38,6 +38,16 @@ public interface LayerView extends IsWidget {
 	public void showErrorMessage(String message);
 	
 	/**
+	 * Shows a message if the preview doesn't exist or is not available
+	 */
+	public void showLayerPreviewUnavailable();	
+	
+	/**
+	 * Removes the download button
+	 */
+	public void setDownloadUnavailable();
+	
+	/**
 	 * Sets the values to display in the view
 	 * @param processingFacility
 	 * @param qcByDisplay

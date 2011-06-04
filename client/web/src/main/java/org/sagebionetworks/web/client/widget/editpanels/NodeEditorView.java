@@ -1,6 +1,9 @@
 package org.sagebionetworks.web.client.widget.editpanels;
 
 import java.util.List;
+import java.util.Map;
+
+import org.sagebionetworks.web.client.ontology.OntologyTerm;
 
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.ui.IsWidget;
@@ -18,19 +21,21 @@ public interface NodeEditorView extends IsWidget {
 	 * @param formFields
 	 * @param isEditor show editor view
 	 * @param typeDisplay display string for the type
+	 * @param map 
 	 */
-	public void generateCreateForm(List<FormField> formFields, String typeDisplay, String topText, List<String> ignoreFields);
+	public void generateCreateForm(List<FormField> formFields, String typeDisplay, String topText, List<String> ignoreFields, Map<String, OntologyTerm[]> keyToOntologyTerms);
 
 	/**
 	 * Tells the view what fields to build in the form
 	 * @param formFields
 	 * @param isEditor show editor view
 	 * @param typeDisplay display string for the type
+	 * @param map 
 	 */
-	public void generateEditForm(List<FormField> formFields, String typeDisplay, String topText, List<String> ignoreFields, JSONObject editorValues);
+	public void generateEditForm(List<FormField> formFields, String typeDisplay, String topText, List<String> ignoreFields, Map<String, OntologyTerm[]> keyToOntologyTerms, JSONObject editorValues);
 
 	/**
-	 * Shows a loading mask over the panel
+	 * Shows a loading view
 	 */
 	public void showLoading();
 	
@@ -41,9 +46,29 @@ public interface NodeEditorView extends IsWidget {
 	public void showErrorMessage(String message);
 	
 	/**
+	 * Shows the user that their changes/creation was saved
+	 */
+	public void showPersistSuccess();
+	
+	/**
+	 * Shows the user that their changes/creation failed.
+	 */
+	public void showPersistFail();
+	
+	/**
+	 * Clears out any existing forms in the panel
+	 */
+	public void clear();
+	
+	/**
 	 * Presenter interface
 	 */
 	public interface Presenter {
-		
+
+		/**
+		 * Asks the presenter to persist or create the object  
+		 * @param formFields
+		 */
+		public void persist(List<FormField> formFields);		
 	}
 }

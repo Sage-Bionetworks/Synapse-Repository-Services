@@ -143,12 +143,44 @@
 			<display>Version</display>
 			<description>Version</description>
 		</column>
+		<column id="layer.parentId">
+			<type>String</type>
+			<display>Parent</display>
+			<description>Parent</description>
+		</column>
 		<column id="staticdisplay.download">
 			<type>String</type>
 			<display>Download</display>
 			<description>download</description>
 		</column>		
-
+		
+		<!-- Project columns -->
+		<column id="project.id">
+			<type>String</type>
+			<display>Project ID</display>
+			<description>Project ID</description>
+		</column>		
+		<column id="project.name">
+			<type>String</type>
+			<display>project Name</display>
+			<description>Name of the project</description>
+		</column>
+		<column id="project.description">
+			<type>String</type>
+			<display>Description</display>
+			<description>The description of this project</description>
+		</column>
+		<column id="project.creator">
+			<type>String</type>
+			<display>Investigator</display>
+			<description>The person that created this project</description>
+		</column>
+		<column id="project.creationDate">
+			<type>Long</type>
+			<display>Created On</display>
+			<description>The date this project was created</description>
+		</column>
+	
 		
 		<!-- The more complex/composite columns -->
 		
@@ -182,7 +214,7 @@
 		<!-- A dynamic relative URL will be built for layers using the ID column -->
 		<url-template id="layer.Url">
 			<type>String</type>
-			<urlTemplate>Layer:{layer.id};Dataset:{dataset.id}</urlTemplate>
+			<urlTemplate>Layer:{layer.id};Dataset:{layer.parentId}</urlTemplate>
 		</url-template>
 		<!-- Acts as the layer name column  -->
 		<link-column id="layer.NameLink">
@@ -193,14 +225,24 @@
 		<!-- A dynamic relative URL will be built for downloading layers using the ID column -->
 		<url-template id="layer.DownloadUrl">
 			<type>String</type>
-			<urlTemplate>Layer:{layer.id};Dataset:{dataset.id};Download:true</urlTemplate>
+			<urlTemplate>Layer:{layer.id};Dataset:{layer.parentId};Download:true</urlTemplate>
 		</url-template>
 		<!-- Acts as the layer name column  -->
 		<link-column id="layer.DownloadLink">
 			<display reference="staticdisplay.download" />
 			<url reference="layer.DownloadUrl" />
 		</link-column>
-		
+
+		<!-- A dynamic relative URL will be built for projects using the ID column -->
+		<url-template id="project.localUrl">
+			<type>String</type>
+			<urlTemplate>Project:{project.id}</urlTemplate>
+		</url-template>
+		<!-- Acts as the project name column  -->
+		<link-column id="project.NameLink">
+			<display reference="project.name" />
+			<url reference="project.localUrl" />
+		</link-column>		
 		
 
 	</columns>

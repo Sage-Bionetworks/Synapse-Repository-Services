@@ -12,20 +12,14 @@ public class FormField {
 	private ColumnType type;
 	private boolean isList;
 	
-	public FormField(String key, String value, ColumnType type) throws Exception {
-		if(type == ColumnType.LIST_DECIMAL || type == ColumnType.LIST_INTEGER || type == ColumnType.LIST_STRING) {
-			throw new Exception("For list values you should use the use the list constructor");
-		}
+	public FormField(String key, String value, ColumnType type) {
 		isList = false;
 		this.key = key;
 		this.value = value;
 		this.type = type;
 	}
 
-	public FormField(String key, List<String> valueList, ColumnType type) throws Exception {
-		if(type == ColumnType.DECIMAL || type == ColumnType.INTEGER || type == ColumnType.STRING) {
-			throw new Exception("For single values you should use the use the single value constructor");
-		}
+	public FormField(String key, List<String> valueList, ColumnType type) {
 		isList = true;
 		this.key = key;
 		this.valueList = valueList;

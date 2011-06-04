@@ -94,16 +94,14 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 					
 					@Override
 					public void onFailure(Throwable caught) {
-						view.showErrorMessage("Layer's data preview is unavailable at the moment.");				
-						//Log.error(caught.getMessage());
+						view.showLayerPreviewUnavailable();
 					}
 				});
 			}
 			
 			@Override
 			public void onFailure(Throwable caught) {
-				view.showErrorMessage("Layer's data preview is unavailable.");
-				
+				view.showLayerPreviewUnavailable();				
 			}
 		});
 		
@@ -191,6 +189,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 					@Override
 					public void onFailure(Throwable caught) {
 						view.showErrorMessage("An error occured retrieving layer download information. Please try reloading the page.");
+						view.setDownloadUnavailable();
 					}
 				});
 			}

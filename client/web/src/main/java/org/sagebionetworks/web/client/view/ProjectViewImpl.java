@@ -8,6 +8,7 @@ import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
+import org.sagebionetworks.web.client.widget.adminmenu.AdminMenu;
 import org.sagebionetworks.web.client.widget.editpanels.NodeEditor;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
@@ -87,6 +88,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 	private boolean userIsAdmin = false; 
 	private AccessMenuButton accessMenuButton;
 	private NodeEditor nodeEditor;
+	private AdminMenu adminMenu;
 	
 	@Inject
 	public ProjectViewImpl(ProjectViewImplUiBinder binder, Header headerWidget,
@@ -96,13 +98,15 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 			PreviewDisclosurePanel previewDisclosurePanel,
 			QueryServiceTableResourceProvider queryServiceTableResourceProvider,
 			AccessMenuButton accessMenuButton,
-			NodeEditor nodeEditor) {		
+			NodeEditor nodeEditor,
+			AdminMenu adminMenu) {		
 		initWidget(binder.createAndBindUi(this));
 
 		this.previewDisclosurePanel = previewDisclosurePanel;
 		this.iconsImageBundle = iconsImageBundle;
 		this.accessMenuButton = accessMenuButton;
 		this.nodeEditor = nodeEditor;
+		this.adminMenu = adminMenu;
 		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
@@ -247,13 +251,13 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		item.addSelectionListener(new SelectionListener<MenuEvent>() {
 			public void componentSelected(MenuEvent menuEvent) {													
 				final Window window = new Window();  
-				window.setSize(600, 300);
+				window.setSize(600, 370);
 				window.setPlain(true);
 				window.setModal(true);
 				window.setBlinkModal(true);
 				window.setHeading("Create Dataset");
 				window.setLayout(new FitLayout());				
-				window.add(nodeEditor.asWidget(NodeType.DATASET, null), new FitData(4));
+				window.add(nodeEditor.asWidget(NodeType.DATASET, null, projectId), new FitData(4));
 				window.show();
 			}
 		});

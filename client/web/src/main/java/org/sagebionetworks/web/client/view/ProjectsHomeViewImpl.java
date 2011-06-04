@@ -39,14 +39,17 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 	public ProjectsHomeViewImpl(ProjectsHomeViewImplUiBinder binder, Header headerWidget, Footer footerWidget, IconsImageBundle icons, SageImageBundle imageBundle, QueryServiceTableResourceProvider queryServiceTableResourceProvider) {		
 		initWidget(binder.createAndBindUi(this));
 
-		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, 1000, 480);
-		
+		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.project, true, 1000, 480);
+		// Start on the first page and trigger a data fetch from the server
+		queryServiceTable.pageTo(0, 10);
+		tablePanel.add(queryServiceTable.asWidget());
+
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
 		headerWidget.setMenuItemActive(MenuItems.PROJECTS);
 				
 		Button createProjectButton = new Button("Start a Project", AbstractImagePrototype.create(icons.addSquare16()));
-		createProjectButtonPanel.add(createProjectButton);
+		createProjectButtonPanel.add(createProjectButton);		
 	}
 
 
