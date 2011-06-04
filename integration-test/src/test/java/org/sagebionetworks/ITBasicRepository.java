@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.web.server.servlet.UserDataProvider;
 import org.springframework.http.HttpEntity;
@@ -54,7 +53,6 @@ public class ITBasicRepository {
 	 * @throws UnsupportedEncodingException 
 	 * 
 	 */
-	@Ignore
 	@Test
 	public void testAllURLs() throws UnsupportedEncodingException {
 		System.out.println("Starting the test...");

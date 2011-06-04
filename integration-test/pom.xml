@@ -20,13 +20,16 @@
 		<tomcat-version>6.0.32</tomcat-version>
 		<tomcat-file>apache-tomcat-${tomcat-version}</tomcat-file>
 		<!-- This is where the repository war will be deployed -->
+		<org.sagebionetworks.auth.context>services-authentication-${project.version}</org.sagebionetworks.auth.context>
 		<org.sagebionetworks.repository.context>services-repository-${project.version}</org.sagebionetworks.repository.context>
-		<org.sagebionetworks.protal.context>portal-${project.version}</org.sagebionetworks.protal.context>
+		<org.sagebionetworks.portal.context>portal-${project.version}</org.sagebionetworks.portal.context>
 		<tomcat.endpoint>http://localhost:8080</tomcat.endpoint>
+		<org.sagebionetworks.auth.servlet.prefix>/auth/v1</org.sagebionetworks.auth.servlet.prefix>
 		<org.sagebionetworks.repository.servlet.prefix>/repo/v1</org.sagebionetworks.repository.servlet.prefix>
 		<org.sagebionetworks.portal.servlet.prefix>/Portal</org.sagebionetworks.portal.servlet.prefix>
+		<org.sagebionetworks.auth.service.base.url>${tomcat.endpoint}/${org.sagebionetworks.auth.context}${org.sagebionetworks.auth.servlet.prefix}/</org.sagebionetworks.auth.service.base.url>
 		<org.sagebionetworks.repository.service.base.url>${tomcat.endpoint}/${org.sagebionetworks.repository.context}${org.sagebionetworks.repository.servlet.prefix}/</org.sagebionetworks.repository.service.base.url>
-		<org.sagebionetworks.portal.base.url>${tomcat.endpoint}/${org.sagebionetworks.protal.context}${org.sagebionetworks.portal.servlet.prefix}/</org.sagebionetworks.portal.base.url>
+		<org.sagebionetworks.portal.base.url>${tomcat.endpoint}/${org.sagebionetworks.portal.context}${org.sagebionetworks.portal.servlet.prefix}/</org.sagebionetworks.portal.base.url>
 		
 		<!-- Setting this to true will cause Cargo to setup and start both web applications and then wait for shutdown (ctrl-c)
 			This is useful for debugging the deployed applications. -->
@@ -76,10 +79,12 @@
 				<configuration>
 					<runOrder>alphabetical</runOrder>
 					<systemPropertyVariables>
+						<org.sagebionetworks.auth.service.base.url>${org.sagebionetworks.auth.service.base.url}</org.sagebionetworks.auth.service.base.url>
 						<org.sagebionetworks.repository.service.base.url>${org.sagebionetworks.repository.service.base.url}</org.sagebionetworks.repository.service.base.url>
 						<org.sagebionetworks.portal.base.url>${org.sagebionetworks.portal.base.url}</org.sagebionetworks.portal.base.url>
 						<local.python27.path>${local.python27.path}</local.python27.path>
 						<local.r.path>${local.r.path}</local.r.path>
+						<org.sagebionetworks.integrationTestUser>admin</org.sagebionetworks.integrationTestUser>
 					</systemPropertyVariables>
 				</configuration>
 				<executions>
@@ -129,6 +134,15 @@
 						<deployables>
 							<deployable>
 								<groupId>org.sagebionetworks</groupId>
+								<artifactId>services-authentication</artifactId>
+								<type>war</type>
+								<!-- url to ping to know if deployable is done or not -->
+<!--								<pingURL>${tomcat.endpoint}/${org.sagebionetworks.auth.context}</pingURL>-->
+								<!-- How long do we wait until the we timeout (in ms) -->
+<!--								<pingTimeout>2000</pingTimeout>-->
+							</deployable>
+							<deployable>
+								<groupId>org.sagebionetworks</groupId>
 								<artifactId>services-repository</artifactId>
 								<type>war</type>
 								<!-- url to ping to know if deployable is done or not -->
@@ -175,6 +189,13 @@
 	<dependencies>
 
 		<!-- Sage Bionetworks Dependencies -->
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>services-authentication</artifactId>
+			<version>${applicationVersion}</version>
+			<type>war</type>
+		</dependency>
+
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>services-repository</artifactId>

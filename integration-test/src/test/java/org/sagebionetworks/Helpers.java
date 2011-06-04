@@ -34,6 +34,13 @@ import org.apache.log4j.Logger;
  */
 public class Helpers {
 
+	public static String getAuthServiceBaseUrl() {
+		
+		System.getProperties().list(System.out);
+		
+		return System.getProperty("org.sagebionetworks.auth.service.base.url");
+	}
+
 	public static String getRepositoryServiceBaseUrl() {
 		return System
 				.getProperty("org.sagebionetworks.repository.service.base.url");
@@ -55,6 +62,10 @@ public class Helpers {
 				"Missing properties from .m2/settings.xml, see the javadoc for details",
 				System.getProperty("local.r.path"));
 		return System.getProperty("local.r.path");
+	}
+
+	public static String getIntegrationTestUser() {
+		return System.getProperty("org.sagebionetworks.integrationTestUser");
 	}
 
 	private static final Logger log = Logger.getLogger(Helpers.class.getName());
