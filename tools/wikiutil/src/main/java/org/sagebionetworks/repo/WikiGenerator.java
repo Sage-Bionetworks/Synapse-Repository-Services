@@ -1,16 +1,21 @@
 package org.sagebionetworks.repo;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.PosixParser;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
-import org.sagebionetworks.utils.HttpClientHelper;
 
 /**
  * WikiGenerator is used to auto-generate the wiki for the Platform Repository
@@ -21,16 +26,6 @@ import org.sagebionetworks.utils.HttpClientHelper;
  * why this writes log output file instead of a normal output to stdout is
  * because I want to include the response headers logged by HttpClient and this
  * was a quick way to make that happen.
- * 
- * Also note that I originally wrote this against HtmlUnit so that I could
- * include a bit of testing to make sure the responses coming back were sane,
- * but HtmlUnit does not support PUT or DELETE.
- * 
- * {code} svn checkout
- * https://sagebionetworks.jira.com/svn/PLFM/trunk/tools/wikiutil cd wikiutil
- * ~/platform/trunk/tools/wikiutil>mvn clean compile
- * ~/platform/trunk/tools/wikiutil>./generateRepositoryServiceWiki.sh
- * http://localhost:8888 > wiki.txt {code}
  * 
  */
 public class WikiGenerator {
@@ -61,13 +56,83 @@ public class WikiGenerator {
 		defaultPOSTPUTHeaders = Collections.unmodifiableMap(readWriteHeaders);
 	}
 
-	
+	/**
+	 * @param args
+	 * @return WikiGenerator
+	 * @throws Exception
+	 */
+	public static WikiGenerator createWikiGeneratorFromArgs(String args[])
+			throws Exception {
+
+		// DELETEME
+		System.out.println("About to exec: " + StringUtils.join(args, " "));
+
+		
+		Options options = new Options();
+		options
+				.addOption(
+						"e",
+						"repoEndpoint",
+						true,
+						"the repository service endpoint (e.g. https://repositoryservice.sagebase.org/repo/v1)");
+		options
+				.addOption(
+						"a",
+						"authEndpoint",
+						true,
+						"the authentication service endpoint (e.g. https://staging-auth.elasticbeanstalk.com/auth/v1)");
+		options.addOption("u", "username", true,
+				"the Synapse username (e.g. first.last@sagebase.org)");
+		options.addOption("p", "password", true, "the Synapse password");
+		options.addOption("h", "help", false, "print this usage message");
+
+		String repoEndpoint = null;
+		String authEndpoint = null;
+		String username = null;
+		String password = null;
+
+		try {
+			CommandLineParser parser = new PosixParser();
+			CommandLine line = parser.parse(options, args);
+
+			if (line.hasOption("help")) {
+				HelpFormatter helpFormatter = new HelpFormatter();
+				helpFormatter.setWidth(80);
+				helpFormatter.printHelp("wiki generator tool",
+						"how to use this tool", options, "have fun!");
+				System.exit(0);
+			}
+
+			if (line.hasOption("repoEndpoint")
+					&& line.hasOption("authEndpoint")
+					&& line.hasOption("username") && line.hasOption("password")) {
+				repoEndpoint = line.getOptionValue("repoEndpoint");
+				authEndpoint = line.getOptionValue("authEndpoint");
+				username = line.getOptionValue("username");
+				password = line.getOptionValue("password");
+			} else {
+				throw new ParseException("missing required arguments");
+			}
+		} catch (ParseException exp) {
+			HelpFormatter helpFormatter = new HelpFormatter();
+			helpFormatter.setWidth(80);
+			helpFormatter.printHelp("wiki generator tool", exp.getMessage(),
+					options, "have fun!");
+			System.exit(1);
+		}
+
+		return new WikiGenerator(repoEndpoint, authEndpoint, username, password);
+	}
+
 	/**
 	 * @param repoEndpoint
-	 * @param authEndpoint 
-	 * @throws MalformedURLException
+	 * @param authEndpoint
+	 * @param username
+	 * @param password
+	 * @throws Exception
 	 */
-	public WikiGenerator(String repoEndpoint, String authEndpoint, String username, String password) throws Exception {
+	public WikiGenerator(String repoEndpoint, String authEndpoint,
+			String username, String password) throws Exception {
 		this.repoEndpoint = repoEndpoint;
 		URL parsedRepoEndpoint = new URL(repoEndpoint);
 		repoPrefix = parsedRepoEndpoint.getPath();
@@ -80,10 +145,11 @@ public class WikiGenerator {
 		authLocation = authEndpoint.substring(0, authEndpoint.length()
 				- authPrefix.length());
 
-		
 		synapse = new Synapse();
-		synapse.setRepositoryEndpoint(repoEndpoint);
-		synapse.setAuthEndpoint(authEndpoint);
+		synapse.setRepositoryEndpoint(this.repoEndpoint);
+		synapse.setAuthEndpoint(this.authEndpoint);
+		
+		// TODO this should be part of the wiki documentation
 		synapse.login(username, password);
 	}
 
@@ -107,13 +173,12 @@ public class WikiGenerator {
 		}
 
 		URL requestUrl;
-		if(uri.startsWith(repoPrefix)) {
+		if (uri.startsWith(repoPrefix)) {
 			requestUrl = new URL(repoLocation + uri);
-		}
-		else {
+		} else {
 			requestUrl = new URL(repoEndpoint + uri);
 		}
-		
+
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultGETDELETEHeaders);
 
@@ -157,13 +222,12 @@ public class WikiGenerator {
 		}
 
 		URL requestUrl;
-		if(uri.startsWith(repoPrefix)) {
+		if (uri.startsWith(repoPrefix)) {
 			requestUrl = new URL(repoLocation + uri);
-		}
-		else {
+		} else {
 			requestUrl = new URL(repoEndpoint + uri);
 		}
-		
+
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultPOSTPUTHeaders);
 
@@ -208,10 +272,9 @@ public class WikiGenerator {
 		}
 
 		URL requestUrl;
-		if(uri.startsWith(repoPrefix)) {
+		if (uri.startsWith(repoPrefix)) {
 			requestUrl = new URL(repoLocation + uri);
-		}
-		else {
+		} else {
 			requestUrl = new URL(repoEndpoint + uri);
 		}
 		Map<String, String> requestHeaders = new HashMap<String, String>();
@@ -257,10 +320,9 @@ public class WikiGenerator {
 		}
 
 		URL requestUrl;
-		if(uri.startsWith(repoPrefix)) {
+		if (uri.startsWith(repoPrefix)) {
 			requestUrl = new URL(repoLocation + uri);
-		}
-		else {
+		} else {
 			requestUrl = new URL(repoEndpoint + uri);
 		}
 
