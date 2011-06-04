@@ -284,5 +284,10 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		permissionsManager.restoreInheritance(id, userInfo);
 	}
 
+	@Override
+	public <T extends Base> JsonSchema getAclSchema() throws DatastoreException {
+		return SchemaHelper.getSchema(AccessControlList.class);
+	}
+	
 
 }

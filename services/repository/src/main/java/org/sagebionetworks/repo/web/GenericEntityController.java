@@ -237,5 +237,8 @@ public interface GenericEntityController {
 	public  void deleteEntityACL(String userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
-
+	/**
+	 * @return the JSON schema for an access control list
+	 */
+	public <T extends Base> JsonSchema getAclSchema() throws DatastoreException;
 }
