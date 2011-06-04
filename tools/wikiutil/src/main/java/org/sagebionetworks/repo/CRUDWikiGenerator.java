@@ -29,19 +29,14 @@ public class CRUDWikiGenerator {
 	private static final Logger log = Logger.getLogger(WikiGenerator.class
 			.getName());
 
-	private static String serviceEndpoint = "http://localhost:8080";
-
 	/**
 	 * @param args
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
 
-		if (1 <= args.length) {
-			serviceEndpoint = args[0];
-		}
-
-		WikiGenerator wiki = new WikiGenerator(serviceEndpoint);
+		// TODO proper command line arg parser
+		WikiGenerator wiki = new WikiGenerator(args[0], args[1], args[2], args[3]);
 
 		log.info("h2. Create/Update/Delete Examples");
 		log

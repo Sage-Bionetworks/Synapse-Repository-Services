@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
+import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.utils.HttpClientHelper;
 
 /**
@@ -39,16 +40,20 @@ public class WikiGenerator {
 
 	private static final int JSON_INDENT = 2;
 
-	private String serviceEndpoint;
-	private String serviceLocation;
-	private String servicePrefix;
+	private Synapse synapse;
+	private String repoEndpoint;
+	private String repoLocation;
+	private String repoPrefix;
+	private String authEndpoint;
+	private String authLocation;
+	private String authPrefix;
 
 	private static final Map<String, String> defaultGETDELETEHeaders;
 	private static final Map<String, String> defaultPOSTPUTHeaders;
-
 	static {
 		Map<String, String> readOnlyHeaders = new HashMap<String, String>();
 		readOnlyHeaders.put("Accept", "application/json");
+		readOnlyHeaders.put("sessionToken", "YourSessionToken");
 		defaultGETDELETEHeaders = Collections.unmodifiableMap(readOnlyHeaders);
 		Map<String, String> readWriteHeaders = new HashMap<String, String>();
 		readWriteHeaders.putAll(readOnlyHeaders);
@@ -56,16 +61,30 @@ public class WikiGenerator {
 		defaultPOSTPUTHeaders = Collections.unmodifiableMap(readWriteHeaders);
 	}
 
+	
 	/**
-	 * @param serviceEndpoint
+	 * @param repoEndpoint
+	 * @param authEndpoint 
 	 * @throws MalformedURLException
 	 */
-	public WikiGenerator(String serviceEndpoint) throws MalformedURLException {
-		this.serviceEndpoint = serviceEndpoint;
-		URL parsedServiceEndpoint = new URL(serviceEndpoint);
-		servicePrefix = parsedServiceEndpoint.getPath();
-		serviceLocation = serviceEndpoint.substring(0, serviceEndpoint.length()
-				- servicePrefix.length());
+	public WikiGenerator(String repoEndpoint, String authEndpoint, String username, String password) throws Exception {
+		this.repoEndpoint = repoEndpoint;
+		URL parsedRepoEndpoint = new URL(repoEndpoint);
+		repoPrefix = parsedRepoEndpoint.getPath();
+		repoLocation = repoEndpoint.substring(0, repoEndpoint.length()
+				- repoPrefix.length());
+
+		this.authEndpoint = authEndpoint;
+		URL parsedAuthEndpoint = new URL(authEndpoint);
+		authPrefix = parsedAuthEndpoint.getPath();
+		authLocation = authEndpoint.substring(0, authEndpoint.length()
+				- authPrefix.length());
+
+		
+		synapse = new Synapse();
+		synapse.setRepositoryEndpoint(repoEndpoint);
+		synapse.setAuthEndpoint(authEndpoint);
+		synapse.login(username, password);
 	}
 
 	/**
@@ -88,11 +107,11 @@ public class WikiGenerator {
 		}
 
 		URL requestUrl;
-		if(uri.startsWith(servicePrefix)) {
-			requestUrl = new URL(serviceLocation + uri);
+		if(uri.startsWith(repoPrefix)) {
+			requestUrl = new URL(repoLocation + uri);
 		}
 		else {
-			requestUrl = new URL(serviceEndpoint + uri);
+			requestUrl = new URL(repoEndpoint + uri);
 		}
 		
 		Map<String, String> requestHeaders = new HashMap<String, String>();
@@ -106,11 +125,8 @@ public class WikiGenerator {
 		log.info("*Request* {code}" + curl);
 		log.info("*Response* {code}");
 
-		String response = null;
 		try {
-			response = HttpClientHelper.performRequest(requestUrl, "GET", null,
-					requestHeaders);
-			JSONObject results = new JSONObject(response);
+			JSONObject results = synapse.getEntity(uri);
 			log.info(results.toString(JSON_INDENT) + "{code}");
 			return results;
 		} catch (Exception e) {
@@ -141,11 +157,11 @@ public class WikiGenerator {
 		}
 
 		URL requestUrl;
-		if(uri.startsWith(servicePrefix)) {
-			requestUrl = new URL(serviceLocation + uri);
+		if(uri.startsWith(repoPrefix)) {
+			requestUrl = new URL(repoLocation + uri);
 		}
 		else {
-			requestUrl = new URL(serviceEndpoint + uri);
+			requestUrl = new URL(repoEndpoint + uri);
 		}
 		
 		Map<String, String> requestHeaders = new HashMap<String, String>();
@@ -160,11 +176,8 @@ public class WikiGenerator {
 		log.info("*Request* {code}" + curl);
 		log.info("*Response* {code}");
 
-		String response = null;
 		try {
-			response = HttpClientHelper.performRequest(requestUrl, "POST",
-					entity.toString(), requestHeaders);
-			JSONObject results = new JSONObject(response);
+			JSONObject results = synapse.createEntity(uri, entity);
 			log.info(results.toString(JSON_INDENT) + "{code}");
 			return results;
 		} catch (Exception e) {
@@ -195,11 +208,11 @@ public class WikiGenerator {
 		}
 
 		URL requestUrl;
-		if(uri.startsWith(servicePrefix)) {
-			requestUrl = new URL(serviceLocation + uri);
+		if(uri.startsWith(repoPrefix)) {
+			requestUrl = new URL(repoLocation + uri);
 		}
 		else {
-			requestUrl = new URL(serviceEndpoint + uri);
+			requestUrl = new URL(repoEndpoint + uri);
 		}
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultPOSTPUTHeaders);
@@ -214,11 +227,8 @@ public class WikiGenerator {
 		log.info("*Request* {code}" + curl);
 		log.info("*Response* {code}");
 
-		String response = null;
 		try {
-			response = HttpClientHelper.performRequest(requestUrl, "PUT",
-					entity.toString(), requestHeaders);
-			JSONObject results = new JSONObject(response);
+			JSONObject results = synapse.putEntity(uri, entity);
 			log.info(results.toString(JSON_INDENT) + "{code}");
 			return results;
 		} catch (Exception e) {
@@ -247,11 +257,11 @@ public class WikiGenerator {
 		}
 
 		URL requestUrl;
-		if(uri.startsWith(servicePrefix)) {
-			requestUrl = new URL(serviceLocation + uri);
+		if(uri.startsWith(repoPrefix)) {
+			requestUrl = new URL(repoLocation + uri);
 		}
 		else {
-			requestUrl = new URL(serviceEndpoint + uri);
+			requestUrl = new URL(repoEndpoint + uri);
 		}
 
 		Map<String, String> requestHeaders = new HashMap<String, String>();
@@ -265,8 +275,7 @@ public class WikiGenerator {
 		log.info("*Response* {code}");
 
 		try {
-			HttpClientHelper.performRequest(requestUrl, "DELETE", null,
-					requestHeaders);
+			synapse.deleteEntity(uri);
 			log.info("{code}");
 			return;
 		} catch (Exception e) {
