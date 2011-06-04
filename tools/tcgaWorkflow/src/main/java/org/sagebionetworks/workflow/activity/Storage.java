@@ -59,15 +59,16 @@ public class Storage {
 		byte[] encoded = Base64.encodeBase64(Hex.decodeHex(md5.toCharArray()));
 		String base64Md5 = new String(encoded, "ASCII");
 		
-		// TODO can we do a conditional PUT, fail if the file already exists?
 		Map<String, String> headerMap = new HashMap<String, String>();
 		headerMap.put("x-amz-acl", "bucket-owner-full-control");
 		headerMap.put("Content-MD5", base64Md5);
+		headerMap.put("Content-Type", "application/binary");
 		
 //		if(log.isDebugEnabled()) {
 			log.warn("curl -f -X PUT -H Content-MD5:" + base64Md5
+            + " -H x-amz-acl:bucket-owner-full-control " 
             + " --data-binary @" + localFilepath
-            + " -H x-amz-acl:bucket-owner-full-control " + s3Location.getString("path"));
+            + "'" + s3Location.getString("path") + "'");
 //		}
 	
 		HttpClientHelper.uploadFile(s3Location.getString("path"),

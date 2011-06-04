@@ -26,6 +26,14 @@ import com.amazonaws.services.sns.AmazonSNSClient;
 public class ConfigHelper {
 
 	/**
+	 * The system property key with which to pass the Synapse username
+	 */
+	public static final String USERNAME_KEY = "USERNAME";
+	/**
+	 * The system property key with which to pass the Synapse password
+	 */
+	public static final String PASSWORD_KEY = "PASSWORD";
+	/**
 	 * The system property key with which to pass the AWS access key id
 	 */
 	public static final String ACCESS_ID_KEY = "AWS_ACCESS_KEY_ID";
@@ -52,6 +60,8 @@ public class ConfigHelper {
 	private String snsTopic;
 	private String s3Bucket;
 
+	private String synapseUsername;
+	private String synapsePassword;
 	private String awsAccessId;
 	private String awsSecretKey;
 
@@ -87,12 +97,17 @@ public class ConfigHelper {
 
 		// These come from the environment, not a config file so that we do not
 		// check credentials into source control
+		synapseUsername = System.getProperty(USERNAME_KEY);
+		synapsePassword = System.getProperty(PASSWORD_KEY);
 		awsAccessId = System.getProperty(ACCESS_ID_KEY);
 		awsSecretKey = System.getProperty(SECRET_KEY_KEY);
 
-		if ((null == awsAccessId) || (null == awsSecretKey)) {
+		if ((null == synapseUsername) || (null == synapsePassword)
+				|| (null == awsAccessId) || (null == awsSecretKey)) {
 			throw new Error(
-					"AWS credentials are missing, pass them as JVM args -D"
+					"Synapse and/or AWS credentials are missing, pass them as JVM args -D"
+							+ USERNAME_KEY + "=theSynapseUsername -D"
+							+ PASSWORD_KEY + "=theSynapsePassword -D"
 							+ ACCESS_ID_KEY + "=theAccessKey -D"
 							+ SECRET_KEY_KEY + "=theSecretKey");
 		}
@@ -158,12 +173,13 @@ public class ConfigHelper {
 
 	/**
 	 * @return the Synapse client
-	 * @throws MalformedURLException 
+	 * @throws Exception 
 	 */
-	public Synapse createSynapseClient() throws MalformedURLException {
+	public Synapse createSynapseClient() throws Exception {
 		Synapse synapse = new Synapse();
 		synapse.setRepositoryEndpoint(synapseRepoEndpoint);
 		synapse.setAuthEndpoint(synapseAuthEndpoint);
+		synapse.login(synapseUsername, synapsePassword);
 		return synapse;
 	}
 
