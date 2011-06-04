@@ -16,6 +16,7 @@
 	<property name="datanucleus.autoCreateSchema" value="true"/>
 	<property name="datanucleus.validateConstraints" value="false"/>
 	<property name="datanucleus.validateTables" value="false"/>
+	<property name="datanucleus.transactionIsolation" value="read-committed"/>
   </persistence-manager-factory>
 
   <persistence-manager-factory name="memorydb-transactions-optional">
