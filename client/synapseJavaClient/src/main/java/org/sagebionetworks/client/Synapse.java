@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
@@ -22,35 +23,27 @@ public class Synapse {
 
 	private static final int JSON_INDENT = 2;
 
-	// KEEP THE DEFAULT ENDPOINTS LOCAL UNTIL WE HAVE MORE PROTECTION IN PLACE TO NOT STOMP ON PROD DATA
+	// KEEP THE DEFAULT ENDPOINTS LOCAL UNTIL WE HAVE MORE PROTECTION IN PLACE
+	// TO NOT STOMP ON PROD DATA
 	private static final String DEFAULT_REPO_ENDPOINT = "http://localhost:8080/repo/v1";
-	private static final String DEFAULT_AUTH_ENDPOINT = "http://localhost:8081/repo/v1";
+	private static final String DEFAULT_AUTH_ENDPOINT = "http://localhost:8081/auth/v1";
+	private static final String SESSION_TOKEN_HEADER = "sessionToken";
+	private static final String QUERY_URI = "/query?query=";
 
 	private String repoEndpoint;
 	private String repoLocation;
 	private String repoPrefix;
-	
-	@SuppressWarnings("unused")
-	private String authEndpoint;  // TODO add login or token mechanism?
+
+	private String authEndpoint;
 	private String authLocation;
 	private String authPrefix;
-	
-	private static final String QUERY_URI = "/query?query=";
-	private static final Map<String, String> defaultGETDELETEHeaders;
-	private static final Map<String, String> defaultPOSTPUTHeaders;
 
-	static {
-		Map<String, String> readOnlyHeaders = new HashMap<String, String>();
-		readOnlyHeaders.put("Accept", "application/json");
-		defaultGETDELETEHeaders = Collections.unmodifiableMap(readOnlyHeaders);
-		Map<String, String> readWriteHeaders = new HashMap<String, String>();
-		readWriteHeaders.putAll(readOnlyHeaders);
-		readWriteHeaders.put("Content-Type", "application/json");
-		defaultPOSTPUTHeaders = Collections.unmodifiableMap(readWriteHeaders);
-	}
+	private Map<String, String> defaultGETDELETEHeaders;
+	private Map<String, String> defaultPOSTPUTHeaders;
 
 	/**
-	 * Default constructor uses the default repository and auth services endpoints.
+	 * Default constructor uses the default repository and auth services
+	 * endpoints.
 	 */
 	public Synapse() {
 		try {
@@ -60,14 +53,22 @@ public class Synapse {
 			// This really should not happen since we are using defaults here
 			throw new Error(e);
 		}
-		
+
+		defaultGETDELETEHeaders = new HashMap<String, String>();
+		defaultGETDELETEHeaders.put("Accept", "application/json");
+
+		defaultPOSTPUTHeaders = new HashMap<String, String>();
+		defaultPOSTPUTHeaders.putAll(defaultGETDELETEHeaders);
+		defaultPOSTPUTHeaders.put("Content-Type", "application/json");
 	}
 
 	/**
-	 * @param repoEndpoint the repoEndpoint to set
-	 * @throws MalformedURLException 
+	 * @param repoEndpoint
+	 *            the repoEndpoint to set
+	 * @throws MalformedURLException
 	 */
-	public void setRepositoryEndpoint(String repoEndpoint) throws MalformedURLException {
+	public void setRepositoryEndpoint(String repoEndpoint)
+			throws MalformedURLException {
 		this.repoEndpoint = repoEndpoint;
 		URL parsedRepoEndpoint = new URL(repoEndpoint);
 		this.repoPrefix = parsedRepoEndpoint.getPath();
@@ -80,12 +81,32 @@ public class Synapse {
 	 *            the authEndpoint to set
 	 * @throws MalformedURLException
 	 */
-	public void setAuthEndpoint(String authEndpoint) throws MalformedURLException {
+	public void setAuthEndpoint(String authEndpoint)
+			throws MalformedURLException {
 		this.authEndpoint = authEndpoint;
 		URL parsedAuthEndpoint = new URL(authEndpoint);
 		this.authPrefix = parsedAuthEndpoint.getPath();
 		this.authLocation = authEndpoint.substring(0, authEndpoint.length()
 				- authPrefix.length());
+	}
+
+	/**
+	 * Log into Synapse
+	 * 
+	 * @param username
+	 * @param password
+	 * @throws Exception
+	 */
+	public void login(String username, String password) throws Exception {
+		JSONObject loginRequest = new JSONObject();
+		loginRequest.put("email", username);
+		loginRequest.put("password", password);
+
+		JSONObject credentials = dispatchRequest(new URL(authEndpoint
+				+ "/session"), "POST", loginRequest.toString(), defaultPOSTPUTHeaders);
+		
+		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, credentials.getString(SESSION_TOKEN_HEADER));
+		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, credentials.getString(SESSION_TOKEN_HEADER));
 	}
 
 	/**
@@ -104,15 +125,12 @@ public class Synapse {
 		if (null == entity) {
 			throw new IllegalArgumentException("must provide entity");
 		}
-		
-		URL requestUrl = (uri.startsWith(repoPrefix))
-		? new URL(repoLocation + uri)
-		: new URL(repoEndpoint + uri);
 
-		Map<String, String> requestHeaders = new HashMap<String, String>();
-		requestHeaders.putAll(defaultPOSTPUTHeaders);
+		URL requestUrl = (uri.startsWith(repoPrefix)) ? new URL(repoLocation
+				+ uri) : new URL(repoEndpoint + uri);
+
 		return dispatchRequest(requestUrl, "POST", entity.toString(),
-				requestHeaders);
+				defaultPOSTPUTHeaders);
 	}
 
 	/**
@@ -127,14 +145,10 @@ public class Synapse {
 			throw new IllegalArgumentException("must provide uri");
 		}
 
-		URL requestUrl = (uri.startsWith(repoPrefix))
-		? new URL(repoLocation + uri)
-		: new URL(repoEndpoint + uri);
-		
-		Map<String, String> requestHeaders = new HashMap<String, String>();
-		requestHeaders.putAll(defaultGETDELETEHeaders);
+		URL requestUrl = (uri.startsWith(repoPrefix)) ? new URL(repoLocation
+				+ uri) : new URL(repoEndpoint + uri);
 
-		return dispatchRequest(requestUrl, "GET", null, requestHeaders);
+		return dispatchRequest(requestUrl, "GET", null, defaultGETDELETEHeaders);
 	}
 
 	/**
@@ -186,10 +200,9 @@ public class Synapse {
 			throw new IllegalArgumentException("must provide entity");
 		}
 
-		URL requestUrl = (uri.startsWith(repoPrefix))
-		? new URL(repoLocation + uri)
-		: new URL(repoEndpoint + uri);
-		
+		URL requestUrl = (uri.startsWith(repoPrefix)) ? new URL(repoLocation
+				+ uri) : new URL(repoEndpoint + uri);
+
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultPOSTPUTHeaders);
 		requestHeaders.put("ETag", entity.getString("etag"));
@@ -209,15 +222,11 @@ public class Synapse {
 			throw new IllegalArgumentException("must provide uri");
 		}
 
-		URL requestUrl = (uri.startsWith(repoPrefix))
-		? new URL(repoLocation + uri)
-		: new URL(repoEndpoint + uri);
-		
-		Map<String, String> requestHeaders = new HashMap<String, String>();
-		requestHeaders.putAll(defaultGETDELETEHeaders);
+		URL requestUrl = (uri.startsWith(repoPrefix)) ? new URL(repoLocation
+				+ uri) : new URL(repoEndpoint + uri);
 
 		HttpClientHelper.performRequest(requestUrl, "DELETE", null,
-				requestHeaders);
+				defaultGETDELETEHeaders);
 		return;
 	}
 
