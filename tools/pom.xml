@@ -14,6 +14,7 @@
     <modules>
       <module>tcgaWorkflow</module>
       <module>wikiutil</module>
+      <module>DatasetMetadataLoader</module>
     </modules>
     
 </project>
