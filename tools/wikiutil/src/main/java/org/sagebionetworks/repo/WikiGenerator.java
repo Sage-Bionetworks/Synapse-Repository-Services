@@ -12,7 +12,6 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
@@ -64,10 +63,6 @@ public class WikiGenerator {
 	public static WikiGenerator createWikiGeneratorFromArgs(String args[])
 			throws Exception {
 
-		// DELETEME
-		System.out.println("About to exec: " + StringUtils.join(args, " "));
-
-		
 		Options options = new Options();
 		options
 				.addOption(

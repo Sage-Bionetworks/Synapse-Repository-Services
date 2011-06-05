@@ -21,6 +21,7 @@
   <modules>
     <module>web</module>
     <module>synapseJavaClient</module>
+    <module>synapsePythonClient</module>
   </modules>
-  
+
 </project>
