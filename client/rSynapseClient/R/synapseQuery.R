@@ -1,4 +1,4 @@
-synapseQuery <- function(queryStatement, curl.handle=getCurlHandle(), anonymous = TRUE){
+synapseQuery <- function(queryStatement, curl.handle=getCurlHandle(), anonymous = FALSE){
 
 	if(!is.character(queryStatement)){
 		stop("a query statement must be supplied of R type character")

@@ -1,4 +1,4 @@
-getDataPacketSummaries <- function(query.params = list(limit=10, offset=1), curl.handle=getCurlHandle(), anonymous = TRUE){
+getDataPacketSummaries <- function(query.params = list(limit=10, offset=1), curl.handle=getCurlHandle(), anonymous = FALSE){
 	if(!is.list(query.params)){
 		stop("params must be a list")
 	}

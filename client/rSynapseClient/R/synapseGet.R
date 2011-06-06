@@ -1,8 +1,8 @@
-synapseGet <- function(uri, curl.handle=getCurlHandle(), anonymous = TRUE){
+synapseGet <- function(uri, curl.handle=getCurlHandle(), anonymous = FALSE){
 
-  if(!is.character(uri)){
+	if(!is.character(uri)){
 		stop("a uri must be supplied of R type character")
-	}
+	}	
     
 	# Constants
 	kPath <- "/repo/v1"
@@ -19,9 +19,9 @@ synapseGet <- function(uri, curl.handle=getCurlHandle(), anonymous = TRUE){
 	}
 	
 	# Submit request and check response code
-  d = debugGatherer()
-  response <- getURL(uri, debugfunction=d$update, verbose = TRUE, httpheader = header, curl = curl.handle)
-  d$value()
+	d = debugGatherer()
+	response <- getURL(uri, debugfunction=d$update, verbose = TRUE, httpheader = header, curl = curl.handle)
+	d$value()
 	checkCurlResponse(curl.handle, response)
 	
 	# Parse response and prepare return value
