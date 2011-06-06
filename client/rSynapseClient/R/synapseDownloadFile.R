@@ -1,4 +1,5 @@
-sbn.download.file <- function (url, destfile, method, quiet = FALSE, mode = "w", cacheOK = TRUE)
+synapseDownloadFile <- 
+		function (url, destfile, method, quiet = FALSE, mode = "w", cacheOK = TRUE)
 {
 	destfile
 	method <- if (missing(method))

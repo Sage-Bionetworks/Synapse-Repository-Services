@@ -1,4 +1,6 @@
-parseJSONRecords <- function(json.list){
+parseJSONRecords <- 
+		function(json.list)
+{
 	results.table <- data.frame()
     if(0 < length(json.list)) {
 		for(i in 1:length(json.list)){

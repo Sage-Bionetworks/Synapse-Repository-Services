@@ -8,8 +8,13 @@ loadLayerData <-
 	
 	layerData <- getLayerData(layer, locationType)
 	
- 	switch(attr(layerData, kAttrName),
- 			"Curated phenotypes" = .loadPhenotypeLayer(layerData),
- 			stop(paste("layerType", attr(layerData, kAttrName), "is not supported"))
- 	)
+	layerType <- attr(layerData, kAttrName)
+	
+	if(layerType == .getCache("layerCodeTypeMap")[["phenotype.data"]]){
+		d <- .loadPhenotypeLayer(layerData)
+	}else{
+		stop(paste("layerType", layerType, "is not supported"))
+	}
+	
+ 	return(d)
 }

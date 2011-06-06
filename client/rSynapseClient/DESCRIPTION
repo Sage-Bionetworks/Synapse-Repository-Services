@@ -1,4 +1,4 @@
-Package: sbnClient
+Package: synapseClient
 Type: Package
 Title: Client for the Sage Repository
 Version: 0.9

@@ -1,4 +1,6 @@
-parseSingleRow <- function(row.list){
+parseSingleRow <- 
+		function(row.list)
+{
 	#constants
 	kNaValue <- NA
 	kMultValDelimiterString <- ', '

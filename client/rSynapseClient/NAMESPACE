@@ -16,7 +16,4 @@ exportPattern('*')
 #    "getMore",
 #    "getRemainder"
 #)
-exportClasses(
-    "ClientConfig"
-)
 

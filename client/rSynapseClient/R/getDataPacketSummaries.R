@@ -1,37 +1,26 @@
-getDataPacketSummaries <- function(query.params = list(limit=10, offset=1), curl.handle=getCurlHandle(), anonymous = FALSE){
-	if(!is.list(query.params)){
+getDataPacketSummaries <- 
+		function(queryParams = list(limit=10, offset=1), curlHandle=getCurlHandle(), anonymous = .getCache("anonymous"))
+{
+	if(!is.list(queryParams)){
 		stop("params must be a list")
 	}
-	# constants
-	kPath <- "repo/v1/query?query"
+	
+	## constants
+	kService <- "query?query"
 	kQueryRoot <- "select * from dataset"
-	kHeader <- c(Accept = "application/json")
-	# end constants
+	## end constants
 	
-	#add queary parameters to the uri
+	## add queary parameters to the uri
 	query <- kQueryRoot
-	for(n in names(query.params)){
-		query <- paste(query, n, query.params[n], sep=' ')
+	for(n in names(queryParams)){
+		query <- paste(query, n, queryParams[n], sep=' ')
 	}
-	uri <- paste(paste(sbnHostName(), kPath,sep="/"), curlEscape(query), sep="=")
+	uri <- paste(kService, curlEscape(query), sep="=")
 	
-	#prepare the header. If not an anonymouse request, stuff the session token into the header
-	header <- kHeader
-	if(!anonymous){
-		header <- c(header, sessionToken = sessionToken())
-	}
-	
-	#submit request and check response code
-    d = debugGatherer()
-    response <- getURL(uri, debugfunction=d$update, verbose = TRUE, httpheader = header, curl = curl.handle)
-    d$value()
-	checkCurlResponse(curl.handle, response)
-	
-	#parse response and prepare return value
-	results.list <- fromJSON(response)
-	return.val <- parseJSONRecords(results.list$results)
-	attr(return.val, "total_records_available") <- results.list$totalNumberOfResults
+	json.records <- synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous)
+	result <- parseJSONRecords(json.records$results)
+	attr(result, "total_records_available") <- json.records$totalNumberOfResults
 
-	return(return.val)
+	return(result)
 }
 

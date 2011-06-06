@@ -1,13 +1,18 @@
-getDataPacketSummary <- function(id){
-	kPath <- "repo/v1/dataset"
+getDataPacketSummary <- 
+		function(id, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+{
+	## constants
+	kService <- "dataset"
+	## end constants
+	
 	if(length(id) != 1){
 		stop("multiple IDs provided")
 	}
-	uri <- paste(sbnHostName(), kPath, id,sep="/")
-	body <- getURL(uri)
-	results.list <- fromJSON(body)
-	return.val <- parseSingleRow(results.list)
 	
-	return(return.val)
+	uri <- paste(kservice, id, sep = "/")
+	
+	## get reults and parse list
+	results.list <- synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous)
+	parseSingleRow(results.list)
 }
 

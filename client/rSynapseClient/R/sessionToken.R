@@ -1,20 +1,19 @@
-sessionToken <- function(session.token, check.validity = TRUE){
-	# the client config object holds the session token
-	config <- getClientConfig()
-	
+sessionToken <- 
+		function(session.token, check.validity=FALSE, refresh.duration = .getCache("sessionRefreshDurationMin"))
+{
 	if (!missing(session.token)) {
-		config@session.token <- session.token
-		
-		#check that a valid token was provided
-		if(check.validity && !isTokenValid(config)){
-			stop("The token provided is not valid! Changes were not saved.")
+		if(check.validity){
+			refreshSessionToken(session.token)
 		}
-		setClientConfig(config)
+		.setCache("session.token", session.token)
 	}else {
-		if(!isTokenValid(config)){
-			#throw an exception and tell the user to log in
-			stop("You must be logged in to do that!")
+		session.token <- .getCache("session.token")
+		elapsed.time.min <-  (as.numeric(Sys.time()) - as.numeric(.getCache("sessionTimestamp")))/60
+		if(!is.null(.getCache("sessionTimestamp")) 
+				&(check.validity || elapsed.time.min >= refresh.duration)){
+			refreshSessionToken(session.token)
 		}
-		return(config@session.token)
+		return(session.token)
 	}
 }
+

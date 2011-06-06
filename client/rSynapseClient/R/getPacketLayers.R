@@ -1,18 +1,16 @@
 getPacketLayers <-
-		function(id, curlHandle=getCurlHandle(), anonymous=TRUE)
+		function(id, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
 {
-	kPath <- "repo/v1/dataset"
+	kService <- "dataset"
 	kSuffix <- "layer"
-	kHeader <- c(Accept = "application/json")
-
-	uri <- paste(sbnHostName(), kPath, id, kSuffix, sep="/")
-	response <- getURL(uri, httpheader = kHeader, curl = curlHandle)
-	checkCurlResponse(curlHandle, response)
 	
-	layers <- fromJSON(response)[["results"]]
+	uri <- paste(kService, id, kSuffix, sep="/")
+	result <- synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous)
+	
+	layers <- result$results
 
 	for(i in 1:length(layers)){
-		names(layers)[i] <- gsub(" ", ".", layers[[i]]$name)
+		names(layers)[i] <- layers[[i]]$type
 		class(layers[[i]]) <- 'layer'
 	}
 

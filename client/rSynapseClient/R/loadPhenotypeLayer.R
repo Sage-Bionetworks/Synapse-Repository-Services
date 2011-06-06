@@ -9,7 +9,7 @@
 	if(class(layerData) != "layerData"){
 		stop("argument must be of class 'layerData'")
 	}
-	if(attr(layerData, kAttrName) != "Curated phenotypes"){
+	if(attr(layerData, kAttrName) != "C"){
 		stop("layerData must be of sub-class type 'Curated phenotypes'")
 	}	
 	
