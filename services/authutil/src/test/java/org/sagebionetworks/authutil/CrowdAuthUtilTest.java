@@ -1,7 +1,9 @@
 package org.sagebionetworks.authutil;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
 

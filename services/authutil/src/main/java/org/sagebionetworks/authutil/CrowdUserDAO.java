@@ -7,8 +7,10 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -58,9 +60,17 @@ public class CrowdUserDAO implements UserDAO {
 	 * @see org.sagebionetworks.repo.model.BaseDAO#update(org.sagebionetworks.repo.model.Base)
 	 */
 	@Override
-	public void update(User dto) throws DatastoreException,
-			InvalidModelException, NotFoundException {
-		throw new UnsupportedOperationException();
+	public void update(User dto) throws DatastoreException {
+		Map<String,Collection<String>> userAttributes = new HashMap<String,Collection<String>>();
+		DateFormat df = new SimpleDateFormat(DATE_FORMAT);
+		userAttributes.put(CREATION_DATE_FIELD, Arrays.asList(new String[]{df.format(dto.getCreationDate())}));
+		userAttributes.put(IAM_ACCESS_ID_FIELD, Arrays.asList(new String[]{dto.getIamAccessId()}));
+		userAttributes.put(IAM_SECRET_KEY_FIELD, Arrays.asList(new String[]{dto.getIamSecretKey()}));
+		try {
+			crowdAuthUtil.setUserAttributes(dto.getUserId(), userAttributes);
+		} catch (IOException e) {
+			throw new DatastoreException(e);
+		}
 	}
 
 	/* (non-Javadoc)
@@ -75,6 +85,7 @@ public class CrowdUserDAO implements UserDAO {
 	private static final String IAM_ACCESS_ID_FIELD = "iamAccessId";
 	private static final String IAM_SECRET_KEY_FIELD = "iamSecretKey";
 
+	private static final String DATE_FORMAT = "yyyy-mm-dd";
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.UserDAO#getUser(java.lang.String)
@@ -85,15 +96,9 @@ public class CrowdUserDAO implements UserDAO {
 		user.setUserId(userName);
 		user.setId(userName);  //  i.e. user name == user id
 		if (AuthUtilConstants.ANONYMOUS_USER_ID.equals(userName)) return user;
-//		Collection<String> userAttributes = Arrays.asList(new String[]{
-//			CREATION_DATE_FIELD,
-//			IAM_ACCESS_ID_FIELD,
-//			IAM_SECRET_KEY_FIELD
-//		});
 		Map<String,Collection<String>> userAttrValues = null;
 		try {
 			userAttrValues = crowdAuthUtil.getUserAttributes(userName);
-			System.out.println("CrowdUserDAO: "+userAttrValues);
 		} catch (NotFoundException nfe) {
 			throw nfe;
 		} catch (Exception e) {
@@ -102,8 +107,7 @@ public class CrowdUserDAO implements UserDAO {
 		Collection<String> values;
 		values = userAttrValues.get(CREATION_DATE_FIELD);
 
-//		DateFormat df = new SimpleDateFormat("yyyy-mm-dd HH:MM:SS.SSS");
-		DateFormat df = new SimpleDateFormat("yyyy-mm-dd");
+		DateFormat df = new SimpleDateFormat(DATE_FORMAT);
 		
 		if (values!=null && values.size()>0) {
 			String dateString = values.iterator().next();

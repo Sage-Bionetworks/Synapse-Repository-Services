@@ -11,7 +11,6 @@ import java.security.Security;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -432,17 +431,60 @@ public class CrowdAuthUtil {
 		}
 	}
 	
-	public void setUserAttributes(String userId, Map<String,Collection<String>> attributes) throws IOException, NotFoundException {
-		// API is here: http://confluence.atlassian.com/display/CROWDDEV/Crowd+REST+Resources
-		// note that format of body of POST is not explicitly documented.  May have to infer it from sample.
-		//
-		// To get sample:
-		// curl -u platform:platform-pw -H "Accept: application/xml" -H "Content-Type: application/xml" -v -k  -X GET "https://ec2-50-16-158-220.compute-1.amazonaws.com:8443/crowd/rest/usermanagement/1/user/attribute?username=demouser"
-		//
-		// idea for mapping bet. XML and Java (marshalling/unmarshalling):
-		// http://jxm.sourceforge.net/index.html
-		//
-		throw new RuntimeException("Not yet implemented.");
+//	public static void foo(InputStream is) throws Exception {
+//        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+//        Document d = factory.newDocumentBuilder().parse(new InputSource(is));
+//		String xpath = "/user/attributes";
+//	    NodeList nodelist = XPathAPI.selectNodeList(d, xpath);
+//	    if (nodelist.getLength()!=1) throw new RuntimeException("Expected 1 but found "+nodelist.getLength());
+//	    Node attributes = nodelist.item(0);
+//	    NodeList children = attributes.getChildNodes();
+//	    // Process the elements in the nodelist
+//	    System.out.println("CrowdAuthUtil.foo: # nodes="+children.getLength());
+//	    for (int i=0; i<children.getLength(); i++) {
+//	        // Get element
+//	        Node node = children.item(i);
+//	        System.out.println("\t"+node);
+//	    }       
+//	}
+	
+	// <attributes><attribute name=\"foo\"><values><value>bar</value></values></attribute></attributes>
+	public static String encodeAttributesAsXML(Map<String,Collection<String>> attributes) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("<attributes>");
+		for (String a : attributes.keySet()) {
+			sb.append("<attribute name=\""+a+"\"><values>");
+			for (String v : attributes.get(a)) {
+				sb.append("<value>"+v+"</value>");
+			}
+			sb.append("</values></attribute>");
+		}
+		sb.append("</attributes>");
+		return sb.toString();
+	}
+	
+	public void setUserAttributes(String userId, Map<String,Collection<String>> attributes) throws IOException {
+		URL url = new URL(urlPrefix()+"/user/attribute?username="+userId);
+		byte[] sessionXML = null;
+		int rc = 0;
+		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+		conn.setRequestMethod("POST");
+		setHeaders(conn);
+		setBody(conn, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"+encodeAttributesAsXML(attributes)+"\n");
+		try {
+			rc = conn.getResponseCode();
+//			InputStream is = (InputStream)conn.getContent();
+//			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
+		} catch (IOException e) {
+			if (rc==0) rc = 500;
+			InputStream es = (InputStream)conn.getErrorStream();
+			if (es!=null) sessionXML = (readInputStream(es)).getBytes();
+			throw new RuntimeException(sessionXML==null ? ""+rc: new String(sessionXML));
+		}
+
+		if (HttpStatus.NO_CONTENT.value()!=rc) {
+			throw new RuntimeException(sessionXML==null ? ""+rc: new String(sessionXML));
+		}
 	}
 	
 	public Collection<String> getUsersGroups(String userId) throws IOException, NotFoundException {
