@@ -70,5 +70,7 @@ public interface NodeEditorView extends IsWidget {
 		 * @param formFields
 		 */
 		public void persist(List<FormField> formFields);		
+		
+		public void closeButtonSelected();		
 	}
 }

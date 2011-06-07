@@ -151,8 +151,7 @@ public class LoginWidgetViewImpl extends LayoutContainer implements
 	}
 
 	@Override
-	public void clear() {
-		firstName.clear();
+	public void clear() {		
 		password.clear();
 	}
 

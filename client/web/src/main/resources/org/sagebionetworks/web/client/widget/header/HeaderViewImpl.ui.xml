@@ -29,7 +29,7 @@
 					<li ui:field="navbarTools"><a href="">Tools</a></li>
 					<li ui:field="navbarNetworks"><a href="">Networks</a></li>
 					<li ui:field="navbarPeople"><a href="people.html">People</a></li>
-					<li class="last" ui:field="navbarProjects"><a href="projects.html">Projects</a></li>
+					<li class="last" ui:field="navbarProjects"><a href="#ProjectsHome:0">Projects</a></li>
 				</ul>
 				
 				<div id="search" class="right">

@@ -91,6 +91,11 @@ public interface DatasetView extends IsWidget {
 	 */
 	public interface Presenter {
 
+		/**
+		 * Refreshes the object on the page
+		 */
+		public void refresh();
+		
 		public void licenseAccepted();
 		
 	}

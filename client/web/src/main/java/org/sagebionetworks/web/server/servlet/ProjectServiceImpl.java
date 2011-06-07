@@ -1,11 +1,18 @@
 package org.sagebionetworks.web.server.servlet;
 
-import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.web.client.services.ProjectService;
 import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.shared.Project;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import com.google.inject.Inject;
@@ -66,42 +73,32 @@ public class ProjectServiceImpl extends RemoteServiceServlet implements
 	}
 
 	@Override
-	public Project getProject(String id) {
+	public Project getProject(String id) {		
+		// First make sure the service is ready to go.
+		validateService();
+		// Build up the path
+		StringBuilder builder = new StringBuilder();
+		builder.append(urlProvider.getBaseUrl());
+		builder.append(PATH_PROJECT);
+		// the values to the keys
+		Map<String, String> map = new HashMap<String, String>();
+		map.put(KEY_PROJECT_ID, id);
+		String url = builder.toString();
+		logger.info("GET: " + url);
+		// Setup the header
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<String>("", headers);
+		// Make the actual call.
+		ResponseEntity<Project> response = templateProvider.getTemplate().exchange(url, HttpMethod.GET, entity, Project.class, map);
 
-		Project temp = new Project();
-		temp.setName("Default Project Name");
-		temp.setDescription("Default Project description. Irony: Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of de Finibus Bonorum et Malorum (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, Lorem ipsum dolor sit amet.., comes from a line in section 1.10.32. The standard chunk of Lorem Ipsum used since the 1500s is reproduced below for those interested. Sections 1.10.32 and 1.10.33 from de Finibus Bonorum et Malorum by Cicero are also reproduced in their exact original form, accompanied by English versions from the 1914 translation by H. Rackham.");
-		temp.setId("1");
-		temp.setCreationDate(new Date());
-		temp.setCreator("Dave");		
-		temp.setStatus("Active");		
-		return temp;
-		
-//		// First make sure the service is ready to go.
-//		validateService();
-//		// Build up the path
-//		StringBuilder builder = new StringBuilder();
-//		builder.append(urlProvider.getBaseUrl());
-//		builder.append(PATH_PROJECT);
-//		// the values to the keys
-//		Map<String, String> map = new HashMap<String, String>();
-//		map.put(KEY_PROJECT_ID, id);
-//		String url = builder.toString();
-//		logger.info("GET: " + url);
-//		// Setup the header
-//		HttpHeaders headers = new HttpHeaders();
-//		headers.setContentType(MediaType.APPLICATION_JSON);
-//		HttpEntity<String> entity = new HttpEntity<String>("", headers);
-//		// Make the actual call.
-//		ResponseEntity<Project> response = templateProvider.getTemplate().exchange(url, HttpMethod.GET, entity, Project.class, map);
-//
-//		if (response.getStatusCode() == HttpStatus.OK) {
-//			return response.getBody();
-//		} else {
-//			// TODO: better error handling
-//			throw new UnknownError("Status code:"
-//					+ response.getStatusCode().value());
-//		}
+		if (response.getStatusCode() == HttpStatus.OK) {
+			return response.getBody();
+		} else {
+			// TODO: better error handling
+			throw new UnknownError("Status code:"
+					+ response.getStatusCode().value());
+		}
 	}
 
 

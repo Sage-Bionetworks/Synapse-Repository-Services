@@ -18,7 +18,6 @@ public interface ProjectsHomeView extends IsWidget{
 	
 	
 	public interface Presenter {
-		
 	}
 
 }

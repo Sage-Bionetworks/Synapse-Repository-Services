@@ -40,8 +40,8 @@ public class NodeEditorDisplayHelper {
 				NodeType.DATASET, "Dataset",
 				DisplayConstants.CREATE_DATASET_TEXT,
 				DisplayConstants.EDIT_DATASET_TEXT,
-				Arrays.asList(new String[] {"annotations", "id", "creationDate", "parentId", "uri", "etag", "layer", "hasExpressionData", "hasGeneticData", "hasClinicalData"}),
-				Arrays.asList(new String[] {"annotations", "id", "creationDate", "parentId", "uri", "etag", "layer", "hasExpressionData", "hasGeneticData", "hasClinicalData"}));
+				Arrays.asList(new String[] {"annotations", "id", "creationDate", "creator", "parentId", "uri", "etag", "layer", "hasExpressionData", "hasGeneticData", "hasClinicalData"}),
+				Arrays.asList(new String[] {"annotations", "id", "creationDate", "creator", "parentId", "uri", "etag", "layer", "hasExpressionData", "hasGeneticData", "hasClinicalData"}));
 		Map<String, OntologyTerm[]> keyToOntology = new HashMap<String, OntologyTerm[]>();
 		keyToOntology.put(DisplayConstants.SERVICE_STATUS_KEY, StaticOntologies.STATUS);		
 		deviation.setKeyToOntology(keyToOntology);
@@ -54,9 +54,9 @@ public class NodeEditorDisplayHelper {
 		SpecificNodeTypeDeviation deviation = new SpecificNodeTypeDeviation(
 				NodeType.LAYER, "Layer", DisplayConstants.CREATE_LAYER_TEXT,
 				DisplayConstants.EDIT_LAYER_TEXT,
-				Arrays.asList(new String[] {"annotations", "id", "creationDate", "parentId", "uri", "etag", "preview", "description", 
+				Arrays.asList(new String[] {"annotations", "id", "creationDate", "creator", "parentId", "uri", "etag", "preview", "description", 
 						"publicationDate", "releaseNotes", "tissueType", "processingFacility", "qcBy", "qcDate"}),
-				Arrays.asList(new String[] {"annotations", "id", "creationDate", "parentId", "uri", "etag", "preview"}));
+				Arrays.asList(new String[] {"annotations", "id", "creationDate", "creator", "parentId", "uri", "etag", "preview"}));
 		Map<String, OntologyTerm[]> keyToOntology = new HashMap<String, OntologyTerm[]>();
 		keyToOntology.put(DisplayConstants.SERVICE_STATUS_KEY, StaticOntologies.STATUS);
 		keyToOntology.put(DisplayConstants.SERVICE_LAYER_TYPE_KEY, StaticOntologies.LAYER_TYPES);
@@ -71,8 +71,8 @@ public class NodeEditorDisplayHelper {
 				NodeType.PROJECT, "Project",
 				DisplayConstants.CREATE_PROJECT_TEXT,
 				DisplayConstants.EDIT_PROJECT_TEXT, 
-				Arrays.asList(new String[] {"annotations", "id", "creationDate", "parentId", "uri", "etag"}),
-				Arrays.asList(new String[] {"annotations", "id", "creationDate", "parentId", "uri", "etag"}));
+				Arrays.asList(new String[] {"annotations", "id", "creationDate", "creator", "parentId", "uri", "etag"}),
+				Arrays.asList(new String[] {"annotations", "id", "creationDate", "creator", "parentId", "uri", "etag"}));
 		Map<String, OntologyTerm[]> keyToOntology = new HashMap<String, OntologyTerm[]>();
 		deviation.setKeyToOntology(keyToOntology);
 			

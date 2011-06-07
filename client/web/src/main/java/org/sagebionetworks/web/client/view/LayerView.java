@@ -60,7 +60,8 @@ public interface LayerView extends IsWidget {
 	 * @param totalDataRows
 	 * @param privacyLevel
 	 */
-	public void setLayerDetails(String layerName,								
+	public void setLayerDetails(String id,
+								String layerName,								
 								String processingFacility, 
 								String qcByDisplay,
 								String qcByUrl, 
@@ -118,6 +119,11 @@ public interface LayerView extends IsWidget {
 	 *
 	 */
 	public interface Presenter {
+
+		/**
+		 * Refreshes the object on the page
+		 */
+		public void refresh();
 
 		public void licenseAccepted();
 		

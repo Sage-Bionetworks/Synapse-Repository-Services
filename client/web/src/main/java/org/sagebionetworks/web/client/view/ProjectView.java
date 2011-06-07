@@ -32,6 +32,10 @@ public interface ProjectView extends IsWidget{
 	
 	public interface Presenter {
 		
+		/**
+		 * Refreshes the object for the page
+		 */
+		public void refresh();
 	}
 
 }

@@ -7,6 +7,10 @@ import java.util.List;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
+import org.sagebionetworks.web.client.events.CancelEvent;
+import org.sagebionetworks.web.client.events.CancelHandler;
+import org.sagebionetworks.web.client.events.PersistSuccessEvent;
+import org.sagebionetworks.web.client.events.PersistSuccessHandler;
 import org.sagebionetworks.web.client.widget.adminmenu.AdminMenu;
 import org.sagebionetworks.web.client.widget.breadcrumb.Breadcrumb;
 import org.sagebionetworks.web.client.widget.editpanels.AnnotationEditor;
@@ -92,6 +96,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	private Presenter presenter;
 	private PreviewDisclosurePanel previewDisclosurePanel;
 	private IconsImageBundle iconsImageBundle;
+	private QueryServiceTableResourceProvider queryServiceTableResourceProvider;
 	private QueryServiceTable queryServiceTable;
 	private final LicensedDownloader datasetLicensedDownloader;
 	private Breadcrumb breadcrumb;
@@ -131,79 +136,15 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		this.nodeEditor = nodeEditor;
 		this.annotationEditor = annotationEditor;
 		this.adminMenu = adminMenu;
+		this.queryServiceTableResourceProvider = queryServiceTableResourceProvider;
+		this.seeTermsModal = seeTermsModal;
 		
-		setupDatasetLicensedDownloaderCallbacks();
-
+		header.clear();
+		footer.clear();
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
 		headerWidget.setMenuItemActive(MenuItems.DATASETS);
 
-		// Button: Follow dataset 
-		followDatasetModal.setHeading("Follow this Dataset");
-		followDatasetModal.setDimensions(180, 500);		
-		followDatasetModal.setHtml(DisplayConstants.FOLLOW_DATASET_HTML);
-		followDatasetModal.setCallbackButton("Confirm", new AsyncCallback<Void>() {
-			@Override
-			public void onSuccess(Void result) {
-				// TODO : call a service layer to follow the dataset				
-				followDatasetModal.hideWindow();
-			}
-
-			@Override
-			public void onFailure(Throwable caught) {			}
-		});
-		// follow link		
-		Anchor followDatasetAnchor = new Anchor();
-		followDatasetAnchor.setHTML(AbstractImagePrototype.create(iconsImageBundle.arrowCurve16()).getHTML() + " Follow this Dataset");
-		followDatasetAnchor.addClickHandler(new ClickHandler() {			
-			@Override
-			public void onClick(ClickEvent event) {
-				followDatasetModal.showWindow();
-			}
-		});		
-		followDatasetPanel.add(followDatasetAnchor);
-		
-
-		// Button: See terms of use
-		this.seeTermsModal = seeTermsModal;
-		seeTermsModal.setHeading("Terms of Use");
-		seeTermsModal.setDimensions(400, 500);
-		seeTermsModal.setHtml(DisplayConstants.DEFAULT_TERMS_OF_USE); // TODO : get this from a service
-		// download link		
-		Anchor seeTermsAnchor = new Anchor();
-		seeTermsAnchor.setHTML(AbstractImagePrototype.create(iconsImageBundle.documentText16()).getHTML() + " See Terms of Use");
-		seeTermsAnchor.addClickHandler(new ClickHandler() {			
-			@Override
-			public void onClick(ClickEvent event) {
-				seeTermsModal.showWindow();
-			}
-		});		
-		seeTermsPanel.add(seeTermsAnchor);
-		
-		
-		
-		middleFlexTable.setCellSpacing(5);
-		rightFlexTable.setCellSpacing(5);
-
-		// layers table
-		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.layer, false, 320, 237);
-		tablePanel.add(queryServiceTable.asWidget());
-				
-		// download link		
-		Anchor downloadLink = new Anchor();
-		downloadLink.setHTML(AbstractImagePrototype.create(iconsImageBundle.download16()).getHTML() + " Download Dataset");
-		downloadLink.addClickHandler(new ClickHandler() {			
-			@Override
-			public void onClick(ClickEvent event) {
-				datasetLicensedDownloader.showWindow();
-			}
-		});
-		downloadPanel.add(downloadLink);
-		
-		// breadcrumb
-//		breadcrumb.appendLocation(new Hyperlink("Home", ""));
-//		breadcrumb.appendLocation(new Hyperlink("All Datasets", "DatasetsHome:0"));
-//		breadcrumbPanel.add(breadcrumb.asWidget());
 	}
 
 	@Override
@@ -260,6 +201,80 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		if(downloadAvailability == null) downloadAvailability = "";
 		if(releaseNotesUrl == null) releaseNotesUrl = "";
 	
+		setupDatasetLicensedDownloaderCallbacks();
+
+		// Button: Follow dataset 
+		followDatasetModal.setHeading("Follow this Dataset");
+		followDatasetModal.setDimensions(180, 500);		
+		followDatasetModal.setHtml(DisplayConstants.FOLLOW_DATASET_HTML);
+		followDatasetModal.setCallbackButton("Confirm", new AsyncCallback<Void>() {
+			@Override
+			public void onSuccess(Void result) {
+				// TODO : call a service layer to follow the dataset				
+				followDatasetModal.hideWindow();
+			}
+
+			@Override
+			public void onFailure(Throwable caught) {			}
+		});
+		// follow link		
+		Anchor followDatasetAnchor = new Anchor();
+		followDatasetAnchor.setHTML(AbstractImagePrototype.create(iconsImageBundle.arrowCurve16()).getHTML() + " Follow this Dataset");
+		followDatasetAnchor.addClickHandler(new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {
+				followDatasetModal.showWindow();
+			}
+		});		
+		followDatasetPanel.clear();
+		followDatasetPanel.add(followDatasetAnchor);
+		
+
+		// Button: See terms of use		
+		seeTermsModal.setHeading("Terms of Use");
+		seeTermsModal.setDimensions(400, 500);
+		seeTermsModal.setHtml(DisplayConstants.DEFAULT_TERMS_OF_USE); // TODO : get this from a service
+		// download link		
+		Anchor seeTermsAnchor = new Anchor();
+		seeTermsAnchor.setHTML(AbstractImagePrototype.create(iconsImageBundle.documentText16()).getHTML() + " See Terms of Use");
+		seeTermsAnchor.addClickHandler(new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {
+				seeTermsModal.showWindow();
+			}
+		});		
+		seeTermsPanel.clear();
+		seeTermsPanel.add(seeTermsAnchor);
+		
+		
+		
+		middleFlexTable.setCellSpacing(5);
+		rightFlexTable.setCellSpacing(5);
+
+		// layers table
+		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.layer, false, 320, 237);
+		tablePanel.clear();
+		tablePanel.add(queryServiceTable.asWidget());
+				
+		// download link		
+		Anchor downloadLink = new Anchor();
+		downloadLink.setHTML(AbstractImagePrototype.create(iconsImageBundle.download16()).getHTML() + " Download Dataset");
+		downloadLink.addClickHandler(new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {
+				datasetLicensedDownloader.showWindow();
+			}
+		});
+		downloadPanel.clear();
+		downloadPanel.add(downloadLink);
+		
+		// breadcrumb
+//		breadcrumb.appendLocation(new Hyperlink("Home", ""));
+//		breadcrumb.appendLocation(new Hyperlink("All Datasets", "DatasetsHome:0"));
+//		breadcrumbPanel.add(breadcrumb.asWidget());
+		
+		
+		
 		// check authorization
 		userIsAdmin = true; // TODO : get ACL from authorization service
 		
@@ -276,6 +291,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		
 		int summaryLength = overviewText.length() >= DisplayConstants.DESCRIPTION_SUMMARY_LENGTH ? DisplayConstants.DESCRIPTION_SUMMARY_LENGTH : overviewText.length();
 		previewDisclosurePanel.init("Expand", overviewText.substring(0, summaryLength), overviewText);
+		overviewPanel.clear();
 		overviewPanel.add(previewDisclosurePanel);		
 		
 		// add metadata to tables
@@ -375,7 +391,20 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 				window.setBlinkModal(true);
 				window.setHeading("Edit Dataset");
 				window.setLayout(new FitLayout());								
-				window.add(nodeEditor.asWidget(NodeType.DATASET, datasetId), new FitData(4));
+				nodeEditor.addCancelHandler(new CancelHandler() {					
+					@Override
+					public void onCancel(CancelEvent event) {
+						window.hide();
+					}
+				});
+				nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
+					@Override
+					public void onPersistSuccess(PersistSuccessEvent event) {
+						window.hide();
+						presenter.refresh();
+					}
+				});
+				window.add(nodeEditor.asWidget(NodeType.DATASET, datasetId), new FitData(4));				
 				window.show();
 			}
 		});
@@ -392,10 +421,24 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 				window.setBlinkModal(true);
 				window.setHeading("Edit Dataset Annotations");
 				window.setLayout(new FitLayout());					
+				nodeEditor.addCancelHandler(new CancelHandler() {					
+					@Override
+					public void onCancel(CancelEvent event) {
+						window.hide();
+					}
+				});
+				nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
+					@Override
+					public void onPersistSuccess(PersistSuccessEvent event) {
+						window.hide();
+						presenter.refresh();
+					}
+				});				
 				window.add(annotationEditor.asWidget(), new FitData(4));
 				window.show();
 			}
 		});
+		item.disable();
 		menu.add(item);
 		
 		item = new MenuItem("Add a Layer to Dataset");
@@ -403,12 +446,25 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		item.addSelectionListener(new SelectionListener<MenuEvent>() {
 			public void componentSelected(MenuEvent menuEvent) {													
 				final Window window = new Window();  
-				window.setSize(600, 500);
+				window.setSize(600, 275);
 				window.setPlain(true);
 				window.setModal(true);
 				window.setBlinkModal(true);
 				window.setHeading("Create Layer");
 				window.setLayout(new FitLayout());				
+				nodeEditor.addCancelHandler(new CancelHandler() {					
+					@Override
+					public void onCancel(CancelEvent event) {
+						window.hide();
+					}
+				});
+				nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
+					@Override
+					public void onPersistSuccess(PersistSuccessEvent event) {
+						window.hide();
+						presenter.refresh();
+					}
+				});
 				window.add(nodeEditor.asWidget(NodeType.LAYER, null, datasetId), new FitData(4));
 				window.show();
 			}

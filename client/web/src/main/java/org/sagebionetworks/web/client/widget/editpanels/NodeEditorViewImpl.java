@@ -13,17 +13,15 @@ import org.sagebionetworks.web.client.ontology.OntologyTerm;
 
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
 import com.extjs.gxt.ui.client.Style.Scroll;
-import com.extjs.gxt.ui.client.data.BaseModelData;
 import com.extjs.gxt.ui.client.event.ButtonEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
-import com.extjs.gxt.ui.client.store.ListStore;
 import com.extjs.gxt.ui.client.widget.Html;
+import com.extjs.gxt.ui.client.widget.Info;
 import com.extjs.gxt.ui.client.widget.LayoutContainer;
 import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.button.Button;
 import com.extjs.gxt.ui.client.widget.form.ComboBox.TriggerAction;
 import com.extjs.gxt.ui.client.widget.form.DateField;
-import com.extjs.gxt.ui.client.widget.form.Field;
 import com.extjs.gxt.ui.client.widget.form.FormButtonBinding;
 import com.extjs.gxt.ui.client.widget.form.FormPanel;
 import com.extjs.gxt.ui.client.widget.form.SimpleComboBox;
@@ -95,7 +93,9 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 	
 	@Override
 	public void showErrorMessage(String message) {
-		MessageBox.info("Error", message, null);
+		this.clear();	
+		Html html = new Html(DisplayUtils.getIconHtml(iconsImageBundle.error16()) + " " + message);
+		this.add(html);		
 	}
 
 	@Override
@@ -158,7 +158,8 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 					combo.setTriggerAction(TriggerAction.ALL);
 					for(OntologyTerm term : keyToOntologyTerms.get(key)) {
 						combo.add(term);
-					}
+					}					
+					if(isEditor) combo.setSimpleValue(formField.getOntologyValue());
 					nodeFormPanel.add(combo, formData);  					
 				} else {				
 					TextField<String> stringField = new TextField<String>();
@@ -197,6 +198,17 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 			}
 		});
 		nodeFormPanel.addButton(formButton);
+		
+		// close button
+		Button closeButton = new Button("Close");
+		closeButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+			@Override
+			public void componentSelected(ButtonEvent ce) {
+				presenter.closeButtonSelected();
+			}
+		});
+		nodeFormPanel.addButton(closeButton);
+		
 		nodeFormPanel.setButtonAlign(HorizontalAlignment.CENTER);
 		binding.addButton(formButton);		
 		
@@ -269,7 +281,7 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 			}
 			formButton.setText(formButtonResultString);				
 		}
-		
+		Info.display("Message", DisplayUtils.getIconHtml(iconsImageBundle.checkGreen16()) + " " + formButtonResultString);
 	}
 
 	@Override

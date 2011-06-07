@@ -12,29 +12,13 @@ public class Project implements IsSerializable {
 	private String id;
 	private String uri;
 	private String etag;
-	private String name;
+	private String name;	
 	private String description;
 	private String creator;
 	private Date creationDate;
 	private String status;
-
-
-	public String getUri() {
-		return uri;
-	}
-
-	public String getEtag() {
-		return etag;
-	}
-
-	public void setEtag(String etag) {
-		this.etag = etag;
-	}
-
-	public void setUri(String uri) {
-		this.uri = uri;
-	}
-
+	private String annotations;
+	private String parentId;
 
 	/**
 	 * Default constructor is required
@@ -91,10 +75,44 @@ public class Project implements IsSerializable {
 		this.status = status;
 	}
 
+	public String getUri() {
+		return uri;
+	}
+
+	public String getEtag() {
+		return etag;
+	}
+
+	public void setEtag(String etag) {
+		this.etag = etag;
+	}
+
+	public void setUri(String uri) {
+		this.uri = uri;
+	}
+
+	public String getAnnotations() {
+		return annotations;
+	}
+
+	public void setAnnotations(String annotations) {
+		this.annotations = annotations;
+	}
+
+	public String getParentId() {
+		return parentId;
+	}
+
+	public void setParentId(String parentId) {
+		this.parentId = parentId;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result
+				+ ((annotations == null) ? 0 : annotations.hashCode());
 		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((creator == null) ? 0 : creator.hashCode());
@@ -103,6 +121,8 @@ public class Project implements IsSerializable {
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result
+				+ ((parentId == null) ? 0 : parentId.hashCode());
 		result = prime * result + ((status == null) ? 0 : status.hashCode());
 		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
 		return result;
@@ -117,6 +137,11 @@ public class Project implements IsSerializable {
 		if (getClass() != obj.getClass())
 			return false;
 		Project other = (Project) obj;
+		if (annotations == null) {
+			if (other.annotations != null)
+				return false;
+		} else if (!annotations.equals(other.annotations))
+			return false;
 		if (creationDate == null) {
 			if (other.creationDate != null)
 				return false;
@@ -147,6 +172,11 @@ public class Project implements IsSerializable {
 				return false;
 		} else if (!name.equals(other.name))
 			return false;
+		if (parentId == null) {
+			if (other.parentId != null)
+				return false;
+		} else if (!parentId.equals(other.parentId))
+			return false;
 		if (status == null) {
 			if (other.status != null)
 				return false;
@@ -165,6 +195,9 @@ public class Project implements IsSerializable {
 		return "Project [id=" + id + ", uri=" + uri + ", etag=" + etag
 				+ ", name=" + name + ", description=" + description
 				+ ", creator=" + creator + ", creationDate=" + creationDate
-				+ ", status=" + status + "]";
-	}	
+				+ ", status=" + status + ", annotations=" + annotations
+				+ ", parentId=" + parentId + "]";
+	}
+
+
 }

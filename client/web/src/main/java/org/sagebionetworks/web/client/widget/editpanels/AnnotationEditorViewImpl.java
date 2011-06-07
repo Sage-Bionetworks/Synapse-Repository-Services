@@ -139,7 +139,9 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 
 	@Override
 	public void showErrorMessage(String message) {
-		MessageBox.info("Error", message, null);
+		this.clear();	
+		Html html = new Html(DisplayUtils.getIconHtml(iconsImageBundle.error16()) + " " + message);
+		this.add(html);		
 	}
 
     @Override

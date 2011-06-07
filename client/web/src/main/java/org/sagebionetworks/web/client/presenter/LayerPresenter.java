@@ -21,12 +21,13 @@ import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.AcceptsOneWidget;
 import com.google.inject.Inject;
+import com.gwtplatform.mvp.client.Presenter;
 
 public class LayerPresenter extends AbstractActivity implements LayerView.Presenter{	
 
 	private org.sagebionetworks.web.client.place.Layer place;
 	private DatasetServiceAsync service;
-	
+
 	private LayerView view;
 	private String layerId;	
 	private String datasetId;
@@ -141,7 +142,8 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		this.model = layer;
 		
 		// process the layer and send values to view
-		view.setLayerDetails(model.getName(), 
+		view.setLayerDetails(model.getId(), 
+							 model.getName(), 
 						 	 model.getProcessingFacility(), 
 							 model.getQcBy(), "#",
 							 "qc_script.R", "#",
@@ -150,7 +152,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 							 5,
 							 Integer.MAX_VALUE, // TODO : get total number of rows in layer
 							 "Public", // TODO : replace with security object
-							 "<a href=\"#Dataset:"+ this.datasetId +"\">MSKCC Prostate Cancer</a>", // TODO : have dataset name included in layer metadata
+							 "<a href=\"#Dataset:"+ this.datasetId +"\">Dataset</a>", // TODO : have dataset name included in layer metadata
 							 model.getPlatform());
 
 		// see if license is required for doanload
@@ -158,6 +160,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 			@Override
 			public void onFailure(Throwable caught) {				
 				view.showErrorMessage("Dataset downloading unavailable. Please try reloading the page.");
+				view.setDownloadUnavailable();
 				view.disableLicensedDownloads(true);
 			}
 
@@ -187,8 +190,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 					}
 
 					@Override
-					public void onFailure(Throwable caught) {
-						view.showErrorMessage("An error occured retrieving layer download information. Please try reloading the page.");
+					public void onFailure(Throwable caught) {					
 						view.setDownloadUnavailable();
 					}
 				});
@@ -291,6 +293,11 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		descriptions.put("expression_array_tissue_source","Source of tissue used for expression profiling");		
 
 		return descriptions;
+	}
+
+	@Override
+	public void refresh() {
+		refreshFromServer();
 	}
 
 }

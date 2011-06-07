@@ -8,6 +8,10 @@ import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
+import org.sagebionetworks.web.client.events.CancelEvent;
+import org.sagebionetworks.web.client.events.CancelHandler;
+import org.sagebionetworks.web.client.events.PersistSuccessEvent;
+import org.sagebionetworks.web.client.events.PersistSuccessHandler;
 import org.sagebionetworks.web.client.widget.adminmenu.AdminMenu;
 import org.sagebionetworks.web.client.widget.editpanels.NodeEditor;
 import org.sagebionetworks.web.client.widget.footer.Footer;
@@ -240,6 +244,19 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 				window.setBlinkModal(true);
 				window.setHeading("Edit Project");
 				window.setLayout(new FitLayout());								
+				nodeEditor.addCancelHandler(new CancelHandler() {					
+					@Override
+					public void onCancel(CancelEvent event) {
+						window.hide();
+					}
+				});
+				nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
+					@Override
+					public void onPersistSuccess(PersistSuccessEvent event) {
+						window.hide();
+						presenter.refresh();
+					}
+				});
 				window.add(nodeEditor.asWidget(NodeType.PROJECT, projectId), new FitData(4));
 				window.show();
 			}
@@ -257,6 +274,19 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 				window.setBlinkModal(true);
 				window.setHeading("Create Dataset");
 				window.setLayout(new FitLayout());				
+				nodeEditor.addCancelHandler(new CancelHandler() {					
+					@Override
+					public void onCancel(CancelEvent event) {
+						window.hide();
+					}
+				});
+				nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
+					@Override
+					public void onPersistSuccess(PersistSuccessEvent event) {
+						window.hide();
+						presenter.refresh();
+					}
+				});
 				window.add(nodeEditor.asWidget(NodeType.DATASET, null, projectId), new FitData(4));
 				window.show();
 			}
@@ -278,6 +308,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 
 		if(userIsAdmin) {		
 			accessMenuButton.setAccessLevel(accessLevel);
+			accessPanel.clear();
 			accessPanel.add(accessMenuButton.asWidget());
 		} else {
 			accessSpan.setInnerHTML("<span class=\"setting_label\">Access: </span><span class=\"setting_level\">"+ DisplayUtils.getIconHtml(icon) +" "+ accessLevel +"</span>");

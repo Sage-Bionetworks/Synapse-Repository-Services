@@ -72,6 +72,11 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 					project.getCreationDate(), project.getStatus());
 		} 
 	}
+
+	@Override
+	public void refresh() {
+		loadFromServer();
+	}
 	
 	/*
 	 * Private Methods

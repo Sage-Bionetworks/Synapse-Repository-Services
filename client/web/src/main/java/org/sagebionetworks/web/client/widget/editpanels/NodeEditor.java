@@ -3,13 +3,20 @@ package org.sagebionetworks.web.client.widget.editpanels;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.web.client.DisplayConstants;
+import org.sagebionetworks.web.client.events.CancelEvent;
+import org.sagebionetworks.web.client.events.CancelHandler;
+import org.sagebionetworks.web.client.events.PersistSuccessEvent;
+import org.sagebionetworks.web.client.events.PersistSuccessHandler;
+import org.sagebionetworks.web.client.ontology.OntologyTerm;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.widget.editpanels.FormField.ColumnType;
 import org.sagebionetworks.web.shared.NodeType;
 
+import com.google.gwt.event.shared.HandlerManager;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONParser;
@@ -33,7 +40,9 @@ public class NodeEditor implements NodeEditorView.Presenter {
 	private String editId;
 	private NodeType nodeType;
 	private JSONObject originalNode;
-	private String parentId;
+	private String parentId;	
+	private final HandlerManager handlerManager = new HandlerManager(this);
+
 	
 	@Inject
 	public NodeEditor(NodeEditorView view, NodeServiceAsync service, NodeEditorDisplayHelper nodeEditorDisplayHelper) {
@@ -77,8 +86,8 @@ public class NodeEditor implements NodeEditorView.Presenter {
 					public void onSuccess(String schema) {
 						JSONObject schemaObj = JSONParser.parseStrict(schema).isObject();					
 						originalNode = schemaObj;
-						List<FormField> formFields = getSchemaFormFields(schemaObj);
 						SpecificNodeTypeDeviation deviation = nodeEditorDisplayHelper.getNodeTypeDeviation(type);										
+						List<FormField> formFields = getSchemaFormFields(schemaObj, deviation.getKeyToOntology());
 						view.generateCreateForm(formFields, deviation.getDisplayString(), deviation.getCreateText(), deviation.getCreationIgnoreFields(), deviation.getKeyToOntology());
 					}
 					
@@ -98,8 +107,8 @@ public class NodeEditor implements NodeEditorView.Presenter {
 					@Override
 					public void onSuccess(String nodeJson) {
 						JSONObject schemaObj = JSONParser.parseStrict(nodeJson).isObject();					
-						final List<FormField> formFields = getSchemaFormFields(schemaObj);
 						final SpecificNodeTypeDeviation deviation = nodeEditorDisplayHelper.getNodeTypeDeviation(type);										
+						final List<FormField> formFields = getSchemaFormFields(schemaObj, deviation.getKeyToOntology());
 						
 						// retrieve actual node for this id and fill in values
 						service.getNodeJSON(type, editId, new AsyncCallback<String>() {
@@ -129,11 +138,26 @@ public class NodeEditor implements NodeEditorView.Presenter {
 		return view.asWidget();
 	}	
 
+	@Override
+	public void closeButtonSelected() {
+		handlerManager.fireEvent(new CancelEvent());
+	}
+	
+	@SuppressWarnings("unchecked")
+	public void addCancelHandler(CancelHandler handler) {
+		handlerManager.addHandler(CancelEvent.getType(), handler);
+	}
+
+	@SuppressWarnings("unchecked")
+	public void addPersistSuccessHandler(PersistSuccessHandler handler) {
+		handlerManager.addHandler(PersistSuccessEvent.getType(), handler);
+	}
+
 	
 	/*
 	 * Private Methods
 	 */
-	private static List<FormField> getSchemaFormFields(JSONObject schema) {
+	private static List<FormField> getSchemaFormFields(JSONObject schema, Map<String, OntologyTerm[]> getKeyToOntology) {
 		List<FormField> formFields = new ArrayList<FormField>();
 		if(schema != null) {
 			if(schema.containsKey(SCHEMA_PROPERTIES_KEY)) {
@@ -161,7 +185,14 @@ public class NodeEditor implements NodeEditorView.Presenter {
 									//Log.error("Unknown Type: " + propertyType);
 									continue;
 								}
-								FormField field = new FormField(propertyName, "", colType);
+								
+								// create an new form field
+								FormField field; 
+								if(getKeyToOntology.containsKey(propertyName)) {
+									field = new FormField(propertyName, null, getKeyToOntology.get(propertyName), colType);
+								} else {									
+									field = new FormField(propertyName, "", colType);
+								}
 								formFields.add(field);
 							}							
 						}
@@ -187,6 +218,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 					@Override
 					public void onSuccess(String result) {
 						view.showPersistSuccess();
+						handlerManager.fireEvent(new PersistSuccessEvent());
 					}
 					
 					@Override
@@ -201,6 +233,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 					@Override
 					public void onSuccess(String result) {
 						view.showPersistSuccess();
+						handlerManager.fireEvent(new PersistSuccessEvent());
 					}
 					
 					@Override
@@ -220,11 +253,20 @@ public class NodeEditor implements NodeEditorView.Presenter {
 		JSONObject merged = new JSONObject(jsonObject.getJavaScriptObject()); // make a copy
 		for(FormField formField : formFields) {
 			if(ignoreFields.contains(formField.getKey())) continue;
-			if(formField.getKey().matches(".+Date$")) {
-				Date date = DisplayConstants.DATE_FORMAT_SERVICES.parse(formField.getValue());
-				merged.put(formField.getKey(), new JSONNumber(date.getTime()));
+			if(formField.isOntologyBased()) {
+				// get ontology value
+				OntologyTerm value = formField.getOntologyValue();
+				if(value != null)
+					merged.put(formField.getKey(), new JSONString(value.getValue()));
 			} else {
-				merged.put(formField.getKey(), new JSONString(formField.getValue()));
+				if(formField.getKey().matches(".+Date$")) {
+					// date field
+					Date date = DisplayConstants.DATE_FORMAT_SERVICES.parse(formField.getValue());
+					merged.put(formField.getKey(), new JSONNumber(date.getTime()));
+				} else {
+					// normal field
+					merged.put(formField.getKey(), new JSONString(formField.getValue()));
+				}
 			}
 		}				
 		if(parentId != null) {
@@ -249,17 +291,17 @@ public class NodeEditor implements NodeEditorView.Presenter {
 	/*
 	 * Temp Hacks for two layers
 	 */
-	private void tempLayerUpdateHack(final NodeType type, final String editId, String parentId) {
+	private void tempLayerUpdateHack(final NodeType type, final String editId, final String parentId) {
 		// retrieve object and build ui
 		service.getNodeJSONSchemaTwoLayer(type, NodeType.DATASET, parentId, new AsyncCallback<String>() {				
 			@Override
 			public void onSuccess(String nodeJson) {
 				JSONObject schemaObj = JSONParser.parseStrict(nodeJson).isObject();					
-				final List<FormField> formFields = getSchemaFormFields(schemaObj);
 				final SpecificNodeTypeDeviation deviation = nodeEditorDisplayHelper.getNodeTypeDeviation(type);										
+				final List<FormField> formFields = getSchemaFormFields(schemaObj, deviation.getKeyToOntology());
 				
 				// retrieve actual node for this id and fill in values
-				service.getNodeJSON(type, editId, new AsyncCallback<String>() {
+				service.getNodeJSONTwoLayer(type, editId, NodeType.DATASET, parentId, new AsyncCallback<String>() { 
 					@Override
 					public void onSuccess(String nodeJsonString) {
 						originalNode = JSONParser.parseStrict(nodeJsonString).isObject();
@@ -288,8 +330,8 @@ public class NodeEditor implements NodeEditorView.Presenter {
 			public void onSuccess(String schema) {
 				JSONObject schemaObj = JSONParser.parseStrict(schema).isObject();					
 				originalNode = schemaObj;
-				List<FormField> formFields = getSchemaFormFields(schemaObj);
 				SpecificNodeTypeDeviation deviation = nodeEditorDisplayHelper.getNodeTypeDeviation(type);										
+				List<FormField> formFields = getSchemaFormFields(schemaObj, deviation.getKeyToOntology());
 				view.generateCreateForm(formFields, deviation.getDisplayString(), deviation.getCreateText(), deviation.getCreationIgnoreFields(), deviation.getKeyToOntology());
 			}
 			
@@ -311,6 +353,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 				@Override
 				public void onSuccess(String result) {
 					view.showPersistSuccess();
+					handlerManager.fireEvent(new PersistSuccessEvent());
 				}
 				
 				@Override
@@ -325,6 +368,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 				@Override
 				public void onSuccess(String result) {
 					view.showPersistSuccess();
+					handlerManager.fireEvent(new PersistSuccessEvent());
 				}
 				
 				@Override

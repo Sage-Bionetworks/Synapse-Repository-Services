@@ -321,7 +321,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		validateService();
 		
 		// Build up the path
-		StringBuilder builder = getBaseUrlBuilder(type);
+		StringBuilder builder = getBaseUrlBuilderTwoLayer(type, layerOneType, layerOneId);
 		builder.append("/" + id);
 		String url = builder.toString();		
 		logger.info("PUT: " + url + ", JSON: " + propertiesJson);
