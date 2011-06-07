@@ -12,6 +12,7 @@
   <groupId>org.sagebionetworks</groupId>
   <artifactId>synapseJavaClient</artifactId>
   <version>${applicationVersion}</version>
+  <packaging>jar</packaging>
   <name>synapseJavaClient</name>
 
   <dependencies>
