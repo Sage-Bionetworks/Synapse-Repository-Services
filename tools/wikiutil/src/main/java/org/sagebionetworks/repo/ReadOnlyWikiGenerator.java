@@ -167,8 +167,9 @@ public class ReadOnlyWikiGenerator {
 //				if (locationUri.endsWith("Location")) {
 //					int slash = locationUri.lastIndexOf("/");
 //					String locationType = locationUri.substring(slash + 1);
+// TODO fixme
 				String locationUri = locations.getJSONObject(j).getString("uri");
-				String locationType = "foo";
+				String locationType = "awss3";
 					JSONObject location = wiki.doGet(locationUri, "h4. Get the " + locationType + " for a "
 							+ type + " Dataset Layer",
 							"This returns the location data for a dataset layer.");
