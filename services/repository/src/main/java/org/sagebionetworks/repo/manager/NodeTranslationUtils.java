@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -12,6 +13,7 @@ import java.util.logging.Logger;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.TransientField;
 
 /**
  * Converts to/from datasets and nodes.
@@ -112,7 +114,9 @@ public class NodeTranslationUtils {
 				Object value;
 				try {
 					value = field.get(base);
-					if(value != null){
+					// We do not store fields that are marked as @TransientField
+					TransientField transientField = field.getAnnotation(TransientField.class);
+					if(value != null && transientField == null){
 						annos.replaceAnnotation(name, value);
 					}
 				} catch (IllegalAccessException e) {

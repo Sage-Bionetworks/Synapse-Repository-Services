@@ -1,22 +1,23 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.lang.reflect.Field;
 import java.util.Date;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.InputDataLayer;
-import org.sagebionetworks.repo.model.StoredLayerPreview;
 import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.Nodeable;
+import org.sagebionetworks.repo.model.StoredLayerPreview;
+import org.sagebionetworks.repo.model.TransientField;
 
 public class NodeTranslationUtilsTest {
 	
@@ -35,7 +36,7 @@ public class NodeTranslationUtilsTest {
 		ds.setHasClinicalData(false);
 		ds.setHasExpressionData(true);
 		ds.setHasGeneticData(true);
-		ds.setLayer("someLayerUrl");
+		ds.setLayers("someLayerUrl");
 		ds.setReleaseDate(new Date(System.currentTimeMillis()));
 		ds.setStatus("someStatus");
 		ds.setVersion("someVersion");
@@ -47,7 +48,32 @@ public class NodeTranslationUtilsTest {
 		// Now our clone should match the original dataset.
 		System.out.println("Original: "+ds.toString());
 		System.out.println("Clone: "+clone.toString());
-		assertEquals(ds, clone);
+		assertEqualsNonTransient(ds, clone);
+	}
+	
+	/**
+	 * Assert two nodable objects are equal while ignoring transient fields.
+	 * @param <T>
+	 * @param one
+	 * @param two
+	 * @throws IllegalArgumentException
+	 * @throws IllegalAccessException
+	 */
+	public static <T extends Nodeable> void assertEqualsNonTransient(T one, T two) throws IllegalArgumentException, IllegalAccessException{
+		assertNotNull(one);
+		assertNotNull(two);
+		assertEquals(one.getClass(), two.getClass());
+		// Check the fields
+		Field[] oneFields = one.getClass().getDeclaredFields();
+		for(int i=0; i<oneFields.length;i++){
+			Field field = oneFields[i];
+			field.setAccessible(true);
+			TransientField trans = field.getAnnotation(TransientField.class);
+			// Only compare non-transient fields
+			if(trans == null){
+				assertEquals(field.get(one), field.get(two));
+			}
+		}
 	}
 	
 	
@@ -60,15 +86,11 @@ public class NodeTranslationUtilsTest {
 		layer.setDescription("someDescr");
 		layer.setEtag("12");
 		layer.setId("44");
-		Collection<String> locations = new ArrayList<String>();
-		locations.add("locationOne");
-		locations.add("locatoinTwo");
-		locations.add("locationThree");
-		layer.setLocations(locations);
+		layer.setLocations("/locations");
 		layer.setName("someName");
 		layer.setNumSamples(new Long(12));
 		layer.setPlatform("somePlate");
-		layer.setPreview("somePreview");
+		layer.setPreviews("somePreview");
 		layer.setProcessingFacility("processing");
 		layer.setPublicationDate(new Date(System.currentTimeMillis()));
 		layer.setQcBy("joe");
@@ -86,7 +108,7 @@ public class NodeTranslationUtilsTest {
 		// Now our clone should match the original layer.
 		System.out.println("Original: "+layer.toString());
 		System.out.println("Clone: "+clone.toString());
-		assertEquals(layer, clone);
+		assertEqualsNonTransient(layer, clone);
 	}
 
 	@Test
@@ -115,19 +137,18 @@ public class NodeTranslationUtilsTest {
 		assertEquals("E", result);
 	}
 	
+	@Ignore // We no longer have an object with a collection.
 	@Test
 	public void testSingleValueCollection(){
 		InputDataLayer layer = new InputDataLayer();
-		Collection<String> locations = new ArrayList<String>();
-		locations.add("locationOne");
-		layer.setLocations(locations);
+		layer.setLocations("/locations");
 		Annotations annos = new Annotations();
 		NodeTranslationUtils.updateAnnoationsFromObject(layer, annos);
 		// Now go back
 		InputDataLayer copy = new InputDataLayer();
 		NodeTranslationUtils.updateObjectFromAnnotations(copy, annos);
-		Collection<String> copyLocations = copy.getLocations();
-		assertEquals(locations, copyLocations);
+		String copyLocations = copy.getLocations();
+		assertEquals(layer.getLocations(), copyLocations);
 	}
 	
 	@Test
@@ -143,6 +164,43 @@ public class NodeTranslationUtilsTest {
 		// The copy should have a null parent id.
 		assertTrue(copy.getParentId() == null);
 	}
+	
+	@Test
+	public void testTransientData() throws InstantiationException, IllegalAccessException{
+		TransientTest test = new TransientTest();
+		test.setMarkedTransient("I should not be stored");
+		test.setNonTransient("I should be stored");
+		Annotations annos = new Annotations();
+		NodeTranslationUtils.updateAnnoationsFromObject(test, annos);
+		// The transient field should not be in the annotations
+		assertEquals("I should be stored", annos.getSingleValue("nonTransient"));
+		assertTrue("A @TransientField should not be stored in the annotations",annos.getSingleValue("markedTransient") == null);
+	}
+	
+	/**
+	 * Helper class to test transient fields
+	 * @author jmhill
+	 *
+	 */
+	private static class TransientTest {
+		private String nonTransient;
+		@TransientField
+		private String markedTransient;
+		public String getNonTransient() {
+			return nonTransient;
+		}
+		public void setNonTransient(String nonTransient) {
+			this.nonTransient = nonTransient;
+		}
+		public String getMarkedTransient() {
+			return markedTransient;
+		}
+		public void setMarkedTransient(String markedTransient) {
+			this.markedTransient = markedTransient;
+		}
+	}
+	
+	
 	
 	private static Node createNew(String name){
 		Node node = new Node();

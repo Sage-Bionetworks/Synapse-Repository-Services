@@ -21,6 +21,7 @@ public interface Base {
 	public void setEtag(String etag);
 
 	public String getEtag();
+	
 
 	/**
 	 * @param createDate

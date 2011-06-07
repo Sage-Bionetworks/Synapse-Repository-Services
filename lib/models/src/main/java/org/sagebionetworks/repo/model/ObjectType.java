@@ -9,13 +9,13 @@ package org.sagebionetworks.repo.model;
  */
 public enum ObjectType {
 	
-	dataset(Dataset.class, (short)0, "/dataset"),
-	layer(InputDataLayer.class, (short)1, "/layer"),
-	layerlocation(LayerLocation.class, (short)2, "/location"),
-	project(Project.class, (short)3, "/project"),
-	layerpreview(StoredLayerPreview.class, (short)4, "/preview");
+	dataset			(Dataset.class, 			(short)0, "/dataset"),
+	layer			(InputDataLayer.class, 		(short)1, "/layer"),
+	layerlocation	(LayerLocation.class, 		(short)2, "/location"),
+	project			(Project.class, 			(short)3, "/project"),
+	layerpreview	(StoredLayerPreview.class, 	(short)4, "/preview");
 	
-	private Class<? extends Base> clazz;
+	private Class<? extends Nodeable> clazz;
 	private short id;
 	private String urlPrefix;
 	
@@ -25,7 +25,7 @@ public enum ObjectType {
 	 * @param id Give each type an ID that is used as the primary key for this type.
 	 * @param urlPrefix The web-service URL that 
 	 */
-	ObjectType(Class<? extends Base> clazz, short id, String urlPrefix){
+	ObjectType(Class<? extends Nodeable> clazz, short id, String urlPrefix){
 		this.clazz = clazz;
 		this.id = id;
 		this.urlPrefix = urlPrefix;
@@ -35,7 +35,7 @@ public enum ObjectType {
 	 * What is the class that goes with this type?
 	 * @return
 	 */
-	public Class<? extends Base> getClassForType(){
+	public Class<? extends Nodeable> getClassForType(){
 		return this.clazz;
 	}
 	
@@ -79,17 +79,44 @@ public enum ObjectType {
 	}
 	
 	/**
-	 * Lookup a type using that web-service base URL.
+	 * Get the first type that occurs in a given url.
 	 * @param url
 	 * @return
 	 */
-	public static ObjectType getTypeForUrl(String url){
+	public static ObjectType getFirstTypeInUrl(String url){
 		if(url == null) throw new IllegalArgumentException("URL cannot be null");
 		ObjectType[] array  = ObjectType.values();
+		int minIndex = Integer.MAX_VALUE;
+		ObjectType minType = null;
 		for(ObjectType type: array){
 			int index = url.indexOf(type.getUrlPrefix());
-			if(index >= 0) return type;
+			if(index < minIndex && index >= 0){
+				minIndex = index;
+				minType = type;
+			}
 		}
+		if(minType != null) return minType;
+		throw new IllegalArgumentException("Unkown Object type for URL: "+url);
+	}
+	
+	/**
+	 * Get the last type that occurs in a given url.
+	 * @param url
+	 * @return
+	 */
+	public static ObjectType getLastTypeInUrl(String url){
+		if(url == null) throw new IllegalArgumentException("URL cannot be null");
+		ObjectType[] array  = ObjectType.values();
+		int maxIndex = -1;
+		ObjectType maxType = null;
+		for(ObjectType type: array){
+			int index = url.lastIndexOf(type.getUrlPrefix());
+			if(index > maxIndex){
+				maxIndex = index;
+				maxType = type;
+			}
+		}
+		if(maxType != null) return maxType;
 		throw new IllegalArgumentException("Unkown Object type for URL: "+url);
 	}
 	

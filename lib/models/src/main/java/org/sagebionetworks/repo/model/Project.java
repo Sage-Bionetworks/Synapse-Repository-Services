@@ -19,7 +19,10 @@ public class Project implements BaseChild {
 	private String creator;
 	private Date creationDate;
 	private String parentId;
+	@TransientField
 	private String annotations;
+	@TransientField
+	private String accessControlList;
 
 	public String getId() {
 		return id;
@@ -128,10 +131,22 @@ public class Project implements BaseChild {
 		return this.parentId;
 	}
 
+	public String getAccessControlList() {
+		return accessControlList;
+	}
+
+	public void setAccessControlList(String accessControlList) {
+		this.accessControlList = accessControlList;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime
+				* result
+				+ ((accessControlList == null) ? 0 : accessControlList
+						.hashCode());
 		result = prime * result
 				+ ((annotations == null) ? 0 : annotations.hashCode());
 		result = prime * result
@@ -157,6 +172,11 @@ public class Project implements BaseChild {
 		if (getClass() != obj.getClass())
 			return false;
 		Project other = (Project) obj;
+		if (accessControlList == null) {
+			if (other.accessControlList != null)
+				return false;
+		} else if (!accessControlList.equals(other.accessControlList))
+			return false;
 		if (annotations == null) {
 			if (other.annotations != null)
 				return false;
@@ -211,7 +231,7 @@ public class Project implements BaseChild {
 				+ ", name=" + name + ", description=" + description
 				+ ", creator=" + creator + ", creationDate=" + creationDate
 				+ ", parentId=" + parentId + ", annotations=" + annotations
-				+ "]";
+				+ ", accessControlList=" + accessControlList + "]";
 	}
 
 }

@@ -266,6 +266,33 @@ public class Helpers {
 
 		return results;
 	}
+	
+	/**
+	 * A call that returns Paginated results.
+	 * @param requestUrl
+	 * @return
+	 * @throws Exception
+	 */
+	public JSONObject testGetJsonEntities(String requestUrl) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(requestUrl);
+		if (null != userId)
+			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		servlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		assertEquals("helper-servletprefix=" + getServletPrefix()
+				+ ", requestUrl=" + requestUrl, HttpStatus.OK.value(), response
+				.getStatus());
+		JSONObject results = new JSONObject(response.getContentAsString());
+		log.info(results.toString(JSON_INDENT));
+
+		// Check default properties
+		assertExpectedEntitiesProperties(results);
+		return results;
+	}
 
 	/**
 	 * @param jsonEntity
@@ -826,6 +853,22 @@ public class Helpers {
 		assertTrue(results.has("etag"));
 		assertFalse("null".equals(results.getString("etag")));
 	}
+	
+	
+
+	/**
+	 * @param results
+	 * @throws Exception
+	 */
+	public void assertExpectedEntitiesProperties(JSONObject results)
+			throws Exception {
+		// Check default properties
+		assertTrue(results.has("paging"));
+		assertTrue(results.has("results"));
+		assertTrue(results.has("totalNumberOfResults"));
+		assertFalse("null".equals(results.getString("totalNumberOfResults")));
+	}
+	
 
 	private class TestStateItem {
 		public String userId;

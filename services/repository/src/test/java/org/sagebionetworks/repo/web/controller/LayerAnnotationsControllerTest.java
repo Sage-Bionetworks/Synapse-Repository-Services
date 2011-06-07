@@ -70,8 +70,8 @@ public class LayerAnnotationsControllerTest {
 	 */
 	@Test
 	public void testUpdateLayerAnnotations() throws Exception {
-		JSONObject newLayer = helper.testCreateJsonEntity(dataset
-				.getString("layer"), LayerControllerTest.SAMPLE_LAYER);
+		JSONObject newLayer = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString("id")));
 
 		helper.testEntityAnnotations(newLayer.getString("annotations"));
 	}

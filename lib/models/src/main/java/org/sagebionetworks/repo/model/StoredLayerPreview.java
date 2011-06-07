@@ -22,6 +22,12 @@ public class StoredLayerPreview implements BaseChild {
 	private Date creationDate;
 	private String parentId;
 	private byte[] previewBlob;
+	@TransientField
+	private String previewString;
+	@TransientField
+	private String annotations;
+	@TransientField
+	private String accessControlList;
 
 	/** 
 	 * The following members are set by the service layer and should not be persisted.
@@ -107,7 +113,13 @@ public class StoredLayerPreview implements BaseChild {
 	public void setPreviewBlob(byte[] previewBlob) {
 		this.previewBlob = previewBlob;
 	}
-	
+	public String getAnnotations() {
+		return annotations;
+	}
+
+	public void setAnnotations(String annotations) {
+		this.annotations = annotations;
+	}
 	/**
 	 * Set a preview from a string
 	 * @param preview
@@ -121,6 +133,14 @@ public class StoredLayerPreview implements BaseChild {
 		}
 	}
 	
+	public String getPreviewString() {
+		return previewString;
+	}
+
+	public void setPreviewString(String previewString) {
+		this.previewString = previewString;
+	}
+
 	/**
 	 * Get the preview as a string.
 	 * @return
@@ -134,10 +154,25 @@ public class StoredLayerPreview implements BaseChild {
 		}
 	}
 
+	
+	public String getAccessControlList() {
+		return accessControlList;
+	}
+
+	public void setAccessControlList(String accessControlList) {
+		this.accessControlList = accessControlList;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime
+				* result
+				+ ((accessControlList == null) ? 0 : accessControlList
+						.hashCode());
+		result = prime * result
+				+ ((annotations == null) ? 0 : annotations.hashCode());
 		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
@@ -159,6 +194,16 @@ public class StoredLayerPreview implements BaseChild {
 		if (getClass() != obj.getClass())
 			return false;
 		StoredLayerPreview other = (StoredLayerPreview) obj;
+		if (accessControlList == null) {
+			if (other.accessControlList != null)
+				return false;
+		} else if (!accessControlList.equals(other.accessControlList))
+			return false;
+		if (annotations == null) {
+			if (other.annotations != null)
+				return false;
+		} else if (!annotations.equals(other.annotations))
+			return false;
 		if (creationDate == null) {
 			if (other.creationDate != null)
 				return false;
@@ -196,10 +241,11 @@ public class StoredLayerPreview implements BaseChild {
 
 	@Override
 	public String toString() {
-		return "LayerPreview [id=" + id + ", uri=" + uri + ", etag=" + etag
-				+ ", name=" + name + ", creationDate=" + creationDate
+		return "StoredLayerPreview [id=" + id + ", uri=" + uri + ", etag="
+				+ etag + ", name=" + name + ", creationDate=" + creationDate
 				+ ", parentId=" + parentId + ", previewBlob="
-				+ Arrays.toString(previewBlob) + "]";
+				+ Arrays.toString(previewBlob) + ", annotations=" + annotations
+				+ ", accessControlList=" + accessControlList + "]";
 	}
 
 }

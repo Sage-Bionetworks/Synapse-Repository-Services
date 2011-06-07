@@ -14,7 +14,9 @@ public class InputDataLayerMetadataProvider implements TypeSpecificMetadataProvi
 
 	@Override
 	public void validateEntity(InputDataLayer entity) {
-		// TODO Auto-generated method stub
+		if(entity.getVersion() == null){
+			entity.setVersion("1.0.0");
+		}
 	}
 
 }

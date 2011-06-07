@@ -42,8 +42,7 @@ public interface EntitiesAccessor {
 	 * @throws UnauthorizedException 
 	 * @throws NotFoundException 
 	 */
-	public <T extends Base> PaginatedResults<T> getInRangeSortedBy(UserInfo userInfo, int offset, int limit, String sortBy,
-			Boolean ascending, Class<? extends T>  clazz) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public <T extends Base> PaginatedResults<T> getInRangeSortedBy(UserInfo userInfo, PaginatedParameters paging, Class<? extends T>  clazz) throws DatastoreException, NotFoundException, UnauthorizedException;
 	
 	/**
 	 * Execute a query for the user.
@@ -71,6 +70,21 @@ public interface EntitiesAccessor {
 	 * @throws DatastoreException 
 	 */
 	public <T extends BaseChild> List<T> getChildrenOfType(UserInfo userInfo, String parentId, Class<? extends T> clazz) throws DatastoreException, NotFoundException, UnauthorizedException;
+	
+	/**
+	 * Get the children of a given type with pagination.
+	 * @param <T>
+	 * @param userInfo
+	 * @param parentId
+	 * @param paging
+	 * @param clazz
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	public <T extends BaseChild> PaginatedResults<T> getChildrenOfTypePaginated(UserInfo userInfo, String parentId, PaginatedParameters paging, Class<? extends T> clazz) throws DatastoreException, NotFoundException, UnauthorizedException;
+
 	/**
 	 * Used to override this dao for a test.
 	 * @param mockAuth

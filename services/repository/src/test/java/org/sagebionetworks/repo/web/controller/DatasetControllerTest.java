@@ -441,8 +441,8 @@ public class DatasetControllerTest {
 		// Check immutable system-defined properties
 		assertTrue(results.has("annotations"));
 		assertFalse("null".equals(results.getString("annotations")));
-		assertTrue(results.has("layer"));
-		assertFalse("null".equals(results.getString("layer")));
+		assertTrue(results.has("layers"));
+		assertFalse("null".equals(results.getString("layers")));
 		assertTrue(results.has("hasExpressionData"));
 		assertTrue(results.has("hasGeneticData"));
 		assertTrue(results.has("hasClinicalData"));

@@ -209,27 +209,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public Long getETagForUpdate(String stringId) throws NotFoundException {
 		// Create a Select for update query
 		final Long longId = Long.parseLong(stringId);
-//		try{
-//			Long eTag = jdoTemplate.execute(new JdoCallback<Long>(){
-//				@Override
-//				public Long doInJdo(PersistenceManager pm) throws JDOException {
-//					// Create a select for update query
-//					Query query = pm.newQuery(JDONode.class);
-//					// Make sure this is a "SELECT FOR UPDATE"
-//					query.addExtension("datanucleus.rdbms.query.useUpdateLock", "true"); 
-//					query.setResult("eTag");
-//					query.setFilter("id == inputId");
-//					query.declareParameters("java.lang.Long inputId");
-//					@SuppressWarnings("unchecked")
-//					List<Long> result = (List<Long>) query.execute(longId);
-//					if(result == null ||result.size() < 1 ) throw new JDOObjectNotFoundException("Cannot find a node with id: "+longId);
-//					if(result.size() > 1 ) throw new IllegalStateException("More than one node found with id: "+longId);
-//					return result.get(0);
-//				}});
-//			System.out.println("ETag for id:"+stringId+" was: "+eTag);
-//			return eTag;			
-//		}catch(JDOObjectNotFoundException e){
-//			throw new NotFoundException(e);
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("bindId", longId);
 		String sql = null;
