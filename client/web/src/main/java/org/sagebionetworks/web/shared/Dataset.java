@@ -20,8 +20,8 @@ public class Dataset implements IsSerializable {
 	private Date releaseDate;
 	private String version;
 	private String annotations;
-	private String layers;
 	private String locations;
+	private String layers;
 	private Boolean hasExpressionData = false;
 	private Boolean hasGeneticData = false;
 	private Boolean hasClinicalData = false;
@@ -147,14 +147,6 @@ public class Dataset implements IsSerializable {
 	public void setVersion(String version) {
 		this.version = version;
 	}
-
-	public String getLayers() {
-		return layers;
-	}
-
-	public void setLayers(String layer) {
-		this.layers = layer;
-	}
 	
 	public Boolean getHasExpressionData() {
 		return hasExpressionData;
@@ -179,7 +171,14 @@ public class Dataset implements IsSerializable {
 	public void setHasClinicalData(Boolean hasClinicalData) {
 		this.hasClinicalData = hasClinicalData;
 	}
-		
+
+	public String getLayers() {
+		return layers;
+	}
+
+	public void setLayers(String layers) {
+		this.layers = layers;
+	}
 
 	@Override
 	public int hashCode() {
@@ -329,11 +328,12 @@ public class Dataset implements IsSerializable {
 				+ ", creator=" + creator + ", creationDate=" + creationDate
 				+ ", status=" + status + ", releaseDate=" + releaseDate
 				+ ", version=" + version + ", annotations=" + annotations
-				+ ", layers=" + layers + ", locations=" + locations
+				+ ", locations=" + locations + ", layers=" + layers
 				+ ", hasExpressionData=" + hasExpressionData
 				+ ", hasGeneticData=" + hasGeneticData + ", hasClinicalData="
 				+ hasClinicalData + ", parentId=" + parentId
 				+ ", accessControlList=" + accessControlList + "]";
 	}
 
+	
 }
