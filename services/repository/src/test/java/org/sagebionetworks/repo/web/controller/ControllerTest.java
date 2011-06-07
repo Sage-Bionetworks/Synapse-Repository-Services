@@ -16,6 +16,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,7 +77,7 @@ public class ControllerTest {
 		// TODO autogenerate these urls instead of listing them here
 		String urls[] = { "/dataset/schema",
 				"/layer/schema",
-				"/preview/schema", "/dataset/123/layer/schema",
+				"/preview/schema",
 				"/acl/schema",
 				"/location/schema",
 				"/query/schema", 
@@ -102,13 +103,10 @@ public class ControllerTest {
 	@Test
 	public void testInvalidJsonCreateEntity() throws Exception {
 
-		Collection<String> urls = UrlHelpers.getAllEntityUrlPrefixes();
-		for (String url : urls) {
+		ObjectType[] types = ObjectType.values();
+		for (ObjectType type: types) {
 
-			url = (null == UrlHelpers.getParentForChildUrl(url)) ? helper
-					.getServletPrefix()
-					+ url : helper.getServletPrefix()
-					+ UrlHelpers.getParentForChildUrl(url) + "/123" + url;
+			String url = helper.getServletPrefix()+type.getUrlPrefix();
 
 			// Notice the missing quotes around the key
 			JSONObject results = helper.testCreateJsonEntityShouldFail(url,
@@ -141,14 +139,11 @@ public class ControllerTest {
 	@Test
 	public void testMissingBodyCreateEntity() throws Exception {
 
-		Collection<String> urls = UrlHelpers.getAllEntityUrlPrefixes();
-		for (String url : urls) {
+		ObjectType[] types = ObjectType.values();
+		for (ObjectType type: types) {
 
-			url = (null == UrlHelpers.getParentForChildUrl(url)) ? helper
-					.getServletPrefix()
-					+ url : helper.getServletPrefix()
-					+ UrlHelpers.getParentForChildUrl(url) + "/123" + url;
-
+			String url = helper.getServletPrefix()+type.getUrlPrefix();
+			
 			MockHttpServletRequest request = new MockHttpServletRequest();
 			MockHttpServletResponse response = new MockHttpServletResponse();
 			request.setMethod("POST");
@@ -179,13 +174,10 @@ public class ControllerTest {
 	@Test
 	public void testMissingBodyUpdateEntity() throws Exception {
 
-		Collection<String> urls = UrlHelpers.getAllEntityUrlPrefixes();
-		for (String url : urls) {
+		ObjectType[] types = ObjectType.values();
+		for (ObjectType type: types) {
 
-			url = (null == UrlHelpers.getParentForChildUrl(url)) ? helper
-					.getServletPrefix()
-					+ url : helper.getServletPrefix()
-					+ UrlHelpers.getParentForChildUrl(url) + "/123" + url;
+			String url = helper.getServletPrefix()+type.getUrlPrefix();
 
 			MockHttpServletRequest request = new MockHttpServletRequest();
 			MockHttpServletResponse response = new MockHttpServletResponse();
@@ -217,13 +209,10 @@ public class ControllerTest {
 	 */
 	@Test
 	public void testUpdateEntityMissingEtag() throws Exception {
-		Collection<String> urls = UrlHelpers.getAllEntityUrlPrefixes();
-		for (String url : urls) {
+		ObjectType[] types = ObjectType.values();
+		for (ObjectType type: types) {
 
-			url = (null == UrlHelpers.getParentForChildUrl(url)) ? helper
-					.getServletPrefix()
-					+ url : helper.getServletPrefix()
-					+ UrlHelpers.getParentForChildUrl(url) + "/123" + url;
+			String url = helper.getServletPrefix()+type.getUrlPrefix();
 
 			MockHttpServletRequest request = new MockHttpServletRequest();
 			MockHttpServletResponse response = new MockHttpServletResponse();
