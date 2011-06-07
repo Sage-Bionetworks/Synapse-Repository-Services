@@ -54,12 +54,6 @@ import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotatio
  * workflow. A returned processLayerId of -1 indicates that the script executed
  * successfully but chose not to work on the data.
  * 
- * - If we want to re-run the R scripts processing activity, do we have to write
- * a different workflow containing just those activities? (e.g., if we had a bug
- * in one of our scientific methods and want to rerun that method on all TCGA
- * data) Seems like "yes". We would write a workflow that gathers all the layer
- * ids for source data from TCGA and re-runs a particular script upon them.
- * 
  * @author deflaux
  * 
  */
@@ -69,9 +63,13 @@ public class TcgaWorkflow {
 	// file, include a portion of that output in the workflow history for
 	// convenience. We only want to dig through the logs if we need to.
 	private static final int MAX_SCRIPT_OUTPUT = 1024;
-	
+
+	private static final int MAX_SCRIPT_EXECUTION_HOURS_TIMEOUT = ConfigHelper
+			.createConfig().getMaxScriptExecutionHoursTimeout();
+
 	private static final String NOTIFICATION_SUBJECT = "TCGA Workflow Notification";
-	private static final String NOTIFICATION_SNS_TOPIC = ConfigHelper.createConfig().getSnsTopic();;
+	private static final String NOTIFICATION_SNS_TOPIC = ConfigHelper
+			.createConfig().getSnsTopic();
 
 	/**
 	 * @param param
@@ -127,8 +125,8 @@ public class TcgaWorkflow {
 		Settable<String> subject = new Settable<String>();
 		subject.set(NOTIFICATION_SUBJECT);
 
-		Value<String> result5 = flow.dispatchNotifyFollower(result4,
-				recipient, subject, rawDataMessage);
+		Value<String> result5 = flow.dispatchNotifyFollower(result4, recipient,
+				subject, rawDataMessage);
 
 		/**
 		 * Dynamically discover the R scripts to run on this data
@@ -137,8 +135,7 @@ public class TcgaWorkflow {
 		// where they were dropped off by our scientists
 		// and kick off one processData task per script in parallel
 		Settable<String> script = new Settable<String>();
-		script
-				.set("./src/test/resources/createMatrix.r");
+		script.set("./src/test/resources/createMatrix.r");
 
 		// TODO once we have that list of scripts, split the workflow here into
 		// parallel tasks for the remainder of this pipeline,
@@ -169,7 +166,8 @@ public class TcgaWorkflow {
 
 	@Activity
 	private static Value<String> doCreateMetadata(String param,
-			Integer datasetId, String tcgaUrl, Settable<Integer> rawLayerId) throws Exception {
+			Integer datasetId, String tcgaUrl, Settable<Integer> rawLayerId)
+			throws Exception {
 		// Create a new layer, if necessary, in the synapse repository service
 		// and return its id
 
@@ -177,7 +175,7 @@ public class TcgaWorkflow {
 		// structure of the TCGA url) but it could become more complicated in
 		// time if we need to pull additional metadata from other TCGA services
 		Integer synapseLayerId = Curation
-				.doCreateMetadataForTcgaSourceLayer(datasetId, tcgaUrl);
+				.doCreateSynapseMetadataForTcgaSourceLayer(datasetId, tcgaUrl);
 		rawLayerId.set(synapseLayerId);
 
 		return Value.asValue(param + ":CreateMetadata");
@@ -202,8 +200,7 @@ public class TcgaWorkflow {
 			HttpClientHelperException {
 
 		try {
-			DownloadResult result = DataIngestion
-					.doDownloadFromTcga(tcgaUrl);
+			DownloadResult result = DataIngestion.doDownloadFromTcga(tcgaUrl);
 			localFilepath.set(result.getLocalFilepath());
 			md5.set(result.getMd5());
 			machineName.set(getHostName());
@@ -216,11 +213,11 @@ public class TcgaWorkflow {
 
 	@Asynchronous
 	private Value<String> dispatchUploadLayerToStorage(Value<String> param,
-			Integer datasetId,
-			Value<Integer> rawLayerId, Value<String> machineName,
-			Value<String> localFilepath, Value<String> md5) throws Exception {
-		return doUploadLayerToStorage(param.get(), datasetId, rawLayerId.get(), machineName
-				.get(), localFilepath.get(), md5.get());
+			Integer datasetId, Value<Integer> rawLayerId,
+			Value<String> machineName, Value<String> localFilepath,
+			Value<String> md5) throws Exception {
+		return doUploadLayerToStorage(param.get(), datasetId, rawLayerId.get(),
+				machineName.get(), localFilepath.get(), md5.get());
 	}
 
 	@Activity
@@ -235,8 +232,12 @@ public class TcgaWorkflow {
 		// repository service
 		// - upload the data to the pre-signed S3 URL
 		// - set the S3 URL and md5 in the layer metadata
-		//Storage.doUploadLayerToStorage(datasetId, rawLayerId, localFilepath, md5);
 		
+		
+		// TODO the presign S3 PUT URLs do not work
+		// Storage.doUploadLayerToStorage(datasetId, rawLayerId, localFilepath,
+		// md5);
+
 		return Value.asValue(param + ":UploadLayerToS3");
 	}
 
@@ -253,10 +254,12 @@ public class TcgaWorkflow {
 	}
 
 	@Activity
-	@ActivityRegistrationOptions(defaultLifetimeTimeout = @Duration(time = 30, unit = DurationUnit.Minutes))
-	// 30 minute lifetime timeout right now will be okay, later
-	// defaultLifetimeTimeout = 360, taskLivenessTimeout=10 with a heartbeat
-	// thread
+	// TODO ask SWF team why we cannot use a variable here
+	// @ActivityRegistrationOptions(defaultLifetimeTimeout = @Duration(time =
+	// MAX_SCRIPT_EXECUTION_HOURS_TIMEOUT, unit = DurationUnit.Hours),
+	// taskLivenessTimeout = @Duration(time =
+	// MAX_SCRIPT_EXECUTION_HOURS_TIMEOUT, unit = DurationUnit.Hours))
+	@ActivityRegistrationOptions(defaultLifetimeTimeout = @Duration(time = 6, unit = DurationUnit.Hours), taskLivenessTimeout = @Duration(time = 6, unit = DurationUnit.Hours))
 	private static Value<String> doProcessData(
 			String param,
 			String script,
@@ -266,9 +269,9 @@ public class TcgaWorkflow {
 			String localFilepath, Settable<Integer> processedLayerId,
 			Settable<String> stdout, Settable<String> stderr) throws Exception {
 
-		// TODO heartbeat thread
-		ScriptResult result = Processing.doProcessLayer(
-				script, datasetId, rawLayerId, localFilepath);
+		// TODO heartbeat thread with shorter taskLivenessTimeout?
+		ScriptResult result = Processing.doProcessLayer(script, datasetId,
+				rawLayerId, localFilepath);
 		processedLayerId.set(result.getProcessedLayerId());
 		stdout.set((MAX_SCRIPT_OUTPUT > result.getStdout().length()) ? result
 				.getStdout() : result.getStdout().substring(0,
@@ -296,15 +299,15 @@ public class TcgaWorkflow {
 			recipient.set(NOTIFICATION_SNS_TOPIC);
 			Settable<String> subject = new Settable<String>();
 			subject.set(NOTIFICATION_SUBJECT);
-			
+
 			/**
 			 * Send the email notification to all interested parties, keeping
 			 * this simple for now, later on we'll want to check their
 			 * communication preferences and batch up these notifications as
 			 * configured
 			 */
-			Value<String> result2 = dispatchNotifyFollower(result1,
-					recipient, subject, processedDataMessage);
+			Value<String> result2 = dispatchNotifyFollower(result1, recipient,
+					subject, processedDataMessage);
 
 			return result2;
 		}
@@ -315,29 +318,31 @@ public class TcgaWorkflow {
 	@Asynchronous
 	private Value<String> dispatchFormulateNotificationMessage(
 			Value<String> param, Value<Integer> layerId,
-			Settable<String> message) {
+			Settable<String> message) throws Exception {
 		return doFormulateNotificationMessage(param.get(), layerId.get(),
 				message);
 	}
 
 	@Activity
 	private static Value<String> doFormulateNotificationMessage(String param,
-			Integer layerId, Settable<String> message) {
-		// TODO add more to the message such as dataset and layer name
-		message.set("some data has been processed and is in layer " + layerId);
+			Integer layerId, Settable<String> message) throws Exception {
+		message.set(Curation.formulateLayerCreationMessage(layerId));
 		return Value.asValue(param + ":FormulateNotificationMessage");
 	}
 
 	@Asynchronous
 	private Value<String> dispatchNotifyFollower(Value<String> param,
-			Value<String> recipient, Value<String> subject, Value<String> message) {
+			Value<String> recipient, Value<String> subject,
+			Value<String> message) {
 		return doNotifyFollower(param, recipient, subject, message);
 	}
-	
+
 	@Activity
 	private static Value<String> doNotifyFollower(Value<String> param,
-			Value<String> recipient, Value<String> subject, Value<String> message) {
-		Notification.doSnsNotifyFollowers(recipient.get(), subject.get(), message.get());
+			Value<String> recipient, Value<String> subject,
+			Value<String> message) {
+		Notification.doSnsNotifyFollowers(recipient.get(), subject.get(),
+				message.get());
 		return Value.asValue(param + ":NotifyFollowers");
 	}
 

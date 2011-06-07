@@ -2,7 +2,7 @@
 
 library(sbnClient)
 
-setClientConfig(new('ClientConfig', host='http://localhost:8080', sslhost='http://auth-sagebase-org.elasticbeanstalk.com', session.token='NULL'))
+setClientConfig(new('ClientConfig', host='http://localhost:8080/services-repository-0.4-SNAPSHOT', sslhost='http://auth-sagebase-org.elasticbeanstalk.com', session.token='admin'))
 
 inputLayerId <- getInputLayerId()
 inputDatasetId <- getInputDatasetId()

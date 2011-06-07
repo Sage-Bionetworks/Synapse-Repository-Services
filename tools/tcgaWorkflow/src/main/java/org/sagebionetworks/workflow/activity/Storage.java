@@ -41,18 +41,16 @@ public class Storage {
 			Integer layerId, String localFilepath, String md5) throws Exception {
 
 		Synapse synapse = ConfigHelper.createConfig().createSynapseClient();
-		String datasetUri = "/dataset/" + datasetId;
 
 		File file = new File(localFilepath);
 		String s3Path = file.getName();
 
-
 		JSONObject s3LocationRequest = new JSONObject();
 		s3LocationRequest.put("path", s3Path);
 		s3LocationRequest.put("md5sum", md5);
-		String layerS3LocationUri = datasetUri + "/layer/" + layerId
-				+ "/awsS3Location";
-		JSONObject s3Location = synapse.createEntity(layerS3LocationUri,
+		s3LocationRequest.put("parentId", layerId);
+		s3LocationRequest.put("type", "awss3");
+		JSONObject s3Location = synapse.createEntity("/location",
 				s3LocationRequest);
 
 		// TODO find a more direct way to go from hex to base64

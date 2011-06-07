@@ -10,10 +10,12 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.workflow.UnrecoverableException;
+import org.sagebionetworks.workflow.activity.Crawling;
 import org.sagebionetworks.workflow.activity.Curation;
 import org.sagebionetworks.workflow.activity.DataIngestion;
 import org.sagebionetworks.workflow.activity.Notification;
 import org.sagebionetworks.workflow.activity.Processing;
+import org.sagebionetworks.workflow.activity.SimpleObserver;
 import org.sagebionetworks.workflow.activity.Storage;
 import org.sagebionetworks.workflow.activity.DataIngestion.DownloadResult;
 import org.sagebionetworks.workflow.activity.Processing.ScriptResult;
@@ -77,15 +79,69 @@ public class TcgaWorkflowITCase {
 	/**
 	 * @throws Exception
 	 */
+	@Test 
+	public void testDoTcgaCrawl() throws Exception {
+		
+		class CrawlObserver implements SimpleObserver<String> {
+			int numUrlsFound = 0;
+			int numArchivesFound = 0;
+			Boolean foundExpression = false;
+			Boolean foundClinical = false;
+
+			@Override
+			public void update(String url) {
+				numUrlsFound++;
+				if(url.endsWith("tar.gz")) {
+					numArchivesFound++;
+				}
+				if(url.endsWith("/clinical_public_coad.tar.gz")) {
+					// Make sure we are not returning the same terminal url more than once
+					assertTrue(!foundClinical);
+					foundClinical= true;
+				}
+				if(url.endsWith("/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz")) {
+					// Make sure we are not returning the same terminal url more than once
+					assertTrue(!foundExpression);
+					foundExpression = true;
+				}
+				
+				
+			}
+			
+		}
+		
+		CrawlObserver testObserver = new CrawlObserver();
+		Crawling crawler = new Crawling();
+		crawler.addObserver(testObserver);
+		crawler.doCrawl("http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/", true);
+		// The amount of data for this dataset should only grow
+		assertTrue(3719 <= testObserver.numUrlsFound);
+		assertTrue(64 <= testObserver.numArchivesFound);
+		assertTrue(testObserver.foundClinical);
+		assertTrue(testObserver.foundExpression);
+	}
+	
+	/**
+	 * @throws Exception
+	 */
 	@Test
 	public void testDoCreateExpressionMetadata() throws Exception {
 		rawLayerId = Curation
-				.doCreateMetadataForTcgaSourceLayer(
+				.doCreateSynapseMetadataForTcgaSourceLayer(
 						datasetId,
 						"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
 		assertTrue(-1 < rawLayerId);
 	}
 
+	/**
+	 * @throws Exception
+	 */
+	@Test 
+	public void testDoFormulateNotificationMessage() throws Exception {
+		String message = Curation.formulateLayerCreationMessage(rawLayerId);
+		assertNotNull(message);
+	}
+	
 	/**
 	 * @throws Exception
 	 */
@@ -108,9 +164,9 @@ public class TcgaWorkflowITCase {
 	@Test
 	public void testDoCreateClinicalMetadata() throws Exception {
 		clinicalLayerId = Curation
-				.doCreateMetadataForTcgaSourceLayer(
+				.doCreateSynapseMetadataForTcgaSourceLayer(
 						datasetId,
-						"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/bcr/minbiotab/clin/clinical_patient_public_coad.txt");
+						"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/bcr/minbiotab/clin/clinical_public_coad.tar.gz");
 		assertTrue(-1 < clinicalLayerId);
 	}
 
@@ -121,10 +177,10 @@ public class TcgaWorkflowITCase {
 	public void testDoDownloadClinicalDataFromTcga() throws Exception {
 
 		DownloadResult clinicalDownloadResult = DataIngestion
-				.doDownloadFromTcga("http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/bcr/minbiotab/clin/clinical_patient_public_coad.txt");
+				.doDownloadFromTcga("http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/bcr/minbiotab/clin/clinical_public_coad.tar.gz");
 
 		assertTrue(clinicalDownloadResult.getLocalFilepath().endsWith(
-				"clinical_patient_public_coad.txt"));
+				"clinical_public_coad.tar.gz"));
 
 		assertNotNull(clinicalDownloadResult.getMd5());
 	}
@@ -166,12 +222,6 @@ public class TcgaWorkflowITCase {
 				rawLayerId, expressionDownloadResult.getLocalFilepath());
 		assertTrue(0 <= scriptResult.getProcessedLayerId());
 
-	}
-
-	/**
-	 */
-	@Test
-	public void testDoFormulateNotificationMessage() {
 	}
 
 	/**
