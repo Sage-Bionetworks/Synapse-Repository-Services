@@ -56,7 +56,7 @@ def createDataset(dataset, annotations):
     # Put our annotations
     gSYNAPSE.updateEntity(newDataset["annotations"], annotations)
     # Stash the layer uri for later use
-    gDATASET_NAME_2_LAYER_URI[dataset['name']] = newDataset['layer']
+    gDATASET_NAME_2_LAYER_URI[dataset['name']] = newDataset['id']
     print 'Created Dataset %s\n\n' % (dataset['name'])
       
 #--------------------[ loadMd5sums ]-----------------------------
@@ -187,8 +187,9 @@ def loadLayers():
         # xschildw: new format is
         # Dataset Name,type,status,name,Number of samples,Platform,Version,preview,sage,awsebs,awss3,qcby
         colnum = 0
-        layerUri = gDATASET_NAME_2_LAYER_URI[row[0]]
+        layerUri = "/layer"
         layer = {}
+        layer["parentId"] = gDATASET_NAME_2_LAYER_URI[row[0]]
         layer["type"] = row[1]
         layer["status"] = row[2]
         layer["name"] = row[3]
@@ -221,14 +222,15 @@ def loadLayers():
        
         if(row[7] != ""):
             if(gARGS.fakeLocalData):
-                layerPreview["preview"] = 'this\tis\ta\tfake\tpreview\nthis\tis\ta\tfake\tpreview\n'
+                layerPreview["previewString"] = 'this\tis\ta\tfake\tpreview\nthis\tis\ta\tfake\tpreview\n'
             else:
                 with open(row[7]) as myfile:
                     # Slurp in the first six lines of the file and store
                     # it in our property
                     head = ""
-                    layerPreview["preview"] = head.join(itertools.islice(myfile,6))
-            gSYNAPSE.updateEntity(newLayer["preview"], layerPreview)
+                    layerPreview["parentId"] = newLayer["id"]
+                    layerPreview["previewString"] = head.join(itertools.islice(myfile,6))
+            gSYNAPSE.createEntity("/preview", layerPreview)
     ifile.close()     
 
 #--------------------[ Main ]-----------------------------
