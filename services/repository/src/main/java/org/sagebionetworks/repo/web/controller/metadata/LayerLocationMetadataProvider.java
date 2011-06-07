@@ -28,14 +28,16 @@ public class LayerLocationMetadataProvider implements
 		if (entity.getType().equals(
 				LayerLocation.LocationTypeNames.awss3.toString())) {
 
+			// TODO PLFM-212
 			// S3 URL Scheme:
 			// - dataset id
 			// - layer id
 			// - layer version
 			// - path
-			String uniquePath = "/" + entity.getParentId() + "/" + entity.getId()
-					+ "/"
-					// TODO + entity.getVersion() + "/"
+			String uniquePath = "/" 
+					// + entity.getParentId() + "/"
+					// + entity.getId() + "/"
+					// + entity.getVersion() + "/"
 					+ entity.getPath();
 
 			if (RequestMethod.GET.name().equals(request.getMethod())) {
@@ -55,7 +57,6 @@ public class LayerLocationMetadataProvider implements
 				entity.setPath(signedPath);
 			}
 		}
-
 	}
 
 	@Override

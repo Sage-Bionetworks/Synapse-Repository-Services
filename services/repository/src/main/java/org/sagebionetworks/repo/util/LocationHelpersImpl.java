@@ -314,4 +314,12 @@ public class LocationHelpersImpl implements LocationHelper {
 				storedCreds.getIamSecretKey());
 	}
 
+	public static void main (String args[]) throws Exception {
+		// TODO find a more direct way to go from hex to base64
+		byte[] encoded = Base64.encodeBase64(Hex.decodeHex(args[0]
+				.toCharArray()));
+		String base64Md5 = new String(encoded, "ASCII");
+		System.out.println(args[0] + " base64 encoded= " + base64Md5);
+	}
+	
 }
