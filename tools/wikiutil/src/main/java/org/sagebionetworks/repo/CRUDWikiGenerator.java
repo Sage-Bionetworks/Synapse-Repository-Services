@@ -69,7 +69,7 @@ public class CRUDWikiGenerator {
 		JSONObject annotations = wiki
 				.doGet(dataset.getString("annotations"),
 						"h4. Get the annotations",
-						"First get the empty annotations container for your newly created dataset.");
+						"First get the empty annotations container for your newly created dataset. FIXME MERGE THE OLD AND THE NEW ANNOTATIONS");
 
 		JSONObject cannedAnnotations = new JSONObject(
 				"{\"doubleAnnotations\": {}, \"dateAnnotations\": {\"last_modified_date\": [\"2009-03-06\"]}, \"longAnnotations\": {\"number_of_downloads\": "
@@ -99,13 +99,13 @@ public class CRUDWikiGenerator {
 
 		JSONObject layer = wiki
 				.doPost(
-						dataset.getString("layer"),
+						"/layer",
 						new JSONObject(
-								"{\"status\": \"curated\", \"name\": \"phenotypes\", \"numSamples\": \"261\", \"platform\": \"\", \"version\": \"1.0.0\", \"type\": \"C\"}"),
+								"{\"parentId\":\"" + dataset.getString("id") + "\", \"status\": \"curated\", \"name\": \"phenotypes\", \"numSamples\": \"261\", \"platform\": \"\", \"version\": \"1.0.0\", \"type\": \"C\"}"),
 						"h3. Add a Layer to a Dataset",
-						"Note that the dataset id in the uri denotes to which dataset this layer belongs");
+						"Create a new layer object and set its parentId to be that of the dataset");
 
-		log.info("h3. Add Locations to a Layer");
+		log.info("h3. Add a Location to a Layer");
 
 		JSONObject cannedLocation = new JSONObject(
 				"{\"parentId\":\""
@@ -116,10 +116,10 @@ public class CRUDWikiGenerator {
 				.doPost(
 						"/location",
 						cannedLocation,
-						"h4. Create the location to which to PUT your data",
+						"h4. First create the location to which to PUT your data.",
 						"First get the presigned S3 URL to use for the upload.  You must specify the parentId of the Layer (or Dataset) to which this location belongs.");
 
-		log.info("h4. PUT the data");
+		log.info("h4. The PUT the data to S3");
 		log
 				.info("Then PUT the data to S3 via an HTTP Client that supports multipart upload.  Note that you must: ");
 		log.info("# Add header {{Content-Type: application/binary}}");
@@ -139,17 +139,15 @@ public class CRUDWikiGenerator {
 				+ " --data-binary @<localFilepath> \\\n'"
 				+ s3Location.getString("path") + "'{code}\n\n");
 
-		log.info("h3. Add Preview to a Layer");
-		JSONObject preview = wiki.doGet(layer.getString("preview"),
-				"h4. Get the preview",
-				"First get the empty preview for your newly created layer");
-
 		String cannedPreview = "phenotype_id\tsample_type\tmetastatic_site\tethnicity\tpredxbxpsa\tage\tclinical_primary_gleason\tclinical_secondary_gleason\tclinical_gleason_score\tpre_treatment_psa\tclinical_tnm_stage_t\tneoadjradtx\tchemotx\thormtx\tradtxtype\trp_type\tsms\textra_capsular_extension\tseminal_vesicle_invasion\ttnm_stage_n\tnumber_nodes_removed\tnumber_nodes_positive\tpathologic_tnm_stage_t\tpathologic_primary_gleason\tpathologic_secondary_gleason\tpathologic_gleason_score\tbcr_freetime\tbcr_event\tmetsevent\tsurvtime\tevent\tnomogram_pfp_postrp\tnomogram_nomopred_extra_capsular_extension\tnomogram_nomopred_lni\tnomogram_nomopred_ocd\tnomogram_nomopred_seminal_vesicle_invasion\tcopy_number_cluster\texpression_array_tissue_source\r\nPCA0004\tPRIMARY\tNA\tWhite Non Hispanic\t27.5\t68.93\t3\t2\t5\t11.8\tT2B\tNA\tNA\tNA\tNA\tRP\tNegative\tESTABLISHED\tNegative\tNormal_N0\t13\t0\tT3A\t3\t4\t7\t152.55\tNO\tNO\t152.55\tNO\tNA\t37.937846\t3.593974\t55.082939\tNA\t1\tNA\r\nPCA0006\tPRIMARY\tNA\tWhite Non Hispanic\t15.7\t56.64\t3\t3\t6\t8.2\tT2B\tNA\tNA\tNeoadjuvant HORM\tNA\tRP\tNegative\tNONE\tNegative\tNormal_N0\t4\t0\tT2C\t3\t3\t6\t160.96\tNO\tNO\t160.96\tNO\tNA\tNA\tNA\tNA\tNA\t4\tNA\r\nPCA0016\tPRIMARY\tNA\tWhite Non Hispanic\t12\t67.36\t3\t3\t6\t12\tT2B\tNA\tNA\tNeoadjuvant HORM\tNA\tRP\tNegative\tNONE\tNegative\tNormal_N0\t2\t0\tT2C\t4\t4\t8\t74.22\tNO\tNO\t74.22\tNO\t99\tNA\tNA\tNA\t97.11015465\t2\tNA\r\nPCA0019\tPRIMARY\tNA\tWhite Non Hispanic\t6.6\t68.12\t3\t4\t7\t6.6\tT1C\tNA\tNA\tNA\tNA\tRP\tNegative\tNONE\tNegative\tNormal_N0\t1\t0\tT2C\t3\t3\t6\t110.33\tBCR_Algorithm\tNO\t123.67\tNO\tNA\tNA\tNA\tNA\t79.85545652\t2\tNA\r\nPCA0023\tPRIMARY\tNA\tBlack Non Hispanic\t4.3\t60.57\t4\t3\t7\t3.88\tT1C\tNA\tNA\tPostHORM\tNA\tRP\tPositive\tNONE\tNegative\tNormal_N0\t2\t0\tT2C\t4\t5\t9\t10.61\tBCR_Algorithm\tNO\t72.84\tDEATH FROM OTHER CANCER\t79.85546\t19.190208\t2.138938\t77.240045\t99\t4\tNA\r\n";
 		// transfer our canned preview to our preview object
-		preview.put("preview", cannedPreview);
+		JSONObject preview = new JSONObject();
+		preview.put("parentId", layer.getString("id"));
+		preview.put("previewString", cannedPreview);
 
-		wiki.doPut(layer.getString("preview"), preview, "h4. Put the preview",
-				"Then you add/modify the preview and do a PUT.");
+		wiki.doPost("/preview", preview,
+				"h3. Add a Preview to a Layer",
+				"Create a new preview object and set its parentId to be that of the layer");
 
 		wiki
 				.doDelete(

@@ -116,10 +116,6 @@ public class ReadOnlyWikiGenerator {
 		
 		log.info("h2. Read-Only Examples");
 		wiki.doGet(
-				"/dataset/test",
-				"h3. Sanity check request",
-				"This is just a 'hello world' type request that you can make to ensure that the service is running.");
-		wiki.doGet(
 				"/dataset?sort=name&limit=3",
 				"h3. Get All Datasets",
 				"Optional Parameters\n"
@@ -134,7 +130,7 @@ public class ReadOnlyWikiGenerator {
 		wiki.doGet(dataset.getString("annotations"),
 				"h3. Get Annotations for a Dataset",
 				"This returns the annotations for a dataset.");
-		results = wiki.doGet(dataset.getString("layer"),
+		results = wiki.doGet(dataset.getString("uri") + "/layer",
 				"h3. Get all the Layers for a Dataset",
 				"This returns the primary fields for all the layers of a dataset.");
 		JSONArray layers = results.getJSONArray("results");
@@ -155,27 +151,44 @@ public class ReadOnlyWikiGenerator {
 			wiki.doGet(layer.getString("annotations"), "h4. Get Annotations for a "
 					+ type + " Dataset Layer",
 					"This returns the annotations for a dataset layer.");
-			wiki.doGet(layer.getString("preview"), "h4. Get preview data for a "
+			wiki.doGet(layer.getString("uri") + "/preview", "h4. Get preview data for a "
 					+ type + " Dataset Layer",
 					"This returns the preview data for a dataset layer.");
 			wiki.doGet(layer.getString("uri") + "/previewAsMap",
 					"h4. Get preview data as a map for a " + type
 							+ " Dataset Layer",
 					"This returns the preview data for a dataset layer.");
-			wiki.doGet(layer.getString("uri") + "/locations",
+			JSONObject locationsResult = wiki.doGet(layer.getString("locations"),
 					"h4. Get the locations for a " + type + " Dataset Layer",
 					"This returns all the locations metadata for a dataset layer.");
-			JSONArray locations = layer.getJSONArray("locations");
+			JSONArray locations = locationsResult.getJSONArray("results");
 			for (int j = 0; j < locations.length(); j++) {
-				String location = locations.getString(j);
-				if (location.endsWith("Location")) {
-					int slash = location.lastIndexOf("/");
-					String locationType = location.substring(slash + 1);
-					wiki.doGet(location, "h4. Get the " + locationType + " for a "
+//				String locationUri = locations.getString(j);
+//				if (locationUri.endsWith("Location")) {
+//					int slash = locationUri.lastIndexOf("/");
+//					String locationType = locationUri.substring(slash + 1);
+				String locationUri = locations.getJSONObject(j).getString("uri");
+				String locationType = "foo";
+					JSONObject location = wiki.doGet(locationUri, "h4. Get the " + locationType + " for a "
 							+ type + " Dataset Layer",
 							"This returns the location data for a dataset layer.");
+					if(locationType.equals("awss3")) {
+						log.info("An example to fetch the file using curl:{code}"
+								+ "curl -o local/path/to/file.zip '" + location.getString("path") + "'{code}\n");
+						
+						log.info("An example to *conditionally* fetch the file using curl:{code}" 
+								+ "curl -i -H If-None-Match:" + location.getString("md5sum") + " '" 
+								+ location.getString("path") + "'\n\n"
+								+ "HTTP/1.1 304 Not Modified\n"
+								+ "x-amz-id-2: h3qt9NfdRw7utcyVMCZF/dNRto9ZpmKY56w69HNpuMkNsaDv9MgduGY9L3zBQWl\n"
+								+ "x-amz-request-id: 3AADDC9EF832ADD2\n"
+								+ "Date: Tue, 07 Jun 2011 18:40:15 GMT\n"
+								+ "Last-Modified: Tue, 05 Apr 2011 00:42:50 GMT\n"
+								+ "ETag: \"" + location.getString("md5sum") + "\"\n"
+								+ "Server: AmazonS3{code}\n");
+					}
 				}
-			}
+//			}
 		}
 
 		log.info("h2. Schemas");
@@ -183,52 +196,52 @@ public class ReadOnlyWikiGenerator {
 				"/dataset/schema",
 				"h3. Datasets List Schema",
 				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
+//		wiki.doGet(
+//				dataset.getString("uri") + "/schema",
+//				"h3. Dataset Schema",
+//				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
+//		wiki.doGet(
+//				dataset.getString("annotations") + "/schema",
+//				"h3. Dataset Annotations Schema",
+//				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 		wiki.doGet(
-				dataset.getString("uri") + "/schema",
-				"h3. Dataset Schema",
-				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-		wiki.doGet(
-				dataset.getString("annotations") + "/schema",
-				"h3. Dataset Annotations Schema",
-				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-		wiki.doGet(
-				dataset.getString("layer") + "/schema",
+				"/layer/schema",
 				"h3. Dataset Layers List Schema",
 				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
+//		wiki.doGet(
+//				layer.getString("uri") + "/schema",
+//				"h3. Layer Schema",
+//				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 		wiki.doGet(
-				layer.getString("uri") + "/schema",
-				"h3. Layer Schema",
-				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-		wiki.doGet(
-				layer.getString("preview") + "/schema",
+				"/preview/schema",
 				"h3. Layer Preview Schema",
 				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-		wiki.doGet(
-				layer.getString("uri") + "/previewAsMap/schema",
-				"h3. Layer Preview as Map Schema",
-				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-		JSONArray locations = layer.getJSONArray("locations");
-		for (int j = 0; j < locations.length(); j++) {
-			String location = locations.getString(j);
-			if (!location.endsWith("Location")) {
+//		wiki.doGet(
+//				"/previewAsMap/schema",
+//				"h3. Layer Preview as Map Schema",
+//				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
+//		JSONArray locations = layer.getJSONArray("locations");
+//		for (int j = 0; j < locations.length(); j++) {
+//			String location = locations.getString(j);
+//			if (!location.endsWith("Location")) {
 				wiki.doGet(
-						location + "/schema",
+						"/location/schema",
 						"h3. Layer Locations Schema",
 						"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-
-			}
-		}
-		for (int j = 0; j < locations.length(); j++) {
-			String location = locations.getString(j);
-			if (location.endsWith("Location")) {
-				int slash = location.lastIndexOf("/");
-				String locationType = location.substring(slash + 1);
-				wiki.doGet(
-						location + "/schema",
-						"h4. Get the " + locationType + " for a "
-								+ " Dataset Layer",
-						"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-			}
-		}
+//
+//			}
+//		}
+//		for (int j = 0; j < locations.length(); j++) {
+//			String location = locations.getString(j);
+//			if (location.endsWith("Location")) {
+//				int slash = location.lastIndexOf("/");
+//				String locationType = location.substring(slash + 1);
+//				wiki.doGet(
+//						location + "/schema",
+//						"h4. Get the " + locationType + " for a "
+//								+ " Dataset Layer",
+//						"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
+//			}
+//		}
 	}
 }
