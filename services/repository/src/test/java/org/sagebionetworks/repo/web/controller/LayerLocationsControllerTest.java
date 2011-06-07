@@ -340,8 +340,8 @@ public class LayerLocationsControllerTest {
 
 		assertTrue(location
 				.getString("path")
-				.matches(
-						"^https://s3.amazonaws.com/data01.sagebase.org/[^?]+\\?Expires=\\d+&AWSAccessKeyId=\\w+&Signature=.+$"));
+				.startsWith(
+						"https://s3.amazonaws.com/data01.sagebase.org"));
 
 	}
 

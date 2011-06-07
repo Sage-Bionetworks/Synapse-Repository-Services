@@ -1,8 +1,11 @@
 package org.sagebionetworks.repo.util;
 
-import java.net.URL;
+import java.net.URLEncoder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
@@ -18,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.SigningAlgorithm;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClient;
 import com.amazonaws.services.identitymanagement.model.AddUserToGroupRequest;
@@ -26,10 +30,6 @@ import com.amazonaws.services.identitymanagement.model.CreateAccessKeyResult;
 import com.amazonaws.services.identitymanagement.model.CreateUserRequest;
 import com.amazonaws.services.identitymanagement.model.GetUserRequest;
 import com.amazonaws.services.identitymanagement.model.NoSuchEntityException;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.amazonaws.services.s3.model.ResponseHeaderOverrides;
 
 /**
  * This utility class holds methods for dealing with pre-signed S3 urls and IAM
@@ -61,6 +61,7 @@ public class LocationHelpersImpl implements LocationHelper {
 	private static final int EXPIRES_MINUTES = 24 * 60; // 1 day
 	private static final String S3_BUCKET = "data01.sagebase.org";
 	private static final String S3_DOMAIN = "s3.amazonaws.com";
+	private static final String UPLOAD_APPLICATION_TYPE = "application/binary";
 	private static final String READ_ONLY_GROUP = "ReadOnlyUnrestrictedDataUsers";
 	private static final String CORRECT_DOMAIN = S3_DOMAIN + "/" + S3_BUCKET;
 	private static final Pattern INCORRECT_DOMAIN = Pattern.compile(Matcher
@@ -122,80 +123,120 @@ public class LocationHelpersImpl implements LocationHelper {
 	 * only partially completed such as we created a new IAM user but we were
 	 * not able to add them to the right IAM group.
 	 * 
+	 * TODO is this person allowed to read this file from S3?
+	 * 
 	 * @param userId
-	 * @param cleartextPath
+	 * @param s3key
 	 * @return a pre-signed S3 URL
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws DatastoreException
 	 */
 	@Override
-	public String getS3Url(String userId, String cleartextPath)
+	public String getS3Url(String userId, String s3key)
 			throws DatastoreException, NotFoundException {
-
-		DateTime now = new DateTime();
-		DateTime expires = now.plusMinutes(EXPIRES_MINUTES);
 
 		AWSCredentials creds = getCredentialsForUser(userId);
 
-		// TODO is this person allowed to read this file from S3?
+		DateTime now = new DateTime();
+		DateTime expires = now.plusMinutes(EXPIRES_MINUTES);
+		String expirationInSeconds = Long.toString(expires.getMillis() / 1000L);
 
-		AmazonS3 client = new AmazonS3Client(creds);
-		URL presignedUrl = client.generatePresignedUrl(S3_BUCKET,
-				cleartextPath, expires.toDate());
+		// Formulate the canonical string to sign
+		StringBuilder buf = new StringBuilder();
+		buf.append(HttpMethod.GET.name()).append("\n");
+		buf.append("\n"); // no md5 for a GET
+		buf.append("\n"); // no content-type for a GET
+		buf.append(expirationInSeconds + "\n");
+		buf.append("/").append(S3_BUCKET).append(s3key);
 
-		return fixS3UrlDomain(presignedUrl.toString());
+		return sign(buf.toString(), creds, s3key, expirationInSeconds);
 	}
 
-	private String fixS3UrlDomain(String presignedUrl) {
-
-		// By default the AmazonS3 library makes an https url that will result
-		// in an SSL cert error if the bucket name has any dots in it. Therefore
-		// rewrite the url to put the bucket name in the path instead of the
-		// domain.
-		Matcher matcher = INCORRECT_DOMAIN.matcher(presignedUrl);
-		String correctedPresignedUrl = matcher.replaceFirst(CORRECT_DOMAIN);
-		return correctedPresignedUrl;
-	}
-
+	/**
+	 * Create presigned S3 PUT URLs
+	 * 
+	 * This is a massive pain in the butt, you have to get it just right or else
+	 * it just fails. Also md5 checks and custom x-amz headers are not supported
+	 * by the AWS Java SDK so I had to implement signing from scratch. Details
+	 * here:
+	 * http://s3.amazonaws.com/doc/s3-developer-guide/RESTAuthentication.html
+	 * 
+	 * TODO is this person allowed to write this file to S3?
+	 * 
+	 * TODO is this person in the right IAM group?
+	 * 
+	 * TODO do we want separate expiry for read versus write presigned URLs?
+	 * 
+	 */
 	@Override
-	public String createS3Url(String userId, String cleartextPath, String md5)
+	public String createS3Url(String userId, String s3key, String md5)
 			throws DatastoreException, NotFoundException {
 
-		DateTime now = new DateTime();
-		DateTime expires = now.plusMinutes(EXPIRES_MINUTES);
-
+		// Get the credentials with which to sign the request
 		AWSCredentials creds = getCredentialsForUser(userId);
 
-		// TODO is this person allowed to write this file to S3?
-		// TODO is this person in the right IAM group?
-		// TODO do we want separate expiry for read versus write presigned URLs?
-
-		String base64Md5 = null;
+		// Do the necessary encoding to make this stuff okay for urls and
+		// headers
+		String base64Md5;
 		try {
+			// TODO find a more direct way to go from hex to base64
 			byte[] encoded = Base64.encodeBase64(Hex.decodeHex(md5
 					.toCharArray()));
 			base64Md5 = new String(encoded, "ASCII");
+
 		} catch (Exception e) {
 			throw new DatastoreException(e);
 		}
 
-		ResponseHeaderOverrides headers = new ResponseHeaderOverrides();
-		headers.setContentType("application/binary");
+		// Compute our expires time for this URL
+		DateTime now = new DateTime();
+		DateTime expires = now.plusMinutes(EXPIRES_MINUTES);
+		String expirationInSeconds = Long.toString(expires.getMillis() / 1000L);
 
-		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(
-				S3_BUCKET, cleartextPath, HttpMethod.PUT);
-		request.setExpiration(expires.toDate());
-		request.setResponseHeaders(headers);
-		request.addRequestParameter("x-amz-acl", "bucket-owner-full-control");
-		request.addRequestParameter("Content-MD5", base64Md5);
+		// Formulate the canonical string to sign
+		StringBuilder buf = new StringBuilder();
+		buf.append(HttpMethod.PUT.name()).append("\n");
+		buf.append(base64Md5).append("\n");
+		buf.append(UPLOAD_APPLICATION_TYPE).append("\n");
+		buf.append(expirationInSeconds + "\n");
+		buf.append("x-amz-acl").append(':').append("bucket-owner-full-control")
+				.append("\n");
+		buf.append("/").append(S3_BUCKET).append(s3key);
 
-		AmazonS3 client = new AmazonS3Client(creds);
-		URL presignedUrl = client.generatePresignedUrl(request);
-
-		return fixS3UrlDomain(presignedUrl.toString());
+		return sign(buf.toString(), creds, s3key, expirationInSeconds);
 	}
 
+	/**
+	 * http://s3.amazonaws.com/doc/s3-developer-guide/RESTAuthentication.html
+	 * Computes RFC 2104-compliant HMAC signature.
+	 */
+	private String sign(String data, AWSCredentials creds, String s3key, String expirationInSeconds) throws DatastoreException {
+
+		String signature;
+		try {
+			Mac mac = Mac.getInstance(SigningAlgorithm.HmacSHA1.toString());
+			mac.init(new SecretKeySpec(creds.getAWSSecretKey().getBytes(), SigningAlgorithm.HmacSHA1.toString()));
+			byte[] sig = Base64.encodeBase64(mac.doFinal(data
+					.getBytes("UTF-8")));
+			signature = URLEncoder.encode(new String(sig), ("UTF-8"));
+		} catch (Exception e) {
+			throw new DatastoreException("Failed to generate signature: "
+					+ e.getMessage(), e);
+		}
+		
+		StringBuilder presignedUrl = new StringBuilder();
+		presignedUrl.append("https://").append(CORRECT_DOMAIN).append(
+				s3key).append("?");
+		presignedUrl.append("Expires").append("=").append(expirationInSeconds)
+				.append("&");
+		presignedUrl.append("AWSAccessKeyId").append("=").append(
+				creds.getAWSAccessKeyId()).append("&");
+		presignedUrl.append("Signature").append("=").append(signature);
+
+		return presignedUrl.toString();
+	}
+	
 	private AWSCredentials getCredentialsForUser(String userId)
 			throws DatastoreException, NotFoundException {
 
@@ -272,4 +313,5 @@ public class LocationHelpersImpl implements LocationHelper {
 		return new BasicAWSCredentials(storedCreds.getIamAccessId(),
 				storedCreds.getIamSecretKey());
 	}
+
 }
