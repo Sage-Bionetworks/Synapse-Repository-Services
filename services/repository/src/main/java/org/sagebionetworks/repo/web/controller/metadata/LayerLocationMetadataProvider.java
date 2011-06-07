@@ -33,7 +33,7 @@ public class LayerLocationMetadataProvider implements
 			// - layer id
 			// - layer version
 			// - path
-			String uniquePath = entity.getParentId() + "/" + entity.getId()
+			String uniquePath = "/" + entity.getParentId() + "/" + entity.getId()
 					+ "/"
 					// TODO + entity.getVersion() + "/"
 					+ entity.getPath();
