@@ -180,7 +180,7 @@ public class EntityManagerImplAutowireTest {
 		ds.setHasClinicalData(false);
 		ds.setHasExpressionData(true);
 		ds.setHasGeneticData(true);
-		ds.setLayer("someLayerUrl");
+		ds.setLayers("someLayerUrl");
 		ds.setReleaseDate(new Date(15689));
 		ds.setStatus("someStatus");
 		ds.setVersion("someVersion");

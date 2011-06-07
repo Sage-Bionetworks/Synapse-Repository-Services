@@ -100,7 +100,7 @@ public class QueryManagerAutowireTest {
 		ds.setHasClinicalData(false);
 		ds.setHasExpressionData(true);
 		ds.setHasGeneticData(true);
-		ds.setLayer("someLayerUrl"+i);
+		ds.setLayers("someLayerUrl"+i);
 		ds.setReleaseDate(new Date(15689));
 		ds.setStatus("someStatus"+i);
 		ds.setVersion("someVersion"+i);

@@ -74,16 +74,13 @@ public class ControllerTest {
 	public void testSchemas() throws Exception {
 
 		// TODO autogenerate these urls instead of listing them here
-		String urls[] = { "/dataset/schema", "/dataset/123/schema",
-				"/dataset/123/annotations/schema", "/dataset/123/layer/schema",
-				"/dataset/123/layer/456/schema",
-				"/dataset/123/layer/456/annotations/schema",
-				"/dataset/123/layer/456/locations/schema",
-				"/dataset/123/layer/456/preview/schema",
-				"/dataset/123/layer/456/previewAsMap/schema",
-				"/dataset/123/layer/456/awsS3Location/schema",
-				"/dataset/123/layer/456/awsEBSLocation/schema",
-				"/dataset/123/layer/456/sageLocation/schema", "/query/schema", };
+		String urls[] = { "/dataset/schema",
+				"/layer/schema",
+				"/preview/schema", "/dataset/123/layer/schema",
+				"/acl/schema",
+				"/location/schema",
+				"/query/schema", 
+		};
 
 		List<String> testCases = Arrays.asList(urls); // UrlHelpers.getAllEntityUrlPrefixes();
 		for (String url : testCases) {

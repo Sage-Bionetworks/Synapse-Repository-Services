@@ -15,7 +15,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -27,7 +26,6 @@ import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,7 +54,6 @@ public class EntitiesAccessorImplAutoWiredTest {
 	private int locations = 2;
 	
 	private UserInfo userInfo = null;
-//	final UserInfo anonUserInfo = new UserInfo(false);
 	
 	@Before
 	public void before() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException{
@@ -70,10 +67,6 @@ public class EntitiesAccessorImplAutoWiredTest {
 		when(mockAuth.canAccess((UserInfo)any(), anyString(), any(AuthorizationConstants.ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuth.canCreate((UserInfo)any(), (Node)any())).thenReturn(true);
 
-//		User anonUser = new User();
-//		anonUser.setUserId(AuthUtilConstants.ANONYMOUS_USER_ID);
-//		anonUserInfo.setUser(anonUser);
-//		when(mockAuth.getUserInfo(AuthUtilConstants.ANONYMOUS_USER_ID)).thenReturn(anonUserInfo);
 
 		toDelete = new ArrayList<String>();
 		// Create some datasetst.
@@ -104,7 +97,7 @@ public class EntitiesAccessorImplAutoWiredTest {
 		ds.setHasClinicalData(false);
 		ds.setHasExpressionData(true);
 		ds.setHasGeneticData(true);
-		ds.setLayer("someLayerUrl"+i);
+		ds.setLayers("someLayerUrl"+i);
 		ds.setReleaseDate(new Date(15689));
 		ds.setStatus("someStatus"+i);
 		ds.setVersion("someVersion"+i);
@@ -148,7 +141,7 @@ public class EntitiesAccessorImplAutoWiredTest {
 		assertNotNull(results);
 		assertEquals(totalEntities, results.size());
 		// Sorted
-		paginated = entitiesAccessor.getInRangeSortedBy(userInfo, 0, 3, "name", true, Dataset.class);
+		paginated = entitiesAccessor.getInRangeSortedBy(userInfo, new PaginatedParameters(0, 3, "name", true), Dataset.class);
 		results = paginated.getResults();
 		assertNotNull(results);
 		assertEquals(3, results.size());
@@ -166,6 +159,25 @@ public class EntitiesAccessorImplAutoWiredTest {
 		assertNotNull(lastLayer);
 		// Now get the locations.
 		List<LayerLocation> locationList = entitiesAccessor.getChildrenOfType(userInfo, lastLayer.getId(), LayerLocation.class);
+		assertNotNull(locationList);
+		assertEquals(locations, locationList.size());
+	}
+	
+	@Test 
+	public void testGetChildrenOfTypePaginated() throws DatastoreException, NotFoundException, UnauthorizedException{
+		String datasetOneId = toDelete.get(0);
+		PaginatedResults<InputDataLayer> resutls = entitiesAccessor.getChildrenOfTypePaginated(userInfo, datasetOneId, new PaginatedParameters(), InputDataLayer.class);
+		assertNotNull(resutls);
+		assertEquals(layers, resutls.getTotalNumberOfResults());
+		List<InputDataLayer> list = resutls.getResults();
+		assertNotNull(list);
+		assertEquals(layers, list.size());
+		InputDataLayer lastLayer = list.get(layers -1);
+		assertNotNull(lastLayer);
+		// Now get the locations.
+		PaginatedResults<LayerLocation> locationResults = entitiesAccessor.getChildrenOfTypePaginated(userInfo, lastLayer.getId(), new PaginatedParameters(0, 1000, null, true), LayerLocation.class);
+		assertNotNull(locationResults);
+		List<LayerLocation> locationList = locationResults.getResults();
 		assertNotNull(locationList);
 		assertEquals(locations, locationList.size());
 	}

@@ -45,7 +45,7 @@ public class DatasetMetadataProviderTest {
 		ds.setId("101");
 		provider.addTypeSpecificMetadata(ds, mockRequest);
 		assertEquals("/repo/v1/dataset/101/annotations", ds.getAnnotations());
-		assertEquals("/repo/v1/dataset/101/layer", ds.getLayer());
+		assertEquals("/repo/v1/dataset/101/layer", ds.getLayers());
 	}
 
 }

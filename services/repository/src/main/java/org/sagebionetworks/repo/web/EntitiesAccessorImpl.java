@@ -44,15 +44,15 @@ public class EntitiesAccessorImpl implements EntitiesAccessor {
 	}
 
 	@Override
-	public <T extends Base> PaginatedResults<T> getInRangeSortedBy(UserInfo userInfo, int offset, int limit,String sortBy, Boolean ascending, Class<? extends T> clazz)
+	public <T extends Base> PaginatedResults<T> getInRangeSortedBy(UserInfo userInfo, PaginatedParameters paging, Class<? extends T> clazz)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		// Create a paginated query
 		BasicQuery query = new BasicQuery();
 		query.setFrom(ObjectType.getNodeTypeForClass(clazz));
-		query.setLimit(limit);
-		query.setOffset(offset-1);
-		query.setAscending(ascending);
-		query.setSort(sortBy);
+		query.setLimit(paging.getLimit());
+		query.setOffset(paging.getOffset()-1);
+		query.setAscending(paging.getAscending());
+		query.setSort(paging.getSortBy());
 		return executeQuery(userInfo, clazz, query);
 	}
 
@@ -99,6 +99,23 @@ public class EntitiesAccessorImpl implements EntitiesAccessor {
 		query.addExpression(new Expression(new CompoundId(null, "parentId"), Compartor.EQUALS, Long.parseLong(parentId)));
 		PaginatedResults<T> results = executeQuery(userInfo, clazz, query);
 		return results.getResults();
+	}
+
+	@Override
+	public <T extends BaseChild> PaginatedResults<T> getChildrenOfTypePaginated(UserInfo userInfo, String parentId, PaginatedParameters paging,
+			Class<? extends T> clazz) throws DatastoreException,
+			NotFoundException, UnauthorizedException {
+		// Convert this into a special query
+		BasicQuery query = new BasicQuery();
+		// We want all children
+		query.setLimit(paging.getLimit());
+		query.setOffset(paging.getOffset()-1);
+		query.setSort(paging.getSortBy());
+		query.setAscending(paging.getAscending());
+		query.setFrom(ObjectType.getNodeTypeForClass(clazz));
+		query.addExpression(new Expression(new CompoundId(null, "parentId"), Compartor.EQUALS, Long.parseLong(parentId)));
+		PaginatedResults<T> results = executeQuery(userInfo, clazz, query);
+		return results;
 	}
 
 }

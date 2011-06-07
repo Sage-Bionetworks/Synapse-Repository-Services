@@ -12,30 +12,30 @@ public class DefaultControllerUnitTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testObjectTypeForUnknonwUrl(){
 		// This should throw an exception
-		ObjectType type = ObjectType.getTypeForUrl("/some/uknown/url");
+		ObjectType type = ObjectType.getFirstTypeInUrl("/some/uknown/url");
 	}
 	
 	@Test
 	public void testObjectTypeForDatasetUrl(){
-		ObjectType type = ObjectType.getTypeForUrl(UrlHelpers.DATASET);
+		ObjectType type = ObjectType.getFirstTypeInUrl(UrlHelpers.DATASET);
 		assertEquals(ObjectType.dataset, type);
 	}
 
 	@Test
 	public void testObjectTypeForProjectUrl(){
-		ObjectType type = ObjectType.getTypeForUrl(UrlHelpers.PROJECT);
+		ObjectType type = ObjectType.getFirstTypeInUrl(UrlHelpers.PROJECT);
 		assertEquals(ObjectType.project, type);
 	}
 	
 	@Test
 	public void testObjectTypeForLayerUrl(){
-		ObjectType type = ObjectType.getTypeForUrl(UrlHelpers.LAYER);
+		ObjectType type = ObjectType.getFirstTypeInUrl(UrlHelpers.LAYER);
 		assertEquals(ObjectType.layer, type);
 	}
 	
 	@Test
 	public void testObjectTypeForFullFurlUrl(){
-		ObjectType type = ObjectType.getTypeForUrl("/reop/v1"+UrlHelpers.LAYER);
+		ObjectType type = ObjectType.getFirstTypeInUrl("/reop/v1"+UrlHelpers.LAYER);
 		assertEquals(ObjectType.layer, type);
 	}
 }

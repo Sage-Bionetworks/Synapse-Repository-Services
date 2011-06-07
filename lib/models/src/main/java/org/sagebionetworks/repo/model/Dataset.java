@@ -12,7 +12,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  * 
  */
 @XmlRootElement
-public class Dataset implements BaseChild {
+public class Dataset implements BaseChild, HasLocations, HasLayers {
 	private String id;
 	private String uri;
 	private String etag;
@@ -23,13 +23,21 @@ public class Dataset implements BaseChild {
 	private String status;
 	private Date releaseDate;
 	private String version;
-	private String annotations; // URI for annotations
-	private String layer; // URI for layers
-	private Boolean hasExpressionData = false; // a preview of what type of data can be
-										// found in the layers
-	private Boolean hasGeneticData = false;
-	private Boolean hasClinicalData = false;
 	private String parentId;
+	@TransientField
+	private String annotations; // URI for annotations
+	@TransientField
+	private String layers;
+	@TransientField
+	private Boolean hasExpressionData = false; // a preview of what type of data can be found in the layers
+	@TransientField
+	private Boolean hasGeneticData = false;
+	@TransientField
+	private Boolean hasClinicalData = false;
+	@TransientField
+	private String locations;
+	@TransientField
+	private String accessControlList;
 
 	public String getId() {
 		return id;
@@ -37,6 +45,23 @@ public class Dataset implements BaseChild {
 
 	public void setId(String id) {
 		this.id = id;
+	}
+
+	public String getLocations() {
+		return locations;
+	}
+
+	public void setLocations(String locations) {
+		this.locations = locations;
+	}
+	
+
+	public String getAccessControlList() {
+		return accessControlList;
+	}
+
+	public void setAccessControlList(String accessControlList) {
+		this.accessControlList = accessControlList;
 	}
 
 	/**
@@ -170,20 +195,6 @@ public class Dataset implements BaseChild {
 		this.annotations = annotations;
 	}
 
-	/**
-	 * @return the layer URI
-	 */
-	public String getLayer() {
-		return layer;
-	}
-
-	/**
-	 * @param layer
-	 *            the URI that can be used to retrieve our layer
-	 */
-	public void setLayer(String layer) {
-		this.layer = layer;
-	}
 
 	/**
 	 * @return the hasExpressionData
@@ -240,10 +251,22 @@ public class Dataset implements BaseChild {
 		return this.parentId;
 	}
 
+	public String getLayers() {
+		return layers;
+	}
+
+	public void setLayers(String layers) {
+		this.layers = layers;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime
+				* result
+				+ ((accessControlList == null) ? 0 : accessControlList
+						.hashCode());
 		result = prime * result
 				+ ((annotations == null) ? 0 : annotations.hashCode());
 		result = prime * result
@@ -261,7 +284,9 @@ public class Dataset implements BaseChild {
 		result = prime * result
 				+ ((hasGeneticData == null) ? 0 : hasGeneticData.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((layer == null) ? 0 : layer.hashCode());
+		result = prime * result + ((layers == null) ? 0 : layers.hashCode());
+		result = prime * result
+				+ ((locations == null) ? 0 : locations.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
 				+ ((parentId == null) ? 0 : parentId.hashCode());
@@ -282,6 +307,11 @@ public class Dataset implements BaseChild {
 		if (getClass() != obj.getClass())
 			return false;
 		Dataset other = (Dataset) obj;
+		if (accessControlList == null) {
+			if (other.accessControlList != null)
+				return false;
+		} else if (!accessControlList.equals(other.accessControlList))
+			return false;
 		if (annotations == null) {
 			if (other.annotations != null)
 				return false;
@@ -327,10 +357,15 @@ public class Dataset implements BaseChild {
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
-		if (layer == null) {
-			if (other.layer != null)
+		if (layers == null) {
+			if (other.layers != null)
 				return false;
-		} else if (!layer.equals(other.layer))
+		} else if (!layers.equals(other.layers))
+			return false;
+		if (locations == null) {
+			if (other.locations != null)
+				return false;
+		} else if (!locations.equals(other.locations))
 			return false;
 		if (name == null) {
 			if (other.name != null)
@@ -372,12 +407,12 @@ public class Dataset implements BaseChild {
 				+ ", creator=" + creator + ", creationDate=" + creationDate
 				+ ", status=" + status + ", releaseDate=" + releaseDate
 				+ ", version=" + version + ", annotations=" + annotations
-				+ ", layer=" + layer + ", hasExpressionData="
+				+ ", layers=" + layers + ", hasExpressionData="
 				+ hasExpressionData + ", hasGeneticData=" + hasGeneticData
 				+ ", hasClinicalData=" + hasClinicalData + ", parentId="
-				+ parentId + "]";
+				+ parentId + ", locations=" + locations
+				+ ", accessControlList=" + accessControlList + "]";
 	}
-
-
+	
 
 }

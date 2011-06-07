@@ -64,6 +64,8 @@ public class ClientAndServerObjectSynchTest {
 				new Pair(org.sagebionetworks.web.shared.Layer.class, org.sagebionetworks.repo.model.InputDataLayer.class),
 				// LayerPreview
 				new Pair(org.sagebionetworks.web.shared.LayerPreview.class, org.sagebionetworks.repo.model.LayerPreview.class),
+				// Preview
+				new Pair(org.sagebionetworks.web.shared.Preview.class, org.sagebionetworks.repo.model.StoredLayerPreview.class),
 				// LayerLocation
 				new Pair(org.sagebionetworks.web.shared.DownloadLocation.class, org.sagebionetworks.repo.model.LayerLocation.class),
 				// Annotations
@@ -97,11 +99,11 @@ public class ClientAndServerObjectSynchTest {
 		}
 		// Check client against server
 		for(Field client: clientFields){
-			assertTrue("The client object has field named: "+client.getName()+" but the server object does not have the same field",serverSet.contains(client.getName()));
+			assertTrue("The client object: "+clientClass.getName()+" has field named: "+client.getName()+" but the server object: "+serverClass.getName()+" does not have the same field",serverSet.contains(client.getName()));
 		}
 		// Check the server against client
 		for(Field server: serverFields){
-			assertTrue("The server object has field named: "+server.getName()+" but the client object does not have the same field",clientSet.contains(server.getName()));
+			assertTrue("The server object: "+serverClass.getName()+" has field named: "+server.getName()+" but the client object: "+clientClass.getName()+" does not have the same field",clientSet.contains(server.getName()));
 		}
 	}
 	

@@ -20,13 +20,14 @@ public class Dataset implements IsSerializable {
 	private Date releaseDate;
 	private String version;
 	private String annotations;
-	private String layer;
+	private String layers;
+	private String locations;
 	private Boolean hasExpressionData = false;
 	private Boolean hasGeneticData = false;
 	private Boolean hasClinicalData = false;
 	private String parentId;
+	private String accessControlList;
 
-//	private List<LayerLink> layerPreviews;
 
 	public String getUri() {
 		return uri;
@@ -56,8 +57,24 @@ public class Dataset implements IsSerializable {
 		return annotations;
 	}
 
+	public String getAccessControlList() {
+		return accessControlList;
+	}
+
+	public void setAccessControlList(String accessControlList) {
+		this.accessControlList = accessControlList;
+	}
+
 	public void setAnnotations(String annotations) {
 		this.annotations = annotations;
+	}
+
+	public String getLocations() {
+		return locations;
+	}
+
+	public void setLocations(String locations) {
+		this.locations = locations;
 	}
 
 	/**
@@ -131,20 +148,12 @@ public class Dataset implements IsSerializable {
 		this.version = version;
 	}
 
-//	public List<LayerLink> getLayerPreviews() {
-//		return layerPreviews;
-//	}
-//
-//	public void setLayerPreviews(List<LayerLink> layers) {
-//		this.layerPreviews = layers;
-//	}	
-	
-	public String getLayer() {
-		return layer;
+	public String getLayers() {
+		return layers;
 	}
 
-	public void setLayer(String layer) {
-		this.layer = layer;
+	public void setLayers(String layer) {
+		this.layers = layer;
 	}
 	
 	public Boolean getHasExpressionData() {
@@ -176,7 +185,38 @@ public class Dataset implements IsSerializable {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime
+				* result
+				+ ((accessControlList == null) ? 0 : accessControlList
+						.hashCode());
+		result = prime * result
+				+ ((annotations == null) ? 0 : annotations.hashCode());
+		result = prime * result
+				+ ((creationDate == null) ? 0 : creationDate.hashCode());
+		result = prime * result + ((creator == null) ? 0 : creator.hashCode());
+		result = prime * result
+				+ ((description == null) ? 0 : description.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
+		result = prime * result
+				+ ((hasClinicalData == null) ? 0 : hasClinicalData.hashCode());
+		result = prime
+				* result
+				+ ((hasExpressionData == null) ? 0 : hasExpressionData
+						.hashCode());
+		result = prime * result
+				+ ((hasGeneticData == null) ? 0 : hasGeneticData.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((layers == null) ? 0 : layers.hashCode());
+		result = prime * result
+				+ ((locations == null) ? 0 : locations.hashCode());
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result
+				+ ((parentId == null) ? 0 : parentId.hashCode());
+		result = prime * result
+				+ ((releaseDate == null) ? 0 : releaseDate.hashCode());
+		result = prime * result + ((status == null) ? 0 : status.hashCode());
+		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
+		result = prime * result + ((version == null) ? 0 : version.hashCode());
 		return result;
 	}
 
@@ -189,22 +229,111 @@ public class Dataset implements IsSerializable {
 		if (getClass() != obj.getClass())
 			return false;
 		Dataset other = (Dataset) obj;
+		if (accessControlList == null) {
+			if (other.accessControlList != null)
+				return false;
+		} else if (!accessControlList.equals(other.accessControlList))
+			return false;
+		if (annotations == null) {
+			if (other.annotations != null)
+				return false;
+		} else if (!annotations.equals(other.annotations))
+			return false;
+		if (creationDate == null) {
+			if (other.creationDate != null)
+				return false;
+		} else if (!creationDate.equals(other.creationDate))
+			return false;
+		if (creator == null) {
+			if (other.creator != null)
+				return false;
+		} else if (!creator.equals(other.creator))
+			return false;
+		if (description == null) {
+			if (other.description != null)
+				return false;
+		} else if (!description.equals(other.description))
+			return false;
+		if (etag == null) {
+			if (other.etag != null)
+				return false;
+		} else if (!etag.equals(other.etag))
+			return false;
+		if (hasClinicalData == null) {
+			if (other.hasClinicalData != null)
+				return false;
+		} else if (!hasClinicalData.equals(other.hasClinicalData))
+			return false;
+		if (hasExpressionData == null) {
+			if (other.hasExpressionData != null)
+				return false;
+		} else if (!hasExpressionData.equals(other.hasExpressionData))
+			return false;
+		if (hasGeneticData == null) {
+			if (other.hasGeneticData != null)
+				return false;
+		} else if (!hasGeneticData.equals(other.hasGeneticData))
+			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
+			return false;
+		if (layers == null) {
+			if (other.layers != null)
+				return false;
+		} else if (!layers.equals(other.layers))
+			return false;
+		if (locations == null) {
+			if (other.locations != null)
+				return false;
+		} else if (!locations.equals(other.locations))
+			return false;
+		if (name == null) {
+			if (other.name != null)
+				return false;
+		} else if (!name.equals(other.name))
+			return false;
+		if (parentId == null) {
+			if (other.parentId != null)
+				return false;
+		} else if (!parentId.equals(other.parentId))
+			return false;
+		if (releaseDate == null) {
+			if (other.releaseDate != null)
+				return false;
+		} else if (!releaseDate.equals(other.releaseDate))
+			return false;
+		if (status == null) {
+			if (other.status != null)
+				return false;
+		} else if (!status.equals(other.status))
+			return false;
+		if (uri == null) {
+			if (other.uri != null)
+				return false;
+		} else if (!uri.equals(other.uri))
+			return false;
+		if (version == null) {
+			if (other.version != null)
+				return false;
+		} else if (!version.equals(other.version))
 			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "Dataset [id=" + id + ", name=" + name + ", description="
-				+ description + ", creator=" + creator + ", creationDate="
-				+ creationDate + ", status=" + status + ", releaseDate="
-				+ releaseDate + ", version=" + version + ", hasExpressionData=" + hasExpressionData 
-				+ ", hasGeneticsData=" + hasGeneticData + ", hasClinicalData="
-				+ hasClinicalData + "]";
+		return "Dataset [id=" + id + ", uri=" + uri + ", etag=" + etag
+				+ ", name=" + name + ", description=" + description
+				+ ", creator=" + creator + ", creationDate=" + creationDate
+				+ ", status=" + status + ", releaseDate=" + releaseDate
+				+ ", version=" + version + ", annotations=" + annotations
+				+ ", layers=" + layers + ", locations=" + locations
+				+ ", hasExpressionData=" + hasExpressionData
+				+ ", hasGeneticData=" + hasGeneticData + ", hasClinicalData="
+				+ hasClinicalData + ", parentId=" + parentId
+				+ ", accessControlList=" + accessControlList + "]";
 	}
 
 }

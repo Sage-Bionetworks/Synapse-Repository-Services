@@ -24,8 +24,13 @@ import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.BaseChild;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.HasLayers;
+import org.sagebionetworks.repo.model.HasLocations;
+import org.sagebionetworks.repo.model.HasPreviews;
+import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -33,6 +38,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.test.context.ContextConfiguration;
@@ -40,14 +46,14 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.servlet.DispatcherServlet;
 
 /**
- * This is a an integration test for the BasicController.
+ * This is a an integration test for the default controller.
  * 
  * @author jmhill
  * 
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class DefaultControllerAutowiredTest {
+public class DefaultControllerAutowiredAllTypesTest {
 
 	// Used for cleanup
 	@Autowired
@@ -57,7 +63,7 @@ public class DefaultControllerAutowiredTest {
 	public UserManager userManager;
 
 	static private Log log = LogFactory
-			.getLog(DefaultControllerAutowiredTest.class);
+			.getLog(DefaultControllerAutowiredAllTypesTest.class);
 
 	private static HttpServlet dispatchServlet;
 	
@@ -98,67 +104,129 @@ public class DefaultControllerAutowiredTest {
 		// mapping, request format, response format, and response status
 		// code.
 		MockServletConfig servletConfig = new MockServletConfig("repository");
-		servletConfig.addInitParameter("contextConfigLocation",
-				"classpath:test-context.xml");
+		servletConfig.addInitParameter("contextConfigLocation",	"classpath:test-context.xml");
 		dispatchServlet = new DispatcherServlet();
 		dispatchServlet.init(servletConfig);
 
 	}
 
 	@Test
-	public void testCreate() throws Exception {
+	public void testCreateAllTypes() throws Exception {
+		// For now put each object in a project so their parent id is not null;
 		// Create a project
-		Project project = new Project();
-		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-		assertNotNull(clone);
-		assertNotNull(clone.getId());
-		toDelete.add(clone.getId());
-		assertNotNull(clone.getEtag());
+		Project parent = new Project();
+		parent.setName("testCreateAllTypesProjectParent");
+		parent = ServletTestHelper.createEntity(dispatchServlet, parent, userName);
+		assertNotNull(parent);
+		toDelete.add(parent.getId());
+
+		// Create one of each type
+		ObjectType[] types = ObjectType.values();
+		int index = 0;
+		for(ObjectType type: types){
+			String name = type.name()+index;
+			Nodeable object =ObjectTypeFactory.createObjectForTest(name, type, parent.getId());
+			Nodeable clone = ServletTestHelper.createEntity(dispatchServlet, object, userName);
+			assertNotNull(clone);
+			assertNotNull(clone.getId());
+			toDelete.add(clone.getId());
+			assertNotNull(clone.getEtag());
+			// Check the base ursl
+			validateAllUrls(type, clone);
+			index++;
+		}
 	}
+
+
 
 	@Test
 	public void testGetById() throws Exception {
+		// For now put each object in a project so their parent id is not null;
 		// Create a project
-		Project project = new Project();
-		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-		assertNotNull(clone);
-		assertNotNull(clone.getId());
-		toDelete.add(clone.getId());
-		assertNotNull(clone.getEtag());
+		Project parent = new Project();
+		parent.setName("testCreateAllTypesProjectParent");
+		parent = ServletTestHelper.createEntity(dispatchServlet, parent, userName);
+		assertNotNull(parent);
+		toDelete.add(parent.getId());
 
-		// Now get the project object
-		Project fromGet = ServletTestHelper.getEntity(dispatchServlet, Project.class, clone.getId(), userName);
-		assertNotNull(fromGet);
-		// Should match the clone
-		assertEquals(clone, fromGet);
+		// Create one of each type
+		ObjectType[] types = ObjectType.values();
+		int index = 0;
+		for(ObjectType type: types){
+			String name = type.name()+index;
+			Nodeable object =ObjectTypeFactory.createObjectForTest(name, type, parent.getId());
+			Nodeable clone = ServletTestHelper.createEntity(dispatchServlet, object, userName);
+			assertNotNull(clone);
+			assertNotNull(clone.getId());
+			toDelete.add(clone.getId());
+			assertNotNull(clone.getEtag());
+			// Check the base ursl
+			validateAllUrls(type, clone);
+			
+			// Now get the project object
+			Nodeable fromGet = ServletTestHelper.getEntity(dispatchServlet, type.getClassForType(), clone.getId(), userName);
+			assertNotNull(fromGet);
+			// Should match the clone
+			assertEquals(clone, fromGet);
+			// Now get the object
+			index++;
+		}
 	}
 
 	@Test
 	public void testGetList() throws Exception {
+		
+		// For now put each object in a project so their parent id is not null;
 		// Create a project
+		Project parent = new Project();
+		parent.setName("testCreateAllTypesProjectParent");
+		parent = ServletTestHelper.createEntity(dispatchServlet, parent, userName);
+		assertNotNull(parent);
+		toDelete.add(parent.getId());
+		
+		// Create 3 of each type
 		int number = 3;
 		for (int i = 0; i < number; i++) {
-			Project project = new Project();
-			project.setName("project" + i);
-			Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-			toDelete.add(clone.getId());
+			// Create one of each type
+			ObjectType[] types = ObjectType.values();
+			int index = 0;
+			for(ObjectType type: types){
+				String name = type.name()+index;
+				Nodeable object =ObjectTypeFactory.createObjectForTest(name, type, parent.getId());
+				Nodeable clone = ServletTestHelper.createEntity(dispatchServlet, object, userName);
+				assertNotNull(clone);
+				assertNotNull(clone.getId());
+				toDelete.add(clone.getId());
+				assertNotNull(clone.getEtag());
+				// Check the base ursl
+				validateAllUrls(type, clone);
+				index++;
+			}
 		}
-		// Try with all default values
-		PaginatedResults<Project> result = ServletTestHelper.getAllEntites(dispatchServlet, Project.class, null, null, null, null, userName);
-		assertNotNull(result);
-		assertEquals(number, result.getTotalNumberOfResults());
-		assertNotNull(result.getResults());
-		assertEquals(number, result.getResults().size());
+		
+		ObjectType[] types = ObjectType.values();
+		int index = 0;
+		for(ObjectType type: types){
+			// Try with all default values
+			PaginatedResults<Nodeable> result = ServletTestHelper.getAllEntites(dispatchServlet, type.getClassForType(), null, null, null, null, userName);
+			assertNotNull(result);
+			int expectedNumer = number;
+			if(ObjectType.project == type){
+				// There is one extra project since we use that as the parent.
+				expectedNumer++;
+			}
+			assertEquals(expectedNumer, result.getTotalNumberOfResults());
+			assertNotNull(result.getResults());
+			assertEquals(expectedNumer, result.getResults().size());
 
-		// Try with a value in each slot
-		result = ServletTestHelper.getAllEntites(dispatchServlet, Project.class, 2, 1,	"name", true, userName);
-		assertNotNull(result);
-		assertEquals(number, result.getTotalNumberOfResults());
-		assertNotNull(result.getResults());
-		assertEquals(1, result.getResults().size());
-		assertNotNull(result.getResults().get(0));
+			// Try with a value in each slot
+			result = ServletTestHelper.getAllEntites(dispatchServlet, type.getClassForType(), 2, 1,	"name", true, userName);
+			assertNotNull(result);
+			assertEquals(expectedNumer, result.getTotalNumberOfResults());
+			assertNotNull(result.getResults());
+			assertEquals(1, result.getResults().size());
+			assertNotNull(result.getResults().get(0));
+		}
 	}
 	
 	@Test
@@ -167,24 +235,32 @@ public class DefaultControllerAutowiredTest {
 		Project root = new Project();
 		root.setName("projectRoot");
 		root = ServletTestHelper.createEntity(dispatchServlet, root, userName);
+		assertNotNull(root);
 		toDelete.add(root.getId());
 		int number = 3;
 		for (int i = 0; i < number; i++) {
-			Project project = new Project();
-			project.setName("childProject" + i);
-			project.setParentId(root.getId());
-			Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-			toDelete.add(clone.getId());
+			Dataset datset = new Dataset();
+			datset.setName("childDataset" + i);
+			datset.setParentId(root.getId());
+			datset = ServletTestHelper.createEntity(dispatchServlet, datset, userName);
+			toDelete.add(datset.getId());
 		}
+		// Add a dataset that is not a child of this project.
+		Dataset datset = new Dataset();
+		datset.setName("notChildDataset");
+		datset.setParentId(null);
+		datset = ServletTestHelper.createEntity(dispatchServlet, datset, userName);
+		toDelete.add(datset.getId());
+		
 		// Try with all default values
-		PaginatedResults<Project> result = ServletTestHelper.getAllChildrenEntites(dispatchServlet, ObjectType.project,root.getId(), Project.class, null, null, null, null, userName);
+		PaginatedResults<Dataset> result = ServletTestHelper.getAllChildrenEntites(dispatchServlet, ObjectType.project,root.getId(), Dataset.class, null, null, null, null, userName);
 		assertNotNull(result);
 		assertEquals(number, result.getTotalNumberOfResults());
 		assertNotNull(result.getResults());
 		assertEquals(number, result.getResults().size());
 
 		// Try with a value in each slot
-		result = ServletTestHelper.getAllChildrenEntites(dispatchServlet, ObjectType.project,root.getId(),Project.class, 2, 1,	"name", true, userName);
+		result = ServletTestHelper.getAllChildrenEntites(dispatchServlet, ObjectType.project,root.getId(),Dataset.class, 2, 1,	"name", true, userName);
 		assertNotNull(result);
 		assertEquals(number, result.getTotalNumberOfResults());
 		assertNotNull(result.getResults());
@@ -345,6 +421,39 @@ public class DefaultControllerAutowiredTest {
 		assertNotNull(acl4);
 		// the returned ACL should refer to the parent
 		assertEquals(clone.getId(), acl4.getResourceId());
+	}
+	
+	/**
+	 * Helper method to validate all urs.
+	 * @param type
+	 * @param object
+	 * @param clone
+	 */
+	private void validateAllUrls(ObjectType type, Nodeable object) {
+		String expectedBase = type.getUrlPrefix()+"/"+object.getId();
+		assertEquals(expectedBase, object.getUri());
+		String expected = expectedBase+UrlHelpers.ANNOTATIONS;
+		assertEquals(expected, object.getAnnotations());
+		expected =  expectedBase+UrlHelpers.ACL;
+		assertEquals(expected, object.getAccessControlList());
+		// Has layers
+		if(object instanceof HasLayers){
+			HasLayers hasLayers = (HasLayers) object;
+			expected = expectedBase+UrlHelpers.LAYER;
+			assertEquals(expected, hasLayers.getLayers());
+		}
+		// Has locations
+		if(object instanceof HasLocations){
+			HasLocations has = (HasLocations) object;
+			expected = expectedBase+UrlHelpers.LOCATION;
+			assertEquals(expected, has.getLocations());
+		}
+		// Has preview
+		if(object instanceof HasPreviews){
+			HasPreviews has = (HasPreviews) object;
+			expected = expectedBase+UrlHelpers.PREVIEW;
+			assertEquals(expected, has.getPreviews());
+		}
 	}
 	
 

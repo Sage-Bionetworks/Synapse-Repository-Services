@@ -15,6 +15,8 @@ public class DownloadLocation implements IsSerializable {
 	private String name = "default";
 	private Date creationDate;
 	private String parentId;
+	private String annotations;
+	private String accessControlList;
 	
 	public DownloadLocation() {	
 	}
@@ -92,10 +94,32 @@ public class DownloadLocation implements IsSerializable {
 		this.parentId = parentId;
 	}
 
+	public String getAnnotations() {
+		return annotations;
+	}
+
+	public void setAnnotations(String annotations) {
+		this.annotations = annotations;
+	}
+
+	public String getAccessControlList() {
+		return accessControlList;
+	}
+
+	public void setAccessControlList(String accessControlList) {
+		this.accessControlList = accessControlList;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime
+				* result
+				+ ((accessControlList == null) ? 0 : accessControlList
+						.hashCode());
+		result = prime * result
+				+ ((annotations == null) ? 0 : annotations.hashCode());
 		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
@@ -120,6 +144,16 @@ public class DownloadLocation implements IsSerializable {
 		if (getClass() != obj.getClass())
 			return false;
 		DownloadLocation other = (DownloadLocation) obj;
+		if (accessControlList == null) {
+			if (other.accessControlList != null)
+				return false;
+		} else if (!accessControlList.equals(other.accessControlList))
+			return false;
+		if (annotations == null) {
+			if (other.annotations != null)
+				return false;
+		} else if (!annotations.equals(other.annotations))
+			return false;
 		if (creationDate == null) {
 			if (other.creationDate != null)
 				return false;
@@ -174,7 +208,8 @@ public class DownloadLocation implements IsSerializable {
 		return "DownloadLocation [md5sum=" + md5sum + ", path=" + path
 				+ ", type=" + type + ", id=" + id + ", uri=" + uri + ", etag="
 				+ etag + ", name=" + name + ", creationDate=" + creationDate
-				+ ", parentId=" + parentId + "]";
+				+ ", parentId=" + parentId + ", annotations=" + annotations
+				+ ", accessControlList=" + accessControlList + "]";
 	}		
 	
 }

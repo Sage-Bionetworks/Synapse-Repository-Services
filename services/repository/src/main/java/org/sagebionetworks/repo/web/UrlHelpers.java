@@ -18,10 +18,14 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.HasLayers;
+import org.sagebionetworks.repo.model.HasLocations;
+import org.sagebionetworks.repo.model.HasPreviews;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.LayerLocations;
 import org.sagebionetworks.repo.model.LayerPreview;
+import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 
@@ -50,53 +54,73 @@ public class UrlHelpers {
 	 */
 	public static final String ID = "/{id}";
 	
+	public static final String PARENT_TYPE 		= "/{parentType}";
+	public static final String PARENT_ID 		= "/{parentId}";
+	public static final String PARENT_TYPE_ID 	= PARENT_TYPE+PARENT_ID;
+	public static final String OBJECT_TYPE		= "/{objectType}";
+	public static final String OBJECT_TYPE_ID	= OBJECT_TYPE+ID;
 	/**
 	 * The URL prefix for all object's Access Control List (ACL).
 	 */
 	public static final String ACL = "/acl";
+	public static final String OBJECT_TYPE_ID_ACL = OBJECT_TYPE_ID+ACL;
 	
-	/**
-	 * URL prefix for dataset model objects
-	 * 
-	 */
-	public static final String DATASET = "/dataset";
-	
-	/**
-	 * URL suffix for a dataset info with its ID.
-	 */
-	public static final String DATASET_ID = DATASET+ID;
-	
-	/**
-	 * URL to get a dataset's ACL: /dataset/{id}/acl
-	 */
-	public static final String DATASET_ACL = DATASET_ID+ACL;
-	
-	/**
-	 * URL prefix for dataset layer model objects
-	 * 
-	 */
-	public static final String LAYER = "/layer";
-	
-	/**
-	 * URL suffix for a layer info with its ID.
-	 */
-	public static final String LAYER_ID = LAYER+ID;
-	
-	/**
-	 * URL to get a layer's ACL: /layer/{id}/acl
-	 */
-	public static final String LAYER_ACL = LAYER_ID+ACL;
-
-	/**
-	 * URL suffix for entity schemas
-	 */
-	public static final String SCHEMA = "/schema";
-
 	/**
 	 * URL suffix for entity annotations
 	 * 
 	 */
 	public static final String ANNOTATIONS = "/annotations";
+	
+	/**
+	 * URL suffix for entity schemas
+	 */
+	public static final String SCHEMA = "/schema";
+	
+	/**
+	 * All of the base URLs for Synapse objects
+	 */
+	public static final String DATASET 	= "/dataset";
+	public static final String LAYER 	= "/layer";
+	public static final String PREVIEW 	= "/preview";
+	public static final String LOCATION = "/location";
+	public static final String PROJECT	= "/project";
+	/**
+	 * All of the base URLs for Synapse objects with ID.
+	 */
+	public static final String DATASET_ID	= DATASET+ID;
+	public static final String LAYER_ID 	= LAYER+ID;
+	public static final String PREVIEW_ID 	= PREVIEW+ID;
+	public static final String LOCATION_ID	= LOCATION+ID;
+	public static final String PROJECT_ID 	= PROJECT+ID;
+	/**
+	 * All of the base URLs for Synapse objects's Annotations.
+	 */
+	public static final String DATASET_ANNOTATIONS	= DATASET_ID+ANNOTATIONS;
+	public static final String LAYER_ANNOTATIONS 	= LAYER_ID+ANNOTATIONS;
+	public static final String PREVIEW_ANNOTATIONS 	= PREVIEW_ID+ANNOTATIONS;
+	public static final String LOCATION_ANNOTATIONS = LOCATION_ID+ANNOTATIONS;
+	public static final String PROJECT_ANNOTATIONS	= PROJECT_ID+ANNOTATIONS;
+	/**
+	 * For Synapse objects that have children, these urls list all children of that type.
+	 */
+	public static final String DATASET_CHILDREN 	= PARENT_TYPE_ID+DATASET;
+	public static final String LAYER_CHILDREN	 	= PARENT_TYPE_ID+LAYER;
+	public static final String PREVIEW_CHILDREN		= PARENT_TYPE_ID+PREVIEW;
+	public static final String LOCATION_CHILDREN	= PARENT_TYPE_ID+LOCATION;
+	public static final String PROJECT_CHILDREN		= PARENT_TYPE_ID+PROJECT;
+	/**
+	 * Get the schema for each object type
+	 */
+	public static final String DATASET_SCHEMA	= DATASET+SCHEMA;
+	public static final String LAYER_SCHEMA 	= LAYER+SCHEMA;
+	public static final String PREVIEW_SCHEMA 	= PREVIEW+SCHEMA;
+	public static final String LOCATION_SCHEMA	= LOCATION+SCHEMA;
+	public static final String PROJECT_SCHEMA 	= PROJECT+SCHEMA;
+
+
+
+	public static final String OBJECT_TYPE_SCHEMA = OBJECT_TYPE+SCHEMA;
+
 
 	/**
 	 * URL path for query controller
@@ -107,65 +131,24 @@ public class UrlHelpers {
 	/**
 	 * URL suffix for preview info
 	 */
-	public static final String PREVIEW = "/preview";
+
 
 	/**
 	 * URL suffix for preview info
 	 */
+	@Deprecated
 	public static final String PREVIEW_MAP = "/previewAsMap";
 
 	/**
 	 * URL suffix for locations info
 	 */
+	@Deprecated 
 	public static final String LOCATIONS = "/locations";
 	
 	/**
 	 * URL suffix for a locations info with its ID.
 	 */
 	public static final String LOCATIONS_ID = LOCATIONS+ID;
-	
-	/**
-	 * URL to get a location's ACL: /locations/{id}/acl
-	 */
-	public static final String LOCATIONS_ACL = LOCATIONS_ID+ACL;
-	
-	/**
-	 * URL suffix for Project info
-	 */
-	public static final String PROJECT = "/project";
-	
-	/**
-	 * URL suffix for a Project info with its ID.
-	 */
-	public static final String PROJECT_ID = PROJECT+ID;
-	
-	/**
-	 * URL to get a project's ACL: /project/{id}/acl
-	 */
-	public static final String PROJECT_ACL = PROJECT_ID+ACL;
-	
-	/**
-	 * URL for a project's annotations.
-	 */
-	public static final String PROJECT_ANNOTATIONS = PROJECT_ID+ANNOTATIONS;
-
-	/**
-	 * URL suffix for location entity
-	 */
-	public static final String LOCATION = "/location";
-	/**
-	 * URL suffix for location entity
-	 */
-	public static final String LOCATION_ID = LOCATION+ID;
-	/**
-	 * URL to get a location's ACL: /location/{id}/acl
-	 */
-	public static final String LOCATION_ACL = LOCATION_ID+ACL;
-	
-	/**
-	 * URL for a location's annotations.
-	 */
-	public static final String LOCATION_ANNOTATIONS = LOCATION_ID+ANNOTATIONS;
 
 	/**
 	 * URL suffix for S3 location metadata
@@ -199,12 +182,6 @@ public class UrlHelpers {
 	 * 
 	 */
 	public static final String USERGROUP = "/userGroup";
-
-//	/**
-//	 * URL prefix for Users in a UserGroup
-//	 * 
-//	 */
-//	public static final String USERS = "/users";
 	
 	/**
 	 * URL prefix for Users in a UserGroup
@@ -473,10 +450,126 @@ public class UrlHelpers {
 		}
 		return entityId;
 	}
+	
+	/**
+	 * Get the URL prefix from a request.
+	 * @param request
+	 * @return
+	 */
+	public static String getUrlPrefixFromRequest(HttpServletRequest request){
+		if(request == null) throw new IllegalArgumentException("Request cannot be null");
+		if(request.getServletPath() == null) throw new IllegalArgumentException("Servlet path cannot be null");
+		String urlPrefix = (null != request.getContextPath()) 
+		? request.getContextPath() + request.getServletPath() 
+				: request.getServletPath();
+		return urlPrefix;
+	}
+	
+	/**
+	 * Set the URI for any entity.
+	 * @param entity
+	 * @param urlPrefix
+	 */
+	public static String createEntityUri(String entityId, Class<? extends Nodeable> entityClass, String urlPrefix){
+		if(entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
+		if(entityClass == null) throw new IllegalArgumentException("Entity class cannot be null");
+		if(urlPrefix == null) throw new IllegalArgumentException("Url prefix cannot be null");
+		StringBuilder builder = new StringBuilder();
+		builder.append(urlPrefix);
+		ObjectType type = ObjectType.getNodeTypeForClass(entityClass);
+		builder.append(type.getUrlPrefix());
+		builder.append("/");
+		builder.append(entityId);
+		return builder.toString();
+	}
+	
+	/**
+	 * Set the base uri for any entity.
+	 * @param entity
+	 * @param request
+	 */
+	public static void setBaseUriForEntity(Nodeable entity, HttpServletRequest request){
+		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
+		if(request == null) throw new IllegalArgumentException("Request cannot be null");
+		// First get the prefix
+		String prefix = UrlHelpers.getUrlPrefixFromRequest(request);
+		// Now build the uri.
+		String uri = UrlHelpers.createEntityUri(entity.getId(), entity.getClass(), prefix);
+		entity.setUri(uri);
+	}
+	
+	/**
+	 * Set the all of the Nodeable URLs (annotations, ACL)
+	 * @param entity
+	 * @param request
+	 */
+	public static void setAllNodeableUrls(Nodeable entity){
+		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
+		if(entity.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null null");
+		// Add the annotations
+		entity.setAnnotations(entity.getUri()+ANNOTATIONS);
+		// Add the acl
+		entity.setAccessControlList(entity.getUri()+ACL);
+	}
+	
+	/**
+	 * Set the URL for the layers for any object that has layers.
+	 * @param entity
+	 */
+	public static void setHasLayersUrl(HasLayers entity){
+		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
+		if(entity.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null null");
+		entity.setLayers(entity.getUri()+LAYER);
+	}
+	
+	/**
+	 * Set the URL for the locations for any object that has locations.
+	 * @param entity
+	 */
+	public static void setHasLocationsUrl(HasLocations entity){
+		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
+		if(entity.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null null");
+		entity.setLocations(entity.getUri()+LOCATION);
+	}
+	
+	/**
+	 * Set the URL for the preview for any object that has preview.
+	 * 
+	 * @param entity
+	 */
+	public static void setHasPreviewsUrl(HasPreviews entity){
+		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
+		if(entity.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null null");
+		entity.setPreviews(entity.getUri()+PREVIEW);
+	}
+	
+	/**
+	 * 
+	 * @param entity
+	 * @param request
+	 */
+	public static void setAllUrlsForEntity(Nodeable entity, HttpServletRequest request){
+		// First set the base url
+		setBaseUriForEntity(entity, request);
+		// Set the nodeable types
+		setAllNodeableUrls(entity);
+		// Set the specialty types
+		// Layers
+		if(entity instanceof HasLayers){
+			setHasLayersUrl((HasLayers) entity);
+		}
+		// Locations
+		if(entity instanceof HasLocations){
+			setHasLocationsUrl((HasLocations) entity);
+		}
+		// Previews
+		if(entity instanceof HasPreviews){
+			setHasPreviewsUrl((HasPreviews) entity);
+		}
+	}
 
 
-	// TODO this class needs unit tests
-	private static String getUrlPrefix(Base entity, HttpServletRequest request) {
+	public static String getUrlPrefix(Base entity, HttpServletRequest request) {
 
 		String urlPrefix = (null != request.getContextPath()) 
 		? request.getContextPath() + request.getServletPath() 

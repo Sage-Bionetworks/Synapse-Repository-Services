@@ -243,6 +243,51 @@ public class ServletTestHelper {
 	}
 	
 	/**
+	 * Get all objects of type.
+	 * 
+	 * @param <T>
+	 * @param requestUrl
+	 * @param clazz
+	 * @return
+	 * @throws IOException 
+	 * @throws ServletException 
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T extends Base> PaginatedResults<T> getAllChildrenEntites(HttpServlet dispatchServlet, ObjectType parentType, String parentId, Class<? extends T> childClass, Integer offset,
+			Integer limit, String sort, Boolean ascending, String userId) throws ServletException, IOException  {
+		if(dispatchServlet == null) throw new IllegalArgumentException("Servlet cannot be null");
+		ObjectType type = ObjectType.getNodeTypeForClass(childClass);
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		if (offset != null) {
+			request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM,
+					offset.toString());
+		}
+		if (limit != null) {
+			request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM,
+					limit.toString());
+		}
+		if (sort != null) {
+			request.setParameter(ServiceConstants.SORT_BY_PARAM, sort);
+		}
+		if (ascending != null) {
+			request.setParameter(ServiceConstants.ASCENDING_PARAM,	ascending.toString());
+		}
+		String url = parentType.getUrlPrefix()+"/"+parentId+type.getUrlPrefix();
+		request.setRequestURI(url);
+		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
+		dispatchServlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		if(response.getStatus() != HttpStatus.OK.value()){
+			throw new IllegalArgumentException(response.getErrorMessage());
+		}
+		return objectMapper.readValue(response.getContentAsString(),PaginatedResults.class);
+	}
+	
+	/**
 	 * Delete an entity
 	 * 
 	 * @param <T>
@@ -278,17 +323,13 @@ public class ServletTestHelper {
 	 * @return
 	 * @throws Exception
 	 */
-	public static <T extends Base> String getSchema(HttpServlet dispatchServlet, Class<? extends T> clazz, String id, String userId) throws Exception {
+	public static <T extends Base> String getSchema(HttpServlet dispatchServlet, Class<? extends T> clazz, String userId) throws Exception {
 		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		if (id != null) {
-			request.setRequestURI(type.getUrlPrefix() + "/" + id + UrlHelpers.SCHEMA);
-		} else {
-			request.setRequestURI(type.getUrlPrefix() + UrlHelpers.SCHEMA);
-		}
+		request.setRequestURI(type.getUrlPrefix() + UrlHelpers.SCHEMA);
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());

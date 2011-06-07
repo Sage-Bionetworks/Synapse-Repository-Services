@@ -55,8 +55,8 @@ public class LocationControllerTest {
 		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()
 				+ "/dataset", DatasetControllerTest.SAMPLE_DATASET);
 
-		layer = helper.testCreateJsonEntity(dataset.getString("layer"),
-				LayerControllerTest.SAMPLE_LAYER);
+		layer = helper.testCreateJsonEntity(helper
+				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString("id")));
 
 		datasetLocation = new JSONObject(SAMPLE_LOCATION).put("parentId",
 				dataset.getString("id"));
@@ -154,11 +154,9 @@ public class LocationControllerTest {
 
 		// TODO fix this part of the test to just ensure that the layer has the
 		// correct number of location children
-		JSONObject layerLocations = helper.testGetJsonEntity(layer
-				.getString("uri")
-				+ "/locations");
-		assertNotNull(layerLocations);
-		assertEquals(1, layerLocations.getJSONArray("locations").length());
+		JSONObject paging = helper.testGetJsonEntities(layer.getString("locations"));
+		assertNotNull(paging);
+		assertEquals(1, paging.getLong("totalNumberOfResults"));
 	}
 
 	/**

@@ -12,9 +12,9 @@ import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseChild;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 
 /**
  * Controller interface for all operations common to entities.
@@ -43,8 +43,8 @@ public interface GenericEntityController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException 
 	 */
-	public <T extends Base> PaginatedResults<T> getEntities(String userId,
-			Integer offset, Integer limit, String sort, Boolean ascending,
+	public <T extends Nodeable> PaginatedResults<T> getEntities(String userId,
+			PaginatedParameters paging,
 			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
 
@@ -62,7 +62,7 @@ public interface GenericEntityController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Base> T getEntity(String userId, String id,
+	public <T extends Nodeable> T getEntity(String userId, String id,
 			HttpServletRequest request, Class<? extends T> clazz) throws NotFoundException,
 			DatastoreException, UnauthorizedException;
 	
@@ -80,6 +80,21 @@ public interface GenericEntityController {
 	public <T extends BaseChild> List<T> getEntityChildrenOfType(String userId, String parentId, Class<? extends T> clazz, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
+	 * Get the children of a given type with paging.
+	 * @param <T>
+	 * @param userId
+	 * @param parentId
+	 * @param clazz
+	 * @param paging
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	public <T extends BaseChild> PaginatedResults<T> getEntityChildrenOfTypePaginated(String userId, String parentId, Class<? extends T> clazz, PaginatedParameters paging, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException;
+
+	/**
 	 * Create a new entity
 	 * <p>
 	 * 
@@ -93,7 +108,7 @@ public interface GenericEntityController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException 
 	 */
-	public <T extends Base> T createEntity(String userId, T newEntity,
+	public <T extends Nodeable> T createEntity(String userId, T newEntity,
 			HttpServletRequest request) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException;
 
@@ -115,7 +130,7 @@ public interface GenericEntityController {
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Base> T updateEntity(String userId, String id,
+	public <T extends Nodeable> T updateEntity(String userId, String id,
 			T updatedEntity, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException;
@@ -161,7 +176,7 @@ public interface GenericEntityController {
 	 * @return the schema
 	 * @throws DatastoreException 
 	 */
-	public <T extends Base> JsonSchema getEntitySchema(Class<? extends T> clazz) throws DatastoreException;
+	public <T extends Nodeable> JsonSchema getEntitySchema(Class<? extends T> clazz) throws DatastoreException;
 
 	/**
 	 * Get the schema for a paginated list of entities<p>
@@ -172,7 +187,7 @@ public interface GenericEntityController {
 	 * @return the schema
 	 * @throws DatastoreException 
 	 */
-	public <T extends Base> JsonSchema getEntitiesSchema(Class<? extends T> clazz) throws DatastoreException;
+	public <T extends Nodeable> JsonSchema getEntitiesSchema(Class<? extends T> clazz) throws DatastoreException;
 
 	public Annotations getEntityAnnotations(String userId, String id,
 			HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException;

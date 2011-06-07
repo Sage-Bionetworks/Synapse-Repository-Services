@@ -16,7 +16,7 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 		// Add the annotations urls.
 		entity.setAnnotations(UrlHelpers.makeEntityPropertyUri(entity, Annotations.class, request));
 		
-		entity.setLayer(UrlHelpers.makeEntityUri(entity, request) + "/layer");
+		entity.setLayers(UrlHelpers.makeEntityUri(entity, request) + "/layer");
 	}
 
 	/**

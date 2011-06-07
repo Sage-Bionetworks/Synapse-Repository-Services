@@ -1,20 +1,12 @@
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.web.shared;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Date;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import com.google.gwt.user.client.rpc.IsSerializable;
 
-/**
- * This DTO returns a subset of the fields contained in a persisted layer
- * 
- * @author deflaux
- *
- */
-@XmlRootElement
-public class StoredLayerPreview implements BaseChild {
-	
+public class Preview implements IsSerializable{
+
 	private String id;
 	private String uri;
 	private String etag;
@@ -22,147 +14,69 @@ public class StoredLayerPreview implements BaseChild {
 	private Date creationDate;
 	private String parentId;
 	private byte[] previewBlob;
-	@TransientField
 	private String previewString;
-	@TransientField
 	private String annotations;
-	@TransientField
 	private String accessControlList;
-
-	/** 
-	 * The following members are set by the service layer and should not be persisted.
-	 */
-	
-	
-	/**
-	 * @return the id
-	 */
 	public String getId() {
 		return id;
 	}
-	
-	/**
-	 * @param id the id to set
-	 */
 	public void setId(String id) {
 		this.id = id;
 	}
-	
-	/**
-	 * @return the uri
-	 */
 	public String getUri() {
 		return uri;
 	}
-	
-	/**
-	 * @param uri the uri to set
-	 */
 	public void setUri(String uri) {
 		this.uri = uri;
 	}
-	
-	/**
-	 * @return the etag
-	 */
 	public String getEtag() {
 		return etag;
 	}
-	
-	/**
-	 * @param etag the etag to set
-	 */
 	public void setEtag(String etag) {
 		this.etag = etag;
 	}
-
-	/**
-	 * @return the creationDate
-	 */
-	public Date getCreationDate() {
-		return creationDate;
-	}
-
-	/**
-	 * @param creationDate the creationDate to set
-	 */
-	public void setCreationDate(Date creationDate) {
-		this.creationDate = creationDate;
-	}
-
 	public String getName() {
 		return name;
 	}
-
 	public void setName(String name) {
 		this.name = name;
 	}
-
+	public Date getCreationDate() {
+		return creationDate;
+	}
+	public void setCreationDate(Date creationDate) {
+		this.creationDate = creationDate;
+	}
 	public String getParentId() {
 		return parentId;
 	}
-
 	public void setParentId(String parentId) {
 		this.parentId = parentId;
 	}
-
 	public byte[] getPreviewBlob() {
 		return previewBlob;
 	}
-
 	public void setPreviewBlob(byte[] previewBlob) {
 		this.previewBlob = previewBlob;
+	}
+	public String getPreviewString() {
+		return previewString;
+	}
+	public void setPreviewString(String previewString) {
+		this.previewString = previewString;
 	}
 	public String getAnnotations() {
 		return annotations;
 	}
-
 	public void setAnnotations(String annotations) {
 		this.annotations = annotations;
 	}
-	/**
-	 * Set a preview from a string
-	 * @param preview
-	 * @throws UnsupportedEncodingException
-	 */
-	public void setPreviewAsString(String preview) throws UnsupportedEncodingException{
-		if(preview == null){
-			this.previewBlob = null;
-		}else{
-			this.previewBlob = preview.getBytes("UTF-8");
-		}
-	}
-	
-	public String getPreviewString() {
-		return previewString;
-	}
-
-	public void setPreviewString(String previewString) {
-		this.previewString = previewString;
-	}
-
-	/**
-	 * Get the preview as a string.
-	 * @return
-	 * @throws UnsupportedEncodingException
-	 */
-	public String getPreviewAsString() throws UnsupportedEncodingException{
-		if(this.previewBlob == null){
-			return null;
-		}else{
-			return new String(this.previewBlob, "UTF-8");
-		}
-	}
-
-	
 	public String getAccessControlList() {
 		return accessControlList;
 	}
-
 	public void setAccessControlList(String accessControlList) {
 		this.accessControlList = accessControlList;
 	}
-
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -181,10 +95,11 @@ public class StoredLayerPreview implements BaseChild {
 		result = prime * result
 				+ ((parentId == null) ? 0 : parentId.hashCode());
 		result = prime * result + Arrays.hashCode(previewBlob);
+		result = prime * result
+				+ ((previewString == null) ? 0 : previewString.hashCode());
 		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
 		return result;
 	}
-
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -193,7 +108,7 @@ public class StoredLayerPreview implements BaseChild {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		StoredLayerPreview other = (StoredLayerPreview) obj;
+		Preview other = (Preview) obj;
 		if (accessControlList == null) {
 			if (other.accessControlList != null)
 				return false;
@@ -231,6 +146,11 @@ public class StoredLayerPreview implements BaseChild {
 			return false;
 		if (!Arrays.equals(previewBlob, other.previewBlob))
 			return false;
+		if (previewString == null) {
+			if (other.previewString != null)
+				return false;
+		} else if (!previewString.equals(other.previewString))
+			return false;
 		if (uri == null) {
 			if (other.uri != null)
 				return false;
@@ -238,14 +158,14 @@ public class StoredLayerPreview implements BaseChild {
 			return false;
 		return true;
 	}
-
 	@Override
 	public String toString() {
-		return "StoredLayerPreview [id=" + id + ", uri=" + uri + ", etag="
-				+ etag + ", name=" + name + ", creationDate=" + creationDate
+		return "Preview [id=" + id + ", uri=" + uri + ", etag=" + etag
+				+ ", name=" + name + ", creationDate=" + creationDate
 				+ ", parentId=" + parentId + ", previewBlob="
-				+ Arrays.toString(previewBlob) + ", annotations=" + annotations
+				+ Arrays.toString(previewBlob) + ", previewString="
+				+ previewString + ", annotations=" + annotations
 				+ ", accessControlList=" + accessControlList + "]";
 	}
-
+	
 }

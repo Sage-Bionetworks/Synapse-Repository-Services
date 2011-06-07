@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller.metadata;
 
+import java.io.UnsupportedEncodingException;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.StoredLayerPreview;
@@ -8,13 +10,28 @@ public class StoredLayerPreviewMetadataProvider implements TypeSpecificMetadataP
 
 	@Override
 	public void addTypeSpecificMetadata(StoredLayerPreview entity,	HttpServletRequest request) {
-		// TODO Auto-generated method stub
-		
+		// Clear the blob and set the string
+		if(entity.getPreviewBlob() != null){
+			try {
+				entity.setPreviewString(new String(entity.getPreviewBlob(), "UTF-8"));
+				entity.setPreviewBlob(null);
+			} catch (UnsupportedEncodingException e) {
+				throw new IllegalArgumentException(e);
+			}
+		}
 	}
 
 	@Override
 	public void validateEntity(StoredLayerPreview entity) {
-		// TODO Auto-generated method stub
+		// Convert the blob value to the string value
+		if(entity.getPreviewString() != null){
+			try {
+				entity.setPreviewBlob(entity.getPreviewString().getBytes("UTF-8"));
+				entity.setPreviewString(null);
+			} catch (UnsupportedEncodingException e) {
+				throw new IllegalArgumentException(e);
+			}
+		}
 	}
 
 }

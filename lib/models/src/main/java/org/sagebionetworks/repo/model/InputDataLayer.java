@@ -1,12 +1,11 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Collection;
 import java.util.Date;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
-public class InputDataLayer implements DatasetLayer {
+public class InputDataLayer implements DatasetLayer, HasLocations, HasPreviews {
 	private String id;
 	private String name;
 	private String description;
@@ -32,9 +31,15 @@ public class InputDataLayer implements DatasetLayer {
 	 */
 	private String uri; // URI for this layer
 	private String etag; // ETag for this layer
+	@TransientField
 	private String annotations; // URI for annotations
-	private String preview; // URI for preview
-	private Collection<String> locations; // URIs for locations
+	@TransientField
+	private String previews;
+	@TransientField
+	private String locations;
+	@TransientField
+	private String accessControlList;
+
 
 	/**
 	 * Allowable layer type names
@@ -55,6 +60,14 @@ public class InputDataLayer implements DatasetLayer {
 
 	public String getUri() {
 		return uri;
+	}
+
+	public String getAccessControlList() {
+		return accessControlList;
+	}
+
+	public void setAccessControlList(String accessControlList) {
+		this.accessControlList = accessControlList;
 	}
 
 	public void setUri(String uri) {
@@ -109,21 +122,6 @@ public class InputDataLayer implements DatasetLayer {
 		this.annotations = annotations;
 	}
 
-	/**
-	 * @param preview
-	 *            the preview to set
-	 */
-	public void setPreview(String preview) {
-		this.preview = preview;
-	}
-
-	/**
-	 * @return the preview
-	 */
-	public String getPreview() {
-		return preview;
-	}
-
 	public Date getPublicationDate() {
 		return publicationDate;
 	}
@@ -142,6 +140,21 @@ public class InputDataLayer implements DatasetLayer {
 
 	public String getType() {
 		return type;
+	}
+
+	public String getPreviews() {
+		return previews;
+	}
+
+	public void setPreviews(String previews) {
+		this.previews = previews;
+	}
+
+	public void setLocations(String locations) {
+		this.locations = locations;
+	}
+	public String getLocations() {
+		return locations;
 	}
 
 	public void setType(String type) throws InvalidModelException {
@@ -200,21 +213,6 @@ public class InputDataLayer implements DatasetLayer {
 		this.qcDate = qcDate;
 	}
 
-	/**
-	 * @return the location uris
-	 */
-	public Collection<String> getLocations() {
-		return locations;
-	}
-
-	/**
-	 * @param locations
-	 *            the uri locations to set
-	 */
-	public void setLocations(Collection<String> locations) {
-		this.locations = locations;
-	}
-
 	public void setStatus(String status) {
 		this.status = status;
 	}
@@ -231,23 +229,33 @@ public class InputDataLayer implements DatasetLayer {
 		return numSamples;
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime
+				* result
+				+ ((accessControlList == null) ? 0 : accessControlList
+						.hashCode());
+		result = prime * result
+				+ ((annotations == null) ? 0 : annotations.hashCode());
 		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result
 				+ ((description == null) ? 0 : description.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result
+				+ ((locations == null) ? 0 : locations.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
 				+ ((numSamples == null) ? 0 : numSamples.hashCode());
 		result = prime * result
+				+ ((parentId == null) ? 0 : parentId.hashCode());
+		result = prime * result
 				+ ((platform == null) ? 0 : platform.hashCode());
+		result = prime * result
+				+ ((previews == null) ? 0 : previews.hashCode());
 		result = prime
 				* result
 				+ ((processingFacility == null) ? 0 : processingFacility
@@ -262,6 +270,7 @@ public class InputDataLayer implements DatasetLayer {
 		result = prime * result
 				+ ((tissueType == null) ? 0 : tissueType.hashCode());
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
+		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
 		result = prime * result + ((version == null) ? 0 : version.hashCode());
 		return result;
 	}
@@ -274,9 +283,6 @@ public class InputDataLayer implements DatasetLayer {
 		this.parentId = parentId;
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -286,6 +292,16 @@ public class InputDataLayer implements DatasetLayer {
 		if (getClass() != obj.getClass())
 			return false;
 		InputDataLayer other = (InputDataLayer) obj;
+		if (accessControlList == null) {
+			if (other.accessControlList != null)
+				return false;
+		} else if (!accessControlList.equals(other.accessControlList))
+			return false;
+		if (annotations == null) {
+			if (other.annotations != null)
+				return false;
+		} else if (!annotations.equals(other.annotations))
+			return false;
 		if (creationDate == null) {
 			if (other.creationDate != null)
 				return false;
@@ -296,10 +312,20 @@ public class InputDataLayer implements DatasetLayer {
 				return false;
 		} else if (!description.equals(other.description))
 			return false;
+		if (etag == null) {
+			if (other.etag != null)
+				return false;
+		} else if (!etag.equals(other.etag))
+			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
+			return false;
+		if (locations == null) {
+			if (other.locations != null)
+				return false;
+		} else if (!locations.equals(other.locations))
 			return false;
 		if (name == null) {
 			if (other.name != null)
@@ -311,10 +337,20 @@ public class InputDataLayer implements DatasetLayer {
 				return false;
 		} else if (!numSamples.equals(other.numSamples))
 			return false;
+		if (parentId == null) {
+			if (other.parentId != null)
+				return false;
+		} else if (!parentId.equals(other.parentId))
+			return false;
 		if (platform == null) {
 			if (other.platform != null)
 				return false;
 		} else if (!platform.equals(other.platform))
+			return false;
+		if (previews == null) {
+			if (other.previews != null)
+				return false;
+		} else if (!previews.equals(other.previews))
 			return false;
 		if (processingFacility == null) {
 			if (other.processingFacility != null)
@@ -356,6 +392,11 @@ public class InputDataLayer implements DatasetLayer {
 				return false;
 		} else if (!type.equals(other.type))
 			return false;
+		if (uri == null) {
+			if (other.uri != null)
+				return false;
+		} else if (!uri.equals(other.uri))
+			return false;
 		if (version == null) {
 			if (other.version != null)
 				return false;
@@ -372,10 +413,11 @@ public class InputDataLayer implements DatasetLayer {
 				+ ", releaseNotes=" + releaseNotes + ", type=" + type
 				+ ", tissueType=" + tissueType + ", platform=" + platform
 				+ ", processingFacility=" + processingFacility + ", qcBy="
-				+ qcBy + ", qcDate=" + qcDate + ", status=" + status
-				+ ", numSamples=" + numSamples + ", uri=" + uri + ", etag="
-				+ etag + ", annotations=" + annotations + ", preview="
-				+ preview + ", locations=" + locations + "]";
+				+ qcBy + ", qcDate=" + qcDate + ", parentId=" + parentId
+				+ ", status=" + status + ", numSamples=" + numSamples
+				+ ", uri=" + uri + ", etag=" + etag + ", annotations="
+				+ annotations + ", previews=" + previews + ", locations="
+				+ locations + ", accessControlList=" + accessControlList + "]";
 	}
 
 	

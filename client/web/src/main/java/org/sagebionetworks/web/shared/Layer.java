@@ -21,7 +21,7 @@ public class Layer implements IsSerializable {
 	private String name;
 	private Integer numSamples;	
 	private String platform;
-	private String preview;
+	private String previews;
 	private String processingFacility;	
 	private Date publicationDate;
 	private String qcBy;
@@ -33,6 +33,7 @@ public class Layer implements IsSerializable {
 	private String uri;
 	private String version;
 	private String parentId;
+	private String accessControlList;
 
 	public String getParentId() {
 		return parentId;
@@ -55,6 +56,16 @@ public class Layer implements IsSerializable {
 	public String getType() {		
 		return type.name();
 	}
+
+	public String getAccessControlList() {
+		return accessControlList;
+	}
+
+
+	public void setAccessControlList(String accessControlList) {
+		this.accessControlList = accessControlList;
+	}
+
 
 	public void setType(String typeString) {		
 		this.type = LayerType.valueOf(typeString);
@@ -151,13 +162,13 @@ public class Layer implements IsSerializable {
 	}
 
 
-	public String getPreview() {
-		return preview;
+	public String getPreviews() {
+		return previews;
 	}
 
 
-	public void setPreview(String preview) {
-		this.preview = preview;
+	public void setPreviews(String preview) {
+		this.previews = preview;
 	}
 
 
@@ -252,6 +263,10 @@ public class Layer implements IsSerializable {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime
+				* result
+				+ ((accessControlList == null) ? 0 : accessControlList
+						.hashCode());
 		result = prime * result
 				+ ((annotations == null) ? 0 : annotations.hashCode());
 		result = prime * result
@@ -269,7 +284,8 @@ public class Layer implements IsSerializable {
 				+ ((parentId == null) ? 0 : parentId.hashCode());
 		result = prime * result
 				+ ((platform == null) ? 0 : platform.hashCode());
-		result = prime * result + ((preview == null) ? 0 : preview.hashCode());
+		result = prime * result
+				+ ((previews == null) ? 0 : previews.hashCode());
 		result = prime
 				* result
 				+ ((processingFacility == null) ? 0 : processingFacility
@@ -299,6 +315,11 @@ public class Layer implements IsSerializable {
 		if (getClass() != obj.getClass())
 			return false;
 		Layer other = (Layer) obj;
+		if (accessControlList == null) {
+			if (other.accessControlList != null)
+				return false;
+		} else if (!accessControlList.equals(other.accessControlList))
+			return false;
 		if (annotations == null) {
 			if (other.annotations != null)
 				return false;
@@ -349,10 +370,10 @@ public class Layer implements IsSerializable {
 				return false;
 		} else if (!platform.equals(other.platform))
 			return false;
-		if (preview == null) {
-			if (other.preview != null)
+		if (previews == null) {
+			if (other.previews != null)
 				return false;
-		} else if (!preview.equals(other.preview))
+		} else if (!previews.equals(other.previews))
 			return false;
 		if (processingFacility == null) {
 			if (other.processingFacility != null)
@@ -411,12 +432,13 @@ public class Layer implements IsSerializable {
 				+ creationDate + ", description=" + description + ", etag="
 				+ etag + ", id=" + id + ", locations=" + locations + ", name="
 				+ name + ", numSamples=" + numSamples + ", platform="
-				+ platform + ", preview=" + preview + ", processingFacility="
+				+ platform + ", previews=" + previews + ", processingFacility="
 				+ processingFacility + ", publicationDate=" + publicationDate
 				+ ", qcBy=" + qcBy + ", qcDate=" + qcDate + ", releaseNotes="
 				+ releaseNotes + ", status=" + status + ", tissueType="
 				+ tissueType + ", type=" + type + ", uri=" + uri + ", version="
-				+ version + ", parentId=" + parentId + "]";
+				+ version + ", parentId=" + parentId + ", accessControlList="
+				+ accessControlList + "]";
 	}
 
 

@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseChild;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -70,15 +71,13 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	}
 
 	@Override
-	public <T extends Base> PaginatedResults<T> getEntities(String userId, Integer offset,
-			Integer limit, String sort, Boolean ascending,
+	public <T extends Nodeable> PaginatedResults<T> getEntities(String userId, PaginatedParameters paging,
 			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException, NotFoundException, UnauthorizedException {
 
-		ServiceConstants.validatePaginationParams(offset, limit);
+		ServiceConstants.validatePaginationParams(paging.getOffset(), paging.getLimit());
 		
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		PaginatedResults<T> results = entitiesAccessor.getInRangeSortedBy(userInfo, offset, limit,
-				sort, ascending, clazz);
+		PaginatedResults<T> results = entitiesAccessor.getInRangeSortedBy(userInfo, paging, clazz);
 		List<T> entities = results.getResults();
 
 		for (T entity : entities) {
@@ -86,11 +85,11 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		}
 		return new PaginatedResults<T>(request.getServletPath()
 				+ UrlHelpers.getUrlForModel(clazz), entities,
-				results.getTotalNumberOfResults(), offset, limit, sort, ascending);
+				results.getTotalNumberOfResults(), paging.getOffset(), paging.getLimit(), paging.getSortBy(), paging.getAscending());
 	}
 
 	@Override
-	public <T extends Base> T getEntity(String userId, String id, HttpServletRequest request, Class<? extends T> clazz)
+	public <T extends Nodeable> T getEntity(String userId, String id, HttpServletRequest request, Class<? extends T> clazz)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
@@ -108,7 +107,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	}
 
 	@Override
-	public <T extends Base> T createEntity(String userId, T newEntity, HttpServletRequest request)
+	public <T extends Nodeable> T createEntity(String userId, T newEntity, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException {
 
@@ -122,7 +121,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	}
 
 	@Override
-	public <T extends Base> T updateEntity(String userId, String id,
+	public <T extends Nodeable> T updateEntity(String userId, String id,
 			T updatedEntity, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException {
@@ -149,19 +148,19 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	}
 
 	@Override
-	public <T extends Base> JsonSchema getEntitySchema(Class<? extends T> clazz) throws DatastoreException {
+	public <T extends Nodeable> JsonSchema getEntitySchema(Class<? extends T> clazz) throws DatastoreException {
 		return SchemaHelper.getSchema(clazz);
 	}
 	
 	@Override
-	public <T extends Base> JsonSchema getEntitiesSchema(Class<? extends T> clazz) throws DatastoreException {
+	public <T extends Nodeable> JsonSchema getEntitiesSchema(Class<? extends T> clazz) throws DatastoreException {
 		// TODO is there a better way to pass this class?
 		PaginatedResults<T> empty = new PaginatedResults<T>();
 		return SchemaHelper.getSchema(empty.getClass());
 	}
 
-	private <T extends Base> void addServiceSpecificMetadata(T entity, HttpServletRequest request) {
-		entity.setUri(UrlHelpers.makeEntityUri(entity, request));
+	private <T extends Nodeable> void addServiceSpecificMetadata(T entity, HttpServletRequest request) {
+		UrlHelpers.setAllUrlsForEntity(entity, request);
 	}
 
 	private void addServiceSpecificMetadata(String id, Annotations annotations,
@@ -207,6 +206,23 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		}
 		return list;
 	}
+	
+	@Override
+	public <T extends BaseChild> PaginatedResults<T> getEntityChildrenOfTypePaginated(
+			String userId, String parentId, Class<? extends T> clazz,
+			PaginatedParameters paging, HttpServletRequest request)
+			throws DatastoreException, NotFoundException, UnauthorizedException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		PaginatedResults<T> results = entitiesAccessor.getChildrenOfTypePaginated(userInfo, parentId, paging, clazz);
+		List<T> entities = results.getResults();
+		for (T entity : entities) {
+			addServiceSpecificMetadata(entity, request);
+		}
+		return new PaginatedResults<T>(request.getServletPath()
+				+ UrlHelpers.getUrlForModel(clazz), entities,
+				results.getTotalNumberOfResults(), paging.getOffset(), paging.getLimit(), paging.getSortBy(), paging.getAscending());
+	}
+	
 
 	@Override
 	public <T extends BaseChild> Collection<T> aggregateEntityUpdate(String userId, String parentId, Collection<T> update,	HttpServletRequest request) throws NotFoundException,
@@ -245,7 +261,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 			InvalidModelException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);		
 		AccessControlList acl = permissionsManager.overrideInheritance(newEntity, userInfo);
-		addServiceSpecificMetadata(newEntity, request);
+		acl.setUri(request.getRequestURI());
 		return acl;
 	}
 

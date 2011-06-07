@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.EntityController;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.PaginatedParameters;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -219,7 +220,7 @@ public class LayerController extends BaseController { // TODO implements
 			sort = null;
 		}
 		PaginatedResults<InputDataLayer> results = entityController.getEntities(
-				userId, offset, limit, sort, ascending, request, InputDataLayer.class);
+				userId, new PaginatedParameters(offset, limit, sort, ascending), request, InputDataLayer.class);
 
 		for (InputDataLayer layer : results.getResults()) {
 			addServiceSpecificMetadata(userId, layer, request);
@@ -279,8 +280,8 @@ public class LayerController extends BaseController { // TODO implements
 
 		layer.setAnnotations(UrlHelpers.makeEntityPropertyUri(layer,
 				Annotations.class, request));
-		layer.setPreview(UrlHelpers.makeEntityPropertyUri(layer,
-				LayerPreview.class, request));
+//		layer.setPreview(UrlHelpers.makeEntityPropertyUri(layer,
+//				LayerPreview.class, request));
 		layer.setUri(UrlHelpers.makeEntityUri(layer, request));
 
 		//
@@ -298,7 +299,7 @@ public class LayerController extends BaseController { // TODO implements
 				layerLocations.add(UrlHelpers.makeLocationUri(layer.getUri(),
 						location.getType()));
 			}
-			layer.setLocations(layerLocations);
+//			layer.setLocations(layerLocations);
 		} catch (NotFoundException e) {
 			// This should not happen because we were just create/get/update
 			// this layer

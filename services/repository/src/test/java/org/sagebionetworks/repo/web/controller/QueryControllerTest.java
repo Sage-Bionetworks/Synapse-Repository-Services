@@ -54,8 +54,10 @@ public class QueryControllerTest {
 			helper.testEntityAnnotations(newDataset.getString("annotations"));
 
 			// Add a layer
-			helper.testCreateJsonEntity(newDataset.getString("layer"),
-					LayerControllerTest.SAMPLE_LAYER);
+			helper.testCreateJsonEntity(helper
+					.getServletPrefix()
+					+ "/layer",
+					LayerControllerTest.getSampleLayer(newDataset.getString("id")));
 		}
 	}
 

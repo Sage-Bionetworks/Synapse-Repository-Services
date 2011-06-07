@@ -29,7 +29,7 @@ public class EntityToMapUtilTest {
 		ds.setHasClinicalData(false);
 		ds.setHasExpressionData(true);
 		ds.setHasGeneticData(true);
-		ds.setLayer("someLayerUrl");
+		ds.setLayers("someLayerUrl");
 		ds.setReleaseDate(new Date(System.currentTimeMillis()));
 		ds.setStatus("someStatus");
 		ds.setVersion("someVersion");
