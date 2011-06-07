@@ -309,14 +309,6 @@ public class UrlHelpers {
 		return CHILD2PARENTURL.get(childUrl);
 	}
 
-	/**
-	 * This is intended for usage by unit tests
-	 * 
-	 * @return The URL prefixes we currently have mapped to model classes
-	 */
-	public static Collection<String> getAllEntityUrlPrefixes() {
-		return MODEL2URL.values();
-	}
 
 	/**
 	 * This is intended for usage by unit tests

@@ -92,11 +92,9 @@ public class LayerAnnotationsControllerTest {
 
 		// Load up a layer
 		JSONObject newLayer = helper
-				.testCreateJsonEntity(
-						helper.getServletPrefix() + "/dataset/"
-								+ dataset.getString("id") + "/layer",
-						"{\"name\":\"MouseCross\", \"type\":\"C\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+				.testCreateJsonEntity(helper.getServletPrefix() + "/layer",
+						"{\"name\":\"MouseCross\", \"type\":\"C\",  \"description\": \"foo\", \"releaseNotes\":\"bar\"," +
+						" \"parentId\":\"" +dataset.getString("id")+"\"}");
 		
 		// Get our empty annotations container
 		JSONObject annotations = helper.testGetJsonEntity(newLayer

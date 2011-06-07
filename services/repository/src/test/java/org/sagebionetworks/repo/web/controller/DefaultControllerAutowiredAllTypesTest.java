@@ -237,35 +237,35 @@ public class DefaultControllerAutowiredAllTypesTest {
 		root = ServletTestHelper.createEntity(dispatchServlet, root, userName);
 		assertNotNull(root);
 		toDelete.add(root.getId());
-		int number = 3;
-		for (int i = 0; i < number; i++) {
-			Dataset datset = new Dataset();
-			datset.setName("childDataset" + i);
-			datset.setParentId(root.getId());
-			datset = ServletTestHelper.createEntity(dispatchServlet, datset, userName);
-			toDelete.add(datset.getId());
-		}
-		// Add a dataset that is not a child of this project.
-		Dataset datset = new Dataset();
-		datset.setName("notChildDataset");
-		datset.setParentId(null);
-		datset = ServletTestHelper.createEntity(dispatchServlet, datset, userName);
-		toDelete.add(datset.getId());
 		
-		// Try with all default values
-		PaginatedResults<Dataset> result = ServletTestHelper.getAllChildrenEntites(dispatchServlet, ObjectType.project,root.getId(), Dataset.class, null, null, null, null, userName);
-		assertNotNull(result);
-		assertEquals(number, result.getTotalNumberOfResults());
-		assertNotNull(result.getResults());
-		assertEquals(number, result.getResults().size());
-
-		// Try with a value in each slot
-		result = ServletTestHelper.getAllChildrenEntites(dispatchServlet, ObjectType.project,root.getId(),Dataset.class, 2, 1,	"name", true, userName);
-		assertNotNull(result);
-		assertEquals(number, result.getTotalNumberOfResults());
-		assertNotNull(result.getResults());
-		assertEquals(1, result.getResults().size());
-		assertNotNull(result.getResults().get(0));
+		// Create one of each type
+		ObjectType[] types = ObjectType.values();
+		for(ObjectType parent: types){
+			for(ObjectType child: types){
+				// First create a parent of this type
+				String name = "parent_"+parent.name()+"Ofchild_"+child.name();
+				Nodeable parentObject =ObjectTypeFactory.createObjectForTest(name, parent, root.getId());
+				parentObject = ServletTestHelper.createEntity(dispatchServlet, parentObject, userName);
+				assertNotNull(parentObject);
+				toDelete.add(parentObject.getId());
+				
+				// Create two children of this node.
+				for(int i=0; i<2; i++){
+					name = "child_"+child.name()+"OfParent_"+parent.name();
+					// Create this as a child of the parent
+					Nodeable childObject = ObjectTypeFactory.createObjectForTest(name, child, parentObject.getId());
+					childObject = ServletTestHelper.createEntity(dispatchServlet, childObject, userName);
+					assertNotNull(childObject);
+					toDelete.add(parentObject.getId());
+				}
+				// Now get all children of this parent
+				PaginatedResults<Nodeable> results = ServletTestHelper.getAllChildrenEntites(dispatchServlet, parent, parentObject.getId(), child.getClassForType(), 1, 100, "name", true, userName);
+				assertNotNull(results);
+				assertEquals("Parent: "+parent.name()+" with child: "+child.name(), 2, results.getTotalNumberOfResults());
+				assertNotNull(results.getResults());
+				assertEquals(2, results.getResults().size());
+			}
+		}
 	}
 
 	@Test(expected = NotFoundException.class)
