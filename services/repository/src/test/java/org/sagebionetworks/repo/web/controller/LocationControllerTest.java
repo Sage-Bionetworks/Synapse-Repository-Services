@@ -55,8 +55,9 @@ public class LocationControllerTest {
 		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()
 				+ "/dataset", DatasetControllerTest.SAMPLE_DATASET);
 
-		layer = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString("id")));
+		layer = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/layer", LayerControllerTest.getSampleLayer(dataset
+				.getString("id")));
 
 		datasetLocation = new JSONObject(SAMPLE_LOCATION).put("parentId",
 				dataset.getString("id"));
@@ -90,8 +91,10 @@ public class LocationControllerTest {
 		assertEquals("33183779e53ce0cfc35f59cc2a762cbd", results
 				.getString("md5sum"));
 
-		String s3key = "/" + results.getString("parentId") + "/"
-				+ results.getString("id") + "/"
+		String s3key = "/"
+		// PLFM-212
+				// TODO + results.getString("parentId") + "/"
+				// TODO + results.getString("id") + "/"
 				// TODO + results.getString("version") + "/"
 				+ "unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz";
 
@@ -135,16 +138,21 @@ public class LocationControllerTest {
 		assertEquals("33183779e53ce0cfc35f59cc2a762cbd", results
 				.getString("md5sum"));
 
-		String s3key = "/" + results.getString("parentId") + "/"
-				+ results.getString("id") + "/"
+		String s3key = "/"
+		// TODO PLFM-212
+				// TODO + results.getString("parentId") + "/"
+				// TODO + results.getString("id") + "/"
 				// TODO + results.getString("version") + "/"
 				+ "unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz";
 
 		assertTrue(0 < results.getString("path").indexOf(s3key));
 		// https://s3.amazonaws.com/data01.sagebase.org/1/3/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz?Expires=1307507371&AWSAccessKeyId=thisIsAFakeAWSAccessId&Signature=op01bZcni6bPw1sEmpjci75PIoE%3D
-		assertTrue(results.getString("path").matches(
-				"^https://s3.amazonaws.com/data01.sagebase.org" + s3key
-						+ "\\?.*Expires=\\d+&AWSAccessKeyId=\\w+&Signature=.+$"));
+		assertTrue(results
+				.getString("path")
+				.matches(
+						"^https://s3.amazonaws.com/data01.sagebase.org"
+								+ s3key
+								+ "\\?.*Expires=\\d+&AWSAccessKeyId=\\w+&Signature=.+$"));
 
 		assertExpectedLocationProperties(results);
 
@@ -154,7 +162,8 @@ public class LocationControllerTest {
 
 		// TODO fix this part of the test to just ensure that the layer has the
 		// correct number of location children
-		JSONObject paging = helper.testGetJsonEntities(layer.getString("locations"));
+		JSONObject paging = helper.testGetJsonEntities(layer
+				.getString("locations"));
 		assertNotNull(paging);
 		assertEquals(1, paging.getLong("totalNumberOfResults"));
 	}
