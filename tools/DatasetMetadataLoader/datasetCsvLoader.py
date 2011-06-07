@@ -200,21 +200,22 @@ def loadLayers():
         newLayer = gSYNAPSE.createEntity(layerUri, layer)
         print 'Created layer %s for %s\n\n' % (layer["name"], row[0])
         
-        layerLocations = {}
-        layerLocations["locations"] = []
         for col in [8,9,10]:
             if(row[col] != ""):
                 # trim whitespace off both sides
                 path = row[col].strip()
                 location = {}
+                location["parentId"] = newLayer["id"]
                 location["type"] = header[col]
-                location["path"] = path
+                if(0 != string.find(path, "/")):
+                    location["path"] = "/" + path
+                else:
+                    location["path"] = path
                 if(path in gFILE_PATH_2_MD5SUM):
                     location["md5sum"] = gFILE_PATH_2_MD5SUM[path]
                 elif(gARGS.fakeLocalData):
                     location["md5sum"] = 'thisIsAFakeMD5Checksum'
-                layerLocations["locations"].append(location)
-        gSYNAPSE.updateEntity(newLayer["locations"][0], layerLocations);
+                gSYNAPSE.createEntity("/location", location);
         
         layerPreview = {}
        
