@@ -56,12 +56,10 @@ public class Curation {
 		int numLayersFound = results.getInt("totalNumberOfResults");
 
 		if (0 == numLayersFound) {
-			String layerUri = "/dataset/" + datasetId + "/layer";
-
 			// TODO put a unique constraint on the layer name, and if we catch
 			// an exception here for that, we should retry this workflow step
 			layer.put("parentId", datasetId);
-			JSONObject storedLayer = synapse.createEntity(layerUri, layer);
+			JSONObject storedLayer = synapse.createEntity("/layer", layer);
 			layerId = storedLayer.getInt("id");
 		} else {
 			if (1 == numLayersFound) {

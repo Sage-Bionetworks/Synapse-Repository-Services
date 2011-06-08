@@ -42,6 +42,12 @@ public class Storage {
 
 		Synapse synapse = ConfigHelper.createConfig().createSynapseClient();
 
+		// See if the file is already on S3
+//		JSONObject layer = synapse.getEntity("/layer/" + layerId);
+//		JSONObject location = synapse.getEntity(uri)if(layer.has("locations"))
+		
+		
+		
 		File file = new File(localFilepath);
 		String s3Path = file.getName();
 
