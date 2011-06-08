@@ -1,4 +1,4 @@
-.integrationTest <- function(dir, pattern = "^test_.*\\.R$")
+.test <- function(dir, pattern = "^test_.*\\.R$")
 {
     .failure_details <- function(result) {
         res <- result[[1L]]
@@ -13,11 +13,11 @@
     }
 
     if (missing(dir)) {
-        dir <- system.file("integrationTests", package="sbnClient")
+        dir <- system.file("unitTests", package="synapseClient")
         if (!length(dir)) {
-            dir <- system.file("IntegrationTests", package="sbnClient")
+            dir <- system.file("UnitTests", package="synapseClient")
             if (!length(dir))
-                stop("unable to find integration tests, no 'integrationTests' dir")
+                stop("unable to find unit tests, no 'unitTests' dir")
         }
     }
     require("RUnit", quietly=TRUE) || stop("RUnit package not found")
@@ -26,16 +26,16 @@
     RUnit_opts$silent <- TRUE
     RUnit_opts$verbose_fail_msg <- TRUE
     options(RUnit = RUnit_opts)
-    suite <- defineTestSuite(name="sbnClient RUnit Tests", dirs=dir,
+    suite <- defineTestSuite(name="synapseClient RUnit Tests", dirs=dir,
                              testFileRegexp=pattern,
-                             testFuncRegexp = "^integrationTest.+",
+                             testFuncRegexp = "^unitTest.+",
                              rngKind="default",
                              rngNormalKind="default")
     result <- runTestSuite(suite)
     cat("\n\n")
     printTextProtocol(result, showDetails=FALSE)
-    ## Print detailed html protocol, this is nice and readable
-    printHTMLProtocol(result, "integrationTestOutput.html")
+    ## Also print detailed html protocol, this is nice and readable
+    printHTMLProtocol(result, "unitTestOutput.html")
     if (length(details <- .failure_details(result)) >0) {
         cat("\nTest files with failing tests\n")
         for (i in seq_along(details)) {
@@ -45,7 +45,7 @@
             }
         }
         cat("\n\n")
-        stop("integration tests failed for package sbnClient")
+        stop("unit tests failed for package synapseClient")
     }
     result
 }

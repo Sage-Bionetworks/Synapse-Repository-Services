@@ -9,7 +9,7 @@ synapseQuery <-
 		stop("a query statement must be supplied of R type character")
 	}
 	
-	uri <- paste(kPath, curlEscape(queryStatement), sep="/")
+	uri <- paste(kPath, curlEscape(queryStatement), sep="")
 	
 	result <- synapseGet(uri = uri, 
 					curlHandle = curlHandle, 
@@ -17,8 +17,8 @@ synapseQuery <-
 			  )
 	
 	# Parse response and prepare return value
-	return.val <- parseJSONRecords(results$results)
-	attr(return.val, "totalNumberOfResults") <- results$totalNumberOfResults
+	return.val <- result$results
+	attr(return.val, "totalNumberOfResults") <- result$totalNumberOfResults
 
 	return(return.val)
 }
