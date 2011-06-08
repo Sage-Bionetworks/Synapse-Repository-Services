@@ -48,9 +48,7 @@ public class JDOUserGroupDAOImplTest {
 	
 	public void cleanUpGroups() throws Exception {
 		for (UserGroup g: userGroupDAO.getAll()) {
-			if (g.getName().equals(AuthorizationConstants.ADMIN_GROUP_NAME)) {
-				// leave it
-			} else if (g.getName().equals(AuthorizationConstants.PUBLIC_GROUP_NAME)) {
+			if (g.getName().equals(AuthorizationConstants.PUBLIC_GROUP_NAME)) {
 				// leave it
 			} else if (g.getName().equals(AuthorizationConstants.ANONYMOUS_USER_ID)) {
 				// leave it
