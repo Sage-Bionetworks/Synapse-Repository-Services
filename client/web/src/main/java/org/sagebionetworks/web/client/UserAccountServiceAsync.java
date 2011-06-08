@@ -15,9 +15,6 @@ public interface UserAccountServiceAsync {
 
 	void terminateSession(String sessionToken, AsyncCallback<Void> callback);
 
-	// Not needed, provided by crowd
-//	void resetPassword(String securityToken, String newPassword, AsyncCallback<String> callback);
-//	void isActivePasswordResetToken(String securityToken, AsyncCallback<Boolean> callback);
+	void ssoLogin(String sessionToken, AsyncCallback<Boolean> callback);
 
-	
 }

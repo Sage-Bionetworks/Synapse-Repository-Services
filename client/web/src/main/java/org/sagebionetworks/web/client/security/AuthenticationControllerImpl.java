@@ -1,5 +1,6 @@
 package org.sagebionetworks.web.client.security;
 
+import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
 import org.sagebionetworks.web.client.cookie.CookieKeys;
 import org.sagebionetworks.web.client.cookie.CookieProvider;
@@ -7,6 +8,7 @@ import org.sagebionetworks.web.shared.users.UserData;
 
 import com.extjs.gxt.ui.client.widget.Info;
 import com.extjs.gxt.ui.client.widget.MessageBox;
+import com.google.gwt.place.shared.PlaceChangeEvent;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.inject.Inject;
 
@@ -54,6 +56,32 @@ public class AuthenticationControllerImpl implements AuthenticationController {
 			}
 		});
 	}
+	
+	@Override
+	public void setSSOUser(final String displayName, final String token, final AsyncCallback<UserData> callback) {
+		if(displayName == null || token == null) callback.onFailure(new AuthenticationException(AUTHENTICATION_MESSAGE));
+		userAccountService.ssoLogin(token, new AsyncCallback<Boolean>() {
+			@Override
+			public void onSuccess(Boolean result) {
+				if(result) {
+					UserData userData = new UserData(DisplayConstants.SINGLE_SIGN_ON_USERID, displayName, token);
+					String cookie = userData.getCookieString();
+					cookies.setCookie(CookieKeys.USER_LOGIN_DATA, cookie);
+					cookies.setCookie(CookieKeys.USER_LOGIN_TOKEN, userData.getToken());
+					
+					AuthenticationControllerImpl.currentUser = userData;
+					callback.onSuccess(userData);
+				} else {
+					callback.onFailure(new AuthenticationException(AUTHENTICATION_MESSAGE));
+				}
+			}
+			
+			@Override
+			public void onFailure(Throwable caught) {
+				callback.onFailure(new AuthenticationException(AUTHENTICATION_MESSAGE));
+			}
+		});
+	}
 
 	@Override
 	public UserData getLoggedInUser() {
@@ -69,5 +97,6 @@ public class AuthenticationControllerImpl implements AuthenticationController {
 			cookies.removeCookie(CookieKeys.USER_LOGIN_TOKEN);			
 		}
 	}
+
 
 }

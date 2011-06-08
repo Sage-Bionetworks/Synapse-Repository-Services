@@ -9,6 +9,7 @@ import org.sagebionetworks.web.shared.users.UserData;
 
 import com.extjs.gxt.ui.client.event.ButtonEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
+import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.button.Button;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
@@ -75,5 +76,11 @@ public class LoginViewImpl extends Composite implements LoginView {
 	public void clear() {
 		loginWidget.clear();
 	}
+	
+	@Override
+	public void showErrorMessage(String message) {
+		MessageBox.info("Message", message, null);
+	}
+
 
 }

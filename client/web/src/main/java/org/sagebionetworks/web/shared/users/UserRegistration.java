@@ -3,8 +3,7 @@ package org.sagebionetworks.web.shared.users;
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 public class UserRegistration implements IsSerializable {
-
-	private String userId;
+	
 	private String email;
 	private String firstName;
 	private String lastName;
@@ -16,22 +15,13 @@ public class UserRegistration implements IsSerializable {
 	public UserRegistration() {		
 	}
 	
-	public UserRegistration(String userId, String email, String firstName,
+	public UserRegistration(String email, String firstName,
 			String lastName, String displayName) {
 		super();
-		this.userId = userId;
 		this.email = email;
 		this.firstName = firstName;
 		this.lastName = lastName;
 		this.displayName = displayName;
-	}
-
-	public String getUserId() {
-		return userId;
-	}
-
-	public void setUserId(String userId) {
-		this.userId = userId;
 	}
 
 	public String getEmail() {
@@ -77,7 +67,6 @@ public class UserRegistration implements IsSerializable {
 				+ ((firstName == null) ? 0 : firstName.hashCode());
 		result = prime * result
 				+ ((lastName == null) ? 0 : lastName.hashCode());
-		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
 		return result;
 	}
 
@@ -110,19 +99,14 @@ public class UserRegistration implements IsSerializable {
 				return false;
 		} else if (!lastName.equals(other.lastName))
 			return false;
-		if (userId == null) {
-			if (other.userId != null)
-				return false;
-		} else if (!userId.equals(other.userId))
-			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "UserRegistration [userId=" + userId + ", email=" + email
-				+ ", firstName=" + firstName + ", lastName=" + lastName
-				+ ", displayName=" + displayName + "]";
+		return "UserRegistration [email=" + email + ", firstName=" + firstName
+				+ ", lastName=" + lastName + ", displayName=" + displayName
+				+ "]";
 	}
-		
+
 }

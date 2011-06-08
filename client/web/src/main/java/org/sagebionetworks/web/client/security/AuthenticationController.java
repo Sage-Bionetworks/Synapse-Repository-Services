@@ -21,6 +21,13 @@ public interface AuthenticationController {
 	public void loginUser(String username, String password, AsyncCallback<UserData> callback);
 	
 	/**
+	 * Sets the current user 
+	 * @param displayName
+	 * @param token
+	 */
+	public void setSSOUser(String displayName, String token, AsyncCallback<UserData> callback);
+	
+	/**
 	 * Terminates the session of the current user
 	 */
 	public void logoutUser();

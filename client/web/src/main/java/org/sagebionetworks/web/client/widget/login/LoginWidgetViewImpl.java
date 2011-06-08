@@ -1,5 +1,6 @@
 package org.sagebionetworks.web.client.widget.login;
 
+import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.IconsImageBundle;
 
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
@@ -8,6 +9,7 @@ import com.extjs.gxt.ui.client.event.ComponentEvent;
 import com.extjs.gxt.ui.client.event.Events;
 import com.extjs.gxt.ui.client.event.SelectionListener;
 import com.extjs.gxt.ui.client.util.KeyNav;
+import com.extjs.gxt.ui.client.widget.Html;
 import com.extjs.gxt.ui.client.widget.Label;
 import com.extjs.gxt.ui.client.widget.LayoutContainer;
 import com.extjs.gxt.ui.client.widget.VerticalPanel;
@@ -15,6 +17,8 @@ import com.extjs.gxt.ui.client.widget.button.Button;
 import com.extjs.gxt.ui.client.widget.form.FieldSet;
 import com.extjs.gxt.ui.client.widget.form.FormButtonBinding;
 import com.extjs.gxt.ui.client.widget.form.FormPanel;
+import com.extjs.gxt.ui.client.widget.form.FormPanel.Method;
+import com.extjs.gxt.ui.client.widget.form.HiddenField;
 import com.extjs.gxt.ui.client.widget.form.TextField;
 import com.extjs.gxt.ui.client.widget.layout.FormData;
 import com.extjs.gxt.ui.client.widget.layout.FormLayout;
@@ -34,7 +38,7 @@ public class LoginWidgetViewImpl extends LayoutContainer implements
 	private IconsImageBundle iconsImageBundle;
 	private TextField<String> firstName = new TextField<String>();
 	private TextField<String> password = new TextField<String>();
-
+	
 	@Inject
 	public LoginWidgetViewImpl(IconsImageBundle iconsImageBundle) {
 		this.iconsImageBundle = iconsImageBundle;
@@ -47,44 +51,59 @@ public class LoginWidgetViewImpl extends LayoutContainer implements
 		formData = new FormData("-20");
 		vp = new VerticalPanel();
 		vp.setSpacing(10);
+		
+		// federated login button
+		StringBuilder sb = new StringBuilder();		
+		sb.append("<form accept-charset=\"UTF-8\" action=\""+ DisplayConstants.OPEN_ID_ACTION_ENDPOINT +"\" class=\"aui\" id=\"gapp-openid-form\" method=\"post\" name=\"gapp-openid-form\">");
+		sb.append("    <input name=\"OPEN_ID_PROVIDER\" type=\"hidden\" value=\""+ DisplayConstants.OPEN_ID_PROVIDER_SAGE_VALUE +"\"/>");
+		sb.append("    <input name=\"RETURN_TO_URL\" type=\"hidden\" value=\""+ DisplayConstants.OPEN_ID_RETURN_URL +"\"/>");
+		sb.append("    <button id=\"login-via-gapp-google\" type=\"submit\"><img alt=\""+ DisplayConstants.OPEN_ID_SAGE_LOGIN_BUTTON_TEXT +"\" src=\"http://www.google.com/favicon.ico\"/>&nbsp; "+ DisplayConstants.OPEN_ID_SAGE_LOGIN_BUTTON_TEXT +"</button>");
+		sb.append("</form>");		
+		sb.append("<p>&nbsp;</p>");
+		Html sageSSOLogin = new Html(sb.toString());
+		vp.add(sageSSOLogin);
+		
 		createForm();
 		add(vp);
 	}
 
 	private void createForm() {
-		FormPanel formPanel = new FormPanel();
+		final FormPanel formPanel = new FormPanel();
 		formPanel.setHeading("Login");
 		formPanel.setFrame(true);
 		formPanel.setWidth(350);
 		formPanel.setLabelWidth(85);
 
-		// federated login
-		FieldSet fieldSetFederated = new FieldSet();  
-		fieldSetFederated.setHeading("Login with an External Account");  
-		fieldSetFederated.setCheckboxToggle(false);
-		fieldSetFederated.setCollapsible(false);
-		FormLayout layout = new FormLayout();  
-		layout.setLabelWidth(85);  		
-		fieldSetFederated.setLayout(layout);  
 		
-		Button sagebaseLoginButton = new Button("Login with a Sagebase.org Account");
-		sagebaseLoginButton.setIcon(AbstractImagePrototype.create(iconsImageBundle.google16()));
-		sagebaseLoginButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
-			@Override
-			public void componentSelected(ButtonEvent ce) {
-				// TODO : actually call
-			}
-		});
-		
-//		fieldSetFederated.add(sagebaseLoginButton);
+//		FieldSet fieldSetFederated = new FieldSet();  
+//		fieldSetFederated.setHeading("Login with an External Account");  
+//		fieldSetFederated.setCheckboxToggle(false);
+//		fieldSetFederated.setCollapsible(false);
+//		fieldSetFederated.setLayout(layout);  
+//		formPanel.setAction(DisplayConstants.OPEN_ID_ACTION_ENDPOINT);
+//		formPanel.setMethod(Method.POST);
 //		
-//		formPanel.add(fieldSetFederated);
-		formPanel.add(sagebaseLoginButton, new MarginData(0, 0, 13, 0));
+//		HiddenField<String> openIdProvider = new HiddenField<String>();
+//		openIdProvider.setFieldLabel(OPEN_ID_PROVIDER_FIELD_NAME);
+//		openIdProvider.setValue(OPEN_ID_PROVIDER_SAGE_VALUE);
+//		
+//		Button sagebaseLoginButton = new Button("Login with a Sagebase.org Account");
+//		sagebaseLoginButton.setIcon(AbstractImagePrototype.create(iconsImageBundle.google16()));
+//		sagebaseLoginButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+//			@Override
+//			public void componentSelected(ButtonEvent ce) {
+//				formPanel.submit();
+//			}
+//		});
+//		formPanel.add(sagebaseLoginButton, new MarginData(0, 0, 13, 0));
+
 		
 		// synapse login
 		FieldSet fieldSet = new FieldSet();  
 		fieldSet.setHeading("Login with a Synapse Account");  
 		fieldSet.setCheckboxToggle(false);  		       
+		FormLayout layout = new FormLayout();  
+		layout.setLabelWidth(85);  		
 		fieldSet.setLayout(layout);  
 		fieldSet.setCollapsible(false);
 		

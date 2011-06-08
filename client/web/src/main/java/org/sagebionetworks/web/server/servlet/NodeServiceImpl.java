@@ -91,6 +91,8 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>("", headers);
 		
@@ -131,6 +133,8 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>(propertiesJson, headers);
 		
@@ -157,6 +161,8 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		headers.set(DisplayConstants.SERVICE_HEADER_ETAG_KEY, eTag);
 		HttpEntity<String> entity = new HttpEntity<String>(propertiesJson, headers);
@@ -184,6 +190,8 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>("", headers);
 		
@@ -219,6 +227,8 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		headers.set(DisplayConstants.SERVICE_HEADER_ETAG_KEY, etag);
 		HttpEntity<String> entity = new HttpEntity<String>(annotationsJson, headers);
@@ -246,6 +256,8 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>("", headers);
 		
@@ -302,6 +314,8 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>(propertiesJson, headers);
 		
@@ -328,6 +342,8 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		headers.set(DisplayConstants.SERVICE_HEADER_ETAG_KEY, eTag);
 		HttpEntity<String> entity = new HttpEntity<String>(propertiesJson, headers);
@@ -357,6 +373,8 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>("", headers);
 		
@@ -386,6 +404,8 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>("", headers);
 		

@@ -44,7 +44,7 @@ public class LocalAuthStubLauncher {
 	@Consumes("application/json")@Produces("application/json")
 	@Path("/user")
 	public void createUser(UserRegistration userInfo) {
-		users.add(new User(userInfo.getUserId(), userInfo.getEmail(), userInfo.getFirstName(), userInfo.getLastName(), userInfo.getDisplayName()));
+		users.add(new User(userInfo.getEmail(), userInfo.getEmail(), userInfo.getFirstName(), userInfo.getLastName(), userInfo.getDisplayName()));
 	}
 	
 	@PUT
@@ -52,10 +52,10 @@ public class LocalAuthStubLauncher {
 	@Path("/user")
 	public void updateUser(UserRegistration updatedUser) {
 		boolean found = false;
-		String userId = updatedUser.getUserId();
+		String userId = updatedUser.getEmail();
 		for(User user : users) {
 			if(userId.equals(user.userId)) {
-				user = new User(updatedUser.getUserId(), updatedUser.getEmail(), updatedUser.getFirstName(), updatedUser.getLastName(), updatedUser.getDisplayName());
+				user = new User(updatedUser.getEmail(), updatedUser.getEmail(), updatedUser.getFirstName(), updatedUser.getLastName(), updatedUser.getDisplayName());
 				found = true;
 				break;
 			}

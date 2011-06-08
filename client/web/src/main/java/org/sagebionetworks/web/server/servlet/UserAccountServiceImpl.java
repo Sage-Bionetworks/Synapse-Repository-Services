@@ -4,6 +4,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.logging.Logger;
 
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 import org.sagebionetworks.web.client.UserAccountService;
 import org.sagebionetworks.web.client.security.AuthenticationException;
 import org.sagebionetworks.web.server.RestTemplateProvider;
@@ -22,19 +24,18 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
+import com.google.gwt.user.server.rpc.UnexpectedException;
 import com.google.inject.Inject;
 
 public class UserAccountServiceImpl extends RemoteServiceServlet implements UserAccountService {
 
 	private static Logger logger = Logger.getLogger(UserAccountServiceImpl.class.getName());
-
-	private static final String SEND_PASSWORD_CHANGE_PATH = "userPasswordEmail";
-
-	private static final String INITIATE_SESSION_PATH = "session";
 	
+	private static final String SEND_PASSWORD_CHANGE_PATH = "userPasswordEmail";
+	private static final String INITIATE_SESSION_PATH = "session";
 	private static final String CREATE_USER_PATH = "user";
-
 	private static final String TERMINATE_SESSION_PATH = "session";
+	private static final String REFRESH_SESSION_PATH = "session";
 
 	
 	/**
@@ -69,54 +70,77 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 
 	@Override
 	public void sendPasswordResetEmail(String userId) throws RestServiceException {
-		URI uri = null;
+		// First make sure the service is ready to go.
+		validateService();
+		
+		JSONObject obj = new JSONObject();
 		try {
-			uri = new URI(urlProvider.getAuthBaseUrl() + SEND_PASSWORD_CHANGE_PATH);
-		} catch (URISyntaxException e) {
+			obj.put("email", userId);
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
+		// Build up the path
+		String url = urlProvider.getAuthBaseUrl() + SEND_PASSWORD_CHANGE_PATH;
+		String jsonString = obj.toString();
+		
+		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
-		HttpEntity<String> entity = new HttpEntity<String>(userId, headers);
-
+		HttpEntity<String> entity = new HttpEntity<String>(jsonString, headers);
+		HttpMethod method = HttpMethod.POST;
+		
+		logger.info(method.toString() + ": " + url + ", JSON: " + jsonString);
+		
 		// Make the actual call.
-		long start = System.currentTimeMillis();		
 		try {
-			ResponseEntity<Void> response = templateProvider.getTemplate().exchange(uri, HttpMethod.POST, entity, Void.class);
-		} catch (RestClientException ex) {
-			// ignore these. template provider can not handle a no content responses
-		} catch (Exception ex) {
-			throw new RestServiceException("Send password change request failed");
+			ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class);
+		} catch (UnexpectedException ex) {
+			return;
+		} catch (NullPointerException nex) {
+			// TODO : change this to properly deal with a 204!!!
+			return; // this is expected
 		}
-		long end = System.currentTimeMillis();
-		logger.info("Url GET: " + uri.toString()+" in "+(end-start)+" ms");
-				
+		throw new RestClientException("An error occured. Please try again.");
+		
+//		if (response.getStatusCode() != HttpStatus.CREATED && response.getStatusCode() != HttpStatus.OK) {
+//			throw new RestClientException("Status code:" + response.getStatusCode().value());
+//		}						
 	}
 
 	@Override
 	public UserData initiateSession(String username, String password) throws AuthenticationException {
-		URI uri = null;
+		// First make sure the service is ready to go.
+		validateService();
+		
+		JSONObject obj = new JSONObject();
 		try {
-			uri = new URI(urlProvider.getAuthBaseUrl() + INITIATE_SESSION_PATH);
-		} catch (URISyntaxException e) {
+			obj.put("email", username);
+			obj.put("password", password);
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
+		// Build up the path
+		String url = urlProvider.getAuthBaseUrl() + INITIATE_SESSION_PATH;
+		String jsonString = obj.toString();
+		
+		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
-		HttpEntity<UserLogin> entity = new HttpEntity<UserLogin>(new UserLogin(username, password), headers);
-
-		// Make the actual call.
-		long start = System.currentTimeMillis();
+		HttpEntity<String> entity = new HttpEntity<String>(jsonString, headers);
+		HttpMethod method = HttpMethod.POST;
+		
+		logger.info(method.toString() + ": " + url + ", JSON: " + jsonString);
+		
 		ResponseEntity<UserSession> response = null;
 		try {
-			response = templateProvider.getTemplate().exchange(uri, HttpMethod.POST, entity, UserSession.class);
+			response = templateProvider.getTemplate().exchange(url, HttpMethod.POST, entity, UserSession.class);
 		} catch (HttpClientErrorException ex) {
 			throw new AuthenticationException("Unable to authenticate.");
 		}
-		long end = System.currentTimeMillis();
-		logger.info("Url GET: " + uri.toString()+" in "+(end-start)+" ms");
 		
 		UserData userData = null;		
 		if((response.getStatusCode() == HttpStatus.CREATED || response.getStatusCode() == HttpStatus.OK) && response.hasBody()) {
@@ -132,65 +156,106 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 
 	@Override
 	public void createUser(UserRegistration userInfo) throws RestServiceException {
-		URI uri = null;
+		// First make sure the service is ready to go.
+		validateService();
+		
+		JSONObject obj = new JSONObject();
 		try {
-			uri = new URI(urlProvider.getAuthBaseUrl() + CREATE_USER_PATH);
-		} catch (URISyntaxException e) {
+			obj.put("email", userInfo.getEmail());
+			obj.put("firstName", userInfo.getFirstName());
+			obj.put("lastName", userInfo.getLastName());
+			obj.put("displayName", userInfo.getDisplayName());
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
+		// Build up the path
+		String url = urlProvider.getAuthBaseUrl() + CREATE_USER_PATH;
+		String jsonString = obj.toString();
+		
+		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
-		HttpEntity<UserRegistration> entity = new HttpEntity<UserRegistration>(userInfo, headers);
-
-		// Make the actual call.
-		long start = System.currentTimeMillis();
+		HttpEntity<String> entity = new HttpEntity<String>(jsonString, headers);
+		HttpMethod method = HttpMethod.POST;
 		
-		try {
-			ResponseEntity<Void> response = templateProvider.getTemplate().exchange(uri, HttpMethod.POST, entity, Void.class);
-			if((response.getStatusCode() == HttpStatus.CREATED || response.getStatusCode() == HttpStatus.OK) && response.hasBody()) {
-				throw new RestServiceException("Unable to create user. Please try again.");
-			}
-		} catch (RestClientException ex) {
-			// ignore these. template provider can not handle a no content responses
-		} catch (Exception ex) {
-			throw new RestServiceException("Unable to create user. Please try again.");
-		}
+		logger.info(method.toString() + ": " + url + ", JSON: " + jsonString);
+		
+		// Make the actual call.
+		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class);
 
-		long end = System.currentTimeMillis();
-		logger.info("Url GET: " + uri.toString()+" in "+(end-start)+" ms");		
+		if (response.getStatusCode() != HttpStatus.CREATED && response.getStatusCode() != HttpStatus.OK) {
+			throw new RestClientException("Status code:" + response.getStatusCode().value());
+		}		
 	}
 
 	@Override
 	public void terminateSession(String sessionToken) throws RestServiceException {
-		URI uri = null;
+		// First make sure the service is ready to go.
+		validateService();
+		
+		// Build up the path
+		String url = urlProvider.getAuthBaseUrl() + TERMINATE_SESSION_PATH;
+		String jsonString = "{\"sessionToken\":\""+ sessionToken + "\"}";
+		
+		logger.info("DELETE: " + url + ", JSON: " + jsonString);
+		
+		// Setup the header
+		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<String>(jsonString, headers);
+		
+		// Make the actual call.
+		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, HttpMethod.DELETE, entity, String.class);
+
+		if (response.getStatusCode() == HttpStatus.OK) {
+		} else {
+			throw new RestClientException("Status code:" + response.getStatusCode().value());
+		}		
+	}
+
+	@Override
+	public boolean ssoLogin(String sessionToken) throws RestServiceException {
+		// First make sure the service is ready to go.
+		validateService();
+		
+		JSONObject obj = new JSONObject();
 		try {
-			uri = new URI(urlProvider.getAuthBaseUrl() + TERMINATE_SESSION_PATH);
-		} catch (URISyntaxException e) {
+			obj.put("sessionToken", sessionToken);
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
+		// Build up the path
+		String url = urlProvider.getAuthBaseUrl() + REFRESH_SESSION_PATH;
+		String jsonString = obj.toString();
+		
+		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
-		HttpEntity<String> entity = new HttpEntity<String>(sessionToken, headers);
-
-		// Make the actual call.
-		long start = System.currentTimeMillis();		
-		try {
-			ResponseEntity<Object> response = templateProvider.getTemplate().exchange(uri.toString(), HttpMethod.DELETE, entity, Object.class);
-			if(response.getStatusCode() != HttpStatus.NO_CONTENT && response.hasBody()) {
-				throw new RestServiceException("Unable to terminate session. Please try again.");
-			}
-		} catch (RestClientException ex) {
-			// ignore these. template provider can not handle a no content responses
-		} catch (Exception ex) {
-			throw new RestServiceException("Logout failed. Please try again.");
-		}
+		HttpEntity<String> entity = new HttpEntity<String>(jsonString, headers);
+		HttpMethod method = HttpMethod.PUT;
 		
-		long end = System.currentTimeMillis();
-		logger.info("Url GET: " + uri.toString()+" in "+(end-start)+" ms");		
+		logger.info(method.toString() + ": " + url + ", JSON: " + jsonString);
+		
+		// Make the actual call.
+		try {
+			ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class);
+		} catch (UnexpectedException ex) {
+			return true;
+		} catch (NullPointerException nex) {
+			// TODO : change this to properly deal with a 204!!!
+			return true; // this is expected
+		}
+		return false;
 	}
 
+	
+	
 	/**
 	 * Validate that the service is ready to go. If any of the injected data is
 	 * missing then it cannot run. Public for tests.
@@ -208,4 +273,3 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 	}
 
 }
-

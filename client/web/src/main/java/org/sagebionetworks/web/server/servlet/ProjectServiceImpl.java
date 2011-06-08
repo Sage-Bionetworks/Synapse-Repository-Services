@@ -87,6 +87,8 @@ public class ProjectServiceImpl extends RemoteServiceServlet implements
 		logger.info("GET: " + url);
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>("", headers);
 		// Make the actual call.

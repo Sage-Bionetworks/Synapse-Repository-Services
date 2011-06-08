@@ -14,6 +14,9 @@ public class DisplayConstants {
 	public static final DateTimeFormat DATE_FORMAT = DateTimeFormat.getFormat("dd-MMM-yyyy");
 	public static final DateTimeFormat DATE_FORMAT_SERVICES = DateTimeFormat.getFormat("yyyy-MM-dd");
 	
+	public static final String SINGLE_SIGN_ON_USERID = "SSO";
+	
+	
 	// content
 	public static final String FOLLOW_DATASET_HTML = "Following a dataset allows you to be notified when the dataset has new comments, additional layers or data, is used in a project, or referenced by a new publication.<br/><br/>Click Confirm to Follow this dataset. You can adjust your notifications settings through your Profile.";  
 	public static final String FOLLOW_PROJECT_HTML = "Following a project allows you to be notified when the project has new comments, additional layers or data, is used in a project, or referenced by a new publication.<br/><br/>Click Confirm to Follow this project. You can adjust your notifications settings through your Profile.";
@@ -34,6 +37,12 @@ public class DisplayConstants {
 	/*
 	 * Service Constants (move to another file?)
 	 */
+	public static final String OPEN_ID_SAGE_LOGIN_BUTTON_TEXT = "Login with a Sagebase.org Account";
+	public static final String OPEN_ID_ACTION_ENDPOINT = "https://staging-auth.elasticbeanstalk.com/auth/v1/openid";
+	public static final String OPEN_ID_RETURN_URL = "https://staging-synapseweb.elasticbeanstalk.com/#LoginPlace";
+	public static final String OPEN_ID_PROVIDER_GOOGLE_VALUE = "https://www.google.com/accounts/o8/id";
+	public static final String OPEN_ID_PROVIDER_SAGE_VALUE = "https://www.google.com/accounts/o8/site-xrds?hd=sagebase.org";
+
 	public static final String SERVICE_PARENT_ID_KEY = "parentId";
 	public static final String SERVICE_ETAG_KEY = "etag";
 	public static final String SERVICE_STATUS_KEY = "status";

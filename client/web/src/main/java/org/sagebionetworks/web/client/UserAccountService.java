@@ -19,8 +19,6 @@ public interface UserAccountService extends RemoteService {
 	
 	public void terminateSession(String sessionToken) throws RestServiceException;
 	
-	// Not needed, provided by crowd
-//	public String resetPassword(String securityToken, String newPassword);	
-//	public boolean isActivePasswordResetToken(String securityToken);
-
+	public boolean ssoLogin(String sessionToken) throws RestServiceException;
+	
 }

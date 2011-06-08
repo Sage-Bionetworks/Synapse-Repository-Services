@@ -9,6 +9,8 @@ public interface LoginView extends IsWidget{
 	
 	void setPresenter(Presenter loginPresenter);	
 	
+	void showErrorMessage(String message);
+	
 	void clear();
 	
 	public interface Presenter {
