@@ -99,6 +99,13 @@
       <version>20080701</version>
     </dependency>
 
+    <!-- String utils -->
+    <dependency>
+      <groupId>commons-lang</groupId>
+      <artifactId>commons-lang</artifactId>
+      <version>2.3</version>
+    </dependency>
+    
     <!-- HTTPClient -->
     <dependency>
       <groupId>commons-httpclient</groupId>
