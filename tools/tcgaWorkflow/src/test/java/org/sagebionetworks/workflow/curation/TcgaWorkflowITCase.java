@@ -41,6 +41,7 @@ public class TcgaWorkflowITCase {
 	static private int rawLayerId = -1;
 	static private int clinicalLayerId = -1;
 	static private DownloadResult expressionDownloadResult;
+	static private DownloadResult clinicalDownloadResult;
 
 	/**
 	 * @throws java.lang.Exception
@@ -162,6 +163,16 @@ public class TcgaWorkflowITCase {
 	 * @throws Exception
 	 */
 	@Test
+	public void testDoUploadExpressionDataToS3() throws Exception {
+		Storage.doUploadLayerToStorage(datasetId, rawLayerId,
+				expressionDownloadResult.getLocalFilepath(),
+				expressionDownloadResult.getMd5());
+	}
+	
+	/**
+	 * @throws Exception
+	 */
+	@Test
 	public void testDoCreateClinicalMetadata() throws Exception {
 		clinicalLayerId = Curation
 				.doCreateSynapseMetadataForTcgaSourceLayer(
@@ -176,7 +187,7 @@ public class TcgaWorkflowITCase {
 	@Test
 	public void testDoDownloadClinicalDataFromTcga() throws Exception {
 
-		DownloadResult clinicalDownloadResult = DataIngestion
+		clinicalDownloadResult = DataIngestion
 				.doDownloadFromTcga("http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/bcr/minbiotab/clin/clinical_public_coad.tar.gz");
 
 		assertTrue(clinicalDownloadResult.getLocalFilepath().endsWith(
@@ -185,6 +196,16 @@ public class TcgaWorkflowITCase {
 		assertNotNull(clinicalDownloadResult.getMd5());
 	}
 
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testDoUploadClinicalDataToS3() throws Exception {
+		Storage.doUploadLayerToStorage(datasetId, clinicalLayerId,
+				clinicalDownloadResult.getLocalFilepath(),
+				clinicalDownloadResult.getMd5());
+	}
+	
 	/**
 	 * @throws Exception
 	 */
@@ -200,16 +221,6 @@ public class TcgaWorkflowITCase {
 		// TODO assert not equals, our script makes them the same right now
 		assertEquals(rawLayerId, scriptResult.getProcessedLayerId());
 
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testDoUploadDataToS3() throws Exception {
-		Storage.doUploadLayerToStorage(datasetId, rawLayerId,
-				expressionDownloadResult.getLocalFilepath(),
-				expressionDownloadResult.getMd5());
 	}
 
 	/**
