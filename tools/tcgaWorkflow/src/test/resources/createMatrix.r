@@ -1,18 +1,17 @@
 #!/usr/bin/env Rscript
 
-library(sbnClient)
+library(synapseClient)
 
-setClientConfig(new('ClientConfig', host='http://localhost:8080/services-repository-0.4-SNAPSHOT', sslhost='http://auth-sagebase-org.elasticbeanstalk.com', session.token='admin'))
+synapseRepoServiceHostName('http://localhost:8080/')
+sessionToken('admin')
 
 inputLayerId <- getInputLayerId()
 inputDatasetId <- getInputDatasetId()
 
-# TODO we are making our urls shorter so we'll be able to do away with
-# the first two parts of this url soon
 dataset <- synapseGet(paste('/dataset', inputDatasetId, sep='/'))
-layer <- synapseGet(paste('/dataset', inputDatasetId, 'layer', inputLayerId, sep='/'))
+layer <- synapseGet(paste('/layer', inputLayerId, sep='/'))
 
-queryResult <- synapseQuery(paste('select * from layer where layer.parentId == ', inputDatasetId, ' and layer.name == "clinical_patient_public_', dataset$name, '"', sep=''))
+queryResult <- synapseQuery(paste('select * from layer where layer.parentId == ', inputDatasetId, ' and layer.name == "clinical_public_', dataset$name, '"', sep=''))
 
 if(0 == attr(queryResult,'totalNumberOfResults')) {
   warning('did not find the clinical dataset')

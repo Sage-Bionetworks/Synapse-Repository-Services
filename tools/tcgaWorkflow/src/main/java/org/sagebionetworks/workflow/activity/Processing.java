@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -138,7 +139,7 @@ public class Processing {
 		// will work this way when developing new scripts or modifying existing
 		// scripts.
 
-		log.debug("Running: " + script);
+		log.debug("About to run: " + StringUtils.join(scriptInput, " "));
 		Process process = Runtime.getRuntime().exec(scriptInput);
 		// TODO threads for slurping in stdout and stderr
 
@@ -168,9 +169,10 @@ public class Processing {
 
 		int returnCode = process.waitFor();
 		if (0 != returnCode) {
-			throw new UnrecoverableException("activity failed(" + returnCode
-					+ ": " + stderrAccumulator);
+			throw new UnrecoverableException("Activity failed(" + returnCode
+					+ ") for " + StringUtils.join(scriptInput, " ") + " stderr: " + stderrAccumulator);
 		}
+		log.debug("Finished running: " + StringUtils.join(scriptInput, " "));
 
 		Matcher resultMatcher = OUTPUT_DELIMITER_PATTERN.matcher(scriptResult
 				.getStdout());

@@ -46,7 +46,7 @@ public class Storage {
 		String s3Path = file.getName();
 
 		JSONObject s3LocationRequest = new JSONObject();
-		s3LocationRequest.put("path", s3Path);
+		s3LocationRequest.put("path", "/tcga/" + layerId + "/" + s3Path);  // See PLFM-212
 		s3LocationRequest.put("md5sum", md5);
 		s3LocationRequest.put("parentId", layerId);
 		s3LocationRequest.put("type", "awss3");
@@ -63,10 +63,11 @@ public class Storage {
 		headerMap.put("Content-Type", "application/binary");
 		
 //		if(log.isDebugEnabled()) {
-			log.warn("curl -f -X PUT -H Content-MD5:" + base64Md5
+			log.warn("curl -v -X PUT -H Content-MD5:" + base64Md5
             + " -H x-amz-acl:bucket-owner-full-control " 
+            + " -H Content-Type:application/binary "
             + " --data-binary @" + localFilepath
-            + "'" + s3Location.getString("path") + "'");
+            + " '" + s3Location.getString("path") + "'");
 //		}
 	
 		HttpClientHelper.uploadFile(s3Location.getString("path"),
