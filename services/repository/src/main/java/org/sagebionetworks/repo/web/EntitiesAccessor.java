@@ -56,6 +56,20 @@ public interface EntitiesAccessor {
 	 * @throws UnauthorizedException
 	 */
 	public <T extends Base> PaginatedResults<T> executeQuery(UserInfo userInfo, Class<? extends T> clazz, BasicQuery query) throws DatastoreException, NotFoundException,	UnauthorizedException;
+	
+	/**
+	 * Execute a count query for the user.
+	 * @param <T>
+	 * @param userId
+	 * @param clazz
+	 * @param query
+	 * @return The list of entities that match the query.
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	public long executeCountQuery(UserInfo userInfo, BasicQuery query) throws DatastoreException, NotFoundException,UnauthorizedException;
+
 
 
 	/**

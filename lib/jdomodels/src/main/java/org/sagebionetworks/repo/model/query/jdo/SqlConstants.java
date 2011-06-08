@@ -7,6 +7,7 @@ import java.util.Map;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotationType;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
@@ -114,12 +115,12 @@ public class SqlConstants {
 		
 		SqlConstants.addAllFields(Node.class, primaryFieldColumns);
 		// This is a special case for nodes.
-		primaryFieldColumns.put("parentId", "PARENT_ID_OID");
+		primaryFieldColumns.put(NodeConstants.COL_PARENT_ID, "PARENT_ID_OID");
 		
 		// These will be deleted once we move to NodeDao
 		SqlConstants.addAllFields(Dataset.class, primaryFieldColumns);
 		SqlConstants.addAllFields(InputDataLayer.class, primaryFieldColumns);
-		primaryFieldColumns.put("parentId", "PARENT_ID");
+		primaryFieldColumns.put(NodeConstants.COL_PARENT_ID, "PARENT_ID");
 		primaryFieldColumns.put("INPUT_LAYERS_ID_OWN", "INPUT_LAYERS_ID_OWN");
 		
 		// This is the map of varrious classes to their table names

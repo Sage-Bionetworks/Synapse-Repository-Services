@@ -5,6 +5,8 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -38,7 +40,8 @@ public interface TypeSpecificMetadataProvider<T extends Base> {
 	 * @param request
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
+	 * @throws UnauthorizedException 
 	 */
-	public void addTypeSpecificMetadata(T entity, HttpServletRequest request) throws DatastoreException, NotFoundException;
+	public void addTypeSpecificMetadata(T entity, HttpServletRequest request, UserInfo user) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 }

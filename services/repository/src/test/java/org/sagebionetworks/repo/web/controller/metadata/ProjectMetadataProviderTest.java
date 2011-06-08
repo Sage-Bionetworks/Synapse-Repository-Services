@@ -40,7 +40,7 @@ public class ProjectMetadataProviderTest {
 		// Mock the dataset and the request
 		Project project = new Project();
 		project.setId("101");
-		provider.addTypeSpecificMetadata(project, mockRequest);
+		provider.addTypeSpecificMetadata(project, mockRequest, null);
 		assertEquals("/repo/v1/project/101/annotations", project.getAnnotations());
 	}
 

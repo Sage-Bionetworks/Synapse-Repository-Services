@@ -79,6 +79,21 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	}
 	
 	/**
+	 * Execute a count query.
+	 */
+	@Override
+	public long executeCountQuery(BasicQuery query, UserInfo userInfo)
+			throws DatastoreException {
+		try {
+			return executeCountQueryImpl(query, userInfo);
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException(e);
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		}
+	}
+
+	/**
 	 * Depend on a dao to get these types.
 	 * @param name
 	 * @return
@@ -121,6 +136,33 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		// Create the results
 		return new NodeQueryResults(allRows, count);
 	}
+	
+	/**
+	 * Execute a count query.
+	 * @param query
+	 * @param userInfo
+	 * @return
+	 * @throws DatastoreException
+	 */
+	private long executeCountQueryImpl(BasicQuery query, UserInfo userInfo) throws DatastoreException {
+		// Prepare the parameters
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		// This will contain the count query.
+		StringBuilder countQuery = new StringBuilder();
+		// This will contain the full query
+		StringBuilder fullQuery = new StringBuilder();
+		boolean columnsExist = bulidQueryStrings(query, userInfo, countQuery, fullQuery, parameters);
+		if(!columnsExist){
+			// For this case there will be no results
+			return 0;
+		}
+		// Run the count query
+		List countResults = executeQuery(countQuery.toString(), parameters);
+		Object countObject = countResults.get(0);
+		long count = extractCount(countObject);
+		return count;
+	}
+
 	/**
 	 * Builds the two query strings and prepares the query parameters.
 	 * @param in
@@ -129,6 +171,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @param fullQuery
 	 * @param parameters
 	 * @throws DatastoreException
+	 * @return True, if the query is valid and can be run, else false.
 	 */
 	private boolean bulidQueryStrings(BasicQuery in, UserInfo userInfo, StringBuilder countQuery, StringBuilder fullQuery, Map parameters) throws DatastoreException{
 		if (in.getFrom() == null)
@@ -627,13 +670,6 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 				return (Long) query.execute(name);
 			}
 		});
-	}
-
-	@Override
-	public long executeCountQuery(BasicQuery query, UserInfo userInfo)
-			throws DatastoreException {
-		// TODO Auto-generated method stub
-		return 0;
 	}
 
 

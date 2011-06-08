@@ -7,6 +7,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.authutil.AuthUtilConstants;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseChild;
@@ -16,6 +17,7 @@ import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -50,9 +52,8 @@ public class DefaultController extends BaseController {
 	ObjectTypeSerializer objectTypeSerializer;
 	@Autowired
 	private MetadataProviderFactory metadataProviderFactory;
-
-
-
+	@Autowired
+	UserManager userManager;
 
 	/**
 	 * Create a new entity with a POST.
@@ -82,6 +83,7 @@ public class DefaultController extends BaseController {
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException {
+
 		// Determine the object type from the url.
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
 		// Fetch the provider that will validate this entity.
@@ -95,7 +97,8 @@ public class DefaultController extends BaseController {
 		// Now create the entity
 		T createdEntity = (T) entityController.createEntity(userId, entity, request);
 		// Finally, add the type specific metadata.
-		provider.addTypeSpecificMetadata(createdEntity, request);
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		provider.addTypeSpecificMetadata(createdEntity, request, userInfo);
 		return createdEntity;
 	}
 	
@@ -133,7 +136,8 @@ public class DefaultController extends BaseController {
 		@SuppressWarnings("unchecked")
 		T updatedEntity = (T) entityController.getEntity(userId, id, request, type.getClassForType());
 		// Add any type specific metadata.
-		provider.addTypeSpecificMetadata(updatedEntity, request);
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		provider.addTypeSpecificMetadata(updatedEntity, request, userInfo);
 		return updatedEntity;
 	}
 
@@ -184,7 +188,8 @@ public class DefaultController extends BaseController {
 		// validate the entity
 		provider.validateEntity(entity);
 		entity = entityController.updateEntity(userId, id,	entity, request);
-		provider.addTypeSpecificMetadata(entity, request);
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		provider.addTypeSpecificMetadata(entity, request, userInfo);
 		return entity;
 	}
 	
@@ -306,6 +311,7 @@ public class DefaultController extends BaseController {
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending,
 			HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
+
 		// Null is used for the default.
 		if(ServiceConstants.DEFAULT_SORT_BY_PARAM.equals(sort)){
 			sort = null;
@@ -317,9 +323,9 @@ public class DefaultController extends BaseController {
 		@SuppressWarnings("unchecked")
 		PaginatedResults<T> results = (PaginatedResults<T>) entityController.getEntities(
 				userId, new PaginatedParameters(offset, limit, sort, ascending), request, type.getClassForType());
-
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		for (T entity : results.getResults()) {
-			provider.addTypeSpecificMetadata(entity, request);
+			provider.addTypeSpecificMetadata(entity, request, userInfo);
 		}
 		return results;
 	}
@@ -343,6 +349,7 @@ public class DefaultController extends BaseController {
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending,
 			HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
+
 		// Null is used for the default.
 		if(ServiceConstants.DEFAULT_SORT_BY_PARAM.equals(sort)){
 			sort = null;
@@ -354,8 +361,9 @@ public class DefaultController extends BaseController {
 		TypeSpecificMetadataProvider<Nodeable> provider = (TypeSpecificMetadataProvider<Nodeable>)metadataProviderFactory.getMetadataProvider(type); //TypeSpecificMetadataProviderFactory.getProvider(type);
 		Class<? extends T> clazz = (Class<? extends T>) type.getClassForType();
 		PaginatedResults<T> results = (PaginatedResults<T>) entityController.getEntityChildrenOfTypePaginated(userId, parentId, clazz, paging, request);
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		for (T entity : results.getResults()) {
-			provider.addTypeSpecificMetadata(entity, request);
+			provider.addTypeSpecificMetadata(entity, request, userInfo);
 		}
 		return results;
 	}	
