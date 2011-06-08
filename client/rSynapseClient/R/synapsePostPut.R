@@ -21,6 +21,10 @@ synapsePostPut <-
 	if(!anonymous){
 		header <- c(header, sessionToken = sessionToken())
 	}
+	if("PUT" == requestMethod) {
+		# Add the ETag header
+		header <- c(header, ETag = entity$etag)
+	}
 	
 	# uris formed by the service already have their servlet prefix
 	if(grepl(path, uri)) {
