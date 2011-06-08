@@ -9,7 +9,7 @@ getDataPacketSummary <-
 		stop("multiple IDs provided")
 	}
 	
-	uri <- paste(kservice, id, sep = "/")
+	uri <- paste(kService, id, sep = "/")
 	
 	## get reults and parse list
 	results.list <- synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous)

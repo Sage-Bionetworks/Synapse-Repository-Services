@@ -5,8 +5,14 @@ synapseGet <-
 	if(!is.character(uri)){
 		stop("a uri must be supplied of R type character")
 	}
-	
-	uri <- paste(host, path, uri, sep="/")
+
+	# uris formed by the service already have their servlet prefix
+	if(grepl(path, uri)) {
+		uri <- paste(host, uri, sep="/")
+	}
+	else {
+		uri <- paste(host, path, uri, sep="/")
+	}
 	
 	## Prepare the header. If not an anonymous request, stuff the
 	## session token into the header
