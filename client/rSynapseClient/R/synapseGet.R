@@ -9,8 +9,7 @@ synapseGet <-
 	# uris formed by the service already have their servlet prefix
 	if(grepl(path, uri)) {
 		uri <- paste(host, uri, sep="/")
-	}
-	else {
+	}else {
 		uri <- paste(host, path, uri, sep="/")
 	}
 	

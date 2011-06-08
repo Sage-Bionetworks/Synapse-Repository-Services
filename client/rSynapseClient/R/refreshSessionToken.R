@@ -9,13 +9,11 @@ refreshSessionToken <-
 	# constants
 	kService <- "session"
 	## end constants
-	
-	httpBody <- paste('{\"sessionToken\":\"',
-			session.token, '\"}',
-			sep=""
-			)
+			
+	entity <- list()
+	entity$sessionToken <- session.token
 
 	uri <- kService
-	response <- synapsePut(uri = uri, httpBody = httpBody, path = .getCache("authServicePath"), host = host)
+	response <- synapsePut(uri = uri, entity = entity, path = .getCache("authServicePath"), host = host)
 	.setCache("sessionTimestamp", Sys.time())
 }

@@ -1,5 +1,5 @@
 synapsePostPut <- 
-		function(uri, httpBody, requestMethod, host = synapseRepoServiceHostName(), curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"), path = .getCache("repoServicePath"), opts = .getCache("curlOpts"))
+		function(uri, entity, requestMethod, host = synapseRepoServiceHostName(), curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"), path = .getCache("repoServicePath"), opts = .getCache("curlOpts"))
 {
 	## constants
 	kValidMethods <- c("POST", "PUT")
@@ -12,6 +12,8 @@ synapsePostPut <-
 	if(!is.character(uri)){
 		stop("a uri must be supplied of R type character")
 	}
+	
+	httpBody <- toJSON(entity)
 	
 	## Prepare the header. If not an anonymous request, stuff the
 	## session token into the header

@@ -36,7 +36,9 @@ kSupportedPlatforms <- list(
 		function(libname, pkgname)
 {
 	resetSynapseHostConfig()
-	.setCache("supportedRepositoryLocationTypes", c("awsS3Location", "sageLocation"))
+	dataLocationPrefs("awss3")
+	.setCache("synapseCacheDir", '/synapseCache')
+	.setCache("supportedRepositoryLocationTypes", c("awss3"))#, "sage"))
 	.setCache("layerCodeTypeMap", kSupportedLayerCodeMap)
 	.setCache("supportedLayerStatus", kSupportedLayerStatus)
 	.setCache("supportedPlatforms", kSupportedPlatforms)
@@ -46,4 +48,5 @@ kSupportedPlatforms <- list(
 	.setCache("curlOpts", list(ssl.verifypeer = FALSE))
 	.setCache("curlHeader", c('Content-Type'="application/json", Accept = "application/json"))
 	.setCache("anonymous", FALSE)
+	
 }

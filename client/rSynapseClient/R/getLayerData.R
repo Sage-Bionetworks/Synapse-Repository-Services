@@ -1,5 +1,5 @@
 getLayerData <-
-		function(layer, locationType = "awsS3Location", curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(layer, locationPrefs = dataLocationPrefs(), curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
 {
 	## constants
 	kHeader <- c(Accept = "application/json")
@@ -7,25 +7,33 @@ getLayerData <-
 	## end constants
 	
 	## make sure that the location type for this layer is currently supported
-	if(!(locationType %in% .getCache("supportedRepositoryLocationTypes"))){
-		stop(paste("unsupported repository location:", locationType))
+	if(!all(locationPrefs %in% .getCache("supportedRepositoryLocationTypes"))){
+		ind <- which(!(locationPrefs %in% .getCache("supportedRepositoryLocationTypes")))
+		stop(paste("unsupported repository location(s):", locationPrefs[ind]))
 	}
 	
-	uri <- paste(layer$uri, locationType, sep='/')
+	#get the available locations for this layer and match to locationPrefs
+	availableLocations <- jsonListToDataFrame(synapseGet(layer$locations)$results)
+	checkCurlResponse(curlHandle)
+	ind <- match(locationPrefs, availableLocations$type)
+	
+	if(length(ind) == 0){
+		stop("Data file was not available in any of the locations specified. Locations available for this layer:", layer@locations)
+	}
+	
+	#order the list of available locations and take the first one
+	availableLocations <- availableLocations[ind,]
+	
+	uri <- availableLocations$uri[1]
 	
 	## get result. path is an empty string since the path is already included in 
 	## the uri element of layer
-	result <- synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous, path = "")
-	
+	result <- synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous, path="")
+	checkCurlResponse(curlHandle)
 	datapath <- result$path
 	zipFile <- gsub("\\?.+$", "", strsplit(datapath, ".com/")[[1]][2])
     
-	## deflaux: avoid an SSL certificate warning by fixing the https
-	## url, TODO the real fix is to do this further back in the service
-	fixeddatapath <- sub("data01.sagebase.org.s3.amazonaws.com",
-	              "s3.amazonaws.com/data01.sagebase.org", datapath)
-    
-	synapseDownloadFile(url = fixeddatapath, destfile = zipFile, method = kDownloadMethod)
+	synapseDownloadFile(url = datapath, destfile = zipFile, method = kDownloadMethod)
 
 	## deflaux: I could not figure out the right set of args to unzip
 	## to get it to happily extract the directory structure contained
@@ -33,7 +41,7 @@ getLayerData <-
 	
 	
 	extractDirectory <- paste(getwd(), strsplit(zipFile, ".zip")[[1]][1], sep="/")
-	unzip(zipFile, exdir=extractDirectory, junkpaths=TRUE)
+	unzip(zipFile, exdir=extractDirectory)
 	files <- file.path(extractDirectory,list.files(extractDirectory))
 	
 	class(files) <- "layerData"

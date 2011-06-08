@@ -5,16 +5,13 @@ synapseLogin <-
 	kService <- "session"
 	#end constants
 	
-	#build the header containing username and password
-	httpBody <- paste('{\"email\":\"', 
-			username, 
-			'\", \"password\":\"', 
-			password, '\"}', 
-			sep='')
+	entity <- list()
+	entity$email <- username
+	entity$password <- password
 	
 	#Login and check for success
 	response <- synapsePost(uri = kService, 
-					httpBody = httpBody, 
+					entity = entity, 
 					host = host, 
 					path = path
 				)
