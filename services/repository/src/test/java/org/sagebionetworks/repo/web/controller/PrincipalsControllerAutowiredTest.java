@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,7 +24,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -126,7 +124,6 @@ public class PrincipalsControllerAutowiredTest {
 			assertTrue(ug.toString(), "false".equalsIgnoreCase(ug.get("individual").toString()));
 		}
 		assertTrue(foundPublic);
-		assertTrue(foundAdmin);
 	}
 	
 

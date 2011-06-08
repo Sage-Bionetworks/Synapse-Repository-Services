@@ -9,7 +9,8 @@ import java.util.Iterator;
 public class UserInfo {
 	private User user;
 	private Collection<UserGroup> groups; // ALL the groups the user belongs to, 
-						// except "Public", which everyone implicitly belongs to
+						// except "Public", which everyone implicitly belongs to,
+						// and "Administrators", which is encoded in the 'isAdmin' field
 	private UserGroup individualGroup; // the user's individual group
 	private boolean isAdmin;
 	

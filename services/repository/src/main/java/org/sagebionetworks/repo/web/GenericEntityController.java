@@ -205,14 +205,15 @@ public interface GenericEntityController {
 	 * @param newEntity
 	 * @param request
 	 *            used to get the servlet URL prefix
+	 * @param clazz the class of the entity who ACL this is
 	 * @return the newly created entity
 	 * @throws InvalidModelException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException 
 	 */
-	public AccessControlList createEntityACL(String userId, AccessControlList newEntity,
-			HttpServletRequest request) throws DatastoreException,
+	public  <T extends Base> AccessControlList createEntityACL(String userId, AccessControlList newEntity,
+			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException;
 
 	
@@ -220,11 +221,14 @@ public interface GenericEntityController {
 	 * Get the ACL for a given entity
 	 * @param nodeId
 	 * @param userId
+	 * @param clazz the class of the entity who ACL this is
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
+	 * @throws UnauthorizedException 
 	 */
-	public AccessControlList getEntityACL(String entityId, String userId) throws NotFoundException, DatastoreException;
+	public  <T extends Base>  AccessControlList getEntityACL(String entityId, String userId, HttpServletRequest request, Class<? extends T> clazz) 
+		throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * Update an entity ACL.
@@ -236,7 +240,8 @@ public interface GenericEntityController {
 	 * @throws UnauthorizedException 
 	 * @throws InvalidModelException 
 	 */
-	public AccessControlList updateEntityACL(String userId, AccessControlList updated) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException;
+	public AccessControlList updateEntityACL(String userId, AccessControlList updated) throws 
+		DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException;
 	
 
 	/**

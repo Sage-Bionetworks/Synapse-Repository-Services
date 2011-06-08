@@ -70,7 +70,7 @@ public class JDOUserGroupDAOImplTest {
 	public void testGetGroupsByNames() throws Exception {
 		Collection<UserGroup> allGroups = null; 
 		allGroups = userGroupDAO.getAll();
-		assertEquals(allGroups.toString(), 3, allGroups.size()); // Public and Administrators
+		assertEquals(allGroups.toString(), 2, allGroups.size()); // Public and Anonymous
 	
 		Collection<String> groupNames = new HashSet<String>();
 		groupNames.add(GROUP_NAME);
@@ -83,16 +83,16 @@ public class JDOUserGroupDAOImplTest {
 		userGroupDAO.create(group);
 		
 		allGroups = userGroupDAO.getAll();
-		assertEquals(allGroups.toString(), 4, allGroups.size()); // now the new group should be there
+		assertEquals(allGroups.toString(), 3, allGroups.size()); // now the new group should be there
 			
 		groupNames.clear(); 	groupNames.add(GROUP_NAME);	
 		map = userGroupDAO.getGroupsByNames(groupNames);
 		assertTrue(groupNames.toString()+" -> "+map.toString(), map.containsKey(GROUP_NAME));
 		
 		
-		groupNames.clear(); groupNames.add(AuthorizationConstants.ADMIN_GROUP_NAME);
+		groupNames.clear(); groupNames.add(AuthorizationConstants.PUBLIC_GROUP_NAME);
 		map = userGroupDAO.getGroupsByNames(groupNames);
-		assertTrue(map.toString(), map.containsKey(AuthorizationConstants.ADMIN_GROUP_NAME));
+		assertTrue(map.toString(), map.containsKey(AuthorizationConstants.PUBLIC_GROUP_NAME));
 
 	}
 

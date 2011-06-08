@@ -11,12 +11,21 @@ import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * @author deflaux
  * 
  */
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class LocationHelpersImplTest {
+	
+	@Autowired
+	LocationHelper helper;
 
 	private static final Logger log = Logger
 			.getLogger(LocationHelpersImplTest.class.getName());
@@ -44,7 +53,7 @@ public class LocationHelpersImplTest {
 	 */
 	@Test
 	public void testCreateS3Url() throws Exception {
-		LocationHelper helper = new LocationHelpersImpl();
+
 		String url = helper.createS3Url(
 				LocationHelpersImpl.INTEGRATION_TEST_READ_ONLY_USER_ID,
 				"/test/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz",
@@ -72,7 +81,7 @@ public class LocationHelpersImplTest {
 	 */
 	@Test
 	public void testGetS3Url() throws Exception {
-		LocationHelper helper = new LocationHelpersImpl();
+
 		String url = helper.getS3Url(
 				LocationHelpersImpl.INTEGRATION_TEST_READ_ONLY_USER_ID,
 				"/test/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
