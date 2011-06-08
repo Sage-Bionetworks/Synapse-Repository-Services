@@ -13,8 +13,9 @@ getLayerData <-
 	}
 	
 	#get the available locations for this layer and match to locationPrefs
-	availableLocations <- jsonListToDataFrame(synapseGet(layer$locations)$results)
-	checkCurlResponse(curlHandle)
+	response <- jsonListToDataFrame(synapseGet(layer$locations))
+	checkCurlResponse(curlHandle, response)
+	availableLocations$results
 	ind <- match(locationPrefs, availableLocations$type)
 	
 	if(length(ind) == 0){
@@ -28,9 +29,9 @@ getLayerData <-
 	
 	## get result. path is an empty string since the path is already included in 
 	## the uri element of layer
-	result <- synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous, path="")
-	checkCurlResponse(curlHandle)
-	datapath <- result$path
+	response <- synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous, path="")
+	checkCurlResponse(curlHandle, response)
+	datapath <- response$path
 	zipFile <- gsub("\\?.+$", "", strsplit(datapath, ".com/")[[1]][2])
     
 	synapseDownloadFile(url = datapath, destfile = zipFile, method = kDownloadMethod)
