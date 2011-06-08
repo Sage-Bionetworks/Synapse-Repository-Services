@@ -19,7 +19,8 @@ public class Project implements IsSerializable {
 	private String status;
 	private String annotations;
 	private String parentId;
-
+	private String accessControlList;
+	
 	/**
 	 * Default constructor is required
 	 */
@@ -107,10 +108,22 @@ public class Project implements IsSerializable {
 		this.parentId = parentId;
 	}
 
+	public String getAccessControlList() {
+		return accessControlList;
+	}
+
+	public void setAccessControlList(String accessControlList) {
+		this.accessControlList = accessControlList;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime
+				* result
+				+ ((accessControlList == null) ? 0 : accessControlList
+						.hashCode());
 		result = prime * result
 				+ ((annotations == null) ? 0 : annotations.hashCode());
 		result = prime * result
@@ -137,6 +150,11 @@ public class Project implements IsSerializable {
 		if (getClass() != obj.getClass())
 			return false;
 		Project other = (Project) obj;
+		if (accessControlList == null) {
+			if (other.accessControlList != null)
+				return false;
+		} else if (!accessControlList.equals(other.accessControlList))
+			return false;
 		if (annotations == null) {
 			if (other.annotations != null)
 				return false;
@@ -196,8 +214,8 @@ public class Project implements IsSerializable {
 				+ ", name=" + name + ", description=" + description
 				+ ", creator=" + creator + ", creationDate=" + creationDate
 				+ ", status=" + status + ", annotations=" + annotations
-				+ ", parentId=" + parentId + "]";
+				+ ", parentId=" + parentId + ", accessControlList="
+				+ accessControlList + "]";
 	}
-
 
 }

@@ -119,7 +119,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		followProjectButtonPanel.add(createFollowProjectButton(iconsImageBundle, followProjectModal));			
 
 		// List of datasets table
-		datasetsListQueryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, false, 320, 237);
+		datasetsListQueryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, 320, 237);
 		datasetListTablePanel.add(datasetsListQueryServiceTable.asWidget());		
 		
 	}

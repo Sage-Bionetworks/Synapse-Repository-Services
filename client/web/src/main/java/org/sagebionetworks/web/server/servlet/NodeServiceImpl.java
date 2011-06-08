@@ -36,7 +36,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 	public static final String PATH_PROJECT = "project";
 	public static final String ANNOTATIONS_PATH = "annotations";
 	
-	public static final String PATH_SCHEMA = "test/schema"; // the "test" can be any string
+	public static final String PATH_SCHEMA = "schema"; 
 	
 	
 	private RestTemplateProvider templateProvider = null;
