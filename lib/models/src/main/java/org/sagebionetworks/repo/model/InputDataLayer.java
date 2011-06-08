@@ -6,6 +6,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class InputDataLayer implements DatasetLayer, HasLocations, HasPreviews {
+	
 	private String id;
 	private String name;
 	private String description;

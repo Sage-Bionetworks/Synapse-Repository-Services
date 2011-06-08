@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
@@ -613,7 +614,7 @@ public class JDONodeQueryDAOImplTest {
 		query.setLimit(3);
 		query.setOffset(0);
 		List<Expression> filters = new ArrayList<Expression>();
-		Expression expression = new Expression(new CompoundId(null, "parentId"), Compartor.EQUALS, nodeIds.get(1));
+		Expression expression = new Expression(new CompoundId(null, NodeConstants.COL_PARENT_ID), Compartor.EQUALS, nodeIds.get(1));
 		filters.add(expression);
 		query.setFilters(filters);
 		// Execute the query.
@@ -640,7 +641,7 @@ public class JDONodeQueryDAOImplTest {
 		query.setOffset(0);
 		List<Expression> filters = new ArrayList<Expression>();
 		Long id = new Long(nodeIds.get(1));
-		Expression expression = new Expression(new CompoundId(null, "parentId"), Compartor.EQUALS, id);
+		Expression expression = new Expression(new CompoundId(null, NodeConstants.COL_PARENT_ID), Compartor.EQUALS, id);
 		filters.add(expression);
 		query.setFilters(filters);
 		// Execute the query.
@@ -679,6 +680,58 @@ public class JDONodeQueryDAOImplTest {
 		assertNotNull(list);
 		assertEquals(0, list.size());
 		
+	}
+	
+	@Test
+	public void testExecuteCountQuery() throws DatastoreException{
+		BasicQuery query = new BasicQuery();
+		query.setFrom(ObjectType.layer);
+		List<Expression> filters = new ArrayList<Expression>();
+		Expression expression = new Expression(new CompoundId("layer", attLayerType), Compartor.EQUALS, LayerTypeNames.C.name());
+		filters.add(expression);
+		query.setFilters(filters);
+		long count = nodeQueryDao.executeCountQuery(query, mockUserInfo);
+		assertEquals(3, count);
+		// Try the next
+		query = new BasicQuery();
+		query.setFrom(ObjectType.layer);
+		filters = new ArrayList<Expression>();
+		expression = new Expression(new CompoundId("layer", attLayerType), Compartor.EQUALS, LayerTypeNames.G.name());
+		filters.add(expression);
+		query.setFilters(filters);
+		count = nodeQueryDao.executeCountQuery(query, mockUserInfo);
+		assertEquals(1, count);
+		// Try the next
+		query = new BasicQuery();
+		query.setFrom(ObjectType.layer);
+		filters = new ArrayList<Expression>();
+		expression = new Expression(new CompoundId("layer", attLayerType), Compartor.EQUALS, LayerTypeNames.E.name());
+		filters.add(expression);
+		query.setFilters(filters);
+		count = nodeQueryDao.executeCountQuery(query, mockUserInfo);
+		assertEquals(1, count);
+	}
+	@Test
+	public void testExecuteCountQueryNonExistant() throws DatastoreException{
+		// Value does not exist
+		BasicQuery query = new BasicQuery();
+		query.setFrom(ObjectType.layer);
+		List<Expression> filters = new ArrayList<Expression>();
+		Expression expression = new Expression(new CompoundId("layer", attLayerType), Compartor.EQUALS, "i do not exists");
+		filters.add(expression);
+		query.setFilters(filters);
+		long count = nodeQueryDao.executeCountQuery(query, mockUserInfo);
+		assertEquals(0, count);
+		
+		// Key does not exist
+		query = new BasicQuery();
+		query.setFrom(ObjectType.layer);
+		filters = new ArrayList<Expression>();
+		expression = new Expression(new CompoundId("layer", "someFakeKeyThatDoesNotExist"), Compartor.EQUALS, LayerTypeNames.E.name());
+		filters.add(expression);
+		query.setFilters(filters);
+		count = nodeQueryDao.executeCountQuery(query, mockUserInfo);
+		assertEquals(0, count);
 	}
 	
 }

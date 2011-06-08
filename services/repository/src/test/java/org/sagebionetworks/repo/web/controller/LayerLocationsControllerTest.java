@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -142,7 +143,7 @@ public class LayerLocationsControllerTest {
 		JSONObject layerPreview = helper.testCreateJsonEntity(helper
 				.getServletPrefix()+ "/preview", prviewString);
 
-		assertEquals(newLayer.getString("id"), layerPreview.getString("parentId"));
+		assertEquals(newLayer.getString("id"), layerPreview.getString(NodeConstants.COL_PARENT_ID));
 		assertEquals("null", layerPreview.getString("previewString"));
 
 		// Modify that layer
@@ -180,7 +181,7 @@ public class LayerLocationsControllerTest {
 		JSONObject layerPreview = helper.testCreateJsonEntity(helper
 				.getServletPrefix()+ "/preview", prviewString);
 
-		assertEquals(newLayer.getString("id"), layerPreview.getString("parentId"));
+		assertEquals(newLayer.getString("id"), layerPreview.getString(NodeConstants.COL_PARENT_ID));
 		assertEquals("null", layerPreview.getString("previewString"));
 
 		// Modify that layer

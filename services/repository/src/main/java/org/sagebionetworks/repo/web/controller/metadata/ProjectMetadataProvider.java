@@ -4,12 +4,13 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.UrlHelpers;
 
 public class ProjectMetadataProvider implements TypeSpecificMetadataProvider<Project> {
 
 	@Override
-	public void addTypeSpecificMetadata(Project entity,	HttpServletRequest request) {
+	public void addTypeSpecificMetadata(Project entity,	HttpServletRequest request, UserInfo user) {
 		// Add the annotations urls.
 		entity.setAnnotations(UrlHelpers.makeEntityPropertyUri(entity, Annotations.class, request));
 	}

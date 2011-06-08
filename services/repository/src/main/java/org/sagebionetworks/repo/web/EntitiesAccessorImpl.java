@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseChild;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -82,6 +83,16 @@ public class EntitiesAccessorImpl implements EntitiesAccessor {
 		result.setTotalNumberOfResults(queryResults.getTotalNumberOfResults());
 		return result;
 	}
+	
+	/**
+	 * Returns just the count for the given query.
+	 */
+	@Override
+	public long executeCountQuery(UserInfo userInfo, BasicQuery query)
+			throws DatastoreException, NotFoundException, UnauthorizedException {
+		// Pass this right along.
+		return nodeQueryDao.executeCountQuery(query, userInfo);
+	}
 
 	@Override
 	public void overrideAuthDaoForTest(AuthorizationManager mockAuth) {
@@ -96,7 +107,7 @@ public class EntitiesAccessorImpl implements EntitiesAccessor {
 		query.setLimit(Long.MAX_VALUE);
 		query.setOffset(0);
 		query.setFrom(ObjectType.getNodeTypeForClass(clazz));
-		query.addExpression(new Expression(new CompoundId(null, "parentId"), Compartor.EQUALS, Long.parseLong(parentId)));
+		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COL_PARENT_ID), Compartor.EQUALS, Long.parseLong(parentId)));
 		PaginatedResults<T> results = executeQuery(userInfo, clazz, query);
 		return results.getResults();
 	}
@@ -113,9 +124,11 @@ public class EntitiesAccessorImpl implements EntitiesAccessor {
 		query.setSort(paging.getSortBy());
 		query.setAscending(paging.getAscending());
 		query.setFrom(ObjectType.getNodeTypeForClass(clazz));
-		query.addExpression(new Expression(new CompoundId(null, "parentId"), Compartor.EQUALS, Long.parseLong(parentId)));
+		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COL_PARENT_ID), Compartor.EQUALS, Long.parseLong(parentId)));
 		PaginatedResults<T> results = executeQuery(userInfo, clazz, query);
 		return results;
 	}
+
+
 
 }

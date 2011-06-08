@@ -255,6 +255,13 @@ public class ReadOnlyWikiGenerator {
 						"/location/schema",
 						"h3. Layer Locations Schema",
 						"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
+		
+		// Project schema
+		wiki
+		.doGet(
+				"/project/schema",
+				"h3. Project Schema",
+				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 		//
 		// }
 		// }

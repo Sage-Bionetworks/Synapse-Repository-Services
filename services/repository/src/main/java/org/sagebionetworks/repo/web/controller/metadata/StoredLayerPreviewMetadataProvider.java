@@ -5,11 +5,12 @@ import java.io.UnsupportedEncodingException;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.StoredLayerPreview;
+import org.sagebionetworks.repo.model.UserInfo;
 
 public class StoredLayerPreviewMetadataProvider implements TypeSpecificMetadataProvider<StoredLayerPreview>{
 
 	@Override
-	public void addTypeSpecificMetadata(StoredLayerPreview entity,	HttpServletRequest request) {
+	public void addTypeSpecificMetadata(StoredLayerPreview entity,	HttpServletRequest request, UserInfo user) {
 		// Clear the blob and set the string
 		if(entity.getPreviewBlob() != null){
 			try {

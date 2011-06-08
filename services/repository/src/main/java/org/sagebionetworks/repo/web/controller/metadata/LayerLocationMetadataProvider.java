@@ -6,6 +6,7 @@ import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerLocation;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +23,7 @@ public class LayerLocationMetadataProvider implements
 
 	@Override
 	public void addTypeSpecificMetadata(LayerLocation entity,
-			HttpServletRequest request) throws DatastoreException,
+			HttpServletRequest request, UserInfo user) throws DatastoreException,
 			NotFoundException {
 
 		// Special handling for S3 locations

@@ -10,6 +10,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
@@ -59,9 +60,9 @@ public class LocationControllerTest {
 				+ "/layer", LayerControllerTest.getSampleLayer(dataset
 				.getString("id")));
 
-		datasetLocation = new JSONObject(SAMPLE_LOCATION).put("parentId",
+		datasetLocation = new JSONObject(SAMPLE_LOCATION).put(NodeConstants.COL_PARENT_ID,
 				dataset.getString("id"));
-		layerLocation = new JSONObject(SAMPLE_LOCATION).put("parentId", layer
+		layerLocation = new JSONObject(SAMPLE_LOCATION).put(NodeConstants.COL_PARENT_ID, layer
 				.getString("id"));
 	}
 
@@ -298,7 +299,7 @@ public class LocationControllerTest {
 		assertEquals("awss3", location.getString("type"));
 
 		// Modify that location to make it invalid
-		location.remove("parentId");
+		location.remove(NodeConstants.COL_PARENT_ID);
 		JSONObject error = helper.testUpdateJsonEntityShouldFail(location,
 				HttpStatus.BAD_REQUEST);
 
@@ -454,7 +455,7 @@ public class LocationControllerTest {
 		assertFalse("null".equals(results.getString("path")));
 		assertTrue(results.has("md5sum"));
 		assertFalse("null".equals(results.getString("md5sum")));
-		assertTrue(results.has("parentId"));
-		assertFalse("null".equals(results.getString("parentId")));
+		assertTrue(results.has(NodeConstants.COL_PARENT_ID));
+		assertFalse("null".equals(results.getString(NodeConstants.COL_PARENT_ID)));
 	}
 }
