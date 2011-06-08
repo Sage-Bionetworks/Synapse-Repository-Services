@@ -101,7 +101,7 @@ public class ReadOnlyWikiGenerator {
 								+ dataset.getString("dataset.id") + "%22",
 						"h3. 'Select *' Query for the Layers of a Dataset",
 						"These queries are generally of the form:\n"
-								+ "{code}SELECT * FROM layer WHERE dataset.id == <datasetId> [LIMIT <#>] [OFFSET <#>]{code}");
+								+ "{code}SELECT * FROM layer WHERE layer.parentId == <parentId> [LIMIT <#>] [OFFSET <#>]{code}");
 
 		wiki
 				.doGet(
@@ -110,7 +110,7 @@ public class ReadOnlyWikiGenerator {
 								+ "%22+ORDER+BY+type",
 						"h3. 'Order By' Query for the Layers of a Dataset",
 						"These queries are generally of the form:\n"
-								+ "{code}SELECT * FROM layer WHERE dataset.id == <datasetId> ORDER BY <field name> [ASC|DESC] [LIMIT <#>] [OFFSET <#>]{code}");
+								+ "{code}SELECT * FROM layer WHERE layer.parentId == <parentId> ORDER BY <field name> [ASC|DESC] [LIMIT <#>] [OFFSET <#>]{code}");
 
 		log.info("h2. Schema");
 		wiki
@@ -172,7 +172,7 @@ public class ReadOnlyWikiGenerator {
 			wiki.doGet(layer.getString("uri") + "/preview",
 					"h4. Get preview data for a " + type + " Dataset Layer",
 					"This returns the preview data for a dataset layer.");
-			wiki.doGet(layer.getString("uri") + "/previewAsMap",
+			wiki.doGet(layer.getString("uri") + "/preview",
 					"h4. Get preview data as a map for a " + type
 							+ " Dataset Layer",
 					"This returns the preview data for a dataset layer.");

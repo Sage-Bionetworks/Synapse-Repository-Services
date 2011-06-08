@@ -99,6 +99,38 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 */
 	private NodeQueryResults executeQueryImpl(BasicQuery in, UserInfo userInfo)
 			throws DatastoreException, NotFoundException {
+		// Prepare the parameters
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		// This will contain the count query.
+		StringBuilder countQuery = new StringBuilder();
+		// This will contain the full query
+		StringBuilder fullQuery = new StringBuilder();
+		boolean columnsExist = bulidQueryStrings(in, userInfo, countQuery, fullQuery, parameters);
+		if(!columnsExist){
+			// For this case there will be no results
+			return new NodeQueryResults(new ArrayList<String>(), 0);
+		}
+		// Run the count query
+		List countResults = executeQuery(countQuery.toString(), parameters);
+		Object countObject = countResults.get(0);
+		long count = extractCount(countObject);
+		// Now execute the non-count query
+		List resultSet = (List) executeQuery(fullQuery.toString(), parameters);
+		// Process each object
+		List<String> allRows = translateResults(resultSet);
+		// Create the results
+		return new NodeQueryResults(allRows, count);
+	}
+	/**
+	 * Builds the two query strings and prepares the query parameters.
+	 * @param in
+	 * @param userInfo
+	 * @param countQuery
+	 * @param fullQuery
+	 * @param parameters
+	 * @throws DatastoreException
+	 */
+	private boolean bulidQueryStrings(BasicQuery in, UserInfo userInfo, StringBuilder countQuery, StringBuilder fullQuery, Map parameters) throws DatastoreException{
 		if (in.getFrom() == null)
 			throw new IllegalArgumentException(
 					"The query 'from' cannot be null");
@@ -118,7 +150,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		String selectCount = buildSelect(true);
 		String selectId = buildSelect(false);
 		// Bind variables go in the map.
-		Map<String, Object> parameters = new HashMap<String, Object>();
+//		Map<String, Object> parameters = new HashMap<String, Object>();
 		// Build the outer join attribute sort (empty string if not needed)
 		StringBuilder outerJoinAttributeSort = new StringBuilder();
 		StringBuilder orderByClause = new StringBuilder();
@@ -142,7 +174,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			// log this and return an empty result
 			log.warn(e.getMessage(), e);
 			// Return an empty result
-			return new NodeQueryResults(new ArrayList<String>(), 0);
+			return false;
 		}
 		// Build the authorization filter
 		String authorizationFilter = buildAuthorizationFilter(userInfo, parameters);
@@ -151,47 +183,33 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 
 		// Build the SQL strings
 		// Count
-		StringBuilder builder = new StringBuilder();
-		builder.append(selectCount);
-		builder.append(" ");
-		builder.append(fromString);
-		builder.append(" ");
-		builder.append(innerJoinAttributeFilters);
-		builder.append(" ");
-		builder.append(authorizationFilter);
-		builder.append(" ");
-		builder.append(primaryWhere);
-		String countQueryString = builder.toString();
-		// Now build the full query
-		builder = new StringBuilder();
-		builder.append(selectId);
-		builder.append(" ");
-		builder.append(fromString);
-		builder.append(" ");
-		builder.append(innerJoinAttributeFilters);
-		builder.append(" ");
-		builder.append(authorizationFilter);
-		builder.append(" ");
-		builder.append(outerJoinAttributeSort);
-		builder.append(" ");
-		builder.append(primaryWhere);
-		builder.append(" ");
-		builder.append(orderByClause);
-		builder.append(" ");
-		builder.append(paging);
+		countQuery.append(selectCount);
+		countQuery.append(" ");
+		countQuery.append(fromString);
+		countQuery.append(" ");
+		countQuery.append(innerJoinAttributeFilters);
+		countQuery.append(" ");
+		countQuery.append(authorizationFilter);
+		countQuery.append(" ");
+		countQuery.append(primaryWhere);
 
-		// Query
-		String queryString = builder.toString();
-		// Run the count query
-		List countResults = executeQuery(countQueryString, parameters);
-		Object countObject = countResults.get(0);
-		long count = extractCount(countObject);
-		// Now execute the non-count query
-		List resultSet = (List) executeQuery(queryString, parameters);
-		// Process each object
-		List<String> allRows = translateResults(resultSet);
-		// Create the results
-		return new NodeQueryResults(allRows, count);
+		// Now build the full query
+		fullQuery.append(selectId);
+		fullQuery.append(" ");
+		fullQuery.append(fromString);
+		fullQuery.append(" ");
+		fullQuery.append(innerJoinAttributeFilters);
+		fullQuery.append(" ");
+		fullQuery.append(authorizationFilter);
+		fullQuery.append(" ");
+		fullQuery.append(outerJoinAttributeSort);
+		fullQuery.append(" ");
+		fullQuery.append(primaryWhere);
+		fullQuery.append(" ");
+		fullQuery.append(orderByClause);
+		fullQuery.append(" ");
+		fullQuery.append(paging);
+		return true;
 	}
 	
 	/**
@@ -609,6 +627,13 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 				return (Long) query.execute(name);
 			}
 		});
+	}
+
+	@Override
+	public long executeCountQuery(BasicQuery query, UserInfo userInfo)
+			throws DatastoreException {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 
 

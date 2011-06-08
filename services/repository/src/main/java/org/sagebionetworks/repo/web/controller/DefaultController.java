@@ -377,7 +377,7 @@ public class DefaultController extends BaseController {
 	public @ResponseBody
 	JsonSchema getEntitiesSchema(HttpServletRequest request) throws DatastoreException {
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
-		return entityController.getEntitiesSchema(type.getClassForType());
+		return entityController.getEntitySchema(type.getClassForType());
 	}
 	
 	/**
