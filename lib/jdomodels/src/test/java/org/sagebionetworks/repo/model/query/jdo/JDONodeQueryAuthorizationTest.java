@@ -332,10 +332,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		info.setIndividualGroup(group);
 		info.setGroups(new ArrayList<UserGroup>());
 		info.getGroups().add(group);
-		if(isAdmin){
-			UserGroup adminGroup = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false);
-			info.getGroups().add(adminGroup);
-		}
+
 		return info;
 	}
 	

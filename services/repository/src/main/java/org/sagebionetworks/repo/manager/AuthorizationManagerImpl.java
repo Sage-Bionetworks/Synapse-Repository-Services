@@ -1,13 +1,10 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Collection;
-
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -23,12 +20,12 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private AccessControlListDAO accessControlListDAO;
 	
-	private boolean isAdmin(UserInfo userInfo) throws DatastoreException, NotFoundException {
-		Collection<UserGroup> userGroups = userInfo.getGroups();
-		UserGroup adminGroup = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false);
-		for (UserGroup ug: userGroups) if (ug.getId().equals(adminGroup.getId())) return true;
-		return false;
-	}
+//	private boolean isAdmin(UserInfo userInfo) throws DatastoreException, NotFoundException {
+//		Collection<UserGroup> userGroups = userInfo.getGroups();
+//		UserGroup adminGroup = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false);
+//		for (UserGroup ug: userGroups) if (ug.getId().equals(adminGroup.getId())) return true;
+//		return false;
+//	}
 	
 	/**
 	 * 
@@ -43,7 +40,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	public boolean canAccess(UserInfo userInfo, final String nodeId, AuthorizationConstants.ACCESS_TYPE accessType) 
 		throws NotFoundException, DatastoreException {
 		// if is an administrator, return true
-		if (isAdmin(userInfo)) return true;
+		if (userInfo.isAdmin()) return true;
 		// must look-up access
 		String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(nodeId);
 		return accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, accessType);
@@ -63,7 +60,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	public boolean canCreate(UserInfo userInfo, final Node node) 
 		throws NotFoundException, DatastoreException {
 		// if is an administrator, return true
-		if (isAdmin(userInfo)) return true;
+		if (userInfo.isAdmin()) return true;
 		// must look-up access
 		String parentId = node.getParentId();
 		if (parentId==null) return false; // if not an admin, can't do it!

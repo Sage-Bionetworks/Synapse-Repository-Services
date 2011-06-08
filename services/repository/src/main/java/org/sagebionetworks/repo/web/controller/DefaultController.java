@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.io.StringReader;
-import java.io.StringWriter;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -17,7 +15,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.StoredLayerPreview;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.GenericEntityController;
@@ -26,7 +23,6 @@ import org.sagebionetworks.repo.web.PaginatedParameters;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider;
-import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProviderFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -52,10 +48,12 @@ public class DefaultController extends BaseController {
 	GenericEntityController entityController;
 	@Autowired
 	ObjectTypeSerializer objectTypeSerializer;
-	
-	private Map<String, TypeSpecificMetadataProvider> map;
+	@Autowired
+	private MetadataProviderFactory metadataProviderFactory;
 
-	
+
+
+
 	/**
 	 * Create a new entity with a POST.
 	 * @param <T>
@@ -87,7 +85,9 @@ public class DefaultController extends BaseController {
 		// Determine the object type from the url.
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
 		// Fetch the provider that will validate this entity.
-		TypeSpecificMetadataProvider<T> provider = TypeSpecificMetadataProviderFactory.getProvider(type);
+		@SuppressWarnings("unchecked")
+		TypeSpecificMetadataProvider<T> provider = 
+			(TypeSpecificMetadataProvider<T>)metadataProviderFactory.getMetadataProvider(type); // TypeSpecificMetadataProviderFactory.getProvider(type);
 		@SuppressWarnings("unchecked")
 		T entity = (T) objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
 		// Validate the entity before we create it
@@ -128,7 +128,7 @@ public class DefaultController extends BaseController {
 		// Validate the object type
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
 		// Fetch the provider that will validate this entity.
-		TypeSpecificMetadataProvider<T> provider = TypeSpecificMetadataProviderFactory.getProvider(type);
+		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>)metadataProviderFactory.getMetadataProvider(type); //TypeSpecificMetadataProviderFactory.getProvider(type);
 		// Get the entity.
 		@SuppressWarnings("unchecked")
 		T updatedEntity = (T) entityController.getEntity(userId, id, request, type.getClassForType());
@@ -175,7 +175,7 @@ public class DefaultController extends BaseController {
 		// Determine the object type from the url.
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
 		// Fetch the provider that will validate this entity.
-		TypeSpecificMetadataProvider<T> provider = TypeSpecificMetadataProviderFactory.getProvider(type);
+		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>)metadataProviderFactory.getMetadataProvider(type); //TypeSpecificMetadataProviderFactory.getProvider(type);
 		@SuppressWarnings("unchecked")
 		T entity = (T) objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
 		if(etag != null){
@@ -313,7 +313,7 @@ public class DefaultController extends BaseController {
 		// Determine the object type from the url.
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
 		// Fetch the provider that will validate this entity.
-		TypeSpecificMetadataProvider<T> provider = TypeSpecificMetadataProviderFactory.getProvider(type);
+		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>)metadataProviderFactory.getMetadataProvider(type); // TypeSpecificMetadataProviderFactory.getProvider(type);
 		@SuppressWarnings("unchecked")
 		PaginatedResults<T> results = (PaginatedResults<T>) entityController.getEntities(
 				userId, new PaginatedParameters(offset, limit, sort, ascending), request, type.getClassForType());
@@ -351,7 +351,7 @@ public class DefaultController extends BaseController {
 		// Determine the object type from the url.
 		ObjectType type = ObjectType.getLastTypeInUrl(request.getRequestURI());
 		// Fetch the provider that will validate this entity.
-		TypeSpecificMetadataProvider<T> provider = TypeSpecificMetadataProviderFactory.getProvider(type);
+		TypeSpecificMetadataProvider<Nodeable> provider = (TypeSpecificMetadataProvider<Nodeable>)metadataProviderFactory.getMetadataProvider(type); //TypeSpecificMetadataProviderFactory.getProvider(type);
 		Class<? extends T> clazz = (Class<? extends T>) type.getClassForType();
 		PaginatedResults<T> results = (PaginatedResults<T>) entityController.getEntityChildrenOfTypePaginated(userId, parentId, clazz, paging, request);
 		for (T entity : results.getResults()) {
@@ -404,7 +404,9 @@ public class DefaultController extends BaseController {
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException {
 		// pass it along.
-		return entityController.createEntityACL(userId, newAcl, request);
+		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+
+		return entityController.createEntityACL(userId, newAcl, request, type.getClassForType());
 	}
 	
 	
@@ -425,9 +427,10 @@ public class DefaultController extends BaseController {
 			@PathVariable String objectType,
 			@PathVariable String id,
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
-			HttpServletRequest request) throws DatastoreException, NotFoundException {
+			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
 		// pass it along.
-		return entityController.getEntityACL(id, userId);
+		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+		return entityController.getEntityACL(id, userId, request, type.getClassForType());
 	}
 	
 	/**

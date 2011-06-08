@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import java.util.Arrays;
 import java.util.Collection;
 
 import org.codehaus.jackson.schema.JsonSchema;

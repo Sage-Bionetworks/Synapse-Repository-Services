@@ -240,13 +240,13 @@ public class LocationHelpersImpl implements LocationHelper {
 	private AWSCredentials getCredentialsForUser(String userId)
 			throws DatastoreException, NotFoundException {
 
-		// if (userId.equals(INTEGRATION_TEST_READ_ONLY_USER_ID)) {
-		return iamIntegrationTestCreds;
-		// }
-	}
-
-	private AWSCredentials getCredentialsForUserRealImpl(String userId)
-			throws DatastoreException, NotFoundException {
+//		// if (userId.equals(INTEGRATION_TEST_READ_ONLY_USER_ID)) {
+//		return iamIntegrationTestCreds;
+//		// }
+//	}
+//
+//	private AWSCredentials getCredentialsForUserRealImpl(String userId)
+//			throws DatastoreException, NotFoundException {
 
 		// Check whether we already have credentials stored for this user and
 		// return them if we do

@@ -5,9 +5,9 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 
 public class AuthorizationHelper {
 	public static void addToACL(AccessControlList acl, UserGroup ug, ACCESS_TYPE at, AccessControlListDAO aclDAO) throws Exception {

@@ -46,11 +46,11 @@ public class UserManagerImpl implements UserManager {
 	public void setUserDAO(UserDAO userDAO) {this.userDAO=userDAO;}
 	public void setUserGroupDAO(UserGroupDAO userGroupDAO) {this.userGroupDAO=userGroupDAO;}
 
-	private boolean isAdmin(Collection<UserGroup> userGroups) throws DatastoreException, NotFoundException {
-		UserGroup adminGroup = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false);
-		for (UserGroup ug: userGroups) if (ug.getId().equals(adminGroup.getId())) return true;
-		return false;
-	}
+//	private boolean isAdmin(Collection<UserGroup> userGroups) throws DatastoreException, NotFoundException {
+//		UserGroup adminGroup = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false);
+//		for (UserGroup ug: userGroups) if (ug.getId().equals(adminGroup.getId())) return true;
+//		return false;
+//	}
 	
 	
 	/**
@@ -73,36 +73,37 @@ public class UserManagerImpl implements UserManager {
 		User user = userDAO.getUser(userName);
 		Set<UserGroup> groups = new HashSet<UserGroup>();
 		UserGroup individualGroup = null;
+		boolean isAdmin = false;
 		if (AuthUtilConstants.ANONYMOUS_USER_ID.equals(userName)) {
 			individualGroup = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
-			if (individualGroup==null) throw new DatastoreException("Anonymous user should exist.");
+			if (individualGroup==null) throw new DatastoreException(AuthorizationConstants.ANONYMOUS_USER_ID+" user should exist.");
 		} else {
 			if (user==null) throw new NullPointerException("No user named "+userName+". Users: "+userDAO.getAll());
 			Collection<String> groupNames = userDAO.getUserGroupNames(userName);
 			// these groups omit the individual group
 			Map<String, UserGroup> existingGroups = userGroupDAO.getGroupsByNames(groupNames);
 			for (String groupName : groupNames) {
+				if (AuthorizationConstants.ADMIN_GROUP_NAME.equals(groupName)) {
+					isAdmin=true;
+					continue;
+				}
 				UserGroup group = existingGroups.get(groupName);
 				if (group!=null) {
 					groups.add(group);
 				} else {
 					// the group needs to be created
-					if (groupName.equals(AuthorizationConstants.ADMIN_GROUP_NAME)) {
-						throw new IllegalStateException("Admin group should exist in the system.");
-					} else {
-						group = new UserGroup();
-						group.setName(groupName);
-						group.setIndividual(false);
-						group.setCreationDate(new Date());
-						try {
-							String id = userGroupDAO.create(group);
-							group.setId(id);
-						} catch (InvalidModelException ime) {
-							// should not happen if our code is written correctly
-							throw new RuntimeException(ime);
-						}
-						groups.add(group);
+					group = new UserGroup();
+					group.setName(groupName);
+					group.setIndividual(false);
+					group.setCreationDate(new Date());
+					try {
+						String id = userGroupDAO.create(group);
+						group.setId(id);
+					} catch (InvalidModelException ime) {
+						// should not happen if our code is written correctly
+						throw new RuntimeException(ime);
 					}
+					groups.add(group);
 				}
 			}
 			individualGroup = userGroupDAO.findGroup(userName, true);
@@ -119,11 +120,11 @@ public class UserManagerImpl implements UserManager {
 				}
 			}
 			UserGroup publicGroup = userGroupDAO.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false);
-			if (publicGroup==null) throw new DatastoreException("Public group should exist.");
+			if (publicGroup==null) throw new DatastoreException(AuthorizationConstants.PUBLIC_GROUP_NAME+" should exist.");
 			groups.add(publicGroup);
 		}
 		groups.add(individualGroup);
-		UserInfo userInfo = new UserInfo(isAdmin(groups));
+		UserInfo userInfo = new UserInfo(isAdmin);
 		userInfo.setIndividualGroup(individualGroup);
 		userInfo.setUser(user);
 		userInfo.setGroups(groups);

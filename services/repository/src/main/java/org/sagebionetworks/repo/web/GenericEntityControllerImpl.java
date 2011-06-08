@@ -8,7 +8,6 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.schema.JsonSchema;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -247,7 +246,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	 * <p>
 	 * 
 	 * @param userId
-	 * @param newEntity
+	 * @param newACL
 	 * @param request
 	 *            used to get the servlet URL prefix
 	 * @return the newly created entity
@@ -256,23 +255,30 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException 
 	 */
-	public AccessControlList createEntityACL(String userId, AccessControlList newEntity,
-			HttpServletRequest request) throws DatastoreException,
+	@Override
+	public <T extends Base> AccessControlList createEntityACL(String userId, AccessControlList newACL,
+			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException {
+
 		UserInfo userInfo = userManager.getUserInfo(userId);		
-		AccessControlList acl = permissionsManager.overrideInheritance(newEntity, userInfo);
+		AccessControlList acl = permissionsManager.overrideInheritance(newACL, userInfo);
 		acl.setUri(request.getRequestURI());
+
 		return acl;
 	}
 
 	
 
 	@Override
-	public AccessControlList getEntityACL(String entityId, String userId)
-			throws NotFoundException, DatastoreException {
+	public  <T extends Base> AccessControlList getEntityACL(String entityId, String userId, HttpServletRequest request, Class<? extends T> clazz)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// First try the updated
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return permissionsManager.getACL(entityId, userInfo);
+		AccessControlList acl = permissionsManager.getACL(entityId, userInfo);
+		
+		acl.setUri(request.getRequestURI());
+
+		return acl;
 	}
 
 
@@ -294,6 +300,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
+	@Override
 	public  void deleteEntityACL(String userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);

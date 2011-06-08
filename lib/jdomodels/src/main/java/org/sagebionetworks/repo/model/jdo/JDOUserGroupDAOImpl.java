@@ -141,16 +141,6 @@ public class JDOUserGroupDAOImpl extends JDOBaseDAOImpl<UserGroup,JDOUserGroup> 
 				create(pg);				
 			}
 		}
-		{
-			// ensure admin group is created
-			UserGroup ag = findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false);
-			if (ag==null) {
-				ag = new UserGroup();
-				ag.setName(AuthorizationConstants.ADMIN_GROUP_NAME);
-				ag.setIndividual(false);
-				create(ag);				
-			}
-		}
 		
 		{
 			// ensure the anonymous principal is created

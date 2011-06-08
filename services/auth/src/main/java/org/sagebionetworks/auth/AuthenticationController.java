@@ -2,6 +2,7 @@ package org.sagebionetworks.auth;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -151,11 +152,12 @@ public class AuthenticationController {
 		return sb.toString();
 	}
 	
-	@ResponseStatus(HttpStatus.CREATED)
+	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = RETURN_TO_URI, method = RequestMethod.GET)
 	public @ResponseBody
-	Session openIDCallback(
-			HttpServletRequest request) throws Exception {
+	void openIDCallback(
+			HttpServletRequest request,
+			HttpServletResponse response) throws Exception {
 		try {
 			
 //			System.out.println(
@@ -211,11 +213,17 @@ public class AuthenticationController {
 				modOpenIDs.add(openID);
 				attrs.put(OPEN_ID_ATTRIBUTE, modOpenIDs);
 			}
-			// TODO: now write the attributes back to Crowd
-			// crowdAuthUtil.setUserAttributes(email, attrs);
+
+			crowdAuthUtil.setUserAttributes(email, attrs);
 			
+			Session crowdSession = crowdAuthUtil.authenticate(credentials, false);
 			// get the SSO token 
-			return crowdAuthUtil.authenticate(credentials, false);
+//			return session;
+			
+			// instead of returning, redirect
+			String url = "/sso?displayName="+crowdSession.getDisplayName()+"&sessionToken="+crowdSession.getSessionToken();
+			String location = response.encodeRedirectURL(url);
+			response.sendRedirect(location);
 			
 		} catch (AuthenticationException ae) {
 			// include the URL used to authenticate
@@ -224,7 +232,16 @@ public class AuthenticationController {
 		}
 	}
 	
-
+	// this is just for testing
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/sso", method = RequestMethod.GET)
+	public
+	void redirectTarget(
+			HttpServletRequest request,
+			HttpServletResponse response) throws Exception {
+		PrintWriter pw = response.getWriter();
+		pw.println(request.getRequestURI());
+	}
 
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/session", method = RequestMethod.PUT)

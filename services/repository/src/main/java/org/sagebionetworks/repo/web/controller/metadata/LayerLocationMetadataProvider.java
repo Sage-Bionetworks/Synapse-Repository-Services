@@ -7,8 +7,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.util.LocationHelper;
-import org.sagebionetworks.repo.util.LocationHelpersImpl;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 /**
@@ -17,7 +17,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 public class LayerLocationMetadataProvider implements
 		TypeSpecificMetadataProvider<LayerLocation> {
 
-	LocationHelper locationHelper = new LocationHelpersImpl();
+	@Autowired
+	LocationHelper locationHelper;
 
 	@Override
 	public void addTypeSpecificMetadata(LayerLocation entity,
