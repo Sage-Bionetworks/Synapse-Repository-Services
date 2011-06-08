@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,6 +16,8 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -286,13 +290,34 @@ public class DefaultControllerAutowiredAllTypesTest {
 		// Create a project
 		Project project = new Project();
 		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-		assertNotNull(clone);
-		toDelete.add(clone.getId());
-		// Get the schema
-		String schema = ServletTestHelper.getSchema(dispatchServlet, Project.class, userName);
-		assertNotNull(schema);
-		log.info("Project schema: "+schema);
+		project = ServletTestHelper.createEntity(dispatchServlet, project, userName);
+		assertNotNull(project);
+		toDelete.add(project.getId());
+		ObjectType[] types = ObjectType.values();
+		int index = 0;
+		for(ObjectType type: types){
+			// Get the schema for each type and confirm it matches this object
+			String schema = ServletTestHelper.getSchema(dispatchServlet, type.getClassForType(), userName);
+			assertNotNull(schema);
+			validateSchemaForObject(schema, type);
+		}
+	}
+	/**
+	 * Helper to validate a schema for an ojbect
+	 * @param schema
+	 * @param type
+	 * @throws JSONException
+	 */
+	private void validateSchemaForObject(String schema, ObjectType type) throws JSONException{
+		// The schema should contain all fields of this 
+		JSONObject objectFromSchema = new JSONObject(schema);
+		JSONObject properties = objectFromSchema.getJSONObject("properties");
+		assertNotNull(properties);
+		Field[] fields = type.getClassForType().getDeclaredFields();
+		// The schema should have each field name a s key
+		for(Field field: fields){
+			assertTrue("expected key: "+field.getName(),properties.has(field.getName()));
+		}
 	}
 	
 	@Test

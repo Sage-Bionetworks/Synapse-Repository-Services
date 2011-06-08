@@ -20,6 +20,15 @@ public interface NodeQueryDao {
 	 * @throws DatastoreException 
 	 */
 	public NodeQueryResults executeQuery(BasicQuery query, UserInfo userInfo) throws DatastoreException;
+	
+	/**
+	 * Execute the given query as a 'count' query.  The count will be the number of nodes that meet the passed criteria.
+	 * @param query
+	 * @param userInfo
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public long executeCountQuery(BasicQuery query, UserInfo userInfo) throws DatastoreException;
 
 	/**
 	 * Execute a given SQL query using the JDO template.
