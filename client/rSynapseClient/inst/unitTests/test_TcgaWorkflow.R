@@ -3,10 +3,12 @@
   myCommandArgs <- function () {
     c('--datasetId','23', '--layerId', '42', '--localFilepath', './foo.txt' )
   }
+  
+  attr(myCommandArgs, "origFCN") <- base:::commandArgs
   assignInNamespace("commandArgs", myCommandArgs, "base")
 }
 .tearDown <- function() {
-  # Do some test cleanup stuff here, if applicable
+	assignInNamespace("commandArgs", attr(base:::commandArgs, "origFCN"), "base")
 }
 
 unitTestGetInputDatasetId <- function() {

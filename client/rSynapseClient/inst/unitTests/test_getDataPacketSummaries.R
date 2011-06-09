@@ -9,12 +9,16 @@
 	}
 	
 	# Override checkCurlResponse with a do-nothing function
-	checkCurlResponse <- function(object,response) {}
+	myCheckCurlResponse <- function(object,response) {}
+	
+	#back up the old methods
+	attr(myCheckCurlResponse, "origFcn") <- synapseClient:::checkCurlResponse
+	attr(myGetURL, "origFcn") <- RCurl:::getURL
 
 	## detach packages so their functions can be overridden
 	detach('package:synapseClient', force=TRUE)
 	detach('package:RCurl', force=TRUE)
-	assignInNamespace("checkCurlResponse", checkCurlResponse, "synapseClient")
+	assignInNamespace("checkCurlResponse", myCheckCurlResponse, "synapseClient")
 	assignInNamespace("getURL", myGetURL, "RCurl")
 	
 	#reload detached packages
@@ -22,6 +26,11 @@
 }
 .tearDown <- function() {
 	# Do some test cleanup stuff here, if applicable
+	detach('package:synapseClient', force = TRUE)
+	detach('package:RCurl', force = TRUE)
+	assignInNamespace("checkCurlResponse", attr(synapseClient:::checkCurlResponse, "origFcn"), "synapseClient")
+	assignInNamespace("getURL", attr(RCurl:::getURL, "origFcn"), "RCurl")
+	library(synapseClient, quietly = TRUE)
 }
 
 # TODO there is a bug here, this is hitting the remote repository service
