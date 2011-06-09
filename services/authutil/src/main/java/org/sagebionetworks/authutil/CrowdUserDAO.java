@@ -62,10 +62,10 @@ public class CrowdUserDAO implements UserDAO {
 	@Override
 	public void update(User dto) throws DatastoreException {
 		Map<String,Collection<String>> userAttributes = new HashMap<String,Collection<String>>();
-		DateFormat df = new SimpleDateFormat(DATE_FORMAT);
-		userAttributes.put(CREATION_DATE_FIELD, Arrays.asList(new String[]{df.format(dto.getCreationDate())}));
-		userAttributes.put(IAM_ACCESS_ID_FIELD, Arrays.asList(new String[]{dto.getIamAccessId()}));
-		userAttributes.put(IAM_SECRET_KEY_FIELD, Arrays.asList(new String[]{dto.getIamSecretKey()}));
+		DateFormat df = new SimpleDateFormat(AuthUtilConstants.DATE_FORMAT);
+		if (dto.getCreationDate()!=null) userAttributes.put(AuthUtilConstants.CREATION_DATE_FIELD, Arrays.asList(new String[]{df.format(dto.getCreationDate())}));
+		if (dto.getIamAccessId()!=null) userAttributes.put(IAM_ACCESS_ID_FIELD, Arrays.asList(new String[]{dto.getIamAccessId()}));
+		if (dto.getIamSecretKey()!=null) userAttributes.put(IAM_SECRET_KEY_FIELD, Arrays.asList(new String[]{dto.getIamSecretKey()}));
 		try {
 			crowdAuthUtil.setUserAttributes(dto.getUserId(), userAttributes);
 		} catch (IOException e) {
@@ -81,11 +81,8 @@ public class CrowdUserDAO implements UserDAO {
 		throw new UnsupportedOperationException();
 	}
 	
-	private static final String CREATION_DATE_FIELD = "creationDate";
 	private static final String IAM_ACCESS_ID_FIELD = "iamAccessId";
 	private static final String IAM_SECRET_KEY_FIELD = "iamSecretKey";
-
-	private static final String DATE_FORMAT = "yyyy-mm-dd";
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.UserDAO#getUser(java.lang.String)
@@ -105,9 +102,9 @@ public class CrowdUserDAO implements UserDAO {
 			throw new DatastoreException(e);
 		}
 		Collection<String> values;
-		values = userAttrValues.get(CREATION_DATE_FIELD);
+		values = userAttrValues.get(AuthUtilConstants.CREATION_DATE_FIELD);
 
-		DateFormat df = new SimpleDateFormat(DATE_FORMAT);
+		DateFormat df = new SimpleDateFormat(AuthUtilConstants.DATE_FORMAT);
 		
 		if (values!=null && values.size()>0) {
 			String dateString = values.iterator().next();

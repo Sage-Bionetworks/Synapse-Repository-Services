@@ -38,6 +38,18 @@ public class AuthUtilConstants {
 	public static final String PLATFORM_GROUP = "platform";
 	
 	/**
+	 * This is the name of the attribute in Crowd for the creation date for a User
+	 */
+	public static final String CREATION_DATE_FIELD = "creationDate";
+
+	/** 
+	 * The date format for the above
+	 * 
+	 */
+	public static final String DATE_FORMAT = "yyyy-mm-dd";
+
+	
+	/**
 	 * Used to set a mock crowd.
 	 */
 	public static final String USER_DAO_INTEGRATION_TEST_SWITCH = "org.sagebionetworks.mockCrowdDAOClass";

@@ -8,8 +8,12 @@ import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.Security;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -260,6 +264,12 @@ public class CrowdAuthUtil {
 			if (sessionXML!=null) chainedException = new Exception(new String(sessionXML));
 			throw new AuthenticationException(rc, "Unable to create user.", chainedException);
 		}
+		
+		// set created date
+		Map<String,Collection<String>> attributes = new HashMap<String,Collection<String>>();
+		DateFormat df = new SimpleDateFormat(AuthUtilConstants.DATE_FORMAT);
+		attributes.put(AuthUtilConstants.CREATION_DATE_FIELD, Arrays.asList(new String[]{df.format(new Date())}));
+		setUserAttributes(user.getEmail(), attributes);
 		
 		addUserToGroup(AuthUtilConstants.PLATFORM_GROUP, user.getEmail());
 	}
