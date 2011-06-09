@@ -2,7 +2,8 @@
 
 # To debug this, python -m pdb myscript.py
 
-import os, csv, json, re, string, datetime, pwd, urllib, httplib, ConfigParser, itertools, argparse, codecs, cStringIO, synapse.client, synapse.utils
+#import pwd
+import os, csv, json, re, string, datetime, urllib, httplib, ConfigParser, itertools, argparse, codecs, cStringIO, synapse.client, synapse.utils
 
 #-------[ Documentation embedded in Command Line Arguments ]----------------
 parser = synapse.utils.createBasicArgParser('Tool to load metadata into a Sage Platform Repository Service.  Note that this script always create instance of a dataset in the repository service (the repository service does not enforce uniqueness of dataset names).  Use the datasetNuker.py script first if you want to start with a clean datastore.')
@@ -14,6 +15,10 @@ parser.add_argument('--layersCsv', '-l', help='the file path to the CSV file hol
 parser.add_argument('--md5sumCsv', '-m', help='the file path to the CSV file holding the md5sums for files, defaults to ../platform.md5sums.csv', default='../platform.md5sums.csv')
 
 parser.add_argument('--fakeLocalData', '-f', help='use fake data when we would normally read something from the actual Sage Bionetworks datasets, defaults to False', action='store_true', default=False)
+
+parser.add_argument('--user', '-u', help='user (email name)', default='administrator')
+
+parser.add_argument('--password', '-p', help='password', default='password')
 
 synapse.client.addArguments(parser)
 
@@ -36,6 +41,8 @@ CSV_TO_PRIMARY_FIELDS = {
 
 CSV_SKIP_FIELDS = ["db_id","user_agreement_file_path", "readme_file_path"];
 
+gSAGE_CURATION_PROJECT_NAME = "SageBioCuration"
+
 #-------------------[ Global Variables ]----------------------
 
 # Command line arguments
@@ -50,11 +57,41 @@ gDATASET_NAME_2_LAYER_URI = {}
 # A mapping of files to their md5sums
 gFILE_PATH_2_MD5SUM = {}
 
+def createAccessList(principals):
+    """
+    Helper function to return access list from list of principals
+    """
+    # TODO: Should find a nicer way to specify permissions (i.e. read from config file)
+    perms = {
+        "Sage Curators":["READ","CHANGE_PERMISSIONS","DELETE","UPDATE","CREATE"],
+        "Identified Users":["READ"]
+    }
+    al = []
+    for p in principals:
+        if p["name"] in perms:
+            al.append({"userGroupId":p["id"], "accessType":perms[p["name"]]})
+    return al
+
+#--------------------[ createProject ]-----------------------------
+def createProject(project_name, accessList):
+    # TODO: pass project spec as arg
+    projectSpec = {"name":project_name, "description":"Umbrella for Sage-curated projects","creationDate":"2011-06-06", "creator":"x.schildwachter@sagebase.org"}
+    project = gSYNAPSE.createProject(projectSpec)
+    projectResourceId = project["id"]
+
+    # Build list of changes to ACL
+    mods = {"modifiedBy":"dataLoader", "modifiedOn":NOW.__str__().split(' ')[0], "resourceAccess":accessList}
+    
+    # For non-inherited ACL, GET and PUT instead of POST
+    gSYNAPSE.updateRepoEntity("/project/" + projectResourceId + "/acl", mods)
+    return project
+
+
 #--------------------[ createDataset ]-----------------------------
 def createDataset(dataset, annotations):
-    newDataset = gSYNAPSE.createEntity("/dataset", dataset)
+    newDataset = gSYNAPSE.createRepoEntity("/dataset", dataset)
     # Put our annotations
-    gSYNAPSE.updateEntity(newDataset["annotations"], annotations)
+    gSYNAPSE.updateRepoEntity(newDataset["annotations"], annotations)
     # Stash the layer uri for later use
     gDATASET_NAME_2_LAYER_URI[dataset['name']] = newDataset['id']
     print 'Created Dataset %s\n\n' % (dataset['name'])
@@ -72,7 +109,7 @@ def loadMd5sums():
 #--------------------[ loadDatasets ]-----------------------------
 # What follows is code that expects a dataset CSV in a particular format,
 # sorry its so brittle and ugly
-def loadDatasets():
+def loadDatasets(project_id):
     # xschildw: Use codecs.open and UnicodeReader class to handle extended chars
     ifile  = open(gARGS.datasetsCsv, "r")
     reader = synapse.utils.UnicodeReader(ifile, encoding='latin_1')
@@ -164,6 +201,7 @@ def loadDatasets():
                         else:
                             stringAnnotations[header[colnum]] = [col]
             colnum += 1
+        dataset["parentId"] = project_id
     ifile.close()     
 
     # Send the last one, create our dataset
@@ -198,29 +236,32 @@ def loadLayers():
         layer["version"] = row[6]
         layer["qcBy"] = row[11]
         
-        newLayer = gSYNAPSE.createEntity(layerUri, layer)
+        newLayer = gSYNAPSE.createRepoEntity(layerUri, layer)
         print 'Created layer %s for %s\n\n' % (layer["name"], row[0])
         
-        for col in [8,9,10]:
+        # Ignore column 8 (sage loc) and 9 (awsebs loc) for now
+        for col in [10]:
             if(row[col] != ""):
                 # trim whitespace off both sides
                 path = row[col].strip()
                 location = {}
                 location["parentId"] = newLayer["id"]
                 location["type"] = header[col]
-                if(0 != string.find(path, "/")):
+                if 0 != string.find(path, "/"):
                     location["path"] = "/" + path
                 else:
                     location["path"] = path
                 if(path in gFILE_PATH_2_MD5SUM):
                     location["md5sum"] = gFILE_PATH_2_MD5SUM[path]
                 elif(gARGS.fakeLocalData):
-                    location["md5sum"] = 'thisIsAFakeMD5Checksum'
-                gSYNAPSE.createEntity("/location", location);
+                    location["md5sum"] = '0123456789ABCDEF0123456789ABCDEF'
+                gSYNAPSE.createRepoEntity("/location", location)
+                print 'Created location %s for %s\n' % (layer["type"], row[0])
         
         layerPreview = {}
-       
+        
         if(row[7] != ""):
+            layerPreview["parentId"] = newLayer["id"]
             if(gARGS.fakeLocalData):
                 layerPreview["previewString"] = 'this\tis\ta\tfake\tpreview\nthis\tis\ta\tfake\tpreview\n'
             else:
@@ -228,17 +269,25 @@ def loadLayers():
                     # Slurp in the first six lines of the file and store
                     # it in our property
                     head = ""
-                    layerPreview["parentId"] = newLayer["id"]
-                    layerPreview["previewString"] = head.join(itertools.islice(myfile,6))
-            gSYNAPSE.createEntity("/preview", layerPreview)
+                    layerPreview["previewString"] = head.join(itertools.islice(myfile, 6))
+            gSYNAPSE.createRepoEntity("/preview", layerPreview)
+       
     ifile.close()     
 
 #--------------------[ Main ]-----------------------------
 
 if(not gARGS.fakeLocalData):
     loadMd5sums()
-    
-loadDatasets()
+
+gSYNAPSE.authenticate(gARGS.user, gARGS.password)
+gSYNAPSE.getRepoEntity('/dataset')          # Dummy call to load up groups
+
+principals = gSYNAPSE.getPrincipals()
+accessList = createAccessList(principals)
+
+project = createProject(gSAGE_CURATION_PROJECT_NAME, accessList)
+
+loadDatasets(project["id"])
 
 if(None != gARGS.layersCsv):
     loadLayers()
