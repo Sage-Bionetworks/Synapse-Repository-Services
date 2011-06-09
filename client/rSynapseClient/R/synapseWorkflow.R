@@ -73,6 +73,6 @@ finishWorkflowTask <- function(outputLayerId) {
 
 skipWorkflowTask <- function(reason = 'this script does not want to work on this task') {
 	warning(reason)
-	setOutputLayerId(outputLayerId=-1)
+	finishWorkflowTask(outputLayerId=-1)
 	q()
 }

@@ -1,10 +1,6 @@
 getLayerData <-
 		function(layer, locationPrefs = dataLocationPrefs(), curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"), cacheDir = synapseCacheDir())
 {
-	## constants
-	kHeader <- c(Accept = "application/json")
-	## end constants
-	
 	## make sure that the location type for this layer is currently supported
 	if(!all(locationPrefs %in% .getCache("supportedRepositoryLocationTypes"))){
 		ind <- which(!(locationPrefs %in% .getCache("supportedRepositoryLocationTypes")))
