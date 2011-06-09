@@ -1,10 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -13,17 +12,19 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -33,6 +34,7 @@ import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
+import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,39 +46,36 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class QueryManagerAutowireTest {
 	
 	@Autowired
-	QueryManager queryManager;
-	@Autowired
-	EntityManager entityManager;
+	GenericEntityController entityController;
 	@Autowired
 	public UserProvider testUserProvider;
-	
-	private AuthorizationManager mockAuth;
 	
 	List<String> toDelete = null;
 	
 	private long totalEntities = 10;
 	
 	private UserInfo userInfo;
-
+	private String userId;
+	HttpServletRequest mockRequest;
 	
 	@Before
 	public void before() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
-		assertNotNull(queryManager);
-		assertNotNull(entityManager);
+		assertNotNull(entityController);
 		assertNotNull(testUserProvider);
 		userInfo=testUserProvider.getTestAdiminUserInfo();
-		mockAuth = Mockito.mock(AuthorizationManager.class);
-		entityManager.overrideAuthDaoForTest(mockAuth);
-		when(mockAuth.canAccess((UserInfo)any(), anyString(), any(AuthorizationConstants.ACCESS_TYPE.class))).thenReturn(true);
-		when(mockAuth.canCreate((UserInfo)any(), (Node)any())).thenReturn(true);
-
+		UserInfo.validateUserInfo(userInfo);
+		userId = userInfo.getUser().getUserId();
 		toDelete = new ArrayList<String>();
+		mockRequest = Mockito.mock(HttpServletRequest.class);
+		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
 		// Create some datasets
 		for(int i=0; i<totalEntities; i++){
 			Dataset ds = createForTest(i);
-			String id = entityManager.createEntity(userInfo, ds);
-			toDelete.add(id);
-			Annotations annos = entityManager.getAnnotations(userInfo, id);
+			ds = entityController.createEntity(userId, ds, mockRequest);
+			assertNotNull(ds);
+			assertNotNull(ds.getId());
+			toDelete.add(ds.getId());
+			Annotations annos = entityController.getEntityAnnotations(userId, ds.getId(), mockRequest);
 			assertNotNull(annos);
 			// Add some annotations
 			annos.addAnnotation("stringKey", "string"+i);
@@ -86,7 +85,11 @@ public class QueryManagerAutowireTest {
 			annos.addAnnotation("longKey", new Long(i));
 			annos.addAnnotation("dateKey", new Date(10000+i));
 			annos.addAnnotation("doubleKey", new Double(42*i));
-			entityManager.updateAnnotations(userInfo,id, annos);
+			entityController.updateEntityAnnotations(userId, ds.getId(), annos, mockRequest);
+			// Add a layer to each dataset
+			InputDataLayer inLayer = createLayerForTest(i);
+			inLayer.setParentId(ds.getId());
+			inLayer = entityController.createEntity(userId, inLayer, mockRequest);
 		}
 	}
 	
@@ -108,19 +111,28 @@ public class QueryManagerAutowireTest {
 		return ds;
 	}
 	
+	private InputDataLayer createLayerForTest(int i) throws InvalidModelException{
+		InputDataLayer layer = new InputDataLayer();
+		layer.setName("layerName"+i);
+		layer.setDescription("layerDesc"+i);
+		layer.setCreationDate(new Date(1001));
+		layer.setType(LayerTypeNames.G.name());
+		return layer;
+	}
+	
 	@After
 	public void after(){
-		if(entityManager != null && toDelete != null){
+		if(entityController != null && toDelete != null){
 			for(String id: toDelete){
 				try{
-					entityManager.deleteEntity(userInfo, id);
+					entityController.deleteEntity(userId, id);
 				}catch(Exception e){}
 			}
 		}
 	}
 	
 	@Test
-	public void testExecuteQuery() throws DatastoreException{
+	public void testExecuteQuery() throws DatastoreException, NotFoundException{
 		// Build up the query.
 		BasicQuery query = new BasicQuery();
 		query.setFrom(ObjectType.dataset);
@@ -131,7 +143,7 @@ public class QueryManagerAutowireTest {
 		query.addExpression(new Expression(new CompoundId("dataset", "doubleKey"), Compartor.GREATER_THAN, "0.0"));
 		// Execute it.
 		long start = System.currentTimeMillis();
-		QueryResults results = queryManager.executeQuery(userInfo, query, Dataset.class);
+		QueryResults results = entityController.executeQueryWithAnnotations(userId, query, Dataset.class, mockRequest);
 		long end = System.currentTimeMillis();
 		System.out.println("Executed the query in: "+(end-start)+" ms");
 		assertNotNull(results);
@@ -148,6 +160,11 @@ public class QueryManagerAutowireTest {
 		assertTrue(ob instanceof Collection);
 		Collection<String> collect = (Collection<String>) ob;
 		assertTrue(collect.contains("three"));
+		
+		// Every dataset should have these properties
+		assertFalse((Boolean) row.get("hasClinicalData"));
+		assertTrue((Boolean) row.get("hasGeneticData"));
+		assertFalse((Boolean) row.get("hasExpressionData"));
 	}
 
 }

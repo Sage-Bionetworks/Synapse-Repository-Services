@@ -216,7 +216,7 @@ public class QueryParserTest {
 		QueryStatement stmt = new QueryStatement(
 				"select * from dataset limit 13");
 		assertEquals("dataset", stmt.getTableName());
-		assertEquals(new Integer(13), stmt.getLimit());
+		assertEquals(new Long(13), stmt.getLimit());
 	}
 
 	/**
@@ -228,7 +228,7 @@ public class QueryParserTest {
 		QueryStatement stmt = new QueryStatement(
 				"select * from dataset offset 13");
 		assertEquals("dataset", stmt.getTableName());
-		assertEquals(new Integer(13), stmt.getOffset());
+		assertEquals(new Long(13), stmt.getOffset());
 	}
 
 	/**
@@ -283,7 +283,7 @@ public class QueryParserTest {
 		assertEquals("dataset", stmt.getTableName());
 		assertEquals("dataset", stmt.getSortTable());
 		assertEquals("name", stmt.getSortField());
-		assertEquals(new Integer(30), stmt.getLimit());
+		assertEquals(new Long(30), stmt.getLimit());
 	}
 
 	/**

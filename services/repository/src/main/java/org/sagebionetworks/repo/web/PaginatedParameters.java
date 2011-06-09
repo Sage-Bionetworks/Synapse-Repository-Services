@@ -6,8 +6,8 @@ package org.sagebionetworks.repo.web;
  *
  */
 public class PaginatedParameters {
-	int offset = 0;
-	int limit = 10;
+	long offset = 0;
+	long limit = 10;
 	String sortBy = null;
 	boolean ascending = true;;
 	
@@ -15,7 +15,7 @@ public class PaginatedParameters {
 		
 	}
 	
-	public PaginatedParameters(int offset, int limit, String sortBy,
+	public PaginatedParameters(long offset, long limit, String sortBy,
 			boolean ascending) {
 		super();
 		this.offset = offset;
@@ -24,19 +24,19 @@ public class PaginatedParameters {
 		this.ascending = ascending;
 	}
 
-	public int getOffset() {
+	public long getOffset() {
 		return offset;
 	}
 
-	public void setOffset(int offset) {
+	public void setOffset(long offset) {
 		this.offset = offset;
 	}
 
-	public int getLimit() {
+	public long getLimit() {
 		return limit;
 	}
 
-	public void setLimit(int limit) {
+	public void setLimit(long limit) {
 		this.limit = limit;
 	}
 

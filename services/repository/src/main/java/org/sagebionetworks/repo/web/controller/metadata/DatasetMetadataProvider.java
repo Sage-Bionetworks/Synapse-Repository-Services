@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -13,14 +14,13 @@ import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
-import org.sagebionetworks.repo.web.EntitiesAccessor;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dataset>{
 	
 	@Autowired
-	EntitiesAccessor entitiesAccessor;
+	NodeQueryDao nodeQueryDao;
 
 	/**
 	 * This should add the url to this datasets annotations.  And a link to this datasets layers
@@ -36,15 +36,15 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 		// Note: this addresses bug PLFM-185
 		// Count the clinical layers
 		BasicQuery query = createHasClinicalQuery(entity.getId());
-		long count = entitiesAccessor.executeCountQuery(user, query);
+		long count = nodeQueryDao.executeCountQuery(query, user);
 		entity.setHasClinicalData(count > 0);
 		// Count the Expression layers
 		query = createHasExpressionQuery(entity.getId());
-		count = entitiesAccessor.executeCountQuery(user, query);
+		count = nodeQueryDao.executeCountQuery(query, user);
 		entity.setHasExpressionData(count > 0);
 		// Count the Expression layers
 		query = createHasGeneticQuery(entity.getId());
-		count = entitiesAccessor.executeCountQuery(user, query);
+		count = nodeQueryDao.executeCountQuery(query, user);
 		entity.setHasGeneticData(count > 0);
 	}
 	

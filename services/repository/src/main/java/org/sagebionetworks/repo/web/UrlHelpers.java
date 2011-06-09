@@ -559,6 +559,54 @@ public class UrlHelpers {
 			setHasPreviewsUrl((HasPreviews) entity);
 		}
 	}
+	
+	/**
+	 * Helper method to validate all urs.
+	 * @param type
+	 * @param object
+	 * @param clone
+	 */
+	public static void validateAllUrls(Nodeable object) {
+		if(object == null) throw new IllegalArgumentException("Entity cannot be null");
+		if(object.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null");
+		ObjectType type = ObjectType.getNodeTypeForClass(object.getClass());
+		String expectedBaseSuffix = type.getUrlPrefix()+"/"+object.getId();
+		if(!object.getUri().endsWith(expectedBaseSuffix)){
+			throw new IllegalArgumentException("Expected base uri suffix: "+expectedBaseSuffix+" but was: "+object.getUri());
+		}
+		String expected = object.getUri()+UrlHelpers.ANNOTATIONS;
+		if(!expected.equals(object.getAnnotations())){
+			throw new IllegalArgumentException("Expected annotations: "+expected+" but was: "+object.getAnnotations());
+		}
+		expected =  object.getUri()+UrlHelpers.ACL;
+		if(!expected.equals(object.getAccessControlList())){
+			throw new IllegalArgumentException("Expected annotations: "+expected+" but was: "+object.getAccessControlList());
+		}
+		// Has layers
+		if(object instanceof HasLayers){
+			HasLayers hasLayers = (HasLayers) object;
+			expected = object.getUri()+UrlHelpers.LAYER;
+			if(!expected.equals(hasLayers.getLayers())){
+				throw new IllegalArgumentException("Expected layers: "+expected+" but was: "+hasLayers.getLayers());
+			}
+		}
+		// Has locations
+		if(object instanceof HasLocations){
+			HasLocations has = (HasLocations) object;
+			expected = object.getUri()+UrlHelpers.LOCATION;
+			if(!expected.equals(has.getLocations())){
+				throw new IllegalArgumentException("Expected locations: "+expected+" but was: "+has.getLocations());
+			}
+		}
+		// Has preview
+		if(object instanceof HasPreviews){
+			HasPreviews has = (HasPreviews) object;
+			expected = object.getUri()+UrlHelpers.PREVIEW;
+			if(!expected.equals(has.getPreviews())){
+				throw new IllegalArgumentException("Expected previews: "+expected+" but was: "+has.getPreviews());
+			}
+		}
+	}
 
 
 	public static String getUrlPrefix(Base entity, HttpServletRequest request) {

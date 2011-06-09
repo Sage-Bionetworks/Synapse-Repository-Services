@@ -14,7 +14,10 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.query.BasicQuery;
 
 /**
  * Controller interface for all operations common to entities.
@@ -66,6 +69,19 @@ public interface GenericEntityController {
 			HttpServletRequest request, Class<? extends T> clazz) throws NotFoundException,
 			DatastoreException, UnauthorizedException;
 	
+	/**
+	 * Same as above but takes a UserInfo instead of a username.
+	 * @param <T>
+	 * @param info
+	 * @param id
+	 * @param request
+	 * @param clazz
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public <T extends Nodeable> T getEntity(UserInfo info, String id, HttpServletRequest request, Class<? extends T> clazz) throws NotFoundException, DatastoreException, UnauthorizedException;
 	/**
 	 * Get all of the children of a given type.
 	 * @param <T>
@@ -130,8 +146,7 @@ public interface GenericEntityController {
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Nodeable> T updateEntity(String userId, String id,
-			T updatedEntity, HttpServletRequest request)
+	public <T extends Nodeable> T updateEntity(String userId,T updatedEntity, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException;
 	
@@ -192,6 +207,19 @@ public interface GenericEntityController {
 	public Annotations getEntityAnnotations(String userId, String id,
 			HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException;
 
+	/**
+	 * Same as above but with a UserInfo
+	 * @param info
+	 * @param id
+	 * @param request
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public Annotations getEntityAnnotations(UserInfo info, String id,
+			HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException;
+	
 	public Annotations updateEntityAnnotations(String userId, String entityId,
 			Annotations updatedAnnotations, HttpServletRequest request) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 
@@ -261,4 +289,17 @@ public interface GenericEntityController {
 	 * @return the JSON schema for an access control list
 	 */
 	public <T extends Base> JsonSchema getAclSchema() throws DatastoreException;
+	
+	/**
+	 * Execute a query and include the annotations for each entity.
+	 * @param <T>
+	 * @param userInfo
+	 * @param query
+	 * @param clazz
+	 * @param request
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public <T extends Nodeable> QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, Class<? extends T> clazz, HttpServletRequest request) throws DatastoreException, NotFoundException;
 }

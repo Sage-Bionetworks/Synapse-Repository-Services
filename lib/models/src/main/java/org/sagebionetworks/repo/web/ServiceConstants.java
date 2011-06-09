@@ -31,7 +31,7 @@ public class ServiceConstants {
 	/**
 	 * Default value for offset parameter
 	 */
-	public static final Integer DEFAULT_PAGINATION_OFFSET = new Integer(
+	public static final Long DEFAULT_PAGINATION_OFFSET = new Long(
 			DEFAULT_PAGINATION_OFFSET_PARAM);
 
 	/**
@@ -51,7 +51,7 @@ public class ServiceConstants {
 	/**
 	 * Default value for limit parameter
 	 */
-	public static final Integer DEFAULT_PAGINATION_LIMIT = new Integer(
+	public static final Long DEFAULT_PAGINATION_LIMIT = new Long(
 			DEFAULT_PAGINATION_LIMIT_PARAM);
 
 	/**
@@ -131,7 +131,7 @@ public class ServiceConstants {
 	 * @param limit
 	 * @throws IllegalArgumentException
 	 */
-	public static void validatePaginationParams(Integer offset, Integer limit)
+	public static void validatePaginationParams(Long offset, Long limit)
 			throws IllegalArgumentException {
 		if (1 > offset) {
 			throw new IllegalArgumentException(
