@@ -1,9 +1,8 @@
 getLayerData <-
-		function(layer, locationPrefs = dataLocationPrefs(), curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(layer, locationPrefs = dataLocationPrefs(), curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"), cacheDir = synapseCacheDir())
 {
 	## constants
 	kHeader <- c(Accept = "application/json")
-	kDownloadMethod <- "curl"
 	## end constants
 	
 	## make sure that the location type for this layer is currently supported
@@ -13,9 +12,9 @@ getLayerData <-
 	}
 	
 	#get the available locations for this layer and match to locationPrefs
-	response <- jsonListToDataFrame(synapseGet(layer$locations))
+	response <- synapseGet(layer$locations, curlHandle = curlHandle, anonymous = anonymous)
 	checkCurlResponse(curlHandle, response)
-	availableLocations$results
+	availableLocations <- jsonListToDataFrame(response$results)
 	ind <- match(locationPrefs, availableLocations$type)
 	
 	if(length(ind) == 0){
@@ -34,14 +33,15 @@ getLayerData <-
 	datapath <- response$path
 	zipFile <- gsub("\\?.+$", "", strsplit(datapath, ".com/")[[1]][2])
     
-	synapseDownloadFile(url = datapath, destfile = zipFile, method = kDownloadMethod)
+	synapseDownloadFile(url = datapath, destfile = zipFile, cacheDir = cacheDir)
 
 	## deflaux: I could not figure out the right set of args to unzip
 	## to get it to happily extract the directory structure contained
 	## in the zip file
 	
+	zipFile <- file.path(cacheDir, zipFile)
 	
-	extractDirectory <- paste(getwd(), strsplit(zipFile, ".zip")[[1]][1], sep="/")
+	extractDirectory <- gsub("[\\.]zip$", "", zipFile)
 	unzip(zipFile, exdir=extractDirectory)
 	files <- file.path(extractDirectory,list.files(extractDirectory))
 	

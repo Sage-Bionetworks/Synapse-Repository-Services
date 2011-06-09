@@ -1,8 +1,3 @@
-# TODO: Add comment
-# 
-# Author: mfuria
-###############################################################################
-
 refreshSessionToken <- 
 		function(session.token, host = synapseAuthServiceHostName())
 {

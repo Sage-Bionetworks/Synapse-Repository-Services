@@ -1,17 +1,18 @@
-synapseDownloadFile <- 
-		function (url, destfile, method = curl, quiet = FALSE, mode = "w", cacheOK = TRUE, cacheDir = synapseCacheDir())
+synapseDownloadFile  <- 
+		function (url, destfile, curlHandle = getCurlHandle(), cacheDir = synapseCacheDir())
 {
 	destfile <- file.path(cacheDir, destfile)
-	if (method == "curl") {
-		extra <- if (quiet)
-					"-s -S"
-				else ""
-		status <- system(paste("curl", extra, shQuote(url), "--create-dirs"," -k", " -o", 
-						path.expand(destfile)))
-		
-	}else{
-		stop("unsupported method:", method)
+	splits <- strsplit(destfile, .Platform$file.sep)
+	downloadDir <- paste(splits[[1]][-length(splits[[1]])], collapse=.Platform$file.sep)
+	if(!file.exists(downloadDir)){
+		dir.create(downloadDir, recursive=TRUE)
 	}
-
-	invisible(status)
+	writeBin(getBinaryURL(url, curl = curlHandle), con = destfile)
+	tryCatch(
+			checkCurlResponse(curlHandle, paste(readLines(con=destfile, warn=FALSE), collapse='')), 
+			error = function(ex){
+				file.remove(destfile)
+				stop(ex)
+			}
+	)
 }
