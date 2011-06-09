@@ -1,4 +1,4 @@
-synapsePostPut <- 
+.synapsePostPut <- 
 		function(uri, entity, requestMethod, host = synapseRepoServiceHostName(), curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"), path = .getCache("repoServicePath"), opts = .getCache("curlOpts"))
 {
 	## constants

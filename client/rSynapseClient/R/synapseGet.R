@@ -5,7 +5,7 @@ synapseGet <-
 	kMethod <- "GET"
 	## end constants
 	
-	synapseGetDelete(uri = uri, 
+	.synapseGetDelete(uri = uri, 
 			requestMethod = kMethod, 
 			host = host, 
 			curlHandle = curlHandle, 

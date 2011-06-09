@@ -32,6 +32,14 @@ kSupportedPlatforms <- list(
 	.cache[[key]] <- value
 }
 
+.deleteCache <-
+		function(keys)
+{
+	indx <- which(names(.cache) %in% keys)
+	if(length(indx) > 0)
+		.cache <- .cache[[-indx]]
+}
+
 .onLoad <-
 		function(libname, pkgname)
 {
@@ -48,5 +56,6 @@ kSupportedPlatforms <- list(
 	.setCache("curlOpts", list(ssl.verifypeer = FALSE))
 	.setCache("curlHeader", c('Content-Type'="application/json", Accept = "application/json"))
 	.setCache("anonymous", FALSE)
+	.setCache("downloadSuffix", "unpacked")
 	
 }

@@ -3,7 +3,7 @@ synapseDelete <- function(uri, host = synapseRepoServiceHostName(), curlHandle=g
 	kMethod <- "DELETE"
 	## end constants
 	
-	synapseGetDelete(uri = uri, 
+	.synapseGetDelete(uri = uri, 
 			requestMethod = kMethod, 
 			host = host, 
 			curlHandle = curlHandle, 

@@ -5,7 +5,7 @@ synapsePost <-
 	kMethod <- "POST"
 	## end constants
 	
-	synapsePostPut(uri = uri, 
+	.synapsePostPut(uri = uri, 
 			entity = entity, 
 			requestMethod = kMethod, 
 			host = host, 

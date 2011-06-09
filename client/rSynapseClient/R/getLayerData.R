@@ -26,20 +26,13 @@ getLayerData <-
 	## the uri element of layer
 	response <- synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous, path="")
 	checkCurlResponse(curlHandle, response)
-	datapath <- response$path
-	zipFile <- gsub("\\?.+$", "", strsplit(datapath, ".com/")[[1]][2])
-    
-	synapseDownloadFile(url = datapath, destfile = zipFile, cacheDir = cacheDir)
-
-	## deflaux: I could not figure out the right set of args to unzip
-	## to get it to happily extract the directory structure contained
-	## in the zip file
+	s4URL <- URL(response$path)
+	zipFile <- URL(file.path(cacheDir, s4URL@fullFilePath))
+	destDir <- URL(paste(zipFile@url, .getCache("downloadSuffix"), sep="_"))
 	
-	zipFile <- file.path(cacheDir, zipFile)
-	
-	extractDirectory <- gsub("[\\.]zip$", "", zipFile)
-	unzip(zipFile, exdir=extractDirectory)
-	files <- file.path(extractDirectory,list.files(extractDirectory))
+	synapseDownloadFile(url = s4URL@url, destfile = s4URL@fullFilePath, cacheDir = cacheDir)
+	unzip(zipFile@url, exdir=destDir@url)
+	files <- file.path(destDir@url,list.files(destDir@url))
 	
 	class(files) <- "layerData"
 	attr(files, "layerType") <- layer$type
