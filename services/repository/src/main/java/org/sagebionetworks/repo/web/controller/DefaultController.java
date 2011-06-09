@@ -1,13 +1,11 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.authutil.AuthUtilConstants;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseChild;
@@ -17,14 +15,12 @@ import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.PaginatedParameters;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -50,10 +46,6 @@ public class DefaultController extends BaseController {
 	GenericEntityController entityController;
 	@Autowired
 	ObjectTypeSerializer objectTypeSerializer;
-	@Autowired
-	private MetadataProviderFactory metadataProviderFactory;
-	@Autowired
-	UserManager userManager;
 
 	/**
 	 * Create a new entity with a POST.
@@ -86,19 +78,11 @@ public class DefaultController extends BaseController {
 
 		// Determine the object type from the url.
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
-		// Fetch the provider that will validate this entity.
-		@SuppressWarnings("unchecked")
-		TypeSpecificMetadataProvider<T> provider = 
-			(TypeSpecificMetadataProvider<T>)metadataProviderFactory.getMetadataProvider(type); // TypeSpecificMetadataProviderFactory.getProvider(type);
 		@SuppressWarnings("unchecked")
 		T entity = (T) objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
-		// Validate the entity before we create it
-		provider.validateEntity(entity);
 		// Now create the entity
 		T createdEntity = (T) entityController.createEntity(userId, entity, request);
 		// Finally, add the type specific metadata.
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		provider.addTypeSpecificMetadata(createdEntity, request, userInfo);
 		return createdEntity;
 	}
 	
@@ -130,14 +114,10 @@ public class DefaultController extends BaseController {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Validate the object type
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
-		// Fetch the provider that will validate this entity.
-		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>)metadataProviderFactory.getMetadataProvider(type); //TypeSpecificMetadataProviderFactory.getProvider(type);
 		// Get the entity.
 		@SuppressWarnings("unchecked")
 		T updatedEntity = (T) entityController.getEntity(userId, id, request, type.getClassForType());
-		// Add any type specific metadata.
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		provider.addTypeSpecificMetadata(updatedEntity, request, userInfo);
+		// Return the results
 		return updatedEntity;
 	}
 
@@ -175,21 +155,16 @@ public class DefaultController extends BaseController {
 			HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException, IOException {
-		// Validate the object type
 		// Determine the object type from the url.
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
-		// Fetch the provider that will validate this entity.
-		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>)metadataProviderFactory.getMetadataProvider(type); //TypeSpecificMetadataProviderFactory.getProvider(type);
 		@SuppressWarnings("unchecked")
 		T entity = (T) objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
 		if(etag != null){
 			entity.setEtag(etag.toString());
 		}
 		// validate the entity
-		provider.validateEntity(entity);
-		entity = entityController.updateEntity(userId, id,	entity, request);
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		provider.addTypeSpecificMetadata(entity, request, userInfo);
+		entity = entityController.updateEntity(userId, entity, request);
+		// Return the result
 		return entity;
 	}
 	
@@ -318,15 +293,10 @@ public class DefaultController extends BaseController {
 		}
 		// Determine the object type from the url.
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
-		// Fetch the provider that will validate this entity.
-		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>)metadataProviderFactory.getMetadataProvider(type); // TypeSpecificMetadataProviderFactory.getProvider(type);
 		@SuppressWarnings("unchecked")
 		PaginatedResults<T> results = (PaginatedResults<T>) entityController.getEntities(
 				userId, new PaginatedParameters(offset, limit, sort, ascending), request, type.getClassForType());
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		for (T entity : results.getResults()) {
-			provider.addTypeSpecificMetadata(entity, request, userInfo);
-		}
+		// Return the result
 		return results;
 	}
 	
@@ -357,14 +327,9 @@ public class DefaultController extends BaseController {
 		PaginatedParameters paging = new PaginatedParameters(offset, limit, sort, ascending);
 		// Determine the object type from the url.
 		ObjectType type = ObjectType.getLastTypeInUrl(request.getRequestURI());
-		// Fetch the provider that will validate this entity.
-		TypeSpecificMetadataProvider<Nodeable> provider = (TypeSpecificMetadataProvider<Nodeable>)metadataProviderFactory.getMetadataProvider(type); //TypeSpecificMetadataProviderFactory.getProvider(type);
 		Class<? extends T> clazz = (Class<? extends T>) type.getClassForType();
 		PaginatedResults<T> results = (PaginatedResults<T>) entityController.getEntityChildrenOfTypePaginated(userId, parentId, clazz, paging, request);
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		for (T entity : results.getResults()) {
-			provider.addTypeSpecificMetadata(entity, request, userInfo);
-		}
+		// Return the results
 		return results;
 	}	
 

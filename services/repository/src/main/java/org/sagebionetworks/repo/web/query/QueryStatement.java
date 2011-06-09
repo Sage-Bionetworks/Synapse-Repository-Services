@@ -40,8 +40,8 @@ public class QueryStatement {
 	 * like it is for the rest API. When people query they expect that a query
 	 * with no limit specified defaults to all.
 	 */
-	private Integer limit = 50000000; // MySQL upper limit
-	private Integer offset = ServiceConstants.DEFAULT_PAGINATION_OFFSET;
+	private Long limit = 50000000l; // MySQL upper limit
+	private Long offset = ServiceConstants.DEFAULT_PAGINATION_OFFSET;
 
 	private QueryNode parseTree = null;
 
@@ -120,13 +120,13 @@ public class QueryStatement {
 				Long newLimit = (Long) ((QueryNode) node.jjtGetChild(0))
 						.jjtGetValue();
 				// If we overflow, our validation below will raise an error
-				limit = newLimit.intValue();
+				limit = newLimit;
 				break;
 			case QueryParser.JJTOFFSET:
 				Long newOffset = (Long) ((QueryNode) node.jjtGetChild(0))
 						.jjtGetValue();
 				// If we overflow, our validation below will raise an error
-				offset = newOffset.intValue();
+				offset = newOffset;
 				break;
 			}
 		}
@@ -227,14 +227,14 @@ public class QueryStatement {
 	/**
 	 * @return the limit
 	 */
-	public Integer getLimit() {
+	public Long getLimit() {
 		return limit;
 	}
 
 	/**
 	 * @return the offset
 	 */
-	public Integer getOffset() {
+	public Long getOffset() {
 		return offset;
 	}
 

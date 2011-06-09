@@ -20,16 +20,14 @@ import org.sagebionetworks.repo.model.UserInfo;
 public class GenericEntityControllerImplUnitTest {
 	
 	GenericEntityController controller;
-	EntitiesAccessor mockEntityAccessor = null;
 	EntityManager mockEntityManager = null;
 	HttpServletRequest mockRequest = null;
 	
 	@Before
 	public void before(){
-		mockEntityAccessor = Mockito.mock(EntitiesAccessor.class);
 		mockEntityManager = Mockito.mock(EntityManager.class);
 		mockRequest = Mockito.mock(HttpServletRequest.class);
-		controller = new GenericEntityControllerImpl(mockEntityAccessor, mockEntityManager);
+		controller = new GenericEntityControllerImpl(mockEntityManager);
 	}
 	
 	@Test

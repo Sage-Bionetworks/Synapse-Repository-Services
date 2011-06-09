@@ -247,6 +247,48 @@ public class UrlHelperTest {
 			}
 		}
 	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateAllUrlsNullBase(){
+		InputDataLayer layer = new InputDataLayer();
+		UrlHelpers.validateAllUrls(layer);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateAllNullAnnos(){
+		InputDataLayer layer = new InputDataLayer();
+		layer.setUri("repo/v1/layer/33");
+		UrlHelpers.setAllNodeableUrls(layer);
+		layer.setAnnotations(null);
+		UrlHelpers.validateAllUrls(layer);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateAllNullACL(){
+		InputDataLayer layer = new InputDataLayer();
+		layer.setUri("repo/v1/layer/33");
+		UrlHelpers.setAllNodeableUrls(layer);
+		layer.setAccessControlList(null);
+		UrlHelpers.validateAllUrls(layer);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateAllNullLocations(){
+		InputDataLayer layer = new InputDataLayer();
+		layer.setUri("repo/v1/layer/33");
+		UrlHelpers.setAllNodeableUrls(layer);
+		layer.setLocations(null);
+		UrlHelpers.validateAllUrls(layer);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateAllNullPreview(){
+		InputDataLayer layer = new InputDataLayer();
+		layer.setUri("repo/v1/layer/33");
+		UrlHelpers.setAllNodeableUrls(layer);
+		layer.setPreviews(null);
+		UrlHelpers.validateAllUrls(layer);
+	}
 
 
 }

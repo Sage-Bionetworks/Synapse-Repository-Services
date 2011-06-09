@@ -135,7 +135,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 			toDelete.add(clone.getId());
 			assertNotNull(clone.getEtag());
 			// Check the base ursl
-			validateAllUrls(type, clone);
+			UrlHelpers.validateAllUrls(clone);
 			index++;
 		}
 	}
@@ -164,7 +164,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 			toDelete.add(clone.getId());
 			assertNotNull(clone.getEtag());
 			// Check the base ursl
-			validateAllUrls(type, clone);
+			UrlHelpers.validateAllUrls(clone);
 			
 			// Now get the project object
 			Nodeable fromGet = ServletTestHelper.getEntity(dispatchServlet, type.getClassForType(), clone.getId(), userName);
@@ -202,7 +202,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 				toDelete.add(clone.getId());
 				assertNotNull(clone.getEtag());
 				// Check the base ursl
-				validateAllUrls(type, clone);
+				UrlHelpers.validateAllUrls(clone);
 				index++;
 			}
 		}
@@ -447,38 +447,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		assertEquals(clone.getId(), acl4.getResourceId());
 	}
 	
-	/**
-	 * Helper method to validate all urs.
-	 * @param type
-	 * @param object
-	 * @param clone
-	 */
-	private void validateAllUrls(ObjectType type, Nodeable object) {
-		String expectedBase = type.getUrlPrefix()+"/"+object.getId();
-		assertEquals(expectedBase, object.getUri());
-		String expected = expectedBase+UrlHelpers.ANNOTATIONS;
-		assertEquals(expected, object.getAnnotations());
-		expected =  expectedBase+UrlHelpers.ACL;
-		assertEquals(expected, object.getAccessControlList());
-		// Has layers
-		if(object instanceof HasLayers){
-			HasLayers hasLayers = (HasLayers) object;
-			expected = expectedBase+UrlHelpers.LAYER;
-			assertEquals(expected, hasLayers.getLayers());
-		}
-		// Has locations
-		if(object instanceof HasLocations){
-			HasLocations has = (HasLocations) object;
-			expected = expectedBase+UrlHelpers.LOCATION;
-			assertEquals(expected, has.getLocations());
-		}
-		// Has preview
-		if(object instanceof HasPreviews){
-			HasPreviews has = (HasPreviews) object;
-			expected = expectedBase+UrlHelpers.PREVIEW;
-			assertEquals(expected, has.getPreviews());
-		}
-	}
+
 	
 
 }

@@ -18,16 +18,14 @@ import javax.servlet.http.HttpServletRequest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.authutil.AuthUtilConstants;
-import org.sagebionetworks.repo.manager.QueryManager;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.util.SchemaHelper;
+import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -52,14 +50,7 @@ public class QueryController extends BaseController {
 			.getName());
 
 	@Autowired
-	QueryManager queryManager;
-	
-	@Autowired
-	UserManager userManager;
-	
-
-
-
+	GenericEntityController entityController;
 	// Use a static instance of this per
 	// http://wiki.fasterxml.com/JacksonBestPracticesPerformance
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -112,7 +103,6 @@ public class QueryController extends BaseController {
 					"Something is really messed up if we don't support UTF-8",
 					e);
 		}
-		UserInfo userInfo = userManager.getUserInfo(userId);
 
 		// Convert from a query statement to a basic query
 		BasicQuery basic = new BasicQuery();
@@ -124,7 +114,7 @@ public class QueryController extends BaseController {
 		basic.setOffset(stmt.getOffset()-1);
 		basic.setFilters(stmt.getSearchCondition());
 		
-		QueryResults results = queryManager.executeQuery(userInfo, basic, type.getClassForType());
+		QueryResults results = entityController.executeQueryWithAnnotations(userId, basic, type.getClassForType(), request);
 		results.setResults(formulateResult(stmt, results.getResults()));
 		return results;
 	}

@@ -22,12 +22,6 @@
 	<!-- The Entity manager-->
 	<bean id="entityManager" class="org.sagebionetworks.repo.manager.EntityManagerImpl" />
 	
-	<!-- The Entity accessor-->
-	<bean id="entitiesAccessor" class="org.sagebionetworks.repo.web.EntitiesAccessorImpl" />
-
-	<!-- The Query Manager-->
-	<bean id="queryManager" class="org.sagebionetworks.repo.manager.QueryManagerImpl" />
-	
 	<!-- The Generic Entity Controller-->
 	<bean id="entityController" class="org.sagebionetworks.repo.web.GenericEntityControllerImpl" />
 	

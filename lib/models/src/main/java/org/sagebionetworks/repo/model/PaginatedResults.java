@@ -68,7 +68,7 @@ public class PaginatedResults<T> implements Serializable {
 	 *            the field upon which to sort
 	 */
 	public PaginatedResults(String urlPath, List<T> results,
-			long totalNumberOfResults, Integer offset, Integer limit,
+			long totalNumberOfResults, long offset, long limit,
 			String sort, Boolean ascending) {
 		this.results = results;
 		this.totalNumberOfResults = totalNumberOfResults;
@@ -82,12 +82,12 @@ public class PaginatedResults<T> implements Serializable {
 				: "&" + ServiceConstants.SORT_BY_PARAM + "=" + sort + "&"
 						+ ServiceConstants.ASCENDING_PARAM + "=" + ascending;
 
-		int previousOffset = ((offset - limit) > 0) ? offset - limit
+		long previousOffset = ((offset - limit) > 0) ? offset - limit
 				: ServiceConstants.DEFAULT_PAGINATION_OFFSET;
 		// This test should not be needed since parameter validation is
 		// happening at the controller layer, but it
 		// doesn't hurt to double check
-		int nextOffset = ((offset + limit) > 0) ? offset + limit
+		long nextOffset = ((offset + limit) > 0) ? offset + limit
 				: ServiceConstants.DEFAULT_PAGINATION_OFFSET;
 
 		paging = new HashMap<String, String>();
@@ -151,5 +151,12 @@ public class PaginatedResults<T> implements Serializable {
 	public Map<String, String> getPaging() {
 		return paging;
 	}
+
+	@Override
+	public String toString() {
+		return "PaginatedResults [totalNumberOfResults=" + totalNumberOfResults
+				+ ", results=" + results + ", paging=" + paging + "]";
+	}
+	
 
 }
