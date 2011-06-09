@@ -205,4 +205,18 @@ public class ConfigHelper {
 	public int getMaxScriptExecutionHoursTimeout() {
 		return maxScriptExecutionHoursTimeout;
 	}
+
+	/**
+	 * @return the synapseUsername
+	 */
+	public String getSynapseUsername() {
+		return synapseUsername;
+	}
+
+	/**
+	 * @return the synapsePassword
+	 */
+	public String getSynapsePassword() {
+		return synapsePassword;
+	}
 }
