@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -49,6 +50,19 @@ public class PermissionsManagerImpl implements PermissionsManager {
 			if (ra.getUserGroupId()==null) throw new InvalidModelException("Group ID is null");
 			if (ra.getAccessType().isEmpty()) throw new InvalidModelException("No access types specified.");
 		}
+
+		if(acl.getCreatedBy() == null ) throw new InvalidModelException("CreatedBy is null");
+		
+		if(acl.getModifiedBy() == null ) throw new InvalidModelException("ModifiedBy is null");
+		
+		// If createdBy is not set then set it with the current time.
+		if(acl.getCreationDate() == null){
+			acl.setCreationDate(new Date(System.currentTimeMillis()));
+		}
+		// If modifiedOn is not set then set it with the current time.
+		if(acl.getModifiedOn() == null){
+			acl.setModifiedOn(new Date(System.currentTimeMillis()));
+		}
 	}
 
 	@Override
@@ -76,6 +90,8 @@ public class PermissionsManagerImpl implements PermissionsManager {
 			throw new UnauthorizedException("Not authorized.");
 		}
 		// validate content
+		if (acl.getCreatedBy()==null) acl.setCreatedBy(userInfo.getUser().getUserId());
+		if (acl.getModifiedBy()==null) acl.setModifiedBy(userInfo.getUser().getUserId());
 		validateContent(acl);
 		// set permissions 'benefactor' for resource and all resource's descendants to resource
 		nodeInheritanceManager.setNodeToInheritFromItself(rId);

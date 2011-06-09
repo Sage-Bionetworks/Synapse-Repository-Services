@@ -248,7 +248,12 @@ public class CrowdAuthUtil {
 		setBody(conn, userXML(user)+"\n");
 		try {
 			rc = conn.getResponseCode();
-			InputStream is = (InputStream)conn.getContent();
+			InputStream is = null;
+			if (HttpStatus.CREATED.value()==rc) {
+				is = (InputStream)conn.getContent();
+			} else {
+				is = (InputStream)conn.getErrorStream();
+			}
 			if (is!=null) sessionXML = (readInputStream(is)).getBytes();
 		} catch (IOException e) {
 			if (rc==0) rc=500;
