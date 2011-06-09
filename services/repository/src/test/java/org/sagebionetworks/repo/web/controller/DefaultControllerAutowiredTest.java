@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import javax.servlet.ServletException;
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.GenericEntityController;
@@ -328,9 +330,12 @@ public class DefaultControllerAutowiredTest {
 		// now switch to child
 		acl.setResourceId(dsClone.getId());
 		acl.setId(null);
+		AccessControlList childAcl = new AccessControlList();
+		childAcl.setResourceId(dsClone.getId());
+		childAcl.setResourceAccess(new HashSet<ResourceAccess>());
 		// (Is this OK, or do we have to make new ResourceAccess objects inside?)
 		// now POST to /dataset/{id}/acl with this acl as the body
-		AccessControlList acl2 = ServletTestHelper.createEntityACL(dispatchServlet, Dataset.class, acl, userName);
+		AccessControlList acl2 = ServletTestHelper.createEntityACL(dispatchServlet, Dataset.class, childAcl, userName);
 		// now retrieve the acl for the child. should get its own back
 		AccessControlList acl3 = ServletTestHelper.getEntityACL(dispatchServlet, Dataset.class, dsClone.getId(), userName);
 		assertEquals(dsClone.getId(), acl3.getResourceId());
