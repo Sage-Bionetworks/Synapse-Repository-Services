@@ -15,7 +15,7 @@ inputDatasetId <- 485
 #----- Log into Synapse
 # TODO 
 # synapseLogin(getUsernameArg(), getPasswordArg())
-synapseRepoServiceHostName('http://localhost:8080/')
+synapseRepoServiceHostName('http://dhcp177139.fhcrc.org:8080/')
 sessionToken('admin')
 
 #----- Decide whether this script wants to work on this input layer
@@ -48,15 +48,15 @@ if(0 == clinicalLayerLocations$totalNumberOfResults) {
 
 location <- clinicalLayerLocations$results[[1]]
 path <- location$path
-download <- synapseDownloadFile(url = path, destfile='fooNow3.zip', method='curl')
+download <- synapseDownloadFile(url = path, destfile='fooNow3.zip')
 
 #synapseCacheDir()
 
 # TODO unpack archive
-
+clinicalFile <- file.path(synapseCacheDir(), 'clinical_patient_public_coad.txt')
 
 #----- Read the clinical and expression data into R objects
-clinicalData <- read.table('~/Foo/Bar/clinical_patient_public_coad.txt', sep='\t')
+clinicalData <- read.table(clinicalFile, sep='\t')
 expressionData <- read.table(getLocalFilepath(), sep='\t')
 
 #----- Do interesting work
@@ -71,7 +71,7 @@ outputLayer$type <- 'E'
 storedOutputLayer <- synapsePost('/layer', outputLayer)
 
 #----- Upload the analysis result
-outputFilename <- paste(outputLayer$name, 'txt', sep='.')
+outputFilename <- file.path(synapseCacheDir(), paste(outputLayer$name, 'txt', sep='.'))
 write.table(outputData, outputFilename, sep='\t')
 # TODO zip this
 
@@ -87,23 +87,4 @@ storedLocation <- synapsePost('/location', outputLocation)
 synapseUploadFile(storedLocation$path, outputFilename, checksum[[1]])
 
 setOutputLayerId(inputLayerId)
-
-
-# Old stuff
-#dataset <- synapseGet(uri=paste('/dataset', inputDatasetId, sep='/'))
-#expressionLayer <- synapseGet(uri=paste('/layer', inputLayerId, sep='/'))
-
-#queryResult <- synapseQuery(queryStatement=paste('select * from layer where layer.parentId == ', inputDatasetId, ' and layer.name == "clinical_public_', dataset$name, '"', sep=''))
-#clinicalLayerId <- queryResult[[1]]$layer.id
-#clinicalLayer <- synapseGet(paste('/layer', clinicalLayerId, sep='/'))
-
-#clinicalLayerLocations <- synapseGet(paste(clinicalLayer$locations, sep='/'))
-
-
-#if(0 == attr(queryResult,'totalNumberOfResults')) {
-#  warning('did not find the clinical dataset')
-#}
-#if(1 < attr(queryResult,'totalNumberOfResults')) {
-#	stop('found too many clinical datasets, something is busted')
-#}
 
