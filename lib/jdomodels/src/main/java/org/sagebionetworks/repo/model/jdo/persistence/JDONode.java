@@ -34,18 +34,23 @@ public class JDONode {
 	@Element(dependent = "true")
 	private Set<JDONode> children;
 		
+    @Persistent(serialized="false", mappedBy = "owner")
 	@Element(dependent = "true")
 	private Set<JDOStringAnnotation> stringAnnotations;
 	
+    @Persistent(serialized="false", mappedBy = "owner")
 	@Element(dependent = "true")
 	private Set<JDOLongAnnotation> longAnnotations;
 	
+    @Persistent(serialized="false", mappedBy = "owner")
 	@Element(dependent = "true")
 	private Set<JDODoubleAnnotation> doubleAnnotations;
 	
+    @Persistent(serialized="false", mappedBy = "owner")
 	@Element(dependent = "true")
 	private Set<JDODateAnnotation> dateAnnotations;
 	
+    @Persistent(serialized="false", mappedBy = "owner")
 	@Element(dependent = "true")
 	private Set<JDOBlobAnnotation> blobAnnotations;
 
