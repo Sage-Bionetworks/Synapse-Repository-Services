@@ -3,6 +3,7 @@ package org.sagebionetworks.auth;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -111,6 +112,12 @@ public class AuthenticationController {
 	// 		e.g. https://www.google.com/accounts/o8/id
 	
 	private static final String MANAGER_KEY = AuthenticationController.class.getName()+".MANAGER_KEY";
+	
+	// this is the parameter name for the value of the final redirect
+	private static final String RETURN_TO_URL_PARAM = "RETURN_TO_URL";
+	
+	// this is the key for the value of the final redirect
+	private static final String RETURN_TO_URL_KEY = AuthenticationController.class.getName()+".RETURN_TO_URL_KEY";
 		
 	private static final String OPEN_ID_ATTRIBUTE = "OPENID";
 	
@@ -118,11 +125,13 @@ public class AuthenticationController {
 	@RequestMapping(value = OPEN_ID_URI, method = RequestMethod.POST)
 	public String openID(
 			@RequestParam(value = OPEN_ID_PROVIDER, required = true) String openIdProvider,
-			 // HttpServlet servlet,
+			@RequestParam(value = RETURN_TO_URL_PARAM, required = true) String returnToURL,
               HttpServletRequest request,
               HttpServletResponse response) throws Exception {
 
 		HttpServlet servlet = null;
+		
+		request.getSession().setAttribute(RETURN_TO_URL_KEY, returnToURL);
 		
 		ConsumerManager manager = new ConsumerManager();
 		request.getSession().setAttribute(MANAGER_KEY, manager);
@@ -219,10 +228,12 @@ public class AuthenticationController {
 			Session crowdSession = crowdAuthUtil.authenticate(credentials, false);
 			// get the SSO token 
 //			return session;
-			
+						
 			// instead of returning, redirect
-			String url = "/sso?displayName="+crowdSession.getDisplayName()+"&sessionToken="+crowdSession.getSessionToken();
-			String location = response.encodeRedirectURL(url);
+			String redirectUrl = request.getSession().getAttribute(RETURN_TO_URL_KEY)+":"+
+				crowdSession.getSessionToken()+":"+
+				crowdSession.getDisplayName();
+			String location = response.encodeRedirectURL(redirectUrl);
 			response.sendRedirect(location);
 			
 		} catch (AuthenticationException ae) {
