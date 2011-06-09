@@ -27,38 +27,26 @@ setClass(
 
 getLocalFilepath <- function() {
   constants <- new('TcgaWorkflowConstants')
-
-  args <- commandArgs()
-  for(i in 1:length(args)) {
-    if(args[i] == constants@kInputLocalFilepathKey) {
-      return(args[i+1])
-    }
-  }
-  stop(constants@kUsage)
+  getArgVal(constants@kInputLocalFilepathKey) 
 }
 
 getInputDatasetId <- function() {
   constants <- new('TcgaWorkflowConstants')
-
-  args <- commandArgs()
-  for(i in 1:length(args)) {
-    if(args[i] == constants@kInputDatasetIdKey) {
-      return(args[i+1])
-    }
-  }
-  stop(constants@kUsage)
+  getArgVal(constants@kInputDatasetIdKey) 
 }
 
 getInputLayerId <- function() {
   constants <- new('TcgaWorkflowConstants')
+  getArgVal(constants@kInputLayerIdKey) 
+}
 
-  args <- commandArgs()
-  for(i in 1:length(args)) {
-    if(args[i] == constants@kInputLayerIdKey) {
-      return(args[i+1])
-    }
-  }
-  stop(constants@kUsage)
+getArgVal <- function(argName){
+	constants <- new('TcgaWorkflowConstants')
+	args <- commandArgs()
+	indx <- which(args == argName)
+	if(length(indx) == 1) 
+		return(args[indx + 1])
+	stop(constants@kUsage, indx)
 }
 
 setOutputLayerId <- function(layerId) {

@@ -11,9 +11,5 @@
 #	"sbnServiceVersion"
 #)
 exportPattern('*')
-#exportMethods(
-#    "show",
-#    "getMore",
-#    "getRemainder"
-#)
+
 

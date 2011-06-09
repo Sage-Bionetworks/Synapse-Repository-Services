@@ -1,5 +1,5 @@
 synapseLogin <- 
-		function(username, password, host = synapseAuthServiceHostName(), path = .getCache("authServicePath"))
+		function(username, password, curlHandle = getCurlHandle(), host = synapseAuthServiceHostName(), path = .getCache("authServicePath"))
 {
 	#constants
 	kService <- "session"
@@ -13,9 +13,11 @@ synapseLogin <-
 	response <- synapsePost(uri = kService, 
 					entity = entity, 
 					host = host, 
-					path = path
+					path = path,
+					curl = curlHandle
 				)
 	
+	checkCurlResponse(curlHandle, response)
 	#cache the session token. No need to check validity since it was just created
 	sessionToken(response$sessionToken, check.validity = FALSE)
 	.setCache("sessionTimestamp", Sys.time())

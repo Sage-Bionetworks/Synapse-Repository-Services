@@ -8,9 +8,11 @@
 			curl = getCurlHandle(), async = length(url) > 1, .encoding = integer()) {
 		return(sampleResponse)
 	}
+	assignInNamespace("getURL", getURL, "RCurl")
 	
 	# Override checkCurlResponse with a do-nothing function
 	checkCurlResponse <- function(object,response) {}
+	assignInNamespace("checkCurlResponse", checkCurlResponse, "synapseClient")
 }
 
 .tearDown <- function() {
@@ -22,21 +24,21 @@ unitTestInvalidParameters <- function() {
 }
 
 # TODO there is a bug here, this is hitting the remote repository service
-## unitTestJsonCorretlyParsed <- function() {
-##   # Since we have stubbed out the remote call to the service, all we
-##   # are really checking here is that getDataPacketSummaries is parsing
-##   # the JSON into the object we expect
-##   packets <- synapseQuery('select * from dataset')
-##   # We should get back 10 datasets
-##   checkEquals(dim(packets)[1], 10)
-##   # With 26 properties
-##   checkEquals(dim(packets)[2], 26)
-##   # The fields returned by this service API may change over time, but
-##   # there are a few we should always expect to receive
-##   checkTrue("dataset.id" %in% names(packets))
-##   checkTrue("dataset.name" %in% names(packets))
-##   checkTrue("dataset.version" %in% names(packets))
-##   checkTrue("dataset.status" %in% names(packets))
-##   checkTrue("dataset.species" %in% names(packets))
-## }
+ unitTestJsonCorretlyParsed <- function() {
+   # Since we have stubbed out the remote call to the service, all we
+   # are really checking here is that getDataPacketSummaries is parsing
+   # the JSON into the object we expect
+   packets <- synapseQuery('select * from dataset')
+   # We should get back 10 datasets
+   checkEquals(dim(packets)[1], 10)
+   # With 26 properties
+   checkEquals(dim(packets)[2], 26)
+   # The fields returned by this service API may change over time, but
+   # there are a few we should always expect to receive
+   checkTrue("dataset.id" %in% names(packets))
+   checkTrue("dataset.name" %in% names(packets))
+   checkTrue("dataset.version" %in% names(packets))
+   checkTrue("dataset.status" %in% names(packets))
+   checkTrue("dataset.species" %in% names(packets))
+ }
 
