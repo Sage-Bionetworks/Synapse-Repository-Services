@@ -198,8 +198,7 @@ public class TcgaWorkflowITCase {
 				"./src/test/resources/createMatrix.r", datasetId, rawLayerId,
 				expressionDownloadResult.getLocalFilepath());
 
-		// TODO assert not equals, our script makes them the same right now
-		assertEquals(rawLayerId, scriptResult.getProcessedLayerId());
+		assertTrue(-1 < scriptResult.getProcessedLayerId());
 
 	}
 
