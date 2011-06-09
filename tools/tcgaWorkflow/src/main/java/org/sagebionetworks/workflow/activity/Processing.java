@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.workflow.UnrecoverableException;
+import org.sagebionetworks.workflow.curation.ConfigHelper;
 
 /**
  * Workflow activities relevant to data processing.
@@ -40,13 +41,18 @@ public class Processing {
 	private static final Logger log = Logger.getLogger(Processing.class
 			.getName());
 
+	private static final String R_SCRIPT_REGEXP = ".*\\.[rR]$";
+	private static final String R_ARGS_DELIMITER = "--args";
+	
+	private static final String SYNAPSE_USERNAME_KEY = "--username";
+	private static final String SYNAPSE_PASSWORD_KEY = "--password";
 	private static final String INPUT_DATASET_PARAMETER_KEY = "--datasetId";
 	private static final String INPUT_LAYER_PARAMETER_KEY = "--layerId";
 	private static final String LOCAL_FILEPATH_INPUT_PARAMETER_KEY = "--localFilepath";
 
 	private static final String OUTPUT_LAYER_JSON_KEY = "layerId";
 	private static final Pattern OUTPUT_DELIMITER_PATTERN = Pattern.compile(
-			"TcgaWorkflowResult_START(.*)TcgaWorkflowResult_END",
+			".*SynapseWorkflowResult_START(.*)SynapseWorkflowResult_END.*",
 			Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
 
 	/**
@@ -120,7 +126,12 @@ public class Processing {
 			Integer rawLayerId, String localFilepath) throws IOException,
 			InterruptedException, UnrecoverableException, JSONException {
 
-		String scriptInput[] = new String[] { script,
+		ConfigHelper helper = ConfigHelper.createConfig();
+		String argsDelimiter = (script.matches(R_SCRIPT_REGEXP)) ? R_ARGS_DELIMITER : "";
+		
+		String scriptInput[] = new String[] { script, argsDelimiter,
+				SYNAPSE_USERNAME_KEY, helper.getSynapseUsername(),
+				SYNAPSE_PASSWORD_KEY, helper.getSynapsePassword(),
 				INPUT_DATASET_PARAMETER_KEY, datasetId.toString(),
 				INPUT_LAYER_PARAMETER_KEY, rawLayerId.toString(),
 				LOCAL_FILEPATH_INPUT_PARAMETER_KEY, localFilepath };

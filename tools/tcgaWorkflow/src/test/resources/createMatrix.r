@@ -4,33 +4,27 @@
 library(synapseClient)
 
 #----- Unpack our command line parameters
-# TODO rename these to *Arg
-inputLayerId <- getInputLayerId()
-inputDatasetId <- getInputDatasetId()
-
-inputLayerId <- 486
-inputDatasetId <- 485
-
+inputLayerId <- getInputLayerIdArg()
+inputDatasetId <- getInputDatasetIdArg()
 
 #----- Log into Synapse
-# TODO 
-# synapseLogin(getUsernameArg(), getPasswordArg())
-synapseRepoServiceHostName('http://dhcp177139.fhcrc.org:8080/')
-sessionToken('admin')
+synapseLogin(getUsernameArg(), getPasswordArg())
+
+# DELETE ME
+#inputLayerId <- 544
+#inputDatasetId <- 543
+#inputDatasetId <- 500
+#sessionToken('0PuPGsDY84AiezCW0a0j3A00')
 
 #----- Decide whether this script wants to work on this input layer
 dataset <- getDataPacketSummary(id = inputDatasetId)
 if('coad' != dataset$name) {
-  warning('this script only handles prostate cancer data')
-  setOutputLayerId(-1)
-  return()
+  skipWorkflowTask('this script only handles prostate cancer data')
 }
 
 inputLayer <- synapseGet(uri=paste('/layer', inputLayerId, sep='/'))
 if('E' != inputLayer$type) {
-  warning('this script only handles expression data')
-  setOutputLayerId(-1)
-  return()
+  skipWorkflowTask('this script only handles expression data')
 }
 
 #----- Download the clinical layer of this dataset because we need it 
@@ -82,9 +76,9 @@ outputLocation$parentId <- storedOutputLayer$id
 outputLocation$path <- paste('/tcga', outputFilename, sep="/")
 outputLocation$type <- 'awss3'
 outputLocation$md5sum <- checksum[[1]]
-storedLocation <- synapsePost('/location', outputLocation)
+storedLocation <- synapsePost(uri='/location', entity=outputLocation)
 
-synapseUploadFile(storedLocation$path, outputFilename, checksum[[1]])
+synapseUploadFile(uri=storedLocation$path, srcfile=outputFilename, checksum=checksum[[1]])
 
-setOutputLayerId(inputLayerId)
+finishWorkflowTask(layerId=storedOutputLayer$id)
 
