@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.NodeConstants;
@@ -16,10 +18,12 @@ import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class LayerTypeCountCacheImpl implements LayerTypeCountCache, InitializingBean {
+
+public class LayerTypeCountCacheImpl implements LayerTypeCountCache {
+	
+	public static Log log = LogFactory.getLog(LayerTypeCountCacheImpl.class);
 	
 	// The singleton map.
 	static Map<String, Long> MAP = Collections.synchronizedMap(new HashMap<String, Long>());
@@ -29,7 +33,6 @@ public class LayerTypeCountCacheImpl implements LayerTypeCountCache, Initializin
 
 	@Override
 	public long getCountFor(String datasetId, LayerTypeNames layerType, UserInfo userInfo) throws DatastoreException {
-		UserInfo.validateUserInfo(userInfo);
 		// First determine if we have a value for this combination.
 		String key = createKey(datasetId, layerType);
 		Long count = MAP.get(key);
@@ -107,20 +110,42 @@ public class LayerTypeCountCacheImpl implements LayerTypeCountCache, Initializin
 		query.setOffset(0);
 		try{
 			// Look at all datasets
+			log.info("Warming up the LayerTypeCountCache...");
 			NodeQueryResults results = nodeQueryDao.executeQuery(query, tempAdmin);
 			if(results != null){
 				List<String> datasetIds = results.getResultIds();
 				if(datasetIds != null){
+					log.info("Warming LayerTypeCountCache with "+datasetIds.size()+" datasets");
+					long start = System.currentTimeMillis();
+					int count = 0;
 					for(String datasetId: datasetIds){
+						if((count % 10) == 0){
+							float percent = ((float)count/(float)datasetIds.size())*100f;
+							log.info("Warming LayerTypeCountCache... "+percent+" % complete");
+						}
 						for(LayerTypeNames type: LayerTypeNames.values()){
 							this.getCountFor(datasetId, type, tempAdmin);
 						}
+						count++;
 					}
+					long end = System.currentTimeMillis();
+					log.info("Finished warming-up LayerTypeCountCache in "+(end-start)+" ms");
 				}
 			}
 		}catch(Throwable e){
 			// Skip the warmup if there is a problem.
+			log.error(e);
 		}
 		
+	}
+
+	@Override
+	public int getCacheSize() {
+		return MAP.size();
+	}
+
+	@Override
+	public void clearAll() {
+		MAP.clear();
 	}
 }

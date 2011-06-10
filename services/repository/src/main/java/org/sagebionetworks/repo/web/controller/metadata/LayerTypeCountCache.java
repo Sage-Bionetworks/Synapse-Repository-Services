@@ -3,13 +3,14 @@ package org.sagebionetworks.repo.web.controller.metadata;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.springframework.beans.factory.InitializingBean;
 
 /**
  * A cache of the layer type counts for each dataset.
  * @author John
  *
  */
-public interface LayerTypeCountCache {
+public interface LayerTypeCountCache extends InitializingBean {
 	
 	
 	/**
@@ -34,6 +35,18 @@ public interface LayerTypeCountCache {
 	 * @param datasetId
 	 */
 	public void clearCacheFor(String datasetId);
+	
+	/**
+	 * How many entries are there in the cache.
+	 * @return
+	 */
+	public int getCacheSize();
+	
+	/**
+	 * Clear the entire cache.
+	 * @return
+	 */
+	public void clearAll();
 	
 
 }
