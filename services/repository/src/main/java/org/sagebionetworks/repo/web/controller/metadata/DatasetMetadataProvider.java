@@ -29,7 +29,7 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 	 * @throws DatastoreException 
 	 */
 	@Override
-	public void addTypeSpecificMetadata(Dataset entity,	HttpServletRequest request, UserInfo user) throws DatastoreException, NotFoundException, UnauthorizedException {
+	public void addTypeSpecificMetadata(Dataset entity,	HttpServletRequest request, UserInfo user, EventType eventType) throws DatastoreException, NotFoundException, UnauthorizedException {
 		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
 		if(entity.getId() == null) throw new IllegalArgumentException("Entity.id cannot be null");
 		// We need to set the hasClinical, hasExpression, and hasGenetic
@@ -102,7 +102,7 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 	 * Make sure version is not null
 	 */
 	@Override
-	public void validateEntity(Dataset entity) {
+	public void validateEntity(Dataset entity, EventType eventType) {
 		if(entity.getVersion() == null){
 			entity.setVersion("1.0.0");
 		}

@@ -7,17 +7,29 @@ import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 
+/**
+ * Provides layer specific metadata.
+ * 
+ * @author jmhill
+ *
+ */
 public class InputDataLayerMetadataProvider implements TypeSpecificMetadataProvider<InputDataLayer> {
 	
 	@Autowired
 	LayerTypeCountCache layerTypeCountCache;
 
 	@Override
-	public void addTypeSpecificMetadata(InputDataLayer entity,	HttpServletRequest request, UserInfo user) {
-		// clear the cached counts for this type
-		clearCountsForLayer(entity);
+	public void addTypeSpecificMetadata(InputDataLayer entity,	HttpServletRequest request, UserInfo user, EventType eventType) {
+		// Only clear the cache for a CREATE or UPDATE event. (See http://sagebionetworks.jira.com/browse/PLFM-232)
+		if(EventType.CREATE == eventType || EventType.UPDATE == eventType){
+			clearCountsForLayer(entity);			
+		}
 	}
 
+	/**
+	 * Helper for clearing the cache.
+	 * @param entity
+	 */
 	private void clearCountsForLayer(InputDataLayer entity) {
 		if(entity != null){
 			if(entity.getParentId() != null){
@@ -30,7 +42,7 @@ public class InputDataLayerMetadataProvider implements TypeSpecificMetadataProvi
 	}
 
 	@Override
-	public void validateEntity(InputDataLayer entity) {
+	public void validateEntity(InputDataLayer entity, EventType eventType) {
 		if(entity.getVersion() == null){
 			entity.setVersion("1.0.0");
 		}

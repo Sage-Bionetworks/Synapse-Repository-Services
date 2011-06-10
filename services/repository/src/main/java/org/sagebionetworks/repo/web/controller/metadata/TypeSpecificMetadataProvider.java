@@ -25,13 +25,25 @@ import org.sagebionetworks.repo.web.NotFoundException;
  * @param <T>
  */
 public interface TypeSpecificMetadataProvider<T extends Base> {
+	
+	/**
+	 * The event type that triggered this call.
+	 * @author jmhill
+	 *
+	 */
+	public static enum EventType{
+		CREATE,
+		UPDATE,
+		GET,
+		DELETE,
+	}
 
 	/**
 	 * Validate that the passed entity.
 	 * @param entity
 	 * @throws InvalidModelException 
 	 */
-	public void validateEntity(T entity) throws InvalidModelException;
+	public void validateEntity(T entity, EventType eventType) throws InvalidModelException;
 	
 	/**
 	 * This method will be called before the given entity is returned to the client.
@@ -42,7 +54,7 @@ public interface TypeSpecificMetadataProvider<T extends Base> {
 	 * @throws DatastoreException 
 	 * @throws UnauthorizedException 
 	 */
-	public void addTypeSpecificMetadata(T entity, HttpServletRequest request, UserInfo user) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public void addTypeSpecificMetadata(T entity, HttpServletRequest request, UserInfo user, EventType eventType) throws DatastoreException, NotFoundException, UnauthorizedException;
 	
 	/**
 	 * Called when an entity is deleted.

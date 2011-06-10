@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider.EventType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -100,7 +101,7 @@ public class DatasetMetadataProviderTest {
 		Dataset mockDs = Mockito.mock(Dataset.class);
 		when(mockDs.getId()).thenReturn("101");
 		when(mockDs.getVersion()).thenReturn(null);
-		provider.validateEntity(mockDs);
+		provider.validateEntity(mockDs, EventType.GET);
 		verify(mockDs).setVersion("1.0.0");
 	}
 	
@@ -201,7 +202,7 @@ public class DatasetMetadataProviderTest {
 		assertNotNull(ds);
 		toDelete.add(ds.getId());
 		// This dataset should not have any layers
-		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser);
+		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser, EventType.GET);
 		assertFalse(ds.getHasClinicalData());
 		assertFalse(ds.getHasGeneticData());
 		assertFalse(ds.getHasExpressionData());
@@ -217,7 +218,7 @@ public class DatasetMetadataProviderTest {
 		String clinicalId = layer.getId();
 		
 		// We should now have a clinical
-		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser);
+		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser, EventType.GET);
 		assertTrue(ds.getHasClinicalData());
 		assertFalse(ds.getHasGeneticData());
 		assertFalse(ds.getHasExpressionData());
@@ -234,7 +235,7 @@ public class DatasetMetadataProviderTest {
 		String expressionId = layer.getId();
 		
 		// We should now have a clinical and expression
-		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser);
+		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser, EventType.GET);
 		assertTrue(ds.getHasClinicalData());
 		assertFalse(ds.getHasGeneticData());
 		assertTrue(ds.getHasExpressionData());
@@ -251,7 +252,7 @@ public class DatasetMetadataProviderTest {
 		String geneticId = layer.getId();
 		
 		// We should now have a clinical and expression and genetic
-		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser);
+		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser, EventType.GET);
 		assertTrue(ds.getHasClinicalData());
 		assertTrue(ds.getHasGeneticData());
 		assertTrue(ds.getHasExpressionData());
@@ -260,7 +261,7 @@ public class DatasetMetadataProviderTest {
 		entityController.deleteEntity(userName, clinicalId, InputDataLayer.class);
 		
 		// We should now have a expression and genetic
-		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser);
+		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser, EventType.GET);
 		assertFalse(ds.getHasClinicalData());
 		assertTrue(ds.getHasGeneticData());
 		assertTrue(ds.getHasExpressionData());
@@ -269,7 +270,7 @@ public class DatasetMetadataProviderTest {
 		entityController.deleteEntity(userName, expressionId, InputDataLayer.class);
 		
 		// We should now have a genetic
-		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser);
+		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser, EventType.GET);
 		assertFalse(ds.getHasClinicalData());
 		assertTrue(ds.getHasGeneticData());
 		assertFalse(ds.getHasExpressionData());
@@ -277,7 +278,7 @@ public class DatasetMetadataProviderTest {
 		// Delete genetic
 		entityController.deleteEntity(userName, geneticId, InputDataLayer.class);
 		// Now all should be false
-		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser);
+		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser, EventType.GET);
 		assertFalse(ds.getHasClinicalData());
 		assertFalse(ds.getHasGeneticData());
 		assertFalse(ds.getHasExpressionData());

@@ -6,17 +6,18 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider.EventType;
 
 public class ProjectMetadataProvider implements TypeSpecificMetadataProvider<Project> {
 
 	@Override
-	public void addTypeSpecificMetadata(Project entity,	HttpServletRequest request, UserInfo user) {
+	public void addTypeSpecificMetadata(Project entity,	HttpServletRequest request, UserInfo user, EventType eventType) {
 		// Add the annotations urls.
 		entity.setAnnotations(UrlHelpers.makeEntityPropertyUri(entity, Annotations.class, request));
 	}
 
 	@Override
-	public void validateEntity(Project entity) {
+	public void validateEntity(Project entity, EventType eventType) {
 
 	}
 

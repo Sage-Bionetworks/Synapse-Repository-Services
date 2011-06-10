@@ -11,13 +11,14 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.StoredLayerPreview;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider.EventType;
 
 public class StoredLayerPreviewMetadataProvider implements
 		TypeSpecificMetadataProvider<StoredLayerPreview> {
 
 	@Override
 	public void addTypeSpecificMetadata(StoredLayerPreview entity,
-			HttpServletRequest request, UserInfo user) {
+			HttpServletRequest request, UserInfo user, EventType eventType) {
 		// Clear the blob and set the string
 		if (entity.getPreviewBlob() != null) {
 			try {
@@ -36,7 +37,7 @@ public class StoredLayerPreviewMetadataProvider implements
 	}
 
 	@Override
-	public void validateEntity(StoredLayerPreview entity) {
+	public void validateEntity(StoredLayerPreview entity, EventType eventType) {
 		// Convert the blob value to the string value
 		if (entity.getPreviewString() != null) {
 			try {
