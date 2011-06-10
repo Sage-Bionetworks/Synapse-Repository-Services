@@ -21,36 +21,24 @@ if('E' != inputLayer$type) {
   skipWorkflowTask('this script only handles expression data')
 }
 
-#----- Download the clinical layer of this dataset because we need it 
-#      as additional input to this script
+#----- Download, unpack, and load the TCGA source data layer
+expressionDataFiles <- getLayerData(inputLayer)
+# TODO load each of the files into R objects
+
+#----- Download, unpack, and load the clinical layer of this dataset  
+#      because we need it as additional input to this script
 datasetLayers <- getPacketLayers(id = inputDatasetId)
-
-# This won't work right now
-#data <- getLayerData(layersObj$C)
-
 clinicalLayer <- datasetLayers$C
 clinicalLayerLocations <- synapseGet(uri = clinicalLayer$locations)
 if(0 == clinicalLayerLocations$totalNumberOfResults) {
 	stop('did not find the clinical dataset location')
 }
 
-location <- clinicalLayerLocations$results[[1]]
-path <- location$path
-download <- synapseDownloadFile(url = path, destfile='fooNow3.zip')
+clinicalDataFiles <- getLayerData(clinicalLayer)
+clinicalData <- read.table(clinicalDataFiles[[4]], sep='\t')
 
-#synapseCacheDir()
-
-# TODO unpack archive
-clinicalFile <- file.path(synapseCacheDir(), 'clinical_patient_public_coad.txt')
-
-#----- Read the clinical and expression data into R objects and do interesting work
-
-clinicalData <- read.table(clinicalFile, sep='\t')
-
-# FIXME
-#expressionData <- read.table(getLocalFilepath(), sep='\t')
-
-# e.g., make a matrix by combining expression and clinical data
+#----- Do interesting work with the clinical and expression data R objects
+#      e.g., make a matrix by combining expression and clinical data
 outputData <- t(clinicalData)
 
 #----- Now we have an analysis result, add the metadata for the new layer 

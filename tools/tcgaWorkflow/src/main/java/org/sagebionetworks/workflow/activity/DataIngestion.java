@@ -8,6 +8,7 @@ import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.sagebionetworks.workflow.UnrecoverableException;
+import org.sagebionetworks.workflow.curation.ConfigHelper;
 
 /**
  * Workflow activities relevant to data ingestion from non-Synapse sources. (Use
@@ -84,6 +85,7 @@ public class DataIngestion {
 			throws IOException, UnrecoverableException,
 			NoSuchAlgorithmException, HttpClientHelperException {
 
+		String localCacheDir = ConfigHelper.createConfig().getLocalCacheDir();
 		String filename;
 		String remoteMd5 = null;
 		try {
@@ -109,7 +111,7 @@ public class DataIngestion {
 			}
 		}
 
-		File dataFile = new File(filename);
+		File dataFile = new File(localCacheDir + "/" + filename);
 		if (dataFile.exists() && dataFile.canRead() && dataFile.isFile()) {
 			// Ensure that the local copy of the file we have cached is the
 			// right one

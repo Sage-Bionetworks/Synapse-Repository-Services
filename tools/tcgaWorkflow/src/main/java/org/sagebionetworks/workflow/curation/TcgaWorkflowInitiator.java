@@ -43,8 +43,29 @@ public class TcgaWorkflowInitiator {
 
 			// TODO configurable includes/excludes for what to pull down
 			if (url.endsWith("tar.gz") && (0 > url.indexOf("image"))) {
-				TcgaWorkflow.doWorkflow("Workflow for TCGA Dataset "
-						+ datasetName, datasetId, url);
+
+				if (url
+						.matches(".*broad.mit.edu_COAD.Genome_Wide_SNP_6.Level_3.76.*")) {
+				
+//				// This one has an MD5 failure
+//				if (url
+//						.matches(".*bcgsc.ca_COAD.IlluminaGA_miRNASeq.Level_3.1.0.0.*")) {
+				
+//				if (url
+//						.matches(".*jhu-usc.edu_COAD.HumanMethylation27.Level_1.4.0.0.*")) {
+				
+//				if (url
+//						.matches(".*bcgsc.ca_COAD.IlluminaGA_miRNASeq.*")) {
+				
+//				if (url
+//						.matches(".*unc.edu_COAD.AgilentG4502A_07_3.Level_3.1.5.0.*")) {
+				
+//				if (url
+//						.matches(".*unc.edu_COAD.AgilentG4502A_07_3.Level_1.1.4.0.*")) {
+					TcgaWorkflow.doWorkflow("Workflow for TCGA Dataset "
+							+ datasetName, datasetId, url);
+					log.info("Kicked off workflow for " + url);
+				}
 
 			}
 		}

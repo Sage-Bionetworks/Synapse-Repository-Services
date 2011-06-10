@@ -23,10 +23,12 @@ import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotatio
 import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotations.ActivityRegistrationOptions;
 import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotations.ActivitySchedulingElement;
 import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotations.ActivitySchedulingOption;
+import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotations.ActivitySchedulingOptions;
 import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotations.Duration;
 import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotations.DurationUnit;
 import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotations.ExponentialRetry;
 import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotations.Workflow;
+import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotations.WorkflowRegistrationOptions;
 
 /**
  * All the activity bodies below are merely stubs. Once the workflow seems
@@ -77,7 +79,8 @@ public class TcgaWorkflow {
 	 * @param tcgaUrl
 	 * @throws Exception
 	 */
-	@Workflow(name = "TcgaWorkflow")
+	@Workflow(name = "TcgaWorkflow", version = "1.2")
+	@WorkflowRegistrationOptions(defaultWorkflowLifetimeTimeout = @Duration(time = 24, unit = DurationUnit.Hours))
 	public static void doWorkflow(String param, Integer datasetId,
 			String tcgaUrl) throws Exception {
 
@@ -164,7 +167,7 @@ public class TcgaWorkflow {
 				rawLayerId);
 	}
 
-	@Activity
+	@Activity(version = "1.2")
 	private static Value<String> doCreateMetadata(String param,
 			Integer datasetId, String tcgaUrl, Settable<Integer> rawLayerId)
 			throws Exception {
@@ -191,8 +194,10 @@ public class TcgaWorkflow {
 				localFilepath, md5);
 	}
 
-	@Activity
-	@ExponentialRetry(minimumAttempts = 5, maximumAttempts = 10)
+	@Activity(version = "1.2")
+	@ExponentialRetry(minimumAttempts = 3, maximumAttempts = 5)
+	@ActivityRegistrationOptions(defaultLifetimeTimeout = @Duration(time = 6, unit = DurationUnit.Hours), taskLivenessTimeout = @Duration(time = 6, unit = DurationUnit.Hours))
+	@ActivitySchedulingOptions(lifetimeTimeout = @Duration(time = 6, unit = DurationUnit.Hours), queueTimeout = @Duration(time = 6, unit = DurationUnit.Hours))
 	private static Value<String> doDownloadDataFromTcga(String param,
 			String tcgaUrl, Settable<String> machineName,
 			Settable<String> localFilepath, Settable<String> md5)
@@ -220,8 +225,10 @@ public class TcgaWorkflow {
 				machineName.get(), localFilepath.get(), md5.get());
 	}
 
-	@Activity
-	@ExponentialRetry(minimumAttempts = 5, maximumAttempts = 10)
+	@Activity(version = "1.2")
+	@ExponentialRetry(minimumAttempts = 3, maximumAttempts = 5)
+	@ActivitySchedulingOptions(lifetimeTimeout = @Duration(time = 6, unit = DurationUnit.Hours), queueTimeout = @Duration(time = 6, unit = DurationUnit.Hours))
+	@ActivityRegistrationOptions(defaultLifetimeTimeout = @Duration(time = 6, unit = DurationUnit.Hours), taskLivenessTimeout = @Duration(time = 6, unit = DurationUnit.Hours))
 	private static Value<String> doUploadLayerToStorage(
 			String param,
 			Integer datasetId,
@@ -232,11 +239,9 @@ public class TcgaWorkflow {
 		// repository service
 		// - upload the data to the pre-signed S3 URL
 		// - set the S3 URL and md5 in the layer metadata
-		
-		
-		// TODO the presign S3 PUT URLs do not work
-		// Storage.doUploadLayerToStorage(datasetId, rawLayerId, localFilepath,
-		// md5);
+
+		Storage.doUploadLayerToStorage(datasetId, rawLayerId, localFilepath,
+				md5);
 
 		return Value.asValue(param + ":UploadLayerToS3");
 	}
@@ -253,13 +258,14 @@ public class TcgaWorkflow {
 				processedLayerId, stdout, stderr);
 	}
 
-	@Activity
+	@Activity(version = "1.2")
 	// TODO ask SWF team why we cannot use a variable here
 	// @ActivityRegistrationOptions(defaultLifetimeTimeout = @Duration(time =
 	// MAX_SCRIPT_EXECUTION_HOURS_TIMEOUT, unit = DurationUnit.Hours),
 	// taskLivenessTimeout = @Duration(time =
 	// MAX_SCRIPT_EXECUTION_HOURS_TIMEOUT, unit = DurationUnit.Hours))
-	@ActivityRegistrationOptions(defaultLifetimeTimeout = @Duration(time = 6, unit = DurationUnit.Hours), taskLivenessTimeout = @Duration(time = 6, unit = DurationUnit.Hours))
+	@ActivityRegistrationOptions(defaultLifetimeTimeout = @Duration(time = 12, unit = DurationUnit.Hours), taskLivenessTimeout = @Duration(time = 12, unit = DurationUnit.Hours))
+	@ActivitySchedulingOptions(lifetimeTimeout = @Duration(time = 12, unit = DurationUnit.Hours), queueTimeout = @Duration(time = 12, unit = DurationUnit.Hours))
 	private static Value<String> doProcessData(
 			String param,
 			String script,
@@ -323,7 +329,7 @@ public class TcgaWorkflow {
 				message);
 	}
 
-	@Activity
+	@Activity(version = "1.2")
 	private static Value<String> doFormulateNotificationMessage(String param,
 			Integer layerId, Settable<String> message) throws Exception {
 		message.set(Curation.formulateLayerCreationMessage(layerId));
@@ -337,13 +343,13 @@ public class TcgaWorkflow {
 		return doNotifyFollower(param, recipient, subject, message);
 	}
 
-	@Activity
+	@Activity(version = "1.2")
 	private static Value<String> doNotifyFollower(Value<String> param,
 			Value<String> recipient, Value<String> subject,
 			Value<String> message) {
 		Notification.doSnsNotifyFollowers(recipient.get(), subject.get(),
 				message.get());
-		return Value.asValue(param + ":NotifyFollowers");
+		return Value.asValue(param.get() + ":NotifyFollowers");
 	}
 
 	/**
