@@ -2,24 +2,28 @@ package org.sagebionetworks.repo.web.controller.metadata;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeQueryDao;
+import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class LayerTypeCountCacheImpl implements LayerTypeCountCache {
+public class LayerTypeCountCacheImpl implements LayerTypeCountCache, InitializingBean {
 	
-	// The single map.
-	static Map<String, Map<String, Long>> MAP = Collections.synchronizedMap(new HashMap<String, Map<String, Long>>());
+	// The singleton map.
+	static Map<String, Long> MAP = Collections.synchronizedMap(new HashMap<String, Long>());
+	
 	@Autowired
 	NodeQueryDao nodeQueryDao;
 
@@ -28,17 +32,13 @@ public class LayerTypeCountCacheImpl implements LayerTypeCountCache {
 		UserInfo.validateUserInfo(userInfo);
 		// First determine if we have a value for this combination.
 		String key = createKey(datasetId, layerType);
-		Map<String, Long> userMap = MAP.get(key);
-		if(userMap == null){
-			userMap = Collections.synchronizedMap(new HashMap<String, Long>());
-			MAP.put(key, userMap);
-		}
-		String userId = userInfo.getUser().getUserId();
-		Long count = userMap.get(userId);
+		Long count = MAP.get(key);
 		if(count == null){
 			BasicQuery query = createQuery(datasetId, layerType);
-			count = nodeQueryDao.executeCountQuery(query, userInfo);
-			userMap.put(userId, count);
+			// For now run this as an administrator
+			UserInfo tempAdmin = new UserInfo(true);
+			count = nodeQueryDao.executeCountQuery(query, tempAdmin);
+			MAP.put(key, count);
 		}
 		return count;
 	}
@@ -97,4 +97,30 @@ public class LayerTypeCountCacheImpl implements LayerTypeCountCache {
 		return query;
 	}
 
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		// Warm up the cache on startup.
+		UserInfo tempAdmin = new UserInfo(true);
+		BasicQuery query = new BasicQuery();
+		query.setFrom(ObjectType.dataset);
+		query.setLimit(Long.MAX_VALUE);
+		query.setOffset(0);
+		try{
+			// Look at all datasets
+			NodeQueryResults results = nodeQueryDao.executeQuery(query, tempAdmin);
+			if(results != null){
+				List<String> datasetIds = results.getResultIds();
+				if(datasetIds != null){
+					for(String datasetId: datasetIds){
+						for(LayerTypeNames type: LayerTypeNames.values()){
+							this.getCountFor(datasetId, type, tempAdmin);
+						}
+					}
+				}
+			}
+		}catch(Throwable e){
+			// Skip the warmup if there is a problem.
+		}
+		
+	}
 }

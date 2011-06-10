@@ -9,6 +9,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider.EventType;
 
 public class ProjectMetadataProviderTest {
 	
@@ -31,7 +32,7 @@ public class ProjectMetadataProviderTest {
 	public void testValidate(){
 		ProjectMetadataProvider provider = new ProjectMetadataProvider();
 		// Add more here.
-		provider.validateEntity(mockProject);;
+		provider.validateEntity(mockProject, EventType.GET);;
 	}
 	
 	@Test
@@ -40,7 +41,7 @@ public class ProjectMetadataProviderTest {
 		// Mock the dataset and the request
 		Project project = new Project();
 		project.setId("101");
-		provider.addTypeSpecificMetadata(project, mockRequest, null);
+		provider.addTypeSpecificMetadata(project, mockRequest, null, EventType.GET);
 		assertEquals("/repo/v1/project/101/annotations", project.getAnnotations());
 	}
 

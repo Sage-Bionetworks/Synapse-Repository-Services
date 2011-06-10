@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider.EventType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMethod;
 
@@ -23,7 +24,7 @@ public class LayerLocationMetadataProvider implements
 
 	@Override
 	public void addTypeSpecificMetadata(LayerLocation entity,
-			HttpServletRequest request, UserInfo user) throws DatastoreException,
+			HttpServletRequest request, UserInfo user, EventType eventType) throws DatastoreException,
 			NotFoundException {
 
 		// Special handling for S3 locations
@@ -60,7 +61,7 @@ public class LayerLocationMetadataProvider implements
 	}
 
 	@Override
-	public void validateEntity(LayerLocation entity)
+	public void validateEntity(LayerLocation entity, EventType eventType)
 			throws InvalidModelException {
 		if (null == entity.getParentId()) {
 			throw new InvalidModelException("parentId cannot be null");

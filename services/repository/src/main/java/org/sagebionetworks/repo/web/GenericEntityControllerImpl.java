@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.util.SchemaHelper;
 import org.sagebionetworks.repo.web.controller.MetadataProviderFactory;
 import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider;
+import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider.EventType;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -118,7 +119,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// Fetch each entity
 		List<T> entityList = new ArrayList<T>();
 		for(String id: nodeResults.getResultIds()){
-			T entity = this.getEntity(userInfo, id, request, clazz);
+			T entity = this.getEntity(userInfo, id, request, clazz, EventType.GET);
 			entityList.add(entity);
 		}
 		return new PaginatedResults<T>(request.getServletPath()
@@ -131,7 +132,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return getEntity(userInfo, entityId, request, clazz);
+		return getEntity(userInfo, entityId, request, clazz, EventType.GET);
 	}
 	
 	/**
@@ -146,7 +147,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Nodeable> T getEntity(UserInfo info, String id, HttpServletRequest request, Class<? extends T> clazz) throws NotFoundException, DatastoreException, UnauthorizedException{
+	public <T extends Nodeable> T getEntity(UserInfo info, String id, HttpServletRequest request, Class<? extends T> clazz, EventType eventType) throws NotFoundException, DatastoreException, UnauthorizedException{
 		// Determine the object type from the url.
 		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
 		// Fetch the provider that will validate this entity.
@@ -159,7 +160,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// Add the type specific metadata that is common to all objects.
 		addServiceSpecificMetadata(entity, request);
 		// Add the type specific metadata.
-		provider.addTypeSpecificMetadata(entity, request, info);
+		provider.addTypeSpecificMetadata(entity, request, info, eventType);
 		return entity;
 	}
 
@@ -174,12 +175,12 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		@SuppressWarnings("unchecked")
 		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>)metadataProviderFactory.getMetadataProvider(type);
 		// Validate the entity
-		provider.validateEntity(newEntity);
+		provider.validateEntity(newEntity, EventType.CREATE);
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		String id = entityManager.createEntity(userInfo, newEntity);
 		// Return the resulting entity.
-		return getEntity(userInfo, id, request, clazz);
+		return getEntity(userInfo, id, request, clazz, EventType.CREATE);
 	}
 
 	@Override
@@ -196,7 +197,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		@SuppressWarnings("unchecked")
 		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>)metadataProviderFactory.getMetadataProvider(type);
 		// First validate this change
-		provider.validateEntity(updatedEntity);
+		provider.validateEntity(updatedEntity, EventType.UPDATE);
 		// Keep the entity id
 		String entityId = updatedEntity.getId();
 		// Get the user
@@ -204,7 +205,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// Now do the update
 		entityManager.updateEntity(userInfo, updatedEntity);
 		// Return the udpated entity
-		return getEntity(userInfo, entityId, request, clazz);
+		return getEntity(userInfo, entityId, request, clazz, EventType.UPDATE);
 	}
 	
 	@Override
@@ -417,7 +418,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		for(String id: ids){
 			EntityWithAnnotations<T> entityWithAnnos;
 			try {
-				T entity = this.getEntity(userInfo, id, request, clazz);
+				T entity = this.getEntity(userInfo, id, request, clazz, EventType.GET);
 				Annotations annos = this.getEntityAnnotations(userInfo, id, request);
 				entityWithAnnos = new EntityWithAnnotations<T>();
 				entityWithAnnos.setEntity(entity);

@@ -13,6 +13,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.StoredLayerPreview;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider.EventType;
 
 /**
  * 
@@ -82,7 +83,7 @@ public class StoredLayerPreviewMetadataProviderTest {
 		StoredLayerPreview preview = new StoredLayerPreview();
 		preview.setPreviewString(previewString);
 		StoredLayerPreviewMetadataProvider provider = new StoredLayerPreviewMetadataProvider();
-		provider.validateEntity(preview);
+		provider.validateEntity(preview, EventType.GET);
 		assertNotNull(preview.getPreviewBlob());
 		assertEquals(previewString, new String(preview.getPreviewBlob(), "UTF-8"));
 		assertTrue(preview.getPreviewString() == null);
@@ -93,7 +94,7 @@ public class StoredLayerPreviewMetadataProviderTest {
 		StoredLayerPreview preview = new StoredLayerPreview();
 		preview.setPreviewBlob(previewString.getBytes("UTF-8"));
 		StoredLayerPreviewMetadataProvider provider = new StoredLayerPreviewMetadataProvider();
-		provider.addTypeSpecificMetadata(preview, mockRequest, mockUser);
+		provider.addTypeSpecificMetadata(preview, mockRequest, mockUser, EventType.GET);
 		assertTrue(preview.getPreviewBlob() == null);
 		assertEquals(previewString, preview.getPreviewString());
 		assertNotNull(preview.getHeaders());
