@@ -50,6 +50,7 @@ public class ConfigHelper {
 	private static final String SNS_TOPIC_KEY = "sns.topic";
 	private static final String S3_BUCKET_KEY = "s3.bucket";
 	private static final String SCRIPT_TIMEOUT_KEY = "max.script.execution.hours.timeout";
+	private static final String LOCAL_CACHE_DIR = "local.cache.dir";
 
 	private String synapseRepoEndpoint;
 	private String synapseAuthEndpoint;
@@ -60,6 +61,7 @@ public class ConfigHelper {
 	private String snsTopic;
 	private String s3Bucket;
 	private int maxScriptExecutionHoursTimeout;
+	private String localCacheDir;
 
 	private String synapseUsername;
 	private String synapsePassword;
@@ -96,6 +98,7 @@ public class ConfigHelper {
 		snsTopic = serviceProperties.getProperty(SNS_TOPIC_KEY);
 		s3Bucket = serviceProperties.getProperty(S3_BUCKET_KEY);
 		maxScriptExecutionHoursTimeout = Integer.parseInt(serviceProperties.getProperty(SCRIPT_TIMEOUT_KEY));
+		localCacheDir = serviceProperties.getProperty(LOCAL_CACHE_DIR);
 
 		// These come from the environment, not a config file so that we do not
 		// check credentials into source control
@@ -204,6 +207,13 @@ public class ConfigHelper {
 	 */
 	public int getMaxScriptExecutionHoursTimeout() {
 		return maxScriptExecutionHoursTimeout;
+	}
+
+	/**
+	 * @return the localCacheDir
+	 */
+	public String getLocalCacheDir() {
+		return localCacheDir;
 	}
 
 	/**

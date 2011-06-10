@@ -46,8 +46,6 @@ public class Storage {
 //		JSONObject layer = synapse.getEntity("/layer/" + layerId);
 //		JSONObject location = synapse.getEntity(uri)if(layer.has("locations"))
 		
-		
-		
 		File file = new File(localFilepath);
 		String s3Path = file.getName();
 
