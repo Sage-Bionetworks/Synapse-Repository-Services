@@ -76,4 +76,10 @@ public class LayerLocationMetadataProvider implements
 		}
 	}
 
+	@Override
+	public void entityDeleted(LayerLocation deleted) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

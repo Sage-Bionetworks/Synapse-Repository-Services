@@ -35,4 +35,10 @@ public class StoredLayerPreviewMetadataProvider implements TypeSpecificMetadataP
 		}
 	}
 
+	@Override
+	public void entityDeleted(StoredLayerPreview deleted) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

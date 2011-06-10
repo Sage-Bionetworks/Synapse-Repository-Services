@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseChild;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
@@ -43,6 +44,17 @@ public interface EntityManager {
 	 * @throws NotFoundException 
 	 */
 	public <T extends Base> T getEntity(UserInfo userInfo, String entityId, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	/**
+	 * Get the type of an entity
+	 * @param userInfo
+	 * @param entityId
+	 * @return
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public ObjectType getEntityType(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * Get the children of of an entity.

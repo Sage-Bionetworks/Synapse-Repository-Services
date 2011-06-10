@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.FieldType;
@@ -377,6 +378,13 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public Set<Node> getChildren(UserInfo userInfo, String parentId) throws NotFoundException {
 		return nodeDao.getChildren(parentId);
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public ObjectType getNodeType(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
+		Node node = get(userInfo, nodeId);
+		return ObjectType.valueOf(node.getNodeType());
 	}
 
 }
