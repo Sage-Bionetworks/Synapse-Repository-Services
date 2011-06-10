@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.model;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -28,6 +29,10 @@ public class StoredLayerPreview implements BaseChild {
 	private String annotations;
 	@TransientField
 	private String accessControlList;
+	@TransientField
+	private String[] headers;
+	@TransientField
+	private List<Map<String, String>> rows;
 
 	/** 
 	 * The following members are set by the service layer and should not be persisted.
@@ -120,18 +125,6 @@ public class StoredLayerPreview implements BaseChild {
 	public void setAnnotations(String annotations) {
 		this.annotations = annotations;
 	}
-	/**
-	 * Set a preview from a string
-	 * @param preview
-	 * @throws UnsupportedEncodingException
-	 */
-	public void setPreviewAsString(String preview) throws UnsupportedEncodingException{
-		if(preview == null){
-			this.previewBlob = null;
-		}else{
-			this.previewBlob = preview.getBytes("UTF-8");
-		}
-	}
 	
 	public String getPreviewString() {
 		return previewString;
@@ -141,20 +134,6 @@ public class StoredLayerPreview implements BaseChild {
 		this.previewString = previewString;
 	}
 
-	/**
-	 * Get the preview as a string.
-	 * @return
-	 * @throws UnsupportedEncodingException
-	 */
-	public String getPreviewAsString() throws UnsupportedEncodingException{
-		if(this.previewBlob == null){
-			return null;
-		}else{
-			return new String(this.previewBlob, "UTF-8");
-		}
-	}
-
-	
 	public String getAccessControlList() {
 		return accessControlList;
 	}
@@ -176,11 +155,15 @@ public class StoredLayerPreview implements BaseChild {
 		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
+		result = prime * result + Arrays.hashCode(headers);
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
 				+ ((parentId == null) ? 0 : parentId.hashCode());
 		result = prime * result + Arrays.hashCode(previewBlob);
+		result = prime * result
+				+ ((previewString == null) ? 0 : previewString.hashCode());
+		result = prime * result + ((rows == null) ? 0 : rows.hashCode());
 		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
 		return result;
 	}
@@ -214,6 +197,8 @@ public class StoredLayerPreview implements BaseChild {
 				return false;
 		} else if (!etag.equals(other.etag))
 			return false;
+		if (!Arrays.equals(headers, other.headers))
+			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
@@ -231,6 +216,16 @@ public class StoredLayerPreview implements BaseChild {
 			return false;
 		if (!Arrays.equals(previewBlob, other.previewBlob))
 			return false;
+		if (previewString == null) {
+			if (other.previewString != null)
+				return false;
+		} else if (!previewString.equals(other.previewString))
+			return false;
+		if (rows == null) {
+			if (other.rows != null)
+				return false;
+		} else if (!rows.equals(other.rows))
+			return false;
 		if (uri == null) {
 			if (other.uri != null)
 				return false;
@@ -239,13 +234,31 @@ public class StoredLayerPreview implements BaseChild {
 		return true;
 	}
 
+	public String[] getHeaders() {
+		return headers;
+	}
+
+	public void setHeaders(String[] headers) {
+		this.headers = headers;
+	}
+
+	public List<Map<String, String>> getRows() {
+		return rows;
+	}
+
+	public void setRows(List<Map<String, String>> rows) {
+		this.rows = rows;
+	}
+
 	@Override
 	public String toString() {
 		return "StoredLayerPreview [id=" + id + ", uri=" + uri + ", etag="
 				+ etag + ", name=" + name + ", creationDate=" + creationDate
 				+ ", parentId=" + parentId + ", previewBlob="
-				+ Arrays.toString(previewBlob) + ", annotations=" + annotations
-				+ ", accessControlList=" + accessControlList + "]";
+				+ Arrays.toString(previewBlob) + ", previewString="
+				+ previewString + ", annotations=" + annotations
+				+ ", accessControlList=" + accessControlList + ", headers="
+				+ Arrays.toString(headers) + ", rows=" + rows + "]";
 	}
 
 }
