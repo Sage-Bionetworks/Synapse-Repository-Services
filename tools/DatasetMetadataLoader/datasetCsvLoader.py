@@ -8,6 +8,8 @@ import os, csv, json, re, string, datetime, urllib, httplib, ConfigParser, itert
 #-------[ Documentation embedded in Command Line Arguments ]----------------
 parser = synapse.utils.createBasicArgParser('Tool to load metadata into a Sage Platform Repository Service.  Note that this script always create instance of a dataset in the repository service (the repository service does not enforce uniqueness of dataset names).  Use the datasetNuker.py script first if you want to start with a clean datastore.')
 
+synapse.client.addArguments(parser)
+
 parser.add_argument('--datasetsCsv', '-d', help='the file path to the CSV file holding dataset metadata, defaults to AllDatasets.csv', default='AllDatasets.csv')
 
 parser.add_argument('--layersCsv', '-l', help='the file path to the CSV file holding layer metadata, defaults to AllDatasetLayerLocations.csv', default='AllDatasetLayerLocations.csv')
@@ -15,12 +17,6 @@ parser.add_argument('--layersCsv', '-l', help='the file path to the CSV file hol
 parser.add_argument('--md5sumCsv', '-m', help='the file path to the CSV file holding the md5sums for files, defaults to ../platform.md5sums.csv', default='../platform.md5sums.csv')
 
 parser.add_argument('--fakeLocalData', '-f', help='use fake data when we would normally read something from the actual Sage Bionetworks datasets, defaults to False', action='store_true', default=False)
-
-parser.add_argument('--user', '-u', help='user (email name)', default='administrator')
-
-parser.add_argument('--password', '-p', help='password', default='password')
-
-synapse.client.addArguments(parser)
 
 #-------------------[ Constants ]----------------------
 
@@ -256,7 +252,7 @@ def loadLayers():
                 elif(gARGS.fakeLocalData):
                     location["md5sum"] = '0123456789ABCDEF0123456789ABCDEF'
                 gSYNAPSE.createRepoEntity("/location", location)
-                print 'Created location %s for %s\n' % (layer["type"], row[0])
+                #print 'Created location %s for %s\n' % (layer["type"], row[0])
         
         layerPreview = {}
         

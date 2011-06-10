@@ -6,15 +6,20 @@ import os, json, re, string, datetime, pwd, urllib, httplib, ConfigParser, argpa
 
 #-------[ Documentation embedded in Command Line Arguments ]----------------
 parser = synapse.utils.createBasicArgParser('Tool to nuke all datasets currently stored in the repository service.  You might run this prior to datasetCsvLoader.py.')
-
 synapse.client.addArguments(parser)
 
 #--------------------[ Main ]-----------------------------
 
 args = parser.parse_args()
 synapse = synapse.client.factory(args)
-allDatasets = synapse.getEntity("/dataset?limit=500");
+synapse.authenticate(args.user, args.password)
+
+allProjects = synapse.getRepoEntity("/project?limit=100");
+for project in allProjects["results"]:
+    print "About to nuke: " + project["uri"]
+    synapse.deleteRepoEntity(project["uri"])
+    
+allDatasets = synapse.getRepoEntity("/dataset?limit=500");
 for dataset in allDatasets["results"]:
     print "About to nuke: " + dataset["uri"]
-    synapse.deleteEntity(dataset["uri"])
-    
+    synapse.deleteRepoEntity(dataset["uri"])
