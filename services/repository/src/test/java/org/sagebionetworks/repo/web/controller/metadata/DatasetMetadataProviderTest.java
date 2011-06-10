@@ -257,7 +257,7 @@ public class DatasetMetadataProviderTest {
 		assertTrue(ds.getHasExpressionData());
 		
 		// now start deleting
-		entityController.deleteEntity(userName, clinicalId);
+		entityController.deleteEntity(userName, clinicalId, InputDataLayer.class);
 		
 		// We should now have a expression and genetic
 		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser);
@@ -266,7 +266,7 @@ public class DatasetMetadataProviderTest {
 		assertTrue(ds.getHasExpressionData());
 		
 		// Delete expression
-		entityController.deleteEntity(userName, expressionId);
+		entityController.deleteEntity(userName, expressionId, InputDataLayer.class);
 		
 		// We should now have a genetic
 		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser);
@@ -275,7 +275,7 @@ public class DatasetMetadataProviderTest {
 		assertFalse(ds.getHasExpressionData());
 		
 		// Delete genetic
-		entityController.deleteEntity(userName, geneticId);
+		entityController.deleteEntity(userName, geneticId, InputDataLayer.class);
 		// Now all should be false
 		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser);
 		assertFalse(ds.getHasClinicalData());

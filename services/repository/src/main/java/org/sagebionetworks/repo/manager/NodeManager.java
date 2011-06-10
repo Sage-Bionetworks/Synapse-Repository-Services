@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ConflictingUpdateException;
@@ -114,5 +115,16 @@ public interface NodeManager {
 	 * @throws NotFoundException 
 	 */
 	public Set<Node> getChildren(UserInfo userInfo, String parentId) throws NotFoundException;
+
+	/**
+	 * Get the node type of an entity
+	 * @param userInfo
+	 * @param entityId
+	 * @return
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public ObjectType getNodeType(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 }

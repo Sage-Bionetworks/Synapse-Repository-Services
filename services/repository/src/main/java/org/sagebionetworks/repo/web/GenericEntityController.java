@@ -179,8 +179,18 @@ public interface GenericEntityController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public  void deleteEntity(String userId, String id)
+	public <T extends Nodeable> void deleteEntity(String userId, String id, Class<? extends T> clazz)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
+
+	/**
+	 * Delete an entity using only its id.  This means we must lookup the type.
+	 * @param userId
+	 * @param id
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public void deleteEntity(String userId, String id) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Get the schema for an entity<p>

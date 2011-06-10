@@ -206,15 +206,33 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// Return the udpated entity
 		return getEntity(userInfo, entityId, request, clazz);
 	}
-
+	
 	@Override
 	public void deleteEntity(String userId, String id)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+
+		String entityId = UrlHelpers.getEntityIdFromUriId(id);
+
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		ObjectType type = entityManager.getEntityType(userInfo, id);
+		deleteEntity(userId, entityId, type.getClassForType());
+	}
+
+	@Override
+	public <T extends Nodeable> void deleteEntity(String userId, String id, Class<? extends T> clazz)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		String entityId = UrlHelpers.getEntityIdFromUriId(id);
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
+		// First get the entity we are deleting
+		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		// Fetch the provider that will validate this entity.
+		@SuppressWarnings("unchecked")
+		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>) metadataProviderFactory.getMetadataProvider(type);
+		T entity = entityManager.getEntity(userInfo, entityId, clazz);
 		entityManager.deleteEntity(userInfo, entityId);
-
+		// Do extra cleanup as needed.
+		provider.entityDeleted(entity);
 		return;
 	}
 

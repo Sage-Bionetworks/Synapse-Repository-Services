@@ -12,6 +12,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -99,7 +100,7 @@ public class LayerControllerTest {
 		assertEquals(1, allDatasets.getInt("totalNumberOfResults"));
 
 		JSONObject newLayer = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString("id")));
+				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString(NodeConstants.COL_ID)));
 		assertExpectedLayerProperties(newLayer);
 		// Check required properties
 		assertEquals("DeLiver expression data", newLayer.getString("name"));
@@ -132,13 +133,13 @@ public class LayerControllerTest {
 	public void testGetLayer() throws Exception {
 
 		JSONObject newLayer = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString("id")));
+				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString(NodeConstants.COL_ID)));
 
 		// Get the layer
 		JSONObject results = helper
 				.testGetJsonEntity(newLayer.getString("uri"));
 
-		assertEquals(newLayer.getString("id"), results.getString("id"));
+		assertEquals(newLayer.getString(NodeConstants.COL_ID), results.getString(NodeConstants.COL_ID));
 		assertEquals("DeLiver expression data", results.getString("name"));
 
 		assertExpectedLayerProperties(results);
@@ -155,11 +156,11 @@ public class LayerControllerTest {
 	public void testUpdateLayer() throws Exception {
 
 		JSONObject newLayer = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString("id")));
+				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString(NodeConstants.COL_ID)));
 		// Get the layer
 		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
 
-		assertEquals(newLayer.getString("id"), layer.getString("id"));
+		assertEquals(newLayer.getString(NodeConstants.COL_ID), layer.getString(NodeConstants.COL_ID));
 		assertEquals("DeLiver expression data", layer.getString("name"));
 
 		// Modify that layer
@@ -188,7 +189,7 @@ public class LayerControllerTest {
 	public void testDeleteLayer() throws Exception {
 
 		JSONObject newLayer = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString("id")));
+				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString(NodeConstants.COL_ID)));
 
 		try {
 			helper.testDeleteJsonEntity(newLayer.getString("uri"));
@@ -211,18 +212,18 @@ public class LayerControllerTest {
 				.testCreateJsonEntity(helper.getServletPrefix()
 						+"/layer",
 						"{\"name\":\"DeLiver genetic data\", \"type\":\"G\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\", \"parentId\":\""+dataset.getString("id")+"\"}");
+								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\", \"parentId\":\""+dataset.getString(NodeConstants.COL_ID)+"\"}");
 		helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString("id")));
+				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString(NodeConstants.COL_ID)));
 		helper
 				.testCreateJsonEntity(helper.getServletPrefix()
 						+"/layer",
 						"{\"name\":\"DeLiver clinical data\", \"type\":\"C\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\", \"parentId\":\""+dataset.getString("id")+"\"}");
+								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\", \"parentId\":\""+dataset.getString(NodeConstants.COL_ID)+"\"}");
 
 		JSONObject results = helper.testGetJsonEntities(helper
 				.getServletPrefix()
-				+ "/dataset/" + dataset.getString("id") + "/layer", null, null,
+				+ "/dataset/" + dataset.getString(NodeConstants.COL_ID) + "/layer", null, null,
 				null, null);
 		assertEquals(3, results.getInt("totalNumberOfResults"));
 		assertEquals(3, results.getJSONArray("results").length());
@@ -281,7 +282,7 @@ public class LayerControllerTest {
 		JSONObject error = helper
 				.testCreateJsonEntityShouldFail(helper.getServletPrefix()
 						+"/layer",
-						"{\"version\": \"1.0.0\", \"description\": \"foo\", \"releaseNotes\":\"bar\"}",
+						"{\"version\": \"1.0.0\", \"description\": \"foo\", \"releaseNotes\":\"bar\", \"type\":\"C\", \"parentId\":\"1\"}",
 						HttpStatus.BAD_REQUEST);
 
 		assertEquals("Node.name cannot be null", error
@@ -308,7 +309,7 @@ public class LayerControllerTest {
 
 		// Get that layer
 		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
-		assertEquals(newLayer.getString("id"), layer.getString("id"));
+		assertEquals(newLayer.getString(NodeConstants.COL_ID), layer.getString(NodeConstants.COL_ID));
 		assertEquals("MouseCross clinical data", layer.getString("name"));
 
 		// Modify that layer to make it invalid
@@ -334,11 +335,12 @@ public class LayerControllerTest {
 				.testCreateJsonEntity(helper.getServletPrefix()
 						+"/layer",
 						"{\"name\":\"MouseCross genetic data\", \"type\":\"C\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\", \"parentId\":\"" +dataset.getString(NodeConstants.COL_ID)+
+										"\"}");
 
 		// Get that layer
 		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
-		assertEquals(newLayer.getString("id"), layer.getString("id"));
+		assertEquals(newLayer.getString(NodeConstants.COL_ID), layer.getString(NodeConstants.COL_ID));
 		assertEquals("MouseCross genetic data", layer.getString("name"));
 
 		// Modify that layer
@@ -370,7 +372,7 @@ public class LayerControllerTest {
 	@Test
 	public void testGetNonExistentLayer() throws Exception {
 		JSONObject results = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString("id")));
+				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString(NodeConstants.COL_ID)));
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 
@@ -391,7 +393,7 @@ public class LayerControllerTest {
 	@Test
 	public void testUpdateNonExistentLayer() throws Exception {
 		JSONObject results = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString("id")));
+				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString(NodeConstants.COL_ID)));
 		helper.testDeleteJsonEntity(results.getString("uri"));
 
 		JSONObject error = helper.testUpdateJsonEntityShouldFail(results,
@@ -411,7 +413,7 @@ public class LayerControllerTest {
 	@Test
 	public void testDeleteNonExistentLayer() throws Exception {
 		JSONObject results = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString("id")));
+				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString(NodeConstants.COL_ID)));
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 

@@ -20,4 +20,10 @@ public class ProjectMetadataProvider implements TypeSpecificMetadataProvider<Pro
 
 	}
 
+	@Override
+	public void entityDeleted(Project deleted) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

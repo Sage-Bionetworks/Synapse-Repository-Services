@@ -5,8 +5,8 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -20,7 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dataset>{
 	
 	@Autowired
-	NodeQueryDao nodeQueryDao;
+	LayerTypeCountCache layerTypeCountCache;
 
 	/**
 	 * This should add the url to this datasets annotations.  And a link to this datasets layers
@@ -35,16 +35,13 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 		// We need to set the hasClinical, hasExpression, and hasGenetic
 		// Note: this addresses bug PLFM-185
 		// Count the clinical layers
-		BasicQuery query = createHasClinicalQuery(entity.getId());
-		long count = nodeQueryDao.executeCountQuery(query, user);
+		long count = layerTypeCountCache.getCountFor(entity.getId(), LayerTypeNames.C, user);
 		entity.setHasClinicalData(count > 0);
 		// Count the Expression layers
-		query = createHasExpressionQuery(entity.getId());
-		count = nodeQueryDao.executeCountQuery(query, user);
+		count = layerTypeCountCache.getCountFor(entity.getId(), LayerTypeNames.E, user);
 		entity.setHasExpressionData(count > 0);
 		// Count the Expression layers
-		query = createHasGeneticQuery(entity.getId());
-		count = nodeQueryDao.executeCountQuery(query, user);
+		count = layerTypeCountCache.getCountFor(entity.getId(), LayerTypeNames.G, user);
 		entity.setHasGeneticData(count > 0);
 	}
 	
@@ -108,6 +105,14 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 	public void validateEntity(Dataset entity) {
 		if(entity.getVersion() == null){
 			entity.setVersion("1.0.0");
+		}
+	}
+
+	@Override
+	public void entityDeleted(Dataset entity) {
+		// Clear the cache for this dataset
+		if(entity != null){
+			layerTypeCountCache.clearCacheFor(entity.getId());
 		}
 	}
 

@@ -38,6 +38,8 @@
 	<bean id="userDAOImpl" class="org.sagebionetworks.authutil.CrowdUserDAO" scope="singleton"/>
 	
 	<bean id="accessControlListDAO" class="org.sagebionetworks.repo.model.jdo.JDOAccessControlListDAOImpl" scope="singleton"/>
+	
+	<bean id="layerTypeCountCache" class="org.sagebionetworks.repo.web.controller.metadata.LayerTypeCountCacheImpl" scope="singleton"/>
 		
 	<bean id="datasetMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.DatasetMetadataProvider" scope="singleton"/>
 	<bean id="inputDataLayerProvider" class="org.sagebionetworks.repo.web.controller.metadata.InputDataLayerMetadataProvider" scope="singleton"/>

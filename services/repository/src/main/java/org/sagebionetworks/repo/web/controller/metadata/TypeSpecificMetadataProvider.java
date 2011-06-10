@@ -43,5 +43,11 @@ public interface TypeSpecificMetadataProvider<T extends Base> {
 	 * @throws UnauthorizedException 
 	 */
 	public void addTypeSpecificMetadata(T entity, HttpServletRequest request, UserInfo user) throws DatastoreException, NotFoundException, UnauthorizedException;
+	
+	/**
+	 * Called when an entity is deleted.
+	 * @param entity
+	 */
+	public void entityDeleted(T deleted);
 
 }

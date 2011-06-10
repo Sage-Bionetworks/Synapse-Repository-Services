@@ -248,10 +248,12 @@ public class DefaultController extends BaseController {
 			}, method = RequestMethod.DELETE)
 	public void deleteEntity(
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String id) throws NotFoundException,
+			@PathVariable String id,
+			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		// Determine the object type from the url.
-		entityController.deleteEntity(userId, id);
+		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+		entityController.deleteEntity(userId, id, type.getClassForType());
 		return;
 	}
 

@@ -193,4 +193,10 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 
+	@Override
+	public ObjectType getEntityType(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException {
+		return nodeManager.getNodeType(userInfo, entityId);
+	}
+
+
 }
