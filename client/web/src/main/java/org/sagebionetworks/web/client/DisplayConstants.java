@@ -49,6 +49,15 @@ public class DisplayConstants {
 	public static final String SERVICE_LAYER_TYPE_KEY = "type";
 	
 	public static final String SERVICE_HEADER_ETAG_KEY = "ETag";
-	
+	public static final String SHARING_PANEL_TITLE = "Sharing Settings";
+	public static final String SHARING_PANEL_EXISTING_LABEL = "Permissions";
+	public static final String PERMISSION_LEVEL_IS_OWNER = "Is Owner";
+	public static final String PERMISSION_LEVEL_CAN_VIEW = "Can view";
+	public static final String PERMISSION_LEVEL_CAN_EDIT = "Can edit";
+	public static final String PERMISSION_LEVEL_CAN_ADMINISTER = "Administrator";
+	public static final String PERMISSIONS_INHERITED_TEXT = "Pemissions not editable as they are being inherited by this resource's parent. (ex: A layer inheriting a dataset's permissions)";
+	public static final String PERMISSIONS_CREATE_NEW_ACL = "Create Local Sharing Settings";
+	public static final String PERMISSIONS_CREATE_NEW_ACL_TEXT = "By creating local sharing settings you ignore the permissions that are inherited from its parent.";
+	public static final String PERMISSION_TEXT_ADD_PEOPLE = "Add People";
 	
 }

@@ -325,7 +325,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	
 		
 		// create security access panel
-		createAccessPanel();
+		createAccessPanel(id);
 		// create admin panel if user is authorized
 		createAdminPanel(id);
 		
@@ -474,9 +474,9 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		return menu;
 	}
 
-	private void createAccessPanel() {		
+	private void createAccessPanel(String id) {		
 		// TODO : get access level from Authorization service
-		AccessLevel accessLevel = AccessLevel.PUBLIC;		
+		AccessLevel accessLevel = AccessLevel.SHARED;		
 		ImageResource icon = null;
 		if(accessLevel == AccessLevel.PUBLIC) {
 			icon = iconsImageBundle.lockUnlocked16();
@@ -485,6 +485,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		}		
 
 		if(userIsAdmin) {		
+			accessMenuButton.setResource(NodeType.DATASET, id);
 			accessMenuButton.setAccessLevel(accessLevel);
 			accessPanel.clear();
 			accessPanel.add(accessMenuButton.asWidget());

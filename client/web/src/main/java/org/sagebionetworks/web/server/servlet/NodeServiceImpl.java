@@ -1,11 +1,16 @@
 package org.sagebionetworks.web.server.servlet;
 
+import java.util.List;
 import java.util.logging.Logger;
 
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.services.NodeService;
 import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.shared.NodeType;
+import org.sagebionetworks.web.shared.users.AclAccessType;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -36,8 +41,8 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 	public static final String PATH_PROJECT = "project";
 	public static final String ANNOTATIONS_PATH = "annotations";
 	
-	public static final String PATH_SCHEMA = "schema"; 
-	
+	public static final String PATH_SCHEMA = "schema";
+	public static final String PATH_ACL = "acl"; 	
 	
 	private RestTemplateProvider templateProvider = null;
 	private ServiceUrlProvider urlProvider;
@@ -244,6 +249,130 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 
 	}
 
+
+	@Override
+	public String getNodeAclJSON(NodeType type, String id) {
+		// Build up the path
+		StringBuilder builder = getBaseUrlBuilder(type);
+		builder.append("/" + id);
+		builder.append("/" + PATH_ACL);
+		String url = builder.toString();	
+		return getJsonStringForUrl(url, HttpMethod.GET);
+	}
+
+	@Override
+	public String createAcl(NodeType type, String id, String userGroupId, List<AclAccessType> accessTypes) {
+		// First make sure the service is ready to go.
+		validateService();
+		
+		// Build up the path
+		StringBuilder builder = getBaseUrlBuilder(type);
+		builder.append("/" + id);
+		builder.append("/" + PATH_ACL);
+		String url = builder.toString();		
+		
+		// convert 
+		JSONObject obj = new JSONObject();
+		try {
+			obj.put("resourceId", id);
+			if(userGroupId != null && accessTypes != null) {
+				JSONArray accesses = new JSONArray();
+				JSONObject accessObj = new JSONObject();
+				accessObj.put("userGroupId", userGroupId);
+				for(AclAccessType accessType : accessTypes) {
+					accessObj.put("accessType", accessType.toString());
+				}
+				accesses.put(accessObj);				
+				obj.put("resourceAccess", accesses);
+			}
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		String requestJson = obj.toString();
+		
+		// Setup the header
+		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<String>(requestJson, headers);
+		HttpMethod method = HttpMethod.POST;
+		
+		logger.info(method.toString() + ": " + url + ", JSON: " + requestJson);
+
+		// Make the actual call.
+		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class);
+
+		if (response.getStatusCode() == HttpStatus.OK) {
+			return response.getBody();
+		} else {
+			throw new RestClientException("Status code:" + response.getStatusCode().value());
+		}
+	}
+
+	@Override
+	public String updateAcl(NodeType type, String id, String aclJson, String etag) {
+		// First make sure the service is ready to go.
+		validateService();
+		
+		// Build up the path
+		StringBuilder builder = getBaseUrlBuilder(type);
+		builder.append("/" + id);
+		builder.append("/" + PATH_ACL);
+		String url = builder.toString();		
+		
+		// Setup the header
+		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		headers.set(DisplayConstants.SERVICE_HEADER_ETAG_KEY, etag);
+		HttpEntity<String> entity = new HttpEntity<String>(aclJson, headers);		
+		HttpMethod method = HttpMethod.PUT;
+		
+		logger.info(method.toString() + ": " + url + ", JSON: " + aclJson);
+
+		// Make the actual call.
+		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class);
+
+		if (response.getStatusCode() == HttpStatus.OK) {
+			return response.getBody();
+		} else {
+			throw new RestClientException("Status code:" + response.getStatusCode().value());
+		}
+	}
+
+	@Override
+	public String deleteAcl(NodeType type, String id) {
+		// First make sure the service is ready to go.
+		validateService();
+		
+		// Build up the path
+		StringBuilder builder = getBaseUrlBuilder(type);
+		builder.append("/" + id);
+		builder.append("/" + PATH_ACL);
+		String url = builder.toString();		
+		
+		// Setup the header
+		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<String>("", headers);		
+		HttpMethod method = HttpMethod.DELETE;
+		
+		logger.info(method.toString() + ": " + url);
+
+		// Make the actual call.
+		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class);
+
+		if (response.getStatusCode() == HttpStatus.OK) {
+			return response.getBody();
+		} else {
+			throw new RestClientException("Status code:" + response.getStatusCode().value());
+		}
+	}
+	
 	
 	/*
 	 * Private Methods

@@ -1,6 +1,9 @@
 package org.sagebionetworks.web.client.services;
 
+import java.util.List;
+
 import org.sagebionetworks.web.shared.NodeType;
+import org.sagebionetworks.web.shared.users.AclAccessType;
 
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
@@ -19,6 +22,16 @@ public interface NodeServiceAsync {
 	void getNodeAnnotationsJSON(NodeType type, String id, AsyncCallback<String> callback);
 
 	void updateNodeAnnotations(NodeType type, String id, String annotationsJson, String etag, AsyncCallback<String> callback);
+	
+	void getNodeAclJSON(NodeType type, String id, AsyncCallback<String> callback);
+
+	void createAcl(NodeType type, String id, String userGroupId,
+			List<AclAccessType> accessTypes, AsyncCallback<String> callback);
+
+	void updateAcl(NodeType type, String id, String aclJson, String etag,
+			AsyncCallback<String> callback);
+
+	void deleteAcl(NodeType type, String id, AsyncCallback<String> callback);
 
 	
 	// hacks
@@ -35,6 +48,5 @@ public interface NodeServiceAsync {
 
 	void getNodeJSONTwoLayer(NodeType type, String id, NodeType layerOneType,
 			String layerOneId, AsyncCallback<String> callback);
-
 
 }

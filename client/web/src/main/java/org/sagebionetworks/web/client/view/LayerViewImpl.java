@@ -245,7 +245,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 		breadcrumbTitleSpan.setInnerText(layerName);
 		
 		// create security access panel
-		createAccessPanel();
+		createAccessPanel(id);
 		// create admin panel if user is authorized
 		createAdminPanel(id);
 
@@ -431,9 +431,9 @@ public class LayerViewImpl extends Composite implements LayerView {
 	}
 
 
-	private void createAccessPanel() {		
+	private void createAccessPanel(String id) {		
 		// TODO : get access level from Authorization service
-		AccessLevel accessLevel = AccessLevel.PUBLIC;		
+		AccessLevel accessLevel = AccessLevel.SHARED;		
 		ImageResource icon = null;
 		if(accessLevel == AccessLevel.PUBLIC) {
 			icon = iconsImageBundle.lockUnlocked16();
@@ -441,7 +441,8 @@ public class LayerViewImpl extends Composite implements LayerView {
 			icon = iconsImageBundle.lock16();
 		}		
 
-		if(userIsAdmin) {		
+		if(userIsAdmin) {	
+			accessMenuButton.setResource(NodeType.LAYER, id);
 			accessMenuButton.setAccessLevel(accessLevel);
 			accessPanel.clear();
 			accessPanel.add(accessMenuButton.asWidget());

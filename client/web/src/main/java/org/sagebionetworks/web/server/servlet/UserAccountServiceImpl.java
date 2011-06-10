@@ -1,17 +1,20 @@
 package org.sagebionetworks.web.server.servlet;
 
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.logging.Logger;
 
+import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.UserAccountService;
 import org.sagebionetworks.web.client.security.AuthenticationException;
 import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
+import org.sagebionetworks.web.shared.users.AclPrincipal;
 import org.sagebionetworks.web.shared.users.UserData;
-import org.sagebionetworks.web.shared.users.UserLogin;
 import org.sagebionetworks.web.shared.users.UserRegistration;
 import org.sagebionetworks.web.shared.users.UserSession;
 import org.springframework.http.HttpEntity;
@@ -36,7 +39,16 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 	private static final String CREATE_USER_PATH = "user";
 	private static final String TERMINATE_SESSION_PATH = "session";
 	private static final String REFRESH_SESSION_PATH = "session";
+	private static final String GET_USERS_PATH = "user";
+	private static final String GET_GROUPS_PATH = "userGroup";
 
+	private static final String ACL_PRINCIPAL_NAME = "name";
+	private static final String ACL_PRINCIPAL_ID = "id";
+	private static final String ACL_PRINCIPAL_CREATION_DATE = "creationDate";
+	private static final String ACL_PRINCIPAL_URI = "uri";
+	private static final String ACL_PRINCIPAL_ETAG = "etag";
+	private static final String ACL_PRINCIPAL_INDIVIDUAL = "individual";
+	
 	
 	/**
 	 * The template is injected with Gin
@@ -254,7 +266,101 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		return false;
 	}
 
-	
+	@Override
+	public List<AclPrincipal> getAllUsers() {
+		// Build up the path
+		StringBuilder builder = new StringBuilder();
+		builder.append(urlProvider.getBaseUrl());
+		builder.append("/" + GET_USERS_PATH);
+		String url = builder.toString();	
+		String userList = getJsonStringForUrl(url, HttpMethod.GET);
+		return generateAclPrincipals(userList);
+	}
+
+
+	@Override
+	public List<AclPrincipal> getAllGroups() {
+		// Build up the path
+		StringBuilder builder = new StringBuilder();
+		builder.append(urlProvider.getBaseUrl());
+		builder.append("/" + GET_GROUPS_PATH);
+		String url = builder.toString();	
+		String groupList = getJsonStringForUrl(url, HttpMethod.GET);
+		return generateAclPrincipals(groupList);
+	}
+
+	@Override
+	public List<AclPrincipal> getAllUsersAndGroups() {
+		List<AclPrincipal> users = getAllUsers();
+		List<AclPrincipal> groups = getAllGroups();
+		List<AclPrincipal> all = new ArrayList<AclPrincipal>();
+		all.addAll(users);
+		all.addAll(groups);
+		return all;
+	}
+
+	/*
+	 * Private Methods
+	 */
+	private String getJsonStringForUrl(String url, HttpMethod method) {
+		// First make sure the service is ready to go.
+		validateService();
+
+		logger.info(method.toString() + ": " + url);
+		
+		// Setup the header
+		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<String>("", headers);
+		
+		// Make the actual call.
+		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class);
+
+		if (response.getStatusCode() == HttpStatus.OK) {			
+			return response.getBody();
+		} else {
+			// TODO: better error handling
+			throw new UnknownError("Status code:"
+					+ response.getStatusCode().value());
+		}
+		
+	}
+
+	private List<AclPrincipal> generateAclPrincipals(String userList) {
+		List<AclPrincipal> principals = new ArrayList<AclPrincipal>();
+		JSONArray list = null;
+		try {
+			list = new JSONArray(userList);
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		// create principal objects from JSON
+		for(int i=0; i<list.length(); i++) {
+			JSONObject principalObj;
+			try {
+				principalObj = list.getJSONObject(i);
+				AclPrincipal principal = new AclPrincipal();
+				if(principalObj.has(ACL_PRINCIPAL_NAME)) principal.setName(principalObj.getString(ACL_PRINCIPAL_NAME));
+				if(principalObj.has(ACL_PRINCIPAL_ID)) principal.setId(principalObj.getString(ACL_PRINCIPAL_ID));
+				if(principalObj.has(ACL_PRINCIPAL_URI)) principal.setUri(principalObj.getString(ACL_PRINCIPAL_URI));
+				if(principalObj.has(ACL_PRINCIPAL_ETAG)) principal.setEtag(principalObj.getString(ACL_PRINCIPAL_ETAG));
+				if(principalObj.has(ACL_PRINCIPAL_INDIVIDUAL)) principal.setIndividual(principalObj.getBoolean(ACL_PRINCIPAL_INDIVIDUAL));
+				if(principalObj.has(ACL_PRINCIPAL_CREATION_DATE)) {
+					Long creationDate = principalObj.getLong(ACL_PRINCIPAL_CREATION_DATE);
+					if(creationDate != null)
+						principal.setCreationDate(new Date(creationDate));
+				}			
+				principals.add(principal);
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}			
+		}
+		return principals;
+	}
+
 	
 	/**
 	 * Validate that the service is ready to go. If any of the injected data is

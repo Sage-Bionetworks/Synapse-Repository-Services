@@ -174,7 +174,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		datasetsListQueryServiceTable.setWhereCondition(whereList);
 		
 		// create security access panel
-		createAccessPanel();
+		createAccessPanel(id);
 		// create admin panel if user is authorized
 		createAdminPanel(id);
 		
@@ -296,9 +296,9 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		return menu;
 	}
 
-	private void createAccessPanel() {		
+	private void createAccessPanel(String id) {		
 		// TODO : get access level from Authorization service
-		AccessLevel accessLevel = AccessLevel.PUBLIC;		
+		AccessLevel accessLevel = AccessLevel.SHARED;		
 		ImageResource icon = null;
 		if(accessLevel == AccessLevel.PUBLIC) {
 			icon = iconsImageBundle.lockUnlocked16();
@@ -307,6 +307,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		}		
 
 		if(userIsAdmin) {		
+			accessMenuButton.setResource(NodeType.PROJECT, id);
 			accessMenuButton.setAccessLevel(accessLevel);
 			accessPanel.clear();
 			accessPanel.add(accessMenuButton.asWidget());

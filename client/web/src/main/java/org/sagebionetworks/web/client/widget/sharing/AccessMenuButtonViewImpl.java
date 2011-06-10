@@ -1,11 +1,19 @@
 package org.sagebionetworks.web.client.widget.sharing;
 
+import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.widget.sharing.AccessMenuButton.AccessLevel;
 
+import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
 import com.extjs.gxt.ui.client.Style.IconAlign;
+import com.extjs.gxt.ui.client.event.ButtonEvent;
+import com.extjs.gxt.ui.client.event.MenuEvent;
+import com.extjs.gxt.ui.client.event.SelectionListener;
 import com.extjs.gxt.ui.client.widget.LayoutContainer;
+import com.extjs.gxt.ui.client.widget.Window;
 import com.extjs.gxt.ui.client.widget.button.Button;
+import com.extjs.gxt.ui.client.widget.layout.FitData;
+import com.extjs.gxt.ui.client.widget.layout.FitLayout;
 import com.extjs.gxt.ui.client.widget.menu.Menu;
 import com.extjs.gxt.ui.client.widget.menu.MenuItem;
 import com.google.gwt.resources.client.ImageResource;
@@ -20,12 +28,14 @@ public class AccessMenuButtonViewImpl extends LayoutContainer implements AccessM
 	private IconsImageBundle iconsImageBundle;	
 	private Button button;
 	private AccessLevel accessLevel;
+	private AccessControlListEditor accessControlListEditor;
 	
 	private static final String buttonPrefix = "Access: ";
 	
 	@Inject
 	public AccessMenuButtonViewImpl(IconsImageBundle iconsImageBundle) {
 		this.iconsImageBundle = iconsImageBundle;		
+		
 		button = new Button();					
 		button.setIconAlign(IconAlign.LEFT);			
 		button.setMenu(createAccessMenu());
@@ -73,6 +83,11 @@ public class AccessMenuButtonViewImpl extends LayoutContainer implements AccessM
 		this.presenter = presenter;
 	}
 
+	@Override
+	public void setAccessControlListEditor(AccessControlListEditor accessControlListEditor) {
+		this.accessControlListEditor = accessControlListEditor;
+	}
+
 	/*
 	 * Private Methods
 	 */
@@ -82,6 +97,28 @@ public class AccessMenuButtonViewImpl extends LayoutContainer implements AccessM
 			
 		item = new MenuItem("Sharing Settings...");
 		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.users16()));
+		item.addSelectionListener(new SelectionListener<MenuEvent>() {
+			public void componentSelected(MenuEvent menuEvent) {													
+				final Window window = new Window();  
+				window.setSize(550, 380);
+				window.setPlain(true);
+				window.setModal(true);
+				window.setBlinkModal(true);
+				window.setHeading(DisplayConstants.SHARING_PANEL_TITLE);
+				window.setLayout(new FitLayout());				
+				window.add(accessControlListEditor.asWidget(), new FitData(4));
+				Button closeButton = new Button("Close");
+				closeButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+					@Override
+					public void componentSelected(ButtonEvent ce) {
+						window.hide();
+					}
+				});
+				window.setButtonAlign(HorizontalAlignment.RIGHT);
+				window.addButton(closeButton);
+				window.show();
+			}
+		});		
 		menu.add(item);
 				
 		return menu;

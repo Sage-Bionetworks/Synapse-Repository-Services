@@ -46,6 +46,8 @@ import org.sagebionetworks.web.client.widget.login.LoginWidgetView;
 import org.sagebionetworks.web.client.widget.login.LoginWidgetViewImpl;
 import org.sagebionetworks.web.client.widget.modal.ModalWindowView;
 import org.sagebionetworks.web.client.widget.modal.ModalWindowViewImpl;
+import org.sagebionetworks.web.client.widget.sharing.AccessControlListEditorView;
+import org.sagebionetworks.web.client.widget.sharing.AccessControlListEditorViewImpl;
 import org.sagebionetworks.web.client.widget.sharing.AccessMenuButtonView;
 import org.sagebionetworks.web.client.widget.sharing.AccessMenuButtonViewImpl;
 import org.sagebionetworks.web.client.widget.statictable.StaticTableView;
@@ -162,6 +164,10 @@ public class PortalGinModule extends AbstractGinModule {
 		bind(AnnotationEditorViewImpl.class).in(Singleton.class);
 		bind(AnnotationEditorView.class).to(AnnotationEditorViewImpl.class);
 
+		// AnnotationEditor
+		bind(AccessControlListEditorViewImpl.class).in(Singleton.class);
+		bind(AccessControlListEditorView.class).to(AccessControlListEditorViewImpl.class);
+		
 	}
 
 }

@@ -1,8 +1,5 @@
 package org.sagebionetworks.web.shared.users;
 
-import java.util.Date;
-import java.util.List;
-
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 /**

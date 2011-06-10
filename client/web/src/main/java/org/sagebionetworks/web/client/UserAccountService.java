@@ -1,7 +1,10 @@
 package org.sagebionetworks.web.client;
 
+import java.util.List;
+
 import org.sagebionetworks.web.client.security.AuthenticationException;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
+import org.sagebionetworks.web.shared.users.AclPrincipal;
 import org.sagebionetworks.web.shared.users.UserData;
 import org.sagebionetworks.web.shared.users.UserRegistration;
 
@@ -20,5 +23,11 @@ public interface UserAccountService extends RemoteService {
 	public void terminateSession(String sessionToken) throws RestServiceException;
 	
 	public boolean ssoLogin(String sessionToken) throws RestServiceException;
+	
+	public List<AclPrincipal> getAllUsers();
+	
+	public List<AclPrincipal> getAllGroups();
+	
+	public List<AclPrincipal> getAllUsersAndGroups();
 	
 }
