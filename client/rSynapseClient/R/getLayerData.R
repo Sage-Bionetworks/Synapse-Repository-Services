@@ -31,8 +31,7 @@ getLayerData <-
 	destDir <- URL(paste(zipFile@url, .getCache("downloadSuffix"), sep="_"))
 	
 	synapseDownloadFile(url = s4URL@url, destfile = s4URL@fullFilePath, cacheDir = cacheDir)
-	unzip(zipFile@url, exdir=destDir@url)
-	files <- file.path(destDir@url,list.files(destDir@url))
+	files <- .unpack(filename=zipFile@url, destdir=destDir@url)
 	
 	class(files) <- "layerData"
 	attr(files, "layerType") <- layer$type

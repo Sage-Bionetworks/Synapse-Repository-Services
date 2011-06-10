@@ -1,5 +1,5 @@
 refreshSessionToken <- 
-		function(session.token, host = synapseAuthServiceHostName(), sessionToken = getSessionToken())
+		function(session.token, host = synapseAuthServiceHostName())
 {
 	# constants
 	kService <- "session"
@@ -9,7 +9,6 @@ refreshSessionToken <-
 	entity$sessionToken <- session.token
 
 	uri <- kService
-	response <- synapsePut(uri = uri, entity = entity, path = .getCache("authServicePath"), host = host, sessionToken = sessionToken)
-	checkCurlResponse(sessionToken, response)
+	response <- synapsePut(uri = uri, entity = entity, path = .getCache("authServicePath"), host = host)
 	.setCache("sessionTimestamp", Sys.time())
 }

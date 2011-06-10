@@ -1,4 +1,6 @@
-.setUp <- function() {
+.setUp <- 
+		function() 
+{
 	# Do some setup stuff here like creating and populating a stub implementation of the repository service with some data
 	
 	# Override getURL to not actually make a remote call
@@ -24,7 +26,9 @@
 	#reload detached packages
 	library(synapseClient, quietly=TRUE)
 }
-.tearDown <- function() {
+.tearDown <- 
+		function() 
+{
 	# Do some test cleanup stuff here, if applicable
 	detach('package:synapseClient', force = TRUE)
 	detach('package:RCurl', force = TRUE)
@@ -34,7 +38,9 @@
 }
 
 # TODO there is a bug here, this is hitting the remote repository service
-unitTestJsonCorretlyParsed <- function() {
+unitTestJsonCorretlyParsed <- 
+		function() 
+{
 	# Since we have stubbed out the remote call to the service, all we
 	# are really checking here is that getDataPacketSummaries is parsing
 	# the JSON into the object we expect

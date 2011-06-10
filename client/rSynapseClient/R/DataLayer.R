@@ -1,13 +1,15 @@
 setClass(
 		Class = "DataLayer",
 		representation(
-				datasetId = "numeric",
+				layerId = "numeric",
+				parentId = "numeric",
 				dataStatus = "character",
 				numRecords = "numeric",
 				uri = "character"
 		),
 		prototype = prototype(
-				datasetId = NULL,
+				layerId = NULL,
+				parentId = NULL,
 				dataStatus = NULL,
 				numRecords = 0,
 				uri = NULL

@@ -3,16 +3,14 @@
 {
 	splits <- strsplit(filename, "\\.")
 	extension <- tolower(splits[[1]][length(splits[[1]])])
-	if(!(extension %in% .getCache("supportedCompressedFileExtensions"))){
-		stop("unsupported file extension: ", extension)
-	}
+	
 	switch(extension,
 		zip = unzip(filename, exdir = destdir),
 		gz = untar(filename, exdir = destdir),
 		tar = untar(filename, exdir = destdir),
 		defult = stop("unsupported file extension: ", extension)
 	)	
-	
+	file.path(destdir,list.files(destdir))
 }
 
 

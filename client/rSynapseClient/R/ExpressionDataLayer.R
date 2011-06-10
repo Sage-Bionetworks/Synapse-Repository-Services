@@ -1,11 +1,15 @@
 setClass(
 		Class = "ExpressionDataLayer",
 		representation(
-				tissue = "character"
+				tissue = "character",
+				vendor = "character",
+				platform = "character"
 		),
 		contains = "DataLayer",
 		prototype = prototype(
-				tissue = NULL
+				tissue = NULL,
+				vendor = NULL,
+				platform = NULL
 		)
 )
 
@@ -35,3 +39,24 @@ setMethod(
 			)
 		}
 )
+
+ExpressionDataLayerFromURI <- 
+		function(uri)
+{
+	layer <- new("ExpressionDataLayer")
+	
+	
+}
+
+ExpressionDataLayerFromId <- 
+		function(id)
+
+{
+	
+}
+
+ExpressionDataLayerFromJSONList <- 
+		function(jsonList)
+{
+	
+}

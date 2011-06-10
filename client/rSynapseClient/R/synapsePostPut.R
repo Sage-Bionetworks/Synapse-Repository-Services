@@ -46,5 +46,8 @@
 	checkCurlResponse(curlHandle, response)
 	
 	## Parse response and prepare return value
-	fromJSON(response)
+	tryCatch(
+			fromJSON(response),
+			error = function(e){NULL}
+	)
 }
