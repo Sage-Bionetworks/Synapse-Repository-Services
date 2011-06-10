@@ -47,6 +47,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	public void validateContent(AccessControlList acl) throws InvalidModelException {
 		if (acl.getResourceId()==null) throw new InvalidModelException("Resource ID is null");
 		for (ResourceAccess ra : acl.getResourceAccess()) {
+			if (ra==null) throw new InvalidModelException("ACL row is null.");
 			if (ra.getUserGroupId()==null) throw new InvalidModelException("Group ID is null");
 			if (ra.getAccessType().isEmpty()) throw new InvalidModelException("No access types specified.");
 		}
