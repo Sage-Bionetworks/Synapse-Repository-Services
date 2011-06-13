@@ -220,7 +220,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 
 	private void createAdminPanel(String projectId) {		
 		if(userIsAdmin) {
-			Button button = new Button("Project Admin Menu");
+			Button button = new Button("Admin Menu");
 			button.setIcon(AbstractImagePrototype.create(iconsImageBundle.adminTools16()));
 			//adminButton.setIconAlign(IconAlign.LEFT);
 			button.setMenu(createAdminMenu(projectId));

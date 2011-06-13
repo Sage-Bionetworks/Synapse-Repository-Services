@@ -24,6 +24,10 @@ public interface NodeService extends RemoteService {
 	
 	public String getNodeAnnotationsJSON(NodeType type, String id);
 	
+	public String getNodePreview(NodeType type, String id);
+	
+	public String getNodeLocations(NodeType type, String id);
+	
 	public String updateNodeAnnotations(NodeType type, String id, String annotationsJson, String etag);
 	
 	public String getNodeAclJSON(NodeType type, String id);
@@ -38,9 +42,9 @@ public interface NodeService extends RemoteService {
 	 * This is essentially a hack for the layer type which needs a compound path: /dataset/{id}/layer
 	 * In the future, layer will be a primary node type
 	 */
-	public String createNodeTwoLayer(NodeType type, String propertiesJson, NodeType layerOneType, String layerOneId);
-	public String updateNodeTwoLayer(NodeType type, String id, String propertiesJson, String eTag, NodeType layerOneType, String layerOneId);
-	public String getNodeJSONSchemaTwoLayer(NodeType type, NodeType layerOneType, String layerOneId);	
-	public String getNodeJSONTwoLayer(NodeType type, String id, NodeType layerOneType, String layerOneId);
+//	public String createNodeTwoLayer(NodeType type, String propertiesJson, NodeType layerOneType, String layerOneId);
+//	public String updateNodeTwoLayer(NodeType type, String id, String propertiesJson, String eTag, NodeType layerOneType, String layerOneId);
+//	public String getNodeJSONSchemaTwoLayer(NodeType type, NodeType layerOneType, String layerOneId);	
+//	public String getNodeJSONTwoLayer(NodeType type, String id, NodeType layerOneType, String layerOneId);
 	
 }

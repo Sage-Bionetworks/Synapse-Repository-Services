@@ -2,23 +2,83 @@ package org.sagebionetworks.web.shared;
 
 import java.util.Date;
 
+import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 public class DownloadLocation implements IsSerializable {
 
-	private String md5sum;
-	private String path;
-	private String type;
-	private String id;
-	private String uri;
-	private String etag;
 	private String name = "default";
+	private String annotations;
+	private String id;
+	private String type;
+	private String path;
 	private Date creationDate;
 	private String parentId;
-	private String annotations;
+	private String etag;
+	private String md5sum;
+	private String uri;
 	private String accessControlList;
 	
 	public DownloadLocation() {	
+	}
+
+	public DownloadLocation(JSONObject object) {
+		String key = null; 
+		
+		key = "name";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setName(object.get(key).isString().stringValue());		
+
+		key = "annotations";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setAnnotations(object.get(key).isString().stringValue());		
+		
+		key = "id";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setId(object.get(key).isString().stringValue());		
+		
+		key = "type";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null) 
+				setType(object.get(key).isString().stringValue());					
+
+		key = "path";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null) 
+				setPath(object.get(key).isString().stringValue());					
+		
+		key = "creationDate";
+		if(object.containsKey(key)) 
+			if(object.get(key).isNumber() != null)
+				setCreationDate(new Date(new Double(object.get(key).isNumber().doubleValue()).longValue()));
+		
+		key = "parentId";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setParentId(object.get(key).isString().stringValue());
+		
+		key = "etag";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setEtag(object.get(key).isString().stringValue());		
+		
+		key = "md5sum";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setMd5sum(object.get(key).isString().stringValue());
+		
+		key = "uri";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setUri(object.get(key).isString().stringValue());
+		
+		key = "accessControlList";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setAccessControlList(object.get(key).isString().stringValue());					
 	}
 
 	public String getMd5sum() {

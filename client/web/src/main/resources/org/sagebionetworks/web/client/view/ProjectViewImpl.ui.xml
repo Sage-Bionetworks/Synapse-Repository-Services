@@ -70,6 +70,20 @@
 					</span>
 					<g:SimplePanel ui:field="datasetListTablePanel" />												
 				</div>
+				
+				<div class="data_detail_section">
+					<span class="header">
+						<span class="icon right">
+							<g:Image resource='{icons.applicationResize16}'/> View All<br/>
+							<g:Image resource='{icons.notePlus16}'/> Add a note
+						</span>
+
+						<span class="title">Conversations and<br/>Events for this Project</span>
+					</span>
+					<div class="scrollable longer">
+					</div>
+				</div>
+				
 			</div>
 					
 <!-- start footer -->

@@ -112,7 +112,7 @@ public interface LayerView extends IsWidget {
 	 * @param columnUnits 
 	 * @param columnDescriptions 
 	 */
-	public void setLayerPreviewTable(TableResults preview, String[] columnDisplayOrder, Map<String, String> columnDescriptions, Map<String, String> columnUnits);
+	public void setLayerPreviewTable(List<Map<String,String>> rows, List<String> columnDisplayOrder, Map<String, String> columnDescriptions, Map<String, String> columnUnits);
 	
 	/**
 	 * Defines the communication with the presenter.

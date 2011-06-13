@@ -48,7 +48,7 @@ public class LoginViewImpl extends Composite implements LoginView {
 			}
 		});
 				
-		Button forgotPasswordButton = new Button("Forgot Password?", AbstractImagePrototype.create(icons.help16()), new SelectionListener<ButtonEvent>() {			
+		Button forgotPasswordButton = new Button("Setup R Client/API Password", AbstractImagePrototype.create(icons.help16()), new SelectionListener<ButtonEvent>() {			
 			@Override
 			public void componentSelected(ButtonEvent ce) {
 				presenter.goTo(new PasswordReset("0"));								
@@ -57,12 +57,13 @@ public class LoginViewImpl extends Composite implements LoginView {
 		passwordReset.add(forgotPasswordButton);
 		
 
-		Button registerButton = new Button("Register for a Synapse Account", AbstractImagePrototype.create(icons.userBusiness16()), new SelectionListener<ButtonEvent>() {			
+		Button registerButton = new Button("Register for a Synapse", AbstractImagePrototype.create(icons.userBusiness16()), new SelectionListener<ButtonEvent>() {			
 			@Override
 			public void componentSelected(ButtonEvent ce) {
 				presenter.goTo(new RegisterAccount("0"));
 			}
 		});
+		registerButton.disable();
 		register.add(registerButton);
 		
 	}

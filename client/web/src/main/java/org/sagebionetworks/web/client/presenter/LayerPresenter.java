@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.web.client.DatasetServiceAsync;
+import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.view.LayerView;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAsync;
 import org.sagebionetworks.web.shared.DownloadLocation;
@@ -14,27 +15,29 @@ import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
 import org.sagebionetworks.web.shared.LicenseAgreement;
+import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.TableResults;
 
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
+import com.google.gwt.json.client.JSONArray;
+import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONParser;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.AcceptsOneWidget;
 import com.google.inject.Inject;
-import com.gwtplatform.mvp.client.Presenter;
 
 public class LayerPresenter extends AbstractActivity implements LayerView.Presenter{	
 
 	private org.sagebionetworks.web.client.place.Layer place;
 	private DatasetServiceAsync service;
-
+	private NodeServiceAsync nodeService;
 	private LayerView view;
 	private String layerId;	
 	private String datasetId;
 	private Boolean showDownload;
 	private Layer model;
 	private LayerPreview layerPreview;
-	private TableResults layerPreviewAsMap;
 	private LicenceServiceAsync licenseService;
 	private final static String licenseAgreementText = "<p><b><larger>Copyright 2011 Sage Bionetworks</larger></b><br/><br/></p><p>Licensed under the Apache License, Version 2.0 (the \"License\"). You may not use this file except in compliance with the License. You may obtain a copy of the License at<br/><br/></p><p>&nbsp;&nbsp;<a href=\"http://www.apache.org/licenses/LICENSE-2.0\" target=\"new\">http://www.apache.org/licenses/LICENSE-2.0</a><br/><br/></p><p>Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions andlimitations under the License.<br/><br/></p><p><strong><a name=\"definitions\">1. Definitions</a></strong>.<br/><br/></p> <p>\"License\" shall mean the terms and conditions for use, reproduction, and distribution as defined by Sections 1 through 9 of this document.<br/><br/></p> <p>\"Licensor\" shall mean the copyright owner or entity authorized by the copyright owner that is granting the License.<br/><br/></p> <p>\"Legal Entity\" shall mean the union of the acting entity and all other entities that control, are controlled by, or are under common control with that entity. For the purposes of this definition, \"control\" means (i) the power, direct or indirect, to cause the direction or management of such entity, whether by contract or otherwise, or (ii) ownership of fifty percent (50%) or more of the outstanding shares, or (iii) beneficial ownership of such entity.<br/><br/></p> <p>\"You\" (or \"Your\") shall mean an individual or Legal Entity exercising permissions granted by this License.<br/><br/></p> <p>\"Source\" form shall mean the preferred form for making modifications, including but not limited to software source code, documentation source, and configuration files.<br/><br/></p> <p>\"Object\" form shall mean any form resulting from mechanical transformation or translation of a Source form, including but not limited to compiled object code, generated documentation, and conversions to other media types.<br/><br/></p> <p>\"Work\" shall mean the work of authorship, whether in Source or Object form, made available under the License, as indicated by a copyright notice that is included in or attached to the work (an example is provided in the Appendix below).<br/><br/></p> <p>\"Derivative Works\" shall mean any work, whether in Source or Object form, that is based on (or derived from) the Work and for which the editorial revisions, annotations, elaborations, or other modifications represent, as a whole, an original work of authorship. For the purposes of this License, Derivative Works shall not include works that remain separable from, or merely link (or bind by name) to the interfaces of, the Work and Derivative Works thereof.<br/><br/></p> <p>\"Contribution\" shall mean any work of authorship, including the original version of the Work and any modifications or additions to that Work or Derivative Works thereof, that is intentionally submitted to Licensor for inclusion in the Work by the copyright owner or by an individual or Legal Entity authorized to submit on behalf of the copyright owner. For the purposes of this definition, \"submitted\" means any form of electronic, verbal, or written communication sent to the Licensor or its representatives, including but not limited to communication on electronic mailing lists, source code control systems, and issue tracking systems that are managed by, or on behalf of, the Licensor for the purpose of discussing and improving the Work, but excluding communication that is conspicuously marked or otherwise designated in writing by the copyright owner as \"Not a Contribution.\"<br/><br/></p> <p>\"Contributor\" shall mean Licensor and any individual or Legal Entity on behalf of whom a Contribution has been received by Licensor and subsequently incorporated within the Work.<br/><br/></p>";	
 	
@@ -44,9 +47,10 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	 * @param datasetService
 	 */
 	@Inject
-	public LayerPresenter(LayerView view, DatasetServiceAsync datasetService, LicenceServiceAsync licenseService) {
+	public LayerPresenter(LayerView view, DatasetServiceAsync datasetService, NodeServiceAsync nodeService, LicenceServiceAsync licenseService) {
 		this.view = view;
 		this.service = datasetService;
+		this.nodeService = nodeService;
 		this.licenseService = licenseService;
 		
 		view.setPresenter(this);
@@ -63,50 +67,39 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	public void refreshFromServer() {
 		view.clear();
 		// Fetch the data about this dataset from the server
-		service.getLayer(this.datasetId, this.layerId, new AsyncCallback<Layer>() {			
+		nodeService.getNodeJSON(NodeType.LAYER, this.layerId, new AsyncCallback<String>() {
 			@Override
-			public void onSuccess(Layer result) {
-				setLayer(result);				
-			}
-			
-			@Override
-			public void onFailure(Throwable caught) {				
-				view.showErrorMessage(caught.getMessage());				
-			}
-		});
-		
-		// TODO : Best Practice here? Maybe chat w/ Nicole about including header in previewAsMap
-		// get the preview string to get file header order, then get the previewAsData
-		final String localDatasetId = this.datasetId;
-		final String localLayerId = this.layerId;
-		service.getLayerPreview(localDatasetId, localLayerId, new AsyncCallback<LayerPreview>() {
-			
-			@Override
-			public void onSuccess(LayerPreview layerPreviewResult) {												
-				setLayerPreview(layerPreviewResult);
-				
-				// retrieve the map of values
-				service.getLayerPreviewMap(localDatasetId, localLayerId, new AsyncCallback<TableResults>() {
-					
-					@Override
-					public void onSuccess(TableResults result) {
-						setLayerPreviewAsMap(result);								
-					}
-					
-					@Override
-					public void onFailure(Throwable caught) {
-						view.showLayerPreviewUnavailable();
-					}
-				});
+			public void onSuccess(String layerJson) {
+				Layer layer = new Layer(JSONParser.parseStrict(layerJson).isObject());
+				setLayer(layer);
 			}
 			
 			@Override
 			public void onFailure(Throwable caught) {
-				view.showLayerPreviewUnavailable();				
-			}
+				view.showErrorMessage("An error occured retrieving this Layer. Please try reloading the page.");
+			}			
 		});
 		
-		
+		// get the preview string to get file header order, then get the previewAsData
+		nodeService.getNodePreview(NodeType.LAYER, layerId, new AsyncCallback<String>() {
+			@Override
+			public void onSuccess(String pagedResult) {
+				JSONObject pagedObject = JSONParser.parseStrict(pagedResult).isObject();
+				if(pagedObject != null && pagedObject.containsKey("results")) {
+					JSONArray resultList = pagedObject.get("results").isArray();
+					if(resultList != null && resultList.size() > 0) {						
+						LayerPreview layerPreview = new LayerPreview(resultList.get(0).isObject());
+						setLayerPreview(layerPreview);					
+					}
+				}
+			}
+
+			@Override
+			public void onFailure(Throwable caught) {
+				view.showLayerPreviewUnavailable();				
+			}
+
+		});		
 	}
 
 
@@ -172,14 +165,24 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 				agreement.setLicenseHtml(licenseAgreementText);
 				view.setLicenseAgreement(agreement);
 				
-				// get download link
-				service.getLayerDownloadLocation(datasetId, layerId, new AsyncCallback<DownloadLocation>() {
+				nodeService.getNodeLocations(NodeType.LAYER, layerId, new AsyncCallback<String>() {
 					@Override
-					public void onSuccess(DownloadLocation downloadLocation) {
+					public void onSuccess(String pagedResult) {
+						JSONObject pagedObject = JSONParser.parseStrict(pagedResult).isObject();
 						List<FileDownload> downloads = new ArrayList<FileDownload>();
-						if(downloadLocation != null && downloadLocation.getPath() != null) {
-							FileDownload dl = new FileDownload(downloadLocation.getPath(), "Download " + model.getName(), downloadLocation.getMd5sum());
-							downloads.add(dl);
+						if(pagedObject != null && pagedObject.containsKey("results")) {
+							JSONArray resultList = pagedObject.get("results").isArray();
+							if(resultList != null) {
+								for(int i=0; i<resultList.size(); i++) {
+									if(resultList.get(i).isObject() != null) {										
+										DownloadLocation downloadLocation = new DownloadLocation(resultList.get(i).isObject());
+										if(downloadLocation != null && downloadLocation.getPath() != null) {
+											FileDownload dl = new FileDownload(downloadLocation.getPath(), "Download " + model.getName(), downloadLocation.getMd5sum());
+											downloads.add(dl);
+										}	
+									}
+								}								
+							}
 						}
 						view.setLicensedDownloads(downloads);
 						
@@ -188,12 +191,34 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 							view.showDownload();
 						}
 					}
-
 					@Override
-					public void onFailure(Throwable caught) {					
-						view.setDownloadUnavailable();
+					public void onFailure(Throwable caught) {
+						view.setDownloadUnavailable();						
 					}
 				});
+				
+//				// get download link
+//				service.getLayerDownloadLocation(datasetId, layerId, new AsyncCallback<DownloadLocation>() {
+//					@Override
+//					public void onSuccess(DownloadLocation downloadLocation) {
+//						
+//						if(downloadLocation != null && downloadLocation.getPath() != null) {
+//							FileDownload dl = new FileDownload(downloadLocation.getPath(), "Download " + model.getName(), downloadLocation.getMd5sum());
+//							downloads.add(dl);
+//						}
+//						view.setLicensedDownloads(downloads);
+//						
+//						// show download if requested
+//						if(showDownload != null && showDownload == true) {
+//							view.showDownload();
+//						}
+//					}
+//
+//					@Override
+//					public void onFailure(Throwable caught) {					
+//						view.setDownloadUnavailable();
+//					}
+//				});
 			}
 		});
 
@@ -202,25 +227,11 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	
 	protected void setLayerPreview(LayerPreview preview) {
 		this.layerPreview = preview;
-	}
 
-	protected void setLayerPreviewAsMap(TableResults previewMap) {
-		this.layerPreviewAsMap = previewMap;
 		
 		// get column display order, if possible from the layer preview
-		String[] columnDisplayOrder;
-		if(layerPreview != null) {
-			String tabPreviewString = layerPreview.getPreview();
-			tabPreviewString = tabPreviewString.replaceAll("\r\n.*", ""); // delete all but first line
-			tabPreviewString = tabPreviewString.replaceAll("\n.*", ""); // delete all but first line
-			columnDisplayOrder = tabPreviewString.split("\t");
-		} else {			
-			List<Map<String,Object>> rows = layerPreviewAsMap.getRows();
-			Map<String,Object> map1 = rows.get(0);
-			Set<String> keyset = map1.keySet();
-			columnDisplayOrder = keyset.toArray(new String[keyset.size()]);
-		}
-		
+		List<String> columnDisplayOrder = preview.getHeaders();
+
 		// TODO : get columns descriptions from service
 		Map<String, String> columnDescriptions = getTempColumnDescriptions();
 		Map<String, String> columnUnits = getTempColumnUnits();
@@ -231,7 +242,8 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 			columnDescriptions.put(key, columnDescriptions.get(key) + " (" + units + ")");
 		}		
 		
-		view.setLayerPreviewTable(layerPreviewAsMap, columnDisplayOrder, columnDescriptions, columnUnits);
+		view.setLayerPreviewTable(preview.getRows(), columnDisplayOrder, columnDescriptions, columnUnits);
+
 	}
 	
 	private Map<String, String> getTempColumnUnits() {

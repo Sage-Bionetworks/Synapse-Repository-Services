@@ -15,8 +15,10 @@
 					<span class="tools right">
 					<table>
 						<tr>
+							<!-- 
 							<td><a href="edit_profile.html">My profile</a><g:Hyperlink ui:field="editProfileLink" /></td>
 							<td>&nbsp;|&nbsp;</td>
+							 -->
 							<td><g:Hyperlink ui:field="logoutLink" /></td>
 						</tr>
 					</table>					
@@ -25,10 +27,10 @@
 			</div>	
 			<div class="global_nav">
 				<ul id="navbar_ul">
-					<li class="first" ui:field="navbarDatasets"><a href="#DatasetsHome:0" id="navbar_datasets_a">Datasets</a></li>
+					<li class="first" ui:field="navbarDatasets"><a href="#DatasetsHome:0" id="navbar_datasets_a">Datasets</a></li> 
 					<li ui:field="navbarTools"><a href="">Tools</a></li>
 					<li ui:field="navbarNetworks"><a href="">Networks</a></li>
-					<li ui:field="navbarPeople"><a href="people.html">People</a></li>
+					<li ui:field="navbarPeople"><a href="">People</a></li>
 					<li class="last" ui:field="navbarProjects"><a href="#ProjectsHome:0">Projects</a></li>
 				</ul>
 				

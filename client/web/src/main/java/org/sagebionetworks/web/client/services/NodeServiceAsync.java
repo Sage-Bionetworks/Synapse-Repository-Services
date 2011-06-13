@@ -21,6 +21,10 @@ public interface NodeServiceAsync {
 
 	void getNodeAnnotationsJSON(NodeType type, String id, AsyncCallback<String> callback);
 
+	void getNodePreview(NodeType type, String id, AsyncCallback<String> callback);
+
+	void getNodeLocations(NodeType type, String id, AsyncCallback<String> callback);
+
 	void updateNodeAnnotations(NodeType type, String id, String annotationsJson, String etag, AsyncCallback<String> callback);
 	
 	void getNodeAclJSON(NodeType type, String id, AsyncCallback<String> callback);
@@ -35,18 +39,20 @@ public interface NodeServiceAsync {
 
 	
 	// hacks
-	void createNodeTwoLayer(NodeType type, String propertiesJson,
-			NodeType layerOneType, String layerOneId,
-			AsyncCallback<String> callback);
+//	void createNodeTwoLayer(NodeType type, String propertiesJson,
+//			NodeType layerOneType, String layerOneId,
+//			AsyncCallback<String> callback);
+//
+//	void updateNodeTwoLayer(NodeType type, String id, String propertiesJson,
+//			String eTag, NodeType layerOneType, String layerOneId,
+//			AsyncCallback<String> callback);	
+//
+//	void getNodeJSONSchemaTwoLayer(NodeType type, NodeType layerOneType,
+//			String layerOneId, AsyncCallback<String> callback);
+//
+//	void getNodeJSONTwoLayer(NodeType type, String id, NodeType layerOneType,
+//			String layerOneId, AsyncCallback<String> callback);
 
-	void updateNodeTwoLayer(NodeType type, String id, String propertiesJson,
-			String eTag, NodeType layerOneType, String layerOneId,
-			AsyncCallback<String> callback);	
 
-	void getNodeJSONSchemaTwoLayer(NodeType type, NodeType layerOneType,
-			String layerOneId, AsyncCallback<String> callback);
-
-	void getNodeJSONTwoLayer(NodeType type, String id, NodeType layerOneType,
-			String layerOneId, AsyncCallback<String> callback);
 
 }

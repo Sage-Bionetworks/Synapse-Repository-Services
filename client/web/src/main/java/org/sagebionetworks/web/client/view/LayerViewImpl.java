@@ -279,8 +279,8 @@ public class LayerViewImpl extends Composite implements LayerView {
 	
 	
 	@Override
-	public void setLayerPreviewTable(TableResults preview,
-			String[] columnDisplayOrder,
+	public void setLayerPreviewTable(List<Map<String,String>> rows,
+			List<String> columnDisplayOrder,
 			Map<String, String> columnDescriptions,
 			Map<String, String> columnUnits) {
 		// TODO : add data to static table		
@@ -307,7 +307,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 			stColumns.add(stCol);
 		}
 		
-		staticTable.setDataAndColumnsInOrder(preview.getRows(), stColumns);
+		staticTable.setDataAndColumnsInOrder(rows, stColumns);
 		previewTablePanel.setWidget(staticTable.asWidget());		
 	}	
 
@@ -352,7 +352,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 		if(userIsAdmin) {
 			annotationEditor.setResource(NodeType.LAYER, id);
 			
-			Button button = new Button("Project Admin Menu");
+			Button button = new Button("Admin Menu");
 			button.setIcon(AbstractImagePrototype.create(iconsImageBundle.adminTools16()));
 			//adminButton.setIconAlign(IconAlign.LEFT);
 			button.setMenu(createAdminMenu(id));

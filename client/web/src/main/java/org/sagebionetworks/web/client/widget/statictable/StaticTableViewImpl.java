@@ -98,7 +98,7 @@ public class StaticTableViewImpl extends LayoutContainer implements
 	}
 
 	@Override
-	public void setDataAndColumnsInOrder(List<Map<String, Object>> rows, List<StaticTableColumn> columnsInOrder) {
+	public void setDataAndColumnsInOrder(List<Map<String, String>> rows, List<StaticTableColumn> columnsInOrder) {
 		store.removeAll();
 		addDataToStore(rows);
 		createNewColumnObjectModel(columnsInOrder);
@@ -110,7 +110,7 @@ public class StaticTableViewImpl extends LayoutContainer implements
 	}	
 
 	@Override
-	public void setDataAndColumnOrder(List<Map<String, Object>> rows, List<String> columnOrder) {
+	public void setDataAndColumnOrder(List<Map<String, String>> rows, List<String> columnOrder) {
 		store.removeAll();
 		addDataToStore(rows);
 		createNewColumnModel(columnOrder);
@@ -123,7 +123,7 @@ public class StaticTableViewImpl extends LayoutContainer implements
 
 	
 	@Override
-	public void setData(List<Map<String, Object>> rows) {
+	public void setData(List<Map<String, String>> rows) {
 		this.store.removeAll();
 		addDataToStore(rows);
 		if(grid != null) {			
@@ -202,13 +202,13 @@ public class StaticTableViewImpl extends LayoutContainer implements
 	}
 	
 	
-	private void addDataToStore(List<Map<String, Object>> rows) {
+	private void addDataToStore(List<Map<String, String>> rows) {
 		List<BaseModelData> dataList = new ArrayList<BaseModelData>();
-		for(Map<String,Object> rowMap : rows) {									
+		for(Map<String,String> rowMap : rows) {									
 			BaseModelData dataPt = new BaseModelData();
 			for(String key : rowMap.keySet()) {
 				String cleanKey = key.replaceFirst("\\.", "_");
-				Object value = rowMap.get(key); 								
+				String value = rowMap.get(key); 								
 				dataPt.set(cleanKey, value);
 			}
 			dataList.add(dataPt);

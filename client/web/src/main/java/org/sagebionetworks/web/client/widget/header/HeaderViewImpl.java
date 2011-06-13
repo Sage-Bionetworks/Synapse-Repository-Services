@@ -44,8 +44,8 @@ public class HeaderViewImpl extends Composite implements HeaderView {
 	SpanElement userName;
 	@UiField
 	Hyperlink logoutLink;
-	@UiField
-	Hyperlink editProfileLink;
+//	@UiField
+//	Hyperlink editProfileLink;
 		
 	private Presenter presenter;
 	private Map<MenuItems, Element> itemToElement;

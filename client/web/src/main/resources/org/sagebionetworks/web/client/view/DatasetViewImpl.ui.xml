@@ -84,7 +84,8 @@
 						<span class="secondary_text">Select a name to view sample data</span>
 					</span>
 					<g:SimplePanel ui:field="tablePanel" />												
-				</div>
+				</div>				
+				
 				<div class="data_detail_section">
 					<span class="header">
 						<span class="icon right">
@@ -95,6 +96,7 @@
 						<span class="title">Conversations and<br/>Events for this Dataset</span>
 					</span>
 					<div class="scrollable longer">
+<!-- 					
 						<div id="scrollable_item">
 							<span class="scrollable_header">
 								<img src="static/images/down_arrow.png" class="right" />
@@ -140,9 +142,10 @@
 								</span>
 							</span>
 						</div>
-
+-->
 					</div>
 				</div>
+				
 				<div class="data_detail_section last">
 					<span class="header">
 						<span class="icon right">
@@ -161,6 +164,7 @@
 						</tr>
 					</table>
 					<div class="scrollable">
+<!-- 
 						<table width="100%" class="detail">
 							<tr>
 								<td class="analysis"><a href="network_overview.html">Network Generation</a></td>
@@ -184,8 +188,10 @@
 								<td class="last_modified">2-Apr-2011</td>
 							</tr>
 						</table>
+ -->						
 					</div>
 				</div>
+								
 			</div>	
 
 <!-- start footer -->

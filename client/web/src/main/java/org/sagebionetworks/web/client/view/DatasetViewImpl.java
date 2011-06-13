@@ -224,6 +224,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 			@Override
 			public void onClick(ClickEvent event) {
 				followDatasetModal.showWindow();
+				showErrorMessage("<strong>Alpha Note</strong>: Following datasets is currently not operational");
 			}
 		});		
 		followDatasetPanel.clear();
@@ -241,6 +242,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 			@Override
 			public void onClick(ClickEvent event) {
 				seeTermsModal.showWindow();
+				showErrorMessage("<strong>Alpha Note</strong>: This is only demo terms of use text.");
 			}
 		});		
 		seeTermsPanel.clear();
@@ -261,10 +263,11 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		downloadLink.setHTML(AbstractImagePrototype.create(iconsImageBundle.download16()).getHTML() + " Download Dataset");
 		downloadLink.addClickHandler(new ClickHandler() {			
 			@Override
-			public void onClick(ClickEvent event) {
+			public void onClick(ClickEvent event) {				
 				datasetLicensedDownloader.showWindow();
+				showErrorMessage("<strong>Alpha Note</strong>: Downloading of entire dataset is currently not operational. You can download layers individually though.");
 			}
-		});
+		});		
 		downloadPanel.clear();
 		downloadPanel.add(downloadLink);
 		
@@ -366,7 +369,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		if(userIsAdmin) {
 			annotationEditor.setResource(NodeType.DATASET, id);
 			
-			Button button = new Button("Project Admin Menu");
+			Button button = new Button("Admin Menu");
 			button.setIcon(AbstractImagePrototype.create(iconsImageBundle.adminTools16()));
 			//adminButton.setIconAlign(IconAlign.LEFT);
 			button.setMenu(createAdminMenu(id));

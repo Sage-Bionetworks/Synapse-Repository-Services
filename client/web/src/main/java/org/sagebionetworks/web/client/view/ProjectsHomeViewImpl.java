@@ -54,7 +54,7 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 			QueryServiceTableResourceProvider queryServiceTableResourceProvider,
 			final NodeEditor nodeEditor) {		
 		initWidget(binder.createAndBindUi(this));
-
+		
 		this.nodeEditor = nodeEditor;
 		this.queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.project, true, 1000, 480);
 		
@@ -69,7 +69,7 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 		Button createProjectButton = new Button("Start a Project", AbstractImagePrototype.create(icons.addSquare16()));
 		createProjectButton.addSelectionListener(new SelectionListener<ButtonEvent>() {			
 			@Override
-			public void componentSelected(ButtonEvent ce) {				
+			public void componentSelected(ButtonEvent ce) {								
 				final Window window = new Window();  
 				window.setSize(600, 240);
 				window.setPlain(true);
@@ -92,6 +92,8 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 				});
 				window.add(nodeEditor.asWidget(NodeType.PROJECT), new FitData(4));						
 				window.show();
+				
+				showErrorMessage("<strong>Alpha Note:</strong> User project creation is currently disabled. Please email the <a href=\"mailto:platform@sagebase.org\">platform team</a> to have a new project created for you.");
 			}
 		});
 		createProjectButtonPanel.add(createProjectButton);		

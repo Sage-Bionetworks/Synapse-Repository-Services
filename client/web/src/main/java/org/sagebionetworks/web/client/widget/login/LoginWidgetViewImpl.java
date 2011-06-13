@@ -69,7 +69,7 @@ public class LoginWidgetViewImpl extends LayoutContainer implements
 
 	private void createForm() {
 		final FormPanel formPanel = new FormPanel();
-		formPanel.setHeading("Login");
+		formPanel.setHeaderVisible(false);
 		formPanel.setFrame(true);
 		formPanel.setWidth(350);
 		formPanel.setLabelWidth(85);
@@ -105,7 +105,8 @@ public class LoginWidgetViewImpl extends LayoutContainer implements
 		FormLayout layout = new FormLayout();  
 		layout.setLabelWidth(85);  		
 		fieldSet.setLayout(layout);  
-		fieldSet.setCollapsible(false);
+		fieldSet.setCollapsible(true);
+		fieldSet.collapse();
 		
 		firstName.setFieldLabel("Email Address");
 		firstName.setAllowBlank(false);
@@ -119,7 +120,7 @@ public class LoginWidgetViewImpl extends LayoutContainer implements
 
 		fieldSet.add(messageLabel);
 		
-		formPanel.add(fieldSet);
+		//formPanel.add(fieldSet);
 		
 		final Button loginButton = new Button("Login", new SelectionListener<ButtonEvent>(){			
 			@Override
@@ -128,8 +129,13 @@ public class LoginWidgetViewImpl extends LayoutContainer implements
 				presenter.setUsernameAndPassword(firstName.getValue(), password.getValue());
 			}
 		});
-		formPanel.addButton(loginButton);
-		formPanel.setButtonAlign(HorizontalAlignment.CENTER);
+
+		fieldSet.add(loginButton);
+		formPanel.add(fieldSet);
+		//formPanel.addButton(loginButton);
+		//formPanel.setButtonAlign(HorizontalAlignment.CENTER);
+		
+		formPanel.add(fieldSet);
 		
 		FormButtonBinding binding = new FormButtonBinding(formPanel);
 		binding.addButton(loginButton);

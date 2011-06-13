@@ -15,11 +15,11 @@ public interface StaticTableView extends IsWidget {
 	
 	public void clear();
 
-	public void setDataAndColumnsInOrder(List<Map<String, Object>> rows, List<StaticTableColumn> columnsInOrder);
+	public void setDataAndColumnsInOrder(List<Map<String, String>> rows, List<StaticTableColumn> columnsInOrder);
 	
-	public void setDataAndColumnOrder(List<Map<String,Object>> rows, List<String> columnOrder);
+	public void setDataAndColumnOrder(List<Map<String,String>> rows, List<String> columnOrder);
 	
-	public void setData(List<Map<String,Object>> rows);
+	public void setData(List<Map<String,String>> rows);
 	
 	public void setColumnOrder(List<String> columnOrder);	
 	
