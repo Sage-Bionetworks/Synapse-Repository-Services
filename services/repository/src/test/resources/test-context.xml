@@ -20,7 +20,7 @@
                 
 	<bean id="userDAO" class="org.sagebionetworks.repo.manager.TestUserDAO" scope="singleton"/>
 
-<!-- 	<bean id="locationHelper" class="org.sagebionetworks.repo.web.controller.TestLocationHelper" /> -->
+	<bean id="iamClientFactory" class="org.sagebionetworks.repo.util.TestAmazonIdentityManagementFactory"  scope="singleton"/>
 	
         
     <!-- Provides users for testing. -->

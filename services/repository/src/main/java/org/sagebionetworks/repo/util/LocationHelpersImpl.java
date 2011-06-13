@@ -49,14 +49,6 @@ public class LocationHelpersImpl implements LocationHelper {
 	 * A user for use in integration tests
 	 */
 	public static final String INTEGRATION_TEST_READ_ONLY_USER_ID = "integration.test@sagebase.org";
-	/**
-	 * 
-	 */
-	public static final String FAKE_ACCESS_ID = "thisIsAFakeAWSAccessId";
-	/**
-	 * 
-	 */
-	public static final String FAKE_SECRET_KEY = "thisIsAFakeAWSSecretKey";
 
 	private static final int EXPIRES_MINUTES = 24 * 60; // 1 day
 	private static final String S3_BUCKET = "data01.sagebase.org";
@@ -67,52 +59,32 @@ public class LocationHelpersImpl implements LocationHelper {
 	private static final Pattern INCORRECT_DOMAIN = Pattern.compile(Matcher
 			.quoteReplacement(S3_BUCKET + "." + S3_DOMAIN));
 
-	// The IAM user who has permissions to make new IAM users
-	private String iamCanCreateUserCredsAccessId = FAKE_ACCESS_ID;
-	private String iamCanCreateUserCredsSecretKey = FAKE_SECRET_KEY;
-	private AWSCredentials iamCanCreateUsersCreds;
-
-	// The integration test IAM user
-	private String iamIntegrationTestCredsAccessId = FAKE_ACCESS_ID;
-	private String iamIntegrationTestCredsSecretKey = FAKE_SECRET_KEY;
-	private AWSCredentials iamIntegrationTestCreds;
-
-	private AmazonIdentityManagement iamClient;
+	@Autowired
+	private AmazonIdentityManagementFactory iamClientFactory;
+	
+	private AmazonIdentityManagement getIamClient() {
+		return iamClientFactory.getAmazonIdentityManagement();
+	}
 
 	/**
 	 * 
 	 */
 	public LocationHelpersImpl() {
+//		iamClient = iamClientFactory.getAmazonIdentityManagement();
 
-		if ((null != System.getProperty("AWS_ACCESS_KEY_ID"))
-				&& (null != System.getProperty("AWS_SECRET_KEY"))) {
-			// Dev Note: these particular environment variable names are what
-			// Elastic Beanstalk supports for passing creds via environment
-			// properties
-			// https://forums.aws.amazon.com/thread.jspa?messageID=217139&#217139
-			iamCanCreateUserCredsAccessId = System
-					.getProperty("AWS_ACCESS_KEY_ID");
-			iamCanCreateUserCredsSecretKey = System
-					.getProperty("AWS_SECRET_KEY");
-		}
+//		// TODO hack, delete this once authentication and authorization are in
+//		// place
+//		if ((null != System.getProperty("PARAM3"))
+//				&& (null != System.getProperty("PARAM4"))) {
+//			// Dev Note: these particular environment variable names are what
+//			// Elastic Beanstalk supports
+//			iamIntegrationTestCredsAccessId = System.getProperty("PARAM3");
+//			iamIntegrationTestCredsSecretKey = System.getProperty("PARAM4");
+//		}
 
-		iamCanCreateUsersCreds = new BasicAWSCredentials(
-				iamCanCreateUserCredsAccessId, iamCanCreateUserCredsSecretKey);
-		iamClient = new AmazonIdentityManagementClient(iamCanCreateUsersCreds);
-
-		// TODO hack, delete this once authentication and authorization are in
-		// place
-		if ((null != System.getProperty("PARAM3"))
-				&& (null != System.getProperty("PARAM4"))) {
-			// Dev Note: these particular environment variable names are what
-			// Elastic Beanstalk supports
-			iamIntegrationTestCredsAccessId = System.getProperty("PARAM3");
-			iamIntegrationTestCredsSecretKey = System.getProperty("PARAM4");
-		}
-
-		iamIntegrationTestCreds = new BasicAWSCredentials(
-				iamIntegrationTestCredsAccessId,
-				iamIntegrationTestCredsSecretKey);
+//		iamIntegrationTestCreds = new BasicAWSCredentials(
+//				iamIntegrationTestCredsAccessId,
+//				iamIntegrationTestCredsSecretKey);
 	}
 
 	/**
@@ -265,11 +237,11 @@ public class LocationHelpersImpl implements LocationHelper {
 		try {
 			GetUserRequest request = new GetUserRequest();
 			// If we can get the user, then we know the IAM user exists
-			iamClient.getUser(request.withUserName(userId));
+			getIamClient().getUser(request.withUserName(userId));
 		} catch (NoSuchEntityException ex) {
 			// We need to make a new IAM user
 			CreateUserRequest request = new CreateUserRequest();
-			iamClient.createUser(request.withUserName(userId));
+			getIamClient().createUser(request.withUserName(userId));
 		}
 
 		// Add the user to the right IAM group (even if they were already added
@@ -277,7 +249,7 @@ public class LocationHelpersImpl implements LocationHelper {
 		AddUserToGroupRequest groupRequest = new AddUserToGroupRequest();
 		groupRequest.setGroupName(READ_ONLY_GROUP);
 		groupRequest.setUserName(userId);
-		iamClient.addUserToGroup(groupRequest);
+		getIamClient().addUserToGroup(groupRequest);
 
 		// Dev Note: if we make mistakes and somehow fail
 		// to persist the credentials for the same IAM user twice, on the third
@@ -289,7 +261,7 @@ public class LocationHelpersImpl implements LocationHelper {
 
 		// Make new credentials
 		CreateAccessKeyRequest request = new CreateAccessKeyRequest();
-		CreateAccessKeyResult result = iamClient.createAccessKey(request
+		CreateAccessKeyResult result = getIamClient().createAccessKey(request
 				.withUserName(userId));
 
 		// And store them
