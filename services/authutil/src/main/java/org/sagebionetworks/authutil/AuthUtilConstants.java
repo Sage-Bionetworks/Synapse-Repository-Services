@@ -32,12 +32,6 @@ public class AuthUtilConstants {
 	public static final String CLIENT_KEY = "platform-pw";
 
 	/**
-	 * Group name for users added to Crowd.  Crowd REST API only allows retrieving users by group, 
-	 * therefore to retrieve the users in Crowd they must be added to some group.
-	 */
-	public static final String PLATFORM_GROUP = "platform";
-	
-	/**
 	 * This is the name of the attribute in Crowd for the creation date for a User
 	 */
 	public static final String CREATION_DATE_FIELD = "creationDate";
@@ -54,6 +48,10 @@ public class AuthUtilConstants {
 	 */
 	public static final String USER_DAO_INTEGRATION_TEST_SWITCH = "org.sagebionetworks.mockCrowdDAOClass";
 	
+	/**
+	 * Accept all SSL certificates, when acting as an HTTPS client.
+	 */
+	public static final String ACCEPT_ALL_CERTS = "ACCEPT_ALL_CERTS";
 	
 	/**
 	 * The name of a system property which indicates the interval at which that the Authentication filter
