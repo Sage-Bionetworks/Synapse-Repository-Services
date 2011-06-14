@@ -40,12 +40,7 @@
          <init-param>  
  			<param-name>allow-anonymous</param-name> 
  			<param-value>true</param-value>             
-         </init-param>  
-         <!-- false for google-app-engine, true for tomcat/beanstalk -->
-         <init-param>  
- 			<param-name>accept-all-certificates</param-name> 
- 			<param-value>true</param-value>             
-         </init-param>  
+         </init-param>   
  	</filter> 
 
 	<!--  only apply this filter to the user service -->

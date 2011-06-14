@@ -41,7 +41,7 @@ public class AuthenticationControllerTest {
 	
 	private boolean isIntegrationTest() {
 		String integrationTestEndpoint = System.getProperty("INTEGRATION_TEST_ENDPOINT");
-		return (integrationTestEndpoint!=null && integrationTestEndpoint.length()>0);
+		return true || (integrationTestEndpoint!=null && integrationTestEndpoint.length()>0);
 	}
 
 

@@ -41,15 +41,6 @@
     <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
   </listener>
   
- <!-- This parameter is used by the user-mirroring service when it makes an SSL connection to Crowd -->
- <!-- setting it to 'true' makes the repo' application accept all SSL certificates, i.e. when it is -->
- <!--  acting as a web CLIENT -->
-  <context-param>
-    <param-name>accept-all-ssl-certs</param-name>
-    <param-value>true</param-value>
-  </context-param>
- 
-   
   <!-- Some browsers do not support PUT and DELETE methods, this filter will examine the form field parameter _method -->
   <filter>
     <filter-name>httpMethodFilter</filter-name>

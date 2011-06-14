@@ -231,7 +231,7 @@ public class CrowdAuthUtil {
 		attributes.put(AuthUtilConstants.CREATION_DATE_FIELD, Arrays.asList(new String[]{df.format(new Date())}));
 		setUserAttributes(user.getEmail(), attributes);
 		
-		addUserToGroup(AuthUtilConstants.PLATFORM_GROUP, user.getEmail());
+//		addUserToGroup(AuthUtilConstants.PLATFORM_GROUP, user.getEmail());
 	}
 	
 	public void deleteUser(User user) throws AuthenticationException, IOException {
