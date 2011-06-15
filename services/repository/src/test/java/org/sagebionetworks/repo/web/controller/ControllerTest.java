@@ -81,6 +81,7 @@ public class ControllerTest {
 				"/acl/schema",
 				"/location/schema",
 				"/query/schema", 
+				"/annotations/schema",
 		};
 
 		List<String> testCases = Arrays.asList(urls); // UrlHelpers.getAllEntityUrlPrefixes();

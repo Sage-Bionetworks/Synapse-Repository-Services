@@ -50,8 +50,10 @@ public class ReadOnlyWikiGenerator {
 
 		WikiGenerator wiki = WikiGenerator.createWikiGeneratorFromArgs(args);
 
-		wiki.doLogin("h2. Log into Synapse", "You must have an account with permission to view entities in Synapse.");
-		
+		wiki
+				.doLogin("h2. Log into Synapse",
+						"You must have an account with permission to view entities in Synapse.");
+
 		log.info("h1. Query API");
 		log
 				.info("The Query API is loosely modeled after Facebook's [Query Language|https://developers.facebook.com/docs/reference/fql/].");
@@ -219,65 +221,43 @@ public class ReadOnlyWikiGenerator {
 		log.info("h2. Schemas");
 		wiki
 				.doGet(
-						"/dataset/schema",
-						"h3. Datasets List Schema",
+						"/query/schema",
+						"h3. Query Results Schema",
 						"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-		// wiki.doGet(
-		// dataset.getString("uri") + "/schema",
-		// "h3. Dataset Schema",
-		// "The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-		// wiki.doGet(
-		// dataset.getString("annotations") + "/schema",
-		// "h3. Dataset Annotations Schema",
-		// "The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
+		wiki
+				.doGet(
+						"/project/schema",
+						"h3. Project Schema",
+						"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
+		wiki
+				.doGet(
+						"/dataset/schema",
+						"h3. Dataset Schema",
+						"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 		wiki
 				.doGet(
 						"/layer/schema",
-						"h3. Dataset Layers List Schema",
+						"h3. Layer Schema",
 						"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-		// wiki.doGet(
-		// layer.getString("uri") + "/schema",
-		// "h3. Layer Schema",
-		// "The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 		wiki
 				.doGet(
 						"/preview/schema",
 						"h3. Layer Preview Schema",
 						"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-		// wiki.doGet(
-		// "/previewAsMap/schema",
-		// "h3. Layer Preview as Map Schema",
-		// "The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-		// JSONArray locations = layer.getJSONArray("locations");
-		// for (int j = 0; j < locations.length(); j++) {
-		// String location = locations.getString(j);
-		// if (!location.endsWith("Location")) {
 		wiki
 				.doGet(
 						"/location/schema",
-						"h3. Layer Locations Schema",
+						"h3. Dataset or Layer Locations Schema",
 						"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-		
-		// Project schema
 		wiki
-		.doGet(
-				"/project/schema",
-				"h3. Project Schema",
-				"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-		//
-		// }
-		// }
-		// for (int j = 0; j < locations.length(); j++) {
-		// String location = locations.getString(j);
-		// if (location.endsWith("Location")) {
-		// int slash = location.lastIndexOf("/");
-		// String locationType = location.substring(slash + 1);
-		// wiki.doGet(
-		// location + "/schema",
-		// "h4. Get the " + locationType + " for a "
-		// + " Dataset Layer",
-		// "The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-		// }
-		// }
+				.doGet(
+						"/annotations/schema",
+						"h3. Annotations Schema",
+						"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
+		wiki
+				.doGet(
+						"/acl/schema",
+						"h3. Access Control List Schema",
+						"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 	}
 }
