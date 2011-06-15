@@ -356,6 +356,19 @@ public class DefaultController extends BaseController {
 	}
 	
 	/**
+	 * Get the schema for Annotations
+	 * 
+	 * @return the schema
+	 * @throws DatastoreException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value ={UrlHelpers.ANNOTATIONS + UrlHelpers.SCHEMA}, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonSchema getAnnotationsSchema() throws DatastoreException {
+		return entityController.getEntityAnnotationsSchema();
+	}
+
+	/**
 	 * Create a new ACL, overriding inheritance.
 	 * @param <T>
 	 * @param userId - The user that is doing the create.
