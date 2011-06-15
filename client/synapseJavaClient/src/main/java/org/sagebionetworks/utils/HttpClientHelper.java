@@ -52,11 +52,13 @@ public class HttpClientHelper {
 	 * @param requestContent
 	 * @param requestHeaders
 	 * @return response body
-	 * @throws Exception
+	 * @throws HttpClientHelperException 
+	 * @throws IOException 
+	 * @throws HttpException 
 	 */
 	public static String performRequest(URL requestUrl, String requestMethod,
-			String requestContent, Map<String, String> requestHeaders)
-			throws Exception {
+			String requestContent, Map<String, String> requestHeaders) throws HttpException, IOException, HttpClientHelperException
+			 {
 
 		return performRequest(requestUrl, requestMethod, requestContent,
 				requestHeaders, null);
@@ -71,12 +73,14 @@ public class HttpClientHelper {
 	 * @param requestHeaders
 	 * @param overridingExpectedResponseStatus
 	 * @return response body
-	 * @throws Exception
+	 * @throws HttpClientHelperException 
+	 * @throws IOException 
+	 * @throws HttpException 
 	 */
 	public static String performRequestShouldFail(URL requestUrl,
 			String requestMethod, String requestContent,
 			Map<String, String> requestHeaders,
-			Integer overridingExpectedResponseStatus) throws Exception {
+			Integer overridingExpectedResponseStatus) throws HttpException, IOException, HttpClientHelperException  {
 		return performRequest(requestUrl, requestMethod, requestContent,
 				requestHeaders, overridingExpectedResponseStatus);
 	}
