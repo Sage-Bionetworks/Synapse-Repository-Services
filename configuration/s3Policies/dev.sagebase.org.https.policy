@@ -1,0 +1,15 @@
+{
+  "Statement":[
+    {
+      "Action": "s3:*",
+      "Effect":"Deny",
+      "Principal": "*",
+      "Resource":"arn:aws:s3:::dev.sagebase.org/*",
+      "Condition":{
+        "Bool":{
+          "aws:SecureTransport": false
+        }
+      }
+    }
+  ]
+}
