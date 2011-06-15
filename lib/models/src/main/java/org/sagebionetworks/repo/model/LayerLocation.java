@@ -34,17 +34,21 @@ public class LayerLocation implements BaseChild{
 	 */
 	public enum LocationTypeNames {
 		/**
-		 * 
+		 * Synapse-controlled locations in S3
 		 */
 		awss3, 
 		/**
-		 * 
+		 * AWS EBS snapshot ids
 		 */
 		awsebs, 
 		/**
-		 * 
+		 * Sage shared server file path
 		 */
-		sage;
+		sage,
+		/**
+		 * Externally hosted paths
+		 */
+		external;
 	}
 
 	/**

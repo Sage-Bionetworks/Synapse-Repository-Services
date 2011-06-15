@@ -39,12 +39,18 @@ public class LocationControllerTest {
 	public static String SAMPLE_LOCATION = "{\"path\":\"unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz\", "
 			+ "\"type\":\"awss3\", \"md5sum\":\"33183779e53ce0cfc35f59cc2a762cbd\"}";
 
+	public static String SAMPLE_EXTERNAL_LOCATION = "{\"path\":\"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz\", "
+		+ "\"type\":\"external\", \"md5sum\":\"33183779e53ce0cfc35f59cc2a762cbd\"}";
+
+	
 	@Autowired
 	private Helpers helper;
 	private JSONObject dataset;
 	private JSONObject layer;
-	private JSONObject datasetLocation;
-	private JSONObject layerLocation;
+	private JSONObject datasetS3Location;
+	private JSONObject layerS3Location;
+	private JSONObject datasetExternalLocation;
+	private JSONObject layerExternalLocation;
 
 	/**
 	 * @throws java.lang.Exception
@@ -60,9 +66,13 @@ public class LocationControllerTest {
 				+ "/layer", LayerControllerTest.getSampleLayer(dataset
 				.getString("id")));
 
-		datasetLocation = new JSONObject(SAMPLE_LOCATION).put(NodeConstants.COL_PARENT_ID,
+		datasetS3Location = new JSONObject(SAMPLE_LOCATION).put(NodeConstants.COL_PARENT_ID,
 				dataset.getString("id"));
-		layerLocation = new JSONObject(SAMPLE_LOCATION).put(NodeConstants.COL_PARENT_ID, layer
+		layerS3Location = new JSONObject(SAMPLE_LOCATION).put(NodeConstants.COL_PARENT_ID, layer
+				.getString("id"));
+		datasetExternalLocation = new JSONObject(SAMPLE_EXTERNAL_LOCATION).put(NodeConstants.COL_PARENT_ID,
+				dataset.getString("id"));
+		layerExternalLocation = new JSONObject(SAMPLE_EXTERNAL_LOCATION).put(NodeConstants.COL_PARENT_ID, layer
 				.getString("id"));
 	}
 
@@ -85,7 +95,7 @@ public class LocationControllerTest {
 	public void testCreateLocation() throws Exception {
 		JSONObject results = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/location", datasetLocation.toString());
+				+ "/location", datasetS3Location.toString());
 
 		// Check properties
 		assertEquals("awss3", results.getString("type"));
@@ -127,16 +137,27 @@ public class LocationControllerTest {
 	 */
 	@Test
 	public void testGetLocation() throws Exception {
-		JSONObject newLocation = helper.testCreateJsonEntity(helper
+		JSONObject newExternalLocation = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/location", layerLocation.toString());
+				+ "/location", layerExternalLocation.toString());
 
-		JSONObject results = helper.testGetJsonEntity(newLocation
+		JSONObject externalLocation = helper.testGetJsonEntity(newExternalLocation
 				.getString("uri"));
+		assertEquals(newExternalLocation.getString("id"), externalLocation.getString("id"));
+		assertEquals("external", externalLocation.getString("type"));
+		assertEquals("33183779e53ce0cfc35f59cc2a762cbd", externalLocation
+				.getString("md5sum"));
+		assertExpectedLocationProperties(externalLocation);
 
-		assertEquals(newLocation.getString("id"), results.getString("id"));
-		assertEquals("awss3", results.getString("type"));
-		assertEquals("33183779e53ce0cfc35f59cc2a762cbd", results
+		JSONObject newS3Location = helper.testCreateJsonEntity(helper
+				.getServletPrefix()
+				+ "/location", layerS3Location.toString());
+		
+		JSONObject s3Location = helper.testGetJsonEntity(newS3Location
+				.getString("uri"));
+		assertEquals(newS3Location.getString("id"), s3Location.getString("id"));
+		assertEquals("awss3", s3Location.getString("type"));
+		assertEquals("33183779e53ce0cfc35f59cc2a762cbd", s3Location
 				.getString("md5sum"));
 
 		String s3key = "/"
@@ -146,27 +167,25 @@ public class LocationControllerTest {
 				// TODO + results.getString("version") + "/"
 				+ "unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz";
 
-		assertTrue(0 < results.getString("path").indexOf(s3key));
+		assertTrue(0 < s3Location.getString("path").indexOf(s3key));
 		// https://s3.amazonaws.com/data01.sagebase.org/1/3/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz?Expires=1307507371&AWSAccessKeyId=thisIsAFakeAWSAccessId&Signature=op01bZcni6bPw1sEmpjci75PIoE%3D
-		assertTrue(results
+		assertTrue(s3Location
 				.getString("path")
 				.matches(
 						"^https://s3.amazonaws.com/data01.sagebase.org"
 								+ s3key
 								+ "\\?.*Expires=\\d+&AWSAccessKeyId=\\w+&Signature=.+$"));
 
-		assertExpectedLocationProperties(results);
+		assertExpectedLocationProperties(s3Location);
 
 		JSONObject storedLayer = helper.testGetJsonEntity(layer
 				.getString("uri"));
 		assertNotNull(storedLayer);
 
-		// TODO fix this part of the test to just ensure that the layer has the
-		// correct number of location children
 		JSONObject paging = helper.testGetJsonEntities(layer
 				.getString("locations"));
 		assertNotNull(paging);
-		assertEquals(1, paging.getLong("totalNumberOfResults"));
+		assertEquals(2, paging.getLong("totalNumberOfResults"));
 	}
 
 	/**
@@ -176,7 +195,7 @@ public class LocationControllerTest {
 	public void testUpdateLocation() throws Exception {
 		JSONObject newLocation = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/location", datasetLocation.toString());
+				+ "/location", datasetS3Location.toString());
 
 		// Get one location
 		JSONObject location = helper.testGetJsonEntity(newLocation
@@ -210,7 +229,7 @@ public class LocationControllerTest {
 	public void testUpdateNewlyCreatedLocation() throws Exception {
 		JSONObject newLocation = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/location", layerLocation.toString());
+				+ "/location", layerS3Location.toString());
 
 		// Modify the newly created location
 		newLocation.put("path",
@@ -236,10 +255,12 @@ public class LocationControllerTest {
 	public void testDeleteLocation() throws Exception {
 		JSONObject newLocation = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/location", datasetLocation.toString());
+				+ "/location", datasetS3Location.toString());
 		helper.testDeleteJsonEntity(newLocation.getString("uri"));
 	}
 
+	
+	
 	/*****************************************************************************************************
 	 * Bad parameters tests
 	 */
@@ -290,7 +311,7 @@ public class LocationControllerTest {
 		// Create a location
 		JSONObject newLocation = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/location", layerLocation.toString());
+				+ "/location", layerS3Location.toString());
 
 		// Get that location
 		JSONObject location = helper.testGetJsonEntity(newLocation
@@ -329,7 +350,7 @@ public class LocationControllerTest {
 		// Create a location
 		JSONObject newLocation = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/location", layerLocation.toString());
+				+ "/location", layerS3Location.toString());
 
 		// Get that location
 		JSONObject location = helper.testGetJsonEntity(newLocation
@@ -353,7 +374,7 @@ public class LocationControllerTest {
 		// Create a location
 		JSONObject newLocation = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/location", datasetLocation.toString());
+				+ "/location", datasetS3Location.toString());
 		// Get that location
 		JSONObject location = helper.testGetJsonEntity(newLocation
 				.getString("uri"));
@@ -391,7 +412,7 @@ public class LocationControllerTest {
 	public void testGetNonExistentLocation() throws Exception {
 		JSONObject results = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/location", layerLocation.toString());
+				+ "/location", layerS3Location.toString());
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 
@@ -409,7 +430,7 @@ public class LocationControllerTest {
 	public void testUpdateNonExistentLocation() throws Exception {
 		JSONObject results = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/location", datasetLocation.toString());
+				+ "/location", datasetS3Location.toString());
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 
@@ -427,7 +448,7 @@ public class LocationControllerTest {
 	public void testDeleteNonExistentLocation() throws Exception {
 		JSONObject results = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/location", layerLocation.toString());
+				+ "/location", layerS3Location.toString());
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 
