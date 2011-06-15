@@ -1,5 +1,30 @@
-getLayerData <-
-		function(layer, locationPrefs = dataLocationPrefs(), curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"), cacheDir = synapseCacheDir())
+setGeneric(
+		name = "loadLayer",
+		def = function(object){
+			standardGeneric("loadLayer")
+		}
+)
+
+setMethod(
+		f = "loadLayer",
+		signature = "layerList",
+		def = function(object){
+			loadLayer(Layer(object))
+		}
+)
+
+setMethod(
+		f = "loadLayer",
+		signature = "Layer",
+		definition = function(object){
+			object@cachedFiles <- .cacheFiles(object@locations)
+			return(object)
+		}
+)
+
+
+.cacheFiles <-
+		function(locationsUri, locationPrefs = dataLocationPrefs(), curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"), cacheDir = synapseCacheDir())
 {
 	## make sure that the location type for this layer is currently supported
 	if(!all(locationPrefs %in% .getCache("supportedRepositoryLocationTypes"))){
@@ -8,7 +33,7 @@ getLayerData <-
 	}
 	
 	#get the available locations for this layer and match to locationPrefs
-	response <- synapseGet(layer$locations, curlHandle = curlHandle, anonymous = anonymous)
+	response <- synapseGet(locationsUri, curlHandle = curlHandle, anonymous = anonymous)
 	checkCurlResponse(curlHandle, response)
 	availableLocations <- jsonListToDataFrame(response$results)
 	ind <- match(locationPrefs, availableLocations$type)
@@ -27,13 +52,22 @@ getLayerData <-
 	response <- synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous, path="")
 	checkCurlResponse(curlHandle, response)
 	s4URL <- URL(response$path)
+	synapseCheckSum <- response$md5sum
 	zipFile <- URL(file.path(cacheDir, s4URL@fullFilePath))
 	destDir <- URL(paste(zipFile@url, .getCache("downloadSuffix"), sep="_"))
+	localFile <- file.path(cacheDir, s4URL@fullFilePath)
 	
-	synapseDownloadFile(url = s4URL@url, destfile = s4URL@fullFilePath, cacheDir = cacheDir)
+	if(!file.exists(localFile) || (file.exists(localFile) & md5sum(localFile) != synapseCheckSum)){
+		## download the file
+		synapseDownloadFile(url = s4URL@url, destfile = s4URL@fullFilePath, cacheDir = cacheDir)
+	}
+	
+	## unpack the layer file
+	## TODO: should the code only unpack the file if the destdir doesn't already exists?
+	## TODO: should the dest directory be deleted before unpacking?
 	files <- .unpack(filename=zipFile@url, destdir=destDir@url)
 	
-	class(files) <- "layerData"
-	attr(files, "layerType") <- layer$type
+	class(files) <- "layerFiles"
+	attr(files, "rootDir") <- destDir@url
 	return(files)
 }

@@ -6,9 +6,9 @@
 .cache <- new.env(parent=emptyenv())
 
 kSupportedLayerCodeMap <- list(
-		PhenotypeDataLayer = "C",
-		ExpressionDataLayer = "E",
-		GenotypeDataLayer = "G"
+		PhenotypeLayer = "C",
+		ExpressionLayer = "E",
+		GenotypeLayer = "G"
 
 	)
 kSupportedLayerStatus <- c("Curated", "QCd", "Raw")

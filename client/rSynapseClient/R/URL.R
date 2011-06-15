@@ -20,15 +20,25 @@ setClass(
 URL <- function(url){
 	
 	## protocol
-	protocol <- gsub("://.+$","",url)
-	
+	if(length(grep("://", url)) == 0){
+		protocol <- ""
+	}else{
+		protocol <- gsub("://.+$","",url)
+	}
 	## host
-	tmp <- gsub("^.+://", "", url)
+	if(protocol == ""){
+		tmp <- gsub("^/+", "", url)
+	}else{
+		tmp <- gsub("^.+://", "", url)
+	}
 	host <- gsub("/.+$", "", tmp)
 	rm(tmp)
 	
 	##query string
-	queryString <- gsub("^.+\\?", "", url)
+	queryString <- ""
+	if(length(grep("\\?", url)) != 0){
+		queryString <- gsub("^.+\\?", "", url)
+	}
 	
 	## full path
 	tmp <- gsub(paste("^", protocol, "://", host, "/", sep=""), "", url)

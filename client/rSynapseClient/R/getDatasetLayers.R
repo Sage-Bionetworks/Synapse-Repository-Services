@@ -1,4 +1,4 @@
-getPacketLayers <-
+getDatasetLayers <-
 		function(id, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
 {
 	kService <- "dataset"
@@ -9,10 +9,12 @@ getPacketLayers <-
 	
 	layers <- result$results
 
+	returnVal <- NULL
 	for(i in 1:length(layers)){
-		names(layers)[i] <- layers[[i]]$type
-		class(layers[[i]]) <- 'layer'
+		class(layers[[i]]) <- 'layerList'
+		returnVal <- c(returnVal, Layer(layers[[i]]))
 	}
 
-	return(layers)
+	return(returnVal)
 }
+

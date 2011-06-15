@@ -1,20 +1,19 @@
 loadLayerData <-
-		function(layer, locationType='awsS3Location')
+		function(entity)
 {
 	kAttrName <- "layerType"
 	if(class(layer) != 'layer'){
 		stop("input must be of class 'layer'")
 	}
 	
-	layerData <- getLayerData(layer, locationType)
+	#layerData <- getLayerData(layer, locationType)
+	#check cache
 	
-	layerType <- attr(layerData, kAttrName)
+	#check MD5Sum
 	
-	if(layerType == .getCache("layerCodeTypeMap")[["phenotype.data"]]){
-		d <- .loadPhenotypeLayer(layerData)
-	}else{
-		stop(paste("layerType", layerType, "is not supported"))
-	}
+	#download if missing (this should unpack if necessary)
+	
+	
 	
  	return(d)
 }

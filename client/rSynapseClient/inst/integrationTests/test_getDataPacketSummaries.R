@@ -5,8 +5,8 @@
 	# Do some test cleanup stuff here, if applicable
 }
 
-integrationTestGetDataPackets <- function() {
-	packets <- getDataPacketSummaries()
+integrationTestGetDatasets <- function() {
+	packets <- getDatasets()
 	# We should get back 10 datasets
 	checkEquals(dim(packets)[1], 10)
 	# The fields returned by this service API may change over time, but
@@ -19,8 +19,8 @@ integrationTestGetDataPackets <- function() {
 }
 
 integrationTestPaging <- function() {
-	firstPagePackets <- getDataPacketSummaries(list(limit=20, offset=1))
-	secondPagePackets <- getDataPacketSummaries(list(limit=20, offset=21))
+	firstPagePackets <- getDatasets(list(limit=20, offset=1))
+	secondPagePackets <- getDatasets(list(limit=20, offset=21))
 	# We should get back 20 datasets
 	checkEquals(dim(firstPagePackets)[1], 20)
 	checkEquals(dim(secondPagePackets)[1], 20)
@@ -31,7 +31,7 @@ integrationTestPaging <- function() {
 }
 
 integrationTestQueryForDataset <- function() {
-	packets <- getDataPacketSummaries(list(where='dataset.name == "MSKCC Prostate Cancer"'))
+	packets <- getDatasets(list(where='dataset.name == "MSKCC Prostate Cancer"'))
 	# We should get back 1 dataset
 	checkEquals(dim(packets)[1], 1)
 	# And its name should match the one we searched for

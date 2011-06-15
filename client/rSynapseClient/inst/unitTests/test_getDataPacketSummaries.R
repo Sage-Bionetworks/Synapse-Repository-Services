@@ -44,7 +44,7 @@ unitTestJsonCorretlyParsed <-
 	# Since we have stubbed out the remote call to the service, all we
 	# are really checking here is that getDataPacketSummaries is parsing
 	# the JSON into the object we expect
-	packets <- getDataPacketSummaries()
+	packets <- getDatasets()
 	# We should get back 10 datasets
 	checkEquals(dim(packets)[1], 10)
 	# With 26 properties

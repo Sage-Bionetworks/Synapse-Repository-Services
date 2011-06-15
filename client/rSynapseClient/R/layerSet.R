@@ -14,14 +14,10 @@
 setClass(
 		Class = "LayerSet",
 		representation(
-				expressionLayers = "list",
-				phenotypeLayers = "list",
-				genotypeLayers = "list"
+				layers = "list"
 		),
 		prototype = prototype(
-				expressionLayers = NULL,
-				phenotypeLayers = NULL,
-				genotypeLayers = NULL
+				layers = NULL
 		)
 )
 

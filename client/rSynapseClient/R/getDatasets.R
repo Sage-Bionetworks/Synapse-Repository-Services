@@ -1,4 +1,4 @@
-getDataPacketSummaries <- 
+getDatasets <- 
 		function(queryParams = list(limit=10, offset=1), curlHandle=getCurlHandle(), anonymous = .getCache("anonymous"))
 {
 	if(!is.list(queryParams)){

@@ -1,4 +1,4 @@
-getDataPacketSummary <- 
+getDataset <- 
 		function(id, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
 {
 	## constants

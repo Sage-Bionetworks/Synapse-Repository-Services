@@ -10,7 +10,7 @@
 		tar = untar(filename, exdir = destdir),
 		defult = stop("unsupported file extension: ", extension)
 	)	
-	file.path(destdir,list.files(destdir))
+	files <- list.files(destdir, full.names = TRUE, recursive=T)
 }
 
 
