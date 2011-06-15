@@ -13,6 +13,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
 import org.apache.log4j.Logger;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
 
@@ -33,6 +34,9 @@ public class WikiGenerator {
 			.getName());
 
 	private static final int JSON_INDENT = 2;
+	private static final String LOGIN_URI = "/session";
+	private static final String LOGIN_REQUEST_ENTITY = "{\"email\":\"me@myEmail.com\", \"password\":\"thisIsAFakePassword\"}";
+	private static final String LOGIN_RESPONSE_ENTITY = "{\"displayName\":\"MyFirstName MyLastName\",\"sessionToken\":\"XXXXXXXXXXXX\"}";
 
 	private Synapse synapse;
 	private String repoEndpoint;
@@ -41,6 +45,8 @@ public class WikiGenerator {
 	private String authEndpoint;
 	private String authLocation;
 	private String authPrefix;
+	private String username;
+	private String password;
 
 	private static final Map<String, String> defaultGETDELETEHeaders;
 	private static final Map<String, String> defaultPOSTPUTHeaders;
@@ -140,12 +146,54 @@ public class WikiGenerator {
 		authLocation = authEndpoint.substring(0, authEndpoint.length()
 				- authPrefix.length());
 
+		this.username = username;
+		this.password = password;
+		
 		synapse = new Synapse();
 		synapse.setRepositoryEndpoint(this.repoEndpoint);
 		synapse.setAuthEndpoint(this.authEndpoint);
+	}
+
+	/**
+	 * Document logging into Synapse
+	 * 
+	 * Dev Note: This method is special, we do not want to show actual passwords
+	 * and sessionTokens so we are hardcoding some of the wiki content
+	 * 
+	 * @param wikiHeading
+	 * @param wikiDetails
+	 * @throws Exception 
+	 */
+	public void doLogin(String wikiHeading, String wikiDetails) throws Exception {
+		log.info("");
+		log.info("");
+		log.info(wikiHeading);
+		log.info(wikiDetails);
+		log.info("");
+
+		Map<String, String> requestHeaders = new HashMap<String, String>();
+		requestHeaders.putAll(defaultPOSTPUTHeaders);
+
+		JSONObject requestEntity = new JSONObject(LOGIN_REQUEST_ENTITY);
+		JSONObject responseEntity = new JSONObject(LOGIN_RESPONSE_ENTITY);
 		
-		// TODO this should be part of the wiki documentation
-		synapse.login(username, password);
+		String curl = "curl -i ";
+		for (Entry<String, String> header : requestHeaders.entrySet()) {
+			curl += " -H " + header.getKey() + ":" + header.getValue();
+		}
+		curl += " -d '" +  requestEntity.toString(JSON_INDENT) +"' "
+				+ authEndpoint + LOGIN_URI + "{code}";
+		log.info("*Request* {code}" + curl);
+		log.info("*Response* {code}");
+
+		try {
+			synapse.login(username, password);
+			log
+					.info(responseEntity.toString(JSON_INDENT) + "{code}");
+		} catch (Exception e) {
+			log.info("failure: ", e);
+			log.info("{code}");
+		}
 	}
 
 	/**
@@ -162,10 +210,6 @@ public class WikiGenerator {
 		log.info(wikiHeading);
 		log.info(wikiDetails);
 		log.info("");
-		if (null == uri) {
-			log.info("TODO add an example here");
-			return null;
-		}
 
 		URL requestUrl;
 		if (uri.startsWith(repoPrefix)) {
@@ -211,10 +255,6 @@ public class WikiGenerator {
 		log.info(wikiHeading);
 		log.info(wikiDetails);
 		log.info("");
-		if (null == uri) {
-			log.info("TODO add an example here");
-			return null;
-		}
 
 		URL requestUrl;
 		if (uri.startsWith(repoPrefix)) {
@@ -261,10 +301,6 @@ public class WikiGenerator {
 		log.info(wikiHeading);
 		log.info(wikiDetails);
 		log.info("");
-		if (null == uri) {
-			log.info("TODO add an example here");
-			return null;
-		}
 
 		URL requestUrl;
 		if (uri.startsWith(repoPrefix)) {
@@ -309,10 +345,6 @@ public class WikiGenerator {
 		log.info(wikiHeading);
 		log.info(wikiDetails);
 		log.info("");
-		if (null == uri) {
-			log.info("TODO add an example here");
-			return;
-		}
 
 		URL requestUrl;
 		if (uri.startsWith(repoPrefix)) {

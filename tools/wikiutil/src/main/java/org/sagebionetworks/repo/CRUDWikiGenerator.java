@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo;
 
+import java.util.Iterator;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.log4j.Logger;
@@ -39,6 +41,8 @@ public class CRUDWikiGenerator {
 
 		WikiGenerator wiki = WikiGenerator.createWikiGeneratorFromArgs(args);
 
+		wiki.doLogin("h2. Log into Synapse", "You must have an account with permission to create entities in Synapse.");
+		
 		log.info("h2. Create/Update/Delete Examples");
 		log
 				.info("You can create entities, update entities, read entities, and delete entities.  More advanced querying is implemented as a separate API. "
@@ -66,10 +70,10 @@ public class CRUDWikiGenerator {
 								+ "value previously returned.");
 
 		log.info("h3. Add Annotations to a Dataset");
-		JSONObject annotations = wiki
+		JSONObject storedAnnotations = wiki
 				.doGet(dataset.getString("annotations"),
 						"h4. Get the annotations",
-						"First get the empty annotations container for your newly created dataset. FIXME MERGE THE OLD AND THE NEW ANNOTATIONS");
+						"First get the current annotations for your newly created dataset.");
 
 		JSONObject cannedAnnotations = new JSONObject(
 				"{\"doubleAnnotations\": {}, \"dateAnnotations\": {\"last_modified_date\": [\"2009-03-06\"]}, \"longAnnotations\": {\"number_of_downloads\": "
@@ -79,22 +83,27 @@ public class CRUDWikiGenerator {
 						+ "Major JE, Wilson M, Socci ND, Lash AE, Heguy A, Eastham JA, Scher HI, Reuter VE, Scardino PT, Sander C, Sawyers CL, Gerald WL. Cancer "
 						+ "Cell. 2010 Jul 13;18(1):11-22.  \"], \"Disease\": [\"Cancer\"], \"Species\": [\"Human\"], \"Internal_Name\": [\"Prostate cancer-MSKCC\"], "
 						+ "\"Tissue_Tumor\": [\"Prostate\"], \"Type\": [\"GCD\"], \"Institution\": [\"Memorial Sloan Kettering Cancer Center\"]}}");
-		// transfer our canned annotations to our annotations object
-		annotations.put("dateAnnotations", cannedAnnotations
-				.getJSONObject("dateAnnotations"));
-		annotations.put("doubleAnnotations", cannedAnnotations
-				.getJSONObject("doubleAnnotations"));
-		annotations.put("longAnnotations", cannedAnnotations
-				.getJSONObject("longAnnotations"));
-		annotations.put("stringAnnotations", cannedAnnotations
-				.getJSONObject("stringAnnotations"));
+
+		// Merge our canned annotations to our annotations object
+		Iterator<String> keyIter = cannedAnnotations.keys();
+		while (keyIter.hasNext()) {
+			String key = keyIter.next();
+			// Annotations need to go one level deeper
+			JSONObject storedAnnotationBucket = storedAnnotations.getJSONObject(key);
+			JSONObject cannedAnnotationBucket = cannedAnnotations.getJSONObject(key);
+			Iterator<String> annotationIter = cannedAnnotationBucket.keys();
+			while (annotationIter.hasNext()) {
+				String annotationKey = annotationIter.next();
+				storedAnnotationBucket.put(annotationKey, cannedAnnotationBucket.get(annotationKey));
+			}
+		}
 
 		wiki
 				.doPut(
 						dataset.getString("annotations"),
-						annotations,
+						storedAnnotations,
 						"h4. Put the annotations",
-						"Then you add/modify the annotations of interest and do a PUT. *Note that annotation values must always be arrays even if the "
+						"Then you add new annotations to the existing annotations, or modify the existing annotations, and do a PUT. *Note that annotation values must always be arrays even if the "
 								+ "array is only of length one.*");
 
 		JSONObject layer = wiki

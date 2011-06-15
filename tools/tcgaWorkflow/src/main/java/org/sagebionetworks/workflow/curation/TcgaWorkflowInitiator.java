@@ -45,9 +45,15 @@ public class TcgaWorkflowInitiator {
 			if (url.endsWith("tar.gz") && (0 > url.indexOf("image"))) {
 
 				if (url
-						.matches(".*broad.mit.edu_COAD.Genome_Wide_SNP_6.Level_3.76.*")) {
+						.matches(".*jhu-usc.edu_COAD.HumanMethylation27.Level_2.8.0.0.*")) {
 				
-//				// This one has an MD5 failure
+//				if (url
+//						.matches(".*jhu-usc.edu_COAD.HumanMethylation27.Level_3.8.0.0.*")) {
+				
+//				if (url
+//						.matches(".*broad.mit.edu_COAD.Genome_Wide_SNP_6.Level_3.76.*")) {
+				
+//				// This one has an MD5 failure because two different urls have the same filename
 //				if (url
 //						.matches(".*bcgsc.ca_COAD.IlluminaGA_miRNASeq.Level_3.1.0.0.*")) {
 				

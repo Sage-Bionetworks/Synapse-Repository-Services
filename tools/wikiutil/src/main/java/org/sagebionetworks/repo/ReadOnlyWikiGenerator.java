@@ -50,6 +50,8 @@ public class ReadOnlyWikiGenerator {
 
 		WikiGenerator wiki = WikiGenerator.createWikiGeneratorFromArgs(args);
 
+		wiki.doLogin("h2. Log into Synapse", "You must have an account with permission to view entities in Synapse.");
+		
 		log.info("h1. Query API");
 		log
 				.info("The Query API is loosely modeled after Facebook's [Query Language|https://developers.facebook.com/docs/reference/fql/].");

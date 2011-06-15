@@ -158,6 +158,7 @@ public class Curation {
 
 		message.append("Created new layer ").append(layerQueryResult.get("layer.name"));
 		message.append(" for dataset ").append(datasetResults.getJSONArray("results").getJSONObject(0).get("dataset.name"));
+		message.append("\nhttp://staging-synapseweb.elasticbeanstalk.com/#Layer:").append(layerQueryResult.get("layer.id")).append(";Dataset:").append(layerQueryResult.get("layer.parentId"));
 		message.append("\n\nLayer\n").append(layerResults.toString(4));
 		message.append("\n\nDataset\n").append(datasetResults.toString(4));
 		return message.toString();

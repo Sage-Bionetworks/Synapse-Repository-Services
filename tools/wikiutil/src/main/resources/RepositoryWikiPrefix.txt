@@ -21,5 +21,6 @@ In requests to the service, dates can be serialized either as long integers expr
 
 h2. Security
 
-Eventually these services will be HTTPS only and disallow HTTP.  Users will pass something like _?access_token=..._ as a query parameter for every request to the service
+Eventually these services will be HTTPS only and disallow HTTP.  For all requests requiring authentication, users will pass a special header {{sessionToken}} with
+each request to the service.
 
