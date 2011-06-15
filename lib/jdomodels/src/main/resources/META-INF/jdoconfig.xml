@@ -17,6 +17,8 @@
 	<property name="datanucleus.validateConstraints" value="false"/>
 	<property name="datanucleus.validateTables" value="false"/>
 	<property name="datanucleus.transactionIsolation" value="read-committed"/>
+	<property name="sagebionetworks.db.connection.validate" value="true"/>
+	<property name="sagebionetworks.db.connection.validation.sql" value="SELECT 1"/>
   </persistence-manager-factory>
 
   <persistence-manager-factory name="memorydb-transactions-optional">
@@ -32,6 +34,8 @@
 	<property name="datanucleus.autoCreateSchema" value="true"/>
 	<property name="datanucleus.validateConstraints" value="false"/>
 	<property name="datanucleus.validateTables" value="false"/>
+	<property name="sagebionetworks.db.connection.validate" value="false"/>
+	<property name="sagebionetworks.db.connection.validation.sql" value=""/>
   </persistence-manager-factory>
 
 </jdoconfig>
