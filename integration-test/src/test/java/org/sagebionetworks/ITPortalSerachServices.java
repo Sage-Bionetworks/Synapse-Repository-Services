@@ -20,18 +20,20 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.utils.CookieSessionManager;
 import org.sagebionetworks.utils.PublicCookieManager;
-import org.sagebionetworks.web.client.DatasetService;
 import org.sagebionetworks.web.client.SearchService;
 import org.sagebionetworks.web.client.cookie.CookieKeys;
+import org.sagebionetworks.web.client.services.NodeService;
 import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
+import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.TableResults;
 import org.sagebionetworks.web.shared.WhereCondition;
 import org.springframework.web.client.RestTemplate;
 
 import com.gdevelop.gwt.syncrpc.SyncProxy;
+import com.google.gwt.json.client.JSONParser;
 
 public class ITPortalSerachServices {
 
@@ -45,7 +47,7 @@ public class ITPortalSerachServices {
 	static int totalNumberOfDatasets = 5;
 
 	static SearchService searchService;
-	static DatasetService datasetService;
+	static NodeService nodeService;
 	
 	
 	private static String attOnall = "onAll";
@@ -88,8 +90,8 @@ public class ITPortalSerachServices {
 				SearchService.class, portalBaseUrl, "search", sessionManager);
 		assertNotNull(searchService);
 		
-		datasetService = (DatasetService) SyncProxy.newProxyInstance(
-				DatasetService.class, portalBaseUrl, "dataset", sessionManager);
+		nodeService = (NodeService) SyncProxy.newProxyInstance(
+				NodeService.class, portalBaseUrl, "dataset", sessionManager);
 
 		for (int i = 0; i < totalNumberOfDatasets; i++) {
 			Dataset ds = new Dataset();
@@ -108,7 +110,7 @@ public class ITPortalSerachServices {
 			ds.setVersion("1.0." + i);
 
 			// Create this dataset
-			String id = datasetService.createDataset(ds);
+			String id = nodeService.createNode(NodeType.DATASET, ds.toJson());
 			assertNotNull(id);
 			// Make sure we delete this datasets.
 			datasetIds.add(id);
@@ -120,7 +122,7 @@ public class ITPortalSerachServices {
 			// "layerAnnotValue"+i);
 			//
 			// add this attribute to all datasets
-			Annotations annoations = datasetService.getDatasetAnnotations(id);
+			Annotations annoations = new Annotations(JSONParser.parseStrict(nodeService.getNodeAnnotationsJSON(NodeType.DATASET, id)).isObject());
 			annoations.addAnnotation(attOnall, "someNumber" + i);
 			// // Add some attributes to others.
 			 if ((i % 2) == 0) {
@@ -135,17 +137,17 @@ public class ITPortalSerachServices {
 			 annoations.addAnnotation(attLong, new Long(123456));
 			 annoations.addAnnotation(attDouble, new Double(123456.3));
 			 // Update the datasets
-			 datasetService.updateDatasetAnnotations(id, annoations);
+			 nodeService.updateNodeAnnotations(NodeType.DATASET, id, annoations.toJson(), "etag");
 		}
 	}
 
 	@AfterClass
 	public static void after() throws URISyntaxException {
-		if (datasetIds != null && datasetService != null) {
+		if (datasetIds != null && nodeService != null) {
 			// Delete all datastest
 			for (String id : datasetIds) {
 				try {
-					datasetService.delete(id);
+					nodeService.deleteNode(NodeType.DATASET, id);
 				} catch (Throwable e) {
 				}
 			}
