@@ -5,16 +5,19 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.web.client.DatasetServiceAsync;
+import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.view.DatasetView;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAsync;
 import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LicenseAgreement;
+import org.sagebionetworks.web.shared.NodeType;
 
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
+import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONParser;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.AcceptsOneWidget;
 import com.google.inject.Inject;
@@ -23,7 +26,7 @@ import com.google.inject.Inject;
 public class DatasetPresenter extends AbstractActivity implements DatasetView.Presenter{	
 
 	private org.sagebionetworks.web.client.place.Dataset place;
-	private DatasetServiceAsync service;
+	private NodeServiceAsync nodeService;
 	private LicenceServiceAsync licenseService;
 	private DatasetView view;
 	private String datasetId;
@@ -36,10 +39,10 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 	 * @param datasetService
 	 */
 	@Inject
-	public DatasetPresenter(DatasetView view, DatasetServiceAsync datasetService, LicenceServiceAsync licenseService) {
+	public DatasetPresenter(DatasetView view, NodeServiceAsync nodeService, LicenceServiceAsync licenseService) {
 		this.view = view;
 		this.view.setPresenter(this);
-		this.service = datasetService;
+		this.nodeService = nodeService;
 		this.licenseService = licenseService;
 	}
 
@@ -54,11 +57,16 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 
 	public void refreshFromServer() {
 		// Fetch the data about this dataset from the server
-		service.getDataset(this.datasetId, new AsyncCallback<Dataset>() {
-			
+		nodeService.getNodeJSON(NodeType.DATASET, this.datasetId, new AsyncCallback<String>() {			
 			@Override
-			public void onSuccess(Dataset result) {
-				setDataset(result);
+			public void onSuccess(String result) {
+				JSONObject obj = JSONParser.parse(result).isObject();
+				if(obj != null) {
+					Dataset resultDataset = new Dataset(obj);
+					setDataset(resultDataset);
+				} else {
+					view.showErrorMessage("An error retrieving the Dataset occured. Please try reloading the page.");
+				}
 			}
 			
 			@Override
@@ -73,72 +81,77 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 	protected void setDataset(Dataset result) {
 		if(result != null) {
 			this.model = result;
-//			view.setDatasetRow(new DatasetRow(result));
-	
-			service.getDatasetAnnotations(model.getId(), new AsyncCallback<Annotations>() {
+			nodeService.getNodeAnnotationsJSON(NodeType.DATASET, model.getId(), new AsyncCallback<String>() {
 				@Override
-				public void onSuccess(Annotations annotations) {
-					Map<String,List<Long>> longAnnotations = annotations.getLongAnnotations();
-					Map<String,List<String>> stringAnnotations = annotations.getStringAnnotations();
-					Map<String,List<Date>> dateAnnotations = annotations.getDateAnnotations();
-					List<String> diseases = stringAnnotations.containsKey("Disease") ? stringAnnotations.get("Disease") : new ArrayList<String>();
-					List<String> institutions = stringAnnotations.containsKey("Institution") ? stringAnnotations.get("Institution") : new ArrayList<String>();
-					List<String> postingRestrictionList = stringAnnotations.containsKey("Posting_Restriction") ? stringAnnotations.get("Posting_Restriction") : new ArrayList<String>();
-					List<String> species = stringAnnotations.containsKey("Species") ? stringAnnotations.get("Species") : new ArrayList<String>();
-					List<String> types = stringAnnotations.containsKey("Type") ? stringAnnotations.get("Type") : new ArrayList<String>();
-					List<String> tissueTumorList = stringAnnotations.containsKey("Tissue_Tumor") ? stringAnnotations.get("Tissue_Tumor") : new ArrayList<String>();
-					List<String> citationList = stringAnnotations.containsKey("citation") ? stringAnnotations.get("citation") : new ArrayList<String>();
-					List<Long> nSamplesList = longAnnotations.containsKey("Number_of_Samples") ? longAnnotations.get("Number_of_Samples") : new ArrayList<Long>();
-					List<Long> nDownloadsList = longAnnotations.containsKey("number_of_downloads") ? longAnnotations.get("number_of_downloads") : new ArrayList<Long>();
-					List<Long> nFollowersList = longAnnotations.containsKey("number_of_followers") ? longAnnotations.get("number_of_followers") : new ArrayList<Long>();
-					List<Long> pubmedIdList = longAnnotations.containsKey("pubmed_id") ? longAnnotations.get("pubmed_id") : new ArrayList<Long>();
-					List<Date> lastModifiedDateList = dateAnnotations.containsKey("dateAnnotations") ? dateAnnotations.get("dateAnnotations") : new ArrayList<Date>();
-												
-									
-					int studySize = 0;
-					if(longAnnotations.containsKey("Number_of_Samples")) {
-						studySize = longAnnotations.get("Number_of_Samples").get(0).intValue();
+				public void onSuccess(String result) {
+					JSONObject obj = JSONParser.parseStrict(result).isObject();
+					if(obj != null) {
+						Annotations annotations = new Annotations(obj);
+					
+						Map<String,List<Long>> longAnnotations = annotations.getLongAnnotations();
+						Map<String,List<String>> stringAnnotations = annotations.getStringAnnotations();
+						Map<String,List<Date>> dateAnnotations = annotations.getDateAnnotations();
+						List<String> diseases = stringAnnotations.containsKey("Disease") ? stringAnnotations.get("Disease") : new ArrayList<String>();
+						List<String> institutions = stringAnnotations.containsKey("Institution") ? stringAnnotations.get("Institution") : new ArrayList<String>();
+						List<String> postingRestrictionList = stringAnnotations.containsKey("Posting_Restriction") ? stringAnnotations.get("Posting_Restriction") : new ArrayList<String>();
+						List<String> species = stringAnnotations.containsKey("Species") ? stringAnnotations.get("Species") : new ArrayList<String>();
+						List<String> types = stringAnnotations.containsKey("Type") ? stringAnnotations.get("Type") : new ArrayList<String>();
+						List<String> tissueTumorList = stringAnnotations.containsKey("Tissue_Tumor") ? stringAnnotations.get("Tissue_Tumor") : new ArrayList<String>();
+						List<String> citationList = stringAnnotations.containsKey("citation") ? stringAnnotations.get("citation") : new ArrayList<String>();
+						List<Long> nSamplesList = longAnnotations.containsKey("Number_of_Samples") ? longAnnotations.get("Number_of_Samples") : new ArrayList<Long>();
+						List<Long> nDownloadsList = longAnnotations.containsKey("number_of_downloads") ? longAnnotations.get("number_of_downloads") : new ArrayList<Long>();
+						List<Long> nFollowersList = longAnnotations.containsKey("number_of_followers") ? longAnnotations.get("number_of_followers") : new ArrayList<Long>();
+						List<Long> pubmedIdList = longAnnotations.containsKey("pubmed_id") ? longAnnotations.get("pubmed_id") : new ArrayList<Long>();
+						List<Date> lastModifiedDateList = dateAnnotations.containsKey("dateAnnotations") ? dateAnnotations.get("dateAnnotations") : new ArrayList<Date>();
+													
+										
+						int studySize = 0;
+						if(longAnnotations.containsKey("Number_of_Samples")) {
+							studySize = longAnnotations.get("Number_of_Samples").get(0).intValue();
+						}
+						String postingRestriction = postingRestrictionList.size() > 0 ? postingRestrictionList.get(0) : "";
+						int nOtherPublications = 0; // TODO : get number of other pubs
+						int nSamples = nSamplesList.size() > 0 ? nSamplesList.get(0).intValue() : 0;
+						int nFollowers = nFollowersList.size() > 0 ? nFollowersList.get(0).intValue() : 0;
+						int nDownloads = nDownloadsList.size() > 0 ? nDownloadsList.get(0).intValue() : 0;
+						Integer pubmedId = pubmedIdList.size() > 0 ? pubmedIdList.get(0).intValue() : null;
+						Date lastModifiedDate = lastModifiedDateList.size() > 0 ? lastModifiedDateList.get(0) : null;
+						String citation = citationList.size() > 0 ? citationList.get(0) : "";
+						String tissueTumor = tissueTumorList.size() > 0 ? tissueTumorList.get(0) : "";
+						
+						String referencePublicationUrl = pubmedId != null ? "http://www.ncbi.nlm.nih.gov/pubmed/" + pubmedId : null;
+						
+						 view.setDatasetDetails(model.getId(),
+						 model.getName(),
+						 model.getDescription(),
+						 diseases.toArray(new String[diseases.size()]), 
+						 species.toArray(new String[species.size()]),
+						 studySize,
+						 tissueTumor,
+						 types.toArray(new String[types.size()]),
+						 citation, 
+						 referencePublicationUrl,
+						 nOtherPublications,
+						 "#", // TODO : change this to be real
+						 model.getCreationDate(),
+						 model.getReleaseDate(),
+						 lastModifiedDate,
+						 model.getCreator(),
+						 institutions.toArray(new String[institutions.size()]),  
+						 nFollowers,
+						 "#", // TODO : view followers url, change this to be real
+						 postingRestriction,
+						 "#", // TODO : release notes url. change this to be real
+						 model.getStatus(),
+						 model.getVersion(),
+						 nSamples,
+						 nDownloads,
+						 citation,
+						 pubmedId				 
+						 );
+					} else {
+						view.showErrorMessage("An error retrieving Dataset details occured. Please try reloading the page.");
 					}
-					String postingRestriction = postingRestrictionList.size() > 0 ? postingRestrictionList.get(0) : "";
-					int nOtherPublications = 0; // TODO : get number of other pubs
-					int nSamples = nSamplesList.size() > 0 ? nSamplesList.get(0).intValue() : 0;
-					int nFollowers = nFollowersList.size() > 0 ? nFollowersList.get(0).intValue() : 0;
-					int nDownloads = nDownloadsList.size() > 0 ? nDownloadsList.get(0).intValue() : 0;
-					Integer pubmedId = pubmedIdList.size() > 0 ? pubmedIdList.get(0).intValue() : null;
-					Date lastModifiedDate = lastModifiedDateList.size() > 0 ? lastModifiedDateList.get(0) : null;
-					String citation = citationList.size() > 0 ? citationList.get(0) : "";
-					String tissueTumor = tissueTumorList.size() > 0 ? tissueTumorList.get(0) : "";
-					
-					String referencePublicationUrl = pubmedId != null ? "http://www.ncbi.nlm.nih.gov/pubmed/" + pubmedId : null;
-					
-					 view.setDatasetDetails(model.getId(),
-					 model.getName(),
-					 model.getDescription(),
-					 diseases.toArray(new String[diseases.size()]), 
-					 species.toArray(new String[species.size()]),
-					 studySize,
-					 tissueTumor,
-					 types.toArray(new String[types.size()]),
-					 citation, 
-					 referencePublicationUrl,
-					 nOtherPublications,
-					 "#", // TODO : change this to be real
-					 model.getCreationDate(),
-					 model.getReleaseDate(),
-					 lastModifiedDate,
-					 model.getCreator(),
-					 institutions.toArray(new String[institutions.size()]),  
-					 nFollowers,
-					 "#", // TODO : view followers url, change this to be real
-					 postingRestriction,
-					 "#", // TODO : release notes url. change this to be real
-					 model.getStatus(),
-					 model.getVersion(),
-					 nSamples,
-					 nDownloads,
-					 citation,
-					 pubmedId				 
-					 );
 				}
 	
 	

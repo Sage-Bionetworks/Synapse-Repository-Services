@@ -126,32 +126,15 @@ public class LayerViewImpl extends Composite implements LayerView {
 		this.nodeEditor = nodeEditor;
 		this.annotationEditor = annotationEditor;
 		this.adminMenu = adminMenu;
-		
+		this.seeTermsModal = seeTermsModal;
+
+		// Header setup
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());	
 		headerWidget.setMenuItemActive(MenuItems.DATASETS);
 		
-		setupLicensedDownloaderCallbacks();
-		// style FlexTables
-		rightFlexTable.setCellSpacing(5);
-		
-		// Button: See terms of use
-		this.seeTermsModal = seeTermsModal;
-		seeTermsModal.setHeading("Terms of Use");
-		seeTermsModal.setDimensions(400, 500);
-		seeTermsModal.setHtml(DisplayConstants.DEFAULT_TERMS_OF_USE); // TODO : get this from a service
-		// download link		
-		Anchor seeTermsAnchor = new Anchor();
-		seeTermsAnchor.setHTML(AbstractImagePrototype.create(iconsImageBundle.documentText16()).getHTML() + " See Terms of Use");
-		seeTermsAnchor.addClickHandler(new ClickHandler() {			
-			@Override
-			public void onClick(ClickEvent event) {
-				seeTermsModal.showWindow();
-			}
-		});		
-		seeTermsPanel.add(seeTermsAnchor);
-		
-		
+		// alignment setup
+		rightFlexTable.setCellSpacing(5);		
 	}
 
 	@Override
@@ -197,34 +180,28 @@ public class LayerViewImpl extends Composite implements LayerView {
 		if(privacyLevel == null) privacyLevel = "";
 		if(platform == null) platform = "";
 
-		clear(); // clear old values from view
+		// clear old values from views
+		clear(); 
 
 		// check authorization
 		userIsAdmin = true; // TODO : get ACL from authorization service
+		createAccessPanel(id);
+		createAdminPanel(id);
+
 		
-		titleSpan.setInnerText(layerName);
+		setupLicensedDownloaderCallbacks();
 		
-		// download link		
-		Anchor downloadLink = new Anchor();
-		downloadLink.setHTML(AbstractImagePrototype.create(iconsImageBundle.download16()).getHTML() + " Download Layer");
-		downloadLink.addClickHandler(new ClickHandler() {			
-			@Override
-			public void onClick(ClickEvent event) {
-				licensedDownloader.showWindow();
-			}
-		});
+		Anchor seeTermsAnchor = setupTermsModal();
+		seeTermsPanel.clear();		
+		seeTermsPanel.add(seeTermsAnchor);
+				
+		Anchor downloadLink = setupDownloadLink();
+		downloadPanel.clear();
 		downloadPanel.add(downloadLink);
 
-		// see terms
-		Anchor termsLink = new Anchor();
-		termsLink.setHTML(AbstractImagePrototype.create(iconsImageBundle.documentText16()).getHTML() + " See terms of use");
-		termsLink.addClickHandler(new ClickHandler() {			
-			@Override
-			public void onClick(ClickEvent event) {
-				licensedDownloader.showWindow();
-			}
-		});
-					
+		// fill in fields
+		titleSpan.setInnerText(layerName);
+		
 		// set description
 		if(overviewText == null) overviewText = ""; 
 		int summaryLength = overviewText.length() >= DisplayConstants.DESCRIPTION_SUMMARY_LENGTH ? DisplayConstants.DESCRIPTION_SUMMARY_LENGTH : overviewText.length();
@@ -244,11 +221,37 @@ public class LayerViewImpl extends Composite implements LayerView {
 		breadcrumbDatasetSpan.setInnerHTML(datasetLink);
 		breadcrumbTitleSpan.setInnerText(layerName);
 		
-		// create security access panel
-		createAccessPanel(id);
-		// create admin panel if user is authorized
-		createAdminPanel(id);
+	}
 
+	private Anchor setupDownloadLink() {
+		// download link		
+		Anchor downloadLink = new Anchor();
+		downloadLink.setHTML(AbstractImagePrototype.create(iconsImageBundle.download16()).getHTML() + " Download Layer");
+		downloadLink.addClickHandler(new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {
+				licensedDownloader.showWindow();
+			}
+		});
+		return downloadLink;
+	}
+
+	private Anchor setupTermsModal() {
+		// Button: See terms of use		
+		seeTermsModal.setHeading("Terms of Use");
+		seeTermsModal.setDimensions(400, 500);
+		seeTermsModal.setHtml(DisplayConstants.DEFAULT_TERMS_OF_USE); // TODO : get this from a service
+		// download link		
+		Anchor seeTermsAnchor = new Anchor();
+		seeTermsAnchor.setHTML(AbstractImagePrototype.create(iconsImageBundle.documentText16()).getHTML() + " See Terms of Use");
+		seeTermsAnchor.addClickHandler(new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {
+				seeTermsModal.showWindow();
+			}
+		});
+
+		return seeTermsAnchor;
 	}
 	
 	@Override

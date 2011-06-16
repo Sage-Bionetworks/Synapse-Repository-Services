@@ -139,12 +139,16 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		this.queryServiceTableResourceProvider = queryServiceTableResourceProvider;
 		this.seeTermsModal = seeTermsModal;
 		
+		// header setup
 		header.clear();
 		footer.clear();
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
 		headerWidget.setMenuItemActive(MenuItems.DATASETS);
 
+		// alignment setup
+		middleFlexTable.setCellSpacing(5);
+		rightFlexTable.setCellSpacing(5);
 	}
 
 	@Override
@@ -201,73 +205,31 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		if(downloadAvailability == null) downloadAvailability = "";
 		if(releaseNotesUrl == null) releaseNotesUrl = "";
 	
-		setupDatasetLicensedDownloaderCallbacks();
-
-		// Button: Follow dataset 
-		followDatasetModal.setHeading("Follow this Dataset");
-		followDatasetModal.setDimensions(180, 500);		
-		followDatasetModal.setHtml(DisplayConstants.FOLLOW_DATASET_HTML);
-		followDatasetModal.setCallbackButton("Confirm", new AsyncCallback<Void>() {
-			@Override
-			public void onSuccess(Void result) {
-				// TODO : call a service layer to follow the dataset				
-				followDatasetModal.hideWindow();
-			}
-
-			@Override
-			public void onFailure(Throwable caught) {			}
-		});
-		// follow link		
-		Anchor followDatasetAnchor = new Anchor();
-		followDatasetAnchor.setHTML(AbstractImagePrototype.create(iconsImageBundle.arrowCurve16()).getHTML() + " Follow this Dataset");
-		followDatasetAnchor.addClickHandler(new ClickHandler() {			
-			@Override
-			public void onClick(ClickEvent event) {
-				followDatasetModal.showWindow();
-				showErrorMessage("<strong>Alpha Note</strong>: Following datasets is currently not operational");
-			}
-		});		
-		followDatasetPanel.clear();
-		followDatasetPanel.add(followDatasetAnchor);
+		// Clear everything
+		clear();
 		
+		// check authorization
+		userIsAdmin = true; // TODO : get ACL from authorization service
+		createAccessPanel(id);
+		createAdminPanel(id);		
+		
+		setupDatasetLicensedDownloaderCallbacks();
+ 
+		Anchor followDatasetAnchor = setupFollowDatasetModal();		
+		followDatasetPanel.clear();
+		followDatasetPanel.add(followDatasetAnchor);	
 
 		// Button: See terms of use		
-		seeTermsModal.setHeading("Terms of Use");
-		seeTermsModal.setDimensions(400, 500);
-		seeTermsModal.setHtml(DisplayConstants.DEFAULT_TERMS_OF_USE); // TODO : get this from a service
-		// download link		
-		Anchor seeTermsAnchor = new Anchor();
-		seeTermsAnchor.setHTML(AbstractImagePrototype.create(iconsImageBundle.documentText16()).getHTML() + " See Terms of Use");
-		seeTermsAnchor.addClickHandler(new ClickHandler() {			
-			@Override
-			public void onClick(ClickEvent event) {
-				seeTermsModal.showWindow();
-				showErrorMessage("<strong>Alpha Note</strong>: This is only demo terms of use text.");
-			}
-		});		
+		Anchor seeTermsAnchor = setupTermsModal();		
 		seeTermsPanel.clear();
-		seeTermsPanel.add(seeTermsAnchor);
-		
-		
-		
-		middleFlexTable.setCellSpacing(5);
-		rightFlexTable.setCellSpacing(5);
+		seeTermsPanel.add(seeTermsAnchor);					
 
-		// layers table
-		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.layer, false, 320, 237);
+		setupLayerTable(id);
 		tablePanel.clear();
 		tablePanel.add(queryServiceTable.asWidget());
 				
 		// download link		
-		Anchor downloadLink = new Anchor();
-		downloadLink.setHTML(AbstractImagePrototype.create(iconsImageBundle.download16()).getHTML() + " Download Dataset");
-		downloadLink.addClickHandler(new ClickHandler() {			
-			@Override
-			public void onClick(ClickEvent event) {				
-				datasetLicensedDownloader.showWindow();
-				showErrorMessage("<strong>Alpha Note</strong>: Downloading of entire dataset is currently not operational. You can download layers individually though.");
-			}
-		});		
+		Anchor downloadLink = setupDatasetDownloadLink();		
 		downloadPanel.clear();
 		downloadPanel.add(downloadLink);
 		
@@ -275,22 +237,12 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 //		breadcrumb.appendLocation(new Hyperlink("Home", ""));
 //		breadcrumb.appendLocation(new Hyperlink("All Datasets", "DatasetsHome:0"));
 //		breadcrumbPanel.add(breadcrumb.asWidget());
-		
-		
-		
-		// check authorization
-		userIsAdmin = true; // TODO : get ACL from authorization service
-		
-		// Set the where clause
-		List<WhereCondition> whereList = new ArrayList<WhereCondition>();
-		whereList.add(new WhereCondition("layer.parentId", WhereOperator.EQUALS, id));
-		this.queryServiceTable.setWhereCondition(whereList);
-		// Clear everything
-		clearAllFields();
-		titleSpan.setInnerText(name);
-		breadcrumbTitleSpan.setInnerText(name);
 //		breadcrumb.setCurrentLocation(name);
 //		breadcrumbPanel.add(breadcrumb.asWidget());
+						
+		// fill in fields
+		titleSpan.setInnerText(name);
+		breadcrumbTitleSpan.setInnerText(name);
 		
 		int summaryLength = overviewText.length() >= DisplayConstants.DESCRIPTION_SUMMARY_LENGTH ? DisplayConstants.DESCRIPTION_SUMMARY_LENGTH : overviewText.length();
 		previewDisclosurePanel.init("Expand", overviewText.substring(0, summaryLength), overviewText);
@@ -325,14 +277,8 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		DisplayUtils.addRowToTable(rowIndex++, "Number of Downloads:", Integer.toString(nDownloads), rightFlexTable);
 		DisplayUtils.addRowToTable(rowIndex++, "Download Availability:", downloadAvailability, rightFlexTable);
 		DisplayUtils.addRowToTable(rowIndex++, "Release Notes:", "<a href=\""+ releaseNotesUrl + "\" target=\"_new\">view</a>", rightFlexTable);			
-	
-		
-		// create security access panel
-		createAccessPanel(id);
-		// create admin panel if user is authorized
-		createAdminPanel(id);
-		
 	}
+
 	
 	@Override
 	public void setLicenseAgreement(LicenseAgreement agreement) {		
@@ -357,7 +303,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	/*
 	 * Private Methods
 	 */
-	private void clearAllFields() {
+	private void clear() {
 		titleSpan.setInnerText("");
 		middleFlexTable.clear();
 		middleFlexTable.removeAllRows();
@@ -515,6 +461,72 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		});
 	}
 
+	private void setupLayerTable(String id) {
+		// layers table
+		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.layer, false, 320, 237);
+		// Set the where clause
+		List<WhereCondition> whereList = new ArrayList<WhereCondition>();
+		whereList.add(new WhereCondition("layer.parentId", WhereOperator.EQUALS, id));
+		this.queryServiceTable.setWhereCondition(whereList);
+	}
+
+	private Anchor setupDatasetDownloadLink() {
+		Anchor downloadLink = new Anchor();
+		downloadLink.setHTML(AbstractImagePrototype.create(iconsImageBundle.download16()).getHTML() + " Download Dataset");
+		downloadLink.addClickHandler(new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {				
+				datasetLicensedDownloader.showWindow();
+				showErrorMessage("<strong>Alpha Note</strong>: Downloading of entire dataset is currently not operational. You can download layers individually though.");
+			}
+		});
+		return downloadLink;
+	}
+
+	private Anchor setupTermsModal() {
+		seeTermsModal.setHeading(DisplayConstants.TITLE_TERMS_OF_USE);
+		seeTermsModal.setDimensions(400, 500);
+		seeTermsModal.setHtml(DisplayConstants.DEFAULT_TERMS_OF_USE); // TODO : get this from a service
+		// download link		
+		Anchor seeTermsAnchor = new Anchor();
+		seeTermsAnchor.setHTML(AbstractImagePrototype.create(iconsImageBundle.documentText16()).getHTML() + " " + DisplayConstants.BUTTON_SEE_TERMS_OF_USE);
+		seeTermsAnchor.addClickHandler(new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {
+				seeTermsModal.showWindow();
+				showErrorMessage("<strong>Alpha Note</strong>: This is only demo terms of use text.");
+			}
+		});
+		return seeTermsAnchor;
+	}
+
+	private Anchor setupFollowDatasetModal() {
+		followDatasetModal.setHeading("Follow this Dataset");
+		followDatasetModal.setDimensions(180, 500);		
+		followDatasetModal.setHtml(DisplayConstants.FOLLOW_DATASET_HTML);
+		followDatasetModal.setCallbackButton("Confirm", new AsyncCallback<Void>() {
+			@Override
+			public void onSuccess(Void result) {
+				// TODO : call a service layer to follow the dataset				
+				followDatasetModal.hideWindow();
+			}
+
+			@Override
+			public void onFailure(Throwable caught) {			}
+		});
+		// follow link		
+		Anchor followDatasetAnchor = new Anchor();
+		followDatasetAnchor.setHTML(AbstractImagePrototype.create(iconsImageBundle.arrowCurve16()).getHTML() + " " + DisplayConstants.BUTTON_FOLLOW_DATASET);
+		followDatasetAnchor.addClickHandler(new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {
+				followDatasetModal.showWindow();
+				showErrorMessage("<strong>Alpha Note</strong>: Following datasets is currently not operational");
+			}
+		});
+		return followDatasetAnchor;
+	}
+	
 	private String join(String[] list, String delimiter) {
 		String returnStr = "";
 		for(String str : list) {
@@ -523,4 +535,6 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		}
 		return returnStr;
 	}
+
+
 }

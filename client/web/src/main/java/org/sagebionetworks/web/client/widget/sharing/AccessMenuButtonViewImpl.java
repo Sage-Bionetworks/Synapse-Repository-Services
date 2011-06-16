@@ -104,7 +104,7 @@ public class AccessMenuButtonViewImpl extends LayoutContainer implements AccessM
 				window.setPlain(true);
 				window.setModal(true);
 				window.setBlinkModal(true);
-				window.setHeading(DisplayConstants.SHARING_PANEL_TITLE);
+				window.setHeading(DisplayConstants.TITLE_SHARING_PANEL);
 				window.setLayout(new FitLayout());				
 				window.add(accessControlListEditor.asWidget(), new FitData(4));
 				Button closeButton = new Button("Close");

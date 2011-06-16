@@ -93,12 +93,15 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 	private AccessMenuButton accessMenuButton;
 	private NodeEditor nodeEditor;
 	private AdminMenu adminMenu;
+	private ModalWindow followProjectModal;
+	private ModalWindow seeTermsModal;
+	private QueryServiceTableResourceProvider queryServiceTableResourceProvider;
 	
 	@Inject
 	public ProjectViewImpl(ProjectViewImplUiBinder binder, Header headerWidget,
 			Footer footerWidget, IconsImageBundle iconsImageBundle,
-			SageImageBundle imageBundle, final ModalWindow followProjectModal,
-			final ModalWindow seeTermsModal,
+			SageImageBundle imageBundle, ModalWindow followProjectModal,
+			ModalWindow seeTermsModal,
 			PreviewDisclosurePanel previewDisclosurePanel,
 			QueryServiceTableResourceProvider queryServiceTableResourceProvider,
 			AccessMenuButton accessMenuButton,
@@ -111,17 +114,13 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		this.accessMenuButton = accessMenuButton;
 		this.nodeEditor = nodeEditor;
 		this.adminMenu = adminMenu;
+		this.followProjectModal = followProjectModal;
+		this.seeTermsModal = seeTermsModal;
+		this.queryServiceTableResourceProvider =  queryServiceTableResourceProvider;
 		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
-		headerWidget.setMenuItemActive(MenuItems.PROJECTS);
-				
-		followProjectButtonPanel.add(createFollowProjectButton(iconsImageBundle, followProjectModal));			
-
-		// List of datasets table
-		datasetsListQueryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, 320, 237);
-		datasetListTablePanel.add(datasetsListQueryServiceTable.asWidget());		
-		
+		headerWidget.setMenuItemActive(MenuItems.PROJECTS);				
 	}
 
 	@Override
@@ -144,13 +143,25 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		if(description == null) description = "";
 		if(creator == null) creator = "";		
 		if(status == null) status = "";
+
+		// clear out any previous values in the view
+		clear();
 		
 		// check authorization
 		userIsAdmin = true; // TODO : get ACL from authorization service
+		createAccessPanel(id);
+		createAdminPanel(id);
 		
-		// clear out any previous values in the view
-		clearAllFields();
+		Anchor followProject = createFollowProjectButton(iconsImageBundle, followProjectModal);
+		followProjectButtonPanel.clear();
+		followProjectButtonPanel.add(followProject);			
+
+		// List of datasets table
+		setupDatasetTable(id);
+		datasetListTablePanel.clear();
+		datasetListTablePanel.add(datasetsListQueryServiceTable.asWidget());				
 		
+		// fill in fields
 		titleSpan.setInnerText(name);
 		breadcrumbTitleSpan.setInnerText(name);
 		
@@ -167,29 +178,27 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		DisplayUtils.addRowToTable(rowIndex++, "Publications:", "", rightFlexTable);
 		DisplayUtils.addRowToTable(rowIndex++, "Status:", status, rightFlexTable);
 		DisplayUtils.addRowToTable(rowIndex++, "Project Web Site:", "", rightFlexTable);
-		
-		// load the datasets for this project
-		List<WhereCondition> whereList = new ArrayList<WhereCondition>();
-		whereList.add(new WhereCondition("dataset.parentId", WhereOperator.EQUALS, id));
-		datasetsListQueryServiceTable.setWhereCondition(whereList);
-		
-		// create security access panel
-		createAccessPanel(id);
-		// create admin panel if user is authorized
-		createAdminPanel(id);
-		
-		
+				
 	}
 
 	/*
 	 * Private Methods
 	 */
-	private void clearAllFields() {
+	private void clear() {
 		titleSpan.setInnerText("");
 		rightFlexTable.clear();
 		rightFlexTable.removeAllRows();
 		adminPanel.clear();
 	}
+
+	private void setupDatasetTable(String id) {
+		datasetsListQueryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, 320, 237);
+		// load the datasets for this project
+		List<WhereCondition> whereList = new ArrayList<WhereCondition>();
+		whereList.add(new WhereCondition("dataset.parentId", WhereOperator.EQUALS, id));
+		datasetsListQueryServiceTable.setWhereCondition(whereList);
+	}
+
 
 	private Anchor createFollowProjectButton(IconsImageBundle icons,
 			final ModalWindow followProjectModal) {

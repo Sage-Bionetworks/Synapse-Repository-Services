@@ -7,7 +7,6 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.sagebionetworks.web.server.servlet.DatasetServiceImpl;
 import org.sagebionetworks.web.server.servlet.LicenseServiceImpl;
 import org.sagebionetworks.web.server.servlet.NodeServiceImpl;
 import org.sagebionetworks.web.server.servlet.ProjectServiceImpl;
@@ -43,9 +42,6 @@ public class PortalServletModule extends ServletModule {
 		// This supports RPC
 		filter("/Portal/*").through(RPCValidationFilter.class);
 		bind(RPCValidationFilter.class).in(Singleton.class);
-		// Setup the mapping
-		bind(DatasetServiceImpl.class).in(Singleton.class);
-		serve("/Portal/dataset").with(DatasetServiceImpl.class);
 		// Setup the Search service
 		bind(SearchServiceImpl.class).in(Singleton.class);
 		serve("/Portal/search").with(SearchServiceImpl.class);

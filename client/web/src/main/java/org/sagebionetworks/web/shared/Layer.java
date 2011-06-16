@@ -36,16 +36,6 @@ public class Layer implements IsSerializable {
 	private String parentId;
 	private String accessControlList;
 
-	public String getParentId() {
-		return parentId;
-	}
-
-
-	public void setParentId(String parentId) {
-		this.parentId = parentId;
-	}
-
-
 	/**
 	 * Default constructor is required
 	 */
@@ -53,121 +43,125 @@ public class Layer implements IsSerializable {
 
 	}
 	
-	public Layer(JSONObject layerObj) {
+	public Layer(JSONObject object) {
 		String key = null; 
 		
 		key = "annotations";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isString() != null)
-				setAnnotations(layerObj.get(key).isString().stringValue());		
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setAnnotations(object.get(key).isString().stringValue());		
 		
 		key = "creationDate";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isNumber() != null)
-				setCreationDate(new Date(new Double(layerObj.get(key).isNumber().doubleValue()).longValue()));
+		if(object.containsKey(key)) 
+			if(object.get(key).isNumber() != null)
+				setCreationDate(new Date(new Double(object.get(key).isNumber().doubleValue()).longValue()));
 
 		key = "description";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isString() != null)
-				setDescription(layerObj.get(key).isString().stringValue());		
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setDescription(object.get(key).isString().stringValue());		
 		
 		key = "etag";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isString() != null)
-				setEtag(layerObj.get(key).isString().stringValue());		
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setEtag(object.get(key).isString().stringValue());		
 		
 		key = "id";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isString() != null)
-				setId(layerObj.get(key).isString().stringValue());		
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setId(object.get(key).isString().stringValue());		
 		
 		key = "locations";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isString() != null)
-				setLocations(layerObj.get(key).isString().stringValue());		
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setLocations(object.get(key).isString().stringValue());		
 		
 		key = "name";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isString() != null)
-				setName(layerObj.get(key).isString().stringValue());		
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setName(object.get(key).isString().stringValue());		
 		
 		key = "numSamples";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isNumber() != null)
-				setNumSamples(new Double(layerObj.get(key).isNumber().doubleValue()).intValue());		
+		if(object.containsKey(key)) 
+			if(object.get(key).isNumber() != null)
+				setNumSamples(new Double(object.get(key).isNumber().doubleValue()).intValue());		
 		
 		key = "platform";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isString() != null)
-				setPlatform(layerObj.get(key).isString().stringValue());		
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setPlatform(object.get(key).isString().stringValue());		
 		
 		key = "previews";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isString() != null)
-				setPreviews(layerObj.get(key).isString().stringValue());
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setPreviews(object.get(key).isString().stringValue());
 		
 		key = "processingFacility";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isString() != null)
-				setProcessingFacility(layerObj.get(key).isString().stringValue());
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setProcessingFacility(object.get(key).isString().stringValue());
 		
 		key = "publicationDate";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isNumber() != null)
-				setPublicationDate(new Date(new Double(layerObj.get(key).isNumber().doubleValue()).longValue()));
+		if(object.containsKey(key)) 
+			if(object.get(key).isNumber() != null)
+				setPublicationDate(new Date(new Double(object.get(key).isNumber().doubleValue()).longValue()));
 		
 		key = "qcBy";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isString() != null)
-				setQcBy(layerObj.get(key).isString().stringValue());
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setQcBy(object.get(key).isString().stringValue());
 
 		key = "qcDate";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isNumber() != null)
-				setQcDate(new Date(new Double(layerObj.get(key).isNumber().doubleValue()).longValue()));
+		if(object.containsKey(key)) 
+			if(object.get(key).isNumber() != null)
+				setQcDate(new Date(new Double(object.get(key).isNumber().doubleValue()).longValue()));
 
 		key = "releaseNotes";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isString() != null)
-				setReleaseNotes(layerObj.get(key).isString().stringValue());
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setReleaseNotes(object.get(key).isString().stringValue());
 		
 		key = "status";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isString() != null)
-				setStatus(layerObj.get(key).isString().stringValue());
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setStatus(object.get(key).isString().stringValue());
 		
 		key = "tissueType";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isString() != null)
-				setTissueType(layerObj.get(key).isString().stringValue());					
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setTissueType(object.get(key).isString().stringValue());					
 
 		key = "type";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isString() != null) 
-				setType(layerObj.get(key).isString().stringValue());					
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null) 
+				setType(object.get(key).isString().stringValue());					
 
 		key = "uri";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isString() != null)
-				setUri(layerObj.get(key).isString().stringValue());
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setUri(object.get(key).isString().stringValue());
 		
 		key = "version";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isString() != null)
-				setVersion(layerObj.get(key).isString().stringValue());
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setVersion(object.get(key).isString().stringValue());
 		
 		key = "parentId";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isString() != null)
-				setParentId(layerObj.get(key).isString().stringValue());
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setParentId(object.get(key).isString().stringValue());
 		
 		key = "accessControlList";
-		if(layerObj.containsKey(key)) 
-			if(layerObj.get(key).isString() != null)
-				setAccessControlList(layerObj.get(key).isString().stringValue());					
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setAccessControlList(object.get(key).isString().stringValue());					
 	}
 
 
+	
+	/*
+	 * Auto generated methods
+	 */
 	public String getType() {		
 		return type.name();
 	}
@@ -186,10 +180,15 @@ public class Layer implements IsSerializable {
 		this.type = LayerType.valueOf(typeString);
 	}
 
-	
-	/*
-	 * Auto generated methods
-	 */
+	public String getParentId() {
+		return parentId;
+	}
+
+
+	public void setParentId(String parentId) {
+		this.parentId = parentId;
+	}
+
 	public String getAnnotations() {
 		return annotations;
 	}

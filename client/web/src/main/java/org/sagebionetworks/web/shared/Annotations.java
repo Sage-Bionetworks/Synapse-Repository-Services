@@ -6,6 +6,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.gwt.json.client.JSONArray;
+import com.google.gwt.json.client.JSONBoolean;
+import com.google.gwt.json.client.JSONNumber;
+import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 /**
@@ -14,19 +19,172 @@ import com.google.gwt.user.client.rpc.IsSerializable;
  */
 public class Annotations implements IsSerializable {
 
+	private String id;
 	private Date creationDate;
+	private String etag;
+	private Map<String, List<String>> stringAnnotations;
+	private Map<String, List<Long>> longAnnotations;
 	private Map<String, List<Date>> dateAnnotations;
 	private Map<String, List<Double>> doubleAnnotations;
-	private String etag;
-	private String id;
-	private Map<String, List<Long>> longAnnotations;
-	private Map<String, List<String>> stringAnnotations;
 	private Map<String, List<byte[]>> blobAnnotations;
 	private String uri;
 	
+	public Annotations() {		
+	}
+	
+	public Annotations(JSONObject object) {
+		String key = null; 
+		
+		key = "id";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setId(object.get(key).isString().stringValue());		
+		
+		key = "creationDate";
+		if(object.containsKey(key)) 
+			if(object.get(key).isNumber() != null)
+				setCreationDate(new Date(new Double(object.get(key).isNumber().doubleValue()).longValue()));
+		
+		key = "etag";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setEtag(object.get(key).isString().stringValue());		
+
+		key = "stringAnnotations";
+		if(object.containsKey(key)) {
+			if(object.get(key).isObject() != null) {
+				JSONObject annotationObj = object.get(key).isObject();
+				for(String annotationKey : annotationObj.keySet()) {
+					if(annotationObj.get(annotationKey).isArray() != null) {
+						JSONArray valueArray = annotationObj.get(annotationKey).isArray();
+						for(int i=0; i<valueArray.size(); i++) {
+							if(valueArray.get(i).isString() != null)								
+								this.addStringAnnotation(annotationKey, valueArray.get(i).isString().stringValue());
+						}
+					}
+				}
+			}
+		}
+		
+		key = "longAnnotations";
+		if(object.containsKey(key)) {
+			if(object.get(key).isObject() != null) {
+				JSONObject annotationObj = object.get(key).isObject();
+				for(String annotationKey : annotationObj.keySet()) {
+					if(annotationObj.get(annotationKey).isArray() != null) {
+						JSONArray valueArray = annotationObj.get(annotationKey).isArray();
+						for(int i=0; i<valueArray.size(); i++) {
+							if(valueArray.get(i).isNumber() != null)								
+								this.addLongAnnotation(annotationKey, new Double(valueArray.get(i).isNumber().doubleValue()).longValue());
+						}
+					}
+				}
+			}
+		}
+
+		key = "dateAnnotations";
+		if(object.containsKey(key)) {
+			if(object.get(key).isObject() != null) {
+				JSONObject annotationObj = object.get(key).isObject();
+				for(String annotationKey : annotationObj.keySet()) {
+					if(annotationObj.get(annotationKey).isArray() != null) {
+						JSONArray valueArray = annotationObj.get(annotationKey).isArray();
+						for(int i=0; i<valueArray.size(); i++) {
+							if(valueArray.get(i).isNumber() != null)								
+								this.addDateAnnotation(annotationKey, new Date(new Double(valueArray.get(i).isNumber().doubleValue()).longValue()));
+						}
+					}
+				}
+			}
+		}
+		
+		key = "doubleAnnotations";
+		if(object.containsKey(key)) {
+			if(object.get(key).isObject() != null) {
+				JSONObject annotationObj = object.get(key).isObject();
+				for(String annotationKey : annotationObj.keySet()) {
+					if(annotationObj.get(annotationKey).isArray() != null) {
+						JSONArray valueArray = annotationObj.get(annotationKey).isArray();
+						for(int i=0; i<valueArray.size(); i++) {
+							if(valueArray.get(i).isNumber() != null)								
+								this.addDoubleAnnotation(annotationKey, valueArray.get(i).isNumber().doubleValue());
+						}
+					}
+				}
+			}
+		}
+
+		// no blob annotations yet
+		
+		key = "uri";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setUri(object.get(key).isString().stringValue());
+		
+	}
+	
+	public String toJson() {
+		JSONObject object = new JSONObject();
+		
+		object.put("id", new JSONString(getId()));
+		object.put("creationDate", new JSONNumber(getCreationDate().getTime()));
+		object.put("etag", new JSONString(getEtag()));
+		object.put("uri", new JSONString(getUri()));
+		
+		JSONObject annotObj = null;
+		
+		annotObj = new JSONObject();
+		Map<String, List<String>> annotmapS = getStringAnnotations();
+		for(String key : annotmapS.keySet()) {
+			List<String> values = annotmapS.get(key);
+			JSONArray valArray = new JSONArray();
+			for(int i=0; i<values.size(); i++) {
+				valArray.set(i, new JSONString(values.get(i)));
+			}
+			annotObj.put(key, valArray);			
+		}
+		object.put("stringAnnotations", annotObj);
+		
+		Map<String, List<Long>> annotmapL = getLongAnnotations();
+		for(String key : annotmapL.keySet()) {
+			List<Long> values = annotmapL.get(key);
+			JSONArray valArray = new JSONArray();
+			for(int i=0; i<values.size(); i++) {
+				valArray.set(i, new JSONNumber(values.get(i)));
+			}
+			annotObj.put(key, valArray);			
+		}
+		object.put("longAnnotations", annotObj);
+		
+		Map<String, List<Double>> annotmapD = getDoubleAnnotations();
+		for(String key : annotmapD.keySet()) {
+			List<Double> values = annotmapD.get(key);
+			JSONArray valArray = new JSONArray();
+			for(int i=0; i<values.size(); i++) {
+				valArray.set(i, new JSONNumber(values.get(i)));
+			}
+			annotObj.put(key, valArray);			
+		}
+		object.put("doubleAnnotations", annotObj);
+		
+		Map<String, List<Date>> annotmapDt = getDateAnnotations();
+		for(String key : annotmapDt.keySet()) {
+			List<Date> values = annotmapDt.get(key);
+			JSONArray valArray = new JSONArray();
+			for(int i=0; i<values.size(); i++) {
+				valArray.set(i, new JSONNumber(values.get(i).getTime()));
+			}
+			annotObj.put(key, valArray);			
+		}
+		object.put("dateAnnotations", annotObj);
+		
+		return object.toString();		
+	}
+		
 	public Date getCreationDate() {
 		return creationDate;
 	}
+	
 	public void setCreationDate(Date creationDate) {
 		this.creationDate = creationDate;
 	}

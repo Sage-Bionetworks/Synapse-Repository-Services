@@ -69,9 +69,9 @@ public class AccessControlListEditorViewImpl extends LayoutContainer implements 
 		this.iconsImageBundle = iconsImageBundle;		
 		
 		permissionDisplay = new HashMap<PermissionLevel, String>();
-		permissionDisplay.put(PermissionLevel.CAN_VIEW, DisplayConstants.PERMISSION_LEVEL_CAN_VIEW);
-		permissionDisplay.put(PermissionLevel.CAN_EDIT, DisplayConstants.PERMISSION_LEVEL_CAN_EDIT);
-		permissionDisplay.put(PermissionLevel.CAN_ADMINISTER, DisplayConstants.PERMISSION_LEVEL_CAN_ADMINISTER);		
+		permissionDisplay.put(PermissionLevel.CAN_VIEW, DisplayConstants.MENU_PERMISSION_LEVEL_CAN_VIEW);
+		permissionDisplay.put(PermissionLevel.CAN_EDIT, DisplayConstants.MENU_PERMISSION_LEVEL_CAN_EDIT);
+		permissionDisplay.put(PermissionLevel.CAN_ADMINISTER, DisplayConstants.MENU_PERMISSION_LEVEL_CAN_ADMINISTER);		
 	}
 	
 	@Override
@@ -95,9 +95,11 @@ public class AccessControlListEditorViewImpl extends LayoutContainer implements 
 	
 	@Override
 	public void setAclDetails(List<AclEntry> entries, List<AclPrincipal> principals, boolean isEditable) {
+		this.removeAll();
+		
 		// setup view
 		this.setLayout(new FlowLayout(10));			
-		Label permissionsLabel = new Label(DisplayConstants.SHARING_PANEL_EXISTING_LABEL + ":");
+		Label permissionsLabel = new Label(DisplayConstants.LABEL_SHARING_PANEL_EXISTING + ":");
 		permissionsLabel.setStyleAttribute("font-weight", "bold");
 		permissionsLabel.setStyleAttribute("font-size", "105%");
 		add(permissionsLabel, new MarginData(15, 0, 0, 0));
@@ -113,7 +115,7 @@ public class AccessControlListEditorViewImpl extends LayoutContainer implements 
 			Label readOnly = new Label(DisplayConstants.PERMISSIONS_INHERITED_TEXT);			
 			add(readOnly);			
 			
-			Button createAcl = new Button(DisplayConstants.PERMISSIONS_CREATE_NEW_ACL, AbstractImagePrototype.create(iconsImageBundle.addSquare16()));
+			Button createAcl = new Button(DisplayConstants.BUTTON_PERMISSIONS_CREATE_NEW_ACL, AbstractImagePrototype.create(iconsImageBundle.addSquare16()));
 			createAcl.addSelectionListener(new SelectionListener<ButtonEvent>() {
 				@Override
 				public void componentSelected(ButtonEvent ce) {
@@ -138,7 +140,7 @@ public class AccessControlListEditorViewImpl extends LayoutContainer implements 
 			form2.setLayout(new FlowLayout());  
 			  
 			FieldSet fieldSet = new FieldSet();  
-			fieldSet.setHeading(DisplayConstants.PERMISSION_TEXT_ADD_PEOPLE );  
+			fieldSet.setHeading(DisplayConstants.LABEL_PERMISSION_TEXT_ADD_PEOPLE );  
 			fieldSet.setCheckboxToggle(false);
 			fieldSet.setCollapsible(false);			
 			
@@ -355,7 +357,7 @@ public class AccessControlListEditorViewImpl extends LayoutContainer implements 
 			      });  
 			    }  
 			    if(entry.getAclEntry().isOwner()) {
-				    Button b = new Button(DisplayConstants.PERMISSION_LEVEL_IS_OWNER);
+				    Button b = new Button(DisplayConstants.MENU_PERMISSION_LEVEL_IS_OWNER);
 				    b.setWidth(grid.getColumnModel().getColumnWidth(colIndex) - 15);
 				    b.disable();
 					return b;		    	

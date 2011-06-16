@@ -4,9 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import org.sagebionetworks.web.client.DatasetServiceAsync;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.view.LayerView;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAsync;
@@ -16,7 +14,6 @@ import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.NodeType;
-import org.sagebionetworks.web.shared.TableResults;
 
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
@@ -30,7 +27,6 @@ import com.google.inject.Inject;
 public class LayerPresenter extends AbstractActivity implements LayerView.Presenter{	
 
 	private org.sagebionetworks.web.client.place.Layer place;
-	private DatasetServiceAsync service;
 	private NodeServiceAsync nodeService;
 	private LayerView view;
 	private String layerId;	
@@ -47,9 +43,8 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	 * @param datasetService
 	 */
 	@Inject
-	public LayerPresenter(LayerView view, DatasetServiceAsync datasetService, NodeServiceAsync nodeService, LicenceServiceAsync licenseService) {
+	public LayerPresenter(LayerView view, NodeServiceAsync nodeService, LicenceServiceAsync licenseService) {
 		this.view = view;
-		this.service = datasetService;
 		this.nodeService = nodeService;
 		this.licenseService = licenseService;
 		

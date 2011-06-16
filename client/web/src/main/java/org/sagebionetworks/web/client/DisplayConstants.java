@@ -3,11 +3,15 @@ package org.sagebionetworks.web.client;
 import com.google.gwt.i18n.client.DateTimeFormat;
 
 public class DisplayConstants {
-
+	/*
+	 * Static URLs
+	 */
 	public static final String SYNAPSEWEB_URL = "https://staging-synapseweb.elasticbeanstalk.com";
-	public static final String AUTH_URL = "https://staging-auth.elasticbeanstalk.com";
+	public static final String AUTH_URL = "https://staging-auth.elasticbeanstalk.com";	
 	
-	
+	/*
+	 * Dimensions
+	 */
 	public static final int DEFAULT_GRID_COLUMN_WIDTH_PX = 150;
 	public static final int DEFULAT_GRID_LAYER_COLUMN_WIDTH_PX = 100;	
 	public static final int DEFULAT_GRID_DATE_COLUMN_WIDTH_PX = 85;
@@ -16,12 +20,12 @@ public class DisplayConstants {
 	public static final int DESCRIPTION_SUMMARY_LENGTH = 450; // characters for summary
 	
 	public static final DateTimeFormat DATE_FORMAT = DateTimeFormat.getFormat("dd-MMM-yyyy");
-	public static final DateTimeFormat DATE_FORMAT_SERVICES = DateTimeFormat.getFormat("yyyy-MM-dd");
-	
-	public static final String SINGLE_SIGN_ON_USERID = "SSO";
+	public static final DateTimeFormat DATE_FORMAT_SERVICES = DateTimeFormat.getFormat("yyyy-MM-dd");	
 	
 	
-	// content
+	/*
+	 * Text constatns
+	 */
 	public static final String FOLLOW_DATASET_HTML = "Following a dataset allows you to be notified when the dataset has new comments, additional layers or data, is used in a project, or referenced by a new publication.<br/><br/>Click Confirm to Follow this dataset. You can adjust your notifications settings through your Profile.";  
 	public static final String FOLLOW_PROJECT_HTML = "Following a project allows you to be notified when the project has new comments, additional layers or data, is used in a project, or referenced by a new publication.<br/><br/>Click Confirm to Follow this project. You can adjust your notifications settings through your Profile.";
 	public static final String DEFAULT_TERMS_OF_USE = "<p><b><larger>Copyright 2011 Sage Bionetworks</larger></b><br/><br/></p><p>Licensed under the Apache License, Version 2.0 (the \"License\"). You may not use this file except in compliance with the License. You may obtain a copy of the License at<br/><br/></p><p>&nbsp;&nbsp;<a href=\"http://www.apache.org/licenses/LICENSE-2.0\" target=\"new\">http://www.apache.org/licenses/LICENSE-2.0</a><br/><br/></p><p>Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions andlimitations under the License.<br/><br/></p><p><strong><a name=\"definitions\">1. Definitions</a></strong>.<br/><br/></p> <p>\"License\" shall mean the terms and conditions for use, reproduction, and distribution as defined by Sections 1 through 9 of this document.<br/><br/></p> <p>\"Licensor\" shall mean the copyright owner or entity authorized by the copyright owner that is granting the License.<br/><br/></p> <p>\"Legal Entity\" shall mean the union of the acting entity and all other entities that control, are controlled by, or are under common control with that entity. For the purposes of this definition, \"control\" means (i) the power, direct or indirect, to cause the direction or management of such entity, whether by contract or otherwise, or (ii) ownership of fifty percent (50%) or more of the outstanding shares, or (iii) beneficial ownership of such entity.<br/><br/></p> <p>\"You\" (or \"Your\") shall mean an individual or Legal Entity exercising permissions granted by this License.<br/><br/></p> <p>\"Source\" form shall mean the preferred form for making modifications, including but not limited to software source code, documentation source, and configuration files.<br/><br/></p> <p>\"Object\" form shall mean any form resulting from mechanical transformation or translation of a Source form, including but not limited to compiled object code, generated documentation, and conversions to other media types.<br/><br/></p> <p>\"Work\" shall mean the work of authorship, whether in Source or Object form, made available under the License, as indicated by a copyright notice that is included in or attached to the work (an example is provided in the Appendix below).<br/><br/></p> <p>\"Derivative Works\" shall mean any work, whether in Source or Object form, that is based on (or derived from) the Work and for which the editorial revisions, annotations, elaborations, or other modifications represent, as a whole, an original work of authorship. For the purposes of this License, Derivative Works shall not include works that remain separable from, or merely link (or bind by name) to the interfaces of, the Work and Derivative Works thereof.<br/><br/></p> <p>\"Contribution\" shall mean any work of authorship, including the original version of the Work and any modifications or additions to that Work or Derivative Works thereof, that is intentionally submitted to Licensor for inclusion in the Work by the copyright owner or by an individual or Legal Entity authorized to submit on behalf of the copyright owner. For the purposes of this definition, \"submitted\" means any form of electronic, verbal, or written communication sent to the Licensor or its representatives, including but not limited to communication on electronic mailing lists, source code control systems, and issue tracking systems that are managed by, or on behalf of, the Licensor for the purpose of discussing and improving the Work, but excluding communication that is conspicuously marked or otherwise designated in writing by the copyright owner as \"Not a Contribution.\"<br/><br/></p> <p>\"Contributor\" shall mean Licensor and any individual or Legal Entity on behalf of whom a Contribution has been received by Licensor and subsequently incorporated within the Work.<br/><br/></p>";
@@ -36,11 +40,30 @@ public class DisplayConstants {
 	public static final String EDIT_PROJECT_TEXT = "Edit the project's details by altering the fields below and then clicking the Save button. To cancel, click the Close button."; 
 	public static final String EDIT_ANNOTATIONS_TEXT = "Edit Annotations for this object. You can add new annotations by using the form fields at the bottom.";
 	
-	public static final String NODE_DESCRIPTION_KEY = "description";
+	
+	public static final String PERMISSIONS_INHERITED_TEXT = "Pemissions not editable as they are being inherited by this resource's parent. (ex: A layer inheriting a dataset's permissions)";
+	public static final String PERMISSIONS_CREATE_NEW_ACL_TEXT = "By creating local sharing settings you ignore the permissions that are inherited from its parent.";
+	
+	/*
+	 * Buttons, titles and labels
+	 */
+	public static final String TITLE_TERMS_OF_USE = "Terms of Use";
+	public static final String BUTTON_SEE_TERMS_OF_USE = "See Terms of Use";
+	public static final String BUTTON_FOLLOW_DATASET = "Follow this Dataset";
+	public static final String TITLE_SHARING_PANEL = "Sharing Settings";
+	public static final String LABEL_SHARING_PANEL_EXISTING = "Permissions";
+	public static final String BUTTON_PERMISSIONS_CREATE_NEW_ACL = "Create Local Sharing Settings";
+	public static final String MENU_PERMISSION_LEVEL_IS_OWNER = "Is Owner";
+	public static final String MENU_PERMISSION_LEVEL_CAN_VIEW = "Can view";
+	public static final String MENU_PERMISSION_LEVEL_CAN_EDIT = "Can edit";
+	public static final String MENU_PERMISSION_LEVEL_CAN_ADMINISTER = "Administrator";
+	public static final String LABEL_PERMISSION_TEXT_ADD_PEOPLE = "Add People";
 
+		
 	/*
 	 * Service Constants (move to another file?)
 	 */
+	public static final String SINGLE_SIGN_ON_USERID = "SSO";
 	public static final String OPEN_ID_SAGE_LOGIN_BUTTON_TEXT = "Login with a Sagebase.org Account";
 	public static final String OPEN_ID_ACTION_ENDPOINT = AUTH_URL + "/auth/v1/openid";
 	public static final String OPEN_ID_RETURN_URL = SYNAPSEWEB_URL + "/#LoginPlace";
@@ -53,15 +76,7 @@ public class DisplayConstants {
 	public static final String SERVICE_LAYER_TYPE_KEY = "type";
 	
 	public static final String SERVICE_HEADER_ETAG_KEY = "ETag";
-	public static final String SHARING_PANEL_TITLE = "Sharing Settings";
-	public static final String SHARING_PANEL_EXISTING_LABEL = "Permissions";
-	public static final String PERMISSION_LEVEL_IS_OWNER = "Is Owner";
-	public static final String PERMISSION_LEVEL_CAN_VIEW = "Can view";
-	public static final String PERMISSION_LEVEL_CAN_EDIT = "Can edit";
-	public static final String PERMISSION_LEVEL_CAN_ADMINISTER = "Administrator";
-	public static final String PERMISSIONS_INHERITED_TEXT = "Pemissions not editable as they are being inherited by this resource's parent. (ex: A layer inheriting a dataset's permissions)";
-	public static final String PERMISSIONS_CREATE_NEW_ACL = "Create Local Sharing Settings";
-	public static final String PERMISSIONS_CREATE_NEW_ACL_TEXT = "By creating local sharing settings you ignore the permissions that are inherited from its parent.";
-	public static final String PERMISSION_TEXT_ADD_PEOPLE = "Add People";
-	
+
+	public static final String NODE_DESCRIPTION_KEY = "description";
+
 }

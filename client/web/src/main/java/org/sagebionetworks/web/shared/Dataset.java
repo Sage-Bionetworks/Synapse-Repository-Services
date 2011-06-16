@@ -2,6 +2,10 @@ package org.sagebionetworks.web.shared;
 
 import java.util.Date;
 
+import com.google.gwt.json.client.JSONBoolean;
+import com.google.gwt.json.client.JSONNumber;
+import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 /**
@@ -9,26 +13,146 @@ import com.google.gwt.user.client.rpc.IsSerializable;
  * 
  */
 public class Dataset implements IsSerializable {
-	private String id;
-	private String uri;
-	private String etag;
 	private String name;
-	private String description;
-	private String creator;
-	private Date creationDate;
-	private String status;
-	private Date releaseDate;
-	private String version;
 	private String annotations;
+	private String id;
+	private String version;
+	private String description;
+	private String status;
+	private Date creationDate;
+	private String parentId;
+	private String etag;
+	private String uri;
 	private String locations;
-	private String layers;
+	private String accessControlList;
+	private String creator;
+	private Date releaseDate;
 	private Boolean hasExpressionData = false;
 	private Boolean hasGeneticData = false;
 	private Boolean hasClinicalData = false;
-	private String parentId;
-	private String accessControlList;
+	private String layers;
 
+	/**
+	 * Default constructor is required
+	 */
+	public Dataset() {
 
+	}
+
+	public Dataset(JSONObject object) {
+		String key = null; 
+
+		key = "name";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setName(object.get(key).isString().stringValue());		
+				
+		key = "annotations";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setAnnotations(object.get(key).isString().stringValue());		
+		
+		key = "id";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setId(object.get(key).isString().stringValue());		
+		
+		key = "version";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setVersion(object.get(key).isString().stringValue());
+		
+		key = "description";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setDescription(object.get(key).isString().stringValue());		
+		
+		key = "status";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setStatus(object.get(key).isString().stringValue());
+		
+		key = "creationDate";
+		if(object.containsKey(key)) 
+			if(object.get(key).isNumber() != null)
+				setCreationDate(new Date(new Double(object.get(key).isNumber().doubleValue()).longValue()));
+
+		key = "parentId";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setParentId(object.get(key).isString().stringValue());
+		
+		key = "etag";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setEtag(object.get(key).isString().stringValue());		
+		
+		key = "uri";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setUri(object.get(key).isString().stringValue());
+
+		key = "locations";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setLocations(object.get(key).isString().stringValue());		
+				
+		key = "accessControlList";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setAccessControlList(object.get(key).isString().stringValue());					
+		
+		key = "creator";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setCreator(object.get(key).isString().stringValue());					
+		
+		key = "releaseDate";
+		if(object.containsKey(key)) 
+			if(object.get(key).isNumber() != null)
+				setReleaseDate(new Date(new Double(object.get(key).isNumber().doubleValue()).longValue()));
+		
+		key = "hasExpressionData";
+		if(object.containsKey(key)) 
+			if(object.get(key).isBoolean() != null)
+				setHasExpressionData(object.get(key).isBoolean().booleanValue());
+		
+		key = "hasGeneticData";
+		if(object.containsKey(key)) 
+			if(object.get(key).isBoolean() != null)
+				setHasGeneticData(object.get(key).isBoolean().booleanValue());
+		
+		key = "hasClinicalData";
+		if(object.containsKey(key)) 
+			if(object.get(key).isBoolean() != null)
+				setHasClinicalData(object.get(key).isBoolean().booleanValue());
+	}
+	
+	public String toJson() {
+		JSONObject object = new JSONObject();
+		
+		object.put("name", new JSONString(getName()));
+		object.put("annotations", new JSONString(getAnnotations()));
+		object.put("id", new JSONString(getId()));
+		object.put("version", new JSONString(getVersion()));
+		object.put("description", new JSONString(getDescription()));
+		object.put("status", new JSONString(getStatus()));		
+		object.put("creationDate", new JSONNumber(getCreationDate().getTime()));
+		object.put("parentId", new JSONString(getParentId()));
+		object.put("etag", new JSONString(getEtag()));
+		object.put("uri", new JSONString(getUri()));
+		object.put("locations", new JSONString(getLocations()));
+		object.put("accessControlList", new JSONString(getAccessControlList()));
+		object.put("creator", new JSONString(getCreator()));
+		object.put("releaseDate", new JSONNumber(getReleaseDate().getTime()));
+		object.put("hasExpressionData", JSONBoolean.getInstance(getHasExpressionData()));
+		object.put("hasGeneticData", JSONBoolean.getInstance(getHasGeneticData()));
+		object.put("hasClinicalData", JSONBoolean.getInstance(getHasClinicalData()));
+		object.put("layers", new JSONString(getLayers()));
+		
+		return object.toString();
+	}
+	
 	public String getUri() {
 		return uri;
 	}
@@ -75,13 +199,6 @@ public class Dataset implements IsSerializable {
 
 	public void setLocations(String locations) {
 		this.locations = locations;
-	}
-
-	/**
-	 * Default constructor is required
-	 */
-	public Dataset() {
-
 	}
 
 	public String getId() {
