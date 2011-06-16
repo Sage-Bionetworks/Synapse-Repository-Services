@@ -29,13 +29,19 @@
 	}
 	
 	## Submit request and check response code
+	d = debugGatherer()
 	response <- getURL(uri, 
 			customrequest = requestMethod, 
 			httpheader = header,
 			curl = curlHandle, 
+			debugfunction=d$update, 
 			.opts = opts
 	)
-				
+	if(.getCache("debug")) {
+		message(d$value())
+		message("response: ", response)
+	}
+	
 	checkCurlResponse(curlHandle, response)
 	
 	if("GET" == requestMethod) {

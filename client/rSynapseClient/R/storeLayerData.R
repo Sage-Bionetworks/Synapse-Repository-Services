@@ -8,7 +8,7 @@ storeLayerData <-
 	#----- Write our analysis result to disk
 	outputFilename <- paste(outputLayerMetadata$name, 'txt', sep='.')
 	outputFilepath <- file.path(synapseCacheDir(), outputFilename)
-	write.table(outputData, outputFilepath, sep='\t')
+	write.table(layerData, outputFilepath, sep='\t')
     # TODO zip this
 	
 	#----- Compute the provenance checksum

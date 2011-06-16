@@ -11,30 +11,30 @@ inputDatasetId <- getInputDatasetIdArg()
 synapseLogin(getUsernameArg(), getPasswordArg())
 
 #----- Decide whether this script wants to work on this input layer
-dataset <- getDataPacketSummary(id = inputDatasetId)
+dataset <- getDataset(id=inputDatasetId)
 if('coad' != dataset$name) {
-  skipWorkflowTask('this script only handles prostate cancer data')
+  skipWorkflowTask('this script only handles TCGA colon cancer data')
 }
 
-inputLayer <- synapseGet(uri=paste('/layer', inputLayerId, sep='/'))
+inputLayer <- getLayer(id=inputLayerId)
 if('E' != inputLayer$type) {
   skipWorkflowTask('this script only handles expression data')
 }
 
-#----- Download, unpack, and load the TCGA source data layer
-expressionDataFiles <- getLayerData(inputLayer)
-# TODO load each of the files into R objects
-
-#----- Download, unpack, and load the clinical layer of this dataset  
-#      because we need it as additional input to this script
-datasetLayers <- getPacketLayers(id = inputDatasetId)
-clinicalLayer <- datasetLayers$C
-clinicalLayerLocations <- synapseGet(uri = clinicalLayer$locations)
-if(0 == clinicalLayerLocations$totalNumberOfResults) {
-	stop('did not find the clinical dataset location')
+layerAnnotations <- getAnnotations(inputLayer)
+if('Level_2' != layerAnnotations$stringAnnotations$format) {
+	skipWorkflowTask('this script ony handles level 2 expression data from TCGA')
 }
 
-clinicalDataFiles <- getLayerData(clinicalLayer)
+#----- Download, unpack, and load the expression layer
+expressionDataFiles <- synapseClient:::.cacheFiles(entity=inputLayer)
+# TODO load each of the files into R objects
+
+#----- Download, unpack, and load the clinical layer of this TCGA dataset  
+#      because we need it as additional input to this script
+datasetLayers <- getLayers(entity=dataset)
+clinicalLayer <- datasetLayers$C
+clinicalDataFiles <- synapseClient:::.cacheFiles(entity=clinicalLayer)
 clinicalData <- read.table(clinicalDataFiles[[4]], sep='\t')
 
 #----- Do interesting work with the clinical and expression data R objects
@@ -49,6 +49,10 @@ outputLayer$name <- paste(dataset$name, inputLayer$name, clinicalLayer$name, sep
 outputLayer$type <- 'E'
 
 storedOutputLayer <- storeLayerData(layerMetadata=outputLayer, layerData=outputData)
+
+#----- Add some annotations to our newly stored output layer
+outputLayerAnnotations <- getAnnotations(storedOutputLayer)
+layerAnnotations$stringAnnotations$format <- 'sageMatrix'
 
 finishWorkflowTask(outputLayerId=storedOutputLayer$id)
 

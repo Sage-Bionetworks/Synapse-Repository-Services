@@ -1,16 +1,11 @@
 getAnnotations <- 
-		function(id, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
 {
-	## constants
-	kService <- "dataset"
-	kUri <- "annotations"
-	## end constants
 	
-	if(length(id) != 1){
-		stop("multiple IDs provided")
+	if(!"annotations" %in% names(entity)){
+		stop("the entity does not have annotations")
 	}
 	
-	uri <- paste(kService, id, kUri, sep="/")
-	synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous)
+	synapseGet(uri = entity$annotations, curlHandle = curlHandle, anonymous = anonymous)
 }
 

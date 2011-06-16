@@ -1,20 +1,28 @@
 getLayers <-
-		function(id, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity=entity, returnS4Objects = FALSE, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
 {
-	kService <- "dataset"
-	kSuffix <- "layer"
+
+	if(!"layers" %in% names(entity)){
+		stop("the entity does not have layers")
+	}
 	
-	uri <- paste(kService, id, kSuffix, sep="/")
-	result <- synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous)
+	result <- synapseGet(uri = entity$layers, curlHandle = curlHandle, anonymous = anonymous)
 	
 	layers <- result$results
 
 	returnVal <- NULL
 	for(i in 1:length(layers)){
+		names(layers)[i] <- layers[[i]]$type
 		class(layers[[i]]) <- 'layerList'
-		returnVal <- c(returnVal, Layer(layers[[i]]))
+		if(returnS4Objects) {
+			returnVal <- c(returnVal, Layer(layers[[i]]))
+		}
 	}
 
-	return(returnVal)
+	if(returnS4Objects) {
+		return(returnVal)
+	}
+
+	return(layers)
 }
 

@@ -53,9 +53,10 @@ kSupportedPlatforms <- list(
 	.setCache("sessionRefreshDurationMin", 60)
 	.setCache("repoServicePath", "repo/v1")
 	.setCache("authServicePath", "auth/v1")
-	.setCache("curlOpts", list(ssl.verifypeer = FALSE))
+	.setCache("curlOpts", list(ssl.verifypeer = FALSE, verbose = FALSE))
 	.setCache("curlHeader", c('Content-Type'="application/json", Accept = "application/json"))
 	.setCache("anonymous", FALSE)
 	.setCache("downloadSuffix", "unpacked")
+	.setCache("debug", FALSE)
 	
 }

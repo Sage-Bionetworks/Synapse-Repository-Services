@@ -26,6 +26,12 @@ integrationTestCRUD <- function() {
 	checkTrue(dataset$status != modifiedDataset$status)
 	checkEquals('test update', modifiedDataset$status)
 	
+	# Get dataset annotations
+	annotations <- getAnnotations(modifiedDataset)
+	annotations$stringAnnotations$myNewAnnotationKey <- 'my new annotation value'
+	storedAnnotations <- updateAnnotations(annotations)
+	checkEquals('my new annotation value', storedAnnotations$stringAnnotations$myNewAnnotationKey)
+	
 	# Delete a dataset
 	synapseDelete(modifiedDataset$uri)
 	

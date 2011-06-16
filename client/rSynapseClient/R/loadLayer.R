@@ -24,8 +24,12 @@ setMethod(
 
 
 .cacheFiles <-
-		function(locationsUri, locationPrefs = dataLocationPrefs(), curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"), cacheDir = synapseCacheDir())
+		function(entity, locationPrefs = dataLocationPrefs(), curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"), cacheDir = synapseCacheDir())
 {
+	if(!"locations" %in% names(entity)){
+		stop("the entity does not have any locations")
+	}
+	
 	## make sure that the location type for this layer is currently supported
 	if(!all(locationPrefs %in% .getCache("supportedRepositoryLocationTypes"))){
 		ind <- which(!(locationPrefs %in% .getCache("supportedRepositoryLocationTypes")))
@@ -33,7 +37,7 @@ setMethod(
 	}
 	
 	#get the available locations for this layer and match to locationPrefs
-	response <- synapseGet(locationsUri, curlHandle = curlHandle, anonymous = anonymous)
+	response <- synapseGet(entity$locations, curlHandle = curlHandle, anonymous = anonymous)
 	checkCurlResponse(curlHandle, response)
 	availableLocations <- jsonListToDataFrame(response$results)
 	ind <- match(locationPrefs, availableLocations$type)
