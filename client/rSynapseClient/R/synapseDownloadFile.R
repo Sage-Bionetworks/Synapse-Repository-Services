@@ -1,9 +1,11 @@
 synapseDownloadFile  <- 
-		function (url, destfile, curlHandle = getCurlHandle(), cacheDir = synapseCacheDir())
+		function (url, destfile, checksum, curlHandle = getCurlHandle(), cacheDir = synapseCacheDir())
 {
 	destfile <- file.path(cacheDir, destfile)
 	splits <- strsplit(destfile, .Platform$file.sep)
 	downloadDir <- paste(splits[[1]][-length(splits[[1]])], collapse=.Platform$file.sep)
+	
+	##TODO use the checksum
 	if(!file.exists(downloadDir)){
 		dir.create(downloadDir, recursive=TRUE)
 	}

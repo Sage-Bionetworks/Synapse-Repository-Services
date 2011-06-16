@@ -2,6 +2,7 @@ sessionToken <-
 		function(session.token, check.validity=FALSE, refresh.duration = .getCache("sessionRefreshDurationMin"))
 {
 	if (!missing(session.token)) {
+		if(is.null(session.token)) session.token <- ""
 		if(check.validity){
 			refreshSessionToken(session.token)
 		}
@@ -13,6 +14,7 @@ sessionToken <-
 				&(check.validity || elapsed.time.min >= refresh.duration)){
 			refreshSessionToken(session.token)
 		}
+		if(is.null(session.token)) session.toke <- ""
 		return(session.token)
 	}
 }

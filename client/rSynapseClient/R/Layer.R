@@ -1,7 +1,7 @@
 ### class definitions
 #
-setClass(Class="layerList")
-setClass(Class="layerFiles")
+#setClass(Class="layerList")
+##setClass(Class="layerFiles")
 
 setClass(
 		Class = "Layer",
@@ -79,13 +79,22 @@ setClass(
 ### Constructors for the various Layer types
 #####
 
-Layer <- function(object, ...){
-	
+Layer <- function(layerType){
+	if(length(layerType) != 1) stop("must supply only one layer type")
+	map <- .getCache("layerCodeTypeMap")
+	ind <- match(layerType, as.character(map))
+	if(is.na(ind)){
+		# unknown layer code
+		className <- "Layer"
+	}else {
+		className <- names(map)[ind]
+	}
+	new(Class=className)
 }
 
 setGeneric(
 	name = "Layer",
-	def = function(object, object2, ...){
+	def = function(object, object2){
 		standardGeneric("Layer")
 	},
 	valueClass = "Layer"
@@ -205,8 +214,8 @@ setMethod(
 		definition = function(object){
 			cat(as.character(class(object)), 
 					"\nlayer type: ",layerType(object),
-					"\n\tstatus: ", object@status,
 					"\n\tlayerId: ", object@id,
+					"\n\tstatus: ", object@status,
 					"\n\tplatform: ", object@platform,
 					"\n\tnumSamples: ", object@numSamples,
 					"\n\ttissue: ", object@tissueType,
@@ -214,7 +223,7 @@ setMethod(
 			)
 			if(!is.null(object@cachedFiles)){
 				cat("\n\tCachedFiles:\n")
-				cat(paste("\t",paste(pt@cachedFiles, collapse="\n\t"), sep=""),"\n")
+				cat(paste("\t",paste(object@cachedFiles, collapse="\n\t"), sep=""),"\n")
 			}
 		}
 )
@@ -232,7 +241,7 @@ setMethod(
 			)
 			if(!is.null(object@cachedFiles)){
 				cat("\n\tCachedFiles:\n")
-				cat(paste("\t",paste(pt@cachedFiles, collapse="\n\t"), sep=""),"\n")
+				cat(paste("\t",paste(object@cachedFiles, collapse="\n\t"), sep=""),"\n")
 			}
 		}
 )
@@ -243,15 +252,15 @@ setMethod(
 		definition = function(object){
 			cat(as.character(class(object)), 
 					"\nlayer type: ",layerType(object),
-					"\n\tstatus: ", object@status,
 					"\n\tlayerId: ", object@id,
+					"\n\tstatus: ", object@status,
 					"\n\tplatform: ", object@platform,
 					"\n\tnumSamples: ", object@numSamples,
 					"\n"
 			)
 			if(!is.null(object@cachedFiles)){
 				cat("\n\tCachedFiles:\n")
-				cat(paste("\t",paste(pt@cachedFiles, collapse="\n\t"), sep=""),"\n")
+				cat(paste("\t",paste(object@cachedFiles, collapse="\n\t"), sep=""),"\n")
 			}
 		}
 )
@@ -270,7 +279,7 @@ setMethod(
 			)
 			if(!is.null(object@cachedFiles)){
 				cat("\n\tCachedFiles:\n")
-				cat(paste("\t",paste(pt@cachedFiles, collapse="\n\t"), sep=""),"\n")
+				cat(paste("\t",paste(object@cachedFiles, collapse="\n\t"), sep=""),"\n")
 			}
 		}
 )

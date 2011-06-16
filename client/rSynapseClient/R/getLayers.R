@@ -1,4 +1,4 @@
-getDatasetLayers <-
+getLayers <-
 		function(id, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
 {
 	kService <- "dataset"

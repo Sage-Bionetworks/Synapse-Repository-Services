@@ -57,10 +57,7 @@ setMethod(
 	destDir <- URL(paste(zipFile@url, .getCache("downloadSuffix"), sep="_"))
 	localFile <- file.path(cacheDir, s4URL@fullFilePath)
 	
-	if(!file.exists(localFile) || (file.exists(localFile) & md5sum(localFile) != synapseCheckSum)){
-		## download the file
-		synapseDownloadFile(url = s4URL@url, destfile = s4URL@fullFilePath, cacheDir = cacheDir)
-	}
+	synapseDownloadFile(url = s4URL@url, destfile = s4URL@fullFilePath, checksum = md5sum(localFile), cacheDir = cacheDir)
 	
 	## unpack the layer file
 	## TODO: should the code only unpack the file if the destdir doesn't already exists?
