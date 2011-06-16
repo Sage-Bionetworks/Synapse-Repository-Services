@@ -1,6 +1,9 @@
 getDatasets <- 
-		function(queryParams = list(limit=10, offset=1), curlHandle=getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(queryParams, curlHandle=getCurlHandle(), anonymous = .getCache("anonymous"))
 {
+	if(missing(queryParams)){
+		queryParams <- list()
+	}
 	if(!is.list(queryParams)){
 		stop("params must be a list")
 	}
