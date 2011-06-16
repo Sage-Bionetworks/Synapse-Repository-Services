@@ -39,11 +39,17 @@ import org.xml.sax.InputSource;
 public class CrowdAuthUtil {
 	private static final Logger log = Logger.getLogger(CrowdAuthUtil.class.getName());
 
+	private String crowdUrl; // e.g. https://ec2-50-16-158-220.compute-1.amazonaws.com:8443
+	private String apiApplication;
+	private String apiApplicationKey;
+
 	public CrowdAuthUtil() {
+		// get the values from system properties, if available
 		crowdUrl = System.getProperty("org.sagebionetworks.crowdUrl");
-		if (crowdUrl!=null && crowdUrl.length()>0) return;
+		apiApplication  = System.getProperty("org.sagebionetworks.crowdApplication");
+		apiApplicationKey  = System.getProperty("org.sagebionetworks.crowdApplicationKey");
 		
-		// else read it from the properties file
+		// else read default values from the properties file
         Properties props = new Properties();
         InputStream is = CrowdAuthUtil.class.getClassLoader().getResourceAsStream("authutil.properties");
         try {
@@ -52,11 +58,10 @@ public class CrowdAuthUtil {
         	throw new RuntimeException(e);
         }
 
-        crowdUrl = props.getProperty("org.sagebionetworks.crowdUrl");
+        if (crowdUrl==null || crowdUrl.length()==0) crowdUrl = props.getProperty("org.sagebionetworks.crowdUrl");
+        if (apiApplication==null || apiApplication.length()==0) apiApplication = props.getProperty("org.sagebionetworks.crowdApplication");
+        if (apiApplicationKey==null || apiApplicationKey.length()==0) apiApplicationKey = props.getProperty("org.sagebionetworks.crowdApplicationKey");
 	}
-	
-
-	private String crowdUrl; // e.g. https://ec2-50-16-158-220.compute-1.amazonaws.com:8443
 	
 
 	private static final String msg1 = 
@@ -87,10 +92,10 @@ public class CrowdAuthUtil {
 			return ans;
 	}
 	
-	public static void setHeaders(HttpURLConnection conn) {
+	public void setHeaders(HttpURLConnection conn) {
 		conn.setRequestProperty("Accept", "application/xml");
 		conn.setRequestProperty("Content-Type", "application/xml");
-		String authString=AuthUtilConstants.CLIENT+":"+AuthUtilConstants.CLIENT_KEY;
+		String authString=apiApplication+":"+apiApplicationKey;
 		conn.setRequestProperty("Authorization", "Basic "+Base64.encodeBytes(authString.getBytes())); 
 	}
 	
