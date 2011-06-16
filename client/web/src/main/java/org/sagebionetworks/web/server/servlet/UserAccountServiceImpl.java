@@ -145,7 +145,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		HttpEntity<String> entity = new HttpEntity<String>(jsonString, headers);
 		HttpMethod method = HttpMethod.POST;
 		
-		logger.info(method.toString() + ": " + url + ", JSON: " + jsonString);
+		logger.info(method.toString() + ": " + url + ", for user " + username); // DO NOT log the entire json string as it includes the user's password
 		
 		ResponseEntity<UserSession> response = null;
 		try {
