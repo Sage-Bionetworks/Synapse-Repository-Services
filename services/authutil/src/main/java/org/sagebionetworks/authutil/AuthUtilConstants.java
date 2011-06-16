@@ -10,13 +10,6 @@ public class AuthUtilConstants {
 	public static final String ANONYMOUS_USER_ID = "anonymous";
 	
 	
-//	/**
-//	 * The reserved userId for an administrator.  Note:  Other users in the admin group
-//	 * would have privileges equal to this users'.  This is the user that the authentication
-//	 * service uses to connect to the repository service.
-//	 */
-//	public static final String ADMIN_USER_ID = "admin";
-	
 	/**
 	 * Request parameter for the authenticated user id or anonymous. Note that
 	 * callers of the service do not actually use this parameter. Instead they
@@ -24,12 +17,6 @@ public class AuthUtilConstants {
 	 * pre-processing filter.
 	 */
 	public static final String USER_ID_PARAM = "userId";
-
-	/**
-	 * application id and password for Crowd REST API
-	 */
-	public static final String CLIENT = "platform";
-	public static final String CLIENT_KEY = "platform-pw";
 
 	/**
 	 * This is the name of the attribute in Crowd for the creation date for a User
