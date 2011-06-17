@@ -425,7 +425,8 @@ public class AccessControlListEditorViewImpl extends LayoutContainer implements 
 		private AclPrincipal aclPrincipal;
 		public PeopleModel(AclPrincipal aclPrincipal) {
 			this.aclPrincipal = aclPrincipal;
-			this.set("name", aclPrincipal.getName());
+			String groupStr = aclPrincipal.isIndividual() ? "" : " (Group)"; 			
+			this.set("name", aclPrincipal.getName() + groupStr);
 		}
 		
 		public AclPrincipal getAclPrincipal() {
