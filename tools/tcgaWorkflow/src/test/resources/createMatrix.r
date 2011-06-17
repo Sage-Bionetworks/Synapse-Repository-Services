@@ -52,7 +52,8 @@ storedOutputLayer <- storeLayerData(layerMetadata=outputLayer, layerData=outputD
 
 #----- Add some annotations to our newly stored output layer
 outputLayerAnnotations <- getAnnotations(storedOutputLayer)
-layerAnnotations$stringAnnotations$format <- 'sageMatrix'
+outputLayerAnnotations$stringAnnotations$format <- 'sageMatrix'
+storedOutputLayerAnnotations <- updateAnnotations(outputLayerAnnotations)
 
 finishWorkflowTask(outputLayerId=storedOutputLayer$id)
 
