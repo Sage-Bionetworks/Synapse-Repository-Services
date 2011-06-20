@@ -1,3 +1,4 @@
+
 # TODO: Add comment
 # 
 # Author: mfuria
@@ -45,7 +46,7 @@ kSupportedPlatforms <- list(
 {
 	resetSynapseHostConfig()
 	dataLocationPrefs("awss3")
-	.setCache("synapseCacheDir", path.expand("~/.synapseCache"))
+	.setCache("synapseCacheDir", gsub("[\\]+", "/", path.expand("~/.synapseCache")))
 	.setCache("supportedRepositoryLocationTypes", c("awss3"))
 	.setCache("layerCodeTypeMap", kSupportedLayerCodeMap)
 	.setCache("supportedLayerStatus", kSupportedLayerStatus)
@@ -58,5 +59,4 @@ kSupportedPlatforms <- list(
 	.setCache("anonymous", FALSE)
 	.setCache("downloadSuffix", "unpacked")
 	.setCache("debug", FALSE)
-	
 }

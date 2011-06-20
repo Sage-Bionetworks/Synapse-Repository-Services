@@ -35,3 +35,4 @@ integrationTestQueryForDataset <- function() {
 	# And its name should match the one we searched for
 	checkEquals(datasets$dataset.name, "MSKCC Prostate Cancer")
 }
+
