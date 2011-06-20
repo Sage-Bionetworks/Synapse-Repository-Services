@@ -7,9 +7,7 @@
 	
 	uri <- paste(kind, id, sep = "/")
 	
-	## get reults and parse list
-	results.list <- synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous)
-	parseSingleRow(results.list)
+	synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous)
 }
 
 getDataset <- 

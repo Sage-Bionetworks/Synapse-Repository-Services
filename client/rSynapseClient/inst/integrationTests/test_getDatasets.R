@@ -7,8 +7,6 @@
 
 integrationTestGetDatasets <- function() {
 	packets <- getDatasets()
-	# We should get back 10 datasets
-	checkEquals(dim(packets)[1], 10)
 	# The fields returned by this service API may change over time, but
 	# there are a few we should always expect to receive
 	checkTrue("dataset.id" %in% names(packets))

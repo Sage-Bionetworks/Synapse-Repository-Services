@@ -13,6 +13,10 @@
 		stop("a uri must be supplied of R type character")
 	}
 	
+	if(!is.list(entity)) {
+		stop("an entity must be supplied of R type list")
+	}
+	
 	httpBody <- .toJSON(entity)
 	
 	## Prepare the header. If not an anonymous request, stuff the
