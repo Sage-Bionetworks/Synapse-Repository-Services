@@ -45,7 +45,7 @@ kSupportedPlatforms <- list(
 {
 	resetSynapseHostConfig()
 	dataLocationPrefs("awss3")
-	.setCache("synapseCacheDir", "/synapseCache")
+	.setCache("synapseCacheDir", path.expand("~/.synapseCache"))
 	.setCache("supportedRepositoryLocationTypes", c("awss3"))
 	.setCache("layerCodeTypeMap", kSupportedLayerCodeMap)
 	.setCache("supportedLayerStatus", kSupportedLayerStatus)

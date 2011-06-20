@@ -4,6 +4,9 @@
 	splits <- strsplit(filename, "\\.")
 	extension <- tolower(splits[[1]][length(splits[[1]])])
 	
+	filename <- path.expand(filename)
+	destdir <- path.expand(destdir)
+	
 	switch(extension,
 		zip = unzip(filename, exdir = destdir),
 		gz = untar(filename, exdir = destdir),
