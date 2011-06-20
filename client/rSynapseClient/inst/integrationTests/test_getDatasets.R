@@ -6,32 +6,32 @@
 }
 
 integrationTestGetDatasets <- function() {
-	packets <- getDatasets()
+	datasets <- getDatasets()
 	# The fields returned by this service API may change over time, but
 	# there are a few we should always expect to receive
-	checkTrue("dataset.id" %in% names(packets))
-	checkTrue("dataset.name" %in% names(packets))
-	checkTrue("dataset.version" %in% names(packets))
-	checkTrue("dataset.status" %in% names(packets))
-	checkTrue("dataset.species" %in% names(packets))
+	checkTrue("dataset.id" %in% names(datasets))
+	checkTrue("dataset.name" %in% names(datasets))
+	checkTrue("dataset.version" %in% names(datasets))
+	checkTrue("dataset.status" %in% names(datasets))
+	checkTrue("dataset.Species" %in% names(datasets))
 }
 
 integrationTestPaging <- function() {
-	firstPagePackets <- getDatasets(list(limit=20, offset=1))
-	secondPagePackets <- getDatasets(list(limit=20, offset=21))
+	firstPageDatasets <- getDatasets(list(limit=20, offset=1))
+	secondPageDatasets <- getDatasets(list(limit=20, offset=21))
 	# We should get back 20 datasets
-	checkEquals(dim(firstPagePackets)[1], 20)
-	checkEquals(dim(secondPagePackets)[1], 20)
+	checkEquals(dim(firstPageDatasets)[1], 20)
+	checkEquals(dim(secondPageDatasets)[1], 20)
 	# And they do not overlap
-	checkEquals(length(union(firstPagePackets$dataset.id,
-							secondPagePackets$dataset.id)),
+	checkEquals(length(union(firstPageDatasets$dataset.id,
+							secondPageDatasets$dataset.id)),
 			40)
 }
 
 integrationTestQueryForDataset <- function() {
-	packets <- getDatasets(list(where='dataset.name == "MSKCC Prostate Cancer"'))
+	datasets <- getDatasets(list(where='dataset.name == "MSKCC Prostate Cancer"'))
 	# We should get back 1 dataset
-	checkEquals(dim(packets)[1], 1)
+	checkEquals(dim(datasets)[1], 1)
 	# And its name should match the one we searched for
-	checkEquals(packets$dataset.name, "MSKCC Prostate Cancer")
+	checkEquals(datasets$dataset.name, "MSKCC Prostate Cancer")
 }

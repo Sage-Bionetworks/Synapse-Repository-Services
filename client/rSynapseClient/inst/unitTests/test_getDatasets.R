@@ -55,6 +55,6 @@ unitTestJsonCorretlyParsed <-
 	checkTrue("dataset.name" %in% names(packets))
 	checkTrue("dataset.version" %in% names(packets))
 	checkTrue("dataset.status" %in% names(packets))
-	checkTrue("dataset.species" %in% names(packets))
+	checkTrue("dataset.Species" %in% names(packets))
 }
 
