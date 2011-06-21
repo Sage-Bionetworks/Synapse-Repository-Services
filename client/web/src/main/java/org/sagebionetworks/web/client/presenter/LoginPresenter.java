@@ -62,6 +62,7 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 					authenticationController.setSSOUser(displayName, sessionToken, new AsyncCallback<UserData>() {	
 						@Override
 						public void onSuccess(UserData result) {
+							view.hideLoggingInLoader();
 							// user is logged in. forward to home page
 							bus.fireEvent( new PlaceChangeEvent(new Home("0")));
 						}

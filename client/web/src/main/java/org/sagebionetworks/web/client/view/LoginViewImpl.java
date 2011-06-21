@@ -43,7 +43,7 @@ public class LoginViewImpl extends Composite implements LoginView {
 	private LoginWidget loginWidget;
 	private IconsImageBundle iconsImageBundle;
 	private SageImageBundle sageImageBundle;
-	private Window logginInWindow = new Window();
+	private Window logginInWindow;
 
 	public interface Binder extends UiBinder<Widget, LoginViewImpl> {}
 	
@@ -71,13 +71,16 @@ public class LoginViewImpl extends Composite implements LoginView {
 	}
 
 	@Override
-	public void showLoggingInLoader() {				
-		logginInWindow.setModal(true);		
-		logginInWindow.setHeight(114);
-		logginInWindow.setWidth(221);		
-		logginInWindow.setBorders(false);
-		logginInWindow.add(new Html(DisplayUtils.getIconHtml(sageImageBundle.loading31()) + " " + DisplayConstants.LABEL_SINGLE_SIGN_ON_LOGGING_IN), new MarginData(20, 0, 0, 45));		
-		logginInWindow.setBodyStyleName("whiteBackground");					
+	public void showLoggingInLoader() {
+		if(logginInWindow == null) {
+			logginInWindow = new Window();
+			logginInWindow.setModal(true);		
+			logginInWindow.setHeight(114);
+			logginInWindow.setWidth(221);		
+			logginInWindow.setBorders(false);
+			logginInWindow.add(new Html(DisplayUtils.getIconHtml(sageImageBundle.loading31()) + " " + DisplayConstants.LABEL_SINGLE_SIGN_ON_LOGGING_IN), new MarginData(20, 0, 0, 45));		
+			logginInWindow.setBodyStyleName("whiteBackground");
+		}
 		logginInWindow.show();
 	}
 
@@ -98,7 +101,7 @@ public class LoginViewImpl extends Composite implements LoginView {
 		cp.add(new HTML("<h2>"+ DisplayConstants.LABEL_LOGOUT_TEXT +"</h2>"), new MarginData(0, 0, 0, 10));
 		
 		HTML message = new HTML();
-		if(!isSsoLogout) {
+		if(isSsoLogout) {
 			message.setHTML(DisplayUtils.getIconHtml(iconsImageBundle
 					.informationBalloon16())
 					+ " "
@@ -121,7 +124,6 @@ public class LoginViewImpl extends Composite implements LoginView {
 		cp.add(loginAgain, new MarginData(16, 0, 10, 10));
 		
 		logoutPanel.add(cp);
-		showLoggingInLoader();
 	}
 
 	@Override
