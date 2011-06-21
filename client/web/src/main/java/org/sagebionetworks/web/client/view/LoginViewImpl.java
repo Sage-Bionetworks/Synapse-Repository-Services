@@ -166,7 +166,7 @@ public class LoginViewImpl extends Composite implements LoginView {
 	 * Private Methods
 	 */
 	private void clearAllPanels() {
-		logginInWindow.hide();
+		if(logginInWindow != null) logginInWindow.hide();
 		loginWidgetPanel.clear();
 		passwordResetButtonPanel.clear();
 		registerButtonPanel.clear();
