@@ -40,7 +40,8 @@ public class DisplayConstants {
 	public static final String EDIT_PROJECT_TEXT = "Edit the project's details by altering the fields below and then clicking the Save button. To cancel, click the Close button."; 
 	public static final String EDIT_ANNOTATIONS_TEXT = "Edit Annotations for this object. You can add new annotations by using the form fields at the bottom.";
 	
-	
+	public static final String LOGOUT_TEXT = "You have been logged out of Synapse.";
+	public static final String LOGOUT_SSO_TEXT = "To prevent others from accessing your account in this browser, you should log out of your Google account as well.<br/><a href=\"https://mail.google.com/a/sagebase.org/?logout&hl=en\">Logout of your Sage Google account by clicking here</a>"; // <br/><br/><a href=\"https://www.google.com/accounts/Logout\">Logout of your Google account by clicking here</a>
 	public static final String PERMISSIONS_INHERITED_TEXT = "Pemissions not editable as they are being inherited by this resource's parent. (ex: A layer inheriting a dataset's permissions)";
 	public static final String PERMISSIONS_CREATE_NEW_ACL_TEXT = "By creating local sharing settings you ignore the permissions that are inherited from its parent.";
 	
@@ -78,5 +79,9 @@ public class DisplayConstants {
 	public static final String SERVICE_HEADER_ETAG_KEY = "ETag";
 
 	public static final String NODE_DESCRIPTION_KEY = "description";
-
+	public static final String BUTTON_LOGIN_AGAIN = "Go to Synapse Login Page";
+	public static final String LABEL_LOGOUT_TEXT = "Logout";
+	public static final String BUTTON_CANCEL = "Cancel";
+	public static final String LABEL_SINGLE_SIGN_ON_LOGGING_IN = "Loggin you in.";
+	
 }

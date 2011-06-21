@@ -1,5 +1,7 @@
 package org.sagebionetworks.web.client.presenter;
 
+import org.sagebionetworks.web.client.DisplayConstants;
+import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.place.LoginPlace;
 import org.sagebionetworks.web.client.security.AuthenticationController;
@@ -42,10 +44,16 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 		view.clear();
 		String token = place.toToken();
 		if(LoginPlace.LOGOUT_TOKEN.equals(token)) {
-			authenticationController.logoutUser();			
-		} else if(!"0".equals(token)) {
+			UserData currentUser = authenticationController.getLoggedInUser();
+			boolean isSso = false;
+			if(currentUser != null)
+				isSso = DisplayConstants.SINGLE_SIGN_ON_USERID.equals(currentUser.getUserId());
+			authenticationController.logoutUser();
+			view.showLogout(isSso);
+		} else if(!"0".equals(token) && !"".equals(token) && token != null) {			
 			// Single Sign on token. try refreshing the token to see if it is valid. if so, log user in
 			// parse token
+			view.showLoggingInLoader();
 			if(token != null) {
 				String[] parts = token.split(":");
 				if(parts != null && parts.length == 2) {
@@ -60,12 +68,17 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 						@Override
 						public void onFailure(Throwable caught) {
 							view.showErrorMessage("An error occured. Please try logging in again.");
+							view.showLogin();
 						}
 					});
 				} else {
 					view.showErrorMessage("An error occured. Please try logging in again.");
+					view.showLogin();
 				}
 			}
+		} else {
+			// standard view
+			view.showLogin();
 		}
 	}
 

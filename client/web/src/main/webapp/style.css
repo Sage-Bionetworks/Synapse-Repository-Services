@@ -1122,3 +1122,11 @@ h6 .wide {
 .clear { clear:left; }
 .clear_both { clear:both; }
 .last { margin-right:0px !important; }
+
+.lightGreyBackground {
+	background-color: #f7f7f7;	
+}
+
+.whiteBackground {
+	background-color: #fff;	
+}

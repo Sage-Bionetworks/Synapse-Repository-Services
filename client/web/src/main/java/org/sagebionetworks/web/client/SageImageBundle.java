@@ -20,6 +20,9 @@ public interface SageImageBundle extends ClientBundle {
 	@Source("images/loading-16.gif")
 	ImageResource loading16();	
 	
+	@Source("images/loading-31.gif")
+	ImageResource loading31();	
+	
 	@Source("images/transparent-16.png")
 	ImageResource iconTransparent16();
 	

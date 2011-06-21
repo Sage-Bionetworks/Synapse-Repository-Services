@@ -13,6 +13,14 @@ public interface LoginView extends IsWidget{
 	
 	void clear();
 	
+	void showLoggingInLoader();
+	
+	void hideLoggingInLoader();
+	
+	void showLogout(boolean isSsoLogout);
+	
+	void showLogin();
+
 	public interface Presenter {
 		void goTo(Place place);
 		
