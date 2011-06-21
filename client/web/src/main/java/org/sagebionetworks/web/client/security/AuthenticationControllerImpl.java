@@ -91,8 +91,7 @@ public class AuthenticationControllerImpl implements AuthenticationController {
 	@Override
 	public void logoutUser() {
 		if(currentUser != null) {
-			// don't actually terminate session, just remove the cookie
-			Info.display("Message", "You have been logged out.");
+			// don't actually terminate session, just remove the cookies			
 			cookies.removeCookie(CookieKeys.USER_LOGIN_DATA);
 			cookies.removeCookie(CookieKeys.USER_LOGIN_TOKEN);			
 		}
