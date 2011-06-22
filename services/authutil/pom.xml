@@ -27,20 +27,16 @@
       <groupId>org.springframework</groupId>
       <artifactId>org.springframework.spring-library</artifactId>
       <type>libd</type>
-      <version>${org.springframework.version}</version>
     </dependency>
     
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>org.springframework.web</artifactId>
-      <version>${org.springframework.version}</version>
     </dependency>
 
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-test</artifactId>
-      <version>${org.springframework.version}</version>
-      <scope>test</scope>
     </dependency>
 
         <!-- Logging dependencies -->
@@ -49,7 +45,10 @@
       <artifactId>commons-logging</artifactId>
       <version>1.0</version>
     </dependency>
-
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+		</dependency>
   </dependencies>    
 
 
