@@ -168,9 +168,9 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-war-plugin</artifactId>
-        <configuration>
+        <!-- <configuration>
           <warName>auth-${applicationVersion}-${buildNumber}-${maven.build.timestamp}</warName>
-        </configuration>
+        </configuration> -->
       </plugin>
       
             <!-- This allows us to run the servlet container from maven via
