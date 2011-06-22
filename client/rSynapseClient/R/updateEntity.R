@@ -5,6 +5,8 @@
 	synapsePut(uri=entity$uri, entity=entity, curlHandle=curlHandle, anonymous=anonymous)
 }
 
+# TODO can we dynamically generate these functions?
+
 updateDataset <- 
 		function(entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
 {

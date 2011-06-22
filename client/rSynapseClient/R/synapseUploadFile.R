@@ -10,12 +10,8 @@
 }
 
 synapseUploadFile <- 
-		function (url, srcfile, checksum, method = "curl", quiet = FALSE, mode = "w", cacheOK = TRUE, cacheDir = synapseCacheDir())
+		function (url, srcfile, checksum, method = "curl", quiet = FALSE, mode = "w", cacheOK = TRUE)
 {
-	
-	if(!grepl(cacheDir, srcfile)) {
-		srcfile <- file.path(cacheDir, srcfile)
-	}
 	
 	if (method == "curl") {
 		extra <- if (quiet)

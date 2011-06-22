@@ -10,32 +10,32 @@ integrationTestCRUD <- function() {
 	dataset <- list()
 	dataset$name = 'R Integration Test Dataset'
 	dataset$status = 'test create'
-	createdDataset <- synapsePost('/dataset', dataset)
+	createdDataset <- synapsePost(uri='/dataset', entity=dataset)
 	checkEquals(dataset$name, createdDataset$name)
 	checkEquals(dataset$status, createdDataset$status)
 	
 	# Get a dataset
-	storedDataset <- synapseGet(createdDataset$uri)
+	storedDataset <- synapseGet(uri=createdDataset$uri)
 	checkEquals(dataset$name, storedDataset$name)
 	checkEquals(dataset$status, storedDataset$status)
 	
 	# Modify a dataset
 	storedDataset$status <- 'test update'
-	modifiedDataset <- synapsePut(storedDataset$uri, storedDataset)
+	modifiedDataset <- synapsePut(uri=storedDataset$uri, entity=storedDataset)
 	checkEquals(dataset$name, modifiedDataset$name)
 	checkTrue(dataset$status != modifiedDataset$status)
 	checkEquals('test update', modifiedDataset$status)
 	
 	# Get dataset annotations
-	annotations <- getAnnotations(modifiedDataset)
+	annotations <- getAnnotations(entity=modifiedDataset)
 	annotations$stringAnnotations$myNewAnnotationKey <- 'my new annotation value'
-	storedAnnotations <- updateAnnotations(annotations)
+	storedAnnotations <- updateAnnotations(annotations=annotations)
 	checkEquals('my new annotation value', storedAnnotations$stringAnnotations$myNewAnnotationKey)
 	
 	# Delete a dataset
-	synapseDelete(modifiedDataset$uri)
+	synapseDelete(uri=modifiedDataset$uri)
 	
 	# Confirm that its gone
-	checkException(synapseGet(createdDataset$uri))
+	checkException(synapseGet(uri=createdDataset$uri))
 }
 

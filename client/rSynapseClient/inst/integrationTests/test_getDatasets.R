@@ -17,8 +17,8 @@ integrationTestGetDatasets <- function() {
 }
 
 integrationTestPaging <- function() {
-	firstPageDatasets <- getDatasets(list(limit=20, offset=1))
-	secondPageDatasets <- getDatasets(list(limit=20, offset=21))
+	firstPageDatasets <- getDatasets(queryParams=list(limit=20, offset=1))
+	secondPageDatasets <- getDatasets(queryParams=list(limit=20, offset=21))
 	# We should get back 20 datasets
 	checkEquals(dim(firstPageDatasets)[1], 20)
 	checkEquals(dim(secondPageDatasets)[1], 20)
@@ -29,7 +29,7 @@ integrationTestPaging <- function() {
 }
 
 integrationTestQueryForDataset <- function() {
-	datasets <- getDatasets(list(where='dataset.name == "MSKCC Prostate Cancer"'))
+	datasets <- getDatasets(queryParams=list(where='dataset.name == "MSKCC Prostate Cancer"'))
 	# We should get back 1 dataset
 	checkEquals(dim(datasets)[1], 1)
 	# And its name should match the one we searched for

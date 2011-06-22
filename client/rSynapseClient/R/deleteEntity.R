@@ -11,6 +11,8 @@
 	synapseDelete(uri = uri, curlHandle = curlHandle, anonymous = anonymous)
 }
 
+# TODO can we dynamically generate these functions?
+
 deleteDataset <- 
 		function(id, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
 {

@@ -7,10 +7,18 @@
 	
 	attr(myCommandArgs, "origFCN") <- base:::commandArgs
 	assignInNamespace("commandArgs", myCommandArgs, "base")
+
+	# this test can only be run against staging
+	synapseClient:::.setCache("orig.authservice.host", synapseAuthServiceHostName())
+	synapseClient:::.setCache("orig.reposervice.host", synapseRepoServiceHostName())
+	synapseAuthServiceHostName("https://staging-auth.elasticbeanstalk.com")
+	synapseRepoServiceHostName("https://staging-reposervice.elasticbeanstalk.com")
 }
 
 .tearDown <- function() {
 	assignInNamespace("commandArgs", attr(base:::commandArgs, "origFCN"), "base")
+	synapseAuthServiceHostName(synapseClient:::.getCache("orig.authservice.host"))
+	synapseRepoServiceHostName(synapseClient:::.getCache("orig.reposervice.host"))
 }
 
 integrationTestTcgaWorkflow <- function() {
@@ -31,7 +39,7 @@ integrationTestTcgaWorkflow <- function() {
 		skipWorkflowTask('this script only handles expression data')
 	}
 	
-	layerAnnotations <- getAnnotations(inputLayer)
+	layerAnnotations <- getAnnotations(entity=inputLayer)
 	if('Level_2' != layerAnnotations$stringAnnotations$format) {
 		skipWorkflowTask('this script ony handles level 2 expression data from TCGA')
 	}
@@ -61,9 +69,9 @@ integrationTestTcgaWorkflow <- function() {
 	storedOutputLayer <- storeLayerData(layerMetadata=outputLayer, layerData=outputData)
 	
 	#----- Add some annotations to our newly stored output layer
-	outputLayerAnnotations <- getAnnotations(storedOutputLayer)
+	outputLayerAnnotations <- getAnnotations(entity=storedOutputLayer)
 	outputLayerAnnotations$stringAnnotations$format <- 'sageMatrix'
-	storedOutputLayerAnnotations <- updateAnnotations(outputLayerAnnotations)
+	storedOutputLayerAnnotations <- updateAnnotations(annotations=outputLayerAnnotations)
 	
 	checkEquals('sageMatrix', storedOutputLayerAnnotations$stringAnnotations$format)
 	

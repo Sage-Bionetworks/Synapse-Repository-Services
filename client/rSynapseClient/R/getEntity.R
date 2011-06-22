@@ -10,6 +10,8 @@
 	synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous)
 }
 
+# TODO can we dynamically generate these functions?
+
 getDataset <- 
 		function(id, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
 {

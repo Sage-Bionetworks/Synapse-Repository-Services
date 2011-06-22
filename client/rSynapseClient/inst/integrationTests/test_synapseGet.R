@@ -6,9 +6,9 @@
 }
 
 integrationTestGet <- function() {
-	packets <- synapseQuery('select * from dataset where dataset.name == "MSKCC Prostate Cancer"')
+	datasets <- synapseQuery(query='select * from dataset where dataset.name == "MSKCC Prostate Cancer"')
 	
-	dataset <- synapseGet(paste('/dataset/', packets$dataset.id[1], sep=""))
+	dataset <- synapseGet(uri=paste('/dataset/', datasets$dataset.id[1], sep=""))
 	# The fields returned by this service API may change over time, but
 	# there are a few we should always expect to receive
 	checkTrue("id" %in% names(dataset))

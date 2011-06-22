@@ -1,29 +1,77 @@
 storeLayerData <-
-		function(layerMetadata, layerData, locationPrefs = dataLocationPrefs(), curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"), cacheDir = synapseCacheDir())
+		function(layerMetadata, layerData)
 {
 
-	#----- Create our new layer
-	outputLayerMetadata <- synapsePost('/layer', layerMetadata)
-	
 	#----- Write our analysis result to disk
-	outputFilename <- paste(outputLayerMetadata$name, 'txt', sep='.')
-	outputFilepath <- file.path(synapseCacheDir(), outputFilename)
+	kRegularExpression <- "[[:punct:][:space:]]+"
+
+	outputFilepath <- paste(tolower(gsub(kRegularExpression, "_", layerMetadata$name)), 'txt', sep='.')
 	write.table(layerData, outputFilepath, sep='\t')
-    # TODO zip this
+
+	outputZipFilepath <- paste(tolower(gsub(kRegularExpression, "_", layerMetadata$name)), 'zip', sep='.')
+	zip(outputZipFilepath, c(outputFilepath))
+	
+	storeLayerDataFile(layerMetadata=layerMetadata, layerDataFilepath=outputZipFilepath)
+}
+
+storeLayerDataFile <-
+		function(layerMetadata, layerDataFilepath)
+{
+	
+	if(!is.list(layerMetadata)) {
+		stop("layerMetadata must be supplied of R type list")
+	}
+	
+	#----- Create or update the layer, as appropriate
+	locationMetadata <- list()
+	if("id" %in% names(layerMetadata)) {
+		outputLayerMetadata <- updateLayer(entity=layerMetadata)
+		locations <- getLayerLocations(entity=outputLayerMetadata)
+		awss3Location <- match("awss3", locations$type, nomatch=0)
+		if(1 < length(awss3Location)) {
+			stop("there are multiple awss3 locations for this layer")
+		}
+		else if(0 != awss3Location[1]) {
+			locationMetadata <- locations[awss3Location[1]]
+		}
+	}
+	else {
+		outputLayerMetadata <- createLayer(entity=layerMetadata)
+	}
 	
 	#----- Compute the provenance checksum
-	checksum <- md5sum(outputFilepath)
+	checksum <- md5sum(layerDataFilepath)
 	
-	#----- Create our new location
-	locationMetadata <- list()
+	#----- Form the S3 key for this file
+	if(grepl(layerDataFilepath, "/")) {
+		# Unix
+		splits <- strsplit(layerDataFilepath, "/")
+		filename <- splits[[1]][length(splits[[1]])]
+	}
+	else {
+		# Windows
+		splits <- strsplit(layerDataFilepath, "/")
+		filename <- splits[[1]][length(splits[[1]])]
+	}
+	# TODO get rid of this path prefix once PLFM-212 is done
+	s3Key = paste('/rClient', outputLayerMetadata$id, filename, sep="/")
+	
+	#----- Create or update the location, as appropriate
 	locationMetadata$parentId <- outputLayerMetadata$id
-	locationMetadata$path <- paste('/tcga', outputLayerMetadata$id, outputFilename, sep="/")
+	locationMetadata$path <- s3Key
 	locationMetadata$type <- 'awss3'
 	locationMetadata$md5sum <- checksum[[1]]
-	outputLocationMetadata <- synapsePost(uri='/location', entity=locationMetadata)
+	if("id" %in% names(locationMetadata)) {
+		outputLocationMetadata <- updateLocation(entity=locationMetadata)
+	}
+	else {
+		outputLocationMetadata <- createLocation(entity=locationMetadata)
+	}
 	
 	# Upload the data to S3
-	synapseUploadFile(url=outputLocationMetadata$path, srcfile=outputFilepath, checksum=checksum[[1]])
+	synapseUploadFile(url=outputLocationMetadata$path, 
+			srcfile=layerDataFilepath, 
+			checksum=checksum[[1]])
 	
 	return(outputLayerMetadata)
 }

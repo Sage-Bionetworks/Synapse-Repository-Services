@@ -6,6 +6,8 @@
 	synapsePost(uri=uri, entity=entity, curlHandle=curlHandle, anonymous=anonymous)
 }
 
+# TODO can we dynamically generate these functions?
+
 createDataset <- 
 		function(entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
 {
