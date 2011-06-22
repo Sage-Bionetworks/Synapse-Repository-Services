@@ -49,7 +49,29 @@
 					</execution>
 				</executions>
 			</plugin>
-			<!-- This allows use to run the servlet container from maven via mvn tomcat:run 
+
+			<!-- Unpack Python and R assemblies with this -->
+			<plugin>
+			  <artifactId>maven-dependency-plugin</artifactId>
+			  <executions>
+				<execution>
+				  <id>unpack-non-java-dependencies</id>
+				  <goals>
+					<goal>unpack-dependencies</goal>
+				  </goals>
+				  <phase>compile</phase>
+				  <configuration>
+					<outputDirectory>${project.build.directory}/non-java-dependencies</outputDirectory>
+					<includeArtifacIds>synapse-python-client-assembly</includeArtifacIds>
+					<includeArtifacIds>dataset-metadata-loader-assembly</includeArtifacIds>
+					<includeTypes>zip</includeTypes>
+					<includeGroupIds>${project.groupId}</includeGroupIds>
+				  </configuration>
+				</execution>
+			  </executions>
+			</plugin>
+
+		   <!-- This allows use to run the servlet container from maven via mvn tomcat:run 
 				or deploy to a local tomcat via tomcat:deploy -->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
@@ -76,7 +98,10 @@
 				<artifactId>maven-failsafe-plugin</artifactId>
 				<version>2.8</version>
 				<configuration>
-					<runOrder>alphabetical</runOrder>
+				  <excludes>
+					<exclude>**/IT*${bambooITExclude}.java</exclude>
+				  </excludes>
+				  <runOrder>alphabetical</runOrder>
 					<systemPropertyVariables>
 						<org.sagebionetworks.auth.service.base.url>${org.sagebionetworks.auth.service.base.url}</org.sagebionetworks.auth.service.base.url>
 						<org.sagebionetworks.repository.service.base.url>${org.sagebionetworks.repository.service.base.url}</org.sagebionetworks.repository.service.base.url>
@@ -230,6 +255,36 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>synapseJavaClient</artifactId>
 			<version>${applicationVersion}</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>synapsePythonClient</artifactId>
+			<version>${applicationVersion}</version>
+			<classifier>synapse-python-client-assembly</classifier>
+			<type>zip</type>
+			<!-- Make sure this isn't included on any classpath-->
+			<scope>provided</scope>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>synapseRClient</artifactId>
+			<version>${applicationVersion}</version>
+			<classifier>synapse-r-client-assembly</classifier>
+			<type>zip</type>
+			<!-- Make sure this isn't included on any classpath-->
+			<scope>provided</scope>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>DatasetMetadataLoader</artifactId>
+			<version>${applicationVersion}</version>
+			<classifier>dataset-metadata-loader-assembly</classifier>
+			<type>zip</type>
+			<!-- Make sure this isn't included on any classpath-->
+			<scope>provided</scope>
 		</dependency>
 		
 		<dependency>

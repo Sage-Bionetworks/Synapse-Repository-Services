@@ -23,8 +23,6 @@ import org.springframework.web.client.RestTemplate;
 /**
  * TODO instead use the Synapse Java Client for this sort of testing
  * 
- * @author deflaux
- *
  */
 public class ITBasicRepository {
 

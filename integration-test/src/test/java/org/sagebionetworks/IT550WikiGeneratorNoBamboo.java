@@ -1,6 +1,5 @@
 package org.sagebionetworks;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.CRUDWikiGenerator;
 import org.sagebionetworks.repo.ReadOnlyWikiGenerator;
@@ -14,7 +13,7 @@ import org.sagebionetworks.repo.ReadOnlyWikiGenerator;
  * @author deflaux
  * 
  */
-public class IT550WikiGenerator {
+public class IT550WikiGeneratorNoBamboo {
 
 	/**
 	 * @throws Exception
@@ -32,7 +31,6 @@ public class IT550WikiGenerator {
 	/**
 	 * @throws Exception
 	 */
-	@Ignore
 	@Test
 	public void testReadOnlyWikiGenerator() throws Exception {
 		String args[] = { "--repoEndpoint",
