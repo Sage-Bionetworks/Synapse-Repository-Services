@@ -32,10 +32,10 @@
 	
 	# uris formed by the service already have their servlet prefix
 	if(grepl(path, uri)) {
-		uri <- paste(host, uri, sep="/")
+		uri <- paste(host, uri, sep="")
 	}
 	else {
-		uri <- paste(host, path, uri, sep="/")
+		uri <- paste(host, path, uri, sep="")
 	}
 	
 	## Submit request and check response code

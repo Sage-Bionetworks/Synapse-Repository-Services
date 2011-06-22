@@ -2,7 +2,7 @@ synapseQuery <-
 		function(queryStatement, curlHandle=getCurlHandle(), anonymous = .getCache("anonymous"))
 {
 	# Constants
-	kPath <- "query?query="
+	kPath <- "/query?query="
 	# end constants
 	
 	if(!is.character(queryStatement)){

@@ -9,3 +9,16 @@ synapseRepoServiceHostName <-
 	}
 }
 
+synapseRepoServiceEndpoint <- 
+		function(endpoint)
+{
+	if (!missing(endpoint)) {
+		.setCache("reposervice.endpoint", endpoint)
+		url <- URL(url=endpoint)
+		.setCache("reposervice.host", paste(url@protocol, '://', url@host))
+		.setCache("repoServicePath", url@path)
+	}
+	else {
+		return(.getCache("reposervice.endpoint"))
+	}
+}

@@ -5,7 +5,7 @@
 		stop("multiple ids provided")
 	}
 	
-	uri <- paste(kind, id, sep = "/")
+	uri <- paste("/", kind, id, sep = "/")
 	
 	synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous)
 }

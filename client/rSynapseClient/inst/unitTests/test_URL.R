@@ -41,4 +41,9 @@ unitTestGetPath <- function(){
 	checkEquals(url@path, "data01.sagebase.org")
 }
 
+unitTestGetHostWithPort <- function() {
+	url <- URL('http://localhost:8080/services-authentication-0.5-SNAPSHOT/auth/v1')
+	checkEquals(url@host, 'localhost:8080')
+}
+
 

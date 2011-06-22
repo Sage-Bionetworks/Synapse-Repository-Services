@@ -9,7 +9,7 @@ getDatasets <-
 	}
 	
 	## constants
-	kService <- "query?query"
+	kService <- "/query?query"
 	kQueryRoot <- "select * from dataset"
 	## end constants
 	

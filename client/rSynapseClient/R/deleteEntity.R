@@ -5,7 +5,7 @@
 		stop("multiple ids provided")
 	}
 	
-	uri <- paste(kind, id, sep = "/")
+	uri <- paste("/", kind, id, sep = "/")
 	
 	## No results are returned by this
 	synapseDelete(uri = uri, curlHandle = curlHandle, anonymous = anonymous)
