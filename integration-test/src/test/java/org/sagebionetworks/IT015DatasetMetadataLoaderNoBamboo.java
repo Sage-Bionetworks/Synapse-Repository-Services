@@ -2,34 +2,38 @@ package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.Helpers.ExternalProcessResult;
 
 /**
- * Run this integration test to load in some data
+ * Run this integration test to load in some realistic data
  * 
  * @author deflaux
  *
  */
-public class IT015DatasetMetadataLoader {
+public class IT015DatasetMetadataLoaderNoBamboo {
 
 	/**
 	 * @throws Exception
 	 */
-	@Ignore
 	@Test
 	public void testDatasetMetadataLoader() throws Exception {
 		String cmd[] = {
 				Helpers.getPython27Path(),
-				"../tools/DatasetMetadataLoader/datasetCsvLoader.py",
+				"target/non-java-dependencies/datasetCsvLoader.py",
 				"--fakeLocalData",
-				"--serviceEndpoint",
+				"--repoEndpoint",
 				Helpers.getRepositoryServiceBaseUrl(),
+				"--authEndpoint",
+				Helpers.getAuthServiceBaseUrl(),
+				"--user",
+				Helpers.getIntegrationTestUser(),
+				"--password",
+				Helpers.getIntegrationTestUser(),
 				"--datasetsCsv",
-				"../tools/DatasetMetadataLoader/AllDatasets.csv",
+				"target/non-java-dependencies/AllDatasets.csv",
 				"--layersCsv",
-				"../tools/DatasetMetadataLoader/AllDatasetLayerLocations.csv" };
+				"target/non-java-dependencies/AllDatasetLayerLocations.csv" };
 		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
 		assertEquals("", result.getStderr());
 	}

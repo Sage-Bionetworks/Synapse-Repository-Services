@@ -1,6 +1,5 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
@@ -21,7 +20,7 @@ import org.apache.log4j.Logger;
  * 
  * <local.python27.path>/usr/local/bin/python2.7</local.python27.path>
  * 
- * <local.r.path>/usr/bin/r</local.r.path>
+ * <local.r.path>/usr/bin/R</local.r.path>
  * 
  * </properties>
  * 
@@ -34,42 +33,59 @@ import org.apache.log4j.Logger;
  */
 public class Helpers {
 
+	/**
+	 * @return The endpoint (including servlet prefix) for the auth service
+	 */
 	public static String getAuthServiceBaseUrl() {
-		
-		System.getProperties().list(System.out);
-		
 		return System.getProperty("org.sagebionetworks.auth.service.base.url");
 	}
 
+	/**
+	 * @return The endpoint (including servlet prefix) for the repository
+	 *         service
+	 */
 	public static String getRepositoryServiceBaseUrl() {
 		return System
 				.getProperty("org.sagebionetworks.repository.service.base.url");
 	}
 
+	/**
+	 * @return The endpoint (including servlet prefix) for the Synapse Portal
+	 *         (web UI)
+	 */
 	public static String getPortalBaseUrl() {
 		return System.getProperty("org.sagebionetworks.portal.base.url");
 	}
 
+	/**
+	 * @return the path to python2.7
+	 */
 	public static String getPython27Path() {
-		assertNotNull(
-				"Missing properties from .m2/settings.xml, see the javadoc for details",
-				System.getProperty("local.python27.path"));
-		return System.getProperty("local.python27.path");
+		return (null == System.getProperty("local.python27.path")) ? "python2.7"
+				: System.getProperty("local.python27.path");
 	}
 
+	/**
+	 * @return the path to R
+	 */
 	public static String getRPath() {
-		assertNotNull(
-				"Missing properties from .m2/settings.xml, see the javadoc for details",
-				System.getProperty("local.r.path"));
-		return System.getProperty("local.r.path");
+		return (null == System.getProperty("local.r.path")) ? "R" : System
+				.getProperty("local.r.path");
 	}
 
+	/**
+	 * @return the Synapse username to use for integration tests
+	 */
 	public static String getIntegrationTestUser() {
 		return System.getProperty("org.sagebionetworks.integrationTestUser");
 	}
 
 	private static final Logger log = Logger.getLogger(Helpers.class.getName());
 
+	/**
+	 * This class is used to hold all relevant state we can capture about an
+	 * externally run process
+	 */
 	public static class ExternalProcessResult {
 
 		int returnCode;
