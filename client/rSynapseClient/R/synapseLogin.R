@@ -1,5 +1,5 @@
 synapseLogin <- 
-		function(username, password, curlHandle = getCurlHandle(), host = synapseAuthServiceHostName(), path = .getCache("authServicePath"))
+		function(username, password, curlHandle = getCurlHandle(), host = .getAuthEndpointLocation(), path = .getAuthEndpointPrefix())
 {
 	#constants
 	kService <- "/session"

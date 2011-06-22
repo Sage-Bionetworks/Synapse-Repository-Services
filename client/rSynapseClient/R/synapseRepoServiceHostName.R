@@ -1,24 +1,21 @@
-synapseRepoServiceHostName <- 
-		function(host)
-{
-	if (!missing(host)) {
-		.setCache("reposervice.host", host)
-	}
-	else {
-		return(.getCache("reposervice.host"))
-	}
-}
-
 synapseRepoServiceEndpoint <- 
 		function(endpoint)
 {
 	if (!missing(endpoint)) {
 		.setCache("reposervice.endpoint", endpoint)
 		url <- URL(url=endpoint)
-		.setCache("reposervice.host", paste(url@protocol, '://', url@host))
-		.setCache("repoServicePath", url@path)
+		.setCache("reposervice.endpointLocation", paste(url@protocol, '://', url@authority, sep=''))
+		.setCache("reposervice.endpointPrefix", url@path)
 	}
 	else {
 		return(.getCache("reposervice.endpoint"))
 	}
+}
+
+.getRepoEndpointLocation <- function() {
+	.getCache("reposervice.endpointLocation")	
+}
+
+.getRepoEndpointPrefix <- function() {
+	.getCache("reposervice.endpointPrefix")	
 }

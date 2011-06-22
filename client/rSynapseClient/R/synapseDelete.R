@@ -1,4 +1,7 @@
-synapseDelete <- function(uri, host = synapseRepoServiceHostName(), curlHandle=getCurlHandle(), anonymous = .getCache("anonymous"), path = .getCache("repoServicePath"), opts = .getCache("curlOpts")){
+synapseDelete <- 
+		function(uri, host = .getRepoEndpointLocation(), curlHandle=getCurlHandle(), anonymous=FALSE, 
+				path = .getRepoEndpointPrefix(), opts = .getCache("curlOpts"))
+{
 	## constants
 	kMethod <- "DELETE"
 	## end constants

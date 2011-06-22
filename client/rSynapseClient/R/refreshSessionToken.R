@@ -1,8 +1,8 @@
 refreshSessionToken <- 
-		function(session.token, host = synapseAuthServiceHostName())
+		function(session.token, host = .getAuthServiceEndpointLocation())
 {
 	# constants
-	kService <- "session"
+	kService <- "/session"
 	## end constants
 			
 	entity <- list()

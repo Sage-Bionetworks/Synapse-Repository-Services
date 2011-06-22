@@ -24,7 +24,7 @@ setMethod(
 
 
 .cacheFiles <-
-		function(entity, locationPrefs = dataLocationPrefs(), curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"), cacheDir = synapseCacheDir())
+		function(entity, locationPrefs = dataLocationPrefs(), curlHandle = getCurlHandle(), cacheDir = synapseCacheDir())
 {
 	if(!"locations" %in% names(entity)){
 		stop("the entity does not have any locations")
@@ -37,7 +37,7 @@ setMethod(
 	}
 	
 	#get the available locations for this layer and match to locationPrefs
-	response <- synapseGet(entity$locations, curlHandle = curlHandle, anonymous = anonymous)
+	response <- synapseGet(entity$locations, curlHandle = curlHandle)
 	checkCurlResponse(curlHandle, response)
 	availableLocations <- jsonListToDataFrame(response$results)
 	ind <- match(locationPrefs, availableLocations$type)
@@ -53,22 +53,20 @@ setMethod(
 	
 	## get result. path is an empty string since the path is already included in 
 	## the uri element of layer
-	response <- synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous, path="")
+	response <- synapseGet(uri = uri, curlHandle = curlHandle)
 	checkCurlResponse(curlHandle, response)
 	s4URL <- URL(response$path)
-	synapseCheckSum <- response$md5sum
-	zipFile <- URL(file.path(cacheDir, s4URL@fullFilePath))
-	destDir <- URL(paste(zipFile@url, .getCache("downloadSuffix"), sep="_"))
-	localFile <- file.path(cacheDir, s4URL@fullFilePath)
+	zipFile <- file.path(cacheDir, gsub("^/", "", s4URL@path))
+	destDir <- paste(zipFile, .getCache("downloadSuffix"), sep="_")
 	
-	synapseDownloadFile(url = s4URL@url, destfile = s4URL@fullFilePath, checksum = md5sum(localFile), cacheDir = cacheDir)
+	synapseDownloadFile(url = response$path, destfile = zipFile, checksum = response$md5sum)
 	
 	## unpack the layer file
 	## TODO: should the code only unpack the file if the destdir doesn't already exists?
 	## TODO: should the dest directory be deleted before unpacking?
-	files <- .unpack(filename=zipFile@url, destdir=destDir@url)
+	files <- .unpack(filename=zipFile, destdir=destDir)
 	
 	class(files) <- "layerFiles"
-	attr(files, "rootDir") <- destDir@url
+	attr(files, "rootDir") <- destDir
 	return(files)
 }

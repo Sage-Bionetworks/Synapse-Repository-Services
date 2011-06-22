@@ -1,5 +1,6 @@
 synapsePost <- 
-		function(uri, entity, host = synapseRepoServiceHostName(), curlHandle = getCurlHandle(), anonymous = FALSE, path = .getCache("repoServicePath"), opts = .getCache("curlOpts"))
+		function(uri, entity, host = .getRepoEndpointLocation(), curlHandle=getCurlHandle(), anonymous = FALSE, 
+				path = .getRepoEndpointPrefix(), opts = .getCache("curlOpts"))
 {
 	## constants
 	kMethod <- "POST"

@@ -1,6 +1,6 @@
 resetSynapseHostConfig <-
 		function()
 {
-	synapseAuthServiceHostName("https://staging-auth.elasticbeanstalk.com")
-	synapseRepoServiceHostName("https://staging-reposervice.elasticbeanstalk.com")
+	synapseAuthServiceEndpoint("https://staging-auth.elasticbeanstalk.com/auth/v1")
+	synapseRepoServiceEndpoint("https://staging-reposervice.elasticbeanstalk.com/repo/v1")
 }

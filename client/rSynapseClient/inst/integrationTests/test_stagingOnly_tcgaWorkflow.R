@@ -7,18 +7,20 @@
 	
 	attr(myCommandArgs, "origFCN") <- base:::commandArgs
 	assignInNamespace("commandArgs", myCommandArgs, "base")
-
+	
 	# this test can only be run against staging
-	synapseClient:::.setCache("orig.authservice.host", synapseAuthServiceHostName())
-	synapseClient:::.setCache("orig.reposervice.host", synapseRepoServiceHostName())
-	synapseAuthServiceHostName("https://staging-auth.elasticbeanstalk.com")
-	synapseRepoServiceHostName("https://staging-reposervice.elasticbeanstalk.com")
+	.setCache("orig.authservice.endpoint", synapseAuthServiceEndpoint())
+	.setCache("orig.reposervice.endpoint", synapseRepoServiceEndpoint())
+	synapseAuthServiceEndpoint("https://staging-auth.elasticbeanstalk.com/auth/v1")
+	synapseRepoServiceEndpoint("https://staging-reposervice.elasticbeanstalk.com/repo/v1")
 }
 
 .tearDown <- function() {
+	synapseAuthServiceEndpoint(.getCache("orig.authservice.endpoint"))
+	synapseRepoServiceEndpoint(.getCache("orig.reposervice.endpoint"))
+	.deleteCache("orig.authservice.endpoint")
+	.deleteCache("orig.reposervice.endpoint")
 	assignInNamespace("commandArgs", attr(base:::commandArgs, "origFCN"), "base")
-	synapseAuthServiceHostName(synapseClient:::.getCache("orig.authservice.host"))
-	synapseRepoServiceHostName(synapseClient:::.getCache("orig.reposervice.host"))
 }
 
 integrationTestTcgaWorkflow <- function() {

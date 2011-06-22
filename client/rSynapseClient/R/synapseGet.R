@@ -1,5 +1,6 @@
 synapseGet <- 
-		function(uri, host = synapseRepoServiceHostName(), curlHandle=getCurlHandle(), anonymous = .getCache("anonymous"), path = .getCache("repoServicePath"), opts = .getCache("curlOpts"))
+		function(uri, host = .getRepoEndpointLocation(), curlHandle=getCurlHandle(), anonymous = .getCache("anonymous"), 
+				path = .getRepoEndpointPrefix(), opts = .getCache("curlOpts"))
 {
 	## constants
 	kMethod <- "GET"
