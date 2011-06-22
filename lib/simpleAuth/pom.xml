@@ -24,19 +24,12 @@
       <groupId>org.springframework</groupId>
       <artifactId>org.springframework.spring-library</artifactId>
       <type>libd</type>
-      <version>${org.springframework.version}</version>
     </dependency>
     
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>org.springframework.web</artifactId>
-      <version>${org.springframework.version}</version>
     </dependency>
   </dependencies>
-
-  <!-- Specify hard-coded project properties here -->
-  <properties>
-    <org.springframework.version>3.0.5.RELEASE</org.springframework.version>
-  </properties>
   
 </project>

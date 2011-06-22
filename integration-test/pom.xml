@@ -16,7 +16,6 @@
 	<name>Integration Tests for All services</name>
 
 	<properties>
-		<org.springframework.version>3.0.5.RELEASE</org.springframework.version>
 		<tomcat-version>6.0.32</tomcat-version>
 		<tomcat-file>apache-tomcat-${tomcat-version}</tomcat-file>
 		<!-- This is where the repository war will be deployed -->
@@ -247,7 +246,6 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>org.springframework.web</artifactId>
-			<version>${org.springframework.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sun.jersey</groupId>
@@ -263,8 +261,6 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>4.7</version>
-			<scope>test</scope>
 		</dependency>
 
 	</dependencies>

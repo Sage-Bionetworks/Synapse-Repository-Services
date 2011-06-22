@@ -72,20 +72,16 @@
       <groupId>org.springframework</groupId>
       <artifactId>org.springframework.spring-library</artifactId>
       <type>libd</type>
-      <version>${org.springframework.version}</version>
     </dependency>
     
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>org.springframework.web</artifactId>
-      <version>${org.springframework.version}</version>
     </dependency>
 
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-test</artifactId>
-      <version>${org.springframework.version}</version>
-      <scope>test</scope>
     </dependency>
     
     <!-- Jackson JSON Mapper -->
@@ -130,6 +126,15 @@
     	<version>1.8.5</version>
     	<scope>test</scope>
     </dependency>
+    
+    		<dependency>
+			<groupId>joda-time</groupId>
+			<artifactId>joda-time</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+		</dependency>
   </dependencies>
 
   <build>
