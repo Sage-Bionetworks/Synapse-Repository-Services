@@ -39,7 +39,7 @@ public class IT500SynapseJavaClient {
 	 */
 	@Test
 	public void testJavaClientGetADataset() throws Exception {
-		JSONObject results = synapse.query("select * from dataset");
+		JSONObject results = synapse.query("select * from dataset limit 10");
 
 		assertTrue(0 <= results.getInt("totalNumberOfResults"));
 		
