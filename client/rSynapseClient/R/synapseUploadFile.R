@@ -16,6 +16,9 @@ synapseUploadFile <-
 	if (method == "curl") {
 		extra <- if (quiet)
 					" -s -S "
+				else if(.getCache("debug")) {
+					"-v"
+				}
 				else ""
 		status <- system(paste("curl", extra, " -k ", 
 						" -H Content-Type:application/binary",

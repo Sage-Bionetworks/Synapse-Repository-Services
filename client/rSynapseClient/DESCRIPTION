@@ -5,7 +5,7 @@ Version: 0.9
 Date: 2011-02-26
 Author: Matt Furia
 Maintainer: Matt Furia <matt.furia@sagebase.org>
-Depends: methods,RCurl,rjson, tools, R (>= 2.11.0)
+Depends: methods,RCurl,rjson,tools,RUnit,R (>= 2.13.0)
 Description: Contains a set of functions for retrieving data from the REST services.
 License: GPL
 LazyLoad: yes

@@ -55,16 +55,14 @@ setMethod(
 	## the uri element of layer
 	response <- synapseGet(uri = uri, curlHandle = curlHandle)
 	checkCurlResponse(curlHandle, response)
-	s4URL <- URL(response$path)
-	zipFile <- file.path(cacheDir, gsub("^/", "", s4URL@path))
-	destDir <- paste(zipFile, .getCache("downloadSuffix"), sep="_")
 	
-	synapseDownloadFile(url = response$path, destfile = zipFile, checksum = response$md5sum)
+	destfile = synapseDownloadFile(url = response$path, checksum = response$md5sum)
+	destDir <- paste(destfile, .getCache("downloadSuffix"), sep="_")
 	
 	## unpack the layer file
 	## TODO: should the code only unpack the file if the destdir doesn't already exists?
 	## TODO: should the dest directory be deleted before unpacking?
-	files <- .unpack(filename=zipFile, destdir=destDir)
+	files <- .unpack(filename=destfile, destdir=destDir)
 	
 	class(files) <- "layerFiles"
 	attr(files, "rootDir") <- destDir
