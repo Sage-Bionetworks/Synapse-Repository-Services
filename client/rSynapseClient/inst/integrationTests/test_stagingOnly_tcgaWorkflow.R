@@ -52,8 +52,18 @@ integrationTestTcgaWorkflow <- function() {
 	
 	#----- Download, unpack, and load the clinical layer of this TCGA dataset  
 	#      because we need it as additional input to this script
-	datasetLayers <- getLayers(entity=dataset)
-	clinicalLayer <- datasetLayers$C
+	datasetLayers <- getDatasetLayers(entity=dataset)
+	####
+	## TODO fix this hack. m.furia
+	layerTypes <- NULL
+	for(i in 1:length(datasetLayers$results)){
+		layerTypes[i] <- datasetLayers$results[[i]]$type
+	}
+	ind <- which(layerTypes == "C")
+	checkTrue(length(ind) > 0)
+	## end hack
+	####
+	clinicalLayer <- datasetLayers$results[[ind[1]]]
 	clinicalDataFiles <- synapseClient:::.cacheFiles(entity=clinicalLayer)
 	clinicalData <- read.table(clinicalDataFiles[[4]], sep='\t')
 	
