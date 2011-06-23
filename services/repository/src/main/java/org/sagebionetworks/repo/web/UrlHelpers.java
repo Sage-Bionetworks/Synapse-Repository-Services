@@ -47,6 +47,10 @@ public class UrlHelpers {
 
 	private static final Logger log = Logger.getLogger(UrlHelpers.class
 			.getName());
+	
+	public static final String ACCESS 			= "/access";
+
+	public static final String ACCESS_TYPE_PARAM	= "accessType";
 
 	/**
 	 * URL prefix for all objects that are referenced by their ID.

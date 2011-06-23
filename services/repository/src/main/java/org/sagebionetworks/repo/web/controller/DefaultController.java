@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
+import java.util.Collection;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -9,6 +10,7 @@ import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseChild;
+import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Nodeable;
@@ -481,4 +483,23 @@ public class DefaultController extends BaseController {
 	JsonSchema getAclSchema() throws DatastoreException {
 		return entityController.getAclSchema();
 	}
+	
+		/**
+	 * @return the access types that the given user has to the given resource
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value={UrlHelpers.OBJECT_TYPE+UrlHelpers.ID+UrlHelpers.ACCESS}, method=RequestMethod.GET)
+	public @ResponseBody BooleanResult hasAccess(
+			@PathVariable String objectType,
+			@PathVariable String id,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false) String accessType,
+			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
+		// pass it along.
+		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+		return new BooleanResult(entityController.hasAccess(id, userId, request, type.getClassForType(), accessType));
+	}
+	
 }
