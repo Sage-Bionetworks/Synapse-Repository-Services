@@ -13,7 +13,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
 import org.apache.log4j.Logger;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
 
@@ -30,6 +29,11 @@ import org.sagebionetworks.client.Synapse;
  */
 public class WikiGenerator {
 
+	/**
+	 * Expose the prefix so that if/when this is used as a test, assertions know what to look for
+	 */
+	public static final String ERROR_PREFIX = "WikiGenerator Failure: ";
+
 	private static final Logger log = Logger.getLogger(WikiGenerator.class
 			.getName());
 
@@ -37,7 +41,7 @@ public class WikiGenerator {
 	private static final String LOGIN_URI = "/session";
 	private static final String LOGIN_REQUEST_ENTITY = "{\"email\":\"me@myEmail.com\", \"password\":\"thisIsAFakePassword\"}";
 	private static final String LOGIN_RESPONSE_ENTITY = "{\"displayName\":\"MyFirstName MyLastName\",\"sessionToken\":\"XXXXXXXXXXXX\"}";
-
+	
 	private Synapse synapse;
 	private String repoEndpoint;
 	private String repoLocation;
@@ -47,6 +51,8 @@ public class WikiGenerator {
 	private String authPrefix;
 	private String username;
 	private String password;
+	
+	private int numErrors = 0;
 
 	private static final Map<String, String> defaultGETDELETEHeaders;
 	private static final Map<String, String> defaultPOSTPUTHeaders;
@@ -191,7 +197,8 @@ public class WikiGenerator {
 			log
 					.info(responseEntity.toString(JSON_INDENT) + "{code}");
 		} catch (Exception e) {
-			log.info("failure: ", e);
+			numErrors++;
+			log.info(ERROR_PREFIX, e);
 			log.info("{code}");
 		}
 	}
@@ -234,7 +241,8 @@ public class WikiGenerator {
 			log.info(results.toString(JSON_INDENT) + "{code}");
 			return results;
 		} catch (Exception e) {
-			log.info("failure: ", e);
+			numErrors++;
+			log.info(ERROR_PREFIX, e);
 			log.info("{code}");
 		}
 		return null;
@@ -280,7 +288,8 @@ public class WikiGenerator {
 			log.info(results.toString(JSON_INDENT) + "{code}");
 			return results;
 		} catch (Exception e) {
-			log.info("failure: ", e);
+			numErrors++;
+			log.info(ERROR_PREFIX, e);
 			log.info("{code}");
 		}
 		return null;
@@ -326,7 +335,8 @@ public class WikiGenerator {
 			log.info(results.toString(JSON_INDENT) + "{code}");
 			return results;
 		} catch (Exception e) {
-			log.info("failure: ", e);
+			numErrors++;
+			log.info(ERROR_PREFIX, e);
 			log.info("{code}");
 		}
 		return null;
@@ -368,10 +378,18 @@ public class WikiGenerator {
 			log.info("{code}");
 			return;
 		} catch (Exception e) {
-			log.info("failure: ", e);
+			numErrors++;
+			log.info(ERROR_PREFIX, e);
 			log.info("{code}");
 		}
 		return;
+	}
+
+	/**
+	 * @return the numErrors
+	 */
+	public int getNumErrors() {
+		return numErrors;
 	}
 
 }

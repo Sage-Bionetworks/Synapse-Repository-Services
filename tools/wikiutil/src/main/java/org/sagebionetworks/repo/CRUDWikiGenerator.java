@@ -35,9 +35,11 @@ public class CRUDWikiGenerator {
 
 	/**
 	 * @param args
+	 * @return the number of errors encountered during execution
 	 * @throws Exception
 	 */
-	public static void main(String[] args) throws Exception {
+	@SuppressWarnings("unchecked")
+	public static int main(String[] args) throws Exception {
 
 		WikiGenerator wiki = WikiGenerator.createWikiGeneratorFromArgs(args);
 
@@ -163,5 +165,7 @@ public class CRUDWikiGenerator {
 						dataset.getString("uri"),
 						"h3. Delete a Dataset",
 						"Note that the request is a DELETE and no content is returned.  Also note that this will delete all of the datasets layers, etc.");
+
+		return(wiki.getNumErrors());
 	}
 }

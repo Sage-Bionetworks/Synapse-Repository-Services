@@ -44,9 +44,10 @@ public class ReadOnlyWikiGenerator {
 
 	/**
 	 * @param args
+	 * @return the number of errors encountered during execution
 	 * @throws Exception
 	 */
-	public static void main(String[] args) throws Exception {
+	public static int main(String[] args) throws Exception {
 
 		WikiGenerator wiki = WikiGenerator.createWikiGeneratorFromArgs(args);
 
@@ -259,5 +260,7 @@ public class ReadOnlyWikiGenerator {
 						"/acl/schema",
 						"h3. Access Control List Schema",
 						"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
+
+		return(wiki.getNumErrors());
 	}
 }
