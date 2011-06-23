@@ -9,6 +9,6 @@ refreshSessionToken <-
 	entity$sessionToken <- session.token
 
 	uri <- kService
-	response <- synapsePut(uri = uri, entity = entity, path = .getCache("authServicePath"), host = host, anonymous = TRUE)
+	response <- synapsePut(uri = uri, entity = entity, path = .getAuthEndpointPrefix(), host = host, anonymous = TRUE)
 	.setCache("sessionTimestamp", Sys.time())
 }
