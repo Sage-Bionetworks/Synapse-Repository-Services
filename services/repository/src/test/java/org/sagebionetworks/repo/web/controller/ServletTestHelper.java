@@ -15,6 +15,7 @@ import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
+import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.web.ServiceConstants;
@@ -509,6 +510,34 @@ public class ServletTestHelper {
 		@SuppressWarnings("unchecked")
 		Collection<Map<String,Object>> us = objectMapper.readValue(response.getContentAsString(),Collection.class);
 		return us;
+	}
+	
+	/**
+	 * calls 'hasAccess'
+	 * @param <T>
+	 * @param dispatchServlet
+	 * @param clazz
+	 * @param id
+	 * @param userId
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public static <T extends Base> BooleanResult hasAccess(HttpServlet dispatchServlet, Class<? extends T> clazz, String id, String userId, String accessType) throws ServletException, IOException{
+		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(type.getUrlPrefix() + "/" + id + UrlHelpers.ACCESS);
+		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.setParameter(UrlHelpers.ACCESS_TYPE_PARAM, accessType);
+		dispatchServlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		if(response.getStatus() != HttpStatus.OK.value()){
+			throw new IllegalArgumentException(response.getErrorMessage());
+		}
+		return (BooleanResult)objectMapper.readValue(response.getContentAsString(),BooleanResult.class);
 	}
 	
 

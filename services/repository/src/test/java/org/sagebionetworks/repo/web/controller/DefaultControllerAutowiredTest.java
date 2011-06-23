@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,6 +26,8 @@ import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -350,6 +353,23 @@ public class DefaultControllerAutowiredTest {
 		assertNotNull(acl4);
 		// the returned ACL should refer to the parent
 		assertEquals(clone.getId(), acl4.getResourceId());
+	}
+	
+	@Test
+	public void testHasAccess() throws ServletException, IOException{
+		// Create a project
+		Project project = new Project();
+		project.setName("testCreateProject");
+		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
+		assertNotNull(clone);
+		toDelete.add(clone.getId());
+		
+		String userId = userName;
+		String accessType = AuthorizationConstants.ACCESS_TYPE.READ.name();
+		assertEquals(new BooleanResult(true), ServletTestHelper.hasAccess(dispatchServlet, Project.class, clone.getId(), userId, accessType));
+		
+		userId = "foo"; // arbitrary user shouldn't have access
+		assertEquals(new BooleanResult(false), ServletTestHelper.hasAccess(dispatchServlet, Project.class, clone.getId(), userId, accessType));
 	}
 	
 

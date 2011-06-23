@@ -12,14 +12,17 @@ import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityToMapUtil;
 import org.sagebionetworks.repo.manager.EntityWithAnnotations;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseChild;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.Nodeable;
@@ -62,6 +65,8 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	UserManager userManager;
 	@Autowired
 	private MetadataProviderFactory metadataProviderFactory;
+	@Autowired
+	private NodeManager nodeManager;
 	
 	public GenericEntityControllerImpl(){
 		
@@ -437,5 +442,24 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// done
 		return new QueryResults(allRows, nodeResults.getTotalNumberOfResults());
 	}
+	
+	/**
+	 * determine whether a user has the given access type for a given entity
+	 * @param nodeId
+	 * @param userId
+	 * @param clazz the class of the entity
+	 * @param accessType
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException 
+	 */
+	public <T extends Nodeable> boolean hasAccess(String entityId, String userId, HttpServletRequest request, Class<? extends T> clazz, String accessType) 
+		throws NotFoundException, DatastoreException, UnauthorizedException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+//		T resource = entityManager.getEntity(userInfo, entityId, clazz);
+		return nodeManager.hasAccess(entityId, AuthorizationConstants.ACCESS_TYPE.valueOf(accessType), userInfo);
+	}
+
 
 }

@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -283,8 +284,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 * @return
 	 */
 	@Override
-	public boolean hasAccess(Node resource, AuthorizationConstants.ACCESS_TYPE accessType, UserInfo userInfo) throws NotFoundException, DatastoreException  {
-		return authorizationManager.canAccess(userInfo, resource.getId(), accessType);
+	public boolean hasAccess(String resourceId, AuthorizationConstants.ACCESS_TYPE accessType, UserInfo userInfo) throws NotFoundException, DatastoreException  {
+		return authorizationManager.canAccess(userInfo, resourceId, accessType);
 	}
 
 	@Transactional(readOnly = true)

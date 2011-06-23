@@ -15,6 +15,13 @@
   <version>${applicationVersion}</version>
   
   <dependencies>
+  
+  <dependency>
+    <groupId>javax.mail</groupId>
+    <artifactId>mail</artifactId>
+    <version>1.4</version>
+  </dependency>
+
     <!-- Sage Bionetworks Dependencies -->
     <dependency>
       <groupId>org.sagebionetworks</groupId>

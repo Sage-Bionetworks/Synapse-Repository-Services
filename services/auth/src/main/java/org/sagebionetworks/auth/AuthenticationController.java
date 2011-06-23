@@ -27,6 +27,7 @@ import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.authutil.ModParamHttpServletRequest;
+import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.authutil.Session;
 import org.sagebionetworks.authutil.User;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -50,6 +51,7 @@ public class AuthenticationController {
 //	private String adminPW;
 	
 	private CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
+	private SendMail sendMail = new SendMail();
 	
 //	   a special userId that's used for integration testing
 //	   we need a way to specify a 'back door' userId for integration testing
@@ -347,7 +349,8 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/userPasswordEmail", method = RequestMethod.POST)
 	public void sendChangePasswordEmail(@RequestBody User user) throws Exception {
-			crowdAuthUtil.sendResetPWEmail(user);
+			crowdAuthUtil.sendResetPWEmail(user); // << will no longer be used (sends email via Crowd)
+			//sendMail.sendResetPasswordMail(user); << the new way
 	}
 	
 	/**
