@@ -67,12 +67,12 @@ public class IT700SynapseRClientNoBamboo {
 				"-e",
 				"library(synapseClient)",
 				"-e",
-				"synapseAuthServiceEndpoint(endpoint='" + Helpers.getAuthServiceBaseUrl() + "')",
+				"synapseAuthServiceEndpoint(endpoint='" + StackConfiguration.getAuthenticationServiceEndpoint() + "')",
 				"-e",
 				"sessionToken(session.token='"
 						+ Helpers.getIntegrationTestUser() + "')",
 				"-e",
-				"synapseRepoServiceEndpoint(endpoint='" + Helpers.getRepositoryServiceBaseUrl() + "')",
+				"synapseRepoServiceEndpoint(endpoint='" + StackConfiguration.getRepositoryServiceEndpoint() + "')",
 				"-e", "synapseClient:::.test()" };
 		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
 		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
@@ -91,12 +91,12 @@ public class IT700SynapseRClientNoBamboo {
 				"-e",
 				"library(synapseClient)",
 				"-e",
-				"synapseAuthServiceEndpoint(endpoint='" + Helpers.getAuthServiceBaseUrl() + "')",
+				"synapseAuthServiceEndpoint(endpoint='" + StackConfiguration.getAuthenticationServiceEndpoint() + "')",
 				"-e",
 				"sessionToken(session.token='"
 						+ Helpers.getIntegrationTestUser() + "')",
 				"-e",
-				"synapseRepoServiceEndpoint(endpoint='" + Helpers.getRepositoryServiceBaseUrl() + "')",
+				"synapseRepoServiceEndpoint(endpoint='" + StackConfiguration.getRepositoryServiceEndpoint() + "')",
 				"-e", "synapseClient:::.integrationTest(pattern=\"^test_[^_]*\\\\.R$\")" };
 		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
 		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));

@@ -38,12 +38,12 @@ public class ITBasicRepository {
 	@BeforeClass
 	public static void beforeClass() {
 		// Load the required system properties
-		repoBaseUrl = Helpers.getRepositoryServiceBaseUrl();
+		repoBaseUrl = StackConfiguration.getRepositoryServiceEndpoint();
 		assertNotNull(
 				"Failed to find the system property for repository service base url",
 				repoBaseUrl);
 		log.info("Loaded system property: " + repoBaseUrl);
-		urlsToTest.add("dataset?sort=name&limit=3");
+		urlsToTest.add("/dataset?sort=name&limit=3");
 		template = new RestTemplate();
 	}
 
