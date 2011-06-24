@@ -286,7 +286,7 @@ public class AuthenticationControllerTest {
 		} finally {
 			User user = new User();
 			user.setEmail(integrationTestUserEmail);
-			//crowdAuthUtil.deleteUser(user);
+			crowdAuthUtil.deleteUser(user);
 		}
 	}
 	
