@@ -8,6 +8,8 @@ inputLayerId <- getInputLayerIdArg()
 inputDatasetId <- getInputDatasetIdArg()
 
 #----- Log into Synapse
+synapseAuthServiceEndpoint("https://staging-auth.elasticbeanstalk.com/auth/v1")
+synapseRepoServiceEndpoint("https://staging-reposervice.elasticbeanstalk.com/repo/v1")
 synapseLogin(getUsernameArg(), getPasswordArg())
 
 #----- Decide whether this script wants to work on this input layer

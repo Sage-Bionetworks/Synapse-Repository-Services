@@ -1,6 +1,7 @@
 package org.sagebionetworks.workflow.curation;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -11,6 +12,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.workflow.UnrecoverableException;
+import org.sagebionetworks.workflow.activity.Constants;
 import org.sagebionetworks.workflow.activity.Crawling;
 import org.sagebionetworks.workflow.activity.Curation;
 import org.sagebionetworks.workflow.activity.DataIngestion;
@@ -38,10 +40,10 @@ public class TcgaWorkflowITCase {
 			.getName());
 
 	// These variables are used to pass data between tests
-	static private int datasetId = -1;
-	static private int clinicalLayerId = -1;
-	static private int expressionLevel1LayerId = -1;
-	static private int expressionLevel2LayerId = -1;
+	static private String datasetId = null;
+	static private String clinicalLayerId = null;
+	static private String expressionLevel1LayerId = null;
+	static private String expressionLevel2LayerId = null;
 	static private DownloadResult clinicalDownloadResult;
 	static private DownloadResult expressionLevel1DownloadResult;
 	static private DownloadResult expressionLevel2DownloadResult;
@@ -68,11 +70,11 @@ public class TcgaWorkflowITCase {
 			// an exception here for that, we should retry this workflow step
 			JSONObject storedDataset = synapse
 					.createEntity("/dataset", dataset);
-			datasetId = storedDataset.getInt("id");
+			datasetId = storedDataset.getString("id");
 		} else {
 			if (1 == numDatasetsFound) {
 				datasetId = results.getJSONArray("results").getJSONObject(0)
-						.getInt("dataset.id");
+						.getString("dataset.id");
 			} else {
 				throw new UnrecoverableException("We have " + numDatasetsFound
 						+ " datasets with name " + datasetName);
@@ -89,19 +91,20 @@ public class TcgaWorkflowITCase {
 				.doCreateSynapseMetadataForTcgaSourceLayer(
 						datasetId,
 						"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/bcr/minbiotab/clin/clinical_public_coad.tar.gz");
-		assertTrue(-1 < clinicalLayerId);
+		assertFalse(Constants.WORKFLOW_DONE.equals(clinicalLayerId));
 	}
 
 	/**
 	 * @throws Exception
 	 */
 	@Test
+	@Ignore
 	public void testDoCreateExpressionLevel1Metadata() throws Exception {
 		expressionLevel1LayerId = Curation
 				.doCreateSynapseMetadataForTcgaSourceLayer(
 						datasetId,
 						"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_1.1.4.0.tar.gz");
-		assertTrue(-1 < expressionLevel1LayerId);
+		assertFalse(Constants.WORKFLOW_DONE.equals(expressionLevel1LayerId));
 	}
 
 	/**
@@ -113,7 +116,7 @@ public class TcgaWorkflowITCase {
 				.doCreateSynapseMetadataForTcgaSourceLayer(
 						datasetId,
 						"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
-		assertTrue(-1 < expressionLevel2LayerId);
+		assertFalse(Constants.WORKFLOW_DONE.equals(expressionLevel2LayerId));
 	}
 
 	/**
@@ -128,16 +131,15 @@ public class TcgaWorkflowITCase {
 		JSONObject results = synapse
 				.query("select * from dataset where dataset.name == 'MSKCC Prostate Cancer'");
 		assertEquals(1, results.getInt("totalNumberOfResults"));
-		int mskccId = results.getJSONArray("results").getJSONObject(0).getInt(
+		String mskccId = results.getJSONArray("results").getJSONObject(0).getString(
 				"dataset.id");
 
 		// Pass the id for the
 		scriptResult = Processing.doProcessLayer(
-				"./src/test/resources/createMatrix.r", mskccId, -99,
-				"/var/tmp/foo.txt");
+				"./src/test/resources/createMatrix.r", mskccId, "fakeLayerId");
 
 		
-		assertEquals(-1, scriptResult.getProcessedLayerId());
+		assertEquals(Constants.WORKFLOW_DONE, scriptResult.getProcessedLayerId());
 
 	}
 
@@ -238,10 +240,9 @@ public class TcgaWorkflowITCase {
 		ScriptResult scriptResult = null;
 
 		scriptResult = Processing.doProcessLayer(
-				"./src/test/resources/createMatrix.r", datasetId, expressionLevel2LayerId,
-				expressionLevel2DownloadResult.getLocalFilepath());
+				"./src/test/resources/createMatrix.r", datasetId, expressionLevel2LayerId);
 
-		assertTrue(-1 < scriptResult.getProcessedLayerId());
+		assertFalse(Constants.WORKFLOW_DONE.equals(scriptResult.getProcessedLayerId()));
 
 	}
 
@@ -252,8 +253,8 @@ public class TcgaWorkflowITCase {
 	public void testDoProcessData() throws Exception {
 		ScriptResult scriptResult = Processing.doProcessLayer(
 				"./src/test/resources/stdoutKeepAlive.sh", datasetId,
-				expressionLevel2LayerId, expressionLevel2DownloadResult.getLocalFilepath());
-		assertTrue(0 <= scriptResult.getProcessedLayerId());
+				expressionLevel2LayerId);
+		assertFalse(Constants.WORKFLOW_DONE.equals(scriptResult.getProcessedLayerId()));
 
 	}
 

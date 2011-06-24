@@ -7,6 +7,7 @@ import java.security.NoSuchAlgorithmException;
 
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.workflow.UnrecoverableException;
+import org.sagebionetworks.workflow.activity.Constants;
 import org.sagebionetworks.workflow.activity.Curation;
 import org.sagebionetworks.workflow.activity.DataIngestion;
 import org.sagebionetworks.workflow.activity.Notification;
@@ -81,7 +82,7 @@ public class TcgaWorkflow {
 	 */
 	@Workflow(name = "TcgaWorkflow", version = "1.2")
 	@WorkflowRegistrationOptions(defaultWorkflowLifetimeTimeout = @Duration(time = 24, unit = DurationUnit.Hours))
-	public static void doWorkflow(String param, Integer datasetId,
+	public static void doWorkflow(String param, String datasetId,
 			String tcgaUrl) throws Exception {
 
 		TcgaWorkflow flow = new TcgaWorkflow();
@@ -90,7 +91,7 @@ public class TcgaWorkflow {
 		 * Create a metadata entity in the repository service for the raw TGCA
 		 * data layer
 		 */
-		Settable<Integer> rawLayerId = new Settable<Integer>();
+		Settable<String> rawLayerId = new Settable<String>();
 		Value<String> result1 = flow.dispatchCreateMetadata(Value
 				.asValue(param), Value.asValue(datasetId), Value
 				.asValue(tcgaUrl), rawLayerId);
@@ -98,17 +99,17 @@ public class TcgaWorkflow {
 		/**
 		 * Download the raw data from TCGA
 		 */
-		Settable<String> machineName = new Settable<String>();
-		Settable<String> localFilepath = new Settable<String>();
-		Settable<String> md5 = new Settable<String>();
-		Value<String> result2 = flow.dispatchDownloadDataFromTcga(result1,
-				Value.asValue(tcgaUrl), machineName, localFilepath, md5);
+//		Settable<String> machineName = new Settable<String>();
+//		Settable<String> localFilepath = new Settable<String>();
+//		Settable<String> md5 = new Settable<String>();
+//		Value<String> result2 = flow.dispatchDownloadDataFromTcga(result1,
+//				Value.asValue(tcgaUrl), machineName, localFilepath, md5);
 
 		/**
 		 * Upload the data to S3
 		 */
-		Value<String> result3 = flow.dispatchUploadLayerToStorage(result2,
-				datasetId, rawLayerId, machineName, localFilepath, md5);
+//		Value<String> result3 = flow.dispatchUploadLayerToStorage(result2,
+//				datasetId, rawLayerId, machineName, localFilepath, md5);
 
 		/**
 		 * Formulate the message to be sent to all interested parties about the
@@ -116,7 +117,7 @@ public class TcgaWorkflow {
 		 */
 		Settable<String> rawDataMessage = new Settable<String>();
 		Value<String> result4 = flow.dispatchFormulateNotificationMessage(
-				result3, rawLayerId, rawDataMessage);
+				result1, rawLayerId, rawDataMessage);
 
 		/**
 		 * Send the email notification to all interested parties, keeping this
@@ -148,11 +149,12 @@ public class TcgaWorkflow {
 		/**
 		 * Run the processing step(s) on this data
 		 */
-		Settable<Integer> processedLayerId = new Settable<Integer>();
+		Settable<String> processedLayerId = new Settable<String>();
 		Settable<String> stdout = new Settable<String>();
 		Settable<String> stderr = new Settable<String>();
 		Value<String> result6 = flow.dispatchProcessData(result5, script,
-				datasetId, rawLayerId, machineName, localFilepath,
+				datasetId, rawLayerId, 
+//				machineName, localFilepath,
 				processedLayerId, stdout, stderr);
 
 		flow.dispatchNotifyDataProcessed(result6, processedLayerId);
@@ -161,15 +163,15 @@ public class TcgaWorkflow {
 
 	@Asynchronous
 	private Value<String> dispatchCreateMetadata(Value<String> param,
-			Value<Integer> datasetId, Value<String> tcgaUrl,
-			Settable<Integer> rawLayerId) throws Exception {
+			Value<String> datasetId, Value<String> tcgaUrl,
+			Settable<String> rawLayerId) throws Exception {
 		return doCreateMetadata(param.get(), datasetId.get(), tcgaUrl.get(),
 				rawLayerId);
 	}
 
 	@Activity(version = "1.2")
 	private static Value<String> doCreateMetadata(String param,
-			Integer datasetId, String tcgaUrl, Settable<Integer> rawLayerId)
+			String datasetId, String tcgaUrl, Settable<String> rawLayerId)
 			throws Exception {
 		// Create a new layer, if necessary, in the synapse repository service
 		// and return its id
@@ -177,7 +179,7 @@ public class TcgaWorkflow {
 		// This activity will be simple at first (just infer metadata from the
 		// structure of the TCGA url) but it could become more complicated in
 		// time if we need to pull additional metadata from other TCGA services
-		Integer synapseLayerId = Curation
+		String synapseLayerId = Curation
 				.doCreateSynapseMetadataForTcgaSourceLayer(datasetId, tcgaUrl);
 		rawLayerId.set(synapseLayerId);
 
@@ -218,7 +220,7 @@ public class TcgaWorkflow {
 
 	@Asynchronous
 	private Value<String> dispatchUploadLayerToStorage(Value<String> param,
-			Integer datasetId, Value<Integer> rawLayerId,
+			String datasetId, Value<String> rawLayerId,
 			Value<String> machineName, Value<String> localFilepath,
 			Value<String> md5) throws Exception {
 		return doUploadLayerToStorage(param.get(), datasetId, rawLayerId.get(),
@@ -231,8 +233,8 @@ public class TcgaWorkflow {
 	@ActivityRegistrationOptions(defaultLifetimeTimeout = @Duration(time = 6, unit = DurationUnit.Hours), taskLivenessTimeout = @Duration(time = 6, unit = DurationUnit.Hours))
 	private static Value<String> doUploadLayerToStorage(
 			String param,
-			Integer datasetId,
-			Integer rawLayerId,
+			String datasetId,
+			String rawLayerId,
 			@ActivitySchedulingOption(option = ActivitySchedulingElement.requirement) String machineName,
 			String localFilepath, String md5) throws Exception {
 		// - get the pre-signed S3 URL to which to upload the data from the
@@ -248,13 +250,14 @@ public class TcgaWorkflow {
 
 	@Asynchronous
 	private Value<String> dispatchProcessData(Value<String> param,
-			Value<String> script, Integer datasetId, Value<Integer> rawLayerId,
-			Value<String> machineName, Value<String> localFilepath,
-			Settable<Integer> processedLayerId, Settable<String> stdout,
+			Value<String> script, String datasetId, Value<String> rawLayerId,
+//			Value<String> machineName, Value<String> localFilepath,
+			Settable<String> processedLayerId, Settable<String> stdout,
 			Settable<String> stderr) throws Exception {
 
 		return doProcessData(param.get(), script.get(), datasetId, rawLayerId
-				.get(), machineName.get(), localFilepath.get(),
+				.get(), 
+//				machineName.get(), localFilepath.get(),
 				processedLayerId, stdout, stderr);
 	}
 
@@ -269,15 +272,16 @@ public class TcgaWorkflow {
 	private static Value<String> doProcessData(
 			String param,
 			String script,
-			Integer datasetId,
-			Integer rawLayerId,
-			@ActivitySchedulingOption(option = ActivitySchedulingElement.requirement) String machineName,
-			String localFilepath, Settable<Integer> processedLayerId,
+			String datasetId,
+			String rawLayerId,
+//			@ActivitySchedulingOption(option = ActivitySchedulingElement.requirement) String machineName,
+//			String localFilepath, 
+			Settable<String> processedLayerId,
 			Settable<String> stdout, Settable<String> stderr) throws Exception {
 
 		// TODO heartbeat thread with shorter taskLivenessTimeout?
 		ScriptResult result = Processing.doProcessLayer(script, datasetId,
-				rawLayerId, localFilepath);
+				rawLayerId);
 		processedLayerId.set(result.getProcessedLayerId());
 		stdout.set((MAX_SCRIPT_OUTPUT > result.getStdout().length()) ? result
 				.getStdout() : result.getStdout().substring(0,
@@ -290,9 +294,9 @@ public class TcgaWorkflow {
 
 	@Asynchronous
 	private Value<String> dispatchNotifyDataProcessed(Value<String> param,
-			Value<Integer> processedLayerId) throws Exception {
+			Value<String> processedLayerId) throws Exception {
 
-		if (-1 < processedLayerId.get()) {
+		if (Constants.WORKFLOW_DONE != processedLayerId.get()) {
 			/**
 			 * Formulate the message to be sent to all interested parties about
 			 * the new processed data from TCGA
@@ -323,7 +327,7 @@ public class TcgaWorkflow {
 
 	@Asynchronous
 	private Value<String> dispatchFormulateNotificationMessage(
-			Value<String> param, Value<Integer> layerId,
+			Value<String> param, Value<String> layerId,
 			Settable<String> message) throws Exception {
 		return doFormulateNotificationMessage(param.get(), layerId.get(),
 				message);
@@ -331,7 +335,7 @@ public class TcgaWorkflow {
 
 	@Activity(version = "1.2")
 	private static Value<String> doFormulateNotificationMessage(String param,
-			Integer layerId, Settable<String> message) throws Exception {
+			String layerId, Settable<String> message) throws Exception {
 		message.set(Curation.formulateLayerCreationMessage(layerId));
 		return Value.asValue(param + ":FormulateNotificationMessage");
 	}

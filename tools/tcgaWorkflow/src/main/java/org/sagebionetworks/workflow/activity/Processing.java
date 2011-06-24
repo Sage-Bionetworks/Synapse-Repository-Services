@@ -43,12 +43,11 @@ public class Processing {
 
 	private static final String R_SCRIPT_REGEXP = ".*\\.[rR]$";
 	private static final String R_ARGS_DELIMITER = "--args";
-	
+
 	private static final String SYNAPSE_USERNAME_KEY = "--username";
 	private static final String SYNAPSE_PASSWORD_KEY = "--password";
 	private static final String INPUT_DATASET_PARAMETER_KEY = "--datasetId";
 	private static final String INPUT_LAYER_PARAMETER_KEY = "--layerId";
-	private static final String LOCAL_FILEPATH_INPUT_PARAMETER_KEY = "--localFilepath";
 
 	private static final String OUTPUT_LAYER_JSON_KEY = "layerId";
 	private static final Pattern OUTPUT_DELIMITER_PATTERN = Pattern.compile(
@@ -61,7 +60,7 @@ public class Processing {
 	 */
 	public static class ScriptResult {
 
-		int outputLayerId;
+		String outputLayerId;
 		String stdout;
 		String stderr;
 
@@ -69,14 +68,14 @@ public class Processing {
 		 * @return the layer id for the layer newly created by this processing
 		 *         step
 		 */
-		public int getProcessedLayerId() {
+		public String getProcessedLayerId() {
 			return outputLayerId;
 		}
 
 		/**
 		 * @param processedLayerId
 		 */
-		public void setProcessedLayerId(int processedLayerId) {
+		public void setProcessedLayerId(String processedLayerId) {
 			this.outputLayerId = processedLayerId;
 		}
 
@@ -115,40 +114,36 @@ public class Processing {
 	 * @param script
 	 * @param datasetId
 	 * @param rawLayerId
-	 * @param localFilepath
 	 * @return the ScriptResult
 	 * @throws IOException
 	 * @throws InterruptedException
 	 * @throws UnrecoverableException
 	 * @throws JSONException
 	 */
-	public static ScriptResult doProcessLayer(String script, Integer datasetId,
-			Integer rawLayerId, String localFilepath) throws IOException,
-			InterruptedException, UnrecoverableException, JSONException {
+	public static ScriptResult doProcessLayer(String script, String datasetId,
+			String rawLayerId) throws IOException, InterruptedException,
+			UnrecoverableException, JSONException {
 
 		ConfigHelper helper = ConfigHelper.createConfig();
-		String argsDelimiter = (script.matches(R_SCRIPT_REGEXP)) ? R_ARGS_DELIMITER : "";
-		
+		String argsDelimiter = (script.matches(R_SCRIPT_REGEXP)) ? R_ARGS_DELIMITER
+				: "";
+
 		String scriptInput[] = new String[] { script, argsDelimiter,
 				SYNAPSE_USERNAME_KEY, helper.getSynapseUsername(),
 				SYNAPSE_PASSWORD_KEY, helper.getSynapsePassword(),
 				INPUT_DATASET_PARAMETER_KEY, datasetId.toString(),
-				INPUT_LAYER_PARAMETER_KEY, rawLayerId.toString(),
-				LOCAL_FILEPATH_INPUT_PARAMETER_KEY, localFilepath };
+				INPUT_LAYER_PARAMETER_KEY, rawLayerId.toString() };
 
 		ScriptResult scriptResult = new ScriptResult();
 
 		// TODO
-		// When these R scripts are run via this workflow, a value will be
-		// passed in for --localFilepath, the script will get the layer metadata
+		// When these R scripts are run via this workflow, the script will get
+		// the layer metadata
 		// from the repository service which includes the md5 checksum and it
-		// will confirm those match before proceeding.
+		// will download the data and confirm those match before proceeding.
 		//
-		// When these R scripts are run by hand via scientists, the lack of
-		// localFilepath will cause the file to be downloaded from S3url in the
-		// layer metadata and stored in the local R file cache. The scientists
-		// will work this way when developing new scripts or modifying existing
-		// scripts.
+		// When these R scripts are run by hand via scientists, it works the
+		// exact same way, yay!
 
 		log.debug("About to run: " + StringUtils.join(scriptInput, " "));
 		Process process = Runtime.getRuntime().exec(scriptInput);
@@ -181,7 +176,8 @@ public class Processing {
 		int returnCode = process.waitFor();
 		if (0 != returnCode) {
 			throw new UnrecoverableException("Activity failed(" + returnCode
-					+ ") for " + StringUtils.join(scriptInput, " ") + " stderr: " + stderrAccumulator);
+					+ ") for " + StringUtils.join(scriptInput, " ")
+					+ " stderr: " + stderrAccumulator);
 		}
 		log.debug("Finished running: " + StringUtils.join(scriptInput, " "));
 
@@ -191,7 +187,7 @@ public class Processing {
 			JSONObject result = new JSONObject(resultMatcher.group(1));
 			if (result.has(OUTPUT_LAYER_JSON_KEY)) {
 				scriptResult.setProcessedLayerId(result
-						.getInt(OUTPUT_LAYER_JSON_KEY));
+						.getString(OUTPUT_LAYER_JSON_KEY));
 			}
 		}
 		return scriptResult;
