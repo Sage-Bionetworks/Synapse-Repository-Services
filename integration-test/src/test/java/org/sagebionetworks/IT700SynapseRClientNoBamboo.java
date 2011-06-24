@@ -97,7 +97,7 @@ public class IT700SynapseRClientNoBamboo {
 						+ Helpers.getIntegrationTestUser() + "')",
 				"-e",
 				"synapseRepoServiceEndpoint(endpoint='" + StackConfiguration.getRepositoryServiceEndpoint() + "')",
-				"-e", "synapseClient:::.integrationTest(pattern=\"^test_[^_]*\\\\.R$\")" };
+				"-e", "synapseClient:::.integrationTest(testFileRegexp=\"^test_[^_]*\\\\.R$\")" };
 		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
 		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
 	}
