@@ -51,6 +51,7 @@ public class Annotations implements IsSerializable {
 				setEtag(object.get(key).isString().stringValue());		
 
 		key = "stringAnnotations";
+		setStringAnnotations(new HashMap<String, List<String>>());
 		if(object.containsKey(key)) {
 			if(object.get(key).isObject() != null) {
 				JSONObject annotationObj = object.get(key).isObject();
@@ -67,6 +68,7 @@ public class Annotations implements IsSerializable {
 		}
 		
 		key = "longAnnotations";
+		setLongAnnotations(new HashMap<String, List<Long>>());
 		if(object.containsKey(key)) {
 			if(object.get(key).isObject() != null) {
 				JSONObject annotationObj = object.get(key).isObject();
@@ -83,6 +85,7 @@ public class Annotations implements IsSerializable {
 		}
 
 		key = "dateAnnotations";
+		setDateAnnotations(new HashMap<String, List<Date>>());
 		if(object.containsKey(key)) {
 			if(object.get(key).isObject() != null) {
 				JSONObject annotationObj = object.get(key).isObject();
@@ -99,6 +102,7 @@ public class Annotations implements IsSerializable {
 		}
 		
 		key = "doubleAnnotations";
+		setDoubleAnnotations(new HashMap<String, List<Double>>());
 		if(object.containsKey(key)) {
 			if(object.get(key).isObject() != null) {
 				JSONObject annotationObj = object.get(key).isObject();
@@ -115,6 +119,7 @@ public class Annotations implements IsSerializable {
 		}
 
 		// no blob annotations yet
+		setBlobAnnotations(new HashMap<String, List<byte[]>>());
 		
 		key = "uri";
 		if(object.containsKey(key)) 
