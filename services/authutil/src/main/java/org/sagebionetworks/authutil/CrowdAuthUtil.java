@@ -239,6 +239,31 @@ public class CrowdAuthUtil {
 //		addUserToGroup(AuthUtilConstants.PLATFORM_GROUP, user.getEmail());
 	}
 	
+	public User getUser(String userId) throws IOException {
+		URL url = new URL(urlPrefix()+"/user?username="+userId);
+		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+		conn.setRequestMethod("GET");
+		setHeaders(conn);
+		
+		byte[] sessionXML = null;
+		try {
+			sessionXML = executeRequest(conn, HttpStatus.OK, "Unable to get "+userId+".");
+		} catch (AuthenticationException e) {
+			throw new RuntimeException(e.getRespStatus()+" "+e.getMessage());
+		}
+
+		try {
+			User user = new User();
+			user.setEmail(getFromXML("/user/email", sessionXML));
+			user.setFirstName(getFromXML("/user/first-name", sessionXML));
+			user.setLastName(getFromXML("/user/last-name", sessionXML));
+			user.setDisplayName(getFromXML("/user/display-name", sessionXML));
+			return user;
+		} catch (XPathExpressionException xee) {
+			throw new RuntimeException(xee);
+		}
+	}
+	
 	public void deleteUser(User user) throws AuthenticationException, IOException {
 		URL url = new URL(urlPrefix()+"/user?username="+user.getEmail());
 		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
