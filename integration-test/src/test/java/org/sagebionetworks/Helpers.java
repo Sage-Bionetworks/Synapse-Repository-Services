@@ -34,30 +34,6 @@ import org.apache.log4j.Logger;
 public class Helpers {
 
 	/**
-	 * @return The endpoint (including servlet prefix) for the auth service
-	 */
-	public static String getAuthServiceBaseUrl() {
-		return System.getProperty("org.sagebionetworks.auth.service.base.url");
-	}
-
-	/**
-	 * @return The endpoint (including servlet prefix) for the repository
-	 *         service
-	 */
-	public static String getRepositoryServiceBaseUrl() {
-		return System
-				.getProperty("org.sagebionetworks.repository.service.base.url");
-	}
-
-	/**
-	 * @return The endpoint (including servlet prefix) for the Synapse Portal
-	 *         (web UI)
-	 */
-	public static String getPortalBaseUrl() {
-		return System.getProperty("org.sagebionetworks.portal.base.url");
-	}
-
-	/**
 	 * @return the path to python2.7
 	 */
 	public static String getPython27Path() {

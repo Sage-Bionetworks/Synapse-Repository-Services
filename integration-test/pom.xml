@@ -103,9 +103,6 @@
 				  </excludes>
 				  <runOrder>alphabetical</runOrder>
 					<systemPropertyVariables>
-						<org.sagebionetworks.auth.service.base.url>${org.sagebionetworks.auth.service.base.url}</org.sagebionetworks.auth.service.base.url>
-						<org.sagebionetworks.repository.service.base.url>${org.sagebionetworks.repository.service.base.url}</org.sagebionetworks.repository.service.base.url>
-						<org.sagebionetworks.portal.base.url>${org.sagebionetworks.portal.base.url}</org.sagebionetworks.portal.base.url>
 						<local.python27.path>${local.python27.path}</local.python27.path>
 						<local.r.path>${local.r.path}</local.r.path>
 						<org.sagebionetworks.integrationTestUser>admin</org.sagebionetworks.integrationTestUser>
@@ -244,10 +241,15 @@
 			<type>jar</type>
 		</dependency>
 
-
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-models</artifactId>
+			<version>${applicationVersion}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-stackConfiguration</artifactId>
 			<version>${applicationVersion}</version>
 		</dependency>
 

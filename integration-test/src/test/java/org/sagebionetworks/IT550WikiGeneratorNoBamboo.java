@@ -54,8 +54,8 @@ public class IT550WikiGeneratorNoBamboo {
 	@Test
 	public void testCRUDWikiGenerator() throws Exception {
 		String args[] = { "--repoEndpoint",
-				Helpers.getRepositoryServiceBaseUrl(), "--authEndpoint",
-				Helpers.getAuthServiceBaseUrl(), "--username",
+				StackConfiguration.getRepositoryServiceEndpoint(), "--authEndpoint",
+				StackConfiguration.getAuthenticationServiceEndpoint(), "--username",
 				Helpers.getIntegrationTestUser(), "--password",
 				Helpers.getIntegrationTestUser() };
 		int numErrors = CRUDWikiGenerator.main(args);
@@ -83,8 +83,8 @@ public class IT550WikiGeneratorNoBamboo {
 	public void testReadOnlyWikiGenerator() throws Exception {
 
 		String args[] = { "--repoEndpoint",
-				Helpers.getRepositoryServiceBaseUrl(), "--authEndpoint",
-				Helpers.getAuthServiceBaseUrl(), "--username",
+				StackConfiguration.getRepositoryServiceEndpoint(), "--authEndpoint",
+				StackConfiguration.getAuthenticationServiceEndpoint(), "--username",
 				Helpers.getIntegrationTestUser(), "--password",
 				Helpers.getIntegrationTestUser() };
 		int numErrors = ReadOnlyWikiGenerator.main(args);

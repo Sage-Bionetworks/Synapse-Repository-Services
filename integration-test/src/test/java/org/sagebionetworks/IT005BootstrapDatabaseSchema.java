@@ -20,8 +20,8 @@ public class IT005BootstrapDatabaseSchema {
 	@Test
 	public void testCRUDWikiGenerator() throws Exception {
 		String args[] = { "--repoEndpoint",
-				Helpers.getRepositoryServiceBaseUrl(), "--authEndpoint",
-				Helpers.getAuthServiceBaseUrl(), "--username",
+				StackConfiguration.getRepositoryServiceEndpoint(), "--authEndpoint",
+				StackConfiguration.getAuthenticationServiceEndpoint(), "--username",
 				Helpers.getIntegrationTestUser(), "--password",
 				Helpers.getIntegrationTestUser() };
 		CRUDWikiGenerator.main(args);

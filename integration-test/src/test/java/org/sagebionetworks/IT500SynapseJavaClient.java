@@ -28,8 +28,8 @@ public class IT500SynapseJavaClient {
 	public static void beforeClass() throws Exception {
 
 		synapse = new Synapse();
-		synapse.setRepositoryEndpoint(Helpers.getAuthServiceBaseUrl());
-		synapse.setRepositoryEndpoint(Helpers.getRepositoryServiceBaseUrl());
+		synapse.setRepositoryEndpoint(StackConfiguration.getAuthenticationServiceEndpoint());
+		synapse.setRepositoryEndpoint(StackConfiguration.getRepositoryServiceEndpoint());
 		synapse.login(Helpers.getIntegrationTestUser(), Helpers
 				.getIntegrationTestUser());
 	}
