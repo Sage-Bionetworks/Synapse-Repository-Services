@@ -1,0 +1,28 @@
+{
+    "AWSTemplateFormatVersion":"2010-09-09",
+    "Description":"Cloud Formation template to create a new synapse stack. This template creates an S3 bucket, 3 Elastic Beanstalk environments for Authorization services, Repository services, and the web portal, and a RDS instance to persist Repository service data. Note, since Elastic Beanstalk is only available in US-East-1, this template can only be used to create stacks in the US-East-1 region.",
+    "Resources":{
+        "SynapseDataSecurityGroup":{
+            "Type":"AWS::RDS::DBSecurityGroup",
+            "Properties":{
+                "DBSecurityGroupName":"synapsedata",
+                "DBSecurityGroupDescription":"DatabasesecuritygroupforaSynapsestack"
+            }
+        },
+        "SynapseDataIngressRule1":{
+            "Type":"AWS::RDS::SecurityGroupIngress",
+            "Properties":{
+                "DBSecurityGroupName":"synapsedata",
+                "CIDRIP":"140.107.0.0/16"
+            }
+        },
+        "SynapseDataIngressRule2":{
+            "Type":"AWS::RDS::SecurityGroupIngress",
+            "Properties":{
+                "DBSecurityGroupName":"synapsedata",
+                "EC2SecurityGroupName":"elasticbeanstalk-default",
+                "EC2SecurityGroupOwnerId":"0598-1620-7990"
+            }
+        }
+    }
+}

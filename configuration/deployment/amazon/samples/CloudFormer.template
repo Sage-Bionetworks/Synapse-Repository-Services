@@ -1,0 +1,84 @@
+{
+    "AWSTemplateFormatVersion":"2010-09-09",
+    "Description":"AWS CloudFormer - template creation prototype application. This tool allows you to create an AWS CloudFormation template from the AWS resources in your AWS account. **Warning** This template creates a single t1.micro instance in your account to run the application - you will be billed for the instance at normal AWS EC2 rates for the t1.micro.",
+    "Parameters":{
+        "AWSSecretAccessKey":{
+            "Type":"String",
+            "NoEcho":"true",
+            "Description":"Enter the AWS Secret Access Key of the account to query"
+        },
+        "AWSAccessKeyId":{
+            "Type":"String",
+            "NoEcho":"true",
+            "Description":"Enter the AWS Access Key Id of the account to query"
+        }
+    },
+    "Resources":{
+        "Ec2Instance":{
+            "Type":"AWS::EC2::Instance",
+            "Properties":{
+                "SecurityGroups":[
+                    {
+                        "Ref":"InstanceSecurityGroup"
+                    }
+                ],
+                "ImageId":"ami-caa058a3",
+                "InstanceType":"t1.micro",
+                "UserData":{
+                    "Fn::Base64":{
+                        "Fn::Join":[
+                            "",
+                            [
+                                "{",
+                                "\"aws_access_key_id\" : \"",
+                                {
+                                    "Ref":"AWSAccessKeyId"
+                                },
+                                "\",",
+                                "\"aws_secret_access_key\" : \"",
+                                {
+                                    "Ref":"AWSSecretAccessKey"
+                                },
+                                "\"",
+                                "}"
+                            ]
+                        ]
+                    }
+                }
+            }
+        },
+        "InstanceSecurityGroup":{
+            "Type":"AWS::EC2::SecurityGroup",
+            "Properties":{
+                "GroupDescription":"Enable Access to Rails application via port 80",
+                "SecurityGroupIngress":[
+                    {
+                        "IpProtocol":"tcp",
+                        "FromPort":"80",
+                        "ToPort":"80",
+                        "CidrIp":"0.0.0.0/0"
+                    }
+                ]
+            }
+        }
+    },
+    "Outputs":{
+        "URL":{
+            "Description":"AWS CloudFormer Prototype URL. Use this endpont to create templates from your account.",
+            "Value":{
+                "Fn::Join":[
+                    "",
+                    [
+                        "http://",
+                        {
+                            "Fn::GetAtt":[
+                                "Ec2Instance",
+                                "PublicIp"
+                            ]
+                        }
+                    ]
+                ]
+            }
+        }
+    }
+}
