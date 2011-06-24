@@ -247,7 +247,6 @@ public class AuthenticationControllerTest {
 
 	}
 	
-	
 	@Test
 	public void testCreateAndUpdateUser() throws Exception {
 		if (!isIntegrationTest()) return;
@@ -267,7 +266,7 @@ public class AuthenticationControllerTest {
 					"}");
 				
 
-			String testNewPassword = "new-password";
+			String testNewPassword = "newPassword";
 			
 			helper.testUpdateJsonEntity("/user",
 					"{"+
@@ -283,6 +282,16 @@ public class AuthenticationControllerTest {
 			assertEquals("NewNEW", user.getString("firstName"));
 			assertEquals("UserNEW", user.getString("lastName"));
 			assertEquals("New NEW User", user.getString("displayName"));
+		
+			// !!! setting password doesn't work.  An issue was opened with Atlassian on 6/23/2011 !!!
+			// to check the password, we have to try to log-in
+			if (false) {
+				JSONObject session = helper.testCreateJsonEntity("/session",
+						"{\"email\":\""+integrationTestUserEmail+"\",\"password\":\""+testNewPassword+"\"}");
+				assertTrue(session.has("sessionToken"));
+				assertEquals("New NEW User", session.getString("displayName"));
+			}
+			
 		} finally {
 			User user = new User();
 			user.setEmail(integrationTestUserEmail);
