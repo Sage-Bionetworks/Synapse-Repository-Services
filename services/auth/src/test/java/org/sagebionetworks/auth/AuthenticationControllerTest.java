@@ -41,10 +41,11 @@ public class AuthenticationControllerTest {
 	
 	private boolean isIntegrationTest() {
 		String integrationTestEndpoint = System.getProperty("INTEGRATION_TEST_ENDPOINT");
-		return (integrationTestEndpoint!=null && integrationTestEndpoint.length()>0);
+		return true || (integrationTestEndpoint!=null && integrationTestEndpoint.length()>0);
 	}
 
 
+	String integrationTestUserEmail = null;
 
 	/**
 	 * @throws java.lang.Exception
@@ -54,6 +55,17 @@ public class AuthenticationControllerTest {
 		//DispatcherServlet servlet = 
 			helper.setUp();
 		CrowdAuthUtil.acceptAllCertificates2();
+		
+		// special userId for testing -- no confirmation email is sent!
+		Properties props = new Properties();
+        InputStream is = AuthenticationControllerTest.class.getClassLoader().getResourceAsStream("authenticationcontroller.properties");
+        try {
+        	props.load(is);
+        } catch (IOException e) {
+        	throw new RuntimeException(e);
+        }
+        integrationTestUserEmail = props.getProperty("integrationTestUser");
+		assertNotNull(integrationTestUserEmail);
 	}
 
 	/**
@@ -74,8 +86,6 @@ public class AuthenticationControllerTest {
 		assertEquals("Demo User", session.getString("displayName"));
 	}
 
-
-	
 	@Test
 	public void testCreateSessionBadCredentials() throws Exception {
 		if (!isIntegrationTest()) return;
@@ -174,30 +184,56 @@ public class AuthenticationControllerTest {
 	@Test
 	public void testCreateNewUser() throws Exception {
 		if (!isIntegrationTest()) return;
-		// special userId for testing -- no confirmation email is sent!
-		Properties props = new Properties();
-        InputStream is = AuthenticationControllerTest.class.getClassLoader().getResourceAsStream("authenticationcontroller.properties");
-        try {
-        	props.load(is);
-        } catch (IOException e) {
-        	throw new RuntimeException(e);
-        }
-        String userEmail = props.getProperty("integrationTestUser");
-
-		assertNotNull(userEmail);
 		try {
 			helper.testCreateJsonEntity("/user",
 					"{"+
-					"\"email\":\""+userEmail+"\","+
+					"\"email\":\""+integrationTestUserEmail+"\","+
 					 // integration testing with this special user is the only time a password may be specified
-					"\"password\":\""+userEmail+"\","+
+					"\"password\":\""+integrationTestUserEmail+"\","+
 				"\"firstName\":\"New\","+
 				"\"lastName\":\"User\","+
 				"\"displayName\":\"New User\""+
 					"}");
 		} finally {
 			User user = new User();
-			user.setEmail(userEmail);
+			user.setEmail(integrationTestUserEmail);
+			try {
+				crowdAuthUtil.deleteUser(user);
+			} catch (AuthenticationException ae) {
+				if (ae.getRespStatus()==HttpStatus.NOT_FOUND.value()) {
+					// that's OK, it just means that the user never was created in the first place
+				} else {
+					throw ae;
+				}
+			}
+		}
+
+	}
+	
+	
+	@Test
+	public void testCreateAndGetNewUser() throws Exception {
+		if (!isIntegrationTest()) return;
+		try {
+			helper.testCreateJsonEntity("/user",
+					"{"+
+					"\"email\":\""+integrationTestUserEmail+"\","+
+					 // integration testing with this special user is the only time a password may be specified
+					"\"password\":\""+integrationTestUserEmail+"\","+
+				"\"firstName\":\"New\","+
+				"\"lastName\":\"User\","+
+				"\"displayName\":\"New User\""+
+					"}");
+			
+			JSONObject user = helper.testGetJsonEntity("/user");
+			assertEquals(integrationTestUserEmail, user.getString("email"));
+			assertEquals("New", user.getString("firstName"));
+			assertEquals("User", user.getString("lastName"));
+			assertEquals("New User", user.getString("displayName"));
+
+		} finally {
+			User user = new User();
+			user.setEmail(integrationTestUserEmail);
 			try {
 				crowdAuthUtil.deleteUser(user);
 			} catch (AuthenticationException ae) {
@@ -217,44 +253,40 @@ public class AuthenticationControllerTest {
 		if (!isIntegrationTest()) return;
 		
 		// special userId for testing -- no confirmation email is sent!
-		// special userId for testing -- no confirmation email is sent!
-		Properties props = new Properties();
-        InputStream is = AuthenticationControllerTest.class.getClassLoader().getResourceAsStream("authenticationcontroller.properties");
-        try {
-        	props.load(is);
-        } catch (IOException e) {
-        	throw new RuntimeException(e);
-        }
-        String userEmail = props.getProperty("integrationTestUser");
-		assertNotNull(userEmail);
 		try {
 			
 
 			helper.testCreateJsonEntity("/user",
 					"{"+
-					"\"email\":\""+userEmail+"\","+
+					"\"email\":\""+integrationTestUserEmail+"\","+
 					 // integration testing with this special user is the only time a password may be specified
-					"\"password\":\""+userEmail+"\","+
+					"\"password\":\""+integrationTestUserEmail+"\","+
 				"\"firstName\":\"New\","+
 				"\"lastName\":\"User\","+
 				"\"displayName\":\"New User\""+
 					"}");
 				
 
+			String testNewPassword = "new-password";
+			
 			helper.testUpdateJsonEntity("/user",
 					"{"+
-					"\"email\":"+userEmail+","+
+					"\"email\":"+integrationTestUserEmail+","+
 					"\"firstName\":\"NewNEW\","+
 					"\"lastName\":\"UserNEW\","+
-					"\"displayName\":\"New NEW User\""+
+					"\"displayName\":\"New NEW User\","+
+					"\"password\":\""+testNewPassword+"\""+					
 					"}", HttpStatus.NO_CONTENT);
+			
+			JSONObject user = helper.testGetJsonEntity("/user");
+			assertEquals(integrationTestUserEmail, user.getString("email"));
+			assertEquals("NewNEW", user.getString("firstName"));
+			assertEquals("UserNEW", user.getString("lastName"));
+			assertEquals("New NEW User", user.getString("displayName"));
 		} finally {
 			User user = new User();
-			user.setEmail(userEmail);
-//			try {
-				crowdAuthUtil.deleteUser(user);
-//			} catch (Exception e) {
-//			}
+			user.setEmail(integrationTestUserEmail);
+			//crowdAuthUtil.deleteUser(user);
 		}
 	}
 	
