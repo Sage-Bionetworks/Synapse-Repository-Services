@@ -1,0 +1,8 @@
+{
+    "Error":{
+        "Code":"MissingParameter",
+        "Message":"You must specify either Configuration Template name or Environment name.",
+        "Type":"Sender"
+    },
+    "RequestId":"4392a8cc-f8e6-4075-bd4c-42660301b052"
+}

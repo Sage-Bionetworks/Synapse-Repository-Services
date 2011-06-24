@@ -1,0 +1,280 @@
+{
+    "AWSTemplateFormatVersion":"2010-09-09",
+    "Description":"Cloud Formation template to create a new synapse stack. This template creates an S3 bucket, 3 Elastic Beanstalk environments for Authorization services, Repository services, and the web portal, and a RDS instance to persist Repository service data. Note, since Elastic Beanstalk is only available in US-East-1, this template can only be used to create stacks in the US-East-1 region.",
+    "Parameters":{
+        "DatabaseName":{
+            "Default":"RepositoryDB",
+            "Type":"String",
+            "Description":"Test database name",
+            "AllowedPattern":"[a-zA-Z][a-zA-Z0-9]*",
+            "ConstraintDescription":"must begin with a letter and contain only alphanumeric characters."
+        },
+        "DatabaseUser":{
+            "Default":"root",
+            "NoEcho":"true",
+            "Type":"String",
+            "Description":"Test database admin account name",
+            "MinLength":"1",
+            "MaxLength":"16",
+            "AllowedPattern":"[a-zA-Z][a-zA-Z0-9]*",
+            "ConstraintDescription":"must begin with a letter and contain only alphanumeric characters."
+        },
+        "DatabasePassword":{
+            "Default":"platform",
+            "NoEcho":"true",
+            "Type":"String",
+            "Description":"Test database admin account password",
+            "MinLength":"1",
+            "MaxLength":"41",
+            "AllowedPattern":"[a-zA-Z0-9]*",
+            "ConstraintDescription":"must contain only alphanumeric characters."
+        },
+        "DatabasePort":{
+            "Default":"3306",
+            "Type":"Number",
+            "MinValue":"1150",
+            "MaxValue":"65535",
+            "Description":"TCP/IP port for the RDS database"
+        },
+        "OperatorEmail":{
+            "Default":"mike.kellen@sagebase.org",
+            "Description":"Email address to notify if there are any operational issues",
+            "Type":"String"
+        },
+        "SynapseVersion":{
+            "Default":"0.5-SNAPSHOT",
+            "Description":"Version number (Maven) of Synapse",
+            "Type":"String"
+        },
+        "SynapseDeployableBucketName":{
+            "Default":"synapse-deployables",
+            "Description":"Name of the bucket holding Synapse .war files and other deployables",
+            "Type":"String"
+        },
+        "CrowdURL":{
+            "Default":"https://crowd.sagebase.org:8443",
+            "Description":"URL of the crowd server",
+            "Type":"String"
+        },
+        "KeyPairName":{
+            "Default":"Synapse",
+            "Description":"Name of the key pair",
+            "Type":"String"
+        },
+        "ElasticBeanstalkAMI":{
+            "Default":"dfsdf",
+            "Description":"ID of the AMI to use for all Elastic Beanstalk instances",
+            "Type":"String"
+        }
+    },
+    "Resources":{
+        "RepositoryRDS":{
+            "Type":"AWS::RDS::DBInstance",
+            "Properties":{
+                "DBName":{
+                    "Ref":"DatabaseName"
+                },
+                "Port":{
+                    "Ref":"DatabasePort"
+                },
+                "MasterUsername":{
+                    "Ref":"DatabaseUser"
+                },
+                "MasterUserPassword":{
+                    "Ref":"DatabasePassword"
+                },
+                "AllocatedStorage":"5",
+                "DBInstanceClass":"db.m1.small",
+                "Engine":"MySQL",
+                "EngineVersion":"5.5",
+                "DBSecurityGroups":[
+                    {
+                        "Ref":"RepoDBSecurityGroup"
+                    }
+                ]
+            }
+        },
+        "RepoDBSecurityGroup":{
+            "Type":"AWS::RDS::DBSecurityGroup",
+            "Properties":{
+                "GroupDescription":"Access for service tier and admin",
+                "DBSecurityGroupIngress":[
+                    {
+                        "EC2SecurityGroupName":"elasticbeanstalk-default"
+                    },
+                    {
+                        "CIDRIP":"140.107.0.0/16"
+                    }
+                ]
+            }
+        },
+        "RepositoryService":{
+            "Type":"AWS::ElasticBeanstalk::Application",
+            "Properties":{
+                "Description":"Repository Service as an Elastic Beanstalk Application",
+                "ApplicationVersions":[
+                    {
+                        "VersionLabel":{
+                            "Ref":"SynapseVersion"
+                        },
+                        "Description":{
+                            "Ref":"SynapseVersion"
+                        },
+                        "SourceBundle":{
+                            "S3Bucket":{
+                                "Ref":"SynapseDeployableBucketName"
+                            },
+                            "S3Key":{
+                                "Fn::Join":[
+                                    "",
+                                    [
+                                        "services-repository-",
+                                        {
+                                            "Ref":"SynapseVersion"
+                                        },
+                                        ".war"
+                                    ]
+                                ]
+                            }
+                        }
+                    }
+                ],
+                "ConfigurationTemplates":[
+                    {
+                        "TemplateName":"RepositoryConfiguration",
+                        "Description":"Default Configuration Version 1.0 - with SSH access",
+                        "OptionSettings":[
+                            {
+                                "Namespace":"aws:elasticbeanstalk:application:environment",
+                                "OptionName":"Email Address",
+                                "Value":{
+                                    "Ref":"OperatorEmail"
+                                }
+                            },
+                            {
+                                "Namespace":"aws:elasticbeanstalk:application:environment",
+                                "OptionName":"EC2KeyName",
+                                "Value":{"Ref":"KeyPairName"}
+                            },
+                            {
+                                "Namespace":"aws:elasticbeanstalk:application:environment",
+                                "OptionName":"Custom AMI ID",
+                                "Value":{"Ref":"ElasticBeanstalkAMI"}
+                            },
+                            {
+                                "Namespace":"aws:elasticbeanstalk:application:environment",
+                                "OptionName":"HTTP Listener Port",
+                                "Value":"OFF"
+                            },
+                            {                            
+                                "Namespace":"aws:elasticbeanstalk:application:environment",
+                                "OptionName":"HTTPS Listener Port",
+                                "Value":"443"
+                            },
+                            {             
+                                "Namespace":"aws:elasticbeanstalk:application:environment",
+                                "OptionName":"SSL Certificate ID",
+                                "Value":"arn:aws:iam::325565585839:server-certificate/sage-wildcart-cert"
+                            },
+                            {
+                                "Namespace":"aws:elasticbeanstalk:application:environment",
+                                "OptionName":"JVM Command Line Options",
+                                "Value":{
+                                    "Fn::Join":[
+                                        "",
+                                        [
+                                            "-Dorg.sagebionetworks.crowdUrl=",
+                                            {
+                                                "Ref":"CrowdURL"
+                                            }
+                                        ]
+                                    ]
+                                }
+                            },
+                            {
+                                "Namespace":"aws:elasticbeanstalk:application:environment",
+                                "OptionName":"JVM Command Line Options",
+                                "Value":{
+                                    "Fn::Join":[
+                                        "",
+                                        [
+                                            "-Dorg.sagebionetworks.crowdUrl=",
+                                            {
+                                                "Ref":"CrowdURL"
+                                            }
+                                        ]
+                                    ]
+                                }
+                            },
+                            {
+                                "Namespace":"aws:elasticbeanstalk:application:environment",
+                                "OptionName":"JDBC_CONNECTION_STRING",
+                                "Value":{
+                                    "Fn::Join":[
+                                        "",
+                                        [
+                                            "jdbc:mysql://",
+                                            {
+                                                "Fn::GetAtt":[
+                                                    "RepositoryRDS",
+                                                    "Endpoint.Address"
+                                                ]
+                                            },
+                                            ":",
+                                            {
+                                                "Ref":"DatabasePort"
+                                            },
+                                            "/",
+                                            {
+                                                "Ref":"DatabaseName"
+                                            }
+                                        ]
+                                    ]
+                                }
+                            },
+                            {
+                                "Namespace":"aws:elasticbeanstalk:application:environment",
+                                "OptionName":"PARAM1",
+                                "Value":{
+                                    "Ref":"DatabaseUser"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "RepositoryEnvironment":{
+            "Type":"AWS::ElasticBeanstalk::Environment",
+            "Properties":{
+                "ApplicationName":{
+                    "Ref":"RepositoryService"
+                },
+                "Description":"AWS Elastic Beanstalk Environment running the Repository Service",
+                "TemplateName":"RepositoryConfiguration",
+                "VersionLabel":{
+                    "Ref":"SynapseVersion"
+                }
+            }
+        }
+    },
+    "Outputs":{
+        "RepositoryURL":{
+            "Description":"URL of the Repository Service",
+            "Value":{
+                "Fn::Join":[
+                    "",
+                    [
+                        "http://",
+                        {
+                            "Fn::GetAtt":[
+                                "RepositoryEnvironment",
+                                "EndpointURL"
+                            ]
+                        }
+                    ]
+                ]
+            }
+        }
+    }
+}
