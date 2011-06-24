@@ -207,12 +207,12 @@ public class CrowdAuthUtil {
 		  "\t<display-name>"+user.getDisplayName()+"</display-name>\n"+
 		  "\t<email>"+user.getEmail()+"</email>\n"+
 		  "\t<active>true</active>\n"+
-		  "\t<attributes>"+
-		  "<link rel='self' href='link_to_user_attributes'/>"+
-		  "</attributes>\n"+
+//		  "\t<attributes>"+
+//		  "<link rel='self' href='link_to_user_attributes'/>"+
+//		  "</attributes>\n"+
 		  (user.getPassword()==null ? "" : 
 			  "\t<password>"+
-			  "<link rel='edit' href='link_to_user_password'/>"+
+//			  "<link rel='edit' href='link_to_user_password'/>"+
 			  "<value>"+user.getPassword()+"</value>"+
 			  "</password>\n"
 		  )+
@@ -279,6 +279,8 @@ public class CrowdAuthUtil {
 		conn.setRequestMethod("PUT");
 		setHeaders(conn);
 		setBody(conn, userXML(user)+"\n");
+		
+		log.info("request body: "+userXML(user));
 
 		// Atlassian documentation says it will return 200 (OK) but it actually returns 204 (NO CONTENT)
 		executeRequestNoResponseBody(conn, HttpStatus.NO_CONTENT, "Unable to update user.");
