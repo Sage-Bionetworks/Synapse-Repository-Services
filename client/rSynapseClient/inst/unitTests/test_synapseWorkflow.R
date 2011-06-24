@@ -2,7 +2,7 @@
   # Override commandArgs
   myCommandArgs <- function (trailingOnly = TRUE) {
     c('--args', '--username', 'foo', '--password', 'bar', '--datasetId', '23', 
-			'--layerId', '42', '--localFilepath', './foo.txt' )
+			'--layerId', '42' )
   }
   
   attr(myCommandArgs, "origFCN") <- base:::commandArgs
@@ -26,11 +26,6 @@ unitTestGetInputDatasetIdArg <- function() {
 	datasetId <- getInputDatasetIdArg()
 	checkEquals(datasetId, '23')
 }
-
- unitTestGetLocalFilepathArg <- function() {
-   path <- getLocalFilepathArg()
-   checkEquals(path, './foo.txt')
- }
 
  unitTestGetInputLayerIdArg <- function() {
    layerId <- getInputLayerIdArg()

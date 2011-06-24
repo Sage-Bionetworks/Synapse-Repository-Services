@@ -37,8 +37,8 @@ public class Storage {
 	 * @throws Exception
 	 * @throws Exception
 	 */
-	public static final void doUploadLayerToStorage(Integer datasetId,
-			Integer layerId, String localFilepath, String md5) throws Exception {
+	public static final void doUploadLayerToStorage(String datasetId,
+			String layerId, String localFilepath, String md5) throws Exception {
 
 		Synapse synapse = ConfigHelper.createConfig().createSynapseClient();
 

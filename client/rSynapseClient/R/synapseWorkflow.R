@@ -1,31 +1,32 @@
 # If you change anything here, be sure to update
 # https://sagebionetworks.jira.com/svn/PLFM/trunk/tools/tcgaWorkflow/src/main/java/org/sagebionetworks/workflow/activity/Processing.java
+# https://sagebionetworks.jira.com/svn/PLFM/trunk/tools/tcgaWorkflow/src/main/java/org/sagebionetworks/workflow/activity/Constants.java
 
 setClass(
-         Class = 'SynapseWorkflowConstants', 
-         representation(
-                        kUsage = 'character',
-						kUsernameKey = 'character',
-						kPasswordKey = 'character',
-						kInputLayerIdKey = 'character',
-                        kInputDatasetIdKey = 'character',
-                        kInputLocalFilepathKey = 'character',
-                        kOutputLayerIdKey = 'character',
-                        kOutputStartDelimiterPattern = 'character',
-                        kOutputEndDelimiterPattern = 'character'
-                        ),
-         prototype = prototype(
-           kUsage = 'Usage: R script.r --args --username you@yourEmailAddress --password YourSynapsePassword --layerId 42 --localFilepath ./foo.txt',
-		   kUsernameKey = '--username',
-		   kPasswordKey = '--password',
-		   kInputDatasetIdKey = '--datasetId',
-           kInputLayerIdKey = '--layerId',
-           kInputLocalFilepathKey = '--localFilepath',
-           kOutputLayerIdKey = 'layerId',
-           kOutputStartDelimiterPattern = 'SynapseWorkflowResult_START',
-           kOutputEndDelimiterPattern = 'SynapseWorkflowResult_END'
-           )
-         )
+		Class = 'SynapseWorkflowConstants', 
+		representation(
+				kUsage = 'character',
+				kUsernameKey = 'character',
+				kPasswordKey = 'character',
+				kInputLayerIdKey = 'character',
+				kInputDatasetIdKey = 'character',
+				kOutputLayerIdKey = 'character',
+				kWorkflowDone = 'character',
+				kOutputStartDelimiterPattern = 'character',
+				kOutputEndDelimiterPattern = 'character'
+		),
+		prototype = prototype(
+				kUsage = 'Usage: R script.r --args --username you@yourEmailAddress --password YourSynapsePassword --layerId 42',
+				kUsernameKey = '--username',
+				kPasswordKey = '--password',
+				kInputDatasetIdKey = '--datasetId',
+				kInputLayerIdKey = '--layerId',
+				kOutputLayerIdKey = 'layerId',
+				kWorkflowDone = 'workflowDone',
+				kOutputStartDelimiterPattern = 'SynapseWorkflowResult_START',
+				kOutputEndDelimiterPattern = 'SynapseWorkflowResult_END'
+		)
+)
 
 getUsernameArg <- function() {
 	constants <- new('SynapseWorkflowConstants')
@@ -37,19 +38,14 @@ getPasswordArg <- function() {
 	getArgVal(argName=constants@kPasswordKey) 
 }
 
-getLocalFilepathArg <- function() {
-  constants <- new('SynapseWorkflowConstants')
-  getArgVal(argName=constants@kInputLocalFilepathKey) 
-}
-
 getInputDatasetIdArg <- function() {
-  constants <- new('SynapseWorkflowConstants')
-  getArgVal(argName=constants@kInputDatasetIdKey) 
+	constants <- new('SynapseWorkflowConstants')
+	getArgVal(argName=constants@kInputDatasetIdKey) 
 }
 
 getInputLayerIdArg <- function() {
-  constants <- new('SynapseWorkflowConstants')
-  getArgVal(argName=constants@kInputLayerIdKey) 
+	constants <- new('SynapseWorkflowConstants')
+	getArgVal(argName=constants@kInputLayerIdKey) 
 }
 
 getArgVal <- function(argName){
@@ -62,17 +58,18 @@ getArgVal <- function(argName){
 }
 
 finishWorkflowTask <- function(outputLayerId) {
-  constants <- new('SynapseWorkflowConstants')
-
-  result <- list()
-  result[constants@kOutputLayerIdKey] <- outputLayerId
-  write(constants@kOutputStartDelimiterPattern, stdout())
-  write(toJSON(result), stdout())
-  write(constants@kOutputEndDelimiterPattern, stdout())
+	constants <- new('SynapseWorkflowConstants')
+	
+	result <- list()
+	result[constants@kOutputLayerIdKey] <- outputLayerId
+	write(constants@kOutputStartDelimiterPattern, stdout())
+	write(toJSON(result), stdout())
+	write(constants@kOutputEndDelimiterPattern, stdout())
 }
 
 skipWorkflowTask <- function(reason = 'this script does not want to work on this task') {
+	constants <- new('SynapseWorkflowConstants')
 	warning(reason)
-	finishWorkflowTask(outputLayerId=-1)
+	finishWorkflowTask(outputLayerId=constants@kWorkflowDone)
 	q()
 }

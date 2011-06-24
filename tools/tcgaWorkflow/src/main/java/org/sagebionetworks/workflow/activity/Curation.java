@@ -8,6 +8,8 @@ import java.util.regex.Pattern;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.utils.HttpClientHelper;
+import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.workflow.UnrecoverableException;
 import org.sagebionetworks.workflow.curation.ConfigHelper;
 
@@ -39,10 +41,10 @@ public class Curation {
 	 * @return the layerId for the layer metadata created
 	 * @throws Exception
 	 */
-	public static Integer doCreateSynapseMetadataForTcgaSourceLayer(
-			Integer datasetId, String tcgaUrl) throws Exception {
+	public static String doCreateSynapseMetadataForTcgaSourceLayer(
+			String datasetId, String tcgaUrl) throws Exception {
 
-		Integer layerId = -1;
+		String layerId = null;
 
 		JSONObject layer = formulateLayerMetadataFromTcgaUrl(tcgaUrl);
 
@@ -60,16 +62,19 @@ public class Curation {
 			// an exception here for that, we should retry this workflow step
 			layer.put("parentId", datasetId);
 			JSONObject storedLayer = synapse.createEntity("/layer", layer);
-			layerId = storedLayer.getInt("id");
+			layerId = storedLayer.getString("id");
 		} else {
 			if (1 == numLayersFound) {
 				layerId = results.getJSONArray("results").getJSONObject(0)
-						.getInt("layer.id");
+						.getString("layer.id");
 			} else {
 				throw new UnrecoverableException("We have " + numLayersFound
 						+ " layers with name " + layer.getString("name"));
 			}
 		}
+		
+//		JSONObject location = formulateLocationMetadataFromTcgaUrl(tcgaUrl, layerId);
+		
 		return layerId;
 	}
 
@@ -131,13 +136,41 @@ public class Curation {
 
 		return layer;
 	}
+	
+//	public static String formulateLocationMetadataFromTcgaUrl(String tcgaUrl, String layerId) {
+//		String localCacheDir = ConfigHelper.createConfig().getLocalCacheDir();
+//		String filename;
+//		String remoteMd5 = null;
+//		try {
+//			String md5FileContents = HttpClientHelper.getFileContents(tcgaUrl
+//					+ ".md5");
+//
+//			// TODO put a real regexp here to validate the format
+//			String fileInfo[] = md5FileContents.split("\\s+");
+//			if (2 != fileInfo.length) {
+//				throw new UnrecoverableException(
+//						"malformed md5 file from tcga: " + md5FileContents);
+//			}
+//			remoteMd5 = fileInfo[0];
+//			filename = fileInfo[1];
+//		} catch (HttpClientHelperException e) {
+//			if (404 == e.getHttpStatus()) {
+//				// 404s are okay, not all TCGA files have a corresponding md5
+//				// file (e.g., clinical data)
+//				String pathComponents[] = tcgaUrl.split("/");
+//				filename = pathComponents[pathComponents.length - 1];
+//			} else {
+//				throw e;
+//			}
+//		}
+//	}
 
 	/**
 	 * @param layerId
 	 * @return a somewhat helpful message for use in notifications :-)
 	 * @throws Exception
 	 */
-	public static String formulateLayerCreationMessage(Integer layerId) throws Exception {
+	public static String formulateLayerCreationMessage(String layerId) throws Exception {
 		StringBuilder message = new StringBuilder();
 		
 		Synapse synapse = ConfigHelper.createConfig().createSynapseClient();

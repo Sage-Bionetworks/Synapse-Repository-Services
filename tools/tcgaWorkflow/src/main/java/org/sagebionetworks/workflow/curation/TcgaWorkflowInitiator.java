@@ -30,11 +30,11 @@ public class TcgaWorkflowInitiator {
 
 	class ArchiveObserver implements SimpleObserver<String> {
 		String datasetName;
-		Integer datasetId;
+		String datasetId;
 
 		ArchiveObserver(String datasetName, String datasetId) {
 			this.datasetName = datasetName;
-			this.datasetId = new Integer(datasetId);
+			this.datasetId = datasetId;
 		}
 
 		public void update(String url) throws Exception {
