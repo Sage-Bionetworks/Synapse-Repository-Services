@@ -13,6 +13,8 @@ import org.sagebionetworks.web.client.presenter.LoginPresenter;
 import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.view.LoginView;
 
+import com.google.gwt.user.client.rpc.AsyncCallback;
+
 public class LoginPresenterTest {
 	
 	LoginPresenter loginPresenter;
@@ -34,10 +36,5 @@ public class LoginPresenterTest {
 	public void testSetPlace() {
 		LoginPlace place = Mockito.mock(LoginPlace.class);
 		loginPresenter.setPlace(place);
-
-		// test set place with logout
-		when(place.toToken()).thenReturn(LoginPlace.LOGOUT_TOKEN);
-		loginPresenter.setPlace(place);		
-		verify(mockAuthenticationController).logoutUser();
 	}	
 }
