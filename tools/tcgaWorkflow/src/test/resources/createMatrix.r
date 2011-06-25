@@ -46,7 +46,7 @@ outputData <- t(clinicalData)
 #----- Now we have an analysis result, add the metadata for the new layer 
 #      to Synapse and upload the analysis result
 outputLayer <- list()
-outputLayer$parentId <- inputDatasetId
+outputLayer$parentId <- '1894'
 outputLayer$name <- paste(dataset$name, inputLayer$name, clinicalLayer$name, sep='-')
 outputLayer$type <- 'E'
 
