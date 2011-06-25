@@ -25,18 +25,19 @@ public class TcgaWorkflowTest {
 	 */
 	@Test
 	public void testDoCreateExpressionMetadata() throws Exception {
-
+		JSONObject annotations = new JSONObject();
 		JSONObject layer = Curation
-				.formulateLayerMetadataFromTcgaUrl("http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
-		
+				.formulateLayerMetadataFromTcgaUrl("http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz",
+						annotations);
+
 		assertEquals("E", layer.getString("type"));
-		assertEquals("unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0", layer.getString("name"));
-		// TODO move commented out stuff to layer annotations
-//		assertEquals("unc.edu", layer.getString("domain"));
-//		assertEquals("COAD", layer.getString("diseaseStudy"));
+		assertEquals("unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0", layer
+				.getString("name"));
+		assertEquals("unc.edu", annotations.getString("tcgaDomain"));
+		assertEquals("COAD", annotations.getString("tcgaDiseaseStudy"));
 		assertEquals("AgilentG4502A_07_3", layer.getString("platform"));
-//		assertEquals("Level_2", layer.getString("level"));
-//		assertEquals("2.0.0", layer.getString("revision"));
+		assertEquals("Level_2", annotations.getString("format"));
+		assertEquals("2.0.0", annotations.getString("tcgaRevision"));
 	}
 
 	/**
@@ -44,12 +45,35 @@ public class TcgaWorkflowTest {
 	 */
 	@Test
 	public void testDoCreateClinicalMetadata() throws Exception {
-
+		JSONObject annotations = new JSONObject();
 		JSONObject layer = Curation
-				.formulateLayerMetadataFromTcgaUrl("http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/bcr/minbiotab/clin/clinical_patient_public_coad.txt");
-		
+				.formulateLayerMetadataFromTcgaUrl("http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/bcr/minbiotab/clin/clinical_patient_public_coad.txt",
+						annotations);
+
 		assertEquals("C", layer.getString("type"));
 		assertEquals("clinical_patient_public_coad", layer.getString("name"));
+		assertEquals("tab-delimited", annotations.getString("format"));
+	}
+
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testDoCreateGeneticMetadata() throws Exception {
+		String geneticDataUrl = "http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/broad.mit.edu/genome_wide_snp_6/snp/broad.mit.edu_COAD.Genome_Wide_SNP_6.mage-tab.1.1007.0.tar.gz";
+
+		JSONObject annotations = new JSONObject();
+		JSONObject layer = Curation
+				.formulateLayerMetadataFromTcgaUrl(geneticDataUrl, annotations);
+		
+		assertEquals("G", layer.getString("type"));
+		assertEquals("broad.mit.edu_COAD.Genome_Wide_SNP_6.mage-tab.1.1007.0", layer
+				.getString("name"));
+		assertEquals("broad.mit.edu", annotations.getString("tcgaDomain"));
+		assertEquals("COAD", annotations.getString("tcgaDiseaseStudy"));
+		assertEquals("Genome_Wide_SNP_6", layer.getString("platform"));
+		assertEquals("mage-tab", annotations.getString("format"));
+		assertEquals("1.1007.0", annotations.getString("tcgaRevision"));
 	}
 
 }

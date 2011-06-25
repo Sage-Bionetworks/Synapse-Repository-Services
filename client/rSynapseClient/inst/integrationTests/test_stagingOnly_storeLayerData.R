@@ -18,6 +18,7 @@ integrationTestStoreLayerData <- function() {
 	# Create a dataset
 	dataset <- list()
 	dataset$name = 'R Integration Test Dataset'
+	dataset$parentId <- '1893' # a project created for these tests
 	createdDataset <- createDataset(entity=dataset)
 	checkEquals(dataset$name, createdDataset$name)
 	

@@ -40,7 +40,8 @@ setMethod(
 	response <- synapseGet(entity$locations, curlHandle = curlHandle)
 	checkCurlResponse(curlHandle, response)
 	availableLocations <- jsonListToDataFrame(response$results)
-	ind <- match(locationPrefs, availableLocations$type)
+	ind <- match(locationPrefs, availableLocations$type, nomatch = 0)
+	ind <- ind[ind>0]
 	
 	if(length(ind) == 0){
 		stop("Data file was not available in any of the locations specified. Locations available for this layer:", layer@locations)

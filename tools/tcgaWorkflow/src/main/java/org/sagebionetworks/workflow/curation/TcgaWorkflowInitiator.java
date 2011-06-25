@@ -1,9 +1,14 @@
 package org.sagebionetworks.workflow.curation;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.workflow.activity.Crawling;
+import org.sagebionetworks.workflow.activity.Curation;
 import org.sagebionetworks.workflow.activity.SimpleObserver;
 
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
@@ -29,51 +34,29 @@ public class TcgaWorkflowInitiator {
 			.getLogger(TcgaWorkflowInitiator.class.getName());
 
 	class ArchiveObserver implements SimpleObserver<String> {
-		String datasetName;
-		String datasetId;
-
-		ArchiveObserver(String datasetName, String datasetId) {
-			this.datasetName = datasetName;
-			this.datasetId = datasetId;
-		}
+		Map<String, String> versionMap = new HashMap<String, String>();
 
 		public void update(String url) throws Exception {
-
 			// We are only interested in archives that do not contain images
-
-			// TODO configurable includes/excludes for what to pull down
 			if (url.endsWith("tar.gz") && (0 > url.indexOf("image"))) {
+				JSONObject annotations = new JSONObject();
+				JSONObject layer = Curation.formulateLayerMetadataFromTcgaUrl(
+						url, annotations);
 
-				if (url
-						.matches(".*jhu-usc.edu_COAD.HumanMethylation27.Level_2.8.0.0.*")) {
-				
-//				if (url
-//						.matches(".*jhu-usc.edu_COAD.HumanMethylation27.Level_3.8.0.0.*")) {
-				
-//				if (url
-//						.matches(".*broad.mit.edu_COAD.Genome_Wide_SNP_6.Level_3.76.*")) {
-				
-//				// This one has an MD5 failure because two different urls have the same filename
-//				if (url
-//						.matches(".*bcgsc.ca_COAD.IlluminaGA_miRNASeq.Level_3.1.0.0.*")) {
-				
-//				if (url
-//						.matches(".*jhu-usc.edu_COAD.HumanMethylation27.Level_1.4.0.0.*")) {
-				
-//				if (url
-//						.matches(".*bcgsc.ca_COAD.IlluminaGA_miRNASeq.*")) {
-				
-//				if (url
-//						.matches(".*unc.edu_COAD.AgilentG4502A_07_3.Level_3.1.5.0.*")) {
-				
-//				if (url
-//						.matches(".*unc.edu_COAD.AgilentG4502A_07_3.Level_1.1.4.0.*")) {
-					TcgaWorkflow.doWorkflow("Workflow for TCGA Dataset "
-							+ datasetName, datasetId, url);
-					log.info("Kicked off workflow for " + url);
+				// Since the URLs come in in order of lowest to highest
+				// revision, this will keep overwriting the earlier revisions in
+				// the map and at the end we will only have the latest revisions
+				if (annotations.has("tcgaRevision")) {
+					versionMap.put(url.replace(annotations
+							.getString("tcgaRevision"), ""), url);
+				} else {
+					versionMap.put(url, url);
 				}
-
 			}
+		}
+
+		public final Collection<String> getResults() {
+			return versionMap.values();
 		}
 	}
 
@@ -101,15 +84,21 @@ public class TcgaWorkflowInitiator {
 			} else {
 				JSONObject datasetQueryResult = results.getJSONArray("results")
 						.getJSONObject(0);
-
+				String datasetId = datasetQueryResult.getString("dataset.id");
 				log.debug("Crawling dataset " + datasetName + "("
 						+ datasetQueryResult.getString("dataset.id")
 						+ ") at url " + url);
 				Crawling archiveCrawler = new Crawling();
-				ArchiveObserver observer = new ArchiveObserver(datasetName,
-						datasetQueryResult.getString("dataset.id"));
+				ArchiveObserver observer = new ArchiveObserver();
 				archiveCrawler.addObserver(observer);
 				archiveCrawler.doCrawl(url, true);
+
+				Collection<String> urls = observer.getResults();
+				for (String dataLayerUrl : urls) {
+					TcgaWorkflow.doWorkflow("Workflow for TCGA Dataset "
+							+ datasetName, datasetId, dataLayerUrl);
+					log.info("Kicked off workflow for " + dataLayerUrl);
+				}
 			}
 		}
 	}

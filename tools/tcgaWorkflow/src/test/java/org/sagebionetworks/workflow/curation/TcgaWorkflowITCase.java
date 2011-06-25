@@ -5,6 +5,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collection;
+
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.junit.BeforeClass;
@@ -22,6 +24,7 @@ import org.sagebionetworks.workflow.activity.SimpleObserver;
 import org.sagebionetworks.workflow.activity.Storage;
 import org.sagebionetworks.workflow.activity.DataIngestion.DownloadResult;
 import org.sagebionetworks.workflow.activity.Processing.ScriptResult;
+import org.sagebionetworks.workflow.curation.TcgaWorkflowInitiator.ArchiveObserver;
 
 import com.amazonaws.AmazonServiceException;
 
@@ -89,6 +92,7 @@ public class TcgaWorkflowITCase {
 	public void testDoCreateClinicalMetadata() throws Exception {
 		clinicalLayerId = Curation
 				.doCreateSynapseMetadataForTcgaSourceLayer(
+						false,
 						datasetId,
 						"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/bcr/minbiotab/clin/clinical_public_coad.tar.gz");
 		assertFalse(Constants.WORKFLOW_DONE.equals(clinicalLayerId));
@@ -102,6 +106,7 @@ public class TcgaWorkflowITCase {
 	public void testDoCreateExpressionLevel1Metadata() throws Exception {
 		expressionLevel1LayerId = Curation
 				.doCreateSynapseMetadataForTcgaSourceLayer(
+						false,
 						datasetId,
 						"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_1.1.4.0.tar.gz");
 		assertFalse(Constants.WORKFLOW_DONE.equals(expressionLevel1LayerId));
@@ -114,9 +119,23 @@ public class TcgaWorkflowITCase {
 	public void testDoCreateExpressionLevel2Metadata() throws Exception {
 		expressionLevel2LayerId = Curation
 				.doCreateSynapseMetadataForTcgaSourceLayer(
+						false,
 						datasetId,
 						"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
 		assertFalse(Constants.WORKFLOW_DONE.equals(expressionLevel2LayerId));
+	}
+
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testDoCreateGeneticMetadata() throws Exception {
+		String geneticLayerId = Curation
+				.doCreateSynapseMetadataForTcgaSourceLayer(
+						false,
+						datasetId,
+						"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/broad.mit.edu/genome_wide_snp_6/snp/broad.mit.edu_COAD.Genome_Wide_SNP_6.mage-tab.1.1007.0.tar.gz");
+		assertFalse(Constants.WORKFLOW_DONE.equals(geneticLayerId));
 	}
 
 	/**
@@ -131,15 +150,15 @@ public class TcgaWorkflowITCase {
 		JSONObject results = synapse
 				.query("select * from dataset where dataset.name == 'MSKCC Prostate Cancer'");
 		assertEquals(1, results.getInt("totalNumberOfResults"));
-		String mskccId = results.getJSONArray("results").getJSONObject(0).getString(
-				"dataset.id");
+		String mskccId = results.getJSONArray("results").getJSONObject(0)
+				.getString("dataset.id");
 
 		// Pass the id for the
 		scriptResult = Processing.doProcessLayer(
 				"./src/test/resources/createMatrix.r", mskccId, "fakeLayerId");
 
-		
-		assertEquals(Constants.WORKFLOW_DONE, scriptResult.getProcessedLayerId());
+		assertEquals(Constants.WORKFLOW_DONE, scriptResult
+				.getProcessedLayerId());
 
 	}
 
@@ -148,7 +167,8 @@ public class TcgaWorkflowITCase {
 	 */
 	@Test
 	public void testDoFormulateNotificationMessage() throws Exception {
-		String message = Curation.formulateLayerCreationMessage(expressionLevel2LayerId);
+		String message = Curation
+				.formulateLayerCreationMessage(expressionLevel2LayerId);
 		assertNotNull(message);
 	}
 
@@ -156,6 +176,7 @@ public class TcgaWorkflowITCase {
 	 * @throws Exception
 	 */
 	@Test
+	@Ignore
 	public void testDoDownloadClinicalDataFromTcga() throws Exception {
 
 		clinicalDownloadResult = DataIngestion
@@ -171,7 +192,8 @@ public class TcgaWorkflowITCase {
 	 * @throws Exception
 	 */
 	@Test
-	@Ignore // The download takes too long
+	@Ignore
+	// The download takes too long
 	public void testDoDownloadExpressionLevel1DataFromTcga() throws Exception {
 
 		expressionLevel1DownloadResult = DataIngestion
@@ -188,6 +210,7 @@ public class TcgaWorkflowITCase {
 	 * @throws Exception
 	 */
 	@Test
+	@Ignore
 	public void testDoDownloadExpressionLevel2DataFromTcga() throws Exception {
 
 		expressionLevel2DownloadResult = DataIngestion
@@ -204,6 +227,7 @@ public class TcgaWorkflowITCase {
 	 * @throws Exception
 	 */
 	@Test
+	@Ignore
 	public void testDoUploadClinicalDataToS3() throws Exception {
 		Storage.doUploadLayerToStorage(datasetId, clinicalLayerId,
 				clinicalDownloadResult.getLocalFilepath(),
@@ -214,7 +238,8 @@ public class TcgaWorkflowITCase {
 	 * @throws Exception
 	 */
 	@Test
-	@Ignore // the upload takes too long
+	@Ignore
+	// the upload takes too long
 	public void testDoUploadExpressionLevel1DataToS3() throws Exception {
 		Storage.doUploadLayerToStorage(datasetId, expressionLevel1LayerId,
 				expressionLevel1DownloadResult.getLocalFilepath(),
@@ -225,6 +250,7 @@ public class TcgaWorkflowITCase {
 	 * @throws Exception
 	 */
 	@Test
+	@Ignore
 	public void testDoUploadExpressionLevel2DataToS3() throws Exception {
 		Storage.doUploadLayerToStorage(datasetId, expressionLevel2LayerId,
 				expressionLevel2DownloadResult.getLocalFilepath(),
@@ -240,9 +266,11 @@ public class TcgaWorkflowITCase {
 		ScriptResult scriptResult = null;
 
 		scriptResult = Processing.doProcessLayer(
-				"./src/test/resources/createMatrix.r", datasetId, expressionLevel2LayerId);
+				"./src/test/resources/createMatrix.r", datasetId,
+				expressionLevel2LayerId);
 
-		assertFalse(Constants.WORKFLOW_DONE.equals(scriptResult.getProcessedLayerId()));
+		assertFalse(Constants.WORKFLOW_DONE.equals(scriptResult
+				.getProcessedLayerId()));
 
 	}
 
@@ -254,7 +282,8 @@ public class TcgaWorkflowITCase {
 		ScriptResult scriptResult = Processing.doProcessLayer(
 				"./src/test/resources/stdoutKeepAlive.sh", datasetId,
 				expressionLevel2LayerId);
-		assertFalse(Constants.WORKFLOW_DONE.equals(scriptResult.getProcessedLayerId()));
+		assertFalse(Constants.WORKFLOW_DONE.equals(scriptResult
+				.getProcessedLayerId()));
 
 	}
 
@@ -276,6 +305,7 @@ public class TcgaWorkflowITCase {
 	 * @throws Exception
 	 */
 	@Test
+	@Ignore
 	public void testDoTcgaCrawl() throws Exception {
 
 		class CrawlObserver implements SimpleObserver<String> {
@@ -320,6 +350,27 @@ public class TcgaWorkflowITCase {
 		assertTrue(64 <= testObserver.numArchivesFound);
 		assertTrue(testObserver.foundClinical);
 		assertTrue(testObserver.foundExpression);
+	}
+
+	/**
+	 * Test crawler with version collapse logic
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testDoVersionConsolidationTcgaCrawl() throws Exception {
+		Crawling archiveCrawler = new Crawling();
+		ArchiveObserver observer = new TcgaWorkflowInitiator().new ArchiveObserver();
+		archiveCrawler.addObserver(observer);
+		archiveCrawler
+				.doCrawl(
+						"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/",
+						true);
+		Collection<String> urls = observer.getResults();
+		for (String dataLayerUrl : urls) {
+			log.warn(dataLayerUrl);
+		}
+		assertTrue(267 <= urls.size());
 	}
 
 }
