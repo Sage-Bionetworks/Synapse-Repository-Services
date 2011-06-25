@@ -19,11 +19,11 @@ public interface LoginView extends IsWidget{
 	
 	void showLogout(boolean isSsoLogout);
 	
-	void showLogin();
+	void showLogin(String openIdActionUrl, String openIdReturnUrl);
 
 	public interface Presenter {
 		void goTo(Place place);
 		
-		void setNewUser(UserData newUser);		
+		void setNewUser(UserData newUser);
 	}
 }

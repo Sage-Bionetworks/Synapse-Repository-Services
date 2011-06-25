@@ -3,11 +3,6 @@ package org.sagebionetworks.web.client;
 import com.google.gwt.i18n.client.DateTimeFormat;
 
 public class DisplayConstants {
-	/*
-	 * Static URLs
-	 */
-	public static final String SYNAPSEWEB_URL = "https://staging-synapseweb.elasticbeanstalk.com";
-	public static final String AUTH_URL = "https://staging-auth.elasticbeanstalk.com";	
 	
 	/*
 	 * Dimensions
@@ -66,8 +61,6 @@ public class DisplayConstants {
 	 */
 	public static final String SINGLE_SIGN_ON_USERID = "SSO";
 	public static final String OPEN_ID_SAGE_LOGIN_BUTTON_TEXT = "Login with a Sagebase.org Account";
-	public static final String OPEN_ID_ACTION_ENDPOINT = AUTH_URL + "/auth/v1/openid";
-	public static final String OPEN_ID_RETURN_URL = SYNAPSEWEB_URL + "/#LoginPlace";
 	public static final String OPEN_ID_PROVIDER_GOOGLE_VALUE = "https://www.google.com/accounts/o8/id";
 	public static final String OPEN_ID_PROVIDER_SAGE_VALUE = "https://www.google.com/accounts/o8/site-xrds?hd=sagebase.org";
 

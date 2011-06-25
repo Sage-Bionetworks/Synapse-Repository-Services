@@ -14,13 +14,15 @@ public class LoginWidget implements LoginWidgetView.Presenter {
 
 	private LoginWidgetView view;
 	private AuthenticationController controller;	
-	private List<UserListener> listeners = new ArrayList<UserListener>();
+	private List<UserListener> listeners = new ArrayList<UserListener>();	
+	private String openIdActionUrl;
+	private String openIdReturnUrl;
 	
 	@Inject
 	public LoginWidget(LoginWidgetView view, AuthenticationController controller) {
 		this.view = view;
 		view.setPresenter(this);
-		this.controller = controller;
+		this.controller = controller;		
 	}
 
 	public Widget asWidget() {
@@ -55,6 +57,24 @@ public class LoginWidget implements LoginWidgetView.Presenter {
 		for(UserListener listener: listeners){
 			listener.userChanged(user);
 		}
+	}
+
+	public void setOpenIdActionUrl(String url) {
+		this.openIdActionUrl = url;		
+	}
+	
+	public void setOpenIdReturnUrl(String url) {
+		this.openIdReturnUrl = url;
+	}
+	
+	@Override
+	public String getOpenIdActionUrl() {
+		return openIdActionUrl;
+	}
+
+	@Override
+	public String getOpenIdReturnUrl() {
+		return openIdReturnUrl;
 	}
 	
 	

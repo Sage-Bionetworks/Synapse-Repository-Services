@@ -17,6 +17,10 @@ public interface LoginWidgetView extends IsWidget {
 	public interface Presenter {
 		
 		public void setUsernameAndPassword(String username, String password);
+		
+		public String getOpenIdActionUrl();
+		
+		public String getOpenIdReturnUrl();
 	}
 
 	public void showAuthenticationFailed();

@@ -30,4 +30,8 @@ public interface UserAccountService extends RemoteService {
 	
 	public List<AclPrincipal> getAllUsersAndGroups();
 	
+	public String getAuthServiceUrl();
+	
+	public String getSynapseWebUrl();
+	
 }

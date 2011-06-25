@@ -26,4 +26,8 @@ public interface UserAccountServiceAsync {
 
 	void getAllUsersAndGroups(AsyncCallback<List<AclPrincipal>> callback);
 
+	void getAuthServiceUrl(AsyncCallback<String> callback);
+
+	void getSynapseWebUrl(AsyncCallback<String> callback);
+
 }

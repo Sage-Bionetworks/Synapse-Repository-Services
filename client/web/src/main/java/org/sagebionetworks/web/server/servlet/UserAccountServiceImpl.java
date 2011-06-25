@@ -8,10 +8,10 @@ import java.util.logging.Logger;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
-import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.UserAccountService;
 import org.sagebionetworks.web.client.security.AuthenticationException;
 import org.sagebionetworks.web.server.RestTemplateProvider;
+import org.sagebionetworks.web.server.ServerConstants;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 import org.sagebionetworks.web.shared.users.AclPrincipal;
 import org.sagebionetworks.web.shared.users.UserData;
@@ -29,6 +29,7 @@ import org.springframework.web.client.RestClientException;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import com.google.gwt.user.server.rpc.UnexpectedException;
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 
 public class UserAccountServiceImpl extends RemoteServiceServlet implements UserAccountService {
 
@@ -49,6 +50,8 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 	private static final String ACL_PRINCIPAL_ETAG = "etag";
 	private static final String ACL_PRINCIPAL_INDIVIDUAL = "individual";
 	
+	private String synapseWebUrl;
+	private String authServiceUrl;
 	
 	/**
 	 * The template is injected with Gin
@@ -378,4 +381,29 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 					"The org.sagebionetworks.rest.api.root.url was not set");
 	}
 
+	@Override
+	public String getAuthServiceUrl() {
+		return authServiceUrl;
+	}
+
+	@Override
+	public String getSynapseWebUrl() {
+		return synapseWebUrl;
+	}
+	
+	
+	/*
+	 * Property Injection
+	 */
+	@Inject
+	public void setSynapseEndpoint(@Named(ServerConstants.KEY_SYNAPSE_WEB_ENDPOINT) String synapseWebEndpoint) {
+		this.synapseWebUrl = synapseWebEndpoint;
+	}
+
+	@Inject
+	public void setAuthServiceEndpoint(@Named(ServerConstants.KEY_AUTH_API_ENDPOINT) String endpoint, @Named(ServerConstants.KEY_AUTH_API_SERVLET_PREFIX) String prefix) {
+		this.authServiceUrl = endpoint + prefix;
+	}
+
+	
 }

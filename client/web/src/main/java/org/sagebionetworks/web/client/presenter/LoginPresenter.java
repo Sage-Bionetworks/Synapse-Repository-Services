@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.presenter;
 
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.UserAccountServiceAsync;
 import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.place.LoginPlace;
 import org.sagebionetworks.web.client.security.AuthenticationController;
@@ -24,12 +25,16 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 	private EventBus bus;
 	private PlaceController placeController;
 	private AuthenticationController authenticationController;
+	private UserAccountServiceAsync userService;
+	private String openIdActionUrl;
+	private String openIdReturnUrl;
 	
 	@Inject
-	public LoginPresenter(LoginView view, AuthenticationController authenticationController){
+	public LoginPresenter(LoginView view, AuthenticationController authenticationController, UserAccountServiceAsync userService){
 		this.view = view;
 		this.view.setPresenter(this);
 		this.authenticationController = authenticationController;
+		this.userService = userService;
 	}
 
 	@Override
@@ -39,9 +44,41 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 		this.placeController = new PlaceController(eventBus);
 	}
 
-	public void setPlace(LoginPlace place) {
+	public void setPlace(final LoginPlace place) {
 		this.loginPlace = place;
 		view.clear();
+		if(openIdActionUrl != null && openIdReturnUrl != null) {		
+			showView(place);
+		} else {
+			// load Open ID urls
+			// retrieve endpoints for SSO
+			userService.getAuthServiceUrl(new AsyncCallback<String>() {
+				@Override
+				public void onSuccess(String result) {
+					openIdActionUrl = result + "/openid";
+					
+					userService.getSynapseWebUrl(new AsyncCallback<String>() {
+						@Override
+						public void onSuccess(String result) {
+							openIdReturnUrl = result + "/#LoginPlace";
+							
+							// now show the view
+							showView(place);
+						}
+						@Override
+						public void onFailure(Throwable caught) {
+						}
+					});					
+				}
+				@Override
+				public void onFailure(Throwable caught) {
+					view.showErrorMessage("An Error occured. Please try reloading the page");
+				}
+			});
+		}
+	}
+
+	private void showView(LoginPlace place) {
 		String token = place.toToken();
 		if(LoginPlace.LOGOUT_TOKEN.equals(token)) {
 			UserData currentUser = authenticationController.getLoggedInUser();
@@ -69,20 +106,21 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 						@Override
 						public void onFailure(Throwable caught) {
 							view.showErrorMessage("An error occured. Please try logging in again.");
-							view.showLogin();
+							view.showLogin(openIdActionUrl, openIdReturnUrl);
 						}
 					});
 				} else {
 					view.showErrorMessage("An error occured. Please try logging in again.");
-					view.showLogin();
+					view.showLogin(openIdActionUrl, openIdReturnUrl);
 				}
 			}
 		} else {
 			// standard view
-			view.showLogin();
+			view.showLogin(openIdActionUrl, openIdReturnUrl);
 		}
 	}
 
+	
 	@Override
 	public void setNewUser(UserData newUser) {	
 		// Allow the user to proceed.

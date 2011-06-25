@@ -127,8 +127,11 @@ public class LoginViewImpl extends Composite implements LoginView {
 	}
 
 	@Override
-	public void showLogin() {
+	public void showLogin(String openIdActionUrl, String openIdReturnUrl) {
 		clearAllPanels();
+		
+		loginWidget.setOpenIdActionUrl(openIdActionUrl);
+		loginWidget.setOpenIdReturnUrl(openIdReturnUrl);
 		
 		// Add the widget to the panel
 		loginWidgetPanel.clear();

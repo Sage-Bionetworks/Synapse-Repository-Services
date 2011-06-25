@@ -54,9 +54,9 @@ public class LoginWidgetViewImpl extends LayoutContainer implements
 		
 		// federated login button
 		StringBuilder sb = new StringBuilder();		
-		sb.append("<form accept-charset=\"UTF-8\" action=\""+ DisplayConstants.OPEN_ID_ACTION_ENDPOINT +"\" class=\"aui\" id=\"gapp-openid-form\" method=\"post\" name=\"gapp-openid-form\">");
+		sb.append("<form accept-charset=\"UTF-8\" action=\""+ presenter.getOpenIdActionUrl() +"\" class=\"aui\" id=\"gapp-openid-form\" method=\"post\" name=\"gapp-openid-form\">");
 		sb.append("    <input name=\"OPEN_ID_PROVIDER\" type=\"hidden\" value=\""+ DisplayConstants.OPEN_ID_PROVIDER_SAGE_VALUE +"\"/>");
-		sb.append("    <input name=\"RETURN_TO_URL\" type=\"hidden\" value=\""+ DisplayConstants.OPEN_ID_RETURN_URL +"\"/>");
+		sb.append("    <input name=\"RETURN_TO_URL\" type=\"hidden\" value=\""+ presenter.getOpenIdReturnUrl() +"\"/>");
 		sb.append("    <button id=\"login-via-gapp-google\" type=\"submit\"><img alt=\""+ DisplayConstants.OPEN_ID_SAGE_LOGIN_BUTTON_TEXT +"\" src=\"http://www.google.com/favicon.ico\"/>&nbsp; "+ DisplayConstants.OPEN_ID_SAGE_LOGIN_BUTTON_TEXT +"</button>");
 		sb.append("</form>");		
 		sb.append("<p>&nbsp;</p>");

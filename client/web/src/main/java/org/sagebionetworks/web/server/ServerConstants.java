@@ -59,5 +59,9 @@ public class ServerConstants {
 	 */
 	public static final String KEY_AUTH_API_SERVLET_PREFIX = "org.sagebionetworks.auth.api.servlet.prefix";
 	
+	/**
+	 * The property key that gives the Synapse Web endpoint
+	 */
+	public static final String KEY_SYNAPSE_WEB_ENDPOINT = "org.sagebionetworks.synapse.web.endpoint";
 
 }
