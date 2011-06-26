@@ -3,7 +3,7 @@ synapseRepoServiceEndpoint <-
 {
 	if (!missing(endpoint)) {
 		.setCache("reposervice.endpoint", endpoint)
-		url <- URL(url=endpoint)
+		url <- .ParsedUrl(url=endpoint)
 		.setCache("reposervice.endpointLocation", paste(url@protocol, '://', url@authority, sep=''))
 		.setCache("reposervice.endpointPrefix", url@path)
 	}

@@ -1,12 +1,12 @@
-refreshSessionToken <- 
-		function(session.token, host = .getAuthServiceEndpointLocation())
+synapseRefreshSessionToken <- 
+		function(sessionToken, host = .getAuthServiceEndpointLocation())
 {
 	# constants
 	kService <- "/session"
 	## end constants
 			
 	entity <- list()
-	entity$sessionToken <- session.token
+	entity$sessionToken <- sessionToken
 
 	uri <- kService
 	response <- synapsePut(uri = uri, entity = entity, path = .getAuthEndpointPrefix(), host = host, anonymous = TRUE)

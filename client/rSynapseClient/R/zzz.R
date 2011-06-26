@@ -13,6 +13,7 @@ kSupportedLayerCodeMap <- list(
 
 	)
 kSupportedLayerStatus <- c("Curated", "QCd", "Raw")
+kSupportedDataLocationTypes <- c("external", "awss3")
 kSupportedPlatforms <- list(
 		phenotype.data = c("Custom"),
 		expression.data = c("Affymetrix", "Agilent", "Illumina", "Custom"),
@@ -44,10 +45,9 @@ kSupportedPlatforms <- list(
 .onLoad <-
 		function(libname, pkgname)
 {
-	resetSynapseHostConfig()
-	dataLocationPrefs(c("external", "awss3"))
+	synapseResetEndpoints()
+	synapseDataLocationPreferences(kSupportedDataLocationTypes)
 	.setCache("synapseCacheDir", gsub("[\\]+", "/", path.expand("~/.synapseCache")))
-	.setCache("supportedRepositoryLocationTypes", c("external", "awss3"))
 	.setCache("layerCodeTypeMap", kSupportedLayerCodeMap)
 	.setCache("supportedLayerStatus", kSupportedLayerStatus)
 	.setCache("supportedPlatforms", kSupportedPlatforms)

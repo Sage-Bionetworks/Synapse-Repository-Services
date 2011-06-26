@@ -23,10 +23,10 @@
 	}
 	
 	## Prepare the header. If not an anonymous request, stuff the
-	## session token into the header
+	## sessionToken into the header
 	header <- .getCache("curlHeader")
 	if(!anonymous){
-		header <- c(header, sessionToken = sessionToken())
+		header <- c(header, sessionToken = synapseSessionToken())
 	}
 	
 	## Submit request and check response code
@@ -43,7 +43,7 @@
 		message("response: ", response)
 	}
 	
-	checkCurlResponse(curlHandle, response)
+	.checkCurlResponse(curlHandle, response)
 	
 	if("GET" == requestMethod) {
 		## Parse response and prepare return value

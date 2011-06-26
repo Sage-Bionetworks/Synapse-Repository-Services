@@ -5,7 +5,7 @@
 ###############################################################################
 
 setClass(
-		Class = "URL",
+		Class = ".ParsedUrl",
 		representation = representation(
 							url = "character",
 							protocol = "character",
@@ -20,7 +20,7 @@ setClass(
 		prototype = prototype(url = NULL)
 )
 
-URL <- function(url){
+.ParsedUrl <- function(url){
 	
 	## protocol
 	if(length(grep("://", url)) == 0){
@@ -63,7 +63,7 @@ URL <- function(url){
 	pathPrefix <- gsub(paste("/", file, "$", sep=""), "", path)
 	
 	new(
-		Class = "URL",
+		Class = ".ParsedUrl",
 		url = url,
 		protocol = protocol,
     authority = authority,

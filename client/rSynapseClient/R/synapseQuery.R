@@ -20,7 +20,7 @@ synapseQuery <-
 		return(NULL)
 	}
 	# Parse response and prepare return value
-	return.val <- jsonListToDataFrame(result$results)
+	return.val <- .jsonListToDataFrame(result$results)
 	attr(return.val, "totalNumberOfResults") <- result$totalNumberOfResults
 
 	return(return.val)

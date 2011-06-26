@@ -1,10 +1,10 @@
-dataLocationPrefs <- function(locations){
-	if(missing(locations)){
-		return(.getCache("dataLocationPrefs"))
+synapseDataLocationPreferences <- function(locationTypes){
+	if(missing(locationTypes)){
+		return(.getCache("synapseDataLocationPreferences"))
 	}
-	#if(!all(dataLocationPrefs %in% .getCache("supportedRepositoryLocationTypes"))){
-		#ind <- which(!(locations %in% .getCache("supportedRepositoryLocationTypes")))
-		#stop(paste("unsupported repository location(s):", locations[ind]))
-	#}
-	.setCache("dataLocationPrefs", locations)
+	if(!all(locationTypes %in% kSupportedDataLocationTypes)){
+		ind <- which(!(locationTypes %in% kSupportedDataLocationTypes))
+		stop(paste("unsupported repository location(s):", locationTypes[ind]))
+	}
+	.setCache("synapseDataLocationPreferences", locationTypes)
 }

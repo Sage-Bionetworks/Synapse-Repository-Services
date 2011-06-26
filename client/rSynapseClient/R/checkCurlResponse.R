@@ -1,11 +1,11 @@
 setGeneric(
-		name="checkCurlResponse",
+		name=".checkCurlResponse",
 		def=function(object, response){
-			standardGeneric("checkCurlResponse")
+			standardGeneric(".checkCurlResponse")
 		}
 )
 
-setMethod("checkCurlResponse", "CURLHandle",
+setMethod(".checkCurlResponse", "CURLHandle",
 		function(object, response){
 			info <- getCurlInfo(object)
 			if(info$response.code < 200 | info$response.code >= 300 ){

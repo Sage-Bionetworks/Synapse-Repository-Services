@@ -50,8 +50,8 @@ integrationTestStoreLayerData <- function() {
 	checkEquals(layer2$name, createdLayer2$name)
 
 	# Download both layers and make sure they are equivalent
-	layerFiles <- synapseClient:::.cacheFiles(entity=createdLayer)
-	layer2Files <- synapseClient:::.cacheFiles(entity=createdLayer2)
+	layerFiles <- loadLayerData(entity=createdLayer)
+	layer2Files <- loadLayerData(entity=createdLayer2)
 	storedLayerData <- read.table(layerFiles[[1]], sep='\t')
 	storedLayer2Data <- read.table(layer2Files[[1]], sep='\t')
 	checkEquals(storedLayerData, storedLayer2Data)	

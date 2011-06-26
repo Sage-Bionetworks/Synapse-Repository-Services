@@ -1,4 +1,4 @@
-resetSynapseHostConfig <-
+synapseResetEndpoints <-
 		function()
 {
 	synapseAuthServiceEndpoint("https://auth-alpha.sagebase.org/auth/v1")

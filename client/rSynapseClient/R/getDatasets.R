@@ -21,7 +21,7 @@ getDatasets <-
 	uri <- paste(kService, curlEscape(query), sep="=")
 	
 	json.records <- synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous)
-	result <- parseJSONRecords(json.records$results)
+	result <- .parseJSONRecords(json.records$results)
 	attr(result, "total_records_available") <- json.records$totalNumberOfResults
 
 	return(result)

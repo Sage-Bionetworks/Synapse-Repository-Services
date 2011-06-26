@@ -3,7 +3,7 @@ synapseAuthServiceEndpoint <-
 {
 	if (!missing(endpoint)) {
 		.setCache("authservice.endpoint", endpoint)
-		url <- URL(url=endpoint)
+		url <- .ParsedUrl(url=endpoint)
 		.setCache("authservice.endpointLocation", paste(url@protocol, '://', url@authority, sep=''))
 		.setCache("authservice.endpointPrefix", url@path)
 	}

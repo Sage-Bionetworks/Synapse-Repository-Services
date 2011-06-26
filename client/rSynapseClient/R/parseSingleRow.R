@@ -1,4 +1,4 @@
-parseSingleRow <- 
+.parseSingleRow <- 
 		function(row.list)
 {
 	#constants
@@ -7,7 +7,7 @@ parseSingleRow <-
 	#end constants
 	
 	# clean field names to remove illegal characters, etc.
-	names(row.list) <- cleanFieldNames(names(row.list))
+	names(row.list) <- .cleanFieldNames(names(row.list))
 	
 	#iterate through rownames and add each element to the data frame
 	row <- data.frame()

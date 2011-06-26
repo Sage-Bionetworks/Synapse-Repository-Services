@@ -24,22 +24,22 @@ setMethod(
 
 
 .cacheFiles <-
-		function(entity, locationPrefs = dataLocationPrefs(), curlHandle = getCurlHandle(), cacheDir = synapseCacheDir())
+		function(entity, locationPrefs = synapseDataLocationPreferences(), curlHandle = getCurlHandle(), cacheDir = synapseCacheDir())
 {
 	if(!"locations" %in% names(entity)){
 		stop("the entity does not have any locations")
 	}
 	
 	## make sure that the location type for this layer is currently supported
-	if(!all(locationPrefs %in% .getCache("supportedRepositoryLocationTypes"))){
-		ind <- which(!(locationPrefs %in% .getCache("supportedRepositoryLocationTypes")))
+	if(!all(locationPrefs %in% kSupportedDataLocationTypes)){
+		ind <- which(!(locationPrefs %in% kSupportedDataLocationTypes))
 		stop(paste("unsupported repository location(s):", locationPrefs[ind]))
 	}
 	
 	#get the available locations for this layer and match to locationPrefs
 	response <- synapseGet(entity$locations, curlHandle = curlHandle)
-	checkCurlResponse(curlHandle, response)
-	availableLocations <- jsonListToDataFrame(response$results)
+	.checkCurlResponse(curlHandle, response)
+	availableLocations <- .jsonListToDataFrame(response$results)
 	ind <- match(locationPrefs, availableLocations$type, nomatch = 0)
 	ind <- ind[ind>0]
 	
@@ -55,7 +55,7 @@ setMethod(
 	## get result. path is an empty string since the path is already included in 
 	## the uri element of layer
 	response <- synapseGet(uri = uri, curlHandle = curlHandle)
-	checkCurlResponse(curlHandle, response)
+	.checkCurlResponse(curlHandle, response)
 	
 	destfile = synapseDownloadFile(url = response$path, checksum = response$md5sum)
 	destDir <- paste(destfile, .getCache("downloadSuffix"), sep="_")

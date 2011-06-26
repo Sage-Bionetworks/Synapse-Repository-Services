@@ -2,7 +2,7 @@ synapseDownloadFile  <-
 		function (url, checksum, curlHandle = getCurlHandle(), cacheDir = synapseCacheDir(), opts = .getCache("curlOpts"))
 {
 	# Download the file to the cache
-	parsedUrl <- URL(url)
+	parsedUrl <- .ParsedUrl(url)
 	destfile <- file.path(cacheDir, gsub("^/", "", parsedUrl@path))
 	destfile <- path.expand(destfile)
 	synapseDownloadFileToDestination(url=url, checksum=checksum, destfile=destfile, opts=opts)
@@ -28,7 +28,7 @@ synapseDownloadFileToDestination  <-
 	
 	writeBin(getBinaryURL(url, curl = curlHandle, .opts = opts), con = destfile)
 	tryCatch(
-			checkCurlResponse(curlHandle, paste(readLines(con=destfile, warn=FALSE), collapse='')), 
+			.checkCurlResponse(curlHandle, paste(readLines(con=destfile, warn=FALSE), collapse='')), 
 			error = function(ex){
 				file.remove(destfile)
 				stop(ex)

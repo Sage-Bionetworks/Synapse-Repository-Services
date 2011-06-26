@@ -64,7 +64,7 @@ integrationTestTcgaWorkflow <- function() {
 	## end hack
 	####
 	clinicalLayer <- datasetLayers$results[[ind[1]]]
-	clinicalDataFiles <- synapseClient:::.cacheFiles(entity=clinicalLayer)
+	clinicalDataFiles <- loadLayerData(entity=clinicalLayer)
 	clinicalData <- read.table(clinicalDataFiles[[4]], sep='\t')
 	
 	#----- Do interesting work with the clinical and expression data R objects
