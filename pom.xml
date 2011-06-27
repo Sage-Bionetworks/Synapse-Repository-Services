@@ -147,6 +147,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>2.4.2</version>
 				<executions>
 					<execution>
 						<id>attach-javadocs</id>
@@ -163,6 +164,7 @@
 	</build>
 
 	<!-- Specify hard-coded project properties that should be shared here -->
+	<!-- Note, do not put in custom developer configuration that should not be shared, esp passwords.  Those go in settings.xml -->
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<!-- This is just for "eclipse:eclipse" goal to always attempt downloading 
@@ -173,7 +175,7 @@
 		
 		<org.springframework.version>3.0.5.RELEASE</org.springframework.version>
 		<jackson.version>1.8.1</jackson.version>
-		<maven.build.timestamp.format>yyMMdd-HHmmss</maven.build.timestamp.format>
+		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ss-Z</maven.build.timestamp.format>
 	</properties>
 
 	<distributionManagement>
