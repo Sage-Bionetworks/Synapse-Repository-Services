@@ -47,7 +47,7 @@
 	
 	if("GET" == requestMethod) {
 		## Parse response and prepare return value
-		fromJSON(response)
+		rjson::fromJSON(response)
 	}
 }
 

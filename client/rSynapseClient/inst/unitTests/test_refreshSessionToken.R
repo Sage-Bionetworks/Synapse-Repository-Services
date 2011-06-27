@@ -6,7 +6,7 @@
 	myGetURL <- 
 			function(uri, postfields, customrequest, httpheader, curl, .opts)
 	{
-		entity <- fromJSON(entity)
+		entity <- rjson::fromJSON(entity)
 		if(entity$sessionToken == .getCache("validToken")){
 			## return the response for a valid sessionToken and set the 
 			## curl handle HTTP response accordingly

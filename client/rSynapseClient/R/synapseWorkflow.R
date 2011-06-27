@@ -63,7 +63,7 @@ finishWorkflowTask <- function(outputLayerId) {
 	result <- list()
 	result[constants@kOutputLayerIdKey] <- outputLayerId
 	write(constants@kOutputStartDelimiterPattern, stdout())
-	write(toJSON(result), stdout())
+	write(.toJSON(result), stdout())
 	write(constants@kOutputEndDelimiterPattern, stdout())
 }
 

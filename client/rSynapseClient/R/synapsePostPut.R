@@ -59,7 +59,7 @@
 	
 	## Parse response and prepare return value
 	tryCatch(
-			fromJSON(response),
+			rjson::fromJSON(response),
 			error = function(e){NULL}
 	)
 }

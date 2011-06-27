@@ -1,11 +1,12 @@
 Package: synapseClient
 Type: Package
-Title: Client for the Sage Repository
+Title: Synapse R Client from Sage Bionetworks
 Version: 0.9
 Date: 2011-02-26
 Author: Matt Furia
 Maintainer: Matt Furia <matt.furia@sagebase.org>
 Depends: methods,RCurl,rjson,tools,RUnit,R (>= 2.13.0)
-Description: Contains a set of functions for retrieving data from the REST services.
+Imports: RCurl
+Description: Contains a set of functions for querying, creating, retrieving, updating, and deleting data from the Synapse REST services.
 License: GPL
 LazyLoad: yes
