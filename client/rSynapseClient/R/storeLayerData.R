@@ -2,7 +2,7 @@ storeLayerData <-
 		function(layerMetadata, layerData)
 {
 
-	#----- Write our analysis result to disk
+	## Write our analysis result to disk
 	kRegularExpression <- "[[:punct:][:space:]]+"
 
 	outputFilepath <- paste(tolower(gsub(kRegularExpression, "_", layerMetadata$name)), 'txt', sep='.')
@@ -22,7 +22,11 @@ storeLayerDataFile <-
 		stop("layerMetadata must be supplied of R type list")
 	}
 	
-	#----- Create or update the layer, as appropriate
+	if(!file.exists(layerDataFilepath)) {
+		stop(sprintf("file %s does not exist", layerDataFilepath))
+	}
+	
+	## Create or update the layer, as appropriate
 	locationMetadata <- list()
 	if("id" %in% names(layerMetadata)) {
 		outputLayerMetadata <- updateLayer(entity=layerMetadata)
@@ -39,24 +43,24 @@ storeLayerDataFile <-
 		outputLayerMetadata <- createLayer(entity=layerMetadata)
 	}
 	
-	#----- Compute the provenance checksum
+	## Compute the provenance checksum
 	checksum <- md5sum(layerDataFilepath)
 	
-	#----- Form the S3 key for this file
+	## Form the S3 key for this file
 	if(grepl(layerDataFilepath, "/")) {
-		# Unix
+		## Unix
 		splits <- strsplit(layerDataFilepath, "/")
 		filename <- splits[[1]][length(splits[[1]])]
 	}
 	else {
-		# Windows
+		## Windows
 		splits <- strsplit(layerDataFilepath, "/")
 		filename <- splits[[1]][length(splits[[1]])]
 	}
-	# TODO get rid of this path prefix once PLFM-212 is done
+	## TODO get rid of this path prefix once PLFM-212 is done
 	s3Key = paste('/rClient', outputLayerMetadata$id, filename, sep="/")
 	
-	#----- Create or update the location, as appropriate
+	## Create or update the location, as appropriate
 	locationMetadata$parentId <- outputLayerMetadata$id
 	locationMetadata$path <- s3Key
 	locationMetadata$type <- 'awss3'
@@ -68,7 +72,7 @@ storeLayerDataFile <-
 		outputLocationMetadata <- createLocation(entity=locationMetadata)
 	}
 	
-	# Upload the data to S3
+	## Upload the data to S3
 	synapseUploadFile(url=outputLocationMetadata$path, 
 			srcfile=layerDataFilepath, 
 			checksum=checksum[[1]])

@@ -31,7 +31,7 @@
 		header <- c(header, ETag = entity$etag)
 	}
 	
-	# uris formed by the service already have their servlet prefix
+	## uris formed by the service already have their servlet prefix
 	if(grepl(path, uri)) {
 		uri <- paste(host, uri, sep="")
 	}
@@ -64,7 +64,8 @@
 	)
 }
 
-# rjson does not correctly serialize empty lists, it represents them as empty arrays instead of empty dictionaries
+## Below is a modified version of rjson.toJSON
+## rjson does not correctly serialize empty lists, it represents them as empty arrays instead of empty dictionaries
 .toJSON <-
 		function (x) 
 {

@@ -1,15 +1,15 @@
 synapseLogin <- 
 		function(username, password, curlHandle = getCurlHandle(), host = .getAuthEndpointLocation(), path = .getAuthEndpointPrefix())
 {
-	#constants
+	## constants
 	kService <- "/session"
-	#end constants
+	## end constants
 	
 	entity <- list()
 	entity$email <- username
 	entity$password <- password
 	
-	#Login and check for success
+	## Login and check for success
 	response <- synapsePost(uri = kService, 
 					entity = entity, 
 					host = host, 
@@ -18,8 +18,8 @@ synapseLogin <-
 				)
 	
 	.checkCurlResponse(curlHandle, response)
-	#cache the sessionToken. No need to check validity since it was just created
-	synapseSessionToken(response$sessionToken, check.validity = FALSE)
+	## Cache the sessionToken. No need to check validity since it was just created
+	synapseSessionToken(response$sessionToken, checkValidity = FALSE)
 	.setCache("sessionTimestamp", Sys.time())
-	cat(paste("Welcome ", response$displayName, "!\n", sep=""))
+	message(paste("Welcome ", response$displayName, "!\n", sep=""))
 }

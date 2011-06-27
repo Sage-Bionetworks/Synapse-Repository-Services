@@ -1,6 +1,16 @@
 .getChildEntities <- 
 		function(entity, childKind, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
 {
+	if(!is.list(entity)){
+		stop("the entity must be an R list")
+	}
+	
+	if(!"uri" %in% names(entity)){
+		stop("the entity does not have a uri")
+	}
+	
+	## TODO figure out how to in R do something like entity${$childKind}
+	
 	uri <- paste(entity$uri, childKind, sep = "/")
 	synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous)
 }

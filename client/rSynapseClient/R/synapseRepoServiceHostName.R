@@ -2,20 +2,20 @@ synapseRepoServiceEndpoint <-
 		function(endpoint)
 {
 	if (!missing(endpoint)) {
-		.setCache("reposervice.endpoint", endpoint)
+		.setCache("reposerviceEndpoint", endpoint)
 		url <- .ParsedUrl(url=endpoint)
-		.setCache("reposervice.endpointLocation", paste(url@protocol, '://', url@authority, sep=''))
-		.setCache("reposervice.endpointPrefix", url@path)
+		.setCache("reposerviceEndpointLocation", paste(url@protocol, '://', url@authority, sep=''))
+		.setCache("reposerviceEndpointPrefix", url@path)
 	}
 	else {
-		return(.getCache("reposervice.endpoint"))
+		return(.getCache("reposerviceEndpoint"))
 	}
 }
 
 .getRepoEndpointLocation <- function() {
-	.getCache("reposervice.endpointLocation")	
+	.getCache("reposerviceEndpointLocation")	
 }
 
 .getRepoEndpointPrefix <- function() {
-	.getCache("reposervice.endpointPrefix")	
+	.getCache("reposerviceEndpointPrefix")	
 }

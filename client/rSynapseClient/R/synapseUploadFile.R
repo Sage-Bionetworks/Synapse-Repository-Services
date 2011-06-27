@@ -12,7 +12,7 @@
 synapseUploadFile <- 
 		function (url, srcfile, checksum, method = "curl", quiet = FALSE, mode = "w", cacheOK = TRUE)
 {
-	
+	## TODO convert this to RCurl so that we do not depend on both RCurl and curl being installed on the system	
 	if (method == "curl") {
 		extra <- if (quiet)
 					" -s -S "

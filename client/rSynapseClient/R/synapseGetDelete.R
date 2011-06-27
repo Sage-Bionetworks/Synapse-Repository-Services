@@ -15,7 +15,7 @@
 		stop("a uri must be supplied of R type character")
 	}
 
-	# uris formed by the service already have their servlet prefix
+	## uris formed by the service already have their servlet prefix
 	if(grepl(path, uri)) {
 		uri <- paste(host, uri, sep="")
 	}else {

@@ -19,7 +19,7 @@
 
 .runTestSuite <- function(dir, testFileRegexp, testFuncRegexp, suiteName) {
 	
-	# Make sure its okay to run this test suite
+	## Make sure its okay to run this test suite
 	.testSafety()
 	
 	.failure_details <- function(result) {

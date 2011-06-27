@@ -1,16 +1,14 @@
 .parseJSONRecords <- 
 		function(json.list)
 {
-	results.table <- data.frame()
-    if(0 < length(json.list)) {
-		for(i in 1:length(json.list)){
-			this.row <- .parseSingleRow(json.list[[i]])
-			if(is.null(results.table)){
-				results.table <- this.row
-			}else{
-				results.table <- .rowMerge(results.table, this.row)
-            }
+	resultsTable <- data.frame()
+	for(i in seq_along(json.list)){
+		thisRow <- .parseSingleRow(json.list[[i]])
+		if(is.null(resultsTable)){
+			resultsTable <- thisRow
+		}else{
+			resultsTable <- .rowMerge(resultsTable, thisRow)
 		}
 	}
-	return(results.table)
+	return(resultsTable)
 }

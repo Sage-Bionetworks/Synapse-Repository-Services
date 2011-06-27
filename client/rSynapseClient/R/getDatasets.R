@@ -14,15 +14,13 @@ getDatasets <-
 	## end constants
 	
 	## add queary parameters to the uri
-	query <- kQueryRoot
-	for(n in names(queryParams)){
-		query <- paste(query, n, queryParams[n], sep=' ')
-	}
-	uri <- paste(kService, curlEscape(query), sep="=")
+	paramString <- paste(names(queryParams), queryParams, sep=" ", collapse=" ")
+	query <- sprintf("%s %s", kQueryRoot, paramString)
+	uri <- sprintf("%s=%s", kService, curlEscape(query))
 	
-	json.records <- synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous)
-	result <- .parseJSONRecords(json.records$results)
-	attr(result, "total_records_available") <- json.records$totalNumberOfResults
+	jsonRecords <- synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous)
+	result <- .parseJSONRecords(jsonRecords$results)
+	attr(result, "totalNumberOfResults") <- jsonRecords$totalNumberOfResults
 
 	return(result)
 }

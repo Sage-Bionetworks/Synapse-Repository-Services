@@ -1,20 +1,22 @@
 synapseSessionToken <- 
-		function(sessionToken, check.validity=FALSE, refresh.duration = .getCache("sessionRefreshDurationMin"))
+		function(sessionToken, checkValidity=FALSE, refreshDuration = .getCache("sessionRefreshDurationMin"))
 {
 	if (!missing(sessionToken)) {
 		if(is.null(sessionToken)) sessionToken <- ""
-		if(check.validity){
+		if(checkValidity){
 			synapseRefreshSessionToken(sessionToken)
 		}
 		.setCache("sessionToken", sessionToken)
 	}else {
 		sessionToken <- .getCache("sessionToken")
-		elapsed.time.min <-  (as.numeric(Sys.time()) - as.numeric(.getCache("sessionTimestamp")))/60
+		elapsedTimeMin <-  (as.numeric(Sys.time()) - as.numeric(.getCache("sessionTimestamp")))/60
 		if(!is.null(.getCache("sessionTimestamp")) 
-				&(check.validity || elapsed.time.min >= refresh.duration)){
+				&(checkValidity || elapsedTimeMin >= refreshDuration)){
 			synapseRefreshSessionToken(sessionToken)
 		}
-		if(is.null(sessionToken)) session.toke <- ""
+		if(is.null(sessionToken)) {
+			sessionToken <- ""
+		}
 		return(sessionToken)
 	}
 }

@@ -1,9 +1,9 @@
 synapseQuery <- 
 		function(queryStatement, curlHandle=getCurlHandle(), anonymous = .getCache("anonymous"))
 {
-	# Constants
+	## Constants
 	kPath <- "/query?query="
-	# end constants
+	## end constants
 	
 	if(!is.character(queryStatement)){
 		stop("a query statement must be supplied of R type character")
@@ -19,7 +19,8 @@ synapseQuery <-
 	if(result$totalNumberOfResults == 0){
 		return(NULL)
 	}
-	# Parse response and prepare return value
+	
+	## Parse response and prepare return value
 	return.val <- .jsonListToDataFrame(result$results)
 	attr(return.val, "totalNumberOfResults") <- result$totalNumberOfResults
 

@@ -1,6 +1,13 @@
 .updateEntity <- 
 		function(kind, entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
 {
+	if(!is.list(entity)){
+		stop("the entity must be an R list")
+	}
+	
+	if(!"uri" %in% names(entity)){
+		stop("the entity does not have a uri")
+	}
 	
 	synapsePut(uri=entity$uri, entity=entity, curlHandle=curlHandle, anonymous=anonymous)
 }

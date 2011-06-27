@@ -1,4 +1,4 @@
-# If you change anything here, be sure to update
+# If you change anything here, be sure to update the corresponding Java workflow code
 # https://sagebionetworks.jira.com/svn/PLFM/trunk/tools/tcgaWorkflow/src/main/java/org/sagebionetworks/workflow/activity/Processing.java
 # https://sagebionetworks.jira.com/svn/PLFM/trunk/tools/tcgaWorkflow/src/main/java/org/sagebionetworks/workflow/activity/Constants.java
 

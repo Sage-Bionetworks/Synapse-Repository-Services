@@ -1,6 +1,10 @@
 .createEntity <- 
 		function(kind, entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
 {
+	if(!is.list(entity)){
+		stop("the entity must be an R list")
+	}
+	
 	uri <- paste("/", kind, sep = "")
 	
 	synapsePost(uri=uri, entity=entity, curlHandle=curlHandle, anonymous=anonymous)

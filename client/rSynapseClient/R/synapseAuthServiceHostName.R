@@ -2,20 +2,20 @@ synapseAuthServiceEndpoint <-
 		function(endpoint)
 {
 	if (!missing(endpoint)) {
-		.setCache("authservice.endpoint", endpoint)
+		.setCache("authserviceEndpoint", endpoint)
 		url <- .ParsedUrl(url=endpoint)
-		.setCache("authservice.endpointLocation", paste(url@protocol, '://', url@authority, sep=''))
-		.setCache("authservice.endpointPrefix", url@path)
+		.setCache("authserviceEndpointLocation", paste(url@protocol, '://', url@authority, sep=''))
+		.setCache("authserviceEndpointPrefix", url@path)
 	}
 	else {
-		return(.getCache("authservice.endpoint"))
+		return(.getCache("authserviceEndpoint"))
 	}
 }
 
 .getAuthEndpointLocation <- function() {
-	.getCache("authservice.endpointLocation")	
+	.getCache("authserviceEndpointLocation")	
 }
 
 .getAuthEndpointPrefix <- function() {
-	.getCache("authservice.endpointPrefix")	
+	.getCache("authserviceEndpointPrefix")	
 }

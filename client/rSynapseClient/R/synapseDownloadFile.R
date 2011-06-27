@@ -1,7 +1,7 @@
 synapseDownloadFile  <- 
 		function (url, checksum, curlHandle = getCurlHandle(), cacheDir = synapseCacheDir(), opts = .getCache("curlOpts"))
 {
-	# Download the file to the cache
+	## Download the file to the cache
 	parsedUrl <- .ParsedUrl(url)
 	destfile <- file.path(cacheDir, gsub("^/", "", parsedUrl@path))
 	destfile <- path.expand(destfile)
@@ -11,7 +11,7 @@ synapseDownloadFile  <-
 synapseDownloadFileToDestination  <- 
 		function (url, checksum, destfile, curlHandle = getCurlHandle(), opts = .getCache("curlOpts"))
 {
-	# Download the file to a user-specified location
+	## Download the file to a user-specified location
 	if(file.exists(destfile)) {
 		localFileChecksum <- md5sum(destfile)
 		if(checksum == localFileChecksum) {
