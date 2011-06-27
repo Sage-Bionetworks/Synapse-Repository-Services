@@ -66,6 +66,8 @@ integrationTestTcgaWorkflow <- function() {
 	clinicalLayer <- datasetLayers$results[[ind[1]]]
 	clinicalDataFiles <- loadLayerData(entity=clinicalLayer)
 	clinicalData <- read.table(clinicalDataFiles[[4]], sep='\t')
+	# TODO getting error "Error in !header : invalid argument type"
+	#clinicalData <- read.table(clinicalDataFiles[[4]], sep='\t', header='TRUE')
 	
 	#----- Do interesting work with the clinical and expression data R objects
 	#      e.g., make a matrix by combining expression and clinical data
