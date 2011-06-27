@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   
   <parent>
-	<artifactId>client</artifactId>
+	<artifactId>tools</artifactId>
 	<groupId>org.sagebionetworks</groupId>
 	<version>parent-1.0</version>
   </parent>
