@@ -23,6 +23,12 @@
       <version>${applicationVersion}</version>
     </dependency>
 
+	<dependency>
+	  <groupId>org.sagebionetworks</groupId>
+	  <artifactId>lib-stackConfiguration</artifactId>
+	  <version>${applicationVersion}</version>
+	</dependency>
+
     <!-- AWS dependencies -->
     <dependency>
       <groupId>com.amazonaws</groupId>

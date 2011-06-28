@@ -1,6 +1,7 @@
 package org.sagebionetworks.workflow.curation;
 
 import java.net.InetAddress;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 
 import org.sagebionetworks.workflow.activity.Constants;
@@ -9,6 +10,7 @@ import org.sagebionetworks.workflow.activity.Notification;
 import org.sagebionetworks.workflow.activity.Processing;
 import org.sagebionetworks.workflow.activity.Processing.ScriptResult;
 
+import com.amazonaws.services.simpleworkflow.client.activity.ActivityFailureException;
 import com.amazonaws.services.simpleworkflow.client.asynchrony.Settable;
 import com.amazonaws.services.simpleworkflow.client.asynchrony.Value;
 import com.amazonaws.services.simpleworkflow.client.asynchrony.annotations.Asynchronous;
@@ -128,7 +130,7 @@ public class TcgaWorkflow {
 				// machineName,
 				processedLayerId, stdout, stderr);
 
-		flow.dispatchNotifyDataProcessed(result3, processedLayerId);
+		flow.dispatchNotifyDataProcessed(result3, skipLayerId); // processedLayerId);
 
 	}
 
@@ -142,6 +144,7 @@ public class TcgaWorkflow {
 	}
 
 	@Activity(version = "1.2")
+	@ExponentialRetry(minimumAttempts = 3, maximumAttempts = 5)
 	private static Value<String> doCreateMetadata(String param,
 			Boolean doneIfExists, String datasetId, String tcgaUrl,
 			Settable<String> rawLayerId) throws Exception {
@@ -151,11 +154,16 @@ public class TcgaWorkflow {
 		// This activity will be simple at first (just infer metadata from the
 		// structure of the TCGA url) but it could become more complicated in
 		// time if we need to pull additional metadata from other TCGA services
-		String synapseLayerId = Curation
-				.doCreateSynapseMetadataForTcgaSourceLayer(doneIfExists,
-						datasetId, tcgaUrl);
-		rawLayerId.set(synapseLayerId);
-
+		String synapseLayerId = null;
+		try {
+			synapseLayerId = Curation
+					.doCreateSynapseMetadataForTcgaSourceLayer(doneIfExists,
+							datasetId, tcgaUrl);
+			rawLayerId.set(synapseLayerId);
+		} catch (SocketTimeoutException e) {
+			throw new ActivityFailureException(400,
+					"Communication timeout, try this again", e);
+		}
 		return Value.asValue(param + ":CreateMetadata");
 	}
 
