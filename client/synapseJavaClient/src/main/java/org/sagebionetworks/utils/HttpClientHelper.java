@@ -39,9 +39,10 @@ public class HttpClientHelper {
 	static {
 		final MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
 		webClient = new HttpClient(connectionManager);
-		webClient.getHttpConnectionManager().getParams().setSoTimeout(5000);
+		// TODO make this timeout configurable
+		webClient.getHttpConnectionManager().getParams().setSoTimeout(50000);
 		webClient.getHttpConnectionManager().getParams().setConnectionTimeout(
-				5000);
+				50000);
 	}
 
 	/**

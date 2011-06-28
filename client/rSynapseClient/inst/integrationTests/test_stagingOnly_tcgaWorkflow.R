@@ -23,6 +23,16 @@
 	assignInNamespace("commandArgs", attr(base:::commandArgs, "origFCN"), "base")
 }
 
+integrationTestSageBioTCGACurationProjectChildEntityGet <- function() {
+	projects <- synapseQuery('select * from project where project.name == "SageBio TCGA Curation"')
+	project <- getProject(id=projects$project.id[1])
+	datasets <- getProjectDatasets(entity=project)
+	checkTrue(3 <= datasets$totalNumberOfResults)
+	checkTrue('coad' %in% lapply(datasets$results, function(x){x$name}))
+	checkTrue('cesc' %in% lapply(datasets$results, function(x){x$name}))
+	checkTrue('prad' %in% lapply(datasets$results, function(x){x$name}))
+}
+
 integrationTestTcgaWorkflow <- function() {
 	
 	#----- Unpack our command line parameters
@@ -47,7 +57,7 @@ integrationTestTcgaWorkflow <- function() {
 	}
 	
 	#----- Download, unpack, and load the expression layer
-	expressionDataFiles <- synapseClient:::.cacheFiles(entity=inputLayer)
+	expressionDataFiles <- loadLayerData(entity=inputLayer)
 	# TODO load each of the files into R objects
 	
 	#----- Download, unpack, and load the clinical layer of this TCGA dataset  

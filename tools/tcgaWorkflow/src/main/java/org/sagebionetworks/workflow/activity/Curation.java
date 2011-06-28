@@ -12,6 +12,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
@@ -278,7 +279,7 @@ public class Curation {
 				datasetResults.getJSONArray("results").getJSONObject(0).get(
 						"dataset.name"));
 		message.append(
-				"\nhttp://staging-synapseweb.elasticbeanstalk.com/#Layer:")
+				"\n").append(StackConfiguration.getPortalEndpoint()).append("/#Layer:")
 				.append(layerQueryResult.get("layer.id")).append(";Dataset:")
 				.append(layerQueryResult.get("layer.parentId"));
 		message.append("\n\nLayer\n").append(layerResults.toString(4));
