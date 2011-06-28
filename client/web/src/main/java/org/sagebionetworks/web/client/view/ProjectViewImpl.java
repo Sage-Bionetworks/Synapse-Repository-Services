@@ -192,7 +192,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 	}
 
 	private void setupDatasetTable(String id) {
-		datasetsListQueryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, 320, 237);
+		datasetsListQueryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, 320, 237, presenter.getPlaceChanger());
 		// load the datasets for this project
 		List<WhereCondition> whereList = new ArrayList<WhereCondition>();
 		whereList.add(new WhereCondition("dataset.parentId", WhereOperator.EQUALS, id));
@@ -266,6 +266,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 						presenter.refresh();
 					}
 				});
+				nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
 				window.add(nodeEditor.asWidget(NodeType.PROJECT, projectId), new FitData(4));
 				window.show();
 			}
@@ -296,6 +297,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 						presenter.refresh();
 					}
 				});
+				nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
 				window.add(nodeEditor.asWidget(NodeType.DATASET, null, projectId), new FitData(4));
 				window.show();
 			}
@@ -316,6 +318,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		}		
 
 		if(userIsAdmin) {		
+			accessMenuButton.setPlaceChanger(presenter.getPlaceChanger());
 			accessMenuButton.setResource(NodeType.PROJECT, id);
 			accessMenuButton.setAccessLevel(accessLevel);
 			accessPanel.clear();

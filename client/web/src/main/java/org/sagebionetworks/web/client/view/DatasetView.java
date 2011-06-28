@@ -3,9 +3,11 @@ package org.sagebionetworks.web.client.view;
 import java.util.Date;
 import java.util.List;
 
+import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 
+import com.google.gwt.place.shared.Place;
 import com.google.gwt.user.client.ui.IsWidget;
 
 
@@ -98,6 +100,9 @@ public interface DatasetView extends IsWidget {
 		
 		public void licenseAccepted();
 		
+		public void goTo(Place place);
+		
+		public PlaceChanger getPlaceChanger();
 	}
 
 	

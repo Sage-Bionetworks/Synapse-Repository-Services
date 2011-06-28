@@ -3,16 +3,19 @@ package org.sagebionetworks.web.client.widget.sharing;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
+import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.shared.NodeType;
+import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 import org.sagebionetworks.web.shared.users.AclAccessType;
 import org.sagebionetworks.web.shared.users.AclEntry;
 import org.sagebionetworks.web.shared.users.AclPrincipal;
 import org.sagebionetworks.web.shared.users.AclUtils;
 import org.sagebionetworks.web.shared.users.PermissionLevel;
 
-import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONParser;
@@ -38,15 +41,23 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 	private String nodeId;
 	private JSONObject originalAcl;
 	private List<AclPrincipal> usersAndGroups;
+	private PlaceChanger placeChanger;
+	private NodeModelCreator nodeModelCreator;
+
 	
 	@Inject
-	public AccessControlListEditor(AccessControlListEditorView view, NodeServiceAsync nodeService, UserAccountServiceAsync userAccountService) {
+	public AccessControlListEditor(AccessControlListEditorView view, NodeServiceAsync nodeService, UserAccountServiceAsync userAccountService, NodeModelCreator nodeModelCreator) {
 		this.view = view;
 		this.nodeService = nodeService;
 		this.userAccountService = userAccountService;
+		this.nodeModelCreator = nodeModelCreator;
 		view.setPresenter(this);
 	}	
 
+    public void setPlaceChanger(PlaceChanger placeChanger) {
+    	this.placeChanger = placeChanger;
+    }
+	
 	public void setResource(final NodeType type, final String id) {						
 		this.nodeType = type;
 		this.nodeId = id;
@@ -57,6 +68,11 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 				nodeService.getNodeAclJSON(type, id, new AsyncCallback<String>() {		
 					@Override
 					public void onSuccess(String result) {
+						try {
+							nodeModelCreator.validate(result);
+						} catch (RestServiceException ex) {
+							DisplayUtils.handleServiceException(ex, placeChanger);
+						}					
 						originalAcl = JSONParser.parseStrict(result).isObject();				
 						final List<AclEntry> entries = createAclEntries(originalAcl);
 						boolean isInherited = false;
@@ -91,7 +107,11 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 		nodeService.createAcl(nodeType, nodeId, null, null, new AsyncCallback<String>() {
 			@Override
 			public void onSuccess(String result) {
-				// TODO : tell view success
+				try {
+					nodeModelCreator.validate(result);
+				} catch (RestServiceException ex) {
+					DisplayUtils.handleServiceException(ex, placeChanger);
+				}					 
 				refresh();
 			}
 			@Override
@@ -128,7 +148,11 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 			nodeService.updateAcl(nodeType, nodeId, newAcl.toString(), etag, new AsyncCallback<String>() {				
 				@Override
 				public void onSuccess(String result) {
-					// TODO : tell view success
+					try {
+						nodeModelCreator.validate(result);
+					} catch (RestServiceException ex) {
+						DisplayUtils.handleServiceException(ex, placeChanger);
+					}					
 					refresh();					
 				}
 				
@@ -165,7 +189,11 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 				nodeService.updateAcl(nodeType, nodeId, newAcl.toString(), etag, new AsyncCallback<String>() {
 					@Override
 					public void onSuccess(String result) {
-						// TODO : tell view success
+						try {
+							nodeModelCreator.validate(result);
+						} catch (RestServiceException ex) {
+							DisplayUtils.handleServiceException(ex, placeChanger);
+						}					
 						refresh();					
 					}
 	
@@ -207,7 +235,11 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 				nodeService.updateAcl(nodeType, nodeId, newAcl.toString(), etag, new AsyncCallback<String>() {
 					@Override
 					public void onSuccess(String result) {
-						// TODO : tell view success
+						try {
+							nodeModelCreator.validate(result);
+						} catch (RestServiceException ex) {
+							DisplayUtils.handleServiceException(ex, placeChanger);
+						}					
 						refresh();					
 					}
 	
@@ -233,6 +265,11 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 		nodeService.getNodeAclJSON(nodeType, nodeId, new AsyncCallback<String>() {		
 			@Override
 			public void onSuccess(String result) {
+				try {
+					nodeModelCreator.validate(result);
+				} catch (RestServiceException ex) {
+					DisplayUtils.handleServiceException(ex, placeChanger);
+				}					
 				originalAcl = JSONParser.parseStrict(result).isObject();				
 				final List<AclEntry> entries = createAclEntries(originalAcl);
 				boolean isInherited = false;

@@ -33,6 +33,10 @@ public class Annotations implements IsSerializable {
 	}
 	
 	public Annotations(JSONObject object) {
+		//if(object == null) object = new JSONObject();
+		if(object == null) return;
+		
+		
 		String key = null; 
 		
 		key = "id";

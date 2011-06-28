@@ -1,5 +1,6 @@
 package org.sagebionetworks.web.client.presenter.users;
 
+import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
@@ -43,7 +44,7 @@ public class PasswordResetPresenter extends AbstractActivity implements Password
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
 		// Install the view
 		panel.setWidget(view);
-		this.placeController = new PlaceController(eventBus);
+		this.placeController = DisplayUtils.placeController;
 	}
 
 	public void setPlace(PasswordReset place) {

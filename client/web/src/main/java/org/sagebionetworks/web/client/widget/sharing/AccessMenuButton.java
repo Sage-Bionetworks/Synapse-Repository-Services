@@ -1,5 +1,6 @@
 package org.sagebionetworks.web.client.widget.sharing;
 
+import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.shared.NodeType;
 
 import com.google.gwt.user.client.ui.Widget;
@@ -13,6 +14,7 @@ public class AccessMenuButton implements AccessMenuButtonView.Presenter {
 	private NodeType nodeType;
 	private String nodeId;
 	private AccessControlListEditor accessControlListEditor;
+	private PlaceChanger placeChanger;
 	
 	@Inject
 	public AccessMenuButton(AccessMenuButtonView view, AccessControlListEditor accessControlListEditor) {
@@ -29,9 +31,14 @@ public class AccessMenuButton implements AccessMenuButtonView.Presenter {
 		return view.asWidget();
 	}
 
+    public void setPlaceChanger(PlaceChanger placeChanger) {
+    	this.placeChanger = placeChanger;
+    }
+	
 	public void setResource(NodeType type, String id) {
 		nodeType = type;
 		nodeId = id;
+		accessControlListEditor.setPlaceChanger(placeChanger);
 		accessControlListEditor.setResource(type, id);
 		view.setAccessControlListEditor(accessControlListEditor);
 	}	

@@ -2,6 +2,8 @@ package org.sagebionetworks.web.client.view;
 
 import java.util.Date;
 
+import org.sagebionetworks.web.client.PlaceChanger;
+
 import com.google.gwt.user.client.ui.IsWidget;
 
 public interface ProjectView extends IsWidget{
@@ -36,6 +38,8 @@ public interface ProjectView extends IsWidget{
 		 * Refreshes the object for the page
 		 */
 		public void refresh();
+
+		public PlaceChanger getPlaceChanger();
 	}
 
 }

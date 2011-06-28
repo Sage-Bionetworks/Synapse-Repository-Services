@@ -2,6 +2,8 @@ package org.sagebionetworks.web.client.presenter;
 
 import java.util.List;
 
+import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.cookie.CookieUtils;
 import org.sagebionetworks.web.client.place.DatasetsHome;
@@ -10,6 +12,8 @@ import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
+import com.google.gwt.place.shared.Place;
+import com.google.gwt.place.shared.PlaceController;
 import com.google.gwt.user.client.ui.AcceptsOneWidget;
 import com.google.inject.Inject;
 
@@ -21,18 +25,28 @@ public class DatasetsHomePresenter extends AbstractActivity implements DatasetsH
 	private DatasetsHomeView view;
 	private ColumnsPopupPresenter columnsPopupPresenter;
 	private CookieProvider cookieProvider;
+	private PlaceController placeController; 
+	private PlaceChanger placeChanger;
 	
 	@Inject
 	public DatasetsHomePresenter(DatasetsHomeView view, ColumnsPopupPresenter columnsPopupPresenter, CookieProvider cookieProvider){
 		this.view = view;
 		this.columnsPopupPresenter = columnsPopupPresenter;
 		// Set the presenter on the view
-		this.view.setPresenter(this);
 		this.cookieProvider = cookieProvider;
 	}
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
+		this.placeController = DisplayUtils.placeController;		
+		this.placeChanger = new PlaceChanger() {			
+			@Override
+			public void goTo(Place place) {
+				placeController.goTo(place);
+			}
+		};
+		this.view.setPresenter(this);
+
 		// Setup the columns
 		setVisibleColumns();
 		// Install the view
@@ -72,6 +86,11 @@ public class DatasetsHomePresenter extends AbstractActivity implements DatasetsH
 			currentSelection = CookieUtils.createListFromString(cookieValue);
 			view.setVisibleColumns(currentSelection);
 		}
+	}
+
+	@Override
+	public PlaceChanger getPlaceChanger() {
+		return placeChanger;
 	}
 
 }

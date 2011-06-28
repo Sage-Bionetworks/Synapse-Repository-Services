@@ -4,11 +4,15 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.commons.lang.text.StrTokenizer;
 import org.sagebionetworks.web.client.DisplayConstants;
+import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
+import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.widget.editpanels.FormField.ColumnType;
+import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.NodeType;
+import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
@@ -34,15 +38,22 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
     private NodeType nodetype;
     private String nodeId;
     private JSONObject originalAnnotationObject;
+    private PlaceChanger placeChanger;
+    private NodeModelCreator nodeModelCreator;
  
     @Inject
-    public AnnotationEditor(AnnotationEditorView view, NodeServiceAsync service, NodeEditorDisplayHelper nodeEditorDisplayHelper) {
+    public AnnotationEditor(AnnotationEditorView view, NodeServiceAsync service, NodeEditorDisplayHelper nodeEditorDisplayHelper, NodeModelCreator nodeModelCreator) {
         this.view = view;
 		this.service = service;
 		this.nodeEditorDisplayHelper = nodeEditorDisplayHelper;
+		this.nodeModelCreator = nodeModelCreator;
         view.setPresenter(this);
     }
 
+    public void setPlaceChanger(PlaceChanger placeChanger) {
+    	this.placeChanger = placeChanger;
+    }
+    
     public void setResource(NodeType type, String id) {
     	this.nodetype = type;
     	this.nodeId = id;
@@ -57,7 +68,15 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 		service.getNodeAnnotationsJSON(type, id, new AsyncCallback<String>() {				
 			@Override
 			public void onSuccess(String annotationJsonString) {				
+				// TODO : convert this class to working with the Annotations object and not the JSONObject
 				originalAnnotationObject = JSONParser.parseStrict(annotationJsonString).isObject();
+				try {
+					Annotations annotations = nodeModelCreator.createAnnotations(annotationJsonString);
+				} catch (RestServiceException ex) {
+					DisplayUtils.handleServiceException(ex, placeChanger);
+					return;
+				}
+				
 				List<FormField> formFields = generateFieldsFromAnnotations(originalAnnotationObject); 							
 				SpecificNodeTypeDeviation deviation = nodeEditorDisplayHelper.getNodeTypeDeviation(nodetype);										
 				view.generateAnnotationForm(formFields, deviation.getDisplayString(), DisplayConstants.EDIT_ANNOTATIONS_TEXT);
@@ -81,6 +100,11 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 		service.updateNodeAnnotations(nodetype, nodeId, updateJson, etag, new AsyncCallback<String>() {		
 			@Override
 			public void onSuccess(String result) {
+				try {
+					Annotations annotations = nodeModelCreator.createAnnotations(result);
+				} catch (RestServiceException ex) {
+					DisplayUtils.handleServiceException(ex, placeChanger);
+				}
 				view.showPersistSuccess();
 			}
 			

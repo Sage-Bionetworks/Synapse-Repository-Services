@@ -45,13 +45,18 @@ public class LicensedDownloader implements LicensedDownloaderView.Presenter {
 		view.setLicenseHtml(agreement.getLicenseHtml());
 	}
 	
-	public void setDownloadUrls(List<FileDownload> downloads) {
+	public void setDownloadUrls(List<FileDownload> downloads) {		
 		this.view.setDownloadUrls(downloads);
 	}
 	
 	public Widget asWidget() {
 		return view.asWidget();
 	}	
+	
+	public void clear() {
+		view.clear();
+		this.licenseAcceptedCallback = null;		
+	}
 	
 	public void setRequireLicenseAcceptance(boolean requireLicenseAcceptance) {
 		this.requireLicenseAcceptance = requireLicenseAcceptance;

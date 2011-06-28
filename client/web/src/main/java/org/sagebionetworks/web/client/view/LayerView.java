@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.TableResults;
@@ -126,6 +127,8 @@ public interface LayerView extends IsWidget {
 		public void refresh();
 
 		public void licenseAccepted();
+
+		public PlaceChanger getPlaceChanger();
 		
 	}
 

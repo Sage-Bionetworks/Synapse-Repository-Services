@@ -14,6 +14,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.SearchService;
 import org.sagebionetworks.web.client.SearchServiceAsync;
 import org.sagebionetworks.web.client.view.RowData;
@@ -37,6 +38,7 @@ public class QueryServiceTableTest {
 	SearchServiceAsync asynchProxy;
 	QueryServiceTable presenter;
 	QueryServiceTableView mockView;
+	PlaceChanger mockPlaceChanger;
 	
 	@Before
 	public void setup(){
@@ -44,6 +46,7 @@ public class QueryServiceTableTest {
 		// Create the mock service
 		mockSearchService = Mockito.mock(SearchService.class);
 		mockView = Mockito.mock(QueryServiceTableView.class);
+		mockPlaceChanger = Mockito.mock(PlaceChanger.class);
 		
 		// Create the asynchronous service recorder
 		recorder = new AsyncServiceRecorder<SearchService, SearchServiceAsync>(mockSearchService, SearchServiceAsync.class);
@@ -52,8 +55,8 @@ public class QueryServiceTableTest {
 		// Using a stub cookie provider
 		// Create the presenter
 		QueryServiceTableResourceProvider queryServiceTableResourceProvider = new QueryServiceTableResourceProvider(mockView, asynchProxy);		
-		presenter = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true);
-
+		presenter = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, mockPlaceChanger);		
+		
 		// Make sure the view gets the presenter set
 		verify(mockView).setPresenter(presenter);
 	}
@@ -142,7 +145,7 @@ public class QueryServiceTableTest {
 		// now trigger a failure
 		Throwable exception = new Throwable("Total failure");
 		recorder.playOnFailure(0, exception);
-		verify(mockView).showMessage(exception.getMessage());
+		verify(mockView).showMessage("An error occured. Please try reloading the page.");
 	}
 	
 	@Test

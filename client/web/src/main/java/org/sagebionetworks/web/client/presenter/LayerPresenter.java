@@ -5,7 +5,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
+import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.view.LayerView;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAsync;
 import org.sagebionetworks.web.shared.DownloadLocation;
@@ -14,12 +17,13 @@ import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.NodeType;
+import org.sagebionetworks.web.shared.PagedResults;
+import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
-import com.google.gwt.json.client.JSONArray;
-import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.json.client.JSONParser;
+import com.google.gwt.place.shared.Place;
+import com.google.gwt.place.shared.PlaceController;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.AcceptsOneWidget;
 import com.google.inject.Inject;
@@ -28,6 +32,8 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 
 	private org.sagebionetworks.web.client.place.Layer place;
 	private NodeServiceAsync nodeService;
+	private PlaceController placeController;
+	private PlaceChanger placeChanger;
 	private LayerView view;
 	private String layerId;	
 	private String datasetId;
@@ -35,6 +41,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	private Layer model;
 	private LayerPreview layerPreview;
 	private LicenceServiceAsync licenseService;
+	private NodeModelCreator nodeModelCreator;
 	private final static String licenseAgreementText = "<p><b><larger>Copyright 2011 Sage Bionetworks</larger></b><br/><br/></p><p>Licensed under the Apache License, Version 2.0 (the \"License\"). You may not use this file except in compliance with the License. You may obtain a copy of the License at<br/><br/></p><p>&nbsp;&nbsp;<a href=\"http://www.apache.org/licenses/LICENSE-2.0\" target=\"new\">http://www.apache.org/licenses/LICENSE-2.0</a><br/><br/></p><p>Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions andlimitations under the License.<br/><br/></p><p><strong><a name=\"definitions\">1. Definitions</a></strong>.<br/><br/></p> <p>\"License\" shall mean the terms and conditions for use, reproduction, and distribution as defined by Sections 1 through 9 of this document.<br/><br/></p> <p>\"Licensor\" shall mean the copyright owner or entity authorized by the copyright owner that is granting the License.<br/><br/></p> <p>\"Legal Entity\" shall mean the union of the acting entity and all other entities that control, are controlled by, or are under common control with that entity. For the purposes of this definition, \"control\" means (i) the power, direct or indirect, to cause the direction or management of such entity, whether by contract or otherwise, or (ii) ownership of fifty percent (50%) or more of the outstanding shares, or (iii) beneficial ownership of such entity.<br/><br/></p> <p>\"You\" (or \"Your\") shall mean an individual or Legal Entity exercising permissions granted by this License.<br/><br/></p> <p>\"Source\" form shall mean the preferred form for making modifications, including but not limited to software source code, documentation source, and configuration files.<br/><br/></p> <p>\"Object\" form shall mean any form resulting from mechanical transformation or translation of a Source form, including but not limited to compiled object code, generated documentation, and conversions to other media types.<br/><br/></p> <p>\"Work\" shall mean the work of authorship, whether in Source or Object form, made available under the License, as indicated by a copyright notice that is included in or attached to the work (an example is provided in the Appendix below).<br/><br/></p> <p>\"Derivative Works\" shall mean any work, whether in Source or Object form, that is based on (or derived from) the Work and for which the editorial revisions, annotations, elaborations, or other modifications represent, as a whole, an original work of authorship. For the purposes of this License, Derivative Works shall not include works that remain separable from, or merely link (or bind by name) to the interfaces of, the Work and Derivative Works thereof.<br/><br/></p> <p>\"Contribution\" shall mean any work of authorship, including the original version of the Work and any modifications or additions to that Work or Derivative Works thereof, that is intentionally submitted to Licensor for inclusion in the Work by the copyright owner or by an individual or Legal Entity authorized to submit on behalf of the copyright owner. For the purposes of this definition, \"submitted\" means any form of electronic, verbal, or written communication sent to the Licensor or its representatives, including but not limited to communication on electronic mailing lists, source code control systems, and issue tracking systems that are managed by, or on behalf of, the Licensor for the purpose of discussing and improving the Work, but excluding communication that is conspicuously marked or otherwise designated in writing by the copyright owner as \"Not a Contribution.\"<br/><br/></p> <p>\"Contributor\" shall mean Licensor and any individual or Legal Entity on behalf of whom a Contribution has been received by Licensor and subsequently incorporated within the Work.<br/><br/></p>";	
 	
 	/**
@@ -43,16 +50,23 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	 * @param datasetService
 	 */
 	@Inject
-	public LayerPresenter(LayerView view, NodeServiceAsync nodeService, LicenceServiceAsync licenseService) {
+	public LayerPresenter(LayerView view, NodeServiceAsync nodeService, LicenceServiceAsync licenseService, NodeModelCreator nodeModelCreator) {
 		this.view = view;
 		this.nodeService = nodeService;
 		this.licenseService = licenseService;
-		
+		this.nodeModelCreator = nodeModelCreator;
 		view.setPresenter(this);
 	}
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
+		this.placeController = DisplayUtils.placeController;
+		this.placeChanger = new PlaceChanger() {			
+			@Override
+			public void goTo(Place place) {
+				placeController.goTo(place);
+			}
+		};
 		// First refresh from the server
 		refreshFromServer();		
 		// add the view to the panel
@@ -64,8 +78,13 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		// Fetch the data about this dataset from the server
 		nodeService.getNodeJSON(NodeType.LAYER, this.layerId, new AsyncCallback<String>() {
 			@Override
-			public void onSuccess(String layerJson) {
-				Layer layer = new Layer(JSONParser.parseStrict(layerJson).isObject());
+			public void onSuccess(String layerJson) {				
+				Layer layer = null;
+				try {
+					layer = nodeModelCreator.createLayer(layerJson);
+				} catch (RestServiceException ex) {
+					DisplayUtils.handleServiceException(ex, placeChanger);
+				}				
 				setLayer(layer);
 			}
 			
@@ -78,15 +97,16 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		// get the preview string to get file header order, then get the previewAsData
 		nodeService.getNodePreview(NodeType.LAYER, layerId, new AsyncCallback<String>() {
 			@Override
-			public void onSuccess(String pagedResult) {
-				JSONObject pagedObject = JSONParser.parseStrict(pagedResult).isObject();
-				if(pagedObject != null && pagedObject.containsKey("results")) {
-					JSONArray resultList = pagedObject.get("results").isArray();
-					if(resultList != null && resultList.size() > 0) {						
-						LayerPreview layerPreview = new LayerPreview(resultList.get(0).isObject());
-						setLayerPreview(layerPreview);					
-					}
-				}
+			public void onSuccess(String pagedResultString) {
+				LayerPreview layerPreview = null;				
+				try {
+					PagedResults  pagedResult = nodeModelCreator.createPagedResults(pagedResultString);
+					List<String> results = pagedResult.getResults();
+					layerPreview = nodeModelCreator.createLayerPreview(results.get(0));
+				} catch (RestServiceException ex) {
+					DisplayUtils.handleServiceException(ex, placeChanger);
+				}				
+				setLayerPreview(layerPreview);					
 			}
 
 			@Override
@@ -162,23 +182,21 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 				
 				nodeService.getNodeLocations(NodeType.LAYER, layerId, new AsyncCallback<String>() {
 					@Override
-					public void onSuccess(String pagedResult) {
-						JSONObject pagedObject = JSONParser.parseStrict(pagedResult).isObject();
-						List<FileDownload> downloads = new ArrayList<FileDownload>();
-						if(pagedObject != null && pagedObject.containsKey("results")) {
-							JSONArray resultList = pagedObject.get("results").isArray();
-							if(resultList != null) {
-								for(int i=0; i<resultList.size(); i++) {
-									if(resultList.get(i).isObject() != null) {										
-										DownloadLocation downloadLocation = new DownloadLocation(resultList.get(i).isObject());
-										if(downloadLocation != null && downloadLocation.getPath() != null) {
-											FileDownload dl = new FileDownload(downloadLocation.getPath(), "Download " + model.getName(), downloadLocation.getMd5sum());
-											downloads.add(dl);
-										}	
-									}
-								}								
+					public void onSuccess(String pagedResultString) {				
+						List<FileDownload> downloads = new ArrayList<FileDownload>();						
+						try {							
+							PagedResults pagedResult = nodeModelCreator.createPagedResults(pagedResultString);
+							List<String> results = pagedResult.getResults();
+							for(String fileDownloadString : results) {
+								DownloadLocation downloadLocation = nodeModelCreator.createDownloadLocation(fileDownloadString);
+								if(downloadLocation != null && downloadLocation.getPath() != null) {
+									FileDownload dl = new FileDownload(downloadLocation.getPath(), "Download " + model.getName(), downloadLocation.getMd5sum());
+									downloads.add(dl);
+								}	
 							}
-						}
+						} catch (RestServiceException ex) {
+							DisplayUtils.handleServiceException(ex, placeChanger);
+						}				
 						view.setLicensedDownloads(downloads);
 						
 						// show download if requested
@@ -190,30 +208,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 					public void onFailure(Throwable caught) {
 						view.setDownloadUnavailable();						
 					}
-				});
-				
-//				// get download link
-//				service.getLayerDownloadLocation(datasetId, layerId, new AsyncCallback<DownloadLocation>() {
-//					@Override
-//					public void onSuccess(DownloadLocation downloadLocation) {
-//						
-//						if(downloadLocation != null && downloadLocation.getPath() != null) {
-//							FileDownload dl = new FileDownload(downloadLocation.getPath(), "Download " + model.getName(), downloadLocation.getMd5sum());
-//							downloads.add(dl);
-//						}
-//						view.setLicensedDownloads(downloads);
-//						
-//						// show download if requested
-//						if(showDownload != null && showDownload == true) {
-//							view.showDownload();
-//						}
-//					}
-//
-//					@Override
-//					public void onFailure(Throwable caught) {					
-//						view.setDownloadUnavailable();
-//					}
-//				});
+				});				
 			}
 		});
 
@@ -307,13 +302,11 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		refreshFromServer();
 	}
 
+	@Override
+	public PlaceChanger getPlaceChanger() {
+		return placeChanger;
+	}
+
 }
-
-
-
-
-
-
-
 
 

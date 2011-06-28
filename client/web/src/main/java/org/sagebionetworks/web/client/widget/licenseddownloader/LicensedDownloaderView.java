@@ -51,6 +51,7 @@ public interface LicensedDownloaderView extends IsWidget {
 	 */
 	public void setDownloadUrls(List<FileDownload> downloads);
 	
+	public void clear();
 	
 	/**
 	 * Presenter Interface 

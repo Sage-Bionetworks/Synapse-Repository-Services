@@ -45,6 +45,8 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 		
 	private Presenter presenter;
 	private QueryServiceTable queryServiceTable;
+	private QueryServiceTableResourceProvider queryServiceTableResourceProvider;
+	private IconsImageBundle icons;
 	private NodeEditor nodeEditor;
 	
 	@Inject
@@ -54,17 +56,28 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 			QueryServiceTableResourceProvider queryServiceTableResourceProvider,
 			final NodeEditor nodeEditor) {		
 		initWidget(binder.createAndBindUi(this));
-		
-		this.nodeEditor = nodeEditor;
-		this.queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.project, true, 1000, 480);
-		
-		// Start on the first page and trigger a data fetch from the server
-		queryServiceTable.pageTo(0, 10);
-		tablePanel.add(queryServiceTable.asWidget());
 
+		this.queryServiceTableResourceProvider = queryServiceTableResourceProvider;
+		this.icons = icons;
+		this.nodeEditor = nodeEditor;
+		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
 		headerWidget.setMenuItemActive(MenuItems.PROJECTS);
+
+	}
+
+
+	@Override
+	public void setPresenter(final Presenter presenter) {
+		this.presenter = presenter;		
+				
+		this.queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.project, true, 1000, 480, presenter.getPlaceChanger());		
+		// Start on the first page and trigger a data fetch from the server
+		queryServiceTable.pageTo(0, 10);
+		tablePanel.clear();
+		tablePanel.add(queryServiceTable.asWidget());
+
 				
 		Button createProjectButton = new Button("Start a Project", AbstractImagePrototype.create(icons.addSquare16()));
 		createProjectButton.addSelectionListener(new SelectionListener<ButtonEvent>() {			
@@ -90,19 +103,15 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 						queryServiceTable.refreshFromServer();
 					}
 				});
+				nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
 				window.add(nodeEditor.asWidget(NodeType.PROJECT), new FitData(4));						
 				window.show();
 				
 				showErrorMessage("<strong>Alpha Note:</strong> User project creation is currently disabled. Please email the <a href=\"mailto:platform@sagebase.org\">platform team</a> to have a new project created for you.");
 			}
 		});
+		createProjectButtonPanel.clear();
 		createProjectButtonPanel.add(createProjectButton);		
-	}
-
-
-	@Override
-	public void setPresenter(Presenter presenter) {
-		this.presenter = presenter;
 	}
 
 	@Override

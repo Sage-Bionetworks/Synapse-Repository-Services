@@ -5,6 +5,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.SearchServiceAsync;
 import org.sagebionetworks.web.client.view.RowData;
 import org.sagebionetworks.web.shared.HeaderData;
@@ -34,7 +36,7 @@ import com.google.inject.Inject;
 public class QueryServiceTable implements QueryServiceTableView.Presenter {
 	
 	private QueryServiceTableView view;
-	private SearchServiceAsync service;
+	private SearchServiceAsync searchService;
 
 	private String sortKey = null;
 	private boolean ascending = false;
@@ -59,17 +61,17 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 	public QueryServiceTable() {		
 	}
 		
-	public QueryServiceTable(QueryServiceTableResourceProvider provider, ObjectType type, boolean usePager){
-		this(provider, type, null, usePager, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+	public QueryServiceTable(QueryServiceTableResourceProvider provider, ObjectType type, boolean usePager, PlaceChanger placeChanger){
+		this(provider, type, null, usePager, DEFAULT_WIDTH, DEFAULT_HEIGHT, placeChanger);
 	}
 	
-	public QueryServiceTable(QueryServiceTableResourceProvider provider, ObjectType type, boolean usePager, int width, int height){
-		this(provider, type, null, usePager, width, height);
+	public QueryServiceTable(QueryServiceTableResourceProvider provider, ObjectType type, boolean usePager, int width, int height, PlaceChanger placeChanger){
+		this(provider, type, null, usePager, width, height, placeChanger);
 	}
 	
-	public QueryServiceTable(QueryServiceTableResourceProvider provider, ObjectType type, String tableTitle, boolean usePager, int width, int height){
+	public QueryServiceTable(QueryServiceTableResourceProvider provider, ObjectType type, String tableTitle, boolean usePager, int width, int height, final PlaceChanger placeChanger){
 		this.view = provider.getView();
-		this.service = provider.getService();
+		this.searchService = provider.getService();
 
 		this.view.setPresenter(this);		
 		this.view.setTitle(tableTitle);
@@ -83,10 +85,11 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
             public void load(Object loadConfig, final AsyncCallback<PagingLoadResult<BaseModelData>> callback) {
             	setCurrentSearchParameters((PagingLoadConfig) loadConfig);            	
             	SearchParameters searchParams = getCurrentSearchParameters();
-        		service.executeSearch(searchParams, new AsyncCallback<TableResults>() {
+        		searchService.executeSearch(searchParams, new AsyncCallback<TableResults>() {
         			
         			@Override
         			public void onSuccess(TableResults result) {
+        				if(result.getException() != null) DisplayUtils.handleServiceException(result.getException(), placeChanger);
         				setTableResults(result, callback);
         				view.setPaginationOffsetAndLength(paginationOffset, paginationLimit);        				
         				loadResultData.setOffset(paginationOffset);
@@ -95,7 +98,7 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
         			
         			@Override
         			public void onFailure(Throwable caught) {
-        				view.showMessage(caught.getMessage());
+        				view.showMessage("An error occured. Please try reloading the page.");
         				callback.onFailure(caught);
         			}
         		});
@@ -113,7 +116,6 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
         view.setStoreAndLoader(store, loader);
         //refreshFromServer();		
 	}	
-
 	
 	public void setUsePager(boolean usePager) {
 		this.view.usePager(usePager);

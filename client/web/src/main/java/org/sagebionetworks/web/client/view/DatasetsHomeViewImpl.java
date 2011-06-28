@@ -45,25 +45,42 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 	
 	private Presenter presenter;
 	private QueryServiceTable queryServiceTable;
+	private QueryServiceTableResourceProvider queryServiceTableResourceProvider;
+	private SageImageBundle imageBundle;
+	private IconsImageBundle icons;
+	private QueryFilter filter;
 	
 	@Inject
 	public DatasetsHomeViewImpl(DatasetsHomeViewImplUiBinder binder, Header headerWidget, Footer footerWidget, IconsImageBundle icons, QueryFilter filter, SageImageBundle imageBundle, QueryServiceTableResourceProvider queryServiceTableResourceProvider) {		
-		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, 1000, 480);
-		ImageResource searchIR = imageBundle.searchButtonIcon();
 		initWidget(binder.createAndBindUi(this));
 
+		this.imageBundle = imageBundle;
+		this.filter = filter;
+		this.icons = icons;
+		this.queryServiceTableResourceProvider = queryServiceTableResourceProvider;
+		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
 		headerWidget.setMenuItemActive(MenuItems.DATASETS);
+	}
+
+
+	@Override
+	public void setPresenter(final Presenter presenter) {
+		this.presenter = presenter;
+		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, 1000, 480, presenter.getPlaceChanger());
+		ImageResource searchIR = imageBundle.searchButtonIcon();
 				
 		// Start on the first page and trigger a data fetch from the server
 		queryServiceTable.pageTo(0, 10);
 
 		// Add the table
+		tablePanel.clear();
 		tablePanel.add(queryServiceTable.asWidget());
 		// Add the filter
+		filterPanel.clear();
 		filterPanel.add(filter);
-		
+				
 		addColumnsAnchor.setHTML(AbstractImagePrototype.create(icons.tableInsertColumn16()).getHTML() + "&nbsp;<span class=\"add_remove\">Add / remove columns</span>");
 		addColumnsAnchor.addClickHandler(new ClickHandler() {			
 			@Override
@@ -84,12 +101,7 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 				}
 			}
 		});
-	}
 
-
-	@Override
-	public void setPresenter(Presenter presenter) {
-		this.presenter = presenter;
 	}
 
 

@@ -41,7 +41,7 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
 		panel.setWidget(this.view.asWidget());
 		this.bus = eventBus;
-		this.placeController = new PlaceController(eventBus);
+		this.placeController = DisplayUtils.placeController;
 	}
 
 	public void setPlace(final LoginPlace place) {

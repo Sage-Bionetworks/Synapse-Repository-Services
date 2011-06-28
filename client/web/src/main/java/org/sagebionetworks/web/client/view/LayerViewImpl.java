@@ -187,8 +187,8 @@ public class LayerViewImpl extends Composite implements LayerView {
 		userIsAdmin = true; // TODO : get ACL from authorization service
 		createAccessPanel(id);
 		createAdminPanel(id);
-
 		
+		licensedDownloader.clear();
 		setupLicensedDownloaderCallbacks();
 		
 		Anchor seeTermsAnchor = setupTermsModal();
@@ -353,6 +353,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 	
 	private void createAdminPanel(String id) {		
 		if(userIsAdmin) {
+			annotationEditor.setPlaceChanger(presenter.getPlaceChanger());
 			annotationEditor.setResource(NodeType.LAYER, id);
 			
 			Button button = new Button("Admin Menu");
@@ -393,6 +394,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 						presenter.refresh();
 					}
 				});
+				nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
 				window.add(nodeEditor.asWidget(NodeType.LAYER, datasetId), new FitData(4));
 				window.show();
 			}
@@ -445,6 +447,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 		}		
 
 		if(userIsAdmin) {	
+			accessMenuButton.setPlaceChanger(presenter.getPlaceChanger());
 			accessMenuButton.setResource(NodeType.LAYER, id);
 			accessMenuButton.setAccessLevel(accessLevel);
 			accessPanel.clear();

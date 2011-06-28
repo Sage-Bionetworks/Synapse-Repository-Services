@@ -2,6 +2,8 @@ package org.sagebionetworks.web.client.view;
 
 import java.util.List;
 
+import org.sagebionetworks.web.client.PlaceChanger;
+
 import com.google.gwt.user.client.ui.IsWidget;
 
 public interface DatasetsHomeView extends IsWidget{
@@ -27,6 +29,8 @@ public interface DatasetsHomeView extends IsWidget{
 		 * Called when the edit columns button is pushed.
 		 */
 		public void onEditColumns();
+		
+		public PlaceChanger getPlaceChanger();
 		
 	}
 

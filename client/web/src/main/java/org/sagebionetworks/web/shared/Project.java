@@ -2,6 +2,7 @@ package org.sagebionetworks.web.shared;
 
 import java.util.Date;
 
+import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 /**
@@ -9,23 +10,79 @@ import com.google.gwt.user.client.rpc.IsSerializable;
  * 
  */
 public class Project implements IsSerializable {
-	private String id;
-	private String uri;
-	private String etag;
 	private String name;	
-	private String description;
-	private String creator;
-	private Date creationDate;
-	private String status;
 	private String annotations;
+	private String id;
+	private String description;
+	private String status;
+	private Date creationDate;
 	private String parentId;
+	private String etag;
+	private String uri;
 	private String accessControlList;
+	private String creator;
 	
 	/**
 	 * Default constructor is required
+	 * @param obj JSONObject of the Project object
 	 */
-	public Project() {
+	public Project(JSONObject object) {
+		String key = null; 
 
+		key = "name";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setName(object.get(key).isString().stringValue());		
+				
+		key = "annotations";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setAnnotations(object.get(key).isString().stringValue());		
+		
+		key = "id";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setId(object.get(key).isString().stringValue());		
+				
+		key = "description";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setDescription(object.get(key).isString().stringValue());		
+		
+		key = "status";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setStatus(object.get(key).isString().stringValue());
+		
+		key = "creationDate";
+		if(object.containsKey(key)) 
+			if(object.get(key).isNumber() != null)
+				setCreationDate(new Date(new Double(object.get(key).isNumber().doubleValue()).longValue()));
+
+		key = "parentId";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setParentId(object.get(key).isString().stringValue());
+		
+		key = "etag";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setEtag(object.get(key).isString().stringValue());		
+		
+		key = "uri";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setUri(object.get(key).isString().stringValue());
+
+		key = "accessControlList";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setAccessControlList(object.get(key).isString().stringValue());					
+		
+		key = "creator";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setCreator(object.get(key).isString().stringValue());							
 	}
 
 	public String getId() {

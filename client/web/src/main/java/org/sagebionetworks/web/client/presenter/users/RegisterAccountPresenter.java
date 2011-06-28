@@ -1,5 +1,6 @@
 package org.sagebionetworks.web.client.presenter.users;
 
+import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
 import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.place.users.RegisterAccount;
@@ -36,7 +37,7 @@ public class RegisterAccountPresenter extends AbstractActivity implements Regist
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
 		// Install the view
 		panel.setWidget(view);
-		this.placeController = new PlaceController(eventBus);
+		this.placeController = DisplayUtils.placeController;
 	}
 
 	@Override

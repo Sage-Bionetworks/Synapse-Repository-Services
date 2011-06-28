@@ -7,14 +7,18 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.web.client.DisplayConstants;
+import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.events.CancelEvent;
 import org.sagebionetworks.web.client.events.CancelHandler;
 import org.sagebionetworks.web.client.events.PersistSuccessEvent;
 import org.sagebionetworks.web.client.events.PersistSuccessHandler;
 import org.sagebionetworks.web.client.ontology.OntologyTerm;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
+import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.widget.editpanels.FormField.ColumnType;
 import org.sagebionetworks.web.shared.NodeType;
+import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 
 import com.google.gwt.event.shared.HandlerManager;
 import com.google.gwt.json.client.JSONNumber;
@@ -42,16 +46,24 @@ public class NodeEditor implements NodeEditorView.Presenter {
 	private JSONObject originalNode;
 	private String parentId;	
 	private final HandlerManager handlerManager = new HandlerManager(this);
+	private PlaceChanger placeChanger;
+	private NodeModelCreator nodeModelCreator;
 
 	
 	@Inject
-	public NodeEditor(NodeEditorView view, NodeServiceAsync service, NodeEditorDisplayHelper nodeEditorDisplayHelper) {
+	public NodeEditor(NodeEditorView view, NodeServiceAsync service, NodeEditorDisplayHelper nodeEditorDisplayHelper, NodeModelCreator nodeModelCreator) {
 		this.view = view;
 		this.service = service;
 		this.nodeEditorDisplayHelper = nodeEditorDisplayHelper;
+		this.nodeModelCreator = nodeModelCreator;
+		
 		view.setPresenter(this);
 	}	
-	
+
+    public void setPlaceChanger(PlaceChanger placeChanger) {
+    	this.placeChanger = placeChanger;
+    }
+
 	public Widget asWidget(NodeType type) {
 		return asWidget(type, null, null);
 	}
@@ -80,7 +92,12 @@ public class NodeEditor implements NodeEditorView.Presenter {
 			service.getNodeJSONSchema(type, new AsyncCallback<String>() {				
 				@Override
 				public void onSuccess(String schema) {
-					JSONObject schemaObj = JSONParser.parseStrict(schema).isObject();					
+					try {
+						nodeModelCreator.validate(schema);
+					} catch (RestServiceException ex) {
+						DisplayUtils.handleServiceException(ex, placeChanger);
+					}					
+					JSONObject schemaObj = JSONParser.parseStrict(schema).isObject();
 					originalNode = schemaObj;
 					SpecificNodeTypeDeviation deviation = nodeEditorDisplayHelper.getNodeTypeDeviation(type);										
 					List<FormField> formFields = getSchemaFormFields(schemaObj, deviation.getKeyToOntology());
@@ -97,6 +114,11 @@ public class NodeEditor implements NodeEditorView.Presenter {
 			service.getNodeJSONSchema(type, new AsyncCallback<String>() {				
 				@Override
 				public void onSuccess(String nodeJson) {
+					try {
+						nodeModelCreator.validate(nodeJson);
+					} catch (RestServiceException ex) {
+						DisplayUtils.handleServiceException(ex, placeChanger);
+					}					
 					JSONObject schemaObj = JSONParser.parseStrict(nodeJson).isObject();					
 					final SpecificNodeTypeDeviation deviation = nodeEditorDisplayHelper.getNodeTypeDeviation(type);										
 					final List<FormField> formFields = getSchemaFormFields(schemaObj, deviation.getKeyToOntology());
@@ -105,6 +127,11 @@ public class NodeEditor implements NodeEditorView.Presenter {
 					service.getNodeJSON(type, editId, new AsyncCallback<String>() {
 						@Override
 						public void onSuccess(String nodeJsonString) {
+							try {
+								nodeModelCreator.validate(nodeJsonString);
+							} catch (RestServiceException ex) {
+								DisplayUtils.handleServiceException(ex, placeChanger);
+							}					
 							originalNode = JSONParser.parseStrict(nodeJsonString).isObject();
 							view.generateEditForm(formFields, deviation.getDisplayString(), deviation.getEditText(), deviation.getCreationIgnoreFields(), deviation.getKeyToOntology(), originalNode);							
 						}
@@ -204,6 +231,11 @@ public class NodeEditor implements NodeEditorView.Presenter {
 			service.updateNode(nodeType, editId, updateJson, etag, new AsyncCallback<String>() {		
 				@Override
 				public void onSuccess(String result) {
+					try {
+						nodeModelCreator.validate(result);
+					} catch (RestServiceException ex) {
+						DisplayUtils.handleServiceException(ex, placeChanger);
+					}					
 					view.showPersistSuccess();
 					handlerManager.fireEvent(new PersistSuccessEvent());
 				}
@@ -219,6 +251,11 @@ public class NodeEditor implements NodeEditorView.Presenter {
 			service.createNode(nodeType, createJson, new AsyncCallback<String>() {		
 				@Override
 				public void onSuccess(String result) {
+					try {
+						nodeModelCreator.validate(result);
+					} catch (RestServiceException ex) {
+						DisplayUtils.handleServiceException(ex, placeChanger);
+					}					
 					view.showPersistSuccess();
 					handlerManager.fireEvent(new PersistSuccessEvent());
 				}
@@ -271,98 +308,5 @@ public class NodeEditor implements NodeEditorView.Presenter {
 			json.put(DisplayConstants.SERVICE_PARENT_ID_KEY, new JSONString(parentId));
 		}
 		return json.toString();
-	}
-
-	
-//	/*
-//	 * Temp Hacks for two layers
-//	 */
-//	private void tempLayerUpdateHack(final NodeType type, final String editId, final String parentId) {
-//		// retrieve object and build ui
-//		service.getNodeJSONSchemaTwoLayer(type, NodeType.DATASET, parentId, new AsyncCallback<String>() {				
-//			@Override
-//			public void onSuccess(String nodeJson) {
-//				JSONObject schemaObj = JSONParser.parseStrict(nodeJson).isObject();					
-//				final SpecificNodeTypeDeviation deviation = nodeEditorDisplayHelper.getNodeTypeDeviation(type);										
-//				final List<FormField> formFields = getSchemaFormFields(schemaObj, deviation.getKeyToOntology());
-//				
-//				// retrieve actual node for this id and fill in values
-//				service.getNodeJSONTwoLayer(type, editId, NodeType.DATASET, parentId, new AsyncCallback<String>() { 
-//					@Override
-//					public void onSuccess(String nodeJsonString) {
-//						originalNode = JSONParser.parseStrict(nodeJsonString).isObject();
-//						view.generateEditForm(formFields, deviation.getDisplayString(), deviation.getEditText(), deviation.getCreationIgnoreFields(), deviation.getKeyToOntology(), originalNode);							
-//					}
-//					
-//					@Override
-//					public void onFailure(Throwable caught) {
-//						view.showErrorMessage("Unable to load data. Please reload the page and try again.");
-//					}
-//				});
-//				
-//				
-//				
-//			}				
-//			@Override
-//			public void onFailure(Throwable caught) {
-//				view.showErrorMessage("Unable to load form. Please reload the page and try again.");
-//			}
-//		});
-//	}
-//
-//	private void tempLayerCreateHack(final NodeType type, String editId, String parentId) {
-//		service.getNodeJSONSchemaTwoLayer(type, NodeType.DATASET, parentId, new AsyncCallback<String>() {				
-//			@Override
-//			public void onSuccess(String schema) {
-//				JSONObject schemaObj = JSONParser.parseStrict(schema).isObject();					
-//				originalNode = schemaObj;
-//				SpecificNodeTypeDeviation deviation = nodeEditorDisplayHelper.getNodeTypeDeviation(type);										
-//				List<FormField> formFields = getSchemaFormFields(schemaObj, deviation.getKeyToOntology());
-//				view.generateCreateForm(formFields, deviation.getDisplayString(), deviation.getCreateText(), deviation.getCreationIgnoreFields(), deviation.getKeyToOntology());
-//			}
-//			
-//			@Override
-//			public void onFailure(Throwable caught) {
-//				view.showErrorMessage("Unable to load form. Please reload the page and try again.");
-//			}
-//		});
-//	}
-//
-//	private void tempLayerHackPersist(List<FormField> formFields) {
-//		final SpecificNodeTypeDeviation deviation = nodeEditorDisplayHelper.getNodeTypeDeviation(nodeType);
-//		if(editId != null) {
-//			// UPDATE
-//			JSONValue eTagJSON = originalNode.get(DisplayConstants.SERVICE_ETAG_KEY);
-//			String etag = eTagJSON != null ? eTagJSON.isString().stringValue() : null; 
-//			String updateJson = mergeChangesIntoJsonString(originalNode, formFields, deviation.getCreationIgnoreFields(), parentId);
-//			service.updateNodeTwoLayer(nodeType, editId, updateJson, etag, NodeType.DATASET, parentId, new AsyncCallback<String>() {		
-//				@Override
-//				public void onSuccess(String result) {
-//					view.showPersistSuccess();
-//					handlerManager.fireEvent(new PersistSuccessEvent());
-//				}
-//				
-//				@Override
-//				public void onFailure(Throwable caught) {
-//					view.showPersistFail();
-//				}
-//			});
-//		} else {
-//			// CREATE			
-//			String createJson = formFieldsToJsonString(formFields, deviation.getCreationIgnoreFields(), parentId);
-//			service.createNodeTwoLayer(nodeType, createJson, NodeType.DATASET, parentId, new AsyncCallback<String>() {		
-//				@Override
-//				public void onSuccess(String result) {
-//					view.showPersistSuccess();
-//					handlerManager.fireEvent(new PersistSuccessEvent());
-//				}
-//				
-//				@Override
-//				public void onFailure(Throwable caught) {
-//					view.showPersistFail();
-//				}
-//			});
-//		}	
-//	}
-	
+	}	
 }

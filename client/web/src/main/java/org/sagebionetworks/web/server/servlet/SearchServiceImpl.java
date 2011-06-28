@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Logger;
 
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 import org.sagebionetworks.web.client.SearchService;
 import org.sagebionetworks.web.server.ColumnConfigProvider;
 import org.sagebionetworks.web.server.RestTemplateProvider;
@@ -18,11 +20,15 @@ import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.TableResults;
 import org.sagebionetworks.web.shared.WhereCondition;
+import org.sagebionetworks.web.shared.exceptions.ForbiddenException;
+import org.sagebionetworks.web.shared.exceptions.UnauthorizedException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
 
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import com.google.inject.Inject;
@@ -108,34 +114,40 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 		HttpEntity<String> entity = new HttpEntity<String>("", headers);
 
 		// Make the actual call.
-		long start = System.currentTimeMillis();
-		ResponseEntity<Object> response = templateProvider.getTemplate()
-				.exchange(uri, HttpMethod.GET, entity, Object.class);
-		LinkedHashMap<String, Object> body = (LinkedHashMap<String, Object>) response
-				.getBody();
-		List<Map<String, Object>> rows = (List<Map<String, Object>>) body
-				.get(KEY_RESULTS);
-		long end = System.currentTimeMillis();
-		logger.info("Url GET: " + uri.toString()+" in "+(end-start)+" ms");
-		// Before we set the rows we need to validate types
-		Map<String, HeaderData> allColumnsHeaderMap = createMap(allColumnHeaderData);
-		rows = TypeValidation.validateTypes(rows, allColumnsHeaderMap);
-		// Set the resulting rows.
-		results.setRows(rows);
-		results.setTotalNumberResults((Integer) body
-				.get(KEY_TOTAL_NUMBER_OF_RESULTS));
+		try {
+			ResponseEntity<Object> response = templateProvider.getTemplate().exchange(uri, HttpMethod.GET, entity, Object.class);
+			LinkedHashMap<String, Object> body = (LinkedHashMap<String, Object>) response.getBody();
+			List<Map<String, Object>> rows = (List<Map<String, Object>>) body.get(KEY_RESULTS);
+			long end = System.currentTimeMillis();
+			logger.info("Url GET: " + uri.toString());
+			// Before we set the rows we need to validate types
+			Map<String, HeaderData> allColumnsHeaderMap = createMap(allColumnHeaderData);
+			rows = TypeValidation.validateTypes(rows, allColumnsHeaderMap);
+			// Set the resulting rows.
+			results.setRows(rows);
+			results.setTotalNumberResults((Integer) body
+					.get(KEY_TOTAL_NUMBER_OF_RESULTS));
+			
+			// Add the where clause to the result table if it is not already there
+			// This is a workaround for PLFM-77
+			addWhereClauseToResults(params.getWhere(), rows);
+			
+			// The last step is to process all of the url templates
+			UrlTemplateUtil.processUrlTemplates(allColumnHeaderData, rows);
 		
-		// Add the where clause to the result table if it is not already there
-		// This is a workaround for PLFM-77
-		addWhereClauseToResults(params.getWhere(), rows);
+			// Create the list of visible column headers to return to the caller
+			List<HeaderData> visibleHeaders = getColumnsForResults(visible);
+			results.setColumnInfoList(visibleHeaders);
+		} catch (HttpClientErrorException ex) {
+			// temporary solution to not being able to throw caught exceptions (due to Gin 1.0)
+			Integer code = ex.getStatusCode().value();
+			if(code == 401) { // UNAUTHORIZED
+				results.setException(new UnauthorizedException());
+			} else if(code == 403) { // FORBIDDEN
+				results.setException(new ForbiddenException());
+			}
+		}				
 		
-		// The last step is to process all of the url templates
-		UrlTemplateUtil.processUrlTemplates(allColumnHeaderData, rows);
-
-		// Create the list of visible column headers to return to the caller
-		List<HeaderData> visibleHeaders = getColumnsForResults(visible);
-		results.setColumnInfoList(visibleHeaders);
-
 		return results;
 	}
 

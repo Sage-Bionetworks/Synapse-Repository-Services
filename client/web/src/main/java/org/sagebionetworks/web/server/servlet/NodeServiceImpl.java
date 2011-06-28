@@ -17,7 +17,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.HttpClientErrorException;
 
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import com.google.inject.Inject;
@@ -26,7 +26,7 @@ import com.google.inject.Inject;
  * The server-side implementation of the DatasetService. This serverlet will
  * communicate with the platform API via REST.
  * 
- * @author jmhill
+ * @author dburdick
  * 
  */
 @SuppressWarnings("serial")
@@ -95,24 +95,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		builder.append(PATH_SCHEMA);		
 		String url = builder.toString();		
 		logger.info("GET: " + url);
-		
-		// Setup the header
-		HttpHeaders headers = new HttpHeaders();
-		// If the user data is stored in a cookie, then fetch it and the session token to the header.
-		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
-		headers.setContentType(MediaType.APPLICATION_JSON);
-		HttpEntity<String> entity = new HttpEntity<String>("", headers);
-		
-		// Make the actual call.
-		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, HttpMethod.GET, entity, String.class);
-
-		if (response.getStatusCode() == HttpStatus.OK) {			
-			return response.getBody();
-		} else {
-			// TODO: better error handling
-			throw new UnknownError("Status code:"
-					+ response.getStatusCode().value());
-		}
+		return getJsonStringForUrl(url, HttpMethod.GET);
 	}
 
 	@Override
@@ -136,23 +119,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		// Build up the path
 		StringBuilder builder = getBaseUrlBuilder(type);		 		
 		String url = builder.toString();		
-		logger.info("POST: " + url + ", JSON: " + propertiesJson);
-		
-		// Setup the header
-		HttpHeaders headers = new HttpHeaders();
-		// If the user data is stored in a cookie, then fetch it and the session token to the header.
-		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
-		headers.setContentType(MediaType.APPLICATION_JSON);
-		HttpEntity<String> entity = new HttpEntity<String>(propertiesJson, headers);
-		
-		// Make the actual call.
-		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, HttpMethod.POST, entity, String.class);
-
-		if (response.getStatusCode() == HttpStatus.CREATED || response.getStatusCode() == HttpStatus.OK) {
-			return response.getBody();
-		} else {
-			throw new RestClientException("Status code:" + response.getStatusCode().value());
-		}		
+		return getJsonStringForUrl(url, HttpMethod.POST, propertiesJson);
 	}
 
 	@Override
@@ -164,24 +131,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		StringBuilder builder = getBaseUrlBuilder(type);
 		builder.append("/" + id);
 		String url = builder.toString();		
-		logger.info("PUT: " + url + ", JSON: " + propertiesJson);
-		
-		// Setup the header
-		HttpHeaders headers = new HttpHeaders();
-		// If the user data is stored in a cookie, then fetch it and the session token to the header.
-		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
-		headers.setContentType(MediaType.APPLICATION_JSON);
-		headers.set(DisplayConstants.SERVICE_HEADER_ETAG_KEY, eTag);
-		HttpEntity<String> entity = new HttpEntity<String>(propertiesJson, headers);
-		
-		// Make the actual call.
-		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, HttpMethod.PUT, entity, String.class);
-
-		if (response.getStatusCode() == HttpStatus.OK) {
-			return response.getBody();
-		} else {
-			throw new RestClientException("Status code:" + response.getStatusCode().value());
-		}
+		return getJsonStringForUrl(url, HttpMethod.PUT, propertiesJson, eTag);
 	}
 	
 	@Override
@@ -193,21 +143,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		StringBuilder builder = getBaseUrlBuilder(type);
 		builder.append("/" + id);
 		String url = builder.toString();		
-		logger.info("PUT: " + url);
-		
-		// Setup the header
-		HttpHeaders headers = new HttpHeaders();
-		// If the user data is stored in a cookie, then fetch it and the session token to the header.
-		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
-		headers.setContentType(MediaType.APPLICATION_JSON);
-		HttpEntity<String> entity = new HttpEntity<String>("", headers);
-		
-		// Make the actual call.
-		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, HttpMethod.PUT, entity, String.class);
-
-		if (response.getStatusCode() != HttpStatus.NO_CONTENT && response.getStatusCode() != HttpStatus.OK) {
-			throw new RestClientException("Status code:" + response.getStatusCode().value());
-		}
+		getJsonStringForUrl(url, HttpMethod.DELETE);
 	}
 
 	@Override
@@ -251,25 +187,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		builder.append("/" + id);
 		builder.append("/" + ANNOTATIONS_PATH);
 		String url = builder.toString();		
-		logger.info("PUT: " + url + ", JSON: " + annotationsJson);
-		
-		// Setup the header
-		HttpHeaders headers = new HttpHeaders();
-		// If the user data is stored in a cookie, then fetch it and the session token to the header.
-		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
-		headers.setContentType(MediaType.APPLICATION_JSON);
-		headers.set(DisplayConstants.SERVICE_HEADER_ETAG_KEY, etag);
-		HttpEntity<String> entity = new HttpEntity<String>(annotationsJson, headers);
-		
-		// Make the actual call.
-		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, HttpMethod.PUT, entity, String.class);
-
-		if (response.getStatusCode() == HttpStatus.OK) {
-			return response.getBody();
-		} else {
-			throw new RestClientException("Status code:" + response.getStatusCode().value());
-		}
-
+		return getJsonStringForUrl(url, HttpMethod.PUT, annotationsJson, etag);
 	}
 
 
@@ -297,7 +215,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		// convert 
 		JSONObject obj = new JSONObject();
 		try {
-			obj.put("resourceId", id);
+			obj.put("resourceId", id);			
 			if(userGroupId != null && accessTypes != null) {
 				JSONArray accesses = new JSONArray();
 				JSONObject accessObj = new JSONObject();
@@ -312,25 +230,8 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 			e.printStackTrace();
 		}
 		String requestJson = obj.toString();
-		
-		// Setup the header
-		HttpHeaders headers = new HttpHeaders();
-		// If the user data is stored in a cookie, then fetch it and the session token to the header.
-		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
-		headers.setContentType(MediaType.APPLICATION_JSON);
-		HttpEntity<String> entity = new HttpEntity<String>(requestJson, headers);
-		HttpMethod method = HttpMethod.POST;
-		
-		logger.info(method.toString() + ": " + url + ", JSON: " + requestJson);
 
-		// Make the actual call.
-		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class);
-
-		if (response.getStatusCode() == HttpStatus.OK) {
-			return response.getBody();
-		} else {
-			throw new RestClientException("Status code:" + response.getStatusCode().value());
-		}
+		return getJsonStringForUrl(url, HttpMethod.POST, requestJson);
 	}
 
 	@Override
@@ -344,25 +245,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		builder.append("/" + PATH_ACL);
 		String url = builder.toString();		
 		
-		// Setup the header
-		HttpHeaders headers = new HttpHeaders();
-		// If the user data is stored in a cookie, then fetch it and the session token to the header.
-		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
-		headers.setContentType(MediaType.APPLICATION_JSON);
-		headers.set(DisplayConstants.SERVICE_HEADER_ETAG_KEY, etag);
-		HttpEntity<String> entity = new HttpEntity<String>(aclJson, headers);		
-		HttpMethod method = HttpMethod.PUT;
-		
-		logger.info(method.toString() + ": " + url + ", JSON: " + aclJson);
-
-		// Make the actual call.
-		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class);
-
-		if (response.getStatusCode() == HttpStatus.OK) {
-			return response.getBody();
-		} else {
-			throw new RestClientException("Status code:" + response.getStatusCode().value());
-		}
+		return getJsonStringForUrl(url, HttpMethod.PUT, aclJson, etag);	
 	}
 
 	@Override
@@ -375,25 +258,8 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		builder.append("/" + id);
 		builder.append("/" + PATH_ACL);
 		String url = builder.toString();		
-		
-		// Setup the header
-		HttpHeaders headers = new HttpHeaders();
-		// If the user data is stored in a cookie, then fetch it and the session token to the header.
-		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
-		headers.setContentType(MediaType.APPLICATION_JSON);
-		HttpEntity<String> entity = new HttpEntity<String>("", headers);		
-		HttpMethod method = HttpMethod.DELETE;
-		
-		logger.info(method.toString() + ": " + url);
 
-		// Make the actual call.
-		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class);
-
-		if (response.getStatusCode() == HttpStatus.OK) {
-			return response.getBody();
-		} else {
-			throw new RestClientException("Status code:" + response.getStatusCode().value());
-		}
+		return getJsonStringForUrl(url, HttpMethod.DELETE);		
 	}
 	
 	
@@ -401,29 +267,62 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 	 * Private Methods
 	 */
 	private String getJsonStringForUrl(String url, HttpMethod method) {
+		return getJsonStringForUrl(url, method, null, null);
+	}
+	
+	private String getJsonStringForUrl(String url, HttpMethod method, String entityString) {
+		return getJsonStringForUrl(url, method, entityString, null);
+	}
+	
+	private String getJsonStringForUrl(String url, HttpMethod method, String entityString, String etag) {
 		// First make sure the service is ready to go.
 		validateService();
 
-		logger.info(method.toString() + ": " + url);
+		String logString = method.toString() + ": " + url;
+		if(entityString != null) {
+			logString += ", " + "JSON: " + entityString; 
+		}		
+		logger.info(logString);
 		
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
 		// If the user data is stored in a cookie, then fetch it and the session token to the header.
 		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
-		HttpEntity<String> entity = new HttpEntity<String>("", headers);
+		if(etag != null) headers.set(DisplayConstants.SERVICE_HEADER_ETAG_KEY, etag);
+		if(entityString == null) entityString = "";
+		HttpEntity<String> entity = new HttpEntity<String>(entityString, headers);
 		
 		// Make the actual call.
-		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class);
+		try {
+			ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class);
+			if (response.getStatusCode() == HttpStatus.OK) {			
+				return response.getBody();
+			} else {
+				throw new UnknownError("Status code:" + response.getStatusCode().value());
+			}
+		} catch (HttpClientErrorException ex) {
 
-		if (response.getStatusCode() == HttpStatus.OK) {			
-			return response.getBody();
-		} else {
-			// TODO: better error handling
-			throw new UnknownError("Status code:"
-					+ response.getStatusCode().value());
-		}
-		
+//			if(ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+//				throw new UnauthorizedException();
+//			} else if(ex.getStatusCode() == HttpStatus.FORBIDDEN) {
+//				throw new ForbiddenException();
+//			} else {
+//				throw new UnknownError("Status code:" + ex.getStatusCode().value());
+//			}
+			
+			// temporary solution to not being able to throw caught exceptions (due to Gin 1.0)
+			JSONObject obj = new JSONObject();
+			JSONObject errorObj = new JSONObject();
+			try {
+				Integer code = ex.getStatusCode().value();
+				if(code != null) errorObj.put("statusCode", code);
+				obj.put("error", errorObj);
+				return obj.toString();
+			} catch (JSONException e) {
+				throw new UnknownError();
+			}
+		}		
 	}
 	
 	private StringBuilder getBaseUrlBuilder(NodeType type) {
@@ -445,135 +344,5 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		}
 		return builder;
 	}
-
-	private StringBuilder getBaseUrlBuilderTwoLayer(NodeType layerTwotype, NodeType layerOneType, String layerOneId) {	
-		StringBuilder sb = getBaseUrlBuilder(layerOneType);
-		sb.append("/" + layerOneId + "/");
-		sb.append(PATH_LAYER);
-		return sb;
-	}
-	
-	
-	/*
-	 * Temp hacky two layer impls
-	 */
-//	@Override
-//	public String createNodeTwoLayer(NodeType type, String propertiesJson, NodeType layerOneType, String layerOneId) {
-//		// First make sure the service is ready to go.
-//		validateService();
-//		
-//		// Build up the path
-//		StringBuilder builder = getBaseUrlBuilderTwoLayer(type, layerOneType, layerOneId);	 		
-//		String url = builder.toString();		
-//		logger.info("POST: " + url + ", JSON: " + propertiesJson);
-//		
-//		// Setup the header
-//		HttpHeaders headers = new HttpHeaders();
-//		// If the user data is stored in a cookie, then fetch it and the session token to the header.
-//		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
-//		headers.setContentType(MediaType.APPLICATION_JSON);
-//		HttpEntity<String> entity = new HttpEntity<String>(propertiesJson, headers);
-//		
-//		// Make the actual call.
-//		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, HttpMethod.POST, entity, String.class);
-//
-//		if (response.getStatusCode() == HttpStatus.CREATED || response.getStatusCode() == HttpStatus.OK) {
-//			return response.getBody();
-//		} else {
-//			throw new RestClientException("Status code:" + response.getStatusCode().value());
-//		}		
-//	}
-//	
-//	@Override 
-//	public String updateNodeTwoLayer(NodeType type, String id, String propertiesJson, String eTag, NodeType layerOneType, String layerOneId) {
-//		// First make sure the service is ready to go.
-//		validateService();
-//		
-//		// Build up the path
-//		StringBuilder builder = getBaseUrlBuilderTwoLayer(type, layerOneType, layerOneId);
-//		builder.append("/" + id);
-//		String url = builder.toString();		
-//		logger.info("PUT: " + url + ", JSON: " + propertiesJson);
-//		
-//		// Setup the header
-//		HttpHeaders headers = new HttpHeaders();
-//		// If the user data is stored in a cookie, then fetch it and the session token to the header.
-//		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
-//		headers.setContentType(MediaType.APPLICATION_JSON);
-//		headers.set(DisplayConstants.SERVICE_HEADER_ETAG_KEY, eTag);
-//		HttpEntity<String> entity = new HttpEntity<String>(propertiesJson, headers);
-//		
-//		// Make the actual call.
-//		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, HttpMethod.PUT, entity, String.class);
-//
-//		if (response.getStatusCode() == HttpStatus.OK) {
-//			return response.getBody();
-//		} else {
-//			throw new RestClientException("Status code:" + response.getStatusCode().value());
-//		}
-//	}
-//
-//	
-//	@Override
-//	public String getNodeJSONSchemaTwoLayer(NodeType type, NodeType layerOneType, String layerOneId) {
-//		// First make sure the service is ready to go.
-//		validateService();
-//		
-//		// Build up the path
-//		StringBuilder builder = getBaseUrlBuilderTwoLayer(type, layerOneType, layerOneId);
-//		builder.append("/");
-//		builder.append(PATH_SCHEMA);		
-//		String url = builder.toString();		
-//		logger.info("GET: " + url);
-//		
-//		// Setup the header
-//		HttpHeaders headers = new HttpHeaders();
-//		// If the user data is stored in a cookie, then fetch it and the session token to the header.
-//		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
-//		headers.setContentType(MediaType.APPLICATION_JSON);
-//		HttpEntity<String> entity = new HttpEntity<String>("", headers);
-//		
-//		// Make the actual call.
-//		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, HttpMethod.GET, entity, String.class);
-//
-//		if (response.getStatusCode() == HttpStatus.OK) {			
-//			return response.getBody();
-//		} else {
-//			// TODO: better error handling
-//			throw new UnknownError("Status code:"
-//					+ response.getStatusCode().value());
-//		}
-//	}
-//
-//	@Override
-//	public String getNodeJSONTwoLayer(NodeType type, String id, NodeType layerOneType, String layerOneId) {
-//		// First make sure the service is ready to go.
-//		validateService();
-//		
-//		// Build up the path
-//		StringBuilder builder = getBaseUrlBuilderTwoLayer(type, layerOneType, layerOneId);
-//		builder.append("/");
-//		builder.append(id);		
-//		String url = builder.toString();		
-//		logger.info("GET: " + url);
-//		
-//		// Setup the header
-//		HttpHeaders headers = new HttpHeaders();
-//		// If the user data is stored in a cookie, then fetch it and the session token to the header.
-//		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
-//		headers.setContentType(MediaType.APPLICATION_JSON);
-//		HttpEntity<String> entity = new HttpEntity<String>("", headers);
-//		
-//		// Make the actual call.
-//		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, HttpMethod.GET, entity, String.class);
-//
-//		if (response.getStatusCode() == HttpStatus.OK) {			
-//			return response.getBody();
-//		} else {
-//			// TODO: better error handling
-//			throw new UnknownError("Status code:"
-//					+ response.getStatusCode().value());
-//		}
-//	}
 	
 }

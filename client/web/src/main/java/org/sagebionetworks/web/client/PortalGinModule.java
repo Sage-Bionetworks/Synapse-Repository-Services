@@ -4,6 +4,8 @@ import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.cookie.GWTCookieImpl;
 import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.security.AuthenticationControllerImpl;
+import org.sagebionetworks.web.client.transform.NodeModelCreator;
+import org.sagebionetworks.web.client.transform.NodeModelCreatorImpl;
 import org.sagebionetworks.web.client.view.CellTableProvider;
 import org.sagebionetworks.web.client.view.CellTableProviderImpl;
 import org.sagebionetworks.web.client.view.ColumnsPopupView;
@@ -167,6 +169,8 @@ public class PortalGinModule extends AbstractGinModule {
 		// AnnotationEditor
 		bind(AccessControlListEditorViewImpl.class).in(Singleton.class);
 		bind(AccessControlListEditorView.class).to(AccessControlListEditorViewImpl.class);
+		
+		bind(NodeModelCreator.class).to(NodeModelCreatorImpl.class);
 		
 	}
 

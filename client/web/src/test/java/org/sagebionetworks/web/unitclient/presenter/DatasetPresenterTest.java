@@ -10,6 +10,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.web.client.place.Dataset;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
+import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.view.DatasetView;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAsync;
 
@@ -22,6 +23,7 @@ public class DatasetPresenterTest {
 	DatasetView mockView;
 	NodeServiceAsync mockNodeService;
 	LicenceServiceAsync mockLicenseService;
+	NodeModelCreator mockNodeModelCreator;
 	String datasetId = "1";
 	Dataset place = new Dataset("Dataset:"+ datasetId);
 	
@@ -30,7 +32,8 @@ public class DatasetPresenterTest {
 		mockView = mock(DatasetView.class);
 		mockNodeService = mock(NodeServiceAsync.class);
 		mockLicenseService = mock(LicenceServiceAsync.class);
-		datasetPresenter = new DatasetPresenter(mockView, mockNodeService, mockLicenseService);		
+		mockNodeModelCreator = mock(NodeModelCreator.class);
+		datasetPresenter = new DatasetPresenter(mockView, mockNodeService, mockLicenseService, mockNodeModelCreator);		
 		datasetPresenter.setPlace(place);
 		
 		verify(mockView).setPresenter(datasetPresenter);
@@ -47,7 +50,8 @@ public class DatasetPresenterTest {
 		reset(mockView);
 		reset(mockNodeService);
 		reset(mockLicenseService);
-		datasetPresenter = new DatasetPresenter(mockView, mockNodeService, mockLicenseService);		
+		reset(mockNodeModelCreator);
+		datasetPresenter = new DatasetPresenter(mockView, mockNodeService, mockLicenseService, mockNodeModelCreator);		
 		datasetPresenter.setPlace(place);		
 		AcceptsOneWidget panel = mock(AcceptsOneWidget.class);
 		EventBus eventBus = mock(EventBus.class);		
@@ -61,7 +65,8 @@ public class DatasetPresenterTest {
 		reset(mockView);
 		reset(mockNodeService);
 		reset(mockLicenseService);
-		datasetPresenter = new DatasetPresenter(mockView, mockNodeService, mockLicenseService);		
+		reset(mockNodeModelCreator);
+		datasetPresenter = new DatasetPresenter(mockView, mockNodeService, mockLicenseService, mockNodeModelCreator);		
 		datasetPresenter.setPlace(place);		
 		
 		datasetPresenter.refreshFromServer();		

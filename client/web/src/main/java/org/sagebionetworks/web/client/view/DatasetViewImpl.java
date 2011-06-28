@@ -213,6 +213,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		createAccessPanel(id);
 		createAdminPanel(id);		
 		
+		datasetLicensedDownloader.clear();
 		setupDatasetLicensedDownloaderCallbacks();
  
 		Anchor followDatasetAnchor = setupFollowDatasetModal();		
@@ -296,7 +297,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	}
 
 	@Override
-	public void setDatasetDownloads(List<FileDownload> downloads) {
+	public void setDatasetDownloads(List<FileDownload> downloads) {		
 		datasetLicensedDownloader.setDownloadUrls(downloads);
 	}
 
@@ -313,6 +314,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 
 	private void createAdminPanel(String id) {		
 		if(userIsAdmin) {
+			annotationEditor.setPlaceChanger(presenter.getPlaceChanger());
 			annotationEditor.setResource(NodeType.DATASET, id);
 			
 			Button button = new Button("Admin Menu");
@@ -353,6 +355,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 						presenter.refresh();
 					}
 				});
+				nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
 				window.add(nodeEditor.asWidget(NodeType.DATASET, datasetId), new FitData(4));				
 				window.show();
 			}
@@ -414,6 +417,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 						presenter.refresh();
 					}
 				});
+				nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
 				window.add(nodeEditor.asWidget(NodeType.LAYER, null, datasetId), new FitData(4));
 				window.show();
 			}
@@ -434,6 +438,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		}		
 
 		if(userIsAdmin) {		
+			accessMenuButton.setPlaceChanger(presenter.getPlaceChanger());
 			accessMenuButton.setResource(NodeType.DATASET, id);
 			accessMenuButton.setAccessLevel(accessLevel);
 			accessPanel.clear();
@@ -463,7 +468,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 
 	private void setupLayerTable(String id) {
 		// layers table
-		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.layer, false, 320, 237);
+		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.layer, false, 320, 237, presenter.getPlaceChanger());		
 		// Set the where clause
 		List<WhereCondition> whereList = new ArrayList<WhereCondition>();
 		whereList.add(new WhereCondition("layer.parentId", WhereOperator.EQUALS, id));

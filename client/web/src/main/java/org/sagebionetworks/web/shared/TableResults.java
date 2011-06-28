@@ -11,6 +11,8 @@ public class TableResults implements IsSerializable {
 	
 	private int totalNumberResults;
 	private List<Map<String, Object>> rows;
+	private Exception exception;
+	
 	/**
 	 * We want GWT to serialize every type in this class.
 	 */
@@ -41,6 +43,12 @@ public class TableResults implements IsSerializable {
 		this.values = values;
 	}
 	
+	public Exception getException() {
+		return exception;
+	}
+	public void setException(Exception exception) {
+		this.exception = exception;
+	}
 	/**
 	 * Duplicate setter to allow for "rows" to also be called "results"
 	 * @param rows

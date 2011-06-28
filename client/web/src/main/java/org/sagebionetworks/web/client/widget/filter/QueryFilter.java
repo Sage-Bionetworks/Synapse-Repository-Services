@@ -54,7 +54,7 @@ public class QueryFilter implements QueryFilterView.Presenter, IsWidget{
 			
 			@Override
 			public void onFailure(Throwable caught) {
-				view.showError(caught.getMessage());
+				view.showError("An error occurred. Please try reloading the page.");
 			}
 		});
 		

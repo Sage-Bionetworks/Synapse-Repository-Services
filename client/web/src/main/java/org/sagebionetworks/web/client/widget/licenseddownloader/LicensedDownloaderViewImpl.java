@@ -37,15 +37,14 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 	private String citationText;	
 	private String licenseTextHtml;
 	private String downloadHtml;
-	private boolean eluaWindowCreated;
-	private boolean downloadWindowCreated;
-	private final Window eulaWindow = new Window();
-	private final Window downloadWindow = new Window();
+	private Window eulaWindow;
+	private Window downloadWindow;
 	final CheckBox acceptLicenseCheckBox = new CheckBox();
 	private Button acceptLicenseButton;
 	private LayoutContainer licenseTextContainer;
 	private LayoutContainer downloadContentContainer;
 	private IconsImageBundle icons;
+
 
 	/*
 	 * Constructors
@@ -54,14 +53,7 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 	public LicensedDownloaderViewImpl(IconsImageBundle icons) {
 		this.icons = icons;
 		
-		// defaults
-		licenseAcceptanceRequired = true;
-		eluaWindowCreated = false;
-		downloadWindowCreated = false;
-		showCitation = false;		
-		citationText = "";
-		licenseTextHtml = "";
-		downloadHtml = "";
+		clear();
 	}
 
 	
@@ -80,9 +72,7 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 	public void showWindow() {		
 		if(licenseAcceptanceRequired) {
 			// show License window
-			if(!eluaWindowCreated) {
-				createEulaWindow();
-			}
+			createEulaWindow();
 			// clear out selections if window has already been shown
 			if(acceptLicenseCheckBox != null) {
 				acceptLicenseCheckBox.setValue(false);
@@ -91,9 +81,7 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 			eulaWindow.show();		
 		} else {
 			// show download window
-			if(!downloadWindowCreated) {
-				createDownloadWindow();
-			}
+			createDownloadWindow();
 			downloadWindow.show();
 		}		
 	}
@@ -114,7 +102,7 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 	}
  
 	@Override
-	public Widget asWidget() {
+	public Widget asWidget() {		
 		return this;
 	}
 
@@ -128,7 +116,7 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 		licenseTextHtml = licenseHtml;
 		
 		// replace the view content if this is after initialization
-		if(licenseTextContainer != null) {
+		if(licenseTextContainer != null) {			
 			licenseTextContainer.add(new Html(licenseTextHtml));
 		}
 	}
@@ -157,17 +145,29 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 
 			// replace the view content if this is after initialization
 			if(downloadContentContainer != null) {
-				downloadContentContainer.addText(sb.toString());
+				downloadContentContainer.removeAll();				
+				downloadContentContainer.add(new Html(sb.toString()));
 			}
 		}
 	}
 	
+	@Override
+	public void clear() {
+		// defaults
+		licenseAcceptanceRequired = true;
+		showCitation = false;		
+		citationText = "";
+		licenseTextHtml = "";
+		downloadHtml = "";		
+	}
+
 	
 	/*
 	 * Protected Methods
 	 */	
 	protected void createEulaWindow() {
 		int windowHeight = showCitation ? 460 : 360;
+		eulaWindow = new Window();
 		eulaWindow.setSize(500, windowHeight);
 		eulaWindow.setPlain(true);
 		eulaWindow.setModal(true);
@@ -198,13 +198,13 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 		panel.add(top2TxtLabel, standardPadding);
 		
 		licenseTextContainer = new LayoutContainer();
-		// licenseTextPanel.setLayoutData(new MarginData(10));
 		licenseTextContainer.setHeight(200);
 		licenseTextContainer.addStyleName("pad-text");
 		licenseTextContainer.setStyleAttribute("backgroundColor", "white");
 		licenseTextContainer.setBorders(true);
 		licenseTextContainer.setScrollMode(Style.Scroll.AUTOY);
-		licenseTextContainer.addText(licenseTextHtml);
+		licenseTextContainer.removeAll();
+		licenseTextContainer.add(new Html(licenseTextHtml));				
 		panel.add(licenseTextContainer, standardPadding);
 
 
@@ -247,11 +247,11 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 		eulaWindow.addButton(acceptLicenseButton);
 		eulaWindow.addButton(cancelLicenseButton);
 		eulaWindow.add(panel);
-		eluaWindowCreated = true;
 	}
 
 
 	protected void createDownloadWindow() {
+		downloadWindow = new Window();
 		downloadWindow.setSize(600, 200);
 		downloadWindow.setPlain(true);
 		downloadWindow.setModal(false);
@@ -275,7 +275,8 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 		downloadContentContainer.setStyleAttribute("backgroundColor", "white");
 		downloadContentContainer.setBorders(false);
 		downloadContentContainer.setScrollMode(Style.Scroll.AUTOY);
-		downloadContentContainer.addText(downloadHtml);		
+		downloadContentContainer.removeAll();
+		downloadContentContainer.add(new Html(downloadHtml));
 		panel.add(downloadContentContainer, standardPadding);
 		
 		Button cancelLicenseButton = new Button("Close", new SelectionListener<ButtonEvent>() {
@@ -287,7 +288,6 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 
 		downloadWindow.addButton(cancelLicenseButton);
 		downloadWindow.add(panel);
-		downloadWindowCreated = true;
 	}
 
 }
