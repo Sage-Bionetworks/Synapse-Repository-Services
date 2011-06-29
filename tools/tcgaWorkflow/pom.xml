@@ -164,5 +164,36 @@
 		<artifactId>junit</artifactId>
 	</dependency>
   </dependencies>
+
+  <build>
+
+    <!-- The shade plugin is building a jar with all the other jar dependencies bundled inside.  We can use this to run all three of our main classes in this package (not just the one we have listed as the main class). -->
+    <!-- java -Dorg.sagebionetworks.credentialsFile=/Users/deflaux/workflowCreds.properties -jar target/tcgaWorkflow-0.5-SNAPSHOT.jar -->
+    <!-- java -Dorg.sagebionetworks.credentialsFile=/Users/deflaux/workflowCreds.properties -cp target/tcgaWorkflow-0.5-SNAPSHOT.jar org.sagebionetworks.workflow.curation.TcgaWorkflowDeciderService -->
+    <!-- java -Dorg.sagebionetworks.credentialsFile=/Users/deflaux/workflowCreds.properties -cp target/tcgaWorkflow-0.5-SNAPSHOT.jar org.sagebionetworks.workflow.curation.TcgaWorkflowActivityService -->
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>1.4</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>org.sagebionetworks.workflow.curation.TcgaWorkflowInitiator</mainClass>
+                </transformer>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
   
 </project>

@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Properties;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.client.Synapse;
 
 import com.amazonaws.ClientConfiguration;
@@ -25,35 +26,34 @@ import com.amazonaws.services.sns.AmazonSNSClient;
 public class ConfigHelper {
 
 	/**
-	 * The system property key with which to pass the Synapse username
+	 * The system property key with which to pass the filepath to the
+	 * credentials property file
 	 */
-	public static final String USERNAME_KEY = "USERNAME";
+	private static final String CREDENTIALS_PROPERTY_KEY = "org.sagebionetworks.credentialsFile";
 	/**
-	 * The system property key with which to pass the Synapse password
+	 * The credentials property key with which to pass the Synapse username
 	 */
-	public static final String PASSWORD_KEY = "PASSWORD";
+	private static final String USERNAME_KEY = "synapseUsername";
 	/**
-	 * The system property key with which to pass the AWS access key id
+	 * The credentials property key with which to pass the Synapse password
 	 */
-	public static final String ACCESS_ID_KEY = "AWS_ACCESS_KEY_ID";
+	private static final String PASSWORD_KEY = "synapsePassword";
 	/**
-	 * The system property key with which to pass the AWS secret key
+	 * The credentials property key with which to pass the AWS access key id
 	 */
-	public static final String SECRET_KEY_KEY = "AWS_SECRET_KEY";
+	private static final String ACCESS_ID_KEY = "AWS_ACCESS_KEY_ID";
+	/**
+	 * The credentials property key with which to pass the AWS secret key
+	 */
+	private static final String SECRET_KEY_KEY = "AWS_SECRET_KEY";
 
-	private static final String PROPERTIES_FILENAME = "workflow.properties";
-
-	private static final String SYNAPSE_AUTH_ENDPOINT_KEY = "synapse.auth.endpoint";
-	private static final String SYNAPSE_REPO_ENDPOINT_KEY = "synapse.repo.endpoint";
+	private static final String WORKFLOW_PROPERTIES_FILENAME = "workflow.properties";
 	private static final String SWF_ENDPOINT_KEY = "swf.endpoint";
 	private static final String SNS_ENDPOINT_KEY = "sns.endpoint";
 	private static final String SNS_TOPIC_KEY = "sns.topic";
 	private static final String S3_BUCKET_KEY = "s3.bucket";
 	private static final String SCRIPT_TIMEOUT_KEY = "max.script.execution.hours.timeout";
 	private static final String LOCAL_CACHE_DIR = "local.cache.dir";
-
-	private String synapseRepoEndpoint;
-	private String synapseAuthEndpoint;
 
 	private String snsEndpoint;
 	private String swfEndpoint;
@@ -71,52 +71,65 @@ public class ConfigHelper {
 	private volatile static ConfigHelper theInstance = null;
 
 	private ConfigHelper() {
-
-		URL url = ClassLoader.getSystemResource(PROPERTIES_FILENAME);
+		/**
+		 * Load the workflow properties (these are checked into svn and in the
+		 * classpath)
+		 */
+		URL url = ClassLoader.getSystemResource(WORKFLOW_PROPERTIES_FILENAME);
 		if (null == url) {
 			throw new Error("unable to find in classpath "
-					+ PROPERTIES_FILENAME);
+					+ WORKFLOW_PROPERTIES_FILENAME);
 		}
 		Properties serviceProperties = new Properties();
 		try {
-			serviceProperties
-					.load(new FileInputStream(new File(url.getFile())));
+			serviceProperties.load(url.openStream());
+		} catch (IOException e) {
+			throw new Error(e);
+		}
+
+		snsEndpoint = serviceProperties.getProperty(SNS_ENDPOINT_KEY);
+		swfEndpoint = serviceProperties.getProperty(SWF_ENDPOINT_KEY);
+		snsTopic = serviceProperties.getProperty(SNS_TOPIC_KEY);
+		s3Bucket = serviceProperties.getProperty(S3_BUCKET_KEY);
+		maxScriptExecutionHoursTimeout = Integer.parseInt(serviceProperties
+				.getProperty(SCRIPT_TIMEOUT_KEY));
+		localCacheDir = serviceProperties.getProperty(LOCAL_CACHE_DIR);
+
+		/**
+		 * Load the credentials properties (these are in a file on the local
+		 * filesystem and not checked into svn)
+		 */
+		String credentialsPropertyFilename = System
+				.getProperty(CREDENTIALS_PROPERTY_KEY);
+		if (null == credentialsPropertyFilename) {
+			throw new Error(
+					"Path to credentials file is missing, pass it as JVM args -D"
+							+ CREDENTIALS_PROPERTY_KEY);
+		}
+		Properties credentialsProperties = new Properties();
+		try {
+			credentialsProperties.load(new FileInputStream(new File(
+					credentialsPropertyFilename)));
 		} catch (FileNotFoundException e) {
 			throw new Error(e);
 		} catch (IOException e) {
 			throw new Error(e);
 		}
-
-		synapseRepoEndpoint = serviceProperties
-				.getProperty(SYNAPSE_REPO_ENDPOINT_KEY);
-		synapseAuthEndpoint = serviceProperties
-				.getProperty(SYNAPSE_AUTH_ENDPOINT_KEY);
-
-		snsEndpoint = serviceProperties.getProperty(SNS_ENDPOINT_KEY);
-		swfEndpoint = serviceProperties.getProperty(SWF_ENDPOINT_KEY);
-
-		snsTopic = serviceProperties.getProperty(SNS_TOPIC_KEY);
-		s3Bucket = serviceProperties.getProperty(S3_BUCKET_KEY);
-		maxScriptExecutionHoursTimeout = Integer.parseInt(serviceProperties.getProperty(SCRIPT_TIMEOUT_KEY));
-		localCacheDir = serviceProperties.getProperty(LOCAL_CACHE_DIR);
-
-		// These come from the environment, not a config file so that we do not
-		// check credentials into source control
-		synapseUsername = System.getProperty(USERNAME_KEY);
-		synapsePassword = System.getProperty(PASSWORD_KEY);
-		awsAccessId = System.getProperty(ACCESS_ID_KEY);
-		awsSecretKey = System.getProperty(SECRET_KEY_KEY);
+		synapseUsername = credentialsProperties.getProperty(USERNAME_KEY);
+		synapsePassword = credentialsProperties.getProperty(PASSWORD_KEY);
+		awsAccessId = credentialsProperties.getProperty(ACCESS_ID_KEY);
+		awsSecretKey = credentialsProperties.getProperty(SECRET_KEY_KEY);
 
 		if ((null == synapseUsername) || (null == synapsePassword)
 				|| (null == awsAccessId) || (null == awsSecretKey)) {
 			throw new Error(
-					"Synapse and/or AWS credentials are missing, pass them as JVM args -D"
-							+ USERNAME_KEY + "=theSynapseUsername -D"
-							+ PASSWORD_KEY + "=theSynapsePassword -D"
-							+ ACCESS_ID_KEY + "=theAccessKey -D"
-							+ SECRET_KEY_KEY + "=theSecretKey");
+					"Synapse and/or AWS credentials are missing, make sure "
+							+ credentialsPropertyFilename + " contains:\n\t"
+							+ USERNAME_KEY + "=theSynapseUsername\n\t"
+							+ PASSWORD_KEY + "=theSynapsePassword\n\t"
+							+ ACCESS_ID_KEY + "=theAccessKey\n\t"
+							+ SECRET_KEY_KEY + "=theSecretKey\n");
 		}
-
 	}
 
 	/**
@@ -178,12 +191,14 @@ public class ConfigHelper {
 
 	/**
 	 * @return the Synapse client
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	public Synapse createSynapseClient() throws Exception {
 		Synapse synapse = new Synapse();
-		synapse.setRepositoryEndpoint(synapseRepoEndpoint);
-		synapse.setAuthEndpoint(synapseAuthEndpoint);
+		synapse.setRepositoryEndpoint(StackConfiguration
+				.getRepositoryServiceEndpoint());
+		synapse.setAuthEndpoint(StackConfiguration
+				.getAuthenticationServiceEndpoint());
 		synapse.login(synapseUsername, synapsePassword);
 		return synapse;
 	}
