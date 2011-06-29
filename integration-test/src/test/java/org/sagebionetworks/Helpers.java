@@ -1,8 +1,10 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 
 import org.apache.commons.lang.StringUtils;
@@ -123,38 +125,67 @@ public class Helpers {
 		ExternalProcessResult result = new ExternalProcessResult();
 
 		log.info("About to exec: " + StringUtils.join(cmd, " "));
-		Process process = Runtime.getRuntime().exec(cmd, null, null);
+		Runtime rt = Runtime.getRuntime();
+		Process process = rt.exec(cmd, null, null);
+		
+		//Capture standard out and error simultaneously off two different threads so they can't block each other
+		StreamGobbler errorGobbler = new StreamGobbler(process.getErrorStream(), ""); 
+		StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "");
+		errorGobbler.start();
+        outputGobbler.start();
 
-		String line;
-
-		// Collect stdout from the script
-		BufferedReader inputStream = new BufferedReader(new InputStreamReader(
-				process.getInputStream()));
-		StringBuilder stdoutAccumulator = new StringBuilder();
-		while ((line = inputStream.readLine()) != null) {
-			stdoutAccumulator.append(line);
-			log.info(line);
-		}
-		inputStream.close();
-		result.setStdout(stdoutAccumulator.toString());
-
-		// Collect stderr from the script
-		BufferedReader errorStream = new BufferedReader(new InputStreamReader(
-				process.getErrorStream()));
-		StringBuilder stderrAccumulator = new StringBuilder();
-		while ((line = errorStream.readLine()) != null) {
-			stderrAccumulator.append(line);
-			log.info(line);
-		}
-		errorStream.close();
-		result.setStderr(stderrAccumulator.toString());
-
-		result.setReturnCode(process.waitFor());
+        //Make sure process is complete
+		int i = process.waitFor();
+		
+		//Capture and return the results
+		result.setReturnCode(i);
+		result.setStderr(errorGobbler.getOutput());
+		result.setStdout(outputGobbler.getOutput());
 		log.info("Completed exec: " + StringUtils.join(cmd, " ")
-				+ ", exit code: " + result.getReturnCode());
-		assertTrue(0 == result.getReturnCode());
+				+ ", exit code: " + i);
+		assertEquals(0, result.getReturnCode());
 
 		return result;
 	}
 
+	static class StreamGobbler extends Thread
+	{
+	    InputStream is;
+	    String type;
+	    StringBuilder s;
+	    
+	    StreamGobbler(InputStream is, String type)
+	    {
+	        this.is = is;
+	        this.type = type;
+	        s = new StringBuilder();
+	    }
+	    
+	    public String getOutput() {
+	    	return s.toString();
+	    }
+	    
+	    public void run() {
+	    	InputStreamReader isr = null;
+	    	BufferedReader br = null;
+	        try {
+	            isr = new InputStreamReader(is);
+	            br = new BufferedReader(isr);
+	            String line=null;
+	            while ( (line = br.readLine()) != null) {
+	                log.info(type + line);  
+	                s.append(line);
+	            }
+            } catch (IOException ioe) {
+                log.warn(ioe); 
+            } finally {
+				try {
+					if (isr != null)isr.close();
+					if (br != null) br.close();
+				} catch (IOException e) {
+					log.warn(e);
+				}
+            }
+	    }
+	}
 }
