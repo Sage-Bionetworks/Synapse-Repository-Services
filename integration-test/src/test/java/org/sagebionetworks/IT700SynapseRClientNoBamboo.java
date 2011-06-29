@@ -25,7 +25,7 @@ public class IT700SynapseRClientNoBamboo {
 		String cmd[] = { Helpers.getRPath(), "CMD", "build",
 				"target/non-java-dependencies/synapseRClient" };
 		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
-		assertEquals("", result.getStderr());
+		assertEquals(0, result.getReturnCode());
 	}
 
 	/**
@@ -39,7 +39,7 @@ public class IT700SynapseRClientNoBamboo {
 		String cmd[] = { Helpers.getRPath(), "CMD", "check",
 				"target/non-java-dependencies/synapseRClient" };
 		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
-		assertEquals("", result.getStderr());
+		assertEquals(0, result.getReturnCode());
 	}
 
 	/**
@@ -47,7 +47,7 @@ public class IT700SynapseRClientNoBamboo {
 	 */
 	@Test
 	public void testInstallRClient() throws Exception {
-		String cmd[] = { Helpers.getRPath(), "CMD", "install",
+		String cmd[] = { Helpers.getRPath(), "CMD", "INSTALL",
 				"target/non-java-dependencies/synapseRClient" };
 		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
 		assertTrue(0 <= result.getStderr().indexOf("DONE"));
