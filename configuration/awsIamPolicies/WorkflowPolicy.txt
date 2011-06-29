@@ -1,0 +1,10 @@
+{
+    "Statement":
+        [
+            {
+                "Resource":"*",
+                "Action":"swf:*",
+                "Effect":"Allow"
+            }
+        ]                                               
+    }                                               

@@ -1,0 +1,11 @@
+{
+    "Statement": [
+        {
+            "Action": [
+                "sns:Publish"
+            ],
+            "Effect": "Allow",
+            "Resource": "arn:aws:sns:us-east-1:325565585839:TCGACurationWorkflow"
+        }
+    ]
+}

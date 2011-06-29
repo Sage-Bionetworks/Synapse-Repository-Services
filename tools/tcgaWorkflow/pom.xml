@@ -159,10 +159,12 @@
       <artifactId>commons-logging</artifactId>
       <version>1.1</version>
     </dependency>
+
     <dependency>
 		<groupId>junit</groupId>
 		<artifactId>junit</artifactId>
 	</dependency>
+
   </dependencies>
 
   <build>

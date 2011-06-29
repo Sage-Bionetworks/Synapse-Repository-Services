@@ -8,7 +8,7 @@ TODO write documentation
 %%  ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-synapseRefreshSessionToken(sessionToken, host = .getAuthServiceEndpointLocation())
+synapseRefreshSessionToken(sessionToken, host = .getAuthEndpointLocation())
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -50,7 +50,7 @@ synapseRefreshSessionToken(sessionToken, host = .getAuthServiceEndpointLocation(
 ##--	or do  help(data=index)  for the standard data sets.
 
 ## The function is currently defined as
-function (sessionToken, host = .getAuthServiceEndpointLocation()) 
+function (sessionToken, host = .getAuthEndpointLocation()) 
 {
     kService <- "/session"
     entity <- list()

@@ -1,5 +1,5 @@
 synapseRefreshSessionToken <- 
-		function(sessionToken, host = .getAuthServiceEndpointLocation())
+		function(sessionToken, host = .getAuthEndpointLocation())
 {
 	# constants
 	kService <- "/session"

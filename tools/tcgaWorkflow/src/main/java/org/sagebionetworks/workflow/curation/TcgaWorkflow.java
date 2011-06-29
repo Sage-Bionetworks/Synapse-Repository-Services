@@ -174,7 +174,7 @@ public class TcgaWorkflow {
 			Settable<String> processedLayerId, Settable<String> stdout,
 			Settable<String> stderr) throws Exception {
 
-		if (Constants.WORKFLOW_DONE == rawLayerId.get()) {
+		if (Constants.WORKFLOW_DONE.equals(rawLayerId.get())) {
 			return Value.asValue(param + ":noop");
 		}
 		return doProcessData(param.get(), script.get(), datasetId, rawLayerId
@@ -217,7 +217,7 @@ public class TcgaWorkflow {
 	private Value<String> dispatchNotifyDataProcessed(Value<String> param,
 			Value<String> processedLayerId) throws Exception {
 
-		if (Constants.WORKFLOW_DONE == processedLayerId.get()) {
+		if (Constants.WORKFLOW_DONE.equals(processedLayerId.get())) {
 			return Value.asValue(param + ":noop");
 		}
 
