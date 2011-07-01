@@ -73,7 +73,7 @@ public class LayerLocationMetadataProvider implements
 			throw new InvalidModelException("path cannot be null");
 		}
 		if (null == entity.getMd5sum()) {
-			throw new InvalidModelException("md5sumcannot be null");
+			throw new InvalidModelException("md5sum cannot be null");
 		}
 	}
 
