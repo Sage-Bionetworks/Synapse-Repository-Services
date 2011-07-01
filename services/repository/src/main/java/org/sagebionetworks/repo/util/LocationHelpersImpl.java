@@ -10,6 +10,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.joda.time.DateTime;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.User;
@@ -23,7 +24,6 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.SigningAlgorithm;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
-import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClient;
 import com.amazonaws.services.identitymanagement.model.AddUserToGroupRequest;
 import com.amazonaws.services.identitymanagement.model.CreateAccessKeyRequest;
 import com.amazonaws.services.identitymanagement.model.CreateAccessKeyResult;
@@ -51,10 +51,10 @@ public class LocationHelpersImpl implements LocationHelper {
 	public static final String INTEGRATION_TEST_READ_ONLY_USER_ID = "integration.test@sagebase.org";
 
 	private static final int EXPIRES_MINUTES = 24 * 60; // 1 day
-	private static final String S3_BUCKET = "data01.sagebase.org";
+	private static final String S3_BUCKET = StackConfiguration.getS3Bucket();
 	private static final String S3_DOMAIN = "s3.amazonaws.com";
 	private static final String UPLOAD_APPLICATION_TYPE = "application/binary";
-	private static final String READ_ONLY_GROUP = "ReadOnlyUnrestrictedDataUsers";
+	private static final String S3_IAM_GROUP = StackConfiguration.getS3IamGroup();
 	private static final String CORRECT_DOMAIN = S3_DOMAIN + "/" + S3_BUCKET;
 	private static final Pattern INCORRECT_DOMAIN = Pattern.compile(Matcher
 			.quoteReplacement(S3_BUCKET + "." + S3_DOMAIN));
@@ -64,27 +64,6 @@ public class LocationHelpersImpl implements LocationHelper {
 	
 	private AmazonIdentityManagement getIamClient() {
 		return iamClientFactory.getAmazonIdentityManagement();
-	}
-
-	/**
-	 * 
-	 */
-	public LocationHelpersImpl() {
-//		iamClient = iamClientFactory.getAmazonIdentityManagement();
-
-//		// TODO hack, delete this once authentication and authorization are in
-//		// place
-//		if ((null != System.getProperty("PARAM3"))
-//				&& (null != System.getProperty("PARAM4"))) {
-//			// Dev Note: these particular environment variable names are what
-//			// Elastic Beanstalk supports
-//			iamIntegrationTestCredsAccessId = System.getProperty("PARAM3");
-//			iamIntegrationTestCredsSecretKey = System.getProperty("PARAM4");
-//		}
-
-//		iamIntegrationTestCreds = new BasicAWSCredentials(
-//				iamIntegrationTestCredsAccessId,
-//				iamIntegrationTestCredsSecretKey);
 	}
 
 	/**
@@ -212,14 +191,6 @@ public class LocationHelpersImpl implements LocationHelper {
 	private AWSCredentials getCredentialsForUser(String userId)
 			throws DatastoreException, NotFoundException {
 
-//		// if (userId.equals(INTEGRATION_TEST_READ_ONLY_USER_ID)) {
-//		return iamIntegrationTestCreds;
-//		// }
-//	}
-//
-//	private AWSCredentials getCredentialsForUserRealImpl(String userId)
-//			throws DatastoreException, NotFoundException {
-
 		// Check whether we already have credentials stored for this user and
 		// return them if we do
 		User user = userDAO.getUser(userId);
@@ -247,7 +218,7 @@ public class LocationHelpersImpl implements LocationHelper {
 		// Add the user to the right IAM group (even if they were already added
 		// previously, this should be okay)
 		AddUserToGroupRequest groupRequest = new AddUserToGroupRequest();
-		groupRequest.setGroupName(READ_ONLY_GROUP);
+		groupRequest.setGroupName(S3_IAM_GROUP);
 		groupRequest.setUserName(userId);
 		getIamClient().addUserToGroup(groupRequest);
 

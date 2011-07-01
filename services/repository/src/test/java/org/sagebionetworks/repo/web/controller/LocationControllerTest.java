@@ -10,6 +10,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -40,9 +41,8 @@ public class LocationControllerTest {
 			+ "\"type\":\"awss3\", \"md5sum\":\"33183779e53ce0cfc35f59cc2a762cbd\"}";
 
 	public static String SAMPLE_EXTERNAL_LOCATION = "{\"path\":\"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz\", "
-		+ "\"type\":\"external\", \"md5sum\":\"33183779e53ce0cfc35f59cc2a762cbd\"}";
+			+ "\"type\":\"external\", \"md5sum\":\"33183779e53ce0cfc35f59cc2a762cbd\"}";
 
-	
 	@Autowired
 	private Helpers helper;
 	private JSONObject dataset;
@@ -66,14 +66,14 @@ public class LocationControllerTest {
 				+ "/layer", LayerControllerTest.getSampleLayer(dataset
 				.getString("id")));
 
-		datasetS3Location = new JSONObject(SAMPLE_LOCATION).put(NodeConstants.COL_PARENT_ID,
-				dataset.getString("id"));
-		layerS3Location = new JSONObject(SAMPLE_LOCATION).put(NodeConstants.COL_PARENT_ID, layer
-				.getString("id"));
-		datasetExternalLocation = new JSONObject(SAMPLE_EXTERNAL_LOCATION).put(NodeConstants.COL_PARENT_ID,
-				dataset.getString("id"));
-		layerExternalLocation = new JSONObject(SAMPLE_EXTERNAL_LOCATION).put(NodeConstants.COL_PARENT_ID, layer
-				.getString("id"));
+		datasetS3Location = new JSONObject(SAMPLE_LOCATION).put(
+				NodeConstants.COL_PARENT_ID, dataset.getString("id"));
+		layerS3Location = new JSONObject(SAMPLE_LOCATION).put(
+				NodeConstants.COL_PARENT_ID, layer.getString("id"));
+		datasetExternalLocation = new JSONObject(SAMPLE_EXTERNAL_LOCATION).put(
+				NodeConstants.COL_PARENT_ID, dataset.getString("id"));
+		layerExternalLocation = new JSONObject(SAMPLE_EXTERNAL_LOCATION).put(
+				NodeConstants.COL_PARENT_ID, layer.getString("id"));
 	}
 
 	/**
@@ -113,7 +113,8 @@ public class LocationControllerTest {
 		assertTrue(results
 				.getString("path")
 				.matches(
-						"^https://s3.amazonaws.com/data01.sagebase.org"
+						"^https://s3.amazonaws.com/"
+								+ StackConfiguration.getS3Bucket()
 								+ s3key
 								+ "\\?.*Expires=\\d+&AWSAccessKeyId=\\w+&Signature=.+$"));
 
@@ -141,9 +142,10 @@ public class LocationControllerTest {
 				.getServletPrefix()
 				+ "/location", layerExternalLocation.toString());
 
-		JSONObject externalLocation = helper.testGetJsonEntity(newExternalLocation
-				.getString("uri"));
-		assertEquals(newExternalLocation.getString("id"), externalLocation.getString("id"));
+		JSONObject externalLocation = helper
+				.testGetJsonEntity(newExternalLocation.getString("uri"));
+		assertEquals(newExternalLocation.getString("id"), externalLocation
+				.getString("id"));
 		assertEquals("external", externalLocation.getString("type"));
 		assertEquals("33183779e53ce0cfc35f59cc2a762cbd", externalLocation
 				.getString("md5sum"));
@@ -152,7 +154,7 @@ public class LocationControllerTest {
 		JSONObject newS3Location = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
 				+ "/location", layerS3Location.toString());
-		
+
 		JSONObject s3Location = helper.testGetJsonEntity(newS3Location
 				.getString("uri"));
 		assertEquals(newS3Location.getString("id"), s3Location.getString("id"));
@@ -172,7 +174,8 @@ public class LocationControllerTest {
 		assertTrue(s3Location
 				.getString("path")
 				.matches(
-						"^https://s3.amazonaws.com/data01.sagebase.org"
+						"^https://s3.amazonaws.com/"
+								+ StackConfiguration.getS3Bucket()
 								+ s3key
 								+ "\\?.*Expires=\\d+&AWSAccessKeyId=\\w+&Signature=.+$"));
 
@@ -259,8 +262,6 @@ public class LocationControllerTest {
 		helper.testDeleteJsonEntity(newLocation.getString("uri"));
 	}
 
-	
-	
 	/*****************************************************************************************************
 	 * Bad parameters tests
 	 */
@@ -477,6 +478,7 @@ public class LocationControllerTest {
 		assertTrue(results.has("md5sum"));
 		assertFalse("null".equals(results.getString("md5sum")));
 		assertTrue(results.has(NodeConstants.COL_PARENT_ID));
-		assertFalse("null".equals(results.getString(NodeConstants.COL_PARENT_ID)));
+		assertFalse("null".equals(results
+				.getString(NodeConstants.COL_PARENT_ID)));
 	}
 }

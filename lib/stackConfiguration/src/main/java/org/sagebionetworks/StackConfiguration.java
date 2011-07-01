@@ -112,4 +112,12 @@ public class StackConfiguration {
 	public static String getPortalEndpoint() {
 		return getProperty("org.sagebionetworks.portal.endpoint");
 	}
+	
+	public static String getS3Bucket() {
+		return getProperty("org.sagebionetworks.s3.bucket");
+	}
+
+	public static String getS3IamGroup() {
+		return getProperty("org.sagebionetworks.s3.iam.group");
+	}
 }
