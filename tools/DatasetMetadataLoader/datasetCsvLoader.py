@@ -36,6 +36,7 @@ CSV_TO_PRIMARY_FIELDS = {
     }
 
 CSV_SKIP_FIELDS = ["db_id","user_agreement_file_path", "readme_file_path"];
+CSV_LOCATION_FIELDS = ["ds_location_awss3"]
 
 gSAGE_CURATION_PROJECT_NAME = "SageBioCuration"
 
@@ -53,19 +54,27 @@ gDATASET_NAME_2_LAYER_URI = {}
 # A mapping of files to their md5sums
 gFILE_PATH_2_MD5SUM = {}
 
-def createAccessList(principals):
+def checkEmptyRepository():
+    """
+    Helper function to check that repository is empty.
+    Also used to load the groups as side-effect.
+    """
+    # Postpone until bugfix
+    #chkList = ["/project", "/dataset", "/layer", "/preview", "/location"]
+    #for c in chkList:
+    #    l = gSYNAPSE.getRepoEntity(c)
+    #    if 0 == len(l):
+    #        return False
+    return True
+
+def createAccessList(principals, permissionList):
     """
     Helper function to return access list from list of principals
     """
-    # TODO: Should find a nicer way to specify permissions (i.e. read from config file)
-    perms = {
-        "Sage Curators":["READ","CHANGE_PERMISSIONS","DELETE","UPDATE","CREATE"],
-        "Identified Users":["READ"]
-    }
     al = []
     for p in principals:
-        if p["name"] in perms:
-            al.append({"userGroupId":p["id"], "accessType":perms[p["name"]]})
+        if p["name"] in permissionList:
+            al.append({"userGroupId":p["id"], "accessType":permissionList[p["name"]]})
     return al
 
 #--------------------[ createProject ]-----------------------------
@@ -84,10 +93,24 @@ def createProject(project_name, accessList):
 
 
 #--------------------[ createDataset ]-----------------------------
-def createDataset(dataset, annotations):
+def createDataset(dataset, annotations, locationSpec):
     newDataset = gSYNAPSE.createRepoEntity("/dataset", dataset)
     # Put our annotations
     gSYNAPSE.updateRepoEntity(newDataset["annotations"], annotations)
+    # If there's a dataset location, set its parentId to created dataset id and add location
+    if None != locationSpec:
+        locationSpec["parentId"] = newDataset["id"]
+        location = gSYNAPSE.createRepoEntity("/location", locationSpec)
+        # TODO: All this needs to be moved into function for both dataset and layer locations,
+        # then into high level function in client library
+        locationPerms = {
+            "Sage Curators":["READ","CHANGE_PERMISSIONS","UPDATE","CREATE"],
+            "Identified Users":["READ"]
+        }
+        locationAccessList = createAccessList(gSYNAPSE.getPrincipals(), locationPerms)
+        mods = {"modifiedBy":"dataLoader", "modifiedOn":NOW.__str__().split(' ')[0], "resourceAccess":locationAccessList}
+        gSYNAPSE.updateRepoEntity("/location/" + location["id"] + "/acl", mods)
+        
     # Stash the layer uri for later use
     gDATASET_NAME_2_LAYER_URI[dataset['name']] = newDataset['id']
     print 'Created Dataset %s\n\n' % (dataset['name'])
@@ -147,7 +170,7 @@ def loadDatasets(project_id):
         # If we have read in all the data for a dataset, send it
         if(previousDatasetId != row[0]):
             # Create our dataset
-            createDataset(dataset, annotations)
+            createDataset(dataset, annotations, location)
             # Re-initialize per dataset variables
             previousDatasetId = row[0]
             dataset = {}
@@ -179,8 +202,32 @@ def loadDatasets(project_id):
                 # TODO consider reading these into fields
                 #             user_agreement_file_path
                 #             readme_file_path
+            # TODO: Add code to handle whole dataset file location here
+            elif(header[colnum] in CSV_LOCATION_FIELDS):
+                if(gARGS.debug):
+                    print 'Processing dataset location column'
+                location = None
+                if "NA" != col:
+                    path = col
+                    location = {}
+                    location["type"] = "awss3"
+                    if 0 != string.find(path, "/"):
+                        location["path"] = "/" + path
+                    else:
+                        location["path"] = path
+                    if(path in gFILE_PATH_2_MD5SUM):
+                        location["md5sum"] = gFILE_PATH_2_MD5SUM[path]
+                    elif(gARGS.fakeLocalData):
+                        location["md5sum"] = '0123456789ABCDEF0123456789ABCDEF'
             else:
                 if( re.search('date', string.lower(header[colnum])) ):
+                    ## TODO: Fix data file and remove following code
+                    #d = ""
+                    #print col
+                    #m = re.match("((\d+)/(\d+)/(\d\d\d\d))", col)
+                    #if None != m.group(0):
+                    #    d = m.group(3) + '-' + m.group(2) + '-' + m.group(1)
+                    ## End code to remove
                     dateAnnotations[header[colnum]] = [col]
                 else:
                     try:
@@ -201,7 +248,7 @@ def loadDatasets(project_id):
     ifile.close()     
 
     # Send the last one, create our dataset
-    createDataset(dataset, annotations)
+    createDataset(dataset, annotations, location)
 
 #--------------------[ loadLayers ]-----------------------------
 def loadLayers():
@@ -240,19 +287,27 @@ def loadLayers():
             if(row[col] != ""):
                 # trim whitespace off both sides
                 path = row[col].strip()
-                location = {}
-                location["parentId"] = newLayer["id"]
-                location["type"] = header[col]
+                locationSpec = {}
+                locationSpec["parentId"] = newLayer["id"]
+                locationSpec["type"] = header[col]
                 if 0 != string.find(path, "/"):
-                    location["path"] = "/" + path
+                    locationSpec["path"] = "/" + path
                 else:
-                    location["path"] = path
+                    locationSpec["path"] = path
                 if(path in gFILE_PATH_2_MD5SUM):
-                    location["md5sum"] = gFILE_PATH_2_MD5SUM[path]
+                    locationSpec["md5sum"] = gFILE_PATH_2_MD5SUM[path]
                 elif(gARGS.fakeLocalData):
-                    location["md5sum"] = '0123456789ABCDEF0123456789ABCDEF'
-                gSYNAPSE.createRepoEntity("/location", location)
-                #print 'Created location %s for %s\n' % (layer["type"], row[0])
+                    locationSpec["md5sum"] = '0123456789ABCDEF0123456789ABCDEF'
+                location = gSYNAPSE.createRepoEntity("/location", locationSpec)
+                # TODO: All this needs to be moved into function for both dataset and layer locations,
+                # then into high level function in client library
+                locationPerms = {
+                    "Sage Curators":["READ","CHANGE_PERMISSIONS","UPDATE","CREATE"],
+                    "Identified Users":["READ"]
+                }
+                locationAccessList = createAccessList(gSYNAPSE.getPrincipals(), locationPerms)
+                mods = {"modifiedBy":"dataLoader", "modifiedOn":NOW.__str__().split(' ')[0], "resourceAccess":locationAccessList}
+                gSYNAPSE.updateRepoEntity("/location/" + location["id"] + "/acl", mods)
         
         layerPreview = {}
         
@@ -275,16 +330,24 @@ def loadLayers():
 if(not gARGS.fakeLocalData):
     loadMd5sums()
 
-gSYNAPSE.authenticate(gARGS.user, gARGS.password)
-gSYNAPSE.getRepoEntity('/dataset')          # Dummy call to load up groups
+gSYNAPSE.login(gARGS.user, gARGS.password)
 
-principals = gSYNAPSE.getPrincipals()
-accessList = createAccessList(principals)
-
-project = createProject(gSAGE_CURATION_PROJECT_NAME, accessList)
-
-loadDatasets(project["id"])
-
-if(None != gARGS.layersCsv):
-    loadLayers()
+if not checkEmptyRepository():
+    print "Repository is not empty! Aborting..."
+else:
+    principals = gSYNAPSE.getPrincipals()
+    # TODO: Should find a nicer way to specify permissions (i.e. read from config file)
+    projectPerms = {
+        "Sage Curators":["READ","CHANGE_PERMISSIONS","DELETE","UPDATE","CREATE"],
+        "Identified Users":["READ"],
+        "anonymous":["READ"]
+    }
+    accessList = createAccessList(principals, projectPerms)
+    
+    project = createProject(gSAGE_CURATION_PROJECT_NAME, accessList)
+    
+    loadDatasets(project["id"])
+    
+    if(None != gARGS.layersCsv):
+        loadLayers()
 
