@@ -25,7 +25,7 @@ public class StackConfiguration {
 	private static final Logger log = Logger.getLogger(StackConfiguration.class
 			.getName());
 
-	private static final String PROPERTIES_FILENAME_PREFIX = "stack";
+	private static final String PROPERTIES_FILENAME_PREFIX = "/stack";
 	private static final String PROPERTIES_FILENAME_STAGE_SEPARATOR = "-";
 	private static final String PROPERTIES_FILENAME_SUFFIX = ".properties";
 	private static final String DEFAULT_PROPERTIES_FILENAME = PROPERTIES_FILENAME_PREFIX
@@ -84,7 +84,7 @@ public class StackConfiguration {
 	}
 
 	private static boolean loadProperties(String filename, Properties properties) {
-		URL propertiesLocation = ClassLoader.getSystemResource(filename);
+		URL propertiesLocation = StackConfiguration.class.getResource(filename);
 		if (null == propertiesLocation) {
 			return false;
 		}
