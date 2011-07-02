@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseChild;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -41,6 +42,12 @@ public class EntityManagerImpl implements EntityManager {
 		node.setNodeType(ObjectType.getNodeTypeForClass(newEntity.getClass()).toString());
 		// We are ready to create this node
 		String nodeId = nodeManager.createNewNode(node, userInfo);
+		
+		// TODO refactor me per PLFM-215
+		if("layerlocation".equals(node.getNodeType())) {
+			modifyTypeSpecificMetadataBeforePersist((LayerLocation) newEntity, nodeId);
+		}
+		
 		// Now get the annotations for this node
 		Annotations annos = nodeManager.getAnnotations(userInfo, nodeId);
 		// Now add all of the annotations from the dataset
@@ -130,11 +137,17 @@ public class EntityManagerImpl implements EntityManager {
 	public <T extends Base> void updateEntity(UserInfo userInfo, T updated) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException {
 		if(updated == null) throw new IllegalArgumentException("Dataset cannot be null");
 		if(updated.getId() == null) throw new IllegalArgumentException("The updated Entity cannot have a null ID");
+		Node node = nodeManager.get(userInfo, updated.getId());
+
+		// TODO refactor me per PLFM-215
+		if("layerlocation".equals(node.getNodeType())) {
+			modifyTypeSpecificMetadataBeforePersist((LayerLocation)updated, updated.getId());
+		}
+		
 		// Now get the annotations for this node
 		Annotations annos = nodeManager.getAnnotations(userInfo, updated.getId());
 		// Now add all of the annotations from the entity
 		NodeTranslationUtils.updateAnnoationsFromObject(updated, annos);
-		Node node = nodeManager.get(userInfo, updated.getId());
 		NodeTranslationUtils.updateNodeFromObject(updated, node);
 		annos.setEtag(updated.getEtag());
 		// NOw update both at the same time
@@ -198,5 +211,25 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.getNodeType(userInfo, entityId);
 	}
 
+	private void modifyTypeSpecificMetadataBeforePersist(LayerLocation location, String nodeId) {
 
+		// TODO PLFM-212
+		// Ensure that awss3 locations are unique by prepending the user-supplied path with a system-controlled prefix
+		// Potential unique S3 URL Scheme:
+		// - location id
+		// - location version
+		// - path
+		if(location.getType().equals(
+				LayerLocation.LocationTypeNames.awss3.toString())) {
+
+			String pathPrefix = "/" + nodeId;
+
+			// If this is an update, the user may or may not have changed the path member of this object
+			if(!location.getPath().startsWith(pathPrefix)) {
+				String s3Key = pathPrefix + (location.getPath().startsWith("/") ? location.getPath()
+						: "/" + location.getPath());
+				location.setPath(s3Key);
+			}
+		}
+	}
 }

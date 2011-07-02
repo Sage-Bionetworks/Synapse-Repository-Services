@@ -31,22 +31,12 @@ public class LayerLocationMetadataProvider implements
 		if (entity.getType().equals(
 				LayerLocation.LocationTypeNames.awss3.toString())) {
 
-			// TODO PLFM-212
-			// Potential unique S3 URL Scheme:
-			// - dataset id
-			// - layer id
-			// - layer version
-			// - path
-			
-			String s3Key = entity.getPath().startsWith("/") ? entity.getPath()
-					: "/" + entity.getPath();
-
 			if (RequestMethod.GET.name().equals(request.getMethod())) {
 				// Overwrite the path with a presigned S3 URL to use to get the
 				// data from S3
 				String signedPath = locationHelper.getS3Url(request
 						.getParameter(AuthUtilConstants.USER_ID_PARAM),
-						s3Key);
+						entity.getPath());
 				entity.setPath(signedPath);
 			} else if (RequestMethod.POST.name().equals(request.getMethod())
 					|| RequestMethod.PUT.name().equals(request.getMethod())) {
@@ -54,7 +44,7 @@ public class LayerLocationMetadataProvider implements
 				// data to S3
 				String signedPath = locationHelper.createS3Url(request
 						.getParameter(AuthUtilConstants.USER_ID_PARAM),
-						s3Key, entity.getMd5sum());
+						entity.getPath(), entity.getMd5sum());
 				entity.setPath(signedPath);
 			}
 		}

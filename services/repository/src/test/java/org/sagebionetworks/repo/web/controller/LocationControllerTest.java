@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -103,11 +104,10 @@ public class LocationControllerTest {
 				.getString("md5sum"));
 
 		String s3key = "/"
-		// PLFM-212
-				// TODO + results.getString("parentId") + "/"
-				// TODO + results.getString("id") + "/"
-				// TODO + results.getString("version") + "/"
-				+ "unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz";
+			+ results.getString("id") + "/"
+			// PLFM-212
+			// TODO + results.getString("version") + "/"
+			+ "unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz";
 
 		assertTrue(0 < results.getString("path").indexOf(s3key));
 		assertTrue(results
@@ -162,23 +162,6 @@ public class LocationControllerTest {
 		assertEquals("33183779e53ce0cfc35f59cc2a762cbd", s3Location
 				.getString("md5sum"));
 
-		String s3key = "/"
-		// TODO PLFM-212
-				// TODO + results.getString("parentId") + "/"
-				// TODO + results.getString("id") + "/"
-				// TODO + results.getString("version") + "/"
-				+ "unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz";
-
-		assertTrue(0 < s3Location.getString("path").indexOf(s3key));
-		// https://s3.amazonaws.com/data01.sagebase.org/1/3/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz?Expires=1307507371&AWSAccessKeyId=thisIsAFakeAWSAccessId&Signature=op01bZcni6bPw1sEmpjci75PIoE%3D
-		assertTrue(s3Location
-				.getString("path")
-				.matches(
-						"^https://s3.amazonaws.com/"
-								+ StackConfiguration.getS3Bucket()
-								+ s3key
-								+ "\\?.*Expires=\\d+&AWSAccessKeyId=\\w+&Signature=.+$"));
-
 		assertExpectedLocationProperties(s3Location);
 
 		JSONObject storedLayer = helper.testGetJsonEntity(layer
@@ -213,9 +196,22 @@ public class LocationControllerTest {
 		JSONObject updatedLocation = helper.testUpdateJsonEntity(location);
 		assertExpectedLocationProperties(updatedLocation);
 
+		String s3key = "/"
+			+ updatedLocation.getString("id") + "/"
+			// PLFM-212
+			// TODO + results.getString("version") + "/"
+			+ "unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.zip";
+
 		// Check that the update response reflects the change
-		assertTrue(0 < updatedLocation.getString("path").indexOf(
-				"unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.zip"));
+		assertTrue(0 < updatedLocation.getString("path").indexOf(s3key));
+
+		assertTrue(updatedLocation
+				.getString("path")
+				.matches(
+						"^https://s3.amazonaws.com/"
+						+ StackConfiguration.getS3Bucket()
+						+ s3key
+						+ "\\?.*Expires=\\d+&AWSAccessKeyId=\\w+&Signature=.+$"));
 
 		// Now make sure the stored one reflects the change too
 		JSONObject storedLocation = helper.testGetJsonEntity(newLocation
@@ -465,20 +461,35 @@ public class LocationControllerTest {
 	 */
 
 	/**
-	 * @param results
+	 * @param location
 	 * @throws Exception
 	 */
-	public static void assertExpectedLocationProperties(JSONObject results)
-			throws Exception {
+	public static void assertExpectedLocationProperties(JSONObject location) throws Exception {
 		// Check required properties
-		assertTrue(results.has("type"));
-		assertFalse("null".equals(results.getString("type")));
-		assertTrue(results.has("path"));
-		assertFalse("null".equals(results.getString("path")));
-		assertTrue(results.has("md5sum"));
-		assertFalse("null".equals(results.getString("md5sum")));
-		assertTrue(results.has(NodeConstants.COL_PARENT_ID));
-		assertFalse("null".equals(results
+		assertTrue(location.has("type"));
+		assertFalse("null".equals(location.getString("type")));
+		assertTrue(location.has("path"));
+		assertFalse("null".equals(location.getString("path")));
+		assertTrue(location.has("md5sum"));
+		assertFalse("null".equals(location.getString("md5sum")));
+		assertTrue(location.has(NodeConstants.COL_PARENT_ID));
+		assertFalse("null".equals(location
 				.getString(NodeConstants.COL_PARENT_ID)));
+
+		if(location.getString("type").equals(
+				LayerLocation.LocationTypeNames.awss3.toString())) {
+			String s3keyPrefix = "/"
+				+ location.getString("id");
+
+			assertTrue(0 < location.getString("path").indexOf(s3keyPrefix));
+			assertTrue(location
+					.getString("path")
+					.matches(
+							"^https://s3.amazonaws.com/"
+							+ StackConfiguration.getS3Bucket()
+							+ s3keyPrefix
+							+ "/.*\\?.*Expires=\\d+&AWSAccessKeyId=\\w+&Signature=.+$"));
+		}
+
 	}
 }
