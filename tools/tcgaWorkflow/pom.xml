@@ -161,6 +161,11 @@
     </dependency>
 
     <dependency>
+      <groupId>joda-time</groupId>
+      <artifactId>joda-time</artifactId>
+    </dependency>
+
+    <dependency>
 		<groupId>junit</groupId>
 		<artifactId>junit</artifactId>
 	</dependency>
@@ -168,11 +173,9 @@
   </dependencies>
 
   <build>
-
+        
     <!-- The shade plugin is building a jar with all the other jar dependencies bundled inside.  We can use this to run all three of our main classes in this package (not just the one we have listed as the main class). -->
-    <!-- java -Dorg.sagebionetworks.credentialsFile=/Users/deflaux/workflowCreds.properties -jar target/tcgaWorkflow-0.5-SNAPSHOT.jar -->
-    <!-- java -Dorg.sagebionetworks.credentialsFile=/Users/deflaux/workflowCreds.properties -cp target/tcgaWorkflow-0.5-SNAPSHOT.jar org.sagebionetworks.workflow.curation.TcgaWorkflowDeciderService -->
-    <!-- java -Dorg.sagebionetworks.credentialsFile=/Users/deflaux/workflowCreds.properties -cp target/tcgaWorkflow-0.5-SNAPSHOT.jar org.sagebionetworks.workflow.curation.TcgaWorkflowActivityService -->
+    <!-- See http://sagebionetworks.jira.com/wiki/display/PLFM/Workflow+Deployment  for how to run this -->
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

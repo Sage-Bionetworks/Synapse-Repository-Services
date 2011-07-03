@@ -12,7 +12,7 @@ synapse.client.addArguments(parser)
 
 args = parser.parse_args()
 synapse = synapse.client.factory(args)
-synapse.authenticate(args.user, args.password)
+synapse.login(args.user, args.password)
 
 allProjects = synapse.getRepoEntity("/project?limit=100");
 for project in allProjects["results"]:
