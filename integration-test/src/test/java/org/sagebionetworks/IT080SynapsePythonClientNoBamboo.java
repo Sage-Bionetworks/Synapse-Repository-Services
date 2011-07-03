@@ -2,7 +2,6 @@ package org.sagebionetworks;
 
 import static org.junit.Assert.assertTrue;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.Helpers.ExternalProcessResult;
 
@@ -14,15 +13,16 @@ import org.sagebionetworks.Helpers.ExternalProcessResult;
  * http://pyunit.sourceforge.net/ if it seems to be an improvement over the
  * unittest python library
  * 
+ * TODO pass the endpoints and username to the tests
+ * 
  * @author deflaux
  * 
  */
-public class IT600SynapsePythonClientNoBamboo {
+public class IT080SynapsePythonClientNoBamboo {
 
 	/**
 	 * @throws Exception
 	 */
-	@Ignore
 	@Test
 	public void testPythonClient() throws Exception {
 		String cmd[] = { Helpers.getPython27Path(),

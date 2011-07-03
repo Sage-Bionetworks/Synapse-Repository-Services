@@ -11,7 +11,7 @@ import org.sagebionetworks.Helpers.ExternalProcessResult;
  * @author deflaux
  *
  */
-public class IT015DatasetMetadataLoaderNoBamboo {
+public class IT100DatasetMetadataLoaderNoBamboo {
 
 	/**
 	 * @throws Exception
