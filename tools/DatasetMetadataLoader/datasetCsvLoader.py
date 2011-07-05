@@ -75,6 +75,7 @@ def createAccessList(principals, permissionList):
     for p in principals:
         if p["name"] in permissionList:
             al.append({"userGroupId":p["id"], "accessType":permissionList[p["name"]]})
+        #print "principal %s \t access list %s" % (p, al)
     return al
 
 #--------------------[ createProject ]-----------------------------
@@ -85,22 +86,26 @@ def createProject(project_name, accessList):
     projectResourceId = project["id"]
 
     # Build list of changes to ACL
-    mods = {"modifiedBy":"dataLoader", "modifiedOn":NOW.__str__().split(' ')[0], "resourceAccess":accessList}
+    pmods = {"modifiedBy":"dataLoader", "modifiedOn":NOW.__str__().split(' ')[0], "resourceAccess":accessList, "resourceId":projectResourceId}
     
     # For non-inherited ACL, GET and PUT instead of POST
-    gSYNAPSE.updateRepoEntity("/project/" + projectResourceId + "/acl", mods)
+    gSYNAPSE.updateRepoEntity("/project/" + projectResourceId + "/acl", pmods)
     return project
 
 
 #--------------------[ createDataset ]-----------------------------
 def createDataset(dataset, annotations, locationSpec):
     newDataset = gSYNAPSE.createRepoEntity("/dataset", dataset)
+    
     # Put our annotations
     gSYNAPSE.updateRepoEntity(newDataset["annotations"], annotations)
+    
     # If there's a dataset location, set its parentId to created dataset id and add location
     if None != locationSpec:
-        locationSpec["parentId"] = newDataset["id"]
+        locationSpec["parentId"] = newDataset["id"]     # Cannot create orphan location
         location = gSYNAPSE.createRepoEntity("/location", locationSpec)
+        locationResourceId = location["id"]
+        
         # TODO: All this needs to be moved into function for both dataset and layer locations,
         # then into high level function in client library
         locationPerms = {
@@ -108,8 +113,8 @@ def createDataset(dataset, annotations, locationSpec):
             "Identified Users":["READ"]
         }
         locationAccessList = createAccessList(gSYNAPSE.getPrincipals(), locationPerms)
-        mods = {"modifiedBy":"dataLoader", "modifiedOn":NOW.__str__().split(' ')[0], "resourceAccess":locationAccessList}
-        gSYNAPSE.updateRepoEntity("/location/" + location["id"] + "/acl", mods)
+        lmods = {"modifiedBy":"dataLoader", "modifiedOn":NOW.__str__().split(' ')[0], "resourceAccess":locationAccessList, "resourceId":locationResourceId}
+        gSYNAPSE.createRepoEntity("/location/" + locationResourceId + "/acl", lmods)
         
     # Stash the layer uri for later use
     gDATASET_NAME_2_LAYER_URI[dataset['name']] = newDataset['id']
@@ -288,7 +293,7 @@ def loadLayers():
                 # trim whitespace off both sides
                 path = row[col].strip()
                 locationSpec = {}
-                locationSpec["parentId"] = newLayer["id"]
+                locationSpec["parentId"] = newLayer["id"]   # Cannot create orphaned location
                 locationSpec["type"] = header[col]
                 if 0 != string.find(path, "/"):
                     locationSpec["path"] = "/" + path
@@ -298,7 +303,10 @@ def loadLayers():
                     locationSpec["md5sum"] = gFILE_PATH_2_MD5SUM[path]
                 elif(gARGS.fakeLocalData):
                     locationSpec["md5sum"] = '0123456789ABCDEF0123456789ABCDEF'
+                    
                 location = gSYNAPSE.createRepoEntity("/location", locationSpec)
+                locationResourceId = location["id"]
+                
                 # TODO: All this needs to be moved into function for both dataset and layer locations,
                 # then into high level function in client library
                 locationPerms = {
@@ -306,8 +314,8 @@ def loadLayers():
                     "Identified Users":["READ"]
                 }
                 locationAccessList = createAccessList(gSYNAPSE.getPrincipals(), locationPerms)
-                mods = {"modifiedBy":"dataLoader", "modifiedOn":NOW.__str__().split(' ')[0], "resourceAccess":locationAccessList}
-                gSYNAPSE.updateRepoEntity("/location/" + location["id"] + "/acl", mods)
+                mods = {"modifiedBy":"dataLoader", "modifiedOn":NOW.__str__().split(' ')[0], "resourceAccess":locationAccessList, "resourceId":locationResourceId}
+                gSYNAPSE.createRepoEntity("/location/" + locationResourceId + "/acl", mods)
         
         layerPreview = {}
         
