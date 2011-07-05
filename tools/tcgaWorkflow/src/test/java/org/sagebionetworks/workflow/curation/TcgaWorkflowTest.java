@@ -2,7 +2,6 @@ package org.sagebionetworks.workflow.curation;
 
 import static org.junit.Assert.assertEquals;
 
-import org.joda.time.LocalDate;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -75,8 +74,6 @@ public class TcgaWorkflowTest {
 		assertEquals("Genome_Wide_SNP_6", layer.getString("platform"));
 		assertEquals("mage-tab", annotations.getString("format"));
 		assertEquals("1.1007.0", annotations.getString("tcgaRevision"));
-		
-		System.out.println(new LocalDate().toString());
 	}
 
 }

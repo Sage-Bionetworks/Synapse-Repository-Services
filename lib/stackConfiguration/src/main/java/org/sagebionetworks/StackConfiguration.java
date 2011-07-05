@@ -35,7 +35,8 @@ public class StackConfiguration {
 
 	private static Properties defaultStackProperties = null;
 	private static Properties stackPropertyOverrides = null;
-
+	private static String stack = null;
+	
 	static {
 		// Load the stack configuration the first time this class is referenced
 		reloadStackConfiguration();
@@ -57,7 +58,7 @@ public class StackConfiguration {
 							+ DEFAULT_PROPERTIES_FILENAME);
 		}
 
-		String stack = System.getProperty(STACK_SYSTEM_PROPERTY_KEY);
+		stack = System.getProperty(STACK_SYSTEM_PROPERTY_KEY);
 		if (null == stack) {
 			log.info("System property " + STACK_SYSTEM_PROPERTY_KEY
 					+ " not specified, using default stack properties");
@@ -78,9 +79,17 @@ public class StackConfiguration {
 	}
 
 	private static String getProperty(String propertyName) {
-		return (stackPropertyOverrides.containsKey(propertyName) ? stackPropertyOverrides
-				.getProperty(propertyName)
-				: defaultStackProperties.getProperty(propertyName));
+		String propertyValue = null;
+		if (stackPropertyOverrides.containsKey(propertyName)) {
+			propertyValue = stackPropertyOverrides.getProperty(propertyName);
+			log.debug("Got " + propertyValue + " for property " + propertyName
+					+ " from " + stack + "properties");
+		} else {
+			propertyValue = defaultStackProperties.getProperty(propertyName);
+			log.debug("Got " + propertyValue + " for property " + propertyName
+					+ " from default stack properties");
+		}
+		return propertyValue;
 	}
 
 	private static boolean loadProperties(String filename, Properties properties) {
@@ -95,6 +104,10 @@ public class StackConfiguration {
 			throw new Error(e);
 		}
 		return true;
+	}
+
+	public static String getStack() {
+		return stack;
 	}
 
 	public static String getCrowdEndpoint() {
@@ -112,12 +125,16 @@ public class StackConfiguration {
 	public static String getPortalEndpoint() {
 		return getProperty("org.sagebionetworks.portal.endpoint");
 	}
-	
+
 	public static String getS3Bucket() {
 		return getProperty("org.sagebionetworks.s3.bucket");
 	}
 
 	public static String getS3IamGroup() {
 		return getProperty("org.sagebionetworks.s3.iam.group");
+	}
+
+	public static String getTcgaWorkflowSnsTopic() {
+		return getProperty("org.sagebionetworks.sns.topic.tcgaworkflow");
 	}
 }
