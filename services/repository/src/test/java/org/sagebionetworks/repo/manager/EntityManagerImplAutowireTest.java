@@ -17,6 +17,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InputDataLayer;
@@ -24,7 +25,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -113,7 +113,7 @@ public class EntityManagerImplAutowireTest {
 		// Now update the dataset
 		fetched = entityManager.getEntity(userInfo, id, Dataset.class);
 		fetched.setName("myNewName");
-		entityManager.updateEntity(userInfo, fetched);
+		entityManager.updateEntity(userInfo, fetched, false);
 		fetched = entityManager.getEntity(userInfo, id, Dataset.class);
 		assertNotNull(fetched);
 		assertEquals("myNewName", fetched.getName());

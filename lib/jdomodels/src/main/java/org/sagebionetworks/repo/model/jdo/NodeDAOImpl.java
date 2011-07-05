@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.jdo;
 
+import java.io.IOException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -15,21 +17,25 @@ import javax.jdo.Query;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOAccessControlList;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOBlobAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONodeType;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
+import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
+import org.sagebionetworks.repo.model.jdo.persistence.RevisionId;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.orm.jdo.JdoCallback;
 import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
 import org.springframework.orm.jdo.JdoTemplate;
@@ -52,14 +58,23 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	private static boolean isHypersonicDB = true;
 	
-	private static String SQL_ETAG_WITHOUT_LOCK = "SELECT "+SqlConstants.COL_NODE_ETAG+" FROM "+SqlConstants.TABLE_NODE+" WHERE ID = :bindId";
+	private static String BIND_ID_KEY = "bindId";
+	private static String SQL_ETAG_WITHOUT_LOCK = "SELECT "+SqlConstants.COL_NODE_ETAG+" FROM "+SqlConstants.TABLE_NODE+" WHERE ID = :"+BIND_ID_KEY;
 	private static String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK+" FOR UPDATE";
+	
+	private static String SQL_GET_ALL_VERSION_NUMBERS = "SELECT "+SqlConstants.COL_REVISION_NUMBER+" FROM "+SqlConstants.TABLE_REVISION+" WHERE "+SqlConstants.COL_REVISION_OWNER_NODE +" = :"+BIND_ID_KEY+" ORDER BY "+SqlConstants.COL_REVISION_NUMBER+" DESC";
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String createNew(Node dto) throws NotFoundException {
 		if(dto == null) throw new IllegalArgumentException("Node cannot be null");
-		JDONode node = JDONodeUtils.copyFromDto(dto);
+		JDORevision rev = new JDORevision();
+		// Set the default label
+		rev.setLabel("0.0.0");
+		rev.setRevisionNumber(new Long(1));
+		JDONode node = new JDONode();
+		node.setCurrentRevNumber(rev.getRevisionNumber());
+		JDONodeUtils.updateFromDto(dto, node, rev);
 		// Look up this type
 		if(dto.getNodeType() == null) throw new IllegalArgumentException("Node type cannot be null");
 		JDONodeType type = getNodeType(ObjectType.valueOf(dto.getNodeType()));
@@ -73,6 +88,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		node.setDateAnnotations(new HashSet<JDODateAnnotation>());
 		node.setLongAnnotations(new HashSet<JDOLongAnnotation>());
 		node.setDoubleAnnotations(new HashSet<JDODoubleAnnotation>());
+		node.setBlobAnnotations(new HashSet<JDOBlobAnnotation>());
 		
 		// Set the parent and benefactor
 		if(dto.getParentId() != null){
@@ -83,6 +99,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			// benefactor as its parent
 			node.setPermissionsBenefactor(parent.getPermissionsBenefactor());
 		}
+		// Create the first revision for this node
 		// We can now create the node.
 		node = jdoTemplate.makePersistent(node);
 		if(node.getPermissionsBenefactor() == null){
@@ -92,7 +109,36 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			// to itself.
 			node.setPermissionsBenefactor(node);
 		}
+		// Now create the revision
+		rev.setOwner(node);
+		jdoTemplate.makePersistent(rev);
 		return node.getId().toString();
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public Long createNewVersion(Node newVersion) throws NotFoundException, DatastoreException {
+		if(newVersion == null) throw new IllegalArgumentException("New version node cannot be null");
+		if(newVersion.getId() == null) throw new IllegalArgumentException("New version node ID cannot be null");
+		if(newVersion.getVersionLabel() == null) throw new IllegalArgumentException("Cannot create a new version with a null version label");
+		// Get the Node
+		JDONode jdo = getNodeById(KeyFactory.stringToKey(newVersion.getId()));
+		// Look up the current version
+		JDORevision rev  = getNodeRevisionById(jdo.getId(), jdo.getCurrentRevNumber());
+		// Make a copy of the current revision with an incremented the version number
+		JDORevision newRev = JDORevisionUtils.makeCopyForNewVersion(rev);
+		// Now update the new revision and node
+		JDONodeUtils.updateFromDto(newVersion, jdo, newRev);
+		// Now save the new revision
+		try{
+			jdoTemplate.makePersistent(newRev);
+		}catch (DuplicateKeyException e){
+			throw new IllegalArgumentException("Must provide a unique version label. Label: "+newRev.getLabel()+" has alredy be used for this entity");
+		}
+
+		// The new revision becomes the current version
+		jdo.setCurrentRevNumber(newRev.getRevisionNumber());
+		return newRev.getRevisionNumber();
 	}
 
 	@Transactional(readOnly = true)
@@ -100,8 +146,18 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public Node getNode(String id) throws NotFoundException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		JDONode jdo =  getNodeById(Long.parseLong(id));
-		if(jdo == null) return null;
-		return JDONodeUtils.copyFromJDO(jdo);
+		JDORevision rev  = getNodeRevisionById(jdo.getId(), jdo.getCurrentRevNumber());
+		return JDONodeUtils.copyFromJDO(jdo, rev);
+	}
+	
+	@Override
+	public Node getNodeForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException {
+		if(id == null) throw new IllegalArgumentException("Id cannot be null");
+		if(versionNumber == null) throw new IllegalArgumentException("Version number cannot be null");
+		Long nodeID = KeyFactory.stringToKey(id);
+		JDONode jdo =  getNodeById(nodeID);
+		JDORevision rev = getNodeRevisionById(nodeID, versionNumber);
+		return JDONodeUtils.copyFromJDO(jdo, rev);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -110,6 +166,25 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		JDONode toDelete = getNodeById(Long.parseLong(id));
 		if(toDelete != null){
 			jdoTemplate.deletePersistent(toDelete);
+		}
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteVersion(String nodeId, Long versionNumber) throws NotFoundException, DatastoreException {
+		// Get the version in question
+		Long id = KeyFactory.stringToKey(nodeId);
+		JDORevision rev = getNodeRevisionById(id, versionNumber);
+		if(rev != null){
+			jdoTemplate.deletePersistent(rev);
+			// Make sure the node is still pointing the the current version
+			List<Long> versions = getVersionNumbers(nodeId);
+			if(versions == null || versions.size() < 1){
+				throw new IllegalArgumentException("Cannot delete the last version of a node");
+			}
+			JDONode node = getNodeById(id);
+			// Make sure the node is still pointing the the current version
+			node.setCurrentRevNumber(versions.get(0));
 		}
 	}
 	
@@ -123,6 +198,24 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(id == null) throw new IllegalArgumentException("Node ID cannot be null");
 		try{
 			return jdoTemplate.getObjectById(JDONode.class, id);
+		}catch (JDOObjectNotFoundException e){
+			// Convert to a not found exception
+			throw new NotFoundException(e);
+		}catch (JdoObjectRetrievalFailureException e){
+			// Convert to a not found exception
+			throw new NotFoundException(e);
+		}
+	}
+	
+	private JDORevision getCurrentRevision(JDONode node) throws NotFoundException{
+		if(node == null) throw new IllegalArgumentException("Node cannot be null");
+		return getNodeRevisionById(node.getId(),  node.getCurrentRevNumber());
+	}
+	
+	private JDORevision getNodeRevisionById(Long id, Long revNumber) throws NotFoundException{
+		if(id == null) throw new IllegalArgumentException("Node ID cannot be null");
+		try{
+			return (JDORevision) jdoTemplate.getObjectById(new RevisionId(id, revNumber));
 		}catch (JDOObjectNotFoundException e){
 			// Convert to a not found exception
 			throw new NotFoundException(e);
@@ -147,13 +240,42 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Transactional(readOnly = true)
 	@Override
-	public Annotations getAnnotations(String id) throws NotFoundException {
+	public Annotations getAnnotations(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		JDONode jdo =  getNodeById(Long.parseLong(id));
+		JDORevision rev = getCurrentRevision(jdo);
+		return getAnnotations(jdo, rev);
+	}
+
+	/**
+	 * Helper method to create the annotations from a given a given revision.
+	 * @param jdo
+	 * @param rev
+	 * @return
+	 * @throws DatastoreException
+	 */
+	private Annotations getAnnotations(JDONode jdo, JDORevision rev) throws DatastoreException {
 		// Get the annotations and make a copy
-		Annotations annos = JDOAnnotationsUtils.createFromJDO(jdo);
+		Annotations annos;
+		try {
+			annos = JDOAnnotationsUtils.createFromJDO(rev);
+		} catch (IOException e) {
+			throw new DatastoreException(e);
+		}
 		annos.setEtag(jdo.geteTag().toString());
+		annos.setId(KeyFactory.keyToString(jdo.getId()));
+		annos.setCreationDate(new Date(jdo.getCreatedOn()));
 		return annos;
+	}
+	
+	@Transactional(readOnly = true)
+	@Override
+	public Annotations getAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException {
+		Long nodeId = KeyFactory.stringToKey(id);
+		JDONode jdo =  getNodeById(nodeId);
+		// Get a particular version.
+		JDORevision rev = getNodeRevisionById(nodeId, versionNumber);
+		return getAnnotations(jdo, rev);
 	}
 
 	@Transactional(readOnly = true)
@@ -179,12 +301,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return null;
 	}
 
-	private Set<Node> extractNodeSet(Set<JDONode> childrenSet) {
+	private Set<Node> extractNodeSet(Set<JDONode> childrenSet) throws NotFoundException {
 		if(childrenSet == null)return null;
 		HashSet<Node> children = new HashSet<Node>();
 		Iterator<JDONode> it = childrenSet.iterator();
 		while(it.hasNext()){
-			children.add(JDONodeUtils.copyFromJDO(it.next()));
+			JDONode node = it.next();
+			JDORevision rev = getCurrentRevision(node);
+			children.add(JDONodeUtils.copyFromJDO(node, rev));
 		}
 		return children;
 	}
@@ -199,16 +323,25 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		return children;
 	}
+	
+	@Transactional(readOnly = true)
+	@Override
+	public String peekCurrentEtag(String id) throws NotFoundException, DatastoreException {
+		JDONode node = getNodeById(KeyFactory.stringToKey(id));
+		return KeyFactory.keyToString(node.geteTag());
+	}
 
 	/**
 	 * Note: You cannot call this method outside of a transaction.
 	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.MANDATORY)
 	@Override
-	public Long getETagForUpdate(String stringId) throws NotFoundException {
+	public String lockNodeAndIncrementEtag(String id, String eTag)
+			throws NotFoundException, ConflictingUpdateException, DatastoreException {
 		// Create a Select for update query
-		final Long longId = Long.parseLong(stringId);
+		final Long longId = KeyFactory.stringToKey(id);
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("bindId", longId);
 		String sql = null;
@@ -220,7 +353,18 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		List<Long> result = executeQuery(sql, map);
 		if(result == null ||result.size() < 1 ) throw new JDOObjectNotFoundException("Cannot find a node with id: "+longId);
 		if(result.size() > 1 ) throw new IllegalStateException("More than one node found with id: "+longId);
-		return result.get(0);
+		// Check the eTags
+		long passedTag = KeyFactory.stringToKey(eTag);
+		long currentTag =  result.get(0);
+		if(passedTag != currentTag){
+			throw new ConflictingUpdateException("Node: "+id+" was updated since you last fetched it, retrieve it again and reapply the update");
+		}
+		// Increment the eTag
+		currentTag++;
+		JDONode node = getNodeById(longId);
+		node.seteTag(currentTag);
+		// Return the new tag
+		return KeyFactory.keyToString(currentTag);
 	}
 	
 	public List executeQuery(final String sql, final Map<String, Object> parameters){
@@ -246,21 +390,33 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(updatedNode == null) throw new IllegalArgumentException("Node to update cannot be null");
 		if(updatedNode.getId() == null) throw new IllegalArgumentException("Node to update cannot have a null ID");
 		JDONode jdoToUpdate = getNodeById(Long.parseLong(updatedNode.getId()));
+		JDORevision revToUpdate = getCurrentRevision(jdoToUpdate);
 		// Update is as simple as copying the values from the passed node.
-		JDONodeUtils.updateFromDto(updatedNode, jdoToUpdate);		
+		JDONodeUtils.updateFromDto(updatedNode, jdoToUpdate, revToUpdate);		
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void updateAnnotations(String nodeId, Annotations updatedAnnotations) throws NotFoundException {
+	public void updateAnnotations(String nodeId, Annotations updatedAnnotations) throws NotFoundException, DatastoreException {
 		if(updatedAnnotations == null) throw new IllegalArgumentException("Updateded Annotations cannot be null");
 		if(updatedAnnotations.getId() == null) throw new IllegalArgumentException("Node ID cannot be null");
 		if(updatedAnnotations.getEtag() == null) throw new IllegalArgumentException("Annotations must have a valid eTag");
 		JDONode jdo =  getNodeById(Long.parseLong(nodeId));
-		// Update the eTag
-		jdo.seteTag(Long.parseLong(updatedAnnotations.getEtag()));
+		JDORevision rev = getCurrentRevision(jdo);
 		// now update the annotations from the passed values.
-		JDOAnnotationsUtils.updateFromJdoFromDto(updatedAnnotations, jdo);
+		try {
+			JDOAnnotationsUtils.updateFromJdoFromDto(updatedAnnotations, jdo, rev);
+		} catch (IOException e) {
+			throw new DatastoreException(e);
+		}
+	}
+	
+	@Transactional(readOnly = true)
+	@Override
+	public List<Long> getVersionNumbers(String id) throws NotFoundException {
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		parameters.put(BIND_ID_KEY, id);
+		return executeQuery(SQL_GET_ALL_VERSION_NUMBERS, parameters);
 	}
 	
 	/**
@@ -290,10 +446,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				this.jdoTemplate.makePersistent(jdo);
 			}
 		}
-		
 		String driver = this.jdoTemplate.getPersistenceManagerFactory().getConnectionDriverName();
 		log.info("Driver: "+driver);
 		isHypersonicDB = driver.startsWith("org.hsqldb");
 	}
+
 	
 }

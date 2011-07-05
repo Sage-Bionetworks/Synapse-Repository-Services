@@ -11,14 +11,16 @@ import javax.swing.text.html.parser.Entity;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseChild;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.web.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -63,18 +65,43 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeId;
 	}
 	
-	
 	@Transactional(readOnly = true)
 	@Override
 	public <T extends Base> EntityWithAnnotations<T> getEntityWithAnnotations(UserInfo userInfo, String entityId, Class<? extends T> entityClass)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		// Return the new object from the database
-		T newEntity = createNewEntity(entityClass);
 		// Get the annotations for this entity
 		Annotations annos = nodeManager.getAnnotations(userInfo, entityId);
-		NodeTranslationUtils.updateObjectFromAnnotations(newEntity, annos);
 		// Fetch the current node from the server
 		Node node = nodeManager.get(userInfo, entityId);
+		return populateEntityWithNodeAndAnnotations(entityClass, annos, node);
+	}
+	
+	@Transactional(readOnly = true)
+	public <T extends Base> EntityWithAnnotations<T> getEntityVersionWithAnnotations(UserInfo userInfo, String entityId, Long versionNumber, Class<? extends T> entityClass)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		// Get the annotations for this entity
+		Annotations annos = nodeManager.getAnnotationsForVersion(userInfo, entityId, versionNumber);
+		// Fetch the current node from the server
+		Node node = nodeManager.getNodeForVersionNumber(userInfo, entityId, versionNumber);
+		return populateEntityWithNodeAndAnnotations(entityClass, annos, node);
+	}
+
+
+	/**
+	 * Create and populate an instance of an entity using both a node and annotations.
+	 * @param <T>
+	 * @param entityClass
+	 * @param annos
+	 * @param node
+	 * @return
+	 */
+	private <T extends Base> EntityWithAnnotations<T> populateEntityWithNodeAndAnnotations(
+			Class<? extends T> entityClass, Annotations annos, Node node) {
+		// Return the new object from the database
+		T newEntity = createNewEntity(entityClass);
+		// Populate the entity using the annotations
+		NodeTranslationUtils.updateObjectFromAnnotations(newEntity, annos);
+		// Populate the entity using the node
 		NodeTranslationUtils.updateObjectFromNode(newEntity, node);
 		EntityWithAnnotations<T> ewa = new EntityWithAnnotations<T>();
 		ewa.setEntity(newEntity);
@@ -91,7 +118,17 @@ public class EntityManagerImpl implements EntityManager {
 		EntityWithAnnotations<T> ewa = getEntityWithAnnotations(userInfo, entityId, entityClass);
 		return ewa.getEntity();
 	}
-
+	
+	@Transactional(readOnly = true)
+	@Override
+	public <T extends Nodeable> T getEntityForVersion(UserInfo userInfo,
+			String entityId, Long versionNumber, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException {
+		// To fully populate an entity we must also load its annotations.
+		// Therefore, we get both but only return the entity for this call.
+		EntityWithAnnotations<T> ewa = getEntityVersionWithAnnotations(userInfo, entityId, versionNumber, entityClass);
+		return ewa.getEntity();
+	}
+	
 	/**
 	 * Will convert the any exceptions to runtime.
 	 * @param <T>
@@ -116,6 +153,12 @@ public class EntityManagerImpl implements EntityManager {
 		if(entityId == null) throw new IllegalArgumentException("Dataset ID cannot be null");
 		nodeManager.delete(userInfo, entityId);
 	}
+	
+	@Override
+	public void deleteEntityVersion(UserInfo userInfo, String id,
+			Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
+		nodeManager.deleteVersion(userInfo, id, versionNumber);
+	}
 
 	@Transactional(readOnly = true)
 	@Override
@@ -123,6 +166,12 @@ public class EntityManagerImpl implements EntityManager {
 		if(entityId == null) throw new IllegalArgumentException("Dataset ID cannot be null");
 		// This is a simple pass through
 		return nodeManager.getAnnotations(userInfo, entityId);
+	}
+	
+	@Override
+	public Annotations getAnnotationsForVersion(UserInfo userInfo, String id,	Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException {
+		// Pass it along.
+		return nodeManager.getAnnotationsForVersion(userInfo, id, versionNumber);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -134,7 +183,7 @@ public class EntityManagerImpl implements EntityManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends Base> void updateEntity(UserInfo userInfo, T updated) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException {
+	public <T extends Base> void updateEntity(UserInfo userInfo, T updated, boolean newVersion) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException {
 		if(updated == null) throw new IllegalArgumentException("Dataset cannot be null");
 		if(updated.getId() == null) throw new IllegalArgumentException("The updated Entity cannot have a null ID");
 		Node node = nodeManager.get(userInfo, updated.getId());
@@ -146,12 +195,25 @@ public class EntityManagerImpl implements EntityManager {
 		
 		// Now get the annotations for this node
 		Annotations annos = nodeManager.getAnnotations(userInfo, updated.getId());
-		// Now add all of the annotations from the entity
-		NodeTranslationUtils.updateAnnoationsFromObject(updated, annos);
-		NodeTranslationUtils.updateNodeFromObject(updated, node);
-		annos.setEtag(updated.getEtag());
+		updateNodeAndAnnotationsFromEntity(updated, node, annos);
 		// NOw update both at the same time
-		nodeManager.update(userInfo, node, annos);
+		nodeManager.update(userInfo, node, annos, newVersion);
+	}
+	
+	/**
+	 * Will update both the passed node and annotations using the passed entity
+	 * @param <T>
+	 * @param entity
+	 * @param node
+	 * @param annos
+	 */
+	private <T extends Base> void updateNodeAndAnnotationsFromEntity(T entity, Node node, Annotations annos){
+		// Update the annotations from the entity
+		NodeTranslationUtils.updateAnnoationsFromObject(entity, annos);
+		// Update the node from the entity
+		NodeTranslationUtils.updateNodeFromObject(entity, node);
+		// Set the Annotations Etag
+		annos.setEtag(entity.getEtag());
 	}
 
 	@Override
@@ -180,7 +242,7 @@ public class EntityManagerImpl implements EntityManager {
 				id = this.createEntity(userInfo, child);
 			}else{
 				id = child.getId();
-				updateEntity(userInfo, child);
+				updateEntity(userInfo, child, false);
 			}
 			ids.add(id);
 		}
@@ -211,8 +273,14 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.getNodeType(userInfo, entityId);
 	}
 
-	private void modifyTypeSpecificMetadataBeforePersist(LayerLocation location, String nodeId) {
+	@Override
+	public List<Long> getAllVersionNumbersForEntity(UserInfo userInfo,
+			String entityId) throws NotFoundException, DatastoreException, UnauthorizedException {
+		// pass through
+		return nodeManager.getAllVersionNumbersForNode(userInfo, entityId);
+	}
 
+	private void modifyTypeSpecificMetadataBeforePersist(LayerLocation location, String nodeId) {
 		// TODO PLFM-212
 		// Ensure that awss3 locations are unique by prepending the user-supplied path with a system-controlled prefix
 		// Potential unique S3 URL Scheme:

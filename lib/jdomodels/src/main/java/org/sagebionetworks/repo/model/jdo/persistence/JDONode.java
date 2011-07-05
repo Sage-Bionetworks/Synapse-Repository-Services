@@ -53,14 +53,22 @@ public class JDONode {
     @Persistent(serialized="false", mappedBy = "owner")
 	@Element(dependent = "true")
 	private Set<JDOBlobAnnotation> blobAnnotations;
-
+	
+	
+	@Persistent (mappedBy = "owner")
+	@Element(dependent = "true")
+	private Set<JDORevision> revisions;
+	
+	@Column(name=SqlConstants.COL_CURRENT_REV)
+	private Long currentRevNumber;
+		
 	@Persistent
 	@Column(name=SqlConstants.COL_NODE_DESCRIPTION ,jdbcType="VARCHAR", length=3000)
 	private String description;
 
 	@Column(name=SqlConstants.COL_NODE_ETAG)
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
-	private Long eTag = new Long(0);
+	private Long eTag = null;
 	
 	@Column(name=SqlConstants.COL_NODE_CREATED_BY)
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
@@ -70,20 +78,11 @@ public class JDONode {
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
 	private Long createdOn;
 	
-	@Column(name=SqlConstants.COL_NODE_MODIFIED_BY)
-	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
-	private String modifiedBy;
-	
-	@Column(name=SqlConstants.COL_NODE_MODIFIED_ON)
-	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
-	private Long modifiedOn;
-	
 	// The type is enforced by a Foreign key.
 	@Column(name=SqlConstants.COL_NODE_TYPE)
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
 	@ForeignKey(name="NODE_TYPE_FK", deleteAction=ForeignKeyAction.RESTRICT)
-	private JDONodeType nodeType;
-	
+	private JDONodeType nodeType;	
 	// Indicates the node that this node gets its permissions from.
 	@Persistent
 	@Column(name=SqlConstants.COL_NODE_BENEFACTOR_ID)
@@ -95,9 +94,23 @@ public class JDONode {
 	@Element(dependent = "true")
 	private Set<JDONode> permissionsBeneficiaries;
 	
-//	@Persistent
-//	private JDOAccessControlList accessControlList;
 	
+	public Long getCurrentRevNumber() {
+		return currentRevNumber;
+	}
+
+	public void setCurrentRevNumber(Long currentRevNumber) {
+		this.currentRevNumber = currentRevNumber;
+	}
+
+	public Set<JDORevision> getRevisions() {
+		return revisions;
+	}
+
+	public void setRevisions(Set<JDORevision> revisions) {
+		this.revisions = revisions;
+	}
+
 	public Set<JDONode> getChildren() {
 		return children;
 	}
@@ -194,22 +207,6 @@ public class JDONode {
 		this.createdOn = createdOn;
 	}
 
-	public String getModifiedBy() {
-		return modifiedBy;
-	}
-
-	public void setModifiedBy(String modifiedBy) {
-		this.modifiedBy = modifiedBy;
-	}
-
-	public Long getModifiedOn() {
-		return modifiedOn;
-	}
-
-	public void setModifiedOn(Long modifiedOn) {
-		this.modifiedOn = modifiedOn;
-	}
-
 	public JDONodeType getNodeType() {
 		return nodeType;
 	}
@@ -241,20 +238,6 @@ public class JDONode {
 	public void setPermissionsBeneficiaries(Set<JDONode> permissionsBeneficiaries) {
 		this.permissionsBeneficiaries = permissionsBeneficiaries;
 	}
-
-//	/**
-//	 * @return the accessControlList
-//	 */
-//	public JDOAccessControlList getAccessControlList() {
-//		return accessControlList;
-//	}
-//
-//	/**
-//	 * @param accessControlList the accessControlList to set
-//	 */
-//	public void setAccessControlList(JDOAccessControlList accessControlList) {
-//		this.accessControlList = accessControlList;
-//	}
 
 	@Override
 	public int hashCode() {

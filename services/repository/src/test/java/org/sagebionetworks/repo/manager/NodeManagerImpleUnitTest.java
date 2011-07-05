@@ -20,6 +20,7 @@ import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.Node;
@@ -29,7 +30,6 @@ import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.FieldType;
-import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -173,49 +173,7 @@ public class NodeManagerImpleUnitTest {
 		assertNotNull(processedNode.getModifiedOn());
 		assertNotNull(processedNode.getModifiedBy());
 	}
-	
-	@Test(expected=ConflictingUpdateException.class)
-	public void testValidateETagAndLockNodeConfilict() throws Exception{
-		String nodeId = "101";
-		String eTag = "899";
-		when(mockNodeDao.getETagForUpdate(nodeId)).thenReturn(new Long(900));
-		// Since the eTag will not match an exception should be thrown.
-		nodeManager.validateETagAndLockNode(nodeId, eTag);
-	}
-	
-	@Test
-	public void testValidateETagAndLockNodePass() throws Exception{
-		String nodeId = "101";
-		String eTag = "899";
-		when(mockNodeDao.getETagForUpdate(nodeId)).thenReturn(new Long(899));
-		// Since the eTag will not match an exception should be thrown.
-		String nextTag = nodeManager.validateETagAndLockNode(nodeId, eTag);
-		assertNotNull(nextTag);
-		assertEquals("900",nextTag);
-	}
-	
-	@Test
-	public void testUpdate() throws Exception, NotFoundException, DatastoreException, UnauthorizedException{
-		// Test that we can update a node.
-		Node newNode = new Node();
-		newNode.setName("testUpdate");
-		newNode.setId("101");
-		newNode.setETag("9");;
-		newNode.setNodeType("someType");
-		when(mockNodeDao.getETagForUpdate("101")).thenReturn(new Long(9));
-		
-		UserInfo userInfo = mockUserInfo;
-		when(mockAuthDao.canAccess(userInfo, "101", ACCESS_TYPE.UPDATE)).thenReturn(true);
-		// Make the actual call
-		Node result = nodeManager.update(userInfo, newNode);
-		//Node result = nodeManager.update(AuthUtilConstants.ANONYMOUS_USER_ID, newNode);
-		assertNotNull(result);
-		assertEquals("test-user", result.getModifiedBy());
-		//assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, result.getModifiedBy());
-		assertNotNull(result.getModifiedOn());
-		// The eTag should have been incremented
-		assertNotNull("10", result.getETag());
-	}
+
 	
 	@Test
 	public void testGetAnnotations() throws NotFoundException, DatastoreException, UnauthorizedException{
@@ -229,29 +187,6 @@ public class NodeManagerImpleUnitTest {
 		assertEquals(copy, annos);
 	}
 	
-	
-	@Test
-	public void testUpdateAnnotations() throws Exception, DatastoreException, UnauthorizedException, ConflictingUpdateException{
-		// To update the annotations 
-		String id = "101";
-		Annotations annos = new Annotations();
-		annos.addAnnotation("stringKey", "b");
-		annos.addAnnotation("longKey", Long.MIN_VALUE);
-		annos.setEtag("9");
-		annos.setId(id);
-		when(mockNodeDao.getAnnotations(id)).thenReturn(annos);
-		when(mockNodeDao.getETagForUpdate("101")).thenReturn(new Long(9));
-		UserInfo userInfo = anonUserInfo;
-		when(mockAuthDao.canAccess(userInfo, "101", ACCESS_TYPE.UPDATE)).thenReturn(true);
-
-		Annotations copy = nodeManager.getAnnotations(userInfo, id);
-		assertEquals(copy, annos);
-		// Now update the copy
-		copy.addAnnotation("dateAnnos", new Date(System.currentTimeMillis()));
-		copy = nodeManager.updateAnnotations(userInfo,id,copy);
-		assertEquals("The eTag should have been incremented", "10", copy.getEtag());
-	}
-	
 	@Test
 	public void testValidateAnnoationsAssignedToAnotherType() throws Exception, DatastoreException, UnauthorizedException, ConflictingUpdateException{
 		// To update the annotations 
@@ -260,7 +195,8 @@ public class NodeManagerImpleUnitTest {
 		String annotationName = "dateKeyKey";
 		annos.setId(id);
 		annos.setEtag("9");
-		when(mockNodeDao.getETagForUpdate("101")).thenReturn(new Long(9));
+		when(mockNodeDao.peekCurrentEtag("101")).thenReturn("9");
+		when(mockNodeDao.lockNodeAndIncrementEtag("101", "9")).thenReturn("10");
 		UserInfo userInfo = anonUserInfo;
 		when(mockAuthDao.canAccess(userInfo, "101", ACCESS_TYPE.UPDATE)).thenReturn(true);
 		// The mockFieldTypeDao with throw an exception i 

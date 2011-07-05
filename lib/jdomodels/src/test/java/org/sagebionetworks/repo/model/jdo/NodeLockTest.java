@@ -9,9 +9,10 @@ import java.util.logging.Logger;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -75,7 +76,7 @@ public class NodeLockTest {
 	}
 	
 	@Test
-	public void testNodeLocking() throws InterruptedException{
+	public void testNodeLocking() throws InterruptedException, NotFoundException, DatastoreException{
 		// Locking does not work with in-memory database, so only run this 
 		// test when we are using MySQL
 		if(PMFConfigUtils.getJdbcConnectionString() == null){
@@ -86,14 +87,13 @@ public class NodeLockTest {
 		}
 		// First start a new thread and acquire the lock to the node
 		final String theNodeId = nodeId;
+		final String eTag = nodeDao.peekCurrentEtag(nodeId);
 		Thread threadOne = new Thread(new Runnable() {
 			@Override
 			public void run() {
 				try {
-					nodeLockerA.aquireAndHoldLock(theNodeId);
-				} catch (InterruptedException e) {
-					fail(e.getMessage());
-				} catch (NotFoundException e) {
+					nodeLockerA.aquireAndHoldLock(theNodeId, eTag);
+				} catch (Exception e) {
 					fail(e.getMessage());
 				}
 			}
@@ -114,10 +114,14 @@ public class NodeLockTest {
 			@Override
 			public void run() {
 				try {
-					nodeLockerB.aquireAndHoldLock(theNodeId);
+					nodeLockerB.aquireAndHoldLock(theNodeId, eTag);
 				} catch (InterruptedException e) {
 					fail(e.getMessage());
 				} catch (NotFoundException e) {
+					fail(e.getMessage());
+				} catch (ConflictingUpdateException e) {
+					fail(e.getMessage());
+				} catch (DatastoreException e) {
 					fail(e.getMessage());
 				}
 			}
@@ -135,12 +139,13 @@ public class NodeLockTest {
 		nodeLockerA.releaseLock();
 		// Now make sure B can acquire it
 		start = System.currentTimeMillis();
-		while(!nodeLockerB.isLockAcquired()){
+		// Wait for B to fail due to conflicting eTag
+		while(!nodeLockerB.failedDueToConflict()){
 			long current = System.currentTimeMillis();
 			if((current-start) > timeout) fail("Test timed out trying to aqcuire a lock!");
 			Thread.sleep(100);
 		}
-		assertTrue("Failed to acquire the lock on B",nodeLockerB.isLockAcquired());
+		assertTrue("B should have failed due to a conflicting eTag",nodeLockerB.failedDueToConflict());
 		
 		// Release both locks
 		nodeLockerA.releaseLock();

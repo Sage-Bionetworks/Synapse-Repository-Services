@@ -4,6 +4,7 @@ import java.util.Date;
 
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
+import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
 
 /**
  * Translates JDOs and DTOs.
@@ -12,26 +13,14 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
  *
  */
 public class JDONodeUtils {
-	
-	/**
-	 * Cratea  DTO from the JDO
-	 * @param dto
-	 * @return
-	 */
-	public static JDONode copyFromDto(Node dto){
-		if(dto == null) throw new IllegalArgumentException("Dto cannot be null");
-		JDONode jdo = new JDONode();
-		updateFromDto(dto, jdo);
-		return jdo;
-	}
-	
+		
 	/**
 	 * Used to update an existing object
 	 * @param dto
 	 * @param jdo
 	 * @return
 	 */
-	public static void updateFromDto(Node dto, JDONode jdo) {
+	public static void updateFromDto(Node dto, JDONode jdo, JDORevision rev) {
 		jdo.setName(dto.getName());
 		jdo.setDescription(dto.getDescription());
 		if(dto.getId() != null){
@@ -39,10 +28,11 @@ public class JDONodeUtils {
 		}
 		jdo.setCreatedOn(dto.getCreatedOn().getTime());
 		jdo.setCreatedBy(dto.getCreatedBy());
-		jdo.setModifiedBy(dto.getModifiedBy());
-		jdo.setModifiedOn(dto.getModifiedOn().getTime());
-		if(dto.getETag() != null){
-			jdo.seteTag(Long.parseLong(dto.getETag()));
+		rev.setModifiedBy(dto.getModifiedBy());
+		rev.setModifiedOn(dto.getModifiedOn().getTime());
+		rev.setComment(dto.getVersionComment());
+		if(dto.getVersionLabel() != null){
+			rev.setLabel(dto.getVersionLabel());
 		}
 	}
 	
@@ -51,7 +41,7 @@ public class JDONodeUtils {
 	 * @param jdo
 	 * @return
 	 */
-	public static Node copyFromJDO(JDONode jdo){
+	public static Node copyFromJDO(JDONode jdo, JDORevision rev){
 		Node dto = new Node();
 		dto.setName(jdo.getName());
 		dto.setDescription(jdo.getDescription());
@@ -69,10 +59,14 @@ public class JDONodeUtils {
 		}
 		dto.setCreatedOn(new Date(jdo.getCreatedOn()));
 		dto.setCreatedBy(jdo.getCreatedBy());
-		dto.setModifiedBy(jdo.getModifiedBy());
-		dto.setModifiedOn(new Date(jdo.getModifiedOn()));
+		dto.setModifiedBy(rev.getModifiedBy());
+		dto.setModifiedOn(new Date(rev.getModifiedOn()));
+		dto.setVersionComment(rev.getComment());
+		dto.setVersionLabel(rev.getLabel());
+		if(rev.getRevisionNumber() != null){
+			dto.setVersionNumber(rev.getRevisionNumber());
+		}
 		return dto;
 	}
 	
-
 }
