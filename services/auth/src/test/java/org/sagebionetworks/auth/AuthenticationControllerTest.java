@@ -85,7 +85,7 @@ public class AuthenticationControllerTest {
 		assertTrue(session.has("sessionToken"));
 		assertEquals("Demo User", session.getString("displayName"));
 	}
-
+	
 	@Test
 	public void testCreateSessionBadCredentials() throws Exception {
 		if (!isIntegrationTest()) return;
@@ -305,6 +305,44 @@ public class AuthenticationControllerTest {
 	public void testSendResetPasswordEmail() throws Exception {
 		 helper.testCreateJsonEntity("/userPasswordEmail","{\"email\":\"demouser@sagebase.org\"}", HttpStatus.NO_CONTENT);
 	}
+	
+	class MutableBoolean {
+		boolean b = false;
+		public void set(boolean b) {this.b=b;}
+		public boolean get() {return b;}
+	}
+	
+	// this is meant to recreate the problem described in PLFM-292
+	// http://sagebionetworks.jira.com/browse/PLFM-292
+	@Test 
+	public void testMultipleLogins() throws Exception {
+		if (!isIntegrationTest()) return;
+		int n = 100;
+		for (int i=0; i<n; i++) {
+			final MutableBoolean b = new MutableBoolean();
+		 	Thread thread = new Thread() {
+				public void run() {
+					try {
+						JSONObject session = helper.testCreateJsonEntity("/session",
+						"{\"email\":\"demouser@sagebase.org\",\"password\":\"demouser-pw\"}");
+						assertTrue(session.has("sessionToken"));
+						assertEquals("Demo User", session.getString("displayName"));
+						b.set(true);
+					} catch (Exception e) {
+						fail(e.toString());
+					}
+				}
+			};
+			thread.start();
+			try {
+				thread.join(5000L); // time out after 5 sec
+			} catch (InterruptedException ie) {
+				// as expected
+			}
+			assertTrue("Failed or timed out after "+i+" iterations.", b.get()); // should have been set to 'true' if successful
+		}
+	}
+
 }
 
 
