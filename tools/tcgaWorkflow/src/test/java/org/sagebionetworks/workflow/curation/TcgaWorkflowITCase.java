@@ -12,6 +12,7 @@ import org.json.JSONObject;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.workflow.UnrecoverableException;
 import org.sagebionetworks.workflow.activity.Constants;
@@ -292,7 +293,7 @@ public class TcgaWorkflowITCase {
 	@Test
 	public void testDoNotifyFollowers() {
 		try {
-			String topic = ConfigHelper.createConfig().getSnsTopic();
+			String topic = StackConfiguration.getTcgaWorkflowSnsTopic();
 			Notification.doSnsNotifyFollowers(topic,
 					"integration test subject",
 					"integration test message, yay!");

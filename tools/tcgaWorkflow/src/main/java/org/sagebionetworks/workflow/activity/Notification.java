@@ -60,7 +60,7 @@ public class Notification {
 				subject);
 
 		PublishResult publishResult = snsClient.publish(publishRequest);
-		log.debug("SNS publish: " + publishResult);
+		log.debug("SNS publish: " + publishResult + " to topic " + topic);
 	}
 
 	/**

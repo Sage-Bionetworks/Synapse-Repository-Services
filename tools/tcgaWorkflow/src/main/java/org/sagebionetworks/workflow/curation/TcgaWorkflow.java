@@ -4,6 +4,8 @@ import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 
+import org.joda.time.LocalDate;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.workflow.activity.Constants;
 import org.sagebionetworks.workflow.activity.Curation;
 import org.sagebionetworks.workflow.activity.Notification;
@@ -63,9 +65,8 @@ public class TcgaWorkflow {
 	// ConfigHelper
 	// .createConfig().getMaxScriptExecutionHoursTimeout();
 
-	private static final String NOTIFICATION_SUBJECT = "TCGA Workflow Notification";
-	private static final String NOTIFICATION_SNS_TOPIC = ConfigHelper
-			.createConfig().getSnsTopic();
+	private static final String NOTIFICATION_SUBJECT = "TCGA Workflow Notification ";
+	private static final String NOTIFICATION_SNS_TOPIC = StackConfiguration.getTcgaWorkflowSnsTopic();
 
 	/**
 	 * @param param
@@ -232,7 +233,7 @@ public class TcgaWorkflow {
 		Settable<String> recipient = new Settable<String>();
 		recipient.set(NOTIFICATION_SNS_TOPIC);
 		Settable<String> subject = new Settable<String>();
-		subject.set(NOTIFICATION_SUBJECT);
+		subject.set(NOTIFICATION_SUBJECT + new LocalDate().toString());
 
 		/**
 		 * Send the email notification to all interested parties, keeping this

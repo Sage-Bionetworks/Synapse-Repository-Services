@@ -50,16 +50,12 @@ public class ConfigHelper {
 	private static final String WORKFLOW_PROPERTIES_FILENAME = "workflow.properties";
 	private static final String SWF_ENDPOINT_KEY = "swf.endpoint";
 	private static final String SNS_ENDPOINT_KEY = "sns.endpoint";
-	private static final String SNS_TOPIC_KEY = "sns.topic";
-	private static final String S3_BUCKET_KEY = "s3.bucket";
 	private static final String SCRIPT_TIMEOUT_KEY = "max.script.execution.hours.timeout";
 	private static final String LOCAL_CACHE_DIR = "local.cache.dir";
 
 	private String snsEndpoint;
 	private String swfEndpoint;
 
-	private String snsTopic;
-	private String s3Bucket;
 	private int maxScriptExecutionHoursTimeout;
 	private String localCacheDir;
 
@@ -89,8 +85,6 @@ public class ConfigHelper {
 
 		snsEndpoint = serviceProperties.getProperty(SNS_ENDPOINT_KEY);
 		swfEndpoint = serviceProperties.getProperty(SWF_ENDPOINT_KEY);
-		snsTopic = serviceProperties.getProperty(SNS_TOPIC_KEY);
-		s3Bucket = serviceProperties.getProperty(S3_BUCKET_KEY);
 		maxScriptExecutionHoursTimeout = Integer.parseInt(serviceProperties
 				.getProperty(SCRIPT_TIMEOUT_KEY));
 		localCacheDir = serviceProperties.getProperty(LOCAL_CACHE_DIR);
@@ -201,20 +195,6 @@ public class ConfigHelper {
 				.getAuthenticationServiceEndpoint());
 		synapse.login(synapseUsername, synapsePassword);
 		return synapse;
-	}
-
-	/**
-	 * @return the s3Bucket
-	 */
-	public String getS3Bucket() {
-		return s3Bucket;
-	}
-
-	/**
-	 * @return the snsTopic
-	 */
-	public String getSnsTopic() {
-		return snsTopic;
 	}
 
 	/**
