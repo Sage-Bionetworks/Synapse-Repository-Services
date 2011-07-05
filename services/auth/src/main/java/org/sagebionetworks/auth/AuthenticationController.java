@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -44,8 +46,9 @@ public class AuthenticationController {
 	private static final Logger log = Logger.getLogger(AuthenticationController.class
 			.getName());
 	
-//	private String repositoryServicesURL;  // this is to be discontinued
-//	private String adminPW;
+	private static Map<User,Session> sessionCache = null;
+	private static Long cacheTimeout = null;
+	private static Date lastCacheDump = null;
 	
 	private CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 	private SendMail sendMail = new SendMail();
@@ -60,6 +63,17 @@ public class AuthenticationController {
 	private String integrationTestUser = null;
 
 	
+	private void initSessionCache() {
+		sessionCache = Collections.synchronizedMap(new HashMap<User,Session>());
+		lastCacheDump = new Date();
+		String s = System.getProperty(AuthUtilConstants.AUTH_CACHE_TIMEOUT_MILLIS);
+		if (s!=null && s.length()>0) {
+			cacheTimeout = Long.parseLong(s);
+		} else {
+			cacheTimeout = AuthUtilConstants.AUTH_CACHE_TIMEOUT_DEFAULT;
+		}
+	}
+
 	/**
 	 * @return the integrationTestUser
 	 */
@@ -75,6 +89,7 @@ public class AuthenticationController {
 	}
 
 	public AuthenticationController() {
+		initSessionCache();
         Properties props = new Properties();
         // optional, only used for testing
         props = new Properties();
@@ -95,7 +110,22 @@ public class AuthenticationController {
 	Session authenticate(@RequestBody User credentials,
 			HttpServletRequest request) throws Exception {
 		try { 
-			return crowdAuthUtil.authenticate(credentials, true);
+			Session session = null;
+			if (cacheTimeout>0) { // then use cache
+				Date now = new Date();
+				if (lastCacheDump.getTime()+cacheTimeout<now.getTime()) {
+					sessionCache.clear();
+					lastCacheDump = now;
+				}
+				session = sessionCache.get(credentials);
+			}
+			if (session==null) { // not using cache or not found in cache
+				session = crowdAuthUtil.authenticate(credentials, true);
+				if (cacheTimeout>0) {
+					sessionCache.put(credentials, session);
+				}
+			}
+			return session;
 		} catch (AuthenticationException ae) {
 			// include the URL used to authenticate
 			ae.setAuthURL(request.getRequestURL().toString());
@@ -264,6 +294,21 @@ public class AuthenticationController {
 	@RequestMapping(value = "/session", method = RequestMethod.DELETE)
 	public void deauthenticate(@RequestBody Session session) throws Exception {
 			crowdAuthUtil.deauthenticate(session.getSessionToken());
+
+			if (cacheTimeout>0) { // if using cache
+				Date now = new Date();
+				if (lastCacheDump.getTime()+cacheTimeout<now.getTime()) {
+					sessionCache.clear();
+					lastCacheDump = now;
+				}
+				for (User user : sessionCache.keySet()) {
+					Session cachedSession = sessionCache.get(user);
+					if (session.getSessionToken().equals(cachedSession.getSessionToken())) {
+						sessionCache.remove(user);
+						break;
+					}
+				}
+			}
 	}
 	
 	private Random rand = new Random();
