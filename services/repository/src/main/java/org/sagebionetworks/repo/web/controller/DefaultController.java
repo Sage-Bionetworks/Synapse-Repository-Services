@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.util.Collection;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -11,13 +10,14 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseChild;
 import org.sagebionetworks.repo.model.BooleanResult;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.web.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.PaginatedParameters;
@@ -71,7 +71,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PROJECT
 			}, method = RequestMethod.POST)
 	public @ResponseBody
-	<T extends Nodeable> T createEntity(
+	Nodeable createEntity(
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
@@ -81,13 +81,29 @@ public class DefaultController extends BaseController {
 		// Determine the object type from the url.
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
 		@SuppressWarnings("unchecked")
-		T entity = (T) objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
+		Nodeable entity =  objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
 		// Now create the entity
-		T createdEntity = (T) entityController.createEntity(userId, entity, request);
+		Nodeable createdEntity = entityController.createEntity(userId, entity, request);
 		// Finally, add the type specific metadata.
 		return createdEntity;
 	}
 	
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = { 
+			UrlHelpers.LOCATION_VERSION
+			}, method = RequestMethod.POST)
+	public @ResponseBody
+	Versionable createNewVersion(
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestHeader HttpHeaders header,
+			@RequestHeader(ServiceConstants.ETAG_HEADER) String etag,
+			HttpServletRequest request)
+			throws DatastoreException, InvalidModelException,
+			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
+
+		// This is simply an update with a new version created.
+		return (Versionable) updateEntityImpl(userId, header, etag, true, request);
+	}
 	
 	
 	/**
@@ -110,7 +126,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PROJECT_ID
 			}, method = RequestMethod.GET)
 	public @ResponseBody
-	<T extends Nodeable> T getEntity(
+	Nodeable getEntity(
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -118,11 +134,42 @@ public class DefaultController extends BaseController {
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
 		// Get the entity.
 		@SuppressWarnings("unchecked")
-		T updatedEntity = (T) entityController.getEntity(userId, id, request, type.getClassForType());
+		Nodeable updatedEntity = entityController.getEntity(userId, id, request, type.getClassForType());
 		// Return the results
 		return updatedEntity;
 	}
 
+	/**
+	 * Get an existing entity with a GET.
+	 * @param <T>
+	 * @param userId -The user that is doing the get.
+	 * @param id - The ID of the entity to fetch.
+	 * @param request
+	 * @return The requested Entity if it exists.
+	 * @throws NotFoundException - Thrown if the requested entity does not exist.
+	 * @throws DatastoreException - Thrown when an there is a server failure. 
+	 * @throws UnauthorizedException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.LOCATION_VERSION_NUMBER
+			}, method = RequestMethod.GET)
+	public @ResponseBody
+	Nodeable getEntityForVersion(
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id,
+			@PathVariable Long versionNumber,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		// Validate the object type
+		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+		// Get the entity.
+		@SuppressWarnings("unchecked")
+		Nodeable updatedEntity = entityController.getEntityForVersion(userId, id, versionNumber, request, type.getClassForType());
+		// Return the results
+		return updatedEntity;
+	}
+	
 	/**
 	 * Update an entity.
 	 * @param <T>
@@ -149,7 +196,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PROJECT_ID
 	}, method = RequestMethod.PUT)
 	public @ResponseBody
-	<T extends Nodeable> T updateEntity(
+	Nodeable updateEntity(
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
 			@PathVariable String id,
@@ -157,15 +204,38 @@ public class DefaultController extends BaseController {
 			HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException, IOException {
-		// Determine the object type from the url.
+		// We currently do not create a new version when we update.
+		return updateEntityImpl(userId, header, etag, false, request);
+	}
+
+	/**
+	 * Does the actually entity update.
+	 * @param <T>
+	 * @param userId
+	 * @param header
+	 * @param etag
+	 * @param newVersion - Should a new version be created to do this update?
+	 * @param request
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 * @throws ConflictingUpdateException
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 */
+	private Nodeable updateEntityImpl(String userId, HttpHeaders header,
+			String etag, boolean newVersion, HttpServletRequest request) throws IOException,
+			NotFoundException, ConflictingUpdateException, DatastoreException,
+			InvalidModelException, UnauthorizedException {
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
 		@SuppressWarnings("unchecked")
-		T entity = (T) objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
+		Nodeable entity = objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
 		if(etag != null){
 			entity.setEtag(etag.toString());
 		}
 		// validate the entity
-		entity = entityController.updateEntity(userId, entity, request);
+		entity = entityController.updateEntity(userId, entity, newVersion, request);
 		// Return the result
 		return entity;
 	}
@@ -196,6 +266,31 @@ public class DefaultController extends BaseController {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Pass it along
 		return entityController.getEntityAnnotations(userId, id, request);
+	}
+	
+	/**
+	 * Get the annotations for a given version of an entity.
+	 * @param userId - The user that is doing the update.
+	 * @param id - The id of the entity to update.
+	 * @param request - Used to read the contents.
+	 * @return The annotations for the given entity.
+	 * @throws NotFoundException - Thrown if the given entity does not exist.
+	 * @throws DatastoreException - Thrown when there is a server side problem.
+	 * @throws UnauthorizedException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.LOCATION_VERSION_ANNOTATIONS
+			}, method = RequestMethod.GET)
+	public @ResponseBody
+	Annotations getEntityAnnotationsForVersion(
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id,
+			@PathVariable Long versionNumber,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		// Pass it along
+		return entityController.getEntityAnnotationsForVersion(userId, id, versionNumber, request);
 	}
 	
 	/**
@@ -260,6 +355,29 @@ public class DefaultController extends BaseController {
 	}
 
 	/**
+	 * Called to delete an entity. 
+	 * @param userId - The user that is deleting the entity.
+	 * @param id - The id of the user that is deleting the entity.
+	 * @throws NotFoundException - Thrown when the entity to delete does not exist.
+	 * @throws DatastoreException - Thrown when there is a server side problem.
+	 * @throws UnauthorizedException
+	 * @throws ConflictingUpdateException 
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = { 			
+			UrlHelpers.LOCATION_VERSION_NUMBER
+			}, method = RequestMethod.DELETE)
+	public void deleteEntityVersion(
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id,
+			@PathVariable Long versionNumber,
+			HttpServletRequest request) throws NotFoundException,
+			DatastoreException, UnauthorizedException, ConflictingUpdateException {
+		// Determine the object type from the url.
+		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+		entityController.deleteEntityVersion(userId, id, versionNumber,type.getClassForType());
+	}
+	/**
 	 * Fetch all of the entities of a given type in a paginated form.
 	 * @param <T>
 	 * @param userId - The id of the user doing the fetch.
@@ -282,7 +400,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PROJECT
 		}, method = RequestMethod.GET)
 	public @ResponseBody
-	<T extends Nodeable> PaginatedResults<T> getEntities(
+    PaginatedResults<Nodeable> getEntities(
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
@@ -298,8 +416,42 @@ public class DefaultController extends BaseController {
 		// Determine the object type from the url.
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
 		@SuppressWarnings("unchecked")
-		PaginatedResults<T> results = (PaginatedResults<T>) entityController.getEntities(
+		PaginatedResults<Nodeable> results = (PaginatedResults<Nodeable>) entityController.getEntities(
 				userId, new PaginatedParameters(offset, limit, sort, ascending), request, type.getClassForType());
+		// Return the result
+		return results;
+	}
+	
+	/**
+	 * Fetch all of the entities of a given type in a paginated form.
+	 * @param <T>
+	 * @param userId - The id of the user doing the fetch.
+	 * @param offset - The offset index determines where this page will start from.  An index of 1 is the first entity. When null it will default to 1.
+	 * @param limit - Limits the number of entities that will be fetched for this page. When null it will default to 10.
+	 * @param request
+	 * @return A paginated list of results.
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.LOCATION_VERSION
+		}, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<Versionable> getAllVersionsOfEntity(
+			@PathVariable String id,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			HttpServletRequest request) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+
+		// Determine the object type from the url.
+		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+		Class<? extends Versionable> clazz = (Class<? extends Versionable>) type.getClassForType();
+		@SuppressWarnings("unchecked")
+		PaginatedResults<Versionable> results = entityController.getAllVerionsOfEntity(userId, offset, limit, id, request, clazz);
 		// Return the result
 		return results;
 	}
@@ -313,7 +465,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PROJECT_CHILDREN
 		}, method = RequestMethod.GET)
 	public @ResponseBody
-	<T extends BaseChild> PaginatedResults<T> getEntityChildren(
+	PaginatedResults<BaseChild> getEntityChildren(
 			@PathVariable String parentType,
 			@PathVariable String parentId,
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
@@ -331,8 +483,8 @@ public class DefaultController extends BaseController {
 		PaginatedParameters paging = new PaginatedParameters(offset, limit, sort, ascending);
 		// Determine the object type from the url.
 		ObjectType type = ObjectType.getLastTypeInUrl(request.getRequestURI());
-		Class<? extends T> clazz = (Class<? extends T>) type.getClassForType();
-		PaginatedResults<T> results = (PaginatedResults<T>) entityController.getEntityChildrenOfTypePaginated(userId, parentId, clazz, paging, request);
+		Class<? extends BaseChild> clazz = (Class<? extends BaseChild>) type.getClassForType();
+		PaginatedResults<BaseChild> results = entityController.getEntityChildrenOfTypePaginated(userId, parentId, clazz, paging, request);
 		// Return the results
 		return results;
 	}	

@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.Versionable;
 
 /**
  * UrlHelpers is responsible for the formatting of all URLs exposed by the
@@ -60,6 +61,7 @@ public class UrlHelpers {
 	
 	public static final String PARENT_TYPE 		= "/{parentType}";
 	public static final String PARENT_ID 		= "/{parentId}";
+	public static final String VERSION_NUMBER 	= "/{versionNumber}";
 	public static final String PARENT_TYPE_ID 	= PARENT_TYPE+PARENT_ID;
 	public static final String OBJECT_TYPE		= "/{objectType}";
 	public static final String OBJECT_TYPE_ID	= OBJECT_TYPE+ID;
@@ -79,6 +81,8 @@ public class UrlHelpers {
 	 * URL suffix for entity schemas
 	 */
 	public static final String SCHEMA = "/schema";
+	
+	public static final String VERSION = "/version";
 	
 	/**
 	 * All of the base URLs for Synapse objects
@@ -105,6 +109,10 @@ public class UrlHelpers {
 	public static final String LOCATION_ANNOTATIONS = LOCATION_ID+ANNOTATIONS;
 	public static final String PROJECT_ANNOTATIONS	= PROJECT_ID+ANNOTATIONS;
 	/**
+	 * All of the base URLs for Synapse object's versions.
+	 */
+	public static final String LOCATION_VERSION		= LOCATION_ID+VERSION;
+	/**
 	 * For Synapse objects that have children, these urls list all children of that type.
 	 */
 	public static final String DATASET_CHILDREN 	= PARENT_TYPE_ID+DATASET;
@@ -120,8 +128,16 @@ public class UrlHelpers {
 	public static final String PREVIEW_SCHEMA 	= PREVIEW+SCHEMA;
 	public static final String LOCATION_SCHEMA	= LOCATION+SCHEMA;
 	public static final String PROJECT_SCHEMA 	= PROJECT+SCHEMA;
-
-
+	
+	/**
+	 * Get a specific version of an entity
+	 */
+	public static final String LOCATION_VERSION_NUMBER		= LOCATION_VERSION+VERSION_NUMBER;
+	
+	/**
+	 * Get the annotations of a specific version of an entity
+	 */
+	public static final String LOCATION_VERSION_ANNOTATIONS = LOCATION_VERSION_NUMBER+ANNOTATIONS;
 
 	public static final String OBJECT_TYPE_SCHEMA = OBJECT_TYPE+SCHEMA;
 
@@ -540,6 +556,19 @@ public class UrlHelpers {
 	}
 	
 	/**
+	 * Set the URL of a versionable entity.
+	 */
+	public static void setVersionableUrl(Versionable entity){
+		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
+		if(entity.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null null");
+		if(entity.getVersionNumber() == null) throw new IllegalArgumentException("Entity version number cannot be null");
+		// This URL wil list all version for this entity.
+		entity.setVersions(entity.getUri()+VERSION);
+		// This URL will reference this specific version of the entity.
+		entity.setVersionUrl(entity.getUri()+VERSION+"/"+entity.getVersionNumber());
+	}
+	
+	/**
 	 * 
 	 * @param entity
 	 * @param request
@@ -561,6 +590,10 @@ public class UrlHelpers {
 		// Previews
 		if(entity instanceof HasPreviews){
 			setHasPreviewsUrl((HasPreviews) entity);
+		}
+		// Versions
+		if(entity instanceof Versionable){
+			setVersionableUrl((Versionable)entity);
 		}
 	}
 	
@@ -608,6 +641,22 @@ public class UrlHelpers {
 			expected = object.getUri()+UrlHelpers.PREVIEW;
 			if(!expected.equals(has.getPreviews())){
 				throw new IllegalArgumentException("Expected previews: "+expected+" but was: "+has.getPreviews());
+			}
+		}
+		
+		// Versionable
+		if(object instanceof Versionable){
+			Versionable able = (Versionable) object;
+			expected = object.getUri()+UrlHelpers.VERSION;
+			if(!expected.equals(able.getVersions())){
+				throw new IllegalArgumentException("Expected versions: "+expected+" but was: "+able.getVersions());
+			}
+			if(able.getVersionNumber() == null){
+				throw new IllegalArgumentException("Expected a versionable entity to have a version number");
+			}
+			expected = object.getUri()+UrlHelpers.VERSION+"/"+able.getVersionNumber();
+			if(!expected.equals(able.getVersionUrl())){
+				throw new IllegalArgumentException("Expected versionUrl: "+expected+" but was: "+able.getVersionUrl());
 			}
 		}
 	}

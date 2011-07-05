@@ -6,12 +6,14 @@ import java.util.List;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseChild;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.web.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -33,7 +35,7 @@ public interface EntityManager {
 	 * @throws UnauthorizedException 
 	 */
 	public <T extends Base> String createEntity(UserInfo userInfo, T newEntity) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
-	
+		
 	/**
 	 * Get an existing dataset
 	 * @param userInfo
@@ -95,7 +97,19 @@ public interface EntityManager {
 	public void deleteEntity(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
-	 * 
+	 * Delete a specfic version of an entity
+	 * @param userInfo
+	 * @param id
+	 * @param versionNumber
+	 * @throws ConflictingUpdateException 
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public void deleteEntityVersion(UserInfo userInfo, String id, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
+	
+	/**
+	 * Get the annotations of an entity.
 	 * @param userInfo
 	 * @param entityId
 	 * @return
@@ -104,6 +118,18 @@ public interface EntityManager {
 	 * @throws NotFoundException 
 	 */
 	public Annotations getAnnotations(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	/**
+	 * Get the annotations of an entity for a given version.
+	 * @param userInfo
+	 * @param id
+	 * @param versionNumber
+	 * @return
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public Annotations getAnnotationsForVersion(UserInfo userInfo, String id, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * update a datasets annotations 
@@ -122,6 +148,7 @@ public interface EntityManager {
 	 * Update a dataset.
 	 * @param userInfo
 	 * @param updated
+	 * @param newVersion should a new version be created for this update?
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
@@ -129,7 +156,7 @@ public interface EntityManager {
 	 * @throws ConflictingUpdateException 
 	 * @throws InvalidModelException 
 	 */
-	public <T extends Base> void updateEntity(UserInfo userInfo, T updated) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException;
+	public <T extends Base> void updateEntity(UserInfo userInfo, T updated, boolean newVersion) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException;
 	
 	/**
 	 * Update multiple children of a single parent within the same transaction.
@@ -143,11 +170,39 @@ public interface EntityManager {
 	 * @throws InvalidModelException 
 	 */
 	public <T extends BaseChild> List<String> aggregateEntityUpdate(UserInfo userInfo, String parentId, Collection<T> update) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException;
+	
+	/**
+	 * List all version numbers for an entity.
+	 * @param userInfo
+	 * @param entityId
+	 * @return
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public List<Long> getAllVersionNumbersForEntity(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	/**
+	 * Get a specific version of an entity.
+	 * @param <T>
+	 * @param userInfo
+	 * @param entityId
+	 * @param versionNumber
+	 * @return
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public <T extends Nodeable> T getEntityForVersion(UserInfo userInfo, String entityId, Long versionNumber, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Used to override this dao for a test.
 	 * @param mockAuth
 	 */
 	public void overrideAuthDaoForTest(AuthorizationManager mockAuth);
+
+
+
+
 
 }

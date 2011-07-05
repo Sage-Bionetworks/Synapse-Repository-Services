@@ -1,5 +1,14 @@
 package org.sagebionetworks.repo.model.jdo;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -8,15 +17,22 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOBlobAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
+import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
+
+import com.thoughtworks.xstream.XStream;
 
 /**
  * Helper utilities for converting between JDOAnnotations and Annotations (DTO).
@@ -26,25 +42,15 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
  */
 public class JDOAnnotationsUtils {
 	
-	/**
-	 * Create a JDOAnnotations object, copying all values from the passed DTO.
-	 * @param dto
-	 * @return
-	 * @throws InvalidModelException
-	 */
-	public static JDONode createFromDTO(Annotations dto){
-		JDONode jdo = new JDONode();
-		updateFromJdoFromDto(dto, jdo);
-		return jdo;
-	}
 
 	/**
 	 * Update the JDO from the DTO
 	 * @param dto
 	 * @param jdo
+	 * @throws IOException 
 	 */
 	@SuppressWarnings("unchecked")
-	public static void updateFromJdoFromDto(Annotations dto, JDONode jdo) {
+	public static void updateFromJdoFromDto(Annotations dto, JDONode jdo, JDORevision rev) throws IOException {
 		if(dto.getId() != null){
 			jdo.setId(Long.valueOf(dto.getId()));
 		}
@@ -53,25 +59,67 @@ public class JDOAnnotationsUtils {
 		jdo.setLongAnnotations((Set<JDOLongAnnotation>)createFromMap(jdo, dto.getLongAnnotations()));
 		jdo.setDoubleAnnotations((Set<JDODoubleAnnotation>)createFromMap(jdo, dto.getDoubleAnnotations()));
 		jdo.setBlobAnnotations((Set<JDOBlobAnnotation>)createFromMap(jdo, dto.getBlobAnnotations()));
+		// Compress the annotations and save them in a blob
+		rev.setAnnotations(compressAnnotations(dto));
 	}
+	
+	/**
+	 * Convert the passed annotations to a compressed (zip) byte array
+	 * @param dto
+	 * @return
+	 * @throws IOException 
+	 */
+	public static byte[] compressAnnotations(Annotations dto) throws IOException{
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		BufferedOutputStream buff = new BufferedOutputStream(out);
+		GZIPOutputStream zipper = new GZIPOutputStream(buff);
+		try{
+			XStream xstream = new XStream();
+			xstream.toXML(dto, zipper);
+			zipper.flush();
+			zipper.close();
+			return out.toByteArray();
+		}finally{
+			zipper.flush();
+			zipper.close();
+		}
+
+	}
+	/**
+	 * Read the compressed (zip) byte array into the Annotations.
+	 * @param zippedByes
+	 * @return
+	 * @throws IOException 
+	 */
+	public static Annotations decompressedAnnotations(byte[] zippedByes) throws IOException{
+		Annotations results =  Annotations.createInitialized();
+		if(zippedByes != null){
+			ByteArrayInputStream in = new ByteArrayInputStream(zippedByes);
+			GZIPInputStream unZipper = new GZIPInputStream(in);
+			try{
+				// Now read using XStream
+				XStream xstream = new XStream();
+				if(zippedByes != null){
+					xstream.fromXML(unZipper, results);
+				}
+
+			}finally{
+				unZipper.close();
+			}			
+		}
+		return results;
+	}
+
 	
 	/**
 	 * Create a new Annotations object from the JDO.
 	 * @param jdo
 	 * @return
+	 * @throws IOException 
 	 */
-	public static Annotations createFromJDO(JDONode jdo){
-		if(jdo == null) throw new IllegalArgumentException("JDOAnnotations cannot be null");
-		Annotations dto = new Annotations();
-		if(jdo.getId() != null){
-			dto.setId(jdo.getId().toString());
-		}
-		dto.setStringAnnotations(createFromSet(jdo.getStringAnnotations()));
-		dto.setLongAnnotations(createFromSet(jdo.getLongAnnotations()));
-		dto.setDateAnnotations(createFromSet(jdo.getDateAnnotations()));
-		dto.setDoubleAnnotations(createFromSet(jdo.getDoubleAnnotations()));
-		dto.setBlobAnnotations(createFromSet(jdo.getBlobAnnotations()));
-		return dto;
+	public static Annotations createFromJDO(JDORevision rev) throws IOException{
+		if(rev == null) throw new IllegalArgumentException("JDOAnnotations cannot be null");
+		return decompressedAnnotations(rev.getAnnotations());
 	}
 	
 	/**

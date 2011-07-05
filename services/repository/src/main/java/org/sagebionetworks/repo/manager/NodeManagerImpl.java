@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
@@ -10,6 +11,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -20,7 +22,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.FieldType;
-import org.sagebionetworks.repo.web.ConflictingUpdateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,8 +74,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	}
 	
 	/**
-	 * Note: Cannot do authorization here, since it is object specific and "Node" is generic.
-	 * Authorization must be done at the layer that calls this one.
+	 * Create a new node
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -111,7 +111,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 		return id;
 	}
-	
 
 	
 	/**
@@ -124,19 +123,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(node.getNodeType() == null) throw new IllegalArgumentException("Node.type cannot be null");
 		if(node.getName() == null) throw new IllegalArgumentException("Node.name cannot be null");		
 	}
-	
-//	/**
-//	 * Validate the passed user name.
-//	 * @param userName
-//	 * @return
-//	 */
-//	public static String validateUsername(UserInfo userInfo){
-//		if(userName == null || "".equals(userName.trim())){
-//			return AuthUtilConstants.ANONYMOUS_USER_ID;
-//		}else{
-//			return userName.trim();
-//		}
-//	}
 	
 	/**
 	 * Make sure the creation data is set, and if not then set it.
@@ -187,6 +173,22 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		
 	}
 	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteVersion(UserInfo userInfo, String id, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
+		// First validate the username
+		UserInfo.validateUserInfo(userInfo);
+		String userName = userInfo.getUser().getUserId();
+		if (!authorizationManager.canAccess(userInfo, id, AuthorizationConstants.ACCESS_TYPE.DELETE)) {
+			throw new UnauthorizedException(userName+" lacks change access to the requested object.");
+		}
+		// Lock before we delete
+		String currentETag = nodeDao.peekCurrentEtag(id);
+		nodeDao.lockNodeAndIncrementEtag(id, currentETag);
+		// Delete while holding the lock.
+		nodeDao.deleteVersion(id, versionNumber);
+	}
+	
 	@Transactional(readOnly = true)
 	@Override
 	public Node get(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -203,18 +205,31 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 		return result;
 	}
+	
+	@Transactional(readOnly = true)
+	@Override
+	public Node getNodeForVersionNumber(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException {
+		UserInfo.validateUserInfo(userInfo);
+		String userName = userInfo.getUser().getUserId();
+		if (!authorizationManager.canAccess(userInfo, nodeId, AuthorizationConstants.ACCESS_TYPE.READ)) {
+			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
+		}
+		Node result = nodeDao.getNodeForVersion(nodeId, versionNumber);
+		return result;
+	}
+	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Node update(UserInfo userInfo, Node updated)
 			throws ConflictingUpdateException, NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
-		return update(userInfo, updated, null);
+		return update(userInfo, updated, null, false);
 	}
 
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public Node update(UserInfo userInfo, Node updatedNode, Annotations updatedAnnos) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
+	public Node update(UserInfo userInfo, Node updatedNode, Annotations updatedAnnos, boolean newVersion) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getUser().getUserId();
 		NodeManagerImpl.validateNode(updatedNode);
@@ -226,13 +241,18 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			if(!updatedNode.getETag().equals(updatedAnnos.getEtag())) throw new IllegalArgumentException("The passed node and annotations do not have the same eTag");
 		}
 		// Now lock this node
-		String nextETag = validateETagAndLockNode(updatedNode.getId(), updatedNode.getETag());
-		// We have the lock
-		// Increment the eTag
-		updatedNode.setETag(nextETag);
+		String nextETag = nodeDao.lockNodeAndIncrementEtag(updatedNode.getId(), updatedNode.getETag());
 		
 		// Clear the modified data and fill it in with the new data
 		NodeManagerImpl.validateNodeModifiedData(userName, updatedNode);
+		// If this is a new version then we need to create a new version before the update
+		if(newVersion){
+			// This will create a new version and set the new version to 
+			// be the current version.  Then the rest of the update will then
+			// be applied to this new version.
+			nodeDao.createNewVersion(updatedNode);
+		}
+		
 		// Now make the actual update.
 		nodeDao.updateNode(updatedNode);
 		// Also update the Annotations if provided
@@ -245,34 +265,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			log.debug("username "+userName+" updated node: "+updatedNode.getId()+", with a new eTag: "+nextETag);
 		}
 		// Return the new node
-		return updatedNode;
-	}
-	
-	/**
-	 * Note: This must be called from within a Transaction.
-	 * Calling this method will validate the passed eTag against the current eTag for the given node.
-	 * A lock will also me maintained on this node until the transaction either rolls back or commits.
-	 * 
-	 * Note: This is a blocking call.  If another transaction is currently holding the lock on this node
-	 * this method will be blocked, until the lock is released.
-	 * 
-	 * @param nodeId
-	 * @param eTag
-	 * @throws ConflictingUpdateException
-	 * @throws NotFoundException 
-	 */
-	protected String validateETagAndLockNode(String nodeId, String eTag) throws ConflictingUpdateException, NotFoundException{
-		if(eTag == null) throw new IllegalArgumentException("Must have a non-null eTag to update a node");
-		if(nodeId == null) throw new IllegalArgumentException("Must have a non-null ID to update a node");
-		long passedTag = Long.parseLong(eTag);
-		// Get the etag
-		long currentTag = nodeDao.getETagForUpdate(nodeId);
-		if(passedTag != currentTag){
-			throw new ConflictingUpdateException("Node: "+nodeId+" was updated since you last fetched it, retrieve it again and reapply the update");
-		}
-		// Increment the eTag
-		currentTag++;
-		return new Long(currentTag).toString();
+		return get(userInfo, updatedNode.getId());
 	}
 
 	/**
@@ -300,6 +293,18 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 		return annos;
 	}
+	
+	@Transactional(readOnly = true)
+	@Override
+	public Annotations getAnnotationsForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException,
+			DatastoreException, UnauthorizedException {
+		UserInfo.validateUserInfo(userInfo);
+		String userName = userInfo.getUser().getUserId();
+		if (!authorizationManager.canAccess(userInfo, nodeId, AuthorizationConstants.ACCESS_TYPE.READ)) {
+			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
+		}
+		return nodeDao.getAnnotationsForVersion(nodeId, versionNumber);
+	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -311,15 +316,12 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// Validate that the annotations
 		validateAnnotations(updated);
 		// Now lock the node if we can
-		String nextETag = validateETagAndLockNode(nodeId, updated.getEtag());
-		// We have the lock
-		// Increment the eTag
-		updated.setEtag(nextETag);
+		nodeDao.lockNodeAndIncrementEtag(nodeId, updated.getEtag());
 		nodeDao.updateAnnotations(nodeId, updated);
 		if(log.isDebugEnabled()){
 			log.debug("username "+userName+" updated Annotations for node: "+updated.getId());
 		}
-		return updated;
+		return getAnnotations(userInfo, nodeId);
 	}
 	
 	/**
@@ -387,5 +389,21 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		Node node = get(userInfo, nodeId);
 		return ObjectType.valueOf(node.getNodeType());
 	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public List<Long> getAllVersionNumbersForNode(UserInfo userInfo,
+			String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
+		// Validate that the user can do what they are trying to do.
+		UserInfo.validateUserInfo(userInfo);
+		String userName = userInfo.getUser().getUserId();
+		if (!authorizationManager.canAccess(userInfo, nodeId, AuthorizationConstants.ACCESS_TYPE.READ)) {
+			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
+		}
+		// If they are allowed to read a node then get the list.
+		return nodeDao.getVersionNumbers(nodeId);
+	}
+
+
 
 }

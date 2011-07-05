@@ -36,6 +36,7 @@ public interface TypeSpecificMetadataProvider<T extends Base> {
 		UPDATE,
 		GET,
 		DELETE,
+		NEW_VERSION
 	}
 
 	/**

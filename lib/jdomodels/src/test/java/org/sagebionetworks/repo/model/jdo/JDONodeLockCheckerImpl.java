@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model.jdo;
 
 import java.util.logging.Logger;
 
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,13 +29,14 @@ public class JDONodeLockCheckerImpl implements JDONodeLockChecker {
 	 */
 	private volatile boolean holdLock = true; 
 	private volatile boolean lockAcquired = false;
+	private volatile boolean failedDueToEtagConflict = false;
 	private volatile long etag = -1;
 	private volatile long threadId = -1;
 	private volatile long nodeId = -1;
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
-	public void aquireAndHoldLock(String stringId) throws InterruptedException, NotFoundException {
+	public void aquireAndHoldLock(String stringId, String currentETag) throws InterruptedException, NotFoundException, DatastoreException {
 		holdLock = true;
 		lockAcquired = false;
 		nodeId = Long.parseLong(stringId);
@@ -41,7 +44,15 @@ public class JDONodeLockCheckerImpl implements JDONodeLockChecker {
 		threadId = Thread.currentThread().getId();
 		printStatusToLog();
 		// Now try to acquire the lock
-		etag = nodeDao.getETagForUpdate(stringId);
+		try {
+			etag = Long.parseLong(nodeDao.lockNodeAndIncrementEtag(stringId, currentETag));
+		} catch (ConflictingUpdateException e) {
+			// Failed to acquire the lock due to a conflict
+			failedDueToEtagConflict = true;
+			lockAcquired = false;
+			holdLock = false;
+			return;
+		}
 		lockAcquired = true;
 		// Now hold the lock until told to release it
 		while(holdLock){
@@ -63,8 +74,14 @@ public class JDONodeLockCheckerImpl implements JDONodeLockChecker {
 		return lockAcquired;
 	}
 	
+	
 	private void printStatusToLog(){
 		log.info("Status: Thread ID: "+threadId+" acquired-lock: "+lockAcquired+" on Node: "+nodeId+", current eTag: "+etag+"");
+	}
+
+	@Override
+	public boolean failedDueToConflict() {
+		return failedDueToEtagConflict;
 	}
 
 }

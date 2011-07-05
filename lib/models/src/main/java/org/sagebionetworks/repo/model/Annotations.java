@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -26,6 +27,20 @@ public class Annotations implements Base {
 	private Map<String, Collection<Long>> longAnnotations;
 	private Map<String, Collection<Date>> dateAnnotations;
 	private Map<String, Collection<byte[]>> blobAnnotations;
+	
+	/**
+	 * Create Annotations with all of the maps initialized.
+	 * @return
+	 */
+	public static Annotations createInitialized(){
+		Annotations annos = new Annotations();
+		annos.setStringAnnotations(new HashMap<String, Collection<String>>());
+		annos.setDoubleAnnotations(new HashMap<String, Collection<Double>>());
+		annos.setLongAnnotations(new HashMap<String, Collection<Long>>());
+		annos.setDateAnnotations(new HashMap<String, Collection<Date>>());
+		annos.setBlobAnnotations(new HashMap<String, Collection<byte[]>>());
+		return annos;
+	}
 	
 	public String getId() {
 		return id;
@@ -407,7 +422,69 @@ public class Annotations implements Base {
 		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
 		return result;
 	}
+	
+	/**
+	 * A default Collection<byte[]> will return false unless the two arrays are the
+	 * same instance.  This does not work for testing, so we do a deep equals on blob arrays.
+	 * @param other
+	 * @return
+	 */
+	public boolean blobEquals(Map<String, Collection<byte[]>> other){
+		if (blobAnnotations == null) 
+			if (other != null)
+				return false;
+		if(blobAnnotations.size() != other.size()) return false;
+		Iterator<String> it = blobAnnotations.keySet().iterator();
+		while(it.hasNext()){
+			String key = it.next();
+			Collection<byte[]> thisCol = blobAnnotations.get(key);
+			Collection<byte[]> otherCol = other.get(key);
+			if(thisCol == null)
+				if(otherCol != null) return false;
+			if(thisCol.size() != otherCol.size()) return false;
+			Iterator<byte[]> thisIt = thisCol.iterator();
+			Iterator<byte[]> otherIt = thisCol.iterator();
+			while(thisIt.hasNext()){
+				byte[] thisArray = thisIt.next();
+				byte[] otherArray = otherIt.next();
+				if(thisArray == null)
+					if(otherArray != null)
+						return false;
+				if(!Arrays.equals(thisArray,otherArray)) return false;
+			}
+		}
+		
+		return true;
+	}
 
+	public boolean dateEquals(Map<String, Collection<Date>> other){
+		if (dateAnnotations == null) 
+			if (other != null)
+				return false;
+		if(dateAnnotations.size() != other.size()) return false;
+		Iterator<String> it = dateAnnotations.keySet().iterator();
+		while(it.hasNext()){
+			String key = it.next();
+			Collection<Date> thisCol = dateAnnotations.get(key);
+			Collection<Date> otherCol = other.get(key);
+			if(thisCol == null)
+				if(otherCol != null) return false;
+			if(thisCol.size() != otherCol.size()) return false;
+			Iterator<Date> thisIt = thisCol.iterator();
+			Iterator<Date> otherIt = thisCol.iterator();
+			while(thisIt.hasNext()){
+				Date thisDate = thisIt.next();
+				Date otherDate = otherIt.next();
+
+				if(thisDate == null)
+					if(otherDate != null)
+						return false;
+				if(thisDate.getTime() != otherDate.getTime()) return false;
+			}
+		}
+		return true;
+	}
+	
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -420,7 +497,7 @@ public class Annotations implements Base {
 		if (blobAnnotations == null) {
 			if (other.blobAnnotations != null)
 				return false;
-		} else if (!blobAnnotations.equals(other.blobAnnotations))
+		} else if (!blobEquals(other.blobAnnotations))
 			return false;
 		if (creationDate == null) {
 			if (other.creationDate != null)
@@ -430,7 +507,7 @@ public class Annotations implements Base {
 		if (dateAnnotations == null) {
 			if (other.dateAnnotations != null)
 				return false;
-		} else if (!dateAnnotations.equals(other.dateAnnotations))
+		} else if (!dateEquals(other.dateAnnotations))
 			return false;
 		if (doubleAnnotations == null) {
 			if (other.doubleAnnotations != null)

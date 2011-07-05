@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseChild;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Nodeable;
@@ -17,6 +18,7 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider.EventType;
 
@@ -51,6 +53,24 @@ public interface GenericEntityController {
 			PaginatedParameters paging,
 			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
+	
+	/**
+	 * Get all versions of an entity.  This list will be sorted on version number descending.
+	 * @param <T>
+	 * @param userId
+	 * @param offest
+	 * @param limmit
+	 * @param entityId
+	 * @param request
+	 * @param clazz
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public <T extends Nodeable> PaginatedResults<T> getAllVerionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
+			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException,
+			UnauthorizedException, NotFoundException;
 
 	/**
 	 * Get a specific entity
@@ -70,6 +90,7 @@ public interface GenericEntityController {
 			HttpServletRequest request, Class<? extends T> clazz) throws NotFoundException,
 			DatastoreException, UnauthorizedException;
 	
+
 	/**
 	 * Same as above but takes a UserInfo instead of a username.
 	 * @param <T>
@@ -83,6 +104,42 @@ public interface GenericEntityController {
 	 * @throws UnauthorizedException
 	 */
 	public <T extends Nodeable> T getEntity(UserInfo info, String id, HttpServletRequest request, Class<? extends T> clazz, EventType eventType) throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	/**
+	 * Get a specific version of an entity.  This one takes a username instead of info.
+	 * @param <T>
+	 * @param userId
+	 * @param id
+	 * @param versionNumber
+	 * @param request
+	 * @param clazz
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public <T extends Nodeable> T getEntityForVersion(String userId, String id, Long versionNumber,
+			HttpServletRequest request, Class<? extends T> clazz) throws NotFoundException,
+			DatastoreException, UnauthorizedException;
+	
+
+	/**
+	 * Get a specific version of an entity.
+	 * @param <T>
+	 * @param info
+	 * @param id
+	 * @param versionNumber
+	 * @param request
+	 * @param clazz
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public <T extends Nodeable> T getEntityForVersion(UserInfo info, String id, Long versionNumber,
+			HttpServletRequest request, Class<? extends T> clazz)
+			throws NotFoundException, DatastoreException, UnauthorizedException;
+	
 	/**
 	 * Get all of the children of a given type.
 	 * @param <T>
@@ -147,7 +204,7 @@ public interface GenericEntityController {
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Nodeable> T updateEntity(String userId,T updatedEntity, HttpServletRequest request)
+	public <T extends Nodeable> T updateEntity(String userId,T updatedEntity, boolean newVersion, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException;
 	
@@ -215,7 +272,31 @@ public interface GenericEntityController {
 	 */
 	public <T extends Nodeable> JsonSchema getEntitiesSchema(Class<? extends T> clazz) throws DatastoreException;
 
+	/**
+	 * Get the annotations of an entity for the current version.
+	 * @param userId
+	 * @param id
+	 * @param request
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
 	public Annotations getEntityAnnotations(String userId, String id,
+			HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	/**
+	 * Get the annotations of an entity for a specific version.
+	 * @param userId
+	 * @param id
+	 * @param versionNumber
+	 * @param request
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public Annotations getEntityAnnotationsForVersion(String userId, String id, Long versionNumber,
 			HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -314,7 +395,6 @@ public interface GenericEntityController {
 	 */
 	public <T extends Nodeable> QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, Class<? extends T> clazz, HttpServletRequest request) throws DatastoreException, NotFoundException;
 
-
 	/**
 	 * determine whether a user has the given access type for a given entity
 	 * @param nodeId
@@ -328,4 +408,18 @@ public interface GenericEntityController {
 	 */
 	public <T extends Nodeable> boolean hasAccess(String entityId, String userId, HttpServletRequest request, Class<? extends T> clazz, String accessType) 
 		throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	/**
+	 * Delete a specific version of an entity.
+	 * @param userId
+	 * @param id
+	 * @param versionNumber
+	 * @param classForType
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 * @throws UnauthorizedException 
+	 * @throws ConflictingUpdateException 
+	 */
+	public <T extends Nodeable> void deleteEntityVersion(String userId, String id,Long versionNumber, Class<? extends Nodeable> classForType) throws DatastoreException, NotFoundException, UnauthorizedException, ConflictingUpdateException;
+
 }

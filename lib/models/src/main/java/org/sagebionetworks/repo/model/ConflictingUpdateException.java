@@ -1,6 +1,5 @@
-package org.sagebionetworks.repo.web;
+package org.sagebionetworks.repo.model;
 
-import javax.servlet.ServletException;
 
 /**
  * Application exception indicating that a resource was more recently updated
@@ -9,7 +8,7 @@ import javax.servlet.ServletException;
  * 
  * @author deflaux
  */
-public class ConflictingUpdateException extends ServletException {
+public class ConflictingUpdateException extends Exception {
 
 	private static final long serialVersionUID = 1L;
 

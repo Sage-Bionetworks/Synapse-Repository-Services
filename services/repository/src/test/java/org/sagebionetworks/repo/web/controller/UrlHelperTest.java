@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StoredLayerPreview;
+import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.web.UrlHelpers;
 
 /**
@@ -208,6 +209,36 @@ public class UrlHelperTest {
 		assertEquals(baseUri+UrlHelpers.PREVIEW, layer.getPreviews());
 	}
 	
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testSetVersionableNullUri(){
+		LayerLocation location = new LayerLocation();
+		location.setUri(null);
+		UrlHelpers.setVersionableUrl(location);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testSetVersionableNullVersionNumber(){
+		LayerLocation location = new LayerLocation();
+		String baseUri = "/repo/v1"+ObjectType.layerlocation.getUrlPrefix()+"/42";
+		location.setUri(baseUri);
+		// set the version number to be null
+		location.setVersionNumber(null);
+		UrlHelpers.setVersionableUrl(location);
+	}
+	
+	@Test
+	public void testSetVersionable(){
+		LayerLocation location = new LayerLocation();
+		location.setVersionNumber(new Long(12));
+		// Make sure the location has a uri
+		String baseUri = "/repo/v1"+ObjectType.layerlocation.getUrlPrefix()+"/42";
+		location.setUri(baseUri);
+		UrlHelpers.setVersionableUrl(location);
+		assertEquals(baseUri+UrlHelpers.VERSION, location.getVersions());
+		assertEquals(baseUri+UrlHelpers.VERSION+"/12", location.getVersionUrl());
+	}
+	
 	@Test
 	public void testSetAllUrlsForEntity() throws InstantiationException, IllegalAccessException{
 		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
@@ -220,6 +251,11 @@ public class UrlHelperTest {
 		for(ObjectType type: array){
 			Nodeable entity = type.getClassForType().newInstance();
 			entity.setId(id);
+			if(entity instanceof Versionable){
+				Versionable able = (Versionable) entity;
+				// Make sure it has a version number
+				able.setVersionNumber(43l);
+			}
 			UrlHelpers.setAllUrlsForEntity(entity, mockRequest);
 			String expectedBase = base+type.getUrlPrefix()+"/"+id;
 			assertEquals(expectedBase, entity.getUri());
@@ -244,6 +280,15 @@ public class UrlHelperTest {
 				HasPreviews has = (HasPreviews) entity;
 				expected = expectedBase+UrlHelpers.PREVIEW;
 				assertEquals(expected, has.getPreviews());
+			}
+			// Versionable
+			if(entity instanceof Versionable){
+				Versionable able = (Versionable) entity;
+				// Make sure it has a version number
+				expected = expectedBase+UrlHelpers.VERSION;
+				assertEquals(expected, able.getVersions());
+				expected = expectedBase+UrlHelpers.VERSION+"/43";
+				assertEquals(expected, able.getVersionUrl());
 			}
 		}
 	}
@@ -288,6 +333,26 @@ public class UrlHelperTest {
 		UrlHelpers.setAllNodeableUrls(layer);
 		layer.setPreviews(null);
 		UrlHelpers.validateAllUrls(layer);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateAllNullVersions(){
+		LayerLocation location = new LayerLocation();
+		location.setVersionNumber(45l);
+		location.setUri("repo/v1/location/33");
+		UrlHelpers.setAllNodeableUrls(location);
+		location.setVersions(null);
+		UrlHelpers.validateAllUrls(location);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testValidateAllNullVersionUrl(){
+		LayerLocation location = new LayerLocation();
+		location.setVersionNumber(1l);
+		location.setUri("repo/v1/location/33");
+		UrlHelpers.setAllNodeableUrls(location);
+		location.setVersionUrl(null);
+		UrlHelpers.validateAllUrls(location);
 	}
 
 

@@ -1,10 +1,13 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.when;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -16,6 +19,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
@@ -62,6 +67,8 @@ public class NodeDAOImplTest {
 	@Test 
 	public void testCreateNode() throws NotFoundException{
 		Node toCreate = NodeTestUtils.createNew("firstNodeEver");
+		toCreate.setVersionComment("This is the first version of the first node ever!");
+		toCreate.setVersionLabel("0.0.1");
 		String id = nodeDao.createNew(toCreate);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -70,6 +77,10 @@ public class NodeDAOImplTest {
 		assertNotNull(id);
 		assertEquals(id, loaded.getId());
 		assertNotNull(loaded.getETag());
+		// All new nodes should start off as the first version.
+		assertEquals(new Long(1),loaded.getVersionNumber());
+		assertEquals(toCreate.getVersionComment(), loaded.getVersionComment());
+		assertEquals(toCreate.getVersionLabel(), loaded.getVersionLabel());
 		
 		// Since this node has no parent, it should be its own benefactor.
 		String benefactorId = nodeInheritanceDAO.getBenefactor(id);
@@ -120,14 +131,17 @@ public class NodeDAOImplTest {
 	/**
 	 * Calling getETagForUpdate() outside of a transaction in not allowed, and will throw an exception.
 	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 * @throws ConflictingUpdateException 
 	 */
 	@Test(expected=IllegalTransactionStateException.class)
-	public void testGetETagForUpdate() throws NotFoundException{
+	public void testGetETagForUpdate() throws NotFoundException, DatastoreException, ConflictingUpdateException{
 		Node toCreate = NodeTestUtils.createNew("testGetETagForUpdate");
 		String id = nodeDao.createNew(toCreate);
 		toDelete.add(id);
 		assertNotNull(id);
-		Long eTag = nodeDao.getETagForUpdate(id);
+		String eTag = nodeDao.peekCurrentEtag(id);
+		eTag = nodeDao.lockNodeAndIncrementEtag(id, eTag);
 		fail("Should have thrown an IllegalTransactionStateException");
 	}
 	
@@ -209,15 +223,15 @@ public class NodeDAOImplTest {
 		Annotations annos = nodeDao.getAnnotations(id);
 		assertNotNull(annos);
 		assertNotNull(annos.getEtag());
+		assertNotNull(annos.getBlobAnnotations());
+		assertNotNull(annos.getStringAnnotations());
+		assertNotNull(annos.getDoubleAnnotations());
+		assertNotNull(annos.getLongAnnotations());
+		assertNotNull(annos.getDateAnnotations());
 		// Now add some annotations to this node.
 		annos.addAnnotation("stringOne", "one");
 		annos.addAnnotation("doubleKey", new Double(23.5));
 		annos.addAnnotation("longKey", new Long(1234));
-		// update the eTag
-		long currentETag = Long.parseLong(annos.getEtag());
-		currentETag++;
-		String newETagString = new Long(currentETag).toString();
-		annos.setEtag(newETagString);
 		// Update them
 		nodeDao.updateAnnotations(id, annos);
 		// Now get a copy and ensure it equals what we sent
@@ -233,7 +247,237 @@ public class NodeDAOImplTest {
 		// Make sure the node has a new eTag
 		Node nodeCopy = nodeDao.getNode(id);
 		assertNotNull(nodeCopy);
-		assertEquals(newETagString, nodeCopy.getETag());
 	}
 	
+	@Test
+	public void testCreateNewVersion() throws NotFoundException, DatastoreException{
+		Node node = NodeTestUtils.createNew("testCreateNewVersion");
+		// Start this node with version and comment information
+		node.setVersionComment("This is the very first version of this node.");
+		node.setVersionLabel("0.0.1");
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		assertNotNull(id);
+		// Load the node
+		Node loaded = nodeDao.getNode(id);
+		assertNotNull(loaded);
+		assertEquals(node.getVersionComment(), loaded.getVersionComment());
+		assertEquals(node.getVersionLabel(), loaded.getVersionLabel());
+		// Now try to create a new version with a duplicate label
+		try{
+			Long newNumber = nodeDao.createNewVersion(loaded);
+			fail("This should have failed due to a duplicate version label");
+		}catch(IllegalArgumentException e){
+			// Expected
+			System.out.println(e.getMessage());
+		}
+		// Since creation of a new version failed we should be back to one version
+		loaded = nodeDao.getNode(id);
+		assertNotNull(loaded);
+		assertEquals(node.getVersionComment(), loaded.getVersionComment());
+		assertEquals(node.getVersionLabel(), loaded.getVersionLabel());
+		
+		// Now try to create a new revision with new data
+		Node newRev = nodeDao.getNode(id);
+		newRev.setVersionLabel("0.0.2");
+		newRev.setModifiedBy("someChap");
+		newRev.setModifiedOn(new Date(System.currentTimeMillis()));
+		Long newNumber = nodeDao.createNewVersion(newRev);
+		assertNotNull(newNumber);
+		assertEquals(new Long(2), newNumber);
+		// Now load the node and check the fields
+		loaded = nodeDao.getNode(id);
+		assertNotNull(loaded);
+		assertEquals(newRev.getVersionComment(), loaded.getVersionComment());
+		assertEquals(newRev.getVersionLabel(), loaded.getVersionLabel());
+		assertEquals(newRev.getModifiedBy(), newRev.getModifiedBy());
+	}
+	
+	@Test
+	public void testNewVersionAnnotations() throws NotFoundException, DatastoreException, UnsupportedEncodingException{
+		Node node = NodeTestUtils.createNew("testCreateAnnotations");
+		// Start this node with version and comment information
+		node.setVersionComment("This is the very first version of this node.");
+		node.setVersionLabel("0.0.1");
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		assertNotNull(id);
+		Annotations annos = nodeDao.getAnnotations(id);
+		assertNotNull(annos);
+		annos.addAnnotation("string", "value");
+		annos.addAnnotation("date", new Date(1));
+		annos.addAnnotation("double", 2.3);
+		annos.addAnnotation("long", 56l);
+		annos.addAnnotation("blob", "Some blob value".getBytes("UTF-8"));
+		// Update the annotations
+		nodeDao.updateAnnotations(id, annos);
+		// Now create a new version
+		Node copy = nodeDao.getNode(id);
+		copy.setVersionComment(null);
+		copy.setVersionLabel("1.0.1");
+		Long revNumber = nodeDao.createNewVersion(copy);
+		assertEquals(new Long(2), revNumber);
+		// At this point the new and old version should have the
+		// same annotations.
+		Annotations v1Annos = nodeDao.getAnnotationsForVersion(id, 1L);
+		assertNotNull(v1Annos);
+		Annotations v2Annos = nodeDao.getAnnotationsForVersion(id, 2L);
+		assertNotNull(v2Annos);
+		assertEquals(v1Annos, v2Annos);
+		Annotations currentAnnos = nodeDao.getAnnotations(id);
+		assertNotNull(currentAnnos);
+		assertEquals(currentAnnos, v2Annos);
+		
+		// Now update the current annotations
+		currentAnnos.getDoubleAnnotations().clear();
+		currentAnnos.addAnnotation("double", 8989898.2);
+		nodeDao.updateAnnotations(id, currentAnnos);
+		
+		// Now the old and new should no longer match.
+		v1Annos = nodeDao.getAnnotationsForVersion(id, 1L);
+		assertNotNull(v1Annos);
+		assertEquals(2.3, v1Annos.getSingleValue("double"));
+		v2Annos = nodeDao.getAnnotationsForVersion(id, 2L);
+		assertNotNull(v2Annos);
+		assertEquals(8989898.2, v2Annos.getSingleValue("double"));
+		// The two version should now be out of synch with each other.
+		assertFalse(v1Annos.equals(v2Annos));
+		// The current annos should still match the v2
+		currentAnnos = nodeDao.getAnnotations(id);
+		assertNotNull(currentAnnos);
+		assertEquals(currentAnnos, v2Annos);
+	}
+	
+	/**
+	 * Helper method to create a node with multiple versions.
+	 * @param numberOfVersions
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public String createNodeWithMultipleVersions(int numberOfVersions) throws NotFoundException, DatastoreException{
+		Node node = NodeTestUtils.createNew("createNodeWithMultipleVersions");
+		// Start this node with version and comment information
+		node.setVersionComment("This is the very first version of this node.");
+		node.setVersionLabel("0.0.0");
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		assertNotNull(id);
+		
+		// this is the number of versions to create
+		for(int i=1; i<numberOfVersions; i++){
+			Node current = nodeDao.getNode(id);
+			current.setVersionComment("Comment "+i);
+			current.setVersionLabel("0.0."+i);
+			nodeDao.createNewVersion(current);
+		}
+		return id;
+	}
+	
+	@Test
+	public void testGetVersionNumbers() throws NotFoundException, DatastoreException{
+		// Create a number of versions
+		int numberVersions = 10;
+		String id = createNodeWithMultipleVersions(numberVersions);
+		// Now list the versions
+		List<Long> versionNumbers = nodeDao.getVersionNumbers(id);
+		assertNotNull(versionNumbers);
+		assertEquals(numberVersions,versionNumbers.size());
+		// The highest version should be first
+		assertEquals(new Long(numberVersions), versionNumbers.get(0));
+		// The very fist version should be last
+		assertEquals(new Long(1), versionNumbers.get(versionNumbers.size()-1));
+		
+		// Make sure we can fetch each version
+		for(Long versionNumber: versionNumbers){
+			Node nodeVersion = nodeDao.getNodeForVersion(id, versionNumber);
+			assertNotNull(nodeVersion);
+			assertEquals(versionNumber, nodeVersion.getVersionNumber());
+		}
+	}
+	
+	@Test
+	public void testDeleteCurrentVersion() throws NotFoundException, DatastoreException{
+		// Create a number of versions
+		int numberVersions = 2;
+		String id = createNodeWithMultipleVersions(numberVersions);
+		Node node = nodeDao.getNode(id);
+		long currentVersion = node.getVersionNumber();
+		List<Long> startingVersions = nodeDao.getVersionNumbers(id);
+		assertNotNull(startingVersions);
+		assertEquals(numberVersions, startingVersions.size());
+		// Delete the current version.
+		nodeDao.deleteVersion(id, new Long(currentVersion));
+		List<Long> endingVersions = nodeDao.getVersionNumbers(id);
+		assertNotNull(endingVersions);
+		assertEquals(numberVersions-1, endingVersions.size());
+		assertFalse(endingVersions.contains(currentVersion));
+		// Now make sure the current version of the node still exists
+		node = nodeDao.getNode(id);
+		assertNotNull(node);
+		assertEquals("Deleting the current version of a node failed to change the current version to be current - 1",new Long(currentVersion-1), node.getVersionNumber());
+	}
+	
+	@Test
+	public void testDeleteFirstVersion() throws NotFoundException, DatastoreException{
+		// Create a number of versions
+		int numberVersions = 2;
+		String id = createNodeWithMultipleVersions(numberVersions);
+		Node node = nodeDao.getNode(id);
+		long currentVersion = node.getVersionNumber();
+		List<Long> startingVersions = nodeDao.getVersionNumbers(id);
+		assertNotNull(startingVersions);
+		assertEquals(numberVersions, startingVersions.size());
+		// Delete the first version
+		nodeDao.deleteVersion(id, new Long(1));
+		List<Long> endingVersions = nodeDao.getVersionNumbers(id);
+		assertNotNull(endingVersions);
+		assertEquals(numberVersions-1, endingVersions.size());
+		assertFalse(endingVersions.contains(new Long(1)));
+		// The current version should not have changed.
+		node = nodeDao.getNode(id);
+		assertNotNull(node);
+		assertEquals("Deleting the first version should not have changed the current version of the node",new Long(currentVersion), node.getVersionNumber());
+	}
+	
+	@Test 
+	public void testDeleteAllVersions() throws NotFoundException, DatastoreException{
+		// Create a number of versions
+		int numberVersions = 3;
+		String id = createNodeWithMultipleVersions(numberVersions);
+		Node node = nodeDao.getNode(id);
+		List<Long> startingVersions = nodeDao.getVersionNumbers(id);
+		assertNotNull(startingVersions);
+		assertEquals(numberVersions, startingVersions.size());
+		// Now delete all versions. This should fail.
+		try{
+			for(Long versionNumber: startingVersions){
+				nodeDao.deleteVersion(id, versionNumber);
+			}
+			fail("Should not have been able to delte all versions of a node");
+		}catch(IllegalArgumentException e){
+			// expected.
+		}
+		// There should be one version left and it should be the first version.
+		node = nodeDao.getNode(id);
+		assertNotNull(node);
+		assertEquals("Deleting all versions except the first should have left the node in place with a current version of 1.",new Long(1), node.getVersionNumber());
+	}
+	
+	@Test
+	public void testPeekCurrentEtag() throws NotFoundException, DatastoreException{
+		Node node = NodeTestUtils.createNew("testPeekCurrentEtag");
+		// Start this node with version and comment information
+		node.setVersionComment("This is the very first version of this node.");
+		node.setVersionLabel("0.0.0");
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		assertNotNull(id);
+		node = nodeDao.getNode(id);
+		assertNotNull(node);
+		assertNotNull(node.getETag());
+		String peekEtag = nodeDao.peekCurrentEtag(id);
+		assertEquals(node.getETag(), peekEtag);
+	}	
+
 }

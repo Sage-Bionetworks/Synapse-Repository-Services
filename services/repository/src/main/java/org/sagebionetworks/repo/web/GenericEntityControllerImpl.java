@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +19,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BaseChild;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -53,8 +53,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @SuppressWarnings({"rawtypes","unchecked"})
 public class GenericEntityControllerImpl implements GenericEntityController {
-
-
+	
 	@Autowired
 	NodeQueryDao nodeQueryDao;
 	@Autowired
@@ -95,6 +94,39 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		return executeQueryAndConvertToEntites(paging, request, clazz,
 				userInfo, query);
 	}
+	
+
+	@Override
+	public <T extends Nodeable> PaginatedResults<T> getAllVerionsOfEntity(
+			String userId, Integer offset, Integer limit, String entityId,
+			HttpServletRequest request, Class<? extends T> clazz)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		if(offset == null){
+			offset = 1;
+		}
+		if(limit == null){
+			limit = Integer.MAX_VALUE;
+		}
+		// First get the full list of all revisions numbers
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		ObjectType type =  ObjectType.getNodeTypeForClass(clazz);
+		List<Long> versionNumbers = entityManager.getAllVersionNumbersForEntity(userInfo, entityId);
+		// Now fetch the versions requested
+		int start = offset-1;
+		int end = Math.min(start+limit, versionNumbers.size());
+		List<T> entityList = new ArrayList<T>();
+		for(int i=start; i<end; i++){
+			long versionNumber = versionNumbers.get(i);
+			T entity = (T) getEntityForVersion(userInfo, entityId, versionNumber, request, type.getClassForType());
+			entityList.add(entity);
+		}
+		// Return the paginated results
+		return new PaginatedResults<T>(request.getServletPath()
+				+ UrlHelpers.getUrlForModel(clazz), entityList,
+				versionNumbers.size(), offset, limit, "versionNumber", false);
+	}
+	
+	
 
 
 	/**
@@ -141,7 +173,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	}
 	
 	/**
-	 * Anytime we fetch an entity we do so through this path.
+	 * Any time we fetch an entity we do so through this path.
 	 * @param <T>
 	 * @param info
 	 * @param id
@@ -155,17 +187,52 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	public <T extends Nodeable> T getEntity(UserInfo info, String id, HttpServletRequest request, Class<? extends T> clazz, EventType eventType) throws NotFoundException, DatastoreException, UnauthorizedException{
 		// Determine the object type from the url.
 		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		T entity = entityManager.getEntity(info, id, clazz);
+		// Do all of the type specific stuff.
+		this.doAddServiceSpecificMetadata(info, entity, type, request, eventType);
+		return entity;
+	}
+	
+	/**
+	 * Do all type specific stuff to an entity
+	 * @param <T>
+	 * @param info
+	 * @param entity
+	 * @param type
+	 * @param request
+	 * @param eventType
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	private <T extends Nodeable> void doAddServiceSpecificMetadata(UserInfo info, T entity, ObjectType type, HttpServletRequest request, EventType eventType) throws DatastoreException, NotFoundException, UnauthorizedException{
 		// Fetch the provider that will validate this entity.
 		@SuppressWarnings("unchecked")
 		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>)metadataProviderFactory.getMetadataProvider(type);
-		T entity = entityManager.getEntity(info, id, clazz);
-		if (null == entity) {
-			throw new NotFoundException("no entity with id " + id + " exists");
-		}
+
 		// Add the type specific metadata that is common to all objects.
 		addServiceSpecificMetadata(entity, request);
 		// Add the type specific metadata.
 		provider.addTypeSpecificMetadata(entity, request, info, eventType);
+	}
+	
+	@Override
+	public <T extends Nodeable> T getEntityForVersion(String userId,String id, Long versionNumber, HttpServletRequest request,
+			Class<? extends T> clazz) throws NotFoundException,
+			DatastoreException, UnauthorizedException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return getEntityForVersion(userInfo, id, versionNumber, request, clazz);
+	}
+	
+	@Override
+	public <T extends Nodeable> T getEntityForVersion(UserInfo info, String id, Long versionNumber, HttpServletRequest request,
+			Class<? extends T> clazz) throws NotFoundException,
+			DatastoreException, UnauthorizedException {
+		// Determine the object type from the url.
+		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		T entity = entityManager.getEntityForVersion(info, id, versionNumber, clazz);
+		// Do all of the type specific stuff.
+		this.doAddServiceSpecificMetadata(info, entity, type, request, EventType.GET);
 		return entity;
 	}
 
@@ -187,10 +254,10 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// Return the resulting entity.
 		return getEntity(userInfo, id, request, clazz, EventType.CREATE);
 	}
-
+	
 	@Override
 	public <T extends Nodeable> T updateEntity(String userId,
-			T updatedEntity, HttpServletRequest request)
+			T updatedEntity, boolean newVersion, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException {
 		if(updatedEntity == null) throw new IllegalArgumentException("Entity cannot be null");
@@ -208,7 +275,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Now do the update
-		entityManager.updateEntity(userInfo, updatedEntity);
+		entityManager.updateEntity(userInfo, updatedEntity, newVersion);
 		// Return the udpated entity
 		return getEntity(userInfo, entityId, request, clazz, EventType.UPDATE);
 	}
@@ -240,6 +307,22 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// Do extra cleanup as needed.
 		provider.entityDeleted(entity);
 		return;
+	}
+	
+	@Override
+	public <T extends Nodeable> void deleteEntityVersion(String userId, String id,
+			Long versionNumber, Class<? extends Nodeable> classForType) throws DatastoreException, NotFoundException, UnauthorizedException, ConflictingUpdateException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		// First get the entity we are deleting
+		ObjectType type = ObjectType.getNodeTypeForClass(classForType);
+		// Fetch the provider that will validate this entity.
+		@SuppressWarnings("unchecked")
+		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>) metadataProviderFactory.getMetadataProvider(type);
+		T entity = (T) entityManager.getEntity(userInfo, id, classForType);
+		entityManager.deleteEntityVersion(userInfo, id, versionNumber);
+		// Do extra cleanup as needed.
+		provider.entityDeleted(entity);
+		
 	}
 
 	@Override
@@ -274,6 +357,17 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	@Override
 	public Annotations getEntityAnnotations(UserInfo info, String id,HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
 		Annotations annotations = entityManager.getAnnotations(info, id);
+		addServiceSpecificMetadata(id, annotations, request);
+		return annotations;
+	}
+	
+
+	@Override
+	public Annotations getEntityAnnotationsForVersion(String userId, String id,
+			Long versionNumber, HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		Annotations annotations = entityManager.getAnnotationsForVersion(userInfo, id, versionNumber);
 		addServiceSpecificMetadata(id, annotations, request);
 		return annotations;
 	}

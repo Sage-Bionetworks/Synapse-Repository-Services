@@ -9,7 +9,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  *
  */
 @XmlRootElement
-public class LayerLocation implements BaseChild{
+public class LayerLocation implements BaseChild, Versionable{
 
 	private String id;
 	private String uri;
@@ -23,7 +23,14 @@ public class LayerLocation implements BaseChild{
 	@TransientField
 	private String annotations;
 	@TransientField
-	private String accessControlList;	
+	private String accessControlList;
+	private Long versionNumber;
+	private String versionComment;
+	private String versionLabel;
+	@TransientField
+	private String versions;
+	@TransientField
+	private String versionUrl;
 	
 	// TODO probably need a collection of string properties
 	
@@ -187,6 +194,46 @@ public class LayerLocation implements BaseChild{
 		this.parentId = parentId;
 	}
 
+	public Long getVersionNumber() {
+		return versionNumber;
+	}
+
+	public void setVersionNumber(Long versionNumber) {
+		this.versionNumber = versionNumber;
+	}
+
+	public String getVersionComment() {
+		return versionComment;
+	}
+
+	public void setVersionComment(String versionComment) {
+		this.versionComment = versionComment;
+	}
+
+	public String getVersionLabel() {
+		return versionLabel;
+	}
+
+	public void setVersionLabel(String versionLabel) {
+		this.versionLabel = versionLabel;
+	}
+
+	public String getVersions() {
+		return versions;
+	}
+
+	public void setVersions(String versions) {
+		this.versions = versions;
+	}
+
+	public String getVersionUrl() {
+		return versionUrl;
+	}
+
+	public void setVersionUrl(String versionUrl) {
+		this.versionUrl = versionUrl;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -208,6 +255,16 @@ public class LayerLocation implements BaseChild{
 		result = prime * result + ((path == null) ? 0 : path.hashCode());
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
+		result = prime * result
+				+ ((versionComment == null) ? 0 : versionComment.hashCode());
+		result = prime * result
+				+ ((versionLabel == null) ? 0 : versionLabel.hashCode());
+		result = prime * result
+				+ ((versionNumber == null) ? 0 : versionNumber.hashCode());
+		result = prime * result
+				+ ((versionUrl == null) ? 0 : versionUrl.hashCode());
+		result = prime * result
+				+ ((versions == null) ? 0 : versions.hashCode());
 		return result;
 	}
 
@@ -275,6 +332,31 @@ public class LayerLocation implements BaseChild{
 				return false;
 		} else if (!uri.equals(other.uri))
 			return false;
+		if (versionComment == null) {
+			if (other.versionComment != null)
+				return false;
+		} else if (!versionComment.equals(other.versionComment))
+			return false;
+		if (versionLabel == null) {
+			if (other.versionLabel != null)
+				return false;
+		} else if (!versionLabel.equals(other.versionLabel))
+			return false;
+		if (versionNumber == null) {
+			if (other.versionNumber != null)
+				return false;
+		} else if (!versionNumber.equals(other.versionNumber))
+			return false;
+		if (versionUrl == null) {
+			if (other.versionUrl != null)
+				return false;
+		} else if (!versionUrl.equals(other.versionUrl))
+			return false;
+		if (versions == null) {
+			if (other.versions != null)
+				return false;
+		} else if (!versions.equals(other.versions))
+			return false;
 		return true;
 	}
 
@@ -284,7 +366,10 @@ public class LayerLocation implements BaseChild{
 				+ ", name=" + name + ", creationDate=" + creationDate
 				+ ", parentId=" + parentId + ", type=" + type + ", path="
 				+ path + ", md5sum=" + md5sum + ", annotations=" + annotations
-				+ ", accessControlList=" + accessControlList + "]";
+				+ ", accessControlList=" + accessControlList
+				+ ", versionNumber=" + versionNumber + ", versionComment="
+				+ versionComment + ", versionLabel=" + versionLabel
+				+ ", versions=" + versions + ", versionUrl=" + versionUrl + "]";
 	}
 
 }

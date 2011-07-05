@@ -40,8 +40,17 @@ public class SqlConstants {
 	public static final String COL_NODE_MODIFIED_ON 	= "MODIFIED_ON";
 	public static final String COL_NODE_TYPE			= "NODE_TYPE";
 	public static final String COL_NODE_ACL				= "NODE_ACL";
+	public static final String COL_CURRENT_REV			= "CURRENT_REV_NUM";
 	
-	// Annotations tableS
+	// The Revision table
+	public static final String TABLE_REVISION 			= "JDOREVISION";
+	public static final String COL_REVISION_OWNER_NODE	= "OWNER_NODE_ID";
+	public static final String COL_REVISION_NUMBER		= "NUMBER";
+	public static final String COL_REVISION_LABEL		= "LABEL";
+	public static final String COL_REVISION_COMMENT		= "COMMENT";
+	public static final String COL_REVISION_ANNOS_BLOB	= "ANNOTATIONS";
+	
+	// Annotations tables
 	public static final String TABLE_STRING_ANNOTATIONS	= "JDOSTRINGANNOTATION";
 	public static final String TABLE_DOUBLE_ANNOTATIONS	= "JDODOUBLEANNOTATION";
 	public static final String TABLE_LONG_ANNOTATIONS	= "JDOLONGANNOTATION";

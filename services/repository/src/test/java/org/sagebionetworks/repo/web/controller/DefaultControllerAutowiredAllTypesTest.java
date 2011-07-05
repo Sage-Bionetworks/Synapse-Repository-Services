@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -28,17 +28,16 @@ import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.BaseChild;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.HasLayers;
-import org.sagebionetworks.repo.model.HasLocations;
-import org.sagebionetworks.repo.model.HasPreviews;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -112,86 +111,29 @@ public class DefaultControllerAutowiredAllTypesTest {
 		dispatchServlet.init(servletConfig);
 
 	}
-
-	@Test
-	public void testCreateAllTypes() throws Exception {
+	
+	/**
+	 * This is a test helper method that will create at least on of each type of entity.
+	 * @return
+	 * @throws IOException 
+	 * @throws ServletException 
+	 * @throws InvalidModelException 
+	 * @throws IllegalAccessException 
+	 * @throws InstantiationException 
+	 */
+	private List<Nodeable> createEntitesOfEachType(int countPerType) throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
 		// For now put each object in a project so their parent id is not null;
 		// Create a project
 		Project parent = new Project();
-		parent.setName("testCreateAllTypesProjectParent");
+		parent.setName("createAtLeastOneOfEachType");
 		parent = ServletTestHelper.createEntity(dispatchServlet, parent, userName);
 		assertNotNull(parent);
 		toDelete.add(parent.getId());
-
+		// This is the list of entities that will be created.
+		List<Nodeable> newChildren = new ArrayList<Nodeable>();
 		// Create one of each type
 		ObjectType[] types = ObjectType.values();
-		int index = 0;
-		for(ObjectType type: types){
-			String name = type.name()+index;
-			Nodeable object =ObjectTypeFactory.createObjectForTest(name, type, parent.getId());
-			Nodeable clone = ServletTestHelper.createEntity(dispatchServlet, object, userName);
-			assertNotNull(clone);
-			assertNotNull(clone.getId());
-			toDelete.add(clone.getId());
-			assertNotNull(clone.getEtag());
-			// Check the base ursl
-			UrlHelpers.validateAllUrls(clone);
-			index++;
-		}
-	}
-
-
-
-	@Test
-	public void testGetById() throws Exception {
-		// For now put each object in a project so their parent id is not null;
-		// Create a project
-		Project parent = new Project();
-		parent.setName("testCreateAllTypesProjectParent");
-		parent = ServletTestHelper.createEntity(dispatchServlet, parent, userName);
-		assertNotNull(parent);
-		toDelete.add(parent.getId());
-
-		// Create one of each type
-		ObjectType[] types = ObjectType.values();
-		int index = 0;
-		for(ObjectType type: types){
-			String name = type.name()+index;
-			Nodeable object =ObjectTypeFactory.createObjectForTest(name, type, parent.getId());
-			Nodeable clone = ServletTestHelper.createEntity(dispatchServlet, object, userName);
-			assertNotNull(clone);
-			assertNotNull(clone.getId());
-			toDelete.add(clone.getId());
-			assertNotNull(clone.getEtag());
-			// Check the base ursl
-			UrlHelpers.validateAllUrls(clone);
-			
-			// Now get the project object
-			Nodeable fromGet = ServletTestHelper.getEntity(dispatchServlet, type.getClassForType(), clone.getId(), userName);
-			assertNotNull(fromGet);
-			// Should match the clone
-			assertEquals(clone, fromGet);
-			// Now get the object
-			index++;
-		}
-	}
-
-	@Test
-	public void testGetList() throws Exception {
-		
-		// For now put each object in a project so their parent id is not null;
-		// Create a project
-		Project parent = new Project();
-		parent.setName("testCreateAllTypesProjectParent");
-		parent = ServletTestHelper.createEntity(dispatchServlet, parent, userName);
-		assertNotNull(parent);
-		toDelete.add(parent.getId());
-		
-		// Create 3 of each type
-		int number = 3;
-		for (int i = 0; i < number; i++) {
-			// Create one of each type
-			ObjectType[] types = ObjectType.values();
+		for(int i=0; i<countPerType; i++){
 			int index = 0;
 			for(ObjectType type: types){
 				String name = type.name()+index;
@@ -203,9 +145,48 @@ public class DefaultControllerAutowiredAllTypesTest {
 				assertNotNull(clone.getEtag());
 				// Check the base ursl
 				UrlHelpers.validateAllUrls(clone);
+				// Add this to the list of entities created
+				newChildren.add(clone);
 				index++;
 			}
 		}
+		return newChildren;
+	}
+
+	@Test
+	public void testCreateAllTypes() throws Exception {
+		// All we need to do is create at least one of each type
+		List<Nodeable> created = createEntitesOfEachType(1);
+		assertNotNull(created);
+		assertTrue(created.size() >= ObjectType.values().length);
+	}
+
+
+
+	@Test
+	public void testGetById() throws Exception {
+		// First create one of each type
+		List<Nodeable> created = createEntitesOfEachType(1);
+		assertNotNull(created);
+		assertTrue(created.size() >= ObjectType.values().length);
+		
+		// Now make sure we can get each type
+		for(Nodeable entity: created){
+			// Can we get it?
+			Nodeable fromGet = ServletTestHelper.getEntity(dispatchServlet,entity.getClass(), entity.getId(), userName);
+			assertNotNull(fromGet);
+			// Should match the clone
+			assertEquals(entity, fromGet);
+		}
+	}
+	
+	@Test
+	public void testGetList() throws Exception {
+		// This time we want 3 of each type.
+		int number = 3;
+		List<Nodeable> created = createEntitesOfEachType(number);
+		assertNotNull(created);
+		assertTrue(created.size() >= ObjectType.values().length);
 		
 		ObjectType[] types = ObjectType.values();
 		int index = 0;
@@ -273,16 +254,18 @@ public class DefaultControllerAutowiredAllTypesTest {
 
 	@Test(expected = NotFoundException.class)
 	public void testDelete() throws Exception {
-		// Create a project
-		Project project = new Project();
-		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-		assertNotNull(clone);
-		toDelete.add(clone.getId());
-		ServletTestHelper.deleteEntity(dispatchServlet, Project.class, clone.getId(), userName);
-		// This should throw an exception
-		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
-		entityController.getEntity(userName,	clone.getId(), mockRequest, Project.class);
+		// First create one of each type
+		List<Nodeable> created = createEntitesOfEachType(1);
+		assertNotNull(created);
+		assertTrue(created.size() >= ObjectType.values().length);
+		
+		// Now delete each one
+		for(Nodeable entity: created){
+			ServletTestHelper.deleteEntity(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			// This should throw an exception
+			HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+			entityController.getEntity(userName, entity.getId(), mockRequest, Project.class);
+		}
 	}
 	
 	@Test
@@ -321,133 +304,345 @@ public class DefaultControllerAutowiredAllTypesTest {
 	}
 	
 	@Test
-	public void testUpdateEntity() throws ServletException, IOException{
-		// Create a project
-		Project project = new Project();
-		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-		assertNotNull(clone);
-		toDelete.add(clone.getId());
-		// Now change the name
-		clone.setName("my new project name");
-		Project updated = ServletTestHelper.updateEntity(dispatchServlet, clone, userName);
-		assertNotNull(updated);
-		// It should have a new etag
-		assertNotNull(updated.getEtag());
-		assertFalse(updated.getEtag().equals(clone.getEtag()));
-		// Now get the project object
-		Project fromGet = ServletTestHelper.getEntity(dispatchServlet, Project.class, clone.getId(), userName);
-		assertEquals(updated, fromGet);
-		assertEquals("my new project name", fromGet.getName());
+	public void testUpdateEntity() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+		// First create one of each type
+		List<Nodeable> created = createEntitesOfEachType(1);
+		assertNotNull(created);
+		assertTrue(created.size() >= ObjectType.values().length);
+		
+		// Now update each
+		for(Nodeable entity: created){
+			// Now change the name
+			entity.setName("my new name");
+			Nodeable updated = ServletTestHelper.updateEntity(dispatchServlet, entity, userName);
+			assertNotNull(updated);
+			// Updating an entity should not create a new version
+			if(updated instanceof Versionable){
+				Versionable updatedVersionable = (Versionable) updated;
+				assertEquals(new Long(1), updatedVersionable.getVersionNumber());
+			}
+			// It should have a new etag
+			assertNotNull(updated.getEtag());
+			assertFalse(updated.getEtag().equals(entity.getEtag()));
+			// Now get the object
+			Nodeable fromGet = ServletTestHelper.getEntity(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			assertEquals(updated, fromGet);
+			assertEquals("my new name", fromGet.getName());
+		}
 	}
 	
 	@Test
-	public void testGetAnnotations() throws ServletException, IOException{
-		// Create a project
-		Project project = new Project();
-		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-		assertNotNull(clone);
-		toDelete.add(clone.getId());
-		// Make sure we can get the annotations for this entity.
-		Annotations annos = ServletTestHelper.getEntityAnnotations(dispatchServlet, Project.class, clone.getId(), userName);
-		assertNotNull(annos);
-		assertNotNull(annos.getEtag());
+	public void testGetAnnotations() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+		// First create one of each type
+		List<Nodeable> created = createEntitesOfEachType(1);
+		assertNotNull(created);
+		assertTrue(created.size() >= ObjectType.values().length);
+		
+		// Now update each
+		for(Nodeable entity: created){
+			// Make sure we can get the annotations for this entity.
+			Annotations annos = ServletTestHelper.getEntityAnnotations(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			assertNotNull(annos);
+			// Annotations use the same etag as the entity
+			assertEquals(entity.getEtag(), annos.getEtag());
+			// Annotations use the same id as the entity
+			assertEquals(entity.getId(), annos.getId());
+		}
 	}
 	
 	@Test
-	public void testUpdateAnnotations() throws ServletException, IOException{
-		// Create a project
-		Project project = new Project();
-		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-		assertNotNull(clone);
-		toDelete.add(clone.getId());
-		// Make sure we can get the annotations for this entity.
-		Annotations annos = ServletTestHelper.getEntityAnnotations(dispatchServlet, Project.class, clone.getId(), userName);
-		assertNotNull(annos);
-		assertNotNull(annos.getEtag());
-		annos.addAnnotation("someStringKey", "one");
-		annos.addAnnotation("someBlobKey", "I am a very long string".getBytes("UTF-8"));
-		// Do the update
-		Annotations updatedAnnos = ServletTestHelper.updateEntityAnnotations(dispatchServlet, Project.class, annos, userName);
-		assertNotNull(updatedAnnos);
-		assertNotNull(updatedAnnos.getEtag());
-		assertFalse(updatedAnnos.getEtag().equals(annos.getEtag()));
-		assertEquals("one", updatedAnnos.getSingleValue("someStringKey"));
-		assertNotNull(updatedAnnos.getBlobAnnotations().get("someBlobKey"));
-	}
-	
-	@Test
-	public void testGetEntityAcl() throws ServletException, IOException{
-		// Create a project
-		Project project = new Project();
-		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-		assertNotNull(clone);
-		toDelete.add(clone.getId());
-		AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, Project.class, clone.getId(), userName);
-		assertNotNull(acl);
-	}
-	
-	@Test
-	public void testUpdateEntityAcl() throws ServletException, IOException{
-		// Create a project
-		Project project = new Project();
-		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-		assertNotNull(clone);
-		toDelete.add(clone.getId());
-		AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, Project.class, clone.getId(), userName);
-		assertNotNull(acl);
-		ServletTestHelper.updateEntityAcl(dispatchServlet, Project.class, acl, userName);
-	}
-	
-	@Test
-	public void testCreateEntityAcl() throws ServletException, IOException{
-		// Create a project
-		Project project = new Project();
-		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-		assertNotNull(clone);
-		toDelete.add(clone.getId());
+	public void testUpdateAnnotations() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+		// First create one of each type
+		List<Nodeable> created = createEntitesOfEachType(1);
+		assertNotNull(created);
+		assertTrue(created.size() >= ObjectType.values().length);
 		
-		// create a dataset in the project
-		Dataset ds = new Dataset();
-		ds.setName("testDataset");
-		ds.setParentId(clone.getId());
-		Dataset dsClone = ServletTestHelper.createEntity(dispatchServlet, ds, userName);
-		assertNotNull(dsClone);
-		toDelete.add(dsClone.getId());
-		
-		AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, Dataset.class, dsClone.getId(), userName);
-		assertNotNull(acl);
-		// the returned ACL should refer to the parent
-		assertEquals(clone.getId(), acl.getResourceId());
-		
-		// now switch to child
-		acl.setResourceId(dsClone.getId());
-		acl.setId(null);
-		// (Is this OK, or do we have to make new ResourceAccess objects inside?)
-		// now POST to /dataset/{id}/acl with this acl as the body
-		AccessControlList acl2 = ServletTestHelper.createEntityACL(dispatchServlet, Dataset.class, acl, userName);
-		// now retrieve the acl for the child. should get its own back
-		AccessControlList acl3 = ServletTestHelper.getEntityACL(dispatchServlet, Dataset.class, dsClone.getId(), userName);
-		assertEquals(dsClone.getId(), acl3.getResourceId());
-		
-		
-		// now delete the ACL (restore inheritance)
-		ServletTestHelper.deleteEntityACL(dispatchServlet, Dataset.class,  dsClone.getId(), userName);
-		// try retrieving the ACL for the child
-		
-		// should get the parent's ACL
-		AccessControlList acl4 = ServletTestHelper.getEntityACL(dispatchServlet, Dataset.class, dsClone.getId(), userName);
-		assertNotNull(acl4);
-		// the returned ACL should refer to the parent
-		assertEquals(clone.getId(), acl4.getResourceId());
-	}
-	
+		// Now update each
+		for(Nodeable entity: created){
+			// Make sure we can get the annotations for this entity.
+			Annotations annos = ServletTestHelper.getEntityAnnotations(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			assertNotNull(annos);
+			assertNotNull(annos.getEtag());
+			annos.addAnnotation("someStringKey", "one");
+			annos.addAnnotation("someBlobKey", "I am a very long string".getBytes("UTF-8"));
+			// Do the update
+			Annotations updatedAnnos = ServletTestHelper.updateEntityAnnotations(dispatchServlet, entity.getClass(), annos, userName);
+			assertNotNull(updatedAnnos);
+			assertNotNull(updatedAnnos.getEtag());
+			assertFalse(updatedAnnos.getEtag().equals(annos.getEtag()));
+			assertEquals("one", updatedAnnos.getSingleValue("someStringKey"));
+			assertNotNull(updatedAnnos.getBlobAnnotations().get("someBlobKey"));
+		}
 
+	}
 	
+	@Test
+	public void testGetEntityAcl() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+		// First create one of each type
+		List<Nodeable> created = createEntitesOfEachType(1);
+		assertNotNull(created);
+		assertTrue(created.size() >= ObjectType.values().length);
+		
+		// Now update each
+		for(Nodeable entity: created){
+			AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			assertNotNull(acl);
+		}
+	}
+	
+	@Test
+	public void testUpdateEntityAcl() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+		// First create one of each type
+		List<Nodeable> created = createEntitesOfEachType(1);
+		assertNotNull(created);
+		assertTrue(created.size() >= ObjectType.values().length);
+		
+		// Now update each
+		for(Nodeable entity: created){
+			AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			assertNotNull(acl);
+			ServletTestHelper.updateEntityAcl(dispatchServlet, Project.class, acl, userName);
+		}
+
+	}
+	
+	@Test
+	public void testCreateEntityAcl() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+		// First create one of each type
+		List<Nodeable> created = createEntitesOfEachType(1);
+		assertNotNull(created);
+		assertTrue(created.size() >= ObjectType.values().length);
+		
+		// Now update each
+		for(Nodeable entity: created){
+			BaseChild child = (BaseChild)entity;
+			AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			assertNotNull(acl);
+			// the returned ACL should refer to the parent
+			assertEquals(child.getParentId(), acl.getResourceId());
+			
+			// now switch to child
+			acl.setResourceId(entity.getId());
+			acl.setId(null);
+			// (Is this OK, or do we have to make new ResourceAccess objects inside?)
+			// now POST to /dataset/{id}/acl with this acl as the body
+			AccessControlList acl2 = ServletTestHelper.createEntityACL(dispatchServlet, entity.getClass(), acl, userName);
+			// now retrieve the acl for the child. should get its own back
+			AccessControlList acl3 = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			assertEquals(entity.getId(), acl3.getResourceId());
+			
+			
+			// now delete the ACL (restore inheritance)
+			ServletTestHelper.deleteEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			// try retrieving the ACL for the child
+			
+			// should get the parent's ACL
+			AccessControlList acl4 = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			assertNotNull(acl4);
+			// the returned ACL should refer to the parent
+			assertEquals(child.getParentId(), acl4.getResourceId());
+		}
+	}
+	
+	@Test
+	public void testCreateNewVersion() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+		// First create one of each type
+		List<Nodeable> created = createEntitesOfEachType(1);
+		assertNotNull(created);
+		assertTrue(created.size() >= ObjectType.values().length);
+		// Now update each
+		for(Nodeable entity: created){
+			// We can only create new versions for versionable entities.
+			if(entity instanceof Versionable){
+				Versionable versionableEntity = (Versionable) entity;
+				// Before we start, make sure there is only one version so far
+				assertEquals(new Long(1), versionableEntity.getVersionNumber());
+				assertNotNull(versionableEntity.getVersionLabel());
+				// Now create a new version
+				// We must give it a new version label or it will fail
+				versionableEntity.setVersionLabel("1.1.99");
+				versionableEntity.setVersionComment("Testing the DefaultController.createNewVersion()");
+				Versionable newVersion = ServletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userName);
+				assertNotNull(newVersion);
+				// Make sure we have a new version number.
+				assertEquals(new Long(2), newVersion.getVersionNumber());
+				assertEquals(versionableEntity.getVersionLabel(), newVersion.getVersionLabel());
+				assertEquals(versionableEntity.getVersionComment(), newVersion.getVersionComment());
+			}
+		}
+	}
+	
+	@Test
+	public void testGetEntityForVersion() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+		// First create one of each type
+		List<Nodeable> created = createEntitesOfEachType(1);
+		assertNotNull(created);
+		assertTrue(created.size() >= ObjectType.values().length);
+		// Now update each
+		for(Nodeable entity: created){
+			// We can only create new versions for versionable entities.
+			if(entity instanceof Versionable){
+				Versionable versionableEntity = (Versionable) entity;
+
+				// Now create a new version
+				// We must give it a new version label or it will fail
+				versionableEntity.setVersionLabel("1.1.99");
+				versionableEntity.setVersionComment("Testing the DefaultController.testGetVersion()");
+				Versionable newVersion = ServletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userName);
+				assertNotNull(newVersion);
+				// Make sure we have a new version number.
+				assertEquals(new Long(2), newVersion.getVersionNumber());
+				assertEquals(versionableEntity.getVersionLabel(), newVersion.getVersionLabel());
+				assertEquals(versionableEntity.getVersionComment(), newVersion.getVersionComment());
+				
+				// Get the first version
+				Versionable v1 =ServletTestHelper.getEntityForVersion(dispatchServlet, versionableEntity.getClass(), versionableEntity.getId(), new Long(1), userName);
+				assertNotNull(v1);
+				assertEquals(new Long(1), v1.getVersionNumber());
+				UrlHelpers.validateAllUrls(v1);
+				// now get the second version
+				Versionable v2 =ServletTestHelper.getEntityForVersion(dispatchServlet, versionableEntity.getClass(), versionableEntity.getId(), new Long(2), userName);
+				assertNotNull(v2);
+				assertEquals(new Long(2), v2.getVersionNumber());
+				UrlHelpers.validateAllUrls(v2);
+			}
+		}
+	}
+	
+	@Test
+	public void testGetAllVersions() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException, JSONException{
+		// First create one of each type
+		List<Nodeable> created = createEntitesOfEachType(1);
+		assertNotNull(created);
+		assertTrue(created.size() >= ObjectType.values().length);
+		// Now update each
+		int numberVersion = 4;
+		for(Nodeable entity: created){
+			// We can only create new versions for versionable entities.
+			if(entity instanceof Versionable){
+				Versionable versionableEntity = (Versionable) entity;
+				// Create multiple versions for each.
+				for(int i=0; i<numberVersion; i++){
+					// Create a comment and label for each
+					versionableEntity = ServletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), userName);
+					versionableEntity.setVersionLabel("1.1."+i);
+					versionableEntity.setVersionComment("Comment: "+i);
+					ServletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userName);
+				}
+				long currentVersion = numberVersion+1;
+				long previousVersion = currentVersion-1;
+				long firstVersion = 1;
+				// Now get all entities
+				PaginatedResults<Versionable> results = ServletTestHelper.getAllVersionsOfEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), 1, 100, userName);
+				assertNotNull(results);
+				assertEquals(currentVersion, results.getTotalNumberOfResults());
+				assertNotNull(results.getResults());
+				assertEquals(currentVersion, results.getResults().size());
+				// The first should be the current version
+				assertNotNull(results.getResults().get(0));
+				assertEquals(new Long(currentVersion), results.getResults().get(0).getVersionNumber());
+				// The last should be the first version
+				assertEquals(new Long(firstVersion), results.getResults().get(results.getResults().size()-1).getVersionNumber());
+				
+				// Query again but this time get a sub-set
+				results = ServletTestHelper.getAllVersionsOfEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), 2, 3, userName);
+				assertNotNull(results);
+				assertEquals(currentVersion, results.getTotalNumberOfResults());
+				assertNotNull(results.getResults());
+				assertEquals(3, results.getResults().size());
+				// The first should be the previous version
+				assertNotNull(results.getResults().get(0));
+				assertEquals(new Long(previousVersion), results.getResults().get(0).getVersionNumber());
+				// The last should be the previous version - 2;
+				assertEquals(new Long(previousVersion-2), results.getResults().get(results.getResults().size()-1).getVersionNumber());
+			}
+		}
+	}
+	
+	@Test
+	public void testGetEntityAnnotationsForVersion() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+		// First create one of each type
+		List<Nodeable> created = createEntitesOfEachType(1);
+		assertNotNull(created);
+		assertTrue(created.size() >= ObjectType.values().length);
+		// Now update each
+		for(Nodeable entity: created){
+			// We can only create new versions for versionable entities.
+			if(entity instanceof Versionable){
+				Versionable versionableEntity = (Versionable) entity;
+				
+				// Before we create a new version make sure the current version has some annotations
+				Annotations v1Annos = ServletTestHelper.getEntityAnnotations(dispatchServlet, versionableEntity.getClass(), entity.getId(), userName);
+				assertNotNull(v1Annos);
+				String v1Value = "I am on the first version, whooo hooo!...";
+				v1Annos.addAnnotation("stringKey", v1Value);
+				v1Annos = ServletTestHelper.updateEntityAnnotations(dispatchServlet, versionableEntity.getClass(), v1Annos, userName);
+
+				// Now create a new version
+				// We must give it a new version label or it will fail
+				versionableEntity = ServletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), userName);
+				versionableEntity.setVersionLabel("1.1.80");
+				versionableEntity.setVersionComment("Testing the DefaultController.EntityAnnotationsForVersion()");
+				Versionable newVersion = ServletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userName);
+				assertNotNull(newVersion);
+				
+				// Make sure the new version has the annotations
+				Annotations v2Annos = ServletTestHelper.getEntityAnnotations(dispatchServlet, versionableEntity.getClass(), entity.getId(), userName);
+				assertNotNull(v2Annos);
+				assertEquals(v1Value, v2Annos.getSingleValue("stringKey"));
+				// Now update the v2 annotations
+				v2Annos.getStringAnnotations().clear();
+				String v2Value = "I am on the second version, booo hooo!...";
+				v2Annos.addAnnotation("stringKey", v2Value);
+				v2Annos = ServletTestHelper.updateEntityAnnotations(dispatchServlet, versionableEntity.getClass(), v2Annos, userName);
+				
+				// Now make sure we can get both v1 and v2 annotations and each has the correct values
+				//v1
+				v1Annos = ServletTestHelper.getEntityAnnotationsForVersion(dispatchServlet, versionableEntity.getClass(), entity.getId(), 1l, userName);
+				assertNotNull(v1Annos);
+				assertEquals(v1Value, v1Annos.getSingleValue("stringKey"));
+				//v2
+				v2Annos = ServletTestHelper.getEntityAnnotationsForVersion(dispatchServlet, versionableEntity.getClass(), entity.getId(), 2l, userName);
+				assertNotNull(v2Annos);
+				assertEquals(v2Value, v2Annos.getSingleValue("stringKey"));
+			}
+		}
+	}
+	
+	@Test
+	public void testDeleteVersion() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException, JSONException{
+		// First create one of each type
+		List<Nodeable> created = createEntitesOfEachType(1);
+		assertNotNull(created);
+		assertTrue(created.size() >= ObjectType.values().length);
+		// Now update each
+		for(Nodeable entity: created){
+			// We can only create new versions for versionable entities.
+			if(entity instanceof Versionable){
+				Versionable versionableEntity = (Versionable) entity;
+				
+				// Now create a new version
+				// We must give it a new version label or it will fail
+				versionableEntity = ServletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), userName);
+				versionableEntity.setVersionLabel("1.1.80");
+				versionableEntity.setVersionComment("Testing the DefaultController.testDeleteVersion()");
+				Versionable newVersion = ServletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userName);
+				assertNotNull(newVersion);
+				
+				// There should be two versions
+				PaginatedResults<Versionable> paging = ServletTestHelper.getAllVersionsOfEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), 1, 100, userName);
+				assertNotNull(paging);
+				assertEquals(2, paging.getTotalNumberOfResults());
+				
+				// Now delete the new version
+				ServletTestHelper.deleteEntityVersion(dispatchServlet, versionableEntity.getClass(), entity.getId(), 2l, userName);
+				// We should be down to one version
+				paging = ServletTestHelper.getAllVersionsOfEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), 1, 100, userName);
+				assertNotNull(paging);
+				assertEquals(1, paging.getTotalNumberOfResults());
+				
+			}
+		}
+	}
 
 }

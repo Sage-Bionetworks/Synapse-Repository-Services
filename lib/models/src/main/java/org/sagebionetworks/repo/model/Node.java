@@ -19,6 +19,9 @@ public class Node {
 	Date modifiedOn;
 	String nodeType;
 	String eTag;
+	Long versionNumber;
+	String versionComment;
+	String versionLabel;
 			
 	public String getCreatedBy() {
 		return createdBy;
@@ -94,6 +97,24 @@ public class Node {
 		this.eTag = eTag;
 	}
 
+	public Long getVersionNumber() {
+		return versionNumber;
+	}
+	public void setVersionNumber(Long versionNumber) {
+		this.versionNumber = versionNumber;
+	}
+	public String getVersionComment() {
+		return versionComment;
+	}
+	public void setVersionComment(String versionComment) {
+		this.versionComment = versionComment;
+	}
+	public String getVersionLabel() {
+		return versionLabel;
+	}
+	public void setVersionLabel(String versionLabel) {
+		this.versionLabel = versionLabel;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -112,8 +133,15 @@ public class Node {
 				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
+				+ ((nodeType == null) ? 0 : nodeType.hashCode());
+		result = prime * result
 				+ ((parentId == null) ? 0 : parentId.hashCode());
-		result = prime * result + ((nodeType == null) ? 0 : nodeType.hashCode());
+		result = prime * result
+				+ ((versionComment == null) ? 0 : versionComment.hashCode());
+		result = prime * result
+				+ ((versionLabel == null) ? 0 : versionLabel.hashCode());
+		result = prime * result
+				+ ((versionNumber == null) ? 0 : versionNumber.hashCode());
 		return result;
 	}
 	@Override
@@ -165,15 +193,30 @@ public class Node {
 				return false;
 		} else if (!name.equals(other.name))
 			return false;
+		if (nodeType == null) {
+			if (other.nodeType != null)
+				return false;
+		} else if (!nodeType.equals(other.nodeType))
+			return false;
 		if (parentId == null) {
 			if (other.parentId != null)
 				return false;
 		} else if (!parentId.equals(other.parentId))
 			return false;
-		if (nodeType == null) {
-			if (other.nodeType != null)
+		if (versionComment == null) {
+			if (other.versionComment != null)
 				return false;
-		} else if (!nodeType.equals(other.nodeType))
+		} else if (!versionComment.equals(other.versionComment))
+			return false;
+		if (versionLabel == null) {
+			if (other.versionLabel != null)
+				return false;
+		} else if (!versionLabel.equals(other.versionLabel))
+			return false;
+		if (versionNumber == null) {
+			if (other.versionNumber != null)
+				return false;
+		} else if (!versionNumber.equals(other.versionNumber))
 			return false;
 		return true;
 	}
@@ -183,8 +226,10 @@ public class Node {
 		return "Node [id=" + id + ", name=" + name + ", description="
 				+ description + ", parentId=" + parentId + ", createdBy="
 				+ createdBy + ", createdOn=" + createdOn + ", modifiedBy="
-				+ modifiedBy + ", modifiedOn=" + modifiedOn + ", type=" + nodeType
-				+ ", eTag=" + eTag + "]";
+				+ modifiedBy + ", modifiedOn=" + modifiedOn + ", nodeType="
+				+ nodeType + ", eTag=" + eTag + ", versionNumber="
+				+ versionNumber + ", versionComment=" + versionComment
+				+ ", versionLabel=" + versionLabel + "]";
 	}
 
 }

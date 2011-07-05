@@ -5,11 +5,19 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -20,6 +28,7 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
+import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
 
 /**
@@ -30,6 +39,13 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
  */
 @SuppressWarnings("unchecked")
 public class JDOAnnotationsUtilsTest {
+	
+	/**
+	 * What are the compressed blob annotations that we should test.
+	 */
+	public static final BlobData[] BLOBS_TO_TEST = new BlobData[]{
+		new BlobData("CompressedAnnotationsV0.zip", 3452, 25),
+	};
 	
 	JDONode owner;
 	
@@ -132,21 +148,251 @@ public class JDOAnnotationsUtilsTest {
 	}
 	
 	@Test
-	public void testRoundTrip() throws Exception{
-		Annotations dto = new Annotations();
+	public void testCompression() throws IOException{
+		Annotations dto = Annotations.createInitialized();
 		dto.addAnnotation("stringOne", "one");
 		dto.addAnnotation("StringTwo", "3");
 		dto.addAnnotation("longOne", new Long(324));
 		dto.addAnnotation("doubleOne", new Double(32.4));
 		dto.addAnnotation("dateOne", new Date(System.currentTimeMillis()));
-		dto.addAnnotation("blobOne", "Imagine some very long string".getBytes("UTF-8"));
-		// Now create the jdo
-		JDONode jdo = JDOAnnotationsUtils.createFromDTO(dto);
-		assertNotNull(jdo);
-		Annotations dtoCopy = JDOAnnotationsUtils.createFromJDO(jdo);
+		byte[] compressed = JDOAnnotationsUtils.compressAnnotations(dto);
+		assertNotNull(compressed);
+		System.out.println("Size: "+compressed.length);
+		System.out.println(new String(compressed, "UTF-8"));
+		// Now make sure we can read the compressed data
+		Annotations dtoCopy = JDOAnnotationsUtils.decompressedAnnotations(compressed);
 		assertNotNull(dtoCopy);
 		// The copy should match the original
 		assertEquals(dto, dtoCopy);
+	}
+	
+	@Test
+	public void testRoundTrip() throws Exception{
+		Annotations dto = Annotations.createInitialized();
+		dto.addAnnotation("stringOne", "one");
+		dto.addAnnotation("longOne", new Long(324));
+		dto.addAnnotation("doubleOne", new Double(32.4));
+		dto.addAnnotation("dateOne", new Date(System.currentTimeMillis()));
+		dto.addAnnotation("blobOne", "You will just have to trust me, this is a very long string".getBytes("UTF-8"));
+		// Now create the jdo
+		JDONode node = new JDONode();
+		JDORevision rev = new JDORevision();
+		JDOAnnotationsUtils.updateFromJdoFromDto(dto, node, rev);
+		assertNotNull(node.getBlobAnnotations());
+		assertNotNull(node.getDateAnnotations());
+		assertNotNull(node.getStringAnnotations());
+		assertNotNull(node.getDoubleAnnotations());
+		// Check the copy
+		Annotations dtoCopy = JDOAnnotationsUtils.createFromJDO(rev);
+		assertNotNull(dtoCopy);
+		// The copy should match the original
+		assertEquals(dto, dtoCopy);
+	}
+	
+	@Test
+	public void testNullBlob() throws Exception{
+		// Create a revision with a null byte array
+		JDORevision rev = new JDORevision();
+		// Check the copy
+		Annotations dtoCopy = JDOAnnotationsUtils.createFromJDO(rev);
+		assertNotNull(dtoCopy);
+	}
+	
+	@Test
+	public void testBlobCompression() throws IOException{
+		Annotations dto = new Annotations();
+		String[] values = new String[]{
+				"I am the first blob in this set",
+				"I am the second blob in this set with the same key as the first",
+				"I am the thrid in the set with my own key"
+		};
+		dto.addAnnotation("blobOne", values[0].getBytes("UTF-8"));
+		dto.addAnnotation("blobOne", values[1].getBytes("UTF-8"));
+		dto.addAnnotation("blobTwo", values[2].getBytes("UTF-8"));
+		byte[] comressedBytes = JDOAnnotationsUtils.compressAnnotations(dto);
+		System.out.println("Compressed size: "+comressedBytes.length);
+		assertNotNull(comressedBytes);
+		// Make the round trip
+		Annotations annos = JDOAnnotationsUtils.decompressedAnnotations(comressedBytes);
+		assertNotNull(annos);
+		assertNotNull(annos.getBlobAnnotations());
+		assertEquals(2, annos.getBlobAnnotations().size());
+		Collection<byte[]> first = annos.getBlobAnnotations().get("blobOne");
+		assertNotNull(first);
+		assertEquals(2, first.size());
+		Iterator<byte[]> it = first.iterator();
+		assertEquals(values[0], new String(it.next(), "UTF-8"));
+		assertEquals(values[1], new String(it.next(), "UTF-8"));
+		
+		Collection<byte[]> second = annos.getBlobAnnotations().get("blobTwo");
+		assertNotNull(second);
+		assertEquals(1, second.size());
+		assertEquals(values[2], new String(second.iterator().next(), "UTF-8"));
+
+	}
+	
+	/**
+	 * Make sure we can still load old versions of the compressed annotation blobs.
+	 * @throws IOException 
+	 */
+	@Test
+	public void testLoadOldVersions() throws IOException{
+		// Test each file.
+		for(BlobData data: BLOBS_TO_TEST){
+			System.out.println("Testing: "+data.toString());
+			byte[] compressedBytes = loadFileAsBytes(data.getFileName());
+			assertNotNull(compressedBytes);
+			assertTrue(compressedBytes.length > 0);
+			Annotations loaded = JDOAnnotationsUtils.decompressedAnnotations(compressedBytes);
+			assertNotNull(loaded);
+			// Now re-create the annotations
+			Annotations expected = RandomAnnotationsUtil.generateRandom(data.getRandomSeed(), data.getCount());
+			assertEquals(expected, loaded);
+		}
+	}
+	
+	@Test
+	public void testNotNull() throws IOException{
+		// Make sure all types are not null
+		Annotations annos = JDOAnnotationsUtils.decompressedAnnotations(null);
+		assertNotNull(annos);
+		assertNotNull(annos.getBlobAnnotations());
+		assertNotNull(annos.getStringAnnotations());
+		assertNotNull(annos.getDoubleAnnotations());
+		assertNotNull(annos.getLongAnnotations());
+		assertNotNull(annos.getDateAnnotations());
+	}
+	
+	@Test
+	public void testNotNullCompressed() throws IOException{
+		byte[] compressed = JDOAnnotationsUtils.compressAnnotations(new Annotations());
+		// Make sure all types are not null
+		Annotations annos = JDOAnnotationsUtils.decompressedAnnotations(compressed);
+		assertNotNull(annos);
+		assertNotNull(annos.getBlobAnnotations());
+		assertNotNull(annos.getStringAnnotations());
+		assertNotNull(annos.getDoubleAnnotations());
+		assertNotNull(annos.getLongAnnotations());
+		assertNotNull(annos.getDateAnnotations());
+	}
+	
+	/**
+	 * Helper to load a file into a byte[]
+	 * @param fileName
+	 * @return
+	 * @throws IOException
+	 */
+	public static byte[] loadFileAsBytes(String fileName) throws IOException{
+		// First get the input stream from the class loader
+		InputStream in = JDOAnnotationsUtilsTest.class.getClassLoader().getResourceAsStream(fileName);
+		assertNotNull("Failed to find:"+fileName+" on the classpath", in);
+		try{
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			BufferedInputStream buffIn = new BufferedInputStream(in);
+			int bufferSize = 1024;
+			byte[] buffer = new byte[bufferSize];
+			int count;
+			while((count = buffIn.read(buffer, 0, bufferSize))!= -1){
+				out.write(buffer, 0, count);
+			}
+			return out.toByteArray();
+		}finally{
+			in.close();
+		}
+	}
+	
+	/**
+	 * This main method is used to create a blob of the current version of annotations.
+	 * Each time we change the annotations object, we should create a new version and add it to the
+	 * files to test.
+	 * @param args
+	 * @throws IOException 
+	 */
+	public static void main(String[] args) throws IOException{	
+		// There should be three args
+		if(args == null || args.length != 3) throw new IllegalArgumentException("This utility requires three arguments: 0=filname, 1=randomSeed, 2=count");
+		String name = args[0];
+		long seed;
+		int count;
+		try{
+			seed = Long.parseLong(args[1]);
+		}catch(NumberFormatException e){
+			throw new IllegalArgumentException("The second argument should be a long representing the random seed to use.", e);
+		}
+		try{
+			count = Integer.parseInt(args[2]);
+		}catch(NumberFormatException e){
+			throw new IllegalArgumentException("The thrid argument should be the number of annotations to used", e);
+		}
+		// First generate the random annotations to be used to create the compresssed blob fil.
+		Annotations annos = RandomAnnotationsUtil.generateRandom(seed, count);
+		// Now create the output file
+		File outputFile = new File("src/test/resources/"+name);
+		System.out.println("Creating file: "+outputFile.getAbsolutePath());
+		if(outputFile.exists()){
+			outputFile.delete();
+		}
+		outputFile.createNewFile();
+		FileOutputStream fos = new FileOutputStream(outputFile);
+		try{
+			// First create the blob
+			byte[] compressedBlob = JDOAnnotationsUtils.compressAnnotations(annos);
+			System.out.println("Compressed file size is: "+compressedBlob.length+" bytes");
+						
+			// Write this blob to the file
+			BufferedOutputStream buffer = new BufferedOutputStream(fos);
+			buffer.write(compressedBlob);
+			buffer.flush();
+			fos.flush();
+		}finally{
+			fos.close();
+		}
+		
+	}
+	
+	/**
+	 * Simple data structure for holding blob file data.
+	 * 
+	 * @author jmhill
+	 *
+	 */
+	private static class BlobData{
+		
+		String fileName;
+		long randomSeed;
+		int count;
+		
+		
+		public BlobData(String fileName, long randomSeed, int count) {
+			super();
+			this.fileName = fileName;
+			this.randomSeed = randomSeed;
+			this.count = count;
+		}
+		public String getFileName() {
+			return fileName;
+		}
+		public void setFileName(String fileName) {
+			this.fileName = fileName;
+		}
+		public long getRandomSeed() {
+			return randomSeed;
+		}
+		public void setRandomSeed(long randomSeed) {
+			this.randomSeed = randomSeed;
+		}
+		public int getCount() {
+			return count;
+		}
+		public void setCount(int count) {
+			this.count = count;
+		}
+		@Override
+		public String toString() {
+			return "BlobData [fileName=" + fileName + ", randomSeed="
+					+ randomSeed + ", count=" + count + "]";
+		}
+		
 	}
 
 }
