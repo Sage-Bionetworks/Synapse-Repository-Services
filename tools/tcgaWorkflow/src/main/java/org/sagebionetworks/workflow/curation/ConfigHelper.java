@@ -50,13 +50,11 @@ public class ConfigHelper {
 	private static final String WORKFLOW_PROPERTIES_FILENAME = "workflow.properties";
 	private static final String SWF_ENDPOINT_KEY = "swf.endpoint";
 	private static final String SNS_ENDPOINT_KEY = "sns.endpoint";
-	private static final String SCRIPT_TIMEOUT_KEY = "max.script.execution.hours.timeout";
 	private static final String LOCAL_CACHE_DIR = "local.cache.dir";
 
 	private String snsEndpoint;
 	private String swfEndpoint;
 
-	private int maxScriptExecutionHoursTimeout;
 	private String localCacheDir;
 
 	private String synapseUsername;
@@ -85,10 +83,13 @@ public class ConfigHelper {
 
 		snsEndpoint = serviceProperties.getProperty(SNS_ENDPOINT_KEY);
 		swfEndpoint = serviceProperties.getProperty(SWF_ENDPOINT_KEY);
-		maxScriptExecutionHoursTimeout = Integer.parseInt(serviceProperties
-				.getProperty(SCRIPT_TIMEOUT_KEY));
+		
 		localCacheDir = serviceProperties.getProperty(LOCAL_CACHE_DIR);
-
+		File cacheDir = new File(localCacheDir);
+		if(!cacheDir.exists()) {
+			cacheDir.mkdirs();
+		}
+		
 		/**
 		 * Load the credentials properties (these are in a file on the local
 		 * filesystem and not checked into svn)
@@ -195,13 +196,6 @@ public class ConfigHelper {
 				.getAuthenticationServiceEndpoint());
 		synapse.login(synapseUsername, synapsePassword);
 		return synapse;
-	}
-
-	/**
-	 * @return the maxScriptExecutionHoursTimeout
-	 */
-	public int getMaxScriptExecutionHoursTimeout() {
-		return maxScriptExecutionHoursTimeout;
 	}
 
 	/**

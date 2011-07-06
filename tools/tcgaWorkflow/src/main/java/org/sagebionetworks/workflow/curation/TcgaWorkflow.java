@@ -26,16 +26,7 @@ import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotatio
 import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotations.WorkflowRegistrationOptions;
 
 /**
- * All the activity bodies below are merely stubs. Once the workflow seems
- * adequately described, the full activities will be factored out from here and
- * implemented in a class per activity.
- * 
  * TODO
- * 
- * - rip out the 'param' parameter to each activity, it was just for initial
- * debugging/learning on my part
- * 
- * - Ensure that all activities are idempotent.
  * 
  * - Think about unnecessary repeated processing versus instances were we really
  * do want to rerun the activity. (e.g., use md5 checksums to eliminate
@@ -56,26 +47,37 @@ import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotatio
  */
 public class TcgaWorkflow {
 
+	/**
+	 * Workflow and Activity Annotations Constants
+	 * 
+	 * Dev Note: annotation values must be resolvable at compilation time, not
+	 * runtime, therefore we cannot move this into a config file
+	 */
+	private static final String WORKFLOW_NAME = "TcgaWorkflow";
+	private static final String VERSION = "1.4";
+	private static final int MAX_WORKFLOW_TIMEOUT_HOURS = 24;
+	private static final int MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS = 4;
+	private static final int NUM_RETRIES = 3;
+
+	/**
+	 * Other Constants (can be determined at runtime)
+	 */
 	// Even though we are sending stdout and stderr from the R script to a log
 	// file, include a portion of that output in the workflow history for
 	// convenience. We only want to dig through the logs if we need to.
 	private static final int MAX_SCRIPT_OUTPUT = 1024;
-
-	// private static final int MAX_SCRIPT_EXECUTION_HOURS_TIMEOUT =
-	// ConfigHelper
-	// .createConfig().getMaxScriptExecutionHoursTimeout();
-
 	private static final String NOTIFICATION_SUBJECT = "TCGA Workflow Notification ";
-	private static final String NOTIFICATION_SNS_TOPIC = StackConfiguration.getTcgaWorkflowSnsTopic();
-
+	private static final String NOTIFICATION_SNS_TOPIC = StackConfiguration
+			.getTcgaWorkflowSnsTopic();
+	
 	/**
 	 * @param param
 	 * @param datasetId
 	 * @param tcgaUrl
 	 * @throws Exception
 	 */
-	@Workflow(name = "TcgaWorkflow", version = "1.3")
-	@WorkflowRegistrationOptions(defaultWorkflowLifetimeTimeout = @Duration(time = 24, unit = DurationUnit.Hours))
+	@Workflow(name = WORKFLOW_NAME, version = VERSION)
+	@WorkflowRegistrationOptions(defaultWorkflowLifetimeTimeout = @Duration(time = MAX_WORKFLOW_TIMEOUT_HOURS, unit = DurationUnit.Hours))
 	public static void doWorkflow(String param, String datasetId, String tcgaUrl)
 			throws Exception {
 
@@ -144,8 +146,8 @@ public class TcgaWorkflow {
 				tcgaUrl.get(), rawLayerId);
 	}
 
-	@Activity(version = "1.2")
-	@ExponentialRetry(minimumAttempts = 3, maximumAttempts = 5)
+	@Activity(version = VERSION)
+	@ExponentialRetry(minimumAttempts = NUM_RETRIES, maximumAttempts = NUM_RETRIES)
 	private static Value<String> doCreateMetadata(String param,
 			Boolean doneIfExists, String datasetId, String tcgaUrl,
 			Settable<String> rawLayerId) throws Exception {
@@ -184,15 +186,14 @@ public class TcgaWorkflow {
 				processedLayerId, stdout, stderr);
 	}
 
-	@Activity(version = "1.2")
-	@ExponentialRetry(minimumAttempts = 3, maximumAttempts = 5)
-	// TODO ask SWF team why we cannot use a variable here
-	// @ActivityRegistrationOptions(defaultLifetimeTimeout = @Duration(time =
-	// MAX_SCRIPT_EXECUTION_HOURS_TIMEOUT, unit = DurationUnit.Hours),
-	// taskLivenessTimeout = @Duration(time =
-	// MAX_SCRIPT_EXECUTION_HOURS_TIMEOUT, unit = DurationUnit.Hours))
-	@ActivityRegistrationOptions(defaultLifetimeTimeout = @Duration(time = 12, unit = DurationUnit.Hours), taskLivenessTimeout = @Duration(time = 12, unit = DurationUnit.Hours))
-	@ActivitySchedulingOptions(lifetimeTimeout = @Duration(time = 12, unit = DurationUnit.Hours), queueTimeout = @Duration(time = 12, unit = DurationUnit.Hours))
+	@Activity(version = VERSION)
+	@ExponentialRetry(minimumAttempts = NUM_RETRIES, maximumAttempts = NUM_RETRIES)
+	@ActivityRegistrationOptions(
+			defaultLifetimeTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours), 
+			taskLivenessTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours))
+	@ActivitySchedulingOptions(
+			lifetimeTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours), 
+			queueTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours))
 	private static Value<String> doProcessData(String param, String script,
 			String datasetId,
 			String rawLayerId,
@@ -254,7 +255,7 @@ public class TcgaWorkflow {
 				message);
 	}
 
-	@Activity(version = "1.2")
+	@Activity(version = VERSION)
 	private static Value<String> doFormulateNotificationMessage(String param,
 			String layerId, Settable<String> message) throws Exception {
 		message.set(Curation.formulateLayerCreationMessage(layerId));
@@ -268,7 +269,7 @@ public class TcgaWorkflow {
 		return doNotifyFollower(param, recipient, subject, message);
 	}
 
-	@Activity(version = "1.2")
+	@Activity(version = VERSION)
 	private static Value<String> doNotifyFollower(Value<String> param,
 			Value<String> recipient, Value<String> subject,
 			Value<String> message) {
