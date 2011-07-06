@@ -1,5 +1,5 @@
 .updateEntity <- 
-		function(kind, entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(kind, entity)
 {
 	if(!is.list(entity)){
 		stop("the entity must be an R list")
@@ -9,37 +9,37 @@
 		stop("the entity does not have a uri")
 	}
 	
-	synapsePut(uri=entity$uri, entity=entity, curlHandle=curlHandle, anonymous=anonymous)
+	synapsePut(uri=entity$uri, entity=entity, anonymous=FALSE)
 }
 
 # TODO can we dynamically generate these functions?
 
 updateDataset <- 
-		function(entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity)
 {
-	.updateEntity("dataset", entity, curlHandle, anonymous)
+	.updateEntity(kind="dataset", entity=entity)
 }
 
 updateLayer <- 
-		function(entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity)
 {
-	.updateEntity("layer", entity, curlHandle, anonymous)
+	.updateEntity(kind="layer", entity=entity)
 }
 
 updateLocation <- 
-		function(entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity)
 {
-	.updateEntity("location", entity, curlHandle, anonymous)
+	.updateEntity(kind="location", entity=entity)
 }
 
 updatePreview <- 
-		function(entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity)
 {
-	.updateEntity("preview", entity, curlHandle, anonymous)
+	.updateEntity(kind="preview", entity=entity)
 }
 
 updateProject <- 
-		function(entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity)
 {
-	.updateEntity("project", entity, curlHandle, anonymous)
+	.updateEntity(kind="project", entity=entity)
 }

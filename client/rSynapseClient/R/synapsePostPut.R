@@ -23,7 +23,7 @@
 	## Prepare the header. If not an anonymous request, stuff the
 	## sessionToken into the header
 	header <- .getCache("curlHeader")
-	if(!anonymous){
+	if(!anonymous && !is.null(synapseSessionToken())){
 		header <- c(header, sessionToken = synapseSessionToken())
 	}
 	if("PUT" == requestMethod) {

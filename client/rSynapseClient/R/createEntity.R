@@ -1,5 +1,5 @@
 .createEntity <- 
-		function(kind, entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(kind, entity)
 {
 	if(!is.list(entity)){
 		stop("the entity must be an R list")
@@ -7,37 +7,37 @@
 	
 	uri <- paste("/", kind, sep = "")
 	
-	synapsePost(uri=uri, entity=entity, curlHandle=curlHandle, anonymous=anonymous)
+	synapsePost(uri=uri, entity=entity, anonymous=FALSE)
 }
 
 # TODO can we dynamically generate these functions?
 
 createDataset <- 
-		function(entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity)
 {
-	.createEntity("dataset", entity, curlHandle, anonymous)
+	.createEntity(kind="dataset", entity=entity)
 }
 
 createLayer <- 
-		function(entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity)
 {
-	.createEntity("layer", entity, curlHandle, anonymous)
+	.createEntity(kind="layer", entity=entity)
 }
 
 createLocation <- 
-		function(entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity)
 {
-	.createEntity("location", entity, curlHandle, anonymous)
+	.createEntity(kind="location", entity=entity)
 }
 
 createPreview <- 
-		function(entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity)
 {
-	.createEntity("preview", entity, curlHandle, anonymous)
+	.createEntity(kind="preview", entity=entity)
 }
 
 createProject <- 
-		function(entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity)
 {
-	.createEntity("project", entity, curlHandle, anonymous)
+	.createEntity(kind="project", entity=entity)
 }

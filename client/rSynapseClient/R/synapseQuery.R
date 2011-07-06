@@ -1,5 +1,5 @@
 synapseQuery <- 
-		function(queryStatement, curlHandle=getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(queryStatement)
 {
 	## Constants
 	kPath <- "/query?query="
@@ -11,10 +11,7 @@ synapseQuery <-
 	
 	uri <- paste(kPath, curlEscape(queryStatement), sep="")
 	
-	result <- synapseGet(uri = uri, 
-					curlHandle = curlHandle, 
-					anonymous = anonymous
-			  )
+	result <- synapseGet(uri=uri, anonymous=FALSE)
 	
 	if(result$totalNumberOfResults == 0){
 		return(NULL)

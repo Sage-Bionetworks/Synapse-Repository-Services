@@ -15,7 +15,7 @@ integrationTestCRUD <- function() {
 	checkEquals(dataset$status, createdDataset$status)
 	
 	# Get a dataset
-	storedDataset <- getDataset(id=createdDataset$id)
+	storedDataset <- getDatasetById(id=createdDataset$id)
 	checkEquals(dataset$name, storedDataset$name)
 	checkEquals(dataset$status, storedDataset$status)
 	
@@ -34,9 +34,9 @@ integrationTestCRUD <- function() {
 	checkEquals('my new annotation value', storedAnnotations$stringAnnotations$myNewAnnotationKey)
 	
 	# Delete a dataset
-	deleteDataset(id=modifiedDataset$id)
+	deleteDataset(entity=modifiedDataset)
 	
 	# Confirm that its gone
-	checkException(getDataset(id=modifiedDataset$id))
+	checkException(getDatasetById(id=modifiedDataset$id))
 }
 

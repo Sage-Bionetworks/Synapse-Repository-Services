@@ -1,5 +1,5 @@
 updateAnnotations <- 
-		function(annotations, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(annotations)
 {
 	
 	if(!is.list(annotations)){
@@ -28,5 +28,5 @@ updateAnnotations <-
 		}
 	}
 	
-	synapsePut(uri = annotations$uri, entity=annotations, curlHandle = curlHandle, anonymous = anonymous)
+	synapsePut(uri=annotations$uri, entity=annotations, anonymous=FALSE)
 }

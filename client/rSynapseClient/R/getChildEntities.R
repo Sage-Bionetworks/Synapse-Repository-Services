@@ -1,5 +1,5 @@
 .getChildEntities <- 
-		function(entity, childKind, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity, childKind)
 {
 	if(!is.list(entity)){
 		stop("the entity must be an R list")
@@ -12,31 +12,31 @@
 	## TODO figure out how to in R do something like entity${$childKind}
 	
 	uri <- paste(entity$uri, childKind, sep = "/")
-	synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous)
+	synapseGet(uri=uri, anonymous=FALSE)
 }
 
 # TODO can we dynamically generate these functions?
 
 getProjectDatasets <- 
-		function(entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity)
 {
-	.getChildEntities(entity=entity, childKind="dataset", curlHandle = curlHandle, anonymous = anonymous)
+	.getChildEntities(entity=entity, childKind="dataset")
 }
 
 getDatasetLayers <- 
-		function(entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity)
 {
-	.getChildEntities(entity=entity, childKind="layer", curlHandle = curlHandle, anonymous = anonymous)
+	.getChildEntities(entity=entity, childKind="layer")
 }
 
 getLayerLocations <- 
-		function(entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity)
 {
-	.getChildEntities(entity=entity, childKind="location", curlHandle = curlHandle, anonymous = anonymous)
+	.getChildEntities(entity=entity, childKind="location")
 }
 
 getLayerPreviews <- 
-		function(entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity)
 {
-	.getChildEntities(entity=entity, childKind="preview", curlHandle = curlHandle, anonymous = anonymous)
+	.getChildEntities(entity=entity, childKind="preview")
 }

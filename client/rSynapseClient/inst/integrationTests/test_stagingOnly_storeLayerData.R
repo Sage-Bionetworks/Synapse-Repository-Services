@@ -85,7 +85,7 @@ integrationTestStoreLayerData <- function() {
 	checkEquals(data[,1], storedLayer2Data[,1])
 
 	# Delete the dataset
-	deleteDataset(id=createdDataset$id)
+	deleteDataset(entity=createdDataset)
 }
 
 

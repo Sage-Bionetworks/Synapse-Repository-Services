@@ -1,5 +1,5 @@
-.getEntity <- 
-		function(kind, id, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+.getEntityById <- 
+		function(kind, id)
 {
 	if(length(id) != 1){
 		stop("multiple ids provided")
@@ -7,37 +7,37 @@
 	
 	uri <- paste("/", kind, id, sep = "/")
 	
-	synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous)
+	synapseGet(uri=uri, anonymous=FALSE)
 }
 
 # TODO can we dynamically generate these functions?
 
-getDataset <- 
-		function(id, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+getDatasetById <- 
+		function(id)
 {
-	.getEntity("dataset", id, curlHandle, anonymous)
+	.getEntityById(kind="dataset", id=id)
 }
 
-getLayer <- 
-		function(id, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+getLayerById <- 
+		function(id)
 {
-	.getEntity("layer", id, curlHandle, anonymous)
+	.getEntityById(kind="layer", id=id)
 }
 
-getLocation <- 
-		function(id, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+getLocationById <- 
+		function(id)
 {
-	.getEntity("location", id, curlHandle, anonymous)
+	.getEntityById(kind="location", id=id)
 }
 
-getPreview <- 
-		function(id, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+getPreviewById <- 
+		function(id)
 {
-	.getEntity("preview", id, curlHandle, anonymous)
+	.getEntityById(kind="preview", id=id)
 }
 
-getProject <- 
-		function(id, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+getProjectById <- 
+		function(id)
 {
-	.getEntity("project", id, curlHandle, anonymous)
+	.getEntityById(kind="project", id=id)
 }

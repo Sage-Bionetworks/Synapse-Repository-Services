@@ -1,5 +1,5 @@
 getDatasets <- 
-		function(queryParams, curlHandle=getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(queryParams)
 {
 	if(missing(queryParams)){
 		queryParams <- list()
@@ -18,7 +18,7 @@ getDatasets <-
 	query <- sprintf("%s %s", kQueryRoot, paramString)
 	uri <- sprintf("%s=%s", kService, curlEscape(query))
 	
-	jsonRecords <- synapseGet(uri = uri, curlHandle = curlHandle, anonymous = anonymous)
+	jsonRecords <- synapseGet(uri=uri, anonymous=FALSE)
 	result <- .parseJSONRecords(jsonRecords$results)
 	attr(result, "totalNumberOfResults") <- jsonRecords$totalNumberOfResults
 

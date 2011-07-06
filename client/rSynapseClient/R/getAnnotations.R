@@ -1,5 +1,5 @@
 getAnnotations <- 
-		function(entity, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity)
 {
 	
 	if(!is.list(entity)){
@@ -10,6 +10,6 @@ getAnnotations <-
 		stop("the entity does not have annotations")
 	}
 	
-	synapseGet(uri = entity$annotations, curlHandle = curlHandle, anonymous = anonymous)
+	synapseGet(uri=entity$annotations, anonymous=FALSE)
 }
 

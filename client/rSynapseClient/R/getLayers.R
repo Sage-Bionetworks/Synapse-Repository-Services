@@ -1,5 +1,5 @@
 getLayers <-
-		function(entity=entity, returnS4Objects = FALSE, curlHandle = getCurlHandle(), anonymous = .getCache("anonymous"))
+		function(entity=entity, returnS4Objects = FALSE)
 {
 
 	if(!is.list(entity)){
@@ -10,7 +10,7 @@ getLayers <-
 		stop("the entity does not have layers")
 	}
 	
-	result <- synapseGet(uri = entity$layers, curlHandle = curlHandle, anonymous = anonymous)
+	result <- synapseGet(uri=entity$layers, anonymous=FALSE)
 	
 	layers <- result$results
 

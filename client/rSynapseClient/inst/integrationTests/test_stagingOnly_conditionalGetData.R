@@ -35,7 +35,7 @@ integrationTestConditionalGet <- function() {
 	checkEquals(layer$name, createdLayer$name)
 	
 	# Now download the layer
-	locations <- getLayerLocations(createdLayer)
+	locations <- getLayerLocations(entity=createdLayer)
 	destinationFile1 <- synapseDownloadFile(url=locations$results[[1]]$path, checksum=locations$results[[1]]$md5sum)
 	fileInfo1 <- file.info(destinationFile1) 
 	
@@ -48,5 +48,5 @@ integrationTestConditionalGet <- function() {
 	checkEquals(fileInfo1$mtime, fileInfo2$mtime)
 	
 	# Delete the dataset
-	deleteDataset(id=createdDataset$id)
+	deleteDataset(entity=createdDataset)
 }

@@ -7,17 +7,18 @@ synapseSessionToken <-
 			synapseRefreshSessionToken(sessionToken)
 		}
 		.setCache("sessionToken", sessionToken)
-	}else {
-		sessionToken <- .getCache("sessionToken")
-		elapsedTimeMin <-  (as.numeric(Sys.time()) - as.numeric(.getCache("sessionTimestamp")))/60
-		if(!is.null(.getCache("sessionTimestamp")) 
-				&(checkValidity || elapsedTimeMin >= refreshDuration)){
+	} else {
+		# Refresh sessionToken as applicable
+		if(checkValidity) {
 			synapseRefreshSessionToken(sessionToken)
+		} else if(!is.null(.getCache("sessionTimestamp"))) {
+			elapsedTimeMin <-  (as.numeric(Sys.time()) - as.numeric(.getCache("sessionTimestamp")))/60
+			if(elapsedTimeMin >= refreshDuration) {
+				synapseRefreshSessionToken(sessionToken)
+			} 
 		}
-		if(is.null(sessionToken)) {
-			sessionToken <- ""
-		}
-		return(sessionToken)
+		# This could be null, but that's ok
+		.getCache("sessionToken")
 	}
 }
 
