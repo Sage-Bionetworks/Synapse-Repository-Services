@@ -318,13 +318,13 @@ public class AuthenticationController {
 	public void createUser(@RequestBody User user) throws Exception {
 		String itu = getIntegrationTestUser();
 		boolean isITU = (itu!=null && user.getEmail().equals(itu));
-		if (!isITU) {
-			user.setPassword(""+rand.nextLong());
-		}
+//		if (!isITU) {
+//			user.setPassword(""+rand.nextLong());
+//		}
 		crowdAuthUtil.createUser(user);
-		if (!isITU) {
-			crowdAuthUtil.sendResetPWEmail(user);
-		}
+//		if (!isITU) {
+//			crowdAuthUtil.sendResetPWEmail(user);
+//		}
 	}
 	
 
@@ -366,8 +366,12 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/userPasswordEmail", method = RequestMethod.POST)
 	public void sendChangePasswordEmail(@RequestBody User user) throws Exception {
-			crowdAuthUtil.sendResetPWEmail(user); // << will no longer be used (sends email via Crowd)
-			//sendMail.sendResetPasswordMail(user); << the new way
+		// need a session token
+		Session session = crowdAuthUtil.authenticate(user, false);
+		// need the rest of the user's fields
+		user = crowdAuthUtil.getUser(user.getEmail());
+		// now send the reset password email, filling in the user name and session token
+		sendMail.sendResetPasswordMail(user, session.getSessionToken());
 	}
 	
 	/**

@@ -52,6 +52,7 @@ public class AuthenticationControllerTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
+		System.setProperty("org.sagebionetworks.mailPW", "xxxxx"); // << can't check in passwords to SVN
 		//DispatcherServlet servlet = 
 			helper.setUp();
 		CrowdAuthUtil.acceptAllCertificates2();
@@ -283,9 +284,8 @@ public class AuthenticationControllerTest {
 			assertEquals("UserNEW", user.getString("lastName"));
 			assertEquals("New NEW User", user.getString("displayName"));
 		
-			// !!! setting password doesn't work.  An issue was opened with Atlassian on 6/23/2011 !!!
 			// to check the password, we have to try to log-in
-			if (false) {
+			if (true) {
 				JSONObject session = helper.testCreateJsonEntity("/session",
 						"{\"email\":\""+integrationTestUserEmail+"\",\"password\":\""+testNewPassword+"\"}");
 				assertTrue(session.has("sessionToken"));
