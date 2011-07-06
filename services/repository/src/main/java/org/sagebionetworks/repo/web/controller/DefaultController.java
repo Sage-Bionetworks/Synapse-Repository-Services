@@ -595,7 +595,7 @@ public class DefaultController extends BaseController {
 			@PathVariable String id,
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestBody AccessControlList updatedACL,
-			HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException {
+			HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		// pass it along.
 		return entityController.updateEntityACL(userId, updatedACL);
 	}

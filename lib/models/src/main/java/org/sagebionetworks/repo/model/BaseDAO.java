@@ -44,7 +44,7 @@ public interface BaseDAO<T extends Base> {
 	 * @throws NotFoundException
 	 */
 	public void update(T dto) throws DatastoreException, InvalidModelException,
-			NotFoundException;
+			NotFoundException, ConflictingUpdateException;
 
 	/**
 	 * delete the object given by the given ID

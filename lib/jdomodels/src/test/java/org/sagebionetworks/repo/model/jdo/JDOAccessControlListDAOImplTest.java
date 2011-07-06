@@ -25,6 +25,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 
@@ -254,6 +255,7 @@ public class JDOAccessControlListDAOImplTest {
 						AuthorizationConstants.ACCESS_TYPE.UPDATE,
 						AuthorizationConstants.ACCESS_TYPE.CREATE
 				})));
+		String etagBeforeUpdate = acl.getEtag();
 		accessControlListDAO.update(acl);
 		
 		Collection<UserGroup> gs = new ArrayList<UserGroup>();
@@ -262,6 +264,29 @@ public class JDOAccessControlListDAOImplTest {
 		
 		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), AuthorizationConstants.ACCESS_TYPE.UPDATE));
 		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), AuthorizationConstants.ACCESS_TYPE.CREATE));
+	
+		AccessControlList acl2 = accessControlListDAO.getForResource(rid);
+		assertFalse(etagBeforeUpdate.equals(acl2.getEtag()));
+	}
+	
+	/**
+	 * Test method for {@link org.sagebionetworks.repo.model.jdo.JDOBaseDAOImpl#update(org.sagebionetworks.repo.model.Base)}.
+	 */
+	@Test
+	public void testConcurrentUpdates() throws Exception {
+		Node node = nodeList.iterator().next();
+		String rid = node.getId();
+		
+		AccessControlList acl = accessControlListDAO.getForResource(rid);
+
+		accessControlListDAO.update(acl);
+		
+		try {
+			accessControlListDAO.update(acl);
+			fail("Expected ConflictingUpdateException");
+		} catch (ConflictingUpdateException e) {
+			// as expected
+		} 
 		
 	}
 	

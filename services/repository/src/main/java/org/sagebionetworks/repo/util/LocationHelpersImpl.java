@@ -11,6 +11,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.User;
@@ -246,6 +247,8 @@ public class LocationHelpersImpl implements LocationHelper {
 		} catch (InvalidModelException e) {
 			// This should not happen but if it does it is our error, not the
 			// user's error
+			throw new DatastoreException(e);
+		} catch (ConflictingUpdateException e) {
 			throw new DatastoreException(e);
 		} catch (NotFoundException e) {
 			// This should not happen but if it does it is our error, not the
