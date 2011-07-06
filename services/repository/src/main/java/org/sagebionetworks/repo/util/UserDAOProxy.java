@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.util;
 import java.util.Collection;
 
 import org.sagebionetworks.authutil.AuthUtilConstants;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.User;
@@ -45,7 +46,7 @@ public class UserDAOProxy implements UserDAO, InitializingBean {
 
 	@Override
 	public void update(User dto) throws DatastoreException,
-			InvalidModelException, NotFoundException {
+			InvalidModelException, NotFoundException, ConflictingUpdateException {
 		userDAOImpl.update(dto);
 	}
 

@@ -226,6 +226,7 @@ public class AuthorizationManagerImplTest {
 		AccessControlList acl = accessControlListDAO.getForResource(node.getId());
 		assertNotNull(acl);
 		AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ, accessControlListDAO);
+		acl = accessControlListDAO.getForResource(node.getId());
 		AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.UPDATE, accessControlListDAO);
 		// now they should be able to access
 		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));				
@@ -234,6 +235,7 @@ public class AuthorizationManagerImplTest {
 		assertFalse(authorizationManager.canCreate(userInfo, child));
 		
 		// but give them create access to the parent
+		acl = accessControlListDAO.getForResource(node.getId());
 		AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.CREATE, accessControlListDAO);
 		// now it can
 		assertTrue(authorizationManager.canCreate(userInfo, child));

@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 import javax.jdo.JDOObjectNotFoundException;
 
 import org.sagebionetworks.repo.model.Base;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -194,12 +195,15 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 	// TODO: Need to add a locking mechanism like that used for JDONode
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void update(S dto) throws DatastoreException, InvalidModelException,
-		NotFoundException {
+		NotFoundException, ConflictingUpdateException {
 		try {
 			if (dto.getId() == null)
 				throw new InvalidModelException("id is null");
 			Long id = KeyFactory.stringToKey(dto.getId());
 			T jdo = (T) jdoTemplate.getObjectById(getJdoClass(), id);
+			if (jdo.getEtag()!=Long.parseLong(dto.getEtag())) {
+				throw new ConflictingUpdateException("Object: "+id+" was updated since you last fetched it, retrieve it again and reapply the update.");
+			}
 			copyFromDto(dto, jdo);
 			jdo.setEtag(jdo.getEtag()+1L);
 			jdoTemplate.makePersistent(jdo);
@@ -207,6 +211,8 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 			throw ime;
 		} catch (JDOObjectNotFoundException e) {
 			throw new NotFoundException(e);
+		} catch (ConflictingUpdateException cue) {
+			throw cue;
 		} catch (Exception e) {
 			throw new DatastoreException(e);
 		}

@@ -7,6 +7,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -67,7 +68,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	}
 
 	@Override
-	public AccessControlList updateACL(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException {
+	public AccessControlList updateACL(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		String rId = acl.getResourceId();
 		String benefactor = nodeInheritanceManager.getBenefactor(rId);
 		if (!benefactor.equals(rId)) throw new UnauthorizedException("Cannot update ACL for a resource which inherits its permissions.");
@@ -78,7 +79,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		// validate content
 		validateContent(acl);
 		aclDAO.update(acl);
-		return acl;
+		return aclDAO.get(acl.getId());
 	}
 
 	@Override

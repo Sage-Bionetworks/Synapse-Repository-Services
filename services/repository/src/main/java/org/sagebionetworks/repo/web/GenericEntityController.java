@@ -361,7 +361,7 @@ public interface GenericEntityController {
 	 * @throws InvalidModelException 
 	 */
 	public AccessControlList updateEntityACL(String userId, AccessControlList updated) throws 
-		DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException;
+		DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException;
 	
 
 	/**

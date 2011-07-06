@@ -474,7 +474,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 
 	@Override
 	public AccessControlList updateEntityACL(String userId,
-			AccessControlList updated) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException {
+			AccessControlList updated) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		// Resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return permissionsManager.updateACL(updated, userInfo);

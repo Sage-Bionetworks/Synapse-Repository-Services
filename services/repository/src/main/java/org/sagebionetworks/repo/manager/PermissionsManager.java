@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -44,7 +45,7 @@ public interface PermissionsManager {
 	 * 
 	 * @exception if the user invoking this method doesn't have the required authority
 	 */
-	public AccessControlList updateACL(AccessControlList acl, UserInfo userInfo)  throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException ;
+	public AccessControlList updateACL(AccessControlList acl, UserInfo userInfo)  throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException;
 	
 	/**
 	 * Invoked for a node which assigns its own permissions.  Makes
