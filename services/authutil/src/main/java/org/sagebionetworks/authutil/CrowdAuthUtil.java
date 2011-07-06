@@ -278,7 +278,9 @@ public class CrowdAuthUtil {
 		executeRequestNoResponseBody(conn, HttpStatus.NO_CONTENT, "Unable to delete "+user.getEmail());
 	}
 
-	
+	/**
+	 * Update user attributes.  If password is not null, then update that too.
+	 */
 	public void updateUser(User user) throws AuthenticationException, IOException {
 		
 		// 1) set everything except password
@@ -293,7 +295,7 @@ public class CrowdAuthUtil {
 			executeRequestNoResponseBody(conn, HttpStatus.NO_CONTENT, "Unable to update user.");
 		}
 		// 2) set password
-		{
+		if (user.getPassword()!=null) {
 			URL url = new URL(urlPrefix()+"/user/password?username="+user.getEmail());
 			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 			conn.setRequestMethod("PUT");
