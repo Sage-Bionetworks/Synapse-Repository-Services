@@ -1,7 +1,10 @@
 package org.sagebionetworks.authutil;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.Properties;
 
 import javax.mail.Message;
@@ -56,6 +59,7 @@ public class SendMail {
     private String mailUser;
     private String mailPW;
     private String mailFrom;
+    private String resetPWLink;
     
     public void sendMail(String to, String subj, String msg) {
     	sendGmail(mailhost, mailhostPort, mailUser, mailPW, mailFrom, to, subj, msg);
@@ -67,10 +71,11 @@ public class SendMail {
     	mailUser = System.getProperty("org.sagebionetworks.mailUser");
     	mailPW = System.getProperty("org.sagebionetworks.mailPW");
     	mailFrom = System.getProperty("org.sagebionetworks.mailFrom");
+    	resetPWLink = System.getProperty("org.sagebionetworks.resetPasswordLink");
 		
 		// else read default values from the properties file
         Properties props = new Properties();
-        InputStream is = CrowdAuthUtil.class.getClassLoader().getResourceAsStream("authutil.properties");
+        InputStream is = SendMail.class.getClassLoader().getResourceAsStream("authutil.properties");
         try {
         	props.load(is);
         } catch (IOException e) {
@@ -83,14 +88,35 @@ public class SendMail {
        	if (mailUser==null || mailUser.length()==0) mailUser = props.getProperty("org.sagebionetworks.mailUser");
         if (mailPW==null || mailPW.length()==0) mailPW = props.getProperty("org.sagebionetworks.mailPW");
         if (mailFrom==null || mailFrom.length()==0) mailFrom = props.getProperty("org.sagebionetworks.mailFrom");
+        if (resetPWLink==null || resetPWLink.length()==0) resetPWLink = props.getProperty("org.sagebionetworks.resetPasswordLink");
     }
     
-    public void sendResetPasswordMail(User user) {
+    public static String readMailTemplate(String fname) {
+    	try {
+	        InputStream is = SendMail.class.getClassLoader().getResourceAsStream("resetpasswordEmail.txt");
+			BufferedReader br = new BufferedReader(new InputStreamReader(is));
+			StringBuilder sb = new StringBuilder();
+			String s = br.readLine();
+			while (s!=null) {
+				sb.append(s+"\r\n");
+				s = br.readLine();
+			}
+			br.close();
+			is.close();
+			return sb.toString();
+    	} catch (IOException e) {
+    		throw new RuntimeException(e);
+    	}
+    }
+    
+    public void sendResetPasswordMail(User user, String sessionToken) {
     	// read in email template
+    	String msg = readMailTemplate("resetpasswordEmail.txt");
     	// fill in display name and user name
-    	// string.replaceAll("#username#", email)
+    	msg = msg.replaceAll("#displayname#", user.getDisplayName());
+    	msg = msg.replaceAll("#username#", user.getEmail());
+    	msg = msg.replaceAll("#link#", resetPWLink+sessionToken);
     	// fill in link, with token
-    	String msg=null;
     	sendMail(user.getEmail(), "reset Synapse password", msg);
     }
     

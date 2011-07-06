@@ -219,6 +219,12 @@ public class CrowdAuthUtil {
 		  "</user>\n";
 	}
 	
+	
+	private static String userPasswordXML(User user) {
+		return "<?xml version='1.0' encoding='UTF-8'?><password><value>"+
+			user.getPassword()+"</value></password>";
+	}
+	
 	public void createUser(User user) throws AuthenticationException, IOException {
 		// input:  userid, pw, email, fname, lname, display name
 		// POST /user
@@ -274,16 +280,28 @@ public class CrowdAuthUtil {
 
 	
 	public void updateUser(User user) throws AuthenticationException, IOException {
-		URL url = new URL(urlPrefix()+"/user?username="+user.getEmail());
-		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-		conn.setRequestMethod("PUT");
-		setHeaders(conn);
-		setBody(conn, userXML(user)+"\n");
 		
-		log.info("request body: "+userXML(user));
-
-		// Atlassian documentation says it will return 200 (OK) but it actually returns 204 (NO CONTENT)
-		executeRequestNoResponseBody(conn, HttpStatus.NO_CONTENT, "Unable to update user.");
+		// 1) set everything except password
+		{
+			URL url = new URL(urlPrefix()+"/user?username="+user.getEmail());
+			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+			conn.setRequestMethod("PUT");
+			setHeaders(conn);
+			setBody(conn, userXML(user)+"\n");
+			
+			// Atlassian documentation says it will return 200 (OK) but it actually returns 204 (NO CONTENT)
+			executeRequestNoResponseBody(conn, HttpStatus.NO_CONTENT, "Unable to update user.");
+		}
+		// 2) set password
+		{
+			URL url = new URL(urlPrefix()+"/user/password?username="+user.getEmail());
+			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+			conn.setRequestMethod("PUT");
+			setHeaders(conn);
+			setBody(conn, userPasswordXML(user)+"\n");
+			
+			executeRequestNoResponseBody(conn, HttpStatus.NO_CONTENT, "Unable to update user password.");
+		}
 }
 	
 	public void sendResetPWEmail(User user) throws AuthenticationException, IOException {
