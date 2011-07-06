@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.util;
 
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
@@ -50,8 +52,11 @@ public class AmazonIdentityManagementFactoryImpl implements AmazonIdentityManage
 		iamCanCreateUsersCreds = new BasicAWSCredentials(
 				iamCanCreateUserCredsAccessId, iamCanCreateUserCredsSecretKey);
 		
-			
-		AmazonIdentityManagement iamClient = new AmazonIdentityManagementClient(iamCanCreateUsersCreds);
+		ClientConfiguration awsClientConfig = new ClientConfiguration();
+		// The javadocs say the protocol defaults to HTTPS, but let's set it here to be on the safe side
+		awsClientConfig.setProtocol(Protocol.HTTPS);			
+		AmazonIdentityManagement iamClient = new AmazonIdentityManagementClient(iamCanCreateUsersCreds,
+				awsClientConfig);
 		
 		return iamClient;
 	}
