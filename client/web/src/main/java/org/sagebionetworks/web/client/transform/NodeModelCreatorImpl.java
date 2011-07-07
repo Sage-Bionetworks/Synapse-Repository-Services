@@ -4,13 +4,11 @@ import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.DownloadLocation;
-import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
 import org.sagebionetworks.web.shared.PagedResults;
 import org.sagebionetworks.web.shared.Project;
-import org.sagebionetworks.web.shared.exceptions.ForbiddenException;
-import org.sagebionetworks.web.shared.exceptions.UnauthorizedException;
+import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONParser;
@@ -25,56 +23,56 @@ import com.google.gwt.json.client.JSONParser;
 public class NodeModelCreatorImpl implements NodeModelCreator {
 
 	@Override
-	public Dataset createDataset(String json) throws UnauthorizedException, ForbiddenException {
+	public Dataset createDataset(String json) throws RestServiceException {
 		JSONObject obj = JSONParser.parseStrict(json).isObject();
 		DisplayUtils.checkForErrors(obj);
 		return new Dataset(obj);
 	}
 
 	@Override
-	public Layer createLayer(String json) throws UnauthorizedException, ForbiddenException {
+	public Layer createLayer(String json) throws RestServiceException {
 		JSONObject obj = JSONParser.parseStrict(json).isObject();
 		DisplayUtils.checkForErrors(obj);
 		return new Layer(obj);
 	}
 
 	@Override
-	public Annotations createAnnotations(String json) throws UnauthorizedException, ForbiddenException {
+	public Annotations createAnnotations(String json) throws RestServiceException {
 		JSONObject obj = JSONParser.parseStrict(json).isObject();
 		DisplayUtils.checkForErrors(obj);
 		return new Annotations(obj);
 	}
 
 	@Override
-	public Project createProject(String json) throws UnauthorizedException, ForbiddenException {
+	public Project createProject(String json) throws RestServiceException {
 		JSONObject obj = JSONParser.parseStrict(json).isObject();
 		DisplayUtils.checkForErrors(obj);
 		return new Project(obj);
 	}
 
 	@Override
-	public PagedResults createPagedResults(String json) throws UnauthorizedException, ForbiddenException {
+	public PagedResults createPagedResults(String json) throws RestServiceException {
 		JSONObject obj = JSONParser.parseStrict(json).isObject();
 		DisplayUtils.checkForErrors(obj);
 		return new PagedResults(obj);
 	}
 
 	@Override
-	public LayerPreview createLayerPreview(String json) throws UnauthorizedException, ForbiddenException {
+	public LayerPreview createLayerPreview(String json) throws RestServiceException {
 		JSONObject obj = JSONParser.parseStrict(json).isObject();
 		DisplayUtils.checkForErrors(obj);
 		return new LayerPreview(obj);
 	}
 
 	@Override
-	public DownloadLocation createDownloadLocation(String json) throws UnauthorizedException, ForbiddenException {
+	public DownloadLocation createDownloadLocation(String json) throws RestServiceException {
 		JSONObject obj = JSONParser.parseStrict(json).isObject();
 		DisplayUtils.checkForErrors(obj);
 		return new DownloadLocation(obj);
 	}
 
 	@Override
-	public void validate(String json) throws UnauthorizedException, ForbiddenException {
+	public void validate(String json) throws RestServiceException {
 		JSONObject obj = JSONParser.parseStrict(json).isObject();
 		DisplayUtils.checkForErrors(obj);		
 	}

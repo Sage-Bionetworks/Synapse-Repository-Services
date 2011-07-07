@@ -1,5 +1,6 @@
 package org.sagebionetworks.web.server.servlet;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -17,7 +18,11 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpMessageConverterExtractor;
+import org.springframework.web.client.RestTemplate;
 
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import com.google.inject.Inject;
@@ -292,15 +297,26 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		if(etag != null) headers.set(DisplayConstants.SERVICE_HEADER_ETAG_KEY, etag);
 		if(entityString == null) entityString = "";
 		HttpEntity<String> entity = new HttpEntity<String>(entityString, headers);
-		
-		// Make the actual call.
+		RestTemplate restTemplate = templateProvider.getTemplate();
+		//ResponseExtractor<String> responseExtractor = new MyResponseExtractor(String.class, restTemplate.getMessageConverters());		
+
+		// check every variable going into the statement such that any NullPointerExceptions are only from NO_CONTENT responses
+		if(url == null || method == null || entity == null || restTemplate == null)
+			throw new NullPointerException();
 		try {
-			ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class);
-			if (response.getStatusCode() == HttpStatus.OK) {			
+			// Make the actual call.
+			ResponseEntity<String> response = restTemplate.exchange(url, method, entity, String.class);
+			if (response.getStatusCode() == HttpStatus.OK 
+					|| response.getStatusCode() == HttpStatus.CREATED
+					|| response.getStatusCode() == HttpStatus.NO_CONTENT) {							
 				return response.getBody();
 			} else {
 				throw new UnknownError("Status code:" + response.getStatusCode().value());
 			}
+		} catch (NullPointerException ex) { 
+			// TODO : this is not ideal, but the .execute() method with a custom response extractor does not allow for passing an HttpEntity
+			// catch RestTemplate's poor handling of a NO_CONTENT response
+			return "";	
 		} catch (HttpClientErrorException ex) {
 
 //			if(ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
@@ -343,6 +359,27 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 			throw new IllegalArgumentException("Unsupported type:" + type.toString());
 		}
 		return builder;
+	}
+	
+	
+	private class MyResponseExtractor extends
+			HttpMessageConverterExtractor<String> {
+		public MyResponseExtractor(Class<String> responseType,
+				List<HttpMessageConverter<?>> messageConverters) {
+			super(responseType, messageConverters);
+		}
+
+		@Override
+		public String extractData(ClientHttpResponse response)
+				throws IOException {
+			String result;
+			if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.CREATED) {
+				result = super.extractData(response);
+			} else {
+				result = null;
+			}
+			return result;
+		}
 	}
 	
 }

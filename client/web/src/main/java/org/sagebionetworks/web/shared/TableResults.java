@@ -3,6 +3,8 @@ package org.sagebionetworks.web.shared;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.web.shared.exceptions.RestServiceException;
+
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 public class TableResults implements IsSerializable {
@@ -11,7 +13,7 @@ public class TableResults implements IsSerializable {
 	
 	private int totalNumberResults;
 	private List<Map<String, Object>> rows;
-	private Exception exception;
+	private RestServiceException exception;
 	
 	/**
 	 * We want GWT to serialize every type in this class.
@@ -43,10 +45,10 @@ public class TableResults implements IsSerializable {
 		this.values = values;
 	}
 	
-	public Exception getException() {
+	public RestServiceException getException() {
 		return exception;
 	}
-	public void setException(Exception exception) {
+	public void setException(RestServiceException exception) {
 		this.exception = exception;
 	}
 	/**

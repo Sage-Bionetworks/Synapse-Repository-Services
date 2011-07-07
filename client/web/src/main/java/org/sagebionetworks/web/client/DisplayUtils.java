@@ -1,9 +1,13 @@
 package org.sagebionetworks.web.client;
 
 
+import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.place.LoginPlace;
 import org.sagebionetworks.web.shared.exceptions.ForbiddenException;
+import org.sagebionetworks.web.shared.exceptions.NotFoundException;
+import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 import org.sagebionetworks.web.shared.exceptions.UnauthorizedException;
+import org.sagebionetworks.web.shared.exceptions.UnknownErrorException;
 
 import com.extjs.gxt.ui.client.widget.Info;
 import com.extjs.gxt.ui.client.widget.MessageBox;
@@ -41,7 +45,7 @@ public class DisplayUtils {
 		table.setHTML(row, 1, value);
 	}
 
-	public static void checkForErrors(JSONObject obj) throws UnauthorizedException, ForbiddenException {
+	public static void checkForErrors(JSONObject obj) throws RestServiceException {
 		if(obj == null) return;
 		if(obj.containsKey("error")) {
 			JSONObject errorObj = obj.get("error").isObject();
@@ -53,13 +57,17 @@ public class DisplayUtils {
 						throw new UnauthorizedException();
 					} else if(code == 403) { // FORBIDDEN
 						throw new ForbiddenException();
+					} else if (code == 404) { // NOT FOUND
+						throw new NotFoundException();
+					} else {
+						throw new UnknownErrorException("Unknown Service error. code: " + code);
 					}
 				}
 			}
 		}
 	}	
 
-	public static void handleServiceException(Exception ex, PlaceChanger placeChanger) {
+	public static void handleServiceException(RestServiceException ex, PlaceChanger placeChanger) {
 		if(ex instanceof UnauthorizedException) {
 			// send user to login page						
 			Info.display("Session Timeout", "Your session has timed out. Please login again.");
@@ -67,6 +75,9 @@ public class DisplayUtils {
 		} else if(ex instanceof ForbiddenException) {
 			// alerting here this seems kinda lame, but keeps the code out of the client
 			MessageBox.info("Unauthorized", "Sorry, there was a failure due to insufficient privledges.", null);			
+		} else if(ex instanceof NotFoundException) {
+			MessageBox.info("Not Found", "Sorrr, the requested object was not found.", null);
+			placeChanger.goTo(new Home("0"));
 		} else {
 			MessageBox.info("Unknown Error", "Sorry, an error has occured.", null);
 		}

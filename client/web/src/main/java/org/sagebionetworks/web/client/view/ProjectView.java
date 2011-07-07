@@ -31,6 +31,12 @@ public interface ProjectView extends IsWidget{
 	 */
 	public void showErrorMessage(String message);
 	
+	/**
+	 * Shows a message in the lower right of the page
+	 * @param message
+	 */
+	public void showInfo(String title, String message);
+	
 	
 	public interface Presenter {
 		
@@ -40,6 +46,11 @@ public interface ProjectView extends IsWidget{
 		public void refresh();
 
 		public PlaceChanger getPlaceChanger();
+		
+		/**
+		 * Deletes this project and redirects to the projects home page
+		 */
+		public void delete(); 
 	}
 
 }

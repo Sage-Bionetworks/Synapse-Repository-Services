@@ -28,10 +28,14 @@ import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.WhereCondition;
 
 import com.extjs.gxt.ui.client.event.ButtonEvent;
+import com.extjs.gxt.ui.client.event.Listener;
 import com.extjs.gxt.ui.client.event.MenuEvent;
+import com.extjs.gxt.ui.client.event.MessageBoxEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
 import com.extjs.gxt.ui.client.event.WindowEvent;
 import com.extjs.gxt.ui.client.event.WindowListener;
+import com.extjs.gxt.ui.client.widget.Dialog;
+import com.extjs.gxt.ui.client.widget.Info;
 import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.Window;
 import com.extjs.gxt.ui.client.widget.button.Button;
@@ -133,6 +137,10 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		MessageBox.info("Message", message, null);
 	}
 
+	@Override
+	public void showInfo(String title, String message) {
+		Info.display(title, message);
+	}
 
 	@Override
 	public void setProjectDetails(String id, String name, String description,
@@ -303,7 +311,24 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 			}
 		});
 		menu.add(item);
-		
+
+		item = new MenuItem("Delete Project");
+		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.deleteButton16()));
+		item.addSelectionListener(new SelectionListener<MenuEvent>() {
+			public void componentSelected(MenuEvent menuEvent) {
+				MessageBox.confirm("Delete Project", "Are you sure you want to delete this project?", new Listener<MessageBoxEvent>() {					
+					@Override
+					public void handleEvent(MessageBoxEvent be) { 					
+						Button btn = be.getButtonClicked();
+						if(Dialog.YES.equals(btn.getItemId())) {
+							presenter.delete();
+						}
+					}
+				});
+			}
+		});
+		menu.add(item);
+
 		return menu;
 	}
 
@@ -327,6 +352,5 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 			accessSpan.setInnerHTML("<span class=\"setting_label\">Access: </span><span class=\"setting_level\">"+ DisplayUtils.getIconHtml(icon) +" "+ accessLevel +"</span>");
 		}
 	}
-
 
 }

@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.presenter;
 
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.PlaceChanger;
+import org.sagebionetworks.web.client.place.ProjectsHome;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.view.ProjectView;
@@ -9,6 +10,8 @@ import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.Project;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 
+import com.extjs.gxt.ui.client.widget.Info;
+import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.place.shared.Place;
@@ -105,6 +108,22 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 	@Override
 	public PlaceChanger getPlaceChanger() {
 		return placeChanger;
+	}
+
+	@Override
+	public void delete() {
+		nodeService.deleteNode(NodeType.PROJECT, projectId, new AsyncCallback<Void>() {
+			@Override
+			public void onSuccess(Void result) {
+				view.showInfo("Project Deleted", "The project was successfully deleted.");
+				placeChanger.goTo(new ProjectsHome("0"));
+			}
+			
+			@Override
+			public void onFailure(Throwable caught) {
+				view.showErrorMessage("Project delete failed.");
+			}
+		});
 	}
 	
 	/*
