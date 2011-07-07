@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 import javax.servlet.ServletException;
 
 import org.json.JSONObject;
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -100,6 +101,30 @@ public class Helpers {
 		}
 		return results;
 	}
+
+		/**
+		 * Creation of JSON entities, when there is no response expected
+		 * 
+		 * @param requestUrl
+		 * @param jsonRequestContent
+		 * @throws Exception
+		 */
+		public void testCreateNoResponse(String requestUrl,
+				String jsonRequestContent) throws Exception {
+			MockHttpServletRequest request = new MockHttpServletRequest();
+			MockHttpServletResponse response = new MockHttpServletResponse();
+			request.setMethod("POST");
+			request.addHeader("Accept", "application/json");
+			request.setRequestURI(requestUrl);
+			request.addHeader("Content-Type", "application/json; charset=UTF-8");
+			request.setContent(jsonRequestContent.getBytes("UTF-8"));
+			log.info("About to send: "
+					+ new JSONObject(jsonRequestContent).toString(2));
+			servlet.service(request, response);
+			log.info("Results: " + response.getContentAsString());
+			assertEquals(HttpStatus.NO_CONTENT.value(), response.getStatus());
+		}
+
 
 	/**
 	 * @param requestUrl

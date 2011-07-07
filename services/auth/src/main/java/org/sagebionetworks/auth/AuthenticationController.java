@@ -318,13 +318,13 @@ public class AuthenticationController {
 	public void createUser(@RequestBody User user) throws Exception {
 		String itu = getIntegrationTestUser();
 		boolean isITU = (itu!=null && user.getEmail().equals(itu));
-//		if (!isITU) {
-//			user.setPassword(""+rand.nextLong());
-//		}
+		if (!isITU) {
+			user.setPassword(""+rand.nextLong());
+		}
 		crowdAuthUtil.createUser(user);
-//		if (!isITU) {
-//			crowdAuthUtil.sendResetPWEmail(user);
-//		}
+		if (!isITU) {
+			crowdAuthUtil.sendResetPWEmail(user);
+		}
 	}
 	
 
@@ -372,6 +372,22 @@ public class AuthenticationController {
 		user = crowdAuthUtil.getUser(user.getEmail());
 		// now send the reset password email, filling in the user name and session token
 		sendMail.sendResetPasswordMail(user, session.getSessionToken());
+	}
+	
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = "/userPassword", method = RequestMethod.POST)
+	public void setPassword(@RequestBody User user,
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
+		String itu = getIntegrationTestUser();
+		boolean isITU = (itu!=null && user.getEmail().equals(itu));
+
+		if (!isITU && (userId==null || !userId.equals(user.getEmail()))) 
+			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
+//		if (userId==null || !userId.equals(user.getEmail())) throw new AuthenticationException(400, "User is not authenticated.", null);
+		if (user.getPassword()==null) 			
+			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "New password is required.", null);
+
+		crowdAuthUtil.updatePassword(user);
 	}
 	
 	/**

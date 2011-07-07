@@ -22,12 +22,20 @@
     <version>1.4</version>
   </dependency>
 
-    <!-- Sage Bionetworks Dependencies -->
+    <!-- Sage Bionetworks Dependencies -->    
+    <dependency>
+	  <groupId>org.sagebionetworks</groupId>
+	  <artifactId>lib-stackConfiguration</artifactId>
+	  <version>${applicationVersion}</version>
+	</dependency>
+
     <dependency>
       <groupId>org.sagebionetworks</groupId>
       <artifactId>lib-models</artifactId>
       <version>${applicationVersion}</version>
     </dependency>
+
+    
     
    <!-- Spring Framework dependencies -->
     <dependency>

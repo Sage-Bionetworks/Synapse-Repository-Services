@@ -254,8 +254,43 @@ public class AuthenticationControllerTest {
 		
 		// special userId for testing -- no confirmation email is sent!
 		try {
+			helper.testCreateJsonEntity("/user",
+					"{"+
+					"\"email\":\""+integrationTestUserEmail+"\","+
+					 // integration testing with this special user is the only time a password may be specified
+					"\"password\":\""+integrationTestUserEmail+"\","+
+				"\"firstName\":\"New\","+
+				"\"lastName\":\"User\","+
+				"\"displayName\":\"New User\""+
+					"}");
+				
+			helper.testUpdateJsonEntity("/user",
+					"{"+
+					"\"email\":"+integrationTestUserEmail+","+
+					"\"firstName\":\"NewNEW\","+
+					"\"lastName\":\"UserNEW\","+
+					"\"displayName\":\"New NEW User\""+				
+					"}", HttpStatus.NO_CONTENT);
 			
-
+			JSONObject user = helper.testGetJsonEntity("/user");
+			assertEquals(integrationTestUserEmail, user.getString("email"));
+			assertEquals("NewNEW", user.getString("firstName"));
+			assertEquals("UserNEW", user.getString("lastName"));
+			assertEquals("New NEW User", user.getString("displayName"));
+		
+		} finally {
+			User user = new User();
+			user.setEmail(integrationTestUserEmail);
+			crowdAuthUtil.deleteUser(user);
+		}
+	}
+	
+	@Test
+	public void testCreateUserAndChangePassword() throws Exception {
+		if (!isIntegrationTest()) return;
+		
+		// special userId for testing -- no confirmation email is sent!
+		try {
 			helper.testCreateJsonEntity("/user",
 					"{"+
 					"\"email\":\""+integrationTestUserEmail+"\","+
@@ -269,28 +304,18 @@ public class AuthenticationControllerTest {
 
 			String testNewPassword = "newPassword";
 			
-			helper.testUpdateJsonEntity("/user",
+			helper.testCreateNoResponse("/userPassword",
 					"{"+
-					"\"email\":"+integrationTestUserEmail+","+
-					"\"firstName\":\"NewNEW\","+
-					"\"lastName\":\"UserNEW\","+
-					"\"displayName\":\"New NEW User\","+
+					"\"email\":\""+integrationTestUserEmail+"\","+
 					"\"password\":\""+testNewPassword+"\""+					
-					"}", HttpStatus.NO_CONTENT);
+					"}");
+
 			
-			JSONObject user = helper.testGetJsonEntity("/user");
-			assertEquals(integrationTestUserEmail, user.getString("email"));
-			assertEquals("NewNEW", user.getString("firstName"));
-			assertEquals("UserNEW", user.getString("lastName"));
-			assertEquals("New NEW User", user.getString("displayName"));
-		
 			// to check the password, we have to try to log-in
-			if (true) {
-				JSONObject session = helper.testCreateJsonEntity("/session",
-						"{\"email\":\""+integrationTestUserEmail+"\",\"password\":\""+testNewPassword+"\"}");
-				assertTrue(session.has("sessionToken"));
-				assertEquals("New NEW User", session.getString("displayName"));
-			}
+			JSONObject session = helper.testCreateJsonEntity("/session",
+					"{\"email\":\""+integrationTestUserEmail+"\",\"password\":\""+testNewPassword+"\"}");
+			assertTrue(session.has("sessionToken"));
+			assertEquals("New User", session.getString("displayName"));
 			
 		} finally {
 			User user = new User();
@@ -304,6 +329,12 @@ public class AuthenticationControllerTest {
 	@Test
 	public void testSendResetPasswordEmail() throws Exception {
 		 helper.testCreateJsonEntity("/userPasswordEmail","{\"email\":\"demouser@sagebase.org\"}", HttpStatus.NO_CONTENT);
+	}
+	
+
+	@Test
+	public void testSendEmailInvalidUser() throws Exception {
+		 helper.testCreateJsonEntity("/userPasswordEmail","{\"email\":\"foo@sagebase.org\"}", HttpStatus.BAD_REQUEST);
 	}
 	
 	class MutableBoolean {
