@@ -40,7 +40,8 @@
 	)
 	if(.getCache("debug")) {
 		message(d$value())
-		message("response: ", response)
+		message("requestBody: ", httpBody)
+		message("responseBody: ", response)
 	}
 	
 	.checkCurlResponse(curlHandle, response)

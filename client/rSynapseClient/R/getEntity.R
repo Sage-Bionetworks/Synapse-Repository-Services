@@ -1,43 +1,56 @@
-.getEntityById <- 
-		function(kind, id)
+.getEntity <- 
+		function(kind, entity)
 {
-	if(length(id) != 1){
-		stop("multiple ids provided")
+	if(missing(entity)) {
+		stop("missing entity parameter")
 	}
 	
-	uri <- paste("/", kind, id, sep = "/")
+	# entity parameter is an entity	
+	if(is.list(entity)){
+		if(!"uri" %in% names(entity)){
+			stop("the entity does not have a uri")
+		}
+		uri <- entity$uri
+	}
+	# entity parameter is an entity id
+	else {
+		if(length(entity) != 1){
+			stop("pass an entity or a single entity id to this method")
+		}
+		uri <- paste("/", kind, entity, sep = "/")
+	}	
 	
 	synapseGet(uri=uri, anonymous=FALSE)
 }
 
 # TODO can we dynamically generate these functions?
 
-getDatasetById <- 
-		function(id)
+getDataset <- 
+		function(entity)
 {
-	.getEntityById(kind="dataset", id=id)
+	.getEntity(kind="dataset", entity=entity)
 }
 
-getLayerById <- 
-		function(id)
+getLayer <- 
+		function(entity)
 {
-	.getEntityById(kind="layer", id=id)
+	.getEntity(kind="layer", entity=entity)
 }
 
-getLocationById <- 
-		function(id)
+getLocation <- 
+		function(entity)
 {
-	.getEntityById(kind="location", id=id)
+	.getEntity(kind="location", entity=entity)
 }
 
-getPreviewById <- 
-		function(id)
+getPreview <- 
+		function(entity)
 {
-	.getEntityById(kind="preview", id=id)
+	.getEntity(kind="preview", entity=entity)
 }
 
-getProjectById <- 
-		function(id)
+getProject <- 
+		function(entity)
 {
-	.getEntityById(kind="project", id=id)
+	.getEntity(kind="project", entity=entity)
 }

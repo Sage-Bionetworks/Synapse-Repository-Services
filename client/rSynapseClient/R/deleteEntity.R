@@ -1,24 +1,28 @@
-.deleteEntityById <- 
-		function(kind, id)
-{
-	if(length(id) != 1){
-		stop("multiple ids provided")
-	}
-	
-	uri <- paste("/", kind, id, sep = "/")
-	
-	## No results are returned by this
-	synapseDelete(uri=uri, anonymous=FALSE)
-}
-
 .deleteEntity <- 
 		function(kind, entity)
 {
-	if(!is.list(entity)){
-		stop("the entity must be an R list")
+	
+	if(missing(entity)) {
+		stop("missing entity parameter")
 	}
 	
-	.deleteEntityById(kind=kind, id=entity$id)
+	# entity parameter is an entity	
+	if(is.list(entity)){
+		if(!"uri" %in% names(entity)){
+			stop("the entity does not have a uri")
+		}
+		uri <- entity$uri
+	}
+	# entity parameter is an entity id
+	else {
+		if(length(entity) != 1){
+			stop("pass an entity or a single entity id to this method")
+		}
+		uri <- paste("/", kind, entity, sep = "/")
+	}	
+
+	## No results are returned by this
+	synapseDelete(uri=uri, anonymous=FALSE)
 }
 
 # TODO can we dynamically generate these functions?
@@ -51,34 +55,4 @@ deleteProject <-
 		function(entity)
 {
 	.deleteEntity(kind="project", entity=entity)
-}
-
-deleteDatasetById <- 
-		function(id)
-{
-	.deleteEntityById(kind="dataset", id=id)
-}
-
-deleteLayerById <- 
-		function(id)
-{
-	.deleteEntityById(kind="layer", id=id)
-}
-
-deleteLocationById <- 
-		function(id)
-{
-	.deleteEntityById(kind="location", id=id)
-}
-
-deletePreviewById <- 
-		function(id)
-{
-	.deleteEntityById(kind="preview", id=id)
-}
-
-deleteProjectById <- 
-		function(id)
-{
-	.deleteEntityById(kind="project", id=id)
 }

@@ -25,7 +25,7 @@
 
 integrationTestSageBioTCGACurationProjectChildEntityGet <- function() {
 	projects <- synapseQuery(query='select * from project where project.name == "SageBio TCGA Curation"')
-	project <- getProjectById(id=projects$project.id[1])
+	project <- getProject(entity=projects$project.id[1])
 	datasets <- getProjectDatasets(entity=project)
 	checkTrue(3 <= datasets$totalNumberOfResults)
 	checkTrue('coad' %in% lapply(datasets$results, function(x){x$name}))
@@ -41,12 +41,12 @@ integrationTestTcgaWorkflow <- function() {
 	
 	
 	#----- Decide whether this script wants to work on this input layer
-	dataset <- getDatasetById(id=inputDatasetId)
+	dataset <- getDataset(entity=inputDatasetId)
 	if('coad' != dataset$name) {
 		skipWorkflowTask('this script only handles TCGA colon cancer data')
 	}
 	
-	inputLayer <- getLayerById(id=inputLayerId)
+	inputLayer <- getLayer(entity=inputLayerId)
 	if('E' != inputLayer$type) {
 		skipWorkflowTask('this script only handles expression data')
 	}

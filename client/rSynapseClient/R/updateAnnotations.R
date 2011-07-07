@@ -2,6 +2,10 @@ updateAnnotations <-
 		function(annotations)
 {
 	
+	if(missing(annotations)) {
+		stop("missing annotations parameter")
+	}
+	
 	if(!is.list(annotations)){
 		stop("the annotations entity must be an R list")
 	}

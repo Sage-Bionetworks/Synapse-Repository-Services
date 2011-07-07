@@ -1,6 +1,10 @@
 .updateEntity <- 
 		function(kind, entity)
 {
+	if(missing(entity)) {
+		stop("missing entity parameter")
+	}
+	
 	if(!is.list(entity)){
 		stop("the entity must be an R list")
 	}

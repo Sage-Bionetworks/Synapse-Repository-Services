@@ -25,7 +25,7 @@ integrationTestStoreLayerData <- function() {
 	## Make an R data object that we will store in a couple different ways
 	data <- data.frame(a=1:3, b=letters[10:12],
 			c=seq(as.Date("2004-01-01"), by = "week", len = 3),
-			stringsAsFactors = TRUE)
+			stringsAsFactors = FALSE)
 	
 	##------
 	## Create a layer and use the convenience method to store an R object as a tab-delimited file
@@ -72,8 +72,8 @@ integrationTestStoreLayerData <- function() {
 	## Download all three layers and make sure they are equivalent
 	layerFiles <- loadLayerData(entity=createdLayer)
 	layer2Files <- loadLayerData(entity=createdLayer2)
-	storedLayerData <- read.table(layerFiles[[1]], sep='\t')
-	storedLayer2Data <- read.table(layer2Files[[1]], sep='\t')
+	storedLayerData <- read.table(layerFiles[[1]], sep='\t', stringsAsFactors = FALSE)
+	storedLayer2Data <- read.table(layer2Files[[1]], sep='\t', stringsAsFactors = FALSE)
 	checkEquals(storedLayerData, storedLayer2Data)	
 
 	origData <- data
@@ -84,8 +84,10 @@ integrationTestStoreLayerData <- function() {
 	# checkEquals(storedLayerData,data)
 	checkEquals(data[,1], storedLayer2Data[,1])
 
-	# Delete the dataset
-	deleteDataset(entity=createdDataset)
+	# Delete the dataset, can pass the entity or the entity id
+	deleteDataset(entity=createdDataset$id)
+	# Confirm that its gone
+	checkException(getDataset(entity=createdDataset$id))
 }
 
 
