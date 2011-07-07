@@ -14,6 +14,8 @@ import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
+import org.sagebionetworks.StackConfiguration;
+
 //http://www.mkyong.com/java/javamail-api-sending-email-via-gmail-smtp-example/
 public class SendMail {
     public static void sendGmail(
@@ -59,21 +61,18 @@ public class SendMail {
     private String mailUser;
     private String mailPW;
     private String mailFrom;
-    private String resetPWLink;
+    private String synapseURL;
+    private String resetPWURI;
     
     public void sendMail(String to, String subj, String msg) {
     	sendGmail(mailhost, mailhostPort, mailUser, mailPW, mailFrom, to, subj, msg);
     }
 
     public SendMail() {
-    	mailhost = System.getProperty("org.sagebionetworks.mailhost");
-    	String mailhostPortString = System.getProperty("org.sagebionetworks.mailhostPort");
-    	mailUser = System.getProperty("org.sagebionetworks.mailUser");
-    	mailPW = System.getProperty("org.sagebionetworks.mailPW");
-    	mailFrom = System.getProperty("org.sagebionetworks.mailFrom");
-    	resetPWLink = System.getProperty("org.sagebionetworks.resetPasswordLink");
+    	synapseURL = StackConfiguration.getPortalEndpoint();
+    	mailPW = StackConfiguration.getMailPassword();
 		
-		// else read default values from the properties file
+		// read values from the properties file
         Properties props = new Properties();
         InputStream is = SendMail.class.getClassLoader().getResourceAsStream("authutil.properties");
         try {
@@ -82,13 +81,12 @@ public class SendMail {
         	throw new RuntimeException(e);
         }
 
-        if (mailhost==null || mailhost.length()==0) mailhost = props.getProperty("org.sagebionetworks.mailhost");
-        if (mailhostPortString==null || mailhostPortString.length()==0) mailhostPortString = props.getProperty("org.sagebionetworks.mailhostPort");
+        mailhost = props.getProperty("org.sagebionetworks.mailhost");
+        String mailhostPortString = props.getProperty("org.sagebionetworks.mailhostPort");
        	if (mailhostPortString!=null) mailhostPort = Integer.parseInt(mailhostPortString);
-       	if (mailUser==null || mailUser.length()==0) mailUser = props.getProperty("org.sagebionetworks.mailUser");
-        if (mailPW==null || mailPW.length()==0) mailPW = props.getProperty("org.sagebionetworks.mailPW");
-        if (mailFrom==null || mailFrom.length()==0) mailFrom = props.getProperty("org.sagebionetworks.mailFrom");
-        if (resetPWLink==null || resetPWLink.length()==0) resetPWLink = props.getProperty("org.sagebionetworks.resetPasswordLink");
+       	mailUser = props.getProperty("org.sagebionetworks.mailUser");
+        mailFrom = props.getProperty("org.sagebionetworks.mailFrom");
+        resetPWURI = props.getProperty("org.sagebionetworks.resetPasswordURI");
     }
     
     public static String readMailTemplate(String fname) {
@@ -115,7 +113,7 @@ public class SendMail {
     	// fill in display name and user name
     	msg = msg.replaceAll("#displayname#", user.getDisplayName());
     	msg = msg.replaceAll("#username#", user.getEmail());
-    	msg = msg.replaceAll("#link#", resetPWLink+sessionToken);
+    	msg = msg.replaceAll("#link#", synapseURL+resetPWURI+sessionToken);
     	// fill in link, with token
     	sendMail(user.getEmail(), "reset Synapse password", msg);
     }

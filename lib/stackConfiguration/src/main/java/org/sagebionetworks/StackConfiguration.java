@@ -91,6 +91,13 @@ public class StackConfiguration {
 		}
 		return propertyValue;
 	}
+	
+	private static String getDecryptedProperty(String propertyName) {
+		String stackEncryptionKey = System.getProperty("org.sagebionetworks.stackEncryptionKey");
+		String encryptedProperty = getProperty(propertyName);
+		StringEncrypter se = new StringEncrypter(stackEncryptionKey);
+		return se.decrypt(encryptedProperty);
+	}
 
 	private static boolean loadProperties(String filename, Properties properties) {
 		URL propertiesLocation = StackConfiguration.class.getResource(filename);
@@ -136,5 +143,12 @@ public class StackConfiguration {
 
 	public static String getTcgaWorkflowSnsTopic() {
 		return getProperty("org.sagebionetworks.sns.topic.tcgaworkflow");
+	}
+	
+	public static String getCrowdAPIApplicationKey() {
+		return getDecryptedProperty("org.sagebionetworks.crowdApplicationKey");
+	}	
+	public static String getMailPassword() {
+		return getDecryptedProperty("org.sagebionetworks.mailPW");
 	}
 }

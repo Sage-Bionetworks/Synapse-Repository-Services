@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
+import org.sagebionetworks.StackConfiguration;
 
 public class CrowdAuthUtil {
 	private static final Logger log = Logger.getLogger(CrowdAuthUtil.class.getName());
@@ -45,11 +46,11 @@ public class CrowdAuthUtil {
 
 	public CrowdAuthUtil() {
 		// get the values from system properties, if available
-		crowdUrl = System.getProperty("org.sagebionetworks.crowdUrl");
-		apiApplication  = System.getProperty("org.sagebionetworks.crowdApplication");
-		apiApplicationKey  = System.getProperty("org.sagebionetworks.crowdApplicationKey");
+		crowdUrl = StackConfiguration.getCrowdEndpoint();
+		apiApplicationKey  = StackConfiguration.getCrowdAPIApplicationKey(); 
+					//System.getProperty("org.sagebionetworks.crowdApplicationKey");
 		
-		// else read default values from the properties file
+		// read values from the properties file
         Properties props = new Properties();
         InputStream is = CrowdAuthUtil.class.getClassLoader().getResourceAsStream("authutil.properties");
         try {
@@ -58,9 +59,7 @@ public class CrowdAuthUtil {
         	throw new RuntimeException(e);
         }
 
-        if (crowdUrl==null || crowdUrl.length()==0) crowdUrl = props.getProperty("org.sagebionetworks.crowdUrl");
-        if (apiApplication==null || apiApplication.length()==0) apiApplication = props.getProperty("org.sagebionetworks.crowdApplication");
-        if (apiApplicationKey==null || apiApplicationKey.length()==0) apiApplicationKey = props.getProperty("org.sagebionetworks.crowdApplicationKey");
+        apiApplication = props.getProperty("org.sagebionetworks.crowdApplication");
 	}
 	
 
@@ -241,8 +240,6 @@ public class CrowdAuthUtil {
 		DateFormat df = new SimpleDateFormat(AuthUtilConstants.DATE_FORMAT);
 		attributes.put(AuthUtilConstants.CREATION_DATE_FIELD, Arrays.asList(new String[]{df.format(new Date())}));
 		setUserAttributes(user.getEmail(), attributes);
-		
-//		addUserToGroup(AuthUtilConstants.PLATFORM_GROUP, user.getEmail());
 	}
 	
 	public User getUser(String userId) throws IOException {
@@ -279,12 +276,10 @@ public class CrowdAuthUtil {
 	}
 
 	/**
-	 * Update user attributes.  If password is not null, then update that too.
+	 * Update user attributes (not password).
 	 */
 	public void updateUser(User user) throws AuthenticationException, IOException {
 		
-		// 1) set everything except password
-		{
 			URL url = new URL(urlPrefix()+"/user?username="+user.getEmail());
 			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 			conn.setRequestMethod("PUT");
@@ -293,9 +288,12 @@ public class CrowdAuthUtil {
 			
 			// Atlassian documentation says it will return 200 (OK) but it actually returns 204 (NO CONTENT)
 			executeRequestNoResponseBody(conn, HttpStatus.NO_CONTENT, "Unable to update user.");
-		}
-		// 2) set password
-		if (user.getPassword()!=null) {
+	}
+	
+	/**
+	 * Update password
+	 */
+	public void updatePassword(User user) throws AuthenticationException, IOException {
 			URL url = new URL(urlPrefix()+"/user/password?username="+user.getEmail());
 			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 			conn.setRequestMethod("PUT");
@@ -303,8 +301,7 @@ public class CrowdAuthUtil {
 			setBody(conn, userPasswordXML(user)+"\n");
 			
 			executeRequestNoResponseBody(conn, HttpStatus.NO_CONTENT, "Unable to update user password.");
-		}
-}
+	}
 	
 	public void sendResetPWEmail(User user) throws AuthenticationException, IOException {
 		// POST /user/mail/password?username=USERNAME
