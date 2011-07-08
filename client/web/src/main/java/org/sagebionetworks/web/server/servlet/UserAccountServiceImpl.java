@@ -93,13 +93,18 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		
 		// Make the actual call.
 		try {
+			@SuppressWarnings("unused")
 			ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class);
+			if(response.getBody().equals("")) {
+				return;
+			}
 		} catch (UnexpectedException ex) {
 			return;
 		} catch (NullPointerException nex) {
 			// TODO : change this to properly deal with a 204!!!
 			return; // this is expected
 		}
+		
 		throw new RestClientException("An error occured. Please try again.");
 		
 //		if (response.getStatusCode() != HttpStatus.CREATED && response.getStatusCode() != HttpStatus.OK) {

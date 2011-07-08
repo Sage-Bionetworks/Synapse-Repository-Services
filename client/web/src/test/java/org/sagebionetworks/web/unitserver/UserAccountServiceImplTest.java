@@ -20,7 +20,7 @@ import org.sagebionetworks.web.server.servlet.UserAccountServiceImpl;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 import org.sagebionetworks.web.shared.users.UserData;
 import org.sagebionetworks.web.shared.users.UserRegistration;
-import org.sagebionetworks.web.util.LocalAuthStubLauncher;
+import org.sagebionetworks.web.util.LocalAuthServiceStub;
 
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.istack.logging.Logger;
@@ -65,7 +65,7 @@ public class UserAccountServiceImplTest {
 		// First setup the url
 		serviceUrl = UriBuilder.fromUri("http://"+serviceHost+"/").port(servicePort).build().toURL();
 		// Now start the container
-		selector = LocalAuthStubLauncher.startServer(serviceHost, servicePort);
+		selector = LocalAuthServiceStub.startServer(serviceHost, servicePort);
 		
 		// Create the RestProvider
 		int timeout = 1000*60*2; // 2 minute timeout
@@ -76,7 +76,7 @@ public class UserAccountServiceImplTest {
 		// Inject the required values
 		service.setRestTemplate(provider);
 		ServiceUrlProvider urlProvider = new ServiceUrlProvider();
-		urlProvider.setAuthServiceUrl(serviceUrl.toString() + "auth/v1/");		
+		urlProvider.setAuthServiceUrl(serviceUrl.toString() + "auth/v1");		
 		service.setServiceUrlProvider(urlProvider);
 	}
 	
@@ -132,7 +132,6 @@ public class UserAccountServiceImplTest {
 		dummy.setServiceUrlProvider(urlProvider);
 	}
 	
-	@Ignore
 	@Test
 	public void testCreateUser() {
 		try {
@@ -144,14 +143,13 @@ public class UserAccountServiceImplTest {
 		// assure user was actually created		
 		try {
 			UserData userData = service.initiateSession(user1.getEmail(), user1password);
-			assertEquals(userData.getUserId(), user1.getEmail());
+			assertEquals(userData.getEmail(), user1.getEmail());
 		} catch (AuthenticationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
-
-	@Ignore
+	
 	@Test
 	public void testAuthenticateUser() {
 		// try fake user
@@ -165,13 +163,12 @@ public class UserAccountServiceImplTest {
 		// auth real user
 		try {
 			UserData userdata = service.initiateSession(user1.getEmail(), user1password);
-			assertEquals(user1.getEmail(), userdata.getUserId());
+			assertEquals(user1.getEmail(), userdata.getEmail());
 		} catch (AuthenticationException e) {
 			fail("user not created properly");
 		}		
 	}
 		
-	@Ignore
 	@Test
 	public void testSendPasswordResetEmail(){
 		try {
@@ -180,8 +177,7 @@ public class UserAccountServiceImplTest {
 			fail(e.getMessage());
 		}
 	}
-	
-	@Ignore
+		
 	@Test
 	public void testTerminateSession() {
 		UserData userdata = null;

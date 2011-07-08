@@ -84,7 +84,7 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 			UserData currentUser = authenticationController.getLoggedInUser();
 			boolean isSso = false;
 			if(currentUser != null)
-				isSso = DisplayConstants.SINGLE_SIGN_ON_USERID.equals(currentUser.getUserId());
+				isSso = DisplayConstants.SINGLE_SIGN_ON_USERID.equals(currentUser.getEmail());
 			authenticationController.logoutUser();
 			view.showLogout(isSso);
 		} else if(!"0".equals(token) && !"".equals(token) && token != null) {			

@@ -10,7 +10,7 @@ import com.google.gwt.user.client.rpc.IsSerializable;
 public class UserData implements IsSerializable {
 	
 	// The internal user id.
-	private String userId;
+	private String email;
 	// The display name for this user.
 	private String userName;
 	// The user's token
@@ -26,7 +26,7 @@ public class UserData implements IsSerializable {
 		List<String> cookieList = CookieUtils.createListFromString(cookieString);
 		if(cookieList.size() == 3) {
 			validateFields(cookieList.get(0), cookieList.get(1), cookieList.get(2));
-			this.userId = cookieList.get(0);
+			this.email = cookieList.get(0);
 			this.userName = cookieList.get(1);
 			this.token = cookieList.get(2);
 		} else {
@@ -34,9 +34,9 @@ public class UserData implements IsSerializable {
 		}
 	}
 	
-	public UserData(String userId, String userName, String token) {
-		validateFields(userId, userName, token);
-		this.userId = userId;
+	public UserData(String email, String userName, String token) {
+		validateFields(email, userName, token);
+		this.email = email;
 		this.userName = userName;
 		this.token = token;
 	}
@@ -45,7 +45,7 @@ public class UserData implements IsSerializable {
 	public String getCookieString() {
 		// Add the fileds to a list
 		List<String> fieldList = new ArrayList<String>();
-		fieldList.add(userId);
+		fieldList.add(email);
 		fieldList.add(userName);
 		fieldList.add(token);
 		return CookieUtils.createStringFromList(fieldList);
@@ -56,10 +56,10 @@ public class UserData implements IsSerializable {
 		return new UserData(fieldList.get(0), fieldList.get(1), fieldList.get(2));
 	}	
 
-	public String getUserId() {
-		return userId;
+	public String getEmail() {
+		return email;
 	}
-
+	
 	public String getUserName() {
 		return userName;
 	}
@@ -73,7 +73,7 @@ public class UserData implements IsSerializable {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((token == null) ? 0 : token.hashCode());
-		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
+		result = prime * result + ((email == null) ? 0 : email.hashCode());
 		result = prime * result
 				+ ((userName == null) ? 0 : userName.hashCode());
 		return result;
@@ -93,10 +93,10 @@ public class UserData implements IsSerializable {
 				return false;
 		} else if (!token.equals(other.token))
 			return false;
-		if (userId == null) {
-			if (other.userId != null)
+		if (email == null) {
+			if (other.email != null)
 				return false;
-		} else if (!userId.equals(other.userId))
+		} else if (!email.equals(other.email))
 			return false;
 		if (userName == null) {
 			if (other.userName != null)
@@ -109,8 +109,8 @@ public class UserData implements IsSerializable {
 	/*
 	 * Private Methods
 	 */
-	private void validateFields(String userId, String userName, String token) {
-		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+	private void validateFields(String email, String userName, String token) {
+		if(email == null) throw new IllegalArgumentException("email cannot be null");
 		if(userName == null) throw new IllegalArgumentException("UserName cannot be null");
 		if(token == null) throw new IllegalArgumentException("Token cannot be null");
 	}

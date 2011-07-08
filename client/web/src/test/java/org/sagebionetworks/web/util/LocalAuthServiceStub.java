@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -35,7 +36,7 @@ import com.sun.jersey.api.container.grizzly.GrizzlyWebContainerFactory;
  *
  */
 @Path("/auth/v1")
-public class LocalAuthStubLauncher {
+public class LocalAuthServiceStub {
 	
 	private static List<User> users = new ArrayList<User>();
 	private static Map<String, User> sessions = new LinkedHashMap<String, User>();
@@ -43,14 +44,15 @@ public class LocalAuthStubLauncher {
 	@POST 
 	@Consumes("application/json")@Produces("application/json")
 	@Path("/user")
-	public void createUser(UserRegistration userInfo) {
+	public String createUser(UserRegistration userInfo) {
 		users.add(new User(userInfo.getEmail(), userInfo.getEmail(), userInfo.getFirstName(), userInfo.getLastName(), userInfo.getDisplayName()));
+		return "";
 	}
 	
 	@PUT
 	@Consumes("application/json")@Produces("application/json")
 	@Path("/user")
-	public void updateUser(UserRegistration updatedUser) {
+	public String updateUser(UserRegistration updatedUser) {
 		boolean found = false;
 		String userId = updatedUser.getEmail();
 		for(User user : users) {
@@ -64,11 +66,14 @@ public class LocalAuthStubLauncher {
 		if(!found) {
 			throw new BadRequestException();			
 		}
+		return "";
 	}
 
 	@POST
+	@Consumes("application/json")@Produces("application/json")
 	@Path("/userPasswordEmail")
-	public void sendPasswordChangeEmail(@QueryParam("userId") String userId) {
+	public String sendPasswordChangeEmail(@QueryParam("userId") String userId) {		
+		return "";
 	}
 		
 	@POST
@@ -76,7 +81,7 @@ public class LocalAuthStubLauncher {
 	@Path("/session")
 	public UserSession initiateSession(UserLogin userLogin) throws BadRequestException {
 		User foundUser = null;
-		String userId = userLogin.getUserId();
+		String userId = userLogin.getEmail();
 		for(User user : users) {
 			if(userId.equals(user.userId)) {
 				foundUser = user;
@@ -96,27 +101,31 @@ public class LocalAuthStubLauncher {
 	}
 	
 	@PUT
+	@Consumes("application/json")@Produces("application/json")
 	@Path("/session")
-	public void refreshSession(@QueryParam("sessionToken") String token) throws NotFoundException {
+	public String refreshSession(@QueryParam("sessionToken") String token) throws NotFoundException {
 		if(!sessions.containsKey(token)) { 
 			throw new NotFoundException();
 		}
+		return "";
 	}
 	
-	@PUT
+	@DELETE
 	@Consumes("application/json")@Produces("application/json")
 	@Path("/session")
-	public void terminateSession(String token) {
+	public String terminateSession(@QueryParam("sessionToken") String token) {
 		if(sessions.containsKey(token)) { 
 			sessions.remove(token);
 		}
+		return "";
 	}
 	
 	@GET
 	@Path("/clear/all")
-	public void clearAll() {
+	public boolean clearAll() {
 		sessions.clear();
 		users.clear();
+		return true;
 	}
 	
 	
@@ -132,7 +141,7 @@ public class LocalAuthStubLauncher {
 		
 		final Map<String, String> initParams = new HashMap<String, String>();
 		// Map this package as the service entry point.
-		initParams.put("com.sun.jersey.config.property.packages", LocalAuthStubLauncher.class.getPackage().getName());
+		initParams.put("com.sun.jersey.config.property.packages", LocalAuthServiceStub.class.getPackage().getName());
 		// Turn on the JSON marshaling
 		initParams.put("com.sun.jersey.api.json.POJOMappingFeature", "true");
 		System.out.println("Starting grizzly...");

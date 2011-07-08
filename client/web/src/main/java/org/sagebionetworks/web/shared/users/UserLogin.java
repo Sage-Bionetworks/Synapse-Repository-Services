@@ -4,23 +4,23 @@ import com.google.gwt.user.client.rpc.IsSerializable;
 
 public class UserLogin implements IsSerializable {
 
-	private String userId;
+	private String email;
 	private String password;
 	
 	public UserLogin() { 		
 	}	
 	
-	public UserLogin(String userId, String password) {
+	public UserLogin(String email, String password) {
 		super();
-		this.userId = userId;
+		this.email = email;
 		this.password = password;
 	}
 
-	public String getUserId() {
-		return userId;
+	public String getEmail() {
+		return email;
 	}
-	public void setUserId(String userId) {
-		this.userId = userId;
+	public void setEmail(String email) {
+		this.email = email;
 	}
 	public String getPassword() {
 		return password;
@@ -35,7 +35,7 @@ public class UserLogin implements IsSerializable {
 		int result = 1;
 		result = prime * result
 				+ ((password == null) ? 0 : password.hashCode());
-		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
+		result = prime * result + ((email == null) ? 0 : email.hashCode());
 		return result;
 	}
 
@@ -53,17 +53,17 @@ public class UserLogin implements IsSerializable {
 				return false;
 		} else if (!password.equals(other.password))
 			return false;
-		if (userId == null) {
-			if (other.userId != null)
+		if (email == null) {
+			if (other.email != null)
 				return false;
-		} else if (!userId.equals(other.userId))
+		} else if (!email.equals(other.email))
 			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "UserLogin [userId=" + userId + ", password=" + password + "]";
+		return "UserLogin [email=" + email + ", password=" + password + "]";
 	}	
 	
 }
