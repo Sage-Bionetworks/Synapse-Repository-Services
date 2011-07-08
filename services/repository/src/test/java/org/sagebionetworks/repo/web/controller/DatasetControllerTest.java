@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -164,6 +165,65 @@ public class DatasetControllerTest {
 		assertEquals("MouseX", storedDataset.getString("name"));
 	}
 
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	@Ignore
+	public void testChangeDatasetParentID() throws Exception {
+		// Load up a few datasets
+		//testCreateJsonEntity takes a requestURL, and JSON content
+		//and it returns a JSONObject, but not collection return value
+		//just creating a more realistic environment
+		//object can be a dataset or project
+		helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
+				"{\"name\":\"DeLiver\"}");
+		helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
+				"{\"name\":\"Harvard Brain\"}");
+		
+		//making a new JSONObject where the name is MouseCross
+		JSONObject newDataset = helper.testCreateJsonEntity(helper
+				.getServletPrefix()
+				+ "/dataset", "{\"name\":\"MouseCross\"}");
+		
+		//make a new JSONObject/projct where name is ContainerForProject
+		JSONObject newProject = helper.testCreateJsonEntity(helper
+				.getServletPrefix()
+				+ "/project", "{\"name\":\"ContainerForProject\"}");
+		
+		// make object
+		//here is where we will make changes, specifically adding the id
+		//from the project
+		JSONObject dataset = helper.testGetJsonEntity(newDataset
+				.getString("uri"));
+		assertEquals(newDataset.getString("id"), dataset.getString("id"));
+		assertEquals("MouseCross", dataset.getString("name"));
+		
+		//here we want to change our new "dataset" so it has a parentID
+		//of the project we just created
+		dataset.put("parentId", newProject.get("id"));
+		
+		//now check if the "put" worked
+		//and see if it has the correct parentId
+		JSONObject updatedDataset = helper.testUpdateJsonEntity(dataset);
+		assertExpectedDatasetProperties(updatedDataset);
+		
+		//check that parentID value sent over was not null
+		assertTrue(updatedDataset.get("parentId") != null);
+		
+		//check that update response reflects the change
+		assertEquals(newProject.get("id"), updatedDataset.get("parentId"));
+		
+		//now make sure change is reflected back in stored object
+		JSONObject storedDataset = helper.testGetJsonEntity(newDataset
+				.getString("uri"));
+		assertEquals(newProject.get("id"), storedDataset.get("parentId"));		
+	}
+	
 	/**
 	 * Test method for
 	 * {@link org.sagebionetworks.repo.web.controller.DatasetController#updateEntity}
