@@ -30,7 +30,8 @@ import org.sagebionetworks.client.Synapse;
 public class WikiGenerator {
 
 	/**
-	 * Expose the prefix so that if/when this is used as a test, assertions know what to look for
+	 * Expose the prefix so that if/when this is used as a test, assertions know
+	 * what to look for
 	 */
 	public static final String ERROR_PREFIX = "WikiGenerator Failure: ";
 
@@ -41,7 +42,7 @@ public class WikiGenerator {
 	private static final String LOGIN_URI = "/session";
 	private static final String LOGIN_REQUEST_ENTITY = "{\"email\":\"me@myEmail.com\", \"password\":\"thisIsAFakePassword\"}";
 	private static final String LOGIN_RESPONSE_ENTITY = "{\"displayName\":\"MyFirstName MyLastName\",\"sessionToken\":\"XXXXXXXXXXXX\"}";
-	
+
 	private Synapse synapse;
 	private String repoEndpoint;
 	private String repoLocation;
@@ -51,7 +52,7 @@ public class WikiGenerator {
 	private String authPrefix;
 	private String username;
 	private String password;
-	
+
 	private int numErrors = 0;
 
 	private static final Map<String, String> defaultGETDELETEHeaders;
@@ -154,7 +155,7 @@ public class WikiGenerator {
 
 		this.username = username;
 		this.password = password;
-		
+
 		synapse = new Synapse();
 		synapse.setRepositoryEndpoint(this.repoEndpoint);
 		synapse.setAuthEndpoint(this.authEndpoint);
@@ -168,9 +169,10 @@ public class WikiGenerator {
 	 * 
 	 * @param wikiHeading
 	 * @param wikiDetails
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	public void doLogin(String wikiHeading, String wikiDetails) throws Exception {
+	public void doLogin(String wikiHeading, String wikiDetails)
+			throws Exception {
 		log.info("");
 		log.info("");
 		log.info(wikiHeading);
@@ -182,24 +184,26 @@ public class WikiGenerator {
 
 		JSONObject requestEntity = new JSONObject(LOGIN_REQUEST_ENTITY);
 		JSONObject responseEntity = new JSONObject(LOGIN_RESPONSE_ENTITY);
-		
+
 		String curl = "curl -i ";
 		for (Entry<String, String> header : requestHeaders.entrySet()) {
 			curl += " -H " + header.getKey() + ":" + header.getValue();
 		}
-		curl += " -d '" +  requestEntity.toString(JSON_INDENT) +"' "
+		curl += " -d '" + requestEntity.toString(JSON_INDENT) + "' "
 				+ authEndpoint + LOGIN_URI + "{code}";
 		log.info("*Request* {code}" + curl);
 		log.info("*Response* {code}");
 
 		try {
 			synapse.login(username, password);
-			log
-					.info(responseEntity.toString(JSON_INDENT) + "{code}");
+			log.info(responseEntity.toString(JSON_INDENT) + "{code}");
 		} catch (Exception e) {
 			numErrors++;
 			log.info(ERROR_PREFIX, e);
 			log.info("{code}");
+			// TODO maybe we only want to fail the wikigenerator for some
+			// exceptions, right now we are failing for all
+			throw e;
 		}
 	}
 
@@ -244,8 +248,10 @@ public class WikiGenerator {
 			numErrors++;
 			log.info(ERROR_PREFIX, e);
 			log.info("{code}");
+			// TODO maybe we only want to fail the wikigenerator for some
+			// exceptions, right now we are failing for all
+			throw e;
 		}
-		return null;
 	}
 
 	/**
@@ -291,8 +297,10 @@ public class WikiGenerator {
 			numErrors++;
 			log.info(ERROR_PREFIX, e);
 			log.info("{code}");
+			// TODO maybe we only want to fail the wikigenerator for some
+			// exceptions, right now we are failing for all
+			throw e;
 		}
-		return null;
 	}
 
 	/**
@@ -338,8 +346,10 @@ public class WikiGenerator {
 			numErrors++;
 			log.info(ERROR_PREFIX, e);
 			log.info("{code}");
+			// TODO maybe we only want to fail the wikigenerator for some
+			// exceptions, right now we are failing for all
+			throw e;
 		}
-		return null;
 	}
 
 	/**
@@ -381,8 +391,10 @@ public class WikiGenerator {
 			numErrors++;
 			log.info(ERROR_PREFIX, e);
 			log.info("{code}");
+			// TODO maybe we only want to fail the wikigenerator for some
+			// exceptions, right now we are failing for all
+			throw e;
 		}
-		return;
 	}
 
 	/**

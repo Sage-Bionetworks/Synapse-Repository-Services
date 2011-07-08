@@ -73,13 +73,15 @@ public class Synapse {
 	 * 
 	 * @param username
 	 * @param password
-	 * @throws JSONException 
-	 * @throws SynapseServiceException 
-	 * @throws SynapseUserException 
-	 * @throws IOException 
-	 * @throws HttpException 
+	 * @throws JSONException
+	 * @throws SynapseServiceException
+	 * @throws SynapseUserException
+	 * @throws IOException
+	 * @throws HttpException
 	 */
-	public void login(String username, String password) throws JSONException, HttpException, IOException, SynapseUserException, SynapseServiceException {
+	public void login(String username, String password) throws JSONException,
+			HttpException, IOException, SynapseUserException,
+			SynapseServiceException {
 		JSONObject loginRequest = new JSONObject();
 		loginRequest.put("email", username);
 		loginRequest.put("password", password);
@@ -110,13 +112,15 @@ public class Synapse {
 	 * @param uri
 	 * @param entity
 	 * @return the newly created entity
-	 * @throws SynapseServiceException 
-	 * @throws SynapseUserException 
-	 * @throws JSONException 
-	 * @throws IOException 
-	 * @throws HttpException 
+	 * @throws SynapseServiceException
+	 * @throws SynapseUserException
+	 * @throws JSONException
+	 * @throws IOException
+	 * @throws HttpException
 	 */
-	public JSONObject createEntity(String uri, JSONObject entity) throws HttpException, IOException, JSONException, SynapseUserException, SynapseServiceException {
+	public JSONObject createEntity(String uri, JSONObject entity)
+			throws HttpException, IOException, JSONException,
+			SynapseUserException, SynapseServiceException {
 		return createSynapseEntity(repoEndpoint, uri, entity);
 	}
 
@@ -131,7 +135,8 @@ public class Synapse {
 	 * @throws IOException
 	 * @throws HttpException
 	 */
-	public JSONObject getEntity(String uri) throws HttpException, IOException, JSONException, SynapseUserException, SynapseServiceException {
+	public JSONObject getEntity(String uri) throws HttpException, IOException,
+			JSONException, SynapseUserException, SynapseServiceException {
 		return getSynapseEntity(repoEndpoint, uri);
 	}
 
@@ -150,14 +155,16 @@ public class Synapse {
 	 * @param uri
 	 * @param entity
 	 * @return the updated entity
-	 * @throws SynapseServiceException 
-	 * @throws SynapseUserException 
-	 * @throws JSONException 
-	 * @throws IOException 
-	 * @throws HttpException 
+	 * @throws SynapseServiceException
+	 * @throws SynapseUserException
+	 * @throws JSONException
+	 * @throws IOException
+	 * @throws HttpException
 	 */
 	@SuppressWarnings("unchecked")
-	public JSONObject updateEntity(String uri, JSONObject entity) throws HttpException, IOException, JSONException, SynapseUserException, SynapseServiceException {
+	public JSONObject updateEntity(String uri, JSONObject entity)
+			throws HttpException, IOException, JSONException,
+			SynapseUserException, SynapseServiceException {
 		return updateSynapseEntity(repoEndpoint, uri, entity);
 	}
 
@@ -220,13 +227,15 @@ public class Synapse {
 	 * @param uri
 	 * @param entity
 	 * @return the newly created entity
-	 * @throws SynapseServiceException 
-	 * @throws SynapseUserException 
-	 * @throws JSONException 
-	 * @throws IOException 
-	 * @throws HttpException 
+	 * @throws SynapseServiceException
+	 * @throws SynapseUserException
+	 * @throws JSONException
+	 * @throws IOException
+	 * @throws HttpException
 	 */
-	public JSONObject createAuthEntity(String uri, JSONObject entity) throws HttpException, IOException, JSONException, SynapseUserException, SynapseServiceException {
+	public JSONObject createAuthEntity(String uri, JSONObject entity)
+			throws HttpException, IOException, JSONException,
+			SynapseUserException, SynapseServiceException {
 		return createSynapseEntity(authEndpoint, uri, entity);
 	}
 
@@ -478,18 +487,25 @@ public class Synapse {
 			int statusCode = 500; // assume a service exception
 			statusCode = e.getMethod().getStatusCode();
 			String response = e.getMethod().getResponseBodyAsString();
-			results = new JSONObject(response);
-			if (log.isDebugEnabled()) {
-				log.debug("Retrieved " + requestUrl + " : "
-						+ results.toString(JSON_INDENT));
-			}
+			try {
+				results = new JSONObject(response);
+				if (log.isDebugEnabled()) {
+					log.debug("Retrieved " + requestUrl + " : "
+							+ results.toString(JSON_INDENT));
+				}
 
-			if ((400 <= statusCode) && (500 > statusCode)) {
-				throw new SynapseUserException("User Error(" + statusCode
+				if ((400 <= statusCode) && (500 > statusCode)) {
+					throw new SynapseUserException("User Error(" + statusCode
+							+ "): " + results.getString("reason"));
+				}
+				throw new SynapseServiceException("Service Error(" + statusCode
 						+ "): " + results.getString("reason"));
+			} catch (JSONException jsonEx) {
+				// swallow the JSONException since its not the real problem and
+				// return the response as-is since it is not JSON
+				throw new SynapseServiceException("Service Error(" + statusCode
+						+ "): " + response);
 			}
-			throw new SynapseServiceException("Service Error(" + statusCode
-					+ "): " + results.getString("reason"));
 		} // end catch
 
 		return results;
