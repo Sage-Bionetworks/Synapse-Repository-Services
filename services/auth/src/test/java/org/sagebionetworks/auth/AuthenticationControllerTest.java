@@ -17,6 +17,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.authutil.User;
@@ -52,7 +53,6 @@ public class AuthenticationControllerTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
-		System.setProperty("org.sagebionetworks.mailPW", "xxxxx"); // << can't check in passwords to SVN
 		//DispatcherServlet servlet = 
 			helper.setUp();
 		CrowdAuthUtil.acceptAllCertificates2();
@@ -365,11 +365,14 @@ public class AuthenticationControllerTest {
 				}
 			};
 			thread.start();
+			long start = System.currentTimeMillis();
 			try {
 				thread.join(5000L); // time out after 5 sec
+//				thread.join(20000L); // time out
 			} catch (InterruptedException ie) {
 				// as expected
 			}
+//			System.out.println(""+i+": done after "+(System.currentTimeMillis()-start)+" ms.");
 			assertTrue("Failed or timed out after "+i+" iterations.", b.get()); // should have been set to 'true' if successful
 		}
 	}

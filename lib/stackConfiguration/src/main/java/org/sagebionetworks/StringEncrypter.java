@@ -9,13 +9,13 @@ import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.DESKeySpec;
 import javax.crypto.spec.DESedeKeySpec;
+
+import org.apache.commons.codec.binary.Base64;
 
 public class StringEncrypter {
 	
 	public static final String DESEDE_ENCRYPTION_SCHEME = "DESede";
-	public static final String DES_ENCRYPTION_SCHEME = "DES";
 	
 	private KeySpec				keySpec;
 	private SecretKeyFactory	keyFactory;
@@ -35,13 +35,11 @@ public class StringEncrypter {
 		System.out.println(args[0]+" -> "+se.encrypt(args[0]));
 	}
 
-	public StringEncrypter(String encryptionKey )
-	{
+	public StringEncrypter(String encryptionKey ) {
 		this(DESEDE_ENCRYPTION_SCHEME, encryptionKey);
 	}
 
-		public StringEncrypter( String encryptionScheme, String encryptionKey )
-	{
+		public StringEncrypter( String encryptionScheme, String encryptionKey ) {
 
 		if ( encryptionKey == null )
 				throw new IllegalArgumentException( "encryption key was null" );
@@ -49,20 +47,17 @@ public class StringEncrypter {
 				throw new IllegalArgumentException(
 						"encryption key was less than 24 characters" );
 
-		try
-		{
+		try {
 			byte[] keyAsBytes = encryptionKey.getBytes( UNICODE_FORMAT );
 
-			if ( encryptionScheme.equals( DESEDE_ENCRYPTION_SCHEME) )
-			{
+			if ( encryptionScheme.equals( DESEDE_ENCRYPTION_SCHEME) ) {
 				keySpec = new DESedeKeySpec( keyAsBytes );
 			}
-			else if ( encryptionScheme.equals( DES_ENCRYPTION_SCHEME ) )
-			{
-				keySpec = new DESKeySpec( keyAsBytes );
-			}
-			else
-			{
+//			else if ( encryptionScheme.equals( DES_ENCRYPTION_SCHEME ) )
+//			{
+//				keySpec = new DESKeySpec( keyAsBytes );
+//			}
+			else {
 				throw new IllegalArgumentException( "Encryption scheme not supported: "
 													+ encryptionScheme );
 			}
@@ -70,21 +65,13 @@ public class StringEncrypter {
 			keyFactory = SecretKeyFactory.getInstance( encryptionScheme );
 			cipher = Cipher.getInstance( encryptionScheme );
 
-		}
-		catch (InvalidKeyException e)
-		{
+		} catch (InvalidKeyException e)	{
 			throw new RuntimeException( e );
-		}
-		catch (UnsupportedEncodingException e)
-		{
+		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException( e );
-		}
-		catch (NoSuchAlgorithmException e)
-		{
+		} catch (NoSuchAlgorithmException e) {
 			throw new RuntimeException( e );
-		}
-		catch (NoSuchPaddingException e)
-		{
+		} catch (NoSuchPaddingException e) {
 			throw new RuntimeException( e );
 		}
 
@@ -95,20 +82,14 @@ public class StringEncrypter {
 				throw new IllegalArgumentException(
 						"unencrypted string was null or empty" );
 
-		try
-		{
+		try {
 			SecretKey key = keyFactory.generateSecret( keySpec );
 			cipher.init( Cipher.ENCRYPT_MODE, key );
 			byte[] cleartext = unencryptedString.getBytes( UNICODE_FORMAT );
 			byte[] ciphertext = cipher.doFinal( cleartext );
 
-			//BASE64Encoder base64encoder = new BASE64Encoder();
-			//return base64encoder.encode( ciphertext );
-			return Base64.encodeBytes(ciphertext);
-			//return new String(ciphertext);
-		}
-		catch (Exception e)
-		{
+			return new String(Base64.encodeBase64(ciphertext));
+		} catch (Exception e) {
 			throw new RuntimeException( e );
 		}
 	}
@@ -117,39 +98,29 @@ public class StringEncrypter {
 		if ( encryptedString == null || encryptedString.trim().length() <= 0 )
 				throw new IllegalArgumentException( "encrypted string was null or empty" );
 
-		try
-		{
+		try {
 			SecretKey key = keyFactory.generateSecret( keySpec );
 			cipher.init( Cipher.DECRYPT_MODE, key );
-			//BASE64Decoder base64decoder = new BASE64Decoder();
-			//byte[] cleartext = base64decoder.decodeBuffer( encryptedString );
-			byte[] cleartext = Base64.decode(encryptedString);
+			byte[] cleartext = Base64.decodeBase64(encryptedString.getBytes());
 
-			//byte[] cleartext = encryptedString.getBytes();
 			byte[] ciphertext = cipher.doFinal( cleartext );
 
 			return bytes2String( ciphertext );
-		}
-		catch (Exception e)
-		{
+		} catch (Exception e) {
 			throw new RuntimeException( e );
 		}
 	}
 
-	private static String bytes2String( byte[] bytes )
-	{
+	private static String bytes2String( byte[] bytes ) {
 		StringBuffer stringBuffer = new StringBuffer();
-		for (int i = 0; i < bytes.length; i++)
-		{
+		for (int i = 0; i < bytes.length; i++) {
 			stringBuffer.append( (char) bytes[i] );
 		}
 		return stringBuffer.toString();
 	}
 
-	public static class EncryptionException extends Exception
-	{
-		public EncryptionException( Throwable t )
-		{
+	public static class EncryptionException extends Exception {
+		public EncryptionException( Throwable t ) {
 			super( t );
 		}
 	}

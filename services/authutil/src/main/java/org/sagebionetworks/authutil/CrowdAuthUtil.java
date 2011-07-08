@@ -37,6 +37,8 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.sagebionetworks.StackConfiguration;
 
+import org.apache.commons.codec.binary.Base64;
+
 public class CrowdAuthUtil {
 	private static final Logger log = Logger.getLogger(CrowdAuthUtil.class.getName());
 
@@ -95,7 +97,7 @@ public class CrowdAuthUtil {
 		conn.setRequestProperty("Accept", "application/xml");
 		conn.setRequestProperty("Content-Type", "application/xml");
 		String authString=apiApplication+":"+apiApplicationKey;
-		conn.setRequestProperty("Authorization", "Basic "+Base64.encodeBytes(authString.getBytes())); 
+		conn.setRequestProperty("Authorization", "Basic "+new String(Base64.encodeBase64(authString.getBytes()))); 
 	}
 	
 	public static void setBody(HttpURLConnection conn, String body) {
