@@ -28,8 +28,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
  */
 public class CrowdUserDAO implements UserDAO {
 	
-	private CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
-
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.BaseDAO#create(org.sagebionetworks.repo.model.Base)
 	 */
@@ -67,7 +65,7 @@ public class CrowdUserDAO implements UserDAO {
 		if (dto.getIamAccessId()!=null) userAttributes.put(IAM_ACCESS_ID_FIELD, Arrays.asList(new String[]{dto.getIamAccessId()}));
 		if (dto.getIamSecretKey()!=null) userAttributes.put(IAM_SECRET_KEY_FIELD, Arrays.asList(new String[]{dto.getIamSecretKey()}));
 		try {
-			crowdAuthUtil.setUserAttributes(dto.getUserId(), userAttributes);
+			(new CrowdAuthUtil()).setUserAttributes(dto.getUserId(), userAttributes);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -95,7 +93,7 @@ public class CrowdUserDAO implements UserDAO {
 		if (AuthUtilConstants.ANONYMOUS_USER_ID.equals(userName)) return user;
 		Map<String,Collection<String>> userAttrValues = null;
 		try {
-			userAttrValues = crowdAuthUtil.getUserAttributes(userName);
+			userAttrValues = (new CrowdAuthUtil()).getUserAttributes(userName);
 		} catch (NotFoundException nfe) {
 			throw nfe;
 		} catch (Exception e) {
@@ -128,7 +126,7 @@ public class CrowdUserDAO implements UserDAO {
 	@Override
 	public Collection<String> getUserGroupNames(String userName) throws NotFoundException, DatastoreException {
 		try {
-			return crowdAuthUtil.getUsersGroups(userName);
+			return (new CrowdAuthUtil()).getUsersGroups(userName);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

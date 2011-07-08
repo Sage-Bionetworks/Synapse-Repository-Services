@@ -38,7 +38,7 @@ public class AuthenticationControllerTest {
 	private Helpers helper = new Helpers();
 	//private DispatcherServlet servlet;
 		
-	private CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
+	private CrowdAuthUtil crowdAuthUtil = null;
 	
 	private boolean isIntegrationTest() {
 		String integrationTestEndpoint = System.getProperty("INTEGRATION_TEST_ENDPOINT");
@@ -53,6 +53,8 @@ public class AuthenticationControllerTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
+		if (!isIntegrationTest()) return;
+		crowdAuthUtil = new CrowdAuthUtil();
 		//DispatcherServlet servlet = 
 			helper.setUp();
 		CrowdAuthUtil.acceptAllCertificates2();
@@ -328,12 +330,14 @@ public class AuthenticationControllerTest {
 	@Ignore
 	@Test
 	public void testSendResetPasswordEmail() throws Exception {
+		if (!isIntegrationTest()) return;
 		 helper.testCreateJsonEntity("/userPasswordEmail","{\"email\":\"demouser@sagebase.org\"}", HttpStatus.NO_CONTENT);
 	}
 	
 
 	@Test
 	public void testSendEmailInvalidUser() throws Exception {
+		if (!isIntegrationTest()) return;
 		 helper.testCreateJsonEntity("/userPasswordEmail","{\"email\":\"foo@sagebase.org\"}", HttpStatus.BAD_REQUEST);
 	}
 	
