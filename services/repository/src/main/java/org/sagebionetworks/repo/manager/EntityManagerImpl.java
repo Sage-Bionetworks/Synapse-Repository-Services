@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -47,7 +48,14 @@ public class EntityManagerImpl implements EntityManager {
 		
 		// TODO refactor me per PLFM-215
 		if("layerlocation".equals(node.getNodeType())) {
-			modifyTypeSpecificMetadataBeforePersist((LayerLocation) newEntity, nodeId);
+			// TODO horrible hack here, not sure how to get the node with the default version label filled in
+			// Node createdNode = nodeManager.get(userInfo, nodeId);
+			String versionLabel = ((LayerLocation) newEntity).getVersionLabel();
+			if(null == versionLabel) { versionLabel = NodeConstants.DEFAULT_VERSION_LABEL; }
+			Node createdNode = new Node();
+			createdNode.setId(nodeId);
+			createdNode.setVersionLabel(versionLabel);
+			modifyTypeSpecificMetadataBeforePersist((LayerLocation) newEntity, createdNode);
 		}
 		
 		// Now get the annotations for this node
@@ -190,7 +198,7 @@ public class EntityManagerImpl implements EntityManager {
 
 		// TODO refactor me per PLFM-215
 		if("layerlocation".equals(node.getNodeType())) {
-			modifyTypeSpecificMetadataBeforePersist((LayerLocation)updated, updated.getId());
+			modifyTypeSpecificMetadataBeforePersist((LayerLocation)updated, node);
 		}
 		
 		// Now get the annotations for this node
@@ -280,17 +288,15 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.getAllVersionNumbersForNode(userInfo, entityId);
 	}
 
-	private void modifyTypeSpecificMetadataBeforePersist(LayerLocation location, String nodeId) {
-		// TODO PLFM-212
+	private void modifyTypeSpecificMetadataBeforePersist(LayerLocation location, Node node) {
 		// Ensure that awss3 locations are unique by prepending the user-supplied path with a system-controlled prefix
-		// Potential unique S3 URL Scheme:
-		// - location id
-		// - location version
-		// - path
+		// - location id (unique per synapse stack)
+		// - location version (unique per location)
+		// - user-supplied path
 		if(location.getType().equals(
 				LayerLocation.LocationTypeNames.awss3.toString())) {
 
-			String pathPrefix = "/" + nodeId;
+			String pathPrefix = "/" + node.getId() + "/" + node.getVersionLabel();
 
 			// If this is an update, the user may or may not have changed the path member of this object
 			if(!location.getPath().startsWith(pathPrefix)) {

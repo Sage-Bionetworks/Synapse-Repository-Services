@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOBlobAnnotation;
@@ -70,7 +71,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(dto == null) throw new IllegalArgumentException("Node cannot be null");
 		JDORevision rev = new JDORevision();
 		// Set the default label
-		rev.setLabel("0.0.0");
+		rev.setLabel(NodeConstants.DEFAULT_VERSION_LABEL);
 		rev.setRevisionNumber(new Long(1));
 		JDONode node = new JDONode();
 		node.setCurrentRevNumber(rev.getRevisionNumber());
