@@ -23,6 +23,11 @@ public class NodeConstants {
 	/**
 	 * The name of the type column.
 	 */
-	public static String COLUMN_LAYER_TYPE = "type";
+	public static final String COLUMN_LAYER_TYPE = "type";
+	
+	/**
+	 * The default versionLabel for nodes
+	 */
+	public static final String DEFAULT_VERSION_LABEL = "0.0.0";
 	
 }

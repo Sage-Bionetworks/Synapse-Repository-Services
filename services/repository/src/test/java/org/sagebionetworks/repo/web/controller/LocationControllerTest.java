@@ -105,8 +105,7 @@ public class LocationControllerTest {
 
 		String s3key = "/"
 			+ results.getString("id") + "/"
-			// PLFM-212
-			// TODO + results.getString("version") + "/"
+			+ results.getString("versionLabel") + "/"
 			+ "unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz";
 
 		assertTrue(0 < results.getString("path").indexOf(s3key));
@@ -198,8 +197,7 @@ public class LocationControllerTest {
 
 		String s3key = "/"
 			+ updatedLocation.getString("id") + "/"
-			// PLFM-212
-			// TODO + results.getString("version") + "/"
+			+ updatedLocation.getString("versionLabel") + "/"
 			+ "unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.zip";
 
 		// Check that the update response reflects the change
