@@ -41,15 +41,6 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 	private static Logger logger = Logger.getLogger(NodeServiceImpl.class
 			.getName());
 
-	public static final String PATH_DATASET = "dataset";
-	public static final String PATH_LAYER = "layer";
-	public static final String PATH_PROJECT = "project";
-	public static final String ANNOTATIONS_PATH = "annotations";
-	public static final String PREVIEW_PATH = "preview";
-	public static final String LOCATION_PATH = "location";
-	
-	public static final String PATH_SCHEMA = "schema";
-	public static final String PATH_ACL = "acl"; 	
 	
 	private RestTemplateProvider templateProvider = null;
 	private ServiceUrlProvider urlProvider;
@@ -95,9 +86,9 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		validateService();
 		
 		// Build up the path
-		StringBuilder builder = getBaseUrlBuilder(type);
+		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/");
-		builder.append(PATH_SCHEMA);		
+		builder.append(ServiceUtils.PATH_SCHEMA);		
 		String url = builder.toString();		
 		logger.info("GET: " + url);
 		return getJsonStringForUrl(url, HttpMethod.GET);
@@ -109,7 +100,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		validateService();
 		
 		// Build up the path
-		StringBuilder builder = getBaseUrlBuilder(type);
+		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/");
 		builder.append(id);		
 		String url = builder.toString();		
@@ -122,7 +113,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		validateService();
 		
 		// Build up the path
-		StringBuilder builder = getBaseUrlBuilder(type);		 		
+		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);		 		
 		String url = builder.toString();		
 		return getJsonStringForUrl(url, HttpMethod.POST, propertiesJson);
 	}
@@ -133,7 +124,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		validateService();
 		
 		// Build up the path
-		StringBuilder builder = getBaseUrlBuilder(type);
+		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
 		String url = builder.toString();		
 		return getJsonStringForUrl(url, HttpMethod.PUT, propertiesJson, eTag);
@@ -145,7 +136,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		validateService();
 		
 		// Build up the path
-		StringBuilder builder = getBaseUrlBuilder(type);
+		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
 		String url = builder.toString();		
 		getJsonStringForUrl(url, HttpMethod.DELETE);
@@ -154,9 +145,9 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 	@Override
 	public String getNodeAnnotationsJSON(NodeType type, String id) {
 		// Build up the path
-		StringBuilder builder = getBaseUrlBuilder(type);
+		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
-		builder.append("/" + ANNOTATIONS_PATH);
+		builder.append("/" + ServiceUtils.ANNOTATIONS_PATH);
 		String url = builder.toString();	
 		return getJsonStringForUrl(url, HttpMethod.GET);
 	}
@@ -164,9 +155,9 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 	@Override
 	public String getNodePreview(NodeType type, String id) {
 		// Build up the path
-		StringBuilder builder = getBaseUrlBuilder(type);
+		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
-		builder.append("/" + PREVIEW_PATH);
+		builder.append("/" + ServiceUtils.PREVIEW_PATH);
 		String url = builder.toString();	
 		return getJsonStringForUrl(url, HttpMethod.GET);
 	}
@@ -174,9 +165,9 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 	@Override
 	public String getNodeLocations(NodeType type, String id) {
 		// Build up the path
-		StringBuilder builder = getBaseUrlBuilder(type);
+		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
-		builder.append("/" + LOCATION_PATH);
+		builder.append("/" + ServiceUtils.LOCATION_PATH);
 		String url = builder.toString();	
 		return getJsonStringForUrl(url, HttpMethod.GET);
 	}
@@ -188,9 +179,9 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		validateService();
 		
 		// Build up the path
-		StringBuilder builder = getBaseUrlBuilder(type);
+		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
-		builder.append("/" + ANNOTATIONS_PATH);
+		builder.append("/" + ServiceUtils.ANNOTATIONS_PATH);
 		String url = builder.toString();		
 		return getJsonStringForUrl(url, HttpMethod.PUT, annotationsJson, etag);
 	}
@@ -199,9 +190,9 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 	@Override
 	public String getNodeAclJSON(NodeType type, String id) {
 		// Build up the path
-		StringBuilder builder = getBaseUrlBuilder(type);
+		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
-		builder.append("/" + PATH_ACL);
+		builder.append("/" + ServiceUtils.PATH_ACL);
 		String url = builder.toString();	
 		return getJsonStringForUrl(url, HttpMethod.GET);
 	}
@@ -212,9 +203,9 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		validateService();
 		
 		// Build up the path
-		StringBuilder builder = getBaseUrlBuilder(type);
+		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
-		builder.append("/" + PATH_ACL);
+		builder.append("/" + ServiceUtils.PATH_ACL);
 		String url = builder.toString();		
 		
 		// convert 
@@ -245,9 +236,9 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		validateService();
 		
 		// Build up the path
-		StringBuilder builder = getBaseUrlBuilder(type);
+		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
-		builder.append("/" + PATH_ACL);
+		builder.append("/" + ServiceUtils.PATH_ACL);
 		String url = builder.toString();		
 		
 		return getJsonStringForUrl(url, HttpMethod.PUT, aclJson, etag);	
@@ -259,9 +250,9 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		validateService();
 		
 		// Build up the path
-		StringBuilder builder = getBaseUrlBuilder(type);
+		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
-		builder.append("/" + PATH_ACL);
+		builder.append("/" + ServiceUtils.PATH_ACL);
 		String url = builder.toString();		
 
 		return getJsonStringForUrl(url, HttpMethod.DELETE);		
@@ -340,28 +331,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 			}
 		}		
 	}
-	
-	private StringBuilder getBaseUrlBuilder(NodeType type) {
-		StringBuilder builder = new StringBuilder();
-		builder.append(urlProvider.getBaseUrl());
-		// set path based on type
-		switch(type) {
-		case DATASET:
-			builder.append(PATH_DATASET);
-			break;
-		case PROJECT:
-			builder.append(PATH_PROJECT);
-			break;
-		case LAYER:
-			builder.append(PATH_LAYER);
-			break;
-		default:
-			throw new IllegalArgumentException("Unsupported type:" + type.toString());
-		}
-		return builder;
-	}
-	
-	
+		
 	private class MyResponseExtractor extends
 			HttpMessageConverterExtractor<String> {
 		public MyResponseExtractor(Class<String> responseType,

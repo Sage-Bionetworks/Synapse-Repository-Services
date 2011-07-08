@@ -2,7 +2,9 @@ package org.sagebionetworks.web.server.servlet;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import org.codehaus.jettison.json.JSONArray;
@@ -11,8 +13,9 @@ import org.codehaus.jettison.json.JSONObject;
 import org.sagebionetworks.web.client.UserAccountService;
 import org.sagebionetworks.web.client.security.AuthenticationException;
 import org.sagebionetworks.web.server.RestTemplateProvider;
-import org.sagebionetworks.web.server.ServerConstants;
+import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
+import org.sagebionetworks.web.shared.users.AclAccessType;
 import org.sagebionetworks.web.shared.users.AclPrincipal;
 import org.sagebionetworks.web.shared.users.UserData;
 import org.sagebionetworks.web.shared.users.UserRegistration;
@@ -29,7 +32,6 @@ import org.springframework.web.client.RestClientException;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import com.google.gwt.user.server.rpc.UnexpectedException;
 import com.google.inject.Inject;
-import com.google.inject.name.Named;
 
 public class UserAccountServiceImpl extends RemoteServiceServlet implements UserAccountService {
 
@@ -42,6 +44,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 	private static final String REFRESH_SESSION_PATH = "session";
 	private static final String GET_USERS_PATH = "user";
 	private static final String GET_GROUPS_PATH = "userGroup";
+	private static final String HAS_ACCESS_PATH = "access";
 
 	private static final String ACL_PRINCIPAL_NAME = "name";
 	private static final String ACL_PRINCIPAL_ID = "id";
@@ -49,10 +52,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 	private static final String ACL_PRINCIPAL_URI = "uri";
 	private static final String ACL_PRINCIPAL_ETAG = "etag";
 	private static final String ACL_PRINCIPAL_INDIVIDUAL = "individual";
-	
-	private String synapseWebUrl;
-	private String authServiceUrl;
-	
+		
 	/**
 	 * The template is injected with Gin
 	 */
@@ -97,7 +97,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		}
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + SEND_PASSWORD_CHANGE_PATH;
+		String url = urlProvider.getAuthBaseUrl() + "/" + SEND_PASSWORD_CHANGE_PATH;
 		String jsonString = obj.toString();
 		
 		// Setup the header
@@ -139,7 +139,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		}
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + INITIATE_SESSION_PATH;
+		String url = urlProvider.getAuthBaseUrl() + "/" + INITIATE_SESSION_PATH;
 		String jsonString = obj.toString();
 		
 		// Setup the header
@@ -186,7 +186,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		}
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + CREATE_USER_PATH;
+		String url = urlProvider.getAuthBaseUrl() + "/" + CREATE_USER_PATH;
 		String jsonString = obj.toString();
 		
 		// Setup the header
@@ -211,7 +211,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		validateService();
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + TERMINATE_SESSION_PATH;
+		String url = urlProvider.getAuthBaseUrl() + "/" + TERMINATE_SESSION_PATH;
 		String jsonString = "{\"sessionToken\":\""+ sessionToken + "\"}";
 		
 		logger.info("DELETE: " + url + ", JSON: " + jsonString);
@@ -246,7 +246,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		}
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + REFRESH_SESSION_PATH;
+		String url = urlProvider.getAuthBaseUrl() + "/" + REFRESH_SESSION_PATH;
 		String jsonString = obj.toString();
 		
 		// Setup the header
@@ -273,8 +273,8 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 	public List<AclPrincipal> getAllUsers() {
 		// Build up the path
 		StringBuilder builder = new StringBuilder();
-		builder.append(urlProvider.getBaseUrl());
-		builder.append("/" + GET_USERS_PATH);
+		builder.append(urlProvider.getBaseUrl() + "/");
+		builder.append(GET_USERS_PATH);
 		String url = builder.toString();	
 		String userList = getJsonStringForUrl(url, HttpMethod.GET);
 		return generateAclPrincipals(userList);
@@ -285,8 +285,8 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 	public List<AclPrincipal> getAllGroups() {
 		// Build up the path
 		StringBuilder builder = new StringBuilder();
-		builder.append(urlProvider.getBaseUrl());
-		builder.append("/" + GET_GROUPS_PATH);
+		builder.append(urlProvider.getBaseUrl() + "/");
+		builder.append(GET_GROUPS_PATH);
 		String url = builder.toString();	
 		String groupList = getJsonStringForUrl(url, HttpMethod.GET);
 		return generateAclPrincipals(groupList);
@@ -302,6 +302,86 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		return all;
 	}
 
+	@Override
+	public boolean hasAccess(NodeType resourceType, String resourceId, AclAccessType accessType) {
+		// Build up the path
+		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, resourceType);
+		builder.append("/" + resourceId);	
+		builder.append("/" + HAS_ACCESS_PATH);
+		String url = builder.toString();	
+		HttpMethod method = HttpMethod.GET;
+
+		JSONObject obj = new JSONObject();
+		try {
+			obj.put("accessType", accessType.toString());			
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		String requestJson = obj.toString();
+		Map<String, String> map = new HashMap<String, String>();
+		map.put("accessType", accessType.toString());
+		
+		// First make sure the service is ready to go.
+		validateService();
+		
+		logger.info(method.toString() + ": " + url);
+		
+		// Setup the header
+		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<String>(requestJson, headers);
+		
+		// Make the actual call.
+		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class, map);
+
+		if (response.getStatusCode() == HttpStatus.OK) {			
+			String responseStr = response.getBody();			
+			try {
+				JSONObject result = new JSONObject(responseStr);
+				if(result.has("result")) {
+					return result.getBoolean("result");
+				} else {				
+					return false;
+				}
+			} catch (JSONException e) {				
+				throw new UnknownError("Malformed response");				
+			}
+		} else {
+			// TODO: better error handling
+			throw new UnknownError("Status code:"
+					+ response.getStatusCode().value());
+		}		
+	}
+
+	@Override
+	public String getAuthServiceUrl() {
+		return urlProvider.getAuthBaseUrl();
+	}
+
+	@Override
+	public String getSynapseWebUrl() {
+		return urlProvider.getPortalBaseUrl();
+	}
+
+	/**
+	 * Validate that the service is ready to go. If any of the injected data is
+	 * missing then it cannot run. Public for tests.
+	 */
+	public void validateService() {
+		if (templateProvider == null)
+			throw new IllegalStateException(
+					"The org.sagebionetworks.web.server.RestTemplateProvider was not injected into this service");
+		if (templateProvider.getTemplate() == null)
+			throw new IllegalStateException(
+					"The org.sagebionetworks.web.server.RestTemplateProvider returned a null template");
+		if (urlProvider == null)
+			throw new IllegalStateException(
+					"The org.sagebionetworks.rest.api.root.url was not set");
+	}
+
+	
 	/*
 	 * Private Methods
 	 */
@@ -362,48 +442,6 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 			}			
 		}
 		return principals;
-	}
-
-	
-	/**
-	 * Validate that the service is ready to go. If any of the injected data is
-	 * missing then it cannot run. Public for tests.
-	 */
-	public void validateService() {
-		if (templateProvider == null)
-			throw new IllegalStateException(
-					"The org.sagebionetworks.web.server.RestTemplateProvider was not injected into this service");
-		if (templateProvider.getTemplate() == null)
-			throw new IllegalStateException(
-					"The org.sagebionetworks.web.server.RestTemplateProvider returned a null template");
-		if (urlProvider == null)
-			throw new IllegalStateException(
-					"The org.sagebionetworks.rest.api.root.url was not set");
-	}
-
-	@Override
-	public String getAuthServiceUrl() {
-		return authServiceUrl;
-	}
-
-	@Override
-	public String getSynapseWebUrl() {
-		return synapseWebUrl;
-	}
-	
-	
-	/*
-	 * Property Injection
-	 */
-	@Inject
-	public void setSynapseEndpoint(@Named(ServerConstants.KEY_SYNAPSE_WEB_ENDPOINT) String synapseWebEndpoint) {
-		this.synapseWebUrl = synapseWebEndpoint;
-	}
-
-	@Inject
-	public void setAuthServiceEndpoint(@Named(ServerConstants.KEY_AUTH_API_ENDPOINT) String endpoint, @Named(ServerConstants.KEY_AUTH_API_SERVLET_PREFIX) String prefix) {
-		this.authServiceUrl = endpoint + prefix;
-	}
-
+	}	
 	
 }

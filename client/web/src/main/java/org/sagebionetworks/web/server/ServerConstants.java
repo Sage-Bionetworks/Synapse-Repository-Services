@@ -37,31 +37,5 @@ public class ServerConstants {
 	 * The property key that tell what FilterEnumeration.xml file to load.
 	 */
 	public static final String KEY_FILTER_ENUMERATION_CONFIG_XML_FILE = "org.sagebionetworks.fileter.enumeration.xml.resource";
-	
-	
-	/**
-	 * The property key that tells where the rest API service endpoint is.
-	 */
-	public static final String KEY_REST_API_ENDPOINT = "org.sagebionetworks.rest.api.endpoint";
-	
-	/**
-	 * The property key for the rest api servlet prefix.
-	 */
-	public static final String KEY_REST_API_SERVLET_PREFIX = "org.sagebionetworks.rest.api.servlet.prefix";
-	
-	/**
-	 * The property key that tells where the auth API service endpoint is.
-	 */
-	public static final String KEY_AUTH_API_ENDPOINT = "org.sagebionetworks.auth.api.endpoint";
-	
-	/**
-	 * The property key for the auth api servlet prefix.
-	 */
-	public static final String KEY_AUTH_API_SERVLET_PREFIX = "org.sagebionetworks.auth.api.servlet.prefix";
-	
-	/**
-	 * The property key that gives the Synapse Web endpoint
-	 */
-	public static final String KEY_SYNAPSE_WEB_ENDPOINT = "org.sagebionetworks.synapse.web.endpoint";
-
+			
 }

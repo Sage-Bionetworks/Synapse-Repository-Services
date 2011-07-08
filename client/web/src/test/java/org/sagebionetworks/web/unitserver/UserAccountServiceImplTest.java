@@ -76,8 +76,7 @@ public class UserAccountServiceImplTest {
 		// Inject the required values
 		service.setRestTemplate(provider);
 		ServiceUrlProvider urlProvider = new ServiceUrlProvider();
-		urlProvider.setAuthEndpoint(serviceUrl.toString());
-		urlProvider.setAuthPrefix("auth/v1/");
+		urlProvider.setAuthServiceUrl(serviceUrl.toString() + "auth/v1/");		
 		service.setServiceUrlProvider(urlProvider);
 	}
 	
@@ -129,8 +128,7 @@ public class UserAccountServiceImplTest {
 		}
 		// After setting the url it should pass validation.
 		ServiceUrlProvider urlProvider = new ServiceUrlProvider();
-		urlProvider.setRestEndpoint(serviceUrl.toString());
-		urlProvider.setServletPrefix("repo/v1");
+		urlProvider.setRepositoryServiceUrl(serviceUrl.toString() + "repo/v1/");		
 		dummy.setServiceUrlProvider(urlProvider);
 	}
 	

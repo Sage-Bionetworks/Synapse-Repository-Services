@@ -78,7 +78,7 @@ public class ProjectServiceImpl extends RemoteServiceServlet implements
 		validateService();
 		// Build up the path
 		StringBuilder builder = new StringBuilder();
-		builder.append(urlProvider.getBaseUrl());
+		builder.append(urlProvider.getBaseUrl() + "/");
 		builder.append(PATH_PROJECT);
 		// the values to the keys
 		Map<String, String> map = new HashMap<String, String>();

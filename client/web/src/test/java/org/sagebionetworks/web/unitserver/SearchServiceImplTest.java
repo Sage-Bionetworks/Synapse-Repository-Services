@@ -85,8 +85,7 @@ public class SearchServiceImplTest {
 		service.setColunConfigProvider(columnConfigProvider);
 		service.setRestTemplate(provider);
 		ServiceUrlProvider urlProvider = new ServiceUrlProvider();
-		urlProvider.setRestEndpoint(serviceUrl.toString());
-		urlProvider.setServletPrefix("repo/v1/");
+		urlProvider.setRepositoryServiceUrl(serviceUrl.toString() + "repo/v1");		
 		service.setServiceUrlProvider(urlProvider);
 	}
 	

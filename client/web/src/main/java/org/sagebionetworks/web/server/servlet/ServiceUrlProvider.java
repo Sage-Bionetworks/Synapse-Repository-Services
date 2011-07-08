@@ -4,6 +4,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.logging.Logger;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.web.server.ServerConstants;
 
 import com.google.inject.Inject;
@@ -18,97 +19,88 @@ import com.google.inject.name.Named;
 public class ServiceUrlProvider {
 	
 	private static Logger logger = Logger.getLogger(ServiceUrlProvider.class.getName());
-	private String restEndpoint;
-	private String restServletPrefix;
-	private String authEndpoint;
-	private String authServletPrefix;
-	private String baseUrl = null;
-	private String authBaseUrl = null;
-
-	/**
-	 * Injected via Guice from the ServerConstants.properties file.
-	 * 
-	 * @param url
-	 */
-	@Inject
-	public void setRestEndpoint(@Named(ServerConstants.KEY_REST_API_ENDPOINT) String endpoint) {
-		this.restEndpoint = endpoint;
-		logger.info("rest endpoint: " + endpoint);
-	}
-
-	/**
-	 * Injected via Guice from the ServerConstants.properties file.
-	 * 
-	 * @param url
-	 */
-	@Inject
-	public void setAuthEndpoint(@Named(ServerConstants.KEY_AUTH_API_ENDPOINT) String endpoint) {
-		this.authEndpoint = endpoint;
-		logger.info("auth endpoint: " + endpoint);
-	}
-
-	/**
-	 * Injected via Guice from the ServerConstants.properties file.
-	 * 
-	 * @param url
-	 */
-	@Inject
-	public void setServletPrefix(@Named(ServerConstants.KEY_REST_API_SERVLET_PREFIX) String prefix) {
-		this.restServletPrefix = prefix;
-		logger.info("rest prefix: " + prefix);
-	}
+	private String repositoryServiceUrl = StackConfiguration.getRepositoryServiceEndpoint();
+	private String authServiceUrl = StackConfiguration.getAuthenticationServiceEndpoint();
+	private String portalBaseUrl = StackConfiguration.getPortalEndpoint();
 	
 	/**
-	 * Injected via Guice from the ServerConstants.properties file.
-	 * 
-	 * @param url
-	 */
-	@Inject
-	public void setAuthPrefix(@Named(ServerConstants.KEY_AUTH_API_SERVLET_PREFIX) String prefix) {
-		this.authServletPrefix = prefix;
-		logger.info("auth prefix: " + prefix);
-	}
-	
-	/**
-	 * The base url = restEndpoint + restServletPrefix
+	 * The repository service url 
 	 * @return
 	 * @throws URISyntaxException 
 	 */
 	public String getBaseUrl() {
-		if(baseUrl == null){
-			if(this.restEndpoint == null) throw new IllegalArgumentException("The property: "+ServerConstants.KEY_REST_API_ENDPOINT+" must be set");
-			if(this.restServletPrefix == null) throw new IllegalArgumentException("The property: "+ServerConstants.KEY_REST_API_SERVLET_PREFIX+" must be set");
-			baseUrl = this.restEndpoint+this.restServletPrefix;
-			logger.info("Base rest url: " + baseUrl);
+		if(repositoryServiceUrl == null){
+			logger.info("Repository Service URL: " + repositoryServiceUrl);
 			// Make sure it is a valid url
 			try {
-				new URI(baseUrl);
+				new URI(repositoryServiceUrl);
 			} catch (URISyntaxException e) {
 				 throw new IllegalArgumentException(e);
 			}
 		}
-		return baseUrl;
+		return repositoryServiceUrl;
 	}
 
 	/**
-	 * The auth base url = authEndpoint + authServletPrefix
+	 * The auth service url
 	 * @return
 	 * @throws URISyntaxException 
 	 */
 	public String getAuthBaseUrl() {
-		if(authBaseUrl == null){
-			if(this.authEndpoint == null) throw new IllegalArgumentException("The property: "+ServerConstants.KEY_AUTH_API_ENDPOINT+" must be set");
-			if(this.authServletPrefix == null) throw new IllegalArgumentException("The property: "+ServerConstants.KEY_AUTH_API_SERVLET_PREFIX+" must be set");
-			authBaseUrl = this.authEndpoint+this.authServletPrefix;
-			logger.info("Base auth url: " + baseUrl);
+		if(authServiceUrl == null){
+			logger.info("Auth Service URL: " + repositoryServiceUrl);
 			// Make sure it is a valid url
 			try {
-				new URI(authBaseUrl);
+				new URI(authServiceUrl);
 			} catch (URISyntaxException e) {
 				 throw new IllegalArgumentException(e);
 			}
 		}
-		return authBaseUrl;
+		return authServiceUrl;
 	}
+
+	/**
+	 * The portal (this GWT project) endpoint
+	 * @return
+	 * @throws URISyntaxException 
+	 */
+	public String getPortalBaseUrl() {
+		if(portalBaseUrl == null){
+			logger.info("Portal Base URL: " + portalBaseUrl);
+			// Make sure it is a valid url
+			try {
+				new URI(portalBaseUrl);
+			} catch (URISyntaxException e) {
+				 throw new IllegalArgumentException(e);
+			}
+		}
+		return portalBaseUrl;
+	}
+
+	
+	/**
+	 * For testing purposes
+	 * @param repositoryServiceUrl
+	 */
+	public void setRepositoryServiceUrl(String repositoryServiceUrl) {
+		this.repositoryServiceUrl = repositoryServiceUrl;
+	}
+
+	/**
+	 * For testing purposes
+	 * @param authServiceUrl
+	 */
+	public void setAuthServiceUrl(String authServiceUrl) {
+		this.authServiceUrl = authServiceUrl;
+	}
+
+	/**
+	 * For testing purposes
+	 * @param portalBaseUrl
+	 */
+	public void setPortalBaseUrl(String portalBaseUrl) {
+		this.portalBaseUrl = portalBaseUrl;
+	}
+
 
 }
