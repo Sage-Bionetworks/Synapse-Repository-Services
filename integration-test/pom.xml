@@ -147,6 +147,7 @@
 							<org.sagebionetworks.mockCrowdDAOClass>org.sagebionetworks.repo.manager.TestUserDAO</org.sagebionetworks.mockCrowdDAOClass>
 							<!-- Tells the authentication filter to allow this user through without really authenticating -->
 							<org.sagebionetworks.integrationTestUser>admin</org.sagebionetworks.integrationTestUser>
+							<org.sagebionetworks.stackEncryptionKey>${settings.org.sagebionetworks.stackEncryptionKey}</org.sagebionetworks.stackEncryptionKey>
 						</systemProperties>
 					</container>
 					<configuration>
