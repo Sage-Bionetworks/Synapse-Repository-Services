@@ -50,9 +50,6 @@ public class AuthenticationController {
 	private static Long cacheTimeout = null;
 	private static Date lastCacheDump = null;
 	
-	private CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
-	private SendMail sendMail = new SendMail();
-	
 //	   a special userId that's used for integration testing
 //	   we need a way to specify a 'back door' userId for integration testing
 //	   the authentication servlet
@@ -120,7 +117,7 @@ public class AuthenticationController {
 				session = sessionCache.get(credentials);
 			}
 			if (session==null) { // not using cache or not found in cache
-				session = crowdAuthUtil.authenticate(credentials, true);
+				session = (new CrowdAuthUtil()).authenticate(credentials, true);
 				if (cacheTimeout>0) {
 					sessionCache.put(credentials, session);
 				}
@@ -231,6 +228,7 @@ public class AuthenticationController {
 			credentials.setEmail(email);
 
 			Map<String,Collection<String>> attrs = null;
+			CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 			try {
 				attrs = new HashMap<String,Collection<String>>(crowdAuthUtil.getUserAttributes(email));
 			} catch (NotFoundException nfe) {
@@ -287,12 +285,15 @@ public class AuthenticationController {
 	@RequestMapping(value = "/session", method = RequestMethod.PUT)
 	public @ResponseBody
 	void revalidate(@RequestBody Session session) throws Exception {
-			crowdAuthUtil.revalidate(session.getSessionToken());
+		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
+		crowdAuthUtil.revalidate(session.getSessionToken());
 	}
 
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/session", method = RequestMethod.DELETE)
 	public void deauthenticate(@RequestBody Session session) throws Exception {
+			CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
+
 			crowdAuthUtil.deauthenticate(session.getSessionToken());
 
 			if (cacheTimeout>0) { // if using cache
@@ -316,6 +317,8 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/user", method = RequestMethod.POST)
 	public void createUser(@RequestBody User user) throws Exception {
+		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
+
 		String itu = getIntegrationTestUser();
 		boolean isITU = (itu!=null && user.getEmail().equals(itu));
 		if (!isITU) {
@@ -331,6 +334,8 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/user", method = RequestMethod.GET)
 	public @ResponseBody User getUser(@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
+
+		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 		String itu = getIntegrationTestUser();
 		if (itu!=null && userId==null) userId=itu;
 		if (AuthUtilConstants.ANONYMOUS_USER_ID.equals(userId)) 
@@ -345,6 +350,8 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/user", method = RequestMethod.DELETE)
 	public void deleteUser(@RequestBody User user) throws Exception {
+		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
+
 		String itu = getIntegrationTestUser();
 		boolean isITU = (itu!=null && user.getEmail().equals(itu));
 		if (!isITU) throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not allowed outside of integration testing.", null);
@@ -355,6 +362,8 @@ public class AuthenticationController {
 	@RequestMapping(value = "/user", method = RequestMethod.PUT)
 	public void updateUser(@RequestBody User user,
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
+		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
+
 		String itu = getIntegrationTestUser();
 		boolean isITU = (itu!=null && user.getEmail().equals(itu));
 
@@ -366,11 +375,14 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/userPasswordEmail", method = RequestMethod.POST)
 	public void sendChangePasswordEmail(@RequestBody User user) throws Exception {
+		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
+
 		// need a session token
 		Session session = crowdAuthUtil.authenticate(user, false);
 		// need the rest of the user's fields
 		user = crowdAuthUtil.getUser(user.getEmail());
 		// now send the reset password email, filling in the user name and session token
+		SendMail sendMail = new SendMail();
 		sendMail.sendResetPasswordMail(user, session.getSessionToken());
 	}
 	
@@ -378,6 +390,8 @@ public class AuthenticationController {
 	@RequestMapping(value = "/userPassword", method = RequestMethod.POST)
 	public void setPassword(@RequestBody User user,
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
+		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
+
 		String itu = getIntegrationTestUser();
 		boolean isITU = (itu!=null && user.getEmail().equals(itu));
 

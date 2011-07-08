@@ -26,6 +26,7 @@ public class CrowdUserDAOTest {
 	
 	@Before
 	public void setUp() throws Exception {
+		if (!isIntegrationTest()) return;
 		CrowdAuthUtil.acceptAllCertificates2();
 		userDAO = new CrowdUserDAO();
 	}

@@ -20,7 +20,12 @@ import org.junit.Test;
 public class CrowdAuthenticationFilterTest {
 	private final Map<String,String> filterParams = new HashMap<String, String>();
 	
-	private CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
+	private CrowdAuthUtil crowdAuthUtil = null;
+
+	private boolean isIntegrationTest() {
+		String integrationTestEndpoint = System.getProperty("INTEGRATION_TEST_ENDPOINT");
+		return (integrationTestEndpoint!=null && integrationTestEndpoint.length()>0);
+	}
 
 
 	/**
@@ -28,6 +33,8 @@ public class CrowdAuthenticationFilterTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
+		if (!isIntegrationTest()) return;
+		crowdAuthUtil = new CrowdAuthUtil();
 		filterParams.clear();
 		filterParams.put("allow-anonymous", "true");
 	}
@@ -38,6 +45,7 @@ public class CrowdAuthenticationFilterTest {
 
 	@Test
 	public void test() throws Exception {
+		if (!isIntegrationTest()) return;
 
 		CrowdAuthenticationFilter f = new CrowdAuthenticationFilter();
 		f.init(new FilterConfig() {
@@ -59,6 +67,7 @@ public class CrowdAuthenticationFilterTest {
 	@Ignore
 	@Test
 	public void testMultiRevalidations() throws Exception {
+		if (!isIntegrationTest()) return;
 		User creds = new User();
 		creds.setEmail("demouser@sagebase.org");
 		Session session = crowdAuthUtil.authenticate(creds, false);
