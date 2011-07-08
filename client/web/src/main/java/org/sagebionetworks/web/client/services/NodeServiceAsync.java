@@ -37,22 +37,6 @@ public interface NodeServiceAsync {
 
 	void deleteAcl(NodeType type, String id, AsyncCallback<String> callback);
 
-	
-	// hacks
-//	void createNodeTwoLayer(NodeType type, String propertiesJson,
-//			NodeType layerOneType, String layerOneId,
-//			AsyncCallback<String> callback);
-//
-//	void updateNodeTwoLayer(NodeType type, String id, String propertiesJson,
-//			String eTag, NodeType layerOneType, String layerOneId,
-//			AsyncCallback<String> callback);	
-//
-//	void getNodeJSONSchemaTwoLayer(NodeType type, NodeType layerOneType,
-//			String layerOneId, AsyncCallback<String> callback);
-//
-//	void getNodeJSONTwoLayer(NodeType type, String id, NodeType layerOneType,
-//			String layerOneId, AsyncCallback<String> callback);
-
-
+	void hasAccess(NodeType resourceType, String resourceId, AclAccessType accessType, AsyncCallback<Boolean> callback);
 
 }

@@ -36,23 +36,7 @@ import com.google.inject.Inject;
 public class UserAccountServiceImpl extends RemoteServiceServlet implements UserAccountService {
 
 	private static Logger logger = Logger.getLogger(UserAccountServiceImpl.class.getName());
-	
-	private static final String SEND_PASSWORD_CHANGE_PATH = "userPasswordEmail";
-	private static final String INITIATE_SESSION_PATH = "session";
-	private static final String CREATE_USER_PATH = "user";
-	private static final String TERMINATE_SESSION_PATH = "session";
-	private static final String REFRESH_SESSION_PATH = "session";
-	private static final String GET_USERS_PATH = "user";
-	private static final String GET_GROUPS_PATH = "userGroup";
-	private static final String HAS_ACCESS_PATH = "access";
-
-	private static final String ACL_PRINCIPAL_NAME = "name";
-	private static final String ACL_PRINCIPAL_ID = "id";
-	private static final String ACL_PRINCIPAL_CREATION_DATE = "creationDate";
-	private static final String ACL_PRINCIPAL_URI = "uri";
-	private static final String ACL_PRINCIPAL_ETAG = "etag";
-	private static final String ACL_PRINCIPAL_INDIVIDUAL = "individual";
-		
+			
 	/**
 	 * The template is injected with Gin
 	 */
@@ -92,12 +76,11 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		try {
 			obj.put("email", userId);
 		} catch (JSONException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + "/" + SEND_PASSWORD_CHANGE_PATH;
+		String url = urlProvider.getAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_SEND_PASSWORD_CHANGE_PATH;
 		String jsonString = obj.toString();
 		
 		// Setup the header
@@ -134,12 +117,11 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 			obj.put("email", username);
 			obj.put("password", password);
 		} catch (JSONException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + "/" + INITIATE_SESSION_PATH;
+		String url = urlProvider.getAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_INITIATE_SESSION_PATH;
 		String jsonString = obj.toString();
 		
 		// Setup the header
@@ -181,12 +163,11 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 			obj.put("lastName", userInfo.getLastName());
 			obj.put("displayName", userInfo.getDisplayName());
 		} catch (JSONException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + "/" + CREATE_USER_PATH;
+		String url = urlProvider.getAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_CREATE_USER_PATH;
 		String jsonString = obj.toString();
 		
 		// Setup the header
@@ -211,7 +192,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		validateService();
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + "/" + TERMINATE_SESSION_PATH;
+		String url = urlProvider.getAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_TERMINATE_SESSION_PATH;
 		String jsonString = "{\"sessionToken\":\""+ sessionToken + "\"}";
 		
 		logger.info("DELETE: " + url + ", JSON: " + jsonString);
@@ -241,12 +222,11 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		try {
 			obj.put("sessionToken", sessionToken);
 		} catch (JSONException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + "/" + REFRESH_SESSION_PATH;
+		String url = urlProvider.getAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_REFRESH_SESSION_PATH;
 		String jsonString = obj.toString();
 		
 		// Setup the header
@@ -274,7 +254,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		// Build up the path
 		StringBuilder builder = new StringBuilder();
 		builder.append(urlProvider.getBaseUrl() + "/");
-		builder.append(GET_USERS_PATH);
+		builder.append(ServiceUtils.AUTHSVC_GET_USERS_PATH);
 		String url = builder.toString();	
 		String userList = getJsonStringForUrl(url, HttpMethod.GET);
 		return generateAclPrincipals(userList);
@@ -286,7 +266,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		// Build up the path
 		StringBuilder builder = new StringBuilder();
 		builder.append(urlProvider.getBaseUrl() + "/");
-		builder.append(GET_GROUPS_PATH);
+		builder.append(ServiceUtils.AUTHSVC_GET_GROUPS_PATH);
 		String url = builder.toString();	
 		String groupList = getJsonStringForUrl(url, HttpMethod.GET);
 		return generateAclPrincipals(groupList);
@@ -302,58 +282,6 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		return all;
 	}
 
-	@Override
-	public boolean hasAccess(NodeType resourceType, String resourceId, AclAccessType accessType) {
-		// Build up the path
-		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, resourceType);
-		builder.append("/" + resourceId);	
-		builder.append("/" + HAS_ACCESS_PATH);
-		String url = builder.toString();	
-		HttpMethod method = HttpMethod.GET;
-
-		JSONObject obj = new JSONObject();
-		try {
-			obj.put("accessType", accessType.toString());			
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
-		String requestJson = obj.toString();
-		Map<String, String> map = new HashMap<String, String>();
-		map.put("accessType", accessType.toString());
-		
-		// First make sure the service is ready to go.
-		validateService();
-		
-		logger.info(method.toString() + ": " + url);
-		
-		// Setup the header
-		HttpHeaders headers = new HttpHeaders();
-		// If the user data is stored in a cookie, then fetch it and the session token to the header.
-		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
-		headers.setContentType(MediaType.APPLICATION_JSON);
-		HttpEntity<String> entity = new HttpEntity<String>(requestJson, headers);
-		
-		// Make the actual call.
-		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class, map);
-
-		if (response.getStatusCode() == HttpStatus.OK) {			
-			String responseStr = response.getBody();			
-			try {
-				JSONObject result = new JSONObject(responseStr);
-				if(result.has("result")) {
-					return result.getBoolean("result");
-				} else {				
-					return false;
-				}
-			} catch (JSONException e) {				
-				throw new UnknownError("Malformed response");				
-			}
-		} else {
-			// TODO: better error handling
-			throw new UnknownError("Status code:"
-					+ response.getStatusCode().value());
-		}		
-	}
 
 	@Override
 	public String getAuthServiceUrl() {
@@ -417,7 +345,6 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		try {
 			list = new JSONArray(userList);
 		} catch (JSONException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		// create principal objects from JSON
@@ -426,13 +353,13 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 			try {
 				principalObj = list.getJSONObject(i);
 				AclPrincipal principal = new AclPrincipal();
-				if(principalObj.has(ACL_PRINCIPAL_NAME)) principal.setName(principalObj.getString(ACL_PRINCIPAL_NAME));
-				if(principalObj.has(ACL_PRINCIPAL_ID)) principal.setId(principalObj.getString(ACL_PRINCIPAL_ID));
-				if(principalObj.has(ACL_PRINCIPAL_URI)) principal.setUri(principalObj.getString(ACL_PRINCIPAL_URI));
-				if(principalObj.has(ACL_PRINCIPAL_ETAG)) principal.setEtag(principalObj.getString(ACL_PRINCIPAL_ETAG));
-				if(principalObj.has(ACL_PRINCIPAL_INDIVIDUAL)) principal.setIndividual(principalObj.getBoolean(ACL_PRINCIPAL_INDIVIDUAL));
-				if(principalObj.has(ACL_PRINCIPAL_CREATION_DATE)) {
-					Long creationDate = principalObj.getLong(ACL_PRINCIPAL_CREATION_DATE);
+				if(principalObj.has(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_NAME)) principal.setName(principalObj.getString(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_NAME));
+				if(principalObj.has(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_ID)) principal.setId(principalObj.getString(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_ID));
+				if(principalObj.has(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_URI)) principal.setUri(principalObj.getString(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_URI));
+				if(principalObj.has(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_ETAG)) principal.setEtag(principalObj.getString(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_ETAG));
+				if(principalObj.has(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_INDIVIDUAL)) principal.setIndividual(principalObj.getBoolean(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_INDIVIDUAL));
+				if(principalObj.has(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_CREATION_DATE)) {
+					Long creationDate = principalObj.getLong(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_CREATION_DATE);
 					if(creationDate != null)
 						principal.setCreationDate(new Date(creationDate));
 				}			

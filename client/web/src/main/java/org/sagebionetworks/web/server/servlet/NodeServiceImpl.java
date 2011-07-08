@@ -1,7 +1,9 @@
 package org.sagebionetworks.web.server.servlet;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import org.codehaus.jettison.json.JSONArray;
@@ -88,7 +90,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		// Build up the path
 		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/");
-		builder.append(ServiceUtils.PATH_SCHEMA);		
+		builder.append(ServiceUtils.REPOSVC_PATH_SCHEMA);		
 		String url = builder.toString();		
 		logger.info("GET: " + url);
 		return getJsonStringForUrl(url, HttpMethod.GET);
@@ -147,7 +149,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		// Build up the path
 		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
-		builder.append("/" + ServiceUtils.ANNOTATIONS_PATH);
+		builder.append("/" + ServiceUtils.REPOSVC_ANNOTATIONS_PATH);
 		String url = builder.toString();	
 		return getJsonStringForUrl(url, HttpMethod.GET);
 	}
@@ -157,7 +159,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		// Build up the path
 		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
-		builder.append("/" + ServiceUtils.PREVIEW_PATH);
+		builder.append("/" + ServiceUtils.REPOSVC_PREVIEW_PATH);
 		String url = builder.toString();	
 		return getJsonStringForUrl(url, HttpMethod.GET);
 	}
@@ -167,7 +169,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		// Build up the path
 		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
-		builder.append("/" + ServiceUtils.LOCATION_PATH);
+		builder.append("/" + ServiceUtils.REPOSVC_LOCATION_PATH);
 		String url = builder.toString();	
 		return getJsonStringForUrl(url, HttpMethod.GET);
 	}
@@ -181,7 +183,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		// Build up the path
 		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
-		builder.append("/" + ServiceUtils.ANNOTATIONS_PATH);
+		builder.append("/" + ServiceUtils.REPOSVC_ANNOTATIONS_PATH);
 		String url = builder.toString();		
 		return getJsonStringForUrl(url, HttpMethod.PUT, annotationsJson, etag);
 	}
@@ -192,7 +194,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		// Build up the path
 		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
-		builder.append("/" + ServiceUtils.PATH_ACL);
+		builder.append("/" + ServiceUtils.REPOSVC_PATH_ACL);
 		String url = builder.toString();	
 		return getJsonStringForUrl(url, HttpMethod.GET);
 	}
@@ -205,7 +207,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		// Build up the path
 		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
-		builder.append("/" + ServiceUtils.PATH_ACL);
+		builder.append("/" + ServiceUtils.REPOSVC_PATH_ACL);
 		String url = builder.toString();		
 		
 		// convert 
@@ -238,7 +240,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		// Build up the path
 		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
-		builder.append("/" + ServiceUtils.PATH_ACL);
+		builder.append("/" + ServiceUtils.REPOSVC_PATH_ACL);
 		String url = builder.toString();		
 		
 		return getJsonStringForUrl(url, HttpMethod.PUT, aclJson, etag);	
@@ -252,12 +254,65 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		// Build up the path
 		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
-		builder.append("/" + ServiceUtils.PATH_ACL);
+		builder.append("/" + ServiceUtils.REPOSVC_PATH_ACL);
 		String url = builder.toString();		
 
 		return getJsonStringForUrl(url, HttpMethod.DELETE);		
 	}
 	
+	@Override
+	public boolean hasAccess(NodeType resourceType, String resourceId, AclAccessType accessType) {
+		// Build up the path
+		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, resourceType);
+		builder.append("/" + resourceId);	
+		builder.append("/" + ServiceUtils.REPOSVC_HAS_ACCESS_PATH);
+		String url = builder.toString();	
+		HttpMethod method = HttpMethod.GET;
+
+		JSONObject obj = new JSONObject();
+		try {
+			obj.put("accessType", accessType.toString());			
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		String requestJson = obj.toString();
+		Map<String, String> map = new HashMap<String, String>();
+		map.put("accessType", accessType.toString());
+		
+		// First make sure the service is ready to go.
+		validateService();
+		
+		logger.info(method.toString() + ": " + url);
+		
+		// Setup the header
+		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<String>(requestJson, headers);
+		
+		// Make the actual call.
+		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class, map);
+
+		if (response.getStatusCode() == HttpStatus.OK) {			
+			String responseStr = response.getBody();			
+			try {
+				JSONObject result = new JSONObject(responseStr);
+				if(result.has("result")) {
+					return result.getBoolean("result");
+				} else {				
+					return false;
+				}
+			} catch (JSONException e) {				
+				throw new UnknownError("Malformed response");				
+			}
+		} else {
+			// TODO: better error handling
+			throw new UnknownError("Status code:"
+					+ response.getStatusCode().value());
+		}		
+	}
+
 	
 	/*
 	 * Private Methods
@@ -269,7 +324,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 	private String getJsonStringForUrl(String url, HttpMethod method, String entityString) {
 		return getJsonStringForUrl(url, method, entityString, null);
 	}
-	
+		
 	private String getJsonStringForUrl(String url, HttpMethod method, String entityString, String etag) {
 		// First make sure the service is ready to go.
 		validateService();
@@ -309,26 +364,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 			// catch RestTemplate's poor handling of a NO_CONTENT response
 			return "";	
 		} catch (HttpClientErrorException ex) {
-
-//			if(ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
-//				throw new UnauthorizedException();
-//			} else if(ex.getStatusCode() == HttpStatus.FORBIDDEN) {
-//				throw new ForbiddenException();
-//			} else {
-//				throw new UnknownError("Status code:" + ex.getStatusCode().value());
-//			}
-			
-			// temporary solution to not being able to throw caught exceptions (due to Gin 1.0)
-			JSONObject obj = new JSONObject();
-			JSONObject errorObj = new JSONObject();
-			try {
-				Integer code = ex.getStatusCode().value();
-				if(code != null) errorObj.put("statusCode", code);
-				obj.put("error", errorObj);
-				return obj.toString();
-			} catch (JSONException e) {
-				throw new UnknownError();
-			}
+			return ServiceUtils.handleHttpClientErrorException(ex);
 		}		
 	}
 		

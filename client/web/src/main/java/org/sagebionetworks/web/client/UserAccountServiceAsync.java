@@ -30,8 +30,6 @@ public interface UserAccountServiceAsync {
 
 	void getAuthServiceUrl(AsyncCallback<String> callback);
 
-	void getSynapseWebUrl(AsyncCallback<String> callback);
-
-	void hasAccess(NodeType resourceType, String resourceId, AclAccessType accessType, AsyncCallback<Boolean> callback);
+	void getSynapseWebUrl(AsyncCallback<String> callback);	
 
 }

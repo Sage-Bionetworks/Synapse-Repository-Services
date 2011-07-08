@@ -36,6 +36,4 @@ public interface UserAccountService extends RemoteService {
 	
 	public String getSynapseWebUrl();
 	
-	public boolean hasAccess(NodeType resourceType, String resourceId, AclAccessType accessType);
-	
 }

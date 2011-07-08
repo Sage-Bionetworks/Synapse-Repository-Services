@@ -38,13 +38,6 @@ public interface NodeService extends RemoteService {
 	
 	public String deleteAcl(NodeType type, String id);
 
-	/**
-	 * This is essentially a hack for the layer type which needs a compound path: /dataset/{id}/layer
-	 * In the future, layer will be a primary node type
-	 */
-//	public String createNodeTwoLayer(NodeType type, String propertiesJson, NodeType layerOneType, String layerOneId);
-//	public String updateNodeTwoLayer(NodeType type, String id, String propertiesJson, String eTag, NodeType layerOneType, String layerOneId);
-//	public String getNodeJSONSchemaTwoLayer(NodeType type, NodeType layerOneType, String layerOneId);	
-//	public String getNodeJSONTwoLayer(NodeType type, String id, NodeType layerOneType, String layerOneId);
-	
+	public boolean hasAccess(NodeType resourceType, String resourceId, AclAccessType accessType);
+		
 }
