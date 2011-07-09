@@ -29,7 +29,7 @@ public class CrowdAuthenticationFilter implements Filter {
 	private boolean acceptAllCerts = true;
 	private boolean usingMockCrowd;
 	
-	CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
+//	CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 	
 	@Override
 	public void destroy() {
@@ -87,7 +87,7 @@ public class CrowdAuthenticationFilter implements Filter {
 						userId = tokenCache.get(sessionToken);
 					}
 					if (userId==null) { // not using cache or not found in cache
-						userId = crowdAuthUtil.revalidate(sessionToken);
+						userId = (new CrowdAuthUtil()).revalidate(sessionToken);
 						if (cacheTimeout>0) {
 							tokenCache.put(sessionToken, userId);
 						}
