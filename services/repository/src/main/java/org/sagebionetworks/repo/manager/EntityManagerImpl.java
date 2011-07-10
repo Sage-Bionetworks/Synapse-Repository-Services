@@ -38,8 +38,8 @@ public class EntityManagerImpl implements EntityManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Base> String createEntity(UserInfo userInfo, T newEntity) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
-		if(newEntity == null) throw new IllegalArgumentException("Dataset cannot be null");
-		// First create a node the represent the dataset
+		if(newEntity == null) throw new IllegalArgumentException("Entity cannot be null");
+		// First create a node the represent the entity
 		Node node = NodeTranslationUtils.createFromBase(newEntity);
 		// Set the type for this object
 		node.setNodeType(ObjectType.getNodeTypeForClass(newEntity.getClass()).toString());
@@ -60,7 +60,7 @@ public class EntityManagerImpl implements EntityManager {
 		
 		// Now get the annotations for this node
 		Annotations annos = nodeManager.getAnnotations(userInfo, nodeId);
-		// Now add all of the annotations from the dataset
+		// Now add all of the annotations from the entity
 		NodeTranslationUtils.updateAnnoationsFromObject(newEntity, annos);
 		// Now update the annotations
 		try {
@@ -69,7 +69,7 @@ public class EntityManagerImpl implements EntityManager {
 			// This should never happen
 			throw new DatastoreException("A confilct occured on a node create", e);
 		}
-		// Now fetch the dataset we just created
+		// Return the id of the newly created entity
 		return nodeId;
 	}
 	
@@ -158,7 +158,7 @@ public class EntityManagerImpl implements EntityManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteEntity(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException {
-		if(entityId == null) throw new IllegalArgumentException("Dataset ID cannot be null");
+		if(entityId == null) throw new IllegalArgumentException("Entity ID cannot be null");
 		nodeManager.delete(userInfo, entityId);
 	}
 	
@@ -171,7 +171,7 @@ public class EntityManagerImpl implements EntityManager {
 	@Transactional(readOnly = true)
 	@Override
 	public Annotations getAnnotations(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException {
-		if(entityId == null) throw new IllegalArgumentException("Dataset ID cannot be null");
+		if(entityId == null) throw new IllegalArgumentException("Entity ID cannot be null");
 		// This is a simple pass through
 		return nodeManager.getAnnotations(userInfo, entityId);
 	}
@@ -192,7 +192,7 @@ public class EntityManagerImpl implements EntityManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Base> void updateEntity(UserInfo userInfo, T updated, boolean newVersion) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException {
-		if(updated == null) throw new IllegalArgumentException("Dataset cannot be null");
+		if(updated == null) throw new IllegalArgumentException("Entity cannot be null");
 		if(updated.getId() == null) throw new IllegalArgumentException("The updated Entity cannot have a null ID");
 		Node node = nodeManager.get(userInfo, updated.getId());
 

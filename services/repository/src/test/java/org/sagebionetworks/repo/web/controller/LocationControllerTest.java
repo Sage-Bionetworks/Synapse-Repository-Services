@@ -341,6 +341,21 @@ public class LocationControllerTest {
 	 * @throws Exception
 	 */
 	@Test
+	public void testInvalidTypeCreateLocation() throws Exception {
+
+		JSONObject error = helper
+				.testCreateJsonEntityShouldFail(
+						helper.getServletPrefix() + "/location",
+						"{\"parentId\":\"0\", \"type\":\"AFakeType\", \"path\":\"foo.txt\", \"md5sum\":\"33183779e53ce0cfc35f59cc2a762cbd\"}",
+						HttpStatus.BAD_REQUEST);
+
+		assertTrue(0 <= error.getString("reason").indexOf("'type' must be one of"));
+	}
+	
+	/**
+	 * @throws Exception
+	 */
+	@Test
 	public void testMissingRequiredFieldUpdateLocation() throws Exception {
 		// Create a location
 		JSONObject newLocation = helper.testCreateJsonEntity(helper

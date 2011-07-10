@@ -13,7 +13,8 @@ public enum ObjectType {
 	layer			(InputDataLayer.class, 		(short)1, "/layer"),
 	layerlocation	(LayerLocation.class, 		(short)2, "/location"),
 	project			(Project.class, 			(short)3, "/project"),
-	layerpreview	(StoredLayerPreview.class, 	(short)4, "/preview");
+	layerpreview	(StoredLayerPreview.class, 	(short)4, "/preview"),
+	eula			(Eula.class,				(short)5, "/eula");
 	
 	private Class<? extends Nodeable> clazz;
 	private short id;
@@ -60,7 +61,7 @@ public enum ObjectType {
 		for(ObjectType type: array){
 			if(type.getId() == id) return type;
 		}
-		throw new IllegalArgumentException("Unkown id for ObjectType: "+id);
+		throw new IllegalArgumentException("Unknown id for ObjectType: "+id);
 	}
 	
 	
@@ -75,7 +76,7 @@ public enum ObjectType {
 		for(ObjectType type: array){
 			if(type.getClassForType() == clazz) return type;
 		}
-		throw new IllegalArgumentException("Unkown Object type: "+clazz.getName());
+		throw new IllegalArgumentException("Unknown Object type: "+clazz.getName());
 	}
 	
 	/**
@@ -96,7 +97,7 @@ public enum ObjectType {
 			}
 		}
 		if(minType != null) return minType;
-		throw new IllegalArgumentException("Unkown Object type for URL: "+url);
+		throw new IllegalArgumentException("Unknown Object type for URL: "+url);
 	}
 	
 	/**
@@ -117,7 +118,7 @@ public enum ObjectType {
 			}
 		}
 		if(maxType != null) return maxType;
-		throw new IllegalArgumentException("Unkown Object type for URL: "+url);
+		throw new IllegalArgumentException("Unknown Object type for URL: "+url);
 	}
 	
 }

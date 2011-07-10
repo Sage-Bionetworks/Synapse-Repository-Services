@@ -137,7 +137,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 			int index = 0;
 			for(ObjectType type: types){
 				String name = type.name()+index;
-				Nodeable object =ObjectTypeFactory.createObjectForTest(name, type, parent.getId());
+				Nodeable object = ObjectTypeFactory.createObjectForTest(name, type, parent.getId());
 				Nodeable clone = ServletTestHelper.createEntity(dispatchServlet, object, userName);
 				assertNotNull(clone);
 				assertNotNull(clone.getId());
@@ -228,7 +228,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 			for(ObjectType child: types){
 				// First create a parent of this type
 				String name = "parent_"+parent.name()+"Ofchild_"+child.name();
-				Nodeable parentObject =ObjectTypeFactory.createObjectForTest(name, parent, root.getId());
+				Nodeable parentObject = ObjectTypeFactory.createObjectForTest(name, parent, root.getId());
 				parentObject = ServletTestHelper.createEntity(dispatchServlet, parentObject, userName);
 				assertNotNull(parentObject);
 				toDelete.add(parentObject.getId());
