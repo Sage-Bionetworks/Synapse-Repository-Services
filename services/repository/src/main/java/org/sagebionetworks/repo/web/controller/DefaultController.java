@@ -51,7 +51,6 @@ public class DefaultController extends BaseController {
 
 	/**
 	 * Create a new entity with a POST.
-	 * @param <T>
 	 * @param userId - The user that is doing the create.
 	 * @param header - Used to get content type information.
 	 * @param request - The body is extracted from the request.
@@ -68,7 +67,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.LAYER,
 			UrlHelpers.PREVIEW,
 			UrlHelpers.LOCATION,
-			UrlHelpers.PROJECT
+			UrlHelpers.PROJECT,
+			UrlHelpers.EULA
 			}, method = RequestMethod.POST)
 	public @ResponseBody
 	Nodeable createEntity(
@@ -88,6 +88,19 @@ public class DefaultController extends BaseController {
 		return createdEntity;
 	}
 	
+	/**
+	 * @param userId
+	 * @param header
+	 * @param etag
+	 * @param request
+	 * @return the newly created versionable entity
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws ConflictingUpdateException
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { 
 			UrlHelpers.LOCATION_VERSION
@@ -108,7 +121,6 @@ public class DefaultController extends BaseController {
 	
 	/**
 	 * Get an existing entity with a GET.
-	 * @param <T>
 	 * @param userId -The user that is doing the get.
 	 * @param id - The ID of the entity to fetch.
 	 * @param request
@@ -123,7 +135,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.LAYER_ID,
 			UrlHelpers.PREVIEW_ID,
 			UrlHelpers.LOCATION_ID,
-			UrlHelpers.PROJECT_ID
+			UrlHelpers.PROJECT_ID,
+			UrlHelpers.EULA_ID
 			}, method = RequestMethod.GET)
 	public @ResponseBody
 	Nodeable getEntity(
@@ -141,9 +154,9 @@ public class DefaultController extends BaseController {
 
 	/**
 	 * Get an existing entity with a GET.
-	 * @param <T>
 	 * @param userId -The user that is doing the get.
 	 * @param id - The ID of the entity to fetch.
+	 * @param versionNumber 
 	 * @param request
 	 * @return The requested Entity if it exists.
 	 * @throws NotFoundException - Thrown if the requested entity does not exist.
@@ -172,13 +185,12 @@ public class DefaultController extends BaseController {
 	
 	/**
 	 * Update an entity.
-	 * @param <T>
 	 * @param userId - The user that is doing the update.
 	 * @param header - Used to get content type information.
 	 * @param id - The id of the entity to update.
 	 * @param etag - A valid etag must be provided for every update call.
 	 * @param request - Used to read the contents.
-	 * @return
+	 * @return the updated entity
 	 * @throws NotFoundException - Thrown if the given entity does not exist.
 	 * @throws ConflictingUpdateException - Thrown when the passed etag does not match the current etag of an entity.
 	 * This will occur when an entity gets updated after getting the current etag.
@@ -193,7 +205,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.LAYER_ID,
 			UrlHelpers.PREVIEW_ID,
 			UrlHelpers.LOCATION_ID,
-			UrlHelpers.PROJECT_ID
+			UrlHelpers.PROJECT_ID,
+			UrlHelpers.EULA_ID
 	}, method = RequestMethod.PUT)
 	public @ResponseBody
 	Nodeable updateEntity(
@@ -210,7 +223,6 @@ public class DefaultController extends BaseController {
 
 	/**
 	 * Does the actually entity update.
-	 * @param <T>
 	 * @param userId
 	 * @param header
 	 * @param etag
@@ -256,7 +268,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.LAYER_ANNOTATIONS,
 			UrlHelpers.PREVIEW_ANNOTATIONS,
 			UrlHelpers.LOCATION_ANNOTATIONS,
-			UrlHelpers.PROJECT_ANNOTATIONS
+			UrlHelpers.PROJECT_ANNOTATIONS,
+			UrlHelpers.EULA_ANNOTATIONS
 			}, method = RequestMethod.GET)
 	public @ResponseBody
 	Annotations getEntityAnnotations(
@@ -272,6 +285,7 @@ public class DefaultController extends BaseController {
 	 * Get the annotations for a given version of an entity.
 	 * @param userId - The user that is doing the update.
 	 * @param id - The id of the entity to update.
+	 * @param versionNumber 
 	 * @param request - Used to read the contents.
 	 * @return The annotations for the given entity.
 	 * @throws NotFoundException - Thrown if the given entity does not exist.
@@ -300,7 +314,7 @@ public class DefaultController extends BaseController {
 	 * @param etag - A valid etag must be provided for every update call.
 	 * @param updatedAnnotations - The updated annotations
 	 * @param request
-	 * @return
+	 * @return the updated annotations
 	 * @throws ConflictingUpdateException - Thrown when the passed etag does not match the current etag of an entity.
 	 * This will occur when an entity gets updated after getting the current etag.
 	 * @throws NotFoundException - Thrown if the given entity does not exist.
@@ -314,7 +328,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.LAYER_ANNOTATIONS,
 			UrlHelpers.PREVIEW_ANNOTATIONS,
 			UrlHelpers.LOCATION_ANNOTATIONS,
-			UrlHelpers.PROJECT_ANNOTATIONS
+			UrlHelpers.PROJECT_ANNOTATIONS,
+			UrlHelpers.EULA_ANNOTATIONS
 	}, method = RequestMethod.PUT)
 	public @ResponseBody
 	Annotations updateEntityAnnotations(
@@ -331,6 +346,7 @@ public class DefaultController extends BaseController {
 	 * Called to delete an entity. 
 	 * @param userId - The user that is deleting the entity.
 	 * @param id - The id of the user that is deleting the entity.
+	 * @param request 
 	 * @throws NotFoundException - Thrown when the entity to delete does not exist.
 	 * @throws DatastoreException - Thrown when there is a server side problem.
 	 * @throws UnauthorizedException
@@ -341,7 +357,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.LAYER_ID,
 			UrlHelpers.PREVIEW_ID,
 			UrlHelpers.LOCATION_ID,
-			UrlHelpers.PROJECT_ID 
+			UrlHelpers.PROJECT_ID,
+			UrlHelpers.EULA_ID
 			}, method = RequestMethod.DELETE)
 	public void deleteEntity(
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
@@ -358,6 +375,8 @@ public class DefaultController extends BaseController {
 	 * Called to delete an entity. 
 	 * @param userId - The user that is deleting the entity.
 	 * @param id - The id of the user that is deleting the entity.
+	 * @param versionNumber 
+	 * @param request 
 	 * @throws NotFoundException - Thrown when the entity to delete does not exist.
 	 * @throws DatastoreException - Thrown when there is a server side problem.
 	 * @throws UnauthorizedException
@@ -379,7 +398,6 @@ public class DefaultController extends BaseController {
 	}
 	/**
 	 * Fetch all of the entities of a given type in a paginated form.
-	 * @param <T>
 	 * @param userId - The id of the user doing the fetch.
 	 * @param offset - The offset index determines where this page will start from.  An index of 1 is the first entity. When null it will default to 1.
 	 * @param limit - Limits the number of entities that will be fetched for this page. When null it will default to 10.
@@ -397,7 +415,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.LAYER,
 			UrlHelpers.PREVIEW,
 			UrlHelpers.LOCATION,
-			UrlHelpers.PROJECT
+			UrlHelpers.PROJECT,
+			UrlHelpers.EULA
 		}, method = RequestMethod.GET)
 	public @ResponseBody
     PaginatedResults<Nodeable> getEntities(
@@ -424,7 +443,7 @@ public class DefaultController extends BaseController {
 	
 	/**
 	 * Fetch all of the entities of a given type in a paginated form.
-	 * @param <T>
+	 * @param id 
 	 * @param userId - The id of the user doing the fetch.
 	 * @param offset - The offset index determines where this page will start from.  An index of 1 is the first entity. When null it will default to 1.
 	 * @param limit - Limits the number of entities that will be fetched for this page. When null it will default to 10.
@@ -456,13 +475,28 @@ public class DefaultController extends BaseController {
 		return results;
 	}
 	
+	/**
+	 * @param parentType
+	 * @param parentId
+	 * @param userId
+	 * @param offset
+	 * @param limit
+	 * @param sort
+	 * @param ascending
+	 * @param request
+	 * @return paginated results
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { 
 			UrlHelpers.DATASET_CHILDREN,
 			UrlHelpers.LAYER_CHILDREN,
 			UrlHelpers.PREVIEW_CHILDREN,
 			UrlHelpers.LOCATION_CHILDREN,
-			UrlHelpers.PROJECT_CHILDREN
+			UrlHelpers.PROJECT_CHILDREN,
+			UrlHelpers.EULA_CHILDREN
 		}, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<BaseChild> getEntityChildren(
@@ -492,7 +526,7 @@ public class DefaultController extends BaseController {
 	/**
 	 * Get the schema for an entity type.
 	 * @param request
-	 * @return
+	 * @return the schema for the designated entity type
 	 * @throws DatastoreException
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -501,7 +535,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.LAYER_SCHEMA,
 			UrlHelpers.PREVIEW_SCHEMA,
 			UrlHelpers.LOCATION_SCHEMA,
-			UrlHelpers.PROJECT_SCHEMA
+			UrlHelpers.PROJECT_SCHEMA,
+			UrlHelpers.EULA_SCHEMA
 	}, method = RequestMethod.GET)
 	public @ResponseBody
 	JsonSchema getEntitiesSchema(HttpServletRequest request) throws DatastoreException {
@@ -524,8 +559,10 @@ public class DefaultController extends BaseController {
 
 	/**
 	 * Create a new ACL, overriding inheritance.
-	 * @param <T>
+	 * @param objectType 
+	 * @param id 
 	 * @param userId - The user that is doing the create.
+	 * @param newAcl 
 	 * @param request - The body is extracted from the request.
 	 * @return The new ACL, which includes the id of the affected entity
 	 * @throws DatastoreException - Thrown when an there is a server failure.
@@ -535,7 +572,7 @@ public class DefaultController extends BaseController {
 	 * @throws IOException - Thrown if there is a failure to read the header.
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-@RequestMapping(value = { UrlHelpers.OBJECT_TYPE_ID_ACL }, method = RequestMethod.POST)	
+	@RequestMapping(value = { UrlHelpers.OBJECT_TYPE_ID_ACL }, method = RequestMethod.POST)	
 	public @ResponseBody
 	AccessControlList createEntityAcl(
 			@PathVariable String objectType,
@@ -555,12 +592,14 @@ public class DefaultController extends BaseController {
 
 	/**
 	 * Get the Access Control List (ACL) for a given entity.
+	 * @param objectType 
 	 * @param id - The ID of the entity to get the ACL for.
 	 * @param userId - The user that is making the request.
 	 * @param request
 	 * @return The entity ACL.
 	 * @throws DatastoreException - Thrown when there is a server-side problem.
 	 * @throws NotFoundException - Thrown if the entity does not exist.
+	 * @throws UnauthorizedException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.OBJECT_TYPE_ID_ACL	}, method = RequestMethod.GET)
@@ -577,15 +616,17 @@ public class DefaultController extends BaseController {
 	
 	/**
 	 * Update an entity's ACL.
+	 * @param objectType 
 	 * @param id
 	 * @param userId
 	 * @param updatedACL
 	 * @param request
-	 * @return
+	 * @return the accessControlList
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
+	 * @throws ConflictingUpdateException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.OBJECT_TYPE_ID_ACL	}, method = RequestMethod.PUT)
@@ -603,6 +644,7 @@ public class DefaultController extends BaseController {
 
 	/**
 	 * Called to restore inheritance (vs. defining ones own ACL)
+	 * @param objectType 
 	 * @param userId - The user that is deleting the entity.
 	 * @param id - The entity whose inheritance is to be restored
 	 * @throws NotFoundException - Thrown when the entity to delete does not exist.
@@ -624,9 +666,7 @@ public class DefaultController extends BaseController {
 	
 	/**
 	 * Get the schema for an ACL
-	 * @param id
-	 * @param request
-	 * @return
+	 * @return the ACL schema
 	 * @throws DatastoreException
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -636,10 +676,16 @@ public class DefaultController extends BaseController {
 		return entityController.getAclSchema();
 	}
 	
-		/**
+	/**
+	 * @param objectType 
+	 * @param id 
+	 * @param userId 
+	 * @param accessType 
+	 * @param request 
 	 * @return the access types that the given user has to the given resource
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws UnauthorizedException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value={UrlHelpers.OBJECT_TYPE+UrlHelpers.ID+UrlHelpers.ACCESS}, method=RequestMethod.GET)

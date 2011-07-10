@@ -3,14 +3,11 @@ package org.sagebionetworks.repo.web;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
@@ -18,12 +15,12 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Eula;
 import org.sagebionetworks.repo.model.HasLayers;
 import org.sagebionetworks.repo.model.HasLocations;
 import org.sagebionetworks.repo.model.HasPreviews;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.LayerLocation;
-import org.sagebionetworks.repo.model.LayerLocations;
 import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -43,7 +40,6 @@ import org.sagebionetworks.repo.model.Versionable;
  * 
  */
 
-@SuppressWarnings("rawtypes")
 public class UrlHelpers {
 
 	private static final Logger log = Logger.getLogger(UrlHelpers.class
@@ -92,6 +88,8 @@ public class UrlHelpers {
 	public static final String PREVIEW 	= "/preview";
 	public static final String LOCATION = "/location";
 	public static final String PROJECT	= "/project";
+	public static final String EULA 	= "/eula";
+	
 	/**
 	 * All of the base URLs for Synapse objects with ID.
 	 */
@@ -100,6 +98,8 @@ public class UrlHelpers {
 	public static final String PREVIEW_ID 	= PREVIEW+ID;
 	public static final String LOCATION_ID	= LOCATION+ID;
 	public static final String PROJECT_ID 	= PROJECT+ID;
+	public static final String EULA_ID 		= EULA+ID;
+	
 	/**
 	 * All of the base URLs for Synapse objects's Annotations.
 	 */
@@ -108,6 +108,8 @@ public class UrlHelpers {
 	public static final String PREVIEW_ANNOTATIONS 	= PREVIEW_ID+ANNOTATIONS;
 	public static final String LOCATION_ANNOTATIONS = LOCATION_ID+ANNOTATIONS;
 	public static final String PROJECT_ANNOTATIONS	= PROJECT_ID+ANNOTATIONS;
+	public static final String EULA_ANNOTATIONS		= EULA_ID+ANNOTATIONS;
+
 	/**
 	 * All of the base URLs for Synapse object's versions.
 	 */
@@ -120,6 +122,7 @@ public class UrlHelpers {
 	public static final String PREVIEW_CHILDREN		= PARENT_TYPE_ID+PREVIEW;
 	public static final String LOCATION_CHILDREN	= PARENT_TYPE_ID+LOCATION;
 	public static final String PROJECT_CHILDREN		= PARENT_TYPE_ID+PROJECT;
+	public static final String EULA_CHILDREN		= PARENT_TYPE_ID+EULA;
 	/**
 	 * Get the schema for each object type
 	 */
@@ -128,6 +131,7 @@ public class UrlHelpers {
 	public static final String PREVIEW_SCHEMA 	= PREVIEW+SCHEMA;
 	public static final String LOCATION_SCHEMA	= LOCATION+SCHEMA;
 	public static final String PROJECT_SCHEMA 	= PROJECT+SCHEMA;
+	public static final String EULA_SCHEMA 		= EULA+SCHEMA;
 	
 	/**
 	 * Get a specific version of an entity
@@ -147,48 +151,6 @@ public class UrlHelpers {
 	 * 
 	 */
 	public static final String QUERY = "/query";
-
-	/**
-	 * URL suffix for preview info
-	 */
-
-
-	/**
-	 * URL suffix for preview info
-	 */
-	@Deprecated
-	public static final String PREVIEW_MAP = "/previewAsMap";
-
-	/**
-	 * URL suffix for locations info
-	 */
-	@Deprecated 
-	public static final String LOCATIONS = "/locations";
-	
-	/**
-	 * URL suffix for a locations info with its ID.
-	 */
-	public static final String LOCATIONS_ID = LOCATIONS+ID;
-
-	/**
-	 * URL suffix for S3 location metadata
-	 */
-	public static final String S3_LOCATION = "/awsS3Location";
-
-	/**
-	 * URL suffix for EBS location metadata
-	 */
-	public static final String EBS_LOCATION = "/awsEBSLocation";
-
-	/**
-	 * URL suffix for Sage location metadata
-	 */
-	public static final String SAGE_LOCATION = "/sageLocation";
-
-	/**
-	 * URL suffix for an unsupported location type
-	 */
-	public static final String UNSUPPORTED_LOCATION = "/notYetImplemented";
 
 	/**
 	 * URL prefix for Users in the system
@@ -215,37 +177,15 @@ public class UrlHelpers {
 	 */
 	public static final String USER_MIRROR = "/userMirror";
 
-
-
 	/**
 	 * Mapping of type to URL prefix
 	 */
 	private static final Map<Class, String> MODEL2URL;
 
 	/**
-	 * Mapping of type to property URL suffixes
-	 */
-	private static final Map<Class, Collection<String>> MODEL2PROPERTY;
-
-	/**
 	 * Mapping of dependent property classes to their URL suffixes
 	 */
 	private static final Map<Class, String> PROPERTY2URLSUFFIX;
-
-	/**
-	 * Mapping of location types to URL suffixes
-	 */
-	private static final Map<String, String> LOCATIONTYPE2URL;
-
-	/**
-	 * Mapping of child models to their parent models
-	 */
-	private static final Map<Class, Class> CHILD2PARENTMODEL;
-
-	/**
-	 * Mapping of child URLs to their parent URLs
-	 */
-	private static final Map<String, String> CHILD2PARENTURL;
 
 	/**
 	 * This is a memoized cache for our URL regular expressions
@@ -258,45 +198,13 @@ public class UrlHelpers {
 		model2url.put(InputDataLayer.class, LAYER);
 		model2url.put(Project.class, PROJECT);
 		model2url.put(LayerLocation.class, LOCATION);
-//		model2url.put(User.class, USER);
-//		model2url.put(UserGroup.class, USERGROUP);
+		model2url.put(Eula.class, EULA);
 		MODEL2URL = Collections.unmodifiableMap(model2url);
-
-		Map<Class, Collection<String>> model2property = new HashMap<Class, Collection<String>>();
-		model2property.put(Dataset.class, Arrays
-				.asList(new String[] { ANNOTATIONS }));
-		model2property.put(InputDataLayer.class, Arrays.asList(new String[] {
-				ANNOTATIONS, PREVIEW, LOCATIONS, S3_LOCATION, EBS_LOCATION,
-				SAGE_LOCATION }));
-		MODEL2PROPERTY = Collections.unmodifiableMap(model2property);
 
 		Map<Class, String> property2urlsuffix = new HashMap<Class, String>();
 		property2urlsuffix.put(Annotations.class, ANNOTATIONS);
 		property2urlsuffix.put(LayerPreview.class, PREVIEW);
-		property2urlsuffix.put(LayerLocations.class, LOCATIONS);
 		PROPERTY2URLSUFFIX = Collections.unmodifiableMap(property2urlsuffix);
-		Map<String, String> locationtype2url = new HashMap<String, String>();
-		locationtype2url.put(LayerLocation.LocationTypeNames.awss3.name(),
-				S3_LOCATION);
-		locationtype2url.put(LayerLocation.LocationTypeNames.awsebs.name(),
-				EBS_LOCATION);
-		locationtype2url.put(LayerLocation.LocationTypeNames.sage.name(),
-				SAGE_LOCATION);
-		LOCATIONTYPE2URL = Collections.unmodifiableMap(locationtype2url);
-
-		// TODO we don't need both of these maps, and for those that we do, we
-		// can
-		// derive them from each other
-
-		Map<Class, Class> child2parent = new HashMap<Class, Class>();
-		child2parent.put(InputDataLayer.class, Dataset.class);
-		CHILD2PARENTMODEL = Collections.unmodifiableMap(child2parent);
-
-		Map<String, String> child2parenturl = new HashMap<String, String>();
-		// TODO create this using the other maps, being lazy right now
-		child2parenturl.put(LAYER, DATASET);
-		CHILD2PARENTURL = Collections.unmodifiableMap(child2parenturl);
-
 	}
 
 	/**
@@ -305,95 +213,9 @@ public class UrlHelpers {
 	 * @param theModelClass
 	 * @return the URL for the model class
 	 */
+	@SuppressWarnings("unchecked")
 	public static String getUrlForModel(Class theModelClass) {
 		return MODEL2URL.get(theModelClass);
-	}
-
-	/**
-	 * Determine the the parent model class given a child model class
-	 * 
-	 * @param theChildModelClass
-	 * @return the parent model class
-	 */
-	public static Class getParentForChildModel(Class theChildModelClass) {
-		return CHILD2PARENTMODEL.get(theChildModelClass);
-	}
-
-	/**
-	 * Determine the the parent url given a child url
-	 * 
-	 * @param childUrl
-	 * @return the parent URL
-	 */
-	public static String getParentForChildUrl(String childUrl) {
-		return CHILD2PARENTURL.get(childUrl);
-	}
-
-
-	/**
-	 * This is intended for usage by unit tests
-	 * 
-	 * @param theModelClass
-	 * 
-	 * @return The URL suffixes we currently have mapped to model classes
-	 */
-	public static Collection<String> getAllEntityUrlSuffixes(Class theModelClass) {
-		return MODEL2PROPERTY.get(theModelClass);
-	}
-
-	/**
-	 * Helper function to create a relative URL for an entity
-	 * <p>
-	 * 
-	 * This includes not only the entity id but also the controller and servlet
-	 * portions of the path
-	 * 
-	 * Dev Note: I can imagine that this bit of code will evolve quite a bit
-	 * over time as we expand the variety of our urls and query parameters
-	 * 
-	 * @param entity
-	 * @param request
-	 * @return the relative URI for the entity
-	 */
-	public static String makeEntityUri(Base entity, HttpServletRequest request) {
-
-		String urlPrefix = getUrlPrefix(entity, request);
-
-		String uri = null;
-		try {
-			uri = urlPrefix + UrlHelpers.getUrlForModel(entity.getClass())
-					+ "/" + URLEncoder.encode(entity.getId(), "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			log.log(Level.SEVERE,
-					"Something is really messed up if we don't support UTF-8",
-					e);
-		}
-		return uri;
-	}
-
-	/**
-	 * Helper function to to create a relative URL for an entity
-	 * <p>
-	 * 
-	 * This includes not only the entity id but also the controller and servlet
-	 * portions of the path
-	 * 
-	 * @param entity
-	 * @param urlPrefix
-	 * @return the relative URI for the entity
-	 */
-	public static String makeEntityUri(Base entity, String urlPrefix) {
-
-		String uri = null;
-		try {
-			uri = urlPrefix + UrlHelpers.getUrlForModel(entity.getClass())
-					+ "/" + URLEncoder.encode(entity.getId(), "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			log.log(Level.SEVERE,
-					"Something is really messed up if we don't support UTF-8",
-					e);
-		}
-		return uri;
 	}
 
 	/**
@@ -423,10 +245,11 @@ public class UrlHelpers {
 	 * @param request
 	 * @return the uri for this entity's annotations
 	 */
+	@SuppressWarnings("unchecked")
 	public static String makeEntityPropertyUri(Base entity,
 			Class propertyClass, HttpServletRequest request) {
 
-		String urlPrefix = getUrlPrefix(entity, request);
+		String urlPrefix = getUrlPrefixFromRequest(request);
 
 		String uri = null;
 		try {
@@ -466,7 +289,7 @@ public class UrlHelpers {
 	/**
 	 * Get the URL prefix from a request.
 	 * @param request
-	 * @return
+	 * @return Servlet context and path url prefix
 	 */
 	public static String getUrlPrefixFromRequest(HttpServletRequest request){
 		if(request == null) throw new IllegalArgumentException("Request cannot be null");
@@ -479,8 +302,10 @@ public class UrlHelpers {
 	
 	/**
 	 * Set the URI for any entity.
-	 * @param entity
+	 * @param entityId 
+	 * @param entityClass 
 	 * @param urlPrefix
+	 * @return the entity uri
 	 */
 	public static String createEntityUri(String entityId, Class<? extends Nodeable> entityClass, String urlPrefix){
 		if(entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
@@ -513,7 +338,6 @@ public class UrlHelpers {
 	/**
 	 * Set the all of the Nodeable URLs (annotations, ACL)
 	 * @param entity
-	 * @param request
 	 */
 	public static void setAllNodeableUrls(Nodeable entity){
 		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
@@ -557,6 +381,7 @@ public class UrlHelpers {
 	
 	/**
 	 * Set the URL of a versionable entity.
+	 * @param entity 
 	 */
 	public static void setVersionableUrl(Versionable entity){
 		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
@@ -599,9 +424,7 @@ public class UrlHelpers {
 	
 	/**
 	 * Helper method to validate all urs.
-	 * @param type
 	 * @param object
-	 * @param clone
 	 */
 	public static void validateAllUrls(Nodeable object) {
 		if(object == null) throw new IllegalArgumentException("Entity cannot be null");
@@ -660,48 +483,4 @@ public class UrlHelpers {
 			}
 		}
 	}
-
-
-	public static String getUrlPrefix(Base entity, HttpServletRequest request) {
-
-		String urlPrefix = (null != request.getContextPath()) 
-		? request.getContextPath() + request.getServletPath() 
-				: request.getServletPath();
-
-		String parentEntityPrefix = UrlHelpers.getUrlForModel(CHILD2PARENTMODEL
-				.get(entity.getClass()));
-		if (null != parentEntityPrefix) {
-			Pattern pattern = MODEL2REGEX.get(entity.getClass());
-			if (null == pattern) {
-				String regex = "^(" + urlPrefix + parentEntityPrefix
-						+ "/[^/]+)";
-				pattern = Pattern.compile(regex);
-				MODEL2REGEX.put(entity.getClass(), pattern);
-			}
-			Matcher matcher = pattern.matcher(request.getRequestURI());
-			if (matcher.find()) {
-				urlPrefix = matcher.group(1);
-			} else {
-				throw new RuntimeException(
-						"Trouble making outgoing entity url from incoming url: "
-								+ request.getRequestURI());
-			}
-		}
-
-		return urlPrefix;
-	}
-
-	/**
-	 * @param uriPrefix
-	 * @param type
-	 * @return the uri to be used to retrieve the metadata about the location
-	 */
-	public static String makeLocationUri(String uriPrefix, String type) {
-		String suffix = LOCATIONTYPE2URL.get(type);
-		if (null == suffix) {
-			return uriPrefix;
-		}
-		return uriPrefix + suffix;
-	}
-	
 }

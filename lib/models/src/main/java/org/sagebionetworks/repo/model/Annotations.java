@@ -210,7 +210,7 @@ public class Annotations implements Base {
 			}
 		}
 		else{
-			throw new IllegalArgumentException("Unknown annotatoin type: "+value.getClass().getName());
+			throw new IllegalArgumentException("Unknown annotation type: "+value.getClass().getName());
 		}
 	}
 	
