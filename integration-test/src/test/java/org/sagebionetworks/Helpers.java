@@ -112,6 +112,13 @@ public class Helpers {
 		public void setStderr(String stderr) {
 			this.stderr = stderr;
 		}
+		
+		@Override
+		public String toString() {
+			return "EXIT CODE: " + returnCode 
+			+ "\nSTDOUT\n" + stdout
+			+ "\nSTDERR\n" + stderr;
+		}
 	}
 
 	/**
@@ -129,20 +136,23 @@ public class Helpers {
 		Process process = rt.exec(cmd, null, null);
 		
 		//Capture standard out and error simultaneously off two different threads so they can't block each other
-		StreamGobbler errorGobbler = new StreamGobbler(process.getErrorStream(), ""); 
-		StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream(), "");
+		StreamGobbler errorGobbler = new StreamGobbler(process.getErrorStream()); 
+		StreamGobbler outputGobbler = new StreamGobbler(process.getInputStream());
 		errorGobbler.start();
         outputGobbler.start();
 
         //Make sure process is complete
 		int i = process.waitFor();
+		outputGobbler.join();
+		errorGobbler.join();
 		
 		//Capture and return the results
 		result.setReturnCode(i);
 		result.setStderr(errorGobbler.getOutput());
 		result.setStdout(outputGobbler.getOutput());
 		log.info("Completed exec: " + StringUtils.join(cmd, " ")
-				+ ", exit code: " + i);
+				+ ", " + result);
+		
 		assertEquals(0, result.getReturnCode());
 
 		return result;
@@ -151,13 +161,11 @@ public class Helpers {
 	static class StreamGobbler extends Thread
 	{
 	    InputStream is;
-	    String type;
 	    StringBuilder s;
 	    
-	    StreamGobbler(InputStream is, String type)
+	    StreamGobbler(InputStream is)
 	    {
 	        this.is = is;
-	        this.type = type;
 	        s = new StringBuilder();
 	    }
 	    
@@ -165,7 +173,8 @@ public class Helpers {
 	    	return s.toString();
 	    }
 	    
-	    public void run() {
+	    @Override
+		public void run() {
 	    	InputStreamReader isr = null;
 	    	BufferedReader br = null;
 	        try {
@@ -173,13 +182,13 @@ public class Helpers {
 	            br = new BufferedReader(isr);
 	            String line=null;
 	            while ( (line = br.readLine()) != null) {
-	                log.info(type + line);  
-	                s.append(line);
+	                s.append(line).append("\n");
 	            }
             } catch (IOException ioe) {
                 log.warn(ioe); 
             } finally {
 				try {
+					is.close();
 					if (isr != null)isr.close();
 					if (br != null) br.close();
 				} catch (IOException e) {
