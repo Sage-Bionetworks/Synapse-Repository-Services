@@ -129,7 +129,7 @@
 			<plugin>
 				<groupId>org.codehaus.cargo</groupId>
 				<artifactId>cargo-maven2-plugin</artifactId>
-				<version>1.0.6</version>
+				<version>1.1.1</version>
 				<configuration>
 					<wait>${org.sagebionetworks.integration.debug}</wait>
 					<!-- Container configuration -->
@@ -141,7 +141,7 @@
 							<installDir>${project.build.directory}/tomcat6x/container</installDir>
 						</zipUrlInstaller>
 						<systemProperties>
-							<JDBC_CONNECTION_STRING>jdbc:mysql://localhost/test2</JDBC_CONNECTION_STRING>
+ 							<JDBC_CONNECTION_STRING>jdbc:mysql://localhost/test2</JDBC_CONNECTION_STRING>
 							<org.sagebionetworks.rest.api.endpoint>${tomcat.endpoint}/${org.sagebionetworks.repository.context}</org.sagebionetworks.rest.api.endpoint>
 							<!-- This will force the user of a Mock UserDao -->
 							<org.sagebionetworks.mockCrowdDAOClass>org.sagebionetworks.repo.manager.TestUserDAO</org.sagebionetworks.mockCrowdDAOClass>
@@ -301,15 +301,19 @@
 			<artifactId>gwt-syncproxy</artifactId>
 			<version>0.2</version>
 		</dependency>
+
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>org.springframework.web</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>com.sun.jersey</groupId>
-			<artifactId>jersey-json</artifactId>
-			<version>1.5-ea09</version>
-		</dependency>
+
+        <!-- Jackson JSON Mapper -->
+        <dependency>
+          <groupId>org.codehaus.jackson</groupId>
+          <artifactId>jackson-mapper-asl</artifactId>
+          <version>${jackson.version}</version>
+        </dependency>
+            
 		<dependency>
 			<groupId>commons-logging</groupId>
 			<artifactId>commons-logging</artifactId>
