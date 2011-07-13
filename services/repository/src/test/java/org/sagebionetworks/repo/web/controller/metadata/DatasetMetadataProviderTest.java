@@ -284,5 +284,4 @@ public class DatasetMetadataProviderTest {
 		assertFalse(ds.getHasExpressionData());
 	}
 	
-
 }

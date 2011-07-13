@@ -129,8 +129,10 @@ public interface NodeManager {
 	 * @param parentId
 	 * @return
 	 * @throws NotFoundException 
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
 	 */
-	public Set<Node> getChildren(UserInfo userInfo, String parentId) throws NotFoundException;
+	public Set<Node> getChildren(UserInfo userInfo, String parentId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * Get a list of all of the version numbers for a node.

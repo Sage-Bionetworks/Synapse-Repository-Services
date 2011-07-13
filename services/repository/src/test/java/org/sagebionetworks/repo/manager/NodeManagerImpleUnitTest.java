@@ -183,6 +183,7 @@ public class NodeManagerImpleUnitTest {
 		annos.addAnnotation("longKey", Long.MAX_VALUE);
 		when(mockNodeDao.getAnnotations(id)).thenReturn(annos);
 		UserInfo userInfo = anonUserInfo;
+		when(mockAuthDao.canAccess(userInfo, id, ACCESS_TYPE.READ)).thenReturn(true);
 		Annotations copy = nodeManager.getAnnotations(userInfo, id);
 		assertEquals(copy, annos);
 	}
@@ -201,6 +202,7 @@ public class NodeManagerImpleUnitTest {
 		when(mockAuthDao.canAccess(userInfo, "101", ACCESS_TYPE.UPDATE)).thenReturn(true);
 		// The mockFieldTypeDao with throw an exception i 
 		annos.addAnnotation(annotationName, new Date(System.currentTimeMillis()));
+		when(mockAuthDao.canAccess(userInfo, id, ACCESS_TYPE.READ)).thenReturn(true);
 		nodeManager.updateAnnotations(userInfo,id,annos);
 		// Make sure this annotation name is checked against FieldType.DATE_ATTRIBUTE.
 		verify(mockFieldTypeDao, atLeastOnce()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
