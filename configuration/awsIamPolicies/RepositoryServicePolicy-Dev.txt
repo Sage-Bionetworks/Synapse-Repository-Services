@@ -4,7 +4,7 @@
             {
                 "Effect":"Allow",
                 "Action":"iam:AddUserToGroup",
-                "Resource":"arn:aws:iam::325565585839:group/DataUsers"
+                "Resource":"arn:aws:iam::325565585839:group/DevDataUsers"
             },
             {
                 "Effect":"Allow",
