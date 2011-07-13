@@ -76,5 +76,6 @@ public class DisplayConstants {
 	public static final String LABEL_LOGOUT_TEXT = "Logout";
 	public static final String BUTTON_CANCEL = "Cancel";
 	public static final String LABEL_SINGLE_SIGN_ON_LOGGING_IN = "Loggin you in.";
+	public static final String TEXT_NO_DOWNLOADS = "There are no downloads available.";
 	
 }

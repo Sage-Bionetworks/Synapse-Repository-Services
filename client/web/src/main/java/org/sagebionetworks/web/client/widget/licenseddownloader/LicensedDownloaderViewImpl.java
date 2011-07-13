@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.widget.licenseddownloader;
 
 import java.util.List;
 
+import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.shared.FileDownload;
 
@@ -276,6 +277,9 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 		downloadContentContainer.setBorders(false);
 		downloadContentContainer.setScrollMode(Style.Scroll.AUTOY);
 		downloadContentContainer.removeAll();
+		if(downloadHtml == null || downloadHtml.equals("")) {
+			downloadHtml = DisplayConstants.TEXT_NO_DOWNLOADS;
+		}
 		downloadContentContainer.add(new Html(downloadHtml));
 		panel.add(downloadContentContainer, standardPadding);
 		
@@ -287,7 +291,7 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 				});
 
 		downloadWindow.addButton(cancelLicenseButton);
-		downloadWindow.add(panel);
+		downloadWindow.add(panel);		
 	}
 
 }

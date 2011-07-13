@@ -106,7 +106,12 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 				try {
 					PagedResults  pagedResult = nodeModelCreator.createPagedResults(pagedResultString);
 					List<String> results = pagedResult.getResults();
-					layerPreview = nodeModelCreator.createLayerPreview(results.get(0));
+					if(results.size() > 0) {
+						layerPreview = nodeModelCreator.createLayerPreview(results.get(0));
+					} else {
+						view.showLayerPreviewUnavailable();
+						return;
+					}					
 				} catch (RestServiceException ex) {
 					DisplayUtils.handleServiceException(ex, placeChanger);
 				}				
