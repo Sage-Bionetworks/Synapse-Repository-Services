@@ -258,8 +258,7 @@ public class AuthenticationController {
 						
 			// instead of returning, redirect
 			String redirectUrl = request.getSession().getAttribute(RETURN_TO_URL_KEY)+":"+
-				crowdSession.getSessionToken()+":"+
-				crowdSession.getDisplayName();
+				crowdSession.getSessionToken()/*+":"+crowdSession.getDisplayName() Per PLFM-319*/;
 			String location = response.encodeRedirectURL(redirectUrl);
 			response.sendRedirect(location);
 			
