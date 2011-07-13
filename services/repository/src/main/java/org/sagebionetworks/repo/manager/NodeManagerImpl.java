@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -274,6 +273,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getUser().getUserId();
+		if (!authorizationManager.canAccess(userInfo, nodeId, AuthorizationConstants.ACCESS_TYPE.READ)) {
+			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
+		}
 		Annotations annos = nodeDao.getAnnotations(nodeId);
 		if(log.isDebugEnabled()){
 			log.debug("username "+userName+" fetched Annotations for node: "+nodeId);
@@ -300,6 +302,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(nodeId == null) throw new IllegalArgumentException("Node ID cannot be null");
 		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getUser().getUserId();
+		if (!authorizationManager.canAccess(userInfo, nodeId, AuthorizationConstants.ACCESS_TYPE.UPDATE)) {
+			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
+		}
 		// Validate that the annotations
 		validateAnnotations(updated);
 		// Now lock the node if we can
@@ -366,7 +371,12 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	}
 
 	@Override
-	public Set<Node> getChildren(UserInfo userInfo, String parentId) throws NotFoundException {
+	public Set<Node> getChildren(UserInfo userInfo, String parentId) throws NotFoundException, DatastoreException, UnauthorizedException {
+		UserInfo.validateUserInfo(userInfo);
+		String userName = userInfo.getUser().getUserId();
+		if (!authorizationManager.canAccess(userInfo, parentId, AuthorizationConstants.ACCESS_TYPE.READ)) {
+			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
+		}
 		return nodeDao.getChildren(parentId);
 	}
 
