@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
+import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.shared.Dataset;
 
 /**
@@ -23,7 +24,7 @@ public class ListUtilsTest {
 		
 		// Create a few datset
 		Dataset one = new Dataset();
-		one.setId("0");
+		one.setId(DisplayUtils.DEFAULT_PLACE_TOKEN);
 		one.setName("beta");
 		one.setCreationDate(new Date(99));
 		Dataset two = new Dataset();

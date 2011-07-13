@@ -14,7 +14,11 @@ public interface UserAccountServiceAsync {
 
 	void sendPasswordResetEmail(String emailAddress, AsyncCallback<Void> callback);
 
+	void setPassword(String email, String newPassword, AsyncCallback<Void> callback);
+
 	void initiateSession(String username, String password, AsyncCallback<UserData> callback);
+
+	void getUser(String sessionToken, AsyncCallback<UserData> callback);	
 
 	void createUser(UserRegistration userInfo, AsyncCallback<Void> callback);
 
@@ -30,6 +34,6 @@ public interface UserAccountServiceAsync {
 
 	void getAuthServiceUrl(AsyncCallback<String> callback);
 
-	void getSynapseWebUrl(AsyncCallback<String> callback);	
+	void getSynapseWebUrl(AsyncCallback<String> callback);
 
 }

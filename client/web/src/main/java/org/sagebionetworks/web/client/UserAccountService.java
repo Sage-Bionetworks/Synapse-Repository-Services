@@ -17,8 +17,12 @@ import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
 public interface UserAccountService extends RemoteService {	
 
 	public void sendPasswordResetEmail(String emailAddress) throws RestServiceException;
+	
+	public void setPassword(String email, String newPassword);
 
-	public UserData initiateSession(String username, String password) throws AuthenticationException;	
+	public UserData initiateSession(String username, String password) throws AuthenticationException;
+	
+	public UserData getUser(String sessionToken) throws AuthenticationException;
 
 	public void createUser(UserRegistration userInfo) throws RestServiceException;
 	

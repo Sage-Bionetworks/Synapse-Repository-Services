@@ -21,11 +21,17 @@ public interface AuthenticationController {
 	public void loginUser(String username, String password, AsyncCallback<UserData> callback);
 	
 	/**
+	 * Logs in the user represented by the token
+	 * @param token
+	 */
+	public void loginUser(String token, AsyncCallback<UserData> callback);
+	
+	/**
 	 * Sets the current user 
 	 * @param displayName
 	 * @param token
 	 */
-	public void setSSOUser(String displayName, String token, AsyncCallback<UserData> callback);
+	public void loginUserSSO(String token, AsyncCallback<UserData> callback);
 	
 	/**
 	 * Terminates the session of the current user

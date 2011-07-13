@@ -116,7 +116,7 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 			@Override
 			public void onSuccess(Void result) {
 				view.showInfo("Project Deleted", "The project was successfully deleted.");
-				placeChanger.goTo(new ProjectsHome("0"));
+				placeChanger.goTo(new ProjectsHome(DisplayUtils.DEFAULT_PLACE_TOKEN));
 			}
 			
 			@Override

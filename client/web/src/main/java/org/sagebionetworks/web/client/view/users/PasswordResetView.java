@@ -24,11 +24,13 @@ public interface PasswordResetView extends IsWidget{
 	
 	public void showErrorMessage(String errorMessage);
 	
+	public void clear();
+	
 	public interface Presenter {
 		
 		public void requestPasswordReset(String emailAddress);
 		
-//		public void resetPassword(String newPassword);
+		public void resetPassword(String newPassword);
 	}
 
 }

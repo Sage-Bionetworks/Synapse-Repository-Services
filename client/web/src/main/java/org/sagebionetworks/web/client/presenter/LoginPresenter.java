@@ -87,21 +87,20 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 				isSso = currentUser.isSSO();
 			authenticationController.logoutUser();
 			view.showLogout(isSso);
-		} else if(!"0".equals(token) && !"".equals(token) && token != null) {			
+		} else if(!DisplayUtils.DEFAULT_PLACE_TOKEN.equals(token) && !"".equals(token) && token != null) {			
 			// Single Sign on token. try refreshing the token to see if it is valid. if so, log user in
 			// parse token
 			view.showLoggingInLoader();
 			if(token != null) {
 				String[] parts = token.split(":");
-				if(parts != null && parts.length == 2) {
-					String sessionToken = parts[0];
-					String displayName = parts[1];
-					authenticationController.setSSOUser(displayName, sessionToken, new AsyncCallback<UserData>() {	
+				if(parts != null) {
+					String sessionToken = parts[0];					
+					authenticationController.loginUserSSO(sessionToken, new AsyncCallback<UserData>() {	
 						@Override
 						public void onSuccess(UserData result) {
 							view.hideLoggingInLoader();
 							// user is logged in. forward to home page
-							bus.fireEvent( new PlaceChangeEvent(new Home("0")));
+							bus.fireEvent( new PlaceChangeEvent(new Home(DisplayUtils.DEFAULT_PLACE_TOKEN)));
 						}
 						@Override
 						public void onFailure(Throwable caught) {

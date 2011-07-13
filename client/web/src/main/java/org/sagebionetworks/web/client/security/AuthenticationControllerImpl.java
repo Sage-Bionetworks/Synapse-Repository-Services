@@ -58,31 +58,13 @@ public class AuthenticationControllerImpl implements AuthenticationController {
 	}
 	
 	@Override
-	public void setSSOUser(final String displayName, final String token, final AsyncCallback<UserData> callback) {
-		if(displayName == null || token == null) callback.onFailure(new AuthenticationException(AUTHENTICATION_MESSAGE));
-		userAccountService.ssoLogin(token, new AsyncCallback<Boolean>() {
-			@Override
-			public void onSuccess(Boolean result) {
-				if(result) {
-					// TODO : look up user info from auth svc
-					UserData userData = new UserData(DisplayConstants.SINGLE_SIGN_ON_USERID, displayName, token);
-					userData.setSSO(true);
-					String cookie = userData.getCookieString();
-					cookies.setCookie(CookieKeys.USER_LOGIN_DATA, cookie);
-					cookies.setCookie(CookieKeys.USER_LOGIN_TOKEN, userData.getToken());
-					
-					AuthenticationControllerImpl.currentUser = userData;
-					callback.onSuccess(userData);
-				} else {
-					callback.onFailure(new AuthenticationException(AUTHENTICATION_MESSAGE));
-				}
-			}
-			
-			@Override
-			public void onFailure(Throwable caught) {
-				callback.onFailure(new AuthenticationException(AUTHENTICATION_MESSAGE));
-			}
-		});
+	public void loginUser(final String token, final AsyncCallback<UserData> callback) {
+		setUser(token, callback, false);
+	}
+	
+	@Override
+	public void loginUserSSO(final String token, final AsyncCallback<UserData> callback) {
+		setUser(token, callback, true);
 	}
 
 	@Override
@@ -101,5 +83,31 @@ public class AuthenticationControllerImpl implements AuthenticationController {
 		}
 	}
 
-
+	/*
+	 * Private Methods
+	 */
+	private void setUser(String token, final AsyncCallback<UserData> callback, final boolean isSSO) {
+		if(token == null) callback.onFailure(new AuthenticationException(AUTHENTICATION_MESSAGE));
+		userAccountService.getUser(token, new AsyncCallback<UserData>() {
+			@Override
+			public void onSuccess(UserData userData) {
+				if(userData != null) {
+					userData.setSSO(isSSO);
+					String cookie = userData.getCookieString();
+					cookies.setCookie(CookieKeys.USER_LOGIN_DATA, cookie);
+					cookies.setCookie(CookieKeys.USER_LOGIN_TOKEN, userData.getToken());
+					
+					AuthenticationControllerImpl.currentUser = userData;
+					callback.onSuccess(userData);
+				} else {
+					callback.onFailure(new AuthenticationException(AUTHENTICATION_MESSAGE));
+				}
+			}
+			
+			@Override
+			public void onFailure(Throwable caught) {
+				callback.onFailure(new AuthenticationException(AUTHENTICATION_MESSAGE));
+			}
+		});		
+	}
 }

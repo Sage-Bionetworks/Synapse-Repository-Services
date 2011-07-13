@@ -121,48 +121,48 @@ public class PasswordResetViewImpl extends Composite implements PasswordResetVie
 	   }  
 
 	 private void createResetForm() {  
-//	     resetFormPanel = new FormPanel();  
-//	     resetFormPanel.setFrame(true);
-//	     resetFormPanel.setHeaderVisible(false);  
-//	     resetFormPanel.setWidth(350);  
-//	     resetFormPanel.setLayout(new FlowLayout());  
-//	   
-//	     FieldSet fieldSet = new FieldSet();  
-//	     fieldSet.setHeading("Enter a New Password&nbsp;");  
-//	     fieldSet.setCheckboxToggle(false);  
-//	   
-//	     FormLayout layout = new FormLayout();  
-//	     layout.setLabelWidth(100);  
-//	     fieldSet.setLayout(layout);  
-//	   
-//	     final TextField<String> newPassword = new TextField<String>();  
-//	     newPassword.setFieldLabel("New Password");  
-//	     newPassword.setAllowBlank(false);
-//	     newPassword.setPassword(true);
-//	     fieldSet.add(newPassword, formData);  
-//	   
-//	     final TextField<String> newPasswordConfirm = new TextField<String>();  
-//	     newPasswordConfirm.setFieldLabel("Confirm Password");  
-//	     newPasswordConfirm.setAllowBlank(false);
-//	     newPasswordConfirm.setPassword(true);
-//	     fieldSet.add(newPasswordConfirm, formData);  
-//	   
-//	     resetFormPanel.add(fieldSet);  
-//	   
-//	     resetFormPanel.setButtonAlign(HorizontalAlignment.CENTER);  
-//	     Button sendReset = new Button("Submit");
-//	     sendReset.addSelectionListener(new SelectionListener<ButtonEvent>() {				
-//			@Override
-//			public void componentSelected(ButtonEvent ce) {
-//				if(newPassword.getValue() != null && newPasswordConfirm.getValue() != null && newPassword.getValue().equals(newPasswordConfirm.getValue())) {				
-//					presenter.resetPassword(newPassword.getValue());
-//				} else {
-//					MessageBox.alert("Error", "Passwords do not match. Please re-enter your new password.", null);
-//				}
-//				
-//			}
-//	     });
-//	     resetFormPanel.addButton(sendReset);  		       		  
+	     resetFormPanel = new FormPanel();  
+	     resetFormPanel.setFrame(true);
+	     resetFormPanel.setHeaderVisible(false);  
+	     resetFormPanel.setWidth(350);  
+	     resetFormPanel.setLayout(new FlowLayout());  
+	   
+	     FieldSet fieldSet = new FieldSet();  
+	     fieldSet.setHeading("Enter a New Password&nbsp;");  
+	     fieldSet.setCheckboxToggle(false);  
+	   
+	     FormLayout layout = new FormLayout();  
+	     layout.setLabelWidth(100);  
+	     fieldSet.setLayout(layout);  
+	   
+	     final TextField<String> newPassword = new TextField<String>();  
+	     newPassword.setFieldLabel("New Password");  
+	     newPassword.setAllowBlank(false);
+	     newPassword.setPassword(true);
+	     fieldSet.add(newPassword, formData);  
+	   
+	     final TextField<String> newPasswordConfirm = new TextField<String>();  
+	     newPasswordConfirm.setFieldLabel("Confirm Password");  
+	     newPasswordConfirm.setAllowBlank(false);
+	     newPasswordConfirm.setPassword(true);
+	     fieldSet.add(newPasswordConfirm, formData);  
+	   
+	     resetFormPanel.add(fieldSet);  
+	   
+	     resetFormPanel.setButtonAlign(HorizontalAlignment.CENTER);  
+	     Button sendReset = new Button("Submit");
+	     sendReset.addSelectionListener(new SelectionListener<ButtonEvent>() {				
+			@Override
+			public void componentSelected(ButtonEvent ce) {
+				if(newPassword.getValue() != null && newPasswordConfirm.getValue() != null && newPassword.getValue().equals(newPasswordConfirm.getValue())) {				
+					presenter.resetPassword(newPassword.getValue());
+				} else {
+					MessageBox.alert("Error", "Passwords do not match. Please re-enter your new password.", null);
+				}
+				
+			}
+	     });
+	     resetFormPanel.addButton(sendReset);  		       		  
 	   }
 
 
@@ -181,6 +181,12 @@ public class PasswordResetViewImpl extends Composite implements PasswordResetVie
 		contentPanel.add(resetFormPanel);
 	}
 
+	
+	@Override
+	public void clear() {
+		contentHtml.setInnerHTML("");
+		contentPanel.clear();
+	}
 
 	@Override
 	public void showPasswordResetSuccess() {

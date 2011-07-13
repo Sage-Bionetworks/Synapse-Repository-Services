@@ -18,8 +18,10 @@ public class ServiceUtils {
 	public static final String REPOSVC_HAS_ACCESS_PATH = "access";
 	
 	public static final String AUTHSVC_SEND_PASSWORD_CHANGE_PATH = "userPasswordEmail";
+	public static final String AUTHSVC_SET_PASSWORD_PATH = "userPassword";
 	public static final String AUTHSVC_INITIATE_SESSION_PATH = "session";
 	public static final String AUTHSVC_CREATE_USER_PATH = "user";
+	public static final String AUTHSVC_GET_USER_PATH = "user";
 	public static final String AUTHSVC_TERMINATE_SESSION_PATH = "session";
 	public static final String AUTHSVC_REFRESH_SESSION_PATH = "session";
 	public static final String AUTHSVC_GET_USERS_PATH = "user";

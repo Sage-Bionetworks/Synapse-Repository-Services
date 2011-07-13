@@ -5,14 +5,19 @@ import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
 import org.sagebionetworks.web.client.cookie.CookieProvider;
+import org.sagebionetworks.web.client.place.Home;
+import org.sagebionetworks.web.client.place.LoginPlace;
 import org.sagebionetworks.web.client.place.users.PasswordReset;
 import org.sagebionetworks.web.client.security.AuthenticationController;
+import org.sagebionetworks.web.client.security.AuthenticationException;
 import org.sagebionetworks.web.client.view.users.PasswordResetView;
+import org.sagebionetworks.web.shared.users.UserData;
 
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.place.shared.PlaceController;
 import com.google.gwt.user.client.rpc.AsyncCallback;
+import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.AcceptsOneWidget;
 import com.google.inject.Inject;
 
@@ -49,31 +54,35 @@ public class PasswordResetPresenter extends AbstractActivity implements Password
 
 	public void setPlace(PasswordReset place) {
 		this.place = place;
-						
-//		// show proper view if token is present
-//		if("0".equals(place.toToken())) {
-//			view.showRequestForm();
-//		} else {
-//			view.showMessage(AbstractImagePrototype.create(sageImageBundle.loading16()).getHTML() + " Loading Password Reset...");
-//			
-//			// show same error if service fails as with an invalid token					
-//			final String errorMessage = "Password reset period has expired. <a href=\"#PasswordReset:0\">Please request another Password Reset</a>.";
-//			userService.isActivePasswordResetToken(place.toToken(), new AsyncCallback<Boolean>() {				
-//				@Override
-//				public void onSuccess(Boolean result) {
-//					if(result) {
-//						view.showResetForm();
-//					} else {
-//						view.showMessage(errorMessage);
-//					}
-//				}
-//				
-//				@Override
-//				public void onFailure(Throwable caught) {
-//					view.showMessage(errorMessage);
-//				}
-//			});		
-//		}
+					
+		view.clear(); 
+		
+		// show proper view if token is present
+		if(DisplayUtils.DEFAULT_PLACE_TOKEN.equals(place.toToken())) {
+			view.showRequestForm();
+		} else {
+			// Show password reset form
+			view.showMessage(AbstractImagePrototype.create(sageImageBundle.loading16()).getHTML() + " Loading Password Reset...");
+			
+			// show same error if service fails as with an invalid token					
+			final String errorMessage = "Password reset period has expired. <a href=\"#PasswordReset:0\">Please request another Password Reset</a>.";
+			String sessionToken = place.toToken();
+			authenticationController.loginUser(sessionToken, new AsyncCallback<UserData>() {
+				@Override
+				public void onSuccess(UserData result) {
+					if(result != null) {
+						view.showResetForm();
+					} else {
+						view.showMessage(errorMessage);
+					}
+				}
+
+				@Override
+				public void onFailure(Throwable caught) {
+					view.showMessage(errorMessage);
+				}
+			});
+		}
 	}
 
 	@Override
@@ -92,28 +101,23 @@ public class PasswordResetPresenter extends AbstractActivity implements Password
 		
 	}
 
-//	@Override
-//	public void resetPassword(final String newPassword) {		
-//		userService.resetPassword(place.toToken(), newPassword, new AsyncCallback<String>() {			
-//			@Override
-//			public void onSuccess(String username) {				
-//				view.showPasswordResetSuccess();
-//				view.showInfo("Your password has been reset."); 
-//				// log in user
-//				try {
-//					authenticationController.loginUser(username, newPassword);					 
-//					placeController.goTo(new Home("0")); // redirect to home page
-//				} catch (AuthenticationException e) {
-//					// if login fails, just send the user to the login screen
-//					placeController.goTo(new LoginPlace(LoginPlace.LOGIN_TOKEN));
-//				}
-//			}
-//			
-//			@Override
-//			public void onFailure(Throwable caught) {
-//				view.showErrorMessage("Password reset failed. Please try again.");				
-//			}
-//		});		
-//	}
-
+	@Override
+	public void resetPassword(final String newPassword) {
+		UserData currentUser = authenticationController.getLoggedInUser();
+		if(currentUser != null) {
+			userService.setPassword(currentUser.getEmail(), newPassword, new AsyncCallback<Void>() {			
+				@Override
+				public void onSuccess(Void result) {				
+					view.showPasswordResetSuccess();
+					view.showInfo("Your password has been reset."); 
+					placeController.goTo(new Home(DisplayUtils.DEFAULT_PLACE_TOKEN)); // redirect to home page
+				}
+				
+				@Override
+				public void onFailure(Throwable caught) {
+					view.showErrorMessage("Password reset failed. Please try again.");				
+				}
+			});		
+		}
+	}
 }

@@ -41,8 +41,7 @@ public class UserData implements IsSerializable {
 		this.userName = userName;
 		this.token = token;
 	}
-	
-	
+		
 	public String getCookieString() {
 		// Add the fileds to a list
 		List<String> fieldList = new ArrayList<String>();

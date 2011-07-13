@@ -2,9 +2,7 @@ package org.sagebionetworks.web.server.servlet;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Logger;
 
 import org.codehaus.jettison.json.JSONArray;
@@ -13,10 +11,9 @@ import org.codehaus.jettison.json.JSONObject;
 import org.sagebionetworks.web.client.UserAccountService;
 import org.sagebionetworks.web.client.security.AuthenticationException;
 import org.sagebionetworks.web.server.RestTemplateProvider;
-import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
-import org.sagebionetworks.web.shared.users.AclAccessType;
 import org.sagebionetworks.web.shared.users.AclPrincipal;
+import org.sagebionetworks.web.shared.users.GetUser;
 import org.sagebionetworks.web.shared.users.UserData;
 import org.sagebionetworks.web.shared.users.UserRegistration;
 import org.sagebionetworks.web.shared.users.UserSession;
@@ -113,6 +110,51 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 	}
 
 	@Override
+	public void setPassword(String email, String newPassword) {
+		// First make sure the service is ready to go.
+		validateService();
+		
+		JSONObject obj = new JSONObject();
+		try {
+			obj.put("email", email);
+			obj.put("password", newPassword);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		
+		// Build up the path
+		String url = urlProvider.getAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_SET_PASSWORD_PATH;
+		String jsonString = obj.toString();
+		
+		// Setup the header
+		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<String>(jsonString, headers);
+		HttpMethod method = HttpMethod.POST;
+		
+		// NOTE: do not log the JSON as it includes the user's new clear text password!
+		logger.info(method.toString() + ": " + url + ", for user " + email); 
+		
+		// Make the actual call.
+		try {
+			ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class);
+			if(response.getBody().equals("")) {
+				return;
+			}
+		} catch (UnexpectedException ex) {
+			return;
+		} catch (NullPointerException nex) {
+			// TODO : change this to properly deal with a 204!!!
+			return; // this is expected
+		}
+		
+		throw new RestClientException("An error occured. Please try again.");
+	}
+
+	
+	@Override
 	public UserData initiateSession(String username, String password) throws AuthenticationException {
 		// First make sure the service is ready to go.
 		validateService();
@@ -139,7 +181,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		
 		ResponseEntity<UserSession> response = null;
 		try {
-			response = templateProvider.getTemplate().exchange(url, HttpMethod.POST, entity, UserSession.class);
+			response = templateProvider.getTemplate().exchange(url, method, entity, UserSession.class);
 		} catch (HttpClientErrorException ex) {
 			throw new AuthenticationException("Unable to authenticate.");
 		}
@@ -156,6 +198,41 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		return userData;		
 	}
 
+	@Override
+	public UserData getUser(String sessionToken) throws AuthenticationException {
+		// First make sure the service is ready to go.
+		validateService();
+		
+		// Build up the path
+		String url = urlProvider.getAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_GET_USER_PATH;				
+		
+		// Setup the header
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		headers.add(UserDataProvider.SESSION_TOKEN_KEY, sessionToken);
+		HttpEntity<String> entity = new HttpEntity<String>("", headers);
+		HttpMethod method = HttpMethod.GET;
+		
+		logger.info(method.toString() + ": " + url); 
+		
+		ResponseEntity<GetUser> response = null;
+		try {
+			response = templateProvider.getTemplate().exchange(url, method, entity, GetUser.class);
+		} catch (HttpClientErrorException ex) {
+			throw new AuthenticationException("Unable to authenticate.");
+		}
+		
+		UserData userData = null;		
+		if((response.getStatusCode() == HttpStatus.CREATED || response.getStatusCode() == HttpStatus.OK) && response.hasBody()) {
+			GetUser getUser = response.getBody();
+			userData = new UserData(getUser.getEmail(), getUser.getDisplayName(), sessionToken);
+		} else {			
+			throw new AuthenticationException("Unable to authenticate.");
+		}
+		return userData;		
+	}	
+
+	
 	@Override
 	public void createUser(UserRegistration userInfo) throws RestServiceException {
 		// First make sure the service is ready to go.
@@ -208,9 +285,10 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>(jsonString, headers);
+		HttpMethod method = HttpMethod.DELETE;
 		
 		// Make the actual call.
-		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, HttpMethod.DELETE, entity, String.class);
+		ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class);
 
 		if (response.getStatusCode() == HttpStatus.OK) {
 		} else {
@@ -374,6 +452,6 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 			}			
 		}
 		return principals;
-	}	
+	}
 	
 }
