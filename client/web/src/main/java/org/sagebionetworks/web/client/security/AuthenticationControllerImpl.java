@@ -30,7 +30,7 @@ public class AuthenticationControllerImpl implements AuthenticationController {
 	public boolean isLoggedIn() {
 		String loginCookieString = cookies.getCookie(CookieKeys.USER_LOGIN_DATA);
 		if(loginCookieString != null) {
-			currentUser = new UserData(loginCookieString);
+			currentUser = new UserData(loginCookieString);			
 			return true;
 		} 
 		return false;
@@ -64,7 +64,9 @@ public class AuthenticationControllerImpl implements AuthenticationController {
 			@Override
 			public void onSuccess(Boolean result) {
 				if(result) {
+					// TODO : look up user info from auth svc
 					UserData userData = new UserData(DisplayConstants.SINGLE_SIGN_ON_USERID, displayName, token);
+					userData.setSSO(true);
 					String cookie = userData.getCookieString();
 					cookies.setCookie(CookieKeys.USER_LOGIN_DATA, cookie);
 					cookies.setCookie(CookieKeys.USER_LOGIN_TOKEN, userData.getToken());
@@ -85,6 +87,7 @@ public class AuthenticationControllerImpl implements AuthenticationController {
 
 	@Override
 	public UserData getLoggedInUser() {
+		isLoggedIn(); // make sure we've read the cookie
 		return currentUser;
 	}
 
@@ -93,7 +96,8 @@ public class AuthenticationControllerImpl implements AuthenticationController {
 		if(currentUser != null) {
 			// don't actually terminate session, just remove the cookies			
 			cookies.removeCookie(CookieKeys.USER_LOGIN_DATA);
-			cookies.removeCookie(CookieKeys.USER_LOGIN_TOKEN);			
+			cookies.removeCookie(CookieKeys.USER_LOGIN_TOKEN);
+			currentUser = null;
 		}
 	}
 

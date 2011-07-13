@@ -19,7 +19,9 @@
 							<td><a href="edit_profile.html">My profile</a><g:Hyperlink ui:field="editProfileLink" /></td>
 							<td>&nbsp;|&nbsp;</td>
 							 -->
-							<td><g:Hyperlink ui:field="logoutLink" /></td>
+							<td><g:Hyperlink ui:field="topRightLink1" /></td>
+							<td>&nbsp;|&nbsp;</td>
+							<td><g:Hyperlink ui:field="topRightLink2" /></td>
 						</tr>
 					</table>					
 					</span>

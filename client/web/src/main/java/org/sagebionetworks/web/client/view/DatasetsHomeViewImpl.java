@@ -49,6 +49,8 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 	private SageImageBundle imageBundle;
 	private IconsImageBundle icons;
 	private QueryFilter filter;
+	private Header headerWidget;
+
 	
 	@Inject
 	public DatasetsHomeViewImpl(DatasetsHomeViewImplUiBinder binder, Header headerWidget, Footer footerWidget, IconsImageBundle icons, QueryFilter filter, SageImageBundle imageBundle, QueryServiceTableResourceProvider queryServiceTableResourceProvider) {		
@@ -58,6 +60,7 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 		this.filter = filter;
 		this.icons = icons;
 		this.queryServiceTableResourceProvider = queryServiceTableResourceProvider;
+		this.headerWidget = headerWidget;
 		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
@@ -68,6 +71,7 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 	@Override
 	public void setPresenter(final Presenter presenter) {
 		this.presenter = presenter;
+		headerWidget.refresh();
 		queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, 1000, 480, presenter.getPlaceChanger());
 		ImageResource searchIR = imageBundle.searchButtonIcon();
 				

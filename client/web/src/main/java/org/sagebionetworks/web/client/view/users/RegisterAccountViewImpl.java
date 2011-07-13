@@ -50,12 +50,14 @@ public class RegisterAccountViewImpl extends Composite implements RegisterAccoun
 	private FormData formData;
 	private IconsImageBundle iconsImageBundle;
 	private Button registerButton;
-	
+	private Header headerWidget;
+
 	@Inject
 	public RegisterAccountViewImpl(RegisterAccountViewImplUiBinder binder, Header headerWidget, Footer footerWidget, IconsImageBundle iconsImageBundle, QueryFilter filter, SageImageBundle imageBundle) {		
 		initWidget(binder.createAndBindUi(this));
 
 		this.iconsImageBundle = iconsImageBundle;
+		this.headerWidget = headerWidget;
 		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());	
@@ -68,6 +70,7 @@ public class RegisterAccountViewImpl extends Composite implements RegisterAccoun
 	@Override
 	public void setPresenter(Presenter presenter) {
 		this.presenter = presenter;
+		headerWidget.refresh();
 	}
 
 

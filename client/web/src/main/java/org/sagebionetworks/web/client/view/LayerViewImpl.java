@@ -32,6 +32,7 @@ import org.sagebionetworks.web.shared.TableResults;
 import com.extjs.gxt.ui.client.event.MenuEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
 import com.extjs.gxt.ui.client.widget.Html;
+import com.extjs.gxt.ui.client.widget.Info;
 import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.Window;
 import com.extjs.gxt.ui.client.widget.button.Button;
@@ -103,6 +104,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 	private AnnotationEditor annotationEditor;
 	private AdminMenu adminMenu;
 	private boolean userIsAdmin = false;
+	private Header headerWidget;
 
 	@Inject
 	public LayerViewImpl(Binder uiBinder, Header headerWidget,
@@ -127,6 +129,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 		this.annotationEditor = annotationEditor;
 		this.adminMenu = adminMenu;
 		this.seeTermsModal = seeTermsModal;
+		this.headerWidget = headerWidget;
 
 		// Header setup
 		header.add(headerWidget.asWidget());
@@ -140,12 +143,19 @@ public class LayerViewImpl extends Composite implements LayerView {
 	@Override
 	public void setPresenter(Presenter presenter) {
 		this.presenter = presenter;
+		this.headerWidget.refresh();		
 	}
 
 	@Override
 	public void showErrorMessage(String message) {
 		MessageBox.info("Message", message, null);
 	}
+
+	@Override
+	public void showInfo(String title, String message) {
+		Info.display(title, message);
+	}
+
 
 	@Override
 	public void showLayerPreviewUnavailable() {
@@ -229,8 +239,10 @@ public class LayerViewImpl extends Composite implements LayerView {
 		downloadLink.setHTML(AbstractImagePrototype.create(iconsImageBundle.download16()).getHTML() + " Download Layer");
 		downloadLink.addClickHandler(new ClickHandler() {			
 			@Override
-			public void onClick(ClickEvent event) {
-				licensedDownloader.showWindow();
+			public void onClick(ClickEvent event) {				
+				if(presenter.downloadAttempted()) {
+					licensedDownloader.showWindow();
+				}
 			}
 		});
 		return downloadLink;
@@ -456,5 +468,6 @@ public class LayerViewImpl extends Composite implements LayerView {
 			accessSpan.setInnerHTML("<span class=\"setting_label\">Access: </span><span class=\"setting_level\">"+ DisplayUtils.getIconHtml(icon) +" "+ accessLevel +"</span>");
 		}
 	}
+
 	
 }

@@ -33,6 +33,7 @@ import org.sagebionetworks.web.shared.WhereCondition;
 
 import com.extjs.gxt.ui.client.event.MenuEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
+import com.extjs.gxt.ui.client.widget.Info;
 import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.Window;
 import com.extjs.gxt.ui.client.widget.button.Button;
@@ -108,6 +109,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	private AnnotationEditor annotationEditor;
 	private AdminMenu adminMenu;
 	private boolean userIsAdmin = false;
+	private Header headerWidget;
 	
 	
 	@Inject
@@ -138,6 +140,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		this.adminMenu = adminMenu;
 		this.queryServiceTableResourceProvider = queryServiceTableResourceProvider;
 		this.seeTermsModal = seeTermsModal;
+		this.headerWidget = headerWidget;
 		
 		// header setup
 		header.clear();
@@ -154,11 +157,17 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	@Override
 	public void setPresenter(Presenter presenter) {
 		this.presenter = presenter;
+		this.headerWidget.refresh();
 	}
 
 	@Override
 	public void showErrorMessage(String message) {
 		MessageBox.info("Message", message, null);
+	}
+
+	@Override
+	public void showInfo(String title, String message) {
+		Info.display(title, message);
 	}
 
 	@Override
@@ -480,9 +489,11 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		downloadLink.setHTML(AbstractImagePrototype.create(iconsImageBundle.download16()).getHTML() + " Download Dataset");
 		downloadLink.addClickHandler(new ClickHandler() {			
 			@Override
-			public void onClick(ClickEvent event) {				
-				datasetLicensedDownloader.showWindow();
-				showErrorMessage("<strong>Alpha Note</strong>: Downloading of entire dataset is currently not operational. You can download layers individually though.");
+			public void onClick(ClickEvent event) {
+				if(presenter.downloadAttempted()) {
+					datasetLicensedDownloader.showWindow();
+					showErrorMessage("<strong>Alpha Note</strong>: Downloading of entire dataset is currently not operational. You can download layers individually though.");
+				}
 			}
 		});
 		return downloadLink;

@@ -9,6 +9,7 @@ public class LoginPlace extends Place {
 	private Place forwardTo;
 	
 	public static final String LOGOUT_TOKEN = "logout";
+	public static final String LOGIN_TOKEN = "0";
 
 	public LoginPlace(String token) {
 		this.token = token;
@@ -36,7 +37,7 @@ public class LoginPlace extends Place {
 
 	public Place getForwardPlace() {
 		if(forwardTo == null) {
-			return new Home("0");			
+			return new Home(LOGIN_TOKEN);			
 		}
 		return forwardTo;
 	}

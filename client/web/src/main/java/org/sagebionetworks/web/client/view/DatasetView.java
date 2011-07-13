@@ -32,6 +32,12 @@ public interface DatasetView extends IsWidget {
 	 */
 	public void showErrorMessage(String message);
 	
+	/**
+	 * Shows a info box with the given message
+	 * @param title
+	 * @param message
+	 */
+	public void showInfo(String title, String message);
 	
 	public void setDatasetDetails(String id,
 								  String name,
@@ -103,7 +109,13 @@ public interface DatasetView extends IsWidget {
 		public void goTo(Place place);
 		
 		public PlaceChanger getPlaceChanger();
-	}
+
+		/**
+		 * Determine if a download screen can be displayed to the user
+		 * @return true if the user should be shown the download screen 
+		 */
+		public boolean downloadAttempted();
+}
 
 	
 

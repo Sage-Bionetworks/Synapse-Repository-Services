@@ -20,6 +20,7 @@ import com.google.gwt.user.client.ui.FlexTable;
 
 public class DisplayUtils {
 
+	public static final String DEFAULT_PLACE_TOKEN = "0";
 	public static PlaceController placeController;
 	
 	/**
@@ -71,7 +72,7 @@ public class DisplayUtils {
 		if(ex instanceof UnauthorizedException) {
 			// send user to login page						
 			Info.display("Session Timeout", "Your session has timed out. Please login again.");
-			placeChanger.goTo(new LoginPlace("0"));
+			placeChanger.goTo(new LoginPlace(LoginPlace.LOGIN_TOKEN));
 		} else if(ex instanceof ForbiddenException) {
 			// alerting here this seems kinda lame, but keeps the code out of the client
 			MessageBox.info("Unauthorized", "Sorry, there was a failure due to insufficient privledges.", null);			

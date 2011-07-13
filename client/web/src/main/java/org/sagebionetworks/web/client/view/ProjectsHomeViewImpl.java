@@ -48,7 +48,8 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 	private QueryServiceTableResourceProvider queryServiceTableResourceProvider;
 	private IconsImageBundle icons;
 	private NodeEditor nodeEditor;
-	
+	private Header headerWidget;
+
 	@Inject
 	public ProjectsHomeViewImpl(ProjectsHomeViewImplUiBinder binder,
 			Header headerWidget, Footer footerWidget, IconsImageBundle icons,
@@ -60,6 +61,7 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 		this.queryServiceTableResourceProvider = queryServiceTableResourceProvider;
 		this.icons = icons;
 		this.nodeEditor = nodeEditor;
+		this.headerWidget = headerWidget;
 		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
@@ -71,6 +73,7 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 	@Override
 	public void setPresenter(final Presenter presenter) {
 		this.presenter = presenter;		
+		headerWidget.refresh();
 				
 		this.queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.project, true, 1000, 480, presenter.getPlaceChanger());		
 		// Start on the first page and trigger a data fetch from the server

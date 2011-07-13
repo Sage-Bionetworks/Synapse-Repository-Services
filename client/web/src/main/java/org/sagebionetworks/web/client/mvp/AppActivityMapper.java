@@ -1,6 +1,8 @@
 package org.sagebionetworks.web.client.mvp;
 
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -32,7 +34,8 @@ public class AppActivityMapper implements ActivityMapper {
 	
 	private static Logger log = Logger.getLogger(AppActivityMapper.class.getName());
 	private PortalGinInjector ginjector;
-	
+	@SuppressWarnings("rawtypes")
+	private List<Class> openAccessPlaces; 
 
 	/**
 	 * AppActivityMapper associates each Place with its corresponding
@@ -40,21 +43,34 @@ public class AppActivityMapper implements ActivityMapper {
 	 * @param clientFactory
 	 *            Factory to be passed to activities
 	 */
+	@SuppressWarnings("rawtypes")
 	public AppActivityMapper(PortalGinInjector ginjector) {
 		super();
 		this.ginjector = ginjector;
+		
+		openAccessPlaces = new ArrayList<Class>();
+		openAccessPlaces.add(Home.class);		
+		openAccessPlaces.add(LoginPlace.class);
+		openAccessPlaces.add(PasswordReset.class);
+		openAccessPlaces.add(RegisterAccount.class);
+		openAccessPlaces.add(DatasetsHome.class);
+		openAccessPlaces.add(Dataset.class);
+		openAccessPlaces.add(Layer.class);
+		openAccessPlaces.add(ProjectsHome.class);
+		openAccessPlaces.add(Project.class);		
 	}
 
 	@Override
 	public Activity getActivity(Place place) {
+		
 		// If the user is not logged in then we redirect them to the login screen
-		// except for the fully public pages: LoginPlace, PasswordReset and RegisterAccount
-		if(!(place  instanceof LoginPlace) && !(place instanceof PasswordReset) && !(place instanceof RegisterAccount)){
+		// except for the fully public places
+		if(!openAccessPlaces.contains(place.getClass())) {
 			if(!this.ginjector.getAuthenticationController().isLoggedIn()){
 				// Redirect them to the login screen
 				LoginPlace loginPlace = new LoginPlace(place);
 				return getActivity(loginPlace);
-			}
+			}			
 		}
 		
 		// We use GIN to generate and inject all presenters with 

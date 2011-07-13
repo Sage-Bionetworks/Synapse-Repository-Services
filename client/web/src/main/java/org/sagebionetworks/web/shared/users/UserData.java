@@ -15,6 +15,7 @@ public class UserData implements IsSerializable {
 	private String userName;
 	// The user's token
 	private String token;
+	private boolean isSSO = false;
 	
 	/*
 	 * Default Constructor is required
@@ -66,6 +67,14 @@ public class UserData implements IsSerializable {
 
 	public String getToken() {
 		return token;
+	}
+
+	public boolean isSSO() {
+		return isSSO;
+	}
+
+	public void setSSO(boolean isSSO) {
+		this.isSSO = isSSO;
 	}
 
 	@Override

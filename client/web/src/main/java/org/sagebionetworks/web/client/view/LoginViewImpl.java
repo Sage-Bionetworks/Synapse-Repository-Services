@@ -118,7 +118,7 @@ public class LoginViewImpl extends Composite implements LoginView {
 		loginAgain.addSelectionListener(new SelectionListener<ButtonEvent>() {
 			@Override
 			public void componentSelected(ButtonEvent ce) {
-				presenter.goTo(new LoginPlace("0"));
+				presenter.goTo(new LoginPlace(LoginPlace.LOGIN_TOKEN));
 			}
 		});
 		cp.add(loginAgain, new MarginData(16, 0, 10, 10));

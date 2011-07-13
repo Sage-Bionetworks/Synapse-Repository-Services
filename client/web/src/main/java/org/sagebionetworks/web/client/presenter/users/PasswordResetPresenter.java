@@ -105,7 +105,7 @@ public class PasswordResetPresenter extends AbstractActivity implements Password
 //					placeController.goTo(new Home("0")); // redirect to home page
 //				} catch (AuthenticationException e) {
 //					// if login fails, just send the user to the login screen
-//					placeController.goTo(new LoginPlace("0"));
+//					placeController.goTo(new LoginPlace(LoginPlace.LOGIN_TOKEN));
 //				}
 //			}
 //			

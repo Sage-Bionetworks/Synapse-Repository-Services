@@ -49,12 +49,14 @@ public class PasswordResetViewImpl extends Composite implements PasswordResetVie
 	private FormPanel resetFormPanel;
 	private FormData formData;  
 	private IconsImageBundle iconsImageBundle;
-	
+	private Header headerWidget;
+
 	@Inject
 	public PasswordResetViewImpl(PasswordResetViewImplUiBinder binder, Header headerWidget, Footer footerWidget, IconsImageBundle iconsImageBundle, QueryFilter filter, SageImageBundle imageBundle) {		
 		initWidget(binder.createAndBindUi(this));
 
 		this.iconsImageBundle = iconsImageBundle;
+		this.headerWidget = headerWidget;
 		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
@@ -70,6 +72,7 @@ public class PasswordResetViewImpl extends Composite implements PasswordResetVie
 	@Override
 	public void setPresenter(Presenter presenter) {
 		this.presenter = presenter;
+		headerWidget.refresh();
 	}
 
 

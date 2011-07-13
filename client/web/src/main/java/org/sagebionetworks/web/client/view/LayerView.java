@@ -39,6 +39,13 @@ public interface LayerView extends IsWidget {
 	public void showErrorMessage(String message);
 	
 	/**
+	 * Shows a info box with the given message
+	 * @param title
+	 * @param message
+	 */
+	public void showInfo(String title, String message);
+	
+	/**
 	 * Shows a message if the preview doesn't exist or is not available
 	 */
 	public void showLayerPreviewUnavailable();	
@@ -129,6 +136,12 @@ public interface LayerView extends IsWidget {
 		public void licenseAccepted();
 
 		public PlaceChanger getPlaceChanger();
+
+		/**
+		 * Determine if a download screen can be displayed to the user
+		 * @return true if the user should be shown the download screen 
+		 */
+		public boolean downloadAttempted();
 		
 	}
 

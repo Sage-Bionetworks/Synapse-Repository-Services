@@ -100,7 +100,8 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 	private ModalWindow followProjectModal;
 	private ModalWindow seeTermsModal;
 	private QueryServiceTableResourceProvider queryServiceTableResourceProvider;
-	
+	private Header headerWidget;
+
 	@Inject
 	public ProjectViewImpl(ProjectViewImplUiBinder binder, Header headerWidget,
 			Footer footerWidget, IconsImageBundle iconsImageBundle,
@@ -121,6 +122,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		this.followProjectModal = followProjectModal;
 		this.seeTermsModal = seeTermsModal;
 		this.queryServiceTableResourceProvider =  queryServiceTableResourceProvider;
+		this.headerWidget = headerWidget;
 		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
@@ -130,6 +132,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 	@Override
 	public void setPresenter(Presenter presenter) {
 		this.presenter = presenter;
+		headerWidget.refresh();
 	}
 
 	@Override

@@ -3,8 +3,11 @@ package org.sagebionetworks.web.client.widget.header;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.place.LoginPlace;
+import org.sagebionetworks.web.client.place.users.RegisterAccount;
 import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.security.AuthenticationControllerImpl;
 import org.sagebionetworks.web.client.widget.header.Header.MenuItems;
@@ -43,18 +46,19 @@ public class HeaderViewImpl extends Composite implements HeaderView {
 	@UiField
 	SpanElement userName;
 	@UiField
-	Hyperlink logoutLink;
-//	@UiField
-//	Hyperlink editProfileLink;
+	Hyperlink topRightLink1;
+	@UiField
+	Hyperlink topRightLink2;
 		
 	private Presenter presenter;
 	private Map<MenuItems, Element> itemToElement;
 	private AuthenticationController authenticationController;	
+	private IconsImageBundle iconsImageBundle;
 	
 	@Inject
-	public HeaderViewImpl(Binder binder, AuthenticationControllerImpl authenticationController, SageImageBundle sageImageBundle) {
+	public HeaderViewImpl(Binder binder, AuthenticationControllerImpl authenticationController, SageImageBundle sageImageBundle, IconsImageBundle iconsImageBundle) {
 		this.initWidget(binder.createAndBindUi(this));
-		
+		this.iconsImageBundle = iconsImageBundle;
 		this.authenticationController = authenticationController;
 		
 		itemToElement = new HashMap<Header.MenuItems, Element>();		
@@ -66,14 +70,13 @@ public class HeaderViewImpl extends Composite implements HeaderView {
 
 		// search button
 		searchAnchor.setHTML(AbstractImagePrototype.create(sageImageBundle.searchButtonHeaderIcon()).getHTML());
-		//searchAnchor.setStyleName("search_button");
-		
-		setUser();		
+		//searchAnchor.setStyleName("search_button");		
 	}
 	
 	@Override
 	public void setPresenter(Presenter presenter) {
 		this.presenter = presenter;
+		setUser(presenter.getUser());		
 	}
 
 	@Override
@@ -96,7 +99,7 @@ public class HeaderViewImpl extends Composite implements HeaderView {
 
 	@Override
 	public void refresh() {
-		setUser();
+		setUser(presenter.getUser());
 	}
 
 	
@@ -107,15 +110,20 @@ public class HeaderViewImpl extends Composite implements HeaderView {
 	private void loadMap() {
 	}
 	
-	private void setUser() {
-		// setup user
-		UserData userData = authenticationController.getLoggedInUser();
+	private void setUser(UserData userData) {
 		if(userData != null) {
 			userName.setInnerHTML("Welcome " + userData.getUserName());			
-			logoutLink.setText("Logout");		
-			logoutLink.setTargetHistoryToken("LoginPlace:"+ LoginPlace.LOGOUT_TOKEN);			
-//			editProfileLink.setText("My Profile");
-//			editProfileLink.setTargetHistoryToken( ... some edit profile place ... );			
+			topRightLink1.setHTML("Logout");		
+			topRightLink1.setTargetHistoryToken("LoginPlace:"+ LoginPlace.LOGOUT_TOKEN);			
+			topRightLink2.setHTML("My Profile");
+			//topRightLink2.setTargetHistoryToken( ... some edit profile place ... );			
+		} else {
+			userName.setInnerHTML("");			
+			topRightLink1.setHTML("Login to Synapse");		
+			topRightLink1.setTargetHistoryToken("LoginPlace:" + LoginPlace.LOGIN_TOKEN);
+			
+			topRightLink2.setHTML("Register");
+			topRightLink2.setTargetHistoryToken("RegisterAccount:" + DisplayUtils.DEFAULT_PLACE_TOKEN);
 		}
 	}
 }

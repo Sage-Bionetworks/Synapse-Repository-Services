@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.client.widget.header;
 
 import org.sagebionetworks.web.client.widget.header.Header.MenuItems;
+import org.sagebionetworks.web.shared.users.UserData;
 
 import com.google.gwt.user.client.ui.IsWidget;
 
@@ -22,7 +23,7 @@ public interface HeaderView extends IsWidget {
 	 * Presenter interface
 	 */
 	public interface Presenter {
-		
+		UserData getUser();
 	}
 
 }
