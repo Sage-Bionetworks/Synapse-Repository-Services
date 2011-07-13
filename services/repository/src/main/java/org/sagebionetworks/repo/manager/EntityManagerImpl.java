@@ -14,14 +14,11 @@ import org.sagebionetworks.repo.model.BaseChild;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -45,18 +42,6 @@ public class EntityManagerImpl implements EntityManager {
 		node.setNodeType(ObjectType.getNodeTypeForClass(newEntity.getClass()).toString());
 		// We are ready to create this node
 		String nodeId = nodeManager.createNewNode(node, userInfo);
-		
-		// TODO refactor me per PLFM-215
-		if("layerlocation".equals(node.getNodeType())) {
-			// TODO horrible hack here, not sure how to get the node with the default version label filled in
-			// Node createdNode = nodeManager.get(userInfo, nodeId);
-			String versionLabel = ((LayerLocation) newEntity).getVersionLabel();
-			if(null == versionLabel) { versionLabel = NodeConstants.DEFAULT_VERSION_LABEL; }
-			Node createdNode = new Node();
-			createdNode.setId(nodeId);
-			createdNode.setVersionLabel(versionLabel);
-			modifyTypeSpecificMetadataBeforePersist((LayerLocation) newEntity, createdNode);
-		}
 		
 		// Now get the annotations for this node
 		Annotations annos = nodeManager.getAnnotations(userInfo, nodeId);
@@ -194,13 +179,7 @@ public class EntityManagerImpl implements EntityManager {
 	public <T extends Base> void updateEntity(UserInfo userInfo, T updated, boolean newVersion) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException {
 		if(updated == null) throw new IllegalArgumentException("Entity cannot be null");
 		if(updated.getId() == null) throw new IllegalArgumentException("The updated Entity cannot have a null ID");
-		Node node = nodeManager.get(userInfo, updated.getId());
-
-		// TODO refactor me per PLFM-215
-		if("layerlocation".equals(node.getNodeType())) {
-			modifyTypeSpecificMetadataBeforePersist((LayerLocation)updated, node);
-		}
-		
+		Node node = nodeManager.get(userInfo, updated.getId());		
 		// Now get the annotations for this node
 		Annotations annos = nodeManager.getAnnotations(userInfo, updated.getId());
 		updateNodeAndAnnotationsFromEntity(updated, node, annos);
@@ -288,22 +267,4 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.getAllVersionNumbersForNode(userInfo, entityId);
 	}
 
-	private void modifyTypeSpecificMetadataBeforePersist(LayerLocation location, Node node) {
-		// Ensure that awss3 locations are unique by prepending the user-supplied path with a system-controlled prefix
-		// - location id (unique per synapse stack)
-		// - location version (unique per location)
-		// - user-supplied path
-		if(location.getType().equals(
-				LayerLocation.LocationTypeNames.awss3.toString())) {
-
-			String pathPrefix = "/" + node.getId() + "/" + node.getVersionLabel();
-
-			// If this is an update, the user may or may not have changed the path member of this object
-			if(!location.getPath().startsWith(pathPrefix)) {
-				String s3Key = pathPrefix + (location.getPath().startsWith("/") ? location.getPath()
-						: "/" + location.getPath());
-				location.setPath(s3Key);
-			}
-		}
-	}
 }

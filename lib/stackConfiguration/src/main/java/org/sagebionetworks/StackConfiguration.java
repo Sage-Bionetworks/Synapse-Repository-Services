@@ -153,4 +153,32 @@ public class StackConfiguration {
 	public static String getMailPassword() {
 		return getDecryptedProperty("org.sagebionetworks.mailPW");
 	}
+	
+	/**
+	 * The database connection string used for the ID Generator.
+	 * @return
+	 */
+	public String getIdGeneratorDatabaseConnectionString(){
+		return getProperty("org.sagebionetworks.id.generator.database.connection.url");
+	}
+	
+	/**
+	 * The username used for the ID Generator.
+	 * @return
+	 */
+	public String getIdGeneratorDatabaseUsername(){
+		return getProperty("org.sagebionetworks.id.generator.database.username");
+	}
+	
+	/**
+	 * The password used for the ID Generator.
+	 * @return
+	 */
+	public String getIdGeneratorDatabasePassword(){
+		return getProperty("org.sagebionetworks.id.generator.database.password");
+	}
+	
+	public String getIdGeneratorDatabaseDriver(){
+		return getProperty("org.sagebionetworks.id.generator.database.driver");
+	}
 }

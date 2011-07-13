@@ -146,6 +146,19 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	public List<UserGroup> getIndividualsInRange(long startIncl, long endExcl) throws DatastoreException {
 		return userGroupDAO.getInRange(startIncl, endExcl, true);
 	}
+	
+	/**
+	 * Use case:  Need to find out if a user can download a resource.
+	 * 
+	 * @param resource the resource of interest
+	 * @param user
+	 * @param accessType
+	 * @return
+	 */
+	@Override
+	public boolean hasAccess(String resourceId, AuthorizationConstants.ACCESS_TYPE accessType, UserInfo userInfo) throws NotFoundException, DatastoreException  {
+		return authorizationManager.canAccess(userInfo, resourceId, accessType);
+	}
 
 	
 }

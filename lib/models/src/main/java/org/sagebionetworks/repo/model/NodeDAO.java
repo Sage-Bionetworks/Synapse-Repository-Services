@@ -148,5 +148,12 @@ public interface NodeDAO {
 	 */
 	public void updateAnnotations(String nodeId, Annotations updatedAnnotations) throws NotFoundException, DatastoreException;
 	
+	/**
+	 * Does a given node exist?
+	 * @param nodeId
+	 * @return
+	 */
+	public boolean doesNodeExist(Long nodeId);
+	
 
 }

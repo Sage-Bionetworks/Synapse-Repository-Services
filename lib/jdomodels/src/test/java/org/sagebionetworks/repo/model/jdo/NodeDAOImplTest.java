@@ -5,7 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.when;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -18,6 +17,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -39,6 +39,8 @@ public class NodeDAOImplTest {
 	NodeDAO nodeDao;
 	@Autowired
 	NodeInheritanceDAO nodeInheritanceDAO;
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
@@ -72,6 +74,8 @@ public class NodeDAOImplTest {
 		String id = nodeDao.createNew(toCreate);
 		toDelete.add(id);
 		assertNotNull(id);
+		// This node should exist
+		assertTrue(nodeDao.doesNodeExist(Long.parseLong(id)));
 		// Make sure we can fetch it
 		Node loaded = nodeDao.getNode(id);
 		assertNotNull(id);
@@ -85,6 +89,35 @@ public class NodeDAOImplTest {
 		// Since this node has no parent, it should be its own benefactor.
 		String benefactorId = nodeInheritanceDAO.getBenefactor(id);
 		assertEquals(id, benefactorId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateWithExistingId() throws NotFoundException{
+		Node toCreate = NodeTestUtils.createNew("secondNodeEver");
+		toCreate.setVersionComment("This is the first version of the first node ever!");
+		toCreate.setVersionLabel("0.0.1");
+		String id = nodeDao.createNew(toCreate);
+		toDelete.add(id);
+		assertNotNull(id);
+		// Now create another node using this id.
+		Node duplicate = NodeTestUtils.createNew("should never exist");
+		duplicate.setId(id);
+		// This should throw an exception.
+		String id2 = nodeDao.createNew(duplicate);
+		toDelete.add(id2);
+		assertNotNull(id2);;
+	}
+	
+	@Test
+	public void testCreateWithId() throws NotFoundException{
+		// Create a node with a specific id
+		String id = new Long(idGenerator.generateNewId()).toString();
+		Node toCreate = NodeTestUtils.createNew("secondNodeEver");
+		toCreate.setId(id);
+		String fetchedId = nodeDao.createNew(toCreate);
+		toDelete.add(fetchedId);
+		// The id should be the same as what we provided
+		assertEquals(id, fetchedId);
 	}
 	
 	@Test 

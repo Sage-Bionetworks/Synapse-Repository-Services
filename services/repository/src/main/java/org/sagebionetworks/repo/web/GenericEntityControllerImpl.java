@@ -8,6 +8,7 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.schema.JsonSchema;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityToMapUtil;
 import org.sagebionetworks.repo.manager.EntityWithAnnotations;
@@ -31,6 +32,7 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.util.SchemaHelper;
 import org.sagebionetworks.repo.web.controller.MetadataProviderFactory;
@@ -65,7 +67,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	@Autowired
 	private MetadataProviderFactory metadataProviderFactory;
 	@Autowired
-	private NodeManager nodeManager;
+	private IdGenerator idGenerator;
 	
 	public GenericEntityControllerImpl(){
 		
@@ -246,6 +248,9 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// Fetch the provider that will validate this entity.
 		@SuppressWarnings("unchecked")
 		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>)metadataProviderFactory.getMetadataProvider(type);
+		// Create a new id for this entity
+		long newId = idGenerator.generateNewId();
+		newEntity.setId(KeyFactory.keyToString(newId));
 		// Validate the entity
 		provider.validateEntity(newEntity, EventType.CREATE);
 		// Get the user
@@ -551,8 +556,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	public <T extends Nodeable> boolean hasAccess(String entityId, String userId, HttpServletRequest request, Class<? extends T> clazz, String accessType) 
 		throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-//		T resource = entityManager.getEntity(userInfo, entityId, clazz);
-		return nodeManager.hasAccess(entityId, AuthorizationConstants.ACCESS_TYPE.valueOf(accessType), userInfo);
+		return permissionsManager.hasAccess(entityId, AuthorizationConstants.ACCESS_TYPE.valueOf(accessType), userInfo);
 	}
 
 

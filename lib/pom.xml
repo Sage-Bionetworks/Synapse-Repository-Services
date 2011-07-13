@@ -14,9 +14,10 @@
   <name>Libraries</name>
   <version>parent-1.0</version>
   <modules>
+    <module>stackConfiguration</module>
+    <module>id-generator</module>
     <module>models</module>
     <module>jdomodels</module>
-    <module>stackConfiguration</module>
   </modules>
   
 </project>
