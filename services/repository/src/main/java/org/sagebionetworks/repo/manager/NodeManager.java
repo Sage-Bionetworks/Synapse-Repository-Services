@@ -87,15 +87,6 @@ public interface NodeManager {
 	 */
 	public Node update(UserInfo userInfo, Node updatedNode, Annotations updatedAnnoations, boolean newVersion) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 	
-	/**
-	 * Use case:  Need to find out if a user can download a resource.
-	 * 
-	 * @param resourceId the ID of the resource of interest
-	 * @param user
-	 * @param accessType
-	 * @return
-	 */
-	public boolean hasAccess(String resourceId, AuthorizationConstants.ACCESS_TYPE  accessType, UserInfo userInfo) throws NotFoundException, DatastoreException ;
 	
 	/**
 	 * Get the annotations for a node

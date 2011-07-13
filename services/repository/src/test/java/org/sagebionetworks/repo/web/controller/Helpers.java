@@ -119,7 +119,12 @@ public class Helpers {
 			servletConfig.addInitParameter("contextConfigLocation",
 					"classpath:test-context.xml");
 			servlet = new DispatcherServlet();
-			servlet.init(servletConfig);
+			try{
+				servlet.init(servletConfig);
+			}catch (Exception e){
+				e.printStackTrace();
+				throw e;
+			}
 		}
 		assertNotNull(testUserProvider);
 		userInfo = testUserProvider.getTestAdiminUserInfo();

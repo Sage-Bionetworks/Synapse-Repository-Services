@@ -16,15 +16,19 @@
 	<artifactId>lib-jdomodels</artifactId>
 	<packaging>jar</packaging>
 	<name>Platform Repository Model Objects - JDO Implementation</name>
-	<properties>
-		<datanucleus.version>1.1.5</datanucleus.version>
-	</properties>
+	<version>${applicationVersion}</version>
+
 	<dependencies>
 
 		<!-- Sage Bionetworks Dependencies -->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-models</artifactId>
+			<version>${applicationVersion}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-id-generator</artifactId>
 			<version>${applicationVersion}</version>
 		</dependency>
 
@@ -47,7 +51,7 @@
 			<artifactId>jta</artifactId>
 			<version>1.1</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>javax.jdo</groupId>
 			<artifactId>jdo2-api</artifactId>
@@ -64,7 +68,7 @@
 		<dependency>
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>
-			<version>5.1.13</version>
+			<version>${mysql.mysql-connector-java.version}</version>
 			<scope>runtime</scope>
 		</dependency>
 
@@ -120,34 +124,33 @@
 		<dependency>
 			<groupId>org.aspectj</groupId>
 			<artifactId>aspectjlib</artifactId>
-			<version>1.6.2</version>
+			<version>${org.aspectj.aspectjlib.version}</version>
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.aspectj</groupId>
 			<artifactId>aspectjweaver</artifactId>
-			<version>1.6.10</version>
+			<version>${org.aspectj.version}</version>
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.aspectj</groupId>
 			<artifactId>aspectjrt</artifactId>
-			<version>1.6.10</version>
+			<version>${org.aspectj.version}</version>
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-dbcp</artifactId>
-			<version>1.4</version>
+			<version>${org.apache.commons.commons-dbcp.version}</version>
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
 	</dependencies>
 
-	<version>${applicationVersion}</version>
 	<build>
 		<plugins>
 
@@ -209,10 +212,16 @@
 					<dependency>
 						<groupId>mysql</groupId>
 						<artifactId>mysql-connector-java</artifactId>
-						<version>5.1.13</version>
+						<version>${mysql.mysql-connector-java.version}</version>
 						<scope>runtime</scope>
 					</dependency>
 				</dependencies>
+			</plugin>
+			<plugin>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>-Xmx512m -Xms128m</argLine>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

@@ -16,6 +16,7 @@ import javax.jdo.Query;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -37,6 +38,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.orm.jdo.JdoCallback;
 import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
 import org.springframework.orm.jdo.JdoTemplate;
@@ -57,6 +59,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Autowired
 	private JdoTemplate jdoTemplate;
 	
+	@Autowired
+	private IdGenerator idGenerator;
+	
 	private static boolean isHypersonicDB = true;
 	
 	private static String BIND_ID_KEY = "bindId";
@@ -64,6 +69,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK+" FOR UPDATE";
 	
 	private static String SQL_GET_ALL_VERSION_NUMBERS = "SELECT "+SqlConstants.COL_REVISION_NUMBER+" FROM "+SqlConstants.TABLE_REVISION+" WHERE "+SqlConstants.COL_REVISION_OWNER_NODE +" = :"+BIND_ID_KEY+" ORDER BY "+SqlConstants.COL_REVISION_NUMBER+" DESC";
+	
+	// Used to determine if a node id already exists
+	private static String SQL_COUNT_NODE_ID = "SELECT count("+SqlConstants.COL_NODE_ID+") FROM "+SqlConstants.TABLE_NODE+" WHERE "+SqlConstants.COL_NODE_ID +" = :"+BIND_ID_KEY;
+
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -76,12 +85,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		JDONode node = new JDONode();
 		node.setCurrentRevNumber(rev.getRevisionNumber());
 		JDONodeUtils.updateFromDto(dto, node, rev);
+		// If an id was not provided then create one
+		if(node.getId() == null){
+			node.setId(idGenerator.generateNewId());
+		}else{
+			// If an id was provided then it must not exist
+			if(doesNodeExist(node.getId())) throw new IllegalArgumentException("The id: "+node.getId()+" already exists, so a node cannot be created using that id.");
+		}
 		// Look up this type
 		if(dto.getNodeType() == null) throw new IllegalArgumentException("Node type cannot be null");
 		JDONodeType type = getNodeType(ObjectType.valueOf(dto.getNodeType()));
 		node.setNodeType(type);
-		// Make sure the nodes does not come in with an id
-		node.setId(null);
 		// Start it with an eTag of zero
 		node.seteTag(new Long(0));
 		// Make sure it has annotations
@@ -447,9 +461,34 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				this.jdoTemplate.makePersistent(jdo);
 			}
 		}
+		// Make sure the node table exists
 		String driver = this.jdoTemplate.getPersistenceManagerFactory().getConnectionDriverName();
 		log.info("Driver: "+driver);
 		isHypersonicDB = driver.startsWith("org.hsqldb");
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public boolean doesNodeExist(Long nodeId) {
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		parameters.put(BIND_ID_KEY, nodeId);
+		try{
+			List list = executeQuery(SQL_COUNT_NODE_ID, parameters);
+			if(list.size() != 1) throw new IllegalStateException("A count query should only retun a single number");
+			Object ob = list.get(0);
+			int count;
+			if(ob instanceof Integer){
+				count = (Integer) ob;
+			}else if(ob instanceof Long){
+				count = ((Long)ob).intValue();
+			}else{
+				throw new IllegalStateException("Unkown number type: "+ob.getClass().getName());
+			}
+			return count > 0;
+		}catch(BadSqlGrammarException e){
+			// Can occur when the schema does not exist.
+			return false;
+		}
 	}
 
 	

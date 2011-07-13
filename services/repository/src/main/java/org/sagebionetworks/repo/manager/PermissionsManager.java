@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -90,4 +91,14 @@ public interface PermissionsManager {
 	 * 
 	 **/
 	public List<UserGroup> getIndividualsInRange(long startIncl, long endExcl) throws DatastoreException;
+	
+	/**
+	 * Use case:  Need to find out if a user can download a resource.
+	 * 
+	 * @param resourceId the ID of the resource of interest
+	 * @param user
+	 * @param accessType
+	 * @return
+	 */
+	public boolean hasAccess(String resourceId, AuthorizationConstants.ACCESS_TYPE  accessType, UserInfo userInfo) throws NotFoundException, DatastoreException ;
 }

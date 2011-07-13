@@ -6,6 +6,8 @@ import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerLocation;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -65,12 +67,38 @@ public class LayerLocationMetadataProvider implements
 		if (null == entity.getMd5sum()) {
 			throw new InvalidModelException("md5sum cannot be null");
 		}
+		// Set the path prefix for this location.
+		setPathPrefix(entity);
 	}
 
 	@Override
 	public void entityDeleted(LayerLocation deleted) {
 		// TODO Auto-generated method stub
 		
+	}
+	// this code was moved from EntityManagerImpl
+	private void setPathPrefix(LayerLocation location) {
+		// Ensure that awss3 locations are unique by prepending the user-supplied path with a system-controlled prefix
+		// - location id (unique per synapse stack)
+		// - location version (unique per location)
+		// - user-supplied path
+		if(location.getType().equals(
+				LayerLocation.LocationTypeNames.awss3.toString())) {
+			
+			String versionLabel = location.getVersionLabel();
+			if(versionLabel == null){
+				versionLabel = NodeConstants.DEFAULT_VERSION_LABEL;
+			}
+
+			String pathPrefix = "/" + location.getId() + "/" + versionLabel;
+
+			// If this is an update, the user may or may not have changed the path member of this object
+			if(!location.getPath().startsWith(pathPrefix)) {
+				String s3Key = pathPrefix + (location.getPath().startsWith("/") ? location.getPath()
+						: "/" + location.getPath());
+				location.setPath(s3Key);
+			}
+		}
 	}
 
 }
