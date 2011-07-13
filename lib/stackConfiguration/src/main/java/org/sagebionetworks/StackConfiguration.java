@@ -97,6 +97,8 @@ public class StackConfiguration {
 		if (stackEncryptionKey==null || stackEncryptionKey.length()==0)
 			throw new RuntimeException("Expected system property org.sagebionetworks.stackEncryptionKey");
 		String encryptedProperty = getProperty(propertyName);
+		if (encryptedProperty==null || encryptedProperty.length()==0)
+			throw new RuntimeException("Expected property for "+propertyName);
 		StringEncrypter se = new StringEncrypter(stackEncryptionKey);
 		return se.decrypt(encryptedProperty);
 	}
