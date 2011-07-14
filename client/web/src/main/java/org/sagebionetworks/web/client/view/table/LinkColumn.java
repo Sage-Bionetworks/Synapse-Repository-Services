@@ -50,7 +50,7 @@ public class LinkColumn extends Column<Map<String, Object>, String> {
 		}
 		String urlValue = (String) row.get(metadata.getUrl().getId());
 		if(displayValue != null && urlValue != null){
-			String safeName = SafeHtmlUtils.htmlEscape(displayValue);
+			String safeName = displayValue;
 			String safeLink = SafeHtmlUtils.htmlEscape(urlValue);
 			link.setText(safeName);
 			link.setTargetHistoryToken(safeLink);
