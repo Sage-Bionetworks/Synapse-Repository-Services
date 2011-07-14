@@ -93,7 +93,8 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 	private PreviewDisclosurePanel previewDisclosurePanel;
 	private QueryServiceTable datasetsListQueryServiceTable;
 	private IconsImageBundle iconsImageBundle;
-	private boolean userIsAdmin = false; 
+	private boolean isAdministrator = false; 
+	private boolean canEdit = false;
 	private AccessMenuButton accessMenuButton;
 	private NodeEditor nodeEditor;
 	private AdminMenu adminMenu;
@@ -147,7 +148,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 
 	@Override
 	public void setProjectDetails(String id, String name, String description,
-			String creator, Date creationDate, String status) {
+			String creator, Date creationDate, String status, boolean isAdministrator, boolean canEdit) {
 		// Assure reasonable values
 		if(id == null) id = "";
 		if(name == null) name = "";
@@ -159,7 +160,8 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		clear();
 		
 		// check authorization
-		userIsAdmin = true; // TODO : get ACL from authorization service
+		this.isAdministrator = isAdministrator;
+		this.canEdit = canEdit;
 		createAccessPanel(id);
 		createAdminPanel(id);
 		
@@ -239,7 +241,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 	}
 
 	private void createAdminPanel(String projectId) {		
-		if(userIsAdmin) {
+		if(isAdministrator) {
 			Button button = new Button("Admin Menu");
 			button.setIcon(AbstractImagePrototype.create(iconsImageBundle.adminTools16()));
 			//adminButton.setIconAlign(IconAlign.LEFT);
@@ -345,7 +347,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 			icon = iconsImageBundle.lock16();
 		}		
 
-		if(userIsAdmin) {		
+		if(isAdministrator) {		
 			accessMenuButton.setPlaceChanger(presenter.getPlaceChanger());
 			accessMenuButton.setResource(NodeType.PROJECT, id);
 			accessMenuButton.setAccessLevel(accessLevel);

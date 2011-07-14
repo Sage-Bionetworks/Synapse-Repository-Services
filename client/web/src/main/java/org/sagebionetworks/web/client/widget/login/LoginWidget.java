@@ -26,6 +26,7 @@ public class LoginWidget implements LoginWidgetView.Presenter {
 	}
 
 	public Widget asWidget() {
+		view.setPresenter(this);
 		return view.asWidget();
 	}
 	

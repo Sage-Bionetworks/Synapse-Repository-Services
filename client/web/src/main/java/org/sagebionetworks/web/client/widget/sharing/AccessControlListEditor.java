@@ -99,6 +99,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 	}
 	
 	public Widget asWidget() {
+		view.setPresenter(this);
 		return view.asWidget();
 	}	
 	

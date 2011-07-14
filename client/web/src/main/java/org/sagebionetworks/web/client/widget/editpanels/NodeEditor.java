@@ -73,6 +73,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 	}
 	
 	public Widget asWidget(final NodeType type, final String editId, final String parentId) {
+		view.setPresenter(this);
 		this.editId = editId;
 		this.nodeType = type;
 		this.parentId = parentId;

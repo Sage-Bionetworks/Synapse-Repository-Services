@@ -33,6 +33,7 @@ public class Header implements HeaderView.Presenter {
 	}
 
 	public Widget asWidget() {
+		view.setPresenter(this);
 		return view.asWidget();
 	}
 	

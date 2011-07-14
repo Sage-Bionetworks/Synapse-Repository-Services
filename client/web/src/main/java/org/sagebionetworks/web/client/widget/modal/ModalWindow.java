@@ -47,6 +47,7 @@ public class ModalWindow implements ModalWindowView.Presenter {
 	}
 	
 	public Widget asWidget() {
+		view.setPresenter(this);
 		return view.asWidget();
 	}	
 	

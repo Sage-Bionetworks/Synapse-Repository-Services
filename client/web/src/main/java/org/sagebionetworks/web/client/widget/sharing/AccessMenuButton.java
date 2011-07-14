@@ -28,6 +28,7 @@ public class AccessMenuButton implements AccessMenuButtonView.Presenter {
 	}
 
 	public Widget asWidget() {
+		view.setPresenter(this);
 		return view.asWidget();
 	}
 

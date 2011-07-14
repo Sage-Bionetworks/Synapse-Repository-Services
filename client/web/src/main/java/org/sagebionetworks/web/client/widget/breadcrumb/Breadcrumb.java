@@ -30,6 +30,7 @@ public class Breadcrumb implements BreadcrumbView.Presenter {
 	}
 
 	public Widget asWidget() {
+		view.setPresenter(this);
 		if(current != null) {
 			view.setLinksList(order, current);
 		} else {

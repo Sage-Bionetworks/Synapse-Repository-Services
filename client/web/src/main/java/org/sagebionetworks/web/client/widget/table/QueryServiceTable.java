@@ -295,6 +295,7 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 		
 	public Widget asWidget() {
 		if(type == null) throw new IllegalStateException("The type must be set before this table can be used.");
+		view.setPresenter(this);
 		return this.view.asWidget();
 	}
 	

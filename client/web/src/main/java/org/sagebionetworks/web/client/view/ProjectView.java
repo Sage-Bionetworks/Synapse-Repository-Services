@@ -23,7 +23,7 @@ public interface ProjectView extends IsWidget{
 	 * @param status
 	 */
 	public void setProjectDetails(String id, String name, String description,
-			String creator, Date creationDate, String status);
+			String creator, Date creationDate, String status, boolean isAdministrator, boolean canEdit);
 	
 	/**
 	 * The view pops-up an error dialog.

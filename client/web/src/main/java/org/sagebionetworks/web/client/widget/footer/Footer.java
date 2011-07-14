@@ -14,6 +14,7 @@ public class Footer implements FooterView.Presenter {
 	}
 
 	public Widget asWidget() {
+		view.setPresenter(this);
 		return view.asWidget();
 	}	
 	

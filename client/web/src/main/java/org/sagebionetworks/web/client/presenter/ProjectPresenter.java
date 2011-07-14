@@ -93,10 +93,12 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 	 * @param project
 	 */
 	protected void setProject(Project project) {
+		boolean isAdministrator = true;
+		boolean canEdit = true;
 		if (project != null) {
 			view.setProjectDetails(project.getId(), project.getName(),
 					project.getDescription(), project.getCreator(),
-					project.getCreationDate(), project.getStatus());
+					project.getCreationDate(), project.getStatus(), isAdministrator, canEdit);
 		} 
 	}
 

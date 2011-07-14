@@ -95,6 +95,7 @@ public class QueryFilter implements QueryFilterView.Presenter, IsWidget{
 
 	@Override
 	public Widget asWidget() {
+		view.setPresenter(this);
 		return view.asWidget();
 	}
 

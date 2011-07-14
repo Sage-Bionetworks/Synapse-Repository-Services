@@ -45,6 +45,7 @@ public class StaticTable implements StaticTableView.Presenter {
 	}
 	
 	public Widget asWidget() {
+		view.setPresenter(this);
 		return view.asWidget();
 	}	
 	

@@ -50,6 +50,7 @@ public class LicensedDownloader implements LicensedDownloaderView.Presenter {
 	}
 	
 	public Widget asWidget() {
+		view.setPresenter(this);
 		return view.asWidget();
 	}	
 	
