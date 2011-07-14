@@ -7,6 +7,7 @@ import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.place.LoginPlace;
+import org.sagebionetworks.web.client.place.Profile;
 import org.sagebionetworks.web.client.place.users.RegisterAccount;
 import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.security.AuthenticationControllerImpl;
@@ -114,16 +115,16 @@ public class HeaderViewImpl extends Composite implements HeaderView {
 		if(userData != null) {
 			userName.setInnerHTML("Welcome " + userData.getUserName());			
 			topRightLink1.setHTML("Logout");		
-			topRightLink1.setTargetHistoryToken("LoginPlace:"+ LoginPlace.LOGOUT_TOKEN);			
+			topRightLink1.setTargetHistoryToken(LoginPlace.PLACE_STRING + ":" + LoginPlace.LOGOUT_TOKEN);			
 			topRightLink2.setHTML("My Profile");
-			//topRightLink2.setTargetHistoryToken( ... some edit profile place ... );			
+			topRightLink2.setTargetHistoryToken(Profile.PLACE_STRING + ":" + DisplayUtils.DEFAULT_PLACE_TOKEN);			
 		} else {
 			userName.setInnerHTML("");			
 			topRightLink1.setHTML("Login to Synapse");		
-			topRightLink1.setTargetHistoryToken("LoginPlace:" + LoginPlace.LOGIN_TOKEN);
+			topRightLink1.setTargetHistoryToken(LoginPlace.PLACE_STRING + ":" + LoginPlace.LOGIN_TOKEN);
 			
 			topRightLink2.setHTML("Register");
-			topRightLink2.setTargetHistoryToken("RegisterAccount:" + DisplayUtils.DEFAULT_PLACE_TOKEN);
+			topRightLink2.setTargetHistoryToken(RegisterAccount.PLACE_STRING + ":" + DisplayUtils.DEFAULT_PLACE_TOKEN);
 		}
 	}
 }

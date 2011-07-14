@@ -12,6 +12,7 @@ import org.sagebionetworks.web.client.place.DatasetsHome;
 import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.place.Layer;
 import org.sagebionetworks.web.client.place.LoginPlace;
+import org.sagebionetworks.web.client.place.Profile;
 import org.sagebionetworks.web.client.place.Project;
 import org.sagebionetworks.web.client.place.ProjectsHome;
 import org.sagebionetworks.web.client.place.users.PasswordReset;
@@ -21,6 +22,7 @@ import org.sagebionetworks.web.client.presenter.DatasetsHomePresenter;
 import org.sagebionetworks.web.client.presenter.HomePresenter;
 import org.sagebionetworks.web.client.presenter.LayerPresenter;
 import org.sagebionetworks.web.client.presenter.LoginPresenter;
+import org.sagebionetworks.web.client.presenter.ProfilePresenter;
 import org.sagebionetworks.web.client.presenter.ProjectPresenter;
 import org.sagebionetworks.web.client.presenter.ProjectsHomePresenter;
 import org.sagebionetworks.web.client.presenter.users.PasswordResetPresenter;
@@ -119,6 +121,11 @@ public class AppActivityMapper implements ActivityMapper {
 			// register for a new account
 			RegisterAccountPresenter presenter = ginjector.getRegisterAccountPresenter();
 			presenter.setPlace((RegisterAccount)place);
+			return presenter;
+		} else if (place instanceof Profile) {
+			// user's profile page
+			ProfilePresenter presenter = ginjector.getProfilePresenter();
+			presenter.setPlace((Profile)place);
 			return presenter;
 		} else {
 			// Log that we have an unknown place but send the user to the default

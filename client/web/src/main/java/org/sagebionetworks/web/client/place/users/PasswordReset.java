@@ -5,6 +5,8 @@ import com.google.gwt.place.shared.PlaceTokenizer;
 
 public class PasswordReset extends Place {
 	
+	public static final String PLACE_STRING = "PasswordReset";
+	
 	private String token;
 	
 	public PasswordReset(String token) {

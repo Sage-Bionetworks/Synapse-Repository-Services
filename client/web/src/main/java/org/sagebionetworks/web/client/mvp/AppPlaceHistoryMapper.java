@@ -5,6 +5,7 @@ import org.sagebionetworks.web.client.place.DatasetsHome;
 import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.place.Layer;
 import org.sagebionetworks.web.client.place.LoginPlace;
+import org.sagebionetworks.web.client.place.Profile;
 import org.sagebionetworks.web.client.place.Project;
 import org.sagebionetworks.web.client.place.ProjectsHome;
 import org.sagebionetworks.web.client.place.users.PasswordReset;
@@ -22,6 +23,6 @@ import com.google.gwt.place.shared.WithTokenizers;
 @WithTokenizers({ Home.Tokenizer.class, DatasetsHome.Tokenizer.class,
 		Dataset.Tokenizer.class, Layer.Tokenizer.class,
 		LoginPlace.Tokenizer.class, PasswordReset.Tokenizer.class,
-		RegisterAccount.Tokenizer.class, ProjectsHome.Tokenizer.class, Project.Tokenizer.class }) 
+		RegisterAccount.Tokenizer.class, ProjectsHome.Tokenizer.class, Project.Tokenizer.class, Profile.Tokenizer.class }) 
 public interface AppPlaceHistoryMapper extends PlaceHistoryMapper {
 }

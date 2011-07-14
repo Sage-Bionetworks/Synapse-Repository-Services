@@ -77,5 +77,8 @@ public class DisplayConstants {
 	public static final String BUTTON_CANCEL = "Cancel";
 	public static final String LABEL_SINGLE_SIGN_ON_LOGGING_IN = "Loggin you in.";
 	public static final String TEXT_NO_DOWNLOADS = "There are no downloads available.";
+	public static final String BUTTON_SETUP_API_PASSWORD = "Create Synapse Password";
+	public static final String BUTTON_SAVING = "Saving";
+	public static final String BUTTON_CHANGE_PASSWORD = "Change Password";	
 	
 }

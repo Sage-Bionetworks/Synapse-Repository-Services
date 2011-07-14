@@ -5,6 +5,8 @@ import com.google.gwt.place.shared.PlaceTokenizer;
 
 public class RegisterAccount extends Place {
 	
+	public static final String PLACE_STRING = "RegisterAccount";
+	
 	private String token;
 	
 	public RegisterAccount(String token) {

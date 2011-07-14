@@ -7,6 +7,8 @@ import com.google.gwt.place.shared.PlaceTokenizer;
 
 public class LoginPlace extends Place {
 	
+	public static final String PLACE_STRING = "LoginPlace";
+	
 	private String token;
 	private Place forwardTo;
 	

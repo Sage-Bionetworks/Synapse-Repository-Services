@@ -1,0 +1,52 @@
+<!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
+<ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
+	xmlns:g="urn:import:com.google.gwt.user.client.ui" 
+	xmlns:c="urn:import:com.google.gwt.user.cellview.client"
+	xmlns:s="urn:import:org.sagebionetworks.web.client.view">
+		
+	<ui:style>
+		.important {
+			font-weight: bold;
+		}
+		
+		.rowTop {
+			vertical-align: top;
+		}
+	</ui:style>
+		
+	<g:HTMLPanel>
+
+	<!-- start header -->
+		<div id="container" class="clearfix">		
+			<g:SimplePanel ui:field="header" />
+			<div id="main" role="main">
+	<!-- end header -->
+
+				<div id="main_content" class="clearfix">	
+					<ul class="breadcrumbs">
+						<li class="breadcrumb"><a href="#">Home</a> > Profile</li>
+					</ul>
+					<h2>Profile</h2>
+
+					<h3>Synapse R Client &amp; Synapse REST API</h3>
+					<p style="padding-bottom:5px">To login to this website without using a Google account or to use the Synapse R Client or REST API, 
+					you will need to have a Synapse specific password. To setup a Synapse password, click the button below. It will send you an email 
+					with instructions on how to complete the process.</p>
+					<g:SimplePanel ui:field="setupPasswordButtonPanel" />
+					
+					<p>&nbsp;</p>
+					<p>&nbsp;</p>
+					
+					<h3>Change Synapse Password</h3>
+					<g:SimplePanel ui:field="changePasswordPanel" />
+					<p><small></small></p>
+				</div>
+					
+<!-- start footer -->
+				<g:SimplePanel ui:field="footer" />
+			</div> <!-- id: main -->				
+		</div> <!-- id: container -->
+<!-- end footer -->
+
+	</g:HTMLPanel>
+</ui:UiBinder> 

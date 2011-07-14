@@ -11,6 +11,7 @@ import org.sagebionetworks.web.shared.exceptions.UnknownErrorException;
 
 import com.extjs.gxt.ui.client.widget.Info;
 import com.extjs.gxt.ui.client.widget.MessageBox;
+import com.extjs.gxt.ui.client.widget.button.Button;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.place.shared.PlaceController;
@@ -83,5 +84,13 @@ public class DisplayUtils {
 			MessageBox.info("Unknown Error", "Sorry, an error has occured.", null);
 		}
 	}
-	
+
+	/*
+	 * Button Saving 
+	 */
+	public static void changeButtonToSaving(Button button, SageImageBundle sageImageBundle) {
+		button.setText(DisplayConstants.BUTTON_SAVING);
+		button.setIcon(AbstractImagePrototype.create(sageImageBundle.loading16()));
+	}
+		
 }
