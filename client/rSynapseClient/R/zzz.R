@@ -37,9 +37,9 @@ kSupportedPlatforms <- list(
 .deleteCache <-
 		function(keys)
 {
-	indx <- which(names(.cache) %in% keys)
+	indx <- which(keys %in% ls(.cache))
 	if(length(indx) > 0)
-		.cache <- .cache[[-indx]]
+		rm(list=keys[indx], envir=.cache)
 }
 
 .onLoad <-
