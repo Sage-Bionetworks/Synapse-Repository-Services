@@ -58,14 +58,16 @@ public class EulaControllerTest {
 				+ "/dataset", DatasetControllerTest.SAMPLE_DATASET);
 		datasetLocation = new JSONObject(LocationControllerTest.SAMPLE_LOCATION).put(
 				NodeConstants.COL_PARENT_ID, dataset.getString("id"));
-		datasetLocation = helper.testCreateJsonEntity("/location", datasetLocation.toString());
+		datasetLocation = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/location", datasetLocation.toString());
 		helper.addPublicReadOnlyAclToEntity(dataset);
 
 		layer = helper.testCreateJsonEntity(helper.getServletPrefix()
 				+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString("id")));
 		layerLocation = new JSONObject(LocationControllerTest.SAMPLE_LOCATION).put(
 				NodeConstants.COL_PARENT_ID, layer.getString("id"));
-		layerLocation = helper.testCreateJsonEntity("/location", layerLocation.toString());
+		layerLocation = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/location", layerLocation.toString());
 	}
 
 	/**
