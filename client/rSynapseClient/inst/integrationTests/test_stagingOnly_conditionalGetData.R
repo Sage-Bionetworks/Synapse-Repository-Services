@@ -4,6 +4,12 @@
 	.setCache("orig.reposervice.endpoint", synapseRepoServiceEndpoint())
 	synapseAuthServiceEndpoint("https://staging-auth.elasticbeanstalk.com/auth/v1")
 	synapseRepoServiceEndpoint("https://staging-reposervice.elasticbeanstalk.com/repo/v1")
+	
+	# Create a project
+	project <- list()
+	project$name <- 'R Integration Test Project'
+	createdProject <- createProject(entity=project)
+	.setCache("rIntegrationTestProject", createdProject)
 }
 
 .tearDown <- function() {
@@ -11,21 +17,25 @@
 	synapseRepoServiceEndpoint(.getCache("orig.reposervice.endpoint"))
 	.deleteCache("orig.authservice.endpoint")
 	.deleteCache("orig.reposervice.endpoint")
+	
+	deleteProject(entity=.getCache("rIntegrationTestProject"))
+	.deleteCache("rIntegrationTestProject")
 }
 
 integrationTestConditionalGet <- function() {
 
 	# Create a dataset
 	dataset <- list()
-	dataset$name = 'R Integration Test Dataset'
+	dataset$name <- 'R Integration Test Dataset'
+	dataset$parentId <- .getCache("rIntegrationTestProject")$id
 	createdDataset <- createDataset(entity=dataset)
 	checkEquals(dataset$name, createdDataset$name)
 	
 	# Create a layer and store a data R object
 	layer <- list()
-	layer$name = 'R Integration Test Layer'
-	layer$type = 'C'
-	layer$parentId = createdDataset$id 
+	layer$name <- 'R Integration Test Layer'
+	layer$type <- 'C'
+	layer$parentId <- createdDataset$id 
 	
 	data <- data.frame(a=1:3, b=letters[10:12],
 			c=seq(as.Date("2004-01-01"), by = "week", len = 3),

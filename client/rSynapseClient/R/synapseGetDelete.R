@@ -40,7 +40,6 @@
 	)
 	if(.getCache("debug")) {
 		message(d$value())
-		message("requestBody: ", httpBody)
 		message("responseBody: ", response)
 	}
 	

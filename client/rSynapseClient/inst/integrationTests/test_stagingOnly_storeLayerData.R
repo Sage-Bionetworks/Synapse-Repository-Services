@@ -4,6 +4,12 @@
 	.setCache("orig.reposervice.endpoint", synapseRepoServiceEndpoint())
 	synapseAuthServiceEndpoint("https://staging-auth.elasticbeanstalk.com/auth/v1")
 	synapseRepoServiceEndpoint("https://staging-reposervice.elasticbeanstalk.com/repo/v1")
+	
+	# Create a project
+	project <- list()
+	project$name <- 'R Integration Test Project'
+	createdProject <- createProject(entity=project)
+	.setCache("rIntegrationTestProject", createdProject)
 }
 
 .tearDown <- function() {
@@ -11,14 +17,17 @@
 	synapseRepoServiceEndpoint(.getCache("orig.reposervice.endpoint"))
 	.deleteCache("orig.authservice.endpoint")
 	.deleteCache("orig.reposervice.endpoint")
+	
+	deleteProject(entity=.getCache("rIntegrationTestProject"))
+	.deleteCache("rIntegrationTestProject")
 }
 
 integrationTestStoreLayerData <- function() {
 
 	## Create a dataset
 	dataset <- list()
-	dataset$name = 'R Integration Test Dataset'
-	dataset$parentId <- '1893' # a project created for these tests
+	dataset$name <- 'R Integration Test Dataset'
+	dataset$parentId <- .getCache("rIntegrationTestProject")$id
 	createdDataset <- createDataset(entity=dataset)
 	checkEquals(dataset$name, createdDataset$name)
 
@@ -30,9 +39,9 @@ integrationTestStoreLayerData <- function() {
 	##------
 	## Create a layer and use the convenience method to store an R object as a tab-delimited file
 	layer <- list()
-	layer$name = 'R Integration Test Layer'
-	layer$type = 'C'
-	layer$parentId = createdDataset$id 
+	layer$name <- 'R Integration Test Layer'
+	layer$type <- 'C'
+	layer$parentId <- createdDataset$id 
 	
 	createdLayer <- storeLayerData(layerMetadata=layer, layerData=data)
 	checkEquals(layer$name, createdLayer$name)
@@ -40,9 +49,9 @@ integrationTestStoreLayerData <- function() {
 	##------
 	## Create a layer and store a tab-delimited file explicity
 	layer2 <- list()
-	layer2$name = 'R Integration Test Layer2'
-	layer2$type = 'C'
-	layer2$parentId = createdDataset$id 
+	layer2$name <- 'R Integration Test Layer2'
+	layer2$type <- 'C'
+	layer2$parentId <- createdDataset$id 
 
 	## Write out the tab-delimited text file and zip it
 	txtDataFilepath <- 'integrationTestData.txt'
@@ -56,9 +65,9 @@ integrationTestStoreLayerData <- function() {
 	##------
 	## Create a layer and store a serialized R object explicity
 	layer3 <- list()
-	layer3$name = 'R Integration Test Layer3'
-	layer3$type = 'C'
-	layer3$parentId = createdDataset$id 
+	layer3$name <- 'R Integration Test Layer3'
+	layer3$type <- 'C'
+	layer3$parentId <- createdDataset$id 
 	
 	## Write out the serialized R object file and zip it
 	rdaDataFilepath <- 'integrationTestData.rda'

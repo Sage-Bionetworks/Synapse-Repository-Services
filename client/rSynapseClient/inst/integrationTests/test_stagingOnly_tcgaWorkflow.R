@@ -1,8 +1,8 @@
 .setUp <- function() {
 	# Override commandArgs
 	myCommandArgs <- function (trailingOnly = TRUE) {
-		c('--args', '--datasetId', '1076', 
-				'--layerId', '1078' )
+		c('--args', '--datasetId', '1028', 
+				'--layerId', '1031' )
 	}
 	
 	attr(myCommandArgs, "origFCN") <- base:::commandArgs
@@ -13,6 +13,17 @@
 	.setCache("orig.reposervice.endpoint", synapseRepoServiceEndpoint())
 	synapseAuthServiceEndpoint("https://staging-auth.elasticbeanstalk.com/auth/v1")
 	synapseRepoServiceEndpoint("https://staging-reposervice.elasticbeanstalk.com/repo/v1")
+	
+	# Create a project and a dataset
+	project <- list()
+	project$name <- 'R Integration Test Project'
+	createdProject <- createProject(entity=project)
+	.setCache("rIntegrationTestProject", createdProject)
+	dataset <- list()
+	dataset$name <- 'R Integration Test Dataset'
+	dataset$parentId <- createdProject$id
+	createdDataset <- createDataset(entity=dataset)
+	.setCache("rIntegrationTestDataset", createdDataset)
 }
 
 .tearDown <- function() {
@@ -21,16 +32,17 @@
 	.deleteCache("orig.authservice.endpoint")
 	.deleteCache("orig.reposervice.endpoint")
 	assignInNamespace("commandArgs", attr(base:::commandArgs, "origFCN"), "base")
+
+	deleteProject(entity=.getCache("rIntegrationTestProject"))
+	.deleteCache("rIntegrationTestProject")
 }
 
 integrationTestSageBioTCGACurationProjectChildEntityGet <- function() {
 	projects <- synapseQuery(query='select * from project where project.name == "SageBio TCGA Curation"')
 	project <- getProject(entity=projects$project.id[1])
 	datasets <- getProjectDatasets(entity=project)
-	checkTrue(3 <= datasets$totalNumberOfResults)
+	checkTrue(1 <= datasets$totalNumberOfResults)
 	checkTrue('coad' %in% lapply(datasets$results, function(x){x$name}))
-	checkTrue('cesc' %in% lapply(datasets$results, function(x){x$name}))
-	checkTrue('prad' %in% lapply(datasets$results, function(x){x$name}))
 }
 
 integrationTestTcgaWorkflow <- function() {
@@ -86,7 +98,7 @@ integrationTestTcgaWorkflow <- function() {
 	#----- Now we have an analysis result, add the metadata for the new layer 
 	#      to Synapse and upload the analysis result
 	outputLayer <- list()
-	outputLayer$parentId <- '1894' # a dataset in a project created for these tests
+	outputLayer$parentId <- .getCache("rIntegrationTestDataset")$id # a dataset in a project created for these tests
 	outputLayer$name <- paste(dataset$name, inputLayer$name, clinicalLayer$name, sep='-')
 	outputLayer$type <- 'E'
 	

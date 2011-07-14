@@ -8,6 +8,8 @@ synapseSessionToken <-
 		}
 		.setCache("sessionToken", sessionToken)
 	} else {
+		# This could be null if the user has not logged in, but that's ok
+		sessionToken <-	.getCache("sessionToken")
 		# Refresh sessionToken as applicable
 		if(checkValidity) {
 			synapseRefreshSessionToken(sessionToken)
@@ -17,8 +19,7 @@ synapseSessionToken <-
 				synapseRefreshSessionToken(sessionToken)
 			} 
 		}
-		# This could be null, but that's ok
-		.getCache("sessionToken")
+		return(sessionToken)
 	}
 }
 
