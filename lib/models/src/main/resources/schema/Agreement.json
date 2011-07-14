@@ -1,0 +1,19 @@
+{
+  "properties": {
+    "accessControlList": {"type": "string"},
+    "annotations": {"type": "string"},
+    "createdBy": {"type": "string"},
+    "creationDate": {"type": "number", "format": "date-time"},
+    "etag": {"type": "string"},
+    "id": {"type": "string"},
+    "name": {"type": "string"},
+    "parentId": {"type": "string"},
+    "uri": {"type": "string"},
+    "datasetId": {"type": "string"},
+    "datasetVersionNumber": {"type": "long"},
+    "eulaId": {"type": "string"},
+    "eulaVersionNumber": {"type": "long"}
+  },
+  "type": "object",
+  "additionalProperties" : {}
+}

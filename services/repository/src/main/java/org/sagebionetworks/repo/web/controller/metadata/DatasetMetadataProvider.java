@@ -48,7 +48,7 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 	/**
 	 * Create a query that selects the layer children of this dataset.
 	 * @param parentId
-	 * @return
+	 * @return the query object
 	 */
 	public static BasicQuery createChildrenLayerQuery(String parentId){
 		BasicQuery query = new BasicQuery();
@@ -61,7 +61,7 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 	/**
 	 * Build a query to find the Clinical layers of the given dataset.
 	 * @param datasetId
-	 * @return
+	 * @return the query object
 	 */
 	public static BasicQuery createHasClinicalQuery(String datasetId){
 		// Start with the children query
@@ -74,7 +74,7 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 	/**
 	 * Build a query to find the expression layers of the given dataset.
 	 * @param datasetId
-	 * @return
+	 * @return the query object
 	 */
 	public static BasicQuery createHasExpressionQuery(String datasetId){
 		// Start with the children query
@@ -87,7 +87,7 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 	/**
 	 * Build a query to find the expression layers of the given dataset.
 	 * @param datasetId
-	 * @return
+	 * @return the query object
 	 */
 	public static BasicQuery createHasGeneticQuery(String datasetId){
 		// Start with the children query
@@ -102,7 +102,7 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 	 * Make sure version is not null
 	 */
 	@Override
-	public void validateEntity(Dataset entity, EventType eventType) {
+	public void validateEntity(Dataset entity, UserInfo userInfo, EventType eventType) {
 		if(entity.getVersion() == null){
 			entity.setVersion("1.0.0");
 		}

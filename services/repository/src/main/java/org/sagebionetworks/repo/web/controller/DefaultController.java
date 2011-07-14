@@ -68,7 +68,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW,
 			UrlHelpers.LOCATION,
 			UrlHelpers.PROJECT,
-			UrlHelpers.EULA
+			UrlHelpers.EULA,
+			UrlHelpers.AGREEMENT
 			}, method = RequestMethod.POST)
 	public @ResponseBody
 	Nodeable createEntity(
@@ -136,7 +137,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_ID,
 			UrlHelpers.LOCATION_ID,
 			UrlHelpers.PROJECT_ID,
-			UrlHelpers.EULA_ID
+			UrlHelpers.EULA_ID,
+			UrlHelpers.AGREEMENT_ID
 			}, method = RequestMethod.GET)
 	public @ResponseBody
 	Nodeable getEntity(
@@ -206,7 +208,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_ID,
 			UrlHelpers.LOCATION_ID,
 			UrlHelpers.PROJECT_ID,
-			UrlHelpers.EULA_ID
+			UrlHelpers.EULA_ID,
+			UrlHelpers.AGREEMENT_ID
 	}, method = RequestMethod.PUT)
 	public @ResponseBody
 	Nodeable updateEntity(
@@ -269,7 +272,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_ANNOTATIONS,
 			UrlHelpers.LOCATION_ANNOTATIONS,
 			UrlHelpers.PROJECT_ANNOTATIONS,
-			UrlHelpers.EULA_ANNOTATIONS
+			UrlHelpers.EULA_ANNOTATIONS,
+			UrlHelpers.AGREEMENT_ANNOTATIONS
 			}, method = RequestMethod.GET)
 	public @ResponseBody
 	Annotations getEntityAnnotations(
@@ -329,7 +333,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_ANNOTATIONS,
 			UrlHelpers.LOCATION_ANNOTATIONS,
 			UrlHelpers.PROJECT_ANNOTATIONS,
-			UrlHelpers.EULA_ANNOTATIONS
+			UrlHelpers.EULA_ANNOTATIONS,
+			UrlHelpers.AGREEMENT_ANNOTATIONS
 	}, method = RequestMethod.PUT)
 	public @ResponseBody
 	Annotations updateEntityAnnotations(
@@ -358,7 +363,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_ID,
 			UrlHelpers.LOCATION_ID,
 			UrlHelpers.PROJECT_ID,
-			UrlHelpers.EULA_ID
+			UrlHelpers.EULA_ID,
+			UrlHelpers.AGREEMENT_ID
 			}, method = RequestMethod.DELETE)
 	public void deleteEntity(
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
@@ -416,7 +422,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW,
 			UrlHelpers.LOCATION,
 			UrlHelpers.PROJECT,
-			UrlHelpers.EULA
+			UrlHelpers.EULA,
+			UrlHelpers.AGREEMENT
 		}, method = RequestMethod.GET)
 	public @ResponseBody
     PaginatedResults<Nodeable> getEntities(
@@ -496,7 +503,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_CHILDREN,
 			UrlHelpers.LOCATION_CHILDREN,
 			UrlHelpers.PROJECT_CHILDREN,
-			UrlHelpers.EULA_CHILDREN
+			UrlHelpers.EULA_CHILDREN,
+			UrlHelpers.AGREEMENT_CHILDREN
 		}, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<BaseChild> getEntityChildren(
@@ -536,7 +544,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_SCHEMA,
 			UrlHelpers.LOCATION_SCHEMA,
 			UrlHelpers.PROJECT_SCHEMA,
-			UrlHelpers.EULA_SCHEMA
+			UrlHelpers.EULA_SCHEMA,
+			UrlHelpers.AGREEMENT_SCHEMA
 	}, method = RequestMethod.GET)
 	public @ResponseBody
 	JsonSchema getEntitiesSchema(HttpServletRequest request) throws DatastoreException {

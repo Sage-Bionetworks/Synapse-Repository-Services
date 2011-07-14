@@ -60,7 +60,7 @@ public class GenericEntityControllerImpleAutowiredTest {
 		assertNotNull(testUserProvider);
 		// Map test objects to their urls
 		// Make sure we have a valid user.
-		userInfo = testUserProvider.getTestAdiminUserInfo();
+		userInfo = testUserProvider.getTestAdminUserInfo();
 		UserInfo.validateUserInfo(userInfo);
 		userName = userInfo.getUser().getUserId();
 		mockRequest = Mockito.mock(HttpServletRequest.class);

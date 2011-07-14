@@ -24,6 +24,7 @@ public class Dataset implements BaseChild, HasLocations, HasLayers {
 	private Date releaseDate;
 	private String version;
 	private String parentId;
+	private String eulaId;
 	@TransientField
 	private String annotations; // URI for annotations
 	@TransientField
@@ -250,6 +251,14 @@ public class Dataset implements BaseChild, HasLocations, HasLayers {
 	public String getParentId() {
 		return this.parentId;
 	}
+	
+	public void setEulaId(String eulaId) {
+		this.eulaId = eulaId;
+	}
+
+	public String getEulaId() {
+		return this.eulaId;
+	}
 
 	public String getLayers() {
 		return layers;
@@ -290,6 +299,8 @@ public class Dataset implements BaseChild, HasLocations, HasLayers {
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
 				+ ((parentId == null) ? 0 : parentId.hashCode());
+		result = prime * result
+		        + ((eulaId == null) ? 0 : eulaId.hashCode());
 		result = prime * result
 				+ ((releaseDate == null) ? 0 : releaseDate.hashCode());
 		result = prime * result + ((status == null) ? 0 : status.hashCode());
@@ -377,6 +388,11 @@ public class Dataset implements BaseChild, HasLocations, HasLayers {
 				return false;
 		} else if (!parentId.equals(other.parentId))
 			return false;
+		if (eulaId == null) {
+			if (other.eulaId != null)
+				return false;
+		} else if (!eulaId.equals(other.eulaId))
+			return false;
 		if (releaseDate == null) {
 			if (other.releaseDate != null)
 				return false;
@@ -410,7 +426,7 @@ public class Dataset implements BaseChild, HasLocations, HasLayers {
 				+ ", layers=" + layers + ", hasExpressionData="
 				+ hasExpressionData + ", hasGeneticData=" + hasGeneticData
 				+ ", hasClinicalData=" + hasClinicalData + ", parentId="
-				+ parentId + ", locations=" + locations
+				+ parentId + ", eulaId=" + eulaId + ", locations=" + locations
 				+ ", accessControlList=" + accessControlList + "]";
 	}
 	

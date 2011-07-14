@@ -61,7 +61,7 @@ public class LayerTypeCountCacheImplTest {
 		toDelete = new ArrayList<String>();
 		// Map test objects to their urls
 		// Make sure we have a valid user.
-		testUser = testUserProvider.getTestAdiminUserInfo();
+		testUser = testUserProvider.getTestAdminUserInfo();
 		UserInfo.validateUserInfo(testUser);
 		userId = testUser.getUser().getUserId();
 		// Create the mock request

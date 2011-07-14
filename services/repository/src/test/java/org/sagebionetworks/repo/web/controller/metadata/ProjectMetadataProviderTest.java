@@ -32,7 +32,7 @@ public class ProjectMetadataProviderTest {
 	public void testValidate(){
 		ProjectMetadataProvider provider = new ProjectMetadataProvider();
 		// Add more here.
-		provider.validateEntity(mockProject, EventType.GET);;
+		provider.validateEntity(mockProject, null, EventType.GET);;
 	}
 	
 	@Test

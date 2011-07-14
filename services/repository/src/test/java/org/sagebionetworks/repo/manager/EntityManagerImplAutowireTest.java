@@ -55,7 +55,7 @@ public class EntityManagerImplAutowireTest {
 	public void before() throws Exception{
 		assertNotNull(entityManager);
 		assertNotNull(testUserProvider);
-		userInfo = testUserProvider.getTestAdiminUserInfo();
+		userInfo = testUserProvider.getTestAdminUserInfo();
 		
 		toDelete = new ArrayList<String>();
 		mockAuth = Mockito.mock(AuthorizationManager.class);

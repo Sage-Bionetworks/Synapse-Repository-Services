@@ -20,7 +20,8 @@ public class ObjectTypeFactory {
 	 * A factory method used by tests to create an object with all of the required fields filled in.
 	 * @param name
 	 * @param type
-	 * @return
+	 * @param parentId 
+	 * @return entity with a few required fields filled in
 	 * @throws InstantiationException
 	 * @throws IllegalAccessException
 	 * @throws InvalidModelException 
@@ -40,7 +41,7 @@ public class ObjectTypeFactory {
 		} else if(object instanceof Eula){
 			Eula eula = (Eula) object;
 			eula.setAgreement("this is a fake agreement");
-		}
+		} 
 		// Any object that needs  parent
 		if(object instanceof BaseChild){
 			BaseChild child = (BaseChild) object;

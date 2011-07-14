@@ -302,8 +302,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(nodeId == null) throw new IllegalArgumentException("Node ID cannot be null");
 		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getUser().getUserId();
+		// TODO fix me PLFM-325
 		if (!authorizationManager.canAccess(userInfo, nodeId, AuthorizationConstants.ACCESS_TYPE.UPDATE)) {
-			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
+			throw new UnauthorizedException(userName+" lacks update access to the requested object.");
 		}
 		// Validate that the annotations
 		validateAnnotations(updated);

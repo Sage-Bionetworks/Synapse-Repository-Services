@@ -392,8 +392,9 @@ public interface GenericEntityController {
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
+	 * @throws UnauthorizedException 
 	 */
-	public <T extends Nodeable> QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, Class<? extends T> clazz, HttpServletRequest request) throws DatastoreException, NotFoundException;
+	public <T extends Nodeable> QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, Class<? extends T> clazz, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * determine whether a user has the given access type for a given entity

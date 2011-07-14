@@ -6,8 +6,10 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider.EventType;
 
+/**
+ *
+ */
 public class ProjectMetadataProvider implements TypeSpecificMetadataProvider<Project> {
 
 	@Override
@@ -17,7 +19,7 @@ public class ProjectMetadataProvider implements TypeSpecificMetadataProvider<Pro
 	}
 
 	@Override
-	public void validateEntity(Project entity, EventType eventType) {
+	public void validateEntity(Project entity, UserInfo userInfo, EventType eventType) {
 
 	}
 

@@ -3,25 +3,16 @@ package org.sagebionetworks.repo.web.controller;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.manager.TestUserDAO;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.UserDAO;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -41,39 +32,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class LayerLocationsControllerTest {
 
-	/**
-	 * A user for use in unit tests
-	 */
-	public static final String UNIT_TEST_READ_ONLY_USER_ID = "unit.test@sagebase.org";
-
 	@Autowired
 	private Helpers helper;
 	private JSONObject dataset;
-	private String readOnlyUserId;
 	
-	private User user;
-	
-	@Autowired
-	private UserManager userManager;
-	
-	private UserDAO userDao;
-	
-	/**
-	 * A user for use in integration tests
-	 */
-	public static final String INTEGRATION_TEST_READ_ONLY_USER_ID = "integration.test@sagebase.org";
-	/**
-	 * 
-	 */
-	public static final String FAKE_ACCESS_ID = "thisIsAFakeAWSAccessId";
-	/**
-	 * 
-	 */
-	public static final String FAKE_SECRET_KEY = "thisIsAFakeAWSSecretKey";
-
-	
-
-
 	/**
 	 * @throws java.lang.Exception
 	 */
@@ -81,23 +43,6 @@ public class LayerLocationsControllerTest {
 	public void setUp() throws Exception {
 		
 		helper.setUp();
-
-		if (helper.isIntegrationTest()) {
-			readOnlyUserId = INTEGRATION_TEST_READ_ONLY_USER_ID;
-		} else {
-			readOnlyUserId = UNIT_TEST_READ_ONLY_USER_ID;
-			
-			this.userDao=new TestUserDAO();
-			userManager.setUserDAO(userDao);
-
-			UserInfo userInfo  = helper.getUserInfo();
-			user = userInfo.getUser();
-			user.setIamAccessId(FAKE_ACCESS_ID);
-			user.setIamSecretKey(FAKE_SECRET_KEY);
-			userDao.update(user);
-//			credsDao.update(storedCreds);
-		}
-
 		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()
 				+ "/dataset", DatasetControllerTest.SAMPLE_DATASET);
 	}
@@ -107,10 +52,6 @@ public class LayerLocationsControllerTest {
 	 */
 	@After
 	public void tearDown() throws Exception {
-		if (!helper.isIntegrationTest()) {
-			userDao.delete(user.getId());
-		}
-
 		helper.tearDown();
 	}
 
@@ -258,12 +199,6 @@ public class LayerLocationsControllerTest {
 				.getString("layers"), null, null, null, null);
 		JSONObject saneLayer = helper.testGetJsonEntity(saneLayers
 				.getJSONArray("results").getJSONObject(0).getString("uri"));
-//		helper.setUserId(readOnlyUserId);
-		
-		// make sure our fake userDAO has the user set up
-		if (!helper.isIntegrationTest()) {
-			assertEquals(readOnlyUserId, userDao.getUser(readOnlyUserId).getUserId());
-		}
 		
 		for (int i = 0; i < saneLayers.getJSONArray("results").length(); i++) {
 			JSONObject location = saneLayers.getJSONArray("results").getJSONObject(i);

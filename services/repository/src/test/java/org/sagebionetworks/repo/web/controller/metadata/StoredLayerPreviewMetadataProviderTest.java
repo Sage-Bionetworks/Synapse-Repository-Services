@@ -83,7 +83,7 @@ public class StoredLayerPreviewMetadataProviderTest {
 		StoredLayerPreview preview = new StoredLayerPreview();
 		preview.setPreviewString(previewString);
 		StoredLayerPreviewMetadataProvider provider = new StoredLayerPreviewMetadataProvider();
-		provider.validateEntity(preview, EventType.GET);
+		provider.validateEntity(preview, null, EventType.GET);
 		assertNotNull(preview.getPreviewBlob());
 		assertEquals(previewString, new String(preview.getPreviewBlob(), "UTF-8"));
 		assertTrue(preview.getPreviewString() == null);

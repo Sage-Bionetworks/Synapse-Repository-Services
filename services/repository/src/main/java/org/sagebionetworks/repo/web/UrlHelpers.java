@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.repo.model.Agreement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.Dataset;
@@ -89,6 +90,7 @@ public class UrlHelpers {
 	public static final String LOCATION = "/location";
 	public static final String PROJECT	= "/project";
 	public static final String EULA 	= "/eula";
+	public static final String AGREEMENT = "/agreement";
 	
 	/**
 	 * All of the base URLs for Synapse objects with ID.
@@ -99,6 +101,7 @@ public class UrlHelpers {
 	public static final String LOCATION_ID	= LOCATION+ID;
 	public static final String PROJECT_ID 	= PROJECT+ID;
 	public static final String EULA_ID 		= EULA+ID;
+	public static final String AGREEMENT_ID = AGREEMENT+ID;
 	
 	/**
 	 * All of the base URLs for Synapse objects's Annotations.
@@ -109,6 +112,7 @@ public class UrlHelpers {
 	public static final String LOCATION_ANNOTATIONS = LOCATION_ID+ANNOTATIONS;
 	public static final String PROJECT_ANNOTATIONS	= PROJECT_ID+ANNOTATIONS;
 	public static final String EULA_ANNOTATIONS		= EULA_ID+ANNOTATIONS;
+	public static final String AGREEMENT_ANNOTATIONS = AGREEMENT_ID+ANNOTATIONS;
 
 	/**
 	 * All of the base URLs for Synapse object's versions.
@@ -123,6 +127,7 @@ public class UrlHelpers {
 	public static final String LOCATION_CHILDREN	= PARENT_TYPE_ID+LOCATION;
 	public static final String PROJECT_CHILDREN		= PARENT_TYPE_ID+PROJECT;
 	public static final String EULA_CHILDREN		= PARENT_TYPE_ID+EULA;
+	public static final String AGREEMENT_CHILDREN	= PARENT_TYPE_ID+AGREEMENT;
 	/**
 	 * Get the schema for each object type
 	 */
@@ -132,6 +137,7 @@ public class UrlHelpers {
 	public static final String LOCATION_SCHEMA	= LOCATION+SCHEMA;
 	public static final String PROJECT_SCHEMA 	= PROJECT+SCHEMA;
 	public static final String EULA_SCHEMA 		= EULA+SCHEMA;
+	public static final String AGREEMENT_SCHEMA = AGREEMENT+SCHEMA;
 	
 	/**
 	 * Get a specific version of an entity
@@ -199,6 +205,7 @@ public class UrlHelpers {
 		model2url.put(Project.class, PROJECT);
 		model2url.put(LayerLocation.class, LOCATION);
 		model2url.put(Eula.class, EULA);
+		model2url.put(Agreement.class, AGREEMENT);
 		MODEL2URL = Collections.unmodifiableMap(model2url);
 
 		Map<Class, String> property2urlsuffix = new HashMap<Class, String>();

@@ -14,7 +14,8 @@ public enum ObjectType {
 	layerlocation	(LayerLocation.class, 		(short)2, "/location"),
 	project			(Project.class, 			(short)3, "/project"),
 	layerpreview	(StoredLayerPreview.class, 	(short)4, "/preview"),
-	eula			(Eula.class,				(short)5, "/eula");
+	eula			(Eula.class,				(short)5, "/eula"),
+	agreement		(Agreement.class,			(short)6, "/agreement");
 	
 	private Class<? extends Nodeable> clazz;
 	private short id;

@@ -52,7 +52,7 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(nodeManager);
 		nodesToDelete = new ArrayList<String>();
 		// Make sure we have a valid user.
-		testUser = testUserProvider.getTestAdiminUserInfo();
+		testUser = testUserProvider.getTestAdminUserInfo();
 		UserInfo.validateUserInfo(testUser);
 
 	}

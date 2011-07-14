@@ -52,7 +52,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 	
 	@Before
 	public void before() throws Exception{
-		userInfo = testUserProvider.getTestAdiminUserInfo();
+		userInfo = testUserProvider.getTestAdminUserInfo();
 		assertNotNull(nodeManager);
 		assertNotNull(nodeInheritanceManager);
 		assertNotNull(nodeInheritanceDao);
