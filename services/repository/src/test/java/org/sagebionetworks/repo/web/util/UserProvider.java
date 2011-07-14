@@ -12,8 +12,14 @@ public interface UserProvider {
 	
 	/**
 	 * This is an administrator user that can be used for testing.
-	 * @return
+	 * @return userInfo for the admin user
 	 */
-	public UserInfo getTestAdiminUserInfo();
+	public UserInfo getTestAdminUserInfo();
+	
+	/**
+	 * This is a regular user that can be used for testing.
+	 * @return userInfo for the regular user
+	 */
+	public UserInfo getTestUserInfo();
 
 }

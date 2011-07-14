@@ -101,7 +101,7 @@ public class DatasetMetadataProviderTest {
 		Dataset mockDs = Mockito.mock(Dataset.class);
 		when(mockDs.getId()).thenReturn("101");
 		when(mockDs.getVersion()).thenReturn(null);
-		provider.validateEntity(mockDs, EventType.GET);
+		provider.validateEntity(mockDs, testUser, EventType.GET);
 		verify(mockDs).setVersion("1.0.0");
 	}
 	

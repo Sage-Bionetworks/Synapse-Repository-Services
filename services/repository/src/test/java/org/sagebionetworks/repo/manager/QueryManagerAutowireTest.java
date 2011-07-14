@@ -62,7 +62,7 @@ public class QueryManagerAutowireTest {
 	public void before() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		assertNotNull(entityController);
 		assertNotNull(testUserProvider);
-		userInfo=testUserProvider.getTestAdiminUserInfo();
+		userInfo=testUserProvider.getTestAdminUserInfo();
 		UserInfo.validateUserInfo(userInfo);
 		userId = userInfo.getUser().getUserId();
 		toDelete = new ArrayList<String>();
@@ -132,7 +132,7 @@ public class QueryManagerAutowireTest {
 	}
 	
 	@Test
-	public void testExecuteQuery() throws DatastoreException, NotFoundException{
+	public void testExecuteQuery() throws DatastoreException, NotFoundException, UnauthorizedException {
 		// Build up the query.
 		BasicQuery query = new BasicQuery();
 		query.setFrom(ObjectType.dataset);

@@ -41,16 +41,23 @@ public interface TypeSpecificMetadataProvider<T extends Base> {
 
 	/**
 	 * Validate that the passed entity.
+	 * @param userInfo 
 	 * @param entity
+	 * @param eventType 
 	 * @throws InvalidModelException 
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
 	 */
-	public void validateEntity(T entity, EventType eventType) throws InvalidModelException;
+	public void validateEntity(T entity, UserInfo userInfo, EventType eventType) throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * This method will be called before the given entity is returned to the client.
 	 * Any type specific metadata should be added here.
 	 * @param entity
 	 * @param request
+	 * @param user 
+	 * @param eventType 
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 * @throws UnauthorizedException 
@@ -59,7 +66,7 @@ public interface TypeSpecificMetadataProvider<T extends Base> {
 	
 	/**
 	 * Called when an entity is deleted.
-	 * @param entity
+	 * @param deleted 
 	 */
 	public void entityDeleted(T deleted);
 

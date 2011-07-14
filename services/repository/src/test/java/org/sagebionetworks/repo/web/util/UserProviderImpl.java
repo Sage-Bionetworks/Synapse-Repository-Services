@@ -18,19 +18,23 @@ public class UserProviderImpl implements UserProvider, InitializingBean {
 	public UserManager userManager;
 	
 	private UserInfo testAdminUser = null;
+	private UserInfo testUser = null;
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		// Create the test admin user
 		testAdminUser = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		testUser = userManager.getUserInfo(TestUserDAO.TEST_USER_NAME);
 	}
 	
-	/**
-	 * This is an admin user that can be used for testing.
-	 * @return
-	 */
-	public UserInfo getTestAdiminUserInfo(){
+	@Override
+	public UserInfo getTestAdminUserInfo(){
 		return testAdminUser;
+	}
+
+	@Override
+	public UserInfo getTestUserInfo() {
+		return testUser;
 	}
 	
 

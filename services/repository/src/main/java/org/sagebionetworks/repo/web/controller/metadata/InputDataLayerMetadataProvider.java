@@ -42,7 +42,7 @@ public class InputDataLayerMetadataProvider implements TypeSpecificMetadataProvi
 	}
 
 	@Override
-	public void validateEntity(InputDataLayer entity, EventType eventType) {
+	public void validateEntity(InputDataLayer entity, UserInfo userInfo, EventType eventType) {
 		if(entity.getVersion() == null){
 			entity.setVersion("1.0.0");
 		}

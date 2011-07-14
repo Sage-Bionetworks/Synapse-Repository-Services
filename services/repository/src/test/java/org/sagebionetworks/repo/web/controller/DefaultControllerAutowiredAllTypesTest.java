@@ -27,9 +27,12 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.Agreement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BaseChild;
+import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Eula;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -135,14 +138,32 @@ public class DefaultControllerAutowiredAllTypesTest {
 		ObjectType[] types = ObjectType.values();
 		for(int i=0; i<countPerType; i++){
 			int index = 0;
+			Dataset dataset = null;
+			Eula eula = null;
 			for(ObjectType type: types){
 				String name = type.name()+index;
 				Nodeable object = ObjectTypeFactory.createObjectForTest(name, type, parent.getId());
+				if (ObjectType.agreement == type) {
+					// Dev Note: we are depending upon the fact that in the
+					// object type enumeration, agreement comes after dataset
+					// and eula
+					Agreement agreement = (Agreement) object;
+					agreement.setDatasetId(dataset.getId());
+					agreement.setEulaId(eula.getId());
+				}
 				Nodeable clone = ServletTestHelper.createEntity(dispatchServlet, object, userName);
 				assertNotNull(clone);
 				assertNotNull(clone.getId());
 				toDelete.add(clone.getId());
 				assertNotNull(clone.getEtag());
+				
+				// Stash these for later use
+				if (ObjectType.dataset == type) {
+					dataset = (Dataset) clone;
+				} else if (ObjectType.eula == type) {
+					eula = (Eula) clone;
+				} 
+				
 				// Check the base ursl
 				UrlHelpers.validateAllUrls(clone);
 				// Add this to the list of entities created
@@ -191,6 +212,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		ObjectType[] types = ObjectType.values();
 		int index = 0;
 		for(ObjectType type: types){
+			if (ObjectType.agreement == type) continue;
 			// Try with all default values
 			PaginatedResults<Nodeable> result = ServletTestHelper.getAllEntites(dispatchServlet, type.getClassForType(), null, null, null, null, userName);
 			assertNotNull(result);
@@ -225,7 +247,9 @@ public class DefaultControllerAutowiredAllTypesTest {
 		// Create one of each type
 		ObjectType[] types = ObjectType.values();
 		for(ObjectType parent: types){
+			if(ObjectType.agreement == parent) continue;
 			for(ObjectType child: types){
+				if(ObjectType.agreement == child) continue;
 				// First create a parent of this type
 				String name = "parent_"+parent.name()+"Ofchild_"+child.name();
 				Nodeable parentObject = ObjectTypeFactory.createObjectForTest(name, parent, root.getId());

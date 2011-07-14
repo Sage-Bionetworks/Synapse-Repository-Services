@@ -245,16 +245,16 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// Determine the object type from the url.
 		Class<? extends T> clazz = (Class<? extends T>) newEntity.getClass();
 		ObjectType type = ObjectType.getNodeTypeForClass(newEntity.getClass());
-		// Fetch the provider that will validate this entity.
-		@SuppressWarnings("unchecked")
-		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>)metadataProviderFactory.getMetadataProvider(type);
 		// Create a new id for this entity
 		long newId = idGenerator.generateNewId();
 		newEntity.setId(KeyFactory.keyToString(newId));
-		// Validate the entity
-		provider.validateEntity(newEntity, EventType.CREATE);
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
+		// Fetch the provider that will validate this entity.
+		@SuppressWarnings("unchecked")
+		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>)metadataProviderFactory.getMetadataProvider(type);
+		// Validate the entity
+		provider.validateEntity(newEntity, userInfo, EventType.CREATE);
 		String id = entityManager.createEntity(userInfo, newEntity);
 		// Return the resulting entity.
 		return getEntity(userInfo, id, request, clazz, EventType.CREATE);
@@ -270,15 +270,15 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// Get the type for this entity.
 		ObjectType type = ObjectType.getNodeTypeForClass(updatedEntity.getClass());
 		Class<? extends T> clazz = (Class<? extends T>) updatedEntity.getClass();
+		// Get the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Fetch the provider that will validate this entity.
 		@SuppressWarnings("unchecked")
 		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>)metadataProviderFactory.getMetadataProvider(type);
 		// First validate this change
-		provider.validateEntity(updatedEntity, EventType.UPDATE);
+		provider.validateEntity(updatedEntity, userInfo, EventType.UPDATE);
 		// Keep the entity id
 		String entityId = updatedEntity.getId();
-		// Get the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Now do the update
 		entityManager.updateEntity(userInfo, updatedEntity, newVersion);
 		// Return the udpated entity
@@ -510,7 +510,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 
 	@Override
 	public <T extends Nodeable> QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, Class<? extends T> clazz,
-			HttpServletRequest request) throws DatastoreException, NotFoundException {
+			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
 		if(query == null) throw new IllegalArgumentException("Query cannot be null");
 		if(query.getFrom() == null) throw new IllegalArgumentException("Query.getFrom() cannot be null");
 		// Lookup the user
@@ -533,10 +533,8 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 			} catch (NotFoundException e) {
 				// This should never occur
 				throw new DatastoreException("Node query returned node id: "+id+" but we failed to load this node: "+e.getMessage(), e);
-			} catch (UnauthorizedException e) {
-				// This should never occur
-				throw new DatastoreException("Node query returned node id: "+id+" but the user was not authorized to see this node: "+e.getMessage(), e);
-			}
+			} 
+			// Dev Note: queries upon locations where the user has not yet signed the use agreement can correctly result in UnauthorizedException being thrown
 		}
 		// done
 		return new QueryResults(allRows, nodeResults.getTotalNumberOfResults());

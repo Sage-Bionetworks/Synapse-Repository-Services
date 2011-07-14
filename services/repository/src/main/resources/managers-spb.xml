@@ -49,6 +49,7 @@
 	<bean id="projectMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.ProjectMetadataProvider" scope="singleton"/>
 	<bean id="storedLayerPreviewMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.StoredLayerPreviewMetadataProvider" scope="singleton"/>
 	<bean id="eulaMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.EulaMetadataProvider" scope="singleton"/>
+	<bean id="agreementMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.AgreementMetadataProvider" scope="singleton"/>
 	
 	<!-- the keys in this map must be the values of the org.sagebionetworks.repo.modelObjectType enum -->
 	<bean id="metadataProviderFactory" class="org.sagebionetworks.repo.web.controller.MetadataProviderFactoryImpl" scope="singleton">
@@ -60,6 +61,7 @@
 			<entry key="project"><ref bean="projectMetadataProvider" /></entry>
 			<entry key="layerpreview"><ref bean="storedLayerPreviewMetadataProvider" /></entry>
 			<entry key="eula"><ref bean="eulaMetadataProvider" /></entry>
+			<entry key="agreement"><ref bean="agreementMetadataProvider" /></entry>
 	      </map>
 	    </property>
 	</bean>

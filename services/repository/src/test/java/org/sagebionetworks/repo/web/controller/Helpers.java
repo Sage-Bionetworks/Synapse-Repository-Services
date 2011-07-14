@@ -7,9 +7,11 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.URLEncoder;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -17,8 +19,12 @@ import javax.servlet.http.HttpServlet;
 
 import org.joda.time.DateTime;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.authutil.AuthUtilConstants;
+import org.sagebionetworks.repo.manager.TestUserDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.util.UserProvider;
@@ -55,6 +61,9 @@ import org.springframework.web.servlet.DispatcherServlet;
  * @author deflaux
  */
 public class Helpers {
+
+	public static String IDENTIFIED_USER_READONLY_ACL = "{\"userGroupId\":\"0\", \"accessType\":[\"READ\"]}";
+	public static String IDENTIFIED_USER_READWRITE_ACL = "{\"userGroupId\":\"0\", \"accessType\":[\"READ\", \"WRITE\"]}";
 
 	private static final Logger log = Logger.getLogger(Helpers.class.getName());
 	private static final int JSON_INDENT = 2;
@@ -119,18 +128,15 @@ public class Helpers {
 			servletConfig.addInitParameter("contextConfigLocation",
 					"classpath:test-context.xml");
 			servlet = new DispatcherServlet();
-			try{
+			try {
 				servlet.init(servletConfig);
-			}catch (Exception e){
+			} catch (Exception e) {
 				e.printStackTrace();
 				throw e;
 			}
 		}
-		assertNotNull(testUserProvider);
-		userInfo = testUserProvider.getTestAdiminUserInfo();
-		UserInfo.validateUserInfo(userInfo);
-		assertNotNull(userInfo);
-		userId = userInfo.getUser().getUserId();
+
+		useAdminUser();
 		testState = new LinkedList<TestStateItem>();
 
 		return servlet;
@@ -152,14 +158,30 @@ public class Helpers {
 
 	}
 
-	public String getUserId() {
-		return this.userId;
+	public void useAdminUser() {
+		assertNotNull(testUserProvider);
+		userInfo = testUserProvider.getTestAdminUserInfo();
+		UserInfo.validateUserInfo(userInfo);
+		assertNotNull(userInfo);
+		userId = userInfo.getUser().getUserId();
 	}
 
-	public UserInfo getUserInfo() {
-		return userInfo;
+	public void useTestUser() {
+		assertNotNull(testUserProvider);
+		userInfo = testUserProvider.getTestUserInfo();
+		UserInfo.validateUserInfo(userInfo);
+		assertNotNull(userInfo);
+		userId = userInfo.getUser().getUserId();
+		Collection<UserGroup> groups = userInfo.getGroups();
+		for(UserGroup group : groups) {
+			System.out.println(group);
+		}
 	}
-	
+
+	public String getUserId() {
+		return userId;
+	}
+
 	/**
 	 * Creation of JSON entities
 	 * 
@@ -271,9 +293,10 @@ public class Helpers {
 
 		return results;
 	}
-	
+
 	/**
 	 * A call that returns Paginated results.
+	 * 
 	 * @param requestUrl
 	 * @return
 	 * @throws Exception
@@ -484,10 +507,12 @@ public class Helpers {
 		request.setRequestURI(servletPrefix + "/query");
 		request.addParameter("query", query);
 		request.addParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		log.info("About to query: " + query);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.OK.value(), response.getStatus());
 		JSONObject queryResult = new JSONObject(response.getContentAsString());
+		log.info(queryResult.toString(JSON_INDENT));
 		assertTrue(queryResult.has("totalNumberOfResults"));
 		assertTrue(queryResult.has("results"));
 		return queryResult;
@@ -666,6 +691,8 @@ public class Helpers {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(servletPrefix + "/query");
+		if (null != userId)
+			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
 		request.addParameter("query", query);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
@@ -805,6 +832,102 @@ public class Helpers {
 	}
 
 	/**
+	 * Give identified individuals read-only access to the entity
+	 * @param entity
+	 * @throws Exception 
+	 * @throws JSONException 
+	 */
+	public void addPublicReadOnlyAclToEntity(JSONObject entity) throws JSONException, Exception {
+		JSONObject entityAcl = testGetJsonEntity(entity
+				.getString("accessControlList"));
+		entityAcl.getJSONArray("resourceAccess").put(
+				new JSONObject(IDENTIFIED_USER_READONLY_ACL));
+		
+		// TODO uncomment this line and delete the stuff that follows when PLFM-321 is fixed
+		//testUpdateJsonEntity(entityAcl);
+		
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("PUT");
+		request.addHeader("Accept", "application/json");
+		request.addHeader(ServiceConstants.ETAG_HEADER, entityAcl
+				.getString("etag"));
+		request.setRequestURI(entityAcl.getString("uri"));
+		if (null != userId)
+			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setContent(entityAcl.toString().getBytes("UTF-8"));
+		log.info("About to send: " + entityAcl.toString(JSON_INDENT));
+		servlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
+		JSONObject results = new JSONObject(response.getContentAsString());
+		log.info(results.toString(JSON_INDENT));
+
+		// Check default properties
+		// PLFM-321 assertExpectedEntityProperties(results);
+		assertEquals(entityAcl.getString("id"), results.getString("id"));
+		// PLFM-321 assertEquals(entityAcl.getString("uri"), results.getString("uri"));
+
+		// Check our response headers
+		String etagHeader = (String) response
+				.getHeader(ServiceConstants.ETAG_HEADER);
+		assertNotNull(etagHeader);
+		assertEquals(etagHeader, results.getString("etag"));
+
+		// Make sure we got an updated etag
+		assertFalse(etagHeader.equals(entityAcl.getString("etag")));
+	}
+
+	/**
+	 * Give identified individuals read-only access to the entity
+	 * @param entity
+	 * @throws Exception 
+	 * @throws JSONException 
+	 */
+	public void addPublicReadWriteAclToEntity(JSONObject entity) throws JSONException, Exception {
+		JSONObject entityAcl = testGetJsonEntity(entity
+				.getString("accessControlList"));
+		entityAcl.getJSONArray("resourceAccess").put(
+				new JSONObject(IDENTIFIED_USER_READWRITE_ACL));
+		
+		// TODO uncomment this line and delete the stuff that follows when PLFM-321 is fixed
+		//testUpdateJsonEntity(entityAcl);
+		
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("PUT");
+		request.addHeader("Accept", "application/json");
+		request.addHeader(ServiceConstants.ETAG_HEADER, entityAcl
+				.getString("etag"));
+		request.setRequestURI(entityAcl.getString("uri"));
+		if (null != userId)
+			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setContent(entityAcl.toString().getBytes("UTF-8"));
+		log.info("About to send: " + entityAcl.toString(JSON_INDENT));
+		servlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
+		JSONObject results = new JSONObject(response.getContentAsString());
+		log.info(results.toString(JSON_INDENT));
+
+		// Check default properties
+		// PLFM-321 assertExpectedEntityProperties(results);
+		assertEquals(entityAcl.getString("id"), results.getString("id"));
+		// PLFM-321 assertEquals(entityAcl.getString("uri"), results.getString("uri"));
+
+		// Check our response headers
+		String etagHeader = (String) response
+				.getHeader(ServiceConstants.ETAG_HEADER);
+		assertNotNull(etagHeader);
+		assertEquals(etagHeader, results.getString("etag"));
+
+		// Make sure we got an updated etag
+		assertFalse(etagHeader.equals(entityAcl.getString("etag")));
+	}
+	
+	/**
 	 * @param expected
 	 * @param actual
 	 * @throws Exception
@@ -858,8 +981,6 @@ public class Helpers {
 		assertTrue(results.has("etag"));
 		assertFalse("null".equals(results.getString("etag")));
 	}
-	
-	
 
 	/**
 	 * @param results
@@ -873,7 +994,6 @@ public class Helpers {
 		assertTrue(results.has("totalNumberOfResults"));
 		assertFalse("null".equals(results.getString("totalNumberOfResults")));
 	}
-	
 
 	private class TestStateItem {
 		public String userId;

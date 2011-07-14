@@ -22,7 +22,7 @@ public class EulaMetadataProvider implements
 	}
 
 	@Override
-	public void validateEntity(Eula entity, EventType eventType)
+	public void validateEntity(Eula entity, UserInfo userInfo, EventType eventType)
 			throws InvalidModelException {
 		if (null == entity.getName()) {
 			throw new InvalidModelException("name cannot be null");
