@@ -1,70 +1,79 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  
-  <parent>
-    <groupId>org.sagebionetworks</groupId>
-    <artifactId>services</artifactId>
-    <version>parent-1.0</version>
-  </parent>
-  
-  <groupId>org.sagebionetworks</groupId>
-  <artifactId>auth-util</artifactId>
-  <packaging>jar</packaging>
-  <name>Platform Authentication and Authorization Utilities</name>
-  <version>${applicationVersion}</version>
-  
-  <dependencies>
-  
-  <dependency>
-    <groupId>javax.mail</groupId>
-    <artifactId>mail</artifactId>
-    <version>1.4</version>
-  </dependency>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
 
-    <!-- Sage Bionetworks Dependencies -->    
-    <dependency>
-	  <groupId>org.sagebionetworks</groupId>
-	  <artifactId>lib-stackConfiguration</artifactId>
-	  <version>${applicationVersion}</version>
-	</dependency>
+	<parent>
+		<groupId>org.sagebionetworks</groupId>
+		<artifactId>services</artifactId>
+		<version>parent-1.0</version>
+	</parent>
 
-    <dependency>
-      <groupId>org.sagebionetworks</groupId>
-      <artifactId>lib-models</artifactId>
-      <version>${applicationVersion}</version>
-    </dependency>
+	<groupId>org.sagebionetworks</groupId>
+	<artifactId>auth-util</artifactId>
+	<packaging>jar</packaging>
+	<name>Platform Authentication and Authorization Utilities</name>
+	<version>${applicationVersion}</version>
 
-    
-    
-   <!-- Spring Framework dependencies -->
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>org.springframework.spring-library</artifactId>
-      <type>libd</type>
-    </dependency>
-    
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>org.springframework.web</artifactId>
-    </dependency>
+	<dependencies>
 
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-test</artifactId>
-    </dependency>
+		<dependency>
+			<groupId>javax.mail</groupId>
+			<artifactId>mail</artifactId>
+			<version>1.4</version>
+		</dependency>
 
-        <!-- Logging dependencies -->
-    <dependency>
-      <groupId>commons-logging</groupId>
-      <artifactId>commons-logging</artifactId>
-      <version>1.0</version>
-    </dependency>
+		<!-- Sage Bionetworks Dependencies -->
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-stackConfiguration</artifactId>
+			<version>${applicationVersion}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-models</artifactId>
+			<version>${applicationVersion}</version>
+		</dependency>
+
+
+
+		<!-- Spring Framework dependencies -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>org.springframework.spring-library</artifactId>
+			<type>libd</type>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>org.springframework.web</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-test</artifactId>
+		</dependency>
+
+		<!-- Logging dependencies -->
+		<dependency>
+			<groupId>commons-logging</groupId>
+			<artifactId>commons-logging</artifactId>
+			<version>1.0</version>
+		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 		</dependency>
-  </dependencies>    
+	</dependencies>
 
-
+	<build>
+		<plugins>
+			<!-- Build number generator -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>buildnumber-maven-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
 </project>

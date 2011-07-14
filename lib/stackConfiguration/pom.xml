@@ -54,7 +54,7 @@
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-test</artifactId>
 		</dependency>
-				<dependency>
+		<dependency>
 			<groupId>org.aspectj</groupId>
 			<artifactId>aspectjlib</artifactId>
 			<version>1.6.2</version>
@@ -80,4 +80,14 @@
 			<artifactId>junit</artifactId>
 		</dependency>
 	</dependencies>
+
+	<build>
+		<plugins>
+			<!-- Build number generator -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>buildnumber-maven-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
 </project>

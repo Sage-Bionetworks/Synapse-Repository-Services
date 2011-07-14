@@ -19,55 +19,5 @@
     <module>repository</module>
     <module>auth</module>
   </modules>
-  
-  <build>
-  	<pluginManagement>
-  	  <plugins>
-  	    <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>buildnumber-maven-plugin</artifactId>
-          <version>1.0</version>
-          <executions>
-            <execution>
-              <phase>validate</phase>
-              <goals>
-                <goal>create</goal>
-              </goals>
-            </execution>
-          </executions>
-          <configuration>
-            <!-- Check to see if you have locally modified files and if so, fail? -->
-            <doCheck>false</doCheck>
-            <!-- The buildNumber plugin will then update your local repository? -->
-            <doUpdate>false</doUpdate>
-          </configuration>
-        </plugin>
-        
-	      <!-- Make a WAR file -->
-	      <plugin>
-	        <groupId>org.apache.maven.plugins</groupId>
-	        <artifactId>maven-war-plugin</artifactId>
-	        <version>2.1.1</version>
-	        <configuration>
-	          <webResources>
-	            <resource>
-	              <directory>src/main/webapp</directory>
-	              <filtering>true</filtering>
-	            </resource>
-	          </webResources>
-	          <archive>
-	            <manifest>
-	              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-	            </manifest> 
-	            <manifestEntries>
-	              <Implementation-Build>${buildNumber}</Implementation-Build>
-	              <Implementation-Build-Timestamp>${maven.build.timestamp}</Implementation-Build-Timestamp>
-	          	</manifestEntries>
-	          </archive>
-	        </configuration>
-	      </plugin>
-      </plugins>
-  	</pluginManagement>
-  </build>
-  
+    
 </project>

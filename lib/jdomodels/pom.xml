@@ -153,6 +153,11 @@
 
 	<build>
 		<plugins>
+			<!-- Build number generator -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>buildnumber-maven-plugin</artifactId>
+			</plugin>
 
 			<!-- This plug-in "enhances" your domain model objects (i.e. makes them 
 				persistent for datanucleus) -->
