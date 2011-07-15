@@ -13,7 +13,7 @@ public enum ObjectType {
 	layer			(InputDataLayer.class, 		(short)1, "/layer"),
 	location		(LayerLocation.class, 		(short)2, "/location"),
 	project			(Project.class, 			(short)3, "/project"),
-	layerpreview	(StoredLayerPreview.class, 	(short)4, "/preview"),
+	preview			(StoredLayerPreview.class, 	(short)4, "/preview"),
 	eula			(Eula.class,				(short)5, "/eula"),
 	agreement		(Agreement.class,			(short)6, "/agreement");
 	
