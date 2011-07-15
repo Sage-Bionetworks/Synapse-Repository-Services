@@ -49,7 +49,7 @@ public class DatasetsControllerTest {
 			"Mouse Model of Diet-Induced Atherosclerosis",
 			"TCGA Curation Package",
 			"Mouse Model of Sexually Dimorphic Atherosclerotic Traits",
-			"Hepatocellular Carcinoma HongKong", "Human Liver Cohort",
+			"Breast Cancer HER2+ ICGC", "Human Liver Cohort",
 			"METABRIC Breast Cancer", "Harvard Brain Tissue Resource Center",
 			"Pediatric AML TARGET", "Flint HS Mice", };
 

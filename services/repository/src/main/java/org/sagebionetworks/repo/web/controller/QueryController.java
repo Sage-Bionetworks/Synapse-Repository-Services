@@ -95,14 +95,7 @@ public class QueryController extends BaseController {
 		/**
 		 * Parse and validate the query
 		 */
-		QueryStatement stmt = null;
-		try {
-			stmt = new QueryStatement(URLDecoder.decode(query, "UTF-8"));
-		} catch (UnsupportedEncodingException e) {
-			log.log(Level.SEVERE,
-					"Something is really messed up if we don't support UTF-8",
-					e);
-		}
+		QueryStatement stmt = new QueryStatement(query);
 
 		// Convert from a query statement to a basic query
 		BasicQuery basic = new BasicQuery();

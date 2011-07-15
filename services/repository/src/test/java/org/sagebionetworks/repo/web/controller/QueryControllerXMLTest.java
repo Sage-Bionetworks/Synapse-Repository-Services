@@ -75,7 +75,7 @@ public class QueryControllerXMLTest {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/xml");
 		request.setRequestURI(helper.getServletPrefix() + "/query");
-		request.addParameter("query", "select+*+from+dataset");
+		request.addParameter("query", "select * from dataset");
 		request.addParameter(AuthUtilConstants.USER_ID_PARAM, helper.getUserId());
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());

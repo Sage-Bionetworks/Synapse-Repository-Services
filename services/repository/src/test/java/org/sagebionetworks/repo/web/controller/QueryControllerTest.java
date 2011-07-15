@@ -166,7 +166,7 @@ public class QueryControllerTest {
 	public void testWhereQuery() throws Exception {
 
 		JSONObject queryResult = helper
-				.testQuery("select * from dataset where dataset.name == \"Pediatric AML TARGET\"");
+				.testQuery("select * from dataset where dataset.name == \"Breast Cancer HER2+ ICGC\"");
 		assertExpectedQueryResultProperties("dataset", queryResult);
 
 		assertEquals(1, queryResult.getInt("totalNumberOfResults"));
@@ -175,7 +175,7 @@ public class QueryControllerTest {
 
 		// Check that it is a list of one map
 		JSONObject result = results.getJSONObject(0);
-		assertEquals("Pediatric AML TARGET", result.getString("dataset.name"));
+		assertEquals("Breast Cancer HER2+ ICGC", result.getString("dataset.name"));
 	}
 
 	/**
@@ -188,9 +188,8 @@ public class QueryControllerTest {
 	public void testLayerQuery() throws Exception {
 		int numLayersExpected = 1;
 
-		// This test case also checks that we are URL decoding the queries
 		JSONObject datasetResults = helper
-				.testQuery("select+*+from+dataset+where+name+%3d%3d+%22Pediatric+AML+TARGET%22");
+				.testQuery("select * from dataset where name == \"Pediatric AML TARGET\"");
 		assertExpectedQueryResultProperties("dataset", datasetResults);
 
 		String datasetId = datasetResults.getJSONArray("results")
