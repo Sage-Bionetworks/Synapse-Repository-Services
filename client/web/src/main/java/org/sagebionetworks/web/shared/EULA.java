@@ -9,27 +9,24 @@ import com.google.gwt.user.client.rpc.IsSerializable;
  * This is a data transfer object that will be populated from REST JSON.
  * 
  */
-public class Project implements IsSerializable {
+public class EULA implements IsSerializable {
 	private String name;	
 	private String annotations;
 	private String id;
-	private String description;
-	private String status;
 	private Date creationDate;
-	private String parentId;
 	private String etag;
+	private String agreement;
 	private String uri;
 	private String accessControlList;
-	private String creator;
-	
-	public Project() {
+
+	public EULA() {		
 	}
 	
 	/**
 	 * Default constructor is required
 	 * @param obj JSONObject of the Project object
-	 */		
-	public Project(JSONObject object) {
+	 */
+	public EULA(JSONObject object) {
 		String key = null; 
 
 		key = "name";
@@ -47,30 +44,20 @@ public class Project implements IsSerializable {
 			if(object.get(key).isString() != null)
 				setId(object.get(key).isString().stringValue());		
 				
-		key = "description";
-		if(object.containsKey(key)) 
-			if(object.get(key).isString() != null)
-				setDescription(object.get(key).isString().stringValue());		
-		
-		key = "status";
-		if(object.containsKey(key)) 
-			if(object.get(key).isString() != null)
-				setStatus(object.get(key).isString().stringValue());
-		
 		key = "creationDate";
 		if(object.containsKey(key)) 
 			if(object.get(key).isNumber() != null)
 				setCreationDate(new Date(new Double(object.get(key).isNumber().doubleValue()).longValue()));
 
-		key = "parentId";
-		if(object.containsKey(key)) 
-			if(object.get(key).isString() != null)
-				setParentId(object.get(key).isString().stringValue());
-		
 		key = "etag";
 		if(object.containsKey(key)) 
 			if(object.get(key).isString() != null)
 				setEtag(object.get(key).isString().stringValue());		
+		
+		key = "agreement";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setAgreement(object.get(key).isString().stringValue());		
 		
 		key = "uri";
 		if(object.containsKey(key)) 
@@ -81,19 +68,6 @@ public class Project implements IsSerializable {
 		if(object.containsKey(key)) 
 			if(object.get(key).isString() != null)
 				setAccessControlList(object.get(key).isString().stringValue());					
-		
-		key = "creator";
-		if(object.containsKey(key)) 
-			if(object.get(key).isString() != null)
-				setCreator(object.get(key).isString().stringValue());							
-	}
-
-	public String getId() {
-		return id;
-	}
-
-	public void setId(String id) {
-		this.id = id;
 	}
 
 	public String getName() {
@@ -104,20 +78,20 @@ public class Project implements IsSerializable {
 		this.name = name;
 	}
 
-	public String getDescription() {
-		return description;
+	public String getAnnotations() {
+		return annotations;
 	}
 
-	public void setDescription(String description) {
-		this.description = description;
+	public void setAnnotations(String annotations) {
+		this.annotations = annotations;
 	}
 
-	public String getCreator() {
-		return creator;
+	public String getId() {
+		return id;
 	}
 
-	public void setCreator(String creator) {
-		this.creator = creator;
+	public void setId(String id) {
+		this.id = id;
 	}
 
 	public Date getCreationDate() {
@@ -128,18 +102,6 @@ public class Project implements IsSerializable {
 		this.creationDate = creationDate;
 	}
 
-	public String getStatus() {
-		return status;
-	}
-
-	public void setStatus(String status) {
-		this.status = status;
-	}
-
-	public String getUri() {
-		return uri;
-	}
-
 	public String getEtag() {
 		return etag;
 	}
@@ -148,24 +110,20 @@ public class Project implements IsSerializable {
 		this.etag = etag;
 	}
 
+	public String getAgreement() {
+		return agreement;
+	}
+
+	public void setAgreement(String agreement) {
+		this.agreement = agreement;
+	}
+
+	public String getUri() {
+		return uri;
+	}
+
 	public void setUri(String uri) {
 		this.uri = uri;
-	}
-
-	public String getAnnotations() {
-		return annotations;
-	}
-
-	public void setAnnotations(String annotations) {
-		this.annotations = annotations;
-	}
-
-	public String getParentId() {
-		return parentId;
-	}
-
-	public void setParentId(String parentId) {
-		this.parentId = parentId;
 	}
 
 	public String getAccessControlList() {
@@ -185,18 +143,14 @@ public class Project implements IsSerializable {
 				+ ((accessControlList == null) ? 0 : accessControlList
 						.hashCode());
 		result = prime * result
+				+ ((agreement == null) ? 0 : agreement.hashCode());
+		result = prime * result
 				+ ((annotations == null) ? 0 : annotations.hashCode());
 		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
-		result = prime * result + ((creator == null) ? 0 : creator.hashCode());
-		result = prime * result
-				+ ((description == null) ? 0 : description.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result
-				+ ((parentId == null) ? 0 : parentId.hashCode());
-		result = prime * result + ((status == null) ? 0 : status.hashCode());
 		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
 		return result;
 	}
@@ -209,11 +163,16 @@ public class Project implements IsSerializable {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		Project other = (Project) obj;
+		EULA other = (EULA) obj;
 		if (accessControlList == null) {
 			if (other.accessControlList != null)
 				return false;
 		} else if (!accessControlList.equals(other.accessControlList))
+			return false;
+		if (agreement == null) {
+			if (other.agreement != null)
+				return false;
+		} else if (!agreement.equals(other.agreement))
 			return false;
 		if (annotations == null) {
 			if (other.annotations != null)
@@ -224,16 +183,6 @@ public class Project implements IsSerializable {
 			if (other.creationDate != null)
 				return false;
 		} else if (!creationDate.equals(other.creationDate))
-			return false;
-		if (creator == null) {
-			if (other.creator != null)
-				return false;
-		} else if (!creator.equals(other.creator))
-			return false;
-		if (description == null) {
-			if (other.description != null)
-				return false;
-		} else if (!description.equals(other.description))
 			return false;
 		if (etag == null) {
 			if (other.etag != null)
@@ -250,16 +199,6 @@ public class Project implements IsSerializable {
 				return false;
 		} else if (!name.equals(other.name))
 			return false;
-		if (parentId == null) {
-			if (other.parentId != null)
-				return false;
-		} else if (!parentId.equals(other.parentId))
-			return false;
-		if (status == null) {
-			if (other.status != null)
-				return false;
-		} else if (!status.equals(other.status))
-			return false;
 		if (uri == null) {
 			if (other.uri != null)
 				return false;
@@ -270,12 +209,10 @@ public class Project implements IsSerializable {
 
 	@Override
 	public String toString() {
-		return "Project [id=" + id + ", uri=" + uri + ", etag=" + etag
-				+ ", name=" + name + ", description=" + description
-				+ ", creator=" + creator + ", creationDate=" + creationDate
-				+ ", status=" + status + ", annotations=" + annotations
-				+ ", parentId=" + parentId + ", accessControlList="
-				+ accessControlList + "]";
+		return "EULA [name=" + name + ", annotations=" + annotations + ", id="
+				+ id + ", creationDate=" + creationDate + ", etag=" + etag
+				+ ", agreement=" + agreement + ", uri=" + uri
+				+ ", accessControlList=" + accessControlList + "]";
 	}
 
 }

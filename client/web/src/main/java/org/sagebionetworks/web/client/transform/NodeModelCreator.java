@@ -1,10 +1,11 @@
 package org.sagebionetworks.web.client.transform;
 
 
+import org.sagebionetworks.web.shared.Agreement;
 import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.DownloadLocation;
-import org.sagebionetworks.web.shared.FileDownload;
+import org.sagebionetworks.web.shared.EULA;
 import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
 import org.sagebionetworks.web.shared.PagedResults;
@@ -22,6 +23,10 @@ public interface NodeModelCreator {
 	Annotations createAnnotations(String json) throws RestServiceException;
 	
 	Project createProject(String json) throws RestServiceException;
+	
+	EULA createEULA(String json) throws RestServiceException;
+	
+	Agreement createAgreement(String json) throws RestServiceException;
 	
 	PagedResults createPagedResults(String json) throws RestServiceException;
 

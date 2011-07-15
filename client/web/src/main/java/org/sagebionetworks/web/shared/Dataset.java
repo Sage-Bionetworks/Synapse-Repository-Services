@@ -22,6 +22,7 @@ public class Dataset implements IsSerializable {
 	private Date creationDate;
 	private String parentId;
 	private String etag;
+	private String eulaId;
 	private String uri;
 	private String locations;
 	private String accessControlList;
@@ -87,6 +88,11 @@ public class Dataset implements IsSerializable {
 			if(object.get(key).isString() != null)
 				setEtag(object.get(key).isString().stringValue());		
 		
+		key = "eulaId";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setEulaId(object.get(key).isString().stringValue());		
+		
 		key = "uri";
 		if(object.containsKey(key)) 
 			if(object.get(key).isString() != null)
@@ -140,6 +146,7 @@ public class Dataset implements IsSerializable {
 		object.put("creationDate", new JSONNumber(getCreationDate().getTime()));
 		object.put("parentId", new JSONString(getParentId()));
 		object.put("etag", new JSONString(getEtag()));
+		object.put("eulaId", new JSONString(getEulaId()));
 		object.put("uri", new JSONString(getUri()));
 		object.put("locations", new JSONString(getLocations()));
 		object.put("accessControlList", new JSONString(getAccessControlList()));
@@ -171,6 +178,14 @@ public class Dataset implements IsSerializable {
 
 	public void setEtag(String etag) {
 		this.etag = etag;
+	}
+	
+	public String getEulaId() {
+		return eulaId;
+	}
+
+	public void setEulaId(String eulaId) {
+		this.eulaId = eulaId;
 	}
 
 	public void setUri(String uri) {
@@ -313,6 +328,7 @@ public class Dataset implements IsSerializable {
 		result = prime * result
 				+ ((description == null) ? 0 : description.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
+		result = prime * result + ((eulaId == null) ? 0 : eulaId.hashCode());
 		result = prime * result
 				+ ((hasClinicalData == null) ? 0 : hasClinicalData.hashCode());
 		result = prime
@@ -374,6 +390,11 @@ public class Dataset implements IsSerializable {
 			if (other.etag != null)
 				return false;
 		} else if (!etag.equals(other.etag))
+			return false;
+		if (eulaId == null) {
+			if (other.eulaId != null)
+				return false;
+		} else if (!eulaId.equals(other.eulaId))
 			return false;
 		if (hasClinicalData == null) {
 			if (other.hasClinicalData != null)
@@ -440,16 +461,16 @@ public class Dataset implements IsSerializable {
 
 	@Override
 	public String toString() {
-		return "Dataset [id=" + id + ", uri=" + uri + ", etag=" + etag
-				+ ", name=" + name + ", description=" + description
-				+ ", creator=" + creator + ", creationDate=" + creationDate
-				+ ", status=" + status + ", releaseDate=" + releaseDate
-				+ ", version=" + version + ", annotations=" + annotations
-				+ ", locations=" + locations + ", layers=" + layers
+		return "Dataset [name=" + name + ", annotations=" + annotations
+				+ ", id=" + id + ", version=" + version + ", description="
+				+ description + ", status=" + status + ", creationDate="
+				+ creationDate + ", parentId=" + parentId + ", etag=" + etag
+				+ ", eulaId=" + eulaId + ", uri=" + uri + ", locations="
+				+ locations + ", accessControlList=" + accessControlList
+				+ ", creator=" + creator + ", releaseDate=" + releaseDate
 				+ ", hasExpressionData=" + hasExpressionData
 				+ ", hasGeneticData=" + hasGeneticData + ", hasClinicalData="
-				+ hasClinicalData + ", parentId=" + parentId
-				+ ", accessControlList=" + accessControlList + "]";
+				+ hasClinicalData + ", layers=" + layers + "]";
 	}
 
 	

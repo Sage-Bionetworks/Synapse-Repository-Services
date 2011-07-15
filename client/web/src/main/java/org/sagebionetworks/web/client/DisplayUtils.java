@@ -97,5 +97,6 @@ public class DisplayUtils {
 		button.setText(DisplayConstants.BUTTON_SAVING);
 		button.setIcon(AbstractImagePrototype.create(sageImageBundle.loading16()));
 	}
-		
+
+	
 }

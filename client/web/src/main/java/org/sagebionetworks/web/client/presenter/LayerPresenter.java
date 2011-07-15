@@ -15,7 +15,10 @@ import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.view.LayerView;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAsync;
+import org.sagebionetworks.web.shared.Agreement;
+import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.DownloadLocation;
+import org.sagebionetworks.web.shared.EULA;
 import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
@@ -49,8 +52,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	private LayerPreview layerPreview;
 	private LicenceServiceAsync licenseService;
 	private NodeModelCreator nodeModelCreator;
-	private AuthenticationController authenticationController;
-	private final static String licenseAgreementText = "<p><b><larger>Copyright 2011 Sage Bionetworks</larger></b><br/><br/></p><p>Licensed under the Apache License, Version 2.0 (the \"License\"). You may not use this file except in compliance with the License. You may obtain a copy of the License at<br/><br/></p><p>&nbsp;&nbsp;<a href=\"http://www.apache.org/licenses/LICENSE-2.0\" target=\"new\">http://www.apache.org/licenses/LICENSE-2.0</a><br/><br/></p><p>Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions andlimitations under the License.<br/><br/></p><p><strong><a name=\"definitions\">1. Definitions</a></strong>.<br/><br/></p> <p>\"License\" shall mean the terms and conditions for use, reproduction, and distribution as defined by Sections 1 through 9 of this document.<br/><br/></p> <p>\"Licensor\" shall mean the copyright owner or entity authorized by the copyright owner that is granting the License.<br/><br/></p> <p>\"Legal Entity\" shall mean the union of the acting entity and all other entities that control, are controlled by, or are under common control with that entity. For the purposes of this definition, \"control\" means (i) the power, direct or indirect, to cause the direction or management of such entity, whether by contract or otherwise, or (ii) ownership of fifty percent (50%) or more of the outstanding shares, or (iii) beneficial ownership of such entity.<br/><br/></p> <p>\"You\" (or \"Your\") shall mean an individual or Legal Entity exercising permissions granted by this License.<br/><br/></p> <p>\"Source\" form shall mean the preferred form for making modifications, including but not limited to software source code, documentation source, and configuration files.<br/><br/></p> <p>\"Object\" form shall mean any form resulting from mechanical transformation or translation of a Source form, including but not limited to compiled object code, generated documentation, and conversions to other media types.<br/><br/></p> <p>\"Work\" shall mean the work of authorship, whether in Source or Object form, made available under the License, as indicated by a copyright notice that is included in or attached to the work (an example is provided in the Appendix below).<br/><br/></p> <p>\"Derivative Works\" shall mean any work, whether in Source or Object form, that is based on (or derived from) the Work and for which the editorial revisions, annotations, elaborations, or other modifications represent, as a whole, an original work of authorship. For the purposes of this License, Derivative Works shall not include works that remain separable from, or merely link (or bind by name) to the interfaces of, the Work and Derivative Works thereof.<br/><br/></p> <p>\"Contribution\" shall mean any work of authorship, including the original version of the Work and any modifications or additions to that Work or Derivative Works thereof, that is intentionally submitted to Licensor for inclusion in the Work by the copyright owner or by an individual or Legal Entity authorized to submit on behalf of the copyright owner. For the purposes of this definition, \"submitted\" means any form of electronic, verbal, or written communication sent to the Licensor or its representatives, including but not limited to communication on electronic mailing lists, source code control systems, and issue tracking systems that are managed by, or on behalf of, the Licensor for the purpose of discussing and improving the Work, but excluding communication that is conspicuously marked or otherwise designated in writing by the copyright owner as \"Not a Contribution.\"<br/><br/></p> <p>\"Contributor\" shall mean Licensor and any individual or Legal Entity on behalf of whom a Contribution has been received by Licensor and subsequently incorporated within the Work.<br/><br/></p>";	
+	private AuthenticationController authenticationController;	
 	
 	/**
 	 * Everything is injected via Guice.
@@ -76,13 +78,83 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 				placeController.goTo(place);
 			}
 		};
-		// First refresh from the server
-		refreshFromServer();		
 		// add the view to the panel
 		panel.setWidget(view);		
 	}
 
-	public void refreshFromServer() {
+	public void setPlace(org.sagebionetworks.web.client.place.Layer place) {
+		this.place = place;
+		this.layerId = place.getLayerId();
+		this.datasetId = place.getDatasetId();
+		this.showDownload = place.getDownload();
+		refresh();
+	}
+	
+
+	@Override
+	public void licenseAccepted() {
+//		UserData currentUser = authenticationController.getLoggedInUser();
+//		Agreement agreement = new Agreement();		
+//		agreement.setCreatedBy(currentUser.getEmail());
+//		
+//		// TODO : need to set the dataset id or something into the agreement...
+//		
+//		nodeService.createNode(NodeType.AGREEMENT, agreement.toJson(), new AsyncCallback<String>() {
+//			@Override
+//			public void onSuccess(String result) {
+//				// agreement saved
+//			}
+//
+//			@Override
+//			public void onFailure(Throwable caught) {
+//				view.showInfo("Error", DisplayConstants.ERROR_FAILED_PERSIST_AGREEMENT_TEXT);
+//			}
+//		});
+	}
+
+	@Override
+	public void refresh() {
+		refreshFromServer();
+	}
+
+	@Override
+	public PlaceChanger getPlaceChanger() {
+		return placeChanger;
+	}
+
+	@Override
+	public boolean downloadAttempted() {
+		if(authenticationController.getLoggedInUser() != null) {
+			return true;
+		} else {
+			view.showInfo("Login Required", "Please Login to download data.");			
+			placeChanger.goTo(new LoginPlace(new org.sagebionetworks.web.client.place.Layer(layerId, null, false)));
+		}
+		return false;
+	}
+
+	@Override
+	public void delete() {
+		nodeService.deleteNode(NodeType.LAYER, layerId, new AsyncCallback<Void>() {
+			@Override
+			public void onSuccess(Void result) {
+				view.showInfo("Layer Deleted", "The layer was successfully deleted.");
+				placeChanger.goTo(new ProjectsHome(DisplayUtils.DEFAULT_PLACE_TOKEN));
+			}
+			
+			@Override
+			public void onFailure(Throwable caught) {
+				view.showErrorMessage("Layer delete failed.");
+			}
+		});
+	}
+
+	
+	/*
+	 * Protected Methods
+	 */
+	
+	private void refreshFromServer() {
 		view.clear();
 		// Fetch the data about this dataset from the server
 		nodeService.getNodeJSON(NodeType.LAYER, this.layerId, new AsyncCallback<String>() {
@@ -93,7 +165,8 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 					layer = nodeModelCreator.createLayer(layerJson);
 				} catch (RestServiceException ex) {
 					DisplayUtils.handleServiceException(ex, placeChanger);
-				}				
+				}
+				
 				setLayer(layer);
 			}
 			
@@ -101,65 +174,9 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 			public void onFailure(Throwable caught) {
 				view.showErrorMessage("An error occured retrieving this Layer. Please try reloading the page.");
 			}			
-		});
-		
-		// get the preview string to get file header order, then get the previewAsData
-		nodeService.getNodePreview(NodeType.LAYER, layerId, new AsyncCallback<String>() {
-			@Override
-			public void onSuccess(String pagedResultString) {
-				LayerPreview layerPreview = null;				
-				try {
-					PagedResults  pagedResult = nodeModelCreator.createPagedResults(pagedResultString);
-					List<String> results = pagedResult.getResults();
-					if(results.size() > 0) {
-						layerPreview = nodeModelCreator.createLayerPreview(results.get(0));
-					} else {
-						view.showLayerPreviewUnavailable();
-						return;
-					}					
-				} catch (RestServiceException ex) {
-					DisplayUtils.handleServiceException(ex, placeChanger);
-				}				
-				setLayerPreview(layerPreview);					
-			}
-
-			@Override
-			public void onFailure(Throwable caught) {
-				view.showLayerPreviewUnavailable();				
-			}
-
 		});		
 	}
 
-
-	public void setPlace(org.sagebionetworks.web.client.place.Layer place) {
-		this.place = place;
-		this.layerId = place.getLayerId();
-		this.datasetId = place.getDatasetId();
-		this.showDownload = place.getDownload();
-	}
-
-	@Override
-	public void licenseAccepted() {
-		// TODO : !!!! get real username !!!!
-		licenseService.acceptLicenseAgreement("GET-USERNAME", model.getUri(), new AsyncCallback<Boolean>() {
-			@Override
-			public void onFailure(Throwable caught) {
-				// tell the user that they will need to accept this again in the future?
-			}
-
-			@Override
-			public void onSuccess(Boolean licenseAccepted) {
-				// tell the user that they will need to accept this again in the future (if licenseAccepted == false)?
-			}
-		});		
-	}
-
-	
-	/*
-	 * Protected Methods
-	 */
-	
 	protected void setLayer(final Layer layer) {
 		this.model = layer;
 		if(layer != null) {			
@@ -192,8 +209,11 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		}
 		
 	}
+	
+	
 
 	private void setLayerDetails(boolean isAdministrator, boolean canEdit) {
+		
 		// process the layer and send values to view
 		view.setLayerDetails(model.getId(), 
 							 model.getName(), 
@@ -209,57 +229,116 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 							 model.getPlatform(), 
 							 isAdministrator, 
 							 canEdit);
-
-		// see if license is required for doanload
-		licenseService.hasAccepted("GET-USERNAME", model.getUri(), new AsyncCallback<Boolean>() {
+		
+		// get the preview string to get file header order, then get the previewAsData
+		nodeService.getNodePreview(NodeType.LAYER, layerId, new AsyncCallback<String>() {
 			@Override
-			public void onFailure(Throwable caught) {				
-				view.showErrorMessage("Dataset downloading unavailable. Please try reloading the page.");
-				view.setDownloadUnavailable();
-				view.disableLicensedDownloads(true);
+			public void onSuccess(String pagedResultString) {
+				LayerPreview layerPreview = null;				
+				try {
+					PagedResults  pagedResult = nodeModelCreator.createPagedResults(pagedResultString);
+					List<String> results = pagedResult.getResults();
+					if(results.size() > 0) {
+						layerPreview = nodeModelCreator.createLayerPreview(results.get(0));
+					} else {
+						view.showLayerPreviewUnavailable();
+						return;
+					}					
+				} catch (RestServiceException ex) {
+					DisplayUtils.handleServiceException(ex, placeChanger);
+				}				
+
+				setLayerPreview(layerPreview);
+				// continue
+				setLicenseAgreement();
 			}
 
 			@Override
-			public void onSuccess(Boolean hasAccepted) {								
-				view.requireLicenseAcceptance(!hasAccepted);
-				// TODO !!!! get actual license agreement text (and citation if needed) !!!!
-				LicenseAgreement agreement = new LicenseAgreement();
-				agreement.setLicenseHtml(licenseAgreementText);
-				view.setLicenseAgreement(agreement);
-				
-				nodeService.getNodeLocations(NodeType.LAYER, layerId, new AsyncCallback<String>() {
-					@Override
-					public void onSuccess(String pagedResultString) {				
-						List<FileDownload> downloads = new ArrayList<FileDownload>();						
-						try {							
-							PagedResults pagedResult = nodeModelCreator.createPagedResults(pagedResultString);
-							List<String> results = pagedResult.getResults();
-							for(String fileDownloadString : results) {
-								DownloadLocation downloadLocation = nodeModelCreator.createDownloadLocation(fileDownloadString);
-								if(downloadLocation != null && downloadLocation.getPath() != null) {
-									FileDownload dl = new FileDownload(downloadLocation.getPath(), "Download " + model.getName(), downloadLocation.getMd5sum());
-									downloads.add(dl);
-								}	
-							}
-						} catch (RestServiceException ex) {
-							DisplayUtils.handleServiceException(ex, placeChanger);
-						}				
-						view.setLicensedDownloads(downloads);
+			public void onFailure(Throwable caught) {
+				view.showLayerPreviewUnavailable();
+
+				// continue
+				setLicenseAgreement();
+			}
+		});		
+
+	}
+
+	private void setLicenseAgreement() {
+		// get Dataset to get its EULA id
+		nodeService.getNodeJSON(NodeType.DATASET, model.getParentId(), new AsyncCallback<String>() {
+			@Override
+			public void onSuccess(String datasetJson) {
+				Dataset dataset = null;
+				try {
+					dataset = nodeModelCreator.createDataset(datasetJson);
+				} catch (RestServiceException ex) {
+					DisplayUtils.handleServiceException(ex, placeChanger);
+				}
+				if(dataset != null) {
+					final String eulaId = dataset.getEulaId();
+					if(eulaId != null) {
 						
-						// show download if requested
-						if(showDownload != null && showDownload == true) {
-							if(downloadAttempted()) {
-								view.showDownload();
+						// now query to see if user has accepted the agreement
+						UserData currentUser = authenticationController.getLoggedInUser();
+						licenseService.hasAccepted(currentUser.getEmail(), eulaId, new AsyncCallback<Boolean>() {
+							@Override
+							public void onSuccess(Boolean hasAccepted) {
+								view.requireLicenseAcceptance(!hasAccepted);
+
+								// load license agreement (needed for viewing even if hasAccepted)
+								nodeService.getNodeJSON(NodeType.EULA, eulaId, new AsyncCallback<String>() {
+									@Override
+									public void onSuccess(String eulaJson) {
+										EULA eula = null;
+										try {
+											eula = nodeModelCreator.createEULA(eulaJson);
+										} catch (RestServiceException ex) {
+											DisplayUtils.handleServiceException(ex, placeChanger);
+										}
+										if(eula != null) {
+											// set licence agreement text
+											LicenseAgreement agreement = new LicenseAgreement();				
+											agreement.setLicenseHtml(eula.getAgreement());
+											view.setLicenseAgreement(agreement);
+										} else {
+											setDownloadFailure();
+										}
+									}
+									
+									@Override
+									public void onFailure(Throwable caught) {
+										setDownloadFailure();
+									}									
+								});
+								
+								// load download locations
+								loadDownloadLocations();				
+								
 							}
-						}
+							
+							@Override
+							public void onFailure(Throwable caught) {
+								setDownloadFailure();
+							}
+						});									
 					}
-					@Override
-					public void onFailure(Throwable caught) {
-						view.setDownloadUnavailable();						
-					}
-				});				
+				} else {
+					setDownloadFailure();
+				}
+			} 
+
+			@Override
+			public void onFailure(Throwable caught) {
+				setDownloadFailure();
 			}
 		});
+	}
+
+	private void setDownloadFailure() {
+		view.showErrorMessage("Dataset downloading unavailable. Please try reloading the page.");
+		view.setDownloadUnavailable();
+		view.disableLicensedDownloads(true);
 	}
 	
 	protected void setLayerPreview(LayerPreview preview) {
@@ -281,6 +360,40 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		
 		view.setLayerPreviewTable(preview.getRows(), columnDisplayOrder, columnDescriptions, columnUnits);
 
+	}
+
+	private void loadDownloadLocations() {
+		nodeService.getNodeLocations(NodeType.LAYER, layerId, new AsyncCallback<String>() {
+			@Override
+			public void onSuccess(String pagedResultString) {				
+				List<FileDownload> downloads = new ArrayList<FileDownload>();						
+				try {							
+					PagedResults pagedResult = nodeModelCreator.createPagedResults(pagedResultString);
+					List<String> results = pagedResult.getResults();
+					for(String fileDownloadString : results) {
+						DownloadLocation downloadLocation = nodeModelCreator.createDownloadLocation(fileDownloadString);
+						if(downloadLocation != null && downloadLocation.getPath() != null) {
+							FileDownload dl = new FileDownload(downloadLocation.getPath(), "Download " + model.getName(), downloadLocation.getMd5sum());
+							downloads.add(dl);
+						}	
+					}
+				} catch (RestServiceException ex) {
+					DisplayUtils.handleServiceException(ex, placeChanger);
+				}				
+				view.setLicensedDownloads(downloads);
+				
+				// show download if requested
+				if(showDownload != null && showDownload == true) {
+					if(downloadAttempted()) {
+						view.showDownload();
+					}
+				}
+			}
+			@Override
+			public void onFailure(Throwable caught) {
+				view.setDownloadUnavailable();						
+			}
+		});
 	}
 	
 	private Map<String, String> getTempColumnUnits() {
@@ -342,43 +455,6 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		descriptions.put("expression_array_tissue_source","Source of tissue used for expression profiling");		
 
 		return descriptions;
-	}
-
-	@Override
-	public void refresh() {
-		refreshFromServer();
-	}
-
-	@Override
-	public PlaceChanger getPlaceChanger() {
-		return placeChanger;
-	}
-
-	@Override
-	public boolean downloadAttempted() {
-		if(authenticationController.getLoggedInUser() != null) {
-			return true;
-		} else {
-			view.showInfo("Login Required", "Please Login to download data.");			
-			placeChanger.goTo(new LoginPlace(new org.sagebionetworks.web.client.place.Layer(layerId, null, false)));
-		}
-		return false;
-	}
-
-	@Override
-	public void delete() {
-		nodeService.deleteNode(NodeType.LAYER, layerId, new AsyncCallback<Void>() {
-			@Override
-			public void onSuccess(Void result) {
-				view.showInfo("Layer Deleted", "The layer was successfully deleted.");
-				placeChanger.goTo(new ProjectsHome(DisplayUtils.DEFAULT_PLACE_TOKEN));
-			}
-			
-			@Override
-			public void onFailure(Throwable caught) {
-				view.showErrorMessage("Layer delete failed.");
-			}
-		});
 	}
 
 }

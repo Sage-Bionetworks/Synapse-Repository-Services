@@ -1,9 +1,11 @@
 package org.sagebionetworks.web.client.transform;
 
 import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.shared.Agreement;
 import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.DownloadLocation;
+import org.sagebionetworks.web.shared.EULA;
 import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
 import org.sagebionetworks.web.shared.PagedResults;
@@ -48,6 +50,20 @@ public class NodeModelCreatorImpl implements NodeModelCreator {
 		JSONObject obj = JSONParser.parseStrict(json).isObject();
 		DisplayUtils.checkForErrors(obj);
 		return new Project(obj);
+	}
+	
+	@Override
+	public EULA createEULA(String json) throws RestServiceException {
+		JSONObject obj = JSONParser.parseStrict(json).isObject();
+		DisplayUtils.checkForErrors(obj);
+		return new EULA(obj);
+	}
+
+	@Override
+	public Agreement createAgreement(String json) throws RestServiceException {
+		JSONObject obj = JSONParser.parseStrict(json).isObject();
+		DisplayUtils.checkForErrors(obj);
+		return new Agreement(obj);
 	}
 
 	@Override

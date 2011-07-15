@@ -207,18 +207,14 @@ public class LayerViewImpl extends Composite implements LayerView {
 		
 		licensedDownloader.clear();
 		setupLicensedDownloaderCallbacks();
-		
-		Anchor seeTermsAnchor = setupTermsModal();
-		seeTermsPanel.clear();		
-		seeTermsPanel.add(seeTermsAnchor);
-				
+						
 		Anchor downloadLink = setupDownloadLink();
 		downloadPanel.clear();
 		downloadPanel.add(downloadLink);
 
 		// fill in fields
 		titleSpan.setInnerText(layerName);
-		
+			
 		// set description
 		if(overviewText == null) overviewText = ""; 
 		int summaryLength = overviewText.length() >= DisplayConstants.DESCRIPTION_SUMMARY_LENGTH ? DisplayConstants.DESCRIPTION_SUMMARY_LENGTH : overviewText.length();
@@ -255,11 +251,11 @@ public class LayerViewImpl extends Composite implements LayerView {
 		return downloadLink;
 	}
 
-	private Anchor setupTermsModal() {
+	private Anchor setupTermsModal(LicenseAgreement licenseAgreement) {
 		// Button: See terms of use		
 		seeTermsModal.setHeading("Terms of Use");
 		seeTermsModal.setDimensions(400, 500);
-		seeTermsModal.setHtml(DisplayConstants.DEFAULT_TERMS_OF_USE); // TODO : get this from a service
+		seeTermsModal.setHtml(licenseAgreement.getLicenseHtml());
 		// download link		
 		Anchor seeTermsAnchor = new Anchor();
 		seeTermsAnchor.setHTML(AbstractImagePrototype.create(iconsImageBundle.documentText16()).getHTML() + " See Terms of Use");
@@ -282,6 +278,9 @@ public class LayerViewImpl extends Composite implements LayerView {
 	@Override
 	public void setLicenseAgreement(LicenseAgreement agreement) {		
 		licensedDownloader.setLicenseAgreement(agreement);		
+		Anchor seeTermsAnchor = setupTermsModal(agreement);
+		seeTermsPanel.clear();		
+		seeTermsPanel.add(seeTermsAnchor);
 	}
 
 	@Override
@@ -365,7 +364,9 @@ public class LayerViewImpl extends Composite implements LayerView {
 
 			// not used
 			@Override
-			public void onFailure(Throwable caught) { }
+			public void onFailure(Throwable caught) { 
+				showInfo("Error", DisplayConstants.ERROR_FAILED_PERSIST_AGREEMENT_TEXT);				
+			}
 
 		});
 	}

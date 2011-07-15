@@ -10,6 +10,8 @@ public class ServiceUtils {
 	public static final String REPOSVC_PATH_DATASET = "dataset";
 	public static final String REPOSVC_PATH_LAYER = "layer";
 	public static final String REPOSVC_PATH_PROJECT = "project";
+	public static final String REPOSVC_PATH_EULA = "eula";
+	public static final String REPOSVC_PATH_AGREEMENT = "agreement";
 	public static final String REPOSVC_ANNOTATIONS_PATH = "annotations";
 	public static final String REPOSVC_PREVIEW_PATH = "preview";
 	public static final String REPOSVC_LOCATION_PATH = "location";	
@@ -48,6 +50,12 @@ public class ServiceUtils {
 			break;
 		case LAYER:
 			builder.append(REPOSVC_PATH_LAYER);
+			break;
+		case EULA:
+			builder.append(REPOSVC_PATH_EULA);
+			break;
+		case AGREEMENT:
+			builder.append(REPOSVC_PATH_AGREEMENT);
 			break;
 		default:
 			throw new IllegalArgumentException("Unsupported type:" + type.toString());

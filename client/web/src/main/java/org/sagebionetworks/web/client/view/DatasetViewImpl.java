@@ -236,11 +236,6 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		followDatasetPanel.clear();
 		followDatasetPanel.add(followDatasetAnchor);	
 
-		// Button: See terms of use		
-		Anchor seeTermsAnchor = setupTermsModal();		
-		seeTermsPanel.clear();
-		seeTermsPanel.add(seeTermsAnchor);					
-
 		setupLayerTable(id);
 		tablePanel.clear();
 		tablePanel.add(queryServiceTable.asWidget());
@@ -299,7 +294,10 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	
 	@Override
 	public void setLicenseAgreement(LicenseAgreement agreement) {		
-		datasetLicensedDownloader.setLicenseAgreement(agreement);		
+		datasetLicensedDownloader.setLicenseAgreement(agreement);
+		Anchor seeTermsAnchor = setupTermsModal(agreement);
+		seeTermsPanel.clear();		
+		seeTermsPanel.add(seeTermsAnchor);
 	}
 
 	@Override
@@ -529,10 +527,10 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		return downloadLink;
 	}
 
-	private Anchor setupTermsModal() {
+	private Anchor setupTermsModal(LicenseAgreement licenseAgreement) {
 		seeTermsModal.setHeading(DisplayConstants.TITLE_TERMS_OF_USE);
 		seeTermsModal.setDimensions(400, 500);
-		seeTermsModal.setHtml(DisplayConstants.DEFAULT_TERMS_OF_USE); // TODO : get this from a service
+		seeTermsModal.setHtml(licenseAgreement.getLicenseHtml()); 
 		// download link		
 		Anchor seeTermsAnchor = new Anchor();
 		seeTermsAnchor.setHTML(AbstractImagePrototype.create(iconsImageBundle.documentText16()).getHTML() + " " + DisplayConstants.BUTTON_SEE_TERMS_OF_USE);
@@ -540,7 +538,6 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 			@Override
 			public void onClick(ClickEvent event) {
 				seeTermsModal.showWindow();
-				showErrorMessage("<strong>Alpha Note</strong>: This is only demo terms of use text.");
 			}
 		});
 		return seeTermsAnchor;
