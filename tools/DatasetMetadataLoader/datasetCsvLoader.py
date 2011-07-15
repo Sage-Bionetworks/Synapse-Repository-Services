@@ -2,7 +2,6 @@
 
 # To debug this, python -m pdb myscript.py
 
-#import pwd
 import os, csv, json, re, string, datetime, urllib, httplib, ConfigParser, itertools, argparse, codecs, cStringIO, synapse.client, synapse.utils
 
 #-------[ Documentation embedded in Command Line Arguments ]----------------
@@ -38,7 +37,21 @@ CSV_TO_PRIMARY_FIELDS = {
 CSV_SKIP_FIELDS = ["db_id","user_agreement_file_path", "readme_file_path"];
 CSV_LOCATION_FIELDS = ["ds_location_awss3"]
 
-gSAGE_CURATION_PROJECT_NAME = "SageBioCuration"
+SAGE_CURATION_PROJECT_NAME = "SageBioCuration"
+SAGE_CURATION_EULA_NAME = "SageBioCurationEula"
+
+ROOT_PERMS = {
+    "Sage Curators":["READ","CHANGE_PERMISSIONS","DELETE","UPDATE","CREATE"],
+    "Identified Users":["READ"],
+    "anonymous":["READ"]
+    }
+
+LOCATION_PERMS = {
+    "Sage Curators":["READ","CHANGE_PERMISSIONS","UPDATE","CREATE"],
+    "Identified Users":["READ"]
+    }
+
+DEFAULT_TERMS_OF_USE = "<p><b><larger>Copyright 2011 Sage Bionetworks</larger></b><br/><br/></p><p>Licensed under the Apache License, Version 2.0 (the \"License\"). You may not use this file except in compliance with the License. You may obtain a copy of the License at<br/><br/></p><p>&nbsp;&nbsp;<a href=\"http://www.apache.org/licenses/LICENSE-2.0\" target=\"new\">http://www.apache.org/licenses/LICENSE-2.0</a><br/><br/></p><p>Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions andlimitations under the License.<br/><br/></p><p><strong><a name=\"definitions\">1. Definitions</a></strong>.<br/><br/></p> <p>\"License\" shall mean the terms and conditions for use, reproduction, and distribution as defined by Sections 1 through 9 of this document.<br/><br/></p> <p>\"Licensor\" shall mean the copyright owner or entity authorized by the copyright owner that is granting the License.<br/><br/></p> <p>\"Legal Entity\" shall mean the union of the acting entity and all other entities that control, are controlled by, or are under common control with that entity. For the purposes of this definition, \"control\" means (i) the power, direct or indirect, to cause the direction or management of such entity, whether by contract or otherwise, or (ii) ownership of fifty percent (50%) or more of the outstanding shares, or (iii) beneficial ownership of such entity.<br/><br/></p> <p>\"You\" (or \"Your\") shall mean an individual or Legal Entity exercising permissions granted by this License.<br/><br/></p> <p>\"Source\" form shall mean the preferred form for making modifications, including but not limited to software source code, documentation source, and configuration files.<br/><br/></p> <p>\"Object\" form shall mean any form resulting from mechanical transformation or translation of a Source form, including but not limited to compiled object code, generated documentation, and conversions to other media types.<br/><br/></p> <p>\"Work\" shall mean the work of authorship, whether in Source or Object form, made available under the License, as indicated by a copyright notice that is included in or attached to the work (an example is provided in the Appendix below).<br/><br/></p> <p>\"Derivative Works\" shall mean any work, whether in Source or Object form, that is based on (or derived from) the Work and for which the editorial revisions, annotations, elaborations, or other modifications represent, as a whole, an original work of authorship. For the purposes of this License, Derivative Works shall not include works that remain separable from, or merely link (or bind by name) to the interfaces of, the Work and Derivative Works thereof.<br/><br/></p> <p>\"Contribution\" shall mean any work of authorship, including the original version of the Work and any modifications or additions to that Work or Derivative Works thereof, that is intentionally submitted to Licensor for inclusion in the Work by the copyright owner or by an individual or Legal Entity authorized to submit on behalf of the copyright owner. For the purposes of this definition, \"submitted\" means any form of electronic, verbal, or written communication sent to the Licensor or its representatives, including but not limited to communication on electronic mailing lists, source code control systems, and issue tracking systems that are managed by, or on behalf of, the Licensor for the purpose of discussing and improving the Work, but excluding communication that is conspicuously marked or otherwise designated in writing by the copyright owner as \"Not a Contribution.\"<br/><br/></p> <p>\"Contributor\" shall mean Licensor and any individual or Legal Entity on behalf of whom a Contribution has been received by Licensor and subsequently incorporated within the Work.<br/><br/></p>"
 
 #-------------------[ Global Variables ]----------------------
 
@@ -78,47 +91,70 @@ def createAccessList(principals, permissionList):
         #print "principal %s \t access list %s" % (p, al)
     return al
 
-#--------------------[ createProject ]-----------------------------
-def createProject(project_name, accessList):
-    # TODO: pass project spec as arg
-    projectSpec = {"name":project_name, "description":"Umbrella for Sage-curated projects","creationDate":"2011-06-06", "creator":"x.schildwachter@sagebase.org"}
-    project = gSYNAPSE.createProject(projectSpec)
-    projectResourceId = project["id"]
-
-    # Build list of changes to ACL
-    pmods = {"modifiedBy":"dataLoader", "modifiedOn":NOW.__str__().split(' ')[0], "resourceAccess":accessList, "resourceId":projectResourceId}
+#--------------------[ createOrUpdateEntity ]-----------------------------
+def createOrUpdateEntity(kind, entity, permissions):
+    if(("location" == kind) or ("preview" == kind)):
+        storedEntity = gSYNAPSE.getRepoEntityByProperty(kind=kind,
+                                                        propertyName="parentId",
+                                                        propertyValue=entity['parentId'])
+        message = " for " + entity['parentId']
+    elif("layer" == kind):
+        storedEntity = gSYNAPSE.getRepoEntityByProperty(kind=kind,
+                                                        propertyName="name",
+                                                        propertyValue=entity['name'],
+                                                        parentId=entity['parentId'])
+        message = entity['name'] + " for " + entity['parentId']
+    else:
+        if(1 > len(entity['name'])):
+            raise Exception("entity must have a valid name") 
+        # If the repo svc has no schema, this will throw, when
+        # http://sagebionetworks.jira.com/browse/PLFM-226 is done we can
+        # remove this try/catch
+        try:
+            storedEntity = gSYNAPSE.getRepoEntityByName(kind, entity['name'])
+            message = entity['name']
+        except Exception, err:
+            storedEntity = None
+            message = entity['name']
     
-    # For non-inherited ACL, GET and PUT instead of POST
-    gSYNAPSE.updateRepoEntity("/project/" + projectResourceId + "/acl", pmods)
-    return project
+    if(None == storedEntity):
+        storedEntity = gSYNAPSE.createRepoEntity("/" + kind, entity)
+        if(None != permissions):
+            accessList = createAccessList(gSYNAPSE.getPrincipals(),
+                                          permissions)
+            acl = {"resourceAccess":accessList, "resourceId":storedEntity["id"]}
+            if(not('parentId' in storedEntity) or
+               (None == storedEntity['parentId'])):
+                gSYNAPSE.updateRepoEntity(storedEntity["accessControlList"], acl)
+            else:
+                gSYNAPSE.createRepoEntity(storedEntity["accessControlList"], acl)
+        print 'Created %s %s\n\n' % (kind, message)
+    else:
+        storedEntity = gSYNAPSE.updateRepoEntity(storedEntity["uri"], entity)
+        if(None != permissions):
+            accessList = createAccessList(gSYNAPSE.getPrincipals(),
+                                          permissions)
+            acl = {"resourceAccess":accessList, "resourceId":storedEntity["id"]}
+            gSYNAPSE.updateRepoEntity(storedEntity["accessControlList"], acl)
+        print 'Updated %s %s\n\n' % (kind, message)
 
+    return storedEntity
 
 #--------------------[ createDataset ]-----------------------------
 def createDataset(dataset, annotations, locationSpec):
-    newDataset = gSYNAPSE.createRepoEntity("/dataset", dataset)
-    
+
+    storedDataset = createOrUpdateEntity("dataset", dataset, None)
+        
     # Put our annotations
-    gSYNAPSE.updateRepoEntity(newDataset["annotations"], annotations)
+    gSYNAPSE.updateRepoEntity(storedDataset["annotations"], annotations)
     
     # If there's a dataset location, set its parentId to created dataset id and add location
     if None != locationSpec:
-        locationSpec["parentId"] = newDataset["id"]     # Cannot create orphan location
-        location = gSYNAPSE.createRepoEntity("/location", locationSpec)
-        locationResourceId = location["id"]
-        
-        # TODO: All this needs to be moved into function for both dataset and layer locations,
-        # then into high level function in client library
-        locationPerms = {
-            "Sage Curators":["READ","CHANGE_PERMISSIONS","UPDATE","CREATE"],
-            "Identified Users":["READ"]
-        }
-        locationAccessList = createAccessList(gSYNAPSE.getPrincipals(), locationPerms)
-        lmods = {"modifiedBy":"dataLoader", "modifiedOn":NOW.__str__().split(' ')[0], "resourceAccess":locationAccessList, "resourceId":locationResourceId}
-        gSYNAPSE.createRepoEntity("/location/" + locationResourceId + "/acl", lmods)
+        locationSpec["parentId"] = storedDataset["id"]     # Cannot create orphan location
+        location = createOrUpdateEntity("location", locationSpec, LOCATION_PERMS)
         
     # Stash the layer uri for later use
-    gDATASET_NAME_2_LAYER_URI[dataset['name']] = newDataset['id']
-    print 'Created Dataset %s\n\n' % (dataset['name'])
+    gDATASET_NAME_2_LAYER_URI[dataset['name']] = storedDataset['id']
       
 #--------------------[ loadMd5sums ]-----------------------------
 def loadMd5sums():
@@ -133,7 +169,7 @@ def loadMd5sums():
 #--------------------[ loadDatasets ]-----------------------------
 # What follows is code that expects a dataset CSV in a particular format,
 # sorry its so brittle and ugly
-def loadDatasets(project_id):
+def loadDatasets(projectId, eulaId):
     # xschildw: Use codecs.open and UnicodeReader class to handle extended chars
     ifile  = open(gARGS.datasetsCsv, "r")
     reader = synapse.utils.UnicodeReader(ifile, encoding='latin_1')
@@ -249,7 +285,8 @@ def loadDatasets(project_id):
                         else:
                             stringAnnotations[header[colnum]] = [col]
             colnum += 1
-        dataset["parentId"] = project_id
+        dataset["parentId"] = projectId
+        dataset["eulaId"] = eulaId
     ifile.close()     
 
     # Send the last one, create our dataset
@@ -273,7 +310,6 @@ def loadLayers():
         # xschildw: new format is
         # Dataset Name,type,status,name,Number of samples,Platform,Version,preview,sage,awsebs,awss3,qcby
         colnum = 0
-        layerUri = "/layer"
         layer = {}
         layer["parentId"] = gDATASET_NAME_2_LAYER_URI[row[0]]
         layer["type"] = row[1]
@@ -284,8 +320,7 @@ def loadLayers():
         layer["version"] = row[6]
         layer["qcBy"] = row[11]
         
-        newLayer = gSYNAPSE.createRepoEntity(layerUri, layer)
-        print 'Created layer %s for %s\n\n' % (layer["name"], row[0])
+        newLayer = createOrUpdateEntity("layer", layer, None)
         
         # Ignore column 8 (sage loc) and 9 (awsebs loc) for now
         for col in [10]:
@@ -304,18 +339,7 @@ def loadLayers():
                 elif(gARGS.fakeLocalData):
                     locationSpec["md5sum"] = '0123456789ABCDEF0123456789ABCDEF'
                     
-                location = gSYNAPSE.createRepoEntity("/location", locationSpec)
-                locationResourceId = location["id"]
-                
-                # TODO: All this needs to be moved into function for both dataset and layer locations,
-                # then into high level function in client library
-                locationPerms = {
-                    "Sage Curators":["READ","CHANGE_PERMISSIONS","UPDATE","CREATE"],
-                    "Identified Users":["READ"]
-                }
-                locationAccessList = createAccessList(gSYNAPSE.getPrincipals(), locationPerms)
-                mods = {"modifiedBy":"dataLoader", "modifiedOn":NOW.__str__().split(' ')[0], "resourceAccess":locationAccessList, "resourceId":locationResourceId}
-                gSYNAPSE.createRepoEntity("/location/" + locationResourceId + "/acl", mods)
+                location = createOrUpdateEntity("location", locationSpec, LOCATION_PERMS)
         
         layerPreview = {}
         
@@ -329,32 +353,28 @@ def loadLayers():
                     # it in our property
                     head = ""
                     layerPreview["previewString"] = head.join(itertools.islice(myfile, 6))
-            gSYNAPSE.createRepoEntity("/preview", layerPreview)
+            createOrUpdateEntity("preview", layerPreview, None)
        
     ifile.close()     
 
 #--------------------[ Main ]-----------------------------
 
+gSYNAPSE.login(gARGS.user, gARGS.password)
+
 if(not gARGS.fakeLocalData):
     loadMd5sums()
-
-gSYNAPSE.login(gARGS.user, gARGS.password)
 
 if not checkEmptyRepository():
     print "Repository is not empty! Aborting..."
 else:
-    principals = gSYNAPSE.getPrincipals()
-    # TODO: Should find a nicer way to specify permissions (i.e. read from config file)
-    projectPerms = {
-        "Sage Curators":["READ","CHANGE_PERMISSIONS","DELETE","UPDATE","CREATE"],
-        "Identified Users":["READ"],
-        "anonymous":["READ"]
-    }
-    accessList = createAccessList(principals, projectPerms)
+
+    project = {"name":SAGE_CURATION_PROJECT_NAME, "description":"Umbrella for Sage-curated projects", "creator":"x.schildwachter@sagebase.org"}
+    storedProject = createOrUpdateEntity("project", project, ROOT_PERMS)
     
-    project = createProject(gSAGE_CURATION_PROJECT_NAME, accessList)
+    eula = {"name":SAGE_CURATION_EULA_NAME, "agreement":DEFAULT_TERMS_OF_USE}
+    storedEula = createOrUpdateEntity("eula", eula, ROOT_PERMS)
     
-    loadDatasets(project["id"])
+    loadDatasets(storedProject["id"], storedEula["id"])
     
     if(None != gARGS.layersCsv):
         loadLayers()
