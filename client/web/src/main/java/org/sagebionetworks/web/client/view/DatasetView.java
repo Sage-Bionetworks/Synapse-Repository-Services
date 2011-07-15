@@ -65,7 +65,9 @@ public interface DatasetView extends IsWidget {
 								  int nSamples, 
 								  int nDownloads, 
 								  String citation, 
-								  Integer pubmedId);
+								  Integer pubmedId, 
+								  boolean isAdministrator, 
+								  boolean canEdit);
 	
 //	public void setDatasetRow(DatasetRow row);
 	
@@ -115,6 +117,8 @@ public interface DatasetView extends IsWidget {
 		 * @return true if the user should be shown the download screen 
 		 */
 		public boolean downloadAttempted();
+
+		public void delete();
 }
 
 	

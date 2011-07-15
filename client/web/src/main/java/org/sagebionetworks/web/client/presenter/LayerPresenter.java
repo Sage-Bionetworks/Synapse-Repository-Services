@@ -5,9 +5,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.place.LoginPlace;
+import org.sagebionetworks.web.client.place.ProjectsHome;
 import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
@@ -21,6 +23,9 @@ import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.PagedResults;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
+import org.sagebionetworks.web.shared.users.AclUtils;
+import org.sagebionetworks.web.shared.users.PermissionLevel;
+import org.sagebionetworks.web.shared.users.UserData;
 
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
@@ -157,7 +162,38 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	
 	protected void setLayer(final Layer layer) {
 		this.model = layer;
+		if(layer != null) {			
+			UserData currentUser = authenticationController.getLoggedInUser();
+			if(currentUser != null) {
+				AclUtils.getHighestPermissionLevel(NodeType.PROJECT, layer.getId(), nodeService, new AsyncCallback<PermissionLevel>() {
+					@Override
+					public void onSuccess(PermissionLevel result) {
+						boolean isAdministrator = false;
+						boolean canEdit = false;
+						if(result == PermissionLevel.CAN_EDIT) {
+							canEdit = true;
+						} else if(result == PermissionLevel.CAN_ADMINISTER) {
+							canEdit = true;
+							isAdministrator = true;
+						}
+						setLayerDetails(isAdministrator, canEdit);
+					}
+					
+					@Override
+					public void onFailure(Throwable caught) {				
+						view.showErrorMessage(DisplayConstants.ERROR_GETTING_PERMISSIONS_TEXT);
+						setLayerDetails(false, false);
+					}			
+				});
+			} else {
+				// because this is a public page, they can view
+				setLayerDetails(false, false);
+			}
+		}
 		
+	}
+
+	private void setLayerDetails(boolean isAdministrator, boolean canEdit) {
 		// process the layer and send values to view
 		view.setLayerDetails(model.getId(), 
 							 model.getName(), 
@@ -170,7 +206,9 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 							 Integer.MAX_VALUE, // TODO : get total number of rows in layer
 							 "Public", // TODO : replace with security object
 							 "<a href=\"#Dataset:"+ this.datasetId +"\">Dataset</a>", // TODO : have dataset name included in layer metadata
-							 model.getPlatform());
+							 model.getPlatform(), 
+							 isAdministrator, 
+							 canEdit);
 
 		// see if license is required for doanload
 		licenseService.hasAccepted("GET-USERNAME", model.getUri(), new AsyncCallback<Boolean>() {
@@ -222,8 +260,6 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 				});				
 			}
 		});
-
-		
 	}
 	
 	protected void setLayerPreview(LayerPreview preview) {
@@ -327,6 +363,22 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 			placeChanger.goTo(new LoginPlace(new org.sagebionetworks.web.client.place.Layer(layerId, null, false)));
 		}
 		return false;
+	}
+
+	@Override
+	public void delete() {
+		nodeService.deleteNode(NodeType.LAYER, layerId, new AsyncCallback<Void>() {
+			@Override
+			public void onSuccess(Void result) {
+				view.showInfo("Layer Deleted", "The layer was successfully deleted.");
+				placeChanger.goTo(new ProjectsHome(DisplayUtils.DEFAULT_PLACE_TOKEN));
+			}
+			
+			@Override
+			public void onFailure(Throwable caught) {
+				view.showErrorMessage("Layer delete failed.");
+			}
+		});
 	}
 
 }

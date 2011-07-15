@@ -5,9 +5,11 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.place.LoginPlace;
+import org.sagebionetworks.web.client.place.ProjectsHome;
 import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
@@ -19,6 +21,9 @@ import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
+import org.sagebionetworks.web.shared.users.AclUtils;
+import org.sagebionetworks.web.shared.users.PermissionLevel;
+import org.sagebionetworks.web.shared.users.UserData;
 
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
@@ -98,113 +103,144 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 		
 	}
 
-	protected void setDataset(Dataset result) {
-		if(result != null) {
-			this.model = result;
-			nodeService.getNodeAnnotationsJSON(NodeType.DATASET, model.getId(), new AsyncCallback<String>() {
-				@Override
-				public void onSuccess(String result) {
-					Annotations annotations = null;
-					try {
-						annotations = nodeModelCreator.createAnnotations(result);
-						Map<String,List<Long>> longAnnotations = annotations.getLongAnnotations();
-						Map<String,List<String>> stringAnnotations = annotations.getStringAnnotations();
-						Map<String,List<Date>> dateAnnotations = annotations.getDateAnnotations();
-						List<String> diseases = stringAnnotations.containsKey("Disease") ? stringAnnotations.get("Disease") : new ArrayList<String>();
-						List<String> institutions = stringAnnotations.containsKey("Institution") ? stringAnnotations.get("Institution") : new ArrayList<String>();
-						List<String> postingRestrictionList = stringAnnotations.containsKey("Posting_Restriction") ? stringAnnotations.get("Posting_Restriction") : new ArrayList<String>();
-						List<String> species = stringAnnotations.containsKey("Species") ? stringAnnotations.get("Species") : new ArrayList<String>();
-						List<String> types = stringAnnotations.containsKey("Type") ? stringAnnotations.get("Type") : new ArrayList<String>();
-						List<String> tissueTumorList = stringAnnotations.containsKey("Tissue_Tumor") ? stringAnnotations.get("Tissue_Tumor") : new ArrayList<String>();
-						List<String> citationList = stringAnnotations.containsKey("citation") ? stringAnnotations.get("citation") : new ArrayList<String>();
-						List<Long> nSamplesList = longAnnotations.containsKey("Number_of_Samples") ? longAnnotations.get("Number_of_Samples") : new ArrayList<Long>();
-						List<Long> nDownloadsList = longAnnotations.containsKey("number_of_downloads") ? longAnnotations.get("number_of_downloads") : new ArrayList<Long>();
-						List<Long> nFollowersList = longAnnotations.containsKey("number_of_followers") ? longAnnotations.get("number_of_followers") : new ArrayList<Long>();
-						List<Long> pubmedIdList = longAnnotations.containsKey("pubmed_id") ? longAnnotations.get("pubmed_id") : new ArrayList<Long>();
-						List<Date> lastModifiedDateList = dateAnnotations.containsKey("dateAnnotations") ? dateAnnotations.get("dateAnnotations") : new ArrayList<Date>();
-													
-										
-						int studySize = 0;
-						if(longAnnotations.containsKey("Number_of_Samples")) {
-							studySize = longAnnotations.get("Number_of_Samples").get(0).intValue();
+	protected void setDataset(final Dataset dataset) {
+		this.model = dataset;
+		if(dataset != null) {
+			UserData currentUser = authenticationController.getLoggedInUser();
+			if(currentUser != null) {
+				AclUtils.getHighestPermissionLevel(NodeType.PROJECT, dataset.getId(), nodeService, new AsyncCallback<PermissionLevel>() {
+					@Override
+					public void onSuccess(PermissionLevel result) {
+						boolean isAdministrator = false;
+						boolean canEdit = false;
+						if(result == PermissionLevel.CAN_EDIT) {
+							canEdit = true;
+						} else if(result == PermissionLevel.CAN_ADMINISTER) {
+							canEdit = true;
+							isAdministrator = true;
 						}
-						String postingRestriction = postingRestrictionList.size() > 0 ? postingRestrictionList.get(0) : "";
-						int nOtherPublications = 0; // TODO : get number of other pubs
-						int nSamples = nSamplesList.size() > 0 ? nSamplesList.get(0).intValue() : 0;
-						int nFollowers = nFollowersList.size() > 0 ? nFollowersList.get(0).intValue() : 0;
-						int nDownloads = nDownloadsList.size() > 0 ? nDownloadsList.get(0).intValue() : 0;
-						Integer pubmedId = pubmedIdList.size() > 0 ? pubmedIdList.get(0).intValue() : null;
-						Date lastModifiedDate = lastModifiedDateList.size() > 0 ? lastModifiedDateList.get(0) : null;
-						String citation = citationList.size() > 0 ? citationList.get(0) : "";
-						String tissueTumor = tissueTumorList.size() > 0 ? tissueTumorList.get(0) : "";
-						
-						String referencePublicationUrl = pubmedId != null ? "http://www.ncbi.nlm.nih.gov/pubmed/" + pubmedId : null;
-						
-						 view.setDatasetDetails(model.getId(),
-						 model.getName(),
-						 model.getDescription(),
-						 diseases.toArray(new String[diseases.size()]), 
-						 species.toArray(new String[species.size()]),
-						 studySize,
-						 tissueTumor,
-						 types.toArray(new String[types.size()]),
-						 citation, 
-						 referencePublicationUrl,
-						 nOtherPublications,
-						 "#", // TODO : change this to be real
-						 model.getCreationDate(),
-						 model.getReleaseDate(),
-						 lastModifiedDate,
-						 model.getCreator(),
-						 institutions.toArray(new String[institutions.size()]),  
-						 nFollowers,
-						 "#", // TODO : view followers url, change this to be real
-						 postingRestriction,
-						 "#", // TODO : release notes url. change this to be real
-						 model.getStatus(),
-						 model.getVersion(),
-						 nSamples,
-						 nDownloads,
-						 citation,
-						 pubmedId				 
-						 );
-					} catch (RestServiceException ex) {
-						DisplayUtils.handleServiceException(ex, placeChanger);
-					}									
-				}
-	
-	
-				@Override
-				public void onFailure(Throwable caught) {
-					view.showErrorMessage("An error retrieving Dataset details occured. Please try reloading the page.");
-				}
-	
-			});		
-			
-			// check if license agreement has been accepted
-			// TODO !!!! use real username !!!!
-			licenseService.hasAccepted("GET-USERNAME", result.getUri(), new AsyncCallback<Boolean>() {
-				@Override
-				public void onFailure(Throwable caught) {				
-					view.showErrorMessage("Dataset downloading unavailable. Please try reloading the page.");
-					view.disableLicensedDownloads(true);
-				}
-	
-				@Override
-				public void onSuccess(Boolean hasAccepted) {								
-					view.requireLicenseAcceptance(!hasAccepted);
-					// TODO !!!! get actual license agreement text (and citation if needed) !!!!
-					LicenseAgreement agreement = new LicenseAgreement();
-					agreement.setLicenseHtml(licenseAgreementText);
-					view.setLicenseAgreement(agreement);
+						setDatasetDetails(dataset, isAdministrator, canEdit);
+					}
 					
-					// set download files
-					// TODO : !!!! get real downloads from dataset object !!!!		
-					List<FileDownload> downloads = new ArrayList<FileDownload>(); 
-					view.setDatasetDownloads(downloads);
-				}
-			});
+					@Override
+					public void onFailure(Throwable caught) {
+						view.showErrorMessage(DisplayConstants.ERROR_GETTING_PERMISSIONS_TEXT);
+						setDatasetDetails(dataset, false, false);
+					}			
+				});
+			} else {
+				// because this is a public page, they can view
+				setDatasetDetails(dataset, false, false);
+			}
 		} 				
+	}
+
+	private void setDatasetDetails(Dataset result,
+			final boolean isAdministrator, final boolean canEdit) {		
+		nodeService.getNodeAnnotationsJSON(NodeType.DATASET, model.getId(), new AsyncCallback<String>() {
+			@Override
+			public void onSuccess(String result) {
+				Annotations annotations = null;
+				try {
+					annotations = nodeModelCreator.createAnnotations(result);
+					Map<String,List<Long>> longAnnotations = annotations.getLongAnnotations();
+					Map<String,List<String>> stringAnnotations = annotations.getStringAnnotations();
+					Map<String,List<Date>> dateAnnotations = annotations.getDateAnnotations();
+					List<String> diseases = stringAnnotations.containsKey("Disease") ? stringAnnotations.get("Disease") : new ArrayList<String>();
+					List<String> institutions = stringAnnotations.containsKey("Institution") ? stringAnnotations.get("Institution") : new ArrayList<String>();
+					List<String> postingRestrictionList = stringAnnotations.containsKey("Posting_Restriction") ? stringAnnotations.get("Posting_Restriction") : new ArrayList<String>();
+					List<String> species = stringAnnotations.containsKey("Species") ? stringAnnotations.get("Species") : new ArrayList<String>();
+					List<String> types = stringAnnotations.containsKey("Type") ? stringAnnotations.get("Type") : new ArrayList<String>();
+					List<String> tissueTumorList = stringAnnotations.containsKey("Tissue_Tumor") ? stringAnnotations.get("Tissue_Tumor") : new ArrayList<String>();
+					List<String> citationList = stringAnnotations.containsKey("citation") ? stringAnnotations.get("citation") : new ArrayList<String>();
+					List<Long> nSamplesList = longAnnotations.containsKey("Number_of_Samples") ? longAnnotations.get("Number_of_Samples") : new ArrayList<Long>();
+					List<Long> nDownloadsList = longAnnotations.containsKey("number_of_downloads") ? longAnnotations.get("number_of_downloads") : new ArrayList<Long>();
+					List<Long> nFollowersList = longAnnotations.containsKey("number_of_followers") ? longAnnotations.get("number_of_followers") : new ArrayList<Long>();
+					List<Long> pubmedIdList = longAnnotations.containsKey("pubmed_id") ? longAnnotations.get("pubmed_id") : new ArrayList<Long>();
+					List<Date> lastModifiedDateList = dateAnnotations.containsKey("dateAnnotations") ? dateAnnotations.get("dateAnnotations") : new ArrayList<Date>();
+												
+									
+					int studySize = 0;
+					if(longAnnotations.containsKey("Number_of_Samples")) {
+						studySize = longAnnotations.get("Number_of_Samples").get(0).intValue();
+					}
+					String postingRestriction = postingRestrictionList.size() > 0 ? postingRestrictionList.get(0) : "";
+					int nOtherPublications = 0; // TODO : get number of other pubs
+					int nSamples = nSamplesList.size() > 0 ? nSamplesList.get(0).intValue() : 0;
+					int nFollowers = nFollowersList.size() > 0 ? nFollowersList.get(0).intValue() : 0;
+					int nDownloads = nDownloadsList.size() > 0 ? nDownloadsList.get(0).intValue() : 0;
+					Integer pubmedId = pubmedIdList.size() > 0 ? pubmedIdList.get(0).intValue() : null;
+					Date lastModifiedDate = lastModifiedDateList.size() > 0 ? lastModifiedDateList.get(0) : null;
+					String citation = citationList.size() > 0 ? citationList.get(0) : "";
+					String tissueTumor = tissueTumorList.size() > 0 ? tissueTumorList.get(0) : "";
+					
+					String referencePublicationUrl = pubmedId != null ? "http://www.ncbi.nlm.nih.gov/pubmed/" + pubmedId : null;
+					
+					 view.setDatasetDetails(model.getId(),
+					 model.getName(),
+					 model.getDescription(),
+					 diseases.toArray(new String[diseases.size()]), 
+					 species.toArray(new String[species.size()]),
+					 studySize,
+					 tissueTumor,
+					 types.toArray(new String[types.size()]),
+					 citation, 
+					 referencePublicationUrl,
+					 nOtherPublications,
+					 "#", // TODO : change this to be real
+					 model.getCreationDate(),
+					 model.getReleaseDate(),
+					 lastModifiedDate,
+					 model.getCreator(),
+					 institutions.toArray(new String[institutions.size()]),  
+					 nFollowers,
+					 "#", // TODO : view followers url, change this to be real
+					 postingRestriction,
+					 "#", // TODO : release notes url. change this to be real
+					 model.getStatus(),
+					 model.getVersion(),
+					 nSamples,
+					 nDownloads,
+					 citation,
+					 pubmedId, 
+					 isAdministrator, 
+					 canEdit);
+				} catch (RestServiceException ex) {
+					DisplayUtils.handleServiceException(ex, placeChanger);
+				}									
+			}
+
+
+			@Override
+			public void onFailure(Throwable caught) {
+				view.showErrorMessage("An error retrieving Dataset details occured. Please try reloading the page.");
+			}
+
+		});		
+		
+		// check if license agreement has been accepted
+		// TODO !!!! use real username !!!!
+		licenseService.hasAccepted("GET-USERNAME", result.getUri(), new AsyncCallback<Boolean>() {
+			@Override
+			public void onFailure(Throwable caught) {				
+				view.showErrorMessage("Dataset downloading unavailable. Please try reloading the page.");
+				view.disableLicensedDownloads(true);
+			}
+
+			@Override
+			public void onSuccess(Boolean hasAccepted) {								
+				view.requireLicenseAcceptance(!hasAccepted);
+				// TODO !!!! get actual license agreement text (and citation if needed) !!!!
+				LicenseAgreement agreement = new LicenseAgreement();
+				agreement.setLicenseHtml(licenseAgreementText);
+				view.setLicenseAgreement(agreement);
+				
+				// set download files
+				// TODO : !!!! get real downloads from dataset object !!!!		
+				List<FileDownload> downloads = new ArrayList<FileDownload>(); 
+				view.setDatasetDownloads(downloads);
+			}
+		});
 	}
 
 	public void setPlace(org.sagebionetworks.web.client.place.Dataset place) {
@@ -252,6 +288,22 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 			placeChanger.goTo(new LoginPlace(new org.sagebionetworks.web.client.place.Dataset(datasetId)));
 		}
 		return false;
+	}
+
+	@Override
+	public void delete() {
+		nodeService.deleteNode(NodeType.DATASET, datasetId, new AsyncCallback<Void>() {
+			@Override
+			public void onSuccess(Void result) {
+				view.showInfo("Dataset Deleted", "The dataset was successfully deleted.");
+				placeChanger.goTo(new ProjectsHome(DisplayUtils.DEFAULT_PLACE_TOKEN));
+			}
+			
+			@Override
+			public void onFailure(Throwable caught) {
+				view.showErrorMessage("Dataset delete failed.");
+			}
+		});
 	}
 	
 }

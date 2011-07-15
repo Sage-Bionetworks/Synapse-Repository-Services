@@ -266,6 +266,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, resourceType);
 		builder.append("/" + resourceId);	
 		builder.append("/" + ServiceUtils.REPOSVC_HAS_ACCESS_PATH);
+		builder.append("?accessType="+ accessType);
 		String url = builder.toString();	
 		HttpMethod method = HttpMethod.GET;
 
@@ -282,7 +283,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		// First make sure the service is ready to go.
 		validateService();
 		
-		logger.info(method.toString() + ": " + url);
+		logger.info(method.toString() + ": " + url + ", accessType="+ accessType);
 		
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();

@@ -81,7 +81,9 @@ public interface LayerView extends IsWidget {
 								int totalDataRows, 
 								String privacyLevel,
 								String datasetLink,
-								String platform);
+								String platform, 
+								boolean isAdministrator, 
+								boolean canEdit);
 	
 	/**
 	 * require the view to show the license agreement
@@ -142,6 +144,8 @@ public interface LayerView extends IsWidget {
 		 * @return true if the user should be shown the download screen 
 		 */
 		public boolean downloadAttempted();
+
+		public void delete();
 		
 	}
 

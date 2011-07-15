@@ -79,6 +79,7 @@ public class DisplayConstants {
 	public static final String TEXT_NO_DOWNLOADS = "There are no downloads available.";
 	public static final String BUTTON_SETUP_API_PASSWORD = "Create Synapse Password";
 	public static final String BUTTON_SAVING = "Saving";
-	public static final String BUTTON_CHANGE_PASSWORD = "Change Password";	
+	public static final String BUTTON_CHANGE_PASSWORD = "Change Password";
+	public static final String ERROR_GETTING_PERMISSIONS_TEXT = "READ ONLY MODE. Reason: An error occured in retrieving your level of access.";	
 	
 }

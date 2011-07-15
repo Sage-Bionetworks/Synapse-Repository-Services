@@ -31,8 +31,11 @@ import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
 import org.sagebionetworks.web.shared.WhereCondition;
 
+import com.extjs.gxt.ui.client.event.Listener;
 import com.extjs.gxt.ui.client.event.MenuEvent;
+import com.extjs.gxt.ui.client.event.MessageBoxEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
+import com.extjs.gxt.ui.client.widget.Dialog;
 import com.extjs.gxt.ui.client.widget.Info;
 import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.Window;
@@ -108,7 +111,8 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	private NodeEditor nodeEditor;
 	private AnnotationEditor annotationEditor;
 	private AdminMenu adminMenu;
-	private boolean userIsAdmin = false;
+	private boolean isAdministrator = false; 
+	private boolean canEdit = false;
 	private Header headerWidget;
 	
 	
@@ -197,7 +201,9 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 								  int nSamples, 
 								  int nDownloads, 
 								  String citation, 
-								  Integer pubmedId) {
+								  Integer pubmedId, 
+								  boolean isAdministrator, 
+								  boolean canEdit) {
 
 		// assure reasonable values
 		if(id == null) id = "";
@@ -218,7 +224,8 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		clear();
 		
 		// check authorization
-		userIsAdmin = true; // TODO : get ACL from authorization service
+		this.isAdministrator = isAdministrator;
+		this.canEdit = canEdit;
 		createAccessPanel(id);
 		createAdminPanel(id);		
 		
@@ -322,7 +329,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	}
 
 	private void createAdminPanel(String id) {		
-		if(userIsAdmin) {
+		if(isAdministrator) {
 			annotationEditor.setPlaceChanger(presenter.getPlaceChanger());
 			annotationEditor.setResource(NodeType.DATASET, id);
 			
@@ -339,100 +346,123 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	private Menu createAdminMenu(final String datasetId) {
 		Menu menu = new Menu();		
 		MenuItem item = null; 
+
+		// Edit menu options
+		if(canEdit) {			
+			item = new MenuItem("Edit Dataset Details");
+			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
+			item.addSelectionListener(new SelectionListener<MenuEvent>() {
+				public void componentSelected(MenuEvent menuEvent) {													
+					final Window window = new Window();  
+					window.setSize(600, 345);
+					window.setPlain(true);
+					window.setModal(true);
+					window.setBlinkModal(true);
+					window.setHeading("Edit Dataset");
+					window.setLayout(new FitLayout());								
+					nodeEditor.addCancelHandler(new CancelHandler() {					
+						@Override
+						public void onCancel(CancelEvent event) {
+							window.hide();
+						}
+					});
+					nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
+						@Override
+						public void onPersistSuccess(PersistSuccessEvent event) {
+							window.hide();
+							presenter.refresh();
+						}
+					});
+					nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
+					window.add(nodeEditor.asWidget(NodeType.DATASET, datasetId), new FitData(4));				
+					window.show();
+				}
+			});
+			menu.add(item);
 			
-		item = new MenuItem("Edit Dataset Details");
-		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
-		item.addSelectionListener(new SelectionListener<MenuEvent>() {
-			public void componentSelected(MenuEvent menuEvent) {													
-				final Window window = new Window();  
-				window.setSize(600, 345);
-				window.setPlain(true);
-				window.setModal(true);
-				window.setBlinkModal(true);
-				window.setHeading("Edit Dataset");
-				window.setLayout(new FitLayout());								
-				nodeEditor.addCancelHandler(new CancelHandler() {					
-					@Override
-					public void onCancel(CancelEvent event) {
-						window.hide();
-					}
-				});
-				nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
-					@Override
-					public void onPersistSuccess(PersistSuccessEvent event) {
-						window.hide();
-						presenter.refresh();
-					}
-				});
-				nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
-				window.add(nodeEditor.asWidget(NodeType.DATASET, datasetId), new FitData(4));				
-				window.show();
-			}
-		});
-		menu.add(item);
+			item = new MenuItem("Edit Dataset Annotations");
+			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
+			item.addSelectionListener(new SelectionListener<MenuEvent>() {
+				public void componentSelected(MenuEvent menuEvent) {													
+					final Window window = new Window();  
+					window.setSize(650, 550);
+					window.setPlain(true);
+					window.setModal(true);
+					window.setBlinkModal(true);
+					window.setHeading("Edit Dataset Annotations");
+					window.setLayout(new FitLayout());					
+					nodeEditor.addCancelHandler(new CancelHandler() {					
+						@Override
+						public void onCancel(CancelEvent event) {
+							window.hide();
+						}
+					});
+					nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
+						@Override
+						public void onPersistSuccess(PersistSuccessEvent event) {
+							window.hide();
+							presenter.refresh();
+						}
+					});				
+					window.add(annotationEditor.asWidget(), new FitData(4));
+					window.show();
+				}
+			});
+			item.disable();
+			menu.add(item);
+			
+			item = new MenuItem("Add a Layer to Dataset");
+			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.documentAdd16()));
+			item.addSelectionListener(new SelectionListener<MenuEvent>() {
+				public void componentSelected(MenuEvent menuEvent) {													
+					final Window window = new Window();  
+					window.setSize(600, 275);
+					window.setPlain(true);
+					window.setModal(true);
+					window.setBlinkModal(true);
+					window.setHeading("Create Layer");
+					window.setLayout(new FitLayout());				
+					nodeEditor.addCancelHandler(new CancelHandler() {					
+						@Override
+						public void onCancel(CancelEvent event) {
+							window.hide();
+						}
+					});
+					nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
+						@Override
+						public void onPersistSuccess(PersistSuccessEvent event) {
+							window.hide();
+							presenter.refresh();
+						}
+					});
+					nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
+					window.add(nodeEditor.asWidget(NodeType.LAYER, null, datasetId), new FitData(4));
+					window.show();
+				}
+			});
+			menu.add(item);
+		}
 		
-		item = new MenuItem("Edit Dataset Annotations");
-		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
-		item.addSelectionListener(new SelectionListener<MenuEvent>() {
-			public void componentSelected(MenuEvent menuEvent) {													
-				final Window window = new Window();  
-				window.setSize(650, 550);
-				window.setPlain(true);
-				window.setModal(true);
-				window.setBlinkModal(true);
-				window.setHeading("Edit Dataset Annotations");
-				window.setLayout(new FitLayout());					
-				nodeEditor.addCancelHandler(new CancelHandler() {					
-					@Override
-					public void onCancel(CancelEvent event) {
-						window.hide();
-					}
-				});
-				nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
-					@Override
-					public void onPersistSuccess(PersistSuccessEvent event) {
-						window.hide();
-						presenter.refresh();
-					}
-				});				
-				window.add(annotationEditor.asWidget(), new FitData(4));
-				window.show();
-			}
-		});
-		item.disable();
-		menu.add(item);
-		
-		item = new MenuItem("Add a Layer to Dataset");
-		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.documentAdd16()));
-		item.addSelectionListener(new SelectionListener<MenuEvent>() {
-			public void componentSelected(MenuEvent menuEvent) {													
-				final Window window = new Window();  
-				window.setSize(600, 275);
-				window.setPlain(true);
-				window.setModal(true);
-				window.setBlinkModal(true);
-				window.setHeading("Create Layer");
-				window.setLayout(new FitLayout());				
-				nodeEditor.addCancelHandler(new CancelHandler() {					
-					@Override
-					public void onCancel(CancelEvent event) {
-						window.hide();
-					}
-				});
-				nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
-					@Override
-					public void onPersistSuccess(PersistSuccessEvent event) {
-						window.hide();
-						presenter.refresh();
-					}
-				});
-				nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
-				window.add(nodeEditor.asWidget(NodeType.LAYER, null, datasetId), new FitData(4));
-				window.show();
-			}
-		});
-		menu.add(item);
-		
+		// Administrator Menu Options
+		if(isAdministrator) {
+			item = new MenuItem("Delete Dataset");
+			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.deleteButton16()));
+			item.addSelectionListener(new SelectionListener<MenuEvent>() {
+				public void componentSelected(MenuEvent menuEvent) {
+					MessageBox.confirm("Delete Dataset", "Are you sure you want to delete this dataset?", new Listener<MessageBoxEvent>() {					
+						@Override
+						public void handleEvent(MessageBoxEvent be) { 					
+							Button btn = be.getButtonClicked();
+							if(Dialog.YES.equals(btn.getItemId())) {
+								presenter.delete();
+							}
+						}
+					});
+				}
+			});
+			menu.add(item);
+		}
+
 		return menu;
 	}
 
@@ -446,7 +476,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 			icon = iconsImageBundle.lock16();
 		}		
 
-		if(userIsAdmin) {		
+		if(isAdministrator) {		
 			accessMenuButton.setPlaceChanger(presenter.getPlaceChanger());
 			accessMenuButton.setResource(NodeType.DATASET, id);
 			accessMenuButton.setAccessLevel(accessLevel);

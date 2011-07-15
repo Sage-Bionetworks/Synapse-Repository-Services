@@ -241,7 +241,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 	}
 
 	private void createAdminPanel(String projectId) {		
-		if(isAdministrator) {
+		if(canEdit) {
 			Button button = new Button("Admin Menu");
 			button.setIcon(AbstractImagePrototype.create(iconsImageBundle.adminTools16()));
 			//adminButton.setIconAlign(IconAlign.LEFT);
@@ -254,91 +254,96 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 	private Menu createAdminMenu(final String projectId) {
 		Menu menu = new Menu();		
 		MenuItem item = null; 
-			
-		item = new MenuItem("Edit Project Details");
-		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
-		item.addSelectionListener(new SelectionListener<MenuEvent>() {
-			public void componentSelected(MenuEvent menuEvent) {													
-				final Window window = new Window();  
-				window.setSize(600, 300);
-				window.setPlain(true);
-				window.setModal(true);
-				window.setBlinkModal(true);
-				window.setHeading("Edit Project");
-				window.setLayout(new FitLayout());								
-				nodeEditor.addCancelHandler(new CancelHandler() {					
-					@Override
-					public void onCancel(CancelEvent event) {
-						window.hide();
-					}
-				});
-				nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
-					@Override
-					public void onPersistSuccess(PersistSuccessEvent event) {
-						window.hide();
-						presenter.refresh();
-					}
-				});
-				nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
-				window.add(nodeEditor.asWidget(NodeType.PROJECT, projectId), new FitData(4));
-				window.show();
-			}
-		});
-		menu.add(item);
-		
-		item = new MenuItem("Add Dataset to Project");
-		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.documentAdd16()));
-		item.addSelectionListener(new SelectionListener<MenuEvent>() {
-			public void componentSelected(MenuEvent menuEvent) {													
-				final Window window = new Window();  
-				window.setSize(600, 370);
-				window.setPlain(true);
-				window.setModal(true);
-				window.setBlinkModal(true);
-				window.setHeading("Create Dataset");
-				window.setLayout(new FitLayout());				
-				nodeEditor.addCancelHandler(new CancelHandler() {					
-					@Override
-					public void onCancel(CancelEvent event) {
-						window.hide();
-					}
-				});
-				nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
-					@Override
-					public void onPersistSuccess(PersistSuccessEvent event) {
-						window.hide();
-						presenter.refresh();
-					}
-				});
-				nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
-				window.add(nodeEditor.asWidget(NodeType.DATASET, null, projectId), new FitData(4));
-				window.show();
-			}
-		});
-		menu.add(item);
 
-		item = new MenuItem("Delete Project");
-		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.deleteButton16()));
-		item.addSelectionListener(new SelectionListener<MenuEvent>() {
-			public void componentSelected(MenuEvent menuEvent) {
-				MessageBox.confirm("Delete Project", "Are you sure you want to delete this project?", new Listener<MessageBoxEvent>() {					
-					@Override
-					public void handleEvent(MessageBoxEvent be) { 					
-						Button btn = be.getButtonClicked();
-						if(Dialog.YES.equals(btn.getItemId())) {
-							presenter.delete();
+		// Edit menu options
+		if(canEdit) {		
+			item = new MenuItem("Edit Project Details");
+			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
+			item.addSelectionListener(new SelectionListener<MenuEvent>() {
+				public void componentSelected(MenuEvent menuEvent) {													
+					final Window window = new Window();  
+					window.setSize(600, 300);
+					window.setPlain(true);
+					window.setModal(true);
+					window.setBlinkModal(true);
+					window.setHeading("Edit Project");
+					window.setLayout(new FitLayout());								
+					nodeEditor.addCancelHandler(new CancelHandler() {					
+						@Override
+						public void onCancel(CancelEvent event) {
+							window.hide();
 						}
-					}
-				});
-			}
-		});
-		menu.add(item);
+					});
+					nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
+						@Override
+						public void onPersistSuccess(PersistSuccessEvent event) {
+							window.hide();
+							presenter.refresh();
+						}
+					});
+					nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
+					window.add(nodeEditor.asWidget(NodeType.PROJECT, projectId), new FitData(4));
+					window.show();
+				}
+			});
+			menu.add(item);
+			
+			item = new MenuItem("Add Dataset to Project");
+			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.documentAdd16()));
+			item.addSelectionListener(new SelectionListener<MenuEvent>() {
+				public void componentSelected(MenuEvent menuEvent) {													
+					final Window window = new Window();  
+					window.setSize(600, 370);
+					window.setPlain(true);
+					window.setModal(true);
+					window.setBlinkModal(true);
+					window.setHeading("Create Dataset");
+					window.setLayout(new FitLayout());				
+					nodeEditor.addCancelHandler(new CancelHandler() {					
+						@Override
+						public void onCancel(CancelEvent event) {
+							window.hide();
+						}
+					});
+					nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
+						@Override
+						public void onPersistSuccess(PersistSuccessEvent event) {
+							window.hide();
+							presenter.refresh();
+						}
+					});
+					nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
+					window.add(nodeEditor.asWidget(NodeType.DATASET, null, projectId), new FitData(4));
+					window.show();
+				}
+			});
+			menu.add(item);
+		}
+		
+		// Administrator Menu Options
+		if(isAdministrator) {
+			item = new MenuItem("Delete Project");
+			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.deleteButton16()));
+			item.addSelectionListener(new SelectionListener<MenuEvent>() {
+				public void componentSelected(MenuEvent menuEvent) {
+					MessageBox.confirm("Delete Project", "Are you sure you want to delete this project?", new Listener<MessageBoxEvent>() {					
+						@Override
+						public void handleEvent(MessageBoxEvent be) { 					
+							Button btn = be.getButtonClicked();
+							if(Dialog.YES.equals(btn.getItemId())) {
+								presenter.delete();
+							}
+						}
+					});
+				}
+			});
+			menu.add(item);
+		}
 
 		return menu;
 	}
 
-	private void createAccessPanel(String id) {		
-		// TODO : get access level from Authorization service
+	private void createAccessPanel(String id) {				
 		AccessLevel accessLevel = AccessLevel.SHARED;		
 		ImageResource icon = null;
 		if(accessLevel == AccessLevel.PUBLIC) {

@@ -1,14 +1,19 @@
 package org.sagebionetworks.web.client.presenter;
 
+import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.place.ProjectsHome;
+import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.view.ProjectView;
 import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.Project;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
+import org.sagebionetworks.web.shared.users.AclUtils;
+import org.sagebionetworks.web.shared.users.PermissionLevel;
+import org.sagebionetworks.web.shared.users.UserData;
 
 import com.extjs.gxt.ui.client.widget.Info;
 import com.extjs.gxt.ui.client.widget.MessageBox;
@@ -29,12 +34,14 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 	private PlaceController placeController;
 	private PlaceChanger placeChanger;
 	private NodeModelCreator nodeModelCreator;
+	private AuthenticationController authenticationController;
 	
 	@Inject
-	public ProjectPresenter(ProjectView view, NodeServiceAsync service, NodeModelCreator nodeModelCreator){
+	public ProjectPresenter(ProjectView view, NodeServiceAsync service, NodeModelCreator nodeModelCreator, AuthenticationController authenticationController){
 		this.view = view;
 		this.nodeService = service;
 		this.nodeModelCreator = nodeModelCreator;
+		this.authenticationController = authenticationController;
 		
 		// Set the presenter on the view
 		this.view.setPresenter(this);
@@ -92,14 +99,43 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 	 * Sends the project elements to the view
 	 * @param project
 	 */
-	protected void setProject(Project project) {
-		boolean isAdministrator = true;
-		boolean canEdit = true;
-		if (project != null) {
-			view.setProjectDetails(project.getId(), project.getName(),
-					project.getDescription(), project.getCreator(),
-					project.getCreationDate(), project.getStatus(), isAdministrator, canEdit);
-		} 
+	protected void setProject(final Project project) {
+		if (project != null) {			
+			UserData currentUser = authenticationController.getLoggedInUser();
+			if(currentUser != null) {
+				AclUtils.getHighestPermissionLevel(NodeType.PROJECT, project.getId(), nodeService, new AsyncCallback<PermissionLevel>() {
+					@Override
+					public void onSuccess(PermissionLevel result) {
+						boolean isAdministrator = false;
+						boolean canEdit = false;
+						if(result == PermissionLevel.CAN_EDIT) {
+							canEdit = true;
+						} else if(result == PermissionLevel.CAN_ADMINISTER) {
+							canEdit = true;
+							isAdministrator = true;
+						} 
+						setProjectDetails(project, isAdministrator, canEdit);
+					}
+					
+					@Override
+					public void onFailure(Throwable caught) {
+						view.showErrorMessage(DisplayConstants.ERROR_GETTING_PERMISSIONS_TEXT);
+						setProjectDetails(project, false, false);
+					}			
+				});		
+			} else {
+				// because this is a public page, they can view
+				setProjectDetails(project, false, false);
+			}
+		} 	
+	}
+
+	
+	private void setProjectDetails(final Project project,
+			boolean isAdministrator, boolean canEdit) {
+		view.setProjectDetails(project.getId(), project.getName(),
+				project.getDescription(), project.getCreator(),
+				project.getCreationDate(), project.getStatus(), isAdministrator, canEdit);
 	}
 
 	@Override

@@ -29,8 +29,11 @@ import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.TableResults;
 
+import com.extjs.gxt.ui.client.event.Listener;
 import com.extjs.gxt.ui.client.event.MenuEvent;
+import com.extjs.gxt.ui.client.event.MessageBoxEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
+import com.extjs.gxt.ui.client.widget.Dialog;
 import com.extjs.gxt.ui.client.widget.Html;
 import com.extjs.gxt.ui.client.widget.Info;
 import com.extjs.gxt.ui.client.widget.MessageBox;
@@ -103,7 +106,8 @@ public class LayerViewImpl extends Composite implements LayerView {
 	private NodeEditor nodeEditor;
 	private AnnotationEditor annotationEditor;
 	private AdminMenu adminMenu;
-	private boolean userIsAdmin = false;
+	private boolean isAdministrator = false; 
+	private boolean canEdit = false;
 	private Header headerWidget;
 
 	@Inject
@@ -177,7 +181,9 @@ public class LayerViewImpl extends Composite implements LayerView {
 								int totalDataRows, 
 								String privacyLevel, 
 								String datasetLink, 
-								String platform) {
+								String platform, 
+								boolean isAdministrator, 
+								boolean canEdit) {
 		
 		// make sure displayed values are clean
 		if(layerName == null) layerName = "";
@@ -194,7 +200,8 @@ public class LayerViewImpl extends Composite implements LayerView {
 		clear(); 
 
 		// check authorization
-		userIsAdmin = true; // TODO : get ACL from authorization service
+		this.isAdministrator = isAdministrator;
+		this.canEdit = canEdit;
 		createAccessPanel(id);
 		createAdminPanel(id);
 		
@@ -364,7 +371,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 	}
 	
 	private void createAdminPanel(String id) {		
-		if(userIsAdmin) {
+		if(isAdministrator) {
 			annotationEditor.setPlaceChanger(presenter.getPlaceChanger());
 			annotationEditor.setResource(NodeType.LAYER, id);
 			
@@ -382,68 +389,92 @@ public class LayerViewImpl extends Composite implements LayerView {
 		Menu menu = new Menu();		
 		MenuItem item = null; 
 			
-		item = new MenuItem("Edit Layer Details");
-		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
-		item.addSelectionListener(new SelectionListener<MenuEvent>() {
-			public void componentSelected(MenuEvent menuEvent) {													
-				final Window window = new Window();  
-				window.setSize(600, 280);
-				window.setPlain(true);
-				window.setModal(true);
-				window.setBlinkModal(true);
-				window.setHeading("Edit Layer");
-				window.setLayout(new FitLayout());								
-				nodeEditor.addCancelHandler(new CancelHandler() {					
-					@Override
-					public void onCancel(CancelEvent event) {
-						window.hide();
-					}
-				});
-				nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
-					@Override
-					public void onPersistSuccess(PersistSuccessEvent event) {
-						window.hide();
-						presenter.refresh();
-					}
-				});
-				nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
-				window.add(nodeEditor.asWidget(NodeType.LAYER, datasetId), new FitData(4));
-				window.show();
-			}
-		});
-		menu.add(item);
-		
-		item = new MenuItem("Edit Layer Annotations");
-		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
-		item.addSelectionListener(new SelectionListener<MenuEvent>() {
-			public void componentSelected(MenuEvent menuEvent) {													
-				final Window window = new Window();  
-				window.setSize(650, 400);
-				window.setPlain(true);
-				window.setModal(true);
-				window.setBlinkModal(true);
-				window.setHeading("Edit Layer Annotations");
-				window.setLayout(new FitLayout());
-				nodeEditor.addCancelHandler(new CancelHandler() {					
-					@Override
-					public void onCancel(CancelEvent event) {
-						window.hide();
-					}
-				});
-				nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
-					@Override
-					public void onPersistSuccess(PersistSuccessEvent event) {
-						window.hide();
-						presenter.refresh();
-					}
-				});				
-				window.add(annotationEditor.asWidget(), new FitData(4));
-				window.show();
-			}
-		});
-		item.disable();
-		menu.add(item);
+		// Edit menu options
+		if(canEdit) {			
+			item = new MenuItem("Edit Layer Details");
+			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
+			item.addSelectionListener(new SelectionListener<MenuEvent>() {
+				public void componentSelected(MenuEvent menuEvent) {													
+					final Window window = new Window();  
+					window.setSize(600, 280);
+					window.setPlain(true);
+					window.setModal(true);
+					window.setBlinkModal(true);
+					window.setHeading("Edit Layer");
+					window.setLayout(new FitLayout());								
+					nodeEditor.addCancelHandler(new CancelHandler() {					
+						@Override
+						public void onCancel(CancelEvent event) {
+							window.hide();
+						}
+					});
+					nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
+						@Override
+						public void onPersistSuccess(PersistSuccessEvent event) {
+							window.hide();
+							presenter.refresh();
+						}
+					});
+					nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
+					window.add(nodeEditor.asWidget(NodeType.LAYER, datasetId), new FitData(4));
+					window.show();
+				}
+			});
+			menu.add(item);
 			
+			item = new MenuItem("Edit Layer Annotations");
+			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
+			item.addSelectionListener(new SelectionListener<MenuEvent>() {
+				public void componentSelected(MenuEvent menuEvent) {													
+					final Window window = new Window();  
+					window.setSize(650, 400);
+					window.setPlain(true);
+					window.setModal(true);
+					window.setBlinkModal(true);
+					window.setHeading("Edit Layer Annotations");
+					window.setLayout(new FitLayout());
+					nodeEditor.addCancelHandler(new CancelHandler() {					
+						@Override
+						public void onCancel(CancelEvent event) {
+							window.hide();
+						}
+					});
+					nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
+						@Override
+						public void onPersistSuccess(PersistSuccessEvent event) {
+							window.hide();
+							presenter.refresh();
+						}
+					});				
+					window.add(annotationEditor.asWidget(), new FitData(4));
+					window.show();
+				}
+			});
+			item.disable();
+			menu.add(item);
+		}
+			
+		// Administrator Menu Options
+		if(isAdministrator) {
+			item = new MenuItem("Delete Layer");
+			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.deleteButton16()));
+			item.addSelectionListener(new SelectionListener<MenuEvent>() {
+				public void componentSelected(MenuEvent menuEvent) {
+					MessageBox.confirm("Delete Layer", "Are you sure you want to delete this layer?", new Listener<MessageBoxEvent>() {					
+						@Override
+						public void handleEvent(MessageBoxEvent be) { 					
+							Button btn = be.getButtonClicked();
+							if(Dialog.YES.equals(btn.getItemId())) {
+								presenter.delete();
+							}
+						}
+					});
+				}
+			});
+			menu.add(item);
+		}
+
+		
 		return menu;
 	}
 
@@ -458,7 +489,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 			icon = iconsImageBundle.lock16();
 		}		
 
-		if(userIsAdmin) {	
+		if(isAdministrator) {	
 			accessMenuButton.setPlaceChanger(presenter.getPlaceChanger());
 			accessMenuButton.setResource(NodeType.LAYER, id);
 			accessMenuButton.setAccessLevel(accessLevel);

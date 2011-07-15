@@ -2,13 +2,60 @@ package org.sagebionetworks.web.shared.users;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+
+import org.sagebionetworks.web.client.services.NodeServiceAsync;
+import org.sagebionetworks.web.shared.NodeType;
+
+import com.google.gwt.user.client.rpc.AsyncCallback;
 
 public class AclUtils {	 
+
 	
+	/**
+	 * Returns the highest permission level for the logged in user for the given entity
+	 * @param nodeType
+	 * @param nodeId
+	 * @return
+	 */
+	public static void getHighestPermissionLevel(final NodeType nodeType, final String nodeId, final NodeServiceAsync nodeService, final AsyncCallback<PermissionLevel> callback) {		
+		
+		// TODO : making two rest calls is not ideal. need to change hasAccess API to include multi params
+		nodeService.hasAccess(nodeType, nodeId, AclAccessType.UPDATE, new AsyncCallback<Boolean>() {
+			@Override
+			public void onSuccess(Boolean canUpdate) {
+				if(canUpdate) {
+					// CAN EDIT, now check can administer
+					nodeService.hasAccess(nodeType, nodeId, AclAccessType.CHANGE_PERMISSIONS, new AsyncCallback<Boolean>() {
+						@Override
+						public void onSuccess(Boolean canAdmin) {
+							if(canAdmin) {
+								// user can administer
+								callback.onSuccess(PermissionLevel.CAN_ADMINISTER);
+							} else {
+								callback.onSuccess(PermissionLevel.CAN_EDIT);
+							}
+						}
+						
+						@Override
+						public void onFailure(Throwable caught) {
+							callback.onFailure(caught);
+						}
+					});				
+				} else {
+					// user can only view
+					callback.onSuccess(PermissionLevel.CAN_VIEW);
+				}
+			}
+
+			@Override
+			public void onFailure(Throwable caught) {
+				callback.onFailure(caught);
+			}
+		});
+	}
+
 	public static PermissionLevel getPermissionLevel(List<AclAccessType> accessTypes) {		
 		// TODO : this should be updated to be more generic
 		if(accessTypes.contains(AclAccessType.READ)
@@ -82,4 +129,5 @@ public class AclUtils {
 		
 		return accessTypeToPerm;
 	}
+
 }
