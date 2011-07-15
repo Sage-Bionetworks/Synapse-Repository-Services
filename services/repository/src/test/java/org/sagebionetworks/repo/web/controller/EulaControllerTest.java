@@ -171,6 +171,13 @@ public class EulaControllerTest {
 	 */
 	@Test
 	public void testEnforceUseAgreement() throws Exception {
+		
+		if(helper.isIntegrationTest()) {
+			// TODO PLFM-253
+			// This test does not work in an integration test scenario until we have a better test harness in place
+			return;
+		}
+		
 		// Make a use agreement
 		JSONObject eula = helper.testCreateJsonEntity(helper.getServletPrefix()
 				+ "/eula", SAMPLE_EULA);
