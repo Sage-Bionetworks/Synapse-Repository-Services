@@ -56,16 +56,17 @@ public class EulaControllerTest {
 
 		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()
 				+ "/dataset", DatasetControllerTest.SAMPLE_DATASET);
-		datasetLocation = new JSONObject(LocationControllerTest.SAMPLE_LOCATION).put(
-				NodeConstants.COL_PARENT_ID, dataset.getString("id"));
+		datasetLocation = new JSONObject(LocationControllerTest.SAMPLE_LOCATION)
+				.put(NodeConstants.COL_PARENT_ID, dataset.getString("id"));
 		datasetLocation = helper.testCreateJsonEntity(helper.getServletPrefix()
 				+ "/location", datasetLocation.toString());
 		helper.addPublicReadOnlyAclToEntity(dataset);
 
 		layer = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString("id")));
-		layerLocation = new JSONObject(LocationControllerTest.SAMPLE_LOCATION).put(
-				NodeConstants.COL_PARENT_ID, layer.getString("id"));
+				+ "/layer", LayerControllerTest.getSampleLayer(dataset
+				.getString("id")));
+		layerLocation = new JSONObject(LocationControllerTest.SAMPLE_LOCATION)
+				.put(NodeConstants.COL_PARENT_ID, layer.getString("id"));
 		layerLocation = helper.testCreateJsonEntity(helper.getServletPrefix()
 				+ "/location", layerLocation.toString());
 	}
@@ -97,14 +98,11 @@ public class EulaControllerTest {
 				.getString("name"));
 		assertExpectedEulaProperties(eula);
 
-		// We can currently only handle agreements of length 3000 characters or
-		// less
 		JSONObject storedEula = helper.testGetJsonEntity(eula.getString("uri"));
-		String longAgreement = new String(new char[10])
+		String longAgreement = new String(new char[20])
 				.replace(
 						"\0",
 						"Lorem ipsum vis alia possit dolores an, id quo apeirian consequat. Te usu nihil facilis forensibus, graece populo deserunt vel an. Populo semper eu quo, ne ignota deleniti salutatus mea. Ullum petentium et duo, adhuc detracto vel ei. Disputando delicatissimi et eos, eam no labore mollis,");
-		assertTrue(3000 > longAgreement.length());
 		storedEula.put("agreement", longAgreement);
 		JSONObject updatedEula = helper.testUpdateJsonEntity(storedEula);
 		assertEquals(longAgreement, updatedEula.getString("agreement"));
@@ -132,7 +130,8 @@ public class EulaControllerTest {
 		assertExpectedAgreementProperties(agreement);
 
 		String query = "select * from agreement where agreement.datasetId == \""
-				+ dataset.getString("id") + "\" and agreement.eulaId == \""
+				+ dataset.getString("id")
+				+ "\" and agreement.eulaId == \""
 				+ eula.getString("id")
 				+ "\" and agreement.createdBy == \"admin\"";
 		JSONObject queryResult = helper.testQuery(query);
@@ -148,6 +147,29 @@ public class EulaControllerTest {
 	 * @throws Exception
 	 */
 	@Test
+	public void testCreateAgreementInvalidUserId() throws Exception {
+		JSONObject eula = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/eula", SAMPLE_EULA);
+		assertEquals(
+				"The recipient acknowledges that the data herein is provided by TCGA and not SageBionetworks and must abide by ...",
+				eula.getString("agreement"));
+		assertEquals("TCGA Redistribution Use Agreement", eula
+				.getString("name"));
+		assertExpectedEulaProperties(eula);
+
+		JSONObject agreement = helper.testCreateJsonEntityShouldFail(helper
+				.getServletPrefix()
+				+ "/agreement", "{\"name\":\"agreement\", \"datasetId\":\""
+				+ dataset.getString("id") + "\", \"eulaId\":\""
+				+ eula.getString("id")
+				+ "\", \"createdBy\":\"SOME OTHER USER\"}",
+				HttpStatus.BAD_REQUEST);
+	}
+
+	/**
+	 * @throws Exception
+	 */
+	@Test
 	public void testEnforceUseAgreement() throws Exception {
 		// Make a use agreement
 		JSONObject eula = helper.testCreateJsonEntity(helper.getServletPrefix()
@@ -157,7 +179,7 @@ public class EulaControllerTest {
 		dataset.put("eulaId", eula.getString("id"));
 		JSONObject updatedDataset = helper.testUpdateJsonEntity(dataset);
 		assertEquals(eula.getString("id"), updatedDataset.getString("eulaId"));
-		
+
 		// Change the user from the creator of the dataset to someone else
 		helper.useTestUser();
 		// The ACL on the dataset has public read so this works
@@ -165,13 +187,21 @@ public class EulaControllerTest {
 		// The ACL on the eula has public read so this works
 		helper.testGetJsonEntity(eula.getString("uri"));
 		// But the user has not signed the agreement so these does not work
-		helper.testGetJsonEntityShouldFail(dataset.getString("locations"), HttpStatus.FORBIDDEN);
-		helper.testGetJsonEntityShouldFail(datasetLocation.getString("uri"), HttpStatus.FORBIDDEN);
-		helper.testGetJsonEntityShouldFail(layer.getString("locations"), HttpStatus.FORBIDDEN);
-		helper.testGetJsonEntityShouldFail(layerLocation.getString("uri"), HttpStatus.FORBIDDEN);
-		helper.testQueryShouldFail("select * from location where parentId == \"" + dataset.getString("id") + "\"", HttpStatus.FORBIDDEN);
-		helper.testQueryShouldFail("select * from location where parentId == \"" + layer.getString("id") + "\"", HttpStatus.FORBIDDEN);
-		
+		helper.testGetJsonEntityShouldFail(dataset.getString("locations"),
+				HttpStatus.FORBIDDEN);
+		helper.testGetJsonEntityShouldFail(datasetLocation.getString("uri"),
+				HttpStatus.FORBIDDEN);
+		helper.testGetJsonEntityShouldFail(layer.getString("locations"),
+				HttpStatus.FORBIDDEN);
+		helper.testGetJsonEntityShouldFail(layerLocation.getString("uri"),
+				HttpStatus.FORBIDDEN);
+		helper.testQueryShouldFail(
+				"select * from location where parentId == \""
+						+ dataset.getString("id") + "\"", HttpStatus.FORBIDDEN);
+		helper.testQueryShouldFail(
+				"select * from location where parentId == \""
+						+ layer.getString("id") + "\"", HttpStatus.FORBIDDEN);
+
 		// Make agreement
 		JSONObject agreement = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
@@ -179,15 +209,20 @@ public class EulaControllerTest {
 				+ dataset.getString("id") + "\", \"eulaId\":\""
 				+ eula.getString("id") + "\"}");
 		assertExpectedAgreementProperties(agreement);
-		
+
 		// Now that the user has signed the agreement, these do work
 		helper.testGetJsonEntities(dataset.getString("locations"));
 		helper.testGetJsonEntity(datasetLocation.getString("uri"));
 		helper.testGetJsonEntities(layer.getString("locations"));
 		helper.testGetJsonEntity(layerLocation.getString("uri"));
-		JSONObject datasetLocationQueryResult = helper.testQuery("select * from location where location.parentId == \"" + dataset.getString("id") + "\"");
-		assertEquals(1, datasetLocationQueryResult.getInt("totalNumberOfResults"));
-		JSONObject layerLocationQueryResult = helper.testQuery("select * from location where location.parentId == \"" + layer.getString("id") + "\"");
+		JSONObject datasetLocationQueryResult = helper
+				.testQuery("select * from location where location.parentId == \""
+						+ dataset.getString("id") + "\"");
+		assertEquals(1, datasetLocationQueryResult
+				.getInt("totalNumberOfResults"));
+		JSONObject layerLocationQueryResult = helper
+				.testQuery("select * from location where location.parentId == \""
+						+ layer.getString("id") + "\"");
 		assertEquals(1, layerLocationQueryResult.getInt("totalNumberOfResults"));
 	}
 

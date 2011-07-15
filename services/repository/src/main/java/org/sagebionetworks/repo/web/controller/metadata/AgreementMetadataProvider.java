@@ -97,6 +97,9 @@ public class AgreementMetadataProvider implements
 		if (null == entity.getEulaId()) {
 			throw new InvalidModelException("eulaId cannot be null");
 		}
+		if ((null != entity.getCreatedBy()) && !entity.getCreatedBy().equals(userInfo.getUser().getId())) {
+			throw new InvalidModelException("createdBy must be " + userInfo.getUser().getId());			
+		}
 
 		// The system is responsible for setting the versions of the dataset and
 		// eula once those objects are versionable PLFM-326

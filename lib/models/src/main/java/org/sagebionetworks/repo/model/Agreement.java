@@ -14,12 +14,13 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 /**
- * This class has three changes from the copy auto-generated using com.googlecode.jsonschema2pojo
+ * This class has several changes from the copy auto-generated using com.googlecode.jsonschema2pojo
  * http://code.google.com/p/jsonschema2pojo/
  * <ol>
  * <li> it also implements BaseChild
  * <li> I had to comment out the "additional properties" for it to play nice with the nodeable stuff
  * <li> I had to change the type from Object to Long for the versionNumber properties
+ * <li> transient fields
  * </ol>
  * 
  * See src/main/resources/schema/agreement.json for the corresponding JSON Schema
@@ -32,10 +33,6 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 public class Agreement implements BaseChild, Serializable
 {
 
-    @JsonProperty("accessControlList")
-    private String accessControlList;
-    @JsonProperty("annotations")
-    private String annotations;
     @JsonProperty("createdBy")
     private String createdBy;
     @JsonProperty("creationDate")
@@ -59,6 +56,13 @@ public class Agreement implements BaseChild, Serializable
     @JsonProperty("eulaVersionNumber")
     private Long eulaVersionNumber;
 //    private Map<String, Object> additionalProperties = new HashMap<String, Object>();
+    
+    @JsonProperty("accessControlList")
+	@TransientField
+    private String accessControlList;
+    @JsonProperty("annotations")
+	@TransientField
+    private String annotations;
 
     @JsonProperty("accessControlList")
     public String getAccessControlList() {
