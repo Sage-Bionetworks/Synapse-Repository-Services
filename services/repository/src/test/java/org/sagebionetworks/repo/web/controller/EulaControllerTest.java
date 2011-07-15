@@ -171,13 +171,7 @@ public class EulaControllerTest {
 	 */
 	@Test
 	public void testEnforceUseAgreement() throws Exception {
-		
-		if(helper.isIntegrationTest()) {
-			// TODO PLFM-253
-			// This test does not work in an integration test scenario until we have a better test harness in place
-			return;
-		}
-		
+
 		// Make a use agreement
 		JSONObject eula = helper.testCreateJsonEntity(helper.getServletPrefix()
 				+ "/eula", SAMPLE_EULA);
@@ -186,6 +180,12 @@ public class EulaControllerTest {
 		dataset.put("eulaId", eula.getString("id"));
 		JSONObject updatedDataset = helper.testUpdateJsonEntity(dataset);
 		assertEquals(eula.getString("id"), updatedDataset.getString("eulaId"));
+
+		// Make an agreement for the current user
+		helper.testCreateJsonEntity(helper.getServletPrefix() + "/agreement",
+				"{\"name\":\"agreement\", \"datasetId\":\""
+						+ dataset.getString("id") + "\", \"eulaId\":\""
+						+ eula.getString("id") + "\"}");
 
 		// Change the user from the creator of the dataset to someone else
 		helper.useTestUser();
@@ -231,6 +231,14 @@ public class EulaControllerTest {
 				.testQuery("select * from location where location.parentId == \""
 						+ layer.getString("id") + "\"");
 		assertEquals(1, layerLocationQueryResult.getInt("totalNumberOfResults"));
+
+		// Ensure that this non-admin user can see their agreement for this
+		// dataset plust others
+		JSONObject queryResult = helper
+				.testQuery("select * from agreement where eulaId == \""
+						+ eula.getString("id") + "\"");
+		assertEquals(2, queryResult.getInt("totalNumberOfResults"));
+
 	}
 
 	/*****************************************************************************************************

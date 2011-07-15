@@ -236,6 +236,7 @@ public class JDOAccessControlListDAOImplTest {
 	 * Test method for {@link org.sagebionetworks.repo.model.jdo.JDOBaseDAOImpl#getAll()}.
 	 */
 	@Test
+	@Ignore //PLFM-329
 	public void testGetAll() throws Exception {
 		assertEquals(aclList, accessControlListDAO.getAll());
 	}

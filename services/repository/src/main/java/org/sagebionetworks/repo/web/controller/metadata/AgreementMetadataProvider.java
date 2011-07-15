@@ -206,8 +206,9 @@ public class AgreementMetadataProvider implements
 		UserGroup publicGroup = userGroupDAO.findGroup(
 				AuthorizationConstants.PUBLIC_GROUP_NAME, false);
 		addToACL(acl, publicGroup, ACCESS_TYPE.CREATE);
-		// TODO remove this line once PLFM-325 is fixed
+		// TODO remove these two lines once PLFM-325 is fixed
 		addToACL(acl, publicGroup, ACCESS_TYPE.UPDATE);
+		addToACL(acl, publicGroup, ACCESS_TYPE.READ);
 		permissionsManager.updateACL(acl, userInfo);
 	}
 
