@@ -45,7 +45,7 @@
 		
 	<bean id="datasetMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.DatasetMetadataProvider" scope="singleton"/>
 	<bean id="inputDataLayerProvider" class="org.sagebionetworks.repo.web.controller.metadata.InputDataLayerMetadataProvider" scope="singleton"/>
-	<bean id="layerLocationMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.LayerLocationMetadataProvider" scope="singleton"/>
+	<bean id="locationMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.LayerLocationMetadataProvider" scope="singleton"/>
 	<bean id="projectMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.ProjectMetadataProvider" scope="singleton"/>
 	<bean id="storedLayerPreviewMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.StoredLayerPreviewMetadataProvider" scope="singleton"/>
 	<bean id="eulaMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.EulaMetadataProvider" scope="singleton"/>
@@ -57,7 +57,7 @@
 	      <map>
 			<entry key="dataset"><ref bean="datasetMetadataProvider" /></entry>
 			<entry key="layer"><ref bean="inputDataLayerProvider" /></entry>
-			<entry key="layerlocation"><ref bean="layerLocationMetadataProvider" /></entry>
+			<entry key="location"><ref bean="locationMetadataProvider" /></entry>
 			<entry key="project"><ref bean="projectMetadataProvider" /></entry>
 			<entry key="layerpreview"><ref bean="storedLayerPreviewMetadataProvider" /></entry>
 			<entry key="eula"><ref bean="eulaMetadataProvider" /></entry>

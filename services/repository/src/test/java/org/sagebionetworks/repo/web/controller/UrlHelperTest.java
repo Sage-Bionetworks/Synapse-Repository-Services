@@ -220,7 +220,7 @@ public class UrlHelperTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetVersionableNullVersionNumber(){
 		LayerLocation location = new LayerLocation();
-		String baseUri = "/repo/v1"+ObjectType.layerlocation.getUrlPrefix()+"/42";
+		String baseUri = "/repo/v1"+ObjectType.location.getUrlPrefix()+"/42";
 		location.setUri(baseUri);
 		// set the version number to be null
 		location.setVersionNumber(null);
@@ -232,7 +232,7 @@ public class UrlHelperTest {
 		LayerLocation location = new LayerLocation();
 		location.setVersionNumber(new Long(12));
 		// Make sure the location has a uri
-		String baseUri = "/repo/v1"+ObjectType.layerlocation.getUrlPrefix()+"/42";
+		String baseUri = "/repo/v1"+ObjectType.location.getUrlPrefix()+"/42";
 		location.setUri(baseUri);
 		UrlHelpers.setVersionableUrl(location);
 		assertEquals(baseUri+UrlHelpers.VERSION, location.getVersions());

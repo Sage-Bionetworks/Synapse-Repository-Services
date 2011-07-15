@@ -169,8 +169,8 @@ public class EulaControllerTest {
 		helper.testGetJsonEntityShouldFail(datasetLocation.getString("uri"), HttpStatus.FORBIDDEN);
 		helper.testGetJsonEntityShouldFail(layer.getString("locations"), HttpStatus.FORBIDDEN);
 		helper.testGetJsonEntityShouldFail(layerLocation.getString("uri"), HttpStatus.FORBIDDEN);
-		helper.testQueryShouldFail("select * from layerlocation where parentId == \"" + dataset.getString("id") + "\"", HttpStatus.FORBIDDEN);
-		helper.testQueryShouldFail("select * from layerlocation where parentId == \"" + layer.getString("id") + "\"", HttpStatus.FORBIDDEN);
+		helper.testQueryShouldFail("select * from location where parentId == \"" + dataset.getString("id") + "\"", HttpStatus.FORBIDDEN);
+		helper.testQueryShouldFail("select * from location where parentId == \"" + layer.getString("id") + "\"", HttpStatus.FORBIDDEN);
 		
 		// Make agreement
 		JSONObject agreement = helper.testCreateJsonEntity(helper
@@ -185,9 +185,9 @@ public class EulaControllerTest {
 		helper.testGetJsonEntity(datasetLocation.getString("uri"));
 		helper.testGetJsonEntities(layer.getString("locations"));
 		helper.testGetJsonEntity(layerLocation.getString("uri"));
-		JSONObject datasetLocationQueryResult = helper.testQuery("select * from layerlocation where location.parentId == \"" + dataset.getString("id") + "\"");
+		JSONObject datasetLocationQueryResult = helper.testQuery("select * from location where location.parentId == \"" + dataset.getString("id") + "\"");
 		assertEquals(1, datasetLocationQueryResult.getInt("totalNumberOfResults"));
-		JSONObject layerLocationQueryResult = helper.testQuery("select * from layerlocation where location.parentId == \"" + layer.getString("id") + "\"");
+		JSONObject layerLocationQueryResult = helper.testQuery("select * from location where location.parentId == \"" + layer.getString("id") + "\"");
 		assertEquals(1, layerLocationQueryResult.getInt("totalNumberOfResults"));
 	}
 

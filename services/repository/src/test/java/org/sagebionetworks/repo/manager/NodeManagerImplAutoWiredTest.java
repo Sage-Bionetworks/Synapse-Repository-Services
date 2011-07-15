@@ -182,7 +182,7 @@ public class NodeManagerImplAutoWiredTest {
 		// First create a node with 
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
-		newNode.setNodeType(ObjectType.layerlocation.name());
+		newNode.setNodeType(ObjectType.location.name());
 		newNode.setVersionLabel("0.0.1");
 		newNode.setVersionComment("This is the comment on the first version.");
 		UserInfo userInfo = testUser;
@@ -290,7 +290,7 @@ public class NodeManagerImplAutoWiredTest {
 		// First create a node with 
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
-		newNode.setNodeType(ObjectType.layerlocation.name());
+		newNode.setNodeType(ObjectType.location.name());
 		newNode.setVersionLabel("0.0.0");
 		newNode.setVersionComment("This is the comment on the first version.");
 		UserInfo userInfo = testUser;

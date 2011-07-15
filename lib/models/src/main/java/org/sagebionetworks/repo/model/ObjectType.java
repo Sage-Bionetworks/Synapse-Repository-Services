@@ -11,7 +11,7 @@ public enum ObjectType {
 	
 	dataset			(Dataset.class, 			(short)0, "/dataset"),
 	layer			(InputDataLayer.class, 		(short)1, "/layer"),
-	layerlocation	(LayerLocation.class, 		(short)2, "/location"),
+	location		(LayerLocation.class, 		(short)2, "/location"),
 	project			(Project.class, 			(short)3, "/project"),
 	layerpreview	(StoredLayerPreview.class, 	(short)4, "/preview"),
 	eula			(Eula.class,				(short)5, "/eula"),
