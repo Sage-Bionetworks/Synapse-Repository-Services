@@ -59,7 +59,7 @@
 			<entry key="layer"><ref bean="inputDataLayerProvider" /></entry>
 			<entry key="location"><ref bean="locationMetadataProvider" /></entry>
 			<entry key="project"><ref bean="projectMetadataProvider" /></entry>
-			<entry key="layerpreview"><ref bean="storedLayerPreviewMetadataProvider" /></entry>
+			<entry key="preview"><ref bean="storedLayerPreviewMetadataProvider" /></entry>
 			<entry key="eula"><ref bean="eulaMetadataProvider" /></entry>
 			<entry key="agreement"><ref bean="agreementMetadataProvider" /></entry>
 	      </map>

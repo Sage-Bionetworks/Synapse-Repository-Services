@@ -136,7 +136,7 @@ public class UrlHelperTest {
 	public void testSetAllNodeableUrls(){
 		StoredLayerPreview preview = new StoredLayerPreview();
 		// Make sure the preview has a uri
-		String baseUri = "/repo/v1"+ObjectType.layerpreview.getUrlPrefix()+"/42";
+		String baseUri = "/repo/v1"+ObjectType.preview.getUrlPrefix()+"/42";
 		preview.setUri(baseUri);
 		UrlHelpers.setAllNodeableUrls(preview);
 		assertEquals(baseUri+UrlHelpers.ACL, preview.getAccessControlList());
