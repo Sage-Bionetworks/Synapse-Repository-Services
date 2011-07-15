@@ -199,6 +199,9 @@ public class QueryStatement {
 		return whereValue;
 	}
 
+	/**
+	 * @return the search conditions
+	 */
 	public List<Expression> getSearchCondition() {
 		return searchCondition;
 	}
