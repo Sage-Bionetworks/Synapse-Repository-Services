@@ -2,11 +2,13 @@
 package org.sagebionetworks.repo.model;
 
 /**
- * This class has two changes from the copy auto-generated using com.googlecode.jsonschema2pojo
+ * This class has several changes from the copy auto-generated using com.googlecode.jsonschema2pojo
  * http://code.google.com/p/jsonschema2pojo/
  * <ol>
  * <li> it also implements BaseChild
  * <li> I had to comment out the "additional properties" for it to play nice with the nodeable stuff
+ * <li> transient fields
+ * <li> blob primary field
  * </ol>
  * 
  * See src/main/resources/schema/eula.json for the corresponding JSON Schema
@@ -32,12 +34,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 public class Eula implements BaseChild, Serializable
 {
 
-    @JsonProperty("accessControlList")
-    private String accessControlList;
-    @JsonProperty("agreement")
-    private String agreement;
-    @JsonProperty("annotations")
-    private String annotations;
+    private byte[] agreementBlob;
     @JsonProperty("creationDate")
     private Date creationDate;
     @JsonProperty("etag")
@@ -51,6 +48,16 @@ public class Eula implements BaseChild, Serializable
     @JsonProperty("uri")
     private String uri;
 //    private Map<String, Object> additionalProperties = new HashMap<String, Object>();
+
+    @JsonProperty("agreement")
+	@TransientField
+    private String agreement;
+    @JsonProperty("accessControlList")
+	@TransientField
+    private String accessControlList;
+    @JsonProperty("annotations")
+	@TransientField
+    private String annotations;
 
     @JsonProperty("accessControlList")
     public String getAccessControlList() {
@@ -71,6 +78,14 @@ public class Eula implements BaseChild, Serializable
     public void setAgreement(String agreement) {
         this.agreement = agreement;
     }
+
+    public byte[] getAgreementBlob() {
+		return agreementBlob;
+	}
+
+    public void setAgreementBlob(byte[] agreementBlob) {
+		this.agreementBlob = agreementBlob;
+	}
 
     @JsonProperty("annotations")
     public String getAnnotations() {
