@@ -1,15 +1,14 @@
 # Turn on traffic filtering
 *filter
 
-
 # Set default policies
 :INPUT DROP
 :FORWARD DROP
 :OUTPUT DROP
 
 # Logging
--A INPUT -j LOG --log-prefix "input drop "
--A OUTPUT -j LOG --log-prefix "output drop "
+#-A INPUT -j LOG --log-prefix "input drop "
+#-A OUTPUT -j LOG --log-prefix "output drop "
 
 # Accept all traffic from the loopback interface
 -A INPUT -i lo -j ACCEPT
@@ -23,27 +22,45 @@
 -A INPUT -s 140.107.0.0/255.255.0.0 -i eth0 -p tcp -m tcp --dport 22 -j ACCEPT
 -A INPUT  ! -s 140.107.0.0/255.255.0.0 -p tcp -m tcp --dport 22 -j DROP
 
-# Deny outbound SSH connections
--A OUTPUT -p TCP --dport 22 -m state --state NEW -j DROP
-
 # Allow ICMP ping from amazon hosts
 -A INPUT -s 10.0.0.0/255.0.0.0 -i eth0 -p icmp --icmp-type 8 -j ACCEPT
 
-# Allow outbound dns requests and responses
+# DNS, DHCP, NTP are required
+# Allow outbound DNS Traffic
 -A INPUT -i eth0 -p udp -m state --state ESTABLISHED -m udp --sport 53 -j ACCEPT
 -A OUTPUT -p UDP --dport 53 -m state --state NEW -j ACCEPT
 -A INPUT -i eth0 -p tcp -m tcp --sport 53 -m state --state RELATED,ESTABLISHED -j ACCEPT
 -A OUTPUT -p TCP --dport 53 -m state --state NEW -j ACCEPT
+# Allow outbound NTP Traffic
+-A OUTPUT -o eth0 -p udp -m state --state ESTABLISHED -m udp --sport 123 -j ACCEPT
+-A OUTPUT -p UDP --dport 123 -m state --state NEW -j ACCEPT
+# Allow DHCP Traffic
+-A INPUT -i eth0 -p udp -m state --state ESTABLISHED -m udp --sport 68 -j ACCEPT
+-A OUTPUT -p UDP --dport 68 -m state --state NEW -j ACCEPT
 
 # Allow inbound HTTP + HTTPS from everywhere
+# Java hosts listen on 8080
 -A INPUT -i eth0 -p tcp -m tcp --dport 80 -j ACCEPT
 -A OUTPUT -p tcp --dport 80 -m state --state RELATED,ESTABLISHED -j ACCEPT
 -A INPUT -i eth0 -p tcp -m tcp --dport 443 -j ACCEPT
 -A OUTPUT -p tcp --dport 443 -m state --state RELATED,ESTABLISHED -j ACCEPT
+# Java Ports
+-A INPUT -i eth0 -p tcp -m tcp --dport 8080 -j ACCEPT
+-A OUTPUT -p tcp --dport 8080 -m state --state RELATED,ESTABLISHED,NEW -j ACCEPT
+-A INPUT -i eth0 -p tcp -m tcp --dport 8009 -j ACCEPT
+-A OUTPUT -p tcp --dport 8009 -m state --state RELATED,ESTABLISHED,NEW -j ACCEPT
+-A INPUT -i eth0 -p tcp -m tcp --dport 8999 -j ACCEPT
+-A OUTPUT -p tcp --dport 8999 -m state --state RELATED,ESTABLISHED,NEW -j ACCEPT
+# Local 8005?
+-A INPUT -i lo -p tcp -m tcp --dport 8005 -j ACCEPT
+-A OUTPUT -p tcp --dport 8005 -m state --state RELATED,ESTABLISHED,NEW -j ACCEPT
+
 
 # FHCRC won't work due to ELB
 #-A INPUT -s 140.107.0.0/255.255.0.0 -i eth0 -p tcp -m tcp --dport 80 -j ACCEPT
 #-A INPUT -s 140.107.0.0/255.255.0.0 -i eth0 -p tcp -m tcp --dport 443 -j ACCEPT
+
+# Allow
 
 # Allow outbound mysql requests
 -A OUTPUT -p tcp -s repo.c5sxx7pot9i8.us-east-1.rds.amazonaws.com --sport 1024:65535 -d 0/0 --dport 3306 -m state --state NEW,ESTABLISHED -j ACCEPT
