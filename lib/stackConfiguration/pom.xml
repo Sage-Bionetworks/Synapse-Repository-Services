@@ -16,6 +16,12 @@
 	<packaging>jar</packaging>
 	<version>${applicationVersion}</version>
 
+	<properties>
+		<org.sagebionetworks.authenticationservice.endpoint>http://localhost:8080/services-authentication-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.endpoint>
+		<org.sagebionetworks.repositoryservice.endpoint>http://localhost:8080/services-repository-${project.version}/repo/v1</org.sagebionetworks.repositoryservice.endpoint>
+		<org.sagebionetworks.portal.endpoint>http://localhost:8080/portal-${project.version}/Portal</org.sagebionetworks.portal.endpoint>
+	</properties>
+
 	<dependencies>
 
 		<dependency>
@@ -82,6 +88,12 @@
 	</dependencies>
 
 	<build>
+		<resources>
+			<resource>
+				<filtering>true</filtering>
+				<directory>src/main/resources</directory>
+			</resource>
+		</resources>
 		<plugins>
 			<!-- Build number generator -->
 			<plugin>
