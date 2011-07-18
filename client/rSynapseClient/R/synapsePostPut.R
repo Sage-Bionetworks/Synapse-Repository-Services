@@ -3,7 +3,7 @@
 				anonymous = FALSE, path = .getRepoEndpointPrefix, opts = .getCache("curlOpts"))
 {
 	## constants
-	kValidMethods <- c("POST", "PUT")
+	kValidMethods <- c("POST", "PUT", "DELETE")
 	## end constants
 	
 	if(!(requestMethod %in% kValidMethods)){
@@ -23,8 +23,8 @@
 	## Prepare the header. If not an anonymous request, stuff the
 	## sessionToken into the header
 	header <- .getCache("curlHeader")
-	if(!anonymous && !is.null(synapseSessionToken())){
-		header <- c(header, sessionToken = synapseSessionToken())
+	if(!anonymous && !is.null(sessionToken())){
+		header <- c(header, sessionToken = sessionToken())
 	}
 	if("PUT" == requestMethod) {
 		# Add the ETag header

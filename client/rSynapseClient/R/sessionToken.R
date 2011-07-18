@@ -1,25 +1,43 @@
-synapseSessionToken <- 
+sessionToken <- 
 		function(sessionToken, checkValidity=FALSE, refreshDuration = .getCache("sessionRefreshDurationMin"))
 {
 	if (!missing(sessionToken)) {
 		if(is.null(sessionToken)) sessionToken <- ""
 		if(checkValidity){
-			synapseRefreshSessionToken(sessionToken)
+			refreshSessionToken(sessionToken)
 		}
 		.setCache("sessionToken", sessionToken)
 	} else {
 		# This could be null if the user has not logged in, but that's ok
 		sessionToken <-	.getCache("sessionToken")
+		if(is.null(sessionToken))
+			sessionToken <- ""
 		# Refresh sessionToken as applicable
 		if(checkValidity) {
-			synapseRefreshSessionToken(sessionToken)
+			refreshSessionToken(sessionToken)
 		} else if(!is.null(.getCache("sessionTimestamp"))) {
 			elapsedTimeMin <-  (as.numeric(Sys.time()) - as.numeric(.getCache("sessionTimestamp")))/60
 			if(elapsedTimeMin >= refreshDuration) {
-				synapseRefreshSessionToken(sessionToken)
+				refreshSessionToken(sessionToken)
 			} 
 		}
 		return(sessionToken)
 	}
 }
 
+refreshSessionToken <- 
+		function(sessionToken)
+{
+	# constants
+	kService <- "/session"
+	## end constants
+	
+	host = .getAuthEndpointLocation()
+	
+	entity <- list()
+	entity$sessionToken <- sessionToken
+	
+	uri <- kService
+	response <- synapsePut(uri=uri, entity=entity, path=.getAuthEndpointPrefix(), host=host, anonymous=TRUE)
+	.setCache("sessionTimestamp", Sys.time())
+}

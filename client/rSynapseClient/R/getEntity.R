@@ -1,10 +1,6 @@
 .getEntity <- 
 		function(kind, entity)
-{
-	if(missing(entity)) {
-		stop("missing entity parameter")
-	}
-	
+{	
 	# entity parameter is an entity	
 	if(is.list(entity)){
 		if(!"uri" %in% names(entity)){

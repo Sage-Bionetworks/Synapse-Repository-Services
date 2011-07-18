@@ -21,6 +21,9 @@ getDatasets <-
 	jsonRecords <- synapseGet(uri=uri, anonymous=FALSE)
 	result <- .parseJSONRecords(jsonRecords$results)
 	attr(result, "totalNumberOfResults") <- jsonRecords$totalNumberOfResults
+	
+	## drop the dataset prefix from field names
+	names(result) <- gsub("^dataset[\\.]", "", names(result))
 
 	return(result)
 }

@@ -7,12 +7,13 @@
 
 integrationTestSawyersDatasetChildEntityGet <- function() {
 	datasets <- synapseQuery(query='select * from dataset where dataset.name == "MSKCC Prostate Cancer"')
-	layers <- getDatasetLayers(entity=datasets$dataset.id[1])
-	checkTrue(5 <= layers$totalNumberOfResults)
-	locations <- getLayerLocations(entity=layers$results[[1]])
-	checkTrue(1 <= locations$totalNumberOfResults)
-	previews <- getLayerPreviews(entity=layers$results[[1]])
-	checkTrue(1 <= previews$totalNumberOfResults)
+	layers <- getDatasetLayers(entity=datasets$dataset.id[1], includeParentAnnot = FALSE)
+	checkTrue(5 <= dim(layers)[1])
+	layer <- getLayer(entity=layers$id[1])
+	locations <- getLayerLocations(entity=layer)
+	checkTrue(1 <= dim(locations)[1])
+	previews <- getLayerPreviews(entity=layer)
+	checkTrue(1 <= dim(previews)[1])
 }
 
 integrationTestSageBioCurationProjectChildEntityGet <- function() {
@@ -20,11 +21,8 @@ integrationTestSageBioCurationProjectChildEntityGet <- function() {
 	project <- getProject(entity=projects$project.id[1])
 
 	datasets <- getProjectDatasets(entity=project)
-	checkEquals(100, length(datasets$results))
-	checkTrue(115 <= datasets$totalNumberOfResults)
+	checkEquals(100, dim(datasets)[1])
 
 	moreDatasets <- getProjectDatasets(entity=project, limit=200)
-	checkTrue(115 <= length(moreDatasets$results))
-	checkTrue(115 <= moreDatasets$totalNumberOfResults)
-	
+	checkTrue(115 <= dim(moreDatasets)[1])
 }

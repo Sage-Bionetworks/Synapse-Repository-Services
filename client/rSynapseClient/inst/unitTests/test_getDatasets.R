@@ -51,10 +51,10 @@ unitTestJsonCorretlyParsed <-
 	checkEquals(dim(datasets)[2], 26)
 	# The fields returned by this service API may change over time, but
 	# there are a few we should always expect to receive
-	checkTrue("dataset.id" %in% names(datasets))
-	checkTrue("dataset.name" %in% names(datasets))
-	checkTrue("dataset.version" %in% names(datasets))
-	checkTrue("dataset.status" %in% names(datasets))
-	checkTrue("dataset.Species" %in% names(datasets))
+	checkTrue("id" %in% names(datasets))
+	checkTrue("name" %in% names(datasets))
+	checkTrue("version" %in% names(datasets))
+	checkTrue("status" %in% names(datasets))
+	checkTrue("Species" %in% names(datasets))
 }
 

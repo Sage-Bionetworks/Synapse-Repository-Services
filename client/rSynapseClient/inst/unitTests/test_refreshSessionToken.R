@@ -16,10 +16,11 @@
 		}
 	}
 	
-	attr(myGetURL, origFcn) <- RCurl:::getURL
+	attr(myGetURL, "origFcn") <- RCurl:::getURL
+	detach('package:synapseClient', force = TRUE)
 	detach('package:RCurl', force = TRUE)
 	assignInNamespace("getURL", myGetURL, "RCurl")
-	library(RCurl, quietly = TRUE)
+	library(synapseClient, quietly = TRUE)
 }
 
 .tearDown <-
@@ -27,9 +28,13 @@
 {
 	.deleteCache("validToken")
 	.deleteCache("inValidToken")
+	detach('package:synapseClient', force=TRUE)
+	detach('package:RCurl', force = TRUE)
+	assignInNamespace("getURL", attr(RCurl:::getURL,'origFcn'), "RCurl")
+	library(synapseClient, quietly = TRUE)
 }
 
-testRefresh <-
+unitTestRefresh <-
 		function()
 {
 	

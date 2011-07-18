@@ -2,7 +2,7 @@ setClass(
 		Class = "LayerData",
 		representation = representation(
 				layer = "Layer",
-				files = "layerFiles",
+				files = "character",
 				data = "data.frame",
 				rowDict = "data.frame",
 				colDict = "data.frame"

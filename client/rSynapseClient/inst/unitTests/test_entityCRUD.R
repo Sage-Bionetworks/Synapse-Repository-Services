@@ -23,6 +23,7 @@
 	
 	#reload detached packages
 	library(synapseClient, quietly=TRUE)
+	library(RCurl, quietly = TRUE)
 }
 
 .tearDown <- function() {
@@ -31,6 +32,7 @@
 	detach('package:RCurl', force = TRUE)
 	assignInNamespace(".checkCurlResponse", attr(synapseClient:::.checkCurlResponse, "origFcn"), "synapseClient")
 	assignInNamespace("getURL", attr(RCurl:::getURL, "origFcn"), "RCurl")
+	library(RCurl, quietly = TRUE)
 	library(synapseClient, quietly = TRUE)
 }
 

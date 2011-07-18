@@ -46,11 +46,11 @@ integrationTestConditionalGet <- function() {
 	
 	# Now download the layer
 	locations <- getLayerLocations(entity=createdLayer)
-	destinationFile1 <- synapseDownloadFile(url=locations$results[[1]]$path, checksum=locations$results[[1]]$md5sum)
+	destinationFile1 <- synapseDownloadFile(url=locations$path[1], checksum=locations$md5sum[1])
 	fileInfo1 <- file.info(destinationFile1) 
 	
 	# Now download the layer again, but this time it should just read from the cache
-	destinationFile2 <- synapseDownloadFile(url=locations$results[[1]]$path, checksum=locations$results[[1]]$md5sum)
+	destinationFile2 <- synapseDownloadFile(url=locations$path[1], checksum=locations$md5sum[1])
 	fileInfo2 <- file.info(destinationFile2) 
 	
 	checkEquals(destinationFile1, destinationFile2)

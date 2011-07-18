@@ -9,11 +9,11 @@ integrationTestGetDatasets <- function() {
 	datasets <- getDatasets()
 	# The fields returned by this service API may change over time, but
 	# there are a few we should always expect to receive
-	checkTrue("dataset.id" %in% names(datasets))
-	checkTrue("dataset.name" %in% names(datasets))
-	checkTrue("dataset.version" %in% names(datasets))
-	checkTrue("dataset.status" %in% names(datasets))
-	checkTrue("dataset.Species" %in% names(datasets))
+	checkTrue("id" %in% names(datasets))
+	checkTrue("name" %in% names(datasets))
+	checkTrue("version" %in% names(datasets))
+	checkTrue("status" %in% names(datasets))
+	checkTrue("Species" %in% names(datasets))
 }
 
 integrationTestPaging <- function() {
@@ -23,8 +23,8 @@ integrationTestPaging <- function() {
 	checkEquals(dim(firstPageDatasets)[1], 20)
 	checkEquals(dim(secondPageDatasets)[1], 20)
 	# And they do not overlap
-	checkEquals(length(union(firstPageDatasets$dataset.id,
-							secondPageDatasets$dataset.id)),
+	checkEquals(length(union(firstPageDatasets$id,
+							secondPageDatasets$id)),
 			40)
 }
 
@@ -33,6 +33,6 @@ integrationTestQueryForDataset <- function() {
 	# We should get back 1 dataset
 	checkEquals(dim(datasets)[1], 1)
 	# And its name should match the one we searched for
-	checkEquals(datasets$dataset.name, "MSKCC Prostate Cancer")
+	checkEquals(datasets$name, "MSKCC Prostate Cancer")
 }
 

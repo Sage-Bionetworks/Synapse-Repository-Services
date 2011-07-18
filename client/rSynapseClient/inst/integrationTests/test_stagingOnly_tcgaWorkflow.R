@@ -41,8 +41,8 @@ integrationTestSageBioTCGACurationProjectChildEntityGet <- function() {
 	projects <- synapseQuery(query='select * from project where project.name == "SageBio TCGA Curation"')
 	project <- getProject(entity=projects$project.id[1])
 	datasets <- getProjectDatasets(entity=project)
-	checkTrue(1 <= datasets$totalNumberOfResults)
-	checkTrue('coad' %in% lapply(datasets$results, function(x){x$name}))
+	checkTrue(1 <= dim(datasets)[1])
+	checkTrue('coad' %in% datasets$dataset.name)
 }
 
 integrationTestTcgaWorkflow <- function() {
@@ -74,22 +74,13 @@ integrationTestTcgaWorkflow <- function() {
 	
 	#----- Download, unpack, and load the clinical layer of this TCGA dataset  
 	#      because we need it as additional input to this script
-	datasetLayers <- getDatasetLayers(entity=dataset)
-	####
-	## TODO fix this hack. m.furia
-	layerTypes <- NULL
-	for(i in 1:length(datasetLayers$results)){
-		layerTypes[i] <- datasetLayers$results[[i]]$type
-	}
-	ind <- which(layerTypes == "C")
+	datasetLayers <- getDatasetLayers(entity=dataset, includeParentAnnot=FALSE)
+	ind <- which(datasetLayers$type == "C")
 	checkTrue(length(ind) > 0)
-	## end hack
-	####
-	clinicalLayer <- datasetLayers$results[[ind[1]]]
+	
+	clinicalLayer <- getLayer(entity=datasetLayers$id[ind[1]])
 	clinicalDataFiles <- loadLayerData(entity=clinicalLayer)
-	clinicalData <- read.table(clinicalDataFiles[[4]], sep='\t')
-	# TODO getting error "Error in !header : invalid argument type"
-	#clinicalData <- read.table(clinicalDataFiles[[4]], sep='\t', header='TRUE')
+	clinicalData <- read.delim(clinicalDataFiles[[4]], as.is=TRUE)
 	
 	#----- Do interesting work with the clinical and expression data R objects
 	#      e.g., make a matrix by combining expression and clinical data

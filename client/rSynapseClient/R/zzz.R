@@ -57,4 +57,6 @@ kSupportedPlatforms <- list(
 	.setCache("anonymous", FALSE)
 	.setCache("downloadSuffix", "unpacked")
 	.setCache("debug", FALSE)
+	.setCache("curlWriter", getNativeSymbolInfo("_writer_write", PACKAGE="synapseClient")$address)
+	.setCache("curlReader", getNativeSymbolInfo("_reader_read", PACKAGE="synapseClient")$address)
 }
