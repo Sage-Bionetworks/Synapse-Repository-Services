@@ -91,7 +91,7 @@ public class SendMail {
     
     public static String readMailTemplate(String fname) {
     	try {
-	        InputStream is = SendMail.class.getClassLoader().getResourceAsStream("resetpasswordEmail.txt");
+	        InputStream is = SendMail.class.getClassLoader().getResourceAsStream(fname);
 			BufferedReader br = new BufferedReader(new InputStreamReader(is));
 			StringBuilder sb = new StringBuilder();
 			String s = br.readLine();
@@ -107,9 +107,17 @@ public class SendMail {
     	}
     }
     
+    public void sendSetPasswordMail(User user, String sessionToken) {
+    	sendUserMail(user, sessionToken, "setpasswordEmail.txt");
+    } 
+    
     public void sendResetPasswordMail(User user, String sessionToken) {
+    	sendUserMail(user, sessionToken, "resetpasswordEmail.txt");
+    } 
+    
+    public void sendUserMail(User user, String sessionToken, String fname) {
     	// read in email template
-    	String msg = readMailTemplate("resetpasswordEmail.txt");
+    	String msg = readMailTemplate(fname);
     	// fill in display name and user name
     	msg = msg.replaceAll("#displayname#", user.getDisplayName());
     	msg = msg.replaceAll("#username#", user.getEmail());
