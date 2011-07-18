@@ -39,12 +39,12 @@
 -A OUTPUT -p UDP --dport 68 -m state --state NEW -j ACCEPT
 
 # Allow inbound HTTP + HTTPS from everywhere
-# Java hosts listen on 8080
 -A INPUT -i eth0 -p tcp -m tcp --dport 80 -j ACCEPT
--A OUTPUT -p tcp --dport 80 -m state --state RELATED,ESTABLISHED -j ACCEPT
+-A OUTPUT -p tcp --dport 80 -m state --state RELATED,ESTABLISHED,NEW -j ACCEPT
 -A INPUT -i eth0 -p tcp -m tcp --dport 443 -j ACCEPT
--A OUTPUT -p tcp --dport 443 -m state --state RELATED,ESTABLISHED -j ACCEPT
-# Java Ports
+-A OUTPUT -p tcp --dport 443 -m state --state RELATED,ESTABLISHED,NEW -j ACCEPT
+
+# Java hosts listen on 8080
 -A INPUT -i eth0 -p tcp -m tcp --dport 8080 -j ACCEPT
 -A OUTPUT -p tcp --dport 8080 -m state --state RELATED,ESTABLISHED,NEW -j ACCEPT
 -A INPUT -i eth0 -p tcp -m tcp --dport 8009 -j ACCEPT
