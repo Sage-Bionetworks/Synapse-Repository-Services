@@ -53,6 +53,7 @@ public class DatasetControllerXMLTest {
 	@Autowired
 	private Helpers helper;
 	private HttpServlet servlet = null;
+	private JSONObject project;
 
 	// Dev Note: these ids cannot just be any string, they have to be paresable
 	// by our key utility
@@ -64,6 +65,8 @@ public class DatasetControllerXMLTest {
 	@Before
 	public void setUp() throws Exception {
 		servlet = helper.setUp();
+		project = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/project", DatasetControllerTest.SAMPLE_PROJECT);
 	}
 
 	/**
@@ -94,8 +97,8 @@ public class DatasetControllerXMLTest {
 		request.setRequestURI(helper.getServletPrefix() + "/dataset");
 		request.addHeader("Content-Type", "application/xml; charset=UTF-8");
 		request
-				.setContent("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><dataset><name>dataset from a unit test</name></dataset>"
-						.getBytes("UTF-8"));
+				.setContent(("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><dataset><name>dataset from a unit test</name><parentId>"+project.getString("id")+"</parentId></dataset>"
+						).getBytes("UTF-8"));
 		request.addParameter(AuthUtilConstants.USER_ID_PARAM, helper.getUserId());
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
@@ -467,7 +470,7 @@ public class DatasetControllerXMLTest {
 
 	private String createDatasetHelper() throws Exception {
 		JSONObject dataset = helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
-				"{\"name\":\"dataset from a unit test\"}");
+				"{\"name\":\"dataset from a unit test\",\"parentId\":\""+project.getString("id")+"\"}");
 		return dataset.getString("id");
 	}
 

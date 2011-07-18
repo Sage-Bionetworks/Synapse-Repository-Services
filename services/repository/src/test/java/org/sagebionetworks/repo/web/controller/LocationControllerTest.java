@@ -46,6 +46,7 @@ public class LocationControllerTest {
 
 	@Autowired
 	private Helpers helper;
+	private JSONObject project;
 	private JSONObject dataset;
 	private JSONObject layer;
 	private JSONObject datasetS3Location;
@@ -59,9 +60,13 @@ public class LocationControllerTest {
 	@Before
 	public void setUp() throws Exception {
 		helper.setUp();
+		
+		// Datasets must have a project as a parent
+		project = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/project", DatasetControllerTest.SAMPLE_PROJECT);
 
 		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/dataset", DatasetControllerTest.SAMPLE_DATASET);
+				+ "/dataset", DatasetControllerTest.getSampleDataset(project.getString("id")));
 
 		layer = helper.testCreateJsonEntity(helper.getServletPrefix()
 				+ "/layer", LayerControllerTest.getSampleLayer(dataset
@@ -295,7 +300,7 @@ public class LocationControllerTest {
 				.getServletPrefix()
 				+ "/location", SAMPLE_LOCATION, HttpStatus.BAD_REQUEST);
 
-		assertEquals("parentId cannot be null", error.getString("reason"));
+		assertEquals("Entity type: location cannot have a parent of type: null", error.getString("reason"));
 	}
 
 	/**
@@ -319,7 +324,7 @@ public class LocationControllerTest {
 		JSONObject error = helper.testUpdateJsonEntityShouldFail(location,
 				HttpStatus.BAD_REQUEST);
 
-		assertEquals("parentId cannot be null", error.getString("reason"));
+		assertEquals("Entity type: location cannot have a parent of type: null", error.getString("reason"));
 	}
 
 	/**
@@ -331,7 +336,7 @@ public class LocationControllerTest {
 		JSONObject error = helper
 				.testCreateJsonEntityShouldFail(
 						helper.getServletPrefix() + "/location",
-						"{\"parentId\":\"0\", \"type\":\"awss3\", \"md5sum\":\"33183779e53ce0cfc35f59cc2a762cbd\"}",
+						"{\"parentId\":\""+layer.getString("id")+"\", \"type\":\"awss3\", \"md5sum\":\"33183779e53ce0cfc35f59cc2a762cbd\"}",
 						HttpStatus.BAD_REQUEST);
 
 		assertEquals("path cannot be null", error.getString("reason"));
@@ -346,7 +351,7 @@ public class LocationControllerTest {
 		JSONObject error = helper
 				.testCreateJsonEntityShouldFail(
 						helper.getServletPrefix() + "/location",
-						"{\"parentId\":\"0\", \"type\":\"AFakeType\", \"path\":\"foo.txt\", \"md5sum\":\"33183779e53ce0cfc35f59cc2a762cbd\"}",
+						"{\"parentId\":\""+layer.getString("id")+"\", \"type\":\"AFakeType\", \"path\":\"foo.txt\", \"md5sum\":\"33183779e53ce0cfc35f59cc2a762cbd\"}",
 						HttpStatus.BAD_REQUEST);
 
 		assertTrue(0 <= error.getString("reason").indexOf("'type' must be one of"));

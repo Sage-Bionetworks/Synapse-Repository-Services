@@ -36,6 +36,7 @@ public class LayerAnnotationsControllerTest {
 
 	@Autowired
 	private Helpers helper;
+	private JSONObject project;
 	private JSONObject dataset;
 
 	/**
@@ -45,8 +46,11 @@ public class LayerAnnotationsControllerTest {
 	public void setUp() throws Exception {
 		helper.setUp();
 
+		project = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/project", DatasetControllerTest.SAMPLE_PROJECT);
+
 		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/dataset", DatasetControllerTest.SAMPLE_DATASET);
+				+ "/dataset", DatasetControllerTest.getSampleDataset(project.getString("id")));
 	}
 
 	/**

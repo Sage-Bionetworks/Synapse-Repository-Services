@@ -42,6 +42,9 @@
 	<bean id="accessControlListDAO" class="org.sagebionetworks.repo.model.jdo.JDOAccessControlListDAOImpl" scope="singleton"/>
 	
 	<bean id="layerTypeCountCache" class="org.sagebionetworks.repo.web.controller.metadata.LayerTypeCountCacheImpl" scope="singleton"/>
+	
+	<!-- Provides validation for all types -->
+	<bean id="allTypesValidator" class="org.sagebionetworks.repo.web.controller.metadata.AllTypesValidator" scope="singleton"/>
 		
 	<bean id="datasetMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.DatasetMetadataProvider" scope="singleton"/>
 	<bean id="inputDataLayerProvider" class="org.sagebionetworks.repo.web.controller.metadata.InputDataLayerMetadataProvider" scope="singleton"/>

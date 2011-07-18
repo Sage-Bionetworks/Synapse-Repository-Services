@@ -14,7 +14,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  *
  */
 @XmlRootElement
-public class StoredLayerPreview implements BaseChild {
+public class StoredLayerPreview implements Nodeable {
 	
 	private String id;
 	private String uri;

@@ -51,13 +51,21 @@ public class CRUDWikiGenerator {
 						+ "Partial updates (e.g., just updating two fields in a dataset) are not supported.  In a nutshell, when you update something like a "
 						+ "dataset, you GET the dataset first, modify the properties you want to change, and then send the entire object back to the service "
 						+ "so that this revised entity overwrites the previously stored entity.  Conflicting updates are detected and rejected through the use of the ETag header.");
+		
+		JSONObject project = wiki
+		.doPost(
+				"/project",
+				new JSONObject(
+						"{\"name\": \"RootProject\"}"),
+				"h3. Create a Project",
+				"Note that the request is a POST and the content type of the data we are sending to the service is json");
 
 		JSONObject dataset = wiki
 				.doPost(
 						"/dataset",
 						new JSONObject(
 								"{\"status\": \"Pending\", \"description\": \"Genetic and epigenetic alterations have been identified that ...\", "
-										+ "\"creator\": \"Charles Sawyers\", \"releaseDate\": \"2008-09-14\", \"version\": \"1.0.0\", \"name\": \"MSKCC Prostate Cancer\"}"),
+										+ "\"creator\": \"Charles Sawyers\", \"releaseDate\": \"2008-09-14\", \"version\": \"1.0.0\", \"name\": \"MSKCC Prostate Cancer\", \"parentId\":\""+project.getString("id")+"\"}"),
 						"h3. Create a Dataset",
 						"Note that the request is a POST and the content type of the data we are sending to the service is json");
 
@@ -162,8 +170,8 @@ public class CRUDWikiGenerator {
 
 		wiki
 				.doDelete(
-						dataset.getString("uri"),
-						"h3. Delete a Dataset",
+						project.getString("uri"),
+						"h3. Delete a Project",
 						"Note that the request is a DELETE and no content is returned.  Also note that this will delete all of the datasets layers, etc.");
 
 		return(wiki.getNumErrors());

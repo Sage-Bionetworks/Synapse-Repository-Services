@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Nodeable;
@@ -49,6 +50,19 @@ public interface NodeManager {
 	 * @throws NotFoundException 
 	 */
 	public Node get(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	/**
+	 * Get the full path of a node.
+	 * 
+	 * @param userInfo
+	 * @param nodeId
+	 * @return The first EntityHeader in the list will be the root parent for this node, and the last
+	 * will be the EntityHeader for the given node.
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public List<EntityHeader> getNodePath(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * Get a node for a given version number.

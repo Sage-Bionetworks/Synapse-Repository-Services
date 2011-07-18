@@ -1,8 +1,12 @@
 package org.sagebionetworks.repo.web.controller.metadata;
 
+import java.util.List;
+
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +46,7 @@ public class InputDataLayerMetadataProvider implements TypeSpecificMetadataProvi
 	}
 
 	@Override
-	public void validateEntity(InputDataLayer entity, UserInfo userInfo, EventType eventType) {
+	public void validateEntity(InputDataLayer entity, EntityEvent event) {
 		if(entity.getVersion() == null){
 			entity.setVersion("1.0.0");
 		}

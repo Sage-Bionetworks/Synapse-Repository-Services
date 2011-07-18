@@ -39,6 +39,7 @@ public class LayerControllerTest {
 
 	@Autowired
 	private Helpers helper;
+	private JSONObject project;
 	private JSONObject dataset;
 
 	/**
@@ -67,8 +68,11 @@ public class LayerControllerTest {
 	public void setUp() throws Exception {
 		helper.setUp();
 
+		project = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/project", DatasetControllerTest.SAMPLE_PROJECT);
+
 		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/dataset", DatasetControllerTest.SAMPLE_DATASET);
+				+ "/dataset", DatasetControllerTest.getSampleDataset(project.getString("id")));
 	}
 
 	/**
@@ -282,7 +286,7 @@ public class LayerControllerTest {
 		JSONObject error = helper
 				.testCreateJsonEntityShouldFail(helper.getServletPrefix()
 						+"/layer",
-						"{\"version\": \"1.0.0\", \"description\": \"foo\", \"releaseNotes\":\"bar\", \"type\":\"C\", \"parentId\":\"1\"}",
+						"{\"version\": \"1.0.0\", \"description\": \"foo\", \"releaseNotes\":\"bar\", \"type\":\"C\", \"parentId\":\""+dataset.getString("id")+"\"}",
 						HttpStatus.BAD_REQUEST);
 
 		assertEquals("Node.name cannot be null", error

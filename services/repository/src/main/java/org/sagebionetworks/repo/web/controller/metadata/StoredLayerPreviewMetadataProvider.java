@@ -39,7 +39,7 @@ public class StoredLayerPreviewMetadataProvider implements
 	}
 
 	@Override
-	public void validateEntity(StoredLayerPreview entity, UserInfo userInfo, EventType eventType) {
+	public void validateEntity(StoredLayerPreview entity, EntityEvent event) {
 		// Convert the blob value to the string value
 		if (entity.getPreviewString() != null) {
 			try {

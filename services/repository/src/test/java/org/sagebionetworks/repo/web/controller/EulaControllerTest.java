@@ -41,6 +41,7 @@ public class EulaControllerTest {
 
 	@Autowired
 	private Helpers helper;
+	private JSONObject project;
 	private JSONObject dataset;
 	private JSONObject datasetLocation;
 	private JSONObject layer;
@@ -54,8 +55,11 @@ public class EulaControllerTest {
 		helper.setUp();
 		helper.useAdminUser();
 
+		project = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/project", DatasetControllerTest.SAMPLE_PROJECT);
+
 		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/dataset", DatasetControllerTest.SAMPLE_DATASET);
+				+ "/dataset", DatasetControllerTest.getSampleDataset(project.getString("id")));
 		datasetLocation = new JSONObject(LocationControllerTest.SAMPLE_LOCATION)
 				.put(NodeConstants.COL_PARENT_ID, dataset.getString("id"));
 		datasetLocation = helper.testCreateJsonEntity(helper.getServletPrefix()
@@ -126,7 +130,7 @@ public class EulaControllerTest {
 				.getServletPrefix()
 				+ "/agreement", "{\"name\":\"agreement\", \"datasetId\":\""
 				+ dataset.getString("id") + "\", \"eulaId\":\""
-				+ eula.getString("id") + "\"}");
+				+ eula.getString("id") + "\", \"parentId\":\""+project.getString("id")+"\"}");
 		assertExpectedAgreementProperties(agreement);
 
 		String query = "select * from agreement where agreement.datasetId == \""
@@ -185,7 +189,7 @@ public class EulaControllerTest {
 		helper.testCreateJsonEntity(helper.getServletPrefix() + "/agreement",
 				"{\"name\":\"agreement\", \"datasetId\":\""
 						+ dataset.getString("id") + "\", \"eulaId\":\""
-						+ eula.getString("id") + "\"}");
+						+ eula.getString("id") + "\", \"parentId\":\""+project.getString("id")+"\"}");
 
 		// Change the user from the creator of the dataset to someone else
 		helper.useTestUser();
@@ -214,7 +218,7 @@ public class EulaControllerTest {
 				.getServletPrefix()
 				+ "/agreement", "{\"name\":\"agreement\", \"datasetId\":\""
 				+ dataset.getString("id") + "\", \"eulaId\":\""
-				+ eula.getString("id") + "\"}");
+				+ eula.getString("id") + "\", \"parentId\":\""+project.getString("id")+"\"}");
 		assertExpectedAgreementProperties(agreement);
 
 		// Now that the user has signed the agreement, these do work

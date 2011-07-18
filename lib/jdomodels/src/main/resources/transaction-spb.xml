@@ -72,6 +72,10 @@
 		</property>
 	</bean>
 
+	<bean id="simpleJdbcTempalte" class="org.springframework.jdbc.core.simple.SimpleJdbcTemplate">
+		<constructor-arg ref="dataSourcePool"></constructor-arg>
+	</bean>
+
 
     <!-- Depends on ID-generator. -->
 	<import resource="id-generator.spb.xml"/>

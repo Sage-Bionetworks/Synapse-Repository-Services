@@ -21,9 +21,11 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
@@ -512,5 +514,91 @@ public class NodeDAOImplTest {
 		String peekEtag = nodeDao.peekCurrentEtag(id);
 		assertEquals(node.getETag(), peekEtag);
 	}	
+	
+	@Test
+	public void testGetEntityHeader() throws NotFoundException, DatastoreException{
+		Node parent = NodeTestUtils.createNew("parent");
+		parent.setNodeType(ObjectType.project.name());
+		String parentId = nodeDao.createNew(parent);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+		// Get the header of this node
+		EntityHeader parentHeader = nodeDao.getEntityHeader(parentId);
+		assertNotNull(parentHeader);
+		assertEquals(ObjectType.project.getUrlPrefix(), parentHeader.getType());
+		assertEquals("parent", parentHeader.getName());
+		assertEquals(parentId, parentHeader.getId());
+		
+		Node child = NodeTestUtils.createNew("child");
+		child.setNodeType(ObjectType.dataset.name());
+		child.setParentId(parentId);
+		String childId = nodeDao.createNew(child);
+		toDelete.add(childId);
+		assertNotNull(childId);
+		// Get the header of this node
+		EntityHeader childHeader = nodeDao.getEntityHeader(childId);
+		assertNotNull(childHeader);
+		assertEquals(ObjectType.dataset.getUrlPrefix(), childHeader.getType());
+		assertEquals("child", childHeader.getName());
+		assertEquals(childId, childHeader.getId());
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetEntityHeaderDoesNotExist() throws NotFoundException, DatastoreException{
+		// There should be no node with this id.
+		long id = idGenerator.generateNewId();
+		nodeDao.getEntityHeader(KeyFactory.keyToString(id));
+	}
+	
+	@Test
+	public void testGetEntityPath() throws NotFoundException, DatastoreException{
+		Node node = NodeTestUtils.createNew("parent");
+		node.setNodeType(ObjectType.project.name());
+		String parentId = nodeDao.createNew(node);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+		// Add a child		
+		node = NodeTestUtils.createNew("child");
+		node.setNodeType(ObjectType.dataset.name());
+		node.setParentId(parentId);
+		String childId = nodeDao.createNew(node);
+		toDelete.add(childId);
+		assertNotNull(childId);
+		// Add a GrandChild		
+		node = NodeTestUtils.createNew("grandChild");
+		node.setNodeType(ObjectType.layer.name());
+		node.setParentId(childId);
+		String grandId = nodeDao.createNew(node);
+		toDelete.add(grandId);
+		assertNotNull(grandId);
+		
+		// Get the individual headers
+		EntityHeader[] array = new EntityHeader[3];;
+		array[0] = nodeDao.getEntityHeader(parentId);
+		array[1] = nodeDao.getEntityHeader(childId);
+		array[2] = nodeDao.getEntityHeader(grandId);
+		
+		// Now get the path for each node
+		List<EntityHeader> path = nodeDao.getEntityPath(grandId);
+		assertNotNull(path);
+		assertEquals(3, path.size());
+		assertEquals(array[0], path.get(0));
+		assertEquals(array[1], path.get(1));
+		assertEquals(array[2], path.get(2));
+		
+		// child
+		path = nodeDao.getEntityPath(childId);
+		assertNotNull(path);
+		assertEquals(2, path.size());
+		assertEquals(array[0], path.get(0));
+		assertEquals(array[1], path.get(1));
+		
+		// parent
+		// child
+		path = nodeDao.getEntityPath(parentId);
+		assertNotNull(path);
+		assertEquals(1, path.size());
+		assertEquals(array[0], path.get(0));
+	}
 
 }

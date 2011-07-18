@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -8,7 +9,8 @@ import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.BaseChild;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -82,7 +84,7 @@ public class DefaultController extends BaseController {
 		// Determine the object type from the url.
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
 		@SuppressWarnings("unchecked")
-		Nodeable entity =  objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
+		Nodeable entity =  (Nodeable) objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
 		// Now create the entity
 		Nodeable createdEntity = entityController.createEntity(userId, entity, request);
 		// Finally, add the type specific metadata.
@@ -245,7 +247,7 @@ public class DefaultController extends BaseController {
 			InvalidModelException, UnauthorizedException {
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
 		@SuppressWarnings("unchecked")
-		Nodeable entity = objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
+		Nodeable entity = (Nodeable) objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
 		if(etag != null){
 			entity.setEtag(etag.toString());
 		}
@@ -283,6 +285,36 @@ public class DefaultController extends BaseController {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Pass it along
 		return entityController.getEntityAnnotations(userId, id, request);
+	}
+	
+	/**
+	 * Get the annotations for an entity.
+	 * @param userId - The user that is doing the update.
+	 * @param id - The id of the entity to update.
+	 * @param request - Used to read the contents.
+	 * @return The annotations for the given entity.
+	 * @throws NotFoundException - Thrown if the given entity does not exist.
+	 * @throws DatastoreException - Thrown when there is a server side problem.
+	 * @throws UnauthorizedException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.DATASET_PATH,
+			UrlHelpers.LAYER_PATH,
+			UrlHelpers.PREVIEW_PATH,
+			UrlHelpers.LOCATION_PATH,
+			UrlHelpers.PROJECT_PATH,
+			UrlHelpers.EULA_PATH,
+			UrlHelpers.AGREEMENT_PATH
+			}, method = RequestMethod.GET)
+	public @ResponseBody
+	List<EntityHeader> getEntityPath(
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		// Pass it along
+		return entityController.getEntityPath(userId, id);
 	}
 	
 	/**
@@ -507,7 +539,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.AGREEMENT_CHILDREN
 		}, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<BaseChild> getEntityChildren(
+	PaginatedResults<Nodeable> getEntityChildren(
 			@PathVariable String parentType,
 			@PathVariable String parentId,
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
@@ -525,8 +557,8 @@ public class DefaultController extends BaseController {
 		PaginatedParameters paging = new PaginatedParameters(offset, limit, sort, ascending);
 		// Determine the object type from the url.
 		ObjectType type = ObjectType.getLastTypeInUrl(request.getRequestURI());
-		Class<? extends BaseChild> clazz = (Class<? extends BaseChild>) type.getClassForType();
-		PaginatedResults<BaseChild> results = entityController.getEntityChildrenOfTypePaginated(userId, parentId, clazz, paging, request);
+		Class<? extends Nodeable> clazz = (Class<? extends Nodeable>) type.getClassForType();
+		PaginatedResults<Nodeable> results = entityController.getEntityChildrenOfTypePaginated(userId, parentId, clazz, paging, request);
 		// Return the results
 		return results;
 	}	

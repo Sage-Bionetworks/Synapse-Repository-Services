@@ -8,18 +8,19 @@ package org.sagebionetworks.repo.model;
  *
  */
 public enum ObjectType {
-	
-	dataset			(Dataset.class, 			(short)0, "/dataset"),
-	layer			(InputDataLayer.class, 		(short)1, "/layer"),
-	location		(LayerLocation.class, 		(short)2, "/location"),
-	project			(Project.class, 			(short)3, "/project"),
-	preview			(StoredLayerPreview.class, 	(short)4, "/preview"),
-	eula			(Eula.class,				(short)5, "/eula"),
-	agreement		(Agreement.class,			(short)6, "/agreement");
+
+	dataset			(Dataset.class, 			(short)0, PrefixConst.DATASET,		new String[]{PrefixConst.PROJECT}),
+	layer			(InputDataLayer.class, 		(short)1, PrefixConst.LAYER,		new String[]{PrefixConst.DATASET}),
+	location		(LayerLocation.class, 		(short)2, PrefixConst.LOCATION,		new String[]{PrefixConst.DATASET, PrefixConst.LAYER}),
+	project			(Project.class, 			(short)3, PrefixConst.PROJECT,		new String[]{PrefixConst.NULL, PrefixConst.PROJECT}),
+	preview			(StoredLayerPreview.class, 	(short)4, PrefixConst.PREVIEW,		new String[]{PrefixConst.LAYER}),
+	eula			(Eula.class,				(short)5, PrefixConst.EULA, 		new String[]{PrefixConst.NULL, PrefixConst.PROJECT}),
+	agreement		(Agreement.class,			(short)6, PrefixConst.AGREEMENT,	new String[]{PrefixConst.PROJECT, PrefixConst.AGREEMENT});
 	
 	private Class<? extends Nodeable> clazz;
 	private short id;
 	private String urlPrefix;
+	private String[] validParents;
 	
 	/**
 	 * 
@@ -27,10 +28,11 @@ public enum ObjectType {
 	 * @param id Give each type an ID that is used as the primary key for this type.
 	 * @param urlPrefix The web-service URL that 
 	 */
-	ObjectType(Class<? extends Nodeable> clazz, short id, String urlPrefix){
+	ObjectType(Class<? extends Nodeable> clazz, short id, String urlPrefix, String[] validParents){
 		this.clazz = clazz;
 		this.id = id;
 		this.urlPrefix = urlPrefix;
+		this.validParents = validParents;
 	}
 	
 	/**
@@ -51,6 +53,34 @@ public enum ObjectType {
 	public String getUrlPrefix(){
 		return this.urlPrefix;
 	}
+
+	/***
+	 * These are the valid parent types for this ObjectType.
+	 * @return
+	 */
+	public String[] getValidParentTypes(){
+		return validParents;
+	}
+	
+	/**
+	 * 
+	 * @param type, if null then the object must support a null parent.
+	 * @return
+	 */
+	public boolean isValidParentType(ObjectType type){
+		String prefix;
+		if(type == null){
+			prefix = PrefixConst.NULL;
+		}else{
+			prefix = type.getUrlPrefix();
+		}
+		for(String validParent:  validParents){
+			if(validParent.equals(prefix)) return true;
+		}
+		// No match found
+		return false;
+	}
+	
 	
 	/**
 	 * Lookup a type using its Primary key.

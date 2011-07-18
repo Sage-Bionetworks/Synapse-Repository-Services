@@ -9,7 +9,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider.EventType;
 
 public class ProjectMetadataProviderTest {
 	
@@ -32,7 +31,7 @@ public class ProjectMetadataProviderTest {
 	public void testValidate(){
 		ProjectMetadataProvider provider = new ProjectMetadataProvider();
 		// Add more here.
-		provider.validateEntity(mockProject, null, EventType.GET);;
+		provider.validateEntity(mockProject,  new EntityEvent(EventType.GET, null, null));
 	}
 	
 	@Test

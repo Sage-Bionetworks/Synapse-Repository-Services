@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.BasicQuery;
@@ -35,7 +36,7 @@ import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider.EventType;
+import org.sagebionetworks.repo.web.controller.ServletTestHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -101,7 +102,7 @@ public class DatasetMetadataProviderTest {
 		Dataset mockDs = Mockito.mock(Dataset.class);
 		when(mockDs.getId()).thenReturn("101");
 		when(mockDs.getVersion()).thenReturn(null);
-		provider.validateEntity(mockDs, testUser, EventType.GET);
+		provider.validateEntity(mockDs, new EntityEvent(EventType.CREATE, null, null));
 		verify(mockDs).setVersion("1.0.0");
 	}
 	
@@ -178,8 +179,15 @@ public class DatasetMetadataProviderTest {
 	public void testHasAllThreeLayerTypes() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
 		// This first dataset exists to ensure there are layers of each type that do not belong to the
 		// the dataset we are testing.
+		Project project = new Project();
+		project.setName("createAtLeastOneOfEachType");
+		project = entityController.createEntity(userName, project, mockRequest);
+		assertNotNull(project);
+		toDelete.add(project.getId());
+		
 		Dataset ds = new Dataset();
 		ds.setName("DatasetMetadataProviderTestDataset1");
+		ds.setParentId(project.getId());
 		ds = entityController.createEntity(userName, ds, mockRequest);
 		assertNotNull(ds);
 		toDelete.add(ds.getId());
@@ -198,6 +206,7 @@ public class DatasetMetadataProviderTest {
 		// This is the dataset that we are actually testing.
 		ds = new Dataset();
 		ds.setName("DatasetMetadataProviderTestDataset");
+		ds.setParentId(project.getId());
 		ds = entityController.createEntity(userName, ds, mockRequest);
 		assertNotNull(ds);
 		toDelete.add(ds.getId());

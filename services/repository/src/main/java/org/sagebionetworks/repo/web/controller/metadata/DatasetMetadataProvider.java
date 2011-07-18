@@ -1,9 +1,12 @@
 package org.sagebionetworks.repo.web.controller.metadata;
 
+import java.util.List;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.NodeConstants;
@@ -102,7 +105,7 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 	 * Make sure version is not null
 	 */
 	@Override
-	public void validateEntity(Dataset entity, UserInfo userInfo, EventType eventType) {
+	public void validateEntity(Dataset entity, EntityEvent event) {
 		if(entity.getVersion() == null){
 			entity.setVersion("1.0.0");
 		}

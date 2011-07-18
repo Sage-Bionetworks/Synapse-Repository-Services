@@ -155,5 +155,24 @@ public interface NodeDAO {
 	 */
 	public boolean doesNodeExist(Long nodeId);
 	
+	/**
+	 * Get the header information for an entity.
+	 * @param nodeId
+	 * @return
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public EntityHeader getEntityHeader(String nodeId) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Get the full path for an entity.
+	 * @param nodeId
+	 * @return The first EntityHeader in the list will be the root parent for this node, and the last
+	 * will be the EntityHeader for the given node.
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException;
+	
 
 }

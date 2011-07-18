@@ -45,13 +45,14 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.servlet.DispatcherServlet;
 
 /**
- * This is a an integration test for the BasicController.
+ * This is a an integration test for the DefaultController.
  * 
  * @author jmhill
  * 
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
+@Deprecated // all new tests should be added to DefaultControllerAutowiredAllTypesTest where every type is tested for every method.
 public class DefaultControllerAutowiredTest {
 
 	// Used for cleanup
@@ -110,93 +111,6 @@ public class DefaultControllerAutowiredTest {
 
 	}
 
-	@Test
-	public void testCreate() throws Exception {
-		// Create a project
-		Project project = new Project();
-		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-		assertNotNull(clone);
-		assertNotNull(clone.getId());
-		toDelete.add(clone.getId());
-		assertNotNull(clone.getEtag());
-	}
-
-	@Test
-	public void testGetById() throws Exception {
-		// Create a project
-		Project project = new Project();
-		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-		assertNotNull(clone);
-		assertNotNull(clone.getId());
-		toDelete.add(clone.getId());
-		assertNotNull(clone.getEtag());
-
-		// Now get the project object
-		Project fromGet = ServletTestHelper.getEntity(dispatchServlet, Project.class, clone.getId(), userName);
-		assertNotNull(fromGet);
-		// Should match the clone
-		assertEquals(clone, fromGet);
-	}
-
-	@Test
-	public void testGetList() throws Exception {
-		// Create a project
-		int number = 3;
-		for (int i = 0; i < number; i++) {
-			Project project = new Project();
-			project.setName("project" + i);
-			Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-			toDelete.add(clone.getId());
-		}
-		// Try with all default values
-		PaginatedResults<Project> result = ServletTestHelper.getAllEntites(dispatchServlet, Project.class, null, null, null, null, userName);
-		assertNotNull(result);
-		assertEquals(number, result.getTotalNumberOfResults());
-		assertNotNull(result.getResults());
-		assertEquals(number, result.getResults().size());
-
-		// Try with a value in each slot
-		result = ServletTestHelper.getAllEntites(dispatchServlet, Project.class, 2, 1,	"name", true, userName);
-		assertNotNull(result);
-		assertEquals(number, result.getTotalNumberOfResults());
-		assertNotNull(result.getResults());
-		assertEquals(1, result.getResults().size());
-		assertNotNull(result.getResults().get(0));
-	}
-	
-	@Test
-	public void testEntityChildren() throws Exception {
-		// Create a project
-		Project root = new Project();
-		root.setName("projectRoot");
-		root = ServletTestHelper.createEntity(dispatchServlet, root, userName);
-		toDelete.add(root.getId());
-		int number = 3;
-		for (int i = 0; i < number; i++) {
-			Project project = new Project();
-			project.setName("childProject" + i);
-			project.setParentId(root.getId());
-			Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-			toDelete.add(clone.getId());
-		}
-		// Try with all default values
-		PaginatedResults<Project> result = ServletTestHelper.getAllChildrenEntites(dispatchServlet, ObjectType.project,root.getId(), Project.class, null, null, null, null, userName);
-		assertNotNull(result);
-		assertEquals(number, result.getTotalNumberOfResults());
-		assertNotNull(result.getResults());
-		assertEquals(number, result.getResults().size());
-
-		// Try with a value in each slot
-		result = ServletTestHelper.getAllChildrenEntites(dispatchServlet, ObjectType.project,root.getId(),Project.class, 2, 1,	"name", true, userName);
-		assertNotNull(result);
-		assertEquals(number, result.getTotalNumberOfResults());
-		assertNotNull(result.getResults());
-		assertEquals(1, result.getResults().size());
-		assertNotNull(result.getResults().get(0));
-	}
-
 	@Test(expected = NotFoundException.class)
 	public void testDelete() throws Exception {
 		// Create a project
@@ -225,75 +139,7 @@ public class DefaultControllerAutowiredTest {
 		log.info("Project schema: "+schema);
 	}
 	
-	@Test
-	public void testUpdateEntity() throws ServletException, IOException{
-		// Create a project
-		Project project = new Project();
-		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-		assertNotNull(clone);
-		toDelete.add(clone.getId());
-		// Now change the name
-		clone.setName("my new project name");
-		Project updated = ServletTestHelper.updateEntity(dispatchServlet, clone, userName);
-		assertNotNull(updated);
-		// It should have a new etag
-		assertNotNull(updated.getEtag());
-		assertFalse(updated.getEtag().equals(clone.getEtag()));
-		// Now get the project object
-		Project fromGet = ServletTestHelper.getEntity(dispatchServlet, Project.class, clone.getId(), userName);
-		assertEquals(updated, fromGet);
-		assertEquals("my new project name", fromGet.getName());
-	}
-	
-	@Test
-	public void testGetAnnotations() throws ServletException, IOException{
-		// Create a project
-		Project project = new Project();
-		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-		assertNotNull(clone);
-		toDelete.add(clone.getId());
-		// Make sure we can get the annotations for this entity.
-		Annotations annos = ServletTestHelper.getEntityAnnotations(dispatchServlet, Project.class, clone.getId(), userName);
-		assertNotNull(annos);
-		assertNotNull(annos.getEtag());
-	}
-	
-	@Test
-	public void testUpdateAnnotations() throws ServletException, IOException{
-		// Create a project
-		Project project = new Project();
-		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-		assertNotNull(clone);
-		toDelete.add(clone.getId());
-		// Make sure we can get the annotations for this entity.
-		Annotations annos = ServletTestHelper.getEntityAnnotations(dispatchServlet, Project.class, clone.getId(), userName);
-		assertNotNull(annos);
-		assertNotNull(annos.getEtag());
-		annos.addAnnotation("someStringKey", "one");
-		annos.addAnnotation("someBlobKey", "I am a very long string".getBytes("UTF-8"));
-		// Do the update
-		Annotations updatedAnnos = ServletTestHelper.updateEntityAnnotations(dispatchServlet, Project.class, annos, userName);
-		assertNotNull(updatedAnnos);
-		assertNotNull(updatedAnnos.getEtag());
-		assertFalse(updatedAnnos.getEtag().equals(annos.getEtag()));
-		assertEquals("one", updatedAnnos.getSingleValue("someStringKey"));
-		assertNotNull(updatedAnnos.getBlobAnnotations().get("someBlobKey"));
-	}
-	
-	@Test
-	public void testGetEntityAcl() throws ServletException, IOException{
-		// Create a project
-		Project project = new Project();
-		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-		assertNotNull(clone);
-		toDelete.add(clone.getId());
-		AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, Project.class, clone.getId(), userName);
-		assertNotNull(acl);
-	}
+
 	
 	@Test
 	public void testUpdateEntityAcl() throws ServletException, IOException{

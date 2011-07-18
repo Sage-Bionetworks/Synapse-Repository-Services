@@ -10,7 +10,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  *
  */
 @XmlRootElement
-public class Project implements BaseChild {
+public class Project implements Nodeable {
 	private String id;
 	private String uri;
 	private String etag;

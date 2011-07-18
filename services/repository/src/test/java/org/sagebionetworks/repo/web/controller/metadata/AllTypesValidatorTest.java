@@ -1,0 +1,82 @@
+package org.sagebionetworks.repo.web.controller.metadata;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Project;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
+public class AllTypesValidatorTest {
+
+	@Autowired
+	AllTypesValidator allTypesValidator;
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testNullEntity() throws InvalidModelException{
+		EntityEvent mockEvent = Mockito.mock(EntityEvent.class);
+		allTypesValidator.validateEntity(null, mockEvent);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testNullEvent() throws InvalidModelException{
+		Dataset mockDataset =  Mockito.mock(Dataset.class);
+		allTypesValidator.validateEntity(mockDataset, null);
+	}
+	
+	@Test
+	public void testNullList() throws InvalidModelException{
+		Project project = new Project();
+		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, null, null));
+	}
+	
+	@Test
+	public void testEmptyList() throws InvalidModelException{
+		Project project = new Project();
+		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, new ArrayList<EntityHeader>(), null));
+	}
+	
+	@Test
+	public void testProjectWithProjectParent() throws InvalidModelException{
+		String parentId = "123";
+		// This is our parent header
+		EntityHeader parentHeader = new EntityHeader();
+		parentHeader.setId(parentId);
+		parentHeader.setName("name");
+		parentHeader.setType(ObjectType.project.getUrlPrefix());
+		List<EntityHeader> path = new ArrayList<EntityHeader>();
+		path.add(parentHeader);
+		
+		Project project = new Project();
+		project.setParentId(parentId);
+		// This should be valid
+		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, path, null));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testProjectWithDatasetParent() throws InvalidModelException{
+		String parentId = "123";
+		// This is our parent header
+		EntityHeader parentHeader = new EntityHeader();
+		parentHeader.setId(parentId);
+		parentHeader.setName("name");
+		parentHeader.setType(ObjectType.dataset.getUrlPrefix());
+		List<EntityHeader> path = new ArrayList<EntityHeader>();
+		path.add(parentHeader);
+		
+		Project project = new Project();
+		project.setParentId(parentId);
+		// This should not be valid
+		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, path, null));
+	}
+}

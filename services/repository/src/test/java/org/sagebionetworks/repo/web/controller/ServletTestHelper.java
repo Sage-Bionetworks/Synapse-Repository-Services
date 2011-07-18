@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BooleanResult;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Versionable;
@@ -164,6 +165,35 @@ public class ServletTestHelper {
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
 		return objectMapper.readValue(response.getContentAsString(), Annotations.class);
+	}
+	
+	/**
+	 * Get the annotations for an entity
+	 * @param <T>
+	 * @param dispatchServlet
+	 * @param clazz
+	 * @param id
+	 * @param userId
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws JSONException 
+	 */
+	public static <T extends Base> List<EntityHeader> getEntityPath(HttpServlet dispatchServlet, Class<? extends T> clazz, String id, String userId) throws ServletException, IOException, JSONException {
+		if(dispatchServlet == null) throw new IllegalArgumentException("Servlet cannot be null");
+		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(type.getUrlPrefix() + "/" + id+UrlHelpers.PATH);
+		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
+		dispatchServlet.service(request, response);
+		log.info("Results: " + response.getContentAsString());
+		if(response.getStatus() != HttpStatus.OK.value()){
+			throw new IllegalArgumentException(response.getErrorMessage());
+		}
+		return (List<EntityHeader>) createEntityHeaderList(response.getContentAsString());
 	}
 	
 	/**
@@ -407,6 +437,26 @@ public class ServletTestHelper {
 		result.setTotalNumberOfResults(root.getLong("totalNumberOfResults"));
 		result.setResults(list);
 		return result;
+	}
+	
+	/**
+	 * Convert from a JSONArray to a list.
+	 * @param jsonString
+	 * @return
+	 * @throws JSONException
+	 * @throws JsonParseException
+	 * @throws JsonMappingException
+	 * @throws IOException
+	 */
+	public static List<EntityHeader> createEntityHeaderList(String jsonString) throws JSONException, JsonParseException, JsonMappingException, IOException{
+		JSONArray array = new JSONArray(jsonString);
+		List<EntityHeader> list = new ArrayList<EntityHeader>();
+		for(int i=0; i<array.length(); i++){
+			JSONObject object = array.getJSONObject(i);
+			EntityHeader entity = objectMapper.readValue(object.toString(),EntityHeader.class);
+			list.add(entity);
+		}
+		return list;
 	}
 	
 	/**
