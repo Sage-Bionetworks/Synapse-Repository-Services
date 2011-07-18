@@ -1,58 +1,35 @@
 \name{loadLayerData}
 \alias{loadLayerData}
-%- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-TODO write documentation
+	Load Layer Data
 }
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+	Downloads layer data files to the local cache and, if possible, loads the data into memory.
 }
 \usage{
-loadLayerData(entity)
+	loadLayerData(entity)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{entity}{
-%%     ~~Describe \code{entity} here~~
-}
+		The entity whose data should be loaded
+	}
 }
 \details{
-%%  ~~ If necessary, more details than the description above ~~
+	If the entity type currently has no method for loading data to memory, this function returns a list of file locations.
 }
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
+	List of the files contained in the layer. For supported entity types, the entity data will be loaded into memory.
 }
-\references{
-%% ~put references to the literature/web site here ~
-}
+
 \author{
-%%  ~~who you are~~
+	Matt Furia
 }
-\note{
-%%  ~~further notes~~
-}
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
-
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+	\code{\link{getDatasetLayers}}
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
+	## Not Run
 
-## The function is currently defined as
-function (entity) 
-{
-    .cacheFiles(entity)
-  }
+	## end (Not Run)
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ ~kwd1 }
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line
