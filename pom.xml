@@ -241,7 +241,7 @@
 			sources -->
 		<downloadSources>true</downloadSources>
 		<!-- This is the version of all modules that make us Synapse -->
-		<applicationVersion>0.5-SNAPSHOT</applicationVersion>
+		<applicationVersion>0.6-SNAPSHOT</applicationVersion>
 		
 		<org.springframework.version>3.0.5.RELEASE</org.springframework.version>
 		<jackson.version>1.8.1</jackson.version>
