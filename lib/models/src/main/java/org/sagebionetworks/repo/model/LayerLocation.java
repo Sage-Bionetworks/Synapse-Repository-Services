@@ -9,7 +9,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  *
  */
 @XmlRootElement
-public class LayerLocation implements BaseChild, Versionable {
+public class LayerLocation implements Nodeable, Versionable {
 
 	private String id;
 	private String uri;

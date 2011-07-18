@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PrefixConst;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Versionable;
 
@@ -75,6 +76,11 @@ public class UrlHelpers {
 	public static final String ANNOTATIONS = "/annotations";
 	
 	/**
+	 * Used to get the path of a entity.
+	 */
+	public static final String PATH = "/path";
+	
+	/**
 	 * URL suffix for entity schemas
 	 */
 	public static final String SCHEMA = "/schema";
@@ -84,13 +90,13 @@ public class UrlHelpers {
 	/**
 	 * All of the base URLs for Synapse objects
 	 */
-	public static final String DATASET 	= "/dataset";
-	public static final String LAYER 	= "/layer";
-	public static final String PREVIEW 	= "/preview";
-	public static final String LOCATION = "/location";
-	public static final String PROJECT	= "/project";
-	public static final String EULA 	= "/eula";
-	public static final String AGREEMENT = "/agreement";
+	public static final String DATASET 	= PrefixConst.DATASET;
+	public static final String LAYER 	= PrefixConst.LAYER;
+	public static final String PREVIEW 	= PrefixConst.PREVIEW;
+	public static final String LOCATION = PrefixConst.LOCATION;
+	public static final String PROJECT	= PrefixConst.PROJECT;
+	public static final String EULA 	= PrefixConst.EULA;
+	public static final String AGREEMENT = PrefixConst.AGREEMENT;
 	
 	/**
 	 * All of the base URLs for Synapse objects with ID.
@@ -114,6 +120,18 @@ public class UrlHelpers {
 	public static final String EULA_ANNOTATIONS		= EULA_ID+ANNOTATIONS;
 	public static final String AGREEMENT_ANNOTATIONS = AGREEMENT_ID+ANNOTATIONS;
 
+	
+	/**
+	 * All of the base URLs for Synapse objects's paths.
+	 */
+	public static final String DATASET_PATH		= DATASET_ID+PATH;
+	public static final String LAYER_PATH 		= LAYER_ID+PATH;
+	public static final String PREVIEW_PATH 	= PREVIEW_ID+PATH;
+	public static final String LOCATION_PATH 	= LOCATION_ID+PATH;
+	public static final String PROJECT_PATH		= PROJECT_ID+PATH;
+	public static final String EULA_PATH		= EULA_ID+PATH;
+	public static final String AGREEMENT_PATH	= AGREEMENT_ID+PATH;
+	
 	/**
 	 * All of the base URLs for Synapse object's versions.
 	 */

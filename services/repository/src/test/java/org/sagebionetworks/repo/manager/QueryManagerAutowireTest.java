@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -68,9 +69,15 @@ public class QueryManagerAutowireTest {
 		toDelete = new ArrayList<String>();
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
+		
+		Project project = new Project();
+		project.setName("rootProject");
+		project = entityController.createEntity(userId, project, mockRequest);
+		
 		// Create some datasets
 		for(int i=0; i<totalEntities; i++){
 			Dataset ds = createForTest(i);
+			ds.setParentId(project.getId());
 			ds = entityController.createEntity(userId, ds, mockRequest);
 			assertNotNull(ds);
 			assertNotNull(ds.getId());

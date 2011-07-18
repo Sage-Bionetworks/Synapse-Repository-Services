@@ -19,7 +19,7 @@ public class ProjectMetadataProvider implements TypeSpecificMetadataProvider<Pro
 	}
 
 	@Override
-	public void validateEntity(Project entity, UserInfo userInfo, EventType eventType) {
+	public void validateEntity(Project entity, EntityEvent event) {
 
 	}
 

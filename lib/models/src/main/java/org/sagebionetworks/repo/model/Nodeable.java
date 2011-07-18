@@ -43,4 +43,16 @@ public interface Nodeable extends Base {
 	 */
 	public String getAccessControlList();
 	
+	/**
+	 * The Id of this node's parent
+	 * @param parentId
+	 */
+	public void setParentId(String parentId);
+	
+	/**
+	 * The Id of this node's parent
+	 * @return
+	 */
+	public String getParentId();
+	
 }

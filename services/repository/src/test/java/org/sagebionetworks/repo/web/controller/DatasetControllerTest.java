@@ -38,7 +38,24 @@ public class DatasetControllerTest {
 	 * A few dataset properties for use in creating a new dataset object for
 	 * unit tests
 	 */
-	public static final String SAMPLE_DATASET = "{\"name\":\"DeLiver\"}";
+	public static final String SAMPLE_DATASET_1 = "{\"name\":\"DeLiver\", \"parentId\":\"";
+	
+	private JSONObject project;
+	
+	/**
+	 * Build a sample dataset.
+	 * @param parentId
+	 * @return
+	 */
+	public static String getSampleDataset(String parentId){
+		StringBuilder builder = new StringBuilder();
+		builder.append(SAMPLE_DATASET_1);
+		builder.append(parentId);
+		builder.append("\"}");
+		return builder.toString();
+	}
+	
+	public static final String SAMPLE_PROJECT = "{\"name\":\"RootProject\"}";
 
 	/**
 	 * @throws java.lang.Exception
@@ -46,6 +63,8 @@ public class DatasetControllerTest {
 	@Before
 	public void setUp() throws Exception {
 		helper.setUp();
+		project = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/project", DatasetControllerTest.SAMPLE_PROJECT);
 	}
 
 	/**
@@ -71,7 +90,7 @@ public class DatasetControllerTest {
 	public void testCreateDataset() throws Exception {
 		JSONObject results = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/dataset", "{\"name\":\"DeLiver\"}");
+				+ "/dataset", "{\"name\":\"DeLiver\" ,\"parentId\":\""+project.getString("id")+"\" }");
 
 		// Check required properties
 		assertEquals("DeLiver", results.getString("name"));
@@ -90,12 +109,12 @@ public class DatasetControllerTest {
 	public void testGetDataset() throws Exception {
 		// Load up a few datasets
 		helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
-				"{\"name\":\"DeLiver\"}");
+				"{\"name\":\"DeLiver\" ,\"parentId\":\""+project.getString("id")+"\"}");
 		helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
-				"{\"name\":\"Harvard Brain\"}");
+				"{\"name\":\"Harvard Brain\" ,\"parentId\":\""+project.getString("id")+"\"}");
 		JSONObject newDataset = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/dataset", "{\"name\":\"MouseCross\"}");
+				+ "/dataset", "{\"name\":\"MouseCross\" ,\"parentId\":\""+project.getString("id")+"\"}");
 
 		JSONObject results = helper.testGetJsonEntity(newDataset
 				.getString("uri"));
@@ -121,7 +140,7 @@ public class DatasetControllerTest {
 		// Load up a few datasets
 		JSONObject newDataset = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/dataset", "{\"name\":\"MouseCross\"}");
+				+ "/dataset", "{\"name\":\"MouseCross\" ,\"parentId\":\""+project.getString("id")+"\"}");
 
 		// Get our empty annotations container
 		helper.testEntityAnnotations(newDataset.getString("annotations"));
@@ -138,12 +157,12 @@ public class DatasetControllerTest {
 	public void testUpdateDataset() throws Exception {
 		// Load up a few datasets
 		helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
-				"{\"name\":\"DeLiver\"}");
+				"{\"name\":\"DeLiver\",\"parentId\":\""+project.getString("id")+"\"}");
 		helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
-				"{\"name\":\"Harvard Brain\"}");
+				"{\"name\":\"Harvard Brain\",\"parentId\":\""+project.getString("id")+"\"}");
 		JSONObject newDataset = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/dataset", "{\"name\":\"MouseCross\"}");
+				+ "/dataset", "{\"name\":\"MouseCross\",\"parentId\":\""+project.getString("id")+"\"}");
 
 		// Get one dataset
 		JSONObject dataset = helper.testGetJsonEntity(newDataset
@@ -181,19 +200,19 @@ public class DatasetControllerTest {
 		//just creating a more realistic environment
 		//object can be a dataset or project
 		helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
-				"{\"name\":\"DeLiver\"}");
+				"{\"name\":\"DeLiver\"},\"parentId\":\""+project.getString("id")+"\"");
 		helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
-				"{\"name\":\"Harvard Brain\"}");
+				"{\"name\":\"Harvard Brain\",\"parentId\":\""+project.getString("id")+"\"}");
 		
 		//making a new JSONObject where the name is MouseCross
 		JSONObject newDataset = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/dataset", "{\"name\":\"MouseCross\"}");
+				+ "/dataset", "{\"name\":\"MouseCross\",\"parentId\":\""+project.getString("id")+"\"}");
 		
 		//make a new JSONObject/projct where name is ContainerForProject
 		JSONObject newProject = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/project", "{\"name\":\"ContainerForProject\"}");
+				+ "/project", "{\"name\":\"ContainerForProject\",\"parentId\":\""+project.getString("id")+"\"}");
 		
 		// make object
 		//here is where we will make changes, specifically adding the id
@@ -235,7 +254,7 @@ public class DatasetControllerTest {
 	public void testUpdateNewlyCreatedDataset() throws Exception {
 		JSONObject newDataset = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/dataset", "{\"name\":\"MouseCross\"}");
+				+ "/dataset", "{\"name\":\"MouseCross\",\"parentId\":\""+project.getString("id")+"\"}");
 
 		// Modify the newly created dataset
 		newDataset.put("name", "MouseX");
@@ -262,12 +281,12 @@ public class DatasetControllerTest {
 	public void testDeleteDataset() throws Exception {
 		// Load up a few datasets
 		helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
-				"{\"name\":\"DeLiver\"}");
+				"{\"name\":\"DeLiver\",\"parentId\":\""+project.getString("id")+"\"}");
 		helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
-				"{\"name\":\"Harvard Brain\"}");
+				"{\"name\":\"Harvard Brain\",\"parentId\":\""+project.getString("id")+"\"}");
 		JSONObject newDataset = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/dataset", "{\"name\":\"MouseCross\"}");
+				+ "/dataset", "{\"name\":\"MouseCross\",\"parentId\":\""+project.getString("id")+"\"}");
 		helper.testDeleteJsonEntity(newDataset.getString("uri"));
 	}
 
@@ -288,7 +307,7 @@ public class DatasetControllerTest {
 		JSONObject error = helper
 				.testCreateJsonEntityShouldFail(
 						helper.getServletPrefix() + "/dataset",
-						"{\"name\": \"DeLiver\", \"BOGUS\":\"this does not match our model object\"}",
+						"{\"name\": \"DeLiver\", \"BOGUS\":\"this does not match our model object\",\"parentId\":\""+project.getString("id")+"\"}",
 						HttpStatus.BAD_REQUEST);
 
 		// The response should be something like: {"reason":"Unrecognized field
@@ -316,7 +335,7 @@ public class DatasetControllerTest {
 
 		JSONObject error = helper.testCreateJsonEntityShouldFail(helper
 				.getServletPrefix()
-				+ "/dataset", "{\"version\": \"1.0.0\"}",
+				+ "/dataset", "{\"version\": \"1.0.0\",\"parentId\":\""+project.getString("id")+"\"}",
 				HttpStatus.BAD_REQUEST);
 
 		assertEquals("Node.name cannot be null", error
@@ -335,7 +354,7 @@ public class DatasetControllerTest {
 		// Create a dataset
 		JSONObject newDataset = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/dataset", "{\"name\":\"MouseCross\"}");
+				+ "/dataset", "{\"name\":\"MouseCross\",\"parentId\":\""+project.getString("id")+"\"}");
 
 		// Get that dataset
 		JSONObject dataset = helper.testGetJsonEntity(newDataset
@@ -364,7 +383,7 @@ public class DatasetControllerTest {
 		// Create a dataset
 		JSONObject newDataset = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/dataset", "{\"name\":\"MouseCross\"}");
+				+ "/dataset", "{\"name\":\"MouseCross\",\"parentId\":\""+project.getString("id")+"\"}");
 		// Get that dataset
 		JSONObject dataset = helper.testGetJsonEntity(newDataset
 				.getString("uri"));
@@ -400,7 +419,7 @@ public class DatasetControllerTest {
 	public void testGetNonExistentDataset() throws Exception {
 		JSONObject results = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/dataset", "{\"name\":\"DeLiver\"}");
+				+ "/dataset", "{\"name\":\"DeLiver\",\"parentId\":\""+project.getString("id")+"\"}");
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 
@@ -424,7 +443,7 @@ public class DatasetControllerTest {
 		// Load up a dataset
 		JSONObject newDataset = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/dataset", "{\"name\":\"MouseCross\"}");
+				+ "/dataset", "{\"name\":\"MouseCross\",\"parentId\":\""+project.getString("id")+"\"}");
 		// Get our empty annotations container
 		JSONObject annotations = helper.testGetJsonEntity(newDataset
 				.getString("annotations"));
@@ -451,7 +470,7 @@ public class DatasetControllerTest {
 	public void testUpdateNonExistentDataset() throws Exception {
 		JSONObject results = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/dataset", "{\"name\":\"DeLiver\"}");
+				+ "/dataset", "{\"name\":\"DeLiver\",\"parentId\":\""+project.getString("id")+"\"}");
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 
@@ -473,7 +492,7 @@ public class DatasetControllerTest {
 	public void testDeleteNonExistentDataset() throws Exception {
 		JSONObject results = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/dataset", "{\"name\":\"DeLiver\"}");
+				+ "/dataset", "{\"name\":\"DeLiver\",\"parentId\":\""+project.getString("id")+"\"}");
 
 		helper.testDeleteJsonEntity(results.getString("uri"));
 

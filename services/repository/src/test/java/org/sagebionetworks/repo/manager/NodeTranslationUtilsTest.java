@@ -52,7 +52,7 @@ public class NodeTranslationUtilsTest {
 	}
 	
 	/**
-	 * Assert two nodable objects are equal while ignoring transient fields.
+	 * Assert two Nodeable objects are equal while ignoring transient fields.
 	 * @param <T>
 	 * @param one
 	 * @param two

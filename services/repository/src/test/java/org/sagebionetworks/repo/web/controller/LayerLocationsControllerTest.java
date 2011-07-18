@@ -35,6 +35,7 @@ public class LayerLocationsControllerTest {
 	@Autowired
 	private Helpers helper;
 	private JSONObject dataset;
+	private JSONObject project;
 	
 	/**
 	 * @throws java.lang.Exception
@@ -43,8 +44,12 @@ public class LayerLocationsControllerTest {
 	public void setUp() throws Exception {
 		
 		helper.setUp();
+		// Datasets must have a project as a parent
+		project = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/project", DatasetControllerTest.SAMPLE_PROJECT);
+
 		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/dataset", DatasetControllerTest.SAMPLE_DATASET);
+				+ "/dataset", DatasetControllerTest.getSampleDataset(project.getString("id")));
 	}
 
 	/**

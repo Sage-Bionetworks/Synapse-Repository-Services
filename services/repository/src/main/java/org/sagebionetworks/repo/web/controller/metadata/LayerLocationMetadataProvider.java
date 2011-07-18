@@ -79,8 +79,8 @@ public class LayerLocationMetadataProvider implements
 	}
 
 	@Override
-	public void validateEntity(LayerLocation entity, UserInfo userInfo,
-			EventType eventType) throws InvalidModelException {
+	public void validateEntity(LayerLocation entity, EntityEvent event)
+			throws InvalidModelException {
 		if (null == entity.getParentId()) {
 			throw new InvalidModelException("parentId cannot be null");
 		}

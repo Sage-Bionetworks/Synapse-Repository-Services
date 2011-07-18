@@ -10,9 +10,10 @@ import javax.swing.text.html.parser.Entity;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
-import org.sagebionetworks.repo.model.BaseChild;
+import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Nodeable;
@@ -210,7 +211,7 @@ public class EntityManagerImpl implements EntityManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends BaseChild> List<String> aggregateEntityUpdate(UserInfo userInfo, String parentId, Collection<T> update) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException {
+	public <T extends Nodeable> List<String> aggregateEntityUpdate(UserInfo userInfo, String parentId, Collection<T> update) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException {
 		if(update == null) throw new IllegalArgumentException("AggregateUpdate cannot be null");
 		// We are going to lock on the parent so the first step is to get the parent
 		Node parentNode = nodeManager.get(userInfo, parentId);
@@ -238,7 +239,7 @@ public class EntityManagerImpl implements EntityManager {
 
 
 	@Override
-	public <T extends BaseChild> List<T> getEntityChildren(UserInfo userInfo,
+	public <T extends Nodeable> List<T> getEntityChildren(UserInfo userInfo,
 			String parentId, Class<? extends T> childrenClass)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		List<T> resultSet = new ArrayList<T>();
@@ -265,6 +266,13 @@ public class EntityManagerImpl implements EntityManager {
 			String entityId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// pass through
 		return nodeManager.getAllVersionNumbersForNode(userInfo, entityId);
+	}
+
+	@Override
+	public List<EntityHeader> getEntityPath(UserInfo userInfo, String entityId)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		// pass through
+		return nodeManager.getNodePath(userInfo, entityId);
 	}
 
 }

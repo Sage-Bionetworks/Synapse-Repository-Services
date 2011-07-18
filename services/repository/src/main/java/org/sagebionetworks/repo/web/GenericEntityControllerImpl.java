@@ -19,9 +19,10 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Base;
-import org.sagebionetworks.repo.model.BaseChild;
+import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeQueryDao;
@@ -36,8 +37,10 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.util.SchemaHelper;
 import org.sagebionetworks.repo.web.controller.MetadataProviderFactory;
+import org.sagebionetworks.repo.web.controller.metadata.AllTypesValidator;
+import org.sagebionetworks.repo.web.controller.metadata.EntityEvent;
+import org.sagebionetworks.repo.web.controller.metadata.EventType;
 import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider;
-import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider.EventType;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -68,6 +71,8 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	private MetadataProviderFactory metadataProviderFactory;
 	@Autowired
 	private IdGenerator idGenerator;
+	@Autowired
+	private AllTypesValidator allTypesValidator;
 	
 	public GenericEntityControllerImpl(){
 		
@@ -245,19 +250,43 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// Determine the object type from the url.
 		Class<? extends T> clazz = (Class<? extends T>) newEntity.getClass();
 		ObjectType type = ObjectType.getNodeTypeForClass(newEntity.getClass());
+		// Fetch the provider that will validate this entity.
+		// Get the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Create a new id for this entity
 		long newId = idGenerator.generateNewId();
 		newEntity.setId(KeyFactory.keyToString(newId));
-		// Get the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		// Fetch the provider that will validate this entity.
-		@SuppressWarnings("unchecked")
-		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>)metadataProviderFactory.getMetadataProvider(type);
-		// Validate the entity
-		provider.validateEntity(newEntity, userInfo, EventType.CREATE);
+		EventType eventType = EventType.CREATE;
+		// Fire the event
+		fireValidateEvent(userInfo, eventType, newEntity, type);
 		String id = entityManager.createEntity(userInfo, newEntity);
 		// Return the resulting entity.
-		return getEntity(userInfo, id, request, clazz, EventType.CREATE);
+		return getEntity(userInfo, id, request, clazz, eventType);
+	}
+	
+	/**
+	 * Fire a validate event.  
+	 * @param userInfo
+	 * @param eventType
+	 * @param entity
+	 * @param type
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 */
+	public void fireValidateEvent(UserInfo userInfo, EventType eventType, Nodeable entity, ObjectType type) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
+		List<EntityHeader> newParentPath = null;
+		if(entity.getParentId() != null){
+			newParentPath = entityManager.getEntityPath(userInfo, entity.getParentId());
+		}
+		EntityEvent event = new EntityEvent(eventType, newParentPath, userInfo);
+		// First apply validation that is common to all types.
+		allTypesValidator.validateEntity(entity, event);
+		// Now validate for a specific type.
+		TypeSpecificMetadataProvider<Nodeable> provider = metadataProviderFactory.getMetadataProvider(type);
+		// Validate the entity
+		provider.validateEntity(entity, event);
 	}
 	
 	@Override
@@ -270,19 +299,18 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// Get the type for this entity.
 		ObjectType type = ObjectType.getNodeTypeForClass(updatedEntity.getClass());
 		Class<? extends T> clazz = (Class<? extends T>) updatedEntity.getClass();
+		// Fetch the provider that will validate this entity.
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		// Fetch the provider that will validate this entity.
-		@SuppressWarnings("unchecked")
-		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>)metadataProviderFactory.getMetadataProvider(type);
-		// First validate this change
-		provider.validateEntity(updatedEntity, userInfo, EventType.UPDATE);
+		EventType eventType = EventType.UPDATE;
+		// Fire the event
+		fireValidateEvent(userInfo, eventType, updatedEntity, type);
 		// Keep the entity id
 		String entityId = updatedEntity.getId();
 		// Now do the update
 		entityManager.updateEntity(userInfo, updatedEntity, newVersion);
 		// Return the udpated entity
-		return getEntity(userInfo, entityId, request, clazz, EventType.UPDATE);
+		return getEntity(userInfo, entityId, request, clazz, eventType);
 	}
 	
 	@Override
@@ -395,7 +423,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	}
 
 	@Override
-	public <T extends BaseChild> List<T> getEntityChildrenOfType(String userId,
+	public <T extends Nodeable> List<T> getEntityChildrenOfType(String userId,
 			String parentId, Class<? extends T> childClass, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		ObjectType childType =  ObjectType.getNodeTypeForClass(childClass);
@@ -407,7 +435,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	}
 	
 	@Override
-	public <T extends BaseChild> PaginatedResults<T> getEntityChildrenOfTypePaginated(
+	public <T extends Nodeable> PaginatedResults<T> getEntityChildrenOfTypePaginated(
 			String userId, String parentId, Class<? extends T> clazz,
 			PaginatedParameters paging, HttpServletRequest request)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
@@ -419,7 +447,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	
 
 	@Override
-	public <T extends BaseChild> Collection<T> aggregateEntityUpdate(String userId, String parentId, Collection<T> update,	HttpServletRequest request) throws NotFoundException,
+	public <T extends Nodeable> Collection<T> aggregateEntityUpdate(String userId, String parentId, Collection<T> update,	HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException {
 		if(update == null) return null;
@@ -555,6 +583,13 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return permissionsManager.hasAccess(entityId, AuthorizationConstants.ACCESS_TYPE.valueOf(accessType), userInfo);
+	}
+
+
+	@Override
+	public List<EntityHeader> getEntityPath(String userId, String entityId) throws DatastoreException, NotFoundException, UnauthorizedException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.getEntityPath(userInfo, entityId);
 	}
 
 

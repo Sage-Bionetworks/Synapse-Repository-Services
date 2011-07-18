@@ -29,9 +29,12 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Agreement;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.BaseChild;
+import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.Eula;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Nodeable;
@@ -123,15 +126,29 @@ public class DefaultControllerAutowiredAllTypesTest {
 	 * @throws InvalidModelException 
 	 * @throws IllegalAccessException 
 	 * @throws InstantiationException 
+	 * @throws UnauthorizedException 
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
-	private List<Nodeable> createEntitesOfEachType(int countPerType) throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+	private List<Nodeable> createEntitesOfEachType(int countPerType) throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException, DatastoreException, NotFoundException, UnauthorizedException{
 		// For now put each object in a project so their parent id is not null;
 		// Create a project
-		Project parent = new Project();
-		parent.setName("createAtLeastOneOfEachType");
-		parent = ServletTestHelper.createEntity(dispatchServlet, parent, userName);
-		assertNotNull(parent);
-		toDelete.add(parent.getId());
+		Project project = new Project();
+		project.setName("createAtLeastOneOfEachType");
+		project = ServletTestHelper.createEntity(dispatchServlet, project, userName);
+		assertNotNull(project);
+		toDelete.add(project.getId());
+		// Create a dataset
+		Dataset datasetParent = (Dataset) ObjectTypeFactory.createObjectForTest("datasetParent", ObjectType.dataset, project.getId());
+		datasetParent = ServletTestHelper.createEntity(dispatchServlet, datasetParent, userName);
+		toDelete.add(datasetParent.getId());
+		// Create a layer parent
+		InputDataLayer layerParent = (InputDataLayer) ObjectTypeFactory.createObjectForTest("layerParent", ObjectType.layer, datasetParent.getId());
+		layerParent = ServletTestHelper.createEntity(dispatchServlet, layerParent, userName);
+		toDelete.add(layerParent.getId());
+		// Now get the path of the layer
+		List<EntityHeader> path = entityController.getEntityPath(userName, layerParent.getId());
+		
 		// This is the list of entities that will be created.
 		List<Nodeable> newChildren = new ArrayList<Nodeable>();
 		// Create one of each type
@@ -142,7 +159,9 @@ public class DefaultControllerAutowiredAllTypesTest {
 			Eula eula = null;
 			for(ObjectType type: types){
 				String name = type.name()+index;
-				Nodeable object = ObjectTypeFactory.createObjectForTest(name, type, parent.getId());
+				// use the correct parent type.
+				String parentId = findCompatableParentId(path, type);
+				Nodeable object = ObjectTypeFactory.createObjectForTest(name, type, parentId);
 				if (ObjectType.agreement == type) {
 					// Dev Note: we are depending upon the fact that in the
 					// object type enumeration, agreement comes after dataset
@@ -172,6 +191,26 @@ public class DefaultControllerAutowiredAllTypesTest {
 			}
 		}
 		return newChildren;
+	}
+	
+	/**
+	 * Find the first compatible parent id for a given object type. 
+	 * @param path
+	 * @param type
+	 * @return
+	 */
+	private String findCompatableParentId(List<EntityHeader> path, ObjectType type){
+		// Frist try null
+		if(type.isValidParentType(null)) return null;
+		// Try each entry in the list
+		for(EntityHeader header: path){
+			ObjectType parentType = ObjectType.getFirstTypeInUrl(header.getType());
+			if(type.isValidParentType(parentType)){
+				return header.getId();
+			}
+		}
+		// No match found
+		throw new IllegalArgumentException("Cannot find a compatible parent for "+type);
 	}
 
 	@Test
@@ -217,18 +256,18 @@ public class DefaultControllerAutowiredAllTypesTest {
 			PaginatedResults<Nodeable> result = ServletTestHelper.getAllEntites(dispatchServlet, type.getClassForType(), null, null, null, null, userName);
 			assertNotNull(result);
 			int expectedNumer = number;
-			if(ObjectType.project == type){
+			if(ObjectType.project == type || ObjectType.dataset == type || ObjectType.layer == type){
 				// There is one extra project since we use that as the parent.
 				expectedNumer++;
 			}
-			assertEquals(expectedNumer, result.getTotalNumberOfResults());
+			assertTrue(result.getTotalNumberOfResults() >= expectedNumer );
 			assertNotNull(result.getResults());
 			assertEquals(expectedNumer, result.getResults().size());
 
 			// Try with a value in each slot
 			result = ServletTestHelper.getAllEntites(dispatchServlet, type.getClassForType(), 2, 1,	"name", true, userName);
 			assertNotNull(result);
-			assertEquals(expectedNumer, result.getTotalNumberOfResults());
+			assertTrue(result.getTotalNumberOfResults() >= expectedNumer );
 			assertNotNull(result.getResults());
 			assertEquals(1, result.getResults().size());
 			assertNotNull(result.getResults().get(0));
@@ -244,34 +283,48 @@ public class DefaultControllerAutowiredAllTypesTest {
 		assertNotNull(root);
 		toDelete.add(root.getId());
 		
+		// Create a dataset
+		Dataset datasetParent = (Dataset) ObjectTypeFactory.createObjectForTest("datasetParent", ObjectType.dataset, root.getId());
+		datasetParent = ServletTestHelper.createEntity(dispatchServlet, datasetParent, userName);
+		// Create a layer parent
+		InputDataLayer layerParent = (InputDataLayer) ObjectTypeFactory.createObjectForTest("layerParent", ObjectType.layer, datasetParent.getId());
+		layerParent = ServletTestHelper.createEntity(dispatchServlet, layerParent, userName);
+		// Now get the path of the layer
+		List<EntityHeader> path = entityController.getEntityPath(userName, layerParent.getId());
+		
 		// Create one of each type
 		ObjectType[] types = ObjectType.values();
 		for(ObjectType parent: types){
 			if(ObjectType.agreement == parent) continue;
 			for(ObjectType child: types){
 				if(ObjectType.agreement == child) continue;
-				// First create a parent of this type
-				String name = "parent_"+parent.name()+"Ofchild_"+child.name();
-				Nodeable parentObject = ObjectTypeFactory.createObjectForTest(name, parent, root.getId());
-				parentObject = ServletTestHelper.createEntity(dispatchServlet, parentObject, userName);
-				assertNotNull(parentObject);
-				toDelete.add(parentObject.getId());
-				
-				// Create two children of this node.
-				for(int i=0; i<2; i++){
-					name = "child_"+child.name()+"OfParent_"+parent.name();
-					// Create this as a child of the parent
-					Nodeable childObject = ObjectTypeFactory.createObjectForTest(name, child, parentObject.getId());
-					childObject = ServletTestHelper.createEntity(dispatchServlet, childObject, userName);
-					assertNotNull(childObject);
+				if(ObjectType.agreement == child) continue;
+				// Only test valid parent child combinations
+				if(child.isValidParentType(parent)){
+					// First create a parent of this type
+					String name = "parent_"+parent.name()+"Ofchild_"+child.name();
+					String parentId = findCompatableParentId(path, parent);
+					Nodeable parentObject = ObjectTypeFactory.createObjectForTest(name, parent, parentId);
+					parentObject = ServletTestHelper.createEntity(dispatchServlet, parentObject, userName);
+					assertNotNull(parentObject);
 					toDelete.add(parentObject.getId());
+					
+					// Create two children of this node.
+					for(int i=0; i<2; i++){
+						name = "child_"+child.name()+"OfParent_"+parent.name();
+						// Create this as a child of the parent
+						Nodeable childObject = ObjectTypeFactory.createObjectForTest(name, child, parentObject.getId());
+						childObject = ServletTestHelper.createEntity(dispatchServlet, childObject, userName);
+						assertNotNull(childObject);
+						toDelete.add(parentObject.getId());
+					}
+					// Now get all children of this parent
+					PaginatedResults<Nodeable> results = ServletTestHelper.getAllChildrenEntites(dispatchServlet, parent, parentObject.getId(), child.getClassForType(), 1, 100, "name", true, userName);
+					assertNotNull(results);
+					assertEquals("Parent: "+parent.name()+" with child: "+child.name(), 2, results.getTotalNumberOfResults());
+					assertNotNull(results.getResults());
+					assertEquals(2, results.getResults().size());
 				}
-				// Now get all children of this parent
-				PaginatedResults<Nodeable> results = ServletTestHelper.getAllChildrenEntites(dispatchServlet, parent, parentObject.getId(), child.getClassForType(), 1, 100, "name", true, userName);
-				assertNotNull(results);
-				assertEquals("Parent: "+parent.name()+" with child: "+child.name(), 2, results.getTotalNumberOfResults());
-				assertNotNull(results.getResults());
-				assertEquals(2, results.getResults().size());
 			}
 		}
 	}
@@ -328,7 +381,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 	}
 	
 	@Test
-	public void testUpdateEntity() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+	public void testUpdateEntity() throws Exception{
 		// First create one of each type
 		List<Nodeable> created = createEntitesOfEachType(1);
 		assertNotNull(created);
@@ -356,7 +409,30 @@ public class DefaultControllerAutowiredAllTypesTest {
 	}
 	
 	@Test
-	public void testGetAnnotations() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+	public void testGetPath() throws Exception{
+		// First create one of each type
+		List<Nodeable> created = createEntitesOfEachType(1);
+		assertNotNull(created);
+		assertTrue(created.size() >= ObjectType.values().length);
+		
+		// Now update each
+		for(Nodeable entity: created){
+			// Make sure we can get the annotations for this entity.
+			List<EntityHeader> path = ServletTestHelper.getEntityPath(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			assertNotNull(path);
+			assertTrue(path.size() > 0);
+			ObjectType type = ObjectType.getNodeTypeForClass(entity.getClass());
+			// The last element should match this entity
+			EntityHeader myData = path.get(path.size()-1);
+			assertNotNull(myData);
+			assertEquals(entity.getId(), myData.getId());
+			assertEquals(entity.getName(), myData.getName());
+			assertEquals(type.getUrlPrefix(), myData.getType());
+		}
+	}
+	
+	@Test
+	public void testGetAnnotations() throws Exception{
 		// First create one of each type
 		List<Nodeable> created = createEntitesOfEachType(1);
 		assertNotNull(created);
@@ -375,7 +451,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 	}
 	
 	@Test
-	public void testUpdateAnnotations() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+	public void testUpdateAnnotations() throws Exception {
 		// First create one of each type
 		List<Nodeable> created = createEntitesOfEachType(1);
 		assertNotNull(created);
@@ -401,7 +477,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 	}
 	
 	@Test
-	public void testGetEntityAcl() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+	public void testGetEntityAcl() throws Exception {
 		// First create one of each type
 		List<Nodeable> created = createEntitesOfEachType(1);
 		assertNotNull(created);
@@ -415,7 +491,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 	}
 	
 	@Test
-	public void testUpdateEntityAcl() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+	public void testUpdateEntityAcl() throws Exception {
 		// First create one of each type
 		List<Nodeable> created = createEntitesOfEachType(1);
 		assertNotNull(created);
@@ -431,7 +507,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 	}
 	
 	@Test
-	public void testCreateEntityAcl() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+	public void testCreateEntityAcl() throws Exception {
 		// First create one of each type
 		List<Nodeable> created = createEntitesOfEachType(1);
 		assertNotNull(created);
@@ -439,11 +515,22 @@ public class DefaultControllerAutowiredAllTypesTest {
 		
 		// Now update each
 		for(Nodeable entity: created){
-			BaseChild child = (BaseChild)entity;
+			Nodeable child = (Nodeable)entity;
 			AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
 			assertNotNull(acl);
+			// Get the full path of this entity.
+			List<EntityHeader> path = ServletTestHelper.getEntityPath(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			assertNotNull(path);
+			assertTrue(path.size() > 0);
+			// The ACL should match the root of the node
+			EntityHeader rootHeader = path.get(0);
 			// the returned ACL should refer to the parent
-			assertEquals(child.getParentId(), acl.getResourceId());
+			assertEquals(rootHeader.getId(), acl.getResourceId());
+			
+			// We cannot add an ACL to a node that already has one
+			if(acl.getResourceId().equals(entity.getId())){
+				continue;
+			}
 			
 			// now switch to child
 			acl.setResourceId(entity.getId());
@@ -464,12 +551,12 @@ public class DefaultControllerAutowiredAllTypesTest {
 			AccessControlList acl4 = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
 			assertNotNull(acl4);
 			// the returned ACL should refer to the parent
-			assertEquals(child.getParentId(), acl4.getResourceId());
+			assertEquals(rootHeader.getId(), acl4.getResourceId());
 		}
 	}
 	
 	@Test
-	public void testCreateNewVersion() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+	public void testCreateNewVersion() throws Exception {
 		// First create one of each type
 		List<Nodeable> created = createEntitesOfEachType(1);
 		assertNotNull(created);
@@ -497,7 +584,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 	}
 	
 	@Test
-	public void testGetEntityForVersion() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+	public void testGetEntityForVersion() throws Exception {
 		// First create one of each type
 		List<Nodeable> created = createEntitesOfEachType(1);
 		assertNotNull(created);
@@ -534,7 +621,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 	}
 	
 	@Test
-	public void testGetAllVersions() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException, JSONException{
+	public void testGetAllVersions() throws Exception {
 		// First create one of each type
 		List<Nodeable> created = createEntitesOfEachType(1);
 		assertNotNull(created);
@@ -584,7 +671,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 	}
 	
 	@Test
-	public void testGetEntityAnnotationsForVersion() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException{
+	public void testGetEntityAnnotationsForVersion() throws Exception {
 		// First create one of each type
 		List<Nodeable> created = createEntitesOfEachType(1);
 		assertNotNull(created);
@@ -634,7 +721,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 	}
 	
 	@Test
-	public void testDeleteVersion() throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException, JSONException{
+	public void testDeleteVersion() throws Exception {
 		// First create one of each type
 		List<Nodeable> created = createEntitesOfEachType(1);
 		assertNotNull(created);

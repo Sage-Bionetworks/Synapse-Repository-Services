@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.jdo;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -20,6 +21,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -38,7 +40,9 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
+import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.orm.jdo.JdoCallback;
 import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
 import org.springframework.orm.jdo.JdoTemplate;
@@ -54,10 +58,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
+	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+SqlConstants.COL_NODE_PARENT_ID+", "+SqlConstants.COL_NODE_TYPE+", "+SqlConstants.COL_NODE_NAME+" FROM "+SqlConstants.TABLE_NODE+" WHERE "+SqlConstants.COL_NODE_ID+" = ?";
+
 	static private Log log = LogFactory.getLog(NodeDAOImpl.class);
 	
 	@Autowired
 	private JdoTemplate jdoTemplate;
+	
+	// This is better suited for simple JDBC query.
+	@Autowired
+	private SimpleJdbcTemplate simpleJdbcTempalte;
 	
 	@Autowired
 	private IdGenerator idGenerator;
@@ -491,5 +501,107 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 	}
 
+	@Transactional(readOnly = true)
+	@Override
+	public EntityHeader getEntityHeader(String nodeId) throws DatastoreException, NotFoundException {
+		// Fetch the basic data for an entity.
+		Long id = KeyFactory.stringToKey(nodeId);
+		ParentTypeName ptn = getParentTypeName(id);
+		EntityHeader header = createHeaderFromParentTypeName(nodeId, ptn);
+		return header;
+	}
+
+	/**
+	 * Create a header for 
+	 * @param nodeId
+	 * @param ptn
+	 * @return
+	 */
+	public static EntityHeader createHeaderFromParentTypeName(String nodeId,
+			ParentTypeName ptn) {
+		EntityHeader header = new EntityHeader();
+		header.setId(nodeId);
+		header.setName(ptn.getName());
+		ObjectType type = ObjectType.getTypeForId(ptn.getType());
+		header.setType(type.getUrlPrefix());
+		return header;
+	}
+	/**
+	 * Fetch the Parent, Type, Name for a Node.
+	 * @param nodeId
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	private ParentTypeName getParentTypeName(Long nodeId) throws NotFoundException{
+		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
+		try{
+			Map<String, Object> row = simpleJdbcTempalte.queryForMap(SQL_SELECT_PARENT_TYPE_NAME, nodeId);
+			ParentTypeName results = new ParentTypeName();
+			results.setName((String) row.get(SqlConstants.COL_NODE_NAME));
+			results.setParentId((Long) row.get(SqlConstants.COL_NODE_PARENT_ID));
+			results.setType(((Integer) row.get(SqlConstants.COL_NODE_TYPE)).shortValue());
+			return results;
+		}catch(EmptyResultDataAccessException e){
+			// Occurs if there are no results
+			throw new NotFoundException("Cannot find a node with id: "+nodeId);
+		}
+	}
 	
+	/**
+	 * Simple structure for three basic pieces of information about a node.
+	 * @author jmhill
+	 *
+	 */
+	public  static class ParentTypeName {
+		Long parentId;
+		Short type;
+		String name;
+		public Long getParentId() {
+			return parentId;
+		}
+		public void setParentId(Long parentId) {
+			this.parentId = parentId;
+		}
+		public Short getType() {
+			return type;
+		}
+		public void setType(Short type) {
+			this.type = type;
+		}
+		public String getName() {
+			return name;
+		}
+		public void setName(String name) {
+			this.name = name;
+		}
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException {
+		// Call the recursive method
+		List<EntityHeader> results = new ArrayList<EntityHeader>();
+		appendPath(results, KeyFactory.stringToKey(nodeId));
+		return results;
+	}
+	
+	/**
+	 * A recursive method to build up the full path of of an entity.
+	 * @param results
+	 * @param nodeId
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	private void appendPath(List<EntityHeader> results, Long nodeId) throws NotFoundException, DatastoreException{
+		// First Build the entity header for this node
+		ParentTypeName ptn = getParentTypeName(nodeId);
+		EntityHeader header = createHeaderFromParentTypeName(KeyFactory.keyToString(nodeId), ptn);
+		// Add at the front
+		results.add(0, header);
+		if(ptn.getParentId() != null){
+			// Recurse
+			appendPath(results, ptn.getParentId());
+		}
+	}
+
 }

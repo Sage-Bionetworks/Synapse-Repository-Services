@@ -19,24 +19,6 @@
 			<version>${applicationVersion}</version>
 		</dependency>
 
-<!--		<dependency>-->
-<!--			<groupId>javax.transaction</groupId>-->
-<!--			<artifactId>jta</artifactId>-->
-<!--			<version>${javax.transaction.jta.version}</version>-->
-<!--		</dependency>-->
-<!---->
-<!--		<dependency>-->
-<!--			<groupId>javax.jdo</groupId>-->
-<!--			<artifactId>jdo2-api</artifactId>-->
-<!--			<version>${javax.jdo.jdo2-api.version}</version>-->
-<!--			<exclusions>-->
-<!--				<exclusion>-->
-<!--					<groupId>javax.transaction</groupId>-->
-<!--					<artifactId>transaction-api</artifactId>-->
-<!--				</exclusion>-->
-<!--			</exclusions>-->
-<!--		</dependency>-->
-
 		<!-- MySQL dependencies -->
 		<dependency>
 			<groupId>mysql</groupId>
@@ -69,23 +51,14 @@
 		<dependency>
 			<groupId>org.aspectj</groupId>
 			<artifactId>aspectjlib</artifactId>
-			<version>${org.aspectj.aspectjlib.version}</version>
-			<type>jar</type>
-			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.aspectj</groupId>
 			<artifactId>aspectjweaver</artifactId>
-			<version>${org.aspectj.version}</version>
-			<type>jar</type>
-			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.aspectj</groupId>
 			<artifactId>aspectjrt</artifactId>
-			<version>${org.aspectj.version}</version>
-			<type>jar</type>
-			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>

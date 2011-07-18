@@ -88,24 +88,23 @@ public class AgreementMetadataProvider implements
 	}
 
 	@Override
-	public void validateEntity(Agreement entity, UserInfo userInfo,
-			EventType eventType) throws InvalidModelException,
-			NotFoundException, DatastoreException, UnauthorizedException {
+	public void validateEntity(Agreement entity, EntityEvent event)
+			throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException {
 		if (null == entity.getDatasetId()) {
 			throw new InvalidModelException("datasetId cannot be null");
 		}
 		if (null == entity.getEulaId()) {
 			throw new InvalidModelException("eulaId cannot be null");
 		}
-		if ((null != entity.getCreatedBy()) && !entity.getCreatedBy().equals(userInfo.getUser().getId())) {
-			throw new InvalidModelException("createdBy must be " + userInfo.getUser().getId());			
+		if ((null != entity.getCreatedBy()) && !entity.getCreatedBy().equals(event.getUserInfo().getUser().getId())) {
+			throw new InvalidModelException("createdBy must be " + event.getUserInfo().getUser().getId());			
 		}
 
 		// The system is responsible for setting the versions of the dataset and
 		// eula once those objects are versionable PLFM-326
-		Dataset dataset = (Dataset) entityManager.getEntity(userInfo, entity
+		Dataset dataset = (Dataset) entityManager.getEntity(event.getUserInfo(), entity
 				.getDatasetId(), ObjectType.dataset.getClassForType());
-		Eula eula = (Eula) entityManager.getEntity(userInfo,
+		Eula eula = (Eula) entityManager.getEntity(event.getUserInfo(),
 				entity.getEulaId(), ObjectType.eula.getClassForType());
 		// entity.setDatasetVersionNumber(dataset.getVersionNumber());
 		// entity.setEulaVersionNumber(eula.getVersionNumber());
@@ -239,5 +238,6 @@ public class AgreementMetadataProvider implements
 		ra.getAccessType().add(at);
 		return acl;
 	}
+
 
 }

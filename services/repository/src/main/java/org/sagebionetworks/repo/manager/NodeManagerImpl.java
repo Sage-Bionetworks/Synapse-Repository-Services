@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -402,6 +403,15 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		return nodeDao.getVersionNumbers(nodeId);
 	}
 
-
+	@Override
+	public List<EntityHeader> getNodePath(UserInfo userInfo, String nodeId)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		UserInfo.validateUserInfo(userInfo);
+		String userName = userInfo.getUser().getUserId();
+		if (!authorizationManager.canAccess(userInfo, nodeId, AuthorizationConstants.ACCESS_TYPE.READ)) {
+			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
+		}
+		return nodeDao.getEntityPath(nodeId);
+	}
 
 }

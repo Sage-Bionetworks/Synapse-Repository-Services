@@ -8,7 +8,7 @@ package org.sagebionetworks.repo.model;
  * @author bhoff
  * 
  */
-public interface DatasetLayer extends BaseChild {
+public interface DatasetLayer extends Nodeable {
 	public String getReleaseNotes();
 
 	public void setReleaseNotes(String releaseNotes);

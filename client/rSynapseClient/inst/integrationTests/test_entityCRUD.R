@@ -6,10 +6,18 @@
 }
 
 integrationTestCRUD <- function() {
+	print('integrationTestCRUD')
+	# Create a project
+	project <- list()
+	project$name = 'R Integration Test Project'
+	createdProject <- createProject(entity=project)
+	checkEquals(project$name, createdProject$name)
+
 	# Create a dataset
 	dataset <- list()
 	dataset$name = 'R Integration Test Dataset'
 	dataset$status = 'test create'
+	dataset$parentId <- createdProject$id
 	createdDataset <- createDataset(entity=dataset)
 	checkEquals(dataset$name, createdDataset$name)
 	checkEquals(dataset$status, createdDataset$status)
@@ -34,8 +42,8 @@ integrationTestCRUD <- function() {
 	storedAnnotations <- updateAnnotations(annotations=annotations)
 	checkEquals('my new annotation value', storedAnnotations$stringAnnotations$myNewAnnotationKey)
 	
-	# Delete a dataset
-	deleteDataset(entity=modifiedDataset)
+	# Delete a Project
+	deleteProject(entity=createdProject)
 	
 	# Confirm that its gone
 	checkException(getDataset(entity=modifiedDataset))

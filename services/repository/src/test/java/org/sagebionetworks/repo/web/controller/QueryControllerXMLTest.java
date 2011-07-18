@@ -37,6 +37,7 @@ public class QueryControllerXMLTest {
 	@Autowired
 	private Helpers helper;
 	private HttpServlet servlet = null;
+	private JSONObject project;
 
 	/**
 	 * @throws java.lang.Exception
@@ -44,6 +45,9 @@ public class QueryControllerXMLTest {
 	@Before
 	public void setUp() throws Exception {
 		servlet = helper.setUp();
+		
+		project = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/project", DatasetControllerTest.SAMPLE_PROJECT);
 	}
 
 	/**
@@ -94,10 +98,10 @@ public class QueryControllerXMLTest {
 
 	}
 
-	private String createDatasetHelper() throws Exception {
+	private String createDatasetHelper() throws Exception {		
 		JSONObject dataset = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/dataset", "{\"name\":\"dataset from a unit test\"}");
+				+ "/dataset", "{\"name\":\"dataset from a unit test\", \"parentId\":\""+project.getString("id")+"\"  }");
 		return dataset.getString("id");
 	}
 }

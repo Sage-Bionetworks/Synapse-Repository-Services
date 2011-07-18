@@ -6,10 +6,18 @@
 }
 
 integrationTestCRUD <- function() {
+
+	# Create a project
+	project <- list()
+	project$name = 'R Integration Test Project'
+	createdProject <- createProject(entity=project)
+	checkEquals(project$name, createdProject$name)
+	
 	# Create a dataset
 	dataset <- list()
 	dataset$name = 'R Integration Test Dataset'
 	dataset$status = 'test create'
+	dataset$parentId <- createdProject$id
 	createdDataset <- synapsePost(uri='/dataset', entity=dataset)
 	checkEquals(dataset$name, createdDataset$name)
 	checkEquals(dataset$status, createdDataset$status)
@@ -37,5 +45,8 @@ integrationTestCRUD <- function() {
 	
 	# Confirm that its gone
 	checkException(synapseGet(uri=createdDataset$uri))
+	
+ 	# Delete a Project
+	deleteProject(entity=createdProject)
 }
 

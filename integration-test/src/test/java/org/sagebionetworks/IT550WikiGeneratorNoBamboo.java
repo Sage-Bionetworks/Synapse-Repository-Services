@@ -63,7 +63,7 @@ public class IT550WikiGeneratorNoBamboo {
 		String output = writer.toString();
 
 		// Make sure we are capturing log output
-		assertTrue(-1 < output.indexOf("Delete a Dataset"));
+		assertTrue(-1 < output.indexOf("Delete a Project"));
 
 		// Check for caught and handled errors
 		assertFalse(-1 < output.indexOf(WikiGenerator.ERROR_PREFIX));

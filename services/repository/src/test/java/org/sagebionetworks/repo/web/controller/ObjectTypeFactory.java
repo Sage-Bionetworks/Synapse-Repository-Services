@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import org.sagebionetworks.repo.model.BaseChild;
 import org.sagebionetworks.repo.model.Eula;
 import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -43,8 +42,8 @@ public class ObjectTypeFactory {
 			eula.setAgreement("this is a fake agreement");
 		} 
 		// Any object that needs  parent
-		if(object instanceof BaseChild){
-			BaseChild child = (BaseChild) object;
+		if(object instanceof Nodeable){
+			Nodeable child = (Nodeable) object;
 			child.setParentId(parentId);
 		}
 		return object;

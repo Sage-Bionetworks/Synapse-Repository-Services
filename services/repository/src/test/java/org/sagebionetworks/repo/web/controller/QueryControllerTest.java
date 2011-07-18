@@ -40,6 +40,9 @@ public class QueryControllerTest {
 	@Before
 	public void setUp() throws Exception {
 		helper.setUp();
+		
+		JSONObject project = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/project", DatasetControllerTest.SAMPLE_PROJECT);
 
 		// Load up a few datasets with annotations
 		for (int i = 0; i < DatasetsControllerTest.SAMPLE_DATASET_NAMES.length; i++) {
@@ -48,7 +51,7 @@ public class QueryControllerTest {
 					.getServletPrefix()
 					+ "/dataset", "{\"name\":\""
 					+ DatasetsControllerTest.SAMPLE_DATASET_NAMES[i]
-					+ "\", \"status\":\"" + status + "\"}");
+					+ "\", \"parentId\":\""+project.getString("id")+"\",\"status\":\"" + status + "\"}");
 
 			// Add some canned annotations to our dataset
 			helper.testEntityAnnotations(newDataset.getString("annotations"));

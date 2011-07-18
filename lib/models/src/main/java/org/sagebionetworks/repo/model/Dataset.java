@@ -12,7 +12,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  * 
  */
 @XmlRootElement
-public class Dataset implements BaseChild, HasLocations, HasLayers {
+public class Dataset implements Nodeable, HasLocations, HasLayers {
 	private String id;
 	private String uri;
 	private String etag;

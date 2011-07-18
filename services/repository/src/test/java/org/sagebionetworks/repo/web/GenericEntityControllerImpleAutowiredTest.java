@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.util.UserProvider;
@@ -65,12 +66,19 @@ public class GenericEntityControllerImpleAutowiredTest {
 		userName = userInfo.getUser().getUserId();
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
-
-
+		
 		toDelete = new ArrayList<String>();
+		// Create a project to hold the datasets
+		Project project = new Project();
+		project.setName("projectRoot");
+		project = entityController.createEntity(userName, project, mockRequest);
+		assertNotNull(project);
+
+		
 		// Create some datasetst.
 		for(int i=0; i<totalEntities; i++){
 			Dataset ds = createForTest(i);
+			ds.setParentId(project.getId());
 			ds = entityController.createEntity(userName, ds, mockRequest);
 			for(int layer=0; layer<layers; layer++){
 				InputDataLayer inLayer = createLayerForTest(i*10+layer);
@@ -84,6 +92,7 @@ public class GenericEntityControllerImpleAutowiredTest {
 			}
 			toDelete.add(ds.getId());
 		}
+		toDelete.add(project.getId());
 	}
 	
 	private Dataset createForTest(int i){

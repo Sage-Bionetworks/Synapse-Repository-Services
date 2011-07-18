@@ -9,7 +9,8 @@ import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
-import org.sagebionetworks.repo.model.BaseChild;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -20,7 +21,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.query.BasicQuery;
-import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider.EventType;
+import org.sagebionetworks.repo.web.controller.metadata.EventType;
 
 /**
  * Controller interface for all operations common to entities.
@@ -151,7 +152,7 @@ public interface GenericEntityController {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public <T extends BaseChild> List<T> getEntityChildrenOfType(String userId, String parentId, Class<? extends T> clazz, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public <T extends Nodeable> List<T> getEntityChildrenOfType(String userId, String parentId, Class<? extends T> clazz, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * Get the children of a given type with paging.
@@ -166,7 +167,7 @@ public interface GenericEntityController {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends BaseChild> PaginatedResults<T> getEntityChildrenOfTypePaginated(String userId, String parentId, Class<? extends T> clazz, PaginatedParameters paging, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public <T extends Nodeable> PaginatedResults<T> getEntityChildrenOfTypePaginated(String userId, String parentId, Class<? extends T> clazz, PaginatedParameters paging, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * Create a new entity
@@ -185,6 +186,17 @@ public interface GenericEntityController {
 	public <T extends Nodeable> T createEntity(String userId, T newEntity,
 			HttpServletRequest request) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException;
+	
+	/**
+	 * Get the full path of an entity.
+	 * @param userId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public List<EntityHeader> getEntityPath(String userId, String entityId) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * Update an existing entity
@@ -222,7 +234,7 @@ public interface GenericEntityController {
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends BaseChild> Collection<T> aggregateEntityUpdate(String userId, String parentId, Collection<T> update,HttpServletRequest request) throws NotFoundException,
+	public <T extends Nodeable> Collection<T> aggregateEntityUpdate(String userId, String parentId, Collection<T> update,HttpServletRequest request) throws NotFoundException,
 	ConflictingUpdateException, DatastoreException,
 	InvalidModelException, UnauthorizedException;
 

@@ -2,9 +2,9 @@ package org.sagebionetworks.repo.web.controller.metadata;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -24,32 +24,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
  *
  * @param <T>
  */
-public interface TypeSpecificMetadataProvider<T extends Base> {
-	
-	/**
-	 * The event type that triggered this call.
-	 * @author jmhill
-	 *
-	 */
-	public static enum EventType{
-		CREATE,
-		UPDATE,
-		GET,
-		DELETE,
-		NEW_VERSION
-	}
-
-	/**
-	 * Validate that the passed entity.
-	 * @param userInfo 
-	 * @param entity
-	 * @param eventType 
-	 * @throws InvalidModelException 
-	 * @throws UnauthorizedException 
-	 * @throws DatastoreException 
-	 * @throws NotFoundException 
-	 */
-	public void validateEntity(T entity, UserInfo userInfo, EventType eventType) throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException;
+public interface TypeSpecificMetadataProvider<T extends Nodeable> extends EntityValidator<T> {
 	
 	/**
 	 * This method will be called before the given entity is returned to the client.

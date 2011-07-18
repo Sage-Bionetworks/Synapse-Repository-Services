@@ -32,8 +32,8 @@ public class EulaMetadataProvider implements TypeSpecificMetadataProvider<Eula> 
 	}
 
 	@Override
-	public void validateEntity(Eula entity, UserInfo userInfo,
-			EventType eventType) throws InvalidModelException {
+	public void validateEntity(Eula entity, EntityEvent event)
+			throws InvalidModelException {
 		// Convert the blob value to the string value
 		if (entity.getAgreement() != null) {
 			try {

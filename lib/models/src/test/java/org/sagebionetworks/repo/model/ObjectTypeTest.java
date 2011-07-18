@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -55,5 +56,66 @@ public class ObjectTypeTest {
 			ObjectType result = type.getTypeForId(type.getId());
 			assertEquals(type, result);
 		}
+	}
+	
+	@Test
+	public void testDatasetValidParent(){
+		ObjectType[] expectedValid = new ObjectType[]{ObjectType.project};
+		testValidParents(expectedValid,  ObjectType.dataset);
+	}
+	
+	@Test
+	public void testProjectValidParent(){
+		ObjectType[] expectedValid = new ObjectType[]{ObjectType.project, null};
+		testValidParents(expectedValid, ObjectType.project);
+	}
+	
+	@Test
+	public void testLayerValidParent(){
+		ObjectType[] expectedValid = new ObjectType[]{ObjectType.dataset};
+		testValidParents(expectedValid, ObjectType.layer);
+	}
+	
+	@Test
+	public void testLocationValidParent(){
+		ObjectType[] expectedValid = new ObjectType[]{ObjectType.dataset, ObjectType.layer};
+		testValidParents(expectedValid, ObjectType.location);
+	}
+	
+	@Test
+	public void testPreviewValidParent(){
+		ObjectType[] expectedValid = new ObjectType[]{ ObjectType.layer};
+		testValidParents(expectedValid, ObjectType.preview);
+	}
+	
+	@Test
+	public void testEulaValidParent(){
+		ObjectType[] expectedValid = new ObjectType[]{ ObjectType.project};
+		testValidParents(expectedValid, ObjectType.eula);
+	}
+	
+	/**
+	 * Helper to test the valid parents of an object type.
+	 * @param expectedValid
+	 * @param toTest
+	 */
+	private void testValidParents(ObjectType[] expectedValid, ObjectType toTest) {
+		// Test expected
+		for(ObjectType expected: expectedValid){
+			assertTrue(toTest.isValidParentType(expected));
+		}
+		// test invalid
+		for(ObjectType type: ObjectType.values()){
+			if(!arrayCcontains(expectedValid, type)){
+				assertFalse(toTest.isValidParentType(type));
+			}
+		}
+	}
+	
+	private static boolean arrayCcontains(ObjectType[] array, ObjectType contains){
+		for(ObjectType ob: array){
+			if(ob == contains) return true;
+		}
+		return false;
 	}
 }

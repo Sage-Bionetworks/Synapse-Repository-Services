@@ -60,6 +60,8 @@ public class DatasetsControllerTest {
 			new DateTime("2003-05-06"), new DateTime("2007-07-30"),
 			new DateTime("2007-07-07"), new DateTime("2007-07-22"),
 			new DateTime("2007-07-23"), new DateTime("2007-07-18"), };
+	
+	private JSONObject project;
 
 	/**
 	 * @throws java.lang.Exception
@@ -67,6 +69,8 @@ public class DatasetsControllerTest {
 	@Before
 	public void setUp() throws Exception {
 		helper.setUp();
+		project = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/project", DatasetControllerTest.SAMPLE_PROJECT);
 	}
 
 	/**
@@ -95,7 +99,7 @@ public class DatasetsControllerTest {
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
 			helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
-					"{\"name\":\"" + SAMPLE_DATASET_NAMES[i] + "\"}");
+					"{\"name\":\"" + SAMPLE_DATASET_NAMES[i] + "\",\"parentId\":\""+project.getString("id")+"\"}");
 		}
 
 		JSONObject results = helper.testGetJsonEntities(helper
@@ -126,7 +130,7 @@ public class DatasetsControllerTest {
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
 			helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
-					"{\"name\":\"" + SAMPLE_DATASET_NAMES[i] + "\"}");
+					"{\"name\":\"" + SAMPLE_DATASET_NAMES[i] + "\",\"parentId\":\""+project.getString("id")+"\"}");
 		}
 
 		JSONObject results = helper.testGetJsonEntities(helper
@@ -158,7 +162,7 @@ public class DatasetsControllerTest {
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
 			helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
-					"{\"name\":\"" + SAMPLE_DATASET_NAMES[i] + "\"}");
+					"{\"name\":\"" + SAMPLE_DATASET_NAMES[i] + "\",\"parentId\":\""+project.getString("id")+"\"}");
 		}
 
 		List<String> sortedDatasetNames = Arrays.asList(SAMPLE_DATASET_NAMES);
@@ -197,7 +201,7 @@ public class DatasetsControllerTest {
 		// Load up a few datasets
 		for (int i = 0; i < totalNumDatasets; i++) {
 			helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
-					"{\"name\":\"" + SAMPLE_DATASET_NAMES[i] + "\"}");
+					"{\"name\":\"" + SAMPLE_DATASET_NAMES[i] + "\",\"parentId\":\""+project.getString("id")+"\"}");
 		}
 
 		List<String> sortedDatasetNames = Arrays.asList(SAMPLE_DATASET_NAMES);
@@ -240,7 +244,7 @@ public class DatasetsControllerTest {
 			JSONObject newDataset = helper.testCreateJsonEntity(helper
 					.getServletPrefix()
 					+ "/dataset", "{\"name\":\"" + SAMPLE_DATASET_NAMES[i]
-					+ "\"}");
+					+ "\",\"parentId\":\""+project.getString("id")+"\"}");
 
 			// Get our empty annotations container
 			JSONObject annotations = helper.testGetJsonEntity(newDataset
@@ -307,7 +311,7 @@ public class DatasetsControllerTest {
 			JSONObject newDataset = helper.testCreateJsonEntity(helper
 					.getServletPrefix()
 					+ "/dataset", "{\"name\":\"" + SAMPLE_DATASET_NAMES[i]
-					+ "\"}");
+					+ "\",\"parentId\":\""+project.getString("id")+"\"}");
 
 			// Get our empty annotations container
 			JSONObject annotations = helper.testGetJsonEntity(newDataset
@@ -374,7 +378,7 @@ public class DatasetsControllerTest {
 			JSONObject newDataset = helper.testCreateJsonEntity(helper
 					.getServletPrefix()
 					+ "/dataset", "{\"name\":\"" + SAMPLE_DATASET_NAMES[i]
-					+ "\"}");
+					+ "\",\"parentId\":\""+project.getString("id")+"\"}");
 
 			// Get our empty annotations container
 			JSONObject annotations = helper.testGetJsonEntity(newDataset

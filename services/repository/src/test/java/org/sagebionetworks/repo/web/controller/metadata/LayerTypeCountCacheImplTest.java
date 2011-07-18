@@ -20,11 +20,13 @@ import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeFactory;
+import org.sagebionetworks.repo.web.controller.ServletTestHelper;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -87,11 +89,19 @@ public class LayerTypeCountCacheImplTest {
 	
 	@Test
 	public void testCacheWarmup() throws Exception{
+		layerTypeCountCache.clearAll();
 		// The cache should start off empty
 		int expectedCount =0;
 		assertEquals(0, layerTypeCountCache.getCacheSize());
+		
+		Project project = new Project();
+		project.setName("testCreateProject");
+		Project clone = entityController.createEntity(userId, project, mockRequest);
+		assertNotNull(clone);
+		toDelete.add(clone.getId());
 		// Create a datset
 		Dataset ds = (Dataset) ObjectTypeFactory.createObjectForTest("DatasetOne", ObjectType.dataset, null);
+		ds.setParentId(project.getId());
 		ds = entityController.createEntity(userId, ds, mockRequest);
 		assertNotNull(ds);
 		assertNotNull(ds.getId());
@@ -129,6 +139,7 @@ public class LayerTypeCountCacheImplTest {
 		
 		// Now add another dataset without any layers
 		ds = (Dataset) ObjectTypeFactory.createObjectForTest("DatasetTwo", ObjectType.dataset, null);
+		ds.setParentId(project.getId());
 		ds = entityController.createEntity(userId, ds, mockRequest);
 		assertNotNull(ds);
 		assertNotNull(ds.getId());
