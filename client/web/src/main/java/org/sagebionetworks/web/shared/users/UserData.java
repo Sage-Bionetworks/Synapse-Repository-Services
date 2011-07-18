@@ -25,21 +25,23 @@ public class UserData implements IsSerializable {
 	
 	public UserData(String cookieString) {
 		List<String> cookieList = CookieUtils.createListFromString(cookieString);
-		if(cookieList.size() == 3) {
+		if(cookieList.size() == 4) {
 			validateFields(cookieList.get(0), cookieList.get(1), cookieList.get(2));
 			this.email = cookieList.get(0);
 			this.userName = cookieList.get(1);
 			this.token = cookieList.get(2);
+			this.isSSO = Boolean.parseBoolean(cookieList.get(3));
 		} else {
 			throw new IllegalArgumentException("Session cookie contains the wrong number of elements.");
 		}
 	}
 	
-	public UserData(String email, String userName, String token) {
+	public UserData(String email, String userName, String token, boolean isSSO) {
 		validateFields(email, userName, token);
 		this.email = email;
 		this.userName = userName;
 		this.token = token;
+		this.isSSO = isSSO;
 	}
 		
 	public String getCookieString() {
@@ -48,12 +50,13 @@ public class UserData implements IsSerializable {
 		fieldList.add(email);
 		fieldList.add(userName);
 		fieldList.add(token);
+		fieldList.add(Boolean.toString(isSSO));
 		return CookieUtils.createStringFromList(fieldList);
 	}
 	public static UserData createFromCookieString(String cookie) {
 		List<String> fieldList = CookieUtils.createListFromString(cookie);
-		if(fieldList.size() != 3) throw new IllegalArgumentException("There should be three fields in this object");
-		return new UserData(fieldList.get(0), fieldList.get(1), fieldList.get(2));
+		if(fieldList.size() != 4) throw new IllegalArgumentException("There should be three fields in this object");		
+		return new UserData(fieldList.get(0), fieldList.get(1), fieldList.get(2), Boolean.parseBoolean(fieldList.get(3)));
 	}	
 
 	public String getEmail() {

@@ -1,6 +1,5 @@
 package org.sagebionetworks.web.client.presenter;
 
-import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
 import org.sagebionetworks.web.client.place.Home;
@@ -35,7 +34,7 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 		this.view.setPresenter(this);
 		this.authenticationController = authenticationController;
 		this.userService = userService;
-	}
+	} 
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
@@ -92,27 +91,21 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 			// parse token
 			view.showLoggingInLoader();
 			if(token != null) {
-				String[] parts = token.split(":");
-				if(parts != null) {
-					String sessionToken = parts[0];					
-					authenticationController.loginUserSSO(sessionToken, new AsyncCallback<UserData>() {	
-						@Override
-						public void onSuccess(UserData result) {
-							view.hideLoggingInLoader();
-							// user is logged in. forward to home page
-							bus.fireEvent( new PlaceChangeEvent(new Home(DisplayUtils.DEFAULT_PLACE_TOKEN)));
-						}
-						@Override
-						public void onFailure(Throwable caught) {
-							view.showErrorMessage("An error occured. Please try logging in again.");
-							view.showLogin(openIdActionUrl, openIdReturnUrl);
-						}
-					});
-				} else {
-					view.showErrorMessage("An error occured. Please try logging in again.");
-					view.showLogin(openIdActionUrl, openIdReturnUrl);
-				}
-			}
+				String sessionToken = token;	
+				authenticationController.loginUserSSO(sessionToken, new AsyncCallback<UserData>() {	
+					@Override
+					public void onSuccess(UserData result) {
+						view.hideLoggingInLoader();
+						// user is logged in. forward to home page
+						bus.fireEvent( new PlaceChangeEvent(new Home(DisplayUtils.DEFAULT_PLACE_TOKEN)));
+					}
+					@Override
+					public void onFailure(Throwable caught) {
+						view.showErrorMessage("An error occured. Please try logging in again.");
+						view.showLogin(openIdActionUrl, openIdReturnUrl);
+					}
+				});
+			} 
 		} else {
 			// standard view
 			view.showLogin(openIdActionUrl, openIdReturnUrl);

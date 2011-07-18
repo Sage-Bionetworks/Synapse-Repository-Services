@@ -191,7 +191,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 			UserSession initSession = response.getBody();
 			String displayName = initSession.getDisplayName();
 			String sessionToken = initSession.getSessionToken();
-			userData = new UserData(username, displayName, sessionToken);
+			userData = new UserData(username, displayName, sessionToken, false);
 		} else {			
 			throw new AuthenticationException("Unable to authenticate.");
 		}
@@ -225,7 +225,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		UserData userData = null;		
 		if((response.getStatusCode() == HttpStatus.CREATED || response.getStatusCode() == HttpStatus.OK) && response.hasBody()) {
 			GetUser getUser = response.getBody();
-			userData = new UserData(getUser.getEmail(), getUser.getDisplayName(), sessionToken);
+			userData = new UserData(getUser.getEmail(), getUser.getDisplayName(), sessionToken, false);
 		} else {			
 			throw new AuthenticationException("Unable to authenticate.");
 		}
