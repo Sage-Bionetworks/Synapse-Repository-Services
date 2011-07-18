@@ -37,13 +37,13 @@ unitTestGetPath <- function(){
 }
 
 unitTestGetHostWithPort <- function() {
-	url <- .ParsedUrl('http://localhost:8080/services-authentication-0.5-SNAPSHOT/auth/v1')
+	url <- .ParsedUrl('http://localhost:8080/services-authentication-0.6-SNAPSHOT/auth/v1')
 	checkEquals(url@authority, 'localhost:8080')
 	checkEquals(url@host, 'localhost')
 	checkEquals(url@port, '8080')
-	checkEquals(url@path, '/services-authentication-0.5-SNAPSHOT/auth/v1')
+	checkEquals(url@path, '/services-authentication-0.6-SNAPSHOT/auth/v1')
 	checkEquals(url@file, 'v1')
-	checkEquals(url@pathPrefix, '/services-authentication-0.5-SNAPSHOT/auth')
+	checkEquals(url@pathPrefix, '/services-authentication-0.6-SNAPSHOT/auth')
 }
 
 
