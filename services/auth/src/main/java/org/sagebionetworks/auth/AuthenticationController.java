@@ -325,7 +325,7 @@ public class AuthenticationController {
 		}
 		crowdAuthUtil.createUser(user);
 		if (!isITU) {
-			sendChangePasswordEmail(crowdAuthUtil, user.getEmail());
+			sendUserPasswordEmail(crowdAuthUtil, user.getEmail(), false/*set pw*/);
 		}
 	}
 	
@@ -371,7 +371,8 @@ public class AuthenticationController {
 		crowdAuthUtil.updateUser(user);
 	}
 	
-	private static void sendChangePasswordEmail(CrowdAuthUtil crowdAuthUtil, String userEmail) throws Exception {
+	// reset == true means send the 'reset' message; reset== false means send the 'set' message
+	private static void sendUserPasswordEmail(CrowdAuthUtil crowdAuthUtil, String userEmail, boolean reset) throws Exception {
 		// need a session token
 		User user = new User();
 		user.setEmail(userEmail);
@@ -380,14 +381,18 @@ public class AuthenticationController {
 		user = crowdAuthUtil.getUser(user.getEmail());
 		// now send the reset password email, filling in the user name and session token
 		SendMail sendMail = new SendMail();
-		sendMail.sendResetPasswordMail(user, session.getSessionToken());
+		if (reset) {
+			sendMail.sendResetPasswordMail(user, session.getSessionToken());
+		} else {
+			sendMail.sendSetPasswordMail(user, session.getSessionToken());
+		}
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/userPasswordEmail", method = RequestMethod.POST)
 	public void sendChangePasswordEmail(@RequestBody User user) throws Exception {
 		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
-		sendChangePasswordEmail(crowdAuthUtil, user.getEmail());
+		sendUserPasswordEmail(crowdAuthUtil, user.getEmail(), true /*reset pw msg*/);
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
