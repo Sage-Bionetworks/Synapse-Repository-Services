@@ -13,13 +13,15 @@ parser.add_argument('--datasetsCsv', '-d', help='the file path to the CSV file h
 
 parser.add_argument('--layersCsv', '-l', help='the file path to the CSV file holding layer metadata, defaults to AllDatasetLayerLocations.csv', default='AllDatasetLayerLocations.csv')
 
-parser.add_argument('--md5sumCsv', '-m', help='the file path to the CSV file holding the md5sums for files, defaults to ../platform.md5sums.csv', default='../platform.md5sums.csv')
-
 parser.add_argument('--fakeLocalData', '-f', help='use fake data when we would normally read something from the actual Sage Bionetworks datasets, defaults to False', action='store_true', default=False)
+
+parser.add_argument('--uploadData', '-3', help='upload datasets to S3, defaults to False', action='store_true', default=False)
 
 #-------------------[ Constants ]----------------------
 
 NOW = datetime.datetime.today()
+
+SOURCE_DATA_DIRECTORY = '/work/platform/source'
 
 # These are the fields in the CSV that correspond to primary fields in
 # our data model, all other fields in the CSV will be tossed into the
@@ -60,12 +62,9 @@ gARGS = {}
 gARGS = parser.parse_args()
 gSYNAPSE = synapse.client.factory(gARGS)
 
-# A mapping we build over time of dataset names to layer uris.  In our
+# A mapping we build over time of dataset names to dataset ids.  In our
 # layer CSV file we have the dataset name to which each layer belongs.
-gDATASET_NAME_2_LAYER_URI = {}
-
-# A mapping of files to their md5sums
-gFILE_PATH_2_MD5SUM = {}
+gDATASET_NAME_2_ID = {}
 
 def checkEmptyRepository():
     """
@@ -91,8 +90,16 @@ def createAccessList(principals, permissionList):
         #print "principal %s \t access list %s" % (p, al)
     return al
 
-#--------------------[ createOrUpdateEntity ]-----------------------------
-def createOrUpdateEntity(kind, entity, permissions):
+def createOrUpdateEntity(kind, entity, permissions=None):
+    """
+    Helper function to query to determine whether the entity exists
+    and if so updated instead of create the entity.  Note that
+    different entities need different queries to find the unique
+    instance.
+
+    Note that permissions defaults to None meaning that this entity
+    should just inherit the permissions of its parent.    
+    """
     if(("location" == kind) or ("preview" == kind)):
         storedEntity = gSYNAPSE.getRepoEntityByProperty(kind=kind,
                                                         propertyName="parentId",
@@ -140,31 +147,56 @@ def createOrUpdateEntity(kind, entity, permissions):
 
     return storedEntity
 
-#--------------------[ createDataset ]-----------------------------
-def createDataset(dataset, annotations, locationSpec):
-
-    storedDataset = createOrUpdateEntity("dataset", dataset, None)
+def createOrUpdateDataset(dataset, annotations, location):
+    """
+    Helper function to create or update a dataset, its annotations,
+    and its location as appropriate.
+    """
+    storedDataset = createOrUpdateEntity(kind="dataset", entity=dataset)
         
     # Put our annotations
     gSYNAPSE.updateRepoEntity(storedDataset["annotations"], annotations)
-    
-    # If there's a dataset location, set its parentId to created dataset id and add location
-    if None != locationSpec:
-        locationSpec["parentId"] = storedDataset["id"]     # Cannot create orphan location
-        location = createOrUpdateEntity("location", locationSpec, LOCATION_PERMS)
-        
-    # Stash the layer uri for later use
-    gDATASET_NAME_2_LAYER_URI[dataset['name']] = storedDataset['id']
+
+    # If there's a dataset location, set its parentId to created
+    # dataset id and add location
+    if None != location:
+        # Cannot create orphan location
+        location["parentId"] = storedDataset["id"]
+        createOrUpdateLocation(location=location)
+
+    # Stash the dataset id for later use
+    gDATASET_NAME_2_ID[dataset['name']] = storedDataset['id']
       
-#--------------------[ loadMd5sums ]-----------------------------
-def loadMd5sums():
-    ifile  = open(gARGS.md5sumCsv, "rU")
-    for line in ifile:
-        row = string.split(line.rstrip())
-        md5sum = row[0]
-        # strip off any leading forward slashes
-        filePath = string.lstrip(row[1], "/")
-        gFILE_PATH_2_MD5SUM[filePath] = md5sum
+def createOrUpdateLocation(location):
+    """
+    Helper method to create or update a location and optionally upload
+    the data to S3
+    """
+    if 0 != string.find(location['path'], "/"):
+        location["path"] = "/" + location["path"]
+
+    md5 = None
+    if(gARGS.fakeLocalData):
+        location["md5sum"] = '0123456789ABCDEF0123456789ABCDEF'
+    else:
+        md5 = synapse.utils.computeMd5ForFile(SOURCE_DATA_DIRECTORY + location['path'])
+        location["md5sum"] = md5.hexdigest()
+
+    storedLocation = createOrUpdateEntity(kind="location",
+                                          entity=location,
+                                          permissions=LOCATION_PERMS)
+
+    if(not gARGS.fakeLocalData and gARGS.uploadData):
+        # TODO skip uploads for files if the checksum has not changed
+        # TODO spawn a thread for each upload and proceed to get more throughput
+        # 20110715, migration to bucket devdata01, skip this dataset since its laready there
+        if('/mskcc_prostate_cancer.zip' == location['path']):
+            return
+
+        localFilepath = SOURCE_DATA_DIRECTORY + location['path']
+        synapse.utils.uploadToS3(localFilepath=localFilepath,
+                                 s3url=storedLocation["path"],
+                                 md5=md5)
         
 #--------------------[ loadDatasets ]-----------------------------
 # What follows is code that expects a dataset CSV in a particular format,
@@ -211,7 +243,9 @@ def loadDatasets(projectId, eulaId):
         # If we have read in all the data for a dataset, send it
         if(previousDatasetId != row[0]):
             # Create our dataset
-            createDataset(dataset, annotations, location)
+            createOrUpdateDataset(dataset=dataset,
+                                  annotations=annotations,
+                                  location=location)
             # Re-initialize per dataset variables
             previousDatasetId = row[0]
             dataset = {}
@@ -252,14 +286,7 @@ def loadDatasets(projectId, eulaId):
                     path = col
                     location = {}
                     location["type"] = "awss3"
-                    if 0 != string.find(path, "/"):
-                        location["path"] = "/" + path
-                    else:
-                        location["path"] = path
-                    if(path in gFILE_PATH_2_MD5SUM):
-                        location["md5sum"] = gFILE_PATH_2_MD5SUM[path]
-                    elif(gARGS.fakeLocalData):
-                        location["md5sum"] = '0123456789ABCDEF0123456789ABCDEF'
+                    location["path"] = path
             else:
                 if( re.search('date', string.lower(header[colnum])) ):
                     ## TODO: Fix data file and remove following code
@@ -290,7 +317,9 @@ def loadDatasets(projectId, eulaId):
     ifile.close()     
 
     # Send the last one, create our dataset
-    createDataset(dataset, annotations, location)
+    createOrUpdateDataset(dataset=dataset,
+                          annotations=annotations,
+                          location=location)
 
 #--------------------[ loadLayers ]-----------------------------
 def loadLayers():
@@ -311,7 +340,7 @@ def loadLayers():
         # Dataset Name,type,status,name,Number of samples,Platform,Version,preview,sage,awsebs,awss3,qcby
         colnum = 0
         layer = {}
-        layer["parentId"] = gDATASET_NAME_2_LAYER_URI[row[0]]
+        layer["parentId"] = gDATASET_NAME_2_ID[row[0]]
         layer["type"] = row[1]
         layer["status"] = row[2]
         layer["name"] = row[3]
@@ -320,26 +349,18 @@ def loadLayers():
         layer["version"] = row[6]
         layer["qcBy"] = row[11]
         
-        newLayer = createOrUpdateEntity("layer", layer, None)
+        newLayer = createOrUpdateEntity(kind="layer", entity=layer)
         
         # Ignore column 8 (sage loc) and 9 (awsebs loc) for now
         for col in [10]:
             if(row[col] != ""):
                 # trim whitespace off both sides
                 path = row[col].strip()
-                locationSpec = {}
-                locationSpec["parentId"] = newLayer["id"]   # Cannot create orphaned location
-                locationSpec["type"] = header[col]
-                if 0 != string.find(path, "/"):
-                    locationSpec["path"] = "/" + path
-                else:
-                    locationSpec["path"] = path
-                if(path in gFILE_PATH_2_MD5SUM):
-                    locationSpec["md5sum"] = gFILE_PATH_2_MD5SUM[path]
-                elif(gARGS.fakeLocalData):
-                    locationSpec["md5sum"] = '0123456789ABCDEF0123456789ABCDEF'
-                    
-                location = createOrUpdateEntity("location", locationSpec, LOCATION_PERMS)
+                location = {}
+                location["parentId"] = newLayer["id"]   # Cannot create orphaned location
+                location["type"] = header[col]
+                location["path"] = path
+                createOrUpdateLocation(location=location)
         
         layerPreview = {}
         
@@ -353,29 +374,28 @@ def loadLayers():
                     # it in our property
                     head = ""
                     layerPreview["previewString"] = head.join(itertools.islice(myfile, 6))
-            createOrUpdateEntity("preview", layerPreview, None)
+            createOrUpdateEntity(kind="preview", entity=layerPreview)
        
     ifile.close()     
 
 #--------------------[ Main ]-----------------------------
-
 gSYNAPSE.login(gARGS.user, gARGS.password)
-
-if(not gARGS.fakeLocalData):
-    loadMd5sums()
 
 if not checkEmptyRepository():
     print "Repository is not empty! Aborting..."
-else:
+    sys.exit(1)
 
-    project = {"name":SAGE_CURATION_PROJECT_NAME, "description":"Umbrella for Sage-curated projects", "creator":"x.schildwachter@sagebase.org"}
-    storedProject = createOrUpdateEntity("project", project, ROOT_PERMS)
+project = {"name":SAGE_CURATION_PROJECT_NAME, "description":"Umbrella for Sage-curated projects", "creator":"x.schildwachter@sagebase.org"}
+storedProject = createOrUpdateEntity(kind="project",
+                                     entity=project,
+                                     permissions=ROOT_PERMS)
     
-    eula = {"name":SAGE_CURATION_EULA_NAME, "agreement":DEFAULT_TERMS_OF_USE}
-    storedEula = createOrUpdateEntity("eula", eula, ROOT_PERMS)
+eula = {"name":SAGE_CURATION_EULA_NAME, "agreement":DEFAULT_TERMS_OF_USE}
+storedEula = createOrUpdateEntity(kind="eula",
+                                  entity=eula,
+                                  permissions=ROOT_PERMS)
     
-    loadDatasets(storedProject["id"], storedEula["id"])
+loadDatasets(storedProject["id"], storedEula["id"])
     
-    if(None != gARGS.layersCsv):
-        loadLayers()
-
+if(None != gARGS.layersCsv):
+    loadLayers()
