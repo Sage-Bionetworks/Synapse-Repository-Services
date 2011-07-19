@@ -30,6 +30,11 @@ public class Annotations implements IsSerializable {
 	private String uri;
 	
 	public Annotations() {		
+		stringAnnotations = new HashMap<String, List<String>>();
+		longAnnotations = new HashMap<String, List<Long>>();
+		dateAnnotations = new HashMap<String, List<Date>>();
+		doubleAnnotations = new HashMap<String, List<Double>>();
+		blobAnnotations = new HashMap<String, List<byte[]>>();
 	}
 	
 	public Annotations(JSONObject object) {
@@ -135,10 +140,10 @@ public class Annotations implements IsSerializable {
 	public String toJson() {
 		JSONObject object = new JSONObject();
 		
-		object.put("id", new JSONString(getId()));
-		object.put("creationDate", new JSONNumber(getCreationDate().getTime()));
-		object.put("etag", new JSONString(getEtag()));
-		object.put("uri", new JSONString(getUri()));
+		if(getId() != null) object.put("id", new JSONString(getId()));
+		if(getCreationDate() != null) object.put("creationDate", new JSONNumber(getCreationDate().getTime()));
+		if(getEtag() != null) object.put("etag", new JSONString(getEtag()));
+		if(getUri() != null) object.put("uri", new JSONString(getUri()));
 		
 		JSONObject annotObj = null;
 		

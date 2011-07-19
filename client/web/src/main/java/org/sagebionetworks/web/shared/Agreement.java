@@ -2,7 +2,6 @@ package org.sagebionetworks.web.shared;
 
 import java.util.Date;
 
-import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
@@ -19,6 +18,11 @@ public class Agreement implements IsSerializable {
 	private Date creationDate;
 	private String etag;
 	private String createdBy;
+	private String datasetId;
+	private Integer datasetVersionNumber;
+	private String eulaId;
+	private Integer eulaVersionNumber;
+	private String parentId;
 	private String uri;
 	private String accessControlList;
 
@@ -62,6 +66,31 @@ public class Agreement implements IsSerializable {
 			if(object.get(key).isString() != null)
 				setCreatedBy(object.get(key).isString().stringValue());		
 		
+		key = "datasetId";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setDatasetId(object.get(key).isString().stringValue());		
+		
+		key = "datasetVersionNumber";
+		if(object.containsKey(key)) 
+			if(object.get(key).isNumber() != null)
+				setDatasetVersionNumber(((Double)object.get(key).isNumber().doubleValue()).intValue());		
+
+		key = "eulaId";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setEulaId(object.get(key).isString().stringValue());		
+		
+		key = "eulaVersionNumber";
+		if(object.containsKey(key)) 
+			if(object.get(key).isNumber() != null)
+				setEulaVersionNumber(((Double)object.get(key).isNumber().doubleValue()).intValue());		
+		
+		key = "parentId";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setParentId(object.get(key).isString().stringValue());
+
 		key = "uri";
 		if(object.containsKey(key)) 
 			if(object.get(key).isString() != null)
@@ -76,14 +105,19 @@ public class Agreement implements IsSerializable {
 	public String toJson() {
 		JSONObject object = new JSONObject();
 		
-		object.put("name", new JSONString(getName()));
-		object.put("annotations", new JSONString(getAnnotations()));
-		object.put("id", new JSONString(getId()));
-		object.put("creationDate", new JSONNumber(getCreationDate().getTime()));
-		object.put("etag", new JSONString(getEtag()));
-		object.put("createdBy", new JSONString(getCreatedBy()));
-		object.put("uri", new JSONString(getUri()));
-		object.put("accessControlList", new JSONString(getAccessControlList()));
+		if(getName() != null) object.put("name", new JSONString(getName()));
+		if(getAnnotations() != null) object.put("annotations", new JSONString(getAnnotations()));
+		if(getId() != null) object.put("id", new JSONString(getId()));
+		if(getCreationDate() != null) object.put("creationDate", new JSONNumber(getCreationDate().getTime()));
+		if(getEtag() != null) object.put("etag", new JSONString(getEtag()));
+		if(getCreatedBy() != null) object.put("createdBy", new JSONString(getCreatedBy()));
+		if(getDatasetId() != null) object.put("datasetId", new JSONString(getDatasetId()));
+		if(getDatasetVersionNumber() != null) object.put("datasetVersionNumber", new JSONNumber(getDatasetVersionNumber()));
+		if(getEulaId() != null) object.put("eulaId", new JSONString(getEulaId()));
+		if(getEulaVersionNumber() != null) object.put("eulaVersionNumber", new JSONNumber(getEulaVersionNumber()));
+		if(getParentId() != null) object.put("parentId", new JSONString(getParentId()));
+		if(getUri() != null) object.put("uri", new JSONString(getUri()));
+		if(getAccessControlList() != null) object.put("accessControlList", new JSONString(getAccessControlList()));
 		
 		return object.toString();
 	}
@@ -134,6 +168,46 @@ public class Agreement implements IsSerializable {
 
 	public void setCreatedBy(String createdBy) {
 		this.createdBy = createdBy;
+	}	
+	
+	public String getDatasetId() {
+		return datasetId;
+	}
+
+	public void setDatasetId(String datasetId) {
+		this.datasetId = datasetId;
+	}
+
+	public Integer getDatasetVersionNumber() {
+		return datasetVersionNumber;
+	}
+
+	public void setDatasetVersionNumber(Integer datasetVersionNumber) {
+		this.datasetVersionNumber = datasetVersionNumber;
+	}
+
+	public String getEulaId() {
+		return eulaId;
+	}
+
+	public void setEulaId(String eulaId) {
+		this.eulaId = eulaId;
+	}
+
+	public Integer getEulaVersionNumber() {
+		return eulaVersionNumber;
+	}
+
+	public void setEulaVersionNumber(Integer eulaVersionNumber) {
+		this.eulaVersionNumber = eulaVersionNumber;
+	}
+
+	public String getParentId() {
+		return parentId;
+	}
+
+	public void setParentId(String parentId) {
+		this.parentId = parentId;
 	}
 
 	public String getUri() {
@@ -166,9 +240,22 @@ public class Agreement implements IsSerializable {
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
+		result = prime * result
+				+ ((datasetId == null) ? 0 : datasetId.hashCode());
+		result = prime
+				* result
+				+ ((datasetVersionNumber == null) ? 0 : datasetVersionNumber
+						.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
+		result = prime * result + ((eulaId == null) ? 0 : eulaId.hashCode());
+		result = prime
+				* result
+				+ ((eulaVersionNumber == null) ? 0 : eulaVersionNumber
+						.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result
+				+ ((parentId == null) ? 0 : parentId.hashCode());
 		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
 		return result;
 	}
@@ -202,10 +289,30 @@ public class Agreement implements IsSerializable {
 				return false;
 		} else if (!creationDate.equals(other.creationDate))
 			return false;
+		if (datasetId == null) {
+			if (other.datasetId != null)
+				return false;
+		} else if (!datasetId.equals(other.datasetId))
+			return false;
+		if (datasetVersionNumber == null) {
+			if (other.datasetVersionNumber != null)
+				return false;
+		} else if (!datasetVersionNumber.equals(other.datasetVersionNumber))
+			return false;
 		if (etag == null) {
 			if (other.etag != null)
 				return false;
 		} else if (!etag.equals(other.etag))
+			return false;
+		if (eulaId == null) {
+			if (other.eulaId != null)
+				return false;
+		} else if (!eulaId.equals(other.eulaId))
+			return false;
+		if (eulaVersionNumber == null) {
+			if (other.eulaVersionNumber != null)
+				return false;
+		} else if (!eulaVersionNumber.equals(other.eulaVersionNumber))
 			return false;
 		if (id == null) {
 			if (other.id != null)
@@ -216,6 +323,11 @@ public class Agreement implements IsSerializable {
 			if (other.name != null)
 				return false;
 		} else if (!name.equals(other.name))
+			return false;
+		if (parentId == null) {
+			if (other.parentId != null)
+				return false;
+		} else if (!parentId.equals(other.parentId))
 			return false;
 		if (uri == null) {
 			if (other.uri != null)
@@ -229,7 +341,10 @@ public class Agreement implements IsSerializable {
 	public String toString() {
 		return "Agreement [name=" + name + ", annotations=" + annotations
 				+ ", id=" + id + ", creationDate=" + creationDate + ", etag="
-				+ etag + ", createdBy=" + createdBy + ", uri=" + uri
+				+ etag + ", createdBy=" + createdBy + ", datasetId="
+				+ datasetId + ", datasetVersionNumber=" + datasetVersionNumber
+				+ ", eulaId=" + eulaId + ", eulaVersionNumber="
+				+ eulaVersionNumber + ", parentId=" + parentId + ", uri=" + uri
 				+ ", accessControlList=" + accessControlList + "]";
 	}
 

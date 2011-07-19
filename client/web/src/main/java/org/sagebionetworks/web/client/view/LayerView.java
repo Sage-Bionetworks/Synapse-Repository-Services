@@ -135,8 +135,15 @@ public interface LayerView extends IsWidget {
 		 */
 		public void refresh();
 
+		/**
+		 * called when the user has accepted the license in the view
+		 */
 		public void licenseAccepted();
 
+		/**
+		 * Gets the PlaceChanger object which is an alternate method for changing the Place
+		 * @return
+		 */
 		public PlaceChanger getPlaceChanger();
 
 		/**
@@ -145,6 +152,9 @@ public interface LayerView extends IsWidget {
 		 */
 		public boolean downloadAttempted();
 
+		/**
+		 * Deletes this Layer
+		 */
 		public void delete();
 		
 	}

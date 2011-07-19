@@ -39,6 +39,38 @@ public interface DatasetView extends IsWidget {
 	 */
 	public void showInfo(String title, String message);
 	
+	/**
+	 * Send the view the details of the dataset to render.
+	 * @param id
+	 * @param name
+	 * @param overviewText
+	 * @param diseases
+	 * @param species
+	 * @param studySize
+	 * @param tissueTumor
+	 * @param tissueTypes
+	 * @param referencePublicationDisplay
+	 * @param referencePublicationUrl
+	 * @param nOtherPublications
+	 * @param viewOtherPublicationsUrl
+	 * @param postedDate
+	 * @param curationDate
+	 * @param lastModifiedDate
+	 * @param creator
+	 * @param contributors
+	 * @param nFollowers
+	 * @param viewFollowersUrl
+	 * @param downloadAvailability
+	 * @param releaseNotesUrl
+	 * @param status
+	 * @param version
+	 * @param nSamples
+	 * @param nDownloads
+	 * @param citation
+	 * @param pubmedId
+	 * @param isAdministrator
+	 * @param canEdit
+	 */
 	public void setDatasetDetails(String id,
 								  String name,
 								  String overviewText,
@@ -68,8 +100,6 @@ public interface DatasetView extends IsWidget {
 								  Integer pubmedId, 
 								  boolean isAdministrator, 
 								  boolean canEdit);
-	
-//	public void setDatasetRow(DatasetRow row);
 	
 	/**
 	 * require the view to show the license agreement
@@ -106,10 +136,21 @@ public interface DatasetView extends IsWidget {
 		 */
 		public void refresh();
 		
+		/**
+		 * called when the user has accepted the license in the view
+		 */
 		public void licenseAccepted();
 		
+		/**
+		 * Available for the view the change the current Place
+		 * @param place
+		 */
 		public void goTo(Place place);
 		
+		/**
+		 * Gets the PlaceChanger object which is an alternate method for changing the Place
+		 * @return
+		 */
 		public PlaceChanger getPlaceChanger();
 
 		/**
@@ -118,6 +159,9 @@ public interface DatasetView extends IsWidget {
 		 */
 		public boolean downloadAttempted();
 
+		/**
+		 * Delete this dataset 
+		 */
 		public void delete();
 }
 

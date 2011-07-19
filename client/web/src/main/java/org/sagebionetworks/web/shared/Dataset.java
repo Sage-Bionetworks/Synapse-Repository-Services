@@ -137,25 +137,25 @@ public class Dataset implements IsSerializable {
 	public String toJson() {
 		JSONObject object = new JSONObject();
 		
-		object.put("name", new JSONString(getName()));
-		object.put("annotations", new JSONString(getAnnotations()));
-		object.put("id", new JSONString(getId()));
-		object.put("version", new JSONString(getVersion()));
-		object.put("description", new JSONString(getDescription()));
-		object.put("status", new JSONString(getStatus()));		
-		object.put("creationDate", new JSONNumber(getCreationDate().getTime()));
-		object.put("parentId", new JSONString(getParentId()));
-		object.put("etag", new JSONString(getEtag()));
-		object.put("eulaId", new JSONString(getEulaId()));
-		object.put("uri", new JSONString(getUri()));
-		object.put("locations", new JSONString(getLocations()));
-		object.put("accessControlList", new JSONString(getAccessControlList()));
-		object.put("creator", new JSONString(getCreator()));
-		object.put("releaseDate", new JSONNumber(getReleaseDate().getTime()));
-		object.put("hasExpressionData", JSONBoolean.getInstance(getHasExpressionData()));
-		object.put("hasGeneticData", JSONBoolean.getInstance(getHasGeneticData()));
-		object.put("hasClinicalData", JSONBoolean.getInstance(getHasClinicalData()));
-		object.put("layers", new JSONString(getLayers()));
+		if(getName() != null) object.put("name", new JSONString(getName()));
+		if(getAnnotations() != null) object.put("annotations", new JSONString(getAnnotations()));
+		if(getId() != null) object.put("id", new JSONString(getId()));
+		if(getVersion() != null) object.put("version", new JSONString(getVersion()));
+		if(getDescription() != null) object.put("description", new JSONString(getDescription()));
+		if(getStatus() != null) object.put("status", new JSONString(getStatus()));		
+		if(getCreationDate() != null) object.put("creationDate", new JSONNumber(getCreationDate().getTime()));
+		if(getParentId() != null) object.put("parentId", new JSONString(getParentId()));
+		if(getEtag() != null) object.put("etag", new JSONString(getEtag()));
+		if(getEulaId() != null) object.put("eulaId", new JSONString(getEulaId()));
+		if(getUri() != null) object.put("uri", new JSONString(getUri()));
+		if(getLocations() != null) object.put("locations", new JSONString(getLocations()));
+		if(getAccessControlList() != null) object.put("accessControlList", new JSONString(getAccessControlList()));
+		if(getCreator() != null) object.put("creator", new JSONString(getCreator()));
+		if(getReleaseDate() != null) object.put("releaseDate", new JSONNumber(getReleaseDate().getTime()));
+		if(getHasExpressionData() != null) object.put("hasExpressionData", JSONBoolean.getInstance(getHasExpressionData()));
+		if(getHasGeneticData() != null) object.put("hasGeneticData", JSONBoolean.getInstance(getHasGeneticData()));
+		if(getHasClinicalData() != null) object.put("hasClinicalData", JSONBoolean.getInstance(getHasClinicalData()));
+		if(getLayers() != null) object.put("layers", new JSONString(getLayers()));
 		
 		return object.toString();
 	}

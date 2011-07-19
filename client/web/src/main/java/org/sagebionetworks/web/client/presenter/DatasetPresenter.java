@@ -15,6 +15,7 @@ import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.view.DatasetView;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAsync;
+import org.sagebionetworks.web.shared.Agreement;
 import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.DownloadLocation;
@@ -43,7 +44,9 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 	private PlaceController placeController; 
 	private PlaceChanger placeChanger;
 	private NodeServiceAsync nodeService;
+	private boolean hasAcceptedLicenseAgreement;
 	private LicenceServiceAsync licenseService;
+	private LicenseAgreement licenseAgreement;
 	private DatasetView view;
 	private String datasetId;
 	private Dataset model;
@@ -63,8 +66,13 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 		this.licenseService = licenseService;		
 		this.nodeModelCreator = nodeModelCreator;
 		this.authenticationController = authenticationController;
+		
+		this.hasAcceptedLicenseAgreement = false;
 	}
 
+	/**
+	 * Initial start of this presenter upon instantiation
+	 */
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
 		this.placeController = DisplayUtils.placeController;		
@@ -90,6 +98,9 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 		refreshFromServer();
 	}
 
+	/**
+	 * Calls the service and refreshes all page objects
+	 */
 	public void refreshFromServer() {
 		// Fetch the data about this dataset from the server
 		nodeService.getNodeJSON(NodeType.DATASET, this.datasetId, new AsyncCallback<String>() {			
@@ -113,6 +124,74 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 		
 	}
 
+	
+	@Override
+	public void licenseAccepted() {
+		if(!hasAcceptedLicenseAgreement && licenseAgreement != null) {
+			Agreement agreement = new Agreement();							
+			agreement.setEulaId(licenseAgreement.getEulaId());
+			agreement.setName("SynapseWeb Agreement");
+			agreement.setDatasetId(model.getParentId());
+			
+			nodeService.createNode(NodeType.AGREEMENT, agreement.toJson(), new AsyncCallback<String>() {
+				@Override
+				public void onSuccess(String result) {
+					// agreement saved
+				}
+	
+				@Override
+				public void onFailure(Throwable caught) {
+					view.showInfo("Error", DisplayConstants.ERROR_FAILED_PERSIST_AGREEMENT_TEXT);
+				}
+			});
+		}
+	}
+
+	@Override
+	public void refresh() {
+		refreshFromServer();
+	}
+
+	@Override
+	public void goTo(Place place) {
+		this.placeChanger.goTo(place);
+	}
+
+	@Override
+	public PlaceChanger getPlaceChanger() {
+		return placeChanger;
+	}
+
+	@Override
+	public boolean downloadAttempted() {
+		if(authenticationController.getLoggedInUser() != null) {
+			return true;
+		} else {
+			view.showInfo("Login Required", "Please Login to download data.");			
+			placeChanger.goTo(new LoginPlace(new org.sagebionetworks.web.client.place.Dataset(datasetId)));
+		}
+		return false;
+	}
+
+	@Override
+	public void delete() {
+		nodeService.deleteNode(NodeType.DATASET, datasetId, new AsyncCallback<Void>() {
+			@Override
+			public void onSuccess(Void result) {
+				view.showInfo("Dataset Deleted", "The dataset was successfully deleted.");
+				placeChanger.goTo(new ProjectsHome(DisplayUtils.DEFAULT_PLACE_TOKEN));
+			}
+			
+			@Override
+			public void onFailure(Throwable caught) {
+				view.showErrorMessage("Dataset delete failed.");
+			}
+		});
+	}
+	
+	/*
+	 * Protected & Private Methods
+	 */
 	protected void setDataset(final Dataset dataset) {
 		this.model = dataset;
 		if(dataset != null) {
@@ -135,6 +214,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 					@Override
 					public void onFailure(Throwable caught) {
 						view.showErrorMessage(DisplayConstants.ERROR_GETTING_PERMISSIONS_TEXT);
+						// because this is a public page, they can view 
 						setDatasetDetails(dataset, false, false);						
 					}			
 				});
@@ -145,7 +225,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 		} 				
 	}
 
-	private void setDatasetDetails(Dataset result,
+	protected void setDatasetDetails(Dataset result,
 			final boolean isAdministrator, final boolean canEdit) {		
 		nodeService.getNodeAnnotationsJSON(NodeType.DATASET, model.getId(), new AsyncCallback<String>() {
 			@Override
@@ -230,59 +310,9 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 			}
 
 		});				
-	}
-
-	@Override
-	public void licenseAccepted() {
-		// TODO Impl
-	}
-
-	@Override
-	public void refresh() {
-		refreshFromServer();
-	}
-
-	@Override
-	public void goTo(Place place) {
-		this.placeChanger.goTo(place);
-	}
-
-	@Override
-	public PlaceChanger getPlaceChanger() {
-		return placeChanger;
-	}
-
-	@Override
-	public boolean downloadAttempted() {
-		if(authenticationController.getLoggedInUser() != null) {
-			return true;
-		} else {
-			view.showInfo("Login Required", "Please Login to download data.");			
-			placeChanger.goTo(new LoginPlace(new org.sagebionetworks.web.client.place.Dataset(datasetId)));
-		}
-		return false;
-	}
-
-	@Override
-	public void delete() {
-		nodeService.deleteNode(NodeType.DATASET, datasetId, new AsyncCallback<Void>() {
-			@Override
-			public void onSuccess(Void result) {
-				view.showInfo("Dataset Deleted", "The dataset was successfully deleted.");
-				placeChanger.goTo(new ProjectsHome(DisplayUtils.DEFAULT_PLACE_TOKEN));
-			}
-			
-			@Override
-			public void onFailure(Throwable caught) {
-				view.showErrorMessage("Dataset delete failed.");
-			}
-		});
-	}
+	}	
 	
-	/*
-	 * Private Methods
-	 */
-	private void setLicenseAgreement() {
+	protected void setLicenseAgreement() {
 		final String eulaId = model.getEulaId();
 		if(eulaId != null) {			
 			// now query to see if user has accepted the agreement
@@ -304,9 +334,10 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 							}
 							if(eula != null) {
 								// set licence agreement text
-								LicenseAgreement agreement = new LicenseAgreement();				
-								agreement.setLicenseHtml(eula.getAgreement());
-								view.setLicenseAgreement(agreement);
+								licenseAgreement = new LicenseAgreement();				
+								licenseAgreement.setLicenseHtml(eula.getAgreement());
+								licenseAgreement.setEulaId(eulaId);
+								view.setLicenseAgreement(licenseAgreement);
 							} else {
 								setDownloadFailure();
 							}
@@ -331,12 +362,12 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 		}
 	}
 
-	private void setDownloadFailure() {
+	protected void setDownloadFailure() {
 		view.showErrorMessage("Dataset downloading unavailable. Please try reloading the page.");	
 		view.disableLicensedDownloads(true);
 	}	
 
-	private void loadDownloadLocations() {
+	protected void loadDownloadLocations() {
 		// TODO Implement (Nicole)		
 	}
 

@@ -244,14 +244,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		Anchor downloadLink = setupDatasetDownloadLink();		
 		downloadPanel.clear();
 		downloadPanel.add(downloadLink);
-		
-		// breadcrumb
-//		breadcrumb.appendLocation(new Hyperlink("Home", ""));
-//		breadcrumb.appendLocation(new Hyperlink("All Datasets", "DatasetsHome:0"));
-//		breadcrumbPanel.add(breadcrumb.asWidget());
-//		breadcrumb.setCurrentLocation(name);
-//		breadcrumbPanel.add(breadcrumb.asWidget());
-						
+								
 		// fill in fields
 		titleSpan.setInnerText(name);
 		breadcrumbTitleSpan.setInnerText(name);

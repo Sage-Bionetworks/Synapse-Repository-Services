@@ -46,11 +46,12 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	private PlaceChanger placeChanger;
 	private LayerView view;
 	private String layerId;	
-	private String datasetId;
 	private Boolean showDownload;
 	private Layer model;
 	private LayerPreview layerPreview;
+	private boolean hasAcceptedLicenseAgreement;
 	private LicenceServiceAsync licenseService;
+	private LicenseAgreement licenseAgreement;
 	private NodeModelCreator nodeModelCreator;
 	private AuthenticationController authenticationController;	
 	
@@ -67,6 +68,8 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		this.nodeModelCreator = nodeModelCreator;
 		this.authenticationController = authenticationController;
 		view.setPresenter(this);
+		
+		this.hasAcceptedLicenseAgreement = false;
 	}
 
 	@Override
@@ -82,34 +85,38 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		panel.setWidget(view);		
 	}
 
+	/**
+	 * Called when this presenter gets focus from AppActivityManager
+	 * @param place
+	 */
 	public void setPlace(org.sagebionetworks.web.client.place.Layer place) {
 		this.place = place;
-		this.layerId = place.getLayerId();
-		this.datasetId = place.getDatasetId();
+		this.layerId = place.getLayerId();		
 		this.showDownload = place.getDownload();
 		refresh();
 	}
 	
 
 	@Override
-	public void licenseAccepted() {
-//		UserData currentUser = authenticationController.getLoggedInUser();
-//		Agreement agreement = new Agreement();		
-//		agreement.setCreatedBy(currentUser.getEmail());
-//		
-//		// TODO : need to set the dataset id or something into the agreement...
-//		
-//		nodeService.createNode(NodeType.AGREEMENT, agreement.toJson(), new AsyncCallback<String>() {
-//			@Override
-//			public void onSuccess(String result) {
-//				// agreement saved
-//			}
-//
-//			@Override
-//			public void onFailure(Throwable caught) {
-//				view.showInfo("Error", DisplayConstants.ERROR_FAILED_PERSIST_AGREEMENT_TEXT);
-//			}
-//		});
+	public void licenseAccepted() {		
+		if(!hasAcceptedLicenseAgreement && licenseAgreement != null) {
+			Agreement agreement = new Agreement();							
+			agreement.setEulaId(licenseAgreement.getEulaId());
+			agreement.setName("SynapseWeb Agreement");
+			agreement.setDatasetId(model.getParentId());
+			
+			nodeService.createNode(NodeType.AGREEMENT, agreement.toJson(), new AsyncCallback<String>() {
+				@Override
+				public void onSuccess(String result) {
+					// agreement saved
+				}
+	
+				@Override
+				public void onFailure(Throwable caught) {
+					view.showInfo("Error", DisplayConstants.ERROR_FAILED_PERSIST_AGREEMENT_TEXT);
+				}
+			});
+		}
 	}
 
 	@Override
@@ -225,7 +232,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 							 5,
 							 Integer.MAX_VALUE, // TODO : get total number of rows in layer
 							 "Public", // TODO : replace with security object
-							 "<a href=\"#Dataset:"+ this.datasetId +"\">Dataset</a>", // TODO : have dataset name included in layer metadata
+							 "<a href=\"#Dataset:"+ model.getParentId() +"\">Dataset</a>", // TODO : have dataset name included in layer metadata
 							 model.getPlatform(), 
 							 isAdministrator, 
 							 canEdit);
@@ -284,6 +291,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 						licenseService.hasAccepted(currentUser.getEmail(), eulaId, new AsyncCallback<Boolean>() {
 							@Override
 							public void onSuccess(Boolean hasAccepted) {
+								hasAcceptedLicenseAgreement = hasAccepted;
 								view.requireLicenseAcceptance(!hasAccepted);
 
 								// load license agreement (needed for viewing even if hasAccepted)
@@ -298,9 +306,10 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 										}
 										if(eula != null) {
 											// set licence agreement text
-											LicenseAgreement agreement = new LicenseAgreement();				
-											agreement.setLicenseHtml(eula.getAgreement());
-											view.setLicenseAgreement(agreement);
+											licenseAgreement = new LicenseAgreement();				
+											licenseAgreement.setLicenseHtml(eula.getAgreement());
+											licenseAgreement.setEulaId(eulaId);
+											view.setLicenseAgreement(licenseAgreement);
 										} else {
 											setDownloadFailure();
 										}

@@ -28,8 +28,7 @@ public class LicensedDownloader implements LicensedDownloaderView.Presenter {
 	
 	/*
 	 * Public methods
-	 */
-			
+	 */		
 	public void showWindow() {
 		this.view.showWindow();
 	}

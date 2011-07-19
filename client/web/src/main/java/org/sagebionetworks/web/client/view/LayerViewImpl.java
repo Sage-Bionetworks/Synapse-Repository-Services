@@ -235,39 +235,6 @@ public class LayerViewImpl extends Composite implements LayerView {
 		breadcrumbTitleSpan.setInnerText(layerName);
 		
 	}
-
-	private Anchor setupDownloadLink() {
-		// download link		
-		Anchor downloadLink = new Anchor();
-		downloadLink.setHTML(AbstractImagePrototype.create(iconsImageBundle.download16()).getHTML() + " Download Layer");
-		downloadLink.addClickHandler(new ClickHandler() {			
-			@Override
-			public void onClick(ClickEvent event) {				
-				if(presenter.downloadAttempted()) {
-					licensedDownloader.showWindow();
-				}
-			}
-		});
-		return downloadLink;
-	}
-
-	private Anchor setupTermsModal(LicenseAgreement licenseAgreement) {
-		// Button: See terms of use		
-		seeTermsModal.setHeading("Terms of Use");
-		seeTermsModal.setDimensions(400, 500);
-		seeTermsModal.setHtml(licenseAgreement.getLicenseHtml());
-		// download link		
-		Anchor seeTermsAnchor = new Anchor();
-		seeTermsAnchor.setHTML(AbstractImagePrototype.create(iconsImageBundle.documentText16()).getHTML() + " See Terms of Use");
-		seeTermsAnchor.addClickHandler(new ClickHandler() {			
-			@Override
-			public void onClick(ClickEvent event) {
-				seeTermsModal.showWindow();
-			}
-		});
-
-		return seeTermsAnchor;
-	}
 	
 	@Override
 	public void showDownload() {	
@@ -351,6 +318,38 @@ public class LayerViewImpl extends Composite implements LayerView {
 	/*
 	 * Private Methods
 	 */
+	private Anchor setupDownloadLink() {
+		// download link		
+		Anchor downloadLink = new Anchor();
+		downloadLink.setHTML(AbstractImagePrototype.create(iconsImageBundle.download16()).getHTML() + " Download Layer");
+		downloadLink.addClickHandler(new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {				
+				if(presenter.downloadAttempted()) {
+					licensedDownloader.showWindow();
+				}
+			}
+		});
+		return downloadLink;
+	}
+
+	private Anchor setupTermsModal(LicenseAgreement licenseAgreement) {
+		// Button: See terms of use		
+		seeTermsModal.setHeading("Terms of Use");
+		seeTermsModal.setDimensions(400, 500);
+		seeTermsModal.setHtml(licenseAgreement.getLicenseHtml());
+		// download link		
+		Anchor seeTermsAnchor = new Anchor();
+		seeTermsAnchor.setHTML(AbstractImagePrototype.create(iconsImageBundle.documentText16()).getHTML() + " See Terms of Use");
+		seeTermsAnchor.addClickHandler(new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {
+				seeTermsModal.showWindow();
+			}
+		});
+
+		return seeTermsAnchor;
+	}
 
 	private void setupLicensedDownloaderCallbacks() {
 		// give the LicensedDownloader something to call when the view accepts the license

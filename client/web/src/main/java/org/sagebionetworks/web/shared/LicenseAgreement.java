@@ -6,7 +6,7 @@ public class LicenseAgreement implements IsSerializable {
 
 	private String licenseHtml;
 	private String citationHtml;
-	
+	private String eulaId;
 	
 	/**
 	 * Default constructor
@@ -35,12 +35,23 @@ public class LicenseAgreement implements IsSerializable {
 	}
 
 
+	public String getEulaId() {
+		return eulaId;
+	}
+
+
+	public void setEulaId(String eulaId) {
+		this.eulaId = eulaId;
+	}
+
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
 				+ ((citationHtml == null) ? 0 : citationHtml.hashCode());
+		result = prime * result + ((eulaId == null) ? 0 : eulaId.hashCode());
 		result = prime * result
 				+ ((licenseHtml == null) ? 0 : licenseHtml.hashCode());
 		return result;
@@ -61,6 +72,11 @@ public class LicenseAgreement implements IsSerializable {
 				return false;
 		} else if (!citationHtml.equals(other.citationHtml))
 			return false;
+		if (eulaId == null) {
+			if (other.eulaId != null)
+				return false;
+		} else if (!eulaId.equals(other.eulaId))
+			return false;
 		if (licenseHtml == null) {
 			if (other.licenseHtml != null)
 				return false;
@@ -73,9 +89,7 @@ public class LicenseAgreement implements IsSerializable {
 	@Override
 	public String toString() {
 		return "LicenseAgreement [licenseHtml=" + licenseHtml
-				+ ", citationHtml=" + citationHtml + "]";
+				+ ", citationHtml=" + citationHtml + ", eulaId=" + eulaId + "]";
 	}
-
-
 	
 }
