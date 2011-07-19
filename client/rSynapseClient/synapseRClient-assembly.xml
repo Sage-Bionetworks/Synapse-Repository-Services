@@ -20,6 +20,7 @@
                 <include>R/**/*</include>
                 <include>man/**/*</include>
                 <include>inst/**/*</include>
+                <include>src/**/*</include>
 			</includes>
 		</fileSet>
 	</fileSets>

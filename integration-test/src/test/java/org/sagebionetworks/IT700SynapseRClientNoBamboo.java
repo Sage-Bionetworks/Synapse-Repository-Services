@@ -67,7 +67,7 @@ public class IT700SynapseRClientNoBamboo {
 				"-e",
 				"synapseAuthServiceEndpoint(endpoint='" + StackConfiguration.getAuthenticationServiceEndpoint() + "')",
 				"-e",
-				"synapseSessionToken(sessionToken='"
+				"sessionToken(sessionToken='"
 						+ Helpers.getIntegrationTestUser() + "')",
 				"-e",
 				"synapseRepoServiceEndpoint(endpoint='" + StackConfiguration.getRepositoryServiceEndpoint() + "')",
@@ -91,7 +91,7 @@ public class IT700SynapseRClientNoBamboo {
 				"-e",
 				"synapseAuthServiceEndpoint(endpoint='" + StackConfiguration.getAuthenticationServiceEndpoint() + "')",
 				"-e",
-				"synapseSessionToken(sessionToken='"
+				"sessionToken(sessionToken='"
 						+ Helpers.getIntegrationTestUser() + "')",
 				"-e",
 				"synapseRepoServiceEndpoint(endpoint='" + StackConfiguration.getRepositoryServiceEndpoint() + "')",
