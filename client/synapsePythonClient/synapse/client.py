@@ -511,7 +511,7 @@ if __name__ == '__main__':
             print "setUp"
             # Anonymous connection
 #            self.anonClient = Synapse('http://140.107.149.29:8080/repo/v1', 'https://staging-auth.elasticbeanstalk.com/auth/v1', 30, False)
-            self.anonClient = Synapse('http://localhost:8080/services-repository-0.5-SNAPSHOT/repo/v1', 'http://localhost:8080/services-authentication-0.5-SNAPSHOT/auth/v1', 30, False)
+            self.anonClient = Synapse('http://localhost:8080/services-repository-0.5.1/repo/v1', 'http://localhost:8080/services-authentication-0.5.1/auth/v1', 30, False)
             # TODO: Move to unit test
 ##            self.assertEqual(self.anonClient.repoEndpoint["location"], 'localhost:8080')
 #            self.assertEqual(self.anonClient.repoEndpoint["prefix"], '/repo/v1')
@@ -522,7 +522,7 @@ if __name__ == '__main__':
             self.assertTrue(self.anonClient.sessionToken == None)
             self.assertFalse("sessionToken" in self.anonClient.headers)
             # Admin connection
-            self.adminClient = Synapse('http://localhost:8080/services-repository-0.5-SNAPSHOT/repo/v1', 'http://localhost:8080/services-authentication-0.5-SNAPSHOT/auth/v1', 30, False)
+            self.adminClient = Synapse('http://localhost:8080/services-repository-0.5.1/repo/v1', 'http://localhost:8080/services-authentication-0.5.1/auth/v1', 30, False)
             self.adminClient.login("admin", "admin")
             self.assertFalse(self.adminClient.sessionToken == None)
             self.assertTrue("sessionToken" in self.adminClient.headers)
