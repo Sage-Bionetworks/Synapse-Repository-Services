@@ -44,6 +44,7 @@ public class IT700SynapseRClientNoBamboo {
 	 * @throws Exception
 	 */
 	@Test
+	@Ignore
 	public void testInstallRClient() throws Exception {
 		String cmd[] = { Helpers.getRPath(), "CMD", "INSTALL",
 				"target/non-java-dependencies/synapseRClient" };
@@ -59,6 +60,7 @@ public class IT700SynapseRClientNoBamboo {
 	 * @throws Exception
 	 */
 	@Test
+	@Ignore
 	public void testRunRUnitTests() throws Exception {
 		String cmd[] = {
 				Helpers.getRPath(),
@@ -83,6 +85,7 @@ public class IT700SynapseRClientNoBamboo {
 	 * @throws Exception
 	 */
 	@Test
+	@Ignore
 	public void testRunRIntegrationTests() throws Exception {
 		String cmd[] = {
 				Helpers.getRPath(),
