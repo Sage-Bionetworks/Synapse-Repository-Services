@@ -189,14 +189,11 @@ def createOrUpdateLocation(location):
     if(not gARGS.fakeLocalData and gARGS.uploadData):
         # TODO skip uploads for files if the checksum has not changed
         # TODO spawn a thread for each upload and proceed to get more throughput
-        # 20110715, migration to bucket devdata01, skip this dataset since its laready there
-        if('/mskcc_prostate_cancer.zip' == location['path']):
-            return
-
         localFilepath = SOURCE_DATA_DIRECTORY + location['path']
         synapse.utils.uploadToS3(localFilepath=localFilepath,
                                  s3url=storedLocation["path"],
-                                 md5=md5)
+                                 md5=md5,
+                                 debug=gARGS.debug)
         
 #--------------------[ loadDatasets ]-----------------------------
 # What follows is code that expects a dataset CSV in a particular format,
