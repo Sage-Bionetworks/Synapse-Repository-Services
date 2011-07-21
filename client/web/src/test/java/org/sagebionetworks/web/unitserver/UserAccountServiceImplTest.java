@@ -3,7 +3,10 @@ package org.sagebionetworks.web.unitserver;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.List;
 
 import javax.ws.rs.core.UriBuilder;
 
@@ -18,6 +21,7 @@ import org.sagebionetworks.web.server.RestTemplateProviderImpl;
 import org.sagebionetworks.web.server.servlet.ServiceUrlProvider;
 import org.sagebionetworks.web.server.servlet.UserAccountServiceImpl;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
+import org.sagebionetworks.web.shared.users.AclPrincipal;
 import org.sagebionetworks.web.shared.users.UserData;
 import org.sagebionetworks.web.shared.users.UserRegistration;
 import org.sagebionetworks.web.util.LocalAuthServiceStub;
@@ -54,6 +58,8 @@ public class UserAccountServiceImplTest {
 	
 	private UserRegistration user1 = new UserRegistration("test@test.com", "test", "user", "test user");
 	private String user1password = "password";
+	private UserRegistration user2 = new UserRegistration("bar@foo.com", "bar", "foo", "barfoo");
+	private String user2password = "otherpass";
 	
 	
 	@BeforeClass
@@ -203,5 +209,58 @@ public class UserAccountServiceImplTest {
 			fail(e.getMessage());
 		}
 	}
+	
+	@Test
+	public void testGetAllUsers() {
+		
+		List<AclPrincipal> userList;
 
+		// Add some users and test to make sure those users were returned
+		try {
+			service.createUser(user2);
+		} catch (RestServiceException e) {
+			fail(e.getMessage());
+		}
+		userList = service.getAllUsers();
+		assertEquals(user1.getDisplayName() + user2.getDisplayName(), userList.get(0).getName() + userList.get(1).getName());
+	}
+	
+	@Test
+	public void testGetAllGroups() {
+		List<AclPrincipal> groupList;
+		
+		groupList = service.getAllGroups();
+		assertEquals("People" + "More People", groupList.get(0).getName() + groupList.get(1).getName());
+	}
+	
+	@Test
+	public void testGetAllUsersAndGroups() {
+		List<AclPrincipal> userAndGroupList;
+		
+		userAndGroupList = service.getAllUsersAndGroups();
+		assertEquals(user1.getDisplayName() + user2.getDisplayName() + "People" + "More People",
+				userAndGroupList.get(0).getName() + userAndGroupList.get(1).getName() + 
+				userAndGroupList.get(2).getName() + userAndGroupList.get(3).getName());
+	}
+	
+	@Test
+	public void testGetAuthServiceUrl() {
+		String authServiceUrl = service.getAuthServiceUrl();
+		
+		try {
+			URI testUri = new URI(authServiceUrl);
+		} catch (URISyntaxException e) {
+			fail("The Auth Service URL returned was not valid.");
+		}
+	}
+	
+	@Test
+	public void testGetSynapseWebUrl() {
+		String synapseWebUrl = service.getSynapseWebUrl();
+		try {
+			URI testUri = new URI(synapseWebUrl);
+		} catch (URISyntaxException e) {
+			fail("The Synapse URL returned was not valid.");
+		}
+	}
 }

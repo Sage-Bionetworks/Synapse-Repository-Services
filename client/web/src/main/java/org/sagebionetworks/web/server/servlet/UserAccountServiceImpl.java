@@ -336,7 +336,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 	public List<AclPrincipal> getAllUsers() {
 		// Build up the path
 		StringBuilder builder = new StringBuilder();
-		builder.append(urlProvider.getBaseUrl() + "/");
+		builder.append(urlProvider.getAuthBaseUrl() + "/");
 		builder.append(ServiceUtils.AUTHSVC_GET_USERS_PATH);
 		String url = builder.toString();	
 		String userList = getJsonStringForUrl(url, HttpMethod.GET);
@@ -348,7 +348,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 	public List<AclPrincipal> getAllGroups() {
 		// Build up the path
 		StringBuilder builder = new StringBuilder();
-		builder.append(urlProvider.getBaseUrl() + "/");
+		builder.append(urlProvider.getAuthBaseUrl() + "/");
 		builder.append(ServiceUtils.AUTHSVC_GET_GROUPS_PATH);
 		String url = builder.toString();	
 		String groupList = getJsonStringForUrl(url, HttpMethod.GET);
@@ -360,8 +360,8 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		List<AclPrincipal> users = getAllUsers();
 		List<AclPrincipal> groups = getAllGroups();
 		List<AclPrincipal> all = new ArrayList<AclPrincipal>();
-		all.addAll(groups);
 		all.addAll(users);
+		all.addAll(groups);
 		return all;
 	}
 

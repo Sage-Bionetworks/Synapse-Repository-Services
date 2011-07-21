@@ -22,6 +22,10 @@ import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+import org.sagebionetworks.web.shared.users.AclPrincipal;
 import org.sagebionetworks.web.shared.users.UserLogin;
 import org.sagebionetworks.web.shared.users.UserRegistration;
 import org.sagebionetworks.web.shared.users.UserSession;
@@ -39,6 +43,7 @@ import com.sun.jersey.api.container.grizzly.GrizzlyWebContainerFactory;
 public class LocalAuthServiceStub {
 	
 	private static List<User> users = new ArrayList<User>();
+	private static List<UserGroup> groups = new ArrayList<UserGroup>();
 	private static Map<String, User> sessions = new LinkedHashMap<String, User>();
 	
 	@POST 
@@ -128,6 +133,45 @@ public class LocalAuthServiceStub {
 		return true;
 	}
 	
+	@GET 
+	@Produces("application/json")
+	@Path("/user")
+	public String getAllUsers() throws JSONException {
+		JSONArray arr = new JSONArray();
+		for (int i = 0; i < users.size(); i++) {
+			JSONObject obj = new JSONObject();
+			User currentUser = users.get(i);
+			obj.put("name", currentUser.displayName);
+			obj.put("id", currentUser.userId);
+			obj.put("individual", true);
+			
+			arr.put(obj);
+		}
+		
+		return arr.toString();
+	}
+	
+	@GET
+	@Produces("application/json")
+	@Path("/userGroup")
+	public String getAllGroups() throws JSONException {
+		// Hard-coded groups
+		groups.add(new UserGroup("3", "people@fake.com", "People"));
+		groups.add(new UserGroup("4", "morePeople@fake.com", "More People"));
+		
+		JSONArray arr = new JSONArray();
+		for (int i = 0; i < groups.size(); i++) {
+			JSONObject obj = new JSONObject();
+			UserGroup currentGroup = groups.get(i);
+			obj.put("name", currentGroup.displayName);
+			obj.put("id", currentGroup.groupId);
+			obj.put("individual", true);
+			
+			arr.put(obj);
+		}
+		
+		return arr.toString();
+	}
 	
 	/**
 	 * Start-up a local Grizzly container with this class deployed.
@@ -189,6 +233,21 @@ public class LocalAuthServiceStub {
 			this.displayName = displayName;
 		}
 		
+	}
+	
+	private class UserGroup {
+		public String groupId;
+		public String email;
+		public String displayName;
+		
+		public UserGroup() { }
+		
+		public UserGroup(String groupId, String email, String displayName) {
+			super();
+			this.groupId = groupId;
+			this.email = email;
+			this.displayName = displayName;
+		}
 	}
 	/*
 	 * Response/exception mappings
