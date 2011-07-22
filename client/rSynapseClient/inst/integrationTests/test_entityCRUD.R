@@ -6,7 +6,6 @@
 }
 
 integrationTestCRUD <- function() {
-	print('integrationTestCRUD')
 	# Create a project
 	project <- list()
 	project$name = 'R Integration Test Project'

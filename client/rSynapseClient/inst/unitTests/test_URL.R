@@ -1,5 +1,5 @@
 .setUp <- function(){
-	.setCache("testInput","https://s3.amazonaws.com/data01.sagebase.org/mskcc_prostate_cancer.phenotype.zip?Expires=1307658150&AWSAccessKeyId=AKIAI3BTGJG752CCJUVA&Signature=sN%2FNePyyQnkKwOWgTOxnLB5f42s%3D")
+	.setCache("testInput","https://fakehost.com/fakePathPrefix.org/fakeFile.zip?Expires=1307658150&AWSAccessKeyId=AKIAI3BTGJG752CCJUVA&Signature=sN%2FNePyyQnkKwOWgTOxnLB5f42s%3D")
 }
 
 .tearDown <- function(){
@@ -13,17 +13,17 @@ unitTestGetProtocol <- function(){
 
 unitTestGetHost <- function(){
 	url <- .ParsedUrl(.getCache("testInput"))
-	checkEquals(url@host, "s3.amazonaws.com")
+	checkEquals(url@host, "fakehost.com")
 }
 
 unitTestGetPathPrefix <- function(){
 	url <- .ParsedUrl(.getCache("testInput"))
-	checkEquals(url@pathPrefix, "/data01.sagebase.org")
+	checkEquals(url@pathPrefix, "/fakePathPrefix.org")
 }
 
 unitTestGetFileName <- function(){
 	url <- .ParsedUrl(.getCache("testInput"))
-	checkEquals(url@file, "mskcc_prostate_cancer.phenotype.zip")
+	checkEquals(url@file, "fakeFile.zip")
 }
 
 unitTestGetQueryString <- function(){
@@ -33,17 +33,15 @@ unitTestGetQueryString <- function(){
 
 unitTestGetPath <- function(){
 	url <- .ParsedUrl(.getCache("testInput"))
-	checkEquals(url@path, "/data01.sagebase.org/mskcc_prostate_cancer.phenotype.zip")
+	checkEquals(url@path, "/fakePathPrefix.org/fakeFile.zip")
 }
 
 unitTestGetHostWithPort <- function() {
-	url <- .ParsedUrl('http://localhost:8080/services-authentication-0.6-SNAPSHOT/auth/v1')
-	checkEquals(url@authority, 'localhost:8080')
-	checkEquals(url@host, 'localhost')
-	checkEquals(url@port, '8080')
-	checkEquals(url@path, '/services-authentication-0.6-SNAPSHOT/auth/v1')
+	url <- .ParsedUrl('http://fakeHost:0000/services-authentication-fakeRelease-SNAPSHOT/auth/v1')
+	checkEquals(url@authority, 'fakeHost:0000')
+	checkEquals(url@host, 'fakeHost')
+	checkEquals(url@port, '0000')
+	checkEquals(url@path, '/services-authentication-fakeRelease-SNAPSHOT/auth/v1')
 	checkEquals(url@file, 'v1')
-	checkEquals(url@pathPrefix, '/services-authentication-0.6-SNAPSHOT/auth')
+	checkEquals(url@pathPrefix, '/services-authentication-fakeRelease-SNAPSHOT/auth')
 }
-
-

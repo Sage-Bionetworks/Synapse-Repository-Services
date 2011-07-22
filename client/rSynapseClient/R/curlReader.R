@@ -34,10 +34,12 @@
 	on.exit(.curlReaderClose(ext))
 	opts <- .getCache("curlOpts")
 	opts$put <- 1L
-	opts$infilesize.large <- file.info(srcfile)$size
-	if(missing(header))
-		header <- ""
-	response <- curlPerform(URL=url, readfunction=readFunction,readdata=ext, httpHeader=header, .opts = opts)
+	opts$infilesize <- file.info(srcfile)$size
+	if(missing(header)){
+		response <- curlPerform(URL=url, readfunction=readFunction,readdata=ext, .opts = opts)
+	}else{
+		response <- curlPerform(URL=url, readfunction=readFunction,readdata=ext, httpHeader=header, .opts = opts)
+	}
 	.checkCurlResponse(curlHandle, response)
 }
 	

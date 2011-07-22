@@ -8,12 +8,12 @@
 integrationTestSawyersDatasetChildEntityGet <- function() {
 	datasets <- synapseQuery(query='select * from dataset where dataset.name == "MSKCC Prostate Cancer"')
 	layers <- getDatasetLayers(entity=datasets$dataset.id[1], includeParentAnnot = FALSE)
-	checkTrue(5 <= dim(layers)[1])
+	checkTrue(5 <= nrow(layers))
 	layer <- getLayer(entity=layers$id[1])
 	locations <- getLayerLocations(entity=layer)
-	checkTrue(1 <= dim(locations)[1])
+	checkTrue(1 <= nrow(locations))
 	previews <- getLayerPreviews(entity=layer)
-	checkTrue(1 <= dim(previews)[1])
+	checkTrue(1 <= nrow(previews))
 }
 
 integrationTestSageBioCurationProjectChildEntityGet <- function() {
@@ -21,8 +21,8 @@ integrationTestSageBioCurationProjectChildEntityGet <- function() {
 	project <- getProject(entity=projects$project.id[1])
 
 	datasets <- getProjectDatasets(entity=project)
-	checkEquals(100, dim(datasets)[1])
+	checkEquals(100, nrow(datasets))
 
 	moreDatasets <- getProjectDatasets(entity=project, limit=200)
-	checkTrue(115 <= dim(moreDatasets)[1])
+	checkTrue(115 <= nrow(moreDatasets))
 }

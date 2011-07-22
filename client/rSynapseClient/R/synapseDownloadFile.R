@@ -38,6 +38,9 @@ synapseDownloadFileToDestination  <-
 				stop(ex)
 			}
 	)
+	
+	## copy then delete. this avoids a cross-device error encountered
+	## on systems with multiple hard drives when using file.rename
 	file.copy(tmpFile, destfile)
 	file.remove(tmpFile)
 	return(destfile)

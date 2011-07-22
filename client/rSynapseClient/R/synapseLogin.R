@@ -52,13 +52,27 @@ synapseLogout <-
 
 .getPassword <- function(){
 	cat("Password: ")
-	## this only suppresses output in unix-like terminals
-	## TODO: add support for suppressing output in DOS terminals and GUI interfaces
-	system("stty -echo")
+	## Currently only suppresses output in unix-like terminals
+	
+	finallyCmd <- NULL
+	if(tolower(.Platform$GUI) == "x11"){
+		if(tolower(.Platform$OS.type) == "unix"){
+			system("stty -echo")
+			finallyCmd <- "stty echo"
+		}
+	}else if(tolower(.Platform$GUI == "rterm")){
+		if(tolower(.Platform$OS.type) == "windows"){
+			## TODO figure out how to suppress terminal output in Windows
+		}
+	}
+	
+	## TODO figure out how to "hide" password entry from GUIs
 	tryCatch(
 			password <- readline(),
 			finally={
-				system("stty echo");cat("\n")
+				if(!is.null(finallyCmd))
+					system(finallyCmd) ## turn echo back on only if it was turned off
+				cat("\n")
 			}
 	)
 	return(password)

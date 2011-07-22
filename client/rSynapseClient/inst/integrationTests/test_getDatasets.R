@@ -20,8 +20,8 @@ integrationTestPaging <- function() {
 	firstPageDatasets <- getDatasets(queryParams=list(limit=20, offset=1))
 	secondPageDatasets <- getDatasets(queryParams=list(limit=20, offset=21))
 	# We should get back 20 datasets
-	checkEquals(dim(firstPageDatasets)[1], 20)
-	checkEquals(dim(secondPageDatasets)[1], 20)
+	checkEquals(nrow(firstPageDatasets), 20)
+	checkEquals(nrow(secondPageDatasets), 20)
 	# And they do not overlap
 	checkEquals(length(union(firstPageDatasets$id,
 							secondPageDatasets$id)),
@@ -31,7 +31,7 @@ integrationTestPaging <- function() {
 integrationTestQueryForDataset <- function() {
 	datasets <- getDatasets(queryParams=list(where='dataset.name == "MSKCC Prostate Cancer"'))
 	# We should get back 1 dataset
-	checkEquals(dim(datasets)[1], 1)
+	checkEquals(nrow(datasets), 1)
 	# And its name should match the one we searched for
 	checkEquals(datasets$name, "MSKCC Prostate Cancer")
 }

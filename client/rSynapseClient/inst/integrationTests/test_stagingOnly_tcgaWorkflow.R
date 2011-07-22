@@ -41,7 +41,7 @@ integrationTestSageBioTCGACurationProjectChildEntityGet <- function() {
 	projects <- synapseQuery(query='select * from project where project.name == "SageBio TCGA Curation"')
 	project <- getProject(entity=projects$project.id[1])
 	datasets <- getProjectDatasets(entity=project)
-	checkTrue(1 <= dim(datasets)[1])
+	checkTrue(1 <= nrow(datasets))
 	checkTrue('coad' %in% datasets$dataset.name)
 }
 

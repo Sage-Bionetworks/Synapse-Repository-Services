@@ -45,9 +45,9 @@ unitTestInvalidParameters <- function() {
    # the JSON into the object we expect
    datasets <- synapseQuery(query='select * from dataset')
    # We should get back 10 datasets
-   checkEquals(dim(datasets)[1], 10)
+   checkEquals(nrow(datasets), 10)
    # With 26 properties
-   checkEquals(dim(datasets)[2], 26)
+   checkEquals(ncol(datasets), 26)
    # The fields returned by this service API may change over time, but
    # there are a few we should always expect to receive
    checkTrue("dataset.id" %in% names(datasets))

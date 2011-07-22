@@ -47,7 +47,7 @@ setMethod(
 	ind <- ind[!is.na(ind)]
 	
 	if(length(ind) == 0){
-		stop("Data file was not available in any of the locations specified. Locations available for this layer:", annotations(layer)$locations)
+		stop("Data file was not available in any of the locations specified. Locations available for this layer:", annotations(entity)$locations)
 	}
 	
 	## Order the list of available locations and take the first one
