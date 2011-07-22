@@ -5,8 +5,6 @@ import com.google.gwt.place.shared.PlaceTokenizer;
 
 public class Profile extends Place{
 	
-	public static final String PLACE_STRING = "Profile";
-	
 	private String token;
 
 	public Profile(String token) {

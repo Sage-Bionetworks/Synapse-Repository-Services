@@ -10,6 +10,8 @@ import org.sagebionetworks.web.client.view.CellTableProvider;
 import org.sagebionetworks.web.client.view.CellTableProviderImpl;
 import org.sagebionetworks.web.client.view.ColumnsPopupView;
 import org.sagebionetworks.web.client.view.ColumnsPopupViewImpl;
+import org.sagebionetworks.web.client.view.ComingSoonView;
+import org.sagebionetworks.web.client.view.ComingSoonViewImpl;
 import org.sagebionetworks.web.client.view.DatasetView;
 import org.sagebionetworks.web.client.view.DatasetViewImpl;
 import org.sagebionetworks.web.client.view.DatasetsHomeView;
@@ -75,6 +77,11 @@ public class PortalGinModule extends AbstractGinModule {
 		// Header & Footer
 		bind(HeaderView.class).to(HeaderViewImpl.class);
 		bind(FooterView.class).to(FooterViewImpl.class);
+
+		
+		/*
+		 * Places
+		 */
 		
 		// The home page
 		bind(HomeViewImpl.class).in(Singleton.class);
@@ -119,6 +126,15 @@ public class PortalGinModule extends AbstractGinModule {
 		// ProfileView
 		bind(ProfileViewImpl.class).in(Singleton.class);
 		bind(ProfileView.class).to(ProfileViewImpl.class);		
+		
+		// CominSoonView
+		bind(ComingSoonViewImpl.class).in(Singleton.class);
+		bind(ComingSoonView.class).to(ComingSoonViewImpl.class);					
+		
+		
+		/*
+		 * Widgets
+		 */
 		
 		// LoginWidget
 		bind(LoginWidgetViewImpl.class).in(Singleton.class);

@@ -5,8 +5,6 @@ import com.google.gwt.place.shared.PlaceTokenizer;
 
 public class Home extends Place{
 	
-	public static final String PLACE_STRING = "Home";
-	
 	public Home(String token) {
 	}
 

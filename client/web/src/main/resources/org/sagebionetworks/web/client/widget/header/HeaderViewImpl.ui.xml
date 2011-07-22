@@ -19,7 +19,7 @@
 							<td><a href="edit_profile.html">My profile</a><g:Hyperlink ui:field="editProfileLink" /></td>
 							<td>&nbsp;|&nbsp;</td>
 							 -->
-							<td><g:Hyperlink ui:field="topRightLink1" /></td>
+							<td><g:Anchor ui:field="topRightLink1" /></td>
 							<td>&nbsp;|&nbsp;</td>
 							<td><g:Hyperlink ui:field="topRightLink2" /></td>
 						</tr>
@@ -29,20 +29,17 @@
 			</div>	
 			<div class="global_nav">
 				<ul id="navbar_ul">
-					<li class="first" ui:field="navbarDatasets"><a href="#DatasetsHome:0" id="navbar_datasets_a">Datasets</a></li> 
-					<li ui:field="navbarTools"><a href="">Tools</a></li>
-					<li ui:field="navbarNetworks"><a href="">Networks</a></li>
-					<li ui:field="navbarPeople"><a href="">People</a></li>
-					<li class="last" ui:field="navbarProjects"><a href="#ProjectsHome:0">Projects</a></li>
+					<li class="first" ui:field="navbarDatasets"><g:Hyperlink ui:field="datasetsLink">Datasets</g:Hyperlink></li> 
+					<li ui:field="navbarTools"><g:Hyperlink ui:field="toolsLink">Tools</g:Hyperlink></li>
+					<li ui:field="navbarNetworks"><g:Hyperlink ui:field="networksLink">Networks</g:Hyperlink></li>
+					<li ui:field="navbarPeople"><g:Anchor ui:field="peopleLink">People</g:Anchor></li>
+					<li class="last" ui:field="navbarProjects"><g:Anchor ui:field="projectsLink">Projects</g:Anchor></li>
 				</ul>
 				
 				<div id="search" class="right">
 					<!-- <form action="" method="get">  -->
 						<input id="query" type="input" class="search_box" name="q" value="" />						
-						<span class="search_button">
-							<g:Anchor ui:field="searchAnchor" />
-						</span>
-						<span class="advanced"><a href="">Advanced<br />Search</a></span>
+						<span class="advanced"><a href="#ComingSoon:0">Advanced<br />Search</a></span>
 					<!-- </form>  -->
 				</div>
 			</div>

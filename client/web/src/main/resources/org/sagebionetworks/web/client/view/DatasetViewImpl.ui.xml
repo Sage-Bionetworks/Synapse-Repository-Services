@@ -96,53 +96,7 @@
 						<span class="title">Conversations and<br/>Events for this Dataset</span>
 					</span>
 					<div class="scrollable longer">
-<!-- 					
-						<div id="scrollable_item">
-							<span class="scrollable_header">
-								<img src="static/images/down_arrow.png" class="right" />
-								<span class="scroll_text">New analysis using this dataset in the Federation Warburg Project</span>
-
-								<span class="author"><a href="">Xudong D.</a></span>
-								<span class="date">21-Nov-2010</span>
-							</span>
-							<span class="scrollable_comments">
-								<span class="scrollable_comment">
-									<span class="comment_text">The paper references 149 matched normal samples.  Do you have this data?</span>
-									<span class="comment_author">Sam S.</span>
-
-									<span class="comment_date">22-Dec-2010</span>
-								</span>
-								<span class="scrollable_comment">
-									<span class="comment_text">We have only able to obtain 29 matched normal samples.</span>
-									<span class="comment_author">Matt F.</span>
-									<span class="comment_date">22-Nov-2010</span>
-								</span>
-
-							</span>
-						</div>
-						<div id="scrollable_item">
-							<span class="scrollable_header">
-								<img src="static/images/down_arrow.png" class="right" />
-								<span class="scroll_text">New analysis using this dataset in the MetaGEO Project</span>
-								<span class="author"><a href="">Brig M</a></span>
-								<span class="date">01-Apr-2011</span>
-
-							</span>
-							<span class="scrollable_comments">
-								<span class="scrollable_comment">
-									<span class="comment_text">Look out, there is a large batch effect in this data.  Have been working on a way to remove it.</span>
-									<span class="comment_author">Brig M.</span>
-									<span class="comment_date">02-Apr-2011</span>
-								</span>
-
-								<span class="scrollable_comment">
-									<span class="comment_text">Appreciate the help.  We can post new version of the normalized data.</span>
-									<span class="comment_author">Matt F.</span>
-									<span class="comment_date">02-Apr-2011</span>
-								</span>
-							</span>
-						</div>
--->
+						<g:SimplePanel ui:field="demoComments" />
 					</div>
 				</div>
 				
@@ -164,31 +118,7 @@
 						</tr>
 					</table>
 					<div class="scrollable">
-<!-- 
-						<table width="100%" class="detail">
-							<tr>
-								<td class="analysis"><a href="network_overview.html">Network Generation</a></td>
-								<td class="project"><a href="project_details.html">Federation Warburg</a></td>
-								<td class="last_modified">12-Apr-2011</td>
-							</tr>
-							<tr class="gray">
-								<td class="analysis"><a href="network_overview.html">Network Survey</a></td>
-								<td class="project"><a href="project_details.html">Federation Warburg</a></td>
-								<td class="last_modified">23-Mar-2011</td>
-							</tr>
-
-							<tr>
-								<td class="analysis"><a href="network_overview.html">Interactome</a></td>
-								<td class="project"><a href="project_details.html">Federation Warburg</a></td>
-								<td class="last_modified">04-Mar-2011</td>
-							</tr>
-							<tr class="gray">
-								<td class="analysis"><a href="network_overview_metageo.html">GSE 21034</a></td>
-								<td class="project"><a href="project_details_metageo.html">MetaGEO</a></td>
-								<td class="last_modified">2-Apr-2011</td>
-							</tr>
-						</table>
- -->						
+						<g:SimplePanel ui:field="demoAnalysis" />
 					</div>
 				</div>
 								

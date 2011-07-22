@@ -1,0 +1,281 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Synapse : Biomarker Prediction Analysis</title>
+<link href="style.css" rel="stylesheet">
+<!--[if IE 7]>
+	<link href="ie7.css" rel="stylesheet">
+	<![endif]-->
+<!-- jQuery and jQuery UI -->
+<link rel="stylesheet"
+	href="http://jqueryui.com/themes/base/jquery.ui.all.css">
+<script type="text/javascript"
+	src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.11/jquery-ui.min.js"></script>
+
+<!-- Search autocomplete script. Temporary -->
+<script>
+	var TRANSMART_SEARCH = "http://transmart.sagebase.org/transmart/search/search?sourcepage=search&id=";
+	$(function() {
+		$("#query")
+				.autocomplete(
+						{
+							source : function(request, response) {
+								$
+										.ajax({
+											url : "http://transmart.sagebase.org/transmart/search/loadSearch",
+											dataType : "jsonp",
+											data : {
+												query : "all:" + request.term
+											},
+											success : function(data) {
+												response($
+														.map(
+																data.rows,
+																function(item) {
+																	return {
+																		label : item.display
+																				+ ": "
+																				+ item.keyword,
+																		value : item.name,
+																		id : item.id
+																	}
+																}));
+											}
+										});
+							},
+							minLength : 1,
+							select : function(event, ui) {
+								if (ui.item.id) {
+									document.location = TRANSMART_SEARCH
+											+ ui.item.id;
+								}
+							}
+						});
+	});
+</script>
+</head>
+<body>
+	<div id="container" class="clearfix">
+		<div class="header">
+			<div id="header_top" class="clearfix">
+				<div id="logo" class="left">
+					<a href="Portal.html"><img
+						src="static/images/SagebionetworksLogo-g.png" /> </a>
+				</div>
+				<div id="user_tools" class="right">
+					<span class="hello">Welcome Michael K.</span><br /> <span
+						class="tools right"><a href="edit_profile.html">My
+							profile</a> | <a href="">Logout</a> </span>
+				</div>
+			</div>
+			<div class="global_nav">
+				<ul>
+					<li class="first" id="navbar_datasets_li"><a
+						href="Portal.html#DatasetsHome:0" id="navbar_datasets_a">Datasets</a>
+					</li>
+					<li id="navbar_tools_li"><a href="">Tools</a></li>
+					<li id="navbar_networks_li"><a href="">Networks</a></li>
+					<li id="navbar_people_li"><a href="people.html">People</a></li>
+					<li class="last active" id="navbar_projects_li"><a
+						href="projects.html">Projects</a></li>
+				</ul>
+				<div id="search" class="right">
+					<!-- <form action="" method="get">  -->
+					<input id="query" type="input" class="search_box" name="q" value=""
+						style="height: 18px;">
+
+					<button class="search_submit">
+						<img src="static/images/search_button.png" />
+					</button>
+					<span class="advanced"><a href="">Advanced<br>Search</a>
+					</span>
+					<!-- </form>  -->
+				</div>
+			</div>
+		</div>
+		<div id="main" role="main">
+			<div id="content" class="clearfix">
+				<ul class="breadcrumbs">
+					<li class="breadcrumb"><a href="Portal.html">Home</a> > <a
+						href="projects.html">All Projects</a> > <a
+						href="project_details_predictor.html">Predictive Modeling
+							Project</a> > Biomarker Prediction Analysis</li>
+				</ul>
+				<h2>Biomarker Prediction Analysis</h2>
+				<div id="privacy_setting" class="right">
+					<span class="setting_label">Access:</span> <span
+						class="setting_level"><img
+						src="images/icons/lock-unlock-16.png" /> Public</span>
+				</div>
+				<div class="data_info data_info_narrow">
+					<span class="info_head">
+						<h2>Overview</h2> <span class="data_options"> <img
+							src="images/icons/arrow-curve-16.png" /> Follow this analysis<br />
+
+					</span> </span> <span class="info_text_narrow"> In this analysis, we
+						develop a reproducible workflow designed to integrate genetic and
+						phenotypic information from a clinical cohort and evaluate the
+						performance of various computational modeling strategies for
+						biomarker identification and inference of mathematical models able
+						to accurately predict the clinical phenotype based on the
+						identified biomarkers. The workflow contains adaptable
+						components that can be changed to evaluate different computational
+						strategies at each stage of the workflow. <br /> <a href="" class="bulleted">Read
+							more...</a> <br /> </span> <span class="data_details">
+						<table>
+							<tr>
+								<th>Created by:</th>
+								<td>Adam Margolin on 01-Dec-2010</td>
+							</tr>
+							<tr>
+								<th>Last modified by:</th>
+								<td>Adam Margolin on 15-Jul-2011</td>
+							</tr>
+							<tr>
+								<th>Version:</th>
+								<td>2.0</td>
+							</tr>
+							<tr>
+								<th>Public datasets <br />used:<br /> <br /></th>
+								<td><a HREF="Portal.html#Layer:9;Dataset:1">MSKCC
+										Prostate Cancer - exon expression</a><br /> <a
+									HREF="Portal.html#Layer:5;Dataset:1">MSKCC Prostate Cancer
+										- QC'd phenotypes</a><br /> <a
+									HREF="Portal.html#Layer:7;Dataset:1">MSKCC Prostate Cancer
+										- CNV</a><br /> <a HREF="Portal.html#Layer:6;Dataset:1">MSKCC
+										Prostate Cancer - SNP</a><br /> <br />
+								</td>
+							</tr>
+							<tr>
+								<th>Public tools <br />used:<br /> <br /></th>
+								<td><a href="">SVA Normalization</a><br /> <a href="">Predictive
+										Model Generation</a></td>
+							</tr>
+						</table> </span>
+				</div>
+				<div class="data_detail_section data_detail_main last">
+					<span class="header"> <span class="icon right"> <img
+							src="images/icons/application-resize-16.png" /> View All<br />
+							<img src="images/icons/sticky-note--plus-16.png" /> Add a note </span>
+						<span class="title">Notes for this analysis</span> </span>
+					<div class="scrollable longer">
+						<div id="scrollable_item">
+							<span class="scrollable_header"> <img
+								src="static/images/down_arrow.png" class="right" /> <span
+								class="scroll_text">Expression Normalization rerun</span> <span
+								class="author"><a href="">Adam Margolin</a> </span> <span
+								class="date">12-Apr-2011</span> </span> <span class="scrollable_header">
+								<img src="static/images/down_arrow.png" class="right" /> <span
+								class="scroll_text">Gene List Selection run</span> <span
+								class="author"><a href="">Adam Margolin</a> </span> <span
+								class="date">16-Feb-2011</span> </span> <span class="scrollable_header">
+								<img src="static/images/down_arrow.png" class="right" /> <span
+								class="scroll_text">Network Module run</span> <span
+								class="author"><a href="">Adam Margolin</a> </span> <span
+								class="date">15-Feb-2011</span> </span> <span
+								class="scrollable_comments"> <span
+								class="scrollable_comment"> <span class="comment_text">OK,
+										ready to go.</span> <span class="comment_author">Adam Margolin</span>
+									<span class="comment_date">20-Jan-2011</span> </span> <span
+								class="scrollable_comment"> <span class="comment_text">We
+										need to build the priors for sample matching before .</span> <span
+									class="comment_author">Justin Guinney</span> <span
+									class="comment_date">20-Jan-2011</span> </span> <span
+								class="scrollable_comment"> <span class="comment_text">Does
+										the CVN data look OK here?</span> <span class="comment_author">Adam
+										Margolin</span> <span class="comment_date">18-Jan-2011</span> </span> </span>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="data_detail_sections">
+				<div class="data_detail_large_section data_detail_section">
+					<span class="header"> <span class="icon right"> <img
+							src="images/icons/cog-16.png" /> Load in Taverna <br /> <img
+							src="images/icons/task--plus-16.png" /> Add a step </span> <span
+						class="title">Analysis</span> <span class="secondary_text">Select
+							a step to view its details and resources</span> </span>
+					<div class="scrollable">
+						<img src="static/images/predictor_pipeline.png"
+							alt="predictor pipeline" width="977" height="832" border="0"
+							usemap="#predictorPipelineImageMap" />
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- This is the static footer -->
+		<div class="footer">
+			<hr />
+			<div class="footer_nav clearfix left">
+				<table>
+					<tr>
+						<td><a href="">Privacy Policy</a></td>
+						<td><a href="">Platform support</a></td>
+						<td><a href="">Creative Commons License</a></td>
+					</tr>
+					<tr>
+						<td><a href="">FAQ</a></td>
+						<td><a href="">Submit feedback</a></td>
+						<td><a href="">Visit the Sage website</a></td>
+					</tr>
+				</table>
+			</div>
+			<div class="footer_logos">
+				<ul>
+					<li><a href="http://www.lsdfa.org/" target="_new"><img
+							src="images/LSDF_logo.jpg" /> </a></li>
+					<li><a href="http://www.cancer.gov/" target="_new"><img
+							src="images/NCI_logo.jpg" /> </a></li>
+				</ul>
+			</div>
+			<div class="contact right">
+				<div class="vcard right">
+					<p class="fn">
+						<span class="organization-name">Sage Bionetworks</span>
+					<p>
+					<p class="adr">
+						<span class="street-address">1100 Fairview Ave N</span><br> <span
+							class="locality">Seattle</span> <span class="region">WA</span> <span
+							class="postal-code">98109</span><br> <a
+							href="mailto:sage@sagebase.org">sage@sagebase.org</a>
+					</p>
+				</div>
+				<img src="static/images/sage_logo.png" class="logo" alt="sage logo">
+			</div>
+		</div>
+	</div>
+	<map name="predictorPipelineImageMap" id="predictorPipelineImageMap">
+		<area shape="rect" coords="170,43,349,82"
+			href="Portal.html#Layer:6;Dataset:1" alt="MSKCC Prostate SNP" />
+		<area shape="rect" coords="361,42,544,84"
+			href="Portal.html#Layer:7;Dataset:1" alt="MSKCC Prostate CNV" />
+		<area shape="rect" coords="574,42,753,83"
+			href="Portal.html#Layer:9;Dataset:1" alt="MSKCC Prostate Expression" />
+		<area shape="rect" coords="784,43,966,81"
+			href="Portal.html#Layer:5;Dataset:1" alt="MSKCC Prostate Phenotypes" />
+		<area shape="rect" coords="253,125,434,192" href="#"
+			alt="Genetic Preprocessing" />
+		<area shape="rect" coords="575,126,754,193"
+			href="step_predictor_expression_norm.html"
+			alt="Expression Normalization" />
+		<area shape="rect" coords="783,125,964,192" href="#"
+			alt="Response Characterization" />
+		<area shape="rect" coords="413,244,594,313" href="#"
+			alt="Data Aggregation" />
+		<area shape="rect" coords="277,349,457,391" href="#"
+			alt="Training Set v2" />
+		<area shape="rect" coords="549,350,729,389" href="#"
+			alt="Validation Set v2" />
+		<area shape="rect" coords="274,430,458,500"
+			href="step_predictor_pred_model.html"
+			alt="Predictive Model Generation" />
+		<area shape="rect" coords="411,542,594,611"
+			href="step_predictor_perm_asses.html" alt="Performance Assessment" />
+		<area shape="rect" coords="413,653,593,721" href="#"
+			alt="Candidate Biomarkers" />
+	</map>
+</body>
+</html>

@@ -198,7 +198,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 
 		// clear old values from views
 		clear(); 
-
+		
 		// check authorization
 		this.isAdministrator = isAdministrator;
 		this.canEdit = canEdit;
@@ -217,6 +217,11 @@ public class LayerViewImpl extends Composite implements LayerView {
 			
 		// set description
 		if(overviewText == null) overviewText = ""; 
+		if(DisplayConstants.showDemoHtml) {
+			if(overviewText.equals("")) {
+				overviewText = DisplayConstants.DEMO_OVERVIEW;
+			}
+		}
 		int summaryLength = overviewText.length() >= DisplayConstants.DESCRIPTION_SUMMARY_LENGTH ? DisplayConstants.DESCRIPTION_SUMMARY_LENGTH : overviewText.length();
 		previewDisclosurePanel.init("Expand", overviewText.substring(0, summaryLength), overviewText);
 		overviewPanel.add(previewDisclosurePanel);

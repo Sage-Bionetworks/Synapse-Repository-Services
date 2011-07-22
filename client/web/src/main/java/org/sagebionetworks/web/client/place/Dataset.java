@@ -5,8 +5,6 @@ import com.google.gwt.place.shared.PlaceTokenizer;
 
 public class Dataset extends Place {
 	
-	public static final String PLACE_STRING = "Dataset";
-	
 	private String token;	
 
 	public Dataset(String token) {

@@ -5,8 +5,6 @@ import com.google.gwt.place.shared.PlaceTokenizer;
 
 public class Layer extends Place {
 	
-	public static final String PLACE_STRING = "Layer";
-	
 	private String layerId;
 	private String datasetId;
 	private Boolean download;

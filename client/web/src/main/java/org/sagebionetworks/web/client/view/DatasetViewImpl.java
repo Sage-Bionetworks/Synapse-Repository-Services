@@ -57,6 +57,7 @@ import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
+import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
@@ -95,7 +96,11 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	SpanElement accessSpan;
 	@UiField
 	SimplePanel adminPanel;
-
+	// DEMO Panels
+	@UiField
+	SimplePanel demoComments;
+	@UiField
+	SimplePanel demoAnalysis;
 
 	private Presenter presenter;
 	private PreviewDisclosurePanel previewDisclosurePanel;
@@ -281,7 +286,18 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		DisplayUtils.addRowToTable(rowIndex++, "Number of Samples:", Integer.toString(nSamples), rightFlexTable);
 		DisplayUtils.addRowToTable(rowIndex++, "Number of Downloads:", Integer.toString(nDownloads), rightFlexTable);
 		DisplayUtils.addRowToTable(rowIndex++, "Download Availability:", downloadAvailability, rightFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "Release Notes:", "<a href=\""+ releaseNotesUrl + "\" target=\"_new\">view</a>", rightFlexTable);			
+		DisplayUtils.addRowToTable(rowIndex++, "Release Notes:", "<a href=\""+ releaseNotesUrl + "\" target=\"_new\">view</a>", rightFlexTable);	
+		
+		/*
+		 * DEMO STRINGS
+		 */
+		if(DisplayConstants.showDemoHtml) {
+			demoComments.clear();
+			demoComments.add(new HTML(DisplayConstants.DEMO_COMMENTS));
+			
+			demoAnalysis.clear();
+			demoAnalysis.add(new HTML(DisplayConstants.DEMO_ANALYSIS));
+		}
 	}
 
 	

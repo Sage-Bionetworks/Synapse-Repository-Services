@@ -277,16 +277,16 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 					 citation, 
 					 referencePublicationUrl,
 					 nOtherPublications,
-					 "#", // TODO : change this to be real
+					 "#ComingSoon:0", // TODO : change this to be real
 					 model.getCreationDate(),
 					 model.getReleaseDate(),
 					 lastModifiedDate,
 					 model.getCreator(),
 					 institutions.toArray(new String[institutions.size()]),  
 					 nFollowers,
-					 "#", // TODO : view followers url, change this to be real
+					 "#ComingSoon:0", // TODO : view followers url, change this to be real
 					 postingRestriction,
-					 "#", // TODO : release notes url. change this to be real
+					 "#ComingSoon:0", // TODO : release notes url. change this to be real
 					 model.getStatus(),
 					 model.getVersion(),
 					 nSamples,
@@ -314,9 +314,9 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 	
 	protected void setLicenseAgreement() {
 		final String eulaId = model.getEulaId();
-		if(eulaId != null) {			
-			// now query to see if user has accepted the agreement
-			UserData currentUser = authenticationController.getLoggedInUser();
+		UserData currentUser = authenticationController.getLoggedInUser();
+		if(eulaId != null && currentUser != null) {			
+			// now query to see if user has accepted the agreement			
 			licenseService.hasAccepted(currentUser.getEmail(), eulaId, new AsyncCallback<Boolean>() {
 				@Override
 				public void onSuccess(Boolean hasAccepted) {

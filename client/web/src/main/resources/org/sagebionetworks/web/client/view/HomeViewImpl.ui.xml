@@ -8,7 +8,7 @@
 	</ui:style>	
 	<g:HTMLPanel>
 
-	<!-- start header -->
+	<!-- start header --> 
 		<div id="container" class="clearfix">		
 			<g:SimplePanel ui:field="header" />
 			<div id="main" role="main">
@@ -25,13 +25,13 @@
 					<br /><br />
 				
 					<strong class="left clear_both">On Synapse you can:</strong><br />
-
+ 
 					<ul class="left clear dot">
 						<li class="dot">Discover and explore new <a href="#DatasetsHome:0">Datasets</a></li>
-						<li class="dot">Learn new <a href="">Tools</a> and run powerful analysis in the cloud</li>
-						<li class="dot">Explore cutting edge <a href="">Network Models</a></li>
-						<li class="dot">Find <a href="">People</a> to collaborate with</li>
-						<li class="dot">Start new research <a href="">Projects</a>, with anyone working anywhere</li>
+						<li class="dot">Learn new <a href="#ComingSoon:0">Tools</a> and run powerful analysis in the cloud</li>
+						<li class="dot">Explore cutting edge <a href="#ComingSoon:0">Network Models</a></li>
+						<li class="dot">Find <a href="#ComingSoon:0">People</a> to collaborate with</li>
+						<li class="dot">Start new research <a href="#ProjectsHome:0">Projects</a>, with anyone working anywhere</li>
 					</ul>
 					<!-- <a class="bulleted left" href="">Learn more...</a>  -->
 				</div>
@@ -45,28 +45,16 @@
 					<span class="callout">
 						<h6><span class="narrow">Call for</span> <span class="wide">DATA</span></h6>
 						<span class="callout_text">Do you know of a dataset that you would like to see made available?</span>
-						<div class="small_button contact_button">
-
-							<div class="small_button_left"></div>
-							<div class="small_button_text">Contact Us</div>
-							<div class="small_button_right"></div>
-						</div>
 					</span>
 					<span class="callout last">
 						<h6><span class="narrow">Synapse</span> <span class="wide">STATS</span></h6>
 
 						<ul>
-							<li><a class="bulleted" href="">134 People</a></li>
-							<li><a class="bulleted" href="">45 Projects</a></li>
-							<li><a class="bulleted" href="">78 Networks</a></li>
-							<li><a class="bulleted" href="">14 Tools</a></li>
+							<li><a class="bulleted" href="#ComingSoon:0">134 People</a></li>
+							<li><a class="bulleted" href="#ComingSoon:0">45 Projects</a></li>
+							<li><a class="bulleted" href="#ComingSoon:0">78 Networks</a></li>
+							<li><a class="bulleted" href="#ComingSoon:0">14 Tools</a></li>
 						</ul>
-						<div class="small_button register_button">
-
-							<div class="small_button_left"></div>
-							<div class="small_button_text register">Register</div>
-							<div class="small_button_right"></div>
-						</div>
 					</span>
 				</div>
 				<div class="experience">
@@ -80,15 +68,15 @@
 					<img src="http://placehold.it/75x75/ffffff"/>
 					<img class="last" src="http://placehold.it/75x75/ffffff"/>
 					<ul class="lozenges clearfix">
-						<li class="first"><a href="">Browse<br/>datasets &amp;<br />projects</a></li>
+						<li class="first"><a href="#DatasetsHome:0">Browse<br/>datasets &amp;<br />projects</a></li>
 
-						<li class="vcenter"><a href="">Download<br/>datasets</a></li>
-						<li class="vcenter"><a href="">Upload your<br/>analyses</a></li>
-						<li class="vcenter"><a href="">Upload your<br/>own dataset</a></li>
-						<li class="vcenter"><a href="">Create a new<br/>project</a></li>
-						<li><a href="">Collaborate<br/>with other<br/>users</a></li>
+						<li class="vcenter"><a href="#DatasetsHome:0">Download<br/>datasets</a></li>
+						<li class="vcenter"><a href="#ComingSoon:0">Upload your<br/>analyses</a></li>
+						<li class="vcenter"><a href="#ComingSoon:0">Upload your<br/>own dataset</a></li>
+						<li class="vcenter"><a href="#ProjectsHome:0">Create a new<br/>project</a></li>
+						<li><a href="#ComingSoon:0">Collaborate<br/>with other<br/>users</a></li>
 
-						<li class="last vcenter"><a href="">Discover<br/>new insights</a></li>
+						<li class="last vcenter"><a href="#ComingSoon:0">Discover<br/>new insights</a></li>
 					</ul>
 				</div>
 			</div>
@@ -101,11 +89,11 @@
 					by exploring a set of genes whose expression 
 					levels are tightly associated with age.
 					<br/>
-					<a class="bulleted" href="">Learn more...</a>
+					<a class="bulleted" href="#ComingSoon:0">Learn more...</a>
 				</div>
 				<div id="contributors" class="clearfix">
 					<h3><span class="narrow">Top Synapse</span> <span class="wide">CONTRIBUTORS</span></h3>
-					<a href="people_charles.html">
+					<g:Anchor ui:field="demoCharlesLink">
 					<span class="contributor">
 				
 						<img class="left" src="static/images/people/charles.jpg"/>
@@ -114,7 +102,7 @@
 							DNA copy number, mRNA expression profiles, candidate gene resequencing, and clinical traits from 218 prostate 		tumors. 
 						</span>
 					</span>
-					</a>
+					</g:Anchor>
 					<span class="contributor">
 						<img class="left" src="static/images/people/amanda.jpg"/>
 						<span class="text">
@@ -132,7 +120,7 @@
 						</span>
 					</span>
 					<span class="contributor">
-						<a class="bulleted" href="people.html">See all contributors...</a>
+						<g:Anchor ui:field="seeAllContributors">See all contributors...</g:Anchor>
 					</span>
 					<hr/>
 					<span class="contributor">
@@ -141,11 +129,11 @@
 						<div class="news">
 							<div class="news_item">
 								<strong>12-Apr-2011:</strong> A new analysis method for normalizing data was published by Brig Mecham. 
-								<a href="" class="bulleted" style="display:inline;">Learn more...</a>
+								<a href="#ComingSoon:0" class="bulleted" style="display:inline;">Learn more...</a>
 							</div>
 							<div class="news_item">
 								<strong>08-Apr-2011:</strong> Eric Schadt and colleagues have published an article on a new model for diabetes.
-								<a href="" class="bulleted" style="display:inline;">Learn more...</a>
+								<a href="#ComingSoon:0" class="bulleted" style="display:inline;">Learn more...</a>
 
 							</div>
 						</div>

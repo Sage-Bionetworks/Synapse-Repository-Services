@@ -3,24 +3,20 @@ package org.sagebionetworks.web.client;
 
 import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.place.LoginPlace;
-import org.sagebionetworks.web.client.services.NodeServiceAsync;
-import org.sagebionetworks.web.client.transform.NodeModelCreator;
-import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.exceptions.ForbiddenException;
 import org.sagebionetworks.web.shared.exceptions.NotFoundException;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 import org.sagebionetworks.web.shared.exceptions.UnauthorizedException;
 import org.sagebionetworks.web.shared.exceptions.UnknownErrorException;
-import org.sagebionetworks.web.shared.users.PermissionLevel;
 
 import com.extjs.gxt.ui.client.widget.Info;
 import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.button.Button;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.place.shared.Place;
 import com.google.gwt.place.shared.PlaceController;
 import com.google.gwt.resources.client.ImageResource;
-import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.FlexTable;
 
@@ -37,6 +33,30 @@ public class DisplayUtils {
 	public static String getIconHtml(ImageResource icon) {
 		return "<span class=\"iconSpan\">" + AbstractImagePrototype.create(icon).getHTML() + "</span>";
 	}
+	
+	/**
+	 * This returns a properly formatted default History Token for a given Place. This method should
+	 * be used in place of static strings of the Place class name. For example, don't use <a href="Home:0">...</a> 
+	 * in your UiBinder templates. Instead use a <g:Hyperlink ui:field="link" /> and use Hyperlink's setTargetHistoryToken() 
+	 * method with the returned value of this method (with Home.class as the parameter).  
+	 * 
+	 * @param place A class that extends com.google.gwt.place.shared.Place
+	 * @return
+	 */
+	public static String getDefaultHistoryTokenForPlace(@SuppressWarnings("rawtypes") Class place) {		
+		return getPlaceString(place) + ":" + DEFAULT_PLACE_TOKEN;
+	}
+
+	/**
+	 * Similar to getDefaultHistoryTokenForPlace but inserts the given token instead of the default token
+	 * @param place
+	 * @param token
+	 * @return
+	 */
+	public static String getHistoryTokenForPlace(@SuppressWarnings("rawtypes") Class place, String token) {
+		return getPlaceString(place) + ":" + token;
+	}
+
 	
 	/**
 	 * Add a row to the provided FlexTable.
@@ -98,5 +118,14 @@ public class DisplayUtils {
 		button.setIcon(AbstractImagePrototype.create(sageImageBundle.loading16()));
 	}
 
-	
+
+	/*
+	 * Private methods
+	 */
+	private static String getPlaceString(Class place) {
+		String fullPlaceName = place.getName();		
+		fullPlaceName = fullPlaceName.replaceAll(".+\\.", "");
+		return fullPlaceName;
+	}
+		
 }

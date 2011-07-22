@@ -1,5 +1,6 @@
 package org.sagebionetworks.web.client;
 
+import org.sagebionetworks.web.client.presenter.ComingSoonPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetsHomePresenter;
 import org.sagebionetworks.web.client.presenter.HomePresenter;
@@ -46,4 +47,6 @@ public interface PortalGinInjector extends Ginjector {
 
 	public ProfilePresenter getProfilePresenter();
 
+	public ComingSoonPresenter getComingSoonPresenter();
+	
 }

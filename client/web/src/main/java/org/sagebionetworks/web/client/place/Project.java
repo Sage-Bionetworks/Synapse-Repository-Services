@@ -5,8 +5,6 @@ import com.google.gwt.place.shared.PlaceTokenizer;
 
 public class Project extends Place{
 	
-	public static final String PLACE_STRING = "Project";
-	
 	private String token;
 
 	public Project(String token) {

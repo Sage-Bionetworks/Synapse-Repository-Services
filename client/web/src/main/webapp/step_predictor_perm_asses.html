@@ -2,7 +2,7 @@
 "http://www.w3.org/TR/html4/loose.dtd">
 <html lang="en">
 <head>
-<title>Synapse : Expression Normalization</title>
+<title>Synapse : Performance Assessment Step</title>
 <link href="style.css" rel="stylesheet">
 <!--[if IE 7]>
 	<link href="ie7.css" rel="stylesheet">
@@ -86,52 +86,51 @@ Search</a></span> <!-- </form>  --></div>
 <div id="content" class="clearfix">
 <ul class="breadcrumbs">
 	<li class="breadcrumb"><a href="Portal.html">Home</a> > <a
-		href="projects.html">All Projects</a> > <a href="project_details.html">Federation
-	Warburg Project</a> > <a href="network_overview.html">Network Generation Analysis</a> > Expression Normalization Step</li>
+		href="projects.html">All Projects</a> > <a href="project_details_predictor.html">Predictive
+		Modeling Project</a> > <a href="analysis_predictor.html">Biomarker Prediction Analysis</a> > Performance Assessment Step</li>
 </ul>
-<h2>Expression Normalization Step</h2>
+<h2>Performance Assessment Step</h2>
 <div id="privacy_setting" class="right">
 					<span class="setting_label">Access:</span>
 					<span class="setting_level"><img src="images/icons/lock-unlock-16.png"/> Public</span>
 	</div>
 <div class="data_info data_info_narrow"><span class="info_head">
 <h2>Overview</h2>
-<span class="data_options">  </span> </span> <span
-	class="info_text_narrow"> The data for this study was normalized
-using the Supervised Normalization of Microarrays (SNM) framework. The
-central premise of this framework is that the study under investigation
-should inform the normalization process. The SNM framework consists of
-three components: a set of criteria that define a goal for normalization, a modeling strategy, and a set of algorithms.  <br />
+<span class="data_options">
+							<img src="images/icons/arrow-circle-315-16.png" /> Rerun this step
+						</span> </span> <span
+	class="info_text_narrow"> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla nec est quis ligula ultricies sollicitudin vitae ac diam. Morbi gravida eros ante, nec tristique nulla. Vivamus ullamcorper nulla in elit interdum tincidunt eleifend risus iaculis. Cras elit dolor, eleifend cursus accumsan ac, venenatis a nulla. Praesent nisi libero, porttitor id rhoncus vitae, molestie tincidunt nibh. Etiam tristique eros eu risus tincidunt ultricies. <br />
 <a href="" class="bulleted">Read more...</a> <br />
 </span> <span class="data_details">
 <table>
 	<tr>
 		<th>Created by:</th>
-		<td>Xudong Dai on 02-Jan-2011</td>
+		<td>Adam Margolin on 30-Jun-2011</td>
 	</tr>
 	<tr>
 		<th>Last modified by:</th>
-		<td>Xudong Dai on 12-Apr-2011</td>
+		<td>Adam Margolin on 30-Jun-2011</td>
 	</tr>
 	<tr>
 		<th>Inputs:</th>
-		<td><a HREF="Portal.html#Layer:9;Dataset:0">MSKCC
-		Prostate Cancer - exon expression</a><br />
+		<td><a HREF="">Model.parameters</a><br />
+		<a HREF="#">ValidationSet.phenotypes</a><br />
+		<a HREF="#">ValidationSet.features</a><br /><br />
 		</td>
 	</tr>
 	<tr>
 		<th>Outputs:</th>
-		<td><a HREF="">Normalized Expression</a><br />
+		<td><a HREF="">CandidateBiomarkers</a><br />
 		</td>
 	</tr>
 	<tr>
 		<th>Tool:</th>
-		<td><a HREF="">normalize.R</a><br />
+		<td><a HREF="">performanceAssessment.R</a><br />
 		</td>
 	</tr>
 	<tr>
 		<th>Documentation:</th>
-		<td><a HREF="">Normalized Expression.pdf</a><br />
+		<td><a HREF="static/images/KaplanReport.pdf">AnalysisReport.pdf</a><br />
 		</td>
 	</tr>
 </table>
@@ -141,18 +140,7 @@ three components: a set of criteria that define a goal for normalization, a mode
 	src="images/icons/application-resize-16.png" /> View All<br />
 <img src="images/icons/sticky-note--plus-16.png" /> Add a note </span> <span
 	class="title">Notes for this step</span> </span>
-<div class="scrollable longer"><span class="scrollable_comments"><span
-	class="scrollable_comment"> <span class="comment_text">Thanks
-Brig, can you have a look at my new results?</span> <span
-	class="comment_author">Xudong D.</span> <span class="comment_date">12-Apr-2011</span>
-</span> <span class="scrollable_comment"> <span class="comment_text">I've
-looked at this data and found a huge batch effect. You may get cleaner
-results if you use <a href="exp_normalization_metageo.html">my normalization method</a>, let me know if you need
-help.</span> <span class="comment_author">Brig M.</span> <span
-	class="comment_date">09-Nov-2010</span> </span> <span
-	class="scrollable_comment"> <span class="comment_text">Looks
-good to me.</span> <span class="comment_author">Marino A.</span> <span
-	class="comment_date">22-Mar-2011</span> </span> </span></div>
+<div class="scrollable longer"></div>
 </div>
 </div>
 <div class="data_detail_sections">
@@ -162,8 +150,8 @@ good to me.</span> <span class="comment_author">Marino A.</span> <span
 <span class="secondary_text">Select a step to view its details
 and resources</span> </span>
 <div class="scrollable"><img
-	src="static/images/expression-norm-imagemap.png" BORDER=0 WIDTH=983
-	HEIGHT=823 usemap="#map1"></div>
+	src="static/images/predictor_pipeline_performance_assessment.png" BORDER=0 WIDTH=983
+	HEIGHT=823 usemap="#predictorPipelineImageMap"></div>
 </div>
 </div>
 </div>
@@ -206,13 +194,20 @@ and resources</span> </span>
 			</div>
 		</div>
 	</div>
-	<map name="map1">
-			<area shape="rect" coords="135,12,288,25" href="network_overview.html">
-			<!-- 	<area shape="rect" coords="485,90,666,157" href="exp_normalization.html">
-			-->
-			<area shape="rect" coords="780,415,958,481" href="cancer_network.html">
-   			<area shape="rect" coords="449,231,647,299" href="conetwork_overview.html">
-   			<area shape="rect" coords="449,712,647,785" href="genelist.html">
-		</map>
+<map name="predictorPipelineImageMap" id="predictorPipelineImageMap">
+  <area shape="rect" coords="170,43,349,82" href="Portal.html#Layer:6;Dataset:1" alt="MSKCC Prostate SNP" />
+  <area shape="rect" coords="361,42,544,84" href="Portal.html#Layer:7;Dataset:1" alt="MSKCC Prostate CNV" />
+  <area shape="rect" coords="574,42,753,83" href="Portal.html#Layer:9;Dataset:1" alt="MSKCC Prostate Expression" />
+  <area shape="rect" coords="784,43,966,81" href="Portal.html#Layer:5;Dataset:1" alt="MSKCC Prostate Phenotypes" />
+  <area shape="rect" coords="253,125,434,192" href="#" alt="Genetic Preprocessing" />
+  <area shape="rect" coords="575,126,754,193" href="step_predictor_expression_norm.html" alt="Expression Normalization" />
+  <area shape="rect" coords="783,125,964,192" href="#" alt="Response Characterization" />
+  <area shape="rect" coords="413,244,594,313" href="#" alt="Data Aggregation" />
+  <area shape="rect" coords="277,349,457,391" href="#" alt="Training Set v2" />
+  <area shape="rect" coords="549,350,729,389" href="#" alt="Validation Set v2" />
+  <area shape="rect" coords="274,430,458,500" href="step_predictor_pred_model.html" alt="Predictive Model Generation" />
+  <area shape="rect" coords="411,542,594,611" href="step_predictor_perm_asses.html" alt="Performance Assessment" />
+  <area shape="rect" coords="413,653,593,721" href="#" alt="Candidate Biomarkers" />
+</map>
 </body>
 </html>

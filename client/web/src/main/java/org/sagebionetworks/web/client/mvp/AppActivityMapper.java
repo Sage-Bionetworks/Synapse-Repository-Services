@@ -7,6 +7,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.web.client.PortalGinInjector;
+import org.sagebionetworks.web.client.place.ComingSoon;
 import org.sagebionetworks.web.client.place.Dataset;
 import org.sagebionetworks.web.client.place.DatasetsHome;
 import org.sagebionetworks.web.client.place.Home;
@@ -17,6 +18,7 @@ import org.sagebionetworks.web.client.place.Project;
 import org.sagebionetworks.web.client.place.ProjectsHome;
 import org.sagebionetworks.web.client.place.users.PasswordReset;
 import org.sagebionetworks.web.client.place.users.RegisterAccount;
+import org.sagebionetworks.web.client.presenter.ComingSoonPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetsHomePresenter;
 import org.sagebionetworks.web.client.presenter.HomePresenter;
@@ -59,7 +61,8 @@ public class AppActivityMapper implements ActivityMapper {
 		openAccessPlaces.add(Dataset.class);
 		openAccessPlaces.add(Layer.class);
 		openAccessPlaces.add(ProjectsHome.class);
-		openAccessPlaces.add(Project.class);		
+		openAccessPlaces.add(Project.class);
+		openAccessPlaces.add(ComingSoon.class);
 	}
 
 	@Override
@@ -126,6 +129,11 @@ public class AppActivityMapper implements ActivityMapper {
 			// user's profile page
 			ProfilePresenter presenter = ginjector.getProfilePresenter();
 			presenter.setPlace((Profile)place);
+			return presenter;
+		} else if (place instanceof ComingSoon) {
+			// user's profile page
+			ComingSoonPresenter presenter = ginjector.getComingSoonPresenter();
+			presenter.setPlace((ComingSoon)place);
 			return presenter;
 		} else {
 			// Log that we have an unknown place but send the user to the default

@@ -1,0 +1,338 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Synapse : All Projects : Predictive Modeling Project</title>
+<link href="style.css" rel="stylesheet">
+<!--[if IE 7]>
+	<link href="ie7.css" rel="stylesheet">
+	<![endif]-->
+<!-- jQuery and jQuery UI -->
+<link rel="stylesheet"
+	href="http://jqueryui.com/themes/base/jquery.ui.all.css">
+<script type="text/javascript"
+	src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.11/jquery-ui.min.js"></script>
+
+<!-- Search autocomplete script. Temporary -->
+<script>
+	var TRANSMART_SEARCH = "http://transmart.sagebase.org/transmart/search/search?sourcepage=search&id=";
+	$(function() {
+		$("#query")
+				.autocomplete(
+						{
+							source : function(request, response) {
+								$
+										.ajax({
+											url : "http://transmart.sagebase.org/transmart/search/loadSearch",
+											dataType : "jsonp",
+											data : {
+												query : "all:" + request.term
+											},
+											success : function(data) {
+												response($
+														.map(
+																data.rows,
+																function(item) {
+																	return {
+																		label : item.display
+																				+ ": "
+																				+ item.keyword,
+																		value : item.name,
+																		id : item.id
+																	}
+																}));
+											}
+										});
+							},
+							minLength : 1,
+							select : function(event, ui) {
+								if (ui.item.id) {
+									document.location = TRANSMART_SEARCH
+											+ ui.item.id;
+								}
+							}
+						});
+	});
+</script>
+</head>
+<body>
+<div id="container" class="clearfix">
+<div class="header">
+<div id="header_top" class="clearfix">
+<div id="logo" class="left"><span class="large">
+						<a href="Portal.html"><img src="static/images/SagebionetworksLogo-g.png"/></a>
+</div>
+<div id="user_tools" class="right"><span class="hello">Welcome
+Michael K.</span><br />
+<span class="tools right"><a href="edit_profile.html">My profile</a> | <a href="">Logout</a></span>
+</div>
+</div>
+<div class="global_nav">
+<ul>
+	<li class="first" id="navbar_datasets_li"><a href="Portal.html#DatasetsHome:0" id="navbar_datasets_a">Datasets</a></li>
+	<li id="navbar_tools_li"><a href="">Tools</a></li>
+	<li id="navbar_networks_li"><a href="">Networks</a></li>
+	<li id="navbar_people_li"><a href="people.html">People</a></li>
+	<li class="last active" id="navbar_projects_li"><a
+		href="projects.html">Projects</a></li>
+</ul>
+<div id="search" class="right"><!-- <form action="" method="get">  -->
+<input id="query" type="input" class="search_box" name="q" value="" style="height:18px;">
+
+<button class="search_submit"><img
+	src="static/images/search_button.png" /></button>
+<span class="advanced"><a href="">Advanced<br>
+Search</a></span> <!-- </form>  --></div>
+</div>
+</div>
+<div id="main" role="main">
+<div id="content" class="clearfix">
+<ul class="breadcrumbs">
+	<li class="breadcrumb"><a href="Portal.html">Home</a> > <a
+		href="projects.html">All Projects</a> > Predictive Modeling Project</li>
+</ul>
+<h2>Predictive Modeling Project</h2>
+<div id="privacy_setting" class="right">
+					<span class="setting_label">Access:</span>
+					<span class="setting_level"><img src="images/icons/lock-unlock-16.png"/> Public</span>
+</div>
+<div class="data_info"><span class="info_head">
+<h2>Overview</h2>
+<span class="data_options"> <img
+	src="images/icons/arrow-curve-16.png" /> Follow this project<br />
+<img src="images/icons/mail--arrow-16.png" /> Send leaders a message </span> </span> <span
+	class="info_text_2col_wide"> 
+The ability to obtain large-scale molecular characterization of human tumors has enabled molecular diagnostic technologies designed to link the genetics of a particular tumor with predicted response to therapeutic treatments or prognostic models of clinical outcomes. The ability to develop novel predictive and prognostic models used to guide development of next-generation molecular diagnostic assays will require application of sophisticated computational methods to identify clinically relevant biomarkers by mining large-scale genomic and clinical datasets using approaches such as those developed by scientists at Sage Bionetworks.
+<br/>
+This project represents a collaboration between Genomic Health, Inc. and Sage Bionetworks to develop novel biomarker-based predictive and prognostic models by integrating information from large-scale databases, applying and developing sophisticated computational models, and subjecting each model to rigorous performance benchmarking within reproducible workflow tools. 
+ <br />
+<a href="" class="bulleted">Read more...</a> <br />
+<br />
+</span> <span class="data_details data_details_right">
+<table>
+	<tr>
+		<th>Project formed:</th>
+		<td>01-Nov-2010</td>
+	</tr>
+	<tr>
+		<th>Leaders:</th>
+		<td><a href="#">Adam Margolin</a>, <a href="#">Eric Huang</a></td>
+	</tr>
+	<tr>
+		<th>Members:</th>
+		<td>8 <a href="#">view</a></td>
+	</tr>
+	<tr>
+		<th>Publications:</th>
+		<td>5 <a href="#">view</a></td>
+	</tr>
+	<tr>
+		<th>Status:</th>
+		<td>Active</td>
+	</tr>
+	<tr>
+		<th>Project Web Site:<br />
+		<br />
+		</th>
+		<td><a href="http://www.genomichealth.com">Team Google Site</a><br />
+		<br />
+		</td>
+	</tr>
+</table>
+</span></div>
+</div>
+<div class="data_detail_sections">
+<div class="data_detail_section"><span class="header"> <span
+	class="icon right"> <img
+	src="images/icons/application--plus-16.png" /> Add analysis </span> <span
+	class="title">Analyses</span> <span class="secondary_text">Select
+a name to view the analysis<br />
+details and resources</span> </span>
+<table width="100%" class="head_table">
+	<tr>
+		<th class="analysis_name">Analysis Name</th>
+		<th class="latest_activity">Latest<br />
+		Activity</th>
+		<th class="mod_by_and_date">Modified by /<br />
+		Date</th>
+	</tr>
+</table>
+<div class="scrollable">
+<table width="100%">
+	<tr class="white">
+		<td><a href="analysis_predictor.html">Biomarker Prediction<br />
+		</a></td>
+		<td>
+		Step updated<br /></td>
+		<td>Justin G.<br />
+		12-Apr-2011</td>
+	</tr>
+	<tr class="gray">
+		<td><a href="analysis_predictor.html">Expression <br />Meta-Analysis</a></td>
+		<td>
+		Step created<br /></td>
+		<td>Adam M.<br />
+		02-Mar-2011</td>
+	</tr>
+</table>
+</div>
+</div>
+<div class="data_detail_section"><span class="header"> <span
+	class="icon right"> <img
+	src="images/icons/application-resize-16.png" /> View All<br />
+<img src="images/icons/sticky-note--plus-16.png" /> Add a note </span> <span
+	class="title">Conversations and<br />
+Events for this Project</span> </span>
+<div class="scrollable longer">
+<div id="scrollable_item"><span class="scrollable_header">
+<img src="static/images/down_arrow.png" class="right" /> <span
+	class="scroll_text">Expression Normalization step in Network Generation updated</span> <span
+	class="author"><a href="">Adam M.</a></span> <span class="date">15-Jul-2011</span>
+</span> <span class="scrollable_comments"><span
+	class="scrollable_comment"> <span class="comment_text">Thanks Brig, can you have a look at my new results?</span>
+<span class="comment_author">Justin G.</span> <span class="comment_date">12-Jul-2011</span>
+</span> <span
+	class="scrollable_comment"> <span class="comment_text">I've looked at this data and found a huge batch effect.  You may get cleaner results if you use my normalization method, let me know if you need help.</span> <span class="comment_author">Brig M.</span> <span
+	class="comment_date">09-Jul-2011</span> </span> <span
+	class="scrollable_comment"> <span class="comment_text">Looks good to me.</span>
+<span class="comment_author">Adam M.</span> <span class="comment_date">22-Jul-2011</span>
+</span> </span></div>
+<div id="scrollable_item">
+
+<span class="scrollable_header">
+<img src="static/images/down_arrow.png" class="right" /> 
+<span
+	class="scroll_text">New analysis Network Survey created</span> <span class="author"><a href="">Andrew Beck</a></span> <span class="date">21-Mar-2011</span> </span> 
+<span
+	class="scrollable_comments"> <span class="scrollable_comment">
+<span class="comment_text">Can someone please have a look at the way we're normalizing expression data?</span> <span class="comment_author">Brig M.
+S.</span> <span class="comment_date">21-Mar-2011</span> </span>  </span>
+</div>
+
+</div>
+</div>
+<div class="data_detail_section last"><span class="header">
+<span class="icon right"> <img
+	src="images/icons/application-resize-16.png" /> View All </span> <span
+	class="title">Project History</span> </span>
+<table width="100%" class="head_table">
+	<tr>
+		<th class="action">Action</th>
+		<th class="user">User</th>
+		<th class="project_history_date">Date</th>
+	</tr>
+</table>
+<div class="scrollable">
+<table width="100%">
+	<tr>
+		<td class="action"><a href="#">Step updated</a></td>
+		<td class="user">Adam M.</td>
+		<td class="project_history_date">15-Jul-2011</td>
+	</tr>
+	<tr class="gray">
+		<td class="action"><a href="#">Step updated</a></td>
+		<td class="user">Brig M</td>
+		<td class="project_history_date">15-Jul-2011</td>
+	</tr>
+	<tr>
+		<td class="action"><a href="#">Document updated</a></td>
+		<td class="user">Adam M.</td>
+		<td class="project_history_date">11-Jul-2011</td>
+	</tr>
+	<tr class="gray">
+		<td class="action"><a href="#">Document updated</a></td>
+		<td class="user">Justin G.</td>
+		<td class="project_history_date">09-Jul-2011</td>
+	</tr>
+	<tr>
+		<td class="action"><a href="#">Step created</a></td>
+		<td class="user">Brig M.</td>
+		<td class="project_history_date">21-Jun-2011</td>
+	</tr>
+	<tr class="gray">
+		<td class="action"><a href="#">Step created</a></td>
+		<td class="user">Brig M.</td>
+		<td class="project_history_date">20-Jun-2011</td>
+	</tr>
+	<tr>
+		<td class="action"><a href="#">Analysis created</a></td>
+		<td class="user">Brig M.</td>
+		<td class="project_history_date">20-Jun-2011</td>
+	</tr>
+	<tr class="gray">
+		<td class="action"><a href="#">Document created</a></td>
+		<td class="user">Justin G.</td>
+		<td class="project_history_date">19-Jun-2011</td>
+	</tr>
+	<tr>
+		<td class="action"><a href="#">Member added</a></td>
+		<td class="user">Antonina M.</td>
+		<td class="project_history_date">18-Jun-2011</td>
+	<tr>
+		<td class="action"><a href="#">Step updated</a></td>
+		<td class="user">Michael K.</td>
+		<td class="project_history_date">02-Jun-2011</td>
+	</tr>
+	<tr class="gray">
+		<td class="action"><a href="#">Step created</a></td>
+		<td class="user">Michael K.</td>
+		<td class="project_history_date">01-Jun-2011</td>
+	</tr>
+		<tr class="gray">
+		<td class="action"><a href="#">Step created</a></td>
+		<td class="user">Michael K.</td>
+		<td class="project_history_date">01-May-2011</td>
+	</tr>
+		<tr class="gray">
+		<td class="action"><a href="#">Step created</a></td>
+		<td class="user">Michael K.</td>
+		<td class="project_history_date">01-May-2011</td>
+	</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<!-- This is the static footer -->
+		<div class="footer">
+			<hr />
+			<div class="footer_nav clearfix left">
+				<table>
+					<tr>
+						<td><a href="">Privacy Policy</a></td>
+						<td><a href="">Platform support</a></td>
+						<td><a href="">Creative Commons License</a></td>
+					</tr>
+					<tr>
+						<td><a href="">FAQ</a></td>
+						<td><a href="">Submit feedback</a></td>
+						<td><a href="">Visit the Sage website</a></td>
+					</tr>
+				</table>
+			</div>
+			<div class="footer_logos">
+				<ul>
+					<li><a href="http://www.lsdfa.org/" target="_new"><img src="images/LSDF_logo.jpg"/></a></li>
+					<li><a href="http://www.cancer.gov/" target="_new"><img src="images/NCI_logo.jpg"/></a></li>
+				</ul>
+			</div>
+			<div class="contact right">
+				<div class="vcard right">
+					<p class="fn"><span class="organization-name">Sage Bionetworks</span><p>
+					<p class="adr">
+						<span class="street-address">1100 Fairview Ave N</span><br>
+						<span class="locality">Seattle</span>
+
+						<span class="region">WA</span>
+						<span class="postal-code">98109</span><br>
+						<a href="mailto:sage@sagebase.org">sage@sagebase.org</a>
+					</p>
+				</div> 
+				<img src="static/images/sage_logo.png" class="logo" alt="sage logo">
+			</div>
+		</div>
+</div>
+</body>
+</html>
