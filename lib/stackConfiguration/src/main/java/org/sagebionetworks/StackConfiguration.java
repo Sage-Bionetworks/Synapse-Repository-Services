@@ -1,6 +1,11 @@
 package org.sagebionetworks;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
@@ -31,11 +36,17 @@ public class StackConfiguration {
 	private static final String DEFAULT_PROPERTIES_FILENAME = PROPERTIES_FILENAME_PREFIX
 			+ PROPERTIES_FILENAME_SUFFIX;
 
+	private static final String TEMPLATE_PROPERTIES = "/template.properties";
 	private static final String STACK_SYSTEM_PROPERTY_KEY = "org.sagebionetworks.stack";
+	private static final String STACK_PROPERTY_FILE_URL = "org.sagebionetworks.stack.configuration.url";
+	private static final String STACK_IAM_ID = "org.sagebionetworks.stack.iam.id";
+	private static final String STACK_IAM_KEY = "org.sagebionetworks.stack.iam.key";
 
 	private static Properties defaultStackProperties = null;
 	private static Properties stackPropertyOverrides = null;
+	private static Properties requiredProperties = null;
 	private static String stack = null;
+	private static String propertyFileUrl = null;
 	
 	static {
 		// Load the stack configuration the first time this class is referenced
@@ -48,34 +59,37 @@ public class StackConfiguration {
 	 * which stack overrides should be loaded.
 	 */
 	public static void reloadStackConfiguration() {
-
 		defaultStackProperties = new Properties();
 		stackPropertyOverrides = new Properties();
-
-		if (!loadProperties(DEFAULT_PROPERTIES_FILENAME, defaultStackProperties)) {
-			throw new Error(
-					"Unable to load default stack properties from classpath: "
-							+ DEFAULT_PROPERTIES_FILENAME);
-		}
-
+		requiredProperties = new Properties();
+		// Load the default properties from the classpath.
+		loadPropertiesFromClasspath(DEFAULT_PROPERTIES_FILENAME, defaultStackProperties);
+		// Load the required properties
+		loadPropertiesFromClasspath(TEMPLATE_PROPERTIES, requiredProperties);
 		stack = System.getProperty(STACK_SYSTEM_PROPERTY_KEY);
-		if (null == stack) {
-			log.info("System property " + STACK_SYSTEM_PROPERTY_KEY
-					+ " not specified, using default stack properties");
-		} else {
-			String stackPropertiesFilename = PROPERTIES_FILENAME_PREFIX
-					+ PROPERTIES_FILENAME_STAGE_SEPARATOR + stack
-					+ PROPERTIES_FILENAME_SUFFIX;
-			if (loadProperties(stackPropertiesFilename, stackPropertyOverrides)) {
-				log.info("Loaded stack property overrides from "
-						+ stackPropertiesFilename);
-			} else {
-				log.info("No stack properties file named "
-						+ stackPropertiesFilename
-						+ " found, using default stack properties");
-			}
+		// The URL containing any property overrides
+		propertyFileUrl = System.getProperty(STACK_PROPERTY_FILE_URL);
+		// Try to get the properties from the settings file
+		if(propertyFileUrl == null){
+			addSettingsPropertiesToSystem();
 		}
-
+		// Try loading it again
+		propertyFileUrl = System.getProperty(STACK_PROPERTY_FILE_URL);
+		if (null == propertyFileUrl) throw new IllegalArgumentException("Cannot find the System Property: "+STACK_PROPERTY_FILE_URL);
+		// If we have IAM id and key the load the properties using the Amazon client, else the URL shoudl be public.
+		String iamId = getIAMUserId();
+		String iamKey = getIAMUserKey();
+		if(iamId != null && iamKey != null){
+			try {
+				S3PropertyFileLoader.loadPropertiesFromS3(propertyFileUrl, iamId, iamKey, stackPropertyOverrides);
+			} catch (IOException e) {
+				throw new RuntimeException(e); 
+			}
+		}else{
+			loadPropertiesFromURL(propertyFileUrl, stackPropertyOverrides);
+		}
+		// Validate the required properties
+		StackUtils.validateRequiredProperties(requiredProperties, stackPropertyOverrides);
 	}
 
 	private static String getProperty(String propertyName) {
@@ -83,7 +97,7 @@ public class StackConfiguration {
 		if (stackPropertyOverrides.containsKey(propertyName)) {
 			propertyValue = stackPropertyOverrides.getProperty(propertyName);
 			log.debug("Got " + propertyValue + " for property " + propertyName
-					+ " from " + stack + "properties");
+					+ " from " + propertyFileUrl + "properties");
 		} else {
 			propertyValue = defaultStackProperties.getProperty(propertyName);
 			log.debug("Got " + propertyValue + " for property " + propertyName
@@ -103,20 +117,84 @@ public class StackConfiguration {
 		return se.decrypt(encryptedProperty);
 	}
 
-	private static boolean loadProperties(String filename, Properties properties) {
+	private static void loadPropertiesFromClasspath(String filename, Properties properties) {
+		if(filename == null) throw new IllegalArgumentException("filename cannot be null");
+		if(properties == null) throw new IllegalArgumentException("properties cannot be null");
 		URL propertiesLocation = StackConfiguration.class.getResource(filename);
 		if (null == propertiesLocation) {
-			return false;
+			throw new IllegalArgumentException("Could not load property file from classpath: "+filename);
 		}
-
 		try {
 			properties.load(propertiesLocation.openStream());
 		} catch (Exception e) {
 			throw new Error(e);
 		}
-		return true;
+	}
+	
+	/**
+	 * Add the properties from the settings file to the system properties if they are there.
+	 */
+	private static void addSettingsPropertiesToSystem(){
+		Properties props;
+		try {
+			props = SettingsLoader.loadSettingsFile();
+			if(props != null){
+				Iterator it = props.keySet().iterator();
+				while(it.hasNext()){
+					String key = (String) it.next();
+					String value = props.getProperty(key);
+					System.setProperty(key, value);
+				}
+			}
+		} catch (Exception e) {
+			throw new Error(e);
+		}
 	}
 
+	/**
+	 * Load a property file from a URL
+	 * @param url
+	 * @param properties
+	 * @return
+	 */
+	private static void loadPropertiesFromURL(String url, Properties properties) {
+		if(url == null) throw new IllegalArgumentException("url cannot be null");
+		if(properties == null) throw new IllegalArgumentException("properties cannot be null");
+		URL propertiesLocation;
+		try {
+			propertiesLocation = new URL(url);
+		} catch (MalformedURLException e1) {
+			throw new IllegalArgumentException("Could not load property file from url: "+url, e1);
+		}
+		try {
+			properties.load(propertiesLocation.openStream());
+		} catch (Exception e) {
+			throw new Error(e);
+		}
+	}
+	/**
+	 * Get the IAM user ID (Access Key ID)
+	 * @return
+	 */
+	public static String getIAMUserId(){
+		// There are a few places where we can find this
+		String id = System.getProperty("PARAM3");
+		if(id != null) return id;
+		return System.getProperty(STACK_IAM_ID);
+	}
+	
+	/**
+	 * Get the IAM user Key (Secret Access Key)
+	 * @return
+	 */
+	public static String getIAMUserKey(){
+		// There are a few places to look for this
+		String key = System.getProperty("PARAM4");
+		if(key != null) return key;
+		return System.getProperty(STACK_IAM_KEY);
+	}
+
+	
 	public static String getStack() {
 		return stack;
 	}
@@ -160,7 +238,7 @@ public class StackConfiguration {
 	 * The database connection string used for the ID Generator.
 	 * @return
 	 */
-	public String getIdGeneratorDatabaseConnectionString(){
+	public String getIdGeneratorDatabaseConnectionUrl(){
 		return getProperty("org.sagebionetworks.id.generator.database.connection.url");
 	}
 	
@@ -177,10 +255,127 @@ public class StackConfiguration {
 	 * @return
 	 */
 	public String getIdGeneratorDatabasePassword(){
-		return getProperty("org.sagebionetworks.id.generator.database.password");
+		return getDecryptedProperty("org.sagebionetworks.id.generator.database.password");
 	}
 	
 	public String getIdGeneratorDatabaseDriver(){
 		return getProperty("org.sagebionetworks.id.generator.database.driver");
 	}
+	
+	/**
+	 * All of these keys are used to build up a map of JDO configurations
+	 * passed to the JDOPersistenceManagerFactory
+	 */
+	private static String[] MAP_PROPERTY_NAME = new String[]{
+		"javax.jdo.PersistenceManagerFactoryClass",
+		"datanucleus.NontransactionalRead",
+		"datanucleus.NontransactionalWrite",
+		"javax.jdo.option.RetainValues",
+		"datanucleus.autoCreateSchema",
+		"datanucleus.validateConstraints",
+		"datanucleus.validateTables",
+		"datanucleus.transactionIsolation",
+	};
+		
+	public Map<String, String> getRepositoryJDOConfigurationMap(){
+		HashMap<String, String> map = new HashMap<String, String>();
+		for(String name: MAP_PROPERTY_NAME){
+			String value = getProperty(name);
+			if(value == null) throw new IllegalArgumentException("Failed to find property: "+name);
+			map.put(name, value);
+		}
+		map.put("javax.jdo.option.ConnectionURL", getRepositoryDatabaseConnectionUrl());
+		map.put("javax.jdo.option.ConnectionDriverName", getRepositoryDatabaseDriver());
+		map.put("javax.jdo.option.ConnectionUserName", getRepositoryDatabaseUsername());
+		map.put("javax.jdo.option.ConnectionPassword", getRepositoryDatabasePassword());
+		return map;
+	}
+	
+	/**
+	 * Driver for the repository service.
+	 * @return
+	 */
+	public String getRepositoryDatabaseDriver(){
+		return getProperty("org.sagebionetworks.id.generator.database.driver");
+	}
+	
+	/**
+	 * The repository database connection string.
+	 * @return
+	 */
+	public String getRepositoryDatabaseConnectionUrl(){
+		// First try to load the system property
+		String jdbcConnection  = System.getProperty("JDBC_CONNECTION_STRING");
+		if(jdbcConnection != null) return jdbcConnection;
+		// Now try the environment variable
+		jdbcConnection = System.getenv("JDBC_CONNECTION_STRING");
+		if(jdbcConnection != null) return jdbcConnection;
+		// Last try the stack configuration
+		return getProperty("org.sagebionetworks.repository.database.connection.url");
+	}
+	
+	/**
+	 * The repository database username.
+	 * @return
+	 */
+	public String getRepositoryDatabaseUsername(){
+		// First try to load the system property
+		String jdbcConnection  = System.getProperty("PARAM1");
+		if(jdbcConnection != null) return jdbcConnection;
+		// Now try the environment variable
+		jdbcConnection = System.getenv("PARAM1");
+		if(jdbcConnection != null) return jdbcConnection;
+		// Last try the stack configuration
+		return getProperty("org.sagebionetworks.repository.database.username");
+	}
+	
+	/**
+	 * The repository database password.
+	 * @return
+	 */
+	public String getRepositoryDatabasePassword(){
+		// First try to load the system property
+		String jdbcConnection  = System.getProperty("PARAM2");
+		if(jdbcConnection != null) return jdbcConnection;
+		// Now try the environment variable
+		jdbcConnection = System.getenv("PARAM2");
+		if(jdbcConnection != null) return jdbcConnection;
+		// Last try the stack configuration
+		return getDecryptedProperty("org.sagebionetworks.repository.database.password");
+	}
+	
+	
+	/**
+	 * Should the connection pool connections be validated?
+	 * @return
+	 */
+	public String getDatabaseConnectionPoolShouldValidate(){
+		return getProperty("org.sagebionetworks.pool.connection.validate");
+	}
+	
+	/**
+	 * The SQL used to validate pool connections
+	 * @return
+	 */
+	public String getDatabaseConnectionPoolValidateSql(){
+		return getProperty("org.sagebionetworks.pool.connection.validate.sql");
+	}
+	
+	/**
+	 * The minimum number of connections in the pool
+	 * @return
+	 */
+	public String getDatabaseConnectionPoolMinNumberConnections(){
+		return getProperty("org.sagebionetworks.pool.min.number.connections");
+	}
+	
+	/**
+	 * The maximum number of connections in the pool
+	 * @return
+	 */
+	public String getDatabaseConnectionPoolMaxNumberConnections(){
+		return getProperty("org.sagebionetworks.pool.max.number.connections");
+	}
+	
+	
 }

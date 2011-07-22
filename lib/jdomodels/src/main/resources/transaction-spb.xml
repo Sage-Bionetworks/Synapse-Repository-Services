@@ -10,49 +10,34 @@
 	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 	
-	<!-- This properties object will contain all of Persistence Manager Factory 
-	configuration properties. -->
-	<bean id="pmfProperties" class="org.sagebionetworks.repo.model.jdo.PMFProperties" />
-
-	<bean id="propertyPlaceholder"	class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer" depends-on="pmfProperties">
-		<property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE" ></property>
-	</bean>
+	<!-- Import the stack configuration -->
+	<import resource="stack-configuration.spb.xml" />
 
  	<!-- This is serving as the JDBC connection pool -->
-	<bean id="dataSourcePool" class="org.apache.commons.dbcp.BasicDataSource"	destroy-method="close">
-		<property name="driverClassName">
-			<value>${javax.jdo.option.ConnectionDriverName}</value>
-		</property>
-		<property name="url">
-			<value>${javax.jdo.option.ConnectionURL}</value>
-		</property>
-		<property name="username">
-			<value>${javax.jdo.option.ConnectionUserName}</value>
-		</property>
-		<property name="password">
-			<value>${javax.jdo.option.ConnectionPassword}</value>
-		</property>
-		<property name="minIdle">
-			<value>2</value>
-		</property>
-		<property name="maxActive">
-			<value>40</value>
-		</property>
-		<!-- This will test a connection to see if it is alive when a connection is fetched from the pool -->
-		<property name="testOnBorrow">
-			<value>${sagebionetworks.db.connection.validate}</value>
-		</property>
+	<bean id="dataSourcePool" class="org.apache.commons.dbcp.BasicDataSource"	destroy-method="close" depends-on="stackConfiguration"> 
+		<property name="driverClassName" ref="stackConfiguration.repositoryDatabaseDriver" />
+		<property name="url" ref="stackConfiguration.repositoryDatabaseConnectionUrl" />
+		<property name="username" ref="stackConfiguration.repositoryDatabaseUsername" />
+		<property name="password" ref="stackConfiguration.repositoryDatabasePassword" />
+		<!-- The minimum number of connections in the pool at all times -->
+		<property name="minIdle" ref="stackConfiguration.databaseConnectionPoolMinNumberConnections" />
+		<!-- The maximum number of connections in the pool -->
+		<property name="maxActive" ref="stackConfiguration.databaseConnectionPoolMaxNumberConnections"/>
+		<!-- This will test a connection to see if it is alive when a connection 
+			is fetched from the pool -->
+		<property name="testOnBorrow" ref="stackConfiguration.databaseConnectionPoolShouldValidate"/>
 		<!-- This is the SQL uses to test if a connection is alive -->
-		<property name="validationQuery">
-			<value>${sagebionetworks.db.connection.validation.sql}</value>
-		</property>
+		<property name="validationQuery" ref="stackConfiguration.databaseConnectionPoolValidateSql"/>
 	</bean>
+	
+		<!-- A profiler that logs performance data for all bean method calls. -->
+	<bean id="poolLogger" class="org.sagebionetworks.repo.model.jdo.ConnectionPoolLogger" />
 
 	<!-- PMF Bean -->
-	<bean id="pmf" class="org.datanucleus.jdo.JDOPersistenceManagerFactory" destroy-method="close">
+	<bean id="pmf" class="org.datanucleus.jdo.JDOPersistenceManagerFactory" destroy-method="close" depends-on="poolLogger">
+<!--		<constructor-arg ref="stackConfiguration.repositoryJDOConfigurationMap" />-->
+		<property name="options" ref="stackConfiguration.repositoryJDOConfigurationMap"/>
 		<property name="connectionFactory" ref="dataSourcePool" />
-		<property name="nontransactionalRead" value="true"/>
-		<property name="nontransactionalWrite" value="true"/>
 	</bean>
 
 	<!-- enable the configuration of transactional behavior based on annotations -->

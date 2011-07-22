@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.util;
 
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 
 /**
@@ -21,5 +22,11 @@ public interface UserProvider {
 	 * @return userInfo for the regular user
 	 */
 	public UserInfo getTestUserInfo();
+	
+	/**
+	 * This is the group that all identified users belong to.
+	 * @return
+	 */
+	public UserGroup getIdentifiedUserGroup();
 
 }

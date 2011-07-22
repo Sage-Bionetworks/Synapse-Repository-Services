@@ -181,7 +181,7 @@ public class AgreementMetadataProvider implements
 			localAdminUserId = "nicole.deflaux@sagebase.org";
 		}
 		else {
-		localAdminUserId = TestUserDAO.ADMIN_USER_NAME;
+			localAdminUserId = TestUserDAO.ADMIN_USER_NAME;
 		}
 		return userManager.getUserInfo(localAdminUserId);
 	}

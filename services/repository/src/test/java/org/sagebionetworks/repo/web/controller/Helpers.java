@@ -62,9 +62,6 @@ import org.springframework.web.servlet.DispatcherServlet;
  */
 public class Helpers {
 
-	public static String IDENTIFIED_USER_READONLY_ACL = "{\"userGroupId\":\"0\", \"accessType\":[\"READ\"]}";
-	public static String IDENTIFIED_USER_READWRITE_ACL = "{\"userGroupId\":\"0\", \"accessType\":[\"READ\", \"WRITE\"]}";
-
 	private static final Logger log = Logger.getLogger(Helpers.class.getName());
 	private static final int JSON_INDENT = 2;
 	private static final String DEFAULT_SERVLET_PREFIX = "/repo/v1";
@@ -79,7 +76,24 @@ public class Helpers {
 
 	@Autowired
 	public UserProvider testUserProvider;
+	
+	/**
+	 * The JSON for a read only ACL
+	 * @return
+	 */
+	public String getIdentifiedUserReadOnlyACL(){
+		UserGroup group = testUserProvider.getIdentifiedUserGroup();
+		return "{\"userGroupId\":\""+group.getId()+"\", \"accessType\":[\"READ\"]}";
+	}
 
+	/**
+	 * The JSON for a Read/write ACL.
+	 * @return
+	 */
+	public String getIdentifiedUserReadWriteACL(){
+		UserGroup group = testUserProvider.getIdentifiedUserGroup();
+		return "{\"userGroupId\":\""+group.getId()+"\", \"accessType\":[\"READ\", \"WRITE\"]}";
+	}
 	/**
 	 * Default constructor reads optional system properties to change this from
 	 * a unit test to an integration test INTEGRATION_TEST_ENDPOINT and
@@ -154,6 +168,10 @@ public class Helpers {
 			} catch (Exception e) {
 				log.info(e.toString());
 			}
+		}
+		// If we do not destroy the servlet we get connection leaks.
+		if(servlet != null){
+			servlet.destroy();
 		}
 
 	}
@@ -841,7 +859,7 @@ public class Helpers {
 		JSONObject entityAcl = testGetJsonEntity(entity
 				.getString("accessControlList"));
 		entityAcl.getJSONArray("resourceAccess").put(
-				new JSONObject(IDENTIFIED_USER_READONLY_ACL));
+				new JSONObject(getIdentifiedUserReadOnlyACL()));
 		
 		// TODO uncomment this line and delete the stuff that follows when PLFM-321 is fixed
 		//testUpdateJsonEntity(entityAcl);
@@ -889,7 +907,7 @@ public class Helpers {
 		JSONObject entityAcl = testGetJsonEntity(entity
 				.getString("accessControlList"));
 		entityAcl.getJSONArray("resourceAccess").put(
-				new JSONObject(IDENTIFIED_USER_READWRITE_ACL));
+				new JSONObject(getIdentifiedUserReadWriteACL()));
 		
 		// TODO uncomment this line and delete the stuff that follows when PLFM-321 is fixed
 		//testUpdateJsonEntity(entityAcl);
