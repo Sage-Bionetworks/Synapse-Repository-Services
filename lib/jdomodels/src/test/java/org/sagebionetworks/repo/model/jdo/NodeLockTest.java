@@ -77,14 +77,6 @@ public class NodeLockTest {
 	
 	@Test
 	public void testNodeLocking() throws InterruptedException, NotFoundException, DatastoreException{
-		// Locking does not work with in-memory database, so only run this 
-		// test when we are using MySQL
-		if(PMFConfigUtils.getJdbcConnectionString() == null){
-			log.info("Skipping NodeLockTest.testNodeLocking() because HyperSQL does not support locking");
-			return;
-		}else{
-			log.info("Running NodeLockTest.testNodeLocking() against: "+PMFConfigUtils.getJdbcConnectionString());
-		}
 		// First start a new thread and acquire the lock to the node
 		final String theNodeId = nodeId;
 		final String eTag = nodeDao.peekCurrentEtag(nodeId);

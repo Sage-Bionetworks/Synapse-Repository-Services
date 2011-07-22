@@ -14,29 +14,20 @@
 
 	<!-- This is serving as the JDBC connection pool -->
 	<bean id="idGeneratorDataSourcePool" class="org.apache.commons.dbcp.BasicDataSource"
-		destroy-method="close">
+		destroy-method="close" depends-on="stackConfiguration">
 		<property name="driverClassName" ref="stackConfiguration.idGeneratorDatabaseDriver" />
-		<property name="url"
-			ref="stackConfiguration.idGeneratorDatabaseConnectionString" />
-		<property name="username"
-			ref="stackConfiguration.idGeneratorDatabaseUsername" />
-		<property name="password"
-			ref="stackConfiguration.idGeneratorDatabasePassword" />
-		<property name="minIdle">
-			<value>2</value>
-		</property>
-		<property name="maxActive">
-			<value>40</value>
-		</property>
+		<property name="url" ref="stackConfiguration.idGeneratorDatabaseConnectionUrl" />
+		<property name="username" ref="stackConfiguration.idGeneratorDatabaseUsername" />
+		<property name="password" ref="stackConfiguration.idGeneratorDatabasePassword" />
+		<!-- The minimum number of connections in the pool at all times -->
+		<property name="minIdle" ref="stackConfiguration.databaseConnectionPoolMinNumberConnections" />
+		<!-- The maximum number of connections in the pool -->
+		<property name="maxActive" ref="stackConfiguration.databaseConnectionPoolMaxNumberConnections"/>
 		<!-- This will test a connection to see if it is alive when a connection 
 			is fetched from the pool -->
-		<property name="testOnBorrow">
-			<value>true</value>
-		</property>
+		<property name="testOnBorrow" ref="stackConfiguration.databaseConnectionPoolShouldValidate"/>
 		<!-- This is the SQL uses to test if a connection is alive -->
-		<property name="validationQuery">
-			<value>SELECT 1</value>
-		</property>
+		<property name="validationQuery" ref="stackConfiguration.databaseConnectionPoolValidateSql"/>
 	</bean>
 
 	<!-- enable the configuration of transactional behavior based on annotations -->

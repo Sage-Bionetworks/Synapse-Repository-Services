@@ -74,7 +74,7 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 		if(con == null) throw new RuntimeException("Failed get a connecion from the datasource");
 		if(!con.getAutoCommit()) throw new RuntimeException("The connections from this datasources should be set to auto-commit");
 		// First make sure the table exists
-		String connectionString = stackConfiguration.getIdGeneratorDatabaseConnectionString();
+		String connectionString = stackConfiguration.getIdGeneratorDatabaseConnectionUrl();
 		String schema = getSchemaFromConnectionString(connectionString);
 		String sql = TABLE_EXISTS_SQL_PERFIX+schema+"'";
 		List<Map<String, Object>> list = idGeneratorJdbcTemplate.queryForList(sql);

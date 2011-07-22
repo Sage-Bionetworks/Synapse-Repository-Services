@@ -2,6 +2,7 @@ package org.sagebionetworks;
 
 import static org.junit.Assert.assertTrue;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.Helpers.ExternalProcessResult;
 
@@ -23,6 +24,7 @@ public class IT080SynapsePythonClientNoBamboo {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore // See http://sagebionetworks.jira.com/browse/PLFM-365
 	@Test
 	public void testPythonClient() throws Exception {
 		String cmd[] = { Helpers.getPython27Path(),

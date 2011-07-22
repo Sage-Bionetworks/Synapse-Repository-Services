@@ -16,13 +16,5 @@ public class StackConfigurationTest {
 				.getCrowdEndpoint());
 	}
 
-	@Test
-	public void testGetAlphaCrowdEndpoint() {
-		System.setProperty("org.sagebionetworks.stack", "alpha");
-		StackConfiguration.reloadStackConfiguration();
-		assertEquals("alpha", StackConfiguration.getStack());
-		assertEquals("https://crowd.sagebase.org:8443", StackConfiguration
-				.getCrowdEndpoint());
-	}
 
 }
