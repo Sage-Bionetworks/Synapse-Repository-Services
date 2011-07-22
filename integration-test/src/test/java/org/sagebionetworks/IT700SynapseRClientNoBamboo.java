@@ -3,7 +3,6 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.Helpers.ExternalProcessResult;
 
@@ -32,9 +31,8 @@ public class IT700SynapseRClientNoBamboo {
 	 * @throws Exception
 	 */
 	@Test
-	@Ignore
 	public void testCheckRClient() throws Exception {
-		String cmd[] = { Helpers.getRPath(), "CMD", "check",
+		String cmd[] = { Helpers.getRPath(), "CMD", "check", "--no-manual",
 				"target/non-java-dependencies/synapseRClient" };
 		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
 		assertEquals(0, result.getReturnCode());
@@ -44,7 +42,6 @@ public class IT700SynapseRClientNoBamboo {
 	 * @throws Exception
 	 */
 	@Test
-	@Ignore
 	public void testInstallRClient() throws Exception {
 		String cmd[] = { Helpers.getRPath(), "CMD", "INSTALL",
 				"target/non-java-dependencies/synapseRClient" };
@@ -60,7 +57,6 @@ public class IT700SynapseRClientNoBamboo {
 	 * @throws Exception
 	 */
 	@Test
-	@Ignore
 	public void testRunRUnitTests() throws Exception {
 		String cmd[] = {
 				Helpers.getRPath(),
@@ -85,7 +81,6 @@ public class IT700SynapseRClientNoBamboo {
 	 * @throws Exception
 	 */
 	@Test
-	@Ignore
 	public void testRunRIntegrationTests() throws Exception {
 		String cmd[] = {
 				Helpers.getRPath(),
