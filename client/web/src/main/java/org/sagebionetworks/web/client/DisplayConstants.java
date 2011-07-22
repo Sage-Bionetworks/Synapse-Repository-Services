@@ -8,7 +8,7 @@ public class DisplayConstants {
 	 * DEMO FLAG
 	 * Set this flag if you want demo content shown
 	 */
-	public static final boolean showDemoHtml = true;
+	public static final boolean showDemoHtml = false;
 	
 	/*
 	 * Dimensions
