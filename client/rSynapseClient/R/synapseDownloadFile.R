@@ -38,6 +38,7 @@ synapseDownloadFileToDestination  <-
 				stop(ex)
 			}
 	)
-	file.rename(tmpFile, destfile)
+	file.copy(tmpFile, destfile)
+	file.remove(tmpFile)
 	return(destfile)
 }

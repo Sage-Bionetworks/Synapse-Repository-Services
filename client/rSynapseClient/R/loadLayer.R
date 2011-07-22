@@ -27,7 +27,7 @@ setMethod(
 		function(entity, locationPrefs = synapseDataLocationPreferences(), cacheDir = synapseCacheDir())
 {
 	if(!is.list(entity)){
-		stop("the entity must be an R list")
+		entity <- getLayer(entity=entity)
 	}
 	
 	if(!"locations" %in% names(entity)){
