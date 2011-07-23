@@ -147,6 +147,10 @@
 							<installDir>${project.build.directory}/tomcat6x/container</installDir>
 						</zipUrlInstaller>
 						<systemProperties>
+							<org.sagebionetworks.stackEncryptionKey>${org.sagebionetworks.stackEncryptionKey}</org.sagebionetworks.stackEncryptionKey>
+							<org.sagebionetworks.stack.configuration.url>${org.sagebionetworks.stack.configuration.url}</org.sagebionetworks.stack.configuration.url>
+							<org.sagebionetworks.stack.iam.id>${org.sagebionetworks.stack.iam.id}</org.sagebionetworks.stack.iam.id>
+							<org.sagebionetworks.stack.iam.key>${org.sagebionetworks.stack.iam.key}</org.sagebionetworks.stack.iam.key>
 							<org.sagebionetworks.rest.api.endpoint>${tomcat.endpoint}/${org.sagebionetworks.repository.context}</org.sagebionetworks.rest.api.endpoint>
 							<!-- This will force the user of a Mock UserDao -->
 							<org.sagebionetworks.mockCrowdDAOClass>org.sagebionetworks.repo.manager.TestUserDAO</org.sagebionetworks.mockCrowdDAOClass>
