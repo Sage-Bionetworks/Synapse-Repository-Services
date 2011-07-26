@@ -102,12 +102,10 @@ public class StackConfiguration {
 		String propertyValue = null;
 		if (stackPropertyOverrides.containsKey(propertyName)) {
 			propertyValue = stackPropertyOverrides.getProperty(propertyName);
-			log.debug("Got " + propertyValue + " for property " + propertyName
-					+ " from " + propertyFileUrl + "properties");
+			log.info(propertyName+"="+propertyValue+" from " + propertyFileUrl + "properties");
 		} else {
 			propertyValue = defaultStackProperties.getProperty(propertyName);
-			log.debug("Got " + propertyValue + " for property " + propertyName
-					+ " from default stack properties");
+			log.info(propertyName+"="+propertyValue+" from default stack properties");
 		}
 		return propertyValue;
 	}
@@ -333,10 +331,10 @@ public class StackConfiguration {
 	public String getRepositoryDatabaseConnectionUrl(){
 		// First try to load the system property
 		String jdbcConnection  = System.getProperty("JDBC_CONNECTION_STRING");
-		if(jdbcConnection != null) return jdbcConnection;
+		if(jdbcConnection != null && !"".equals(jdbcConnection)) return jdbcConnection;
 		// Now try the environment variable
 		jdbcConnection = System.getenv("JDBC_CONNECTION_STRING");
-		if(jdbcConnection != null) return jdbcConnection;
+		if(jdbcConnection != null && !"".equals(jdbcConnection)) return jdbcConnection;
 		// Last try the stack configuration
 		return getProperty("org.sagebionetworks.repository.database.connection.url");
 	}
