@@ -41,6 +41,7 @@ public class StackConfiguration {
 	private static final String STACK_PROPERTY_FILE_URL = "org.sagebionetworks.stack.configuration.url";
 	private static final String STACK_IAM_ID = "org.sagebionetworks.stack.iam.id";
 	private static final String STACK_IAM_KEY = "org.sagebionetworks.stack.iam.key";
+	private static final String STACK_ENCRYPTION_KEY = "org.sagebionetworks.stackEncryptionKey";
 
 	private static Properties defaultStackProperties = null;
 	private static Properties stackPropertyOverrides = null;
@@ -50,7 +51,12 @@ public class StackConfiguration {
 	
 	static {
 		// Load the stack configuration the first time this class is referenced
-		reloadStackConfiguration();
+		try {
+			reloadStackConfiguration();
+		} catch (Throwable t) {
+			log.error(t.getMessage(), t);
+			throw new RuntimeException(t);
+		}
 	}
 
 	/**
@@ -68,13 +74,13 @@ public class StackConfiguration {
 		loadPropertiesFromClasspath(TEMPLATE_PROPERTIES, requiredProperties);
 		stack = System.getProperty(STACK_SYSTEM_PROPERTY_KEY);
 		// The URL containing any property overrides
-		propertyFileUrl = System.getProperty(STACK_PROPERTY_FILE_URL);
+		propertyFileUrl = getPropertyFileURL();
 		// Try to get the properties from the settings file
 		if(propertyFileUrl == null){
 			addSettingsPropertiesToSystem();
+			// Try loading it again
+			propertyFileUrl = getPropertyFileURL();
 		}
-		// Try loading it again
-		propertyFileUrl = System.getProperty(STACK_PROPERTY_FILE_URL);
 		if (null == propertyFileUrl) throw new IllegalArgumentException("Cannot find the System Property: "+STACK_PROPERTY_FILE_URL);
 		// If we have IAM id and key the load the properties using the Amazon client, else the URL shoudl be public.
 		String iamId = getIAMUserId();
@@ -107,7 +113,7 @@ public class StackConfiguration {
 	}
 	
 	private static String getDecryptedProperty(String propertyName) {
-		String stackEncryptionKey = System.getProperty("org.sagebionetworks.stackEncryptionKey");
+		String stackEncryptionKey = getEncryptionKey();
 		if (stackEncryptionKey==null || stackEncryptionKey.length()==0)
 			throw new RuntimeException("Expected system property org.sagebionetworks.stackEncryptionKey");
 		String encryptedProperty = getProperty(propertyName);
@@ -172,15 +178,32 @@ public class StackConfiguration {
 			throw new Error(e);
 		}
 	}
+	
+	public static String getPropertyFileURL() {
+		String url = System.getProperty("PARAM1");
+		if (url == null) url = System.getProperty(STACK_PROPERTY_FILE_URL);
+		return url;
+	}
+	
+	public static String getEncryptionKey() {
+		String ek = System.getProperty("PARAM2");
+		if (ek == null) ek = System.getProperty(STACK_ENCRYPTION_KEY);
+		return ek;
+	}
+	
 	/**
 	 * Get the IAM user ID (Access Key ID)
 	 * @return
 	 */
 	public static String getIAMUserId(){
 		// There are a few places where we can find this
-		String id = System.getProperty("PARAM3");
+		String id = System.getProperty("AWS_ACCESS_KEY_ID");
 		if(id != null) return id;
-		return System.getProperty(STACK_IAM_ID);
+		id = System.getProperty(STACK_IAM_ID);
+		if (id == null) return null;
+		id = id.trim();
+		if ("".equals(id)) return null;
+		return id;
 	}
 	
 	/**
@@ -189,9 +212,13 @@ public class StackConfiguration {
 	 */
 	public static String getIAMUserKey(){
 		// There are a few places to look for this
-		String key = System.getProperty("PARAM4");
+		String key = System.getProperty("AWS_SECRET_KEY");
 		if(key != null) return key;
-		return System.getProperty(STACK_IAM_KEY);
+		key = System.getProperty(STACK_IAM_KEY);
+		if (key == null) return null;
+		key = key.trim();
+		if ("".equals(key)) return null;
+		return key;
 	}
 
 	
@@ -319,13 +346,6 @@ public class StackConfiguration {
 	 * @return
 	 */
 	public String getRepositoryDatabaseUsername(){
-		// First try to load the system property
-		String jdbcConnection  = System.getProperty("PARAM1");
-		if(jdbcConnection != null) return jdbcConnection;
-		// Now try the environment variable
-		jdbcConnection = System.getenv("PARAM1");
-		if(jdbcConnection != null) return jdbcConnection;
-		// Last try the stack configuration
 		return getProperty("org.sagebionetworks.repository.database.username");
 	}
 	
@@ -334,13 +354,6 @@ public class StackConfiguration {
 	 * @return
 	 */
 	public String getRepositoryDatabasePassword(){
-		// First try to load the system property
-		String jdbcConnection  = System.getProperty("PARAM2");
-		if(jdbcConnection != null) return jdbcConnection;
-		// Now try the environment variable
-		jdbcConnection = System.getenv("PARAM2");
-		if(jdbcConnection != null) return jdbcConnection;
-		// Last try the stack configuration
 		return getDecryptedProperty("org.sagebionetworks.repository.database.password");
 	}
 	

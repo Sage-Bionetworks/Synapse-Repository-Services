@@ -7,6 +7,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Properties;
 
+import org.apache.log4j.Logger;
+
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -19,7 +21,8 @@ import com.amazonaws.services.s3.model.GetObjectRequest;
  * 
  */
 public class S3PropertyFileLoader {
-	
+	private static final Logger log = Logger.getLogger(S3PropertyFileLoader.class
+			.getName());
 	/**
 	 * 
 	 * @param propertyFileUrl
@@ -29,6 +32,9 @@ public class S3PropertyFileLoader {
 	 * @throws IOException
 	 */
 	public static void loadPropertiesFromS3(String propertyFileUrl, String IAMId, String IAMKey, Properties properties) throws IOException {
+		log.info("propertyFileUrl="+propertyFileUrl);
+		log.info("IAMId= "+IAMId);
+		log.info("IAMKey="+IAMKey);
 		if (propertyFileUrl == null)throw new IllegalArgumentException("The file URL cannot be null");
 		if (IAMId == null) throw new IllegalArgumentException("IAM id cannot be null");
 		if (IAMKey == null)	throw new IllegalArgumentException("IAM key cannot be null");
@@ -67,7 +73,7 @@ public class S3PropertyFileLoader {
 		String[] split = path.split("/");
 		if (split.length != 3)
 			throw new IllegalArgumentException(
-					"Could not get the buck and object ID from the URL");
+					"Could not get the bucket and object ID from the URL: "+propertyFileUrl);
 		String bucket = split[1];
 		String key = split[2];
 		return new GetObjectRequest(bucket, key);
