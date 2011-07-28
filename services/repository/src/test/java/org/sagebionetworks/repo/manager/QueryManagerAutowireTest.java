@@ -71,8 +71,9 @@ public class QueryManagerAutowireTest {
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
 		
 		Project project = new Project();
-		project.setName("QueryManagerAutowireTest.rootProject");
+		project.setName("QueryManagerAutowireTest.rootProject2");
 		project = entityController.createEntity(userId, project, mockRequest);
+		toDelete.add(project.getId());
 		
 		// Create some datasets
 		for(int i=0; i<totalEntities; i++){
