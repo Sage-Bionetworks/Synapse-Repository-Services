@@ -31,15 +31,13 @@ storeLayerDataFile <-
 	if("id" %in% names(layerMetadata)) {
 		outputLayerMetadata <- updateLayer(entity=layerMetadata)
 		locations <- getLayerLocations(entity=outputLayerMetadata)
-		awss3Location <- match("awss3", locations$type, nomatch=0)
+		awss3Location <- grep("awss3", locations$type)
 		if(1 < length(awss3Location)) {
 			stop("there are multiple awss3 locations for this layer")
+		} else if(1 == length(awss3Location)) {
+			locationMetadata <- getLocation(entity=locations$id[awss3Location[1]])
 		}
-		else if(0 != awss3Location[1]) {
-			locationMetadata <- locations[awss3Location[1]]
-		}
-	}
-	else {
+	} else {
 		outputLayerMetadata <- createLayer(entity=layerMetadata)
 	}
 	
@@ -51,8 +49,7 @@ storeLayerDataFile <-
 		## Unix
 		splits <- strsplit(layerDataFilepath, "/")
 		filename <- splits[[1]][length(splits[[1]])]
-	}
-	else {
+	} else {
 		## Windows
 		splits <- strsplit(layerDataFilepath, "/")
 		filename <- splits[[1]][length(splits[[1]])]
@@ -67,8 +64,7 @@ storeLayerDataFile <-
 	locationMetadata$md5sum <- checksum[[1]]
 	if("id" %in% names(locationMetadata)) {
 		outputLocationMetadata <- updateLocation(entity=locationMetadata)
-	}
-	else {
+	} else {
 		outputLocationMetadata <- createLocation(entity=locationMetadata)
 	}
 	

@@ -99,7 +99,6 @@ integrationTestStoreLayerData <- function() {
 	checkException(getDataset(entity=createdDataset$id))
 }
 
-
 # > checkEquals(data, storedLayerData)
 # Error in checkEquals(data, storedLayerData) : 
 #		Attributes: < Component 2: Modes: numeric, character >
@@ -123,3 +122,58 @@ integrationTestStoreLayerData <- function() {
 # Mean   :2.0                       
 # 3rd Qu.:2.5                       
 # Max.   :3.0                
+
+integrationTestUpdateStoredLayerData <- function() {
+	
+	## Create a dataset
+	dataset <- list()
+	dataset$name <- 'R Integration Test Dataset'
+	dataset$parentId <- .getCache("rIntegrationTestProject")$id
+	createdDataset <- createDataset(entity=dataset)
+	checkEquals(dataset$name, createdDataset$name)
+	
+	## Make an R data object that we will store in a couple different ways
+	data <- data.frame(a=1:3, b=letters[10:12],
+			c=seq(as.Date("2004-01-01"), by = "week", len = 3),
+			stringsAsFactors = FALSE)
+	
+	##------
+	## Create a layer and use the convenience method to store an R object as a tab-delimited file
+	layer <- list()
+	layer$name <- 'R Integration Test Layer'
+	layer$type <- 'C'
+	layer$parentId <- createdDataset$id 
+	
+	## Write out the serialized R object file and zip it
+	rdaDataFilepath <- 'integrationTestData.rda'
+	save(list=c('data'), file=rdaDataFilepath)
+	zippedRdaDataFilepath <- 'integrationTestRdaData.zip'
+	zip(zippedRdaDataFilepath, c(rdaDataFilepath))
+	createdLayer <- storeLayerDataFile(layerMetadata=layer, layerDataFile=zippedRdaDataFilepath)
+	locations <- getLayerLocations(entity=createdLayer)
+	checkEquals(1, nrow(locations))
+	layerFiles <- loadLayerData(entity=createdLayer)
+	local({
+		load(layerFiles[[1]])
+		checkEquals(1, data[1,1])
+	})
+
+	## Modify the data and store it again
+	data[1,1] <- 42
+	rdaDataFilepath <- 'integrationTestData2.rda'
+	save(list=c('data'), file=rdaDataFilepath)
+	zippedRdaDataFilepath <- 'integrationTestRdaData2.zip'
+	zip(zippedRdaDataFilepath, c(rdaDataFilepath))
+	updatedLayer <- storeLayerDataFile(layerMetadata=createdLayer, layerDataFile=zippedRdaDataFilepath)
+	locations <- getLayerLocations(entity=createdLayer)
+	# The data should be overwritten and we still only have one layer location
+	checkEquals(1, nrow(locations))
+	layerFiles <- loadLayerData(entity=updatedLayer)
+	local({
+				load(layerFiles[[1]])
+				checkEquals(42, data[1,1])
+	})
+	
+	# Delete the dataset, can pass the entity or the entity id
+	deleteDataset(entity=createdDataset$id)
+}
