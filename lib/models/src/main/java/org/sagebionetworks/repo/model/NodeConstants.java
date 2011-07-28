@@ -30,4 +30,25 @@ public class NodeConstants {
 	 */
 	public static final String DEFAULT_VERSION_LABEL = "0.0.0";
 	
+	/**
+	 * Forward slash should be the prefix of a node's path.
+	 */
+	public static final String PATH_PREFIX = "/";
+	
+	public static final String BOOTSTRAP_USERNAME = "bootstrap";
+	
+	/**
+	 * The path of the root folder
+	 */
+	public static final String ROOT_FOLDER_PATH = "/root";
+	/**
+	 * The path of end user license agreements (eula)
+	 */
+	public static final String EULA_FOLDER_PATH = ROOT_FOLDER_PATH+"/eulas";
+	
+	/**
+	 * The path of end user license agreements
+	 */
+	public static final String AGREEMENT_FOLDER_PATH = ROOT_FOLDER_PATH+"/agreements";
+	
 }

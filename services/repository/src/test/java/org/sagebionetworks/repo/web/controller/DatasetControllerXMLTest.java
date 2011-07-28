@@ -97,7 +97,7 @@ public class DatasetControllerXMLTest {
 		request.setRequestURI(helper.getServletPrefix() + "/dataset");
 		request.addHeader("Content-Type", "application/xml; charset=UTF-8");
 		request
-				.setContent(("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><dataset><name>dataset from a unit test</name><parentId>"+project.getString("id")+"</parentId></dataset>"
+				.setContent(("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><dataset><name>testCreateDataset.dataset</name><parentId>"+project.getString("id")+"</parentId></dataset>"
 						).getBytes("UTF-8"));
 		request.addParameter(AuthUtilConstants.USER_ID_PARAM, helper.getUserId());
 		servlet.service(request, response);
@@ -336,7 +336,7 @@ public class DatasetControllerXMLTest {
 		request.setRequestURI(helper.getServletPrefix() + "/dataset");
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request
-				.setContent("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><dataset><name>dataset from a unit test</name></dataset>"
+				.setContent("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><dataset><name>testIncorrectContentTypeCreateDataset.dataset</name></dataset>"
 						.getBytes("UTF-8"));
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
@@ -363,7 +363,7 @@ public class DatasetControllerXMLTest {
 		request.addHeader("Content-Type", "application/xml; charset=UTF-8");
 		// Notice the malformed XML
 		request
-				.setContent("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><dataset>dataset from a unit test</name></dataset>"
+				.setContent("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><dataset>testInvalidXMLCreateDataset.dataset</name></dataset>"
 						.getBytes("UTF-8"));
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
@@ -467,10 +467,11 @@ public class DatasetControllerXMLTest {
 			assertEquals("", response.getContentAsString());
 		}
 	}
-
+	
+	private int counter = 0;
 	private String createDatasetHelper() throws Exception {
 		JSONObject dataset = helper.testCreateJsonEntity(helper.getServletPrefix() + "/dataset",
-				"{\"name\":\"dataset from a unit test\",\"parentId\":\""+project.getString("id")+"\"}");
+				"{\"name\":\"dataset from a unit test("+counter+++")\",\"parentId\":\""+project.getString("id")+"\"}");
 		return dataset.getString("id");
 	}
 

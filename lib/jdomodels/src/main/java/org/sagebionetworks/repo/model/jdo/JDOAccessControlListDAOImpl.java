@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOAccessControlList;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional(readOnly = true)

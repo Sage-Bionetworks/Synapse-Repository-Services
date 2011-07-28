@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.User;
@@ -27,12 +28,15 @@ public class UserManagerImpl implements UserManager {
 	@Autowired
 	UserGroupDAO userGroupDAO;
 	
+	private static Map<DEFAULT_GROUPS, UserGroup> defaultGroups;
+	
 	private static Map<String,UserInfo> userInfoCache = null;
 	private static Long cacheTimeout = null;
 	private static Date lastCacheDump = null;
 	
 	public UserManagerImpl() {
 		userInfoCache = Collections.synchronizedMap(new HashMap<String,UserInfo>());
+		defaultGroups = Collections.synchronizedMap(new HashMap<DEFAULT_GROUPS, UserGroup>());
 		lastCacheDump = new Date();
 		String s = System.getProperty(AuthUtilConstants.AUTH_CACHE_TIMEOUT_MILLIS);
 		if (s!=null && s.length()>0) {
@@ -77,6 +81,8 @@ public class UserManagerImpl implements UserManager {
 		if (AuthUtilConstants.ANONYMOUS_USER_ID.equals(userName)) {
 			individualGroup = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
 			if (individualGroup==null) throw new DatastoreException(AuthorizationConstants.ANONYMOUS_USER_ID+" user should exist.");
+			// Anonymous belongs to the public group
+			groups.add(getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC));
 		} else {
 			if (user==null) throw new NullPointerException("No user named "+userName+". Users: "+userDAO.getAll());
 			Collection<String> groupNames = userDAO.getUserGroupNames(userName);
@@ -119,9 +125,9 @@ public class UserManagerImpl implements UserManager {
 					throw new DatastoreException(ime);
 				}
 			}
-			UserGroup publicGroup = userGroupDAO.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false);
-			if (publicGroup==null) throw new DatastoreException(AuthorizationConstants.PUBLIC_GROUP_NAME+" should exist.");
-			groups.add(publicGroup);
+			// All authenticated users belong to the public group and the authenticated user group.
+			groups.add(getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS));
+			groups.add(getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC));
 		}
 		groups.add(individualGroup);
 		UserInfo userInfo = new UserInfo(isAdmin);
@@ -132,7 +138,24 @@ public class UserManagerImpl implements UserManager {
 			userInfoCache.put(userName, userInfo);
 		}
 		return userInfo;
-	}	
+	}
+	
+	/**
+	 * Lazy fetch of the default groups.
+	 * @param group
+	 * @return
+	 * @throws DatastoreException
+	 */
+	@Override
+	public UserGroup getDefaultUserGroup(DEFAULT_GROUPS group) throws DatastoreException{
+		UserGroup ug = defaultGroups.get(group);
+		if(ug == null){
+			ug = userGroupDAO.findGroup(group.name(), false);
+			defaultGroups.put(group, ug);
+		}
+		if(ug == null)throw new DatastoreException(group+" should exist.");
+		return ug;
+	}
 	
 
 	

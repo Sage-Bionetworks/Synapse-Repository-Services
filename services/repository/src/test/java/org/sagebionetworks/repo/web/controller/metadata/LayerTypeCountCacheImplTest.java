@@ -124,7 +124,7 @@ public class LayerTypeCountCacheImplTest {
 		expectedCount++;
 		assertEquals(expectedCount, layerTypeCountCache.getCacheSize());
 		// Create another layer
-		layer = (InputDataLayer) ObjectTypeFactory.createObjectForTest("layerOne", ObjectType.layer, ds.getId());
+		layer = (InputDataLayer) ObjectTypeFactory.createObjectForTest("layerTwo", ObjectType.layer, ds.getId());
 		layer.setType(LayerTypeNames.G.name());
 		layer = entityController.createEntity(userId, layer, mockRequest);
 		assertNotNull(layer);

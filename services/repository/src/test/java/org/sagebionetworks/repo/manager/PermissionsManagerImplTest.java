@@ -272,14 +272,6 @@ public class PermissionsManagerImplTest {
 			// as expected
 		}
 		
-		// should get exception if resource doesn't have a parent
-		try {
-			permissionsManager.restoreInheritance(node.getId(), adminInfo);
-			fail("exception expected");
-		} catch (UnauthorizedException ue) {
-			// as expected
-		}
-		
 	}
 
 }

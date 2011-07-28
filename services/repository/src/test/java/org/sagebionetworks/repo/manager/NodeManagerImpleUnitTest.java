@@ -20,17 +20,22 @@ import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * This is the unit test version of this class.
@@ -45,6 +50,8 @@ public class NodeManagerImpleUnitTest {
 	private NodeManagerImpl nodeManager = null;
 	private AccessControlListDAO mockAclDao = null;
 	private FieldTypeDAO mockFieldTypeDao = null;
+	private EntityBootstrapper mockEntityBootstrapper;
+	private NodeInheritanceDAO mockInheritanceDAO;
 		
 	private final UserInfo mockUserInfo = new UserInfo(false);
 	private final UserInfo anonUserInfo = new UserInfo(false);
@@ -57,8 +64,10 @@ public class NodeManagerImpleUnitTest {
 		mockAuthDao = Mockito.mock(AuthorizationManager.class);
 		mockFieldTypeDao = Mockito.mock(FieldTypeDAO.class);
 		mockAclDao = Mockito.mock(AccessControlListDAO.class);
+		mockEntityBootstrapper = Mockito.mock(EntityBootstrapper.class);
+		mockInheritanceDAO = Mockito.mock(NodeInheritanceDAO.class);
 		// Create the manager dao with mocked dependent daos.
-		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockFieldTypeDao, mockAclDao);
+		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockFieldTypeDao, mockAclDao, mockEntityBootstrapper, mockInheritanceDAO );
 
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId("2");
@@ -155,7 +164,8 @@ public class NodeManagerImpleUnitTest {
 		// Test creating a new node with nothing but the name and type set
 		Node newNode = new Node();
 		newNode.setName("testCreateNode");
-		newNode.setNodeType("someType");
+		newNode.setNodeType(ObjectType.folder.name());
+		when(mockEntityBootstrapper.getChildAclSchemeForPath("/root")).thenReturn(ACL_SCHEME.INHERIT_FROM_PARENT);
 		
 		// Sure the mock is ready.
 		ArgumentCaptor<Node> argument = ArgumentCaptor.forClass(Node.class);

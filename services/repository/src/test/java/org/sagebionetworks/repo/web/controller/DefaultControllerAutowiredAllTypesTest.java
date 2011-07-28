@@ -154,7 +154,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		// Create one of each type
 		ObjectType[] types = ObjectType.values();
 		for(int i=0; i<countPerType; i++){
-			int index = 0;
+			int index = i;
 			Dataset dataset = null;
 			Eula eula = null;
 			for(ObjectType type: types){
@@ -260,9 +260,13 @@ public class DefaultControllerAutowiredAllTypesTest {
 				// There is one extra project since we use that as the parent.
 				expectedNumer++;
 			}
+			if(ObjectType.folder == type){
+				// There are three root folders
+				expectedNumer = expectedNumer+3;
+			}
 			assertTrue(result.getTotalNumberOfResults() >= expectedNumer );
 			assertNotNull(result.getResults());
-			assertEquals(expectedNumer, result.getResults().size());
+			assertTrue(result.getResults().size() >= expectedNumer);
 
 			// Try with a value in each slot
 			result = ServletTestHelper.getAllEntites(dispatchServlet, type.getClassForType(), 2, 1,	"name", true, userName);
@@ -294,6 +298,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		
 		// Create one of each type
 		ObjectType[] types = ObjectType.values();
+		int count = 0;
 		for(ObjectType parent: types){
 			if(ObjectType.agreement == parent) continue;
 			for(ObjectType child: types){
@@ -311,12 +316,13 @@ public class DefaultControllerAutowiredAllTypesTest {
 					
 					// Create two children of this node.
 					for(int i=0; i<2; i++){
-						name = "child_"+child.name()+"OfParent_"+parent.name();
+						name = "child_"+child.name()+"OfParent_"+parent.name()+count;
 						// Create this as a child of the parent
 						Nodeable childObject = ObjectTypeFactory.createObjectForTest(name, child, parentObject.getId());
 						childObject = ServletTestHelper.createEntity(dispatchServlet, childObject, userName);
 						assertNotNull(childObject);
 						toDelete.add(parentObject.getId());
+						count++;
 					}
 					// Now get all children of this parent
 					PaginatedResults<Nodeable> results = ServletTestHelper.getAllChildrenEntites(dispatchServlet, parent, parentObject.getId(), child.getClassForType(), 1, 100, "name", true, userName);
@@ -388,9 +394,11 @@ public class DefaultControllerAutowiredAllTypesTest {
 		assertTrue(created.size() >= ObjectType.values().length);
 		
 		// Now update each
+		int counter=0;
 		for(Nodeable entity: created){
 			// Now change the name
-			entity.setName("my new name");
+			String newName ="my new name"+counter;
+			entity.setName(newName);
 			Nodeable updated = ServletTestHelper.updateEntity(dispatchServlet, entity, userName);
 			assertNotNull(updated);
 			// Updating an entity should not create a new version
@@ -404,7 +412,8 @@ public class DefaultControllerAutowiredAllTypesTest {
 			// Now get the object
 			Nodeable fromGet = ServletTestHelper.getEntity(dispatchServlet, entity.getClass(), entity.getId(), userName);
 			assertEquals(updated, fromGet);
-			assertEquals("my new name", fromGet.getName());
+			assertEquals(newName, fromGet.getName());
+			counter++;
 		}
 	}
 	
@@ -523,7 +532,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 			assertNotNull(path);
 			assertTrue(path.size() > 0);
 			// The ACL should match the root of the node
-			EntityHeader rootHeader = path.get(0);
+			EntityHeader rootHeader = path.get(1);
 			// the returned ACL should refer to the parent
 			assertEquals(rootHeader.getId(), acl.getResourceId());
 			

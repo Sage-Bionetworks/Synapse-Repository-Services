@@ -70,6 +70,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW,
 			UrlHelpers.LOCATION,
 			UrlHelpers.PROJECT,
+			UrlHelpers.FOLDER,
 			UrlHelpers.EULA,
 			UrlHelpers.AGREEMENT
 			}, method = RequestMethod.POST)
@@ -139,6 +140,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_ID,
 			UrlHelpers.LOCATION_ID,
 			UrlHelpers.PROJECT_ID,
+			UrlHelpers.FOLDER_ID,
 			UrlHelpers.EULA_ID,
 			UrlHelpers.AGREEMENT_ID
 			}, method = RequestMethod.GET)
@@ -210,6 +212,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_ID,
 			UrlHelpers.LOCATION_ID,
 			UrlHelpers.PROJECT_ID,
+			UrlHelpers.FOLDER_ID,
 			UrlHelpers.EULA_ID,
 			UrlHelpers.AGREEMENT_ID
 	}, method = RequestMethod.PUT)
@@ -274,6 +277,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_ANNOTATIONS,
 			UrlHelpers.LOCATION_ANNOTATIONS,
 			UrlHelpers.PROJECT_ANNOTATIONS,
+			UrlHelpers.FOLDER_ANNOTATIONS,
 			UrlHelpers.EULA_ANNOTATIONS,
 			UrlHelpers.AGREEMENT_ANNOTATIONS
 			}, method = RequestMethod.GET)
@@ -304,6 +308,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_PATH,
 			UrlHelpers.LOCATION_PATH,
 			UrlHelpers.PROJECT_PATH,
+			UrlHelpers.FOLDER_PATH,
 			UrlHelpers.EULA_PATH,
 			UrlHelpers.AGREEMENT_PATH
 			}, method = RequestMethod.GET)
@@ -365,6 +370,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_ANNOTATIONS,
 			UrlHelpers.LOCATION_ANNOTATIONS,
 			UrlHelpers.PROJECT_ANNOTATIONS,
+			UrlHelpers.FOLDER_ANNOTATIONS,
 			UrlHelpers.EULA_ANNOTATIONS,
 			UrlHelpers.AGREEMENT_ANNOTATIONS
 	}, method = RequestMethod.PUT)
@@ -395,6 +401,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_ID,
 			UrlHelpers.LOCATION_ID,
 			UrlHelpers.PROJECT_ID,
+			UrlHelpers.FOLDER_ID,
 			UrlHelpers.EULA_ID,
 			UrlHelpers.AGREEMENT_ID
 			}, method = RequestMethod.DELETE)
@@ -454,6 +461,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW,
 			UrlHelpers.LOCATION,
 			UrlHelpers.PROJECT,
+			UrlHelpers.FOLDER,
 			UrlHelpers.EULA,
 			UrlHelpers.AGREEMENT
 		}, method = RequestMethod.GET)
@@ -535,6 +543,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_CHILDREN,
 			UrlHelpers.LOCATION_CHILDREN,
 			UrlHelpers.PROJECT_CHILDREN,
+			UrlHelpers.FOLDER_CHILDREN,
 			UrlHelpers.EULA_CHILDREN,
 			UrlHelpers.AGREEMENT_CHILDREN
 		}, method = RequestMethod.GET)
@@ -576,6 +585,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_SCHEMA,
 			UrlHelpers.LOCATION_SCHEMA,
 			UrlHelpers.PROJECT_SCHEMA,
+			UrlHelpers.FOLDER_SCHEMA,
 			UrlHelpers.EULA_SCHEMA,
 			UrlHelpers.AGREEMENT_SCHEMA
 	}, method = RequestMethod.GET)

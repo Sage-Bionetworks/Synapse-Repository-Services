@@ -35,7 +35,6 @@
 
 	<!-- PMF Bean -->
 	<bean id="pmf" class="org.datanucleus.jdo.JDOPersistenceManagerFactory" destroy-method="close" depends-on="poolLogger">
-<!--		<constructor-arg ref="stackConfiguration.repositoryJDOConfigurationMap" />-->
 		<property name="options" ref="stackConfiguration.repositoryJDOConfigurationMap"/>
 		<property name="connectionFactory" ref="dataSourcePool" />
 	</bean>
@@ -60,21 +59,5 @@
 	<bean id="simpleJdbcTempalte" class="org.springframework.jdbc.core.simple.SimpleJdbcTemplate">
 		<constructor-arg ref="dataSourcePool"></constructor-arg>
 	</bean>
-
-
-    <!-- Depends on ID-generator. -->
-	<import resource="id-generator.spb.xml"/>
-	<bean id="nodeDao" class="org.sagebionetworks.repo.model.jdo.NodeDAOImpl" depends-on="idGenerator" />
-
-	<bean id="userGroupDAO" class="org.sagebionetworks.repo.model.jdo.JDOUserGroupDAOImpl" />
-
-	<!-- The node query dao singleton -->
-	<bean id="fieldTypeDao" class="org.sagebionetworks.repo.model.jdo.JDOFieldTypeDAOImpl" />
-
-	<!-- The node query dao singleton -->
-	<bean id="nodeQueryDao" class="org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl" />
-
-	<!-- Controls how nodes inherit their permissions -->
-	<bean id="nodeInheritanceDao" class="org.sagebionetworks.repo.model.jdo.JDONodeInheritanceDAOImpl" />
 
 </beans>

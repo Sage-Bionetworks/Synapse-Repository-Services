@@ -20,6 +20,7 @@ public interface NodeDAO {
 	 * @param node
 	 * @return
 	 * @throws NotFoundException 
+	 * @throws DuplicateNameException 
 	 * @throws NumberFormatException 
 	 */
 	public String createNew(Node node) throws NotFoundException;
@@ -173,6 +174,18 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 */
 	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Bootstrap all node types.
+	 */
+	public void boostrapAllNodeTypes();
+	
+	/**
+	 * Lookup a node id using its unique path.
+	 * @param path
+	 * @return
+	 */
+	public String getNodeIdForPath(String path) throws DatastoreException, NotFoundException;
 	
 
 }

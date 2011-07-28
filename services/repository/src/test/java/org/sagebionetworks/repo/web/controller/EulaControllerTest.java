@@ -130,7 +130,7 @@ public class EulaControllerTest {
 				.getServletPrefix()
 				+ "/agreement", "{\"name\":\"agreement\", \"datasetId\":\""
 				+ dataset.getString("id") + "\", \"eulaId\":\""
-				+ eula.getString("id") + "\", \"parentId\":\""+project.getString("id")+"\"}");
+				+ eula.getString("id") +"\"}");
 		assertExpectedAgreementProperties(agreement);
 
 		String query = "select * from agreement where agreement.datasetId == \""
@@ -189,7 +189,7 @@ public class EulaControllerTest {
 		helper.testCreateJsonEntity(helper.getServletPrefix() + "/agreement",
 				"{\"name\":\"agreement\", \"datasetId\":\""
 						+ dataset.getString("id") + "\", \"eulaId\":\""
-						+ eula.getString("id") + "\", \"parentId\":\""+project.getString("id")+"\"}");
+						+ eula.getString("id") + "\"}");
 
 		// Change the user from the creator of the dataset to someone else
 		helper.useTestUser();
@@ -216,9 +216,9 @@ public class EulaControllerTest {
 		// Make agreement
 		JSONObject agreement = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/agreement", "{\"name\":\"agreement\", \"datasetId\":\""
+				+ "/agreement", "{\"name\":\"agreement2\", \"datasetId\":\""
 				+ dataset.getString("id") + "\", \"eulaId\":\""
-				+ eula.getString("id") + "\", \"parentId\":\""+project.getString("id")+"\"}");
+				+ eula.getString("id") + "\"}");
 		assertExpectedAgreementProperties(agreement);
 
 		// Now that the user has signed the agreement, these do work

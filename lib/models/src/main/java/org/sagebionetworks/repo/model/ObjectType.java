@@ -9,18 +9,20 @@ package org.sagebionetworks.repo.model;
  */
 public enum ObjectType {
 
-	dataset			(Dataset.class, 			(short)0, PrefixConst.DATASET,		new String[]{PrefixConst.PROJECT}),
-	layer			(InputDataLayer.class, 		(short)1, PrefixConst.LAYER,		new String[]{PrefixConst.DATASET}),
-	location		(LayerLocation.class, 		(short)2, PrefixConst.LOCATION,		new String[]{PrefixConst.DATASET, PrefixConst.LAYER}),
-	project			(Project.class, 			(short)3, PrefixConst.PROJECT,		new String[]{PrefixConst.NULL, PrefixConst.PROJECT}),
-	preview			(StoredLayerPreview.class, 	(short)4, PrefixConst.PREVIEW,		new String[]{PrefixConst.LAYER}),
-	eula			(Eula.class,				(short)5, PrefixConst.EULA, 		new String[]{PrefixConst.NULL, PrefixConst.PROJECT}),
-	agreement		(Agreement.class,			(short)6, PrefixConst.AGREEMENT,	new String[]{PrefixConst.PROJECT, PrefixConst.AGREEMENT});
+	dataset			(Dataset.class, 			(short)0, PrefixConst.DATASET,		NodeConstants.ROOT_FOLDER_PATH, 	new String[]{PrefixConst.PROJECT}),
+	layer			(InputDataLayer.class, 		(short)1, PrefixConst.LAYER,		NodeConstants.ROOT_FOLDER_PATH,		new String[]{PrefixConst.DATASET}),
+	location		(LayerLocation.class, 		(short)2, PrefixConst.LOCATION,		NodeConstants.ROOT_FOLDER_PATH,		new String[]{PrefixConst.DATASET, PrefixConst.LAYER}),
+	project			(Project.class, 			(short)3, PrefixConst.PROJECT,		NodeConstants.ROOT_FOLDER_PATH,		new String[]{PrefixConst.FOLDER, PrefixConst.PROJECT, PrefixConst.DEFAULT}),
+	preview			(StoredLayerPreview.class, 	(short)4, PrefixConst.PREVIEW,		NodeConstants.ROOT_FOLDER_PATH, 	new String[]{PrefixConst.LAYER}),
+	eula			(Eula.class,				(short)5, PrefixConst.EULA,			NodeConstants.EULA_FOLDER_PATH,		new String[]{PrefixConst.DEFAULT, PrefixConst.FOLDER}),
+	agreement		(Agreement.class,			(short)6, PrefixConst.AGREEMENT,	NodeConstants.AGREEMENT_FOLDER_PATH,new String[]{PrefixConst.DEFAULT, PrefixConst.FOLDER}),
+	folder			(Folder.class,				(short)7, PrefixConst.FOLDER,		NodeConstants.ROOT_FOLDER_PATH,		new String[]{PrefixConst.DEFAULT, PrefixConst.FOLDER});
 	
 	private Class<? extends Nodeable> clazz;
 	private short id;
 	private String urlPrefix;
 	private String[] validParents;
+	private String defaultParenPath;
 	
 	/**
 	 * 
@@ -28,11 +30,12 @@ public enum ObjectType {
 	 * @param id Give each type an ID that is used as the primary key for this type.
 	 * @param urlPrefix The web-service URL that 
 	 */
-	ObjectType(Class<? extends Nodeable> clazz, short id, String urlPrefix, String[] validParents){
+	ObjectType(Class<? extends Nodeable> clazz, short id, String urlPrefix, String defaultParentPath, String[] validParents){
 		this.clazz = clazz;
 		this.id = id;
 		this.urlPrefix = urlPrefix;
 		this.validParents = validParents;
+		this.defaultParenPath = defaultParentPath;
 	}
 	
 	/**
@@ -62,6 +65,10 @@ public enum ObjectType {
 		return validParents;
 	}
 	
+	public String getDefaultParentPath(){
+		return defaultParenPath;
+	}
+	
 	/**
 	 * 
 	 * @param type, if null then the object must support a null parent.
@@ -70,7 +77,7 @@ public enum ObjectType {
 	public boolean isValidParentType(ObjectType type){
 		String prefix;
 		if(type == null){
-			prefix = PrefixConst.NULL;
+			prefix = PrefixConst.DEFAULT;
 		}else{
 			prefix = type.getUrlPrefix();
 		}

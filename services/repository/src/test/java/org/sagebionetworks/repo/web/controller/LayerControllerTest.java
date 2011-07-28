@@ -280,6 +280,7 @@ public class LayerControllerTest {
 	 * 
 	 * @throws Exception
 	 */
+	@Ignore // if the name is null then the id will be used.
 	@Test
 	public void testMissingRequiredFieldCreateLayer() throws Exception {
 
