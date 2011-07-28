@@ -187,7 +187,7 @@ public class EulaControllerTest {
 
 		// Make an agreement for the current user
 		helper.testCreateJsonEntity(helper.getServletPrefix() + "/agreement",
-				"{\"name\":\"agreement\", \"datasetId\":\""
+				"{ \"datasetId\":\""
 						+ dataset.getString("id") + "\", \"eulaId\":\""
 						+ eula.getString("id") + "\"}");
 
@@ -216,7 +216,7 @@ public class EulaControllerTest {
 		// Make agreement
 		JSONObject agreement = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/agreement", "{\"name\":\"agreement2\", \"datasetId\":\""
+				+ "/agreement", "{ \"datasetId\":\""
 				+ dataset.getString("id") + "\", \"eulaId\":\""
 				+ eula.getString("id") + "\"}");
 		assertExpectedAgreementProperties(agreement);
