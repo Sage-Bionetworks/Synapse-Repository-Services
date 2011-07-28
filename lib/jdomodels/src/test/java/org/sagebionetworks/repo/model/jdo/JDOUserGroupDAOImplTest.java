@@ -36,6 +36,10 @@ public class JDOUserGroupDAOImplTest {
 	@Before
 	public void setUp() throws Exception {
 		groupsToDelete = new ArrayList<String>();
+		UserGroup ug = userGroupDAO.findGroup(GROUP_NAME, false);
+		if(ug != null){
+			userGroupDAO.delete(ug.getId());
+		}
 	}
 
 	@After
