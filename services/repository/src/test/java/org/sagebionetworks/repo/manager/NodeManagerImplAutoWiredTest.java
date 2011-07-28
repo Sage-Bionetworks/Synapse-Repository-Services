@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -12,14 +13,21 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +51,18 @@ public class NodeManagerImplAutoWiredTest {
 	@Autowired
 	public UserProvider testUserProvider;
 	
+	@Autowired
+	private NodeInheritanceDAO inheritanceDAO;
+	
+	@Autowired
+	private EntityBootstrapper entityBootstrapper;
+	
+	@Autowired
+	private AccessControlListDAO aclDAO;
+	
+	@Autowired
+	AuthorizationManager authorizationManager;
+	
 	List<String> nodesToDelete;
 	
 	private UserInfo testUser;
@@ -62,12 +82,76 @@ public class NodeManagerImplAutoWiredTest {
 		if(nodeManager != null && nodesToDelete != null){
 			for(String id: nodesToDelete){
 				try {
-					nodeManager.delete(testUser, id);
+					nodeManager.delete(testUserProvider.getTestAdminUserInfo(), id);
 				} catch (Exception e) {
 					e.printStackTrace();
 				} 				
 			}
 		}
+	}
+	
+	@Test
+	public void testCreateEachType() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException{
+		// We do not want an admin for this test
+		testUser = testUserProvider.getTestUserInfo();
+		// Create a node of each type.
+		ObjectType[] array = ObjectType.values();
+		for(ObjectType type: array){
+			Node newNode = new Node();
+			newNode.setName("NodeManagerImplAutoWiredTest."+type.name());
+			newNode.setNodeType(type.name());
+			String id = nodeManager.createNewNode(newNode, testUser);
+			assertNotNull(id);
+			nodesToDelete.add(id);
+			newNode = nodeManager.get(testUser, id);
+			// A parent node should have been assigned to this node.
+			assertNotNull(newNode.getParentId());
+			// What is the parent path?
+			String parentPaht = type.getDefaultParentPath();
+			assertNotNull(parentPaht);
+			ACL_SCHEME expectedSchem = entityBootstrapper.getChildAclSchemeForPath(parentPaht);
+			if(ACL_SCHEME.INHERIT_FROM_PARENT == expectedSchem){
+				// This node should inherit from its parent
+				String benefactorId = inheritanceDAO.getBenefactor(id);
+				String parentBenefactor = inheritanceDAO.getBenefactor(newNode.getParentId());
+				assertEquals("This node should inherit from its parent",parentBenefactor, benefactorId);
+			}else if(ACL_SCHEME.GRANT_CREATOR_ALL == expectedSchem){
+				// This node should inherit from itself
+				String benefactorId = inheritanceDAO.getBenefactor(id);
+				assertEquals("This node should inherit from its parent",id, benefactorId);
+				AccessControlList acl = aclDAO.getForResource(id);
+				assertNotNull(acl);
+				assertEquals(id, acl.getResourceId());
+				// Make sure the user can do everything
+				ACCESS_TYPE[] acessTypes = ACCESS_TYPE.values();
+				for(ACCESS_TYPE accessType : acessTypes){
+					assertTrue(authorizationManager.canAccess(testUser, id, accessType));
+				}
+			}else{
+				throw new IllegalStateException("Unknown ACL_SCHEME type: "+expectedSchem);
+			}
+		}
+	}
+	
+	@Test
+	public void testCreateWithAnnotations() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException{
+		// Create a node
+		Node newNode = new Node();
+		newNode.setName("NodeManagerImplAutoWiredTest.testCreateWithAnnotations");
+		// We are using an agreement because the user should have permission to create it but not update it
+		newNode.setNodeType(ObjectType.agreement.name());
+		Annotations annos = new Annotations();
+		annos.addAnnotation("stringKey", "stringValue");
+		annos.addAnnotation("longKey", new Long(120));
+		// We are not using the admin to create this node.
+		String id = nodeManager.createNewNode(newNode, annos, testUserProvider.getTestUserInfo());
+		assertNotNull(id);
+		nodesToDelete.add(id);
+		// Validate the node's annotations
+		annos = nodeManager.getAnnotations(testUserProvider.getTestUserInfo(), id);
+		assertNotNull(annos);
+		assertEquals("stringValue", annos.getSingleValue("stringKey"));
+		assertEquals(new Long(120), annos.getSingleValue("longKey"));
 	}
 	
 	@Test

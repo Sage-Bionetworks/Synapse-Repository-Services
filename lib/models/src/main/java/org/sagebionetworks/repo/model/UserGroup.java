@@ -65,37 +65,24 @@ public class UserGroup implements Base{
 		if(userGroup.getId() == null) throw new IllegalArgumentException("UserGroup.id cannot be null");
 		if(userGroup.getName() == null) throw new IllegalArgumentException("UserGrup.name cannot be null");
 	}
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + (isIndividual ? 1231 : 1237);
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		return result;
 	}
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if (obj == null)
 			return false;
-		if (!(obj instanceof UserGroup))
+		if (getClass() != obj.getClass())
 			return false;
 		UserGroup other = (UserGroup) obj;
-		if (creationDate == null) {
-			if (other.creationDate != null)
-				return false;
-		} else if (!creationDate.equals(other.creationDate))
-			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;

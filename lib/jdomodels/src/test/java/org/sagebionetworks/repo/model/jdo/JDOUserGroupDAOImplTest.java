@@ -5,8 +5,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNotNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.After;
@@ -28,35 +30,23 @@ public class JDOUserGroupDAOImplTest {
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+	
+	List<String> groupsToDelete;
 
 	@Before
 	public void setUp() throws Exception {
-		cleanUpGroups();
+		groupsToDelete = new ArrayList<String>();
 	}
 
 	@After
 	public void tearDown() throws Exception {
-		Collection<String> groupNames = new HashSet<String>();
-		groupNames.add(GROUP_NAME);
-		Map<String,UserGroup> map = userGroupDAO.getGroupsByNames(groupNames);
-		UserGroup toDelete = map.get(GROUP_NAME);
-		if (toDelete!=null) {
-			userGroupDAO.delete(toDelete.getId());
-		}
-		cleanUpGroups();
-	}
-	
-	public void cleanUpGroups() throws Exception {
-		for (UserGroup g: userGroupDAO.getAll()) {
-			if (g.getName().equals(AuthorizationConstants.PUBLIC_GROUP_NAME)) {
-				// leave it
-			} else if (g.getName().equals(AuthorizationConstants.ANONYMOUS_USER_ID)) {
-				// leave it
-			} else {
-				userGroupDAO.delete(g.getId());
+		if(groupsToDelete != null && userGroupDAO != null){
+			for(String todelte: groupsToDelete){
+				userGroupDAO.delete(todelte);
 			}
 		}
 	}
+	
 	
 	@Test
 	public void findAnonymousUser() throws Exception {
@@ -68,7 +58,7 @@ public class JDOUserGroupDAOImplTest {
 	public void testGetGroupsByNames() throws Exception {
 		Collection<UserGroup> allGroups = null; 
 		allGroups = userGroupDAO.getAll();
-		assertEquals(allGroups.toString(), 2, allGroups.size()); // Public and Anonymous
+		int startingCount =  allGroups.size();
 	
 		Collection<String> groupNames = new HashSet<String>();
 		groupNames.add(GROUP_NAME);
@@ -78,19 +68,23 @@ public class JDOUserGroupDAOImplTest {
 		
 		UserGroup group = new UserGroup();
 		group.setName(GROUP_NAME);
-		userGroupDAO.create(group);
-		
+		String groupId = userGroupDAO.create(group);
+		assertNotNull(groupId);
+		groupsToDelete.add(groupId);
 		allGroups = userGroupDAO.getAll();
-		assertEquals(allGroups.toString(), 3, allGroups.size()); // now the new group should be there
+		assertEquals(allGroups.toString(), (startingCount+1), allGroups.size()); // now the new group should be there
 			
-		groupNames.clear(); 	groupNames.add(GROUP_NAME);	
+		groupNames.clear();
+		groupNames.add(GROUP_NAME);	
 		map = userGroupDAO.getGroupsByNames(groupNames);
 		assertTrue(groupNames.toString()+" -> "+map.toString(), map.containsKey(GROUP_NAME));
 		
 		
-		groupNames.clear(); groupNames.add(AuthorizationConstants.PUBLIC_GROUP_NAME);
+		groupNames.clear(); 
+		// Add all of the default groups
+		groupNames.add(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name());
 		map = userGroupDAO.getGroupsByNames(groupNames);
-		assertTrue(map.toString(), map.containsKey(AuthorizationConstants.PUBLIC_GROUP_NAME));
+		assertTrue(map.toString(), map.containsKey(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name()));
 
 	}
 

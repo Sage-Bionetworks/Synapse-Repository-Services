@@ -97,6 +97,7 @@ public class UrlHelpers {
 	public static final String PROJECT	= PrefixConst.PROJECT;
 	public static final String EULA 	= PrefixConst.EULA;
 	public static final String AGREEMENT = PrefixConst.AGREEMENT;
+	public static final String FOLDER	 = PrefixConst.FOLDER;
 	
 	/**
 	 * All of the base URLs for Synapse objects with ID.
@@ -108,6 +109,7 @@ public class UrlHelpers {
 	public static final String PROJECT_ID 	= PROJECT+ID;
 	public static final String EULA_ID 		= EULA+ID;
 	public static final String AGREEMENT_ID = AGREEMENT+ID;
+	public static final String FOLDER_ID 	= FOLDER+ID;
 	
 	/**
 	 * All of the base URLs for Synapse objects's Annotations.
@@ -119,6 +121,7 @@ public class UrlHelpers {
 	public static final String PROJECT_ANNOTATIONS	= PROJECT_ID+ANNOTATIONS;
 	public static final String EULA_ANNOTATIONS		= EULA_ID+ANNOTATIONS;
 	public static final String AGREEMENT_ANNOTATIONS = AGREEMENT_ID+ANNOTATIONS;
+	public static final String FOLDER_ANNOTATIONS 	= FOLDER_ID+ANNOTATIONS;
 
 	
 	/**
@@ -131,6 +134,7 @@ public class UrlHelpers {
 	public static final String PROJECT_PATH		= PROJECT_ID+PATH;
 	public static final String EULA_PATH		= EULA_ID+PATH;
 	public static final String AGREEMENT_PATH	= AGREEMENT_ID+PATH;
+	public static final String FOLDER_PATH		= FOLDER_ID+PATH;
 	
 	/**
 	 * All of the base URLs for Synapse object's versions.
@@ -146,6 +150,7 @@ public class UrlHelpers {
 	public static final String PROJECT_CHILDREN		= PARENT_TYPE_ID+PROJECT;
 	public static final String EULA_CHILDREN		= PARENT_TYPE_ID+EULA;
 	public static final String AGREEMENT_CHILDREN	= PARENT_TYPE_ID+AGREEMENT;
+	public static final String FOLDER_CHILDREN		= PARENT_TYPE_ID+FOLDER;
 	/**
 	 * Get the schema for each object type
 	 */
@@ -156,6 +161,7 @@ public class UrlHelpers {
 	public static final String PROJECT_SCHEMA 	= PROJECT+SCHEMA;
 	public static final String EULA_SCHEMA 		= EULA+SCHEMA;
 	public static final String AGREEMENT_SCHEMA = AGREEMENT+SCHEMA;
+	public static final String FOLDER_SCHEMA 	= FOLDER+SCHEMA;
 	
 	/**
 	 * Get a specific version of an entity
@@ -202,11 +208,6 @@ public class UrlHelpers {
 	public static final String USER_MIRROR = "/userMirror";
 
 	/**
-	 * Mapping of type to URL prefix
-	 */
-	private static final Map<Class, String> MODEL2URL;
-
-	/**
 	 * Mapping of dependent property classes to their URL suffixes
 	 */
 	private static final Map<Class, String> PROPERTY2URLSUFFIX;
@@ -217,14 +218,6 @@ public class UrlHelpers {
 	private static Map<Class, Pattern> MODEL2REGEX = new HashMap<Class, Pattern>();
 
 	static {
-		Map<Class, String> model2url = new HashMap<Class, String>();
-		model2url.put(Dataset.class, DATASET);
-		model2url.put(InputDataLayer.class, LAYER);
-		model2url.put(Project.class, PROJECT);
-		model2url.put(LayerLocation.class, LOCATION);
-		model2url.put(Eula.class, EULA);
-		model2url.put(Agreement.class, AGREEMENT);
-		MODEL2URL = Collections.unmodifiableMap(model2url);
 
 		Map<Class, String> property2urlsuffix = new HashMap<Class, String>();
 		property2urlsuffix.put(Annotations.class, ANNOTATIONS);
@@ -240,7 +233,8 @@ public class UrlHelpers {
 	 */
 	@SuppressWarnings("unchecked")
 	public static String getUrlForModel(Class theModelClass) {
-		return MODEL2URL.get(theModelClass);
+		ObjectType type =  ObjectType.getNodeTypeForClass(theModelClass);
+		return type.getUrlPrefix();
 	}
 
 	/**

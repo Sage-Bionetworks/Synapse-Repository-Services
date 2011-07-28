@@ -31,6 +31,19 @@ public interface NodeManager {
 			InvalidModelException, NotFoundException, UnauthorizedException;
 	
 	/**
+	 * Create a new node with annotations.
+	 * @param newNode
+	 * @param newAnnotations
+	 * @param userInfo
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	public String createNewNode(Node newNode, Annotations newAnnotations, UserInfo userInfo) throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException;
+	
+	/**
 	 * Delete a node using its id.
 	 * @param userName
 	 * @param nodeId

@@ -89,6 +89,9 @@ public class SqlConstants {
 	public static final String COL_RESOURCE_ACCESS_TYPE_ID		= "ID_OID";
 	public static final String COL_RESOURCE_ACCESS_TYPE_ELEMENT	= "STRING_ELE";
 	
+	// This constraint ensure that children names are unique within their parent.
+	public static final String CONSTRAINT_UNIQUE_CHILD_NAME = "NODE_UNIQUE_CHILD_NAME";
+	
 	
 	// The alias used for the dataset table.
 	public static final String PRIMARY_ALIAS	= "prm";

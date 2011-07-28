@@ -14,8 +14,9 @@ public class PrefixConst {
 	public final static String PREVIEW =	"/preview";
 	public final static String EULA =		"/eula";
 	public final static String AGREEMENT=	"/agreement";
+	public final static String FOLDER=		"/folder";
 	
-	// This is used to indicate a null parent.
-	public final static String NULL =		"NULL";
+	// Default means a default parent will be chosen.
+	public final static String DEFAULT =		"DEFAULT";
 
 }

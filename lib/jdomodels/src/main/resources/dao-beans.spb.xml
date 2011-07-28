@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd">
+
+	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
+	<aop:aspectj-autoproxy />
+
+	<!-- Import the stack configuration -->
+	<import resource="transaction-spb.xml" />
+	<import resource="bootstrap-entites-spb.xml" />
+
+	<!-- Depends on ID-generator. -->
+	<import resource="id-generator.spb.xml" />
+
+	<bean id="nodeDao" class="org.sagebionetworks.repo.model.jdo.NodeDAOImpl"
+		depends-on="idGenerator" />
+	<!-- Controls how nodes inherit their permissions -->
+	<bean id="nodeInheritanceDao"
+		class="org.sagebionetworks.repo.model.jdo.JDONodeInheritanceDAOImpl" />
+
+	<bean id="userGroupDAO" class="org.sagebionetworks.repo.model.jdo.JDOUserGroupDAOImpl" />
+
+	<!-- Annotation Field name enforcer -->
+	<bean id="fieldTypeDao" class="org.sagebionetworks.repo.model.jdo.JDOFieldTypeDAOImpl" />
+
+	<bean id="accessControlListDAO"
+		class="org.sagebionetworks.repo.model.jdo.JDOAccessControlListDAOImpl"
+		scope="singleton" />
+
+	<bean id="entityBootstrapper"
+		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapperImpl">
+		<property name="bootstrapEntities">
+			<list>
+				<ref bean="rootFolderBootstrapData" />
+				<ref bean="agreementFolderBootstrapData" />
+				<ref bean="eulaFolderBootstrapData" />
+			</list>
+		</property>
+	</bean>
+
+	<!-- The node query dao singleton -->
+	<bean id="nodeQueryDao"
+		class="org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl"
+		depends-on="entityBootstrapper" />
+
+
+
+</beans>

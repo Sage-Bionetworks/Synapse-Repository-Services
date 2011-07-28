@@ -193,14 +193,16 @@ public class DatasetMetadataProviderTest {
 		toDelete.add(ds.getId());
 		// Add a layer of each type to this dataset
 		LayerTypeNames[] types = LayerTypeNames.values();
+		int count = 0;
 		for(LayerTypeNames type: types){
 			InputDataLayer layer = new InputDataLayer();
-			layer.setName("DatasetMetadataProviderTestLayerChildNotUsed");
+			layer.setName("DatasetMetadataProviderTestLayerChildNotUsed"+count);
 			layer.setType(type.name());
 			layer.setParentId(ds.getId());
 			layer = entityController.createEntity(userName, layer, mockRequest);
 			assertNotNull(layer);
 			toDelete.add(layer.getId());
+			count++;
 		}
 		
 		// This is the dataset that we are actually testing.

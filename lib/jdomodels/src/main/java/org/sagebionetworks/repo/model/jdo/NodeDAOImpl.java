@@ -126,7 +126,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		// Create the first revision for this node
 		// We can now create the node.
-		node = jdoTemplate.makePersistent(node);
+		try{
+			node = jdoTemplate.makePersistent(node);
+		}catch (DuplicateKeyException e){
+			checkExceptionDetails(dto.getName(), dto.getParentId(), e);
+		}
+
 		if(node.getPermissionsBenefactor() == null){
 			// For nodes that have no parent, they are
 			// their own benefactor. We have to wait until
@@ -138,6 +143,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		rev.setOwner(node);
 		jdoTemplate.makePersistent(rev);
 		return node.getId().toString();
+	}
+
+	/**
+	 * Determine which constraint was violated and throw a more meaningful exception.
+	 * @param dto
+	 * @param node
+	 * @param e
+	 */
+	private void checkExceptionDetails(String name, String parentId, DuplicateKeyException e) {
+		if(e.getMessage().indexOf(SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME) > 0) throw new IllegalArgumentException("An entity with the name: "+name+" already exites with a parentId: "+parentId);
+		throw e;
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -417,7 +433,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		JDONode jdoToUpdate = getNodeById(Long.parseLong(updatedNode.getId()));
 		JDORevision revToUpdate = getCurrentRevision(jdoToUpdate);
 		// Update is as simple as copying the values from the passed node.
-		JDONodeUtils.updateFromDto(updatedNode, jdoToUpdate, revToUpdate);		
+		try{
+			JDONodeUtils.updateFromDto(updatedNode, jdoToUpdate, revToUpdate);	
+		}catch (DuplicateKeyException e){
+			// Currently this is not hit because the exception is thrown when the 
+			// transaction commits outside of this method.
+			checkExceptionDetails(updatedNode.getName(), updatedNode.getParentId(), e);
+		}
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -455,6 +477,18 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void afterPropertiesSet() throws Exception {
+		// Make sure the node table exists
+		String driver = this.jdoTemplate.getPersistenceManagerFactory().getConnectionDriverName();
+		log.info("Driver: "+driver);
+		isHypersonicDB = driver.startsWith("org.hsqldb");
+	}
+	
+	/**
+	 * This must occur in its own transaction.
+	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void boostrapAllNodeTypes() {
 		// Make sure all of the known types are there
 		ObjectType[] types = ObjectType.values();
 		for(ObjectType type: types){
@@ -471,10 +505,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				this.jdoTemplate.makePersistent(jdo);
 			}
 		}
-		// Make sure the node table exists
-		String driver = this.jdoTemplate.getPersistenceManagerFactory().getConnectionDriverName();
-		log.info("Driver: "+driver);
-		isHypersonicDB = driver.startsWith("org.hsqldb");
 	}
 
 	@Transactional(readOnly = true)
@@ -602,6 +632,103 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			// Recurse
 			appendPath(results, ptn.getParentId());
 		}
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public String getNodeIdForPath(String path) throws DatastoreException {
+		// Get the names
+		Map<String, Object> params = new HashMap<String, Object>();
+		String sql = createPathQuery(path, params);
+		// Since this query is used to boostrap the system we want to return null if the
+		// the schema has not been created yet.
+		try{
+			List<Map<String, Object>> list = simpleJdbcTempalte.queryForList(sql, params);
+			if(list == null || list.size() < 1) return null;
+			if(list.size() > 1) throw new IllegalStateException("Found more than one node with a path: "+path);
+			Map<String, Object> row = list.get(0);
+			Long id = (Long) row.get(SqlConstants.COL_NODE_ID);
+			return KeyFactory.keyToString(id);
+		}catch(BadSqlGrammarException e){
+			// Was this simply called before the schema was setup?
+			if(e.getMessage().indexOf("doesn't exist")> 0) return null;
+			throw e;
+		}
+	}
+
+	/**
+	 * Builds up a path query.
+	 * @param names
+	 * @param params
+	 * @return
+	 */
+	static String createPathQuery(String path, Map<String, Object> params) {
+		List<String> names = getNamesFromPath(path);
+		// Build up the SQL from the Names
+		StringBuilder sql = new StringBuilder();
+		String lastAlias = "n"+(names.size()-1);
+		sql.append("SELECT ");
+		sql.append(lastAlias);
+		sql.append(".");
+		sql.append(SqlConstants.COL_NODE_ID);
+		sql.append(" FROM ");
+		StringBuilder where = new StringBuilder();
+		where.append(" WHERE ");
+		String previousAlias = null;
+		for(int i=1; i<names.size(); i++){
+			// We need an alias for each name
+			if(i != 1){
+				sql.append(", ");
+				where.append(" AND ");
+			}
+			String alias = "n"+i;
+			sql.append(SqlConstants.TABLE_NODE+" n"+i);
+			// Now add the where
+			where.append(alias);
+			where.append(".");
+			where.append(SqlConstants.COL_NODE_PARENT_ID);
+			if(previousAlias == null){
+				where.append(" IS NULL");
+			}else{
+				where.append(" = ");
+				where.append(previousAlias);
+				where.append(".");
+				where.append(SqlConstants.COL_NODE_ID);
+			}
+			where.append(" AND ");
+			where.append(alias);
+			where.append(".");
+			where.append(SqlConstants.COL_NODE_NAME);
+			where.append(" = :");
+			String key2 = "nam"+i;
+			where.append(key2);
+			params.put(key2, names.get(i));
+			// This alias becomes the previous
+			previousAlias = alias;
+		}
+		sql.append(where);
+		return sql.toString();
+	}
+	/**
+	 * Get all of the names from a path.
+	 * @param path
+	 * @return
+	 */
+	protected static List<String> getNamesFromPath(String path){
+		if(path == null) throw new IllegalArgumentException("Path cannot be null");
+		if(!path.startsWith(NodeConstants.PATH_PREFIX)){
+			path = NodeConstants.PATH_PREFIX+path;
+		}
+		String[] split = path.split(NodeConstants.PATH_PREFIX);
+		List<String> resutls = new ArrayList<String>();
+		for(int i=0; i<split.length; i++){
+			if(i==0){
+				resutls.add(NodeConstants.PATH_PREFIX);
+			}else{
+				resutls.add(split[i].trim());
+			}
+		}
+		return resutls;
 	}
 
 }

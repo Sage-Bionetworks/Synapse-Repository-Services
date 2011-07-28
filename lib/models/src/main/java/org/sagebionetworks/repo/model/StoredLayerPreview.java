@@ -19,7 +19,7 @@ public class StoredLayerPreview implements Nodeable {
 	private String id;
 	private String uri;
 	private String etag;
-	private String name = "default";
+	private String name;
 	private Date creationDate;
 	private String parentId;
 	private byte[] previewBlob;

@@ -101,7 +101,7 @@ public class QueryControllerXMLTest {
 	private String createDatasetHelper() throws Exception {		
 		JSONObject dataset = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
-				+ "/dataset", "{\"name\":\"dataset from a unit test\", \"parentId\":\""+project.getString("id")+"\"  }");
+				+ "/dataset", "{\"parentId\":\""+project.getString("id")+"\"  }");
 		return dataset.getString("id");
 	}
 }

@@ -1,20 +1,21 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
@@ -39,6 +40,8 @@ public class NodeManagerAuthorizationTest {
 	private User mockUser;
 	private UserGroup mockUserGroup;
 	private UserInfo mockUserInfo;	
+	private EntityBootstrapper mockEntityBootstrapper;
+	private NodeInheritanceDAO mockInheritanceDAO;
 
 	@Before
 	public void before() throws NotFoundException, DatastoreException{
@@ -47,8 +50,10 @@ public class NodeManagerAuthorizationTest {
 		// Say no to everything.
 		mockFieldTypeDao = Mockito.mock(FieldTypeDAO.class);
 		mockAclDao = Mockito.mock(AccessControlListDAO.class);
+		mockEntityBootstrapper = Mockito.mock(EntityBootstrapper.class);
+		mockInheritanceDAO = Mockito.mock(NodeInheritanceDAO.class);
 		// Create the manager dao with mocked dependent daos.
-		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockFieldTypeDao, mockAclDao);
+		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockFieldTypeDao, mockAclDao, mockEntityBootstrapper, mockInheritanceDAO );
 		// The mocks user for tests
 		mockNode = Mockito.mock(Node.class);
 		when(mockNode.getNodeType()).thenReturn(ObjectType.project.name());

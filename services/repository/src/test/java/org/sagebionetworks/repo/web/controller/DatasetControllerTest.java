@@ -330,6 +330,7 @@ public class DatasetControllerTest {
 	 * 
 	 * @throws Exception
 	 */
+	@Ignore // when a name is null the id will be used as the name
 	@Test
 	public void testMissingRequiredFieldCreateDataset() throws Exception {
 
@@ -349,6 +350,7 @@ public class DatasetControllerTest {
 	 * 
 	 * @throws Exception
 	 */
+	@Ignore // when a name is null the id will be used as the name
 	@Test
 	public void testMissingRequiredFieldUpdateDataset() throws Exception {
 		// Create a dataset

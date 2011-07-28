@@ -157,7 +157,7 @@ public class AuthorizationManagerImplTest {
 		
 		UserInfo anonInfo = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
 		boolean b = authorizationManager.canAccess(anonInfo, node.getId(), ACCESS_TYPE.READ);
-		assertFalse(b);
+		assertTrue(b);
 	}
 	
 	@Test

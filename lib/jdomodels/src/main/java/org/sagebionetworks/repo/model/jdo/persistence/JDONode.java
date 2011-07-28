@@ -10,10 +10,13 @@ import javax.jdo.annotations.NullValue;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
+import javax.jdo.annotations.Unique;
 
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 @PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_NODE)
+// This constraint ensures that names must be unique within a parent.
+@Unique(name=SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME, members={"parent", "name"})
 public class JDONode {
 		
 	@PrimaryKey

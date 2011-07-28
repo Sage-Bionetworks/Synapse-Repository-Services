@@ -41,20 +41,11 @@ public class EntityManagerImpl implements EntityManager {
 		Node node = NodeTranslationUtils.createFromBase(newEntity);
 		// Set the type for this object
 		node.setNodeType(ObjectType.getNodeTypeForClass(newEntity.getClass()).toString());
-		// We are ready to create this node
-		String nodeId = nodeManager.createNewNode(node, userInfo);
-		
-		// Now get the annotations for this node
-		Annotations annos = nodeManager.getAnnotations(userInfo, nodeId);
+		Annotations annos = new Annotations();
 		// Now add all of the annotations from the entity
 		NodeTranslationUtils.updateAnnoationsFromObject(newEntity, annos);
-		// Now update the annotations
-		try {
-			nodeManager.updateAnnotations(userInfo,nodeId, annos);
-		} catch (ConflictingUpdateException e) {
-			// This should never happen
-			throw new DatastoreException("A confilct occured on a node create", e);
-		}
+		// We are ready to create this node
+		String nodeId = nodeManager.createNewNode(node, annos, userInfo);
 		// Return the id of the newly created entity
 		return nodeId;
 	}

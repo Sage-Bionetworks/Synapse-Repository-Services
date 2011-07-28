@@ -55,7 +55,7 @@ public class NodeInheritanceDAOImplTest {
 	}
 	
 	@Test
-	public void testCrud() throws NotFoundException{
+	public void testCrud() throws Exception{
 		// First create a node
 		Node toCreate = NodeTestUtils.createNew("nodeInheritanceDaoTest");
 		String parentId = nodeDao.createNew(toCreate);

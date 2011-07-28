@@ -66,7 +66,7 @@ public class ObjectTypeTest {
 	
 	@Test
 	public void testProjectValidParent(){
-		ObjectType[] expectedValid = new ObjectType[]{ObjectType.project, null};
+		ObjectType[] expectedValid = new ObjectType[]{ObjectType.project, null, ObjectType.folder};
 		testValidParents(expectedValid, ObjectType.project);
 	}
 	
@@ -90,7 +90,13 @@ public class ObjectTypeTest {
 	
 	@Test
 	public void testEulaValidParent(){
-		ObjectType[] expectedValid = new ObjectType[]{ ObjectType.project};
+		ObjectType[] expectedValid = new ObjectType[]{ null, ObjectType.folder  };
+		testValidParents(expectedValid, ObjectType.eula);
+	}
+	
+	@Test
+	public void testAgreementValidParent(){
+		ObjectType[] expectedValid = new ObjectType[]{ null, ObjectType.folder };
 		testValidParents(expectedValid, ObjectType.eula);
 	}
 	

@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -18,9 +19,12 @@ import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
@@ -50,6 +54,12 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	
+	@Autowired
+	private EntityBootstrapper entityBootstrapper;
+	
+	@Autowired
+	private NodeInheritanceDAO inheritanceDAO;
+	
 	// for testing (in prod it's autowired)
 	public void setAuthorizationManager(AuthorizationManager authorizationManager) {
 		 this.authorizationManager =  authorizationManager;
@@ -60,11 +70,13 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 * @param nodeDao
 	 * @param authDoa
 	 */
-	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, FieldTypeDAO fieldTypeday, AccessControlListDAO aclDao){
+	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, FieldTypeDAO fieldTypeday, AccessControlListDAO aclDao, EntityBootstrapper entityBootstrapper, NodeInheritanceDAO inheritanceDAO){
 		this.nodeDao = nodeDao;
 		this.authorizationManager = authDoa;
 		this.fieldTypeDao = fieldTypeday;
 		this.aclDAO = aclDao;
+		this.entityBootstrapper = entityBootstrapper;
+		this.inheritanceDAO = inheritanceDAO;
 	}
 	
 	/**
@@ -89,6 +101,24 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		NodeManagerImpl.validateNodeCreationData(userName, newNode);
 		// Validate the modified data.
 		NodeManagerImpl.validateNodeModifiedData(userName, newNode);
+		
+		// What is the object type of this node
+		ObjectType type = ObjectType.valueOf(newNode.getNodeType());
+		
+		// By default all nodes inherit their their ACL from their parent.
+		ACL_SCHEME aclSchem = ACL_SCHEME.INHERIT_FROM_PARENT;
+		
+		// If the user did not provide a parent then we use the default
+		if(newNode.getParentId() == null){
+			String defaultPath = type.getDefaultParentPath();
+			if(defaultPath == null) throw new IllegalArgumentException("There is no default parent for Entities of type: "+type.name()+" so a valid parentId must be provided"); 
+			// Get the parent node.
+			String pathId = nodeDao.getNodeIdForPath(defaultPath);
+			newNode.setParentId(pathId);
+			// Lookup the acl scheme to be used for children of this parent
+			aclSchem = entityBootstrapper.getChildAclSchemeForPath(defaultPath);
+		}
+		
 		// check whether the user is allowed to create this type of node
 		if (!authorizationManager.canCreate(userInfo, newNode)) {
 			throw new UnauthorizedException(userName+" is not allowed to create items of type "+newNode.getNodeType());
@@ -98,10 +128,18 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		String id = nodeDao.createNew(newNode);
 		newNode.setId(id);
 		
-		// If this is a root node then it must have an ACL.
-		if(newNode.getParentId() == null){
+		// Setup the ACL for this node.
+		if(ACL_SCHEME.INHERIT_FROM_PARENT == aclSchem){
+			// This node inherits from its parent.
+			String parentBenefactor = inheritanceDAO.getBenefactor(newNode.getParentId());
+			inheritanceDAO.addBeneficiary(id, parentBenefactor);
+		}else if(ACL_SCHEME.GRANT_CREATOR_ALL == aclSchem){
 			AccessControlList rootAcl = AccessControlList.createACLToGrantAll(id, userInfo);
 			aclDAO.create(rootAcl);
+			// This node is its own benefactor
+			inheritanceDAO.addBeneficiary(id, id);
+		}else{
+			throw new IllegalArgumentException("Unknown ACL_SHEME: "+aclSchem);
 		}
 		
 		// adding access is done at a higher level, not here
@@ -121,7 +159,12 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public static void validateNode(Node node){
 		if(node == null) throw new IllegalArgumentException("Node cannot be null");
 		if(node.getNodeType() == null) throw new IllegalArgumentException("Node.type cannot be null");
-		if(node.getName() == null) throw new IllegalArgumentException("Node.name cannot be null");		
+		// If the node name is null then try to use its id
+		if(node.getName() == null){
+			node.setName(node.getId());
+		}
+		if(node.getName() == null) throw new IllegalArgumentException("Node.name cannot be null");	
+		node.setName(EntityNameValidation.valdiateName(node.getName()));
 	}
 	
 	/**
@@ -303,7 +346,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(nodeId == null) throw new IllegalArgumentException("Node ID cannot be null");
 		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getUser().getUserId();
-		// TODO fix me PLFM-325
+		// This is no longer called from a create PLFM-325
 		if (!authorizationManager.canAccess(userInfo, nodeId, AuthorizationConstants.ACCESS_TYPE.UPDATE)) {
 			throw new UnauthorizedException(userName+" lacks update access to the requested object.");
 		}
@@ -403,6 +446,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		return nodeDao.getVersionNumbers(nodeId);
 	}
 
+	@Transactional(readOnly = true)
 	@Override
 	public List<EntityHeader> getNodePath(UserInfo userInfo, String nodeId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -412,6 +456,21 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
 		}
 		return nodeDao.getEntityPath(nodeId);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public String createNewNode(Node newNode, Annotations newAnnotations, UserInfo userInfo) throws DatastoreException,
+			InvalidModelException, NotFoundException, UnauthorizedException {
+		// First create the node
+		String id = createNewNode(newNode, userInfo);
+		// The eTag really has no meaning yet because nobody has access to this id until we return.
+		newAnnotations.setEtag(id);
+		newAnnotations.setId(id);
+		validateAnnotations(newAnnotations);
+		// Since we just created this node we do not need to lock.
+		nodeDao.updateAnnotations(id, newAnnotations);
+		return id;
 	}
 
 }

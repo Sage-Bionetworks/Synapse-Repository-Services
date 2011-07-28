@@ -47,7 +47,7 @@ public class NodeLockTest {
 	
 	
 	@Before
-	public void before() throws NotFoundException{
+	public void before() throws Exception{
 		assertNotNull(nodeLockerA);
 		assertNotNull(nodeLockerB);
 		assertNotNull(nodeDao);
