@@ -50,6 +50,7 @@ public class AuthorizationConstants {
 	 * resources to all (including anonymous users)
 	 */
 //	public static final String PUBLIC_GROUP_NAME = "Identified Users";
+	@Deprecated
 	public static final String PUBLIC_GROUP_NAME = DEFAULT_GROUPS.PUBLIC.name();
 	
 	/**
