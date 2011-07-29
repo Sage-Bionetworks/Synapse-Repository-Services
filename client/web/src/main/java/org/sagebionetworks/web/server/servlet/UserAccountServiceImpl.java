@@ -360,8 +360,8 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		List<AclPrincipal> users = getAllUsers();
 		List<AclPrincipal> groups = getAllGroups();
 		List<AclPrincipal> all = new ArrayList<AclPrincipal>();
-		all.addAll(users);
 		all.addAll(groups);
+		all.addAll(users);
 		return all;
 	}
 

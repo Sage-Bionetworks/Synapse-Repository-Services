@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Date;
 import java.util.List;
 
 import javax.ws.rs.core.UriBuilder;
@@ -25,6 +26,7 @@ import org.sagebionetworks.web.shared.users.AclPrincipal;
 import org.sagebionetworks.web.shared.users.UserData;
 import org.sagebionetworks.web.shared.users.UserRegistration;
 import org.sagebionetworks.web.util.LocalAuthServiceStub;
+import org.sagebionetworks.web.util.LocalAuthServiceStub.AclPrincipalTest;
 
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.istack.logging.Logger;
@@ -61,6 +63,11 @@ public class UserAccountServiceImplTest {
 	private UserRegistration user2 = new UserRegistration("bar@foo.com", "bar", "foo", "barfoo");
 	private String user2password = "otherpass";
 	
+	private static AclPrincipal user1acl = new AclPrincipal("test@test.com", "test user", new Date(), null, null, true);
+	private static AclPrincipal user2acl = new AclPrincipal("bar@foo.com", "barfoo", new Date(), null, null, true);
+	
+	private static AclPrincipal group1 = new AclPrincipal("people@fake.com", "People", new Date(), null, null, false);
+	private static AclPrincipal group2 = new AclPrincipal("morePeople@fake.com", "More People", new Date(), null, null, false);
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception{
@@ -84,6 +91,12 @@ public class UserAccountServiceImplTest {
 		ServiceUrlProvider urlProvider = new ServiceUrlProvider();
 		urlProvider.setAuthServiceUrl(serviceUrl.toString() + "auth/v1");		
 		service.setServiceUrlProvider(urlProvider);
+		
+		LocalAuthServiceStub.groups.add(group1);
+		LocalAuthServiceStub.groups.add(group2);
+		LocalAuthServiceStub.users.add(user1acl);
+		LocalAuthServiceStub.users.add(user2acl);
+
 	}
 	
 	/**
@@ -212,7 +225,6 @@ public class UserAccountServiceImplTest {
 	
 	@Test
 	public void testGetAllUsers() {
-		
 		List<AclPrincipal> userList;
 
 		// Add some users and test to make sure those users were returned
@@ -222,7 +234,9 @@ public class UserAccountServiceImplTest {
 			fail(e.getMessage());
 		}
 		userList = service.getAllUsers();
-		assertEquals(user1.getDisplayName() + user2.getDisplayName(), userList.get(0).getName() + userList.get(1).getName());
+		assertEquals(user1acl, userList.get(userList.indexOf(user1acl)));
+		assertEquals(user2acl, userList.get(userList.indexOf(user2acl)));
+		assertEquals(2, userList.size());
 	}
 	
 	@Test
@@ -230,7 +244,9 @@ public class UserAccountServiceImplTest {
 		List<AclPrincipal> groupList;
 		
 		groupList = service.getAllGroups();
-		assertEquals("People" + "More People", groupList.get(0).getName() + groupList.get(1).getName());
+		assertEquals(group1, groupList.get(groupList.indexOf(group1)));
+		assertEquals(group2, groupList.get(groupList.indexOf(group2)));
+		assertEquals(2, groupList.size());
 	}
 	
 	@Test
@@ -238,9 +254,11 @@ public class UserAccountServiceImplTest {
 		List<AclPrincipal> userAndGroupList;
 		
 		userAndGroupList = service.getAllUsersAndGroups();
-		assertEquals(user1.getDisplayName() + user2.getDisplayName() + "People" + "More People",
-				userAndGroupList.get(0).getName() + userAndGroupList.get(1).getName() + 
-				userAndGroupList.get(2).getName() + userAndGroupList.get(3).getName());
+		assertEquals(user1acl, userAndGroupList.get(userAndGroupList.indexOf(user1acl)));
+		assertEquals(user2acl, userAndGroupList.get(userAndGroupList.indexOf(user2acl)));
+		assertEquals(group1, userAndGroupList.get(userAndGroupList.indexOf(group1)));
+		assertEquals(group2, userAndGroupList.get(userAndGroupList.indexOf(group2)));
+		assertEquals(4, userAndGroupList.size());
 	}
 	
 	@Test

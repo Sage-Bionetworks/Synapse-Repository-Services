@@ -3,6 +3,7 @@ package org.sagebionetworks.web.util;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,6 +31,9 @@ import org.sagebionetworks.web.shared.users.UserLogin;
 import org.sagebionetworks.web.shared.users.UserRegistration;
 import org.sagebionetworks.web.shared.users.UserSession;
 
+import com.google.gwt.json.client.JSONBoolean;
+import com.google.gwt.json.client.JSONNumber;
+import com.google.gwt.json.client.JSONString;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.jersey.api.Responses;
 import com.sun.jersey.api.container.grizzly.GrizzlyWebContainerFactory;
@@ -42,15 +46,16 @@ import com.sun.jersey.api.container.grizzly.GrizzlyWebContainerFactory;
 @Path("/auth/v1")
 public class LocalAuthServiceStub {
 	
-	private static List<User> users = new ArrayList<User>();
-	private static List<UserGroup> groups = new ArrayList<UserGroup>();
-	private static Map<String, User> sessions = new LinkedHashMap<String, User>();
+	public static List<AclPrincipal> groups = new ArrayList<AclPrincipal>();
+	public static List<AclPrincipal> users = new ArrayList<AclPrincipal>();
+
+	private static Map<String, AclPrincipal> sessions = new LinkedHashMap<String, AclPrincipal>();
 	
 	@POST 
 	@Consumes("application/json")@Produces("application/json")
 	@Path("/user")
 	public String createUser(UserRegistration userInfo) {
-		users.add(new User(userInfo.getEmail(), userInfo.getEmail(), userInfo.getFirstName(), userInfo.getLastName(), userInfo.getDisplayName()));
+//		users.add(new AclPrincipal(userInfo.getEmail(), userInfo.getDisplayName(), new Date(), null, null, true));
 		return "";
 	}
 	
@@ -60,9 +65,9 @@ public class LocalAuthServiceStub {
 	public String updateUser(UserRegistration updatedUser) {
 		boolean found = false;
 		String userId = updatedUser.getEmail();
-		for(User user : users) {
-			if(userId.equals(user.userId)) {
-				user = new User(updatedUser.getEmail(), updatedUser.getEmail(), updatedUser.getFirstName(), updatedUser.getLastName(), updatedUser.getDisplayName());
+		for(AclPrincipal user : users) {
+			if(userId.equals(user.getId())) {
+				user = new AclPrincipal(updatedUser.getEmail(), updatedUser.getDisplayName(), null, null, null, true);
 				found = true;
 				break;
 			}
@@ -85,10 +90,10 @@ public class LocalAuthServiceStub {
 	@Consumes("application/json")@Produces("application/json")	
 	@Path("/session")
 	public UserSession initiateSession(UserLogin userLogin) throws BadRequestException {
-		User foundUser = null;
+		AclPrincipal foundUser = null;
 		String userId = userLogin.getEmail();
-		for(User user : users) {
-			if(userId.equals(user.userId)) {
+		for(AclPrincipal user : users) {
+			if(userId.equals(user.getId())) {
 				foundUser = user;
 				break;
 			}			
@@ -99,7 +104,7 @@ public class LocalAuthServiceStub {
 		}
 		
 		UserSession session = new UserSession();
-		session.setDisplayName(foundUser.displayName);
+		session.setDisplayName(foundUser.getName());
 		session.setSessionToken(foundUser.toString());
 		sessions.put(session.getSessionToken(), foundUser);
 		return session;
@@ -136,14 +141,19 @@ public class LocalAuthServiceStub {
 	@GET 
 	@Produces("application/json")
 	@Path("/user")
-	public String getAllUsers() throws JSONException {
+	public String getAllUsers() throws JSONException {		
 		JSONArray arr = new JSONArray();
+		
 		for (int i = 0; i < users.size(); i++) {
 			JSONObject obj = new JSONObject();
-			User currentUser = users.get(i);
-			obj.put("name", currentUser.displayName);
-			obj.put("id", currentUser.userId);
-			obj.put("individual", true);
+			AclPrincipalTest acl = new AclPrincipalTest();
+			AclPrincipal currentUser = users.get(i);
+			acl.creationDate = currentUser.getCreationDate().getTime();
+
+			obj.put("name", currentUser.getName());
+			obj.put("id", currentUser.getId());
+			obj.put("individual", currentUser.isIndividual());
+			if(acl.creationDate != null) obj.put("creationDate", acl.creationDate);
 			
 			arr.put(obj);
 		}
@@ -155,17 +165,19 @@ public class LocalAuthServiceStub {
 	@Produces("application/json")
 	@Path("/userGroup")
 	public String getAllGroups() throws JSONException {
-		// Hard-coded groups
-		groups.add(new UserGroup("3", "people@fake.com", "People"));
-		groups.add(new UserGroup("4", "morePeople@fake.com", "More People"));
 		
 		JSONArray arr = new JSONArray();
+
 		for (int i = 0; i < groups.size(); i++) {
 			JSONObject obj = new JSONObject();
-			UserGroup currentGroup = groups.get(i);
-			obj.put("name", currentGroup.displayName);
-			obj.put("id", currentGroup.groupId);
-			obj.put("individual", true);
+			AclPrincipalTest acl = new AclPrincipalTest();
+			AclPrincipal currentGroup = groups.get(i);
+			acl.creationDate = currentGroup.getCreationDate().getTime();
+			
+			obj.put("name", currentGroup.getName());
+			obj.put("id", currentGroup.getId());
+			obj.put("individual", currentGroup.isIndividual());
+			if(acl.creationDate != null) obj.put("creationDate", acl.creationDate);
 			
 			arr.put(obj);
 		}
@@ -212,41 +224,112 @@ public class LocalAuthServiceStub {
 	}
 
 	/*
-	 * Helper classes
+	 * Helper class
 	 */
-	private class User {
-		public String userId;
-		public String email;
-		public String firstName;
-		public String lastName;
-		public String displayName;
+	
+	public class AclPrincipalTest {
+		public String id;
+		public String name;
+		public Long creationDate;
+		public String uri;
+		public String etag;
+		public Boolean individual;
 		
-		public User() { }
-
-		public User(String userId, String email, String firstName,
-				String lastName, String displayName) {
-			super();
-			this.userId = userId;
-			this.email = email;
-			this.firstName = firstName;
-			this.lastName = lastName;
-			this.displayName = displayName;
+		public AclPrincipalTest() {	
 		}
 		
-	}
-	
-	private class UserGroup {
-		public String groupId;
-		public String email;
-		public String displayName;
+		public AclPrincipalTest(String id, String name, Long creationDate, String uri, String etag, boolean individual) {		
+			this.id = id;
+			this.name = name;
+			this.creationDate = creationDate;
+			this.uri = uri;
+			this.etag = etag;
+			this.individual = individual;
+		}
+
+		public boolean equals(AclPrincipal obj) {
+			if (obj == null)
+				return false;
+			if (creationDate == null) {
+				if (obj.getCreationDate() != null)
+					return false;
+			} else if (!creationDate.equals(obj.getCreationDate().getTime()))
+				return false;
+			if (etag == null) {
+				if (obj.getEtag() != null)
+					return false;
+			} else if (!etag.equals(obj.getEtag()))
+				return false;
+			if (id == null) {
+				if (obj.getId() != null)
+					return false;
+			} else if (!id.equals(obj.getId()))
+				return false;
+			if (individual != obj.isIndividual())
+				return false;
+			if (name == null) {
+				if (obj.getName() != null)
+					return false;
+			} else if (!name.equals(obj.getName()))
+				return false;
+			if (uri == null) {
+				if (obj.getUri() != null)
+					return false;
+			} else if (!uri.equals(obj.getUri()))
+				return false;
+			return true;
+		}
 		
-		public UserGroup() { }
-		
-		public UserGroup(String groupId, String email, String displayName) {
-			super();
-			this.groupId = groupId;
-			this.email = email;
-			this.displayName = displayName;
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			AclPrincipalTest other = (AclPrincipalTest) obj;
+			if (!getOuterType().equals(other.getOuterType()))
+				return false;
+			if (creationDate == null) {
+				if (other.creationDate != null)
+					return false;
+			} else if (!creationDate.equals(other.creationDate))
+				return false;
+			if (etag == null) {
+				if (other.etag != null)
+					return false;
+			} else if (!etag.equals(other.etag))
+				return false;
+			if (id == null) {
+				if (other.id != null)
+					return false;
+			} else if (!id.equals(other.id))
+				return false;
+			if (individual != other.individual)
+				return false;
+			if (name == null) {
+				if (other.name != null)
+					return false;
+			} else if (!name.equals(other.name))
+				return false;
+			if (uri == null) {
+				if (other.uri != null)
+					return false;
+			} else if (!uri.equals(other.uri))
+				return false;
+			return true;
+		}
+
+		private LocalAuthServiceStub getOuterType() {
+			return LocalAuthServiceStub.this;
+		}
+
+		@Override
+		public String toString() {
+			return "AclPrincipalTest [id=" + id + ", name=" + name
+					+ ", creationDate=" + creationDate + ", uri=" + uri
+					+ ", etag=" + etag + ", individual=" + individual + "]";
 		}
 	}
 	/*
