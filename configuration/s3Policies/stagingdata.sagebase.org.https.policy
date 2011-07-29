@@ -4,7 +4,7 @@
       "Action": "s3:*",
       "Effect":"Deny",
       "Principal": "*",
-      "Resource":"arn:aws:s3:::data01.sagebase.org/*",
+      "Resource":"arn:aws:s3:::stagingdata.sagebase.org/*",
       "Condition":{
         "Bool":{
           "aws:SecureTransport": false

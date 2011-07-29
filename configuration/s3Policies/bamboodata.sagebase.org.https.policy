@@ -4,7 +4,7 @@
       "Action": "s3:*",
       "Effect":"Deny",
       "Principal": "*",
-      "Resource":"arn:aws:s3:::logs.sagebase.org/*",
+      "Resource":"arn:aws:s3:::bamboodata.sagebase.org/*",
       "Condition":{
         "Bool":{
           "aws:SecureTransport": false

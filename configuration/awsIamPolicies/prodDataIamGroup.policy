@@ -9,7 +9,7 @@
         "s3:PutObjectVersion"
       ],
       "Resource": [
-                  "arn:aws:s3:::data01.sagebase.org/*"
+                  "arn:aws:s3:::proddata.sagebase.org/*"
                   ]
     }
   ]
