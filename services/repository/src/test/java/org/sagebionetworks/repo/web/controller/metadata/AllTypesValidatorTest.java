@@ -7,10 +7,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -23,31 +26,31 @@ public class AllTypesValidatorTest {
 	AllTypesValidator allTypesValidator;
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testNullEntity() throws InvalidModelException{
+	public void testNullEntity() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
 		EntityEvent mockEvent = Mockito.mock(EntityEvent.class);
 		allTypesValidator.validateEntity(null, mockEvent);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testNullEvent() throws InvalidModelException{
+	public void testNullEvent() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
 		Dataset mockDataset =  Mockito.mock(Dataset.class);
 		allTypesValidator.validateEntity(mockDataset, null);
 	}
 	
 	@Test
-	public void testNullList() throws InvalidModelException{
+	public void testNullList() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
 		Project project = new Project();
 		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, null, null));
 	}
 	
 	@Test
-	public void testEmptyList() throws InvalidModelException{
+	public void testEmptyList() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
 		Project project = new Project();
 		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, new ArrayList<EntityHeader>(), null));
 	}
 	
 	@Test
-	public void testProjectWithProjectParent() throws InvalidModelException{
+	public void testProjectWithProjectParent() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
 		String parentId = "123";
 		// This is our parent header
 		EntityHeader parentHeader = new EntityHeader();
@@ -64,7 +67,7 @@ public class AllTypesValidatorTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testProjectWithDatasetParent() throws InvalidModelException{
+	public void testProjectWithDatasetParent() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
 		String parentId = "123";
 		// This is our parent header
 		EntityHeader parentHeader = new EntityHeader();

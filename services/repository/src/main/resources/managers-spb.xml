@@ -42,7 +42,7 @@
 	<bean id="layerTypeCountCache" class="org.sagebionetworks.repo.web.controller.metadata.LayerTypeCountCacheImpl" scope="singleton"/>
 	
 	<!-- Provides validation for all types -->
-	<bean id="allTypesValidator" class="org.sagebionetworks.repo.web.controller.metadata.AllTypesValidator" scope="singleton"/>
+	<bean id="allTypesValidator" class="org.sagebionetworks.repo.web.controller.metadata.AllTypesValidatorImpl" scope="singleton"/>
 		
 	<bean id="datasetMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.DatasetMetadataProvider" scope="singleton"/>
 	<bean id="inputDataLayerProvider" class="org.sagebionetworks.repo.web.controller.metadata.InputDataLayerMetadataProvider" scope="singleton"/>
@@ -67,5 +67,14 @@
 			<entry key="folder"><ref bean="folderMetadataProvider" /></entry>
 	      </map>
 	    </property>
+	</bean>
+	
+	<!-- A profiler that logs performance data for all bean method calls. -->
+	<bean id="profiler" class="profiler.org.sagebionetworks.Profiler">
+		<property name="handlers">
+			<list>
+				<bean name="loggingProfiler" class="profiler.org.sagebionetworks.LoggingProfiler" />
+			</list>
+		</property>
 	</bean>
 </beans>
