@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.InputDataLayer;
 import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -36,6 +37,7 @@ import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.controller.MetadataProviderFactory;
 import org.sagebionetworks.repo.web.controller.ServletTestHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -53,7 +55,9 @@ public class DatasetMetadataProviderTest {
 	UserManager userManager;
 	
 	@Autowired
-	DatasetMetadataProvider datasetMetadataProvider;
+	MetadataProviderFactory metadataProviderFactory;
+	
+	TypeSpecificMetadataProvider<Nodeable> datasetMetadataProvider;
 
 	static private Log log = LogFactory.getLog(DatasetMetadataProviderTest.class);
 
@@ -66,6 +70,7 @@ public class DatasetMetadataProviderTest {
 	@Before
 	public void before() throws DatastoreException, NotFoundException {
 		assertNotNull(entityController);
+		datasetMetadataProvider = metadataProviderFactory.getMetadataProvider(ObjectType.dataset);
 		assertNotNull(datasetMetadataProvider);
 		toDelete = new ArrayList<String>();
 		// Map test objects to their urls
