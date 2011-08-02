@@ -113,7 +113,7 @@ public class RegisterAccountViewImpl extends Composite implements RegisterAccoun
 					@Override
 					public void componentSelected(ButtonEvent ce) {
 						registerButton.disable();
-						presenter.registerUser(new UserRegistration(email.getValue(), firstName.getValue(), lastName.getValue(), firstName.getValue() + " " + lastName.getValue()));
+						presenter.registerUser(email.getValue(), firstName.getValue(), lastName.getValue());
 					}});
 		     formPanel.addButton(registerButton);
 		     

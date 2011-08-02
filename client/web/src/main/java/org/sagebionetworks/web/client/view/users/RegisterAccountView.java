@@ -22,7 +22,7 @@ public interface RegisterAccountView extends IsWidget {
 	public interface Presenter {	
 		void goTo(Place place);
 		
-		void registerUser(UserRegistration userInfo);
+		void registerUser(String email, String firstName, String lastName);
 	}
 
 }

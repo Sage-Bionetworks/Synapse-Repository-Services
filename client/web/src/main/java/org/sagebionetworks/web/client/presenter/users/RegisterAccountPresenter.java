@@ -1,5 +1,6 @@
 package org.sagebionetworks.web.client.presenter.users;
 
+import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
 import org.sagebionetworks.web.client.cookie.CookieProvider;
@@ -51,7 +52,8 @@ public class RegisterAccountPresenter extends AbstractActivity implements Regist
 	}
 
 	@Override
-	public void registerUser(UserRegistration userInfo) {
+	public void registerUser(String email, String firstName, String lastName) {
+		UserRegistration userInfo = new UserRegistration(email, firstName, lastName, firstName + " " + lastName);
 		userService.createUser(userInfo, new AsyncCallback<Void>() {			
 			@Override
 			public void onSuccess(Void result) {
@@ -60,7 +62,7 @@ public class RegisterAccountPresenter extends AbstractActivity implements Regist
 			
 			@Override
 			public void onFailure(Throwable caught) {
-				view.showErrorMessage(caught.getMessage());
+				view.showErrorMessage(DisplayConstants.ERROR_USER_ALREADY_EXISTS);
 			}
 		});
 	}
