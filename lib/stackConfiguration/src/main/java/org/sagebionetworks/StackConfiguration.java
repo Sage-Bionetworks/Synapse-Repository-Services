@@ -30,9 +30,11 @@ public class StackConfiguration {
 	private static final Logger log = Logger.getLogger(StackConfiguration.class
 			.getName());
 
-	private static final String DEFAULT_PROPERTIES_FILENAME = "/stack.properties";
+	private static final String S3_PROPERTY_FILENAME_PREFIX = "https://s3.amazonaws.com";
 
+	private static final String DEFAULT_PROPERTIES_FILENAME = "/stack.properties";
 	private static final String TEMPLATE_PROPERTIES = "/template.properties";
+	
 	protected static final String STACK_PROPERTY_FILE_URL = "org.sagebionetworks.stack.configuration.url";
 	private static final String STACK_IAM_ID = "org.sagebionetworks.stack.iam.id";
 	private static final String STACK_IAM_KEY = "org.sagebionetworks.stack.iam.key";
@@ -79,7 +81,7 @@ public class StackConfiguration {
 		// If we have IAM id and key the load the properties using the Amazon client, else the URL shoudl be public.
 		String iamId = getIAMUserId();
 		String iamKey = getIAMUserKey();
-		if(iamId != null && iamKey != null){
+		if(propertyFileUrl.startsWith(S3_PROPERTY_FILENAME_PREFIX) && iamId != null && iamKey != null){
 			try {
 				S3PropertyFileLoader.loadPropertiesFromS3(propertyFileUrl, iamId, iamKey, stackPropertyOverrides);
 			} catch (IOException e) {
