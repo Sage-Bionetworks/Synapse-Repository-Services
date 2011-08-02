@@ -216,5 +216,7 @@ abstract public class JDOBaseDAOImpl<S extends Base, T extends JDOBase> {
 			throw new DatastoreException(e);
 		}
 	}
+	
+
 
 }

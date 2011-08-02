@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -19,7 +20,10 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
+@Transactional(readOnly = true)
 public class PermissionsManagerImpl implements PermissionsManager {
 	
 	
@@ -38,6 +42,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 
+	@Transactional(readOnly = true)
 	@Override
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException {
 		// get the id that this node inherits its permissions from
@@ -46,10 +51,13 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	}
 	
 	public void validateContent(AccessControlList acl) throws InvalidModelException {
-		if (acl.getResourceId()==null) throw new InvalidModelException("Resource ID is null");
+		if (acl.getId()==null) throw new InvalidModelException("Resource ID is null");
+		if(acl.getResourceAccess() == null){
+			acl.setResourceAccess(new HashSet<ResourceAccess>());
+		}
 		for (ResourceAccess ra : acl.getResourceAccess()) {
 			if (ra==null) throw new InvalidModelException("ACL row is null.");
-			if (ra.getUserGroupId()==null) throw new InvalidModelException("Group ID is null");
+			if (ra.getGroupName()==null) throw new InvalidModelException("Group ID is null");
 			if (ra.getAccessType().isEmpty()) throw new InvalidModelException("No access types specified.");
 		}
 
@@ -67,9 +75,10 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		}
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public AccessControlList updateACL(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
-		String rId = acl.getResourceId();
+		String rId = acl.getId();
 		String benefactor = nodeInheritanceManager.getBenefactor(rId);
 		if (!benefactor.equals(rId)) throw new UnauthorizedException("Cannot update ACL for a resource which inherits its permissions.");
 		// check permissions of user to change permissions for the resource
@@ -78,13 +87,16 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		}
 		// validate content
 		validateContent(acl);
+		// Before we can update the ACL we must grab the lock on the node.
+		nodeDao.lockNodeAndIncrementEtag(acl.getId(), acl.getEtag());
 		aclDAO.update(acl);
 		return aclDAO.get(acl.getId());
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public AccessControlList overrideInheritance(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException {
-		String rId = acl.getResourceId();
+	public AccessControlList overrideInheritance(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
+		String rId = acl.getId();
 		String benefactor = nodeInheritanceManager.getBenefactor(rId);
 		if (benefactor.equals(rId)) throw new UnauthorizedException("Resource already has an ACL.");
 		// check permissions of user to change permissions for the resource
@@ -95,16 +107,19 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		if (acl.getCreatedBy()==null) acl.setCreatedBy(userInfo.getUser().getUserId());
 		if (acl.getModifiedBy()==null) acl.setModifiedBy(userInfo.getUser().getUserId());
 		validateContent(acl);
+		Node node = nodeDao.getNode(rId);
+		// Before we can update the ACL we must grab the lock on the node.
+		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
 		// set permissions 'benefactor' for resource and all resource's descendants to resource
 		nodeInheritanceManager.setNodeToInheritFromItself(rId);
 		// persist acl and return
 		String id = aclDAO.create(acl);
-		acl.setId(id);
-		return acl;
+		return aclDAO.get(id);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public AccessControlList restoreInheritance(String rId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException {
+	public AccessControlList restoreInheritance(String rId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		// check permissions of user to change permissions for the resource
 		if (!authorizationManager.canAccess(userInfo, rId, AuthorizationConstants.ACCESS_TYPE.CHANGE_PERMISSIONS)) {
 			throw new UnauthorizedException("Not authorized.");
@@ -115,6 +130,8 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		Node node = nodeDao.getNode(rId);
 		if (node.getParentId()==null) throw new UnauthorizedException("Cannot restore inheritance for resource which has no parent.");
 
+		// Before we can update the ACL we must grab the lock on the node.
+		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(rId);
 		
 		// delete access control list

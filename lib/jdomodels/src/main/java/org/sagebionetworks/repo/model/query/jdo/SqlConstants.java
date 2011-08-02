@@ -68,7 +68,8 @@ public class SqlConstants {
 	public static final String TABLE_USER					= "JDOUSER";
 	public static final String TABLE_USER_GROUP				= "JDOUSERGROUP";
 	public static final String TABLE_USER_GROUP_USERS		= "JDOUSERGROUPUSERS";
-	public static final String COL_USER_GROUP_ID			 = "GROUP_ID";
+	public static final String COL_USER_GROUP_ID			= "ID";
+	public static final String COL_USER_GROUP_NAME 			= "NAME";
 	public static final String COL_USER_GROUP_IS_INDIVIDUAL = "ISINDIVIDUAL";
 	
 	public static final String TABLE_ACCESS_CONTROL_LIST = "ACL";
@@ -79,6 +80,7 @@ public class SqlConstants {
 	// The resource access table
 	public static final String TABLE_RESOURCE_ACCESS			= "JDORESOURCEACCESS";
 	public static final String COL_RESOURCE_ACCESS_OWNER		= "OWNER_ID";
+	public static final String COL_RESOURCE_ACCESS_GROUP_ID		= "GROUP_ID";
 	public static final String COL_RESOURCE_ACCESS_TYPE			= "RESOURCE_TYPE";
 	public static final String COL_RESOURCE_ACCESS_RESOURCE_ID	= "RESOURCE_ID";
 		
@@ -119,6 +121,7 @@ public class SqlConstants {
 	
 	private static final Map<String, String> primaryFieldColumns;
 	private static final Map<String, String> mapClassToTable;
+
 
 	static{
 		// Map column names to the field names

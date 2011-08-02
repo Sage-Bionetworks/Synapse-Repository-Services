@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -11,6 +12,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.After;
@@ -19,16 +21,16 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -45,12 +47,6 @@ public class PermissionsManagerImplTest {
 	private UserManager userManager;
 	
 	@Autowired
-	private UserGroupDAO userGroupDAO;
-	
-	@Autowired
-	AccessControlListDAO accessControlListDAO;
-	
-	@Autowired
 	PermissionsManager permissionsManager;
 		
 	private Collection<Node> nodeList = new ArrayList<Node>();
@@ -59,6 +55,8 @@ public class PermissionsManagerImplTest {
 	private UserInfo userInfo = null;
 	
 	private static final String TEST_USER = "test-user";
+	
+	private List<String> usersToDelete;
 	
 	private Node createDTO(String name, String createdBy, String modifiedBy, String parentId) {
 		Node node = new Node();
@@ -78,7 +76,7 @@ public class PermissionsManagerImplTest {
 		String nodeId = nodeManager.createNewNode(node, adminUser);
 		assertNotNull(nodeId);
 		node.setId(nodeId);
-		return node;
+		return nodeManager.get(adminUser, nodeId);
 	}
 
 	@Before
@@ -92,6 +90,9 @@ public class PermissionsManagerImplTest {
 		// userInfo
 		userManager.setUserDAO(new TestUserDAO()); // could use Mockito here
 		userInfo = userManager.getUserInfo(TEST_USER);
+		usersToDelete = new ArrayList<String>();
+		usersToDelete.add(userInfo.getIndividualGroup().getId());
+		usersToDelete.add(userInfo.getUser().getId());
 	}
 
 	@After
@@ -99,20 +100,11 @@ public class PermissionsManagerImplTest {
 		UserInfo adminUser = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		for (Node n : nodeList) nodeManager.delete(adminUser, n.getId());
 		this.node=null;
-		
-		for (UserGroup g: userGroupDAO.getAll(true)) {
-			if (g.getName().equals(AuthorizationConstants.ADMIN_GROUP_NAME)) {
-				// leave it
-			} else if (g.getName().equals(AuthorizationConstants.PUBLIC_GROUP_NAME)) {
-				// leave it
-			} else if (g.getName().equals(AuthorizationConstants.ANONYMOUS_USER_ID)) {
-				// leave it
-			} else {
-//				System.out.println("Deleting: "+g);
-				userGroupDAO.delete(g.getId());
+		if(userManager != null && usersToDelete != null){
+			for(String idToDelete: usersToDelete){
+				userManager.deleteUser(idToDelete);
 			}
 		}
-		
 	}
 	
 	@Test
@@ -121,10 +113,10 @@ public class PermissionsManagerImplTest {
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		AccessControlList acl = permissionsManager.getACL(node.getId(), adminInfo);
 		assertNotNull(acl);
-		assertEquals(node.getId(), acl.getResourceId());
+		assertEquals(node.getId(), acl.getId());
 		// retrieve child acl.  should get parent's
 		acl = permissionsManager.getACL(childNode.getId(), adminInfo);
-		assertEquals(node.getId(), acl.getResourceId());
+		assertEquals(node.getId(), acl.getId());
 	}
 
 	@Test
@@ -137,7 +129,15 @@ public class PermissionsManagerImplTest {
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		AccessControlList acl = permissionsManager.getACL(node.getId(), adminInfo);
 		assertEquals(1, acl.getResourceAccess().size());
-		AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ, accessControlListDAO);
+		// Check the etag before
+		String etagBefore = acl.getEtag();
+		assertNotNull(etagBefore);
+		acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		acl = permissionsManager.updateACL(acl, adminInfo);
+		// The etag should have changed
+		assertNotNull(acl.getEtag());
+		assertFalse(etagBefore.equals(acl.getEtag()));
+		
 		// now get it again and see that the permission is there
 		acl = permissionsManager.getACL(node.getId(), userInfo);
 		Set<ResourceAccess> ras = acl.getResourceAccess();
@@ -146,7 +146,7 @@ public class PermissionsManagerImplTest {
 		boolean foundIt = false;
 		while(it.hasNext()){
 			ResourceAccess ra = it.next();
-			if(ra.getUserGroupId().equals(userInfo.getIndividualGroup().getId())){
+			if(ra.getGroupName().equals(userInfo.getIndividualGroup().getName())){
 				assertEquals(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ})),
 						ra.getAccessType());
 				foundIt = true;
@@ -155,6 +155,16 @@ public class PermissionsManagerImplTest {
 		}
 		assertTrue(foundIt);
 	}
+	
+	@Test (expected=ConflictingUpdateException.class)
+	public void testConcurrentUpdate() throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException{
+		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		AccessControlList acl = permissionsManager.getACL(node.getId(), adminInfo);
+		assertEquals(1, acl.getResourceAccess().size());
+		// Change the etag so that it does not match the current value
+		acl.setEtag(acl.getEtag()+"1");
+		permissionsManager.updateACL(acl, adminInfo);
+	}
 
 	@Test
 	// check that you get an exception if...
@@ -162,52 +172,49 @@ public class PermissionsManagerImplTest {
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		AccessControlList acl = permissionsManager.getACL(node.getId(), adminInfo);
 		assertEquals(1, acl.getResourceAccess().size());
-		// ...resource id is null...
-		acl.setResourceId(null);
 		try {
-			AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ, accessControlListDAO);
+			acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+			acl.setCreatedBy(null);
+			acl = permissionsManager.updateACL(acl, adminInfo);
 			fail("exception expected");
 		} catch (InvalidModelException e) {
 			//as expected
 		}
-		acl.setResourceId(node.getId());
+		acl.setId(node.getId());
 		// ...group id is null...
 		ResourceAccess ra = new ResourceAccess();
-		ra.setUserGroupId(null);
+		ra.setGroupName(null);
 		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
 		ra.setAccessType(ats);
 		ra.getAccessType().add(ACCESS_TYPE.READ);
 		acl.getResourceAccess().add(ra);
+		acl.setCreatedBy(null);
 		try {
-			accessControlListDAO.update(acl);
+			permissionsManager.updateACL(acl, adminInfo);
 			fail("exception expected");
 		} catch (InvalidModelException e) {
 			//as expected
 		}
-//		// ... no access type is specified
-//		acl.setResourceAccess(new HashSet<ResourceAccess>());
-//		ra = new ResourceAccess();
-//		ra.setUserGroupId(userInfo.getIndividualGroup().getId());
-//		ats = new HashSet<ACCESS_TYPE>();
-//		ra.setAccessType(ats);
-//		acl.getResourceAccess().add(ra);
-//		try {
-//			accessControlListDAO.update(acl);
-//			fail("exception expected");
-//		} catch (InvalidModelException e) {
-//			//as expected
-//		}
 	}
 
 	@Test
 	public void testOverrideInheritance() throws Exception {
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
-		AccessControlList acl = permissionsManager.getACL(node.getId(), adminInfo);
-		acl.setResourceId(childNode.getId());
-		permissionsManager.overrideInheritance(acl, adminInfo);
+		AccessControlList acl = new AccessControlList();
+		acl.setId(childNode.getId());
+		String eTagBefore = childNode.getETag();
+		assertNotNull(eTagBefore);
+		AccessControlList results = permissionsManager.overrideInheritance(acl, adminInfo);
+		assertNotNull(results);
+		assertNotNull(results.getEtag());
+		assertFalse("The Etag should have changed", eTagBefore.equals(results.getEtag()));
+		assertEquals(childNode.getId(), results.getId());
+		// The etag should match the node's tag
+		childNode = nodeManager.get(adminInfo, childNode.getId());
+		assertEquals(childNode.getETag(), results.getEtag());
 		// call 'getACL':  the ACL should match the requested settings and specify the resource as the owner of the ACL
 		AccessControlList acl2 = permissionsManager.getACL(childNode.getId(), adminInfo);
-		assertEquals(childNode.getId(), acl2.getResourceId());
+		assertEquals(childNode.getId(), acl2.getId());
 		assertEquals(acl, acl2);
 	}
 
@@ -235,16 +242,23 @@ public class PermissionsManagerImplTest {
 	public void testRestoreInheritance() throws Exception {
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		AccessControlList acl = permissionsManager.getACL(childNode.getId(), adminInfo);
-		acl.setResourceId(childNode.getId());
+		acl.setId(childNode.getId());
 		permissionsManager.overrideInheritance(acl, adminInfo);
 		AccessControlList acl2 = permissionsManager.getACL(childNode.getId(), adminInfo);
-		assertEquals(childNode.getId(), acl2.getResourceId());
+		assertEquals(childNode.getId(), acl2.getId());
 		assertEquals(acl, acl2);
-		
-		permissionsManager.restoreInheritance(childNode.getId(), adminInfo);
+		String eTagBefore = childNode.getETag();
+		assertNotNull(eTagBefore);
+		AccessControlList results = permissionsManager.restoreInheritance(childNode.getId(), adminInfo);
+		assertNotNull(results);
+		assertNotNull(results.getEtag());
+		assertNotNull(node.getId(), results.getId());
+		assertNotNull(node.getETag(), results.getEtag());
+		childNode = nodeManager.get(adminInfo, childNode.getId());
+		assertFalse("The etag of the child node should have changed", eTagBefore.equals(childNode.getETag()));
 		// call 'getACL' on the resource.  The returned ACL should specify parent as the ACL owner
 		AccessControlList acl3 = permissionsManager.getACL(childNode.getId(), adminInfo);
-		assertEquals(node.getId(), acl3.getResourceId());
+		assertEquals(node.getId(), acl3.getId());
 
 		
 	}
@@ -261,7 +275,7 @@ public class PermissionsManagerImplTest {
 		}
 		
 		AccessControlList acl = permissionsManager.getACL(childNode.getId(), adminInfo);
-		acl.setResourceId(childNode.getId());
+		acl.setId(childNode.getId());
 		permissionsManager.overrideInheritance(acl, adminInfo);
 		
 		// should get exception if don't have authority to change permissions

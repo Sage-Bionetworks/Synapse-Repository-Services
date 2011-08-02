@@ -26,7 +26,7 @@ public class AccessControlListTest {
 		info.setIndividualGroup(userGroup);
 		AccessControlList acl = AccessControlList.createACLToGrantAll(nodeId, info);
 		assertNotNull(acl);
-		assertEquals(acl.getResourceId(), nodeId);
+		assertEquals(acl.getId(), nodeId);
 		assertEquals(user.getUserId(), acl.getCreatedBy());
 		assertEquals(user.getUserId(), acl.getModifiedBy());
 		assertNotNull(acl.getCreationDate());
@@ -35,7 +35,7 @@ public class AccessControlListTest {
 		assertEquals(1, acl.getResourceAccess().size());
 		ResourceAccess ra = acl.getResourceAccess().iterator().next();
 		assertNotNull(ra);
-		assertEquals(userGroup.getId(), ra.getUserGroupId());
+		assertEquals(userGroup.getName(), ra.getGroupName());
 		assertNotNull(ra.getAccessType());
 		// There should be one for each type
 		ACCESS_TYPE[] array = ACCESS_TYPE.values();

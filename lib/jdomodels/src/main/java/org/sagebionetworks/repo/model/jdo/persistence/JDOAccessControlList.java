@@ -7,21 +7,18 @@ import javax.jdo.annotations.Column;
 import javax.jdo.annotations.Element;
 import javax.jdo.annotations.ForeignKey;
 import javax.jdo.annotations.ForeignKeyAction;
-import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.NullValue;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
 import javax.jdo.annotations.Unique;
 
-import org.sagebionetworks.repo.model.jdo.JDOBase;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 @PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_ACCESS_CONTROL_LIST)
-public class JDOAccessControlList implements JDOBase {
+public class JDOAccessControlList {
 
 	@PrimaryKey
-	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 	
 	@Persistent(nullValue = NullValue.EXCEPTION)
@@ -34,10 +31,6 @@ public class JDOAccessControlList implements JDOBase {
     @Element(dependent = "true")
 	private Set<JDOResourceAccess> resourceAccess;
 
-	@Column(name=SqlConstants.COL_NODE_ETAG)
-	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
-	private Long eTag = new Long(0);
-	
 	@Column(name=SqlConstants.COL_NODE_CREATED_BY)
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
 	private String createdBy;
@@ -82,19 +75,6 @@ public class JDOAccessControlList implements JDOBase {
 		this.resourceAccess = resourceAccess;
 	}
 
-	/**
-	 * @return the eTag
-	 */
-	public Long getEtag() {
-		return eTag;
-	}
-
-	/**
-	 * @param eTag the eTag to set
-	 */
-	public void setEtag(Long eTag) {
-		this.eTag = eTag;
-	}
 
 	/**
 	 * @return the createdBy

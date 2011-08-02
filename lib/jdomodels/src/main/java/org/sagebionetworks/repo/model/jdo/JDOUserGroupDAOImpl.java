@@ -12,6 +12,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class JDOUserGroupDAOImpl extends
 		JDOBaseDAOImpl<UserGroup, JDOUserGroup> implements
 		UserGroupDAOInitializingBean {
+	
+	@Autowired
+	private UserGroupCache userGroupCache;
 
 	UserGroup newDTO() {
 		UserGroup ug = new UserGroup();
@@ -160,6 +165,15 @@ public class JDOUserGroupDAOImpl extends
 	@Override
 	String defaultSortField() {
 		return "name";
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void delete(String id) throws DatastoreException, NotFoundException {
+		// The cache needs to remove this as well.
+		userGroupCache.delete(KeyFactory.stringToKey(id));
+		// The the base do the work
+		super.delete(id);
 	}
 
 }

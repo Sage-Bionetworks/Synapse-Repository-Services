@@ -621,6 +621,7 @@ public class DefaultController extends BaseController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException - Thrown only for the case where the entity is assigned a parent that does not exist.
 	 * @throws IOException - Thrown if there is a failure to read the header.
+	 * @throws ConflictingUpdateException 
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.OBJECT_TYPE_ID_ACL }, method = RequestMethod.POST)	
@@ -632,11 +633,12 @@ public class DefaultController extends BaseController {
 			@RequestBody AccessControlList newAcl,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException {
+			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 		// pass it along.
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
 
-		return entityController.createEntityACL(userId, newAcl, request, type.getClassForType());
+		AccessControlList acl = entityController.createEntityACL(userId, newAcl, request, type.getClassForType());
+		return acl;
 	}
 	
 	
@@ -689,7 +691,7 @@ public class DefaultController extends BaseController {
 			@RequestBody AccessControlList updatedACL,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		// pass it along.
-		return entityController.updateEntityACL(userId, updatedACL);
+		return entityController.updateEntityACL(userId, updatedACL, request);
 	}
 	
 
@@ -701,6 +703,7 @@ public class DefaultController extends BaseController {
 	 * @throws NotFoundException - Thrown when the entity to delete does not exist.
 	 * @throws DatastoreException - Thrown when there is a server side problem.
 	 * @throws UnauthorizedException
+	 * @throws ConflictingUpdateException 
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { 
@@ -710,7 +713,7 @@ public class DefaultController extends BaseController {
 			@PathVariable String objectType,
 			@PathVariable String id,
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId) throws NotFoundException,
-			DatastoreException, UnauthorizedException {
+			DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		// Determine the object type from the url.
 		entityController.deleteEntityACL(userId, id);
 	}

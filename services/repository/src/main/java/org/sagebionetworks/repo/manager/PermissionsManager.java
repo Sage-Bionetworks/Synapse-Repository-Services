@@ -20,11 +20,12 @@ public interface PermissionsManager {
 	 * permissions, and then assigns permissions based on the passed parameter.
 	 * @throws NotFoundException 
 	 * @throws UnauthorizedException 
+	 * @throws ConflictingUpdateException 
 	 * 
 	 * @exception if the user invoking this method doesn't have the required authority
 	 * 
 	 */
-	public AccessControlList overrideInheritance(AccessControlList acl, UserInfo userInfo) throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException;
+	public AccessControlList overrideInheritance(AccessControlList acl, UserInfo userInfo) throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException;
 	
 	/**
 	 * Gets the access control list (ACL) governing the given node id.
@@ -56,12 +57,13 @@ public interface PermissionsManager {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 * @throws UnauthorizedException 
+	 * @throws ConflictingUpdateException 
 	 * 
 	 * @exception if the user invoking this method doesn't have the required authority or if
 	 * the resource already inherits permissions
 	 *  
 	 */
-	public AccessControlList restoreInheritance(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public AccessControlList restoreInheritance(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
 
 	// the following methods provide the principals (individuals and groups) 
 	// to which resource access permission may be granted

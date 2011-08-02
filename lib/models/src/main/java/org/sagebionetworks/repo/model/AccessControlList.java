@@ -8,7 +8,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 
 public class AccessControlList implements Base {
 	private String id;
-	private String resourceId;
 	private String createdBy;
 	private Date creationDate;
 	private String modifiedBy;
@@ -118,20 +117,6 @@ public class AccessControlList implements Base {
 	}
 
 	/**
-	 * @return the resourceId
-	 */
-	public String getResourceId() {
-		return resourceId;
-	}
-
-	/**
-	 * @param resourceId the resourceId to set
-	 */
-	public void setResourceId(String resourceId) {
-		this.resourceId = resourceId;
-	}
-
-	/**
 	 * @return the resourceAccess
 	 */
 	public Set<ResourceAccess> getResourceAccess() {
@@ -156,7 +141,7 @@ public class AccessControlList implements Base {
 		AccessControlList acl = new AccessControlList();
 		acl.setCreatedBy(info.getUser().getUserId());
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
-		acl.setResourceId(nodeId);
+		acl.setId(nodeId);
 		acl.setModifiedBy(acl.getCreatedBy());
 		acl.setModifiedOn(acl.getCreationDate());
 		Set<ResourceAccess> set = new HashSet<ResourceAccess>();
@@ -170,92 +155,48 @@ public class AccessControlList implements Base {
 			typeSet.add(type);
 		}
 		access.setAccessType(typeSet);
-		access.setUserGroupId(info.getIndividualGroup().getId());
+		access.setGroupName(info.getIndividualGroup().getName());
 		return acl;
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result
-				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
-				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
-		result = prime * result
-				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
-		result = prime * result
 				+ ((resourceAccess == null) ? 0 : resourceAccess.hashCode());
-		result = prime * result
-				+ ((resourceId == null) ? 0 : resourceId.hashCode());
 		return result;
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if (obj == null)
 			return false;
-		if (!(obj instanceof AccessControlList))
+		if (getClass() != obj.getClass())
 			return false;
 		AccessControlList other = (AccessControlList) obj;
-		if (createdBy == null) {
-			if (other.createdBy != null)
-				return false;
-		} else if (!createdBy.equals(other.createdBy))
-			return false;
-		if (creationDate == null) {
-			if (other.creationDate != null)
-				return false;
-		} else if (!creationDate.equals(other.creationDate))
-			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
-			return false;
-		if (modifiedBy == null) {
-			if (other.modifiedBy != null)
-				return false;
-		} else if (!modifiedBy.equals(other.modifiedBy))
-			return false;
-		if (modifiedOn == null) {
-			if (other.modifiedOn != null)
-				return false;
-		} else if (!modifiedOn.equals(other.modifiedOn))
 			return false;
 		if (resourceAccess == null) {
 			if (other.resourceAccess != null)
 				return false;
 		} else if (!resourceAccess.equals(other.resourceAccess))
 			return false;
-		if (resourceId == null) {
-			if (other.resourceId != null)
-				return false;
-		} else if (!resourceId.equals(other.resourceId))
-			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "AccessControlList [id=" + id + ", resourceId=" + resourceId
-				+ ", createdBy=" + createdBy + ", creationDate=" + creationDate
-				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
-				+ ", etag=" + etag + ", uri=" + uri + ", resourceAccess="
-				+ resourceAccess + "]";
+		return "AccessControlList [id=" + id + ", createdBy=" + createdBy
+				+ ", creationDate=" + creationDate + ", modifiedBy="
+				+ modifiedBy + ", modifiedOn=" + modifiedOn + ", etag=" + etag
+				+ ", uri=" + uri + ", resourceAccess=" + resourceAccess + "]";
 	}
-	
-	
 
 }

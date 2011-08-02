@@ -27,6 +27,24 @@ public interface UserManager {
 	 * @throws DatastoreException
 	 */
 	public UserGroup getDefaultUserGroup(DEFAULT_GROUPS group) throws DatastoreException;
+	
+	/**
+	 * Delete a user.
+	 * @param id
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public void deleteUser(String id) throws DatastoreException, NotFoundException;
+	
+
+	/**
+	 * Find a group.
+	 * @param name
+	 * @param b
+	 * @return
+	 * @throws DatastoreException 
+	 */
+	public UserGroup findGroup(String name, boolean b) throws DatastoreException;
 
 	
 

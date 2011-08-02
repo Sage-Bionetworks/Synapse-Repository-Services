@@ -83,7 +83,7 @@ public class Helpers {
 	 */
 	public String getIdentifiedUserReadOnlyACL(){
 		UserGroup group = testUserProvider.getIdentifiedUserGroup();
-		return "{\"userGroupId\":\""+group.getId()+"\", \"accessType\":[\"READ\"]}";
+		return "{\"groupName\":\""+group.getName()+"\", \"accessType\":[\"READ\"]}";
 	}
 
 	/**
@@ -92,7 +92,7 @@ public class Helpers {
 	 */
 	public String getIdentifiedUserReadWriteACL(){
 		UserGroup group = testUserProvider.getIdentifiedUserGroup();
-		return "{\"userGroupId\":\""+group.getId()+"\", \"accessType\":[\"READ\", \"WRITE\"]}";
+		return "{\"groupName\":\""+group.getName()+"\", \"accessType\":[\"READ\", \"WRITE\"]}";
 	}
 	/**
 	 * Default constructor reads optional system properties to change this from

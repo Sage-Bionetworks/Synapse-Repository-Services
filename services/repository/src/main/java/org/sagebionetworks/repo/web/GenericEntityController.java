@@ -343,10 +343,11 @@ public interface GenericEntityController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException 
+	 * @throws ConflictingUpdateException 
 	 */
 	public  <T extends Base> AccessControlList createEntityACL(String userId, AccessControlList newEntity,
 			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException,
-			InvalidModelException, UnauthorizedException, NotFoundException;
+			InvalidModelException, UnauthorizedException, NotFoundException, ConflictingUpdateException;
 
 	
 	/**
@@ -372,7 +373,7 @@ public interface GenericEntityController {
 	 * @throws UnauthorizedException 
 	 * @throws InvalidModelException 
 	 */
-	public AccessControlList updateEntityACL(String userId, AccessControlList updated) throws 
+	public AccessControlList updateEntityACL(String userId, AccessControlList updated, HttpServletRequest request) throws 
 		DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException;
 	
 
@@ -385,9 +386,10 @@ public interface GenericEntityController {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
+	 * @throws ConflictingUpdateException 
 	 */
 	public  void deleteEntityACL(String userId, String id)
-			throws NotFoundException, DatastoreException, UnauthorizedException;
+			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
 
 	/**
 	 * @return the JSON schema for an access control list

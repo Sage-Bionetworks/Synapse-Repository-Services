@@ -22,12 +22,6 @@ public interface EntityBootstrapper extends InitializingBean {
 	 */
 	public List<EntityBootstrapData> getBootstrapEntities();
 	
-	/**
-	 * Builds a map of the user groups.
-	 * @return
-	 * @throws DatastoreException
-	 */
-	public Map<DEFAULT_GROUPS, String> buildGroupMap() throws DatastoreException;
 	
 	/**
 	 * What is ACL Scheme should be use for child entities of a given path.

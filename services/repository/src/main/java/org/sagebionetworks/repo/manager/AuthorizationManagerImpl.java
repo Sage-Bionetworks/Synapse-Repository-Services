@@ -9,7 +9,9 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 
+@Transactional(readOnly = true)
 public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
@@ -37,6 +39,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	 * @exception NotFoundException if the group or node is invalid
 	 * 
 	 */
+	@Transactional(readOnly = true)
+	@Override
 	public boolean canAccess(UserInfo userInfo, final String nodeId, AuthorizationConstants.ACCESS_TYPE accessType) 
 		throws NotFoundException, DatastoreException {
 		// if is an administrator, return true
@@ -57,6 +61,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	 * @exception NotFoundException if the group or node is invalid
 	 * 
 	 */
+	@Transactional(readOnly = true)
+	@Override
 	public boolean canCreate(UserInfo userInfo, final Node node) 
 		throws NotFoundException, DatastoreException {
 		// if is an administrator, return true
