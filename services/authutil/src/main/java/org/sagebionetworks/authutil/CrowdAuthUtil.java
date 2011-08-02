@@ -49,6 +49,7 @@ public class CrowdAuthUtil {
 	public CrowdAuthUtil() {
 		// get the values from system properties, if available
 		crowdUrl = StackConfiguration.getCrowdEndpoint();
+		
 		apiApplicationKey  = StackConfiguration.getCrowdAPIApplicationKey(); 
 					//System.getProperty("org.sagebionetworks.crowdApplicationKey");
 		
@@ -162,7 +163,9 @@ public class CrowdAuthUtil {
 			conn.setRequestMethod("POST");
 			setHeaders(conn);
 			setBody(conn, msg1+creds.getEmail()+msg2+creds.getPassword()+msg3+msg4+msg5+"\n");
+//			long start = System.currentTimeMillis();
 			sessionXML = executeRequest(conn, HttpStatus.CREATED, "Unable to authenticate");
+//			System.out.println("\tAuthentiation took "+(System.currentTimeMillis()-start)+" ms.");
 		}
 
 		String token = getFromXML("/session/token", sessionXML);
@@ -171,8 +174,10 @@ public class CrowdAuthUtil {
 			HttpURLConnection conn = (HttpURLConnection)url.openConnection();
 			conn.setRequestMethod("GET");
 			setHeaders(conn);
+//			long start = System.currentTimeMillis();
 			sessionXML = executeRequest(conn, HttpStatus.OK, "Authenticated user "+creds.getEmail()+
 					" but subsequentially could not retrieve attributes from server. \n");
+//			System.out.println("\tGetting display name took "+(System.currentTimeMillis()-start)+" ms.");
 
 		}
 		String displayName = getFromXML("/user/display-name", sessionXML);

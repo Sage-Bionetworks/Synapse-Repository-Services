@@ -27,7 +27,7 @@ public class AuthUtilConstants {
 	 * The date format for the above
 	 * 
 	 */
-	public static final String DATE_FORMAT = "yyyy-mm-dd";
+	public static final String DATE_FORMAT = "yyyy-MM-dd";
 
 	
 	/**
