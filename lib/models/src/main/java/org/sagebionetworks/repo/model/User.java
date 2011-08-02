@@ -8,6 +8,7 @@ public class User implements Base {
 	private String uri;
 	private String etag;
 	private Date creationDate;
+	private String iamUserId;
 	private String iamAccessId;
 	private String iamSecretKey;
 	
@@ -47,6 +48,18 @@ public class User implements Base {
 		this.creationDate = creationDate;
 	}
 	/**
+	 * @return the iamUserId
+	 */
+	public String getIamUserId() {
+		return iamUserId;
+	}
+	/**
+	 * @param iamUserId the iamUserId to set
+	 */
+	public void setIamUserId(String iamUserId) {
+		this.iamUserId = iamUserId;
+	}
+	/**
 	 * @return the iamAccessId
 	 */
 	public String getIamAccessId() {
@@ -80,7 +93,6 @@ public class User implements Base {
 		if(user.getUserId() == null) throw new IllegalArgumentException("User.userId cannot be null");
 //		if(user.getId() == null) throw new IllegalArgumentException("User.id cannot be null");
 	}
-	
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */
@@ -90,11 +102,15 @@ public class User implements Base {
 		int result = 1;
 		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result
 				+ ((iamAccessId == null) ? 0 : iamAccessId.hashCode());
 		result = prime * result
 				+ ((iamSecretKey == null) ? 0 : iamSecretKey.hashCode());
+		result = prime * result
+				+ ((iamUserId == null) ? 0 : iamUserId.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
 		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
 		return result;
 	}
@@ -107,13 +123,18 @@ public class User implements Base {
 			return true;
 		if (obj == null)
 			return false;
-		if (!(obj instanceof User))
+		if (getClass() != obj.getClass())
 			return false;
 		User other = (User) obj;
 		if (creationDate == null) {
 			if (other.creationDate != null)
 				return false;
 		} else if (!creationDate.equals(other.creationDate))
+			return false;
+		if (etag == null) {
+			if (other.etag != null)
+				return false;
+		} else if (!etag.equals(other.etag))
 			return false;
 		if (iamAccessId == null) {
 			if (other.iamAccessId != null)
@@ -125,10 +146,20 @@ public class User implements Base {
 				return false;
 		} else if (!iamSecretKey.equals(other.iamSecretKey))
 			return false;
+		if (iamUserId == null) {
+			if (other.iamUserId != null)
+				return false;
+		} else if (!iamUserId.equals(other.iamUserId))
+			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
+			return false;
+		if (uri == null) {
+			if (other.uri != null)
+				return false;
+		} else if (!uri.equals(other.uri))
 			return false;
 		if (userId == null) {
 			if (other.userId != null)
@@ -137,6 +168,4 @@ public class User implements Base {
 			return false;
 		return true;
 	}
-
-
 }

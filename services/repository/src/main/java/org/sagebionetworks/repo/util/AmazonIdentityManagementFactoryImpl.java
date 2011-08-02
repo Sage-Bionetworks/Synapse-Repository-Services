@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.util;
 
+import org.sagebionetworks.StackConfiguration;
+
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentials;
@@ -21,11 +23,6 @@ public class AmazonIdentityManagementFactoryImpl implements AmazonIdentityManage
 	private String iamCanCreateUserCredsAccessId = FAKE_ACCESS_ID;
 	private String iamCanCreateUserCredsSecretKey = FAKE_SECRET_KEY;
 	private AWSCredentials iamCanCreateUsersCreds;
-
-//	// The integration test IAM user
-//	private String iamIntegrationTestCredsAccessId = FAKE_ACCESS_ID;
-//	private String iamIntegrationTestCredsSecretKey = FAKE_SECRET_KEY;
-	//private AWSCredentials iamIntegrationTestCreds;
 	
 	private AmazonIdentityManagement aim = null;
 
@@ -37,16 +34,14 @@ public class AmazonIdentityManagementFactoryImpl implements AmazonIdentityManage
 	}
 	
 	private AmazonIdentityManagement newAmazonIdentityManagement() {
-		if ((null != System.getProperty("AWS_ACCESS_KEY_ID"))
-				&& (null != System.getProperty("AWS_SECRET_KEY"))) {
+		if ((null != StackConfiguration.getIAMUserId()) 
+				&& (null != StackConfiguration.getIAMUserKey())) {
 			// Dev Note: these particular environment variable names are what
 			// Elastic Beanstalk supports for passing creds via environment
 			// properties
 			// https://forums.aws.amazon.com/thread.jspa?messageID=217139&#217139
-			iamCanCreateUserCredsAccessId = System
-					.getProperty("AWS_ACCESS_KEY_ID");
-			iamCanCreateUserCredsSecretKey = System
-					.getProperty("AWS_SECRET_KEY");
+			iamCanCreateUserCredsAccessId = StackConfiguration.getIAMUserId();
+			iamCanCreateUserCredsSecretKey = StackConfiguration.getIAMUserKey();
 		}
 
 		iamCanCreateUsersCreds = new BasicAWSCredentials(
