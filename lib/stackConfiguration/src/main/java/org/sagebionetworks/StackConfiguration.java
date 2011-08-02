@@ -103,6 +103,15 @@ public class StackConfiguration {
 			propertyValue = defaultStackProperties.getProperty(propertyName);
 			log.info(propertyName+"="+propertyValue+" from default stack properties");
 		}
+		// NullPointerExceptions further downstream are not very helpful, throw here 
+		// instead.  In general folks calling methods here do not want null values, 
+		// but if they do, they can try/catch. 
+		//
+		// Also note that required properties should be checked for existence by out template 
+		// so this should only happen for optional properties that code is requesting
+		if(null == propertyValue) {
+			throw new NullPointerException("no value found in StackConfiguration for property " + propertyName);
+		}
 		return propertyValue;
 	}
 	
