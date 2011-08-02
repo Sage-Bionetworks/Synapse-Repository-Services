@@ -34,6 +34,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
  */
 public class LayerLocationMetadataProvider implements
 		TypeSpecificMetadataProvider<LayerLocation> {
+	
+	public static final String METHOD_PARAMETER = "method";
 
 	@Autowired
 	LocationHelper locationHelper;
@@ -60,12 +62,25 @@ public class LayerLocationMetadataProvider implements
 				LayerLocation.LocationTypeNames.awss3.toString())) {
 
 			if (RequestMethod.GET.name().equals(request.getMethod())) {
+
+				// See if the user wants a pre-signed GET, HEAD, or DELETE request
+				String signedPath = null;
+				String method = request.getParameter(METHOD_PARAMETER);
+				if((null != method) && (method.equals(RequestMethod.HEAD.name()))) {
+					signedPath = locationHelper.getS3HeadUrl(request
+							.getParameter(AuthUtilConstants.USER_ID_PARAM), entity
+							.getPath());					
+				}
+				else {
+					signedPath = locationHelper.getS3Url(request
+							.getParameter(AuthUtilConstants.USER_ID_PARAM), entity
+							.getPath());
+				}
+				
 				// Overwrite the path with a presigned S3 URL to use to get the
 				// data from S3
-				String signedPath = locationHelper.getS3Url(request
-						.getParameter(AuthUtilConstants.USER_ID_PARAM), entity
-						.getPath());
 				entity.setPath(signedPath);
+
 			} else if (RequestMethod.POST.name().equals(request.getMethod())
 					|| RequestMethod.PUT.name().equals(request.getMethod())) {
 				// Overwrite the path with a presigned S3 URL to use to PUT the

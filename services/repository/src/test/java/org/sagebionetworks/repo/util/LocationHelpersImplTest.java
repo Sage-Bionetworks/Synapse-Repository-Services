@@ -27,6 +27,7 @@ public class LocationHelpersImplTest {
 	@Autowired
 	LocationHelper helper;
 
+	public static final String INTEGRATION_TEST_READ_ONLY_USER_ID = "integration.test@sagebase.org";
 	private static final Logger log = Logger
 			.getLogger(LocationHelpersImplTest.class.getName());
 
@@ -55,7 +56,7 @@ public class LocationHelpersImplTest {
 	public void testCreateS3Url() throws Exception {
 
 		String url = helper.createS3Url(
-				LocationHelpersImpl.INTEGRATION_TEST_READ_ONLY_USER_ID,
+				INTEGRATION_TEST_READ_ONLY_USER_ID,
 				"/test/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz",
 				"33183779e53ce0cfc35f59cc2a762cbd");
 
@@ -83,7 +84,7 @@ public class LocationHelpersImplTest {
 	public void testGetS3Url() throws Exception {
 
 		String url = helper.getS3Url(
-				LocationHelpersImpl.INTEGRATION_TEST_READ_ONLY_USER_ID,
+				INTEGRATION_TEST_READ_ONLY_USER_ID,
 				"/test/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
 
 		String localFilepath = "/var/tmp/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz";
@@ -92,4 +93,23 @@ public class LocationHelpersImplTest {
 		assertNotNull(url);
 	}
 
+	/**
+	 * Test method for
+	 * {@link org.sagebionetworks.repo.util.LocationHelpersImpl#getS3HeadUrl(java.lang.String, java.lang.String)}
+	 * .
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetS3HeadUrl() throws Exception {
+
+		String url = helper.getS3HeadUrl(
+				INTEGRATION_TEST_READ_ONLY_USER_ID,
+				"/test/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
+
+		String localFilepath = "/var/tmp/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz";
+		log.info("curl -v -o " + localFilepath + " '" + url + "'");
+
+		assertNotNull(url);
+	}
 }

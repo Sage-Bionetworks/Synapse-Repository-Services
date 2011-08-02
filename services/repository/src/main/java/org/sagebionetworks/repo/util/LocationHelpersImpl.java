@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.util;
 
 import java.net.URLEncoder;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -15,7 +13,6 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.UserCredentials;
 import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +33,7 @@ import com.amazonaws.services.identitymanagement.model.NoSuchEntityException;
  * This utility class holds methods for dealing with pre-signed S3 urls and IAM
  * users and groups for AWS authentication and authorization. Note that Synapse
  * authentication and authorization is layered *on* *top* of this and should be
- * checked either here or at a higher layer in the code.
+ * checked at a higher layer in the code.
  * 
  * @author deflaux
  * 
@@ -46,57 +43,84 @@ public class LocationHelpersImpl implements LocationHelper {
 	@Autowired
 	UserDAO userDAO;
 
-	/**
-	 * A user for use in integration tests
-	 */
-	public static final String INTEGRATION_TEST_READ_ONLY_USER_ID = "integration.test@sagebase.org";
-
-	private static final int EXPIRES_MINUTES = 24 * 60; // 1 day
-	private static final String S3_BUCKET = StackConfiguration.getS3Bucket();
+	private static final int READ_ACCESS_EXPIRY_MINUTES = StackConfiguration
+			.getS3ReadAccessExpiryMinutes();
+	private static final int WRITE_ACCESS_EXPIRY_MINUTES = StackConfiguration
+			.getS3WriteAccessExpiryMinutes();
 	private static final String S3_DOMAIN = "s3.amazonaws.com";
 	private static final String UPLOAD_APPLICATION_TYPE = "application/binary";
-	private static final String S3_IAM_GROUP = StackConfiguration.getS3IamGroup();
+	private static final String S3_BUCKET = StackConfiguration.getS3Bucket();
 	private static final String CORRECT_DOMAIN = S3_DOMAIN + "/" + S3_BUCKET;
-	private static final Pattern INCORRECT_DOMAIN = Pattern.compile(Matcher
-			.quoteReplacement(S3_BUCKET + "." + S3_DOMAIN));
+	private static final String IAM_S3_GROUP = StackConfiguration
+			.getS3IamGroup();
+	private static final String STACK = StackConfiguration.getStack();
+	private static final String IAM_USERNAME_PREFIX = STACK + "-";
+	private Boolean hasSanityBeenChecked = false;
 
 	@Autowired
 	private AmazonIdentityManagementFactory iamClientFactory;
-	
+
 	private AmazonIdentityManagement getIamClient() {
 		return iamClientFactory.getAmazonIdentityManagement();
 	}
 
 	/**
-	 * Note that the AWS libraries throw many runtime exceptions (e.g., if stuff
-	 * times out). The user should retry what ever it is they were trying to do
-	 * if they get one of those errors. Our code here should not perform the
-	 * retry, but should instead handle situations where prior operations were
-	 * only partially completed such as we created a new IAM user but we were
-	 * not able to add them to the right IAM group.
+	 * John, do you want to define an interface for classes to implement that
+	 * want to have their configuration checked upon start up?
 	 * 
-	 * TODO is this person allowed to read this file from S3?
+	 * This throws DatastoreException. It could throw another exception if that
+	 * made more sense. The most important thing is that it bubbles back to
+	 * clients as a 5XX "our fault" error instead of a 4XX "user error"
 	 * 
-	 * @param userId
-	 * @param s3key
-	 * @return a pre-signed S3 URL
-	 * @throws NotFoundException
-	 * @throws DatastoreException
 	 * @throws DatastoreException
 	 */
+	public static void validateConfiguration() throws DatastoreException {
+		if (!IAM_S3_GROUP.startsWith(STACK)) {
+			throw new DatastoreException("Invalid configuration: stack name "
+					+ STACK + " does not match IAM group name " + IAM_S3_GROUP);
+		}
+		if (!S3_BUCKET.startsWith(STACK)) {
+			throw new DatastoreException("Invalid configuration: stack name "
+					+ STACK + " does not match S3 bucket " + S3_BUCKET);
+		}
+
+	}
+
+	public void sanityCheckConfiguration() throws DatastoreException {
+		// Dev Note: this is idempotent and therefore does not need to be
+		// threadsafe
+		if (hasSanityBeenChecked) {
+			return;
+		}
+		// uncomment for PLFM-216
+		// validateConfiguration();
+		hasSanityBeenChecked = true;
+	}
+
 	@Override
 	public String getS3Url(String userId, String s3key)
+			throws DatastoreException, NotFoundException {
+		return getS3Url(userId, s3key, HttpMethod.GET);
+	}
+
+	@Override
+	public String getS3HeadUrl(String userId, String s3key)
+			throws DatastoreException, NotFoundException {
+		return getS3Url(userId, s3key, HttpMethod.HEAD);
+	}
+
+	private String getS3Url(String userId, String s3key, HttpMethod method)
 			throws DatastoreException, NotFoundException {
 
 		AWSCredentials creds = getCredentialsForUser(userId);
 
 		DateTime now = new DateTime();
-		DateTime expires = now.plusMinutes(EXPIRES_MINUTES);
+		DateTime expires = now.plusMinutes(READ_ACCESS_EXPIRY_MINUTES);
 		String expirationInSeconds = Long.toString(expires.getMillis() / 1000L);
 
 		// Formulate the canonical string to sign
 		StringBuilder buf = new StringBuilder();
-		buf.append(HttpMethod.GET.name()).append("\n");
+		buf.append(method.name()).append("\n");
 		buf.append("\n"); // no md5 for a GET
 		buf.append("\n"); // no content-type for a GET
 		buf.append(expirationInSeconds + "\n");
@@ -108,18 +132,9 @@ public class LocationHelpersImpl implements LocationHelper {
 	/**
 	 * Create presigned S3 PUT URLs
 	 * 
-	 * This is a massive pain in the butt, you have to get it just right or else
-	 * it just fails. Also md5 checks and custom x-amz headers are not supported
-	 * by the AWS Java SDK so I had to implement signing from scratch. Details
-	 * here:
+	 * MD5 checks and custom x-amz headers are not supported by the AWS Java SDK
+	 * so I had to implement signing from scratch. Details here:
 	 * http://s3.amazonaws.com/doc/s3-developer-guide/RESTAuthentication.html
-	 * 
-	 * TODO is this person allowed to write this file to S3?
-	 * 
-	 * TODO is this person in the right IAM group?
-	 * 
-	 * TODO do we want separate expiry for read versus write presigned URLs?
-	 * 
 	 */
 	@Override
 	public String createS3Url(String userId, String s3key, String md5)
@@ -143,7 +158,7 @@ public class LocationHelpersImpl implements LocationHelper {
 
 		// Compute our expires time for this URL
 		DateTime now = new DateTime();
-		DateTime expires = now.plusMinutes(EXPIRES_MINUTES);
+		DateTime expires = now.plusMinutes(WRITE_ACCESS_EXPIRY_MINUTES);
 		String expirationInSeconds = Long.toString(expires.getMillis() / 1000L);
 
 		// Formulate the canonical string to sign
@@ -163,23 +178,25 @@ public class LocationHelpersImpl implements LocationHelper {
 	 * http://s3.amazonaws.com/doc/s3-developer-guide/RESTAuthentication.html
 	 * Computes RFC 2104-compliant HMAC signature.
 	 */
-	private String sign(String data, AWSCredentials creds, String s3key, String expirationInSeconds) throws DatastoreException {
+	private String sign(String data, AWSCredentials creds, String s3key,
+			String expirationInSeconds) throws DatastoreException {
 
 		String signature;
 		try {
 			Mac mac = Mac.getInstance(SigningAlgorithm.HmacSHA1.toString());
-			mac.init(new SecretKeySpec(creds.getAWSSecretKey().getBytes(), SigningAlgorithm.HmacSHA1.toString()));
-			byte[] sig = Base64.encodeBase64(mac.doFinal(data
-					.getBytes("UTF-8")));
+			mac.init(new SecretKeySpec(creds.getAWSSecretKey().getBytes(),
+					SigningAlgorithm.HmacSHA1.toString()));
+			byte[] sig = Base64.encodeBase64(mac
+					.doFinal(data.getBytes("UTF-8")));
 			signature = URLEncoder.encode(new String(sig), ("UTF-8"));
 		} catch (Exception e) {
 			throw new DatastoreException("Failed to generate signature: "
 					+ e.getMessage(), e);
 		}
-		
+
 		StringBuilder presignedUrl = new StringBuilder();
-		presignedUrl.append("https://").append(CORRECT_DOMAIN).append(
-				s3key).append("?");
+		presignedUrl.append("https://").append(CORRECT_DOMAIN).append(s3key)
+				.append("?");
 		presignedUrl.append("Expires").append("=").append(expirationInSeconds)
 				.append("&");
 		presignedUrl.append("AWSAccessKeyId").append("=").append(
@@ -188,39 +205,57 @@ public class LocationHelpersImpl implements LocationHelper {
 
 		return presignedUrl.toString();
 	}
-	
+
 	private AWSCredentials getCredentialsForUser(String userId)
 			throws DatastoreException, NotFoundException {
 
-		// Check whether we already have credentials stored for this user and
-		// return them if we do
-		User user = userDAO.getUser(userId);
-		UserCredentials storedCreds = new UserCredentials(userId, user
-				.getIamAccessId(), user.getIamSecretKey(), user
-				.getCreationDate());
+		// Configuration is checked upon startup, we are being extra safe here
+		// by re-validating our "contract" with the configuration system to
+		// check that our invariates hold true
+		sanityCheckConfiguration();
 
-		if (null != storedCreds.getIamAccessId()
-				&& null != storedCreds.getIamSecretKey()) {
-			return new BasicAWSCredentials(storedCreds.getIamAccessId(),
-					storedCreds.getIamSecretKey());
+		// Append the stack name to the IAM username for prod vs. test isolation
+		// since we cannot ensure that folks do not use the same user name on
+		// various stacks.
+		String iamUserId = IAM_USERNAME_PREFIX + userId;
+
+		// TODO note that we have two instances of Crowd but N stacks. It would
+		// be better to have one Crowd per stack. If that really is not doable,
+		// we may need to make multiple slots for AWS credentials in the User
+		// model object stored in crowd.
+
+		// Check whether we already have IAM credentials stored for this user
+		// and return them if we do
+		User user = userDAO.getUser(userId);
+		if (null != user.getIamAccessId() && null != user.getIamSecretKey()) {
+			
+			/** uncomment for PLFM-216
+			if (!iamUserId.equals(user.getIamUserId())) {
+				throw new DatastoreException("IAM username " + iamUserId
+						+ " does not match the one stored in Crowd "
+						+ user.getIamUserId());
+			}
+			**/
+			return new BasicAWSCredentials(user.getIamAccessId(), user
+					.getIamSecretKey());
 		}
 
 		// Make a new IAM user, if needed
 		try {
 			GetUserRequest request = new GetUserRequest();
 			// If we can get the user, then we know the IAM user exists
-			getIamClient().getUser(request.withUserName(userId));
+			getIamClient().getUser(request.withUserName(iamUserId));
 		} catch (NoSuchEntityException ex) {
 			// We need to make a new IAM user
 			CreateUserRequest request = new CreateUserRequest();
-			getIamClient().createUser(request.withUserName(userId));
+			getIamClient().createUser(request.withUserName(iamUserId));
 		}
 
 		// Add the user to the right IAM group (even if they were already added
 		// previously, this should be okay)
 		AddUserToGroupRequest groupRequest = new AddUserToGroupRequest();
-		groupRequest.setGroupName(S3_IAM_GROUP);
-		groupRequest.setUserName(userId);
+		groupRequest.setGroupName(IAM_S3_GROUP);
+		groupRequest.setUserName(iamUserId);
 		getIamClient().addUserToGroup(groupRequest);
 
 		// Dev Note: if we make mistakes and somehow fail
@@ -233,16 +268,15 @@ public class LocationHelpersImpl implements LocationHelper {
 
 		// Make new credentials
 		CreateAccessKeyRequest request = new CreateAccessKeyRequest();
-		CreateAccessKeyResult result = getIamClient().createAccessKey(request
-				.withUserName(userId));
+		CreateAccessKeyResult result = getIamClient().createAccessKey(
+				request.withUserName(iamUserId));
 
 		// And store them
-		storedCreds.setIamAccessId(result.getAccessKey().getAccessKeyId());
-		storedCreds.setIamSecretKey(result.getAccessKey().getSecretAccessKey());
 		try {
 			user = userDAO.getUser(userId);
-			user.setIamAccessId(storedCreds.getIamAccessId());
-			user.setIamSecretKey(storedCreds.getIamSecretKey());
+			user.setIamUserId(iamUserId);
+			user.setIamAccessId(result.getAccessKey().getAccessKeyId());
+			user.setIamSecretKey(result.getAccessKey().getSecretAccessKey());
 			userDAO.update(user);
 		} catch (InvalidModelException e) {
 			// This should not happen but if it does it is our error, not the
@@ -256,16 +290,16 @@ public class LocationHelpersImpl implements LocationHelper {
 			throw new DatastoreException(e);
 		}
 
-		return new BasicAWSCredentials(storedCreds.getIamAccessId(),
-				storedCreds.getIamSecretKey());
+		return new BasicAWSCredentials(user.getIamAccessId(), user
+				.getIamSecretKey());
 	}
 
-	public static void main (String args[]) throws Exception {
+	public static void main(String args[]) throws Exception {
 		// TODO find a more direct way to go from hex to base64
 		byte[] encoded = Base64.encodeBase64(Hex.decodeHex(args[0]
 				.toCharArray()));
 		String base64Md5 = new String(encoded, "ASCII");
 		System.out.println(args[0] + " base64 encoded= " + base64Md5);
 	}
-	
+
 }

@@ -285,6 +285,15 @@ public class Helpers {
 	 * @throws Exception
 	 */
 	public JSONObject testGetJsonEntity(String requestUrl) throws Exception {
+		return testGetJsonEntity(requestUrl, null);
+	}
+
+	/**
+	 * @param requestUrl
+	 * @return the jsonRequestContent object holding the entity
+	 * @throws Exception
+	 */
+	public JSONObject testGetJsonEntity(String requestUrl, Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -292,6 +301,11 @@ public class Helpers {
 		request.setRequestURI(requestUrl);
 		if (null != userId)
 			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		if (null != extraParams) {
+			for(Map.Entry<String, String> param : extraParams.entrySet()) {
+				request.setParameter(param.getKey(), param.getValue());
+			}
+		}
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals("helper-servletprefix=" + getServletPrefix()

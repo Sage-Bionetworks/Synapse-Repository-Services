@@ -5,6 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -13,10 +16,12 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.LayerLocation;
 import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.web.controller.metadata.LayerLocationMetadataProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 /**
  * Unit tests for the Location CRUD operations exposed by the LocationController
@@ -159,13 +164,23 @@ public class LocationControllerTest {
 				.getServletPrefix()
 				+ "/location", layerS3Location.toString());
 
+		// GET method
 		JSONObject s3Location = helper.testGetJsonEntity(newS3Location
 				.getString("uri"));
 		assertEquals(newS3Location.getString("id"), s3Location.getString("id"));
 		assertEquals("awss3", s3Location.getString("type"));
 		assertEquals("33183779e53ce0cfc35f59cc2a762cbd", s3Location
 				.getString("md5sum"));
-
+		// HEAD method
+		Map<String,String> extraParams = new HashMap<String, String>();
+		extraParams.put(LayerLocationMetadataProvider.METHOD_PARAMETER, RequestMethod.HEAD.name());
+		JSONObject s3HeadLocation = helper.testGetJsonEntity(newS3Location
+				.getString("uri"), extraParams);
+		assertEquals(newS3Location.getString("id"), s3HeadLocation.getString("id"));
+		assertEquals("awss3", s3HeadLocation.getString("type"));
+		assertEquals("33183779e53ce0cfc35f59cc2a762cbd", s3HeadLocation
+				.getString("md5sum"));
+		
 		assertExpectedLocationProperties(s3Location);
 
 		JSONObject storedLayer = helper.testGetJsonEntity(layer
