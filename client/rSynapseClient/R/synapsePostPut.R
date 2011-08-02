@@ -23,8 +23,11 @@
 	## Prepare the header. If not an anonymous request, stuff the
 	## sessionToken into the header
 	header <- .getCache("curlHeader")
-	if(!anonymous && !is.null(sessionToken())){
-		header <- c(header, sessionToken = sessionToken())
+	if(!anonymous) {
+		sessionToken = 	sessionToken()
+		if(!is.null(sessionToken)) {
+			header <- c(header, sessionToken = sessionToken)
+		}
 	}
 	if("PUT" == requestMethod) {
 		# Add the ETag header

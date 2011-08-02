@@ -15,10 +15,11 @@ synapseLogin <-
 	
 	## Login and check for success
 	response <- synapsePost(uri = kService, 
-					entity = entity, 
-					host = host, 
-					path = path,
-				)
+			entity = entity, 
+			host = host, 
+			path = path,
+			anonymous = TRUE
+	)
 	
 	## Cache the sessionToken. No need to check validity since it was just created
 	sessionToken(response$sessionToken, checkValidity=FALSE)

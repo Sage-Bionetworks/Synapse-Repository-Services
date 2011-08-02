@@ -2,7 +2,6 @@ sessionToken <-
 		function(sessionToken, checkValidity=FALSE, refreshDuration = .getCache("sessionRefreshDurationMin"))
 {
 	if (!missing(sessionToken)) {
-		if(is.null(sessionToken)) sessionToken <- ""
 		if(checkValidity){
 			refreshSessionToken(sessionToken)
 		}
@@ -10,8 +9,9 @@ sessionToken <-
 	} else {
 		# This could be null if the user has not logged in, but that's ok
 		sessionToken <-	.getCache("sessionToken")
-		if(is.null(sessionToken))
-			sessionToken <- ""
+		if(is.null(sessionToken)) {
+			stop("please log into Synapse")
+		}
 		# Refresh sessionToken as applicable
 		if(checkValidity) {
 			refreshSessionToken(sessionToken)
