@@ -9,6 +9,7 @@ import java.util.Map;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -16,65 +17,60 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOAccessControlList;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
+import org.springframework.orm.jdo.JdoTemplate;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional(readOnly = true)
-public class JDOAccessControlListDAOImpl extends JDOBaseDAOImpl<AccessControlList, JDOAccessControlList> implements AccessControlListDAO {
+public class JDOAccessControlListDAOImpl implements AccessControlListDAO {
+	
+	@Autowired
+	private UserGroupCache userGroupCache;
+	
+	@Autowired
+	JdoTemplate jdoTemplate;
 
 	/**
 	 * Find the access control list for the given resource
 	 * @throws DatastoreException 
+	 * @throws NotFoundException 
 	 */
-	@Transactional
-	public AccessControlList getForResource(String rId) throws DatastoreException {
-		JDOExecutor exec = new JDOExecutor(jdoTemplate);
-		List<JDOAccessControlList> result = exec.execute(JDOAccessControlList.class,
-				"resource.id==pResourceId",
-				Long.class.getName()+" pResourceId",
-				null,
-				KeyFactory.stringToKey(rId));
-		if (result.size()==0) return null;
-		if (result.size()>1) throw new DatastoreException("Expected 0-1 but found "+result.size());
-		JDOAccessControlList jdo = result.iterator().next();
-		AccessControlList dto = newDTO();
-		copyToDto(jdo, dto);
-		return dto;
+	@Transactional(readOnly = true)
+	public AccessControlList getForResource(String rId) throws DatastoreException, NotFoundException {
+		return get(rId);
 	}
 	
-	@Override
 	AccessControlList newDTO() {
 		AccessControlList dto = new AccessControlList();
 		dto.setResourceAccess(new HashSet<ResourceAccess>());
 		return dto;
 	}
 
-	@Override
 	JDOAccessControlList newJDO() {
 		JDOAccessControlList jdo = new JDOAccessControlList();
 		jdo.setResourceAccess(new HashSet<JDOResourceAccess>());
 		return jdo;
 	}
 
-	@Override
-	void copyToDto(JDOAccessControlList jdo, AccessControlList dto)
+	void copyToDto(JDOAccessControlList jdo, String eTag, AccessControlList dto)
 			throws DatastoreException {
-		AccessControlListUtil.updateDtoFromJdo(jdo, dto);
+		AccessControlListUtil.updateDtoFromJdo(jdo, dto, eTag, userGroupCache);
 	}
 
-	@Override
 	void copyFromDto(AccessControlList dto, JDOAccessControlList jdo)
 			throws InvalidModelException, DatastoreException {
-		if(dto.getResourceId() == null) throw new InvalidModelException("Cannot set a ResourceAccess owner to null");
-		JDONode owner = jdoTemplate.getObjectById(JDONode.class, KeyFactory.stringToKey(dto.getResourceId()));
-		AccessControlListUtil.updateJdoFromDto(jdo, dto, owner);
+		if(dto.getId() == null) throw new InvalidModelException("Cannot set a ResourceAccess owner to null");
+		JDONode owner = jdoTemplate.getObjectById(JDONode.class, KeyFactory.stringToKey(dto.getId()));
+		AccessControlListUtil.updateJdoFromDto(jdo, dto, owner, userGroupCache);
 	}
 
-	@Override
 	Class<JDOAccessControlList> getJdoClass() {
 		return JDOAccessControlList.class;
 	}
 	
-	@Override
 	String defaultSortField() {
 		return "id";
 	}
@@ -84,7 +80,7 @@ public class JDOAccessControlListDAOImpl extends JDOBaseDAOImpl<AccessControlLis
 	/**
 	 * @return true iff some group in 'groups' has explicit permission to access 'resourceId' using access type 'accessType'
 	 */
-	@Transactional
+	@Transactional(readOnly = true)
 	public boolean canAccess(Collection<UserGroup> groups, 
 			String resourceId, 
 			AuthorizationConstants.ACCESS_TYPE accessType) throws DatastoreException {
@@ -125,7 +121,7 @@ public class JDOAccessControlListDAOImpl extends JDOBaseDAOImpl<AccessControlLis
 	}
 	
 
-	@Transactional
+	@Transactional(readOnly = true)
 	public Collection<Object> execAuthorizationSQL(Collection<Long> groupIds, AuthorizationConstants.ACCESS_TYPE type) {
 		JDOExecutor exec = new JDOExecutor(jdoTemplate);
 //		System.out.println(authorizationSQL(groupIds.size()));
@@ -136,6 +132,48 @@ public class JDOAccessControlListDAOImpl extends JDOBaseDAOImpl<AccessControlLis
 		}
 		parameters.put("type", type.name());
 		return exec.executeSingleCol(authorizationSQL(groupIds.size()), parameters);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public String create(AccessControlList dto) throws DatastoreException,
+			InvalidModelException {
+		// Create a jdo
+		JDOAccessControlList jdo = newJDO();
+		copyFromDto(dto, jdo);
+		// Save it
+		jdo = jdoTemplate.makePersistent(jdo);
+		return KeyFactory.keyToString(jdo.getId());
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public AccessControlList get(String id) throws DatastoreException,
+			NotFoundException {
+		try{
+			JDOAccessControlList jdo = jdoTemplate.getObjectById(JDOAccessControlList.class, KeyFactory.stringToKey(id));
+			AccessControlList dto = newDTO();
+			copyToDto(jdo, KeyFactory.keyToString(jdo.getResource().geteTag()), dto);
+			return dto;
+		}catch (JdoObjectRetrievalFailureException e){
+			throw new NotFoundException("Cannot find an ACL with ID = "+id);
+		}
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void update(AccessControlList dto) throws DatastoreException,
+			InvalidModelException, NotFoundException,
+			ConflictingUpdateException {
+		JDOAccessControlList jdo = jdoTemplate.getObjectById(JDOAccessControlList.class, KeyFactory.stringToKey(dto.getId()));
+		copyFromDto(dto, jdo);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void delete(String id) throws DatastoreException, NotFoundException {
+		JDOAccessControlList jdo = jdoTemplate.getObjectById(JDOAccessControlList.class, KeyFactory.stringToKey(id));
+		jdoTemplate.deletePersistent(jdo);
 	}
 
 }

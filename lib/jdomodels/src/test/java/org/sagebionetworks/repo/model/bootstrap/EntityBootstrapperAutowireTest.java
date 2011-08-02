@@ -33,18 +33,6 @@ public class EntityBootstrapperAutowireTest {
 	@Autowired
 	NodeInheritanceDAO nodeInheritanceDao;
 	
-	@Test
-	public void testBuildGroupMap() throws DatastoreException{
-		Map<DEFAULT_GROUPS, String> map = entityBootstrapper.buildGroupMap();
-		assertNotNull(map);
-		assertEquals(DEFAULT_GROUPS.values().length, map.size());
-		 DEFAULT_GROUPS[] array = DEFAULT_GROUPS.values();
-		 for(DEFAULT_GROUPS group: array){
-			 String id = map.get(group);
-			 // There should be an id for each group.
-			 assertNotNull(id);
-		 }
-	}
 	
 	@Test
 	public void testBootstrap() throws DatastoreException, NotFoundException{

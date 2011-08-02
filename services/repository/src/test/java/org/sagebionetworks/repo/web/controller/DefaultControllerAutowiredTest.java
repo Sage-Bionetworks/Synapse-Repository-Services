@@ -151,7 +151,10 @@ public class DefaultControllerAutowiredTest {
 		toDelete.add(clone.getId());
 		AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, Project.class, clone.getId(), userName);
 		assertNotNull(acl);
-		ServletTestHelper.updateEntityAcl(dispatchServlet, Project.class, acl, userName);
+		assertNotNull(acl.getUri());
+		acl = ServletTestHelper.updateEntityAcl(dispatchServlet, Project.class, acl, userName);
+		assertNotNull(acl);
+		assertNotNull(acl.getUri());
 	}
 	
 	@Test
@@ -174,20 +177,21 @@ public class DefaultControllerAutowiredTest {
 		AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, Dataset.class, dsClone.getId(), userName);
 		assertNotNull(acl);
 		// the returned ACL should refer to the parent
-		assertEquals(clone.getId(), acl.getResourceId());
+		assertEquals(clone.getId(), acl.getId());
+		assertNotNull(acl.getUri());
 		
 		// now switch to child
-		acl.setResourceId(dsClone.getId());
-		acl.setId(null);
+		acl.setId(dsClone.getId());
 		AccessControlList childAcl = new AccessControlList();
-		childAcl.setResourceId(dsClone.getId());
+		childAcl.setId(dsClone.getId());
 		childAcl.setResourceAccess(new HashSet<ResourceAccess>());
 		// (Is this OK, or do we have to make new ResourceAccess objects inside?)
 		// now POST to /dataset/{id}/acl with this acl as the body
 		AccessControlList acl2 = ServletTestHelper.createEntityACL(dispatchServlet, Dataset.class, childAcl, userName);
+		assertNotNull(acl2.getUri());
 		// now retrieve the acl for the child. should get its own back
 		AccessControlList acl3 = ServletTestHelper.getEntityACL(dispatchServlet, Dataset.class, dsClone.getId(), userName);
-		assertEquals(dsClone.getId(), acl3.getResourceId());
+		assertEquals(dsClone.getId(), acl3.getId());
 		
 		
 		// now delete the ACL (restore inheritance)
@@ -198,7 +202,7 @@ public class DefaultControllerAutowiredTest {
 		AccessControlList acl4 = ServletTestHelper.getEntityACL(dispatchServlet, Dataset.class, dsClone.getId(), userName);
 		assertNotNull(acl4);
 		// the returned ACL should refer to the parent
-		assertEquals(clone.getId(), acl4.getResourceId());
+		assertEquals(clone.getId(), acl4.getId());
 	}
 	
 	@Test

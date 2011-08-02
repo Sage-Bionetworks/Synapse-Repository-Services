@@ -14,7 +14,7 @@ public class AuthorizationSqlUtil {
 		SqlConstants.TABLE_RESOURCE_ACCESS+" ra, "+
 		SqlConstants.TABLE_RESOURCE_ACCESS_TYPE+" at where ra."+
 		SqlConstants.COL_RESOURCE_ACCESS_OWNER+
-		"=acl."+SqlConstants.COL_ACL_ID+" and (ra."+SqlConstants.COL_USER_GROUP_ID+
+		"=acl."+SqlConstants.COL_ACL_ID+" and (ra."+SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID+
 		" in (";
 
 	/**

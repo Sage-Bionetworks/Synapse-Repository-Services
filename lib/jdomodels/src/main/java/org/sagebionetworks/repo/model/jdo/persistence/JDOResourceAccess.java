@@ -26,7 +26,7 @@ public class JDOResourceAccess {
 	private JDOAccessControlList owner;
 	
 	@Persistent
-	@Column(name=SqlConstants.COL_USER_GROUP_ID)
+	@Column(name=SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID)
 //	@ForeignKey(name="RESOURCE_ACCESS_USER_GROUP_FK", deleteAction=ForeignKeyAction.NONE)
 	private long userGroupId;
 				

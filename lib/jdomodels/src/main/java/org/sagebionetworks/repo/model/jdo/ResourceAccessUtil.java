@@ -19,11 +19,11 @@ public class ResourceAccessUtil {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException 
 	 */
-	public static JDOResourceAccess createJdoFromDto(ResourceAccess dto) throws DatastoreException, InvalidModelException{
+	public static JDOResourceAccess createJdoFromDto(ResourceAccess dto, Long groupId) throws DatastoreException, InvalidModelException{
 		// Create a new JDO
 		JDOResourceAccess jdo = new JDOResourceAccess();
 		jdo.setAccessType(new HashSet<String>());
-		updateJdoFromDto(jdo, dto);
+		updateJdoFromDto(jdo, dto, groupId);
 		return jdo;
 	}
 	
@@ -34,9 +34,9 @@ public class ResourceAccessUtil {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException 
 	 */
-	public static void updateJdoFromDto(JDOResourceAccess jdo, ResourceAccess dto) throws DatastoreException, InvalidModelException{
-		if(dto.getUserGroupId() == null) throw new InvalidModelException("UserGroup id cannot be null");
-		jdo.setUserGroupId(KeyFactory.stringToKey(dto.getUserGroupId()));
+	public static void updateJdoFromDto(JDOResourceAccess jdo, ResourceAccess dto, Long groupId) throws DatastoreException, InvalidModelException{
+		if(dto.getGroupName() == null) throw new InvalidModelException("UserGroup id cannot be null");
+		jdo.setUserGroupId(groupId);
 		Set<String> jdoAccessTypes = new HashSet<String>();
 		if(dto.getAccessType() != null){
 			for (AuthorizationConstants.ACCESS_TYPE jdoAccessType : dto.getAccessType()) {
@@ -44,7 +44,6 @@ public class ResourceAccessUtil {
 			}			
 		}
 		jdo.setAccessType(jdoAccessTypes);
-		jdo.setId(dto.getId() == null ? null :KeyFactory.stringToKey(dto.getId()));
 	}
 	
 	/**
@@ -53,11 +52,10 @@ public class ResourceAccessUtil {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public static ResourceAccess createDtoFromJdo(JDOResourceAccess jdo) throws DatastoreException{
+	public static ResourceAccess createDtoFromJdo(JDOResourceAccess jdo, String groupName) throws DatastoreException{
 		ResourceAccess dto = new ResourceAccess();
 		dto.setAccessType(new HashSet<ACCESS_TYPE>());
-		dto.setUserGroupId(KeyFactory.keyToString(jdo.getUserGroupId()));
-		dto.setId(jdo.getId() == null ? null : KeyFactory.keyToString(jdo.getId()));
+		dto.setGroupName(groupName);
 		for(String typeString: jdo.getAccessType()){
 			dto.getAccessType().add(ACCESS_TYPE.valueOf(typeString));
 		}

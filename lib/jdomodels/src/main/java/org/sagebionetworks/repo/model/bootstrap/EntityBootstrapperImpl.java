@@ -12,14 +12,11 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,7 +50,6 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 		nodeDao.boostrapAllNodeTypes();
 		pathMap = Collections.synchronizedMap(new HashMap<String, EntityBootstrapData>());
 		// Map the default users to their ids
-		 Map<DEFAULT_GROUPS, String> groupIdMap = buildGroupMap();
 		// Now create a node for each type in the list
 		for(EntityBootstrapData entityBoot: bootstrapEntities){
 			// Only add this node if it does not already exists
@@ -88,27 +84,12 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 			toCreate.setVersionComment(NodeConstants.DEFAULT_VERSION_LABEL);
 			String nodeId = nodeDao.createNew(toCreate);
 			// Now create the ACL on the node
-			AccessControlList acl = createAcl(nodeId, entityBoot.getAccessList(), groupIdMap);
+			AccessControlList acl = createAcl(nodeId, entityBoot.getAccessList());
 			// Now set the ACL for this node.
 			accessControlListDAO.create(acl);
 			nodeInheritanceDao.addBeneficiary(nodeId, nodeId);
 		}
 	}
-	
-	/**
-	 * Build up a map of group IDs for each group.
-	 */
-	public Map<DEFAULT_GROUPS, String> buildGroupMap() throws DatastoreException{
-		 Map<DEFAULT_GROUPS, String> groupIdMap = new HashMap<DEFAULT_GROUPS, String>();
-		 // Look up each group
-		 DEFAULT_GROUPS[] array = DEFAULT_GROUPS.values();
-		 for(DEFAULT_GROUPS group: array){
-			 UserGroup ug = userGroupDAO.findGroup(group.name(), false);
-			 groupIdMap.put(group, ug.getId());
-		 }
-		 return groupIdMap;
-	}
-
 
 	@Override
 	public List<EntityBootstrapData> getBootstrapEntities() {
@@ -144,12 +125,12 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 	 * @param groupIdMap
 	 * @return
 	 */
-	public static AccessControlList createAcl(String nodeId, List<AccessBootstrapData> list, Map<DEFAULT_GROUPS, String> groupIdMap){
+	public static AccessControlList createAcl(String nodeId, List<AccessBootstrapData> list){
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		AccessControlList acl = new AccessControlList();
 		acl.setCreatedBy(NodeConstants.BOOTSTRAP_USERNAME);
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
-		acl.setResourceId(nodeId);
+		acl.setId(nodeId);
 		acl.setModifiedBy(acl.getCreatedBy());
 		acl.setModifiedOn(acl.getCreationDate());
 		Set<ResourceAccess> set = new HashSet<ResourceAccess>();
@@ -161,7 +142,7 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 			set.add(access);
 			Set<ACCESS_TYPE> typeSet = new HashSet<ACCESS_TYPE>();
 			access.setAccessType(typeSet);
-			access.setUserGroupId(groupIdMap.get(data.getGroup()));
+			access.setGroupName(data.getGroup().name());
 			// Add each type to the set
 			List<ACCESS_TYPE> types = data.getAccessTypeList();
 			for(ACCESS_TYPE type: types){

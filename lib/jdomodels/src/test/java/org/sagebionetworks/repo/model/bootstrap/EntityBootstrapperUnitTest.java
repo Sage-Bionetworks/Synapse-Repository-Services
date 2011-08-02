@@ -60,14 +60,11 @@ public class EntityBootstrapperUnitTest {
 		list.add(data);
 		
 		String nodeId = "101";
-		Map<DEFAULT_GROUPS, String> map = new HashMap<DEFAULT_GROUPS, String>();
-		map.put(DEFAULT_GROUPS.AUTHENTICATED_USERS, "99");
-		map.put(DEFAULT_GROUPS.PUBLIC, "25");
 		
 		// Now create the ACL
-		AccessControlList acl = EntityBootstrapperImpl.createAcl(nodeId, list, map);
+		AccessControlList acl = EntityBootstrapperImpl.createAcl(nodeId, list);
 		assertNotNull(acl);
-		assertEquals(nodeId, acl.getResourceId());
+		assertEquals(nodeId, acl.getId());
 		assertNotNull(acl.getResourceAccess());
 		assertEquals(2, acl.getResourceAccess().size());
 		Iterator<ResourceAccess> it = acl.getResourceAccess().iterator();
@@ -75,9 +72,9 @@ public class EntityBootstrapperUnitTest {
 		ResourceAccess publicRa = null;
 		while(it.hasNext()){
 			ResourceAccess ra = it.next();
-			if("99".equals(ra.getUserGroupId())){
+			if(DEFAULT_GROUPS.AUTHENTICATED_USERS.name().equals(ra.getGroupName())){
 				authRa = ra;
-			}else if("25".equals(ra.getUserGroupId())){
+			}else if(DEFAULT_GROUPS.PUBLIC.name().equals(ra.getGroupName())){
 				publicRa = ra;
 			}
 		}

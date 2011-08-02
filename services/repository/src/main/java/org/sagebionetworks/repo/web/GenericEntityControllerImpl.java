@@ -474,16 +474,16 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException 
+	 * @throws ConflictingUpdateException 
 	 */
 	@Override
 	public <T extends Base> AccessControlList createEntityACL(String userId, AccessControlList newACL,
 			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException,
-			InvalidModelException, UnauthorizedException, NotFoundException {
+			InvalidModelException, UnauthorizedException, NotFoundException, ConflictingUpdateException {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);		
 		AccessControlList acl = permissionsManager.overrideInheritance(newACL, userInfo);
 		acl.setUri(request.getRequestURI());
-
 		return acl;
 	}
 
@@ -504,10 +504,12 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 
 	@Override
 	public AccessControlList updateEntityACL(String userId,
-			AccessControlList updated) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
+			AccessControlList updated, HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		// Resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return permissionsManager.updateACL(updated, userInfo);
+		AccessControlList acl = permissionsManager.updateACL(updated, userInfo);
+		acl.setUri(request.getRequestURI());
+		return acl;
 	}
 
 	/**
@@ -519,10 +521,11 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
+	 * @throws ConflictingUpdateException 
 	 */
 	@Override
 	public  void deleteEntityACL(String userId, String id)
-			throws NotFoundException, DatastoreException, UnauthorizedException {
+			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		permissionsManager.restoreInheritance(id, userInfo);
 	}

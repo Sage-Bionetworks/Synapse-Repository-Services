@@ -141,11 +141,9 @@ public class DefaultControllerAutowiredAllTypesTest {
 		// Create a dataset
 		Dataset datasetParent = (Dataset) ObjectTypeFactory.createObjectForTest("datasetParent", ObjectType.dataset, project.getId());
 		datasetParent = ServletTestHelper.createEntity(dispatchServlet, datasetParent, userName);
-		toDelete.add(datasetParent.getId());
 		// Create a layer parent
 		InputDataLayer layerParent = (InputDataLayer) ObjectTypeFactory.createObjectForTest("layerParent", ObjectType.layer, datasetParent.getId());
 		layerParent = ServletTestHelper.createEntity(dispatchServlet, layerParent, userName);
-		toDelete.add(layerParent.getId());
 		// Now get the path of the layer
 		List<EntityHeader> path = entityController.getEntityPath(userName, layerParent.getId());
 		
@@ -173,8 +171,11 @@ public class DefaultControllerAutowiredAllTypesTest {
 				Nodeable clone = ServletTestHelper.createEntity(dispatchServlet, object, userName);
 				assertNotNull(clone);
 				assertNotNull(clone.getId());
-				toDelete.add(clone.getId());
 				assertNotNull(clone.getEtag());
+				if(parentId == null){
+					// We need to delete any node that does not have a parent
+					toDelete.add(clone.getId());
+				}
 				
 				// Stash these for later use
 				if (ObjectType.dataset == type) {
@@ -534,22 +535,21 @@ public class DefaultControllerAutowiredAllTypesTest {
 			// The ACL should match the root of the node
 			EntityHeader rootHeader = path.get(1);
 			// the returned ACL should refer to the parent
-			assertEquals(rootHeader.getId(), acl.getResourceId());
+			assertEquals(rootHeader.getId(), acl.getId());
 			
 			// We cannot add an ACL to a node that already has one
-			if(acl.getResourceId().equals(entity.getId())){
+			if(acl.getId().equals(entity.getId())){
 				continue;
 			}
 			
 			// now switch to child
-			acl.setResourceId(entity.getId());
-			acl.setId(null);
+			acl.setId(entity.getId());
 			// (Is this OK, or do we have to make new ResourceAccess objects inside?)
 			// now POST to /dataset/{id}/acl with this acl as the body
 			AccessControlList acl2 = ServletTestHelper.createEntityACL(dispatchServlet, entity.getClass(), acl, userName);
 			// now retrieve the acl for the child. should get its own back
 			AccessControlList acl3 = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
-			assertEquals(entity.getId(), acl3.getResourceId());
+			assertEquals(entity.getId(), acl3.getId());
 			
 			
 			// now delete the ACL (restore inheritance)
@@ -560,7 +560,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 			AccessControlList acl4 = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
 			assertNotNull(acl4);
 			// the returned ACL should refer to the parent
-			assertEquals(rootHeader.getId(), acl4.getResourceId());
+			assertEquals(rootHeader.getId(), acl4.getId());
 		}
 	}
 	

@@ -19,13 +19,11 @@ import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -78,7 +76,7 @@ public class JDOAccessControlListDAOImplTest {
 		node.setNodeType(ObjectType.project.name());
 		String nodeId = nodeDAO.createNew(node);
 		assertNotNull(nodeId);
-		node.setId(nodeId);
+		node = nodeDAO.getNode(nodeId);
 		nodeList.add(node);
 		
 		// create a group to give the permissions to
@@ -97,7 +95,7 @@ public class JDOAccessControlListDAOImplTest {
 		
 		// Create an ACL for this node
 		AccessControlList acl = new AccessControlList();
-		acl.setResourceId(nodeId);
+		acl.setId(nodeId);
 		acl.setCreatedBy("someDude");
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
 		acl.setModifiedBy(acl.getCreatedBy());
@@ -107,15 +105,11 @@ public class JDOAccessControlListDAOImplTest {
 		
 		acl = accessControlListDAO.getForResource(node.getId());
 		assertNotNull(acl);
-//		acl = new AccessControlList();
-//		acl.setCreationDate(new Date());
-//		acl.setCreatedBy("me");
-//		acl.setModifiedOn(new Date());
-//		acl.setModifiedBy("you");
-//		acl.setResourceId(node.getId());
+		assertNotNull(acl.getEtag());
+		assertEquals(node.getId(), acl.getId());
 		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
 		ResourceAccess ra = new ResourceAccess();
-		ra.setUserGroupId(group.getId());
+		ra.setGroupName(group.getName());
 		ra.setAccessType(new HashSet<AuthorizationConstants.ACCESS_TYPE>(
 				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{
 						AuthorizationConstants.ACCESS_TYPE.READ
@@ -151,7 +145,7 @@ public class JDOAccessControlListDAOImplTest {
 		assertEquals(acl, aclList.iterator().next());
 	}
 
-	@Test
+	@Test (expected=NotFoundException.class)
 	public void testGetForResourceBadID() throws Exception {
 		String rid = "-598787";
 		AccessControlList acl = accessControlListDAO.getForResource(rid);
@@ -229,15 +223,6 @@ public class JDOAccessControlListDAOImplTest {
 
 
 	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.jdo.JDOBaseDAOImpl#getAll()}.
-	 */
-	@Test
-	@Ignore //PLFM-329
-	public void testGetAll() throws Exception {
-		assertEquals(aclList, accessControlListDAO.getAll());
-	}
-
-	/**
 	 * Test method for {@link org.sagebionetworks.repo.model.jdo.JDOBaseDAOImpl#update(org.sagebionetworks.repo.model.Base)}.
 	 */
 	@Test
@@ -263,29 +248,10 @@ public class JDOAccessControlListDAOImplTest {
 		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), AuthorizationConstants.ACCESS_TYPE.CREATE));
 	
 		AccessControlList acl2 = accessControlListDAO.getForResource(rid);
-		assertFalse(etagBeforeUpdate.equals(acl2.getEtag()));
+		// This test is moved to permission manager
+		//assertFalse(etagBeforeUpdate.equals(acl2.getEtag()));
 	}
 	
-	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.jdo.JDOBaseDAOImpl#update(org.sagebionetworks.repo.model.Base)}.
-	 */
-	@Test
-	public void testConcurrentUpdates() throws Exception {
-		Node node = nodeList.iterator().next();
-		String rid = node.getId();
-		
-		AccessControlList acl = accessControlListDAO.getForResource(rid);
-
-		accessControlListDAO.update(acl);
-		
-		try {
-			accessControlListDAO.update(acl);
-			fail("Expected ConflictingUpdateException");
-		} catch (ConflictingUpdateException e) {
-			// as expected
-		} 
-		
-	}
 	
 	@Test
 	public void testUpdateMultipleGroups() throws Exception {
@@ -301,7 +267,7 @@ public class JDOAccessControlListDAOImplTest {
 				})));
 		// Now add a new resource access for group 2
 		ResourceAccess ra2 = new ResourceAccess();
-		ra2.setUserGroupId(group2.getId());
+		ra2.setGroupName(group2.getName());
 		ra2.setAccessType(new HashSet<AuthorizationConstants.ACCESS_TYPE>(
 				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{
 						AuthorizationConstants.ACCESS_TYPE.READ,

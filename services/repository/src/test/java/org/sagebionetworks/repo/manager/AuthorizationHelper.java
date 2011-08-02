@@ -4,13 +4,20 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 
 public class AuthorizationHelper {
-	public static void addToACL(AccessControlList acl, UserGroup ug, ACCESS_TYPE at, AccessControlListDAO aclDAO) throws Exception {
+	/**
+	 * Helper to add an access type for a given UserGroup to an existing ACL.
+	 * @param acl
+	 * @param ug
+	 * @param at
+	 * @return
+	 * @throws Exception
+	 */
+	public static AccessControlList addToACL(AccessControlList acl, UserGroup ug, ACCESS_TYPE at) throws Exception {
 		Set<ResourceAccess> ras = null;
 		if (acl.getResourceAccess()==null) {
 			ras = new HashSet<ResourceAccess>();
@@ -20,20 +27,20 @@ public class AuthorizationHelper {
 		acl.setResourceAccess(ras);
 		ResourceAccess ra = null;
 		for (ResourceAccess r : ras) {
-			if (r.getUserGroupId()==ug.getId()) {
+			if (r.getGroupName()==ug.getName()) {
 				ra=r;
 				break;
 			}
 		}
 		if (ra==null) {
 			ra = new ResourceAccess();
-			ra.setUserGroupId(ug.getId());
+			ra.setGroupName(ug.getName());
 			Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
 			ra.setAccessType(ats);
 			ras.add(ra);
 		}
 		ra.getAccessType().add(at);
-		aclDAO.update(acl);
+		return acl;
 	}
 	
 

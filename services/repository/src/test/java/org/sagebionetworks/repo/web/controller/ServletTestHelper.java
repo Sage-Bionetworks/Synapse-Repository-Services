@@ -70,9 +70,9 @@ public class ServletTestHelper {
 		objectMapper.writeValue(out, entity);
 		String body = out.toString();
 		request.setContent(body.getBytes("UTF-8"));
-		log.info("About to send: " + body);
+		log.debug("About to send: " + body);
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.CREATED.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -103,7 +103,7 @@ public class ServletTestHelper {
 		request.setRequestURI(type.getUrlPrefix() + "/" + id);
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -132,7 +132,7 @@ public class ServletTestHelper {
 		request.setRequestURI(type.getUrlPrefix() + "/" + id+UrlHelpers.VERSION+"/"+versionNumber);
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -160,7 +160,7 @@ public class ServletTestHelper {
 		request.setRequestURI(type.getUrlPrefix() + "/" + id+UrlHelpers.ANNOTATIONS);
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -189,7 +189,7 @@ public class ServletTestHelper {
 		request.setRequestURI(type.getUrlPrefix() + "/" + id+UrlHelpers.PATH);
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -218,7 +218,7 @@ public class ServletTestHelper {
 		request.setRequestURI(type.getUrlPrefix() + "/" + id+UrlHelpers.VERSION+"/"+versionNumber+UrlHelpers.ANNOTATIONS);
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -252,7 +252,7 @@ public class ServletTestHelper {
 		String body = out.toString();
 		request.setContent(body.getBytes("UTF-8"));
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -287,7 +287,7 @@ public class ServletTestHelper {
 		String body = out.toString();
 		request.setContent(body.getBytes("UTF-8"));
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -321,7 +321,7 @@ public class ServletTestHelper {
 		String body = out.toString();
 		request.setContent(body.getBytes("UTF-8"));
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.CREATED.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -366,7 +366,7 @@ public class ServletTestHelper {
 		request.setRequestURI(type.getUrlPrefix());
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -405,7 +405,7 @@ public class ServletTestHelper {
 		request.setRequestURI(type.getUrlPrefix()+"/"+entityId+UrlHelpers.VERSION);
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -498,7 +498,7 @@ public class ServletTestHelper {
 		request.setRequestURI(url);
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -526,7 +526,7 @@ public class ServletTestHelper {
 		request.setRequestURI(type.getUrlPrefix() + "/" + id);
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.NO_CONTENT.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -553,7 +553,7 @@ public class ServletTestHelper {
 		request.setRequestURI(type.getUrlPrefix() + "/" + id+UrlHelpers.VERSION+"/"+versionNumber);
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.NO_CONTENT.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -577,7 +577,7 @@ public class ServletTestHelper {
 		request.setRequestURI(type.getUrlPrefix() + UrlHelpers.SCHEMA);
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -602,7 +602,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + entityACL.getResourceId() + UrlHelpers.ACL);
+		request.setRequestURI(type.getUrlPrefix() + "/" + entityACL.getId() + UrlHelpers.ACL);
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
@@ -610,7 +610,7 @@ public class ServletTestHelper {
 		String body = out.toString();
 		request.setContent(body.getBytes("UTF-8"));
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.CREATED.value()){
 			throw new IllegalArgumentException(response.getErrorMessage()+" "+response.getStatus()+" for\n"+body);
 		}
@@ -639,7 +639,7 @@ public class ServletTestHelper {
 		request.setRequestURI(type.getUrlPrefix() + "/" + id + UrlHelpers.ACL);
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -664,7 +664,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + entityACL.getResourceId()+UrlHelpers.ACL);
+		request.setRequestURI(type.getUrlPrefix() + "/" + entityACL.getId()+UrlHelpers.ACL);
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
 		request.addHeader(ServiceConstants.ETAG_HEADER, entityACL.getEtag());
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
@@ -673,7 +673,7 @@ public class ServletTestHelper {
 		String body = out.toString();
 		request.setContent(body.getBytes("UTF-8"));
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -701,7 +701,7 @@ public class ServletTestHelper {
 		request.setRequestURI(type.getUrlPrefix() + "/" + resourceId+UrlHelpers.ACL);
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);	
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -723,7 +723,7 @@ public class ServletTestHelper {
 		request.setRequestURI(UrlHelpers.USER);
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -748,7 +748,7 @@ public class ServletTestHelper {
 		request.setRequestURI(UrlHelpers.USERGROUP);
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -778,7 +778,7 @@ public class ServletTestHelper {
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
 		request.setParameter(UrlHelpers.ACCESS_TYPE_PARAM, accessType);
 		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
+		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}

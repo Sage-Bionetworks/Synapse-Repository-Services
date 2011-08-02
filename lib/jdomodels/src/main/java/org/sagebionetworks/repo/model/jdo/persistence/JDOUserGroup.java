@@ -1,13 +1,9 @@
 package org.sagebionetworks.repo.model.jdo.persistence;
 
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
 
 import javax.jdo.annotations.Column;
-import javax.jdo.annotations.Element;
 import javax.jdo.annotations.IdGeneratorStrategy;
-import javax.jdo.annotations.Join;
 import javax.jdo.annotations.NullValue;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
@@ -19,11 +15,11 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 @PersistenceCapable(detachable = "false", table=SqlConstants.TABLE_USER_GROUP)
 public class JDOUserGroup implements JDOBase {
-	@PrimaryKey
+	@PrimaryKey 
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	private Long id;
 	
-	@Persistent (column=SqlConstants.COL_USER_GROUP_ID)
+	@Persistent (column=SqlConstants.COL_USER_GROUP_NAME)
 	@Unique
 	private String name;
 	

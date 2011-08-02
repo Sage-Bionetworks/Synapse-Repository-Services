@@ -120,7 +120,7 @@ public class NodeManagerImplAutoWiredTest {
 				assertEquals("This node should inherit from its parent",id, benefactorId);
 				AccessControlList acl = aclDAO.getForResource(id);
 				assertNotNull(acl);
-				assertEquals(id, acl.getResourceId());
+				assertEquals(id, acl.getId());
 				// Make sure the user can do everything
 				ACCESS_TYPE[] acessTypes = ACCESS_TYPE.values();
 				for(ACCESS_TYPE accessType : acessTypes){

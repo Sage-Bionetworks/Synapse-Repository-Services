@@ -30,7 +30,7 @@ public class JDOUserGroupDAOImplTest {
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-	
+		
 	List<String> groupsToDelete;
 
 	@Before
