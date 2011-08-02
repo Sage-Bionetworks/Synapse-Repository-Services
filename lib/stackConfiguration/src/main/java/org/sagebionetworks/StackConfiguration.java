@@ -30,15 +30,10 @@ public class StackConfiguration {
 	private static final Logger log = Logger.getLogger(StackConfiguration.class
 			.getName());
 
-	private static final String PROPERTIES_FILENAME_PREFIX = "/stack";
-	private static final String PROPERTIES_FILENAME_STAGE_SEPARATOR = "-";
-	private static final String PROPERTIES_FILENAME_SUFFIX = ".properties";
-	private static final String DEFAULT_PROPERTIES_FILENAME = PROPERTIES_FILENAME_PREFIX
-			+ PROPERTIES_FILENAME_SUFFIX;
+	private static final String DEFAULT_PROPERTIES_FILENAME = "/stack.properties";
 
 	private static final String TEMPLATE_PROPERTIES = "/template.properties";
-	private static final String STACK_SYSTEM_PROPERTY_KEY = "org.sagebionetworks.stack";
-	private static final String STACK_PROPERTY_FILE_URL = "org.sagebionetworks.stack.configuration.url";
+	protected static final String STACK_PROPERTY_FILE_URL = "org.sagebionetworks.stack.configuration.url";
 	private static final String STACK_IAM_ID = "org.sagebionetworks.stack.iam.id";
 	private static final String STACK_IAM_KEY = "org.sagebionetworks.stack.iam.key";
 	private static final String STACK_ENCRYPTION_KEY = "org.sagebionetworks.stackEncryptionKey";
@@ -72,7 +67,6 @@ public class StackConfiguration {
 		loadPropertiesFromClasspath(DEFAULT_PROPERTIES_FILENAME, defaultStackProperties);
 		// Load the required properties
 		loadPropertiesFromClasspath(TEMPLATE_PROPERTIES, requiredProperties);
-		stack = System.getProperty(STACK_SYSTEM_PROPERTY_KEY);
 		// The URL containing any property overrides
 		propertyFileUrl = getPropertyFileURL();
 		// Try to get the properties from the settings file
@@ -221,7 +215,7 @@ public class StackConfiguration {
 
 	
 	public static String getStack() {
-		return stack;
+		return getProperty("org.sagebionetworks.stack");
 	}
 
 	public static String getCrowdEndpoint() {
@@ -248,7 +242,15 @@ public class StackConfiguration {
 		return getProperty("org.sagebionetworks.s3.iam.group");
 	}
 
-	public static String getTcgaWorkflowSnsTopic() {
+	public static Integer getS3ReadAccessExpiryMinutes() {
+		return Integer.valueOf(getProperty("org.sagebionetworks.s3.readAccessExpiryMinutes"));
+	}
+
+	public static Integer getS3WriteAccessExpiryMinutes() {
+		return Integer.valueOf(getProperty("org.sagebionetworks.s3.writeAccessExpiryMinutes"));
+	}
+    
+    public static String getTcgaWorkflowSnsTopic() {
 		return getProperty("org.sagebionetworks.sns.topic.tcgaworkflow");
 	}
 	
