@@ -15,7 +15,7 @@ synapseDownloadFileToDestination  <-
 	## if checksum is missing, don't check local file before 
 	## download
 	if(file.exists(destfile) & !missing(checksum)) {
-		localFileChecksum <- md5sum(destfile)
+		localFileChecksum <- as.character(md5sum(destfile))
 		if(checksum == localFileChecksum) {
 			# No need to download
 			return(destfile)
@@ -41,7 +41,10 @@ synapseDownloadFileToDestination  <-
 	
 	## copy then delete. this avoids a cross-device error encountered
 	## on systems with multiple hard drives when using file.rename
-	file.copy(tmpFile, destfile)
+	if(!file.copy(tmpFile, destfile, overwrite = TRUE)){
+		file.remove(tmpFile)
+		stop("COULD NOT COPY: ", tmpFile, " TO: ", destfile)
+	}
 	file.remove(tmpFile)
 	return(destfile)
 }

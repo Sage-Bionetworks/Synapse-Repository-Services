@@ -59,15 +59,13 @@ setMethod(
 	## the uri element of layer
 	response <- synapseGet(uri = uri)
 	
-	destfile = synapseDownloadFile(url = response$path, checksum = response$md5sum)
-	destDir <- paste(destfile, .getCache("downloadSuffix"), sep="_")
+	destfile <- synapseDownloadFile(url = response$path, checksum = response$md5sum)
 	
 	## Unpack the layer file
 	## TODO: should the code only unpack the file if the destdir doesn't already exists?
 	## TODO: should the dest directory be deleted before unpacking?
-	files <- .unpack(filename=destfile, destdir=destDir)
+	files <- .unpack(filename=destfile)
 	
 	class(files) <- "layerFiles"
-	attr(files, "rootDir") <- destDir
 	return(files)
 }
