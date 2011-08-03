@@ -325,7 +325,7 @@ public class AuthenticationController {
 		}
 		crowdAuthUtil.createUser(user);
 		if (!isITU) {
-			sendUserPasswordEmail(crowdAuthUtil, user.getEmail(), false/*set pw*/);
+			sendUserPasswordEmail(crowdAuthUtil, user.getEmail(), PW_MODE.SET_PW);
 		}
 	}
 	
@@ -371,8 +371,14 @@ public class AuthenticationController {
 		crowdAuthUtil.updateUser(user);
 	}
 	
+	static enum PW_MODE {
+		SET_PW,
+		RESET_PW,
+		SET_API_PW
+	}
+	
 	// reset == true means send the 'reset' message; reset== false means send the 'set' message
-	private static void sendUserPasswordEmail(CrowdAuthUtil crowdAuthUtil, String userEmail, boolean reset) throws Exception {
+	private static void sendUserPasswordEmail(CrowdAuthUtil crowdAuthUtil, String userEmail, PW_MODE mode) throws Exception {
 		// need a session token
 		User user = new User();
 		user.setEmail(userEmail);
@@ -381,10 +387,16 @@ public class AuthenticationController {
 		user = crowdAuthUtil.getUser(user.getEmail());
 		// now send the reset password email, filling in the user name and session token
 		SendMail sendMail = new SendMail();
-		if (reset) {
-			sendMail.sendResetPasswordMail(user, session.getSessionToken());
-		} else {
-			sendMail.sendSetPasswordMail(user, session.getSessionToken());
+		switch (mode) {
+			case SET_PW:
+				sendMail.sendSetPasswordMail(user, session.getSessionToken());
+				break;
+			case RESET_PW:
+				sendMail.sendResetPasswordMail(user, session.getSessionToken());
+				break;
+			case SET_API_PW:
+				sendMail.sendSetAPIPasswordMail(user, session.getSessionToken());
+				break;
 		}
 	}
 	
@@ -392,7 +404,14 @@ public class AuthenticationController {
 	@RequestMapping(value = "/userPasswordEmail", method = RequestMethod.POST)
 	public void sendChangePasswordEmail(@RequestBody User user) throws Exception {
 		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
-		sendUserPasswordEmail(crowdAuthUtil, user.getEmail(), true /*reset pw msg*/);
+		sendUserPasswordEmail(crowdAuthUtil, user.getEmail(), PW_MODE.RESET_PW);
+	}
+	
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = "/apiPasswordEmail", method = RequestMethod.POST)
+	public void sendSetAPIPasswordEmail(@RequestBody User user) throws Exception {
+		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
+		sendUserPasswordEmail(crowdAuthUtil, user.getEmail(), PW_MODE.SET_API_PW);
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)

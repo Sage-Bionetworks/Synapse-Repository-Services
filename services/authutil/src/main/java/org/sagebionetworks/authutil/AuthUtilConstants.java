@@ -17,6 +17,11 @@ public class AuthUtilConstants {
 	 * pre-processing filter.
 	 */
 	public static final String USER_ID_PARAM = "userId";
+	
+	/**
+	 * The header for the session token
+	 */
+	public static final String SESSION_TOKEN_PARAM = "sessionToken";
 
 	/**
 	 * This is the name of the attribute in Crowd for the creation date for a User

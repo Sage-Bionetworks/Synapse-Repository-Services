@@ -115,13 +115,22 @@ public class SendMail {
     	sendUserMail(user, sessionToken, "resetpasswordEmail.txt");
     } 
     
+    public void sendSetAPIPasswordMail(User user, String sessionToken) {
+    	sendUserMail(user, sessionToken, "setAPIpasswordEmail.txt");
+    } 
+    
     public void sendUserMail(User user, String sessionToken, String fname) {
     	// read in email template
     	String msg = readMailTemplate(fname);
     	// fill in display name and user name
     	msg = msg.replaceAll("#displayname#", user.getDisplayName());
     	msg = msg.replaceAll("#username#", user.getEmail());
-    	msg = msg.replaceAll("#link#", synapseURL+resetPWURI+sessionToken);
+    	try {
+    		msg = msg.replaceAll("#link#", synapseURL+resetPWURI+sessionToken);
+    	} catch (IllegalArgumentException e) {
+    		throw new IllegalArgumentException("replacement string=<"+synapseURL+resetPWURI+sessionToken+"> "+
+    				"org.sagebionetworks.portal.endpoint="+System.getProperty("org.sagebionetworks.portal.endpoint"));
+    	}
     	// fill in link, with token
     	sendMail(user.getEmail(), "reset Synapse password", msg);
     }
