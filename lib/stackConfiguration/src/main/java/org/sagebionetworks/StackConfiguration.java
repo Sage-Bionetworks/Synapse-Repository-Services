@@ -110,7 +110,8 @@ public class StackConfiguration {
 		// Also note that required properties should be checked for existence by out template 
 		// so this should only happen for optional properties that code is requesting
 		if(null == propertyValue) {
-			throw new NullPointerException("no value found in StackConfiguration for property " + propertyName);
+			throw new NullPointerException("no value found in StackConfiguration for property " + propertyName +
+					" propertyFileURL="+propertyFileUrl);
 		}
 		return propertyValue;
 	}

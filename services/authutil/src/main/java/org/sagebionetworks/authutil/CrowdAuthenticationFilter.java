@@ -65,7 +65,7 @@ public class CrowdAuthenticationFilter implements Filter {
 
 		// If token present, ask Crowd to validate and get user id
 		HttpServletRequest req = (HttpServletRequest)servletRqst;
-		String sessionToken = req.getHeader("sessionToken");
+		String sessionToken = req.getHeader(AuthUtilConstants.SESSION_TOKEN_PARAM);
 		String userId = null;
 		if(usingMockCrowd){
 			// Some tests provide a user name.

@@ -334,6 +334,15 @@ public class AuthenticationControllerTest {
 	}
 	
 
+	// can't expect to do this regularly, as it generates email messages
+	@Ignore
+	@Test
+	public void testSetAPIPasswordEmail() throws Exception {
+		if (!isIntegrationTest()) return;
+		 helper.testCreateJsonEntity("/apiPasswordEmail","{\"email\":\"demouser@sagebase.org\"}", HttpStatus.NO_CONTENT);
+	}
+	
+
 	@Test
 	public void testSendEmailInvalidUser() throws Exception {
 		if (!isIntegrationTest()) return;
