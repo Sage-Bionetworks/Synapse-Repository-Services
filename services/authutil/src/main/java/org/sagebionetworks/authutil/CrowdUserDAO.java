@@ -62,6 +62,7 @@ public class CrowdUserDAO implements UserDAO {
 		Map<String,Collection<String>> userAttributes = new HashMap<String,Collection<String>>();
 		DateFormat df = new SimpleDateFormat(AuthUtilConstants.DATE_FORMAT);
 		if (dto.getCreationDate()!=null) userAttributes.put(AuthUtilConstants.CREATION_DATE_FIELD, Arrays.asList(new String[]{df.format(dto.getCreationDate())}));
+		if (dto.getIamUserId()!=null) userAttributes.put(IAM_USER_ID_FIELD, Arrays.asList(new String[]{dto.getIamUserId()}));
 		if (dto.getIamAccessId()!=null) userAttributes.put(IAM_ACCESS_ID_FIELD, Arrays.asList(new String[]{dto.getIamAccessId()}));
 		if (dto.getIamSecretKey()!=null) userAttributes.put(IAM_SECRET_KEY_FIELD, Arrays.asList(new String[]{dto.getIamSecretKey()}));
 		try {
@@ -79,6 +80,7 @@ public class CrowdUserDAO implements UserDAO {
 		throw new UnsupportedOperationException();
 	}
 	
+	private static final String IAM_USER_ID_FIELD = "iamUserId";
 	private static final String IAM_ACCESS_ID_FIELD = "iamAccessId";
 	private static final String IAM_SECRET_KEY_FIELD = "iamSecretKey";
 
@@ -115,6 +117,8 @@ public class CrowdUserDAO implements UserDAO {
 				}
 			}
 		}
+		values = userAttrValues.get(IAM_USER_ID_FIELD);
+		if (values!=null && values.size()>0) user.setIamUserId(values.iterator().next());
 		values = userAttrValues.get(IAM_ACCESS_ID_FIELD);
 		if (values!=null && values.size()>0) user.setIamAccessId(values.iterator().next());
 		values = userAttrValues.get(IAM_SECRET_KEY_FIELD);
