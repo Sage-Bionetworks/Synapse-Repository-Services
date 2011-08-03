@@ -37,11 +37,11 @@
 }
 
 
-unitTestSynapseLogtout <- function(){
+unitTestSynapseLogout <- function(){
 	synapseLogin("fakeUser", "fakePassword")
 	
 	checkTrue(sessionToken() != "")
 	
 	synapseLogout()
-	checkEquals(sessionToken(), "")	
+	checkException(sessionToken())	
 }
