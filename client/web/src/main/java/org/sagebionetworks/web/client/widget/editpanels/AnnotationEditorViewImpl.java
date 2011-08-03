@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.bcel.generic.CPInstruction;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
@@ -67,7 +68,7 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 	
 	EditorGrid<EditableAnnotationModelData> grid;
 	private ListStore<EditableAnnotationModelData> store;
-	private ColumnModel cm; 	
+	private EditableColumnModel cm; 	
 	private CellEditor textEditor;
 	private CellEditor textAreaEditor;	
 	private CellEditor dateEditor;
@@ -83,7 +84,7 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 	private SimpleComboBox<String> addAnnotationTypeCombo;
 	private SimpleComboBox<Ontology> addAnnotationOntologyCombo;
 	private Button createAnnotationButton;
-	private Window addAnnotationsWindow;
+	private Window addAnnotationsWindow;	
 	
 	private static final String MENU_ADD_ANNOTATION_TEXT = "Text";
 	private static final String MENU_ADD_ANNOTATION_NUMBER = "Number";
@@ -97,7 +98,7 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		this.setScrollMode(Scroll.AUTOY);
 		
 		valueCol = new ColumnConfig();
-		deleteButton = new Button();
+		deleteButton = new Button();		
     }
  
     @Override
@@ -106,7 +107,7 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
     }
 
 	@Override
-	public void generateAnnotationForm(final List<FormField> formFields, String displayString, String topText) {
+	public void generateAnnotationForm(final List<FormField> formFields, String displayString, String topText, boolean editable) {
 		// remove any old forms, this is a singleton afterall
 		this.clear();
 		setLayout(new FlowLayout(0));
@@ -127,6 +128,7 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		grid.setAutoExpandColumn(EditableAnnotationModelData.KEY_COLUMN_ID);
 		grid.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
 		grid.setBorders(true);
+		grid.setStripeRows(true);
 		ToolBar toolBar = createToolbarAndButtons(grid);		
 		addGridListeners(formFields, keyToFormFieldMap, grid);
 
@@ -140,7 +142,13 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		cp.setSize(400, 200);
 		cp.setLayout(new FitLayout());
 		cp.add(grid);		
-		cp.setBottomComponent(toolBar);
+		
+		if(editable) {			
+			cp.setBottomComponent(toolBar);
+			cm.setCellsEditable(true);
+		} else {
+			cm.setCellsEditable(false);
+		}
 		cp.layout();		
 		
 		add(cp);	
@@ -234,8 +242,8 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 	public void showDeleteAnnotationFail() {		
 		showErrorMessage("A problem occured deleting the annotation.");
 	}
-
 	
+
 	/*
 	 * Private Methods
 	 */
@@ -315,7 +323,7 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		// Create renderer that adapts to display valueCol differently 
 		createGridCellRenderer();
 		configs.add(valueCol);
-		cm = new ColumnModel(configs);
+		cm = new EditableColumnModel(configs);
 	}
 
 	private void addGridListeners(final List<FormField> formFields,

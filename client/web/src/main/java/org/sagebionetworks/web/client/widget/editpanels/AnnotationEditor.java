@@ -17,6 +17,7 @@ import org.sagebionetworks.web.client.widget.editpanels.FormField.ColumnType;
 import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
+import org.sagebionetworks.web.shared.users.AclAccessType;
 
 import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.json.client.JSONArray;
@@ -64,7 +65,7 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
     	this.placeChanger = placeChanger;
     }
     
-    public void setResource(NodeType type, String id) {
+    public void setResource(final NodeType type, final String id) {
     	this.nodetype = type;
     	this.nodeId = id;
     	
@@ -88,13 +89,21 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 					}
 					return;
 				}
-				
-				formFields = generateFieldsFromAnnotations(originalAnnotationObject, staticOntologies.getAnnotationToOntology()); 							
-				SpecificNodeTypeDeviation deviation = nodeEditorDisplayHelper.getNodeTypeDeviation(nodetype);										
-				view.generateAnnotationForm(formFields, deviation.getDisplayString(), DisplayConstants.EDIT_ANNOTATIONS_TEXT);
-				
-				// add ontologies
-				view.setOntologies(staticOntologies.getAnnotationToOntology().values());
+								
+				// check for update access, then create the grid in the view accordingly
+				service.hasAccess(type, id, AclAccessType.UPDATE, new AsyncCallback<Boolean>() {
+					@Override
+					public void onSuccess(Boolean result) {
+						setupFormAndGenerate(result);
+					}
+
+					@Override
+					public void onFailure(Throwable caught) {
+						// if access check fails, just provide annotations without editing.
+						setupFormAndGenerate(false);
+						view.showInfo("Notice", "Annotation editing is currently unavailable.");
+					}
+				});
 			}
 			
 			@Override
@@ -150,6 +159,16 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 	/*
      * Private Methods
      */   	
+
+	private void setupFormAndGenerate(boolean editable) {
+		formFields = generateFieldsFromAnnotations(originalAnnotationObject, staticOntologies.getAnnotationToOntology()); 							
+		SpecificNodeTypeDeviation deviation = nodeEditorDisplayHelper.getNodeTypeDeviation(nodetype);										
+		view.generateAnnotationForm(formFields, deviation.getDisplayString(), DisplayConstants.EDIT_ANNOTATIONS_TEXT, editable);						
+		
+		// add ontologies
+		view.setOntologies(staticOntologies.getAnnotationToOntology().values());
+	}
+
 	private void persist(final List<FormField> formFields, final PersistOperation operation) {		
 		// updates annoataions
 		//final SpecificNodeTypeDeviation deviation = nodeEditorDisplayHelper.getNodeTypeDeviation(nodeType);

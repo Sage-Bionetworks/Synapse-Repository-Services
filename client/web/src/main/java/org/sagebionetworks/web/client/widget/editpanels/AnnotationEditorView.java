@@ -21,12 +21,12 @@ public interface AnnotationEditorView extends IsWidget {
      * @param displayString
      * @param annotationIgnoreFields
      */
-	public void generateAnnotationForm(List<FormField> formFields, String displayString, String topText);
+	public void generateAnnotationForm(List<FormField> formFields, String displayString, String topText, boolean editable);
 	
 	public void updateAnnotations(List<FormField> formFields);
 
 	public void setOntologies(Collection<Ontology> ontologies);
-	
+		
 	/**
 	 * Shows a loading view
 	 */
