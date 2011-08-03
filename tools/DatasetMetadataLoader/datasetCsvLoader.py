@@ -44,8 +44,8 @@ SAGE_CURATION_EULA_NAME = "SageBioCurationEula"
 
 ROOT_PERMS = {
     "Sage Curators":["READ","CHANGE_PERMISSIONS","DELETE","UPDATE","CREATE"],
-    "AUTHENTICATED_USERS":["READ"],
-    "anonymous":["READ"]
+#    "AUTHENTICATED_USERS":["READ"],
+    "PUBLIC":["READ"]
     }
 
 LOCATION_PERMS = {
@@ -86,7 +86,8 @@ def createAccessList(principals, permissionList):
     al = []
     for p in principals:
         if p["name"] in permissionList:
-            al.append({"userGroupId":p["id"], "accessType":permissionList[p["name"]]})
+#            al.append({"userGroupId":p["id"], "accessType":permissionList[p["name"]]})
+            al.append({"groupName":p["name"], "accessType":permissionList[p["name"]]})
         #print "principal %s \t access list %s" % (p, al)
     return al
 
@@ -129,7 +130,8 @@ def createOrUpdateEntity(kind, entity, permissions=None):
         if(None != permissions):
             accessList = createAccessList(gSYNAPSE.getPrincipals(),
                                           permissions)
-            acl = {"resourceAccess":accessList, "resourceId":storedEntity["id"]}
+#            acl = {"resourceAccess":accessList, "resourceId":storedEntity["id"]}
+            acl = {"resourceAccess":accessList}
             if(not('parentId' in storedEntity) or
                (None == storedEntity['parentId'])):
                 gSYNAPSE.updateRepoEntity(storedEntity["accessControlList"], acl)
@@ -141,7 +143,8 @@ def createOrUpdateEntity(kind, entity, permissions=None):
         if(None != permissions):
             accessList = createAccessList(gSYNAPSE.getPrincipals(),
                                           permissions)
-            acl = {"resourceAccess":accessList, "resourceId":storedEntity["id"]}
+#            acl = {"resourceAccess":accessList, "resourceId":storedEntity["id"]}
+            acl = {"resourceAccess":accessList}
             gSYNAPSE.updateRepoEntity(storedEntity["accessControlList"], acl)
         print 'Updated %s %s\n\n' % (kind, message)
 
@@ -189,6 +192,10 @@ def createOrUpdateLocation(location):
     if(not gARGS.fakeLocalData and gARGS.uploadData):
         # TODO skip uploads for files if the checksum has not changed
         # TODO spawn a thread for each upload and proceed to get more throughput
+        ## 20110715, migration to bucket devdata01, skip this dataset since its laready there
+        #if('/mskcc_prostate_cancer.zip' == location['path']):
+        #    return
+
         localFilepath = SOURCE_DATA_DIRECTORY + location['path']
         synapse.utils.uploadToS3(localFilepath=localFilepath,
                                  s3url=storedLocation["path"],
@@ -347,6 +354,8 @@ def loadLayers():
         layer["qcBy"] = row[11]
         
         newLayer = createOrUpdateEntity(kind="layer", entity=layer)
+        if newLayer == None:
+            raise Exception("ENTITY_CREATION_ERROR")
         
         # Ignore column 8 (sage loc) and 9 (awsebs loc) for now
         for col in [10]:
@@ -378,9 +387,9 @@ def loadLayers():
 #--------------------[ Main ]-----------------------------
 gSYNAPSE.login(gARGS.user, gARGS.password)
 
-if not checkEmptyRepository():
-    print "Repository is not empty! Aborting..."
-    sys.exit(1)
+#if not checkEmptyRepository():
+#    print "Repository is not empty! Aborting..."
+#    sys.exit(1)
 
 project = {"name":SAGE_CURATION_PROJECT_NAME, "description":"Umbrella for Sage-curated projects", "creator":"x.schildwachter@sagebase.org"}
 storedProject = createOrUpdateEntity(kind="project",
