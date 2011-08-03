@@ -13,7 +13,6 @@ import org.sagebionetworks.Helpers.ExternalProcessResult;
  * @author deflaux
  * 
  */
-@Ignore
 public class IT700SynapseRClientNoBamboo {
 	
 	/**
