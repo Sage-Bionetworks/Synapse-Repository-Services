@@ -13,6 +13,7 @@ import org.sagebionetworks.web.client.events.CancelHandler;
 import org.sagebionetworks.web.client.events.PersistSuccessEvent;
 import org.sagebionetworks.web.client.events.PersistSuccessHandler;
 import org.sagebionetworks.web.client.widget.adminmenu.AdminMenu;
+import org.sagebionetworks.web.client.widget.editpanels.AnnotationEditor;
 import org.sagebionetworks.web.client.widget.editpanels.NodeEditor;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
@@ -73,7 +74,9 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 	@UiField 
 	SpanElement breadcrumbTitleSpan;
 	@UiField
-	FlexTable rightFlexTable;
+	SimplePanel annotationsPanel;
+//	@UiField
+//	FlexTable rightFlexTable;
 	@UiField
 	SimplePanel followProjectButtonPanel;
 	@UiField
@@ -102,6 +105,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 	private ModalWindow seeTermsModal;
 	private QueryServiceTableResourceProvider queryServiceTableResourceProvider;
 	private Header headerWidget;
+	private AnnotationEditor annotationEditor;
 
 	@Inject
 	public ProjectViewImpl(ProjectViewImplUiBinder binder, Header headerWidget,
@@ -112,6 +116,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 			QueryServiceTableResourceProvider queryServiceTableResourceProvider,
 			AccessMenuButton accessMenuButton,
 			NodeEditor nodeEditor,
+			AnnotationEditor annotationEditor,
 			AdminMenu adminMenu) {		
 		initWidget(binder.createAndBindUi(this));
 
@@ -124,6 +129,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		this.seeTermsModal = seeTermsModal;
 		this.queryServiceTableResourceProvider =  queryServiceTableResourceProvider;
 		this.headerWidget = headerWidget;
+		this.annotationEditor = annotationEditor;
 		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
@@ -183,14 +189,19 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		previewDisclosurePanel.init("Expand", description.substring(0, summaryLength), description);
 		overviewPanel.add(previewDisclosurePanel);		
 
+		annotationsPanel.clear();
+		annotationEditor.setPlaceChanger(presenter.getPlaceChanger());
+		annotationEditor.setResource(NodeType.PROJECT, id);
+		annotationsPanel.add(annotationEditor.asWidget());
+
 		// add values to annotation table
-		int rowIndex = 0;
-		if(creationDate != null) DisplayUtils.addRowToTable(rowIndex++, "Project Formed:", DisplayConstants.DATE_FORMAT.format(creationDate), rightFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "Leaders:", "", rightFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "Members:", "", rightFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "Publications:", "", rightFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "Status:", status, rightFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "Project Web Site:", "", rightFlexTable);
+//		int rowIndex = 0;
+//		if(creationDate != null) DisplayUtils.addRowToTable(rowIndex++, "Project Formed:", DisplayConstants.DATE_FORMAT.format(creationDate), rightFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "Leaders:", "", rightFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "Members:", "", rightFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "Publications:", "", rightFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "Status:", status, rightFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "Project Web Site:", "", rightFlexTable);
 				
 	}
 
@@ -199,8 +210,8 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 	 */
 	private void clear() {
 		titleSpan.setInnerText("");
-		rightFlexTable.clear();
-		rightFlexTable.removeAllRows();
+//		rightFlexTable.clear();
+//		rightFlexTable.removeAllRows();
 		adminPanel.clear();
 	}
 

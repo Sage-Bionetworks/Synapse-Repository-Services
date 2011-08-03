@@ -3,7 +3,7 @@ package org.sagebionetworks.web.client.widget.editpanels;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.web.client.ontology.OntologyTerm;
+import org.sagebionetworks.web.client.ontology.Ontology;
 import org.sagebionetworks.web.shared.NodeType;
 
 public class SpecificNodeTypeDeviation {
@@ -14,7 +14,7 @@ public class SpecificNodeTypeDeviation {
 	private String editText;
 	private List<String> creationIgnoreFields;
 	private List<String> updateIgnoreFields;	
-	private Map<String, OntologyTerm[]> keyToOntology;	
+	private Map<String, Ontology> keyToOntology;	
 		
 	public SpecificNodeTypeDeviation() { }
 		
@@ -63,11 +63,11 @@ public class SpecificNodeTypeDeviation {
 		this.creationIgnoreFields = creationIgnoreFields;
 	}
 
-	public Map<String, OntologyTerm[]> getKeyToOntology() {
+	public Map<String, Ontology> getKeyToOntology() {
 		return keyToOntology;
 	}
 
-	public void setKeyToOntology(Map<String, OntologyTerm[]> keyToOntology) {
+	public void setKeyToOntology(Map<String, Ontology> keyToOntology) {
 		this.keyToOntology = keyToOntology;
 	}
 

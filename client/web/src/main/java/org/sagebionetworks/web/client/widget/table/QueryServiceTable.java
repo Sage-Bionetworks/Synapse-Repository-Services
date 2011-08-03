@@ -238,9 +238,14 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 	 * @return
 	 */
 	public boolean matchesCurrentColumns(List<HeaderData> other){
-		if (currentColumns == null) {
-			if (other != null)
-				return false;
+		if (currentColumns == null && other != null) {
+			return false;
+		} 
+		if(other == null && currentColumns != null) {
+			return false;
+		}
+		if(currentColumns == null && other == null) {
+			return true;
 		}
 		if(currentColumns.size() != other.size()) return false;
 		// If a new type of HeaderData is added, and they do

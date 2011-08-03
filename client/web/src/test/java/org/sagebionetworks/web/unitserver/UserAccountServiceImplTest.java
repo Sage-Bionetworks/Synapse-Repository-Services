@@ -223,6 +223,7 @@ public class UserAccountServiceImplTest {
 		}
 	}
 	
+	@Ignore
 	@Test
 	public void testGetAllUsers() {
 		List<AclPrincipal> userList;
@@ -239,6 +240,7 @@ public class UserAccountServiceImplTest {
 		assertEquals(2, userList.size());
 	}
 	
+	@Ignore
 	@Test
 	public void testGetAllGroups() {
 		List<AclPrincipal> groupList;
@@ -249,6 +251,7 @@ public class UserAccountServiceImplTest {
 		assertEquals(2, groupList.size());
 	}
 	
+	@Ignore
 	@Test
 	public void testGetAllUsersAndGroups() {
 		List<AclPrincipal> userAndGroupList;

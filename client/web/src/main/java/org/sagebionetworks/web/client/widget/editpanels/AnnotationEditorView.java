@@ -1,6 +1,9 @@
 package org.sagebionetworks.web.client.widget.editpanels;
 
+import java.util.Collection;
 import java.util.List;
+
+import org.sagebionetworks.web.client.ontology.Ontology;
 
 import com.google.gwt.user.client.ui.IsWidget;
 
@@ -19,7 +22,11 @@ public interface AnnotationEditorView extends IsWidget {
      * @param annotationIgnoreFields
      */
 	public void generateAnnotationForm(List<FormField> formFields, String displayString, String topText);
+	
+	public void updateAnnotations(List<FormField> formFields);
 
+	public void setOntologies(Collection<Ontology> ontologies);
+	
 	/**
 	 * Shows a loading view
 	 */
@@ -29,10 +36,20 @@ public interface AnnotationEditorView extends IsWidget {
 
 	public void showPersistFail();
 
+	public void showAddAnnotationSuccess();
+	
+	public void showAddAnnotationFail(String string);
+
+	public void showDeleteAnnotationSuccess();
+	
+	public void showDeleteAnnotationFail();
+	
 	/**
 	 * Clears out old elements
 	 */
 	public void clear();
+	
+	public void showInfo(String title, String message);
 	
 	/**
 	 * Show error message
@@ -44,7 +61,15 @@ public interface AnnotationEditorView extends IsWidget {
      * Presenter interface
      */
     public interface Presenter {
-    	public void persist(List<FormField> formFields);
+    	
+    	public void editAnnotation(String key, String newValue);
+    	
+    	public void addAnnotation(String key, ColumnEditType type);
+    	
+    	public void addAnnotation(String key, ColumnEditType type, Ontology ontology);
+    	
+    	public void deleteAnnotation(String key);
     }
+
 
 }

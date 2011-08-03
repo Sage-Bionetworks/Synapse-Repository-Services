@@ -105,9 +105,10 @@ public class DisplayUtils {
 		} else if(ex instanceof NotFoundException) {
 			MessageBox.info("Not Found", "Sorrr, the requested object was not found.", null);
 			placeChanger.goTo(new Home(DisplayUtils.DEFAULT_PLACE_TOKEN));
-		} else {
-			MessageBox.info("Unknown Error", "Sorry, an error has occured.", null);
-		}
+		} 			
+		
+		// For other exceptions, allow the consumer to send a good message to the user
+		
 	}
 	
 	/*

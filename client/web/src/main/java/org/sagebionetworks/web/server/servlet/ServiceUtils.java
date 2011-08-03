@@ -18,6 +18,7 @@ public class ServiceUtils {
 	public static final String REPOSVC_PATH_SCHEMA = "schema";
 	public static final String REPOSVC_PATH_ACL = "acl"; 	
 	public static final String REPOSVC_HAS_ACCESS_PATH = "access";
+	public static final String REPOSVC_GET_USERS_PATH = "user";
 	
 	public static final String AUTHSVC_SEND_PASSWORD_CHANGE_PATH = "userPasswordEmail";
 	public static final String AUTHSVC_SET_PASSWORD_PATH = "userPassword";
@@ -26,7 +27,6 @@ public class ServiceUtils {
 	public static final String AUTHSVC_GET_USER_PATH = "user";
 	public static final String AUTHSVC_TERMINATE_SESSION_PATH = "session";
 	public static final String AUTHSVC_REFRESH_SESSION_PATH = "session";
-	public static final String AUTHSVC_GET_USERS_PATH = "user";
 	public static final String AUTHSVC_GET_GROUPS_PATH = "userGroup";
 	
 	public static final String AUTHSVC_ACL_PRINCIPAL_NAME = "name";

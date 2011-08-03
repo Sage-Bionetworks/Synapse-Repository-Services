@@ -62,16 +62,21 @@
 							<g:SimplePanel ui:field="seeTermsPanel" /> <!-- <g:Image resource='{icons.documentText16}'/> See Terms of Use -->
 						</span>
 					</span>
-					<span class="info_text_narrow">
+					<span class="info_text">
 						<g:FlowPanel ui:field="overviewPanel" />
 						<br /><br />
 					</span>
+					<span style="float:right;">
+						<g:SimplePanel ui:field="annotationsPanel" />
+					</span>
+<!-- 
 					<span class="data_details">
 						<g:FlexTable ui:field="middleFlexTable" />
 					</span>
 					<span class="data_details data_details_right">
 						<g:FlexTable ui:field="rightFlexTable" />
 					</span>
+ -->					
 				</div>
 			</div>
 			<div class="data_detail_sections">

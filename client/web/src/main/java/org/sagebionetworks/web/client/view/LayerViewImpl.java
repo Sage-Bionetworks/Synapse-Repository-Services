@@ -73,8 +73,8 @@ public class LayerViewImpl extends Composite implements LayerView {
 	FlowPanel overviewPanel;
 	@UiField
 	SpanElement titleSpan;
-	@UiField
-	FlexTable rightFlexTable;
+//	@UiField
+//	FlexTable rightFlexTable;
 	@UiField 
 	SimplePanel previewTablePanel;	
 	@UiField
@@ -85,6 +85,8 @@ public class LayerViewImpl extends Composite implements LayerView {
 	SpanElement breadcrumbDatasetSpan;
 	@UiField
 	SpanElement breadcrumbTitleSpan;
+	@UiField
+	SimplePanel annotationsPanel;
 	@UiField
 	SpanElement previewTableMessage;
 	@UiField
@@ -141,7 +143,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 		headerWidget.setMenuItemActive(MenuItems.DATASETS);
 		
 		// alignment setup
-		rightFlexTable.setCellSpacing(5);		
+//		rightFlexTable.setCellSpacing(5);		
 	}
 
 	@Override
@@ -226,14 +228,19 @@ public class LayerViewImpl extends Composite implements LayerView {
 		previewDisclosurePanel.init("Expand", overviewText.substring(0, summaryLength), overviewText);
 		overviewPanel.add(previewDisclosurePanel);
 		
+		annotationsPanel.clear();
+		annotationEditor.setPlaceChanger(presenter.getPlaceChanger());
+		annotationEditor.setResource(NodeType.LAYER, id);
+		annotationsPanel.add(annotationEditor.asWidget());
+
 		// add metadata to table
-		int rowIndex = 0;
-		DisplayUtils.addRowToTable(rowIndex++, "Platform:", platform, rightFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "Processing Facility:", processingFacility, rightFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "QC By:", "<a href=\"" + qcByUrl + "\">" + qcByDisplay + "</a>", rightFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "QC Analysis:", "<a href=\"" + qcAnalysisUrl + "\">" + qcAnalysisDisplay + "</a>", rightFlexTable);		
-		if(qcDate != null)
-			DisplayUtils.addRowToTable(rowIndex++, "QC Date:", DisplayConstants.DATE_FORMAT.format(qcDate), rightFlexTable);
+//		int rowIndex = 0;
+//		DisplayUtils.addRowToTable(rowIndex++, "Platform:", platform, rightFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "Processing Facility:", processingFacility, rightFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "QC By:", "<a href=\"" + qcByUrl + "\">" + qcByDisplay + "</a>", rightFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "QC Analysis:", "<a href=\"" + qcAnalysisUrl + "\">" + qcAnalysisDisplay + "</a>", rightFlexTable);		
+//		if(qcDate != null)
+//			DisplayUtils.addRowToTable(rowIndex++, "QC Date:", DisplayConstants.DATE_FORMAT.format(qcDate), rightFlexTable);
 		
 		// breadcrumbs
 		breadcrumbDatasetSpan.setInnerHTML(datasetLink);
@@ -314,7 +321,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 	@Override
 	public void clear() {
 		titleSpan.setInnerText("");		
-		rightFlexTable.clear();
+//		rightFlexTable.clear();
 		staticTable.clear();
 		downloadPanel.clear();
 	}

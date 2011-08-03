@@ -3,6 +3,7 @@ package org.sagebionetworks.web.client.widget.editpanels;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.web.client.ontology.Ontology;
 import org.sagebionetworks.web.client.ontology.OntologyTerm;
 
 import com.google.gwt.json.client.JSONObject;
@@ -23,7 +24,7 @@ public interface NodeEditorView extends IsWidget {
 	 * @param typeDisplay display string for the type
 	 * @param map 
 	 */
-	public void generateCreateForm(List<FormField> formFields, String typeDisplay, String topText, List<String> ignoreFields, Map<String, OntologyTerm[]> keyToOntologyTerms);
+	public void generateCreateForm(List<FormField> formFields, String typeDisplay, String topText, List<String> ignoreFields, Map<String, Ontology> keyToOntologyTerms);
 
 	/**
 	 * Tells the view what fields to build in the form
@@ -32,7 +33,7 @@ public interface NodeEditorView extends IsWidget {
 	 * @param typeDisplay display string for the type
 	 * @param map 
 	 */
-	public void generateEditForm(List<FormField> formFields, String typeDisplay, String topText, List<String> ignoreFields, Map<String, OntologyTerm[]> keyToOntologyTerms, JSONObject editorValues);
+	public void generateEditForm(List<FormField> formFields, String typeDisplay, String topText, List<String> ignoreFields, Map<String, Ontology> keyToOntologyTerms, JSONObject editorValues);
 
 	/**
 	 * Shows a loading view

@@ -69,13 +69,18 @@
 							<g:SimplePanel ui:field="seeTermsPanel" />							
 						</span>
 					</span>
-					<span class="info_text_2col">
+					<span class="info_text">
 						<g:FlowPanel ui:field="overviewPanel" />
 						<br /><br />
 					</span>
+					<span style="float:right;">
+						<g:SimplePanel ui:field="annotationsPanel" />
+					</span>
+<!-- 
 					<span class="data_details data_details_right">
 						<g:FlexTable ui:field="rightFlexTable" />
 					</span>
+-->					
 				</div>
 			</div>
 			<div class="data_detail_sections">

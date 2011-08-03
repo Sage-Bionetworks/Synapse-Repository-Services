@@ -9,6 +9,7 @@ import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
+import org.sagebionetworks.web.client.ontology.Ontology;
 import org.sagebionetworks.web.client.ontology.OntologyTerm;
 
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
@@ -25,7 +26,6 @@ import com.extjs.gxt.ui.client.widget.form.DateField;
 import com.extjs.gxt.ui.client.widget.form.FormButtonBinding;
 import com.extjs.gxt.ui.client.widget.form.FormPanel;
 import com.extjs.gxt.ui.client.widget.form.SimpleComboBox;
-import com.extjs.gxt.ui.client.widget.form.SimpleComboValue;
 import com.extjs.gxt.ui.client.widget.form.TextArea;
 import com.extjs.gxt.ui.client.widget.form.TextField;
 import com.extjs.gxt.ui.client.widget.layout.FormData;
@@ -73,14 +73,14 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 	@Override
 	public void generateCreateForm(List<FormField> formFields,
 			String typeDisplay, String topText, List<String> ignoreFields,
-			Map<String, OntologyTerm[]> keyToOntologyTerms) {
+			Map<String, Ontology> keyToOntologyTerms) {
 		buildNodeForm(formFields, typeDisplay, topText, ignoreFields, keyToOntologyTerms, false, null);
 	}
 
 	@Override
 	public void generateEditForm(List<FormField> formFields,
 			String typeDisplay, String topText, List<String> ignoreFields,
-			Map<String, OntologyTerm[]> keyToOntologyTerms,
+			Map<String, Ontology> keyToOntologyTerms,
 			JSONObject editorValues) {
 		buildNodeForm(formFields, typeDisplay, topText, ignoreFields, keyToOntologyTerms, true, editorValues);
 	}
@@ -109,7 +109,7 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 	 */
 	private void buildNodeForm(final List<FormField> formFields,
 			String typeDisplay, String topText, List<String> ignoreFields,
-			Map<String, OntologyTerm[]> keyToOntologyTerms, boolean isEditor,
+			Map<String, Ontology> keyToOntologyTerms, boolean isEditor,
 			JSONObject editorValues) {
 		// remove any old forms, this is a singleton afterall
 		this.removeAll();
@@ -156,7 +156,7 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 					combo.setFieldLabel(key);  
 					combo.setForceSelection(true);					 
 					combo.setTriggerAction(TriggerAction.ALL);
-					for(OntologyTerm term : keyToOntologyTerms.get(key)) {
+					for(OntologyTerm term : keyToOntologyTerms.get(key).getTerms()) {
 						combo.add(term);
 					}					
 					if(isEditor) combo.setSimpleValue(formField.getOntologyValue());

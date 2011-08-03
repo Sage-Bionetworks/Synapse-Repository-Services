@@ -79,9 +79,11 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	@UiField 
 	SpanElement breadcrumbTitleSpan;
 	@UiField
-	FlexTable middleFlexTable;
-	@UiField
-	FlexTable rightFlexTable;
+	SimplePanel annotationsPanel;
+//	@UiField
+//	FlexTable middleFlexTable;
+//	@UiField
+//	FlexTable rightFlexTable;
 	@UiField
 	SimplePanel tablePanel;
 	@UiField
@@ -159,8 +161,8 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		headerWidget.setMenuItemActive(MenuItems.DATASETS);
 
 		// alignment setup
-		middleFlexTable.setCellSpacing(5);
-		rightFlexTable.setCellSpacing(5);
+//		middleFlexTable.setCellSpacing(5);
+//		rightFlexTable.setCellSpacing(5);
 	}
 
 	@Override
@@ -259,34 +261,38 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		overviewPanel.clear();
 		overviewPanel.add(previewDisclosurePanel);		
 		
+		annotationsPanel.clear();
+		annotationEditor.setPlaceChanger(presenter.getPlaceChanger());
+		annotationEditor.setResource(NodeType.DATASET, id);
+		annotationsPanel.add(annotationEditor.asWidget());
 		// add metadata to tables
-		int rowIndex = 0;
-		DisplayUtils.addRowToTable(rowIndex++, "Disease(s):", join(diseases, ", "), middleFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "Species:", join(species, ", "), middleFlexTable);		
-		DisplayUtils.addRowToTable(rowIndex++, "Tissue Type(s):", join(tissueTypes, ", "), middleFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "Tissue/Tumor:", tissueTumor, middleFlexTable);
-		if(referencePublicationUrl != null)
-			DisplayUtils.addRowToTable(rowIndex++, "Reference Publication:", "<a href=\""+ referencePublicationUrl + "\" target=\"_new\">" + referencePublicationDisplay + "</a>", middleFlexTable);
-		else 
-			DisplayUtils.addRowToTable(rowIndex++, "Reference Publication:", referencePublicationDisplay, middleFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "Other Publications:", nOtherPublications + " <a href=\""+ viewOtherPublicationsUrl + "\" target=\"_new\">view</a>", middleFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "Status:", status, middleFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "Version:", version, middleFlexTable);
-
-		rowIndex = 0;
-		if(postedDate != null)
-			DisplayUtils.addRowToTable(rowIndex++, "Posted:", DisplayConstants.DATE_FORMAT.format(postedDate), rightFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "Creator:", "<a href=\"people_charles.html\">"+ creator + "</a>", rightFlexTable);
-		if(curationDate != null)
-			DisplayUtils.addRowToTable(rowIndex++, "Curated On:", DisplayConstants.DATE_FORMAT.format(curationDate), rightFlexTable);
-		if(lastModifiedDate != null)
-			DisplayUtils.addRowToTable(rowIndex++, "Last Modified On:", DisplayConstants.DATE_FORMAT.format(lastModifiedDate), rightFlexTable);						
-		DisplayUtils.addRowToTable(rowIndex++, "Contributor(s)/Institution:", join(contributors, "<br/>"), rightFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "Followers:", nFollowers + " <a href=\""+ viewFollowersUrl + "\" target=\"_new\">view</a>", rightFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "Number of Samples:", Integer.toString(nSamples), rightFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "Number of Downloads:", Integer.toString(nDownloads), rightFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "Download Availability:", downloadAvailability, rightFlexTable);
-		DisplayUtils.addRowToTable(rowIndex++, "Release Notes:", "<a href=\""+ releaseNotesUrl + "\" target=\"_new\">view</a>", rightFlexTable);	
+//		int rowIndex = 0;
+//		DisplayUtils.addRowToTable(rowIndex++, "Disease(s):", join(diseases, ", "), middleFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "Species:", join(species, ", "), middleFlexTable);		
+//		DisplayUtils.addRowToTable(rowIndex++, "Tissue Type(s):", join(tissueTypes, ", "), middleFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "Tissue/Tumor:", tissueTumor, middleFlexTable);
+//		if(referencePublicationUrl != null)
+//			DisplayUtils.addRowToTable(rowIndex++, "Reference Publication:", "<a href=\""+ referencePublicationUrl + "\" target=\"_new\">" + referencePublicationDisplay + "</a>", middleFlexTable);
+//		else 
+//			DisplayUtils.addRowToTable(rowIndex++, "Reference Publication:", referencePublicationDisplay, middleFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "Other Publications:", nOtherPublications + " <a href=\""+ viewOtherPublicationsUrl + "\" target=\"_new\">view</a>", middleFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "Status:", status, middleFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "Version:", version, middleFlexTable);
+//
+//		rowIndex = 0;
+//		if(postedDate != null)
+//			DisplayUtils.addRowToTable(rowIndex++, "Posted:", DisplayConstants.DATE_FORMAT.format(postedDate), rightFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "Creator:", "<a href=\"people_charles.html\">"+ creator + "</a>", rightFlexTable);
+//		if(curationDate != null)
+//			DisplayUtils.addRowToTable(rowIndex++, "Curated On:", DisplayConstants.DATE_FORMAT.format(curationDate), rightFlexTable);
+//		if(lastModifiedDate != null)
+//			DisplayUtils.addRowToTable(rowIndex++, "Last Modified On:", DisplayConstants.DATE_FORMAT.format(lastModifiedDate), rightFlexTable);						
+//		DisplayUtils.addRowToTable(rowIndex++, "Contributor(s)/Institution:", join(contributors, "<br/>"), rightFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "Followers:", nFollowers + " <a href=\""+ viewFollowersUrl + "\" target=\"_new\">view</a>", rightFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "Number of Samples:", Integer.toString(nSamples), rightFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "Number of Downloads:", Integer.toString(nDownloads), rightFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "Download Availability:", downloadAvailability, rightFlexTable);
+//		DisplayUtils.addRowToTable(rowIndex++, "Release Notes:", "<a href=\""+ releaseNotesUrl + "\" target=\"_new\">view</a>", rightFlexTable);	
 		
 		/*
 		 * DEMO STRINGS
@@ -329,16 +335,16 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	 */
 	private void clear() {
 		titleSpan.setInnerText("");
-		middleFlexTable.clear();
-		middleFlexTable.removeAllRows();
-		rightFlexTable.clear();
-		rightFlexTable.removeAllRows();
+//		middleFlexTable.clear();
+//		middleFlexTable.removeAllRows();
+//		rightFlexTable.clear();
+//		rightFlexTable.removeAllRows();
 	}
 
 	private void createAdminPanel(String id) {		
 		if(isAdministrator) {
-			annotationEditor.setPlaceChanger(presenter.getPlaceChanger());
-			annotationEditor.setResource(NodeType.DATASET, id);
+//			annotationEditor.setPlaceChanger(presenter.getPlaceChanger());
+//			annotationEditor.setResource(NodeType.DATASET, id);
 			
 			Button button = new Button("Admin Menu");
 			button.setIcon(AbstractImagePrototype.create(iconsImageBundle.adminTools16()));
@@ -398,24 +404,11 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 					window.setBlinkModal(true);
 					window.setHeading("Edit Dataset Annotations");
 					window.setLayout(new FitLayout());					
-					nodeEditor.addCancelHandler(new CancelHandler() {					
-						@Override
-						public void onCancel(CancelEvent event) {
-							window.hide();
-						}
-					});
-					nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
-						@Override
-						public void onPersistSuccess(PersistSuccessEvent event) {
-							window.hide();
-							presenter.refresh();
-						}
-					});				
-					window.add(annotationEditor.asWidget(), new FitData(4));
+					//window.add(annotationEditor.asWidget(), new FitData(4));
 					window.show();
 				}
 			});
-			item.disable();
+			//item.disable();
 			menu.add(item);
 			
 			item = new MenuItem("Add a Layer to Dataset");
