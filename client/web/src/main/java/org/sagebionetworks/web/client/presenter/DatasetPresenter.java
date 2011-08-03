@@ -29,6 +29,7 @@ import org.sagebionetworks.web.shared.users.AclUtils;
 import org.sagebionetworks.web.shared.users.PermissionLevel;
 import org.sagebionetworks.web.shared.users.UserData;
 
+import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.place.shared.Place;
@@ -109,8 +110,10 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 				Dataset resultDataset = null;
 				try {
 					resultDataset = nodeModelCreator.createDataset(result);
-				} catch (RestServiceException ex) {
+				} catch (RestServiceException ex) {					
 					DisplayUtils.handleServiceException(ex, placeChanger);
+					onFailure(null);					
+					return;
 				}
 				setDataset(resultDataset);
 			}
@@ -299,7 +302,10 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 					 // set the license agreement
 					 setLicenseAgreement();
 				} catch (RestServiceException ex) {
-					DisplayUtils.handleServiceException(ex, placeChanger);
+					if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+						onFailure(null);
+					}
+					return;
 				}									
 			}
 
@@ -331,6 +337,8 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 								eula = nodeModelCreator.createEULA(eulaJson);
 							} catch (RestServiceException ex) {
 								DisplayUtils.handleServiceException(ex, placeChanger);
+								onFailure(null);								
+								return;
 							}
 							if(eula != null) {
 								// set licence agreement text

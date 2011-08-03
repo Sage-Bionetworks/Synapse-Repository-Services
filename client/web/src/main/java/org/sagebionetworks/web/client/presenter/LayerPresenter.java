@@ -30,6 +30,7 @@ import org.sagebionetworks.web.shared.users.AclUtils;
 import org.sagebionetworks.web.shared.users.PermissionLevel;
 import org.sagebionetworks.web.shared.users.UserData;
 
+import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.place.shared.Place;
@@ -171,7 +172,10 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 				try {
 					layer = nodeModelCreator.createLayer(layerJson);
 				} catch (RestServiceException ex) {
-					DisplayUtils.handleServiceException(ex, placeChanger);
+					if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+						onFailure(null);
+					}
+					return;
 				}
 				
 				setLayer(layer);
@@ -253,6 +257,8 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 					}					
 				} catch (RestServiceException ex) {
 					DisplayUtils.handleServiceException(ex, placeChanger);
+					onFailure(null);					
+					return;
 				}				
 
 				setLayerPreview(layerPreview);
@@ -281,6 +287,8 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 					dataset = nodeModelCreator.createDataset(datasetJson);
 				} catch (RestServiceException ex) {
 					DisplayUtils.handleServiceException(ex, placeChanger);
+					onFailure(null);					
+					return;
 				}
 				if(dataset != null) {
 					final String eulaId = dataset.getEulaId();
@@ -303,6 +311,8 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 											eula = nodeModelCreator.createEULA(eulaJson);
 										} catch (RestServiceException ex) {
 											DisplayUtils.handleServiceException(ex, placeChanger);
+											onFailure(null);											
+											return;
 										}
 										if(eula != null) {
 											// set licence agreement text
@@ -388,6 +398,8 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 					}
 				} catch (RestServiceException ex) {
 					DisplayUtils.handleServiceException(ex, placeChanger);
+					onFailure(null);					
+					return;
 				}				
 				view.setLicensedDownloads(downloads);
 				

@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.SearchServiceAsync;
@@ -24,6 +25,7 @@ import com.extjs.gxt.ui.client.data.PagingLoadConfig;
 import com.extjs.gxt.ui.client.data.PagingLoadResult;
 import com.extjs.gxt.ui.client.data.RpcProxy;
 import com.extjs.gxt.ui.client.store.ListStore;
+import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
@@ -89,7 +91,11 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
         			
         			@Override
         			public void onSuccess(TableResults result) {
-        				if(result.getException() != null) DisplayUtils.handleServiceException(result.getException(), placeChanger);
+        				if(result.getException() != null) {
+        					DisplayUtils.handleServiceException(result.getException(), placeChanger);
+        					onFailure(null);        					
+        					return;
+        				}
         				setTableResults(result, callback);
         				view.setPaginationOffsetAndLength(paginationOffset, paginationLimit);        				
         				loadResultData.setOffset(paginationOffset);

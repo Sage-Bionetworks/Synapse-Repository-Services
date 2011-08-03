@@ -18,6 +18,7 @@ import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 
+import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
@@ -82,7 +83,9 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 				try {
 					Annotations annotations = nodeModelCreator.createAnnotations(annotationJsonString);
 				} catch (RestServiceException ex) {
-					DisplayUtils.handleServiceException(ex, placeChanger);
+					if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+						onFailure(null);
+					}
 					return;
 				}
 				
@@ -170,20 +173,20 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 					}
 				} catch (RestServiceException ex) {
 					DisplayUtils.handleServiceException(ex, placeChanger);
-					if(operation == PersistOperation.CREATE) {
-						view.showAddAnnotationFail("An error occured creating the new Annotation.");
-					} else if (operation == PersistOperation.DELETE) {
-						view.showDeleteAnnotationFail();
-					} else {
-						view.showPersistFail();
-					}					
-					getCleanAnnotationObject();
+					onFailure(null);					
+					return;
 				}				
 			}
 			
 			@Override
 			public void onFailure(Throwable caught) {
-				view.showPersistFail();
+				if(operation == PersistOperation.CREATE) {
+					view.showAddAnnotationFail("An error occured creating the new Annotation.");
+				} else if (operation == PersistOperation.DELETE) {
+					view.showDeleteAnnotationFail();
+				} else {
+					view.showPersistFail();
+				}					
 				getCleanAnnotationObject();
 			}
 		});			
@@ -199,7 +202,9 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 				try {
 					Annotations annotations = nodeModelCreator.createAnnotations(annotationJsonString);
 				} catch (RestServiceException ex) {
-					DisplayUtils.handleServiceException(ex, placeChanger);
+					if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+						onFailure(null);
+					}
 					return;
 				}
 

@@ -21,6 +21,7 @@ import org.sagebionetworks.web.client.widget.editpanels.FormField.ColumnType;
 import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 
+import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.event.shared.HandlerManager;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
@@ -97,7 +98,10 @@ public class NodeEditor implements NodeEditorView.Presenter {
 					try {
 						nodeModelCreator.validate(schema);
 					} catch (RestServiceException ex) {
-						DisplayUtils.handleServiceException(ex, placeChanger);
+						if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+							onFailure(null);						
+						}
+						return;
 					}					
 					JSONObject schemaObj = JSONParser.parseStrict(schema).isObject();
 					originalNode = schemaObj;
@@ -119,7 +123,10 @@ public class NodeEditor implements NodeEditorView.Presenter {
 					try {
 						nodeModelCreator.validate(nodeJson);
 					} catch (RestServiceException ex) {
-						DisplayUtils.handleServiceException(ex, placeChanger);
+						if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+							onFailure(null);
+						}
+						return;
 					}					
 					JSONObject schemaObj = JSONParser.parseStrict(nodeJson).isObject();					
 					final SpecificNodeTypeDeviation deviation = nodeEditorDisplayHelper.getNodeTypeDeviation(type);										
@@ -132,7 +139,10 @@ public class NodeEditor implements NodeEditorView.Presenter {
 							try {
 								nodeModelCreator.validate(nodeJsonString);
 							} catch (RestServiceException ex) {
-								DisplayUtils.handleServiceException(ex, placeChanger);
+								if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+									onFailure(null);
+								}
+								return;
 							}					
 							originalNode = JSONParser.parseStrict(nodeJsonString).isObject();
 							view.generateEditForm(formFields, deviation.getDisplayString(), deviation.getEditText(), deviation.getCreationIgnoreFields(), deviation.getKeyToOntology(), originalNode);							
@@ -237,6 +247,8 @@ public class NodeEditor implements NodeEditorView.Presenter {
 						nodeModelCreator.validate(result);
 					} catch (RestServiceException ex) {
 						DisplayUtils.handleServiceException(ex, placeChanger);
+						onFailure(null);
+						return;
 					}					
 					view.showPersistSuccess();
 					handlerManager.fireEvent(new PersistSuccessEvent());
@@ -257,6 +269,8 @@ public class NodeEditor implements NodeEditorView.Presenter {
 						nodeModelCreator.validate(result);
 					} catch (RestServiceException ex) {
 						DisplayUtils.handleServiceException(ex, placeChanger);
+						onFailure(null);						
+						return;
 					}					
 					view.showPersistSuccess();
 					handlerManager.fireEvent(new PersistSuccessEvent());

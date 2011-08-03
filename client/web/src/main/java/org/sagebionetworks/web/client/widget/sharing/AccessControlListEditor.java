@@ -3,6 +3,7 @@ package org.sagebionetworks.web.client.widget.sharing;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
@@ -16,6 +17,7 @@ import org.sagebionetworks.web.shared.users.AclPrincipal;
 import org.sagebionetworks.web.shared.users.AclUtils;
 import org.sagebionetworks.web.shared.users.PermissionLevel;
 
+import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONParser;
@@ -71,7 +73,10 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 						try {
 							nodeModelCreator.validate(result);
 						} catch (RestServiceException ex) {
-							DisplayUtils.handleServiceException(ex, placeChanger);
+							if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+								onFailure(null);							
+							}
+							return;
 						}					
 						originalAcl = JSONParser.parseStrict(result).isObject();				
 						final List<AclEntry> entries = createAclEntries(originalAcl);
@@ -111,7 +116,10 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 				try {
 					nodeModelCreator.validate(result);
 				} catch (RestServiceException ex) {
-					DisplayUtils.handleServiceException(ex, placeChanger);
+					if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+						onFailure(null);
+					}
+					return;
 				}					 
 				refresh();
 			}
@@ -152,7 +160,10 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 					try {
 						nodeModelCreator.validate(result);
 					} catch (RestServiceException ex) {
-						DisplayUtils.handleServiceException(ex, placeChanger);
+						if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+							onFailure(null);
+						}
+						return;
 					}					
 					refresh();					
 				}
@@ -193,7 +204,10 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 						try {
 							nodeModelCreator.validate(result);
 						} catch (RestServiceException ex) {
-							DisplayUtils.handleServiceException(ex, placeChanger);
+							if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+								onFailure(null);							
+							}
+							return;
 						}					
 						refresh();					
 					}
@@ -239,15 +253,17 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 						try {
 							nodeModelCreator.validate(result);
 						} catch (RestServiceException ex) {
-							DisplayUtils.handleServiceException(ex, placeChanger);
+							if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+								onFailure(null);
+							}
+							return;
 						}					
 						refresh();					
 					}
 	
 					@Override
 					public void onFailure(Throwable caught) {
-						view.showErrorMessage("Remove failed. Please try again.");
-						
+						view.showErrorMessage("Remove failed. Please try again.");						
 					}	
 				});
 			} else {
@@ -269,7 +285,10 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 				try {
 					nodeModelCreator.validate(result);
 				} catch (RestServiceException ex) {
-					DisplayUtils.handleServiceException(ex, placeChanger);
+					if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+						onFailure(null);
+					}
+					return;
 				}					
 				originalAcl = JSONParser.parseStrict(result).isObject();				
 				final List<AclEntry> entries = createAclEntries(originalAcl);

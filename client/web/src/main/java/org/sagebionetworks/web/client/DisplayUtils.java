@@ -94,21 +94,30 @@ public class DisplayUtils {
 		}
 	}	
 
-	public static void handleServiceException(RestServiceException ex, PlaceChanger placeChanger) {
+	/**
+	 * Handles the exception. Resturn true if the user has been alerted to the exception already
+	 * @param ex
+	 * @param placeChanger
+	 * @return true if the user has been prompted
+	 */
+	public static boolean handleServiceException(RestServiceException ex, PlaceChanger placeChanger) {
 		if(ex instanceof UnauthorizedException) {
 			// send user to login page						
 			Info.display("Session Timeout", "Your session has timed out. Please login again.");
 			placeChanger.goTo(new LoginPlace(LoginPlace.LOGIN_TOKEN));
+			return true;
 		} else if(ex instanceof ForbiddenException) {
 			// alerting here this seems kinda lame, but keeps the code out of the client
-			MessageBox.info("Unauthorized", "Sorry, there was a failure due to insufficient privledges.", null);			
+			MessageBox.info("Unauthorized", "Sorry, there was a failure due to insufficient privledges.", null);
+			return true;
 		} else if(ex instanceof NotFoundException) {
 			MessageBox.info("Not Found", "Sorrr, the requested object was not found.", null);
 			placeChanger.goTo(new Home(DisplayUtils.DEFAULT_PLACE_TOKEN));
+			return true;
 		} 			
 		
 		// For other exceptions, allow the consumer to send a good message to the user
-		
+		return false;
 	}
 	
 	/*

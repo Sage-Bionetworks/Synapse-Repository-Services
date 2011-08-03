@@ -40,8 +40,8 @@ public class NodeEditorDisplayHelper {
 				NodeType.DATASET, "Dataset",
 				DisplayConstants.CREATE_DATASET_TEXT,
 				DisplayConstants.EDIT_DATASET_TEXT,
-				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag", "layers", "locations", "hasExpressionData", "hasGeneticData", "hasClinicalData"}),
-				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag", "layers", "locations", "hasExpressionData", "hasGeneticData", "hasClinicalData"}));		
+				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag", "layers", "locations", "hasExpressionData", "hasGeneticData", "hasClinicalData", "eulaId"}),
+				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag", "layers", "locations", "hasExpressionData", "hasGeneticData", "hasClinicalData", "eulaId"}));		
 		deviation.setKeyToOntology(new StaticOntologies().getAnnotationToOntology());			
 		return deviation;
 	}
