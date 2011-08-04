@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 import org.sagebionetworks.Helpers.ExternalProcessResult;
+import org.sagebionetworks.StackConfiguration;
 
 /**
  * Run this integration test to clean all datasets out of the database
@@ -11,7 +12,7 @@ import org.sagebionetworks.Helpers.ExternalProcessResult;
  * @author deflaux
  * 
  */
-public class IT900DatasetNukerNoBamboo {
+public class IT900DatasetNuker {
 
 	/**
 	 * @throws Exception
@@ -25,9 +26,9 @@ public class IT900DatasetNukerNoBamboo {
 				"--authEndpoint",
 				StackConfiguration.getAuthenticationServiceEndpoint(),
 				"--user",
-				Helpers.getIntegrationTestUser(),
+				StackConfiguration.getIntegrationTestUserOneName(),
 				"--password",
-				Helpers.getIntegrationTestUser(),
+				StackConfiguration.getIntegrationTestUserOnePassword(),
 		};
 		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
 		assertEquals("", result.getStderr());

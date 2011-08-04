@@ -19,7 +19,7 @@ import org.sagebionetworks.Helpers.ExternalProcessResult;
  * @author deflaux
  * 
  */
-public class IT080SynapsePythonClientNoBamboo {
+public class IT080SynapsePythonClient {
 
 	/**
 	 * @throws Exception

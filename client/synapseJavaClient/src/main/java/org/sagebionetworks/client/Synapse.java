@@ -27,8 +27,6 @@ public class Synapse {
 	private static final String DEFAULT_AUTH_ENDPOINT = "https://staging-reposervice.elasticbeanstalk.com/auth/v1";
 	private static final String SESSION_TOKEN_HEADER = "sessionToken";
 	private static final String QUERY_URI = "/query?query=";
-	private static final String INTEGRATION_TEST_USER = System
-			.getProperty("org.sagebionetworks.integrationTestUser");
 
 	private String repoEndpoint;
 	private String authEndpoint;
@@ -85,16 +83,6 @@ public class Synapse {
 		JSONObject loginRequest = new JSONObject();
 		loginRequest.put("email", username);
 		loginRequest.put("password", password);
-
-		// Dev Note: this is for integration testing
-		if (null != INTEGRATION_TEST_USER
-				&& INTEGRATION_TEST_USER.equals(username)) {
-			defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER,
-					INTEGRATION_TEST_USER);
-			defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER,
-					INTEGRATION_TEST_USER);
-			return;
-		}
 
 		JSONObject credentials = createAuthEntity("/session", loginRequest);
 

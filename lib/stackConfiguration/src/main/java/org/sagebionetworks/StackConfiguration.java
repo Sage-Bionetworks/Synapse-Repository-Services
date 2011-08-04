@@ -435,6 +435,32 @@ public class StackConfiguration {
 	public String getDatabaseConnectionPoolMaxNumberConnections(){
 		return getProperty("org.sagebionetworks.pool.max.number.connections");
 	}
+
+	/**
+	 * @return The name of a user for integration tests
+ 	 */
+	public static String getIntegrationTestUserOneName() {
+		return getProperty("org.sagebionetworks.integration.test.username.one");
+	}
 	
+	/**
+	 * @return The password of a user for integration tests
+ 	 */
+	public static String getIntegrationTestUserOnePassword() {
+		return getProperty("org.sagebionetworks.integration.test.password.one");
+	}
 	
+	/**
+	 * @return The name of a second user for integration tests
+ 	 */
+	public static String getIntegrationTestUserTwoName() {
+		return getProperty("org.sagebionetworks.integration.test.username.two");
+	}
+	
+	/**
+	 * @return The password of a second user for integration tests
+ 	 */
+	public static String getIntegrationTestUserTwoPassword() {
+		return getProperty("org.sagebionetworks.integration.test.password.two");
+	}
 }

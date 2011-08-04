@@ -51,13 +51,6 @@ public class Helpers {
 				.getProperty("local.r.path");
 	}
 
-	/**
-	 * @return the Synapse username to use for integration tests
-	 */
-	public static String getIntegrationTestUser() {
-		return System.getProperty("org.sagebionetworks.integrationTestUser");
-	}
-
 	private static final Logger log = Logger.getLogger(Helpers.class.getName());
 
 	/**

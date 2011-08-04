@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 import org.sagebionetworks.Helpers.ExternalProcessResult;
+import org.sagebionetworks.StackConfiguration;
 
 /**
  * Run this integration test to load in some realistic data
@@ -11,7 +12,7 @@ import org.sagebionetworks.Helpers.ExternalProcessResult;
  * @author deflaux
  *
  */
-public class IT100DatasetMetadataLoaderNoBamboo {
+public class IT100DatasetMetadataLoader {
 
 	/**
 	 * @throws Exception
@@ -27,9 +28,9 @@ public class IT100DatasetMetadataLoaderNoBamboo {
 				"--authEndpoint",
 				StackConfiguration.getAuthenticationServiceEndpoint(),
 				"--user",
-				Helpers.getIntegrationTestUser(),
+				StackConfiguration.getIntegrationTestUserOneName(),
 				"--password",
-				Helpers.getIntegrationTestUser(),
+				StackConfiguration.getIntegrationTestUserOnePassword(),
 				"--datasetsCsv",
 				"target/non-java-dependencies/AllDatasets.csv",
 				"--layersCsv",
