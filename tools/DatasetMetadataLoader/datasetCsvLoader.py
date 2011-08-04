@@ -86,7 +86,6 @@ def createAccessList(principals, permissionList):
     al = []
     for p in principals:
         if p["name"] in permissionList:
-#            al.append({"userGroupId":p["id"], "accessType":permissionList[p["name"]]})
             al.append({"groupName":p["name"], "accessType":permissionList[p["name"]]})
         #print "principal %s \t access list %s" % (p, al)
     return al
@@ -130,21 +129,21 @@ def createOrUpdateEntity(kind, entity, permissions=None):
         if(None != permissions):
             accessList = createAccessList(gSYNAPSE.getPrincipals(),
                                           permissions)
-#            acl = {"resourceAccess":accessList, "resourceId":storedEntity["id"]}
-            acl = {"resourceAccess":accessList}
-            if(not('parentId' in storedEntity) or
-               (None == storedEntity['parentId'])):
-                gSYNAPSE.updateRepoEntity(storedEntity["accessControlList"], acl)
-            else:
+            acl = {"resourceAccess":accessList, "id":storedEntity["id"]}
+
+            # Its not easy to tell whether we need to do a POST or a
+            # PUT so try both
+            try:
                 gSYNAPSE.createRepoEntity(storedEntity["accessControlList"], acl)
+            except Exception, err:
+                gSYNAPSE.updateRepoEntity(storedEntity["accessControlList"], acl)
         print 'Created %s %s\n\n' % (kind, message)
     else:
         storedEntity = gSYNAPSE.updateRepoEntity(storedEntity["uri"], entity)
         if(None != permissions):
             accessList = createAccessList(gSYNAPSE.getPrincipals(),
                                           permissions)
-#            acl = {"resourceAccess":accessList, "resourceId":storedEntity["id"]}
-            acl = {"resourceAccess":accessList}
+            acl = {"resourceAccess":accessList, "id":storedEntity["id"]}
             gSYNAPSE.updateRepoEntity(storedEntity["accessControlList"], acl)
         print 'Updated %s %s\n\n' % (kind, message)
 
@@ -267,8 +266,6 @@ def loadDatasets(projectId, eulaId):
         # Load the row data from the dataset CSV into our datastructure    
         colnum = 0
         for col in row:
-            if(gARGS.debug):
-                print '%-8s: %s' % (header[colnum], col)
             if(header[colnum] in CSV_TO_PRIMARY_FIELDS):
                 if("name" == header[colnum]):
                     cleanName = col.replace("_", " ")
@@ -397,9 +394,14 @@ storedProject = createOrUpdateEntity(kind="project",
                                      permissions=ROOT_PERMS)
     
 eula = {"name":SAGE_CURATION_EULA_NAME, "agreement":DEFAULT_TERMS_OF_USE}
-storedEula = createOrUpdateEntity(kind="eula",
-                                  entity=eula,
-                                  permissions=ROOT_PERMS)
+storedEula = {}
+try:
+    # Only admins can update eulas
+    storedEula = createOrUpdateEntity(kind="eula",
+                                      entity=eula,
+                                      permissions=ROOT_PERMS)
+except Exception, err:
+    storedEula = gSYNAPSE.getRepoEntityByName(kind="eula", name=SAGE_CURATION_EULA_NAME)
     
 loadDatasets(storedProject["id"], storedEula["id"])
     

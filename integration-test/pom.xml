@@ -111,7 +111,6 @@
 					<systemPropertyVariables>
 						<local.python27.path>${local.python27.path}</local.python27.path>
 						<local.r.path>${local.r.path}</local.r.path>
-						<org.sagebionetworks.integrationTestUser>admin</org.sagebionetworks.integrationTestUser>
 					</systemPropertyVariables>
 				</configuration>
 				<executions>
@@ -154,11 +153,6 @@
 							<org.sagebionetworks.stack.iam.id>${org.sagebionetworks.stack.iam.id}</org.sagebionetworks.stack.iam.id>
 							<org.sagebionetworks.stack.iam.key>${org.sagebionetworks.stack.iam.key}</org.sagebionetworks.stack.iam.key>
 							<org.sagebionetworks.rest.api.endpoint>${tomcat.endpoint}/${org.sagebionetworks.repository.context}</org.sagebionetworks.rest.api.endpoint>
-							<!-- This will force the user of a Mock UserDao -->
-							<org.sagebionetworks.mockCrowdDAOClass>org.sagebionetworks.repo.manager.TestUserDAO</org.sagebionetworks.mockCrowdDAOClass>
-							<!-- Tells the authentication filter to allow this user through without 
-								really authenticating -->
-							<org.sagebionetworks.integrationTestUser>admin</org.sagebionetworks.integrationTestUser>
 						</systemProperties>
 					</container>
 					<configuration>

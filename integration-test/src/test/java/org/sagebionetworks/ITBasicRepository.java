@@ -4,14 +4,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.web.server.servlet.UserDataProvider;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -59,8 +57,6 @@ public class ITBasicRepository {
 			String url = repoBaseUrl + suffix;
 			System.out.println("Testing url: " + url);
 			HttpHeaders headers = new HttpHeaders();
-			String userId = URLEncoder.encode("admin", "UTF-8");
-			headers.add(UserDataProvider.SESSION_TOKEN_KEY, userId);
 			headers.setContentType(MediaType.APPLICATION_JSON);
 			HttpEntity<String> entity = new HttpEntity<String>("", headers);
 			ResponseEntity<Object> response = template.exchange(url,

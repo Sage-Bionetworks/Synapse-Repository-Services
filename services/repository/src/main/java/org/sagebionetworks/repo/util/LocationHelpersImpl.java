@@ -92,8 +92,7 @@ public class LocationHelpersImpl implements LocationHelper {
 		if (hasSanityBeenChecked) {
 			return;
 		}
-		// uncomment for PLFM-216
-		// validateConfiguration();
+		validateConfiguration();
 		hasSanityBeenChecked = true;
 	}
 
@@ -211,7 +210,7 @@ public class LocationHelpersImpl implements LocationHelper {
 
 		// Configuration is checked upon startup, we are being extra safe here
 		// by re-validating our "contract" with the configuration system to
-		// check that our invariates hold true
+		// ensure that our invariates hold true
 		sanityCheckConfiguration();
 
 		// Append the stack name to the IAM username for prod vs. test isolation
@@ -229,13 +228,12 @@ public class LocationHelpersImpl implements LocationHelper {
 		User user = userDAO.getUser(userId);
 		if (null != user.getIamAccessId() && null != user.getIamSecretKey()) {
 			
-			/** uncomment for PLFM-216
 			if (!iamUserId.equals(user.getIamUserId())) {
 				throw new DatastoreException("IAM username " + iamUserId
 						+ " does not match the one stored in Crowd "
 						+ user.getIamUserId());
 			}
-			**/
+
 			return new BasicAWSCredentials(user.getIamAccessId(), user
 					.getIamSecretKey());
 		}

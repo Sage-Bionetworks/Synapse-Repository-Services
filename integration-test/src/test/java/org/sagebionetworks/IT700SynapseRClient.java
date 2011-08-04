@@ -3,19 +3,16 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.Helpers.ExternalProcessResult;
+import org.sagebionetworks.StackConfiguration;
 
 /**
- * TODO - get R CMD check to pass 
- * 
  * @author deflaux
  * 
  */
-@Ignore
-public class IT700SynapseRClientNoBamboo {
-	
+public class IT700SynapseRClient {
+
 	/**
 	 * @throws Exception
 	 */
@@ -65,12 +62,17 @@ public class IT700SynapseRClientNoBamboo {
 				"-e",
 				"library(synapseClient)",
 				"-e",
-				"synapseAuthServiceEndpoint(endpoint='" + StackConfiguration.getAuthenticationServiceEndpoint() + "')",
+				"synapseAuthServiceEndpoint(endpoint='"
+						+ StackConfiguration.getAuthenticationServiceEndpoint()
+						+ "')",
 				"-e",
-				"sessionToken(sessionToken='"
-						+ Helpers.getIntegrationTestUser() + "')",
+				"synapseRepoServiceEndpoint(endpoint='"
+						+ StackConfiguration.getRepositoryServiceEndpoint()
+						+ "')",
 				"-e",
-				"synapseRepoServiceEndpoint(endpoint='" + StackConfiguration.getRepositoryServiceEndpoint() + "')",
+				"synapseLogin(username='" + StackConfiguration.getIntegrationTestUserOneName()
+						+ "', password='"
+						+ StackConfiguration.getIntegrationTestUserOnePassword() + "')",
 				"-e", "synapseClient:::.test()" };
 		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
 		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
@@ -89,13 +91,18 @@ public class IT700SynapseRClientNoBamboo {
 				"-e",
 				"library(synapseClient)",
 				"-e",
-				"synapseAuthServiceEndpoint(endpoint='" + StackConfiguration.getAuthenticationServiceEndpoint() + "')",
+				"synapseAuthServiceEndpoint(endpoint='"
+						+ StackConfiguration.getAuthenticationServiceEndpoint()
+						+ "')",
 				"-e",
-				"sessionToken(sessionToken='"
-						+ Helpers.getIntegrationTestUser() + "')",
+				"synapseRepoServiceEndpoint(endpoint='"
+						+ StackConfiguration.getRepositoryServiceEndpoint()
+						+ "')", "-e",
+				"synapseLogin(username='" + StackConfiguration.getIntegrationTestUserOneName()
+						+ "', password='"
+						+ StackConfiguration.getIntegrationTestUserOnePassword() + "')",
 				"-e",
-				"synapseRepoServiceEndpoint(endpoint='" + StackConfiguration.getRepositoryServiceEndpoint() + "')",
-				"-e", "synapseClient:::.integrationTest(testFileRegexp=\"^test_[^_]*R$\")" };
+				"synapseClient:::.integrationTest(testFileRegexp=\"^test_[^_]*R$\")" };
 		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
 		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
 	}

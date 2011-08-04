@@ -1,5 +1,6 @@
 package org.sagebionetworks;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.json.JSONArray;
@@ -28,10 +29,12 @@ public class IT500SynapseJavaClient {
 	public static void beforeClass() throws Exception {
 
 		synapse = new Synapse();
-		synapse.setRepositoryEndpoint(StackConfiguration.getAuthenticationServiceEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration.getRepositoryServiceEndpoint());
-		synapse.login(Helpers.getIntegrationTestUser(), Helpers
-				.getIntegrationTestUser());
+		synapse.setAuthEndpoint(StackConfiguration
+				.getAuthenticationServiceEndpoint());
+		synapse.setRepositoryEndpoint(StackConfiguration
+				.getRepositoryServiceEndpoint());
+		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
+				StackConfiguration.getIntegrationTestUserOnePassword());
 	}
 
 	/**
@@ -42,12 +45,11 @@ public class IT500SynapseJavaClient {
 		JSONObject results = synapse.query("select * from dataset limit 10");
 
 		assertTrue(0 <= results.getInt("totalNumberOfResults"));
-		
+
 		JSONArray datasets = results.getJSONArray("results");
 
 		if (0 < datasets.length()) {
-			int datasetId = datasets.getJSONObject(0)
-					.getInt("dataset.id");
+			int datasetId = datasets.getJSONObject(0).getInt("dataset.id");
 
 			JSONObject dataset = synapse.getEntity("/dataset/" + datasetId);
 			assertTrue(dataset.has("annotations"));
@@ -62,4 +64,35 @@ public class IT500SynapseJavaClient {
 		}
 	}
 
+	@Test
+	public void testJavaClientCreateAgreementIfNeeded() throws Exception {
+
+		JSONObject datasetQueryResults = synapse
+				.query("select * from dataset where name == \"MSKCC Prostate Cancer\"");
+		assertEquals(1, datasetQueryResults.getJSONArray("results").length());
+		JSONObject datasetQueryResult = datasetQueryResults.getJSONArray(
+				"results").getJSONObject(0);
+
+		JSONObject agreementQueryResults = synapse
+				.query("select * from agreement where datasetId == "
+						+ datasetQueryResult.getString("dataset.id")
+						+ " and eulaId == \""
+						+ datasetQueryResult.getString("dataset.eulaId")
+						+ "\" and userId == \""
+						+ StackConfiguration.getIntegrationTestUserOneName()
+						+ "\"");
+
+		// Agree to the eula, if needed
+		// Dev Note: ReadOnlyWikiGenerator has a dependency upon this if the
+		// user running the generator is not an admin or has not signed the EULA
+		// for the MSKCC dataset
+		if (0 == agreementQueryResults.getJSONArray("results").length()) {
+			JSONObject agreement = new JSONObject();
+			agreement.put("datasetId", datasetQueryResult
+					.getString("dataset.id"));
+			agreement.put("eulaId", datasetQueryResult
+					.getString("dataset.eulaId"));
+			synapse.createEntity("/agreement", agreement);
+		}
+	}
 }

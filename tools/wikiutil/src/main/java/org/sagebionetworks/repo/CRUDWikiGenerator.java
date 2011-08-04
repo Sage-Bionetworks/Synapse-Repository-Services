@@ -5,6 +5,7 @@ import java.util.Iterator;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
 import org.json.JSONObject;
 
 /**
@@ -40,6 +41,9 @@ public class CRUDWikiGenerator {
 	 */
 	@SuppressWarnings("unchecked")
 	public static int main(String[] args) {
+		
+		DateTime now = new DateTime();
+		String timestamp = "(Wiki Generator " + now.toString().replace(":", "_").replace("-", "_") + ")";
 
 		try {
 
@@ -61,7 +65,7 @@ public class CRUDWikiGenerator {
 					.doPost(
 							"/project",
 							new JSONObject(
-									"{\"name\": \"SageBioCuration (Wiki Generator)\"}"),
+									"{\"name\": \"SageBioCuration " + timestamp + "\"}"),
 							"h3. Create a Project",
 							"Note that the request is a POST and the content type of the data we are sending to the service is json");
 
@@ -69,7 +73,7 @@ public class CRUDWikiGenerator {
 					.doPost(
 							"/eula",
 							new JSONObject(
-									"{\"name\": \"SageBioCurationEula (Wiki Generator)\", \"agreement\": \"<p><b><larger>Copyright 2011 Sage Bionetworks</larger></b><br/><br/></p><p>Licensed under the Apache License, Version 2.0 ...\"}"),
+									"{\"name\": \"SageBioCurationEula " + timestamp + "\", \"agreement\": \"<p><b><larger>Copyright 2011 Sage Bionetworks</larger></b><br/><br/></p><p>Licensed under the Apache License, Version 2.0 ...\"}"),
 							"h3. Create a new End-User Licence Agreement",
 							"Create a new End-User License Agreement to specify the terms of use for a dataset and how the dataset should be cited.");
 
@@ -206,17 +210,6 @@ public class CRUDWikiGenerator {
 					.doDelete(
 							project.getString("uri"),
 							"h3. Delete a Project",
-							"Note that the request is a DELETE and no content is returned.  Also note that this will delete all of the datasets layers, etc.");
-
-			wiki
-					.doDelete(
-							eula.getString("uri"),
-							"h3. Delete a Eula",
-							"Note that the request is a DELETE and no content is returned.  Also note that this will delete all of the datasets layers, etc.");
-			wiki
-					.doDelete(
-							agreement.getString("uri"),
-							"h3. Delete an Agreement",
 							"Note that the request is a DELETE and no content is returned.  Also note that this will delete all of the datasets layers, etc.");
 
 			return (wiki.getNumErrors());

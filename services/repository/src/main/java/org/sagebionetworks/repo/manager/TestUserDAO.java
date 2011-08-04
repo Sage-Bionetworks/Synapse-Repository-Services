@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -40,6 +41,7 @@ public class TestUserDAO implements UserDAO {
 		dto.setId(dto.getUserId()); // make the user name also the object's id
 		
 		// TODO:  move this back to LayerLocationsControllerTest
+		dto.setIamUserId(StackConfiguration.getStack() + "-" + dto.getUserId());
 		dto.setIamAccessId(FAKE_ACCESS_ID);
 		dto.setIamSecretKey(FAKE_SECRET_KEY);
 

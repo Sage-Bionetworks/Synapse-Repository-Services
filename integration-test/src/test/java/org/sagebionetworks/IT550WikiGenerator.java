@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.CRUDWikiGenerator;
 import org.sagebionetworks.repo.ReadOnlyWikiGenerator;
 import org.sagebionetworks.repo.WikiGenerator;
+import org.sagebionetworks.StackConfiguration;
 
 /**
  * This integration test confirms that our wiki generator still works
@@ -22,7 +23,7 @@ import org.sagebionetworks.repo.WikiGenerator;
  * @author deflaux
  * 
  */
-public class IT550WikiGeneratorNoBamboo {
+public class IT550WikiGenerator {
 
 	Logger log;
 	StringWriter writer;
@@ -56,8 +57,8 @@ public class IT550WikiGeneratorNoBamboo {
 		String args[] = { "--repoEndpoint",
 				StackConfiguration.getRepositoryServiceEndpoint(), "--authEndpoint",
 				StackConfiguration.getAuthenticationServiceEndpoint(), "--username",
-				Helpers.getIntegrationTestUser(), "--password",
-				Helpers.getIntegrationTestUser() };
+				StackConfiguration.getIntegrationTestUserOneName(), "--password",
+				StackConfiguration.getIntegrationTestUserOnePassword() };
 		int numErrors = CRUDWikiGenerator.main(args);
 
 		String output = writer.toString();
@@ -85,8 +86,8 @@ public class IT550WikiGeneratorNoBamboo {
 		String args[] = { "--repoEndpoint",
 				StackConfiguration.getRepositoryServiceEndpoint(), "--authEndpoint",
 				StackConfiguration.getAuthenticationServiceEndpoint(), "--username",
-				Helpers.getIntegrationTestUser(), "--password",
-				Helpers.getIntegrationTestUser() };
+				StackConfiguration.getIntegrationTestUserOneName(), "--password",
+				StackConfiguration.getIntegrationTestUserOnePassword() };
 		int numErrors = ReadOnlyWikiGenerator.main(args);
 
 		String output = writer.toString();

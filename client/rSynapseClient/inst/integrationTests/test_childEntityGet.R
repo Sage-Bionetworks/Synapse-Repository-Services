@@ -10,10 +10,11 @@ integrationTestSawyersDatasetChildEntityGet <- function() {
 	layers <- getDatasetLayers(entity=datasets$dataset.id[1], includeParentAnnot = FALSE)
 	checkTrue(5 <= nrow(layers))
 	layer <- getLayer(entity=layers$id[1])
-	locations <- getLayerLocations(entity=layer)
-	checkTrue(1 <= nrow(locations))
 	previews <- getLayerPreviews(entity=layer)
 	checkTrue(1 <= nrow(previews))
+	# TODO this user needs to agree to the use agreement before he/she can view the locations
+	# locations <- getLayerLocations(entity=layer)
+	# checkTrue(1 <= nrow(locations))
 }
 
 integrationTestSageBioCurationProjectChildEntityGet <- function() {
