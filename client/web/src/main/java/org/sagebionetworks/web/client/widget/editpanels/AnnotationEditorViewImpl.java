@@ -158,9 +158,8 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 
 	@Override
 	public void showErrorMessage(String message) {
-		this.clear();	
-		Html html = new Html(DisplayUtils.getIconHtml(iconsImageBundle.error16()) + " " + message);
-		this.add(html);		
+		MessageBox.alert("Error", message, null);	
+				
 	}
 
     @Override
@@ -578,6 +577,11 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		if(nameSelected == null || nameSelected.length() == 0) {
 			// TODO : check for reasonable characters in name!
 			MessageBox.alert("Name Required", "Please enter a Name", null);
+			return;
+		}
+
+		if(nameSelected.contains(" ")) {
+			MessageBox.alert("Spaces Not Allowed", "Sorry, spaces in Annotation names are not currently supported.", null);
 			return;
 		}
 
