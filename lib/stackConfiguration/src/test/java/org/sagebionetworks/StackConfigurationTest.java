@@ -13,9 +13,11 @@ public class StackConfigurationTest {
 		assertEquals("https://crowd-dev.sagebase.org:8443", StackConfiguration
 				.getCrowdEndpoint());
 		URL testPropertiesLocation = StackConfiguration.class.getResource("/someBrandNewStack.properties"); 
-		System.setProperty(StackConfiguration.STACK_PROPERTY_FILE_URL, testPropertiesLocation.toString());
+		System.setProperty(StackConstants.STACK_PROPERTY_FILE_URL, testPropertiesLocation.toString());
+		System.setProperty(StackConstants.STACK_PROPERTY_NAME, "some");
+		System.setProperty(StackConstants.STACK_INSTANCE_PROPERTY_NAME, "Brand");
 		StackConfiguration.reloadStackConfiguration();
-		assertEquals("someBrandNewStack", StackConfiguration.getStack());
+		assertEquals("some", StackConfiguration.getStack());
 		assertEquals("https://crowd.sagebase.org:8443", StackConfiguration
 				.getCrowdEndpoint());
 	}
