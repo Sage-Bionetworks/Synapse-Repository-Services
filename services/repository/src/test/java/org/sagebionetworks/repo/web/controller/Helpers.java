@@ -884,7 +884,8 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.addHeader(ServiceConstants.ETAG_HEADER, entityAcl
 				.getString("etag"));
-		request.setRequestURI(entityAcl.getString("uri"));
+		request.setRequestURI(entity
+                               .getString("accessControlList"));
 		if (null != userId)
 			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");

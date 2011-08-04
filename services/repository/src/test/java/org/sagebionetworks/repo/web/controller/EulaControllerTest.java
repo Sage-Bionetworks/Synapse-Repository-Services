@@ -179,7 +179,7 @@ public class EulaControllerTest {
 		// Make a use agreement
 		JSONObject eula = helper.testCreateJsonEntity(helper.getServletPrefix()
 				+ "/eula", SAMPLE_EULA);
-		helper.addPublicReadOnlyAclToEntity(eula);
+
 		// Add the use agreement restriction to the dataset
 		dataset.put("eulaId", eula.getString("id"));
 		JSONObject updatedDataset = helper.testUpdateJsonEntity(dataset);
