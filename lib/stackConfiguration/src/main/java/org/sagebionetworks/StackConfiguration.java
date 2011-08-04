@@ -30,15 +30,6 @@ public class StackConfiguration {
 	private static final Logger log = Logger.getLogger(StackConfiguration.class
 			.getName());
 
-	private static final String S3_PROPERTY_FILENAME_PREFIX = "https://s3.amazonaws.com";
-
-	private static final String DEFAULT_PROPERTIES_FILENAME = "/stack.properties";
-	private static final String TEMPLATE_PROPERTIES = "/template.properties";
-	
-	protected static final String STACK_PROPERTY_FILE_URL = "org.sagebionetworks.stack.configuration.url";
-	private static final String STACK_IAM_ID = "org.sagebionetworks.stack.iam.id";
-	private static final String STACK_IAM_KEY = "org.sagebionetworks.stack.iam.key";
-	private static final String STACK_ENCRYPTION_KEY = "org.sagebionetworks.stackEncryptionKey";
 
 	private static Properties defaultStackProperties = null;
 	private static Properties stackPropertyOverrides = null;
@@ -65,23 +56,31 @@ public class StackConfiguration {
 		defaultStackProperties = new Properties();
 		stackPropertyOverrides = new Properties();
 		requiredProperties = new Properties();
+				
 		// Load the default properties from the classpath.
-		loadPropertiesFromClasspath(DEFAULT_PROPERTIES_FILENAME, defaultStackProperties);
+		loadPropertiesFromClasspath(StackConstants.DEFAULT_PROPERTIES_FILENAME, defaultStackProperties);
 		// Load the required properties
-		loadPropertiesFromClasspath(TEMPLATE_PROPERTIES, requiredProperties);
-		// The URL containing any property overrides
-		propertyFileUrl = getPropertyFileURL();
-		// Try to get the properties from the settings file
-		if(propertyFileUrl == null){
+		loadPropertiesFromClasspath(StackConstants.TEMPLATE_PROPERTIES, requiredProperties);
+		// If the system properties does not have the property file url,
+		// then we need to try and load the maven settings file.
+		if(System.getProperty(StackConstants.STACK_PROPERTY_FILE_URL) == null){
+			// Try loading the settings file
 			addSettingsPropertiesToSystem();
-			// Try loading it again
-			propertyFileUrl = getPropertyFileURL();
 		}
-		if (null == propertyFileUrl) throw new IllegalArgumentException("Cannot find the System Property: "+STACK_PROPERTY_FILE_URL);
+		// These four properties are required.  If they are null, an exception will be thrown
+		String propertyFileUrl = getPropertyFileURL();
+
+		String encryptionKey = getEncryptionKey();
+		String stack = getStack();
+		String stackInstance = getStackInstance();
+		
+		// Validate the property file
+		StackUtils.validateStackProperty(stack+stackInstance, StackConstants.STACK_PROPERTY_FILE_URL, propertyFileUrl);
+		
 		// If we have IAM id and key the load the properties using the Amazon client, else the URL shoudl be public.
 		String iamId = getIAMUserId();
 		String iamKey = getIAMUserKey();
-		if(propertyFileUrl.startsWith(S3_PROPERTY_FILENAME_PREFIX) && iamId != null && iamKey != null){
+		if(propertyFileUrl.startsWith(StackConstants.S3_PROPERTY_FILENAME_PREFIX) && iamId != null && iamKey != null){
 			try {
 				S3PropertyFileLoader.loadPropertiesFromS3(propertyFileUrl, iamId, iamKey, stackPropertyOverrides);
 			} catch (IOException e) {
@@ -91,7 +90,7 @@ public class StackConfiguration {
 			loadPropertiesFromURL(propertyFileUrl, stackPropertyOverrides);
 		}
 		// Validate the required properties
-		StackUtils.validateRequiredProperties(requiredProperties, stackPropertyOverrides);
+		StackUtils.validateRequiredProperties(requiredProperties, stackPropertyOverrides, stack, stackInstance);
 	}
 
 	private static String getProperty(String propertyName) {
@@ -183,16 +182,56 @@ public class StackConfiguration {
 		}
 	}
 	
+	/**
+	 * Throws the same RuntimeException when a required property is missing.
+	 * @param propertyKey
+	 * @param alternate
+	 */
+	private static void throwRequiredPropertyException(String propertyKey, String alternate){
+		throw new RuntimeException("The property: "+propertyKey+" or its alternate: "+alternate+" is required and cannot be null");
+	}
+	
+	/**
+	 * The location of the property file that overrides configuration properties.
+	 * @return
+	 */
 	public static String getPropertyFileURL() {
-		String url = System.getProperty("PARAM1");
-		if (url == null) url = System.getProperty(STACK_PROPERTY_FILE_URL);
+		String url = System.getProperty(StackConstants.PARAM1);
+		if (url == null) url = System.getProperty(StackConstants.STACK_PROPERTY_FILE_URL);
+		if(url == null) throwRequiredPropertyException(StackConstants.STACK_PROPERTY_FILE_URL, StackConstants.PARAM1);
 		return url;
 	}
 	
+	/**
+	 * The encryption key used to read passwords in the configuration property file.
+	 * @return
+	 */
 	public static String getEncryptionKey() {
-		String ek = System.getProperty("PARAM2");
-		if (ek == null) ek = System.getProperty(STACK_ENCRYPTION_KEY);
+		String ek = System.getProperty(StackConstants.PARAM2);
+		if (ek == null) ek = System.getProperty(StackConstants.STACK_ENCRYPTION_KEY);
+		if(ek == null) throwRequiredPropertyException(StackConstants.STACK_ENCRYPTION_KEY, StackConstants.PARAM2);
 		return ek;
+	}
+	
+	/**
+	 * The name of the stack.
+	 * @return
+	 */
+	public static String getStack() {
+		String stack = System.getProperty(StackConstants.PARAM3);
+		if(stack == null) stack = System.getProperty(StackConstants.STACK_PROPERTY_NAME);
+		if(stack == null) throwRequiredPropertyException(StackConstants.STACK_PROPERTY_NAME, StackConstants.PARAM3);
+		return stack;
+	}
+	/**
+	 * The stack instance (i.e 'A', or 'B')
+	 * @return
+	 */
+	public static String getStackInstance(){
+		String instance = System.getProperty(StackConstants.PARAM4);
+		if(instance == null) instance = System.getProperty(StackConstants.STACK_INSTANCE_PROPERTY_NAME);
+		if(instance == null) throwRequiredPropertyException(StackConstants.STACK_INSTANCE_PROPERTY_NAME, StackConstants.PARAM4);
+		return instance;
 	}
 	
 	/**
@@ -203,7 +242,7 @@ public class StackConfiguration {
 		// There are a few places where we can find this
 		String id = System.getProperty("AWS_ACCESS_KEY_ID");
 		if(id != null) return id;
-		id = System.getProperty(STACK_IAM_ID);
+		id = System.getProperty(StackConstants.STACK_IAM_ID);
 		if (id == null) return null;
 		id = id.trim();
 		if ("".equals(id)) return null;
@@ -218,16 +257,11 @@ public class StackConfiguration {
 		// There are a few places to look for this
 		String key = System.getProperty("AWS_SECRET_KEY");
 		if(key != null) return key;
-		key = System.getProperty(STACK_IAM_KEY);
+		key = System.getProperty(StackConstants.STACK_IAM_KEY);
 		if (key == null) return null;
 		key = key.trim();
 		if ("".equals(key)) return null;
 		return key;
-	}
-
-	
-	public static String getStack() {
-		return getProperty("org.sagebionetworks.stack");
 	}
 
 	public static String getCrowdEndpoint() {
