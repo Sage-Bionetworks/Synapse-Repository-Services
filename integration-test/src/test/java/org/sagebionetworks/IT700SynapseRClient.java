@@ -3,6 +3,7 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.Helpers.ExternalProcessResult;
 import org.sagebionetworks.StackConfiguration;
@@ -56,6 +57,7 @@ public class IT700SynapseRClient {
 	 * @throws Exception
 	 */
 	@Test
+	@Ignore  // Fix me PLFM-402
 	public void testRunRUnitTests() throws Exception {
 		String cmd[] = {
 				Helpers.getRPath(),
