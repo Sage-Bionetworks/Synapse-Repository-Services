@@ -85,7 +85,7 @@ public class DisplayConstants {
 	public static final String BUTTON_SETUP_API_PASSWORD = "Create Synapse Password";
 	public static final String BUTTON_SAVING = "Saving";
 	public static final String BUTTON_CHANGE_PASSWORD = "Change Password";
-	public static final String LABEL_SINGLE_SIGN_ON_LOGGING_IN = "Loggin you in.";
+	public static final String LABEL_SINGLE_SIGN_ON_LOGGING_IN = "Logging you in.";
 	public static final String ERROR_GETTING_PERMISSIONS_TEXT = "READ ONLY MODE. Reason: An error occured in retrieving your level of access.";
 	public static final String ERROR_FAILED_PERSIST_AGREEMENT_TEXT = "Your license acceptance was not saved. You will need to sign it again in the future.";	
 	public static final String ERROR_USER_ALREADY_EXISTS = "There was a problem creating your account: The email address provided is already in use. If you have forgotten your password, please use the \"Forgot Password\" button from the login page.";

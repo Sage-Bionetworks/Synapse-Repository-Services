@@ -108,9 +108,7 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 				});
 				nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
 				window.add(nodeEditor.asWidget(NodeType.PROJECT), new FitData(4));						
-				window.show();
-				
-				showErrorMessage("<strong>Alpha Note:</strong> User project creation is currently disabled. Please email the <a href=\"mailto:platform@sagebase.org\">platform team</a> to have a new project created for you.");
+				window.show();			
 			}
 		});
 		createProjectButtonPanel.clear();
