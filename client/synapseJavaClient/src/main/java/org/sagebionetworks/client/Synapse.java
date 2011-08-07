@@ -1,18 +1,24 @@
 package org.sagebionetworks.client;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.httpclient.HttpException;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
+import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -205,6 +211,47 @@ public class Synapse {
 	public JSONObject query(String query) throws HttpException, IOException,
 			JSONException, SynapseUserException, SynapseServiceException {
 		return querySynapse(repoEndpoint, query);
+	}
+
+	/**
+	 * TODO I don't think this API is quite what we want, look at the R client
+	 * API for examples as to how to make this more convenient
+	 * 
+	 * @throws IOException
+	 * @throws JSONException 
+	 * @throws SynapseServiceException 
+	 * @throws SynapseUserException 
+	 * @throws DecoderException 
+	 * @throws HttpClientHelperException 
+	 * @return 
+	 */
+	public JSONObject uploadLayerToSynapse(JSONObject layer, File dataFile)
+			throws IOException, JSONException, SynapseUserException, SynapseServiceException, DecoderException, HttpClientHelperException {
+
+		String s3Path = dataFile.getName();
+
+		String md5 = MD5ChecksumHelper.getMD5Checksum(dataFile
+				.getAbsolutePath());
+		JSONObject s3LocationRequest = new JSONObject();
+		s3LocationRequest.put("path", "/" + s3Path);
+		s3LocationRequest.put("md5sum", md5);
+		s3LocationRequest.put("parentId", layer.getString("id"));
+		s3LocationRequest.put("type", "awss3");
+		JSONObject s3Location = createEntity("/location", s3LocationRequest);
+
+		// TODO find a more direct way to go from hex to base64
+		byte[] encoded = Base64.encodeBase64(Hex.decodeHex(md5.toCharArray()));
+		String base64Md5 = new String(encoded, "ASCII");
+
+		Map<String, String> headerMap = new HashMap<String, String>();
+		headerMap.put("x-amz-acl", "bucket-owner-full-control");
+		headerMap.put("Content-MD5", base64Md5);
+		headerMap.put("Content-Type", "application/binary");
+
+		HttpClientHelper.uploadFile(s3Location.getString("path"), dataFile
+				.getAbsolutePath(), headerMap);
+		
+		return getEntity(s3Location.getString("uri"));
 	}
 
 	/******************** Mid Level Authorization Service APIs ********************/

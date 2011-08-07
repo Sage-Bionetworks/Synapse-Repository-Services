@@ -23,8 +23,7 @@ public class MD5ChecksumHelper {
 	 * @throws NoSuchAlgorithmException
 	 * @throws IOException
 	 */
-	public static String getMD5Checksum(String filename)
-			throws NoSuchAlgorithmException, IOException {
+	public static String getMD5Checksum(String filename) throws IOException {
 		byte[] b = createChecksum(filename);
 		return getHexString(b);
 	}
@@ -35,8 +34,7 @@ public class MD5ChecksumHelper {
 	 * @throws IOException
 	 * @throws NoSuchAlgorithmException
 	 */
-	public static byte[] createChecksum(String filename) throws IOException,
-			NoSuchAlgorithmException {
+	public static byte[] createChecksum(String filename) throws IOException {
 		InputStream fis = new FileInputStream(filename);
 
 		byte[] buffer = new byte[1024];

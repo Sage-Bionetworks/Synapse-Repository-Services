@@ -210,9 +210,13 @@ public class HttpClientHelper {
 		DefaultHttpClient client = new DefaultHttpClient();
 		HttpResponse response = client.execute(get);
 		if (300 <= response.getStatusLine().getStatusCode()) {
-			throw new HttpClientHelperException(
-					"Request(" + requestUrl + ") failed: "
-							+ response.getStatusLine().getReasonPhrase(),
+			String errorMessage = "Request(" + requestUrl + ") failed: "
+			+ response.getStatusLine().getReasonPhrase();
+			HttpEntity responseEntity = response.getEntity();
+			if(null != responseEntity) {
+				errorMessage += EntityUtils.toString(responseEntity);
+			}
+			throw new HttpClientHelperException(errorMessage,
 					response.getStatusLine().getStatusCode());
 		}
 		HttpEntity fileEntity = response.getEntity();
