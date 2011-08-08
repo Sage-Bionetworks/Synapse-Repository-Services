@@ -14,7 +14,6 @@ import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.button.Button;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.place.shared.Place;
 import com.google.gwt.place.shared.PlaceController;
 import com.google.gwt.resources.client.ImageResource;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
@@ -22,8 +21,9 @@ import com.google.gwt.user.client.ui.FlexTable;
 
 public class DisplayUtils {
 
+	//public static final Logger logger = Logger.getLogger("SynapseLogger");
 	public static final String DEFAULT_PLACE_TOKEN = "0";
-	public static PlaceController placeController;
+	public static PlaceController placeController;	
 	
 	/**
 	 * Returns a properly aligned icon from an ImageResource
@@ -108,7 +108,7 @@ public class DisplayUtils {
 			return true;
 		} else if(ex instanceof ForbiddenException) {
 			// alerting here this seems kinda lame, but keeps the code out of the client
-			MessageBox.info("Unauthorized", "Sorry, there was a failure due to insufficient privledges.", null);
+			MessageBox.info("Unauthorized", "Sorry, there was a failure due to insufficient privileges.", null);
 			return true;
 		} else if(ex instanceof NotFoundException) {
 			MessageBox.info("Not Found", "Sorry, the requested object was not found.", null);
