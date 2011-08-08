@@ -111,7 +111,7 @@ public class DisplayUtils {
 			MessageBox.info("Unauthorized", "Sorry, there was a failure due to insufficient privledges.", null);
 			return true;
 		} else if(ex instanceof NotFoundException) {
-			MessageBox.info("Not Found", "Sorrr, the requested object was not found.", null);
+			MessageBox.info("Not Found", "Sorry, the requested object was not found.", null);
 			placeChanger.goTo(new Home(DisplayUtils.DEFAULT_PLACE_TOKEN));
 			return true;
 		} 			
