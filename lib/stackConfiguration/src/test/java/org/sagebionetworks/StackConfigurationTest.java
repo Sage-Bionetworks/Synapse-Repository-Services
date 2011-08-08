@@ -10,7 +10,7 @@ public class StackConfigurationTest {
 
 	@Test
 	public void testGetDefaultCrowdEndpoint() {
-		assertEquals("https://crowd-dev.sagebase.org:8443", StackConfiguration
+		assertEquals("https://dev-crowd.sagebase.org:8443", StackConfiguration
 				.getCrowdEndpoint());
 		URL testPropertiesLocation = StackConfiguration.class.getResource("/someBrandNewStack.properties"); 
 		System.setProperty(StackConstants.STACK_PROPERTY_FILE_URL, testPropertiesLocation.toString());
