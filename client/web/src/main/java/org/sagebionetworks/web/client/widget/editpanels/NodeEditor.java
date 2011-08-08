@@ -318,7 +318,10 @@ public class NodeEditor implements NodeEditorView.Presenter {
 		JSONObject json = new JSONObject();
 		for(FormField formField : formFields) {
 			if(ignoreFields.contains(formField.getKey())) continue;
-			json.put(formField.getKey(), new JSONString(formField.getValue()));
+			String value = "";
+			if(formField.getValue() != null) 
+				value = formField.getValue();
+			json.put(formField.getKey(), new JSONString(value));
 		}
 		if(parentId != null) {
 			json.put(DisplayConstants.SERVICE_PARENT_ID_KEY, new JSONString(parentId));
