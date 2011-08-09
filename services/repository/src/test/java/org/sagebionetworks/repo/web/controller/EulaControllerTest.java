@@ -175,7 +175,6 @@ public class EulaControllerTest {
 	 */
 	@Test
 	public void testEnforceUseAgreement() throws Exception {
-
 		// Make a use agreement
 		JSONObject eula = helper.testCreateJsonEntity(helper.getServletPrefix()
 				+ "/eula", SAMPLE_EULA);
@@ -185,6 +184,15 @@ public class EulaControllerTest {
 		JSONObject updatedDataset = helper.testUpdateJsonEntity(dataset);
 		assertEquals(eula.getString("id"), updatedDataset.getString("eulaId"));
 
+		// Make another dataset in addition to the one made by setUp and add the eula to it too
+		JSONObject dataset2 = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/dataset", "{\"eulaId\":\"" + eula.getString("id") + "\", \"parentId\":\"" + project.getString("id") + "\"}");
+		JSONObject datasetLocation2 = new JSONObject(LocationControllerTest.SAMPLE_LOCATION)
+				.put(NodeConstants.COL_PARENT_ID, dataset2.getString("id"));
+		datasetLocation2 = helper.testCreateJsonEntity(helper.getServletPrefix()
+				+ "/location", datasetLocation2.toString());
+		helper.addPublicReadOnlyAclToEntity(dataset2);
+		
 		// Make an agreement for the current user
 		helper.testCreateJsonEntity(helper.getServletPrefix() + "/agreement",
 				"{ \"datasetId\":\""
@@ -206,6 +214,10 @@ public class EulaControllerTest {
 				HttpStatus.FORBIDDEN);
 		helper.testGetJsonEntityShouldFail(layerLocation.getString("uri"),
 				HttpStatus.FORBIDDEN);
+		helper.testGetJsonEntityShouldFail(dataset2.getString("locations"),
+				HttpStatus.FORBIDDEN);
+		helper.testGetJsonEntityShouldFail(datasetLocation2.getString("uri"),
+				HttpStatus.FORBIDDEN);
 		helper.testQueryShouldFail(
 				"select * from location where parentId == \""
 						+ dataset.getString("id") + "\"", HttpStatus.FORBIDDEN);
@@ -213,7 +225,7 @@ public class EulaControllerTest {
 				"select * from location where parentId == \""
 						+ layer.getString("id") + "\"", HttpStatus.FORBIDDEN);
 
-		// Make agreement
+		// Make agreement for the first dataset, but not the second
 		JSONObject agreement = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
 				+ "/agreement", "{ \"datasetId\":\""
@@ -236,8 +248,14 @@ public class EulaControllerTest {
 						+ layer.getString("id") + "\"");
 		assertEquals(1, layerLocationQueryResult.getInt("totalNumberOfResults"));
 
+		// These still do not work
+		helper.testGetJsonEntityShouldFail(dataset2.getString("locations"),
+				HttpStatus.FORBIDDEN);
+		helper.testGetJsonEntityShouldFail(datasetLocation2.getString("uri"),
+				HttpStatus.FORBIDDEN);
+		
 		// Ensure that this non-admin user can see their agreement for this
-		// dataset plust others
+		// dataset plus others
 		JSONObject queryResult = helper
 				.testQuery("select * from agreement where eulaId == \""
 						+ eula.getString("id") + "\"");
