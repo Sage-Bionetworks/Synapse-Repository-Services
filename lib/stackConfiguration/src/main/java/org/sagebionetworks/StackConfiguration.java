@@ -8,6 +8,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.crypto.BadPaddingException;
+
 import org.apache.log4j.Logger;
 
 /**
@@ -123,7 +125,9 @@ public class StackConfiguration {
 		if (encryptedProperty==null || encryptedProperty.length()==0)
 			throw new RuntimeException("Expected property for "+propertyName);
 		StringEncrypter se = new StringEncrypter(stackEncryptionKey);
-		return se.decrypt(encryptedProperty);
+		String clearTextPassword = se.decrypt(encryptedProperty);
+		log.debug("clear text " + propertyName + " " + clearTextPassword);
+		return clearTextPassword; 
 	}
 
 	private static void loadPropertiesFromClasspath(String filename, Properties properties) {
