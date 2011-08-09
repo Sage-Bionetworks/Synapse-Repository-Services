@@ -5,6 +5,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.KeySpec;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
@@ -53,10 +54,6 @@ public class StringEncrypter {
 			if ( encryptionScheme.equals( DESEDE_ENCRYPTION_SCHEME) ) {
 				keySpec = new DESedeKeySpec( keyAsBytes );
 			}
-//			else if ( encryptionScheme.equals( DES_ENCRYPTION_SCHEME ) )
-//			{
-//				keySpec = new DESKeySpec( keyAsBytes );
-//			}
 			else {
 				throw new IllegalArgumentException( "Encryption scheme not supported: "
 													+ encryptionScheme );
@@ -106,7 +103,11 @@ public class StringEncrypter {
 			byte[] ciphertext = cipher.doFinal( cleartext );
 
 			return bytes2String( ciphertext );
-		} catch (Exception e) {
+		} 
+		catch(BadPaddingException e) {
+			throw new RuntimeException("The encryption key does not match the one used to encrypt the property", e);
+		}
+		catch (Exception e) {
 			throw new RuntimeException( e );
 		}
 	}
