@@ -1,15 +1,22 @@
 {
-  "Statement":[
-    {
-      "Action": "s3:*",
-      "Effect":"Deny",
-      "Principal": "*",
-      "Resource":"arn:aws:s3:::prodlogs.sagebase.org/*",
-      "Condition":{
-        "Bool":{
-          "aws:SecureTransport": false
+    "Statement":[
+        {
+            "Sid":"Denies HTTP access for all users except the log delivery group",
+            "Action": "s3:*",
+            "Effect":"Deny",
+            "NotPrincipal": {
+                "AWS": "arn:aws:iam::858827067514:root",
+                "CanonicalUser": [
+                    "3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61",
+                    "c4c1ede66af53448b93c283ce9448c4ba468c9432aa01d700d3878632f77d2d0"
+                ]
+            },
+            "Resource":"arn:aws:s3:::prodlogs.sagebase.org/*",
+            "Condition":{
+                "Bool":{
+                    "aws:SecureTransport": false
+                }
+            }
         }
-      }
-    }
-  ]
+    ]
 }
