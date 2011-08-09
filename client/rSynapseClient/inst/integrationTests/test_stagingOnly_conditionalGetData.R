@@ -7,7 +7,7 @@
 	
 	# Create a project
 	project <- list()
-	project$name <- 'R Integration Test Project'
+	project$name <- paste('R Conditional Get Integration Test Project', gsub(':', '_', date()))
 	createdProject <- createProject(entity=project)
 	.setCache("rIntegrationTestProject", createdProject)
 }

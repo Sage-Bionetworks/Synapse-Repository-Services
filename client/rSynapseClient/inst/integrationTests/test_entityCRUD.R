@@ -8,7 +8,7 @@
 integrationTestCRUD <- function() {
 	# Create a project
 	project <- list()
-	project$name = 'R Integration Test Project'
+	project$name = paste('R Entity CRUD Integration Test Project', gsub(':', '_', date()))
 	createdProject <- createProject(entity=project)
 	checkEquals(project$name, createdProject$name)
 
