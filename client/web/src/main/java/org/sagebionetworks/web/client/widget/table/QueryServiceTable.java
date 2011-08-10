@@ -5,7 +5,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.SearchServiceAsync;
@@ -25,7 +24,6 @@ import com.extjs.gxt.ui.client.data.PagingLoadConfig;
 import com.extjs.gxt.ui.client.data.PagingLoadResult;
 import com.extjs.gxt.ui.client.data.RpcProxy;
 import com.extjs.gxt.ui.client.store.ListStore;
-import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
@@ -36,7 +34,7 @@ import com.google.inject.Inject;
  *
  */
 public class QueryServiceTable implements QueryServiceTableView.Presenter {
-	
+
 	private QueryServiceTableView view;
 	private SearchServiceAsync searchService;
 
@@ -105,6 +103,8 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
         			@Override
         			public void onFailure(Throwable caught) {
         				view.showMessage("An error occured. Please try reloading the page.");
+//        				view.showMessage(caught.getMessage());
+//        				DisplayUtils.logger.log(Level.SEVERE, caught.getMessage());        				
         				callback.onFailure(caught);
         			}
         		});

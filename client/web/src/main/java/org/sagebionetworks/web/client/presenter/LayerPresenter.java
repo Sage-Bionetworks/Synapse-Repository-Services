@@ -101,15 +101,17 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	@Override
 	public void licenseAccepted() {		
 		if(!hasAcceptedLicenseAgreement && licenseAgreement != null) {
+			UserData user = authenticationController.getLoggedInUser();
 			Agreement agreement = new Agreement();							
 			agreement.setEulaId(licenseAgreement.getEulaId());
-			agreement.setName("SynapseWeb Agreement");
+			agreement.setName(DisplayUtils.cleanForEntityName("Synapse Web Agreement by "+ user.getEmail()));
 			agreement.setDatasetId(model.getParentId());
 			
 			nodeService.createNode(NodeType.AGREEMENT, agreement.toJson(), new AsyncCallback<String>() {
 				@Override
 				public void onSuccess(String result) {
-					// agreement saved
+					// agreement saved, load download locations
+					loadDownloadLocations();												
 				}
 	
 				@Override
@@ -292,13 +294,19 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 				}
 				if(dataset != null) {
 					final String eulaId = dataset.getEulaId();
-					if(eulaId != null) {
-						
+					if(eulaId == null) {
+						// No EULA id means that this has open downloads
+						view.requireLicenseAcceptance(false);
+						licenseAgreement = null;
+						view.setLicenseAgreement(licenseAgreement);		
+						loadDownloadLocations();												
+					} else {
+						// EULA required
 						// now query to see if user has accepted the agreement
 						UserData currentUser = authenticationController.getLoggedInUser();
-						licenseService.hasAccepted(currentUser.getEmail(), eulaId, new AsyncCallback<Boolean>() {
+						licenseService.hasAccepted(currentUser.getEmail(), eulaId, model.getParentId(), new AsyncCallback<Boolean>() {
 							@Override
-							public void onSuccess(Boolean hasAccepted) {
+							public void onSuccess(final Boolean hasAccepted) {
 								hasAcceptedLicenseAgreement = hasAccepted;
 								view.requireLicenseAcceptance(!hasAccepted);
 
@@ -320,6 +328,11 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 											licenseAgreement.setLicenseHtml(eula.getAgreement());
 											licenseAgreement.setEulaId(eulaId);
 											view.setLicenseAgreement(licenseAgreement);
+											
+											if(hasAcceptedLicenseAgreement) {
+												// will throw security exception if user has not accepted this yet
+												loadDownloadLocations(); 
+											}											
 										} else {
 											setDownloadFailure();
 										}
@@ -330,10 +343,6 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 										setDownloadFailure();
 									}									
 								});
-								
-								// load download locations
-								loadDownloadLocations();				
-								
 							}
 							
 							@Override
@@ -382,6 +391,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	}
 
 	private void loadDownloadLocations() {
+		view.showDownloadsLoading();
 		nodeService.getNodeLocations(NodeType.LAYER, layerId, new AsyncCallback<String>() {
 			@Override
 			public void onSuccess(String pagedResultString) {				

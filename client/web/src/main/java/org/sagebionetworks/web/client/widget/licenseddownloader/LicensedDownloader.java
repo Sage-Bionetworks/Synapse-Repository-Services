@@ -48,6 +48,10 @@ public class LicensedDownloader implements LicensedDownloaderView.Presenter {
 		this.view.setDownloadUrls(downloads);
 	}
 	
+	public void showLoading() {
+		this.view.showLoading();
+	}
+	
 	public Widget asWidget() {
 		view.setPresenter(this);
 		return view.asWidget();

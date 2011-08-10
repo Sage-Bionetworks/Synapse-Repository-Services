@@ -156,7 +156,12 @@ public interface LayerView extends IsWidget {
 		 * Deletes this Layer
 		 */
 		public void delete();
-		
+				
 	}
+
+	/**
+	 * Tells the view that the downloads are loading
+	 */
+	public void showDownloadsLoading();
 
 }

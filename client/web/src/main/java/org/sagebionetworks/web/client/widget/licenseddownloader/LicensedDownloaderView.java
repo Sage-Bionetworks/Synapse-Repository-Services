@@ -42,6 +42,12 @@ public interface LicensedDownloaderView extends IsWidget {
 	 * Hide the License Box window
 	 */
 	public void hideWindow();
+		
+	/**
+	 * Shows loading in the contents window
+	 */
+	public void showLoading();
+
 	
 	/**
 	 * Sets the content of the download pane

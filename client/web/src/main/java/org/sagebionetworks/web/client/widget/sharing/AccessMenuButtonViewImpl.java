@@ -3,6 +3,7 @@ package org.sagebionetworks.web.client.widget.sharing;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.widget.sharing.AccessMenuButton.AccessLevel;
+import org.sagebionetworks.web.shared.NodeType;
 
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
 import com.extjs.gxt.ui.client.Style.IconAlign;
@@ -34,12 +35,7 @@ public class AccessMenuButtonViewImpl extends LayoutContainer implements AccessM
 	
 	@Inject
 	public AccessMenuButtonViewImpl(IconsImageBundle iconsImageBundle) {
-		this.iconsImageBundle = iconsImageBundle;		
-		
-		button = new Button();					
-		button.setIconAlign(IconAlign.LEFT);			
-		button.setMenu(createAccessMenu());
-		button.setHeight(25);					
+		this.iconsImageBundle = iconsImageBundle;				
 	}
 	
 	@Override
@@ -49,9 +45,15 @@ public class AccessMenuButtonViewImpl extends LayoutContainer implements AccessM
 	}
 	
 	@Override
-	public void setAccessLevel(AccessLevel level) {
+	public void createAccessMenu(AccessLevel level, AccessControlListEditor accessControlListEditor) {
 		this.accessLevel = level;
+		this.accessControlListEditor = accessControlListEditor;
 
+		button = new Button();					
+		button.setIconAlign(IconAlign.LEFT);			
+		button.setMenu(createAccessMenu());
+		button.setHeight(25);					
+		
 		String levelText = "";
 		ImageResource icon = null;
 		switch(level) {
@@ -83,11 +85,6 @@ public class AccessMenuButtonViewImpl extends LayoutContainer implements AccessM
 		this.presenter = presenter;
 	}
 
-	@Override
-	public void setAccessControlListEditor(AccessControlListEditor accessControlListEditor) {
-		this.accessControlListEditor = accessControlListEditor;
-	}
-
 	/*
 	 * Private Methods
 	 */
@@ -105,7 +102,7 @@ public class AccessMenuButtonViewImpl extends LayoutContainer implements AccessM
 				window.setModal(true);
 				window.setBlinkModal(true);
 				window.setHeading(DisplayConstants.TITLE_SHARING_PANEL);
-				window.setLayout(new FitLayout());				
+				window.setLayout(new FitLayout());
 				window.add(accessControlListEditor.asWidget(), new FitData(4));
 				Button closeButton = new Button("Close");
 				closeButton.addSelectionListener(new SelectionListener<ButtonEvent>() {

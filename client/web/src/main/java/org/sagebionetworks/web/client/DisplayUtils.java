@@ -21,7 +21,7 @@ import com.google.gwt.user.client.ui.FlexTable;
 
 public class DisplayUtils {
 
-	//public static final Logger logger = Logger.getLogger("SynapseLogger");
+//	public static final Logger logger = Logger.getLogger("SynapseLogger");
 	public static final String DEFAULT_PLACE_TOKEN = "0";
 	public static PlaceController placeController;	
 	
@@ -128,7 +128,15 @@ public class DisplayUtils {
 		button.setIcon(AbstractImagePrototype.create(sageImageBundle.loading16()));
 	}
 
-
+	/**
+	 * Cleans any invalid name characters from a string  
+	 * @param str
+	 * @return
+	 */
+	public static String cleanForEntityName(String str) {
+		return str.replaceAll("[^A-Za-z0-9_\\. ]", "_");
+	}
+	
 	/*
 	 * Private methods
 	 */

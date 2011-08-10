@@ -13,17 +13,8 @@ public interface LicenceService extends RemoteService {
 	 * @param objectId
 	 * @return a LicenseAgreement if the user needs to accept one for this download 
 	 */
-	public boolean hasAccepted(String username, String objectUri); 
-	
-	/**
-	 * Tells the system that the use has accepted the license agreement for this type/id
-	 * @param username
-	 * @param type
-	 * @param objectId
-	 * @return true if acceptance succeeds
-	 */
-	public boolean acceptLicenseAgreement(String username, String objectUri);
-	
+	public boolean hasAccepted(String username, String eulaId, String datasetId); 
+		
 	/**
 	 * Logs the uer's download 
 	 * @param username

@@ -23,8 +23,7 @@ public interface SearchService extends RemoteService{
 	 * @param params
 	 * @return
 	 */
-	public TableResults executeSearch(SearchParameters params);
-	
+	public TableResults executeSearch(SearchParameters params);	
 	
 	/**
 	 * Gets all of the column metadata for a given type.

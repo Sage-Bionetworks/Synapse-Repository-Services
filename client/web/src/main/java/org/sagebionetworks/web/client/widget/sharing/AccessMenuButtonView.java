@@ -17,13 +17,7 @@ public interface AccessMenuButtonView extends IsWidget {
 	 * Sets the access level string
 	 * @param level
 	 */
-	public void setAccessLevel(AccessLevel level);
-
-	/**
-	 * The editor form to show in the popped up window
-	 * @param accessControlListEditor
-	 */
-	public void setAccessControlListEditor(AccessControlListEditor accessControlListEditor);
+	public void createAccessMenu(AccessLevel level, AccessControlListEditor accessControlListEditor);
 
 	/**
 	 * Presenter interface

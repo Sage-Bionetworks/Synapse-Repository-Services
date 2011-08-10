@@ -314,7 +314,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 	@Override
 	public void setDownloadUnavailable() {
 		downloadPanel.clear();
-		downloadPanel.add(new Html(DisplayUtils.getIconHtml(iconsImageBundle.download16()) + " Download Unavailable"));
+		downloadPanel.add(new Html(DisplayUtils.getIconHtml(iconsImageBundle.download16()) + " Download Unavailable"));		
 	}
 
 	
@@ -324,6 +324,11 @@ public class LayerViewImpl extends Composite implements LayerView {
 //		rightFlexTable.clear();
 		staticTable.clear();
 		downloadPanel.clear();
+	}
+
+	@Override
+	public void showDownloadsLoading() {
+		licensedDownloader.showLoading();
 	}
 
 	
@@ -503,14 +508,12 @@ public class LayerViewImpl extends Composite implements LayerView {
 
 		if(isAdministrator) {	
 			accessMenuButton.setPlaceChanger(presenter.getPlaceChanger());
-			accessMenuButton.setResource(NodeType.LAYER, id);
-			accessMenuButton.setAccessLevel(accessLevel);
+			accessMenuButton.createAccessButton(accessLevel, NodeType.LAYER, id);
 			accessPanel.clear();
 			accessPanel.add(accessMenuButton.asWidget());
 		} else {
 			accessSpan.setInnerHTML("<span class=\"setting_label\">Access: </span><span class=\"setting_level\">"+ DisplayUtils.getIconHtml(icon) +" "+ accessLevel +"</span>");
 		}
 	}
-
 	
 }

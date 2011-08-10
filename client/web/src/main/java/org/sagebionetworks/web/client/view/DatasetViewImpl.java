@@ -477,9 +477,8 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		}		
 
 		if(isAdministrator) {		
-			accessMenuButton.setPlaceChanger(presenter.getPlaceChanger());
-			accessMenuButton.setResource(NodeType.DATASET, id);
-			accessMenuButton.setAccessLevel(accessLevel);
+			accessMenuButton.setPlaceChanger(presenter.getPlaceChanger());			
+			accessMenuButton.createAccessButton(accessLevel, NodeType.DATASET, id);
 			accessPanel.clear();
 			accessPanel.add(accessMenuButton.asWidget());
 		} else {

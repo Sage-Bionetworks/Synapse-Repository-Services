@@ -23,7 +23,6 @@ public class DisplayConstants {
 	public static final DateTimeFormat DATE_FORMAT = DateTimeFormat.getFormat("dd-MMM-yyyy");
 	public static final DateTimeFormat DATE_FORMAT_SERVICES = DateTimeFormat.getFormat("yyyy-MM-dd");	
 	
-	
 	/*
 	 * Text constatns
 	 */

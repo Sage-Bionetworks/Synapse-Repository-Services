@@ -23,26 +23,21 @@ public class AccessMenuButton implements AccessMenuButtonView.Presenter {
 		view.setPresenter(this);
 	}	
 	
-	public void setAccessLevel(AccessLevel level) {
-		view.setAccessLevel(level);
+	public void createAccessButton(AccessLevel level, NodeType type, String id) {
+		nodeType = type;
+		nodeId = id;
+		accessControlListEditor.setPlaceChanger(placeChanger);
+		accessControlListEditor.setResource(type, id);		
+		view.createAccessMenu(level, accessControlListEditor);
 	}
 
 	public Widget asWidget() {
-		view.setPresenter(this);
-		setResource(nodeType, nodeId);		
+		view.setPresenter(this);			
 		return view.asWidget();
 	}
 
     public void setPlaceChanger(PlaceChanger placeChanger) {
     	this.placeChanger = placeChanger;
     }
-	
-	public void setResource(NodeType type, String id) {
-		nodeType = type;
-		nodeId = id;
-		accessControlListEditor.setPlaceChanger(placeChanger);
-		accessControlListEditor.setResource(type, id);
-		view.setAccessControlListEditor(accessControlListEditor);
-	}	
-	
+		
 }

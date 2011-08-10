@@ -365,8 +365,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 
 		if(isAdministrator) {		
 			accessMenuButton.setPlaceChanger(presenter.getPlaceChanger());
-			accessMenuButton.setResource(NodeType.PROJECT, id);
-			accessMenuButton.setAccessLevel(accessLevel);
+			accessMenuButton.createAccessButton(accessLevel, NodeType.PROJECT, id);			
 			accessPanel.clear();
 			accessPanel.add(accessMenuButton.asWidget());
 		} else {

@@ -323,7 +323,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 		UserData currentUser = authenticationController.getLoggedInUser();
 		if(eulaId != null && currentUser != null) {			
 			// now query to see if user has accepted the agreement			
-			licenseService.hasAccepted(currentUser.getEmail(), eulaId, new AsyncCallback<Boolean>() {
+			licenseService.hasAccepted(currentUser.getEmail(), eulaId, model.getId(), new AsyncCallback<Boolean>() {
 				@Override
 				public void onSuccess(Boolean hasAccepted) {
 					view.requireLicenseAcceptance(!hasAccepted);
