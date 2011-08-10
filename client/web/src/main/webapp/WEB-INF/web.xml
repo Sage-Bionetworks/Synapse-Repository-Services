@@ -26,7 +26,7 @@
 
 	<!-- Comment the below security constraint out if you are working in GWT 
 		development mode -->
-<!-- 	<security-constraint>
+	<security-constraint>
 		<web-resource-collection>
 			<web-resource-name>Protected Context</web-resource-name>
 			<url-pattern>/*</url-pattern>
@@ -35,7 +35,6 @@
 			<transport-guarantee>CONFIDENTIAL</transport-guarantee>
 		</user-data-constraint>
 	</security-constraint>
- -->
 	<!-- Default page to serve -->
 	<welcome-file-list>
 		<welcome-file>Portal.html</welcome-file>
