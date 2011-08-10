@@ -14,8 +14,6 @@
 	synapsePost(uri=uri, entity=entity, anonymous=FALSE)
 }
 
-# TODO can we dynamically generate these functions?
-
 createDataset <- 
 		function(entity)
 {
@@ -45,3 +43,28 @@ createProject <-
 {
 	.createEntity(kind="project", entity=entity)
 }
+
+setMethod(
+		f = createEntity,
+		signature = signature("list"),
+		definition = function(entity, className){
+			if(any(names(entity) == ""))
+				stop("all entity elements must be named")
+			kind <- synapseEntityKind(new(Class=className))
+			entity <- .createEntity(kind=kind, entity)
+			do.call(className, args = list(entity=entity))
+		}
+)
+
+setMethod(
+		f = "createEntity",
+		signature = signature("SynapseEntity"),
+		definition = function(entity, createAnnotations = FALSE){
+			## create the main entity
+			createEntity(entity = .extractEntityFromSlots(entity), className = class(entity))
+			#TODO should the annotations entity be created too?
+		}
+)
+
+
+

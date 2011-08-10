@@ -16,3 +16,12 @@ getAnnotations <-
 	synapseGet(uri=entity$annotations, anonymous=FALSE)
 }
 
+setMethod(
+		f = "refreshAnnotations",
+		signature = "SynapseAnnotation",
+		definition = function(entity){
+			do.call(class(entity), list(entity = getAnnotations(.extractEntityFromSlots(entity))))
+		}
+)
+
+

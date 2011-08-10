@@ -19,6 +19,51 @@
 	synapseGet(uri=uri, anonymous=FALSE)
 }
 
+setMethod(
+		f = "getEntity",
+		signature = "list",
+		definition = function(entity){
+			if(any(names(entity) == ""))
+				stop("all entity elements must be named")
+			if(!("uri" %in% names(entity)))
+				stop("entity must contain an element named uri")
+			splits <- strsplit(entity$uri, "/")[[1]]
+			className <- splits[length(splits)-1]
+			className <- sprintf("%s%s", toupper(substr(className, 1, 1)), tolower(gsub("^.", "", className)))
+			do.call(className, args=list(entity=entity))
+		}
+)
+
+setMethod(
+		f = "getEntity",
+		signature = signature("character"),
+		definition = function(entity, kind){
+			entity <- .getEntity(kind = kind, entity = entity)
+			getEntity(entity)
+		}
+)
+
+setMethod(
+		f = "getEntity",
+		signature = signature("numeric"),
+		definition = function(entity, kind){
+			entity <- .getEntity(kind = kind, entity = as.character(entity))
+			getEntity(entity)
+		}
+)
+
+setMethod(
+		f = "getEntity",
+		signature = "SynapseEntity",
+		definition = function(entity){
+			## refresh main entity
+			entity <- do.call(class(entity), list(entity = .getEntity(kind = synapseEntityKind(entity), entity=.extractEntityFromSlots(entity))))
+			
+			## refresh annotations
+			refreshAnnotations(entity)
+		}
+)
+
 # TODO can we dynamically generate these functions?
 
 getDataset <- 

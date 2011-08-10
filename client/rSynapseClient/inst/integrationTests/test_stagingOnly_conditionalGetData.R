@@ -2,8 +2,8 @@
 	# this test can only be run against staging
 	.setCache("orig.authservice.endpoint", synapseAuthServiceEndpoint())
 	.setCache("orig.reposervice.endpoint", synapseRepoServiceEndpoint())
-	synapseAuthServiceEndpoint("https://staging-auth.elasticbeanstalk.com/auth/v1")
-	synapseRepoServiceEndpoint("https://staging-reposervice.elasticbeanstalk.com/repo/v1")
+	synapseAuthServiceEndpoint("https://auth-staging.sagebase.org/auth/v1")
+	synapseRepoServiceEndpoint("https://repo-staging.sagebase.org/repo/v1")
 	
 	# Create a project
 	project <- list()
@@ -20,6 +20,7 @@
 	
 	deleteProject(entity=.getCache("rIntegrationTestProject"))
 	.deleteCache("rIntegrationTestProject")
+	.deleteCache("createdDataset")
 }
 
 integrationTestConditionalGet <- function() {
@@ -29,6 +30,7 @@ integrationTestConditionalGet <- function() {
 	dataset$name <- 'R Integration Test Dataset'
 	dataset$parentId <- .getCache("rIntegrationTestProject")$id
 	createdDataset <- createDataset(entity=dataset)
+	.setCache("createdDataset",createdDataset)
 	checkEquals(dataset$name, createdDataset$name)
 	
 	# Create a layer and store a data R object
@@ -40,12 +42,14 @@ integrationTestConditionalGet <- function() {
 	data <- data.frame(a=1:3, b=letters[10:12],
 			c=seq(as.Date("2004-01-01"), by = "week", len = 3),
 			stringsAsFactors = TRUE)
-	
-	createdLayer <- storeLayerData(layerMetadata=layer, layerData=data)
-	checkEquals(layer$name, createdLayer$name)
+	fileName <- file.path(tempdir(), "data.tab")
+	write.table(data, file=fileName, quote=F, sep="\t", row.names=F)
+	layer <- Layer(layer)
+	createdLayer <- storeLayerDataFiles(entity=layer, layerDataFile=fileName)
+	checkEquals(propertyValue(layer,"name"), propertyValue(createdLayer, "name"))
 	
 	# Now download the layer
-	locations <- getLayerLocations(entity=createdLayer)
+	locations <- getLayerLocations(entity=.extractEntityFromSlots(createdLayer))
 	destinationFile1 <- synapseDownloadFile(url=locations$path[1], checksum=locations$md5sum[1])
 	fileInfo1 <- file.info(destinationFile1) 
 	
@@ -57,6 +61,6 @@ integrationTestConditionalGet <- function() {
 	# If the modification time is the same, we did not download it the second time
 	checkEquals(fileInfo1$mtime, fileInfo2$mtime)
 	
-	# Delete the dataset
-	deleteDataset(entity=createdDataset)
+	## delete the dataset
+	deleteDataset(.getCache("createdDataset"))
 }

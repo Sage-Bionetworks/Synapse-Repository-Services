@@ -7,18 +7,33 @@
 .cache <- new.env(parent=emptyenv())
 
 kSupportedLayerCodeMap <- list(
-		PhenotypeLayer = "C",
-		ExpressionLayer = "E",
-		GenotypeLayer = "G"
+		C = "PhenotypeLayer",
+		E = "ExpressionLayer",
+		G = "GenotypeLayer"
 
 	)
 kSupportedLayerStatus <- c("Curated", "QCd", "Raw")
 kSupportedDataLocationTypes <- c("external", "awss3")
 kSupportedPlatforms <- list(
 		phenotype.data = c("Custom"),
-		expression.data = c("Affymetrix", "Agilent", "Illumina", "Custom"),
-		genotype.data = c("Affymetrix", "Illumina", "Perlegen", "Nimblegen", "Custom")
+		expression.data = c("affymetrix", "agilent", "illumina", "custom"),
+		genotype.data = c("affymetrix", "illumina", "perlegen", "nimblegen", "custom")
 	)
+	
+kSynapseRAnnotationTypeMap <- list(
+		stringAnnotations = "character",
+		longAnnotations = "integer",
+		doubleAnnotations = "numeric",
+		dateAnnotations = "POSIXct"
+	)
+	
+kLayerSubtypeMap <- list(
+		ExpressionLayer = list(
+					affymetrix = "AffyExpressionLayer",
+					agilent = "AgilentExpressionLayer",
+					illumina = "IlluminaExpressionLayer"
+				)
+)
 
 ## package-local 'getter'
 .getCache <-
@@ -49,14 +64,16 @@ kSupportedPlatforms <- list(
 	synapseDataLocationPreferences(kSupportedDataLocationTypes)
 	.setCache("synapseCacheDir", gsub("[\\]+", "/", path.expand("~/.synapseCache")))
 	.setCache("layerCodeTypeMap", kSupportedLayerCodeMap)
+	.setCache("layerSubtypeMap", kLayerSubtypeMap)
 	.setCache("supportedLayerStatus", kSupportedLayerStatus)
 	.setCache("supportedPlatforms", kSupportedPlatforms)
 	.setCache("sessionRefreshDurationMin", 60)
-	.setCache("curlOpts", list(ssl.verifypeer = FALSE, verbose = FALSE))
+	.setCache("curlOpts", list(ssl.verifypeer=FALSE, verbose = FALSE))
 	.setCache("curlHeader", c('Content-Type'="application/json", Accept = "application/json"))
 	.setCache("anonymous", FALSE)
 	.setCache("downloadSuffix", "unpacked")
 	.setCache("debug", FALSE)
 	.setCache("curlWriter", getNativeSymbolInfo("_writer_write", PACKAGE="synapseClient")$address)
 	.setCache("curlReader", getNativeSymbolInfo("_reader_read", PACKAGE="synapseClient")$address)
+	.setCache("annotationTypeMap", kSynapseRAnnotationTypeMap)
 }

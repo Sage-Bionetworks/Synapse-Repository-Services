@@ -47,4 +47,3 @@ integrationTestCRUD <- function() {
 	# Confirm that its gone
 	checkException(getDataset(entity=modifiedDataset))
 }
-

@@ -21,6 +21,8 @@ setClass(
 )
 
 .ParsedUrl <- function(url){
+	## swap backslashes for forward slashes
+	url <- gsub("[\\]", "/", url)
 	
 	## protocol
 	if(length(grep("://", url)) == 0){
@@ -28,13 +30,21 @@ setClass(
 	}else{
 		protocol <- gsub("://.+$","",url)
 	}
+	
 	## authority which is host[:port]
 	if(protocol == ""){
 		tmp <- gsub("^/+", "", url)
 	}else{
 		tmp <- gsub("^.+://", "", url)
 	}
-	authority <- gsub("/.+$", "", tmp)
+	
+	## check for forward slashes before setting authority
+	if(grepl("/",tmp)){
+		authority <- gsub("/.+$", "", tmp)
+	}else{
+		authority <- ""
+	}
+
 	if(grepl(":", authority)) {
 		port <- gsub("^[^:]+:", "", authority)
 		host <- gsub(":\\d+$", "", authority)
@@ -60,8 +70,12 @@ setClass(
 	file <- splits[[1]][length(splits[[1]])]
 	
 	## pathPrefix
-	pathPrefix <- gsub(paste("/", file, "$", sep=""), "", path)
-	
+	if(grepl("/", path)){
+		pathPrefix <- gsub(paste("/", file, "$", sep=""), "", path)
+	}else{
+		pathPrefix <- ""
+	}
+		
 	new(
 			Class = ".ParsedUrl",
 			url = url,
@@ -75,3 +89,12 @@ setClass(
 			pathPrefix = pathPrefix
 	)
 }
+
+setMethod(
+	f = "show",
+	signature = ".ParsedUrl",
+	definition = function(object){
+		for(sn in slotNames(object))
+			cat(sn, "=", slot(object, sn), "\n", sep="")
+	}
+)

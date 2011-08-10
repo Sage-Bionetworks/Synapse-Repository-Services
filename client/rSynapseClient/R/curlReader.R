@@ -22,7 +22,7 @@
 }
 
 .curlReaderUpload <-
-		function(url, srcfile, header, curlHandle = getCurlHandle(), readFunction=.getCache('curlReader'))
+		function(url, srcfile, header, curlHandle = getCurlHandle(), readFunction=.getCache('curlReader'), opts = .getCache("curlOpts"))
 {
 	parsedUrl <- .ParsedUrl(url)
 	if(tolower(parsedUrl@protocol) == "file"){
@@ -32,7 +32,6 @@
 	}
 	ext <- .curlReaderOpen(srcfile)
 	on.exit(.curlReaderClose(ext))
-	opts <- .getCache("curlOpts")
 	opts$put <- 1L
 	opts$infilesize <- file.info(srcfile)$size
 	if(missing(header)){

@@ -32,7 +32,7 @@ synapseDownloadFileToDestination  <-
 	## if the download fails
 	tmpFile <- tempfile()
 	tryCatch(
-			.curlWriterDownload(url=url, destfile=tmpFile),
+			.curlWriterDownload(url=url, destfile=tmpFile, opts = opts),
 			error = function(ex){
 				file.remove(tmpFile)
 				stop(ex)

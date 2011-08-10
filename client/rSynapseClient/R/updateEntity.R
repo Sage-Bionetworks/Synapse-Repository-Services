@@ -47,3 +47,20 @@ updateProject <-
 {
 	.updateEntity(kind="project", entity=entity)
 }
+
+setMethod(
+		f = "updateEntity",
+		signature = signature("SynapseEntity"),
+		definition = function(entity, updateAnnotations=TRUE){
+			## update the entity and store the result
+			tryCatch(entity <- updateAnnotations(entity),
+					error = function(e){
+						cat("Failed to update Annotations. Manually merge modifications into new object retrieved from database and try update again\n")
+						stop(e)
+					}
+			)
+			
+			do.call(class(entity), list(entity = .updateEntity(kind = synapseEntityKind(entity), entity=.extractEntityFromSlots(entity))))
+		}
+)
+

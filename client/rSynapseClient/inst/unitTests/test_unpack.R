@@ -23,9 +23,13 @@ unitTestNotCompressed <-
 		function()
 {
 	## create a jpeg object
-	jpeg(.getCache("localJpegFile"))
-	plot(1:10, 1:10)
-	dev.off()
+	## TODO create an acutal jpeg file once X11 is installed on the bamboo AMI
+	d <- data.frame(diag(2,20,20))
+	write.table(d,file=.getCache("localJpegFile"), sep="\t", quote=F, row.names=F, col.names=F)
+#	jpeg(.getCache("localJpegFile"))
+#	plot(1:10, 1:10)
+#	dev.off()
+	
 	
 	file <- .unpack(.getCache("localJpegFile"))
 	
@@ -45,9 +49,12 @@ unitTestZipFile <-
 		function()
 {
 	## create local jpeg file
-	jpeg(.getCache("localJpegFile"))
-	plot(1:10, 1:10)
-	dev.off()
+	## TODO create an acutal jpeg file once X11 is installed on the bamboo AMI
+	d <- data.frame(diag(2,20,20))
+	write.table(d,file=.getCache("localJpegFile"), sep="\t", quote=F, row.names=F, col.names=F)
+#	jpeg(.getCache("localJpegFile"))
+#	plot(1:10, 1:10)
+#	dev.off()
 	
 	## create local text file
 	d <- data.frame(diag(1,10,10))
@@ -62,7 +69,7 @@ unitTestZipFile <-
 	checkEquals(attr(files, "rootDir"), .getCache("localUnpackDir"))
 	
 	## check the contents of the unpack directory
-	checkTrue(gsub("[/]+", "/", file.path(attr(files,"rootDir"), .getCache("localJpegFile"))) %in% gsub("[/]+", "/",list.files(attr(files,"rootDir"), recursive=TRUE, full.names=T)))
-	checkTrue(gsub("[/]+", "/", file.path(attr(files,"rootDir"), .getCache("localTxtFile"))) %in% gsub("[/]+", "/",list.files(attr(files,"rootDir"), recursive=TRUE, full.names=T)))
+	checkTrue(gsub("^/", "", gsub("^[A-Z]:/","", gsub("[/]+","/", gsub("[\\]+","/",.getCache("localJpegFile"))))) %in% list.files(attr(files,"rootDir"), recursive=TRUE))
+	checkTrue(gsub("^/", "", gsub("^[A-Z]:/","", gsub("[/]+","/", gsub("[\\]+","/",.getCache("localTxtFile"))))) %in% list.files(attr(files,"rootDir"), recursive=TRUE))
 	
 }

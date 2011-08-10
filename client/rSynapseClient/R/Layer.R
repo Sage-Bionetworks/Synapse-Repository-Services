@@ -1,20 +1,32 @@
+
+#####
+### Layer Class definitions
+#####
 setClass(
 		Class = "Layer",
-		representation(
-				annotations = "list",
-				cachedFiles = "character"
-		),
+		contains = "SynapseEntity",
 		prototype = prototype(
-				annotations = list(),
-				cachedFiles = character()
+				synapseEntityKind = "layer"
 		)
 )
 
 setClass(
 		Class = "ExpressionLayer",
-		representation = representation(
-				tissueType = "character"
-		),
+		contains = "Layer"
+)
+
+setClass(
+		Class = "AffyExpressionLayer",
+		contains = "Layer"
+)
+
+setClass(
+		Class = "AgilentExpressionLayer",
+		contains = "Layer"
+)
+
+setClass(
+		Class = "IlluminaExpressionLayer",
 		contains = "Layer"
 )
 
@@ -27,118 +39,90 @@ setClass(
 		Class = "PhenotypeLayer",
 		contains = "Layer"
 )
+PhenotypeLayer <- function(entity){
+	entity <- Layer(entity)
+	class(entity) <- "PhenotypeLayer"
+	return(entity)	
+}
+IlluminaExpressionLayer <- function(entity){
+	entity <- Layer(entity)
+	class(entity) <- "IlluminaExpressionLayer"
+			return(entity)	
+}
+GenotypeLayer <- function(entity){
+	entity <- Layer(entity)
+	class(entity) <- "GenotypeLayer"
+			return(entity)	
+}
+AgilentExpressionLayer <- function(entity){
+	entity <- Layer(entity)
+	class(entity) <- "AgilentExpressionLayer"
+			return(entity)	
+}
+AffyExpressionLayer <- function(entity){
+	entity <- Layer(entity)
+	class(entity) <- "AffyExpressionLayer"
+			return(entity)	
+}
+ExpressionLayer <- function(entity){
+	entity <- Layer(entity)
+	class(entity) <- "ExpressionLayer"
+			return(entity)	
+}
 #####
-### Constructors for the various Layer types
+## Layer constructors
 #####
+setMethod(
+		f = "Layer",
+		signature = "list",
+		definition = function(entity){
 
-#setGeneric(
-#	name = "layerType",
-#	def = function(object){
-#		standardGeneric("layerType")
-#	}
-#)
+			## call super class constructor
+			layer <- SynapseEntity(entity = entity)
+			
+			## coerce to Layer type. 
+			class(layer) <- "Layer"
+			synapseEntityKind(layer) <- synapseEntityKind(new(Class="Layer"))
 
-Layer <- 
-		function(annotations)
-{
-				map <- .getCache("layerCodeTypeMap")
-				ind <- which(.getCache("layerCodeTypeMap") == annotations$type)
-				if(length(ind) == 1){
-					layerClass <- names(map)[ind]
-					layer <- new(Class = layerClass)
-					layer@annotations <- annotations
-					return(layer)
-				}
-}	
-
-
-setGeneric(
-		name = "getLocations",
-		def = function(object){
-			standardGeneric("getLocations")
+			## first check for subclass
+			setSubclass(layer)
 		}
 )
 
 setMethod(
-		f = "getLocations",
+		f = "Layer",
 		signature = "character",
-		definition = function(object){
-			return(synapseGet(object))
+		definition = function(entity){
+			entity <- getLayer(entity = entity)
+			Layer(entity)
 		}
-		
 )
 
 setMethod(
-		f = "getLocations",
+		f = "Layer",
+		signature = "numeric",
+		definition = function(entity){
+			as.character(entity)
+		}
+)
+
+####
+## Method for setting the Layer subtype. Uses the annotation type to set the subclass
+####
+setMethod(
+		f = "setSubclass",
 		signature = "Layer",
 		definition = function(object){
-			return(synapseGet(annotations(object)$locations))
-		}
-)
-
-#setMethod(
-#		f = "layerType",
-#		signature = "Layer",
-#		definition = function(object){
-#			return(.getCache("layerCodeTypeMap")[[as.character(class(object))]])
-#		}
-#)
-
-setGeneric(
-		name = "annotations",
-		def = function(object){
-			standardGeneric("annotations")
-			}
-)
-
-setMethod(
-	f = "annotations",
-	signature = "Layer",
-	definition = function(object){
-		return(object@annotations)
-	}
-)
-
-setGeneric(
-		name="annotations<-", 
-		def=function(object,value){
-			standardGeneric("annotations<-")
-		}
-)
-
-setMethod(
-		f = "annotations<-",
-		signature = "Layer",
-		definition = function(object, value){
-			object@annotations <- value
+			
+			## determine the Layer type and subtype class
+			if(!is.null(layerType <- annotValue(object, "type")))
+				if(!is.null(subClassType <- .getCache("layerCodeTypeMap")[[layerType]]))
+					layerType <- subClassType
+			
+			## coerce to the correct subclass
+			if(!is.null(layerType))
+				class(object) <- layerType
+			synapseEntityKind(object) <- synapseEntityKind(new(Class="Layer"))
 			return(object)
 		}
 )
-
-setMethod(
-	f = "show",
-	signature = "Layer",
-	definition = function(object){
-		for(slotName in slotNames(object)){
-			cat("@", slotName, "\n", sep="")
-			print(slot(object, slotName))
-			cat("\n")
-		}
-	}	
-)
-
-
-setReplaceMethod(
-		f = "annotations",
-		signature(object="Layer", value="list"),
-		function(object, value){
-			object@annotations <- value
-			return(object)
-		}
-)
-
-
-
-
-
-

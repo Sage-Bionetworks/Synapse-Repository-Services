@@ -71,10 +71,6 @@ public class IT700SynapseRClient {
 				"synapseRepoServiceEndpoint(endpoint='"
 						+ StackConfiguration.getRepositoryServiceEndpoint()
 						+ "')",
-				"-e",
-				"synapseLogin(username='" + StackConfiguration.getIntegrationTestUserOneName()
-						+ "', password='"
-						+ StackConfiguration.getIntegrationTestUserOnePassword() + "')",
 				"-e", "synapseClient:::.test()" };
 		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
 		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
@@ -104,7 +100,7 @@ public class IT700SynapseRClient {
 						+ "', password='"
 						+ StackConfiguration.getIntegrationTestUserOnePassword() + "')",
 				"-e",
-				"synapseClient:::.integrationTest(testFileRegexp=\"^test_[^_]*R$\")" };
+				"synapseClient:::.integrationTest(testFileRegexp='^test_[^_]*R$')" };
 		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
 		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
 	}

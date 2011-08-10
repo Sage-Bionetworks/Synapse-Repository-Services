@@ -2,6 +2,8 @@
 		function() 
 {
 	# Do some setup stuff here like creating and populating a stub implementation of the repository service with some data
+	.setCache("oldSessionToken", .getCache("sessionToken"))
+	sessionToken("thisIsAFakeToken")
 	
 	# Override getURL to not actually make a remote call
 	myGetURL <- function (url, ..., .opts = list(), write = basicTextGatherer(), 
@@ -29,6 +31,8 @@
 .tearDown <- 
 		function() 
 {
+	sessionToken(.getCache("oldSessionToken"))
+	.deleteCache("oldSessionToken")
 	# Do some test cleanup stuff here, if applicable
 	detach('package:synapseClient', force = TRUE)
 	detach('package:RCurl', force = TRUE)

@@ -36,10 +36,10 @@
 
 unitTestLocalFileDownload <- function(){
 	d <- matrix(nrow=100, ncol=100, data=1)
-	write(d,file = .getCache("localSourceFile"),ncolumns=100, sep="\t")
-	sourceChecksum <- md5sum(.getCache("localSourceFile"))
-	.setCache("destFile", synapseDownloadFile(url= paste("file://", .getCache("localSourceFile"), sep="")))
-	destChecksum <- md5sum(.getCache("destFile"))
+	save(d,file = .getCache("localSourceFile"))
+	sourceChecksum <- as.character(md5sum(.getCache("localSourceFile")))
+	.setCache("destFile", synapseDownloadFile(url= paste("file://", gsub("[A-Z]:","",.getCache("localSourceFile")), sep="")))
+	destChecksum <- as.character(md5sum(.getCache("destFile")))
 	if(file.exists(.getCache('destFile')))
 		file.remove(.getCache('destFile'))
 	checkEquals(as.character(sourceChecksum), as.character(destChecksum))
@@ -47,9 +47,9 @@ unitTestLocalFileDownload <- function(){
 
 ## local file uploads are not supported with current synapseUploadFile implementation
 unitTestLocalFileUpload <- function(){
-	url <- paste("file://", tempfile(), sep="")
+	url <- paste("file://", gsub("^[A-Z]:", "", tempfile()), sep="")
 	d <- matrix(nrow=100, ncol=100, data=1)
-	write(d,file = .getCache("localSourceFile"),ncolumns=100, sep="\t")
+	save(d,file = .getCache("localSourceFile"))
 	sourceChecksum <- md5sum(.getCache("localSourceFile"))
 	parsedUrl <- .ParsedUrl(url)
 	.setCache("localDestFile", parsedUrl@path)
@@ -68,7 +68,7 @@ unitTestMd5Sum <-
 {
 	## check that download happens when sourcefile is changed
 	d <- diag(x=1, nrow=10, ncol = 10)
-	write(d,file = .getCache("localSourceFile"),ncolumns=10, sep="\t")
+	save(d,file = .getCache("localSourceFile"))
 	srcChecksum <- as.character(md5sum(.getCache("localSourceFile")))
 	
 	url <- paste("file://", .getCache("localSourceFile"), sep="")
@@ -78,7 +78,7 @@ unitTestMd5Sum <-
 	checkEquals(srcChecksum, destFileChecksum)
 	
 	d <- diag(x=2, nrow=20, ncol = 20)
-	write(d, file = .getCache("localSourceFile"), ncolumns = 20, sep="\t")
+	save(d, file = .getCache("localSourceFile"))
 	srcChecksum <- as.character(md5sum(.getCache("localSourceFile")))
 	
 	## make sure that the 10x10 matrix has a different checksum that the 20x20 matrix

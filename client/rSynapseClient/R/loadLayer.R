@@ -7,21 +7,31 @@ setGeneric(
 
 setMethod(
 		f = "loadLayer",
-		signature = "list",
-		def = function(object){
-			loadLayer(Layer(object))
+		signature = "Layer",
+		definition = function(object){
+			.cacheFiles(object@locations)
 		}
 )
 
 setMethod(
 		f = "loadLayer",
-		signature = "Layer",
+		signature = "PhenotypeLayer",
 		definition = function(object){
-			object@cachedFiles <- .cacheFiles(object@locations)
-			return(object)
+			files <- .cacheFiles(object@annotations)
+			phenoData <- .loadPhenoDataFromFile(files[grep("phenotype.txt$", files)], files[grep("description.txt$", files)])
+			attr(phenoData, "cachedFiles") <- files
+			return(phenoData)
 		}
 )
 
+#setMethod(
+#		f = "loadLayer",
+#		signature = "AffyExpressionLayer",
+#		definition = function(object){
+#			files <- .cacheFiles(object@locations)
+#			.
+#		}
+#)
 
 .cacheFiles <-
 		function(entity, locationPrefs = synapseDataLocationPreferences(), cacheDir = synapseCacheDir())
@@ -59,13 +69,11 @@ setMethod(
 	## the uri element of layer
 	response <- synapseGet(uri = uri)
 	
-	destfile <- synapseDownloadFile(url = response$path, checksum = response$md5sum)
+	destfile = synapseDownloadFile(url = response$path, checksum = response$md5sum)
+	destDir <- paste(destfile, .getCache("downloadSuffix"), sep="_")
 	
 	## Unpack the layer file
 	## TODO: should the code only unpack the file if the destdir doesn't already exists?
 	## TODO: should the dest directory be deleted before unpacking?
-	files <- .unpack(filename=destfile)
-	
-	class(files) <- "layerFiles"
-	return(files)
+	.unpack(filename=destfile)
 }

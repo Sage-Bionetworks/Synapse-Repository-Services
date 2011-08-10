@@ -5,7 +5,7 @@
 
 
 .setUp <- function(){
-	.setCache("oldToken",sessionToken())
+	.setCache("oldToken",.getCache("sessionToken"))
 	sessionToken(NULL)
 	
 	## re-define synapseLogin and synapseLogout

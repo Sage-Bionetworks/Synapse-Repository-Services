@@ -56,3 +56,21 @@ deleteProject <-
 {
 	.deleteEntity(kind="project", entity=entity)
 }
+
+setMethod(
+		f = "deleteEntity",
+		signature = "SynapseEntity",
+		definition = function(entity){
+			synapseDelete(uri=propertyValue(entity, "uri"))
+		}
+)
+
+setMethod(
+		f = "deleteEntity",
+		signature = "list",
+		definition = function(entity, kind){
+			.deleteEntity(kind = kind, entity = entity)
+		}
+)
+
+
