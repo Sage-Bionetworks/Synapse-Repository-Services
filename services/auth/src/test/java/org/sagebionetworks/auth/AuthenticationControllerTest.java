@@ -129,7 +129,7 @@ public class AuthenticationControllerTest {
 		assertEquals("Demo User", session.getString("displayName"));
 		
 		// revalidate via web service
-		helper.testUpdateJsonEntity("/session",	"{\"sessionToken\":\""+sessionToken+"\"}", HttpStatus.NO_CONTENT);
+		helper.testUpdateJsonEntity("/session",	"{\"sessionToken\":\""+sessionToken+"\"}", HttpStatus.NO_CONTENT, null);
 		
 	}
 
@@ -267,17 +267,50 @@ public class AuthenticationControllerTest {
 				
 			helper.testUpdateJsonEntity("/user",
 					"{"+
-					"\"email\":"+integrationTestUserEmail+","+
+					//"\"email\":"+integrationTestUserEmail+","+
 					"\"firstName\":\"NewNEW\","+
 					"\"lastName\":\"UserNEW\","+
 					"\"displayName\":\"New NEW User\""+				
-					"}", HttpStatus.NO_CONTENT);
+					"}", HttpStatus.NO_CONTENT, integrationTestUserEmail);
 			
 			JSONObject user = helper.testGetJsonEntity("/user");
 			assertEquals(integrationTestUserEmail, user.getString("email"));
 			assertEquals("NewNEW", user.getString("firstName"));
 			assertEquals("UserNEW", user.getString("lastName"));
 			assertEquals("New NEW User", user.getString("displayName"));
+		
+		} finally {
+			User user = new User();
+			user.setEmail(integrationTestUserEmail);
+			crowdAuthUtil.deleteUser(user);
+		}
+	}
+	
+	@Test
+	public void testUpdateUserEmailShouldFail() throws Exception {
+		if (!isIntegrationTest()) return;
+		
+		// special userId for testing -- no confirmation email is sent!
+		try {
+			helper.testCreateJsonEntity("/user",
+					"{"+
+					"\"email\":\""+integrationTestUserEmail+"\","+
+					 // integration testing with this special user is the only time a password may be specified
+					"\"password\":\""+integrationTestUserEmail+"\","+
+				"\"firstName\":\"New\","+
+				"\"lastName\":\"User\","+
+				"\"displayName\":\"New User\""+
+					"}");
+				
+
+			    helper.testUpdateJsonEntity("/user",
+					"{"+
+					"\"email\":"+"foo@sagebase.org"+","+
+					"\"firstName\":\"NewNEW\","+
+					"\"lastName\":\"UserNEW\","+
+					"\"displayName\":\"New NEW User\""+				
+					"}", HttpStatus.BAD_REQUEST, integrationTestUserEmail); // << NOTE failure status!
+
 		
 		} finally {
 			User user = new User();

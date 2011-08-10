@@ -74,25 +74,25 @@ public interface PermissionsManager {
 	 * @throws DatastoreException 
 	 * 
 	 **/
-	public Collection<UserGroup> getGroups() throws DatastoreException;
+	public Collection<UserGroup> getGroups(UserInfo userInfo) throws DatastoreException, UnauthorizedException;
 	
 	/**
 	 * get all individual user groups
 	 * 
 	 **/
-	public Collection<UserGroup> getIndividuals() throws DatastoreException;
+	public Collection<UserGroup> getIndividuals(UserInfo userInfo) throws DatastoreException, UnauthorizedException;
 	
 	/**
 	 * get non-individual user groups (including Public) in range
 	 * 
 	 **/
-	public List<UserGroup> getGroupsInRange(long startIncl, long endExcl) throws DatastoreException;
+	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException;
 	
 	/**
 	 * get individual user groups in range
 	 * 
 	 **/
-	public List<UserGroup> getIndividualsInRange(long startIncl, long endExcl) throws DatastoreException;
+	public List<UserGroup> getIndividualsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException;
 	
 	/**
 	 * Use case:  Need to find out if a user can download a resource.
@@ -102,5 +102,5 @@ public interface PermissionsManager {
 	 * @param accessType
 	 * @return
 	 */
-	public boolean hasAccess(String resourceId, AuthorizationConstants.ACCESS_TYPE  accessType, UserInfo userInfo) throws NotFoundException, DatastoreException ;
+	public boolean hasAccess(String resourceId, AuthorizationConstants.ACCESS_TYPE  accessType, UserInfo userInfo) throws NotFoundException, DatastoreException;
 }

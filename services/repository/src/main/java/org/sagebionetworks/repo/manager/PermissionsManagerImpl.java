@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -143,24 +144,33 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		
 		return aclDAO.getForResource(benefactor);
 	}
+	
+	private void requireUser(UserInfo userInfo) throws UnauthorizedException {
+		if(userInfo.getUser().getUserId().equalsIgnoreCase(AuthUtilConstants.ANONYMOUS_USER_ID))
+			throw new UnauthorizedException("Anonymous user cannot retrieve group information.");
+	}
 
 	@Override
-	public Collection<UserGroup> getGroups() throws DatastoreException {
+	public Collection<UserGroup> getGroups(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
+		requireUser(userInfo);
 		return userGroupDAO.getAll(false);
 	}
 
 	@Override
-	public Collection<UserGroup> getIndividuals() throws DatastoreException {
+	public Collection<UserGroup> getIndividuals(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
+		requireUser(userInfo);
 		return userGroupDAO.getAll(true);
 	}
 
 	@Override
-	public List<UserGroup> getGroupsInRange(long startIncl, long endExcl) throws DatastoreException {
+	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException {
+		requireUser(userInfo);
 		return userGroupDAO.getInRange(startIncl, endExcl, false);
 	}
 
 	@Override
-	public List<UserGroup> getIndividualsInRange(long startIncl, long endExcl) throws DatastoreException {
+	public List<UserGroup> getIndividualsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException {
+		requireUser(userInfo);
 		return userGroupDAO.getInRange(startIncl, endExcl, true);
 	}
 	

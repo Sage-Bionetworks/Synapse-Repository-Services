@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -113,6 +114,17 @@ public class PrincipalsControllerAutowiredTest {
 	}
 	
 	@Test
+	public void testGetUsersAnonymouslyShouldFail() throws ServletException, IOException{
+		try {
+			ServletTestHelper.getUsers(dispatchServlet, null);
+			fail("Exception expected.");
+		} catch (Exception e) {
+			// as expected
+		}
+		
+	}
+	
+	@Test
 	public void testGetGroups() throws ServletException, IOException{
 		Collection<Map<String,Object>> ugs = ServletTestHelper.getGroups(dispatchServlet, userName);
 		assertNotNull(ugs);
@@ -124,6 +136,17 @@ public class PrincipalsControllerAutowiredTest {
 			assertTrue(ug.toString(), "false".equalsIgnoreCase(ug.get("individual").toString()));
 		}
 		assertTrue(foundPublic);
+	}
+	
+	@Test
+	public void testGetGroupsAnonymouslyShouldFail() throws ServletException, IOException{
+		try {
+			ServletTestHelper.getGroups(dispatchServlet, null);
+			fail("Exception expected.");
+		} catch (Exception e) {
+			// as expected
+		}
+		
 	}
 	
 

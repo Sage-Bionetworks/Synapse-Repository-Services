@@ -364,10 +364,15 @@ public class AuthenticationController {
 		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 
 		String itu = getIntegrationTestUser();
-		boolean isITU = (itu!=null && user.getEmail().equals(itu));
+		boolean isITU = (itu!=null && userId!=null && userId.equals(itu));
+		
+		if (user.getEmail()==null) user.setEmail(userId);
 
-		if (!isITU && (userId==null || !userId.equals(user.getEmail()))) 
-			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
+		if (!isITU && userId==null) 
+				throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
+		if (!userId.equals(user.getEmail())) 
+				throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Changing email address is not permitted.", null);
+		
 		crowdAuthUtil.updateUser(user);
 	}
 	
