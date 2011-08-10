@@ -6,7 +6,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.logging.Logger;
 
-import org.apache.commons.lang.NotImplementedException;
 import org.sagebionetworks.web.client.SearchService;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceService;
 import org.sagebionetworks.web.server.ColumnConfigProvider;
@@ -143,7 +142,7 @@ public class LicenseServiceImpl extends RemoteServiceServlet implements LicenceS
 
 	@Override
 	public void logUserDownload(String username, String objectUri, String fileUri) {
-		throw new NotImplementedException();
+		
 	}
 
 }
