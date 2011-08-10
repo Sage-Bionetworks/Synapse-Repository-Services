@@ -179,7 +179,7 @@ public class Helpers {
 	 * @return the json object holding the updated entity
 	 * @throws Exception
 	 */
-	public JSONObject testUpdateJsonEntity(String requestUrl, String stringEntity, HttpStatus status)
+	public JSONObject testUpdateJsonEntity(String requestUrl, String stringEntity, HttpStatus status, String userId)
 			throws Exception {
 		JSONObject jsonEntity = new JSONObject(stringEntity);
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -188,6 +188,7 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		if (userId!=null) request.addParameter("userId", userId);
 		request.setContent(jsonEntity.toString().getBytes("UTF-8"));
 		log.info("About to send: " + jsonEntity.toString(JSON_INDENT));
 		servlet.service(request, response);
