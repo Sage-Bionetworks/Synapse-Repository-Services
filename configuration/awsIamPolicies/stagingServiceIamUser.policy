@@ -17,6 +17,16 @@
                 ],
                 "Effect": "Allow",
                 "Resource": "arn:aws:s3:::elasticbeanstalk-us-east-1-325565585839/staging-beanstalk-stack.properties"
+            },
+            {
+                "Effect":"Allow",
+                "Action":"cloudwatch:*",
+                "Resource":"*",
+                "Condition":{
+                    "Bool":{
+                        "aws:SecureTransport":"true"
+                    }
+                }
             }
         ]
-}
+    }

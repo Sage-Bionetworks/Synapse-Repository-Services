@@ -1,26 +1,36 @@
 {
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": "iam:AddUserToGroup",
-      "Resource": "arn:aws:iam::325565585839:group/bambooDataIamGroup"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "iam:GetUser",
-        "iam:CreateUser",
-        "iam:CreateAccessKey"
-      ],
-      "Resource": "arn:aws:iam::325565585839:user/bamboo*"
-    },
-    {
-      "Action": [
-        "s3:GetObject"
-      ],
-      "Effect": "Allow",
-      "Resource": "arn:aws:s3:::elasticbeanstalk-us-east-1-325565585839/bambooa-v2-stack.properties"
-    }
-  ]
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "iam:AddUserToGroup",
+            "Resource": "arn:aws:iam::325565585839:group/bambooDataIamGroup"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:GetUser",
+                "iam:CreateUser",
+                "iam:CreateAccessKey"
+            ],
+            "Resource": "arn:aws:iam::325565585839:user/bamboo*"
+        },
+        {
+            "Action": [
+                "s3:GetObject"
+            ],
+            "Effect": "Allow",
+            "Resource": "arn:aws:s3:::elasticbeanstalk-us-east-1-325565585839/bambooa-v2-stack.properties"
+        },
+        {
+            "Effect":"Allow",
+            "Action":"cloudwatch:*",
+            "Resource":"*",
+            "Condition":{
+                "Bool":{
+                    "aws:SecureTransport":"true"
+                }
+            }
+        }
+    ]
 }
 
