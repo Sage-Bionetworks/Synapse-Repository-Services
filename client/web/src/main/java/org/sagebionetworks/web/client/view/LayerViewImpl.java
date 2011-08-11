@@ -195,9 +195,6 @@ public class LayerViewImpl extends Composite implements LayerView {
 		if(overviewText == null) overviewText  = "";
 		if(privacyLevel == null) privacyLevel = "";
 		if(platform == null) platform = "";
-
-		// clear old values from views
-		clear(); 
 		
 		// check authorization
 		this.isAdministrator = isAdministrator;
@@ -223,26 +220,17 @@ public class LayerViewImpl extends Composite implements LayerView {
 		}
 		int summaryLength = overviewText.length() >= DisplayConstants.DESCRIPTION_SUMMARY_LENGTH ? DisplayConstants.DESCRIPTION_SUMMARY_LENGTH : overviewText.length();
 		previewDisclosurePanel.init("Expand", overviewText.substring(0, summaryLength), overviewText);
+		overviewPanel.clear();
 		overviewPanel.add(previewDisclosurePanel);
 		
 		annotationsPanel.clear();
 		annotationEditor.setPlaceChanger(presenter.getPlaceChanger());
 		annotationEditor.setResource(NodeType.LAYER, id);
 		annotationsPanel.add(annotationEditor.asWidget());
-
-		// add metadata to table
-//		int rowIndex = 0;
-//		DisplayUtils.addRowToTable(rowIndex++, "Platform:", platform, rightFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "Processing Facility:", processingFacility, rightFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "QC By:", "<a href=\"" + qcByUrl + "\">" + qcByDisplay + "</a>", rightFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "QC Analysis:", "<a href=\"" + qcAnalysisUrl + "\">" + qcAnalysisDisplay + "</a>", rightFlexTable);		
-//		if(qcDate != null)
-//			DisplayUtils.addRowToTable(rowIndex++, "QC Date:", DisplayConstants.DATE_FORMAT.format(qcDate), rightFlexTable);
 		
 		// breadcrumbs
 		breadcrumbDatasetSpan.setInnerHTML(datasetLink);
-		breadcrumbTitleSpan.setInnerText(layerName);
-		
+		breadcrumbTitleSpan.setInnerText(layerName);		
 	}
 	
 	@Override
@@ -319,7 +307,6 @@ public class LayerViewImpl extends Composite implements LayerView {
 	@Override
 	public void clear() {
 		titleSpan.setInnerText("");		
-//		rightFlexTable.clear();
 		staticTable.clear();
 		downloadPanel.clear();
 	}

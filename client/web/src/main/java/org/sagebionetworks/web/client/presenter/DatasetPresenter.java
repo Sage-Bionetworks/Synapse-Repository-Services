@@ -111,8 +111,9 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 				try {
 					resultDataset = nodeModelCreator.createDataset(result);
 				} catch (RestServiceException ex) {					
-					DisplayUtils.handleServiceException(ex, placeChanger);
-					onFailure(null);					
+					if(!DisplayUtils.handleServiceException(ex, placeChanger)) {					
+						onFailure(null);					
+					} 
 					return;
 				}
 				setDataset(resultDataset);

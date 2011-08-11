@@ -90,8 +90,13 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
         			@Override
         			public void onSuccess(TableResults result) {
         				if(result.getException() != null) {
-        					DisplayUtils.handleServiceException(result.getException(), placeChanger);
-        					onFailure(null);        					
+        					if(!DisplayUtils.handleServiceException(result.getException(), placeChanger)) {
+        						// alert user
+        						onFailure(null);        					
+        					} else {
+        						// if the user has already been alerted, just call the callback
+        						callback.onFailure(null);
+        					}
         					return;
         				}
         				setTableResults(result, callback);
