@@ -36,16 +36,26 @@
 					<!-- <a class="bulleted left" href="">Learn more...</a>  -->
 				</div>
 				<div class="box smaller">
-					<div class="hosting_text">
+					<div class="hosting_text"><!-- OLD static demo content
 						<span class="text">Synapse is currently hosting over 20 curated global coherent datasets in which genomic variation and molecular traits are combined with clinically-relevant phenotypes.  <br/><br/>
 
 						We are actively working to build an open repository of high value studies.  
+						</span> -->
+						<h5><span class = "wide">Development Update</span></h5>
+						<span class="text">Synapse is currently in Alpha development.  This prototype has been developed to demonstrate our vision for the technology and solicit feedback from the community.  The ability to create accounts and download Sage-hosted data is operational now.  Some of the other functionality of the site is still under development.
 						</span>
 					</div>
+					<span class="callout">
+						<h6><span class="narrow">Call for</span> <span class="wide">ALPHA USERS</span></h6>
+						<span class="callout_text">Are you interested in working with Sage to start a pilot project on Synapse?  Please let us know at <a href="mailto:synapseInfo@sagebase.org">synapseInfo@sagebase.org</a></span>
+					</span>
+					<!-- OLD static demo content
 					<span class="callout">
 						<h6><span class="narrow">Call for</span> <span class="wide">DATA</span></h6>
 						<span class="callout_text">Do you know of a dataset that you would like to see made available?</span>
 					</span>
+					-->
+					<!-- OLD static demo content
 					<span class="callout last">
 						<h6><span class="narrow">Synapse</span> <span class="wide">STATS</span></h6>
 
@@ -56,6 +66,7 @@
 							<li><a class="bulleted" href="#ComingSoon:0">14 Tools</a></li>
 						</ul>
 					</span>
+					-->
 				</div>
 				<div class="experience">
 					<h3><span class="narrow">Example of an</span> <span class="wide">EXPERIENCE IN SYNAPSE:</span></h3>
