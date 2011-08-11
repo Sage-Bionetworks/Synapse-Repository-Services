@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -26,6 +25,8 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 public class Synapse {
 
 	private static final Logger log = Logger.getLogger(Synapse.class.getName());
+	
+	private static final int DEFAULT_TIMEOUT_MSEC = 5000;
 
 	private static final int JSON_INDENT = 2;
 	private static final String ANNOTATION_URI_SUFFIX = "annotations";
@@ -54,6 +55,10 @@ public class Synapse {
 		defaultPOSTPUTHeaders = new HashMap<String, String>();
 		defaultPOSTPUTHeaders.putAll(defaultGETDELETEHeaders);
 		defaultPOSTPUTHeaders.put("Content-Type", "application/json");
+		
+		HttpClientHelper.setConnectionTimeout(DEFAULT_TIMEOUT_MSEC);
+		HttpClientHelper.setSocketTimeout(DEFAULT_TIMEOUT_MSEC);
+		
 	}
 
 	/**

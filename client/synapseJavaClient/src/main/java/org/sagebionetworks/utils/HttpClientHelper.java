@@ -39,12 +39,17 @@ public class HttpClientHelper {
 	static {
 		final MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
 		webClient = new HttpClient(connectionManager);
-		// TODO make this timeout configurable
-		webClient.getHttpConnectionManager().getParams().setSoTimeout(50000);
+	}
+	
+	public static void setConnectionTimeout(int milliseconds) {
 		webClient.getHttpConnectionManager().getParams().setConnectionTimeout(
-				50000);
+				milliseconds);
 	}
 
+	public static void setSocketTimeout(int milliseconds) {
+		webClient.getHttpConnectionManager().getParams().setSoTimeout(milliseconds);
+	}
+	
 	/**
 	 * Perform a REST API request
 	 * 
