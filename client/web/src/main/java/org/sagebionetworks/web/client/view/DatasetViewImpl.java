@@ -520,7 +520,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 			@Override
 			public void onClick(ClickEvent event) {
 				if(presenter.downloadAttempted()) {
-					datasetLicensedDownloader.showWindow();
+					//datasetLicensedDownloader.showWindow();
 					showErrorMessage("<strong>Alpha Note</strong>: Downloading of entire dataset is currently not operational. You can download layers individually though.");
 				}
 			}
