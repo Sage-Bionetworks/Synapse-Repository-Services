@@ -161,7 +161,7 @@ public class Node {
 		if (createdOn == null) {
 			if (other.createdOn != null)
 				return false;
-		} else if (!createdOn.equals(other.createdOn))
+		} else if (createdOn.getTime() != other.createdOn.getTime())
 			return false;
 		if (description == null) {
 			if (other.description != null)

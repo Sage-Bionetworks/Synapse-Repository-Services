@@ -57,6 +57,17 @@ public class UserGroup implements Base{
 	}
 	
 	/**
+	 * Is the passed name an email address
+	 * @param name
+	 * @return
+	 */
+	public static boolean isEmailAddress(String name){
+		if(name == null)throw new IllegalArgumentException("Name cannot be null");
+		int index = name.indexOf("@");
+		return index > 0;
+	}
+	
+	/**
 	 * Is the passed UserGroup valid?
 	 * @param userGroup
 	 */
@@ -64,6 +75,12 @@ public class UserGroup implements Base{
 		if(userGroup == null) throw new IllegalArgumentException("UserGroup cannot be null");
 		if(userGroup.getId() == null) throw new IllegalArgumentException("UserGroup.id cannot be null");
 		if(userGroup.getName() == null) throw new IllegalArgumentException("UserGrup.name cannot be null");
+		// Only an individual can have an email address for a name
+		if(isEmailAddress(userGroup.getName())){
+			if(!userGroup.isIndividual()) throw new IllegalArgumentException("Invalid group name: "+userGroup.getName()+", group names cannot be email addresses");
+		}else{
+			if(userGroup.isIndividual()) throw new IllegalArgumentException("Invalid user name: "+userGroup.getName()+", user names must be email addresses");
+		}
 	}
 	@Override
 	public int hashCode() {

@@ -41,6 +41,8 @@
 	
 	<bean id="layerTypeCountCache" class="org.sagebionetworks.repo.web.controller.metadata.LayerTypeCountCacheImpl" scope="singleton"/>
 	
+	<bean id="backupManager" class="org.sagebionetworks.repo.manager.backup.NodeBackupManagerImpl" scope="singleton"/>
+	
 	<!-- Provides validation for all types -->
 	<bean id="allTypesValidator" class="org.sagebionetworks.repo.web.controller.metadata.AllTypesValidatorImpl" scope="singleton"/>
 		
@@ -77,4 +79,5 @@
 			</list>
 		</property>
 	</bean>
+	
 </beans>

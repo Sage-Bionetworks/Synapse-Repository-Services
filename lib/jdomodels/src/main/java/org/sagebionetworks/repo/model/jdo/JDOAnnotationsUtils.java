@@ -1,14 +1,9 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -19,9 +14,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOBlobAnnotation;
@@ -54,13 +46,23 @@ public class JDOAnnotationsUtils {
 		if(dto.getId() != null){
 			jdo.setId(Long.valueOf(dto.getId()));
 		}
+		updateAnnotationsFromDto(dto, jdo);
+		// Compress the annotations and save them in a blob
+		rev.setAnnotations(compressAnnotations(dto));
+	}
+	/**
+	 * This version will update the annotations on the node.  This will update the annotation tables used
+	 * for query.
+	 * @param dto
+	 * @param jdo
+	 */
+	@SuppressWarnings("unchecked")
+	public static void updateAnnotationsFromDto(Annotations dto, JDONode jdo) {
 		jdo.setStringAnnotations((Set<JDOStringAnnotation>)createFromMap(jdo, dto.getStringAnnotations()));
 		jdo.setDateAnnotations((Set<JDODateAnnotation>)createFromMap(jdo, dto.getDateAnnotations()));
 		jdo.setLongAnnotations((Set<JDOLongAnnotation>)createFromMap(jdo, dto.getLongAnnotations()));
 		jdo.setDoubleAnnotations((Set<JDODoubleAnnotation>)createFromMap(jdo, dto.getDoubleAnnotations()));
 		jdo.setBlobAnnotations((Set<JDOBlobAnnotation>)createFromMap(jdo, dto.getBlobAnnotations()));
-		// Compress the annotations and save them in a blob
-		rev.setAnnotations(compressAnnotations(dto));
 	}
 	
 	/**

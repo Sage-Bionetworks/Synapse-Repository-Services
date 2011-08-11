@@ -8,7 +8,9 @@ import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -25,7 +27,9 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.NodeRevision;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
@@ -84,6 +88,8 @@ public class NodeDAOImplTest {
 		assertNotNull(id);
 		assertEquals(id, loaded.getId());
 		assertNotNull(loaded.getETag());
+		assertTrue(nodeDao.doesNodeRevisionExist(id, loaded.getVersionNumber()));
+		assertFalse(nodeDao.doesNodeRevisionExist(id, loaded.getVersionNumber()+1));
 		// All new nodes should start off as the first version.
 		assertEquals(new Long(1),loaded.getVersionNumber());
 		assertEquals(toCreate.getVersionComment(), loaded.getVersionComment());
@@ -685,6 +691,121 @@ public class NodeDAOImplTest {
 		assertNotNull(path);
 		assertEquals(1, path.size());
 		assertEquals(array[0], path.get(0));
+	}
+	
+	@Test
+	public void testGetChildrenList() throws NotFoundException, DatastoreException{
+		Node node = NodeTestUtils.createNew("parent");
+		node.setNodeType(ObjectType.project.name());
+		String parentId = nodeDao.createNew(node);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+		
+		// Create a few children
+		List<String> childIds = new ArrayList<String>();
+		for(int i=0; i<4; i++){
+			node = NodeTestUtils.createNew("child"+i);
+			node.setNodeType(ObjectType.dataset.name());
+			node.setParentId(parentId);
+			String id = nodeDao.createNew(node);
+			childIds.add(id);
+		}
+		// Now get the list of children
+		List<String> fromDao =  nodeDao.getChildrenIdsAsList(parentId);
+		assertEquals(childIds, fromDao);
+	}
+	
+	@Test
+	public void testUpdateRevision() throws NotFoundException, DatastoreException{
+		Node node = NodeTestUtils.createNew("parent");
+		node.setNodeType(ObjectType.project.name());
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		assertNotNull(id);
+		node = nodeDao.getNode(id);
+		Long v1Number = node.getVersionNumber();
+		// Get the current rev
+		NodeRevision currentRev = nodeDao.getNodeRevision(id, node.getVersionNumber());
+		assertNotNull(currentRev);
+		// Add some annotations
+		String keyOnFirstVersion = "NodeDAOImplTest.testUpdateRevision.OnFirstVersion";
+		currentRev.getAnnotations().addAnnotation(keyOnFirstVersion, "newValue");
+		currentRev.setLabel("2.0");
+		nodeDao.updateRevision(currentRev);
+		// Since we added this annotation to the current version it should be query-able
+		assertTrue(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));
+		
+		// Get it back
+		NodeRevision clone = nodeDao.getNodeRevision(id, node.getVersionNumber());
+		assertNotNull(clone);
+		assertEquals("newValue", clone.getAnnotations().getSingleValue(keyOnFirstVersion));
+		assertEquals("2.0", clone.getLabel());
+		
+		// now create a new version
+		node = nodeDao.getNode(id);
+		node.setVersionLabel("3.0");
+		nodeDao.createNewVersion(node);
+		node = nodeDao.getNode(id);
+		// Get the latest
+		clone = nodeDao.getNodeRevision(id, node.getVersionNumber());
+		// Clear the string annoations.
+		clone.getAnnotations().setStringAnnotations(new HashMap<String, Collection<String>>());
+		nodeDao.updateRevision(clone);
+		// The string annotation should no longer be query-able
+		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));
+		
+		// Finally, update the first version again, adding back the string property
+		// but this time since this is not the current version it should not be query-able
+		clone = nodeDao.getNodeRevision(id, v1Number);
+		clone.getAnnotations().addAnnotation(keyOnFirstVersion, "updatedValue");
+		nodeDao.updateRevision(clone);
+		// This annotation should not be query-able
+		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));
+	}
+	
+	@Test
+	public void testCreateRevision() throws NotFoundException, DatastoreException{
+		Long currentVersionNumver = new Long(8);
+		Node node = NodeTestUtils.createNew("parent");
+		// Start with a node already on an advanced version
+		node.setVersionNumber(currentVersionNumver);
+		node.setVersionComment("Current comment");
+		node.setVersionLabel("8.0");
+		node.setNodeType(ObjectType.project.name());
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		assertNotNull(id);
+		node = nodeDao.getNode(id);
+		assertEquals("8.0", node.getVersionLabel());
+		assertEquals(currentVersionNumver, node.getVersionNumber());
+		
+		// now create a new version number
+		NodeRevision newRev = new NodeRevision();
+		Annotations annos = RandomAnnotationsUtil.generateRandom(33477, 23);
+		String keyOnNewVersion = "NodeDAOImplTest.testCreateRevision.OnNew";
+		annos.addAnnotation(keyOnNewVersion, "value on new");
+		newRev.setAnnotations(annos);
+		Long newVersionNumber = new Long(1);
+		newRev.setRevisionNumber(newVersionNumber);
+		newRev.setNodeId(id);
+		newRev.setLabel("1.0");
+		newRev.setModifiedBy("me");
+		newRev.setModifiedOn(new Date());
+		
+		// This annotation should not be query-able
+		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnNewVersion));
+		// Now create the version
+		nodeDao.createNewRevision(newRev);
+		// This annotation should still not be query-able because it is not on the current version.
+		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnNewVersion));
+		
+		// Get the older version
+		NodeRevision clone = nodeDao.getNodeRevision(id, newVersionNumber);
+		assertNotNull(clone);
+		assertEquals("value on new", clone.getAnnotations().getSingleValue(keyOnNewVersion));
+		assertEquals("1.0", clone.getLabel());
+		assertEquals(newRev, clone);
+		
 	}
 
 }

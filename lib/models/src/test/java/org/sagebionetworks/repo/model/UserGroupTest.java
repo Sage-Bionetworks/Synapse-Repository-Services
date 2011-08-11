@@ -1,8 +1,16 @@
 package org.sagebionetworks.repo.model;
 
+import static org.junit.Assert.*;
+
 import org.junit.Test;
 
 public class UserGroupTest {
+	
+	@Test
+	public  void testIsEmailAddress(){
+		assertTrue(UserGroup.isEmailAddress("something@gmail.com"));
+		assertFalse(UserGroup.isEmailAddress("PUBLIC"));
+	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void validateNull(){
@@ -23,10 +31,29 @@ public class UserGroupTest {
 	}
 	
 	@Test
-	public void validateNotNull(){
+	public void validateValid(){
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId("99");
 		userGroup.setName("something@somewhere.com");
+		userGroup.setIndividual(true);
+		UserGroup.validate(userGroup);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void validateGroupWithEmailAddressName(){
+		UserGroup userGroup = new UserGroup();
+		userGroup.setId("99");
+		userGroup.setName("something@somewhere.com");
+		userGroup.setIndividual(false);
+		UserGroup.validate(userGroup);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void validateUserWithoutEmailAddressName(){
+		UserGroup userGroup = new UserGroup();
+		userGroup.setId("99");
+		userGroup.setName("someName");
+		userGroup.setIndividual(true);
 		UserGroup.validate(userGroup);
 	}
 

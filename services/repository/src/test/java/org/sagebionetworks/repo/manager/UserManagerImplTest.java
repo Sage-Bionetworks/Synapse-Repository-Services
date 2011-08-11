@@ -8,6 +8,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.junit.After;
@@ -60,8 +61,19 @@ public class UserManagerImplTest {
 	}
 	
 	@Test
+	public void testFilterInvalidGroupNames(){
+		ArrayList<String> list = new ArrayList<String>();
+		list.add("badGroupName@someplace.com");
+		list.add("GOOD_GROUP_NAME");
+		Collection<String> results = UserManagerImpl.filterInvalidGroupNames(list);
+		assertNotNull(results);
+		assertEquals("The group name that is an email addresss should have been filter out", 1,results.size());
+		assertEquals("GOOD_GROUP_NAME",results.iterator().next());
+	}
+	
+	@Test
 	public void testGetDefaultGroup() throws DatastoreException{
-		// We should be able to get all defalut groups
+		// We should be able to get all default groups
 		DEFAULT_GROUPS[] array = DEFAULT_GROUPS.values();
 		for(DEFAULT_GROUPS group: array){
 			UserGroup userGroup = userManager.getDefaultUserGroup(group);
@@ -119,5 +131,6 @@ public class UserManagerImplTest {
 		userManager.getUserInfo(AuthUtilConstants.ANONYMOUS_USER_ID);
 		userManager.getUserInfo(AuthUtilConstants.ANONYMOUS_USER_ID);
 	}
+	
 
 }

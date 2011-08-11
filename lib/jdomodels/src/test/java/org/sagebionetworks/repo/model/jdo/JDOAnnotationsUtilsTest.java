@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
+import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
 
 /**
  * Basic test for converting between JDOs and DTOs.
@@ -44,7 +45,7 @@ public class JDOAnnotationsUtilsTest {
 	 * What are the compressed blob annotations that we should test.
 	 */
 	public static final BlobData[] BLOBS_TO_TEST = new BlobData[]{
-		new BlobData("CompressedAnnotationsV0.zip", 3452, 25),
+		new BlobData("CompressedAnnotationsV0.zip", 34523, 24),
 	};
 	
 	JDONode owner;

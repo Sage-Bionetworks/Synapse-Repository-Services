@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOAccessControlList;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * Test for AccessControlListUtil.
@@ -36,7 +37,7 @@ public class AccessControlListUtilTest {
 	private UserGroupCache mockCache;
 	private UserInfo mockInfo;
 	@Before
-	public void setup() throws DatastoreException{
+	public void setup() throws DatastoreException, NotFoundException{
 		mockInfo = UserInfoUtils.createValidUserInfo();
 		UserGroup ug = mockInfo.getIndividualGroup();
 		
@@ -55,7 +56,7 @@ public class AccessControlListUtilTest {
 	}
 	
 	@Test
-	public void testRoundTrip() throws DatastoreException, InvalidModelException{
+	public void testRoundTrip() throws DatastoreException, InvalidModelException, NotFoundException{
 		JDONode mockNode = Mockito.mock(JDONode.class);
 		when(mockNode.getId()).thenReturn(110001L);
 		when(mockNode.geteTag()).thenReturn(4L);

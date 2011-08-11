@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeRevision;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOBlobAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
@@ -58,8 +59,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
+	private static final String SQL_COUNT_NODES = "SELECT COUNT("+SqlConstants.COL_NODE_ID+") FROM "+SqlConstants.TABLE_NODE;
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+SqlConstants.COL_NODE_PARENT_ID+", "+SqlConstants.COL_NODE_TYPE+", "+SqlConstants.COL_NODE_NAME+" FROM "+SqlConstants.TABLE_NODE+" WHERE "+SqlConstants.COL_NODE_ID+" = ?";
-
+	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+SqlConstants.COL_NODE_ID+" FROM "+SqlConstants.TABLE_NODE+" WHERE "+SqlConstants.COL_NODE_PARENT_ID+" = ? ORDER BY "+SqlConstants.COL_NODE_ID;
+	private static final String SQL_COUNT_STRING_ANNOTATIONS_FOR_NODE = "SELECT COUNT("+SqlConstants.ANNOTATION_OWNER_ID_COLUMN+") FROM "+SqlConstants.TABLE_STRING_ANNOTATIONS+" WHERE "+SqlConstants.ANNOTATION_OWNER_ID_COLUMN+" = ? AND "+SqlConstants.ANNOTATION_ATTRIBUTE_COLUMN+" = ?";
 	static private Log log = LogFactory.getLog(NodeDAOImpl.class);
 	
 	@Autowired
@@ -78,10 +81,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static String SQL_ETAG_WITHOUT_LOCK = "SELECT "+SqlConstants.COL_NODE_ETAG+" FROM "+SqlConstants.TABLE_NODE+" WHERE ID = :"+BIND_ID_KEY;
 	private static String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK+" FOR UPDATE";
 	
-	private static String SQL_GET_ALL_VERSION_NUMBERS = "SELECT "+SqlConstants.COL_REVISION_NUMBER+" FROM "+SqlConstants.TABLE_REVISION+" WHERE "+SqlConstants.COL_REVISION_OWNER_NODE +" = :"+BIND_ID_KEY+" ORDER BY "+SqlConstants.COL_REVISION_NUMBER+" DESC";
+	private static String SQL_GET_ALL_VERSION_NUMBERS = "SELECT "+SqlConstants.COL_REVISION_NUMBER+" FROM "+SqlConstants.TABLE_REVISION+" WHERE "+SqlConstants.COL_REVISION_OWNER_NODE +" = ? ORDER BY "+SqlConstants.COL_REVISION_NUMBER+" DESC";
 	
 	// Used to determine if a node id already exists
-	private static String SQL_COUNT_NODE_ID = "SELECT count("+SqlConstants.COL_NODE_ID+") FROM "+SqlConstants.TABLE_NODE+" WHERE "+SqlConstants.COL_NODE_ID +" = :"+BIND_ID_KEY;
+	private static String SQL_COUNT_NODE_ID = "SELECT COUNT("+SqlConstants.COL_NODE_ID+") FROM "+SqlConstants.TABLE_NODE+" WHERE "+SqlConstants.COL_NODE_ID +" = :"+BIND_ID_KEY;
+	private static String SQL_COUNT_REVISON_ID = "SELECT COUNT("+SqlConstants.COL_REVISION_OWNER_NODE+") FROM "+SqlConstants.TABLE_REVISION+" WHERE "+SqlConstants.COL_REVISION_OWNER_NODE +" = ? AND "+SqlConstants.COL_REVISION_NUMBER+" = ?";
 
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -90,8 +94,14 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(dto == null) throw new IllegalArgumentException("Node cannot be null");
 		JDORevision rev = new JDORevision();
 		// Set the default label
-		rev.setLabel(NodeConstants.DEFAULT_VERSION_LABEL);
-		rev.setRevisionNumber(new Long(1));
+		if(dto.getVersionLabel() == null){
+			rev.setLabel(NodeConstants.DEFAULT_VERSION_LABEL);
+		}
+		if(dto.getVersionNumber() == null){
+			rev.setRevisionNumber(NodeConstants.DEFAULT_VERSION_NUMBER);
+		}else{
+			rev.setRevisionNumber(dto.getVersionNumber());
+		}
 		JDONode node = new JDONode();
 		node.setCurrentRevNumber(rev.getRevisionNumber());
 		JDONodeUtils.updateFromDto(dto, node, rev);
@@ -218,6 +228,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		JDORevision rev = getNodeRevisionById(id, versionNumber);
 		if(rev != null){
 			jdoTemplate.deletePersistent(rev);
+			// If we do not flush, JDO will not actually delete the revision yet and it will
+			// still show up when we query for all versions.
+			jdoTemplate.flush();
 			// Make sure the node is still pointing the the current version
 			List<Long> versions = getVersionNumbers(nodeId);
 			if(versions == null || versions.size() < 1){
@@ -461,9 +474,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Transactional(readOnly = true)
 	@Override
 	public List<Long> getVersionNumbers(String id) throws NotFoundException {
-		Map<String, Object> parameters = new HashMap<String, Object>();
-		parameters.put(BIND_ID_KEY, id);
-		return executeQuery(SQL_GET_ALL_VERSION_NUMBERS, parameters);
+		List<Long> list = new ArrayList<Long>();
+		List<Map<String, Object>> restuls = simpleJdbcTempalte.queryForList(SQL_GET_ALL_VERSION_NUMBERS, id);
+		for(Map<String, Object> row: restuls){
+			Long revId = (Long) row.get(SqlConstants.COL_REVISION_NUMBER);
+			list.add(revId);
+		}
+		return list;
 	}
 	
 	/**
@@ -513,19 +530,21 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(BIND_ID_KEY, nodeId);
 		try{
-			List list = executeQuery(SQL_COUNT_NODE_ID, parameters);
-			if(list.size() != 1) throw new IllegalStateException("A count query should only retun a single number");
-			Object ob = list.get(0);
-			int count;
-			if(ob instanceof Integer){
-				count = (Integer) ob;
-			}else if(ob instanceof Long){
-				count = ((Long)ob).intValue();
-			}else{
-				throw new IllegalStateException("Unkown number type: "+ob.getClass().getName());
-			}
+			long count = simpleJdbcTempalte.queryForLong(SQL_COUNT_NODE_ID, parameters);
 			return count > 0;
-		}catch(BadSqlGrammarException e){
+		}catch(Exception e){
+			// Can occur when the schema does not exist.
+			return false;
+		}
+	}
+	
+	@Transactional(readOnly = true)
+	@Override
+	public boolean doesNodeRevisionExist(String nodeId, Long revNumber) {
+		try{
+			long count = simpleJdbcTempalte.queryForLong(SQL_COUNT_REVISON_ID, nodeId, revNumber);
+			return count > 0;
+		}catch(Exception e){
 			// Can occur when the schema does not exist.
 			return false;
 		}
@@ -730,5 +749,91 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		return resutls;
 	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public List<String> getChildrenIdsAsList(String id) throws DatastoreException {
+		List<String> list = new ArrayList<String>();
+		List<Map<String, Object>> restuls = simpleJdbcTempalte.queryForList(SQL_GET_ALL_CHILDREN_IDS, id);
+		for(Map<String, Object> row: restuls){
+			Long childId = (Long) row.get(SqlConstants.COL_NODE_ID);
+			list.add(KeyFactory.keyToString(childId));
+		}
+		return list;
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public NodeRevision getNodeRevision(String nodeId, Long revisionId) throws NotFoundException, DatastoreException {
+		if(nodeId == null) throw new IllegalArgumentException("nodeId cannot be null");
+		if(revisionId == null) throw new IllegalArgumentException("revisionId cannot be null");
+		JDORevision rev = getNodeRevisionById(KeyFactory.stringToKey(nodeId), revisionId);
+		return JDORevisionUtils.createDtoFromJdo(rev);
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public long getTotalNodeCount() {
+		return simpleJdbcTempalte.queryForLong(SQL_COUNT_NODES, new HashMap<String, String>());
+	}
+	
+	/**
+	 * Is the passed revision valid?
+	 * @param rev
+	 */
+	public static void validateNodeRevision(NodeRevision rev) {
+		if(rev == null) throw new IllegalArgumentException("NodeRevision cannot be null");
+		if(rev.getNodeId() == null) throw new IllegalArgumentException("NodeRevision.nodeId cannot be null");
+		if(rev.getRevisionNumber() == null) throw new IllegalArgumentException("NodeRevision.revisionNumber cannot be null");
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void updateRevision(NodeRevision rev) throws NotFoundException, DatastoreException {
+		validateNodeRevision(rev);
+		JDONode owner = getNodeById(KeyFactory.stringToKey(rev.getNodeId()));
+		JDORevision jdo = getNodeRevisionById(KeyFactory.stringToKey(rev.getNodeId()), rev.getRevisionNumber());
+		JDORevisionUtils.updateJdoFromDto(rev, jdo, owner);
+		// If this is the current revision then we also need to update all of the annotation tables
+		updateAnnotationTablesIfCurrentRev(rev, owner);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void createNewRevision(NodeRevision rev) throws NotFoundException, DatastoreException {
+		validateNodeRevision(rev);
+		JDONode owner = getNodeById(KeyFactory.stringToKey(rev.getNodeId()));
+		JDORevision newJdo = new JDORevision();
+		JDORevisionUtils.updateJdoFromDto(rev, newJdo, owner);
+		jdoTemplate.makePersistent(newJdo);
+		// If this is the current revision then we also need to update all of the annotation tables
+		updateAnnotationTablesIfCurrentRev(rev, owner);
+	}
+
+
+	/**
+	 * If the passed revision is the current revision then we need to update the annotation tables
+	 * used for query.
+	 * @param rev
+	 * @param owner
+	 */
+	private void updateAnnotationTablesIfCurrentRev(NodeRevision rev, JDONode owner) {
+		if(owner.getCurrentRevNumber().equals(rev.getRevisionNumber())){
+			JDOAnnotationsUtils.updateAnnotationsFromDto(rev.getAnnotations(), owner);
+		}
+	}
+
+	/**
+	 * Determ
+	 */
+	@Transactional(readOnly = true)
+	@Override
+	public boolean isStringAnnotationQueryable(String nodeId, String annotationKey) {
+		// Count how many annotations this node has with this 
+		long count= simpleJdbcTempalte.queryForLong(SQL_COUNT_STRING_ANNOTATIONS_FOR_NODE, nodeId, annotationKey);
+		return count > 0;
+	}
+
+
 
 }

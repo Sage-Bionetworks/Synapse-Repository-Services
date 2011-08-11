@@ -58,7 +58,7 @@ public class UserGroupCacheImplTest {
 	}
 	
 	@Test
-	public void testCache() throws DatastoreException{
+	public void testCache() throws DatastoreException, NotFoundException{
 		assertNotNull(userGroupCache);
 		// Look up even object using the ID and Odd using the name
 		for(int i=0; i<userGroups.size(); i++){

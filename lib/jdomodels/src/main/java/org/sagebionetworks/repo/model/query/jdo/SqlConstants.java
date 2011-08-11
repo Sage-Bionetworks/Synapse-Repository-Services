@@ -83,6 +83,17 @@ public class SqlConstants {
 	public static final String COL_RESOURCE_ACCESS_GROUP_ID		= "GROUP_ID";
 	public static final String COL_RESOURCE_ACCESS_TYPE			= "RESOURCE_TYPE";
 	public static final String COL_RESOURCE_ACCESS_RESOURCE_ID	= "RESOURCE_ID";
+	
+	// The backup status table
+	public static final String TABLE_BACKUP_STATUS 				= "JDOBACKUPSTATUS";
+	public static final String COL_BACKUP_ID					= "ID";
+	public static final String COL_BACKUP_STATUS				= "STATUS";
+	public static final String COL_PROGRESS_MESSAGE				= "PROGRESS_MESSAGE";
+	public static final String COL_PROGRESS_CURRENT				= "PROGRESS_CURRENT";
+	public static final String COL_PROGRESS_TOTAL				= "PROGRESS_TOTAL";
+	public static final String COL_ERORR_MESSAGE				= "ERROR_MESSAGE";
+	public static final String COL_ERROR_DETAILS				= "ERROR_DETAILS";
+	public static final String COL_BACKUP_URL					= "BACKUP_URL";
 		
 	// The resource access join table
 	// datanucleus doesn't seem to be respecting the join table name when creating the schema

@@ -51,4 +51,6 @@ public class NodeConstants {
 	 */
 	public static final String AGREEMENT_FOLDER_PATH = ROOT_FOLDER_PATH+"/agreements";
 	
+	public static final Long DEFAULT_VERSION_NUMBER = new Long(1);
+	
 }
