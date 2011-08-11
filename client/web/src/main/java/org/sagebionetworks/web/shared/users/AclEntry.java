@@ -6,7 +6,6 @@ import com.google.gwt.user.client.rpc.IsSerializable;
 
 public class AclEntry implements IsSerializable {
 
-	private String aclEntryId;
 	private AclPrincipal principal;
 	private List<AclAccessType> accessTypes;
 	private boolean isOwner;
@@ -15,22 +14,21 @@ public class AclEntry implements IsSerializable {
 		
 	}
 
-	public AclEntry(String aclEntryId, AclPrincipal principal, List<AclAccessType> accessTypes, boolean isOwner) {
+	public AclEntry(AclPrincipal principal, List<AclAccessType> accessTypes, boolean isOwner) {
 		super();
-		this.aclEntryId = aclEntryId;
 		this.principal = principal;
 		this.accessTypes = accessTypes;
 		this.isOwner = isOwner;
 	}
 
-	public String getAclEntryId() {
-		return aclEntryId;
+	/**
+	 * The identifier used to key this entry
+	 * @return
+	 */
+	public String getPrincipalId() {
+		return principal.getName();
 	}
-
-	public void setAclEntryId(String aclEntryId) {
-		this.aclEntryId = aclEntryId;
-	}
-
+	
 	public AclPrincipal getPrincipal() {
 		return principal;
 	}
@@ -61,8 +59,6 @@ public class AclEntry implements IsSerializable {
 		int result = 1;
 		result = prime * result
 				+ ((accessTypes == null) ? 0 : accessTypes.hashCode());
-		result = prime * result
-				+ ((aclEntryId == null) ? 0 : aclEntryId.hashCode());
 		result = prime * result + (isOwner ? 1231 : 1237);
 		result = prime * result
 				+ ((principal == null) ? 0 : principal.hashCode());
@@ -83,11 +79,6 @@ public class AclEntry implements IsSerializable {
 				return false;
 		} else if (!accessTypes.equals(other.accessTypes))
 			return false;
-		if (aclEntryId == null) {
-			if (other.aclEntryId != null)
-				return false;
-		} else if (!aclEntryId.equals(other.aclEntryId))
-			return false;
 		if (isOwner != other.isOwner)
 			return false;
 		if (principal == null) {
@@ -100,9 +91,7 @@ public class AclEntry implements IsSerializable {
 
 	@Override
 	public String toString() {
-		return "AclEntry [aclEntryId=" + aclEntryId + ", principal="
-				+ principal + ", accessTypes=" + accessTypes + ", isOwner="
-				+ isOwner + "]";
+		return "AclEntry [principal=" + principal + ", accessTypes="
+				+ accessTypes + ", isOwner=" + isOwner + "]";
 	}
-
 }

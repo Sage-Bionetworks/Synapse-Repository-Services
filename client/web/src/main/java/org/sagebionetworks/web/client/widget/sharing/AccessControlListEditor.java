@@ -28,10 +28,10 @@ import com.google.inject.Inject;
 
 public class AccessControlListEditor implements AccessControlListEditorView.Presenter {
 	
+	private static final String ETAG = "etag";
 	private static final String ACL_RESOURCE_ACCESS = "resourceAccess";
-	private static final String ACL_ENTRY_ID = "id";
-	private static final String ACL_ENTRY_USERGROUP_ID = "userGroupId";
-	private static final String ACL_ENTRY_ACCESSTYPE = "accessType";
+	private static final String ACL_ENTRY_ACCESS_TYPE = "accessType";
+	private static final String ACL_ENTRY_PRINCIPAL_ID = "groupName";
 	private static final String ACL_ENTRY_CREATEDBY = "createdBy";
 	private static final String ACL_ENTRY_RESOURCE_ID = "resourceId";
 
@@ -42,7 +42,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 	private NodeType nodeType;
 	private String nodeId;
 	private JSONObject originalAcl;
-	private List<AclPrincipal> usersAndGroups;
+	private List<AclPrincipal> principals;
 	private PlaceChanger placeChanger;
 	private NodeModelCreator nodeModelCreator;
 
@@ -66,7 +66,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 		userAccountService.getAllUsersAndGroups(new AsyncCallback<List<AclPrincipal>>() {
 			@Override
 			public void onSuccess(final List<AclPrincipal> usersAndGroupsList) {
-				usersAndGroups = usersAndGroupsList;
+				principals = usersAndGroupsList;
 				nodeService.getNodeAclJSON(type, id, new AsyncCallback<String>() {		
 					@Override
 					public void onSuccess(String result) {
@@ -85,7 +85,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 						if(originalAcl.containsKey(ACL_ENTRY_RESOURCE_ID) && !id.equals(originalAcl.get(ACL_ENTRY_RESOURCE_ID).isString().stringValue())) {
 							isInherited = true;
 						}
-						view.setAclDetails(entries, usersAndGroups, isInherited);
+						view.setAclDetails(entries, principals, isInherited);
 					}
 					
 					@Override
@@ -137,14 +137,14 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 			
 			// create new Resource Access entry
 			JSONObject newResourceAccess = new JSONObject();
-			newResourceAccess.put("userGroupId", new JSONString(principal.getId()));
+			newResourceAccess.put(ACL_ENTRY_PRINCIPAL_ID, new JSONString(principal.getName()));
 			
 			List<AclAccessType> accessList = AclUtils.getAclAccessTypes(permissionLevel);
 			JSONArray jsonList = new JSONArray();
 			for(int i=0; i<accessList.size(); i++) {
 				jsonList.set(i, new JSONString(accessList.get(i).toString()));
 			}
-			newResourceAccess.put("accessType", jsonList);
+			newResourceAccess.put(ACL_ENTRY_ACCESS_TYPE, jsonList);
 			
 			// add new entry to list
 			JSONObject newAcl = new JSONObject(originalAcl.getJavaScriptObject()); // clone
@@ -153,7 +153,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 			newAcl.put(ACL_RESOURCE_ACCESS, resourceAccessList);
 			
 			// persist
-			String etag = originalAcl.get("etag").isString().stringValue();
+			String etag = originalAcl.get(ETAG).isString().stringValue();
 			nodeService.updateAcl(nodeType, nodeId, newAcl.toString(), etag, new AsyncCallback<String>() {				
 				@Override
 				public void onSuccess(String result) {
@@ -192,12 +192,12 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 				for(int i=0; i<accessList.size(); i++) {
 					jsonList.set(i, new JSONString(accessList.get(i).toString()));
 				}
-				newResourceAccess.put("accessType", jsonList);				
+				newResourceAccess.put(ACL_ENTRY_ACCESS_TYPE, jsonList);				
 				resourceAccessList.set(resourceAccessList.size(), newResourceAccess);
 				newAcl.put(ACL_RESOURCE_ACCESS, resourceAccessList);
 				
 				// persist
-				String etag = originalAcl.get("etag").isString().stringValue();
+				String etag = originalAcl.get(ETAG).isString().stringValue();
 				nodeService.updateAcl(nodeType, nodeId, newAcl.toString(), etag, new AsyncCallback<String>() {
 					@Override
 					public void onSuccess(String result) {
@@ -246,7 +246,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 				newAcl.put(ACL_RESOURCE_ACCESS, newResourceAccessList);
 				
 				// persist
-				String etag = originalAcl.get("etag").isString().stringValue();
+				String etag = originalAcl.get(ETAG).isString().stringValue();
 				nodeService.updateAcl(nodeType, nodeId, newAcl.toString(), etag, new AsyncCallback<String>() {
 					@Override
 					public void onSuccess(String result) {
@@ -297,7 +297,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 				if(originalAcl.containsKey(ACL_ENTRY_RESOURCE_ID) && !nodeId.equals(originalAcl.get(ACL_ENTRY_RESOURCE_ID).isString().stringValue())) {
 					isInherited = true;
 				}
-				view.refresh(entries, usersAndGroups, isInherited);
+				view.refresh(entries, principals, isInherited);
 			}
 			
 			@Override
@@ -313,7 +313,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 		for(int i=0; i<resouceAccessList.size(); i++) {
 			if(resouceAccessList.get(i) != null) {				
 				JSONObject resourceAccess = resouceAccessList.get(i).isObject();
-				if(resourceAccess.get(ACL_ENTRY_USERGROUP_ID).isString().stringValue().equals(principal.getId()))
+				if(resourceAccess.get(ACL_ENTRY_PRINCIPAL_ID).isString().stringValue().equals(principal.getName()))
 					return i;
 			}
 		}		
@@ -327,18 +327,16 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 			JSONArray accesses = acl.get(ACL_RESOURCE_ACCESS).isArray();
 			for(int i=0; i<accesses.size(); i++) {
 				JSONObject accessObj = accesses.get(i).isObject();				
-				if(accessObj.containsKey(ACL_ENTRY_ID) 
-						&& accessObj.containsKey(ACL_ENTRY_USERGROUP_ID) 
-						&& accessObj.containsKey(ACL_ENTRY_ACCESSTYPE)) {
-						String entryId = accessObj.get(ACL_ENTRY_ID).isString().stringValue();
-						String userGroupId = accessObj.get(ACL_ENTRY_USERGROUP_ID).isString().stringValue();
-						AclPrincipal principal = getPrincipalById(userGroupId);
-						List<AclAccessType> accessTypes = extractAccessTypes(accessObj.get(ACL_ENTRY_ACCESSTYPE).isArray());						
-						if(entryId == null || principal == null || accessTypes == null) continue; // skip if malformed
+				if(accessObj.containsKey(ACL_ENTRY_PRINCIPAL_ID) 
+						&& accessObj.containsKey(ACL_ENTRY_ACCESS_TYPE)) {
+						String principalId = accessObj.get(ACL_ENTRY_PRINCIPAL_ID).isString().stringValue();
+						AclPrincipal principal = getPrincipalById(principalId);
+						List<AclAccessType> accessTypes = extractAccessTypes(accessObj.get(ACL_ENTRY_ACCESS_TYPE).isArray());						
+						if(principal == null || accessTypes == null) continue; // skip if malformed
 						boolean isOwner = false;
-						if(originalAcl.containsKey(ACL_ENTRY_CREATEDBY) && originalAcl.get(ACL_ENTRY_CREATEDBY).equals(principal.getName()))
+						if(originalAcl.containsKey(ACL_ENTRY_CREATEDBY) && originalAcl.get(ACL_ENTRY_CREATEDBY).isString().stringValue().equals(principal.getName()))
 							isOwner = true;
-						entries.add(new AclEntry(entryId, principal, accessTypes, isOwner));												
+						entries.add(new AclEntry(principal, accessTypes, isOwner));												
 				}
 			}
 		}
@@ -346,11 +344,11 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 		return entries;
 	}
 
-	private AclPrincipal getPrincipalById(String userGroupId) {		
-		if(usersAndGroups != null) {
+	private AclPrincipal getPrincipalById(String principalId) {		
+		if(principals != null) {
 			// TODO : linear search could be optimized
-			for(AclPrincipal principal : usersAndGroups) {
-				if(principal.getId().equals(userGroupId))
+			for(AclPrincipal principal : principals) {
+				if(principal.getName().equals(principalId))
 					return principal;
 			}
 		}

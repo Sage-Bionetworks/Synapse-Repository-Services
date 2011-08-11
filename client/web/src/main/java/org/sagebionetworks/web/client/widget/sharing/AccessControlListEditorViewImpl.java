@@ -14,6 +14,7 @@ import org.sagebionetworks.web.shared.users.AclUtils;
 import org.sagebionetworks.web.shared.users.PermissionLevel;
 
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
+import com.extjs.gxt.ui.client.Style.SortDir;
 import com.extjs.gxt.ui.client.data.BaseModelData;
 import com.extjs.gxt.ui.client.event.ButtonEvent;
 import com.extjs.gxt.ui.client.event.Events;
@@ -86,11 +87,24 @@ public class AccessControlListEditorViewImpl extends LayoutContainer implements 
 	
 	@Override
 	public void refresh(List<AclEntry> entries, List<AclPrincipal> principals, boolean isEditable) {
+		ListStore<PermissionsTableEntry> permissionsStore = loadPermissionsStore(entries);
+		permissionsGrid.reconfigure(permissionsStore, permissionsGrid.getColumnModel());
+	}
+
+	private ListStore<PermissionsTableEntry> loadPermissionsStore(
+			List<AclEntry> entries) {
 		final ListStore<PermissionsTableEntry> permissionsStore = new ListStore<PermissionsTableEntry>();
+		AclEntry ownerEntry = null;
 		for(AclEntry aclEntry : entries) {
+			if(aclEntry.isOwner()) {
+				ownerEntry = aclEntry;
+				continue;
+			}
 			permissionsStore.add(new PermissionsTableEntry(aclEntry));
 		}
-		permissionsGrid.reconfigure(permissionsStore, permissionsGrid.getColumnModel());
+		permissionsStore.sort(PRINCIPAL_COLUMN_ID, SortDir.ASC);
+		permissionsStore.insert(new PermissionsTableEntry(ownerEntry), 0); // insert owner first
+		return permissionsStore;
 	}
 	
 	@Override
@@ -105,10 +119,7 @@ public class AccessControlListEditorViewImpl extends LayoutContainer implements 
 		add(permissionsLabel, new MarginData(15, 0, 0, 0));
 
 		// show existing permissions
-		final ListStore<PermissionsTableEntry> permissionsStore = new ListStore<PermissionsTableEntry>();
-		for(AclEntry aclEntry : entries) {
-			permissionsStore.add(new PermissionsTableEntry(aclEntry));
-		}
+		ListStore<PermissionsTableEntry> permissionsStore = loadPermissionsStore(entries);
 		createPermissionsGrid(permissionsStore);	
 		if(isInherited) { 
 			permissionsGrid.disable();
@@ -411,10 +422,9 @@ public class AccessControlListEditorViewImpl extends LayoutContainer implements 
 			this.set(PRINCIPAL_COLUMN_ID, principal.getName());			
 			PermissionLevel level = AclUtils.getPermissionLevel(aclEntry.getAccessTypes());			
 			if(level != null) {
-				// TODO : make this a drop down
 				this.set(ACCESS_COLUMN_ID, permissionDisplay.get(level)); 
-			}
-			this.set(REMOVE_COLUMN_ID, aclEntry.getAclEntryId()); 
+			}			
+			this.set(REMOVE_COLUMN_ID, aclEntry.getPrincipalId());			
 		}
 		public AclEntry getAclEntry() {
 			return aclEntry;
