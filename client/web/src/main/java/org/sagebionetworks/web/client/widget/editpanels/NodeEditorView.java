@@ -54,7 +54,7 @@ public interface NodeEditorView extends IsWidget {
 	/**
 	 * Shows the user that their changes/creation failed.
 	 */
-	public void showPersistFail();
+	public void showPersistFail(String message);
 	
 	/**
 	 * Clears out any existing forms in the panel

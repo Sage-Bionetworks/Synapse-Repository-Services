@@ -1,11 +1,17 @@
 package org.sagebionetworks.web.server.servlet;
 
+import java.util.logging.Logger;
+
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.sagebionetworks.web.shared.NodeType;
 import org.springframework.web.client.HttpClientErrorException;
 
 public class ServiceUtils {
+
+	private static final String ERROR_REASON = "reason";
+
+	private static Logger logger = Logger.getLogger(ServiceUtils.class.getName());
 
 	public static final String REPOSVC_PATH_DATASET = "dataset";
 	public static final String REPOSVC_PATH_LAYER = "layer";
@@ -77,12 +83,26 @@ public class ServiceUtils {
 		JSONObject obj = new JSONObject();
 		JSONObject errorObj = new JSONObject();
 		try {
-			Integer code = ex.getStatusCode().value();
+			Integer code = ex.getStatusCode().value(); 
 			if(code != null) errorObj.put("statusCode", code);
 			obj.put("error", errorObj);
-			return obj.toString();
+			
 		} catch (JSONException e) {
 			throw new UnknownError();
 		}
+		
+		String body = ex.getResponseBodyAsString();
+		JSONObject reasonObj;
+		try {
+			reasonObj = new JSONObject(body);
+			if(reasonObj.has(ERROR_REASON)) {
+				String message = reasonObj.getString(ERROR_REASON);
+				logger.info("Error Reason: " + message);
+				obj.put(ERROR_REASON, message);
+			}
+		} catch (JSONException e) {
+			logger.info(e.getMessage());			
+		}
+		return obj.toString();
 	}
 }

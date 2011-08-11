@@ -33,7 +33,7 @@ import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
 public class NodeEditor implements NodeEditorView.Presenter {
-
+	
 	private static final String PROPERTY_TYPE_KEY = "type";
 	private static final String SCHEMA_PROPERTIES_KEY = "properties";
 	private static final String FIELD_TYPE_STRING = "string";
@@ -246,8 +246,13 @@ public class NodeEditor implements NodeEditorView.Presenter {
 					try {
 						nodeModelCreator.validate(result);
 					} catch (RestServiceException ex) {
-						DisplayUtils.handleServiceException(ex, placeChanger);
-						onFailure(null);
+						if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+							// user not alerted
+							onFailure(null);
+						} else {
+							// user already alerted
+							view.showPersistFail(null);
+						}
 						return;
 					}					
 					view.showPersistSuccess();
@@ -256,7 +261,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 				
 				@Override
 				public void onFailure(Throwable caught) {
-					view.showPersistFail();
+					view.showPersistFail(DisplayConstants.ERROR_SAVE_MESSAGE);
 				}
 			});
 		} else {
@@ -268,8 +273,13 @@ public class NodeEditor implements NodeEditorView.Presenter {
 					try {
 						nodeModelCreator.validate(result);
 					} catch (RestServiceException ex) {
-						DisplayUtils.handleServiceException(ex, placeChanger);
-						onFailure(null);						
+						if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+							// user not alerted
+							onFailure(null);
+						} else {
+							// user already alerted
+							view.showPersistFail(null);
+						}
 						return;
 					}					
 					view.showPersistSuccess();
@@ -278,7 +288,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 				
 				@Override
 				public void onFailure(Throwable caught) {
-					view.showPersistFail();
+					view.showPersistFail(DisplayConstants.ERROR_SAVE_MESSAGE);
 				}
 			});
 		}	

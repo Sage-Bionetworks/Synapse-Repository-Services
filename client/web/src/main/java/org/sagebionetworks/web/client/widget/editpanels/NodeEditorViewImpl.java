@@ -285,7 +285,7 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 	}
 
 	@Override
-	public void showPersistFail() {
+	public void showPersistFail(String message) {
 		if(formButton != null) {
 			formButton.enable();
 			formButton.setIcon(null);
@@ -294,7 +294,9 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 			}
 			formButton.setText(formButtonOriginalString);				
 		}		
-		MessageBox.info("Message", "An error occuring attempting to save. Please try again.", null);
+		if(message != null) {
+			MessageBox.info("Message", message, null);
+		}
 	}
 
 }

@@ -3,6 +3,7 @@ package org.sagebionetworks.web.client;
 
 import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.place.LoginPlace;
+import org.sagebionetworks.web.shared.exceptions.BadRequestException;
 import org.sagebionetworks.web.shared.exceptions.ForbiddenException;
 import org.sagebionetworks.web.shared.exceptions.NotFoundException;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
@@ -21,6 +22,7 @@ import com.google.gwt.user.client.ui.FlexTable;
 
 public class DisplayUtils {
 
+private static final String ERROR_OBJ_REASON_KEY = "reason";
 //	public static final Logger logger = Logger.getLogger("SynapseLogger");
 	public static final String DEFAULT_PLACE_TOKEN = "0";
 	public static PlaceController placeController;	
@@ -86,6 +88,12 @@ public class DisplayUtils {
 						throw new ForbiddenException();
 					} else if (code == 404) { // NOT FOUND
 						throw new NotFoundException();
+					} else if (code == 400) { // Bad Request
+						String message = "";
+						if(obj.containsKey(ERROR_OBJ_REASON_KEY)) {
+							message = obj.get(ERROR_OBJ_REASON_KEY).isString().stringValue();							
+						}
+						throw new BadRequestException(message);
 					} else {
 						throw new UnknownErrorException("Unknown Service error. code: " + code);
 					}
@@ -109,6 +117,14 @@ public class DisplayUtils {
 		} else if(ex instanceof ForbiddenException) {
 			// alerting here this seems kinda lame, but keeps the code out of the client
 			MessageBox.info("Unauthorized", "Sorry, there was a failure due to insufficient privileges.", null);
+			return true;
+		} else if(ex instanceof BadRequestException) {
+			String reason = ex.getMessage();			
+			String message = DisplayConstants.ERROR_BAD_REQUEST_MESSAGE;
+			if(reason.matches(".*entity with the name: .+ already exites.*")) {
+				message = DisplayConstants.ERROR_DUPLICATE_ENTITY_MESSAGE;
+			}			
+			MessageBox.info("Error", message, null);
 			return true;
 		} else if(ex instanceof NotFoundException) {
 			MessageBox.info("Not Found", "Sorry, the requested object was not found.", null);

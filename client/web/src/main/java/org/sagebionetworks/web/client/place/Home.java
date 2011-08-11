@@ -5,12 +5,14 @@ import com.google.gwt.place.shared.PlaceTokenizer;
 
 public class Home extends Place{
 	
+	private String token;	
+
 	public Home(String token) {
+		this.token = token;
 	}
 
 	public String toToken() {
-		// no tokens needed for home page (yet)
-		return "";
+		return token;
 	}
 	
 	public static class Tokenizer implements PlaceTokenizer<Home> {

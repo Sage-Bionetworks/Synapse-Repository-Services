@@ -1,5 +1,6 @@
 package org.sagebionetworks.web.client.presenter;
 
+import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.view.HomeView;
@@ -33,6 +34,9 @@ public class HomePresenter extends AbstractActivity implements HomeView.Presente
 
 	public void setPlace(Home place) {
 		this.place = place;
+		if(place.toToken().equals(DisplayConstants.DEMO_TOKEN)) {
+			DisplayConstants.showDemoHtml = true;
+		}
 		view.refresh();
 	}
 
