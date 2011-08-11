@@ -54,7 +54,9 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	private LicenceServiceAsync licenseService;
 	private LicenseAgreement licenseAgreement;
 	private NodeModelCreator nodeModelCreator;
-	private AuthenticationController authenticationController;	
+	private AuthenticationController authenticationController;
+	private boolean iisAdministrator;
+	private boolean ccanEdit;
 	
 	/**
 	 * Everything is injected via Guice.
@@ -94,6 +96,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		this.place = place;
 		this.layerId = place.getLayerId();		
 		this.showDownload = place.getDownload();
+		view.setPresenter(this);
 		refresh();
 	}
 	
@@ -111,7 +114,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 				@Override
 				public void onSuccess(String result) {
 					// agreement saved, load download locations
-					loadDownloadLocations();												
+					step5LoadDownloadLocations();												
 				}
 	
 				@Override
@@ -124,7 +127,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 
 	@Override
 	public void refresh() {
-		refreshFromServer();
+		step1RefreshFromServer();
 	}
 
 	@Override
@@ -164,7 +167,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	 * Protected Methods
 	 */
 	
-	private void refreshFromServer() {
+	private void step1RefreshFromServer() {
 		view.clear();
 		// Fetch the data about this dataset from the server
 		nodeService.getNodeJSON(NodeType.LAYER, this.layerId, new AsyncCallback<String>() {
@@ -180,7 +183,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 					return;
 				}
 				
-				setLayer(layer);
+				step2SetLayer(layer);
 			}
 			
 			@Override
@@ -190,7 +193,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		});		
 	}
 
-	protected void setLayer(final Layer layer) {
+	protected void step2SetLayer(final Layer layer) {
 		this.model = layer;
 		if(layer != null) {			
 			UserData currentUser = authenticationController.getLoggedInUser();
@@ -198,26 +201,30 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 				AclUtils.getHighestPermissionLevel(NodeType.PROJECT, layer.getId(), nodeService, new AsyncCallback<PermissionLevel>() {
 					@Override
 					public void onSuccess(PermissionLevel result) {
-						boolean isAdministrator = false;
-						boolean canEdit = false;
+						iisAdministrator = false;
+						ccanEdit = false;
 						if(result == PermissionLevel.CAN_EDIT) {
-							canEdit = true;
+							ccanEdit = true;
 						} else if(result == PermissionLevel.CAN_ADMINISTER) {
-							canEdit = true;
-							isAdministrator = true;
+							ccanEdit = true;
+							iisAdministrator = true;
 						}
-						setLayerDetails(isAdministrator, canEdit);
+						step3GetLayerPreview();
 					}
 					
 					@Override
 					public void onFailure(Throwable caught) {				
 						view.showErrorMessage(DisplayConstants.ERROR_GETTING_PERMISSIONS_TEXT);
-						setLayerDetails(false, false);
+						iisAdministrator = false;
+						ccanEdit = false;
+						step3GetLayerPreview();
 					}			
 				});
 			} else {
 				// because this is a public page, they can view
-				setLayerDetails(false, false);
+				iisAdministrator = false;
+				ccanEdit = false;
+				step3GetLayerPreview();
 			}
 		}
 		
@@ -225,8 +232,45 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	
 	
 
-	private void setLayerDetails(boolean isAdministrator, boolean canEdit) {
-		
+	private void step3GetLayerPreview() {
+				
+		// get the preview string to get file header order, then get the previewAsData
+		nodeService.getNodePreview(NodeType.LAYER, layerId, new AsyncCallback<String>() {
+			@Override
+			public void onSuccess(String pagedResultString) {
+				LayerPreview layerPreview = null;				
+				try {
+					PagedResults  pagedResult = nodeModelCreator.createPagedResults(pagedResultString);
+					List<String> results = pagedResult.getResults();
+					if(results.size() > 0) {
+						layerPreview = nodeModelCreator.createLayerPreview(results.get(0));
+					} else {
+						view.showLayerPreviewUnavailable();
+						onFailure(null);
+						return;
+					}					
+				} catch (RestServiceException ex) {
+					DisplayUtils.handleServiceException(ex, placeChanger);
+					onFailure(null);					
+					return;
+				}				
+
+				setLayerPreview(layerPreview);
+				// continue
+				step4SetLicenseAgreement();
+			}
+
+			@Override
+			public void onFailure(Throwable caught) {
+				// continue
+				step4SetLicenseAgreement();
+				view.showLayerPreviewUnavailable();
+			}
+		});		
+
+	}
+
+	private void step6SetLayerDetails() {
 		// process the layer and send values to view
 		view.setLayerDetails(model.getId(), 
 							 model.getName(), 
@@ -240,46 +284,11 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 							 "Public", // TODO : replace with security object
 							 "<a href=\"#Dataset:"+ model.getParentId() +"\">Dataset</a>", // TODO : have dataset name included in layer metadata
 							 model.getPlatform(), 
-							 isAdministrator, 
-							 canEdit);
-		
-		// get the preview string to get file header order, then get the previewAsData
-		nodeService.getNodePreview(NodeType.LAYER, layerId, new AsyncCallback<String>() {
-			@Override
-			public void onSuccess(String pagedResultString) {
-				LayerPreview layerPreview = null;				
-				try {
-					PagedResults  pagedResult = nodeModelCreator.createPagedResults(pagedResultString);
-					List<String> results = pagedResult.getResults();
-					if(results.size() > 0) {
-						layerPreview = nodeModelCreator.createLayerPreview(results.get(0));
-					} else {
-						view.showLayerPreviewUnavailable();
-						return;
-					}					
-				} catch (RestServiceException ex) {
-					DisplayUtils.handleServiceException(ex, placeChanger);
-					onFailure(null);					
-					return;
-				}				
-
-				setLayerPreview(layerPreview);
-				// continue
-				setLicenseAgreement();
-			}
-
-			@Override
-			public void onFailure(Throwable caught) {
-				view.showLayerPreviewUnavailable();
-
-				// continue
-				setLicenseAgreement();
-			}
-		});		
-
+							 iisAdministrator, 
+							 ccanEdit);
 	}
 
-	private void setLicenseAgreement() {
+	private void step4SetLicenseAgreement() {
 		// get Dataset to get its EULA id
 		nodeService.getNodeJSON(NodeType.DATASET, model.getParentId(), new AsyncCallback<String>() {
 			@Override
@@ -293,13 +302,14 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 					return;
 				}
 				if(dataset != null) {
+					// Dataset found, get EULA id if exists
 					final String eulaId = dataset.getEulaId();
 					if(eulaId == null) {
 						// No EULA id means that this has open downloads
 						view.requireLicenseAcceptance(false);
 						licenseAgreement = null;
-						view.setLicenseAgreement(licenseAgreement);		
-						loadDownloadLocations();												
+						view.setLicenseAgreement(licenseAgreement);						
+						step5LoadDownloadLocations();												
 					} else {
 						// EULA required
 						// now query to see if user has accepted the agreement
@@ -331,42 +341,43 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 											
 											if(hasAcceptedLicenseAgreement) {
 												// will throw security exception if user has not accepted this yet
-												loadDownloadLocations(); 
+												step5LoadDownloadLocations(); 
 											}											
 										} else {
-											setDownloadFailure();
+											step5ErrorSetDownloadFailure();
 										}
 									}
 									
 									@Override
 									public void onFailure(Throwable caught) {
-										setDownloadFailure();
+										step5ErrorSetDownloadFailure();
 									}									
 								});
 							}
 							
 							@Override
 							public void onFailure(Throwable caught) {
-								setDownloadFailure();
+								step5ErrorSetDownloadFailure();								
 							}
 						});									
 					}
 				} else {
-					setDownloadFailure();
+					step5ErrorSetDownloadFailure();
 				}
 			} 
 
 			@Override
 			public void onFailure(Throwable caught) {
-				setDownloadFailure();
+				step5ErrorSetDownloadFailure();
 			}
 		});
 	}
 
-	private void setDownloadFailure() {
+	private void step5ErrorSetDownloadFailure() {
 		view.showErrorMessage("Dataset downloading unavailable. Please try reloading the page.");
 		view.setDownloadUnavailable();
 		view.disableLicensedDownloads(true);
+		step6SetLayerDetails();
 	}
 	
 	protected void setLayerPreview(LayerPreview preview) {
@@ -387,10 +398,9 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		}		
 		
 		view.setLayerPreviewTable(preview.getRows(), columnDisplayOrder, columnDescriptions, columnUnits);
-
 	}
 
-	private void loadDownloadLocations() {
+	private void step5LoadDownloadLocations() {
 		view.showDownloadsLoading();
 		nodeService.getNodeLocations(NodeType.LAYER, layerId, new AsyncCallback<String>() {
 			@Override
@@ -419,10 +429,12 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 						view.showDownload();
 					}
 				}
+				step6SetLayerDetails();
 			}
 			@Override
-			public void onFailure(Throwable caught) {
-				view.setDownloadUnavailable();						
+			public void onFailure(Throwable caught) {				
+				view.setDownloadUnavailable();
+				step6SetLayerDetails();
 			}
 		});
 	}

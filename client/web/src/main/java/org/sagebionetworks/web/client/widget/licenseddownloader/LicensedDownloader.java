@@ -38,10 +38,14 @@ public class LicensedDownloader implements LicensedDownloaderView.Presenter {
 	}
 	
 	public void setLicenseAgreement(LicenseAgreement agreement) {
-		if(agreement.getCitationHtml() != null) { 
-			view.setCitationHtml(agreement.getCitationHtml());
+		if (agreement != null) {
+			if (agreement.getCitationHtml() != null) {
+				view.setCitationHtml(agreement.getCitationHtml());
+			}
+			view.setLicenseHtml(agreement.getLicenseHtml());
+		} else {
+			this.setRequireLicenseAcceptance(false);
 		}
-		view.setLicenseHtml(agreement.getLicenseHtml());
 	}
 	
 	public void setDownloadUrls(List<FileDownload> downloads) {		

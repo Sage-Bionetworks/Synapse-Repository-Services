@@ -63,11 +63,15 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 	public void setResource(final NodeType type, final String id) {						
 		this.nodeType = type;
 		this.nodeId = id;
+	}
+	
+	public Widget asWidget() {
+		view.setPresenter(this);
 		userAccountService.getAllUsersAndGroups(new AsyncCallback<List<AclPrincipal>>() {
 			@Override
 			public void onSuccess(final List<AclPrincipal> usersAndGroupsList) {
 				principals = usersAndGroupsList;
-				nodeService.getNodeAclJSON(type, id, new AsyncCallback<String>() {		
+				nodeService.getNodeAclJSON(nodeType, nodeId, new AsyncCallback<String>() {		
 					@Override
 					public void onSuccess(String result) {
 						try {
@@ -82,7 +86,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 						final List<AclEntry> entries = createAclEntries(originalAcl);
 						boolean isInherited = false;
 						
-						if(originalAcl.containsKey(ACL_ENTRY_RESOURCE_ID) && !id.equals(originalAcl.get(ACL_ENTRY_RESOURCE_ID).isString().stringValue())) {
+						if(originalAcl.containsKey(ACL_ENTRY_RESOURCE_ID) && !nodeId.equals(originalAcl.get(ACL_ENTRY_RESOURCE_ID).isString().stringValue())) {
 							isInherited = true;
 						}
 						view.setAclDetails(entries, principals, isInherited);
@@ -100,11 +104,6 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 				view.showErrorMessage("Unable to retrieve Users and Groups. Please try reloading the page.");
 			}					
 		});
-
-	}
-	
-	public Widget asWidget() {
-		view.setPresenter(this);
 		return view.asWidget();
 	}	
 	

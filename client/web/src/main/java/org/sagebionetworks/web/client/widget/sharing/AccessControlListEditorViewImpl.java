@@ -215,7 +215,7 @@ public class AccessControlListEditorViewImpl extends LayoutContainer implements 
 			
 			add(form2);
 		}
-		
+		this.layout(true);		
 	}
 	
 	private void showAddMessage(String message) {

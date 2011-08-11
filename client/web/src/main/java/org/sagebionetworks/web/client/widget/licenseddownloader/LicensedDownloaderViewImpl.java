@@ -121,8 +121,8 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 		licenseTextHtml = licenseHtml;
 		
 		// replace the view content if this is after initialization
-		if(licenseTextContainer != null) {			
-			licenseTextContainer.add(new Html(licenseTextHtml));
+		if(licenseTextContainer != null) {
+			refillLicenseTextContainer();
 		}
 	}
 	
@@ -150,9 +150,8 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 
 			// replace the view content if this is after initialization
 			if(downloadContentContainer != null) {
-				downloadContentContainer.removeAll();				
-				downloadContentContainer.add(new Html(sb.toString()));
-				downloadContentContainer.layout(true);
+				downloadHtml = sb.toString();
+				fillDownloadContentContainer();
 			}			
 		} else {
 			setDownloadToEmpty();
@@ -162,8 +161,6 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 	@Override
 	public void clear() {
 		// defaults
-		licenseAcceptanceRequired = true;
-		showCitation = false;		
 		citationText = "";
 		licenseTextHtml = "";
 		downloadHtml = "";		
@@ -173,10 +170,7 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 	@Override
 	public void showLoading() {
 		downloadHtml = DisplayUtils.getIconHtml(sageImageBundle.loading16()) + " Loading...";
-		if(downloadContentContainer != null) {
-			downloadContentContainer.removeAll();
-			downloadContentContainer.add(new Html(downloadHtml));
-		}
+		fillDownloadContentContainer();
 	}
 	
 	
@@ -221,8 +215,7 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 		licenseTextContainer.setStyleAttribute("backgroundColor", "white");
 		licenseTextContainer.setBorders(true);
 		licenseTextContainer.setScrollMode(Style.Scroll.AUTOY);
-		licenseTextContainer.removeAll();
-		licenseTextContainer.add(new Html(licenseTextHtml));				
+		refillLicenseTextContainer();
 		panel.add(licenseTextContainer, standardPadding);
 
 
@@ -262,11 +255,12 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 					}
 				});
 
+		panel.layout(true);
 		eulaWindow.addButton(acceptLicenseButton);
 		eulaWindow.addButton(cancelLicenseButton);
 		eulaWindow.add(panel);
+		eulaWindow.layout(true);
 	}
-
 
 	protected void createDownloadWindow() {
 		downloadWindow = new Window();
@@ -296,8 +290,7 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 		if(downloadHtml == null || downloadHtml.equals("")) {
 			setDownloadToEmpty();
 		} else {
-			downloadContentContainer.removeAll();
-			downloadContentContainer.add(new Html(downloadHtml));
+			fillDownloadContentContainer();
 		}
 		panel.add(downloadContentContainer, standardPadding);
 		
@@ -310,15 +303,27 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 
 		downloadWindow.addButton(cancelLicenseButton);
 		downloadWindow.add(panel);		
+		downloadWindow.layout(true);
 	}
 
 	
 	private void setDownloadToEmpty() {
+		downloadHtml = DisplayConstants.TEXT_NO_DOWNLOADS;
+		fillDownloadContentContainer();		
+	}
+	
+	private void fillDownloadContentContainer() {
 		if(downloadContentContainer != null) {
-			downloadHtml = DisplayConstants.TEXT_NO_DOWNLOADS;
-			downloadContentContainer.removeAll();
+			downloadContentContainer.removeAll();				
 			downloadContentContainer.add(new Html(downloadHtml));
 			downloadContentContainer.layout(true);
 		}
 	}
+
+	private void refillLicenseTextContainer() {
+		licenseTextContainer.removeAll();
+		licenseTextContainer.add(new Html(licenseTextHtml));
+		licenseTextContainer.layout(true);
+	}
+
 }

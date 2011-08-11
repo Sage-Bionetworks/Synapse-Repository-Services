@@ -55,10 +55,7 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 			public void goTo(Place place) {
 				placeController.goTo(place);
 			}
-		};
-		// load the project given in the Project Place		
-		loadFromServer();
-		
+		};		
 		// Install the view
 		panel.setWidget(view);
 	}
@@ -66,6 +63,36 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 	public void setPlace(org.sagebionetworks.web.client.place.Project place) {
 		this.place = place;
 		this.projectId = place.toToken();
+		
+		// load the project given in the Project Place		
+		loadFromServer();
+	}
+	
+
+	@Override
+	public void refresh() {
+		loadFromServer();
+	}
+
+	@Override
+	public PlaceChanger getPlaceChanger() {
+		return placeChanger;
+	}
+
+	@Override
+	public void delete() {
+		nodeService.deleteNode(NodeType.PROJECT, projectId, new AsyncCallback<Void>() {
+			@Override
+			public void onSuccess(Void result) {
+				view.showInfo("Project Deleted", "The project was successfully deleted.");
+				placeChanger.goTo(new ProjectsHome(DisplayUtils.DEFAULT_PLACE_TOKEN));
+			}
+			
+			@Override
+			public void onFailure(Throwable caught) {
+				view.showErrorMessage("Project delete failed.");
+			}
+		});
 	}
 	
 	
@@ -139,37 +166,6 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 		view.setProjectDetails(project.getId(), project.getName(),
 				project.getDescription(), project.getCreator(),
 				project.getCreationDate(), project.getStatus(), isAdministrator, canEdit);
-	}
-
-	@Override
-	public void refresh() {
-		loadFromServer();
-	}
-
-	@Override
-	public PlaceChanger getPlaceChanger() {
-		return placeChanger;
-	}
-
-	@Override
-	public void delete() {
-		nodeService.deleteNode(NodeType.PROJECT, projectId, new AsyncCallback<Void>() {
-			@Override
-			public void onSuccess(Void result) {
-				view.showInfo("Project Deleted", "The project was successfully deleted.");
-				placeChanger.goTo(new ProjectsHome(DisplayUtils.DEFAULT_PLACE_TOKEN));
-			}
-			
-			@Override
-			public void onFailure(Throwable caught) {
-				view.showErrorMessage("Project delete failed.");
-			}
-		});
-	}
-	
-	/*
-	 * Private Methods
-	 */
-	
+	}	
 	
 }

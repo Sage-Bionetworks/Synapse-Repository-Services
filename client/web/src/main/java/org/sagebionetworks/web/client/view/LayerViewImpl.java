@@ -27,7 +27,6 @@ import org.sagebionetworks.web.client.widget.statictable.StaticTableColumn;
 import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.NodeType;
-import org.sagebionetworks.web.shared.TableResults;
 
 import com.extjs.gxt.ui.client.event.Listener;
 import com.extjs.gxt.ui.client.event.MenuEvent;
@@ -54,7 +53,6 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
@@ -207,7 +205,6 @@ public class LayerViewImpl extends Composite implements LayerView {
 		createAccessPanel(id);
 		createAdminPanel(id);
 		
-		licensedDownloader.clear();
 		setupLicensedDownloaderCallbacks();
 						
 		Anchor downloadLink = setupDownloadLink();
@@ -255,7 +252,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 	}
 
 	@Override
-	public void setLicenseAgreement(LicenseAgreement agreement) {		
+	public void setLicenseAgreement(LicenseAgreement agreement) {
 		licensedDownloader.setLicenseAgreement(agreement);		
 		Anchor seeTermsAnchor = setupTermsModal(agreement);
 		seeTermsPanel.clear();		
@@ -313,6 +310,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 
 	@Override
 	public void setDownloadUnavailable() {
+		licensedDownloader.setDownloadUrls(null);
 		downloadPanel.clear();
 		downloadPanel.add(new Html(DisplayUtils.getIconHtml(iconsImageBundle.download16()) + " Download Unavailable"));		
 	}
@@ -350,11 +348,13 @@ public class LayerViewImpl extends Composite implements LayerView {
 		return downloadLink;
 	}
 
-	private Anchor setupTermsModal(LicenseAgreement licenseAgreement) {
+	private Anchor setupTermsModal(LicenseAgreement licenseAgreement) {		
 		// Button: See terms of use		
 		seeTermsModal.setHeading("Terms of Use");
 		seeTermsModal.setDimensions(400, 500);
-		seeTermsModal.setHtml(licenseAgreement.getLicenseHtml());
+		if(licenseAgreement != null) {
+			seeTermsModal.setHtml(licenseAgreement.getLicenseHtml());
+		}
 		// download link		
 		Anchor seeTermsAnchor = new Anchor();
 		seeTermsAnchor.setHTML(AbstractImagePrototype.create(iconsImageBundle.documentText16()).getHTML() + " See Terms of Use");

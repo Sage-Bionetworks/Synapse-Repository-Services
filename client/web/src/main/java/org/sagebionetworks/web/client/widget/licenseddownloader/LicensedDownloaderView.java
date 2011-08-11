@@ -31,7 +31,7 @@ public interface LicensedDownloaderView extends IsWidget {
 	 * @param citationHtml
 	 */
 	public void setCitationHtml(String citationHtml);
-	
+		
 	/**
 	 * Show the License Box window
 	 */
