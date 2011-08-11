@@ -23,4 +23,9 @@ public class CookieKeys {
 	 */
 	public static String USER_LOGIN_TOKEN = "org.sagbionetworks.security.user.login.token";
 
+	/**
+	 * Login token
+	 */
+	public static String SHOW_DEMO = "org.sagbionetworks.synapse.show.demo";
+
 }

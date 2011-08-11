@@ -72,11 +72,11 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 	@UiField
 	SpanElement titleSpan;
 	@UiField 
+	SpanElement synapseIdSpan;
+	@UiField 
 	SpanElement breadcrumbTitleSpan;
 	@UiField
 	SimplePanel annotationsPanel;
-//	@UiField
-//	FlexTable rightFlexTable;
 	@UiField
 	SimplePanel followProjectButtonPanel;
 	@UiField
@@ -182,6 +182,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		
 		// fill in fields
 		titleSpan.setInnerText(name);
+		synapseIdSpan.setInnerText(DisplayConstants.SYNAPSE_ID_PREFIX + id);
 		breadcrumbTitleSpan.setInnerText(name);
 		
 		// project overview

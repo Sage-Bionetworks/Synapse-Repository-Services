@@ -44,9 +44,6 @@
 				<ul class="breadcrumbs">
 					<li class="breadcrumb"><a href="#">Home</a> > <a href="#DatasetsHome:0">All Datasets</a> > <span ui:field="breadcrumbDatasetSpan" /> > <span ui:field="breadcrumbTitleSpan" /></li>
 				</ul>
-				<h2><span ui:field="titleSpan" /></h2>
-				
-				
 				<div id="privacy_setting" class="right">
 					<table>
 						<tr valign="bottom">
@@ -62,7 +59,10 @@
 				</div>
 				<div class="data_info">
 					<span class="info_head">
-						<h2>Overview</h2>
+						<h2>
+							<span ui:field="titleSpan" /><br/>
+							<span ui:field="synapseIdSpan" style="font-size: 60%"/>
+						</h2>
 
 						<span class="data_options">
 							<g:SimplePanel ui:field="downloadPanel" />

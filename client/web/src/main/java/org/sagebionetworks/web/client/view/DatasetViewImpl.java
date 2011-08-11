@@ -77,13 +77,11 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	@UiField
 	SpanElement titleSpan;
 	@UiField 
+	SpanElement synapseIdSpan;
+	@UiField 
 	SpanElement breadcrumbTitleSpan;
 	@UiField
 	SimplePanel annotationsPanel;
-//	@UiField
-//	FlexTable middleFlexTable;
-//	@UiField
-//	FlexTable rightFlexTable;
 	@UiField
 	SimplePanel tablePanel;
 	@UiField
@@ -254,6 +252,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 								
 		// fill in fields
 		titleSpan.setInnerText(name);
+		synapseIdSpan.setInnerText(DisplayConstants.SYNAPSE_ID_PREFIX + id);
 		breadcrumbTitleSpan.setInnerText(name);
 		
 		int summaryLength = overviewText.length() >= DisplayConstants.DESCRIPTION_SUMMARY_LENGTH ? DisplayConstants.DESCRIPTION_SUMMARY_LENGTH : overviewText.length();

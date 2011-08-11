@@ -71,8 +71,8 @@ public class LayerViewImpl extends Composite implements LayerView {
 	FlowPanel overviewPanel;
 	@UiField
 	SpanElement titleSpan;
-//	@UiField
-//	FlexTable rightFlexTable;
+	@UiField 
+	SpanElement synapseIdSpan;
 	@UiField 
 	SimplePanel previewTablePanel;	
 	@UiField
@@ -210,6 +210,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 
 		// fill in fields
 		titleSpan.setInnerText(layerName);
+		synapseIdSpan.setInnerText(DisplayConstants.SYNAPSE_ID_PREFIX + id);
 			
 		// set description
 		if(overviewText == null) overviewText = ""; 

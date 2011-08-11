@@ -24,5 +24,5 @@ public interface CookieProvider {
 
 	public void setCookie(String name, String value, Date expires,
 			String domain, String path, boolean secure);
-
+	
 }

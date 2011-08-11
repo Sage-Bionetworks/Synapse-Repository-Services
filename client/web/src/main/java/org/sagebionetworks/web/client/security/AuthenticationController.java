@@ -44,4 +44,11 @@ public interface AuthenticationController {
 	 */
 	public UserData getLoggedInUser();
 
+
+	/**
+	 * Saves the show demo flag into a cookie
+	 */
+	public void saveShowDemo();
+	
+	public void loadShowDemo();
 }

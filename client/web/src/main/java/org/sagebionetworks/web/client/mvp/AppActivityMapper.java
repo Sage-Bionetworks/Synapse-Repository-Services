@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.PortalGinInjector;
 import org.sagebionetworks.web.client.place.ComingSoon;
 import org.sagebionetworks.web.client.place.Dataset;
@@ -29,6 +30,7 @@ import org.sagebionetworks.web.client.presenter.ProjectPresenter;
 import org.sagebionetworks.web.client.presenter.ProjectsHomePresenter;
 import org.sagebionetworks.web.client.presenter.users.PasswordResetPresenter;
 import org.sagebionetworks.web.client.presenter.users.RegisterAccountPresenter;
+import org.sagebionetworks.web.client.security.AuthenticationController;
 
 import com.google.gwt.activity.shared.Activity;
 import com.google.gwt.activity.shared.ActivityMapper;
@@ -67,11 +69,15 @@ public class AppActivityMapper implements ActivityMapper {
 
 	@Override
 	public Activity getActivity(Place place) {
+		AuthenticationController authenticationController = this.ginjector.getAuthenticationController();
+		
+		// check for demo
+		authenticationController.loadShowDemo();
 		
 		// If the user is not logged in then we redirect them to the login screen
 		// except for the fully public places
 		if(!openAccessPlaces.contains(place.getClass())) {
-			if(!this.ginjector.getAuthenticationController().isLoggedIn()){
+			if(!authenticationController.isLoggedIn()){
 				// Redirect them to the login screen
 				LoginPlace loginPlace = new LoginPlace(place);
 				return getActivity(loginPlace);
