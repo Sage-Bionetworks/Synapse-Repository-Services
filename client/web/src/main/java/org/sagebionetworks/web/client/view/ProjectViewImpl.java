@@ -218,6 +218,11 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 
 	private void setupDatasetTable(String id) {
 		datasetsListQueryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, 320, 237, presenter.getPlaceChanger());
+		List<String> visibileColumns = new ArrayList<String>();
+		visibileColumns.add("dataset.NameLink");
+		visibileColumns.add("dataset.creator");
+		visibileColumns.add("dataset.createdOnDate");
+		datasetsListQueryServiceTable.setDispalyColumns(visibileColumns, false);
 		// load the datasets for this project
 		List<WhereCondition> whereList = new ArrayList<WhereCondition>();
 		whereList.add(new WhereCondition("dataset.parentId", WhereOperator.EQUALS, id));

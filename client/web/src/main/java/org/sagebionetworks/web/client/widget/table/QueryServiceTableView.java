@@ -110,7 +110,6 @@ public interface QueryServiceTableView extends IsWidget {
 		 */
 		public void setDispalyColumns(List<String> visibileColumns);
 		
-		
 	}
 
 }

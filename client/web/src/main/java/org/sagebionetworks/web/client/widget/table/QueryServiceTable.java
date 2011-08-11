@@ -305,8 +305,13 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 
 	@Override
 	public void setDispalyColumns(List<String> visibileColumns) {
+		setDispalyColumns(visibileColumns, true);
+	}		
+
+	public void setDispalyColumns(List<String> visibileColumns, boolean refreshData) {
 		this.visibleColumnIds = visibileColumns;
-		this.refreshFromServer();
+		if(refreshData)
+			this.refreshFromServer();
 	}
 		
 	public Widget asWidget() {
