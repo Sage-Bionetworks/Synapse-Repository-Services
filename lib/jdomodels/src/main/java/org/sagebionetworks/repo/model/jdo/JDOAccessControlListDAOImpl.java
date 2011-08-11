@@ -56,12 +56,12 @@ public class JDOAccessControlListDAOImpl implements AccessControlListDAO {
 	}
 
 	void copyToDto(JDOAccessControlList jdo, String eTag, AccessControlList dto)
-			throws DatastoreException {
+			throws DatastoreException, NotFoundException {
 		AccessControlListUtil.updateDtoFromJdo(jdo, dto, eTag, userGroupCache);
 	}
 
 	void copyFromDto(AccessControlList dto, JDOAccessControlList jdo)
-			throws InvalidModelException, DatastoreException {
+			throws InvalidModelException, DatastoreException, NotFoundException {
 		if(dto.getId() == null) throw new InvalidModelException("Cannot set a ResourceAccess owner to null");
 		JDONode owner = jdoTemplate.getObjectById(JDONode.class, KeyFactory.stringToKey(dto.getId()));
 		AccessControlListUtil.updateJdoFromDto(jdo, dto, owner, userGroupCache);
@@ -137,7 +137,7 @@ public class JDOAccessControlListDAOImpl implements AccessControlListDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String create(AccessControlList dto) throws DatastoreException,
-			InvalidModelException {
+			InvalidModelException, NotFoundException {
 		// Create a jdo
 		JDOAccessControlList jdo = newJDO();
 		copyFromDto(dto, jdo);

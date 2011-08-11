@@ -28,4 +28,18 @@ public interface UserGroupDAO extends BaseDAO<UserGroup> {
 	 */
 
 	public List<UserGroup> getInRange(long fromIncl, long toExcl, boolean isIndividual) throws DatastoreException;
+
+	/**
+	 * Does a principal exist with this name?
+	 * @param name
+	 * @return
+	 */
+	public boolean doesPrincipalExist(String name);
+
+	/**
+	 * 
+	 * @param name
+	 * @return
+	 */
+	public boolean deletePrincipal(String name);
 }

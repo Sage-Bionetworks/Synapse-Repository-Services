@@ -137,7 +137,7 @@ public class EulaControllerTest {
 				+ dataset.getString("id")
 				+ "\" and agreement.eulaId == \""
 				+ eula.getString("id")
-				+ "\" and agreement.createdBy == \"admin\"";
+				+ "\" and agreement.createdBy == \"admin@sagebase.org\"";
 		JSONObject queryResult = helper.testQuery(query);
 		assertEquals(1, queryResult.getInt("totalNumberOfResults"));
 		JSONArray results = queryResult.getJSONArray("results");

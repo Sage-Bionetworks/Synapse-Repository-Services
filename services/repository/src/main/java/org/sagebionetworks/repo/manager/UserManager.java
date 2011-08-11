@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -45,6 +46,28 @@ public interface UserManager {
 	 * @throws DatastoreException 
 	 */
 	public UserGroup findGroup(String name, boolean b) throws DatastoreException;
+	
+	/**
+	 * Create a user
+	 * @param toCreate
+	 * @return
+	 * @throws DatastoreException 
+	 */
+	public String createPrincipal(String name, boolean isIndividual) throws DatastoreException;
+	
+	/**
+	 * Does a principal with this name exist?
+	 * @param name
+	 * @return
+	 */
+	public boolean doesPrincipalExist(String name);
+	
+	/**
+	 * Delete a principal by name
+	 * @param name
+	 * @return
+	 */
+	public boolean deletePrincipal(String name);
 
 	
 

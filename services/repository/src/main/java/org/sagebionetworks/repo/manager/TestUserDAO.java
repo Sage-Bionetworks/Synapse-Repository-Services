@@ -25,8 +25,8 @@ public class TestUserDAO implements UserDAO {
 	public static final String FAKE_SECRET_KEY = "thisIsAFakeAWSSecretKey";
 	
 	public static final String TEST_GROUP_NAME = "test-group";
-	public static final String TEST_USER_NAME = "test-user";
-	public static final String ADMIN_USER_NAME = "admin";
+	public static final String TEST_USER_NAME = "test-user@sagebase.org";
+	public static final String ADMIN_USER_NAME = "admin@sagebase.org";
 	
 	
 	private Map<String,User> map = new HashMap<String,User>(); // maps userId to User

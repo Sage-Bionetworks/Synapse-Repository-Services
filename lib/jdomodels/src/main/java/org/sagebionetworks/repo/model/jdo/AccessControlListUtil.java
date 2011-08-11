@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOAccessControlList;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * A utility for translating between the JDO and DTO.
@@ -29,8 +30,9 @@ public class AccessControlListUtil {
 	 * @return
 	 * @throws DatastoreException
 	 * @throws InvalidModelException 
+	 * @throws NotFoundException 
 	 */
-	public static JDOAccessControlList createJdoFromDto(AccessControlList dto,	JDONode owner, UserGroupCache cache) throws DatastoreException, InvalidModelException {
+	public static JDOAccessControlList createJdoFromDto(AccessControlList dto,	JDONode owner, UserGroupCache cache) throws DatastoreException, InvalidModelException, NotFoundException {
 		JDOAccessControlList jdo = new JDOAccessControlList();
 		updateJdoFromDto(jdo, dto, owner, cache);
 		return jdo;
@@ -43,8 +45,9 @@ public class AccessControlListUtil {
 	 * @param dto
 	 * @throws DatastoreException
 	 * @throws InvalidModelException 
+	 * @throws NotFoundException 
 	 */
-	public static void updateJdoFromDto(JDOAccessControlList jdo, AccessControlList dto, JDONode owner, UserGroupCache cache) throws DatastoreException, InvalidModelException {
+	public static void updateJdoFromDto(JDOAccessControlList jdo, AccessControlList dto, JDONode owner, UserGroupCache cache) throws DatastoreException, InvalidModelException, NotFoundException {
 		jdo.setId(owner.getId());
 		jdo.setResource(owner);
 		jdo.setCreatedBy(dto.getCreatedBy());
@@ -65,9 +68,10 @@ public class AccessControlListUtil {
 	 * @param jdo
 	 * @return
 	 * @throws DatastoreException
+	 * @throws NotFoundException 
 	 */
 	public static AccessControlList createDtoFromJdo(JDOAccessControlList jdo, String eTag, UserGroupCache cache)
-			throws DatastoreException {
+			throws DatastoreException, NotFoundException {
 		AccessControlList dto = new AccessControlList();
 		updateDtoFromJdo(jdo, dto, eTag, cache);
 		return dto;
@@ -79,9 +83,10 @@ public class AccessControlListUtil {
 	 * @param jdo
 	 * @param dto
 	 * @throws DatastoreException
+	 * @throws NotFoundException 
 	 */
 	public static void updateDtoFromJdo(JDOAccessControlList jdo,
-			AccessControlList dto, String eTag, UserGroupCache cache) throws DatastoreException {
+			AccessControlList dto, String eTag, UserGroupCache cache) throws DatastoreException, NotFoundException {
 		dto.setCreatedBy(jdo.getCreatedBy());
 		dto.setEtag(eTag);
 		dto.setCreationDate(jdo.getCreationDate());

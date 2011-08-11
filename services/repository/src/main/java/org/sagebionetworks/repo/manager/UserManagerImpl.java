@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -109,6 +111,8 @@ public class UserManagerImpl implements UserManager {
 				throw new NullPointerException("No user named " + userName
 						+ ". Users: " + userDAO.getAll());
 			Collection<String> groupNames = userDAO.getUserGroupNames(userName);
+			// Filter out bad group names
+			groupNames = filterInvalidGroupNames(groupNames);
 			// these groups omit the individual group
 			Map<String, UserGroup> existingGroups = userGroupDAO
 					.getGroupsByNames(groupNames);
@@ -164,6 +168,24 @@ public class UserManagerImpl implements UserManager {
 		}
 		return userInfo;
 	}
+	
+	/**
+	 * Filter out any group name that is invalid
+	 * @param groupNames
+	 * @return
+	 */
+	public static Collection<String> filterInvalidGroupNames(Collection<String> groupNames){
+		ArrayList<String> newList = new ArrayList<String>();
+		Iterator<String> it = groupNames.iterator();
+		while(it.hasNext()){
+			String name = it.next();
+			// Filter out any name that is an email address.
+			if(!UserGroup.isEmailAddress(name)){
+				newList.add(name);
+			}
+		}
+		return newList;
+	}
 
 	/**
 	 * Clear the user cache.
@@ -207,6 +229,33 @@ public class UserManagerImpl implements UserManager {
 	@Override
 	public UserGroup findGroup(String name, boolean b) throws DatastoreException {
 		return userGroupDAO.findGroup(name, b);
+	}
+
+	@Override
+	public String createPrincipal(String name, boolean isIndividual) throws DatastoreException {
+		UserGroup principal = new UserGroup();
+		principal.setName(name);
+		principal.setIndividual(isIndividual);
+		principal.setCreationDate(new Date());
+		try {
+			return userGroupDAO.create(principal);
+		} catch (InvalidModelException e) {
+			throw new DatastoreException(e);
+		}
+	}
+
+	/**
+	 * Does a principal exist with this name?
+	 */
+	@Override
+	public boolean doesPrincipalExist(String name) {
+		return userGroupDAO.doesPrincipalExist(name);
+	}
+
+	@Override
+	public boolean deletePrincipal(String name) {
+		clearCache();
+		return userGroupDAO.deletePrincipal(name);
 	}
 
 }

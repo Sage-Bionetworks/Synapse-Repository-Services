@@ -36,8 +36,9 @@ public interface AccessControlListDAO  {
 	 * @return
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
+	 * @throws NotFoundException 
 	 */
-	public String create(AccessControlList dto) throws DatastoreException,	InvalidModelException;
+	public String create(AccessControlList dto) throws DatastoreException,	InvalidModelException, NotFoundException;
 
 	/**
 	 * Get an ACL using the Node's ID

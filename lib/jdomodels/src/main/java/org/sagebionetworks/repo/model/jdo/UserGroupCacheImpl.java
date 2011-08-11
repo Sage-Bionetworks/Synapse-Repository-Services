@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,12 +29,16 @@ public class UserGroupCacheImpl implements UserGroupCache {
 
 	@Transactional(readOnly = true)
 	@Override
-	public Long getIdForUserGroupName(String name) {
+	public Long getIdForUserGroupName(String name) throws NotFoundException {
 		if(name == null) throw new IllegalArgumentException("Name cannot be null");
 		// Check the cache
 		Long id = mapNamesToId.get(name);
 		if(id == null){
-			id = simpleJdbcTempalte.queryForLong(SQL_GET_ID_FOR_NAME, name);
+			try{
+				id = simpleJdbcTempalte.queryForLong(SQL_GET_ID_FOR_NAME, name);
+			}catch(Exception e){
+				throw new NotFoundException("Could not find a principal named: "+name);
+			}
 			mapNamesToId.put(name, id);
 			mapIdToName.put(id, name);
 		}
@@ -42,12 +47,16 @@ public class UserGroupCacheImpl implements UserGroupCache {
 
 	@Transactional(readOnly = true)
 	@Override
-	public String getUserGroupNameForId(Long id) {
+	public String getUserGroupNameForId(Long id) throws NotFoundException {
 		if(id == null) throw new IllegalArgumentException("ID cannot be null");
 		// Check the cache
 		String name = mapIdToName.get(id);
 		if(name == null){
-			name = simpleJdbcTempalte.queryForObject("SELECT "+SqlConstants.COL_USER_GROUP_NAME+" FROM "+SqlConstants.TABLE_USER_GROUP+" WHERE "+SqlConstants.COL_USER_GROUP_ID+" = ?", String.class, id);
+			try{
+				name = simpleJdbcTempalte.queryForObject("SELECT "+SqlConstants.COL_USER_GROUP_NAME+" FROM "+SqlConstants.TABLE_USER_GROUP+" WHERE "+SqlConstants.COL_USER_GROUP_ID+" = ?", String.class, id);
+			}catch(Exception e){
+				throw new NotFoundException("Could not find a principal named: "+name);
+			}
 			mapIdToName.put(id, name);
 			mapNamesToId.put(name, id);
 		}

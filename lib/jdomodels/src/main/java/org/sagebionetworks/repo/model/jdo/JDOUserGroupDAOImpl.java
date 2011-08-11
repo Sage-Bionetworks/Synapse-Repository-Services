@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -174,6 +173,30 @@ public class JDOUserGroupDAOImpl extends
 		userGroupCache.delete(KeyFactory.stringToKey(id));
 		// The the base do the work
 		super.delete(id);
+	}
+
+	@Override
+	public boolean doesPrincipalExist(String name) {
+		try{
+			Long id = userGroupCache.getIdForUserGroupName(name);
+			return id != null;
+		}catch(NotFoundException e){
+			return false;
+		}
+	}
+
+	@Override
+	public boolean deletePrincipal(String name) {
+		try {
+			// Look up the user name
+			Long id = userGroupCache.getIdForUserGroupName(name);
+			delete(KeyFactory.keyToString(id));
+		} catch (NotFoundException e) {
+			return false;
+		} catch (DatastoreException e) {
+			return false;
+		}
+		return true;
 	}
 
 }

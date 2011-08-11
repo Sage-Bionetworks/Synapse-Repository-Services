@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -186,6 +187,63 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public String getNodeIdForPath(String path) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the ordered list of children ids.
+	 * @param id
+	 * @return
+	 * @throws DatastoreException 
+	 */
+	public List<String> getChildrenIdsAsList(String id) throws DatastoreException;
+
+	/**
+	 * Get a revision of a node.
+	 * @param nodeId
+	 * @param revisionId
+	 * @return
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 * @throws IOException 
+	 */
+	public NodeRevision getNodeRevision(String nodeId, Long revisionId) throws NotFoundException, DatastoreException;
+
+	/**
+	 * Get the total node count
+	 * @return
+	 */
+	public long getTotalNodeCount();
+
+	/**
+	 * Does this revision already exist?
+	 * @param nodeId
+	 * @param revNumber
+	 * @return
+	 */
+	boolean doesNodeRevisionExist(String nodeId, Long revNumber);
+
+	/**
+	 * Update an existing revision from a backup.
+	 * @param rev
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public void updateRevision(NodeRevision rev) throws NotFoundException, DatastoreException;
+
+	/**
+	 * Create a new revision from a backup.
+	 * @param rev
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public void createNewRevision(NodeRevision rev) throws NotFoundException, DatastoreException;
+	
+	/**
+	 * Only the annotations of the current version are query-able.
+	 * @param nodeId
+	 * @param annotationKey
+	 * @return
+	 */
+	public boolean isStringAnnotationQueryable(String nodeId, String annotationKey);
 	
 
 }
