@@ -1,10 +1,4 @@
 .setUp <- function() {
-	# this test can only be run against staging
-	.setCache("orig.authservice.endpoint", synapseAuthServiceEndpoint())
-	.setCache("orig.reposervice.endpoint", synapseRepoServiceEndpoint())
-	synapseAuthServiceEndpoint("https://auth-staging.sagebase.org/auth/v1")
-	synapseRepoServiceEndpoint("https://repo-staging.sagebase.org/repo/v1")
-	
 	# Create a project
 	project <- list()
 	project$name <- paste('R Conditional Get Integration Test Project', gsub(':', '_', date()))
@@ -13,11 +7,6 @@
 }
 
 .tearDown <- function() {
-	synapseAuthServiceEndpoint(.getCache("orig.authservice.endpoint"))
-	synapseRepoServiceEndpoint(.getCache("orig.reposervice.endpoint"))
-	.deleteCache("orig.authservice.endpoint")
-	.deleteCache("orig.reposervice.endpoint")
-	
 	deleteProject(entity=.getCache("rIntegrationTestProject"))
 	.deleteCache("rIntegrationTestProject")
 	.deleteCache("createdDataset")

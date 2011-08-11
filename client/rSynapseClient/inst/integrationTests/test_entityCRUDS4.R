@@ -3,7 +3,7 @@
 # Author: mfuria
 ###############################################################################
 .setUp <- function(){
-	.setCache("testProjectName", paste('R Entity CRUD Integration Test Project', gsub(':', '_', date())))
+	.setCache("testProjectName", paste('R Entity S4 CRUD Integration Test Project', gsub(':', '_', date())))
 }
 
 .tearDown <- function(){
@@ -16,6 +16,7 @@ integrationTestCreateS4Entities <- function(){
 	project <- new(Class="Project")
 	project@properties$name <- .getCache("testProjectName")
 	project <- createEntity(project)
+	.setCache("testProject", project)
 	checkEquals(project@properties$name, .getCache("testProjectName"))
 	
 	## Create DataSet
@@ -28,7 +29,7 @@ integrationTestCreateS4Entities <- function(){
 
 integrationTestS4Crud <- function(){
 	## Create a project
-	project <- Project(list(name = paste('R Entity CRUD Integration Test Project', gsub(':', '_', date()))))
+	project <- Project(list(name = .getCache("testProjectName")))
 	project <- createEntity(project)
 	.setCache("testProject", project)
 	
