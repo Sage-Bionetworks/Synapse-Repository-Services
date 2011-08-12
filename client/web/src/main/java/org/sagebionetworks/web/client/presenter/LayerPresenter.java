@@ -342,7 +342,10 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 											if(hasAcceptedLicenseAgreement) {
 												// will throw security exception if user has not accepted this yet
 												step5LoadDownloadLocations(); 
-											}											
+											} else {
+												// TODO: this is pretty weak
+												step6SetLayerDetails();
+											}
 										} else {
 											step5ErrorSetDownloadFailure();
 										}
