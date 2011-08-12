@@ -123,13 +123,13 @@ public class UserManagerImplTest {
 		
 	@Test
 	public void testGetAnonymousUserInfo() throws Exception {
-		userManager.getUserInfo(AuthUtilConstants.ANONYMOUS_USER_ID);
+		userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
 	}
 
 	@Test
 	public void testIdempotency() throws Exception {
-		userManager.getUserInfo(AuthUtilConstants.ANONYMOUS_USER_ID);
-		userManager.getUserInfo(AuthUtilConstants.ANONYMOUS_USER_ID);
+		userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
+		userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
 	}
 	
 

@@ -18,6 +18,8 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+
 /**
  *
  */
@@ -103,7 +105,7 @@ public class CrowdAuthenticationFilter implements Filter {
 			reject(req, (HttpServletResponse)servletResponse);
 			return;
 		}
-		if (userId==null) userId = AuthUtilConstants.ANONYMOUS_USER_ID;
+		if (userId==null) userId = AuthorizationConstants.ANONYMOUS_USER_ID;
 
 		// pass along, including the user id
 		@SuppressWarnings("unchecked")

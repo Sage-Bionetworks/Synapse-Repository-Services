@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import javax.servlet.ServletException;
@@ -24,11 +25,14 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Agreement;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Dataset;
@@ -41,6 +45,7 @@ import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.Versionable;
@@ -116,6 +121,30 @@ public class DefaultControllerAutowiredAllTypesTest {
 		dispatchServlet = new DispatcherServlet();
 		dispatchServlet.init(servletConfig);
 
+	}
+	
+	@Test
+	public void testAnonymousGet() throws ServletException, IOException{
+		Project project = new Project();
+		project.setName("testAnonymousGet");
+		project = ServletTestHelper.createEntity(dispatchServlet, project, userName);
+		String id = project.getId();
+		assertNotNull(project);
+		toDelete.add(id);
+		// Grant this project public access
+		AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, Project.class, id, userName);
+		assertNotNull(acl);
+		assertEquals(id, acl.getId());
+		ResourceAccess ac = new ResourceAccess();
+		ac.setGroupName(AuthorizationConstants.DEFAULT_GROUPS.PUBLIC.name());
+		ac.setAccessType(new HashSet<ACCESS_TYPE>());
+		ac.getAccessType().add(ACCESS_TYPE.READ);
+		acl.getResourceAccess().add(ac);
+		ServletTestHelper.updateEntityAcl(dispatchServlet, Project.class, acl, userName);
+		
+		// Make sure the anonymous user can see this.
+		Project clone = ServletTestHelper.getEntity(dispatchServlet, Project.class, project.getId(), AuthorizationConstants.ANONYMOUS_USER_ID);
+		assertNotNull(clone);
 	}
 	
 	/**

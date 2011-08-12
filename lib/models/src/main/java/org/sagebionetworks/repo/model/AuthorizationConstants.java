@@ -61,7 +61,7 @@ public class AuthorizationConstants {
 	/**
 	 * The reserved userId for an anonymous user.
 	 */
-	public static final String ANONYMOUS_USER_ID = "anonymous";
+	public static final String ANONYMOUS_USER_ID = "anonymous@sagebase.org";
 
 	
 

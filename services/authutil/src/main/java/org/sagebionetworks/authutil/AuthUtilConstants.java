@@ -1,13 +1,7 @@
 package org.sagebionetworks.authutil;
 
+@Deprecated // use org.sagebionetworks.repo.model.AuthorizationConstants
 public class AuthUtilConstants {
-	
-	// TODO delete this, as it repeats the same value defined in AuthorizationConstants
-	// (also have to review the package dependencies)
-	/**
-	 * The reserved userId for an anonymous user.
-	 */
-	public static final String ANONYMOUS_USER_ID = "anonymous";
 	
 	
 	/**

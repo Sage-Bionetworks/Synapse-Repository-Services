@@ -146,7 +146,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	}
 	
 	private void requireUser(UserInfo userInfo) throws UnauthorizedException {
-		if(userInfo.getUser().getUserId().equalsIgnoreCase(AuthUtilConstants.ANONYMOUS_USER_ID))
+		if(userInfo.getUser().getUserId().equalsIgnoreCase(AuthorizationConstants.ANONYMOUS_USER_ID))
 			throw new UnauthorizedException("Anonymous user cannot retrieve group information.");
 	}
 
