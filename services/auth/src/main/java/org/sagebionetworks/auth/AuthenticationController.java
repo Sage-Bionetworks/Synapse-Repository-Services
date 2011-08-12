@@ -29,6 +29,7 @@ import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.authutil.Session;
 import org.sagebionetworks.authutil.User;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -337,8 +338,8 @@ public class AuthenticationController {
 		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 		String itu = getIntegrationTestUser();
 		if (itu!=null && userId==null) userId=itu;
-		if (AuthUtilConstants.ANONYMOUS_USER_ID.equals(userId)) 
-			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "No user info for "+AuthUtilConstants.ANONYMOUS_USER_ID, null);
+		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userId)) 
+			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "No user info for "+AuthorizationConstants.ANONYMOUS_USER_ID, null);
 		User user = crowdAuthUtil.getUser(userId);
 		return user;
 	}

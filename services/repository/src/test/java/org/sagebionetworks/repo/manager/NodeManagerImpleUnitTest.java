@@ -16,9 +16,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -80,7 +80,7 @@ public class NodeManagerImpleUnitTest {
 		
 		User anonUser = new User();
 		anonUser.setId("102");
-		anonUser.setUserId(AuthUtilConstants.ANONYMOUS_USER_ID);
+		anonUser.setUserId(AuthorizationConstants.ANONYMOUS_USER_ID);
 		anonUserInfo.setUser(anonUser);
 		anonUserInfo.setIndividualGroup(userGroup);
 	}
@@ -119,7 +119,7 @@ public class NodeManagerImpleUnitTest {
 		node.setCreatedBy(presetCreatedBy);
 		node.setCreatedOn(presetCreatedOn);
 		// Now validate the node
-		NodeManagerImpl.validateNodeCreationData(AuthUtilConstants.ANONYMOUS_USER_ID, node);
+		NodeManagerImpl.validateNodeCreationData(AuthorizationConstants.ANONYMOUS_USER_ID, node);
 		// the values should not have changed
 		assertEquals(presetCreatedOn, node.getCreatedOn());
 		assertEquals(presetCreatedBy, node.getCreatedBy());
@@ -129,10 +129,10 @@ public class NodeManagerImpleUnitTest {
 	public void testValidateNodeCreatedDataWithNulls(){
 		Node node = new Node();
 		// Now validate the node
-		NodeManagerImpl.validateNodeCreationData(AuthUtilConstants.ANONYMOUS_USER_ID, node);
+		NodeManagerImpl.validateNodeCreationData(AuthorizationConstants.ANONYMOUS_USER_ID, node);
 		// the values should not have changed
 		assertNotNull(node.getCreatedOn());
-		assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, node.getCreatedBy());
+		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, node.getCreatedBy());
 	}
 	
 	@Test
@@ -143,7 +143,7 @@ public class NodeManagerImpleUnitTest {
 		node.setModifiedBy(presetModifiedBy);
 		node.setModifiedOn(presetModifiedOn);
 		// Now validate the node
-		NodeManagerImpl.validateNodeModifiedData(AuthUtilConstants.ANONYMOUS_USER_ID, node);
+		NodeManagerImpl.validateNodeModifiedData(AuthorizationConstants.ANONYMOUS_USER_ID, node);
 		// the values should have changed
 		assertTrue(!presetModifiedOn.equals( node.getModifiedOn()));
 		assertTrue(!presetModifiedBy.equals( node.getModifiedBy()));
@@ -153,10 +153,10 @@ public class NodeManagerImpleUnitTest {
 	public void testValidateNodeModifiedDataWithNulls(){
 		Node node = new Node();
 		// Now validate the node
-		NodeManagerImpl.validateNodeModifiedData(AuthUtilConstants.ANONYMOUS_USER_ID, node);
+		NodeManagerImpl.validateNodeModifiedData(AuthorizationConstants.ANONYMOUS_USER_ID, node);
 		// the values should not have changed
 		assertNotNull(node.getModifiedOn());
-		assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, node.getModifiedBy());
+		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, node.getModifiedBy());
 	}
 	
 	@Test
@@ -178,8 +178,8 @@ public class NodeManagerImpleUnitTest {
 		assertEquals("101", id);
 		Node processedNode = argument.getValue();
 		assertNotNull(processedNode);
-		assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, processedNode.getCreatedBy());
-		assertEquals(AuthUtilConstants.ANONYMOUS_USER_ID, processedNode.getModifiedBy());
+		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, processedNode.getCreatedBy());
+		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, processedNode.getModifiedBy());
 		assertNotNull(processedNode.getModifiedOn());
 		assertNotNull(processedNode.getModifiedBy());
 	}

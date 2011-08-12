@@ -97,7 +97,7 @@ public class UserManagerImpl implements UserManager {
 		Set<UserGroup> groups = new HashSet<UserGroup>();
 		UserGroup individualGroup = null;
 		boolean isAdmin = false;
-		if (AuthUtilConstants.ANONYMOUS_USER_ID.equals(userName)) {
+		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userName)) {
 			individualGroup = userGroupDAO.findGroup(
 					AuthorizationConstants.ANONYMOUS_USER_ID, true);
 			if (individualGroup == null)

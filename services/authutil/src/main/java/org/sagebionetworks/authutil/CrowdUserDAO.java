@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.User;
@@ -92,7 +93,7 @@ public class CrowdUserDAO implements UserDAO {
 		User user = new User();
 		user.setUserId(userName);
 		user.setId(userName);  //  i.e. user name == user id
-		if (AuthUtilConstants.ANONYMOUS_USER_ID.equals(userName)) return user;
+		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userName)) return user;
 		Map<String,Collection<String>> userAttrValues = null;
 		try {
 			userAttrValues = (new CrowdAuthUtil()).getUserAttributes(userName);
