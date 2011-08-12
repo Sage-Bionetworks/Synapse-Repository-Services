@@ -46,7 +46,7 @@ setMethod(
 		signature = "SynapseEntity",
 		definition = function(annotations){
 			entity <- annotations
-			annotations(entity) <- updateAnnotations(annotations(entity))
+			updateAnnotations(annotations(entity))
 			refreshEntity(entity)
 		}
 )

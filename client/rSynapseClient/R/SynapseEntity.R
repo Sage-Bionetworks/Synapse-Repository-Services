@@ -132,7 +132,7 @@ setMethod(
 		f = "annotValue<-",
 		signature = signature("SynapseEntity", "character", "logical"),
 		definition = function(object, which, value){
-			annotations(object) <- return(annotValue(object = annotations(object), which = which) <- as.character(value))
+			annotValue(object = annotations(object), which = which) <- as.character(value)
 			return(object)
 		}
 )
@@ -219,6 +219,15 @@ setMethod(
 				warning(paste(propertyNames(object)[indx], sep="", collapse=","), "were not found in the object, so were not deleted.")
 			}
 			object@properties <- object@properties[setdiff(propertyNames(object), which)]
+			return(object)
+		}
+)
+
+setMethod(
+		f = "deleteAnnotation",
+		signature = signature("SynapseEntity", "character"),
+		definition = function(object, which){
+			annotations(object) <- deleteAnnotation(annotations(object), which)
 			return(object)
 		}
 )

@@ -262,7 +262,8 @@ setMethod(
 		f = "annotValue<-",
 		signature = signature("SynapseAnnotation", "character", "Date"),
 		definition = function(object, which, value){
-			return(annotValue(object = object, which = which) <- as.POSIXct(value))
+			annotValue(object = object, which = which) <- as.POSIXct(value)
+			object
 		}
 )
 
@@ -270,7 +271,8 @@ setMethod(
 		f = "annotValue<-",
 		signature = signature("SynapseAnnotation", "character", "logical"),
 		definition = function(object, which, value){
-			return(annotValue(object = object, which = which) <- as.character(value))
+			annotValue(object = object, which = which) <- as.character(value)
+			object
 		}
 )
 
@@ -301,7 +303,13 @@ setMethod(
 		definition = function(object, which){
 			if(!all(indx <- (which %in% annotationNames(object))))
 				warning(paste(which[-indx], sep="", collapse=","), "were not valid annotations, so were not deleted.")
-			type <- lapply()
+			for(thisWhich in which){
+				type <- setdiff(slotNames(object),"properties")[unlist(lapply(setdiff(slotNames(object),"properties"), FUN=function(sn){thisWhich %in% names(slot(object,sn))}))]
+				for(thisType in type){
+				slot(object,thisType) <- slot(object, thisType)[setdiff(names(slot(object,thisType)), thisWhich)]
+				}
+			}
+			object
 		}
 )
 
