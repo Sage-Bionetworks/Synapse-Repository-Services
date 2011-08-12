@@ -17,8 +17,9 @@ public interface NodeBackupDriver {
 	 * @throws IOException 
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
+	 * @throws InterruptedException 
 	 */
-	public void writeBackup(File destination, Progress progress) throws IOException, DatastoreException, NotFoundException;
+	public boolean writeBackup(File destination, Progress progress) throws IOException, DatastoreException, NotFoundException, InterruptedException;
 	
 	/**
 	 * Restore all data from the backup file.  Any node that does not exist will
@@ -26,7 +27,8 @@ public interface NodeBackupDriver {
 	 * @param source - The backup file that is to be used to restore.
 	 * @param progress - Used to track the progress of the restore.
 	 * @throws IOException
+	 * @throws InterruptedException 
 	 */
-	public void restoreFromBackup(File source, Progress progress) throws IOException;
+	public boolean restoreFromBackup(File source, Progress progress) throws IOException, InterruptedException;
 
 }

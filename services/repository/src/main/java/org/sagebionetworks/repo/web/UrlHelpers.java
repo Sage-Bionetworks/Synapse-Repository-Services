@@ -206,7 +206,14 @@ public class UrlHelpers {
 	 * 
 	 */
 	public static final String USER_MIRROR = "/userMirror";
-
+	
+	public static final String START_BACKUP_DAEMON 			= "/startBackupDaemon";
+	public static final String START_RESTORE_DAEMON 		= "/startRestoreDaemon";
+	public static final String GET_DAEMON_STATUS_PREFIX 	= "/daemonStatus";
+	public static final String GET_DAEMON_STATUS 			= GET_DAEMON_STATUS_PREFIX+"/{daemonId}";
+	public static final String TERMINATE_DAEMON_PREFIX		= "/terminateDaemon";	
+	public static final String TERMINATE_DAEMON 			= TERMINATE_DAEMON_PREFIX+"/{daemonId}";
+	
 	/**
 	 * Mapping of dependent property classes to their URL suffixes
 	 */

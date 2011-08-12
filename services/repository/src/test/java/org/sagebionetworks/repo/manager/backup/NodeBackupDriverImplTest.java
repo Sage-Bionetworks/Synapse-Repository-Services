@@ -93,7 +93,7 @@ public class NodeBackupDriverImplTest {
 	}
 	
 	@Test
-	public void testRoundTrip() throws IOException, DatastoreException, NotFoundException{
+	public void testRoundTrip() throws IOException, DatastoreException, NotFoundException, InterruptedException{
 		// Create a temp file
 		File temp = File.createTempFile("NodeBackupDriverImplTest", ".zip");
 		try{
@@ -115,4 +115,37 @@ public class NodeBackupDriverImplTest {
 		}
 	}
 
+	@Test (expected=InterruptedException.class)
+	public void testTerminateWrite() throws IOException, DatastoreException, NotFoundException, InterruptedException{
+		// Create a temp file
+		File temp = File.createTempFile("NodeBackupDriverImplTest", ".zip");
+		try{
+			// Try to write to the temp file
+			Progress progress = new Progress();
+			// This should trigger a termination
+			progress.setTerminate(true);
+			sourceDriver.writeBackup(temp, progress);
+		}finally{
+			// Cleanup the file
+			temp.delete();
+		}
+	}
+	
+	@Test (expected=InterruptedException.class)
+	public void testTerminateRestore() throws IOException, DatastoreException, NotFoundException, InterruptedException{
+		// Create a temp file
+		File temp = File.createTempFile("NodeBackupDriverImplTest", ".zip");
+		try{
+			// Try to write to the temp file
+			Progress progress = new Progress();
+			sourceDriver.writeBackup(temp, progress);
+			// This should trigger a termination
+			progress = new Progress();
+			progress.setTerminate(true);
+			sourceDriver.restoreFromBackup(temp, progress);
+		}finally{
+			// Cleanup the file
+			temp.delete();
+		}
+	}
 }
