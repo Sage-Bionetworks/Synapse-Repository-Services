@@ -43,6 +43,10 @@
 	
 	<bean id="backupManager" class="org.sagebionetworks.repo.manager.backup.NodeBackupManagerImpl" scope="singleton"/>
 	
+	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.NodeBackupDriverImpl" scope="singleton"/>
+	
+	<bean id="backupDaemonLauncher" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncherImpl" scope="singleton"/>
+	
 	<!-- Provides validation for all types -->
 	<bean id="allTypesValidator" class="org.sagebionetworks.repo.web.controller.metadata.AllTypesValidatorImpl" scope="singleton"/>
 		

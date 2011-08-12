@@ -28,8 +28,7 @@
 	<!-- Annotation Field name enforcer -->
 	<bean id="fieldTypeDao" class="org.sagebionetworks.repo.model.jdo.JDOFieldTypeDAOImpl" />
 
-	<bean id="userGroupCache"
-		class="org.sagebionetworks.repo.model.jdo.UserGroupCacheImpl"
+	<bean id="userGroupCache" class="org.sagebionetworks.repo.model.jdo.UserGroupCacheImpl"
 		scope="singleton" />
 
 	<bean id="accessControlListDAO"
@@ -52,6 +51,8 @@
 		class="org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl"
 		depends-on="entityBootstrapper" />
 
+	<bean id="backupRestoreStatusDao"
+		class="org.sagebionetworks.repo.model.jdo.BackupRestoreStatusDAOImpl" scope="singleton"/>
 
 
 </beans>

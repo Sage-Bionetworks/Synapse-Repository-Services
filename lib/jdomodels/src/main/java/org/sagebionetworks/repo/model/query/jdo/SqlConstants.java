@@ -84,16 +84,24 @@ public class SqlConstants {
 	public static final String COL_RESOURCE_ACCESS_TYPE			= "RESOURCE_TYPE";
 	public static final String COL_RESOURCE_ACCESS_RESOURCE_ID	= "RESOURCE_ID";
 	
-	// The backup status table
-	public static final String TABLE_BACKUP_STATUS 				= "JDOBACKUPSTATUS";
+	// The backup/restore status table
+	public static final String TABLE_BACKUP_STATUS 				= "JDO_BACKUP_RESTORE_STATUS";
 	public static final String COL_BACKUP_ID					= "ID";
 	public static final String COL_BACKUP_STATUS				= "STATUS";
-	public static final String COL_PROGRESS_MESSAGE				= "PROGRESS_MESSAGE";
-	public static final String COL_PROGRESS_CURRENT				= "PROGRESS_CURRENT";
-	public static final String COL_PROGRESS_TOTAL				= "PROGRESS_TOTAL";
-	public static final String COL_ERORR_MESSAGE				= "ERROR_MESSAGE";
-	public static final String COL_ERROR_DETAILS				= "ERROR_DETAILS";
+	public static final String COL_BACKUP_TYPE					= "TYPE";
+	public static final String COL_BACKUP_STARTED_BY 			= "STARTED_BY";
+	public static final String COL_BACKUP_STARTED_ON 			= "STARTED_ON";
+	public static final String COL_BACKUP_PROGRESS_MESSAGE		= "PROGRESS_MESSAGE";
+	public static final String COL_BAKUP_PROGRESS_CURRENT		= "PROGRESS_CURRENT";
+	public static final String COL_BACKUP_PROGRESS_TOTAL		= "PROGRESS_TOTAL";
+	public static final String COL_BACKUP_ERORR_MESSAGE			= "ERROR_MESSAGE";
+	public static final String COL_BACKUP_ERROR_DETAILS			= "ERROR_DETAILS";
 	public static final String COL_BACKUP_URL					= "BACKUP_URL";
+	public static final String COL_BACKUP_RUNTIME				= "RUN_TIME_MS";
+	
+	public static final String TABLE_BACKUP_TERMINATE 			= "JDO_BACKUP_TERMINATE";
+	public static final String COL_BACKUP_TERM_OWNER			= "BACKUP_OWNER";
+	public static final String COL_BACKUP_FORCE_TERMINATION		= "FORCE_TERMINATION";
 		
 	// The resource access join table
 	// datanucleus doesn't seem to be respecting the join table name when creating the schema
@@ -132,6 +140,8 @@ public class SqlConstants {
 	
 	private static final Map<String, String> primaryFieldColumns;
 	private static final Map<String, String> mapClassToTable;
+
+
 
 
 	static{

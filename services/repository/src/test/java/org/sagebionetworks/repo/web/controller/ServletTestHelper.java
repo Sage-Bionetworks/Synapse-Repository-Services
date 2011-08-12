@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -21,11 +22,14 @@ import org.json.JSONObject;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.RestoreFile;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -783,6 +787,97 @@ public class ServletTestHelper {
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
 		return (BooleanResult)objectMapper.readValue(response.getContentAsString(),BooleanResult.class);
+	}
+	
+	
+	/**
+	 * Start the a system backup.
+	 * @param dispatchServlet
+	 * @param userId
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public static BackupRestoreStatus startBackup(HttpServlet dispatchServlet, String userId) throws ServletException, IOException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.START_BACKUP_DAEMON);
+		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if(response.getStatus() != HttpStatus.CREATED.value()){
+			throw new IllegalArgumentException(response.getErrorMessage());
+		}
+		return (BackupRestoreStatus)objectMapper.readValue(response.getContentAsString(),BackupRestoreStatus.class);
+	}
+
+	/**
+	 * Get the status of a backup/restore daemon
+	 * @param dispatchServlet
+	 * @param userId
+	 * @param id
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public static BackupRestoreStatus getStatus(HttpServlet dispatchServlet, String userId, String id) throws ServletException, IOException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.GET_DAEMON_STATUS_PREFIX+"/"+id);
+		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if(response.getStatus() != HttpStatus.OK.value()){
+			throw new IllegalArgumentException(response.getErrorMessage());
+		}
+		return (BackupRestoreStatus)objectMapper.readValue(response.getContentAsString(),BackupRestoreStatus.class);
+	}
+
+	/**
+	 * Start a system restore daemon
+	 * @param dispatchServlet
+	 * @param uesrId
+	 * @param fileName
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public static BackupRestoreStatus startRestore(HttpServlet dispatchServlet,	String uesrId, RestoreFile file) throws ServletException, IOException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.START_RESTORE_DAEMON);
+		request.setParameter(AuthUtilConstants.USER_ID_PARAM, uesrId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		StringWriter out = new StringWriter();
+		objectMapper.writeValue(out, file);
+		String body = out.toString();
+		request.setContent(body.getBytes("UTF-8"));
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if(response.getStatus() != HttpStatus.CREATED.value()){
+			throw new IllegalArgumentException(response.getErrorMessage());
+		}
+		return (BackupRestoreStatus)objectMapper.readValue(response.getContentAsString(),BackupRestoreStatus.class);
+	}
+
+	public static void terminateDaemon(HttpServlet dispatchServlet,	String userId, String id) throws ServletException, IOException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("DELETE");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.TERMINATE_DAEMON_PREFIX+"/"+id);
+		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if(response.getStatus() != HttpStatus.NO_CONTENT.value()){
+			throw new IllegalArgumentException(response.getErrorMessage());
+		}
 	}
 	
 

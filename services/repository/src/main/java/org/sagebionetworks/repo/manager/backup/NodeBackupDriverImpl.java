@@ -59,7 +59,7 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 	}
 
 	@Override
-	public void writeBackup(File destination, Progress progress) throws IOException, DatastoreException, NotFoundException {
+	public boolean writeBackup(File destination, Progress progress) throws IOException, DatastoreException, NotFoundException, InterruptedException {
 		if (destination == null)
 			throw new IllegalArgumentException(
 					"Destination file cannot be null");
@@ -88,6 +88,7 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 				fos.close();
 			}
 		}
+		return true;
 	}
 
 	/**
@@ -100,9 +101,10 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 	 * @throws IOException
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
+	 * @throws InterruptedException 
 	 */
-	private void writeBackupNode(ZipOutputStream zos, NodeBackup backup,
-			String path, Progress progress) throws IOException, NotFoundException, DatastoreException {
+	private boolean writeBackupNode(ZipOutputStream zos, NodeBackup backup,
+			String path, Progress progress) throws IOException, NotFoundException, DatastoreException, InterruptedException {
 		if (backup == null)
 			throw new IllegalArgumentException("NodeBackup cannot be null");
 		if (backup.getNode() == null)
@@ -117,9 +119,11 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 		NodeSerializerUtil.writeNodeBackup(backup, zos);
 		// Now write all revisions of this node.
 		writeRevisions(zos, backup, path);
-		progress.setName(backup.getNode().getName());
+		progress.setMessage(backup.getNode().getName());
 		progress.incrementProgress();
 		log.info(progress.toString());
+		// Check for termination.
+		checkForTermination(progress);
 		// now write each child
 		List<String> childList = backup.getChildren();
 		if (childList != null) {
@@ -127,6 +131,15 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 				NodeBackup child = backupManager.getNode(childId);
 				writeBackupNode(zos, child, path, progress);
 			}
+		}
+		return true;
+	}
+
+	public void checkForTermination(Progress progress)
+			throws InterruptedException {
+		// Between each node check to see if we should terminate
+		if(progress.shouldTerminate()){
+			throw new InterruptedException("Backup terminated by the user");
 		}
 	}
 
@@ -168,9 +181,10 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 
 	/**
 	 * Restore from the backup.
+	 * @throws InterruptedException 
 	 */
 	@Override
-	public void restoreFromBackup(File source, Progress progress) throws IOException {
+	public boolean restoreFromBackup(File source, Progress progress) throws IOException, InterruptedException {
 		if(source == null) throw new IllegalArgumentException("Source file cannot be null");
 		if(!source.exists()) throw new IllegalArgumentException("Source file dose not exist: "+source.getAbsolutePath());
 		if(progress == null) throw new IllegalArgumentException("Progress cannot be null");
@@ -178,11 +192,13 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 		try{
 			log.info("Restoring: "+source.getAbsolutePath());
 			ZipInputStream zin = new  ZipInputStream(new BufferedInputStream(fis));
-			progress.setName("Reading: "+source.getAbsolutePath());
+			progress.setMessage("Reading: "+source.getAbsolutePath());
 			progress.setTotalCount(source.length());
 			ZipEntry entry;
 			while((entry = zin.getNextEntry()) != null) {
-				progress.setName(entry.getName());
+				progress.setMessage(entry.getName());
+				// Check for termination.
+				checkForTermination(progress);
 				// What is the name of this entry
 //				log.info("Writing entry: "+entry.getName());
 				// Is this a node or a revision?
@@ -205,8 +221,7 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 				fis.close();
 			}
 		}
-
-		
+		return true;
 	}
 	
 	/**
