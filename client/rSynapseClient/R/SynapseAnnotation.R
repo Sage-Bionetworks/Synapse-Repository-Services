@@ -23,7 +23,6 @@ setClass(
 		)
 )
 
-
 ## Constructor
 SynapseAnnotation <- 
 		function(entity)
@@ -71,6 +70,17 @@ setMethod(
 )
 
 setMethod(
+		f = "annotationValues<-",
+		signature = signature("SynapseAnnotation", "list"),
+		def = function(object, value){
+			if(any(names(value) == ""))
+				stop("All entity elements must be named")
+			for(name in names(value))
+				annotValue(object, name) <- value[[name]]
+			object
+		}
+)
+setMethod(
 		f = "propertyNames",
 		signature = "SynapseAnnotation",
 		definition = function(object){
@@ -93,7 +103,7 @@ setMethod(
 		definition = function(x, ...){
 			vals <- annotationValues(x)
 			names(vals) <- annotationNames(x)
-			return(vals)
+			vals
 		}
 )
 
@@ -111,7 +121,7 @@ setMethod(
 					entity[[n]] <- slot(object, n)
 				}
 			}
-			return(entity)
+			entity
 		}
 )
 
@@ -130,8 +140,7 @@ setMethod(
 			for(name in names(entity)[-indx]){
 				object@properties[name] <- entity[[name]]
 			}
-			
-			return(object)
+			object
 		}
 )
 
@@ -153,13 +162,11 @@ setMethod(
 			
 			nms <- setdiff(slotNames(object), kPropertiesSlotName)
 			slotName <- nms[sapply(nms, FUN=function(name){which %in% names(slot(object,name))})]
-			slot(object,slotName[1])[[which]]
+			value <- slot(object,slotName[1])[[which]]
 			
-			## TODO: figure out the correct way to translate dates
 #			if(grepl("date", tolower(which)))
-#				value <- as.POSIXlt(value/1000,origin=ISOdatetime(1970,1,1,0,0,0))
-#			return(value)
-			
+#				value <- as.POSIXct(as.integer(value), origin=ISOdatetime(1970,1,1,0,0,0))
+			return(value)
 			## TODO: return values cast to the correct type
 		}
 )
@@ -168,16 +175,16 @@ setMethod(
 		f = "propertyValue",
 		signature = signature("SynapseAnnotation", "character"),
 		definition = function(object, which){
-			properties(object)[[which]]
-			## TODO: figure out the correct way to translate dates
+			value <- properties(object)[[which]]
+#			if(grepl("date", tolower(which)))
+#				value <- as.POSIXct(value, origin=ISOdatetime(1970,1,1,0,0,0))
+			value
 		}
 )
-
 
 #####
 ## End getters
 #####
-
 
 #####
 ## Annotation/property value setters
@@ -206,7 +213,7 @@ setMethod(
 			
 			## the annotation was either not assigned, or a value was already assigned the implied type
 			slot(object, type)[[which]] <- value
-			return(object)
+			object
 		}
 )
 
@@ -245,27 +252,28 @@ setMethod(
 		}
 )
 
-setMethod(
-		f = "annotValue<-",
-		signature = signature("SynapseAnnotation", "character", "POSIXct"),
-		definition = function(object, which, value){
-			if(!grepl("date", tolower(which)))
-				stop("Annotations with date values must include the string 'date' in the annotation name.")
-			map <- .getCache("annotationTypeMap")
-			type <- names(map)[which(map %in% class(value))] ##POSIX dates return 2 class types
-			#all annotations are stored internally as strings
-			.setAnnotationValue(object = object, which = which, value =  as.character(as.integer(value)), type = type)
-		}
-)
+#setMethod(
+#		f = "annotValue<-",
+#		signature = signature("SynapseAnnotation", "character", "POSIXt"),
+#		definition = function(object, which, value){
+#			if(!grepl("date", tolower(which)))
+#				stop("Annotations with date values must include the string 'date' in the annotation name.")
+#			map <- .getCache("annotationTypeMap")
+#			type <- names(map)[which(map %in% class(value))] ##POSIX dates return 2 class types
+#			#all annotations are stored internally as strings
+#			value <- as.character(as.integer(value))
+#			.setAnnotationValue(object = object, which = which, value = value, type = type)
+#		}
+#)
 
-setMethod(
-		f = "annotValue<-",
-		signature = signature("SynapseAnnotation", "character", "Date"),
-		definition = function(object, which, value){
-			annotValue(object = object, which = which) <- as.POSIXct(value)
-			object
-		}
-)
+#setMethod(
+#		f = "annotValue<-",
+#		signature = signature("SynapseAnnotation", "character", "Date"),
+#		definition = function(object, which, value){
+#			annotValue(object = object, which = which) <- as.POSIXct(value)
+#			object
+#		}
+#)
 
 setMethod(
 		f = "annotValue<-",
@@ -284,6 +292,62 @@ setMethod(
 			object
 		}
 )
+setMethod(
+		f = "propertyValue<-",
+		signature = signature("SynapseAnnotation", "numeric"),
+		definition = function(object, which, value){
+			properties(object)[[which]] <- value
+			object
+		}
+)
+setMethod(
+		f = "propertyValue<-",
+		signature = signature("SynapseAnnotation", "integer"),
+		definition = function(object, which, value){
+			properties(object)[[which]] <- value
+			object
+		}
+)
+setMethod(
+		f = "propertyValue<-",
+		signature = signature("SynapseAnnotation", "logical"),
+		definition = function(object, which, value){
+			properties(object)[[which]] <- value
+			object
+		}
+)
+#setMethod(
+#		f = "propertyValue<-",
+#		signature = signature("SynapseAnnotation", "Date"),
+#		definition = function(object, which, value){
+#			properties(object)[[which]] <- value
+#			object
+#		}
+#)
+#
+#setMethod(
+#		f = "propertyValue<-",
+#		signature = signature("SynapseAnnotation", "POSIXt"),
+#		definition = function(object, which, value){
+#			if(!grepl("date", tolower(which)))
+#				stop("date valued properties must contain 'date' in the name")
+#			properties(object)[[which]] <- as.integer(value)
+#			object
+#		}
+#)
+
+setMethod(
+		f = "propertyValues<-",
+		signature = signature("SynapseAnnotation", "list"),
+		definition = function(object, value){
+			if(any(names(value) == ""))
+				stop("all list elements must be named")
+			for(key in propertyNames(object)){
+				propertyValue(object, key) <- value[key]
+			}
+			object
+		}
+)
 
 setMethod(
 		f = "deleteProperty",
@@ -291,9 +355,8 @@ setMethod(
 		definition = function(object, which){
 			if(!all(indx <- (which %in% propertyNames(object))))
 				warning(paste(which[-indx], sep="", collapse=","), "were not valid properties, so were not deleted.")
-			
 			object@properties <- object@properties[setdiff(propertyNames(object), which)]
-			return(object)
+			object
 		}
 )
 
@@ -331,7 +394,7 @@ setMethod(
 		signature = signature("SynapseAnnotation"),
 		definition = function(object, value){
 			object@properties <- value
-			return(object)
+			object
 		}
 )
 

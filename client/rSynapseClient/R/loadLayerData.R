@@ -71,10 +71,10 @@ setMethod(
 			files <- .cacheFiles(propertyValue(entity, "id"))
 			
 			## check for known format specifications
-			switch(propertyValue(entity, "format"),
+			if(is.null(annotValue(entity, "format")))
+				return(files)
+			switch(annotValue(entity, "format"),
 					rbin = .loadRbinaryFiles(files),
-#					tsv = .loadTsvFiles(files),
-#					csv = .loadCsvFiles(files),
 					files
 			)
 		}

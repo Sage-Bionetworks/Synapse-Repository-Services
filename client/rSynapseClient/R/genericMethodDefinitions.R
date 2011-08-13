@@ -55,13 +55,6 @@ setGeneric(
 )
 
 setGeneric(
-		name = "deleteAnnotations",
-		def = function(object){
-			standardGeneric("deleteAnnotations")
-		}
-)
-
-setGeneric(
 		name = "deleteEntity",
 		def = function(entity, ...){
 			standardGeneric("deleteEntity")
@@ -139,7 +132,7 @@ setGeneric(
 
 setGeneric(
 		name = "properties<-",
-		def = function(object, ...){
+		def = function(object, value){
 			standardGeneric("properties<-")
 		}
 )
@@ -160,7 +153,7 @@ setGeneric(
 
 setGeneric(
 		name = "annotValue<-",
-		def = function(object, which, value, ...){
+		def = function(object, which, value){
 			standardGeneric("annotValue<-")
 		}
 )
@@ -174,7 +167,7 @@ setGeneric(
 
 setGeneric(
 		name = "propertyValue<-",
-		def = function(object, which, ...){
+		def = function(object, which, value){
 			standardGeneric("propertyValue<-")
 		}		
 )
@@ -202,7 +195,7 @@ setGeneric(
 
 setGeneric(
 		name = "annotationValues<-",
-		def = function(object, values){
+		def = function(object, value){
 			standardGeneric("annotationValues<-")
 		}
 )
@@ -223,7 +216,7 @@ setGeneric(
 
 setGeneric(
 		name = "propertyValues<-",
-		def = function(object, values){
+		def = function(object, value){
 			standardGeneric("propertyValues<-")
 		}
 )
@@ -285,7 +278,7 @@ setGeneric(
 
 setGeneric(
 		name = "synapseEntityKind<-",
-		def = function(entity, ...){
+		def = function(entity, value){
 			standardGeneric("synapseEntityKind<-")
 		}
 )

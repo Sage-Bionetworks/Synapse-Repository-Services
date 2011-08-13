@@ -1,7 +1,11 @@
-# S4 Class and methods for representing a generic Synapse entity
-# 
-# Author: matt furia
+## S4 Class and methods for representing a generic Synapse entity
+## 
+##  Author: matt furia
 ###############################################################################
+
+#####
+## SynapseEntity Class definition
+#####
 setClass(
 		Class = "SynapseEntity",
 		representation = representation(
@@ -15,17 +19,23 @@ setClass(
 		)
 )
 
+#####
+## SynapseEntity "show" method
+#####
 setMethod(
 		f = "show",
 		signature = signature("SynapseEntity"),
 		definition = function(object){
 			cat('An object of class "', class(object), '"\n', sep="")
 			## TODO: print out properties fields
-			cat("containing the following annotations\n")
+			cat("containing the annotations:\n")
 			show(annotations(object))
 		}
 )
 
+#####
+## as.list function. Coerce SynapseEntity to list by returning annotations
+#####
 setMethod(
 		f="as.list",
 		signature = "SynapseEntity",
@@ -34,6 +44,9 @@ setMethod(
 		}
 )
 
+#####
+## Get annotation names
+#####
 setMethod(
 		f = "annotationNames",
 		signature = "SynapseEntity",
@@ -42,6 +55,9 @@ setMethod(
 		}
 )
 
+#####
+## Get annotaion values
+#####
 setMethod(
 		f = "annotationValues",
 		signature = "SynapseEntity",
@@ -50,22 +66,21 @@ setMethod(
 		}
 )
 
+#####
+## Set the values for multiple annotations
+#####
 setMethod(
 		f = "annotationValues<-",
 		signature = signature("SynapseEntity","list"),
-		definition = function(object, values){
-			if(any(names(values) == ""))
-				stop("All entity elements must be named")
-			for(name in names(values))
-				annotValue(object, name) <- values[[name]]
-			return(object)
+		definition = function(object, value){
+			annotationValues(annotations(object)) <- value
+			object
 		}
 )
 
 #####
 ## getters and setters for SynpaseEntity S4 Class
 #####
-
 setMethod(
 		f = "annotValue<-",
 		signature = signature("SynapseEntity", "character", "character"),
@@ -104,29 +119,30 @@ setMethod(
 		}
 )
 
-
-setMethod(
-		f = "annotValue<-",
-		signature = signature("SynapseEntity", "character", "POSIXct"),
-		definition = function(object, which, value){
-			if(!grepl("date", tolower(which)))
-				stop("Annotations with date values must include the string 'date' in the annotation name.")
-			map <- .getCache("annotationTypeMap")
-			type <- names(map)[which(map %in% class(value))] ##POSIX dates return 2 class types
-			#all annotations are stored internally as strings
-			annotations(object) <- .setAnnotationValue(object = annotations(object), which = which, value =  as.character(as.integer(value)), type = type)
-			return(object)
-		}
-)
-
-setMethod(
-		f = "annotValue<-",
-		signature = signature("SynapseEntity", "character", "Date"),
-		definition = function(object, which, value){
-			annotValue(object = annotations(object), which = which) <- as.POSIXct(value)
-			return(object)
-		}
-)
+## date setting isn't working correctly. Need to figure out how to translate between Synapse dates (stored as integers)
+## and R date classes
+#setMethod(
+#		f = "annotValue<-",
+#		signature = signature("SynapseEntity", "character", "POSIXct"),
+#		definition = function(object, which, value){
+#			if(!grepl("date", tolower(which)))
+#				stop("Annotations with date values must include the string 'date' in the annotation name.")
+#			map <- .getCache("annotationTypeMap")
+#			type <- names(map)[which(map %in% class(value))] ##POSIX dates return 2 class types
+#			#all annotations are stored internally as strings
+#			annotations(object) <- .setAnnotationValue(object = annotations(object), which = which, value =  as.character(as.integer(value)), type = type)
+#			return(object)
+#		}
+#)
+#
+#setMethod(
+#		f = "annotValue<-",
+#		signature = signature("SynapseEntity", "character", "Date"),
+#		definition = function(object, which, value){
+#			annotValue(object = annotations(object), which = which) <- as.POSIXct(value)
+#			return(object)
+#		}
+#)
 
 setMethod(
 		f = "annotValue<-",
@@ -137,6 +153,9 @@ setMethod(
 		}
 )
 
+#####
+## return the annotations object 
+#####
 setMethod(
 		f = "annotations",
 		signature = "SynapseEntity",
@@ -145,7 +164,9 @@ setMethod(
 		}
 )
 
-
+#####
+## set the annotations object
+#####
 setMethod(
 		f = "annotations<-",
 		signature = signature("SynapseEntity","SynapseAnnotation"),
@@ -154,6 +175,10 @@ setMethod(
 			return(object)
 		}
 )
+
+#####
+## get an annotation value by name
+#####
 setMethod(
 		f = "annotValue",
 		signature = signature("SynapseEntity", "character"),
@@ -162,6 +187,9 @@ setMethod(
 		}
 )
 
+#####
+## get the list of properties for the object
+#####
 setMethod(
 		f = "properties",
 		signature = signature("SynapseEntity"),
@@ -171,15 +199,21 @@ setMethod(
 		}
 )
 
+#####
+## set the properties list for the object
+#####
 setMethod(
 		f = "properties<-",
-		signature = signature("SynapseEntity"),
+		signature = signature("SynapseEntity", "list"),
 		definition = function(object, value){
 			object@properties <- value
 			return(object)
 		}
 )
 
+#####
+## Get the property names
+#####
 setMethod(
 		f = "propertyNames",
 		signature = signature("SynapseEntity"),
@@ -189,6 +223,9 @@ setMethod(
 		}
 )
 
+#####
+## Get the property values
+#####
 setMethod(
 		f = "propertyValues",
 		signature = signature("SynapseEntity"),
@@ -197,19 +234,24 @@ setMethod(
 		}
 )
 
+#####
+## Set multiple property values
+#####
 setMethod(
 		f = "propertyValues<-",
 		signature = signature("SynapseEntity", "list"),
-		definition = function(object, values){
-			if(any(names(values) == ""))
+		definition = function(object, value){
+			if(any(names(value) == ""))
 				stop("All entity members must be named")
-			for(name in names(values))
-				propertyValue(object, name) <- values[[name]]
+			for(name in names(value))
+				propertyValue(object, name) <- value[[name]]
 			return(object)
 		}
 )
 
-
+#####annotValue(entity, "dateKey")
+## Delete a property
+#####
 setMethod(
 		f = "deleteProperty",
 		signature = signature("SynapseEntity", "character"),
@@ -223,6 +265,9 @@ setMethod(
 		}
 )
 
+#####
+## Delete an annotation
+#####
 setMethod(
 		f = "deleteAnnotation",
 		signature = signature("SynapseEntity", "character"),
@@ -232,6 +277,9 @@ setMethod(
 		}
 )
 
+#####
+## Get a property value by name
+#####
 setMethod(
 		f = "propertyValue",
 		signature = signature("SynapseEntity", "character"),
@@ -240,6 +288,10 @@ setMethod(
 		}
 )
 
+
+#####
+## set a property value
+#####
 setMethod(
 		f = "propertyValue<-",
 		signature = signature("SynapseEntity", "character"),
@@ -249,7 +301,9 @@ setMethod(
 		}
 )
 
-## constructor
+#####
+## constructor that takes a list entity
+#####
 setMethod(
 		f = "SynapseEntity",
 		signature = signature("list"),
@@ -265,7 +319,9 @@ setMethod(
 		}
 )
 
-
+#####
+## convert the S4 entity to a list entity
+#####
 setMethod(
 		f = ".extractEntityFromSlots",
 		signature = "SynapseEntity",
@@ -282,6 +338,9 @@ setMethod(
 		}
 )
 
+#####
+## convert the list entity to an S4 entity
+#####
 setMethod(
 		f = ".populateSlotsFromEntity",
 		signature = signature("SynapseEntity", "list"),
@@ -296,6 +355,9 @@ setMethod(
 		}
 )
 
+#####
+## Get the Synapse entity kind
+#####
 setMethod(
 		f = "synapseEntityKind",
 		signature = "SynapseEntity",
@@ -303,6 +365,10 @@ setMethod(
 			entity@synapseEntityKind
 		}
 )
+
+#####
+## Set the entity kind
+#####
 setMethod(
 		f = "synapseEntityKind<-",
 		signature = "SynapseEntity",
@@ -311,6 +377,10 @@ setMethod(
 			return(entity)
 		}
 )
+
+#####
+## Get the entity from Synapse
+#####
 setMethod(
 		f = "refreshEntity",
 		signature = "SynapseEntity",
@@ -318,6 +388,10 @@ setMethod(
 			getEntity(entity)
 		}
 )
+
+#####
+## Refresh the entities annotations
+#####
 setMethod(
 		f = "refreshAnnotations",
 		signature = "SynapseEntity",

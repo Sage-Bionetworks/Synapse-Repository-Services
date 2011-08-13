@@ -24,7 +24,7 @@ kSynapseRAnnotationTypeMap <- list(
 		stringAnnotations = "character",
 		longAnnotations = "integer",
 		doubleAnnotations = "numeric",
-		dateAnnotations = "POSIXct"
+		dateAnnotations = "POSIXt"
 	)
 	
 kLayerSubtypeMap <- list(
