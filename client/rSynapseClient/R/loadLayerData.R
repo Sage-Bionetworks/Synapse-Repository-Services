@@ -14,7 +14,7 @@ setMethod(
 		definition = function(entity)
 		{
 			## get entity as S4 and dispatch to type-specific loader
-			loadLayerData(getEntity(entity))
+			loadLayerData(getEntity(entity, "layer"))
 		}
 )
 
