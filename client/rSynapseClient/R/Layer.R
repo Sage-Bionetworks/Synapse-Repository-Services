@@ -12,32 +12,41 @@ setClass(
 
 setClass(
 		Class = "ExpressionLayer",
-		contains = "Layer"
+		contains = "Layer",
+		prototype = prototype(
+				properties = list(type="E")
+		)
 )
 
 setClass(
 		Class = "AffyExpressionLayer",
-		contains = "Layer"
+		contains = "ExpressionLayer"
 )
 
 setClass(
 		Class = "AgilentExpressionLayer",
-		contains = "Layer"
+		contains = "ExpressionLayer"
 )
 
 setClass(
 		Class = "IlluminaExpressionLayer",
-		contains = "Layer"
+		contains = "ExpressionLayer"
 )
 
 setClass(
 		Class = "GenotypeLayer",
-		contains = "Layer"
+		contains = "Layer",
+		prototype = prototype(
+				properties = list(type="G")
+		)
 )
 
 setClass(
 		Class = "PhenotypeLayer",
-		contains = "Layer"
+		contains = "Layer",
+		prototype = prototype(
+				properties = list(type="C")
+		)
 )
 PhenotypeLayer <- function(entity){
 	entity <- Layer(entity)

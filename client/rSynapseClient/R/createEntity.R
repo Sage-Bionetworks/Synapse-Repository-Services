@@ -60,9 +60,21 @@ setMethod(
 		f = "createEntity",
 		signature = signature("SynapseEntity"),
 		definition = function(entity, createAnnotations = FALSE){
-			## create the main entity
-			createEntity(entity = .extractEntityFromSlots(entity), className = class(entity))
-			#TODO should the annotations entity be created too?
+			## create the entity
+			oldAnnotations <- annotations(entity)
+			entity <- createEntity(entity = .extractEntityFromSlots(entity), className = class(entity))
+			## update entity annotations
+			newAnnotations <- annotations(entity)
+			annotationValues(newAnnotations) <- as.list(oldAnnotations)
+			tryCatch(
+				annotations(entity) <- updateEntity(newAnnotations),
+				error = function(e){
+					## unable to update annotations. delete parent entity.
+					deleteEntity(entity)
+					stop("Could not set annotations: ", e)
+				}
+			)
+			entity
 		}
 )
 

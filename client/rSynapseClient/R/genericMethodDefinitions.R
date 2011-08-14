@@ -21,7 +21,7 @@ setGeneric(
 
 setGeneric(
 		name = "updateEntity",
-		def = function(entity, ...){
+		def = function(entity){
 			standardGeneric("updateEntity")
 		}
 )

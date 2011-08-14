@@ -51,7 +51,7 @@ updateProject <-
 setMethod(
 		f = "updateEntity",
 		signature = signature("SynapseEntity"),
-		definition = function(entity, updateAnnotations=TRUE){
+		definition = function(entity){
 			## update the entity and store the result
 			tryCatch(entity <- updateAnnotations(entity),
 					error = function(e){
@@ -61,6 +61,14 @@ setMethod(
 			)
 			
 			do.call(class(entity), list(entity = .updateEntity(kind = synapseEntityKind(entity), entity=.extractEntityFromSlots(entity))))
+		}
+)
+setMethod(
+		f = "updateEntity",
+		signature = signature("SynapseAnnotation"),
+		definition = function(entity){
+			entity <- updateAnnotations(.extractEntityFromSlots(entity))
+			SynapseAnnotation(entity)
 		}
 )
 
