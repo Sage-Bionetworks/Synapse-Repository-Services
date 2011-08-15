@@ -67,7 +67,7 @@ public class CrowdUserDAO implements UserDAO {
 		if (dto.getIamAccessId()!=null) userAttributes.put(IAM_ACCESS_ID_FIELD, Arrays.asList(new String[]{dto.getIamAccessId()}));
 		if (dto.getIamSecretKey()!=null) userAttributes.put(IAM_SECRET_KEY_FIELD, Arrays.asList(new String[]{dto.getIamSecretKey()}));
 		try {
-			(new CrowdAuthUtil()).setUserAttributes(dto.getUserId(), userAttributes);
+			crowdAuthUtil().setUserAttributes(dto.getUserId(), userAttributes);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -84,6 +84,13 @@ public class CrowdUserDAO implements UserDAO {
 	private static final String IAM_USER_ID_FIELD = "iamUserId";
 	private static final String IAM_ACCESS_ID_FIELD = "iamAccessId";
 	private static final String IAM_SECRET_KEY_FIELD = "iamSecretKey";
+	
+	private CrowdAuthUtil cau = null;
+	
+	private CrowdAuthUtil crowdAuthUtil() {
+		if (cau==null) cau = new CrowdAuthUtil();
+		return cau;
+	}
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.UserDAO#getUser(java.lang.String)
@@ -96,7 +103,7 @@ public class CrowdUserDAO implements UserDAO {
 		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userName)) return user;
 		Map<String,Collection<String>> userAttrValues = null;
 		try {
-			userAttrValues = (new CrowdAuthUtil()).getUserAttributes(userName);
+			userAttrValues = crowdAuthUtil().getUserAttributes(userName);
 		} catch (NotFoundException nfe) {
 			throw nfe;
 		} catch (Exception e) {
@@ -131,7 +138,7 @@ public class CrowdUserDAO implements UserDAO {
 	@Override
 	public Collection<String> getUserGroupNames(String userName) throws NotFoundException, DatastoreException {
 		try {
-			return (new CrowdAuthUtil()).getUsersGroups(userName);
+			return crowdAuthUtil().getUsersGroups(userName);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

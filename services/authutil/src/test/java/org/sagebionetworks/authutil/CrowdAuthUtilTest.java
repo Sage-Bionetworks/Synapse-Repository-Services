@@ -7,7 +7,11 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.junit.After;
 import org.junit.Before;
@@ -23,7 +27,7 @@ public class CrowdAuthUtilTest {
 	
 	@After
 	public void tearDown() throws Exception {
-		// deleteUsers(); temporarily needed for 'testMultipleLogins()'
+		// deleteUsers();// temporarily needed for 'testMultipleLogins()'
 	}
 
 
@@ -43,6 +47,12 @@ public class CrowdAuthUtilTest {
 		boolean b = false;
 		public void set(boolean b) {this.b=b;}
 		public boolean get() {return b;}
+	}
+	
+	class MutableLong {
+		long L = 0L;
+		public void set(long L) {this.L=L;}
+		public long get() {return L;}
 	}
 	
 	private static final int NUM_USERS = 1;
@@ -92,42 +102,75 @@ public class CrowdAuthUtilTest {
 	@Ignore
 	@Test 
 	public void testMultipleLogins() throws Exception {
-		long start = System.currentTimeMillis();
-		final CrowdAuthUtil cau = new CrowdAuthUtil();
 		createUsers();
-		int n = 250;
+		for (int i : new int[]{1,5,10,15,20,50,100}) {
+//		for (int i : new int[]{1,2,3,4,5,6}) {
+			testMultipleLogins(i);
+		}
+	}
+		
+	public void testMultipleLogins(int n) throws Exception {
+//		long start = System.currentTimeMillis();
+		final CrowdAuthUtil cau = new CrowdAuthUtil();
+		Map<Integer, MutableLong> times = new HashMap<Integer, MutableLong>();
 		for (int i=0; i<n; i++) {
 			final int fi = i;
-			final MutableBoolean b = new MutableBoolean();
+			final MutableLong L = new MutableLong();
+			times.put(i, L);
 		 	Thread thread = new Thread() {
 				public void run() {
 					try {
 						User user = new User();
 						user.setEmail(userID(fi % NUM_USERS));
+						long start = System.currentTimeMillis();
 						cau.authenticate(user, false);
-						//cau.getUser(user.getEmail());
-						b.set(true);
+						L.set(System.currentTimeMillis()-start);
 					} catch (Exception e) {
 						fail(e.toString());
 					}
 				}
 			};
 			thread.start();
-			long start2 = System.currentTimeMillis();
-			try {
-//				thread.join(5000L); // time out after 5 sec
-				thread.join(30000L); // time out
-			} catch (InterruptedException ie) {
-				// as expected
-			}
-			System.out.println(""+i+": done after "+(System.currentTimeMillis()-start2)+" ms.");
-//			Thread.sleep(2000L);
-			assertTrue("Failed or timed out after "+i+" iterations.", b.get()); // should have been set to 'true' if successful
+//			try {
+////				thread.join(5000L); // time out after 5 sec
+//				thread.join(30000L); // time out
+//			} catch (InterruptedException ie) {
+//				// as expected
+//			}
+//			System.out.println(""+i+": done after "+(System.currentTimeMillis()-start2)+" ms.");
+////			Thread.sleep(2000L);
+//			assertTrue("Failed or timed out after "+i+" iterations.", b.get()); // should have been set to 'true' if successful
 		}
-		System.out.println("Took "+((System.currentTimeMillis()-start)/1000L)+
-				" sec to authenticate "+n+" times.");
+//		System.out.println("Took "+((System.currentTimeMillis()-start)/1000L)+
+//				" sec to initiate "+n+" authentication requests.");
+		int count = 0;
+		long elapsed = 0L;
+		Set<Long> sortedTimes = new TreeSet<Long>();
+		while (!times.isEmpty()) {
+			for (int i: times.keySet()) {
+				long L = times.get(i).get();
+				if (L!=0) {
+					elapsed += L;
+					//System.out.println((float)L/1000L+" sec.");
+					sortedTimes.add(L);
+					count++;
+					times.remove(i);
+					break;
+				}
+			}
+		}
+		System.out.println(count+" authentication request response time (sec): min "+
+				((float)sortedTimes.iterator().next()/1000L)+" avg "+((float)elapsed/count/1000L)+
+				" max "+((float)getLast(sortedTimes)/1000L));
+//		System.out.println("Average time to complete each of "+count+" authentication requests is "+((float)elapsed/count/1000L)+" sec.");
+//		System.out.println("Took "+((System.currentTimeMillis()-start)/1000L)+	" sec to authenticate "+n+" times.");
 
 	}
 
+	private static <T> T getLast(Set<T> set) {
+		T ans = null;
+		for (T v : set) ans=v;
+		return ans;
+	}
 
 }
