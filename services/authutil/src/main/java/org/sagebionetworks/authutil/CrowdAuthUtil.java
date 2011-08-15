@@ -50,8 +50,12 @@ public class CrowdAuthUtil {
 		// get the values from system properties, if available
 		crowdUrl = StackConfiguration.getCrowdEndpoint();
 		
+		
 		apiApplicationKey  = StackConfiguration.getCrowdAPIApplicationKey(); 
-					//System.getProperty("org.sagebionetworks.crowdApplicationKey");
+		
+		// !!!!!!! temporary, for testing !!!!!!!!!
+//		crowdUrl = "http://localhost:8095";
+//		apiApplicationKey = "platform-pw";
 		
 		// read values from the properties file
         Properties props = new Properties();
