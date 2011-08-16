@@ -131,7 +131,9 @@ public class Profiler {
 	private void doFireProfile(Frame frame) {
 		if(handlers != null){
 			for(ProfileHandler handler: this.handlers){
-				handler.fireProfile(frame);
+				if(handler.shouldCaptureProfile(null)){
+					handler.fireProfile(frame);
+				}
 			}
 		}
 	}
