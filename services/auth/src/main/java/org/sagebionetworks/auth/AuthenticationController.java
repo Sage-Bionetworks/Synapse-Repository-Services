@@ -17,11 +17,13 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.openid4java.consumer.ConsumerManager;
+import org.openid4java.discovery.DiscoveryInformation;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
@@ -132,7 +134,7 @@ public class AuthenticationController {
 	
 	private static final String OPEN_ID_URI = "/openid";
 	
-	private static final String RETURN_TO_URI = "/openidcallback";
+	private static final String OPENID_CALLBACK_URI = "/openidcallback";
 	
 	private static final String OPEN_ID_PROVIDER = "OPEN_ID_PROVIDER";
 	// 		e.g. https://www.google.com/accounts/o8/id
@@ -142,22 +144,23 @@ public class AuthenticationController {
 	// this is the parameter name for the value of the final redirect
 	private static final String RETURN_TO_URL_PARAM = "RETURN_TO_URL";
 	
-	// this is the key for the value of the final redirect
-	private static final String RETURN_TO_URL_KEY = AuthenticationController.class.getName()+".RETURN_TO_URL_KEY";
+//	// this is the key for the value of the final redirect
+//	private static final String RETURN_TO_URL_KEY = AuthenticationController.class.getName()+".RETURN_TO_URL_KEY";
 		
 	private static final String OPEN_ID_ATTRIBUTE = "OPENID";
 	
+	private static final String RETURN_TO_URL_COOKIE_NAME = "org.sagebionetworks.auth.returnToUrl";
+	private static final int RETURN_TO_URL_COOKIE_MAX_AGE = 60; // seconds
+	
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = OPEN_ID_URI, method = RequestMethod.POST)
-	public String openID(
+	public void openID(
 			@RequestParam(value = OPEN_ID_PROVIDER, required = true) String openIdProvider,
 			@RequestParam(value = RETURN_TO_URL_PARAM, required = true) String returnToURL,
               HttpServletRequest request,
               HttpServletResponse response) throws Exception {
 
 		HttpServlet servlet = null;
-		
-		request.getSession().setAttribute(RETURN_TO_URL_KEY, returnToURL);
 		
 		ConsumerManager manager = new ConsumerManager();
 //		request.getSession().setAttribute(MANAGER_KEY, manager); <<< not serializable
@@ -166,9 +169,14 @@ public class AuthenticationController {
 		String thisUrl = request.getRequestURL().toString();
 		int i = thisUrl.indexOf(OPEN_ID_URI);
 		if (i<0) throw new RuntimeException("Current URI, "+OPEN_ID_URI+", not found in "+thisUrl);
-		String returnToUrl = thisUrl.substring(0, i)+RETURN_TO_URI;
+		String openIDCallbackURL = thisUrl.substring(0, i)+OPENID_CALLBACK_URI;
 
-		return sampleConsumer.authRequest(openIdProvider, returnToUrl, servlet, request, response);
+//		request.getSession().setAttribute(RETURN_TO_URL_KEY, returnToURL);
+		Cookie cookie = new Cookie(RETURN_TO_URL_COOKIE_NAME, returnToURL);
+		cookie.setMaxAge(RETURN_TO_URL_COOKIE_MAX_AGE);
+		response.addCookie(cookie);
+		
+		sampleConsumer.authRequest(openIdProvider, openIDCallbackURL, servlet, request, response);
 	}
 
 	private static String dumpParamsArray(Map<String,String[]> p, String prefix) {
@@ -188,7 +196,7 @@ public class AuthenticationController {
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = RETURN_TO_URI, method = RequestMethod.GET)
+	@RequestMapping(value = OPENID_CALLBACK_URI, method = RequestMethod.GET)
 	public
 	void openIDCallback(
 			HttpServletRequest request,
@@ -207,7 +215,7 @@ public class AuthenticationController {
 //			session.removeAttribute(MANAGER_KEY);
 			
 			SampleConsumer sampleConsumer = new SampleConsumer(manager);
-			
+
 			OpenIDInfo openIDInfo = sampleConsumer.verifyResponse(request);
 			String openID = openIDInfo.getIdentifier();
 			
@@ -253,11 +261,18 @@ public class AuthenticationController {
 			crowdAuthUtil.setUserAttributes(email, attrs);
 			
 			Session crowdSession = crowdAuthUtil.authenticate(credentials, false);
-			// get the SSO token 
-//			return session;
-						
-			// instead of returning, redirect
-			String redirectUrl = request.getSession().getAttribute(RETURN_TO_URL_KEY)+":"+
+
+
+			String returnToURL = null;
+			Cookie[] cookies = request.getCookies();
+			for (Cookie c : cookies) {
+				if (RETURN_TO_URL_COOKIE_NAME.equals(c.getName())) {
+					returnToURL = c.getValue();
+					break;
+				}
+			}
+			if (returnToURL==null) throw new RuntimeException("Missing required return-to URL.");
+			String redirectUrl = returnToURL+":"+
 				crowdSession.getSessionToken()/*+":"+crowdSession.getDisplayName() Per PLFM-319*/;
 			String location = response.encodeRedirectURL(redirectUrl);
 			response.sendRedirect(location);
