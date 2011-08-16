@@ -59,6 +59,15 @@ public interface EntityManager {
 	 */
 	public List<EntityHeader> getEntityPath(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 
+	/**
+	 * This version of should only be used for validation, and should not be exposed directly to the caller.
+	 * @param entityId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public List<EntityHeader> getEntityPathAsAdmin(String entityId) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Get the type of an entity

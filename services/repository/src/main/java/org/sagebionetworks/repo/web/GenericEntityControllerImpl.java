@@ -275,7 +275,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	public void fireValidateEvent(UserInfo userInfo, EventType eventType, Nodeable entity, ObjectType type) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
 		List<EntityHeader> newParentPath = null;
 		if(entity.getParentId() != null){
-			newParentPath = entityManager.getEntityPath(userInfo, entity.getParentId());
+			newParentPath = entityManager.getEntityPathAsAdmin(entity.getParentId());
 		}
 		EntityEvent event = new EntityEvent(eventType, newParentPath, userInfo);
 		// First apply validation that is common to all types.

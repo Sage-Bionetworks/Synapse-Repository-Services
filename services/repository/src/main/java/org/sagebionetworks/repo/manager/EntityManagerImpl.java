@@ -266,4 +266,11 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.getNodePath(userInfo, entityId);
 	}
 
+	@Override
+	public List<EntityHeader> getEntityPathAsAdmin(String entityId)
+			throws NotFoundException, DatastoreException {
+		// pass through
+		return nodeManager.getNodePathAsAdmin(entityId);
+	}
+
 }

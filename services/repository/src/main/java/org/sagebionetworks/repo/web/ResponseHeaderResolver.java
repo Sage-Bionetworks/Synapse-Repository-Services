@@ -1,15 +1,22 @@
 package org.sagebionetworks.repo.web;
 
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.codec.binary.Base64;
+import org.json.JSONException;
 import org.sagebionetworks.repo.model.Base;
 import org.springframework.ui.ExtendedModelMap;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.annotation.ModelAndViewResolver;
+
+import profiler.org.sagebionetworks.Frame;
+import profiler.org.sagebionetworks.ProfileFilter;
+import profiler.org.sagebionetworks.ProfileSingleton;
 
 /**
  * This interceptor adds HTTP response headers as appropriate. Specifically it
@@ -66,9 +73,39 @@ public class ResponseHeaderResolver implements ModelAndViewResolver {
 							.getUri());
 				}
 			}
+			
+			/*
+			 * Add the profile data to the header when requested.
+			 */
+			String value = request.getHeader(ProfileFilter.KEY_PROFILE_REQUEST);
+			if(value != null){
+				Frame frame = ProfileSingleton.getFrame();
+				if (frame != null) {
+					try {
+						String json = Frame.writeFrameJSON(frame);
+						response.setHeader(ProfileFilter.KEY_PROFILE_RESPONSE_OBJECT,base64Encode(json));
+					} catch (JSONException e) {
+						throw new RuntimeException(e);
+					} catch (UnsupportedEncodingException e) {
+						throw new RuntimeException(e);
+					}
+				}
+			}
+			
 		}
 		return UNRESOLVED; // Tell Spring to keep doing its thing (such as
 		// serializing returnValue to the appropriate
 		// encoding)
+	}
+	
+	/**
+	 * Helper to base64 encode header values
+	 * @param toEncode
+	 * @return
+	 * @throws UnsupportedEncodingException 
+	 */
+	private static String base64Encode(String toEncode) throws UnsupportedEncodingException{
+		if(toEncode == null) return null;
+		 return new String(Base64.encodeBase64(toEncode.getBytes("UTF-8")), "UTF-8");
 	}
 }

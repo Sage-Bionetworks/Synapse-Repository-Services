@@ -457,6 +457,13 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 		return nodeDao.getEntityPath(nodeId);
 	}
+	
+	@Transactional(readOnly = true)
+	@Override
+	public List<EntityHeader> getNodePathAsAdmin(String nodeId)	throws NotFoundException, DatastoreException {
+		// This version does not require authorization.
+		return nodeDao.getEntityPath(nodeId);
+	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -472,5 +479,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		nodeDao.updateAnnotations(id, newAnnotations);
 		return id;
 	}
+
+
 
 }

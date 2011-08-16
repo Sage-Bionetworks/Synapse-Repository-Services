@@ -80,6 +80,7 @@
 		<property name="handlers">
 			<list>
 				<bean name="loggingProfiler" class="profiler.org.sagebionetworks.LoggingProfiler" />
+				<bean name="perThreadProfiler" class="profiler.org.sagebionetworks.PerThreadHandler" />
 			</list>
 		</property>
 	</bean>

@@ -68,6 +68,19 @@
          <url-pattern>/*</url-pattern>  
      </filter-mapping>  
   
+   	<filter>  
+ 		<filter-name>profileFilter</filter-name>  
+         <filter-class>profiler.org.sagebionetworks.ProfileFilter</filter-class>  
+         <init-param>  
+ 			<param-name>default_value</param-name> 
+ 			<param-value>false</param-value>             
+         </init-param>  
+ 	</filter> 
+
+     <filter-mapping>  
+         <filter-name>profileFilter</filter-name>  
+         <url-pattern>/*</url-pattern>  
+     </filter-mapping>  
   
   <servlet>
     <servlet-name>repository</servlet-name>

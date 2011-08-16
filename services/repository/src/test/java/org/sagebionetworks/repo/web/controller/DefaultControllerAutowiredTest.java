@@ -1,9 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,13 +23,10 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -220,6 +215,28 @@ public class DefaultControllerAutowiredTest {
 		
 		userId = "foo"; // arbitrary user shouldn't have access
 		assertEquals(new BooleanResult(false), ServletTestHelper.hasAccess(dispatchServlet, Project.class, clone.getId(), userId, accessType));
+	}
+	
+	/**
+	 * This is a test for PLFM-473.
+	 * @throws IOException 
+	 * @throws ServletException 
+	 */
+	@Test
+	public void testProjectUpdate() throws ServletException, IOException{
+		// Frist create a project as a non-admin
+		Project project = new Project();
+		project.setName("testProjectUpdatePLFM-473");
+		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, TestUserDAO.TEST_USER_NAME);
+		assertNotNull(clone);
+		toDelete.add(clone.getId());
+		// Now make sure this user can update
+		String newName = "testProjectUpdatePLFM-473-updated";
+		clone.setName("testProjectUpdatePLFM-473-updated");
+		clone = ServletTestHelper.updateEntity(dispatchServlet, clone, TestUserDAO.TEST_USER_NAME);
+		clone = ServletTestHelper.getEntity(dispatchServlet, Project.class, clone.getId(),  TestUserDAO.TEST_USER_NAME);
+		assertEquals(newName, clone.getName());
+		
 	}
 	
 
