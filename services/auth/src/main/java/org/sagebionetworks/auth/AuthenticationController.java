@@ -20,7 +20,6 @@ import java.util.logging.Logger;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 
 import org.openid4java.consumer.ConsumerManager;
 import org.sagebionetworks.authutil.AuthUtilConstants;
@@ -138,7 +137,7 @@ public class AuthenticationController {
 	private static final String OPEN_ID_PROVIDER = "OPEN_ID_PROVIDER";
 	// 		e.g. https://www.google.com/accounts/o8/id
 	
-	private static final String MANAGER_KEY = AuthenticationController.class.getName()+".MANAGER_KEY";
+//	private static final String MANAGER_KEY = AuthenticationController.class.getName()+".MANAGER_KEY";
 	
 	// this is the parameter name for the value of the final redirect
 	private static final String RETURN_TO_URL_PARAM = "RETURN_TO_URL";
@@ -161,7 +160,7 @@ public class AuthenticationController {
 		request.getSession().setAttribute(RETURN_TO_URL_KEY, returnToURL);
 		
 		ConsumerManager manager = new ConsumerManager();
-		request.getSession().setAttribute(MANAGER_KEY, manager);
+//		request.getSession().setAttribute(MANAGER_KEY, manager); <<< not serializable
 		SampleConsumer sampleConsumer = new SampleConsumer(manager);
 		
 		String thisUrl = request.getRequestURL().toString();
@@ -190,7 +189,7 @@ public class AuthenticationController {
 	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = RETURN_TO_URI, method = RequestMethod.GET)
-	public @ResponseBody
+	public
 	void openIDCallback(
 			HttpServletRequest request,
 			HttpServletResponse response) throws Exception {
@@ -201,11 +200,11 @@ public class AuthenticationController {
 //					dumpParamsArray(request.getParameterMap(), "\t")
 //					
 //			);
-			HttpSession session = request.getSession();
-			ConsumerManager manager = (ConsumerManager)session.getAttribute(MANAGER_KEY);
-			if (manager==null) throw new NullPointerException();
+//			HttpSession session = request.getSession();
+			ConsumerManager manager = new ConsumerManager(); //(ConsumerManager)session.getAttribute(MANAGER_KEY);
+//			if (manager==null) throw new NullPointerException();
 			
-			session.removeAttribute(MANAGER_KEY);
+//			session.removeAttribute(MANAGER_KEY);
 			
 			SampleConsumer sampleConsumer = new SampleConsumer(manager);
 			
