@@ -107,7 +107,6 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 			UserData user = authenticationController.getLoggedInUser();
 			Agreement agreement = new Agreement();							
 			agreement.setEulaId(licenseAgreement.getEulaId());
-			agreement.setName(DisplayUtils.cleanForEntityName("Synapse Web Agreement by "+ user.getEmail()));
 			agreement.setDatasetId(model.getParentId());
 			
 			nodeService.createNode(NodeType.AGREEMENT, agreement.toJson(), new AsyncCallback<String>() {
