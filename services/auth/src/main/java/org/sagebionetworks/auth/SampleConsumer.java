@@ -4,15 +4,21 @@ package org.sagebionetworks.auth;
  * Copyright 2006-2007 Sxip Identity Corporation
  */
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.List;
 import java.util.Map;
 
 import javax.servlet.ServletException;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.codec.binary.Base64;
 import org.openid4java.OpenIDException;
 import org.openid4java.consumer.ConsumerManager;
 import org.openid4java.consumer.VerificationResult;
@@ -25,6 +31,8 @@ import org.openid4java.message.ParameterList;
 import org.openid4java.message.ax.AxMessage;
 import org.openid4java.message.ax.FetchRequest;
 import org.openid4java.message.ax.FetchResponse;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StringEncrypter;
 
 /**
  * Sample Consumer (Relying Party) implementation.
@@ -45,8 +53,43 @@ public class SampleConsumer
     public static final String AX_FIRST_NAME = "FirstName";
     public static final String AX_LAST_NAME = "LastName";
     
+    private static final String DISCOVERY_INFO_COOKIE_NAME = "org.sagebionetworks.auth.discoveryInfoCookie";
+    private static final int DISCOVERY_INFO_COOKIE_MAX_AGE = 60; // sec
+    
+    /**
+     * Serializes, encrypts and Base-64 encodes an object, so that it can be safely put in a cookie.
+     * Note:  Encryption/decryption doesn't seem to work on the binary serialized object directly,
+     * so we Base64 encode it one extra time before encrypting.  For small objects this doesn't add
+     * a performance burden.
+     */
+    public static <T> String encryptingSerializer(T o) throws IOException {
+	    ByteArrayOutputStream out = new ByteArrayOutputStream();
+	    ObjectOutputStream oos = new ObjectOutputStream(out);
+	    oos.writeObject(o);
+	    oos.close();
+	    byte[] serializedAndBase64Encoded = Base64.encodeBase64(out.toString().getBytes());
+	    StringEncrypter se = new StringEncrypter(StackConfiguration.getEncryptionKey());
+	    return se.encrypt(new String(serializedAndBase64Encoded));
+    }
+    
+    /**
+     * Decrypts and deserializes an object.  See 'encryptingSerializer' for details.
+     */
+    public static <T> T decryptingDeserializer(String s) throws IOException {
+		String encryptedDI = s;
+	   	StringEncrypter se = new StringEncrypter(StackConfiguration.getEncryptionKey());
+	   	String serializedAndBase64EncodedDI = se.decrypt(encryptedDI);
+		ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(serializedAndBase64EncodedDI.getBytes()));
+		ObjectInputStream ois = new ObjectInputStream(bais);
+		try {
+			return (T)ois.readObject();
+		} catch (ClassNotFoundException e) {
+			throw new RuntimeException(e);
+		}
+    }
+    
     // --- placing the authentication request ---
-    public String authRequest(String userSuppliedString,
+    public void authRequest(String userSuppliedString,
     						  String returnToUrl,
     						  HttpServlet servlet,
                               HttpServletRequest httpReq,
@@ -67,7 +110,13 @@ public class SampleConsumer
             // attempt to associate with the OpenID provider
             // and retrieve one service endpoint for authentication
             DiscoveryInformation discovered = manager.associate(discoveries);
-
+            
+            // write it to a cookie
+            String encryptedDI = encryptingSerializer(discovered);
+    		Cookie cookie = new Cookie(DISCOVERY_INFO_COOKIE_NAME, encryptedDI);
+    		cookie.setMaxAge(DISCOVERY_INFO_COOKIE_MAX_AGE);
+    		httpResp.addCookie(cookie);
+            
             // store the discovery information in the user's session
             httpReq.getSession().setAttribute("openid-disc", discovered);
 
@@ -87,25 +136,11 @@ public class SampleConsumer
             // attach the extension to the authentication request
             authReq.addExtension(fetch);
 
+            // Option 1: GET HTTP-redirect to the OpenID Provider endpoint
+            // The only method supported in OpenID 1.x
+            // redirect-URL usually limited ~2048 bytes
+            httpResp.sendRedirect(authReq.getDestinationUrl(true));
 
-            /* if (true  ! discovered.isVersion2() ) */
-            {
-                // Option 1: GET HTTP-redirect to the OpenID Provider endpoint
-                // The only method supported in OpenID 1.x
-                // redirect-URL usually limited ~2048 bytes
-                httpResp.sendRedirect(authReq.getDestinationUrl(true));
-                return null;
-            }
-//            else
-//            {
-//                // Option 2: HTML FORM Redirection (Allows payloads >2048 bytes)
-//
-//                RequestDispatcher dispatcher =
-//                        servlet.getServletContext().getRequestDispatcher("formredirection.jsp");
-//                httpReq.setAttribute("parameterMap", authReq.getParameterMap());
-//                httpReq.setAttribute("destinationUrl", authReq.getDestinationUrl(false));
-//                dispatcher.forward(httpReq, httpResp);
-//            }
         }
         catch (OpenIDException e)
         {
@@ -115,7 +150,7 @@ public class SampleConsumer
 
     // --- processing the authentication response ---
     public OpenIDInfo verifyResponse(HttpServletRequest httpReq)
-    {
+    throws IOException {
         try
         {
             // extract the parameters from the authentication response
@@ -124,8 +159,8 @@ public class SampleConsumer
                     new ParameterList(httpReq.getParameterMap());
 
             // retrieve the previously stored discovery information
-            DiscoveryInformation discovered = (DiscoveryInformation)
-                    httpReq.getSession().getAttribute("openid-disc");
+//            DiscoveryInformation discovered = (DiscoveryInformation)
+//                    httpReq.getSession().getAttribute("openid-disc");
 
             // extract the receiving URL from the HTTP request
             StringBuffer receivingURL = httpReq.getRequestURL();
@@ -138,6 +173,16 @@ public class SampleConsumer
             OpenIDInfo result = new OpenIDInfo();
             // modification needed to get it working with hosted google apps.  From 
             // http://groups.google.com/group/openid4java/browse_thread/thread/2349e5e3a29f5c5d?pli=1
+            
+            Cookie[] cookies = httpReq.getCookies();
+            DiscoveryInformation discovered = null;
+            for (Cookie c : cookies) {
+            	if (DISCOVERY_INFO_COOKIE_NAME.equals(c.getName())) {
+            		discovered = decryptingDeserializer(c.getValue());
+            		break;
+            	}
+            }
+            if (discovered==null) throw new RuntimeException("OpenID authentication failure: Missing required discovery information.");
             if (false) {
                 // verify the response
                 VerificationResult verification = manager.verify(
