@@ -5,8 +5,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectOutputStream;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -17,6 +19,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.openid4java.consumer.ConsumerManager;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.authutil.User;
@@ -421,6 +424,19 @@ public class AuthenticationControllerTest {
 			assertTrue("Failed or timed out after "+i+" iterations.", b.get()); // should have been set to 'true' if successful
 		}
 	}
+	
+	// this test is known to break; the class will not be expected to serialize
+	@Ignore
+	@Test
+	public void testIsSerializable()  throws Exception {
+	    ConsumerManager cm = new ConsumerManager();
+	    ByteArrayOutputStream out = new ByteArrayOutputStream();
+	    ObjectOutputStream oos = new ObjectOutputStream(out);
+	    oos.writeObject(cm);
+	    oos.close();
+	    assertTrue(out.toByteArray().length > 0);
+	}
+	
 
 }
 
