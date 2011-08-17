@@ -114,7 +114,7 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
     }
 
 	@Override
-	public void editAnnotation(String key, String newValue) {
+	public void editAnnotation(String key, String newValue) {		
 		if(key != null && newValue != null) {
 			for(FormField formField : formFields) {
 				if(formField.getKey().equals(key)) {
@@ -367,6 +367,13 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
     }
 	
 	private void addAnnotationField(String key, ColumnEditType type, Ontology ontology) {
+		// validate key
+		String errorMessage = validateKey(key);
+		if(errorMessage != null) {
+			view.showAddAnnotationFail(errorMessage);
+			return;
+		}
+		
 		// TODO : incorporate ontology into the mix
 		
 		if(originalAnnotationObject.containsKey(key)) {
@@ -425,5 +432,15 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 				object.put(typeKey, newTypeObj);
 			}
 		}
+	}
+	
+	private String validateKey(String key) {
+		String errorMsg = null;
+		if(!DisplayUtils.validateAnnotationKey(key)) {
+			errorMsg = DisplayConstants.ERROR_INVALID_ENTITY_NAME;
+			String offending = DisplayUtils.getOffendingCharacterForAnnotationKey(key);
+			errorMsg += offending == null ? "." : ": " + offending;
+		}
+		return errorMsg;
 	}
 }

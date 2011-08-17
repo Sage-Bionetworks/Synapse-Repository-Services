@@ -22,11 +22,14 @@ import com.google.gwt.user.client.ui.FlexTable;
 
 public class DisplayUtils {
 
-private static final String ERROR_OBJ_REASON_KEY = "reason";
-//	public static final Logger logger = Logger.getLogger("SynapseLogger");
+	private static final String REGEX_CLEAN_ANNOTATION_KEY = "^[a-z,A-Z,0-9,_,.]+";
+	private  static final String REGEX_CLEAN_ENTITY_NAME = "^[a-z,A-Z,0-9,_,., ,\\-,\\+,(,)]+";
+	public static final String REPO_ENTITY_NAME_KEY = "name";
+	//	public static final Logger logger = Logger.getLogger("SynapseLogger");
 	public static final String DEFAULT_PLACE_TOKEN = "0";
 	public static PlaceController placeController;	
 	
+	private static final String ERROR_OBJ_REASON_KEY = "reason";
 	/**
 	 * Returns a properly aligned icon from an ImageResource
 	 * @param icon
@@ -145,6 +148,48 @@ private static final String ERROR_OBJ_REASON_KEY = "reason";
 	}
 
 	/**
+	 * Check if an Annotation key is valid with the repository service
+	 * @param key
+	 * @return
+	 */
+	public static boolean validateAnnotationKey(String key) {
+		if(key.matches(REGEX_CLEAN_ANNOTATION_KEY)) {
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * Check if an Entity (Node) name is valid with the repository service
+	 * @param key
+	 * @return
+	 */
+	public static boolean validateEntityName(String key) {
+		if(key.matches(REGEX_CLEAN_ENTITY_NAME)) {
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * Cleans any invalid name characters from a string  
+	 * @param str
+	 * @return
+	 */
+	public static String getOffendingCharacterForEntityName(String key) {
+		return getOffendingCharacter(key, REGEX_CLEAN_ENTITY_NAME);
+	}
+
+	/**
+	 * Cleans any invalid name characters from a string  
+	 * @param str
+	 * @return
+	 */
+	public static String getOffendingCharacterForAnnotationKey(String key) {
+		return getOffendingCharacter(key, REGEX_CLEAN_ANNOTATION_KEY);
+	}	
+	
+	/**
 	 * Cleans any invalid name characters from a string  
 	 * @param str
 	 * @return
@@ -161,5 +206,19 @@ private static final String ERROR_OBJ_REASON_KEY = "reason";
 		fullPlaceName = fullPlaceName.replaceAll(".+\\.", "");
 		return fullPlaceName;
 	}
-		
+
+	/**
+	 * Returns the offending character given a regex string
+	 * @param key
+	 * @param regex
+	 * @return
+	 */
+	private static String getOffendingCharacter(String key, String regex) {
+		String suffix = key.replaceFirst(regex, "");
+		if(suffix != null && suffix.length() > 0) {
+			return suffix.substring(0,1);
+		}
+		return null;		
+	}
+
 }

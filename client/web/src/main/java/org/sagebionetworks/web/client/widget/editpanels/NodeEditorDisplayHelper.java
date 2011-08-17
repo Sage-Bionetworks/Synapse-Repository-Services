@@ -12,8 +12,8 @@ import org.sagebionetworks.web.shared.NodeType;
 
 import com.google.inject.Inject;
 
-public class NodeEditorDisplayHelper {
-
+public class NodeEditorDisplayHelper {	
+	
 	private Map<NodeType, SpecificNodeTypeDeviation> typeToDevaition;
 		
 	@Inject

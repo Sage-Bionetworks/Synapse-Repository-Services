@@ -234,11 +234,18 @@ public class NodeEditor implements NodeEditorView.Presenter {
 
 	@Override
 	public void persist(List<FormField> formFields) {
+		// validate form fields
+		String nameValidationErrorMessage = validateFormFieldNames(formFields);
+		if(nameValidationErrorMessage != null) {
+			view.showPersistFail(nameValidationErrorMessage);
+			return;
+		}
+
 		final SpecificNodeTypeDeviation deviation = nodeEditorDisplayHelper.getNodeTypeDeviation(nodeType);
 		if(editId != null) {
 			// UPDATE
 			JSONValue eTagJSON = originalNode.get(DisplayConstants.SERVICE_ETAG_KEY);
-			String etag = eTagJSON != null ? eTagJSON.isString().stringValue() : null; 
+			String etag = eTagJSON != null ? eTagJSON.isString().stringValue() : null;
 			String updateJson = mergeChangesIntoJsonString(originalNode, formFields, deviation.getCreationIgnoreFields(), parentId);
 			service.updateNode(nodeType, editId, updateJson, etag, new AsyncCallback<String>() {		
 				@Override
@@ -294,7 +301,6 @@ public class NodeEditor implements NodeEditorView.Presenter {
 		}	
 	}
 
-
 	/*
 	 * Private Methods
 	 */
@@ -337,5 +343,20 @@ public class NodeEditor implements NodeEditorView.Presenter {
 			json.put(DisplayConstants.SERVICE_PARENT_ID_KEY, new JSONString(parentId));
 		}
 		return json.toString();
-	}	
+	}
+		
+	private String validateFormFieldNames(List<FormField> formFields) {
+		String errorMsg = null;
+		for(FormField field : formFields) {
+			if(DisplayUtils.REPO_ENTITY_NAME_KEY.equals(field.getKey())) {				
+				if(!DisplayUtils.validateEntityName(field.getValue())) {
+					errorMsg = DisplayConstants.ERROR_INVALID_ENTITY_NAME;
+					String offending = DisplayUtils.getOffendingCharacterForEntityName(field.getValue());
+					errorMsg += offending == null ? "." : ": " + offending;
+				}
+			}			
+		}
+		return errorMsg;
+	}
+
 }

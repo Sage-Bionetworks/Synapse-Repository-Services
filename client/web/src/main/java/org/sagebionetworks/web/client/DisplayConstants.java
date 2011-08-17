@@ -95,6 +95,7 @@ public class DisplayConstants {
 	public static final String ERROR_SAVE_MESSAGE = "An error occuring attempting to save. Please try again.";
 	public static final String ERROR_BAD_REQUEST_MESSAGE = "An unknown communication error occured. Please reload the page.";
 	public static final String ERROR_DUPLICATE_ENTITY_MESSAGE = "An entity with this name already exists. Please enter a different name.";
+	public static final String ERROR_INVALID_ENTITY_NAME = "Name contains contains an invalid character";
 	
 	
 	/*
