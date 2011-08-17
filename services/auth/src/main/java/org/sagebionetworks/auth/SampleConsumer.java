@@ -9,6 +9,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
 
@@ -67,9 +68,10 @@ public class SampleConsumer
 	    ObjectOutputStream oos = new ObjectOutputStream(out);
 	    oos.writeObject(o);
 	    oos.close();
-	    byte[] serializedAndBase64Encoded = Base64.encodeBase64(out.toString().getBytes());
+	    byte[] serializedAndBase64Encoded = Base64.encodeBase64(out.toByteArray());
 	    StringEncrypter se = new StringEncrypter(StackConfiguration.getEncryptionKey());
-	    return se.encrypt(new String(serializedAndBase64Encoded));
+	    String encrypted = se.encrypt(new String(serializedAndBase64Encoded));
+	    return encrypted;
     }
     
     /**
@@ -79,7 +81,8 @@ public class SampleConsumer
 		String encryptedDI = s;
 	   	StringEncrypter se = new StringEncrypter(StackConfiguration.getEncryptionKey());
 	   	String serializedAndBase64EncodedDI = se.decrypt(encryptedDI);
-		ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(serializedAndBase64EncodedDI.getBytes()));
+	   	byte[] serializedByteArray = Base64.decodeBase64(serializedAndBase64EncodedDI.getBytes());
+		ByteArrayInputStream bais = new ByteArrayInputStream(serializedByteArray);
 		ObjectInputStream ois = new ObjectInputStream(bais);
 		try {
 			return (T)ois.readObject();
