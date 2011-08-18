@@ -90,7 +90,29 @@
 					<div class="scrollable longer">
 					</div>
 				</div>
-				
+
+				<div class="data_detail_section last">
+					<span class="header">
+						<span class="icon right">
+							<g:Image resource='{icons.applicationResize16}'/> View All<br/>
+							<g:Image resource='{icons.documentAdd16}'/> Add an Event
+						</span>
+
+						<span class="title">Project History</span>
+					</span>
+					<table width="100%" class="head_table">
+						<tr>
+							<th class="analysis">Action</th>
+							<th class="project">User</th>
+							<th class="last_modified">Date</th>
+						</tr>
+					</table>
+					<div class="scrollable">
+						<g:SimplePanel ui:field="demoProjectHistory" />
+					</div>
+				</div>
+
+ 				
 			</div>
 					
 <!-- start footer -->
