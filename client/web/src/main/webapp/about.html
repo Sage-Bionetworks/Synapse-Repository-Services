@@ -1,0 +1,229 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Synapse : All Projects</title>
+<link href="style.css" rel="stylesheet">
+<!--[if IE 7]>
+	<link href="ie7.css" rel="stylesheet">
+	<![endif]-->
+<!-- jQuery and jQuery UI -->
+<link rel="stylesheet"
+	href="http://jqueryui.com/themes/base/jquery.ui.all.css">
+<script type="text/javascript"
+	src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.11/jquery-ui.min.js"></script>
+
+<!-- Search autocomplete script. Temporary -->
+<script>
+	var TRANSMART_SEARCH = "http://transmart.sagebase.org/transmart/search/search?sourcepage=search&id=";
+	$(function() {
+		$("#query")
+				.autocomplete(
+						{
+							source : function(request, response) {
+								$
+										.ajax({
+											url : "http://transmart.sagebase.org/transmart/search/loadSearch",
+											dataType : "jsonp",
+											data : {
+												query : "all:" + request.term
+											},
+											success : function(data) {
+												response($
+														.map(
+																data.rows,
+																function(item) {
+																	return {
+																		label : item.display
+																				+ ": "
+																				+ item.keyword,
+																		value : item.name,
+																		id : item.id
+																	}
+																}));
+											}
+										});
+							},
+							minLength : 1,
+							select : function(event, ui) {
+								if (ui.item.id) {
+									document.location = TRANSMART_SEARCH
+											+ ui.item.id;
+								}
+							}
+						});
+	});
+</script>
+
+</head>
+<body>
+	<div id="container" class="clearfix">
+		<div class="header">
+			<div id="header_top" class="clearfix">
+				<div id="logo" class="left">
+					<a href="Portal.html"><img
+						src="static/images/SagebionetworksLogo-g.png" /> </a>
+				</div>
+				<div id="user_tools" class="right">
+					<span class="hello">Welcome Michael K.</span><br /> <span
+						class="tools right"><a href="edit_profile.html">My
+							profile</a> | <a href="">Logout</a> </span>
+				</div>
+			</div>
+			<div class="global_nav">
+				<ul>
+					<li class="first" id="navbar_datasets_li"><a
+						href="Portal.html#DatasetsHome:0" id="navbar_datasets_a">Datasets</a>
+					</li>
+					<li id="navbar_tools_li"><a href="">Tools</a>
+					</li>
+					<li id="navbar_networks_li"><a href="">Networks</a>
+					</li>
+					<li id="navbar_people_li"><a href="people.html">People</a>
+					</li>
+					<li id="navbar_projects_li"><a
+						href="projects.html">Projects</a>
+					</li>
+				</ul>
+				<div id="search" class="right">
+					<!-- <form action="" method="get">  -->
+					<input id="query" type="input" class="search_box" name="q" value=""
+						style="height: 18px;">
+
+					<button class="search_submit">
+						<img src="static/images/search_button.png" />
+					</button>
+					<span class="advanced"><a href="">Advanced<br>Search</a>
+					</span>
+					<!-- </form>  -->
+				</div>
+			</div>
+		</div>
+		<div id="main" role="main">
+			<div id="main_content" class="clearfix">
+				<ul class="breadcrumbs">
+					<li class="breadcrumb"><a href="Portal.html">Home</a> > About
+						Synapse</li>
+				</ul>
+				<h2>About Synapse</h2>
+				<div class="info">
+					Every year a wealth of new information technology product launches
+					is fueled by Moore’s Law increases in compute power. In the
+					pharmaceutical industry, however, the recent exponential growth of
+					biological “omics” data has occurred concurrently with a decline in
+					the number of NMEs approved by the FDA. Sage Bionetworks believes
+					that a fundamental reason biological research productivity does not
+					scale with biological data generation is that the analysis and
+					interpretation of genomic data remains largely an isolated,
+					individual activity. Sage Bionetworks’ mission is to catalyze a
+					cultural transition from the traditional single lab,
+					single-company, and single-therapy R&D paradigm to a model with
+					broad precompetitive collaboration on the analysis of large scale
+					data in medical sciences. For this to happen it is critical that:<br /><br />
+					<ol>
+						<li>Human health data become accessible and reusable by
+							people other than the original data generators allowing multiple
+							parallel approaches to data interpretation</li>
+						<li>Analytical methodologies become fully reproducible and
+							transparent so that results can be vetted and existing analysis
+							techniques quickly applied to new application areas</li>
+						<li>Models of biological systems and networks be opened to a
+							variety of users such that theoretical predictions can be rapidly
+							validated experimentally and improve standards of care for
+							patients</li>
+					</ol><br /><br />
+					Sage Bionetworks is actively engaged with academic and
+					pharmaceutical collaborators in developing technical, policy and
+					strategic solutions to these issues. Part of Sage’s solution is
+					Synapse, a platform for open, reproducible data-driven science,
+					which will provide support for Sage’s research initiatives and
+					serve as a resource for the broader scientific community. <br /><br />
+					Synapse will support the reusability of information facilitated by
+					ontology-based services and applications directed at scientific
+					researchers and data curators. Sage Bionetworks is actively
+					pursuing the acquisition, curation, statistical quality control,
+					and hosting of human and mouse global coherent datasets for use by
+					Sage Bionetworks researchers, collaborators, and the broader
+					research community. Global coherent datasets integrate both
+					clinical phenotype and genomic data along with an intermediate
+					molecular layer such as gene expression or proteomic data.
+					Typically studies contain genome-wide genetic variation data and/or
+					expression profiling data. We expect the release of these sorts of
+					unique, integrative, high value datasets into the public domain
+					will seed a variety of analytical approaches to drive new
+					treatments based on better understanding of disease states and the
+					biological effects of existing drugs. <br /><br />Reproducible analysis
+					and disease model reuse require a supporting informatics
+					infrastructure. In the Sage Bionetworks system, users interact with
+					resources via a number of mechanisms depending upon their interests
+					and expertise. The Synapse web portal will be an environment for
+					end user scientists to interact and share data, models, and
+					analysis methods, both in the context of specific research
+					projects, and broadly across otherwise disparate projects. Many
+					other specialized scientific tools can be extended to load data and
+					save results to the Sage Bionetworks platform, or to perform
+					analysis by calling methods executed on a remote service. The Sage
+					Bionetworks Platform is aggressively leveraging and optimizing its
+					architecture to take full advantage of the rapidly maturing cloud
+					computing technologies which will put on-demand supercomputing
+					power in the hands of the average researcher. These more
+					specialized analytical clients would support use cases in data
+					curation and quality control as well as scientific analysis.<br /><br />
+					<a href="static/images/Synapse-Vision-Document.pdf"
+						class="bulleted">Download the Synapse Vision Document...</a>
+				</div>
+			</div>
+
+			<!-- This is the static footer -->
+			<div class="footer">
+				<hr />
+				<div class="footer_nav clearfix left">
+					<table>
+						<tr>
+							<td><a href="">Privacy Policy</a>
+							</td>
+							<td><a href="">Platform support</a>
+							</td>
+							<td><a href="">Creative Commons License</a>
+							</td>
+						</tr>
+						<tr>
+							<td><a href="">FAQ</a>
+							</td>
+							<td><a href="">Submit feedback</a>
+							</td>
+							<td><a href="">Visit the Sage website</a>
+							</td>
+						</tr>
+					</table>
+				</div>
+				<div class="footer_logos">
+					<ul>
+						<li><a href="http://www.lsdfa.org/" target="_new"><img
+								src="images/LSDF_logo.jpg" /> </a>
+						</li>
+						<li><a href="http://www.cancer.gov/" target="_new"><img
+								src="images/NCI_logo.jpg" /> </a>
+						</li>
+					</ul>
+				</div>
+				<div class="contact right">
+					<div class="vcard right">
+						<p class="fn">
+							<span class="organization-name">Sage Bionetworks</span>
+						<p>
+						<p class="adr">
+							<span class="street-address">1100 Fairview Ave N</span><br>
+							<span class="locality">Seattle</span> <span class="region">WA</span>
+							<span class="postal-code">98109</span><br> <a
+								href="mailto:sage@sagebase.org">sage@sagebase.org</a>
+						</p>
+					</div>
+					<img src="static/images/sage_logo.png" class="logo" alt="sage logo">
+				</div>
+			</div>
+		</div>
+</body>
+</html>
