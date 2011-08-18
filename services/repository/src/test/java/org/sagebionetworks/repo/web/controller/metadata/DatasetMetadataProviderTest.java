@@ -23,8 +23,8 @@ import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InputDataLayer;
-import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
+import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.Nodeable;
@@ -139,7 +139,7 @@ public class DatasetMetadataProviderTest {
 			assertNotNull(expression.getId());
 			if(NodeConstants.COLUMN_LAYER_TYPE.equals(expression.getId().getFieldName())){
 				assertEquals(Compartor.EQUALS, expression.getCompare());
-				assertEquals(InputDataLayer.LayerTypeNames.C.name(), expression.getValue());
+				assertEquals(Layer.LayerTypeNames.C.name(), expression.getValue());
 			}
 		}
 	}
@@ -157,7 +157,7 @@ public class DatasetMetadataProviderTest {
 			assertNotNull(expression.getId());
 			if(NodeConstants.COLUMN_LAYER_TYPE.equals(expression.getId().getFieldName())){
 				assertEquals(Compartor.EQUALS, expression.getCompare());
-				assertEquals(InputDataLayer.LayerTypeNames.E.name(), expression.getValue());
+				assertEquals(Layer.LayerTypeNames.E.name(), expression.getValue());
 			}
 		}
 	}
@@ -175,7 +175,7 @@ public class DatasetMetadataProviderTest {
 			assertNotNull(expression.getId());
 			if(NodeConstants.COLUMN_LAYER_TYPE.equals(expression.getId().getFieldName())){
 				assertEquals(Compartor.EQUALS, expression.getCompare());
-				assertEquals(InputDataLayer.LayerTypeNames.G.name(), expression.getValue());
+				assertEquals(Layer.LayerTypeNames.G.name(), expression.getValue());
 			}
 		}
 	}
@@ -200,7 +200,7 @@ public class DatasetMetadataProviderTest {
 		LayerTypeNames[] types = LayerTypeNames.values();
 		int count = 0;
 		for(LayerTypeNames type: types){
-			InputDataLayer layer = new InputDataLayer();
+			Layer layer = new Layer();
 			layer.setName("DatasetMetadataProviderTestLayerChildNotUsed"+count);
 			layer.setType(type.name());
 			layer.setParentId(ds.getId());
@@ -224,7 +224,7 @@ public class DatasetMetadataProviderTest {
 		assertFalse(ds.getHasExpressionData());
 		
 		// Now add a clinical layer
-		InputDataLayer layer = new InputDataLayer();
+		Layer layer = new Layer();
 		layer.setName("DatasetMetadataProviderTestLayerC");
 		layer.setType(LayerTypeNames.C.name());
 		layer.setParentId(ds.getId());
@@ -241,7 +241,7 @@ public class DatasetMetadataProviderTest {
 		
 		// Add an expresion layer
 		// Now add a clinical layer
-		layer = new InputDataLayer();
+		layer = new Layer();
 		layer.setName("DatasetMetadataProviderTestLayerE");
 		layer.setType(LayerTypeNames.E.name());
 		layer.setParentId(ds.getId());
@@ -258,7 +258,7 @@ public class DatasetMetadataProviderTest {
 		
 		// Add an geneitc layer
 		// Now add a clinical layer
-		layer = new InputDataLayer();
+		layer = new Layer();
 		layer.setName("DatasetMetadataProviderTestLayerG");
 		layer.setType(LayerTypeNames.G.name());
 		layer.setParentId(ds.getId());
@@ -274,7 +274,7 @@ public class DatasetMetadataProviderTest {
 		assertTrue(ds.getHasExpressionData());
 		
 		// now start deleting
-		entityController.deleteEntity(userName, clinicalId, InputDataLayer.class);
+		entityController.deleteEntity(userName, clinicalId, Layer.class);
 		
 		// We should now have a expression and genetic
 		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser, EventType.GET);
@@ -283,7 +283,7 @@ public class DatasetMetadataProviderTest {
 		assertTrue(ds.getHasExpressionData());
 		
 		// Delete expression
-		entityController.deleteEntity(userName, expressionId, InputDataLayer.class);
+		entityController.deleteEntity(userName, expressionId, Layer.class);
 		
 		// We should now have a genetic
 		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser, EventType.GET);
@@ -292,7 +292,7 @@ public class DatasetMetadataProviderTest {
 		assertFalse(ds.getHasExpressionData());
 		
 		// Delete genetic
-		entityController.deleteEntity(userName, geneticId, InputDataLayer.class);
+		entityController.deleteEntity(userName, geneticId, Layer.class);
 		// Now all should be false
 		datasetMetadataProvider.addTypeSpecificMetadata(ds, mockRequest, testUser, EventType.GET);
 		assertFalse(ds.getHasClinicalData());

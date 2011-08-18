@@ -14,8 +14,8 @@ import java.util.logging.Logger;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.InputDataLayer;
-import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
+import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.utils.CookieSessionManager;
@@ -115,7 +115,7 @@ public class ITPortalSerachServices {
 //			// Make sure we delete this datasets.
 //			datasetIds.add(id);
 //			// // Add a layer to the dataset
-//			// InputDataLayer layer = createLayer(now, i);
+//			// Layer layer = createLayer(now, i);
 //			// // Add a layer attribute
 //			// String layerId = dao.getInputDataLayerDAO(id).create(layer);
 //			// dao.getInputDataLayerDAO(id).getStringAnnotationDAO(layerId).addAnnotation("layerAnnotation",
@@ -192,9 +192,9 @@ public class ITPortalSerachServices {
 //		assertEquals(2, results.getTotalNumberResults());
 	}
 		
-	private static InputDataLayer createLayer(Date date, int i)
+	private static Layer createLayer(Date date, int i)
 			throws InvalidModelException {
-//		InputDataLayer ans = new InputDataLayer();
+//		Layer ans = new Layer();
 //		ans.setName("layerName" + i);
 //		ans.setDescription("description" + i);
 //		ans.setCreationDate(date);

@@ -14,7 +14,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  *
  */
 @XmlRootElement
-public class StoredLayerPreview implements Nodeable {
+public class Preview implements Nodeable {
 	
 	private String id;
 	private String uri;
@@ -176,7 +176,7 @@ public class StoredLayerPreview implements Nodeable {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		StoredLayerPreview other = (StoredLayerPreview) obj;
+		Preview other = (Preview) obj;
 		if (accessControlList == null) {
 			if (other.accessControlList != null)
 				return false;
@@ -252,7 +252,7 @@ public class StoredLayerPreview implements Nodeable {
 
 	@Override
 	public String toString() {
-		return "StoredLayerPreview [id=" + id + ", uri=" + uri + ", etag="
+		return "Preview [id=" + id + ", uri=" + uri + ", etag="
 				+ etag + ", name=" + name + ", creationDate=" + creationDate
 				+ ", parentId=" + parentId + ", previewBlob="
 				+ Arrays.toString(previewBlob) + ", previewString="

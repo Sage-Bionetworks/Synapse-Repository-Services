@@ -5,9 +5,9 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
+import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -17,13 +17,13 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author jmhill
  *
  */
-public class InputDataLayerMetadataProvider implements TypeSpecificMetadataProvider<InputDataLayer> {
+public class InputDataLayerMetadataProvider implements TypeSpecificMetadataProvider<Layer> {
 	
 	@Autowired
 	LayerTypeCountCache layerTypeCountCache;
 
 	@Override
-	public void addTypeSpecificMetadata(InputDataLayer entity,	HttpServletRequest request, UserInfo user, EventType eventType) {
+	public void addTypeSpecificMetadata(Layer entity,	HttpServletRequest request, UserInfo user, EventType eventType) {
 		// Only clear the cache for a CREATE or UPDATE event. (See http://sagebionetworks.jira.com/browse/PLFM-232)
 		if(EventType.CREATE == eventType || EventType.UPDATE == eventType){
 			clearCountsForLayer(entity);			
@@ -34,7 +34,7 @@ public class InputDataLayerMetadataProvider implements TypeSpecificMetadataProvi
 	 * Helper for clearing the cache.
 	 * @param entity
 	 */
-	private void clearCountsForLayer(InputDataLayer entity) {
+	private void clearCountsForLayer(Layer entity) {
 		if(entity != null){
 			if(entity.getParentId() != null){
 				if(entity.getType() != null){
@@ -46,7 +46,7 @@ public class InputDataLayerMetadataProvider implements TypeSpecificMetadataProvi
 	}
 
 	@Override
-	public void validateEntity(InputDataLayer entity, EntityEvent event) {
+	public void validateEntity(Layer entity, EntityEvent event) {
 		if(entity.getVersion() == null){
 			entity.setVersion("1.0.0");
 		}
@@ -59,7 +59,7 @@ public class InputDataLayerMetadataProvider implements TypeSpecificMetadataProvi
 	}
 
 	@Override
-	public void entityDeleted(InputDataLayer entity) {
+	public void entityDeleted(Layer entity) {
 		// Clear the counts for this entity.
 		clearCountsForLayer(entity);
 	}

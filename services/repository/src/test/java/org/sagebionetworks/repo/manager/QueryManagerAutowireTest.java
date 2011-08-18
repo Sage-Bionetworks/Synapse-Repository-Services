@@ -22,8 +22,8 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InputDataLayer;
-import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
+import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -95,7 +95,7 @@ public class QueryManagerAutowireTest {
 			annos.addAnnotation("doubleKey", new Double(42*i));
 			entityController.updateEntityAnnotations(userId, ds.getId(), annos, mockRequest);
 			// Add a layer to each dataset
-			InputDataLayer inLayer = createLayerForTest(i);
+			Layer inLayer = createLayerForTest(i);
 			inLayer.setParentId(ds.getId());
 			inLayer = entityController.createEntity(userId, inLayer, mockRequest);
 		}
@@ -119,8 +119,8 @@ public class QueryManagerAutowireTest {
 		return ds;
 	}
 	
-	private InputDataLayer createLayerForTest(int i) throws InvalidModelException{
-		InputDataLayer layer = new InputDataLayer();
+	private Layer createLayerForTest(int i) throws InvalidModelException{
+		Layer layer = new Layer();
 		layer.setName("layerName"+i);
 		layer.setDescription("layerDesc"+i);
 		layer.setCreationDate(new Date(1001));

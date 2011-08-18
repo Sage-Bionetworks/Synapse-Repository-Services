@@ -14,7 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.LayerLocation;
+import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.web.controller.metadata.LayerLocationMetadataProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -510,7 +510,7 @@ public class LocationControllerTest {
 				.getString(NodeConstants.COL_PARENT_ID)));
 
 		if(location.getString("type").equals(
-				LayerLocation.LocationTypeNames.awss3.toString())) {
+				Location.LocationTypeNames.awss3.toString())) {
 			String s3keyPrefix = "/"
 				+ location.getString("id");
 

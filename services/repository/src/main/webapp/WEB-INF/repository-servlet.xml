@@ -64,7 +64,7 @@
         <!-- TODO JaxB can't handle Collection, use List instead -->
         <!-- <value>org.sagebionetworks.repo.model.Annotations</value> -->
         <value>org.sagebionetworks.repo.model.Dataset</value>
-        <value>org.sagebionetworks.repo.model.InputDataLayer</value>
+        <value>org.sagebionetworks.repo.model.Layer</value>
       </list>
     </property>
   </bean>

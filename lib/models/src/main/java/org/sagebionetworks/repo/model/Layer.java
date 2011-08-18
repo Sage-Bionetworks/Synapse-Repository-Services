@@ -5,7 +5,7 @@ import java.util.Date;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
-public class InputDataLayer implements DatasetLayer, HasLocations, HasPreviews {
+public class Layer implements DatasetLayer, HasLocations, HasPreviews {
 	
 	private String id;
 	private String name;
@@ -292,7 +292,7 @@ public class InputDataLayer implements DatasetLayer, HasLocations, HasPreviews {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		InputDataLayer other = (InputDataLayer) obj;
+		Layer other = (Layer) obj;
 		if (accessControlList == null) {
 			if (other.accessControlList != null)
 				return false;
@@ -408,7 +408,7 @@ public class InputDataLayer implements DatasetLayer, HasLocations, HasPreviews {
 
 	@Override
 	public String toString() {
-		return "InputDataLayer [id=" + id + ", name=" + name + ", description="
+		return "Layer [id=" + id + ", name=" + name + ", description="
 				+ description + ", creationDate=" + creationDate + ", version="
 				+ version + ", publicationDate=" + publicationDate
 				+ ", releaseNotes=" + releaseNotes + ", type=" + type
