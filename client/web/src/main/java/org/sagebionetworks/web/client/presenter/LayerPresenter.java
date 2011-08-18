@@ -313,6 +313,11 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 						// EULA required
 						// now query to see if user has accepted the agreement
 						UserData currentUser = authenticationController.getLoggedInUser();
+						if(currentUser == null && showDownload) {
+							view.showInfo(DisplayConstants.ERROR_TITLE_LOGIN_REQUIRED, DisplayConstants.ERROR_LOGIN_REQUIRED);
+							placeChanger.goTo(new LoginPlace(new org.sagebionetworks.web.client.place.Layer(model.getId(), model.getParentId(), showDownload)));
+							return;
+						}
 						licenseService.hasAccepted(currentUser.getEmail(), eulaId, model.getParentId(), new AsyncCallback<Boolean>() {
 							@Override
 							public void onSuccess(final Boolean hasAccepted) {
