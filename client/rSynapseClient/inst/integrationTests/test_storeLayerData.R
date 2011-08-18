@@ -17,34 +17,34 @@
 
 integrationTestStoreLayerData <- function() {
 
-	## Create a dataset
-	dataset <- Dataset(entity = list(
-					name = 'R Integration Test Dataset',
-					parentId = .getCache("rIntegrationTestProject")$id
-			)
-	)
+		## Create a dataset
+		dataset <- Dataset(entity = list(
+						name = 'R Integration Test Dataset',
+						parentId = .getCache("rIntegrationTestProject")$id
+				)
+		)
+		
+		createdDataset <- createEntity(entity=dataset)
+		checkEquals(propertyValue(dataset, "name"), propertyValue(createdDataset, "name"))
 	
-	createdDataset <- createEntity(entity=dataset)
-	checkEquals(propertyValue(dataset, "name"), propertyValue(createdDataset, "name"))
-
-	## Make an R data object that we will store in a couple different ways
-	data <- data.frame(a=1:3, b=letters[10:12],
-			c=seq(as.Date("2004-01-01"), by = "week", len = 3),
-			stringsAsFactors = FALSE)
-	
-	dataFile <- file.path(tempdir(), "data.tab")
-	write.table(data, file=dataFile, sep="\t", quote=F, row.names=F)
-	
-	##------
-	## Create a layer and use the convenience method to store an R object as a tab-delimited file
-	layer <- Layer(entity = list(
-					name = 'R Integration Test Layer',
-					type = 'C',
-					parentId = propertyValue(createdDataset, "id")
-			)
-	)
-	
-	createdLayer <- storeLayerDataFiles(entity=layer, dataFile)
+		## Make an R data object that we will store in a couple different ways
+		data <- data.frame(a=1:3, b=letters[10:12],
+				c=seq(as.Date("2004-01-01"), by = "week", len = 3),
+				stringsAsFactors = FALSE)
+		
+		dataFile <- file.path(tempdir(), "data.tab")
+		write.table(data, file=dataFile, sep="\t", quote=F, row.names=F)
+		
+		##------
+		## Create a layer and use the convenience method to store an R object as a tab-delimited file
+		layer <- Layer(entity = list(
+						name = 'R Integration Test Layer',
+						type = 'C',
+						parentId = propertyValue(createdDataset, "id")
+				)
+		)
+		
+		createdLayer <- storeLayerDataFiles(entity=layer, layerDataFile = dataFile)
 	checkEquals(propertyValue(layer, "name"), propertyValue(createdLayer, "name"))
 
 	##------

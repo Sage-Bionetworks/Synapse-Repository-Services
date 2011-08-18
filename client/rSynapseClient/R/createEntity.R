@@ -65,18 +65,37 @@ setMethod(
 			entity <- createEntity(entity = .extractEntityFromSlots(entity), className = class(entity))
 			## update entity annotations
 			newAnnotations <- annotations(entity)
-			annotationValues(newAnnotations) <- as.list(oldAnnotations)
-			tryCatch(
-				annotations(entity) <- updateEntity(newAnnotations),
-				error = function(e){
-					## unable to update annotations. delete parent entity.
-					deleteEntity(entity)
-					stop("Could not set annotations: ", e)
-				}
-			)
+			if(length(as.list(oldAnnotations)) > 0L){
+				annotationValues(newAnnotations) <- as.list(oldAnnotations)
+				tryCatch(
+						annotations(entity) <- updateEntity(newAnnotations),
+						error = function(e){
+							## unable to update annotations. delete parent entity.
+							deleteEntity(entity)
+							stop("Could not set annotations: ", e)
+						}
+				)
+				entity <- refreshEntity(entity)
+			}	
 			entity
 		}
 )
 
+######
+## Creating Layer entities must be handled differently since get and post are asymmetrical.
+## Specifically, after updating the annotations on the newly created enity, the etag is changed
+## so we must refresh the entity before returning it. For locations, this refevts the url and md5sum
+## to the values for the new Location, which were returned by the createEntity call.
+######
+setMethod(
+		f = "createEntity",
+		signature = "Location",
+		definition = function(entity, createAnnotations = FALSE){
+			## create the entity
+			if(length(as.list(annotations(entity))) > 0L)
+				warning("Annotations can not be automatically be persisted for Location entities and so are being discarded")
+			createEntity(entity = .extractEntityFromSlots(entity), className = class(entity))
+		}
+)
 
 

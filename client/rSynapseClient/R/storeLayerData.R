@@ -142,7 +142,7 @@ setMethod(
 				## set the parent ID before creating
 				propertyValue(location, "parentId") <- propertyValue(entity, "id")
 				## create the Location entity in Synapse
-				location <- createEntity(location)
+				location <- createEntity(entity = location)
 			}else{
 				## update the Location entity in Synapse
 				location <- updateEntity(location)
@@ -156,7 +156,7 @@ setMethod(
 			## Upload the data file
 			synapseUploadFile(url = propertyValue(location, "path"),
 						srcfile = layerDataFilepath,
-						checksum = checksum,
+						checksum = propertyValue(location, "md5sum"),
 						contentType = contentType
 					)
 			refreshEntity(entity)

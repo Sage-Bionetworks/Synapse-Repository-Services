@@ -11,7 +11,18 @@ getDatasets <-
 	## constants
 	kService <- "/query?query"
 	kQueryRoot <- "select * from dataset"
+	kLimit <- 20L
 	## end constants
+	
+	## check the limit query param
+	if("limit" %in% names(queryParams)){
+		if(queryParams$limit > kLimit){
+			warning(sprintf("Can only retrieve %s records at a time", kLimit))
+			queryParams$limit <- kLimit
+		}
+	}else{
+		queryParams$limit <- kLimit
+	}
 	
 	## add queary parameters to the uri
 	paramString <- paste(names(queryParams), queryParams, sep=" ", collapse=" ")

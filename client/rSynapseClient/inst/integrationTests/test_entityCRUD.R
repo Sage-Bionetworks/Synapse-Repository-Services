@@ -35,6 +35,15 @@ integrationTestCRUD <- function() {
 	checkTrue(dataset$status != modifiedDataset$status)
 	checkEquals('test update', modifiedDataset$status)
 	
+	# Modify a project
+	## THIS TEST FAILS. might be a synapse but related to default project permissions?
+#	createdProject$creator <- "newCreator@sagebase.org"
+#	modifiedProject <- updateProject(entity = createdProject)
+#	checkEquals(project$name, modifiedProject$name)
+#	checkEquals(storedProject$id, modifiedProject$id)
+#	checkTrue(project$creator != modifiedProject$creator)
+#	checkEquals("newCreator@sagebase.org", modifiedProject$creator)
+#	
 	# Get dataset annotations
 	annotations <- getAnnotations(entity=modifiedDataset)
 	annotations$stringAnnotations$myNewAnnotationKey <- 'my new annotation value'

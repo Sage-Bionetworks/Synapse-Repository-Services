@@ -68,15 +68,14 @@ integrationTestCreateS4Entities <- function(){
 	
 }
 
-# THIS TEST IS BROKEN
-DISABLEintegrationTestCreateEntityWithAnnotations <- 
+integrationTestCreateEntityWithAnnotations <- 
 		function()
 {
 	## Create Project
 	project <- new(Class="Project")
 	propertyValue(project,"name") <- .getCache("testProjectName")
 	annotValue(project, "annotationKey") <- "projectAnnotationValue"
-	createProject <- createEntity(project)
+	createdProject <- createEntity(project)
 	.setCache("testProject", createdProject)
 	checkEquals(annotValue(createdProject, "annotationKey"), annotValue(project, "annotationKey"))
 	
@@ -103,7 +102,7 @@ integrationTestUpdateS4Entity <-
 	checkEquals(propertyValue(createdProject,"name"), propertyValue(project,"name"))
 	
 	## set an annotation value and update. 
-  ## R CLIENT UPDATES ARE BROKEN, THIS IS NOT A SYNAPSE BUG
+  	## THIS TEST IS BROKEN. update annotations doesn't work with project entities. Possible Synapse bug?
 	##annotValue(createdProject, "newKey") <- "newValue"
 	###updatedProject <- updateEntity(createdProject)
 	##checkEquals(propertyValue(updatedProject,"id"), propertyValue(createdProject,"id"))
@@ -127,14 +126,20 @@ integrationTestUpdateS4Entity <-
 	propertyValue(layer, "name") <- "testPhenoLayerName"
 	propertyValue(layer, "parentId") <- propertyValue(createdDataset,"id")
 	createdLayer <- createEntity(layer)
-  checkEquals(propertyValue(createdLayer,"name"), propertyValue(layer,"name"))
+  	checkEquals(propertyValue(createdLayer,"name"), propertyValue(layer,"name"))
 
 	
 	## update the description property
 	propertyValue(createdLayer, "description") <- "This is a description"
 	updatedLayer <- updateEntity(createdLayer)
-  # UPDATES ARE BROKEN
-#	checkEquals(propertyValue(createdLayer, "description"), propertyValue(updatedLayer, "description"))
+	checkEquals(propertyValue(createdLayer, "description"), propertyValue(updatedLayer, "description"))
+	
+	## update the description property on a project
+	## THIS TEST IS BROKEN. update properties on project entities doesn't work
+#	propertyValue(createdProject, "description") <- "This is a new description"
+#	updatedProject <- updateEntity(createdProject)
+#	checkEquals(propertyValue(createdProject, "description"), propertyValue(updatedProject, "description"))
+
 }
 
 integrationTestDeleteEntity <- 

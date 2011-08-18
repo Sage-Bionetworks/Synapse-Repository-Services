@@ -53,14 +53,21 @@ setMethod(
 		signature = signature("SynapseEntity"),
 		definition = function(entity){
 			## update the entity and store the result
+			oldAnnotations <- annotations(entity)
+			entity <- do.call(class(entity), list(entity = .updateEntity(kind = synapseEntityKind(entity), entity=.extractEntityFromSlots(entity))))
+			
+			## merge annotations
+			newAnnotations <- annotations(entity)
+			annotationValues(newAnnotations) <- as.list(oldAnnotations)
+			annotations(entity) <- newAnnotations
+			
 			tryCatch(entity <- updateAnnotations(entity),
 					error = function(e){
 						cat("Failed to update Annotations. Manually merge modifications into new object retrieved from database and try update again\n")
 						stop(e)
 					}
 			)
-			
-			do.call(class(entity), list(entity = .updateEntity(kind = synapseEntityKind(entity), entity=.extractEntityFromSlots(entity))))
+			entity
 		}
 )
 setMethod(
