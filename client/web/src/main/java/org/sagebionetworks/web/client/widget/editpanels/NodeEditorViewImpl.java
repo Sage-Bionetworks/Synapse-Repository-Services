@@ -171,8 +171,15 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 				break;
 			case DATE:
 				DateField dateField = new DateField();
-				dateField.setFieldLabel(key);
-				if(isEditor) dateField.setValue(DisplayConstants.DATE_FORMAT_SERVICES.parse(formField.getValue()));
+				dateField.setFieldLabel(key);				
+				if(isEditor && formField.getValue() != null) {					
+					try {
+						Date date = DisplayConstants.DATE_FORMAT_SERVICES.parse(formField.getValue());
+						dateField.setValue(date);
+					} catch(IllegalArgumentException ex) {
+						// do nothing, field is improperly formatted
+					}					
+				}
 				nodeFormPanel.add(dateField, formData);				
 				break;
 			}

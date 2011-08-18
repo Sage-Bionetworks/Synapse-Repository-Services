@@ -391,25 +391,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 				}
 			});
 			menu.add(item);
-			
-			item = new MenuItem("Edit Dataset Annotations");
-			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
-			item.addSelectionListener(new SelectionListener<MenuEvent>() {
-				public void componentSelected(MenuEvent menuEvent) {													
-					final Window window = new Window();  
-					window.setSize(650, 550);
-					window.setPlain(true);
-					window.setModal(true);
-					window.setBlinkModal(true);
-					window.setHeading("Edit Dataset Annotations");
-					window.setLayout(new FitLayout());					
-					//window.add(annotationEditor.asWidget(), new FitData(4));
-					window.show();
-				}
-			});
-			//item.disable();
-			menu.add(item);
-			
+						
 			item = new MenuItem("Add a Layer to Dataset");
 			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.documentAdd16()));
 			item.addSelectionListener(new SelectionListener<MenuEvent>() {
