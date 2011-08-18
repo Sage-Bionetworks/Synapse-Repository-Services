@@ -8,6 +8,7 @@ import java.util.Map;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.SearchServiceAsync;
+import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.view.RowData;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
@@ -56,22 +57,24 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 	private BasePagingLoader<PagingLoadResult<ModelData>> loader;
 	private ListStore<BaseModelData> store;	
 	private PagingLoadResult<BaseModelData> loadResultData;
+	private AuthenticationController authenticationController; 
 	
 	@Inject
 	public QueryServiceTable() {		
 	}
 		
-	public QueryServiceTable(QueryServiceTableResourceProvider provider, ObjectType type, boolean usePager, PlaceChanger placeChanger){
+	public QueryServiceTable(QueryServiceTableResourceProvider provider, ObjectType type, boolean usePager, PlaceChanger placeChanger) {
 		this(provider, type, null, usePager, DEFAULT_WIDTH, DEFAULT_HEIGHT, placeChanger);
 	}
 	
-	public QueryServiceTable(QueryServiceTableResourceProvider provider, ObjectType type, boolean usePager, int width, int height, PlaceChanger placeChanger){
+	public QueryServiceTable(QueryServiceTableResourceProvider provider, ObjectType type, boolean usePager, int width, int height, PlaceChanger placeChanger) {
 		this(provider, type, null, usePager, width, height, placeChanger);
 	}
 	
 	public QueryServiceTable(QueryServiceTableResourceProvider provider, ObjectType type, String tableTitle, boolean usePager, int width, int height, final PlaceChanger placeChanger){
 		this.view = provider.getView();
 		this.searchService = provider.getService();
+		this.authenticationController = provider.getAuthenticationController();
 
 		this.view.setPresenter(this);		
 		this.view.setTitle(tableTitle);
@@ -90,7 +93,7 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
         			@Override
         			public void onSuccess(TableResults result) {
         				if(result.getException() != null) {
-        					if(!DisplayUtils.handleServiceException(result.getException(), placeChanger)) {
+        					if(!DisplayUtils.handleServiceException(result.getException(), placeChanger, authenticationController.getLoggedInUser())) {
         						// alert user
         						onFailure(null);        					
         					} else {

@@ -43,8 +43,8 @@ public interface AuthenticationController {
 	 * @return the current user
 	 */
 	public UserData getLoggedInUser();
-
-
+	
+	
 	/**
 	 * Saves the show demo flag into a cookie
 	 */

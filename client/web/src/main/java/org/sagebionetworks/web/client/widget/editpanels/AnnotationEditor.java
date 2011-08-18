@@ -11,6 +11,7 @@ import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.ontology.Ontology;
 import org.sagebionetworks.web.client.ontology.OntologyTerm;
 import org.sagebionetworks.web.client.ontology.StaticOntologies;
+import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.widget.editpanels.FormField.ColumnType;
@@ -50,14 +51,16 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
     private NodeModelCreator nodeModelCreator;
     private StaticOntologies staticOntologies;
     private List<FormField> formFields;
+    private AuthenticationController authenticationController;
  
     @Inject
-    public AnnotationEditor(AnnotationEditorView view, NodeServiceAsync service, NodeEditorDisplayHelper nodeEditorDisplayHelper, NodeModelCreator nodeModelCreator, StaticOntologies staticOntologies) {
+    public AnnotationEditor(AnnotationEditorView view, NodeServiceAsync service, NodeEditorDisplayHelper nodeEditorDisplayHelper, NodeModelCreator nodeModelCreator, StaticOntologies staticOntologies, AuthenticationController authenticationController) {
         this.view = view;
 		this.service = service;
 		this.nodeEditorDisplayHelper = nodeEditorDisplayHelper;
 		this.nodeModelCreator = nodeModelCreator;
 		this.staticOntologies = staticOntologies;
+		this.authenticationController = authenticationController;
         view.setPresenter(this);
     }
 
@@ -84,7 +87,7 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 				try {
 					Annotations annotations = nodeModelCreator.createAnnotations(annotationJsonString);
 				} catch (RestServiceException ex) {
-					if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+					if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
 						onFailure(null);
 					}
 					return;
@@ -191,7 +194,7 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 						view.showPersistSuccess();
 					}
 				} catch (RestServiceException ex) {
-					DisplayUtils.handleServiceException(ex, placeChanger);
+					DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser());
 					onFailure(null);					
 					return;
 				}				
@@ -221,7 +224,7 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 				try {
 					Annotations annotations = nodeModelCreator.createAnnotations(annotationJsonString);
 				} catch (RestServiceException ex) {
-					if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+					if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
 						onFailure(null);
 					}
 					return;

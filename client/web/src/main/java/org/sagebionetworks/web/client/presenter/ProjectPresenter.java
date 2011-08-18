@@ -109,7 +109,7 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 				try {
 					project = nodeModelCreator.createProject(result);
 				} catch (RestServiceException ex) {
-					if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+					if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
 						onFailure(null);
 					}
 					return;

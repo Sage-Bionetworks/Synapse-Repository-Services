@@ -7,6 +7,7 @@ import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
+import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.shared.NodeType;
@@ -45,14 +46,16 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 	private List<AclPrincipal> principals;
 	private PlaceChanger placeChanger;
 	private NodeModelCreator nodeModelCreator;
+	private AuthenticationController authenticationController;
 
 	
 	@Inject
-	public AccessControlListEditor(AccessControlListEditorView view, NodeServiceAsync nodeService, UserAccountServiceAsync userAccountService, NodeModelCreator nodeModelCreator) {
+	public AccessControlListEditor(AccessControlListEditorView view, NodeServiceAsync nodeService, UserAccountServiceAsync userAccountService, NodeModelCreator nodeModelCreator, AuthenticationController authenticationController) {
 		this.view = view;
 		this.nodeService = nodeService;
 		this.userAccountService = userAccountService;
 		this.nodeModelCreator = nodeModelCreator;
+		this.authenticationController = authenticationController;
 		view.setPresenter(this);
 	}	
 
@@ -77,7 +80,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 						try {
 							nodeModelCreator.validate(result);
 						} catch (RestServiceException ex) {
-							if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+							if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
 								onFailure(null);							
 							}
 							return;
@@ -115,7 +118,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 				try {
 					nodeModelCreator.validate(result);
 				} catch (RestServiceException ex) {
-					if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+					if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
 						onFailure(null);
 					}
 					return;
@@ -159,7 +162,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 					try {
 						nodeModelCreator.validate(result);
 					} catch (RestServiceException ex) {
-						if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+						if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
 							onFailure(null);
 						}
 						return;
@@ -203,7 +206,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 						try {
 							nodeModelCreator.validate(result);
 						} catch (RestServiceException ex) {
-							if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+							if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
 								onFailure(null);							
 							}
 							return;
@@ -252,7 +255,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 						try {
 							nodeModelCreator.validate(result);
 						} catch (RestServiceException ex) {
-							if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+							if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
 								onFailure(null);
 							}
 							return;
@@ -284,7 +287,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 				try {
 					nodeModelCreator.validate(result);
 				} catch (RestServiceException ex) {
-					if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+					if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
 						onFailure(null);
 					}
 					return;

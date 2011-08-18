@@ -98,7 +98,7 @@ public class DisplayConstants {
 	public static final String ERROR_DUPLICATE_ENTITY_MESSAGE = "An entity with this name already exists. Please enter a different name.";
 	public static final String ERROR_INVALID_ENTITY_NAME = "Name contains contains an invalid character";
 	public static final String ERROR_TITLE_LOGIN_REQUIRED = "Login Required";
-	public static final String ERROR_LOGIN_REQUIRED = "Login is required to download data.";
+	public static final String ERROR_LOGIN_REQUIRED = "You will need to login for access to that resource.";
 	
 	
 	/*

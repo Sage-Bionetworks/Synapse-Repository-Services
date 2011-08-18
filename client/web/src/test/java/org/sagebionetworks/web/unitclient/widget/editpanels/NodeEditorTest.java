@@ -10,6 +10,7 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.widget.editpanels.FormField;
@@ -26,6 +27,7 @@ public class NodeEditorTest {
 	NodeServiceAsync mockNodeService;
 	NodeModelCreator mockNodeModelCreator;
 	NodeEditorDisplayHelper nodeEditorDisplayHelper;
+	AuthenticationController mockAuthenticationController;
 	
 	@Before
 	public void setup(){
@@ -33,8 +35,9 @@ public class NodeEditorTest {
 		mockNodeService = mock(NodeServiceAsync.class);
 		nodeEditorDisplayHelper = new NodeEditorDisplayHelper(); 
 		mockNodeModelCreator = mock(NodeModelCreator.class);
+		mockAuthenticationController = mock(AuthenticationController.class);
 		
-		nodeEditor = new NodeEditor(mockView, mockNodeService, nodeEditorDisplayHelper, mockNodeModelCreator);		
+		nodeEditor = new NodeEditor(mockView, mockNodeService, nodeEditorDisplayHelper, mockNodeModelCreator, mockAuthenticationController);		
 		
 		verify(mockView).setPresenter(nodeEditor);
 	}	

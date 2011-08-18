@@ -9,6 +9,7 @@ import org.sagebionetworks.web.shared.exceptions.NotFoundException;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 import org.sagebionetworks.web.shared.exceptions.UnauthorizedException;
 import org.sagebionetworks.web.shared.exceptions.UnknownErrorException;
+import org.sagebionetworks.web.shared.users.UserData;
 
 import com.extjs.gxt.ui.client.widget.Info;
 import com.extjs.gxt.ui.client.widget.MessageBox;
@@ -115,15 +116,19 @@ public class DisplayUtils {
 	 * @param placeChanger
 	 * @return true if the user has been prompted
 	 */
-	public static boolean handleServiceException(RestServiceException ex, PlaceChanger placeChanger) {
+	public static boolean handleServiceException(RestServiceException ex, PlaceChanger placeChanger, UserData currentUser) {
 		if(ex instanceof UnauthorizedException) {
 			// send user to login page						
 			Info.display("Session Timeout", "Your session has timed out. Please login again.");
 			placeChanger.goTo(new LoginPlace(LoginPlace.LOGIN_TOKEN));
 			return true;
-		} else if(ex instanceof ForbiddenException) {
-			// alerting here this seems kinda lame, but keeps the code out of the client
-			MessageBox.info("Unauthorized", "Sorry, there was a failure due to insufficient privileges.", null);
+		} else if(ex instanceof ForbiddenException) {			
+			if(currentUser == null) {				
+				MessageBox.info(DisplayConstants.ERROR_LOGIN_REQUIRED, DisplayConstants.ERROR_LOGIN_REQUIRED, null);
+				placeChanger.goTo(new LoginPlace(DisplayUtils.DEFAULT_PLACE_TOKEN));
+			} else {
+				MessageBox.info("Unauthorized", "Sorry, there was a failure due to insufficient privileges.", null);
+			}
 			return true;
 		} else if(ex instanceof BadRequestException) {
 			String reason = ex.getMessage();			

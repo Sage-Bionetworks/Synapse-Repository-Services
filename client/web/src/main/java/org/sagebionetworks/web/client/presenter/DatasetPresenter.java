@@ -111,7 +111,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 				try {
 					resultDataset = nodeModelCreator.createDataset(result);
 				} catch (RestServiceException ex) {					
-					if(!DisplayUtils.handleServiceException(ex, placeChanger)) {					
+					if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {					
 						onFailure(null);					
 					} 
 					return;
@@ -303,7 +303,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 					 // set the license agreement
 					 setLicenseAgreement();
 				} catch (RestServiceException ex) {
-					if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+					if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
 						onFailure(null);
 					}
 					return;
@@ -337,7 +337,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 							try {
 								eula = nodeModelCreator.createEULA(eulaJson);
 							} catch (RestServiceException ex) {
-								DisplayUtils.handleServiceException(ex, placeChanger);
+								DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser());
 								onFailure(null);								
 								return;
 							}

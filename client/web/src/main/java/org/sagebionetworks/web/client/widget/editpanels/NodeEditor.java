@@ -15,6 +15,7 @@ import org.sagebionetworks.web.client.events.PersistSuccessEvent;
 import org.sagebionetworks.web.client.events.PersistSuccessHandler;
 import org.sagebionetworks.web.client.ontology.Ontology;
 import org.sagebionetworks.web.client.ontology.OntologyTerm;
+import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.widget.editpanels.FormField.ColumnType;
@@ -50,15 +51,16 @@ public class NodeEditor implements NodeEditorView.Presenter {
 	private final HandlerManager handlerManager = new HandlerManager(this);
 	private PlaceChanger placeChanger;
 	private NodeModelCreator nodeModelCreator;
+	private AuthenticationController authenticationController;
 
 	
 	@Inject
-	public NodeEditor(NodeEditorView view, NodeServiceAsync service, NodeEditorDisplayHelper nodeEditorDisplayHelper, NodeModelCreator nodeModelCreator) {
+	public NodeEditor(NodeEditorView view, NodeServiceAsync service, NodeEditorDisplayHelper nodeEditorDisplayHelper, NodeModelCreator nodeModelCreator, AuthenticationController authenticationController) {
 		this.view = view;
 		this.service = service;
 		this.nodeEditorDisplayHelper = nodeEditorDisplayHelper;
 		this.nodeModelCreator = nodeModelCreator;
-		
+		this.authenticationController = authenticationController;
 		view.setPresenter(this);
 	}	
 
@@ -98,7 +100,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 					try {
 						nodeModelCreator.validate(schema);
 					} catch (RestServiceException ex) {
-						if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+						if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
 							onFailure(null);						
 						}
 						return;
@@ -123,7 +125,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 					try {
 						nodeModelCreator.validate(nodeJson);
 					} catch (RestServiceException ex) {
-						if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+						if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
 							onFailure(null);
 						}
 						return;
@@ -139,7 +141,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 							try {
 								nodeModelCreator.validate(nodeJsonString);
 							} catch (RestServiceException ex) {
-								if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+								if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
 									onFailure(null);
 								}
 								return;
@@ -253,7 +255,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 					try {
 						nodeModelCreator.validate(result);
 					} catch (RestServiceException ex) {
-						if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+						if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
 							// user not alerted
 							onFailure(null);
 						} else {
@@ -280,7 +282,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 					try {
 						nodeModelCreator.validate(result);
 					} catch (RestServiceException ex) {
-						if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+						if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
 							// user not alerted
 							onFailure(null);
 						} else {

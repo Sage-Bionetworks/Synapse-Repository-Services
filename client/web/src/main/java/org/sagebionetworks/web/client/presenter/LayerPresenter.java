@@ -176,7 +176,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 				try {
 					layer = nodeModelCreator.createLayer(layerJson);
 				} catch (RestServiceException ex) {
-					if(!DisplayUtils.handleServiceException(ex, placeChanger)) {
+					if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
 						onFailure(null);
 					}
 					return;
@@ -249,7 +249,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 						return;
 					}					
 				} catch (RestServiceException ex) {
-					DisplayUtils.handleServiceException(ex, placeChanger);
+					DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser());
 					onFailure(null);					
 					return;
 				}				
@@ -296,7 +296,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 				try {
 					dataset = nodeModelCreator.createDataset(datasetJson);
 				} catch (RestServiceException ex) {
-					DisplayUtils.handleServiceException(ex, placeChanger);
+					DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser());
 					onFailure(null);					
 					return;
 				}
@@ -332,7 +332,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 										try {
 											eula = nodeModelCreator.createEULA(eulaJson);
 										} catch (RestServiceException ex) {
-											DisplayUtils.handleServiceException(ex, placeChanger);
+											DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser());
 											onFailure(null);											
 											return;
 										}
@@ -431,7 +431,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 						}	
 					}
 				} catch (RestServiceException ex) {
-					DisplayUtils.handleServiceException(ex, placeChanger);
+					DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser());
 					onFailure(null);					
 					return;
 				}				
