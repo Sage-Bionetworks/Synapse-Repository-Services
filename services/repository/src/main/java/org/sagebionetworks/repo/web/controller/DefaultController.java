@@ -105,10 +105,10 @@ public class DefaultController extends BaseController {
 	 * @throws IOException
 	 * @throws ConflictingUpdateException
 	 */
-	@ResponseStatus(HttpStatus.CREATED)
+	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { 
 			UrlHelpers.LOCATION_VERSION
-			}, method = RequestMethod.POST)
+			}, method = RequestMethod.PUT)
 	public @ResponseBody
 	Versionable createNewVersion(
 			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,

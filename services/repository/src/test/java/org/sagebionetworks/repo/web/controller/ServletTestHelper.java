@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -29,7 +28,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.RestoreFile;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -314,7 +312,7 @@ public class ServletTestHelper {
 		ObjectType type = ObjectType.getNodeTypeForClass(entity.getClass());
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("POST");
+		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(type.getUrlPrefix() + "/" + entity.getId()+UrlHelpers.VERSION);
 		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
@@ -326,7 +324,7 @@ public class ServletTestHelper {
 		request.setContent(body.getBytes("UTF-8"));
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
-		if(response.getStatus() != HttpStatus.CREATED.value()){
+		if(response.getStatus() != HttpStatus.OK.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
 		return (T) objectMapper.readValue(response.getContentAsString(), entity.getClass());
