@@ -28,10 +28,12 @@ import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.NodeType;
 
+import com.extjs.gxt.ui.client.Style.Scroll;
 import com.extjs.gxt.ui.client.event.Listener;
 import com.extjs.gxt.ui.client.event.MenuEvent;
 import com.extjs.gxt.ui.client.event.MessageBoxEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
+import com.extjs.gxt.ui.client.widget.ContentPanel;
 import com.extjs.gxt.ui.client.widget.Dialog;
 import com.extjs.gxt.ui.client.widget.Html;
 import com.extjs.gxt.ui.client.widget.Info;
@@ -54,6 +56,7 @@ import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
+import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
@@ -88,12 +91,13 @@ public class LayerViewImpl extends Composite implements LayerView {
 	@UiField
 	SpanElement previewTableMessage;
 	@UiField
+	SimplePanel previewDownload;
+	@UiField
 	SimplePanel accessPanel;
 	@UiField
 	SpanElement accessSpan;
 	@UiField
 	SimplePanel adminPanel;
-
 	
 	private Presenter presenter;
 	private PreviewDisclosurePanel previewDisclosurePanel;
@@ -164,7 +168,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 	@Override
 	public void showLayerPreviewUnavailable() {
 		// check if user is admin? show create preview?
-		previewTableMessage.setInnerHTML("Preview of this layer is unavailable.");
+		//previewTableMessage.setInnerHTML("Preview of this layer is unavailable.");
 	}
 	
 	@Override
@@ -260,7 +264,24 @@ public class LayerViewImpl extends Composite implements LayerView {
 
 	@Override
 	public void setLicensedDownloads(List<FileDownload> downloads) {
-		licensedDownloader.setDownloadUrls(downloads);
+		licensedDownloader.setDownloadUrls(downloads);			
+		if(downloads.size() > 0) {
+			ContentPanel cp = new ContentPanel();			
+			cp.setHeading(DisplayConstants.TITLE_LAYER_PREVIEW);
+			cp.setHeaderVisible(true);			
+			cp.setAutoHeight(true);
+			cp.setScrollMode(Scroll.AUTO);
+			FileDownload download = downloads.get(0);
+			if(DisplayUtils.MIME_TYPE_JPEG.equals(download.getContentType())
+					|| DisplayUtils.MIME_TYPE_PNG.equals(download.getContentType())
+					|| DisplayUtils.MIME_TYPE_GIF.equals(download.getContentType())) {					
+				Image imgWidget = new Image(download.getUrl());
+				cp.add(imgWidget);
+				previewDownload.clear();
+				previewDownload.add(cp);
+				cp.layout(true);
+			}
+		}
 	}
 	
 	
@@ -310,6 +331,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 		titleSpan.setInnerText("");		
 		staticTable.clear();
 		downloadPanel.clear();
+		previewDownload.clear();
 	}
 
 	@Override

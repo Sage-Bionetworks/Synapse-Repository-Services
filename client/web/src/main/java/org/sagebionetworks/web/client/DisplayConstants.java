@@ -50,6 +50,7 @@ public class DisplayConstants {
 	 * Buttons, titles and labels
 	 */
 	public static final String TITLE_TERMS_OF_USE = "Terms of Use";
+	public static final String TITLE_LAYER_PREVIEW = "Layer Preview";
 	public static final String BUTTON_SEE_TERMS_OF_USE = "See Terms of Use";
 	public static final String BUTTON_FOLLOW_DATASET = "Follow this Dataset";
 	public static final String TITLE_SHARING_PANEL = "Sharing Settings";

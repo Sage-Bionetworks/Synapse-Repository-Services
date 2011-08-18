@@ -18,6 +18,7 @@ public class DownloadLocation implements IsSerializable {
 	private String md5sum;
 	private String uri;
 	private String accessControlList;
+	private String contentType;
 	
 	public DownloadLocation() {	
 	}
@@ -79,6 +80,12 @@ public class DownloadLocation implements IsSerializable {
 		if(object.containsKey(key)) 
 			if(object.get(key).isString() != null)
 				setAccessControlList(object.get(key).isString().stringValue());					
+
+		key = "contentType";
+		if(object.containsKey(key)) 
+			if(object.get(key).isString() != null)
+				setContentType(object.get(key).isString().stringValue());					
+
 	}
 
 	public String getMd5sum() {
@@ -170,6 +177,14 @@ public class DownloadLocation implements IsSerializable {
 		this.accessControlList = accessControlList;
 	}
 
+	public String getContentType() {
+		return contentType;
+	}
+
+	public void setContentType(String contentType) {
+		this.contentType = contentType;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -180,6 +195,8 @@ public class DownloadLocation implements IsSerializable {
 						.hashCode());
 		result = prime * result
 				+ ((annotations == null) ? 0 : annotations.hashCode());
+		result = prime * result
+				+ ((contentType == null) ? 0 : contentType.hashCode());
 		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
@@ -193,7 +210,6 @@ public class DownloadLocation implements IsSerializable {
 		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
 		return result;
 	}
-
 
 	@Override
 	public boolean equals(Object obj) {
@@ -213,6 +229,11 @@ public class DownloadLocation implements IsSerializable {
 			if (other.annotations != null)
 				return false;
 		} else if (!annotations.equals(other.annotations))
+			return false;
+		if (contentType == null) {
+			if (other.contentType != null)
+				return false;
+		} else if (!contentType.equals(other.contentType))
 			return false;
 		if (creationDate == null) {
 			if (other.creationDate != null)
@@ -262,14 +283,14 @@ public class DownloadLocation implements IsSerializable {
 		return true;
 	}
 
-
 	@Override
 	public String toString() {
-		return "DownloadLocation [md5sum=" + md5sum + ", path=" + path
-				+ ", type=" + type + ", id=" + id + ", uri=" + uri + ", etag="
-				+ etag + ", name=" + name + ", creationDate=" + creationDate
-				+ ", parentId=" + parentId + ", annotations=" + annotations
-				+ ", accessControlList=" + accessControlList + "]";
-	}		
-	
+		return "DownloadLocation [name=" + name + ", annotations="
+				+ annotations + ", id=" + id + ", type=" + type + ", path="
+				+ path + ", creationDate=" + creationDate + ", parentId="
+				+ parentId + ", etag=" + etag + ", md5sum=" + md5sum + ", uri="
+				+ uri + ", accessControlList=" + accessControlList
+				+ ", contentType=" + contentType + "]";
+	}
+
 }

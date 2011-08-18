@@ -6,7 +6,8 @@ public class FileDownload implements IsSerializable {
 
 	private String url;
 	private String display;
-	private String checksum;	
+	private String checksum;
+	private String contentType;
 	
 	/**
 	 * Default constructor
@@ -15,11 +16,12 @@ public class FileDownload implements IsSerializable {
 		
 	}
 
-	public FileDownload(String url, String display, String checksum) {
+	public FileDownload(String url, String display, String checksum, String contentType) {
 		super();
 		this.url = url;
 		this.display = display;
 		this.checksum = checksum;
+		this.contentType = contentType;
 	}
 
 	public String getUrl() {
@@ -46,12 +48,22 @@ public class FileDownload implements IsSerializable {
 		this.checksum = checksum;
 	}
 
+	public String getContentType() {
+		return contentType;
+	}
+
+	public void setContentType(String contentType) {
+		this.contentType = contentType;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
 				+ ((checksum == null) ? 0 : checksum.hashCode());
+		result = prime * result
+				+ ((contentType == null) ? 0 : contentType.hashCode());
 		result = prime * result + ((display == null) ? 0 : display.hashCode());
 		result = prime * result + ((url == null) ? 0 : url.hashCode());
 		return result;
@@ -71,6 +83,11 @@ public class FileDownload implements IsSerializable {
 				return false;
 		} else if (!checksum.equals(other.checksum))
 			return false;
+		if (contentType == null) {
+			if (other.contentType != null)
+				return false;
+		} else if (!contentType.equals(other.contentType))
+			return false;
 		if (display == null) {
 			if (other.display != null)
 				return false;
@@ -87,8 +104,9 @@ public class FileDownload implements IsSerializable {
 	@Override
 	public String toString() {
 		return "FileDownload [url=" + url + ", display=" + display
-				+ ", checksum=" + checksum + "]";
+				+ ", checksum=" + checksum + ", contentType=" + contentType
+				+ "]";
 	}
- 
+
 	
 }

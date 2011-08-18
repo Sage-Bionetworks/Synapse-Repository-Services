@@ -86,6 +86,7 @@
 			<div class="data_detail_sections">
 				<g:SimplePanel ui:field="previewTablePanel" />
 				<span ui:field="previewTableMessage" />																																			
+				<g:SimplePanel ui:field="previewDownload" />				
 			</div>	
 
 <!-- start footer -->
