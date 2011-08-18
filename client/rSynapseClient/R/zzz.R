@@ -9,7 +9,8 @@
 kSupportedLayerCodeMap <- list(
 		C = "PhenotypeLayer",
 		E = "ExpressionLayer",
-		G = "GenotypeLayer"
+		G = "GenotypeLayer",
+		M = "Layer"
 
 	)
 kSupportedLayerStatus <- c("Curated", "QCd", "Raw")

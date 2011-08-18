@@ -17,7 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author jmhill
  *
  */
-public class InputDataLayerMetadataProvider implements TypeSpecificMetadataProvider<Layer> {
+public class LayerMetadataProvider implements TypeSpecificMetadataProvider<Layer> {
 	
 	@Autowired
 	LayerTypeCountCache layerTypeCountCache;

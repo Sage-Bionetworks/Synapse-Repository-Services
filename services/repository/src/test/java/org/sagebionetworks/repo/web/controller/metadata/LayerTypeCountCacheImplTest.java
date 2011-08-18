@@ -106,8 +106,8 @@ public class LayerTypeCountCacheImplTest {
 		assertNotNull(ds);
 		assertNotNull(ds.getId());
 		toDelete.add(ds.getId());
-		// The cache haven an entry for each layer type * 1
-		expectedCount = LayerTypeNames.values().length * 1;
+		// The cache haven an entry for each layer type * 1, minus Media layers, we do not currently bother with a cache count for those
+		expectedCount = (LayerTypeNames.values().length -1) * 1;
 		assertEquals(expectedCount, layerTypeCountCache.getCacheSize());
 		// Now add a layer to the datsaet
 		Layer layer = (Layer) ObjectTypeFactory.createObjectForTest("layerOne", ObjectType.layer, ds.getId());
@@ -144,8 +144,8 @@ public class LayerTypeCountCacheImplTest {
 		assertNotNull(ds);
 		assertNotNull(ds.getId());
 		toDelete.add(ds.getId());
-		// Now we have two datasets
-		expectedCount = LayerTypeNames.values().length * 2;
+		// Now we have two datasets, minus Media layers, we do not currently bother with a cache count for those
+		expectedCount = (LayerTypeNames.values().length - 1) * 2;
 		assertEquals(expectedCount, layerTypeCountCache.getCacheSize());
 		
 		// Finally, clear the cache and make sure the warm-up works to repopulate it.

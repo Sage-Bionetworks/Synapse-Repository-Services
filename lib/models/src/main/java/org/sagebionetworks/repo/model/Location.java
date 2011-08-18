@@ -20,6 +20,7 @@ public class Location implements Nodeable, Versionable {
 	private String type;
 	private String path;
 	private String md5sum;
+	private String contentType;
 	@TransientField
 	private String annotations;
 	@TransientField
@@ -154,6 +155,20 @@ public class Location implements Nodeable, Versionable {
 		return md5sum;
 	}
 
+	/**
+	 * @return the contentType
+	 */
+	public String getContentType() {
+		return contentType;
+	}
+
+	/**
+	 * @param contentType the contentType to set
+	 */
+	public void setContentType(String contentType) {
+		this.contentType = contentType;
+	}
+
 	public String getId() {
 		return id;
 	}
@@ -234,6 +249,9 @@ public class Location implements Nodeable, Versionable {
 		this.versionUrl = versionUrl;
 	}
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -244,6 +262,8 @@ public class Location implements Nodeable, Versionable {
 						.hashCode());
 		result = prime * result
 				+ ((annotations == null) ? 0 : annotations.hashCode());
+		result = prime * result
+				+ ((contentType == null) ? 0 : contentType.hashCode());
 		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
@@ -268,6 +288,9 @@ public class Location implements Nodeable, Versionable {
 		return result;
 	}
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -286,6 +309,11 @@ public class Location implements Nodeable, Versionable {
 			if (other.annotations != null)
 				return false;
 		} else if (!annotations.equals(other.annotations))
+			return false;
+		if (contentType == null) {
+			if (other.contentType != null)
+				return false;
+		} else if (!contentType.equals(other.contentType))
 			return false;
 		if (creationDate == null) {
 			if (other.creationDate != null)
@@ -360,16 +388,20 @@ public class Location implements Nodeable, Versionable {
 		return true;
 	}
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
 	@Override
 	public String toString() {
-		return "Location [id=" + id + ", uri=" + uri + ", etag=" + etag
-				+ ", name=" + name + ", creationDate=" + creationDate
-				+ ", parentId=" + parentId + ", type=" + type + ", path="
-				+ path + ", md5sum=" + md5sum + ", annotations=" + annotations
-				+ ", accessControlList=" + accessControlList
-				+ ", versionNumber=" + versionNumber + ", versionComment="
-				+ versionComment + ", versionLabel=" + versionLabel
-				+ ", versions=" + versions + ", versionUrl=" + versionUrl + "]";
+		return "Location [accessControlList=" + accessControlList
+				+ ", annotations=" + annotations + ", contentType="
+				+ contentType + ", creationDate=" + creationDate + ", etag="
+				+ etag + ", id=" + id + ", md5sum=" + md5sum + ", name=" + name
+				+ ", parentId=" + parentId + ", path=" + path + ", type="
+				+ type + ", uri=" + uri + ", versionComment=" + versionComment
+				+ ", versionLabel=" + versionLabel + ", versionNumber="
+				+ versionNumber + ", versionUrl=" + versionUrl + ", versions="
+				+ versions + "]";
 	}
 
 }

@@ -15,7 +15,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 /**
  *
  */
-public class StoredLayerPreviewMetadataProvider implements
+public class PreviewMetadataProvider implements
 		TypeSpecificMetadataProvider<Preview> {
 
 	@Override

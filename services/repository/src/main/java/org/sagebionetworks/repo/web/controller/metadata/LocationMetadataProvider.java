@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller.metadata;
 
+import java.net.FileNameMap;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,10 +34,15 @@ import org.springframework.web.bind.annotation.RequestMethod;
 /**
  *
  */
-public class LayerLocationMetadataProvider implements
+public class LocationMetadataProvider implements
 		TypeSpecificMetadataProvider<Location> {
-	
+
 	public static final String METHOD_PARAMETER = "method";
+
+	private static final String DEFAULT_MIME_TYPE = "application/binary";
+
+	private static final FileNameMap FILE_EXTENSION2MIME_TYPE_MAP = URLConnection
+			.getFileNameMap();
 
 	@Autowired
 	LocationHelper locationHelper;
@@ -58,25 +65,26 @@ public class LayerLocationMetadataProvider implements
 		checkUseAgreement(userInfo, entity);
 
 		// Special handling for S3 locations
-		if (entity.getType().equals(
-				Location.LocationTypeNames.awss3.toString())) {
+		if (entity.getType()
+				.equals(Location.LocationTypeNames.awss3.toString())) {
 
 			if (RequestMethod.GET.name().equals(request.getMethod())) {
 
-				// See if the user wants a pre-signed GET, HEAD, or DELETE request
+				// See if the user wants a pre-signed GET, HEAD, or DELETE
+				// request
 				String signedPath = null;
 				String method = request.getParameter(METHOD_PARAMETER);
-				if((null != method) && (method.equals(RequestMethod.HEAD.name()))) {
+				if ((null != method)
+						&& (method.equals(RequestMethod.HEAD.name()))) {
 					signedPath = locationHelper.getS3HeadUrl(request
-							.getParameter(AuthUtilConstants.USER_ID_PARAM), entity
-							.getPath());					
-				}
-				else {
+							.getParameter(AuthUtilConstants.USER_ID_PARAM),
+							entity.getPath());
+				} else {
 					signedPath = locationHelper.getS3Url(request
-							.getParameter(AuthUtilConstants.USER_ID_PARAM), entity
-							.getPath());
+							.getParameter(AuthUtilConstants.USER_ID_PARAM),
+							entity.getPath());
 				}
-				
+
 				// Overwrite the path with a presigned S3 URL to use to get the
 				// data from S3
 				entity.setPath(signedPath);
@@ -87,7 +95,7 @@ public class LayerLocationMetadataProvider implements
 				// data to S3
 				String signedPath = locationHelper.createS3Url(request
 						.getParameter(AuthUtilConstants.USER_ID_PARAM), entity
-						.getPath(), entity.getMd5sum());
+						.getPath(), entity.getMd5sum(), entity.getContentType());
 				entity.setPath(signedPath);
 			}
 		}
@@ -107,6 +115,16 @@ public class LayerLocationMetadataProvider implements
 		}
 		if (null == entity.getMd5sum()) {
 			throw new InvalidModelException("md5sum cannot be null");
+		}
+		if (null == entity.getContentType()) {
+			// We expect that users typically will not provide a mime type, we
+			// look at the file extension here to pick one
+			String mimeType = FILE_EXTENSION2MIME_TYPE_MAP
+					.getContentTypeFor(entity.getPath());
+			if (null == mimeType) {
+				mimeType = DEFAULT_MIME_TYPE;
+			}
+			entity.setContentType(mimeType);
 		}
 		// Set the path prefix for this location.
 		setPathPrefix(entity);
@@ -163,9 +181,8 @@ public class LayerLocationMetadataProvider implements
 				.getParentId());
 		Dataset dataset = null;
 		if (ObjectType.layer == type) {
-			Layer layer = (Layer) entityManager.getEntity(
-					userInfo, entity.getParentId(), ObjectType.layer
-							.getClassForType());
+			Layer layer = (Layer) entityManager.getEntity(userInfo, entity
+					.getParentId(), ObjectType.layer.getClassForType());
 			dataset = (Dataset) entityManager.getEntity(userInfo, layer
 					.getParentId(), ObjectType.dataset.getClassForType());
 		} else {

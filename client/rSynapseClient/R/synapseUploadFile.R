@@ -10,9 +10,9 @@
 }
 
 synapseUploadFile <- 
-		function (url, srcfile, checksum, method = "curl", quiet = FALSE, mode = "w", cacheOK = TRUE)
+		function (url, srcfile, checksum, contentType = 'application/binary', method = "curl", quiet = FALSE, mode = "w", cacheOK = TRUE)
 {
-	header = c("Content-Type"="application/binary",
+	header = c("Content-Type"=contentType,
 			"x-amz-acl"= "bucket-owner-full-control",
 			"Content-MD5" = .hexMD5ToBase64MD5(checksum)
 	)

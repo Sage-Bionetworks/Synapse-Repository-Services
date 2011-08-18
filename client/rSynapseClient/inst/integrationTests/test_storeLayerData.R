@@ -120,7 +120,7 @@ integrationTestStoreLayerData <- function() {
 #	
 #	## Create a dataset
 #	dataset <- list()
-#	dataset$name <- 'R Integration Test Dataset'
+#	dataset$name <- 'R Integration Test Dataset - Update Stored Layer'
 #	dataset$parentId <- .getCache("rIntegrationTestProject")$id
 #	createdDataset <- createDataset(entity=dataset)
 #	checkEquals(dataset$name, createdDataset$name)
@@ -160,3 +160,32 @@ integrationTestStoreLayerData <- function() {
 #				checkEquals(42, data[1,1])
 #	})
 #}
+
+integrationTestStoreMediaLayer <- function() {
+
+	## Create a dataset
+	dataset <- list()
+	dataset$name <- 'R Integration Test Dataset - Store Media Layer'
+	dataset$parentId <- .getCache("rIntegrationTestProject")$id
+	createdDataset <- createDataset(entity=dataset)
+	checkEquals(dataset$name, createdDataset$name)
+	
+	## Create a layer
+	layer <- list()
+	layer$name <- 'R Integration Test Layer'
+	layer$type <- 'M'
+	layer$parentId <- createdDataset$id 
+	
+	## Make a jpeg
+	filename <- "r_integration_test_plot.jpg"
+	attach(mtcars)
+	jpeg(filename)
+	plot(wt, mpg) 
+	abline(lm(mpg~wt))
+	title("Regression of MPG on Weight")
+	dev.off()
+	
+	createdLayer <- storeLayerDataFile(Layer(layer), filename)
+	layerFiles <- loadLayerData(createdLayer)
+	checkEquals(1, length(layerFiles))
+}

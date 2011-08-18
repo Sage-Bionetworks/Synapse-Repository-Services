@@ -16,7 +16,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.web.controller.metadata.LayerLocationMetadataProvider;
+import org.sagebionetworks.repo.web.controller.metadata.LocationMetadataProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
@@ -173,7 +173,7 @@ public class LocationControllerTest {
 				.getString("md5sum"));
 		// HEAD method
 		Map<String,String> extraParams = new HashMap<String, String>();
-		extraParams.put(LayerLocationMetadataProvider.METHOD_PARAMETER, RequestMethod.HEAD.name());
+		extraParams.put(LocationMetadataProvider.METHOD_PARAMETER, RequestMethod.HEAD.name());
 		JSONObject s3HeadLocation = helper.testGetJsonEntity(newS3Location
 				.getString("uri"), extraParams);
 		assertEquals(newS3Location.getString("id"), s3HeadLocation.getString("id"));
@@ -505,6 +505,8 @@ public class LocationControllerTest {
 		assertFalse("null".equals(location.getString("path")));
 		assertTrue(location.has("md5sum"));
 		assertFalse("null".equals(location.getString("md5sum")));
+		assertTrue(location.has("contentType"));
+		assertFalse("null".equals(location.getString("contentType")));
 		assertTrue(location.has(NodeConstants.COL_PARENT_ID));
 		assertFalse("null".equals(location
 				.getString(NodeConstants.COL_PARENT_ID)));

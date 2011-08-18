@@ -129,15 +129,11 @@ setMethod(
 			
 			## parse out the filename
 			filename <- gsub(sprintf("%s%s%s", "^.+",.Platform$file.sep, "+"), "",layerDataFilepath)
-			
-			## TODO: get rid of this path prefix once PLFM-212 is done
-			s3Key = paste('/rClient', propertyValue(entity, "id"), filename, sep="/")
-			##s3Key = paste(propertyValue(entity, "id"), filename, sep="/")
-			
+						
 			## Create or update the location, as appropriate
 			## TODO: write convenience method for setting child entities
 			propertyValues(location) <- list(
-					path = s3Key,
+					path = filename,
 					type = "awss3",
 					md5sum = checksum
 			)
@@ -152,10 +148,16 @@ setMethod(
 				location <- updateEntity(location)
 			}
 			
+			contentType <- propertyValue(location, 'contentType')
+			if(is.null(contentType)) {
+				contentType <- 'application/binary'
+			}
+			
 			## Upload the data file
 			synapseUploadFile(url = propertyValue(location, "path"),
 						srcfile = layerDataFilepath,
-						checksum = checksum
+						checksum = checksum,
+						contentType = contentType
 					)
 			refreshEntity(entity)
 		}		
