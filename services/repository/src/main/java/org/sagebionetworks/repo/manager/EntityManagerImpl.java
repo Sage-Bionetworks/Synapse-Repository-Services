@@ -58,7 +58,22 @@ public class EntityManagerImpl implements EntityManager {
 		Annotations annos = nodeManager.getAnnotations(userInfo, entityId);
 		// Fetch the current node from the server
 		Node node = nodeManager.get(userInfo, entityId);
+		// Does the node type match the requested type?
+		validateType(ObjectType.getNodeTypeForClass(entityClass), ObjectType.valueOf(node.getNodeType()), entityId);
 		return populateEntityWithNodeAndAnnotations(entityClass, annos, node);
+	}
+	
+	/**
+	 * Validate that the requested entity type matches the actual entity type. See http://sagebionetworks.jira.com/browse/PLFM-431.
+	 * @param <T>
+	 * @param requestedType
+	 * @param acutalType
+	 * @param id
+	 */
+	private <T extends Base> void validateType(ObjectType requestedType, ObjectType acutalType, String id){
+		if(acutalType != requestedType){
+			throw new IllegalArgumentException("Requested "+requestedType.getUrlPrefix()+"/"+id+" but the entity with ID="+id+" is not of type: "+requestedType.name());
+		}
 	}
 	
 	@Transactional(readOnly = true)
