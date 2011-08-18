@@ -243,6 +243,10 @@
 			<display reference="project.name" />
 			<url reference="project.localUrl" />
 		</link-column>		
+		<!-- The created on date -->
+		<date-column id="project.createdOnDate">
+			<baseColumn reference="project.creationDate"/>
+		</date-column>
 		
 
 	</columns>
