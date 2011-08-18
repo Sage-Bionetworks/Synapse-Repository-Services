@@ -40,7 +40,8 @@ public class StaticOntologies {
 			DisplayConstants.SERVICE_LAYER_TYPE_KEY, new OntologyTerm[] {
 					new OntologyTerm("Genetic Sequence Data", "G"),
 					new OntologyTerm("Clinical / Phenotypic", "C"),
-					new OntologyTerm("Molecular Expression Data", "E") });
+					new OntologyTerm("Molecular Expression Data", "E"),
+					new OntologyTerm("Media", "M")});
 
 	public static final Ontology LAYER_TYPE = new Ontology("Layer Type",
 			new OntologyTerm[] { new OntologyTerm("Expression", "Expression"),
