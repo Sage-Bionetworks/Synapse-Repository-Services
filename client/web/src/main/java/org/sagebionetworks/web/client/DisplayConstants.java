@@ -99,6 +99,9 @@ public class DisplayConstants {
 	public static final String ERROR_INVALID_ENTITY_NAME = "Name contains contains an invalid character";
 	public static final String ERROR_TITLE_LOGIN_REQUIRED = "Login Required";
 	public static final String ERROR_LOGIN_REQUIRED = "You will need to login for access to that resource.";
+	public static final String ERROR_TITLE_VALIDATION_ERROR = "Validation Error";
+	public static final String ERROR_ALL_FIELDS_REQUIRED = "All fields are required.";
+	public static final String BUTTON_REGISTER = "Register";
 	
 	
 	/*

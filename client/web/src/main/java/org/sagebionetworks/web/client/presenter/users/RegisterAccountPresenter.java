@@ -52,6 +52,7 @@ public class RegisterAccountPresenter extends AbstractActivity implements Regist
 	public void setPlace(RegisterAccount place) {
 		this.place = place;
 		view.clear();
+		view.showDefault();
 	}
 
 	@Override
@@ -66,6 +67,7 @@ public class RegisterAccountPresenter extends AbstractActivity implements Regist
 			@Override
 			public void onFailure(Throwable caught) {
 				view.showErrorMessage(DisplayConstants.ERROR_USER_ALREADY_EXISTS);
+				view.showAccountCreationFailed();
 			}
 		});
 	}

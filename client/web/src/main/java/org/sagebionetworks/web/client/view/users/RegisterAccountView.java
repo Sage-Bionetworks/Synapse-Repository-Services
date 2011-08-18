@@ -1,7 +1,5 @@
 package org.sagebionetworks.web.client.view.users;
 
-import org.sagebionetworks.web.shared.users.UserRegistration;
-
 import com.google.gwt.place.shared.Place;
 import com.google.gwt.user.client.ui.IsWidget;
 
@@ -12,7 +10,15 @@ public interface RegisterAccountView extends IsWidget {
 	 * @param presenter
 	 */
 	public void setPresenter(Presenter presenter);
-		
+
+	/**
+	 * The default register view
+	 */
+	public void showDefault();
+	
+	/**
+	 * The account was created view
+	 */
 	public void showAccountCreated();
 	
 	public void showErrorMessage(String message);
@@ -24,5 +30,8 @@ public interface RegisterAccountView extends IsWidget {
 		
 		void registerUser(String email, String firstName, String lastName);
 	}
+
+	public void showAccountCreationFailed();
+
 
 }

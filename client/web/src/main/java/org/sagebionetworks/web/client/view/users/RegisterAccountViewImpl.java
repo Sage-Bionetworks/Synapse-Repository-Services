@@ -1,12 +1,12 @@
 package org.sagebionetworks.web.client.view.users;
 
+import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.widget.filter.QueryFilter;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
-import org.sagebionetworks.web.shared.users.UserRegistration;
 
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
 import com.extjs.gxt.ui.client.event.ButtonEvent;
@@ -18,7 +18,6 @@ import com.extjs.gxt.ui.client.widget.Label;
 import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.button.Button;
 import com.extjs.gxt.ui.client.widget.form.FieldSet;
-import com.extjs.gxt.ui.client.widget.form.FormButtonBinding;
 import com.extjs.gxt.ui.client.widget.form.FormPanel;
 import com.extjs.gxt.ui.client.widget.form.TextField;
 import com.extjs.gxt.ui.client.widget.layout.FlowLayout;
@@ -27,6 +26,7 @@ import com.extjs.gxt.ui.client.widget.layout.FormLayout;
 import com.google.gwt.dom.client.SpanElement;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
+import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
@@ -51,19 +51,23 @@ public class RegisterAccountViewImpl extends Composite implements RegisterAccoun
 	private IconsImageBundle iconsImageBundle;
 	private Button registerButton;
 	private Header headerWidget;
+	private Footer footerWidget;
+	private SageImageBundle sageImageBundle;
 
 	@Inject
-	public RegisterAccountViewImpl(RegisterAccountViewImplUiBinder binder, Header headerWidget, Footer footerWidget, IconsImageBundle iconsImageBundle, QueryFilter filter, SageImageBundle imageBundle) {		
+	public RegisterAccountViewImpl(RegisterAccountViewImplUiBinder binder, Header headerWidget, Footer footerWidget, IconsImageBundle iconsImageBundle, QueryFilter filter, SageImageBundle imageBundle, SageImageBundle sageImageBundle) {		
 		initWidget(binder.createAndBindUi(this));
 
 		this.iconsImageBundle = iconsImageBundle;
 		this.headerWidget = headerWidget;
+		this.footerWidget = footerWidget;
+		this.sageImageBundle = sageImageBundle;
 		
+		// header setup
+		header.clear();
+		footer.clear();
 		header.add(headerWidget.asWidget());
-		footer.add(footerWidget.asWidget());	
-		formData = new FormData("-20");  
-		createForm();		
-		registerAccountPanel.add(formPanel);
+		footer.add(footerWidget.asWidget());		
 	}
 
 
@@ -73,7 +77,46 @@ public class RegisterAccountViewImpl extends Composite implements RegisterAccoun
 		headerWidget.refresh();
 	}
 
+	@Override
+	public void showDefault() {
+		this.clear();
+		formData = new FormData("-20");  
+		createForm();
+		registerAccountPanel.clear();
+		registerAccountPanel.add(formPanel);
+	}
 
+
+	@Override
+	public void showAccountCreated() {
+		this.clear();		
+		contentHtml.setInnerHTML(DisplayUtils.getIconHtml(iconsImageBundle.informationBalloon16()) + " Your Synapse account has been created. We have sent you an email with instructions on how to setup a password for your account. Follow the directions in the email, and then <a href=\"#LoginPlace:0\">login here</a>.");				
+	}
+
+	@Override
+	public void showErrorMessage(String errorMessage) {
+		MessageBox.info("Error", errorMessage, null);
+	}
+
+
+	@Override
+	public void clear() {		
+		if(registerAccountPanel != null) registerAccountPanel.clear();
+		if(contentHtml != null) contentHtml.setInnerHTML("");	
+	}
+
+	@Override
+	public void showAccountCreationFailed() {
+		if(registerButton != null) {
+			registerButton.enable();
+			setRegisterButtonDefaultTextAndIcon();
+		}
+	}
+
+	
+	/*
+	 * Private Methods
+	 */
 	 private void createForm() {  
 		     formPanel = new FormPanel();  
 		     formPanel.setFrame(true);  
@@ -109,17 +152,20 @@ public class RegisterAccountViewImpl extends Composite implements RegisterAccoun
 		     formPanel.add(fieldSet);  
 		     formPanel.setButtonAlign(HorizontalAlignment.CENTER);  
 		     		     
-		     registerButton = new Button("Register", new SelectionListener<ButtonEvent>(){
+		     registerButton = new Button(DisplayConstants.BUTTON_REGISTER, new SelectionListener<ButtonEvent>(){
 					@Override
 					public void componentSelected(ButtonEvent ce) {
-						registerButton.disable();
-						presenter.registerUser(email.getValue(), firstName.getValue(), lastName.getValue());
-					}});
+						if(validateForm(email, firstName, lastName)) {
+							DisplayUtils.changeButtonToSaving(registerButton, sageImageBundle);						
+							presenter.registerUser(email.getValue(), firstName.getValue(), lastName.getValue());
+						} else {
+							showErrorMessage(DisplayConstants.ERROR_ALL_FIELDS_REQUIRED);
+						}
+					}
+		     });
+		     setRegisterButtonDefaultTextAndIcon();
 		     formPanel.addButton(registerButton);
 		     
- 			 FormButtonBinding binding = new FormButtonBinding(formPanel);
-			 binding.addButton(registerButton);
-
 			// Enter key submits form 
 			new KeyNav<ComponentEvent>(formPanel) {
 				@Override
@@ -130,27 +176,23 @@ public class RegisterAccountViewImpl extends Composite implements RegisterAccoun
 					}
 				}
 			};
- 
+
 	 }
 
-
-	@Override
-	public void showAccountCreated() {
-		registerAccountPanel.clear();		
-		contentHtml.setInnerHTML(DisplayUtils.getIconHtml(iconsImageBundle.informationBalloon16()) + " Your Synapse account has been created. We have sent you an email with instructions on how to setup a password for your account. Follow the directions in the email, and then <a href=\"#LoginPlace:0\">login here</a>.");				
+	private boolean validateForm(TextField<String> email, TextField<String> firstName, TextField<String> lastName) {
+		if (email.getValue() != null && email.getValue().length() > 0
+				&& firstName.getValue() != null && firstName.getValue().length() > 0
+				&& lastName.getValue() != null && lastName.getValue().length() > 0) {
+			return true;
+		}
+		return false;
 	}
 
-	@Override
-	public void showErrorMessage(String errorMessage) {
-		MessageBox.info("Error", errorMessage, null);
+	private void setRegisterButtonDefaultTextAndIcon() {
+		if(registerButton != null) {
+			registerButton.setText(DisplayConstants.BUTTON_REGISTER);
+			registerButton.setIcon(AbstractImagePrototype.create(iconsImageBundle.mailArrow16()));
+		}
 	}
-
-
-	@Override
-	public void clear() {		
-		registerAccountPanel.clear();
-		contentHtml.setInnerHTML("");
-		registerButton.enable();
-		registerAccountPanel.add(formPanel);
-	}
+	
 }
