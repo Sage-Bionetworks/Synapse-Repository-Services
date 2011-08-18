@@ -176,14 +176,18 @@ integrationTestStoreMediaLayer <- function() {
 	layer$type <- 'M'
 	layer$parentId <- createdDataset$id 
 	
-	## Make a jpeg
+	## Make a jpeg when PLFM-498 is fixed, for now, make a fake one
 	filename <- "r_integration_test_plot.jpg"
-	attach(mtcars)
-	jpeg(filename)
-	plot(wt, mpg) 
-	abline(lm(mpg~wt))
-	title("Regression of MPG on Weight")
-	dev.off()
+#	attach(mtcars)
+#	jpeg(filename)
+#	plot(wt, mpg) 
+#	abline(lm(mpg~wt))
+#	title("Regression of MPG on Weight")
+#	dev.off()
+	data <- data.frame(a=1:3, b=letters[10:12],
+			c=seq(as.Date("2004-01-01"), by = "week", len = 3),
+			stringsAsFactors = FALSE)
+	write.table(data, filename)	
 	
 	createdLayer <- storeLayerDataFile(Layer(layer), filename)
 	layerFiles <- loadLayerData(createdLayer)
