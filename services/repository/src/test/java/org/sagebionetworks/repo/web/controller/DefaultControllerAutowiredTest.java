@@ -241,5 +241,25 @@ public class DefaultControllerAutowiredTest {
 		
 	}
 	
+	/**
+	 * This is a test for PLFM-431.  If you try to get an object where they type does not match the ID
+	 * an exception should be thrown.
+	 * @throws IOException 
+	 * @throws ServletException 
+	 */
+	@Test (expected=IllegalArgumentException.class)
+	public void testTypeDoesNotMatchId() throws ServletException, IOException{
+		// First create a project as a non-admin
+		Project project = new Project();
+		// Make sure we can still set a name to null.  The name should then match the ID.
+		project.setName(null);
+		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, TestUserDAO.TEST_USER_NAME);
+		assertNotNull(clone);
+		toDelete.add(clone.getId());
+		// Now try to get the project as a dataset
+		Object wrong = ServletTestHelper.getEntity(dispatchServlet, Dataset.class, clone.getId(),  TestUserDAO.TEST_USER_NAME);
+		
+	}
+	
 
 }
