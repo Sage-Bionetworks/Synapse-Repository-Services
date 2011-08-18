@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.UserInfo;
  * @author jmhill
  *
  */
-public class StoredLayerPreviewMetadataProviderTest {
+public class PreviewMetadataProviderTest {
 	
 	UserInfo mockUser;
 	HttpServletRequest mockRequest;
@@ -65,7 +65,7 @@ public class StoredLayerPreviewMetadataProviderTest {
 		Preview preview = new Preview();
 		preview.setPreviewString(previewString);
 		// Now create the map and headers
-		StoredLayerPreviewMetadataProvider.createPreviewMap(preview);
+		PreviewMetadataProvider.createPreviewMap(preview);
 		assertNotNull(preview.getHeaders());
 		assertEquals(numberCols, preview.getHeaders().length);
 		assertNotNull(preview.getRows());
@@ -81,7 +81,7 @@ public class StoredLayerPreviewMetadataProviderTest {
 	public void testValidateEntity() throws UnsupportedEncodingException{
 		Preview preview = new Preview();
 		preview.setPreviewString(previewString);
-		StoredLayerPreviewMetadataProvider provider = new StoredLayerPreviewMetadataProvider();
+		PreviewMetadataProvider provider = new PreviewMetadataProvider();
 		provider.validateEntity(preview,  new EntityEvent(EventType.GET, null, null));
 		assertNotNull(preview.getPreviewBlob());
 		assertEquals(previewString, new String(preview.getPreviewBlob(), "UTF-8"));
@@ -92,7 +92,7 @@ public class StoredLayerPreviewMetadataProviderTest {
 	public void testAddTypeSpecificMetadata() throws UnsupportedEncodingException{
 		Preview preview = new Preview();
 		preview.setPreviewBlob(previewString.getBytes("UTF-8"));
-		StoredLayerPreviewMetadataProvider provider = new StoredLayerPreviewMetadataProvider();
+		PreviewMetadataProvider provider = new PreviewMetadataProvider();
 		provider.addTypeSpecificMetadata(preview, mockRequest, mockUser, EventType.GET);
 		assertTrue(preview.getPreviewBlob() == null);
 		assertEquals(previewString, preview.getPreviewString());

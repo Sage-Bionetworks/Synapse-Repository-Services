@@ -48,7 +48,6 @@ public class LocationHelpersImpl implements LocationHelper {
 	private static final int WRITE_ACCESS_EXPIRY_MINUTES = StackConfiguration
 			.getS3WriteAccessExpiryMinutes();
 	private static final String S3_DOMAIN = "s3.amazonaws.com";
-	private static final String UPLOAD_APPLICATION_TYPE = "application/binary";
 	private static final String S3_BUCKET = StackConfiguration.getS3Bucket();
 	private static final String CORRECT_DOMAIN = S3_DOMAIN + "/" + S3_BUCKET;
 	private static final String IAM_S3_GROUP = StackConfiguration
@@ -136,7 +135,7 @@ public class LocationHelpersImpl implements LocationHelper {
 	 * http://s3.amazonaws.com/doc/s3-developer-guide/RESTAuthentication.html
 	 */
 	@Override
-	public String createS3Url(String userId, String s3key, String md5)
+	public String createS3Url(String userId, String s3key, String md5, String contentType)
 			throws DatastoreException, NotFoundException {
 
 		// Get the credentials with which to sign the request
@@ -164,7 +163,7 @@ public class LocationHelpersImpl implements LocationHelper {
 		StringBuilder buf = new StringBuilder();
 		buf.append(HttpMethod.PUT.name()).append("\n");
 		buf.append(base64Md5).append("\n");
-		buf.append(UPLOAD_APPLICATION_TYPE).append("\n");
+		buf.append(contentType).append("\n");
 		buf.append(expirationInSeconds + "\n");
 		buf.append("x-amz-acl").append(':').append("bucket-owner-full-control")
 				.append("\n");

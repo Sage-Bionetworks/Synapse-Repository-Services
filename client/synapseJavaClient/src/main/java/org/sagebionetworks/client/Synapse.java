@@ -251,7 +251,7 @@ public class Synapse {
 		Map<String, String> headerMap = new HashMap<String, String>();
 		headerMap.put("x-amz-acl", "bucket-owner-full-control");
 		headerMap.put("Content-MD5", base64Md5);
-		headerMap.put("Content-Type", "application/binary");
+		headerMap.put("Content-Type", s3Location.getString("contentType"));
 
 		HttpClientHelper.uploadFile(s3Location.getString("path"), dataFile
 				.getAbsolutePath(), headerMap);

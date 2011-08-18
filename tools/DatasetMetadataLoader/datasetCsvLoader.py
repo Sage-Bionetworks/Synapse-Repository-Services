@@ -270,6 +270,7 @@ def createOrUpdateLocation(location):
         synapse.utils.uploadToS3(localFilepath=localFilepath,
                                  s3url=storedLocation["path"],
                                  md5=md5,
+                                 contentType=storedLocation["contentType"],
                                  debug=gARGS.debug)
         
 #--------------------[ loadDatasets ]-----------------------------

@@ -130,16 +130,17 @@ public class IT500SynapseJavaClient {
 	@Test
 	public void testJavaClientUploadDownloadLayerFromS3() throws Exception {
 		
-	    File dataSourceFile = File.createTempFile("integrationTest", ".upload");
+	    File dataSourceFile = File.createTempFile("integrationTest", ".txt");
 	    dataSourceFile.deleteOnExit();
 	    FileWriter writer = new FileWriter(dataSourceFile);
 	    writer.write("Hello world!");
 	    writer.close();
 		
 		JSONObject dataset = synapse.createEntity("/dataset", new JSONObject("{\"name\":\"testS3\", \"parentId\":\"" + project.getString("id") + "\"}"));
-		JSONObject layer = synapse.createEntity("/layer", new JSONObject("{\"name\":\"testS3\", \"type\":\"C\", \"parentId\":\"" + dataset.getString("id") + "\"}"));
+		JSONObject layer = synapse.createEntity("/layer", new JSONObject("{\"name\":\"testS3\", \"type\":\"M\", \"parentId\":\"" + dataset.getString("id") + "\"}"));
 		JSONObject location = synapse.uploadLayerToSynapse(layer, dataSourceFile);
 		assertEquals("awss3", location.getString("type"));
+		assertEquals("text/plain", location.getString("contentType"));
 
 	    File dataDestinationFile = File.createTempFile("integrationTest", ".download");
 	    dataDestinationFile.deleteOnExit();

@@ -72,11 +72,12 @@ public interface LocationHelper {
 	 * @param userId
 	 * @param path
 	 * @param md5
+	 * @param contentType
 	 * @return a pre-signed URL valid for PUT requests
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	String createS3Url(String userId, String path, String md5)
+	String createS3Url(String userId, String path, String md5, String contentType)
 			throws DatastoreException, NotFoundException;
 
 }

@@ -11,12 +11,12 @@ import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 
-public class InputDataLayerMetadataProviderTest {
+public class LayerMetadataProviderTest {
 	
 	
 	@Test
 	public void testValidate() throws InvalidModelException{
-		InputDataLayerMetadataProvider provider = new InputDataLayerMetadataProvider();
+		LayerMetadataProvider provider = new LayerMetadataProvider();
 		Layer mock = new Layer();
 		mock.setParentId("12");
 		mock.setType(Layer.LayerTypeNames.C.name());

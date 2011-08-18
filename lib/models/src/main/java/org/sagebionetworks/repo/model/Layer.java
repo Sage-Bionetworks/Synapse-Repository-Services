@@ -48,7 +48,7 @@ public class Layer implements DatasetLayer, HasLocations, HasPreviews {
 	 * TODO do we want to encode allowable values here?
 	 */
 	public enum LayerTypeNames {
-		E, G, C;
+		E, G, C, M;
 	}
 
 	public String getId() {
