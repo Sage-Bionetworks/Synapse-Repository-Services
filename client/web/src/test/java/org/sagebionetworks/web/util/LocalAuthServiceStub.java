@@ -85,6 +85,13 @@ public class LocalAuthServiceStub {
 	public String sendPasswordChangeEmail(@QueryParam("userId") String userId) {		
 		return "";
 	}
+	
+	@POST
+	@Consumes("application/json")@Produces("application/json")
+	@Path("/apiPasswordEmail")
+	public String sendSetApiPasswordEmail(@QueryParam("userId") String userId) {
+		return "";
+	}
 		
 	@POST
 	@Consumes("application/json")@Produces("application/json")	

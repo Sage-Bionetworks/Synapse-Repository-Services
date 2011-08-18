@@ -27,6 +27,7 @@ public class ServiceUtils {
 	public static final String REPOSVC_GET_USERS_PATH = "user";
 	
 	public static final String AUTHSVC_SEND_PASSWORD_CHANGE_PATH = "userPasswordEmail";
+	public static final String AUTHSVC_SEND_API_PASSWORD_PATH = "apiPasswordEmail";
 	public static final String AUTHSVC_SET_PASSWORD_PATH = "userPassword";
 	public static final String AUTHSVC_INITIATE_SESSION_PATH = "session";
 	public static final String AUTHSVC_CREATE_USER_PATH = "user";

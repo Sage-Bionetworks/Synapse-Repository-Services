@@ -32,6 +32,7 @@ public class ProfilePresenter extends AbstractActivity implements ProfileView.Pr
 	@Inject
 	public ProfilePresenter(ProfileView view, AuthenticationController authenticationController, UserAccountServiceAsync userService, GlobalApplicationState globalApplicationState) {
 		this.view = view;
+		this.view.setPresenter(this);
 		this.authenticationController = authenticationController;
 		this.userService = userService;
 		this.globalApplicationState = globalApplicationState;
@@ -47,7 +48,6 @@ public class ProfilePresenter extends AbstractActivity implements ProfileView.Pr
 			}
 		};
 		// Set the presenter on the view
-		this.view.setPresenter(this);
 		this.view.render();
 		
 		// Install the view
@@ -104,7 +104,7 @@ public class ProfilePresenter extends AbstractActivity implements ProfileView.Pr
 	public void createSynapsePassword() {
 		final UserData currentUser = authenticationController.getLoggedInUser();
 		if(currentUser != null) {
-			userService.sendPasswordResetEmail(currentUser.getEmail(), new AsyncCallback<Void>() {
+			userService.sendSetApiPasswordEmail(currentUser.getEmail(), new AsyncCallback<Void>() {
 				@Override
 				public void onSuccess(Void result) {
 					view.showRequestPasswordEmailSent();

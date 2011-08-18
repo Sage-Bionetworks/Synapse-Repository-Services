@@ -10,6 +10,7 @@ import org.sagebionetworks.web.shared.users.AclPrincipal;
 import org.sagebionetworks.web.shared.users.UserData;
 import org.sagebionetworks.web.shared.users.UserRegistration;
 
+import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.rpc.RemoteService;
 import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
 
@@ -17,6 +18,8 @@ import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
 public interface UserAccountService extends RemoteService {	
 
 	public void sendPasswordResetEmail(String emailAddress) throws RestServiceException;
+	
+	void sendSetApiPasswordEmail(String emailAddress) throws RestServiceException;
 	
 	public void setPassword(String email, String newPassword);
 

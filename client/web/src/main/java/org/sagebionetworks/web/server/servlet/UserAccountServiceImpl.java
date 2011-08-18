@@ -109,6 +109,46 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 //		}						
 	}
 
+	public void sendSetApiPasswordEmail(String emailAddress) throws RestServiceException {
+		// First make sure the service is ready to go.
+		validateService();
+		
+		JSONObject obj = new JSONObject();
+		try {
+			obj.put("email", emailAddress);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		
+		// Build up the path
+		String url = urlProvider.getAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_SEND_API_PASSWORD_PATH;
+		String jsonString = obj.toString();
+		
+		// Setup the header
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<String>(jsonString, headers);
+		HttpMethod method = HttpMethod.POST;
+		
+		logger.info(method.toString() + ": " + url + ", JSON: " + jsonString);
+		
+		// Make the actual call.
+		try {
+			@SuppressWarnings("unused")
+			ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class);
+			if(response.getBody().equals("")) {
+				return;
+			}
+		} catch (UnexpectedException ex) {
+			return;
+		} catch (NullPointerException nex) {
+			// TODO : change this to properly deal with a 204!!!
+			return; // this is expected
+		}
+		
+		throw new RestClientException("An error occured. Please try again.");		
+	}
+
 	@Override
 	public void setPassword(String email, String newPassword) {
 		// First make sure the service is ready to go.

@@ -13,6 +13,8 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 public interface UserAccountServiceAsync {
 
 	void sendPasswordResetEmail(String emailAddress, AsyncCallback<Void> callback);
+	
+	void sendSetApiPasswordEmail(String emailAddress, AsyncCallback<Void> callback);
 
 	void setPassword(String email, String newPassword, AsyncCallback<Void> callback);
 
