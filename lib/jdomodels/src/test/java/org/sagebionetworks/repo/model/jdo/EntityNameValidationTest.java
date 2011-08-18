@@ -52,6 +52,8 @@ public class EntityNameValidationTest {
 		validNames.add("Has-Dash");
 		validNames.add("Breast Cancer HER2+ ICGC");
 		validNames.add("one(2)");
+		validNames.add("o,2");
+		validNames.add("o.2");
 		for (int i = 0; i < validNames.size(); i++) {
 			// These are all bad names
 			 EntityNameValidation.valdiateName(validNames.get(i));

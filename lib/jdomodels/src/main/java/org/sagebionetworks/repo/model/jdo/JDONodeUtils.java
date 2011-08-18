@@ -26,10 +26,14 @@ public class JDONodeUtils {
 		if(dto.getId() != null){
 			jdo.setId(Long.parseLong(dto.getId()));
 		}
-		jdo.setCreatedOn(dto.getCreatedOn().getTime());
+		if(dto.getCreatedOn() != null){
+			jdo.setCreatedOn(dto.getCreatedOn().getTime());
+		}
 		jdo.setCreatedBy(dto.getCreatedBy());
 		rev.setModifiedBy(dto.getModifiedBy());
-		rev.setModifiedOn(dto.getModifiedOn().getTime());
+		if(dto.getModifiedOn() != null){
+			rev.setModifiedOn(dto.getModifiedOn().getTime());
+		}
 		rev.setComment(dto.getVersionComment());
 		if(dto.getVersionLabel() != null){
 			rev.setLabel(dto.getVersionLabel());

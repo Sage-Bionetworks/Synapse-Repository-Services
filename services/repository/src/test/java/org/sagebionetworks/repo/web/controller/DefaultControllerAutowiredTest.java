@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -47,7 +48,6 @@ import org.springframework.web.servlet.DispatcherServlet;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-@Deprecated // all new tests should be added to DefaultControllerAutowiredAllTypesTest where every type is tested for every method.
 public class DefaultControllerAutowiredTest {
 
 	// Used for cleanup
@@ -226,10 +226,12 @@ public class DefaultControllerAutowiredTest {
 	public void testProjectUpdate() throws ServletException, IOException{
 		// Frist create a project as a non-admin
 		Project project = new Project();
-		project.setName("testProjectUpdatePLFM-473");
+		// Make sure we can still set a name to null.  The name should then match the ID.
+		project.setName(null);
 		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, TestUserDAO.TEST_USER_NAME);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
+		assertEquals("The name should match the ID when the name is set to null", clone.getId(), clone.getName());
 		// Now make sure this user can update
 		String newName = "testProjectUpdatePLFM-473-updated";
 		clone.setName("testProjectUpdatePLFM-473-updated");

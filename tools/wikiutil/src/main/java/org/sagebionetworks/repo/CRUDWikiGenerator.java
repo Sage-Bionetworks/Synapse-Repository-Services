@@ -1,11 +1,15 @@
 package org.sagebionetworks.repo;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Iterator;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
@@ -205,7 +209,10 @@ public class CRUDWikiGenerator {
 									+ dataset.getString("id") + "\"}"),
 							"h3. Create an agreement between a user and the End-User Licence Agreement for a particular dataset",
 							"Note that the userId is determined from the sessionToken");
-
+			
+			// Call the version CRUD
+			doVersionCRUD(wiki, s3Location);
+			
 			wiki
 					.doDelete(
 							project.getString("uri"),
@@ -218,5 +225,67 @@ public class CRUDWikiGenerator {
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		}
+	}
+	
+	/**
+	 * All of the CRUD operation around versions 
+	 * @param parentId
+	 * @throws Exception 
+	 * @throws JSONException 
+	 */
+	private static void doVersionCRUD(WikiGenerator wiki, JSONObject s3Location) throws JSONException, Exception{
+		// Load the version static content
+		log.info(loadStaticContentFromClasspath("VersionStaticContent.txt"));
+		log.info("h4. Version API Examples:");
+		s3Location = wiki.doGet(s3Location.getString("uri"), "h4. Get the Location to Version", "Get the location object we created earlier:");
+		String versionOneUrl = s3Location.getString("versionUrl");
+		// First create a new version of the location we had earlier
+		s3Location.put("versionComment", "The second version of this location.");
+		s3Location.put("versionLabel", "0.0.2");
+		s3Location.remove("accessControlList");
+		s3Location.remove("creationDate");
+		s3Location.remove("annotations");
+		s3Location.remove("versionNumber");
+		s3Location.remove("versionUrl");
+		s3Location.remove("versions");
+		String path = s3Location.getString("path");
+		path = path.replaceAll("0.0.0", "0.0.2");
+		s3Location.put("path", path);
+		s3Location = wiki.doPut(s3Location.getString("uri")+"/version", s3Location, "h4. Create New Version", "To create a new version of a location, we set the version comment and label.  We also want to set a new path for this version:");
+		// Now list all of the version of this location.
+		wiki.doGet(s3Location.getString("versions"), "h4. List Versions", "List all of the version of this location.  The current version will be the first in the list:");
+		// Get an older version
+		s3Location = wiki.doGet(versionOneUrl, "h4. Get a Previous Version", "To get a previous version we must provide the version number we would like to fetch:");
+		// Get the annotations of a previous version.
+		JSONObject annos = wiki.doGet(versionOneUrl+"/annotations", "h4. Get Annotations of a Previous Version", "To get the annotations of a previous version we must provide the version number we would like to fetch:");
+		// Get an older version
+		wiki.doDelete(versionOneUrl, "h4. Delete a Version", "To delete a specific versoin we must provide the version number. Note: You cannot delete the last version of an entity.");
+		// Now list all of the version of this location.
+		wiki.doGet(s3Location.getString("versions"), "h4. Finally List Versions Again", "List all of the version of this location.  Since we deleted the first version, only the second remains:");
+
+	}
+	
+	/**
+	 * Load static content from a file on the classpath
+	 * @param name
+	 * @return
+	 * @throws IOException
+	 */
+	public static String loadStaticContentFromClasspath(String name) throws IOException{
+		InputStream in = CRUDWikiGenerator.class.getClassLoader().getResourceAsStream(name);
+		if(in == null) throw new IllegalArgumentException("Cannot find: "+name+" on the classpath");
+		try{
+			BufferedInputStream bufferd = new BufferedInputStream(in);
+			byte[] buffer = new byte[1024];
+			StringBuilder builder = new StringBuilder();
+			int index = -1;
+			while((index = bufferd.read(buffer, 0, buffer.length)) >0){
+				builder.append(new String(buffer, 0, index, "UTF-8"));
+			}
+			return builder.toString();
+		}finally{
+			in.close();
+		}
+		
 	}
 }
