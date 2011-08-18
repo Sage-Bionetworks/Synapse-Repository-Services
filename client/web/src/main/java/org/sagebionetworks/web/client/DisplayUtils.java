@@ -124,7 +124,7 @@ public class DisplayUtils {
 			return true;
 		} else if(ex instanceof ForbiddenException) {			
 			if(currentUser == null) {				
-				MessageBox.info(DisplayConstants.ERROR_LOGIN_REQUIRED, DisplayConstants.ERROR_LOGIN_REQUIRED, null);
+				Info.display(DisplayConstants.ERROR_LOGIN_REQUIRED, DisplayConstants.ERROR_LOGIN_REQUIRED);
 				placeChanger.goTo(new LoginPlace(DisplayUtils.DEFAULT_PLACE_TOKEN));
 			} else {
 				MessageBox.info("Unauthorized", "Sorry, there was a failure due to insufficient privileges.", null);
