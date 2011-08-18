@@ -422,13 +422,6 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 					for(String fileDownloadString : results) {
 						DownloadLocation downloadLocation = nodeModelCreator.createDownloadLocation(fileDownloadString);
 						if(downloadLocation != null && downloadLocation.getPath() != null) { 
-
-							// TODO : <HACK>: Remove this block after contentTypes are added and it will just work. 
-							if(downloadLocation.getPath().contains(".jpg?") || downloadLocation.getPath().contains(".png?") || downloadLocation.getPath().contains(".gif?")) {
-								downloadLocation.setContentType(DisplayUtils.MIME_TYPE_JPEG);							
-							}
-							// TODO : </HACK> 
-							
 							FileDownload dl = new FileDownload(downloadLocation.getPath(), "Download " + model.getName(), downloadLocation.getMd5sum(), downloadLocation.getContentType());
 							downloads.add(dl);
 						}	
