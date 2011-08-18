@@ -50,6 +50,9 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 	private NodeEditor nodeEditor;
 	private Header headerWidget;
 
+	private final int INITIAL_QUERY_TABLE_OFFSET = 0;
+	private final int QUERY_TABLE_LENGTH = 20;
+	
 	@Inject
 	public ProjectsHomeViewImpl(ProjectsHomeViewImplUiBinder binder,
 			Header headerWidget, Footer footerWidget, IconsImageBundle icons,
@@ -75,9 +78,9 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 		this.presenter = presenter;		
 		headerWidget.refresh();
 				
-		this.queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.project, true, 1000, 480, presenter.getPlaceChanger());		
+		this.queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.project, true, 1000, 487, presenter.getPlaceChanger());		
 		// Start on the first page and trigger a data fetch from the server
-		queryServiceTable.pageTo(0, 10);
+		queryServiceTable.pageTo(INITIAL_QUERY_TABLE_OFFSET, QUERY_TABLE_LENGTH);
 		tablePanel.clear();
 		tablePanel.add(queryServiceTable.asWidget());
 
