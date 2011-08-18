@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.repo.model.Eula;
-import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.LayerLocation;
+import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 
@@ -29,12 +29,12 @@ public class ObjectTypeFactory {
 		Nodeable object = type.getClassForType().newInstance();
 		object.setName(name);
 		// Handle layers
-		if(object instanceof InputDataLayer){
-			InputDataLayer layer = (InputDataLayer) object;
-			layer.setType(InputDataLayer.LayerTypeNames.C.name());
-		} else if(object instanceof LayerLocation){
-			LayerLocation location = (LayerLocation) object;
-			location.setType(LayerLocation.LocationTypeNames.sage.name());
+		if(object instanceof Layer){
+			Layer layer = (Layer) object;
+			layer.setType(Layer.LayerTypeNames.C.name());
+		} else if(object instanceof Location){
+			Location location = (Location) object;
+			location.setType(Location.LocationTypeNames.sage.name());
 			location.setPath("/somePath");
 			location.setMd5sum("md5sum");
 		} else if(object instanceof Eula){

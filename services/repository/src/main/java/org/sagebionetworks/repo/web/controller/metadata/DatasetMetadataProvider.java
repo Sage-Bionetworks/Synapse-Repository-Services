@@ -7,8 +7,8 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.InputDataLayer;
-import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
+import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -70,7 +70,7 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 		// Start with the children query
 		BasicQuery query = createChildrenLayerQuery(datasetId);
 		// Now add a filter for the clinical layer type.
-		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COLUMN_LAYER_TYPE), Compartor.EQUALS, InputDataLayer.LayerTypeNames.C.name()));
+		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COLUMN_LAYER_TYPE), Compartor.EQUALS, Layer.LayerTypeNames.C.name()));
 		return query;
 	}
 	
@@ -83,7 +83,7 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 		// Start with the children query
 		BasicQuery query = createChildrenLayerQuery(datasetId);
 		// Now add a filter for the clinical layer type.
-		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COLUMN_LAYER_TYPE), Compartor.EQUALS, InputDataLayer.LayerTypeNames.E.name()));
+		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COLUMN_LAYER_TYPE), Compartor.EQUALS, Layer.LayerTypeNames.E.name()));
 		return query;
 	}
 	
@@ -96,7 +96,7 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 		// Start with the children query
 		BasicQuery query = createChildrenLayerQuery(datasetId);
 		// Now add a filter for the clinical layer type.
-		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COLUMN_LAYER_TYPE), Compartor.EQUALS, InputDataLayer.LayerTypeNames.G.name()));
+		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COLUMN_LAYER_TYPE), Compartor.EQUALS, Layer.LayerTypeNames.G.name()));
 		return query;
 	}
 

@@ -10,10 +10,10 @@ package org.sagebionetworks.repo.model;
 public enum ObjectType {
 
 	dataset			(Dataset.class, 			(short)0, PrefixConst.DATASET,		NodeConstants.ROOT_FOLDER_PATH, 	new String[]{PrefixConst.PROJECT}),
-	layer			(InputDataLayer.class, 		(short)1, PrefixConst.LAYER,		NodeConstants.ROOT_FOLDER_PATH,		new String[]{PrefixConst.DATASET}),
-	location		(LayerLocation.class, 		(short)2, PrefixConst.LOCATION,		NodeConstants.ROOT_FOLDER_PATH,		new String[]{PrefixConst.DATASET, PrefixConst.LAYER}),
+	layer			(Layer.class, 		(short)1, PrefixConst.LAYER,		NodeConstants.ROOT_FOLDER_PATH,		new String[]{PrefixConst.DATASET}),
+	location		(Location.class, 		(short)2, PrefixConst.LOCATION,		NodeConstants.ROOT_FOLDER_PATH,		new String[]{PrefixConst.DATASET, PrefixConst.LAYER}),
 	project			(Project.class, 			(short)3, PrefixConst.PROJECT,		NodeConstants.ROOT_FOLDER_PATH,		new String[]{PrefixConst.FOLDER, PrefixConst.PROJECT, PrefixConst.DEFAULT}),
-	preview			(StoredLayerPreview.class, 	(short)4, PrefixConst.PREVIEW,		NodeConstants.ROOT_FOLDER_PATH, 	new String[]{PrefixConst.LAYER}),
+	preview			(Preview.class, 	(short)4, PrefixConst.PREVIEW,		NodeConstants.ROOT_FOLDER_PATH, 	new String[]{PrefixConst.LAYER}),
 	eula			(Eula.class,				(short)5, PrefixConst.EULA,			NodeConstants.EULA_FOLDER_PATH,		new String[]{PrefixConst.DEFAULT, PrefixConst.FOLDER}),
 	agreement		(Agreement.class,			(short)6, PrefixConst.AGREEMENT,	NodeConstants.AGREEMENT_FOLDER_PATH,new String[]{PrefixConst.DEFAULT, PrefixConst.FOLDER}),
 	folder			(Folder.class,				(short)7, PrefixConst.FOLDER,		NodeConstants.ROOT_FOLDER_PATH,		new String[]{PrefixConst.DEFAULT, PrefixConst.FOLDER});

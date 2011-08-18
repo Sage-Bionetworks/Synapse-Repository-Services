@@ -61,13 +61,13 @@ public class ClientAndServerObjectSynchTest {
 				// Dataset
 				new Pair(org.sagebionetworks.web.shared.Dataset.class, org.sagebionetworks.repo.model.Dataset.class),
 				// Layer
-				new Pair(org.sagebionetworks.web.shared.Layer.class, org.sagebionetworks.repo.model.InputDataLayer.class),
+				new Pair(org.sagebionetworks.web.shared.Layer.class, org.sagebionetworks.repo.model.Layer.class),
 				// LayerPreview
-				new Pair(org.sagebionetworks.web.shared.LayerPreview.class, org.sagebionetworks.repo.model.LayerPreview.class),
+				new Pair(org.sagebionetworks.web.shared.LayerPreview.class, org.sagebionetworks.repo.model.Preview.class),
 				// Preview
-				new Pair(org.sagebionetworks.web.shared.Preview.class, org.sagebionetworks.repo.model.StoredLayerPreview.class),
-				// LayerLocation
-				new Pair(org.sagebionetworks.web.shared.DownloadLocation.class, org.sagebionetworks.repo.model.LayerLocation.class),
+				new Pair(org.sagebionetworks.web.shared.Preview.class, org.sagebionetworks.repo.model.Preview.class),
+				// Location
+				new Pair(org.sagebionetworks.web.shared.DownloadLocation.class, org.sagebionetworks.repo.model.Location.class),
 				// Annotations
 				new Pair(org.sagebionetworks.web.shared.Annotations.class, org.sagebionetworks.repo.model.Annotations.class),
 		};

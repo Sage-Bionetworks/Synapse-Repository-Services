@@ -12,21 +12,14 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.model.Agreement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
-import org.sagebionetworks.repo.model.Dataset;
-import org.sagebionetworks.repo.model.Eula;
 import org.sagebionetworks.repo.model.HasLayers;
 import org.sagebionetworks.repo.model.HasLocations;
 import org.sagebionetworks.repo.model.HasPreviews;
-import org.sagebionetworks.repo.model.InputDataLayer;
-import org.sagebionetworks.repo.model.LayerLocation;
-import org.sagebionetworks.repo.model.LayerPreview;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PrefixConst;
-import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Versionable;
 
 /**
@@ -228,7 +221,6 @@ public class UrlHelpers {
 
 		Map<Class, String> property2urlsuffix = new HashMap<Class, String>();
 		property2urlsuffix.put(Annotations.class, ANNOTATIONS);
-		property2urlsuffix.put(LayerPreview.class, PREVIEW);
 		PROPERTY2URLSUFFIX = Collections.unmodifiableMap(property2urlsuffix);
 	}
 

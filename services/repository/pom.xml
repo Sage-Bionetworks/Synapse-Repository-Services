@@ -194,19 +194,36 @@
 				</executions>
 			</plugin>
 
-			<!-- Added this path to the test classpath so that we do not need to copy 
-				and paste our servlet config into a separate file even though we want the 
-				exact same config for testing -->
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<additionalClasspathElements>
-						<element>${project.basedir}/src/main/webapp/WEB-INF/</element>
-					</additionalClasspathElements>
 					<argLine>-Xmx512m -Xms128m</argLine>
 				</configuration>
 			</plugin>
 
+			<!-- Added this path to the test classpath so that we do not need to copy and paste our servlet config into a separate file even though we want the exact same config for testing -->
+            <plugin>
+              <groupId>org.codehaus.mojo</groupId>
+              <artifactId>build-helper-maven-plugin</artifactId>
+              <version>1.3</version>
+              <executions>
+                <execution>
+                  <id>add-test-resource</id>
+                  <phase>generate-test-sources</phase>
+                  <goals>
+                    <goal>add-test-resource</goal>
+                  </goals>
+                  <configuration>
+                    <resources>
+                      <resource>
+                        <directory>src/main/webapp/WEB-INF</directory>
+                      </resource>
+                    </resources>
+                  </configuration>
+                </execution> 
+              </executions>
+            </plugin>
+            
 		</plugins>
 	</build>
 

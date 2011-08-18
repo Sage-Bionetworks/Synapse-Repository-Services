@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -125,36 +125,36 @@ public class EntityManagerImplAutowireTest {
 		String parentId = entityManager.createEntity(userInfo, ds);
 		assertNotNull(parentId);
 		toDelete.add(parentId);
-		List<InputDataLayer> layerList = new ArrayList<InputDataLayer>();
+		List<Layer> layerList = new ArrayList<Layer>();
 		int layers = 3;
 		for(int i=0; i<layers; i++){
-			InputDataLayer layer = createLayerForTest(i);
+			Layer layer = createLayerForTest(i);
 			layerList.add(layer);
 		}
 		List<String> childrenIds = entityManager.aggregateEntityUpdate(userInfo, parentId, layerList);
 		assertNotNull(childrenIds);
 		assertEquals(layers, childrenIds.size());
 		
-		List<InputDataLayer> children = entityManager.getEntityChildren(userInfo, parentId, InputDataLayer.class);
+		List<Layer> children = entityManager.getEntityChildren(userInfo, parentId, Layer.class);
 		assertNotNull(children);
 		assertEquals(layers, children.size());
-		InputDataLayer toUpdate = children.get(0);
+		Layer toUpdate = children.get(0);
 		String udpatedId = toUpdate.getId();
 		assertNotNull(udpatedId);
 		toUpdate.setName("updatedName");
 		// Do it again
 		entityManager.aggregateEntityUpdate(userInfo, parentId, children);
-		children = entityManager.getEntityChildren(userInfo, parentId, InputDataLayer.class);
+		children = entityManager.getEntityChildren(userInfo, parentId, Layer.class);
 		assertNotNull(children);
 		assertEquals(layers, children.size());
 		// find the one with the updated name
-		InputDataLayer updatedLayer = entityManager.getEntity(userInfo, udpatedId, InputDataLayer.class);
+		Layer updatedLayer = entityManager.getEntity(userInfo, udpatedId, Layer.class);
 		assertNotNull(updatedLayer);
 		assertEquals("updatedName", updatedLayer.getName());
 	}
 	
-	private InputDataLayer createLayerForTest(int i){
-		InputDataLayer layer = new InputDataLayer();
+	private Layer createLayerForTest(int i){
+		Layer layer = new Layer();
 		layer.setName("layerName"+i);
 		layer.setDescription("layerDesc"+i);
 		layer.setCreationDate(new Date(1001));

@@ -14,7 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.model.LayerLocation;
+import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.UserInfo;
 
 public class GenericEntityControllerImplUnitTest {
@@ -38,13 +38,13 @@ public class GenericEntityControllerImplUnitTest {
 //		idList.add("401");
 		String userId = "someUser";
 		String parentId = "0";
-		Collection<LayerLocation> toUpdate = new ArrayList<LayerLocation>();
+		Collection<Location> toUpdate = new ArrayList<Location>();
 		when(mockEntityManager.aggregateEntityUpdate((UserInfo)any(),eq(parentId), eq(toUpdate))).thenReturn(idList);
-		LayerLocation existingLocation = new LayerLocation();
+		Location existingLocation = new Location();
 		existingLocation.setId("201");
 		existingLocation.setMd5sum("someMD5");
 		existingLocation.setPath("somePath");
-		when(mockEntityManager.getEntity((UserInfo)any(), eq("201"), eq(LayerLocation.class))).thenReturn(existingLocation);
+		when(mockEntityManager.getEntity((UserInfo)any(), eq("201"), eq(Location.class))).thenReturn(existingLocation);
 		// Now make the call
 		controller.aggregateEntityUpdate(userId, parentId, toUpdate, mockRequest);
 	}

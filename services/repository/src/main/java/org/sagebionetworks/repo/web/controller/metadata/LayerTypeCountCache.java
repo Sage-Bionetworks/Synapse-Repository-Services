@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.web.controller.metadata;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
+import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.springframework.beans.factory.InitializingBean;
 

@@ -11,7 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.StoredLayerPreview;
+import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.UserInfo;
 
 /**
@@ -62,7 +62,7 @@ public class StoredLayerPreviewMetadataProviderTest {
 	@Test
 	public void testCreatePreviewMap() throws DatastoreException{
 		// Seup the preview
-		StoredLayerPreview preview = new StoredLayerPreview();
+		Preview preview = new Preview();
 		preview.setPreviewString(previewString);
 		// Now create the map and headers
 		StoredLayerPreviewMetadataProvider.createPreviewMap(preview);
@@ -79,7 +79,7 @@ public class StoredLayerPreviewMetadataProviderTest {
 	
 	@Test
 	public void testValidateEntity() throws UnsupportedEncodingException{
-		StoredLayerPreview preview = new StoredLayerPreview();
+		Preview preview = new Preview();
 		preview.setPreviewString(previewString);
 		StoredLayerPreviewMetadataProvider provider = new StoredLayerPreviewMetadataProvider();
 		provider.validateEntity(preview,  new EntityEvent(EventType.GET, null, null));
@@ -90,7 +90,7 @@ public class StoredLayerPreviewMetadataProviderTest {
 	
 	@Test
 	public void testAddTypeSpecificMetadata() throws UnsupportedEncodingException{
-		StoredLayerPreview preview = new StoredLayerPreview();
+		Preview preview = new Preview();
 		preview.setPreviewBlob(previewString.getBytes("UTF-8"));
 		StoredLayerPreviewMetadataProvider provider = new StoredLayerPreviewMetadataProvider();
 		provider.addTypeSpecificMetadata(preview, mockRequest, mockUser, EventType.GET);

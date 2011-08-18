@@ -7,7 +7,7 @@ import java.lang.reflect.Field;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Dataset;
-import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotationType;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
@@ -91,7 +91,7 @@ public class SqlConstantsTest {
 	
 	@Test
 	public void testgetColumnNameForPrimaryFieldLayers(){
-		Field[] fields = InputDataLayer.class.getDeclaredFields();
+		Field[] fields = Layer.class.getDeclaredFields();
 		for(int i=0; i<fields.length; i++){
 			if(!fields[i].isAccessible()){
 				fields[i].setAccessible(true);

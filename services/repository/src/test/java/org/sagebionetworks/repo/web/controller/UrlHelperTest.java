@@ -11,11 +11,11 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.HasLayers;
 import org.sagebionetworks.repo.model.HasLocations;
 import org.sagebionetworks.repo.model.HasPreviews;
-import org.sagebionetworks.repo.model.InputDataLayer;
-import org.sagebionetworks.repo.model.LayerLocation;
+import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.StoredLayerPreview;
+import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.web.UrlHelpers;
 
@@ -78,7 +78,7 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testsetEntityUriNullPrefix(){
-		UrlHelpers.createEntityUri("12", LayerLocation.class, null);
+		UrlHelpers.createEntityUri("12", Location.class, null);
 	}
 	
 	@Test 
@@ -127,14 +127,14 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetAllNodeableNullUri(){
-		StoredLayerPreview preview = new StoredLayerPreview();
+		Preview preview = new Preview();
 		preview.setUri(null);
 		UrlHelpers.setAllNodeableUrls(preview);
 	}
 	
 	@Test
 	public void testSetAllNodeableUrls(){
-		StoredLayerPreview preview = new StoredLayerPreview();
+		Preview preview = new Preview();
 		// Make sure the preview has a uri
 		String baseUri = "/repo/v1"+ObjectType.preview.getUrlPrefix()+"/42";
 		preview.setUri(baseUri);
@@ -194,14 +194,14 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testHasPreviewNullUri(){
-		InputDataLayer layer = new InputDataLayer();
+		Layer layer = new Layer();
 		layer.setUri(null);
 		UrlHelpers.setHasPreviewsUrl(layer);
 	}
 	
 	@Test
 	public void testHasPreviewUrls(){
-		InputDataLayer layer = new InputDataLayer();
+		Layer layer = new Layer();
 		// Make sure the preview has a uri
 		String baseUri = "/repo/v1"+ObjectType.layer.getUrlPrefix()+"/42";
 		layer.setUri(baseUri);
@@ -212,14 +212,14 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetVersionableNullUri(){
-		LayerLocation location = new LayerLocation();
+		Location location = new Location();
 		location.setUri(null);
 		UrlHelpers.setVersionableUrl(location);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetVersionableNullVersionNumber(){
-		LayerLocation location = new LayerLocation();
+		Location location = new Location();
 		String baseUri = "/repo/v1"+ObjectType.location.getUrlPrefix()+"/42";
 		location.setUri(baseUri);
 		// set the version number to be null
@@ -229,7 +229,7 @@ public class UrlHelperTest {
 	
 	@Test
 	public void testSetVersionable(){
-		LayerLocation location = new LayerLocation();
+		Location location = new Location();
 		location.setVersionNumber(new Long(12));
 		// Make sure the location has a uri
 		String baseUri = "/repo/v1"+ObjectType.location.getUrlPrefix()+"/42";
@@ -295,13 +295,13 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAllUrlsNullBase(){
-		InputDataLayer layer = new InputDataLayer();
+		Layer layer = new Layer();
 		UrlHelpers.validateAllUrls(layer);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAllNullAnnos(){
-		InputDataLayer layer = new InputDataLayer();
+		Layer layer = new Layer();
 		layer.setUri("repo/v1/layer/33");
 		UrlHelpers.setAllNodeableUrls(layer);
 		layer.setAnnotations(null);
@@ -310,7 +310,7 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAllNullACL(){
-		InputDataLayer layer = new InputDataLayer();
+		Layer layer = new Layer();
 		layer.setUri("repo/v1/layer/33");
 		UrlHelpers.setAllNodeableUrls(layer);
 		layer.setAccessControlList(null);
@@ -319,7 +319,7 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAllNullLocations(){
-		InputDataLayer layer = new InputDataLayer();
+		Layer layer = new Layer();
 		layer.setUri("repo/v1/layer/33");
 		UrlHelpers.setAllNodeableUrls(layer);
 		layer.setLocations(null);
@@ -328,7 +328,7 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAllNullPreview(){
-		InputDataLayer layer = new InputDataLayer();
+		Layer layer = new Layer();
 		layer.setUri("repo/v1/layer/33");
 		UrlHelpers.setAllNodeableUrls(layer);
 		layer.setPreviews(null);
@@ -337,7 +337,7 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAllNullVersions(){
-		LayerLocation location = new LayerLocation();
+		Location location = new Location();
 		location.setVersionNumber(45l);
 		location.setUri("repo/v1/location/33");
 		UrlHelpers.setAllNodeableUrls(location);
@@ -347,7 +347,7 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAllNullVersionUrl(){
-		LayerLocation location = new LayerLocation();
+		Location location = new Location();
 		location.setVersionNumber(1l);
 		location.setUri("repo/v1/location/33");
 		UrlHelpers.setAllNodeableUrls(location);

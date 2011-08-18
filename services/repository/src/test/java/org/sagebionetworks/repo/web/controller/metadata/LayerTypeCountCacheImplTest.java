@@ -16,8 +16,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InputDataLayer;
-import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
+import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -110,7 +110,7 @@ public class LayerTypeCountCacheImplTest {
 		expectedCount = LayerTypeNames.values().length * 1;
 		assertEquals(expectedCount, layerTypeCountCache.getCacheSize());
 		// Now add a layer to the datsaet
-		InputDataLayer layer = (InputDataLayer) ObjectTypeFactory.createObjectForTest("layerOne", ObjectType.layer, ds.getId());
+		Layer layer = (Layer) ObjectTypeFactory.createObjectForTest("layerOne", ObjectType.layer, ds.getId());
 		layer.setType(LayerTypeNames.G.name());
 		layer = entityController.createEntity(userId, layer, mockRequest);
 		assertNotNull(layer);
@@ -124,7 +124,7 @@ public class LayerTypeCountCacheImplTest {
 		expectedCount++;
 		assertEquals(expectedCount, layerTypeCountCache.getCacheSize());
 		// Create another layer
-		layer = (InputDataLayer) ObjectTypeFactory.createObjectForTest("layerTwo", ObjectType.layer, ds.getId());
+		layer = (Layer) ObjectTypeFactory.createObjectForTest("layerTwo", ObjectType.layer, ds.getId());
 		layer.setType(LayerTypeNames.G.name());
 		layer = entityController.createEntity(userId, layer, mockRequest);
 		assertNotNull(layer);

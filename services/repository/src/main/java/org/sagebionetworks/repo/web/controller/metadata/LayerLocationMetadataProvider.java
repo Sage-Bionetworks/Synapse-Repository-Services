@@ -10,9 +10,9 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.LayerLocation;
+import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
  *
  */
 public class LayerLocationMetadataProvider implements
-		TypeSpecificMetadataProvider<LayerLocation> {
+		TypeSpecificMetadataProvider<Location> {
 	
 	public static final String METHOD_PARAMETER = "method";
 
@@ -50,7 +50,7 @@ public class LayerLocationMetadataProvider implements
 	private AuthorizationManager authorizationManager;
 
 	@Override
-	public void addTypeSpecificMetadata(LayerLocation entity,
+	public void addTypeSpecificMetadata(Location entity,
 			HttpServletRequest request, UserInfo userInfo, EventType eventType)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 
@@ -59,7 +59,7 @@ public class LayerLocationMetadataProvider implements
 
 		// Special handling for S3 locations
 		if (entity.getType().equals(
-				LayerLocation.LocationTypeNames.awss3.toString())) {
+				Location.LocationTypeNames.awss3.toString())) {
 
 			if (RequestMethod.GET.name().equals(request.getMethod())) {
 
@@ -94,7 +94,7 @@ public class LayerLocationMetadataProvider implements
 	}
 
 	@Override
-	public void validateEntity(LayerLocation entity, EntityEvent event)
+	public void validateEntity(Location entity, EntityEvent event)
 			throws InvalidModelException {
 		if (null == entity.getParentId()) {
 			throw new InvalidModelException("parentId cannot be null");
@@ -113,19 +113,19 @@ public class LayerLocationMetadataProvider implements
 	}
 
 	@Override
-	public void entityDeleted(LayerLocation deleted) {
+	public void entityDeleted(Location deleted) {
 		// TODO Auto-generated method stub
 
 	}
 
-	private void setPathPrefix(LayerLocation location) {
+	private void setPathPrefix(Location location) {
 		// Ensure that awss3 locations are unique by prepending the
 		// user-supplied path with a system-controlled prefix
 		// - location id (unique per synapse stack)
 		// - location version (unique per location)
 		// - user-supplied path
 		if (location.getType().equals(
-				LayerLocation.LocationTypeNames.awss3.toString())) {
+				Location.LocationTypeNames.awss3.toString())) {
 
 			String versionLabel = location.getVersionLabel();
 			if (versionLabel == null) {
@@ -145,7 +145,7 @@ public class LayerLocationMetadataProvider implements
 		}
 	}
 
-	private void checkUseAgreement(UserInfo userInfo, LayerLocation entity)
+	private void checkUseAgreement(UserInfo userInfo, Location entity)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
 		if (authorizationManager.canAccess(userInfo, entity.getId(),
@@ -163,7 +163,7 @@ public class LayerLocationMetadataProvider implements
 				.getParentId());
 		Dataset dataset = null;
 		if (ObjectType.layer == type) {
-			InputDataLayer layer = (InputDataLayer) entityManager.getEntity(
+			Layer layer = (Layer) entityManager.getEntity(
 					userInfo, entity.getParentId(), ObjectType.layer
 							.getClassForType());
 			dataset = (Dataset) entityManager.getEntity(userInfo, layer

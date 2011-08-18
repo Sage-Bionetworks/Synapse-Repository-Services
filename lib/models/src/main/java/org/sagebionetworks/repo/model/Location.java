@@ -9,7 +9,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  *
  */
 @XmlRootElement
-public class LayerLocation implements Nodeable, Versionable {
+public class Location implements Nodeable, Versionable {
 
 	private String id;
 	private String uri;
@@ -61,7 +61,7 @@ public class LayerLocation implements Nodeable, Versionable {
 	/**
 	 * Default constructor
 	 */
-	public LayerLocation() {
+	public Location() {
 	}
 
 	/**
@@ -69,7 +69,7 @@ public class LayerLocation implements Nodeable, Versionable {
 	 * @param path
 	 * @param md5sum 
 	 */
-	public LayerLocation(String type, String path, String md5sum) {
+	public Location(String type, String path, String md5sum) {
 		super();
 		this.type = type;
 		this.path = path;
@@ -276,7 +276,7 @@ public class LayerLocation implements Nodeable, Versionable {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		LayerLocation other = (LayerLocation) obj;
+		Location other = (Location) obj;
 		if (accessControlList == null) {
 			if (other.accessControlList != null)
 				return false;
@@ -362,7 +362,7 @@ public class LayerLocation implements Nodeable, Versionable {
 
 	@Override
 	public String toString() {
-		return "LayerLocation [id=" + id + ", uri=" + uri + ", etag=" + etag
+		return "Location [id=" + id + ", uri=" + uri + ", etag=" + etag
 				+ ", name=" + name + ", creationDate=" + creationDate
 				+ ", parentId=" + parentId + ", type=" + type + ", path="
 				+ path + ", md5sum=" + md5sum + ", annotations=" + annotations

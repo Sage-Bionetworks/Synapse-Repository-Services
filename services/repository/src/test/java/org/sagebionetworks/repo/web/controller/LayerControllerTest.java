@@ -322,7 +322,7 @@ public class LayerControllerTest {
 		JSONObject error = helper.testUpdateJsonEntityShouldFail(layer,
 				HttpStatus.BAD_REQUEST);
 
-		assertEquals("'name' is a required property for InputDataLayer", error
+		assertEquals("'name' is a required property for Layer", error
 				.getString("reason"));
 	}
 

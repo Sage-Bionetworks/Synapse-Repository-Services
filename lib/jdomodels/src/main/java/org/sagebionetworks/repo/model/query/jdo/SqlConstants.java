@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.Dataset;
-import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
@@ -155,7 +155,7 @@ public class SqlConstants {
 		
 		// These will be deleted once we move to NodeDao
 		SqlConstants.addAllFields(Dataset.class, primaryFieldColumns);
-		SqlConstants.addAllFields(InputDataLayer.class, primaryFieldColumns);
+		SqlConstants.addAllFields(Layer.class, primaryFieldColumns);
 		primaryFieldColumns.put(NodeConstants.COL_PARENT_ID, "PARENT_ID");
 		primaryFieldColumns.put("INPUT_LAYERS_ID_OWN", "INPUT_LAYERS_ID_OWN");
 		

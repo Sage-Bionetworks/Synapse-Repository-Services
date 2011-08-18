@@ -11,12 +11,12 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Dataset;
-import org.sagebionetworks.repo.model.InputDataLayer;
-import org.sagebionetworks.repo.model.InputDataLayer.LayerTypeNames;
+import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Nodeable;
-import org.sagebionetworks.repo.model.StoredLayerPreview;
+import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.TransientField;
 
 public class NodeTranslationUtilsTest {
@@ -80,7 +80,7 @@ public class NodeTranslationUtilsTest {
 	@Test
 	public void testLayerRoundTrip() throws InstantiationException, IllegalAccessException, InvalidModelException{
 		// First we create a layer with all fields filled in.
-		InputDataLayer layer = new InputDataLayer();
+		Layer layer = new Layer();
 		layer.setAnnotations("someAnnoUrl");
 		layer.setCreationDate(new Date(System.currentTimeMillis()));
 		layer.setDescription("someDescr");
@@ -103,7 +103,7 @@ public class NodeTranslationUtilsTest {
 		layer.setVersion("someVersion");
 		
 		// Create a clone using node translation
-		InputDataLayer clone = cloneUsingNodeTranslation(layer);
+		Layer clone = cloneUsingNodeTranslation(layer);
 		
 		// Now our clone should match the original layer.
 		System.out.println("Original: "+layer.toString());
@@ -113,10 +113,10 @@ public class NodeTranslationUtilsTest {
 
 	@Test
 	public void testLayerPreviewRoundTrip() throws Exception{
-		StoredLayerPreview preview = new StoredLayerPreview();
+		Preview preview = new Preview();
 		preview.setPreviewBlob("Pretend this a very long string and needs to be stored as a blob".getBytes("UTF-8"));
 		// Create a clone using node translation
-		StoredLayerPreview clone = cloneUsingNodeTranslation(preview);
+		Preview clone = cloneUsingNodeTranslation(preview);
 		// Now our clone should match the original layer.
 		System.out.println("Original: "+preview.toString());
 		System.out.println("Clone: "+clone.toString());
@@ -125,7 +125,7 @@ public class NodeTranslationUtilsTest {
 	
 	@Test
 	public void testDoubleAdd() throws InvalidModelException{
-		InputDataLayer layer = new InputDataLayer();
+		Layer layer = new Layer();
 		layer.setType("C");
 		Annotations annos = new Annotations();
 		NodeTranslationUtils.updateAnnoationsFromObject(layer, annos);
@@ -140,12 +140,12 @@ public class NodeTranslationUtilsTest {
 	@Ignore // We no longer have an object with a collection.
 	@Test
 	public void testSingleValueCollection(){
-		InputDataLayer layer = new InputDataLayer();
+		Layer layer = new Layer();
 		layer.setLocations("/locations");
 		Annotations annos = new Annotations();
 		NodeTranslationUtils.updateAnnoationsFromObject(layer, annos);
 		// Now go back
-		InputDataLayer copy = new InputDataLayer();
+		Layer copy = new Layer();
 		NodeTranslationUtils.updateObjectFromAnnotations(copy, annos);
 		String copyLocations = copy.getLocations();
 		assertEquals(layer.getLocations(), copyLocations);

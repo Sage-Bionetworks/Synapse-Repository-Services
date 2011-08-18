@@ -9,17 +9,17 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.StoredLayerPreview;
+import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.UserInfo;
 
 /**
  *
  */
 public class StoredLayerPreviewMetadataProvider implements
-		TypeSpecificMetadataProvider<StoredLayerPreview> {
+		TypeSpecificMetadataProvider<Preview> {
 
 	@Override
-	public void addTypeSpecificMetadata(StoredLayerPreview entity,
+	public void addTypeSpecificMetadata(Preview entity,
 			HttpServletRequest request, UserInfo user, EventType eventType) {
 		// Clear the blob and set the string
 		if (entity.getPreviewBlob() != null) {
@@ -39,7 +39,7 @@ public class StoredLayerPreviewMetadataProvider implements
 	}
 
 	@Override
-	public void validateEntity(StoredLayerPreview entity, EntityEvent event) {
+	public void validateEntity(Preview entity, EntityEvent event) {
 		// Convert the blob value to the string value
 		if (entity.getPreviewString() != null) {
 			try {
@@ -57,7 +57,7 @@ public class StoredLayerPreviewMetadataProvider implements
 	 * @param preview
 	 * @throws DatastoreException
 	 */
-	public static void createPreviewMap(StoredLayerPreview preview) throws DatastoreException {
+	public static void createPreviewMap(Preview preview) throws DatastoreException {
 		String rawPreview = preview.getPreviewString();
 		if (rawPreview == null)
 			return;
@@ -93,7 +93,7 @@ public class StoredLayerPreviewMetadataProvider implements
 	}
 	
 	@Override
-	public void entityDeleted(StoredLayerPreview deleted) {
+	public void entityDeleted(Preview deleted) {
 		// TODO Auto-generated method stub
 		
 	}

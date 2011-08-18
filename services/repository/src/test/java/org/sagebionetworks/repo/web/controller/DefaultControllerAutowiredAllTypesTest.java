@@ -38,7 +38,7 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.InputDataLayer;
+import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.Eula;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Nodeable;
@@ -171,7 +171,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		Dataset datasetParent = (Dataset) ObjectTypeFactory.createObjectForTest("datasetParent", ObjectType.dataset, project.getId());
 		datasetParent = ServletTestHelper.createEntity(dispatchServlet, datasetParent, userName);
 		// Create a layer parent
-		InputDataLayer layerParent = (InputDataLayer) ObjectTypeFactory.createObjectForTest("layerParent", ObjectType.layer, datasetParent.getId());
+		Layer layerParent = (Layer) ObjectTypeFactory.createObjectForTest("layerParent", ObjectType.layer, datasetParent.getId());
 		layerParent = ServletTestHelper.createEntity(dispatchServlet, layerParent, userName);
 		// Now get the path of the layer
 		List<EntityHeader> path = entityController.getEntityPath(userName, layerParent.getId());
@@ -321,7 +321,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		Dataset datasetParent = (Dataset) ObjectTypeFactory.createObjectForTest("datasetParent", ObjectType.dataset, root.getId());
 		datasetParent = ServletTestHelper.createEntity(dispatchServlet, datasetParent, userName);
 		// Create a layer parent
-		InputDataLayer layerParent = (InputDataLayer) ObjectTypeFactory.createObjectForTest("layerParent", ObjectType.layer, datasetParent.getId());
+		Layer layerParent = (Layer) ObjectTypeFactory.createObjectForTest("layerParent", ObjectType.layer, datasetParent.getId());
 		layerParent = ServletTestHelper.createEntity(dispatchServlet, layerParent, userName);
 		// Now get the path of the layer
 		List<EntityHeader> path = entityController.getEntityPath(userName, layerParent.getId());

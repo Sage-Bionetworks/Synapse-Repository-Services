@@ -184,7 +184,7 @@ public class JDONodeQueryDAOImplTest {
 		}
 	}
 	
-	// this was formerly defined in the (now defunct) InputDataLayer class
+	// this was formerly defined in the (now defunct) Layer class
     public enum LayerTypeNames {                E, G, C;        }
 
 	private static Node createChild(Date date, int i)
