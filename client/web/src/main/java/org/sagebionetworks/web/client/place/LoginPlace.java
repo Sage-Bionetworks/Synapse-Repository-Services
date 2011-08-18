@@ -7,18 +7,13 @@ import com.google.gwt.place.shared.PlaceTokenizer;
 
 public class LoginPlace extends Place {
 	
-	private String token;
-	private Place forwardTo;
+	private String token;	
 	
 	public static final String LOGOUT_TOKEN = "logout";
 	public static final String LOGIN_TOKEN = DisplayUtils.DEFAULT_PLACE_TOKEN;
 
 	public LoginPlace(String token) {
 		this.token = token;
-	}
-
-	public LoginPlace(Place place) {
-		this.forwardTo = place;
 	}
 
 	public String toToken() {
@@ -36,13 +31,6 @@ public class LoginPlace extends Place {
             return new LoginPlace(token);
         }
     }
-
-	public Place getForwardPlace() {
-		if(forwardTo == null) {
-			return new Home(LOGIN_TOKEN);			
-		}
-		return forwardTo;
-	}
 
 }
 

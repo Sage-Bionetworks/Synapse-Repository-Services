@@ -28,4 +28,14 @@ public class CookieKeys {
 	 */
 	public static String SHOW_DEMO = "org.sagbionetworks.synapse.show.demo";
 
+	/**
+	 * Last Place in the app
+	 */
+	public static String LAST_PLACE = "org.sagbionetworks.synapse.place.last.place";
+	
+	/**
+	 * Current Place in the app
+	 */
+	public static String CURRENT_PLACE = "org.sagbionetworks.synapse.place.current.place";
+		
 }

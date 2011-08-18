@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.place.LoginPlace;
 import org.sagebionetworks.web.client.place.ProjectsHome;
@@ -57,6 +58,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	private AuthenticationController authenticationController;
 	private boolean iisAdministrator;
 	private boolean ccanEdit;
+	private GlobalApplicationState globalApplicationState;
 	
 	/**
 	 * Everything is injected via Guice.
@@ -64,12 +66,13 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	 * @param datasetService
 	 */
 	@Inject
-	public LayerPresenter(LayerView view, NodeServiceAsync nodeService, LicenceServiceAsync licenseService, NodeModelCreator nodeModelCreator, AuthenticationController authenticationController) {
+	public LayerPresenter(LayerView view, NodeServiceAsync nodeService, LicenceServiceAsync licenseService, NodeModelCreator nodeModelCreator, AuthenticationController authenticationController, GlobalApplicationState globalApplicationState) {
 		this.view = view;
 		this.nodeService = nodeService;
 		this.licenseService = licenseService;
 		this.nodeModelCreator = nodeModelCreator;
 		this.authenticationController = authenticationController;
+		this.globalApplicationState = globalApplicationState;
 		view.setPresenter(this);
 		
 		this.hasAcceptedLicenseAgreement = false;
@@ -77,7 +80,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
-		this.placeController = DisplayUtils.placeController;
+		this.placeController = globalApplicationState.getPlaceController();
 		this.placeChanger = new PlaceChanger() {			
 			@Override
 			public void goTo(Place place) {
@@ -140,7 +143,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 			return true;
 		} else {
 			view.showInfo("Login Required", "Please Login to download data.");			
-			placeChanger.goTo(new LoginPlace(new org.sagebionetworks.web.client.place.Layer(layerId, null, false)));
+			placeChanger.goTo(new LoginPlace(DisplayUtils.DEFAULT_PLACE_TOKEN));
 		}
 		return false;
 	}
@@ -315,7 +318,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 						UserData currentUser = authenticationController.getLoggedInUser();
 						if(currentUser == null && showDownload) {
 							view.showInfo(DisplayConstants.ERROR_TITLE_LOGIN_REQUIRED, DisplayConstants.ERROR_LOGIN_REQUIRED);
-							placeChanger.goTo(new LoginPlace(new org.sagebionetworks.web.client.place.Layer(model.getId(), model.getParentId(), showDownload)));
+							placeChanger.goTo(new LoginPlace(DisplayUtils.DEFAULT_PLACE_TOKEN));
 							return;
 						}
 						licenseService.hasAccepted(currentUser.getEmail(), eulaId, model.getParentId(), new AsyncCallback<Boolean>() {

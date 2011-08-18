@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.PortalGinInjector;
 import org.sagebionetworks.web.client.mvp.AppActivityMapper;
 import org.sagebionetworks.web.client.place.Dataset;
@@ -35,13 +36,16 @@ public class AppActivityMapperTest {
 	DatasetsHomePresenter mockHome;
 	DatasetPresenter mockPresenter;
 	HomePresenter mockAll;
+	GlobalApplicationState mockGlobalApplicationState;
 	
 	@Before
 	public void before(){
 		// Mock the views
 		mockInjector = Mockito.mock(PortalGinInjector.class);
 		// Controller
-		mockController = Mockito.mock(AuthenticationController.class);
+		mockController = Mockito.mock(AuthenticationController.class);		
+		
+		// WHENs
 		when(mockController.isLoggedIn()).thenReturn(true);
 		when(mockInjector.getAuthenticationController()).thenReturn(mockController);
 		// Dataset home
@@ -53,8 +57,12 @@ public class AppActivityMapperTest {
 		// Home
 		mockAll = Mockito.mock(HomePresenter.class);
 		when(mockInjector.getHomePresenter()).thenReturn(mockAll);
-
+		// Global App State
+		mockGlobalApplicationState = Mockito.mock(GlobalApplicationState.class);
+		when(mockInjector.getGlobalApplicationState()).thenReturn(mockGlobalApplicationState);
+		
 	}
+	
 	
 	@Test
 	public void testDatasetsHome(){
@@ -84,7 +92,9 @@ public class AppActivityMapperTest {
 		when(mockInjector.getDatasetPresenter()).thenReturn(mockPresenter);
 		// This is the place
 		Dataset datasetPlace = new Dataset("ID");
-
+		when(mockInjector.getGlobalApplicationState()).thenReturn(mockGlobalApplicationState);
+		
+		
 		// Create the mapper
 		AppActivityMapper mapper = new AppActivityMapper(mockInjector);
 

@@ -3,6 +3,7 @@ package org.sagebionetworks.web.client.presenter;
 import java.util.List;
 
 import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.cookie.CookieUtils;
@@ -27,18 +28,20 @@ public class DatasetsHomePresenter extends AbstractActivity implements DatasetsH
 	private CookieProvider cookieProvider;
 	private PlaceController placeController; 
 	private PlaceChanger placeChanger;
+	GlobalApplicationState globalApplicationState;
 	
 	@Inject
-	public DatasetsHomePresenter(DatasetsHomeView view, ColumnsPopupPresenter columnsPopupPresenter, CookieProvider cookieProvider){
+	public DatasetsHomePresenter(DatasetsHomeView view, ColumnsPopupPresenter columnsPopupPresenter, CookieProvider cookieProvider, GlobalApplicationState globalApplicationState){
 		this.view = view;
 		this.columnsPopupPresenter = columnsPopupPresenter;
+		this.globalApplicationState = globalApplicationState;
 		// Set the presenter on the view
 		this.cookieProvider = cookieProvider;
 	}
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
-		this.placeController = DisplayUtils.placeController;		
+		this.placeController = globalApplicationState.getPlaceController();		
 		this.placeChanger = new PlaceChanger() {			
 			@Override
 			public void goTo(Place place) {

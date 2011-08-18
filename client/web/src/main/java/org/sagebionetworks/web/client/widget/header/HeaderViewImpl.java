@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.place.ComingSoon;
@@ -23,7 +24,6 @@ import com.google.gwt.dom.client.LIElement;
 import com.google.gwt.dom.client.SpanElement;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
-import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.Hyperlink;
@@ -67,12 +67,14 @@ public class HeaderViewImpl extends Composite implements HeaderView {
 	private Map<MenuItems, Element> itemToElement;
 	private AuthenticationController authenticationController;	
 	private IconsImageBundle iconsImageBundle;
+	private GlobalApplicationState globalApplicationState;
 	
 	@Inject
-	public HeaderViewImpl(Binder binder, AuthenticationControllerImpl authenticationController, SageImageBundle sageImageBundle, IconsImageBundle iconsImageBundle) {
+	public HeaderViewImpl(Binder binder, AuthenticationControllerImpl authenticationController, SageImageBundle sageImageBundle, IconsImageBundle iconsImageBundle, GlobalApplicationState globalApplicationState) {
 		this.initWidget(binder.createAndBindUi(this));
 		this.iconsImageBundle = iconsImageBundle;
 		this.authenticationController = authenticationController;
+		this.globalApplicationState = globalApplicationState;
 		
 		itemToElement = new HashMap<Header.MenuItems, Element>();		
 		itemToElement.put(MenuItems.DATASETS, navbarDatasets);
@@ -83,15 +85,15 @@ public class HeaderViewImpl extends Composite implements HeaderView {
 	
 		// setup header links
 		datasetsLink.getElement().setId("navbar_datasets_a"); // for special first element style
-		datasetsLink.setTargetHistoryToken(DisplayUtils.getDefaultHistoryTokenForPlace(DatasetsHome.class));
-		toolsLink.setTargetHistoryToken(DisplayUtils.getDefaultHistoryTokenForPlace(ComingSoon.class)); 
-		networksLink.setTargetHistoryToken(DisplayUtils.getDefaultHistoryTokenForPlace(ComingSoon.class));
+		datasetsLink.setTargetHistoryToken(globalApplicationState.getAppPlaceHistoryMapper().getToken(new DatasetsHome(DisplayUtils.DEFAULT_PLACE_TOKEN)));
+		toolsLink.setTargetHistoryToken(globalApplicationState.getAppPlaceHistoryMapper().getToken(new ComingSoon(DisplayUtils.DEFAULT_PLACE_TOKEN))); 
+		networksLink.setTargetHistoryToken(globalApplicationState.getAppPlaceHistoryMapper().getToken(new ComingSoon(DisplayUtils.DEFAULT_PLACE_TOKEN)));
 		if(DisplayConstants.showDemoHtml) {
 			peopleLink.setHref("people.html");
 			projectsLink.setHref("projects.html");
 		} else {
-			peopleLink.setHref("#" + DisplayUtils.getDefaultHistoryTokenForPlace(ComingSoon.class));			
-			projectsLink.setHref("#" + DisplayUtils.getDefaultHistoryTokenForPlace(ProjectsHome.class));
+			peopleLink.setHref("#" + globalApplicationState.getAppPlaceHistoryMapper().getToken(new ComingSoon(DisplayUtils.DEFAULT_PLACE_TOKEN)));			
+			projectsLink.setHref("#" + globalApplicationState.getAppPlaceHistoryMapper().getToken(new ProjectsHome(DisplayUtils.DEFAULT_PLACE_TOKEN)));
 		}
 		
 	}
@@ -137,22 +139,22 @@ public class HeaderViewImpl extends Composite implements HeaderView {
 		if(userData != null) {
 			topRightLink1.setHTML("My Profile");
 			//topRightLink1.setTargetHistoryToken(DisplayUtils.getDefaultHistoryTokenForPlace(Profile.class));
-			topRightLink1.setHref("#" + DisplayUtils.getDefaultHistoryTokenForPlace(Profile.class)); //demo
+			topRightLink1.setHref("#" + globalApplicationState.getAppPlaceHistoryMapper().getToken(new Profile(DisplayUtils.DEFAULT_PLACE_TOKEN))); //demo
 			if(DisplayConstants.showDemoHtml) {
 				topRightLink1.setHref("edit_profile.html");
 			}	
 
 			userName.setInnerHTML("Welcome " + userData.getUserName());			
 			topRightLink2.setHTML("Logout");		
-			topRightLink2.setTargetHistoryToken(DisplayUtils.getHistoryTokenForPlace(LoginPlace.class, LoginPlace.LOGOUT_TOKEN));			
+			topRightLink2.setTargetHistoryToken(globalApplicationState.getAppPlaceHistoryMapper().getToken(new LoginPlace(LoginPlace.LOGOUT_TOKEN)));			
 		} else {
 			topRightLink1.setHTML("Register");
 			//topRightLink1.setTargetHistoryToken(DisplayUtils.getDefaultHistoryTokenForPlace(RegisterAccount.class));			
-			topRightLink1.setHref("#" + DisplayUtils.getDefaultHistoryTokenForPlace(RegisterAccount.class)); // demo
+			topRightLink1.setHref("#" + globalApplicationState.getAppPlaceHistoryMapper().getToken(new RegisterAccount(DisplayUtils.DEFAULT_PLACE_TOKEN))); // demo
 
 			userName.setInnerHTML("");			
 			topRightLink2.setHTML("Login to Synapse");		
-			topRightLink2.setTargetHistoryToken(DisplayUtils.getHistoryTokenForPlace(LoginPlace.class, LoginPlace.LOGIN_TOKEN));
+			topRightLink2.setTargetHistoryToken(globalApplicationState.getAppPlaceHistoryMapper().getToken(new LoginPlace(LoginPlace.LOGIN_TOKEN)));
 			
 		}
 

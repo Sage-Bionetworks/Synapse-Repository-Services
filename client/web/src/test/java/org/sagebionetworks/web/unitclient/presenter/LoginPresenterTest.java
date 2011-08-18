@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
 import org.sagebionetworks.web.client.place.LoginPlace;
 import org.sagebionetworks.web.client.presenter.LoginPresenter;
@@ -21,13 +22,15 @@ public class LoginPresenterTest {
 	LoginView mockView;
 	AuthenticationController mockAuthenticationController;
 	UserAccountServiceAsync mockUserAccountServiceAsync;
+	GlobalApplicationState mockGlobalApplicationState;
 	
 	@Before
 	public void setup(){
 		mockView = mock(LoginView.class);
 		mockAuthenticationController = mock(AuthenticationController.class);
 		mockUserAccountServiceAsync = mock(UserAccountServiceAsync.class);
-		loginPresenter = new LoginPresenter(mockView, mockAuthenticationController, mockUserAccountServiceAsync);
+		mockGlobalApplicationState = mock(GlobalApplicationState.class);
+		loginPresenter = new LoginPresenter(mockView, mockAuthenticationController, mockUserAccountServiceAsync, mockGlobalApplicationState);
 		
 		verify(mockView).setPresenter(loginPresenter);
 	}	

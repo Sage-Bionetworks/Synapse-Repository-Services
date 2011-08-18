@@ -74,6 +74,10 @@ public class PortalGinModule extends AbstractGinModule {
 		bind(AuthenticationControllerImpl.class).in(Singleton.class);
 		bind(AuthenticationController.class).to(AuthenticationControllerImpl.class);
 
+		// GlobalApplicationState
+		bind(GlobalApplicationStateImpl.class).in(Singleton.class);
+		bind(GlobalApplicationState.class).to(GlobalApplicationStateImpl.class);
+		
 		// Header & Footer
 		bind(HeaderView.class).to(HeaderViewImpl.class);
 		bind(FooterView.class).to(FooterViewImpl.class);

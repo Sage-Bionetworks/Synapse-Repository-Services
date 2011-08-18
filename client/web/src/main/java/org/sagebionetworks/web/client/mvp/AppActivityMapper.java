@@ -7,6 +7,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.web.client.DisplayConstants;
+import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.PortalGinInjector;
 import org.sagebionetworks.web.client.place.ComingSoon;
 import org.sagebionetworks.web.client.place.Dataset;
@@ -70,6 +72,17 @@ public class AppActivityMapper implements ActivityMapper {
 	@Override
 	public Activity getActivity(Place place) {
 		AuthenticationController authenticationController = this.ginjector.getAuthenticationController();
+		GlobalApplicationState globalApplicationState = this.ginjector.getGlobalApplicationState();
+		
+		// set current and last places
+		Place storedCurrentPlace = globalApplicationState.getCurrentPlace(); 
+		if(storedCurrentPlace != null) {
+			if(!(storedCurrentPlace instanceof LoginPlace) || !(place instanceof LoginPlace)) {
+				// only update last place if we are not going from login to login place (this is due to SSO vs regular login difference)
+				globalApplicationState.setLastPlace(storedCurrentPlace);
+			}
+		}
+		globalApplicationState.setCurrentPlace(place);
 		
 		// check for demo
 		authenticationController.loadShowDemo();
@@ -79,7 +92,7 @@ public class AppActivityMapper implements ActivityMapper {
 		if(!openAccessPlaces.contains(place.getClass())) {
 			if(!authenticationController.isLoggedIn()){
 				// Redirect them to the login screen
-				LoginPlace loginPlace = new LoginPlace(place);
+				LoginPlace loginPlace = new LoginPlace(DisplayUtils.DEFAULT_PLACE_TOKEN);
 				return getActivity(loginPlace);
 			}			
 		}

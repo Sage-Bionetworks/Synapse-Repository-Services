@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.presenter.users;
 
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
 import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.place.users.RegisterAccount;
@@ -24,21 +25,23 @@ public class RegisterAccountPresenter extends AbstractActivity implements Regist
 	private CookieProvider cookieProvider;
 	private PlaceController placeController;
 	private UserAccountServiceAsync userService;
+	private GlobalApplicationState globalApplicationState;
 	
 	@Inject
-	public RegisterAccountPresenter(RegisterAccountView view, CookieProvider cookieProvider, UserAccountServiceAsync userService){
+	public RegisterAccountPresenter(RegisterAccountView view, CookieProvider cookieProvider, UserAccountServiceAsync userService, GlobalApplicationState globalApplicationState){
 		this.view = view;
 		// Set the presenter on the view
 		this.view.setPresenter(this);
 		this.cookieProvider = cookieProvider;
 		this.userService = userService;
+		this.globalApplicationState = globalApplicationState;
 	}
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
 		// Install the view
 		panel.setWidget(view);
-		this.placeController = DisplayUtils.placeController;
+		this.placeController = globalApplicationState.getPlaceController();
 	}
 
 	@Override

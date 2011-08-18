@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.client.presenter;
 
 import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
 import org.sagebionetworks.web.client.place.LoginPlace;
@@ -25,18 +26,20 @@ public class ProfilePresenter extends AbstractActivity implements ProfileView.Pr
 	private PlaceChanger placeChanger;
 	private AuthenticationController authenticationController;
 	private UserAccountServiceAsync userService;
+	private GlobalApplicationState globalApplicationState;
 
 	
 	@Inject
-	public ProfilePresenter(ProfileView view, AuthenticationController authenticationController, UserAccountServiceAsync userService) {
+	public ProfilePresenter(ProfileView view, AuthenticationController authenticationController, UserAccountServiceAsync userService, GlobalApplicationState globalApplicationState) {
 		this.view = view;
 		this.authenticationController = authenticationController;
 		this.userService = userService;
+		this.globalApplicationState = globalApplicationState;
 	}
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
-		this.placeController = DisplayUtils.placeController;
+		this.placeController = globalApplicationState.getPlaceController();
 		this.placeChanger = new PlaceChanger() {			
 			@Override
 			public void goTo(Place place) {

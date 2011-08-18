@@ -16,7 +16,6 @@ import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.button.Button;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.place.shared.PlaceController;
 import com.google.gwt.resources.client.ImageResource;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.FlexTable;
@@ -32,9 +31,9 @@ public class DisplayUtils {
 	public static final String MIME_TYPE_GIF = "image/gif";
 	
 	public static final String DEFAULT_PLACE_TOKEN = "0";
-	public static PlaceController placeController;	
 	
 	private static final String ERROR_OBJ_REASON_KEY = "reason";
+	
 	/**
 	 * Returns a properly aligned icon from an ImageResource
 	 * @param icon
@@ -43,31 +42,7 @@ public class DisplayUtils {
 	public static String getIconHtml(ImageResource icon) {
 		return "<span class=\"iconSpan\">" + AbstractImagePrototype.create(icon).getHTML() + "</span>";
 	}
-	
-	/**
-	 * This returns a properly formatted default History Token for a given Place. This method should
-	 * be used in place of static strings of the Place class name. For example, don't use <a href="Home:0">...</a> 
-	 * in your UiBinder templates. Instead use a <g:Hyperlink ui:field="link" /> and use Hyperlink's setTargetHistoryToken() 
-	 * method with the returned value of this method (with Home.class as the parameter).  
-	 * 
-	 * @param place A class that extends com.google.gwt.place.shared.Place
-	 * @return
-	 */
-	public static String getDefaultHistoryTokenForPlace(@SuppressWarnings("rawtypes") Class place) {		
-		return getPlaceString(place) + ":" + DEFAULT_PLACE_TOKEN;
-	}
-
-	/**
-	 * Similar to getDefaultHistoryTokenForPlace but inserts the given token instead of the default token
-	 * @param place
-	 * @param token
-	 * @return
-	 */
-	public static String getHistoryTokenForPlace(@SuppressWarnings("rawtypes") Class place, String token) {
-		return getPlaceString(place) + ":" + token;
-	}
-
-	
+		
 	/**
 	 * Add a row to the provided FlexTable.
 	 * 
@@ -125,7 +100,7 @@ public class DisplayUtils {
 		} else if(ex instanceof ForbiddenException) {			
 			if(currentUser == null) {				
 				Info.display(DisplayConstants.ERROR_LOGIN_REQUIRED, DisplayConstants.ERROR_LOGIN_REQUIRED);
-				placeChanger.goTo(new LoginPlace(DisplayUtils.DEFAULT_PLACE_TOKEN));
+				placeChanger.goTo(new LoginPlace(LoginPlace.LOGIN_TOKEN));
 			} else {
 				MessageBox.info("Unauthorized", "Sorry, there was a failure due to insufficient privileges.", null);
 			}
@@ -197,16 +172,7 @@ public class DisplayUtils {
 	public static String getOffendingCharacterForAnnotationKey(String key) {
 		return getOffendingCharacter(key, REGEX_CLEAN_ANNOTATION_KEY);
 	}	
-	
-	/**
-	 * Cleans any invalid name characters from a string  
-	 * @param str
-	 * @return
-	 */
-	public static String cleanForEntityName(String str) {
-		return str.replaceAll("[^A-Za-z0-9_\\. ]", "_");
-	}
-	
+		
 	/*
 	 * Private methods
 	 */
@@ -228,6 +194,6 @@ public class DisplayUtils {
 			return suffix.substring(0,1);
 		}
 		return null;		
-	}
-
+	}	
+	
 }

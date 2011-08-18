@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.place.Dataset;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
 import org.sagebionetworks.web.client.security.AuthenticationController;
@@ -26,6 +27,7 @@ public class DatasetPresenterTest {
 	LicenceServiceAsync mockLicenseService;
 	NodeModelCreator mockNodeModelCreator;
 	AuthenticationController mockAuthenticationController;
+	GlobalApplicationState mockGlobalApplicationState;
 	String datasetId = "1";
 	Dataset place = new Dataset("Dataset:"+ datasetId);
 	
@@ -36,7 +38,8 @@ public class DatasetPresenterTest {
 		mockLicenseService = mock(LicenceServiceAsync.class);
 		mockNodeModelCreator = mock(NodeModelCreator.class);
 		mockAuthenticationController = mock(AuthenticationController.class);
-		datasetPresenter = new DatasetPresenter(mockView, mockNodeService, mockLicenseService, mockNodeModelCreator, mockAuthenticationController);		
+		mockGlobalApplicationState = mock(GlobalApplicationState.class);
+		datasetPresenter = new DatasetPresenter(mockView, mockNodeService, mockLicenseService, mockNodeModelCreator, mockAuthenticationController, mockGlobalApplicationState);		
 		datasetPresenter.setPlace(place);
 		
 		verify(mockView).setPresenter(datasetPresenter);
@@ -55,7 +58,8 @@ public class DatasetPresenterTest {
 		reset(mockLicenseService);
 		reset(mockNodeModelCreator);
 		reset(mockAuthenticationController);
-		datasetPresenter = new DatasetPresenter(mockView, mockNodeService, mockLicenseService, mockNodeModelCreator, mockAuthenticationController);		
+		reset(mockGlobalApplicationState);
+		datasetPresenter = new DatasetPresenter(mockView, mockNodeService, mockLicenseService, mockNodeModelCreator, mockAuthenticationController, mockGlobalApplicationState);		
 		datasetPresenter.setPlace(place);		
 		AcceptsOneWidget panel = mock(AcceptsOneWidget.class);
 		EventBus eventBus = mock(EventBus.class);		
@@ -71,7 +75,8 @@ public class DatasetPresenterTest {
 		reset(mockLicenseService);
 		reset(mockNodeModelCreator);
 		reset(mockAuthenticationController);
-		datasetPresenter = new DatasetPresenter(mockView, mockNodeService, mockLicenseService, mockNodeModelCreator, mockAuthenticationController);		
+		reset(mockGlobalApplicationState);
+		datasetPresenter = new DatasetPresenter(mockView, mockNodeService, mockLicenseService, mockNodeModelCreator, mockAuthenticationController, mockGlobalApplicationState);		
 		datasetPresenter.setPlace(place);		
 		
 		datasetPresenter.refreshFromServer();		

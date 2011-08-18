@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.client.presenter;
 
 import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
 import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.place.LoginPlace;
@@ -27,20 +28,22 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 	private UserAccountServiceAsync userService;
 	private String openIdActionUrl;
 	private String openIdReturnUrl;
+	private GlobalApplicationState globalApplicationState;
 	
 	@Inject
-	public LoginPresenter(LoginView view, AuthenticationController authenticationController, UserAccountServiceAsync userService){
+	public LoginPresenter(LoginView view, AuthenticationController authenticationController, UserAccountServiceAsync userService, GlobalApplicationState globalApplicationState){
 		this.view = view;
 		this.view.setPresenter(this);
 		this.authenticationController = authenticationController;
 		this.userService = userService;
+		this.globalApplicationState = globalApplicationState;
 	} 
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
 		panel.setWidget(this.view.asWidget());
 		this.bus = eventBus;
-		this.placeController = DisplayUtils.placeController;
+		this.placeController = globalApplicationState.getPlaceController();		
 	}
 
 	public void setPlace(final LoginPlace place) {
@@ -59,6 +62,7 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 					userService.getSynapseWebUrl(new AsyncCallback<String>() {
 						@Override
 						public void onSuccess(String result) {
+							// this should be a string as the Auth service completes the URL with ":<sessionId>"
 							openIdReturnUrl = result + "/#LoginPlace";
 							
 							// now show the view
@@ -86,7 +90,8 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 				isSso = currentUser.isSSO();
 			authenticationController.logoutUser();
 			view.showLogout(isSso);
-		} else if(!DisplayUtils.DEFAULT_PLACE_TOKEN.equals(token) && !"".equals(token) && token != null) {			
+		} else if (!DisplayUtils.DEFAULT_PLACE_TOKEN.equals(token)				
+				&& !"".equals(token) && token != null) {			
 			// Single Sign on token. try refreshing the token to see if it is valid. if so, log user in
 			// parse token
 			view.showLoggingInLoader();
@@ -96,8 +101,8 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 					@Override
 					public void onSuccess(UserData result) {
 						view.hideLoggingInLoader();
-						// user is logged in. forward to home page
-						bus.fireEvent( new PlaceChangeEvent(new Home(DisplayUtils.DEFAULT_PLACE_TOKEN)));
+						// user is logged in. forward to destination						
+						forwardToPlaceAfterLogin(globalApplicationState.getLastPlace());
 					}
 					@Override
 					public void onFailure(Throwable caught) {
@@ -115,8 +120,8 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 	
 	@Override
 	public void setNewUser(UserData newUser) {	
-		// Allow the user to proceed.
-		bus.fireEvent( new PlaceChangeEvent(loginPlace.getForwardPlace()));		
+		// Allow the user to proceed.		
+		forwardToPlaceAfterLogin(globalApplicationState.getLastPlace());		
 	}
 
 	@Override
@@ -124,4 +129,13 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 		this.placeController.goTo(place);
 	}
 
+	/*
+	 * Private Methods
+	 */
+	private void forwardToPlaceAfterLogin(Place forwardPlace) {
+		if(forwardPlace == null) {
+			forwardPlace = new Home(DisplayUtils.DEFAULT_PLACE_TOKEN);
+		}
+		bus.fireEvent( new PlaceChangeEvent(forwardPlace));
+	}
 }

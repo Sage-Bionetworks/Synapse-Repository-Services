@@ -24,6 +24,8 @@ import com.google.gwt.inject.client.Ginjector;
  */
 @GinModules(PortalGinModule.class)
 public interface PortalGinInjector extends Ginjector {
+
+	public GlobalApplicationState getGlobalApplicationState();
 	
 	public HomePresenter getHomePresenter();
 	

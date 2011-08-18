@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.client.presenter.users;
 
 import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
@@ -32,9 +33,10 @@ public class PasswordResetPresenter extends AbstractActivity implements Password
 	private AuthenticationController authenticationController;
 	private SageImageBundle sageImageBundle;
 	private IconsImageBundle iconsImageBundle;
+	private GlobalApplicationState globalApplicationState;
 	
 	@Inject
-	public PasswordResetPresenter(PasswordResetView view, CookieProvider cookieProvider, UserAccountServiceAsync userService, AuthenticationController authenticationController, SageImageBundle sageImageBundle, IconsImageBundle iconsImageBundle){
+	public PasswordResetPresenter(PasswordResetView view, CookieProvider cookieProvider, UserAccountServiceAsync userService, AuthenticationController authenticationController, SageImageBundle sageImageBundle, IconsImageBundle iconsImageBundle, GlobalApplicationState globalApplicationState){
 		this.view = view;
 		this.userService = userService;
 		this.authenticationController = authenticationController;
@@ -43,13 +45,14 @@ public class PasswordResetPresenter extends AbstractActivity implements Password
 		// Set the presenter on the view
 		this.view.setPresenter(this);
 		this.cookieProvider = cookieProvider;
+		this.globalApplicationState = globalApplicationState;
 	}
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
 		// Install the view
 		panel.setWidget(view);
-		this.placeController = DisplayUtils.placeController;
+		this.placeController = globalApplicationState.getPlaceController();
 	}
 
 	public void setPlace(PasswordReset place) {

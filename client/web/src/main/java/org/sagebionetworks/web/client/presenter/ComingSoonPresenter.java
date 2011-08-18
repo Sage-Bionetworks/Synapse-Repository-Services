@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.client.presenter;
 
 import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.place.ComingSoon;
 import org.sagebionetworks.web.client.view.ComingSoonView;
@@ -18,16 +19,18 @@ public class ComingSoonPresenter extends AbstractActivity implements ComingSoonV
 	private ComingSoonView view;
 	private PlaceController placeController;
 	private PlaceChanger placeChanger;
+	private GlobalApplicationState globalApplicationState;
 
 	
 	@Inject
-	public ComingSoonPresenter(ComingSoonView view){
+	public ComingSoonPresenter(ComingSoonView view, GlobalApplicationState globalApplicationState){
+		this.globalApplicationState = globalApplicationState;
 		this.view = view;
 	}
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
-		this.placeController = DisplayUtils.placeController;
+		this.placeController = globalApplicationState.getPlaceController();
 		this.placeChanger = new PlaceChanger() {			
 			@Override
 			public void goTo(Place place) {

@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.view;
 
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.place.ComingSoon;
@@ -33,12 +34,14 @@ public class HomeViewImpl extends Composite implements HomeView {
 	private Presenter presenter;
 	private Header headerWidget;
 	private Footer footerWidget;
+	private GlobalApplicationState globalApplicationState;
 	
 	@Inject
-	public HomeViewImpl(HomeViewImplUiBinder binder, Header headerWidget, Footer footerWidget, IconsImageBundle icons, QueryFilter filter, SageImageBundle imageBundle) {		
+	public HomeViewImpl(HomeViewImplUiBinder binder, Header headerWidget, Footer footerWidget, IconsImageBundle icons, QueryFilter filter, SageImageBundle imageBundle, GlobalApplicationState globalApplicationState) {		
 		initWidget(binder.createAndBindUi(this));
 		this.headerWidget = headerWidget;
 		this.footerWidget = footerWidget;
+		this.globalApplicationState = globalApplicationState;
 		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
@@ -48,8 +51,8 @@ public class HomeViewImpl extends Composite implements HomeView {
 			demoCharlesLink.setHref("people_charles.html");
 			seeAllContributors.setHref("people.html");
 		} else {
-			demoCharlesLink.setHref("#" + DisplayUtils.getDefaultHistoryTokenForPlace(ComingSoon.class));
-			seeAllContributors.setHref("#" + DisplayUtils.getDefaultHistoryTokenForPlace(ComingSoon.class));
+			demoCharlesLink.setHref("#" + globalApplicationState.getAppPlaceHistoryMapper().getToken(new ComingSoon(DisplayUtils.DEFAULT_PLACE_TOKEN)));
+			seeAllContributors.setHref("#" + globalApplicationState.getAppPlaceHistoryMapper().getToken(new ComingSoon(DisplayUtils.DEFAULT_PLACE_TOKEN)));
 		}
 		
 	}

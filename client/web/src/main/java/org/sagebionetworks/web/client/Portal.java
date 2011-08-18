@@ -29,7 +29,6 @@ public class Portal implements EntryPoint {
 	public void onModuleLoad() {
 	    EventBus eventBus = new SimpleEventBus();
 	    PlaceController placeController = new PlaceController(eventBus);
-	    DisplayUtils.placeController = placeController;
 
 		// Start ActivityManager for the main widget with our ActivityMapper
 		AppActivityMapper activityMapper = new AppActivityMapper(ginjector);
@@ -40,11 +39,17 @@ public class Portal implements EntryPoint {
 		appWidget.addStyleName("rootPanel");
 
 		// Start PlaceHistoryHandler with our PlaceHistoryMapper
-		AppPlaceHistoryMapper historyMapper = GWT.create(AppPlaceHistoryMapper.class);
-		PlaceHistoryHandler historyHandler = new PlaceHistoryHandler(historyMapper);
+		AppPlaceHistoryMapper historyMapper = GWT.create(AppPlaceHistoryMapper.class);		
+		PlaceHistoryHandler historyHandler = new PlaceHistoryHandler(historyMapper);		
 		historyHandler.register(placeController, eventBus, activityMapper.getDefaultPlace());
 
 		RootPanel.get("rootPanel").add(appWidget);
+
+		GlobalApplicationState globalApplicationState = ginjector.getGlobalApplicationState();
+	    globalApplicationState.setPlaceController(placeController);
+	    globalApplicationState.setAppPlaceHistoryMapper(historyMapper);
+
+		
 		// Goes to place represented on URL or default place
 		historyHandler.handleCurrentHistory();
 		

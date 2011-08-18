@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.place.LoginPlace;
 import org.sagebionetworks.web.client.place.ProjectsHome;
@@ -53,6 +54,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 	private Dataset model;
 	private NodeModelCreator nodeModelCreator;
 	private AuthenticationController authenticationController;
+	private GlobalApplicationState globalApplicationState;
 	
 	/**
 	 * Everything is injected via Guice.
@@ -60,13 +62,14 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 	 * @param datasetService
 	 */
 	@Inject
-	public DatasetPresenter(DatasetView view, NodeServiceAsync nodeService, LicenceServiceAsync licenseService, NodeModelCreator nodeModelCreator, AuthenticationController authenticationController) {
+	public DatasetPresenter(DatasetView view, NodeServiceAsync nodeService, LicenceServiceAsync licenseService, NodeModelCreator nodeModelCreator, AuthenticationController authenticationController, GlobalApplicationState globalApplicationState) {
 		this.view = view;
 		this.view.setPresenter(this);
 		this.nodeService = nodeService;
 		this.licenseService = licenseService;		
 		this.nodeModelCreator = nodeModelCreator;
 		this.authenticationController = authenticationController;
+		this.globalApplicationState = globalApplicationState;
 		
 		this.hasAcceptedLicenseAgreement = false;
 	}
@@ -76,7 +79,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 	 */
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
-		this.placeController = DisplayUtils.placeController;		
+		this.placeController = globalApplicationState.getPlaceController();		
 		this.placeChanger = new PlaceChanger() {			
 			@Override
 			public void goTo(Place place) {
@@ -92,9 +95,9 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 	 * Called when focus is brought to this presenter in the UI
 	 * @param place
 	 */
-	public void setPlace(org.sagebionetworks.web.client.place.Dataset place) {
+	public void setPlace(org.sagebionetworks.web.client.place.Dataset place) {		
 		this.place = place;
-		this.datasetId = place.toToken();
+		this.datasetId = place.toToken(); 
 		
 		refreshFromServer();
 	}
@@ -172,7 +175,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 			return true;
 		} else {
 			view.showInfo("Login Required", "Please Login to download data.");			
-			placeChanger.goTo(new LoginPlace(new org.sagebionetworks.web.client.place.Dataset(datasetId)));
+			placeChanger.goTo(new LoginPlace(DisplayUtils.DEFAULT_PLACE_TOKEN));
 		}
 		return false;
 	}

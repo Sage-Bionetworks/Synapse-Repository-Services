@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.client.presenter;
 
 import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.place.ProjectsHome;
 import org.sagebionetworks.web.client.view.ProjectsHomeView;
@@ -18,16 +19,17 @@ public class ProjectsHomePresenter extends AbstractActivity implements ProjectsH
 	private ProjectsHomeView view;
 	private PlaceController placeController;
 	private PlaceChanger placeChanger;
-
+	private GlobalApplicationState globalApplicationState;
 	
 	@Inject
-	public ProjectsHomePresenter(ProjectsHomeView view){
+	public ProjectsHomePresenter(ProjectsHomeView view, GlobalApplicationState globalApplicationState){
 		this.view = view;
+		this.globalApplicationState = globalApplicationState;
 	}
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
-		this.placeController = DisplayUtils.placeController;
+		this.placeController = globalApplicationState.getPlaceController();
 		this.placeChanger = new PlaceChanger() {			
 			@Override
 			public void goTo(Place place) {

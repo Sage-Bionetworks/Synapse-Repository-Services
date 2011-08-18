@@ -26,5 +26,4 @@ public class ComingSoon extends Place{
             return new ComingSoon(token);
         }
     }
-
 }

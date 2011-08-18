@@ -13,7 +13,7 @@ import com.google.inject.Inject;
 public class LoginWidget implements LoginWidgetView.Presenter {
 
 	private LoginWidgetView view;
-	private AuthenticationController controller;	
+	private AuthenticationController authenticationController;	
 	private List<UserListener> listeners = new ArrayList<UserListener>();	
 	private String openIdActionUrl;
 	private String openIdReturnUrl;
@@ -22,7 +22,7 @@ public class LoginWidget implements LoginWidgetView.Presenter {
 	public LoginWidget(LoginWidgetView view, AuthenticationController controller) {
 		this.view = view;
 		view.setPresenter(this);
-		this.controller = controller;		
+		this.authenticationController = controller;		
 	}
 
 	public Widget asWidget() {
@@ -36,7 +36,7 @@ public class LoginWidget implements LoginWidgetView.Presenter {
 
 	@Override
 	public void setUsernameAndPassword(String username, String password) {		
-		controller.loginUser(username, password, new AsyncCallback<UserData>() {
+		authenticationController.loginUser(username, password, new AsyncCallback<UserData>() {
 			@Override
 			public void onSuccess(UserData result) {
 				fireUserChage(result);

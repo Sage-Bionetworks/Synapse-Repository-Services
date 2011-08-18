@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.presenter;
 
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.place.ProjectsHome;
 import org.sagebionetworks.web.client.security.AuthenticationController;
@@ -35,13 +36,15 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 	private PlaceChanger placeChanger;
 	private NodeModelCreator nodeModelCreator;
 	private AuthenticationController authenticationController;
+	private GlobalApplicationState globalApplicationState;
 	
 	@Inject
-	public ProjectPresenter(ProjectView view, NodeServiceAsync service, NodeModelCreator nodeModelCreator, AuthenticationController authenticationController){
+	public ProjectPresenter(ProjectView view, NodeServiceAsync service, NodeModelCreator nodeModelCreator, AuthenticationController authenticationController, GlobalApplicationState globalApplicationState){
 		this.view = view;
 		this.nodeService = service;
 		this.nodeModelCreator = nodeModelCreator;
 		this.authenticationController = authenticationController;
+		this.globalApplicationState = globalApplicationState;
 		
 		// Set the presenter on the view
 		this.view.setPresenter(this);
@@ -49,7 +52,7 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
-		this.placeController = DisplayUtils.placeController;
+		this.placeController = globalApplicationState.getPlaceController();
 		this.placeChanger = new PlaceChanger() {			
 			@Override
 			public void goTo(Place place) {
