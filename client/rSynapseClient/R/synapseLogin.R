@@ -61,7 +61,7 @@ synapseLogout <-
 			system("stty -echo")
 			finallyCmd <- "stty echo"
 		}
-	}else if(tolower(.Platform$GUI == "rterm")){
+	}else if(tolower(.Platform$GUI) == "rterm"){
 		if(tolower(.Platform$OS.type) == "windows"){
 			## TODO figure out how to suppress terminal output in Windows
 		}
