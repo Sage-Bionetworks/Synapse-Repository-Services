@@ -24,11 +24,14 @@ public class IT080SynapsePythonClient {
 	/**
 	 * @throws Exception
 	 */
-	@Ignore // See http://sagebionetworks.jira.com/browse/PLFM-365
 	@Test
 	public void testPythonClient() throws Exception {
 		String cmd[] = { Helpers.getPython27Path(),
-				"target/non-java-dependencies/synapse/client.py" };
+				"target/non-java-dependencies/synapse/integration_test.py",
+				"--authEndpoint", StackConfiguration.getAuthenticationServiceEndpoint(),
+				"--repoEndpoint", StackConfiguration.getRepositoryServiceEndpoint(),
+				"--user", StackConfiguration.getIntegrationTestUserOneName(),
+				"--password", StackConfiguration.getIntegrationTestUserOnePassword()};
 		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
 
 		String results[] = result.getStderr().split("\n");
