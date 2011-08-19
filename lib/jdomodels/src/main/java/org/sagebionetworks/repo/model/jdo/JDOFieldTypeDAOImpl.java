@@ -3,10 +3,12 @@ package org.sagebionetworks.repo.model.jdo;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -151,6 +153,51 @@ public class JDOFieldTypeDAOImpl implements FieldTypeDAO, InitializingBean {
 		for(Field field: fields){
 			this.addNewType(field.getName(), FieldType.PRIMARY_FIELD);
 		}
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void validateAnnotations(Annotations updated)
+			throws DatastoreException, InvalidModelException {
+		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
+		// Validate the annotation names
+		
+		// Validate the strings
+		if(updated.getStringAnnotations() != null){
+			Iterator<String> it = updated.getStringAnnotations().keySet().iterator();
+			while(it.hasNext()){
+				addNewType(it.next(), FieldType.STRING_ATTRIBUTE);
+			}
+		}
+		// Validate the longs
+		if(updated.getLongAnnotations() != null){
+			Iterator<String> it = updated.getLongAnnotations().keySet().iterator();
+			while(it.hasNext()){
+				addNewType(it.next(), FieldType.LONG_ATTRIBUTE);
+			}
+		}
+		// Validate the dates
+		if(updated.getDateAnnotations() != null){
+			Iterator<String> it = updated.getDateAnnotations().keySet().iterator();
+			while(it.hasNext()){
+				addNewType(it.next(), FieldType.DATE_ATTRIBUTE);
+			}
+		}
+		// Validate the Doubles
+		if(updated.getDoubleAnnotations() != null){
+			Iterator<String> it = updated.getDoubleAnnotations().keySet().iterator();
+			while(it.hasNext()){
+				addNewType(it.next(), FieldType.DOUBLE_ATTRIBUTE);
+			}
+		}
+		// Validate the Doubles
+		if(updated.getBlobAnnotations() != null){
+			Iterator<String> it = updated.getBlobAnnotations().keySet().iterator();
+			while(it.hasNext()){
+				addNewType(it.next(), FieldType.BLOB_ATTRIBUTE);
+			}
+		}
+		
 	}
 
 }

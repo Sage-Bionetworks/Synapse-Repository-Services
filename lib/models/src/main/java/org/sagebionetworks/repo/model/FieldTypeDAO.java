@@ -33,5 +33,14 @@ public interface FieldTypeDAO {
 	 * @param name
 	 */
 	public void delete(String name);
+	
+	/**
+	 * Validate all annotations in the passed object.
+	 * 
+	 * @param updated
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 */
+	public void validateAnnotations(Annotations updated) throws DatastoreException, InvalidModelException;
 
 }

@@ -191,6 +191,8 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 		FileInputStream fis = new FileInputStream(source);
 		try{
 			log.info("Restoring: "+source.getAbsolutePath());
+			// First clear all data
+			backupManager.clearAllData();
 			ZipInputStream zin = new  ZipInputStream(new BufferedInputStream(fis));
 			progress.setMessage("Reading: "+source.getAbsolutePath());
 			progress.setTotalCount(source.length());

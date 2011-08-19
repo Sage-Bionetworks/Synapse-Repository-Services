@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import java.util.Date;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -196,114 +197,6 @@ public class NodeManagerImpleUnitTest {
 		when(mockAuthDao.canAccess(userInfo, id, ACCESS_TYPE.READ)).thenReturn(true);
 		Annotations copy = nodeManager.getAnnotations(userInfo, id);
 		assertEquals(copy, annos);
-	}
-	
-	@Test
-	public void testValidateAnnoationsAssignedToAnotherType() throws Exception, DatastoreException, UnauthorizedException, ConflictingUpdateException{
-		// To update the annotations 
-		String id = "101";
-		Annotations annos = new Annotations();
-		String annotationName = "dateKeyKey";
-		annos.setId(id);
-		annos.setEtag("9");
-		when(mockNodeDao.peekCurrentEtag("101")).thenReturn("9");
-		when(mockNodeDao.lockNodeAndIncrementEtag("101", "9")).thenReturn("10");
-		UserInfo userInfo = anonUserInfo;
-		when(mockAuthDao.canAccess(userInfo, "101", ACCESS_TYPE.UPDATE)).thenReturn(true);
-		// The mockFieldTypeDao with throw an exception i 
-		annos.addAnnotation(annotationName, new Date(System.currentTimeMillis()));
-		when(mockAuthDao.canAccess(userInfo, id, ACCESS_TYPE.READ)).thenReturn(true);
-		nodeManager.updateAnnotations(userInfo,id,annos);
-		// Make sure this annotation name is checked against FieldType.DATE_ATTRIBUTE.
-		verify(mockFieldTypeDao, atLeastOnce()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
-	}
-	
-	@Test
-	public void testValidateStringAnnotation() throws Exception, DatastoreException, UnauthorizedException, ConflictingUpdateException{
-		// To update the annotations 
-		Annotations annos = new Annotations();
-		annos.setEtag("123");
-		String annotationName = "stringKey";
-		// The mockFieldTypeDao with throw an exception i 
-		annos.addAnnotation(annotationName, "stringValue");
-		nodeManager.validateAnnotations(annos);
-		// Make sure this annotation name is checked against FieldType.DATE_ATTRIBUTE.
-		verify(mockFieldTypeDao, atLeastOnce()).addNewType(annotationName, FieldType.STRING_ATTRIBUTE);
-		// Should not have been called
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.LONG_ATTRIBUTE);
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DOUBLE_ATTRIBUTE);
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.BLOB_ATTRIBUTE);
-	}
-	
-	@Test
-	public void testValidateDoubleAnnotation() throws Exception, DatastoreException, UnauthorizedException, ConflictingUpdateException{
-		// To update the annotations 
-		Annotations annos = new Annotations();
-		annos.setEtag("123");
-		String annotationName = "doubleKey";
-		// The mockFieldTypeDao with throw an exception i 
-		annos.addAnnotation(annotationName, new Double(123.5));
-		nodeManager.validateAnnotations(annos);
-		// Make sure this annotation name is checked against FieldType.DATE_ATTRIBUTE.
-		verify(mockFieldTypeDao, atLeastOnce()).addNewType(annotationName, FieldType.DOUBLE_ATTRIBUTE);
-		// Should not have been called
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.LONG_ATTRIBUTE);
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.STRING_ATTRIBUTE);
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.BLOB_ATTRIBUTE);
-	}
-	
-	@Test
-	public void testValidateLongAnnotation() throws Exception, DatastoreException, UnauthorizedException, ConflictingUpdateException{
-		// To update the annotations 
-		Annotations annos = new Annotations();
-		annos.setEtag("123");
-		String annotationName = "longKey";
-		annos.addAnnotation(annotationName, new Long(1235));
-		nodeManager.validateAnnotations(annos);
-		// Make sure this annotation name is checked against FieldType.DATE_ATTRIBUTE.
-		verify(mockFieldTypeDao, atLeastOnce()).addNewType(annotationName, FieldType.LONG_ATTRIBUTE);
-		// Should not have been called
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DOUBLE_ATTRIBUTE);
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.STRING_ATTRIBUTE);
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.BLOB_ATTRIBUTE);
-	}
-	
-	@Test
-	public void testValidateDateAnnotation() throws Exception, DatastoreException, UnauthorizedException, ConflictingUpdateException{
-		// To update the annotations 
-		Annotations annos = new Annotations();
-		annos.setEtag("123");
-		String annotationName = "dateKey";
-		annos.addAnnotation(annotationName, new Date(1235));
-		nodeManager.validateAnnotations(annos);
-		// Make sure this annotation name is checked against FieldType.DATE_ATTRIBUTE.
-		verify(mockFieldTypeDao, atLeastOnce()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
-		// Should not have been called
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.LONG_ATTRIBUTE);
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DOUBLE_ATTRIBUTE);
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.STRING_ATTRIBUTE);
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.BLOB_ATTRIBUTE);
-	}
-	
-	@Test
-	public void testValidateBlobAnnotation() throws Exception, DatastoreException, UnauthorizedException, ConflictingUpdateException{
-		// To update the annotations 
-		Annotations annos = new Annotations();
-		annos.setEtag("123");
-		String annotationName = "blobKey";
-		// The mockFieldTypeDao with throw an exception i 
-		annos.addAnnotation(annotationName, "Some very long string".getBytes("UTF-8"));
-		nodeManager.validateAnnotations(annos);
-		// Make sure this annotation name is checked against FieldType.DATE_ATTRIBUTE.
-		verify(mockFieldTypeDao, atLeastOnce()).addNewType(annotationName, FieldType.BLOB_ATTRIBUTE);
-		// Should not have been called
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DATE_ATTRIBUTE);
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.LONG_ATTRIBUTE);
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.DOUBLE_ATTRIBUTE);
-		verify(mockFieldTypeDao, never()).addNewType(annotationName, FieldType.STRING_ATTRIBUTE);
 	}
 
 }
