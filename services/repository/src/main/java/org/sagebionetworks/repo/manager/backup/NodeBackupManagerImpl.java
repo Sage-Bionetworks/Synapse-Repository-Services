@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeConstants;
@@ -42,6 +43,9 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 	
 	@Autowired
 	private NodeInheritanceDAO inheritanceDAO;
+	
+	@Autowired
+	FieldTypeDAO fieldTypeDao;
 
 	@Transactional(readOnly = true)
 	@Override
@@ -172,6 +176,10 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 		if(rev.getRevisionNumber() == null) throw new IllegalArgumentException("NodeRevision.revisionNumber cannot be null");
 		if(rev.getLabel() == null) throw new IllegalArgumentException("NodeRevision.revisionNumber cannot be null");
 		try{
+			// Validate the annotations
+			if(rev.getAnnotations() != null){
+				fieldTypeDao.validateAnnotations(rev.getAnnotations());
+			}
 			if(nodeDao.doesNodeRevisionExist(rev.getNodeId(), rev.getRevisionNumber())){
 				// This is an update.
 				nodeDao.updateRevision(rev);
@@ -184,6 +192,21 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 			// Convert all exceptions to runtimes to force a rollback on this node.
 			throw new RuntimeException(e);
 		}
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@Override
+	public void clearAllData() {
+		try {
+			// Get the root
+			String id = nodeDao.getNodeIdForPath(NodeConstants.ROOT_FOLDER_PATH);
+			// Delete it.
+			nodeDao.delete(id);
+		} catch (Exception e) {
+			// Convert all exceptions to runtimes to force a rollback on this node.
+			throw new RuntimeException(e);
+		}
+		
 	}
 
 }

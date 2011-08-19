@@ -208,5 +208,11 @@ public class NodeBackupStub implements NodeBackupManager {
 		return nodeIdMap.size();
 	}
 
+	@Override
+	public void clearAllData() {
+		// TODO Auto-generated method stub
+		
+	}
+
 	
 }
