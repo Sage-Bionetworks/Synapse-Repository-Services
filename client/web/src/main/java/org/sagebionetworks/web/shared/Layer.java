@@ -11,7 +11,7 @@ import com.google.gwt.user.client.rpc.IsSerializable;
  * 
  */
 public class Layer implements IsSerializable {
-	public enum LayerType { G, C, E }
+	public enum LayerType { G, C, E, M }
 		
 	private String annotations;
 	private Date creationDate;
