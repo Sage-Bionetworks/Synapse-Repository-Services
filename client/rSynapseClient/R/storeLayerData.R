@@ -4,24 +4,37 @@ setMethod(
 		definition = function(entity, layerDataFile){
 			if(class(layerDataFile) != "character")
 				stop("was expecting an array of file paths")
+			
+			## if rbin format and only one file, don't need to zip
+			if(length(layerDataFile) == 1L && !is.null(annotValue(entity,"format")) && annotValue(entity,"format") == "rbin")
+				return(storeLayerDataFile(entity = entity, layerDataFilepath = layerDataFile))
+			
 			## build the outfile name
-			zipFileName <- tempfile(fileext=".zip", tmpdir="")
+			zipFileName <- gsub("^[\\/]+", "", tempfile(fileext=".zip", tmpdir=""))
 			if(!is.null(propertyValue(entity, "name")))
 				zipFileName <- sprintf("%s%s",gsub("[ ]+", "_", propertyValue(entity, "name")),".zip")
 			
 			zipFileName <- file.path(tempdir(), zipFileName)
-			
 			
 			## change working directory to tempdir()
 			## TODO: figure out how to zip files without including directory tree
 			##		 some way other than changing directory
 			oldDir <- getwd()
 			setwd(tempdir())
-			zip(zipfile=zipFileName, files=layerDataFile)
+			zipRetVal <- zip(zipfile=normalizePath(zipFileName, mustWork=FALSE), files=normalizePath(layerDataFile))
 			setwd(oldDir)
 			
+			## if zip failes, load uncompressed
+			if(zipRetVal != 0L){
+				msg <- sprintf("Unable to zip layerData Files. Error code: %i.",zipRetVal)
+				if(length(layerDataFile) > 1)
+					stop(msg, " Make sure that zip is installed on your computer. Without zip, only one file can be uploaded at a time")
+				warning("Zip was not installed on your computer. Uploading layer data uncompressed")
+				return(storeLayerDataFile(entity = entity, layerDataFilepath = layerDataFile))
+			}
+			
 			## upload the zipFile
-			entity <- storeLayerDataFile(entity = entity, layerDataFilepath = zipFileName)
+			storeLayerDataFile(entity = entity, layerDataFilepath = zipFileName)
 		}
 )
 
@@ -46,9 +59,11 @@ setMethod(
 			## set an annotation on the Layer object to specify the storage format as R binary
 			annotValue(entity, "format") <- "rbin"
 			
-			if(is.null(propertyValue(entity, "id")))
+			if(is.null(propertyValue(entity, "id"))){
 				entity <- createEntity(entity)
-			entity <- updateEntity(entity)
+			} else{
+				entity <- updateEntity(entity)
+			}
 			## pass the files to be packaged and uploaded
 			storeLayerDataFiles(entity, files)
 		}

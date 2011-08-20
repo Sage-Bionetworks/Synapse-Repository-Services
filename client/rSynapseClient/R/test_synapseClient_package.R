@@ -1,7 +1,7 @@
 .testSafety <- function() {
 	lapply(c(synapseAuthServiceEndpoint(), synapseRepoServiceEndpoint()), 
 			function(svc) {
-				if(!(grepl("staging", svc) || grepl("localhost", svc))) {
+				if(!(grepl("staging", svc) || grepl(":8080", svc))) {
 					stop("tests may only run against staging or your localhost")
 				}
 			}
