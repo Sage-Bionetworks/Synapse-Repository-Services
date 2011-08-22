@@ -1,8 +1,3 @@
-## list of packages for users to install prior to demo
-## * R 2.13
-## * bioconductor: source(http://bioconductor.org/biocLite.R); biocLite()
-## * RCurl, RUnit, rjson: install.packages("RCurl", "RUnit", "rjson")
-
 ## load the client
 library(synapseClient)
 
