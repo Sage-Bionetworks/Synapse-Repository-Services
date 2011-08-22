@@ -193,3 +193,37 @@ integrationTestStoreMediaLayer <- function() {
 	layerFiles <- loadLayerData(createdLayer)
 	checkEquals(1, length(layerFiles))
 }
+#
+#integrationTestMultipleBinary <- 
+#		function()
+#{
+#	dataset <- Dataset(entity = list(
+#					name = 'R Integration Test Dataset',
+#					parentId = .getCache("rIntegrationTestProject")$id
+#			)
+#	)
+#	
+#	createdDataset <- createEntity(entity=dataset)
+#	checkEquals(propertyValue(dataset, "name"), propertyValue(createdDataset, "name"))
+#	
+#	## Make an R data object that we will store in a couple different ways
+#	data <- data.frame(a=1:3, b=letters[10:12],
+#			c=seq(as.Date("2004-01-01"), by = "week", len = 3),
+#			stringsAsFactors = FALSE)
+#	
+#	data2 <- diag(100)
+#	
+#	layer <- Layer(entity = list(
+#					name = 'R Integration Test Layer',
+#					type = 'C',
+#					parentId = propertyValue(createdDataset, "id")
+#			)
+#	)
+#	
+#	layerData <- storeLayerData(entity=layer, dataFile, dataFile2)
+#	
+#	checkTrue(all(c("data", "data2") %in% ls(layerData)))
+#	
+#	checkEquals(data, layerData$data)
+#	checkEquals(data2, layerData$data2)
+#}

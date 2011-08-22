@@ -1,7 +1,7 @@
 Package: synapseClient
 Type: Package
 Title: Synapse R Client from Sage Bionetworks
-Version: 0.9.1
+Version: 0.9.2
 Date: 2011-8-10
 Author: Matt Furia
 Maintainer: Matt Furia <matt.furia@sagebase.org>
