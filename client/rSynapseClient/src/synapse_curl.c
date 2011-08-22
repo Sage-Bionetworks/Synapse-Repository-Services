@@ -44,7 +44,7 @@ writer_open(SEXP filename)
     if (!isString(filename) || 1 != Rf_length(filename))
         Rf_error("'filename' must be character(1)");
 
-    file = fopen(translateChar(STRING_ELT(filename, 0)), "w");
+    file = fopen(translateChar(STRING_ELT(filename, 0)), "wb");
     if (NULL == file) {
         /* FIXME: errno */
         Rf_error("'writer' failed to open file '%s'",
