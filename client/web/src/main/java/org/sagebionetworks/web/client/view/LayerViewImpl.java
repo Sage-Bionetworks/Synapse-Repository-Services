@@ -447,38 +447,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 					window.show();
 				}
 			});
-			menu.add(item);
-			
-			item = new MenuItem("Edit Layer Annotations");
-			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
-			item.addSelectionListener(new SelectionListener<MenuEvent>() {
-				public void componentSelected(MenuEvent menuEvent) {													
-					final Window window = new Window();  
-					window.setSize(650, 400);
-					window.setPlain(true);
-					window.setModal(true);
-					window.setBlinkModal(true);
-					window.setHeading("Edit Layer Annotations");
-					window.setLayout(new FitLayout());
-					nodeEditor.addCancelHandler(new CancelHandler() {					
-						@Override
-						public void onCancel(CancelEvent event) {
-							window.hide();
-						}
-					});
-					nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
-						@Override
-						public void onPersistSuccess(PersistSuccessEvent event) {
-							window.hide();
-							presenter.refresh();
-						}
-					});				
-					window.add(annotationEditor.asWidget(), new FitData(4));
-					window.show();
-				}
-			});
-			item.disable();
-			menu.add(item);
+			menu.add(item);			
 		}
 			
 		// Administrator Menu Options

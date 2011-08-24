@@ -3,7 +3,10 @@ package org.sagebionetworks.web.shared;
 import java.util.Date;
 import java.util.List;
 
+import com.google.gwt.json.client.JSONBoolean;
+import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 /**
@@ -157,7 +160,40 @@ public class Layer implements IsSerializable {
 				setAccessControlList(object.get(key).isString().stringValue());					
 	}
 
+	public String toJson() {
+		JSONObject object = new JSONObject();
+		
+		if(getName() != null) object.put("name", new JSONString(getName()));
+		if(getAnnotations() != null) object.put("annotations", new JSONString(getAnnotations()));
+		if(getId() != null) object.put("id", new JSONString(getId()));
+		if(getVersion() != null) object.put("version", new JSONString(getVersion()));
+		if(getDescription() != null) object.put("description", new JSONString(getDescription()));
+		if(getStatus() != null) object.put("status", new JSONString(getStatus()));		
+		if(getCreationDate() != null) object.put("creationDate", new JSONNumber(getCreationDate().getTime()));
+		if(getParentId() != null) object.put("parentId", new JSONString(getParentId()));
+		if(getEtag() != null) object.put("etag", new JSONString(getEtag()));
+		if(getUri() != null) object.put("uri", new JSONString(getUri()));
+		if(getLocations() != null) object.put("locations", new JSONString(getLocations()));
+		if(getAccessControlList() != null) object.put("accessControlList", new JSONString(getAccessControlList()));
+		if(getParentId() != null) object.put("parentId", new JSONString(getParentId()));
+		
+		// TODO ADD
+//		private Integer numSamples;	
+//		private String platform;
+//		private String previews;
+//		private String processingFacility;	
+//		private Date publicationDate;
+//		private String qcBy;
+//		private Date qcDate;
+//		private String releaseNotes;
+//		private String tissueType;
+//		private LayerType type;	
 
+		
+		return object.toString();
+	}
+
+	
 	
 	/*
 	 * Auto generated methods
@@ -554,7 +590,6 @@ public class Layer implements IsSerializable {
 				+ version + ", parentId=" + parentId + ", accessControlList="
 				+ accessControlList + "]";
 	}
-
 
 	
 }

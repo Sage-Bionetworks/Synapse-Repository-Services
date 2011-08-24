@@ -12,7 +12,16 @@ public class LicenseAgreement implements IsSerializable {
 	 * Default constructor
 	 */
 	public LicenseAgreement() {		
+	}	
+
+	public LicenseAgreement(String licenseHtml, String citationHtml,
+			String eulaId) {
+		super();
+		this.licenseHtml = licenseHtml;
+		this.citationHtml = citationHtml;
+		this.eulaId = eulaId;
 	}
+
 
 
 	public String getLicenseHtml() {

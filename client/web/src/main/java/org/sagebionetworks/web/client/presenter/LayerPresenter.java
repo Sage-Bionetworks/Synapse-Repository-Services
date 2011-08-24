@@ -26,12 +26,12 @@ import org.sagebionetworks.web.shared.LayerPreview;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.PagedResults;
+import org.sagebionetworks.web.shared.exceptions.ForbiddenException;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 import org.sagebionetworks.web.shared.users.AclUtils;
 import org.sagebionetworks.web.shared.users.PermissionLevel;
 import org.sagebionetworks.web.shared.users.UserData;
 
-import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.place.shared.Place;
@@ -40,7 +40,7 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.AcceptsOneWidget;
 import com.google.inject.Inject;
 
-public class LayerPresenter extends AbstractActivity implements LayerView.Presenter{	
+public class LayerPresenter extends AbstractActivity implements LayerView.Presenter {	
 
 	private org.sagebionetworks.web.client.place.Layer place;
 	private NodeServiceAsync nodeService;
@@ -49,8 +49,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	private LayerView view;
 	private String layerId;	
 	private Boolean showDownload;
-	private Layer model;
-	private LayerPreview layerPreview;
+	private Layer layerModel;
 	private boolean hasAcceptedLicenseAgreement;
 	private LicenceServiceAsync licenseService;
 	private LicenseAgreement licenseAgreement;
@@ -68,12 +67,12 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	@Inject
 	public LayerPresenter(LayerView view, NodeServiceAsync nodeService, LicenceServiceAsync licenseService, NodeModelCreator nodeModelCreator, AuthenticationController authenticationController, GlobalApplicationState globalApplicationState) {
 		this.view = view;
+		view.setPresenter(this);
 		this.nodeService = nodeService;
 		this.licenseService = licenseService;
 		this.nodeModelCreator = nodeModelCreator;
 		this.authenticationController = authenticationController;
 		this.globalApplicationState = globalApplicationState;
-		view.setPresenter(this);
 		
 		this.hasAcceptedLicenseAgreement = false;
 	}
@@ -101,8 +100,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		this.showDownload = place.getDownload();
 		view.setPresenter(this);
 		refresh();
-	}
-	
+	}	
 
 	@Override
 	public void licenseAccepted() {		
@@ -110,13 +108,12 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 			UserData user = authenticationController.getLoggedInUser();
 			Agreement agreement = new Agreement();							
 			agreement.setEulaId(licenseAgreement.getEulaId());
-			agreement.setDatasetId(model.getParentId());
+			agreement.setDatasetId(layerModel.getParentId());
 			
 			nodeService.createNode(NodeType.AGREEMENT, agreement.toJson(), new AsyncCallback<String>() {
 				@Override
 				public void onSuccess(String result) {
-					// agreement saved, load download locations
-					step5LoadDownloadLocations();												
+					view.showInfo("Saved", "Agreement acceptance saved.");
 				}
 	
 				@Override
@@ -127,9 +124,37 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		}
 	}
 
+	/**
+	 * Reloads all asynchronous data from the server	
+	 */
 	@Override
 	public void refresh() {
-		step1RefreshFromServer();
+		view.clear();		
+		// Fetch the data about this dataset from the server
+		nodeService.getNodeJSON(NodeType.LAYER, this.layerId, new AsyncCallback<String>() {
+			@Override
+			public void onSuccess(String layerJson) {							
+				try {
+					layerModel = nodeModelCreator.createLayer(layerJson);					
+				} catch (RestServiceException ex) {
+					if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
+						onFailure(null);
+					}
+					return;
+				}					
+				// Load calls that required the model 
+				loadLicenseAgreement(layerModel, showDownload);
+				loadPermissionLevel(layerModel);
+				loadDownloadLocations(layerModel, showDownload);
+			}
+			
+			@Override
+			public void onFailure(Throwable caught) {
+				view.showErrorMessage("An error occured retrieving this Layer. Please try reloading the page.");
+			}			
+		});		
+				
+		loadLayerPreview();		
 	}
 
 	@Override
@@ -142,8 +167,10 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		if(authenticationController.getLoggedInUser() != null) {
 			return true;
 		} else {
-			view.showInfo("Login Required", "Please Login to download data.");			
-			placeChanger.goTo(new LoginPlace(DisplayUtils.DEFAULT_PLACE_TOKEN));
+			view.showInfo("Login Required", "Please Login to download data.");
+			if(placeChanger != null) {
+				placeChanger.goTo(new LoginPlace(DisplayUtils.DEFAULT_PLACE_TOKEN));
+			}
 		}
 		return false;
 	}
@@ -154,7 +181,9 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 			@Override
 			public void onSuccess(Void result) {
 				view.showInfo("Layer Deleted", "The layer was successfully deleted.");
-				placeChanger.goTo(new ProjectsHome(DisplayUtils.DEFAULT_PLACE_TOKEN));
+				if(placeChanger != null) {
+					placeChanger.goTo(new ProjectsHome(DisplayUtils.DEFAULT_PLACE_TOKEN));
+				}
 			}
 			
 			@Override
@@ -166,41 +195,18 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 
 	
 	/*
-	 * Protected Methods
+	 * Private Asynchronous load methods
 	 */
 	
-	private void step1RefreshFromServer() {
-		view.clear();
-		// Fetch the data about this dataset from the server
-		nodeService.getNodeJSON(NodeType.LAYER, this.layerId, new AsyncCallback<String>() {
-			@Override
-			public void onSuccess(String layerJson) {				
-				Layer layer = null;
-				try {
-					layer = nodeModelCreator.createLayer(layerJson);
-				} catch (RestServiceException ex) {
-					if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
-						onFailure(null);
-					}
-					return;
-				}
-				
-				step2SetLayer(layer);
-			}
-			
-			@Override
-			public void onFailure(Throwable caught) {
-				view.showErrorMessage("An error occured retrieving this Layer. Please try reloading the page.");
-			}			
-		});		
-	}
-
-	protected void step2SetLayer(final Layer layer) {
-		this.model = layer;
-		if(layer != null) {			
+	/**
+	 * Loads the Permission levels for this user  
+	 * @param model Layer model object
+	 */
+	public void loadPermissionLevel(final Layer model) {
+		if(model != null) {			
 			UserData currentUser = authenticationController.getLoggedInUser();
 			if(currentUser != null) {
-				AclUtils.getHighestPermissionLevel(NodeType.PROJECT, layer.getId(), nodeService, new AsyncCallback<PermissionLevel>() {
+				AclUtils.getHighestPermissionLevel(NodeType.LAYER, model.getId(), nodeService, new AsyncCallback<PermissionLevel>() {
 					@Override
 					public void onSuccess(PermissionLevel result) {
 						iisAdministrator = false;
@@ -211,7 +217,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 							ccanEdit = true;
 							iisAdministrator = true;
 						}
-						step3GetLayerPreview();
+						setLayerDetails(model, iisAdministrator, ccanEdit);
 					}
 					
 					@Override
@@ -219,236 +225,251 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 						view.showErrorMessage(DisplayConstants.ERROR_GETTING_PERMISSIONS_TEXT);
 						iisAdministrator = false;
 						ccanEdit = false;
-						step3GetLayerPreview();
+						setLayerDetails(model, iisAdministrator, ccanEdit);
 					}			
 				});
 			} else {
 				// because this is a public page, they can view
 				iisAdministrator = false;
 				ccanEdit = false;
-				step3GetLayerPreview();
+				setLayerDetails(model, iisAdministrator, ccanEdit);
 			}
 		}
 		
 	}
 	
-	
-
-	private void step3GetLayerPreview() {
-				
+	/**
+	 * Load the Preview for this layer from the server
+	 */
+	public void loadLayerPreview() {				
 		// get the preview string to get file header order, then get the previewAsData
-		nodeService.getNodePreview(NodeType.LAYER, layerId, new AsyncCallback<String>() {
+		nodeService.getNodePreview(NodeType.LAYER, this.layerId, new AsyncCallback<String>() {
 			@Override
 			public void onSuccess(String pagedResultString) {
 				LayerPreview layerPreview = null;				
 				try {
 					PagedResults  pagedResult = nodeModelCreator.createPagedResults(pagedResultString);
-					List<String> results = pagedResult.getResults();
-					if(results.size() > 0) {
-						layerPreview = nodeModelCreator.createLayerPreview(results.get(0));
-					} else {
-						view.showLayerPreviewUnavailable();
-						onFailure(null);
-						return;
-					}					
+					if(pagedResult != null) {
+						List<String> results = pagedResult.getResults();
+						if(results.size() > 0) {
+							layerPreview = nodeModelCreator.createLayerPreview(results.get(0));
+						} else {
+							view.showLayerPreviewUnavailable();
+							onFailure(null);
+							return;
+						}					
+					}
 				} catch (RestServiceException ex) {
 					DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser());
 					onFailure(null);					
 					return;
 				}				
 
-				setLayerPreview(layerPreview);
-				// continue
-				step4SetLicenseAgreement();
+				if(layerPreview != null) {
+					// get column display order, if possible from the layer preview
+					List<String> columnDisplayOrder = layerPreview.getHeaders();
+	
+					// TODO : get columns descriptions from service
+					Map<String, String> columnDescriptions = getTempColumnDescriptions();
+					Map<String, String> columnUnits = getTempColumnUnits();
+					
+					// append units onto description
+					for(String key : columnUnits.keySet()) {
+						String units = columnUnits.get(key);
+						columnDescriptions.put(key, columnDescriptions.get(key) + " (" + units + ")");
+					}		
+					
+					view.setLayerPreviewTable(layerPreview.getRows(), columnDisplayOrder, columnDescriptions, columnUnits);
+				}
 			}
 
 			@Override
 			public void onFailure(Throwable caught) {
 				// continue
-				step4SetLicenseAgreement();
 				view.showLayerPreviewUnavailable();
 			}
 		});		
 
 	}
 
-	private void step6SetLayerDetails() {
+	/**
+	 * Sets the Layer model details into the view
+	 * @param model The Layer model object
+	 * @param isAdministrator Allows Administrator menus to be displayed
+	 * @param canEdit Allows Edit menus to be displayed
+	 */
+	private void setLayerDetails(Layer model, boolean isAdministrator, boolean canEdit) {
 		// process the layer and send values to view
-		view.setLayerDetails(model.getId(), 
-							 model.getName(), 
-						 	 model.getProcessingFacility(), 
-							 model.getQcBy(), "#ComingSoon:0",
-							 "qc_script.R", "#ComingSoon:0",
-							 model.getQcDate(),
-							 model.getDescription(),
-							 5,
-							 Integer.MAX_VALUE, // TODO : get total number of rows in layer
-							 "Public", // TODO : replace with security object
-							 "<a href=\"#Dataset:"+ model.getParentId() +"\">Dataset</a>", // TODO : have dataset name included in layer metadata
-							 model.getPlatform(), 
-							 iisAdministrator, 
-							 ccanEdit);
+		if(model != null) {
+			view.setLayerDetails(model.getId(), 
+								 model.getName(), 
+							 	 model.getProcessingFacility(), 
+								 model.getQcBy(), "#ComingSoon:0",
+								 "qc_script.R", "#ComingSoon:0",
+								 model.getQcDate(),
+								 model.getDescription(),
+								 5,
+								 Integer.MAX_VALUE, // TODO : get total number of rows in layer
+								 "Public", // TODO : replace with security object
+								 "<a href=\"#Dataset:"+ model.getParentId() +"\">Dataset</a>", // TODO : have dataset name included in layer metadata
+								 model.getPlatform(), 
+								 isAdministrator, 
+								 canEdit);
+		}
 	}
 
-	private void step4SetLicenseAgreement() {
+	/**
+	 * Loads the License Agreement
+	 * @param model Layer model object
+	 */
+	public void loadLicenseAgreement(final Layer model, final Boolean showDownload) {		
 		// get Dataset to get its EULA id
-		nodeService.getNodeJSON(NodeType.DATASET, model.getParentId(), new AsyncCallback<String>() {
-			@Override
-			public void onSuccess(String datasetJson) {
-				Dataset dataset = null;
-				try {
-					dataset = nodeModelCreator.createDataset(datasetJson);
-				} catch (RestServiceException ex) {
-					DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser());
-					onFailure(null);					
-					return;
-				}
-				if(dataset != null) {
-					// Dataset found, get EULA id if exists
-					final String eulaId = dataset.getEulaId();
-					if(eulaId == null) {
-						// No EULA id means that this has open downloads
-						view.requireLicenseAcceptance(false);
-						licenseAgreement = null;
-						view.setLicenseAgreement(licenseAgreement);						
-						step5LoadDownloadLocations();												
-					} else {
-						// EULA required
-						// now query to see if user has accepted the agreement
-						UserData currentUser = authenticationController.getLoggedInUser();
-						if(currentUser == null && showDownload) {
-							view.showInfo(DisplayConstants.ERROR_TITLE_LOGIN_REQUIRED, DisplayConstants.ERROR_LOGIN_REQUIRED);
-							placeChanger.goTo(new LoginPlace(DisplayUtils.DEFAULT_PLACE_TOKEN));
-							return;
-						}
-						licenseService.hasAccepted(currentUser.getEmail(), eulaId, model.getParentId(), new AsyncCallback<Boolean>() {
-							@Override
-							public void onSuccess(final Boolean hasAccepted) {
-								hasAcceptedLicenseAgreement = hasAccepted;
-								view.requireLicenseAcceptance(!hasAccepted);
-
-								// load license agreement (needed for viewing even if hasAccepted)
-								nodeService.getNodeJSON(NodeType.EULA, eulaId, new AsyncCallback<String>() {
-									@Override
-									public void onSuccess(String eulaJson) {
-										EULA eula = null;
-										try {
-											eula = nodeModelCreator.createEULA(eulaJson);
-										} catch (RestServiceException ex) {
-											DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser());
-											onFailure(null);											
-											return;
-										}
-										if(eula != null) {
-											// set licence agreement text
-											licenseAgreement = new LicenseAgreement();				
-											licenseAgreement.setLicenseHtml(eula.getAgreement());
-											licenseAgreement.setEulaId(eulaId);
-											view.setLicenseAgreement(licenseAgreement);
-											
-											if(hasAcceptedLicenseAgreement) {
-												// will throw security exception if user has not accepted this yet
-												step5LoadDownloadLocations(); 
-											} else {
-												// TODO: this is pretty weak
-												step6SetLayerDetails();
-											}
-										} else {
-											step5ErrorSetDownloadFailure();
-										}
-									}
-									
-									@Override
-									public void onFailure(Throwable caught) {
-										step5ErrorSetDownloadFailure();
-									}									
-								});
+		if(model != null) {
+			nodeService.getNodeJSON(NodeType.DATASET, model.getParentId(), new AsyncCallback<String>() {
+				@Override
+				public void onSuccess(String datasetJson) {
+					Dataset dataset = null;
+					try {
+						dataset = nodeModelCreator.createDataset(datasetJson);
+					} catch (RestServiceException ex) {
+						DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser());
+						onFailure(null);					
+						return;
+					}
+					if(dataset != null) {
+						// Dataset found, get EULA id if exists
+						final String eulaId = dataset.getEulaId();
+						if(eulaId == null) {
+							// No EULA id means that this has open downloads
+							view.requireLicenseAcceptance(false);
+							licenseAgreement = null;
+							view.setLicenseAgreement(licenseAgreement);						
+						} else {
+							// EULA required
+							// now query to see if user has accepted the agreement
+							UserData currentUser = authenticationController.getLoggedInUser();
+							if(currentUser == null && showDownload) {
+								view.showInfo(DisplayConstants.ERROR_TITLE_LOGIN_REQUIRED, DisplayConstants.ERROR_LOGIN_REQUIRED);
+								if(placeChanger != null) {
+									placeChanger.goTo(new LoginPlace(DisplayUtils.DEFAULT_PLACE_TOKEN));
+								}
+								return;
 							}
 							
-							@Override
-							public void onFailure(Throwable caught) {
-								step5ErrorSetDownloadFailure();								
-							}
-						});									
+							// Check to see if the license has already been accepted
+							licenseService.hasAccepted(currentUser.getEmail(), eulaId, model.getParentId(), new AsyncCallback<Boolean>() {
+								@Override
+								public void onSuccess(final Boolean hasAccepted) {
+									hasAcceptedLicenseAgreement = hasAccepted;
+									view.requireLicenseAcceptance(!hasAccepted);
+	
+									// load license agreement (needed for viewing even if hasAccepted)
+									nodeService.getNodeJSON(NodeType.EULA, eulaId, new AsyncCallback<String>() {
+										@Override
+										public void onSuccess(String eulaJson) {
+											EULA eula = null;
+											try {
+												eula = nodeModelCreator.createEULA(eulaJson);
+											} catch (RestServiceException ex) {
+												DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser());
+												onFailure(null);											
+												return;
+											}
+											if(eula != null) {
+												// set licence agreement text
+												licenseAgreement = new LicenseAgreement();				
+												licenseAgreement.setLicenseHtml(eula.getAgreement());
+												licenseAgreement.setEulaId(eulaId);
+												view.setLicenseAgreement(licenseAgreement);
+											} else {
+												showDownloadLoadFailure();
+											}
+										}
+										
+										@Override
+										public void onFailure(Throwable caught) {
+											showDownloadLoadFailure();
+										}									
+									});
+								}
+								
+								@Override
+								public void onFailure(Throwable caught) {
+									showDownloadLoadFailure();								
+								}
+							});									
+						}
+					} else {
+						showDownloadLoadFailure();
 					}
-				} else {
-					step5ErrorSetDownloadFailure();
+				} 
+	
+				@Override
+				public void onFailure(Throwable caught) {
+					showDownloadLoadFailure();
 				}
-			} 
-
-			@Override
-			public void onFailure(Throwable caught) {
-				step5ErrorSetDownloadFailure();
-			}
-		});
+			});
+		}
+	}
+	
+	/**
+	 * Loads the download locations for the given Layer 
+	 * @param model Layer model object
+	 */
+	public void loadDownloadLocations(final Layer model, final Boolean showDownload) {
+		view.showDownloadsLoading();
+		if(model != null) {
+			nodeService.getNodeLocations(NodeType.LAYER, model.getId(), new AsyncCallback<String>() {
+				@Override
+				public void onSuccess(String pagedResultString) {				
+					List<FileDownload> downloads = new ArrayList<FileDownload>();						
+					try {							
+						PagedResults pagedResult = nodeModelCreator.createPagedResults(pagedResultString);
+						if(pagedResult != null) {
+							List<String> results = pagedResult.getResults();
+							for(String fileDownloadString : results) {
+								DownloadLocation downloadLocation = nodeModelCreator.createDownloadLocation(fileDownloadString);
+								if(downloadLocation != null && downloadLocation.getPath() != null) { 
+									FileDownload dl = new FileDownload(downloadLocation.getPath(), "Download " + model.getName(), downloadLocation.getMd5sum(), downloadLocation.getContentType());
+									downloads.add(dl);
+								}	
+							}
+						}
+					} catch (ForbiddenException ex) {
+						// if user hasn't signed an existing use agreement, a ForbiddenException is thrown. Do not alert user to this 
+						onFailure(null);
+					} catch (RestServiceException ex) {
+						DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser());
+						onFailure(null);					
+						return;
+					}				
+					view.setLicensedDownloads(downloads);
+					
+					// show download if requested
+					if(showDownload != null && showDownload == true) {
+						if(downloadAttempted()) {
+							view.showDownload();
+						}
+					}
+				}
+				@Override
+				public void onFailure(Throwable caught) {				
+					view.setDownloadUnavailable();				
+				}
+			});
+		}
 	}
 
-	private void step5ErrorSetDownloadFailure() {
+	
+	/*
+	 * Private Methods
+	 */
+	private void showDownloadLoadFailure() {
 		view.showErrorMessage("Dataset downloading unavailable. Please try reloading the page.");
 		view.setDownloadUnavailable();
 		view.disableLicensedDownloads(true);
-		step6SetLayerDetails();
-	}
-	
-	protected void setLayerPreview(LayerPreview preview) {
-		this.layerPreview = preview;
-
-		
-		// get column display order, if possible from the layer preview
-		List<String> columnDisplayOrder = preview.getHeaders();
-
-		// TODO : get columns descriptions from service
-		Map<String, String> columnDescriptions = getTempColumnDescriptions();
-		Map<String, String> columnUnits = getTempColumnUnits();
-		
-		// append units onto description
-		for(String key : columnUnits.keySet()) {
-			String units = columnUnits.get(key);
-			columnDescriptions.put(key, columnDescriptions.get(key) + " (" + units + ")");
-		}		
-		
-		view.setLayerPreviewTable(preview.getRows(), columnDisplayOrder, columnDescriptions, columnUnits);
 	}
 
-	private void step5LoadDownloadLocations() {
-		view.showDownloadsLoading();
-		nodeService.getNodeLocations(NodeType.LAYER, layerId, new AsyncCallback<String>() {
-			@Override
-			public void onSuccess(String pagedResultString) {				
-				List<FileDownload> downloads = new ArrayList<FileDownload>();						
-				try {							
-					PagedResults pagedResult = nodeModelCreator.createPagedResults(pagedResultString);
-					List<String> results = pagedResult.getResults();
-					for(String fileDownloadString : results) {
-						DownloadLocation downloadLocation = nodeModelCreator.createDownloadLocation(fileDownloadString);
-						if(downloadLocation != null && downloadLocation.getPath() != null) { 
-							FileDownload dl = new FileDownload(downloadLocation.getPath(), "Download " + model.getName(), downloadLocation.getMd5sum(), downloadLocation.getContentType());
-							downloads.add(dl);
-						}	
-					}
-				} catch (RestServiceException ex) {
-					DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser());
-					onFailure(null);					
-					return;
-				}				
-				view.setLicensedDownloads(downloads);
-				
-				// show download if requested
-				if(showDownload != null && showDownload == true) {
-					if(downloadAttempted()) {
-						view.showDownload();
-					}
-				}
-				step6SetLayerDetails();
-			}
-			@Override
-			public void onFailure(Throwable caught) {				
-				view.setDownloadUnavailable();
-				step6SetLayerDetails();
-			}
-		});
-	}
-	
 	private Map<String, String> getTempColumnUnits() {
 		Map<String,String> units = new LinkedHashMap<String, String>();
 		
