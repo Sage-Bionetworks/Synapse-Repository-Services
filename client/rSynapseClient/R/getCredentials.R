@@ -4,8 +4,6 @@ getCredentials <- function(username){
 	## unless called from a gui. then, first check to see if the
 	## system has a working tcl/tk installation
 	if(tolower(.Platform$OS.type) == "unix"){
-		if(tolower(.Platform$GUI) == "aqua")
-			return(.terminalGetCredentials(username))
 		if(!is.null(.getCache("useTk"))){
 			if(.getCache("useTk")){
 				return(.tkGetCredentials(username))
@@ -13,6 +11,10 @@ getCredentials <- function(username){
 				return(.terminalGetCredentials(username))
 			}
 		}
+		
+		## By default don't check for tk with the CRAN GUI since it hangs when tk isn't properly installed
+		if(tolower(.Platform$GUI) == "aqua")
+			return(.terminalGetCredentials(username))
 		
 		if(tolower(.Platform$GUI) != "x11"){
 			if(.hasTk())
@@ -122,13 +124,10 @@ getCredentials <- function(username){
 }
 
 .getUsername <- function(){
-	cat("Username: ")
-	username <- readline()
-	return(username)
+	readline(prompt="Username: ")
 }
 
 .getPassword <- function(){
-	cat("Password: ")
 	## Currently only suppresses output in unix-like terminals
 	
 	finallyCmd <- NULL
@@ -146,11 +145,12 @@ getCredentials <- function(username){
 	}
 	
 	tryCatch(
-			password <- readline(),
+			password <- readline(prompt="Password: "),
 			finally={
-				if(!is.null(finallyCmd))
+				if(!is.null(finallyCmd)){
 					system(finallyCmd) ## turn echo back on only if it was turned off
-				cat("\n")
+					cat("\n")
+				}
 			}
 	)
 	return(password)
