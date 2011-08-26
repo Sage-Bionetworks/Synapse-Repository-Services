@@ -3,7 +3,7 @@ Type: Package
 Title: Synapse R Client from Sage Bionetworks
 Version: 0.9.21
 Date: 2011-8-10
-Author: Matt Furia
+Author: Matt Furia and Nicole Deflaux
 Maintainer: Matt Furia <matt.furia@sagebase.org>
 Depends: Biobase,methods,RCurl,rjson,tools,RUnit,R (>= 2.13.0)
 Imports: RCurl
