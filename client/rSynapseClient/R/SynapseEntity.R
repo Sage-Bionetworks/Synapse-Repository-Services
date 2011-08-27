@@ -27,9 +27,19 @@ setMethod(
 		signature = signature("SynapseEntity"),
 		definition = function(object){
 			cat('An object of class "', class(object), '"\n', sep="")
-			## TODO: print out properties fields
-			cat("containing the annotations:\n")
-			show(annotations(object))
+
+                        cat("Synapse Entity Name : ", properties(object)$name, "\n", sep="")
+                        cat("Synapse Entity Id   : ", properties(object)$id, "\n\n", sep="")
+                        
+                        if (!is.null(properties(object)$parentId))
+                          cat("Parent Id : ", properties(object)$parentId, "\n", sep="")
+                        if (!is.null(properties(object)$type))
+                          cat("Type      : ", properties(object)$type, "\n", sep="")
+                        if (!is.null(properties(object)$version))
+                          cat("Version   : ", properties(object)$version, "\n\n", sep="")
+
+                        cat("For further annotations, please use the annotations() function.\n")
+                        cat("Or view this Entity on the Synapse website at:  http://synapse-alpha.sagebase.org/\n", sep="")
 		}
 )
 
