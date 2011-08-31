@@ -1,18 +1,32 @@
-.setUp <- function() {
+.setUp <- 
+		function() 
+{
 	# Create a project
 	project <- list()
 	project$name <- paste('R Conditional Get Integration Test Project', gsub(':', '_', date()))
 	createdProject <- createProject(entity=project)
 	.setCache("rIntegrationTestProject", createdProject)
+	
+	.setCache("oldCacheDir", synapseCacheDir())
+	synapseCacheDir(file.path(tempdir(), ".conditionalGetCacheDir"))
 }
 
-.tearDown <- function() {
+.tearDown <- 
+		function() 
+{
 	deleteProject(entity=.getCache("rIntegrationTestProject"))
 	.deleteCache("rIntegrationTestProject")
 	.deleteCache("createdDataset")
+	
+	## delete test cache dir
+	unlink(synapseCacheDir(), recursive=TRUE)
+	synapseCacheDir(.getCache("oldCacheDir"))
+	.deleteCache("oldCacheDir")
 }
 
-integrationTestConditionalGet <- function() {
+integrationTestConditionalGet <- 
+		function() 
+{
 
 	# Create a dataset
 	dataset <- list()

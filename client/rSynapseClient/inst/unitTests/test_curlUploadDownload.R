@@ -19,7 +19,7 @@
 	.deleteCache("localDestFile")
 
 	if(file.exists(.getCache("cacheDir")))
-		unlink(.getCache("cacheDir"))
+		unlink(.getCache("cacheDir"), recursive=TRUE)
 	.deleteCache("cacheDir")
 }
 

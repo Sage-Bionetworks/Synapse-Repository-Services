@@ -1,52 +1,61 @@
-.setUp <- function() {
+.setUp <- 
+		function() 
+{
 	# Create a project
 	project <- list()
 	project$name <- paste('R Store Layer Data Integration Test Project', gsub(':', '_', date()))
-	createdProject <- createProject(entity=project)
-	.setCache("rIntegrationTestProject", createdProject)
+	createdProject <- createEntity(Project(entity=project))
+	synapseClient:::.setCache("rIntegrationTestProject", createdProject)
+	
+	synapseClient:::.setCache("oldCacheDir", synapseCacheDir())
+	synapseCacheDir(file.path(tempdir(), ".storeLayerDataCacheDir"))
 }
 
 .tearDown <- function() {
-	deleteProject(entity=.getCache("rIntegrationTestProject"))
-	.deleteCache("rIntegrationTestProject")
+	deleteEntity(entity=synapseClient:::.getCache("rIntegrationTestProject"))
+	synapseClient:::.deleteCache("rIntegrationTestProject")
+	synapseClient:::.deleteCache("createdLayer")
 	
-	if(!is.null(.getCache("createdLayer")))
-		deleteEntity(.getCache("createdLayer"))
-	.deleteCache("createdLayer")
+	## delete test cache dir
+	unlink(synapseCacheDir(), recursive=TRUE)
+	synapseCacheDir(synapseClient:::.getCache("oldCacheDir"))
+	synapseClient:::.deleteCache("oldCacheDir")
 }
 
-integrationTestStoreLayerData <- function() {
-
-		## Create a dataset
-		dataset <- Dataset(entity = list(
-						name = 'R Integration Test Dataset',
-						parentId = .getCache("rIntegrationTestProject")$id
-				)
-		)
-		
-		createdDataset <- createEntity(entity=dataset)
-		checkEquals(propertyValue(dataset, "name"), propertyValue(createdDataset, "name"))
+integrationTestStoreLayerData <- 
+		function() 
+{
 	
-		## Make an R data object that we will store in a couple different ways
-		data <- data.frame(a=1:3, b=letters[10:12],
-				c=seq(as.Date("2004-01-01"), by = "week", len = 3),
-				stringsAsFactors = FALSE)
-		
-		dataFile <- file.path(tempdir(), "data.tab")
-		write.table(data, file=dataFile, sep="\t", quote=F, row.names=F)
-		
-		##------
-		## Create a layer and use the convenience method to store an R object as a tab-delimited file
-		layer <- Layer(entity = list(
-						name = 'R Integration Test Layer',
-						type = 'C',
-						parentId = propertyValue(createdDataset, "id")
-				)
-		)
-		
-		createdLayer <- storeLayerDataFiles(entity=layer, layerDataFile = dataFile)
+	## Create a dataset
+	dataset <- Dataset(entity = list(
+					name = 'R Integration Test Dataset',
+					parentId = propertyValue(synapseClient:::.getCache("rIntegrationTestProject"), "id")
+			)
+	)
+	
+	createdDataset <- createEntity(entity=dataset)
+	checkEquals(propertyValue(dataset, "name"), propertyValue(createdDataset, "name"))
+	
+	## Make an R data object that we will store in a couple different ways
+	data <- data.frame(a=1:3, b=letters[10:12],
+			c=seq(as.Date("2004-01-01"), by = "week", len = 3),
+			stringsAsFactors = FALSE)
+	
+	dataFile <- file.path(tempdir(), "data.tab")
+	write.table(data, file=dataFile, sep="\t", quote=F, row.names=F)
+	
+	##------
+	## Create a layer and use the convenience method to store an R object as a tab-delimited file
+	layer <- Layer(entity = list(
+					name = 'R Integration Test Layer',
+					type = 'C',
+					parentId = propertyValue(createdDataset, "id")
+			)
+	)
+	
+	createdLayer <- storeLayerDataFiles(entity=layer, layerDataFile = dataFile)
 	checkEquals(propertyValue(layer, "name"), propertyValue(createdLayer, "name"))
-
+	
 	##------
 	## Create a layer and store a tab-delimited file explicity
 	layer2 <- list()
@@ -56,9 +65,9 @@ integrationTestStoreLayerData <- function() {
 	
 	layer2 <- Layer(entity = layer2)
 	
-	createdLayer2 <- storeLayerDataFiles(entity=layer2, dataFile)
+	createdLayer2 <- storeLayerDataFiles(entity=layer2, layerDataFile = dataFile)
 	checkEquals(propertyValue(layer2, "name"), propertyValue(createdLayer2,"name"))
-
+	
 	##------
 	## Create a layer and store a serialized R object explicity
 	layer3 <- list()
@@ -76,15 +85,12 @@ integrationTestStoreLayerData <- function() {
 	storedLayerData <- read.delim(layerFiles[[1]], sep='\t', stringsAsFactors = FALSE)
 	storedLayer2Data <- read.delim(layer2Files[[1]], sep='\t', stringsAsFactors = FALSE)
 	checkEquals(storedLayerData, storedLayer2Data)	
-
-	origData <- data
-	rm(data)
-	layer3Files <- loadLayerData(entity=.extractEntityFromSlots(createdLayer3))
-	storedLayer3Data <- load(layer3Files[[1]])
+	
+	layer3Data <- loadLayerData(entity=.extractEntityFromSlots(createdLayer3))
 	# TODO fixme, see comment below
 	# checkEquals(storedLayerData,data)
 	checkEquals(data[,1], storedLayer2Data[,1])
-
+	
 	# Delete the dataset, can pass the entity or the entity id
 	deleteDataset(entity=propertyValue(createdDataset, "id"))
 	# Confirm that its gone
@@ -116,65 +122,65 @@ integrationTestStoreLayerData <- function() {
 # Max.   :3.0                
 
 ## there is a bug in here. I'll fix it later
-#integrationTestUpdateStoredLayerData <- function() {
-#	
-#	## Create a dataset
-#	dataset <- list()
-#	dataset$name <- 'R Integration Test Dataset - Update Stored Layer'
-#	dataset$parentId <- .getCache("rIntegrationTestProject")$id
-#	createdDataset <- createDataset(entity=dataset)
-#	checkEquals(dataset$name, createdDataset$name)
-#	
-#	## Make an R data object that we will store in a couple different ways
-#	data <- data.frame(a=1:3, b=letters[10:12],
-#			c=seq(as.Date("2004-01-01"), by = "week", len = 3),
-#			stringsAsFactors = FALSE)
-#	
-#	##------
-#	## Create a layer and use the convenience method to store an R object as a tab-delimited file
-#	layer <- list()
-#	layer$name <- 'R Integration Test Layer'
-#	layer$type <- 'C'
-#	layer$parentId <- createdDataset$id 
-#	
-#	createdLayer <- storeLayerData(entity=layer, data)
-#	.setCache("createdLayer", createdLayer)
-#	locations <- getLayerLocations(entity=.extractEntityFromSlots(createdLayer))
-#	checkEquals(1, nrow(locations))
-#	layerFiles <- loadLayerData(entity=.extractEntityFromSlots(createdLayer))
-#	local({
-#		load(layerFiles[[1]])
-#		checkEquals(1, data[1,1])
-#	})
-#
-#	## Modify the data and store it again
-#	data[1,1] <- 42
-#	data2 <- data
-#	updatedLayer <- storeLayerData(entity=createdLayer, data2)
-#	locations <- getLayerLocations(entity=.extractEntityFromSlots(createdLayer))
-#	# The data should be overwritten and we still only have one layer location
-#	checkEquals(1, nrow(locations))
-#	layerFiles <- loadLayerData(entity=.extractEntityFromSlots(updatedLayer))
-#	local({
-#				load(layerFiles[[1]])
-#				checkEquals(42, data[1,1])
-#	})
-#}
+integrationTestUpdateStoredLayerData <- function() {
+	
+	# Create a dataset
+	dataset <- list()
+	dataset$name <- 'R Integration Test Dataset - Update Stored Layer'
+	dataset$parentId <- propertyValue(synapseClient:::.getCache("rIntegrationTestProject"), "id")
+	createdDataset <- createEntity(Dataset(entity=dataset))
+	checkEquals(dataset$name, propertyValue(createdDataset, "name"))
+	
+	## Make an R data object that we will store in a couple different ways
+	data <- data.frame(a=1:3, b=letters[10:12],
+			c=seq(as.Date("2004-01-01"), by = "week", len = 3),
+			stringsAsFactors = FALSE)
+	
+	##------
+	## Create a layer and use the convenience method to store an R object as a tab-delimited file
+	layer <- list()
+	layer$name <- 'R Integration Test Layer'
+	layer$type <- 'C'
+	layer$parentId <- propertyValue(createdDataset, "id")
+	createdLayer <- createEntity(Layer(layer))
+	
+	createdLayer <- storeLayerData(entity=createdLayer, data)
+	locations <- getLayerLocations(entity=synapseClient:::.extractEntityFromSlots(createdLayer))
+	checkEquals(1, nrow(locations))
+	layerFiles <- loadLayerData(entity=synapseClient:::.extractEntityFromSlots(createdLayer))
+	local({
+				load(layerFiles[[1]])
+				checkEquals(1, data[1,1])
+			})
+	
+	## Modify the data and store it again
+	data[1,1] <- 42
+	data2 <- data
+	updatedLayer <- storeLayerData(entity=createdLayer, data2)
+	locations <- getLayerLocations(entity=synapseClient:::.extractEntityFromSlots(createdLayer))
+	# The data should be overwritten and we still only have one layer location
+	checkEquals(1, nrow(locations))
+	layerFiles <- loadLayerData(entity=synapseClient:::.extractEntityFromSlots(updatedLayer))
+	local({
+				load(layerFiles[[1]])
+				checkEquals(42, data[1,1])
+			})
+}
 
 integrationTestStoreMediaLayer <- function() {
-
+	
 	## Create a dataset
 	dataset <- list()
 	dataset$name <- 'R Integration Test Dataset - Store Media Layer'
-	dataset$parentId <- .getCache("rIntegrationTestProject")$id
-	createdDataset <- createDataset(entity=dataset)
-	checkEquals(dataset$name, createdDataset$name)
+	dataset$parentId <- propertyValue(synapseClient:::.getCache("rIntegrationTestProject"), "id")
+	createdDataset <- createEntity(entity=Dataset(dataset))
+	checkEquals(dataset$name, propertyValue(createdDataset, "name"))
 	
 	## Create a layer
 	layer <- list()
 	layer$name <- 'R Integration Test Layer'
 	layer$type <- 'M'
-	layer$parentId <- createdDataset$id 
+	layer$parentId <- propertyValue(createdDataset, "id")
 	
 	## Make a jpeg when PLFM-498 is fixed, for now, make a fake one
 	filename <- "r_integration_test_plot.jpg"
@@ -193,37 +199,37 @@ integrationTestStoreMediaLayer <- function() {
 	layerFiles <- loadLayerData(createdLayer)
 	checkEquals(1, length(layerFiles))
 }
-#
-#integrationTestMultipleBinary <- 
-#		function()
-#{
-#	dataset <- Dataset(entity = list(
-#					name = 'R Integration Test Dataset',
-#					parentId = .getCache("rIntegrationTestProject")$id
-#			)
-#	)
-#	
-#	createdDataset <- createEntity(entity=dataset)
-#	checkEquals(propertyValue(dataset, "name"), propertyValue(createdDataset, "name"))
-#	
-#	## Make an R data object that we will store in a couple different ways
-#	data <- data.frame(a=1:3, b=letters[10:12],
-#			c=seq(as.Date("2004-01-01"), by = "week", len = 3),
-#			stringsAsFactors = FALSE)
-#	
-#	data2 <- diag(100)
-#	
-#	layer <- Layer(entity = list(
-#					name = 'R Integration Test Layer',
-#					type = 'C',
-#					parentId = propertyValue(createdDataset, "id")
-#			)
-#	)
-#	
-#	layerData <- storeLayerData(entity=layer, dataFile, dataFile2)
-#	
-#	checkTrue(all(c("data", "data2") %in% ls(layerData)))
-#	
-#	checkEquals(data, layerData$data)
-#	checkEquals(data2, layerData$data2)
-#}
+integrationTestMultipleBinary <- 
+		function()
+{
+	dataset <- Dataset(entity = list(
+					name = 'R Integration Test Dataset',
+					parentId = propertyValue(synapseClient:::.getCache("rIntegrationTestProject"), "id")
+			)
+	)
+	
+	createdDataset <- createEntity(entity=dataset)
+	checkEquals(propertyValue(dataset, "name"), propertyValue(createdDataset, "name"))
+	
+	## Make an R data object that we will store in a couple different ways
+	data <- data.frame(a=1:3, b=letters[10:12],
+			c=seq(as.Date("2004-01-01"), by = "week", len = 3),
+			stringsAsFactors = FALSE)
+	
+	data2 <- diag(100)
+	
+	layer <- Layer(entity = list(
+					name = 'R Integration Test Layer',
+					type = 'C',
+					parentId = propertyValue(createdDataset, "id")
+			)
+	)
+	
+	layer <- storeLayerData(entity=layer, data, data2)
+	layerData <- loadLayerData(layer)
+	
+	checkTrue(all(c("data", "data2") %in% ls(layerData)))
+	
+	checkEquals(data, layerData$data)
+	checkEquals(data2, layerData$data2)
+}
