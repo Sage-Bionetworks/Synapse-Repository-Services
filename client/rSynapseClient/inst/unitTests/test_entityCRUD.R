@@ -1,5 +1,9 @@
 .setUp <- function() {
-	# Do some setup stuff here like creating and populating a stub implementation of the repository service with some data
+	## make a copy of the old cache
+	oldCache <- synapseClient:::.cache
+	newCache <- new.env(parent=parent.env(oldCache))
+	for(key in ls(oldCache))
+		assign(key,get(key,envir=oldCache), envir=newCache)
 	
 	# Override getURL to not actually make a remote call
 	myGetURL <- function (url, ..., .opts = list(), write = basicTextGatherer(), 
@@ -10,30 +14,26 @@
 	
 	# Override .checkCurlResponse with a do-nothing function
 	myCheckCurlResponse <- function(object,response) {}
-	
-	#back up the old methods
-	attr(myCheckCurlResponse, "origFcn") <- synapseClient:::.checkCurlResponse
-	attr(myGetURL, "origFcn") <- RCurl:::getURL
-	
-	## detach packages so their functions can be overridden
-	detach('package:synapseClient', force=TRUE)
-	detach('package:RCurl', force=TRUE)
-	assignInNamespace(".checkCurlResponse", myCheckCurlResponse, "synapseClient")
+			
+	## unload package namespaces so their functions can be overridden
+	unloadNamespace("synapseClient")
+	unloadNamespace("RCurl")
 	assignInNamespace("getURL", myGetURL, "RCurl")
+	assignInNamespace(".checkCurlResponse", myCheckCurlResponse, "synapseClient")
+	assignInNamespace(".cache", newCache, "synapseClient")
+	attachNamespace("synapseClient")
 	
-	#reload detached packages
-	library(synapseClient, quietly=TRUE)
-	library(RCurl, quietly = TRUE)
+	.setCache("oldCache", oldCache)
+
 }
 
 .tearDown <- function() {
-	# Do some test cleanup stuff here, if applicable
-	detach('package:synapseClient', force = TRUE)
-	detach('package:RCurl', force = TRUE)
-	assignInNamespace(".checkCurlResponse", attr(synapseClient:::.checkCurlResponse, "origFcn"), "synapseClient")
-	assignInNamespace("getURL", attr(RCurl:::getURL, "origFcn"), "RCurl")
-	library(RCurl, quietly = TRUE)
-	library(synapseClient, quietly = TRUE)
+	oldCache <- .getCache("oldCache")
+	# put back the overridden functions and original cache
+	unloadNamespace("synapseClient")
+	unloadNamespace("RCurl")
+	assignInNamespace(".cache", oldCache, "synapseClient")
+	attachNamespace("synapseClient")
 }
 
 unitTestCreateEntityInvalidParameters <- function() {

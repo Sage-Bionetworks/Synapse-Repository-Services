@@ -5,8 +5,11 @@
 
 
 .setUp <- function(){
-	.setCache("oldToken",.getCache("sessionToken"))
-	sessionToken(NULL)
+	## make a copy of the old cache
+	oldCache <- synapseClient:::.cache
+	newCache <- new.env(parent=parent.env(oldCache))
+	for(key in ls(oldCache))
+		assign(key,get(key,envir=oldCache), envir=newCache)
 	
 	## re-define synapseLogin and synapseLogout
 	mySynapseLogin <- function(username, password){
@@ -14,26 +17,24 @@
 	}
 	
 	mySynapseLogout <- function(localOnly = FALSE){
-		fcn <- attr(synapseLogout, "origFcn")
-		fcn(localOnly=TRUE)
+		sessionToken(NULL)
 	}
 	
-	attr(mySynapseLogin, "origFcn") <- synapseClient:::synapseLogin
-	attr(mySynapseLogout, "origFcn") <- synapseClient:::synapseLogout
-	detach('package:synapseClient', force = TRUE)
+	unloadNamespace("synapseClient")
 	assignInNamespace("synapseLogin", mySynapseLogin, "synapseClient")
 	assignInNamespace("synapseLogout", mySynapseLogout, "synapseClient")
-	library(synapseClient, quietly = TRUE)
+	assignInNamespace(".cache", newCache, "synapseClient")
+	attachNamespace("synapseClient")
+	
+	.setCache("oldCache", oldCache)
+	sessionToken(NULL)
 }
 
 .tearDown <- function(){
-	sessionToken(.getCache("oldToken"))
-	.deleteCache("oldToken")
-	
-	detach('package:synapseClient', force = TRUE)
-	assignInNamespace("synapseLogin", attr(synapseClient:::synapseLogin, "origFcn"), "synapseClient")
-	assignInNamespace("synapseLogout", attr(synapseClient:::synapseLogout, "origFcn"), "synapseClient")
-	library(synapseClient)
+	oldCache <- .getCache("oldCache")
+	unloadNamespace("synapseClient")
+	assignInNamespace(".cache", oldCache, "synapseClient")
+	attachNamespace("synapseClient")
 }
 
 

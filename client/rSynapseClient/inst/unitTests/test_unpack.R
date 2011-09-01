@@ -37,7 +37,7 @@ unitTestNotCompressed <-
 	checkEquals(as.character(file), .getCache("localJpegFile"))
 	
 	## check the md5sums
-	checkEquals(md5sum(as.character(file)), md5sum(.getCache("localJpegFile")))
+	checkEquals(tools::md5sum(as.character(file)), tools::md5sum(.getCache("localJpegFile")))
 	
 	## check the rootDir attribute value
 	checkEquals(attr(file,"rootDir"), tempdir())

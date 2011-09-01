@@ -1,6 +1,7 @@
-# TODO we need to fix our unit tests before we can Import instead of Depend upon RCurl
-# import(RCurl)
-importFrom(methods,new)
+import(RCurl, Biobase, methods)
+importFrom(RJSONIO, toJSON, fromJSON)
+importFrom(tools, md5sum)
+
 
 ## package has a dynamic library
 useDynLib(synapseClient)

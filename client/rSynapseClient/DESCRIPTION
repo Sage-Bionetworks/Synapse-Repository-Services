@@ -1,13 +1,18 @@
 Package: synapseClient
 Type: Package
 Title: Synapse R Client from Sage Bionetworks
-Version: 0.9.21
+Version: 0.9-22
 Date: 2011-8-10
-Author: Matt Furia and Nicole Deflaux
+Author@R: c(person("Matt", "Furia", email="matt.furia@sagebase.org"),
+			person("Nicole, "Deflaux", email="nicole.deflaux@sagebase.org")
+			)
+Author: Matt Furia <matt.furia@sagebase.org>, Nicole Deflaux <nicole.deflaux@sagebase.org>
 Maintainer: Matt Furia <matt.furia@sagebase.org>
-Depends: Biobase,methods,RCurl,rjson,tools,RUnit,R (>= 2.13.0)
-Imports: RCurl
+Depends: R (>= 2.13.0)
+Imports: RJSONIO,RCurl,Biobase,tools,methods
+Suggests: RUnit
 Description: Contains a set of functions for querying, creating, retrieving, updating, and deleting data from the Synapse REST services.
+URL: http://www.sagebase.org
 License: GPL
 LazyLoad: yes
 Collate: getCredentials.R genericMethodDefinitions.R SynapseAnnotation.R SynapseEntity.R Dataset.R Layer.R Location.R URL.R checkCurlResponse.R createEntity.R curlReader.R curlWriter.R dataLocationPrefs.R deleteEntity.R eSetFunctions.R getAnnotations.R getChildEntities.R getDatasets.R getEntity.R jsonListToDataFrame.R loadLayer.R loadLayerData.R parseJSONRecords.R parseSingleRow.R refreshSessionToken.R rowMerge.R sessionToken.R storeLayerData.R synapseAuthServiceEndpoint.R synapseCacheDir.R synapseClient-internal.R synapseDelete.R synapseDownloadFile.R synapseGet.R synapseGetDelete.R synapseLogin.R synapsePost.R synapsePostPut.R synapsePut.R synapseQuery.R synapseRepoServiceEndpoint.R synapseResetEndpoints.R synapseUploadFile.R test_synapseClient_package.R unpack.R updateAnnotations.R updateEntity.R zzz.R Project.R
