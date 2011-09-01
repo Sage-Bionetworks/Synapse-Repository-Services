@@ -34,7 +34,7 @@ public class IT700SynapseRClient {
 	@Test
 	@Ignore
 	public void testInstallRClient() throws Exception {
-		String cmd[] = { Helpers.getRPath(), "CMD", "INSTALL",
+		String cmd[] = { Helpers.getRPath(), "CMD", "INSTALL", "-l", "target/",
 				"target/non-java-dependencies/synapseRClient" };
 		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
 		assertTrue(0 <= result.getStderr().indexOf("DONE"));
@@ -48,12 +48,14 @@ public class IT700SynapseRClient {
 	 * @throws Exception
 	 */
 	@Test
-	@Ignore  // Fix me PLFM-402
+	@Ignore
 	public void testRunRUnitTests() throws Exception {
 		String cmd[] = {
 				Helpers.getRPath(),
 				"-e",
-				"library(synapseClient)",
+				"library(synapseClient, lib.loc='target/')",
+				"-e",
+				".libPaths('target/')",
 				"-e",
 				"synapseAuthServiceEndpoint(endpoint='"
 						+ StackConfiguration.getAuthenticationServiceEndpoint()
@@ -79,7 +81,7 @@ public class IT700SynapseRClient {
 		String cmd[] = {
 				Helpers.getRPath(),
 				"-e",
-				"library(synapseClient)",
+				"library(synapseClient, lib.loc='target')",
 				"-e",
 				"synapseAuthServiceEndpoint(endpoint='"
 						+ StackConfiguration.getAuthenticationServiceEndpoint()
