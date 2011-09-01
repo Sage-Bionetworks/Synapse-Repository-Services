@@ -183,7 +183,7 @@ integrationTestStoreMediaLayer <- function() {
 	layer$parentId <- propertyValue(createdDataset, "id")
 	
 	## Make a jpeg when PLFM-498 is fixed, for now, make a fake one
-	filename <- "r_integration_test_plot.jpg"
+	filename <- file.path(tempdir(),"r_integration_test_plot.jpg")
 #	attach(mtcars)
 #	jpeg(filename)
 #	plot(wt, mpg) 

@@ -50,7 +50,7 @@
 	
 	if("GET" == requestMethod) {
 		## Parse response and prepare return value
-		rjson::fromJSON(response)
+		as.list(fromJSON(response))
 	}
 }
 
