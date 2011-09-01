@@ -83,6 +83,7 @@ public class SqlConstants {
 	public static final String COL_RESOURCE_ACCESS_GROUP_ID		= "GROUP_ID";
 	public static final String COL_RESOURCE_ACCESS_TYPE			= "RESOURCE_TYPE";
 	public static final String COL_RESOURCE_ACCESS_RESOURCE_ID	= "RESOURCE_ID";
+	public static final String COL_RESOURCE_ACCESS_ID			= "ID";
 	
 	// The backup/restore status table
 	public static final String TABLE_BACKUP_STATUS 				= "JDO_BACKUP_RESTORE_STATUS";
