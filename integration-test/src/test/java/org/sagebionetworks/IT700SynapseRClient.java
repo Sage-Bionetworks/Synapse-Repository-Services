@@ -20,7 +20,6 @@ public class IT700SynapseRClient {
 	 * @throws Exception
 	 */
 	@Test
-	@Ignore
 	public void testCheckRClient() throws Exception {
 		String cmd[] = { Helpers.getRPath(), "CMD", "check", "--no-manual", "-o", "target/",
 				"target/non-java-dependencies/synapseRClient" };
@@ -32,7 +31,6 @@ public class IT700SynapseRClient {
 	 * @throws Exception
 	 */
 	@Test
-	@Ignore
 	public void testInstallRClient() throws Exception {
 		String cmd[] = { Helpers.getRPath(), "CMD", "INSTALL", "-l", "target/",
 				"target/non-java-dependencies/synapseRClient" };
@@ -48,7 +46,6 @@ public class IT700SynapseRClient {
 	 * @throws Exception
 	 */
 	@Test
-	@Ignore
 	public void testRunRUnitTests() throws Exception {
 		String cmd[] = {
 				Helpers.getRPath(),
@@ -76,7 +73,6 @@ public class IT700SynapseRClient {
 	 * @throws Exception
 	 */
 	@Test
-	@Ignore
 	public void testRunRIntegrationTests() throws Exception {
 		String cmd[] = {
 				Helpers.getRPath(),
