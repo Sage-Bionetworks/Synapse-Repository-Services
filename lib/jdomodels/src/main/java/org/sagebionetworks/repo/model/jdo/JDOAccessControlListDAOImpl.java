@@ -19,6 +19,8 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
 import org.springframework.orm.jdo.JdoTemplate;
 import org.springframework.transaction.annotation.Propagation;
@@ -32,6 +34,10 @@ public class JDOAccessControlListDAOImpl implements AccessControlListDAO {
 	
 	@Autowired
 	JdoTemplate jdoTemplate;
+	
+	// This is better suited for simple JDBC query.
+	@Autowired
+	private SimpleJdbcTemplate simpleJdbcTempalte;
 
 	/**
 	 * Find the access control list for the given resource
@@ -84,30 +90,26 @@ public class JDOAccessControlListDAOImpl implements AccessControlListDAO {
 	public boolean canAccess(Collection<UserGroup> groups, 
 			String resourceId, 
 			AuthorizationConstants.ACCESS_TYPE accessType) throws DatastoreException {
-		JDOExecutor exec = new JDOExecutor(jdoTemplate);
-					
-		Collection<Long> groupIds = new HashSet<Long>();
-		for (UserGroup g : groups) groupIds.add(KeyFactory.stringToKey(g.getId()));
-		
-		List<JDOAccessControlList> result = exec.execute(JDOAccessControlList.class, 
-				CAN_ACCESS_FILTER,
-			Long.class.getName()+" pResourceId, "+
-			Collection.class.getName()+" pGroups, "+
-			String.class.getName()+" pAccessType",
-			JDOResourceAccess.class.getName()+" vResourceAccess",
-			KeyFactory.stringToKey(resourceId),
-			groupIds,
-			accessType.name());
-		
-		int resultSize = result.size();
-		
-		return result.size()>0;
+
+		// Build up the parameters
+		Map<String,Object> parameters = new HashMap<String,Object>();
+		int i=0;
+		for (UserGroup gId : groups) {
+			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX+(i++), gId.getId());
+		}
+		// Bind the type
+		parameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, accessType.name());
+		// Bind the node id
+		parameters.put(AuthorizationSqlUtil.NODE_ID_BIND_VAR, resourceId);
+		String sql = AuthorizationSqlUtil.authorizationCanAccessSQL(groups.size());
+		try{
+			Long count = simpleJdbcTempalte.queryForLong(sql, parameters);
+			return count.longValue() > 0;
+		}catch (DataAccessException e){
+			throw new DatastoreException(e);
+		}
 	}
 
-	private static final String CAN_ACCESS_FILTER = 
-		"this.resource.id==pResourceId && this.resourceAccess.contains(vResourceAccess) "+
-		"&& pGroups.contains(vResourceAccess.userGroupId) "+
-		"&& vResourceAccess.accessType.contains(pAccessType)";
 
 	/**
 	 * @return the SQL to find the root-accessible nodes that a specified user-group list can access
