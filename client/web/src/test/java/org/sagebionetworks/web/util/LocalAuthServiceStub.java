@@ -63,11 +63,12 @@ public class LocalAuthServiceStub {
 	@Consumes("application/json")@Produces("application/json")
 	@Path("/user")
 	public String updateUser(UserRegistration updatedUser) {
+		// For now, there shall be no test users that share the same first/last name combined.
+		
 		boolean found = false;
-		String userId = updatedUser.getEmail();
 		for(AclPrincipal user : users) {
-			if(userId.equals(user.getId())) {
-				user = new AclPrincipal(updatedUser.getEmail(), updatedUser.getDisplayName(), null, null, null, true);
+			if(user.getName().equals(updatedUser.getDisplayName())) {
+				user = new AclPrincipal(user.getId(), updatedUser.getDisplayName(), null, null, null, true);
 				found = true;
 				break;
 			}

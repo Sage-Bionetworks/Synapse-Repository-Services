@@ -95,4 +95,19 @@ public class ProfilePresenterTest {
 		
 		profilePresenter.createSynapsePassword();
 	}
+	
+	@Test
+	public void testUpdateProfile() {
+		reset(mockView);
+		reset(mockAuthenticationController);
+		reset(mockUserService);
+		profilePresenter = new ProfilePresenter(mockView, mockAuthenticationController, mockUserService, mockGlobalApplicationState);	
+		profilePresenter.setPlace(place);
+
+		when(mockAuthenticationController.getLoggedInUser()).thenReturn(testUser);
+		String firstName = "foo";
+		String lastName = "bar";
+		
+		profilePresenter.updateProfile(firstName, lastName);
+	}
 }

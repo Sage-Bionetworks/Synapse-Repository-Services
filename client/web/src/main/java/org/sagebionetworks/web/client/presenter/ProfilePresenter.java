@@ -9,6 +9,7 @@ import org.sagebionetworks.web.client.place.Profile;
 import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.view.ProfileView;
 import org.sagebionetworks.web.shared.users.UserData;
+import org.sagebionetworks.web.shared.users.UserRegistration;
 
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
@@ -124,5 +125,41 @@ public class ProfilePresenter extends AbstractActivity implements ProfileView.Pr
 		}		
 	}
 
+	@Override
+	public void updateProfile(String firstName, String lastName) {
+		final UserData currentUser = authenticationController.getLoggedInUser();
+		
+		if(currentUser != null) {
+			userService.updateUser(firstName, lastName, firstName + " " + lastName, new AsyncCallback<Void>() {
+				@Override
+				public void onSuccess(Void result) {
+					view.showUserUpdateSuccess();
+					view.showInfo("Your profile has been updated.");
+					
+					AsyncCallback<UserData> callback = new AsyncCallback<UserData>() {
+						@Override
+						public void onFailure(Throwable caught) { }
+
+						@Override
+						public void onSuccess(UserData result) {
+							view.refreshHeader();
+						}
+					};
+					
+					if(currentUser.isSSO()) {
+						authenticationController.loginUserSSO(currentUser.getToken(), callback);
+					} else {
+						authenticationController.loginUser(currentUser.getToken(), callback);
+					}
+				}
+				
+				@Override
+				public void onFailure(Throwable caught) {
+					view.userUpdateFailed();
+					view.showErrorMessage("An error occured. Please try reloading the page.");
+				}
+			});
+		}
+	}
 }
 

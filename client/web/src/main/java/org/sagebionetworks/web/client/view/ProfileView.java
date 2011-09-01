@@ -28,7 +28,7 @@ public interface ProfileView extends IsWidget {
 	public void passwordChangeFailed();	
 	
 	/**
-	 * Show the user that thier email has been sent
+	 * Show the user that their email has been sent
 	 */
 	public void showRequestPasswordEmailSent();
 	
@@ -37,6 +37,15 @@ public interface ProfileView extends IsWidget {
 	 */
 	public void requestPasswordEmailFailed();
 	
+	/**
+	 * Show the user that the user's information has been updated.
+	 */
+	public void showUserUpdateSuccess();
+	
+	/**
+	 * Alerts the view that updating the user's information failed.
+	 */
+	public void userUpdateFailed();
 	
 	/**
 	 * The view pops-up an error dialog.
@@ -44,7 +53,9 @@ public interface ProfileView extends IsWidget {
 	 */
 	public void showErrorMessage(String message);
 	
-	void showInfo(String infoMessage);
+	public void showInfo(String infoMessage);
+
+	public void refreshHeader();
 	
 	public interface Presenter {
 
@@ -53,6 +64,10 @@ public interface ProfileView extends IsWidget {
 		void resetPassword(String existingPassword, String newPassword);
 
 		void createSynapsePassword();
+		
+		void updateProfile(String firstName, String lastName);
+
 	}
+
 
 }

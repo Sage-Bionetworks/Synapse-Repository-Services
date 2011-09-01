@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.UserAccountService;
 import org.sagebionetworks.web.client.security.AuthenticationException;
 import org.sagebionetworks.web.server.RestTemplateProvider;
@@ -26,6 +27,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 
+import com.google.gwt.core.client.GWT;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import com.google.gwt.user.server.rpc.UnexpectedException;
 import com.google.inject.Inject;
@@ -308,6 +310,44 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		}		
 	}
 
+
+	@Override
+	public void updateUser(String firstName, String lastName, String displayName) throws RestServiceException {
+		// First make sure the service is ready to go.
+		validateService();
+		
+		JSONObject obj = new JSONObject();
+		try {
+			obj.put("firstName", firstName);
+			obj.put("lastName", lastName);
+			obj.put("displayName", displayName);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		
+		// Build up the path
+		String url = urlProvider.getAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_UPDATE_USER_PATH;
+		String jsonString = obj.toString();
+		
+		// Setup the header
+		HttpHeaders headers = new HttpHeaders();
+		// If the user data is stored in a cookie, then fetch it and the session token to the header.
+		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
+//		headers.set(DisplayConstants.SERVICE_HEADER_ETAG_KEY, "1");
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<String>(jsonString, headers);
+		HttpMethod method = HttpMethod.PUT;
+		
+		logger.info(method.toString() + ": " + url + ", JSON: " + jsonString);
+		
+		// Make the actual call.
+		try {
+			ResponseEntity<String> response = templateProvider.getTemplate().exchange(url, method, entity, String.class);
+		} catch (NullPointerException nex) {
+			// TODO : change this to properly deal with a 204!!!
+		}
+	}
+	
 	@Override
 	public void terminateSession(String sessionToken) throws RestServiceException {
 		// First make sure the service is ready to go.
@@ -493,5 +533,4 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		}
 		return principals;
 	}
-	
 }

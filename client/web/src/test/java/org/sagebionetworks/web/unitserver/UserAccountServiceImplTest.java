@@ -32,7 +32,7 @@ import com.sun.grizzly.http.SelectorThread;
 import com.sun.istack.logging.Logger;
 
 /**
- * This is a unit test of the DatasetServiceImpl service.
+ * This is a unit test of the UserAccountServiceImpl service.
  * It depends on a local stub implementation of the platform API
  * to be deployed locally.
  * 
@@ -166,6 +166,23 @@ public class UserAccountServiceImplTest {
 		} catch (AuthenticationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}
+	}
+	
+	@Test
+	public void testUpdateUser() {
+		// 'Update' user1's info
+		user1.setFirstName("John");
+		user1.setLastName("Doe");
+		user1.setDisplayName(user1.getFirstName() + " " + user1.getLastName());
+		user1acl.setName(user1.getDisplayName());
+		
+		try {
+			UserData userData = service.initiateSession(user1.getEmail(), user1password);
+			service.updateUser(user1.getFirstName(), user1.getLastName(), user1.getDisplayName());
+			assertEquals(user1.getDisplayName(), userData.getUserName());
+		} catch (Exception e) {
+			fail(e.getMessage());
 		}
 	}
 	

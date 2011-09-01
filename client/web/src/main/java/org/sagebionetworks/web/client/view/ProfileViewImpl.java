@@ -43,6 +43,8 @@ public class ProfileViewImpl extends Composite implements ProfileView {
 	@UiField
 	SimplePanel footer;
 	@UiField
+	SimplePanel updateUserInfoPanel;
+	@UiField
 	SimplePanel changePasswordPanel;
 	@UiField
 	SimplePanel setupPasswordButtonPanel;
@@ -56,6 +58,9 @@ public class ProfileViewImpl extends Composite implements ProfileView {
 	private SageImageBundle sageImageBundle;
 	private Button changePasswordButton;
 	private Html changePasswordLabel;
+	private FormPanel userFormPanel;
+	private Button updateUserInfoButton;
+	private Html updateUserInfoLabel;
 
 	@Inject
 	public ProfileViewImpl(ProfileViewImplUiBinder binder,
@@ -71,8 +76,6 @@ public class ProfileViewImpl extends Composite implements ProfileView {
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
 		headerWidget.setMenuItemActive(MenuItems.PROJECTS);
-
-		createResetForm();		
 	}
 
 
@@ -84,6 +87,15 @@ public class ProfileViewImpl extends Composite implements ProfileView {
 	
 	@Override
 	public void render() {
+		createResetForm();
+		createProfileForm();
+		
+		updateUserInfoLabel.setHtml("");
+		
+		updateUserInfoPanel.clear();
+		updateUserInfoPanel.add(userFormPanel);
+		setUpdateUserInfoDefaultIcon();
+		
 		changePasswordLabel.setHtml("");
 		
 		changePasswordPanel.clear();
@@ -128,6 +140,18 @@ public class ProfileViewImpl extends Composite implements ProfileView {
 		createPasswordButton.setText("Email Send Failed");
 	}
 
+	@Override
+	public void showUserUpdateSuccess() {
+		updateUserInfoButton.setIcon(AbstractImagePrototype.create(iconsImageBundle.checkGreen16()));
+		updateUserInfoButton.setText("Profile Updated");
+	}
+
+	@Override
+	public void userUpdateFailed() {
+		updateUserInfoButton.setIcon(AbstractImagePrototype.create(iconsImageBundle.error16()));
+		updateUserInfoButton.setText("Profile Update Failed");
+	}
+	
 	@Override
 	public void showErrorMessage(String message) {
 		MessageBox.info("Message", message, null);
@@ -186,38 +210,115 @@ public class ProfileViewImpl extends Composite implements ProfileView {
 	     resetFormPanel.setButtonAlign(HorizontalAlignment.CENTER);  
 	     changePasswordButton = new Button(DisplayConstants.BUTTON_CHANGE_PASSWORD);
 	     changePasswordButton.addSelectionListener(new SelectionListener<ButtonEvent>() {				
-			@Override
-			public void componentSelected(ButtonEvent ce) {
-				if(newPassword.getValue() != null && newPasswordConfirm.getValue() != null && newPassword.getValue().equals(newPasswordConfirm.getValue())) {
-					changePasswordLabel.setHtml("");
-					DisplayUtils.changeButtonToSaving(changePasswordButton, sageImageBundle);
-					presenter.resetPassword(currentPassword.getValue(), newPassword.getValue());
-				} else {
-					MessageBox.alert("Error", "Passwords do not match. Please re-enter your new password.", null);
-				}
-				
-			}
+	    	 @Override
+	    	 public void componentSelected(ButtonEvent ce) {
+	    		 if(newPassword.getValue() != null && newPasswordConfirm.getValue() != null && newPassword.getValue().equals(newPasswordConfirm.getValue())) {
+	    			 changePasswordLabel.setHtml("");
+	    			 DisplayUtils.changeButtonToSaving(changePasswordButton, sageImageBundle);
+	    			 presenter.resetPassword(currentPassword.getValue(), newPassword.getValue());
+	    		 } else {
+	    			 MessageBox.alert("Error", "Passwords do not match. Please re-enter your new password.", null);
+	    		 }
+		
+	    	 }
 	     });	     
 	     setChangePasswordDefaultIcon();
 	     resetFormPanel.addButton(changePasswordButton);
 
-		// Enter key submits
-		new KeyNav<ComponentEvent>(resetFormPanel) {
-			@Override
-			public void onEnter(ComponentEvent ce) {
-				super.onEnter(ce);
-				if (changePasswordButton.isEnabled())
-					changePasswordButton.fireEvent(Events.Select);
-			}
-		};
-	    
-		// form binding so submit button is greyed out until all fields are filled 
-		final FormButtonBinding binding = new FormButtonBinding(resetFormPanel);
-		binding.addButton(changePasswordButton);
-	   }
+	     // Enter key submits
+	     new KeyNav<ComponentEvent>(resetFormPanel) {
+	    	 @Override
+	    	 public void onEnter(ComponentEvent ce) {
+	    		 super.onEnter(ce);
+	    		 if (changePasswordButton.isEnabled())
+	    			 changePasswordButton.fireEvent(Events.Select);
+	    	 }
+	     };
 
-		private void setChangePasswordDefaultIcon() {
-			changePasswordButton.setIcon(AbstractImagePrototype.create(iconsImageBundle.arrowCurve16()));			
-		}
+	     // form binding so submit button is greyed out until all fields are filled 
+	     final FormButtonBinding binding = new FormButtonBinding(resetFormPanel);
+	     binding.addButton(changePasswordButton);
+	 }
+	 
+	 private void createProfileForm() {
+		 userFormPanel = new FormPanel();
+		 FormData formData = new FormData("-20");
+		   
+	     userFormPanel.setFrame(true);
+	     userFormPanel.setHeaderVisible(false);  
+	     userFormPanel.setWidth(350);  
+	     userFormPanel.setLayout(new FlowLayout());  
+	   
+	     FieldSet fieldSet = new FieldSet();  
+	     fieldSet.setHeading(" ");  
+	     fieldSet.setCheckboxToggle(false);	    
+	     fieldSet.setCollapsible(false);
+	   
+	     FormLayout layout = new FormLayout();  
+	     layout.setLabelWidth(100);  
+	     fieldSet.setLayout(layout);  
+	   
+	     final TextField<String> firstName = new TextField<String>();  
+	     firstName.setFieldLabel("First Name");  
+	     firstName.setAllowBlank(false);
+	     fieldSet.add(firstName, formData);
+	   
+	     final TextField<String> lastName = new TextField<String>();  
+	     lastName.setFieldLabel("Last Name");  
+	     lastName.setAllowBlank(false);
+	     fieldSet.add(lastName, formData);
 
+	     updateUserInfoLabel = new Html();
+	     fieldSet.add(updateUserInfoLabel);
+	     
+	     userFormPanel.add(fieldSet);  
+	   
+	     userFormPanel.setButtonAlign(HorizontalAlignment.CENTER);  
+	     updateUserInfoButton = new Button(DisplayConstants.BUTTON_CHANGE_USER_INFO);
+	     updateUserInfoButton.addSelectionListener(new SelectionListener<ButtonEvent>() {				
+	    	 @Override
+	    	 public void componentSelected(ButtonEvent ce) {
+	    		 if(firstName.getValue().trim().equals("") || firstName.getValue().trim() == null) {
+	    			 MessageBox.alert("Error", "Please enter your first name.", null);
+	    		 } else if(lastName.getValue().trim().equals("") || lastName.getValue() == null) {
+	    			 MessageBox.alert("Error", "Please enter your last name.", null);
+	    		 } else {
+	    			 updateUserInfoLabel.setHtml("");
+	    			 DisplayUtils.changeButtonToSaving(updateUserInfoButton, sageImageBundle);
+	    			 presenter.updateProfile(firstName.getValue(), lastName.getValue());
+	    		 }
+		
+	    	 }
+	     });	     
+	     setUpdateUserInfoDefaultIcon();
+	     userFormPanel.addButton(updateUserInfoButton);
+
+	     // Enter key submits
+	     new KeyNav<ComponentEvent>(userFormPanel) {
+	    	 @Override
+	    	 public void onEnter(ComponentEvent ce) {
+	    		 super.onEnter(ce);
+	    		 if (updateUserInfoButton.isEnabled())
+	    			 updateUserInfoButton.fireEvent(Events.Select);
+	    	 }
+	     };
+
+	     // form binding so submit button is greyed out until all fields are filled 
+	     final FormButtonBinding binding = new FormButtonBinding(userFormPanel);
+	     binding.addButton(updateUserInfoButton);
+		 
+	 }
+
+	 private void setChangePasswordDefaultIcon() {
+		 changePasswordButton.setIcon(AbstractImagePrototype.create(iconsImageBundle.arrowCurve16()));			
+	 }
+	 
+	 private void setUpdateUserInfoDefaultIcon() {
+		 updateUserInfoButton.setIcon(AbstractImagePrototype.create(iconsImageBundle.arrowCurve16()));
+	 }
+
+	@Override
+	public void refreshHeader() {
+		headerWidget.refresh();
+	}
 }

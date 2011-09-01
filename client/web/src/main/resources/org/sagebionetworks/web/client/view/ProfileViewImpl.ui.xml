@@ -37,6 +37,14 @@
 					<p>&nbsp;</p>
 					<p>&nbsp;</p>
 					
+					<h3>Change Your Profile</h3>
+					<p style="padding-bottom:5px">Changes to your name will appear after your next login.</p>
+					<g:SimplePanel ui:field="updateUserInfoPanel" />
+					<p><small></small></p>
+					
+					<p>&nbsp;</p>
+					<p>&nbsp;</p>					
+					
 					<h3>Change Synapse Password</h3>
 					<g:SimplePanel ui:field="changePasswordPanel" />
 					<p><small></small></p>

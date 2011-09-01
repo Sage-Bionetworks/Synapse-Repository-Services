@@ -23,6 +23,8 @@ public interface UserAccountServiceAsync {
 	void getUser(String sessionToken, AsyncCallback<UserData> callback);	
 
 	void createUser(UserRegistration userInfo, AsyncCallback<Void> callback);
+	
+	void updateUser(String firstName, String lastName, String displayName, AsyncCallback<Void> callback);
 
 	void terminateSession(String sessionToken, AsyncCallback<Void> callback);
 
