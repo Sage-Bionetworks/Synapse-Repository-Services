@@ -12,12 +12,11 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeQueryDao;
-import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -93,9 +92,11 @@ public class LocationMetadataProvider implements
 					|| RequestMethod.PUT.name().equals(request.getMethod())) {
 				// Overwrite the path with a presigned S3 URL to use to PUT the
 				// data to S3
-				String signedPath = locationHelper.createS3Url(request
-						.getParameter(AuthUtilConstants.USER_ID_PARAM), entity
-						.getPath(), entity.getMd5sum(), entity.getContentType());
+				String signedPath = locationHelper
+						.createS3Url(request
+								.getParameter(AuthUtilConstants.USER_ID_PARAM),
+								entity.getPath(), entity.getMd5sum(), entity
+										.getContentType());
 				entity.setPath(signedPath);
 			}
 		}
@@ -152,9 +153,15 @@ public class LocationMetadataProvider implements
 
 			String pathPrefix = "/" + location.getId() + "/" + versionLabel;
 
-			// If this is an update, the user may or may not have changed the
-			// path member of this object
-			if (!location.getPath().startsWith(pathPrefix)) {
+			// If this is an update, the user may have passed an S3 URL from a
+			// prior GET of a location, scrub the S3 stuff out of the URL. This
+			// will have no effect if the path is not an S3 URL
+			String path = locationHelper.getS3KeyFromS3Url(location.getPath());
+
+			if (path.startsWith(pathPrefix)) {
+				location.setPath(path);
+			}
+			else {
 				String s3Key = pathPrefix
 						+ (location.getPath().startsWith("/") ? location
 								.getPath() : "/" + location.getPath());

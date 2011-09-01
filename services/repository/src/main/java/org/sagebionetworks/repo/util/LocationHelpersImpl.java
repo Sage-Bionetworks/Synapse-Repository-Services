@@ -49,7 +49,7 @@ public class LocationHelpersImpl implements LocationHelper {
 			.getS3WriteAccessExpiryMinutes();
 	private static final String S3_DOMAIN = "s3.amazonaws.com";
 	private static final String S3_BUCKET = StackConfiguration.getS3Bucket();
-	private static final String CORRECT_DOMAIN = S3_DOMAIN + "/" + S3_BUCKET;
+	private static final String S3_URL_PREFIX = "https://" + S3_DOMAIN + "/" + S3_BUCKET;
 	private static final String IAM_S3_GROUP = StackConfiguration
 			.getS3IamGroup();
 	private static final String STACK = StackConfiguration.getStack();
@@ -193,7 +193,7 @@ public class LocationHelpersImpl implements LocationHelper {
 		}
 
 		StringBuilder presignedUrl = new StringBuilder();
-		presignedUrl.append("https://").append(CORRECT_DOMAIN).append(s3key)
+		presignedUrl.append(S3_URL_PREFIX).append(s3key)
 				.append("?");
 		presignedUrl.append("Expires").append("=").append(expirationInSeconds)
 				.append("&");
@@ -297,6 +297,14 @@ public class LocationHelpersImpl implements LocationHelper {
 				.toCharArray()));
 		String base64Md5 = new String(encoded, "ASCII");
 		System.out.println(args[0] + " base64 encoded= " + base64Md5);
+	}
+
+	@Override
+	public String getS3KeyFromS3Url(String s3Url) {
+		if(s3Url.startsWith(S3_URL_PREFIX)) {
+			return s3Url.substring(S3_URL_PREFIX.length(), s3Url.indexOf("?"));
+		}
+		return s3Url;
 	}
 
 }

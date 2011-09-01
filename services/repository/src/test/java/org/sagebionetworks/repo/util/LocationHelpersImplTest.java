@@ -3,12 +3,21 @@
  */
 package org.sagebionetworks.repo.util;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Location;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.controller.metadata.EntityEvent;
+import org.sagebionetworks.repo.web.controller.metadata.EventType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -20,7 +29,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class LocationHelpersImplTest {
-	
+
 	@Autowired
 	LocationHelper helper;
 
@@ -50,14 +59,12 @@ public class LocationHelpersImplTest {
 	@Test
 	public void testCreateS3Url() throws Exception {
 
-		String url = helper.createS3Url(
-				INTEGRATION_TEST_READ_ONLY_USER_ID,
+		String url = helper.createS3Url(INTEGRATION_TEST_READ_ONLY_USER_ID,
 				"/test/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz",
-				"33183779e53ce0cfc35f59cc2a762cbd",
-				"application/binary");
-			assertNotNull(url);
+				"33183779e53ce0cfc35f59cc2a762cbd", "application/binary");
+		assertNotNull(url);
 	}
-	
+
 	/**
 	 * Test method for
 	 * {@link org.sagebionetworks.repo.util.LocationHelpersImpl#getS3Url(java.lang.String, java.lang.String)}
@@ -68,8 +75,7 @@ public class LocationHelpersImplTest {
 	@Test
 	public void testGetS3Url() throws Exception {
 
-		String url = helper.getS3Url(
-				INTEGRATION_TEST_READ_ONLY_USER_ID,
+		String url = helper.getS3Url(INTEGRATION_TEST_READ_ONLY_USER_ID,
 				"/test/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
 
 		assertNotNull(url);
@@ -85,10 +91,16 @@ public class LocationHelpersImplTest {
 	@Test
 	public void testGetS3HeadUrl() throws Exception {
 
-		String url = helper.getS3HeadUrl(
-				INTEGRATION_TEST_READ_ONLY_USER_ID,
+		String url = helper.getS3HeadUrl(INTEGRATION_TEST_READ_ONLY_USER_ID,
 				"/test/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
 
 		assertNotNull(url);
+	}
+
+	@Test
+	public void testGetS3KeyFromS3Url() throws Exception {
+		String s3Key = helper
+				.getS3KeyFromS3Url("https://s3.amazonaws.com/" + StackConfiguration.getS3Bucket() + "/4678/0.0.0/mskcc_prostate_cancer.phenotype.zip?Expires=1314977993&AWSAccessKeyId=AKIAIYIHFAWJF4R4QKKQ&Signature=MYh%2BgZLdKKMOyIZGq7fDL%2BSvFJ4%3D");
+		assertEquals("/4678/0.0.0/mskcc_prostate_cancer.phenotype.zip", s3Key);
 	}
 }

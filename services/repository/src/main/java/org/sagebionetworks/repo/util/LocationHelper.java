@@ -79,5 +79,13 @@ public interface LocationHelper {
 	 */
 	String createS3Url(String userId, String path, String md5, String contentType)
 			throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Retrieve just the s3Key portion of an S3 URL
+	 * 
+	 * @param s3Url
+	 * @return the s3Key
+	 */
+	String getS3KeyFromS3Url(String s3Url);
 
 }
