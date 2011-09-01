@@ -2,15 +2,6 @@
 # 
 # Author: Matt Furia
 ###############################################################################
-
-setClass(
-		Class = "Project",
-		contains = "SynapseEntity",
-		prototype = prototype(
-				synapseEntityKind = "project"
-			)
-)
-
 setMethod(
 		f = "Project",
 		signature = "numeric",

@@ -3,26 +3,6 @@
 # Author: Matt Furia
 ###############################################################################
 
-## SynapseAnnotation class definition
-setClass(
-		Class = "SynapseAnnotation",
-		representation = representation(
-				properties = "list",
-				blobAnnotations = "list",
-				dateAnnotations = "list",
-				doubleAnnotations = "list",
-				longAnnotations = "list",
-				stringAnnotations = "list"),
-		prototype = prototype(
-				properties = list(),
-				blobAnnotations = list(),
-				dateAnnotations = list(),
-				doubleAnnotations = list(),
-				longAnnotations = list(),
-				stringAnnotations = list()
-		)
-)
-
 ## Constructor
 SynapseAnnotation <- 
 		function(entity)

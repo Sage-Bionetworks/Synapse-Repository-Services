@@ -4,22 +4,6 @@
 ###############################################################################
 
 #####
-## SynapseEntity Class definition
-#####
-setClass(
-		Class = "SynapseEntity",
-		representation = representation(
-				synapseEntityKind = "character",
-				properties = "list",
-				annotations = "SynapseAnnotation"
-		),
-		prototype = prototype(
-				properties = list(),
-				annotations = new(Class="SynapseAnnotation")
-		)
-)
-
-#####
 ## SynapseEntity "show" method
 #####
 setMethod(

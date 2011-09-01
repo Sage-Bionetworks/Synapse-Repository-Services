@@ -73,3 +73,13 @@ getLayerPreviews <-
 {
 	.getChildEntities(entity=entity, offset=offset, limit=limit, kind="layer", childKind="preview", includeParentAnnot = FALSE)
 }
+
+#setMethod(
+#		f = "getChildEntity",
+#		signature = "synapseEntity",
+#		definition = function(entity){
+#			stop("method not yet implemented")
+#		}
+#)
+
+

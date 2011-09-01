@@ -5,6 +5,20 @@
 
 setGeneric(name="as.list")
 
+#setGeneric(
+#		name = "getChildEntity",
+#		def = function(entity){
+#			standardGeneric("getChildEntity")
+#		}
+#)
+#
+setGeneric(
+		name = "getParentEntity",
+		def = function(entity){
+			standardGeneric("getParentEntity")
+		}
+)
+
 setGeneric(
 		name = "refreshEntity",
 		def = function(entity){
