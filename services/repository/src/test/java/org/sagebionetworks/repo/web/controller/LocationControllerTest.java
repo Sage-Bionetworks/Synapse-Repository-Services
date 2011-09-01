@@ -104,22 +104,22 @@ public class LocationControllerTest {
 	 */
 	@Test
 	public void testCreateLocation() throws Exception {
-		JSONObject results = helper.testCreateJsonEntity(helper
+		JSONObject createdLocation = helper.testCreateJsonEntity(helper
 				.getServletPrefix()
 				+ "/location", datasetS3Location.toString());
 
 		// Check properties
-		assertEquals("awss3", results.getString("type"));
-		assertEquals("33183779e53ce0cfc35f59cc2a762cbd", results
+		assertEquals("awss3", createdLocation.getString("type"));
+		assertEquals("33183779e53ce0cfc35f59cc2a762cbd", createdLocation
 				.getString("md5sum"));
 
 		String s3key = "/"
-			+ results.getString("id") + "/"
-			+ results.getString("versionLabel") + "/"
+			+ createdLocation.getString("id") + "/"
+			+ createdLocation.getString("versionLabel") + "/"
 			+ "unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz";
 
-		assertTrue(0 < results.getString("path").indexOf(s3key));
-		assertTrue(results
+		assertTrue(0 < createdLocation.getString("path").indexOf(s3key));
+		assertTrue(createdLocation
 				.getString("path")
 				.matches(
 						"^https://s3.amazonaws.com/"
@@ -127,18 +127,33 @@ public class LocationControllerTest {
 								+ s3key
 								+ "\\?.*Expires=\\d+&AWSAccessKeyId=\\w+&Signature=.+$"));
 
-		assertExpectedLocationProperties(results);
+		assertExpectedLocationProperties(createdLocation);
 
-		JSONObject storedDataset = helper.testGetJsonEntity(dataset
-				.getString("uri"));
+		// Just change the md5sum to simulate an updated file
+		JSONObject storedLocation = helper.testGetJsonEntity(createdLocation.getString("uri"));
+		storedLocation.put("md5sum", "99983779e53ce0cfc35f59cc2a762999");
+		JSONObject updatedLocation = helper.testUpdateJsonEntity(storedLocation);
+		
+		// Check the properties again
+		assertEquals("awss3", updatedLocation.getString("type"));
+		assertEquals("99983779e53ce0cfc35f59cc2a762999", updatedLocation
+				.getString("md5sum"));
+		assertTrue(0 < updatedLocation.getString("path").indexOf(s3key));
+		assertTrue(updatedLocation
+				.getString("path")
+				.matches(
+						"^https://s3.amazonaws.com/"
+								+ StackConfiguration.getS3Bucket()
+								+ s3key
+								+ "\\?.*Expires=\\d+&AWSAccessKeyId=\\w+&Signature=[^/]+$"));
+		assertExpectedLocationProperties(updatedLocation);
+
+		// Ensure we have the correct number of locations under this dataset
+		JSONObject storedDataset = helper.testGetJsonEntity(dataset.getString("uri"));
 		assertNotNull(storedDataset);
-
-		// TODO fix this part of the test to just ensure that the dataset has
-		// the correct number of location children
-		// JSONObject datasetLocations = helper.testGetJsonEntity("/dataset/"
-		// + dataset.getString("id") + "/locations");
-		// assertNotNull(datasetLocations);
-		// assertEquals(1, datasetLocations.getJSONArray("locations").length());
+		JSONObject datasetLocations = helper.testGetJsonEntities(storedDataset.getString("locations"));
+		assertNotNull(datasetLocations);
+		assertEquals(1, datasetLocations.getJSONArray("results").length());
 
 	}
 
