@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Nodeable;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -436,5 +437,16 @@ public interface GenericEntityController {
 	 * @throws ConflictingUpdateException 
 	 */
 	public <T extends Nodeable> void deleteEntityVersion(String userId, String id,Long versionNumber, Class<? extends Nodeable> classForType) throws DatastoreException, NotFoundException, UnauthorizedException, ConflictingUpdateException;
+	
+	/**
+	 * Get the type of an entity
+	 * @param userInfo
+	 * @param entityId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public EntityHeader getEntityHeader(String userId, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 }

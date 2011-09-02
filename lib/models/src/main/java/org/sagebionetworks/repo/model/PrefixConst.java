@@ -15,6 +15,7 @@ public class PrefixConst {
 	public final static String EULA =		"/eula";
 	public final static String AGREEMENT=	"/agreement";
 	public final static String FOLDER=		"/folder";
+	public final static String ENTITY=		"/entity";
 	
 	// Default means a default parent will be chosen.
 	public final static String DEFAULT =		"DEFAULT";
