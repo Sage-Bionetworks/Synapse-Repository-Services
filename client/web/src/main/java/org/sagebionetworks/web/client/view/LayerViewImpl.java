@@ -15,6 +15,7 @@ import org.sagebionetworks.web.client.events.PersistSuccessHandler;
 import org.sagebionetworks.web.client.widget.adminmenu.AdminMenu;
 import org.sagebionetworks.web.client.widget.editpanels.AnnotationEditor;
 import org.sagebionetworks.web.client.widget.editpanels.NodeEditor;
+import org.sagebionetworks.web.client.widget.editpanels.phenotype.PhenotypeEditor;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
 import org.sagebionetworks.web.client.widget.header.Header.MenuItems;
@@ -113,6 +114,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 	private boolean isAdministrator = false; 
 	private boolean canEdit = false;
 	private Header headerWidget;
+	PhenotypeEditor phenotypeEditor;
 
 	@Inject
 	public LayerViewImpl(Binder uiBinder, Header headerWidget,
@@ -124,7 +126,8 @@ public class LayerViewImpl extends Composite implements LayerView {
 			AccessMenuButton accessMenuButton,
 			NodeEditor nodeEditor,
 			AnnotationEditor annotationEditor,
-			AdminMenu adminMenu) {		
+			AdminMenu adminMenu,
+			PhenotypeEditor phenotypeEditor) {		
 		
 		initWidget(uiBinder.createAndBindUi(this));
 		
@@ -138,6 +141,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 		this.adminMenu = adminMenu;
 		this.seeTermsModal = seeTermsModal;
 		this.headerWidget = headerWidget;
+		this.phenotypeEditor = phenotypeEditor;
 
 		// Header setup
 		header.add(headerWidget.asWidget());
@@ -412,7 +416,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 		}
 	}
 
-	private Menu createAdminMenu(final String datasetId) {
+	private Menu createAdminMenu(final String layerId) {
 		Menu menu = new Menu();		
 		MenuItem item = null; 
 			
@@ -443,11 +447,32 @@ public class LayerViewImpl extends Composite implements LayerView {
 						}
 					});
 					nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
-					window.add(nodeEditor.asWidget(NodeType.LAYER, datasetId), new FitData(4));
+					window.add(nodeEditor.asWidget(NodeType.LAYER, layerId), new FitData(4));
 					window.show();
 				}
 			});
 			menu.add(item);			
+
+			item = new MenuItem("Phenotype Editor");
+			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
+			item.addSelectionListener(new SelectionListener<MenuEvent>() {
+				public void componentSelected(MenuEvent menuEvent) {													
+					final Window window = new Window();  
+					window.setSize(800, 600);
+					window.setPlain(true);
+					window.setModal(true);
+					window.setBlinkModal(true);
+					window.setHeaderVisible(false);
+					window.setLayout(new FitLayout());								
+					phenotypeEditor.setLayerId(layerId);
+					window.add(phenotypeEditor.asWidget());
+					//phenotypeEditor.setPlaceChanger(placeChanger);
+					
+					window.show();
+				}
+			});
+			menu.add(item);			
+
 		}
 			
 		// Administrator Menu Options

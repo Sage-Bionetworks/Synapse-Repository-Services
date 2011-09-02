@@ -40,6 +40,12 @@ import org.sagebionetworks.web.client.widget.editpanels.AnnotationEditorView;
 import org.sagebionetworks.web.client.widget.editpanels.AnnotationEditorViewImpl;
 import org.sagebionetworks.web.client.widget.editpanels.NodeEditorView;
 import org.sagebionetworks.web.client.widget.editpanels.NodeEditorViewImpl;
+import org.sagebionetworks.web.client.widget.editpanels.phenotype.ColumnDefinitionEditorView;
+import org.sagebionetworks.web.client.widget.editpanels.phenotype.ColumnDefinitionEditorViewImpl;
+import org.sagebionetworks.web.client.widget.editpanels.phenotype.ColumnMappingEditorView;
+import org.sagebionetworks.web.client.widget.editpanels.phenotype.ColumnMappingEditorViewImpl;
+import org.sagebionetworks.web.client.widget.editpanels.phenotype.PhenotypeEditorView;
+import org.sagebionetworks.web.client.widget.editpanels.phenotype.PhenotypeEditorViewImpl;
 import org.sagebionetworks.web.client.widget.filter.QueryFilterView;
 import org.sagebionetworks.web.client.widget.filter.QueryFilterViewImpl;
 import org.sagebionetworks.web.client.widget.footer.FooterView;
@@ -82,6 +88,12 @@ public class PortalGinModule extends AbstractGinModule {
 		bind(HeaderView.class).to(HeaderViewImpl.class);
 		bind(FooterView.class).to(FooterViewImpl.class);
 
+		/*
+		 * Vanilla Implementation binding
+		 */
+		
+		// Node Model Creator
+		bind(NodeModelCreator.class).to(NodeModelCreatorImpl.class);
 		
 		/*
 		 * Places
@@ -192,12 +204,22 @@ public class PortalGinModule extends AbstractGinModule {
 		bind(AnnotationEditorViewImpl.class).in(Singleton.class);
 		bind(AnnotationEditorView.class).to(AnnotationEditorViewImpl.class);
 
-		// AnnotationEditor
+		// ACL Editor
 		bind(AccessControlListEditorViewImpl.class).in(Singleton.class);
 		bind(AccessControlListEditorView.class).to(AccessControlListEditorViewImpl.class);
 		
-		bind(NodeModelCreator.class).to(NodeModelCreatorImpl.class);
+		// PhenotypeEditor
+		bind(PhenotypeEditorViewImpl.class).in(Singleton.class);
+		bind(PhenotypeEditorView.class).to(PhenotypeEditorViewImpl.class);
 		
+		// PhenotypeEditor
+		bind(ColumnDefinitionEditorViewImpl.class).in(Singleton.class);
+		bind(ColumnDefinitionEditorView.class).to(ColumnDefinitionEditorViewImpl.class);		
+
+		// PhenotypeEditor
+		bind(ColumnMappingEditorViewImpl.class).in(Singleton.class);
+		bind(ColumnMappingEditorView.class).to(ColumnMappingEditorViewImpl.class);		
+
 	}
 
 }
