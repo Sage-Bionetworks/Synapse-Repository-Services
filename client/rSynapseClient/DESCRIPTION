@@ -1,8 +1,8 @@
 Package: synapseClient
 Type: Package
 Title: Synapse R Client from Sage Bionetworks
-Version: 0.9-23
-Date: 2011-8-31
+Version: 0.7-0
+Date: 2011-9-2
 Author@R: c(
 			person("Matthew", "Furia", email="matt.furia@sagebase.org", role=c("cre","aut")),
 			person("Nicole, "Deflaux", email="nicole.deflaux@sagebase.org", role="aut")
