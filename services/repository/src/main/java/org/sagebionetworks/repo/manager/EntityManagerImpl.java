@@ -266,6 +266,11 @@ public class EntityManagerImpl implements EntityManager {
 	public ObjectType getEntityType(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		return nodeManager.getNodeType(userInfo, entityId);
 	}
+	
+	@Override
+	public EntityHeader getEntityHeader(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException {
+		return nodeManager.getNodeHeader(userInfo, entityId);
+	}
 
 	@Override
 	public List<Long> getAllVersionNumbersForEntity(UserInfo userInfo,

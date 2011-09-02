@@ -593,4 +593,12 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	}
 
 
+	@Override
+	public EntityHeader getEntityHeader(String userId, String entityId)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.getEntityHeader(userInfo, entityId);
+	}
+
+
 }

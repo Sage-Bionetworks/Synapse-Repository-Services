@@ -56,6 +56,8 @@ public class UrlHelpers {
 	public static final String PARENT_TYPE_ID 	= PARENT_TYPE+PARENT_ID;
 	public static final String OBJECT_TYPE		= "/{objectType}";
 	public static final String OBJECT_TYPE_ID	= OBJECT_TYPE+ID;
+	
+	public static final String TYPE = "/type";
 	/**
 	 * The URL prefix for all object's Access Control List (ACL).
 	 */
@@ -91,6 +93,7 @@ public class UrlHelpers {
 	public static final String EULA 	= PrefixConst.EULA;
 	public static final String AGREEMENT = PrefixConst.AGREEMENT;
 	public static final String FOLDER	 = PrefixConst.FOLDER;
+	public static final String ENTITY	 = PrefixConst.ENTITY;
 	
 	/**
 	 * All of the base URLs for Synapse objects with ID.
@@ -103,6 +106,9 @@ public class UrlHelpers {
 	public static final String EULA_ID 		= EULA+ID;
 	public static final String AGREEMENT_ID = AGREEMENT+ID;
 	public static final String FOLDER_ID 	= FOLDER+ID;
+	public static final String ENTITY_ID	= ENTITY+ID;
+	
+	public static final String ENTITY_ID_TYPE = ENTITY_ID+TYPE;
 	
 	/**
 	 * All of the base URLs for Synapse objects's Annotations.

@@ -81,6 +81,17 @@ public interface EntityManager {
 	public ObjectType getEntityType(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
+	 * Get the entity header.
+	 * @param userInfo
+	 * @param entityId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public EntityHeader getEntityHeader(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	/**
 	 * Get the children of of an entity.
 	 * @param <T>
 	 * @param userInfo

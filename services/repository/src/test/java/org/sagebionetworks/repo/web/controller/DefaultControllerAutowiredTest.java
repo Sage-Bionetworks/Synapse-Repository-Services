@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -28,6 +27,8 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -259,6 +260,21 @@ public class DefaultControllerAutowiredTest {
 		// Now try to get the project as a dataset
 		Object wrong = ServletTestHelper.getEntity(dispatchServlet, Dataset.class, clone.getId(),  TestUserDAO.TEST_USER_NAME);
 		
+	}
+	
+	@Test
+	public void testGetEntityType() throws ServletException, IOException{
+		Project project = new Project();
+		project.setName(null);
+		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, TestUserDAO.TEST_USER_NAME);
+		assertNotNull(clone);
+		toDelete.add(clone.getId());
+		
+		EntityHeader type = ServletTestHelper.getEntityType(dispatchServlet, clone.getId(), TestUserDAO.TEST_USER_NAME);
+		assertNotNull(type);
+		assertEquals(ObjectType.project.getUrlPrefix(), type.getType());
+		assertEquals(clone.getId(), type.getName());
+		assertEquals(clone.getId(), type.getId());
 	}
 	
 

@@ -394,6 +394,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		Node node = get(userInfo, nodeId);
 		return ObjectType.valueOf(node.getNodeType());
 	}
+	
 
 	@Transactional(readOnly = true)
 	@Override
@@ -441,6 +442,18 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// Since we just created this node we do not need to lock.
 		nodeDao.updateAnnotations(id, newAnnotations);
 		return id;
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		UserInfo.validateUserInfo(userInfo);
+		String userName = userInfo.getUser().getUserId();
+		if (!authorizationManager.canAccess(userInfo, entityId, AuthorizationConstants.ACCESS_TYPE.READ)) {
+			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
+		}
+		return nodeDao.getEntityHeader(entityId);
 	}
 
 

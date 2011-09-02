@@ -191,6 +191,17 @@ public interface NodeManager {
 	 * @throws NotFoundException 
 	 */
 	public ObjectType getNodeType(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
+	
+	/**
+	 * Get a full header for an entity.
+	 * @param userInfo
+	 * @param entityId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Delete a specific version of a node.

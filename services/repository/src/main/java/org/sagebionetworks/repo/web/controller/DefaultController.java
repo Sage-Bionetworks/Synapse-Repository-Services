@@ -157,6 +157,29 @@ public class DefaultController extends BaseController {
 		// Return the results
 		return updatedEntity;
 	}
+	
+	/**
+	 * Get an existing entity with a GET.
+	 * @param userId -The user that is doing the get.
+	 * @param id - The ID of the entity to fetch.
+	 * @param request
+	 * @return The requested Entity if it exists.
+	 * @throws NotFoundException - Thrown if the requested entity does not exist.
+	 * @throws DatastoreException - Thrown when an there is a server failure. 
+	 * @throws UnauthorizedException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.ENTITY_ID_TYPE
+			}, method = RequestMethod.GET)
+	public @ResponseBody
+	EntityHeader getEntityType(
+			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id, HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		// Get the type of an entity by ID.
+		return entityController.getEntityHeader(userId, id);
+	}
 
 	/**
 	 * Get an existing entity with a GET.

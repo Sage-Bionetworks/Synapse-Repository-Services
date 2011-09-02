@@ -877,6 +877,22 @@ public class ServletTestHelper {
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
 	}
+
+	public static EntityHeader getEntityType(HttpServlet dispatchServlet,
+			String id, String userId) throws ServletException, IOException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ENTITY+"/"+id+UrlHelpers.TYPE);
+		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if(response.getStatus() != HttpStatus.OK.value()){
+			throw new IllegalArgumentException(response.getErrorMessage());
+		}
+		return (EntityHeader)objectMapper.readValue(response.getContentAsString(),EntityHeader.class);
+	}
 	
 
 }
