@@ -11,9 +11,12 @@ import org.sagebionetworks.web.shared.exceptions.UnauthorizedException;
 import org.sagebionetworks.web.shared.exceptions.UnknownErrorException;
 import org.sagebionetworks.web.shared.users.UserData;
 
+import com.extjs.gxt.ui.client.widget.ContentPanel;
+import com.extjs.gxt.ui.client.widget.Html;
 import com.extjs.gxt.ui.client.widget.Info;
 import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.button.Button;
+import com.extjs.gxt.ui.client.widget.layout.CenterLayout;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.resources.client.ImageResource;
@@ -173,6 +176,21 @@ public class DisplayUtils {
 		return getOffendingCharacter(key, REGEX_CLEAN_ANNOTATION_KEY);
 	}	
 		
+	/**
+	 * Returns a ContentPanel used to show a component is loading in the view
+	 * @param sageImageBundle
+	 * @return
+	 */
+	public static ContentPanel getLoadingWidget(SageImageBundle sageImageBundle) {
+		ContentPanel cp = new ContentPanel();
+		cp.setHeaderVisible(false);
+		cp.setCollapsible(true);
+		cp.setLayout(new CenterLayout());				
+		Html html = new Html(DisplayUtils.getIconHtml(sageImageBundle.loading31()));		
+		cp.add(html);		
+		return cp;
+	}
+	
 	/*
 	 * Private methods
 	 */
@@ -195,5 +213,6 @@ public class DisplayUtils {
 		}
 		return null;		
 	}	
+
 	
 }

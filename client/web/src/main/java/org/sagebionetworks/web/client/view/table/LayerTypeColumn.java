@@ -47,8 +47,7 @@ public class LayerTypeColumn extends Column<Map<String, Object>, String> {
 		} else if ("G".equals(cellImageType)) {
 			return imagePrototype.getIconGenotype16();
 		} else if("M".equals(cellImageType)) {
-			return ""; // don't display Media columns in table
-			//return AbstractImagePrototype.create(iconsImageBundle.documentText16()).getHTML();
+			return AbstractImagePrototype.create(iconsImageBundle.documentText16()).getHTML();
 		}
 		
 		throw new IllegalArgumentException("Unknown Layer type: "

@@ -62,6 +62,8 @@ import com.google.inject.Inject;
 
 public class AnnotationEditorViewImpl extends LayoutContainer implements AnnotationEditorView {
      
+	private static final int CONTENT_HEIGHT_PX = 200;
+	private static final int CONTENT_WIDTH_PX = 400;
 	private Presenter presenter;
 	private SageImageBundle sageImageBundle;
 	private IconsImageBundle iconsImageBundle;
@@ -139,7 +141,7 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		cp.setHeaderVisible(false);
 		cp.setFrame(false);
 		cp.setBodyBorder(true);
-		cp.setSize(400, 200);
+		cp.setSize(CONTENT_WIDTH_PX, CONTENT_HEIGHT_PX);
 		cp.setLayout(new FitLayout());
 		cp.add(grid);		
 		
@@ -170,8 +172,9 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
     
 	@Override
 	public void showLoading() {
-		Html html = new Html(DisplayUtils.getIconHtml(sageImageBundle.loading16()) + " Loading...");
-		this.add(html);
+		ContentPanel cp = DisplayUtils.getLoadingWidget(sageImageBundle);
+		cp.setSize(CONTENT_WIDTH_PX, CONTENT_HEIGHT_PX);		
+		this.add(cp);
 	}
     
 	@Override

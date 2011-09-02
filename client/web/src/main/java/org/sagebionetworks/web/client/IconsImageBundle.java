@@ -38,6 +38,9 @@ public interface IconsImageBundle extends ClientBundle {
 	@Source("images/icons/cross-button-16.png")
 	ImageResource deleteButton16();
 
+	@Source("images/icons/disk-black-16.png")
+	ImageResource disk16();
+	
 	@Source("images/icons/document--plus-16.png")
 	ImageResource documentAdd16();
 	

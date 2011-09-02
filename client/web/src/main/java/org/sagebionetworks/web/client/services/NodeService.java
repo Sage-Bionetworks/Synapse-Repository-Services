@@ -32,7 +32,7 @@ public interface NodeService extends RemoteService {
 	
 	public String getNodeAclJSON(NodeType type, String id);
 	
-	public String createAcl(NodeType type, String id, String userGroupId, List<AclAccessType> accessTypes);
+	public String createAcl(NodeType type, String id, String ownerUserName, List<AclAccessType> accessTypes);
 	
 	public String updateAcl(NodeType type, String id, String aclJson, String etag);
 	

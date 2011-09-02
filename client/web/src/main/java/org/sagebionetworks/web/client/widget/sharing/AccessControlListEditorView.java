@@ -28,8 +28,11 @@ public interface AccessControlListEditorView extends IsWidget {
 	 * @param message
 	 */
 	public void showErrorMessage(String message);
-
-	public void refresh(List<AclEntry> entries, List<AclPrincipal> principals, boolean isEditable);
+	
+	/**
+	 * Set the view to a loading state while async loads
+	 */
+	public void showAclsLoading();
 	
 	/**
 	 * Presenter interface

@@ -105,7 +105,7 @@ public class AclUtils {
 						AclAccessType.READ, AclAccessType.CREATE,
 						AclAccessType.UPDATE }));
 		permToAclAccessType.put(PermissionLevel.CAN_ADMINISTER,
-				Arrays.asList(new AclAccessType[] { AclAccessType.READ,
+				Arrays.asList(new AclAccessType[] { 
 						AclAccessType.READ, AclAccessType.CREATE,
 						AclAccessType.UPDATE, AclAccessType.DELETE,
 						AclAccessType.CHANGE_PERMISSIONS }));

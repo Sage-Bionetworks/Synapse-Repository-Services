@@ -212,17 +212,19 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		
 		// convert 
 		JSONObject obj = new JSONObject();
-		try {
-			obj.put("resourceId", id);			
+		try {			
 			if(userGroupId != null && accessTypes != null) {
-				JSONArray accesses = new JSONArray();
-				JSONObject accessObj = new JSONObject();
-				accessObj.put("userGroupId", userGroupId);
+				JSONArray resourceAccessArray = new JSONArray();				
+				JSONObject resourceAccessObj = new JSONObject();
+				resourceAccessObj.put("groupName", userGroupId);
+				JSONArray accessTypeArray = new JSONArray();
 				for(AclAccessType accessType : accessTypes) {
-					accessObj.put("accessType", accessType.toString());
+					accessTypeArray.put(accessType);
 				}
-				accesses.put(accessObj);				
-				obj.put("resourceAccess", accesses);
+				resourceAccessObj.put("accessType", accessTypeArray);				
+				resourceAccessArray.put(resourceAccessObj);				
+				obj.put("resourceAccess", resourceAccessArray);
+				obj.put("id", id);
 			}
 		} catch (JSONException e) {
 			e.printStackTrace();

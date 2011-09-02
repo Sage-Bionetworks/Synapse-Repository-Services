@@ -3,7 +3,6 @@ package org.sagebionetworks.web.client.widget.sharing;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
@@ -17,8 +16,8 @@ import org.sagebionetworks.web.shared.users.AclEntry;
 import org.sagebionetworks.web.shared.users.AclPrincipal;
 import org.sagebionetworks.web.shared.users.AclUtils;
 import org.sagebionetworks.web.shared.users.PermissionLevel;
+import org.sagebionetworks.web.shared.users.UserData;
 
-import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONParser;
@@ -34,7 +33,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 	private static final String ACL_ENTRY_ACCESS_TYPE = "accessType";
 	private static final String ACL_ENTRY_PRINCIPAL_ID = "groupName";
 	private static final String ACL_ENTRY_CREATEDBY = "createdBy";
-	private static final String ACL_ENTRY_RESOURCE_ID = "resourceId";
+	private static final String ACL_ENTRY_RESOURCE_ID = "id";
 
 	
 	private AccessControlListEditorView view;
@@ -70,6 +69,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 	
 	public Widget asWidget() {
 		view.setPresenter(this);
+		view.showAclsLoading();
 		userAccountService.getAllUsersAndGroups(new AsyncCallback<List<AclPrincipal>>() {
 			@Override
 			public void onSuccess(final List<AclPrincipal> usersAndGroupsList) {
@@ -112,7 +112,10 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 	
 	@Override
 	public void createAcl() {
-		nodeService.createAcl(nodeType, nodeId, null, null, new AsyncCallback<String>() {
+		// create acl with current user as the administrator (owner)
+		UserData currentUser = authenticationController.getLoggedInUser();
+		List<AclAccessType> accessList = AclUtils.getAclAccessTypes(PermissionLevel.CAN_ADMINISTER);
+		nodeService.createAcl(nodeType, nodeId, currentUser.getEmail(), accessList, new AsyncCallback<String>() {
 			@Override
 			public void onSuccess(String result) {
 				try {
@@ -122,7 +125,8 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 						onFailure(null);
 					}
 					return;
-				}					 
+				}	
+				view.showAclsLoading();
 				refresh();
 			}
 			@Override
@@ -280,7 +284,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 	 * Private Methods
 	 */
 	
-	private void refresh() {
+	private void refresh() {		
 		nodeService.getNodeAclJSON(nodeType, nodeId, new AsyncCallback<String>() {		
 			@Override
 			public void onSuccess(String result) {
@@ -299,7 +303,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 				if(originalAcl.containsKey(ACL_ENTRY_RESOURCE_ID) && !nodeId.equals(originalAcl.get(ACL_ENTRY_RESOURCE_ID).isString().stringValue())) {
 					isInherited = true;
 				}
-				view.refresh(entries, principals, isInherited);
+				view.setAclDetails(entries, principals, isInherited);
 			}
 			
 			@Override

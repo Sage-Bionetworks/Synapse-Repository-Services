@@ -8,6 +8,7 @@ import java.util.Map;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
+import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.shared.users.AclEntry;
 import org.sagebionetworks.web.shared.users.AclPrincipal;
 import org.sagebionetworks.web.shared.users.AclUtils;
@@ -24,6 +25,7 @@ import com.extjs.gxt.ui.client.event.MenuEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
 import com.extjs.gxt.ui.client.store.ListStore;
 import com.extjs.gxt.ui.client.widget.BoxComponent;
+import com.extjs.gxt.ui.client.widget.Html;
 import com.extjs.gxt.ui.client.widget.Label;
 import com.extjs.gxt.ui.client.widget.LayoutContainer;
 import com.extjs.gxt.ui.client.widget.MessageBox;
@@ -63,11 +65,13 @@ public class AccessControlListEditorViewImpl extends LayoutContainer implements 
 	private IconsImageBundle iconsImageBundle;		
 	private Grid<PermissionsTableEntry> permissionsGrid;
 	private Map<PermissionLevel, String> permissionDisplay;
+	private SageImageBundle sageImageBundle;
 	
 	
 	@Inject
-	public AccessControlListEditorViewImpl(IconsImageBundle iconsImageBundle) {
+	public AccessControlListEditorViewImpl(IconsImageBundle iconsImageBundle, SageImageBundle sageImageBundle) {
 		this.iconsImageBundle = iconsImageBundle;		
+		this.sageImageBundle = sageImageBundle;
 		
 		permissionDisplay = new HashMap<PermissionLevel, String>();
 		permissionDisplay.put(PermissionLevel.CAN_VIEW, DisplayConstants.MENU_PERMISSION_LEVEL_CAN_VIEW);
@@ -85,12 +89,6 @@ public class AccessControlListEditorViewImpl extends LayoutContainer implements 
 		return this;
 	}
 	
-	@Override
-	public void refresh(List<AclEntry> entries, List<AclPrincipal> principals, boolean isEditable) {
-		ListStore<PermissionsTableEntry> permissionsStore = loadPermissionsStore(entries);
-		permissionsGrid.reconfigure(permissionsStore, permissionsGrid.getColumnModel());
-	}
-
 	private ListStore<PermissionsTableEntry> loadPermissionsStore(
 			List<AclEntry> entries) {
 		final ListStore<PermissionsTableEntry> permissionsStore = new ListStore<PermissionsTableEntry>();
@@ -218,6 +216,30 @@ public class AccessControlListEditorViewImpl extends LayoutContainer implements 
 		this.layout(true);		
 	}
 	
+	@Override
+	public void showAclsLoading() {
+		this.removeAll(true);
+		Html html = new Html(DisplayUtils.getIconHtml(sageImageBundle.loading16()) + " Loading...");
+		this.add(html);
+		this.layout(true);
+	}
+
+	@Override
+	public void setPresenter(Presenter presenter) {
+		this.presenter = presenter;
+	}
+
+	@Override
+	public void showErrorMessage(String message) {
+		MessageBox.info("Message", message, null);
+	}
+
+	
+	
+	/*
+	 * Private Methods
+	 */
+	
 	private void showAddMessage(String message) {
 		// TODO : put this on the form somewher
 		showErrorMessage(message);
@@ -263,19 +285,6 @@ public class AccessControlListEditorViewImpl extends LayoutContainer implements 
 		
 	}
 	
-	@Override
-	public void setPresenter(Presenter presenter) {
-		this.presenter = presenter;
-	}
-
-	@Override
-	public void showErrorMessage(String message) {
-		MessageBox.info("Message", message, null);
-	}
-
-	/*
-	 * Private Methods
-	 */
 	private Menu createEditAccessMenu(final AclEntry aclEntry) {
 		Menu menu = new Menu();		
 		MenuItem item = null; 
