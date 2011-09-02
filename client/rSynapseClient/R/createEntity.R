@@ -59,7 +59,7 @@ setMethod(
 setMethod(
 		f = "createEntity",
 		signature = signature("SynapseEntity"),
-		definition = function(entity, createAnnotations = FALSE){
+		definition = function(entity){
 			## create the entity
 			oldAnnotations <- annotations(entity)
 			entity <- createEntity(entity = .extractEntityFromSlots(entity), className = class(entity))
@@ -90,7 +90,7 @@ setMethod(
 setMethod(
 		f = "createEntity",
 		signature = "Location",
-		definition = function(entity, createAnnotations = FALSE){
+		definition = function(entity){
 			## create the entity
 			if(length(as.list(annotations(entity))) > 0L)
 				warning("Annotations can not be automatically be persisted for Location entities and so are being discarded")

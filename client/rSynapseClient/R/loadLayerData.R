@@ -81,16 +81,16 @@ setMethod(
 )
 
 .loadRbinaryFiles <- function(files){
+	layerData <- new.env()
 	for(f in files){
 		tryCatch(
-				load(f),
+				load(f, envir = layerData),
 				error=function(e){
 					warning(sprintf("Could not load layer file %s\n", f))
 			}
 		)
-		rm(files,f)
-		return(environment())
 	}
+	return(layerData)
 }
 
 .loadTsvFiles <- function(files){

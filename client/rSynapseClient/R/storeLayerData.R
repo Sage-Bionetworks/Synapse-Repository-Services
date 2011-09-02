@@ -16,6 +16,10 @@ setMethod(
 			
 			zipFileName <- file.path(tempdir(), zipFileName)
 			
+			## if zipFile exists delete it before creating
+			if(file.exists(zipFileName))
+				file.remove(zipFileName)
+			
 			## change working directory to tempdir()
 			## TODO: figure out how to zip files without including directory tree
 			##		 some way other than changing directory

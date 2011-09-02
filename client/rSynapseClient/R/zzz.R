@@ -6,6 +6,8 @@
 
 .cache <- new.env(parent=emptyenv())
 
+kCertBundle <- "certificateBundle/cacert.pem"
+
 kSupportedLayerCodeMap <- list(
 		C = "PhenotypeLayer",
 		E = "ExpressionLayer",
@@ -69,8 +71,8 @@ kLayerSubtypeMap <- list(
 	.setCache("supportedLayerStatus", kSupportedLayerStatus)
 	.setCache("supportedPlatforms", kSupportedPlatforms)
 	.setCache("sessionRefreshDurationMin", 60)
-	.setCache("curlOpts", list(ssl.verifypeer=FALSE, verbose = FALSE))
-	.setCache("curlHeader", c('Content-Type'="application/json", Accept = "application/json"))
+	.setCache("curlOpts", list(ssl.verifypeer=TRUE, verbose = FALSE, cainfo=file.path(libname, pkgname, kCertBundle)))
+	.setCache("curlHeader", c('Content-Type'="application/json", Accept = "application/json", "Accept-Charset"="utf-8"))
 	.setCache("anonymous", FALSE)
 	.setCache("downloadSuffix", "unpacked")
 	.setCache("debug", FALSE)

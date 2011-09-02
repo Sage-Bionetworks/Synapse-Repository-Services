@@ -1,17 +1,25 @@
 synapseLogin <- 
-		function(username = .getUsername(), password = .getPassword())
+		function(username = "", password = "")
 {
 	## constants
 	kService <- "/session"
 	## end constants
 	
+	credentials <- list(username = username, password = password)
+	
+	if(password == ""){
+		credentials <- getCredentials(username)
+	} else if(username==""){
+		credentials$username <- .getUsername()
+	}
+	
 	## get auth service endpoint and prefix from memory cache
-	host = .getAuthEndpointLocation()
-	path = .getAuthEndpointPrefix()
+	host <- .getAuthEndpointLocation()
+	path <- .getAuthEndpointPrefix()
 
 	entity <- list()
-	entity$email <- username
-	entity$password <- password
+	entity$email <- credentials$username
+	entity$password <- credentials$password
 	
 	## Login and check for success
 	response <- synapsePost(uri = kService, 
@@ -51,37 +59,4 @@ synapseLogout <-
 	message("Goodbye.")
 }
 
-.getPassword <- function(){
-	cat("Password: ")
-	## Currently only suppresses output in unix-like terminals
-	
-	finallyCmd <- NULL
-	if(tolower(.Platform$GUI) == "x11"){
-		if(tolower(.Platform$OS.type) == "unix"){
-			system("stty -echo")
-			finallyCmd <- "stty echo"
-		}
-	}else if(tolower(.Platform$GUI) == "rterm"){
-		if(tolower(.Platform$OS.type) == "windows"){
-			## TODO figure out how to suppress terminal output in Windows
-		}
-	}
-	
-	## TODO figure out how to "hide" password entry from GUIs
-	tryCatch(
-			password <- readline(),
-			finally={
-				if(!is.null(finallyCmd))
-					system(finallyCmd) ## turn echo back on only if it was turned off
-				cat("\n")
-			}
-	)
-	return(password)
-}
-
-.getUsername <- function(){
-	cat("Username: ")
-	username <- readline()
-	return(username)
-}
 

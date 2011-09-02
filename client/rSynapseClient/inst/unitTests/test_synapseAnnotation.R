@@ -17,7 +17,7 @@
 unitTestConstructor <- 
 		function()
 {
-	SynapseAnnotation(entity = fromJSON(.getCache("datasetAnnotationJSON")))
+	SynapseAnnotation(entity = as.list(RJSONIO::fromJSON(.getCache("datasetAnnotationJSON"))))
 }
 
 unitTestStringAnnotation <- 
@@ -96,7 +96,7 @@ unitTestPropertyNamedProperties <-
 {
 	kValue <- "thisIsAValue"
 	kNewValue <- "thisIsANewValue"
-	entity <- fromJSON(.getCache("datasetAnnotationJSON"))
+	entity <- as.list(RJSONIO::fromJSON(.getCache("datasetAnnotationJSON")))
 	entity$properties <- kValue
 
 	s4Entity <- new("SynapseAnnotation")
@@ -112,7 +112,7 @@ unitTestAnnotationNamedProperties <-
 {
 	kValue <- "thisIsAValue"
 	kNewValue <- "thisIsANewValue"
-	entity <- fromJSON(.getCache("datasetAnnotationJSON"))
+	entity <- as.list(RJSONIO::fromJSON(.getCache("datasetAnnotationJSON")))
 	entity$properties <- kValue
 	
 	s4Entity <- new("SynapseAnnotation")

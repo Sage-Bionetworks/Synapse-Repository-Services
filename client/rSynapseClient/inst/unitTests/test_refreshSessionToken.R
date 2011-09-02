@@ -1,12 +1,16 @@
 .setUp <-
 		function()
 {
-	.setCache("validToken", "thisIsAFakeValidSessionToken")
-	.setCache("inValidToken", "thisIsAFakeInValidSessionToken")
+	## make a copy of the old cache
+	oldCache <- synapseClient:::.cache
+	newCache <- new.env(parent=parent.env(oldCache))
+	for(key in ls(oldCache))
+		assign(key,get(key,envir=oldCache), envir=newCache)
+	
 	myGetURL <- 
 			function(uri, postfields, customrequest, httpheader, curl, .opts)
 	{
-		entity <- rjson::fromJSON(entity)
+		entity <- as.list(fromJSON(entity))
 		if(entity$sessionToken == .getCache("validToken")){
 			## return the response for a valid sessionToken and set the 
 			## curl handle HTTP response accordingly
@@ -16,22 +20,28 @@
 		}
 	}
 	
-	attr(myGetURL, "origFcn") <- RCurl:::getURL
-	detach('package:synapseClient', force = TRUE)
-	detach('package:RCurl', force = TRUE)
+	## attach the overridden methods
+	unloadNamespace('synapseClient')
+	unloadNamespace("RCurl")
 	assignInNamespace("getURL", myGetURL, "RCurl")
-	library(synapseClient, quietly = TRUE)
+	assignInNamespace(".cache", newCache, "synapseClient")
+	attachNamespace("synapseClient")
+	
+	.setCache("oldCache", oldCache)
+	.setCache("validToken", "thisIsAFakeValidSessionToken")
+	.setCache("inValidToken", "thisIsAFakeInValidSessionToken")
 }
 
 .tearDown <-
 		function()
 {
-	.deleteCache("validToken")
-	.deleteCache("inValidToken")
-	detach('package:synapseClient', force=TRUE)
-	detach('package:RCurl', force = TRUE)
-	assignInNamespace("getURL", attr(RCurl:::getURL,'origFcn'), "RCurl")
-	library(synapseClient, quietly = TRUE)
+	oldCache <- .getCache("oldCache")
+	
+	## put back the original function definitions and cache
+	unloadNamespace('synapseClient')
+	unloadNamespace("RCurl")
+	assignInNamespace(".cache", oldCache, "synapseClient")
+	attachNamespace("synapseClient")
 }
 
 unitTestRefresh <-

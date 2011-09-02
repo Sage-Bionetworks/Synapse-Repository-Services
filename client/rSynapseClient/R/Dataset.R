@@ -3,13 +3,6 @@
 #
 # Author: mfuria
 ###############################################################################
-setClass(
-		Class = "Dataset",
-		contains = "SynapseEntity",
-		prototype = prototype(
-				synapseEntityKind = "dataset"
-		)
-)
 
 ## Dataset constructor for character entity id
 setMethod(

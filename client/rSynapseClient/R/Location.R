@@ -1,12 +1,4 @@
 
-setClass(
-	Class = "Location",
-	contains = "SynapseEntity",
-	prototype = prototype(
-			synapseEntityKind = "location"
-	)
-)
-
 setMethod(
 		f = "Location",
 		signature = "character",

@@ -79,3 +79,20 @@ setMethod(
 		}
 )
 
+######
+## Creating Layer entities must be handled differently since get and post are asymmetrical.
+## Specifically, after updating the annotations on the newly created enity, the etag is changed
+## so we must refresh the entity before returning it. For locations, this refevts the url and md5sum
+## to the values for the new Location, which were returned by the createEntity call.
+######
+setMethod(
+		f = "updateEntity",
+		signature = "Location",
+		definition = function(entity){
+			## create the entity
+			if(length(as.list(annotations(entity))) > 0L)
+				warning("Annotations can not be automatically persisted for Location entities and so are being discarded")
+			entity <- do.call(class(entity), list(entity = .updateEntity(kind = synapseEntityKind(entity), entity=.extractEntityFromSlots(entity))))
+		}
+)
+

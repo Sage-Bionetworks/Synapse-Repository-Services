@@ -23,8 +23,8 @@ unitTestConstructors <-
 {
 	## these just need to work without throwing an exception. the JSON parsing and mapping to
 	## slots is tested elsewhere
-	entity <- SynapseEntity(entity = fromJSON(.getCache("datasetJSON")), getAnnotations=FALSE)
-	annotations(entity) <- SynapseAnnotation(entity = fromJSON(.getCache("datasetAnnotationJSON")))
+	entity <- SynapseEntity(entity = as.list(RJSONIO::fromJSON(.getCache("datasetJSON"))), getAnnotations=FALSE)
+	annotations(entity) <- SynapseAnnotation(entity = as.list(RJSONIO::fromJSON(.getCache("datasetAnnotationJSON"))))
 }
 
 uniTestProperties <-

@@ -1,9 +1,11 @@
 .setUp <- 
 		function() 
 {
-	# Do some setup stuff here like creating and populating a stub implementation of the repository service with some data
-	.setCache("oldSessionToken", .getCache("sessionToken"))
-	sessionToken("thisIsAFakeToken")
+	## make a copy of the old cache
+	oldCache <- synapseClient:::.cache
+	newCache <- new.env(parent=parent.env(oldCache))
+	for(key in ls(oldCache))
+		assign(key,get(key,envir=oldCache), envir=newCache)
 	
 	# Override getURL to not actually make a remote call
 	myGetURL <- function (url, ..., .opts = list(), write = basicTextGatherer(), 
@@ -14,31 +16,30 @@
 	
 	# Override .checkCurlResponse with a do-nothing function
 	myCheckCurlResponse <- function(object,response) {}
-	
-	#back up the old methods
-	attr(myCheckCurlResponse, "origFcn") <- synapseClient:::.checkCurlResponse
-	attr(myGetURL, "origFcn") <- RCurl:::getURL
 
-	## detach packages so their functions can be overridden
-	detach('package:synapseClient', force=TRUE)
-	detach('package:RCurl', force=TRUE)
-	assignInNamespace(".checkCurlResponse", myCheckCurlResponse, "synapseClient")
+	## unload the namespace and override methods
+	unloadNamespace("synapseClient")
+	unloadNamespace('RCurl')
 	assignInNamespace("getURL", myGetURL, "RCurl")
+	assignInNamespace(".checkCurlResponse", myCheckCurlResponse, "synapseClient")
+	assignInNamespace(".cache", newCache, "synapseClient")
+	attachNamespace("synapseClient")
 	
-	#reload detached packages
-	library(synapseClient, quietly=TRUE)
+	## set the session token to a fake one
+	sessionToken("thisIsAFakeToken")
+	.setCache("oldCache", oldCache)
 }
 .tearDown <- 
 		function() 
 {
-	sessionToken(.getCache("oldSessionToken"))
-	.deleteCache("oldSessionToken")
-	# Do some test cleanup stuff here, if applicable
-	detach('package:synapseClient', force = TRUE)
-	detach('package:RCurl', force = TRUE)
-	assignInNamespace(".checkCurlResponse", attr(synapseClient:::.checkCurlResponse, "origFcn"), "synapseClient")
-	assignInNamespace("getURL", attr(RCurl:::getURL, "origFcn"), "RCurl")
-	library(synapseClient, quietly = TRUE)
+	## put back the old cache
+	oldCache <- .getCache("oldCache")
+
+	## unload/reload namespaces to put back original functions
+	unloadNamespace('synapseClient')
+	unloadNamespace('RCurl')
+	assignInNamespace(".cache", oldCache, "synapseClient")
+	attachNamespace('synapseClient')
 }
 
 # TODO there is a bug here, this is hitting the remote repository service
