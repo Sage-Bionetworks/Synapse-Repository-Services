@@ -3,7 +3,7 @@ setMethod(
 		f = "Location",
 		signature = "character",
 		definition = function(entity){
-			Location(.getEntity(kind = synapseEntityKind(new(Class="Location")), entity = entity))
+			Location(.getEntity(entity = entity))
 		}
 )
 

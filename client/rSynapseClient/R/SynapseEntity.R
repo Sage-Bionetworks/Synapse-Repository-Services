@@ -13,17 +13,17 @@ setMethod(
 			cat('An object of class "', class(object), '"\n', sep="")
 
                         cat("Synapse Entity Name : ", properties(object)$name, "\n", sep="")
-                        cat("Synapse Entity Id   : ", properties(object)$id, "\n\n", sep="")
+                        cat("Synapse Entity Id   : ", properties(object)$id, "\n", sep="")
                         
                         if (!is.null(properties(object)$parentId))
-                          cat("Parent Id : ", properties(object)$parentId, "\n", sep="")
+                          cat("Parent Id           : ", properties(object)$parentId, "\n", sep="")
                         if (!is.null(properties(object)$type))
-                          cat("Type      : ", properties(object)$type, "\n", sep="")
+                          cat("Type                : ", properties(object)$type, "\n", sep="")
                         if (!is.null(properties(object)$version))
-                          cat("Version   : ", properties(object)$version, "\n\n", sep="")
+                          cat("Version             : ", properties(object)$version, "\n\n", sep="")
 
-                        cat("For further annotations, please use the annotations() function.\n")
-                        cat("Or view this Entity on the Synapse website at:  http://synapse-alpha.sagebase.org/\n", sep="")
+                        cat("For complete list of annotations, please use the annotations() function.\n")
+                        cat(sprintf("Or view this Entity on the Synapse website at: %s\n", "https://synapse.sagebase.org"), sep="")
 		}
 )
 

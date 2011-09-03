@@ -25,7 +25,7 @@ setMethod(
 			##		 some way other than changing directory
 			oldDir <- getwd()
 			setwd(tempdir())
-			zipRetVal <- zip(zipfile=normalizePath(zipFileName, mustWork=FALSE), files=normalizePath(layerDataFile))
+			suppressWarnings(zipRetVal <- zip(zipfile=normalizePath(zipFileName, mustWork=FALSE), files=normalizePath(layerDataFile)))
 			setwd(oldDir)
 			
 			## if zip failes, load uncompressed

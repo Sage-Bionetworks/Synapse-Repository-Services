@@ -41,7 +41,8 @@
 	else {
 		uri <- paste(host, path, uri, sep="")
 	}
-	
+	if(length(path) > 1)
+		stop("put", paste(length(path), path))
 	## Submit request and check response code
 	d = debugGatherer()
 	response <- getURL(uri, 

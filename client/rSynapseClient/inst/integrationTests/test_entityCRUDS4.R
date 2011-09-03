@@ -161,4 +161,30 @@ integrationTestDeleteEntity <-
 	.deleteCache("testProject")
 }
 
+integrationTestGetEntity <-
+		function()
+{
+	## Create Project
+	project <- new(Class="Project")
+	propertyValue(project,"name") <- .getCache("testProjectName")
+	createdProject <- createEntity(project)
+	.setCache("testProject", createdProject)
+	checkEquals(propertyValue(createdProject,"name"), .getCache("testProjectName"))
+	
+	fetchedProject <- getEntity(as.numeric(propertyValue(createdProject, "id")))
+	checkEquals(propertyValue(fetchedProject, "id"), propertyValue(createdProject, "id"))
+	checkEquals(propertyValue(fetchedProject,"name"), .getCache("testProjectName"))
+	
+	fetchedProject <- getEntity(as.character(propertyValue(createdProject, "id")))
+	checkEquals(propertyValue(fetchedProject, "id"), propertyValue(createdProject, "id"))
+	checkEquals(propertyValue(fetchedProject,"name"), .getCache("testProjectName"))
+	
+	fetchedProject <- getEntity(.extractEntityFromSlots(createdProject))
+	checkEquals(propertyValue(fetchedProject, "id"), propertyValue(createdProject, "id"))
+	checkEquals(propertyValue(fetchedProject,"name"), .getCache("testProjectName"))
+	
+	fetchedProject <- getEntity(createdProject)
+	checkEquals(propertyValue(fetchedProject, "id"), propertyValue(createdProject, "id"))
+	checkEquals(propertyValue(fetchedProject,"name"), .getCache("testProjectName"))
+}
 

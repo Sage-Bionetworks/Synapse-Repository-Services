@@ -61,7 +61,7 @@ unitTestZipFile <-
 	write.table(d,file=.getCache("localTxtFile"), sep="\t", quote=F, row.names=F, col.names=F)
 	
 	## zip these two files
-	zip(.getCache("localZipFile"), files = c(.getCache("localTxtFile"), .getCache("localJpegFile")))
+	suppressWarnings(zip(.getCache("localZipFile"), files = c(.getCache("localTxtFile"), .getCache("localJpegFile"))))
 	
 	files <- .unpack(.getCache("localZipFile"))
 	

@@ -21,7 +21,8 @@
 	}else {
 		uri <- paste(host, path, uri, sep="")
 	}
-	
+	if(length(path) > 1)
+		stop("put", paste(length(path), path))
 	## Prepare the header. If not an anonymous request, stuff the
 	## sessionToken into the header
 	header <- .getCache("curlHeader")

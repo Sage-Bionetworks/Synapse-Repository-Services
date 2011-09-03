@@ -5,6 +5,13 @@
 
 setGeneric(name="as.list")
 
+setGeneric(
+		name = ".getEntityInfo",
+		def = function(entity){
+			standardGeneric(".getEntityInfo")
+		}
+)
+
 #setGeneric(
 #		name = "getChildEntity",
 #		def = function(entity){

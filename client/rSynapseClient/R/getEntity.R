@@ -1,6 +1,55 @@
+setMethod(
+		f = ".getEntityInfo",
+		signature = "character",
+		definition = function(entity){
+			uri <- sprintf("/entity/%s/type", entity)
+			info <- synapseGet(uri=uri)
+			
+			## clean up slashes
+			info$type <- gsub("/", "", info$type)
+			info
+		}
+)
+
+setMethod(
+		f = ".getEntityInfo",
+		signature = "numeric",
+		definition = function(entity){
+			.getEntityInfo(as.character(entity))
+		}
+)
+
+setMethod(
+		f = ".getEntityInfo",
+		signature = "SynapseEntity",
+		definition = function(entity){
+			if(is.null(propertyValue(entity, "id")))
+				stop("entity must contain an id property value")
+			.getEntityInfo(propertyValue(entity, "id"))
+		}
+)
+
+setMethod(
+		f = ".getEntityInfo",
+		signature = "list",
+		definition = function(entity){
+			if(!("id" %in% names(entity)))
+				stop("entity must have a field named 'id'")
+			if(is.null(entity$id))
+				stop("entity id must not be null")
+			.getEntityInfo(entity$id)
+		}
+)
+
+
 .getEntity <- 
-		function(kind, entity)
+		function(entity)
 {	
+	if(is.null(entity))
+		stop("entity cannot be null")
+	entityInfo <- .getEntityInfo(entity)
+	kind <-  entityInfo$type
+
 	# entity parameter is an entity	
 	if(is.list(entity)){
 		if(!"uri" %in% names(entity)){
@@ -13,10 +62,10 @@
 		if(length(entity) != 1){
 			stop("pass an entity or a single entity id to this method")
 		}
-		uri <- paste("/", kind, entity, sep = "/")
+		uri <- sprintf("/%s/%s", kind, entity)
 	}	
 	
-	synapseGet(uri=uri, anonymous=FALSE)
+	synapseGet(uri=uri)
 }
 
 setMethod(
@@ -37,8 +86,8 @@ setMethod(
 setMethod(
 		f = "getEntity",
 		signature = signature("character"),
-		definition = function(entity, kind){
-			entity <- .getEntity(kind = kind, entity = entity)
+		definition = function(entity){
+			entity <- .getEntity(entity = entity)
 			getEntity(entity)
 		}
 )
@@ -46,8 +95,8 @@ setMethod(
 setMethod(
 		f = "getEntity",
 		signature = signature("numeric"),
-		definition = function(entity, kind){
-			entity <- .getEntity(kind = kind, entity = as.character(entity))
+		definition = function(entity){
+			entity <- .getEntity(entity = as.character(entity))
 			getEntity(entity)
 		}
 )
@@ -57,7 +106,7 @@ setMethod(
 		signature = "SynapseEntity",
 		definition = function(entity){
 			## refresh main entity
-			entity <- do.call(class(entity), list(entity = .getEntity(kind = synapseEntityKind(entity), entity=.extractEntityFromSlots(entity))))
+			entity <- do.call(class(entity), list(entity = .getEntity(entity=.extractEntityFromSlots(entity))))
 			
 			## refresh annotations
 			refreshAnnotations(entity)
@@ -69,29 +118,29 @@ setMethod(
 getDataset <- 
 		function(entity)
 {
-	.getEntity(kind="dataset", entity=entity)
+	.getEntity(entity=entity)
 }
 
 getLayer <- 
 		function(entity)
 {
-	.getEntity(kind="layer", entity=entity)
+	.getEntity(entity=entity)
 }
 
 getLocation <- 
 		function(entity)
 {
-	.getEntity(kind="location", entity=entity)
+	.getEntity(entity=entity)
 }
 
 getPreview <- 
 		function(entity)
 {
-	.getEntity(kind="preview", entity=entity)
+	.getEntity(entity=entity)
 }
 
 getProject <- 
 		function(entity)
 {
-	.getEntity(kind="project", entity=entity)
+	.getEntity(entity=entity)
 }

@@ -6,7 +6,7 @@
 		if(length(entity) > 1){
 			return(rbind(.getChildEntities(entity[1], offset, limit, kind, childKind, includeParentAnnot), .getChildEntities(entity[-1], offset, limit, kind, childKind, includeParentAnnot)))
 		}
-		entity <- .getEntity(kind, entity)
+		entity <- .getEntity(entity)
 	}
 	
 	if(!is.data.frame(entity)){
