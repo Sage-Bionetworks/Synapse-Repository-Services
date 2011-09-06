@@ -447,11 +447,11 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 
 	private void showAddAnnotationWindow(EditorGrid<EditableAnnotationModelData> grid) {
 		addAnnotationsWindow = new Window();
-		addAnnotationsWindow.setTitle("Add Annotation");
+		addAnnotationsWindow.setHeading(DisplayConstants.TITLE_ADD_ANNOTATION);		
 		addAnnotationsWindow.setModal(true);
 		addAnnotationsWindow.setSize(400, 170);
 		if(addAnnotationPanel == null) {		
-			setupAddAnnotationPanel(addAnnotationsWindow);
+			setupAddAnnotationPanel();
 		}
 		addAnnotationsWindow.add(addAnnotationPanel);
 		addAnnotationsWindow.show();
@@ -467,9 +467,9 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 	
 	}
 
-	private void setupAddAnnotationPanel(final Window window) {
+	private void setupAddAnnotationPanel() {
 		// Setup panel
-		addAnnotationPanel = new FormPanel();
+		addAnnotationPanel = new FormPanel();		
 		addAnnotationPanel.setHeaderVisible(false);
 		addAnnotationPanel.setFrame(false);
 		addAnnotationPanel.setBodyBorder(true);
@@ -535,8 +535,8 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		cancelButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
 			@Override
 			public void componentSelected(ButtonEvent ce) {
+				addAnnotationsWindow.hide();
 				cleanupAddAnnotationPanel();
-				window.hide();
 			}
 		});
 		
