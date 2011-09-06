@@ -5,7 +5,8 @@ Version: 0.7-0
 Date: 2011-9-2
 Author@R: c(
 			person("Matthew", "Furia", email="matt.furia@sagebase.org", role=c("cre","aut")),
-			person("Nicole, "Deflaux", email="nicole.deflaux@sagebase.org", role="aut")
+			person("Nicole", "Deflaux", email="nicole.deflaux@sagebase.org", role="aut"),
+			person("Martin", "Morgan", email="mtmorgan@fhcrc.org", role="ctb")
 			)
 Author: Matthew Furia <matt.furia@sagebase.org>, Nicole Deflaux <nicole.deflaux@sagebase.org>
 Maintainer: Matthew Furia <matt.furia@sagebase.org>

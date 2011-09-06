@@ -2,7 +2,7 @@
 		function() 
 {
 	# Create a project
-	project <- list()
+	project <- RJSONIO::emptyNamedList
 	project$name <- paste('R Conditional Get Integration Test Project', gsub(':', '_', date()))
 	createdProject <- createProject(entity=project)
 	.setCache("rIntegrationTestProject", createdProject)
@@ -29,7 +29,7 @@ integrationTestConditionalGet <-
 {
 
 	# Create a dataset
-	dataset <- list()
+	dataset <- RJSONIO::emptyNamedList
 	dataset$name <- 'R Integration Test Dataset'
 	dataset$parentId <- .getCache("rIntegrationTestProject")$id
 	createdDataset <- createDataset(entity=dataset)
@@ -37,7 +37,7 @@ integrationTestConditionalGet <-
 	checkEquals(dataset$name, createdDataset$name)
 	
 	# Create a layer and store a data R object
-	layer <- list()
+	layer <- RJSONIO::emptyNamedList
 	layer$name <- 'R Integration Test Layer'
 	layer$type <- 'C'
 	layer$parentId <- createdDataset$id 

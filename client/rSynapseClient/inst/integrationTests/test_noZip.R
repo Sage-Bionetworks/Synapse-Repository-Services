@@ -11,7 +11,7 @@
 	}
 	attr(myZip, "origFcn") <- utils:::zip
 	## detach packages so their functions can be overridden
-	detach('package:utils', force=TRUE)
+	suppressWarnings(detach('package:utils', force=TRUE))
 	utils:::assignInNamespace("zip", myZip, "utils")
 	#reload detached packages
 	library(utils, quietly=TRUE)
@@ -25,7 +25,7 @@
 
 .tearDown <- function(){
 	## put back method
-	detach('package:utils', force = TRUE)
+	suppressWarnings(detach('package:utils', force = TRUE))
 	utils:::assignInNamespace("zip", attr(utils:::zip, "origFcn"), "utils")
 	library(utils, quietly = TRUE)
 	

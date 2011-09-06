@@ -42,7 +42,6 @@
 	attachNamespace('synapseClient')
 }
 
-# TODO there is a bug here, this is hitting the remote repository service
 unitTestJsonCorretlyParsed <- 
 		function() 
 {

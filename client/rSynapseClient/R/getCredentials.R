@@ -1,38 +1,3 @@
-getCredentials <- function(username){
-	
-	## in unix systems, get the credentials from the terminal
-	## unless called from a gui. then, first check to see if the
-	## system has a working tcl/tk installation
-	if(tolower(.Platform$OS.type) == "unix"){
-		if(!is.null(.getCache("useTk"))){
-			if(.getCache("useTk")){
-				return(.tkGetCredentials(username))
-			}else{
-				return(.terminalGetCredentials(username))
-			}
-		}
-		
-		## By default don't check for tk with the CRAN GUI since it hangs when tk isn't properly installed
-		if(tolower(.Platform$GUI) == "aqua")
-			return(.terminalGetCredentials(username))
-		
-		if(tolower(.Platform$GUI) != "x11"){
-			if(.hasTk())
-				return(.tkGetCredentials(username))	
-		}
-		return(.terminalGetCredentials(username))
-	}else if(tolower(.Platform$OS.type) == "windows"){
-		## if the called from a GUI get the credentials from a TK widget
-		if(.hasTk())
-			return(.tkGetCredentials(username))
-		return(.terminalGetCredentials(username))
-	}
-	
-	## for platforms other than unix and windows, don't use tk
-	return(.terminalGetCredentials(username))
-}
-
-
 .tkGetCredentials <- function(username){
 	title = "Synapse Login"
 	entryWidth=35
@@ -54,31 +19,62 @@ getCredentials <- function(username){
 	userNameVar <- tcltk::tclVar(username)
 	passwordVar <- tcltk::tclVar("")
 	
+	checkState <- 
+			function()
+	{
+		if(checkUserNameState() && tcltk::tclvalue(passwordVar) != ""){
+			tcltk::tkconfigure(loginButton, state="normal")
+		}else{
+			tcltk::tkconfigure(loginButton, state="disabled")
+		}
+	}
+	checkUserNameState <-
+			function()
+	{
+		kEmailPattern <- "^.+@.+[\\.][[:alpha:]]+[\\+[[:graph:]]+]?$"
+		##make sure username looks like an email address
+		if(regexpr(kEmailPattern, tcltk::tclvalue(userNameVar)) > 0){
+			## TODO: set checkbox
+			return(TRUE)
+		}
+		##unset checkbox
+		return(FALSE)
+	}
+	
+	
 	## Text Entry Widgets for username and password. The password entry hides input
 	usernameEntryWidget <- tcltk::tkentry(root, width = entryWidth, textvariable = userNameVar)
 	passwordEntryWidget <- tcltk::tkentry(root, width = entryWidth, textvariable = passwordVar, show = "*")
 	
 	## Event handlers for OK and Cancel buttons
-	onLogin <- function()
+	onLogin <- 
+			function()
 	{
 		credentials$username <<- tcltk::tclvalue(userNameVar)
 		credentials$password <<- tcltk::tclvalue(passwordVar)
 		tcltk::tkgrab.release(root)
 		tcltk::tkdestroy(root)
 	}
-	onCancel <- function()
+	onCancel <- 
+			function()
 	{
 		credentials <<- NULL
 		tcltk::tkgrab.release(root)
 		tcltk::tkdestroy(root)
 	}
+	onDestroy <- 
+			function() 
+	{
+		tcltk::tkgrab.release(root)
+	}
 	
-	## OK and Cancel buttons
-	loginButton <- tcltk::tkbutton(root,text=" Login  ", command=onLogin)
+	## OK and Cancel buttons. disable cancel button until both username and login
+	## fields contain entries
+	loginButton <- tcltk::tkbutton(root,text=" Login  ", command=onLogin, state="disabled")
 	cancelButton <- tcltk::tkbutton(root,text=" Cancel ", command=onCancel)
 	
 	## the first row is for username
-	tcltk::tkgrid(tcltk::tklabel(root,text="Username"), column=0, row=0)
+	tcltk::tkgrid(tcltk::tklabel(root,text="  Email "), column=0, row=0)
 	tcltk::tkgrid(usernameEntryWidget, column=1, row=0, columnspan=2)
 	
 	## the second row is for password
@@ -93,6 +89,8 @@ getCredentials <- function(username){
 	## set focus to the password entry widget when in the ussername entry widget
 	tcltk::tkbind(usernameEntryWidget, "<Return>", function(){tcltk::tkfocus(passwordEntryWidget)})
 	tcltk::tkbind(passwordEntryWidget, "<Return>", onLogin)
+	tcltk::tkbind(usernameEntryWidget, "<KeyRelease>", checkState)
+	tcltk::tkbind(passwordEntryWidget, "<KeyRelease>", checkState)
 	
 	## set the focus to the root widget
 	tcltk::tkgrab.set(root)
@@ -103,7 +101,7 @@ getCredentials <- function(username){
 	}
 	
 	## bind the destroy method
-	tcltk::tkbind(root, "<Destroy>", function() {tcltk::tkgrab.release(root)})
+	tcltk::tkbind(root, "<Destroy>", onDestroy)
 	
 	## wait for user input
 	tcltk::tkwait.window(root)
@@ -113,6 +111,8 @@ getCredentials <- function(username){
 }
 
 .terminalGetCredentials <- function(username){
+	if(is.null(username))
+		username <= ""
 	credentials <- NULL
 	credentials$username <- username
 	
@@ -141,7 +141,7 @@ getCredentials <- function(username){
 		if(tolower(.Platform$OS.type) == "windows"){
 			## this is a windows terminal
 			## TODO figure out how to suppress terminal output in Windows
-		}
+		}	
 	}
 	
 	tryCatch(
@@ -162,7 +162,7 @@ getCredentials <- function(username){
 		origWarn <- options()$warn
 		options(warn=-1)
 		tryCatch({
-					tcltk::tktoplevel()
+					tcltk:::tktoplevel()
 					.setCache("useTk", TRUE)
 				},
 				error = function(e){

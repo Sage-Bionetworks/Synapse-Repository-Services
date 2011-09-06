@@ -1,5 +1,5 @@
 import(RCurl, Biobase, methods)
-importFrom(RJSONIO, toJSON, fromJSON)
+importFrom(RJSONIO, toJSON, fromJSON, emptyNamedList)
 importFrom(tools, md5sum)
 
 

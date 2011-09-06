@@ -17,12 +17,12 @@ setClass(
 				longAnnotations = "list",
 				stringAnnotations = "list"),
 		prototype = prototype(
-				properties = list(),
-				blobAnnotations = list(),
-				dateAnnotations = list(),
-				doubleAnnotations = list(),
-				longAnnotations = list(),
-				stringAnnotations = list()
+				properties = emptyNamedList,
+				blobAnnotations = emptyNamedList,
+				dateAnnotations = emptyNamedList,
+				doubleAnnotations = emptyNamedList,
+				longAnnotations = emptyNamedList,
+				stringAnnotations = emptyNamedList
 		)
 )
 
@@ -37,7 +37,7 @@ setClass(
 				annotations = "SynapseAnnotation"
 		),
 		prototype = prototype(
-				properties = list(),
+				properties = emptyNamedList,
 				annotations = new(Class="SynapseAnnotation")
 		)
 )

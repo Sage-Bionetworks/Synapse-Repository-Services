@@ -2,7 +2,7 @@
 		function() 
 {
 	# Create a project
-	project <- list()
+	project <- RJSONIO::emptyNamedList
 	project$name <- paste('R Store Layer Data Integration Test Project', gsub(':', '_', date()))
 	createdProject <- createEntity(Project(entity=project))
 	synapseClient:::.setCache("rIntegrationTestProject", createdProject)
@@ -58,7 +58,7 @@ integrationTestStoreLayerData <-
 	
 	##------
 	## Create a layer and store a tab-delimited file explicity
-	layer2 <- list()
+	layer2 <- RJSONIO::emptyNamedList
 	layer2$name <- 'R Integration Test Layer2'
 	layer2$type <- 'C'
 	layer2$parentId <- propertyValue(createdDataset, "id")
@@ -70,7 +70,7 @@ integrationTestStoreLayerData <-
 	
 	##------
 	## Create a layer and store a serialized R object explicity
-	layer3 <- list()
+	layer3 <- RJSONIO::emptyNamedList
 	layer3$name <- 'R Integration Test Layer3'
 	layer3$type <- 'C'
 	layer3$parentId <- propertyValue(createdDataset, "id")
@@ -125,7 +125,7 @@ integrationTestStoreLayerData <-
 integrationTestUpdateStoredLayerData <- function() {
 	
 	# Create a dataset
-	dataset <- list()
+	dataset <- RJSONIO::emptyNamedList
 	dataset$name <- 'R Integration Test Dataset - Update Stored Layer'
 	dataset$parentId <- propertyValue(synapseClient:::.getCache("rIntegrationTestProject"), "id")
 	createdDataset <- createEntity(Dataset(entity=dataset))
@@ -138,7 +138,7 @@ integrationTestUpdateStoredLayerData <- function() {
 	
 	##------
 	## Create a layer and use the convenience method to store an R object as a tab-delimited file
-	layer <- list()
+	layer <- RJSONIO::emptyNamedList
 	layer$name <- 'R Integration Test Layer'
 	layer$type <- 'C'
 	layer$parentId <- propertyValue(createdDataset, "id")
@@ -170,14 +170,14 @@ integrationTestUpdateStoredLayerData <- function() {
 integrationTestStoreMediaLayer <- function() {
 	
 	## Create a dataset
-	dataset <- list()
+	dataset <- RJSONIO::emptyNamedList
 	dataset$name <- 'R Integration Test Dataset - Store Media Layer'
 	dataset$parentId <- propertyValue(synapseClient:::.getCache("rIntegrationTestProject"), "id")
 	createdDataset <- createEntity(entity=Dataset(dataset))
 	checkEquals(dataset$name, propertyValue(createdDataset, "name"))
 	
 	## Create a layer
-	layer <- list()
+	layer <- RJSONIO::emptyNamedList
 	layer$name <- 'R Integration Test Layer'
 	layer$type <- 'M'
 	layer$parentId <- propertyValue(createdDataset, "id")

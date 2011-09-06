@@ -8,13 +8,13 @@
 integrationTestCRUD <- function() {
 
 	# Create a project
-	project <- list()
+	project <- RJSONIO::emptyNamedList
 	project$name = paste('R Synapse CRUD Integration Test Project', gsub(':', '_', date()))
 	createdProject <- createProject(entity=project)
 	checkEquals(project$name, createdProject$name)
 	
 	# Create a dataset
-	dataset <- list()
+	dataset <- RJSONIO::emptyNamedList
 	dataset$name = 'R Integration Test Dataset'
 	dataset$status = 'test create'
 	dataset$parentId <- createdProject$id

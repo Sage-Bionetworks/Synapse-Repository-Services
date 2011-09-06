@@ -7,13 +7,13 @@
 
 integrationTestCRUD <- function() {
 	# Create a project
-	project <- list()
+	project <- RJSONIO::emptyNamedList
 	project$name = paste('R Entity CRUD Integration Test Project', gsub(':', '_', date()))
 	createdProject <- createProject(entity=project)
 	checkEquals(project$name, createdProject$name)
 
 	# Create a dataset
-	dataset <- list()
+	dataset <- RJSONIO::emptyNamedList
 	dataset$name = 'R Integration Test Dataset'
 	dataset$status = 'test create'
 	dataset$parentId <- createdProject$id
@@ -35,20 +35,18 @@ integrationTestCRUD <- function() {
 	checkTrue(dataset$status != modifiedDataset$status)
 	checkEquals('test update', modifiedDataset$status)
 	
-	# Modify a project
-	## THIS TEST FAILS. might be a synapse but related to default project permissions?
-#	createdProject$creator <- "newCreator@sagebase.org"
-#	modifiedProject <- updateProject(entity = createdProject)
-#	checkEquals(project$name, modifiedProject$name)
-#	checkEquals(storedProject$id, modifiedProject$id)
-#	checkTrue(project$creator != modifiedProject$creator)
-#	checkEquals("newCreator@sagebase.org", modifiedProject$creator)
-#	
 	# Get dataset annotations
 	annotations <- getAnnotations(entity=modifiedDataset)
 	annotations$stringAnnotations$myNewAnnotationKey <- 'my new annotation value'
 	storedAnnotations <- updateAnnotations(annotations=annotations)
 	checkEquals('my new annotation value', storedAnnotations$stringAnnotations$myNewAnnotationKey)
+	
+	# Modify a project
+	createdProject$name <- 'R Entity CRUD Integration Test Project NEW NAME'
+	modifiedProject <- updateProject(entity = createdProject)
+	checkEquals(createdProject$id, modifiedProject$id)
+	checkTrue(project$name != modifiedProject$name)
+	checkEquals("R Entity CRUD Integration Test Project NEW NAME", modifiedProject$name)
 	
 	# Delete a Project
 	deleteProject(entity=createdProject)

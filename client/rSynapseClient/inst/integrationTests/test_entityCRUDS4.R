@@ -31,7 +31,6 @@ integrationTestCreateS4Entities <- function(){
 	dataset <- createdDataset
 	
 	## Create Layer
-	## phenotype
 	layer <- new(Class = "PhenotypeLayer")
 	propertyValue(layer, "name") <- "testPhenoLayerName"
 	propertyValue(layer, "parentId") <- propertyValue(dataset,"id")
@@ -59,12 +58,15 @@ integrationTestCreateS4Entities <- function(){
 	checkEquals(propertyValue(createdLayer,"parentId"), propertyValue(dataset, "id"))
 	
 	## Create Location
-#	location <- new(Class = "Location")
-#	propertyValue(layer, "name") <- "testLocationName"
-#	propertyValue(layer, "parentId") <- propertyValue(layer,"id")
-#	createdLayer <- createEntity(layer)
-#	checkEquals(propertyValue(createdLayer,"name"), propertyValue(layer, "name"))
-#	checkEquals(propertyValue(createdLayer,"parentId"), propertyValue(layer, "id"))
+	location <- new(Class = "Location")
+	propertyValue(location, "parentId") <- propertyValue(createdLayer,"id")
+	propertyValue(location, "type") <- "awss3"
+	propertyValue(location, "path") <- "fakeFile.txt"
+	propertyValue(location, "md5sum") <- "80ca8c7c1c83310e471b8c4b19a86cc9"
+	createdLocation <- createEntity(location)
+	checkEquals(propertyValue(createdLocation,"md5sum"), propertyValue(location, "md5sum"))
+	checkEquals(propertyValue(createdLocation,"parentId"), propertyValue(createdLayer, "id"))
+	checkEquals(propertyValue(createdLocation,"type"), propertyValue(location, "type"))
 	
 }
 
@@ -102,11 +104,10 @@ integrationTestUpdateS4Entity <-
 	checkEquals(propertyValue(createdProject,"name"), propertyValue(project,"name"))
 	
 	## set an annotation value and update. 
-  	## THIS TEST IS BROKEN. update annotations doesn't work with project entities. Possible Synapse bug?
-	##annotValue(createdProject, "newKey") <- "newValue"
-	###updatedProject <- updateEntity(createdProject)
-	##checkEquals(propertyValue(updatedProject,"id"), propertyValue(createdProject,"id"))
-	##checkTrue(propertyValue(updatedProject, "etag") != propertyValue(createdProject, "etag"))
+	annotValue(createdProject, "newKey") <- "newValue"
+	updatedProject <- updateEntity(createdProject)
+	checkEquals(propertyValue(updatedProject,"id"), propertyValue(createdProject,"id"))
+	checkTrue(propertyValue(updatedProject, "etag") != propertyValue(createdProject, "etag"))
 	
 	## create a dataset
 	dataset <- new(Class="Dataset")
@@ -135,11 +136,29 @@ integrationTestUpdateS4Entity <-
 	checkEquals(propertyValue(createdLayer, "description"), propertyValue(updatedLayer, "description"))
 	
 	## update the description property on a project
-	## THIS TEST IS BROKEN. update properties on project entities doesn't work
-#	propertyValue(createdProject, "description") <- "This is a new description"
-#	updatedProject <- updateEntity(createdProject)
-#	checkEquals(propertyValue(createdProject, "description"), propertyValue(updatedProject, "description"))
-
+	createdProject <- refreshEntity(createdProject)
+	propertyValue(createdProject, "description") <- "This is a new description"
+	updatedProject <- updateEntity(createdProject)
+	checkEquals(propertyValue(createdProject, "description"), propertyValue(updatedProject, "description"))
+	
+	## Create Location
+	location <- new(Class = "Location")
+	propertyValue(location, "parentId") <- propertyValue(createdLayer,"id")
+	propertyValue(location, "type") <- "awss3"
+	propertyValue(location, "path") <- "fakeFile.txt"
+	propertyValue(location, "md5sum") <- "80ca8c7c1c83310e471b8c4b19a86cc9"
+	createdLocation <- createEntity(location)
+	checkEquals(propertyValue(createdLocation,"md5sum"), propertyValue(location, "md5sum"))
+	checkEquals(propertyValue(createdLocation,"parentId"), propertyValue(createdLayer, "id"))
+	checkEquals(propertyValue(createdLocation,"type"), propertyValue(location, "type"))
+	
+	## update the location
+	propertyValue(createdLocation, "md5sum") <- "f0d66fb8fd48901050b32d060c4de3c9"
+	annotValue(createdLocation, "anAnnotation") <- "anAnnotationValue"
+	updatedLocation <- updateEntity(createdLocation)
+	checkEquals(propertyValue(createdLocation, "md5sum"), propertyValue(updatedLocation, "md5sum"))
+	checkTrue(is.null(annotValue(updatedLocation, "anAnnotation")))
+	checkEquals(propertyValue(createdLocation, "id"), propertyValue(updatedLocation, "id"))
 }
 
 integrationTestDeleteEntity <- 
