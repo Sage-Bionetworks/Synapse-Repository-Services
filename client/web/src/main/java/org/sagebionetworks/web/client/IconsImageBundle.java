@@ -85,7 +85,19 @@ public interface IconsImageBundle extends ClientBundle {
 		
 	@Source("images/icons/lock-unlock-16.png")
 	ImageResource lockUnlocked16();	
-		
+
+	@Source("images/icons/magnifier-zoom-16.png")
+	ImageResource magnify16();		
+	
+	@Source("images/icons/magnifier-zoom-fit-16.png")
+	ImageResource magnifyFit16();		
+	
+	@Source("images/icons/magnifier-zoom-in-16.png")
+	ImageResource magnifyZoomIn16();		
+	
+	@Source("images/icons/magnifier-zoom-out-16.png")
+	ImageResource magnifyZoomOut16();		
+	
 	@Source("images/icons/mail--arrow-16.png")
 	ImageResource mailArrow16();	
 		
@@ -109,5 +121,14 @@ public interface IconsImageBundle extends ClientBundle {
 	
 	@Source("images/icons/exclamation-16.png")
 	ImageResource warning16();	
+
+	// demo
 	
+	@Source("images/icons/details-16.png") 
+	ImageResource details16();	
+
+	
+	@Source("images/icons/visualize-16.png")
+	ImageResource visualize16();	
+
 }

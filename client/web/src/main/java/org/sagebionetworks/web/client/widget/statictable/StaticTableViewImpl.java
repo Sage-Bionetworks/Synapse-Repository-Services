@@ -8,13 +8,17 @@ import org.sagebionetworks.web.client.DisplayConstants;
 
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
 import com.extjs.gxt.ui.client.data.BaseModelData;
+import com.extjs.gxt.ui.client.event.SelectionChangedListener;
 import com.extjs.gxt.ui.client.store.ListStore;
 import com.extjs.gxt.ui.client.util.Margins;
 import com.extjs.gxt.ui.client.widget.ContentPanel;
 import com.extjs.gxt.ui.client.widget.LayoutContainer;
+import com.extjs.gxt.ui.client.widget.grid.CellSelectionModel;
+import com.extjs.gxt.ui.client.widget.grid.CellSelectionModel.CellSelection;
 import com.extjs.gxt.ui.client.widget.grid.ColumnConfig;
 import com.extjs.gxt.ui.client.widget.grid.ColumnModel;
 import com.extjs.gxt.ui.client.widget.grid.Grid;
+import com.extjs.gxt.ui.client.widget.grid.GridSelectionModel;
 import com.extjs.gxt.ui.client.widget.layout.FitLayout;
 import com.extjs.gxt.ui.client.widget.layout.FlowLayout;
 import com.extjs.gxt.ui.client.widget.tips.QuickTip;
@@ -31,7 +35,8 @@ public class StaticTableViewImpl extends LayoutContainer implements
     private ListStore<BaseModelData> store;
 	private ContentPanel cp;
 	private boolean showTitleBar;
-	private String panelTitle;	
+	private String panelTitle;
+	private GridSelectionModel<BaseModelData> selectionModel;
 
 	@Inject
 	public StaticTableViewImpl() {
@@ -79,8 +84,10 @@ public class StaticTableViewImpl extends LayoutContainer implements
 		grid.getAriaSupport().setLabelledBy(cp.getHeader().getId() + "-label");
 		grid.setAutoWidth(true);
 		grid.setLoadMask(true);
+		selectionModel = new GridSelectionModel<BaseModelData>();
+		grid.setSelectionModel(selectionModel);
 		cp.add(grid);
-		
+				
 		add(cp);
 		// needed to enable quicktips (qtitle for the heading and qtip for the
 		// content) that are setup in the change GridCellRenderer
@@ -162,6 +169,19 @@ public class StaticTableViewImpl extends LayoutContainer implements
 		cp.setHeading(title);
 	}
 
+	@Override
+	public void setSelectionMode(StaticSelectionMode selectionMode) {
+		if(this.grid != null) {			
+			if(selectionMode == StaticSelectionMode.CELL) {
+				selectionModel = new CellSelectionModel<BaseModelData>();
+			} else {
+				selectionModel = new GridSelectionModel<BaseModelData>();
+			}
+			grid.setSelectionModel(selectionModel);
+		}
+	}
+	
+
 	
 	/*
 	 * Private Methods
@@ -223,6 +243,21 @@ public class StaticTableViewImpl extends LayoutContainer implements
 			grid.hide();
 			cp.mask("Loading...");
 		}
+	}
+
+
+	@Override
+	public void addSelectionListener(SelectionChangedListener<BaseModelData> listener) {		
+		selectionModel.addSelectionChangedListener(listener);
+	}
+
+
+	@Override
+	public String getSelectedColumn() {
+		if(selectionModel instanceof CellSelectionModel<?>) {
+			CellSelectionModel<BaseModelData>.CellSelection selectedCell = ((CellSelectionModel<BaseModelData>)selectionModel).getSelectCell();
+		}
+		return null;
 	}
 	
 }

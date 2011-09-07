@@ -1,7 +1,9 @@
 package org.sagebionetworks.web.client.widget.editpanels.phenotype;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -25,10 +27,13 @@ import com.extjs.gxt.ui.client.widget.BoxComponent;
 import com.extjs.gxt.ui.client.widget.ContentPanel;
 import com.extjs.gxt.ui.client.widget.Label;
 import com.extjs.gxt.ui.client.widget.LayoutContainer;
+import com.extjs.gxt.ui.client.widget.Text;
+import com.extjs.gxt.ui.client.widget.Window;
 import com.extjs.gxt.ui.client.widget.button.Button;
 import com.extjs.gxt.ui.client.widget.form.ComboBox.TriggerAction;
 import com.extjs.gxt.ui.client.widget.form.SimpleComboBox;
 import com.extjs.gxt.ui.client.widget.form.SimpleComboValue;
+import com.extjs.gxt.ui.client.widget.form.TextField;
 import com.extjs.gxt.ui.client.widget.grid.ColumnConfig;
 import com.extjs.gxt.ui.client.widget.grid.ColumnData;
 import com.extjs.gxt.ui.client.widget.grid.ColumnModel;
@@ -36,7 +41,11 @@ import com.extjs.gxt.ui.client.widget.grid.EditorGrid;
 import com.extjs.gxt.ui.client.widget.grid.Grid;
 import com.extjs.gxt.ui.client.widget.grid.GridCellRenderer;
 import com.extjs.gxt.ui.client.widget.grid.GridSelectionModel;
+import com.extjs.gxt.ui.client.widget.layout.AbsoluteData;
+import com.extjs.gxt.ui.client.widget.layout.AbsoluteLayout;
 import com.extjs.gxt.ui.client.widget.layout.FitLayout;
+import com.extjs.gxt.ui.client.widget.layout.HBoxLayout;
+import com.extjs.gxt.ui.client.widget.layout.VBoxLayout;
 import com.extjs.gxt.ui.client.widget.toolbar.ToolBar;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
@@ -48,7 +57,10 @@ import com.google.inject.Inject;
 public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements ColumnDefinitionEditorView {
 
 	private static final String COLUMN_DEF_EDIT_MAPPING_KEY = "editMapping";
-	private static final String COLUMN_DEF_ONTOLOGY_KEY = "columnOntology";
+	private static final String COLUMN_DEF_TYPE_KEY = "columnOntology";
+	private static final String COLUMN_DEF_CONSTRAINT_KEY = "columnConstraint";
+	private static final String COLUMN_DEF_UNITS_KEY = "columnUnits";
+	private static final String COLUMN_DEF_DESCRIPTION_KEY = "columnDescription";
 	private static final String COLUMN_DEF_COLUMN_NAME_KEY = "columnName";
 	private static final String COLUMN_REMOVE_COLUMN_KEY = "remove";
 
@@ -56,13 +68,16 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 	private IconsImageBundle iconsImageBundle;
 	private SageImageBundle sageImageBundle;
 	private StaticTable staticTable;
-	private static int CONTENT_WIDTH_PX = 448;
+	private static int CONTENT_WIDTH_PX = 973;
 	private static int CONTENT_HEIGHT_PX = 298;	
 
 	private ColumnModel columnDefColumnModel;
 	private ListStore<ColumnDefinitionTableModel> columnDefGridStore;
 	private EditorGrid<ColumnDefinitionTableModel> columnDefGrid;
+	private ContentPanel ontologySearchPanel;
 
+	private Grid<BaseModelData> fakeSearchResultsGrid;
+	
 	@Inject
 	public ColumnDefinitionEditorViewImpl(IconsImageBundle iconsImageBundle, SageImageBundle sageImageBundle, StaticTable staticTable) {
 		this.iconsImageBundle = iconsImageBundle;
@@ -83,10 +98,13 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 		
 		// cell renderes
 		GridCellRenderer<ColumnDefinitionTableModel> ontologyRenderer = createOntologyRenderer(ontologies);
+		GridCellRenderer<ColumnDefinitionTableModel> constraintRenderer = createConstraintRenderer(ontologies);
+		GridCellRenderer<ColumnDefinitionTableModel> unitsRenderer = createUnitsRenderer(ontologies);
+		GridCellRenderer<ColumnDefinitionTableModel> descriptionRenderer = createDescriptionRenderer(ontologies);
 		GridCellRenderer<ColumnDefinitionTableModel> removeRenderer = createRemoveRenderer();						   
 
 		// build column model & fill store
-        List<ColumnConfig> colConfigs = createColumnDefConfigs(ontologyRenderer, removeRenderer);          
+        List<ColumnConfig> colConfigs = createColumnDefConfigs(ontologyRenderer, removeRenderer, constraintRenderer, unitsRenderer, descriptionRenderer);          
 		columnDefColumnModel = new ColumnModel(colConfigs);
 		fillColumnDefGridStore(columns, identityColumn);
 		
@@ -116,6 +134,16 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 		
 	}
 
+	public void addColumnDefinitionSelectionListener(@SuppressWarnings("rawtypes") SelectionChangedListener listener) {
+		columnDefGrid.getSelectionModel().addSelectionChangedListener(new SelectionChangedListener<ColumnDefinitionEditorViewImpl.ColumnDefinitionTableModel>() {
+
+			@Override
+			public void selectionChanged(SelectionChangedEvent<ColumnDefinitionTableModel> se) {
+				
+			}
+		});
+	}
+	
 	
 	@Override
 	public void showLoading() {
@@ -151,17 +179,27 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 	 */
 	private List<ColumnConfig> createColumnDefConfigs(
 			GridCellRenderer<ColumnDefinitionTableModel> ontologyRenderer,
-			GridCellRenderer<ColumnDefinitionTableModel> removeRenderer) {
+			GridCellRenderer<ColumnDefinitionTableModel> removeRenderer, GridCellRenderer<ColumnDefinitionTableModel> constraintRenderer, GridCellRenderer<ColumnDefinitionTableModel> unitsRenderer, GridCellRenderer<ColumnDefinitionTableModel> descriptionRenderer) {
 		List<ColumnConfig> colConfigs = new ArrayList<ColumnConfig>();
         ColumnConfig colConfig;
 
-        // name col
         colConfig = new ColumnConfig(COLUMN_DEF_COLUMN_NAME_KEY, "Column Name", 170);
         colConfigs.add(colConfig);
         
-        // ontology drop down
-        colConfig = new ColumnConfig(COLUMN_DEF_ONTOLOGY_KEY, "Ontology", 235);
+        colConfig = new ColumnConfig(COLUMN_DEF_TYPE_KEY, "Type", 120);
         colConfig.setRenderer(ontologyRenderer);
+        colConfigs.add(colConfig);
+        
+        colConfig = new ColumnConfig(COLUMN_DEF_CONSTRAINT_KEY, "Constraint", 195);
+        colConfig.setRenderer(constraintRenderer);
+        colConfigs.add(colConfig);
+        
+        colConfig = new ColumnConfig(COLUMN_DEF_UNITS_KEY, "Units", 100);
+        colConfig.setRenderer(unitsRenderer);
+        colConfigs.add(colConfig);
+        
+        colConfig = new ColumnConfig(COLUMN_DEF_DESCRIPTION_KEY, "Description", 205);
+        colConfig.setRenderer(descriptionRenderer);
         colConfigs.add(colConfig);
         
         // delete button
@@ -172,6 +210,7 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
         colConfig.setWidth(25);  
         colConfig.setRenderer(removeRenderer);  
 		colConfigs.add(colConfig);
+		
 		return colConfigs;
 	}	
 	
@@ -179,13 +218,57 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 		columnDefGridStore = new ListStore<ColumnDefinitionTableModel>();		
 		// add columns to grid store
 
+		// TODO : remove this demo stuff:
+		int i=0;
 		for(String colName : columns) {
 			ColumnDefinitionTableModel row = new ColumnDefinitionTableModel(colName, "", false);
 			if(colName.equals(identityColumn)) {
 				row.setIdColumn(true);
 			}
+			
+			if(i==0) {
+				row.set(COLUMN_DEF_TYPE_KEY, "Enumeration");
+				row.set(COLUMN_DEF_CONSTRAINT_KEY, "Yes,No");
+			}
+						
+			if(i==1) {
+				row.set(COLUMN_DEF_TYPE_KEY, "Enumeration");
+				row.set(COLUMN_DEF_CONSTRAINT_KEY, "Yes,No");
+			}
+
+			if(i==2) {
+				row.set(COLUMN_DEF_TYPE_KEY, "Enumeration");
+				row.set(COLUMN_DEF_CONSTRAINT_KEY, "A,C,A1,C1,A2");
+			}
+						
+			if(i==3) {
+				row.set(COLUMN_DEF_TYPE_KEY, "Ontology");
+				row.set(COLUMN_DEF_CONSTRAINT_KEY, "NCI Metathesaurus");
+			}
+					
+			if(i==4) {
+				row.set(COLUMN_DEF_TYPE_KEY, "Enumeration");
+				row.set(COLUMN_DEF_CONSTRAINT_KEY, "Adenoma,Carcinoma");
+			}
+			
+			if(i==5) {
+				row.set(COLUMN_DEF_TYPE_KEY, "Ontology");
+				row.set(COLUMN_DEF_CONSTRAINT_KEY, "NCI Thesaurus");
+			}
+			
+			if(i==6) {
+				row.set(COLUMN_DEF_TYPE_KEY, "Number");
+				row.set(COLUMN_DEF_CONSTRAINT_KEY, "0-100");
+				row.set(COLUMN_DEF_UNITS_KEY, "mm");
+			}
+			
 			columnDefGridStore.add(row);
+			i++;
 		}
+		
+		
+
+		
 	}
 	
 	private ToolBar createIdSelectorToolBar(List<String> columns) {
@@ -214,7 +297,7 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 		return toolBar;
 	}
 	
-	private ToolBar createColumnDefToolbarAndButtons(final EditorGrid grid) {
+	private ToolBar createColumnDefToolbarAndButtons(final EditorGrid<ColumnDefinitionTableModel> grid) {
 		// setup toolbar
 		ToolBar toolBar = new ToolBar();
 		Button addButton = new Button("Add Column");
@@ -260,11 +343,23 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 					return lbl;					
 				} else {
 					SimpleComboBox<String> comboBox = new SimpleComboBox<String>();
+					comboBox.setTriggerAction(TriggerAction.ALL);
 					comboBox.setWidth(grid.getColumnModel().getColumnWidth(colIndex) - 15);
-					comboBox.add("Uncontrolled Text");
-					for(Ontology ontology : ontologies) {
-						comboBox.add(ontology.getDisplayName());
-					}
+					comboBox.add("Ontology");
+					comboBox.add("Free Text");
+					comboBox.add("Enumeration");
+					comboBox.add("Number");
+					comboBox.add("Integer");
+					comboBox.add("Boolean");
+					
+					
+					
+					String value = entry.get(COLUMN_DEF_TYPE_KEY);
+					comboBox.setSimpleValue(value);
+					
+//					for(Ontology ontology : ontologies) {
+//						comboBox.add(ontology.getDisplayName());
+//					}
 					comboBox.addSelectionChangedListener(new SelectionChangedListener<SimpleComboValue<String>>() {
 						
 						@Override
@@ -282,6 +377,101 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 
 		return buttonRenderer;
 	}
+
+	private GridCellRenderer<ColumnDefinitionTableModel> createConstraintRenderer(final Collection<Ontology> ontologies) {
+		GridCellRenderer<ColumnDefinitionTableModel> buttonRenderer = new GridCellRenderer<ColumnDefinitionTableModel>() {
+			@Override
+			public Object render(final ColumnDefinitionTableModel model,
+					String property, ColumnData config, final int rowIndex,
+					final int colIndex,
+					ListStore<ColumnDefinitionTableModel> store,
+					Grid<ColumnDefinitionTableModel> grid) {
+				final ColumnDefinitionTableModel entry = store.getAt(rowIndex);
+				if (entry.isIdColumn()) {
+					Label lbl = new Label("");					
+					return lbl;					
+				} else {					
+					TextField<String> field = new TextField<String>();
+					field.setWidth(160);
+					String value = entry.get(COLUMN_DEF_CONSTRAINT_KEY);
+					if(value != null) {
+						field.setValue(value);
+					}
+					
+					Button editButton = new Button("", AbstractImagePrototype.create(iconsImageBundle.documentEdit16()));
+					editButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+
+						@Override
+						public void componentSelected(ButtonEvent ce) {
+							showOntologySearchWindow();
+						}
+					});
+					
+					LayoutContainer container = new LayoutContainer(new HBoxLayout());
+					container.add(field);
+					container.add(editButton);
+					return container;
+				}
+			}
+		};
+
+		return buttonRenderer;
+	}
+
+	private GridCellRenderer<ColumnDefinitionTableModel> createUnitsRenderer(final Collection<Ontology> ontologies) {
+		GridCellRenderer<ColumnDefinitionTableModel> buttonRenderer = new GridCellRenderer<ColumnDefinitionTableModel>() {
+			@Override
+			public Object render(final ColumnDefinitionTableModel model,
+					String property, ColumnData config, final int rowIndex,
+					final int colIndex,
+					ListStore<ColumnDefinitionTableModel> store,
+					Grid<ColumnDefinitionTableModel> grid) {
+				final ColumnDefinitionTableModel entry = store.getAt(rowIndex);
+				if (entry.isIdColumn()) {
+					Label lbl = new Label("");					
+					return lbl;					
+				} else {
+					TextField<String> field = new TextField<String>();
+					field.setWidth(90);
+					String value = entry.get(COLUMN_DEF_UNITS_KEY);
+					if(value != null) {
+						field.setValue(value);
+					}
+					return field;
+				}
+			}
+		};
+
+		return buttonRenderer;
+	}
+
+	private GridCellRenderer<ColumnDefinitionTableModel> createDescriptionRenderer(final Collection<Ontology> ontologies) {
+		GridCellRenderer<ColumnDefinitionTableModel> buttonRenderer = new GridCellRenderer<ColumnDefinitionTableModel>() {
+			@Override
+			public Object render(final ColumnDefinitionTableModel model,
+					String property, ColumnData config, final int rowIndex,
+					final int colIndex,
+					ListStore<ColumnDefinitionTableModel> store,
+					Grid<ColumnDefinitionTableModel> grid) {
+				final ColumnDefinitionTableModel entry = store.getAt(rowIndex);
+				if (entry.isIdColumn()) {
+					Label lbl = new Label("");					
+					return lbl;					
+				} else {
+					TextField<String> field = new TextField<String>();
+					field.setWidth(160);
+					Button editButton = new Button("", AbstractImagePrototype.create(iconsImageBundle.documentEdit16())); 				
+					LayoutContainer container = new LayoutContainer(new HBoxLayout());
+					container.add(field);
+					container.add(editButton);
+					return container;
+				}
+			}
+		};
+
+		return buttonRenderer;
+	}
+
 
 	private GridCellRenderer<ColumnDefinitionTableModel> createRemoveRenderer() {
 		GridCellRenderer<ColumnDefinitionTableModel> removeButton = new GridCellRenderer<ColumnDefinitionTableModel>() {  			   
@@ -308,10 +498,89 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 		return removeButton;
 	}
 
+	private void showOntologySearchWindow() {
+		if(ontologySearchPanel == null) {
+			createOntologySearchWindow();
+		}
+		final Window window = new Window();
+		window.setModal(true);
+		window.setSize(557, 357);
+		window.add(ontologySearchPanel);
+		Button closeButton = new Button("Close");
+		closeButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+
+			@Override
+			public void componentSelected(ButtonEvent ce) {
+				window.hide();
+			}
+		});
+		window.addButton(closeButton);
+		window.show();
+	}
+	
 	
 	/*
 	 * Private Classes
 	 */
+
+	private void createOntologySearchWindow() {
+		ontologySearchPanel = new ContentPanel();
+		ontologySearchPanel.setHeading("Ontology Selection");
+		ontologySearchPanel.setCollapsible(true);
+		ontologySearchPanel.setLayout(new AbsoluteLayout());
+		ontologySearchPanel.setSize(550, 300);
+		
+		TextField txtfldSearchForA = new TextField();
+		txtfldSearchForA.setEmptyText("Enter term, e.g. Melanoma");
+		ontologySearchPanel.add(txtfldSearchForA, new AbsoluteData(6, 32));
+		txtfldSearchForA.setSize("270px", "22px");
+		txtfldSearchForA.setFieldLabel("Search ");
+		
+		Text txtSearchAllOntologies = new Text("Search all ontologies");
+		ontologySearchPanel.add(txtSearchAllOntologies, new AbsoluteData(6, 11));
+		
+		final ColumnModel cm = new ColumnModel(createSearchResultConfigs());
+		fakeSearchResultsGrid = new Grid<BaseModelData>(new ListStore(), cm);
+		ontologySearchPanel.add(fakeSearchResultsGrid, new AbsoluteData(6, 89));
+		fakeSearchResultsGrid.setSize("480px", "169px");
+		fakeSearchResultsGrid.setBorders(true);		
+		
+		Button btnSearch = new Button("Search", AbstractImagePrototype.create(iconsImageBundle.magnify16()));
+		ontologySearchPanel.add(btnSearch, new AbsoluteData(282, 32));
+		btnSearch.setSize("68px", "22px");		
+		btnSearch.addSelectionListener(new SelectionListener<ButtonEvent>() {
+			@Override
+			public void componentSelected(ButtonEvent ce) {
+				ListStore<BaseModelData> store = new ListStore<BaseModelData>();
+				BaseModelData data;
+				
+				data = new BaseModelData();
+				data.set("term_name", "melanoma");
+				data.set("ontology", "CRISP Thesaurus, 2006");
+				store.add(data);
+
+				data = new BaseModelData();
+				data.set("term_name", "Melanoma");
+				data.set("ontology", "MedDRA");
+				store.add(data);
+
+				data = new BaseModelData();
+				data.set("term_name", "melanoma");
+				data.set("ontology", "NCI Thesaurus");
+				store.add(data);
+
+				fakeSearchResultsGrid.reconfigure(store, cm);								
+			}
+		});
+
+		
+		Text txtSearchResults = new Text("Search Results");
+		ontologySearchPanel.add(txtSearchResults, new AbsoluteData(6, 67));
+		add(ontologySearchPanel);
+
+		
+	}
+
 
 	private class ColumnDefinitionTableModel extends BaseModelData {
 		String columnName;
@@ -337,11 +606,11 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 		}
 
 		public String getOntologyKey() {
-			return this.get(COLUMN_DEF_ONTOLOGY_KEY);
+			return this.get(COLUMN_DEF_TYPE_KEY);
 		}
 
 		public void setOntologyKey(String ontologyKey) {
-			this.set(COLUMN_DEF_ONTOLOGY_KEY, ontologyKey);
+			this.set(COLUMN_DEF_TYPE_KEY, ontologyKey);
 		}
 
 		// Auto generated
@@ -353,6 +622,88 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 			this.isIdColumn = isIdColumn;
 		}
 		
+	}
+
+
+	/*
+	 * DEMo
+	 */
+	private List<ColumnConfig> createSearchResultConfigs() {
+		List<ColumnConfig> colConfigs = new ArrayList<ColumnConfig>();
+        ColumnConfig colConfig;       
+
+        colConfig = new ColumnConfig("select", "Select", 60);
+        colConfig.setRenderer(createSelectRenderer(null));
+        colConfigs.add(colConfig);
+
+        colConfig = new ColumnConfig("term_name", "Term Name", 120);
+        colConfigs.add(colConfig);
+        
+        colConfig = new ColumnConfig("ontology", "Ontology", 195);
+        colConfigs.add(colConfig);
+        
+        colConfig = new ColumnConfig("details", "Details", 50);
+        colConfig.setRenderer(createDetailsRenderer(null));
+        colConfigs.add(colConfig);
+                
+        colConfig = new ColumnConfig("visualize", "Visualize", 50);
+        colConfig.setRenderer(createVisualizeRenderer(null));
+        colConfigs.add(colConfig);        
+		
+		return colConfigs;
+	}	
+
+	private GridCellRenderer<BaseModelData> createSelectRenderer(final Collection<Ontology> ontologies) {
+		GridCellRenderer<BaseModelData> buttonRenderer = new GridCellRenderer<BaseModelData>() {
+			@Override
+			public Object render(final BaseModelData model,
+					String property, ColumnData config, final int rowIndex,
+					final int colIndex,
+					ListStore<BaseModelData> store,
+					Grid<BaseModelData> grid) {
+				final BaseModelData entry = store.getAt(rowIndex);
+				Button selectButton = new Button("Select");					
+				return selectButton;
+			}
+		};
+
+		return buttonRenderer;
+	}
+
+	private GridCellRenderer<BaseModelData> createDetailsRenderer(final Collection<Ontology> ontologies) {
+		GridCellRenderer<BaseModelData> buttonRenderer = new GridCellRenderer<BaseModelData>() {
+			@Override
+			public Object render(final BaseModelData model,
+					String property, ColumnData config, final int rowIndex,
+					final int colIndex,
+					ListStore<BaseModelData> store,
+					Grid<BaseModelData> grid) {
+				final BaseModelData entry = store.getAt(rowIndex);
+				Anchor removeAnchor = new Anchor();
+				removeAnchor.setHTML(DisplayUtils.getIconHtml(iconsImageBundle.details16()));
+				return removeAnchor;					
+			}
+		};
+
+		return buttonRenderer;
+	}
+
+	private GridCellRenderer<BaseModelData> createVisualizeRenderer(final Collection<Ontology> ontologies) {
+		GridCellRenderer<BaseModelData> buttonRenderer = new GridCellRenderer<BaseModelData>() {
+			@Override
+			public Object render(final BaseModelData model,
+					String property, ColumnData config, final int rowIndex,
+					final int colIndex,
+					ListStore<BaseModelData> store,
+					Grid<BaseModelData> grid) {
+				final BaseModelData entry = store.getAt(rowIndex);
+				Anchor removeAnchor = new Anchor();
+				removeAnchor.setHTML(DisplayUtils.getIconHtml(iconsImageBundle.visualize16()));
+				return removeAnchor;
+			}
+		};
+
+		return buttonRenderer;
 	}
 
 	

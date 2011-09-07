@@ -428,7 +428,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 						if(pagedResult != null) {
 							List<String> results = pagedResult.getResults();
 							for(String fileDownloadString : results) {
-								DownloadLocation downloadLocation = nodeModelCreator.createDownloadLocation(fileDownloadString);
+								DownloadLocation downloadLocation = nodeModelCreator.createDownloadLocation(fileDownloadString);								
 								if(downloadLocation != null && downloadLocation.getPath() != null) { 
 									FileDownload dl = new FileDownload(downloadLocation.getPath(), "Download " + model.getName(), downloadLocation.getMd5sum(), downloadLocation.getContentType());
 									downloads.add(dl);

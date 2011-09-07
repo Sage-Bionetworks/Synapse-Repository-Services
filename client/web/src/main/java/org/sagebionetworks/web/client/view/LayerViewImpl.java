@@ -29,7 +29,9 @@ import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.NodeType;
 
+import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
 import com.extjs.gxt.ui.client.Style.Scroll;
+import com.extjs.gxt.ui.client.event.ButtonEvent;
 import com.extjs.gxt.ui.client.event.Listener;
 import com.extjs.gxt.ui.client.event.MenuEvent;
 import com.extjs.gxt.ui.client.event.MessageBoxEvent;
@@ -45,11 +47,16 @@ import com.extjs.gxt.ui.client.widget.layout.FitData;
 import com.extjs.gxt.ui.client.widget.layout.FitLayout;
 import com.extjs.gxt.ui.client.widget.menu.Menu;
 import com.extjs.gxt.ui.client.widget.menu.MenuItem;
+import com.extjs.gxt.ui.client.widget.toolbar.ToolBar;
+import com.google.gwt.cell.client.ImageResourceCell;
 import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
 import com.google.gwt.dom.client.SpanElement;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.dom.client.LoadEvent;
+import com.google.gwt.event.dom.client.LoadHandler;
 import com.google.gwt.resources.client.ImageResource;
+import com.google.gwt.resources.rg.ImageResourceGenerator;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.rpc.AsyncCallback;
@@ -67,6 +74,8 @@ public class LayerViewImpl extends Composite implements LayerView {
 	public interface Binder extends UiBinder<Widget, LayerViewImpl> {
 	}
 
+	private final static int MAX_IMAGE_PREVIEW_WIDTH_PX = 800;
+	
 	@UiField
 	SimplePanel header;
 	@UiField
@@ -114,7 +123,13 @@ public class LayerViewImpl extends Composite implements LayerView {
 	private boolean isAdministrator = false; 
 	private boolean canEdit = false;
 	private Header headerWidget;
-	PhenotypeEditor phenotypeEditor;
+	private PhenotypeEditor phenotypeEditor;
+	private Image previewImageWidget;
+	private Button expandImagePreviewButton;
+	private Integer originalImageWidth;
+	private Integer originalImageHeight;
+	private Boolean imagePreviewExpanded;
+	
 
 	@Inject
 	public LayerViewImpl(Binder uiBinder, Header headerWidget,
@@ -270,17 +285,62 @@ public class LayerViewImpl extends Composite implements LayerView {
 	public void setLicensedDownloads(List<FileDownload> downloads) {
 		licensedDownloader.setDownloadUrls(downloads);			
 		if(downloads.size() > 0) {
-			ContentPanel cp = new ContentPanel();			
+			final ContentPanel cp = new ContentPanel();			
 			cp.setHeading(DisplayConstants.TITLE_LAYER_PREVIEW);
 			cp.setHeaderVisible(true);			
 			cp.setAutoHeight(true);
 			cp.setScrollMode(Scroll.AUTO);
 			FileDownload download = downloads.get(0);
+						
+			// handle image preview
 			if(DisplayUtils.MIME_TYPE_JPEG.equals(download.getContentType())
 					|| DisplayUtils.MIME_TYPE_PNG.equals(download.getContentType())
 					|| DisplayUtils.MIME_TYPE_GIF.equals(download.getContentType())) {					
-				Image imgWidget = new Image(download.getUrl());
-				cp.add(imgWidget);
+				previewImageWidget = new Image(download.getUrl());
+				
+				expandImagePreviewButton = new Button("View Full Size", AbstractImagePrototype.create(iconsImageBundle.magnifyZoomIn16()));
+				expandImagePreviewButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+					@Override
+					public void componentSelected(ButtonEvent ce) {
+						if(imagePreviewExpanded) {
+							previewImageWidget.setWidth(MAX_IMAGE_PREVIEW_WIDTH_PX + "px");							
+							previewImageWidget.setHeight(originalImageHeight * MAX_IMAGE_PREVIEW_WIDTH_PX / originalImageWidth + "px");
+							imagePreviewExpanded = false;
+							expandImagePreviewButton.setText("View Full Size");
+							expandImagePreviewButton.setIcon(AbstractImagePrototype.create(iconsImageBundle.magnifyZoomIn16()));
+						} else {
+							previewImageWidget.setHeight(originalImageHeight + "px");
+							previewImageWidget.setWidth(originalImageWidth + "px");
+							imagePreviewExpanded = true;
+							expandImagePreviewButton.setText("Zoom Out");
+							expandImagePreviewButton.setIcon(AbstractImagePrototype.create(iconsImageBundle.magnifyZoomOut16()));
+						}
+					}
+				});
+
+				final ToolBar toolbar = new ToolBar();
+
+				// scale image if it needs it
+				previewImageWidget.addLoadHandler(new LoadHandler() {					
+					@Override
+					public void onLoad(LoadEvent event) {
+						if(originalImageHeight == null && originalImageWidth == null) {							
+							originalImageHeight = previewImageWidget.getHeight();
+							originalImageWidth = previewImageWidget.getWidth();
+						}						
+						if(originalImageHeight > MAX_IMAGE_PREVIEW_WIDTH_PX) {
+							// scale image
+							previewImageWidget.setWidth(MAX_IMAGE_PREVIEW_WIDTH_PX + "px");							
+							previewImageWidget.setHeight(originalImageHeight * MAX_IMAGE_PREVIEW_WIDTH_PX / originalImageWidth + "px");
+							imagePreviewExpanded = false;
+							toolbar.add(expandImagePreviewButton);							
+						}
+					}
+				});
+
+				
+				cp.setTopComponent(toolbar);
+				cp.add(previewImageWidget);
 				previewDownload.clear();
 				previewDownload.add(cp);
 				cp.layout(true);
@@ -458,7 +518,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 			item.addSelectionListener(new SelectionListener<MenuEvent>() {
 				public void componentSelected(MenuEvent menuEvent) {													
 					final Window window = new Window();  
-					window.setSize(800, 600);
+					window.setSize(1000, 600);
 					window.setPlain(true);
 					window.setModal(true);
 					window.setBlinkModal(true);
@@ -467,6 +527,23 @@ public class LayerViewImpl extends Composite implements LayerView {
 					phenotypeEditor.setLayerId(layerId);
 					window.add(phenotypeEditor.asWidget());
 					//phenotypeEditor.setPlaceChanger(placeChanger);
+					Button doneButton = new Button("Ok");
+					doneButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+						@Override
+						public void componentSelected(ButtonEvent ce) {
+							window.hide();
+						}
+					});
+					Button cancelButton = new Button("Cancel");
+					cancelButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+						@Override
+						public void componentSelected(ButtonEvent ce) {
+							window.hide();
+						}
+					});
+					window.setButtonAlign(HorizontalAlignment.CENTER);
+					window.addButton(doneButton);
+					window.addButton(cancelButton);					
 					
 					window.show();
 				}

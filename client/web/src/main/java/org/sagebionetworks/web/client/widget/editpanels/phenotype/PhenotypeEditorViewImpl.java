@@ -11,10 +11,14 @@ import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.ontology.Ontology;
 import org.sagebionetworks.web.client.widget.statictable.StaticTable;
+import org.sagebionetworks.web.client.widget.statictable.StaticTableView.StaticSelectionMode;
 
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
+import com.extjs.gxt.ui.client.Style.Scroll;
 import com.extjs.gxt.ui.client.data.BaseModelData;
 import com.extjs.gxt.ui.client.event.ButtonEvent;
+import com.extjs.gxt.ui.client.event.SelectionChangedEvent;
+import com.extjs.gxt.ui.client.event.SelectionChangedListener;
 import com.extjs.gxt.ui.client.event.SelectionListener;
 import com.extjs.gxt.ui.client.store.ListStore;
 import com.extjs.gxt.ui.client.widget.ContentPanel;
@@ -26,6 +30,7 @@ import com.extjs.gxt.ui.client.widget.grid.EditorGrid;
 import com.extjs.gxt.ui.client.widget.layout.AbsoluteData;
 import com.extjs.gxt.ui.client.widget.layout.AbsoluteLayout;
 import com.extjs.gxt.ui.client.widget.layout.FitLayout;
+import com.extjs.gxt.ui.client.widget.layout.VBoxLayout;
 import com.extjs.gxt.ui.client.widget.toolbar.ToolBar;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.inject.Inject;
@@ -36,7 +41,7 @@ public class PhenotypeEditorViewImpl extends LayoutContainer implements Phenotyp
 	private IconsImageBundle iconsImageBundle;
 	private SageImageBundle sageImageBundle;
 	private StaticTable staticTable;
-	private static int CONTENT_WIDTH_PX = 800;
+	private static int CONTENT_WIDTH_PX = 1000;
 	private static int CONTENT_HEIGHT_PX = 600;	
 		
 	@Inject
@@ -65,7 +70,7 @@ public class PhenotypeEditorViewImpl extends LayoutContainer implements Phenotyp
 		
 		// tie panels together
 		ContentPanel phenotypeEditorPanel = createPhenotypeEditorPanel(dataPreviewTable, columnDefinitionEditor, columnMappingEditor);
-		
+				
 		this.add(phenotypeEditorPanel);		
 		this.layout(true);		
 	}
@@ -79,7 +84,8 @@ public class PhenotypeEditorViewImpl extends LayoutContainer implements Phenotyp
 	private StaticTable createDataPreviewGrid(List<String> columns, List<Map<String,String>> phenoData) {		
 		staticTable.setColumnOrder(columns);
 		staticTable.setData(phenoData);
-		staticTable.setDimensions(763, 196);
+		staticTable.setSelectionMode(StaticSelectionMode.CELL);
+		staticTable.setDimensions(973, 196);
 		return staticTable;
 	}
 	
@@ -121,19 +127,17 @@ public class PhenotypeEditorViewImpl extends LayoutContainer implements Phenotyp
 			StaticTable dataPreviewTable, ColumnDefinitionEditor columnDefinitionEditor, ColumnMappingEditor columnMappingEditor) {
 		ContentPanel phenotypeEditorPanel = new ContentPanel();
 		phenotypeEditorPanel.setHeading("Phenotype Editor");
-		phenotypeEditorPanel.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));
-		phenotypeEditorPanel.setLayout(new AbsoluteLayout());
+		phenotypeEditorPanel.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
 		phenotypeEditorPanel.setButtonAlign(HorizontalAlignment.RIGHT);
 		phenotypeEditorPanel.addStyleName(DisplayConstants.STYLE_NAME_GXT_GREY_BACKGROUND);
+		phenotypeEditorPanel.setWidth(CONTENT_WIDTH_PX);
+		phenotypeEditorPanel.setHeight(CONTENT_HEIGHT_PX);
+		phenotypeEditorPanel.setScrollMode(Scroll.AUTOY);		
 
 		// add grid and panels 
-		phenotypeEditorPanel.add(dataPreviewTable.asWidget(), new AbsoluteData(16, 13));
-		phenotypeEditorPanel.add(columnDefinitionEditor.asWidget(), new AbsoluteData(16, 227));
-		phenotypeEditorPanel.add(columnMappingEditor.asWidget(), new AbsoluteData(479, 227));		
-		
-		Button doneButton = new Button("Done");
-		doneButton.setIcon(AbstractImagePrototype.create(iconsImageBundle.disk16()));
-		phenotypeEditorPanel.addButton(doneButton);
+		phenotypeEditorPanel.add(dataPreviewTable.asWidget());
+		phenotypeEditorPanel.add(columnDefinitionEditor.asWidget());
+		//phenotypeEditorPanel.add(columnMappingEditor.asWidget());		
 		
 		return phenotypeEditorPanel;
 	}

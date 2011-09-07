@@ -27,8 +27,8 @@ public class ColumnMappingEditorViewImpl extends LayoutContainer implements Colu
 	private Presenter presenter;
 	private IconsImageBundle iconsImageBundle;
 	private SageImageBundle sageImageBundle;
-	private static int CONTENT_WIDTH_PX = 300;
-	private static int CONTENT_HEIGHT_PX = 296;	
+	private static int CONTENT_WIDTH_PX = 973;
+	private static int CONTENT_HEIGHT_PX = 150;	
 
 	private Button deleteColumnMappingButton;
 

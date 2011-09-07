@@ -3,12 +3,18 @@ package org.sagebionetworks.web.client.widget.statictable;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.web.client.widget.statictable.StaticTableView.StaticSelectionMode;
+
+import com.extjs.gxt.ui.client.data.BaseModelData;
+import com.extjs.gxt.ui.client.event.SelectionChangedListener;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
 public class StaticTable implements StaticTableView.Presenter {
 
-	private StaticTableView view;
+	
+	
+	private StaticTableView view;	
 	
 	@Inject
 	public StaticTable(StaticTableView view) {
@@ -44,11 +50,21 @@ public class StaticTable implements StaticTableView.Presenter {
 		this.view.setTitleText(title);
 	}
 	
+	public void setSelectionMode(StaticSelectionMode selectionMode) {
+		this.view.setSelectionMode(selectionMode);
+	}
+	
 	public Widget asWidget() {
 		view.setPresenter(this);
 		return view.asWidget();
 	}	
 	
-	
+	public void addSelectionListener(SelectionChangedListener<BaseModelData> listener) {
+		this.view.addSelectionListener(listener);
+	}
+
+	public String getSelectedColumn() {
+		return this.view.getSelectedColumn();
+	}
 	
 }

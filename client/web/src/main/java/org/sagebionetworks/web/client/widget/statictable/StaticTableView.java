@@ -3,10 +3,14 @@ package org.sagebionetworks.web.client.widget.statictable;
 import java.util.List;
 import java.util.Map;
 
+import com.extjs.gxt.ui.client.data.BaseModelData;
+import com.extjs.gxt.ui.client.event.SelectionChangedListener;
 import com.google.gwt.user.client.ui.IsWidget;
 
 public interface StaticTableView extends IsWidget {
 
+	public enum StaticSelectionMode { ROW, CELL };
+	
 	/**
 	 * Set the presenter.
 	 * @param presenter
@@ -29,6 +33,11 @@ public interface StaticTableView extends IsWidget {
 	
 	public void showTitleBar(boolean showTitleBar);	
 	
+	public void setSelectionMode(StaticSelectionMode selectionMode);
+	
+	public void addSelectionListener(SelectionChangedListener<BaseModelData> listener);	
+
+	public String getSelectedColumn();
 	
 	/**
 	 * Presenter interface
@@ -36,6 +45,7 @@ public interface StaticTableView extends IsWidget {
 	public interface Presenter {
 		
 	}
+
 
 
 	
