@@ -97,7 +97,7 @@ public class AccessMenuButtonViewImpl extends LayoutContainer implements AccessM
 		item.addSelectionListener(new SelectionListener<MenuEvent>() {
 			public void componentSelected(MenuEvent menuEvent) {													
 				final Window window = new Window();  
-				window.setSize(550, 380);
+				window.setSize(550, 440);
 				window.setPlain(true);
 				window.setModal(true);
 				window.setBlinkModal(true);

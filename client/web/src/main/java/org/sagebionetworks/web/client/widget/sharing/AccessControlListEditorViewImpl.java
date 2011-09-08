@@ -111,7 +111,9 @@ public class AccessControlListEditorViewImpl extends LayoutContainer implements 
 		
 		// setup view
 		this.setLayout(new FlowLayout(10));			
-		Label permissionsLabel = new Label(DisplayConstants.LABEL_SHARING_PANEL_EXISTING + ":");
+		Label permissionsLabel = isInherited ? new Label(
+				DisplayConstants.LABEL_SHARING_PANEL_INHERITED + ":")
+				: new Label(DisplayConstants.LABEL_SHARING_PANEL_EXISTING + ":");
 		permissionsLabel.setStyleAttribute("font-weight", "bold");
 		permissionsLabel.setStyleAttribute("font-size", "105%");
 		add(permissionsLabel, new MarginData(15, 0, 0, 0));
@@ -124,14 +126,14 @@ public class AccessControlListEditorViewImpl extends LayoutContainer implements 
 			Label readOnly = new Label(DisplayConstants.PERMISSIONS_INHERITED_TEXT);			
 			add(readOnly);			
 			
-			Button createAcl = new Button(DisplayConstants.BUTTON_PERMISSIONS_CREATE_NEW_ACL, AbstractImagePrototype.create(iconsImageBundle.addSquare16()));
-			createAcl.addSelectionListener(new SelectionListener<ButtonEvent>() {
+			Button createAclButton = new Button(DisplayConstants.BUTTON_PERMISSIONS_CREATE_NEW_ACL, AbstractImagePrototype.create(iconsImageBundle.addSquare16()));
+			createAclButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
 				@Override
 				public void componentSelected(ButtonEvent ce) {
 					presenter.createAcl();					
 				}
 			});
-			add(createAcl, new MarginData(30, 0, 0, 0));
+			add(createAclButton, new MarginData(30, 0, 0, 0));
 			add(new Label(DisplayUtils.getIconHtml(iconsImageBundle.warning16()) + " " + DisplayConstants.PERMISSIONS_CREATE_NEW_ACL_TEXT), new MarginData(5, 0, 0, 0));
 		} else {
 			// show add people view
@@ -212,12 +214,23 @@ public class AccessControlListEditorViewImpl extends LayoutContainer implements 
 			//form2.addButton(shareButton);
 			
 			add(form2);
+			
+			Button deleteAclButton = new Button(DisplayConstants.BUTTON_PERMISSIONS_DELETE_ACL, AbstractImagePrototype.create(iconsImageBundle.deleteButton16()));
+			deleteAclButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+				@Override
+				public void componentSelected(ButtonEvent ce) {
+					presenter.deleteAcl();					
+				}
+			});
+			add(deleteAclButton, new MarginData(5, 0, 0, 0));
+			add(new Label(DisplayUtils.getIconHtml(iconsImageBundle.warning16()) + " " + DisplayConstants.PERMISSIONS_DELETE_ACL_TEXT), new MarginData(5, 0, 0, 0));
+
 		}
 		this.layout(true);		
 	}
 	
 	@Override
-	public void showAclsLoading() {
+	public void showLoading() {
 		this.removeAll(true);
 		Html html = new Html(DisplayUtils.getIconHtml(sageImageBundle.loading16()) + " Loading...");
 		this.add(html);
@@ -234,12 +247,20 @@ public class AccessControlListEditorViewImpl extends LayoutContainer implements 
 		MessageBox.info("Message", message, null);
 	}
 
-	
+	@Override
+	public void clear() {
+		this.removeAll();
+	}
+
+	@Override
+	public void showInfo(String title, String message) {
+		DisplayUtils.showInfo(title, message);
+	}
+
 	
 	/*
 	 * Private Methods
-	 */
-	
+	 */	
 	private void showAddMessage(String message) {
 		// TODO : put this on the form somewher
 		showErrorMessage(message);

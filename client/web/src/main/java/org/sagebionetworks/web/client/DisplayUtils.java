@@ -190,6 +190,16 @@ public class DisplayUtils {
 		cp.add(html);		
 		return cp;
 	}
+
+	/**
+	 * Shows an info message to the user
+	 * @param title
+	 * @param message
+	 */
+	public static void showInfo(String title, String message) {
+		Info.display(title, message);
+	}
+
 	
 	/*
 	 * Private methods

@@ -2,13 +2,14 @@ package org.sagebionetworks.web.client.widget.sharing;
 
 import java.util.List;
 
+import org.sagebionetworks.web.client.widget.SynapseWidgetView;
 import org.sagebionetworks.web.shared.users.AclEntry;
 import org.sagebionetworks.web.shared.users.AclPrincipal;
 import org.sagebionetworks.web.shared.users.PermissionLevel;
 
 import com.google.gwt.user.client.ui.IsWidget;
 
-public interface AccessControlListEditorView extends IsWidget {
+public interface AccessControlListEditorView extends IsWidget, SynapseWidgetView {
 
 	/**
 	 * Set the presenter.
@@ -24,15 +25,9 @@ public interface AccessControlListEditorView extends IsWidget {
 	public void setAclDetails(List<AclEntry> entries, List<AclPrincipal> principals, boolean isEditable);
 	
 	/**
-	 * The view pops-up an error dialog.
-	 * @param message
-	 */
-	public void showErrorMessage(String message);
-	
-	/**
 	 * Set the view to a loading state while async loads
 	 */
-	public void showAclsLoading();
+	public void showLoading();
 	
 	/**
 	 * Presenter interface
@@ -46,5 +41,7 @@ public interface AccessControlListEditorView extends IsWidget {
 		void changeAccess(AclEntry aclEntry, PermissionLevel permissionLevel);
 		
 		void removeAccess(AclEntry aclEntry);
+		
+		void deleteAcl();
 	}
 }

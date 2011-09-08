@@ -89,8 +89,10 @@ public class NodeModelCreatorImpl implements NodeModelCreator {
 
 	@Override
 	public void validate(String json) throws RestServiceException {
-		JSONObject obj = JSONParser.parseStrict(json).isObject();
-		DisplayUtils.checkForErrors(obj);		
+		if(!"".equals(json)) {
+			JSONObject obj = JSONParser.parseStrict(json).isObject();
+			DisplayUtils.checkForErrors(obj);
+		}
 	}
 
 }

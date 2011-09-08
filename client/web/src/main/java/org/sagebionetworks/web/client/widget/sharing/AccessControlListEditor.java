@@ -69,7 +69,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 	
 	public Widget asWidget() {
 		view.setPresenter(this);
-		view.showAclsLoading();
+		view.showLoading();
 		userAccountService.getAllUsersAndGroups(new AsyncCallback<List<AclPrincipal>>() {
 			@Override
 			public void onSuccess(final List<AclPrincipal> usersAndGroupsList) {
@@ -126,7 +126,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 					}
 					return;
 				}	
-				view.showAclsLoading();
+				view.showLoading();
 				refresh();
 			}
 			@Override
@@ -277,6 +277,30 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 			}
 
 		}		
+	}
+
+	@Override
+	public void deleteAcl() {
+		// delete this ACL		
+		nodeService.deleteAcl(nodeType, nodeId, new AsyncCallback<String>() {
+			@Override
+			public void onSuccess(String result) {
+				try {
+					nodeModelCreator.validate(result);
+				} catch (RestServiceException ex) {
+					if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
+						onFailure(null);
+					}
+					return;
+				}	
+				view.showLoading();
+				refresh();				
+			}
+			@Override
+			public void onFailure(Throwable caught) {
+				view.showErrorMessage("Creation of local sharing settings failed. Please try again.");
+			}
+		});
 	}
 
 

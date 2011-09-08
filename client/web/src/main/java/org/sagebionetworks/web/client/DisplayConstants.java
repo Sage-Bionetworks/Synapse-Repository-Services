@@ -46,6 +46,7 @@ public class DisplayConstants {
 	public static final String LOGOUT_SSO_TEXT = "To prevent others from accessing your account in this browser, you should log out of your Google account as well.<br/><a href=\"https://mail.google.com/a/sagebase.org/?logout&hl=en\">Logout of your Sage Google account by clicking here</a>"; // <br/><br/><a href=\"https://www.google.com/accounts/Logout\">Logout of your Google account by clicking here</a>
 	public static final String PERMISSIONS_INHERITED_TEXT = "Pemissions not editable as they are being inherited by this resource's parent. (ex: A layer inheriting a dataset's permissions)";
 	public static final String PERMISSIONS_CREATE_NEW_ACL_TEXT = "By creating local sharing settings you ignore the permissions that are inherited from its parent.";
+	public static final String PERMISSIONS_DELETE_ACL_TEXT = "By deleting local sharing settings you inherit sharing settings from the parent.";
 	
 	/*
 	 * Buttons, titles and labels
@@ -56,7 +57,9 @@ public class DisplayConstants {
 	public static final String BUTTON_FOLLOW_DATASET = "Follow this Dataset";
 	public static final String TITLE_SHARING_PANEL = "Sharing Settings";
 	public static final String LABEL_SHARING_PANEL_EXISTING = "Permissions";
+	public static final String LABEL_SHARING_PANEL_INHERITED = "Inherited Permissions";
 	public static final String BUTTON_PERMISSIONS_CREATE_NEW_ACL = "Create Local Sharing Settings";
+	public static final String BUTTON_PERMISSIONS_DELETE_ACL = "Delete Local Sharing Settings";
 	public static final String MENU_PERMISSION_LEVEL_IS_OWNER = "Is Owner";
 	public static final String MENU_PERMISSION_LEVEL_CAN_VIEW = "Can view";
 	public static final String MENU_PERMISSION_LEVEL_CAN_EDIT = "Can edit";
