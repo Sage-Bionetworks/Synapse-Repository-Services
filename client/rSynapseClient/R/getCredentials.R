@@ -1,6 +1,5 @@
 .tkGetCredentials <- function(username, imageFile = .getCache("synapseBannerPath")){
 	title = "Welcome! Please login."
-	entryWidth=25
 			
 	credentials <- NULL
 	
@@ -24,8 +23,10 @@
 	{
 		if(checkUserNameState() && tcltk::tclvalue(passwordVar) != ""){
 			tcltk::tkconfigure(loginButton, state="normal")
+			tcltk::tkbind(passwordEntryWidget, "<Return>", onLogin)
 		}else{
 			tcltk::tkconfigure(loginButton, state="disabled")
+			tcltk::tkbind(passwordEntryWidget, "<Return>", NULL)
 		}
 	}
 	checkUserNameState <-
@@ -43,8 +44,8 @@
 	
 	
 	## Text Entry Widgets for username and password. The password entry hides input
-	usernameEntryWidget <- tcltk::tkentry(root, width = entryWidth, textvariable = userNameVar)
-	passwordEntryWidget <- tcltk::tkentry(root, width = entryWidth, textvariable = passwordVar, show = "*")
+	usernameEntryWidget <- tcltk::tkentry(root, textvariable = userNameVar)
+	passwordEntryWidget <- tcltk::tkentry(root, textvariable = passwordVar, show = "*")
 	
 	## Event handlers for OK and Cancel buttons
 	onLogin <- 
@@ -60,11 +61,13 @@
 	{
 		credentials <<- NULL
 		tcltk::tkgrab.release(root)
+		tcltk::tklower(root)
 		tcltk::tkdestroy(root)
 	}
 	onDestroy <- 
 			function() 
 	{
+		tcltk::tklower(root)
 		tcltk::tkgrab.release(root)
 	}
 	
@@ -72,18 +75,19 @@
 	## fields contain entries
 	loginButton <- tcltk::tkbutton(root,text=" Login  ", command=onLogin, state="disabled")
 	cancelButton <- tcltk::tkbutton(root,text=" Cancel ", command=onCancel)
+	tcltk::tkbind(cancelButton, "<Return>", onCancel)
 	
 	image <- tcltk::tcl("image","create","photo",image,file=imageFile)
 	imageLabel <- tcltk::tklabel(root,image=image,bg="white")
 	tcltk::tkgrid(imageLabel, column=0, row=0, columnspan=3)
 	
 	## the first row is for username
-	tcltk::tkgrid(tcltk::tklabel(root,text="Email Address", justify='right'), column=0, row=1, sticky="e", padx=c(0,3), pady=c(12,3))
-	tcltk::tkgrid(usernameEntryWidget, column=1, row=1, columnspan=2, sticky="nsew", padx=c(0,3), pady=c(12,3))
+	tcltk::tkgrid(tcltk::tklabel(root,text="Email Address", justify='right'), column=0, row=1, sticky="e", padx=c(0,5), pady=c(12,3))
+	tcltk::tkgrid(usernameEntryWidget, column=1, row=1, columnspan=2, sticky="nsew", padx=c(0,5), pady=c(12,5))
 	
 	## the second row is for password
-	tcltk::tkgrid(tcltk::tklabel(root, text="Password", justify='right'), column=0, row=2, sticky="e", padx=c(0,3), pady=c(0,3))
-	tcltk::tkgrid(passwordEntryWidget, column=1, row=2, columnspan=2, sticky="nsew", padx=c(0,3), pady=c(0,8))
+	tcltk::tkgrid(tcltk::tklabel(root, text="Password", justify='right'), column=0, row=2, sticky="e", padx=c(0,5), pady=c(0,3))
+	tcltk::tkgrid(passwordEntryWidget, column=1, row=2, columnspan=2, sticky="nsew", padx=c(0,5), pady=c(0,8))
 	
 	## the third row is for the Login and Cancel buttons
 	tcltk::tkgrid(cancelButton, column=1, row=3, pady=c(0,3))
@@ -92,7 +96,6 @@
 	## bind the return key to onLogin function when in the passwordEntry widget and to
 	## set focus to the password entry widget when in the ussername entry widget
 	tcltk::tkbind(usernameEntryWidget, "<Return>", function(){tcltk::tkfocus(passwordEntryWidget)})
-	tcltk::tkbind(passwordEntryWidget, "<Return>", onLogin)
 	tcltk::tkbind(usernameEntryWidget, "<KeyRelease>", checkState)
 	tcltk::tkbind(passwordEntryWidget, "<KeyRelease>", checkState)
 	
@@ -100,6 +103,7 @@
 	tcltk::tkwm.resizable(root,FALSE, FALSE)
 	
 	## set the focus to the root widget
+	tcltk::tkraise(root)
 	tcltk::tkgrab.set(root)
 	if(username == ""){
 		tcltk::tkfocus(usernameEntryWidget)
