@@ -1,6 +1,6 @@
-.tkGetCredentials <- function(username){
-	title = "Synapse Login"
-	entryWidth=35
+.tkGetCredentials <- function(username, imageFile = .getCache("synapseBannerPath")){
+	title = "Welcome! Please login."
+	entryWidth=25
 			
 	credentials <- NULL
 	
@@ -73,17 +73,21 @@
 	loginButton <- tcltk::tkbutton(root,text=" Login  ", command=onLogin, state="disabled")
 	cancelButton <- tcltk::tkbutton(root,text=" Cancel ", command=onCancel)
 	
+	image <- tcltk::tcl("image","create","photo",image,file=imageFile)
+	imageLabel <- tcltk::tklabel(root,image=image,bg="white")
+	tcltk::tkgrid(imageLabel, column=0, row=0, columnspan=3)
+	
 	## the first row is for username
-	tcltk::tkgrid(tcltk::tklabel(root,text="  Email "), column=0, row=0)
-	tcltk::tkgrid(usernameEntryWidget, column=1, row=0, columnspan=2)
+	tcltk::tkgrid(tcltk::tklabel(root,text="Email Address"), column=0, row=1)
+	tcltk::tkgrid(usernameEntryWidget, column=1, row=1, columnspan=2)
 	
 	## the second row is for password
-	tcltk::tkgrid(tcltk::tklabel(root, text="Password"), column=0, row=1)
-	tcltk::tkgrid(passwordEntryWidget, column=1, row=1, columnspan=2)
+	tcltk::tkgrid(tcltk::tklabel(root, text="     Password"), column=0, row=2)
+	tcltk::tkgrid(passwordEntryWidget, column=1, row=2, columnspan=2)
 	
 	## the third row is for the Login and Cancel buttons
-	tcltk::tkgrid(cancelButton, column=1, row=2)
-	tcltk::tkgrid(loginButton, column=2, row=2)
+	tcltk::tkgrid(cancelButton, column=1, row=3)
+	tcltk::tkgrid(loginButton, column=2, row=3)
 	
 	## bind the return key to onLogin function when in the passwordEntry widget and to
 	## set focus to the password entry widget when in the ussername entry widget

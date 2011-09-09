@@ -61,14 +61,16 @@ synapseLogin <-
 		function(username)
 {
 	credentials <- .terminalGetCredentials(username)
-	.doLogin(credentials)
+	if(!is.null(credentials))
+		.doLogin(credentials)
 }
 
 .doTkLogin <-
 		function(username)
 {
 	credentials <- .tkGetCredentials(username)
-	.doLogin(credentials)
+	if(!is.null(credentials))
+		.doLogin(credentials)
 }
 
 .doLogin <- 

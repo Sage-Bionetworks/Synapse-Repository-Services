@@ -79,4 +79,5 @@ kLayerSubtypeMap <- list(
 	.setCache("curlWriter", getNativeSymbolInfo("_writer_write", PACKAGE="synapseClient")$address)
 	.setCache("curlReader", getNativeSymbolInfo("_reader_read", PACKAGE="synapseClient")$address)
 	.setCache("annotationTypeMap", kSynapseRAnnotationTypeMap)
+	.setCache("synapseBannerPath", file.path(libname, pkgname, "images", "synapse_banner.gif"))
 }
