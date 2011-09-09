@@ -45,6 +45,7 @@ import com.extjs.gxt.ui.client.widget.layout.AbsoluteData;
 import com.extjs.gxt.ui.client.widget.layout.AbsoluteLayout;
 import com.extjs.gxt.ui.client.widget.layout.FitLayout;
 import com.extjs.gxt.ui.client.widget.layout.HBoxLayout;
+import com.extjs.gxt.ui.client.widget.layout.MarginData;
 import com.extjs.gxt.ui.client.widget.layout.VBoxLayout;
 import com.extjs.gxt.ui.client.widget.toolbar.ToolBar;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -63,6 +64,13 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 	private static final String COLUMN_DEF_DESCRIPTION_KEY = "columnDescription";
 	private static final String COLUMN_DEF_COLUMN_NAME_KEY = "columnName";
 	private static final String COLUMN_REMOVE_COLUMN_KEY = "remove";
+	private static final String TYPE_COMBO_ONTOLOGY = "Ontology";
+	private static final String TYPE_COMBO_FREETEXT = "Free Text";
+	private static final String TYPE_COMBO_ENUM = "Enumeration";
+	private static final String TYPE_COMBO_NUMBER = "Number";
+	private static final String TYPE_COMBO_INTEGER = "Integer";
+	private static final String TYPE_COMBO_BOOLEAN = "Boolean";
+
 
 	private Presenter presenter;
 	private IconsImageBundle iconsImageBundle;
@@ -74,15 +82,16 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 	private ColumnModel columnDefColumnModel;
 	private ListStore<ColumnDefinitionTableModel> columnDefGridStore;
 	private EditorGrid<ColumnDefinitionTableModel> columnDefGrid;
-	private ContentPanel ontologySearchPanel;
+	private OntologySearchPanel ontologySearchPanel;
 
 	private Grid<BaseModelData> fakeSearchResultsGrid;
 	
 	@Inject
-	public ColumnDefinitionEditorViewImpl(IconsImageBundle iconsImageBundle, SageImageBundle sageImageBundle, StaticTable staticTable) {
+	public ColumnDefinitionEditorViewImpl(IconsImageBundle iconsImageBundle, SageImageBundle sageImageBundle, StaticTable staticTable, OntologySearchPanel ontologySearchPanel) {
 		this.iconsImageBundle = iconsImageBundle;
 		this.sageImageBundle = sageImageBundle;
 		this.staticTable = staticTable;
+		this.ontologySearchPanel = ontologySearchPanel;
 		
 		this.setLayout(new FitLayout());
 		this.setWidth(CONTENT_WIDTH_PX);
@@ -125,6 +134,9 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 		columnDefPanel.setBottomComponent(columnDefToolBar);
 		
 		this.add(columnDefPanel);
+		
+		// configure the search panel
+		ontologySearchPanel.setResources();		
 	}
 
 	@Override
@@ -345,12 +357,12 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 					SimpleComboBox<String> comboBox = new SimpleComboBox<String>();
 					comboBox.setTriggerAction(TriggerAction.ALL);
 					comboBox.setWidth(grid.getColumnModel().getColumnWidth(colIndex) - 15);
-					comboBox.add("Ontology");
-					comboBox.add("Free Text");
-					comboBox.add("Enumeration");
-					comboBox.add("Number");
-					comboBox.add("Integer");
-					comboBox.add("Boolean");
+					comboBox.add(TYPE_COMBO_ONTOLOGY);
+					comboBox.add(TYPE_COMBO_FREETEXT);
+					comboBox.add(TYPE_COMBO_ENUM);
+					comboBox.add(TYPE_COMBO_NUMBER);
+					comboBox.add(TYPE_COMBO_INTEGER);
+					comboBox.add(TYPE_COMBO_BOOLEAN);
 					
 					
 					
@@ -397,19 +409,48 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 					if(value != null) {
 						field.setValue(value);
 					}
-					
-					Button editButton = new Button("", AbstractImagePrototype.create(iconsImageBundle.documentEdit16()));
-					editButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
-
-						@Override
-						public void componentSelected(ButtonEvent ce) {
-							showOntologySearchWindow();
-						}
-					});
-					
 					LayoutContainer container = new LayoutContainer(new HBoxLayout());
 					container.add(field);
-					container.add(editButton);
+
+					// show different views depending upon the type
+					String columnType = entry.get(COLUMN_DEF_TYPE_KEY);
+//					if(TYPE_COMBO_ONTOLOGY.equals(columnType)) {
+//						Button searchButton = new Button("Find Ontology", AbstractImagePrototype.create(iconsImageBundle.magnify16()));
+//						searchButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+//
+//							@Override
+//							public void componentSelected(ButtonEvent ce) {
+//								showOntologySearchWindow();
+//							}
+//						});
+//						
+//						container.add(searchButton, new MarginData(0, 0, 0, 5));
+//						
+//						Button editButton = new Button("Edit Mapping", AbstractImagePrototype.create(iconsImageBundle.documentEdit16()));
+//						editButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+//
+//							@Override
+//							public void componentSelected(ButtonEvent ce) {
+//								showOntologySearchWindow();
+//							}
+//						});
+//						
+//						container.add(editButton, new MarginData(0, 0, 0, 5));						
+//
+//					} else {
+						// TODO : add for each type
+						Button editButton = new Button("", AbstractImagePrototype.create(iconsImageBundle.documentEdit16()));
+						editButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+
+							@Override
+							public void componentSelected(ButtonEvent ce) {
+								showOntologySearchWindow();
+							}
+						});
+						
+						container.add(editButton, new MarginData(0, 0, 0, 5));
+//					}
+										
 					return container;
 				}
 			}
@@ -499,13 +540,10 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 	}
 
 	private void showOntologySearchWindow() {
-		if(ontologySearchPanel == null) {
-			createOntologySearchWindow();
-		}
 		final Window window = new Window();
 		window.setModal(true);
 		window.setSize(557, 357);
-		window.add(ontologySearchPanel);
+		window.add(ontologySearchPanel.asWidget());
 		Button closeButton = new Button("Close");
 		closeButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
 
@@ -522,65 +560,6 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 	/*
 	 * Private Classes
 	 */
-
-	private void createOntologySearchWindow() {
-		ontologySearchPanel = new ContentPanel();
-		ontologySearchPanel.setHeading("Ontology Selection");
-		ontologySearchPanel.setCollapsible(true);
-		ontologySearchPanel.setLayout(new AbsoluteLayout());
-		ontologySearchPanel.setSize(550, 300);
-		
-		TextField txtfldSearchForA = new TextField();
-		txtfldSearchForA.setEmptyText("Enter term, e.g. Melanoma");
-		ontologySearchPanel.add(txtfldSearchForA, new AbsoluteData(6, 32));
-		txtfldSearchForA.setSize("270px", "22px");
-		txtfldSearchForA.setFieldLabel("Search ");
-		
-		Text txtSearchAllOntologies = new Text("Search all ontologies");
-		ontologySearchPanel.add(txtSearchAllOntologies, new AbsoluteData(6, 11));
-		
-		final ColumnModel cm = new ColumnModel(createSearchResultConfigs());
-		fakeSearchResultsGrid = new Grid<BaseModelData>(new ListStore(), cm);
-		ontologySearchPanel.add(fakeSearchResultsGrid, new AbsoluteData(6, 89));
-		fakeSearchResultsGrid.setSize("480px", "169px");
-		fakeSearchResultsGrid.setBorders(true);		
-		
-		Button btnSearch = new Button("Search", AbstractImagePrototype.create(iconsImageBundle.magnify16()));
-		ontologySearchPanel.add(btnSearch, new AbsoluteData(282, 32));
-		btnSearch.setSize("68px", "22px");		
-		btnSearch.addSelectionListener(new SelectionListener<ButtonEvent>() {
-			@Override
-			public void componentSelected(ButtonEvent ce) {
-				ListStore<BaseModelData> store = new ListStore<BaseModelData>();
-				BaseModelData data;
-				
-				data = new BaseModelData();
-				data.set("term_name", "melanoma");
-				data.set("ontology", "CRISP Thesaurus, 2006");
-				store.add(data);
-
-				data = new BaseModelData();
-				data.set("term_name", "Melanoma");
-				data.set("ontology", "MedDRA");
-				store.add(data);
-
-				data = new BaseModelData();
-				data.set("term_name", "melanoma");
-				data.set("ontology", "NCI Thesaurus");
-				store.add(data);
-
-				fakeSearchResultsGrid.reconfigure(store, cm);								
-			}
-		});
-
-		
-		Text txtSearchResults = new Text("Search Results");
-		ontologySearchPanel.add(txtSearchResults, new AbsoluteData(6, 67));
-		add(ontologySearchPanel);
-
-		
-	}
-
 
 	private class ColumnDefinitionTableModel extends BaseModelData {
 		String columnName;
@@ -623,88 +602,5 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 		}
 		
 	}
-
-
-	/*
-	 * DEMo
-	 */
-	private List<ColumnConfig> createSearchResultConfigs() {
-		List<ColumnConfig> colConfigs = new ArrayList<ColumnConfig>();
-        ColumnConfig colConfig;       
-
-        colConfig = new ColumnConfig("select", "Select", 60);
-        colConfig.setRenderer(createSelectRenderer(null));
-        colConfigs.add(colConfig);
-
-        colConfig = new ColumnConfig("term_name", "Term Name", 120);
-        colConfigs.add(colConfig);
-        
-        colConfig = new ColumnConfig("ontology", "Ontology", 195);
-        colConfigs.add(colConfig);
-        
-        colConfig = new ColumnConfig("details", "Details", 50);
-        colConfig.setRenderer(createDetailsRenderer(null));
-        colConfigs.add(colConfig);
-                
-        colConfig = new ColumnConfig("visualize", "Visualize", 50);
-        colConfig.setRenderer(createVisualizeRenderer(null));
-        colConfigs.add(colConfig);        
-		
-		return colConfigs;
-	}	
-
-	private GridCellRenderer<BaseModelData> createSelectRenderer(final Collection<Ontology> ontologies) {
-		GridCellRenderer<BaseModelData> buttonRenderer = new GridCellRenderer<BaseModelData>() {
-			@Override
-			public Object render(final BaseModelData model,
-					String property, ColumnData config, final int rowIndex,
-					final int colIndex,
-					ListStore<BaseModelData> store,
-					Grid<BaseModelData> grid) {
-				final BaseModelData entry = store.getAt(rowIndex);
-				Button selectButton = new Button("Select");					
-				return selectButton;
-			}
-		};
-
-		return buttonRenderer;
-	}
-
-	private GridCellRenderer<BaseModelData> createDetailsRenderer(final Collection<Ontology> ontologies) {
-		GridCellRenderer<BaseModelData> buttonRenderer = new GridCellRenderer<BaseModelData>() {
-			@Override
-			public Object render(final BaseModelData model,
-					String property, ColumnData config, final int rowIndex,
-					final int colIndex,
-					ListStore<BaseModelData> store,
-					Grid<BaseModelData> grid) {
-				final BaseModelData entry = store.getAt(rowIndex);
-				Anchor removeAnchor = new Anchor();
-				removeAnchor.setHTML(DisplayUtils.getIconHtml(iconsImageBundle.details16()));
-				return removeAnchor;					
-			}
-		};
-
-		return buttonRenderer;
-	}
-
-	private GridCellRenderer<BaseModelData> createVisualizeRenderer(final Collection<Ontology> ontologies) {
-		GridCellRenderer<BaseModelData> buttonRenderer = new GridCellRenderer<BaseModelData>() {
-			@Override
-			public Object render(final BaseModelData model,
-					String property, ColumnData config, final int rowIndex,
-					final int colIndex,
-					ListStore<BaseModelData> store,
-					Grid<BaseModelData> grid) {
-				final BaseModelData entry = store.getAt(rowIndex);
-				Anchor removeAnchor = new Anchor();
-				removeAnchor.setHTML(DisplayUtils.getIconHtml(iconsImageBundle.visualize16()));
-				return removeAnchor;
-			}
-		};
-
-		return buttonRenderer;
-	}
-
 	
 }

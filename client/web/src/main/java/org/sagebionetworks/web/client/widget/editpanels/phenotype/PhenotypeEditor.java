@@ -27,7 +27,7 @@ public class PhenotypeEditor implements PhenotypeEditorView.Presenter, SynapseWi
     private ColumnDefinitionEditor columnDefinitionEditor;
     private ColumnMappingEditor columnMappingEditor;
     private String layerId;
-	
+	 
     private List<String> columns;
     private String currentIdentityColumn;
     private Map<String,String> columnToOntology;

@@ -44,6 +44,8 @@ import org.sagebionetworks.web.client.widget.editpanels.phenotype.ColumnDefiniti
 import org.sagebionetworks.web.client.widget.editpanels.phenotype.ColumnDefinitionEditorViewImpl;
 import org.sagebionetworks.web.client.widget.editpanels.phenotype.ColumnMappingEditorView;
 import org.sagebionetworks.web.client.widget.editpanels.phenotype.ColumnMappingEditorViewImpl;
+import org.sagebionetworks.web.client.widget.editpanels.phenotype.OntologySearchPanelView;
+import org.sagebionetworks.web.client.widget.editpanels.phenotype.OntologySearchPanelViewImpl;
 import org.sagebionetworks.web.client.widget.editpanels.phenotype.PhenotypeEditorView;
 import org.sagebionetworks.web.client.widget.editpanels.phenotype.PhenotypeEditorViewImpl;
 import org.sagebionetworks.web.client.widget.filter.QueryFilterView;
@@ -212,13 +214,17 @@ public class PortalGinModule extends AbstractGinModule {
 		bind(PhenotypeEditorViewImpl.class).in(Singleton.class);
 		bind(PhenotypeEditorView.class).to(PhenotypeEditorViewImpl.class);
 		
-		// PhenotypeEditor
+		// Column Definition Editor
 		bind(ColumnDefinitionEditorViewImpl.class).in(Singleton.class);
 		bind(ColumnDefinitionEditorView.class).to(ColumnDefinitionEditorViewImpl.class);		
 
-		// PhenotypeEditor
+		// Column Mapping Editor
 		bind(ColumnMappingEditorViewImpl.class).in(Singleton.class);
 		bind(ColumnMappingEditorView.class).to(ColumnMappingEditorViewImpl.class);		
+
+		// Ontology Search Panel
+		bind(OntologySearchPanelViewImpl.class).in(Singleton.class);
+		bind(OntologySearchPanelView.class).to(OntologySearchPanelViewImpl.class);		
 
 	}
 
