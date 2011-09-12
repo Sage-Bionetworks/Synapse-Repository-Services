@@ -14,7 +14,7 @@ sageRepos <- paste("http://sage.fhcrc.org/sagebioCRAN/",
   rversion, sep="")
 allRepos <- c(sageRepos, biocinstallRepos())
 
-pkgInstall <- function (package) {
-        install.packages(package, repos = allRepos)
+pkgInstall <- function (package, ...) {
+        install.packages(package, repos = allRepos, ...)
 }
 
