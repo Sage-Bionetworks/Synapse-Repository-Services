@@ -124,11 +124,14 @@ public class QueryServiceTableTest {
 		int total = 50;
 		TableResults table = createResults(cols, rows, total);
 		// Now set this table
-		presenter.setTableResults(table, null); // TOPO : need to mock callback
+		presenter.setTableResults(table, null); // TODO : need to mock callback
 		SearchParameters curParams = presenter.getCurrentSearchParameters();
+		// Since we're grabbing the parameters sent to the search service (1-based), adjusting this
+		// offset to be 0-based
+		int curZeroBasedOffset = curParams.getOffset() - 1;
 		// The view should get the columns set and the rows set
 		verify(mockView, times(1)).setColumns(table.getColumnInfoList());
-		RowData rowData = new RowData(table.getRows(), curParams.getOffset(), curParams.getLimit(), total, curParams.getSort(), curParams.isAscending());
+		RowData rowData = new RowData(table.getRows(), curZeroBasedOffset, curParams.getLimit(), total, curParams.getSort(), curParams.isAscending());
 		verify(mockView, times(1)).setRows(rowData);
 	}
 	
@@ -155,6 +158,9 @@ public class QueryServiceTableTest {
 	public void testRefreshFromServerSuccess() throws Exception{
 		// Get the search parameters that will be used by the presenter
 		SearchParameters curParams = presenter.getCurrentSearchParameters();
+		// Since we're grabbing the parameters sent to the search service (1-based), adjusting this
+		// offset to be 0-based
+		int curZeroBasedOffset = curParams.getOffset() - 1;
 		int columnCount = 6;
 		int totalCount = 100;
 		TableResults toReturn = createResults(columnCount, curParams.getLimit(), totalCount);
@@ -169,7 +175,7 @@ public class QueryServiceTableTest {
 		// now trigger a failure
 		recorder.playOnSuccess(0);
 		verify(mockView).setColumns(toReturn.getColumnInfoList());
-		RowData rowData = new RowData(toReturn.getRows(), curParams.getOffset(), curParams.getLimit(), totalCount, curParams.getSort(), curParams.isAscending());
+		RowData rowData = new RowData(toReturn.getRows(), curZeroBasedOffset, curParams.getLimit(), totalCount, curParams.getSort(), curParams.isAscending());
 		verify(mockView).setRows(rowData);
 	}
 	

@@ -158,7 +158,9 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 	 * @return
 	 */
 	public SearchParameters getCurrentSearchParameters(){
-		return new SearchParameters(getDisplayColumns(), this.type.name(), this.where, paginationOffset, paginationLimit, sortKey, ascending);
+		// Query Service is one-based, so adjusting the pagination offset when getting the search parameters
+		int oneBasedOffset = paginationOffset + 1;
+		return new SearchParameters(getDisplayColumns(), this.type.name(), this.where, oneBasedOffset, paginationLimit, sortKey, ascending);
 	}
 
 	private void setCurrentSearchParameters(PagingLoadConfig loadConfig) {
