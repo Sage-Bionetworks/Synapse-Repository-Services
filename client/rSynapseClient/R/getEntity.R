@@ -23,9 +23,13 @@ setMethod(
 		f = ".getEntityInfo",
 		signature = "SynapseEntity",
 		definition = function(entity){
-			if(is.null(propertyValue(entity, "id")))
+			if(is.null(id <- propertyValue(entity, "id")))
 				stop("entity must contain an id property value")
-			.getEntityInfo(propertyValue(entity, "id"))
+			if(!is.null(propertyValue(entity,"uri"))){
+				splits <- strsplit(propertyValue(entity,"uri"),"/")
+				return(list(kind = splits[[1]][length(splits[[1]]) - 1]))
+			}
+			.getEntityInfo(id)
 		}
 )
 
@@ -33,6 +37,11 @@ setMethod(
 		f = ".getEntityInfo",
 		signature = "list",
 		definition = function(entity){
+			if("uri" %in% names(entity)){
+				splits <- strsplit(entity$uri,"/")
+				return(list(kind = splits[[1]][length(splits[[1]]) - 1]))
+			}
+				
 			if(!("id" %in% names(entity)))
 				stop("entity must have a field named 'id'")
 			if(is.null(entity$id))
@@ -79,7 +88,12 @@ setMethod(
 			splits <- strsplit(entity$uri, "/")[[1]]
 			className <- splits[length(splits)-1]
 			className <- sprintf("%s%s", toupper(substr(className, 1, 1)), tolower(gsub("^.", "", className)))
-			do.call(className, args=list(entity=entity))
+			tryCatch(
+				do.call(className, args=list(entity=entity)),
+				error = function(e){
+					SynapseEntity(entity)
+				}
+			)
 		}
 )
 

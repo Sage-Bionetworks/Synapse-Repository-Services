@@ -52,9 +52,12 @@ setMethod(
 	
 	## Get the available locations for this layer and match to locationPrefs
 	response <- synapseGet(entity$locations)
+	if(response$totalNumberOfResults == 0)
+		return(NULL)
+	
 	availableLocations <- .jsonListToDataFrame(response$results)
 	ind <- match(locationPrefs, availableLocations$type)
-	ind <- ind[!is.na(ind)]
+	ind <- ind[!is.na(ind)]	
 	
 	if(length(ind) == 0){
 		stop("Data file was not available in any of the locations specified. Locations available for this layer:", annotations(entity)$locations)

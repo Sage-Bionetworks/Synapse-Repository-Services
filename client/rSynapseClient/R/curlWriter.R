@@ -27,5 +27,5 @@
 	response <- curlPerform(URL=url, writefunction=writeFunction,
 			writedata=ext, .opts = opts)
 	.checkCurlResponse(curlHandle, response)
-	return(destfile)
+	destfile
 }

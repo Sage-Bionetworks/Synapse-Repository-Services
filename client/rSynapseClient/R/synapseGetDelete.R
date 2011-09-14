@@ -35,12 +35,13 @@
 	
 	## Submit request and check response code
 	d = debugGatherer()
+	
+	curlSetOpt(opts,curl=curlHandle)
 	response <- getURL(uri, 
 			customrequest = requestMethod, 
 			httpheader = header,
 			curl = curlHandle, 
-			debugfunction=d$update, 
-			.opts = opts
+			debugfunction=d$update
 	)
 	if(.getCache("debug")) {
 		message(d$value())

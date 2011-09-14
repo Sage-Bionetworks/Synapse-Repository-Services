@@ -6,9 +6,79 @@
 setGeneric(name="as.list")
 
 setGeneric(
+		name = "Eula",
+		def = function(entity){
+			standardGeneric("Eula")
+		}
+)
+
+setGeneric(
+		name = ".loadSageBioPacket",
+		def = function(entity){
+			standardGeneric(".loadSageBioPacket")
+		}
+		
+)
+
+setGeneric(
+		name = "CachedLayer",
+		def = function(entity, files){
+			standardGeneric("CachedLayer")
+		}
+)
+
+setGeneric(
+		name = "downloadEntity",
+		def = function(entity){
+			standardGeneric("downloadEntity")
+		}
+)
+
+setGeneric(
+		name = "loadEntity",
+		def = function(entity){
+			standardGeneric("loadEntity")
+		}
+)
+
+setGeneric(
+		name = "loadEntity",
+		def = function(entity){
+			standardGeneric("loadEntity")
+		}
+)
+
+setGeneric(
+		name = ".promptEulaAgreement",
+		def = function(entity){
+			standardGeneric(".promptEulaAgreement")
+		}
+)
+setGeneric(
+		name = "hasSignedEula",
+		def = function(entity){
+			standardGeneric("hasSignedEula")
+		}
+)
+
+setGeneric(
 		name = ".getEntityInfo",
 		def = function(entity){
 			standardGeneric(".getEntityInfo")
+		}
+)
+
+setGeneric(
+		name = ".signEula",
+		def = function(entity){
+			standardGeneric(".signEula")
+		}
+)
+
+setGeneric(
+		name = "showEula",
+		def = function(entity){
+			standardGeneric("showEula")
 		}
 )
 
@@ -269,7 +339,7 @@ setGeneric(
 ## Generic SynapseEntity constructor
 setGeneric(
 		name = "SynapseEntity",
-		def = function(entity, ...){
+		def = function(entity){
 			standardGeneric("SynapseEntity")
 		}
 )

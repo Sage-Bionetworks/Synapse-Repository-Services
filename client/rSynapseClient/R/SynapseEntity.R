@@ -11,19 +11,32 @@ setMethod(
 		signature = signature("SynapseEntity"),
 		definition = function(object){
 			cat('An object of class "', class(object), '"\n', sep="")
-
-                        cat("Synapse Entity Name : ", properties(object)$name, "\n", sep="")
-                        cat("Synapse Entity Id   : ", properties(object)$id, "\n", sep="")
-                        
-                        if (!is.null(properties(object)$parentId))
-                          cat("Parent Id           : ", properties(object)$parentId, "\n", sep="")
-                        if (!is.null(properties(object)$type))
-                          cat("Type                : ", properties(object)$type, "\n", sep="")
-                        if (!is.null(properties(object)$version))
-                          cat("Version             : ", properties(object)$version, "\n\n", sep="")
-
-                        cat("For complete list of annotations, please use the annotations() function.\n")
-                        cat(sprintf("Or view this Entity on the Synapse website at: %s\n", "https://synapse.sagebase.org"), sep="")
+			
+			cat("Synapse Entity Name : ", properties(object)$name, "\n", sep="")
+			cat("Synapse Entity Id   : ", properties(object)$id, "\n", sep="")
+			
+			if (!is.null(properties(object)$parentId))
+				cat("Parent Id           : ", properties(object)$parentId, "\n", sep="")
+			if (!is.null(properties(object)$type))
+				cat("Type                : ", properties(object)$type, "\n", sep="")
+			if (!is.null(properties(object)$version))
+				cat("Version             : ", properties(object)$version, "\n", sep="")
+			
+			cat("\nFor complete list of annotations, please use the annotations() function.\n")
+			cat(sprintf("Or view this Entity on the Synapse website at: %s\n", "https://synapse.sagebase.org"), sep="")
+			
+			if(length(object@cachedFiles) > 0){
+				cat("\nLocal cache directory:\n")
+				show(object@cachedFiles$cacheDir)
+				cat("\nCached files:\n")
+				show(object@cachedFiles$files)
+			}
+			
+			if(length(ls((object@loadedObjects))) > 0){
+				cat("\nLoaded objects:\n")
+				cat(objects(object@loadedObjects), sep="\n")
+			}
+				
 		}
 )
 
@@ -291,7 +304,7 @@ setMethod(
 		signature = signature("SynapseEntity", "character"),
 		definition = function(object, which, value){
 			properties(object)[[which]] <- value
-			return(object)
+			object
 		}
 )
 
@@ -301,15 +314,22 @@ setMethod(
 setMethod(
 		f = "SynapseEntity",
 		signature = signature("list"),
-		definition = function(entity, getAnnotations = TRUE){
+		definition = function(entity){
 			s4Entity <- new("SynapseEntity")
 			s4Entity <- .populateSlotsFromEntity(s4Entity, entity)
 			
 			## add annotations
-			if(getAnnotations && !is.null(entity$id))
-				annotations(s4Entity) <- SynapseAnnotation(getAnnotations(entity=entity))
-			
-			return(s4Entity)
+			annotations <- new(Class="SynapseAnnotation")
+			if(!is.null(entity$id)){
+				annotations <- tryCatch(
+						SynapseAnnotation(getAnnotations(entity=entity)),
+						error = function(e){
+							warning("Unable to retrieve annotations for entity.")
+						}
+				)
+			}
+			s4Entity@annotations<- annotations
+			s4Entity
 		}
 )
 

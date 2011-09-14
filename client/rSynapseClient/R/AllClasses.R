@@ -34,11 +34,15 @@ setClass(
 		representation = representation(
 				synapseEntityKind = "character",
 				properties = "list",
-				annotations = "SynapseAnnotation"
+				annotations = "SynapseAnnotation",
+				cachedFiles = "list",
+				loadedObjects = "environment"
 		),
 		prototype = prototype(
 				properties = emptyNamedList,
-				annotations = new(Class="SynapseAnnotation")
+				annotations = new(Class="SynapseAnnotation"),
+				cachedFiles = list(),
+				loadedObjects = new.env()
 		)
 )
 
@@ -115,6 +119,14 @@ setClass(
 		contains = "SynapseEntity",
 		prototype = prototype(
 				synapseEntityKind = "location"
+		)
+)
+
+setClass(
+		Class = "Eula",
+		contains = "SynapseEntity",
+		prototype = prototype(
+				synapseEntityKind = "eula"
 		)
 )
 

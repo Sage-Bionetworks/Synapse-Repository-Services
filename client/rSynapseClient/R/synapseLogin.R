@@ -100,6 +100,7 @@ synapseLogin <-
 	## Cache the sessionToken. No need to check validity since it was just created
 	sessionToken(response$sessionToken, checkValidity=FALSE)
 	.setCache("sessionTimestamp", Sys.time())
+	.setCache("username", credentials$username)
 	sprintf("Welcome %s!", response$displayName)
 }
 

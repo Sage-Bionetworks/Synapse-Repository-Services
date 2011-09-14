@@ -82,16 +82,16 @@
 	tcltk::tkgrid(imageLabel, column=0, row=0, columnspan=3)
 	
 	## the first row is for username
-	tcltk::tkgrid(tcltk::tklabel(root,text="Email Address", justify='right'), column=0, row=1, sticky="e", padx=c(0,5), pady=c(12,3))
-	tcltk::tkgrid(usernameEntryWidget, column=1, row=1, columnspan=2, sticky="nsew", padx=c(0,5), pady=c(12,5))
+	tcltk::tkgrid(tcltk::tklabel(root,text="Email Address", justify='right'), column=0, row=1, sticky="e", padx=c(0,5), pady=c(12,5))
+	tcltk::tkgrid(usernameEntryWidget, column=1, row=1, columnspan=2, sticky="nsew", padx=c(0,5), columnspan=2, pady=c(12,5))
 	
 	## the second row is for password
-	tcltk::tkgrid(tcltk::tklabel(root, text="Password", justify='right'), column=0, row=2, sticky="e", padx=c(0,5), pady=c(0,3))
-	tcltk::tkgrid(passwordEntryWidget, column=1, row=2, columnspan=2, sticky="nsew", padx=c(0,5), pady=c(0,8))
+	tcltk::tkgrid(tcltk::tklabel(root, text="Password", justify='right'), column=0, row=2, sticky="e", padx=c(0,5), pady=c(0,12))
+	tcltk::tkgrid(passwordEntryWidget, column=1, row=2, columnspan=2, sticky="nsew", padx=c(0,5), columnspan=2,  pady=c(0,12))
 	
 	## the third row is for the Login and Cancel buttons
-	tcltk::tkgrid(cancelButton, column=1, row=3, pady=c(0,3))
-	tcltk::tkgrid(loginButton, column=2, row=3, pady=c(0,5))
+	tcltk::tkgrid(loginButton, column=0, row=3, columnspan=2, pady=c(0,5))
+	tcltk::tkgrid(cancelButton, column=1, row=3, columnspan=2, pady=c(0,5))
 	
 	## bind the return key to onLogin function when in the passwordEntry widget and to
 	## set focus to the password entry widget when in the ussername entry widget

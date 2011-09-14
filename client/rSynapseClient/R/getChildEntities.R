@@ -74,6 +74,17 @@ getLayerPreviews <-
 	.getChildEntities(entity=entity, offset=offset, limit=limit, kind="layer", childKind="preview", includeParentAnnot = FALSE)
 }
 
+setMethod(
+		f = "getDatasetLayers",
+		signature = "SynapseEntity",
+		definition = function(entity, includeParentAnnot=TRUE, offset=1, limit=100){
+			getDatasetLayers(propertyValue(entity, "id"), includeParentAnnot, offset, limit)
+		}
+)
+
+setGeneric(
+		name = "getDatasetLayers"
+)
 #setMethod(
 #		f = "getChildEntity",
 #		signature = "synapseEntity",
