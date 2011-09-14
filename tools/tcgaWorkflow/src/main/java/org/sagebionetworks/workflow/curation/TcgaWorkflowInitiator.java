@@ -46,12 +46,13 @@ public class TcgaWorkflowInitiator {
 				// Since the URLs come in in order of lowest to highest
 				// revision, this will keep overwriting the earlier revisions in
 				// the map and at the end we will only have the latest revisions
-				if (annotations.has("tcgaRevision")) {
-					versionMap.put(url.replace(annotations
-							.getString("tcgaRevision"), ""), url);
-				} else {
+// Per Brig, those numbers are batches not versions
+//				if (annotations.has("tcgaRevision")) {
+//					versionMap.put(url.replace(annotations
+//							.getString("tcgaRevision"), ""), url);
+//				} else {
 					versionMap.put(url, url);
-				}
+//				}
 			}
 		}
 
@@ -61,18 +62,21 @@ public class TcgaWorkflowInitiator {
 	}
 
 	class DatasetObserver implements SimpleObserver<String> {
+		ConfigHelper configHelper;
 		Synapse synapse;
 
 		DatasetObserver() throws Exception {
-			synapse = ConfigHelper.createConfig().createSynapseClient();
+			configHelper = ConfigHelper.createConfig();
+			synapse = configHelper.createSynapseClient();
 		}
 
 		public void update(String url) throws Exception {
 
 			String urlComponents[] = url.split("/");
 
-			String datasetName = urlComponents[urlComponents.length - 1];
-
+			String datasetAbbreviation = urlComponents[urlComponents.length - 1];
+			String datasetName = configHelper.getTCGADatasetName(datasetAbbreviation);
+			
 			JSONObject results = synapse
 					.query("select * from dataset where dataset.name == '"
 							+ datasetName + "'");
