@@ -57,7 +57,7 @@ public class TcgaWorkflowITCase {
 	 */
 	@BeforeClass
 	static public void setUpBeforeClass() throws Exception {
-		String datasetName = "coad";
+		String datasetName = "Colon Adenocarcinoma TCGA";
 
 		Synapse synapse = ConfigHelper.createConfig().createSynapseClient();
 		JSONObject results = synapse
@@ -65,27 +65,20 @@ public class TcgaWorkflowITCase {
 						+ datasetName + "'");
 
 		int numDatasetsFound = results.getInt("totalNumberOfResults");
-		if (0 == numDatasetsFound) {
-
-			JSONObject dataset = new JSONObject();
-			dataset.put("name", datasetName);
-
-			// TODO put a unique constraint on the dataset name, and if we catch
-			// an exception here for that, we should retry this workflow step
-			JSONObject storedDataset = synapse
-					.createEntity("/dataset", dataset);
-			datasetId = storedDataset.getString("id");
+		if (1 == numDatasetsFound) {
+			datasetId = results.getJSONArray("results").getJSONObject(0)
+			.getString("dataset.id");
 		} else {
-			if (1 == numDatasetsFound) {
-				datasetId = results.getJSONArray("results").getJSONObject(0)
-						.getString("dataset.id");
-			} else {
-				throw new UnrecoverableException("We have " + numDatasetsFound
-						+ " datasets with name " + datasetName);
-			}
+			throw new UnrecoverableException("We have " + numDatasetsFound
+					+ " datasets with name " + datasetName);
 		}
 	}
 
+	@Test
+	public void testTCGAAbbreviation2Name() throws Exception {
+		assertEquals("Colon Adenocarcinoma TCGA", ConfigHelper.createConfig().getTCGADatasetName("coad"));
+	}
+	
 	/**
 	 * @throws Exception
 	 */
@@ -142,6 +135,7 @@ public class TcgaWorkflowITCase {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testRScriptWorkflowSkip() throws Exception {
 
@@ -261,6 +255,7 @@ public class TcgaWorkflowITCase {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testRScript() throws Exception {
 

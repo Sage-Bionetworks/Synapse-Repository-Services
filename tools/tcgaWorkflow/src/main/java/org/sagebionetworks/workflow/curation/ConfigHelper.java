@@ -5,10 +5,14 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.workflow.activity.Curation;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
@@ -46,6 +50,8 @@ public class ConfigHelper {
 	 * The credentials property key with which to pass the AWS secret key
 	 */
 	private static final String SECRET_KEY_KEY = "AWS_SECRET_KEY";
+	
+	private static final String TCGA_ABBREVIATION_PREFIX = "abbrev_";
 
 	private static final String WORKFLOW_PROPERTIES_FILENAME = "workflow.properties";
 	private static final String SWF_ENDPOINT_KEY = "swf.endpoint";
@@ -61,6 +67,8 @@ public class ConfigHelper {
 	private String synapsePassword;
 	private String awsAccessId;
 	private String awsSecretKey;
+	
+	private static Map<String, String> ABBREV2NAME = null;
 
 	private volatile static ConfigHelper theInstance = null;
 
@@ -125,8 +133,21 @@ public class ConfigHelper {
 							+ ACCESS_ID_KEY + "=theAccessKey\n\t"
 							+ SECRET_KEY_KEY + "=theSecretKey\n");
 		}
+		
+		Map<String, String> abbrev2name = new HashMap<String, String>();
+		for(String key : serviceProperties.stringPropertyNames()) {
+			if(key.startsWith(TCGA_ABBREVIATION_PREFIX)) {
+				String value = serviceProperties.getProperty(key);
+				abbrev2name.put(key.substring(TCGA_ABBREVIATION_PREFIX.length()), value);
+			}
+		}
+		ABBREV2NAME = Collections.unmodifiableMap(abbrev2name);
 	}
 
+	public static String getTCGADatasetName(String abbreviatedTCGADatasetName) {
+		return ABBREV2NAME.get(abbreviatedTCGADatasetName);
+	}
+	
 	/**
 	 * Factory method for Configuration Helper
 	 * 

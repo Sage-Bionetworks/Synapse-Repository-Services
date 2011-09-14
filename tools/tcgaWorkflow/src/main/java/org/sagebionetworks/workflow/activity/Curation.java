@@ -37,7 +37,7 @@ public class Curation {
 	 */
 	public static final Pattern TCGA_DATA_REGEXP = Pattern
 			.compile("^([^_]+)_([^\\.]+)\\.([^\\.]+)\\.([^\\.]+)\\.(\\d+\\.\\d+\\.\\d+).*");
-
+	
 	/**
 	 * Create or update metadata for TCGA layers
 	 * 
@@ -87,7 +87,7 @@ public class Curation {
 						storedLocation = currentLocation;
 						break;
 					} else {
-						// TODO revise this location
+						// TODO revise this location once we start using versioning
 						storedLocation = synapse.updateEntity(currentLocation.getString("uri"), location);
 					}
 				}
@@ -151,7 +151,7 @@ public class Curation {
 		JSONObject layer = new JSONObject();
 
 		// This is in-elegant logic to infer some metadata from a TCGA url
-		if ("cgcc".equals(pathComponents[layerTypeIndex])) {
+		if (("cgcc".equals(pathComponents[layerTypeIndex])) || ("gsc".equals(pathComponents[layerTypeIndex]))) {
 
 			if (!filename.endsWith(".tar.gz")) {
 				throw new UnrecoverableException("malformed filename: "
@@ -177,7 +177,7 @@ public class Curation {
 				layer.put("platform", pathComponents[expressionPlatformIndex]);
 			}
 
-			if (-1 < tcgaUrl.indexOf("snp")) {
+			if ((-1 < tcgaUrl.indexOf("snp")) || (-1 < tcgaUrl.indexOf("DNASeq"))) {
 				layer.put("type", "G");
 			} else {
 				layer.put("type", "E");
@@ -191,7 +191,7 @@ public class Curation {
 			annotations.put("format", tcgaCurationDataFormat);
 		} else {
 			throw new UnrecoverableException(
-					"only able to handle expression and clinical data right now: "
+					"Not yet able to form metadata for data of type(" + tcgaUrl + "): "
 							+ pathComponents[layerTypeIndex]);
 		}
 
