@@ -1,12 +1,29 @@
+## imports from other packages
 import(RCurl, Biobase, methods)
 importFrom(RJSONIO, toJSON, fromJSON, emptyNamedList)
 importFrom(tools, md5sum)
 
-
 ## package has a dynamic library
 useDynLib(synapseClient)
 
-# Export everything not beginning with a period
-exportPattern('*')
+## S3 utility methods
+export(synapseAuthServiceEndpoint, synapseRepoServiceEndpoint, synapseLogin, synapseLogout, synapseQuery, synapseCacheDir)
+
+## S4 entity constructors
+exportMethods(Dataset, Layer, Project)
+
+## entity S4 methods
+exportMethods(getEntity, deleteEntity, createEntity, updateEntity, refreshEntity, downloadEntity, loadEntity, getParentEntity)
+
+## entity property/annotation setters and getters
+exportMethods("annotValue<-", annotValue, propertyValue, "propertyValue<-", annotations, properties, "annotationValues<-", annotationValues, "propertyValues<-", propertyValues)
+
+## S4 convenience methods
+exportMethods(getDatasetLayers)
+
+## S3 convenience methods
+export(getDatasets)
+
+
 
 

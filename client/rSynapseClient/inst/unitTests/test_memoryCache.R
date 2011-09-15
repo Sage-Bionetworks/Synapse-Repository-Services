@@ -6,36 +6,36 @@
 .setUp <- 
 		function()
 {
-	.setCache("testGetKey", "testGetValue")
-	.setCache("testDeleteKey", "testDeleteValue")
-	.setCache("testSetKey", "testSetValue")
+	synapseClient:::.setCache("testGetKey", "testGetValue")
+	synapseClient:::.setCache("testDeleteKey", "testDeleteValue")
+	synapseClient:::.setCache("testSetKey", "testSetValue")
 }
 
 .tearDown <- 
 		function()
 {
-	.deleteCache("testGetKey")
-	.deleteCache("testDeleteKey")
-	.deleteCache("testSetKey")
+	synapseClient:::.deleteCache("testGetKey")
+	synapseClient:::.deleteCache("testDeleteKey")
+	synapseClient:::.deleteCache("testSetKey")
 }
 
 unitTestGetCacheValue <- 
 		function()
 {
-	checkEquals(.getCache("testGetKey"), "testGetValue")
+	checkEquals(synapseClient:::.getCache("testGetKey"), "testGetValue")
 }
 
 unitTestSetCacheValue <- 
 		function()
 {
-	checkEquals(.getCache("testSetKey"), "testSetValue")
-	.setCache("testSetKey", "testSetValueNew")
-	checkEquals(.getCache("testSetKey"), "testSetValueNew")
+	checkEquals(synapseClient:::.getCache("testSetKey"), "testSetValue")
+	synapseClient:::.setCache("testSetKey", "testSetValueNew")
+	checkEquals(synapseClient:::.getCache("testSetKey"), "testSetValueNew")
 }
 
 unitTestDeleteCacheValue <- 
 		function()
 {
-	.deleteCache("testDeleteKey")
-	checkTrue(is.null(.getCache("testDeleteKey")))
+	synapseClient:::.deleteCache("testDeleteKey")
+	checkTrue(is.null(synapseClient:::.getCache("testDeleteKey")))
 }

@@ -73,25 +73,25 @@
 	
 	## OK and Cancel buttons. disable cancel button until both username and login
 	## fields contain entries
-	loginButton <- tcltk::tkbutton(root,text=" Login  ", command=onLogin, state="disabled")
-	cancelButton <- tcltk::tkbutton(root,text=" Cancel ", command=onCancel)
+	loginButton <- tcltk::tkbutton(root, text=" Login  ", command=onLogin, state="disabled")
+	cancelButton <- tcltk::tkbutton(root, text=" Cancel ", command=onCancel)
 	tcltk::tkbind(cancelButton, "<Return>", onCancel)
 	
-	image <- tcltk::tcl("image","create","photo",image,file=imageFile)
-	imageLabel <- tcltk::tklabel(root,image=image,bg="white")
-	tcltk::tkgrid(imageLabel, column=0, row=0, columnspan=3)
+	image <- tcltk::tcl("image", "create", "photo", image, file=imageFile)
+	imageLabel <- tcltk::tklabel(root, image=image, bg="white")
+	tcltk::tkgrid(imageLabel, column=0, row=0, columnspan=4)
 	
 	## the first row is for username
 	tcltk::tkgrid(tcltk::tklabel(root,text="Email Address", justify='right'), column=0, row=1, sticky="e", padx=c(0,5), pady=c(12,5))
-	tcltk::tkgrid(usernameEntryWidget, column=1, row=1, columnspan=2, sticky="nsew", padx=c(0,5), columnspan=2, pady=c(12,5))
+	tcltk::tkgrid(usernameEntryWidget, column=1, row=1,sticky="nsew", padx=c(0,5), columnspan=3, pady=c(12,5))
 	
 	## the second row is for password
 	tcltk::tkgrid(tcltk::tklabel(root, text="Password", justify='right'), column=0, row=2, sticky="e", padx=c(0,5), pady=c(0,12))
-	tcltk::tkgrid(passwordEntryWidget, column=1, row=2, columnspan=2, sticky="nsew", padx=c(0,5), columnspan=2,  pady=c(0,12))
+	tcltk::tkgrid(passwordEntryWidget, column=1, row=2, sticky="nsew", padx=c(0,5), columnspan=3,  pady=c(0,12))
 	
 	## the third row is for the Login and Cancel buttons
-	tcltk::tkgrid(loginButton, column=0, row=3, columnspan=2, pady=c(0,5))
-	tcltk::tkgrid(cancelButton, column=1, row=3, columnspan=2, pady=c(0,5))
+	tcltk::tkgrid(loginButton, column=1, row=3, pady=c(0,5))
+	tcltk::tkgrid(cancelButton, column=2, row=3, pady=c(0,5))
 	
 	## bind the return key to onLogin function when in the passwordEntry widget and to
 	## set focus to the password entry widget when in the ussername entry widget

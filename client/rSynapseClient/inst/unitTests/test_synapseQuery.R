@@ -23,11 +23,11 @@
 	assignInNamespace(".cache", newCache, "synapseClient")
 	attachNamespace("synapseClient")
 	
-	.setCache("oldCache", oldCache)
-	sessionToken("thisIsAFakeToken")
+	synapseClient:::.setCache("oldCache", oldCache)
+	synapseClient:::sessionToken("thisIsAFakeToken")
 }
 .tearDown <- function() {
-	oldCache <- .getCache("oldCache")
+	oldCache <- synapseClient:::.getCache("oldCache")
 	unloadNamespace("synapseClient")
 	unloadNamespace("RCurl")
 	assignInNamespace(".cache", oldCache, "synapseClient")

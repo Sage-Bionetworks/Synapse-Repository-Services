@@ -31,7 +31,7 @@
 			function(entity)
 	{
 		s4Entity <- new("SynapseEntity")
-		.populateSlotsFromEntity(s4Entity, entity)
+		synapseClient:::.populateSlotsFromEntity(s4Entity, entity)
 	}
 	
 	unloadNamespace('synapseClient')
@@ -39,13 +39,13 @@
 	assignInNamespace(".getEntity", myGetEntity, "synapseClient")
 	assignInNamespace(".cache", newCache, "synapseClient")
 	attachNamespace("synapseClient")
-	.setCache("oldCache", oldCache)
+	synapseClient:::.setCache("oldCache", oldCache)
 }
 
 .tearDown <-
 		function()
 {
-	oldCache <- .getCache("oldCache")
+	oldCache <- synapseClient:::.getCache("oldCache")
 	# put back the overridden functions and original cache
 	unloadNamespace("synapseClient")
 	assignInNamespace(".cache", oldCache, "synapseClient")

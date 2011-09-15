@@ -15,7 +15,7 @@
 	mySynapseQuery <-
 			function(queryString)
 	{
-		nrows <- .getCache("eulaRows")
+		nrows <- synapseClient:::.getCache("eulaRows")
 		if(is.null(nrows))
 			return(nrows)
 		if(nrows==0)
@@ -26,7 +26,7 @@
 	myReadLine <- 
 			function(prompt = "")
 	{
-		.getCache("readlineResponse")
+		synapseClient:::.getCache("readlineResponse")
 	}
 	
 	myGetParentEntity <- 
@@ -61,13 +61,13 @@
 	assignInNamespace("getParentEntity", myGetParentEntity, "synapseClient")
 	assignInNamespace("getEntity", myGetEntity, "synapseClient")
 	attachNamespace("synapseClient")
-	.setCache("oldCache", oldCache)
+	synapseClient:::.setCache("oldCache", oldCache)
 }
 
 .tearDown <-
 		function()
 {
-	oldCache <- .getCache("oldCache")
+	oldCache <- synapseClient:::.getCache("oldCache")
 	# put back the overridden functions and original cache
 	assignInNamespace("readline", attr(readline, "oldFcn"), "base")
 	assignInNamespace("file.show", attr(file.show, "oldFcn"), "base")
@@ -87,56 +87,56 @@ unitTestPromptEulaAgreementDataset <-
 	entity <- new(Class="Dataset")
 	
 	## test the various ways to accept the eula
-	.setCache("readlineResponse", "y")
-	checkTrue(.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "y")
+	checkTrue(synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "Y")
-	checkTrue(.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "Y")
+	checkTrue(synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "Yes")
-	checkTrue(.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "Yes")
+	checkTrue(synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "yes")
-	checkTrue(.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "yes")
+	checkTrue(synapseClient:::.promptEulaAgreement(entity))
 	
 	## test the various ways to reject the eula
-	.setCache("readlineResponse", "n")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "n")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "no")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "no")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "nO")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "nO")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "NO")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "NO")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
 	## test the various ways to cancel
-	.setCache("readlineResponse", "cancel")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "cancel")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "c")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "c")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "Cancel")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "Cancel")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "CanCel")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "CanCel")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
 	## test invalid responses
-	.setCache("readlineResponse", "yess")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "yess")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "ye")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "ye")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "noo")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "noo")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "adfasf")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "adfasf")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
 }
 
@@ -147,56 +147,56 @@ unitTestPromptEulaAgreementLayer <-
 	entity <- new(Class="Layer")
 	
 	## test the various ways to accept the eula
-	.setCache("readlineResponse", "y")
-	checkTrue(.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "y")
+	checkTrue(synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "Y")
-	checkTrue(.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "Y")
+	checkTrue(synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "Yes")
-	checkTrue(.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "Yes")
+	checkTrue(synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "yes")
-	checkTrue(.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "yes")
+	checkTrue(synapseClient:::.promptEulaAgreement(entity))
 	
 	## test the various ways to reject the eula
-	.setCache("readlineResponse", "n")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "n")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "no")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "no")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "nO")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "nO")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "NO")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "NO")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
 	## test the various ways to cancel
-	.setCache("readlineResponse", "cancel")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "cancel")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "c")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "c")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "Cancel")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "Cancel")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "CanCel")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "CanCel")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
 	## test invalid responses
-	.setCache("readlineResponse", "yess")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "yess")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "ye")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "ye")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "noo")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "noo")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	.setCache("readlineResponse", "adfasf")
-	checkTrue(!.promptEulaAgreement(entity))
+	synapseClient:::.setCache("readlineResponse", "adfasf")
+	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
 }
 
@@ -206,20 +206,20 @@ unitTestHasSignedEulaDataset <-
 	entity <- new(Class="Dataset")
 	
 	## test NULL response
-	.setCache("eulaRows", NULL)
-	checkTrue(!hasSignedEula(entity))
+	synapseClient:::.setCache("eulaRows", NULL)
+	checkTrue(!synapseClient:::hasSignedEula(entity))
 	
 	## test 0 rows returned
-	.setCache("eulaRows", 0)
-	checkTrue(!hasSignedEula(entity))
+	synapseClient:::.setCache("eulaRows", 0)
+	checkTrue(!synapseClient:::hasSignedEula(entity))
 	
 	## test 0 rows returned
-	.setCache("eulaRows", 1)
-	checkTrue(hasSignedEula(entity))
+	synapseClient:::.setCache("eulaRows", 1)
+	checkTrue(synapseClient:::hasSignedEula(entity))
 	
 	## test 0 rows returned
-	.setCache("eulaRows", 2)
-	checkTrue(hasSignedEula(entity))
+	synapseClient:::.setCache("eulaRows", 2)
+	checkTrue(synapseClient:::hasSignedEula(entity))
 	
 }
 
@@ -229,20 +229,20 @@ unitTestHasSignedEulaLayer <-
 	entity <- new(Class="Layer")
 	
 	## test NULL response
-	.setCache("eulaRows", NULL)
-	checkTrue(!hasSignedEula(entity))
+	synapseClient:::.setCache("eulaRows", NULL)
+	checkTrue(!synapseClient:::hasSignedEula(entity))
 	
 	## test 0 rows returned
-	.setCache("eulaRows", 0)
-	checkTrue(!hasSignedEula(entity))
+	synapseClient:::.setCache("eulaRows", 0)
+	checkTrue(!synapseClient:::hasSignedEula(entity))
 	
 	## test 0 rows returned
-	.setCache("eulaRows", 1)
-	checkTrue(hasSignedEula(entity))
+	synapseClient:::.setCache("eulaRows", 1)
+	checkTrue(synapseClient:::hasSignedEula(entity))
 	
 	## test 0 rows returned
-	.setCache("eulaRows", 2)
-	checkTrue(hasSignedEula(entity))
+	synapseClient:::.setCache("eulaRows", 2)
+	checkTrue(synapseClient:::hasSignedEula(entity))
 	
 }
 
@@ -250,61 +250,61 @@ unitTestPromptSignEula <-
 		function()
 {
 	## test the various ways to accept the eula
-	.setCache("readlineResponse", "y")
-	checkTrue(.promptSignEula())
+	synapseClient:::.setCache("readlineResponse", "y")
+	checkTrue(synapseClient:::.promptSignEula())
 	
-	.setCache("readlineResponse", "Y")
-	checkTrue(.promptSignEula())
+	synapseClient:::.setCache("readlineResponse", "Y")
+	checkTrue(synapseClient:::.promptSignEula())
 	
-	.setCache("readlineResponse", "Yes")
-	checkTrue(.promptSignEula())
+	synapseClient:::.setCache("readlineResponse", "Yes")
+	checkTrue(synapseClient:::.promptSignEula())
 	
-	.setCache("readlineResponse", "yes")
-	checkTrue(.promptSignEula())
+	synapseClient:::.setCache("readlineResponse", "yes")
+	checkTrue(synapseClient:::.promptSignEula())
 	
 	## test the various ways to reject the eula
-	.setCache("readlineResponse", "n")
-	checkTrue(!.promptSignEula())
+	synapseClient:::.setCache("readlineResponse", "n")
+	checkTrue(!synapseClient:::.promptSignEula())
 	
-	.setCache("readlineResponse", "no")
-	checkTrue(!.promptSignEula())
+	synapseClient:::.setCache("readlineResponse", "no")
+	checkTrue(!synapseClient:::.promptSignEula())
 	
-	.setCache("readlineResponse", "nO")
-	checkTrue(!.promptSignEula())
+	synapseClient:::.setCache("readlineResponse", "nO")
+	checkTrue(!synapseClient:::.promptSignEula())
 	
-	.setCache("readlineResponse", "NO")
-	checkTrue(!.promptSignEula())
+	synapseClient:::.setCache("readlineResponse", "NO")
+	checkTrue(!synapseClient:::.promptSignEula())
 	
 	## test the various ways to cancel
-	.setCache("readlineResponse", "cancel")
-	checkTrue(!.promptSignEula())
+	synapseClient:::.setCache("readlineResponse", "cancel")
+	checkTrue(!synapseClient:::.promptSignEula())
 	
-	.setCache("readlineResponse", "c")
-	checkTrue(!.promptSignEula())
+	synapseClient:::.setCache("readlineResponse", "c")
+	checkTrue(!synapseClient:::.promptSignEula())
 	
-	.setCache("readlineResponse", "Cancel")
-	checkTrue(!.promptSignEula())
+	synapseClient:::.setCache("readlineResponse", "Cancel")
+	checkTrue(!synapseClient:::.promptSignEula())
 	
-	.setCache("readlineResponse", "CanCel")
-	checkTrue(!.promptSignEula())
+	synapseClient:::.setCache("readlineResponse", "CanCel")
+	checkTrue(!synapseClient:::.promptSignEula())
 	
 	## test invalid responses
-	.setCache("readlineResponse", "yess")
-	checkTrue(!.promptSignEula())
+	synapseClient:::.setCache("readlineResponse", "yess")
+	checkTrue(!synapseClient:::.promptSignEula())
 	
-	.setCache("readlineResponse", "ye")
-	checkTrue(!.promptSignEula())
+	synapseClient:::.setCache("readlineResponse", "ye")
+	checkTrue(!synapseClient:::.promptSignEula())
 	
-	.setCache("readlineResponse", "noo")
-	checkTrue(!.promptSignEula())
+	synapseClient:::.setCache("readlineResponse", "noo")
+	checkTrue(!synapseClient:::.promptSignEula())
 	
-	.setCache("readlineResponse", "adfasf")
-	checkTrue(!.promptSignEula())
+	synapseClient:::.setCache("readlineResponse", "adfasf")
+	checkTrue(!synapseClient:::.promptSignEula())
 	
 }
 
 unitTestSignEula <- 
 		function()
 {
-	checkException(.signEula(new(Class="SynapseEntity")))
+	checkException(synapseClient:::.signEula(new(Class="SynapseEntity")))
 }

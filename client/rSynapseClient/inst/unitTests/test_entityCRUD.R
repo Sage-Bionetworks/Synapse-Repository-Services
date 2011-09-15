@@ -23,12 +23,12 @@
 	assignInNamespace(".cache", newCache, "synapseClient")
 	attachNamespace("synapseClient")
 	
-	.setCache("oldCache", oldCache)
+	synapseClient:::.setCache("oldCache", oldCache)
 
 }
 
 .tearDown <- function() {
-	oldCache <- .getCache("oldCache")
+	oldCache <- synapseClient:::.getCache("oldCache")
 	# put back the overridden functions and original cache
 	unloadNamespace("synapseClient")
 	unloadNamespace("RCurl")
@@ -37,52 +37,52 @@
 }
 
 unitTestCreateEntityInvalidParameters <- function() {
-	checkException(createDataset())
+	checkException(synapseClient:::createDataset())
 
-	checkException(createDataset(entity='this is not an entity, it must be a list'))
+	checkException(synapseClient:::createDataset(entity='this is not an entity, it must be a list'))
 }
 
 unitTestGetEntityInvalidParameters <- function() {
-	checkException(getDataset())
+	checkException(synapseClient:::getDataset())
 		
 	invalidDataset <- list()
 	invalidDataset$name <- 'I am missing a uri field'
-	checkException(getDataset(entity=invalidDataset))
+	checkException(synapseClient:::getDataset(entity=invalidDataset))
 	
 	tooManyIds <- c('123', '456', '789')
-	checkException(getDataset(entity=tooManyIds))
+	checkException(synapseClient:::getDataset(entity=tooManyIds))
 }
 
 unitTestUpdateEntityInvalidParameters <- function() {
-	checkException(updateDataset())
+	checkException(synapseClient:::updateDataset())
 	
-	checkException(updateDataset(entity='this is not an entity, it must be a list'))
+	checkException(synapseClient:::updateDataset(entity='this is not an entity, it must be a list'))
 }
 
 unitTestDeleteEntityInvalidParameters <- function() {
-	checkException(deleteDataset())
+	checkException(synapseClient:::deleteDataset())
 
 	invalidDataset <- list()
 	invalidDataset$name <- 'I am missing a uri field'
-	checkException(deleteDataset(entity=invalidDataset))
+	checkException(synapseClient:::deleteDataset(entity=invalidDataset))
 	
 	tooManyIds <- c('123', '456', '789')
-	checkException(deleteDataset(entity=tooManyIds))
+	checkException(synapseClient:::deleteDataset(entity=tooManyIds))
 }
 
 unitTestGetAnnotationsInvalidParameters <- function() {
-	checkException(getAnnotations())
+	checkException(synapseClient:::getAnnotations())
 
 	invalidDataset <- list()
 	invalidDataset$name <- 'I am missing an annotations uri field'
-	checkException(getAnnotations(entity=invalidDataset))
+	checkException(synapseClient:::getAnnotations(entity=invalidDataset))
 }
 
 unitTestUpdateAnnotationsInvalidParameters <- function() {
-	checkException(getAnnotations())
+	checkException(synapseClient:::getAnnotations())
 
 	dataset <- list()
 	dataset$uri <- '/dataset/123' 
 	dataset$name <- 'I am a dataset, but you pass an annotations entity, not a dataset entity to updateAnnotations'
-	checkException(getAnnotations(entity=dataset))
+	checkException(synapseClient:::getAnnotations(entity=dataset))
 }

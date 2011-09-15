@@ -19,8 +19,8 @@
 	## create project and add to cache
 	project <- list()
 	project$name <- paste('R noZip Integration Test Project', gsub(':', '_', date()))
-	createdProject <- createProject(entity=project)
-	.setCache("rIntegrationTestProject", createdProject)
+	createdProject <- synapseClient:::createProject(entity=project)
+	synapseClient:::.setCache("rIntegrationTestProject", createdProject)
 }
 
 .tearDown <- function(){
@@ -30,8 +30,8 @@
 	library(utils, quietly = TRUE)
 	
 	## delete project 
-	deleteProject(entity=.getCache("rIntegrationTestProject"))
-	.deleteCache("rIntegrationTestProject")
+	synapseClient:::deleteProject(entity=synapseClient:::.getCache("rIntegrationTestProject"))
+	synapseClient:::.deleteCache("rIntegrationTestProject")
 }
 
 integrationTestText <- 
@@ -39,7 +39,7 @@ integrationTestText <-
 {
 	dataset <- Dataset(entity = list(
 					name = 'R Integration Test Dataset',
-					parentId = .getCache("rIntegrationTestProject")$id
+					parentId = synapseClient:::.getCache("rIntegrationTestProject")$id
 			)
 	)
 	
@@ -61,10 +61,10 @@ integrationTestText <-
 			)
 	)
 	
-	createdLayer <- storeLayerDataFiles(entity=layer, layerDataFile = dataFile)
+	createdLayer <- synapseClient:::storeLayerDataFiles(entity=layer, layerDataFile = dataFile)
 	checkEquals(propertyValue(layer, "name"), propertyValue(createdLayer, "name"))
 	
-	layerData <- loadLayerData(createdLayer)
+	layerData <- synapseClient:::loadLayerData(createdLayer)
 	checkTrue(grepl(sprintf("%s$", "data.tab"), layerData[1]))
 }
 
@@ -73,7 +73,7 @@ integrationTestMultipleText <-
 {
 	dataset <- Dataset(entity = list(
 					name = 'R Integration Test Dataset',
-					parentId = .getCache("rIntegrationTestProject")$id
+					parentId = synapseClient:::.getCache("rIntegrationTestProject")$id
 			)
 	)
 	
@@ -97,7 +97,7 @@ integrationTestMultipleText <-
 			)
 	)
 	
-	checkException(storeLayerDataFiles(entity=layer, layerDataFile = c(dataFile, dataFile2)))
+	checkException(synapseClient:::storeLayerDataFiles(entity=layer, layerDataFile = c(dataFile, dataFile2)))
 }
 
 integrationTestBinary <- 
@@ -105,7 +105,7 @@ integrationTestBinary <-
 {
 	dataset <- Dataset(entity = list(
 					name = 'R Integration Test Dataset',
-					parentId = .getCache("rIntegrationTestProject")$id
+					parentId = synapseClient:::.getCache("rIntegrationTestProject")$id
 			)
 	)
 	
@@ -124,12 +124,12 @@ integrationTestBinary <-
 			)
 	)
 	
-	createdLayer <- storeLayerData(entity=layer, data)
+	createdLayer <- synapseClient:::storeLayerData(entity=layer, data)
 	checkEquals(propertyValue(layer, "name"), propertyValue(createdLayer, "name"))
-	files <- .cacheFiles(propertyValue(createdLayer,"id"))
+	files <- synapseClient:::.cacheFiles(propertyValue(createdLayer,"id"))
 	checkTrue(grepl(sprintf("%s$", "data.rbin"), files[1]))
 	
-	layerData <- loadLayerData(createdLayer)
+	layerData <- synapseClient:::loadLayerData(createdLayer)
 	checkEquals(data, layerData$data)
 }
 
@@ -139,7 +139,7 @@ integrationTestMultipleBinary <-
 {
 	dataset <- Dataset(entity = list(
 					name = 'R Integration Test Dataset',
-					parentId = .getCache("rIntegrationTestProject")$id
+					parentId = synapseClient:::.getCache("rIntegrationTestProject")$id
 			)
 	)
 	
@@ -160,5 +160,5 @@ integrationTestMultipleBinary <-
 			)
 	)
 	
-	checkException(storeLayerData(entity=layer, dataFile, dataFile2))
+	checkException(synapseClient:::storeLayerData(entity=layer, dataFile, dataFile2))
 }

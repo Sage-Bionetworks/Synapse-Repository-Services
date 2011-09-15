@@ -3,23 +3,23 @@
 # Author: mfuria
 ###############################################################################
 .setUp <- function(){
-	.setCache("testProjectName", paste('R Entity S4 CRUD Integration Test Project', gsub(':', '_', date())))
+	synapseClient:::.setCache("testProjectName", paste('R Entity S4 CRUD Integration Test Project', gsub(':', '_', date())))
 }
 
 .tearDown <- function(){
-	if(!is.null(.getCache("testProject"))) {
-		deleteEntity(.getCache("testProject"))	
-		.deleteCache("testProject")
+	if(!is.null(synapseClient:::.getCache("testProject"))) {
+		deleteEntity(synapseClient:::.getCache("testProject"))	
+		synapseClient:::.deleteCache("testProject")
 	}
 }
 
 integrationTestCreateS4Entities <- function(){
 	## Create Project
 	project <- new(Class="Project")
-	propertyValue(project,"name") <- .getCache("testProjectName")
+	propertyValue(project,"name") <- synapseClient:::.getCache("testProjectName")
 	createdProject <- createEntity(project)
-	.setCache("testProject", createdProject)
-	checkEquals(propertyValue(createdProject,"name"), .getCache("testProjectName"))
+	synapseClient:::.setCache("testProject", createdProject)
+	checkEquals(propertyValue(createdProject,"name"), synapseClient:::.getCache("testProjectName"))
 	
 	## Create DataSet
 	dataset <- new(Class="Dataset")
@@ -75,10 +75,10 @@ integrationTestCreateEntityWithAnnotations <-
 {
 	## Create Project
 	project <- new(Class="Project")
-	propertyValue(project,"name") <- .getCache("testProjectName")
+	propertyValue(project,"name") <- synapseClient:::.getCache("testProjectName")
 	annotValue(project, "annotationKey") <- "projectAnnotationValue"
 	createdProject <- createEntity(project)
-	.setCache("testProject", createdProject)
+	synapseClient:::.setCache("testProject", createdProject)
 	checkEquals(annotValue(createdProject, "annotationKey"), annotValue(project, "annotationKey"))
 	
 	## Create Dataset
@@ -98,9 +98,9 @@ integrationTestUpdateS4Entity <-
 {
 	## Create Project
 	project <- new(Class="Project")
-	propertyValue(project,"name") <- .getCache("testProjectName")
+	propertyValue(project,"name") <- synapseClient:::.getCache("testProjectName")
 	createdProject <- createEntity(project)
-	.setCache("testProject", createdProject)
+	synapseClient:::.setCache("testProject", createdProject)
 	checkEquals(propertyValue(createdProject,"name"), propertyValue(project,"name"))
 	
 	## set an annotation value and update. 
@@ -165,9 +165,9 @@ integrationTestDeleteEntity <-
 		function()
 {
 	project <- new(Class="Project")
-	propertyValue(project,"name") <- .getCache("testProjectName")
+	propertyValue(project,"name") <- synapseClient:::.getCache("testProjectName")
 	createdProject <- createEntity(project)
-	.setCache("testProject", createdProject)
+	synapseClient:::.setCache("testProject", createdProject)
 	
 	dataset <- new(Class="Dataset")
 	propertyValue(dataset, "name") <- "testDatasetName"
@@ -177,7 +177,7 @@ integrationTestDeleteEntity <-
 	deleteEntity(createdProject)
 	checkException(refreshEntity(createdDataset))
 	checkException(refreshEntity(createdProject))
-	.deleteCache("testProject")
+	synapseClient:::.deleteCache("testProject")
 }
 
 integrationTestGetEntity <-
@@ -185,25 +185,25 @@ integrationTestGetEntity <-
 {
 	## Create Project
 	project <- new(Class="Project")
-	propertyValue(project,"name") <- .getCache("testProjectName")
+	propertyValue(project,"name") <- synapseClient:::.getCache("testProjectName")
 	createdProject <- createEntity(project)
-	.setCache("testProject", createdProject)
-	checkEquals(propertyValue(createdProject,"name"), .getCache("testProjectName"))
+	synapseClient:::.setCache("testProject", createdProject)
+	checkEquals(propertyValue(createdProject,"name"), synapseClient:::.getCache("testProjectName"))
 	
 	fetchedProject <- getEntity(as.numeric(propertyValue(createdProject, "id")))
 	checkEquals(propertyValue(fetchedProject, "id"), propertyValue(createdProject, "id"))
-	checkEquals(propertyValue(fetchedProject,"name"), .getCache("testProjectName"))
+	checkEquals(propertyValue(fetchedProject,"name"), synapseClient:::.getCache("testProjectName"))
 	
 	fetchedProject <- getEntity(as.character(propertyValue(createdProject, "id")))
 	checkEquals(propertyValue(fetchedProject, "id"), propertyValue(createdProject, "id"))
-	checkEquals(propertyValue(fetchedProject,"name"), .getCache("testProjectName"))
+	checkEquals(propertyValue(fetchedProject,"name"), synapseClient:::.getCache("testProjectName"))
 	
-	fetchedProject <- getEntity(.extractEntityFromSlots(createdProject))
+	fetchedProject <- getEntity(synapseClient:::.extractEntityFromSlots(createdProject))
 	checkEquals(propertyValue(fetchedProject, "id"), propertyValue(createdProject, "id"))
-	checkEquals(propertyValue(fetchedProject,"name"), .getCache("testProjectName"))
+	checkEquals(propertyValue(fetchedProject,"name"), synapseClient:::.getCache("testProjectName"))
 	
 	fetchedProject <- getEntity(createdProject)
 	checkEquals(propertyValue(fetchedProject, "id"), propertyValue(createdProject, "id"))
-	checkEquals(propertyValue(fetchedProject,"name"), .getCache("testProjectName"))
+	checkEquals(propertyValue(fetchedProject,"name"), synapseClient:::.getCache("testProjectName"))
 }
 

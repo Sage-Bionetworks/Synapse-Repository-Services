@@ -11,10 +11,10 @@
 			function(uri, postfields, customrequest, httpheader, curl, .opts)
 	{
 		entity <- as.list(fromJSON(entity))
-		if(entity$sessionToken == .getCache("validToken")){
+		if(entity$sessionToken == synapseClient:::.getCache("validToken")){
 			## return the response for a valid sessionToken and set the 
 			## curl handle HTTP response accordingly
-		}else if(entity$sessionToken == .getCache("inValidToken")){
+		}else if(entity$sessionToken == synapseClient:::.getCache("inValidToken")){
 			## return the response for a valid sessionToken and set the 
 			## curl handle HTTP response accordingly
 		}
@@ -27,15 +27,15 @@
 	assignInNamespace(".cache", newCache, "synapseClient")
 	attachNamespace("synapseClient")
 	
-	.setCache("oldCache", oldCache)
-	.setCache("validToken", "thisIsAFakeValidSessionToken")
-	.setCache("inValidToken", "thisIsAFakeInValidSessionToken")
+	synapseClient:::.setCache("oldCache", oldCache)
+	synapseClient:::.setCache("validToken", "thisIsAFakeValidSessionToken")
+	synapseClient:::.setCache("inValidToken", "thisIsAFakeInValidSessionToken")
 }
 
 .tearDown <-
 		function()
 {
-	oldCache <- .getCache("oldCache")
+	oldCache <- synapseClient:::.getCache("oldCache")
 	
 	## put back the original function definitions and cache
 	unloadNamespace('synapseClient')
@@ -44,8 +44,9 @@
 	attachNamespace("synapseClient")
 }
 
-unitTestRefresh <-
-		function()
-{
-	
-}
+# TODO write this test
+#unitTestRefresh <-
+#		function()
+#{
+#	
+#}

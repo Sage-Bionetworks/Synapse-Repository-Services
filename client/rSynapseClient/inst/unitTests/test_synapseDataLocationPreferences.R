@@ -1,19 +1,19 @@
 .setUp <- function(){
-	.setCache("untiTestSavedLocationPrefs", synapseDataLocationPreferences())
+	synapseClient:::.setCache("untiTestSavedLocationPrefs", synapseClient:::synapseDataLocationPreferences())
 }
 
 .tearDown <- function(){
-	synapseDataLocationPreferences(.getCache("untiTestSavedLocationPrefs"))
-	.deleteCache("untiTestSavedLocationPrefs")
+	synapseClient:::synapseDataLocationPreferences(synapseClient:::.getCache("untiTestSavedLocationPrefs"))
+	synapseClient:::.deleteCache("untiTestSavedLocationPrefs")
 }
 
 unitTestHappyCase <- function() {
 	
-	synapseDataLocationPreferences(c('awss3'))
+	synapseClient:::synapseDataLocationPreferences(c('awss3'))
 }
 
 unitTestInvalidLocationPref <- function() {
-	checkException(synapseDataLocationPreferences(c('invalid', 'awss3')))
+	checkException(synapseClient:::synapseDataLocationPreferences(c('invalid', 'awss3')))
 }
 
 

@@ -26,14 +26,14 @@
 	attachNamespace("synapseClient")
 	
 	## set the session token to a fake one
-	sessionToken("thisIsAFakeToken")
-	.setCache("oldCache", oldCache)
+	synapseClient:::sessionToken("thisIsAFakeToken")
+	synapseClient:::.setCache("oldCache", oldCache)
 }
 .tearDown <- 
 		function() 
 {
 	## put back the old cache
-	oldCache <- .getCache("oldCache")
+	oldCache <- synapseClient:::.getCache("oldCache")
 
 	## unload/reload namespaces to put back original functions
 	unloadNamespace('synapseClient')
@@ -48,7 +48,7 @@ unitTestJsonCorretlyParsed <-
 	# Since we have stubbed out the remote call to the service, all we
 	# are really checking here is that getDatasets is parsing
 	# the JSON into the object we expect
-	datasets <- getDatasets()
+	datasets <- synapseClient:::getDatasets()
 	# We should get back 10 datasets
 	checkEquals(nrow(datasets), 10)
 	# With 26 properties

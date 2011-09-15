@@ -1,21 +1,21 @@
 .setUp <- 
 		function()
 {
-	.setCache("localJpegFile", file.path(tempdir(), "plot.jpg"))
-	.setCache("localZipFile", file.path(tempdir(), "files.zip"))	
-	.setCache("localTxtFile", file.path(tempdir(), "data.txt"))
-	.setCache("localUnpackDir", file.path(tempdir(), "files_unpacked"))
+	synapseClient:::.setCache("localJpegFile", file.path(tempdir(), "plot.jpg"))
+	synapseClient:::.setCache("localZipFile", file.path(tempdir(), "files.zip"))	
+	synapseClient:::.setCache("localTxtFile", file.path(tempdir(), "data.txt"))
+	synapseClient:::.setCache("localUnpackDir", file.path(tempdir(), "files_unpacked"))
 }
 
 .tearDown <- 
 		function()
 {
-	unlink(.getCache("localJpegFile"))
-	unlink(.getCache("localZipFile"))
-	unlink(.getCache("localTxtFile"))
-	.deleteCache("localZipFile")	
-	.deleteCache("localTxtFile")
-	.deleteCache("localJpegFile")
+	unlink(synapseClient:::.getCache("localJpegFile"))
+	unlink(synapseClient:::.getCache("localZipFile"))
+	unlink(synapseClient:::.getCache("localTxtFile"))
+	synapseClient:::.deleteCache("localZipFile")	
+	synapseClient:::.deleteCache("localTxtFile")
+	synapseClient:::.deleteCache("localJpegFile")
 }
 
 
@@ -25,19 +25,19 @@ unitTestNotCompressed <-
 	## create a jpeg object
 	## TODO create an acutal jpeg file once X11 is installed on the bamboo AMI
 	d <- data.frame(diag(2,20,20))
-	write.table(d,file=.getCache("localJpegFile"), sep="\t", quote=F, row.names=F, col.names=F)
-#	jpeg(.getCache("localJpegFile"))
+	write.table(d,file=synapseClient:::.getCache("localJpegFile"), sep="\t", quote=F, row.names=F, col.names=F)
+#	jpeg(synapseClient:::.getCache("localJpegFile"))
 #	plot(1:10, 1:10)
 #	dev.off()
 	
 	
-	file <- .unpack(.getCache("localJpegFile"))
+	file <- synapseClient:::.unpack(synapseClient:::.getCache("localJpegFile"))
 	
 	## file path should be same as localJpegFile cache value
-	checkEquals(as.character(file), .getCache("localJpegFile"))
+	checkEquals(as.character(file), synapseClient:::.getCache("localJpegFile"))
 	
 	## check the md5sums
-	checkEquals(tools::md5sum(as.character(file)), tools::md5sum(.getCache("localJpegFile")))
+	checkEquals(tools::md5sum(as.character(file)), tools::md5sum(synapseClient:::.getCache("localJpegFile")))
 	
 	## check the rootDir attribute value
 	checkEquals(attr(file,"rootDir"), tempdir())
@@ -51,25 +51,25 @@ unitTestZipFile <-
 	## create local jpeg file
 	## TODO create an acutal jpeg file once X11 is installed on the bamboo AMI
 	d <- data.frame(diag(2,20,20))
-	write.table(d,file=.getCache("localJpegFile"), sep="\t", quote=F, row.names=F, col.names=F)
-#	jpeg(.getCache("localJpegFile"))
+	write.table(d,file=synapseClient:::.getCache("localJpegFile"), sep="\t", quote=F, row.names=F, col.names=F)
+#	jpeg(synapseClient:::.getCache("localJpegFile"))
 #	plot(1:10, 1:10)
 #	dev.off()
 	
 	## create local text file
 	d <- data.frame(diag(1,10,10))
-	write.table(d,file=.getCache("localTxtFile"), sep="\t", quote=F, row.names=F, col.names=F)
+	write.table(d,file=synapseClient:::.getCache("localTxtFile"), sep="\t", quote=F, row.names=F, col.names=F)
 	
 	## zip these two files
-	suppressWarnings(zip(.getCache("localZipFile"), files = c(.getCache("localTxtFile"), .getCache("localJpegFile"))))
+	suppressWarnings(zip(synapseClient:::.getCache("localZipFile"), files = c(synapseClient:::.getCache("localTxtFile"), synapseClient:::.getCache("localJpegFile"))))
 	
-	files <- .unpack(.getCache("localZipFile"))
+	files <- synapseClient:::.unpack(synapseClient:::.getCache("localZipFile"))
 	
 	## make sure the unpack directory was named correctly
-	checkEquals(attr(files, "rootDir"), .getCache("localUnpackDir"))
+	checkEquals(attr(files, "rootDir"), synapseClient:::.getCache("localUnpackDir"))
 	
 	## check the contents of the unpack directory
-	checkTrue(gsub("^/", "", gsub("^[A-Z]:/","", gsub("[/]+","/", gsub("[\\]+","/",.getCache("localJpegFile"))))) %in% list.files(attr(files,"rootDir"), recursive=TRUE))
-	checkTrue(gsub("^/", "", gsub("^[A-Z]:/","", gsub("[/]+","/", gsub("[\\]+","/",.getCache("localTxtFile"))))) %in% list.files(attr(files,"rootDir"), recursive=TRUE))
+	checkTrue(gsub("^/", "", gsub("^[A-Z]:/","", gsub("[/]+","/", gsub("[\\]+","/",synapseClient:::.getCache("localJpegFile"))))) %in% list.files(attr(files,"rootDir"), recursive=TRUE))
+	checkTrue(gsub("^/", "", gsub("^[A-Z]:/","", gsub("[/]+","/", gsub("[\\]+","/",synapseClient:::.getCache("localTxtFile"))))) %in% list.files(attr(files,"rootDir"), recursive=TRUE))
 	
 }

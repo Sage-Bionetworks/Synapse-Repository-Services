@@ -9,7 +9,7 @@ integrationTestCRUD <- function() {
 	# Create a project
 	project <- RJSONIO::emptyNamedList
 	project$name = paste('R Entity CRUD Integration Test Project', gsub(':', '_', date()))
-	createdProject <- createProject(entity=project)
+	createdProject <- synapseClient:::createProject(entity=project)
 	checkEquals(project$name, createdProject$name)
 
 	# Create a dataset
@@ -17,40 +17,40 @@ integrationTestCRUD <- function() {
 	dataset$name = 'R Integration Test Dataset'
 	dataset$status = 'test create'
 	dataset$parentId <- createdProject$id
-	createdDataset <- createDataset(entity=dataset)
+	createdDataset <- synapseClient:::createDataset(entity=dataset)
 	checkEquals(dataset$name, createdDataset$name)
 	checkEquals(dataset$status, createdDataset$status)
 	
 	# Get a dataset (this is redundant, it should be exactly the same as the one returned by createDataset)
-	storedDataset <- getDataset(entity=createdDataset$id)
+	storedDataset <- synapseClient:::getDataset(entity=createdDataset$id)
 	checkEquals(dataset$name, storedDataset$name)
 	checkEquals(dataset$status, storedDataset$status)
 	checkEquals(createdDataset, storedDataset)
 	
 	# Modify a dataset
 	storedDataset$status <- 'test update'
-	modifiedDataset <- updateDataset(entity=storedDataset)
+	modifiedDataset <- synapseClient:::updateDataset(entity=storedDataset)
 	checkEquals(dataset$name, modifiedDataset$name)
 	checkEquals(storedDataset$id, modifiedDataset$id)
 	checkTrue(dataset$status != modifiedDataset$status)
 	checkEquals('test update', modifiedDataset$status)
 	
 	# Get dataset annotations
-	annotations <- getAnnotations(entity=modifiedDataset)
+	annotations <- synapseClient:::getAnnotations(entity=modifiedDataset)
 	annotations$stringAnnotations$myNewAnnotationKey <- 'my new annotation value'
-	storedAnnotations <- updateAnnotations(annotations=annotations)
+	storedAnnotations <- synapseClient:::updateAnnotations(annotations=annotations)
 	checkEquals('my new annotation value', storedAnnotations$stringAnnotations$myNewAnnotationKey)
 	
 	# Modify a project
 	createdProject$name <- 'R Entity CRUD Integration Test Project NEW NAME'
-	modifiedProject <- updateProject(entity = createdProject)
+	modifiedProject <- synapseClient:::updateProject(entity = createdProject)
 	checkEquals(createdProject$id, modifiedProject$id)
 	checkTrue(project$name != modifiedProject$name)
 	checkEquals("R Entity CRUD Integration Test Project NEW NAME", modifiedProject$name)
 	
 	# Delete a Project
-	deleteProject(entity=createdProject)
+	synapseClient:::deleteProject(entity=createdProject)
 	
 	# Confirm that its gone
-	checkException(getDataset(entity=modifiedDataset))
+	checkException(synapseClient:::getDataset(entity=modifiedDataset))
 }

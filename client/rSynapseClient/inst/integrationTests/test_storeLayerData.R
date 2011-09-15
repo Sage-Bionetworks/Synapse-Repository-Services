@@ -53,7 +53,7 @@ integrationTestStoreLayerData <-
 			)
 	)
 	
-	createdLayer <- storeLayerDataFiles(entity=layer, layerDataFile = dataFile)
+	createdLayer <- synapseClient:::storeLayerDataFiles(entity=layer, layerDataFile = dataFile)
 	checkEquals(propertyValue(layer, "name"), propertyValue(createdLayer, "name"))
 	
 	##------
@@ -65,7 +65,7 @@ integrationTestStoreLayerData <-
 	
 	layer2 <- Layer(entity = layer2)
 	
-	createdLayer2 <- storeLayerDataFiles(entity=layer2, layerDataFile = dataFile)
+	createdLayer2 <- synapseClient:::storeLayerDataFiles(entity=layer2, layerDataFile = dataFile)
 	checkEquals(propertyValue(layer2, "name"), propertyValue(createdLayer2,"name"))
 	
 	##------
@@ -76,25 +76,25 @@ integrationTestStoreLayerData <-
 	layer3$parentId <- propertyValue(createdDataset, "id")
 	layer3 <- Layer(layer3)
 	
-	createdLayer3 <- storeLayerData(entity=layer3, data)
+	createdLayer3 <- synapseClient:::storeLayerData(entity=layer3, data)
 	checkEquals(propertyValue(layer3,"name"), propertyValue(createdLayer3,"name"))
 	
 	## Download all three layers and make sure they are equivalent
-	layerFiles <- loadLayerData(entity=.extractEntityFromSlots(createdLayer))
-	layer2Files <- loadLayerData(entity=.extractEntityFromSlots(createdLayer2))
+	layerFiles <- synapseClient:::loadLayerData(entity=synapseClient:::.extractEntityFromSlots(createdLayer))
+	layer2Files <- synapseClient:::loadLayerData(entity=synapseClient:::.extractEntityFromSlots(createdLayer2))
 	storedLayerData <- read.delim(layerFiles[[1]], sep='\t', stringsAsFactors = FALSE)
 	storedLayer2Data <- read.delim(layer2Files[[1]], sep='\t', stringsAsFactors = FALSE)
 	checkEquals(storedLayerData, storedLayer2Data)	
 	
-	layer3Data <- loadLayerData(entity=.extractEntityFromSlots(createdLayer3))
+	layer3Data <- synapseClient:::loadLayerData(entity=synapseClient:::.extractEntityFromSlots(createdLayer3))
 	# TODO fixme, see comment below
 	# checkEquals(storedLayerData,data)
 	checkEquals(data[,1], storedLayer2Data[,1])
 	
 	# Delete the dataset, can pass the entity or the entity id
-	deleteDataset(entity=propertyValue(createdDataset, "id"))
+synapseClient:::deleteDataset(entity=propertyValue(createdDataset, "id"))
 	# Confirm that its gone
-	checkException(getDataset(entity=propertyValue(createdDataset,"id")))
+	checkException(synapseClient:::getDataset(entity=propertyValue(createdDataset,"id")))
 }
 
 # > checkEquals(data, storedLayerData)
@@ -144,10 +144,10 @@ integrationTestUpdateStoredLayerData <- function() {
 	layer$parentId <- propertyValue(createdDataset, "id")
 	createdLayer <- createEntity(Layer(layer))
 	
-	createdLayer <- storeLayerData(entity=createdLayer, data)
-	locations <- getLayerLocations(entity=synapseClient:::.extractEntityFromSlots(createdLayer))
+	createdLayer <- synapseClient:::storeLayerData(entity=createdLayer, data)
+	locations <- synapseClient:::getLayerLocations(entity=synapseClient:::.extractEntityFromSlots(createdLayer))
 	checkEquals(1, nrow(locations))
-	layerFiles <- loadLayerData(entity=synapseClient:::.extractEntityFromSlots(createdLayer))
+	layerFiles <- synapseClient:::loadLayerData(entity=synapseClient:::.extractEntityFromSlots(createdLayer))
 	local({
 				load(layerFiles[[1]])
 				checkEquals(1, data[1,1])
@@ -156,11 +156,11 @@ integrationTestUpdateStoredLayerData <- function() {
 	## Modify the data and store it again
 	data[1,1] <- 42
 	data2 <- data
-	updatedLayer <- storeLayerData(entity=createdLayer, data2)
-	locations <- getLayerLocations(entity=synapseClient:::.extractEntityFromSlots(createdLayer))
+	updatedLayer <- synapseClient:::storeLayerData(entity=createdLayer, data2)
+	locations <- synapseClient:::getLayerLocations(entity=synapseClient:::.extractEntityFromSlots(createdLayer))
 	# The data should be overwritten and we still only have one layer location
 	checkEquals(1, nrow(locations))
-	layerFiles <- loadLayerData(entity=synapseClient:::.extractEntityFromSlots(updatedLayer))
+	layerFiles <- synapseClient:::loadLayerData(entity=synapseClient:::.extractEntityFromSlots(updatedLayer))
 	local({
 				load(layerFiles[[1]])
 				checkEquals(42, data[1,1])
@@ -195,8 +195,8 @@ integrationTestStoreMediaLayer <- function() {
 			stringsAsFactors = FALSE)
 	write.table(data, filename)	
 	
-	createdLayer <- storeLayerDataFile(Layer(layer), filename)
-	layerFiles <- loadLayerData(createdLayer)
+	createdLayer <- synapseClient:::storeLayerDataFile(Layer(layer), filename)
+	layerFiles <- synapseClient:::loadLayerData(createdLayer)
 	checkEquals(1, length(layerFiles))
 }
 integrationTestMultipleBinary <- 
@@ -225,8 +225,8 @@ integrationTestMultipleBinary <-
 			)
 	)
 	
-	layer <- storeLayerData(entity=layer, data, data2)
-	layerData <- loadLayerData(layer)
+	layer <- synapseClient:::storeLayerData(entity=layer, data, data2)
+	layerData <- synapseClient:::loadLayerData(layer)
 	
 	checkTrue(all(c("data", "data2") %in% ls(layerData)))
 	

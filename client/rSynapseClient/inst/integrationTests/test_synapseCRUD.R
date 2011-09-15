@@ -10,7 +10,7 @@ integrationTestCRUD <- function() {
 	# Create a project
 	project <- RJSONIO::emptyNamedList
 	project$name = paste('R Synapse CRUD Integration Test Project', gsub(':', '_', date()))
-	createdProject <- createProject(entity=project)
+	createdProject <- synapseClient:::createProject(entity=project)
 	checkEquals(project$name, createdProject$name)
 	
 	# Create a dataset
@@ -18,35 +18,35 @@ integrationTestCRUD <- function() {
 	dataset$name = 'R Integration Test Dataset'
 	dataset$status = 'test create'
 	dataset$parentId <- createdProject$id
-	createdDataset <- synapsePost(uri='/dataset', entity=dataset)
+	createdDataset <- synapseClient:::synapsePost(uri='/dataset', entity=dataset)
 	checkEquals(dataset$name, createdDataset$name)
 	checkEquals(dataset$status, createdDataset$status)
 	
 	# Get a dataset
-	storedDataset <- synapseGet(uri=createdDataset$uri)
+	storedDataset <- synapseClient:::synapseGet(uri=createdDataset$uri)
 	checkEquals(dataset$name, storedDataset$name)
 	checkEquals(dataset$status, storedDataset$status)
 	
 	# Modify a dataset
 	storedDataset$status <- 'test update'
-	modifiedDataset <- synapsePut(uri=storedDataset$uri, entity=storedDataset)
+	modifiedDataset <- synapseClient:::synapsePut(uri=storedDataset$uri, entity=storedDataset)
 	checkEquals(dataset$name, modifiedDataset$name)
 	checkTrue(dataset$status != modifiedDataset$status)
 	checkEquals('test update', modifiedDataset$status)
 	
 	# Get dataset annotations
-	annotations <- getAnnotations(entity=modifiedDataset)
+	annotations <- synapseClient:::getAnnotations(entity=modifiedDataset)
 	annotations$stringAnnotations$myNewAnnotationKey <- 'my new annotation value'
-	storedAnnotations <- updateAnnotations(annotations=annotations)
+	storedAnnotations <- synapseClient:::updateAnnotations(annotations=annotations)
 	checkEquals('my new annotation value', storedAnnotations$stringAnnotations$myNewAnnotationKey)
 	
 	# Delete a dataset
-	synapseDelete(uri=modifiedDataset$uri)
+	synapseClient:::synapseDelete(uri=modifiedDataset$uri)
 	
 	# Confirm that its gone
-	checkException(synapseGet(uri=createdDataset$uri))
+	checkException(synapseClient:::synapseGet(uri=createdDataset$uri))
 	
  	# Delete a Project
-	deleteProject(entity=createdProject)
+	synapseClient:::deleteProject(entity=createdProject)
 }
 

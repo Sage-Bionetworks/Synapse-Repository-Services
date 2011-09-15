@@ -26,13 +26,13 @@
 				stop("entity Not found")
 			}
 	)
-	.setCache("oldCache", oldCache)
+	synapseClient:::.setCache("oldCache", oldCache)
 }
 
 .tearDown <-
 		function()
 {
-	oldCache <- .getCache("oldCache")
+	oldCache <- synapseClient:::.getCache("oldCache")
 	# put back the overridden functions and original cache
 	unloadNamespace("synapseClient")
 	unloadNamespace("RCurl")

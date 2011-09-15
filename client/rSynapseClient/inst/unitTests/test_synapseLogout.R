@@ -13,11 +13,11 @@
 	
 	## re-define synapseLogin and synapseLogout
 	mySynapseLogin <- function(username, password){
-		sessionToken(tempfile())
+		synapseClient:::sessionToken(tempfile())
 	}
 	
 	mySynapseLogout <- function(localOnly = FALSE){
-		sessionToken(NULL)
+		synapseClient:::sessionToken(NULL)
 	}
 	
 	unloadNamespace("synapseClient")
@@ -26,12 +26,12 @@
 	assignInNamespace(".cache", newCache, "synapseClient")
 	attachNamespace("synapseClient")
 	
-	.setCache("oldCache", oldCache)
-	sessionToken(NULL)
+	synapseClient:::.setCache("oldCache", oldCache)
+	synapseClient:::sessionToken(NULL)
 }
 
 .tearDown <- function(){
-	oldCache <- .getCache("oldCache")
+	oldCache <- synapseClient:::.getCache("oldCache")
 	unloadNamespace("synapseClient")
 	assignInNamespace(".cache", oldCache, "synapseClient")
 	attachNamespace("synapseClient")
@@ -41,8 +41,8 @@
 unitTestSynapseLogout <- function(){
 	synapseLogin("fakeUser", "fakePassword")
 	
-	checkTrue(sessionToken() != "")
+	checkTrue(synapseClient:::sessionToken() != "")
 	
 	synapseLogout()
-	checkException(sessionToken())	
+	checkException(synapseClient:::sessionToken())	
 }

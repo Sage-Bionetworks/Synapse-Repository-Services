@@ -36,7 +36,7 @@
 	
 	require("RUnit", quietly=TRUE) || stop("RUnit package not found")
 	RUnit_opts <- getOption("RUnit", list())
-	if(.getCache("debug")) {
+	if(synapseClient:::.getCache("debug")) {
 		RUnit_opts$verbose <- 10L
 		RUnit_opts$silent <- FALSE
 	} else {
