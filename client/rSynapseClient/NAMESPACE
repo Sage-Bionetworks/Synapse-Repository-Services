@@ -7,7 +7,7 @@ importFrom(tools, md5sum)
 useDynLib(synapseClient)
 
 ## S3 utility methods
-export(synapseAuthServiceEndpoint, synapseRepoServiceEndpoint, synapseLogin, synapseLogout, synapseQuery, synapseCacheDir)
+export(synapseResetEndpoints, synapseAuthServiceEndpoint, synapseRepoServiceEndpoint, synapseLogin, synapseLogout, synapseQuery, synapseCacheDir)
 
 ## S4 entity constructors
 exportMethods(Dataset, Layer, Project)
@@ -17,6 +17,7 @@ exportMethods(getEntity, deleteEntity, createEntity, updateEntity, refreshEntity
 
 ## entity property/annotation setters and getters
 exportMethods("annotValue<-", annotValue, propertyValue, "propertyValue<-", annotations, properties, "annotationValues<-", annotationValues, "propertyValues<-", propertyValues)
+exportMethods("deleteProperty", "deleteAnnotation")
 
 ## S4 convenience methods
 exportMethods(getDatasetLayers)
