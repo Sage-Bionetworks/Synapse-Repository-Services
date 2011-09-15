@@ -1,5 +1,6 @@
 package org.sagebionetworks.workflow.curation;
 
+import java.net.SocketTimeoutException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,13 +47,12 @@ public class TcgaWorkflowInitiator {
 				// Since the URLs come in in order of lowest to highest
 				// revision, this will keep overwriting the earlier revisions in
 				// the map and at the end we will only have the latest revisions
-// Per Brig, those numbers are batches not versions
-//				if (annotations.has("tcgaRevision")) {
-//					versionMap.put(url.replace(annotations
-//							.getString("tcgaRevision"), ""), url);
-//				} else {
+				if (annotations.has("tcgaRevision")) {
+					versionMap.put(url.replace(annotations
+							.getString("tcgaRevision"), ""), url);
+				} else {
 					versionMap.put(url, url);
-//				}
+				}
 			}
 		}
 
@@ -77,10 +77,19 @@ public class TcgaWorkflowInitiator {
 			String datasetAbbreviation = urlComponents[urlComponents.length - 1];
 			String datasetName = configHelper.getTCGADatasetName(datasetAbbreviation);
 			
-			JSONObject results = synapse
-					.query("select * from dataset where dataset.name == '"
+			JSONObject results;
+			
+			try {
+				results = synapse.query("select * from dataset where dataset.name == '"
 							+ datasetName + "'");
-
+			}
+			catch(SocketTimeoutException ex) {
+				// This is a naive retry once
+				Thread.sleep(5000);
+				results = synapse.query("select * from dataset where dataset.name == '"
+						+ datasetName + "'");				
+			}
+			
 			int numDatasetsFound = results.getInt("totalNumberOfResults");
 			if (0 == numDatasetsFound) {
 				// If Synapse doesn't have a dataset for it, skip it

@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Iterator;
 
 import org.apache.commons.httpclient.HttpException;
 import org.json.JSONArray;
@@ -87,6 +88,35 @@ public class IT500SynapseJavaClient {
 			assertTrue(annotations.has("doubleAnnotations"));
 			assertTrue(annotations.has("blobAnnotations"));
 		}
+	}
+	
+	@Test 
+	public void testJavaClientCRUD() throws Exception {
+		JSONObject dataset = synapse.createEntity("/dataset", new JSONObject("{\"name\":\"testCrud\", \"status\": \"created\", \"parentId\":\"" + project.getString("id") + "\"}"));
+		assertEquals("created", dataset.getString("status"));
+		dataset.put("status", "updated");
+		JSONObject updatedDataset = synapse.updateEntity(dataset.getString("uri"), dataset);
+		assertEquals("updated", updatedDataset.getString("status"));	
+
+		JSONArray annotationValue = new JSONArray();
+		annotationValue.put("created");
+		JSONObject stringAnnotations = new JSONObject();
+		stringAnnotations.put("annotStatus", annotationValue);
+		JSONObject annotations = new JSONObject();
+		annotations.put("stringAnnotations", stringAnnotations);
+
+		JSONObject createdAnnotations = synapse.updateEntity(updatedDataset.getString("annotations"), annotations);
+		assertEquals("created", createdAnnotations.getJSONObject("stringAnnotations").getJSONArray("annotStatus").getString(0));
+
+		annotationValue = new JSONArray();
+		annotationValue.put("updated");
+		stringAnnotations = new JSONObject();
+		stringAnnotations.put("annotStatus", annotationValue);
+		annotations = new JSONObject();
+		annotations.put("stringAnnotations", stringAnnotations);
+
+		JSONObject updatedAnnotations = synapse.updateEntity(updatedDataset.getString("annotations"), annotations);
+		assertEquals("updated", updatedAnnotations.getJSONObject("stringAnnotations").getJSONArray("annotStatus").getString(0));
 	}
 
 	/**

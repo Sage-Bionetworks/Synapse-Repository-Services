@@ -28,15 +28,16 @@ import org.sagebionetworks.workflow.curation.ConfigHelper;
  * 
  */
 public class Curation {
-	private static final String tcgaCurationDataFormat = "tab-delimited";
-	private static final int layerTypeIndex = 7;
-	private static final int expressionPlatformIndex = 9;
+	private static final String TCGA_STATUS = "raw";
+	private static final String TCGA_FORMAT = "tsv";
+	private static final int LAYER_TYPE_INDEX = 7;
+	private static final int PLATFORM_INDEX = 9;
 
 	/**
 	 * <domain>_<disease study>.<platform>.<level>.<revision>
 	 */
 	public static final Pattern TCGA_DATA_REGEXP = Pattern
-			.compile("^([^_]+)_([^\\.]+)\\.([^\\.]+)\\.([^\\.]+)\\.(\\d+\\.\\d+\\.\\d+).*");
+			.compile("^([^_]+)_([^\\.]+)\\.([^\\.]+)\\.([^\\.]+)\\.(\\d+)\\.(\\d+)\\.(\\d+).*");
 	
 	/**
 	 * Create or update metadata for TCGA layers
@@ -149,9 +150,11 @@ public class Curation {
 		String filename = pathComponents[pathComponents.length - 1];
 
 		JSONObject layer = new JSONObject();
+		layer.put("status", TCGA_STATUS);
+		annotations.put("format", TCGA_FORMAT);
 
 		// This is in-elegant logic to infer some metadata from a TCGA url
-		if (("cgcc".equals(pathComponents[layerTypeIndex])) || ("gsc".equals(pathComponents[layerTypeIndex]))) {
+		if (("cgcc".equals(pathComponents[LAYER_TYPE_INDEX])) || ("gsc".equals(pathComponents[LAYER_TYPE_INDEX]))) {
 
 			if (!filename.endsWith(".tar.gz")) {
 				throw new UnrecoverableException("malformed filename: "
@@ -171,10 +174,12 @@ public class Curation {
 				annotations.put("tcgaDomain", matcher.group(1));
 				annotations.put("tcgaDiseaseStudy", matcher.group(2));
 				layer.put("platform", matcher.group(3));
-				annotations.put("format", matcher.group(4));
-				annotations.put("tcgaRevision", matcher.group(5));
+				annotations.put("tcgaLevel", matcher.group(4));
+				annotations.put("tcgaArchiveSerialIndex", matcher.group(5));
+				annotations.put("tcgaRevision", matcher.group(6));
+				annotations.put("tcgaSeries", matcher.group(7));
 			} else {
-				layer.put("platform", pathComponents[expressionPlatformIndex]);
+				layer.put("platform", pathComponents[PLATFORM_INDEX]);
 			}
 
 			if ((-1 < tcgaUrl.indexOf("snp")) || (-1 < tcgaUrl.indexOf("DNASeq"))) {
@@ -182,17 +187,16 @@ public class Curation {
 			} else {
 				layer.put("type", "E");
 			}
-		} else if ("bcr".equals(pathComponents[layerTypeIndex])) {
+		} else if ("bcr".equals(pathComponents[LAYER_TYPE_INDEX])) {
 			layer.put("type", "C");
 			// Use the last part of the url as the layer name, but get rid of
 			// any .txt or .tar.gz endings
 			String filenameComponents[] = filename.split("\\.");
 			layer.put("name", filenameComponents[0]);
-			annotations.put("format", tcgaCurationDataFormat);
 		} else {
 			throw new UnrecoverableException(
 					"Not yet able to form metadata for data of type(" + tcgaUrl + "): "
-							+ pathComponents[layerTypeIndex]);
+							+ pathComponents[LAYER_TYPE_INDEX]);
 		}
 
 		return layer;
