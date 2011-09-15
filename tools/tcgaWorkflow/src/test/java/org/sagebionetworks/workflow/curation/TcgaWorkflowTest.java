@@ -33,11 +33,15 @@ public class TcgaWorkflowTest {
 		assertEquals("E", layer.getString("type"));
 		assertEquals("unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0", layer
 				.getString("name"));
+		assertEquals("raw", layer.getString("status"));
 		assertEquals("unc.edu", annotations.getString("tcgaDomain"));
 		assertEquals("COAD", annotations.getString("tcgaDiseaseStudy"));
 		assertEquals("AgilentG4502A_07_3", layer.getString("platform"));
-		assertEquals("Level_2", annotations.getString("format"));
-		assertEquals("2.0.0", annotations.getString("tcgaRevision"));
+		assertEquals("Level_2", annotations.getString("tcgaLevel"));
+		assertEquals("2", annotations.getString("tcgaArchiveSerialIndex"));
+		assertEquals("0", annotations.getString("tcgaRevision"));
+		assertEquals("0", annotations.getString("tcgaSeries"));
+		assertEquals("tsv", annotations.getString("format"));
 	}
 
 	/**
@@ -52,7 +56,8 @@ public class TcgaWorkflowTest {
 
 		assertEquals("C", layer.getString("type"));
 		assertEquals("clinical_patient_public_coad", layer.getString("name"));
-		assertEquals("tab-delimited", annotations.getString("format"));
+		assertEquals("raw", layer.getString("status"));
+		assertEquals("tsv", annotations.getString("format"));
 	}
 
 	/**
@@ -69,11 +74,15 @@ public class TcgaWorkflowTest {
 		assertEquals("G", layer.getString("type"));
 		assertEquals("broad.mit.edu_COAD.Genome_Wide_SNP_6.mage-tab.1.1007.0", layer
 				.getString("name"));
+		assertEquals("raw", layer.getString("status"));
+		assertEquals("tsv", annotations.getString("format"));
 		assertEquals("broad.mit.edu", annotations.getString("tcgaDomain"));
 		assertEquals("COAD", annotations.getString("tcgaDiseaseStudy"));
 		assertEquals("Genome_Wide_SNP_6", layer.getString("platform"));
-		assertEquals("mage-tab", annotations.getString("format"));
-		assertEquals("1.1007.0", annotations.getString("tcgaRevision"));
+		assertEquals("mage-tab", annotations.getString("tcgaLevel"));
+		assertEquals("1", annotations.getString("tcgaArchiveSerialIndex"));
+		assertEquals("1007", annotations.getString("tcgaRevision"));
+		assertEquals("0", annotations.getString("tcgaSeries"));
 	}
 
 }
