@@ -11,6 +11,8 @@ import java.util.Map;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.httpclient.HttpMethodBase;
+import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpException;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
@@ -33,6 +35,8 @@ public class Synapse {
 	private static final String DEFAULT_REPO_ENDPOINT = "https://staging-reposervice.elasticbeanstalk.com/repo/v1";
 	private static final String DEFAULT_AUTH_ENDPOINT = "https://staging-reposervice.elasticbeanstalk.com/auth/v1";
 	private static final String SESSION_TOKEN_HEADER = "sessionToken";
+        private static final String REQUEST_PROFILE_DATA = "profile_request";
+        private static final String PROFILE_RESPONSE_OBJECT_HEADER = "profile_response_object";
 	private static final String QUERY_URI = "/query?query=";
 
 	private String repoEndpoint;
@@ -40,12 +44,16 @@ public class Synapse {
 
 	private Map<String, String> defaultGETDELETEHeaders;
 	private Map<String, String> defaultPOSTPUTHeaders;
+        
+        private JSONObject profileData;
+        private boolean requestProfile;
 
 	/**
 	 * Default constructor uses the default repository and auth services
 	 * endpoints.
 	 */
 	public Synapse() {
+                
 		setRepositoryEndpoint(DEFAULT_REPO_ENDPOINT);
 		setAuthEndpoint(DEFAULT_AUTH_ENDPOINT);
 
@@ -58,7 +66,9 @@ public class Synapse {
 		
 		HttpClientHelper.setConnectionTimeout(DEFAULT_TIMEOUT_MSEC);
 		HttpClientHelper.setSocketTimeout(DEFAULT_TIMEOUT_MSEC);
-		
+                
+                requestProfile = false;
+                		
 	}
 
 	/**
@@ -76,6 +86,14 @@ public class Synapse {
 	public void setAuthEndpoint(String authEndpoint) {
 		this.authEndpoint = authEndpoint;
 	}
+        
+        public void setRequestprofile(boolean request) {
+            this.requestProfile = request;
+        }
+        
+        public JSONObject getProfileData() {
+            return this.profileData;
+        }
 
 	/**
 	 * Log into Synapse
@@ -94,6 +112,9 @@ public class Synapse {
 		JSONObject loginRequest = new JSONObject();
 		loginRequest.put("email", username);
 		loginRequest.put("password", password);
+                
+                boolean reqPr = requestProfile;
+                requestProfile = false;
 
 		JSONObject credentials = createAuthEntity("/session", loginRequest);
 
@@ -101,6 +122,8 @@ public class Synapse {
 				.getString(SESSION_TOKEN_HEADER));
 		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, credentials
 				.getString(SESSION_TOKEN_HEADER));
+                
+                requestProfile = reqPr;
 	}
 
 	/******************** Mid Level Repository Service APIs ********************/
@@ -306,7 +329,7 @@ public class Synapse {
 		if (null == entity) {
 			throw new IllegalArgumentException("must provide entity");
 		}
-
+                
 		return dispatchSynapseRequest(endpoint, uri, "POST", entity.toString(),
 				defaultPOSTPUTHeaders);
 	}
@@ -496,11 +519,18 @@ public class Synapse {
 	 * @throws SynapseUserException
 	 * @throws SynapseServiceException
 	 */
-	private static JSONObject dispatchSynapseRequest(String endpoint,
+	private JSONObject dispatchSynapseRequest(String endpoint,
 			String uri, String requestMethod, String requestContent,
 			Map<String, String> requestHeaders) throws HttpException,
 			IOException, JSONException, SynapseUserException,
 			SynapseServiceException {
+                
+                if (requestProfile && ! requestMethod.equals("DELETE")) {
+                    requestHeaders.put(REQUEST_PROFILE_DATA, "true");
+                } else {
+                    if (requestHeaders.containsKey(REQUEST_PROFILE_DATA))
+                        requestHeaders.remove(REQUEST_PROFILE_DATA);
+                }
 
 		URL parsedEndpoint = new URL(endpoint);
 		String endpointPrefix = parsedEndpoint.getPath();
@@ -512,8 +542,20 @@ public class Synapse {
 
 		JSONObject results = null;
 		try {
-			String response = HttpClientHelper.performRequest(requestUrl,
+                        HttpMethodBase method = HttpClientHelper.performRequest(requestUrl,
 					requestMethod, requestContent, requestHeaders);
+                        // TODO: Change hardcoded value from HttpClientHelper
+                        String response = method.getResponseBodyAsString(1024*1024);
+                        
+                        if (requestProfile && ! requestMethod.equals("DELETE")) {
+                            Header header = method.getResponseHeader(PROFILE_RESPONSE_OBJECT_HEADER);
+                            String encoded = header.getValue();
+                            String decoded = new String(Base64.decodeBase64(encoded.getBytes("UTF-8")), "UTF-8");
+                            profileData = new JSONObject(decoded);
+                        } else {
+                            profileData = null;
+                        }
+                        
 			if (null != response) {
 				results = new JSONObject(response);
 				if (log.isDebugEnabled()) {
@@ -521,6 +563,7 @@ public class Synapse {
 							+ results.toString(JSON_INDENT));
 				}
 			}
+                        
 		} catch (HttpClientHelperException e) {
 			// Well-handled server side exceptions come back as JSON, attempt to
 			// deserialize and convert the error

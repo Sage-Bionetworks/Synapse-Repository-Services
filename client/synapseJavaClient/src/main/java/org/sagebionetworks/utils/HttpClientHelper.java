@@ -62,7 +62,7 @@ public class HttpClientHelper {
 	 * @throws IOException 
 	 * @throws HttpException 
 	 */
-	public static String performRequest(URL requestUrl, String requestMethod,
+	public static HttpMethodBase performRequest(URL requestUrl, String requestMethod,
 			String requestContent, Map<String, String> requestHeaders) throws HttpException, IOException, HttpClientHelperException
 			 {
 
@@ -83,7 +83,7 @@ public class HttpClientHelper {
 	 * @throws IOException 
 	 * @throws HttpException 
 	 */
-	public static String performRequestShouldFail(URL requestUrl,
+	public static HttpMethodBase performRequestShouldFail(URL requestUrl,
 			String requestMethod, String requestContent,
 			Map<String, String> requestHeaders,
 			Integer overridingExpectedResponseStatus) throws HttpException, IOException, HttpClientHelperException  {
@@ -92,7 +92,7 @@ public class HttpClientHelper {
 	}
 
 	@SuppressWarnings("deprecation")
-	private static String performRequest(URL requestUrl, String requestMethod,
+	private static HttpMethodBase performRequest(URL requestUrl, String requestMethod,
 			String requestContent, Map<String, String> requestHeaders,
 			Integer overridingExpectedResponseStatus) throws HttpException,
 			IOException, HttpClientHelperException {
@@ -155,7 +155,7 @@ public class HttpClientHelper {
 			throw new HttpClientHelperException(verboseMessage.toString(),
 					method);
 		}
-		return method.getResponseBodyAsString(MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH);
+		return method;
 	}
 
 	/**
