@@ -13,7 +13,7 @@ export(synapseResetEndpoints, synapseAuthServiceEndpoint, synapseRepoServiceEndp
 exportMethods(Dataset, Layer, Project)
 
 ## entity S4 methods
-exportMethods(getEntity, deleteEntity, createEntity, updateEntity, refreshEntity, downloadEntity, loadEntity, getParentEntity)
+exportMethods(storeEntity, copyEntity, getEntity, deleteEntity, createEntity, updateEntity, refreshEntity, downloadEntity, loadEntity, getParentEntity)
 
 ## entity property/annotation setters and getters
 exportMethods("annotValue<-", annotValue, propertyValue, "propertyValue<-", annotations, properties, "annotationValues<-", annotationValues, "propertyValues<-", propertyValues)
@@ -24,7 +24,6 @@ exportMethods(getDatasetLayers)
 
 ## S3 convenience methods
 export(getDatasets)
-
 
 
 

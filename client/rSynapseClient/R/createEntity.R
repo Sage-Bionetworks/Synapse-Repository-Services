@@ -11,7 +11,7 @@
 	
 	uri <- paste("/", kind, sep = "")
 	
-	synapsePost(uri=uri, entity=entity, anonymous=FALSE)
+	synapsePost(uri=uri, entity=entity, anonymous = FALSE)
 }
 
 createDataset <- 
@@ -62,7 +62,10 @@ setMethod(
 		definition = function(entity){
 			## create the entity
 			oldAnnotations <- annotations(entity)
-			entity <- createEntity(entity = .extractEntityFromSlots(entity), className = class(entity))
+			
+			uri <- paste("/", synapseEntityKind(entity), sep = "")
+			entity <- SynapseEntity(synapsePost(uri=uri, entity=.extractEntityFromSlots(entity)))
+			
 			## update entity annotations
 			newAnnotations <- annotations(entity)
 			if(length(as.list(oldAnnotations)) > 0L){
@@ -98,4 +101,33 @@ setMethod(
 		}
 )
 
+setMethod(
+		f = "createEntity",
+		signature = "CachedLocation",
+		definition = function(entity){
+			oldClass <- class(entity)
+			class(entity) <- "Location"
+			createdEntity <- createEntity(entity)
+			class(createdEntity) <- oldClass
+			class(entity) <- oldClass
+			createdEntity@cacheDir <- entity@cacheDir
+			createdEntity@files <- entity@files
+			createdEntity
+		}
+)
 
+
+setMethod(
+		f = "createEntity",
+		signature = "Layer",
+		definition = function(entity){
+			oldClass <- class(entity)
+			class(entity) <- "SynapseEntity"
+			createdEntity <- createEntity(entity)
+			class(createdEntity) <- oldClass
+			class(entity) <- oldClass
+			createdEntity@location <- entity@location
+			createdEntity@loadedObjects <- entity@loadedObjects
+			createdEntity
+		}
+)

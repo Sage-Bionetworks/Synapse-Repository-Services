@@ -34,15 +34,11 @@ setClass(
 		representation = representation(
 				synapseEntityKind = "character",
 				properties = "list",
-				annotations = "SynapseAnnotation",
-				cachedFiles = "list",
-				loadedObjects = "environment"
+				annotations = "SynapseAnnotation"
 		),
 		prototype = prototype(
 				properties = emptyNamedList,
-				annotations = new(Class="SynapseAnnotation"),
-				cachedFiles = list(),
-				loadedObjects = new.env()
+				annotations = new(Class="SynapseAnnotation")
 		)
 )
 
@@ -63,14 +59,39 @@ setClass(
 		)
 )
 
+setClass(
+		Class = "Location",
+		contains = "SynapseEntity",
+		prototype = prototype(
+				synapseEntityKind = "location"
+		)
+)
+
+setClass(
+		Class = "CachedLocation",
+		contains = "Location",
+		representation = representation(
+				cacheDir = "character",
+				files = "character"
+		),
+		prototype = prototype(
+				cacheDir = tempfile(pattern="cacheDir")
+		)
+)
+
 #####
 ### Layer Class definitions
 #####
 setClass(
 		Class = "Layer",
 		contains = "SynapseEntity",
+		representation = representation(
+				location = "CachedLocation",
+				loadedObjects = "environment"
+		),
 		prototype = prototype(
-				synapseEntityKind = "layer"
+				synapseEntityKind = "layer",
+				location = new(Class="CachedLocation")
 		)
 )
 
@@ -110,15 +131,6 @@ setClass(
 		contains = "Layer",
 		prototype = prototype(
 				properties = list(type="C")
-		)
-)
-
-
-setClass(
-		Class = "Location",
-		contains = "SynapseEntity",
-		prototype = prototype(
-				synapseEntityKind = "location"
 		)
 )
 

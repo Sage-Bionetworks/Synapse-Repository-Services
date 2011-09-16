@@ -7,13 +7,13 @@ setMethod(
 		f = "loadEntity",
 		signature = "Layer",
 		definition = function(entity){
-			if(is.null(entity@cachedFiles))
+			if(length(entity@location@files) == 0)
 				entity <- downloadEntity(entity)
 			
 			if(is.null(annotValue(entity, "format")))
 				return(entity)
 			entity@loadedObjects <- switch(annotValue(entity, "format"),
-					rbin = .loadRbinaryFiles(entity@cachedFiles),
+					rbin = .loadRbinaryFiles(file.path(entity@location@cacheDir,entity@location@files)),
 					sageBioCurated = .loadSageBioPacket(entity),
 					new.env()
 			)
@@ -61,10 +61,10 @@ setMethod(
 			if(is.null(annotValue(entity, "format")) || annotValue(entity, "format") != "sageBioCurated")
 				stop("Unable to load Phenotype layers that are not in SageBioCurated format using this function.")
 			
-			if(is.null(entity@cachedFiles))
+			if(length(entity@location@files) == 0)
 				entity <- downloadEntity(entity)
 			
-			files <- entity@cachedFiles
+			files <- file.path(entity@location@cacheDir, entity@location@files)
 			
 			## look in phenotype directory for 
 			indx <- grep("/phenotype/phenotype.txt$",files)

@@ -24,18 +24,6 @@ setMethod(
 			
 			cat("\nFor complete list of annotations, please use the annotations() function.\n")
 			cat(sprintf("Or view this Entity on the Synapse website at: %s\n", "https://synapse.sagebase.org"), sep="")
-			
-			if(length(object@cachedFiles) > 0){
-				cat("\nLocal cache directory:\n")
-				show(object@cachedFiles$cacheDir)
-				cat("\nCached files:\n")
-				show(object@cachedFiles$files)
-			}
-			
-			if(length(ls((object@loadedObjects))) > 0){
-				cat("\nLoaded objects:\n")
-				cat(objects(object@loadedObjects), sep="\n")
-			}
 				
 		}
 )

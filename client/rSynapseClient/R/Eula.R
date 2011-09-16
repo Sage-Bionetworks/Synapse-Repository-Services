@@ -36,6 +36,8 @@ setMethod(
 		f = ".signEula",
 		signature = "Dataset",
 		definition = function(entity){
+			if(is.null(propertyValue(entity, "eulaId")))
+				invisible(NULL)
 			kService <- "/agreement"
 			entity <- list(
 					datasetId = propertyValue(entity, "id"),
@@ -186,6 +188,8 @@ setMethod(
 		f = "hasSignedEula",
 		signature = "Dataset",
 		definition = function(entity){
+			if(is.null(propertyValue(entity, "eulaId")))
+				return(TRUE)
 			queryString <- sprintf('select * from agreement where datasetId=="%s" and eulaId=="%s" and createdBy=="%s"', propertyValue(entity, "id"), propertyValue(entity, "eulaId"), as.character(.getCache("username")))
 			agreements <- synapseQuery(queryString)
 			if(is.null(agreements))

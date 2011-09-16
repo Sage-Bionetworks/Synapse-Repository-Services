@@ -5,6 +5,8 @@
 	splits <- strsplit(filename, "\\.")
 	extension <- tolower(splits[[1]][length(splits[[1]])])
 	destdir <- gsub(paste("[\\.]", extension, sep=""), paste("_", .getCache("downloadSuffix"), sep=""), filename)
+	if(file.exists(destdir))
+		unlink(destdir)
 	
 	switch(extension,
 		zip = unzip(filename, exdir = destdir),
@@ -19,7 +21,7 @@
 	)	
 	files <- list.files(destdir, full.names = TRUE, recursive=TRUE)
 	attr(files, "rootDir") <- destdir
-	return(files)
+	files
 }
 
 

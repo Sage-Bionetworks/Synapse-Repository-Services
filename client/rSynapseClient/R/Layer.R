@@ -38,13 +38,20 @@ setMethod(
 		definition = function(entity){
 
 			## call super class constructor
-			layer <- SynapseEntity(entity = entity)
+			layer <- new(Class = "Layer")
+			layer <- .populateSlotsFromEntity(layer, entity)
 			
-			## coerce to Layer type. 
-			class(layer) <- "Layer"
-			synapseEntityKind(layer) <- synapseEntityKind(new(Class="Layer"))
-
-			## first check for subclass
+			## add annotations
+			annotations <- new(Class="SynapseAnnotation")
+			if(!is.null(entity$id)){
+				annotations <- tryCatch(
+						SynapseAnnotation(getAnnotations(entity=entity)),
+						error = function(e){
+							warning("Unable to retrieve annotations for entity.")
+						}
+				)
+			}
+			layer@annotations<- annotations
 			setSubclass(layer)
 		}
 )
@@ -86,3 +93,26 @@ setMethod(
 			return(object)
 		}
 )
+
+setMethod(
+		f = "refreshEntity",
+		signature = "Layer",
+		definition = function(entity){
+			refreshedEntity <- getEntity(entity)
+			refreshedEntity@location <- entity@location
+			refreshedEntity@loadedObjects <- entity@loadedObjects
+			refreshedEntity
+		}
+)
+
+setMethod(
+		f = "initialize",
+		signature = signature("Layer"),
+		definition = function(.Object, properties=NULL){
+			.Object@loadedObjects <- new.env(parent=emptyenv())
+			if(!is.null(properties))
+				.Object@properties <- properties
+			.Object
+		}
+)
+

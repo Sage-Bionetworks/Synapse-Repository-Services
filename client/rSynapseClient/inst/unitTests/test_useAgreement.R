@@ -32,7 +32,7 @@
 	myGetParentEntity <- 
 			function(entity)
 	{
-		return(new(Class="Dataset"))
+		return(new(Class="Dataset", properties=list(eulaId = "fakeEulaId")))
 	}
 	
 	myGetEntity <- 
@@ -204,6 +204,7 @@ unitTestHasSignedEulaDataset <-
 		function()
 {
 	entity <- new(Class="Dataset")
+	propertyValue(entity, "eulaId") <- "fakeEulaId"
 	
 	## test NULL response
 	synapseClient:::.setCache("eulaRows", NULL)
@@ -307,4 +308,11 @@ unitTestSignEula <-
 		function()
 {
 	checkException(synapseClient:::.signEula(new(Class="SynapseEntity")))
+}
+
+unitTestNoEulaId <-
+		function()
+{
+	entity <- new(Class="Dataset")
+	checkTrue(synapseClient:::hasSignedEula(entity))
 }

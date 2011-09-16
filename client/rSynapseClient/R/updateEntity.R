@@ -96,3 +96,32 @@ setMethod(
 		}
 )
 
+setMethod(
+		f = "updateEntity",
+		signature = "CachedLocation",
+		definition = function(entity){
+			oldClass <- class(entity)
+			class(entity) <- "Location"
+			updatedEntity <- updateEntity(entity)
+			class(updatedEntity) <- oldClass
+			class(entity) <- oldClass
+			updatedEntity@cacheDir <- entity@cacheDir
+			updatedEntity@files <- entity@files
+			updatedEntity
+		}
+)
+
+setMethod(
+		f = "updateEntity",
+		signature = "Layer",
+		definition = function(entity){
+			oldClass <- class(entity)
+			class(entity) <- "SynapseEntity"
+			updatedEntity <- updateEntity(entity)
+			class(updatedEntity) <- oldClass
+			class(entity) <- oldClass
+			updatedEntity@location <- entity@location
+			updatedEntity@loadedObjects <- entity@loadedObjects
+			updatedEntity
+		}
+)

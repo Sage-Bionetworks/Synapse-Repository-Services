@@ -6,6 +6,41 @@
 setGeneric(name="as.list")
 
 setGeneric(
+		name = "copyEntity",
+		def = function(entity){
+			standardGeneric("copyEntity")
+		}
+)
+
+setGeneric(
+		name = "CachedLocation",
+		def = function(location, files){
+			standardGeneric("CachedLocation")
+		}
+)
+
+setGeneric(
+		name = "storeFile",
+		def = function(entity, filePath){
+			standardGeneric("storeFile")
+		}
+)
+
+setGeneric(
+		name = ".cacheEntity",
+		def = function(entity){
+			standardGeneric(".cacheEntity")
+		}
+)
+
+setGeneric(
+		name = "storeEntity",
+		def = function(entity){
+			standardGeneric("storeEntity")
+		}
+)
+
+setGeneric(
 		name = "Eula",
 		def = function(entity){
 			standardGeneric("Eula")
