@@ -34,7 +34,8 @@ setMethod(
 		definition = function(location, files){
 			class(location) <- "CachedLocation"
 			location@cacheDir <- attr(files, "rootDir")
-			location@files <- gsub(attr(files,"rootDir"), "", as.character(files))
+			files <- gsub(attr(files,"rootDir"), "", as.character(files))
+			location@files <- gsub(sprintf("^%s", .Platform$file.sep), "", files)
 			location
 		}
 )
@@ -55,13 +56,26 @@ setMethod(
 			if (!is.null(properties(object)$version))
 				cat("Version             : ", properties(object)$version, "\n", sep="")
 			
-			## if Cached Files exist, print them out
-			if(length(object@cacheDir) != 0){
-				cat(sprintf('\n%d File(s) cached in "%s" :\n', length(object@files), object@cacheDir))
-				if(length(object@files) > 0)
-					show(object@files)
+			msg <- summarizeCacheFiles(object)
+			if(!is.null(msg)){
+				cat("\n", msg$count, " :\n", sep="")
+				cat(msg$files, sep="\n")
 			}
-			
 			cat("\nFor complete list of properties, please use the properties() function.\n")
+		}
+)
+
+setMethod(
+		f = "summarizeCacheFiles",
+		signature = "CachedLocation",
+		definition = function(entity){
+			## if Cached Files exist, print them out
+			msg <- NULL
+			if(length(entity@cacheDir) != 0){
+				msg$count <- sprintf('%d File(s) cached in "%s"', length(entity@files), entity@cacheDir)
+				if(length(entity@files) > 0)
+					msg$files <- sprintf('[%d] "%s"',1:length(entity@files), entity@files)
+			}
+			msg
 		}
 )

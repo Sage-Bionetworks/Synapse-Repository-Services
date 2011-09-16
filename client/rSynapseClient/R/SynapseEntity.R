@@ -23,8 +23,8 @@ setMethod(
 				cat("Version             : ", properties(object)$version, "\n", sep="")
 			
 			cat("\nFor complete list of annotations, please use the annotations() function.\n")
-			cat(sprintf("Or view this Entity on the Synapse website at: %s\n", "https://synapse.sagebase.org"), sep="")
-				
+			cat(sprintf("Or view this Entity (Synapse Id %s) on the Synapse website at: %s\n", propertyValue(object, "id"), "https://synapse.sagebase.org"), sep="")
+			
 		}
 )
 

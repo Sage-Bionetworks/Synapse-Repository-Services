@@ -107,7 +107,7 @@ setMethod(
 
 setMethod(
 		f = "initialize",
-		signature = signature("Layer"),
+		signature = "Layer",
 		definition = function(.Object, properties=NULL){
 			.Object@loadedObjects <- new.env(parent=emptyenv())
 			if(!is.null(properties))
@@ -115,4 +115,113 @@ setMethod(
 			.Object
 		}
 )
+
+setMethod(
+		f = "show",
+		signature = "Layer",
+		definition = function(object){
+			cat('An object of class "', class(object), '"\n', sep="")
+			
+			cat("Synapse Entity Name : ", properties(object)$name, "\n", sep="")
+			cat("Synapse Entity Id   : ", properties(object)$id, "\n", sep="")
+			
+			if (!is.null(properties(object)$parentId))
+				cat("Parent Id           : ", properties(object)$parentId, "\n", sep="")
+			if (!is.null(properties(object)$type))
+				cat("Type                : ", properties(object)$type, "\n", sep="")
+			if (!is.null(properties(object)$version))
+				cat("Version             : ", properties(object)$version, "\n", sep="")
+			
+			obj.msg <- summarizeLoadedObjects(object)
+			if(!is.null(obj.msg)){
+				cat("\n", obj.msg$count,":\n", sep="")
+				cat(obj.msg$objects, sep="\n")
+			}
+			
+			files.msg <- summarizeCacheFiles(object@location)
+			if(!is.null(files.msg))
+				cat("\n", files.msg$count, "\n", sep="")
+			if(!is.null(propertyValue(object,"id"))){
+				cat("\nFor complete list of annotations, please use the annotations() function.\n")
+				cat(sprintf("Or view this Entity (Synapse Id %s) on the Synapse website at: %s\n", propertyValue(object, "id"), "https://synapse.sagebase.org"), sep="")
+			}
+		}
+)
+
+setMethod(
+		f = "summarizeLoadedObjects",
+		signature = "Layer",
+		definition = function(entity){
+			msg <- NULL
+			if(length(objects(entity@loadedObjects)) > 0){
+				msg$count <- sprintf("loaded object(s)")
+				objects <- objects(entity@loadedObjects)
+				classes <- unlist(lapply(objects, function(object){class(entity@loadedObjects[[object]])}))
+				
+				msg$objects <- sprintf('[%d] "%s" (%s)', 1:length(objects), objects, classes)
+			}
+			msg
+		}
+)
+
+setMethod(
+		f = "[",
+		signature = "Layer",
+		definition = function(x, i, j, ...){
+			if(length(as.character(as.list(substitute(list(...)))[-1L])) > 0L || !missing(j))
+				stop("incorrect number of subscripts")
+			if(is.numeric(i)){
+				if(any(i > length(names(x))))
+					stop("subscript out of bounds")
+				i <- names(x)[i]
+			}else if(is.character(i)){
+				if(!all(i %in% names(x)))
+					stop("undefined objects selected")
+			}else{
+				stop(sprintf("invalid subscript type '%s'", class(i)))
+			}
+			retVal <- lapply(i, function(i){
+						if(i=="objects"){
+							i <- "loadedObjects"
+							envir <- slot(x,i)
+							objects <- lapply(objects(envir), function(key) get(key,envir=envir))
+							names(objects) <- objects(envir)
+							return(objects)
+						}
+						slot(x@location, i)
+					}
+			)
+			names(retVal) <- i
+			retVal
+		}
+)
+
+setMethod(
+		f = "[[",
+		signature = "Layer",
+		definition = function(x, i, j, ...){
+			if(length(as.character(as.list(substitute(list(...)))[-1L])) > 0L || !missing(j))
+				stop("incorrect number of subscripts")
+			if(length(i) > 1)
+				stop("subscript out of bounds")
+			x[i][[1]]
+		}
+)
+setMethod(
+		f = "$",
+		signature = "Layer",
+		definition = function(x, name){
+			x[[name]]
+		}
+)
+
+
+setMethod(
+		f = "names",
+		signature = "Layer",
+		definition = function(x){
+			c("objects", "cacheDir", "files")
+		}
+)
+
 

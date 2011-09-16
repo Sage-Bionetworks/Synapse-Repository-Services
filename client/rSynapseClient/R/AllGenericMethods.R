@@ -6,6 +6,28 @@
 setGeneric(name="as.list")
 
 setGeneric(
+		name = "addFile",
+		def = function(entity, file, ...){
+			standardGeneric("addFile")
+		}
+)
+
+setGeneric(
+		name = "summarizeLoadedObjects",
+		def = function(entity){
+			standardGeneric("summarizeLoadedObjects")
+		}
+)
+
+setGeneric(
+		name = "summarizeCacheFiles",
+		def = function(entity){
+			standardGeneric("summarizeCacheFiles")
+		}
+		
+)
+
+setGeneric(
 		name = "copyEntity",
 		def = function(entity){
 			standardGeneric("copyEntity")

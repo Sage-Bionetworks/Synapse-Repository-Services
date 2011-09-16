@@ -1,12 +1,13 @@
 Package: synapseClient
 Type: Package
 Title: Synapse R Client from Sage Bionetworks
-Version: 0.7-1
-Date: 2011-9-2
+Version: 0.7-2
+Date: 2011-9-16
 Author@R: c(
 			person("Matthew", "Furia", email="matt.furia@sagebase.org", role=c("cre","aut")),
 			person("Nicole", "Deflaux", email="nicole.deflaux@sagebase.org", role="aut"),
-			person("Martin", "Morgan", email="mtmorgan@fhcrc.org", role="ctb")
+			person("Martin", "Morgan", email="mtmorgan@fhcrc.org", role="ctb"),
+			person("Brian", "Bot", email="brian.bot@sagebase.org", role="ctb")
 			)
 Author: Matthew Furia <matt.furia@sagebase.org>, Nicole Deflaux <nicole.deflaux@sagebase.org>
 Maintainer: Matthew Furia <matt.furia@sagebase.org>

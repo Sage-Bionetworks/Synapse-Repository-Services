@@ -8,12 +8,12 @@ useDynLib(synapseClient)
 
 ## S3 utility methods
 export(synapseResetEndpoints, synapseAuthServiceEndpoint, synapseRepoServiceEndpoint, synapseLogin, synapseLogout, synapseQuery, synapseCacheDir)
-
+##exportMethods("$", "[[", "[", names)
 ## S4 entity constructors
 exportMethods(Dataset, Layer, Project)
 
 ## entity S4 methods
-exportMethods(storeEntity, copyEntity, getEntity, deleteEntity, createEntity, updateEntity, refreshEntity, downloadEntity, loadEntity, getParentEntity)
+exportMethods(addFile, storeEntity, copyEntity, getEntity, deleteEntity, createEntity, updateEntity, refreshEntity, downloadEntity, loadEntity, getParentEntity)
 
 ## entity property/annotation setters and getters
 exportMethods("annotValue<-", annotValue, propertyValue, "propertyValue<-", annotations, properties, "annotationValues<-", annotationValues, "propertyValues<-", propertyValues)
@@ -24,6 +24,3 @@ exportMethods(getDatasetLayers)
 
 ## S3 convenience methods
 export(getDatasets)
-
-
-
