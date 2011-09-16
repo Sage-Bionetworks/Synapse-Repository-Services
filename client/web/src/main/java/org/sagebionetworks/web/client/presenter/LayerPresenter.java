@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.client.presenter;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,7 @@ import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.view.LayerView;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAsync;
 import org.sagebionetworks.web.shared.Agreement;
+import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.DownloadLocation;
 import org.sagebionetworks.web.shared.EULA;
@@ -267,20 +269,62 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 				}				
 
 				if(layerPreview != null) {
+					final LayerPreview layerPreviewFinal = layerPreview;
 					// get column display order, if possible from the layer preview
-					List<String> columnDisplayOrder = layerPreview.getHeaders();
+					final List<String> columnDisplayOrder = layerPreviewFinal.getHeaders();
+					final Map<String, String> columnDescriptions = new HashMap<String, String>();
+					final Map<String, String> columnUnits = new HashMap<String, String>();
 	
-					// TODO : get columns descriptions from service
-					Map<String, String> columnDescriptions = getTempColumnDescriptions();
-					Map<String, String> columnUnits = getTempColumnUnits();
-					
-					// append units onto description
-					for(String key : columnUnits.keySet()) {
-						String units = columnUnits.get(key);
-						columnDescriptions.put(key, columnDescriptions.get(key) + " (" + units + ")");
-					}		
-					
-					view.setLayerPreviewTable(layerPreview.getRows(), columnDisplayOrder, columnDescriptions, columnUnits);
+					nodeService.getNodeAnnotationsJSON(NodeType.LAYER, layerId, new AsyncCallback<String>() {
+
+						@Override
+						public void onFailure(Throwable caught) {
+							// set the table even if we can't get the annotations
+							callSetLayerPreviewTable();
+						}
+
+						@Override
+						public void onSuccess(String annotationJsonString) {
+
+							// get columns descriptions from service
+							try {
+								Annotations annotations = nodeModelCreator.createAnnotations(annotationJsonString);
+								Map<String, List<String>> strAnnotations = annotations.getStringAnnotations();
+								for(String annotKey : strAnnotations.keySet()) {
+									// process descriptions
+									if(annotKey.matches("^" + DisplayUtils.LAYER_COLUMN_DESCRIPTION_KEY_PREFIX + ".*")) {
+										String colName = annotKey.replaceFirst(DisplayUtils.LAYER_COLUMN_DESCRIPTION_KEY_PREFIX, "");
+										List<String> values = strAnnotations.get(annotKey);
+										if(values != null && values.size() > 0) {										
+											columnDescriptions.put(colName, values.get(0));
+										}
+									}
+
+									// process units
+									if(annotKey.matches("^" + DisplayUtils.LAYER_COLUMN_UNITS_KEY_PREFIX + ".*")) {
+										String colName = annotKey.replaceFirst(DisplayUtils.LAYER_COLUMN_UNITS_KEY_PREFIX, "");
+										List<String> values = strAnnotations.get(annotKey);
+										if(values != null && values.size() > 0) {										
+											columnUnits.put(colName, values.get(0));
+										}
+									}
+								}
+							} catch (RestServiceException ex) {
+								DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser());
+							}												
+							callSetLayerPreviewTable();
+						}
+						
+						private void callSetLayerPreviewTable() {
+							// append units onto description
+							for(String key : columnUnits.keySet()) {
+								String units = columnUnits.get(key);
+								columnDescriptions.put(key, columnDescriptions.get(key) + " (" + units + ")");
+							}		
+							
+							view.setLayerPreviewTable(layerPreviewFinal.getRows(), columnDisplayOrder, columnDescriptions, columnUnits);														
+						}
+					});
 				}
 			}
 
@@ -474,67 +518,6 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		view.showErrorMessage("Dataset downloading unavailable. Please try reloading the page.");
 		view.setDownloadUnavailable();
 		view.disableLicensedDownloads(true);
-	}
-
-	private Map<String, String> getTempColumnUnits() {
-		Map<String,String> units = new LinkedHashMap<String, String>();
-		
-		units.put("predxbxpsa","ng/mL");
-		units.put("age","years");
-		units.put("pre_treatment_psa","ng/mL");
-		units.put("bcr_freetime","years");
-		units.put("survtime","months");
-		units.put("nomogram_pfp_postrp","probability");
-		units.put("nomogram_nomopred_extra_capsular_extension","probability");
-		units.put("nomogram_nomopred_lni","probability");
-		units.put("nomogram_nomopred_ocd","probability");
-		units.put("nomogram_nomopred_seminal_vesicle_invasion","probability");
-		
-		return units;
-	}
-
-	private Map<String, String> getTempColumnDescriptions() {
-		Map<String,String> descriptions = new LinkedHashMap<String, String>();
-		
-		descriptions.put("sample_type","Type of sample that was profiled. One of: Benign=benign tumor ,CELL LINE=cancer cell line , MET=metastatic tumor, PRIMARY=primary tumor or XENOGRAFT. ");
-		descriptions.put("metastatic_site","Site in the body where metastatic tumor was detected.");
-		descriptions.put("ethnicity","ethnicity of the individual");
-		descriptions.put("predxbxpsa","PSA prior to diagnostic biopsy");
-		descriptions.put("age","Age at diagnosis");
-		descriptions.put("clinical_primary_gleason","clinical gleason score of the majority of the tumor");
-		descriptions.put("clinical_secondary_gleason","clinical gleason score of the minority of the tumor");
-		descriptions.put("clinical_gleason_score","clinical tertiary gleason score");
-		descriptions.put("pre_treatment_psa","Prostate specific antigen level prior to treatment");
-		descriptions.put("clinical_tnm_stage_t","Cancer stage based on the Tumor, Node, Metastasis scoring system");
-		descriptions.put("neoadjradtx","neo-adjuvant treatment");
-		descriptions.put("chemotx","chemotherapy treatment");
-		descriptions.put("hormtx","Hormone treatment");
-		descriptions.put("radtxtype","radiation treatment type");
-		descriptions.put("rp_type","Surgical treatment. RP=radical prostatectomy, LP=laproscopic prostatectomy, SALRP=Salvage radical prostatectomy");
-		descriptions.put("sms","somatostatin");
-		descriptions.put("extra_capsular_extension","extra-capsular extension: cancer extending beyond the prostate capsule");
-		descriptions.put("seminal_vesicle_invasion","seminal vesicle invasion. Either \"positive\" or \"negative\"");
-		descriptions.put("tnm_stage_n","TNM \"N\" stage");
-		descriptions.put("number_nodes_removed","Number of cancerous nodes removed");
-		descriptions.put("number_nodes_positive","number node-positive nodes");
-		descriptions.put("pathologic_tnm_stage_t","pathologic TNM \"T\" stage");
-		descriptions.put("pathologic_primary_gleason","pathalogic gleason score of the majority of the tumor");
-		descriptions.put("pathologic_secondary_gleason","pathalagic gleason score of the minority of the tumor");
-		descriptions.put("pathologic_gleason_score","pathalogic tertiary gleason score");
-		descriptions.put("bcr_freetime","elapsed time before bichemical recurrance");
-		descriptions.put("bcr_event","was a biochemical recurrance event detected");
-		descriptions.put("metsevent","metastatic event");
-		descriptions.put("survtime","Survival time post-diagnosis");
-		descriptions.put("event","Cause of death");
-		descriptions.put("nomogram_pfp_postrp","nomogram progression-free probability post radical prostatectomy");
-		descriptions.put("nomogram_nomopred_extra_capsular_extension","probability of extra capsular extension");
-		descriptions.put("nomogram_nomopred_lni","probability of lymph node involvement");
-		descriptions.put("nomogram_nomopred_ocd","probability of organ confined disease");
-		descriptions.put("nomogram_nomopred_seminal_vesicle_invasion","probability of seminal vesicle invasion");
-		descriptions.put("copy_number_cluster","copy number cluster size");
-		descriptions.put("expression_array_tissue_source","Source of tissue used for expression profiling");		
-
-		return descriptions;
 	}
 
 }

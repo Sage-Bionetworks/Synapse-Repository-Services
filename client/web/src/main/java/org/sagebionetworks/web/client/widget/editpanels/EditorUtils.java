@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.web.client.DisplayConstants;
+import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.ontology.OntologyTerm;
 
 import com.extjs.gxt.ui.client.data.BaseModelData;
@@ -69,7 +70,7 @@ public class EditorUtils {
 			case INTEGER:
 			case DECIMAL:
 			case BOOLEAN:			
-				if(key.equals(DisplayConstants.NODE_DESCRIPTION_KEY)) {
+				if(key.equals(DisplayUtils.NODE_DESCRIPTION_KEY) || key.matches("^" + DisplayUtils.LAYER_COLUMN_DESCRIPTION_KEY_PREFIX + ".*")) {
 					model.setColumnEditType(ColumnEditType.TEXTAREA);					
 				} else {
 					model.setColumnEditType(ColumnEditType.TEXT);

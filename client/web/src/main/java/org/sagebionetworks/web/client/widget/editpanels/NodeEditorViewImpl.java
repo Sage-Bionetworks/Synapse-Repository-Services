@@ -144,7 +144,7 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 			case STRING:
 			case INTEGER:
 			case DECIMAL:							
-				if(key.equals(DisplayConstants.NODE_DESCRIPTION_KEY)) {
+				if(key.equals(DisplayUtils.NODE_DESCRIPTION_KEY)) {
 					TextArea description = new TextArea();					
 					description.setPreventScrollbars(false);
 					description.setHeight(82);

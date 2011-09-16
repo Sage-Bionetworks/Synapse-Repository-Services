@@ -82,8 +82,7 @@ public class DisplayConstants {
 	
 	public static final String SERVICE_HEADER_ETAG_KEY = "ETag";
 
-	public static final String SYNAPSE_ID_PREFIX = "Synapse Id: ";	
-	public static final String NODE_DESCRIPTION_KEY = "description";
+	public static final String SYNAPSE_ID_PREFIX = "Synapse Id: ";		
 	public static final String BUTTON_LOGIN_AGAIN = "Go to Synapse Login Page";
 	public static final String LABEL_LOGOUT_TEXT = "Logout";
 	public static final String BUTTON_CANCEL = "Cancel";

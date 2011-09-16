@@ -27,6 +27,7 @@ import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.view.LayerView;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAsync;
+import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.DownloadLocation;
 import org.sagebionetworks.web.shared.EULA;
@@ -155,6 +156,14 @@ public class LayerPresenterTest {
 		List<String> headers = Arrays.asList(new String [] {"col1", "col2"});
 		layerPreview.setHeaders(headers);
 		
+		// make a fake annotations
+		Annotations annotations = new Annotations();
+		Map<String, List<String>> stringAnnotations = new HashMap<String, List<String>>();
+		stringAnnotations.put("colDesc_col1", Arrays.asList(new String[] {"description"}));
+		stringAnnotations.put("colUnits_col1", Arrays.asList(new String[] {"units"}));
+		annotations.setStringAnnotations(stringAnnotations);
+		String annotationsJSON = "{ annotations string }";
+		
 		// make paged result
 		PagedResults pagedResults = new PagedResults();
 		List<String> results = new ArrayList<String>();
@@ -164,21 +173,37 @@ public class LayerPresenterTest {
 		pagedResults.setResults(results);
 		//String pagedResultsJSON = pagedResults.toJson();
 
-		// Failure Test		
+		// Preview Failure Test		
 		resetMocks();	
 		when(mockNodeModelCreator.createPagedResults(Mockito.anyString())).thenReturn(pagedResults);
 		when(mockNodeModelCreator.createLayerPreview(Mockito.anyString())).thenReturn(layerPreview);		
+		when(mockNodeModelCreator.createAnnotations(Mockito.anyString())).thenReturn(annotations);
 		Throwable error = new Throwable("Error Message");
 		AsyncMockStubber.callFailureWith(error).when(mockNodeService).getNodePreview(eq(NodeType.LAYER), eq(layerId), any(AsyncCallback.class));
+		AsyncMockStubber.callSuccessWith(annotationsJSON).when(mockNodeService).getNodeAnnotationsJSON(eq(NodeType.LAYER), eq(layerId), any(AsyncCallback.class));
 		layerPresenter.loadLayerPreview();
 		verify(mockNodeService).getNodePreview(Mockito.eq(NodeType.LAYER), eq(layerId), any(AsyncCallback.class));
 		verify(mockView).showLayerPreviewUnavailable();		
 				
+		// Annotations failure test - reaches sucessful state
+		resetMocks();	
+		when(mockNodeModelCreator.createPagedResults(Mockito.anyString())).thenReturn(pagedResults);
+		when(mockNodeModelCreator.createLayerPreview(Mockito.anyString())).thenReturn(layerPreview);		
+		when(mockNodeModelCreator.createAnnotations(Mockito.anyString())).thenReturn(annotations);
+		Throwable error2 = new Throwable("Error Message");
+		AsyncMockStubber.callSuccessWith(layerPreviewJSON).when(mockNodeService).getNodePreview(eq(NodeType.LAYER), eq(layerId), any(AsyncCallback.class));
+		AsyncMockStubber.callFailureWith(error2).when(mockNodeService).getNodeAnnotationsJSON(eq(NodeType.LAYER), eq(layerId), any(AsyncCallback.class));
+		layerPresenter.loadLayerPreview();
+		verify(mockNodeService).getNodePreview(Mockito.eq(NodeType.LAYER), eq(layerId), any(AsyncCallback.class));
+		verify(mockView).setLayerPreviewTable(eq(rows), eq(headers), any(Map.class), any(Map.class));
+						
 		// Success Test
 		resetMocks();			
 		when(mockNodeModelCreator.createPagedResults(Mockito.anyString())).thenReturn(pagedResults);
 		when(mockNodeModelCreator.createLayerPreview(Mockito.anyString())).thenReturn(layerPreview);
+		when(mockNodeModelCreator.createAnnotations(Mockito.anyString())).thenReturn(annotations);
 		AsyncMockStubber.callSuccessWith(layerPreviewJSON).when(mockNodeService).getNodePreview(eq(NodeType.LAYER), eq(layerId), any(AsyncCallback.class));
+		AsyncMockStubber.callSuccessWith(annotationsJSON).when(mockNodeService).getNodeAnnotationsJSON(eq(NodeType.LAYER), eq(layerId), any(AsyncCallback.class));
 		layerPresenter.loadLayerPreview();
 		verify(mockNodeService).getNodePreview(Mockito.eq(NodeType.LAYER), eq(layerId), any(AsyncCallback.class));
 		verify(mockView).setLayerPreviewTable(eq(rows), eq(headers), any(Map.class), any(Map.class));

@@ -29,6 +29,10 @@ public class DisplayUtils {
 	private static final String REGEX_CLEAN_ENTITY_NAME = "^[a-z,A-Z,0-9,_,., ,\\-,\\+,(,)]+";
 	public static final String REPO_ENTITY_NAME_KEY = "name";
 		
+	public static final String NODE_DESCRIPTION_KEY = "description";
+	public static final String LAYER_COLUMN_DESCRIPTION_KEY_PREFIX = "colDesc_";
+	public static final String LAYER_COLUMN_UNITS_KEY_PREFIX = "colUnits_";
+	
 	public static final String MIME_TYPE_JPEG = "image/jpeg";
 	public static final String MIME_TYPE_PNG = "image/png";
 	public static final String MIME_TYPE_GIF = "image/gif";
