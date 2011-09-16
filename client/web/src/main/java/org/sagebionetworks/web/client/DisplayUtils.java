@@ -41,6 +41,12 @@ public class DisplayUtils {
 	
 	private static final String ERROR_OBJ_REASON_KEY = "reason";
 	
+	/*
+	 * Style names
+	 */
+	public static final String STYLE_NAME_GXT_GREY_BACKGROUND = "gxtGreyBackground";
+
+	
 	/**
 	 * Returns a properly aligned icon from an ImageResource
 	 * @param icon

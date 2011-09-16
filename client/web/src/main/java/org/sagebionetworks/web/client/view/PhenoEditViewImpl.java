@@ -1,5 +1,6 @@
 package org.sagebionetworks.web.client.view;
 
+import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.events.CancelEvent;
@@ -43,6 +44,8 @@ public class PhenoEditViewImpl extends Composite implements PhenoEditView {
 	@UiField
 	SimplePanel phenotypeEditorPanel;
 	@UiField
+	SimplePanel backToLayerButtonPanel;
+	@UiField
 	SpanElement breadcrumbDatasetSpan;
 	@UiField
 	SpanElement breadcrumbLayerSpan;
@@ -79,9 +82,25 @@ public class PhenoEditViewImpl extends Composite implements PhenoEditView {
 		phenotypeEditor.setLayerId(layerId);
 		//phenotypeEditor.setPlaceChanger(presenter.getPlaceChanger());		
 		phenotypeEditorPanel.clear();		
-		phenotypeEditorPanel.add(phenotypeEditor.asWidget());		
+		phenotypeEditorPanel.add(phenotypeEditor.asWidget());
+		
+		backToLayerButtonPanel.clear();
+		backToLayerButtonPanel.add(createBackToLayerButton(layerId));
+		
 	}
 	
+	private Widget createBackToLayerButton(String layerId) {
+		Button returnButton = new Button(DisplayConstants.BUTTON_RETURN_TO_LAYER, AbstractImagePrototype.create(icons.NavigateLeft16()));
+		returnButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+
+			@Override
+			public void componentSelected(ButtonEvent ce) {
+				presenter.goBackToLayer();
+			}
+		});
+		return returnButton;
+	}
+
 	@Override
 	public void setPresenter(final Presenter presenter) {
 		this.presenter = presenter;		

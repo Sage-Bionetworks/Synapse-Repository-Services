@@ -28,6 +28,7 @@
 					</ul>
 					<h2>Clinical / Phenotype Editor</h2>
 					<div class="info">
+						<g:SimplePanel ui:field="backToLayerButtonPanel"/><br/>
 						<g:SimplePanel ui:field="phenotypeEditorPanel"/> 											
 					</div>					
 				</div>		

@@ -16,6 +16,8 @@ import org.sagebionetworks.web.client.widget.editpanels.phenotype.ColumnMappingE
 import org.sagebionetworks.web.client.widget.editpanels.phenotype.ColumnMappingEditorView;
 import org.sagebionetworks.web.client.widget.editpanels.phenotype.PhenotypeEditor;
 import org.sagebionetworks.web.client.widget.editpanels.phenotype.PhenotypeEditorView;
+import org.sagebionetworks.web.client.widget.editpanels.phenotype.PhenotypeMatrix;
+import org.sagebionetworks.web.client.widget.editpanels.phenotype.PhenotypeMatrixView;
 
 public class PhenotypeEditorTest {
 	
@@ -31,12 +33,16 @@ public class PhenotypeEditorTest {
 		
 		ColumnDefinitionEditor columnDefinitionEditor = new ColumnDefinitionEditor(mock(ColumnDefinitionEditorView.class), staticOntologies);
 		ColumnMappingEditor columnMappingEditor = new ColumnMappingEditor(mock(ColumnMappingEditorView.class));
+		PhenotypeMatrix phenotypeMatrix = new PhenotypeMatrix(mock(PhenotypeMatrixView.class));
 		
 		mockView = mock(PhenotypeEditorView.class);
 		mockNodeService = mock(NodeServiceAsync.class);
 		mockNodeModelCreator = mock(NodeModelCreator.class);
 		mockAuthenticationController = mock(AuthenticationController.class);
-		phenotypeEditor = new PhenotypeEditor(mockView, mockNodeService, mockNodeModelCreator, mockAuthenticationController, staticOntologies, columnDefinitionEditor, columnMappingEditor);		
+		phenotypeEditor = new PhenotypeEditor(mockView, mockNodeService,
+				mockNodeModelCreator, mockAuthenticationController,
+				staticOntologies, columnDefinitionEditor, columnMappingEditor,
+				phenotypeMatrix);		
 		
 		verify(mockView).setPresenter(phenotypeEditor);
 	}	

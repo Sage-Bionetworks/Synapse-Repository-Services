@@ -26,6 +26,7 @@ public class PhenotypeEditor implements PhenotypeEditorView.Presenter, SynapseWi
     private AuthenticationController authenticationController;
     private ColumnDefinitionEditor columnDefinitionEditor;
     private ColumnMappingEditor columnMappingEditor;
+    private PhenotypeMatrix phenotypeMatrix;
     private String layerId;
 	 
     private List<String> columns;
@@ -33,7 +34,7 @@ public class PhenotypeEditor implements PhenotypeEditorView.Presenter, SynapseWi
     private Map<String,String> columnToOntology;
     
 	@Inject
-	public PhenotypeEditor(PhenotypeEditorView view, NodeServiceAsync nodeService, NodeModelCreator nodeModelCreator, AuthenticationController authenticationController, StaticOntologies staticOntologies, ColumnDefinitionEditor columnDefinitionEditor, ColumnMappingEditor columnMappingEditor) {
+	public PhenotypeEditor(PhenotypeEditorView view, NodeServiceAsync nodeService, NodeModelCreator nodeModelCreator, AuthenticationController authenticationController, StaticOntologies staticOntologies, ColumnDefinitionEditor columnDefinitionEditor, ColumnMappingEditor columnMappingEditor, PhenotypeMatrix phenotypeMatrix) {
         this.view = view;
 		this.nodeService = nodeService;
 		this.nodeModelCreator = nodeModelCreator;
@@ -41,6 +42,7 @@ public class PhenotypeEditor implements PhenotypeEditorView.Presenter, SynapseWi
 		this.authenticationController = authenticationController;
 		this.columnDefinitionEditor = columnDefinitionEditor;
 		this.columnMappingEditor = columnMappingEditor;
+		this.phenotypeMatrix = phenotypeMatrix;
         view.setPresenter(this);		
 	}
 	
@@ -55,8 +57,10 @@ public class PhenotypeEditor implements PhenotypeEditorView.Presenter, SynapseWi
     	columns = parseColumnsPhenotypeFile(phenotypeFileString, ",", false);
     	List<Map<String, String>> phenoData = parsePhenotypeFile(phenotypeFileString, columns, ",", false);
     	columnDefinitionEditor.setResources(columns, columns.get(0), columnToOntology, staticOntologies.getAnnotationToOntology().values());
-    	columnMappingEditor.setResources();
-    	view.generatePhenotypeEditor(columns, columns.get(0), phenoData, staticOntologies.getAnnotationToOntology().values(), columnDefinitionEditor, columnMappingEditor);    	
+    	columnMappingEditor.setResources();    	
+    	phenotypeMatrix.setResources();
+    	
+    	view.generatePhenotypeEditor(columns, columns.get(0), phenoData, staticOntologies.getAnnotationToOntology().values(), columnDefinitionEditor, columnMappingEditor, phenotypeMatrix);    	
     }
     
     @Override

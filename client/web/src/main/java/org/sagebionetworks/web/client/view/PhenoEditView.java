@@ -24,6 +24,8 @@ public interface PhenoEditView extends IsWidget{
 	public interface Presenter {
 
 		PlaceChanger getPlaceChanger();
+
+		void goBackToLayer();
 	}
 
 }

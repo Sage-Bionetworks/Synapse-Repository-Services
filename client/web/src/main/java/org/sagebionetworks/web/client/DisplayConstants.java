@@ -107,12 +107,8 @@ public class DisplayConstants {
 	public static final String ERROR_ALL_FIELDS_REQUIRED = "All fields are required.";
 	public static final String BUTTON_REGISTER = "Register";
 	public static final String TITLE_ADD_ANNOTATION = "Add Annotation";
+	public static final String BUTTON_RETURN_TO_LAYER = "Return to Layer";
 	
-
-	/*
-	 * Style names
-	 */
-	public static final String STYLE_NAME_GXT_GREY_BACKGROUND = "gxtGreyBackground";
 	
 	
 	/*

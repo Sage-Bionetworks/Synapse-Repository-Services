@@ -50,6 +50,8 @@ import org.sagebionetworks.web.client.widget.editpanels.phenotype.OntologySearch
 import org.sagebionetworks.web.client.widget.editpanels.phenotype.OntologySearchPanelViewImpl;
 import org.sagebionetworks.web.client.widget.editpanels.phenotype.PhenotypeEditorView;
 import org.sagebionetworks.web.client.widget.editpanels.phenotype.PhenotypeEditorViewImpl;
+import org.sagebionetworks.web.client.widget.editpanels.phenotype.PhenotypeMatrixView;
+import org.sagebionetworks.web.client.widget.editpanels.phenotype.PhenotypeMatrixViewImpl;
 import org.sagebionetworks.web.client.widget.filter.QueryFilterView;
 import org.sagebionetworks.web.client.widget.filter.QueryFilterViewImpl;
 import org.sagebionetworks.web.client.widget.footer.FooterView;
@@ -232,6 +234,9 @@ public class PortalGinModule extends AbstractGinModule {
 		bind(OntologySearchPanelViewImpl.class).in(Singleton.class);
 		bind(OntologySearchPanelView.class).to(OntologySearchPanelViewImpl.class);		
 
+		// PhenotypeMatrix
+		bind(PhenotypeMatrixViewImpl.class).in(Singleton.class);
+		bind(PhenotypeMatrixView.class).to(PhenotypeMatrixViewImpl.class);		
 	}
 
 }

@@ -16,6 +16,7 @@ import org.sagebionetworks.web.client.widget.statictable.StaticTable;
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
 import com.extjs.gxt.ui.client.data.BaseModelData;
 import com.extjs.gxt.ui.client.event.ButtonEvent;
+import com.extjs.gxt.ui.client.event.ComponentEvent;
 import com.extjs.gxt.ui.client.event.Events;
 import com.extjs.gxt.ui.client.event.GridEvent;
 import com.extjs.gxt.ui.client.event.Listener;
@@ -24,6 +25,7 @@ import com.extjs.gxt.ui.client.event.SelectionChangedListener;
 import com.extjs.gxt.ui.client.event.SelectionListener;
 import com.extjs.gxt.ui.client.store.ListStore;
 import com.extjs.gxt.ui.client.widget.BoxComponent;
+import com.extjs.gxt.ui.client.widget.Component;
 import com.extjs.gxt.ui.client.widget.ContentPanel;
 import com.extjs.gxt.ui.client.widget.Label;
 import com.extjs.gxt.ui.client.widget.LayoutContainer;
@@ -121,8 +123,10 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 		columnDefGrid = new EditorGrid<ColumnDefinitionTableModel>(columnDefGridStore, columnDefColumnModel);
 		columnDefGrid.setBorders(true);
 		columnDefGrid.setStripeRows(true);
+		columnDefGrid.setAutoExpandColumn(COLUMN_DEF_COLUMN_NAME_KEY);
 		GridSelectionModel<ColumnDefinitionTableModel> selectionModel = new GridSelectionModel<ColumnDefinitionTableModel>();
-		columnDefGrid.setSelectionModel(new GridSelectionModel<ColumnDefinitionTableModel>()); // row select		
+		columnDefGrid.setSelectionModel(new GridSelectionModel<ColumnDefinitionTableModel>()); // row select
+		
 		columnDefPanel.setLayout(new FitLayout());
 		columnDefPanel.setSize(CONTENT_WIDTH_PX, CONTENT_HEIGHT_PX);
 		ToolBar idSelectorToolBar = createIdSelectorToolBar(columns);
@@ -361,9 +365,7 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 					});
 				}
 				if (entry.isIdColumn()) {
-					Label lbl = new Label("[Identity Column]");
-					lbl.setStyleAttribute("color", "#cccccc");					
-					return lbl;					
+					return getIdentityColumnLabel();					
 				} else {
 					SimpleComboBox<String> comboBox = new SimpleComboBox<String>();
 					comboBox.setTriggerAction(TriggerAction.ALL);
@@ -396,6 +398,7 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 					return comboBox;
 				}
 			}
+
 		};
 
 		return buttonRenderer;
@@ -411,8 +414,7 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 					Grid<ColumnDefinitionTableModel> grid) {
 				final ColumnDefinitionTableModel entry = store.getAt(rowIndex);
 				if (entry.isIdColumn()) {
-					Label lbl = new Label("");					
-					return lbl;					
+					return getIdentityColumnLabel();					
 				} else {					
 					TextField<String> field = new TextField<String>();
 					field.setWidth(160);
@@ -480,8 +482,7 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 					Grid<ColumnDefinitionTableModel> grid) {
 				final ColumnDefinitionTableModel entry = store.getAt(rowIndex);
 				if (entry.isIdColumn()) {
-					Label lbl = new Label("");					
-					return lbl;					
+					return getIdentityColumnLabel();					
 				} else {
 					TextField<String> field = new TextField<String>();
 					field.setWidth(90);
@@ -507,8 +508,7 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 					Grid<ColumnDefinitionTableModel> grid) {
 				final ColumnDefinitionTableModel entry = store.getAt(rowIndex);
 				if (entry.isIdColumn()) {
-					Label lbl = new Label("");					
-					return lbl;					
+					return getIdentityColumnLabel();					
 				} else {
 					TextField<String> field = new TextField<String>();
 					field.setWidth(160);
@@ -532,7 +532,7 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 			      final int colIndex, ListStore<ColumnDefinitionTableModel> store, Grid<ColumnDefinitionTableModel> grid) {				 
 				  final ColumnDefinitionTableModel entry = store.getAt(rowIndex);
 			    if(entry.isIdColumn()) {
-					return new Label("");		    	
+					return new Label("");					
 			    } else {				    
 					Anchor removeAnchor = new Anchor();
 					removeAnchor.setHTML(DisplayUtils.getIconHtml(iconsImageBundle.deleteButton16()));
@@ -566,7 +566,13 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 		window.addButton(closeButton);
 		window.show();
 	}
-	
+
+	private Object getIdentityColumnLabel() {
+		Label lbl = new Label("[Identity Column]");
+		lbl.setStyleAttribute("color", "#cccccc");					
+		return lbl;					
+	}
+
 	
 	/*
 	 * Private Classes

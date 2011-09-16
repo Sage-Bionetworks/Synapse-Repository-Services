@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.client.widget.editpanels.phenotype;
 
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
@@ -25,6 +26,8 @@ import com.google.inject.Inject;
 public class ColumnMappingEditorViewImpl extends LayoutContainer implements ColumnMappingEditorView {
 
 
+	private static final String COLUMN_COLUMN_VALUE = "columnValue";
+	private static final String COLUMN_CONSTRAINT_VALUE = "constraintValue";
 	private Presenter presenter;
 	private IconsImageBundle iconsImageBundle;
 	private SageImageBundle sageImageBundle;
@@ -32,7 +35,9 @@ public class ColumnMappingEditorViewImpl extends LayoutContainer implements Colu
 	private static int CONTENT_HEIGHT_PX = 150;	
 
 	private Button deleteColumnMappingButton;
-
+	private EditorGrid<BaseModelData> editColumnMappingGrid;
+	private ListStore<BaseModelData> store;
+	private ColumnModel columnModel;
 
 	@Inject
 	public ColumnMappingEditorViewImpl(IconsImageBundle iconsImageBundle, SageImageBundle sageImageBundle) {
@@ -51,16 +56,73 @@ public class ColumnMappingEditorViewImpl extends LayoutContainer implements Colu
 		ContentPanel editColumnMappingPanel = new ContentPanel();
 		editColumnMappingPanel.setHeading("Column Mapping Editor");
 		
-		EditorGrid<BaseModelData> editColumnMappingGrid = new EditorGrid<BaseModelData>(new ListStore<BaseModelData>(), new ColumnModel(Collections.<ColumnConfig>emptyList()));
+		fillStoreFakeData();
+		createColumnModelFakeData();
+		editColumnMappingGrid = new EditorGrid<BaseModelData>(store, columnModel);
 		editColumnMappingGrid.setBorders(true);
+		editColumnMappingGrid.setAutoExpandColumn(COLUMN_CONSTRAINT_VALUE);
+		editColumnMappingGrid.setStripeRows(true);
 		editColumnMappingPanel.setLayout(new FitLayout());
-		editColumnMappingPanel.setSize(CONTENT_WIDTH_PX, CONTENT_HEIGHT_PX);
-		ToolBar columnMappingToolBar = createColumnMappingToolbarAndButtons(editColumnMappingGrid);		
-		
+		editColumnMappingPanel.setSize(CONTENT_WIDTH_PX, CONTENT_HEIGHT_PX);		
+		ToolBar columnMappingToolBar = createColumnMappingToolbarAndButtons(editColumnMappingGrid);				
 		editColumnMappingPanel.add(editColumnMappingGrid);
 		editColumnMappingPanel.setBottomComponent(columnMappingToolBar);
 		
 		this.add(editColumnMappingPanel);
+	}
+
+	private void createColumnModelFakeData() {
+		List<ColumnConfig> columnConfigs = new ArrayList<ColumnConfig>();
+		ColumnConfig col;
+		
+		col = new ColumnConfig(COLUMN_COLUMN_VALUE, "Column Value", 180);
+		columnConfigs.add(col);
+		
+		col = new ColumnConfig(COLUMN_CONSTRAINT_VALUE, "Constraint Value", 180);		
+		columnConfigs.add(col);
+		
+		columnModel = new ColumnModel(columnConfigs);		
+	}
+
+	private void fillStoreFakeData() {
+		store = new ListStore<BaseModelData>();
+		BaseModelData model;
+		
+		model = new BaseModelData();
+		model.set(COLUMN_COLUMN_VALUE, "A");
+		model.set(COLUMN_CONSTRAINT_VALUE, "A");		
+		store.add(model);
+
+		model = new BaseModelData();
+		model.set(COLUMN_COLUMN_VALUE, "a");
+		model.set(COLUMN_CONSTRAINT_VALUE, "A");		
+		store.add(model);
+
+		model = new BaseModelData();
+		model.set(COLUMN_COLUMN_VALUE, "c");
+		model.set(COLUMN_CONSTRAINT_VALUE, "C");		
+		store.add(model);
+
+		model = new BaseModelData();
+		model.set(COLUMN_COLUMN_VALUE, "C");
+		model.set(COLUMN_CONSTRAINT_VALUE, "C");		
+		store.add(model);
+
+		model = new BaseModelData();
+		model.set(COLUMN_COLUMN_VALUE, "A1");
+		model.set(COLUMN_CONSTRAINT_VALUE, "A1");		
+		store.add(model);
+
+		model = new BaseModelData();
+		model.set(COLUMN_COLUMN_VALUE, "C1");
+		model.set(COLUMN_CONSTRAINT_VALUE, "C1");		
+		store.add(model);
+
+		model = new BaseModelData();
+		model.set(COLUMN_COLUMN_VALUE, "C2");
+		model.set(COLUMN_CONSTRAINT_VALUE, "C2");		
+		store.add(model);
+
 	}
 	
 	@Override

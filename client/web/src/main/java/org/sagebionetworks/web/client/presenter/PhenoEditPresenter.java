@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.presenter;
 
 import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.PlaceChanger;
+import org.sagebionetworks.web.client.place.Layer;
 import org.sagebionetworks.web.client.place.PhenoEdit;
 import org.sagebionetworks.web.client.view.PhenoEditView;
 
@@ -19,6 +20,7 @@ public class PhenoEditPresenter extends AbstractActivity implements PhenoEditVie
 	private PlaceController placeController;
 	private PlaceChanger placeChanger;
 	private GlobalApplicationState globalApplicationState;
+	private String layerId;
 	
 	@Inject
 	public PhenoEditPresenter(PhenoEditView view, GlobalApplicationState globalApplicationState){
@@ -45,13 +47,18 @@ public class PhenoEditPresenter extends AbstractActivity implements PhenoEditVie
 		this.place = place;
 		this.view.setPresenter(this);
 		
-		String layerId = place.toToken();
+		layerId = place.toToken();
 		view.setEditorDetails(layerId, "layerName", "layerLink", "datasetLink");
 	}
 
 	@Override
 	public PlaceChanger getPlaceChanger() {
 		return placeChanger;
+	}
+
+	@Override
+	public void goBackToLayer() {
+		placeChanger.goTo(new Layer(layerId, null, false));
 	}
 
 }

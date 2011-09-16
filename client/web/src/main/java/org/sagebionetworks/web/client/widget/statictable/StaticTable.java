@@ -11,8 +11,6 @@ import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
 public class StaticTable implements StaticTableView.Presenter {
-
-	
 	
 	private StaticTableView view;	
 	
@@ -66,5 +64,5 @@ public class StaticTable implements StaticTableView.Presenter {
 	public String getSelectedColumn() {
 		return this.view.getSelectedColumn();
 	}
-	
+
 }

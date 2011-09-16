@@ -48,6 +48,7 @@ public interface StaticTableView extends IsWidget {
 
 
 
+
 	
 
 }

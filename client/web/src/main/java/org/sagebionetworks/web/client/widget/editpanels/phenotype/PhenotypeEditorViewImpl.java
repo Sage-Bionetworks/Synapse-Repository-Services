@@ -1,11 +1,9 @@
 package org.sagebionetworks.web.client.widget.editpanels.phenotype;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
@@ -15,22 +13,18 @@ import org.sagebionetworks.web.client.widget.statictable.StaticTableView.StaticS
 
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
 import com.extjs.gxt.ui.client.Style.Scroll;
-import com.extjs.gxt.ui.client.data.BaseModelData;
 import com.extjs.gxt.ui.client.event.ButtonEvent;
-import com.extjs.gxt.ui.client.event.SelectionChangedEvent;
-import com.extjs.gxt.ui.client.event.SelectionChangedListener;
 import com.extjs.gxt.ui.client.event.SelectionListener;
-import com.extjs.gxt.ui.client.store.ListStore;
+import com.extjs.gxt.ui.client.util.Margins;
+import com.extjs.gxt.ui.client.util.Padding;
 import com.extjs.gxt.ui.client.widget.ContentPanel;
 import com.extjs.gxt.ui.client.widget.LayoutContainer;
 import com.extjs.gxt.ui.client.widget.button.Button;
-import com.extjs.gxt.ui.client.widget.grid.ColumnConfig;
-import com.extjs.gxt.ui.client.widget.grid.ColumnModel;
-import com.extjs.gxt.ui.client.widget.grid.EditorGrid;
-import com.extjs.gxt.ui.client.widget.layout.AbsoluteData;
-import com.extjs.gxt.ui.client.widget.layout.AbsoluteLayout;
 import com.extjs.gxt.ui.client.widget.layout.FitLayout;
-import com.extjs.gxt.ui.client.widget.layout.VBoxLayout;
+import com.extjs.gxt.ui.client.widget.layout.FlowLayout;
+import com.extjs.gxt.ui.client.widget.layout.HBoxLayout;
+import com.extjs.gxt.ui.client.widget.layout.HBoxLayoutData;
+import com.extjs.gxt.ui.client.widget.layout.MarginData;
 import com.extjs.gxt.ui.client.widget.toolbar.ToolBar;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.inject.Inject;
@@ -41,9 +35,15 @@ public class PhenotypeEditorViewImpl extends LayoutContainer implements Phenotyp
 	private IconsImageBundle iconsImageBundle;
 	private SageImageBundle sageImageBundle;
 	private StaticTable staticTable;
-	private static int CONTENT_WIDTH_PX = 1000;
-	private static int CONTENT_HEIGHT_PX = 600;	
-	private final static int INNER_PANEL_ADJUST = 2;
+	private int contentWidthPx = 1000;
+	private int contentHeightPx = 600;	
+	private final static int INNER_PANEL_ADJUST_PX = 5;
+	private final static int INNER_PANEL_PADDING_PX = 5;
+	private final static int TOP_RIGHT_COMPONENT_WIDTH_PX = 400;
+	private final static int TOP_ROW_HEIGHT_PX = 200;
+	private final static int BOTTOM_ROW_HEIGHT_PX = 330;
+	private boolean editViewShowing;
+	private ToolBar toolbar;
 		
 	@Inject
 	public PhenotypeEditorViewImpl(IconsImageBundle iconsImageBundle, SageImageBundle sageImageBundle, StaticTable staticTable) {
@@ -52,28 +52,44 @@ public class PhenotypeEditorViewImpl extends LayoutContainer implements Phenotyp
 		this.staticTable = staticTable;
 		
 		this.setLayout(new FitLayout());
-		this.setWidth(CONTENT_WIDTH_PX);
-		this.setHeight(CONTENT_HEIGHT_PX);		
+		this.setWidth(contentWidthPx);
+		this.setHeight(contentHeightPx);		
 	}
 	
 	@Override
-	public void generatePhenotypeEditor(List<String> columns, String identityColumn, List<Map<String, String>> phenoData, Collection<Ontology> ontologies, ColumnDefinitionEditor columnDefinitionEditor, ColumnMappingEditor columnMappingEditor) {
+	public void generatePhenotypeEditor(List<String> columns,
+			String identityColumn, List<Map<String, String>> phenoData,
+			Collection<Ontology> ontologies,
+			final ColumnDefinitionEditor columnDefinitionEditor,
+			final ColumnMappingEditor columnMappingEditor,
+			final PhenotypeMatrix phenotypeMatrix) {
 		this.removeAll();
 		this.setLayout(new FitLayout());
-		this.setWidth(CONTENT_WIDTH_PX);
-		this.setHeight(CONTENT_HEIGHT_PX);
+		this.setWidth(contentWidthPx);
+		this.setHeight(contentHeightPx);
 
-		// top view of existing data
-		StaticTable dataPreviewTable = createDataPreviewGrid(columns, phenoData);		
-
-		// edit column mapping panel 
-		columnMappingEditor.disable();
+		// start with phenotype matrix
+		editViewShowing = true;		
 		
+		// top view of existing data
+		final StaticTable dataPreviewTable = createDataPreviewGrid(columns, phenoData);				
 		// tie panels together
-		ContentPanel phenotypeEditorPanel = createPhenotypeEditorPanel(dataPreviewTable, columnDefinitionEditor, columnMappingEditor);
-				
-		this.add(phenotypeEditorPanel);		
+		final ContentPanel phenotypeEditorPanel = createPhenotypeEditorPanel(dataPreviewTable, columnDefinitionEditor, columnMappingEditor, phenotypeMatrix);		
+		createToolbar(phenotypeEditorPanel, dataPreviewTable, columnDefinitionEditor, columnMappingEditor, phenotypeMatrix);
+		phenotypeEditorPanel.setTopComponent(toolbar);				
+
+		//		// start with phenoMatrix first
+//		addMatrixToPanel(phenotypeEditorPanel, phenotypeMatrix);
+		
+		addEditToPanel(phenotypeEditorPanel, dataPreviewTable, columnDefinitionEditor, columnMappingEditor);		
+		this.add(phenotypeEditorPanel);			
 		this.layout(true);		
+	}
+
+	private void addMatrixToPanel(ContentPanel phenotypeEditorPanel, PhenotypeMatrix phenotypeMatrix) {
+		phenotypeEditorPanel.removeAll();
+		
+		phenotypeEditorPanel.add(phenotypeMatrix.asWidget(), new MarginData(INNER_PANEL_PADDING_PX));		
 	}
 
 	/**
@@ -86,7 +102,8 @@ public class PhenotypeEditorViewImpl extends LayoutContainer implements Phenotyp
 		staticTable.setColumnOrder(columns);
 		staticTable.setData(phenoData);
 		staticTable.setSelectionMode(StaticSelectionMode.CELL);
-		staticTable.setDimensions(CONTENT_WIDTH_PX - INNER_PANEL_ADJUST, 196);
+		staticTable.setDimensions(contentWidthPx - INNER_PANEL_ADJUST_PX - 2*INNER_PANEL_PADDING_PX - TOP_RIGHT_COMPONENT_WIDTH_PX, TOP_ROW_HEIGHT_PX);
+		staticTable.setTitle("Data Preivew");		
 		return staticTable;
 	}
 	
@@ -125,32 +142,76 @@ public class PhenotypeEditorViewImpl extends LayoutContainer implements Phenotyp
 	 * Private Methods
 	 */
 	private ContentPanel createPhenotypeEditorPanel(
-			StaticTable dataPreviewTable, ColumnDefinitionEditor columnDefinitionEditor, ColumnMappingEditor columnMappingEditor) {
-		ContentPanel phenotypeEditorPanel = new ContentPanel();
-		phenotypeEditorPanel.setHeading("Phenotype Editor");
-		phenotypeEditorPanel.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
-		phenotypeEditorPanel.setButtonAlign(HorizontalAlignment.RIGHT);
-		phenotypeEditorPanel.addStyleName(DisplayConstants.STYLE_NAME_GXT_GREY_BACKGROUND);
-		phenotypeEditorPanel.setWidth(CONTENT_WIDTH_PX);
-		phenotypeEditorPanel.setHeight(CONTENT_HEIGHT_PX);
-		phenotypeEditorPanel.setScrollMode(Scroll.AUTOY);		
-
-		// size widgets
-		columnDefinitionEditor.setWidth(CONTENT_WIDTH_PX - INNER_PANEL_ADJUST);
-		columnDefinitionEditor.setHeight(293);
-		columnMappingEditor.setWidth(CONTENT_WIDTH_PX - INNER_PANEL_ADJUST);
-		columnMappingEditor.setHeight(200);
-		
-		
-		// add grid and panels 
-		phenotypeEditorPanel.add(dataPreviewTable.asWidget());
-		phenotypeEditorPanel.add(columnDefinitionEditor.asWidget());
-		//phenotypeEditorPanel.add(columnMappingEditor.asWidget());		
-		
+			StaticTable dataPreviewTable, ColumnDefinitionEditor columnDefinitionEditor, ColumnMappingEditor columnMappingEditor, PhenotypeMatrix phenotypeMatrix) {
+		ContentPanel phenotypeEditorPanel = new ContentPanel(new FlowLayout());
+		phenotypeEditorPanel.setHeading("Phenotype Editor");		
+		phenotypeEditorPanel.setButtonAlign(HorizontalAlignment.RIGHT);		
+		phenotypeEditorPanel.setWidth(contentWidthPx);
+		phenotypeEditorPanel.setHeight(contentHeightPx);
+		phenotypeEditorPanel.setScrollMode(Scroll.AUTO);		
+		phenotypeEditorPanel.setBodyStyle("background-color: #e8e8e8");					
+						
 		return phenotypeEditorPanel;
 	}
 
+	private void addEditToPanel(ContentPanel phenotypeEditorPanel,
+			StaticTable dataPreviewTable,
+			ColumnDefinitionEditor columnDefinitionEditor,
+			ColumnMappingEditor columnMappingEditor) {
+		
+		phenotypeEditorPanel.removeAll();
+		
+		// size widgets
+		columnDefinitionEditor.setWidth(contentWidthPx - INNER_PANEL_ADJUST_PX - 2*INNER_PANEL_PADDING_PX);
+		columnDefinitionEditor.setHeight(BOTTOM_ROW_HEIGHT_PX);
+		columnMappingEditor.setWidth(TOP_RIGHT_COMPONENT_WIDTH_PX - INNER_PANEL_ADJUST_PX - INNER_PANEL_PADDING_PX);
+		columnMappingEditor.setHeight(TOP_ROW_HEIGHT_PX);
+				
+		// add grid and panels 
+		LayoutContainer topRow = new LayoutContainer();
+		HBoxLayoutData flex = new HBoxLayoutData(new Margins(0, 5, 0, 0));  
+		flex.setFlex(1);
+		topRow.setWidth(contentWidthPx - INNER_PANEL_ADJUST_PX);
+		HBoxLayout layout = new HBoxLayout();
+		layout.setPadding(new Padding(0, INNER_PANEL_PADDING_PX, 0, 0));
+		topRow.setLayout(layout);
+		topRow.add(dataPreviewTable.asWidget(), flex);
+		topRow.add(columnMappingEditor.asWidget(), flex);		
+		phenotypeEditorPanel.add(topRow, new MarginData(INNER_PANEL_PADDING_PX));
+		
+		phenotypeEditorPanel.add(columnDefinitionEditor.asWidget(), new MarginData(INNER_PANEL_PADDING_PX));
+	}
 
+	private void createToolbar(final ContentPanel phenotypeEditorPanel, final StaticTable dataPreviewTable, final ColumnDefinitionEditor columnDefinitionEditor,
+			final ColumnMappingEditor columnMappingEditor,
+			final PhenotypeMatrix phenotypeMatrix) {
+		// setup toolbar
+		toolbar = new ToolBar();
+		
+		// TODO :REWORK THIS with more time
+		
+		final Button firstToolbarButton = new Button("Matrix View", AbstractImagePrototype.create(iconsImageBundle.applicationForm16()));
+		firstToolbarButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+			@Override
+			public void componentSelected(ButtonEvent ce) {				
+				if(editViewShowing) {
+//					// fill panel with editors
+//					addEditToPanel(phenotypeEditorPanel, dataPreviewTable, columnDefinitionEditor, columnMappingEditor);
+//
+//					firstToolbarButton.setTitle("Edit Column Definitions");
+//					firstToolbarButton.setIcon(AbstractImagePrototype.create(iconsImageBundle.documentEdit16()));
+				} else {
+//					// fill panel with matrix
+//					addMatrixToPanel(phenotypeEditorPanel, phenotypeMatrix);
+//					
+//					firstToolbarButton.setTitle("Matrix View");
+//					firstToolbarButton.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationForm16()));
+				}
+			}
+		});
 
+		toolbar.add(firstToolbarButton);		
+	}
+	
 }
 

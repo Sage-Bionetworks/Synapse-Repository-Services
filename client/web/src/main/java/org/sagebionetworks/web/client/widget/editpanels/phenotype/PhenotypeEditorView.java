@@ -10,7 +10,12 @@ import com.google.gwt.user.client.ui.IsWidget;
 
 public interface PhenotypeEditorView extends IsWidget {
 
-	public void generatePhenotypeEditor(List<String> columns, String identityColumn, List<Map<String, String>> phenoData, Collection<Ontology> ontologies, ColumnDefinitionEditor columnDefinitionEditor, ColumnMappingEditor columnMappingEditor);
+	public void generatePhenotypeEditor(List<String> columns,
+			String identityColumn, List<Map<String, String>> phenoData,
+			Collection<Ontology> ontologies,
+			ColumnDefinitionEditor columnDefinitionEditor,
+			ColumnMappingEditor columnMappingEditor,
+			PhenotypeMatrix phenotypeMatrix);
 	
 	
     /**

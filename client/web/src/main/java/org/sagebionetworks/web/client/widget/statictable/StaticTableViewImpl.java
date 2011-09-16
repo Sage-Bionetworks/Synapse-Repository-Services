@@ -68,7 +68,7 @@ public class StaticTableViewImpl extends LayoutContainer implements
 	protected void onRender(Element parent, int index) {
 		super.onRender(parent, index);
 		FlowLayout layout = new FlowLayout();
-		layout.setMargins(new Margins(10, 0, 10, 0));
+		//layout.setMargins(new Margins(10, 0, 10, 0));
 		setLayout(layout);
 		getAriaSupport().setPresentation(true);
 
