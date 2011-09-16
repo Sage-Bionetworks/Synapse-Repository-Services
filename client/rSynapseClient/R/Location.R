@@ -35,7 +35,7 @@ setMethod(
 			class(location) <- "CachedLocation"
 			location@cacheDir <- attr(files, "rootDir")
 			files <- gsub(attr(files,"rootDir"), "", as.character(files))
-			location@files <- gsub(sprintf("^%s", .Platform$file.sep), "", files)
+			location@files <- gsub("^[\\\\/]+","", files)
 			location
 		}
 )
@@ -77,5 +77,14 @@ setMethod(
 					msg$files <- sprintf('[%d] "%s"',1:length(entity@files), entity@files)
 			}
 			msg
+		}
+)
+
+setMethod(
+		f = "initialize",
+		signature = "CachedLocation",
+		definition = function(.Object, ...){
+			.Object@cacheDir <- tempfile(pattern="cacheDir")
+			.Object
 		}
 )

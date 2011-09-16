@@ -45,7 +45,7 @@ integrationTestLoadRbinLayer <-
 	
 	checksum <- as.character(tools::md5sum(file.path(layer@location@cacheDir, layer@location@files)))
 	
-	storedLayer <- storeEntity(layer)
+	storedLayer <- storeEntityFiles(layer)
 	checkEquals(propertyValue(storedLayer, "name"), propertyValue(layer, "name"))
 	checkEquals(propertyValue(storedLayer, "type"), propertyValue(layer, "type"))
 	checkEquals(propertyValue(storedLayer, "parentId"), propertyValue(layer, "parentId"))

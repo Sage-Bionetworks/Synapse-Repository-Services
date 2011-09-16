@@ -112,19 +112,6 @@ unitTestPromptEulaAgreementDataset <-
 	synapseClient:::.setCache("readlineResponse", "NO")
 	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	## test the various ways to cancel
-	synapseClient:::.setCache("readlineResponse", "cancel")
-	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
-	
-	synapseClient:::.setCache("readlineResponse", "c")
-	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
-	
-	synapseClient:::.setCache("readlineResponse", "Cancel")
-	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
-	
-	synapseClient:::.setCache("readlineResponse", "CanCel")
-	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
-	
 	## test invalid responses
 	synapseClient:::.setCache("readlineResponse", "yess")
 	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
@@ -172,18 +159,6 @@ unitTestPromptEulaAgreementLayer <-
 	synapseClient:::.setCache("readlineResponse", "NO")
 	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
-	## test the various ways to cancel
-	synapseClient:::.setCache("readlineResponse", "cancel")
-	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
-	
-	synapseClient:::.setCache("readlineResponse", "c")
-	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
-	
-	synapseClient:::.setCache("readlineResponse", "Cancel")
-	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
-	
-	synapseClient:::.setCache("readlineResponse", "CanCel")
-	checkTrue(!synapseClient:::.promptEulaAgreement(entity))
 	
 	## test invalid responses
 	synapseClient:::.setCache("readlineResponse", "yess")
@@ -274,19 +249,6 @@ unitTestPromptSignEula <-
 	checkTrue(!synapseClient:::.promptSignEula())
 	
 	synapseClient:::.setCache("readlineResponse", "NO")
-	checkTrue(!synapseClient:::.promptSignEula())
-	
-	## test the various ways to cancel
-	synapseClient:::.setCache("readlineResponse", "cancel")
-	checkTrue(!synapseClient:::.promptSignEula())
-	
-	synapseClient:::.setCache("readlineResponse", "c")
-	checkTrue(!synapseClient:::.promptSignEula())
-	
-	synapseClient:::.setCache("readlineResponse", "Cancel")
-	checkTrue(!synapseClient:::.promptSignEula())
-	
-	synapseClient:::.setCache("readlineResponse", "CanCel")
 	checkTrue(!synapseClient:::.promptSignEula())
 	
 	## test invalid responses

@@ -54,7 +54,7 @@ integrationTestAddToNewLayer <-
 	checkTrue(file.exists(file.path(layer$cacheDir, layer$files)))
 	checkEquals(layer$files, gsub(sprintf("^%s", .Platform$file.sep), "", file.path(path, file)))
 	
-	layer <- storeEntity(layer)
+	layer <- storeEntityFiles(layer)
 	checkTrue(grepl(synapseClient:::synapseCacheDir(), layer$cacheDir))
 	checkEquals(length(layer$files), 1L)
 	checkTrue(file.exists(file.path(layer$cacheDir, layer$files)))
@@ -71,7 +71,7 @@ integrationTestAddToNewLayer <-
 	
 	checkTrue(all(file.exists(file.path(layer$cacheDir, layer$files))))
 	
-	layer <- storeEntity(layer)
+	layer <- storeEntityFiles(layer)
 	checkTrue(all(file.remove(file.path(layer$cacheDir, layer$files))))
 	layer2 <- downloadEntity(propertyValue(layer,"id"))
 	checkEquals(layer$cacheDir, layer2$cacheDir)
@@ -90,7 +90,7 @@ integrationTestAddToNewLayer <-
 	checkEquals(layer$files[3], gsub(sprintf("^%s+", .Platform$file.sep), "", file.path(path, file)))
 	checkTrue(grepl(synapseClient:::synapseCacheDir(), layer$cacheDir))
 	
-	layer <- storeEntity(layer)
+	layer <- storeEntityFiles(layer)
 	checkEquals(length(layer$files), 3L)
 	checkTrue(all(file.exists(file.path(layer$cacheDir, layer$files))))
 	checkTrue(all(file.remove(file.path(layer$cacheDir, layer$files))))
@@ -112,7 +112,7 @@ integrationTestAddToNewLayer <-
 	checkEquals(layer$files[4], gsub(sprintf("^%s+", .Platform$file.sep), "", file.path(path, file)))
 	checkTrue(grepl(synapseClient:::synapseCacheDir(), layer$cacheDir))
 	
-	layer <- storeEntity(layer)
+	layer <- storeEntityFiles(layer)
 	checkEquals(length(layer$files), 4L)
 	checkTrue(all(file.exists(file.path(layer$cacheDir, layer$files))))
 	checkTrue(all(file.remove(file.path(layer$cacheDir, layer$files))))

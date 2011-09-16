@@ -6,6 +6,19 @@
 setGeneric(name="as.list")
 
 setGeneric(
+		name = "deleteFile",
+		def = function(entity, file){
+			standardGeneric("deleteFile")
+		}
+)
+setGeneric(
+		name = "moveFile",
+		def = function(entity, src, dest){
+			standardGeneric("moveFile")
+		}
+)
+
+setGeneric(
 		name = "addFile",
 		def = function(entity, file, ...){
 			standardGeneric("addFile")
@@ -56,9 +69,9 @@ setGeneric(
 )
 
 setGeneric(
-		name = "storeEntity",
+		name = "storeEntityFiles",
 		def = function(entity){
-			standardGeneric("storeEntity")
+			standardGeneric("storeEntityFiles")
 		}
 )
 

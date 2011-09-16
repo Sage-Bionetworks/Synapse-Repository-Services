@@ -5,15 +5,15 @@
 
 
 setMethod(
-		f = "storeEntity",
+		f = "storeEntityFiles",
 		signature = "SynapseEntity",
 		definition = function(entity){
-			stop("Only Layer entities can contain stored data")
+			stop("Only Layer entities can contain stored files")
 		}
 )
 
 setMethod(
-		f = "storeEntity",
+		f = "storeEntityFiles",
 		signature = "Layer",
 		definition = function(entity){
 			files <- file.path(entity@location@cacheDir, entity@location@files)

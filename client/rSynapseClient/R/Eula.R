@@ -123,16 +123,15 @@ setMethod(
 			kMaxPrompt <- 5L
 			kAffirmativeResponses <- c("y", "yes")
 			kNegativeResponses <- c("n", "no")
-			kCancelResponses <- c("c", "cancel")
 			
 			showEula(entity)
 			response <- "init"
 			count <- 0
 			
-			while(!(tolower(response) %in% c(kAffirmativeResponses, kNegativeResponses, kCancelResponses))){
+			while(!(tolower(response) %in% c(kAffirmativeResponses, kNegativeResponses))){
 				if(count == kMaxPrompt)
 					break
-				response <- tolower(readline(prompt = "Do you agree to the EULA terms? [y/n/c]: "))
+				response <- tolower(readline(prompt = "Do you agree to the EULA terms? [y/n]: "))
 				count <- count + 1
 			}
 			
@@ -167,14 +166,13 @@ setMethod(
 	kMaxPrompt <- 5L
 	kAffirmativeResponses <- c("y", "yes")
 	kNegativeResponses <- c("n", "no")
-	kCancelResponses <- c("c", "cancel")
 	response <- "init"
 	count <- 0L
 	cat("You must sign the End-user License Agreement before downloading this entity.\n")
-	while(!(tolower(response) %in% c(kAffirmativeResponses, kNegativeResponses, kCancelResponses))){
+	while(!(tolower(response) %in% c(kAffirmativeResponses, kNegativeResponses))){
 		if(count == kMaxPrompt)
 			break
-		response <- tolower(readline(prompt="Would you like to sign it now? [y/n/c]: "))
+		response <- tolower(readline(prompt="Would you like to sign it now? [y/n]: "))
 		count <- count + 1
 	}
 	if(response %in% kAffirmativeResponses){

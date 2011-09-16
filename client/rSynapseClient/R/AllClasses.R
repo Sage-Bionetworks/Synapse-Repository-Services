@@ -73,9 +73,6 @@ setClass(
 		representation = representation(
 				cacheDir = "character",
 				files = "character"
-		),
-		prototype = prototype(
-				cacheDir = tempfile(pattern="cacheDir")
 		)
 )
 
@@ -90,8 +87,7 @@ setClass(
 				loadedObjects = "environment"
 		),
 		prototype = prototype(
-				synapseEntityKind = "layer",
-				location = new(Class="CachedLocation")
+				synapseEntityKind = "layer"
 		)
 )
 

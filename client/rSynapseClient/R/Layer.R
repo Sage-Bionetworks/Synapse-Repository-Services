@@ -112,6 +112,7 @@ setMethod(
 			.Object@loadedObjects <- new.env(parent=emptyenv())
 			if(!is.null(properties))
 				.Object@properties <- properties
+			.Object@location = new(Class="CachedLocation")
 			.Object
 		}
 )

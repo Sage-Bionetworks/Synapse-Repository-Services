@@ -7,20 +7,66 @@ importFrom(tools, md5sum)
 useDynLib(synapseClient)
 
 ## S3 utility methods
-export(synapseResetEndpoints, synapseAuthServiceEndpoint, synapseRepoServiceEndpoint, synapseLogin, synapseLogout, synapseQuery, synapseCacheDir)
-##exportMethods("$", "[[", "[", names)
-## S4 entity constructors
-exportMethods(Dataset, Layer, Project)
+export(
+	synapseResetEndpoints, 
+	synapseAuthServiceEndpoint, 
+	synapseRepoServiceEndpoint, 
+	synapseLogin, 
+	synapseLogout, 
+	synapseQuery, 
+	synapseCacheDir
+)
 
-## entity S4 methods
-exportMethods(addFile, storeEntity, copyEntity, getEntity, deleteEntity, createEntity, updateEntity, refreshEntity, downloadEntity, loadEntity, getParentEntity)
-
-## entity property/annotation setters and getters
-exportMethods("annotValue<-", annotValue, propertyValue, "propertyValue<-", annotations, properties, "annotationValues<-", annotationValues, "propertyValues<-", propertyValues)
-exportMethods("deleteProperty", "deleteAnnotation")
+## S3 convenience methods
+export(getDatasets)
 
 ## S4 convenience methods
 exportMethods(getDatasetLayers)
 
-## S3 convenience methods
-export(getDatasets)
+## S4 entity constructors
+exportMethods(
+	Dataset, 
+	Layer, 
+	Project
+)
+
+## entity S4 methods
+exportMethods(
+	storeEntityFiles, 
+	copyEntity, 
+	getEntity, 
+	deleteEntity, 
+	createEntity, 
+	updateEntity, 
+	refreshEntity, 
+	downloadEntity, 
+	loadEntity, 
+	getParentEntity
+)
+
+## methods for managing layer files
+exportMethods(
+	addFile,
+	deleteFile,
+	moveFile
+) 
+
+## entity property/annotation setters and getters
+exportMethods(
+	"annotValue<-",
+ 	annotValue, 
+ 	annotations, 
+ 	"annotationValues<-", 
+ 	annotationValues
+ )
+ 	
+exportMethods(
+	deleteProperty, 
+	deleteAnnotation, 
+ 	propertyValue, 
+ 	"propertyValue<-", 
+ 	"propertyValues<-", 
+ 	propertyValues, 
+ 	properties
+)
+
