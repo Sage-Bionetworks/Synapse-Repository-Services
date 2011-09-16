@@ -75,6 +75,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 	}
 
 	private final static int MAX_IMAGE_PREVIEW_WIDTH_PX = 800;
+	private static final String CLINICAL_LAYER_TYPE = "C";	
 	
 	@UiField
 	SimplePanel header;
@@ -206,7 +207,8 @@ public class LayerViewImpl extends Composite implements LayerView {
 								String datasetLink, 
 								String platform, 
 								boolean isAdministrator, 
-								boolean canEdit) {
+								boolean canEdit,
+								String layerType) {
 		
 		// make sure displayed values are clean
 		if(layerName == null) layerName = "";
@@ -223,7 +225,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 		this.isAdministrator = isAdministrator;
 		this.canEdit = canEdit;
 		createAccessPanel(id);
-		createAdminPanel(id);
+		createAdminPanel(id, layerType);
 		
 		setupLicensedDownloaderCallbacks();
 						
@@ -461,7 +463,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 		});
 	}
 	
-	private void createAdminPanel(String id) {		
+	private void createAdminPanel(String id, String layerType) {		
 		if(isAdministrator) {
 			annotationEditor.setPlaceChanger(presenter.getPlaceChanger());
 			annotationEditor.setResource(NodeType.LAYER, id);
@@ -469,14 +471,14 @@ public class LayerViewImpl extends Composite implements LayerView {
 			Button button = new Button("Admin Menu");
 			button.setIcon(AbstractImagePrototype.create(iconsImageBundle.adminTools16()));
 			//adminButton.setIconAlign(IconAlign.LEFT);
-			button.setMenu(createAdminMenu(id));
+			button.setMenu(createAdminMenu(id, layerType));
 			button.setHeight(25);
 			adminPanel.clear();
 			adminPanel.add(button);
 		}
 	}
 
-	private Menu createAdminMenu(final String layerId) {
+	private Menu createAdminMenu(final String layerId, String layerType) {
 		Menu menu = new Menu();		
 		MenuItem item = null; 
 			
@@ -513,42 +515,16 @@ public class LayerViewImpl extends Composite implements LayerView {
 			});
 			menu.add(item);			
 
-			item = new MenuItem("Phenotype Editor");
-			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
-			item.addSelectionListener(new SelectionListener<MenuEvent>() {
-				public void componentSelected(MenuEvent menuEvent) {													
-					final Window window = new Window();  
-					window.setSize(1000, 600);
-					window.setPlain(true);
-					window.setModal(true);
-					window.setBlinkModal(true);
-					window.setHeaderVisible(false);
-					window.setLayout(new FitLayout());								
-					phenotypeEditor.setLayerId(layerId);
-					window.add(phenotypeEditor.asWidget());
-					//phenotypeEditor.setPlaceChanger(placeChanger);
-					Button doneButton = new Button("Ok");
-					doneButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
-						@Override
-						public void componentSelected(ButtonEvent ce) {
-							window.hide();
-						}
-					});
-					Button cancelButton = new Button("Cancel");
-					cancelButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
-						@Override
-						public void componentSelected(ButtonEvent ce) {
-							window.hide();
-						}
-					});
-					window.setButtonAlign(HorizontalAlignment.CENTER);
-					window.addButton(doneButton);
-					window.addButton(cancelButton);					
-					
-					window.show();
-				}
-			});
-			menu.add(item);			
+			if(CLINICAL_LAYER_TYPE.equals(layerType)) {
+				item = new MenuItem("Phenotype Editor");
+				item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
+				item.addSelectionListener(new SelectionListener<MenuEvent>() {
+					public void componentSelected(MenuEvent menuEvent) {
+						presenter.openPhenoTypeEditor();
+					}
+				});
+				menu.add(item);			
+			}
 
 		}
 			

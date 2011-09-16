@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.widget.editpanels.phenotype;
 
 import java.util.Collections;
 
+import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 
@@ -64,8 +65,9 @@ public class ColumnMappingEditorViewImpl extends LayoutContainer implements Colu
 	
 	@Override
 	public void showLoading() {
-		// TODO Auto-generated method stub
-		
+		ContentPanel cp = DisplayUtils.getLoadingWidget(sageImageBundle);
+		cp.setSize(CONTENT_WIDTH_PX, CONTENT_HEIGHT_PX);		
+		this.add(cp);
 	}
 
 	@Override
@@ -90,7 +92,17 @@ public class ColumnMappingEditorViewImpl extends LayoutContainer implements Colu
 	public void setPresenter(Presenter presenter) {
 		this.presenter = presenter;		
 	}
-		
+	
+	public void setHeight(int height) {
+		CONTENT_HEIGHT_PX = height;
+		super.setHeight(height);
+	}
+	
+	public void setWidth(int width) {
+		CONTENT_WIDTH_PX = width;		
+		super.setWidth(width);
+	}
+	
 	
 	/*
 	 * Private Methods

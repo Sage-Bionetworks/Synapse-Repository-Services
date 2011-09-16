@@ -10,6 +10,7 @@ import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.place.LoginPlace;
+import org.sagebionetworks.web.client.place.PhenoEdit;
 import org.sagebionetworks.web.client.place.ProjectsHome;
 import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
@@ -145,7 +146,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 				// Load calls that required the model 
 				loadLicenseAgreement(layerModel, showDownload);
 				loadPermissionLevel(layerModel);
-				loadDownloadLocations(layerModel, showDownload);
+				loadDownloadLocations(layerModel, showDownload); 
 			}
 			
 			@Override
@@ -314,7 +315,8 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 								 "<a href=\"#Dataset:"+ model.getParentId() +"\">Dataset</a>", // TODO : have dataset name included in layer metadata
 								 model.getPlatform(), 
 								 isAdministrator, 
-								 canEdit);
+								 canEdit,
+								 model.getType());
 		}
 	}
 
@@ -460,6 +462,10 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		}
 	}
 
+	@Override
+	public void openPhenoTypeEditor() {
+		placeChanger.goTo(new PhenoEdit(layerId));
+	}
 	
 	/*
 	 * Private Methods

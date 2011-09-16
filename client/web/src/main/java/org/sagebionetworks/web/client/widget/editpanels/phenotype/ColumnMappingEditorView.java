@@ -11,7 +11,11 @@ public interface ColumnMappingEditorView extends IsWidget, SynapseWidgetView {
 	public void disable();
 	
 	public void enable();
-	
+
+    public void setHeight(int width);
+    
+    public void setWidth(int width);
+
     /**
      * Set the presenter.
      * @param presenter

@@ -67,6 +67,7 @@ public interface LayerView extends IsWidget {
 	 * @param nDataRowsShown
 	 * @param totalDataRows
 	 * @param privacyLevel
+	 * @param layerType 
 	 */
 	public void setLayerDetails(String id,
 								String layerName,								
@@ -83,7 +84,7 @@ public interface LayerView extends IsWidget {
 								String datasetLink,
 								String platform, 
 								boolean isAdministrator, 
-								boolean canEdit);
+								boolean canEdit, String layerType);
 	
 	/**
 	 * require the view to show the license agreement
@@ -156,6 +157,11 @@ public interface LayerView extends IsWidget {
 		 * Deletes this Layer
 		 */
 		public void delete();
+
+		/**
+		 * Changes to the view to the pheno type editor
+		 */
+		public void openPhenoTypeEditor();
 				
 	}
 

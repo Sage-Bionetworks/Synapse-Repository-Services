@@ -43,6 +43,7 @@ public class PhenotypeEditorViewImpl extends LayoutContainer implements Phenotyp
 	private StaticTable staticTable;
 	private static int CONTENT_WIDTH_PX = 1000;
 	private static int CONTENT_HEIGHT_PX = 600;	
+	private final static int INNER_PANEL_ADJUST = 2;
 		
 	@Inject
 	public PhenotypeEditorViewImpl(IconsImageBundle iconsImageBundle, SageImageBundle sageImageBundle, StaticTable staticTable) {
@@ -63,7 +64,7 @@ public class PhenotypeEditorViewImpl extends LayoutContainer implements Phenotyp
 		this.setHeight(CONTENT_HEIGHT_PX);
 
 		// top view of existing data
-		StaticTable dataPreviewTable = createDataPreviewGrid(columns, phenoData);
+		StaticTable dataPreviewTable = createDataPreviewGrid(columns, phenoData);		
 
 		// edit column mapping panel 
 		columnMappingEditor.disable();
@@ -85,7 +86,7 @@ public class PhenotypeEditorViewImpl extends LayoutContainer implements Phenotyp
 		staticTable.setColumnOrder(columns);
 		staticTable.setData(phenoData);
 		staticTable.setSelectionMode(StaticSelectionMode.CELL);
-		staticTable.setDimensions(973, 196);
+		staticTable.setDimensions(CONTENT_WIDTH_PX - INNER_PANEL_ADJUST, 196);
 		return staticTable;
 	}
 	
@@ -134,6 +135,13 @@ public class PhenotypeEditorViewImpl extends LayoutContainer implements Phenotyp
 		phenotypeEditorPanel.setHeight(CONTENT_HEIGHT_PX);
 		phenotypeEditorPanel.setScrollMode(Scroll.AUTOY);		
 
+		// size widgets
+		columnDefinitionEditor.setWidth(CONTENT_WIDTH_PX - INNER_PANEL_ADJUST);
+		columnDefinitionEditor.setHeight(293);
+		columnMappingEditor.setWidth(CONTENT_WIDTH_PX - INNER_PANEL_ADJUST);
+		columnMappingEditor.setHeight(200);
+		
+		
 		// add grid and panels 
 		phenotypeEditorPanel.add(dataPreviewTable.asWidget());
 		phenotypeEditorPanel.add(columnDefinitionEditor.asWidget());

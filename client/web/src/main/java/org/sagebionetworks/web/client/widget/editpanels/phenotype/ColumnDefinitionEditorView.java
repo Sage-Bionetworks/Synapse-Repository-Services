@@ -21,7 +21,11 @@ public interface ColumnDefinitionEditorView extends IsWidget, SynapseWidgetView 
      */
     public void setPresenter(Presenter presenter);
 
-	
+    public void setHeight(int width);
+    
+    public void setWidth(int width);
+    
+    
 	/**
      * Presenter interface
      */

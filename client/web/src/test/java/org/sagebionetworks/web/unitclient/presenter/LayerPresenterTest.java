@@ -77,6 +77,7 @@ public class LayerPresenterTest {
 
 		// Layer object
 		layerModel1 = new org.sagebionetworks.web.shared.Layer();
+		layerModel1.setType("C");
 		layerModel1.setId(layerId);
 		layerModel1.setName("test layer");
 		layerModel1.setParentId(datasetModel1.getId());
@@ -266,7 +267,7 @@ public class LayerPresenterTest {
 		verify(mockView).setLayerDetails(anyString(), anyString(), anyString(),
 				anyString(), anyString(), anyString(), anyString(),
 				any(Date.class), anyString(), anyInt(), anyInt(), anyString(),
-				anyString(), anyString(), eq(false), eq(false));
+				anyString(), anyString(), eq(false), eq(false), anyString());
 		
 		
 		// Failure Test		
@@ -279,7 +280,7 @@ public class LayerPresenterTest {
 		verify(mockView).setLayerDetails(anyString(), anyString(), anyString(),
 				anyString(), anyString(), anyString(), anyString(),
 				any(Date.class), anyString(), anyInt(), anyInt(), anyString(),
-				anyString(), anyString(), eq(false), eq(false));		
+				anyString(), anyString(), eq(false), eq(false), anyString());		
 				
 				
 		// Success Tests
@@ -292,7 +293,7 @@ public class LayerPresenterTest {
 		verify(mockView).setLayerDetails(anyString(), anyString(), anyString(),
 				anyString(), anyString(), anyString(), anyString(),
 				any(Date.class), anyString(), anyInt(), anyInt(), anyString(),
-				anyString(), anyString(), eq(false), eq(false));		
+				anyString(), anyString(), eq(false), eq(false), anyString());		
 				
 		// Yes UPDATE, No CHANGE_PERMISSIONS
 		resetMocks();			
@@ -303,7 +304,7 @@ public class LayerPresenterTest {
 		verify(mockView).setLayerDetails(anyString(), anyString(), anyString(),
 				anyString(), anyString(), anyString(), anyString(),
 				any(Date.class), anyString(), anyInt(), anyInt(), anyString(),
-				anyString(), anyString(), eq(false), eq(true));		
+				anyString(), anyString(), eq(false), eq(true), anyString());		
 				
 		// Yes UPDATE, Yes CHANGE_PERMISSIONS
 		resetMocks();			
@@ -314,7 +315,7 @@ public class LayerPresenterTest {
 		verify(mockView).setLayerDetails(anyString(), anyString(), anyString(),
 				anyString(), anyString(), anyString(), anyString(),
 				any(Date.class), anyString(), anyInt(), anyInt(), anyString(),
-				anyString(), anyString(), eq(true), eq(true));		
+				anyString(), anyString(), eq(true), eq(true), anyString());		
 				
 
 	}

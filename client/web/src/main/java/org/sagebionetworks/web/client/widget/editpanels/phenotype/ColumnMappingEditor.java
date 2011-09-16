@@ -48,5 +48,14 @@ public class ColumnMappingEditor implements ColumnMappingEditorView.Presenter, S
 		// TODO Auto-generated method stub
 		
 	}
+	
+	public void setHeight(int height) {
+		view.setHeight(height);
+	}
+	
+	public void setWidth(int width) {
+		view.setWidth(width);
+	}
+
 
 }

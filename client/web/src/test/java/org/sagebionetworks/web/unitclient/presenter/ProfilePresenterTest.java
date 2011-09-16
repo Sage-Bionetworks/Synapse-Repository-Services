@@ -41,9 +41,9 @@ public class ProfilePresenterTest {
 		mockPlaceChanger = mock(PlaceChanger.class);
 		mockGlobalApplicationState = mock(GlobalApplicationState.class);
 		profilePresenter = new ProfilePresenter(mockView, mockAuthenticationController, mockUserService, mockGlobalApplicationState);	
-		profilePresenter.setPlace(place);
-		
 		verify(mockView).setPresenter(profilePresenter);
+
+		profilePresenter.setPlace(place);		
 	}
 	
 	@Test

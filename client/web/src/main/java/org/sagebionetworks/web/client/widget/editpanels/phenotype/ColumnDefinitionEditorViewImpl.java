@@ -159,8 +159,9 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 	
 	@Override
 	public void showLoading() {
-		// TODO Auto-generated method stub
-		
+		ContentPanel cp = DisplayUtils.getLoadingWidget(sageImageBundle);
+		cp.setSize(CONTENT_WIDTH_PX, CONTENT_HEIGHT_PX);		
+		this.add(cp);		
 	}
 
 	@Override
@@ -184,6 +185,16 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 	@Override
 	public void setPresenter(Presenter presenter) {
 		this.presenter = presenter;
+	}
+	
+	public void setHeight(int height) {
+		CONTENT_HEIGHT_PX = height;
+		super.setHeight(height);
+	}
+	
+	public void setWidth(int width) {
+		CONTENT_WIDTH_PX = width;		
+		super.setWidth(width);
 	}
 	
 	/*

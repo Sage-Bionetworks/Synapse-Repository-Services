@@ -57,6 +57,7 @@ public class ProfilePresenter extends AbstractActivity implements ProfileView.Pr
 
 	public void setPlace(Profile place) {
 		this.place = place;
+		this.view.setPresenter(this);
 		this.view.render();
 	}
 
