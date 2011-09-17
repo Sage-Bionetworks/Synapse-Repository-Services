@@ -173,7 +173,7 @@
 		origWarn <- options()$warn
 		options(warn=-1)
 		tryCatch({
-					tcltk:::tktoplevel()
+					root <- tcltk::tktoplevel()
 					.setCache("useTk", TRUE)
 				},
 				error = function(e){
@@ -187,7 +187,10 @@
 					.setCache("useTk", FALSE)
 				},
 				finally={
-					
+					tryCatch(
+						tcltk::tkdestroy(root),
+						error = function(e){warning(e)}
+					)
 					options(warn=origWarn)
 				}
 		)

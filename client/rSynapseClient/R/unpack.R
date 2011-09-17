@@ -19,7 +19,8 @@
 			return(filename)
 		}
 	)	
-	files <- list.files(destdir, full.names = TRUE, recursive=TRUE)
+	files <- list.files(destdir, full.names = TRUE, recursive=TRUE, all.files = TRUE)
+	files <- setdiff(files, c(".",".."))
 	attr(files, "rootDir") <- destdir
 	files
 }

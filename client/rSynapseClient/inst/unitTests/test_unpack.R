@@ -4,18 +4,21 @@
 	synapseClient:::.setCache("localJpegFile", file.path(tempdir(), "plot.jpg"))
 	synapseClient:::.setCache("localZipFile", file.path(tempdir(), "files.zip"))	
 	synapseClient:::.setCache("localTxtFile", file.path(tempdir(), "data.txt"))
+	synapseClient:::.setCache("localCacheDir", file.path(tempdir(), ".synapseCache"))
 	synapseClient:::.setCache("localUnpackDir", file.path(tempdir(), "files_unpacked"))
 }
 
 .tearDown <- 
 		function()
 {
-	unlink(synapseClient:::.getCache("localJpegFile"))
-	unlink(synapseClient:::.getCache("localZipFile"))
-	unlink(synapseClient:::.getCache("localTxtFile"))
+	unlink(synapseClient:::.getCache("localJpegFile"), recursive=T)
+	unlink(synapseClient:::.getCache("localZipFile"), recursive=T)
+	unlink(synapseClient:::.getCache("localTxtFile"), recursive=T)
+	unlink(synapseClient:::.getCache("localCacheDir"), recursive=T)
 	synapseClient:::.deleteCache("localZipFile")	
 	synapseClient:::.deleteCache("localTxtFile")
 	synapseClient:::.deleteCache("localJpegFile")
+	synapseClient:::.deleteCache("localDotDir")
 }
 
 
@@ -42,6 +45,24 @@ unitTestNotCompressed <-
 	## check the rootDir attribute value
 	checkEquals(attr(file,"rootDir"), tempdir())
 	
+}
+
+unitTestDirectoriesStartingWithDot <-
+		function()
+{
+	if(!file.exists(synapseClient:::.getCache("localCacheDir")))
+		dir.create(synapseClient:::.getCache("localCacheDir"))
+	oldDir <- getwd()
+	setwd(synapseClient:::.getCache("localCacheDir"))
+	dir.create(".foo")
+	filePath <- file.path(synapseClient:::.getCache("localCacheDir"), ".foo/file.txt")
+	d <- data.frame(diag(2,20,20))
+	write.table(d, file=filePath, sep="\t", quote=F, row.names=F, col.names=F)
+		
+	suppressWarnings(zip(synapseClient:::.getCache("localZipFile"), files = filePath))
+	setwd(oldDir)
+	files <- synapseClient:::.unpack(synapseClient:::.getCache("localZipFile"))
+	checkEquals(length(files), 1L)
 }
 
 
