@@ -127,7 +127,7 @@ setMethod(
 			class(createdEntity) <- oldClass
 			class(entity) <- oldClass
 			createdEntity@location <- entity@location
-			createdEntity@loadedObjects <- entity@loadedObjects
+			createdEntity@objects <- entity@objects
 			createdEntity
 		}
 )

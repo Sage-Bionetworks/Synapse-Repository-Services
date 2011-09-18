@@ -26,9 +26,9 @@ setGeneric(
 )
 
 setGeneric(
-		name = "summarizeLoadedObjects",
+		name = "summarizeObjects",
 		def = function(entity){
-			standardGeneric("summarizeLoadedObjects")
+			standardGeneric("summarizeObjects")
 		}
 )
 

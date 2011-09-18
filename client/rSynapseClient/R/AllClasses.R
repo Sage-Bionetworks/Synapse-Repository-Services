@@ -84,7 +84,7 @@ setClass(
 		contains = "SynapseEntity",
 		representation = representation(
 				location = "CachedLocation",
-				loadedObjects = "environment"
+				objects = "environment"
 		),
 		prototype = prototype(
 				synapseEntityKind = "layer"

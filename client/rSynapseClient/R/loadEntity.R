@@ -12,7 +12,7 @@ setMethod(
 			
 			if(is.null(annotValue(entity, "format")))
 				return(entity)
-			entity@loadedObjects <- switch(annotValue(entity, "format"),
+			entity@objects <- switch(annotValue(entity, "format"),
 					rbin = .loadRbinaryFiles(file.path(entity@location@cacheDir,entity@location@files)),
 					sageBioCurated = .loadSageBioPacket(entity),
 					new.env()
@@ -86,9 +86,9 @@ setMethod(
 			rownames(desc) <- desc[,1]
 			desc <- desc[,-1]
 			names(desc)[names(desc) == "description"] <- "labelDescription"
-			loadedObjects <- new.env()
-			loadedObjects$phenotypes <- new("AnnotatedDataFrame", data = d, varMetadata = desc)
-			loadedObjects
+			objects <- new.env()
+			objects$phenotypes <- new("AnnotatedDataFrame", data = d, varMetadata = desc)
+			objects
 		}
 )
 

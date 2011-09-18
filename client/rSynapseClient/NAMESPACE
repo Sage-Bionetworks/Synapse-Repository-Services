@@ -51,6 +51,13 @@ exportMethods(
 	moveFile
 ) 
 
+exportMethods(
+	addObject,
+	deleteObject,
+	getObject,
+	renameObject
+)
+
 ## entity property/annotation setters and getters
 exportMethods(
 	"annotValue<-",

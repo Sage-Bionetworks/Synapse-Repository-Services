@@ -7,32 +7,32 @@ unitTestCopyLoadedObjects <-
 		function()
 {
 	layer <- new(Class="Layer")
-	checkEquals(length(objects(layer@loadedObjects)), 0)
+	checkEquals(length(objects(layer@objects)), 0)
 	
-	layer@loadedObjects$boo <- "blah"
+	layer@objects$boo <- "blah"
 	
 	attachedCopy <- layer
-	checkEquals(length(objects(attachedCopy@loadedObjects)), 1)
+	checkEquals(length(objects(attachedCopy@objects)), 1)
 	
 	newLayer <- new(Class="Layer")
-	checkEquals(length(objects(newLayer@loadedObjects)), 0)
+	checkEquals(length(objects(newLayer@objects)), 0)
 	
-	layer@loadedObjects$foo <- "bar"
-	checkTrue(length(objects(layer@loadedObjects)) == 2)
-	checkTrue(length(objects(attachedCopy@loadedObjects)) == 2)
-	checkTrue(all(objects(attachedCopy@loadedObjects) == objects(layer@loadedObjects)))
-	checkEquals(layer@loadedObjects$foo, attachedCopy@loadedObjects$foo)
-	checkEquals(layer@loadedObjects$boo, attachedCopy@loadedObjects$boo)
+	layer@objects$foo <- "bar"
+	checkTrue(length(objects(layer@objects)) == 2)
+	checkTrue(length(objects(attachedCopy@objects)) == 2)
+	checkTrue(all(objects(attachedCopy@objects) == objects(layer@objects)))
+	checkEquals(layer@objects$foo, attachedCopy@objects$foo)
+	checkEquals(layer@objects$boo, attachedCopy@objects$boo)
 	
 	detachedCopy <- copyEntity(layer)
-	checkTrue(length(objects(detachedCopy@loadedObjects)) == 2)
-	checkTrue(all(objects(detachedCopy@loadedObjects) == objects(layer@loadedObjects)))
-	checkEquals(layer@loadedObjects$foo, detachedCopy@loadedObjects$foo)
+	checkTrue(length(objects(detachedCopy@objects)) == 2)
+	checkTrue(all(objects(detachedCopy@objects) == objects(layer@objects)))
+	checkEquals(layer@objects$foo, detachedCopy@objects$foo)
 	
-	layer@loadedObjects$bar <- "foo"
-	checkTrue(length(objects(layer@loadedObjects)) == 3)
-	checkTrue(length(objects(attachedCopy@loadedObjects)) == 3)
-	checkTrue(length(objects(detachedCopy@loadedObjects)) == 2)
+	layer@objects$bar <- "foo"
+	checkTrue(length(objects(layer@objects)) == 3)
+	checkTrue(length(objects(attachedCopy@objects)) == 3)
+	checkTrue(length(objects(detachedCopy@objects)) == 2)
 	
 }
 

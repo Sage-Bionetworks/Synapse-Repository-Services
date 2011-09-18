@@ -100,7 +100,7 @@ setMethod(
 		definition = function(entity){
 			refreshedEntity <- getEntity(entity)
 			refreshedEntity@location <- entity@location
-			refreshedEntity@loadedObjects <- entity@loadedObjects
+			refreshedEntity@objects <- entity@objects
 			refreshedEntity
 		}
 )
@@ -109,7 +109,7 @@ setMethod(
 		f = "initialize",
 		signature = "Layer",
 		definition = function(.Object, properties=NULL){
-			.Object@loadedObjects <- new.env(parent=emptyenv())
+			.Object@objects <- new.env(parent=emptyenv())
 			if(!is.null(properties))
 				.Object@properties <- properties
 			.Object@location = new(Class="CachedLocation")
@@ -133,7 +133,7 @@ setMethod(
 			if (!is.null(properties(object)$version))
 				cat("Version             : ", properties(object)$version, "\n", sep="")
 			
-			obj.msg <- summarizeLoadedObjects(object)
+			obj.msg <- summarizeObjects(object)
 			if(!is.null(obj.msg)){
 				cat("\n", obj.msg$count,":\n", sep="")
 				cat(obj.msg$objects, sep="\n")
@@ -150,14 +150,14 @@ setMethod(
 )
 
 setMethod(
-		f = "summarizeLoadedObjects",
+		f = "summarizeObjects",
 		signature = "Layer",
 		definition = function(entity){
 			msg <- NULL
-			if(length(objects(entity@loadedObjects)) > 0){
+			if(length(objects(entity@objects)) > 0){
 				msg$count <- sprintf("loaded object(s)")
-				objects <- objects(entity@loadedObjects)
-				classes <- unlist(lapply(objects, function(object){class(entity@loadedObjects[[object]])}))
+				objects <- objects(entity@objects)
+				classes <- unlist(lapply(objects, function(object){class(entity@objects[[object]])}))
 				
 				msg$objects <- sprintf('[%d] "%s" (%s)', 1:length(objects), objects, classes)
 			}
@@ -183,7 +183,6 @@ setMethod(
 			}
 			retVal <- lapply(i, function(i){
 						if(i=="objects"){
-							i <- "loadedObjects"
 							envir <- slot(x,i)
 							objects <- lapply(objects(envir), function(key) get(key,envir=envir))
 							names(objects) <- objects(envir)
@@ -213,6 +212,14 @@ setMethod(
 		signature = "Layer",
 		definition = function(x, name){
 			x[[name]]
+		}
+)
+
+setMethod(
+		f = "$<-",
+		signature = "Layer",
+		definition = function(x, name, value){
+			cat(name,"\n")
 		}
 )
 
