@@ -146,7 +146,7 @@ public class RegisterAccountViewImpl extends Composite implements RegisterAccoun
 		     lastName.setAllowBlank(false);
 		     fieldSet.add(lastName, formData);
 		     
-		     Label passwordLabel = new Label(DisplayUtils.getIconHtml(iconsImageBundle.lock16()) + " Password setup insturctions will be sent via email.");
+		     Label passwordLabel = new Label(DisplayUtils.getIconHtml(iconsImageBundle.lock16()) + " Password setup instructions will be sent via email.");
 		     fieldSet.add(passwordLabel);
 		   		   		   
 		     formPanel.add(fieldSet);  
