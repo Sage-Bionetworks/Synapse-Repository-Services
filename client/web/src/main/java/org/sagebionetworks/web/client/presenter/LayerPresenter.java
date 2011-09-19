@@ -2,7 +2,6 @@ package org.sagebionetworks.web.client.presenter;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -291,18 +290,19 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 								Annotations annotations = nodeModelCreator.createAnnotations(annotationJsonString);
 								Map<String, List<String>> strAnnotations = annotations.getStringAnnotations();
 								for(String annotKey : strAnnotations.keySet()) {
-									// process descriptions
-									if(annotKey.matches("^" + DisplayUtils.LAYER_COLUMN_DESCRIPTION_KEY_PREFIX + ".*")) {
-										String colName = annotKey.replaceFirst(DisplayUtils.LAYER_COLUMN_DESCRIPTION_KEY_PREFIX, "");
+									// process descriptions									
+									if(annotKey.startsWith(DisplayUtils.LAYER_COLUMN_DESCRIPTION_KEY_PREFIX)) {
+										String colName = annotKey.substring(DisplayUtils.LAYER_COLUMN_DESCRIPTION_KEY_PREFIX.length());
 										List<String> values = strAnnotations.get(annotKey);
 										if(values != null && values.size() > 0) {										
 											columnDescriptions.put(colName, values.get(0));
+											continue; // skip the units test
 										}
 									}
 
-									// process units
-									if(annotKey.matches("^" + DisplayUtils.LAYER_COLUMN_UNITS_KEY_PREFIX + ".*")) {
-										String colName = annotKey.replaceFirst(DisplayUtils.LAYER_COLUMN_UNITS_KEY_PREFIX, "");
+									// process units									
+									if(annotKey.startsWith(DisplayUtils.LAYER_COLUMN_UNITS_KEY_PREFIX)) {
+										String colName = annotKey.substring(DisplayUtils.LAYER_COLUMN_UNITS_KEY_PREFIX.length());
 										List<String> values = strAnnotations.get(annotKey);
 										if(values != null && values.size() > 0) {										
 											columnUnits.put(colName, values.get(0));
