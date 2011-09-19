@@ -14,25 +14,25 @@
 	<build>
 
 		<!-- This plugin builds the POJOs from JSON schemas. -->
-		<plugins>
-			<plugin>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>schema-to-pojo-maven-plugin</artifactId>
-				<version>${schema-to-pojo.version}</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>generate</goal>
-						</goals>
-						<configuration>
-							<sourceDirectory>src/main/resources</sourceDirectory>
-							<packageName>org.sagebionetworks</packageName>
-							<outputDirectory>target/auto-generated-pojos</outputDirectory>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
+<!--		<plugins>-->
+<!--			<plugin>-->
+<!--				<groupId>org.sagebionetworks</groupId>-->
+<!--				<artifactId>schema-to-pojo-maven-plugin</artifactId>-->
+<!--				<version>${schema-to-pojo.version}</version>-->
+<!--				<executions>-->
+<!--					<execution>-->
+<!--						<goals>-->
+<!--							<goal>generate</goal>-->
+<!--						</goals>-->
+<!--						<configuration>-->
+<!--							<sourceDirectory>src/main/resources</sourceDirectory>-->
+<!--							<packageName>org.sagebionetworks</packageName>-->
+<!--							<outputDirectory>target/auto-generated-pojos</outputDirectory>-->
+<!--						</configuration>-->
+<!--					</execution>-->
+<!--				</executions>-->
+<!--			</plugin>-->
+<!--		</plugins>-->
 	</build>
 	<dependencies>
 
