@@ -124,7 +124,7 @@ public class GenericEntityControllerImpleAutowiredTest {
 	
 	private Location createLayerLocatoinsForTest(int i) throws InvalidModelException{
 		Location location = new Location();
-		location.setMd5sum("someMD%"+i);
+		location.setMd5sum("9ca4d9623b655ba970e7b8173066b58f");
 		location.setPath("a/very/long/path/"+i);
 		location.setType(Location.LocationTypeNames.awsebs.name());
 		return location;

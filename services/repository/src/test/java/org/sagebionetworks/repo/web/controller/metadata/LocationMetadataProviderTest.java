@@ -32,6 +32,44 @@ public class LocationMetadataProviderTest {
 				.getMetadataProvider(ObjectType.location);
 	}
 
+
+	@Test(expected=InvalidModelException.class)
+	public void testMd5InvalidLengthTooShort() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException {
+		Location mock = new Location();
+		mock.setParentId("12");
+		mock.setMd5sum("85e8c666f57573345d7b9fbe8d704f0");
+		mock.setType(Location.LocationTypeNames.awss3.name());
+		mock.setPath("foo.zip");
+		mock.setContentType(null);
+		locationMetadataProvider.validateEntity(mock, new EntityEvent(
+				EventType.CREATE, null, null));
+	}
+	
+	@Test(expected=InvalidModelException.class)
+	public void testMd5InvalidLengthTooLong() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException {
+		Location mock = new Location();
+		mock.setParentId("12");
+		mock.setMd5sum("85e8c666f57573345d7b9fbe8d704f055");
+		mock.setType(Location.LocationTypeNames.awss3.name());
+		mock.setPath("foo.zip");
+		mock.setContentType(null);
+		locationMetadataProvider.validateEntity(mock, new EntityEvent(
+				EventType.CREATE, null, null));
+	}
+
+	@Test(expected=InvalidModelException.class)
+	public void testMd5InvalidCharacter() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException {
+		Location mock = new Location();
+		mock.setParentId("12");
+		// Letter O instead of zero
+		mock.setMd5sum("85e8c666f57573345d7b9fbe8d704fO5");
+		mock.setType(Location.LocationTypeNames.awss3.name());
+		mock.setPath("foo.zip");
+		mock.setContentType(null);
+		locationMetadataProvider.validateEntity(mock, new EntityEvent(
+				EventType.CREATE, null, null));
+	}
+	
 	@Test
 	public void testValidateContentType() throws InvalidModelException,
 			NotFoundException, DatastoreException, UnauthorizedException {

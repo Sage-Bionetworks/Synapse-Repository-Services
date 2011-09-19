@@ -4,6 +4,7 @@ import java.net.FileNameMap;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -38,8 +39,8 @@ public class LocationMetadataProvider implements
 
 	public static final String METHOD_PARAMETER = "method";
 
+	private static final Pattern MD5_REGEX = Pattern.compile("[0-9a-fA-F]{32}");
 	private static final String DEFAULT_MIME_TYPE = "application/binary";
-
 	private static final FileNameMap FILE_EXTENSION2MIME_TYPE_MAP = URLConnection
 			.getFileNameMap();
 
@@ -116,6 +117,9 @@ public class LocationMetadataProvider implements
 		}
 		if (null == entity.getMd5sum()) {
 			throw new InvalidModelException("md5sum cannot be null");
+		}
+		if(!MD5_REGEX.matcher(entity.getMd5sum()).matches()) {
+			throw new InvalidModelException("md5sum is malformed, it must be a 32 digit hexadecimal string");
 		}
 		if (null == entity.getContentType()) {
 			// We expect that users typically will not provide a mime type, we
