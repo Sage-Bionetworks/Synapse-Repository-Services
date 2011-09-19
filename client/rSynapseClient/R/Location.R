@@ -34,7 +34,7 @@ setMethod(
 		definition = function(location, files){
 			class(location) <- "CachedLocation"
 			location@cacheDir <- attr(files, "rootDir")
-			files <- gsub(attr(files,"rootDir"), "", as.character(files))
+			files <- gsub(attr(files,"rootDir"), "", as.character(files), fixed=TRUE)
 			location@files <- gsub("^[\\\\/]+","", files)
 			location
 		}

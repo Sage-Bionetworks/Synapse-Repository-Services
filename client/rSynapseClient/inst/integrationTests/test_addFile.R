@@ -46,7 +46,7 @@ integrationTestAddToNewLayer <-
 	save(d, file=file.path(tempdir(), file))
 	## add a file in a subdirectory
 	checkTrue(!file.exists(file.path(layer$cacheDir, path, file)))
-	checkTrue(!grepl(synapseClient:::synapseCacheDir(), layer$cacheDir))
+	checkTrue(!grepl(synapseClient:::synapseCacheDir(), layer$cacheDir, fixed=TRUE))
 	checkEquals(length(layer$files), 0L)
 	layer <- addFile(layer, file.path(tempdir(), file), path)
 	checkEquals(length(layer$files), 1L)
@@ -55,7 +55,7 @@ integrationTestAddToNewLayer <-
 	checkEquals(layer$files, gsub(sprintf("^%s", .Platform$file.sep), "", file.path(path, file)))
 	
 	layer <- storeEntityFiles(layer)
-	checkTrue(grepl(synapseClient:::synapseCacheDir(), layer$cacheDir))
+	checkTrue(grepl(synapseClient:::synapseCacheDir(), layer$cacheDir, fixed=TRUE))
 	checkEquals(length(layer$files), 1L)
 	checkTrue(file.exists(file.path(layer$cacheDir, layer$files)))
 	
@@ -67,7 +67,7 @@ integrationTestAddToNewLayer <-
 	layer <- addFile(layer, file.path(tempdir(), file), path)
 	checkEquals(length(layer$files), 2L)
 	checkEquals(layer$files[2], gsub(sprintf("^%s", .Platform$file.sep), "", file.path(path, file)))
-	checkTrue(grepl(synapseClient:::synapseCacheDir(), layer$cacheDir))
+	checkTrue(grepl(synapseClient:::synapseCacheDir(), layer$cacheDir, fixed=TRUE))
 	
 	checkTrue(all(file.exists(file.path(layer$cacheDir, layer$files))))
 	
@@ -88,7 +88,7 @@ integrationTestAddToNewLayer <-
 	layer <- addFile(layer, file.path(tempdir(), file), path)
 	checkEquals(length(layer$files), 3L)
 	checkEquals(layer$files[3], gsub(sprintf("^%s+", .Platform$file.sep), "", file.path(path, file)))
-	checkTrue(grepl(synapseClient:::synapseCacheDir(), layer$cacheDir))
+	checkTrue(grepl(synapseClient:::synapseCacheDir(), layer$cacheDir, fixed=TRUE))
 	
 	layer <- storeEntityFiles(layer)
 	checkEquals(length(layer$files), 3L)
@@ -110,7 +110,7 @@ integrationTestAddToNewLayer <-
 	layer <- addFile(layer, file.path(tempdir(), file), path)
 	checkEquals(length(layer$files), 4L)
 	checkEquals(layer$files[4], gsub(sprintf("^%s+", .Platform$file.sep), "", file.path(path, file)))
-	checkTrue(grepl(synapseClient:::synapseCacheDir(), layer$cacheDir))
+	checkTrue(grepl(synapseClient:::synapseCacheDir(), layer$cacheDir, fixed=TRUE))
 	
 	layer <- storeEntityFiles(layer)
 	checkEquals(length(layer$files), 4L)
