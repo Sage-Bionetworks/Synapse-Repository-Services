@@ -36,7 +36,7 @@ public class ObjectTypeFactory {
 			Location location = (Location) object;
 			location.setType(Location.LocationTypeNames.sage.name());
 			location.setPath("/somePath");
-			location.setMd5sum("md5sum");
+			location.setMd5sum("9ca4d9623b655ba970e7b8173066b58f");
 		} else if(object instanceof Eula){
 			Eula eula = (Eula) object;
 			eula.setAgreement("this is a fake agreement");

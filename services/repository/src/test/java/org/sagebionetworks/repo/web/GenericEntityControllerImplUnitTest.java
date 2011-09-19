@@ -42,7 +42,7 @@ public class GenericEntityControllerImplUnitTest {
 		when(mockEntityManager.aggregateEntityUpdate((UserInfo)any(),eq(parentId), eq(toUpdate))).thenReturn(idList);
 		Location existingLocation = new Location();
 		existingLocation.setId("201");
-		existingLocation.setMd5sum("someMD5");
+		existingLocation.setMd5sum("9ca4d9623b655ba970e7b8173066b58f");
 		existingLocation.setPath("somePath");
 		when(mockEntityManager.getEntity((UserInfo)any(), eq("201"), eq(Location.class))).thenReturn(existingLocation);
 		// Now make the call
