@@ -18,6 +18,7 @@
     <module>id-generator</module>
     <module>models</module>
     <module>jdomodels</module>
+    <module>lib-auto-generated</module>
   </modules>
   
 </project>

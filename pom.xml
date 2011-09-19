@@ -287,6 +287,7 @@
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.6.10</org.aspectj.version>
 		<org.apache.commons.commons-dbcp.version>1.4</org.apache.commons.commons-dbcp.version>
+		<schema-to-pojo.version>0.0.2</schema-to-pojo.version>
 	</properties>
 
 	<distributionManagement>

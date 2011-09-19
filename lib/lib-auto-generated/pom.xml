@@ -1,0 +1,55 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<artifactId>lib</artifactId>
+		<groupId>org.sagebionetworks</groupId>
+		<version>parent-1.0</version>
+	</parent>
+	<groupId>org.sagebionetworks</groupId>
+	<artifactId>lib-auto-generated</artifactId>
+	<version>${applicationVersion}</version>
+	<name>lib-schema</name>
+	<description>This project contains JSON schemas and the POJOs auto-generated from the schemas</description>
+	<build>
+
+		<!-- This plugin builds the POJOs from JSON schemas. -->
+		<plugins>
+			<plugin>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>schema-to-pojo-maven-plugin</artifactId>
+				<version>${schema-to-pojo.version}</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<sourceDirectory>src/main/resources</sourceDirectory>
+							<packageName>org.sagebionetworks</packageName>
+							<outputDirectory>target/auto-generated-pojos</outputDirectory>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+	<dependencies>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>schema-to-pojo-lib</artifactId>
+			<version>${schema-to-pojo.version}</version>
+			<type>jar</type>
+		</dependency>
+		<!-- This must remain a test only scope or it will add org.json as a dependency 
+			to all projects. -->
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>schema-to-pojo-org-json</artifactId>
+			<version>${schema-to-pojo.version}</version>
+			<scope>test</scope>
+			<type>jar</type>
+		</dependency>
+	</dependencies>
+</project>
