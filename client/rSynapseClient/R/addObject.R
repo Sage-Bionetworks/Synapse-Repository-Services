@@ -16,6 +16,13 @@ setMethod(
 		definition = function(entity, object, name = deparse(substitute(object, env=parent.frame()))){
 			name <- gsub("\\\"", "", name)
 			assign(name, object, envir = entity@objects)
+			tryCatch(
+					.cacheObject(name, envir = entity@objects),
+					error = function(e){
+						deleteObject(entity, name)
+						stop(e)
+					}
+			)
 			invisible(entity)
 		}
 )
@@ -43,6 +50,13 @@ setMethod(
 			if(!is.character(name))
 				stop("name must be a character")
 			assign(name, object, envir = entity@objects)
+			tryCatch(
+					.cacheObject(name, envir = entity@objects),
+					error = function(e){
+						deleteObject(entity, name)
+						stop(e)
+					}
+			)
 			invisible(entity)
 		}
 )

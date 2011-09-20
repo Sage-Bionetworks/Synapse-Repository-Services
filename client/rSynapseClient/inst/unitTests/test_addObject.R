@@ -2,7 +2,20 @@
 # 
 # Author: Matt Furia
 ###############################################################################
+.setUp <-
+		function()
+{
+	synapseClient:::.setCache("oldSynapseCacheDir", synapseClient:::.getCache("synapseCacheDir"))
+	synapseClient:::.setCache("synapseCacheDir", tempfile())
+}
 
+.tearDown <-
+		function()
+{
+	unlink(synapseClient:::.getCache("synapseCacheDir"), recursive = TRUE)
+	synapseClient:::.setCache("synapseCacheDir", synapseClient:::.getCache("oldSynapseCacheDir"))
+	synapseClient:::.deleteCache("oldSynapseCacheDir")
+}
 
 unitTestDefaultName <-
 		function()
@@ -163,5 +176,4 @@ unitTestAddListOfDataFramesNoName <-
 	layer <- new(Class="Layer")
 	checkException(addObject(layer, list(data.frame(x=1:4, y=c("a", "b", "c", "d")), data.frame(y=c("a", "b", "c", "d"), z=5:8))))
 }
-
 
