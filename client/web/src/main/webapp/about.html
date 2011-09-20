@@ -77,9 +77,12 @@
 					<li class="first" id="navbar_datasets_li"><a
 						href="Portal.html#DatasetsHome:0" id="navbar_datasets_a">Datasets</a>
 					</li>
-					<li id="navbar_tools_li"><a href="">Tools</a></li>
-					<li id="navbar_networks_li"><a href="">Networks</a></li>
-					<li id="navbar_people_li"><a href="people.html">People</a></li>
+					<li id="navbar_tools_li"><a href="">Tools</a>
+					</li>
+					<li id="navbar_networks_li"><a href="">Networks</a>
+					</li>
+					<li id="navbar_people_li"><a href="people.html">People</a>
+					</li>
 					<li id="navbar_projects_li"><a href="projects.html">Projects</a>
 					</li>
 				</ul>
@@ -105,126 +108,144 @@
 				</ul>
 				<h2>About Synapse</h2>
 				<div class="info">
+
 					The past two decades have seen an amazing exponential growth in the
-					availability of genetic and other important biomolecular data
-					fueled by incredible advances in measurement technologies. These
-					breakthroughs have resulted in an increasing amount of money spent
-					on research by industry and research papers written by academia.
-					However, despite a few examples of new block-buster drugs, we have
-					not witnessed a general rapid improvement in the treatment of many
-					significant human diseases. Indeed, the numbers of new drugs
-					approved by the FDA has actually declined over this same period. <br />
-					<br /> A fundamental reason improvement in clinical outcomes does
-					not match the pace of biological data production is that the
-					analysis and interpretation of this data remain largely an
-					individual activity limited by the bandwidth of an individual
-					scientist. Drug development pipelines require a series of handoffs
-					among many individual scientists, each with different areas of
-					expertise. In our experience, the ability to access, understand,
-					reformat, and reuse data, analysis methods, or models of disease at
-					each step in the pipeline is a significant rate-limiting step, even
-					within the confines of a single company or research institution.
-					Additionally, much of the relevant data to answer a particular
-					research question is spread among multiple public and private
-					repositories. Because each pharmaceutical company and academic
-					group protects their own data, the end result is enormous
-					duplication of effort and missed opportunities across the industry
-					as a whole. <br /> <br /> Sage Bionetworks&#146; mission is to
-					catalyze a cultural transition from the traditional single lab,
-					single-company, and single-therapy R&D paradigm to a model based on
-					broad precompetitive collaboration on the analysis of large scale
-					data in medical sciences. If this were to happen it would benefit
-					future patients through improved treatments to diseases. It would
-					benefit society through reduced costs of health care. It could even
-					benefit the pharmaceutical industry, which is struggling to replace
-					the revenue lost as old medicines go off patent production, by
-					seeding increased innovation in the sector. Sage Bionetworks is
-					actively engaged with academic, industrial, government, and
-					philanthropic collaborators in developing solutions to these
-					issues. <br /> <br /> The technology component of Sage&#146;s
-					solution strategy is Synapse, an informatics platform for open
-					data-driven science. Synapse will provide support for Sage
-					Bionetwork&#146;s own research initiatives, but more importantly
-					serve as a public resource for the broader scientific community. <br />
-					<br /> Catalyzing a transformation to truly collaborative research
-					requires that the platform help scientists solve a series of
-					problems that impede truly collaborative work today: <br /> <br />
+					technical ability to generate genetic and biomolecular data fueled
+					by incredible advances in measurement technologies. These
+					breakthroughs have resulted in an increasing amount of resources
+					directed at genomic research by both industry and academia.
+					However, with a few exceptions, these investments have failed to
+					improve prevention or treatment of common human disease. For
+					example, the numbers of new drugs approved by the FDA has actually
+					declined over this period.<br />
+					<br /> A fundamental reason for this discrepancy between data
+					generation and clinical improvement is the immature development of
+
+					analytical techniques to meaningfully interpret these new data
+					types. As with any new field, analytical methodologies need to be
+					iteratively developed and refined. The difficulty of accessing,
+					understanding, and reusing data, analysis methods, or models of
+					disease across multiple labs with complimentary fields of expertise
+					is a major barrier to the effective interpretation of genomic data
+					today. Additionally, much of the relevant data to answer a
+					particular research question is spread among multiple public and
+					private repositories. Because each research group protects their
+					own data, the end result is enormous duplication of effort and
+					missed opportunities across both industry and academia.<br />
+					<br /> Sage Bionetworks&rsquo; mission is to catalyze a cultural
+					transition from the traditional single lab, single-company, and
+
+					single-therapy research paradigm to a model founded on broad
+					precompetitive collaboration on analysis of large-scale biological
+
+					data. This model would benefit future patients by accelerating
+					development of disease treatments, and society as a whole by
+
+					reducing costs of health care and biological research. It could
+					even benefit the pharmaceutical industry by seeding increased
+
+					innovation at a time when the sector is struggling to replace
+					revenue lost as old medicines go off patent production. Sage
+
+					Bionetworks is actively engaged with academic, industrial,
+					government, and philanthropic collaborators in developing this
+
+					research model. <br />
+					<br /> The technology component of Sage Bionetworks solution
+					strategy is Synapse, an informatics platform for open data-driven
+
+					collaborative research. Synapse will serve as a public resource for
+					the broad scientific community.<br />
+					<br /> Catalyzing a transformation to collaborative research
+					requires a platform that helps scientists solve a series of
+
+					problems:<br />
 					<ol>
-						<li><b>Finding and using relevant data</b> - Frequently today
-							scientists have difficulty just tracking down and gaining access
-							to resources created by others, even within the confines of the
-							same organization. Even when data is available, ~75% of the work
-							of an analysis project is spent understanding data structures and
-							preprocessing data for analysis. Synapse provides ways to not
-							only make data discoverable, but push data to leverage common
-							formats, controlled vocabularies, and annotation standards that
-							allow data to be described and exposed to analysis unambiguously.
+						<li><b>Finding and using relevant data</b> – Currently, scientists
+							have difficulty tracking down and gaining access to data and
 
+							resources generated by others, even within the confines of the
+							same organization. Even when data is available, it is often not
 
+							useable. Indeed, an estimated ~75% effort within each analytical
+							project is devoted to interpreting data structures and
 
+							appropriately preprocessing data. Synapse provides a mechanism to
+							access data in a uniform manner that leverages common formats,
+							controlled vocabularies, and annotation standards.</li>
+						<li><b>Understanding analysis workflows</b> - Synapse is built with
+							the understanding that most analytical research is experimental
 
+							and ad hoc in nature, with hardened analysis methods only
+							emerging over time. Tracking who has run what version of code on
 
-						
-						<li><b>Understanding analysis workflows</b> - Synapse
-							accounts for the fact that much research is experimental and ad
-							hoc in nature, and that hardened analysis methods only emerge
-							over time. Tracking who has run what version of code on what
-							version of the data in a project is the key to reproducible, and
-							therefore improvable, research.
-						<li><b>Supporting genome-scale analysis</b> - Analyzing
-							datasets with information on whole genomes is currently limited
-							to those with access to large computational resources and
-							significant IT support. Synapse makes cloud computing
-							technologies accessible to scientists.
-						<li><b>Forming and maintaining productive collaborations</b>
-							– Scientists tend to start from scratch on a project rather than
+							what version of the data immediately helps projects run more
+							smoothly, and ultimately enables reproducible workflows that
+							allow others to build off of prior work.</li>
+						<li><b>Supporting genome-scale analysis</b> - Analyzing datasets
+							with information on whole genomes is currently limited to those
+							with access to large computational resources and significant IT
+							support. Synapse makes cloud computing technologies accessible to
+
+							scientists.</li>
+						<li><b>Forming and maintaining productive collaborations</b> –
+							Scientists tend to start from scratch on a project rather than
 							take work in an unknown state. The platform must help scientists
 							track what work has already been done in a particular area and
-							help create and sustain collaborations.
+
+							help create and sustain collaborations.</li>
 					</ol>
-					<br /> To support the vision described above, a variety of types
-					of users will need to interact with Synapse for different purposes.
-					Initially the Synapse system will be focused on supporting the
-					statistical or computational biologist power users in manipulating
-					clinical and genomics data sets; over time support could grow for
-					more biological or clinically focused researchers. Synapse
-					leverages a web service-based architecture in which a common set of
-					services is accessed via different sets of client applications to
-					support a growing set of use cases over time. <br /> <br /> One
-					client application is the Synapse web portal. This is a “Web 2.0”
-					environment for scientists to discover and share data, models, and
-					analysis methods. The portal is organized around projects, which
-					any scientist can create and invite collaborators to join. These
-					online workspaces then serve as the glue to help teams of
-					researchers collaborate to solve complex scientific analysis
-					problems. Additional capabilities to visualize data and interact
-					with disease models through the web portal will be developed over
-					time. <br /> <br /> We also expect our target users to be already
-					proficient using data analysis tools, and to want to continue using
-					those tools to work with data. Synapse&#146;s first analysis client
-					will be an integration with the R / Bioconductor statistical
-					package allowing users to track analyses performed with published
-					packages or custom scripts to complete their work. Additional
-					analysis platforms (e.g. Gene Pattern or Matlab) will get supported
-					over time. All analysis platforms would interact with the Synapse
-					system by calling the Synapse web service layer. This is a set of
-					REST-based services providing support for annotating, querying, and
-					updating data, analysis code, and models, and controlling access to
-					these resources. These services will also allow tracking of the
+					<br /> To ultimately support this vision, multi-disciplinary users
+					will need to interact with Synapse. Initially the Synapse system
+
+					will focus on supporting the statistical or computational
+					biologists that are directly involved in manipulating clinical and
+
+					genomics data sets; over time support will grow for more biological
+					or clinically focused researchers. Synapse leverages a web
+					service-based architecture in which a common set of services is
+					accessed via different sets of client applications to support a
+					growing set of use cases over time. One client application is the
+					Synapse web portal: an environment for scientists to discover and
+					share data, models, and analysis methods. The portal is organized
+					around projects, which any scientist can create and invite
+					collaborators to join. These online workspaces then serve as the
+					glue to help teams of researchers collaborate to solve complex
+					scientific analysis problems. Additional capabilities to visualize
+					data and interact with disease models through the web portal will
+					be developed over time.<br />
+					<br /> We expect our initial target users to already be proficient
+					in using data analysis tools and to want to continue using those
+
+					tools to work with data. Synapse’s first analysis client will be an
+					integration with the R / Bioconductor statistical package allowing
+					users to track analyses performed with published packages or custom
+					scripts to complete their work. Additional analysis platforms (e.g.
+					Gene Pattern or Matlab) will be supported over time. All analysis
+					platforms would interact with the Synapse system by calling the
+					Synapse web service layer. This is a set of REST-based services
+					providing support for annotating, querying, and updating data,
+					analysis code, and models, and controlling access to these
+					resources. These services will also allow tracking of the
 					provenance of a multi-step analysis procedure, and executing
-					analysis steps on cloud-based resources.  
-					<h3>More Information</h3><br /><br />
+					analysis steps on cloud-based resources.<br />
+					<br />
+
+					<h3>More Information</h3>
 					<ul>
 						<li>&#149;&nbsp;<a href="static/images/About-Synapse.pdf">Download
 								this description</a> as a pdf</li>
-						<li>&#149;&nbsp;<a href="static/images/Synapse-Vision-Document.pdf">Download the
+						<li>&#149;&nbsp;<a
+							href="static/images/Synapse-Vision-Document.pdf">Download the
 								Synapse Vision Document</a> giving more detailed description of the
-							technology</li>						
-						<li>&#149;&nbsp;<a href="http://www.bioontology.org/Sage-Bionetworks-Synapse-Project">View
+							technology</li>
+						<li>&#149;&nbsp;<a
+							href="http://www.bioontology.org/Sage-Bionetworks-Synapse-Project">View
 								a talk and demo of Synapse</a> describing Sage's role as a NCBO
-							Driving Biological Project	</li>					
-						<li>&#149;&nbsp;Contact synapseInfo@sagebase.org for more info</li>
-					
+							Driving Biological Project</li>
+						<li>&#149;&nbsp;Contact synapseInfo@sagebase.org for more
+							info</li>
+
 					</ul>
 				</div>
 			</div>
@@ -235,40 +256,30 @@
 				<div class="footer_nav clearfix left">
 					<table>
 						<tr>
-							<td><a href="">Privacy Policy</a>
-							</td>
-							<td><a href="">Platform support</a>
-							</td>
-							<td><a href="">Creative Commons License</a>
-							</td>
+							<td><a href="">Privacy Policy</a></td>
+							<td><a href="">Platform support</a></td>
+							<td><a href="">Creative Commons License</a></td>
 						</tr>
 						<tr>
-							<td><a href="">FAQ</a>
-							</td>
-							<td><a href="">Submit feedback</a>
-							</td>
-							<td><a href="">Visit the Sage website</a>
-							</td>
+							<td><a href="">FAQ</a></td>
+							<td><a href="">Submit feedback</a></td>
+							<td><a href="">Visit the Sage website</a></td>
 						</tr>
 					</table>
 				</div>
 				<div class="footer_logos">
 					<ul>
 						<li><a href="http://www.lsdfa.org/" target="_new"><img
-								src="images/LSDF_logo.jpg" /> </a>
-						</li>
+								src="images/LSDF_logo.jpg" /> </a></li>
 						<li><a href="http://www.cancer.gov/" target="_new"><img
-								src="images/NCI_logo.jpg" /> </a>
-						</li>
+								src="images/NCI_logo.jpg" /> </a></li>
 					</ul>
 				</div>
 				<div class="contact right">
 					<div class="vcard right">
 						<p class="fn">
 							<span class="organization-name">Sage Bionetworks</span>
-						
 						<p>
-						
 						<p class="adr">
 							<span class="street-address">1100 Fairview Ave N</span><br>
 							<span class="locality">Seattle</span> <span class="region">WA</span>
@@ -280,6 +291,5 @@
 				</div>
 			</div>
 		</div>
-
 </body>
 </html>
