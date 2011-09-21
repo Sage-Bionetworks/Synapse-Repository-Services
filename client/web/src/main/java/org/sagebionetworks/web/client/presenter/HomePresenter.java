@@ -1,6 +1,8 @@
 package org.sagebionetworks.web.client.presenter;
 
 import org.sagebionetworks.web.client.DisplayConstants;
+import org.sagebionetworks.web.client.GlobalApplicationState;
+import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.security.AuthenticationController;
@@ -17,16 +19,21 @@ public class HomePresenter extends AbstractActivity implements HomeView.Presente
 	
 	private Home place;
 	private HomeView view;
+	private GlobalApplicationState globalApplicationState;
+	private PlaceChanger placeChanger;
 	private CookieProvider cookieProvider;
 	private AuthenticationController authenticationController;
 	
 	@Inject
-	public HomePresenter(HomeView view, CookieProvider cookieProvider, AuthenticationController authenticationController){
+	public HomePresenter(HomeView view, CookieProvider cookieProvider, AuthenticationController authenticationController, GlobalApplicationState globalApplicationState){
 		this.view = view;
 		// Set the presenter on the view
-		this.view.setPresenter(this);
 		this.cookieProvider = cookieProvider;
 		this.authenticationController = authenticationController;
+		this.globalApplicationState = globalApplicationState;
+		this.placeChanger = globalApplicationState.getPlaceChanger();
+
+		this.view.setPresenter(this);
 	}
 
 	@Override
@@ -37,6 +44,7 @@ public class HomePresenter extends AbstractActivity implements HomeView.Presente
 
 	public void setPlace(Home place) {
 		this.place = place;		
+		view.setPresenter(this);
 		if(place != null && place.toToken() != null) {
 			if(place.toToken().equals(DisplayConstants.TURN_DEMO_ON_TOKEN)) {
 				DisplayConstants.showDemoHtml = true;

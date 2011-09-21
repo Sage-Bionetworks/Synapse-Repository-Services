@@ -417,7 +417,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		// Build up the path
 		StringBuilder builder = new StringBuilder();
 		builder.append(urlProvider.getBaseUrl() + "/");
-		builder.append(ServiceUtils.REPOSVC_GET_USERS_PATH);
+		builder.append(ServiceUtils.REPOSVC_PATH_GET_USERS);
 		String url = builder.toString();	
 		String userList = getJsonStringForUrl(url, HttpMethod.GET);
 		return generateAclPrincipals(userList);

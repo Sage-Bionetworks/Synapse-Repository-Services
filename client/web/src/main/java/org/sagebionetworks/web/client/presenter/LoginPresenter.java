@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.presenter;
 
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.GlobalApplicationState;
+import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
 import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.place.LoginPlace;
@@ -23,7 +24,7 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 	private LoginPlace loginPlace;
 	private LoginView view;
 	private EventBus bus;
-	private PlaceController placeController;
+	private PlaceChanger placeChanger;
 	private AuthenticationController authenticationController;
 	private UserAccountServiceAsync userService;
 	private String openIdActionUrl;
@@ -33,21 +34,24 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 	@Inject
 	public LoginPresenter(LoginView view, AuthenticationController authenticationController, UserAccountServiceAsync userService, GlobalApplicationState globalApplicationState){
 		this.view = view;
-		this.view.setPresenter(this);
 		this.authenticationController = authenticationController;
 		this.userService = userService;
 		this.globalApplicationState = globalApplicationState;
+		this.placeChanger = globalApplicationState.getPlaceChanger();
+
+		view.setPresenter(this);
 	} 
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
 		panel.setWidget(this.view.asWidget());
 		this.bus = eventBus;
-		this.placeController = globalApplicationState.getPlaceController();		
+		
 	}
 
 	public void setPlace(final LoginPlace place) {
 		this.loginPlace = place;
+		view.setPresenter(this);
 		view.clear();
 		if(openIdActionUrl != null && openIdReturnUrl != null) {		
 			showView(place);
@@ -126,7 +130,7 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 
 	@Override
 	public void goTo(Place place) {
-		this.placeController.goTo(place);
+		placeChanger.goTo(place);
 	}
 
 	/*

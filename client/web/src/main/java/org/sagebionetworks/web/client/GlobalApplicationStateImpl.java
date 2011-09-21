@@ -3,7 +3,6 @@ package org.sagebionetworks.web.client;
 import org.sagebionetworks.web.client.cookie.CookieKeys;
 import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.mvp.AppPlaceHistoryMapper;
-import org.sagebionetworks.web.client.place.Home;
 
 import com.google.gwt.place.shared.Place;
 import com.google.gwt.place.shared.PlaceController;
@@ -14,6 +13,7 @@ public class GlobalApplicationStateImpl implements GlobalApplicationState {
 	private PlaceController placeController;
 	private CookieProvider cookieProvider;
 	private AppPlaceHistoryMapper appPlaceHistoryMapper;
+	private PlaceChanger placeChanger;
 	
 	@Inject
 	public GlobalApplicationStateImpl(CookieProvider cookieProvider) {
@@ -21,8 +21,16 @@ public class GlobalApplicationStateImpl implements GlobalApplicationState {
 	}
 
 	@Override
-	public PlaceController getPlaceController() {
-		return placeController;
+	public PlaceChanger getPlaceChanger() {
+		if(placeChanger == null) {
+			placeChanger = new PlaceChanger() {			
+				@Override
+				public void goTo(Place place) {
+					placeController.goTo(place);
+				}
+			};
+		}
+		return placeChanger;
 	}
 
 	@Override

@@ -6,6 +6,7 @@ import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.DownloadLocation;
 import org.sagebionetworks.web.shared.EULA;
+import org.sagebionetworks.web.shared.EntityTypeResponse;
 import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
 import org.sagebionetworks.web.shared.PagedResults;
@@ -88,12 +89,20 @@ public class NodeModelCreatorImpl implements NodeModelCreator {
 	}
 
 	@Override
+	public EntityTypeResponse createEntityTypeResponse(String json) throws RestServiceException {
+		JSONObject obj = JSONParser.parseStrict(json).isObject();
+		DisplayUtils.checkForErrors(obj);
+		return new EntityTypeResponse(obj);
+	}
+
+	@Override
 	public void validate(String json) throws RestServiceException {
 		if(!"".equals(json)) {
 			JSONObject obj = JSONParser.parseStrict(json).isObject();
 			DisplayUtils.checkForErrors(obj);
 		}
 	}
+
 
 }
 

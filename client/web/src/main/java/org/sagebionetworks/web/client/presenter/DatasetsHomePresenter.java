@@ -2,7 +2,6 @@ package org.sagebionetworks.web.client.presenter;
 
 import java.util.List;
 
-import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.cookie.CookieProvider;
@@ -13,8 +12,6 @@ import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
-import com.google.gwt.place.shared.Place;
-import com.google.gwt.place.shared.PlaceController;
 import com.google.gwt.user.client.ui.AcceptsOneWidget;
 import com.google.inject.Inject;
 
@@ -25,8 +22,7 @@ public class DatasetsHomePresenter extends AbstractActivity implements DatasetsH
 	private DatasetsHome place;
 	private DatasetsHomeView view;
 	private ColumnsPopupPresenter columnsPopupPresenter;
-	private CookieProvider cookieProvider;
-	private PlaceController placeController; 
+	private CookieProvider cookieProvider; 
 	private PlaceChanger placeChanger;
 	GlobalApplicationState globalApplicationState;
 	
@@ -35,21 +31,15 @@ public class DatasetsHomePresenter extends AbstractActivity implements DatasetsH
 		this.view = view;
 		this.columnsPopupPresenter = columnsPopupPresenter;
 		this.globalApplicationState = globalApplicationState;
+		this.placeChanger = globalApplicationState.getPlaceChanger();
+
 		// Set the presenter on the view
 		this.cookieProvider = cookieProvider;
+		view.setPresenter(this);
 	}
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
-		this.placeController = globalApplicationState.getPlaceController();		
-		this.placeChanger = new PlaceChanger() {			
-			@Override
-			public void goTo(Place place) {
-				placeController.goTo(place);
-			}
-		};
-		this.view.setPresenter(this);
-
 		// Setup the columns
 		setVisibleColumns();
 		// Install the view
@@ -58,6 +48,7 @@ public class DatasetsHomePresenter extends AbstractActivity implements DatasetsH
 
 	public void setPlace(DatasetsHome place) {
 		this.place = place;
+		view.setPresenter(this);
 	}
 
 	@Override

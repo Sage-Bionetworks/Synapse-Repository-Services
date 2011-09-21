@@ -3,6 +3,7 @@ package org.sagebionetworks.web.client.presenter.users;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.IconsImageBundle;
+import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
 import org.sagebionetworks.web.client.cookie.CookieProvider;
@@ -25,7 +26,7 @@ import com.google.inject.Inject;
 @SuppressWarnings("unused")
 public class PasswordResetPresenter extends AbstractActivity implements PasswordResetView.Presenter {
 	
-	private PlaceController placeController;
+	private PlaceChanger placeChanger;
 	private PasswordReset place;	
 	private PasswordResetView view;
 	private CookieProvider cookieProvider;
@@ -43,21 +44,22 @@ public class PasswordResetPresenter extends AbstractActivity implements Password
 		this.sageImageBundle = sageImageBundle;
 		this.iconsImageBundle = iconsImageBundle;
 		// Set the presenter on the view
-		this.view.setPresenter(this);
 		this.cookieProvider = cookieProvider;
 		this.globalApplicationState = globalApplicationState;
+		this.placeChanger = globalApplicationState.getPlaceChanger();
+		
+		view.setPresenter(this);
 	}
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
 		// Install the view
 		panel.setWidget(view);
-		this.placeController = globalApplicationState.getPlaceController();
 	}
 
 	public void setPlace(PasswordReset place) {
 		this.place = place;
-					
+		view.setPresenter(this);			
 		view.clear(); 
 		
 		// show proper view if token is present
@@ -113,7 +115,7 @@ public class PasswordResetPresenter extends AbstractActivity implements Password
 				public void onSuccess(Void result) {				
 					view.showPasswordResetSuccess();
 					view.showInfo("Your password has been reset."); 
-					placeController.goTo(new Home(DisplayUtils.DEFAULT_PLACE_TOKEN)); // redirect to home page
+					placeChanger.goTo(new Home(DisplayUtils.DEFAULT_PLACE_TOKEN)); // redirect to home page
 				}
 				
 				@Override

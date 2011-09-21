@@ -40,25 +40,22 @@ public class DatasetPresenterTest {
 		mockAuthenticationController = mock(AuthenticationController.class);
 		mockGlobalApplicationState = mock(GlobalApplicationState.class);
 		datasetPresenter = new DatasetPresenter(mockView, mockNodeService, mockLicenseService, mockNodeModelCreator, mockAuthenticationController, mockGlobalApplicationState);		
-		datasetPresenter.setPlace(place);
-		
 		verify(mockView).setPresenter(datasetPresenter);
 	}	
 	
 	@Test
 	public void testSetPlace() {
+		resetMocks();
 		Dataset place = Mockito.mock(Dataset.class);
 		datasetPresenter.setPlace(place);
+		
+		verify(mockView).setPresenter(datasetPresenter);
+
 	}	
 	
 	@Test
 	public void testStart() {
-		reset(mockView);
-		reset(mockNodeService);
-		reset(mockLicenseService);
-		reset(mockNodeModelCreator);
-		reset(mockAuthenticationController);
-		reset(mockGlobalApplicationState);
+		resetMocks();
 		datasetPresenter = new DatasetPresenter(mockView, mockNodeService, mockLicenseService, mockNodeModelCreator, mockAuthenticationController, mockGlobalApplicationState);		
 		datasetPresenter.setPlace(place);		
 		AcceptsOneWidget panel = mock(AcceptsOneWidget.class);
@@ -70,16 +67,20 @@ public class DatasetPresenterTest {
 	
 	@Test
 	public void testRefreshFromServer() {
+		resetMocks();
+		datasetPresenter = new DatasetPresenter(mockView, mockNodeService, mockLicenseService, mockNodeModelCreator, mockAuthenticationController, mockGlobalApplicationState);		
+		datasetPresenter.setPlace(place);		
+		
+		datasetPresenter.refreshFromServer();		
+	}
+
+	private void resetMocks() {
 		reset(mockView);
 		reset(mockNodeService);
 		reset(mockLicenseService);
 		reset(mockNodeModelCreator);
 		reset(mockAuthenticationController);
 		reset(mockGlobalApplicationState);
-		datasetPresenter = new DatasetPresenter(mockView, mockNodeService, mockLicenseService, mockNodeModelCreator, mockAuthenticationController, mockGlobalApplicationState);		
-		datasetPresenter.setPlace(place);		
-		
-		datasetPresenter.refreshFromServer();		
 	}
 	
 }

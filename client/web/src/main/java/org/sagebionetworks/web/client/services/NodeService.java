@@ -39,5 +39,7 @@ public interface NodeService extends RemoteService {
 	public String deleteAcl(NodeType type, String id);
 
 	public boolean hasAccess(NodeType resourceType, String resourceId, AclAccessType accessType);
-		
+
+	public String getNodeType(String resourceId);
+	
 }

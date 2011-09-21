@@ -18,13 +18,15 @@ public class ServiceUtils {
 	public static final String REPOSVC_PATH_PROJECT = "project";
 	public static final String REPOSVC_PATH_EULA = "eula";
 	public static final String REPOSVC_PATH_AGREEMENT = "agreement";
-	public static final String REPOSVC_ANNOTATIONS_PATH = "annotations";
-	public static final String REPOSVC_PREVIEW_PATH = "preview";
-	public static final String REPOSVC_LOCATION_PATH = "location";	
-	public static final String REPOSVC_PATH_SCHEMA = "schema";
-	public static final String REPOSVC_PATH_ACL = "acl"; 	
-	public static final String REPOSVC_HAS_ACCESS_PATH = "access";
-	public static final String REPOSVC_GET_USERS_PATH = "user";
+	public static final String REPOSVC_PATH_ENTITY = "entity";
+	public static final String REPOSVC_PATH_HAS_ACCESS = "access";
+	public static final String REPOSVC_PATH_GET_USERS = "user";
+	public static final String REPOSVC_SUFFIX_PATH_ANNOTATIONS = "annotations";
+	public static final String REPOSVC_SUFFIX_PATH_PREVIEW = "preview";
+	public static final String REPOSVC_SUFFIX_LOCATION_PATH = "location";	
+	public static final String REPOSVC_SUFFIX_PATH_SCHEMA = "schema";
+	public static final String REPOSVC_SUFFIX_PATH_ACL = "acl"; 	
+	public static final String REPOSVC_SUFFIX_PATH_TYPE = "type";
 	
 	public static final String AUTHSVC_SEND_PASSWORD_CHANGE_PATH = "userPasswordEmail";
 	public static final String AUTHSVC_SEND_API_PASSWORD_PATH = "apiPasswordEmail";
@@ -64,6 +66,9 @@ public class ServiceUtils {
 			break;
 		case AGREEMENT:
 			builder.append(REPOSVC_PATH_AGREEMENT);
+			break;
+		case ENTITY:
+			builder.append(REPOSVC_PATH_ENTITY);
 			break;
 		default:
 			throw new IllegalArgumentException("Unsupported type:" + type.toString());

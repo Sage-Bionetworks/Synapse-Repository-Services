@@ -9,16 +9,16 @@ public interface GlobalApplicationState {
 
 	
 	/**
-	 * Gets the place controller for the application
+	 * Gets the place changer for the application
 	 * @return
-	 */
-	public PlaceController getPlaceController();
+	 */	
+	public PlaceChanger getPlaceChanger();
 	
 	/**
 	 * Sets the place controller (should only be used in the onModuleLoad() method of Portal) 
 	 * @param placeController
 	 */
-	public void setPlaceController(PlaceController placeController);
+	public void setPlaceController(PlaceController placeController);	
 
 	/**
 	 * Holds the last visited place

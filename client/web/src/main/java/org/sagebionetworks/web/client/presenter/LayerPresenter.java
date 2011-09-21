@@ -46,7 +46,6 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 
 	private org.sagebionetworks.web.client.place.Layer place;
 	private NodeServiceAsync nodeService;
-	private PlaceController placeController;
 	private PlaceChanger placeChanger;
 	private LayerView view;
 	private String layerId;	
@@ -69,25 +68,19 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	@Inject
 	public LayerPresenter(LayerView view, NodeServiceAsync nodeService, LicenceServiceAsync licenseService, NodeModelCreator nodeModelCreator, AuthenticationController authenticationController, GlobalApplicationState globalApplicationState) {
 		this.view = view;
-		view.setPresenter(this);
 		this.nodeService = nodeService;
 		this.licenseService = licenseService;
 		this.nodeModelCreator = nodeModelCreator;
 		this.authenticationController = authenticationController;
 		this.globalApplicationState = globalApplicationState;
-		
+		this.placeChanger = globalApplicationState.getPlaceChanger();
 		this.hasAcceptedLicenseAgreement = false;
+		
+		view.setPresenter(this);
 	}
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
-		this.placeController = globalApplicationState.getPlaceController();
-		this.placeChanger = new PlaceChanger() {			
-			@Override
-			public void goTo(Place place) {
-				placeController.goTo(place);
-			}
-		};
 		// add the view to the panel
 		panel.setWidget(view);		
 	}

@@ -39,4 +39,6 @@ public interface NodeServiceAsync {
 
 	void hasAccess(NodeType resourceType, String resourceId, AclAccessType accessType, AsyncCallback<Boolean> callback);
 
+	void getNodeType(String resourceId, AsyncCallback<String> callback);
+
 }

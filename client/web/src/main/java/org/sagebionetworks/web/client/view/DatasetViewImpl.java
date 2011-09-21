@@ -167,6 +167,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	public void setPresenter(Presenter presenter) {
 		this.presenter = presenter;
 		this.headerWidget.refresh();
+		this.headerWidget.setPlaceChanger(presenter.getPlaceChanger());
 	}
 
 	@Override

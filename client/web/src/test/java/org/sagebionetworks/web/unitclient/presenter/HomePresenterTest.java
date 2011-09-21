@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.presenter.HomePresenter;
@@ -18,13 +19,15 @@ public class HomePresenterTest {
 	CookieProvider cookieProvider;
 	HomeView mockView;
 	AuthenticationController mockAuthenticationController;
+	GlobalApplicationState mockGlobalApplicationState;
 	
 	@Before
 	public void setup(){
 		mockView = mock(HomeView.class);
 		cookieProvider = mock(CookieProvider.class);
 		mockAuthenticationController = mock(AuthenticationController.class);
-		homePresenter = new HomePresenter(mockView, cookieProvider, mockAuthenticationController);
+		mockGlobalApplicationState = mock(GlobalApplicationState.class);
+		homePresenter = new HomePresenter(mockView, cookieProvider, mockAuthenticationController, mockGlobalApplicationState);
 		
 		verify(mockView).setPresenter(homePresenter);
 	}	

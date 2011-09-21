@@ -24,29 +24,20 @@ public class ProjectsHomePresenter extends AbstractActivity implements ProjectsH
 	public ProjectsHomePresenter(ProjectsHomeView view, GlobalApplicationState globalApplicationState){
 		this.view = view;
 		this.globalApplicationState = globalApplicationState;
+		this.placeChanger = globalApplicationState.getPlaceChanger();
 		
-		this.view.setPresenter(this);
+		view.setPresenter(this);
 	}
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
-		this.placeController = globalApplicationState.getPlaceController();
-		this.placeChanger = new PlaceChanger() {			
-			@Override
-			public void goTo(Place place) {
-				placeController.goTo(place);
-			}
-		};
-		// Set the presenter on the view
-		this.view.setPresenter(this);
-
 		// Install the view
 		panel.setWidget(view);
 	}
 
 	public void setPlace(ProjectsHome place) {
 		this.place = place;
-		this.view.setPresenter(this);
+		view.setPresenter(this);
 	}
 
 	@Override

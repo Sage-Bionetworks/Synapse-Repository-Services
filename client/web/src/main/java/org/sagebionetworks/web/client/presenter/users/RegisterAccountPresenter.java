@@ -1,8 +1,8 @@
 package org.sagebionetworks.web.client.presenter.users;
 
 import org.sagebionetworks.web.client.DisplayConstants;
-import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.GlobalApplicationState;
+import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
 import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.place.users.RegisterAccount;
@@ -12,7 +12,6 @@ import org.sagebionetworks.web.shared.users.UserRegistration;
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.place.shared.Place;
-import com.google.gwt.place.shared.PlaceController;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.AcceptsOneWidget;
 import com.google.inject.Inject;
@@ -23,7 +22,7 @@ public class RegisterAccountPresenter extends AbstractActivity implements Regist
 	private RegisterAccount place;
 	private RegisterAccountView view;
 	private CookieProvider cookieProvider;
-	private PlaceController placeController;
+	private PlaceChanger placeChanger;
 	private UserAccountServiceAsync userService;
 	private GlobalApplicationState globalApplicationState;
 	
@@ -31,26 +30,28 @@ public class RegisterAccountPresenter extends AbstractActivity implements Regist
 	public RegisterAccountPresenter(RegisterAccountView view, CookieProvider cookieProvider, UserAccountServiceAsync userService, GlobalApplicationState globalApplicationState){
 		this.view = view;
 		// Set the presenter on the view
-		this.view.setPresenter(this);
 		this.cookieProvider = cookieProvider;
 		this.userService = userService;
 		this.globalApplicationState = globalApplicationState;
+		this.placeChanger = globalApplicationState.getPlaceChanger();
+
+		view.setPresenter(this);
 	}
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
 		// Install the view
 		panel.setWidget(view);
-		this.placeController = globalApplicationState.getPlaceController();
 	}
 
 	@Override
 	public void goTo(Place place) {
-		this.placeController.goTo(place);
+		placeChanger.goTo(place);
 	}
 
 	public void setPlace(RegisterAccount place) {
 		this.place = place;
+		view.setPresenter(this);
 		view.clear();
 		view.showDefault();
 	}

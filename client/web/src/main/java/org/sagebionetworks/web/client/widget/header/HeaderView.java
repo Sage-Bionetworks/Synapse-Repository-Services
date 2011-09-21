@@ -24,6 +24,8 @@ public interface HeaderView extends IsWidget {
 	 */
 	public interface Presenter {
 		UserData getUser();
+
+		void lookupId(String synapseId);
 	}
 
 }

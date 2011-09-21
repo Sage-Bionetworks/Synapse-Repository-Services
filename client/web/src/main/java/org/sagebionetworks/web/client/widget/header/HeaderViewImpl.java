@@ -19,6 +19,15 @@ import org.sagebionetworks.web.client.security.AuthenticationControllerImpl;
 import org.sagebionetworks.web.client.widget.header.Header.MenuItems;
 import org.sagebionetworks.web.shared.users.UserData;
 
+import com.extjs.gxt.ui.client.event.ButtonEvent;
+import com.extjs.gxt.ui.client.event.ComponentEvent;
+import com.extjs.gxt.ui.client.event.Events;
+import com.extjs.gxt.ui.client.event.SelectionListener;
+import com.extjs.gxt.ui.client.util.KeyNav;
+import com.extjs.gxt.ui.client.widget.LayoutContainer;
+import com.extjs.gxt.ui.client.widget.button.Button;
+import com.extjs.gxt.ui.client.widget.form.TextField;
+import com.extjs.gxt.ui.client.widget.layout.HBoxLayout;
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.dom.client.LIElement;
 import com.google.gwt.dom.client.SpanElement;
@@ -27,6 +36,7 @@ import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.Hyperlink;
+import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
@@ -62,12 +72,18 @@ public class HeaderViewImpl extends Composite implements HeaderView {
 	Anchor peopleLink;	// TODO : change to Hyperlink post demo era
 	@UiField 
 	Anchor projectsLink; // TODO : change to Hyperlink post demo era
+	@UiField
+	SimplePanel jumpToPanel;
 		
 	private Presenter presenter;
 	private Map<MenuItems, Element> itemToElement;
 	private AuthenticationController authenticationController;	
 	private IconsImageBundle iconsImageBundle;
 	private GlobalApplicationState globalApplicationState;
+	private LayoutContainer jumpTo;
+	private TextField<String> jumpToField;
+	private Button goButton;
+	
 	
 	@Inject
 	public HeaderViewImpl(Binder binder, AuthenticationControllerImpl authenticationController, SageImageBundle sageImageBundle, IconsImageBundle iconsImageBundle, GlobalApplicationState globalApplicationState) {
@@ -96,6 +112,49 @@ public class HeaderViewImpl extends Composite implements HeaderView {
 			projectsLink.setHref("#" + globalApplicationState.getAppPlaceHistoryMapper().getToken(new ProjectsHome(DisplayUtils.DEFAULT_PLACE_TOKEN)));
 		}
 		
+		// add jump to panel
+		createJumpToPanel();
+		jumpToPanel.clear();
+		jumpToPanel.add(jumpTo);
+		
+		
+	}
+
+	private void createJumpToPanel() {
+		if(jumpTo == null) {
+			HBoxLayout layout = new HBoxLayout();	
+			jumpTo = new LayoutContainer(layout);
+			
+			jumpTo.setWidth(152);
+			
+			jumpToField = new TextField<String>();
+			jumpToField.setEmptyText(DisplayConstants.LABEL_GOTO_SYNAPSE_ID);
+			jumpToField.setWidth(125);
+			jumpTo.add(jumpToField);
+			
+			goButton = new Button();
+			goButton.setText("Go");
+			goButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+				
+				@Override
+				public void componentSelected(ButtonEvent ce) {
+					presenter.lookupId(jumpToField.getValue());
+					jumpToField.clear();
+					jumpToField.setEmptyText(DisplayConstants.LABEL_GOTO_SYNAPSE_ID);
+					jumpToField.repaint();
+				}
+			});
+			jumpTo.add(goButton);
+			
+			// Enter key clicks go
+			new KeyNav<ComponentEvent>(jumpToField) {
+				@Override
+				public void onEnter(ComponentEvent ce) {
+					super.onEnter(ce);
+					goButton.fireEvent(Events.Select);					
+				}
+			};
+		}						
 	}
 	
 	@Override
@@ -125,6 +184,9 @@ public class HeaderViewImpl extends Composite implements HeaderView {
 	@Override
 	public void refresh() {
 		setUser(presenter.getUser());
+		
+		jumpToField.clear();
+		jumpToField.setEmptyText(DisplayConstants.LABEL_GOTO_SYNAPSE_ID);
 	}
 
 	

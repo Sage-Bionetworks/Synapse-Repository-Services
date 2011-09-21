@@ -32,7 +32,6 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 	private ProjectView view;
 	private String projectId;
 	private NodeServiceAsync nodeService;
-	private PlaceController placeController;
 	private PlaceChanger placeChanger;
 	private NodeModelCreator nodeModelCreator;
 	private AuthenticationController authenticationController;
@@ -45,20 +44,14 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 		this.nodeModelCreator = nodeModelCreator;
 		this.authenticationController = authenticationController;
 		this.globalApplicationState = globalApplicationState;
+		this.placeChanger = globalApplicationState.getPlaceChanger();
 		
 		// Set the presenter on the view
-		this.view.setPresenter(this);
+		view.setPresenter(this);
 	}
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
-		this.placeController = globalApplicationState.getPlaceController();
-		this.placeChanger = new PlaceChanger() {			
-			@Override
-			public void goTo(Place place) {
-				placeController.goTo(place);
-			}
-		};		
 		// Install the view
 		panel.setWidget(view);
 	}
@@ -66,6 +59,7 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 	public void setPlace(org.sagebionetworks.web.client.place.Project place) {
 		this.place = place;
 		this.projectId = place.toToken();
+		view.setPresenter(this);
 		
 		// load the project given in the Project Place		
 		loadFromServer();

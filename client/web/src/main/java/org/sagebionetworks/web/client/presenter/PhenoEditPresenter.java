@@ -17,7 +17,6 @@ public class PhenoEditPresenter extends AbstractActivity implements PhenoEditVie
 		
 	private PhenoEdit place;
 	private PhenoEditView view;
-	private PlaceController placeController;
 	private PlaceChanger placeChanger;
 	private GlobalApplicationState globalApplicationState;
 	private String layerId;
@@ -26,26 +25,20 @@ public class PhenoEditPresenter extends AbstractActivity implements PhenoEditVie
 	public PhenoEditPresenter(PhenoEditView view, GlobalApplicationState globalApplicationState){
 		this.view = view;
 		this.globalApplicationState = globalApplicationState;
-		this.view.setPresenter(this);
+		this.placeChanger = globalApplicationState.getPlaceChanger();
+
+		view.setPresenter(this);
 	}
 
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
-		this.placeController = globalApplicationState.getPlaceController();
-		this.placeChanger = new PlaceChanger() {			
-			@Override
-			public void goTo(Place place) {
-				placeController.goTo(place);
-			}
-		};
-
 		// Install the view
 		panel.setWidget(view);
 	}
 
 	public void setPlace(PhenoEdit place) {
 		this.place = place;
-		this.view.setPresenter(this);
+		view.setPresenter(this);
 		
 		layerId = place.toToken();
 		view.setEditorDetails(layerId, "layerName", "layerLink", "datasetLink");

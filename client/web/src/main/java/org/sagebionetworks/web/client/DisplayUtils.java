@@ -1,8 +1,12 @@
 package org.sagebionetworks.web.client;
 
 
+import org.sagebionetworks.web.client.place.Dataset;
 import org.sagebionetworks.web.client.place.Home;
+import org.sagebionetworks.web.client.place.Layer;
 import org.sagebionetworks.web.client.place.LoginPlace;
+import org.sagebionetworks.web.client.place.Project;
+import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.exceptions.BadRequestException;
 import org.sagebionetworks.web.shared.exceptions.ForbiddenException;
 import org.sagebionetworks.web.shared.exceptions.NotFoundException;
@@ -19,6 +23,7 @@ import com.extjs.gxt.ui.client.widget.button.Button;
 import com.extjs.gxt.ui.client.widget.layout.CenterLayout;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.place.shared.Place;
 import com.google.gwt.resources.client.ImageResource;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.FlexTable;
@@ -210,6 +215,26 @@ public class DisplayUtils {
 		Info.display(title, message);
 	}
 
+	public static Place getPlaceForEntity(NodeType type, String id) {
+		Place place;
+		
+		switch (type) {
+		case PROJECT:
+			place = new Project(id);
+			break;
+		case DATASET:
+			place = new Dataset(id);
+			break;
+		case LAYER:
+			place = new Layer(id, null, false);
+			break;
+		default:
+			place = null;
+			break;
+		}
+		
+		return place;
+	}
 	
 	/*
 	 * Private methods

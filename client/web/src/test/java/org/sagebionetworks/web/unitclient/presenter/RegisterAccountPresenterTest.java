@@ -33,9 +33,7 @@ public class RegisterAccountPresenterTest {
 		mockCookieProvider = mock(CookieProvider.class);
 		mockUserService = mock(UserAccountServiceAsync.class);
 		mockGlobalApplicationState = mock(GlobalApplicationState.class);
-		registerAccountPresenter = new RegisterAccountPresenter(mockView, mockCookieProvider, mockUserService, mockGlobalApplicationState);	
-		registerAccountPresenter.setPlace(place);
-		
+		registerAccountPresenter = new RegisterAccountPresenter(mockView, mockCookieProvider, mockUserService, mockGlobalApplicationState);			
 		verify(mockView).setPresenter(registerAccountPresenter);
 	}
 	
@@ -57,8 +55,11 @@ public class RegisterAccountPresenterTest {
 	
 	@Test
 	public void testSetPlace() {
+		reset(mockView);
 		RegisterAccount newPlace = Mockito.mock(RegisterAccount.class);
 		registerAccountPresenter.setPlace(newPlace);
+		
+		verify(mockView).setPresenter(registerAccountPresenter);
 	}
 	
 	@Test

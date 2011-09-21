@@ -43,7 +43,6 @@ import com.google.inject.Inject;
 public class DatasetPresenter extends AbstractActivity implements DatasetView.Presenter{	
 
 	private org.sagebionetworks.web.client.place.Dataset place;
-	private PlaceController placeController; 
 	private PlaceChanger placeChanger;
 	private NodeServiceAsync nodeService;
 	private boolean hasAcceptedLicenseAgreement;
@@ -62,16 +61,17 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 	 * @param datasetService
 	 */
 	@Inject
-	public DatasetPresenter(DatasetView view, NodeServiceAsync nodeService, LicenceServiceAsync licenseService, NodeModelCreator nodeModelCreator, AuthenticationController authenticationController, GlobalApplicationState globalApplicationState) {
+	public DatasetPresenter(DatasetView view, NodeServiceAsync nodeService, LicenceServiceAsync licenseService, NodeModelCreator nodeModelCreator, AuthenticationController authenticationController, final GlobalApplicationState globalApplicationState) {
 		this.view = view;
-		this.view.setPresenter(this);
 		this.nodeService = nodeService;
 		this.licenseService = licenseService;		
 		this.nodeModelCreator = nodeModelCreator;
 		this.authenticationController = authenticationController;
-		this.globalApplicationState = globalApplicationState;
-		
+		this.globalApplicationState = globalApplicationState;		
 		this.hasAcceptedLicenseAgreement = false;
+		this.placeChanger = globalApplicationState.getPlaceChanger();
+
+		view.setPresenter(this);
 	}
 
 	/**
@@ -79,13 +79,6 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 	 */
 	@Override
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
-		this.placeController = globalApplicationState.getPlaceController();		
-		this.placeChanger = new PlaceChanger() {			
-			@Override
-			public void goTo(Place place) {
-				placeController.goTo(place);
-			}
-		};
 		// add the view to the panel
 		panel.setWidget(view);
 		
@@ -98,7 +91,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 	public void setPlace(org.sagebionetworks.web.client.place.Dataset place) {		
 		this.place = place;
 		this.datasetId = place.toToken(); 
-		
+		view.setPresenter(this);
 		refreshFromServer();
 	}
 

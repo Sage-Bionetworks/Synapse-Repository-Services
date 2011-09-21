@@ -6,6 +6,7 @@ import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.DownloadLocation;
 import org.sagebionetworks.web.shared.EULA;
+import org.sagebionetworks.web.shared.EntityTypeResponse;
 import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
 import org.sagebionetworks.web.shared.PagedResults;
@@ -33,6 +34,8 @@ public interface NodeModelCreator {
 	LayerPreview createLayerPreview(String json) throws RestServiceException;
 	
 	DownloadLocation createDownloadLocation(String json) throws RestServiceException;
+	
+	EntityTypeResponse createEntityTypeResponse(String json) throws RestServiceException;
 	
 	/**
 	 * Validates that the json parses and does not throw any RestService exceptions
