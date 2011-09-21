@@ -16,8 +16,10 @@ setMethod(
 		f = "storeEntityFiles",
 		signature = "Layer",
 		definition = function(entity){
-			files <- file.path(entity@location@cacheDir, entity@location@files)
-			if(!all(mk <- file.exists(files)))
+			if(length(entity$files) == 0)
+				stop("Entity has no files to store")
+			
+			if(!all(mk <- file.exists(file.path(entity@location@cacheDir, entity@location@files))))
 				stop("Not all files listed by the entity exist.")
 				
 			## build the outfile name

@@ -232,5 +232,14 @@ unitTestConstructors <-
 	## test the various constructors
 }
 
+unitTestCachedLocationEntity <-
+		function()
+{
+	location <- new("CachedLocation")
+	checkTrue(file.exists(location@cacheDir))
+	
+	layer <- new("Layer")
+	checkTrue(file.exists(layer@location@cacheDir))
+}
 
 

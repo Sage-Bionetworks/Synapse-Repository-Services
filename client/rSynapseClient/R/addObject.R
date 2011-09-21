@@ -17,7 +17,7 @@ setMethod(
 			name <- gsub("\\\"", "", name)
 			assign(name, object, envir = entity@objects)
 			tryCatch(
-					.cacheObject(name, envir = entity@objects),
+					.cacheObject(entity, name),
 					error = function(e){
 						deleteObject(entity, name)
 						stop(e)
@@ -51,7 +51,7 @@ setMethod(
 				stop("name must be a character")
 			assign(name, object, envir = entity@objects)
 			tryCatch(
-					.cacheObject(name, envir = entity@objects),
+					.cacheObject(entity, name),
 					error = function(e){
 						deleteObject(entity, name)
 						stop(e)

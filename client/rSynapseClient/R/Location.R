@@ -35,7 +35,14 @@ setMethod(
 			class(location) <- "CachedLocation"
 			location@cacheDir <- attr(files, "rootDir")
 			files <- gsub(attr(files,"rootDir"), "", as.character(files), fixed=TRUE)
-			location@files <- gsub("^[\\\\/]+","", files)
+			## Don't populate files from the .R_OBJECTS dir
+			regexp <- gsub("[\\.]", "\\\\.", sprintf("^/?%s", .getCache("rObjCacheDir")))
+			indx <- grep(regexp, files)
+			if(length(indx) != 0)
+				files <- files[-indx]
+			location@files <- character()
+			if(length(files) != 0)
+				location@files <- gsub("^[\\\\/]+","", files)
 			location
 		}
 )
@@ -85,6 +92,8 @@ setMethod(
 		signature = "CachedLocation",
 		definition = function(.Object, ...){
 			.Object@cacheDir <- tempfile(pattern="cacheDir")
+			if(!file.exists(.Object@cacheDir))
+				dir.create(.Object@cacheDir, recursive=TRUE)
 			.Object
 		}
 )

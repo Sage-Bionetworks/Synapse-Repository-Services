@@ -215,13 +215,13 @@ setMethod(
 		}
 )
 
-setMethod(
-		f = "$<-",
-		signature = "Layer",
-		definition = function(x, name, value){
-			cat(name,"\n")
-		}
-)
+#setMethod(
+#		f = "$<-",
+#		signature = "Layer",
+#		definition = function(x, name, value){
+#			cat(name,"\n")
+#		}
+#)
 
 
 setMethod(

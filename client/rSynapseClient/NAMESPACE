@@ -32,7 +32,8 @@ exportMethods(
 
 ## entity S4 methods
 exportMethods(
-	storeEntityFiles, 
+	storeEntityFiles,
+	storeEntityObjects,
 	copyEntity, 
 	getEntity, 
 	deleteEntity, 

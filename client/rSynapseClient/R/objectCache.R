@@ -5,66 +5,67 @@
 
 
 .cacheObject <-
-		function(object, envir)
+		function(entity, objectName)
 {
-	destFile <- .generateCacheFileName(object)
+	destFile <- .generateCacheFileName(entity, objectName)
 	if(!file.exists(attr(destFile, "cacheDir")))
 		dir.create(attr(destFile, "cacheDir"), recursive = TRUE)
 
-	save(list = object, envir = envir, file = destFile)
+	save(list = objectName, envir = entity@objects, file = destFile)
 }
 
 .tmpCacheObject <- 
-		function(object)
+		function(entity, objectName)
 {
-	if(!file.exists(.generateCacheFileName(object)))
+	if(!file.exists(.generateCacheFileName(entity, objectName)))
 		stop("source file does not exist")
-	file.rename(.generateCacheFileName(object), .generateTmpCacheFileName(object))
+	file.rename(.generateCacheFileName(entity, objectName), .generateTmpCacheFileName(entity, objectName))
 }
 
 .renameCacheObjectFromTmp <-
-		function(origObject, newObject)
+		function(entity, srcName, destName)
 {
-	file.rename(.generateTmpCacheFileName(origObject), .generateCacheFileName(newObject))
+	file.rename(.generateTmpCacheFileName(entity, srcName), .generateCacheFileName(entity, destName))
 }
 
 .generateCacheFileName <- 
-		function(object, cacheRoot = .getCache("synapseCacheDir"), cacheDir = .getCache("rObjCacheDir"))
+		function(entity, objectName, cacheSubDir = .getCache("rObjCacheDir"))
 {
 	kSuffix <- "rbin"
-	filePath <- file.path(cacheRoot, cacheDir, sprintf("%s.%s", object, kSuffix))
-	attr(filePath, "cacheDir") <- file.path(cacheRoot, cacheDir)
+	filePath <- file.path(entity$cacheDir, cacheSubDir, sprintf("%s.%s", objectName, kSuffix))
+	attr(filePath, "cacheDir") <- file.path(entity$cacheDir, cacheSubDir)
 	filePath
 }
 
 .generateTmpCacheFileName <- 
-		function(object, cacheRoot = .getCache("synapseCacheDir"), cacheDir = .getCache("rObjCacheDir"))
+		function(entity, objectName, cacheSubDir = .getCache("rObjCacheDir"))
 {
 	kSuffix <- "rbin.tmp"
-	filePath <- file.path(cacheRoot, cacheDir, sprintf("%s.%s", object, kSuffix))
-	attr(filePath, "cacheDir") <- file.path(cacheRoot, cacheDir)
+	filePath <- file.path(entity$cacheDir, cacheSubDir, sprintf("%s.%s", objectName, kSuffix))
+	attr(filePath, "cacheDir") <- file.path(entity$cacheDir, cacheSubDir)
 	filePath
 }
 
 .deleteTmpCacheFile <-
-		function(object)
+		function(entity, objectName)
 {
-	unlink(.generateTmpCacheFileName(object))
+	unlink(.generateTmpCacheFileName(entity, objectName))
 }
 
 .deleteCacheFile <-
-		function(object)
+		function(entity, objectName)
 {
-	unlink(.generateCacheFileName(object))
+	unlink(.generateCacheFileName(entity, objectName))
 }
 
 .loadCachedObjects <-
-		function(envir, cacheRoot = .getCache("synapseCacheDir"), cacheDir = .getCache("rObjCacheDir"))
+		function(entity, cacheSubDir = .getCache("rObjCacheDir"))
 {
 	lapply(
-			list.files(file.path(cacheRoot, cacheDir), full.names=T, pattern = "rbin$"),
+			list.files(file.path(entity$cacheDir, cacheSubDir), full.names=T, pattern = "rbin$"),
 			FUN = function(filepath){
-				load(filepath, envir = envir)
+				load(filepath, envir = entity@objects)
 			}
 	)
+	invisible(entity)
 }

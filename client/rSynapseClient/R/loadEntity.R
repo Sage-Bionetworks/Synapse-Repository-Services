@@ -10,6 +10,7 @@ setMethod(
 			if(length(entity@location@files) == 0)
 				entity <- downloadEntity(entity)
 			
+			.loadCachedObjects(entity)
 			if(is.null(annotValue(entity, "format")))
 				return(entity)
 			entity@objects <- switch(annotValue(entity, "format"),

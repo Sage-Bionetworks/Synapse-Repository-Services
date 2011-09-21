@@ -16,7 +16,7 @@ setMethod(
 		definition = function(entity, which){
 			rm(list=which, envir=entity@objects)
 			tryCatch(
-					.deleteCacheFile(which),
+					.deleteCacheFile(entity, which),
 					error = function(e){
 						warning(sprintf("Unable to delete cache file associated with %s\n%s", which, e))
 					},

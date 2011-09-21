@@ -3,27 +3,11 @@
 # Author: matt furia
 ###############################################################################
 
-.setUp <-
-		function()
-{
-	synapseClient:::.setCache("oldSynapseCacheDir", synapseClient:::.getCache("synapseCacheDir"))
-	synapseClient:::.setCache("synapseCacheDir", tempfile())
-}
-
-.tearDown <-
-		function()
-{
-	unlink(synapseClient:::.getCache("synapseCacheDir"), recursive = TRUE)
-	synapseClient:::.setCache("synapseCacheDir", synapseClient:::.getCache("oldSynapseCacheDir"))
-	synapseClient:::.deleteCache("oldSynapseCacheDir")
-}
-
-
 unitTestAddCache <-
 		function()
 {
 	layer <- new(Class="Layer")
-	cacheDir <- file.path(synapseClient:::.getCache("synapseCacheDir"), synapseClient:::.getCache("rObjCacheDir"))
+	cacheDir <- file.path(layer$cacheDir, synapseClient:::.getCache("rObjCacheDir"))
 	
 	object1 <- "foo"
 	addObject(layer, object1)
@@ -38,7 +22,7 @@ unitTestAddCacheMultiple <-
 		function()
 {
 	layer <- new(Class="Layer")
-	cacheDir <- file.path(synapseClient:::.getCache("synapseCacheDir"), synapseClient:::.getCache("rObjCacheDir"))
+	cacheDir <- file.path(layer$cacheDir, synapseClient:::.getCache("rObjCacheDir"))
 	
 	object1 <- "foo"
 	addObject(layer, object1)

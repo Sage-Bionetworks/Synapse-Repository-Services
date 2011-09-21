@@ -1,27 +1,12 @@
-# TODO: Add comment
 # 
-# Author: furia
+# Author: Matt Furia
 ###############################################################################
-.setUp <-
-		function()
-{
-	synapseClient:::.setCache("oldSynapseCacheDir", synapseClient:::.getCache("synapseCacheDir"))
-	synapseClient:::.setCache("synapseCacheDir", tempfile())
-}
-
-.tearDown <-
-		function()
-{
-	unlink(synapseClient:::.getCache("synapseCacheDir"), recursive = TRUE)
-	synapseClient:::.setCache("synapseCacheDir", synapseClient:::.getCache("oldSynapseCacheDir"))
-	synapseClient:::.deleteCache("oldSynapseCacheDir")
-}
 
 unitTestRename <-
 		function()
 {
 	layer <- new(Class="Layer")
-	cacheDir <- file.path(synapseClient:::.getCache("synapseCacheDir"), synapseClient:::.getCache("rObjCacheDir"))
+	cacheDir <- file.path(layer$cacheDir, synapseClient:::.getCache("rObjCacheDir"))
 	
 	object1 <- "foo"
 	addObject(layer, object1)
@@ -38,7 +23,7 @@ unitTestRenameSameName <-
 		function()
 {
 	layer <- new(Class="Layer")
-	cacheDir <- file.path(synapseClient:::.getCache("synapseCacheDir"), synapseClient:::.getCache("rObjCacheDir"))
+	cacheDir <- file.path(layer$cacheDir, synapseClient:::.getCache("rObjCacheDir"))
 	
 	object1 <- "foo"
 	addObject(layer, object1)
@@ -55,7 +40,7 @@ unitTestRenameOverwrite <-
 		function()
 {
 	layer <- new(Class="Layer")
-	cacheDir <- file.path(synapseClient:::.getCache("synapseCacheDir"), synapseClient:::.getCache("rObjCacheDir"))
+	cacheDir <- file.path(layer$cacheDir, synapseClient:::.getCache("rObjCacheDir"))
 	
 	object1 <- "foo"
 	object2 <- "bar"
@@ -76,7 +61,7 @@ unitTestRenameMultiple <-
 		function()
 {
 	layer <- new(Class="Layer")
-	cacheDir <- file.path(synapseClient:::.getCache("synapseCacheDir"), synapseClient:::.getCache("rObjCacheDir"))
+	cacheDir <- file.path(layer$cacheDir, synapseClient:::.getCache("rObjCacheDir"))
 	
 	object1 <- "foo"
 	object2 <- "bar"
@@ -101,7 +86,7 @@ unitTestRenameMultipleOverwriteOne <-
 		function()
 {
 	layer <- new(Class="Layer")
-	cacheDir <- file.path(synapseClient:::.getCache("synapseCacheDir"), synapseClient:::.getCache("rObjCacheDir"))
+	cacheDir <- file.path(layer$cacheDir, synapseClient:::.getCache("rObjCacheDir"))
 	
 	object1 <- "foo"
 	object2 <- "bar"
@@ -125,7 +110,7 @@ unitTestRenameMultipleSwapNames <-
 		function()
 {
 	layer <- new(Class="Layer")
-	cacheDir <- file.path(synapseClient:::.getCache("synapseCacheDir"), synapseClient:::.getCache("rObjCacheDir"))
+	cacheDir <- file.path(layer$cacheDir, synapseClient:::.getCache("rObjCacheDir"))
 	
 	object1 <- "foo"
 	object2 <- "bar"
