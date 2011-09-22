@@ -393,7 +393,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 	public void setDownloadUnavailable() {
 		licensedDownloader.setDownloadUrls(null);
 		downloadPanel.clear();
-		downloadPanel.add(new Html(DisplayUtils.getIconHtml(iconsImageBundle.download16()) + " Download Unavailable"));		
+		downloadPanel.add(new Html(DisplayUtils.getIconHtml(iconsImageBundle.NavigateDown16()) + " Download Unavailable"));		
 	}
 
 	
@@ -418,7 +418,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 	private Anchor setupDownloadLink() {
 		// download link		
 		Anchor downloadLink = new Anchor();
-		downloadLink.setHTML(AbstractImagePrototype.create(iconsImageBundle.download16()).getHTML() + " Download Layer");
+		downloadLink.setHTML(AbstractImagePrototype.create(iconsImageBundle.NavigateDown16()).getHTML() + " Download Layer");
 		downloadLink.addClickHandler(new ClickHandler() {			
 			@Override
 			public void onClick(ClickEvent event) {				

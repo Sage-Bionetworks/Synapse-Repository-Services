@@ -94,6 +94,9 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 	SpanElement accessSpan;
 	@UiField
 	SimplePanel adminPanel;
+	@UiField
+	SimplePanel addDatasetPanel;
+	
 	
 	private Presenter presenter;
 	private PreviewDisclosurePanel previewDisclosurePanel;
@@ -172,7 +175,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		this.isAdministrator = isAdministrator;
 		this.canEdit = canEdit;
 		createAccessPanel(id);
-		createAdminPanel(id);
+		createAdminPanel(id); 
 		
 		Anchor followProject = createFollowProjectButton(iconsImageBundle, followProjectModal);
 		followProjectButtonPanel.clear();
@@ -273,8 +276,26 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 			button.setMenu(createAdminMenu(projectId));
 			button.setHeight(25);
 			adminPanel.add(button);
+			
+			// add dataset button on page			
+			addDatasetPanel.clear();			
+			addDatasetPanel.add(createAddDatasetLink(projectId));
 		}
+	}	
+	
+	private Anchor createAddDatasetLink(final String projectId) {
+		Anchor addDatasetLink = new Anchor();
+		addDatasetLink.setHTML(DisplayUtils.getIconHtml(iconsImageBundle.addSquare16()) + " " + DisplayConstants.BUTTON_ADD_DATASET);
+		addDatasetLink.addClickHandler(new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {
+				showAddDatasetWindow(projectId);
+			}
+		});
+		return addDatasetLink;
 	}
+
+
 
 	private Menu createAdminMenu(final String projectId) {
 		Menu menu = new Menu();		
@@ -282,7 +303,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 
 		// Edit menu options
 		if(canEdit) {		
-			item = new MenuItem("Edit Project Details");
+			item = new MenuItem(DisplayConstants.BUTTON_EDIT_PROJECT_DETAILS);
 			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
 			item.addSelectionListener(new SelectionListener<MenuEvent>() {
 				public void componentSelected(MenuEvent menuEvent) {													
@@ -313,33 +334,11 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 			});
 			menu.add(item);
 			
-			item = new MenuItem("Add Dataset to Project");
+			item = new MenuItem(DisplayConstants.BUTTON_ADD_DATASET_TO_PROJECT);
 			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.documentAdd16()));
 			item.addSelectionListener(new SelectionListener<MenuEvent>() {
 				public void componentSelected(MenuEvent menuEvent) {													
-					final Window window = new Window();  
-					window.setSize(600, 370);
-					window.setPlain(true);
-					window.setModal(true);
-					window.setBlinkModal(true);
-					window.setHeading("Create Dataset");
-					window.setLayout(new FitLayout());				
-					nodeEditor.addCancelHandler(new CancelHandler() {					
-						@Override
-						public void onCancel(CancelEvent event) {
-							window.hide();
-						}
-					});
-					nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
-						@Override
-						public void onPersistSuccess(PersistSuccessEvent event) {
-							window.hide();
-							presenter.refresh();
-						}
-					});
-					nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
-					window.add(nodeEditor.asWidget(NodeType.DATASET, null, projectId), new FitData(4));
-					window.show();
+					showAddDatasetWindow(projectId);
 				}
 			});
 			menu.add(item);
@@ -347,11 +346,11 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		
 		// Administrator Menu Options
 		if(isAdministrator) {
-			item = new MenuItem("Delete Project");
+			item = new MenuItem(DisplayConstants.LABEL_DELETE_PROJECT);
 			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.deleteButton16()));
 			item.addSelectionListener(new SelectionListener<MenuEvent>() {
 				public void componentSelected(MenuEvent menuEvent) {
-					MessageBox.confirm("Delete Project", "Are you sure you want to delete this project?", new Listener<MessageBoxEvent>() {					
+					MessageBox.confirm(DisplayConstants.LABEL_DELETE_PROJECT, "Are you sure you want to delete this project?", new Listener<MessageBoxEvent>() {					
 						@Override
 						public void handleEvent(MessageBoxEvent be) { 					
 							Button btn = be.getButtonClicked();
@@ -385,6 +384,32 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		} else {
 			accessSpan.setInnerHTML("<span class=\"setting_label\">Access: </span><span class=\"setting_level\">"+ DisplayUtils.getIconHtml(icon) +" "+ accessLevel +"</span>");
 		}
+	}
+
+	private void showAddDatasetWindow(final String projectId) {
+		final Window window = new Window();  
+		window.setSize(600, 370);
+		window.setPlain(true);
+		window.setModal(true);
+		window.setBlinkModal(true);
+		window.setHeading(DisplayConstants.TITLE_CREATE_DATASET);
+		window.setLayout(new FitLayout());				
+		nodeEditor.addCancelHandler(new CancelHandler() {					
+			@Override
+			public void onCancel(CancelEvent event) {
+				window.hide();
+			}
+		});
+		nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
+			@Override
+			public void onPersistSuccess(PersistSuccessEvent event) {
+				window.hide();
+				presenter.refresh();
+			}
+		});
+		nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
+		window.add(nodeEditor.asWidget(NodeType.DATASET, null, projectId), new FitData(4));
+		window.show();
 	}
 
 }

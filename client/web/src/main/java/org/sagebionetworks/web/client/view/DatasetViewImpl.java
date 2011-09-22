@@ -98,6 +98,8 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	SpanElement accessSpan;
 	@UiField
 	SimplePanel adminPanel;
+	@UiField
+	SimplePanel addLayerPanel;
 	// DEMO Panels
 	@UiField
 	SimplePanel demoComments;
@@ -347,7 +349,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	}
 
 	private void createAdminPanel(String id) {		
-		if(isAdministrator) {
+		if(canEdit) {
 //			annotationEditor.setPlaceChanger(presenter.getPlaceChanger());
 //			annotationEditor.setResource(NodeType.DATASET, id);
 			
@@ -358,7 +360,27 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 			button.setHeight(25);
 			adminPanel.clear();
 			adminPanel.add(button);
+			
+			
 		}
+		
+		if(canEdit) {
+			// add dataset button on page			
+			addLayerPanel.clear();			
+			addLayerPanel.add(createAddLayerLink(id));			
+		}		
+	}
+
+	private Anchor createAddLayerLink(final String datasetId) {
+		Anchor addLayerLink = new Anchor();
+		addLayerLink.setHTML(AbstractImagePrototype.create(iconsImageBundle.addSquare16()).getHTML() + " " + DisplayConstants.BUTTON_ADD_LAYER);
+		addLayerLink.addClickHandler(new ClickHandler() {			
+			@Override
+			public void onClick(ClickEvent event) {
+				showAddLayerWindow(datasetId);
+			}
+		});
+		return addLayerLink;
 	}
 
 	private Menu createAdminMenu(final String datasetId) {
@@ -397,35 +419,14 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 				}
 			});
 			menu.add(item);
-						
-			item = new MenuItem("Add a Layer to Dataset");
+						 
+			item = new MenuItem(DisplayConstants.BUTTON_ADD_A_LAYER_TO_DATASET);
 			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.documentAdd16()));
 			item.addSelectionListener(new SelectionListener<MenuEvent>() {
 				public void componentSelected(MenuEvent menuEvent) {													
-					final Window window = new Window();  
-					window.setSize(600, 275);
-					window.setPlain(true);
-					window.setModal(true);
-					window.setBlinkModal(true);
-					window.setHeading("Create Layer");
-					window.setLayout(new FitLayout());				
-					nodeEditor.addCancelHandler(new CancelHandler() {					
-						@Override
-						public void onCancel(CancelEvent event) {
-							window.hide();
-						}
-					});
-					nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
-						@Override
-						public void onPersistSuccess(PersistSuccessEvent event) {
-							window.hide();
-							presenter.refresh();
-						}
-					});
-					nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
-					window.add(nodeEditor.asWidget(NodeType.LAYER, null, datasetId), new FitData(4));
-					window.show();
+					showAddLayerWindow(datasetId);
 				}
+
 			});
 			menu.add(item);
 		}
@@ -502,7 +503,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 
 	private Anchor setupDatasetDownloadLink() {
 		Anchor downloadLink = new Anchor();
-		downloadLink.setHTML(AbstractImagePrototype.create(iconsImageBundle.download16()).getHTML() + " Download Dataset");
+		downloadLink.setHTML(DisplayUtils.getIconHtml(iconsImageBundle.NavigateDown16()) + " " + DisplayConstants.BUTTON_DOWNLOAD_DATASET);
 		downloadLink.addClickHandler(new ClickHandler() {			
 			@Override
 			public void onClick(ClickEvent event) {
@@ -521,7 +522,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		seeTermsModal.setHtml(licenseAgreement.getLicenseHtml()); 
 		// download link		
 		Anchor seeTermsAnchor = new Anchor();
-		seeTermsAnchor.setHTML(AbstractImagePrototype.create(iconsImageBundle.documentText16()).getHTML() + " " + DisplayConstants.BUTTON_SEE_TERMS_OF_USE);
+		seeTermsAnchor.setHTML(DisplayUtils.getIconHtml(iconsImageBundle.documentText16()) + " " + DisplayConstants.BUTTON_SEE_TERMS_OF_USE);
 		seeTermsAnchor.addClickHandler(new ClickHandler() {			
 			@Override
 			public void onClick(ClickEvent event) {
@@ -567,5 +568,30 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		return returnStr;
 	}
 
+	private void showAddLayerWindow(final String datasetId) {
+		final Window window = new Window();  
+		window.setSize(600, 275);
+		window.setPlain(true);
+		window.setModal(true);
+		window.setBlinkModal(true);
+		window.setHeading("Create Layer");
+		window.setLayout(new FitLayout());				
+		nodeEditor.addCancelHandler(new CancelHandler() {					
+			@Override
+			public void onCancel(CancelEvent event) {
+				window.hide();
+			}
+		});
+		nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
+			@Override
+			public void onPersistSuccess(PersistSuccessEvent event) {
+				window.hide();
+				presenter.refresh();
+			}
+		});
+		nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
+		window.add(nodeEditor.asWidget(NodeType.LAYER, null, datasetId), new FitData(4));
+		window.show();
+	}
 
 }

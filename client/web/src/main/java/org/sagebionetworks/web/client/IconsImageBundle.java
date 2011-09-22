@@ -50,9 +50,6 @@ public interface IconsImageBundle extends ClientBundle {
 	@Source("images/icons/document-text-16.png")
 	ImageResource documentText16();
 		
-	@Source("images/icons/download-16.png")
-	ImageResource download16();
-
 	@Source("images/icons/exclamation-red-16.png")
 	ImageResource error16();
 	

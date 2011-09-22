@@ -112,6 +112,14 @@ public class DisplayConstants {
 	public static final String TITLE_ADD_ANNOTATION = "Add Annotation";
 	public static final String BUTTON_RETURN_TO_LAYER = "Return to Layer";
 	public static final String LABEL_GOTO_SYNAPSE_ID = "Enter a Synapse Id...";
+	public static final String LABEL_DELETE_PROJECT = "Delete Project";
+	public static final String TITLE_CREATE_DATASET = "Create Dataset";
+	public static final String BUTTON_EDIT_PROJECT_DETAILS = "Edit Project Details";
+	public static final String BUTTON_ADD_DATASET_TO_PROJECT = "Add Dataset to Project";
+	public static final String BUTTON_ADD_DATASET = "Add Dataset";
+	public static final String BUTTON_DOWNLOAD_DATASET = "Download Dataset";
+	public static final String BUTTON_ADD_A_LAYER_TO_DATASET = "Add a Layer to Dataset";
+	public static final String BUTTON_ADD_LAYER = "Add Layer";
 	
 	
 	

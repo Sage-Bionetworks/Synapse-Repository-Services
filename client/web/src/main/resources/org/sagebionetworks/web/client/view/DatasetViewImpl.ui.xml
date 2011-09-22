@@ -87,6 +87,7 @@
 					<span class="header">
 						<span class="icon right">
 							<g:SimplePanel ui:field="downloadPanel" />						
+							<g:SimplePanel ui:field="addLayerPanel" />						
 						</span>
 						<span class="title">Dataset Layers</span>
 						<span class="secondary_text">Select a name to view sample data</span>

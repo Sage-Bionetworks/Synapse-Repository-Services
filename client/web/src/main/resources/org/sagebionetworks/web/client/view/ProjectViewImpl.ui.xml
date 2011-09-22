@@ -72,6 +72,7 @@
 				<div class="data_detail_section">
 					<span class="header">
 						<span class="icon right">
+							<g:SimplePanel ui:field="addDatasetPanel" />						
 						</span>
 						<span class="title">Project Datasets</span>
 						<span class="secondary_text">Select a dataset to view its details</span>
