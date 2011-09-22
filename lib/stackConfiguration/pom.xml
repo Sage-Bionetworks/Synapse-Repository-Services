@@ -64,7 +64,13 @@
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk</artifactId>
 		</dependency>
-	</dependencies>
+
+	    <dependency>
+          <groupId>commons-httpclient</groupId>
+          <artifactId>commons-httpclient</artifactId>
+        </dependency>
+        
+    </dependencies>
 
 	<build>
 		<resources>
