@@ -12,7 +12,6 @@ import org.apache.http.client.ClientProtocolException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
@@ -65,7 +64,7 @@ public class Curation {
 		JSONObject storedLayer = null;
 		JSONObject storedLocation = null;
 
-		Synapse synapse = ConfigHelper.createConfig().createSynapseClient();
+		Synapse synapse = ConfigHelper.createSynapseClient();
 		JSONObject results = synapse
 				.query("select * from layer where layer.parentId == "
 						+ datasetId + " and layer.name == '"
@@ -257,7 +256,7 @@ public class Curation {
 			throws Exception {
 		StringBuilder message = new StringBuilder();
 
-		Synapse synapse = ConfigHelper.createConfig().createSynapseClient();
+		Synapse synapse = ConfigHelper.createSynapseClient();
 		JSONObject layerResults = synapse
 				.query("select * from layer where layer.id == " + layerId);
 		if (0 == layerResults.getInt("totalNumberOfResults")) {
@@ -283,7 +282,7 @@ public class Curation {
 				datasetResults.getJSONArray("results").getJSONObject(0).get(
 						"dataset.name"));
 		message.append(
-				"\n").append(StackConfiguration.getPortalEndpoint()).append("/#Layer:")
+				"\n").append(ConfigHelper.getPortalEndpoint()).append("/#Layer:")
 				.append(layerQueryResult.get("layer.id")).append(";Dataset:")
 				.append(layerQueryResult.get("layer.parentId"));
 		message.append("\n\nLayer\n").append(layerResults.toString(4));

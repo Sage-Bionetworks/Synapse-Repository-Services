@@ -9,9 +9,6 @@ public class StackConstants {
 	
 	static final String S3_PROPERTY_FILENAME_PREFIX = "https://s3.amazonaws.com";
 
-	static final String DEFAULT_PROPERTIES_FILENAME = "/stack.properties";
-	static final String TEMPLATE_PROPERTIES = "/template.properties";
-	
 	static final String STACK_PROPERTY_FILE_URL 	= "org.sagebionetworks.stack.configuration.url";
 	static final String STACK_IAM_ID 				= "org.sagebionetworks.stack.iam.id";
 	static final String STACK_IAM_KEY 				= "org.sagebionetworks.stack.iam.key";

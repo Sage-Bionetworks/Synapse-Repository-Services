@@ -35,10 +35,8 @@ public class TcgaWorkflowDeciderService {
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
-		ConfigHelper configHelper = ConfigHelper.createConfig();
-
 		// Create the client for Simple Workflow Service
-		swfService = configHelper.createSWFClient();
+		swfService = ConfigHelper.createSWFClient();
 
 		// Start Decider Executor Service
 		getTcgaWorkflowDeciderServiceInstance().startDecider();

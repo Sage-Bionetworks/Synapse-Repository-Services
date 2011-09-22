@@ -40,7 +40,7 @@ public class Storage {
 	public static final void doUploadLayerToStorage(String datasetId,
 			String layerId, String localFilepath, String md5) throws Exception {
 
-		Synapse synapse = ConfigHelper.createConfig().createSynapseClient();
+		Synapse synapse = ConfigHelper.createSynapseClient();
 
 		// See if the file is already on S3
 //		JSONObject layer = synapse.getEntity("/layer/" + layerId);

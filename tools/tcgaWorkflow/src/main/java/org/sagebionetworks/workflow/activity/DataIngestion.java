@@ -85,7 +85,7 @@ public class DataIngestion {
 			throws IOException, UnrecoverableException,
 			NoSuchAlgorithmException, HttpClientHelperException {
 
-		String localCacheDir = ConfigHelper.createConfig().getLocalCacheDir();
+		String localCacheDir = ConfigHelper.getLocalCacheDir();
 		String filename;
 		String remoteMd5 = null;
 		try {
