@@ -13,13 +13,18 @@
   </parent>
 
   <groupId>org.sagebionetworks</groupId>
-  <artifactId>downloadTools</artifactId>
-  <packaging>pom</packaging>
+  <artifactId>lib-downloadTools</artifactId>
+  <packaging>jar</packaging>
   <version>${applicationVersion}</version>
   <name>Download Tools</name>
 
   <build>
     <plugins>
+      <!-- Build number generator -->
+      <plugin>
+	<groupId>org.codehaus.mojo</groupId>
+	<artifactId>buildnumber-maven-plugin</artifactId>
+      </plugin>
     </plugins>
   </build>
 

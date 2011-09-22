@@ -10,8 +10,10 @@
 	<artifactId>tools</artifactId>
 	<packaging>pom</packaging>
 	<version>parent-1.0</version>
-    
+	<name>Platform Tools</name>
+	
     <modules>
+      <module>downloadTools</module>
       <module>tcgaWorkflow</module>
       <module>wikiutil</module>
       <module>DatasetMetadataLoader</module>
