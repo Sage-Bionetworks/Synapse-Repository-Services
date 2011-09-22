@@ -11,9 +11,8 @@ public class User implements Base {
 	private String iamUserId;
 	private String iamAccessId;
 	private String iamSecretKey;
+	private Date iamCredsExpirationDate;
 	
-//	public String getType() {return User.class.getName();}
-
 	public String getId() {
 		return id;
 	}
@@ -83,7 +82,18 @@ public class User implements Base {
 	public void setIamSecretKey(String iamSecretKey) {
 		this.iamSecretKey = iamSecretKey;
 	}
-	
+	/**
+	 * @return the iamCredsExpirationDate
+	 */
+	public Date getIamCredsExpirationDate() {
+		return iamCredsExpirationDate;
+	}
+	/**
+	 * @param iamCredsExpirationDate the iamCredsExpirationDate to set
+	 */
+	public void setIamCredsExpirationDate(Date iamCredsExpirationDate) {
+		this.iamCredsExpirationDate = iamCredsExpirationDate;
+	}
 	/**
 	 * Is this a valid user?
 	 * @param user
@@ -105,6 +115,10 @@ public class User implements Base {
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result
 				+ ((iamAccessId == null) ? 0 : iamAccessId.hashCode());
+		result = prime
+				* result
+				+ ((iamCredsExpirationDate == null) ? 0
+						: iamCredsExpirationDate.hashCode());
 		result = prime * result
 				+ ((iamSecretKey == null) ? 0 : iamSecretKey.hashCode());
 		result = prime * result
@@ -140,6 +154,11 @@ public class User implements Base {
 			if (other.iamAccessId != null)
 				return false;
 		} else if (!iamAccessId.equals(other.iamAccessId))
+			return false;
+		if (iamCredsExpirationDate == null) {
+			if (other.iamCredsExpirationDate != null)
+				return false;
+		} else if (!iamCredsExpirationDate.equals(other.iamCredsExpirationDate))
 			return false;
 		if (iamSecretKey == null) {
 			if (other.iamSecretKey != null)

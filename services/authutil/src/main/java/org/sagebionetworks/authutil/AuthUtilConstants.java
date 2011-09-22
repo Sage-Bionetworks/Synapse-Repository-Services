@@ -21,13 +21,6 @@ public class AuthUtilConstants {
 	 * This is the name of the attribute in Crowd for the creation date for a User
 	 */
 	public static final String CREATION_DATE_FIELD = "creationDate";
-
-	/** 
-	 * The date format for the above
-	 * 
-	 */
-	public static final String DATE_FORMAT = "yyyy-MM-dd";
-
 	
 	/**
 	 * Used to set a mock crowd.

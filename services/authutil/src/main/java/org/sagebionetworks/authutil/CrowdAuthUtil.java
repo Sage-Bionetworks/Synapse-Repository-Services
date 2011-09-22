@@ -8,12 +8,9 @@ import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.Security;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,13 +28,13 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import org.apache.commons.codec.binary.Base64;
+import org.joda.time.DateTime;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
-import org.sagebionetworks.StackConfiguration;
-
-import org.apache.commons.codec.binary.Base64;
 
 public class CrowdAuthUtil {
 	private static final Logger log = Logger.getLogger(CrowdAuthUtil.class.getName());
@@ -248,8 +245,7 @@ public class CrowdAuthUtil {
 		
 		// set created date
 		Map<String,Collection<String>> attributes = new HashMap<String,Collection<String>>();
-		DateFormat df = new SimpleDateFormat(AuthUtilConstants.DATE_FORMAT);
-		attributes.put(AuthUtilConstants.CREATION_DATE_FIELD, Arrays.asList(new String[]{df.format(new Date())}));
+		attributes.put(AuthUtilConstants.CREATION_DATE_FIELD, Arrays.asList(new String[]{DateTime.now().toString()}));
 		setUserAttributes(user.getEmail(), attributes);
 	}
 	

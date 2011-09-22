@@ -15,11 +15,6 @@
 	<packaging>war</packaging>
 	<name>Platform Authentication Service</name>
 
-	<!-- repositories> <repository> <id>mvn-gae-plugin-repo</id> <url>http://maven-gae-plugin.googlecode.com/svn/repository/</url> 
-		</repository> </repositories> <pluginRepositories> <pluginRepository> <id>maven-gae-plugin-repo</id> 
-		<name>Maven Google App Engine Repository</name> <url>http://maven-gae-plugin.googlecode.com/svn/repository/</url> 
-		</pluginRepository> </pluginRepositories -->
-
 	<dependencies>
 
 		<dependency>
@@ -91,30 +86,6 @@
 			<artifactId>commons-logging</artifactId>
 		</dependency>
 
-		<!-- GAE libraries for local testing as described here: http://code.google.com/appengine/docs/java/howto/unittesting.html -->
-		<!-- dependency> <groupId>com.google.appengine</groupId> <artifactId>appengine-api-labs</artifactId> 
-			<version>${gae.version}</version> <scope>test</scope> </dependency> <dependency> 
-			<groupId>com.google.appengine</groupId> <artifactId>appengine-api-stubs</artifactId> 
-			<version>${gae.version}</version> <scope>test</scope> </dependency> <dependency> 
-			<groupId>com.google.appengine</groupId> <artifactId>appengine-testing</artifactId> 
-			<version>${gae.version}</version> <scope>test</scope> </dependency -->
-
-		<!-- AWS dependencies -->
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk</artifactId>
-			<version>1.1.5</version>
-		</dependency>
-
-		<!-- TODO this is a dependency of AWS, we should not need to include it 
-			here but the AWS pom did not have sufficient repository settings for this 
-			dependency to be located -->
-		<dependency>
-			<groupId>javax.mail</groupId>
-			<artifactId>mail</artifactId>
-			<version>1.4</version>
-		</dependency>
-    
 		<dependency>
 			<groupId>org.openid4java</groupId>
 			<artifactId>openid4java-consumer</artifactId>
@@ -161,14 +132,6 @@
 					<path>/</path>
 				</configuration>
 			</plugin>
-
-			<!-- The actual maven-gae-plugin. Type "mvn gae:run" to run project, "mvn 
-				gae:deploy" to upload to GAE. -->
-			<!-- plugin> <groupId>net.kindleit</groupId> <artifactId>maven-gae-plugin</artifactId> 
-				<version>0.7.3</version> <dependencies> <dependency> <groupId>net.kindleit</groupId> 
-				<artifactId>gae-runtime</artifactId> <version>${gae.version}</version> <type>pom</type> 
-				<exclusions> <exclusion> <groupId>com.google.appengine.orm</groupId> <artifactId>datanucleus-core</artifactId> 
-				</exclusion> </exclusions> </dependency> </dependencies> </plugin -->
 
 			<!-- Upload application to the appspot automatically, during release:perform -->
 			<!-- plugin> <artifactId>maven-release-plugin</artifactId> <configuration> 
