@@ -158,18 +158,18 @@
 		</dependency>
 
 		<dependency>
-			<groupId>commons-httpclient</groupId>
-			<artifactId>commons-httpclient</artifactId>
-			<version>3.1</version>
-		</dependency>
-
-		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk</artifactId>
 			<version>1.2.7</version>
 		</dependency>
 
-	</dependencies>
+        <dependency>
+          <groupId>org.apache.httpcomponents</groupId>
+          <artifactId>httpclient</artifactId>
+          <version>4.1.2</version>
+        </dependency>
+
+    </dependencies>
 	</dependencyManagement>
 	<!-- Only list globally used plugins in this file -->
 	<build>

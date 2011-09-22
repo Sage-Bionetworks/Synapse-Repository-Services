@@ -111,12 +111,6 @@
 			<artifactId>commons-lang</artifactId>
 		</dependency>
 
-		<!-- HTTPClient -->
-		<dependency>
-			<groupId>commons-httpclient</groupId>
-			<artifactId>commons-httpclient</artifactId>
-		</dependency>
-
 		<!-- Codec -->
 		<dependency>
 			<groupId>commons-codec</groupId>

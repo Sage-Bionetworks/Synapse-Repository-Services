@@ -108,27 +108,6 @@
 			<artifactId>log4j</artifactId>
 		</dependency>
 
-		<!-- AWS dependencies -->
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk</artifactId>
-		</dependency>
-
-		<!-- HTTPClient -->
-		<dependency>
-			<groupId>commons-httpclient</groupId>
-			<artifactId>commons-httpclient</artifactId>
-		</dependency>
-
-		<!-- TODO this is a dependency of AWS, we should not need to include it 
-			here but the AWS pom did not have sufficient repository settings for this 
-			dependency to be located -->
-		<dependency>
-			<groupId>javax.mail</groupId>
-			<artifactId>mail</artifactId>
-			<version>1.4</version>
-		</dependency>
-
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-all</artifactId>

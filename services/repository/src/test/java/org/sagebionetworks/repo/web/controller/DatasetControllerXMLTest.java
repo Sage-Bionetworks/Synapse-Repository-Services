@@ -311,12 +311,6 @@ public class DatasetControllerXMLTest {
 			// '' in servlet with name 'repository'
 			return;
 		}
-		if (helper.isIntegrationTest()) {
-			log.info("Results: " + response.getContentAsString());
-			assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), response
-					.getStatus());
-			return;
-		}
 		fail("something changed!");
 	}
 
@@ -431,12 +425,6 @@ public class DatasetControllerXMLTest {
 			// Could not find acceptable representation
 			return;
 		}
-		if (helper.isIntegrationTest()) {
-			log.info("Results: " + response.getContentAsString());
-			assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), response
-					.getStatus());
-			return;
-		}
 		fail("something changed!");
 	}
 
@@ -461,11 +449,9 @@ public class DatasetControllerXMLTest {
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus());
-		if (!helper.isIntegrationTest()) {
-			// Note that an error page configured via web.xml will actually be
-			// served
-			assertEquals("", response.getContentAsString());
-		}
+		// Note that an error page configured via web.xml will actually be
+		// served
+		assertEquals("", response.getContentAsString());
 	}
 	
 	private int counter = 0;
