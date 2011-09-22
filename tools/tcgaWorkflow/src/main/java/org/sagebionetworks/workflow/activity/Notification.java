@@ -29,11 +29,9 @@ public class Notification {
 	 * @param recipient
 	 */
 	public static void doSnsSubscribeFollower(String topic, String recipient) {
-		ConfigHelper config = ConfigHelper.createConfig();
-
 		log.debug("subscribing to " + topic + " " + recipient);
 
-		AmazonSNS snsClient = config.createSNSClient();
+		AmazonSNS snsClient = ConfigHelper.createSNSClient();
 		SubscribeRequest subscribeRequest = new SubscribeRequest(topic,
 				EMAIL_SNS_PROTOCOL, recipient);
 
@@ -53,9 +51,7 @@ public class Notification {
 	public static void doSnsNotifyFollowers(String topic, String subject,
 			String message) {
 
-		ConfigHelper config = ConfigHelper.createConfig();
-
-		AmazonSNS snsClient = config.createSNSClient();
+		AmazonSNS snsClient = ConfigHelper.createSNSClient();
 		PublishRequest publishRequest = new PublishRequest(topic, message,
 				subject);
 

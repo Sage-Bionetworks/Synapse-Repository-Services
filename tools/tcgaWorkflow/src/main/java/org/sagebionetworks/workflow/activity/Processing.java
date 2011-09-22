@@ -46,6 +46,8 @@ public class Processing {
 
 	private static final String SYNAPSE_USERNAME_KEY = "--username";
 	private static final String SYNAPSE_PASSWORD_KEY = "--password";
+	private static final String AUTH_ENDPOINT_KEY = "--authEndpoint";
+	private static final String REPO_ENDPOINT_KEY = "--repoEndpoint";
 	private static final String INPUT_DATASET_PARAMETER_KEY = "--datasetId";
 	private static final String INPUT_LAYER_PARAMETER_KEY = "--layerId";
 
@@ -124,13 +126,16 @@ public class Processing {
 			String rawLayerId) throws IOException, InterruptedException,
 			UnrecoverableException, JSONException {
 
-		ConfigHelper helper = ConfigHelper.createConfig();
 		String argsDelimiter = (script.matches(R_SCRIPT_REGEXP)) ? R_ARGS_DELIMITER
 				: "";
 
+		
+		// http://sagebionetworks.jira.com/source/browse/PLFM/trunk/tools/tcgaWorkflow/src/main/java/org/sagebionetworks/workflow/curation/TcgaWorkflow.java?r2=3150&r1=3123
 		String scriptInput[] = new String[] { script, argsDelimiter,
-				SYNAPSE_USERNAME_KEY, helper.getSynapseUsername(),
-				SYNAPSE_PASSWORD_KEY, helper.getSynapsePassword(),
+				SYNAPSE_USERNAME_KEY, ConfigHelper.getSynapseUsername(),
+				SYNAPSE_PASSWORD_KEY, ConfigHelper.getSynapsePassword(),
+				AUTH_ENDPOINT_KEY, ConfigHelper.getAuthenticationServiceEndpoint(),
+				REPO_ENDPOINT_KEY, ConfigHelper.getRepositoryServiceEndpoint(),
 				INPUT_DATASET_PARAMETER_KEY, datasetId.toString(),
 				INPUT_LAYER_PARAMETER_KEY, rawLayerId.toString() };
 

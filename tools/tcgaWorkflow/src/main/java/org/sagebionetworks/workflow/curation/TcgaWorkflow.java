@@ -5,7 +5,6 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 
 import org.joda.time.LocalDate;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.workflow.activity.Constants;
 import org.sagebionetworks.workflow.activity.Curation;
 import org.sagebionetworks.workflow.activity.Notification;
@@ -67,8 +66,8 @@ public class TcgaWorkflow {
 	// convenience. We only want to dig through the logs if we need to.
 	private static final int MAX_SCRIPT_OUTPUT = 1024;
 	private static final String NOTIFICATION_SUBJECT = "TCGA Workflow Notification ";
-	private static final String NOTIFICATION_SNS_TOPIC = StackConfiguration
-			.getTcgaWorkflowSnsTopic();
+	private static final String NOTIFICATION_SNS_TOPIC = ConfigHelper
+			.getWorkflowSnsTopic();
 	
 	/**
 	 * @param param
@@ -103,11 +102,6 @@ public class TcgaWorkflow {
 		Value<String> result2 = flow.dispatchNotifyDataProcessed(result1,
 				rawLayerId);
 
-		// HACK ALERT, hard-coded skip for the rest of the workflow until we get
-		// some real analysis scripts in place
-		Settable<String> skipLayerId = new Settable<String>();
-		skipLayerId.set(Constants.WORKFLOW_DONE);
-
 		/**
 		 * Dynamically discover the R scripts to run on this data
 		 */
@@ -129,11 +123,11 @@ public class TcgaWorkflow {
 		Settable<String> stdout = new Settable<String>();
 		Settable<String> stderr = new Settable<String>();
 		Value<String> result3 = flow.dispatchProcessData(result2, script,
-				datasetId, skipLayerId,
+				datasetId, rawLayerId,
 				// machineName,
 				processedLayerId, stdout, stderr);
 
-		flow.dispatchNotifyDataProcessed(result3, skipLayerId); // processedLayerId);
+		flow.dispatchNotifyDataProcessed(result3, processedLayerId);
 
 	}
 

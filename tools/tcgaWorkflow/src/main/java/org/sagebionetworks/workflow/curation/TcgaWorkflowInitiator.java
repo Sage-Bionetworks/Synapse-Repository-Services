@@ -66,8 +66,7 @@ public class TcgaWorkflowInitiator {
 		Synapse synapse;
 
 		DatasetObserver() throws Exception {
-			configHelper = ConfigHelper.createConfig();
-			synapse = configHelper.createSynapseClient();
+			synapse = ConfigHelper.createSynapseClient();
 		}
 
 		public void update(String url) throws Exception {
@@ -132,14 +131,12 @@ public class TcgaWorkflowInitiator {
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
-		ConfigHelper configHelper = ConfigHelper.createConfig();
-
 		// Running Annotation Processor is very important, otherwise it will
 		// treat Workflows and Activities as regular java method calls
 		ActivityAnnotationProcessor.processAnnotations();
 
 		// Create the client for Simple Workflow Service
-		AmazonSimpleWorkflow swfService = configHelper.createSWFClient();
+		AmazonSimpleWorkflow swfService = ConfigHelper.createSWFClient();
 		AsyncWorkflowStartContext.initialize(swfService);
 
 		TcgaWorkflowInitiator initiator = new TcgaWorkflowInitiator();

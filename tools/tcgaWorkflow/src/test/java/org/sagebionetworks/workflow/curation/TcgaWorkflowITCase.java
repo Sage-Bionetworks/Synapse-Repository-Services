@@ -12,7 +12,6 @@ import org.json.JSONObject;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.workflow.UnrecoverableException;
 import org.sagebionetworks.workflow.activity.Constants;
@@ -59,7 +58,7 @@ public class TcgaWorkflowITCase {
 	static public void setUpBeforeClass() throws Exception {
 		String datasetName = "Colon Adenocarcinoma TCGA";
 
-		Synapse synapse = ConfigHelper.createConfig().createSynapseClient();
+		Synapse synapse = ConfigHelper.createSynapseClient();
 		JSONObject results = synapse
 				.query("select * from dataset where dataset.name == '"
 						+ datasetName + "'");
@@ -76,7 +75,7 @@ public class TcgaWorkflowITCase {
 
 	@Test
 	public void testTCGAAbbreviation2Name() throws Exception {
-		assertEquals("Colon Adenocarcinoma TCGA", ConfigHelper.createConfig().getTCGADatasetName("coad"));
+		assertEquals("Colon Adenocarcinoma TCGA", ConfigHelper.getTCGADatasetName("coad"));
 	}
 	
 	/**
@@ -96,7 +95,6 @@ public class TcgaWorkflowITCase {
 	 * @throws Exception
 	 */
 	@Test
-	@Ignore
 	public void testDoCreateExpressionLevel1Metadata() throws Exception {
 		expressionLevel1LayerId = Curation
 				.doCreateSynapseMetadataForTcgaSourceLayer(
@@ -135,13 +133,12 @@ public class TcgaWorkflowITCase {
 	/**
 	 * @throws Exception
 	 */
-	@Ignore
 	@Test
 	public void testRScriptWorkflowSkip() throws Exception {
 
 		ScriptResult scriptResult = null;
 
-		Synapse synapse = ConfigHelper.createConfig().createSynapseClient();
+		Synapse synapse = ConfigHelper.createSynapseClient();
 		JSONObject results = synapse
 				.query("select * from dataset where dataset.name == 'MSKCC Prostate Cancer'");
 		assertEquals(1, results.getInt("totalNumberOfResults"));
@@ -171,7 +168,6 @@ public class TcgaWorkflowITCase {
 	 * @throws Exception
 	 */
 	@Test
-	@Ignore
 	public void testDoDownloadClinicalDataFromTcga() throws Exception {
 
 		clinicalDownloadResult = DataIngestion
@@ -187,8 +183,7 @@ public class TcgaWorkflowITCase {
 	 * @throws Exception
 	 */
 	@Test
-	@Ignore
-	// The download takes too long
+	@Ignore // The download takes too long
 	public void testDoDownloadExpressionLevel1DataFromTcga() throws Exception {
 
 		expressionLevel1DownloadResult = DataIngestion
@@ -205,7 +200,6 @@ public class TcgaWorkflowITCase {
 	 * @throws Exception
 	 */
 	@Test
-	@Ignore
 	public void testDoDownloadExpressionLevel2DataFromTcga() throws Exception {
 
 		expressionLevel2DownloadResult = DataIngestion
@@ -215,40 +209,6 @@ public class TcgaWorkflowITCase {
 				"unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz"));
 
 		assertEquals("33183779e53ce0cfc35f59cc2a762cbd",
-				expressionLevel2DownloadResult.getMd5());
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	@Ignore
-	public void testDoUploadClinicalDataToS3() throws Exception {
-		Storage.doUploadLayerToStorage(datasetId, clinicalLayerId,
-				clinicalDownloadResult.getLocalFilepath(),
-				clinicalDownloadResult.getMd5());
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	@Ignore
-	// the upload takes too long
-	public void testDoUploadExpressionLevel1DataToS3() throws Exception {
-		Storage.doUploadLayerToStorage(datasetId, expressionLevel1LayerId,
-				expressionLevel1DownloadResult.getLocalFilepath(),
-				expressionLevel1DownloadResult.getMd5());
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	@Ignore
-	public void testDoUploadExpressionLevel2DataToS3() throws Exception {
-		Storage.doUploadLayerToStorage(datasetId, expressionLevel2LayerId,
-				expressionLevel2DownloadResult.getLocalFilepath(),
 				expressionLevel2DownloadResult.getMd5());
 	}
 
@@ -288,7 +248,7 @@ public class TcgaWorkflowITCase {
 	@Test
 	public void testDoNotifyFollowers() {
 		try {
-			String topic = StackConfiguration.getTcgaWorkflowSnsTopic();
+			String topic = ConfigHelper.getWorkflowSnsTopic();
 			Notification.doSnsNotifyFollowers(topic,
 					"integration test subject",
 					"integration test message, yay!");
@@ -301,7 +261,6 @@ public class TcgaWorkflowITCase {
 	 * @throws Exception
 	 */
 	@Test
-	@Ignore
 	public void testDoTcgaCrawl() throws Exception {
 
 		class CrawlObserver implements SimpleObserver<String> {
