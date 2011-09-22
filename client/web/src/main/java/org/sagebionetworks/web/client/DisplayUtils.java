@@ -50,6 +50,7 @@ public class DisplayUtils {
 	 * Style names
 	 */
 	public static final String STYLE_NAME_GXT_GREY_BACKGROUND = "gxtGreyBackground";
+	public static final String STYLE_CODE_CONTENT = "codeContent";
 
 	
 	/**
@@ -236,6 +237,11 @@ public class DisplayUtils {
 		return place;
 	}
 	
+	public static String getRClientEntityLoad(String id) {
+		return "# Load in Synapse R Client:<br/>" +  
+			"entity."+ id +" <- getEntity("+ id +")";		
+	}	
+	
 	/*
 	 * Private methods
 	 */
@@ -257,7 +263,6 @@ public class DisplayUtils {
 			return suffix.substring(0,1);
 		}
 		return null;		
-	}	
-
+	}
 	
 }

@@ -50,6 +50,7 @@ import com.extjs.gxt.ui.client.widget.menu.MenuItem;
 import com.extjs.gxt.ui.client.widget.toolbar.ToolBar;
 import com.google.gwt.cell.client.ImageResourceCell;
 import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
+import com.google.gwt.dom.client.DivElement;
 import com.google.gwt.dom.client.SpanElement;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
@@ -87,6 +88,8 @@ public class LayerViewImpl extends Composite implements LayerView {
 	SpanElement titleSpan;
 	@UiField 
 	SpanElement synapseIdSpan;
+	@UiField
+	DivElement rClientCodeDiv;
 	@UiField 
 	SimplePanel previewTablePanel;	
 	@UiField
@@ -236,6 +239,8 @@ public class LayerViewImpl extends Composite implements LayerView {
 		// fill in fields
 		titleSpan.setInnerText(layerName);
 		synapseIdSpan.setInnerText(DisplayConstants.SYNAPSE_ID_PREFIX + id);
+		rClientCodeDiv.setInnerHTML(DisplayUtils.getRClientEntityLoad(id));
+		rClientCodeDiv.setClassName(DisplayUtils.STYLE_CODE_CONTENT);
 			
 		// set description
 		if(overviewText == null) overviewText = ""; 

@@ -100,5 +100,21 @@ h1 {
 	background-color: #e8e8e8;
 }	
 	
-	
+.codeContent {
+    background-color: #F0F0F0;
+    color: #000000;
+    font: 12px/1.4 arial,FreeSans,Helvetica,sans-serif;
+    font-family: Courier,monospace;
+    word-wrap: break-word;
+    overflow: auto;
+    padding: 3px;
+    text-align: left;
+    font-size: 11px;
+    line-height: 13px;
+    text-align: left;
+    
+    border-width: 1px;
+    border: 1px dashed;
+
+}	
 	

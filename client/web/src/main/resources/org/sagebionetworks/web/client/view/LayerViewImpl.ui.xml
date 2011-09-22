@@ -72,6 +72,7 @@
 					<span class="info_text">
 						<g:FlowPanel ui:field="overviewPanel" />
 						<br /><br />
+						<div ui:field="rClientCodeDiv"/>
 					</span>
 					<span style="float:right;">
 						<g:SimplePanel ui:field="annotationsPanel" />

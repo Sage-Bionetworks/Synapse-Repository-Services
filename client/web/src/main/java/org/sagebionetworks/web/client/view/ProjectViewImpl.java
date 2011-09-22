@@ -45,6 +45,7 @@ import com.extjs.gxt.ui.client.widget.layout.FitLayout;
 import com.extjs.gxt.ui.client.widget.menu.Menu;
 import com.extjs.gxt.ui.client.widget.menu.MenuItem;
 import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
+import com.google.gwt.dom.client.DivElement;
 import com.google.gwt.dom.client.SpanElement;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
@@ -73,6 +74,8 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 	SpanElement titleSpan;
 	@UiField 
 	SpanElement synapseIdSpan;
+	@UiField
+	DivElement rClientCodeDiv;	
 	@UiField 
 	SpanElement breadcrumbTitleSpan;
 	@UiField
@@ -183,6 +186,8 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		// fill in fields
 		titleSpan.setInnerText(name);
 		synapseIdSpan.setInnerText(DisplayConstants.SYNAPSE_ID_PREFIX + id);
+		rClientCodeDiv.setInnerHTML(DisplayUtils.getRClientEntityLoad(id));
+		rClientCodeDiv.setClassName(DisplayUtils.STYLE_CODE_CONTENT);
 		breadcrumbTitleSpan.setInnerText(name);
 		
 		// project overview

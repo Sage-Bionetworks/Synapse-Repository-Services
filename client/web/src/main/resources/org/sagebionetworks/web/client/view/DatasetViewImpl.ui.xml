@@ -56,7 +56,7 @@
 					<span class="info_head">
 						<h2>
 							<span ui:field="titleSpan" /><br/>
-							<span ui:field="synapseIdSpan" style="font-size: 60%"/>
+							<span ui:field="synapseIdSpan" style="font-size: 60%"/>							
 						</h2>
 
 						<span class="data_options">
@@ -67,6 +67,7 @@
 					<span class="info_text">
 						<g:FlowPanel ui:field="overviewPanel" />
 						<br /><br />
+						<div ui:field="rClientCodeDiv"/>
 					</span>
 					<span style="float:right;">
 						<g:SimplePanel ui:field="annotationsPanel" />
