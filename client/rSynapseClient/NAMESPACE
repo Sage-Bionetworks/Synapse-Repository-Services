@@ -6,6 +6,8 @@ importFrom(tools, md5sum)
 ## package has a dynamic library
 useDynLib(synapseClient)
 
+export(onWeb)
+
 ## S3 utility methods
 export(
 	synapseResetEndpoints, 
@@ -49,6 +51,7 @@ exportMethods(
 ## methods for managing layer files
 exportMethods(
 	addFile,
+	addDir,
 	deleteFile,
 	moveFile
 ) 

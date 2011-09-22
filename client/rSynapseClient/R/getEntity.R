@@ -88,12 +88,14 @@ setMethod(
 			splits <- strsplit(entity$uri, "/")[[1]]
 			className <- splits[length(splits)-1]
 			className <- sprintf("%s%s", toupper(substr(className, 1, 1)), tolower(gsub("^.", "", className)))
-			tryCatch(
+			entity <- tryCatch(
 				do.call(className, args=list(entity=entity)),
 				error = function(e){
 					SynapseEntity(entity)
 				}
 			)
+			entity@synapseWebUrl <- .buildSynapseUrl(propertyValue(entity, "id"))
+			entity
 		}
 )
 

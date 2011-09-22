@@ -144,7 +144,7 @@ setMethod(
 				cat("\n", files.msg$count, "\n", sep="")
 			if(!is.null(propertyValue(object,"id"))){
 				cat("\nFor complete list of annotations, please use the annotations() function.\n")
-				cat(sprintf("Or view this Entity (Synapse Id %s) on the Synapse website at: %s\n", propertyValue(object, "id"), "https://synapse.sagebase.org"), sep="")
+				cat(sprintf("To view this Entity on the Synapse website use the 'onWeb()' function\nor paste this url into your browser: %s\n", object@synapseWebUrl))
 			}
 		}
 )

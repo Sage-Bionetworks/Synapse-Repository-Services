@@ -103,3 +103,105 @@ unitTestMultipleSlashes <-
 	checkEquals(layer$files[1], sprintf("%s/%s", "foo/bar", gsub("^.+[\\\\//]","",file)))
 	
 }
+
+unitTestAddDirNoPathTwoFiles <-
+		function()
+{
+	dir <- tempfile()
+	dir.create(file.path(dir,"/subdir"), recursive=T)
+	file <- file.path(dir, "/subdir/myFile.rbin")
+	d <- diag(nrow=10, ncol=10)
+	save(d, file=file)
+	
+	file2 <- file.path(dir, "myFile2.rbin")
+	d <- diag(x=2,nrow=10, ncol=10)
+	save(d, file=file2)
+	
+	layer <- new(Class="Layer")
+	layer <- addFile(layer, dir)
+	checkTrue(all(file.path(gsub("^.+[\\\\/]", "", dir), c("subdir/myFile.rbin", "myFile2.rbin")) %in% layer$files))
+	
+}
+
+unitTestAddDirNoPath <-
+		function()
+{
+	dir <- tempfile()
+	file <- file.path(dir, "/subdir/myFile.rbin")
+	dir.create(file.path(dir, "/subdir"), recursive = TRUE)
+	d <- diag(nrow=10, ncol=10)
+	save(d, file=file)
+	
+	layer <- new(Class="Layer")
+	layer <- addFile(layer, dir)
+	checkEquals(layer$files[1], sprintf("%s/%s", gsub("^.+[\\\\/]", "", dir), "subdir/myFile.rbin"))
+	
+}
+
+unitTestAddDirAndFileTwoPaths <-
+		function()
+{
+	layer <- new(Class="Layer")
+	file <- tempfile()
+	d <- diag(nrow=10,ncol=10)
+	save(d, file=file)
+	checkException(addFile(layer, c(tempdir(),file), c("one", "two")))
+}
+
+unitTestTwoFilesOnePath <-
+		function()
+{
+	layer <- new(Class="Layer")
+	file1 <- tempfile()
+	d <- diag(nrow=10,ncol=10)
+	save(d, file=file1)
+	
+	file2 <- tempfile()
+	d <- diag(x=2,nrow=10,ncol=10)
+	save(d, file=file2)
+	path <- "aPath"
+	layer <- addFile(layer, c(file1, file2), path)
+	checkEquals(length(layer$files), 2L)
+	checkTrue(all(file.path(path, gsub("^.+[\\\\/]+", "", c(file1, file2))) %in% layer$files))
+}
+
+unitTestTwoFilesTwoPaths <-
+		function()
+{
+	layer <- new(Class="Layer")
+	file1 <- tempfile()
+	d <- diag(nrow=10,ncol=10)
+	save(d, file=file1)
+	
+	file2 <- tempfile()
+	d <- diag(x=2,nrow=10,ncol=10)
+	save(d, file=file2)
+	path1 <- "aPath"
+	path2 <- "anotherPath"
+
+	layer <- addFile(layer, c(file1, file2), c(path1, path2))
+}
+
+unitTestTwoFilesThreePaths <-
+		function()
+{
+	layer <- new(Class="Layer")
+	checkException(addFile(layer, c("foo", "bar"), c("one", "two", "three")))
+}
+
+unitTestOneFileOneDirTwoPaths <-
+		function()
+{
+	layer <- new(Class="Layer")
+	file1 <- tempfile()
+	d <- diag(nrow=10,ncol=10)
+	save(d, file=file1)
+	
+	file2 <- tempfile()
+	d <- diag(x=2,nrow=10,ncol=10)
+	save(d, file=file2)
+	path1 <- "aPath"
+	path2 <- "anotherPath"
+	checkException(addFile(layer, c(tempdir(), file2), c(path1, path2)))
+}
+

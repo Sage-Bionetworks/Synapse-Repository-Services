@@ -34,11 +34,13 @@ setClass(
 		representation = representation(
 				synapseEntityKind = "character",
 				properties = "list",
-				annotations = "SynapseAnnotation"
+				annotations = "SynapseAnnotation",
+				synapseWebUrl = "character"
 		),
 		prototype = prototype(
 				properties = emptyNamedList,
-				annotations = new(Class="SynapseAnnotation")
+				annotations = new(Class="SynapseAnnotation"),
+				synapseWebUrl = ""
 		)
 )
 

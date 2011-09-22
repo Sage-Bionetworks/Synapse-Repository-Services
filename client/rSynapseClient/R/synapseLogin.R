@@ -68,7 +68,13 @@ synapseLogin <-
 .doTkLogin <-
 		function(username)
 {
-	credentials <- .tkGetCredentials(username)
+	credentials <- tryCatch(
+			.tkGetCredentials(username),
+			error = function(e){
+				.setCache("useTk", FALSE)
+				return(.doTerminalLogin(username))
+			}
+	)
 	if(!is.null(credentials))
 		.doLogin(credentials)
 }

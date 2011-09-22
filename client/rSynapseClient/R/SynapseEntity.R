@@ -23,7 +23,6 @@ setMethod(
 				cat("Version             : ", properties(object)$version, "\n", sep="")
 			
 			cat("\nFor complete list of annotations, please use the annotations() function.\n")
-			cat(sprintf("Or view this Entity (Synapse Id %s) on the Synapse website at: %s\n", propertyValue(object, "id"), "https://synapse.sagebase.org"), sep="")
 			
 		}
 )
@@ -315,6 +314,7 @@ setMethod(
 							warning("Unable to retrieve annotations for entity.")
 						}
 				)
+				s4Entity@synapseWebUrl <- .buildSynapseUrl(propertyValue(s4Entity, "id"))
 			}
 			s4Entity@annotations<- annotations
 			s4Entity
