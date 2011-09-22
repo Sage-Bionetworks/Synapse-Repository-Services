@@ -28,6 +28,9 @@ import com.amazonaws.services.identitymanagement.model.CreateAccessKeyResult;
 import com.amazonaws.services.identitymanagement.model.CreateUserRequest;
 import com.amazonaws.services.identitymanagement.model.GetUserRequest;
 import com.amazonaws.services.identitymanagement.model.NoSuchEntityException;
+import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
+import com.amazonaws.services.securitytoken.model.GetFederationTokenRequest;
+import com.amazonaws.services.securitytoken.model.GetFederationTokenResult;
 
 /**
  * This utility class holds methods for dealing with pre-signed S3 urls and IAM
@@ -43,30 +46,37 @@ public class LocationHelpersImpl implements LocationHelper {
 	@Autowired
 	UserDAO userDAO;
 
+	// http://docs.amazonwebservices.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/securitytoken/model/GetFederationTokenRequest.html#setName(java.lang.String)
+	private static final int MAX_FEDERATED_NAME_LENGTH = 32;
+	// http://docs.amazonwebservices.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/identitymanagement/model/CreateUserRequest.html#setUserName(java.lang.String)
+	private static final int MAX_IAM_USERNAME_LENGTH = 128;
+
 	private static final int READ_ACCESS_EXPIRY_MINUTES = StackConfiguration
 			.getS3ReadAccessExpiryMinutes();
 	private static final int WRITE_ACCESS_EXPIRY_MINUTES = StackConfiguration
 			.getS3WriteAccessExpiryMinutes();
+	private static final int STS_SESSION_DURATION_SECONDS = StackConfiguration
+			.getStsSessionDurationHours() * 3600;
 	private static final String S3_DOMAIN = "s3.amazonaws.com";
 	private static final String S3_BUCKET = StackConfiguration.getS3Bucket();
-	private static final String S3_URL_PREFIX = "https://" + S3_DOMAIN + "/" + S3_BUCKET;
+	private static final String S3_URL_PREFIX = "https://" + S3_DOMAIN + "/"
+			+ S3_BUCKET;
 	private static final String IAM_S3_GROUP = StackConfiguration
 			.getS3IamGroup();
 	private static final String STACK = StackConfiguration.getStack();
 	private static final String IAM_USERNAME_PREFIX = STACK + "-";
+	private static final String DATA_POLICY = "{\"Statement\": [{\"Effect\": \"Allow\", \"Action\": [\"s3:GetObject\",\"s3:GetObjectVersion\",\"s3:PutObject\",\"s3:PutObjectVersion\"],\"Resource\": \"arn:aws:s3:::"
+			+ S3_BUCKET + "/*\"}]}";
+
+	private static Boolean useFederatedIamUsersLaunchFlag = StackConfiguration
+			.getUseFederatedIamUsersLaunchFlag();
+
 	private Boolean hasSanityBeenChecked = false;
 
 	@Autowired
-	private AmazonIdentityManagementFactory iamClientFactory;
-
-	private AmazonIdentityManagement getIamClient() {
-		return iamClientFactory.getAmazonIdentityManagement();
-	}
+	private AmazonClientFactory amazonClientFactory;
 
 	/**
-	 * John, do you want to define an interface for classes to implement that
-	 * want to have their configuration checked upon start up?
-	 * 
 	 * This throws DatastoreException. It could throw another exception if that
 	 * made more sense. The most important thing is that it bubbles back to
 	 * clients as a 5XX "our fault" error instead of a 4XX "user error"
@@ -82,10 +92,9 @@ public class LocationHelpersImpl implements LocationHelper {
 			throw new DatastoreException("Invalid configuration: stack name "
 					+ STACK + " does not match S3 bucket " + S3_BUCKET);
 		}
-
 	}
 
-	public void sanityCheckConfiguration() throws DatastoreException {
+	private void sanityCheckConfiguration() throws DatastoreException {
 		// Dev Note: this is idempotent and therefore does not need to be
 		// threadsafe
 		if (hasSanityBeenChecked) {
@@ -135,8 +144,8 @@ public class LocationHelpersImpl implements LocationHelper {
 	 * http://s3.amazonaws.com/doc/s3-developer-guide/RESTAuthentication.html
 	 */
 	@Override
-	public String createS3Url(String userId, String s3key, String md5, String contentType)
-			throws DatastoreException, NotFoundException {
+	public String createS3Url(String userId, String s3key, String md5,
+			String contentType) throws DatastoreException, NotFoundException {
 
 		// Get the credentials with which to sign the request
 		AWSCredentials creds = getCredentialsForUser(userId);
@@ -193,8 +202,7 @@ public class LocationHelpersImpl implements LocationHelper {
 		}
 
 		StringBuilder presignedUrl = new StringBuilder();
-		presignedUrl.append(S3_URL_PREFIX).append(s3key)
-				.append("?");
+		presignedUrl.append(S3_URL_PREFIX).append(s3key).append("?");
 		presignedUrl.append("Expires").append("=").append(expirationInSeconds)
 				.append("&");
 		presignedUrl.append("AWSAccessKeyId").append("=").append(
@@ -212,40 +220,103 @@ public class LocationHelpersImpl implements LocationHelper {
 		// ensure that our invariates hold true
 		sanityCheckConfiguration();
 
-		// Append the stack name to the IAM username for prod vs. test isolation
-		// since we cannot ensure that folks do not use the same user name on
-		// various stacks.
-		String iamUserId = IAM_USERNAME_PREFIX + userId;
-
-		// TODO note that we have two instances of Crowd but N stacks. It would
-		// be better to have one Crowd per stack. If that really is not doable,
-		// we may need to make multiple slots for AWS credentials in the User
-		// model object stored in crowd.
-
 		// Check whether we already have IAM credentials stored for this user
 		// and return them if we do
 		User user = userDAO.getUser(userId);
 		if (null != user.getIamAccessId() && null != user.getIamSecretKey()) {
-			
-			if (!iamUserId.equals(user.getIamUserId())) {
-				throw new DatastoreException("IAM username " + iamUserId
+
+			if (!user.getIamUserId().startsWith(IAM_USERNAME_PREFIX)) {
+				// TODO note that we have two instances of Crowd but N stacks.
+				// It would
+				// be better to have one Crowd per stack. If that really is not
+				// doable,
+				// we may need to make multiple slots for AWS credentials in the
+				// User
+				// model object stored in crowd.
+				throw new DatastoreException("IAM username prefix "
+						+ IAM_USERNAME_PREFIX
 						+ " does not match the one stored in Crowd "
 						+ user.getIamUserId());
 			}
 
-			return new BasicAWSCredentials(user.getIamAccessId(), user
-					.getIamSecretKey());
+			if (!LocationHelpersImpl.useFederatedIamUsersLaunchFlag) {
+				return new BasicAWSCredentials(user.getIamAccessId(), user
+						.getIamSecretKey());
+			}
+
+			// Determine whether the credentials are expired
+			DateTime expiresTime = (null != user.getIamCredsExpirationDate()) ? new DateTime(
+					user.getIamCredsExpirationDate())
+					: DateTime.now();
+
+			if (expiresTime.isAfterNow()) {
+				return new BasicAWSCredentials(user.getIamAccessId(), user
+						.getIamSecretKey());
+			}
 		}
+
+		if (!LocationHelpersImpl.useFederatedIamUsersLaunchFlag) {
+			return createNewIamUser(user);
+		}
+
+		return createFederatedIamUser(user);
+	}
+
+	private BasicAWSCredentials createFederatedIamUser(User user)
+			throws DatastoreException {
+		// Append the stack name to the federated username for prod vs. test
+		// isolation
+		// since we cannot ensure that folks do not use the same user name on
+		// various stacks.
+		String federatedUserId = IAM_USERNAME_PREFIX + user.getUserId();
+		if (MAX_FEDERATED_NAME_LENGTH < federatedUserId.length()) {
+			federatedUserId = federatedUserId.substring(0,
+					MAX_FEDERATED_NAME_LENGTH);
+		}
+
+		AWSSecurityTokenService client = amazonClientFactory
+				.getAWSSecurityTokenServiceClient();
+
+		GetFederationTokenRequest request = new GetFederationTokenRequest();
+		request.setName(federatedUserId);
+		request.setDurationSeconds(STS_SESSION_DURATION_SECONDS);
+		request.setPolicy(DATA_POLICY);
+		GetFederationTokenResult result = client.getFederationToken(request);
+
+		// TODO store them in crowd WHEN this implementation is complete, its
+		// not complete yet per PLFM-599, it should be similar to the way we
+		// store IAM user creds except
+//		user.setIamUserId(federatedUserId);
+//		user.setIamCredsExpirationDate(DateTime.now().plusSeconds(
+//				STS_SESSION_DURATION_SECONDS).toDate());
+
+			return new BasicAWSCredentials(result.getCredentials().getAccessKeyId(),
+					result.getCredentials().getSecretAccessKey());
+	}
+
+	private BasicAWSCredentials createNewIamUser(User user)
+			throws DatastoreException {
+
+		// Append the stack name to the IAM username for prod vs. test isolation
+		// since we cannot ensure that folks do not use the same user name on
+		// various stacks.
+		String iamUserId = IAM_USERNAME_PREFIX + user.getUserId();
+		if (MAX_IAM_USERNAME_LENGTH < iamUserId.length()) {
+			iamUserId = iamUserId.substring(0, MAX_IAM_USERNAME_LENGTH);
+		}
+
+		AmazonIdentityManagement client = amazonClientFactory
+				.getAmazonIdentityManagementClient();
 
 		// Make a new IAM user, if needed
 		try {
 			GetUserRequest request = new GetUserRequest();
 			// If we can get the user, then we know the IAM user exists
-			getIamClient().getUser(request.withUserName(iamUserId));
+			client.getUser(request.withUserName(iamUserId));
 		} catch (NoSuchEntityException ex) {
 			// We need to make a new IAM user
 			CreateUserRequest request = new CreateUserRequest();
-			getIamClient().createUser(request.withUserName(iamUserId));
+			client.createUser(request.withUserName(iamUserId));
 		}
 
 		// Add the user to the right IAM group (even if they were already added
@@ -253,7 +324,7 @@ public class LocationHelpersImpl implements LocationHelper {
 		AddUserToGroupRequest groupRequest = new AddUserToGroupRequest();
 		groupRequest.setGroupName(IAM_S3_GROUP);
 		groupRequest.setUserName(iamUserId);
-		getIamClient().addUserToGroup(groupRequest);
+		client.addUserToGroup(groupRequest);
 
 		// Dev Note: if we make mistakes and somehow fail
 		// to persist the credentials for the same IAM user twice, on the third
@@ -265,12 +336,11 @@ public class LocationHelpersImpl implements LocationHelper {
 
 		// Make new credentials
 		CreateAccessKeyRequest request = new CreateAccessKeyRequest();
-		CreateAccessKeyResult result = getIamClient().createAccessKey(
-				request.withUserName(iamUserId));
+		CreateAccessKeyResult result = client.createAccessKey(request
+				.withUserName(iamUserId));
 
 		// And store them
 		try {
-			user = userDAO.getUser(userId);
 			user.setIamUserId(iamUserId);
 			user.setIamAccessId(result.getAccessKey().getAccessKeyId());
 			user.setIamSecretKey(result.getAccessKey().getSecretAccessKey());
@@ -291,7 +361,13 @@ public class LocationHelpersImpl implements LocationHelper {
 				.getIamSecretKey());
 	}
 
-	public static void main(String args[]) throws Exception {
+	/**
+	 * Quick tool for base64 encoding a string by hand
+	 * 
+	 * @param args
+	 * @throws Exception
+	 */
+	public static void main(final String args[]) throws Exception {
 		// TODO find a more direct way to go from hex to base64
 		byte[] encoded = Base64.encodeBase64(Hex.decodeHex(args[0]
 				.toCharArray()));
@@ -301,7 +377,7 @@ public class LocationHelpersImpl implements LocationHelper {
 
 	@Override
 	public String getS3KeyFromS3Url(String s3Url) {
-		if(s3Url.startsWith(S3_URL_PREFIX)) {
+		if (s3Url.startsWith(S3_URL_PREFIX)) {
 			return s3Url.substring(S3_URL_PREFIX.length(), s3Url.indexOf("?"));
 		}
 		return s3Url;

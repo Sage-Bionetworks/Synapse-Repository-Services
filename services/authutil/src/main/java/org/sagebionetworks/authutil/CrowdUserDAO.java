@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -61,11 +62,13 @@ public class CrowdUserDAO implements UserDAO {
 	@Override
 	public void update(User dto) throws DatastoreException {
 		Map<String,Collection<String>> userAttributes = new HashMap<String,Collection<String>>();
-		DateFormat df = new SimpleDateFormat(AuthUtilConstants.DATE_FORMAT);
-		if (dto.getCreationDate()!=null) userAttributes.put(AuthUtilConstants.CREATION_DATE_FIELD, Arrays.asList(new String[]{df.format(dto.getCreationDate())}));
+		if (dto.getCreationDate()!=null) userAttributes.put(AuthUtilConstants.CREATION_DATE_FIELD, 
+				Arrays.asList(new String[]{new DateTime(dto.getCreationDate()).toString()}));
 		if (dto.getIamUserId()!=null) userAttributes.put(IAM_USER_ID_FIELD, Arrays.asList(new String[]{dto.getIamUserId()}));
 		if (dto.getIamAccessId()!=null) userAttributes.put(IAM_ACCESS_ID_FIELD, Arrays.asList(new String[]{dto.getIamAccessId()}));
 		if (dto.getIamSecretKey()!=null) userAttributes.put(IAM_SECRET_KEY_FIELD, Arrays.asList(new String[]{dto.getIamSecretKey()}));
+		if (dto.getIamCredsExpirationDate()!=null) userAttributes.put(IAM_EXPIRATION_FIELD, 
+				Arrays.asList(new String[]{new DateTime(dto.getIamCredsExpirationDate()).toString()}));
 		try {
 			crowdAuthUtil().setUserAttributes(dto.getUserId(), userAttributes);
 		} catch (IOException e) {
@@ -84,6 +87,7 @@ public class CrowdUserDAO implements UserDAO {
 	private static final String IAM_USER_ID_FIELD = "iamUserId";
 	private static final String IAM_ACCESS_ID_FIELD = "iamAccessId";
 	private static final String IAM_SECRET_KEY_FIELD = "iamSecretKey";
+	private static final String IAM_EXPIRATION_FIELD = "iamCredsExpirationDate";
 	
 	private CrowdAuthUtil cau = null;
 	
@@ -111,26 +115,15 @@ public class CrowdUserDAO implements UserDAO {
 		}
 		Collection<String> values;
 		values = userAttrValues.get(AuthUtilConstants.CREATION_DATE_FIELD);
-
-		DateFormat df = new SimpleDateFormat(AuthUtilConstants.DATE_FORMAT);
-		
-		if (values!=null && values.size()>0) {
-			String dateString = values.iterator().next();
-			if (dateString!=null && dateString.length()>0) {
-				try {
-					Date date = df.parse(dateString);
-					user.setCreationDate(date);
-				} catch (ParseException dfe) {
-					throw new DatastoreException(dfe);
-				}
-			}
-		}
+		if (values!=null && values.size()>0) user.setCreationDate(new DateTime(values.iterator().next()).toDate());
 		values = userAttrValues.get(IAM_USER_ID_FIELD);
 		if (values!=null && values.size()>0) user.setIamUserId(values.iterator().next());
 		values = userAttrValues.get(IAM_ACCESS_ID_FIELD);
 		if (values!=null && values.size()>0) user.setIamAccessId(values.iterator().next());
 		values = userAttrValues.get(IAM_SECRET_KEY_FIELD);
 		if (values!=null && values.size()>0) user.setIamSecretKey(values.iterator().next());
+		values = userAttrValues.get(IAM_EXPIRATION_FIELD);
+		if (values!=null && values.size()>0) user.setIamCredsExpirationDate(new DateTime(values.iterator().next()).toDate());
 		
 		return user;
 	}

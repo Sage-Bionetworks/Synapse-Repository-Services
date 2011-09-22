@@ -8,8 +8,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.crypto.BadPaddingException;
-
 import org.apache.log4j.Logger;
 
 /**
@@ -36,7 +34,6 @@ public class StackConfiguration {
 	private static Properties defaultStackProperties = null;
 	private static Properties stackPropertyOverrides = null;
 	private static Properties requiredProperties = null;
-	private static String stack = null;
 	private static String propertyFileUrl = null;
 	
 	static {
@@ -299,6 +296,10 @@ public class StackConfiguration {
 	public static Integer getS3WriteAccessExpiryMinutes() {
 		return Integer.valueOf(getProperty("org.sagebionetworks.s3.writeAccessExpiryMinutes"));
 	}
+	
+	public static Integer getStsSessionDurationHours() {
+		return Integer.valueOf(getProperty("org.sagebionetworks.sts.sessionDurationHours"));
+	}
     
     public static String getTcgaWorkflowSnsTopic() {
 		return getProperty("org.sagebionetworks.sns.topic.tcgaworkflow");
@@ -466,5 +467,9 @@ public class StackConfiguration {
  	 */
 	public static String getIntegrationTestUserTwoPassword() {
 		return getProperty("org.sagebionetworks.integration.test.password.two");
+	}
+	
+	public static Boolean getUseFederatedIamUsersLaunchFlag() {
+		return Boolean.valueOf(getProperty("org.sagebionetowrks.launchFlags.useFederatedIamUsers"));
 	}
 }
