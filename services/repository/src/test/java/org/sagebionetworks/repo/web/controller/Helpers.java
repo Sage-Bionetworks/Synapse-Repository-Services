@@ -72,7 +72,6 @@ public class Helpers {
 	private String userId;
 	private UserInfo userInfo;
 	private LinkedList<TestStateItem> testState;
-	private Boolean isIntegrationTest = false;
 
 	@Autowired
 	public UserProvider testUserProvider;
@@ -94,16 +93,6 @@ public class Helpers {
 		UserGroup group = testUserProvider.getIdentifiedUserGroup();
 		return "{\"groupName\":\""+group.getName()+"\", \"accessType\":[\"READ\", \"WRITE\"]}";
 	}
-	/**
-	 * Default constructor reads optional system properties to change this from
-	 * a unit test to an integration test INTEGRATION_TEST_ENDPOINT and
-	 * SERVLET_PREFIX
-	 */
-	public Helpers() {
-		integrationTestEndpoint = System
-				.getProperty("INTEGRATION_TEST_ENDPOINT");
-		servletPrefix = System.getProperty("SERVLET_PREFIX");
-	}
 
 	/**
 	 * @return the URI prefix of the servlet being tested
@@ -113,41 +102,26 @@ public class Helpers {
 	}
 
 	/**
-	 * @return whether or not the current scenario is an integration test
-	 */
-	public Boolean isIntegrationTest() {
-		return isIntegrationTest;
-	}
-
-	/**
 	 * Setup up our mock servlet
 	 * 
 	 * @return the servlet
 	 * @throws Exception
 	 */
 	public HttpServlet setUp() throws Exception {
-		if (null != integrationTestEndpoint) {
-			isIntegrationTest = true;
-			servlet = new IntegrationTestMockServlet(integrationTestEndpoint);
-			if (null == servletPrefix) {
-				servletPrefix = DEFAULT_SERVLET_PREFIX;
-			}
-		} else {
-			servletPrefix = "";
-			// Create a Spring MVC DispatcherServlet so that we can test our URL
-			// mapping, request format, response format, and response status
-			// code.
-			MockServletConfig servletConfig = new MockServletConfig(
-					"repository");
-			servletConfig.addInitParameter("contextConfigLocation",
-					"classpath:test-context.xml");
-			servlet = new DispatcherServlet();
-			try {
-				servlet.init(servletConfig);
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw e;
-			}
+		servletPrefix = "";
+		// Create a Spring MVC DispatcherServlet so that we can test our URL
+		// mapping, request format, response format, and response status
+		// code.
+		MockServletConfig servletConfig = new MockServletConfig(
+		"repository");
+		servletConfig.addInitParameter("contextConfigLocation",
+		"classpath:test-context.xml");
+		servlet = new DispatcherServlet();
+		try {
+			servlet.init(servletConfig);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
 		}
 
 		useAdminUser();

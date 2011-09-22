@@ -65,9 +65,10 @@
 			<artifactId>aws-java-sdk</artifactId>
 		</dependency>
 
-	    <dependency>
-          <groupId>commons-httpclient</groupId>
-          <artifactId>commons-httpclient</artifactId>
+        <dependency>
+          <groupId>org.apache.httpcomponents</groupId>
+          <artifactId>httpclient</artifactId>
+          <scope>runtime</scope>
         </dependency>
         
     </dependencies>
