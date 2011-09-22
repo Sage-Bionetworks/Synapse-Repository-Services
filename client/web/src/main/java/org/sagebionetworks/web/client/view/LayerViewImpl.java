@@ -403,6 +403,7 @@ public class LayerViewImpl extends Composite implements LayerView {
 		staticTable.clear();
 		downloadPanel.clear();
 		previewDownload.clear();
+		rClientCodeDiv.setInnerHTML("");
 	}
 
 	@Override

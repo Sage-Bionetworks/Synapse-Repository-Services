@@ -216,6 +216,7 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 	 */
 	private void clear() {
 		titleSpan.setInnerText("");
+		rClientCodeDiv.setInnerHTML("");
 //		rightFlexTable.clear();
 //		rightFlexTable.removeAllRows();
 		adminPanel.clear();

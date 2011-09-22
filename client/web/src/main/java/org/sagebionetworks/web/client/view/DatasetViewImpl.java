@@ -339,6 +339,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	 */
 	private void clear() {
 		titleSpan.setInnerText("");
+		rClientCodeDiv.setInnerHTML("");
 //		middleFlexTable.clear();
 //		middleFlexTable.removeAllRows();
 //		rightFlexTable.clear();
