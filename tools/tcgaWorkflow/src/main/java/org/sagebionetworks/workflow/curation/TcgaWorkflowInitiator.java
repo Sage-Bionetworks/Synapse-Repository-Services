@@ -8,9 +8,9 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
-import org.sagebionetworks.workflow.activity.Crawling;
+import org.sagebionetworks.utils.WebCrawler;
+import org.sagebionetworks.utils.SimpleObserver;
 import org.sagebionetworks.workflow.activity.Curation;
-import org.sagebionetworks.workflow.activity.SimpleObserver;
 
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotations.ActivityAnnotationProcessor;
@@ -97,10 +97,10 @@ public class TcgaWorkflowInitiator {
 				JSONObject datasetQueryResult = results.getJSONArray("results")
 						.getJSONObject(0);
 				String datasetId = datasetQueryResult.getString("dataset.id");
-				log.debug("Crawling dataset " + datasetName + "("
+				log.debug("WebCrawler dataset " + datasetName + "("
 						+ datasetQueryResult.getString("dataset.id")
 						+ ") at url " + url);
-				Crawling archiveCrawler = new Crawling();
+				WebCrawler archiveCrawler = new WebCrawler();
 				ArchiveObserver observer = new ArchiveObserver();
 				archiveCrawler.addObserver(observer);
 				archiveCrawler.doCrawl(url, true);
@@ -120,7 +120,7 @@ public class TcgaWorkflowInitiator {
 	 * interested
 	 */
 	void initiateWorkflowTasks() throws Exception {
-		Crawling datasetsCrawler = new Crawling();
+		WebCrawler datasetsCrawler = new WebCrawler();
 		DatasetObserver observer = new DatasetObserver();
 		datasetsCrawler.addObserver(observer);
 		datasetsCrawler.doCrawl(TCGA_REPOSITORY, false);

@@ -1,4 +1,4 @@
-package org.sagebionetworks.workflow.activity;
+package org.sagebionetworks.workflow;
 
 /**
  * A class to hold constants relevant to workflow activities

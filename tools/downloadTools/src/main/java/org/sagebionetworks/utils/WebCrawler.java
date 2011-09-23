@@ -1,4 +1,4 @@
-package org.sagebionetworks.workflow.activity;
+package org.sagebionetworks.utils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,7 +9,6 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.sagebionetworks.utils.HttpClientHelper;
 
 /**
  * Workflow activities relevant to crawling data sources to look for new data.
@@ -17,9 +16,9 @@ import org.sagebionetworks.utils.HttpClientHelper;
  * @author deflaux
  * 
  */
-public class Crawling {
+public class WebCrawler {
 
-	private static final Logger log = Logger.getLogger(Crawling.class.getName());
+	private static final Logger log = Logger.getLogger(WebCrawler.class.getName());
 
 	private List<SimpleObserver<String>> observers = new ArrayList<SimpleObserver<String>>();
 
@@ -44,7 +43,7 @@ public class Crawling {
 		//
 		while (!urlsToCrawl.isEmpty()) {
 			String url = urlsToCrawl.take();
-			log.debug("Crawling url: " + url);
+			log.debug("WebCrawler url: " + url);
 
 			String page = null;
 			try {
@@ -100,7 +99,7 @@ public class Crawling {
 	 * @throws Exception 
 	 */
 	public static void doCrawl(SimpleObserver<String> observer, String startUrl, Boolean descend) throws Exception {
-		Crawling crawler = new Crawling();
+		WebCrawler crawler = new WebCrawler();
 		crawler.addObserver(observer);
 		crawler.doCrawl(startUrl, descend);
 	}

@@ -17,45 +17,22 @@
 	<name>synapseJavaClient</name>
 
 	<dependencies>
-		<!-- JSON -->
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>20080701</version>
-		</dependency>
-
-		<!-- HTTPClient -->
-		<dependency>
-			<groupId>commons-httpclient</groupId>
-			<artifactId>commons-httpclient</artifactId>
-			<version>3.1</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpclient</artifactId>
-		</dependency>
-
-
-		<!-- Logging dependencies -->
-		<dependency>
-			<groupId>log4j</groupId>
-			<artifactId>log4j</artifactId>
-			<version>1.2.14</version>
-		</dependency>
-
-    <!-- Logging dependencies -->
-    <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
-    </dependency>
+      
+	  <dependency>
+		<groupId>org.sagebionetworks</groupId>
+        <artifactId>lib-downloadTools</artifactId>
+		<version>${applicationVersion}</version>
+	  </dependency>
+      
+	  <!-- JSON -->
+	  <dependency>
+		<groupId>org.json</groupId>
+		<artifactId>json</artifactId>
+		<version>20080701</version>
+	  </dependency>
+      
+    </dependencies>
     
-    <dependency>
-      <groupId>commons-logging</groupId>
-      <artifactId>commons-logging</artifactId>
-    </dependency>
-  </dependencies>
-
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
