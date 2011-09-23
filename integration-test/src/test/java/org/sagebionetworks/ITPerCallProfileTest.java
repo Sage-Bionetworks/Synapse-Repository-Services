@@ -152,7 +152,7 @@ public class ITPerCallProfileTest {
 		HttpEntity<String> entity = new HttpEntity<String>(loginRequest.toString(), headers);
 		// We have not parameters for this call		
 		// Make the actual call.
-		ResponseEntity<String> response = tempalte.exchange(StackConfiguration.getAuthenticationServiceEndpoint()+"/session", method, entity, String.class, new HashMap<String, String>());
+		ResponseEntity<String> response = tempalte.exchange(StackConfiguration.getAuthenticationServicePrivateEndpoint()+"/session", method, entity, String.class, new HashMap<String, String>());
 		HttpStatus expected = HttpStatus.CREATED;
 		if(response.getStatusCode() != expected){
 			throw new IllegalArgumentException("Expected: "+expected+" but was: "+response.getStatusCode());

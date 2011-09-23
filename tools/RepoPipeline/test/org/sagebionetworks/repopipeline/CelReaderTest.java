@@ -32,7 +32,7 @@ public class CelReaderTest {
 		String fileName = studyID+"_RAW.tar";
 		URL url = new URL("ftp://ftp.ncbi.nih.gov/pub/geo/DATA/supplementary/series/"+studyID+"/"+fileName);
 		System.out.println(
-				TARDownloader.download(url, new File("."))
+				//TARDownloader.download(url, new File("."))
 		);
 	}
 	

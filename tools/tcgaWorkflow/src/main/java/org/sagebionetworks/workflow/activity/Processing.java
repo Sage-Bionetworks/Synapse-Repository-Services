@@ -134,7 +134,7 @@ public class Processing {
 		String scriptInput[] = new String[] { script, argsDelimiter,
 				SYNAPSE_USERNAME_KEY, ConfigHelper.getSynapseUsername(),
 				SYNAPSE_PASSWORD_KEY, ConfigHelper.getSynapsePassword(),
-				AUTH_ENDPOINT_KEY, ConfigHelper.getAuthenticationServiceEndpoint(),
+				AUTH_ENDPOINT_KEY, ConfigHelper.getAuthenticationServicePrivateEndpoint(),
 				REPO_ENDPOINT_KEY, ConfigHelper.getRepositoryServiceEndpoint(),
 				INPUT_DATASET_PARAMETER_KEY, datasetId.toString(),
 				INPUT_LAYER_PARAMETER_KEY, rawLayerId.toString() };

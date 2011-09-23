@@ -97,8 +97,9 @@ public class ConfigHelper {
 	 */
 	public static Synapse createSynapseClient() throws Exception {
 		Synapse synapse = new Synapse();
+
 		synapse.setRepositoryEndpoint(getRepositoryServiceEndpoint());
-		synapse.setAuthEndpoint(getAuthenticationServiceEndpoint());
+		synapse.setAuthEndpoint(getAuthenticationServicePrivateEndpoint());
 		synapse.login(getSynapseUsername(), 
 				getSynapsePassword());
 		return synapse;
@@ -135,8 +136,8 @@ public class ConfigHelper {
 	/**
 	 * @return auth service endpoint
 	 */
-	public static String getAuthenticationServiceEndpoint() {
-		return configuration.getAuthenticationServiceEndpoint();
+	public static String getAuthenticationServicePrivateEndpoint() {
+		return configuration.getAuthenticationServicePrivateEndpoint();
 	}
 
 	/**

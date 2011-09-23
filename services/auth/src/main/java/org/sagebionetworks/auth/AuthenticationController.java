@@ -24,6 +24,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.openid4java.consumer.ConsumerManager;
 import org.openid4java.discovery.DiscoveryInformation;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
@@ -139,18 +140,13 @@ public class AuthenticationController {
 	private static final String OPEN_ID_PROVIDER = "OPEN_ID_PROVIDER";
 	// 		e.g. https://www.google.com/accounts/o8/id
 	
-//	private static final String MANAGER_KEY = AuthenticationController.class.getName()+".MANAGER_KEY";
-	
 	// this is the parameter name for the value of the final redirect
 	private static final String RETURN_TO_URL_PARAM = "RETURN_TO_URL";
 	
-//	// this is the key for the value of the final redirect
-//	private static final String RETURN_TO_URL_KEY = AuthenticationController.class.getName()+".RETURN_TO_URL_KEY";
-		
 	private static final String OPEN_ID_ATTRIBUTE = "OPENID";
 	
 	private static final String RETURN_TO_URL_COOKIE_NAME = "org.sagebionetworks.auth.returnToUrl";
-	private static final int RETURN_TO_URL_COOKIE_MAX_AGE = 60; // seconds
+	private static final int RETURN_TO_URL_COOKIE_MAX_AGE_SECONDS = 60; // seconds
 	
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = OPEN_ID_URI, method = RequestMethod.POST)
@@ -163,17 +159,15 @@ public class AuthenticationController {
 		HttpServlet servlet = null;
 		
 		ConsumerManager manager = new ConsumerManager();
-//		request.getSession().setAttribute(MANAGER_KEY, manager); <<< not serializable
 		SampleConsumer sampleConsumer = new SampleConsumer(manager);
 		
 		String thisUrl = request.getRequestURL().toString();
 		int i = thisUrl.indexOf(OPEN_ID_URI);
 		if (i<0) throw new RuntimeException("Current URI, "+OPEN_ID_URI+", not found in "+thisUrl);
-		String openIDCallbackURL = thisUrl.substring(0, i)+OPENID_CALLBACK_URI;
-
-//		request.getSession().setAttribute(RETURN_TO_URL_KEY, returnToURL);
+//		String openIDCallbackURL = thisUrl.substring(0, i)+OPENID_CALLBACK_URI;
+		String openIDCallbackURL = StackConfiguration.getAuthenticationServicePublicEndpoint()+OPENID_CALLBACK_URI;
 		Cookie cookie = new Cookie(RETURN_TO_URL_COOKIE_NAME, returnToURL);
-		cookie.setMaxAge(RETURN_TO_URL_COOKIE_MAX_AGE);
+		cookie.setMaxAge(RETURN_TO_URL_COOKIE_MAX_AGE_SECONDS);
 		response.addCookie(cookie);
 		
 		sampleConsumer.authRequest(openIdProvider, openIDCallbackURL, servlet, request, response);
@@ -203,26 +197,13 @@ public class AuthenticationController {
 			HttpServletResponse response) throws Exception {
 		try {
 			
-//			System.out.println(
-//					"Request Params:\n"+
-//					dumpParamsArray(request.getParameterMap(), "\t")
-//					
-//			);
-//			HttpSession session = request.getSession();
 			ConsumerManager manager = new ConsumerManager(); //(ConsumerManager)session.getAttribute(MANAGER_KEY);
-//			if (manager==null) throw new NullPointerException();
-			
-//			session.removeAttribute(MANAGER_KEY);
 			
 			SampleConsumer sampleConsumer = new SampleConsumer(manager);
 
 			OpenIDInfo openIDInfo = sampleConsumer.verifyResponse(request);
 			String openID = openIDInfo.getIdentifier();
-			
-//			System.out.println("Identity: "+openID);
-			
-//			System.out.println("OpenIDInfo:\n"+dumpParamsList(openIDInfo.getMap(), "\t"));
-			
+						
 			List<String> emails = openIDInfo.getMap().get(SampleConsumer.AX_EMAIL);
 			String email = (emails==null || emails.size()<1 ? null : emails.get(0));
 			List<String> fnames = openIDInfo.getMap().get(SampleConsumer.AX_FIRST_NAME);
@@ -445,7 +426,6 @@ public class AuthenticationController {
 
 		if (!isITU && (userId==null || !userId.equals(user.getEmail()))) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
-//		if (userId==null || !userId.equals(user.getEmail())) throw new AuthenticationException(400, "User is not authenticated.", null);
 		if (user.getPassword()==null) 			
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "New password is required.", null);
 

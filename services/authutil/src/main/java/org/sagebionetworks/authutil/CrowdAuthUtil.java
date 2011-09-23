@@ -118,7 +118,7 @@ public class CrowdAuthUtil {
 		return crowdUrl+"/crowd/rest/usermanagement/latest";
 	}
 	
-	public byte[] executeRequest(HttpURLConnection conn, HttpStatus expectedRc, String failureReason) throws AuthenticationException {
+	public static byte[] executeRequest(HttpURLConnection conn, HttpStatus expectedRc, String failureReason) throws AuthenticationException {
 		try {
 			int rc = conn.getResponseCode();
 			if (expectedRc.value()==rc) {

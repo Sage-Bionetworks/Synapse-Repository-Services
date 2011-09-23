@@ -58,8 +58,12 @@ public class ScriptDownloader {
         boolean allowUnversionedObstructions = true;
 		SVNURL url= SVNURL.parseURIDecoded(urlString);
 
+		// instead of 'checkout' use 'export', below
+		//return updateClient.doCheckout( url , destPath , revision , revision , depth,  allowUnversionedObstructions );
 
-        return updateClient.doCheckout( url , destPath , revision , revision , depth,  allowUnversionedObstructions );
+		// pegRevision - the revision at which url will be firstly seen in the repository to make sure it's the one that is needed
+		SVNRevision pegRevision = revision; // ????
+		return updateClient.doExport( url, destPath,  pegRevision, revision, "\n" /* EOL*/, true /* overwrite*/,  depth); 
     }
 
 }
