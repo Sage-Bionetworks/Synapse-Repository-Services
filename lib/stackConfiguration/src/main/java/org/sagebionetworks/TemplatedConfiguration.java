@@ -345,8 +345,12 @@ public class TemplatedConfiguration {
 		return key;
 	}
 
-	public String getAuthenticationServiceEndpoint() {
-		return getProperty("org.sagebionetworks.authenticationservice.endpoint");
+	public String getAuthenticationServicePrivateEndpoint() {
+		return getProperty("org.sagebionetworks.authenticationservice.privateendpoint");
+	}
+
+	public String getAuthenticationServicePublicEndpoint() {
+		return getProperty("org.sagebionetworks.authenticationservice.publicendpoint");
 	}
 
 	public String getRepositoryServiceEndpoint() {

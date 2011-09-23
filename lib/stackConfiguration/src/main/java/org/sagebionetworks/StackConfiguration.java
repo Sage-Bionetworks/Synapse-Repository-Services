@@ -83,8 +83,13 @@ public class StackConfiguration {
 		return configuration.getIAMUserKey();
 	}
 
-	public static String getAuthenticationServiceEndpoint() {
-		return configuration.getAuthenticationServiceEndpoint();
+	public static String getAuthenticationServicePrivateEndpoint() {
+		return configuration.getAuthenticationServicePrivateEndpoint();
+	}
+
+	public static String getAuthenticationServicePublicEndpoint() {
+		return configuration.getAuthenticationServicePublicEndpoint();
+		//return getProperty("org.sagebionetworks.authenticationservice.publicendpoint");
 	}
 
 	public static String getRepositoryServiceEndpoint() {

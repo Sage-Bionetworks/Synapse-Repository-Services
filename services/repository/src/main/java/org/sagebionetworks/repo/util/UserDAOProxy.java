@@ -17,8 +17,6 @@ public class UserDAOProxy implements UserDAO, InitializingBean {
 	@Autowired
 	private UserDAO userDAOImpl;
 	
-	
-
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		String implementingClassName = System.getProperty(AuthUtilConstants.USER_DAO_INTEGRATION_TEST_SWITCH);

@@ -55,7 +55,7 @@ public class IT700SynapseRClient {
 				".libPaths('target/')",
 				"-e",
 				"synapseAuthServiceEndpoint(endpoint='"
-						+ StackConfiguration.getAuthenticationServiceEndpoint()
+						+ StackConfiguration.getAuthenticationServicePrivateEndpoint()
 						+ "')",
 				"-e",
 				"synapseRepoServiceEndpoint(endpoint='"
@@ -80,7 +80,7 @@ public class IT700SynapseRClient {
 				"library(synapseClient, lib.loc='target')",
 				"-e",
 				"synapseAuthServiceEndpoint(endpoint='"
-						+ StackConfiguration.getAuthenticationServiceEndpoint()
+						+ StackConfiguration.getAuthenticationServicePrivateEndpoint()
 						+ "')",
 				"-e",
 				"synapseRepoServiceEndpoint(endpoint='"

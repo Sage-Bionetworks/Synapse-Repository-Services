@@ -9,10 +9,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectOutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.codec.binary.Base64;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -391,53 +398,155 @@ public class AuthenticationControllerTest {
 		public boolean get() {return b;}
 	}
 	
+	public static byte[] executeRequest(HttpURLConnection conn, HttpStatus expectedRc, String failureReason) throws Exception {
+			int rc = conn.getResponseCode();
+			if (expectedRc.value()==rc) {
+				byte[] respBody = (CrowdAuthUtil.readInputStream((InputStream)conn.getContent())).getBytes();
+				return respBody;
+			} else {
+				byte[] respBody = (CrowdAuthUtil.readInputStream((InputStream)conn.getErrorStream())).getBytes();
+				throw new AuthenticationException(rc, failureReason, new Exception(new String(respBody)));
+			}
+	}
+
+	
+	//curl -k -H "Content-Type:application/json" -H "Accept:application/json" 
+	// -d "{\"email\":\"demouser@sagebase.org\", \"password\":\"demouser-pw\"}" 
+	// -X POST https://auth-staging.sagebase.org/auth/v1/session
+	private void authenticateViaDeployedServer() throws Exception {
+		URL url = new URL("https://auth-staging.sagebase.org/auth/v1/session");
+		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+		conn.setRequestMethod("POST");
+		conn.setRequestProperty("Accept", "application/json");
+		conn.setRequestProperty("Content-Type", "application/json");
+		CrowdAuthUtil.setBody(conn, "{\"email\":\"demouser@sagebase.org\", \"password\":\"demouser-pw\"}");
+		byte[] sessionXML = executeRequest(conn, HttpStatus.CREATED, "Unable to authenticate");
+	}
+	
 	// this is meant to recreate the problem described in PLFM-292
 	// http://sagebionetworks.jira.com/browse/PLFM-292
+	@Ignore
 	@Test 
 	public void testMultipleLogins() throws Exception {
 		if (!isIntegrationTest()) return;
+		CrowdAuthUtil.acceptAllCertificates2();
 		int n = 100;
+		Set<Long> sortedTimes = new TreeSet<Long>();
+		long elapsed = 0;
 		for (int i=0; i<n; i++) {
 			final MutableBoolean b = new MutableBoolean();
 		 	Thread thread = new Thread() {
 				public void run() {
 					try {
-						JSONObject session = helper.testCreateJsonEntity("/session",
-						"{\"email\":\"demouser@sagebase.org\",\"password\":\"demouser-pw\"}");
-						assertTrue(session.has("sessionToken"));
-						assertEquals("Demo User", session.getString("displayName"));
+						authenticate();
 						b.set(true);
 					} catch (Exception e) {
-						fail(e.toString());
+						//fail(e.toString());
+						e.printStackTrace(); // 'fail' will be thrown below
 					}
 				}
 			};
 			thread.start();
 			long start = System.currentTimeMillis();
 			try {
-				thread.join(5000L); // time out after 5 sec
-//				thread.join(20000L); // time out
+//				thread.join(5000L); // time out after 5 sec
+				thread.join(20000L); // time out
 			} catch (InterruptedException ie) {
 				// as expected
 			}
-//			System.out.println(""+i+": done after "+(System.currentTimeMillis()-start)+" ms.");
+			long t = System.currentTimeMillis()-start;
+			elapsed += t;
+			sortedTimes.add(t);
+			//if (b.get()) System.out.println(""+i+": done after "+(System.currentTimeMillis()-start)+" ms.");
 			assertTrue("Failed or timed out after "+i+" iterations.", b.get()); // should have been set to 'true' if successful
+		}
+		System.out.println(n+" authentication request response time (sec): min "+
+				((float)sortedTimes.iterator().next()/1000L)+" avg "+((float)elapsed/n/1000L)+
+				" max "+((float)getLast(sortedTimes)/1000L));
+
+	}
+	
+	class MutableLong {
+		long L = 0L;
+		public void set(long L) {this.L=L;}
+		public long get() {return L;}
+	}
+	
+	private void authenticate() throws Exception {
+		if (true) {
+			// run against a simulated http service, in the same JVM
+			JSONObject session = helper.testCreateJsonEntity("/session",
+			"{\"email\":\"demouser@sagebase.org\",\"password\":\"demouser-pw\"}");
+			assertTrue(session.has("sessionToken"));
+			assertEquals("Demo User", session.getString("displayName"));
+		} else {
+			// run against the real service, on AWS
+			authenticateViaDeployedServer();
 		}
 	}
 	
-	// this test is known to break; the class will not be expected to serialize
 	@Ignore
-	@Test
-	public void testIsSerializable()  throws Exception {
-	    ConsumerManager cm = new ConsumerManager();
-	    ByteArrayOutputStream out = new ByteArrayOutputStream();
-	    ObjectOutputStream oos = new ObjectOutputStream(out);
-	    oos.writeObject(cm);
-	    oos.close();
-	    assertTrue(out.toByteArray().length > 0);
+	@Test 
+	public void testMultipleLoginsMultiThreaded() throws Exception {
+		if (!isIntegrationTest()) return;
+		CrowdAuthUtil.acceptAllCertificates2();
+		
+		if (false) {
+			// we 'prime' the auth server's cache with 1-2 authentication requests
+			for (int i : new int[]{1,2}) authenticate();
+		}
+		
+		//int n = 100;
+		for (int n : new int[]{100}) {
+			Map<Integer, MutableLong> times = new HashMap<Integer, MutableLong>();
+			for (int i=0; i<n; i++) {
+				final int fi = i;
+				final MutableLong L = new MutableLong();
+				times.put(i, L);
+			 	Thread thread = new Thread() {
+					public void run() {
+						try {
+							long start = System.currentTimeMillis();
+							authenticate();
+							L.set(System.currentTimeMillis()-start);
+						} catch (Exception e) {
+							//fail(e.toString());
+							e.printStackTrace(); // 'fail' will be thrown below
+						}
+					}
+				};
+				thread.start();
+			}
+			int count = 0;
+			long elapsed = 0L;
+			Set<Long> sortedTimes = new TreeSet<Long>();
+			long uberTimeOut = System.currentTimeMillis()+UBER_TIMEOUT;
+			while (!times.isEmpty() && System.currentTimeMillis()<uberTimeOut) {
+				for (int i: times.keySet()) {
+					long L = times.get(i).get();
+					if (L!=0) {
+						elapsed += L;
+						//System.out.println((float)L/1000L+" sec.");
+						sortedTimes.add(L);
+						count++;
+						times.remove(i);
+						break;
+					}
+				}
+			}
+			System.out.println(count+" authentication request response time (sec): min "+
+					((float)sortedTimes.iterator().next()/1000L)+" avg "+((float)elapsed/count/1000L)+
+					" max "+((float)getLast(sortedTimes)/1000L));
+		}
 	}
 	
+	private static long UBER_TIMEOUT = 5*60*1000L;
 
+	private static <T> T getLast(Set<T> set) {
+		T ans = null;
+		for (T v : set) ans=v;
+		return ans;
+	}
 }
 
 
