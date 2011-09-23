@@ -8,20 +8,20 @@
 	Store a layer metadata and associated data file in Synapse.
 }
 \usage{
-	storeLayerData(layerMetadata, layerData)
-	storeLayerDataFile(layerMetadata, layerDataFilepath)
+	storeLayerData(entity, ...)
+	storeLayerDataFile(entity, layerDataFilepath)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{layerMetadata}{
-	list containing metadata as name/value pairs.
-}
-  \item{layerData}{
-		path to the layer data file.
+  \item{entity}{
+	The Entity
 	}
   \item{layerDataFilepath}{
-  		file path to the data file
+  	The path to the file that should be stored
   }
+  \item{...}{
+		Objects to be stored
+	}
 }
 
 \value{

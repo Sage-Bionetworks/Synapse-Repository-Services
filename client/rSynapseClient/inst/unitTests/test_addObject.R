@@ -177,3 +177,50 @@ unitTestAddListOfDataFramesNoName <-
 	checkException(addObject(layer, list(data.frame(x=1:4, y=c("a", "b", "c", "d")), data.frame(y=c("a", "b", "c", "d"), z=5:8))))
 }
 
+unitTestAddListUnlistFalse <-
+		function()
+{
+	layer <- new("Layer")
+	foo <- list(one=1, two=2)
+	addObject(layer, foo, unlist=F)
+	checkEquals(length(layer$objects), 1L)
+}
+
+unitTestAddListUnlistTrue <-
+		function()
+{
+	layer <- new("Layer")
+	foo <- list(one=1, two=2)
+	addObject(layer, foo, unlist=T)
+	checkEquals(length(layer$objects), 2L)
+}
+
+unitTestAddListUnlistFalseSpecifyName <-
+		function()
+{
+	layer <- new("Layer")
+	foo <- list(one=1, two=2)
+	addObject(layer, foo, name="aName")
+	checkEquals(length(layer$objects), 1L)
+	checkEquals("aName", names(layer$objects))
+}
+
+unitTestAddListUnlistTrueSpecifyName <-
+		function()
+{
+	layer <- new("Layer")
+	foo <- list(one=1, two=2)
+	checkException(addObject(layer, foo, name="aName", unlist=T))
+}
+
+
+## TODO: This test is broke. FIX ME!
+#unitTestAddFromEnvironmentNoName <-
+#		function()
+#{
+#	layer <- new("Layer")
+#	env <- new.env()
+#	env$foo <- list(one=1, two=2)
+#	addObject(layer, env$foo, unlist=F)
+#	checkEquals("foo", names(layer$objects))
+#}

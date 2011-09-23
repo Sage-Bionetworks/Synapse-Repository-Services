@@ -11,7 +11,10 @@
 \usage{
 	synapseDownloadFile(url, checksum, curlHandle = getCurlHandle(), cacheDir = synapseCacheDir(), opts = .getCache("curlOpts"))
 	synapseDownloadFileToDestination(url, destfile, checksum, curlHandle = getCurlHandle(), opts = .getCache("curlOpts"))
-	synapseUploadFile(url, srcfile, checksum, method = "curl", quiet = FALSE, mode = "w", cacheOK = TRUE)
+	synapseUploadFile(url, srcfile, checksum, contentType =
+                 "application/binary", method = "curl", quiet = FALSE,
+                 mode = "w", cacheOK = TRUE)
+
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -47,6 +50,9 @@
   }
   \item{cacheOK}{
   		boolean controlling cache
+  }
+  \item{contentType}{
+  		content type
   }
 	
 }
