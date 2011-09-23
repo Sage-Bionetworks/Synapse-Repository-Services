@@ -1,4 +1,4 @@
-package org.sagebionetworks.workflow.activity;
+package org.sagebionetworks.utils;
 
 /**
  * Simplistic implementation of the observer pattern

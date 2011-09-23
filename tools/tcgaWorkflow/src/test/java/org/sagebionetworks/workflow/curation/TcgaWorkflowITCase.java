@@ -13,14 +13,14 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.utils.WebCrawler;
+import org.sagebionetworks.utils.SimpleObserver;
+import org.sagebionetworks.workflow.Constants;
 import org.sagebionetworks.workflow.UnrecoverableException;
-import org.sagebionetworks.workflow.activity.Constants;
-import org.sagebionetworks.workflow.activity.Crawling;
 import org.sagebionetworks.workflow.activity.Curation;
 import org.sagebionetworks.workflow.activity.DataIngestion;
 import org.sagebionetworks.workflow.activity.Notification;
 import org.sagebionetworks.workflow.activity.Processing;
-import org.sagebionetworks.workflow.activity.SimpleObserver;
 import org.sagebionetworks.workflow.activity.Storage;
 import org.sagebionetworks.workflow.activity.DataIngestion.DownloadResult;
 import org.sagebionetworks.workflow.activity.Processing.ScriptResult;
@@ -294,7 +294,7 @@ public class TcgaWorkflowITCase {
 		}
 
 		CrawlObserver testObserver = new CrawlObserver();
-		Crawling crawler = new Crawling();
+		WebCrawler crawler = new WebCrawler();
 		crawler.addObserver(testObserver);
 		crawler
 				.doCrawl(
@@ -314,7 +314,7 @@ public class TcgaWorkflowITCase {
 	 */
 	@Test
 	public void testDoVersionConsolidationTcgaCrawl() throws Exception {
-		Crawling archiveCrawler = new Crawling();
+		WebCrawler archiveCrawler = new WebCrawler();
 		ArchiveObserver observer = new TcgaWorkflowInitiator().new ArchiveObserver();
 		archiveCrawler.addObserver(observer);
 		archiveCrawler

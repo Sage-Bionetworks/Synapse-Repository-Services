@@ -42,38 +42,25 @@ public class Storage {
 
 		Synapse synapse = ConfigHelper.createSynapseClient();
 
-		// See if the file is already on S3
-//		JSONObject layer = synapse.getEntity("/layer/" + layerId);
-//		JSONObject location = synapse.getEntity(uri)if(layer.has("locations"))
-		
 		File file = new File(localFilepath);
 		String s3Path = file.getName();
 
 		JSONObject s3LocationRequest = new JSONObject();
-		s3LocationRequest.put("path", "/tcga/" + layerId + "/" + s3Path);  // See PLFM-212
+		s3LocationRequest.put("path", s3Path);
 		s3LocationRequest.put("md5sum", md5);
 		s3LocationRequest.put("parentId", layerId);
 		s3LocationRequest.put("type", "awss3");
 		JSONObject s3Location = synapse.createEntity("/location",
 				s3LocationRequest);
 
-		// TODO find a more direct way to go from hex to base64
 		byte[] encoded = Base64.encodeBase64(Hex.decodeHex(md5.toCharArray()));
 		String base64Md5 = new String(encoded, "ASCII");
 		
 		Map<String, String> headerMap = new HashMap<String, String>();
 		headerMap.put("x-amz-acl", "bucket-owner-full-control");
 		headerMap.put("Content-MD5", base64Md5);
-		headerMap.put("Content-Type", "application/binary");
+		headerMap.put("Content-Type", s3Location.getString("contentType"));
 		
-//		if(log.isDebugEnabled()) {
-			log.warn("curl -v -X PUT -H Content-MD5:" + base64Md5
-            + " -H x-amz-acl:bucket-owner-full-control " 
-            + " -H Content-Type:application/binary "
-            + " --data-binary @" + localFilepath
-            + " '" + s3Location.getString("path") + "'");
-//		}
-	
 		HttpClientHelper.uploadFile(s3Location.getString("path"),
 				localFilepath, headerMap);
 	}

@@ -30,12 +30,6 @@
 			<version>${applicationVersion}</version>
 		</dependency>
 
-		<!-- AWS dependencies -->
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk</artifactId>
-		</dependency>
-
 		<!-- Simple Workflow Framework -->
 		<dependency>
 			<groupId>com.amazonaws.services.simpleworkflow</groupId>
@@ -91,20 +85,6 @@
 			<version>1.0</version>
 		</dependency>
 
-		<!-- Jackson JSON Mapper -->
-		<dependency>
-			<groupId>org.codehaus.jackson</groupId>
-			<artifactId>jackson-mapper-asl</artifactId>
-			<version>${jackson.version}</version>
-		</dependency>
-
-		<!-- JSON -->
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>20080701</version>
-		</dependency>
-
 		<!-- String utils -->
 		<dependency>
 			<groupId>commons-lang</groupId>
@@ -116,14 +96,6 @@
 			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>
 			<version>1.3</version>
-		</dependency>
-
-		<!-- jsoup HTML parser library @ http://jsoup.org/ -->
-		<!-- JQuery-like HTML parser -->
-		<dependency>
-			<groupId>org.jsoup</groupId>
-			<artifactId>jsoup</artifactId>
-			<version>1.5.2</version>
 		</dependency>
 
 		<!-- Stuff needed by SWF -->
@@ -139,26 +111,15 @@
 			<version>1.0.2</version>
 		</dependency>
 
-		<!-- Logging dependencies -->
-		<dependency>
-			<groupId>log4j</groupId>
-			<artifactId>log4j</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>commons-logging</groupId>
-			<artifactId>commons-logging</artifactId>
-		</dependency>
-
 		<dependency>
 			<groupId>joda-time</groupId>
 			<artifactId>joda-time</artifactId>
 		</dependency>
 
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-		</dependency>
+	    <dependency>
+	      <groupId>junit</groupId>
+	      <artifactId>junit</artifactId>
+	    </dependency>
 
 	</dependencies>
 

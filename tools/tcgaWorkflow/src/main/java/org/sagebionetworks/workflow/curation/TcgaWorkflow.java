@@ -5,7 +5,7 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 
 import org.joda.time.LocalDate;
-import org.sagebionetworks.workflow.activity.Constants;
+import org.sagebionetworks.workflow.Constants;
 import org.sagebionetworks.workflow.activity.Curation;
 import org.sagebionetworks.workflow.activity.Notification;
 import org.sagebionetworks.workflow.activity.Processing;
