@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
@@ -306,7 +307,8 @@ public class NodeDAOImplTest {
 		toDelete.add(id);
 		assertNotNull(id);
 		// Now get the annotations for this node.
-		Annotations annos = nodeDao.getAnnotations(id);
+		NamedAnnotations named = nodeDao.getAnnotations(id);
+		Annotations annos = named.getAdditionalAnnotations();
 		assertNotNull(annos);
 		assertNotNull(annos.getEtag());
 		// Now add some annotations to this node.
@@ -324,9 +326,10 @@ public class NodeDAOImplTest {
 		String newETagString = new Long(currentETag).toString();
 		annos.setEtag(newETagString);
 		// Update them
-		nodeDao.updateAnnotations(id, annos);
+		nodeDao.updateAnnotations(id, named);
 		// Now get a copy and ensure it equals what we sent
-		Annotations copy = nodeDao.getAnnotations(id);
+		NamedAnnotations namedCopy = nodeDao.getAnnotations(id);
+		Annotations copy = namedCopy.getAdditionalAnnotations();
 		assertNotNull(copy);
 		assertEquals("one", copy.getSingleValue("stringOne"));
 		assertEquals(new Double(23.5), copy.getSingleValue("doubleKey"));
@@ -347,7 +350,8 @@ public class NodeDAOImplTest {
 		toDelete.add(id);
 		assertNotNull(id);
 		// Now get the annotations for this node.
-		Annotations annos = nodeDao.getAnnotations(id);
+		NamedAnnotations named = nodeDao.getAnnotations(id);
+		Annotations annos = named.getAdditionalAnnotations();
 		assertNotNull(annos);
 		assertNotNull(annos.getEtag());
 		assertNotNull(annos.getBlobAnnotations());
@@ -360,15 +364,17 @@ public class NodeDAOImplTest {
 		annos.addAnnotation("doubleKey", new Double(23.5));
 		annos.addAnnotation("longKey", new Long(1234));
 		// Update them
-		nodeDao.updateAnnotations(id, annos);
+		nodeDao.updateAnnotations(id, named);
 		// Now get a copy and ensure it equals what we sent
-		Annotations copy = nodeDao.getAnnotations(id);
+		NamedAnnotations namedCopy = nodeDao.getAnnotations(id);
+		Annotations copy = namedCopy.getAdditionalAnnotations();
 		assertNotNull(copy);
 		assertEquals(annos, copy);
 		// clear an and update
 		assertNotNull(copy.getStringAnnotations().remove("stringOne"));
-		nodeDao.updateAnnotations(id, copy);
-		Annotations copy2 = nodeDao.getAnnotations(id);
+		nodeDao.updateAnnotations(id, namedCopy);
+		NamedAnnotations namedCopy2 = nodeDao.getAnnotations(id);
+		Annotations copy2 = namedCopy2.getAdditionalAnnotations();
 		assertNotNull(copy2);
 		assertEquals(copy, copy2);
 		// Make sure the node has a new eTag
@@ -429,7 +435,8 @@ public class NodeDAOImplTest {
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
 		assertNotNull(id);
-		Annotations annos = nodeDao.getAnnotations(id);
+		NamedAnnotations named = nodeDao.getAnnotations(id);
+		Annotations annos = named.getAdditionalAnnotations();
 		assertNotNull(annos);
 		annos.addAnnotation("string", "value");
 		annos.addAnnotation("date", new Date(1));
@@ -437,7 +444,7 @@ public class NodeDAOImplTest {
 		annos.addAnnotation("long", 56l);
 		annos.addAnnotation("blob", "Some blob value".getBytes("UTF-8"));
 		// Update the annotations
-		nodeDao.updateAnnotations(id, annos);
+		nodeDao.updateAnnotations(id, named);
 		// Now create a new version
 		Node copy = nodeDao.getNode(id);
 		copy.setVersionComment(null);
@@ -446,31 +453,37 @@ public class NodeDAOImplTest {
 		assertEquals(new Long(2), revNumber);
 		// At this point the new and old version should have the
 		// same annotations.
-		Annotations v1Annos = nodeDao.getAnnotationsForVersion(id, 1L);
+		NamedAnnotations namedCopyV1 = nodeDao.getAnnotationsForVersion(id, 1L);
+		Annotations v1Annos = namedCopyV1.getAdditionalAnnotations();
 		assertNotNull(v1Annos);
-		Annotations v2Annos = nodeDao.getAnnotationsForVersion(id, 2L);
+		NamedAnnotations namedCopyV2 = nodeDao.getAnnotationsForVersion(id, 2L);
+		Annotations v2Annos = namedCopyV2.getAdditionalAnnotations();
 		assertNotNull(v2Annos);
 		assertEquals(v1Annos, v2Annos);
-		Annotations currentAnnos = nodeDao.getAnnotations(id);
+		NamedAnnotations namedCopy = nodeDao.getAnnotations(id);
+		Annotations currentAnnos = namedCopy.getAdditionalAnnotations();
 		assertNotNull(currentAnnos);
 		assertEquals(currentAnnos, v2Annos);
 		
 		// Now update the current annotations
 		currentAnnos.getDoubleAnnotations().clear();
 		currentAnnos.addAnnotation("double", 8989898.2);
-		nodeDao.updateAnnotations(id, currentAnnos);
+		nodeDao.updateAnnotations(id, namedCopy);
 		
 		// Now the old and new should no longer match.
-		v1Annos = nodeDao.getAnnotationsForVersion(id, 1L);
+		namedCopyV1 = nodeDao.getAnnotationsForVersion(id, 1L);
+		v1Annos = namedCopyV1.getAdditionalAnnotations();
 		assertNotNull(v1Annos);
 		assertEquals(2.3, v1Annos.getSingleValue("double"));
-		v2Annos = nodeDao.getAnnotationsForVersion(id, 2L);
+		namedCopyV2 = nodeDao.getAnnotationsForVersion(id, 2L);
+		v2Annos = namedCopyV2.getAdditionalAnnotations();
 		assertNotNull(v2Annos);
 		assertEquals(8989898.2, v2Annos.getSingleValue("double"));
 		// The two version should now be out of synch with each other.
 		assertFalse(v1Annos.equals(v2Annos));
 		// The current annos should still match the v2
-		currentAnnos = nodeDao.getAnnotations(id);
+		namedCopy = nodeDao.getAnnotations(id);
+		currentAnnos = namedCopy.getAdditionalAnnotations();
 		assertNotNull(currentAnnos);
 		assertEquals(currentAnnos, v2Annos);
 	}
@@ -729,7 +742,7 @@ public class NodeDAOImplTest {
 		assertNotNull(currentRev);
 		// Add some annotations
 		String keyOnFirstVersion = "NodeDAOImplTest.testUpdateRevision.OnFirstVersion";
-		currentRev.getAnnotations().addAnnotation(keyOnFirstVersion, "newValue");
+		currentRev.getNamedAnnotations().getAdditionalAnnotations().addAnnotation(keyOnFirstVersion, "newValue");
 		currentRev.setLabel("2.0");
 		nodeDao.updateRevision(currentRev);
 		// Since we added this annotation to the current version it should be query-able
@@ -738,7 +751,7 @@ public class NodeDAOImplTest {
 		// Get it back
 		NodeRevision clone = nodeDao.getNodeRevision(id, node.getVersionNumber());
 		assertNotNull(clone);
-		assertEquals("newValue", clone.getAnnotations().getSingleValue(keyOnFirstVersion));
+		assertEquals("newValue", clone.getNamedAnnotations().getAdditionalAnnotations().getSingleValue(keyOnFirstVersion));
 		assertEquals("2.0", clone.getLabel());
 		
 		// now create a new version
@@ -749,7 +762,7 @@ public class NodeDAOImplTest {
 		// Get the latest
 		clone = nodeDao.getNodeRevision(id, node.getVersionNumber());
 		// Clear the string annoations.
-		clone.getAnnotations().setStringAnnotations(new HashMap<String, Collection<String>>());
+		clone.getNamedAnnotations().getAdditionalAnnotations().setStringAnnotations(new HashMap<String, Collection<String>>());
 		nodeDao.updateRevision(clone);
 		// The string annotation should no longer be query-able
 		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));
@@ -757,7 +770,7 @@ public class NodeDAOImplTest {
 		// Finally, update the first version again, adding back the string property
 		// but this time since this is not the current version it should not be query-able
 		clone = nodeDao.getNodeRevision(id, v1Number);
-		clone.getAnnotations().addAnnotation(keyOnFirstVersion, "updatedValue");
+		clone.getNamedAnnotations().getAdditionalAnnotations().addAnnotation(keyOnFirstVersion, "updatedValue");
 		nodeDao.updateRevision(clone);
 		// This annotation should not be query-able
 		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));
@@ -782,9 +795,11 @@ public class NodeDAOImplTest {
 		// now create a new version number
 		NodeRevision newRev = new NodeRevision();
 		Annotations annos = RandomAnnotationsUtil.generateRandom(33477, 23);
+		NamedAnnotations nammed = new NamedAnnotations();
+		nammed.put("newNamed", annos);
 		String keyOnNewVersion = "NodeDAOImplTest.testCreateRevision.OnNew";
 		annos.addAnnotation(keyOnNewVersion, "value on new");
-		newRev.setAnnotations(annos);
+		newRev.setNamedAnnotations(nammed);
 		Long newVersionNumber = new Long(1);
 		newRev.setRevisionNumber(newVersionNumber);
 		newRev.setNodeId(id);
@@ -802,7 +817,7 @@ public class NodeDAOImplTest {
 		// Get the older version
 		NodeRevision clone = nodeDao.getNodeRevision(id, newVersionNumber);
 		assertNotNull(clone);
-		assertEquals("value on new", clone.getAnnotations().getSingleValue(keyOnNewVersion));
+		assertEquals("value on new", clone.getNamedAnnotations().getAnnotationsForName("newNamed").getSingleValue(keyOnNewVersion));
 		assertEquals("1.0", clone.getLabel());
 		assertEquals(newRev, clone);
 		

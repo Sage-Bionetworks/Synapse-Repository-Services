@@ -24,6 +24,7 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
@@ -41,12 +42,6 @@ import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
 @SuppressWarnings("unchecked")
 public class JDOAnnotationsUtilsTest {
 	
-	/**
-	 * What are the compressed blob annotations that we should test.
-	 */
-	public static final BlobData[] BLOBS_TO_TEST = new BlobData[]{
-		new BlobData("CompressedAnnotationsV0.zip", 34523, 24),
-	};
 	
 	JDONode owner;
 	
@@ -150,26 +145,33 @@ public class JDOAnnotationsUtilsTest {
 	
 	@Test
 	public void testCompression() throws IOException{
-		Annotations dto = Annotations.createInitialized();
+		NamedAnnotations named = new NamedAnnotations();
+		Annotations dto = named.getAdditionalAnnotations();
 		dto.addAnnotation("stringOne", "one");
 		dto.addAnnotation("StringTwo", "3");
 		dto.addAnnotation("longOne", new Long(324));
 		dto.addAnnotation("doubleOne", new Double(32.4));
 		dto.addAnnotation("dateOne", new Date(System.currentTimeMillis()));
-		byte[] compressed = JDOAnnotationsUtils.compressAnnotations(dto);
+		
+		byte[] compressed = JDOAnnotationsUtils.compressAnnotations(named);
+		String xmlString = JDOAnnotationsUtils.toXml(named);
+		System.out.println(xmlString);
+		NamedAnnotations mapClone = JDOAnnotationsUtils.fromXml(xmlString);
+		assertEquals(named, mapClone);
 		assertNotNull(compressed);
 		System.out.println("Size: "+compressed.length);
 		System.out.println(new String(compressed, "UTF-8"));
 		// Now make sure we can read the compressed data
-		Annotations dtoCopy = JDOAnnotationsUtils.decompressedAnnotations(compressed);
+		NamedAnnotations dtoCopy = JDOAnnotationsUtils.decompressedAnnotations(compressed);
 		assertNotNull(dtoCopy);
 		// The copy should match the original
-		assertEquals(dto, dtoCopy);
+		assertEquals(named, dtoCopy);
 	}
 	
 	@Test
 	public void testRoundTrip() throws Exception{
-		Annotations dto = Annotations.createInitialized();
+		NamedAnnotations named = new NamedAnnotations();
+		Annotations dto = named.getAdditionalAnnotations();
 		dto.addAnnotation("stringOne", "one");
 		dto.addAnnotation("longOne", new Long(324));
 		dto.addAnnotation("doubleOne", new Double(32.4));
@@ -178,16 +180,16 @@ public class JDOAnnotationsUtilsTest {
 		// Now create the jdo
 		JDONode node = new JDONode();
 		JDORevision rev = new JDORevision();
-		JDOAnnotationsUtils.updateFromJdoFromDto(dto, node, rev);
+		JDOAnnotationsUtils.updateFromJdoFromDto(named, node, rev);
 		assertNotNull(node.getBlobAnnotations());
 		assertNotNull(node.getDateAnnotations());
 		assertNotNull(node.getStringAnnotations());
 		assertNotNull(node.getDoubleAnnotations());
 		// Check the copy
-		Annotations dtoCopy = JDOAnnotationsUtils.createFromJDO(rev);
+		NamedAnnotations dtoCopy = JDOAnnotationsUtils.createFromJDO(rev);
 		assertNotNull(dtoCopy);
 		// The copy should match the original
-		assertEquals(dto, dtoCopy);
+		assertEquals(named, dtoCopy);
 	}
 	
 	@Test
@@ -195,13 +197,14 @@ public class JDOAnnotationsUtilsTest {
 		// Create a revision with a null byte array
 		JDORevision rev = new JDORevision();
 		// Check the copy
-		Annotations dtoCopy = JDOAnnotationsUtils.createFromJDO(rev);
+		NamedAnnotations dtoCopy = JDOAnnotationsUtils.createFromJDO(rev);
 		assertNotNull(dtoCopy);
 	}
 	
 	@Test
 	public void testBlobCompression() throws IOException{
-		Annotations dto = new Annotations();
+		NamedAnnotations named = new NamedAnnotations();
+		Annotations dto = named.getAdditionalAnnotations();
 		String[] values = new String[]{
 				"I am the first blob in this set",
 				"I am the second blob in this set with the same key as the first",
@@ -210,11 +213,13 @@ public class JDOAnnotationsUtilsTest {
 		dto.addAnnotation("blobOne", values[0].getBytes("UTF-8"));
 		dto.addAnnotation("blobOne", values[1].getBytes("UTF-8"));
 		dto.addAnnotation("blobTwo", values[2].getBytes("UTF-8"));
-		byte[] comressedBytes = JDOAnnotationsUtils.compressAnnotations(dto);
+		byte[] comressedBytes = JDOAnnotationsUtils.compressAnnotations(named);
 		System.out.println("Compressed size: "+comressedBytes.length);
 		assertNotNull(comressedBytes);
 		// Make the round trip
-		Annotations annos = JDOAnnotationsUtils.decompressedAnnotations(comressedBytes);
+		NamedAnnotations namedClone = JDOAnnotationsUtils.decompressedAnnotations(comressedBytes);
+		assertNotNull(namedClone);
+		Annotations annos = namedClone.getAdditionalAnnotations();
 		assertNotNull(annos);
 		assertNotNull(annos.getBlobAnnotations());
 		assertEquals(2, annos.getBlobAnnotations().size());
@@ -230,51 +235,6 @@ public class JDOAnnotationsUtilsTest {
 		assertEquals(1, second.size());
 		assertEquals(values[2], new String(second.iterator().next(), "UTF-8"));
 
-	}
-	
-	/**
-	 * Make sure we can still load old versions of the compressed annotation blobs.
-	 * @throws IOException 
-	 */
-	@Test
-	public void testLoadOldVersions() throws IOException{
-		// Test each file.
-		for(BlobData data: BLOBS_TO_TEST){
-			System.out.println("Testing: "+data.toString());
-			byte[] compressedBytes = loadFileAsBytes(data.getFileName());
-			assertNotNull(compressedBytes);
-			assertTrue(compressedBytes.length > 0);
-			Annotations loaded = JDOAnnotationsUtils.decompressedAnnotations(compressedBytes);
-			assertNotNull(loaded);
-			// Now re-create the annotations
-			Annotations expected = RandomAnnotationsUtil.generateRandom(data.getRandomSeed(), data.getCount());
-			assertEquals(expected, loaded);
-		}
-	}
-	
-	@Test
-	public void testNotNull() throws IOException{
-		// Make sure all types are not null
-		Annotations annos = JDOAnnotationsUtils.decompressedAnnotations(null);
-		assertNotNull(annos);
-		assertNotNull(annos.getBlobAnnotations());
-		assertNotNull(annos.getStringAnnotations());
-		assertNotNull(annos.getDoubleAnnotations());
-		assertNotNull(annos.getLongAnnotations());
-		assertNotNull(annos.getDateAnnotations());
-	}
-	
-	@Test
-	public void testNotNullCompressed() throws IOException{
-		byte[] compressed = JDOAnnotationsUtils.compressAnnotations(new Annotations());
-		// Make sure all types are not null
-		Annotations annos = JDOAnnotationsUtils.decompressedAnnotations(compressed);
-		assertNotNull(annos);
-		assertNotNull(annos.getBlobAnnotations());
-		assertNotNull(annos.getStringAnnotations());
-		assertNotNull(annos.getDoubleAnnotations());
-		assertNotNull(annos.getLongAnnotations());
-		assertNotNull(annos.getDateAnnotations());
 	}
 	
 	/**
@@ -327,6 +287,9 @@ public class JDOAnnotationsUtilsTest {
 		}
 		// First generate the random annotations to be used to create the compresssed blob fil.
 		Annotations annos = RandomAnnotationsUtil.generateRandom(seed, count);
+		NamedAnnotations named = new NamedAnnotations();
+		named.put("newType", annos);
+
 		// Now create the output file
 		File outputFile = new File("src/test/resources/"+name);
 		System.out.println("Creating file: "+outputFile.getAbsolutePath());
@@ -337,7 +300,7 @@ public class JDOAnnotationsUtilsTest {
 		FileOutputStream fos = new FileOutputStream(outputFile);
 		try{
 			// First create the blob
-			byte[] compressedBlob = JDOAnnotationsUtils.compressAnnotations(annos);
+			byte[] compressedBlob = JDOAnnotationsUtils.compressAnnotations(named);
 			System.out.println("Compressed file size is: "+compressedBlob.length+" bytes");
 						
 			// Write this blob to the file

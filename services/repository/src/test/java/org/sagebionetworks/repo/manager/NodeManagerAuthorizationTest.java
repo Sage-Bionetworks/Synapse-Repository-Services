@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
@@ -37,6 +38,7 @@ public class NodeManagerAuthorizationTest {
 	private FieldTypeDAO mockFieldTypeDao = null;
 	private Node mockNode;
 	private Annotations mockAnnotations;
+	private NamedAnnotations mockNamed;
 	private User mockUser;
 	private UserGroup mockUserGroup;
 	private UserInfo mockUserInfo;	
@@ -60,6 +62,8 @@ public class NodeManagerAuthorizationTest {
 		when(mockNode.getName()).thenReturn("BobTheNode");
 		mockAnnotations = Mockito.mock(Annotations.class);
 		when(mockAnnotations.getEtag()).thenReturn("12");
+		mockNamed = Mockito.mock(NamedAnnotations.class);
+		when(mockNamed.getEtag()).thenReturn("12");
 		// Mock user
 		mockUser = Mockito.mock(User.class);
 		when(mockUser.getId()).thenReturn("12");
@@ -118,7 +122,7 @@ public class NodeManagerAuthorizationTest {
 		String id = "22";
 		when(mockAuthDao.canAccess(mockUserInfo, id, ACCESS_TYPE.UPDATE)).thenReturn(false);
 		// Should fail
-		nodeManager.update(mockUserInfo, mockNode, mockAnnotations, true);
+		nodeManager.update(mockUserInfo, mockNode, mockNamed, true);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -142,7 +146,7 @@ public class NodeManagerAuthorizationTest {
 		String id = "22";
 		when(mockAuthDao.canAccess(mockUserInfo, id, ACCESS_TYPE.UPDATE)).thenReturn(false);
 		// Should fail
-		nodeManager.updateAnnotations(mockUserInfo, id, mockAnnotations);
+		nodeManager.updateAnnotations(mockUserInfo, id, mockAnnotations, NamedAnnotations.NAME_SPACE_ADDITIONAL);
 	}
 	
 	@Test (expected=UnauthorizedException.class)

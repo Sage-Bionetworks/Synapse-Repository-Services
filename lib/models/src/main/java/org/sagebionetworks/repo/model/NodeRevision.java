@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.Date;
+import java.util.Map;
 
 /**
  * 
@@ -9,13 +10,46 @@ import java.util.Date;
  */
 public class NodeRevision {
 	
+	// This is the first version.
+	public static String XML_V_0	 = "0.0";
+	public static String XML_V_1	 = "1.0";
+	// We are currently on V1
+	public static String CURRENT_XML_VERSION = XML_V_1;
+	
 	private String nodeId;
 	private Long revisionNumber;
 	private String label;
 	private String comment;
 	private String modifiedBy;
 	private Date modifiedOn;
+	private String xmlVersion;
+	/**
+	 * Annotations now belong to a name-space so use namespaceAnnos.
+	 * @deprecated since xml version 1.0
+	 */
+	@Deprecated 
 	private Annotations annotations;
+	/**
+	 * Annotations now belong to a name-space so this map should be used instead 
+	 * of the depreciated annotations.
+	 */
+	private NamedAnnotations namedAnnotations;
+	
+	/**
+	 * The xml version that this object serialized to/from.
+	 * @return
+	 */
+	public String getXmlVersion() {
+		return xmlVersion;
+	}
+	
+	/**
+	 * The xml version that this object serialized to/from.
+	 * @param xmlVersion
+	 */
+	public void setXmlVersion(String xmlVersion) {
+		this.xmlVersion = xmlVersion;
+	}
 	
 	public String getNodeId() {
 		return nodeId;
@@ -53,11 +87,29 @@ public class NodeRevision {
 	public void setModifiedOn(Date modifiedOn) {
 		this.modifiedOn = modifiedOn;
 	}
+	
+	/**
+	 * @deprecated use getNamespaceAnnos
+	 * @return
+	 */
+	@Deprecated
 	public Annotations getAnnotations() {
 		return annotations;
 	}
+	/**
+	 * @deprecated use #setNamespaceAnnos()
+	 * @param annotations
+	 */
+	@Deprecated
 	public void setAnnotations(Annotations annotations) {
 		this.annotations = annotations;
+	}
+	
+	public NamedAnnotations getNamedAnnotations() {
+		return namedAnnotations;
+	}
+	public void setNamedAnnotations(NamedAnnotations namespaceAnnotations) {
+		this.namedAnnotations = namespaceAnnotations;
 	}
 	@Override
 	public int hashCode() {
@@ -71,6 +123,8 @@ public class NodeRevision {
 				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
 		result = prime * result
 				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
+		result = prime * result
+				+ ((namedAnnotations == null) ? 0 : namedAnnotations.hashCode());
 		result = prime * result + ((nodeId == null) ? 0 : nodeId.hashCode());
 		result = prime * result
 				+ ((revisionNumber == null) ? 0 : revisionNumber.hashCode());
@@ -110,6 +164,11 @@ public class NodeRevision {
 				return false;
 		} else if (!modifiedOn.equals(other.modifiedOn))
 			return false;
+		if (namedAnnotations == null) {
+			if (other.namedAnnotations != null)
+				return false;
+		} else if (!namedAnnotations.equals(other.namedAnnotations))
+			return false;
 		if (nodeId == null) {
 			if (other.nodeId != null)
 				return false;
@@ -122,11 +181,14 @@ public class NodeRevision {
 			return false;
 		return true;
 	}
+	
 	@Override
 	public String toString() {
 		return "NodeRevision [nodeId=" + nodeId + ", revisionNumber="
 				+ revisionNumber + ", label=" + label + ", comment=" + comment
 				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
-				+ ", annotations=" + annotations + "]";
+				+ ", annotations=" + annotations + ", namespaceAnnos="
+				+ namedAnnotations + "]";
 	}
+	
 }

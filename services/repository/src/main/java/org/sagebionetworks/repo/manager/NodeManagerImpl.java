@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -16,6 +17,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
@@ -270,7 +272,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public Node update(UserInfo userInfo, Node updatedNode, Annotations updatedAnnos, boolean newVersion) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
+	public Node update(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos, boolean newVersion) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getUser().getUserId();
 		NodeManagerImpl.validateNode(updatedNode);
@@ -309,16 +311,18 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		return get(userInfo, updatedNode.getId());
 	}
 
+
+
 	@Transactional(readOnly = true)
 	@Override
-	public Annotations getAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
+	public NamedAnnotations getAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getUser().getUserId();
 		if (!authorizationManager.canAccess(userInfo, nodeId, AuthorizationConstants.ACCESS_TYPE.READ)) {
 			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
 		}
-		Annotations annos = nodeDao.getAnnotations(nodeId);
+		NamedAnnotations annos = nodeDao.getAnnotations(nodeId);
 		if(log.isDebugEnabled()){
 			log.debug("username "+userName+" fetched Annotations for node: "+nodeId);
 		}
@@ -327,7 +331,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	
 	@Transactional(readOnly = true)
 	@Override
-	public Annotations getAnnotationsForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException,
+	public NamedAnnotations getAnnotationsForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getUser().getUserId();
@@ -339,7 +343,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public Annotations updateAnnotations(UserInfo userInfo, String nodeId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
+	public Annotations updateAnnotations(UserInfo userInfo, String nodeId, Annotations updated, String namespace) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
 		if(nodeId == null) throw new IllegalArgumentException("Node ID cannot be null");
 		UserInfo.validateUserInfo(userInfo);
@@ -352,11 +356,25 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		validateAnnotations(updated);
 		// Now lock the node if we can
 		nodeDao.lockNodeAndIncrementEtag(nodeId, updated.getEtag());
-		nodeDao.updateAnnotations(nodeId, updated);
+		NamedAnnotations namedAnnos = nodeDao.getAnnotations(nodeId);
+		// Replace a single namespace
+		namedAnnos.put(namespace, updated);
+		
+		nodeDao.updateAnnotations(nodeId, namedAnnos);
 		if(log.isDebugEnabled()){
 			log.debug("username "+userName+" updated Annotations for node: "+updated.getId());
 		}
-		return getAnnotations(userInfo, nodeId);
+		namedAnnos = getAnnotations(userInfo, nodeId);
+		return namedAnnos.getAnnotationsForName(namespace);
+	}
+	
+	public void validateAnnotations(NamedAnnotations updatedAnnos) throws DatastoreException, InvalidModelException {
+		if(updatedAnnos == null) throw new IllegalArgumentException("NamedAnnotations cannot be null");
+		// Validate all of the annotations
+		Iterator<String> it = updatedAnnos.nameIterator();
+		while(it.hasNext()){
+			validateAnnotations(updatedAnnos.getAnnotationsForName(it.next()));
+		}
 	}
 	
 	/**
@@ -431,7 +449,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public String createNewNode(Node newNode, Annotations newAnnotations, UserInfo userInfo) throws DatastoreException,
+	public String createNewNode(Node newNode, NamedAnnotations newAnnotations, UserInfo userInfo) throws DatastoreException,
 			InvalidModelException, NotFoundException, UnauthorizedException {
 		// First create the node
 		String id = createNewNode(newNode, userInfo);

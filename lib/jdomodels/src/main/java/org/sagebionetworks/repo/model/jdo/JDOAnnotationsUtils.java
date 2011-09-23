@@ -4,6 +4,8 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -16,6 +18,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOBlobAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
@@ -42,13 +45,35 @@ public class JDOAnnotationsUtils {
 	 * @throws IOException 
 	 */
 	@SuppressWarnings("unchecked")
-	public static void updateFromJdoFromDto(Annotations dto, JDONode jdo, JDORevision rev) throws IOException {
-		if(dto.getId() != null){
-			jdo.setId(Long.valueOf(dto.getId()));
-		}
-		updateAnnotationsFromDto(dto, jdo);
+	public static void updateFromJdoFromDto(NamedAnnotations dto, JDONode jdo, JDORevision rev) throws IOException {
+		updateAnnotationsFromDto(mergeAnnotations(dto), jdo);
 		// Compress the annotations and save them in a blob
 		rev.setAnnotations(compressAnnotations(dto));
+	}
+	
+	/**
+	 * Merge all of the annotations in the map into a single set.
+	 * @param nodeId
+	 * @param dto
+	 * @return
+	 */
+	private static Annotations mergeAnnotations(NamedAnnotations dto){
+		Annotations merged = new Annotations();
+		if(dto != null){
+			Iterator<String> it = dto.nameIterator();
+			while(it.hasNext()){
+				Annotations toMerge = dto.getAnnotationsForName(it.next());
+				merged.addAll(toMerge);
+			}
+		}
+		return merged;
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static void updateAnnotationsFromDto(NamedAnnotations dto, JDONode jdo) {
+		// Merge all of the annotations
+		Annotations merged = mergeAnnotations(dto);
+		updateAnnotationsFromDto(merged, jdo);
 	}
 	/**
 	 * This version will update the annotations on the node.  This will update the annotation tables used
@@ -71,12 +96,12 @@ public class JDOAnnotationsUtils {
 	 * @return
 	 * @throws IOException 
 	 */
-	public static byte[] compressAnnotations(Annotations dto) throws IOException{
+	public static byte[] compressAnnotations(NamedAnnotations dto) throws IOException{
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		BufferedOutputStream buff = new BufferedOutputStream(out);
 		GZIPOutputStream zipper = new GZIPOutputStream(buff);
 		try{
-			XStream xstream = new XStream();
+			XStream xstream = createXStream();
 			xstream.toXML(dto, zipper);
 			zipper.flush();
 			zipper.close();
@@ -87,29 +112,57 @@ public class JDOAnnotationsUtils {
 		}
 
 	}
+	
+	public static String toXml(NamedAnnotations dto) throws IOException{
+		StringWriter writer = new StringWriter();
+		try{
+			XStream xstream = createXStream();
+			xstream.toXML(dto, writer);
+			return writer.toString();
+		}finally{
+			
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static NamedAnnotations fromXml(String xml) throws IOException{
+		StringReader reader = new StringReader(xml);
+		try{
+			XStream xstream = createXStream();
+			return (NamedAnnotations) xstream.fromXML(reader);
+		}finally{
+			
+		}
+	}
+
+	public static XStream createXStream() {
+		XStream xstream = new XStream();
+		xstream.alias("annotations", Annotations.class);
+		xstream.alias("name-space", NamedAnnotations.class);
+		return xstream;
+	}
 	/**
 	 * Read the compressed (zip) byte array into the Annotations.
 	 * @param zippedByes
 	 * @return
 	 * @throws IOException 
 	 */
-	public static Annotations decompressedAnnotations(byte[] zippedByes) throws IOException{
-		Annotations results =  Annotations.createInitialized();
+	@SuppressWarnings("unchecked")
+	public static NamedAnnotations decompressedAnnotations(byte[] zippedByes) throws IOException{
 		if(zippedByes != null){
 			ByteArrayInputStream in = new ByteArrayInputStream(zippedByes);
 			GZIPInputStream unZipper = new GZIPInputStream(in);
 			try{
-				// Now read using XStream
-				XStream xstream = new XStream();
+				XStream xstream = createXStream();
 				if(zippedByes != null){
-					xstream.fromXML(unZipper, results);
+					return (NamedAnnotations) xstream.fromXML(unZipper);
 				}
-
 			}finally{
 				unZipper.close();
 			}			
 		}
-		return results;
+		// Return an empty map.
+		return new NamedAnnotations();
 	}
 
 	
@@ -119,7 +172,7 @@ public class JDOAnnotationsUtils {
 	 * @return
 	 * @throws IOException 
 	 */
-	public static Annotations createFromJDO(JDORevision rev) throws IOException{
+	public static NamedAnnotations createFromJDO(JDORevision rev) throws IOException{
 		if(rev == null) throw new IllegalArgumentException("JDOAnnotations cannot be null");
 		return decompressedAnnotations(rev.getAnnotations());
 	}

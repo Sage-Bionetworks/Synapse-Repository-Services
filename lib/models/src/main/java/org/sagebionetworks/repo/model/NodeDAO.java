@@ -76,7 +76,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public Annotations getAnnotations(String id) throws NotFoundException, DatastoreException;
+	public NamedAnnotations getAnnotations(String id) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Get the annotations for a given version number
@@ -85,7 +85,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public Annotations getAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
+	public NamedAnnotations getAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Get all of the children nodes of a given node.
@@ -148,7 +148,8 @@ public interface NodeDAO {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public void updateAnnotations(String nodeId, Annotations updatedAnnotations) throws NotFoundException, DatastoreException;
+	public void updateAnnotations(String nodeId, NamedAnnotations updatedAnnos) throws NotFoundException, DatastoreException;
+
 	
 	/**
 	 * Does a given node exist?

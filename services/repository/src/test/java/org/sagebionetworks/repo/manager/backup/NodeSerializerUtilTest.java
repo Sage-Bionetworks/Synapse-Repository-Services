@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevision;
@@ -82,7 +83,8 @@ public class NodeSerializerUtilTest {
 		rev.setModifiedOn(new Date());
 		rev.setRevisionNumber(new Long(12));
 		
-		Annotations annos = new Annotations();
+		NamedAnnotations named = new NamedAnnotations();
+		Annotations annos = named.getAdditionalAnnotations();
 		annos.addAnnotation("stringOne", "one");
 		annos.addAnnotation("stringOne", "two");
 		annos.addAnnotation("stringTwo", "three");
@@ -94,7 +96,7 @@ public class NodeSerializerUtilTest {
 		annos.addAnnotation("blob", "Convert this String to a blob please!".getBytes("UTF-8"));
 		annos.addAnnotation("blob5", "Convert me too!".getBytes("UTF-8"));
 		
-		rev.setAnnotations(annos);
+		rev.setNamedAnnotations(named);
 		
 		StringWriter writer = new StringWriter();
 		NodeSerializerUtil.writeNodeRevision(rev, writer);
@@ -162,18 +164,15 @@ public class NodeSerializerUtilTest {
 	@Test
 	public void testLoadOldNodeRevisionVersions() throws IOException{
 		// Make sure we can load all pervious versions of the node backup object
-		for(FileDetails previousFile: PREVIOUS_NODE_REVISION_FILES){
-			// Load the node from the file 
-			InputStream in = NodeSerializerUtilTest.class.getClassLoader().getResourceAsStream(previousFile.getFileName());
-			assertNotNull("Failed to find:"+previousFile.getFileName()+" on the classpath", in);
-			try{
-				NodeRevision loaded = NodeSerializerUtil.readNodeRevision(in);
-				// Now make sure the loaded backup matches the randomly generated object
-				NodeRevision  fromSeed = RandomNodeRevisionUtil.generateRandom(previousFile.getRandomSeed(), previousFile.getCount());
-				assertEquals(fromSeed, loaded);
-			}finally{
-				in.close();
-			}
+		InputStream in = NodeSerializerUtilTest.class.getClassLoader().getResourceAsStream("node-revisionV0.xml");
+		assertNotNull("Failed to find:node-revisionV0.xml on the classpath", in);
+		try{
+			NodeRevision loaded = NodeSerializerUtil.readNodeRevision(in);
+			assertNotNull(loaded);
+			// This V0 had annotations
+			assertNotNull(loaded.getAnnotations());
+		}finally{
+			in.close();
 		}
 	}
 

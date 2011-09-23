@@ -12,6 +12,7 @@ import java.util.Random;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeRevision;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
@@ -64,7 +65,8 @@ public class JDORevisionUtilsTest {
 		dto.setLabel("1.0.1");
 		dto.setModifiedBy("you");
 		dto.setModifiedOn(new Date());
-		dto.setAnnotations(RandomAnnotationsUtil.generateRandom(123, 4));
+		dto.setNamedAnnotations(new NamedAnnotations());
+		dto.getNamedAnnotations().put("someRandomName-space", RandomAnnotationsUtil.generateRandom(123, 4));
 		// Now create the JDO object
 		JDORevision jdo = new JDORevision();
 		JDONode owner = new JDONode();

@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
@@ -476,10 +477,10 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 			node = nodeDao.getNode(id);
 			nodesInProjectB.put(node.getId(), node);
 			// Add an attribute to nodes in group B
-			Annotations annos = nodeDao.getAnnotations(id);
+			NamedAnnotations annos = nodeDao.getAnnotations(id);
 			assertNotNull(annos);
 			fieldTypeDao.addNewType(attributeName, FieldType.LONG_ATTRIBUTE);
-			annos.addAnnotation(attributeName, new Long(i));
+			annos.getAdditionalAnnotations().addAnnotation(attributeName, new Long(i));
 			nodeDao.updateAnnotations(id, annos);
 		}
 	}

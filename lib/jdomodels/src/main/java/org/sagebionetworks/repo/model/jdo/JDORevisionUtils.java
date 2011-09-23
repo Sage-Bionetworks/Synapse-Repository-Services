@@ -47,7 +47,7 @@ public class JDORevisionUtils {
 		rev.setModifiedBy(jdo.getModifiedBy());
 		rev.setModifiedOn(new Date(jdo.getModifiedOn()));
 		try {
-			rev.setAnnotations(JDOAnnotationsUtils.decompressedAnnotations(jdo.getAnnotations()));
+			rev.setNamedAnnotations(JDOAnnotationsUtils.decompressedAnnotations(jdo.getAnnotations()));
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -69,7 +69,7 @@ public class JDORevisionUtils {
 		}
 		jdo.setRevisionNumber(dto.getRevisionNumber());
 		try {
-			jdo.setAnnotations(JDOAnnotationsUtils.compressAnnotations(dto.getAnnotations()));
+			jdo.setAnnotations(JDOAnnotationsUtils.compressAnnotations(dto.getNamedAnnotations()));
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

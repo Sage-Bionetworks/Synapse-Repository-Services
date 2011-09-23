@@ -5,13 +5,16 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TransientField;
 
 /**
@@ -30,6 +33,29 @@ public class NodeTranslationUtils {
 	 */
 	private static Map<String, Field> nodeFieldNames = new HashMap<String, Field>();
 	private static Map<String, String> nameConvertion = new HashMap<String, String>();
+	private static Map<ObjectType, Set<String>> primaryFieldsCache = new HashMap<ObjectType, Set<String>>();
+	
+	/**
+	 * Build up the cache of primary fields for each object type.
+	 * @return
+	 */
+	private static void buildPrimaryFieldCache(){
+		for(ObjectType type: ObjectType.values()){
+			HashSet<String> set = new HashSet<String>();
+			// Add each field
+			Field[] fields = type.getClassForType().getDeclaredFields();
+			for(Field field: fields){
+				String name = field.getName();
+				// Add this name and the node name
+				set.add(name);
+				String nodeName = nameConvertion.get(name);
+				if(nodeName != null){
+					set.add(nodeName);
+				}
+			}
+			primaryFieldsCache.put(type, set);
+		}
+	}
 	static{
 		// Populate the nodeFieldNames
 		Field[] fields = Node.class.getDeclaredFields();
@@ -41,6 +67,8 @@ public class NodeTranslationUtils {
 		nameConvertion.put("creator", "createdBy");
 		nameConvertion.put("creationDate", "createdOn");
 		nameConvertion.put("etag", "eTag");
+		// build the primary field cache
+		buildPrimaryFieldCache();
 	}
 	
 	
@@ -205,4 +233,16 @@ public class NodeTranslationUtils {
 			}
 		}
 	}
+	
+	/**
+	 * Is the given name a primary field for the given object type.
+	 * @param type
+	 * @param toTest
+	 * @return
+	 */
+	public static boolean isPrimaryFieldName(ObjectType type, String toTest){
+		return primaryFieldsCache.get(type).contains(toTest);
+	}
+	
+
 }

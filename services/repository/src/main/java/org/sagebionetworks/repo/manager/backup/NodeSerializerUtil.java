@@ -7,7 +7,9 @@ import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
 
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevision;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -26,6 +28,8 @@ public class NodeSerializerUtil  {
 	private static final String ALIAS_ACCESS_TYPE = "access-type";
 	private static final String ALIAS_RESOURCE_ACCESS = "resource-access";
 	private static final String ALIAS_NODE_REVISION = "node-revision";
+	private static final String ALIAS_ANNOTATIONS = "annotations";
+	private static final String ALIAS_NAME_SPACE = "name-space";
 
 
 	/**
@@ -104,6 +108,8 @@ public class NodeSerializerUtil  {
 		xstream.alias(ALIAS_ACCESS_TYPE, AuthorizationConstants.ACCESS_TYPE.class);
 		xstream.alias(ALIAS_RESOURCE_ACCESS, ResourceAccess.class);
 		xstream.alias(ALIAS_NODE_REVISION, NodeRevision.class);
+		xstream.alias(ALIAS_ANNOTATIONS, Annotations.class);
+		xstream.alias(ALIAS_NAME_SPACE, NamedAnnotations.class);
 		return xstream;
 	}
 

@@ -2,14 +2,18 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.swing.text.html.parser.Entity;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
+import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.NodeRevision;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -41,9 +45,9 @@ public class EntityManagerImpl implements EntityManager {
 		Node node = NodeTranslationUtils.createFromBase(newEntity);
 		// Set the type for this object
 		node.setNodeType(ObjectType.getNodeTypeForClass(newEntity.getClass()).toString());
-		Annotations annos = new Annotations();
+		NamedAnnotations annos = new NamedAnnotations();
 		// Now add all of the annotations from the entity
-		NodeTranslationUtils.updateAnnoationsFromObject(newEntity, annos);
+		NodeTranslationUtils.updateAnnoationsFromObject(newEntity, annos.getPrimaryAnnotations());
 		// We are ready to create this node
 		String nodeId = nodeManager.createNewNode(node, annos, userInfo);
 		// Return the id of the newly created entity
@@ -55,7 +59,7 @@ public class EntityManagerImpl implements EntityManager {
 	public <T extends Base> EntityWithAnnotations<T> getEntityWithAnnotations(UserInfo userInfo, String entityId, Class<? extends T> entityClass)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get the annotations for this entity
-		Annotations annos = nodeManager.getAnnotations(userInfo, entityId);
+		NamedAnnotations annos = nodeManager.getAnnotations(userInfo, entityId);
 		// Fetch the current node from the server
 		Node node = nodeManager.get(userInfo, entityId);
 		// Does the node type match the requested type?
@@ -80,7 +84,7 @@ public class EntityManagerImpl implements EntityManager {
 	public <T extends Base> EntityWithAnnotations<T> getEntityVersionWithAnnotations(UserInfo userInfo, String entityId, Long versionNumber, Class<? extends T> entityClass)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get the annotations for this entity
-		Annotations annos = nodeManager.getAnnotationsForVersion(userInfo, entityId, versionNumber);
+		NamedAnnotations annos = nodeManager.getAnnotationsForVersion(userInfo, entityId, versionNumber);
 		// Fetch the current node from the server
 		Node node = nodeManager.getNodeForVersionNumber(userInfo, entityId, versionNumber);
 		return populateEntityWithNodeAndAnnotations(entityClass, annos, node);
@@ -96,16 +100,16 @@ public class EntityManagerImpl implements EntityManager {
 	 * @return
 	 */
 	private <T extends Base> EntityWithAnnotations<T> populateEntityWithNodeAndAnnotations(
-			Class<? extends T> entityClass, Annotations annos, Node node) {
+			Class<? extends T> entityClass, NamedAnnotations annos, Node node) {
 		// Return the new object from the database
 		T newEntity = createNewEntity(entityClass);
 		// Populate the entity using the annotations
-		NodeTranslationUtils.updateObjectFromAnnotations(newEntity, annos);
+		NodeTranslationUtils.updateObjectFromAnnotations(newEntity, annos.getPrimaryAnnotations());
 		// Populate the entity using the node
 		NodeTranslationUtils.updateObjectFromNode(newEntity, node);
 		EntityWithAnnotations<T> ewa = new EntityWithAnnotations<T>();
 		ewa.setEntity(newEntity);
-		ewa.setAnnotations(annos);
+		ewa.setAnnotations(annos.getAdditionalAnnotations());
 		return ewa;
 	}
 
@@ -165,20 +169,27 @@ public class EntityManagerImpl implements EntityManager {
 	public Annotations getAnnotations(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		if(entityId == null) throw new IllegalArgumentException("Entity ID cannot be null");
 		// This is a simple pass through
-		return nodeManager.getAnnotations(userInfo, entityId);
+		NamedAnnotations annos = nodeManager.getAnnotations(userInfo, entityId);
+		// When the user is asking for the annotations, then they want the additional
+		// annotations and not the primary annotations.
+		return annos.getAdditionalAnnotations();
 	}
 	
 	@Override
 	public Annotations getAnnotationsForVersion(UserInfo userInfo, String id,	Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException {
-		// Pass it along.
-		return nodeManager.getAnnotationsForVersion(userInfo, id, versionNumber);
+		// Get all of the annotations.
+		NamedAnnotations annos = nodeManager.getAnnotationsForVersion(userInfo, id, versionNumber);
+		// When the user is asking for the annotations, then they want the additional
+		// annotations and not the primary annotations.
+		return annos.getAdditionalAnnotations();
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void updateAnnotations(UserInfo userInfo, String entityId, Annotations updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		if(updated == null) throw new IllegalArgumentException("Annoations cannot be null");
-		nodeManager.updateAnnotations(userInfo,entityId, updated);
+		// The user has updated the additional annotations.
+		nodeManager.updateAnnotations(userInfo,entityId, updated, NamedAnnotations.NAME_SPACE_ADDITIONAL);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -188,8 +199,9 @@ public class EntityManagerImpl implements EntityManager {
 		if(updated.getId() == null) throw new IllegalArgumentException("The updated Entity cannot have a null ID");
 		Node node = nodeManager.get(userInfo, updated.getId());		
 		// Now get the annotations for this node
-		Annotations annos = nodeManager.getAnnotations(userInfo, updated.getId());
-		updateNodeAndAnnotationsFromEntity(updated, node, annos);
+		NamedAnnotations annos = nodeManager.getAnnotations(userInfo, updated.getId());
+		annos.setEtag(updated.getEtag());
+		updateNodeAndAnnotationsFromEntity(updated, node, annos.getPrimaryAnnotations());
 		// NOw update both at the same time
 		nodeManager.update(userInfo, node, annos, newVersion);
 	}

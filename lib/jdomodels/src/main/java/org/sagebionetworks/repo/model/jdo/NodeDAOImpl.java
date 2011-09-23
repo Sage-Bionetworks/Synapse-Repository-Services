@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -294,7 +295,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Transactional(readOnly = true)
 	@Override
-	public Annotations getAnnotations(String id) throws NotFoundException, DatastoreException {
+	public NamedAnnotations getAnnotations(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		JDONode jdo =  getNodeById(Long.parseLong(id));
 		JDORevision rev = getCurrentRevision(jdo);
@@ -308,9 +309,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	private Annotations getAnnotations(JDONode jdo, JDORevision rev) throws DatastoreException {
+	private NamedAnnotations getAnnotations(JDONode jdo, JDORevision rev) throws DatastoreException {
 		// Get the annotations and make a copy
-		Annotations annos;
+		NamedAnnotations annos = new NamedAnnotations();;
 		try {
 			annos = JDOAnnotationsUtils.createFromJDO(rev);
 		} catch (IOException e) {
@@ -324,7 +325,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	
 	@Transactional(readOnly = true)
 	@Override
-	public Annotations getAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException {
+	public NamedAnnotations getAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException {
 		Long nodeId = KeyFactory.stringToKey(id);
 		JDONode jdo =  getNodeById(nodeId);
 		// Get a particular version.
@@ -457,15 +458,18 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void updateAnnotations(String nodeId, Annotations updatedAnnotations) throws NotFoundException, DatastoreException {
-		if(updatedAnnotations == null) throw new IllegalArgumentException("Updateded Annotations cannot be null");
-		if(updatedAnnotations.getId() == null) throw new IllegalArgumentException("Node ID cannot be null");
-		if(updatedAnnotations.getEtag() == null) throw new IllegalArgumentException("Annotations must have a valid eTag");
+	public void updateAnnotations(String nodeId, NamedAnnotations updatedAnnos) throws NotFoundException, DatastoreException {
+		if(updatedAnnos == null) throw new IllegalArgumentException("Updateded Annotations cannot be null");
+		if(updatedAnnos.getId() == null) throw new IllegalArgumentException("Node ID cannot be null");
+		if(updatedAnnos.getEtag() == null) throw new IllegalArgumentException("Annotations must have a valid eTag");
 		JDONode jdo =  getNodeById(Long.parseLong(nodeId));
 		JDORevision rev = getCurrentRevision(jdo);
 		// now update the annotations from the passed values.
 		try {
-			JDOAnnotationsUtils.updateFromJdoFromDto(updatedAnnotations, jdo, rev);
+			NamedAnnotations annos = JDOAnnotationsUtils.createFromJDO(rev);
+			// Replace the annotations from this namespace
+			annos.putAll(updatedAnnos.getMap());
+			JDOAnnotationsUtils.updateFromJdoFromDto(annos, jdo, rev);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -819,7 +823,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 */
 	private void updateAnnotationTablesIfCurrentRev(NodeRevision rev, JDONode owner) {
 		if(owner.getCurrentRevNumber().equals(rev.getRevisionNumber())){
-			JDOAnnotationsUtils.updateAnnotationsFromDto(rev.getAnnotations(), owner);
+			JDOAnnotationsUtils.updateAnnotationsFromDto(rev.getNamedAnnotations(), owner);
 		}
 	}
 
