@@ -153,6 +153,56 @@ public class EntityManagerImplAutowireTest {
 		assertEquals("updatedName", updatedLayer.getName());
 	}
 	
+	/**
+	 * To resolve issue PLFM-203 we added a support for annotation name-spaces.  
+	 * The primary field of a entity get their own name space.  Now when the annotations
+	 * of an entity are fetched, we return entities from the "additional" name-spaces.
+	 * @throws NotFoundException 
+	 * @throws UnauthorizedException 
+	 * @throws InvalidModelException 
+	 * @throws DatastoreException 
+	 * @throws ConflictingUpdateException 
+	 */
+	@Test
+	public void testPLFM_203() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ConflictingUpdateException{
+		Dataset ds = createDataset();
+		// This primary field is stored as an annotation.
+		ds.setEulaId("45");
+		String id = entityManager.createEntity(userInfo, ds);
+		assertNotNull(id);
+		toDelete.add(id);
+		// Ge the annotations of the datasets
+		Annotations annos = entityManager.getAnnotations(userInfo, id);
+		assertNotNull(annos);
+		// None of the primary field annotations should be in this set, in fact it should be emtpy
+		assertEquals(0, annos.getStringAnnotations().size());
+		assertEquals(0, annos.getDateAnnotations().size());
+		Dataset clone = entityManager.getEntity(userInfo, id, Dataset.class);
+		assertNotNull(clone);
+		assertEquals(ds.getEulaId(), clone.getEulaId());
+		// Now add an annotation
+		annos.addAnnotation("stringKey", "some string value");
+		entityManager.updateAnnotations(userInfo, id, annos);
+		annos = entityManager.getAnnotations(userInfo, id);
+		assertNotNull(annos);
+		assertEquals("some string value", annos.getSingleValue("stringKey"));
+		// Make sure we did not lose any primary annotations.
+		clone = entityManager.getEntity(userInfo, id, Dataset.class);
+		assertNotNull(clone);
+		assertEquals(ds.getEulaId(), clone.getEulaId());
+		// Now change the primary field
+		clone.setEulaId("101");
+		entityManager.updateEntity(userInfo, clone, false);
+		clone = entityManager.getEntity(userInfo, id, Dataset.class);
+		assertNotNull(clone);
+		assertEquals("101", clone.getEulaId());
+		// We should not have lost any of the additional annotations
+		annos = entityManager.getAnnotations(userInfo, id);
+		assertNotNull(annos);
+		assertEquals("some string value", annos.getSingleValue("stringKey"));
+		
+	}
+	
 	private Layer createLayerForTest(int i){
 		Layer layer = new Layer();
 		layer.setName("layerName"+i);

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.util;
 
 import java.util.Random;
 
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeRevision;
 
 public class RandomNodeRevisionUtil {
@@ -30,7 +31,11 @@ public class RandomNodeRevisionUtil {
 		rev.setModifiedOn(RandomUtils.createRandomStableDate(rand));
 		rev.setRevisionNumber(rand.nextLong());
 		rev.setLabel("Label: "+rand.nextLong());
-		rev.setAnnotations(RandomAnnotationsUtil.generateRandom(rand, annCount));
+//		rev.setAnnotations(RandomAnnotationsUtil.generateRandom(rand, annCount));
+		NamedAnnotations named = new NamedAnnotations();
+		named.put(NamedAnnotations.NAME_SPACE_PRIMARY, RandomAnnotationsUtil.generateRandom(rand, annCount));
+		named.put(NamedAnnotations.NAME_SPACE_ADDITIONAL, RandomAnnotationsUtil.generateRandom(rand, annCount));
+		rev.setNamedAnnotations(named);
 		return rev;
 	}
 

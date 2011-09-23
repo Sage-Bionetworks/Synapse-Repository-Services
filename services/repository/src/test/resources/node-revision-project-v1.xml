@@ -1,0 +1,59 @@
+<node-revision>
+  <nodeId>556</nodeId>
+  <revisionNumber>1</revisionNumber>
+  <label>The first version of this object</label>
+  <comment>I have not comment at this time</comment>
+  <xmlVersion>1.0</xmlVersion>
+  <namedAnnotations>
+    <map>
+      <entry>
+        <string>ADDITIONAL</string>
+        <annotations>
+          <stringAnnotations>
+            <entry>
+              <string>stringKey</string>
+              <list>
+                <string>some random string</string>
+              </list>
+            </entry>
+          </stringAnnotations>
+          <doubleAnnotations/>
+          <longAnnotations>
+            <entry>
+              <string>longKey</string>
+              <list>
+                <long>999999</long>
+              </list>
+            </entry>
+          </longAnnotations>
+          <dateAnnotations/>
+          <blobAnnotations>
+            <entry>
+              <string>blobKey</string>
+              <list>
+                <byte-array>SSBhbSBzbyBiaWcgSSBtdXN0IGJlIHN0b3JlZCBhcyBhIGJsb2Ih</byte-array>
+              </list>
+            </entry>
+          </blobAnnotations>
+        </annotations>
+      </entry>
+      <entry>
+        <string>PRIMARY</string>
+        <annotations>
+          <stringAnnotations>
+            <entry>
+              <string>uri</string>
+              <list>
+                <string>project/556</string>
+              </list>
+            </entry>
+          </stringAnnotations>
+          <doubleAnnotations/>
+          <longAnnotations/>
+          <dateAnnotations/>
+          <blobAnnotations/>
+        </annotations>
+      </entry>
+    </map>
+  </namedAnnotations>
+</node-revision>

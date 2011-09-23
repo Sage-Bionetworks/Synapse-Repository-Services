@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
@@ -189,13 +190,15 @@ public class NodeManagerImpleUnitTest {
 	@Test
 	public void testGetAnnotations() throws NotFoundException, DatastoreException, UnauthorizedException{
 		String id = "101";
-		Annotations annos = new Annotations();
+		NamedAnnotations named = new NamedAnnotations();
+		Annotations annos = named.getAdditionalAnnotations();
 		annos.addAnnotation("stringKey", "a");
 		annos.addAnnotation("longKey", Long.MAX_VALUE);
-		when(mockNodeDao.getAnnotations(id)).thenReturn(annos);
+		when(mockNodeDao.getAnnotations(id)).thenReturn(named);
 		UserInfo userInfo = anonUserInfo;
 		when(mockAuthDao.canAccess(userInfo, id, ACCESS_TYPE.READ)).thenReturn(true);
-		Annotations copy = nodeManager.getAnnotations(userInfo, id);
+		NamedAnnotations namedCopy = nodeManager.getAnnotations(userInfo, id);
+		Annotations copy = namedCopy.getAdditionalAnnotations();
 		assertEquals(copy, annos);
 	}
 

@@ -13,10 +13,13 @@ import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.repo.manager.backup.migration.MigrationDriver;
+import org.sagebionetworks.repo.manager.backup.migration.MigrationDriverImpl;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevision;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -40,6 +43,8 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 
 	@Autowired
 	NodeBackupManager backupManager;
+	// For now we can just create one of these.  We might need to make beans in the future.
+	MigrationDriver migrationDriver = new MigrationDriverImpl();
 
 
 	/**
@@ -168,12 +173,14 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 				ZipEntry entry = new ZipEntry(path + REVISIONS_FOLDER
 						+ PATH_DELIMITER + revId + XML_FILE_SUFFIX);
 				zos.putNextEntry(entry);
-				NodeRevision rev = backupManager.getNodeRevision(node.getId(),
-						revId);
+				NodeRevision rev = backupManager.getNodeRevision(node.getId(),	revId);
 				if (rev == null)
 					throw new RuntimeException(
 							"Cannot find a revision for node.id: "
 									+ node.getId() + " revId:" + revId);
+				if(!NodeRevision.CURRENT_XML_VERSION.equals(rev.getXmlVersion())){
+					throw new RuntimeException("Cannot write a NodeRevision that is not set to the current xml version.  Expected version: "+NodeRevision.CURRENT_XML_VERSION+" but was "+rev.getXmlVersion());
+				}
 				NodeSerializerUtil.writeNodeRevision(rev, zos);
 			}
 		}
@@ -196,6 +203,8 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 			ZipInputStream zin = new  ZipInputStream(new BufferedInputStream(fis));
 			progress.setMessage("Reading: "+source.getAbsolutePath());
 			progress.setTotalCount(source.length());
+			// We need to map the node type to the node id.
+			ObjectType nodeType = null;
 			ZipEntry entry;
 			while((entry = zin.getNextEntry()) != null) {
 				progress.setMessage(entry.getName());
@@ -207,10 +216,13 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 				if(isNodeBackupFile(entry.getName())){
 					// This is a backup file.
 					NodeBackup backup = NodeSerializerUtil.readNodeBackup(zin);
+					nodeType = ObjectType.valueOf(backup.getNode().getNodeType());
 					backupManager.createOrUpdateNode(backup);
 				}else if(isNodeRevisionFile(entry.getName())){
 					// This is a revision file.
 					NodeRevision revision = NodeSerializerUtil.readNodeRevision(zin);
+					// Migrate the revision to the current version
+					revision = migrationDriver.migrateToCurrentVersion(revision, nodeType);
 					backupManager.createOrUpdateRevision(revision);
 				}else{
 					throw new IllegalArgumentException("Did not recongnize file name: "+entry.getName());

@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -138,7 +139,8 @@ public class JDONodeQueryDAOImplTest {
 			String parentId = nodeDao.createNew(parent);
 			idToNameMap.put(parentId, parent.getName());
 			nodeIds.add(parentId);
-			Annotations parentAnnos = nodeDao.getAnnotations(parentId);
+			NamedAnnotations named = nodeDao.getAnnotations(parentId);
+			Annotations parentAnnos = named.getAdditionalAnnotations();
 			parentAnnos.addAnnotation(attOnall,
 					"someNumber" + i);
 			// Add some attributes to others.
@@ -158,7 +160,7 @@ public class JDONodeQueryDAOImplTest {
 					new Long(123456));
 			parentAnnos.addAnnotation(attDouble,
 					new Double(123456.3));
-			nodeDao.updateAnnotations(parentId, parentAnnos);
+			nodeDao.updateAnnotations(parentId, named);
 			
 			// Add a child to the parent
 			Node child = createChild(now, i);
@@ -166,7 +168,8 @@ public class JDONodeQueryDAOImplTest {
 			// Add a layer attribute
 			String childId = nodeDao.createNew(child);
 			idToNameMap.put(childId, child.getName());
-			Annotations childAnnos = nodeDao.getAnnotations(childId);
+			NamedAnnotations childNamed = nodeDao.getAnnotations(childId);
+			Annotations childAnnos = childNamed.getPrimaryAnnotations();
 			childAnnos.addAnnotation("layerAnnotation", "layerAnnotValue"+i);
 			
 			if ((i % 2) == 0) {
@@ -178,7 +181,7 @@ public class JDONodeQueryDAOImplTest {
 			}
 			
 			// Update the child annoations.
-			nodeDao.updateAnnotations(childId, childAnnos);
+			nodeDao.updateAnnotations(childId, childNamed);
 
 //			Thread.sleep(1000);
 		}
@@ -253,7 +256,8 @@ public class JDONodeQueryDAOImplTest {
 			assertNotNull(node);
 			assertEquals(ObjectType.dataset.name(), node.getNodeType());
 			// Load the annotations for this node
-			Annotations annos = nodeDao.getAnnotations(id);
+			NamedAnnotations named = nodeDao.getAnnotations(id);
+			Annotations annos = named.getAdditionalAnnotations();
 			
 			// Check for the annotations they all should have.
 			// String
@@ -419,7 +423,8 @@ public class JDONodeQueryDAOImplTest {
 		String name = null;
 		for (String id : rows) {
 			previousName = name;
-			Annotations annos = nodeDao.getAnnotations(id);
+			NamedAnnotations named = nodeDao.getAnnotations(id);
+			Annotations annos = named.getAdditionalAnnotations();
 			Collection<String> collection = annos.getStringAnnotations().get(attString);
 			name = collection.iterator().next();
 			System.out.println(name);
@@ -549,7 +554,8 @@ public class JDONodeQueryDAOImplTest {
 		assertNotNull(list);
 		assertEquals(1, list.size());
 		String id = list.get(0);
-		Annotations annos = nodeDao.getAnnotations(id);
+		NamedAnnotations named = nodeDao.getAnnotations(id);
+		Annotations annos = named.getAdditionalAnnotations();
 		Collection<String> values = annos.getStringAnnotations().get(attOnall);
 		assertNotNull(values);
 		assertEquals(1, values.size());
@@ -595,7 +601,8 @@ public class JDONodeQueryDAOImplTest {
 		assertNotNull(list);
 		assertEquals(1, list.size());
 		String id = list.get(0);
-		Annotations annos = nodeDao.getAnnotations(id);
+		NamedAnnotations named = nodeDao.getAnnotations(id);
+		Annotations annos = named.getAdditionalAnnotations();
 		Collection<Long> values = annos.getLongAnnotations().get(attOnEven);
 		assertNotNull(values);
 		assertEquals(1, values.size());

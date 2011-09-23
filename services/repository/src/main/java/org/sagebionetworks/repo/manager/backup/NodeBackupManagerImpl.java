@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.backup;
 
 import java.util.Date;
+import java.util.Iterator;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -8,6 +9,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -77,7 +79,10 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 	@Override
 	public NodeRevision getNodeRevision(String nodeId, Long revisionId) throws NotFoundException, DatastoreException {
 		// Pass it along
-		return nodeDao.getNodeRevision(nodeId,revisionId);
+		NodeRevision rev =  nodeDao.getNodeRevision(nodeId,revisionId);
+		// Make sure the xml version is set to the current version
+		rev.setXmlVersion(NodeRevision.CURRENT_XML_VERSION);
+		return rev;
 	}
 
 	@Override
@@ -177,8 +182,12 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 		if(rev.getLabel() == null) throw new IllegalArgumentException("NodeRevision.revisionNumber cannot be null");
 		try{
 			// Validate the annotations
-			if(rev.getAnnotations() != null){
-				fieldTypeDao.validateAnnotations(rev.getAnnotations());
+			if(rev.getNamedAnnotations() != null){
+				NamedAnnotations named = rev.getNamedAnnotations();
+				Iterator<String> it = named.nameIterator();
+				while(it.hasNext()){
+					fieldTypeDao.validateAnnotations(named.getAnnotationsForName(it.next()));
+				}
 			}
 			if(nodeDao.doesNodeRevisionExist(rev.getNodeId(), rev.getRevisionNumber())){
 				// This is an update.

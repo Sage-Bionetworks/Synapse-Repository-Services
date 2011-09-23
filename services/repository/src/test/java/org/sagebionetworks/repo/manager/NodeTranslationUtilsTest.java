@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -11,11 +12,12 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Nodeable;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.TransientField;
 
@@ -175,6 +177,20 @@ public class NodeTranslationUtilsTest {
 		// The transient field should not be in the annotations
 		assertEquals("I should be stored", annos.getSingleValue("nonTransient"));
 		assertTrue("A @TransientField should not be stored in the annotations",annos.getSingleValue("markedTransient") == null);
+	}
+	
+	@Test
+	public void testIsPrimaryFieldNames(){
+		// check all of the fields for each object type.
+		for(ObjectType type: ObjectType.values()){
+			Field[] fields = type.getClassForType().getDeclaredFields();
+			for(Field field: fields){
+				String name = field.getName();
+				assertTrue(NodeTranslationUtils.isPrimaryFieldName(type, name));
+				String notName = name+"1";
+				assertFalse(NodeTranslationUtils.isPrimaryFieldName(type, notName));
+			}
+		}
 	}
 	
 	/**

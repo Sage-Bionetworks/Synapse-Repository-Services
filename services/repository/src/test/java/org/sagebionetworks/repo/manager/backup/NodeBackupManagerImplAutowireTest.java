@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.backup;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -16,6 +17,7 @@ import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeQueryDao;
@@ -90,16 +92,17 @@ public class NodeBackupManagerImplAutowireTest {
 		Annotations annos = org.sagebionetworks.repo.model.util.RandomAnnotationsUtil.generateRandom(987, 40);
 		annos.setId(randomNode.getId());
 		annos.setEtag(randomNode.getETag());
-		nodeManager.updateAnnotations(nonAdminUser, newNodeId, annos);
+		nodeManager.updateAnnotations(nonAdminUser, newNodeId, annos, NamedAnnotations.NAME_SPACE_ADDITIONAL);
 		
-		annos = nodeManager.getAnnotations(nonAdminUser, newNodeId);
+		NamedAnnotations named = nodeManager.getAnnotations(nonAdminUser, newNodeId);
+		annos = named.getAdditionalAnnotations();
 		uniqueAnnotationName = "onlyOnV299999990000011111";
 		uniqueAnnotationValue ="This is only on the second version";
 		annos.addAnnotation(uniqueAnnotationName, uniqueAnnotationValue);
 		randomNode = nodeManager.get(nonAdminUser, newNodeId);
 		randomNode.setVersionLabel("2.0");
 		// Now create a new version of the node
-		randomNode = nodeManager.update(nonAdminUser, randomNode, annos, true);
+		randomNode = nodeManager.update(nonAdminUser, randomNode, named, true);
 		
 		// We should be able to find this node with this query
 		queryForNode = new BasicQuery();
@@ -168,11 +171,13 @@ public class NodeBackupManagerImplAutowireTest {
 			NodeRevision rev = backupManager.getNodeRevision(root.getNode().getId(), revNumber);
 			assertNotNull(rev);
 			assertNotNull(rev.getNodeId());
-			assertNotNull(rev.getAnnotations());
+			assertNull(rev.getAnnotations());
+			assertNotNull(rev.getNamedAnnotations());
 			assertNotNull(rev.getLabel());
 			assertNotNull(rev.getComment());
 			assertNotNull(rev.getModifiedBy());
 			assertNotNull(rev.getModifiedOn());
+			assertEquals(NodeRevision.CURRENT_XML_VERSION, rev.getXmlVersion());
 		}
 	}
 	

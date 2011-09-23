@@ -1,0 +1,65 @@
+<node-revision>
+  <nodeId>546</nodeId>
+  <revisionNumber>1</revisionNumber>
+  <label>The first version of this object</label>
+  <comment>I have not comment at this time</comment>
+  <annotations>
+    <stringAnnotations>
+      <entry>
+        <string>eulaId</string>
+        <list>
+          <string>123</string>
+        </list>
+      </entry>
+      <entry>
+        <string>status</string>
+        <list>
+          <string>cool</string>
+        </list>
+      </entry>
+      <entry>
+        <string>uri</string>
+        <list>
+          <string>dataset/456</string>
+        </list>
+      </entry>
+      <entry>
+        <string>stringKey</string>
+        <list>
+          <string>some random string</string>
+        </list>
+      </entry>
+      <entry>
+        <string>version</string>
+        <list>
+          <string>1.0.0</string>
+        </list>
+      </entry>
+    </stringAnnotations>
+    <doubleAnnotations/>
+    <longAnnotations>
+      <entry>
+        <string>longKey</string>
+        <list>
+          <long>999999</long>
+        </list>
+      </entry>
+    </longAnnotations>
+    <dateAnnotations>
+      <entry>
+        <string>releaseDate</string>
+        <list>
+          <date>1969-12-31 16:00:45.669 PST</date>
+        </list>
+      </entry>
+    </dateAnnotations>
+    <blobAnnotations>
+      <entry>
+        <string>blobKey</string>
+        <list>
+          <byte-array>SSBhbSBzbyBiaWcgSSBtdXN0IGJlIHN0b3JlZCBhcyBhIGJsb2Ih</byte-array>
+        </list>
+      </entry>
+    </blobAnnotations>
+  </annotations>
+</node-revision>

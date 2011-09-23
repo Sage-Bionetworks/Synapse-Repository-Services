@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.BackupRestoreStatus.STATUS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -91,12 +92,15 @@ public class BackupDaemonLauncherImplAutowireTest {
 		node.setNodeType(ObjectType.project.name());
 		UserInfo nonAdmin = testUserProvider.getTestAdminUserInfo();
 		Annotations annos = RandomAnnotationsUtil.generateRandom(12334, 100);
-		String id = nodeManager.createNewNode(node, annos, nonAdmin);
+		NamedAnnotations named = new NamedAnnotations();
+		named.put(NamedAnnotations.NAME_SPACE_ADDITIONAL, annos);
+		String id = nodeManager.createNewNode(node, named, nonAdmin);
 		assertNotNull(id);
 		nodesToDelete.add(id);
 		// Fetch them back
 		node = nodeManager.get(nonAdmin, id);
-		annos = nodeManager.getAnnotations(nonAdmin, id);
+		named = nodeManager.getAnnotations(nonAdmin, id);
+		annos = named.getAdditionalAnnotations();
 		
 		
 		// First start the backup daemon as an administrator
@@ -126,7 +130,8 @@ public class BackupDaemonLauncherImplAutowireTest {
 		// Now make sure the node it back.
 		Node nodeClone = nodeManager.get(nonAdmin, id);
 		assertEquals(node, nodeClone);
-		Annotations annosClone = nodeManager.getAnnotations(nonAdmin, id);
+		NamedAnnotations namedClone = nodeManager.getAnnotations(nonAdmin, id);
+		Annotations annosClone = namedClone.getAdditionalAnnotations();
 		assertEquals(annos, annosClone);
 	}
 	

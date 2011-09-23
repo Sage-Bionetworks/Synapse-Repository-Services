@@ -157,7 +157,11 @@ public class NodeBackupStub implements NodeBackupManager {
 	@Override
 	public NodeRevision getNodeRevision(String nodeId, Long revId) {
 		String revKey = createKeyForLongs(nodeId, revId);
-		return revisionIdMap.get(revKey);
+		NodeRevision rev = revisionIdMap.get(revKey);
+		if(rev != null){
+			rev.setXmlVersion(NodeRevision.CURRENT_XML_VERSION);
+		}
+		return rev;
 	}
 	
 	@Override
@@ -212,6 +216,13 @@ public class NodeBackupStub implements NodeBackupManager {
 	public void clearAllData() {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public String toString() {
+		return "NodeBackupStub [root=" + root + ", nodeIdMap=" + nodeIdMap
+				+ ", revisionIdMap=" + revisionIdMap + ", nodeIdSequence="
+				+ nodeIdSequence + "]";
 	}
 
 	
