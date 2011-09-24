@@ -53,20 +53,20 @@ unitTestCleanUp <-
 	checkTrue(length(layer$files) == 2L)
 	checkTrue(all(file.exists(file.path(layer$cacheDir, layer$files))))
 	
-	checkTrue(!file.exists(file.path(layer$cacheDir, path, gsub("^.+[\\\\/]", "", file))))
+	checkTrue(!file.exists(file.path(layer$cacheDir, path, gsub("^.+[\\/]+", "", file))))
 	## TODO fix this test
 	##checkTrue(!file.exists(file.path(layer$cacheDir, path)))
 	
 	layer <- deleteFile(layer, layer$files[1])
 	checkTrue(length(layer$files) == 1L)
 	checkTrue(all(file.exists(file.path(layer$cacheDir, layer$files))))
-	checkTrue(!file.exists(file.path(layer$cacheDir, path2, gsub("^.+[\\\\/]", "", file2))))
+	checkTrue(!file.exists(file.path(layer$cacheDir, path2, gsub("^.+[\\/]+", "", file2))))
 	checkTrue(file.exists(file.path(layer$cacheDir, path2)))
 	
 	layer <- deleteFile(layer, layer$files[1])
 	checkTrue(length(layer$files) == 0L)
 	checkTrue(length(file.exists(file.path(layer$cacheDir, layer$files))) == 0)
-	checkTrue(!file.exists(file.path(layer$cacheDir, path3, gsub("^.+[\\\\/]", "", file3))))
+	checkTrue(!file.exists(file.path(layer$cacheDir, path3, gsub("^.+[\\/]+", "", file3))))
 	checkTrue(!file.exists(file.path(layer$cacheDir, path3)))
 }
 

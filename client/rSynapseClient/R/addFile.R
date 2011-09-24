@@ -64,8 +64,14 @@ setMethod(
 			
 			if(!all(mk<-file.exists(file)))
 				stop(sprintf("File not found: %s", file[!mk]))
-				
-			destdir <- file.path(entity@cacheDir, path)
+			
+			path <- gsub("[\\/]+", "/", path)
+			path <- gsub("^[/]+", "", path)
+			mk <- path %in% c("")
+			destdir <- rep(entity@cacheDir, length(path))
+			if(any(!mk))
+				destdir[!mk] <- file.path(entity@cacheDir,  path[!mk])
+			
 			if(!all(mk <- file.exists(destdir)))
 				lapply(destdir[!mk], function(d) dir.create(d, recursive = TRUE))
 			
@@ -89,8 +95,8 @@ setMethod(
 			## clip out the cacheDir bit
 			files <- gsub(entity@cacheDir, "", files, fixed=TRUE)
 			
-			files <- gsub("^[\\\\/]+", "", files)
-			files <- gsub("[\\\\/]+", "/", files)
+			files <- gsub("^[\\/]+", "", files)
+			files <- gsub("[\\/]+", "/", files)
 			if(any(!(mk <- files %in% entity@files)))
 				entity@files <- c(entity@files, files[!mk])
 			entity

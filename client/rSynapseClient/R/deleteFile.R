@@ -17,7 +17,8 @@ setMethod(
 		f = "deleteFile",
 		signature = signature("CachedLocation", "character"),
 		definition = function(entity, file){
-			file <- gsub("^[\\\\/]+","", file)
+			file <- gsub("^[\\/]+","", file)
+			file <- gsub("[\\]+","/", file)
 			
 			## delete from the local cache
 			if(!all(mk <- (file %in% entity@files)))

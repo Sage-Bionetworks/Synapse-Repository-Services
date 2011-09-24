@@ -92,6 +92,7 @@ setMethod(
 		signature = "CachedLocation",
 		definition = function(.Object, ...){
 			.Object@cacheDir <- tempfile(pattern="cacheDir")
+			.Object@cacheDir <- gsub("[\\]+", "/", .Object@cacheDir)
 			if(!file.exists(.Object@cacheDir))
 				dir.create(.Object@cacheDir, recursive=TRUE)
 			.Object

@@ -119,7 +119,7 @@ unitTestAddDirNoPathTwoFiles <-
 	
 	layer <- new(Class="Layer")
 	layer <- addFile(layer, dir)
-	checkTrue(all(file.path(gsub("^.+[\\\\/]", "", dir), c("subdir/myFile.rbin", "myFile2.rbin")) %in% layer$files))
+	checkTrue(all(file.path(gsub("^.+[\\\\/]+", "", dir), c("subdir/myFile.rbin", "myFile2.rbin")) %in% layer$files))
 	
 }
 
