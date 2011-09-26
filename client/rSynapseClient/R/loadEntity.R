@@ -93,3 +93,25 @@ setMethod(
 		}
 )
 
+
+#setMethod(
+#		f = "loadEntity",
+#		signature = "Code",
+#		definition = function(entity){
+#			## call the super class load method
+#			oldClass <- class(entity)
+#			class(entity) <- "Layer"
+#			entity <- loadEntity(entity)
+#			class(entity) <- oldClass
+#			
+#			indx <- grep("\\.r$", tolower(entity$files))
+#			
+#			lapply(entity$files[indx],
+#					function(f){
+#						f <- file.path(entity$cacheDir, f)
+#						local(source(sprintf("%s", f), local=TRUE), envir = entity@objects)
+#					}
+#			)
+#			entity
+#		}
+#)

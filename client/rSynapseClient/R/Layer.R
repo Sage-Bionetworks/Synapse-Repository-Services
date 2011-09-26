@@ -82,9 +82,19 @@ setMethod(
 		definition = function(object){
 			
 			## determine the Layer type and subtype class
-			if(!is.null(layerType <- annotValue(object, "type")))
+			## TODO: this is a bit of  a kluge. need to redesign
+			## the way subclases are determined
+			if(!is.null(layerType <- propertyValue(object, "type"))){
+				if(layerType == "M"){
+					format <- annotValue(object, "format")
+					if(!is.null(format) && tolower(format) == "code")
+						layerType <- "Code"
+				}
 				if(!is.null(subClassType <- .getCache("layerCodeTypeMap")[[layerType]]))
 					layerType <- subClassType
+			}
+			
+			
 			
 			## coerce to the correct subclass
 			if(!is.null(layerType))

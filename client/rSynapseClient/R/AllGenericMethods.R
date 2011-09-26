@@ -83,6 +83,13 @@ setGeneric(
 )
 
 setGeneric(
+		name = "Code",
+		def = function(entity){
+			standardGeneric("Code")
+		}
+)
+
+setGeneric(
 		name = ".loadSageBioPacket",
 		def = function(entity){
 			standardGeneric(".loadSageBioPacket")

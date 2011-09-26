@@ -140,5 +140,9 @@ setClass(
 		)
 )
 
+setClass(
+		Class = "Code",
+		contains = "Layer"
+)
 
 

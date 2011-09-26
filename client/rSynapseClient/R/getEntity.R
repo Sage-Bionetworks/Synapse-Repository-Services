@@ -129,7 +129,6 @@ setMethod(
 		}
 )
 
-# TODO can we dynamically generate these functions?
 
 getDataset <- 
 		function(entity)
