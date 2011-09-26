@@ -7,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
   
   <parent>
-	<artifactId>client</artifactId>
+	<artifactId>tools</artifactId>
 	<groupId>org.sagebionetworks</groupId>
 	<version>parent-1.0</version>
   </parent>
@@ -40,6 +40,12 @@
 	  <version>1.5.2</version>
 	</dependency>
     
+	<!-- String utils -->
+	<dependency>
+	  <groupId>commons-lang</groupId>
+	  <artifactId>commons-lang</artifactId>
+	</dependency>
+
     <!-- Logging dependencies -->
     <dependency>
       <groupId>log4j</groupId>

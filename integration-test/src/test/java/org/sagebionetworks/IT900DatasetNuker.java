@@ -3,7 +3,8 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
-import org.sagebionetworks.Helpers.ExternalProcessResult;
+import org.sagebionetworks.utils.ExternalProcessHelper.ExternalProcessResult;
+import org.sagebionetworks.utils.ExternalProcessHelper;
 import org.sagebionetworks.StackConfiguration;
 
 /**
@@ -30,7 +31,8 @@ public class IT900DatasetNuker {
 				"--password",
 				StackConfiguration.getIntegrationTestUserOnePassword(),
 		};
-		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
+		ExternalProcessResult result = ExternalProcessHelper.runExternalProcess(cmd);
+		assertEquals(0, result.getReturnCode());
 		assertEquals("", result.getStderr());
 	}
 }

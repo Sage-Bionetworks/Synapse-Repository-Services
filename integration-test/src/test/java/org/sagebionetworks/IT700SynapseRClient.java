@@ -3,9 +3,9 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.Helpers.ExternalProcessResult;
+import org.sagebionetworks.utils.ExternalProcessHelper.ExternalProcessResult;
+import org.sagebionetworks.utils.ExternalProcessHelper;
 import org.sagebionetworks.StackConfiguration;
 
 /**
@@ -23,7 +23,7 @@ public class IT700SynapseRClient {
 	public void testCheckRClient() throws Exception {
 		String cmd[] = { Helpers.getRPath(), "CMD", "check", "--no-manual", "-o", "target/",
 				"target/non-java-dependencies/synapseRClient" };
-		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
+		ExternalProcessResult result = ExternalProcessHelper.runExternalProcess(cmd);
 		assertEquals(0, result.getReturnCode());
 	}
 
@@ -34,7 +34,8 @@ public class IT700SynapseRClient {
 	public void testInstallRClient() throws Exception {
 		String cmd[] = { Helpers.getRPath(), "CMD", "INSTALL", "-l", "target/",
 				"target/non-java-dependencies/synapseRClient" };
-		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
+		ExternalProcessResult result = ExternalProcessHelper.runExternalProcess(cmd);
+		assertEquals(0, result.getReturnCode());
 		assertTrue(0 <= result.getStderr().indexOf("DONE"));
 	}
 
@@ -62,7 +63,8 @@ public class IT700SynapseRClient {
 						+ StackConfiguration.getRepositoryServiceEndpoint()
 						+ "')",
 				"-e", "synapseClient:::.test()" };
-		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
+		ExternalProcessResult result = ExternalProcessHelper.runExternalProcess(cmd);
+		assertEquals(0, result.getReturnCode());
 		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
 	}
 
@@ -91,7 +93,8 @@ public class IT700SynapseRClient {
 						+ StackConfiguration.getIntegrationTestUserOnePassword() + "')",
 				"-e",
 				"synapseClient:::.integrationTest()" };
-		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
+		ExternalProcessResult result = ExternalProcessHelper.runExternalProcess(cmd);
+		assertEquals(0, result.getReturnCode());
 		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
 	}
 }

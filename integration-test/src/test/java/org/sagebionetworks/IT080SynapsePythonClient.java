@@ -1,10 +1,11 @@
 package org.sagebionetworks;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.Helpers.ExternalProcessResult;
+import org.sagebionetworks.utils.ExternalProcessHelper.ExternalProcessResult;
+import org.sagebionetworks.utils.ExternalProcessHelper;
 
 /**
  * Invoke our Python integration tests here and check the output of the test
@@ -32,7 +33,8 @@ public class IT080SynapsePythonClient {
 				"--repoEndpoint", StackConfiguration.getRepositoryServiceEndpoint(),
 				"--user", StackConfiguration.getIntegrationTestUserOneName(),
 				"--password", StackConfiguration.getIntegrationTestUserOnePassword()};
-		ExternalProcessResult result = Helpers.runExternalProcess(cmd);
+		ExternalProcessResult result = ExternalProcessHelper.runExternalProcess(cmd);
+		assertEquals(0, result.getReturnCode());
 
 		String results[] = result.getStderr().split("\n");
 		assertTrue(results[results.length - 1].endsWith("OK"));

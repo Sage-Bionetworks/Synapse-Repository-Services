@@ -1,8 +1,6 @@
 package org.sagebionetworks.workflow.activity;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -10,6 +8,8 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.sagebionetworks.utils.ExternalProcessHelper;
+import org.sagebionetworks.utils.ExternalProcessHelper.ExternalProcessResult;
 import org.sagebionetworks.workflow.UnrecoverableException;
 import org.sagebionetworks.workflow.curation.ConfigHelper;
 
@@ -63,9 +63,19 @@ public class Processing {
 	public static class ScriptResult {
 
 		String outputLayerId;
-		String stdout;
-		String stderr;
-
+		ExternalProcessResult result;
+		
+		public ScriptResult(ExternalProcessResult result) throws JSONException {
+			this.result = result;
+			
+			Matcher resultMatcher = OUTPUT_DELIMITER_PATTERN.matcher(result.getStdout());
+			if (resultMatcher.matches()) {
+				JSONObject structuredOutput = new JSONObject(resultMatcher.group(1));
+				if (structuredOutput.has(OUTPUT_LAYER_JSON_KEY)) {
+					setProcessedLayerId(structuredOutput.getString(OUTPUT_LAYER_JSON_KEY));
+				}
+			}
+		}
 		/**
 		 * @return the layer id for the layer newly created by this processing
 		 *         step
@@ -85,28 +95,14 @@ public class Processing {
 		 * @return all output sent to stdout by this script
 		 */
 		public String getStdout() {
-			return stdout;
-		}
-
-		/**
-		 * @param stdout
-		 */
-		public void setStdout(String stdout) {
-			this.stdout = stdout;
+			return result.getStdout();
 		}
 
 		/**
 		 * @return all output sent to stderr by this script
 		 */
 		public String getStderr() {
-			return stderr;
-		}
-
-		/**
-		 * @param stderr
-		 */
-		public void setStderr(String stderr) {
-			this.stderr = stderr;
+			return result.getStderr();
 		}
 	}
 
@@ -134,12 +130,10 @@ public class Processing {
 		String scriptInput[] = new String[] { script, argsDelimiter,
 				SYNAPSE_USERNAME_KEY, ConfigHelper.getSynapseUsername(),
 				SYNAPSE_PASSWORD_KEY, ConfigHelper.getSynapsePassword(),
-				AUTH_ENDPOINT_KEY, ConfigHelper.getAuthenticationServicePrivateEndpoint(),
+				AUTH_ENDPOINT_KEY, ConfigHelper.getAuthenticationServiceEndpoint(),
 				REPO_ENDPOINT_KEY, ConfigHelper.getRepositoryServiceEndpoint(),
 				INPUT_DATASET_PARAMETER_KEY, datasetId.toString(),
 				INPUT_LAYER_PARAMETER_KEY, rawLayerId.toString() };
-
-		ScriptResult scriptResult = new ScriptResult();
 
 		// TODO
 		// When these R scripts are run via this workflow, the script will get
@@ -151,50 +145,17 @@ public class Processing {
 		// exact same way, yay!
 
 		log.debug("About to run: " + StringUtils.join(scriptInput, " "));
-		Process process = Runtime.getRuntime().exec(scriptInput);
-		// TODO threads for slurping in stdout and stderr
+		ExternalProcessResult result = ExternalProcessHelper.runExternalProcess(scriptInput);
 
-		String line;
-
-		// Collect stdout from the script
-		BufferedReader inputStream = new BufferedReader(new InputStreamReader(
-				process.getInputStream()));
-		StringBuilder stdoutAccumulator = new StringBuilder();
-		while ((line = inputStream.readLine()) != null) {
-			stdoutAccumulator.append(line);
-			log.debug(line);
-		}
-		inputStream.close();
-		scriptResult.setStdout(stdoutAccumulator.toString());
-
-		// Collect stderr from the script
-		BufferedReader errorStream = new BufferedReader(new InputStreamReader(
-				process.getErrorStream()));
-		StringBuilder stderrAccumulator = new StringBuilder();
-		while ((line = errorStream.readLine()) != null) {
-			stderrAccumulator.append(line);
-			log.debug(line);
-		}
-		errorStream.close();
-		scriptResult.setStderr(stderrAccumulator.toString());
-
-		int returnCode = process.waitFor();
-		if (0 != returnCode) {
-			throw new UnrecoverableException("Activity failed(" + returnCode
+		if (0 != result.getReturnCode()) {
+			throw new UnrecoverableException("Activity failed(" + result.getReturnCode()
 					+ ") for " + StringUtils.join(scriptInput, " ")
-					+ " stderr: " + stderrAccumulator);
+					+ " stderr: " + result.getStderr());
 		}
 		log.debug("Finished running: " + StringUtils.join(scriptInput, " "));
 
-		Matcher resultMatcher = OUTPUT_DELIMITER_PATTERN.matcher(scriptResult
-				.getStdout());
-		if (resultMatcher.matches()) {
-			JSONObject result = new JSONObject(resultMatcher.group(1));
-			if (result.has(OUTPUT_LAYER_JSON_KEY)) {
-				scriptResult.setProcessedLayerId(result
-						.getString(OUTPUT_LAYER_JSON_KEY));
-			}
-		}
+		ScriptResult scriptResult = new ScriptResult(result);
+		
 		return scriptResult;
 	}
 }

@@ -85,12 +85,6 @@
 			<version>1.0</version>
 		</dependency>
 
-		<!-- String utils -->
-		<dependency>
-			<groupId>commons-lang</groupId>
-			<artifactId>commons-lang</artifactId>
-		</dependency>
-
 		<!-- Codec -->
 		<dependency>
 			<groupId>commons-codec</groupId>
