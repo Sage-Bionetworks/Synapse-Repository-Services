@@ -302,6 +302,12 @@
 		</dependency>
 
 		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-downloadTools</artifactId>
+			<version>${applicationVersion}</version>
+		</dependency>
+
+		<dependency>
 			<groupId>com.google.develop</groupId>
 			<artifactId>gwt-syncproxy</artifactId>
 			<version>0.2</version>
