@@ -45,7 +45,7 @@ inputLayerData <- loadEntity(inputLayer)
 datasetLayers <- getDatasetLayers(dataset)
 clinicalLayerIndex <- which(datasetLayers$layer.type == 'C')
 clinicalLayer <- loadEntity(datasetLayers[clinicalLayerIndex[2], 'layer.id'])
-clinicalData <- read.table(file.path(clinicalLayer$cacheDir, clinicalLayer$files[[4]]), sep='\t')
+clinicalData <- read.delim(file.path(clinicalLayer$cacheDir, clinicalLayer$files[[4]]), as.is=TRUE)
 
 #----- Do interesting work with the clinical and expression data R objects
 #      e.g., make a matrix by combining expression and clinical data
