@@ -13,6 +13,22 @@ setGeneric(
 
 setMethod(
 		f = "onWeb",
+		signature = "numeric",
+		definition = function(entity){
+			onWeb(as.character(entity))
+		}
+)
+
+setMethod(
+		f = "onWeb",
+		signature = "character",
+		definition = function(entity){
+			utils::browseURL(.buildSynapseUrl(entity))
+		}
+)
+
+setMethod(
+		f = "onWeb",
 		signature = signature("SynapseEntity"),
 		definition = function(entity){
 			stop(sprintf("%s Entities do not have a web representation"), class(entity))

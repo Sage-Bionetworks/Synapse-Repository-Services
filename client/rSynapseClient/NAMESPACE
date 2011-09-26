@@ -12,7 +12,8 @@ export(onWeb)
 export(
 	synapseResetEndpoints, 
 	synapseAuthServiceEndpoint, 
-	synapseRepoServiceEndpoint, 
+	synapseRepoServiceEndpoint,
+	synapsePortalEndpoint,
 	synapseLogin, 
 	synapseLogout, 
 	synapseQuery, 

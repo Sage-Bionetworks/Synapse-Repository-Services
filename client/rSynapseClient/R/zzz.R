@@ -38,12 +38,6 @@ kLayerSubtypeMap <- list(
 				)
 )
 
-kServicePortalUrlMap <- list(
-		staging =  "http://synapse-staging.sagebase.org",
-		alpha = "http://synapse-alpha.sagebase.org"
-		)
-
-
 ## package-local 'getter'
 .getCache <-
 		function(key)
