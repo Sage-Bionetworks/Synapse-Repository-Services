@@ -10,8 +10,12 @@ source('./src/test/resources/synapseWorkflow.R')
 library(synapseClient)
 
 #----- Log into Synapse
-synapseAuthServiceEndpoint(getAuthEndpointArg())
-synapseRepoServiceEndpoint(getRepoEndpointArg())
+if(!is.null(getAuthEndpointArg())) {
+  synapseAuthServiceEndpoint(getAuthEndpointArg())
+}
+if(!is.null(getRepoEndpointArg())) {
+  synapseRepoServiceEndpoint(getRepoEndpointArg())
+}
 synapseLogin(getUsernameArg(), getPasswordArg())
 
 #----- Unpack the rest of our command line parameters

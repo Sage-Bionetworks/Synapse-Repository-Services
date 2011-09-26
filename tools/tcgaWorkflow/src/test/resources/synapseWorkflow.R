@@ -47,12 +47,12 @@ getPasswordArg <- function() {
 
 getAuthEndpointArg <- function() {
 	constants <- new('SynapseWorkflowConstants')
-	getArgVal(argName=constants@kAuthEndpointKey) 
+	getOptionalArgVal(argName=constants@kAuthEndpointKey) 
 }
 
 getRepoEndpointArg <- function() {
 	constants <- new('SynapseWorkflowConstants')
-	getArgVal(argName=constants@kRepoEndpointKey) 
+	getOptionalArgVal(argName=constants@kRepoEndpointKey) 
 }
 
 getInputDatasetIdArg <- function() {
@@ -72,6 +72,15 @@ getArgVal <- function(argName){
 	if(length(indx) == 1) 
 		return(args[indx + 1])
 	stop(constants@kUsage, indx)
+}
+
+getOptionalArgVal <- function(argName){
+  constants <- new('SynapseWorkflowConstants')
+	args <- commandArgs(trailingOnly = TRUE)
+	indx <- which(args == argName)
+	if(length(indx) == 1) 
+		return(args[indx + 1])
+	return(NULL)
 }
 
 finishWorkflowTask <- function(outputLayerId) {
