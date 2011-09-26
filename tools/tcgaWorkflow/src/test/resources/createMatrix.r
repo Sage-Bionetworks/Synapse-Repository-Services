@@ -33,6 +33,9 @@ if('Level_2' != annotValue(inputLayer, "tcgaLevel")) {
 	skipWorkflowTask('this script ony handles level 2 expression data from TCGA')
 }
 
+# Need a better way to handle this case
+synapseClient:::.signEula(dataset)
+
 #----- Download, unpack, and load the expression layer
 inputLayerData <- loadEntity(inputLayer)
 # TODO load each of the files into R objects
@@ -42,7 +45,7 @@ inputLayerData <- loadEntity(inputLayer)
 datasetLayers <- getDatasetLayers(dataset)
 clinicalLayerIndex <- which(datasetLayers$layer.type == 'C')
 clinicalLayer <- loadEntity(datasetLayers[clinicalLayerIndex[2], 'layer.id'])
-clinicalData <- read.table(clinicalLayer[[4]], sep='\t')
+clinicalData <- read.table(paste(clinicalLayer$cacheDir, clinicalLayer$files[[4]], sep='/'), sep='\t')
 
 #----- Do interesting work with the clinical and expression data R objects
 #      e.g., make a matrix by combining expression and clinical data
@@ -52,7 +55,7 @@ outputData <- t(clinicalData)
 #      to Synapse and upload the analysis result
 
 project <- Project(list(
-                name=paste('TCGA Test Project', gsub(':', '_', date())))
+                name=paste('TCGA Test Project', gsub(':', '_', date()))
                 ))
 project <- createEntity(project)
 dataset <- Dataset(list(
