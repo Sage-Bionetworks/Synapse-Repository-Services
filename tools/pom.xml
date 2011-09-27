@@ -18,7 +18,6 @@
       <module>wikiutil</module>
       <module>DatasetMetadataLoader</module>
     <module>securityTools</module>
-    <module>svnTools</module>
   </modules>
     
 </project>
