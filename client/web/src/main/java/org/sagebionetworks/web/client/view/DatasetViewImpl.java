@@ -36,6 +36,7 @@ import com.extjs.gxt.ui.client.event.MenuEvent;
 import com.extjs.gxt.ui.client.event.MessageBoxEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
 import com.extjs.gxt.ui.client.widget.Dialog;
+import com.extjs.gxt.ui.client.widget.Html;
 import com.extjs.gxt.ui.client.widget.Info;
 import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.Window;
@@ -251,9 +252,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		tablePanel.add(queryServiceTable.asWidget());
 				
 		// download link		
-		Anchor downloadLink = setupDatasetDownloadLink();		
 		downloadPanel.clear();
-		downloadPanel.add(downloadLink);
 								
 		// fill in fields
 		titleSpan.setInnerText(name);
@@ -334,8 +333,18 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	@Override
 	public void setDatasetDownloads(List<FileDownload> downloads) {		
 		datasetLicensedDownloader.setDownloadUrls(downloads);
+		// download link		
+		Anchor downloadLink = setupDatasetDownloadLink();		
+		downloadPanel.clear();
+		downloadPanel.add(downloadLink);
 	}
 
+	@Override
+	public void setDownloadUnavailable() {
+		datasetLicensedDownloader.setDownloadUrls(null);
+		downloadPanel.clear();
+	}
+	
 	/*
 	 * Private Methods
 	 */
@@ -487,7 +496,9 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 
 			// not used
 			@Override
-			public void onFailure(Throwable caught) { }
+			public void onFailure(Throwable caught) { 
+				showInfo("Error", DisplayConstants.ERROR_FAILED_PERSIST_AGREEMENT_TEXT);				
+			}
 
 		});
 	}
@@ -508,8 +519,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 			@Override
 			public void onClick(ClickEvent event) {
 				if(presenter.downloadAttempted()) {
-					//datasetLicensedDownloader.showWindow();
-					showErrorMessage("<strong>Alpha Note</strong>: Downloading of entire dataset is currently not operational. You can download layers individually though.");
+						datasetLicensedDownloader.showWindow();
 				}
 			}
 		});

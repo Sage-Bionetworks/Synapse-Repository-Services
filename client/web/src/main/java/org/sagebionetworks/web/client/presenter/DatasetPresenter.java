@@ -25,11 +25,13 @@ import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.PagedResults;
+import org.sagebionetworks.web.shared.exceptions.ForbiddenException;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 import org.sagebionetworks.web.shared.users.AclUtils;
 import org.sagebionetworks.web.shared.users.PermissionLevel;
 import org.sagebionetworks.web.shared.users.UserData;
 
+import com.extjs.gxt.ui.client.widget.Html;
 import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
@@ -373,7 +375,47 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 	}	
 
 	protected void loadDownloadLocations() {
-		// TODO Implement (Nicole)		
+		if(model != null) {
+			nodeService.getNodeLocations(NodeType.DATASET, model.getId(), new AsyncCallback<String>() {
+				@Override
+				public void onSuccess(String pagedResultString) {				
+					List<FileDownload> downloads = new ArrayList<FileDownload>();						
+					try {							
+						PagedResults pagedResult = nodeModelCreator.createPagedResults(pagedResultString);
+						if(pagedResult != null) {
+							List<String> results = pagedResult.getResults();
+							for(String fileDownloadString : results) {
+								DownloadLocation downloadLocation = nodeModelCreator.createDownloadLocation(fileDownloadString);								
+								if(downloadLocation != null && downloadLocation.getPath() != null) { 
+									FileDownload dl = new FileDownload(downloadLocation.getPath(), "Download " + model.getName(), downloadLocation.getMd5sum(), downloadLocation.getContentType());
+									downloads.add(dl);
+								}	
+							}
+						}
+					} catch (ForbiddenException ex) {
+						// if user hasn't signed an existing use agreement, a ForbiddenException is thrown. Do not alert user to this 
+						onFailure(null);
+					} catch (RestServiceException ex) {
+						DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser());
+						onFailure(null);					
+						return;
+					}
+					if(0 < downloads.size()) {
+						// Add the download link
+						view.setDatasetDownloads(downloads);
+					}
+					else {
+						// Remove the download link since it is not applicable
+						view.setDownloadUnavailable();
+					}
+				}
+				@Override
+				public void onFailure(Throwable caught) {
+					view.setDownloadUnavailable();
+				}
+			});
+		}
+
 	}
 
 	

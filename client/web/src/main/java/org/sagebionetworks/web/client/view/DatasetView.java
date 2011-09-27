@@ -126,6 +126,11 @@ public interface DatasetView extends IsWidget {
 	public void disableLicensedDownloads(boolean disable);
 		
 	/**
+	 * Removes the download button
+	 */
+	public void setDownloadUnavailable();
+
+	/**
 	 * Defines the communication with the presenter.
 	 *
 	 */
