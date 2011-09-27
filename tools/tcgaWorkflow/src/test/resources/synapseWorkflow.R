@@ -21,7 +21,7 @@ setClass(
 				kOutputEndDelimiterPattern = 'character'
 		),
 		prototype = prototype(
-				kUsage = 'Usage: R script.r --args --username you@yourEmailAddress --password YourSynapsePassword --layerId 42',
+				kUsage = 'Usage: R myScript.r --args --username you@yourEmailAddress --password YourSynapsePassword --datasetId 42 --layerId 99',
 				kUsernameKey = '--username',
 				kPasswordKey = '--password',
 				kAuthEndpointKey = '--authEndpoint',
