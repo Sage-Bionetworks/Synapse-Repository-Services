@@ -47,9 +47,11 @@ public class LocationHelpersImpl implements LocationHelper {
 	UserDAO userDAO;
 
 	// http://docs.amazonwebservices.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/securitytoken/model/GetFederationTokenRequest.html#setName(java.lang.String)
+	// This will be increased to 64 characters some time in October
 	private static final int MAX_FEDERATED_NAME_LENGTH = 32;
 	// http://docs.amazonwebservices.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/identitymanagement/model/CreateUserRequest.html#setUserName(java.lang.String)
-	private static final int MAX_IAM_USERNAME_LENGTH = 128;
+	// Per someone on the AWS IAM team this limit is actually 64 not 128
+	private static final int MAX_IAM_USERNAME_LENGTH = 64;
 
 	private static final int READ_ACCESS_EXPIRY_MINUTES = StackConfiguration
 			.getS3ReadAccessExpiryMinutes();
