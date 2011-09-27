@@ -215,6 +215,10 @@ public class DisplayUtils {
 	public static void showInfo(String title, String message) {
 		Info.display(title, message);
 	}
+	
+	public static void showErrorMessage(String message) {
+		MessageBox.info(DisplayConstants.TITLE_ERROR, message, null);
+	}
 
 	public static Place getPlaceForEntity(NodeType type, String id) {
 		Place place;

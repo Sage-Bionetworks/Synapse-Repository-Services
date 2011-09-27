@@ -120,6 +120,8 @@ public class DisplayConstants {
 	public static final String BUTTON_DOWNLOAD_DATASET = "Download Dataset";
 	public static final String BUTTON_ADD_A_LAYER_TO_DATASET = "Add a Layer to Dataset";
 	public static final String BUTTON_ADD_LAYER = "Add Layer";
+	public static final String TITLE_ERROR = "Error";
+	
 	
 	
 	
