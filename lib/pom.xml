@@ -19,6 +19,7 @@
     <module>models</module>
     <module>jdomodels</module>
     <module>lib-auto-generated</module>
+    <module>lib-workflow</module>
   </modules>
   
 </project>
