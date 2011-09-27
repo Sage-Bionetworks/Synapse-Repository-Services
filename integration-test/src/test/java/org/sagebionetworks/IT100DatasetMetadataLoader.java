@@ -27,7 +27,7 @@ public class IT100DatasetMetadataLoader {
 				"--repoEndpoint",
 				StackConfiguration.getRepositoryServiceEndpoint(),
 				"--authEndpoint",
-				StackConfiguration.getAuthenticationServicePrivateEndpoint(),
+				StackConfiguration.getAuthenticationServicePublicEndpoint(),
 				"--user",
 				StackConfiguration.getIntegrationTestUserOneName(),
 				"--password",

@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.authutil.AuthUtilConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.Dataset;
@@ -77,11 +77,11 @@ public class LocationMetadataProvider implements
 				if ((null != method)
 						&& (method.equals(RequestMethod.HEAD.name()))) {
 					signedPath = locationHelper.getS3HeadUrl(request
-							.getParameter(AuthUtilConstants.USER_ID_PARAM),
+							.getParameter(AuthorizationConstants.USER_ID_PARAM),
 							entity.getPath());
 				} else {
 					signedPath = locationHelper.getS3Url(request
-							.getParameter(AuthUtilConstants.USER_ID_PARAM),
+							.getParameter(AuthorizationConstants.USER_ID_PARAM),
 							entity.getPath());
 				}
 
@@ -95,7 +95,7 @@ public class LocationMetadataProvider implements
 				// data to S3
 				String signedPath = locationHelper
 						.createS3Url(request
-								.getParameter(AuthUtilConstants.USER_ID_PARAM),
+								.getParameter(AuthorizationConstants.USER_ID_PARAM),
 								entity.getPath(), entity.getMd5sum(), entity
 										.getContentType());
 				entity.setPath(signedPath);

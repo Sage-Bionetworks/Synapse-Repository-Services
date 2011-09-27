@@ -361,4 +361,8 @@ public class TemplatedConfiguration {
 		return getProperty("org.sagebionetworks.portal.endpoint");
 	}
 
+	public String getRScriptPath() {
+		return getProperty("org.sagebionetworks.rScript.path");
+	}
+
 }

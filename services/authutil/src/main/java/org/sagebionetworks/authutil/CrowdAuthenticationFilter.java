@@ -53,11 +53,11 @@ public class CrowdAuthenticationFilter implements Filter {
 	private void initTokenCache() {
 		tokenCache = Collections.synchronizedMap(new HashMap<String,String>());
 		lastCacheDump = new Date();
-		String s = System.getProperty(AuthUtilConstants.AUTH_CACHE_TIMEOUT_MILLIS);
+		String s = System.getProperty(AuthorizationConstants.AUTH_CACHE_TIMEOUT_MILLIS);
 		if (s!=null && s.length()>0) {
 			cacheTimeout = Long.parseLong(s);
 		} else {
-			cacheTimeout = AuthUtilConstants.AUTH_CACHE_TIMEOUT_DEFAULT;
+			cacheTimeout = AuthorizationConstants.AUTH_CACHE_TIMEOUT_DEFAULT;
 		}
 	}
 
@@ -67,11 +67,11 @@ public class CrowdAuthenticationFilter implements Filter {
 
 		// If token present, ask Crowd to validate and get user id
 		HttpServletRequest req = (HttpServletRequest)servletRqst;
-		String sessionToken = req.getHeader(AuthUtilConstants.SESSION_TOKEN_PARAM);
+		String sessionToken = req.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
 		String userId = null;
 		if(usingMockCrowd){
 			// Some tests provide a user name.
-			userId = req.getParameter(AuthUtilConstants.USER_ID_PARAM);
+			userId = req.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		}
 		if (null!=sessionToken) {
 			// validate against crowd
@@ -110,7 +110,7 @@ public class CrowdAuthenticationFilter implements Filter {
 		// pass along, including the user id
 		@SuppressWarnings("unchecked")
 		Map<String,String[]> modParams = new HashMap<String,String[]>(req.getParameterMap());
-		modParams.put(AuthUtilConstants.USER_ID_PARAM, new String[]{userId});
+		modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[]{userId});
 		HttpServletRequest modRqst = new ModParamHttpServletRequest(req, modParams);
 		filterChain.doFilter(modRqst, servletResponse);
 	}
@@ -127,13 +127,13 @@ public class CrowdAuthenticationFilter implements Filter {
            	if ("accept-all-certificates".equalsIgnoreCase(paramName)) acceptAllCerts = Boolean.parseBoolean(paramValue);
         }
         
-        String certsProperty = System.getProperty(AuthUtilConstants.ACCEPT_ALL_CERTS);
+        String certsProperty = System.getProperty(AuthorizationConstants.ACCEPT_ALL_CERTS);
         
         if (certsProperty!=null && "true".equalsIgnoreCase(certsProperty.trim())) acceptAllCerts=true;
         if (acceptAllCerts) CrowdAuthUtil.acceptAllCertificates2();
        
        
-		String implementingClassName = System.getProperty(AuthUtilConstants.USER_DAO_INTEGRATION_TEST_SWITCH);
+		String implementingClassName = System.getProperty(AuthorizationConstants.USER_DAO_INTEGRATION_TEST_SWITCH);
 		if (implementingClassName!=null && implementingClassName.length()>0) {
 			usingMockCrowd = true;
 		}else{

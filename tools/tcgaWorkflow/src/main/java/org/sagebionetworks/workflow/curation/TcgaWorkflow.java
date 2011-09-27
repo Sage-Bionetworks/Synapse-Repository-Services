@@ -52,7 +52,7 @@ public class TcgaWorkflow {
 	 * Dev Note: annotation values must be resolvable at compilation time, not
 	 * runtime, therefore we cannot move this into a config file
 	 */
-	private static final String WORKFLOW_NAME = "TcgaWorkflow";
+	private static final String WORKFLOW_NAME = "DemoWorkflow";
 	private static final String VERSION = "1.4";
 	private static final int MAX_WORKFLOW_TIMEOUT_HOURS = 24;
 	private static final int MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS = 4;
@@ -152,15 +152,16 @@ public class TcgaWorkflow {
 		// structure of the TCGA url) but it could become more complicated in
 		// time if we need to pull additional metadata from other TCGA services
 		String synapseLayerId = null;
-		try {
-			synapseLayerId = Curation
-					.doCreateSynapseMetadataForTcgaSourceLayer(doneIfExists,
-							datasetId, tcgaUrl);
-			rawLayerId.set(synapseLayerId);
-		} catch (SocketTimeoutException e) {
-			throw new ActivityFailureException(400,
-					"Communication timeout, try this again", e);
-		}
+//		try {
+//			synapseLayerId = Curation
+//					.doCreateSynapseMetadataForTcgaSourceLayer(doneIfExists,
+//							datasetId, tcgaUrl);
+//			rawLayerId.set(synapseLayerId);
+			rawLayerId.set("123");
+//		} catch (SocketTimeoutException e) {
+//			throw new ActivityFailureException(400,
+//					"Communication timeout, try this again", e);
+//		}
 		return Value.asValue(param + ":CreateMetadata");
 	}
 

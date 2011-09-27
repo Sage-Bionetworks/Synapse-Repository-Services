@@ -10,7 +10,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -46,11 +45,11 @@ public class UserManagerImpl implements UserManager {
 				.synchronizedMap(new HashMap<DEFAULT_GROUPS, UserGroup>());
 		lastCacheDump = new Date();
 		String s = System
-				.getProperty(AuthUtilConstants.AUTH_CACHE_TIMEOUT_MILLIS);
+				.getProperty(AuthorizationConstants.AUTH_CACHE_TIMEOUT_MILLIS);
 		if (s != null && s.length() > 0) {
 			cacheTimeout = Long.parseLong(s);
 		} else {
-			cacheTimeout = AuthUtilConstants.AUTH_CACHE_TIMEOUT_DEFAULT;
+			cacheTimeout = AuthorizationConstants.AUTH_CACHE_TIMEOUT_DEFAULT;
 		}
 	}
 

@@ -21,7 +21,7 @@ import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.sagebionetworks.authutil.AuthUtilConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -190,7 +190,7 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
 		if (null != userId)
-			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonRequestContent.getBytes("UTF-8"));
 		log.info("About to send: "
@@ -243,7 +243,7 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
 		if (null != userId)
-			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonRequestContent.getBytes("UTF-8"));
 		log.info("About to send: "
@@ -274,7 +274,7 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
 		if (null != userId)
-			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		if (null != extraParams) {
 			for(Map.Entry<String, String> param : extraParams.entrySet()) {
 				request.setParameter(param.getKey(), param.getValue());
@@ -314,7 +314,7 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
 		if (null != userId)
-			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals("helper-servletprefix=" + getServletPrefix()
@@ -343,7 +343,7 @@ public class Helpers {
 				.getString("etag"));
 		request.setRequestURI(jsonEntity.getString("uri"));
 		if (null != userId)
-			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonEntity.toString().getBytes("UTF-8"));
 		log.info("About to send: " + jsonEntity.toString(JSON_INDENT));
@@ -383,7 +383,7 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(uri);
 		if (null != userId)
-			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
@@ -413,7 +413,7 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
 		if (null != userId)
-			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(requestUrl + " -> " + response.getContentAsString(),
@@ -442,7 +442,7 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
 		if (null != userId)
-			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		if (null != offset) {
 			request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM,
 					offset.toString());
@@ -489,7 +489,7 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
 		if (null != userId)
-			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertEquals(requestUrl, HttpStatus.OK.value(), response.getStatus());
@@ -512,7 +512,7 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(servletPrefix + "/query");
 		request.addParameter("query", query);
-		request.addParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.addParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		log.info("About to query: " + query);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
@@ -539,7 +539,7 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
 		if (null != userId)
-			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonRequestContent.getBytes("UTF-8"));
 		servlet.service(request, response);
@@ -568,7 +568,7 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
 		if (null != userId)
-			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertFalse(HttpStatus.OK.equals(response.getStatus()));
@@ -596,7 +596,7 @@ public class Helpers {
 				.getString("etag"));
 		request.setRequestURI(jsonEntity.getString("uri"));
 		if (null != userId)
-			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonEntity.toString().getBytes("UTF-8"));
 		servlet.service(request, response);
@@ -625,7 +625,7 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
 		if (null != userId)
-			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertFalse(HttpStatus.OK.equals(response.getStatus()));
@@ -657,7 +657,7 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
 		if (null != userId)
-			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		if (null != offset) {
 			request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM,
 					offset.toString());
@@ -698,7 +698,7 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(servletPrefix + "/query");
 		if (null != userId)
-			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addParameter("query", query);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
@@ -861,7 +861,7 @@ public class Helpers {
 		request.setRequestURI(entity
                                .getString("accessControlList"));
 		if (null != userId)
-			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(entityAcl.toString().getBytes("UTF-8"));
 		log.info("About to send: " + entityAcl.toString(JSON_INDENT));
@@ -909,7 +909,7 @@ public class Helpers {
 				.getString("etag"));
 		request.setRequestURI(entityAcl.getString("uri"));
 		if (null != userId)
-			request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(entityAcl.toString().getBytes("UTF-8"));
 		log.info("About to send: " + entityAcl.toString(JSON_INDENT));
@@ -1018,7 +1018,7 @@ public class Helpers {
 			request.addHeader("Accept", "application/json");
 			request.setRequestURI(requestUrl);
 			if (null != userId)
-				request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+				request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 			servlet.service(request, response);
 		}
 	}

@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.authutil.AuthUtilConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -65,7 +65,7 @@ public class BackupController extends BaseController {
 			}, method = RequestMethod.POST)
 	public @ResponseBody
 	BackupRestoreStatus startBackup(
-			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
@@ -100,7 +100,7 @@ public class BackupController extends BaseController {
 	public @ResponseBody
 	BackupRestoreStatus startRestore(
 			@RequestBody RestoreFile file,
-			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
@@ -135,7 +135,7 @@ public class BackupController extends BaseController {
 	public @ResponseBody
 	BackupRestoreStatus getStatus(
 			@PathVariable String daemonId,
-			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
@@ -167,7 +167,7 @@ public class BackupController extends BaseController {
 	public @ResponseBody
 	void terminateDaemon(
 			@PathVariable String daemonId,
-			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,

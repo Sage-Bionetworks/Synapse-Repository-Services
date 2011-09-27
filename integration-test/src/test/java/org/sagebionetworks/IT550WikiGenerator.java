@@ -56,7 +56,7 @@ public class IT550WikiGenerator {
 	public void testCRUDWikiGenerator() throws Exception {
 		String args[] = { "--repoEndpoint",
 				StackConfiguration.getRepositoryServiceEndpoint(), "--authEndpoint",
-				StackConfiguration.getAuthenticationServicePrivateEndpoint(), "--username",
+				StackConfiguration.getAuthenticationServicePublicEndpoint(), "--username",
 				StackConfiguration.getIntegrationTestUserOneName(), "--password",
 				StackConfiguration.getIntegrationTestUserOnePassword() };
 		int numErrors = CRUDWikiGenerator.main(args);
@@ -85,7 +85,7 @@ public class IT550WikiGenerator {
 
 		String args[] = { "--repoEndpoint",
 				StackConfiguration.getRepositoryServiceEndpoint(), "--authEndpoint",
-				StackConfiguration.getAuthenticationServicePrivateEndpoint(), "--username",
+				StackConfiguration.getAuthenticationServicePublicEndpoint(), "--username",
 				StackConfiguration.getIntegrationTestUserOneName(), "--password",
 				StackConfiguration.getIntegrationTestUserOnePassword() };
 		int numErrors = ReadOnlyWikiGenerator.main(args);

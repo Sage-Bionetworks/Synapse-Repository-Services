@@ -20,7 +20,7 @@ public class ServiceUrlProvider {
 	
 	private static Logger logger = Logger.getLogger(ServiceUrlProvider.class.getName());
 	private String repositoryServiceUrl = StackConfiguration.getRepositoryServiceEndpoint();
-	private String authServiceUrl = StackConfiguration.getAuthenticationServicePrivateEndpoint();
+	private String authServiceUrl = StackConfiguration.getAuthenticationServicePublicEndpoint();
 	private String portalBaseUrl = StackConfiguration.getPortalEndpoint();
 	
 	/**

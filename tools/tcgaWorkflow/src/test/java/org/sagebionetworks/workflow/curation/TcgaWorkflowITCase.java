@@ -141,7 +141,8 @@ public class TcgaWorkflowITCase {
 
 		// Pass the id for the
 		scriptResult = Processing.doProcessLayer(
-				"./src/test/resources/createMatrix.r", mskccId, "fakeLayerId");
+				"./src/test/resources/createMatrix.r", 
+				mskccId, "fakeLayerId");
 
 		assertEquals(Constants.WORKFLOW_DONE, scriptResult
 				.getProcessedLayerId());

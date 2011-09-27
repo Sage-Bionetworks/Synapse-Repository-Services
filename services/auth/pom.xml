@@ -23,6 +23,12 @@
 			<version>${applicationVersion}</version>
 		</dependency>
 
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>securityTools</artifactId>
+			<version>${applicationVersion}</version>
+		</dependency>
+
 		<!-- JSON -->
 		<dependency>
 			<groupId>org.json</groupId>

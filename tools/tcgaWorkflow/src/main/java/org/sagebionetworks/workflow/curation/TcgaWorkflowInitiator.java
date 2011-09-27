@@ -139,9 +139,12 @@ public class TcgaWorkflowInitiator {
 		AmazonSimpleWorkflow swfService = ConfigHelper.createSWFClient();
 		AsyncWorkflowStartContext.initialize(swfService);
 
-		TcgaWorkflowInitiator initiator = new TcgaWorkflowInitiator();
-		initiator.initiateWorkflowTasks();
+//		TcgaWorkflowInitiator initiator = new TcgaWorkflowInitiator();
+//		initiator.initiateWorkflowTasks();
 
+		TcgaWorkflow.doWorkflow("Workflow for TCGA Dataset "
+				+ "foo", "456", "http://foo.bar.org");
+		
 		System.exit(0);
 	}
 
