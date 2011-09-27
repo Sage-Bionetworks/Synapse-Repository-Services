@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import java.util.Collection;
 
 import org.codehaus.jackson.schema.JsonSchema;
-import org.sagebionetworks.authutil.AuthUtilConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -44,7 +44,7 @@ public class PrincipalsController extends BaseController {
 	@RequestMapping(value = UrlHelpers.USER, method = RequestMethod.GET)
 	public @ResponseBody
 	Collection<UserGroup> getIndividuals(
-			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return permissionsManager.getIndividuals(userInfo);
@@ -61,7 +61,7 @@ public class PrincipalsController extends BaseController {
 	@RequestMapping(value = UrlHelpers.USERGROUP, method = RequestMethod.GET)
 	public @ResponseBody
 	Collection<UserGroup> getUserGroups(
-			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return permissionsManager.getGroups(userInfo);

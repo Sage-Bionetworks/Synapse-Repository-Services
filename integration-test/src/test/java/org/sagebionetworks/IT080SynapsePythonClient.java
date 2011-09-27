@@ -29,7 +29,7 @@ public class IT080SynapsePythonClient {
 	public void testPythonClient() throws Exception {
 		String cmd[] = { Helpers.getPython27Path(),
 				"target/non-java-dependencies/synapse/integration_test.py",
-				"--authEndpoint", StackConfiguration.getAuthenticationServicePrivateEndpoint(),
+				"--authEndpoint", StackConfiguration.getAuthenticationServicePublicEndpoint(),
 				"--repoEndpoint", StackConfiguration.getRepositoryServiceEndpoint(),
 				"--user", StackConfiguration.getIntegrationTestUserOneName(),
 				"--password", StackConfiguration.getIntegrationTestUserOnePassword()};

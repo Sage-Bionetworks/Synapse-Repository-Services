@@ -11,7 +11,6 @@ import java.util.logging.Logger;
 import javax.servlet.ServletException;
 
 import org.json.JSONObject;
-import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;

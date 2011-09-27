@@ -1,5 +1,6 @@
 package org.sagebionetworks.workflow.activity;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -122,15 +123,18 @@ public class Processing {
 			String rawLayerId) throws IOException, InterruptedException,
 			UnrecoverableException, JSONException {
 
-		String argsDelimiter = (script.matches(R_SCRIPT_REGEXP)) ? R_ARGS_DELIMITER
-				: "";
-
+		String argsDelimiter = "";
+		String rScriptPath = "";
+		if (script.matches(R_SCRIPT_REGEXP)) {
+			 argsDelimiter = R_ARGS_DELIMITER;
+			 rScriptPath = ConfigHelper.getRScriptPath();
+		}
 		
 		// http://sagebionetworks.jira.com/source/browse/PLFM/trunk/tools/tcgaWorkflow/src/main/java/org/sagebionetworks/workflow/curation/TcgaWorkflow.java?r2=3150&r1=3123
-		String scriptInput[] = new String[] { script, argsDelimiter,
+		String scriptInput[] = new String[] {rScriptPath, script, argsDelimiter,
 				SYNAPSE_USERNAME_KEY, ConfigHelper.getSynapseUsername(),
 				SYNAPSE_PASSWORD_KEY, ConfigHelper.getSynapsePassword(),
-				AUTH_ENDPOINT_KEY, ConfigHelper.getAuthenticationServiceEndpoint(),
+				AUTH_ENDPOINT_KEY, ConfigHelper.getAuthenticationServicePublicEndpoint(),
 				REPO_ENDPOINT_KEY, ConfigHelper.getRepositoryServiceEndpoint(),
 				INPUT_DATASET_PARAMETER_KEY, datasetId.toString(),
 				INPUT_LAYER_PARAMETER_KEY, rawLayerId.toString() };

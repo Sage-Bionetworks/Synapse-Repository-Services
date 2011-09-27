@@ -17,7 +17,8 @@
       <module>tcgaWorkflow</module>
       <module>wikiutil</module>
       <module>DatasetMetadataLoader</module>
-    </modules>
+    <module>securityTools</module>
+    <module>svnTools</module>
+  </modules>
     
 </project>
-

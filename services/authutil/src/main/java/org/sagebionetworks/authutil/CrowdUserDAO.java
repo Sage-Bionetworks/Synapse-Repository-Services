@@ -62,7 +62,7 @@ public class CrowdUserDAO implements UserDAO {
 	@Override
 	public void update(User dto) throws DatastoreException {
 		Map<String,Collection<String>> userAttributes = new HashMap<String,Collection<String>>();
-		if (dto.getCreationDate()!=null) userAttributes.put(AuthUtilConstants.CREATION_DATE_FIELD, 
+		if (dto.getCreationDate()!=null) userAttributes.put(AuthorizationConstants.CREATION_DATE_FIELD, 
 				Arrays.asList(new String[]{new DateTime(dto.getCreationDate()).toString()}));
 		if (dto.getIamUserId()!=null) userAttributes.put(IAM_USER_ID_FIELD, Arrays.asList(new String[]{dto.getIamUserId()}));
 		if (dto.getIamAccessId()!=null) userAttributes.put(IAM_ACCESS_ID_FIELD, Arrays.asList(new String[]{dto.getIamAccessId()}));
@@ -114,7 +114,7 @@ public class CrowdUserDAO implements UserDAO {
 			throw new DatastoreException(e);
 		}
 		Collection<String> values;
-		values = userAttrValues.get(AuthUtilConstants.CREATION_DATE_FIELD);
+		values = userAttrValues.get(AuthorizationConstants.CREATION_DATE_FIELD);
 		if (values!=null && values.size()>0) user.setCreationDate(new DateTime(values.iterator().next()).toDate());
 		values = userAttrValues.get(IAM_USER_ID_FIELD);
 		if (values!=null && values.size()>0) user.setIamUserId(values.iterator().next());

@@ -31,6 +31,7 @@ import javax.xml.xpath.XPathFactory;
 import org.apache.commons.codec.binary.Base64;
 import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.w3c.dom.NodeList;
@@ -245,7 +246,7 @@ public class CrowdAuthUtil {
 		
 		// set created date
 		Map<String,Collection<String>> attributes = new HashMap<String,Collection<String>>();
-		attributes.put(AuthUtilConstants.CREATION_DATE_FIELD, Arrays.asList(new String[]{DateTime.now().toString()}));
+		attributes.put(AuthorizationConstants.CREATION_DATE_FIELD, Arrays.asList(new String[]{DateTime.now().toString()}));
 		setUserAttributes(user.getEmail(), attributes);
 	}
 	

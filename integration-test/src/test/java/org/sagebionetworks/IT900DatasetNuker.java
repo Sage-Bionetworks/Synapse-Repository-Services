@@ -25,7 +25,7 @@ public class IT900DatasetNuker {
 				"--repoEndpoint",
 				StackConfiguration.getRepositoryServiceEndpoint(),
 				"--authEndpoint",
-				StackConfiguration.getAuthenticationServicePrivateEndpoint(),
+				StackConfiguration.getAuthenticationServicePublicEndpoint(),
 				"--user",
 				StackConfiguration.getIntegrationTestUserOneName(),
 				"--password",

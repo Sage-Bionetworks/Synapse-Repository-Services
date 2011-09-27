@@ -3,6 +3,9 @@ package org.sagebionetworks.auth;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -14,6 +17,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -25,7 +29,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.openid4java.consumer.ConsumerManager;
 import org.openid4java.discovery.DiscoveryInformation;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.authutil.AuthUtilConstants;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.authutil.SendMail;
@@ -33,6 +36,7 @@ import org.sagebionetworks.authutil.Session;
 import org.sagebionetworks.authutil.User;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -66,11 +70,11 @@ public class AuthenticationController {
 	private void initSessionCache() {
 		sessionCache = Collections.synchronizedMap(new HashMap<User,Session>());
 		lastCacheDump = new Date();
-		String s = System.getProperty(AuthUtilConstants.AUTH_CACHE_TIMEOUT_MILLIS);
+		String s = System.getProperty(AuthorizationConstants.AUTH_CACHE_TIMEOUT_MILLIS);
 		if (s!=null && s.length()>0) {
 			cacheTimeout = Long.parseLong(s);
 		} else {
-			cacheTimeout = AuthUtilConstants.AUTH_CACHE_TIMEOUT_DEFAULT;
+			cacheTimeout = AuthorizationConstants.AUTH_CACHE_TIMEOUT_DEFAULT;
 		}
 	}
 
@@ -102,6 +106,49 @@ public class AuthenticationController {
 	        }
 	        setIntegrationTestUser(props.getProperty("integrationTestUser"));
         }
+	}
+	
+	
+	private static final String DATE_FORMAT = "yyyy-mm-ddTHH:MM:SS.SSS";
+	private static final long MAX_TIMESTAMP_DIFF_MILLIS = 15*60*1000L;// 15 min as millis
+	
+	public static boolean isSigned(HttpServletRequest request) {
+		String username = request.getHeader(AuthorizationConstants.USER_ID_HEADER);
+		String date = request.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP);
+		String signature = request.getHeader(AuthorizationConstants.SIGNATURE);
+		return username!=null && date!=null && signature!=null;
+	}
+	
+	/**
+	 * Tries to create the HMAC-SHA1 hash.  If it doesn't match the signature
+	 * passed in then an AuthenticationException is thrown.
+	 */
+	public static void matchHMACSHA1Signature(HttpServletRequest request, String secretKey) throws AuthenticationException {
+		String username = request.getHeader(AuthorizationConstants.USER_ID_HEADER);
+		String url = request.getRequestURI(); // TODO is this right?
+		String signature = request.getHeader(AuthorizationConstants.SIGNATURE);
+		String date = request.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP);
+		
+    	DateFormat df = new SimpleDateFormat(DATE_FORMAT);
+    	df.setTimeZone(TimeZone.getTimeZone("UTC"));
+    	// compute the difference between what time this machine thinks it is (in UTC)
+    	// vs. the timestamp in the header of the request (also in UTC)
+    	long timeDiff = 0L;
+    	try {
+    		timeDiff = System.currentTimeMillis()-(df.parse(date)).getTime();
+    	} catch (ParseException pe) {
+    		throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), 
+    				"Timestamp in request, "+date+", must be in ISO 8601 format: yyyy-mm-ddTHH:MM:SS.SSS.", null);
+    	}
+    	if (Math.abs(timeDiff)>MAX_TIMESTAMP_DIFF_MILLIS) {
+    		throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), 
+    				"Timestamp in request, "+date+", is out of date.", null);
+    	}
+    	String expectedSignature = HMACUtils.generateHMACSHA1Signature(username, url, date, secretKey);
+    	if (!expectedSignature.equals(signature)) {
+       		throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), 
+       				"Invalid digital signature: "+signature, null);
+    	}
 	}
 
 	@ResponseStatus(HttpStatus.CREATED)
@@ -328,7 +375,7 @@ public class AuthenticationController {
 
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/user", method = RequestMethod.GET)
-	public @ResponseBody User getUser(@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
+	public @ResponseBody User getUser(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 
 		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 		String itu = getIntegrationTestUser();
@@ -356,7 +403,7 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/user", method = RequestMethod.PUT)
 	public void updateUser(@RequestBody User user,
-			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 
 		String itu = getIntegrationTestUser();
@@ -418,7 +465,7 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/userPassword", method = RequestMethod.POST)
 	public void setPassword(@RequestBody User user,
-			@RequestParam(value = AuthUtilConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 
 		String itu = getIntegrationTestUser();

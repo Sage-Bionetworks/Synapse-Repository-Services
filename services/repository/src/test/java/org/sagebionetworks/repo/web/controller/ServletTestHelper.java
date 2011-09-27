@@ -18,7 +18,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.sagebionetworks.authutil.AuthUtilConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BackupRestoreStatus;
@@ -66,7 +66,7 @@ public class ServletTestHelper {
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(type.getUrlPrefix());
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
 		objectMapper.writeValue(out, entity);
@@ -103,7 +103,7 @@ public class ServletTestHelper {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(type.getUrlPrefix() + "/" + id);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM,userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
@@ -132,7 +132,7 @@ public class ServletTestHelper {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(type.getUrlPrefix() + "/" + id+UrlHelpers.VERSION+"/"+versionNumber);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM,userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
@@ -160,7 +160,7 @@ public class ServletTestHelper {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(type.getUrlPrefix() + "/" + id+UrlHelpers.ANNOTATIONS);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM,userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
@@ -189,7 +189,7 @@ public class ServletTestHelper {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(type.getUrlPrefix() + "/" + id+UrlHelpers.PATH);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM,userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
@@ -218,7 +218,7 @@ public class ServletTestHelper {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(type.getUrlPrefix() + "/" + id+UrlHelpers.VERSION+"/"+versionNumber+UrlHelpers.ANNOTATIONS);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM,userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
@@ -246,7 +246,7 @@ public class ServletTestHelper {
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(type.getUrlPrefix() + "/" + updatedAnnos.getId()+UrlHelpers.ANNOTATIONS);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM,userId);
 		request.addHeader(ServiceConstants.ETAG_HEADER, updatedAnnos.getEtag());
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
@@ -281,7 +281,7 @@ public class ServletTestHelper {
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(type.getUrlPrefix() + "/" + entity.getId());
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM,userId);
 		request.addHeader(ServiceConstants.ETAG_HEADER,entity.getEtag());
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
@@ -315,7 +315,7 @@ public class ServletTestHelper {
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(type.getUrlPrefix() + "/" + entity.getId()+UrlHelpers.VERSION);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM,userId);
 		request.addHeader(ServiceConstants.ETAG_HEADER,entity.getEtag());
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
@@ -366,7 +366,7 @@ public class ServletTestHelper {
 			request.setParameter(ServiceConstants.ASCENDING_PARAM,	ascending.toString());
 		}
 		request.setRequestURI(type.getUrlPrefix());
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM,userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
@@ -405,7 +405,7 @@ public class ServletTestHelper {
 					limit.toString());
 		}
 		request.setRequestURI(type.getUrlPrefix()+"/"+entityId+UrlHelpers.VERSION);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM,userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
@@ -498,7 +498,7 @@ public class ServletTestHelper {
 		}
 		String url = parentType.getUrlPrefix()+"/"+parentId+type.getUrlPrefix();
 		request.setRequestURI(url);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM,userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
@@ -526,7 +526,7 @@ public class ServletTestHelper {
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(type.getUrlPrefix() + "/" + id);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.NO_CONTENT.value()){
@@ -553,7 +553,7 @@ public class ServletTestHelper {
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(type.getUrlPrefix() + "/" + id+UrlHelpers.VERSION+"/"+versionNumber);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.NO_CONTENT.value()){
@@ -577,7 +577,7 @@ public class ServletTestHelper {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(type.getUrlPrefix() + UrlHelpers.SCHEMA);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
@@ -605,7 +605,7 @@ public class ServletTestHelper {
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(type.getUrlPrefix() + "/" + entityACL.getId() + UrlHelpers.ACL);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
 		objectMapper.writeValue(out, entityACL);
@@ -639,7 +639,7 @@ public class ServletTestHelper {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(type.getUrlPrefix() + "/" + id + UrlHelpers.ACL);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
@@ -667,7 +667,7 @@ public class ServletTestHelper {
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(type.getUrlPrefix() + "/" + entityACL.getId()+UrlHelpers.ACL);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM,userId);
 		request.addHeader(ServiceConstants.ETAG_HEADER, entityACL.getEtag());
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
@@ -701,7 +701,7 @@ public class ServletTestHelper {
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(type.getUrlPrefix() + "/" + resourceId+UrlHelpers.ACL);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM,userId);	
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM,userId);	
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
@@ -723,7 +723,7 @@ public class ServletTestHelper {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.USER);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
@@ -748,7 +748,7 @@ public class ServletTestHelper {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.USERGROUP);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
@@ -777,7 +777,7 @@ public class ServletTestHelper {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(type.getUrlPrefix() + "/" + id + UrlHelpers.ACCESS);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.setParameter(UrlHelpers.ACCESS_TYPE_PARAM, accessType);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -802,7 +802,7 @@ public class ServletTestHelper {
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.START_BACKUP_DAEMON);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.CREATED.value()){
@@ -826,7 +826,7 @@ public class ServletTestHelper {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.GET_DAEMON_STATUS_PREFIX+"/"+id);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
@@ -850,7 +850,7 @@ public class ServletTestHelper {
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.START_RESTORE_DAEMON);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM, uesrId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, uesrId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
 		objectMapper.writeValue(out, file);
@@ -870,7 +870,7 @@ public class ServletTestHelper {
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.TERMINATE_DAEMON_PREFIX+"/"+id);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.NO_CONTENT.value()){
@@ -885,7 +885,7 @@ public class ServletTestHelper {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.ENTITY+"/"+id+UrlHelpers.TYPE);
-		request.setParameter(AuthUtilConstants.USER_ID_PARAM, userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if(response.getStatus() != HttpStatus.OK.value()){
