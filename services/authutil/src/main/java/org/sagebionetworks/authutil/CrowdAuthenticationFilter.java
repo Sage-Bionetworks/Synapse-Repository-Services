@@ -51,17 +51,28 @@ public class CrowdAuthenticationFilter implements Filter {
 	
 	
 	private static Map<String,String> tokenCache = null; // maps authenticated tokens to userIds
+	private static Map<String,String> secretKeyCache = null; // maps userIds to secret keys
 	private static Long cacheTimeout = null;
 	private static Date lastCacheDump = null;
 	
-	private void initTokenCache() {
+	private void initCaches() {
 		tokenCache = Collections.synchronizedMap(new HashMap<String,String>());
+		secretKeyCache = Collections.synchronizedMap(new HashMap<String,String>());
 		lastCacheDump = new Date();
 		String s = System.getProperty(AuthorizationConstants.AUTH_CACHE_TIMEOUT_MILLIS);
 		if (s!=null && s.length()>0) {
 			cacheTimeout = Long.parseLong(s);
 		} else {
 			cacheTimeout = AuthorizationConstants.AUTH_CACHE_TIMEOUT_DEFAULT;
+		}
+	}
+	
+	private void checkCacheDump() {
+		Date now = new Date();
+		if (lastCacheDump.getTime()+cacheTimeout<now.getTime()) {
+			tokenCache.clear();
+			secretKeyCache.clear();
+			lastCacheDump = now;
 		}
 	}
 
@@ -85,11 +96,7 @@ public class CrowdAuthenticationFilter implements Filter {
 				} else {
 					userId = null;
 					if (cacheTimeout>0) { // then use cache
-						Date now = new Date();
-						if (lastCacheDump.getTime()+cacheTimeout<now.getTime()) {
-							tokenCache.clear();
-							lastCacheDump = now;
-						}
+						checkCacheDump();
 						userId = tokenCache.get(sessionToken);
 					}
 					if (userId==null) { // not using cache or not found in cache
@@ -130,10 +137,17 @@ public class CrowdAuthenticationFilter implements Filter {
 		filterChain.doFilter(modRqst, servletResponse);
 	}
 	
-	public static String getUsersSecretKey(String userId) throws AuthenticationException, IOException {
+	public String getUsersSecretKey(String userId) throws AuthenticationException, IOException {
 		Map<String,Collection<String>> userAttrs = null;
+		String secretKey = null;
+		if (cacheTimeout>0) { // then use cache
+			checkCacheDump();
+			secretKey = secretKeyCache.get(userId);
+		}
+		if (secretKey!=null) return secretKey;
+		
 		try {
-			userAttrs = (new CrowdAuthUtil()).getUserAttributes(userId); // TODO Cache this!!
+			userAttrs = (new CrowdAuthUtil()).getUserAttributes(userId);
 		} catch (NotFoundException nfe) {
 			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "User "+userId+" not found.", nfe);
 		}
@@ -141,7 +155,11 @@ public class CrowdAuthenticationFilter implements Filter {
 		if (secretKeyCollection==null || secretKeyCollection.isEmpty()) {
 			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "Authentication server has no secret key registered for "+userId, null);
 		}
-		return secretKeyCollection.iterator().next();
+		secretKey = secretKeyCollection.iterator().next();
+		if (cacheTimeout>0) {
+			secretKeyCache.put(userId, secretKey);
+		}
+		return secretKey;
 	}
 
 
@@ -187,7 +205,7 @@ public class CrowdAuthenticationFilter implements Filter {
 
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
-		initTokenCache();
+		initCaches();
 		@SuppressWarnings("unchecked")
         Enumeration<String> paramNames = filterConfig.getInitParameterNames();
         while (paramNames.hasMoreElements()) {
