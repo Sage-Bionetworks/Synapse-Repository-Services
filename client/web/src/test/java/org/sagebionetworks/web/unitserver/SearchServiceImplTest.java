@@ -29,6 +29,7 @@ import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.SearchParameters;
 import org.sagebionetworks.web.shared.TableResults;
+import org.sagebionetworks.web.util.LocalNodeServiceStub;
 import org.sagebionetworks.web.util.LocalStubLauncher;
 import org.sagebionetworks.web.util.ServerPropertiesUtils;
 import org.springframework.web.client.RestTemplate;
@@ -61,7 +62,7 @@ public class SearchServiceImplTest {
 		// First setup the url
 		serviceUrl = UriBuilder.fromUri("http://"+serviceHost+"/").port(servicePort).build().toURL();
 		// Now start the container
-		selector = LocalStubLauncher.startServer(serviceHost, servicePort);
+		selector = LocalNodeServiceStub.startServer(serviceHost, servicePort);
 		
 		// Create the RestProvider
 		int timeout = 1000*60*2; // 2 minute timeout
@@ -100,9 +101,11 @@ public class SearchServiceImplTest {
 	/**
 	 * Clear all of the data in the stub service.
 	 */
+	@SuppressWarnings("unchecked")
 	private static void clearStubData(){
 		RestTemplate template = provider.getTemplate();
 		String url = serviceUrl+"repo/v1/query/clear/all";
+		@SuppressWarnings("rawtypes")
 		String results = template.getForObject(url, String.class, new TreeMap());
 		logger.info(results);
 	}

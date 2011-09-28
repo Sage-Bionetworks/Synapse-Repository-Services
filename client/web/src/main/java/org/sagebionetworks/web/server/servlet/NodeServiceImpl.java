@@ -1,6 +1,8 @@
 package org.sagebionetworks.web.server.servlet;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +16,7 @@ import org.sagebionetworks.web.client.services.NodeService;
 import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.users.AclAccessType;
+import org.sagebionetworks.web.shared.users.AclPrincipal;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -330,6 +333,40 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		return getJsonStringForUrl(url, HttpMethod.GET);		
 	}
 
+	@Override
+	public List<AclPrincipal> getAllUsers() {
+		// Build up the path
+		StringBuilder builder = new StringBuilder();
+		builder.append(urlProvider.getBaseUrl() + "/");
+		builder.append(ServiceUtils.REPOSVC_PATH_GET_USERS);
+		String url = builder.toString();	
+		String userList = getJsonStringForUrl(url, HttpMethod.GET);
+		return generateAclPrincipals(userList);
+	}
+
+
+	@Override
+	public List<AclPrincipal> getAllGroups() {
+		// Build up the path
+		StringBuilder builder = new StringBuilder();
+		builder.append(urlProvider.getBaseUrl() + "/");
+		builder.append(ServiceUtils.AUTHSVC_GET_GROUPS_PATH);
+		String url = builder.toString();	
+		String groupList = getJsonStringForUrl(url, HttpMethod.GET);
+		return generateAclPrincipals(groupList);
+	}
+
+	@Override
+	public List<AclPrincipal> getAllUsersAndGroups() {
+		List<AclPrincipal> users = getAllUsers();
+		List<AclPrincipal> groups = getAllGroups();
+		List<AclPrincipal> all = new ArrayList<AclPrincipal>();
+		all.addAll(groups);
+		all.addAll(users);
+		return all;
+	}
+
+	
 	
 	/*
 	 * Private Methods
@@ -404,5 +441,37 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 			return result;
 		}
 	}
-	
+
+	private List<AclPrincipal> generateAclPrincipals(String userList) {
+		List<AclPrincipal> principals = new ArrayList<AclPrincipal>();
+		JSONArray list = null;
+		try {
+			list = new JSONArray(userList);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		// create principal objects from JSON
+		for(int i=0; i<list.length(); i++) {
+			JSONObject principalObj;
+			try {
+				principalObj = list.getJSONObject(i);
+				AclPrincipal principal = new AclPrincipal();
+				if(principalObj.has(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_NAME)) principal.setName(principalObj.getString(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_NAME));
+				if(principalObj.has(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_ID)) principal.setId(principalObj.getString(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_ID));
+				if(principalObj.has(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_URI)) principal.setUri(principalObj.getString(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_URI));
+				if(principalObj.has(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_ETAG)) principal.setEtag(principalObj.getString(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_ETAG));
+				if(principalObj.has(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_INDIVIDUAL)) principal.setIndividual(principalObj.getBoolean(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_INDIVIDUAL));
+				if(principalObj.has(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_CREATION_DATE)) {
+					Long creationDate = principalObj.getLong(ServiceUtils.AUTHSVC_ACL_PRINCIPAL_CREATION_DATE);
+					if(creationDate != null)
+						principal.setCreationDate(new Date(creationDate));
+				}			
+				principals.add(principal);
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}			
+		}
+		return principals;
+	}
+
 }

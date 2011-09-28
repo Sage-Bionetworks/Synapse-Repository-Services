@@ -70,7 +70,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 	public Widget asWidget() {
 		view.setPresenter(this);
 		view.showLoading();
-		userAccountService.getAllUsersAndGroups(new AsyncCallback<List<AclPrincipal>>() {
+		nodeService.getAllUsersAndGroups(new AsyncCallback<List<AclPrincipal>>() {
 			@Override
 			public void onSuccess(final List<AclPrincipal> usersAndGroupsList) {
 				principals = usersAndGroupsList;

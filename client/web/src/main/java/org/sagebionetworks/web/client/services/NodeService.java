@@ -41,5 +41,11 @@ public interface NodeService extends RemoteService {
 	public boolean hasAccess(NodeType resourceType, String resourceId, AclAccessType accessType);
 
 	public String getNodeType(String resourceId);
+
+	public List<AclPrincipal> getAllUsers();
 	
+	public List<AclPrincipal> getAllGroups();
+	
+	public List<AclPrincipal> getAllUsersAndGroups();
+
 }

@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.users.AclAccessType;
+import org.sagebionetworks.web.shared.users.AclPrincipal;
 
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
@@ -41,4 +42,10 @@ public interface NodeServiceAsync {
 
 	void getNodeType(String resourceId, AsyncCallback<String> callback);
 
+	void getAllUsers(AsyncCallback<List<AclPrincipal>> callback);
+
+	void getAllGroups(AsyncCallback<List<AclPrincipal>> callback);
+
+	void getAllUsersAndGroups(AsyncCallback<List<AclPrincipal>> callback);
+	
 }

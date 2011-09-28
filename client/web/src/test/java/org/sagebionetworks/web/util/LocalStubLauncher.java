@@ -23,15 +23,15 @@ import com.sun.jersey.api.container.grizzly.GrizzlyWebContainerFactory;
  * @author jmhill
  *
  */
-@Path("/repo/v1")
+@Path("/")
 public class LocalStubLauncher {
 	
-	@Path("/dataset")
-	public LocalDatasetServiceStub getDatasetStub(){
-		return new LocalDatasetServiceStub();
+	@Path("repo/v1")
+	public LocalNodeServiceStub getNodeServiceStub() throws IOException{
+		return new LocalNodeServiceStub();
 	}
 	
-	@Path("/query")
+	@Path("repo/v1/query")
 	public LocalSearchServiceStub getSearchServiceStub() throws IOException{
 		return new LocalSearchServiceStub();
 	}
@@ -45,10 +45,10 @@ public class LocalStubLauncher {
 	@GET @Produces("text/html")
 	@Path("/populate/random")
 	public String populateRandom(@DefaultValue("25") @QueryParam("number") int number) throws IOException{
-		LocalDatasetServiceStub datasetsStub = getDatasetStub();
+		LocalNodeServiceStub nodeServiceStub = getNodeServiceStub();
 		LocalSearchServiceStub searchStub = getSearchServiceStub();
-		datasetsStub.generateRandomDatasets(number);
-		List<Dataset> list = datasetsStub.getAllForTests();
+		nodeServiceStub.generateRandomDatasets(number);
+		List<Dataset> list = nodeServiceStub.getAllForTests();
 		searchStub.generateRandomRows(list);
 		return "Total rows: "+list.size();
 	}

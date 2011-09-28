@@ -30,12 +30,6 @@ public interface UserAccountServiceAsync {
 
 	void ssoLogin(String sessionToken, AsyncCallback<Boolean> callback);
 
-	void getAllUsers(AsyncCallback<List<AclPrincipal>> callback);
-
-	void getAllGroups(AsyncCallback<List<AclPrincipal>> callback);
-
-	void getAllUsersAndGroups(AsyncCallback<List<AclPrincipal>> callback);
-
 	void getAuthServiceUrl(AsyncCallback<String> callback);
 
 	void getSynapseWebUrl(AsyncCallback<String> callback);
