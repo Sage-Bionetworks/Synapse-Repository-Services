@@ -5,7 +5,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import org.joda.time.DateTime;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -42,8 +42,7 @@ public class CrowdUserDAOTest {
 		assertEquals(TEST_USER, user.getUserId());
 		assertEquals("foo", user.getIamAccessId());
 		assertEquals("bar", user.getIamSecretKey());
-		DateFormat df = new SimpleDateFormat("yyyy-mm-dd");
-		Date createDate = df.parse("2011-05-18");
+		Date createDate = new Date((new DateTime("2011-05-18")).getMillis());
 		assertEquals(createDate, user.getCreationDate());
 	}
 

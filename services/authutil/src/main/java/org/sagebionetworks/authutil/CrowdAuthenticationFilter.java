@@ -1,6 +1,7 @@
 package org.sagebionetworks.authutil;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Enumeration;
@@ -18,7 +19,12 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.joda.time.DateTime;
+import org.joda.time.Minutes;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.securitytools.HMACUtils;
+import org.springframework.http.HttpStatus;
 
 /**
  *
@@ -37,12 +43,10 @@ public class CrowdAuthenticationFilter implements Filter {
 	public void destroy() {
 	}
 	
-	private static void reject(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-		// reject
+	private static void reject(HttpServletRequest req, HttpServletResponse resp, String reason) throws IOException {
 		resp.setStatus(401);
 		resp.setHeader("WWW-Authenticate", "authenticate Crowd");
-//		String contextPath = req.getContextPath();
-		resp.getWriter().println("{\"reason\", \"The session token provided was missing, invalid or expired.\"}");
+		resp.getWriter().println("{\"reason\", \""+reason+"\"}");
 	}
 	
 	
@@ -96,13 +100,24 @@ public class CrowdAuthenticationFilter implements Filter {
 					}
 				}
 			} catch (Exception xee) {
-				reject(req, (HttpServletResponse)servletResponse);
+				String reason = "The session token is invalid.";
+				reject(req, (HttpServletResponse)servletResponse, reason);
 				log.log(Level.WARNING, "invalid session token", xee);
+				return;
+			}
+		} else if (isSigned(req)) {  // if no session token, then check for a HMAC signature
+			userId = req.getHeader(AuthorizationConstants.USER_ID_HEADER);
+			try {
+				String secretKey = getUsersSecretKey(userId);
+				matchHMACSHA1Signature(req, secretKey);
+			} catch (AuthenticationException e) {
+				reject(req, (HttpServletResponse)servletResponse, e.getMessage());
 				return;
 			}
 		}
 		if (userId==null && !allowAnonymous) {
-			reject(req, (HttpServletResponse)servletResponse);
+			String reason = "The session token provided was missing, invalid or expired.";
+			reject(req, (HttpServletResponse)servletResponse, reason);
 			return;
 		}
 		if (userId==null) userId = AuthorizationConstants.ANONYMOUS_USER_ID;
@@ -113,6 +128,58 @@ public class CrowdAuthenticationFilter implements Filter {
 		modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[]{userId});
 		HttpServletRequest modRqst = new ModParamHttpServletRequest(req, modParams);
 		filterChain.doFilter(modRqst, servletResponse);
+	}
+	
+	public static String getUsersSecretKey(String userId) throws AuthenticationException, IOException {
+		Map<String,Collection<String>> userAttrs = null;
+		try {
+			userAttrs = (new CrowdAuthUtil()).getUserAttributes(userId); // TODO Cache this!!
+		} catch (NotFoundException nfe) {
+			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "User "+userId+" not found.", nfe);
+		}
+		Collection<String> secretKeyCollection = userAttrs.get(AuthorizationConstants.CROWD_SECRET_KEY_ATTRIBUTE);
+		if (secretKeyCollection==null || secretKeyCollection.isEmpty()) {
+			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "Authentication server has no secret key registered for "+userId, null);
+		}
+		return secretKeyCollection.iterator().next();
+	}
+
+
+	private static final long MAX_TIMESTAMP_DIFF_MIN = 15;
+	
+	public static boolean isSigned(HttpServletRequest request) {
+		String username = request.getHeader(AuthorizationConstants.USER_ID_HEADER);
+		String date = request.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP);
+		String signature = request.getHeader(AuthorizationConstants.SIGNATURE);
+		return username!=null && date!=null && signature!=null;
+	}
+	
+	/**
+	 * Tries to create the HMAC-SHA1 hash.  If it doesn't match the signature
+	 * passed in then an AuthenticationException is thrown.
+	 */
+	public static void matchHMACSHA1Signature(HttpServletRequest request, String secretKey) throws AuthenticationException {
+		String username = request.getHeader(AuthorizationConstants.USER_ID_HEADER);
+		String url = request.getRequestURI(); // TODO is this right?
+		String signature = request.getHeader(AuthorizationConstants.SIGNATURE);
+		String date = request.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP);
+		
+
+    	// compute the difference between what time this machine thinks it is (in UTC)
+    	// vs. the timestamp in the header of the request (also in UTC)
+
+    	DateTime timeStamp = new DateTime(date); 
+    	int timeDiff = Minutes.minutesBetween(new DateTime(), timeStamp).getMinutes();
+
+    	if (Math.abs(timeDiff)>MAX_TIMESTAMP_DIFF_MIN) {
+    		throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), 
+    				"Timestamp in request, "+date+", is out of date.", null);
+    	}
+    	String expectedSignature = HMACUtils.generateHMACSHA1Signature(username, url, date, secretKey);
+    	if (!expectedSignature.equals(signature)) {
+       		throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), 
+       				"Invalid digital signature: "+signature, null);
+    	}
 	}
 
 	@Override

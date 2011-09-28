@@ -5,10 +5,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
@@ -19,14 +17,12 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.commons.codec.binary.Base64;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.openid4java.consumer.ConsumerManager;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.authutil.User;
@@ -390,6 +386,14 @@ public class AuthenticationControllerTest {
 	public void testSendEmailInvalidUser() throws Exception {
 		if (!isIntegrationTest()) return;
 		 helper.testCreateJsonEntity("/userPasswordEmail","{\"email\":\"foo@sagebase.org\"}", HttpStatus.BAD_REQUEST);
+	}
+	
+	@Test
+	public void testSecretKey() throws Exception {
+		if (!isIntegrationTest()) return;
+		JSONObject secretKey = helper.testCreateJsonEntity("/secretKey","{\"email\":\""+integrationTestUserEmail+"\"}", HttpStatus.CREATED);
+		assertNotNull(secretKey.getString("secretKey"));
+
 	}
 	
 	class MutableBoolean {

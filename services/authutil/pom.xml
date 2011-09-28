@@ -41,6 +41,12 @@
 			<version>${applicationVersion}</version>
 		</dependency>
 
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>securityTools</artifactId>
+			<version>${applicationVersion}</version>
+		</dependency>
+
 
 
 		<!-- Spring Framework dependencies -->
