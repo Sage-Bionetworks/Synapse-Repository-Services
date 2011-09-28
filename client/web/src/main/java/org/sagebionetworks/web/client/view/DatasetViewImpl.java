@@ -517,8 +517,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		downloadLink.addClickHandler(new ClickHandler() {			
 			@Override
 			public void onClick(ClickEvent event) {
-				showErrorMessage("<strong>Alpha Note</strong>: Downloading of entire dataset is currently not operational. You can download layers individually though.");
-				// datasetLicensedDownloader.showWindow(); TODO FIX ME PLFM-28
+				datasetLicensedDownloader.showWindow(); 
 			}
 		});
 		return downloadLink;

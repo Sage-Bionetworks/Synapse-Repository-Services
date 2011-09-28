@@ -36,8 +36,6 @@ import org.sagebionetworks.web.shared.users.UserData;
 
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
-import com.google.gwt.place.shared.Place;
-import com.google.gwt.place.shared.PlaceController;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.AcceptsOneWidget;
 import com.google.inject.Inject;
@@ -109,6 +107,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 				@Override
 				public void onSuccess(String result) {
 					view.showInfo("Saved", "Agreement acceptance saved.");
+					loadDownloadLocations(layerModel, null);
 				}
 	
 				@Override
@@ -476,7 +475,6 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 						}
 					} catch (ForbiddenException ex) {
 						// if user hasn't signed an existing use agreement, a ForbiddenException is thrown. Do not alert user to this 
-						onFailure(null);
 					} catch (RestServiceException ex) {
 						DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser());
 						onFailure(null);					

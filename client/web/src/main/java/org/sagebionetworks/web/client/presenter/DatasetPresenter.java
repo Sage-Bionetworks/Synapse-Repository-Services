@@ -132,12 +132,14 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 		if(!hasAcceptedLicenseAgreement && licenseAgreement != null) {
 			Agreement agreement = new Agreement();							
 			agreement.setEulaId(licenseAgreement.getEulaId());
-			agreement.setDatasetId(model.getParentId());
+			agreement.setDatasetId(model.getId());
 			
 			nodeService.createNode(NodeType.AGREEMENT, agreement.toJson(), new AsyncCallback<String>() {
 				@Override
 				public void onSuccess(String result) {
 					// agreement saved
+					view.showInfo("Saved", "Agreement acceptance saved.");
+					loadDownloadLocations();
 				}
 	
 				@Override
@@ -300,7 +302,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 					 // set the license agreement
 					 setLicenseAgreement();
 					 // load download locations
-					 // loadDownloadLocations(); TODO FIX ME PLFM-28				
+					 loadDownloadLocations();
 				} catch (RestServiceException ex) {
 					if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
 						onFailure(null);
@@ -398,7 +400,6 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 						}
 					} catch (ForbiddenException ex) {
 						// if user hasn't signed an existing use agreement, a ForbiddenException is thrown. Do not alert user to this 
-						onFailure(null);
 					} catch (RestServiceException ex) {
 						DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser());
 						onFailure(null);					
