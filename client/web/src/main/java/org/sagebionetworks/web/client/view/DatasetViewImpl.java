@@ -253,6 +253,8 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 				
 		// download link		
 		downloadPanel.clear();
+		Anchor downloadLink = setupDatasetDownloadLink();		
+		downloadPanel.add(downloadLink);
 								
 		// fill in fields
 		titleSpan.setInnerText(name);
@@ -327,22 +329,19 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 
 	@Override
 	public void disableLicensedDownloads(boolean disable) {
-		this.disableDownloads = true;
+		this.disableDownloads = disable;
 	}
 
 	@Override
 	public void setDatasetDownloads(List<FileDownload> downloads) {		
 		datasetLicensedDownloader.setDownloadUrls(downloads);
-		// download link		
-		Anchor downloadLink = setupDatasetDownloadLink();		
-		downloadPanel.clear();
-		downloadPanel.add(downloadLink);
 	}
-
+	
 	@Override
 	public void setDownloadUnavailable() {
 		datasetLicensedDownloader.setDownloadUrls(null);
 		downloadPanel.clear();
+		downloadPanel.add(new Html(DisplayUtils.getIconHtml(iconsImageBundle.NavigateDown16()) + " Download Unavailable"));		
 	}
 	
 	/*
@@ -518,9 +517,8 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		downloadLink.addClickHandler(new ClickHandler() {			
 			@Override
 			public void onClick(ClickEvent event) {
-				if(presenter.downloadAttempted()) {
-						datasetLicensedDownloader.showWindow();
-				}
+				showErrorMessage("<strong>Alpha Note</strong>: Downloading of entire dataset is currently not operational. You can download layers individually though.");
+				// datasetLicensedDownloader.showWindow(); TODO FIX ME PLFM-28
 			}
 		});
 		return downloadLink;

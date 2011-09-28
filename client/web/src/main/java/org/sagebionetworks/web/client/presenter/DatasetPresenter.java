@@ -132,7 +132,6 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 		if(!hasAcceptedLicenseAgreement && licenseAgreement != null) {
 			Agreement agreement = new Agreement();							
 			agreement.setEulaId(licenseAgreement.getEulaId());
-			agreement.setName("SynapseWeb Agreement");
 			agreement.setDatasetId(model.getParentId());
 			
 			nodeService.createNode(NodeType.AGREEMENT, agreement.toJson(), new AsyncCallback<String>() {
@@ -300,6 +299,8 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 					 
 					 // set the license agreement
 					 setLicenseAgreement();
+					 // load download locations
+					 // loadDownloadLocations(); TODO FIX ME PLFM-28				
 				} catch (RestServiceException ex) {
 					if(!DisplayUtils.handleServiceException(ex, placeChanger, authenticationController.getLoggedInUser())) {
 						onFailure(null);
@@ -317,11 +318,11 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 		});				
 	}	
 	
-	protected void setLicenseAgreement() {
+	public void setLicenseAgreement() {
 		final String eulaId = model.getEulaId();
 		UserData currentUser = authenticationController.getLoggedInUser();
-		if(eulaId != null && currentUser != null) {			
-			// now query to see if user has accepted the agreement			
+		if(eulaId != null && currentUser != null) { 
+			// now query to see if user has accepted the agreement 
 			licenseService.hasAccepted(currentUser.getEmail(), eulaId, model.getId(), new AsyncCallback<Boolean>() {
 				@Override
 				public void onSuccess(Boolean hasAccepted) {
@@ -355,10 +356,6 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 							setDownloadFailure();
 						}									
 					});
-					
-					// load download locations
-					loadDownloadLocations();				
-					
 				}
 				
 				@Override
@@ -374,13 +371,13 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 		view.disableLicensedDownloads(true);
 	}	
 
-	protected void loadDownloadLocations() {
+	public void loadDownloadLocations() {
 		if(model != null) {
 			nodeService.getNodeLocations(NodeType.DATASET, model.getId(), new AsyncCallback<String>() {
 				@Override
 				public void onSuccess(String pagedResultString) {				
-					List<FileDownload> downloads = new ArrayList<FileDownload>();						
 					try {							
+						List<FileDownload> downloads = new ArrayList<FileDownload>();						
 						PagedResults pagedResult = nodeModelCreator.createPagedResults(pagedResultString);
 						if(pagedResult != null) {
 							List<String> results = pagedResult.getResults();
@@ -392,6 +389,13 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 								}	
 							}
 						}
+						if(0 < downloads.size()) {
+							view.setDatasetDownloads(downloads);
+						}
+						else {
+							// Modify the download link to show no downloads available
+							view.setDownloadUnavailable();
+						}
 					} catch (ForbiddenException ex) {
 						// if user hasn't signed an existing use agreement, a ForbiddenException is thrown. Do not alert user to this 
 						onFailure(null);
@@ -400,18 +404,10 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 						onFailure(null);					
 						return;
 					}
-					if(0 < downloads.size()) {
-						// Add the download link
-						view.setDatasetDownloads(downloads);
-					}
-					else {
-						// Remove the download link since it is not applicable
-						view.setDownloadUnavailable();
-					}
 				}
 				@Override
 				public void onFailure(Throwable caught) {
-					view.setDownloadUnavailable();
+					setDownloadFailure();
 				}
 			});
 		}
