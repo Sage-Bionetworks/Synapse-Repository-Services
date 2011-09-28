@@ -19,8 +19,7 @@ import com.google.inject.Inject;
  *
  */
 public class ColumnsPopupPresenter implements ColumnsPopupView.Presenter {
-	
-	
+		
 	private ColumnsPopupView view;
 	private String type;
 	private SearchServiceAsync service;
@@ -110,7 +109,7 @@ public class ColumnsPopupPresenter implements ColumnsPopupView.Presenter {
 			
 			@Override
 			public void onFailure(Throwable caught) {
-				view.showError(caught.getMessage());
+				view.showErrorMessage(caught.getMessage());
 				view.hide();
 			}
 		});

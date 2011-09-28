@@ -1,17 +1,15 @@
 package org.sagebionetworks.web.client.view;
 
+import org.sagebionetworks.web.client.SynapsePresenter;
+import org.sagebionetworks.web.client.SynapseView;
 import org.sagebionetworks.web.shared.users.UserData;
 
 import com.google.gwt.place.shared.Place;
 import com.google.gwt.user.client.ui.IsWidget;
 
-public interface LoginView extends IsWidget{
+public interface LoginView extends IsWidget, SynapseView {
 	
 	void setPresenter(Presenter loginPresenter);	
-	
-	void showErrorMessage(String message);
-	
-	void clear();
 	
 	void showLoggingInLoader();
 	
@@ -21,7 +19,7 @@ public interface LoginView extends IsWidget{
 	
 	void showLogin(String openIdActionUrl, String openIdReturnUrl);
 
-	public interface Presenter {
+	public interface Presenter extends SynapsePresenter {
 		void goTo(Place place);
 		
 		void setNewUser(UserData newUser);

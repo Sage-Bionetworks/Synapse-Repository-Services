@@ -133,6 +133,18 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 		placeChanger.goTo(place);
 	}
 
+	@Override
+    public String mayStop() {
+        view.clear();
+        return null;
+    }
+
+	@Override
+	public PlaceChanger getPlaceChanger() {
+		return placeChanger;
+	}
+
+	
 	/*
 	 * Private Methods
 	 */
@@ -142,4 +154,5 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 		}
 		bus.fireEvent( new PlaceChangeEvent(forwardPlace));
 	}
+
 }

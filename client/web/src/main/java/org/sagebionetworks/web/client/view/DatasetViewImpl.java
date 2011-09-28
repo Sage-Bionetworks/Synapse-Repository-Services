@@ -162,10 +162,6 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
 		headerWidget.setMenuItemActive(MenuItems.DATASETS);
-
-		// alignment setup
-//		middleFlexTable.setCellSpacing(5);
-//		rightFlexTable.setCellSpacing(5);
 	}
 
 	@Override
@@ -173,16 +169,6 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		this.presenter = presenter;
 		this.headerWidget.refresh();
 		this.headerWidget.setPlaceChanger(presenter.getPlaceChanger());
-	}
-
-	@Override
-	public void showErrorMessage(String message) {
-		MessageBox.info("Message", message, null);
-	}
-
-	@Override
-	public void showInfo(String title, String message) {
-		Info.display(title, message);
 	}
 
 	@Override
@@ -272,35 +258,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		annotationEditor.setPlaceChanger(presenter.getPlaceChanger());
 		annotationEditor.setResource(NodeType.DATASET, id);
 		annotationsPanel.add(annotationEditor.asWidget());
-		// add metadata to tables
-//		int rowIndex = 0;
-//		DisplayUtils.addRowToTable(rowIndex++, "Disease(s):", join(diseases, ", "), middleFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "Species:", join(species, ", "), middleFlexTable);		
-//		DisplayUtils.addRowToTable(rowIndex++, "Tissue Type(s):", join(tissueTypes, ", "), middleFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "Tissue/Tumor:", tissueTumor, middleFlexTable);
-//		if(referencePublicationUrl != null)
-//			DisplayUtils.addRowToTable(rowIndex++, "Reference Publication:", "<a href=\""+ referencePublicationUrl + "\" target=\"_new\">" + referencePublicationDisplay + "</a>", middleFlexTable);
-//		else 
-//			DisplayUtils.addRowToTable(rowIndex++, "Reference Publication:", referencePublicationDisplay, middleFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "Other Publications:", nOtherPublications + " <a href=\""+ viewOtherPublicationsUrl + "\" target=\"_new\">view</a>", middleFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "Status:", status, middleFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "Version:", version, middleFlexTable);
-//
-//		rowIndex = 0;
-//		if(postedDate != null)
-//			DisplayUtils.addRowToTable(rowIndex++, "Posted:", DisplayConstants.DATE_FORMAT.format(postedDate), rightFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "Creator:", "<a href=\"people_charles.html\">"+ creator + "</a>", rightFlexTable);
-//		if(curationDate != null)
-//			DisplayUtils.addRowToTable(rowIndex++, "Curated On:", DisplayConstants.DATE_FORMAT.format(curationDate), rightFlexTable);
-//		if(lastModifiedDate != null)
-//			DisplayUtils.addRowToTable(rowIndex++, "Last Modified On:", DisplayConstants.DATE_FORMAT.format(lastModifiedDate), rightFlexTable);						
-//		DisplayUtils.addRowToTable(rowIndex++, "Contributor(s)/Institution:", join(contributors, "<br/>"), rightFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "Followers:", nFollowers + " <a href=\""+ viewFollowersUrl + "\" target=\"_new\">view</a>", rightFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "Number of Samples:", Integer.toString(nSamples), rightFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "Number of Downloads:", Integer.toString(nDownloads), rightFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "Download Availability:", downloadAvailability, rightFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "Release Notes:", "<a href=\""+ releaseNotesUrl + "\" target=\"_new\">view</a>", rightFlexTable);	
-		
+
 		/*
 		 * DEMO STRINGS
 		 */
@@ -343,27 +301,35 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		downloadPanel.clear();
 		downloadPanel.add(new Html(DisplayUtils.getIconHtml(iconsImageBundle.NavigateDown16()) + " Download Unavailable"));		
 	}
+
+	@Override
+	public void showErrorMessage(String message) {
+		DisplayUtils.showErrorMessage(message);
+	}
+
+	@Override
+	public void showLoading() {
+	}
+
+	@Override
+	public void showInfo(String title, String message) {
+		DisplayUtils.showInfo(title, message);
+	}
+
+	@Override
+	public void clear() {
+		titleSpan.setInnerText("");
+		rClientCodeDiv.setInnerHTML("");
+	}
+
 	
 	/*
 	 * Private Methods
 	 */
-	private void clear() {
-		titleSpan.setInnerText("");
-		rClientCodeDiv.setInnerHTML("");
-//		middleFlexTable.clear();
-//		middleFlexTable.removeAllRows();
-//		rightFlexTable.clear();
-//		rightFlexTable.removeAllRows();
-	}
-
 	private void createAdminPanel(String id) {		
 		if(canEdit) {
-//			annotationEditor.setPlaceChanger(presenter.getPlaceChanger());
-//			annotationEditor.setResource(NodeType.DATASET, id);
-			
 			Button button = new Button("Admin Menu");
 			button.setIcon(AbstractImagePrototype.create(iconsImageBundle.adminTools16()));
-			//adminButton.setIconAlign(IconAlign.LEFT);
 			button.setMenu(createAdminMenu(id));
 			button.setHeight(25);
 			adminPanel.clear();

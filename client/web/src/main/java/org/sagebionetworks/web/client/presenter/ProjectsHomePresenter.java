@@ -45,4 +45,10 @@ public class ProjectsHomePresenter extends AbstractActivity implements ProjectsH
 		return placeChanger;
 	}
 
+	@Override
+    public String mayStop() {
+        view.clear();
+        return null;
+    }
+	
 }

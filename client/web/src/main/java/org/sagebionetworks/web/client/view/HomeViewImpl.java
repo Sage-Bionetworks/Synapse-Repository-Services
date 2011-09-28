@@ -68,4 +68,24 @@ public class HomeViewImpl extends Composite implements HomeView {
 		headerWidget.refresh();
 	}
 
+	@Override
+	public void showErrorMessage(String message) {
+		DisplayUtils.showErrorMessage(message);
+	}
+
+	@Override
+	public void showLoading() {
+	}
+
+
+	@Override
+	public void showInfo(String title, String message) {
+		DisplayUtils.showInfo(title, message);
+	}
+
+	@Override
+	public void clear() {
+	}
+
+	
 }

@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.view;
 
 import java.util.List;
 
+import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.widget.filter.QueryFilter;
@@ -14,7 +15,6 @@ import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProv
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 import org.sagebionetworks.web.shared.WhereCondition;
 
-import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.resources.client.ImageResource;
@@ -117,7 +117,20 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 
 	@Override
 	public void showErrorMessage(String message) {
-		MessageBox.info("Message", message, null);
+		DisplayUtils.showErrorMessage(message);
 	}
 
+	@Override
+	public void showLoading() {
+	}
+
+	@Override
+	public void showInfo(String title, String message) {
+		DisplayUtils.showInfo(title, message);
+	}
+
+	@Override
+	public void clear() {
+	}
+	
 }

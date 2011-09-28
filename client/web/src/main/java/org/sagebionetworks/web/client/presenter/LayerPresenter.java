@@ -501,6 +501,12 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	public void openPhenoTypeEditor() {
 		placeChanger.goTo(new PhenoEdit(layerId));
 	}
+
+	@Override
+    public String mayStop() {
+        view.clear();
+        return null;
+    }
 	
 	/*
 	 * Private Methods

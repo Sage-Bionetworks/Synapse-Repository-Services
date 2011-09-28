@@ -164,8 +164,6 @@ public class LayerViewImpl extends Composite implements LayerView {
 		footer.add(footerWidget.asWidget());	
 		headerWidget.setMenuItemActive(MenuItems.DATASETS);
 		
-		// alignment setup
-//		rightFlexTable.setCellSpacing(5);		
 	}
 
 	@Override
@@ -173,17 +171,6 @@ public class LayerViewImpl extends Composite implements LayerView {
 		this.presenter = presenter;
 		this.headerWidget.refresh();		
 	}
-
-	@Override
-	public void showErrorMessage(String message) {
-		MessageBox.info("Message", message, null);
-	}
-
-	@Override
-	public void showInfo(String title, String message) {
-		Info.display(title, message);
-	}
-
 
 	@Override
 	public void showLayerPreviewUnavailable() {
@@ -395,6 +382,25 @@ public class LayerViewImpl extends Composite implements LayerView {
 
 	
 	@Override
+	public void showDownloadsLoading() {
+		licensedDownloader.showLoading();
+	}
+
+	@Override
+	public void showErrorMessage(String message) {
+		DisplayUtils.showErrorMessage(message);
+	}
+
+	@Override
+	public void showLoading() {
+	}
+
+	@Override
+	public void showInfo(String title, String message) {
+		DisplayUtils.showInfo(title, message);
+	}
+
+	@Override
 	public void clear() {
 		titleSpan.setInnerText("");		
 		staticTable.clear();
@@ -402,12 +408,6 @@ public class LayerViewImpl extends Composite implements LayerView {
 		previewDownload.clear();
 		rClientCodeDiv.setInnerHTML("");
 	}
-
-	@Override
-	public void showDownloadsLoading() {
-		licensedDownloader.showLoading();
-	}
-
 	
 	/*
 	 * Private Methods

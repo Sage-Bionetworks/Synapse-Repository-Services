@@ -87,4 +87,10 @@ public class DatasetsHomePresenter extends AbstractActivity implements DatasetsH
 		return placeChanger;
 	}
 
+	@Override
+    public String mayStop() {
+        view.clear();
+        return null;
+    }
+
 }

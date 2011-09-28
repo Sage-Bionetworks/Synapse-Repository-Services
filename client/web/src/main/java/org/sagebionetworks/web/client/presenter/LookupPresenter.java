@@ -115,4 +115,10 @@ public class LookupPresenter extends AbstractActivity implements LookupView.Pres
 		}
 	}
 
+	@Override
+    public String mayStop() {
+        view.clear();
+        return null;
+    }
+
 }

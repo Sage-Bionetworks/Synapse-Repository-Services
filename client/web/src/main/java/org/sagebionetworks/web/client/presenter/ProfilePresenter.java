@@ -89,7 +89,7 @@ public class ProfilePresenter extends AbstractActivity implements ProfileView.Pr
 			});
 		} else {
 			view.passwordChangeFailed();
-			view.showInfo("Reset Password failed. Please Login Again.");
+			view.showInfo("Error","Reset Password failed. Please Login Again.");
 			placeChanger.goTo(new LoginPlace(LoginPlace.LOGIN_TOKEN));
 		}
 	}
@@ -102,7 +102,7 @@ public class ProfilePresenter extends AbstractActivity implements ProfileView.Pr
 				@Override
 				public void onSuccess(Void result) {
 					view.showRequestPasswordEmailSent();
-					view.showInfo("You have been sent an email. Please check your inbox.");
+					view.showInfo("Email Sent","You have been sent an email. Please check your inbox.");
 				}
 				
 				@Override
@@ -113,7 +113,7 @@ public class ProfilePresenter extends AbstractActivity implements ProfileView.Pr
 			});
 		} else {	
 			view.requestPasswordEmailFailed();
-			view.showInfo("Please Login Again.");
+			view.showInfo("Error", "Please Login Again.");
 			placeChanger.goTo(new LoginPlace(LoginPlace.LOGIN_TOKEN));
 		}		
 	}
@@ -127,7 +127,7 @@ public class ProfilePresenter extends AbstractActivity implements ProfileView.Pr
 				@Override
 				public void onSuccess(Void result) {
 					view.showUserUpdateSuccess();
-					view.showInfo("Your profile has been updated.");
+					view.showInfo("Success", "Your profile has been updated.");
 					
 					AsyncCallback<UserData> callback = new AsyncCallback<UserData>() {
 						@Override
@@ -154,5 +154,12 @@ public class ProfilePresenter extends AbstractActivity implements ProfileView.Pr
 			});
 		}
 	}
+	
+	@Override
+    public String mayStop() {
+        view.clear();
+        return null;
+    }
+	
 }
 

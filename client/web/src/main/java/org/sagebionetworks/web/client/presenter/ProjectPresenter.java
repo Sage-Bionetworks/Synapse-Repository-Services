@@ -165,4 +165,10 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 				project.getCreationDate(), project.getStatus(), isAdministrator, canEdit);
 	}	
 	
+	@Override
+    public String mayStop() {
+        view.clear();
+        return null;
+    }
+	
 }

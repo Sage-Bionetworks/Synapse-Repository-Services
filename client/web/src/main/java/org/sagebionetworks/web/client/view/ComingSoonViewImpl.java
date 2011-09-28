@@ -1,14 +1,13 @@
 package org.sagebionetworks.web.client.view;
 
+import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.widget.editpanels.NodeEditor;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
-import org.sagebionetworks.web.client.widget.header.Header.MenuItems;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
 
-import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.ui.Composite;
@@ -52,9 +51,23 @@ public class ComingSoonViewImpl extends Composite implements ComingSoonView {
 		headerWidget.refresh();								
 	}
 
+
 	@Override
 	public void showErrorMessage(String message) {
-		MessageBox.info("Message", message, null);
+		DisplayUtils.showErrorMessage(message);
+	}
+
+	@Override
+	public void showLoading() {
+	}
+
+	@Override
+	public void showInfo(String title, String message) {
+		DisplayUtils.showInfo(title, message);
+	}
+
+	@Override
+	public void clear() {		
 	}
 
 }

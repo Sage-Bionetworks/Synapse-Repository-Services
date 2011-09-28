@@ -57,4 +57,15 @@ public class HomePresenter extends AbstractActivity implements HomeView.Presente
 		view.refresh();
 	}
 
+	@Override
+    public String mayStop() {
+        view.clear();
+        return null;
+    }
+
+	@Override
+	public PlaceChanger getPlaceChanger() {
+		return placeChanger;
+	}
+
 }

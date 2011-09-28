@@ -1,29 +1,17 @@
 package org.sagebionetworks.web.client.view;
 
 import org.sagebionetworks.web.client.DisplayConstants;
+import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
-import org.sagebionetworks.web.client.events.CancelEvent;
-import org.sagebionetworks.web.client.events.CancelHandler;
-import org.sagebionetworks.web.client.events.PersistSuccessEvent;
-import org.sagebionetworks.web.client.events.PersistSuccessHandler;
-import org.sagebionetworks.web.client.widget.editpanels.NodeEditor;
 import org.sagebionetworks.web.client.widget.editpanels.phenotype.PhenotypeEditor;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
 import org.sagebionetworks.web.client.widget.header.Header.MenuItems;
-import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
-import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
-import org.sagebionetworks.web.shared.NodeType;
-import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 
 import com.extjs.gxt.ui.client.event.ButtonEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
-import com.extjs.gxt.ui.client.widget.MessageBox;
-import com.extjs.gxt.ui.client.widget.Window;
 import com.extjs.gxt.ui.client.widget.button.Button;
-import com.extjs.gxt.ui.client.widget.layout.FitData;
-import com.extjs.gxt.ui.client.widget.layout.FitLayout;
 import com.google.gwt.dom.client.SpanElement;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
@@ -109,6 +97,22 @@ public class PhenoEditViewImpl extends Composite implements PhenoEditView {
 
 	@Override
 	public void showErrorMessage(String message) {
-		MessageBox.info("Message", message, null);
+		DisplayUtils.showErrorMessage(message);
 	}
+
+	@Override
+	public void showLoading() {
+	}
+
+
+	@Override
+	public void showInfo(String title, String message) {
+		DisplayUtils.showInfo(title, message);
+	}
+
+
+	@Override
+	public void clear() {
+	}
+	
 }

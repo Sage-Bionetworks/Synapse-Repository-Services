@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.view;
 
 import java.util.List;
 
+import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.shared.HeaderData;
 
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -72,11 +73,6 @@ public class ColumnsPopupViewImpl extends DialogBox implements ColumnsPopupView 
 	}
 
 	@Override
-	public void showError(String message) {
-		Window.alert(message);
-	}
-
-	@Override
 	public void setColumns(List<HeaderData> defaults,	List<HeaderData> additional) {
 		defaultColumnList.removeAllRows();
 		// Fill it up
@@ -91,6 +87,30 @@ public class ColumnsPopupViewImpl extends DialogBox implements ColumnsPopupView 
 			addChecBox(i, additionalColumnList, header);
 		}
 	}
+
+
+	@Override
+	public void showErrorMessage(String message) {
+		DisplayUtils.showErrorMessage(message);
+	}
+
+	@Override
+	public void showLoading() {
+	}
+
+	@Override
+	public void showInfo(String title, String message) {
+		DisplayUtils.showInfo(title, message);
+	}
+
+	@Override
+	public void clear() {
+	}
+
+	
+	/*
+	 * Private Methods
+	 */
 	
 	/**
 	 * Adds a new checkbox to a table

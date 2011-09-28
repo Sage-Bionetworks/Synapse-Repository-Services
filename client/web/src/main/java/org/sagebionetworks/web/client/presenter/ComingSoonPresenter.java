@@ -43,4 +43,10 @@ public class ComingSoonPresenter extends AbstractActivity implements ComingSoonV
 		return placeChanger;
 	}
 
+	@Override
+    public String mayStop() {
+        view.clear();
+        return null;
+    }
+	
 }

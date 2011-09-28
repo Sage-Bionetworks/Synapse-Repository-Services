@@ -2,10 +2,11 @@ package org.sagebionetworks.web.client.view;
 
 import java.util.List;
 
+import org.sagebionetworks.web.client.SynapseView;
 import org.sagebionetworks.web.client.presenter.ColumnSelectionChangeListener;
 import org.sagebionetworks.web.shared.HeaderData;
 
-public interface ColumnsPopupView {
+public interface ColumnsPopupView extends SynapseView {
 	
 	public void setPresenter(Presenter presenter);
 	
@@ -59,12 +60,5 @@ public interface ColumnsPopupView {
 		public boolean isSelected(String name);
 		
 	}
-
-	/**
-	 * Show an error dialog
-	 * @param message
-	 */
-	public void showError(String message);
-
 
 }

@@ -1,8 +1,11 @@
 package org.sagebionetworks.web.client.view;
 
+import org.sagebionetworks.web.client.SynapsePresenter;
+import org.sagebionetworks.web.client.SynapseView;
+
 import com.google.gwt.user.client.ui.IsWidget;
 
-public interface HomeView extends IsWidget{
+public interface HomeView extends IsWidget, SynapseView {
 	
 	/**
 	 * Set this view's presenter
@@ -12,7 +15,7 @@ public interface HomeView extends IsWidget{
 		
 	public void refresh();
 	
-	public interface Presenter {		
+	public interface Presenter extends SynapsePresenter {		
 	}
 
 }

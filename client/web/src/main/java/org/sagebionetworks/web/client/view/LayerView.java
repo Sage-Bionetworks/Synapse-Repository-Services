@@ -5,13 +5,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.web.client.PlaceChanger;
+import org.sagebionetworks.web.client.SynapsePresenter;
+import org.sagebionetworks.web.client.SynapseView;
 import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.TableResults;
 
 import com.google.gwt.user.client.ui.IsWidget;
-
-
 
 /**
  * Defines the communication between the view and presenter for a view of a single datasets.
@@ -19,32 +19,14 @@ import com.google.gwt.user.client.ui.IsWidget;
  * @author jmhill
  *
  */
-public interface LayerView extends IsWidget {
+public interface LayerView extends IsWidget, SynapseView {
 	
 	/**
 	 * This how the view communicates with the presenter.
 	 * @param presenter
 	 */
 	public void setPresenter(Presenter presenter);
-	
-	/**
-	 * Clears out instances of values already present
-	 */
-	public void clear();
-	
-	/**
-	 * The view pops-up an error dialog.
-	 * @param message
-	 */
-	public void showErrorMessage(String message);
-	
-	/**
-	 * Shows a info box with the given message
-	 * @param title
-	 * @param message
-	 */
-	public void showInfo(String title, String message);
-	
+		
 	/**
 	 * Shows a message if the preview doesn't exist or is not available
 	 */
@@ -117,6 +99,12 @@ public interface LayerView extends IsWidget {
 	public void showDownload();
 	
 	/**
+	 * Tells the view that the downloads are loading
+	 */
+	public void showDownloadsLoading();
+
+	
+	/**
 	 * This sets the data to be shown in the preview table
 	 * @param preview
 	 * @param columnDisplayOrder
@@ -129,7 +117,7 @@ public interface LayerView extends IsWidget {
 	 * Defines the communication with the presenter.
 	 *
 	 */
-	public interface Presenter {
+	public interface Presenter extends SynapsePresenter {
 
 		/**
 		 * Refreshes the object on the page
@@ -140,12 +128,6 @@ public interface LayerView extends IsWidget {
 		 * called when the user has accepted the license in the view
 		 */
 		public void licenseAccepted();
-
-		/**
-		 * Gets the PlaceChanger object which is an alternate method for changing the Place
-		 * @return
-		 */
-		public PlaceChanger getPlaceChanger();
 
 		/**
 		 * Determine if a download screen can be displayed to the user
@@ -164,10 +146,5 @@ public interface LayerView extends IsWidget {
 		public void openPhenoTypeEditor();
 				
 	}
-
-	/**
-	 * Tells the view that the downloads are loading
-	 */
-	public void showDownloadsLoading();
 
 }

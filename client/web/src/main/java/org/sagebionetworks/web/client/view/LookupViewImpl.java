@@ -76,19 +76,6 @@ public class LookupViewImpl extends Composite implements LookupView {
 		this.presenter = presenter;		
 		headerWidget.refresh();				
 	}
-
-	@Override
-	public void showErrorMessage(String message) {
-		MessageBox.info("Message", message, null);
-	}
-
-	@Override
-	public void clear() {
-		if(lookingUpWindow != null) {
-			lookingUpWindow.hide();
-		}
-		resultText.setInnerHTML("");		
-	}
 	
 	@Override
 	public void showLookupFailed(String entityId) {
@@ -131,6 +118,33 @@ public class LookupViewImpl extends Composite implements LookupView {
 		resultText.setInnerHTML(DisplayConstants.LABEL_ENTITY_NOT_FOUND);
 	}
 
+	@Override
+	public void showErrorMessage(String message) {
+		DisplayUtils.showErrorMessage(message);
+	}
+
+	@Override
+	public void showLoading() {
+	}
+
+
+	@Override
+	public void showInfo(String title, String message) {
+		DisplayUtils.showInfo(title, message);
+	}
+
+
+	@Override
+	public void clear() {
+		if(lookingUpWindow != null) {
+			lookingUpWindow.hide();
+		}
+		resultText.setInnerHTML("");		
+	}
+	
+	/*
+	 * Private methods
+	 */
 	private void createLookingUpWindow() {
 		lookingUpWindow = new Window();
 		lookingUpWindow.setModal(true);		

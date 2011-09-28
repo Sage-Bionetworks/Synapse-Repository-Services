@@ -54,4 +54,10 @@ public class PhenoEditPresenter extends AbstractActivity implements PhenoEditVie
 		placeChanger.goTo(new Layer(layerId, null, false));
 	}
 
+	@Override
+    public String mayStop() {
+        view.clear();
+        return null;
+    }
+
 }

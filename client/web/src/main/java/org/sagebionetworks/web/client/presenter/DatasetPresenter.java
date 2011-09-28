@@ -415,6 +415,11 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 
 	}
 
+	@Override
+    public String mayStop() {
+        view.clear();
+        return null;
+    }
 	
 }
 

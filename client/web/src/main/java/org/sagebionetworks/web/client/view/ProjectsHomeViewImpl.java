@@ -1,5 +1,6 @@
 package org.sagebionetworks.web.client.view;
 
+import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.events.CancelEvent;
@@ -49,6 +50,7 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 	private IconsImageBundle icons;
 	private NodeEditor nodeEditor;
 	private Header headerWidget;
+	private Window startProjectWindow;
 
 	private final int INITIAL_QUERY_TABLE_OFFSET = 0;
 	private final int QUERY_TABLE_LENGTH = 20;
@@ -89,29 +91,29 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 		createProjectButton.addSelectionListener(new SelectionListener<ButtonEvent>() {			
 			@Override
 			public void componentSelected(ButtonEvent ce) {								
-				final Window window = new Window();  
-				window.setSize(600, 240);
-				window.setPlain(true);
-				window.setModal(true);
-				window.setBlinkModal(true);
-				window.setHeading("Start a Project");
-				window.setLayout(new FitLayout());								
+				startProjectWindow = new Window();  
+				startProjectWindow.setSize(600, 240);
+				startProjectWindow.setPlain(true);
+				startProjectWindow.setModal(true);
+				startProjectWindow.setBlinkModal(true);
+				startProjectWindow.setHeading("Start a Project");
+				startProjectWindow.setLayout(new FitLayout());								
 				nodeEditor.addCancelHandler(new CancelHandler() {					
 					@Override
 					public void onCancel(CancelEvent event) {
-						window.hide();
+						startProjectWindow.hide();
 					}
 				});
 				nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
 					@Override
 					public void onPersistSuccess(PersistSuccessEvent event) {
-						window.hide();
+						startProjectWindow.hide();
 						queryServiceTable.refreshFromServer();
 					}
 				});
 				nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
-				window.add(nodeEditor.asWidget(NodeType.PROJECT), new FitData(4));						
-				window.show();			
+				startProjectWindow.add(nodeEditor.asWidget(NodeType.PROJECT), new FitData(4));						
+				startProjectWindow.show();			
 			}
 		});
 		createProjectButtonPanel.clear();
@@ -120,7 +122,23 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 
 	@Override
 	public void showErrorMessage(String message) {
-		MessageBox.info("Message", message, null);
+		DisplayUtils.showErrorMessage(message);
+	}
+
+	@Override
+	public void showLoading() {
+	}
+
+
+	@Override
+	public void showInfo(String title, String message) {
+		DisplayUtils.showInfo(title, message);
+	}
+
+
+	@Override
+	public void clear() {
+		if(startProjectWindow != null) startProjectWindow.hide();
 	}
 
 }

@@ -59,17 +59,7 @@ public class LoginViewImpl extends Composite implements LoginView {
 	public void setPresenter(Presenter loginPresenter) {
 		this.presenter = loginPresenter;
 	}
-
-	@Override
-	public void clear() {
-		loginWidget.clear();
-	}
 	
-	@Override
-	public void showErrorMessage(String message) {
-		MessageBox.info("Message", message, null);
-	}
-
 	@Override
 	public void showLoggingInLoader() {
 		if(logginInWindow == null) {
@@ -91,7 +81,7 @@ public class LoginViewImpl extends Composite implements LoginView {
 
 	@Override
 	public void showLogout(boolean isSsoLogout) {
-		clearAllPanels();
+		clear();
 		
 		ContentPanel cp = new ContentPanel();
 		cp.setWidth(385);
@@ -128,7 +118,7 @@ public class LoginViewImpl extends Composite implements LoginView {
 
 	@Override
 	public void showLogin(String openIdActionUrl, String openIdReturnUrl) {
-		clearAllPanels();
+		clear();
 		
 		loginWidget.setOpenIdActionUrl(openIdActionUrl);
 		loginWidget.setOpenIdReturnUrl(openIdReturnUrl);
@@ -162,17 +152,30 @@ public class LoginViewImpl extends Composite implements LoginView {
 		});
 		registerButtonPanel.add(registerButton);
 	}
-
 	
-	/*
-	 * Private Methods
-	 */
-	private void clearAllPanels() {
+	@Override
+	public void showErrorMessage(String message) {
+		DisplayUtils.showErrorMessage(message);
+	}
+
+	@Override
+	public void showLoading() {
+	}
+
+
+	@Override
+	public void showInfo(String title, String message) {
+		DisplayUtils.showInfo(title, message);
+	}
+
+
+	@Override
+	public void clear() {
 		if(logginInWindow != null) logginInWindow.hide();
+		loginWidget.clear();
 		loginWidgetPanel.clear();
 		passwordResetButtonPanel.clear();
 		registerButtonPanel.clear();
 		logoutPanel.clear();
 	}
-
 }

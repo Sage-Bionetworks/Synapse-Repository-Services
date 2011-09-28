@@ -1,10 +1,11 @@
 package org.sagebionetworks.web.client.view;
 
-import org.sagebionetworks.web.client.PlaceChanger;
+import org.sagebionetworks.web.client.SynapsePresenter;
+import org.sagebionetworks.web.client.SynapseView;
 
 import com.google.gwt.user.client.ui.IsWidget;
 
-public interface ProfileView extends IsWidget {
+public interface ProfileView extends IsWidget, SynapseView {
 	
 	/**
 	 * Set this view's presenter
@@ -47,19 +48,9 @@ public interface ProfileView extends IsWidget {
 	 */
 	public void userUpdateFailed();
 	
-	/**
-	 * The view pops-up an error dialog.
-	 * @param message
-	 */
-	public void showErrorMessage(String message);
-	
-	public void showInfo(String infoMessage);
-
 	public void refreshHeader();
 	
-	public interface Presenter {
-
-		PlaceChanger getPlaceChanger();
+	public interface Presenter extends SynapsePresenter {
 
 		void resetPassword(String existingPassword, String newPassword);
 

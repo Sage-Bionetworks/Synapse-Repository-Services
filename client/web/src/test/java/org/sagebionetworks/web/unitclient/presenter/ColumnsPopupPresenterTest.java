@@ -88,7 +88,7 @@ public class ColumnsPopupPresenterTest {
 		Throwable toThrow = new Throwable(errorMessage);
 		recorder.playOnFailure(0, toThrow);
 		// The view should show an error and then hide
-		verify(mockView).showError(errorMessage);
+		verify(mockView).showErrorMessage(errorMessage);
 		verify(mockView, atLeastOnce()).hide();
 	}
 	

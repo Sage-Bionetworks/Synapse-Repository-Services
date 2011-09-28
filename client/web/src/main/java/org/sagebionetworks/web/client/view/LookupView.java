@@ -1,11 +1,11 @@
 package org.sagebionetworks.web.client.view;
 
-import org.sagebionetworks.web.client.PlaceChanger;
-import org.sagebionetworks.web.shared.NodeType;
+import org.sagebionetworks.web.client.SynapsePresenter;
+import org.sagebionetworks.web.client.SynapseView;
 
 import com.google.gwt.user.client.ui.IsWidget;
 
-public interface LookupView extends IsWidget{
+public interface LookupView extends IsWidget, SynapseView {
 	
 	/**
 	 * Set this view's presenter
@@ -13,12 +13,6 @@ public interface LookupView extends IsWidget{
 	 */
 	public void setPresenter(Presenter presenter);
 		
-	/**
-	 * The view pops-up an error dialog.
-	 * @param message
-	 */
-	public void showErrorMessage(String message);
-
 	/**
 	 * Show the user that there was a failure in finding the 
 	 * given entity
@@ -34,11 +28,9 @@ public interface LookupView extends IsWidget{
 	
 	public void showUnknownType(String type, String id);
 	
-	public void clear();
 	
-	public interface Presenter {
+	public interface Presenter extends SynapsePresenter {
 
-		PlaceChanger getPlaceChanger();
 	}
 
 

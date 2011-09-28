@@ -151,17 +151,6 @@ public class ProfileViewImpl extends Composite implements ProfileView {
 		updateUserInfoButton.setIcon(AbstractImagePrototype.create(iconsImageBundle.error16()));
 		updateUserInfoButton.setText("Profile Update Failed");
 	}
-	
-	@Override
-	public void showErrorMessage(String message) {
-		MessageBox.info("Message", message, null);
-	}
-	
-
-	@Override
-	public void showInfo(String infoMessage) {
-		Info.display("Message", infoMessage);
-	}
 
 	/*
 	 * Private Methods
@@ -321,4 +310,28 @@ public class ProfileViewImpl extends Composite implements ProfileView {
 	public void refreshHeader() {
 		headerWidget.refresh();
 	}
+
+	@Override
+	public void showErrorMessage(String message) {
+		DisplayUtils.showErrorMessage(message);
+	}
+
+	@Override
+	public void showLoading() {
+	}
+
+
+	@Override
+	public void showInfo(String title, String message) {
+		DisplayUtils.showInfo(title, message);
+	}
+
+
+	@Override
+	public void clear() {
+		updateUserInfoPanel.clear();
+		changePasswordPanel.clear();
+		setupPasswordButtonPanel.clear();	
+	}
+
 }

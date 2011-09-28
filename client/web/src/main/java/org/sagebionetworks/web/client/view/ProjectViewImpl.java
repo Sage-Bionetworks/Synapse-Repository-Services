@@ -150,12 +150,23 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 
 	@Override
 	public void showErrorMessage(String message) {
-		MessageBox.info("Message", message, null);
+		DisplayUtils.showErrorMessage(message);
 	}
 
 	@Override
 	public void showInfo(String title, String message) {
-		Info.display(title, message);
+		DisplayUtils.showInfo(title, message);
+	}
+
+	@Override
+	public void showLoading() {
+	}
+
+	@Override
+	public void clear() {
+		titleSpan.setInnerText("");
+		rClientCodeDiv.setInnerHTML("");
+		adminPanel.clear();
 	}
 
 	@Override
@@ -201,30 +212,12 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		annotationsPanel.clear();
 		annotationEditor.setPlaceChanger(presenter.getPlaceChanger());
 		annotationEditor.setResource(NodeType.PROJECT, id);
-		annotationsPanel.add(annotationEditor.asWidget());
-
-		// add values to annotation table
-//		int rowIndex = 0;
-//		if(creationDate != null) DisplayUtils.addRowToTable(rowIndex++, "Project Formed:", DisplayConstants.DATE_FORMAT.format(creationDate), rightFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "Leaders:", "", rightFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "Members:", "", rightFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "Publications:", "", rightFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "Status:", status, rightFlexTable);
-//		DisplayUtils.addRowToTable(rowIndex++, "Project Web Site:", "", rightFlexTable);
-				
+		annotationsPanel.add(annotationEditor.asWidget());			
 	}
 
 	/*
 	 * Private Methods
 	 */
-	private void clear() {
-		titleSpan.setInnerText("");
-		rClientCodeDiv.setInnerHTML("");
-//		rightFlexTable.clear();
-//		rightFlexTable.removeAllRows();
-		adminPanel.clear();
-	}
-
 	private void setupDatasetTable(String id) {
 		int datasetTableWidth = 320;
 		int datasetTableHeight = 237;
