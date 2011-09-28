@@ -160,7 +160,19 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 	public SearchParameters getCurrentSearchParameters(){
 		// Query Service is one-based, so adjusting the pagination offset when getting the search parameters
 		int oneBasedOffset = paginationOffset + 1;
-		return new SearchParameters(getDisplayColumns(), this.type.name(), this.where, oneBasedOffset, paginationLimit, sortKey, ascending);
+		
+		// If the sortKey is based on creator/createdBy or creationDate/createdOn, we want to be able to find AND sort the columns correctly
+		// Else, just leave the sortKey alone.
+		String newSortKey = sortKey;
+		if(sortKey != null) {
+			if(sortKey.equals("dataset.creator")) {
+				newSortKey = "dataset.createdBy";
+			} else if(sortKey.equals("dataset.creationDate")) {
+				newSortKey = "dataset.createdOn";
+			}
+		}
+		
+		return new SearchParameters(getDisplayColumns(), this.type.name(), this.where, oneBasedOffset, paginationLimit, newSortKey, ascending);
 	}
 
 	private void setCurrentSearchParameters(PagingLoadConfig loadConfig) {
