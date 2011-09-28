@@ -160,7 +160,9 @@ public class CrowdAuthenticationFilter implements Filter {
 	 */
 	public static void matchHMACSHA1Signature(HttpServletRequest request, String secretKey) throws AuthenticationException {
 		String username = request.getHeader(AuthorizationConstants.USER_ID_HEADER);
-		String url = request.getRequestURI(); // TODO is this right?
+		String uri = request.getRequestURI();
+//		StringBuffer sb = request.getRequestURL();
+//		String url = sb.toString();
 		String signature = request.getHeader(AuthorizationConstants.SIGNATURE);
 		String date = request.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP);
 		
@@ -175,7 +177,8 @@ public class CrowdAuthenticationFilter implements Filter {
     		throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), 
     				"Timestamp in request, "+date+", is out of date.", null);
     	}
-    	String expectedSignature = HMACUtils.generateHMACSHA1Signature(username, url, date, secretKey);
+
+    	String expectedSignature = HMACUtils.generateHMACSHA1Signature(username, uri, date, secretKey);
     	if (!expectedSignature.equals(signature)) {
        		throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), 
        				"Invalid digital signature: "+signature, null);
