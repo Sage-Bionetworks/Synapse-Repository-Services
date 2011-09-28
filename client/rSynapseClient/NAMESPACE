@@ -2,11 +2,12 @@
 import(RCurl, Biobase, methods)
 importFrom(RJSONIO, toJSON, fromJSON, emptyNamedList)
 importFrom(tools, md5sum)
+importFrom(digest, digest, hmac)
 
 ## package has a dynamic library
 useDynLib(synapseClient)
 
-export(onWeb)
+export(onWeb, attach)
 
 ## S3 utility methods
 export(
@@ -17,7 +18,8 @@ export(
 	synapseLogin, 
 	synapseLogout, 
 	synapseQuery, 
-	synapseCacheDir
+	synapseCacheDir,
+	hmacSecretKey
 )
 
 ## S3 convenience methods
@@ -30,7 +32,8 @@ exportMethods(getDatasetLayers)
 exportMethods(
 	Dataset, 
 	Layer, 
-	Project
+	Project,
+	Code
 )
 
 ## entity S4 methods

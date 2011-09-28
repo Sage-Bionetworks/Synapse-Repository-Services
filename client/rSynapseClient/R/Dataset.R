@@ -39,6 +39,14 @@ setMethod(
 )
 
 setMethod(
+		f = "Dataset",
+		signature = "missing",
+		definition = function(entity){
+			Dataset(list())
+		}
+)
+
+setMethod(
 		f = "show",
 		signature = "Dataset",
 		definition = function(object){

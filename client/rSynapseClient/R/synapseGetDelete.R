@@ -27,10 +27,11 @@
 	## sessionToken into the header
 	header <- .getCache("curlHeader")
 	if(!anonymous) {
-		sessionToken = 	sessionToken()
-		if(!is.null(sessionToken)) {
-			header <- c(header, sessionToken = sessionToken)
-		}
+		header <- switch(authMode(),
+						auth = .stuffHeaderAuth(header),
+						hmac = .stuffHeaderHmac(header, url),
+						stop("Unknown auth mode: %s. Could not build header", authMod())
+		)		
 	}
 	
 	## Submit request and check response code

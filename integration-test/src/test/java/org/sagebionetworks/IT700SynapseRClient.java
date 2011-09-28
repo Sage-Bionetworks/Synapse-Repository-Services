@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
+import org.junit.Ignore;
 import org.sagebionetworks.utils.ExternalProcessHelper.ExternalProcessResult;
 import org.sagebionetworks.utils.ExternalProcessHelper;
 import org.sagebionetworks.StackConfiguration;
@@ -97,4 +98,30 @@ public class IT700SynapseRClient {
 		assertEquals(0, result.getReturnCode());
 		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
 	}
+	
+	@Ignore
+	@Test
+	public void testRunRHmacAuthenticationTest() throws Exception{
+		String cmd[] = {
+				Helpers.getRPath(),
+				"-e",
+				"library(synapseClient, lib.loc= 'target')",
+				"-e",
+				"synapseAuthServiceEndpoint(endpoint='"
+						+ StackConfiguration.getAuthenticationServicePublicEndpoint()
+						+ "')",
+				"-e",
+				"synapseRepoServiceEndpoint(endpoint='"
+						+ StackConfiguration.getRepositoryServiceEndpoint()
+						+ "')", "-e",
+				"synapseLogin(username='" + StackConfiguration.getIntegrationTestUserOneName()
+						+ "', password='"
+						+ StackConfiguration.getIntegrationTestUserOnePassword() + "', mode='hmac')",
+				"-e",
+				"synapseClient:::.integrationTest(testFileRegexp='test_entityGet.R')" };
+		ExternalProcessResult result = ExternalProcessHelper.runExternalProcess(cmd);
+		assertEquals(0, result.getReturnCode());
+		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
+	}
 }
+

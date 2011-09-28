@@ -1,13 +1,11 @@
-.tkGetCredentials <- function(username, imageFile = .getCache("synapseBannerPath")){
+.tkGetCredentials <- function(credentials, imageFile = .getCache("synapseBannerPath")){
 	title = "Welcome! Please login."
 			
-	credentials <- NULL
-	
 	## tk doesn't like NULLs
 	if(is.null(title))
 		title <- ""
-	if(is.null(username))
-		username <- ""
+	if(is.null(credentials$username))
+		credentials$username <- ""
 
 	## set up toplevel widget
 	root <- tcltk::tktoplevel()
@@ -15,7 +13,7 @@
 	
 	## set up variables to catch username and password
 	## initialize username to the passed value
-	userNameVar <- tcltk::tclVar(username)
+	userNameVar <- tcltk::tclVar(credentials$username)
 	passwordVar <- tcltk::tclVar("")
 	
 	checkState <- 
@@ -105,7 +103,7 @@
 	## set the focus to the root widget
 	tcltk::tkraise(root)
 	tcltk::tkgrab.set(root)
-	if(username == ""){
+	if(credentials$username == ""){
 		tcltk::tkfocus(usernameEntryWidget)
 	}else{
 		tcltk::tkfocus(passwordEntryWidget)
@@ -121,13 +119,11 @@
 	credentials
 }
 
-.terminalGetCredentials <- function(username){
-	if(is.null(username))
-		username <= ""
-	credentials <- NULL
-	credentials$username <- username
+.terminalGetCredentials <- function(credentials){
+	if(is.null(credentials$username))
+		credentials$username <= ""
 	
-	if(username == "")
+	if(credentials$username == "")
 		credentials$username <- .getUsername()
 	credentials$password <- .getPassword()
 	

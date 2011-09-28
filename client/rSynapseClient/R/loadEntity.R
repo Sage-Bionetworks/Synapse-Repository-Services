@@ -11,13 +11,17 @@ setMethod(
 				entity <- downloadEntity(entity)
 			
 			.loadCachedObjects(entity)
-			if(is.null(annotValue(entity, "format")))
+			
+			if(is.null(annotValue(entity, "format"))){
+				setPackageName(sprintf("entity%s", propertyValue(entity, "id")), env = entity@objects)
 				return(entity)
+			}
 			entity@objects <- switch(annotValue(entity, "format"),
 					rbin = .loadRbinaryFiles(file.path(entity@location@cacheDir,entity@location@files)),
 					sageBioCurated = .loadSageBioPacket(entity),
 					new.env()
 			)
+			setPackageName(sprintf("entity%s", propertyValue(entity, "id")), env = entity@objects)
 			entity
 		}
 )
@@ -94,24 +98,23 @@ setMethod(
 )
 
 
-#setMethod(
-#		f = "loadEntity",
-#		signature = "Code",
-#		definition = function(entity){
-#			## call the super class load method
-#			oldClass <- class(entity)
-#			class(entity) <- "Layer"
-#			entity <- loadEntity(entity)
-#			class(entity) <- oldClass
-#			
-#			indx <- grep("\\.r$", tolower(entity$files))
-#			
-#			lapply(entity$files[indx],
-#					function(f){
-#						f <- file.path(entity$cacheDir, f)
-#						local(source(sprintf("%s", f), local=TRUE), envir = entity@objects)
-#					}
-#			)
-#			entity
-#		}
-#)
+setMethod(
+		f = "loadEntity",
+		signature = "Code",
+		definition = function(entity){
+			## call the super class load method
+			oldClass <- class(entity)
+			class(entity) <- "Layer"
+			entity <- loadEntity(entity)
+			class(entity) <- oldClass
+			indx <- grep("\\.r$", tolower(entity$files))
+			setPackageName(sprintf("entity%s", propertyValue(entity, "id")), env = entity@objects)
+			lapply(entity$files[indx],
+					function(f){
+						f <- file.path(entity$cacheDir, f)
+						sys.source(f, env = entity@objects)
+					}
+			)
+			entity
+		}
+)

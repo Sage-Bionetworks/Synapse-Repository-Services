@@ -73,6 +73,14 @@ setMethod(
 		}
 )
 
+setMethod(
+		f = "Layer",
+		signature = "missing",
+		definition = function(entity){
+			Layer(list())
+		}
+)
+
 ####
 ## Method for setting the Layer subtype. Uses the annotation type to set the subclass
 ####
@@ -112,18 +120,6 @@ setMethod(
 			refreshedEntity@location <- entity@location
 			refreshedEntity@objects <- entity@objects
 			refreshedEntity
-		}
-)
-
-setMethod(
-		f = "initialize",
-		signature = "Layer",
-		definition = function(.Object, properties=NULL){
-			.Object@objects <- new.env(parent=emptyenv())
-			if(!is.null(properties))
-				.Object@properties <- properties
-			.Object@location = new(Class="CachedLocation")
-			.Object
 		}
 )
 
@@ -242,4 +238,14 @@ setMethod(
 		}
 )
 
-
+setMethod(
+		f = "initialize",
+		signature = "Layer",
+		definition = function(.Object, properties=NULL){
+			.Object@objects <- new.env(parent=emptyenv())
+			if(!is.null(properties))
+				.Object@properties <- properties
+			.Object@location = new(Class="CachedLocation")
+			.Object
+		}
+)

@@ -9,11 +9,11 @@ setMethod(
 		definition = function(entity){
 			if(is.null(entityId <- propertyValue(entity, "parentId")))
 				return(NULL)
-			tryCatch(
-				parent <<- getEntity(entityId),
+			parent <- tryCatch(
+				getEntity(entityId),
 				error = function(e){
 					warning(as.character(e))
-					parent <<- NULL
+					NULL
 				}
 			)
 			parent
@@ -33,6 +33,6 @@ setMethod(
 		signature = "character",
 		definition = function(entity){
 			entity <- getEntity(entity)
-			getEntity(propertyValue(entity, "id"))
+			getEntity(propertyValue(entity, "parentId"))
 		}
 )

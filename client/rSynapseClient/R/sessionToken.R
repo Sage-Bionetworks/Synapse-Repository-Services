@@ -1,11 +1,13 @@
 sessionToken <- 
 		function(sessionToken, checkValidity=FALSE, refreshDuration = .getCache("sessionRefreshDurationMin"))
 {
+	kAuthMode <- "auth"
 	if (!missing(sessionToken)) {
 		if(checkValidity){
 			refreshSessionToken(sessionToken)
 		}
 		.setCache("sessionToken", sessionToken)
+		authMode(kAuthMode)
 	} else {
 		# This could be null if the user has not logged in, but that's ok
 		sessionToken <-	.getCache("sessionToken")

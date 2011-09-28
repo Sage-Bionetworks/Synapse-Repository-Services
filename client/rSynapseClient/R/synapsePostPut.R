@@ -31,20 +31,6 @@
 	
 	httpBody <- toJSON(entity)
 	
-	## Prepare the header. If not an anonymous request, stuff the
-	## sessionToken into the header
-	header <- .getCache("curlHeader")
-	if(!anonymous) {
-		sessionToken = 	sessionToken()
-		if(!is.null(sessionToken)) {
-			header <- c(header, sessionToken = sessionToken)
-		}
-	}
-	if("PUT" == requestMethod) {
-		# Add the ETag header
-		header <- c(header, ETag = entity$etag)
-	}
-	
 	## uris formed by the service already have their servlet prefix
 	if(grepl(path, uri)) {
 		uri <- paste(host, uri, sep="")
@@ -52,6 +38,22 @@
 	else {
 		uri <- paste(host, path, uri, sep="")
 	}
+	
+	## Prepare the header. If not an anonymous request, stuff the
+	## sessionToken into the header
+	header <- .getCache("curlHeader")
+	if(!anonymous) {
+		header <- switch(authMode(),
+				auth = .stuffHeaderAuth(header),
+				hmac = .stuffHeaderHmac(header, uri),
+				stop("Unknown auth mode: %s. Could not build header", authMod())
+		)		
+	}
+	if("PUT" == requestMethod) {
+		# Add the ETag header
+		header <- c(header, ETag = entity$etag)
+	}
+	
 	if(length(path) > 1)
 		stop("put", paste(length(path), path))
 	## Submit request and check response code

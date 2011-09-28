@@ -30,6 +30,15 @@ setMethod(
 			return(s4Entity)
 		}
 )
+
+setMethod(
+		f = "Project",
+		signature = "missing",
+		definition = function(entity){
+			Project(list())
+		}
+)
+
 setMethod(
 		f = "show",
 		signature = "Project",
