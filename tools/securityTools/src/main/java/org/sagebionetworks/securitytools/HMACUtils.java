@@ -34,17 +34,17 @@ public class HMACUtils {
     /**
      * 
      * @param username
-     * @param url
+     * @param uri, e.g. /repo/v1/dataset
      * @param date in ISO 8601 format:  yyyy-mm-ddTHH:MM:SS.SSS
      * Encodes data using a given BASE-64 Encoded HMAC-SHA1 secret key, base-64 encoding the result
      */
     public static String generateHMACSHA1Signature(
     		String username,
-    		String url,
+    		String uri,
     		String date,
     		String base64EncodedSecretKey) {
 
-    	return generateHMACSHA1Signature(username+url+date, base64EncodedSecretKey);
+    	return generateHMACSHA1Signature(username+uri+date, base64EncodedSecretKey);
     }
 	   
     /**
