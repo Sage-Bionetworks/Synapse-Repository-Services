@@ -62,7 +62,7 @@ public class AuthenticationController {
 	private String integrationTestUser = null;
 
 	
-	private void initSessionCache() {
+	private void initCache() {
 		sessionCache = Collections.synchronizedMap(new HashMap<User,Session>());
 		lastCacheDump = new Date();
 		String s = System.getProperty(AuthorizationConstants.AUTH_CACHE_TIMEOUT_MILLIS);
@@ -70,6 +70,14 @@ public class AuthenticationController {
 			cacheTimeout = Long.parseLong(s);
 		} else {
 			cacheTimeout = AuthorizationConstants.AUTH_CACHE_TIMEOUT_DEFAULT;
+		}
+	}
+	
+	private void checkCacheDump() {
+		Date now = new Date();
+		if (lastCacheDump.getTime()+cacheTimeout<now.getTime()) {
+			sessionCache.clear();
+			lastCacheDump = now;
 		}
 	}
 
@@ -88,7 +96,7 @@ public class AuthenticationController {
 	}
 
 	public AuthenticationController() {
-		initSessionCache();
+		initCache();
         Properties props = new Properties();
         // optional, only used for testing
         props = new Properties();
@@ -112,11 +120,7 @@ public class AuthenticationController {
 		try { 
 			Session session = null;
 			if (cacheTimeout>0) { // then use cache
-				Date now = new Date();
-				if (lastCacheDump.getTime()+cacheTimeout<now.getTime()) {
-					sessionCache.clear();
-					lastCacheDump = now;
-				}
+				checkCacheDump();
 				session = sessionCache.get(credentials);
 			}
 			if (session==null) { // not using cache or not found in cache
@@ -292,11 +296,7 @@ public class AuthenticationController {
 			crowdAuthUtil.deauthenticate(session.getSessionToken());
 
 			if (cacheTimeout>0) { // if using cache
-				Date now = new Date();
-				if (lastCacheDump.getTime()+cacheTimeout<now.getTime()) {
-					sessionCache.clear();
-					lastCacheDump = now;
-				}
+				checkCacheDump();
 				for (User user : sessionCache.keySet()) {
 					Session cachedSession = sessionCache.get(user);
 					if (session.getSessionToken().equals(cachedSession.getSessionToken())) {
