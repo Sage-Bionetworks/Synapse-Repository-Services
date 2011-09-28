@@ -10,6 +10,8 @@ import java.util.Set;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
 
+import org.joda.time.DateTime;
+import org.joda.time.Seconds;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -37,6 +39,14 @@ public class CrowdAuthenticationFilterTest {
 		crowdAuthUtil = new CrowdAuthUtil();
 		filterParams.clear();
 		filterParams.put("allow-anonymous", "true");
+	}
+	
+	@Test
+	public void testTimeFormat() throws Exception {
+		String s = "2011-09-27T10:06:59.76-0700";
+		DateTime ts = new DateTime(s);
+		int sec = Seconds.secondsBetween(ts, new DateTime()).getSeconds();
+		//System.out.println(s+" "+sec+" seconds before now");
 	}
 	
 	/**

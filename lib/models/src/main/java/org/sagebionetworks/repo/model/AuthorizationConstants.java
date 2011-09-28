@@ -71,7 +71,8 @@ public class AuthorizationConstants {
 	public static final String USER_ID_HEADER = "userId";
 	public static final String SIGNATURE_TIMESTAMP = "signatureTimestamp";
 	public static final String SIGNATURE = "signature";	
-	
+
+	public static final String CROWD_SECRET_KEY_ATTRIBUTE = "AuthenticationSecretKey";
 	/**
 	 * Request parameter for the authenticated user id or anonymous. Note that
 	 * callers of the service do not actually use this parameter. Instead they

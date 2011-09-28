@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.jdo.persistence;
 
-import java.text.SimpleDateFormat;
+import org.joda.time.DateTime;
 import java.util.Date;
 
 import javax.jdo.annotations.Column;
@@ -55,7 +55,7 @@ public class JDODateAnnotation implements JDOAnnotation<Date> {
 	}
 
 	public String toString() {
-		return getAttribute() + ": " + new SimpleDateFormat("ddMMMyyyy HH:mm:ss.").format(getValue());
+		return getAttribute() + ": " + new DateTime(getValue());
 	}
 
 	public Long getId() {

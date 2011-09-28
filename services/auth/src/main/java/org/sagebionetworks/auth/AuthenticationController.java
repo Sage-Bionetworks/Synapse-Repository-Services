@@ -3,9 +3,6 @@ package org.sagebionetworks.auth;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -17,7 +14,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -27,7 +23,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.openid4java.consumer.ConsumerManager;
-import org.openid4java.discovery.DiscoveryInformation;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
@@ -109,48 +104,6 @@ public class AuthenticationController {
 	}
 	
 	
-	private static final String DATE_FORMAT = "yyyy-mm-ddTHH:MM:SS.SSS";
-	private static final long MAX_TIMESTAMP_DIFF_MILLIS = 15*60*1000L;// 15 min as millis
-	
-	public static boolean isSigned(HttpServletRequest request) {
-		String username = request.getHeader(AuthorizationConstants.USER_ID_HEADER);
-		String date = request.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP);
-		String signature = request.getHeader(AuthorizationConstants.SIGNATURE);
-		return username!=null && date!=null && signature!=null;
-	}
-	
-	/**
-	 * Tries to create the HMAC-SHA1 hash.  If it doesn't match the signature
-	 * passed in then an AuthenticationException is thrown.
-	 */
-	public static void matchHMACSHA1Signature(HttpServletRequest request, String secretKey) throws AuthenticationException {
-		String username = request.getHeader(AuthorizationConstants.USER_ID_HEADER);
-		String url = request.getRequestURI(); // TODO is this right?
-		String signature = request.getHeader(AuthorizationConstants.SIGNATURE);
-		String date = request.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP);
-		
-    	DateFormat df = new SimpleDateFormat(DATE_FORMAT);
-    	df.setTimeZone(TimeZone.getTimeZone("UTC"));
-    	// compute the difference between what time this machine thinks it is (in UTC)
-    	// vs. the timestamp in the header of the request (also in UTC)
-    	long timeDiff = 0L;
-    	try {
-    		timeDiff = System.currentTimeMillis()-(df.parse(date)).getTime();
-    	} catch (ParseException pe) {
-    		throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), 
-    				"Timestamp in request, "+date+", must be in ISO 8601 format: yyyy-mm-ddTHH:MM:SS.SSS.", null);
-    	}
-    	if (Math.abs(timeDiff)>MAX_TIMESTAMP_DIFF_MILLIS) {
-    		throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), 
-    				"Timestamp in request, "+date+", is out of date.", null);
-    	}
-    	String expectedSignature = HMACUtils.generateHMACSHA1Signature(username, url, date, secretKey);
-    	if (!expectedSignature.equals(signature)) {
-       		throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), 
-       				"Invalid digital signature: "+signature, null);
-    	}
-	}
-
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/session", method = RequestMethod.POST)
 	public @ResponseBody
@@ -478,6 +431,30 @@ public class AuthenticationController {
 
 		crowdAuthUtil.updatePassword(user);
 	}
+	
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = "/secretKey", method = RequestMethod.POST)
+	public @ResponseBody SecretKey newSecretKey(@RequestBody User user,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
+		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
+
+		String itu = getIntegrationTestUser();
+		boolean isITU = (itu!=null && user.getEmail().equals(itu));
+
+		if (!isITU && (userId==null || !userId.equals(user.getEmail()))) 
+			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
+
+		String secretKey = HMACUtils.newHMACSHA1Key();
+		Map<String,Collection<String>> userAttributes = 
+			 new HashMap<String,Collection<String>>(crowdAuthUtil.getUserAttributes(userId));
+		Set<String> set = new HashSet<String>();
+		set.add(secretKey);
+		userAttributes.put(AuthorizationConstants.CROWD_SECRET_KEY_ATTRIBUTE, set);
+		crowdAuthUtil.setUserAttributes(userId, userAttributes);
+		return new SecretKey(secretKey);
+	}
+	
+
 	
 	/**
 	 * This is thrown when there are problems authenticating the user
