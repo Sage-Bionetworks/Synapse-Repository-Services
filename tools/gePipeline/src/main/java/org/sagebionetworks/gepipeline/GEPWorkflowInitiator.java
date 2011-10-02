@@ -1,0 +1,56 @@
+package org.sagebionetworks.gepipeline;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+
+import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
+import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotations.ActivityAnnotationProcessor;
+import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotations.AsyncWorkflowStartContext;
+
+/**
+
+ * 
+ */
+public class GEPWorkflowInitiator {
+
+	private static final Logger log = Logger
+			.getLogger(GEPWorkflowInitiator.class.getName());
+
+	private static final String OUTPUT_JSON_KEY = "output";
+	/**
+	 * Crawl all top level TCGA datasets and identify the ones in which we are
+	 * interested
+	 */
+	void initiateWorkflowTasks() throws Exception {
+		// call R function which returns IDs of data sets to process
+		List<String> scriptParams = new ArrayList<String>();
+		String script = "src\\main\\resources\\datasetCrawler.R";
+		ScriptResult results = ScriptProcessor.doProcess(script, scriptParams);
+		List<String> datasetIds = results.getStringListResult(OUTPUT_JSON_KEY);
+		log.info("datasetIds: "+datasetIds);
+		for (String datasetId:datasetIds) GEPWorkflow.doWorkflow(datasetId);
+
+	}
+
+	/**
+	 * @param args
+	 * @throws Exception
+	 */
+	public static void main(String[] args) throws Exception {
+		// Running Annotation Processor is very important, otherwise it will
+		// treat Workflows and Activities as regular java method calls
+		ActivityAnnotationProcessor.processAnnotations();
+
+		// Create the client for Simple Workflow Service
+		AmazonSimpleWorkflow swfService = ConfigHelper.createSWFClient();
+		AsyncWorkflowStartContext.initialize(swfService);
+
+		GEPWorkflowInitiator initiator = new GEPWorkflowInitiator();
+		initiator.initiateWorkflowTasks();
+		
+		System.exit(0);
+	}
+
+}
