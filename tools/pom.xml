@@ -18,6 +18,7 @@
       <module>wikiutil</module>
       <module>DatasetMetadataLoader</module>
     <module>securityTools</module>
+    <module>gePipeline</module>
   </modules>
     
 </project>
