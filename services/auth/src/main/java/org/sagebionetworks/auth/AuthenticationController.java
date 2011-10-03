@@ -432,8 +432,8 @@ public class AuthenticationController {
 		crowdAuthUtil.updatePassword(user);
 	}
 	
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/secretKey", method = RequestMethod.POST)
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/secretKey", method = RequestMethod.GET)
 	public @ResponseBody SecretKey newSecretKey(@RequestBody User user,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
@@ -444,17 +444,48 @@ public class AuthenticationController {
 		if (!isITU && (userId==null || !userId.equals(user.getEmail()))) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
 
-		String secretKey = HMACUtils.newHMACSHA1Key();
 		Map<String,Collection<String>> userAttributes = 
 			 new HashMap<String,Collection<String>>(crowdAuthUtil.getUserAttributes(userId));
-		Set<String> set = new HashSet<String>();
-		set.add(secretKey);
-		userAttributes.put(AuthorizationConstants.CROWD_SECRET_KEY_ATTRIBUTE, set);
-		crowdAuthUtil.setUserAttributes(userId, userAttributes);
+		Collection<String> secretKeyCollection = userAttributes.get(AuthorizationConstants.CROWD_SECRET_KEY_ATTRIBUTE);
+		String secretKey = null;
+		// if there is no key, then make one
+		if (secretKeyCollection==null || secretKeyCollection.isEmpty()) {
+			secretKey = HMACUtils.newHMACSHA1Key();
+			secretKeyCollection = new HashSet<String>();
+			secretKeyCollection.add(secretKey);
+			userAttributes.put(AuthorizationConstants.CROWD_SECRET_KEY_ATTRIBUTE, secretKeyCollection);
+			crowdAuthUtil.setUserAttributes(userId, userAttributes);
+		} else {
+			// else return the current one
+			secretKey = secretKeyCollection.iterator().next();
+		}
 		return new SecretKey(secretKey);
 	}
 	
 
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = "/secretKey", method = RequestMethod.DELETE)
+	public void invalidateSecretKey(@RequestBody User user,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
+		String itu = getIntegrationTestUser();
+		boolean isITU = (itu!=null && user.getEmail().equals(itu));
+
+		if (!isITU && (userId==null || !userId.equals(user.getEmail()))) 
+			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
+
+		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
+
+		Map<String,Collection<String>> userAttributes = 
+			 new HashMap<String,Collection<String>>(crowdAuthUtil.getUserAttributes(userId));
+		Collection<String> secretKeyCollection = userAttributes.get(AuthorizationConstants.CROWD_SECRET_KEY_ATTRIBUTE);
+		if (secretKeyCollection!=null && !secretKeyCollection.isEmpty()) {
+			// then overwrite the data with an empty set
+			secretKeyCollection = new HashSet<String>();
+			userAttributes.put(AuthorizationConstants.CROWD_SECRET_KEY_ATTRIBUTE, secretKeyCollection);
+			crowdAuthUtil.setUserAttributes(userId, userAttributes);
+		}
+	}
+	
 	
 	/**
 	 * This is thrown when there are problems authenticating the user

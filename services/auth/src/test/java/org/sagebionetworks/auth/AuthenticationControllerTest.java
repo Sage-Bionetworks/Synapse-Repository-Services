@@ -3,6 +3,7 @@ package org.sagebionetworks.auth;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -389,11 +390,30 @@ public class AuthenticationControllerTest {
 	}
 	
 	@Test
-	public void testSecretKey() throws Exception {
+	public void testGetSecretKey() throws Exception {
 		if (!isIntegrationTest()) return;
-		JSONObject secretKey = helper.testCreateJsonEntity("/secretKey","{\"email\":\""+integrationTestUserEmail+"\"}", HttpStatus.CREATED);
+		JSONObject secretKey = helper.testGetJsonEntity("/secretKey","{\"email\":\""+integrationTestUserEmail+"\"}");
 		assertNotNull(secretKey.getString("secretKey"));
 
+	}
+	
+	@Test
+	public void testInvalidateSecretKey() throws Exception {
+		if (!isIntegrationTest()) return;
+		JSONObject secretKey = helper.testGetJsonEntity("/secretKey","{\"email\":\""+integrationTestUserEmail+"\"}");
+		String firstKey = secretKey.getString("secretKey");
+		assertNotNull(firstKey);
+		
+		// now invalidate the key
+		helper.testDeleteJsonEntity("/secretKey","{\"email\":\""+integrationTestUserEmail+"\"}");
+		
+		// now get the key again...
+		secretKey = helper.testGetJsonEntity("/secretKey","{\"email\":\""+integrationTestUserEmail+"\"}");
+		String secondKey = secretKey.getString("secretKey");
+		assertNotNull(secondKey);
+		
+		// ... should be different from the first one
+		assertFalse(firstKey.equals(secondKey));
 	}
 	
 	class MutableBoolean {

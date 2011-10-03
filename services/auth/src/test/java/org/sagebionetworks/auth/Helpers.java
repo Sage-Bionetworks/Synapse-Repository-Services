@@ -125,25 +125,47 @@ public class Helpers {
 		}
 
 
-	/**
-	 * @param requestUrl
-	 * @return the jsonRequestContent object holding the entity
-	 * @throws Exception
-	 */
-	public JSONObject testGetJsonEntity(String requestUrl) throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(requestUrl);
-		servlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
-		assertEquals(HttpStatus.OK.value(), response.getStatus());
-		JSONObject results = new JSONObject(response.getContentAsString());
-		log.info(results.toString(JSON_INDENT));
+		/**
+		 * @param requestUrl
+		 * @return the jsonRequestContent object holding the entity
+		 * @throws Exception
+		 */
+		public JSONObject testGetJsonEntity(String requestUrl, String jsonRequestContent) throws Exception {
+			MockHttpServletRequest request = new MockHttpServletRequest();
+			MockHttpServletResponse response = new MockHttpServletResponse();
+			request.setMethod("GET");
+			request.addHeader("Accept", "application/json");
+			request.addHeader("Content-Type", "application/json; charset=UTF-8");
+			request.setRequestURI(requestUrl);
+			request.setContent(jsonRequestContent.getBytes("UTF-8"));
+			servlet.service(request, response);
+			log.info("Results: " + response.getContentAsString());
+			assertEquals(HttpStatus.OK.value(), response.getStatus());
+			JSONObject results = new JSONObject(response.getContentAsString());
+			log.info(results.toString(JSON_INDENT));
 
-		return results;
-	}
+			return results;
+		}
+
+		/**
+		 * @param requestUrl
+		 * @return the jsonRequestContent object holding the entity
+		 * @throws Exception
+		 */
+		public JSONObject testGetJsonEntity(String requestUrl) throws Exception {
+			MockHttpServletRequest request = new MockHttpServletRequest();
+			MockHttpServletResponse response = new MockHttpServletResponse();
+			request.setMethod("GET");
+			request.addHeader("Accept", "application/json");
+			request.setRequestURI(requestUrl);
+			servlet.service(request, response);
+			log.info("Results: " + response.getContentAsString());
+			assertEquals(HttpStatus.OK.value(), response.getStatus());
+			JSONObject results = new JSONObject(response.getContentAsString());
+			log.info(results.toString(JSON_INDENT));
+
+			return results;
+		}
 
 	/**
 	 * @param jsonEntity
