@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.HttpMethod;
@@ -192,11 +193,12 @@ public class LocationHelpersImpl implements LocationHelper {
 
 		String signature;
 		try {
-			Mac mac = Mac.getInstance(SigningAlgorithm.HmacSHA1.toString());
-			mac.init(new SecretKeySpec(creds.getAWSSecretKey().getBytes(),
-					SigningAlgorithm.HmacSHA1.toString()));
-			byte[] sig = Base64.encodeBase64(mac
-					.doFinal(data.getBytes("UTF-8")));
+//			Mac mac = Mac.getInstance(SigningAlgorithm.HmacSHA1.toString());
+//			mac.init(new SecretKeySpec(creds.getAWSSecretKey().getBytes(),
+//					SigningAlgorithm.HmacSHA1.toString()));
+//			byte[] sig = Base64.encodeBase64(mac
+//					.doFinal(data.getBytes("UTF-8")));
+			byte[] sig = HMACUtils.generateHMACSHA1SignatureFromRawKey(data, creds.getAWSSecretKey().getBytes());
 			signature = URLEncoder.encode(new String(sig), ("UTF-8"));
 		} catch (Exception e) {
 			throw new DatastoreException("Failed to generate signature: "
