@@ -31,6 +31,12 @@
 			<version>${applicationVersion}</version>
 		</dependency>
 
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-downloadTools</artifactId>
+			<version>${applicationVersion}</version>
+		</dependency>
+
         <!-- Note that SWF only works with a particular old version of AWS SDK -->
         <dependency>
 		  <groupId>com.amazonaws</groupId>
