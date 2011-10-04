@@ -2,9 +2,6 @@ package org.sagebionetworks.repo.util;
 
 import java.net.URLEncoder;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.joda.time.DateTime;
@@ -21,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.SigningAlgorithm;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.model.AddUserToGroupRequest;
 import com.amazonaws.services.identitymanagement.model.CreateAccessKeyRequest;
@@ -193,11 +189,6 @@ public class LocationHelpersImpl implements LocationHelper {
 
 		String signature;
 		try {
-//			Mac mac = Mac.getInstance(SigningAlgorithm.HmacSHA1.toString());
-//			mac.init(new SecretKeySpec(creds.getAWSSecretKey().getBytes(),
-//					SigningAlgorithm.HmacSHA1.toString()));
-//			byte[] sig = Base64.encodeBase64(mac
-//					.doFinal(data.getBytes("UTF-8")));
 			byte[] sig = HMACUtils.generateHMACSHA1SignatureFromRawKey(data, creds.getAWSSecretKey().getBytes());
 			signature = URLEncoder.encode(new String(sig), ("UTF-8"));
 		} catch (Exception e) {
