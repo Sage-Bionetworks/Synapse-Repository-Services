@@ -50,5 +50,30 @@ public class IdGeneratorImplTest {
 			System.out.println("ID: "+id+" in "+(end-start)+" ms");
 		}
 	}
+	
+	@Test
+	public void testReserveId(){
+		// Start with the current ID.
+		Long id = idGenerator.generateNewId();
+		// Reserve this ID + 10
+		Long reserved = id+10;
+		idGenerator.reserveId(reserved);
+		// Now get make sure the next ID is greater than the reserve
+		Long next = idGenerator.generateNewId();
+		assertEquals(next.longValue(), reserved.longValue()+1);
+	}
+	
+	@Test
+	public void testReserveIdLessThan(){
+		// Start with the current ID.
+		Long id = idGenerator.generateNewId();
+		// Reserve this ID
+		Long reserved = id;
+		// This time the ID is already reserved so this method should be a wash.
+		idGenerator.reserveId(reserved);
+		// The next ID should just be the ID + 1
+		Long next = idGenerator.generateNewId();
+		assertEquals(next.longValue(), id.longValue()+1);
+	}
 
 }

@@ -47,8 +47,6 @@
 			<version>${applicationVersion}</version>
 		</dependency>
 
-
-
 		<!-- Spring Framework dependencies -->
 		<dependency>
 			<groupId>org.springframework</groupId>

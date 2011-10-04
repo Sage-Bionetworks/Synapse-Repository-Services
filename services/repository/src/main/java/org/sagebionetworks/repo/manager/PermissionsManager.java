@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -26,17 +27,25 @@ public interface PermissionsManager {
 	 * 
 	 */
 	public AccessControlList overrideInheritance(AccessControlList acl, UserInfo userInfo) throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException;
-	
+
 	/**
 	 * Gets the access control list (ACL) governing the given node id.
-	 * If the given node inherits access control from a parent or
-	 * ancestor, this method returns the ACL of the governing node.
-	 * 
-	 * I.e. caller can determine whether a node inherits its
-	 * permissions by comparing the nodeId parameter to the 
-	 * 'resourceId' field in the returned object
+	 * @param nodeId - The id of the node to get the ACL for.
+	 * @param userInfo
+	 * @return
+	 * @throws NotFoundException - Thrown if the nodeID does not exist.
+	 * @throws DatastoreException - Server-side error.
+	 * @throws ACLInheritanceException - Thrown when attempting to get the ACL for a node that inherits its permissions. The exception
+	 * will include the benefactor's ID. 
 	 */
-	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException;
+	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, ACLInheritanceException;
+	
+	/**
+	 * Get the permissions benefactor of an entity.
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public String getPermissionBenefactor(String nodeId, UserInfo userInfo) throws NotFoundException;
 	
 	/**
 	 * Update the given ACL, as keyed by the 'resourceId' field

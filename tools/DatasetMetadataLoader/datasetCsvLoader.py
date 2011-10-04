@@ -215,9 +215,9 @@ def createOrUpdateEntity(kind, entity, permissions=None):
         storedEntity = gSYNAPSE.updateRepoEntity(storedEntity["uri"], entity)
         print 'Updated %s %s\n\n' % (kind, message)
 
-    if(None != permissions):
-        accessList = setEntityPermissions(permissions, storedEntity)
-        print 'Updated acl %s %s\n\n' % (kind, message)
+#    if(None != permissions):
+#        accessList = setEntityPermissions(permissions, storedEntity)
+#        print 'Updated acl %s %s\n\n' % (kind, message)
     return storedEntity
 
 def createOrUpdateDataset(dataset, annotations, location):

@@ -355,5 +355,34 @@ public class UrlHelperTest {
 		UrlHelpers.validateAllUrls(location);
 	}
 
+	@Test
+	public void testCreateACLRedirectURL(){
+		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+		when(mockRequest.getContextPath()).thenReturn("http://localhost:8080");
+		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
+		String redirectURL = UrlHelpers.createACLRedirectURL(mockRequest, ObjectType.project, "45");
+		assertEquals("http://localhost:8080/repo/v1/project/45/acl", redirectURL);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateACLRedirectURLNullRequst(){
+		String redirectURL = UrlHelpers.createACLRedirectURL(null, ObjectType.project, "45");
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateACLRedirectURLNullType(){
+		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+		when(mockRequest.getContextPath()).thenReturn("http://localhost:8080");
+		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
+		String redirectURL = UrlHelpers.createACLRedirectURL(mockRequest, null, "45");
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateACLRedirectURLNullId(){
+		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+		when(mockRequest.getContextPath()).thenReturn("http://localhost:8080");
+		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
+		String redirectURL = UrlHelpers.createACLRedirectURL(mockRequest, ObjectType.dataset, null);
+	}
 
 }

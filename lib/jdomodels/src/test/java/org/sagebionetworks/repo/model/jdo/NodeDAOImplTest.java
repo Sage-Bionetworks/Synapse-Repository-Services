@@ -120,8 +120,25 @@ public class NodeDAOImplTest {
 	
 	@Test
 	public void testCreateWithId() throws Exception{
+		// Create a new node with an ID that is beyond the current max of the 
+		// ID generator.
+		long idLong = idGenerator.generateNewId() + 10;
+		String idString = new Long(idLong).toString();
+		Node toCreate = NodeTestUtils.createNew("secondNodeEver");
+		toCreate.setId(idString);
+		String fetchedId = nodeDao.createNew(toCreate);
+		toDelete.add(fetchedId);
+		// The id should be the same as what we provided
+		assertEquals(idString, fetchedId);
+		// Also make sure the ID generator was increment to reserve this ID.
+		long nextId = idGenerator.generateNewId();
+		assertEquals(idLong+1, nextId);
+	}
+	
+	@Test
+	public void testCreateWithIdGreaterThanIdGenerator() throws Exception{
 		// Create a node with a specific id
-		String id = new Long(idGenerator.generateNewId()).toString();
+		String id = new Long(idGenerator.generateNewId()+10).toString();
 		Node toCreate = NodeTestUtils.createNew("secondNodeEver");
 		toCreate.setId(id);
 		String fetchedId = nodeDao.createNew(toCreate);

@@ -7,12 +7,15 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -44,10 +47,17 @@ public class PermissionsManagerImpl implements PermissionsManager {
 
 	@Transactional(readOnly = true)
 	@Override
-	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException {
+	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, ACLInheritanceException {
 		// get the id that this node inherits its permissions from
 		String benefactor = nodeInheritanceManager.getBenefactor(nodeId);
-		return aclDAO.getForResource(benefactor);
+		// This is a fix for PLFM-398.
+		if(!benefactor.equals(nodeId)){
+			// Look up the type of the benefactor
+			EntityHeader header = nodeDao.getEntityHeader(benefactor);
+			ObjectType type = ObjectType.getFirstTypeInUrl(header.getType());
+			throw new ACLInheritanceException("Cannot access the ACL of a node that inherits it permissions. This node inherits its permissions from: "+benefactor,type, benefactor);
+		}
+		return aclDAO.getForResource(nodeId);
 	}
 	
 	public void validateContent(AccessControlList acl) throws InvalidModelException {
@@ -184,6 +194,14 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	@Override
 	public boolean hasAccess(String resourceId, AuthorizationConstants.ACCESS_TYPE accessType, UserInfo userInfo) throws NotFoundException, DatastoreException  {
 		return authorizationManager.canAccess(userInfo, resourceId, accessType);
+	}
+
+	/**
+	 * Get the permission benefactor of an entity.
+	 */
+	@Override
+	public String getPermissionBenefactor(String nodeId, UserInfo userInfo) throws NotFoundException {
+		return nodeInheritanceManager.getBenefactor(nodeId);
 	}
 
 	

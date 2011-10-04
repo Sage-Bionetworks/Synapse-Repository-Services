@@ -64,6 +64,9 @@ public class UrlHelpers {
 	public static final String ACL = "/acl";
 	public static final String OBJECT_TYPE_ID_ACL = OBJECT_TYPE_ID+ACL;
 	
+	public static final String BENEFACTOR = "/benefactor";
+	public static final String OBJECT_TYPE_ID_BENEFACTOR = OBJECT_TYPE_ID+BENEFACTOR;
+	
 	/**
 	 * URL suffix for entity annotations
 	 * 
@@ -506,5 +509,25 @@ public class UrlHelpers {
 				throw new IllegalArgumentException("Expected versionUrl: "+expected+" but was: "+able.getVersionUrl());
 			}
 		}
+	}
+	
+	/**
+	 * Create an ACL redirect URL.
+	 * @param request - The initial request.
+	 * @param type - The type of the redirect entity.
+	 * @param id - The ID of the redirect entity
+	 * @return
+	 */
+	public static String createACLRedirectURL(HttpServletRequest request, ObjectType type, String id){
+		if(request == null) throw new IllegalArgumentException("Request cannot be null");
+		if(type == null) throw new IllegalArgumentException("Type cannot be null");
+		if(id == null) throw new IllegalArgumentException("ID cannot be null");
+		StringBuilder redirectURL = new StringBuilder();
+		redirectURL.append(UrlHelpers.getUrlPrefixFromRequest(request));
+		redirectURL.append(type.getUrlPrefix());
+		redirectURL.append("/");
+		redirectURL.append(id);
+		redirectURL.append(UrlHelpers.ACL);
+		return redirectURL.toString();
 	}
 }

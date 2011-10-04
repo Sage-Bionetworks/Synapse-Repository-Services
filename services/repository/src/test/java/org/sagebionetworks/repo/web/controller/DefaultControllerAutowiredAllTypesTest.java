@@ -28,6 +28,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.Agreement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -121,7 +122,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 	}
 	
 	@Test
-	public void testAnonymousGet() throws ServletException, IOException{
+	public void testAnonymousGet() throws ServletException, IOException, ACLInheritanceException{
 		Project project = new Project();
 		project.setName("testAnonymousGet");
 		project = ServletTestHelper.createEntity(dispatchServlet, project, userName);
@@ -137,7 +138,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		ac.setAccessType(new HashSet<ACCESS_TYPE>());
 		ac.getAccessType().add(ACCESS_TYPE.READ);
 		acl.getResourceAccess().add(ac);
-		ServletTestHelper.updateEntityAcl(dispatchServlet, Project.class, acl, userName);
+		ServletTestHelper.updateEntityAcl(dispatchServlet, Project.class,id, acl, userName);
 		
 		// Make sure the anonymous user can see this.
 		Project clone = ServletTestHelper.getEntity(dispatchServlet, Project.class, project.getId(), AuthorizationConstants.ANONYMOUS_USER_ID);
@@ -521,7 +522,12 @@ public class DefaultControllerAutowiredAllTypesTest {
 		
 		// Now update each
 		for(Nodeable entity: created){
-			AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			AccessControlList acl = null;
+			try{
+				acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			}catch(ACLInheritanceException e){
+				acl = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorType().getClassForType(), e.getBenefactorId(), userName);
+			}
 			assertNotNull(acl);
 		}
 	}
@@ -535,9 +541,14 @@ public class DefaultControllerAutowiredAllTypesTest {
 		
 		// Now update each
 		for(Nodeable entity: created){
-			AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			AccessControlList acl = null;
+			try{
+				acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			}catch(ACLInheritanceException e){
+				acl = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorType().getClassForType(), e.getBenefactorId(), userName);
+			}
 			assertNotNull(acl);
-			ServletTestHelper.updateEntityAcl(dispatchServlet, Project.class, acl, userName);
+			ServletTestHelper.updateEntityAcl(dispatchServlet, Project.class, acl.getId(), acl, userName);
 		}
 
 	}
@@ -552,7 +563,13 @@ public class DefaultControllerAutowiredAllTypesTest {
 		// Now update each
 		for(Nodeable entity: created){
 			Nodeable child = (Nodeable)entity;
-			AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			AccessControlList acl = null;
+			try{
+				acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			}catch(ACLInheritanceException e){
+				// occurs when the child inherits its permissions from a benefactor
+				acl = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorType().getClassForType(), e.getBenefactorId(), userName);
+			}
 			assertNotNull(acl);
 			// Get the full path of this entity.
 			List<EntityHeader> path = ServletTestHelper.getEntityPath(dispatchServlet, entity.getClass(), entity.getId(), userName);
@@ -569,10 +586,10 @@ public class DefaultControllerAutowiredAllTypesTest {
 			}
 			
 			// now switch to child
-			acl.setId(entity.getId());
+			acl.setId(null);
 			// (Is this OK, or do we have to make new ResourceAccess objects inside?)
 			// now POST to /dataset/{id}/acl with this acl as the body
-			AccessControlList acl2 = ServletTestHelper.createEntityACL(dispatchServlet, entity.getClass(), acl, userName);
+			AccessControlList acl2 = ServletTestHelper.createEntityACL(dispatchServlet, entity.getClass(),entity.getId(), acl, userName);
 			// now retrieve the acl for the child. should get its own back
 			AccessControlList acl3 = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
 			assertEquals(entity.getId(), acl3.getId());
@@ -583,7 +600,12 @@ public class DefaultControllerAutowiredAllTypesTest {
 			// try retrieving the ACL for the child
 			
 			// should get the parent's ACL
-			AccessControlList acl4 = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			AccessControlList acl4 = null;
+			try{
+				 acl4 = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			}catch(ACLInheritanceException e){
+				acl4 = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorType().getClassForType(), e.getBenefactorId(), userName);
+			}
 			assertNotNull(acl4);
 			// the returned ACL should refer to the parent
 			assertEquals(rootHeader.getId(), acl4.getId());

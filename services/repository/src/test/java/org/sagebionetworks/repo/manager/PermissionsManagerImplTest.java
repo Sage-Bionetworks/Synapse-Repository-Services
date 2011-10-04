@@ -20,7 +20,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -115,8 +115,15 @@ public class PermissionsManagerImplTest {
 		assertNotNull(acl);
 		assertEquals(node.getId(), acl.getId());
 		// retrieve child acl.  should get parent's
-		acl = permissionsManager.getACL(childNode.getId(), adminInfo);
-		assertEquals(node.getId(), acl.getId());
+		try{
+			acl = permissionsManager.getACL(childNode.getId(), adminInfo);
+			fail("Get ACL on a node that inherits it permission should throw an exception");
+		}catch (ACLInheritanceException e){
+			// The exception should tell us the benefactor
+			assertEquals(node.getId(), e.getBenefactorId());
+			assertEquals(node.getNodeType(), e.getBenefactorType().name());
+		}
+
 	}
 
 	@Test
@@ -157,7 +164,7 @@ public class PermissionsManagerImplTest {
 	}
 	
 	@Test (expected=ConflictingUpdateException.class)
-	public void testConcurrentUpdate() throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException{
+	public void testConcurrentUpdate() throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException, ACLInheritanceException{
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		AccessControlList acl = permissionsManager.getACL(node.getId(), adminInfo);
 		assertEquals(1, acl.getResourceAccess().size());
@@ -241,7 +248,16 @@ public class PermissionsManagerImplTest {
 	@Test
 	public void testRestoreInheritance() throws Exception {
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
-		AccessControlList acl = permissionsManager.getACL(childNode.getId(), adminInfo);
+		AccessControlList acl = null;
+		try{
+			// This will fail but we can use it to get the benefactor
+			acl = permissionsManager.getACL(childNode.getId(), adminInfo);
+			fail("Should not have been able to get the ACL for a node that inherits");
+		}catch (ACLInheritanceException e){
+			// Get the parent ACL
+			acl = permissionsManager.getACL(e.getBenefactorId(), adminInfo);
+		}
+		// Set the ID to the child.
 		acl.setId(childNode.getId());
 		permissionsManager.overrideInheritance(acl, adminInfo);
 		AccessControlList acl2 = permissionsManager.getACL(childNode.getId(), adminInfo);
@@ -257,10 +273,13 @@ public class PermissionsManagerImplTest {
 		childNode = nodeManager.get(adminInfo, childNode.getId());
 		assertFalse("The etag of the child node should have changed", eTagBefore.equals(childNode.getETag()));
 		// call 'getACL' on the resource.  The returned ACL should specify parent as the ACL owner
-		AccessControlList acl3 = permissionsManager.getACL(childNode.getId(), adminInfo);
-		assertEquals(node.getId(), acl3.getId());
-
-		
+		try{
+			AccessControlList acl3 = permissionsManager.getACL(childNode.getId(), adminInfo);
+			fail("Should not have been able to get the ACL for a node that inherits");
+		}catch (ACLInheritanceException e){
+			// Get the parent ACL
+			assertEquals(node.getId(), e.getBenefactorId());
+		}
 	}
 
 	@Test
@@ -273,8 +292,14 @@ public class PermissionsManagerImplTest {
 		} catch (UnauthorizedException ue) {
 			// as expected
 		}
-		
-		AccessControlList acl = permissionsManager.getACL(childNode.getId(), adminInfo);
+		AccessControlList acl = null;
+		try{
+			 permissionsManager.getACL(childNode.getId(), adminInfo);
+			 fail();
+		}catch(ACLInheritanceException e){
+			acl = permissionsManager.getACL(e.getBenefactorId(), adminInfo);
+		}
+
 		acl.setId(childNode.getId());
 		permissionsManager.overrideInheritance(acl, adminInfo);
 		

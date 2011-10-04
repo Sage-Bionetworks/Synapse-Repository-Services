@@ -180,6 +180,7 @@ public class EulaControllerTest {
 				+ "/eula", SAMPLE_EULA);
 
 		// Add the use agreement restriction to the dataset
+		dataset = helper.testGetJsonEntity(dataset.getString("uri"));
 		dataset.put("eulaId", eula.getString("id"));
 		JSONObject updatedDataset = helper.testUpdateJsonEntity(dataset);
 		assertEquals(eula.getString("id"), updatedDataset.getString("eulaId"));
