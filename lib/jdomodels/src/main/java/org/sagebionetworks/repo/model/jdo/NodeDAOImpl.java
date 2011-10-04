@@ -112,6 +112,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}else{
 			// If an id was provided then it must not exist
 			if(doesNodeExist(node.getId())) throw new IllegalArgumentException("The id: "+node.getId()+" already exists, so a node cannot be created using that id.");
+			// Make sure the ID generator has reserved this ID.
+			idGenerator.reserveId(node.getId());
 		}
 		// Look up this type
 		if(dto.getNodeType() == null) throw new IllegalArgumentException("Node type cannot be null");

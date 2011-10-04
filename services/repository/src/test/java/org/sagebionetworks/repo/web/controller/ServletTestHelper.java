@@ -19,12 +19,14 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.RestoreFile;
@@ -597,14 +599,14 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static <T extends Base> AccessControlList createEntityACL(HttpServlet dispatchServlet, Class<? extends T> clazz, AccessControlList entityACL, String userId) throws ServletException, IOException{
+	public static <T extends Base> AccessControlList createEntityACL(HttpServlet dispatchServlet, Class<? extends T> clazz, String id, AccessControlList entityACL, String userId) throws ServletException, IOException{
 		if(dispatchServlet == null) throw new IllegalArgumentException("Servlet cannot be null");
 		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + entityACL.getId() + UrlHelpers.ACL);
+		request.setRequestURI(type.getUrlPrefix() + "/" + id + UrlHelpers.ACL);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
@@ -631,8 +633,9 @@ public class ServletTestHelper {
 	 * @return
 	 * @throws ServletException
 	 * @throws IOException
+	 * @throws ACLInheritanceException 
 	 */
-	public static <T extends Base> AccessControlList getEntityACL(HttpServlet dispatchServlet, Class<? extends T> clazz, String id, String userId) throws ServletException, IOException{
+	public static <T extends Base> AccessControlList getEntityACL(HttpServlet dispatchServlet, Class<? extends T> clazz, String id, String userId) throws ServletException, IOException, ACLInheritanceException{
 		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
@@ -642,6 +645,10 @@ public class ServletTestHelper {
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
+		if(response.getStatus() == HttpStatus.NOT_FOUND.value()){
+			// This occurs when we try to access an ACL from an entity that inherits its permission.
+			throw new ACLInheritanceException(response.getErrorMessage());
+		}
 		if(response.getStatus() != HttpStatus.OK.value()){
 			throw new IllegalArgumentException(response.getErrorMessage());
 		}
@@ -659,14 +666,14 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static <T extends Base> AccessControlList updateEntityAcl(HttpServlet dispatchServlet, Class<? extends T> clazz, AccessControlList entityACL, String userId) throws ServletException, IOException {
+	public static <T extends Base> AccessControlList updateEntityAcl(HttpServlet dispatchServlet, Class<? extends T> clazz, String id, AccessControlList entityACL, String userId) throws ServletException, IOException {
 		if(dispatchServlet == null) throw new IllegalArgumentException("Servlet cannot be null");
 		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + entityACL.getId()+UrlHelpers.ACL);
+		request.setRequestURI(type.getUrlPrefix() + "/" + id+UrlHelpers.ACL);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM,userId);
 		request.addHeader(ServiceConstants.ETAG_HEADER, entityACL.getEtag());
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
@@ -894,5 +901,32 @@ public class ServletTestHelper {
 		return (EntityHeader)objectMapper.readValue(response.getContentAsString(),EntityHeader.class);
 	}
 	
+	
+	/**
+	 * Get the PermissionInfo for a given entity.
+	 * @param dispatchServlet
+	 * @param id
+	 * @param type
+	 * @param userId
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public static <T extends Nodeable> EntityHeader getEntityBenefactor(HttpServlet dispatchServlet,
+			String id, Class<? extends T> clazz, String userId) throws ServletException, IOException {
+		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(type.getUrlPrefix()+"/"+id+UrlHelpers.BENEFACTOR);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if(response.getStatus() != HttpStatus.OK.value()){
+			throw new IllegalArgumentException(response.getErrorMessage());
+		}
+		return (EntityHeader)objectMapper.readValue(response.getContentAsString(),EntityHeader.class);
+	}
 
 }

@@ -33,7 +33,7 @@ public class IT700SynapseRClient {
 	 */
 	@Test
 	public void testInstallRClient() throws Exception {
-		String cmd[] = { Helpers.getRPath(), "CMD", "INSTALL", "-l", "target/",
+		String cmd[] = { Helpers.getRPath(), "CMD", "INSTALL", "-l", "target",
 				"target/non-java-dependencies/synapseRClient" };
 		ExternalProcessResult result = ExternalProcessHelper.runExternalProcess(cmd);
 		assertEquals(0, result.getReturnCode());
@@ -52,7 +52,7 @@ public class IT700SynapseRClient {
 		String cmd[] = {
 				Helpers.getRPath(),
 				"-e",
-				"library(synapseClient, lib.loc='target/')",
+				"library(synapseClient, lib.loc='target')",
 				"-e",
 				".libPaths('target/')",
 				"-e",

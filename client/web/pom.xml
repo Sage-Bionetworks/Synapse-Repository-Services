@@ -140,6 +140,7 @@
 			<groupId>com.google.gwt</groupId>
 			<artifactId>gwt-user</artifactId>
 			<version>${gwtVersion}</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.google.inject</groupId>
@@ -160,6 +161,7 @@
 			<groupId>com.sun.jersey</groupId>
 			<artifactId>jersey-server</artifactId>
 			<version>1.5-ea09</version>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.sun.jersey</groupId>
@@ -171,11 +173,13 @@
 			<groupId>com.gwtplatform</groupId>
 			<artifactId>gwtp-all</artifactId>
 			<version>0.5</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.google.gwt</groupId>
 			<artifactId>gwt-dev</artifactId>
 			<version>${gwtVersion}</version>
+			<scope>provided</scope>
 		</dependency>
 
 
@@ -183,6 +187,7 @@
 			<groupId>com.google.develop</groupId>
 			<artifactId>gwt-syncproxy</artifactId>
 			<version>0.2</version>
+			<scope>test</scope>
 		</dependency>
 		<!-- We are using this to serialize column metadata. We can drop it when 
 			the API provides this functionality -->
@@ -226,6 +231,7 @@
 			<groupId>com.extjs</groupId>
 			<artifactId>gxt</artifactId>
 			<version>2.2.1.SPECIAL</version>
+			<scope>provided</scope>
 		</dependency>
 
 	</dependencies>

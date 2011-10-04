@@ -67,4 +67,15 @@ public class UserDataProvider {
 		}
 	}
 
+	/**
+	 * Add the user data to the header if it exists.
+	 * @param token
+	 * @param headers
+	 */
+	public static void addUserDataToHeader(String token, HttpHeaders headers){
+		// Add the token to the header if it is not null
+		if(token != null){
+			headers.add(SESSION_TOKEN_KEY, token);
+		}
+	}
 }

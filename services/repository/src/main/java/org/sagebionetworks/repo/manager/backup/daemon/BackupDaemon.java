@@ -76,22 +76,30 @@ public class BackupDaemon implements Runnable{
 	@Override
 	public void run() {
 		File tempToDelete = null;
+		final Progress progress = new Progress();
 		try{
 			// Before we start, make sure it has not been terminated.
 			checkForTermination();
 			// Create the temporary file to write the backup too.
 			final File tempBackup = File.createTempFile("BackupDaemonJob"+status.getId()+"-", ".zip");
 			tempToDelete = tempBackup;
-			final Progress progress = new Progress();
+
 			// If this is a restore then we need to download the file from S3
 			if(TYPE.RESTORE == type){
 				status.setProgresssMessage("Starting to download the file from S3...");
 				status.setBackupUrl(getS3URL(this.awsBucket, this.backupFileName));
 				updateStatus();
 				downloadFileFromS3(tempBackup, awsBucket, backupFileName);
+				// Let the user know we finished dowloading file from S#
+				status.setProgresssMessage("Finished dowloading file from S3: "+this.backupFileName);
+				updateStatus();
 			}
 			
 			// Start the driver
+			progress.setMessage("Starting Driver thread...");
+			progress.setCurrentIndex(0);
+			progress.setTotalCount(Long.MAX_VALUE);
+			progress.setTerminate(false);
 			startDriverThread(tempBackup, progress);
 			// Now watch the progress of the driver
 			while(!isDriverDone){
@@ -130,6 +138,8 @@ public class BackupDaemon implements Runnable{
 			// update the status for the last time.
 			updateStatus();
 		}catch(Throwable e){
+			// Make sure the thread terminates
+			progress.setTerminate(true);
 			// If there are any errors then change the status
 			setFailed(e);
 		}finally{
@@ -190,7 +200,10 @@ public class BackupDaemon implements Runnable{
 	}
 
 	private void setFailed(Throwable e) {
+		// Log the failure.
+		log.error(e);
 		// Set the status to failed
+		status.setProgresssMessage("");
 		status.setStatus(STATUS.FAILED.name());
 		status.setErrorMessage(e.getMessage());
 		StringWriter writer = new StringWriter();

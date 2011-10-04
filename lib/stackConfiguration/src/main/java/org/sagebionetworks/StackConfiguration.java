@@ -324,6 +324,22 @@ public class StackConfiguration {
 		return configuration
 				.getProperty("org.sagebionetworks.integration.test.password.two");
 	}
+	
+	/**
+	 * @return The name of a second user for integration tests
+	 */
+	public static String getIntegrationTestUserAdminName() {
+		return configuration
+				.getProperty("org.sagebionetworks.integration.test.username.admin");
+	}
+
+	/**
+	 * @return The password of a second user for integration tests
+	 */
+	public static String getIntegrationTestUserAdminPassword() {
+		return configuration
+				.getProperty("org.sagebionetworks.integration.test.password.admin");
+	}
 
 	public static Boolean getUseFederatedIamUsersLaunchFlag() {
 		return Boolean

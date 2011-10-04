@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.manager.EntityToMapUtil;
 import org.sagebionetworks.repo.manager.EntityWithAnnotations;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -491,7 +492,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 
 	@Override
 	public  <T extends Base> AccessControlList getEntityACL(String entityId, String userId, HttpServletRequest request, Class<? extends T> clazz)
-			throws NotFoundException, DatastoreException, UnauthorizedException {
+			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException {
 		// First try the updated
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		AccessControlList acl = permissionsManager.getACL(entityId, userInfo);
@@ -600,5 +601,19 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		return entityManager.getEntityHeader(userInfo, entityId);
 	}
 
+
+	@Override
+	public <T extends Base> EntityHeader getEntityBenefactor(String entityId, String userId, HttpServletRequest request,
+			Class<? extends T> clazz) throws NotFoundException,
+			DatastoreException, UnauthorizedException, ACLInheritanceException {
+		if(entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
+		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		if(clazz == null) throw new IllegalArgumentException("Clazz cannot be null");
+		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		// First get the permissions benefactor
+		String benefactor = permissionsManager.getPermissionBenefactor(entityId, userInfo);
+		return getEntityHeader(userId, benefactor);
+	}
 
 }

@@ -6,21 +6,19 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.schema.JsonSchema;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Nodeable;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.web.controller.metadata.EventType;
 
@@ -360,9 +358,27 @@ public interface GenericEntityController {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException 
+	 * @throws  ACLInheritanceException - Thrown when attempting to get the ACL for a node that inherits its permissions. The exception
+	 * will include the benefactor's ID. 
 	 */
 	public  <T extends Base>  AccessControlList getEntityACL(String entityId, String userId, HttpServletRequest request, Class<? extends T> clazz) 
-		throws NotFoundException, DatastoreException, UnauthorizedException;
+		throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException;
+	
+	/**
+	 * Get information about an entity's permissions.
+	 * @param <T>
+	 * @param entityId
+	 * @param userId
+	 * @param request
+	 * @param clazz
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws ACLInheritanceException
+	 */
+	public  <T extends Base>  EntityHeader getEntityBenefactor(String entityId, String userId, HttpServletRequest request, Class<? extends T> clazz) 
+	throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException;
 	
 	/**
 	 * Update an entity ACL.

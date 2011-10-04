@@ -1,11 +1,7 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -14,26 +10,12 @@ import java.util.logging.Logger;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.Layer;
-import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.utils.CookieSessionManager;
-import org.sagebionetworks.utils.PublicCookieManager;
 import org.sagebionetworks.web.client.SearchService;
-import org.sagebionetworks.web.client.cookie.CookieKeys;
 import org.sagebionetworks.web.client.services.NodeService;
-import org.sagebionetworks.web.shared.Annotations;
-import org.sagebionetworks.web.shared.Dataset;
-import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
-import org.sagebionetworks.web.shared.NodeType;
-import org.sagebionetworks.web.shared.SearchParameters;
-import org.sagebionetworks.web.shared.TableResults;
-import org.sagebionetworks.web.shared.WhereCondition;
 import org.springframework.web.client.RestTemplate;
-
-import com.gdevelop.gwt.syncrpc.SyncProxy;
-import com.google.gwt.json.client.JSONParser;
 
 public class ITPortalSerachServices {
 

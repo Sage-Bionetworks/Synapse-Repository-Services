@@ -125,6 +125,14 @@ public class Synapse {
                 
                 requestProfile = reqPr;
 	}
+	
+	/**
+	 * Get the current session token used by this client.
+	 * @return
+	 */
+	public String getCurrentSessionToken(){
+		return defaultPOSTPUTHeaders.get(SESSION_TOKEN_HEADER);
+	}
 
 	/******************** Mid Level Repository Service APIs ********************/
 

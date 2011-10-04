@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -23,10 +24,12 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.manager.TestUserDAO;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ServiceConstants;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -282,6 +285,11 @@ public class Helpers {
 		}
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
+		// If you try to get the ACL for an entity that inherits its permissions you will get a redirect
+		// Convert the redirect into an ACL exception
+		if(HttpStatus.NOT_FOUND.value() == response.getStatus() && requestUrl.indexOf(UrlHelpers.ACL) > 0){
+			throw new ACLInheritanceException(response.getErrorMessage());
+		}
 		assertEquals("helper-servletprefix=" + getServletPrefix()
 				+ ", requestUrl=" + requestUrl, HttpStatus.OK.value(), response
 				.getStatus());
@@ -844,8 +852,22 @@ public class Helpers {
 	 * @throws JSONException 
 	 */
 	public void addPublicReadOnlyAclToEntity(JSONObject entity) throws JSONException, Exception {
-		JSONObject entityAcl = testGetJsonEntity(entity
-				.getString("accessControlList"));
+		JSONObject entityAcl = null;
+		String method = null;
+		try{
+			// First try to get the ACL, this will fail of this entity inherits its permissions
+			entityAcl = testGetJsonEntity(entity.getString("accessControlList"));
+			// This will be an update
+			method = "PUT";
+		}catch (ACLInheritanceException e){
+			// Since this entity inherits its permission, start with a new ACL.
+			entityAcl = new JSONObject();
+			entityAcl.put("resourceAccess", new JSONArray());
+			entityAcl.put("etag", "");
+			// This will be a create
+			method = "POST";
+		}
+
 		entityAcl.getJSONArray("resourceAccess").put(
 				new JSONObject(getIdentifiedUserReadOnlyACL()));
 		
@@ -854,7 +876,7 @@ public class Helpers {
 		
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("PUT");
+		request.setMethod(method);
 		request.addHeader("Accept", "application/json");
 		request.addHeader(ServiceConstants.ETAG_HEADER, entityAcl
 				.getString("etag"));
@@ -867,13 +889,15 @@ public class Helpers {
 		log.info("About to send: " + entityAcl.toString(JSON_INDENT));
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
-		assertEquals(HttpStatus.OK.value(), response.getStatus());
+		if(response.getStatus() != HttpStatus.OK.value() && response.getStatus() != HttpStatus.CREATED.value()){
+			fail("Expected OK or CREATED, but was: "+response.getStatus());
+		}
 		JSONObject results = new JSONObject(response.getContentAsString());
 		log.info(results.toString(JSON_INDENT));
 
 		// Check default properties
 		// PLFM-321 assertExpectedEntityProperties(results);
-		assertEquals(entityAcl.getString("id"), results.getString("id"));
+		assertEquals(entity.getString("id"), results.getString("id"));
 		// PLFM-321 assertEquals(entityAcl.getString("uri"), results.getString("uri"));
 
 		// Check our response headers

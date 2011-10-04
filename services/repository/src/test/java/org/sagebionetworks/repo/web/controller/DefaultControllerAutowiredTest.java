@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
@@ -138,7 +140,7 @@ public class DefaultControllerAutowiredTest {
 
 	
 	@Test
-	public void testUpdateEntityAcl() throws ServletException, IOException{
+	public void testUpdateEntityAcl() throws ServletException, IOException, ACLInheritanceException{
 		// Create a project
 		Project project = new Project();
 		project.setName("testCreateProject");
@@ -148,13 +150,13 @@ public class DefaultControllerAutowiredTest {
 		AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, Project.class, clone.getId(), userName);
 		assertNotNull(acl);
 		assertNotNull(acl.getUri());
-		acl = ServletTestHelper.updateEntityAcl(dispatchServlet, Project.class, acl, userName);
+		acl = ServletTestHelper.updateEntityAcl(dispatchServlet, Project.class, clone.getId(), acl, userName);
 		assertNotNull(acl);
 		assertNotNull(acl.getUri());
 	}
 	
 	@Test
-	public void testCreateEntityAcl() throws ServletException, IOException{
+	public void testCreateEntityAcl() throws ServletException, IOException, ACLInheritanceException{
 		// Create a project
 		Project project = new Project();
 		project.setName("testCreateProject");
@@ -170,20 +172,29 @@ public class DefaultControllerAutowiredTest {
 		assertNotNull(dsClone);
 		toDelete.add(dsClone.getId());
 		
-		AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, Dataset.class, dsClone.getId(), userName);
+		AccessControlList acl = null;
+		try {
+			acl = ServletTestHelper.getEntityACL(dispatchServlet, Dataset.class, dsClone.getId(), userName);
+			fail("Should have failed to get the ACL of an inheriting node");
+		} catch (ACLInheritanceException e) {
+			// Get the ACL from the redirect
+			acl = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorType().getClassForType(), e.getBenefactorId(), userName);
+		}
 		assertNotNull(acl);
 		// the returned ACL should refer to the parent
 		assertEquals(clone.getId(), acl.getId());
 		assertNotNull(acl.getUri());
 		
 		// now switch to child
-		acl.setId(dsClone.getId());
+
+		acl.setId(null);
 		AccessControlList childAcl = new AccessControlList();
-		childAcl.setId(dsClone.getId());
+		// We should be able to start with a null ID per PLFM-410
+		childAcl.setId(null);
 		childAcl.setResourceAccess(new HashSet<ResourceAccess>());
 		// (Is this OK, or do we have to make new ResourceAccess objects inside?)
 		// now POST to /dataset/{id}/acl with this acl as the body
-		AccessControlList acl2 = ServletTestHelper.createEntityACL(dispatchServlet, Dataset.class, childAcl, userName);
+		AccessControlList acl2 = ServletTestHelper.createEntityACL(dispatchServlet, Dataset.class, dsClone.getId(), childAcl, userName);
 		assertNotNull(acl2.getUri());
 		// now retrieve the acl for the child. should get its own back
 		AccessControlList acl3 = ServletTestHelper.getEntityACL(dispatchServlet, Dataset.class, dsClone.getId(), userName);
@@ -195,7 +206,13 @@ public class DefaultControllerAutowiredTest {
 		// try retrieving the ACL for the child
 		
 		// should get the parent's ACL
-		AccessControlList acl4 = ServletTestHelper.getEntityACL(dispatchServlet, Dataset.class, dsClone.getId(), userName);
+		AccessControlList acl4 = null;
+		try{
+			 ServletTestHelper.getEntityACL(dispatchServlet, Dataset.class, dsClone.getId(), userName);
+		}catch (ACLInheritanceException e){
+			acl4 = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorType().getClassForType(), e.getBenefactorId(), userName);
+		}
+
 		assertNotNull(acl4);
 		// the returned ACL should refer to the parent
 		assertEquals(clone.getId(), acl4.getId());
@@ -277,5 +294,56 @@ public class DefaultControllerAutowiredTest {
 		assertEquals(clone.getId(), type.getId());
 	}
 	
+	@Test
+	public void testGetEntityBenefactor() throws ServletException, IOException{
+		Project project = new Project();
+		project.setName(null);
+		project = ServletTestHelper.createEntity(dispatchServlet, project, TestUserDAO.TEST_USER_NAME);;
+		toDelete.add(project.getId());
+		// Create a dataset
+		Dataset ds = new Dataset();
+		ds.setParentId(project.getId());
+		ds = ServletTestHelper.createEntity(dispatchServlet, ds, userName);
+		assertNotNull(ds);
+		toDelete.add(ds.getId());
+		
+		// Now get the permission information for the project
+		EntityHeader benefactor = ServletTestHelper.getEntityBenefactor(dispatchServlet, project.getId(), Project.class, TestUserDAO.TEST_USER_NAME);
+		assertNotNull(benefactor);
+		// The project should be its own benefactor
+		assertEquals(project.getId(), benefactor.getId());
+		assertEquals(ObjectType.project.getUrlPrefix(), benefactor.getType());
+		assertEquals(project.getName(), benefactor.getName());
+		
+		// Now check the dataset
+		benefactor = ServletTestHelper.getEntityBenefactor(dispatchServlet, ds.getId(), Dataset.class, TestUserDAO.TEST_USER_NAME);
+		assertNotNull(benefactor);
+		// The project should be the dataset's benefactor
+		assertEquals(project.getId(), benefactor.getId());
+		assertEquals(ObjectType.project.getUrlPrefix(), benefactor.getType());
+		assertEquals(project.getName(), benefactor.getName());
+		
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testAclUpdateWithChildType() throws ServletException, IOException, ACLInheritanceException{
+		Project project = new Project();
+		project.setName(null);
+		project = ServletTestHelper.createEntity(dispatchServlet, project, TestUserDAO.TEST_USER_NAME);;
+		toDelete.add(project.getId());
+		// Create a dataset
+		Dataset ds = new Dataset();
+		ds.setParentId(project.getId());
+		ds = ServletTestHelper.createEntity(dispatchServlet, ds, userName);
+		assertNotNull(ds);
+		toDelete.add(ds.getId());
+		
+		// Get the ACL for the project
+		AccessControlList projectAcl = ServletTestHelper.getEntityACL(dispatchServlet, Project.class, project.getId(), TestUserDAO.TEST_USER_NAME);
+		
+		// Now attempt to update the ACL as the dataset.
+		projectAcl = ServletTestHelper.updateEntityAcl(dispatchServlet, Dataset.class, ds.getId(), projectAcl, TestUserDAO.TEST_USER_NAME);
+		
+	}
 
 }

@@ -35,6 +35,10 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	public static String SCHEMA_FILE = "domain-id-schema.sql";
 	// Insert a single row into the database
 	public static final String INSERT_SQL = "INSERT INTO "+TABLE_DOMAIN_ID+" (CREATED_ON) VALUES (?)";
+	// Get the current max.
+	public static final String MAX_ID = "SELECT MAX(ID) FROM "+TABLE_DOMAIN_ID;
+	// Increase the increment.
+	public static final String ALTER_AUTO_INCREMENT = "ALTER TABLE "+TABLE_DOMAIN_ID+" AUTO_INCREMENT = ?";
 	// Fetch the newly created id.
 	public static final String GET_ID_SQL = "SELECT LAST_INSERT_ID()";
 	// Determine if the table exists
@@ -63,6 +67,26 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 			}});
 		// Get the ID we just created.
 		return idGeneratorJdbcTemplate.queryForLong(GET_ID_SQL);
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@Override
+	public void reserveId(final Long idToLock) {
+		if(idToLock == null) throw new IllegalArgumentException("ID to reserve cannot be null");
+		// First check if this value is greater than the last value
+		Long max = idGeneratorJdbcTemplate.queryForLong(MAX_ID);
+		if(idToLock > max){
+			idGeneratorJdbcTemplate.update(ALTER_AUTO_INCREMENT, new PreparedStatementSetter(){
+				@Override
+				public void setValues(PreparedStatement ps) throws SQLException {
+					ps.setLong(1, idToLock);
+				}});
+			// Now generate the ID
+			Long newId = generateNewId();
+			if(newId.longValue() != idToLock.longValue()){
+				throw new IllegalStateException("Failed to reserve an ID: "+idToLock);
+			}
+		}
 	}
 
 	@Override

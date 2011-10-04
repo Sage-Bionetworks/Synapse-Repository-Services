@@ -7,9 +7,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import com.gdevelop.gwt.syncrpc.CookieManager;
+//import com.gdevelop.gwt.syncrpc.CookieManager;
 
-public class PublicCookieManager extends CookieManager {
+public class PublicCookieManager 
+//extends CookieManager
+{
 
 	// private Map store;
 	private Map<String, String> cookieMap;

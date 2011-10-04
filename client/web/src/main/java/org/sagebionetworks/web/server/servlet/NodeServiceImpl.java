@@ -41,7 +41,7 @@ import com.google.inject.Inject;
  */
 @SuppressWarnings("serial")
 public class NodeServiceImpl extends RemoteServiceServlet implements
-		NodeService {
+		NodeService, TokenProvider {
 
 	private static Logger logger = Logger.getLogger(NodeServiceImpl.class
 			.getName());
@@ -49,6 +49,8 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 	
 	private RestTemplateProvider templateProvider = null;
 	private ServiceUrlProvider urlProvider;
+	// By default, we get the tokens from the session cookies.
+	private TokenProvider tokenProvider = this;
 
 	/**
 	 * The rest template will be injected via Guice.
@@ -70,6 +72,14 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 	}
 	
 	/**
+	 * This allows integration tests to override the token provider.
+	 * @param tokenProvider
+	 */
+	public void setTokenProvider(TokenProvider tokenProvider){
+		this.tokenProvider = tokenProvider;
+	}
+	
+	/**
 	 * Validate that the service is ready to go. If any of the injected data is
 	 * missing then it cannot run. Public for tests.
 	 */
@@ -83,6 +93,10 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		if (urlProvider == null)
 			throw new IllegalStateException(
 					"The org.sagebionetworks.rest.api.root.url was not set");
+		if(tokenProvider == null){
+			throw new IllegalStateException(
+			"The token provider was not set");
+		}
 	}
 
 	@Override
@@ -194,12 +208,23 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 
 	@Override
 	public String getNodeAclJSON(NodeType type, String id) {
-		// Build up the path
+		// First get the permission info
 		StringBuilder builder = ServiceUtils.getBaseUrlBuilder(urlProvider, type);
 		builder.append("/" + id);
-		builder.append("/" + ServiceUtils.REPOSVC_SUFFIX_PATH_ACL);
-		String url = builder.toString();	
-		return getJsonStringForUrl(url, HttpMethod.GET);
+		builder.append("/" + ServiceUtils.REPOSVC_SUFFIX_PATH_BENEFACTOR);
+		String url = builder.toString();
+		try {
+			JSONObject benefactor = new JSONObject(getJsonStringForUrl(url, HttpMethod.GET));
+			builder = new StringBuilder();
+			builder.append(urlProvider.getBaseUrl());
+			builder.append(benefactor.getString("type"));
+			builder.append("/" + benefactor.getString("id"));
+			builder.append("/" + ServiceUtils.REPOSVC_SUFFIX_PATH_ACL);
+			url = builder.toString();
+			return getJsonStringForUrl(url, HttpMethod.GET);
+		} catch (JSONException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
@@ -293,7 +318,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
 		// If the user data is stored in a cookie, then fetch it and the session token to the header.
-		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
+		UserDataProvider.addUserDataToHeader(tokenProvider.getSessionToken(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<String> entity = new HttpEntity<String>(requestJson, headers);
 		
@@ -392,7 +417,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
 		// If the user data is stored in a cookie, then fetch it and the session token to the header.
-		UserDataProvider.addUserDataToHeader(this.getThreadLocalRequest(), headers);
+		UserDataProvider.addUserDataToHeader(tokenProvider.getSessionToken(), headers);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		if(etag != null) headers.set(DisplayConstants.SERVICE_HEADER_ETAG_KEY, etag);
 		if(entityString == null) entityString = "";
@@ -440,6 +465,12 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 			}
 			return result;
 		}
+	}
+
+	@Override
+	public String getSessionToken() {
+		// By default, we get the token from the request cookies.
+		return UserDataProvider.getThreadLocalUserToken(this.getThreadLocalRequest());
 	}
 
 	private List<AclPrincipal> generateAclPrincipals(String userList) {

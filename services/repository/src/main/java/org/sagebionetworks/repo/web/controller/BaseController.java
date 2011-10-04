@@ -9,8 +9,10 @@ import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.codehaus.jackson.map.JsonMappingException;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ErrorResponse;
@@ -18,6 +20,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -448,6 +451,25 @@ public abstract class BaseController {
 			HttpServletRequest request) {
 		return handleException(ex, request);
 	}
+	
+	/**
+	 * When this exception occurs we want to redirect the caller to the benefactor's ACL URL.
+	 * @param ex
+	 * @param request
+	 * @param response
+	 * @throws IOException
+	 */
+	@ExceptionHandler(ACLInheritanceException.class)
+	@ResponseStatus(HttpStatus.NOT_FOUND)
+	public @ResponseBody
+	ErrorResponse handleAccessControlListInheritanceException(ACLInheritanceException ex,
+			HttpServletRequest request, HttpServletResponse response) throws IOException {
+		// Build and set the redirect URL
+		String message = ACLInheritanceException.DEFAULT_MSG_PREFIX+UrlHelpers.createACLRedirectURL(request, ex.getBenefactorType(), ex.getBenefactorId());
+		response.sendError(HttpStatus.NOT_FOUND.value(), message);
+		return new ErrorResponse(message);
+	}
+
 
 	/**
 	 * Handle any exceptions not handled by specific handlers. Log an additional

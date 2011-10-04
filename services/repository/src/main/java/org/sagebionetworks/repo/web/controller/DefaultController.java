@@ -6,14 +6,14 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.schema.JsonSchema;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.Nodeable;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -180,6 +180,8 @@ public class DefaultController extends BaseController {
 		// Get the type of an entity by ID.
 		return entityController.getEntityHeader(userId, id);
 	}
+	
+	
 
 	/**
 	 * Get an existing entity with a GET.
@@ -657,9 +659,12 @@ public class DefaultController extends BaseController {
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
+		if(newAcl == null) throw new IllegalArgumentException("New ACL cannot be null");
+		if(id == null) throw new IllegalArgumentException("ACL ID in the path cannot be null");
 		// pass it along.
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
-
+		// This is a fix for PLFM-410
+		newAcl.setId(id);
 		AccessControlList acl = entityController.createEntityACL(userId, newAcl, request, type.getClassForType());
 		return acl;
 	}
@@ -676,6 +681,7 @@ public class DefaultController extends BaseController {
 	 * @throws DatastoreException - Thrown when there is a server-side problem.
 	 * @throws NotFoundException - Thrown if the entity does not exist.
 	 * @throws UnauthorizedException 
+	 * @throws ACLInheritanceException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.OBJECT_TYPE_ID_ACL	}, method = RequestMethod.GET)
@@ -684,10 +690,38 @@ public class DefaultController extends BaseController {
 			@PathVariable String objectType,
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
+			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException, ACLInheritanceException {
 		// pass it along.
 		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
 		return entityController.getEntityACL(id, userId, request, type.getClassForType());
+	}
+	
+
+	/**
+	 * Get the Access Control List (ACL) for a given entity.
+	 * @param objectType 
+	 * @param id - The ID of the entity to get the ACL for.
+	 * @param userId - The user that is making the request.
+	 * @param request
+	 * @return The entity ACL.
+	 * @throws DatastoreException - Thrown when there is a server-side problem.
+	 * @throws NotFoundException - Thrown if the entity does not exist.
+	 * @throws UnauthorizedException 
+	 * @throws ACLInheritanceException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.OBJECT_TYPE_ID_BENEFACTOR	}, method = RequestMethod.GET)
+	public @ResponseBody
+	EntityHeader getEntityBenefactor(
+			@PathVariable String objectType,
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException, ACLInheritanceException {
+		if(objectType == null) throw new IllegalArgumentException("PathVariable ObjectType cannot be null");
+		if(id == null) throw new IllegalArgumentException("PathVariable ID cannot be null");
+		// pass it along.
+		ObjectType type = ObjectType.valueOf(objectType);
+		return entityController.getEntityBenefactor(id, userId, request, type.getClassForType());
 	}
 	
 	/**
@@ -713,6 +747,12 @@ public class DefaultController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestBody AccessControlList updatedACL,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
+		if(updatedACL == null) throw new IllegalArgumentException("ACL cannot be null");
+		if(id == null) throw new IllegalArgumentException("ID cannot be null");
+		// This is a fix for 
+		if(!id.equals(updatedACL.getId())) throw new IllegalArgumentException("The path ID: "+id+" does not match the ACL's ID: "+updatedACL.getId());
+		// This is a fix for PLFM-621
+		updatedACL.setId(id);
 		// pass it along.
 		return entityController.updateEntityACL(userId, updatedACL, request);
 	}

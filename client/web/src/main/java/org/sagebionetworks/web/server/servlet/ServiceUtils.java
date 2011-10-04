@@ -27,6 +27,7 @@ public class ServiceUtils {
 	public static final String REPOSVC_SUFFIX_PATH_SCHEMA = "schema";
 	public static final String REPOSVC_SUFFIX_PATH_ACL = "acl"; 	
 	public static final String REPOSVC_SUFFIX_PATH_TYPE = "type";
+	public static final String REPOSVC_SUFFIX_PATH_BENEFACTOR = "benefactor"; 
 	
 	public static final String AUTHSVC_SEND_PASSWORD_CHANGE_PATH = "userPasswordEmail";
 	public static final String AUTHSVC_SEND_API_PASSWORD_PATH = "apiPasswordEmail";
