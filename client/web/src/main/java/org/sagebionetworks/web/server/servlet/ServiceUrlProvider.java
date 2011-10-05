@@ -20,7 +20,8 @@ public class ServiceUrlProvider {
 	
 	private static Logger logger = Logger.getLogger(ServiceUrlProvider.class.getName());
 	private String repositoryServiceUrl = StackConfiguration.getRepositoryServiceEndpoint();
-	private String authServiceUrl = StackConfiguration.getAuthenticationServicePublicEndpoint();
+	private String authServicePrivateUrl = StackConfiguration.getAuthenticationServicePrivateEndpoint();
+	private String authServicePublicUrl = StackConfiguration.getAuthenticationServicePublicEndpoint();
 	private String portalBaseUrl = StackConfiguration.getPortalEndpoint();
 	
 	/**
@@ -46,17 +47,35 @@ public class ServiceUrlProvider {
 	 * @return
 	 * @throws URISyntaxException 
 	 */
-	public String getAuthBaseUrl() {
-		if(authServiceUrl == null){
+	public String getPrivateAuthBaseUrl() {
+		if(authServicePrivateUrl == null){
 			logger.info("Auth Service URL: " + repositoryServiceUrl);
 			// Make sure it is a valid url
 			try {
-				new URI(authServiceUrl);
+				new URI(authServicePrivateUrl);
 			} catch (URISyntaxException e) {
 				 throw new IllegalArgumentException(e);
 			}
 		}
-		return authServiceUrl;
+		return authServicePrivateUrl;
+	}
+
+	/**
+	 * The auth service url
+	 * @return
+	 * @throws URISyntaxException 
+	 */
+	public String getPublicAuthBaseUrl() {
+		if(authServicePublicUrl == null){
+			logger.info("Auth Service URL: " + repositoryServiceUrl);
+			// Make sure it is a valid url
+			try {
+				new URI(authServicePublicUrl);
+			} catch (URISyntaxException e) {
+				 throw new IllegalArgumentException(e);
+			}
+		}
+		return authServicePublicUrl;
 	}
 
 	/**
@@ -90,8 +109,16 @@ public class ServiceUrlProvider {
 	 * For testing purposes
 	 * @param authServiceUrl
 	 */
-	public void setAuthServiceUrl(String authServiceUrl) {
-		this.authServiceUrl = authServiceUrl;
+	public void setAuthServicePrivateUrl(String authServicePrivateUrl) {
+		this.authServicePrivateUrl = authServicePrivateUrl;
+	}
+
+	/**
+	 * For testing purposes
+	 * @param authServiceUrl
+	 */
+	public void setAuthServicePublicUrl(String authServicePublicUrl) {
+		this.authServicePublicUrl = authServicePublicUrl;
 	}
 
 	/**

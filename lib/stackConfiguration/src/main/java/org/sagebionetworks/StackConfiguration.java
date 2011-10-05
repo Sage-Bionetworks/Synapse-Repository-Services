@@ -89,7 +89,6 @@ public class StackConfiguration {
 
 	public static String getAuthenticationServicePublicEndpoint() {
 		return configuration.getAuthenticationServicePublicEndpoint();
-		//return getProperty("org.sagebionetworks.authenticationservice.publicendpoint");
 	}
 
 	public static String getRepositoryServiceEndpoint() {

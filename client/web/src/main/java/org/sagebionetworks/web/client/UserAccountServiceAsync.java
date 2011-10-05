@@ -30,8 +30,10 @@ public interface UserAccountServiceAsync {
 
 	void ssoLogin(String sessionToken, AsyncCallback<Boolean> callback);
 
-	void getAuthServiceUrl(AsyncCallback<String> callback);
+	void getPrivateAuthServiceUrl(AsyncCallback<String> callback);
 
+	void getPublicAuthServiceUrl(AsyncCallback<String> callback);
+	
 	void getSynapseWebUrl(AsyncCallback<String> callback);
 
 }

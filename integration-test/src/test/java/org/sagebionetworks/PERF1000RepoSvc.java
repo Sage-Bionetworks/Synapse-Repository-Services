@@ -264,7 +264,7 @@ public class PERF1000RepoSvc {
 	public static void beforeClass() throws Exception {
 
 		synapse = new Synapse();
-		synapse.setAuthEndpoint(StackConfiguration.getAuthenticationServicePublicEndpoint());
+		synapse.setAuthEndpoint(StackConfiguration.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration.getRepositoryServiceEndpoint());
 		synapse.login(StackConfiguration.getIntegrationTestUserOneName(), StackConfiguration.getIntegrationTestUserOnePassword());
                 // Can't save to Synapse because of cross stack issue

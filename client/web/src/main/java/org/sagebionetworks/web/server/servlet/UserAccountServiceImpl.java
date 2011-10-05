@@ -79,7 +79,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		}
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_SEND_PASSWORD_CHANGE_PATH;
+		String url = urlProvider.getPrivateAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_SEND_PASSWORD_CHANGE_PATH;
 		String jsonString = obj.toString();
 		
 		// Setup the header
@@ -123,7 +123,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		}
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_SEND_API_PASSWORD_PATH;
+		String url = urlProvider.getPrivateAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_SEND_API_PASSWORD_PATH;
 		String jsonString = obj.toString();
 		
 		// Setup the header
@@ -165,7 +165,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		}
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_SET_PASSWORD_PATH;
+		String url = urlProvider.getPrivateAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_SET_PASSWORD_PATH;
 		String jsonString = obj.toString();
 		
 		// Setup the header
@@ -210,7 +210,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		}
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_INITIATE_SESSION_PATH;
+		String url = urlProvider.getPrivateAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_INITIATE_SESSION_PATH;
 		String jsonString = obj.toString();
 		
 		// Setup the header
@@ -246,7 +246,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		validateService();
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_GET_USER_PATH;				
+		String url = urlProvider.getPrivateAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_GET_USER_PATH;				
 		
 		// Setup the header
 		HttpHeaders headers = new HttpHeaders();
@@ -291,7 +291,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		}
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_CREATE_USER_PATH;
+		String url = urlProvider.getPrivateAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_CREATE_USER_PATH;
 		String jsonString = obj.toString();
 		
 		// Setup the header
@@ -326,7 +326,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		}
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_UPDATE_USER_PATH;
+		String url = urlProvider.getPrivateAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_UPDATE_USER_PATH;
 		String jsonString = obj.toString();
 		
 		// Setup the header
@@ -354,7 +354,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		validateService();
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_TERMINATE_SESSION_PATH;
+		String url = urlProvider.getPrivateAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_TERMINATE_SESSION_PATH;
 		String jsonString = "{\"sessionToken\":\""+ sessionToken + "\"}";
 		
 		logger.info("DELETE: " + url + ", JSON: " + jsonString);
@@ -389,7 +389,7 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 		}
 		
 		// Build up the path
-		String url = urlProvider.getAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_REFRESH_SESSION_PATH;
+		String url = urlProvider.getPrivateAuthBaseUrl() + "/" + ServiceUtils.AUTHSVC_REFRESH_SESSION_PATH;
 		String jsonString = obj.toString();
 		
 		// Setup the header
@@ -413,8 +413,13 @@ public class UserAccountServiceImpl extends RemoteServiceServlet implements User
 	}
 
 	@Override
-	public String getAuthServiceUrl() {
-		return urlProvider.getAuthBaseUrl();
+	public String getPrivateAuthServiceUrl() {
+		return urlProvider.getPrivateAuthBaseUrl();
+	}
+
+	@Override
+	public String getPublicAuthServiceUrl() {
+		return urlProvider.getPublicAuthBaseUrl();
 	}
 
 	@Override

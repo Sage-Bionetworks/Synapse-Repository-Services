@@ -70,8 +70,13 @@ public class ConfigHelper {
 	public static AmazonSimpleWorkflow createSWFClient() {
 		ClientConfiguration config = new ClientConfiguration()
 				.withSocketTimeout(70 * 1000);
-		AWSCredentials awsCredentials = new BasicAWSCredentials(configuration.getIAMUserId(),
-				configuration.getIAMUserKey());
+		String iamUserId = configuration.getIAMUserId();
+		if (iamUserId==null || iamUserId.length()==0) 
+			throw new RuntimeException("No value for AWS_ACCESS_KEY_ID or org.sagebionetworks.stack.iam.id");
+		String iamUserKey = configuration.getIAMUserKey();
+		if (iamUserKey==null || iamUserKey.length()==0) 
+			throw new RuntimeException("No value for AWS_SECRET_KEY or org.sagebionetworks.stack.iam.key");
+		AWSCredentials awsCredentials = new BasicAWSCredentials(iamUserId, iamUserKey);
 		AmazonSimpleWorkflow client = new AmazonSimpleWorkflowClient(
 				awsCredentials, config);
 		client.setEndpoint(configuration.getProperty("aws.swf.endpoint"));

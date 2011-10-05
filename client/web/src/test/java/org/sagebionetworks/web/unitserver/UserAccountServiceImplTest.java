@@ -86,7 +86,7 @@ public class UserAccountServiceImplTest {
 		// Inject the required values
 		service.setRestTemplate(provider);
 		ServiceUrlProvider urlProvider = new ServiceUrlProvider();
-		urlProvider.setAuthServiceUrl(serviceUrl.toString() + "auth/v1");		
+		urlProvider.setAuthServicePrivateUrl(serviceUrl.toString() + "auth/v1");		
 		service.setServiceUrlProvider(urlProvider);
 		
 		LocalAuthServiceStub.groups.add(group1);
@@ -248,7 +248,7 @@ public class UserAccountServiceImplTest {
 		
 	@Test
 	public void testGetAuthServiceUrl() {
-		String authServiceUrl = service.getAuthServiceUrl();
+		String authServiceUrl = service.getPrivateAuthServiceUrl();
 		
 		try {
 			URI testUri = new URI(authServiceUrl);

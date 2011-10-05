@@ -167,7 +167,6 @@ public class AuthenticationController {
 		String thisUrl = request.getRequestURL().toString();
 		int i = thisUrl.indexOf(OPEN_ID_URI);
 		if (i<0) throw new RuntimeException("Current URI, "+OPEN_ID_URI+", not found in "+thisUrl);
-//		String openIDCallbackURL = thisUrl.substring(0, i)+OPENID_CALLBACK_URI;
 		String openIDCallbackURL = StackConfiguration.getAuthenticationServicePublicEndpoint()+OPENID_CALLBACK_URI;
 		Cookie cookie = new Cookie(RETURN_TO_URL_COOKIE_NAME, returnToURL);
 		cookie.setMaxAge(RETURN_TO_URL_COOKIE_MAX_AGE_SECONDS);
