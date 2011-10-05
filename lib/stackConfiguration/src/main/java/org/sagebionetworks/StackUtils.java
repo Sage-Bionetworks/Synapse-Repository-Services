@@ -51,25 +51,28 @@ public class StackUtils {
 	 * @param value
 	 */
 	public static void validateStackProperty(String prefix, String key, String value){
-		
 		String valueToTest = value;
-		// Is it a database url:
-		if(key.indexOf(StackConstants.DATABASE_URL_PROPERTY) >= 0){
-			int index = value.lastIndexOf("/");
-			valueToTest = value.substring(index+1, value.length());
-		}else{
-			// Is the value a url?
-			try{
-				URL url = new URL(value);
-				String path = url.getPath();
-				path = path.replaceAll("\\\\","/");
-				int index = path.lastIndexOf("/");
-				if(index < 0){
-					index = 0;
+		try {
+			// Is it a database url:
+			if(key.indexOf(StackConstants.DATABASE_URL_PROPERTY) >= 0){
+				int index = value.lastIndexOf("/");
+				valueToTest = value.substring(index+1, value.length());
+			}else{
+				// Is the value a url?
+				try{
+					URL url = new URL(value);
+					String path = url.getPath();
+					path = path.replaceAll("\\\\","/");
+					int index = path.lastIndexOf("/");
+					if(index < 0){
+						index = 0;
+					}
+					valueToTest = path.substring(index+1, path.length());
+				}catch(MalformedURLException e){
 				}
-				valueToTest = path.substring(index+1, path.length());
-			}catch(MalformedURLException e){
 			}
+		} catch (Exception e) {
+			throw new IllegalArgumentException("The property: "+key+" must start with stack prefix: "+prefix+". Actual value: "+value);
 		}
 		// Now that we know what to test do the work
 		validateValue(prefix, key, valueToTest);

@@ -1,9 +1,9 @@
 package org.sagebionetworks.auth;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -61,8 +61,6 @@ public class AuthenticationControllerTest {
 	public void setUp() throws Exception {
 		if (!isIntegrationTest()) return;
 		crowdAuthUtil = new CrowdAuthUtil();
-		//DispatcherServlet servlet = 
-			helper.setUp();
 		CrowdAuthUtil.acceptAllCertificates2();
 		
 		// special userId for testing -- no confirmation email is sent!
@@ -75,6 +73,8 @@ public class AuthenticationControllerTest {
         }
         integrationTestUserEmail = props.getProperty("integrationTestUser");
 		assertNotNull(integrationTestUserEmail);
+		
+		helper.setUp(integrationTestUserEmail);
 	}
 
 	/**
@@ -392,29 +392,81 @@ public class AuthenticationControllerTest {
 	@Test
 	public void testGetSecretKey() throws Exception {
 		if (!isIntegrationTest()) return;
-		JSONObject secretKey = helper.testGetJsonEntity("/secretKey","{\"email\":\""+integrationTestUserEmail+"\"}");
-		assertNotNull(secretKey.getString("secretKey"));
+		try {
+			// first, need to create the user...
+			helper.testCreateJsonEntity("/user",
+					"{"+
+					"\"email\":\""+integrationTestUserEmail+"\","+
+					 // integration testing with this special user is the only time a password may be specified
+					"\"password\":\""+integrationTestUserEmail+"\","+
+				"\"firstName\":\"New\","+
+				"\"lastName\":\"User\","+
+				"\"displayName\":\"New User\""+
+					"}");
+			// .. then get the secret key...
+			JSONObject secretKey = helper.testGetJsonEntity("/secretKey");
+			assertNotNull(secretKey.getString("secretKey"));
+		} finally {
+			// .. finally, clean up the user.
+			User user = new User();
+			user.setEmail(integrationTestUserEmail);
+			try {
+				crowdAuthUtil.deleteUser(user);
+			} catch (AuthenticationException ae) {
+				if (ae.getRespStatus()==HttpStatus.NOT_FOUND.value()) {
+					// that's OK, it just means that the user never was created in the first place
+				} else {
+					throw ae;
+				}
+			}
+		}
 
 	}
 	
 	@Test
 	public void testInvalidateSecretKey() throws Exception {
 		if (!isIntegrationTest()) return;
-		JSONObject secretKey = helper.testGetJsonEntity("/secretKey","{\"email\":\""+integrationTestUserEmail+"\"}");
-		String firstKey = secretKey.getString("secretKey");
-		assertNotNull(firstKey);
-		
-		// now invalidate the key
-		helper.testDeleteJsonEntity("/secretKey","{\"email\":\""+integrationTestUserEmail+"\"}");
-		
-		// now get the key again...
-		secretKey = helper.testGetJsonEntity("/secretKey","{\"email\":\""+integrationTestUserEmail+"\"}");
-		String secondKey = secretKey.getString("secretKey");
-		assertNotNull(secondKey);
-		
-		// ... should be different from the first one
-		assertFalse(firstKey.equals(secondKey));
-	}
+		try {
+			// first, need to create the user...
+			helper.testCreateJsonEntity("/user",
+					"{"+
+					"\"email\":\""+integrationTestUserEmail+"\","+
+					 // integration testing with this special user is the only time a password may be specified
+					"\"password\":\""+integrationTestUserEmail+"\","+
+				"\"firstName\":\"New\","+
+				"\"lastName\":\"User\","+
+				"\"displayName\":\"New User\""+
+					"}");
+			// .. then get the secret key...
+			JSONObject secretKey = helper.testGetJsonEntity("/secretKey");
+			String firstKey = secretKey.getString("secretKey");
+			assertNotNull(firstKey);
+			
+			// now invalidate the key
+			helper.testDeleteJsonEntity("/secretKey","{\"email\":\""+integrationTestUserEmail+"\"}");
+			
+			// now get the key again...
+			secretKey = helper.testGetJsonEntity("/secretKey");
+			String secondKey = secretKey.getString("secretKey");
+			assertNotNull(secondKey);
+			
+			// ... should be different from the first one
+			assertFalse(firstKey.equals(secondKey));
+		} finally {
+			// .. finally, clean up the user.
+			User user = new User();
+			user.setEmail(integrationTestUserEmail);
+			try {
+				crowdAuthUtil.deleteUser(user);
+			} catch (AuthenticationException ae) {
+				if (ae.getRespStatus()==HttpStatus.NOT_FOUND.value()) {
+					// that's OK, it just means that the user never was created in the first place
+				} else {
+					throw ae;
+				}
+			}
+		}
+}
 	
 	class MutableBoolean {
 		boolean b = false;

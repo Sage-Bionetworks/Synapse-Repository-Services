@@ -51,7 +51,6 @@ public class AuthenticationController {
 	private static Map<User,Session> sessionCache = null;
 	private static Long cacheTimeout = null;
 	private static Date lastCacheDump = null;
-	
 //	   a special userId that's used for integration testing
 //	   we need a way to specify a 'back door' userId for integration testing
 //	   the authentication servlet
@@ -331,8 +330,6 @@ public class AuthenticationController {
 	public @ResponseBody User getUser(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 
 		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
-		String itu = getIntegrationTestUser();
-		if (itu!=null && userId==null) userId=itu;
 		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userId)) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "No user info for "+AuthorizationConstants.ANONYMOUS_USER_ID, null);
 		User user = crowdAuthUtil.getUser(userId);
@@ -359,12 +356,9 @@ public class AuthenticationController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 
-		String itu = getIntegrationTestUser();
-		boolean isITU = (itu!=null && userId!=null && userId.equals(itu));
-		
 		if (user.getEmail()==null) user.setEmail(userId);
 
-		if (!isITU && userId==null) 
+		if (userId==null) 
 				throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
 		if (!userId.equals(user.getEmail())) 
 				throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Changing email address is not permitted.", null);
@@ -421,10 +415,7 @@ public class AuthenticationController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 
-		String itu = getIntegrationTestUser();
-		boolean isITU = (itu!=null && user.getEmail().equals(itu));
-
-		if (!isITU && (userId==null || !userId.equals(user.getEmail()))) 
+		if ((userId==null || !userId.equals(user.getEmail()))) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
 		if (user.getPassword()==null) 			
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "New password is required.", null);
@@ -434,14 +425,11 @@ public class AuthenticationController {
 	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/secretKey", method = RequestMethod.GET)
-	public @ResponseBody SecretKey newSecretKey(@RequestBody User user,
+	public @ResponseBody SecretKey newSecretKey(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 
-		String itu = getIntegrationTestUser();
-		boolean isITU = (itu!=null && user.getEmail().equals(itu));
-
-		if (!isITU && (userId==null || !userId.equals(user.getEmail()))) 
+		if (userId==null) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
 
 		Map<String,Collection<String>> userAttributes = 
@@ -465,12 +453,9 @@ public class AuthenticationController {
 
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/secretKey", method = RequestMethod.DELETE)
-	public void invalidateSecretKey(@RequestBody User user,
+	public void invalidateSecretKey(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-		String itu = getIntegrationTestUser();
-		boolean isITU = (itu!=null && user.getEmail().equals(itu));
-
-		if (!isITU && (userId==null || !userId.equals(user.getEmail()))) 
+		if (userId==null) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
 
 		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
