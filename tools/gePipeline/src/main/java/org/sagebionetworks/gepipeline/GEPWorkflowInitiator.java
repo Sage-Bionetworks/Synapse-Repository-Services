@@ -1,5 +1,6 @@
 package org.sagebionetworks.gepipeline;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,7 +27,7 @@ public class GEPWorkflowInitiator {
 	void initiateWorkflowTasks() throws Exception {
 		// call R function which returns IDs of data sets to process
 		List<String> scriptParams = new ArrayList<String>();
-		String script = "src\\main\\resources\\datasetCrawler.R";
+		String script = "src"+File.separator+"main"+File.separator+"resources"+File.separator+"datasetCrawler.R";
 		ScriptResult results = ScriptProcessor.doProcess(script, scriptParams);
 		List<String> datasetIds = results.getStringListResult(OUTPUT_JSON_KEY);
 		log.info("datasetIds: "+datasetIds);
