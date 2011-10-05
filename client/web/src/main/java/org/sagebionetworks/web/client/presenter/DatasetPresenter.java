@@ -374,6 +374,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 	}	
 
 	public void loadDownloadLocations() {
+		view.showLoading();
 		if(model != null) {
 			nodeService.getNodeLocations(NodeType.DATASET, model.getId(), new AsyncCallback<String>() {
 				@Override

@@ -309,6 +309,7 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 
 	@Override
 	public void showLoading() {
+		datasetLicensedDownloader.showLoading();
 	}
 
 	@Override
