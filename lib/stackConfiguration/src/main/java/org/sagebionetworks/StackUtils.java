@@ -67,12 +67,12 @@ public class StackUtils {
 					if(index < 0){
 						index = 0;
 					}
-					valueToTest = path.substring(index+1, path.length());
+					if (path.length()>0) valueToTest = path.substring(index+1, path.length());
 				}catch(MalformedURLException e){
 				}
 			}
 		} catch (Exception e) {
-			throw new IllegalArgumentException("The property: "+key+" must start with stack prefix: "+prefix+". Actual value: "+value);
+			throw new IllegalArgumentException("The property: "+key+" must start with stack prefix: "+prefix+". Actual value: "+value+". Modified value: "+valueToTest, e);
 		}
 		// Now that we know what to test do the work
 		validateValue(prefix, key, valueToTest);
