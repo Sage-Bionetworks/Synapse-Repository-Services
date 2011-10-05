@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 import javax.servlet.ServletException;
 
 import org.json.JSONObject;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -30,6 +31,8 @@ public class Helpers {
 	private DispatcherServlet servlet = null;
 
 	private static final int JSON_INDENT = 2;
+	
+	private String userId; // userId parameter for requests
 
 	/**
 	 * Setup up our mock datastore and servlet
@@ -37,7 +40,8 @@ public class Helpers {
 	 * @return the servlet
 	 * @throws ServletException
 	 */
-	public DispatcherServlet setUp() throws ServletException {
+	public DispatcherServlet setUp(String userId) throws ServletException {
+		this.userId=userId;
 		// Create a Spring MVC DispatcherServlet so that we can test our URL
 		// mapping, request format, response format, and response status code.
 		MockServletConfig servletConfig = new MockServletConfig("authentication");
@@ -88,6 +92,8 @@ public class Helpers {
 		request.setRequestURI(requestUrl);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonRequestContent.getBytes("UTF-8"));
+		if (userId!=null)
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		log.info("About to send: "
 				+ new JSONObject(jsonRequestContent).toString(2));
 		servlet.service(request, response);
@@ -117,6 +123,7 @@ public class Helpers {
 			request.setRequestURI(requestUrl);
 			request.addHeader("Content-Type", "application/json; charset=UTF-8");
 			request.setContent(jsonRequestContent.getBytes("UTF-8"));
+			if (userId!=null) request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 			log.info("About to send: "
 					+ new JSONObject(jsonRequestContent).toString(2));
 			servlet.service(request, response);
@@ -125,27 +132,6 @@ public class Helpers {
 		}
 
 
-		/**
-		 * @param requestUrl
-		 * @return the jsonRequestContent object holding the entity
-		 * @throws Exception
-		 */
-		public JSONObject testGetJsonEntity(String requestUrl, String jsonRequestContent) throws Exception {
-			MockHttpServletRequest request = new MockHttpServletRequest();
-			MockHttpServletResponse response = new MockHttpServletResponse();
-			request.setMethod("GET");
-			request.addHeader("Accept", "application/json");
-			request.addHeader("Content-Type", "application/json; charset=UTF-8");
-			request.setRequestURI(requestUrl);
-			request.setContent(jsonRequestContent.getBytes("UTF-8"));
-			servlet.service(request, response);
-			log.info("Results: " + response.getContentAsString());
-			assertEquals(HttpStatus.OK.value(), response.getStatus());
-			JSONObject results = new JSONObject(response.getContentAsString());
-			log.info(results.toString(JSON_INDENT));
-
-			return results;
-		}
 
 		/**
 		 * @param requestUrl
@@ -157,6 +143,7 @@ public class Helpers {
 			MockHttpServletResponse response = new MockHttpServletResponse();
 			request.setMethod("GET");
 			request.addHeader("Accept", "application/json");
+			if (userId!=null) request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 			request.setRequestURI(requestUrl);
 			servlet.service(request, response);
 			log.info("Results: " + response.getContentAsString());
@@ -181,6 +168,7 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		if (userId!=null) request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.setContent(jsonEntity.toString().getBytes("UTF-8"));
 		log.info("About to send: " + jsonEntity.toString(JSON_INDENT));
 		servlet.service(request, response);
@@ -208,8 +196,8 @@ public class Helpers {
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
+		if (userId!=null) request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		if (userId!=null) request.addParameter("userId", userId);
 		request.setContent(jsonEntity.toString().getBytes("UTF-8"));
 		log.info("About to send: " + jsonEntity.toString(JSON_INDENT));
 		servlet.service(request, response);
@@ -236,6 +224,7 @@ public class Helpers {
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
+		if (userId!=null) request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonRequestContent.getBytes("UTF-8"));
 		servlet.service(request, response);
@@ -262,6 +251,7 @@ public class Helpers {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
+		if (userId!=null) request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.setRequestURI(requestUrl);
 
 		servlet.service(request, response);
@@ -288,6 +278,7 @@ public class Helpers {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		if (userId!=null) request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.setContent(jsonRequestContent.getBytes("UTF-8"));
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
@@ -313,6 +304,7 @@ public class Helpers {
 
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
+		if (userId!=null) request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.setRequestURI(requestUrl);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
@@ -339,8 +331,8 @@ public class Helpers {
 		request.setRequestURI(requestUrl);
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
-
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		if (userId!=null) request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.setContent(jsonRequestContent.getBytes("UTF-8"));
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
@@ -372,6 +364,7 @@ public class Helpers {
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
+		if (userId!=null) request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		assertFalse(HttpStatus.OK.equals(response.getStatus()));
@@ -402,6 +395,7 @@ public class Helpers {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
+		if (userId!=null) request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 
 		servlet.service(request, response);
 		log.info("Results: " + response.getContentAsString());
