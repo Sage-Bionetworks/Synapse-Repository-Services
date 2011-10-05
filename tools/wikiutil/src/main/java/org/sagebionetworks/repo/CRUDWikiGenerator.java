@@ -170,13 +170,13 @@ public class CRUDWikiGenerator {
 			log.info("h4. The PUT the data to S3");
 			log
 					.info("Then PUT the data to S3 via an HTTP Client that supports multipart upload.  Note that you must: ");
-			log.info("# Add header {{Content-Type: application/binary}}");
+			log.info("# Add header {{Content-Type: <location.contentType>}}");
 			log
 					.info("# Add header {{Content-MD5: <the base64 encoded md5 checksum>}}");
 			log.info("# Add header {{x-amz-acl: bucket-owner-full-control}}");
+// TODO PLFM-599			log.info("# Add header {{x-amz-security-token: <location.securityToken>}} (coming soon!)");
 			log.info("\nHere is an example with curl:{code}");
 
-			// TODO find a more direct way to go from hex to base64
 			byte[] encoded = Base64
 					.encodeBase64(Hex
 							.decodeHex("b513a23fc54b7b0d65312e1a900af5a6"
@@ -185,7 +185,8 @@ public class CRUDWikiGenerator {
 
 			log.info("curl -v -X PUT -H Content-MD5:" + base64Md5
 					+ " -H x-amz-acl:bucket-owner-full-control \\\n"
-					+ " -H Content-Type:application/binary "
+// TODO PLFM-599					+ " -H x-amz-security-token:" + s3Location.getString("securityToken") + " \\\n"
+					+ " -H Content-Type:" + s3Location.getString("contentType")
 					+ " --data-binary @<localFilepath> \\\n'"
 					+ s3Location.getString("path") + "'{code}\n\n");
 

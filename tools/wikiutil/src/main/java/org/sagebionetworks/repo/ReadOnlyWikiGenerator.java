@@ -220,7 +220,6 @@ public class ReadOnlyWikiGenerator {
 										+ "curl -o local/path/to/file.zip '"
 										+ location.getString("path")
 										+ "'{code}\n");
-
 						log
 								.info("An example to *conditionally* fetch the file using curl:{code}"
 										+ "curl -i -H If-None-Match:"
@@ -237,6 +236,30 @@ public class ReadOnlyWikiGenerator {
 										+ location.getString("md5sum")
 										+ "\"\n"
 										+ "Server: AmazonS3{code}\n");
+						JSONObject headLocation = wiki
+							.doGet(locationUri+"?method=HEAD", "h4. Get the " + locationType
+									+ " for a " + type + " Dataset Layer for HTTP method HEAD",
+									"This returns the location data for a dataset layer with the S3 URL presigned for a HEAD request instead of the default GET.");
+						log
+						.info("An example double check that Synapse's MD5 matches the one in S3 using curl:{code}"
+								+ "curl -I -H If-Match:"
+								+ headLocation.getString("md5sum")
+								+ " '"
+								+ headLocation.getString("path")
+								+ "'\n\n"
+								+ "HTTP/1.1 200 OK\n"
+								+ "x-amz-id-2: h3qt9NfdRw7utcyVMCZF/dNRto9ZpmKY56w69HNpuMkNsaDv9MgduGY9L3zBQWl\n"
+								+ "x-amz-request-id: 3AADDC9EF832ADD2\n"
+								+ "Date: Tue, 07 Jun 2011 18:40:15 GMT\n"
+								+ "Last-Modified: Tue, 05 Apr 2011 00:42:50 GMT\n"
+								+ "ETag: \""
+								+ location.getString("md5sum")
+								+ "\"\n"
+								+ "Accept-Ranges: bytes\n"
+								+ "Content-Type: application/binary\n"
+								+ "Content-Length: 30681\n"
+								+ "Server: AmazonS3{code}\n");
+
 					}
 				}
 				break; // we have displayed one clinical layer, don't bother with any others
