@@ -502,10 +502,6 @@ public class Synapse {
 	 * @throws JSONException
 	 * @throws IOException
 	 * @throws ClientProtocolException
-	 * @throws SynapseServiceException
-	 * @throws SynapseUserException
-	 * @throws JSONException
-	 * @throws IOException
 	 */
 	public void deleteSynapseEntity(String endpoint, String uri)
 			throws ClientProtocolException, IOException, JSONException,

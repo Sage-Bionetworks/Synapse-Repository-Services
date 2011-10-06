@@ -42,7 +42,7 @@ public class HttpClientHelper {
 	public static final int MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH = 1024 * 1024;
 	private static final int DEFAULT_CONNECT_TIMEOUT_MSEC = 500;
 	private static final int DEFAULT_SOCKET_TIMEOUT_MSEC = 2000;
-	private static final HttpClient webClient;
+	private static final HttpClient httpClient;
 
 	static {
 
@@ -56,7 +56,7 @@ public class HttpClientHelper {
 		// used when retrieving an
 		// instance of ManagedClientConnection from the ClientConnectionManager
 		// since parameters are now deprecated for connection managers.
-		ThreadSafeClientConnManager cm = new ThreadSafeClientConnManager(
+		ThreadSafeClientConnManager connectionManager = new ThreadSafeClientConnManager(
 				schemeRegistry);
 
 		HttpParams clientParams = new BasicHttpParams();
@@ -65,7 +65,7 @@ public class HttpClientHelper {
 		clientParams.setParameter(CoreConnectionPNames.SO_TIMEOUT,
 				DEFAULT_SOCKET_TIMEOUT_MSEC);
 
-		webClient = new DefaultHttpClient(cm, clientParams);
+		httpClient = new DefaultHttpClient(connectionManager, clientParams);
 	}
 
 	/**
@@ -82,7 +82,7 @@ public class HttpClientHelper {
 	 * @return the ClientConnectionManager
 	 */
 	public static ClientConnectionManager getConnectionManager() {
-		return webClient.getConnectionManager();
+		return httpClient.getConnectionManager();
 	}
 
 	/**
@@ -93,7 +93,7 @@ public class HttpClientHelper {
 	 * @param milliseconds
 	 */
 	public static void setGlobalConnectionTimeout(int milliseconds) {
-		webClient.getParams().setParameter(
+		httpClient.getParams().setParameter(
 				CoreConnectionPNames.CONNECTION_TIMEOUT, milliseconds);
 	}
 
@@ -107,7 +107,7 @@ public class HttpClientHelper {
 	 * @param milliseconds
 	 */
 	public static void setGlobalSocketTimeout(int milliseconds) {
-		webClient.getParams().setParameter(CoreConnectionPNames.SO_TIMEOUT,
+		httpClient.getParams().setParameter(CoreConnectionPNames.SO_TIMEOUT,
 				milliseconds);
 	}
 
@@ -196,7 +196,7 @@ public class HttpClientHelper {
 			request.setHeader(header.getKey(), header.getValue());
 		}
 
-		HttpResponse response = webClient.execute(request);
+		HttpResponse response = httpClient.execute(request);
 
 		if (expectedResponseStatus != response.getStatusLine().getStatusCode()) {
 			StringBuilder verboseMessage = new StringBuilder(
@@ -239,8 +239,7 @@ public class HttpClientHelper {
 		String fileContents = null;
 
 		HttpGet get = new HttpGet(requestUrl);
-		DefaultHttpClient client = new DefaultHttpClient();
-		HttpResponse response = client.execute(get);
+		HttpResponse response = httpClient.execute(get);
 		if (300 <= response.getStatusLine().getStatusCode()) {
 			throw new HttpClientHelperException(
 					"Request(" + requestUrl + ") failed: "
@@ -280,8 +279,7 @@ public class HttpClientHelper {
 			HttpClientHelperException {
 
 		HttpGet get = new HttpGet(requestUrl);
-		DefaultHttpClient client = new DefaultHttpClient();
-		HttpResponse response = client.execute(get);
+		HttpResponse response = httpClient.execute(get);
 		if (300 <= response.getStatusLine().getStatusCode()) {
 			String errorMessage = "Request(" + requestUrl + ") failed: "
 					+ response.getStatusLine().getReasonPhrase();
@@ -331,8 +329,7 @@ public class HttpClientHelper {
 			}
 		}
 
-		DefaultHttpClient client = new DefaultHttpClient();
-		HttpResponse response = client.execute(put);
+		HttpResponse response = httpClient.execute(put);
 		if (300 <= response.getStatusLine().getStatusCode()) {
 			String errorMessage = "Request(" + requestUrl + ") failed: "
 					+ response.getStatusLine().getReasonPhrase();
