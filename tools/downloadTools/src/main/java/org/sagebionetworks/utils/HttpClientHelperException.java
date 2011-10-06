@@ -3,7 +3,8 @@
  */
 package org.sagebionetworks.utils;
 
-import org.apache.commons.httpclient.HttpMethodBase;
+import org.apache.http.HttpResponse;
+
 
 /**
  * @author deflaux
@@ -15,8 +16,7 @@ public class HttpClientHelperException extends Exception {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	private HttpMethodBase method = null;
-	private int httpStatus = -1;
+	private HttpResponse response = null;
 
 	/**
 	 * 
@@ -33,34 +33,25 @@ public class HttpClientHelperException extends Exception {
 
 	/**
 	 * @param message
-	 * @param method 
+	 * @param response 
 	 */
-	public HttpClientHelperException(String message, HttpMethodBase method) {
+	public HttpClientHelperException(String message, HttpResponse response) {
 		super(message);
-		this.method = method;
-	}
-	
-	/**
-	 * @param message
-	 * @param httpStatus 
-	 */
-	public HttpClientHelperException(String message, int httpStatus) {
-		super(message);
-		this.httpStatus = httpStatus;
+		this.response = response;
 	}
 
 	/**
-	 * @return the HttpMethodBase
+	 * @return the HttpResponse
 	 */
-	public HttpMethodBase getMethod() {
-		return method;
+	public HttpResponse getResponse() {
+		return response;
 	}
 
 	/**
 	 * @return the httpStatus
 	 */
 	public int getHttpStatus() {
-		return httpStatus;
+		return response.getStatusLine().getStatusCode();
 	}
 
 }

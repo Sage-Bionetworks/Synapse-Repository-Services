@@ -12,6 +12,11 @@ public class SynapseServiceException extends Exception {
 	/**
 	 * 
 	 */
+	private static final long serialVersionUID = 1L;
+
+	/**
+	 * 
+	 */
 	public SynapseServiceException() {
 		// TODO Auto-generated constructor stub
 	}
