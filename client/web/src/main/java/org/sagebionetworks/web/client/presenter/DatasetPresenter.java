@@ -349,27 +349,28 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 								licenseAgreement.setEulaId(eulaId);
 								view.setLicenseAgreement(licenseAgreement);
 							} else {
-								setDownloadFailure();
+								showDownloadLoadFailure();
 							}
 						}
 						
 						@Override
 						public void onFailure(Throwable caught) {
-							setDownloadFailure();
+							showDownloadLoadFailure();
 						}									
 					});
 				}
 				
 				@Override
 				public void onFailure(Throwable caught) {
-					setDownloadFailure();
+					showDownloadLoadFailure();
 				}
 			});									
 		}
 	}
 
-	protected void setDownloadFailure() {
+	protected void showDownloadLoadFailure() {
 		view.showErrorMessage("Dataset downloading unavailable. Please try reloading the page.");	
+		view.setDownloadUnavailable();
 		view.disableLicensedDownloads(true);
 	}	
 
@@ -392,13 +393,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 								}	
 							}
 						}
-						if(0 < downloads.size()) {
-							view.setDatasetDownloads(downloads);
-						}
-						else {
-							// Modify the download link to show no downloads available
-							view.setDownloadUnavailable();
-						}
+						view.setDatasetDownloads(downloads);
 					} catch (ForbiddenException ex) {
 						// if user hasn't signed an existing use agreement, a ForbiddenException is thrown. Do not alert user to this 
 					} catch (RestServiceException ex) {
@@ -409,7 +404,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 				}
 				@Override
 				public void onFailure(Throwable caught) {
-					setDownloadFailure();
+					view.setDownloadUnavailable();
 				}
 			});
 		}

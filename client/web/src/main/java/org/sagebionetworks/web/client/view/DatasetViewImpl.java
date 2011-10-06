@@ -484,7 +484,9 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		downloadLink.addClickHandler(new ClickHandler() {			
 			@Override
 			public void onClick(ClickEvent event) {
-				datasetLicensedDownloader.showWindow(); 
+				if(presenter.downloadAttempted()) {
+					datasetLicensedDownloader.showWindow();
+				}
 			}
 		});
 		return downloadLink;
