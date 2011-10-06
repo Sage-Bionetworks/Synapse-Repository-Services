@@ -11,7 +11,7 @@ base.url <- "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gds&te
 tail.url <- "AND+gse[ETYP]&usehistory=y&usehistory=y"
 
 gpl.ids <- c(
-		"GPL80" ,
+		## "GPL80" ,
 		## "GPL570",
 		"GPL96" ##,
 ## "GPL97",
@@ -33,29 +33,32 @@ gpl.ids <- c(
 ## "GPL6193",
 ## "GPL6096"
 )
-env <- new.env()
-lapply(gpl.ids, function(x) {
-			cat(x,"\t")
-			url <- paste(base.url,x,'+',tail.url,sep="")
-			obj <- getURL(url)
-			tmp <- xmlInternalTreeParse(obj)
-			queryKey <- xmlValue(xpathSApply(tmp, "/eSearchResult/QueryKey/text()")[[1]])
-			webenv <- xmlValue(xpathSApply(tmp, "/eSearchResult/WebEnv/text()")[[1]])
-			url <- paste("http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&query_key=",queryKey,"&WebEnv=",webenv,sep="")
-			obj2 <- getURL(url)
-			x<-xmlInternalTreeParse(url)
-			gseids<-paste('GSE',sapply(xpathApply(x, "/eSummaryResult/DocSum/Item[@Name='GSE']/text()"),xmlValue),sep="")
-			pdat<-sapply(xpathApply(x, "/eSummaryResult/DocSum/Item[@Name='PDAT']/text()"), xmlValue)
-			gse2date <- list(pdat)
-			names(gse2date) <- gseids
-			assign(x,gse2date,envir=env)
-			## ncbi.obj <- data.frame(GSE.ID = gseids, Last.Update.Date=pdat)
-			## cat(nrow(ncbi.obj), "total studies\n")
-			## ncbi.obj
-		}) -> res
 
+res <- list()
+if (F) {
+	for(i in 1:length(gpl.ids)) { 
+		x <- gpl.ids[i]
+		cat(x,"\t")
+		url <- paste(base.url,x,'+',tail.url,sep="")
+		obj <- getURL(url)
+		tmp <- xmlInternalTreeParse(obj)
+		queryKey <- xmlValue(xpathSApply(tmp, "/eSearchResult/QueryKey/text()")[[1]])
+		webenv <- xmlValue(xpathSApply(tmp, "/eSearchResult/WebEnv/text()")[[1]])
+		url <- paste("http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&query_key=",queryKey,"&WebEnv=",webenv,sep="")
+		obj2 <- getURL(url)
+		x<-xmlInternalTreeParse(url)
+		gseids<-paste('GSE',sapply(xpathApply(x, "/eSummaryResult/DocSum/Item[@Name='GSE']/text()"),xmlValue),sep="")
+		pdat<-sapply(xpathApply(x, "/eSummaryResult/DocSum/Item[@Name='PDAT']/text()"), xmlValue)
+		names(pdat) <- gseids
+		cat(length(pdat), "total studies\n")
+		res <- c(res,as.list(pdat))
+	}
+} else {
+	# for debugging only
+	res$GSE15308<-"2011/10/05"
+	res$GSE23603<-"2011/10/03"
+}
+res <- res[!duplicated(names(res))]
 
-
-
-finishWorkflowTask(output=c(101, 102, 103))
+finishWorkflowTask(output=res)
 

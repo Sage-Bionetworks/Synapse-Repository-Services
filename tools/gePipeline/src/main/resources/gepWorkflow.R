@@ -17,7 +17,18 @@ source('./src/main/resources/synapseWorkflow.R')
 ## #----- Unpack the rest of our command line parameters
 ## inputLayerId <- getInputLayerIdArg()
 
-inputDatasetId <- getInputDatasetIdArg()
+gseId <- getInputDatasetIdArg()
+geoTimestamp  <- getLastUpdateDateArg()
+userName <- getUsernameArg()
+secretKey <- getSecretKeyArg()
+authEndpoint <- getAuthEndpointArg()
+repoEndpoint <- getRepoEndpointArg()
 
-finishWorkflowTask(output=paste("Hello world! datasetid=",inputDatasetId))
+finishWorkflowTask(output=paste("datasetid:",gseId, 
+				"Last Updated:", geoTimestamp, 
+				"userName:", userName,
+				"secretKey:", secretKey,
+				"authEndpoint:", authEndpoint,
+				"repoEndpoint:", repoEndpoint
+				))
 

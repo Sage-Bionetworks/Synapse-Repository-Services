@@ -20,7 +20,7 @@ public class ScriptProcessor {
 	private static final String R_ARGS_DELIMITER = "--args";
 
 	private static final String SYNAPSE_USERNAME_KEY = "--username";
-	private static final String SYNAPSE_SECRETKEY_KEY = "--secretkey";
+	private static final String SYNAPSE_SECRETKEY_KEY = "--secretKey";
 	private static final String AUTH_ENDPOINT_KEY = "--authEndpoint";
 	private static final String REPO_ENDPOINT_KEY = "--repoEndpoint";
 

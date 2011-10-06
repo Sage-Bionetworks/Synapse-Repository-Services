@@ -5,9 +5,11 @@ setClass(
 				kUsage = 'character',
 				kUsernameKey = 'character',
 				kPasswordKey = 'character',
+				kSecretKey = 'character',
 				kAuthEndpointKey = 'character',
 				kRepoEndpointKey = 'character',
 				kInputDatasetIdKey = 'character',
+				kLastUpdateDateKey = 'character',
 				kOutputKey = 'character',
 				kWorkflowDone = 'character',
 				kOutputStartDelimiterPattern = 'character',
@@ -17,9 +19,11 @@ setClass(
 				kUsage = 'Usage: R myScript.r --args --username you@yourEmailAddress --password YourSynapsePassword --datasetId 42 --layerId 99',
 				kUsernameKey = '--username',
 				kPasswordKey = '--password',
+				kSecretKey = '--secretKey',
 				kAuthEndpointKey = '--authEndpoint',
 				kRepoEndpointKey = '--repoEndpoint',
 				kInputDatasetIdKey = '--datasetId',
+				kLastUpdateDateKey = "--lastUpdateDate",
 				kOutputKey = 'output',
 				kWorkflowDone = 'workflowDone',
 				kOutputStartDelimiterPattern = 'SynapseWorkflowResult_START',
@@ -37,6 +41,11 @@ getPasswordArg <- function() {
 	getArgVal(argName=constants@kPasswordKey) 
 }
 
+getSecretKeyArg <- function() {
+	constants <- new('SynapseWorkflowConstants')
+	getArgVal(argName=constants@kSecretKey) 
+}
+
 getAuthEndpointArg <- function() {
 	constants <- new('SynapseWorkflowConstants')
 	getOptionalArgVal(argName=constants@kAuthEndpointKey) 
@@ -50,6 +59,11 @@ getRepoEndpointArg <- function() {
 getInputDatasetIdArg <- function() {
 	constants <- new('SynapseWorkflowConstants')
 	getArgVal(argName=constants@kInputDatasetIdKey) 
+}
+
+getLastUpdateDateArg <- function() {
+	constants <- new('SynapseWorkflowConstants')
+	getArgVal(argName=constants@kLastUpdateDateKey) 
 }
 
 getInputLayerIdArg <- function() {
