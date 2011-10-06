@@ -65,6 +65,7 @@ setMethod(
 			if(!all(mk<-file.exists(file)))
 				stop(sprintf("File not found: %s", file[!mk]))
 			
+			path <- gsub("[\\/]+$", "", path)
 			path <- gsub("[\\/]+", "/", path)
 			path <- gsub("^[/]+", "", path)
 			mk <- path %in% c("")
