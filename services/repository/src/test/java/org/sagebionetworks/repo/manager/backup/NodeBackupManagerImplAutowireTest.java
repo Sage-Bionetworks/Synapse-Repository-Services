@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.manager.backup;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -12,6 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeRevision;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.CompoundId;
@@ -49,6 +51,9 @@ public class NodeBackupManagerImplAutowireTest {
 	
 	@Autowired
 	NodeQueryDao nodeQueryDao;
+	
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	List<String> usersToDelete;
 	List<String> nodesToDelete;
@@ -80,6 +85,7 @@ public class NodeBackupManagerImplAutowireTest {
 
 		
 		Node randomNode = RandomNodeUtil.generateRandom(443);
+		randomNode.setId(KeyFactory.keyToString(idGenerator.generateNewId()));
 		randomNode.setNodeType(ObjectType.folder.name());
 		randomNode.setParentId(null);
 		
