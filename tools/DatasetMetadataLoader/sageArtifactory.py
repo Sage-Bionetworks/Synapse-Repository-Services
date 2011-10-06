@@ -4,20 +4,19 @@ Created on Sep 23, 2011
     # Will eventually be a function in more complete module for Synapse Administration 
 @author: mkellen
 '''
-import urllib2, json, synapse.utils, hashlib, zipfile
+import json, synapse.utils, zipfile, urllib
 
-#QUESTION: Better way to define global / module constants?  Equivalent of Java final?
 SUPPORTED_ARTIFACT_NAMES = ("portal", "services-repository", "services-authentication")
 
-def determineDownloadURLForResource(artifactName, version, isSnapshot):
+def _determineDownloadURLForResource(artifactName, version, isSnapshot):
     path = "http://sagebionetworks.artifactoryonline.com/sagebionetworks/"
-    return determineDownloadURL(artifactName, version, isSnapshot, path)
+    return _determineDownloadURL(artifactName, version, isSnapshot, path)
     
-def determineDownloadURLForMetadata(artifactName, version, isSnapshot):
+def _determineDownloadURLForMetadata(artifactName, version, isSnapshot):
     path = "http://sagebionetworks.artifactoryonline.com/sagebionetworks/api/storage/"
-    return determineDownloadURL(artifactName, version, isSnapshot, path) + ':sample-metadata'
+    return _determineDownloadURL(artifactName, version, isSnapshot, path) + ':sample-metadata'
 
-def determineDownloadURL(artifactName, version, isSnapshot, path):  
+def _determineDownloadURL(artifactName, version, isSnapshot, path):  
     #QUESTION: How do I make this function "private" in Python?  
     if isSnapshot:
         path += "libs-snapshots-local"
@@ -39,20 +38,7 @@ def determineDownloadURL(artifactName, version, isSnapshot, path):
     path += ".war" 
     return path
 
-def downloadFile(url, tempFileName):
-    '''
-    Download a file from the internet and stream to filesystem, one CHUNK at a time
-    '''
-    #TODO: This function should probably move into Syanapse Utils.
-    req = urllib2.urlopen(url)
-    CHUNK = 16 * 1024
-    with open(tempFileName, 'wb') as file: #wb is write binary
-        while True:
-            chunk = req.read(CHUNK)
-            if not chunk: break
-            file.write(chunk)
-
-def findBuildNumber(fileName):
+def _findBuildNumber(fileName):
     '''
     Crack open the War and pull the build number out of the manifest file
     '''
@@ -75,18 +61,17 @@ def downloadArtifact(moduleName, version, isSnapshot):
     '''
     
     # Get the war file and check it's MD5
-    warUrl = determineDownloadURLForResource(moduleName, version, isSnapshot)
+    warUrl = _determineDownloadURLForResource(moduleName, version, isSnapshot)
     print('preparing to download from ' + warUrl)
     tempFileName = '/temp/' + moduleName +'-'+ version+ '.war'
-    downloadFile(warUrl, tempFileName)
+    urllib.urlretrieve(warUrl, tempFileName)
     md5 = synapse.utils.computeMd5ForFile(tempFileName)
 
     # Get the metadata and see what actual MD5 should be
-    # COMMENT - Could just pull file into memory, but this is easy for debugging for now
-    metaUrl = determineDownloadURLForMetadata(moduleName, version, isSnapshot)
+    metaUrl = _determineDownloadURLForMetadata(moduleName, version, isSnapshot)
     print('preparing to download from ' + metaUrl)
     metadataFileName = '/temp/' + moduleName + '.json'
-    downloadFile(metaUrl, metadataFileName)
+    urllib.urlretrieve(metaUrl, metadataFileName)
     file = open(metadataFileName, 'r')
     metadata = json.load(file)
     file.close()
@@ -95,10 +80,10 @@ def downloadArtifact(moduleName, version, isSnapshot):
     if (md5.hexdigest() == expectedMD5hexdigest):
         print("Downloads completed successfully")
     else:
-    # COMMENT: Need to learn right way to handle exceptions in Python
+    # TODO: Need to learn right way to handle exceptions in Python
         print("ERROR: MD5 does not match")
 
-    return findBuildNumber(tempFileName)
+    return _findBuildNumber(tempFileName)
 
 def downloadAll(version, isSnapshot):
     # Get all artifacts
