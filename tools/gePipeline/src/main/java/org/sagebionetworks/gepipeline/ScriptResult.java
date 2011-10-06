@@ -20,6 +20,9 @@ public class ScriptResult {
 			".*SynapseWorkflowResult_START(.*)SynapseWorkflowResult_END.*",
 			Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
 
+	public static final String OUTPUT_JSON_KEY = "output";
+
+	
 	JSONObject structuredOutput;
 	
 	ExternalProcessResult result;
@@ -66,7 +69,7 @@ public class ScriptResult {
 			for (String gseid : gseids) gseToDateMap.put(gseid, map.getString(gseid));
 			return gseToDateMap;
 		} catch (JSONException e) {
-			throw new RuntimeException(e);
+			throw new RuntimeException((structuredOutput==null?null:structuredOutput.toString()), e);
 		}
 	}
 

@@ -72,6 +72,8 @@ public class GEPWorkflow {
 		Settable<String> processedLayerId = new Settable<String>();
 		Settable<String> stdout = new Settable<String>();
 		Settable<String> stderr = new Settable<String>();
+		// 'result' is the message returned by the workflow, 
+		// other returned data are in 'processedLayerId', 'stdout', 'stderr'
 		Value<String> result = flow.dispatchProcessData(script,
 				datasetId, lastUpdateDate, processedLayerId, stdout, stderr);
 
@@ -115,7 +117,7 @@ public class GEPWorkflow {
 		stderr.set((MAX_SCRIPT_OUTPUT > result.getStderr().length()) ? result
 				.getStderr() : result.getStderr().substring(0,
 				MAX_SCRIPT_OUTPUT));
-		return Value.asValue(result.getStringResult("Message"));
+		return Value.asValue(result.getStringResult(ScriptResult.OUTPUT_JSON_KEY));
 	}
 
 	@Asynchronous
@@ -150,17 +152,18 @@ public class GEPWorkflow {
 		return result2;
 	}
 
+	// note, the output is in 'message'
 	@Asynchronous
 	private Value<String> dispatchFormulateNotificationMessage(
 			Value<String> param, Value<String> layerId, Settable<String> message)
 			throws Exception {
-		return doFormulateNotificationMessage(param.get(), layerId.get(),
+		return doFormulateNotificationMessage(param.get(), /*layerId.get(),*/
 				message);
 	}
 
 	@Activity(version = VERSION)
 	private static Value<String> doFormulateNotificationMessage(String param,
-			String layerId, Settable<String> message) throws Exception {
+			/*String layerId,*/ Settable<String> message) throws Exception {
 		message.set(param);
 		return Value.asValue(param + ":FormulateNotificationMessage");
 	}
