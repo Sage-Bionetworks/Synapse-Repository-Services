@@ -69,7 +69,6 @@ def downloadArtifact(moduleName, version, isSnapshot):
 
     # Get the metadata and see what actual MD5 should be
     metaUrl = _determineDownloadURLForMetadata(moduleName, version, isSnapshot)
-    print('preparing to download from ' + metaUrl)
     metadataFileName = '/temp/' + moduleName + '.json'
     urllib.urlretrieve(metaUrl, metadataFileName)
     file = open(metadataFileName, 'r')
@@ -80,8 +79,7 @@ def downloadArtifact(moduleName, version, isSnapshot):
     if (md5.hexdigest() == expectedMD5hexdigest):
         print("Downloads completed successfully")
     else:
-    # TODO: Need to learn right way to handle exceptions in Python
-        print("ERROR: MD5 does not match")
+        raise "ERROR: MD5 does not match"
 
     return _findBuildNumber(tempFileName)
 
@@ -102,8 +100,11 @@ if __name__ == '__main__':
         
         def test_getArtifact(self):
             #Test happy case with a small artifact
-            #TODO: Find a smaller artifact to speed this up
             buildNumber = downloadArtifact('services-authentication', '0.7.9', False)
             self.assertEqual(4655, buildNumber)
+        
+        def test_getSnapshot(self):
+            result = _determineDownloadURLForResource('services-authentication', '0.7', True)
+            self.assertEqual(result, 'http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-snapshots-local/org/sagebionetworks/services-authentication/0.7-SNAPSHOT/services-authentication-0.7-SNAPSHOT.war')
             
     unittest.main()
