@@ -30,7 +30,7 @@ public class IT100BackupRestoration {
 
 	public static final long TEST_TIME_OUT = 1000 * 60 * 4; // Currently 4 mins
 
-	public static final String BACKUP_FILE_NAME = "BackupDaemonJob515-7991022189877170152.zip";
+	public static final String BACKUP_FILE_NAME = "BackupDaemonJob512-958031189387028378.zip";
 
 	private static Synapse synapse;
 	private static AmazonS3Client s3Client;
