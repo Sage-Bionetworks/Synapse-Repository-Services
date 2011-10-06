@@ -20,7 +20,6 @@ public class GEPWorkflowInitiator {
 	private static final Logger log = Logger
 			.getLogger(GEPWorkflowInitiator.class.getName());
 
-	private static final String OUTPUT_JSON_KEY = "output";
 	/**
 	 * Crawl all top level TCGA datasets and identify the ones in which we are
 	 * interested
@@ -30,7 +29,7 @@ public class GEPWorkflowInitiator {
 		List<String> scriptParams = new ArrayList<String>();
 		String script = "src"+File.separator+"main"+File.separator+"resources"+File.separator+"datasetCrawler.R";
 		ScriptResult results = ScriptProcessor.doProcess(script, scriptParams);
-		Map<String,String> idToDateMap = results.getStringMapResult(OUTPUT_JSON_KEY);
+		Map<String,String> idToDateMap = results.getStringMapResult(ScriptResult.OUTPUT_JSON_KEY);
 		log.info("datasetIds to last-update-date map: "+idToDateMap);
 		for (String datasetId:idToDateMap.keySet()) GEPWorkflow.doWorkflow(datasetId, idToDateMap.get(datasetId));
 

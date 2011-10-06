@@ -79,7 +79,10 @@ public class ConfigHelper {
 		AWSCredentials awsCredentials = new BasicAWSCredentials(iamUserId, iamUserKey);
 		AmazonSimpleWorkflow client = new AmazonSimpleWorkflowClient(
 				awsCredentials, config);
-		client.setEndpoint(configuration.getProperty("aws.swf.endpoint"));
+		String swfEndpoint = configuration.getProperty("aws.swf.endpoint");
+		if (swfEndpoint==null || swfEndpoint.length()==0) 
+			throw new RuntimeException("Missing property: aws.swf.endpoint.");
+		client.setEndpoint(swfEndpoint);
 		return client;
 	}
 
