@@ -1,32 +1,14 @@
 package org.sagebionetworks.workflow.curation;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
 
 import org.apache.log4j.Logger;
-import org.json.JSONObject;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.client.Synapse;
-import org.sagebionetworks.utils.WebCrawler;
 import org.sagebionetworks.utils.SimpleObserver;
-import org.sagebionetworks.workflow.Constants;
-import org.sagebionetworks.workflow.UnrecoverableException;
-import org.sagebionetworks.workflow.activity.Curation;
-import org.sagebionetworks.workflow.activity.DataIngestion;
-import org.sagebionetworks.workflow.activity.Notification;
-import org.sagebionetworks.workflow.activity.Processing;
-import org.sagebionetworks.workflow.activity.Storage;
-import org.sagebionetworks.workflow.activity.DataIngestion.DownloadResult;
-import org.sagebionetworks.workflow.activity.Processing.ScriptResult;
+import org.sagebionetworks.utils.WebCrawler;
 import org.sagebionetworks.workflow.curation.TcgaWorkflowInitiator.ArchiveObserver;
-
-import com.amazonaws.AmazonServiceException;
 
 /**
  * Note that this integration test should pass when the system is clean (no
