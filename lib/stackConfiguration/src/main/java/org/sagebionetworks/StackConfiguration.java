@@ -345,4 +345,23 @@ public class StackConfiguration {
 				.valueOf(configuration
 						.getProperty("org.sagebionetowrks.launchFlags.useFederatedIamUsers"));
 	}
+	
+	/**
+	 * @return whether the cloudWatch profiler should be on or off boolean.
+	 * True means on, false means off.
+	 */
+	public boolean getCloudWatchOnOff() {
+		//Boolean toReturn = Boolean.getBoolean(getProperty("org.sagebionetworks.cloud.watch.report.enabled"));
+		String answer = configuration.getProperty("org.sagebionetworks.cloud.watch.report.enabled");
+		boolean theValue = Boolean.parseBoolean(answer);
+		return theValue;
+	}
+	
+	/**
+	 * @return the time in milliseconds for the cloudWatch profiler's trigger.  I till trigger
+	 * and send metrics to cloudWatch ever xxx milliseconds.
+	 */
+	public long getCloudWatchTriggerTime() {
+		return Long.valueOf(configuration.getProperty("org.sagebionetworks.cloud.watch.trigger"));
+	}
 }

@@ -31,5 +31,8 @@
 	<bean id="stackConfiguration.databaseConnectionPoolShouldValidate" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.databaseConnectionPoolValidateSql" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.databaseConnectionPoolMinNumberConnections" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.databaseConnectionPoolMaxNumberConnections" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
+	<bean id="stackConfiguration.databaseConnectionPoolMaxNumberConnections" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	
+	<bean id="stackConfiguration.cloudWatchOnOff" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.cloudWatchTriggerTime" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 </beans>
