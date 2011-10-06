@@ -167,7 +167,7 @@ public class DatasetPresenterTest {
 		AsyncMockStubber.callSuccessWith("node location json").when(mockNodeService).getNodeLocations(eq(NodeType.DATASET), eq(datasetId), any(AsyncCallback.class));
 		datasetPresenter.loadDownloadLocations();
 		verify(mockNodeService).getNodeLocations(Mockito.eq(NodeType.DATASET), eq(datasetId), any(AsyncCallback.class));
-		verify(mockView).setDownloadUnavailable();
+		verify(mockView).setDatasetDownloads(Arrays.asList(new FileDownload[] { }));
 		
 		// Failure Test		
 		resetMocks();	
@@ -177,7 +177,8 @@ public class DatasetPresenterTest {
 		Throwable error = new Throwable("Error Message");
 		AsyncMockStubber.callFailureWith(error).when(mockNodeService).getNodeLocations(eq(NodeType.DATASET), eq(datasetId), any(AsyncCallback.class));
 		datasetPresenter.loadDownloadLocations();
-		verifyLicenceAgreementFailure();		
+		verify(mockNodeService).getNodeLocations(Mockito.eq(NodeType.DATASET), eq(datasetId), any(AsyncCallback.class));
+		verify(mockView).setDownloadUnavailable();
 	}
 
 	@SuppressWarnings("unchecked")
