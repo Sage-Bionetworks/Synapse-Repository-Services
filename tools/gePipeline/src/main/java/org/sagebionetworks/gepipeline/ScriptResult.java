@@ -1,7 +1,10 @@
 package org.sagebionetworks.gepipeline;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -53,6 +56,18 @@ public class ScriptResult {
 			}
 		}
 		return ans;
+	}
+	
+	public Map<String,String> getStringMapResult(String key) {
+		try {
+			JSONObject map = structuredOutput.getJSONObject(key);
+			List<String> gseids = Arrays.asList(JSONObject.getNames(map));
+			Map<String,String> gseToDateMap = new HashMap<String,String>();
+			for (String gseid : gseids) gseToDateMap.put(gseid, map.getString(gseid));
+			return gseToDateMap;
+		} catch (JSONException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	/**

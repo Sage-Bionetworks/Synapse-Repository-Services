@@ -3,6 +3,7 @@ package org.sagebionetworks.gepipeline;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -29,9 +30,9 @@ public class GEPWorkflowInitiator {
 		List<String> scriptParams = new ArrayList<String>();
 		String script = "src"+File.separator+"main"+File.separator+"resources"+File.separator+"datasetCrawler.R";
 		ScriptResult results = ScriptProcessor.doProcess(script, scriptParams);
-		List<String> datasetIds = results.getStringListResult(OUTPUT_JSON_KEY);
-		log.info("datasetIds: "+datasetIds);
-		for (String datasetId:datasetIds) GEPWorkflow.doWorkflow(datasetId);
+		Map<String,String> idToDateMap = results.getStringMapResult(OUTPUT_JSON_KEY);
+		log.info("datasetIds to last-update-date map: "+idToDateMap);
+		for (String datasetId:idToDateMap.keySet()) GEPWorkflow.doWorkflow(datasetId, idToDateMap.get(datasetId));
 
 	}
 

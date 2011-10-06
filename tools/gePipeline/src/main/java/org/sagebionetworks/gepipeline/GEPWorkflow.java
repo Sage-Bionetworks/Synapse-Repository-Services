@@ -37,6 +37,7 @@ public class GEPWorkflow {
 	private static final int NUM_RETRIES = 3;
 	
 	private static final String INPUT_DATASET_PARAMETER_KEY = "--datasetId";
+	private static final String LAST_UPDATE_PARAMETER_KEY = "--lastUpdateDate";
 
 	/**
 	 * Other Constants (can be determined at runtime)
@@ -57,7 +58,7 @@ public class GEPWorkflow {
 	 */
 	@Workflow(name = WORKFLOW_NAME, version = VERSION)
 	@WorkflowRegistrationOptions(defaultWorkflowLifetimeTimeout = @Duration(time = MAX_WORKFLOW_TIMEOUT_HOURS, unit = DurationUnit.Hours))
-	public static void doWorkflow(String datasetId)
+	public static void doWorkflow(String datasetId, String lastUpdateDate)
 			throws Exception {
 
 		GEPWorkflow flow = new GEPWorkflow();
@@ -72,7 +73,7 @@ public class GEPWorkflow {
 		Settable<String> stdout = new Settable<String>();
 		Settable<String> stderr = new Settable<String>();
 		Value<String> result = flow.dispatchProcessData(script,
-				datasetId, processedLayerId, stdout, stderr);
+				datasetId, lastUpdateDate, processedLayerId, stdout, stderr);
 
 		flow.dispatchNotifyDataProcessed(result, processedLayerId);
 
@@ -80,14 +81,14 @@ public class GEPWorkflow {
 
 	@Asynchronous
 	private Value<String> dispatchProcessData(
-			Value<String> script, String datasetId,
+			Value<String> script, String datasetId, String lastUpdateDate,
 			Settable<String> processedLayerId, Settable<String> stdout,
 			Settable<String> stderr) throws Exception {
 
 //		if (Constants.WORKFLOW_DONE.equals(rawLayerId.get())) {
 //			return Value.asValue(param + ":noop");
 //		}
-		return doProcessData(script.get(), datasetId,
+		return doProcessData(script.get(), datasetId, lastUpdateDate,
 				processedLayerId, stdout, stderr);
 	}
 
@@ -99,13 +100,14 @@ public class GEPWorkflow {
 	@ActivitySchedulingOptions(
 			lifetimeTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours), 
 			queueTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours))
-	private static Value<String> doProcessData(String script,
+	private static Value<String> doProcessData(String script, 
 			String datasetId,
+			String lastUpdateDate,
 			Settable<String> processedLayerId, Settable<String> stdout,
 			Settable<String> stderr) throws Exception {
 
-		ScriptResult result = ScriptProcessor.doProcess(script, 
-				Arrays.asList(new String[]{INPUT_DATASET_PARAMETER_KEY, datasetId}));
+		ScriptResult result = ScriptProcessor.doProcess(script,
+				Arrays.asList(new String[]{INPUT_DATASET_PARAMETER_KEY, datasetId, LAST_UPDATE_PARAMETER_KEY, lastUpdateDate}));
 		processedLayerId.set("layer id goes here");
 		stdout.set((MAX_SCRIPT_OUTPUT > result.getStdout().length()) ? result
 				.getStdout() : result.getStdout().substring(0,
