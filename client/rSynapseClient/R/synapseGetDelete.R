@@ -1,6 +1,6 @@
 .synapseGetDelete <- 
 		function(uri, requestMethod, host = .getRepoEndpointLocation(), curlHandle=getCurlHandle(), 
-				anonymous = .getCache("anonymous"), path = .getRepoEndpointPrefix(), opts = .getCache("curlOpts"))
+				anonymous = .getCache("anonymous"), path = .getRepoEndpointPrefix(), opts = .getCache("curlOpts"), entity=NULL)
 {
 
 	## constants
@@ -29,7 +29,7 @@
 	if(!anonymous) {
 		header <- switch(authMode(),
 						auth = .stuffHeaderAuth(header),
-						hmac = .stuffHeaderHmac(header, url),
+						hmac = .stuffHeaderHmac(header, uri),
 						stop("Unknown auth mode: %s. Could not build header", authMod())
 		)		
 	}
@@ -38,13 +38,27 @@
 	d = debugGatherer()
 	
 	##curlSetOpt(opts,curl=curlHandle)
-	response <- getURL(uri, 
-			customrequest = requestMethod, 
-			httpheader = header,
-			curl = curlHandle, 
-			debugfunction=d$update,
-			.opts=opts
-	)
+	if(is.null(entity)){
+		response <- getURL(uri, 
+				customrequest = requestMethod, 
+				httpheader = header, 
+				curl = curlHandle, 
+				debugfunction=d$update,
+				.opts=opts
+		)
+	}else{
+		httpBody <- toJSON(entity)
+		response <- getURL(uri, 
+				postfields = httpBody, 
+				customrequest = requestMethod, 
+				httpheader = header, 
+				curl = curlHandle, 
+				debugfunction=d$update,
+				.opts=opts
+		)
+	}
+	
+	
 	if(.getCache("debug")) {
 		message(d$value())
 		message("responseBody: ", response)

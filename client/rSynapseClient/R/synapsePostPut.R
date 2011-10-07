@@ -9,7 +9,7 @@
 	if(!(requestMethod %in% kValidMethods)){
 		stop("invalid request method")
 	}
-		
+	
 	if(!is.character(uri)){
 		stop("a uri must be supplied of R type character")
 	}
@@ -60,6 +60,7 @@
 	d = debugGatherer()
 	
 	##curlSetOpt(opts,curl=curlHandle)
+	
 	response <- getURL(uri, 
 			postfields = httpBody, 
 			customrequest = requestMethod, 

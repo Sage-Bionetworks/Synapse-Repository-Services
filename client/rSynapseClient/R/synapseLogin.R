@@ -37,7 +37,7 @@ synapseLogin <-
 	entity$email <- credentials$username
 	
 	## Request the secret key
-	response <- synapsePost(uri = kService, 
+	response <- synapseGet(uri = kService, 
 			entity = entity, 
 			host = host, 
 			path = path,
@@ -184,7 +184,7 @@ synapseLogout <-
 .generateHMACSignature<-function(url, timestamp, username = userName(), base64EncodedSecretKey= hmacSecretKey(), algo="sha1") {
 	data<-paste(username, url, timestamp, sep="")
 	#Base64 decode the key
-	secretKey <- base64(base64EncodedSecretKey, encode=FALSE)
+	secretKey <- base64(base64EncodedSecretKey, encode=FALSE, "raw")
 	#create the HMACSHA1 hash
 	hash<-rawToChar(hmac(secretKey, data, algo=algo, raw=TRUE))
 	#Base64 encode the result
