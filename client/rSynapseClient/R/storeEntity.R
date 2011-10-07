@@ -16,7 +16,11 @@ setMethod(
 		definition = function(entity){
 			if(length(list.files(file.path(entity$cacheDir, .getCache("rObjCacheDir")), all.files = TRUE)) > 0 ){
 				storeEntityObjects(entity)
-			}else{
+			} else if(("M" == propertyValue(entity, "type")) && (length(entity$files) == 1)) {
+				# Special case for media layers, don't zip them
+				storeFile(entity, entity$files)
+			}
+			else {
 				storeEntityFiles(entity)
 			}
 		}
