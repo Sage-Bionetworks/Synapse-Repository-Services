@@ -13,7 +13,8 @@ setClass(
 				kOutputKey = 'character',
 				kWorkflowDone = 'character',
 				kOutputStartDelimiterPattern = 'character',
-				kOutputEndDelimiterPattern = 'character'
+				kOutputEndDelimiterPattern = 'character',
+				kInputProjectIdKey = 'character'
 		),
 		prototype = prototype(
 				kUsage = 'Usage: R myScript.r --args --username you@yourEmailAddress --password YourSynapsePassword --datasetId 42 --layerId 99',
@@ -27,7 +28,8 @@ setClass(
 				kOutputKey = 'output',
 				kWorkflowDone = 'workflowDone',
 				kOutputStartDelimiterPattern = 'SynapseWorkflowResult_START',
-				kOutputEndDelimiterPattern = 'SynapseWorkflowResult_END'
+				kOutputEndDelimiterPattern = 'SynapseWorkflowResult_END',
+				kInputProjectIdKey = '--projectId'
 		)
 )
 
@@ -104,4 +106,9 @@ skipWorkflowTask <- function(reason = 'this script does not want to work on this
 	warning(reason)
 	finishWorkflowTask(output=constants@kWorkflowDone)
 	q()
+}
+
+getProjectId <- function(){
+	constants <- new('SynapseWorkflowConstants')
+	getArgVal(argName=constants@kInputProjectIdKey) 
 }
