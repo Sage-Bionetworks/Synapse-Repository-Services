@@ -186,7 +186,7 @@ synapseLogout <-
 	#Base64 decode the key
 	secretKey <- base64(base64EncodedSecretKey, encode=FALSE, "raw")
 	#create the HMACSHA1 hash
-	hash<-rawToChar(hmac(secretKey, data, algo=algo, raw=TRUE))
+	hash<-hmac(secretKey, data, algo=algo, raw=TRUE)
 	#Base64 encode the result
 	base64(hash, encode=TRUE)
 }

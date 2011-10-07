@@ -68,3 +68,24 @@
 	result
 }
 
+
+testHMACSignature <- function() {
+	# in this case the secret key has a null
+	userId <- "matt.furia@sagebase.org" 
+	uri <- "/services-repository-0.7-SNAPSHOT/repo/v1/project"
+	timeStampString <- "2011-09-28T13:31:16.90-0700"
+	base64EncodedSecretKey <- "GX/ZL7HPHOO4MvEUdADASuY8zmdKR10vINnNZ1lPLwkZZI/BYgl+FUyw35/NEhTFB1ZwGVQbVqVAA6w/0nbUYQ=="
+	signature<-.generateHMACSignature(uri, timeStampString, userId, base64EncodedSecretKey)
+	expected<-"rIi/ut4jdroxisbMsbvV0fuW9eQ="
+	if (signature!=expected) stop("Error in testHMACSignature")
+	
+    # in this case the HMAC signature has a null
+	userId <- "matt.furia@sagebase.org" 
+	uri <- "/repo/v1/entity/17428/type"
+	timeStampString <- "2011-10-07T00:09:40.44-0700"
+	base64EncodedSecretKey <- "pDfk2KtmuvwFNKJzOn16ZfIY5qbSDebNFpTPHd6DuGemivMLWCV3tBFny6qGQ3luwXW7Q13IL3SUYC29mXeKdg=="
+	signature<-.generateHMACSignature(uri, timeStampString, userId, base64EncodedSecretKey)
+	expected<-"tVJCGnmI/8nh+W6CVgAJpv902Ns="
+	if (signature!=expected) stop("Error in testHMACSignature")
+}
+
