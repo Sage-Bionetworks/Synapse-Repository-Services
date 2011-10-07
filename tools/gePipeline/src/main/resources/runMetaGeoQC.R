@@ -102,8 +102,11 @@ ans <- tryCatch({
 		}
 )
 dsId <- ans$datasetId
-if(!ans$update)
-	finishWorkflowTask(list(status=kOkStatusCode, msg="Dataset has not changed since last update.", datasetId=dsId))
+if(!ans$update){
+	msg <- sprintf("Dataset %s has not changed since last update.", dsId)
+	finishWorkflowTask(list(status=kOkStatusCode, msg=msg, datasetId=dsId))
+	stop(msg)
+}
 
 
 ## get add location code entity and add location for the geo id
