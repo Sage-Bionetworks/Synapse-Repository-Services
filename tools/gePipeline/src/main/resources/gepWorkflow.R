@@ -8,6 +8,7 @@ userName <- getUsernameArg()
 secretKey <- getSecretKeyArg()
 authEndpoint <- getAuthEndpointArg()
 repoEndpoint <- getRepoEndpointArg()
+projectId <- getProjectId()
 
 finishWorkflowTask(output=paste("datasetid:",gseId, 
 				"Last Updated:", geoTimestamp, 
