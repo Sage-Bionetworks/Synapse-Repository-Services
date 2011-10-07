@@ -27,29 +27,30 @@ projectId <- getProjectId()
 
 if(is.null(gseId) 
 		|| is.null(secretKey) 
-		|| is.null(synapseClient:::userName()) 
+		|| is.null(userName) 
 		|| is.null(geoTimestamp)
 		|| is.null(projectId)
 		|| is.null(authEndpoint)
 		|| is.null(repoEndpoint)
-)
+){
+	cat("gseId: ", gseId, "\ngeoTimestamp: ", geoTimestamp, "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", projectId, "\n")
 	stop("not all required arguments were provided")
+}
 
 
 ## set the service endpoints
 synapseAuthServiceEndpoint(authEndpoint)
 synapseRepoServiceEndpoint(repoEndpoint)
 
-## log in. use sessionToken for now. will fix hmac auth later
-##synapseClient:::userName(userName)
-##hmacSecretKey(secretKey)
-synapseLogin(userName, secretKey)
+## set up the hmac credentials
+synapseClient:::userName(userName)
+hmacSecretKey(secretKey)
 
 ##########################################
 ## get the R Code dataset id
 ##########################################
 result <- synapseQuery(sprintf('select * from dataset where dataset.name == "%s" and dataset.parentId == "%s"', "GEO R Code Layers", projectId))
-if(nrow(result) != 1L){
+if(is.null(result) || nrow(result) != 1L){
 	msg <- sprintf("could not find R code dataset in project %s", projectId)
 	finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
 	stop(msg)
