@@ -99,7 +99,6 @@ public class IT700SynapseRClient {
 		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
 	}
 	
-	@Ignore
 	@Test
 	public void testRunRHmacAuthenticationTest() throws Exception{
 		String cmd[] = {
