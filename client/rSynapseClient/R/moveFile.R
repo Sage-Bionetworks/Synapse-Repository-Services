@@ -34,7 +34,7 @@ setMethod(
 				## rename and copy the file to a temp directory, then add it from there
 				filename <- gsub("^.+[\\\\/]", "", dest)
 				tmpdir <- tempfile()
-				dir.create(tmpdir)
+				dir.create(tmpdir, recursive=TRUE)
 				newSrc <- file.path(tmpdir, filename)
 				file.copy(file.path(entity@cacheDir, src), newSrc)
 				path <- gsub(sprintf("[\\\\/]?%s$",filename),"", dest)
