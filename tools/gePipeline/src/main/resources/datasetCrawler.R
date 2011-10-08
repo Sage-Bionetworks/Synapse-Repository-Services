@@ -35,7 +35,7 @@ gpl.ids <- c(
 )
 
 res <- list()
-if (F) {
+if (T) {
 	for(i in 1:length(gpl.ids)) { 
 		x <- gpl.ids[i]
 		cat(x,"\t")

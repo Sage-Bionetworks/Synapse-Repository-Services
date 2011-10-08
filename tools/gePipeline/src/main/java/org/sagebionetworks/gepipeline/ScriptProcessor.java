@@ -24,6 +24,8 @@ public class ScriptProcessor {
 	private static final String AUTH_ENDPOINT_KEY = "--authEndpoint";
 	private static final String REPO_ENDPOINT_KEY = "--repoEndpoint";
 
+	private static final String PROJECT_ID_PARAMETER_KEY = "--projectId";
+
 //	private static final String INPUT_LAYER_PARAMETER_KEY = "--layerId";
 
 	/**
@@ -51,7 +53,8 @@ public class ScriptProcessor {
 				SYNAPSE_USERNAME_KEY, ConfigHelper.getSynapseUsername(),
 				SYNAPSE_SECRETKEY_KEY, ConfigHelper.getSynapseSecretKey(),
 				AUTH_ENDPOINT_KEY, ConfigHelper.getAuthenticationServicePublicEndpoint(),
-				REPO_ENDPOINT_KEY, ConfigHelper.getRepositoryServiceEndpoint()
+				REPO_ENDPOINT_KEY, ConfigHelper.getRepositoryServiceEndpoint(),
+				PROJECT_ID_PARAMETER_KEY, ConfigHelper.getProjectId()
 				};
 		
 		// now append the parameters onto the end

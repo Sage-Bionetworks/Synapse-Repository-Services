@@ -64,7 +64,9 @@ public class GEPWorkflow {
 		GEPWorkflow flow = new GEPWorkflow();
 
 		Settable<String> script = new Settable<String>();
-		script.set("./src/main/resources/gepWorkflow.R");
+		String workflowScript = ConfigHelper.getGEPipelineWorkflowScript();
+		if (workflowScript==null || workflowScript.length()==0) throw new RuntimeException("No workflow script param");
+		script.set(workflowScript);
 
 		/**
 		 * Run the processing step(s) on this data
@@ -83,7 +85,7 @@ public class GEPWorkflow {
 
 	@Asynchronous
 	private Value<String> dispatchProcessData(
-			Value<String> script, String datasetId, String lastUpdateDate,
+			Value<String> script, String datasetId, String lastUpdateDate, 
 			Settable<String> processedLayerId, Settable<String> stdout,
 			Settable<String> stderr) throws Exception {
 
@@ -109,7 +111,10 @@ public class GEPWorkflow {
 			Settable<String> stderr) throws Exception {
 
 		ScriptResult result = ScriptProcessor.doProcess(script,
-				Arrays.asList(new String[]{INPUT_DATASET_PARAMETER_KEY, datasetId, LAST_UPDATE_PARAMETER_KEY, lastUpdateDate}));
+				Arrays.asList(new String[]{
+						INPUT_DATASET_PARAMETER_KEY, datasetId, 
+						LAST_UPDATE_PARAMETER_KEY, lastUpdateDate
+						}));
 		processedLayerId.set("layer id goes here");
 		stdout.set((MAX_SCRIPT_OUTPUT > result.getStdout().length()) ? result
 				.getStdout() : result.getStdout().substring(0,

@@ -178,5 +178,17 @@ public class ConfigHelper {
 	
 	public static String getRScriptPath() {
 		return configuration.getRScriptPath();
+	}	
+	
+	public static String getProjectId() {
+		return configuration.getProjectId();
+	}
+	
+	public static String getGEPipelineCrawlerScript() {
+		return configuration.getGEPipelineCrawlerScript();
+	}
+	
+	public static String getGEPipelineWorkflowScript() {
+		return configuration.getGEPipelineWorkflowScript();
 	}
 }
