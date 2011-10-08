@@ -27,7 +27,8 @@ public class GEPWorkflowInitiator {
 	void initiateWorkflowTasks() throws Exception {
 		// call R function which returns IDs of data sets to process
 		List<String> scriptParams = new ArrayList<String>();
-		String script = "src"+File.separator+"main"+File.separator+"resources"+File.separator+"datasetCrawler.R";
+		String script = ConfigHelper.getGEPipelineCrawlerScript();
+		if (script==null || script.length()==0) throw new RuntimeException("Missing crawler script parameter.");
 		ScriptResult results = ScriptProcessor.doProcess(script, scriptParams);
 		Map<String,String> idToDateMap = results.getStringMapResult(ScriptResult.OUTPUT_JSON_KEY);
 		log.info("datasetIds to last-update-date map: "+idToDateMap);

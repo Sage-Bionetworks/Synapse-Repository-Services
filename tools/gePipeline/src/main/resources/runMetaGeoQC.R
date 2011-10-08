@@ -37,14 +37,20 @@ if(is.null(gseId)
 	stop("not all required arguments were provided")
 }
 
+cat("gseId: ", gseId, "\ngeoTimestamp: ", geoTimestamp, "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", projectId, "\n")
+
 
 ## set the service endpoints
 synapseAuthServiceEndpoint(authEndpoint)
 synapseRepoServiceEndpoint(repoEndpoint)
 
 ## set up the hmac credentials
+cat("1\n\n")
 synapseClient:::userName(userName)
+cat("2\n\n")
 hmacSecretKey(secretKey)
+
+cat("3\n\n")
 
 ##########################################
 ## get the R Code dataset id
@@ -56,6 +62,9 @@ if(is.null(result) || nrow(result) != 1L){
 	stop(msg)
 }
 datasetId <- result$dataset.id
+
+
+
 
 ##########################################
 ## get the entity ids for the code modules

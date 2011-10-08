@@ -73,6 +73,11 @@ getInputLayerIdArg <- function() {
 	getArgVal(argName=constants@kInputLayerIdKey) 
 }
 
+getProjectId <- function() {
+	constants <- new('SynapseWorkflowConstants')
+	getArgVal(argName=constants@kProjectId) 
+}
+
 getArgVal <- function(argName){
 	constants <- new('SynapseWorkflowConstants')
 	args <- commandArgs(trailingOnly = TRUE)

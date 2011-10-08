@@ -364,5 +364,17 @@ public class TemplatedConfiguration {
 	public String getRScriptPath() {
 		return getProperty("org.sagebionetworks.rScript.path");
 	}
+	
+	public String getProjectId() {
+		return getProperty("org.sagebionetworks.projectId");
+	}
+	
+	public String getGEPipelineCrawlerScript() {
+		return getProperty("org.sagebionetoworks.gepipeline.crawlerscript");
+	}
+	
+	public String getGEPipelineWorkflowScript() {
+		return getProperty("org.sagebionetoworks.gepipeline.workflowscript");
+	}
 
 }
