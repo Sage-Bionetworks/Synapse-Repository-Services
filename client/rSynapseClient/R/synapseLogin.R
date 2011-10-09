@@ -214,7 +214,7 @@ hmacSecretKey <-
 .stuffHeaderHmac <-
 		function(header, url)
 {
-	timestamp <- format(Sys.time(),"%Y-%m-%dT%H:%M:%OS2%z")
+	timestamp <- sprintf("%sZ", format(Sys.time(),"%Y-%m-%dT%H:%M:%OS2", tz="GMT"))
 	parsedUrl <- .ParsedUrl(url)
 	c(header, userId = userName(), 
 			signatureTimestamp = timestamp, 
