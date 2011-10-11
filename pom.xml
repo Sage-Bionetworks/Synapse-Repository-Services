@@ -36,6 +36,11 @@
 			<name>sagebionetworks-releases</name>
 			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local</url>
 		</repository>
+		<repository>
+			<id>sagebionetworks-plugins-releases-local</id>
+			<name>sagebionetworks-plugins-releases-local</name>
+        	<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/plugins-releases-local</url>
+		</repository>
         <repository>
           <id>sagebionetworks-ext</id>
           <name>sagebionetworks-releases-ext</name>
@@ -63,6 +68,16 @@
 		<pluginRepository>
 			<id>Codehaus Snapshots</id>
 			<url>http://snapshots.repository.codehaus.org/</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+		</pluginRepository>
+		<pluginRepository>
+			<id>sagebionetworks-plugins-releases-local</id>
+			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/plugins-releases-local/</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
