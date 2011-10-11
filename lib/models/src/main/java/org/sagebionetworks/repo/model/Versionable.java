@@ -47,7 +47,7 @@ public interface Versionable extends Nodeable {
 	public void setVersionNumber(Long number);
 	
 	/**
-	 * Use this URL to reference a specific version of aa entity.
+	 * Use this URL to reference a specific version of a entity.
 	 * @param versionUrl
 	 */
 	public void setVersionUrl(String versionUrl);
