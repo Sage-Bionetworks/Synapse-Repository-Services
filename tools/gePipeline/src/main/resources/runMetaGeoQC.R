@@ -32,7 +32,7 @@ if(is.null(gseId)
 		|| is.null(projectId)
 		|| is.null(authEndpoint)
 		|| is.null(repoEndpoint)
-){
+		){
 	cat("gseId: ", gseId, "\ngeoTimestamp: ", geoTimestamp, "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", projectId, "\n")
 	stop("not all required arguments were provided")
 }
@@ -45,12 +45,9 @@ synapseAuthServiceEndpoint(authEndpoint)
 synapseRepoServiceEndpoint(repoEndpoint)
 
 ## set up the hmac credentials
-cat("1\n\n")
 synapseClient:::userName(userName)
-cat("2\n\n")
 hmacSecretKey(secretKey)
 
-cat("3\n\n")
 
 ##########################################
 ## get the R Code dataset id
@@ -62,7 +59,6 @@ if(is.null(result) || nrow(result) != 1L){
 	stop(msg)
 }
 datasetId <- result$dataset.id
-
 
 
 
@@ -95,7 +91,6 @@ if(nrow(result) != 1L){
 	stop(msg)
 }
 kRunMetaGeoCodeEntityId <- result$layer.id
-
 ##########################################
 ## finished getting code module ids
 ##########################################
@@ -115,41 +110,40 @@ dsId <- ans$datasetId
 if(!ans$update){
 	msg <- sprintf("Dataset %s has not changed since last update.", dsId)
 	finishWorkflowTask(list(status=kOkStatusCode, msg=msg, datasetId=dsId))
-	stop(msg)
+}else{
+	
+	## get add location code entity and add location for the geo id
+	ans <- tryCatch({
+				addLocCodeEntity <- loadEntity(kAddLocationCodeEntityId)
+				addLocCodeEntity$objects$addGeoLocationToLayer(ans$layerId)
+			},
+			error = function(e){
+				msg <- sprintf("Failed to add Location to data layer: %s", e)
+				finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
+				stop(e)
+			}
+	)
+	
+	## run the metaGeo workflow
+	ans <- tryCatch({
+				runMetaGeoEntity <- loadEntity(kRunMetaGeoCodeEntityId)
+				runMetaGeoEntity$objects$run(ans$layerId, geoTimestamp)
+			},
+			error = function(e){
+				msg <- sprintf("Failed to run metaGeo workflow: %s", e)
+				finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
+				stop(e)
+			}
+	)
+	## call the finish workflow step code
+	finishWorkflowTask(
+			output=list(
+					status=kOkStatusCode, 
+					msg=sprintf("Successfully added GEO study %s to Synapse.", gseId), 
+					datasetId=dsId, 
+					qcdExprLayerId=ans$exprLayers, 
+					metadataLayerId=ans$metadataLayers
+			)
+	)
 }
-
-
-## get add location code entity and add location for the geo id
-ans <- tryCatch({
-			addLocCodeEntity <- loadEntity(kAddLocationCodeEntityId)
-			addLocCodeEntity$objects$addGeoLocationToLayer(ans$layerId)
-		},
-		error = function(e){
-			msg <- sprintf("Failed to add Location to data layer: %s", e)
-			finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
-			stop(e)
-		}
-)
-
-## run the metaGeo workflow
-ans <- tryCatch({
-			runMetaGeoEntity <- loadEntity(kRunMetaGeoCodeEntityId)
-			runMetaGeoEntity$objects$run(ans$layerId)
-		},
-		error = function(e){
-			msg <- sprintf("Failed to run metaGeo workflow: %s", e)
-			finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
-			stop(e)
-		}
-)
-
-## call the finish workflow step code
-finishWorkflowTask(
-		output=list(
-				status=kOkStatusCode, 
-				msg=sprintf("Successfully added GEO study %s to Synapse.", gseId), 
-				datasetId=dsId, 
-				qcdExprLayerId=ans$exprLayers, 
-				metadataLayerId=ans$metadataLayers
-		)
-)
+return(kOkStatusCode)
