@@ -215,6 +215,9 @@ hmacSecretKey <-
 		function(header, url)
 {
 	timestamp <- sprintf("%sZ", format(Sys.time(),"%Y-%m-%dT%H:%M:%OS2", tz="GMT"))
+	## this is a hack. drop leap seconds
+	timestamp <- gsub(":6[01][\\.]", ":59.", timestamp)
+	
 	parsedUrl <- .ParsedUrl(url)
 	c(header, userId = userName(), 
 			signatureTimestamp = timestamp, 
