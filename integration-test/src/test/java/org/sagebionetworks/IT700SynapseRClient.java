@@ -22,7 +22,7 @@ public class IT700SynapseRClient {
 	 */
 	@Test
 	public void testCheckRClient() throws Exception {
-		String cmd[] = { Helpers.getRPath(), "CMD", "check", "--no-manual", "-o", "target/",
+		String cmd[] = { Helpers.getRPath(), "CMD", "check", "--no-manual", "-o", "target",
 				"target/non-java-dependencies/synapseRClient" };
 		ExternalProcessResult result = ExternalProcessHelper.runExternalProcess(cmd);
 		assertEquals(0, result.getReturnCode());
@@ -54,7 +54,7 @@ public class IT700SynapseRClient {
 				"-e",
 				"library(synapseClient, lib.loc='target')",
 				"-e",
-				".libPaths('target/')",
+				".libPaths('target')",
 				"-e",
 				"synapseAuthServiceEndpoint(endpoint='"
 						+ StackConfiguration.getAuthenticationServicePrivateEndpoint()

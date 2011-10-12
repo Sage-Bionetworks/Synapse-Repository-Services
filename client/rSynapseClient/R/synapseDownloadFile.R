@@ -15,7 +15,7 @@ synapseDownloadFileToDestination  <-
 	## if checksum is missing, don't check local file before 
 	## download
 	if(file.exists(destfile) & !missing(checksum)) {
-		localFileChecksum <- as.character(md5sum(destfile))
+		localFileChecksum <- as.character(tools::md5sum(destfile))
 		if(checksum == localFileChecksum) {
 			# No need to download
 			return(destfile)
@@ -24,6 +24,7 @@ synapseDownloadFileToDestination  <-
 	
 	splits <- strsplit(destfile, .Platform$file.sep)
 	downloadDir <- path.expand(paste(splits[[1]][-length(splits[[1]])], collapse=.Platform$file.sep))
+	downloadFileName <- splits[[1]][length(splits[[1]])]
 	if(!file.exists(downloadDir)){
 		dir.create(downloadDir, recursive=TRUE)
 	}
@@ -38,6 +39,14 @@ synapseDownloadFileToDestination  <-
 				stop(ex)
 			}
 	)
+
+	## check the md5sum of the tmpFile to see if it matches the one passed to the function
+	if (file.exists(tmpFile) & !missing(checksum)){
+		if (as.character(tools::md5sum(tmpFile)) != as.character(checksum)){
+			stop(paste("The md5sum of ", downloadFileName, " does not match the md5sum which was passed via AWS", sep=""))
+		}
+	}
+
 	
 	## copy then delete. this avoids a cross-device error encountered
 	## on systems with multiple hard drives when using file.rename

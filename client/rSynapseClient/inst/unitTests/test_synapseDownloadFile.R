@@ -62,12 +62,12 @@ unitTestChecksumMatches <-
 	checkEquals(as.character(tools::md5sum(file)), synapseClient:::.getCache("checksum"))
 }
 
-#unitTestBadChecksum <-
-#		function()
-#{
-#	
-#	file <- .curlWriterDownload(synapseClient:::.getCache('badURL'))
-#	checkEquals(as.character(tools::md5sum(file)), as.character(tools::md5sum(synapseClient:::.getCache("badFilePath"))))
-#	checkTrue(as.character(tools::md5sum(synapseClient:::.getCache("goodFilePath"))) != as.character(tools::md5sum(synapseClient:::.getCache("badFilePath"))))
-#	checkException(synapseClient:::synapseDownloadFile(synapseClient:::.getCache("badURL"), synapseClient:::.getCache("checksum")))
-#}
+unitTestBadChecksum <-
+		function()
+{
+	
+	file <- synapseClient:::.curlWriterDownload(synapseClient:::.getCache('badURL'))
+	checkEquals(as.character(tools::md5sum(file)), as.character(tools::md5sum(synapseClient:::.getCache("badFilePath"))))
+	checkTrue(as.character(tools::md5sum(synapseClient:::.getCache("goodFilePath"))) != as.character(tools::md5sum(synapseClient:::.getCache("badFilePath"))))
+	checkException(synapseClient:::synapseDownloadFile(synapseClient:::.getCache("badURL"), synapseClient:::.getCache("checksum")))
+}
