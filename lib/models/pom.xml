@@ -46,23 +46,6 @@
 				<artifactId>buildnumber-maven-plugin</artifactId>
 			</plugin>
 
-			<plugin>
-				<groupId>com.googlecode.jsonschema2pojo</groupId>
-				<artifactId>jsonschema2pojo-maven-plugin</artifactId>
-				<configuration>
-					<sourceDirectory>${basedir}/src/main/resources/schema
-					</sourceDirectory>
-					<targetPackage>org.sagebionetworks.repo.model.notused
-					</targetPackage>
-				</configuration>
-				<executions>
-					<execution>
-						<goals>
-							<goal>generate</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
 		</plugins>
 	</build>
 

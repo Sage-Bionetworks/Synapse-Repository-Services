@@ -1,219 +1,161 @@
 package org.sagebionetworks.repo.model;
 
-import java.io.Serializable;
 import java.util.Date;
 
-import javax.annotation.Generated;
-
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
-
 /**
- * This class has several changes from the copy auto-generated using com.googlecode.jsonschema2pojo
- * http://code.google.com/p/jsonschema2pojo/
- * <ol>
- * <li> it also implements BaseChild
- * <li> I had to comment out the "additional properties" for it to play nice with the nodeable stuff
- * <li> I had to change the type from Object to Long for the versionNumber properties
- * <li> transient fields
- * </ol>
- * 
- * See src/main/resources/schema/agreement.json for the corresponding JSON Schema
- * 
- * See target/java-gen/org/sagebionetworks/repo/model/notused/Agreement.java for the auto-generated POJO
+ * Model object holding the relationship between a user and use agreement, this
+ * is the user's "signature" to the terms of the eula.
  */
+public class Agreement implements Nodeable {
 
-@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-@Generated("com.googlecode.jsonschema2pojo")
-public class Agreement implements Nodeable, Serializable
-{
+	private String createdBy;
+	private Date creationDate;
+	private String etag;
+	private String id;
+	private String name;
+	private String parentId;
+	private String uri;
+	private String datasetId;
+	private Long datasetVersionNumber;
+	private String eulaId;
+	private Long eulaVersionNumber;
 
-    @JsonProperty("createdBy")
-    private String createdBy;
-    @JsonProperty("creationDate")
-    private Date creationDate;
-    @JsonProperty("etag")
-    private String etag;
-    @JsonProperty("id")
-    private String id;
-    @JsonProperty("name")
-    private String name;
-    @JsonProperty("parentId")
-    private String parentId;
-    @JsonProperty("uri")
-    private String uri;
-    @JsonProperty("datasetId")
-    private String datasetId;
-    @JsonProperty("datasetVersionNumber")
-    private Long datasetVersionNumber;
-    @JsonProperty("eulaId")
-    private String eulaId;
-    @JsonProperty("eulaVersionNumber")
-    private Long eulaVersionNumber;
-//    private Map<String, Object> additionalProperties = new HashMap<String, Object>();
-    
-    @JsonProperty("accessControlList")
 	@TransientField
-    private String accessControlList;
-    @JsonProperty("annotations")
+	private String accessControlList;
 	@TransientField
-    private String annotations;
+	private String annotations;
 
-    @JsonProperty("accessControlList")
-    public String getAccessControlList() {
-        return accessControlList;
-    }
+	public String getAccessControlList() {
+		return accessControlList;
+	}
 
-    @JsonProperty("accessControlList")
-    public void setAccessControlList(String accessControlList) {
-        this.accessControlList = accessControlList;
-    }
+	public void setAccessControlList(String accessControlList) {
+		this.accessControlList = accessControlList;
+	}
 
-    @JsonProperty("annotations")
-    public String getAnnotations() {
-        return annotations;
-    }
+	public String getAnnotations() {
+		return annotations;
+	}
 
-    @JsonProperty("annotations")
-    public void setAnnotations(String annotations) {
-        this.annotations = annotations;
-    }
+	public void setAnnotations(String annotations) {
+		this.annotations = annotations;
+	}
 
-    @JsonProperty("createdBy")
-    public String getCreatedBy() {
-        return createdBy;
-    }
-    @JsonProperty("createdBy")
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
-    }
+	/**
+	 * @return the id of the user who made this agreement 
+	 */
+	public String getCreatedBy() {
+		return createdBy;
+	}
 
-    @JsonProperty("creationDate")
-    public Date getCreationDate() {
-        return creationDate;
-    }
+	/**
+	 * @param createdBy
+	 */
+	public void setCreatedBy(String createdBy) {
+		this.createdBy = createdBy;
+	}
 
-    @JsonProperty("creationDate")
-    public void setCreationDate(Date creationDate) {
-        this.creationDate = creationDate;
-    }
+	public Date getCreationDate() {
+		return creationDate;
+	}
 
-    @JsonProperty("etag")
-    public String getEtag() {
-        return etag;
-    }
+	public void setCreationDate(Date creationDate) {
+		this.creationDate = creationDate;
+	}
 
-    @JsonProperty("etag")
-    public void setEtag(String etag) {
-        this.etag = etag;
-    }
+	public String getEtag() {
+		return etag;
+	}
 
-    @JsonProperty("id")
-    public String getId() {
-        return id;
-    }
+	public void setEtag(String etag) {
+		this.etag = etag;
+	}
 
-    @JsonProperty("id")
-    public void setId(String id) {
-        this.id = id;
-    }
+	public String getId() {
+		return id;
+	}
 
-    @JsonProperty("name")
-    public String getName() {
-        return name;
-    }
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    @JsonProperty("name")
-    public void setName(String name) {
-        this.name = name;
-    }
+	public String getName() {
+		return name;
+	}
 
-    @JsonProperty("parentId")
-    public String getParentId() {
-        return parentId;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    @JsonProperty("parentId")
-    public void setParentId(String parentId) {
-        this.parentId = parentId;
-    }
+	public String getParentId() {
+		return parentId;
+	}
 
-    @JsonProperty("uri")
-    public String getUri() {
-        return uri;
-    }
+	public void setParentId(String parentId) {
+		this.parentId = parentId;
+	}
 
-    @JsonProperty("uri")
-    public void setUri(String uri) {
-        this.uri = uri;
-    }
+	public String getUri() {
+		return uri;
+	}
 
-    @JsonProperty("datasetId")
-    public String getDatasetId() {
-        return datasetId;
-    }
+	public void setUri(String uri) {
+		this.uri = uri;
+	}
 
-    @JsonProperty("datasetId")
-    public void setDatasetId(String datasetId) {
-        this.datasetId = datasetId;
-    }
+	/**
+	 * @return the id of the dataset for which the agreement was signed
+	 */
+	public String getDatasetId() {
+		return datasetId;
+	}
 
-    @JsonProperty("datasetVersionNumber")
-    public Long getDatasetVersionNumber() {
-        return datasetVersionNumber;
-    }
+	/**
+	 * @param datasetId
+	 */
+	public void setDatasetId(String datasetId) {
+		this.datasetId = datasetId;
+	}
 
-    @JsonProperty("datasetVersionNumber")
-    public void setDatasetVersionNumber(Long datasetVersionNumber) {
-        this.datasetVersionNumber = datasetVersionNumber;
-    }
+	/**
+	 * @return the version number of the dataset at the time this agreement was signed
+	 */
+	public Long getDatasetVersionNumber() {
+		return datasetVersionNumber;
+	}
 
-    @JsonProperty("eulaId")
-    public String getEulaId() {
-        return eulaId;
-    }
+	/**
+	 * @param datasetVersionNumber
+	 */
+	public void setDatasetVersionNumber(Long datasetVersionNumber) {
+		this.datasetVersionNumber = datasetVersionNumber;
+	}
 
-    @JsonProperty("eulaId")
-    public void setEulaId(String eulaId) {
-        this.eulaId = eulaId;
-    }
+	/**
+	 * @return the it of the eula for which the agreement was signed
+	 */
+	public String getEulaId() {
+		return eulaId;
+	}
 
-    @JsonProperty("eulaVersionNumber")
-    public Long getEulaVersionNumber() {
-        return eulaVersionNumber;
-    }
+	/**
+	 * @param eulaId
+	 */
+	public void setEulaId(String eulaId) {
+		this.eulaId = eulaId;
+	}
 
-    @JsonProperty("eulaVersionNumber")
-    public void setEulaVersionNumber(Long eulaVersionNumber) {
-        this.eulaVersionNumber = eulaVersionNumber;
-    }
+	/**
+	 * @return the version number of the eula at the time this agreement was signed
+	 */
+	public Long getEulaVersionNumber() {
+		return eulaVersionNumber;
+	}
 
-    @Override
-    public String toString() {
-        return ToStringBuilder.reflectionToString(this);
-    }
-
-    @Override
-    public int hashCode() {
-        return HashCodeBuilder.reflectionHashCode(this);
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        return EqualsBuilder.reflectionEquals(this, other);
-    }
-
-//    @JsonAnyGetter
-//    public Map<String, Object> getAdditionalProperties() {
-//        return this.additionalProperties;
-//    }
-//
-//    @JsonAnySetter
-//    public void setAdditionalProperties(String name, Object value) {
-//        this.additionalProperties.put(name, value);
-//    }
-
+	/**
+	 * @param eulaVersionNumber
+	 */
+	public void setEulaVersionNumber(Long eulaVersionNumber) {
+		this.eulaVersionNumber = eulaVersionNumber;
+	}
 }
