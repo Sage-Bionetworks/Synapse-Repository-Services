@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.Date;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * This is the DTO of a node.
@@ -22,6 +24,7 @@ public class Node {
 	Long versionNumber;
 	String versionComment;
 	String versionLabel;
+	Map<String, Set<Reference>> references;
 			
 	public String getCreatedBy() {
 		return createdBy;
@@ -115,6 +118,22 @@ public class Node {
 	public void setVersionLabel(String versionLabel) {
 		this.versionLabel = versionLabel;
 	}
+	/**
+	 * @return the references
+	 */
+	public Map<String, Set<Reference>> getReferences() {
+		return references;
+	}
+	/**
+	 * @param references the references to set
+	 */
+	public void setReferences(Map<String, Set<Reference>> references) {
+		this.references = references;
+	}
+	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -137,6 +156,8 @@ public class Node {
 		result = prime * result
 				+ ((parentId == null) ? 0 : parentId.hashCode());
 		result = prime * result
+				+ ((references == null) ? 0 : references.hashCode());
+		result = prime * result
 				+ ((versionComment == null) ? 0 : versionComment.hashCode());
 		result = prime * result
 				+ ((versionLabel == null) ? 0 : versionLabel.hashCode());
@@ -144,6 +165,10 @@ public class Node {
 				+ ((versionNumber == null) ? 0 : versionNumber.hashCode());
 		return result;
 	}
+	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -161,7 +186,7 @@ public class Node {
 		if (createdOn == null) {
 			if (other.createdOn != null)
 				return false;
-		} else if (createdOn.getTime() != other.createdOn.getTime())
+		} else if (!createdOn.equals(other.createdOn))
 			return false;
 		if (description == null) {
 			if (other.description != null)
@@ -203,6 +228,11 @@ public class Node {
 				return false;
 		} else if (!parentId.equals(other.parentId))
 			return false;
+		if (references == null) {
+			if (other.references != null)
+				return false;
+		} else if (!references.equals(other.references))
+			return false;
 		if (versionComment == null) {
 			if (other.versionComment != null)
 				return false;
@@ -220,16 +250,19 @@ public class Node {
 			return false;
 		return true;
 	}
-
+	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
 	@Override
 	public String toString() {
-		return "Node [id=" + id + ", name=" + name + ", description="
-				+ description + ", parentId=" + parentId + ", createdBy="
-				+ createdBy + ", createdOn=" + createdOn + ", modifiedBy="
-				+ modifiedBy + ", modifiedOn=" + modifiedOn + ", nodeType="
-				+ nodeType + ", eTag=" + eTag + ", versionNumber="
-				+ versionNumber + ", versionComment=" + versionComment
-				+ ", versionLabel=" + versionLabel + "]";
+		return "Node [createdBy=" + createdBy + ", createdOn=" + createdOn
+				+ ", description=" + description + ", eTag=" + eTag + ", id="
+				+ id + ", modifiedBy=" + modifiedBy + ", modifiedOn="
+				+ modifiedOn + ", name=" + name + ", nodeType=" + nodeType
+				+ ", parentId=" + parentId + ", references=" + references
+				+ ", versionComment=" + versionComment + ", versionLabel="
+				+ versionLabel + ", versionNumber=" + versionNumber + "]";
 	}
 
 }

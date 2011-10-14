@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface NodeInheritanceManager {
@@ -35,7 +36,8 @@ public interface NodeInheritanceManager {
 	 * 
 	 * @param nodeId
 	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
-	public void setNodeToInheritFromNearestParent(String nodeId) throws NotFoundException;
+	public void setNodeToInheritFromNearestParent(String nodeId) throws NotFoundException, DatastoreException;
 	
 }

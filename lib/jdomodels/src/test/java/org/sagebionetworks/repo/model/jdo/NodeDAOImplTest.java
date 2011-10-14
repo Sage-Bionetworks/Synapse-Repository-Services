@@ -11,7 +11,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.After;
@@ -26,10 +28,12 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeRevision;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,6 +77,31 @@ public class NodeDAOImplTest {
 		}
 	}
 	
+	/**
+	 * Helper method to create a node with multiple versions.
+	 * @param numberOfVersions
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public String createNodeWithMultipleVersions(int numberOfVersions) throws Exception {
+		Node node = NodeTestUtils.createNew("createNodeWithMultipleVersions");
+		// Start this node with version and comment information
+		node.setVersionComment("This is the very first version of this node.");
+		node.setVersionLabel("0.0.0");
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		assertNotNull(id);
+		
+		// this is the number of versions to create
+		for(int i=1; i<numberOfVersions; i++){
+			Node current = nodeDao.getNode(id);
+			current.setVersionComment("Comment "+i);
+			current.setVersionLabel("0.0."+i);
+			nodeDao.createNewVersion(current);
+		}
+		return id;
+	}
 	
 	@Test 
 	public void testCreateNode() throws Exception{
@@ -273,12 +302,7 @@ public class NodeDAOImplTest {
 		assertEquals(grandChildId, id);
 	}
 	
-	/**
-	 * Calling getETagForUpdate() outside of a transaction in not allowed, and will throw an exception.
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 * @throws ConflictingUpdateException 
-	 */
+ 	// Calling getETagForUpdate() outside of a transaction in not allowed, and will throw an exception.
 	@Test(expected=IllegalTransactionStateException.class)
 	public void testGetETagForUpdate() throws Exception {
 		Node toCreate = NodeTestUtils.createNew("testGetETagForUpdate");
@@ -503,32 +527,6 @@ public class NodeDAOImplTest {
 		currentAnnos = namedCopy.getAdditionalAnnotations();
 		assertNotNull(currentAnnos);
 		assertEquals(currentAnnos, v2Annos);
-	}
-	
-	/**
-	 * Helper method to create a node with multiple versions.
-	 * @param numberOfVersions
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public String createNodeWithMultipleVersions(int numberOfVersions) throws Exception {
-		Node node = NodeTestUtils.createNew("createNodeWithMultipleVersions");
-		// Start this node with version and comment information
-		node.setVersionComment("This is the very first version of this node.");
-		node.setVersionLabel("0.0.0");
-		String id = nodeDao.createNew(node);
-		toDelete.add(id);
-		assertNotNull(id);
-		
-		// this is the number of versions to create
-		for(int i=1; i<numberOfVersions; i++){
-			Node current = nodeDao.getNode(id);
-			current.setVersionComment("Comment "+i);
-			current.setVersionLabel("0.0."+i);
-			nodeDao.createNewVersion(current);
-		}
-		return id;
 	}
 	
 	@Test
@@ -840,4 +838,131 @@ public class NodeDAOImplTest {
 		
 	}
 
+	@Test
+	public void testAddReferencesNoVersionSpecified() throws Exception {
+		
+		// Create a few nodes we will refer to, use the current version held in the repo svc
+		Set<Reference> referees = new HashSet<Reference>();
+		for(int i=0; i<10; i++){
+			Node node = NodeTestUtils.createNew("referee"+i);
+			String id = nodeDao.createNew(node);
+			toDelete.add(id);
+			Reference ref = new Reference();
+			ref.setTargetId(id);
+			referees.add(ref);
+		}
+
+		// Create our reference map
+		Map<String, Set<Reference>> refs = new HashMap<String, Set<Reference>>();
+		refs.put("referees", referees);
+		
+		// Create the node that holds the references
+		Node referer = NodeTestUtils.createNew("referer");
+		referer.setReferences(refs);
+		String refererId = nodeDao.createNew(referer);
+		assertNotNull(refererId);
+		toDelete.add(refererId);
+
+		// Make sure it got stored okay
+		Node storedNode = nodeDao.getNode(refererId);
+		assertNotNull(storedNode);
+		assertNotNull(storedNode.getReferences());
+		assertEquals(1, storedNode.getReferences().size());
+		assertEquals(10, storedNode.getReferences().get("referees").size());
+		Object[] storedRefs = storedNode.getReferences().get("referees").toArray();
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, ((Reference)storedRefs[0]).getTargetVersionNumber());
+	}
+	
+	@Test 
+	public void testUpdateReferences() throws Exception {
+		Reference inEvenFirstBatch = null, inOddFirstBatch = null, inEvenSecondBatch = null, inOddSecondBatch = null;
+		
+		// Create a few nodes we will refer to
+		Set<Reference> even = new HashSet<Reference>();
+		Set<Reference> odd = new HashSet<Reference>();
+		for(int i=1; i<=5; i++){
+			Node node = NodeTestUtils.createNew("referee"+i);
+			node.setVersionNumber(999L);
+			String id = nodeDao.createNew(node);
+			toDelete.add(id);
+			Reference ref = new Reference();
+			ref.setTargetId(id);
+			ref.setTargetVersionNumber(node.getVersionNumber());
+			if(0 == (i % 2)) {
+				even.add(ref);
+				inEvenFirstBatch = ref;
+			}
+			else {
+				odd.add(ref);
+				inOddFirstBatch = ref;
+			}
+		}
+
+		// Create our reference map
+		Map<String, Set<Reference>> refs = new HashMap<String, Set<Reference>>();
+		refs.put("even", even);
+		refs.put("odd", odd);
+		
+		// Create the node that holds the references
+		Node referer = NodeTestUtils.createNew("referer");
+		referer.setReferences(refs);
+		String refererId = nodeDao.createNew(referer);
+		assertNotNull(refererId);
+		toDelete.add(refererId);
+
+		// Make sure it got stored okay
+		Node storedNode = nodeDao.getNode(refererId);
+		assertNotNull(storedNode);
+		assertNotNull(storedNode.getReferences());
+		assertEquals(2, storedNode.getReferences().size());
+		assertEquals(2, storedNode.getReferences().get("even").size());
+		assertEquals(3, storedNode.getReferences().get("odd").size());
+		assertTrue(storedNode.getReferences().get("even").contains(inEvenFirstBatch));
+		assertTrue(storedNode.getReferences().get("odd").contains(inOddFirstBatch));
+		assertFalse(storedNode.getReferences().get("even").contains(inEvenSecondBatch));
+		assertFalse(storedNode.getReferences().get("odd").contains(inOddSecondBatch));
+
+		// Now delete some references
+		storedNode.getReferences().get("even").clear();
+		// And add a few new ones
+		for(int i=1; i<=4; i++){
+			Node node = NodeTestUtils.createNew("referee"+i);
+			node.setVersionNumber(999L);
+			String id = nodeDao.createNew(node);
+			toDelete.add(id);
+			Reference ref = new Reference();
+			ref.setTargetId(id);
+			ref.setTargetVersionNumber(node.getVersionNumber());
+			if(0 == (i % 2)) {
+				storedNode.getReferences().get("even").add(ref);
+				inEvenSecondBatch = ref;
+			}
+			else {
+				storedNode.getReferences().get("odd").add(ref);
+				inOddSecondBatch = ref;
+			}
+		}
+
+		// Make sure it got updated okay
+		nodeDao.updateNode(storedNode);
+		storedNode = nodeDao.getNode(refererId);
+		assertNotNull(storedNode);
+		assertNotNull(storedNode.getReferences());
+		assertEquals(2, storedNode.getReferences().size());
+		assertEquals(2, storedNode.getReferences().get("even").size());
+		assertEquals(5, storedNode.getReferences().get("odd").size());
+		assertFalse(storedNode.getReferences().get("even").contains(inEvenFirstBatch));
+		assertTrue(storedNode.getReferences().get("odd").contains(inOddFirstBatch));
+		assertTrue(storedNode.getReferences().get("even").contains(inEvenSecondBatch));
+		assertTrue(storedNode.getReferences().get("odd").contains(inOddSecondBatch));
+		
+		// Now nuke all the references
+		storedNode.getReferences().clear();
+		nodeDao.updateNode(storedNode);
+		storedNode = nodeDao.getNode(refererId);
+		assertNotNull(storedNode);
+		assertNotNull(storedNode.getReferences());
+		assertEquals(0, storedNode.getReferences().size());
+	}
+	
 }

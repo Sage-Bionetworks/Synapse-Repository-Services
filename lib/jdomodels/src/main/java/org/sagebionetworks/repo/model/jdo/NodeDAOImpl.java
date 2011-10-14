@@ -18,7 +18,6 @@ import javax.jdo.Query;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -28,14 +27,17 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeRevision;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOBlobAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONodeType;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOReference;
 import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
+import org.sagebionetworks.repo.model.jdo.persistence.ReferenceId;
 import org.sagebionetworks.repo.model.jdo.persistence.RevisionId;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -91,7 +93,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public String createNew(Node dto) throws NotFoundException {
+	public String createNew(Node dto) throws NotFoundException, DatastoreException {
 		if(dto == null) throw new IllegalArgumentException("Node cannot be null");
 		JDORevision rev = new JDORevision();
 		// Set the default label
@@ -127,6 +129,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		node.setLongAnnotations(new HashSet<JDOLongAnnotation>());
 		node.setDoubleAnnotations(new HashSet<JDODoubleAnnotation>());
 		node.setBlobAnnotations(new HashSet<JDOBlobAnnotation>());
+		// Make sure it has references
+		node.setReferences(new HashSet<JDOReference>());
 		
 		// Set the parent and benefactor
 		if(dto.getParentId() != null){
@@ -155,6 +159,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// Now create the revision
 		rev.setOwner(node);
 		jdoTemplate.makePersistent(rev);
+		
+		// Create references found in dto, if applicable
+		createReferences(dto, node);
+		
 		return node.getId().toString();
 	}
 
@@ -165,7 +173,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @param e
 	 */
 	private void checkExceptionDetails(String name, String parentId, DuplicateKeyException e) {
-		if(e.getMessage().indexOf(SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME) > 0) throw new IllegalArgumentException("An entity with the name: "+name+" already exites with a parentId: "+parentId);
+		if(e.getMessage().indexOf(SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME) > 0) throw new IllegalArgumentException("An entity with the name: "+name+" already exists with a parentId: "+parentId);
 		throw e;
 	}
 	
@@ -197,7 +205,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Transactional(readOnly = true)
 	@Override
-	public Node getNode(String id) throws NotFoundException {
+	public Node getNode(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		JDONode jdo =  getNodeById(Long.parseLong(id));
 		JDORevision rev  = getNodeRevisionById(jdo.getId(), jdo.getCurrentRevNumber());
@@ -337,7 +345,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Transactional(readOnly = true)
 	@Override
-	public Set<Node> getChildren(String id) throws NotFoundException {
+	public Set<Node> getChildren(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		JDONode parent = getNodeById(Long.parseLong(id));
 		if(parent != null){
@@ -358,7 +366,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return null;
 	}
 
-	private Set<Node> extractNodeSet(Set<JDONode> childrenSet) throws NotFoundException {
+	private Set<Node> extractNodeSet(Set<JDONode> childrenSet) throws NotFoundException, DatastoreException {
 		if(childrenSet == null)return null;
 		HashSet<Node> children = new HashSet<Node>();
 		Iterator<JDONode> it = childrenSet.iterator();
@@ -443,7 +451,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void updateNode(Node updatedNode) throws NotFoundException {
+	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException {
 		if(updatedNode == null) throw new IllegalArgumentException("Node to update cannot be null");
 		if(updatedNode.getId() == null) throw new IllegalArgumentException("Node to update cannot have a null ID");
 		JDONode jdoToUpdate = getNodeById(Long.parseLong(updatedNode.getId()));
@@ -456,6 +464,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			// transaction commits outside of this method.
 			checkExceptionDetails(updatedNode.getName(), updatedNode.getParentId(), e);
 		}
+		updateReferences(updatedNode, jdoToUpdate);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -840,6 +849,64 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		return count > 0;
 	}
 
+	private void createReferences(Node dto, JDONode jdo) throws NotFoundException, DatastoreException {
+		if(null != dto.getReferences()) {
+			for(Map.Entry<String, Set<Reference>> group : dto.getReferences().entrySet()) {
+				for(Reference reference : group.getValue()) {
+					persistReference(jdo, group.getKey(), reference);
+				}
+			}
+		}
+	}
+	
+	private void updateReferences(Node dto, JDONode jdo) throws NotFoundException, DatastoreException {
+		Set<JDOReference> priorReferences = jdo.getReferences();
 
+		if((null == dto.getReferences()) || (0 == dto.getReferences().size())) {
+			// If we had any references in the past, they should all be deleted
+			priorReferences.clear();
+		}
+		else {
+			// Look in the dto references and create new references, if needed
+			Set<JDOReference> currentReferences = new HashSet<JDOReference>();
+			for(Map.Entry<String, Set<Reference>> group : dto.getReferences().entrySet()) {
+				for(Reference reference : group.getValue()) {
+					currentReferences.add(persistReference(jdo, group.getKey(), reference));
+				}
+			}
 
+			// Delete any references that have been removed
+			priorReferences.retainAll(currentReferences);
+		}
+	}
+
+	private JDOReference persistReference(JDONode jdo, String groupName, Reference reference) throws NotFoundException, DatastoreException {
+		
+		Long targetId = KeyFactory.stringToKey(reference.getTargetId());
+		Long targetVersion = reference.getTargetVersionNumber();
+	
+		if(null != targetVersion) {
+			try {
+				// This may or may not be a new reference, return it if we find it, otherwise proceed
+				return (JDOReference) jdoTemplate.getObjectById(new ReferenceId(jdo.getId(), targetId, targetVersion, groupName));
+			} 
+			catch (JdoObjectRetrievalFailureException e) {
+				// This is okay, the user wants a new reference created at a particular version
+			}
+		}
+		
+		JDOReference jdoReference = new JDOReference();
+		jdoReference.setGroupName(groupName);
+		jdoReference.setOwner(jdo);
+		JDONode target = getNodeById(targetId);
+		jdoReference.setTargetId(target.getId());
+		if(null == targetVersion) {
+			jdoReference.setTargetRevision(target.getCurrentRevNumber());
+		}
+		else {
+			jdoReference.setTargetRevision(targetVersion);
+		}
+		jdoTemplate.makePersistent(jdoReference);
+		return jdoReference;
+	}
 }

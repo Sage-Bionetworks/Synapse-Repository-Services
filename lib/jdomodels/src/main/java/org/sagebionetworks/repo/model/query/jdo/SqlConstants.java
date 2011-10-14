@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONodeType;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOReference;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
@@ -49,6 +50,13 @@ public class SqlConstants {
 	public static final String COL_REVISION_LABEL		= "LABEL";
 	public static final String COL_REVISION_COMMENT		= "COMMENT";
 	public static final String COL_REVISION_ANNOS_BLOB	= "ANNOTATIONS";
+
+	// The Reference table
+	public static final String TABLE_REFERENCE						= "JDOREFERENCE";
+	public static final String COL_REFERENCE_OWNER_NODE				= "REF_OWNER_NODE_ID";
+	public static final String COL_REFERENCE_TARGET_NODE			= "REF_TARGET_NODE_ID";
+	public static final String COL_REFERENCE_TARGET_REVISION_NUMBER	= "REF_TARGET_REV_NUM";
+	public static final String COL_REFERENCE_GROUP_NAME				= "REF_GROUP_NAME";
 	
 	// Annotations tables
 	public static final String TABLE_STRING_ANNOTATIONS	= "JDOSTRINGANNOTATION";
@@ -164,6 +172,7 @@ public class SqlConstants {
 		mapClassToTable = new HashMap<String, String>();
 		mapClassToTable.put(JDONode.class.getName(),				TABLE_NODE);
 		mapClassToTable.put(JDONodeType.class.getName(),			TABLE_NODE_TYPE);
+		mapClassToTable.put(JDOReference.class.getName(),			TABLE_REFERENCE);
 		mapClassToTable.put(JDOAnnotationType.class.getName(),		TABLE_ANNOTATION_TYPE);
 		mapClassToTable.put(JDOLongAnnotation.class.getName(),		TABLE_LONG_ANNOTATIONS);
 		mapClassToTable.put(JDODoubleAnnotation.class.getName(),	TABLE_DOUBLE_ANNOTATIONS);

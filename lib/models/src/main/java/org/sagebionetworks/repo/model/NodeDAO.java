@@ -21,10 +21,11 @@ public interface NodeDAO {
 	 * @param node
 	 * @return
 	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 * @throws DuplicateNameException 
 	 * @throws NumberFormatException 
 	 */
-	public String createNew(Node node) throws NotFoundException;
+	public String createNew(Node node) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Create a new version of an existing node.
@@ -40,8 +41,9 @@ public interface NodeDAO {
 	 * @param id
 	 * @return
 	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
-	public Node getNode(String id) throws NotFoundException;
+	public Node getNode(String id) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Get the node for a given version number.
@@ -92,8 +94,9 @@ public interface NodeDAO {
 	 * @param id
 	 * @return
 	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
-	public Set<Node> getChildren(String id) throws NotFoundException;
+	public Set<Node> getChildren(String id) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Get all of the version numbers for this node.
@@ -138,8 +141,9 @@ public interface NodeDAO {
 	 * Make changes to an existing node.
 	 * @param updatedNode
 	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
-	public void updateNode(Node updatedNode) throws NotFoundException;
+	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Update a nodes annotations.

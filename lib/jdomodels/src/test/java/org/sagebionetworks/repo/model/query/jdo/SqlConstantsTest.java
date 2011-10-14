@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONodeType;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOReference;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
@@ -108,7 +109,12 @@ public class SqlConstantsTest {
 	public void testNodeClass(){
 		assertEquals(SqlConstants.TABLE_NODE, SqlConstants.getTableForClass(JDONode.class));
 	}
+
 	@Test
+	public void testReferenceClass(){
+		assertEquals(SqlConstants.TABLE_REFERENCE, SqlConstants.getTableForClass(JDOReference.class));
+	}
+	
 	public void testNodeTypeClass(){
 		assertEquals(SqlConstants.TABLE_NODE_TYPE, SqlConstants.getTableForClass(JDONodeType.class));
 	}
