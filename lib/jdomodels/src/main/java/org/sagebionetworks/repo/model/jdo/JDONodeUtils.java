@@ -1,9 +1,15 @@
 package org.sagebionetworks.repo.model.jdo;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
+import org.sagebionetworks.repo.model.jdo.persistence.JDOReference;
 import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
 
 /**
@@ -44,8 +50,9 @@ public class JDONodeUtils {
 	 * Create a DTO from the JDO
 	 * @param jdo
 	 * @return
+	 * @throws DatastoreException 
 	 */
-	public static Node copyFromJDO(JDONode jdo, JDORevision rev){
+	public static Node copyFromJDO(JDONode jdo, JDORevision rev) throws DatastoreException{
 		Node dto = new Node();
 		dto.setName(jdo.getName());
 		dto.setDescription(jdo.getDescription());
@@ -69,6 +76,19 @@ public class JDONodeUtils {
 		dto.setVersionLabel(rev.getLabel());
 		if(rev.getRevisionNumber() != null){
 			dto.setVersionNumber(rev.getRevisionNumber());
+		}
+		dto.setReferences(new HashMap<String, Set<Reference>>());
+		if(null != jdo.getReferences()) {
+			for(JDOReference jdoReference : jdo.getReferences()) {
+				Reference reference = new Reference();
+				reference.setTargetId(KeyFactory.keyToString(jdoReference.getTargetId()));
+				reference.setTargetVersionNumber(jdoReference.getTargetRevision());
+				Set<Reference> referenceGroup = (null != dto.getReferences().get(jdoReference.getGroupName())) 
+				? dto.getReferences().get(jdoReference.getGroupName()) 
+						: new HashSet<Reference>();
+				referenceGroup.add(reference);
+				dto.getReferences().put(jdoReference.getGroupName(), referenceGroup);
+			}
 		}
 		return dto;
 	}

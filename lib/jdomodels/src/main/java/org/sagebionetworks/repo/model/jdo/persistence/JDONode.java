@@ -55,6 +55,9 @@ public class JDONode {
 	@Element(dependent = "true")
 	private Set<JDOBlobAnnotation> blobAnnotations;
 	
+    @Persistent(serialized="false", mappedBy = "owner")
+	@Element(dependent = "true")
+	private Set<JDOReference> references;
 	
 	@Persistent (mappedBy = "owner")
 	@Element(dependent = "true")
@@ -218,6 +221,20 @@ public class JDONode {
 
 	public void setBlobAnnotations(Set<JDOBlobAnnotation> blobAnnotations) {
 		this.blobAnnotations = blobAnnotations;
+	}
+
+	/**
+	 * @return the references
+	 */
+	public Set<JDOReference> getReferences() {
+		return references;
+	}
+
+	/**
+	 * @param references the references to set
+	 */
+	public void setReferences(Set<JDOReference> references) {
+		this.references = references;
 	}
 
 	public void setNodeType(JDONodeType nodeType) {

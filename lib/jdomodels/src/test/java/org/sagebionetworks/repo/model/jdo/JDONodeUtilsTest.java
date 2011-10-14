@@ -5,9 +5,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Set;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
 
@@ -20,7 +24,7 @@ public class JDONodeUtilsTest {
 	
 	
 	@Test
-	public void testRoundTrip(){
+	public void testRoundTrip() throws DatastoreException{
 		Node node = new Node();
 		node.setName("myName");
 		node.setDescription("someDescription");
@@ -35,6 +39,7 @@ public class JDONodeUtilsTest {
 		node.setVersionComment("This is the first version of this object");
 		node.setVersionLabel("1.0.1");
 //		node.setVersionNumber("2");
+		node.setReferences(new HashMap<String, Set<Reference>>());
 		// Now create a revision for this node
 		JDONode jdoNode = new JDONode();
 		JDORevision jdoRev = new JDORevision();
@@ -51,7 +56,7 @@ public class JDONodeUtilsTest {
 	}
 	
 	@Test
-	public void testJDOParentId(){
+	public void testJDOParentId() throws DatastoreException{
 		JDONode parent = new JDONode();
 		parent.setId(new Long(123));
 		JDONode child = new JDONode();

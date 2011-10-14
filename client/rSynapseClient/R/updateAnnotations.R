@@ -16,8 +16,7 @@ setMethod(
 				stop("this is not an annotations entity")
 			}
 			
-			## rjson deserializes arrays of length one to scalars instead of lists, before we send any annotations 
-			## back to the service, make sure all scalars are converted to lists since the service expects all 
+			## make sure all scalars are converted to lists since the service expects all 
 			## annotation values to be arrays instead of scalars
 			for(key in names(annotations)){
 				# This is one of our annotation buckets

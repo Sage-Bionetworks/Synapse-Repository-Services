@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
@@ -47,7 +48,7 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void setNodeToInheritFromNearestParent(String nodeId) throws NotFoundException {
+	public void setNodeToInheritFromNearestParent(String nodeId) throws NotFoundException, DatastoreException {
 		// First determine who this node is inheriting from.
 		String currentBenefactorId = nodeInheritanceDao.getBenefactor(nodeId);
 		Node node = nodeDao.getNode(nodeId);
