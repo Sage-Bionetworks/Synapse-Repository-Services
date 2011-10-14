@@ -1,48 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
-	xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-	<modelVersion>4.0.0</modelVersion>
-
-	<parent>
-		<artifactId>client</artifactId>
-		<groupId>org.sagebionetworks</groupId>
-		<version>parent-1.0</version>
-	</parent>
-
-	<groupId>org.sagebionetworks</groupId>
-	<artifactId>synapseJavaClient</artifactId>
-	<version>${applicationVersion}</version>
-	<packaging>jar</packaging>
-	<name>synapseJavaClient</name>
-
-	<dependencies>
-      
-	  <dependency>
-		<groupId>org.sagebionetworks</groupId>
-        <artifactId>lib-downloadTools</artifactId>
-		<version>${applicationVersion}</version>
-	  </dependency>
-      
-	  <!-- JSON -->
-	  <dependency>
-		<groupId>org.json</groupId>
-		<artifactId>json</artifactId>
-		<version>${org.json.version}</version>
-	  </dependency>
-      
-    </dependencies>
+   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+   xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  
+  <parent>
+    <artifactId>client</artifactId>
+    <groupId>org.sagebionetworks</groupId>
+    <version>parent-1.0</version>
+  </parent>
+  
+  <groupId>org.sagebionetworks</groupId>
+  <artifactId>synapseJavaClient</artifactId>
+  <version>${applicationVersion}</version>
+  <packaging>jar</packaging>
+  <name>synapseJavaClient</name>
+  
+  <dependencies>
     
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	</properties>
-	<build>
-		<plugins>
-			<!-- Build number generator -->
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>buildnumber-maven-plugin</artifactId>
-			</plugin>
-		</plugins>
-	</build>
+    <dependency>
+      <groupId>org.sagebionetworks</groupId>
+      <artifactId>lib-communicationUtilities</artifactId>
+      <version>${applicationVersion}</version>
+    </dependency>
+    
+    <!-- JSON -->
+    <dependency>
+      <groupId>org.json</groupId>
+      <artifactId>json</artifactId>
+      <version>${org.json.version}</version>
+    </dependency>
+    
+  </dependencies>
+  
+  <build>
+    <plugins>
+      <!-- Build number generator -->
+      <plugin>
+	<groupId>org.codehaus.mojo</groupId>
+	<artifactId>buildnumber-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+
 </project>

@@ -27,13 +27,13 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-workflow</artifactId>
+			<artifactId>lib-communicationUtilities</artifactId>
 			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-downloadTools</artifactId>
+			<artifactId>lib-workflow</artifactId>
 			<version>${applicationVersion}</version>
 		</dependency>
 

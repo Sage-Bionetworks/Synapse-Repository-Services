@@ -43,7 +43,7 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>securityTools</artifactId>
+			<artifactId>lib-securityUtilities</artifactId>
 			<version>${applicationVersion}</version>
 		</dependency>
 

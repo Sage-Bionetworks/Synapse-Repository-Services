@@ -15,4 +15,23 @@
   <name>lib-securityUtilities</name>
   <url>http://maven.apache.org</url>
 
+  <dependencies>
+
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
+    </dependency>
+  
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+    </dependency>
+    
+    <dependency>
+      <groupId>joda-time</groupId>
+      <artifactId>joda-time</artifactId>
+    </dependency>
+
+  </dependencies>
+
 </project>
