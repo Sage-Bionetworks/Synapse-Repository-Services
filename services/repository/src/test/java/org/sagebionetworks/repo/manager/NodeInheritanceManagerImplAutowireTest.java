@@ -11,6 +11,7 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -49,6 +50,9 @@ public class NodeInheritanceManagerImplAutowireTest {
 	private String bId = null;
 	
 	private UserInfo userInfo;
+	
+	//projectOne is the root for the parentId change tests, need to hold it's id
+	private String projectOneId = null;
 	
 	@Before
 	public void before() throws Exception{
@@ -116,6 +120,14 @@ public class NodeInheritanceManagerImplAutowireTest {
 		node.setNodeType(ObjectType.project.name());
 		node.setParentId(rootId);
 		bId = nodeManager.createNewNode(node, userInfo);
+		
+		//creating a new hierarchy to test changing a node's parentID
+		//need a root projectOne
+		Node projectOne = new Node();
+		projectOne.setName("projectOne");
+		projectOne.setNodeType(ObjectType.project.name());
+		projectOneId = nodeManager.createNewNode(projectOne, userInfo);
+		nodesToDelete.add(projectOneId);
 	}
 	
 	@After
@@ -187,7 +199,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 	@Test
 	public void testSetNodeToInheritFromNearestParent() throws Exception{
 		// First make sure we can change the root which has a null parent
-//		nodeInheritanceManager.setNodeToInheritFromNearestParent(rootId);
+		// nodeInheritanceManager.setNodeToInheritFromNearestParent(rootId);
 		String benefacrorId = nodeInheritanceDao.getBenefactor(rootId);
 		assertEquals("The root should still inherit from itself",benefacrorId, rootId );
 		
@@ -223,5 +235,608 @@ public class NodeInheritanceManagerImplAutowireTest {
 		assertEquals("A.override should now inherit from A", rootId, benefacrorId);
 	}
 	
-
+	/**
+	 * Tests that when a node's parentId changes the resulting hierarchy
+	 * is in left in the correct state.  The tree we are building consists of a vertical
+	 * line of four entities.  The bottom is a layer who's parent is a dataset whose parent
+	 * is projectTwo whose parent is ProjectOne.  ProjectOne is the top of the tree and root
+	 * project.  All four entities inherit from ProjectOne.  The change tests that tree's state
+	 * is correct after changing the dataset to receive it's parentID from a new ProjectThree
+	 * @throws Exception
+	 */
+	@Ignore
+	@Test
+	public void testDatasetParentIDChangeWhenAllInheritFromRoot() throws Exception {
+		//projectOne should inherit from itself
+		String benefactorId = nodeInheritanceDao.getBenefactor(projectOneId);
+		assertEquals(benefactorId, projectOneId);
+		
+		//now need to build up heirarchy for the test
+		//top is projectOne
+		//under is projectTwo
+		//under is dataset
+		//under is layer
+		//all will inherit from projectOne
+		Node nextNode = new Node();
+		String projectTwoId = null;
+		String datasetId = null;
+		String layerId = null; 
+		
+		nextNode.setName("projectTwo");
+		nextNode.setNodeType(ObjectType.project.name());
+		nextNode.setParentId(projectOneId);
+		projectTwoId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromNearestParent(projectTwoId);
+		benefactorId = nodeInheritanceDao.getBenefactor(projectTwoId);
+		assertEquals(benefactorId, projectOneId);
+		assertEquals(projectOneId, nextNode.getParentId());
+		nodesToDelete.add(projectTwoId);
+		
+		nextNode = new Node();
+		nextNode.setName("dataset");
+		nextNode.setNodeType(ObjectType.dataset.name());
+		nextNode.setParentId(projectTwoId);
+		datasetId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromNearestParent(datasetId);
+		benefactorId = nodeInheritanceDao.getBenefactor(datasetId);
+		assertEquals(benefactorId, projectOneId);
+		assertEquals(projectTwoId, nextNode.getParentId());
+		nodesToDelete.add(datasetId);
+		
+		nextNode = new Node();
+		nextNode.setName("layer");
+		nextNode.setNodeType(ObjectType.layer.name());
+		nextNode.setParentId(datasetId);
+		layerId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromNearestParent(layerId);
+		benefactorId = nodeInheritanceDao.getBenefactor(layerId);
+		assertEquals(benefactorId, projectOneId);
+		assertEquals(datasetId, nextNode.getParentId());
+		nodesToDelete.add(layerId);
+		
+		//here our structure exists
+		//now change the dataset's parentId to that of a third project (called
+		//projectThree). 
+		
+		//make projectThree
+		String projectThreeId = null;
+		nextNode = new Node();
+		nextNode.setName("projectThree");
+		nextNode.setNodeType(ObjectType.project.name());
+		projectThreeId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromItself(projectThreeId);
+		nodesToDelete.add(projectThreeId);
+		benefactorId = nodeInheritanceDao.getBenefactor(projectThreeId);
+		assertEquals(projectThreeId, benefactorId);
+		nextNode = null;
+		
+		//change dataset's parentId to that of projectThree
+		Node nodeToCheck = nodeManager.get(userInfo, datasetId);
+		assertNotNull(nodeToCheck);
+		nodeToCheck.setParentId(projectThreeId);
+		nodeManager.update(userInfo, nodeToCheck);
+		nodeToCheck = null;
+		
+		//now verify all entities have the correct state
+		
+		//check projectOne
+		benefactorId = nodeInheritanceDao.getBenefactor(projectOneId);
+		assertEquals(projectOneId, benefactorId);
+		
+		//check projectTwo
+		nodeToCheck = nodeManager.get(userInfo, projectTwoId);
+		assertNotNull(nodeToCheck);
+		assertEquals(projectOneId, nodeToCheck.getParentId());
+		benefactorId = nodeInheritanceDao.getBenefactor(projectTwoId);
+		assertEquals(projectOneId, benefactorId);
+		nodeToCheck = null;
+		
+		//check projectThree
+		nodeToCheck = nodeManager.get(userInfo, projectThreeId);
+		assertNotNull(nodeToCheck);
+		benefactorId = nodeInheritanceDao.getBenefactor(projectThreeId);
+		assertEquals(projectThreeId, benefactorId);
+		nodeToCheck = null;
+		
+		//check dataset
+		nodeToCheck = nodeManager.get(userInfo, datasetId);
+		assertNotNull(nodeToCheck);
+		assertEquals(projectThreeId, nodeToCheck.getParentId());
+		benefactorId = nodeInheritanceDao.getBenefactor(datasetId);
+		assertEquals(projectThreeId, benefactorId);
+		nodeToCheck = null;
+		
+		//check layer
+		nodeToCheck = nodeManager.get(userInfo, layerId);
+		assertNotNull(nodeToCheck);
+		assertEquals(datasetId, nodeToCheck.getParentId());
+		benefactorId = nodeInheritanceDao.getBenefactor(layerId);
+		assertEquals(projectThreeId, benefactorId);
+		nodeToCheck = null;	
+	}
+	
+	/**
+	 * Tests that when a dataset's parentId is changed the resulting hierarchy
+	 * is in left in the correct state.  The tree we are building consists of a vertical
+	 * line of four entities.  The bottom is a layer who's parent is a dataset whose parent
+	 * is projectTwo whose parent is ProjectOne.  ProjectOne is the top of the tree and root
+	 * project.  All entities except layer inherit from ProjectOne.  Layer inherits from itself
+	 * The change tests that tree's state is correct after changing the dataset to receive
+	 *  it's parentID from a new ProjectThree
+	 * @throws Exception
+	 */
+	@Test
+	@Ignore
+	public void testDatasetParentIDChangeWhenSomeInheritFromRoot() throws Exception {
+		//projectOne should inherit from itself
+		String benefactorId = nodeInheritanceDao.getBenefactor(projectOneId);
+		assertEquals(benefactorId, projectOneId);
+		
+		//now need to build up heirarchy for the test
+		//top is projectOne
+		//under is projectTwo
+		//under is dataset
+		//under is layer
+		//layer inherits from itself
+		//all others inherit from projectOne
+		Node nextNode = new Node();
+		String projectTwoId = null;
+		String datasetId = null;
+		String layerId = null; 
+		
+		nextNode.setName("projectTwo");
+		nextNode.setNodeType(ObjectType.project.name());
+		nextNode.setParentId(projectOneId);
+		projectTwoId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromNearestParent(projectTwoId);
+		benefactorId = nodeInheritanceDao.getBenefactor(projectTwoId);
+		assertEquals(benefactorId, projectOneId);
+		assertEquals(projectOneId, nextNode.getParentId());
+		nodesToDelete.add(projectTwoId);
+		
+		nextNode = new Node();
+		nextNode.setName("dataset");
+		nextNode.setNodeType(ObjectType.dataset.name());
+		nextNode.setParentId(projectTwoId);
+		datasetId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromNearestParent(datasetId);
+		benefactorId = nodeInheritanceDao.getBenefactor(datasetId);
+		assertEquals(benefactorId, projectOneId);
+		assertEquals(projectTwoId, nextNode.getParentId());
+		nodesToDelete.add(datasetId);
+		
+		nextNode = new Node();
+		nextNode.setName("layer");
+		nextNode.setNodeType(ObjectType.layer.name());
+		nextNode.setParentId(datasetId);
+		layerId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromItself(layerId);
+		benefactorId = nodeInheritanceDao.getBenefactor(layerId);
+		assertEquals(layerId, benefactorId);
+		assertEquals(datasetId, nextNode.getParentId());
+		nodesToDelete.add(layerId);
+		
+		//here our structure exists
+		//now change the dataset's parentId to that of a third project (called
+		//projectThree). 
+		
+		//make projectThree
+		String projectThreeId = null;
+		nextNode = new Node();
+		nextNode.setName("projectThree");
+		nextNode.setNodeType(ObjectType.project.name());
+		projectThreeId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromItself(projectThreeId);
+		nodesToDelete.add(projectThreeId);
+		benefactorId = nodeInheritanceDao.getBenefactor(projectThreeId);
+		assertEquals(projectThreeId, benefactorId);
+		nextNode = null;
+		
+		//change dataset's parentId to that of projectThree
+		Node nodeToCheck = nodeManager.get(userInfo, datasetId);
+		assertNotNull(nodeToCheck);
+		nodeToCheck.setParentId(projectThreeId);
+		nodeManager.update(userInfo, nodeToCheck);
+		nodeToCheck = null;
+		
+		//now verify all entities have the correct state
+		
+		//check projectOne
+		benefactorId = nodeInheritanceDao.getBenefactor(projectOneId);
+		assertEquals(projectOneId, benefactorId);
+		
+		//check projectTwo
+		nodeToCheck = nodeManager.get(userInfo, projectTwoId);
+		assertNotNull(nodeToCheck);
+		assertEquals(projectOneId, nodeToCheck.getParentId());
+		benefactorId = nodeInheritanceDao.getBenefactor(projectTwoId);
+		assertEquals(projectOneId, benefactorId);
+		nodeToCheck = null;
+		
+		//check projectThree
+		nodeToCheck = nodeManager.get(userInfo, projectThreeId);
+		assertNotNull(nodeToCheck);
+		benefactorId = nodeInheritanceDao.getBenefactor(projectThreeId);
+		assertEquals(projectThreeId, benefactorId);
+		nodeToCheck = null;
+		
+		//check dataset
+		nodeToCheck = nodeManager.get(userInfo, datasetId);
+		assertNotNull(nodeToCheck);
+		assertEquals(projectThreeId, nodeToCheck.getParentId());
+		benefactorId = nodeInheritanceDao.getBenefactor(datasetId);
+		assertEquals(projectThreeId, benefactorId);
+		nodeToCheck = null;
+		
+		//check layer
+		nodeToCheck = nodeManager.get(userInfo, layerId);
+		assertNotNull(nodeToCheck);
+		assertEquals(datasetId, nodeToCheck.getParentId());
+		benefactorId = nodeInheritanceDao.getBenefactor(layerId);
+		assertEquals(layerId, benefactorId);
+		nodeToCheck = null;	
+	}
+	
+	/**
+	 * Tests that when a dataset's parentId is changed the resulting hierarchy
+	 * is in left in the correct state.  The tree we are building consists of a 
+	 * root project called projectOne.  Below projectOne is projectTwo.  Below 
+	 * projectTwo is a dataset.  Below the dataset it two layers called layerOne 
+	 * and layerTwo.  ProjectOne inherits from itself.  ProjectTwo inherits from 
+	 * itself.  LayerOne inherits from itself.  The rest of the entities inherit
+	 * from projectTwo.  The change tests that tree's state is correct after 
+	 * changing the dataset to receive it's parentID from a new ProjectThree
+	 * @throws Exception
+	 */
+	@Ignore
+	@Test
+	public void testDatasetParentIDChangeWhenDatasetHasTreeBelowIt() throws Exception {
+		//projectOne should inherit from itself
+		String benefactorId = nodeInheritanceDao.getBenefactor(projectOneId);
+		assertEquals(benefactorId, projectOneId);
+		
+		//now need to build up heirarchy for the test
+		//top is projectOne
+		//under is projectTwo
+		//under is dataset
+		//under is layerOne and layerTwo
+		//projectOne, projectTwo, and layerOne inherit from themselves
+		//all others inherit from projectTwo
+		Node nextNode = new Node();
+		String projectTwoId = null;
+		String datasetId = null;
+		String layerOneId = null;
+		String layerTwoId = null;
+		
+		nextNode.setName("projectTwo");
+		nextNode.setNodeType(ObjectType.project.name());
+		nextNode.setParentId(projectOneId);
+		projectTwoId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromItself(projectTwoId);
+		benefactorId = nodeInheritanceDao.getBenefactor(projectTwoId);
+		assertEquals(projectTwoId, benefactorId);
+		assertEquals(projectOneId, nextNode.getParentId());
+		nodesToDelete.add(projectTwoId);
+		
+		nextNode = new Node();
+		nextNode.setName("dataset");
+		nextNode.setNodeType(ObjectType.dataset.name());
+		nextNode.setParentId(projectTwoId);
+		datasetId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromNearestParent(datasetId);
+		benefactorId = nodeInheritanceDao.getBenefactor(datasetId);
+		assertEquals(projectTwoId, benefactorId);
+		assertEquals(projectTwoId, nextNode.getParentId());
+		nodesToDelete.add(datasetId);
+		
+		nextNode = new Node();
+		nextNode.setName("layerOne");
+		nextNode.setNodeType(ObjectType.layer.name());
+		nextNode.setParentId(datasetId);
+		layerOneId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromItself(layerOneId);
+		benefactorId = nodeInheritanceDao.getBenefactor(layerOneId);
+		assertEquals(layerOneId, benefactorId);
+		assertEquals(datasetId, nextNode.getParentId());
+		nodesToDelete.add(layerOneId);
+		
+		nextNode = new Node();
+		nextNode.setName("layerTwo");
+		nextNode.setNodeType(ObjectType.layer.name());
+		nextNode.setParentId(datasetId);
+		layerTwoId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromNearestParent(layerTwoId);
+		benefactorId = nodeInheritanceDao.getBenefactor(layerTwoId);
+		assertEquals(projectTwoId, benefactorId);
+		assertEquals(datasetId, nextNode.getParentId());
+		nodesToDelete.add(layerTwoId);		
+		
+		//here our structure exists
+		//now change the dataset's parentId to that of a third project (called
+		//projectThree). 
+		
+		//make projectThree
+		String projectThreeId = null;
+		nextNode = new Node();
+		nextNode.setName("projectThree");
+		nextNode.setNodeType(ObjectType.project.name());
+		projectThreeId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromItself(projectThreeId);
+		nodesToDelete.add(projectThreeId);
+		benefactorId = nodeInheritanceDao.getBenefactor(projectThreeId);
+		assertEquals(projectThreeId, benefactorId);
+		nextNode = null;
+		
+		//change dataset's parentId to that of projectThree
+		Node nodeToCheck = nodeManager.get(userInfo, datasetId);
+		assertNotNull(nodeToCheck);
+		nodeToCheck.setParentId(projectThreeId);
+		nodeManager.update(userInfo, nodeToCheck);
+		nodeToCheck = null;
+		
+		//now verify all entities have the correct state
+		
+		//check projectOne
+		benefactorId = nodeInheritanceDao.getBenefactor(projectOneId);
+		assertEquals(projectOneId, benefactorId);
+		
+		//check projectTwo
+		nodeToCheck = nodeManager.get(userInfo, projectTwoId);
+		assertNotNull(nodeToCheck);
+		assertEquals(projectOneId, nodeToCheck.getParentId());
+		benefactorId = nodeInheritanceDao.getBenefactor(projectTwoId);
+		assertEquals(projectTwoId, benefactorId);
+		nodeToCheck = null;
+		
+		//check projectThree
+		nodeToCheck = nodeManager.get(userInfo, projectThreeId);
+		assertNotNull(nodeToCheck);
+		benefactorId = nodeInheritanceDao.getBenefactor(projectThreeId);
+		assertEquals(projectThreeId, benefactorId);
+		nodeToCheck = null;
+		
+		//check dataset
+		nodeToCheck = nodeManager.get(userInfo, datasetId);
+		assertNotNull(nodeToCheck);
+		assertEquals(projectThreeId, nodeToCheck.getParentId());
+		benefactorId = nodeInheritanceDao.getBenefactor(datasetId);
+		assertEquals(projectThreeId, benefactorId);
+		nodeToCheck = null;
+		
+		//check layerOne
+		nodeToCheck = nodeManager.get(userInfo, layerOneId);
+		assertNotNull(nodeToCheck);
+		assertEquals(datasetId, nodeToCheck.getParentId());
+		benefactorId = nodeInheritanceDao.getBenefactor(layerOneId);
+		assertEquals(layerOneId, benefactorId);
+		nodeToCheck = null;	
+		
+		//check  layerTwo
+		nodeToCheck = nodeManager.get(userInfo, layerTwoId);
+		assertNotNull(nodeToCheck);
+		assertEquals(datasetId, nodeToCheck.getParentId());
+		benefactorId = nodeInheritanceDao.getBenefactor(layerTwoId);
+		assertEquals(projectThreeId, benefactorId);
+		nodeToCheck = null;
+	}
+	
+	/**
+	 * Tests that when a dataset's parentId is changed the resulting hierarchy
+	 * is in left in the correct state.  The tree we are building consists of a 
+	 * root project called projectOne, and below it is a dataset.  Both
+	 * entities inherit from themselves.  Tests that when you change dataset to 
+	 * point to a a  new project called newProject the resulting structure is 
+	 * in the correct state.
+	 * @throws Exception
+	 */
+	@Ignore
+	@Test
+	public void testDatasetParentIDChangeWhenDatasetInheritsFromItself() throws Exception {
+		//projectOne should inherit from itself
+		String benefactorId = nodeInheritanceDao.getBenefactor(projectOneId);
+		assertEquals(benefactorId, projectOneId);
+		
+		//now need to build up heirarchy for the test
+		//top is projectOne
+		//under is dataset
+		//both inherit from themselves
+		Node nextNode = new Node();
+		String datasetId = null;
+		
+		nextNode.setName("dataset");
+		nextNode.setNodeType(ObjectType.dataset.name());
+		nextNode.setParentId(projectOneId);
+		datasetId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromItself(datasetId);
+		benefactorId = nodeInheritanceDao.getBenefactor(datasetId);
+		assertEquals(datasetId, benefactorId);
+		assertEquals(projectOneId, nextNode.getParentId());
+		nodesToDelete.add(datasetId);
+		
+		//here our structure exists
+		//now change the dataset's parentId to that of a new project
+		
+		//make newProject
+		String newProjectId = null;
+		nextNode = new Node();
+		nextNode.setName("newProject");
+		nextNode.setNodeType(ObjectType.project.name());
+		newProjectId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromItself(newProjectId);
+		nodesToDelete.add(newProjectId);
+		benefactorId = nodeInheritanceDao.getBenefactor(newProjectId);
+		assertEquals(newProjectId, benefactorId);
+		nextNode = null;
+		
+		//change dataset's parentId to that of newProject
+		Node nodeToCheck = nodeManager.get(userInfo, datasetId);
+		assertNotNull(nodeToCheck);
+		nodeToCheck.setParentId(newProjectId);
+		nodeManager.update(userInfo, nodeToCheck);
+		nodeToCheck = null;
+		
+		//now verify all entities have correct state
+		
+		//check projectOne
+		benefactorId = nodeInheritanceDao.getBenefactor(projectOneId);
+		assertEquals(projectOneId, benefactorId);
+		
+		//check newProject
+		benefactorId = nodeInheritanceDao.getBenefactor(newProjectId);
+		assertEquals(newProjectId, benefactorId);
+		
+		//check dataset
+		nodeToCheck = nodeManager.get(userInfo, datasetId);
+		assertNotNull(nodeToCheck);
+		assertEquals(newProjectId, nodeToCheck.getParentId());
+		benefactorId = nodeInheritanceDao.getBenefactor(datasetId);
+		assertEquals(datasetId, benefactorId);
+		nodeToCheck = null;
+	}
+	
+	/**
+	 * Tests that when a folder's parentId is changed the resulting hierarchy
+	 * is in left in the correct state.  The tree we are building consists of a 
+	 * rootFolder.  Below rootFolder is folderTwo. Below folderTwo is
+	 * folderThree.  FolderThree has two folders below it named folderFour
+	 * and folderFive.  FolderFour inherits from itself and all other
+	 * folders inherit from rootFolder.  folderTwo changes it's id to a 
+	 * newFolder and test checks to make sure state is correct for all folders
+	 * after the parentId change update.
+	 * @throws Exception
+	 */
+	@Ignore
+	@Test
+	public void testFolderParentIDChangeWhenFolderHasTwoLevelsBelowIt() throws Exception {
+		//now need to build up heirarchy for the test
+		//top is rootFolder
+		//under is folderTwo
+		//under is folderThree
+		//under is folderFour and folderFive
+		//folderFour inherits from itself
+		//all other folders inherit from rootFolder
+		
+		Node nextNode = new Node();
+		String rootFolderId = null;
+		String folderTwoId = null;
+		String folderThreeId = null;
+		String folderFourId = null;
+		String folderFiveId = null;
+		
+		nextNode.setName("rootFolder");
+		nextNode.setNodeType(ObjectType.folder.name());
+		rootFolderId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromItself(rootFolderId);
+		String benefactorId = nodeInheritanceDao.getBenefactor(rootFolderId);
+		assertEquals(rootFolderId, benefactorId);
+		nodesToDelete.add(rootFolderId);
+		
+		nextNode = new Node();
+		nextNode.setName("folderTwo");
+		nextNode.setNodeType(ObjectType.folder.name());
+		nextNode.setParentId(rootFolderId);
+		folderTwoId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromNearestParent(folderTwoId);
+		benefactorId = nodeInheritanceDao.getBenefactor(folderTwoId);
+		assertEquals(rootFolderId, benefactorId);
+		assertEquals(rootFolderId, nextNode.getParentId());
+		nodesToDelete.add(folderTwoId);
+		
+		nextNode = new Node();
+		nextNode.setName("folderThree");
+		nextNode.setNodeType(ObjectType.folder.name());
+		nextNode.setParentId(folderTwoId);
+		folderThreeId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromNearestParent(folderThreeId);
+		benefactorId = nodeInheritanceDao.getBenefactor(folderThreeId);
+		assertEquals(rootFolderId, benefactorId);
+		assertEquals(folderTwoId, nextNode.getParentId());
+		nodesToDelete.add(folderThreeId);
+		
+		nextNode = new Node();
+		nextNode.setName("folderFour");
+		nextNode.setNodeType(ObjectType.folder.name());
+		nextNode.setParentId(folderThreeId);
+		folderFourId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromItself(folderFourId);
+		benefactorId = nodeInheritanceDao.getBenefactor(folderFourId);
+		assertEquals(folderFourId, benefactorId);
+		assertEquals(folderThreeId, nextNode.getParentId());
+		nodesToDelete.add(folderFourId);
+		
+		nextNode = new Node();
+		nextNode.setName("folderFive");
+		nextNode.setNodeType(ObjectType.folder.name());
+		nextNode.setParentId(folderThreeId);
+		folderFiveId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromNearestParent(folderFiveId);
+		benefactorId = nodeInheritanceDao.getBenefactor(folderFiveId);
+		assertEquals(rootFolderId, benefactorId);
+		assertEquals(folderThreeId, nextNode.getParentId());
+		nodesToDelete.add(folderFiveId);
+		
+		//here our structure exists
+		//now change the dataset's parentId to that of a newFolder 
+		
+		//make newFolder
+		String newFolderId = null;
+		nextNode = new Node();
+		nextNode.setName("newFolder");
+		nextNode.setNodeType(ObjectType.folder.name());
+		newFolderId = nodeManager.createNewNode(nextNode, userInfo);
+		nodeInheritanceManager.setNodeToInheritFromItself(newFolderId);
+		nodesToDelete.add(newFolderId);
+		benefactorId = nodeInheritanceDao.getBenefactor(newFolderId);
+		assertEquals(newFolderId, benefactorId);
+		nextNode = null;
+		
+		//change folderTwo's parentId to that of newFolder
+		Node nodeToCheck = nodeManager.get(userInfo, folderTwoId);
+		assertNotNull(nodeToCheck);
+		nodeToCheck.setParentId(newFolderId);
+		nodeManager.update(userInfo, nodeToCheck);
+		nodeToCheck = null;
+		
+		//now verify all entities are in correct state
+		
+		//check rootFolder
+		benefactorId = nodeInheritanceDao.getBenefactor(rootFolderId);
+		assertEquals(rootFolderId, benefactorId);
+		
+		//check newFolder
+		benefactorId = nodeInheritanceDao.getBenefactor(newFolderId);
+		assertEquals(newFolderId, benefactorId);
+		
+		//check folderTwo
+		nodeToCheck = nodeManager.get(userInfo, folderTwoId);
+		assertNotNull(nodeToCheck);
+		assertEquals(newFolderId, nodeToCheck.getParentId());
+		benefactorId = nodeInheritanceDao.getBenefactor(folderTwoId);
+		assertEquals(newFolderId, benefactorId);
+		nodeToCheck = null;
+		
+		//check folderThree
+		nodeToCheck = nodeManager.get(userInfo, folderThreeId);
+		assertNotNull(nodeToCheck);
+		assertEquals(folderTwoId, nodeToCheck.getParentId());
+		benefactorId = nodeInheritanceDao.getBenefactor(folderThreeId);
+		assertEquals(newFolderId, benefactorId);
+		nodeToCheck = null;
+		
+		//check folderFour
+		nodeToCheck = nodeManager.get(userInfo, folderFourId);
+		assertNotNull(nodeToCheck);
+		assertEquals(folderThreeId, nodeToCheck.getParentId());
+		benefactorId = nodeInheritanceDao.getBenefactor(folderFourId);
+		assertEquals(folderFourId, benefactorId);
+		nodeToCheck = null;
+		
+		//check folderFive
+		nodeToCheck = nodeManager.get(userInfo, folderFiveId);
+		assertNotNull(nodeToCheck);
+		assertEquals(folderThreeId, nodeToCheck.getParentId());
+		benefactorId = nodeInheritanceDao.getBenefactor(folderFiveId);
+		assertEquals(newFolderId, benefactorId);
+		nodeToCheck = null;
+	}
 }
