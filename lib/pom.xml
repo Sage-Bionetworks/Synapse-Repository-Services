@@ -20,6 +20,8 @@
     <module>jdomodels</module>
     <module>lib-auto-generated</module>
     <module>lib-workflow</module>
+    <module>communicationUtilities</module>
+    <module>securityUtilities</module>
   </modules>
   
 </project>
