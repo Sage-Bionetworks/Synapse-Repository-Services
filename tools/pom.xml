@@ -13,12 +13,10 @@
 	<name>Platform Tools</name>
 	
     <modules>
-      <module>downloadTools</module>
       <module>tcgaWorkflow</module>
       <module>wikiutil</module>
       <module>DatasetMetadataLoader</module>
-    <module>securityTools</module>
-    <module>gePipeline</module>
+      <module>gePipeline</module>
   </modules>
     
 </project>
