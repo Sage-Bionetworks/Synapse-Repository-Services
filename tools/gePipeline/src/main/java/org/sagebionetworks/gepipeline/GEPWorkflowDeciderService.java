@@ -9,9 +9,6 @@ import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.Asynchron
 /**
  * This is the process which hosts all the SWF deciders exposed in this package.
  * 
- * Note that the TCGA Curation pipeline decider has no external dependencies
- * (e.g., it does not need to run on a machine with R and Bioconductor)
- * 
  */
 public class GEPWorkflowDeciderService {
 
@@ -89,7 +86,7 @@ public class GEPWorkflowDeciderService {
 		deciderExecutor.shutdownNow();
 		swfService.shutdown();
 		deciderExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
-		System.out.println("GEP Workflow Decider Service Stopped...");
+		System.out.println("GEP Workflow Decider Service Stopped.");
 	}
 
 }

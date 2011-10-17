@@ -2,6 +2,9 @@
 
 source('./src/main/resources/synapseWorkflow.R')
 
+maxDatasetSize <- as.numeric(getMaxDatasetSizeArg())
+
+
 library(XML)
 library(RCurl)
 
@@ -49,9 +52,16 @@ if (T) {
 		x<-xmlInternalTreeParse(url)
 		gseids<-paste('GSE',sapply(xpathApply(x, "/eSummaryResult/DocSum/Item[@Name='GSE']/text()"),xmlValue),sep="")
 		pdat<-sapply(xpathApply(x, "/eSummaryResult/DocSum/Item[@Name='PDAT']/text()"), xmlValue)
+		n_samples<-sapply(xpathApply(x, "/eSummaryResult/DocSum/Item[@Name='n_samples']/text()"), xmlValue)
+		## suppFile<-sapply(xpathApply(x, "/eSummaryResult/DocSum/Item[@Name='suppFile']/text()"), xmlValue)
 		names(pdat) <- gseids
 		cat(length(pdat), "total studies\n")
-		res <- c(res,as.list(pdat))
+		## The following fails because 'n_samples' is 882 long, but 'suppFile' is only 670 long (for GPL96)
+		## pdatSub <- pdat[(as.numeric(n_samples)<=maxDatasetSize) & (1:length(suppFile) %in% grep('CEL', suppFile))]
+		## cat(length(pdatSub), " studies less than ", maxDatasetSize, "and have CEL files.\n")
+		pdatSub <- pdat[as.numeric(n_samples)<=maxDatasetSize]
+		cat(length(pdatSub), " studies less than ", maxDatasetSize, ".\n")
+		res <- c(res,as.list(pdatSub))
 	}
 } else {
 	# for debugging only

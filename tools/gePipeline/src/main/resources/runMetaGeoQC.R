@@ -6,6 +6,8 @@
 # Author: Matt Furia
 ###############################################################################
 
+starttime<-proc.time()
+
 ## constants
 kErrorStatusCode <- 1L
 kOkStatusCode <- 0L
@@ -23,7 +25,7 @@ userName <- getUsernameArg()
 secretKey <- getSecretKeyArg()
 authEndpoint <- getAuthEndpointArg()
 repoEndpoint <- getRepoEndpointArg()
-projectId <- getProjectId()
+projectId <- getProjectIdArg()
 
 if(is.null(gseId) 
 		|| is.null(secretKey) 
@@ -136,6 +138,13 @@ if(!ans$update){
 				stop(e)
 			}
 	)
+	
+	endtime<-proc.time()
+	elapsedtime<-(endtime-starttime)["elapsed"]
+	
+	# max mem, megabytes
+	maxmem<-sum(gc()[,6])
+	
 	## call the finish workflow step code
 	finishWorkflowTask(
 			output=list(
@@ -143,7 +152,9 @@ if(!ans$update){
 					msg=sprintf("Successfully added GEO study %s to Synapse.", gseId), 
 					datasetId=dsId, 
 					qcdExprLayerId=ans$exprLayers, 
-					metadataLayerId=ans$metadataLayers
+					metadataLayerId=ans$metadataLayers,
+					elapsedtime=elapsedtime,
+					maxmem=maxmem
 			)
 	)
 }

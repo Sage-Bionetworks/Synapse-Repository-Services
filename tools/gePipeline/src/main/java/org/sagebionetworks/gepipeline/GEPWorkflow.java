@@ -34,7 +34,7 @@ public class GEPWorkflow {
 	private static final String VERSION = "1.0";
 	private static final int MAX_WORKFLOW_TIMEOUT_HOURS = 24;
 	private static final int MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS = 4;
-	private static final int NUM_RETRIES = 3;
+	private static final int NUM_ATTEMPTS = 1;
 	
 	private static final String INPUT_DATASET_PARAMETER_KEY = "--datasetId";
 	private static final String LAST_UPDATE_PARAMETER_KEY = "--lastUpdateDate";
@@ -97,7 +97,7 @@ public class GEPWorkflow {
 	}
 
 	@Activity(version = VERSION)
-	@ExponentialRetry(minimumAttempts = NUM_RETRIES, maximumAttempts = NUM_RETRIES)
+	@ExponentialRetry(minimumAttempts = NUM_ATTEMPTS, maximumAttempts = NUM_ATTEMPTS)
 	@ActivityRegistrationOptions(
 			defaultLifetimeTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours), 
 			taskLivenessTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours))
