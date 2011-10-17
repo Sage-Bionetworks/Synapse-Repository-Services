@@ -1,7 +1,7 @@
 package org.sagebionetworks.gepipeline;
 
-import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -19,6 +19,9 @@ public class GEPWorkflowInitiator {
 
 	private static final Logger log = Logger
 			.getLogger(GEPWorkflowInitiator.class.getName());
+	
+	private static final String MAX_DATASET_SIZE_PARAMETER_KEY = "--maxDatasetSize";
+
 
 	/**
 	 * Crawl all top level TCGA datasets and identify the ones in which we are
@@ -26,7 +29,10 @@ public class GEPWorkflowInitiator {
 	 */
 	void initiateWorkflowTasks() throws Exception {
 		// call R function which returns IDs of data sets to process
-		List<String> scriptParams = new ArrayList<String>();
+		String maxDatasetSize = ConfigHelper.getGEPipelineMaxDatasetSize();
+		List<String> scriptParams = new ArrayList<String>(Arrays.asList(
+				new String[]{MAX_DATASET_SIZE_PARAMETER_KEY, maxDatasetSize})
+		);
 		String script = ConfigHelper.getGEPipelineCrawlerScript();
 		if (script==null || script.length()==0) throw new RuntimeException("Missing crawler script parameter.");
 		ScriptResult results = ScriptProcessor.doProcess(script, scriptParams);

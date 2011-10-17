@@ -99,7 +99,7 @@ public class GEPWorkflowActivityService {
 		activityExecutor.shutdownNow();
 		swfService.shutdown();
 		activityExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
-		System.out.println("Agent Service Stopped...");
+		System.out.println("Agent Service Stopped.");
 	}
 
 }

@@ -54,7 +54,7 @@ public class ScriptProcessor {
 				SYNAPSE_SECRETKEY_KEY, ConfigHelper.getSynapseSecretKey(),
 				AUTH_ENDPOINT_KEY, ConfigHelper.getAuthenticationServicePublicEndpoint(),
 				REPO_ENDPOINT_KEY, ConfigHelper.getRepositoryServiceEndpoint(),
-				PROJECT_ID_PARAMETER_KEY, ConfigHelper.getProjectId()
+				PROJECT_ID_PARAMETER_KEY, ConfigHelper.getGEPipelineProjectId()
 				};
 		
 		// now append the parameters onto the end

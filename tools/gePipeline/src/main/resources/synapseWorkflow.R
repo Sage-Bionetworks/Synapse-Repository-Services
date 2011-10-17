@@ -14,7 +14,8 @@ setClass(
 				kWorkflowDone = 'character',
 				kOutputStartDelimiterPattern = 'character',
 				kOutputEndDelimiterPattern = 'character',
-				kInputProjectIdKey = 'character'
+				kInputProjectIdKey = 'character',
+				kMaxDatasetSizeArg = 'character'
 		),
 		prototype = prototype(
 				kUsage = 'Usage: R myScript.r --args --username you@yourEmailAddress --password YourSynapsePassword --datasetId 42 --layerId 99',
@@ -29,7 +30,8 @@ setClass(
 				kWorkflowDone = 'workflowDone',
 				kOutputStartDelimiterPattern = 'SynapseWorkflowResult_START',
 				kOutputEndDelimiterPattern = 'SynapseWorkflowResult_END',
-				kInputProjectIdKey = '--projectId'
+				kInputProjectIdKey = '--projectId',
+				kMaxDatasetSizeArg = '--maxDatasetSize'
 		)
 )
 
@@ -113,7 +115,12 @@ skipWorkflowTask <- function(reason = 'this script does not want to work on this
 	q()
 }
 
-getProjectId <- function(){
+getProjectIdArg <- function(){
 	constants <- new('SynapseWorkflowConstants')
 	getArgVal(argName=constants@kInputProjectIdKey) 
+}
+
+getMaxDatasetSizeArg <- function(){
+	constants <- new('SynapseWorkflowConstants')
+	getArgVal(argName=constants@kMaxDatasetSizeArg) 
 }

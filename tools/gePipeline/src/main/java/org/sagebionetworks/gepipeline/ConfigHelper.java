@@ -180,8 +180,8 @@ public class ConfigHelper {
 		return configuration.getRScriptPath();
 	}	
 	
-	public static String getProjectId() {
-		return configuration.getProjectId();
+	public static String getGEPipelineProjectId() {
+		return configuration.getGEPipelineProjectId();
 	}
 	
 	public static String getGEPipelineCrawlerScript() {
@@ -190,5 +190,9 @@ public class ConfigHelper {
 	
 	public static String getGEPipelineWorkflowScript() {
 		return configuration.getGEPipelineWorkflowScript();
+	}
+	
+	public static String getGEPipelineMaxDatasetSize() {
+		return configuration.getGEPipelineMaxDatasetSize();
 	}
 }
