@@ -1,0 +1,5 @@
+{
+    "description": "JSON schema for Project POJO",
+    "id":"Project.json",
+    "extends": {"$ref":"Entity.json"},
+}
