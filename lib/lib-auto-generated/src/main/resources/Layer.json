@@ -1,0 +1,49 @@
+{
+    "description": "JSON schema for Layer POJO",
+    "id": "Layer.json",
+    "extends": {"$ref":"VersionableEntity.json"},
+    "properties": {
+	    "publicationDate": {
+		    "type": "string",
+		    "format": "date-time",
+		    "description": "Date this layer was published"
+	    },
+	    "releaseNotes": {
+		    "type": "string",
+		    "description": "Free text about layer"
+	    },
+	    "type": {
+		    "type": "string",
+		    "description": "Type of layer"
+	    },
+	    "tissueType": {
+		    "type": "string",
+		    "description": "Type of tissue for the samples in this layer"
+	    },
+	    "platform": {
+		    "type": "string",
+		    "description": "Chip platform for the samples in this layer"
+	    },
+	    "processingFacility": {
+		    "type": "string",
+		    "description": "Location where the samples for this layer were processed"
+	    },
+	    "QcBy": {
+		    "type": "string",
+		    "description": "Name of person who processed this layer"
+	    },
+	    "QcDate": {
+		    "type": "string",
+		    "format": "date-time",
+		    "description": "Date this layer was Qc'ed"
+	    },
+	    "status": {
+		    "type": "string",
+		    "description": "Status of this layer"
+	    },
+	    "numSamples": {
+		    "type": "integer",
+		    "description": "Approximate number of samples in this layer"
+	    }
+    }
+}

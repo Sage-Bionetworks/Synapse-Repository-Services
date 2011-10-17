@@ -1,5 +1,6 @@
    {
      "description":"This is the base class for all",
+     "id":"Entity.json",
      "properties":{
        "name":{
          "type":"string",
@@ -39,6 +40,18 @@
        "modifiedBy":{
          "type":"string",
          "description":"The user that last modified this entity."
+       },
+       "annotations": {
+	  "type": "string",
+	  "description": "The URI to get to this entity's annotations"
+       },
+       "accessControlList": {
+	   "type": "string",
+	   "description": "The URI to get to this entity's access control list"
+       },
+       "parentId": {
+	   "type": "string",
+	   "description": "The ID of the parent of this entity"
        }
      }
    }
