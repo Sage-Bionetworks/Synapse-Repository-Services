@@ -59,8 +59,15 @@ myExpr <- addFile(myExpr, "pm.txt", path="GSE10024/expression/affymetrix")
 ## store the data
 myExpr <- storeEntity(myExpr)
 
+## store the code used to generate the curated data
+## this is a bit artificial, but in this case we'll just store the entire Rhistory.
+## in the provenance features of Synapse may provide an easier way to do this.
+savehistory(file.path(tempdir(), "history.R"))
+curationCode <- Code(list(name="My Curation Script", parentId = propertyValue(myDataset, "id")))
+curationCode <- addFile(curationCode, file.path(tempdir(), "history.R"))
+curationCode <- storeEntity(curationCode)
 
-
+onWeb(myDataset)
 
 
 
