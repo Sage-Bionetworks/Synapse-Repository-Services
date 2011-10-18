@@ -7,44 +7,49 @@
 	Manipulate Objects held by an Entity
 }
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+	Functions for manipulating R objects held by an entity.
 }
 \usage{
-addObject(entity, object, ...)
+	addObject(entity, object, name, unlist=TRUE)
+	deleteObject(entity, which)
+	getObject(entity, which)
+	renameObject(entity, src, dest)
 }
 \arguments{
   \item{entity}{
-%%     ~~Describe \code{entity} here~~
-}
+		The entity to be modified
+	}
   \item{object}{
-%%     ~~Describe \code{object} here~~
-}
-  \item{\dots}{
-%%     ~~Describe \code{\dots} here~~
-}
-}
+		The object to be added or renamed
+	}
+  \item{name}{
+		optional argument specifying the to be given to the object. Defaults to the name of the object when passed as an argument.
+	}
+  \item{unlist}{
+  		boolean indicating whether list objects should be added as a single object (unlist = TRUE) or as one object for each named element (unlist=FALSE)
+	}
+	\item{which}{
+		the name of the object to be deleted or returned.
+	}
 \details{
-%%  ~~ If necessary, more details than the description above ~~
+	It is important to note that the objects held by an entity are stored in an environment. In R environments are passed by reference. So, if 
+	you make multiple copies of an entity, any modifications made to the objects held by one copy of the entity will be propagated to all copies
+	of that entity. use \code{\{copyEntity}} to prevent this. 
+	
+	Another implication of using environments is that it is not technically necessary to catch the return value from these functions. However, it
+	may help the clarity of your code to do so.
 }
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
-}
-\references{
-%% ~put references to the literature/web site here ~
-}
-\author{
-%%  ~~who you are~~
-}
-\note{
-%%  ~~further notes~~
+	The modified object (invisibly)
 }
 
+\author{
+	Matt Furia
+}
 
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+	\code{\link{addFile}}
+	\code{\link{copyEntity}}
+	
 }
 

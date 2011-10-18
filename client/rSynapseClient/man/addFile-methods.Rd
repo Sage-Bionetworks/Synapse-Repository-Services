@@ -14,23 +14,19 @@
 \describe{
 
 \item{\code{signature(entity = "CachedLocation", file = "character", path = "character")}}{
-%%  ~~describe this method here~~
-}
-
-\item{\code{signature(entity = "Layer", file = "character", path = "ANY")}}{
-%%  ~~describe this method here~~
+	This method is not intended to be called by the user.
 }
 
 \item{\code{signature(entity = "Layer", file = "character", path = "character")}}{
-%%  ~~describe this method here~~
+	Add a file and specify the path.
 }
 
 \item{\code{signature(entity = "Layer", file = "missing", path = "character")}}{
-%%  ~~describe this method here~~
+Calling this method will open a file select dialog and will place the selected file in the subdirectory specified by path.
 }
 
 \item{\code{signature(entity = "Layer", file = "missing", path = "missing")}}{
-%%  ~~describe this method here~~
+	Calling this method will open a file select dialog and will place the selected file in the root directory of the zip file.
 }
 }}
 \keyword{methods}

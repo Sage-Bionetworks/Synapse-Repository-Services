@@ -14,7 +14,7 @@ setMethod(
 
 setMethod(
 		f = "addFile",
-		signature = signature("Layer", "character"),
+		signature = signature("Layer", "character", "missing"),
 		definition = function(entity, file){
 			entity@location <- addFile(entity@location, file, path="/")
 			entity

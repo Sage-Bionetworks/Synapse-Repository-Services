@@ -9,14 +9,14 @@
 }
 \section{Methods}{
 \describe{
-	
 	\item{\code{signature(entity = "Layer", path = "character")}}{
-	%%  ~~describe this method here~~
-}
+		Recursively adds the files and directories under path to the root directory of the zip file.
+	}
 
-\item{\code{signature(entity = "Layer", path = "missing")}}{
-%%  ~~describe this method here~~
-}
+	\item{\code{signature(entity = "Layer", path = "missing")}}{
+		Opens a file select dialog and recursively adds the files selected under the root directory of the zip file.
+	}
+	
 }}
 \keyword{methods}
 

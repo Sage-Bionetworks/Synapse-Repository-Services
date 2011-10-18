@@ -3,48 +3,46 @@
 \alias{deleteFile}
 \alias{moveFile}
 \alias{addDir}
+\alias{edit}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 	Manipulate Entity Files
 }
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+	Functions for manipulating the files belonging to an entity.
 }
 \usage{
-addFile(entity, file, path)
+	addFile(entity, file, path)
+	deleteFile(entity, file)
+	moveFile(entity, src, dest)
+	addDir(entity, src)
+	edit(entity)
 }
 \arguments{
   \item{entity}{
-%%     ~~Describe \code{entity} here~~
+		The entity whose files will be modified
 }
   \item{file}{
-%%     ~~Describe \code{file} here~~
+  		A path to the file on the local file system, when adding, or the relative path to the file when deleting (see Details)
 }
   \item{path}{
-%%     ~~Describe \code{path} here~~
+		The relative path where the file should be placed.
 }
 }
 \details{
-%%  ~~ If necessary, more details than the description above ~~
+	The file paths give by entity$files are relative to the root directory of zip file that will store the entity files.
 }
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
-}
-\references{
-%% ~put references to the literature/web site here ~
+	The modified entity. 
 }
 \author{
-%%  ~~who you are~~
+	Matt Furia
 }
 \note{
-%%  ~~further notes~~
+	If the return value is not captured, the entity will not be modified. Currently edit is only supported for Code entity types.
 }
 
 
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+	\code{\link{addObject}}
 }
