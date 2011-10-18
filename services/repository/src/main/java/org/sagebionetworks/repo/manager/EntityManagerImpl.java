@@ -46,7 +46,7 @@ public class EntityManagerImpl implements EntityManager {
 		node.setNodeType(ObjectType.getNodeTypeForClass(newEntity.getClass()).toString());
 		NamedAnnotations annos = new NamedAnnotations();
 		// Now add all of the annotations and references from the entity
-		NodeTranslationUtils.updateAnnotationsFromObject(newEntity, annos.getPrimaryAnnotations(), node.getReferences());
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(newEntity, annos.getPrimaryAnnotations(), node.getReferences());
 		// We are ready to create this node
 		String nodeId = nodeManager.createNewNode(node, annos, userInfo);
 		// Return the id of the newly created entity
@@ -114,7 +114,7 @@ public class EntityManagerImpl implements EntityManager {
 		// Return the new object from the database
 		T newEntity = createNewEntity(entityClass);
 		// Populate the entity using the annotations and references
-		NodeTranslationUtils.updateObjectFromAnnotations(newEntity, annos.getPrimaryAnnotations(), node.getReferences());
+		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(newEntity, annos.getPrimaryAnnotations(), node.getReferences());
 		// Populate the entity using the node
 		NodeTranslationUtils.updateObjectFromNode(newEntity, node);
 		EntityWithAnnotations<T> ewa = new EntityWithAnnotations<T>();
@@ -225,7 +225,7 @@ public class EntityManagerImpl implements EntityManager {
 	 */
 	private <T extends Base> void updateNodeAndAnnotationsFromEntity(T entity, Node node, Annotations annos){
 		// Update the annotations from the entity
-		NodeTranslationUtils.updateAnnotationsFromObject(entity, annos, node.getReferences());
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(entity, annos, node.getReferences());
 		// Update the node from the entity
 		NodeTranslationUtils.updateNodeFromObject(entity, node);
 		// Set the Annotations Etag

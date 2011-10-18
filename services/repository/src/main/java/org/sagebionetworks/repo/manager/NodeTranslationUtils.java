@@ -125,13 +125,14 @@ public class NodeTranslationUtils {
 	
 	/**
 	 * Add any fields from the object that are not on a node.
+	 * 
 	 * @param <T> 
 	 * @param base
 	 * @param annos
 	 * @param references 
 	 * @throws IllegalArgumentException 
 	 */
-	public static <T> void updateAnnotationsFromObject(T base, Annotations annos, Map<String, Set<Reference>> references) {
+	public static <T> void updateNodeSecondaryFieldsFromObject(T base, Annotations annos, Map<String, Set<Reference>> references) {
 		if(base == null) throw new IllegalArgumentException("Base cannot be null");
 		if(annos == null) throw new IllegalArgumentException("Annotations cannot be null");
 		// Find the fields that are not on nodes.
@@ -215,7 +216,7 @@ public class NodeTranslationUtils {
 	 * @param base
 	 * @param annos
 	 */
-	public static <T> void updateObjectFromAnnotations(T base, Annotations annos, Map<String, Set<Reference>> references) {
+	public static <T> void updateObjectFromNodeSecondaryFields(T base, Annotations annos, Map<String, Set<Reference>> references) {
 		if(base == null) throw new IllegalArgumentException("Base cannot be null");
 		if(annos == null) throw new IllegalArgumentException("Annotations cannot be null");
 		// Find the fields that are not on nodes.
