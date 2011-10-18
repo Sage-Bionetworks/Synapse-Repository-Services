@@ -180,10 +180,10 @@ public class NodeTranslationUtilsTest {
 		Layer layer = new Layer();
 		layer.setType("C");
 		Annotations annos = new Annotations();
-		NodeTranslationUtils.updateAnnotationsFromObject(layer, annos, null);
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(layer, annos, null);
 		layer.setType("E");
 		// update again
-		NodeTranslationUtils.updateAnnotationsFromObject(layer, annos, null);
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(layer, annos, null);
 		// The E should replace the C
 		Object result = annos.getSingleValue("type");
 		assertEquals("E", result);
@@ -195,10 +195,10 @@ public class NodeTranslationUtilsTest {
 		Layer layer = new Layer();
 		layer.setLocations("/locations");
 		Annotations annos = new Annotations();
-		NodeTranslationUtils.updateAnnotationsFromObject(layer, annos, null);
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(layer, annos, null);
 		// Now go back
 		Layer copy = new Layer();
-		NodeTranslationUtils.updateObjectFromAnnotations(copy, annos, null);
+		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(copy, annos, null);
 		String copyLocations = copy.getLocations();
 		assertEquals(layer.getLocations(), copyLocations);
 	}
@@ -223,7 +223,7 @@ public class NodeTranslationUtilsTest {
 		test.setMarkedTransient("I should not be stored");
 		test.setNonTransient("I should be stored");
 		Annotations annos = new Annotations();
-		NodeTranslationUtils.updateAnnotationsFromObject(test, annos, null);
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(test, annos, null);
 		// The transient field should not be in the annotations
 		assertEquals("I should be stored", annos.getSingleValue("nonTransient"));
 		assertTrue("A @TransientField should not be stored in the annotations",annos.getSingleValue("markedTransient") == null);
@@ -292,12 +292,12 @@ public class NodeTranslationUtilsTest {
 		Node dsNode = NodeTranslationUtils.createFromBase(toClone);
 		// Update an annotations object using the object
 		Annotations annos = new Annotations();
-		NodeTranslationUtils.updateAnnotationsFromObject(toClone, annos, dsNode.getReferences());
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(toClone, annos, dsNode.getReferences());
 		// Now crate the clone
 		@SuppressWarnings("unchecked")
 		T clone = (T) toClone.getClass().newInstance();
 		// first apply the annotations
-		NodeTranslationUtils.updateObjectFromAnnotations(clone, annos, dsNode.getReferences());
+		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(clone, annos, dsNode.getReferences());
 		// then apply the node
 		// Apply the node
 		NodeTranslationUtils.updateObjectFromNode(clone, dsNode);
