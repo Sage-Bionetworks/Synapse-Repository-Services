@@ -133,6 +133,14 @@ setClass(
 )
 
 setClass(
+		Class = "Media",
+		contains = "Layer",
+		prototype = prototype(
+				synapseEntityKind = "layer"
+		)
+)
+
+setClass(
 		Class = "Eula",
 		contains = "SynapseEntity",
 		prototype = prototype(

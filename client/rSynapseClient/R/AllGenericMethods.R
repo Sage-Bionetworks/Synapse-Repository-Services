@@ -6,6 +6,14 @@
 setGeneric(name="as.list")
 
 setGeneric(
+		name = "Media",
+		def = function(entity){
+			standardGeneric("Media")
+		}
+		
+)
+
+setGeneric(
 		name = "deleteFile",
 		def = function(entity, file){
 			standardGeneric("deleteFile")

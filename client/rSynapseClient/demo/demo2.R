@@ -5,6 +5,7 @@
 ## load the synapse client and login
 library(synapseClient)
 library(affy)
+library(simpleaffy)
 synapseLogin()
 
 ## set up a project
@@ -59,6 +60,21 @@ myExpr <- addFile(myExpr, "pm.txt", path="GSE10024/expression/affymetrix")
 ## store the data
 myExpr <- storeEntity(myExpr)
 
+
+## create a heatmap of some probes and push that to Synapse
+jpeg(file = "heatmap.jpg")
+hmap.eset(expr$objects$expression[[1]], probesets=101:200)
+dev.off()
+plot <- synapseClient:::Media(list(name = "heatmap", parentId=propertyValue(myDataset,"id")))
+plot <- addFile(plot,"heatmap.jpg")
+plot <- storeEntity(plot)
+
+## show the plot from R
+plot
+
+## show the plot on the web
+onWeb(plot)
+
 ## store the code used to generate the curated data
 ## this is a bit artificial, but in this case we'll just store the entire Rhistory.
 ## in the provenance features of Synapse may provide an easier way to do this.
@@ -71,7 +87,7 @@ curationCode <- storeEntity(curationCode)
 fetchedCode <- downloadEntity(curationCode)
 fetchedCode <- edit(fetchedCode)
 storeEntity(fetchedCode)
-	
+
 onWeb(myDataset)
 
 

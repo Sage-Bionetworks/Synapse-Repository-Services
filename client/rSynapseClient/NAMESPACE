@@ -34,7 +34,8 @@ exportMethods(
 	Dataset, 
 	Layer, 
 	Project,
-	Code
+	Code,
+	Media
 )
 
 ## entity S4 methods
