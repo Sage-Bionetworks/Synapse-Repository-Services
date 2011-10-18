@@ -54,8 +54,7 @@ hmacSecretKey(secretKey)
 ##########################################
 ## get the R Code dataset id
 ##########################################
-codeProjectId <- 16413 ### TEMPORARY FIX
-result <- synapseQuery(sprintf('select * from dataset where dataset.name == "%s" and dataset.parentId == "%s"', "GEO R Code Layers", codeProjectId))
+result <- synapseQuery(sprintf('select * from dataset where dataset.name == "%s" and dataset.parentId == "%s"', "GEO R Code Layers", projectId))
 if(is.null(result) || nrow(result) != 1L){
 	msg <- sprintf("could not find R code dataset in project %s", projectId)
 	finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
