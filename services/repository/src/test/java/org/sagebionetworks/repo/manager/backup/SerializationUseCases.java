@@ -116,7 +116,7 @@ public class SerializationUseCases {
 	 */
 	public static <T extends Nodeable> Annotations createAnnoationsV0(T ds) {
 		Annotations annos = new Annotations();
-		NodeTranslationUtils.updateAnnoationsFromObject(ds, annos);
+		NodeTranslationUtils.updateAnnotationsFromObject(ds, annos, null);
 		addAdditionalAnnotations(annos);
 		return annos;
 	}
@@ -130,7 +130,7 @@ public class SerializationUseCases {
 	public static <T extends Nodeable> NamedAnnotations createAnnoationsV1(T ds) {
 		NamedAnnotations named = new NamedAnnotations();
 		Annotations primaryAnnotations = named.getPrimaryAnnotations();
-		NodeTranslationUtils.updateAnnoationsFromObject(ds, primaryAnnotations);
+		NodeTranslationUtils.updateAnnotationsFromObject(ds, primaryAnnotations, null);
 		// Now add some custom annotations
 		Annotations additionalAnnos = named.getAdditionalAnnotations();
 		addAdditionalAnnotations(additionalAnnos);

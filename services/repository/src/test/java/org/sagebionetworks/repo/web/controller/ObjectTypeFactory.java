@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
+import org.sagebionetworks.repo.model.Analysis;
 import org.sagebionetworks.repo.model.Eula;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -40,6 +41,9 @@ public class ObjectTypeFactory {
 		} else if(object instanceof Eula){
 			Eula eula = (Eula) object;
 			eula.setAgreement("this is a fake agreement");
+		} else if(object instanceof Analysis){
+			Analysis analysis = (Analysis) object;
+			analysis.setDescription("this is a fake description");
 		} 
 		// Any object that needs  parent
 		if(object instanceof Nodeable){
