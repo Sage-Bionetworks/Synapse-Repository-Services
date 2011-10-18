@@ -8,7 +8,7 @@ library(affy)
 synapseLogin()
 
 ## set up a project
-myName <- <your name>
+myName <- "MattF"
 projName <- sprintf("%ss Curation Project", myName)
 
 ## create a project object using it's constructor. The
@@ -67,6 +67,11 @@ curationCode <- Code(list(name="My Curation Script", parentId = propertyValue(my
 curationCode <- addFile(curationCode, file.path(tempdir(), "history.R"))
 curationCode <- storeEntity(curationCode)
 
+## retrieve the curation code from synapse, edit it and store the code again
+fetchedCode <- downloadEntity(curationCode)
+fetchedCode <- edit(fetchedCode)
+storeEntity(fetchedCode)
+	
 onWeb(myDataset)
 
 

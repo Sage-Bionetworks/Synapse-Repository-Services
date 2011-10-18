@@ -52,6 +52,8 @@ setMethod(
 				)
 			}
 			layer@annotations<- annotations
+			if(!is.null(propertyValue(layer, "id")))
+				layer@synapseWebUrl <- .buildSynapseUrl(propertyValue(layer, "id"))
 			setSubclass(layer)
 		}
 )
