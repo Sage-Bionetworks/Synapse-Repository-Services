@@ -2,10 +2,13 @@ package org.sagebionetworks.repo.manager;
 
 
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,6 +18,7 @@ import java.util.logging.Logger;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.TransientField;
 
 /**
@@ -80,6 +84,9 @@ public class NodeTranslationUtils {
 	public static <T> Node createFromBase(T base){
 		if(base == null) throw new IllegalArgumentException("Base Object cannot be null");
 		Node node = new Node();
+		// Create the Reference Map for this object
+		Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
+		node.setReferences(references);
 		updateNodeFromObject(base, node);
 		return node;
 	}
@@ -118,12 +125,13 @@ public class NodeTranslationUtils {
 	
 	/**
 	 * Add any fields from the object that are not on a node.
+	 * @param <T> 
 	 * @param base
 	 * @param annos
-	 * @throws IllegalAccessException 
+	 * @param references 
 	 * @throws IllegalArgumentException 
 	 */
-	public static <T> void updateAnnoationsFromObject(T base, Annotations annos) {
+	public static <T> void updateAnnotationsFromObject(T base, Annotations annos, Map<String, Set<Reference>> references) {
 		if(base == null) throw new IllegalArgumentException("Base cannot be null");
 		if(annos == null) throw new IllegalArgumentException("Annotations cannot be null");
 		// Find the fields that are not on nodes.
@@ -143,8 +151,19 @@ public class NodeTranslationUtils {
 					value = field.get(base);
 					// We do not store fields that are marked as @TransientField
 					TransientField transientField = field.getAnnotation(TransientField.class);
-					if(value != null && transientField == null){
-						annos.replaceAnnotation(name, value);
+					if(value != null && transientField == null) {
+						if(value instanceof Set<?>) {
+							Iterator iter = ((Set) value).iterator();
+							if(iter.hasNext() && (iter.next() instanceof Reference)) {
+								references.put(name, (Set<Reference>) value);
+							}
+							else {
+								annos.replaceAnnotation(name, value);									
+							}
+						}
+						else {
+							annos.replaceAnnotation(name, value);
+						}
 					}
 				} catch (IllegalAccessException e) {
 					// This should never occur
@@ -191,12 +210,12 @@ public class NodeTranslationUtils {
 	}
 	
 	/**
-	 * Update an object using annotations.
+	 * Update an object using annotations and references.
 	 * @param <T>
 	 * @param base
 	 * @param annos
 	 */
-	public static <T> void updateObjectFromAnnotations(T base, Annotations annos) {
+	public static <T> void updateObjectFromAnnotations(T base, Annotations annos, Map<String, Set<Reference>> references) {
 		if(base == null) throw new IllegalArgumentException("Base cannot be null");
 		if(annos == null) throw new IllegalArgumentException("Annotations cannot be null");
 		// Find the fields that are not on nodes.
@@ -219,11 +238,25 @@ public class NodeTranslationUtils {
 							value = Boolean.parseBoolean((String)value);
 						}
 						if(field.getType().isAssignableFrom(Collection.class)){
-							List list = new ArrayList();
+							List<Object> list = new ArrayList<Object>();
 							list.add(value);
 							field.set(base, list);
 						}else{
 							field.set(base, value);
+						}
+					}
+					else {
+						if(field.getType().isAssignableFrom(Set.class)){
+							ParameterizedType type = (ParameterizedType) field.getGenericType();
+							if(Reference.class == type.getActualTypeArguments()[0]) {
+								Set<Reference> referenceGroup = references.get(name);
+								if(null == referenceGroup) {
+									field.set(base, new HashSet<Reference>());
+								}
+								else {
+									field.set(base, referenceGroup);
+								}
+							}
 						}
 					}
 				} catch (IllegalAccessException e) {

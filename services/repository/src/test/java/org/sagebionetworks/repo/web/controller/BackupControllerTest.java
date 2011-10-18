@@ -6,7 +6,11 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -26,6 +30,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestoreFile;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -94,20 +99,39 @@ public class BackupControllerTest {
 	
 	@Test
 	public void testRoundTrip() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ServletException, IOException, InterruptedException{
-		Node node = new Node();
-		node.setName("BackupDaemonLauncherImplAutowireTest.testRoundTrip");
-		node.setNodeType(ObjectType.project.name());
 		UserInfo nonAdmin = testUserProvider.getTestAdminUserInfo();
+
+		Node nodeWithAnnotations = new Node();
+		nodeWithAnnotations.setName("BackupDaemonLauncherImplAutowireTest.testRoundTrip Annotations");
+		nodeWithAnnotations.setNodeType(ObjectType.project.name());
 		Annotations annos = RandomAnnotationsUtil.generateRandom(334, 50);
 		NamedAnnotations named = new NamedAnnotations();
 		named.put(NamedAnnotations.NAME_SPACE_ADDITIONAL, annos);
-		String id = nodeManager.createNewNode(node, named, nonAdmin);
-		assertNotNull(id);
-		toDelete.add(id);
+		String idOfNodeWithAnnotations = nodeManager.createNewNode(nodeWithAnnotations, named, nonAdmin);
+		assertNotNull(idOfNodeWithAnnotations);
+		toDelete.add(idOfNodeWithAnnotations);
+
+		Node nodeWithRefs = new Node();
+		nodeWithRefs.setName("BackupDaemonLauncherImplAutowireTest.testRoundTrip References");
+		nodeWithRefs.setNodeType(ObjectType.project.name());
+		Reference reference = new Reference();
+		reference.setTargetId(idOfNodeWithAnnotations);
+		reference.setTargetVersionNumber(42L);
+		Set<Reference> referenceGroup = new HashSet<Reference>();
+		referenceGroup.add(reference);
+		Map<String, Set<Reference>> referenceGroups = new HashMap<String, Set<Reference>>();
+		referenceGroups.put("backedUpRefs", referenceGroup);
+		nodeWithRefs.setReferences(referenceGroups);
+		String idOfNodeWithRefs = nodeManager.createNewNode(nodeWithRefs, new NamedAnnotations(), nonAdmin);
+		assertNotNull(idOfNodeWithRefs);
+		toDelete.add(idOfNodeWithRefs);
+
+		
 		// Fetch them back
-		node = nodeManager.get(nonAdmin, id);
-		named = nodeManager.getAnnotations(nonAdmin, id);
+		nodeWithAnnotations = nodeManager.get(nonAdmin, idOfNodeWithAnnotations);
+		named = nodeManager.getAnnotations(nonAdmin, idOfNodeWithAnnotations);
 		annos = named.getAdditionalAnnotations();
+		nodeWithRefs = nodeManager.get(nonAdmin, idOfNodeWithRefs);
 		
 		// Start a backup
 		BackupRestoreStatus status = ServletTestHelper.startBackup(dispatchServlet, adminUserName);
@@ -122,10 +146,11 @@ public class BackupControllerTest {
 		int index = fullUrl.lastIndexOf("/");
 		String fileName = status.getBackupUrl().substring(index+1, fullUrl.length());
 		
-		// Now delete the node
-		nodeManager.delete(nonAdmin, id);
+		// Now delete the nodes
+		nodeManager.delete(nonAdmin, idOfNodeWithAnnotations);
+		nodeManager.delete(nonAdmin, idOfNodeWithRefs);
 		
-		// Now restore the node from the backup
+		// Now restore the nodes from the backup
 		RestoreFile file = new RestoreFile(fileName);
 		status = ServletTestHelper.startRestore(dispatchServlet, adminUserName, file);
 		assertNotNull(status);
@@ -134,13 +159,14 @@ public class BackupControllerTest {
 		status = waitForStatus(STATUS.COMPLETED, status.getId());
 		assertNotNull(status.getBackupUrl());
 		System.out.println(status.getBackupUrl());
-		// Now make sure the node it back.
-		Node nodeClone = nodeManager.get(nonAdmin, id);
-		assertEquals(node, nodeClone);
-		NamedAnnotations namedClone = nodeManager.getAnnotations(nonAdmin, id);
+		// Now make sure the nodes are resurrected
+		Node nodeWithAnnotationsClone = nodeManager.get(nonAdmin, idOfNodeWithAnnotations);
+		assertEquals(nodeWithAnnotations, nodeWithAnnotationsClone);
+		NamedAnnotations namedClone = nodeManager.getAnnotations(nonAdmin, idOfNodeWithAnnotations);
 		Annotations annosClone = namedClone.getAdditionalAnnotations();
 		assertEquals(annos, annosClone);
-
+		Node nodeWithRefsClone = nodeManager.get(nonAdmin, idOfNodeWithRefs);
+		assertEquals(referenceGroups, nodeWithRefsClone.getReferences());
 	
 	}
 	

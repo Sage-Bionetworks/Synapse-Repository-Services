@@ -37,7 +37,7 @@ public class EntityToMapUtilTest {
 		
 		// Create the annotations from this object
 		Annotations annos = new Annotations();
-		NodeTranslationUtils.updateAnnoationsFromObject(ds, annos);
+		NodeTranslationUtils.updateAnnotationsFromObject(ds, annos, null);
 		// Add some extra annotations
 		annos.addAnnotation("someString", "one");
 		annos.addAnnotation("someLong", new Long(12));

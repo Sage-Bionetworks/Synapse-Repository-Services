@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.net.URLEncoder;
 import java.util.Arrays;
@@ -22,8 +22,6 @@ import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -67,21 +65,22 @@ public class Helpers {
 
 	private static final Logger log = Logger.getLogger(Helpers.class.getName());
 	private static final int JSON_INDENT = 2;
-	private static final String DEFAULT_SERVLET_PREFIX = "/repo/v1";
 
 	private HttpServlet servlet;
 	private String servletPrefix;
-	private String integrationTestEndpoint;
 	private String userId;
 	private UserInfo userInfo;
 	private LinkedList<TestStateItem> testState;
 
+	/**
+	 * User provider for test users
+	 */
 	@Autowired
 	public UserProvider testUserProvider;
 	
 	/**
 	 * The JSON for a read only ACL
-	 * @return
+	 * @return the ACL
 	 */
 	public String getIdentifiedUserReadOnlyACL(){
 		UserGroup group = testUserProvider.getIdentifiedUserGroup();
@@ -90,7 +89,7 @@ public class Helpers {
 
 	/**
 	 * The JSON for a Read/write ACL.
-	 * @return
+	 * @return the ACL
 	 */
 	public String getIdentifiedUserReadWriteACL(){
 		UserGroup group = testUserProvider.getIdentifiedUserGroup();
@@ -153,6 +152,9 @@ public class Helpers {
 
 	}
 
+	/**
+	 * Assume the identity of the admin user
+	 */
 	public void useAdminUser() {
 		assertNotNull(testUserProvider);
 		userInfo = testUserProvider.getTestAdminUserInfo();
@@ -161,6 +163,9 @@ public class Helpers {
 		userId = userInfo.getUser().getUserId();
 	}
 
+	/**
+	 * Assume the identity of a non-admin test user
+	 */
 	public void useTestUser() {
 		assertNotNull(testUserProvider);
 		userInfo = testUserProvider.getTestUserInfo();
@@ -173,6 +178,9 @@ public class Helpers {
 		}
 	}
 
+	/**
+	 * @return the current test user Id
+	 */
 	public String getUserId() {
 		return userId;
 	}

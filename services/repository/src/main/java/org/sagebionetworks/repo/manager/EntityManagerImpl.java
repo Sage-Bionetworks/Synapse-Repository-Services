@@ -2,23 +2,19 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.swing.text.html.parser.Entity;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
-import org.sagebionetworks.repo.model.NamedAnnotations;
-import org.sagebionetworks.repo.model.NodeRevision;
-import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -29,6 +25,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ *
+ */
 @Transactional(readOnly = true)
 public class EntityManagerImpl implements EntityManager {
 	
@@ -46,8 +45,8 @@ public class EntityManagerImpl implements EntityManager {
 		// Set the type for this object
 		node.setNodeType(ObjectType.getNodeTypeForClass(newEntity.getClass()).toString());
 		NamedAnnotations annos = new NamedAnnotations();
-		// Now add all of the annotations from the entity
-		NodeTranslationUtils.updateAnnoationsFromObject(newEntity, annos.getPrimaryAnnotations());
+		// Now add all of the annotations and references from the entity
+		NodeTranslationUtils.updateAnnotationsFromObject(newEntity, annos.getPrimaryAnnotations(), node.getReferences());
 		// We are ready to create this node
 		String nodeId = nodeManager.createNewNode(node, annos, userInfo);
 		// Return the id of the newly created entity
@@ -80,6 +79,17 @@ public class EntityManagerImpl implements EntityManager {
 		}
 	}
 	
+	/**
+	 * @param <T>
+	 * @param userInfo
+	 * @param entityId
+	 * @param versionNumber
+	 * @param entityClass
+	 * @return the entity version
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
 	@Transactional(readOnly = true)
 	public <T extends Base> EntityWithAnnotations<T> getEntityVersionWithAnnotations(UserInfo userInfo, String entityId, Long versionNumber, Class<? extends T> entityClass)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -103,8 +113,8 @@ public class EntityManagerImpl implements EntityManager {
 			Class<? extends T> entityClass, NamedAnnotations annos, Node node) {
 		// Return the new object from the database
 		T newEntity = createNewEntity(entityClass);
-		// Populate the entity using the annotations
-		NodeTranslationUtils.updateObjectFromAnnotations(newEntity, annos.getPrimaryAnnotations());
+		// Populate the entity using the annotations and references
+		NodeTranslationUtils.updateObjectFromAnnotations(newEntity, annos.getPrimaryAnnotations(), node.getReferences());
 		// Populate the entity using the node
 		NodeTranslationUtils.updateObjectFromNode(newEntity, node);
 		EntityWithAnnotations<T> ewa = new EntityWithAnnotations<T>();
@@ -215,7 +225,7 @@ public class EntityManagerImpl implements EntityManager {
 	 */
 	private <T extends Base> void updateNodeAndAnnotationsFromEntity(T entity, Node node, Annotations annos){
 		// Update the annotations from the entity
-		NodeTranslationUtils.updateAnnoationsFromObject(entity, annos);
+		NodeTranslationUtils.updateAnnotationsFromObject(entity, annos, node.getReferences());
 		// Update the node from the entity
 		NodeTranslationUtils.updateNodeFromObject(entity, node);
 		// Set the Annotations Etag
