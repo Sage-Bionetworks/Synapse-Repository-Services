@@ -34,7 +34,7 @@ setMethod(
 			## coerce to Dataset
 			class(dataset) <- "Dataset"
 			synapseEntityKind(dataset) <- synapseEntityKind(new(Class="Dataset"))
-			return(dataset)
+			dataset
 		}
 )
 

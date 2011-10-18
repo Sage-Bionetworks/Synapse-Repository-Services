@@ -1,5 +1,5 @@
 ## imports from other packages
-import(RCurl, Biobase, methods)
+import(RCurl, Biobase, methods, affy)
 importFrom(RJSONIO, toJSON, fromJSON, emptyNamedList)
 importFrom(tools, md5sum)
 importFrom(digest, digest, hmac)

@@ -58,9 +58,10 @@ dataset <- updateEntity(dataset)
 newPhenotypes <- pData(phenotypes)
 layer <- new(Class="Layer", properties = list(parentId=propertyValue(dataset,"id"), name="newLayer"))
 propertyValue(layer, "type") <- "C"
-layer <- storeLayerData(layer, newPhenotypes)
+layer <- addObject(layer, newPhenotypes)
+layer <- storeEntity(layer)
 
 ## get the layer back.
-objects <- loadLayerData(layer)
-ls(objects)
-retrievedData <- get("newPhenotypes", envir=objects)
+loadedLayer <- load(propertyValue(layer, "id"))
+loadedLayer
+retrievedData <- loadedLayer$objects$newPhenotypes

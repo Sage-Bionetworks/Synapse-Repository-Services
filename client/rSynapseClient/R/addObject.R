@@ -74,6 +74,16 @@ setMethod(
 				return(addObject(entity, object))
 			name = deparse(substitute(object, env=parent.frame()))
 			name <- gsub("\\\"", "", name)
+			addObject(entity, object, name, unlist)
+		}
+)
+
+setMethod(
+		f = "addObject",
+		signature = signature("Layer", "list", "character", "logical"),
+		definition = function(entity, object, name, unlist){
+			if(unlist)
+				stop("cannot specify the object name when unlisting")
 			assign(name, object, envir = entity@objects)
 			tryCatch(
 					.cacheObject(entity, name),
