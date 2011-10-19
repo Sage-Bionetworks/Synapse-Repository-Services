@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.jdo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -23,7 +24,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -527,6 +527,13 @@ public class NodeDAOImplTest {
 		currentAnnos = namedCopy.getAdditionalAnnotations();
 		assertNotNull(currentAnnos);
 		assertEquals(currentAnnos, v2Annos);
+		assertEquals(8989898.2, currentAnnos.getSingleValue("double"));
+		
+		// Node delete the current revision and confirm that the annotations are rolled back
+		node = nodeDao.getNode(id);
+		nodeDao.deleteVersion(id, node.getVersionNumber());
+		NamedAnnotations rolledBackAnnos = nodeDao.getAnnotations(id);
+		assertEquals(2.3, rolledBackAnnos.getAdditionalAnnotations().getSingleValue("double"));
 	}
 	
 	@Test
@@ -964,5 +971,89 @@ public class NodeDAOImplTest {
 		assertNotNull(storedNode.getReferences());
 		assertEquals(0, storedNode.getReferences().size());
 	}
+	
+	@Test
+	public void testReferencesDeleteCurrentVersion() throws NotFoundException, DatastoreException{
+		Reference inEven = null, inOdd = null;
+		
+		// Create a few nodes we will refer to
+		Set<Reference> even = new HashSet<Reference>();
+		Set<Reference> odd = new HashSet<Reference>();
+		for(int i=1; i<=5; i++){
+			Node node = NodeTestUtils.createNew("referee"+i);
+			node.setVersionNumber(999L);
+			String id = nodeDao.createNew(node);
+			toDelete.add(id);
+			Reference ref = new Reference();
+			ref.setTargetId(id);
+			ref.setTargetVersionNumber(node.getVersionNumber());
+			if(0 == (i % 2)) {
+				even.add(ref);
+				inEven = ref;
+			}
+			else {
+				odd.add(ref);
+				inOdd = ref;
+			}
+		}
+
+		// Create our reference map
+		Map<String, Set<Reference>> refs = new HashMap<String, Set<Reference>>();
+		refs.put("even", even);
+		refs.put("odd", odd);
+		
+		// Create the node that holds the references
+		Node node = NodeTestUtils.createNew("parent");
+		node.setNodeType(ObjectType.project.name());
+		node.setReferences(refs);
+		node.setVersionLabel("references 1.0");
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		assertNotNull(id);
+		
+		// Get the newly created node
+		node = nodeDao.getNode(id);
+		Long v1Number = node.getVersionNumber();
+		assertTrue(node.getReferences().get("even").contains(inEven));
+		assertTrue(node.getReferences().get("odd").contains(inOdd));
+		
+		// Get the current rev
+		NodeRevision currentRev = nodeDao.getNodeRevision(id, node.getVersionNumber());
+		assertNotNull(currentRev);
+		assertTrue(currentRev.getReferences().get("even").contains(inEven));
+		assertTrue(currentRev.getReferences().get("odd").contains(inOdd));
+
+		// now create a new version and change the references
+		node = nodeDao.getNode(id);
+		node.getReferences().put("even2", node.getReferences().get("even"));
+		node.setVersionLabel("references 2.0");
+		nodeDao.createNewVersion(node);
+
+		// Get the updated node and the current revision
+		node = nodeDao.getNode(id);
+		currentRev = nodeDao.getNodeRevision(id, node.getVersionNumber());
+		// Since we added more references, we should see them in the node and in the revision
+		assertTrue(node.getReferences().get("even").contains(inEven));
+		assertTrue(node.getReferences().get("odd").contains(inOdd));
+		assertTrue(node.getReferences().get("even2").contains(inEven));
+		assertTrue(currentRev.getReferences().get("even").contains(inEven));
+		assertTrue(currentRev.getReferences().get("odd").contains(inOdd));
+		assertTrue(currentRev.getReferences().get("even2").contains(inEven));
+		
+		// Delete the current version.
+		nodeDao.deleteVersion(id, node.getVersionNumber());
+
+		// Get the (rolled back) node and the current revision
+		node = nodeDao.getNode(id);
+		currentRev = nodeDao.getNodeRevision(id, node.getVersionNumber());
+		// Since we added more references, we should see them in the node and in the revision
+		assertTrue(node.getReferences().get("even").contains(inEven));
+		assertTrue(node.getReferences().get("odd").contains(inOdd));
+		assertNull(node.getReferences().get("even2"));
+		assertTrue(currentRev.getReferences().get("even").contains(inEven));
+		assertTrue(currentRev.getReferences().get("odd").contains(inOdd));
+		assertNull(currentRev.getReferences().get("even2"));
+	}
+
 	
 }

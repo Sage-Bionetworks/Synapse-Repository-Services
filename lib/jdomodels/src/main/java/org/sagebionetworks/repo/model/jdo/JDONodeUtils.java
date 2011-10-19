@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.jdo;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,9 +25,11 @@ public class JDONodeUtils {
 	 * Used to update an existing object
 	 * @param dto
 	 * @param jdo
+	 * @param rev 
 	 * @return
+	 * @throws DatastoreException 
 	 */
-	public static void updateFromDto(Node dto, JDONode jdo, JDORevision rev) {
+	public static void updateFromDto(Node dto, JDONode jdo, JDORevision rev) throws DatastoreException {
 		jdo.setName(dto.getName());
 		jdo.setDescription(dto.getDescription());
 		if(dto.getId() != null){
@@ -43,6 +46,11 @@ public class JDONodeUtils {
 		rev.setComment(dto.getVersionComment());
 		if(dto.getVersionLabel() != null){
 			rev.setLabel(dto.getVersionLabel());
+		}
+		try {
+			rev.setReferences(JDOAnnotationsUtils.compressReferences(dto.getReferences()));
+		} catch (IOException e) {
+			throw new DatastoreException(e);
 		}
 	}
 	

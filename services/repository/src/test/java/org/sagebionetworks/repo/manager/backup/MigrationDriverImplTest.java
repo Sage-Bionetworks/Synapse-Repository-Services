@@ -33,6 +33,7 @@ public class MigrationDriverImplTest {
 				// We must be able to load the V1 xml files into the current version
 				{ "node-revision-dataset-v1.xml", SerializationUseCases.createV1DatasetRevision(), ObjectType.dataset  },
 				{ "node-revision-project-v1.xml", SerializationUseCases.createV1ProjectRevision(), ObjectType.project  },
+				{ "node-revision-step-v1.xml", SerializationUseCases.createV1StepRevision(), ObjectType.step  },
 		});
 	}
 

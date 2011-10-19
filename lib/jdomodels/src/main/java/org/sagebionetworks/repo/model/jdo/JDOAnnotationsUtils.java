@@ -19,6 +19,7 @@ import java.util.zip.GZIPOutputStream;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOBlobAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
@@ -93,7 +94,7 @@ public class JDOAnnotationsUtils {
 	/**
 	 * Convert the passed annotations to a compressed (zip) byte array
 	 * @param dto
-	 * @return
+	 * @return compressed annotations
 	 * @throws IOException 
 	 */
 	public static byte[] compressAnnotations(NamedAnnotations dto) throws IOException{
@@ -110,9 +111,30 @@ public class JDOAnnotationsUtils {
 			zipper.flush();
 			zipper.close();
 		}
-
 	}
 	
+	/**
+	 * Convert the passed references to a compressed (zip) byte array
+	 * @param dto
+	 * @return the compressed references
+	 * @throws IOException 
+	 */
+	public static byte[] compressReferences(Map<String, Set<Reference>> dto) throws IOException{
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		BufferedOutputStream buff = new BufferedOutputStream(out);
+		GZIPOutputStream zipper = new GZIPOutputStream(buff);
+		try{
+			XStream xstream = createXStream();
+			xstream.toXML(dto, zipper);
+			zipper.flush();
+			zipper.close();
+			return out.toByteArray();
+		}finally{
+			zipper.flush();
+			zipper.close();
+		}
+	}
+
 	public static String toXml(NamedAnnotations dto) throws IOException{
 		StringWriter writer = new StringWriter();
 		try{
@@ -141,10 +163,11 @@ public class JDOAnnotationsUtils {
 		xstream.alias("name-space", NamedAnnotations.class);
 		return xstream;
 	}
+	
 	/**
 	 * Read the compressed (zip) byte array into the Annotations.
 	 * @param zippedByes
-	 * @return
+	 * @return the resurrected Annotations
 	 * @throws IOException 
 	 */
 	@SuppressWarnings("unchecked")
@@ -165,6 +188,29 @@ public class JDOAnnotationsUtils {
 		return new NamedAnnotations();
 	}
 
+	/**
+	 * Read the compressed (zip) byte array into the References.
+	 * @param zippedByes
+	 * @return the resurrected References
+	 * @throws IOException 
+	 */
+	@SuppressWarnings("unchecked")
+	public static Map<String, Set<Reference>> decompressedReferences(byte[] zippedByes) throws IOException{
+		if(zippedByes != null){
+			ByteArrayInputStream in = new ByteArrayInputStream(zippedByes);
+			GZIPInputStream unZipper = new GZIPInputStream(in);
+			try{
+				XStream xstream = createXStream();
+				if(zippedByes != null){
+					return (Map<String, Set<Reference>>) xstream.fromXML(unZipper);
+				}
+			}finally{
+				unZipper.close();
+			}			
+		}
+		// Return an empty map.
+		return new HashMap<String, Set<Reference>>();
+	}
 	
 	/**
 	 * Create a new Annotations object from the JDO.
@@ -203,7 +249,7 @@ public class JDOAnnotationsUtils {
 	}
 	
 	/**
-	 * Create a set of JDOAnnoations from a map
+	 * Create a set of JDOAnnotations from a map
 	 * @param <T>
 	 * @param owner
 	 * @param annotation
@@ -219,7 +265,7 @@ public class JDOAnnotationsUtils {
 				Iterator<T> valueIt = valueColection.iterator();
 				while(valueIt.hasNext()){
 					T value = valueIt.next();
-					JDOAnnotation<T> jdo = createAnnotaion(owner, key, value);
+					JDOAnnotation<T> jdo = createAnnotation(owner, key, value);
 					set.add(jdo);
 				}
 			}
@@ -236,7 +282,7 @@ public class JDOAnnotationsUtils {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> JDOAnnotation<T> createAnnotaion(JDONode owner, String key, T value){
+	public static <T> JDOAnnotation<T> createAnnotation(JDONode owner, String key, T value){
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(value == null) throw new IllegalArgumentException("Value cannot be null");
 		JDOAnnotation<T>  jdo = null;

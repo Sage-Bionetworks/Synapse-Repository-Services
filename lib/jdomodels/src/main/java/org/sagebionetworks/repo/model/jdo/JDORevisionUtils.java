@@ -21,10 +21,15 @@ public class JDORevisionUtils {
 		copy.setOwner(toCopy.getOwner());
 		// Increment the revision number
 		copy.setRevisionNumber(new Long(toCopy.getRevisionNumber()+1));
-		// Make a copy of the annotations array
+		// Make a copy of the annotations byte array
 		if(toCopy.getAnnotations() != null){
 			// Make a copy of the annotations.
 			copy.setAnnotations(Arrays.copyOf(toCopy.getAnnotations(), toCopy.getAnnotations().length));
+		}
+		// Make a copy of the references byte array
+		if(toCopy.getReferences() != null){
+			// Make a copy of the references.
+			copy.setReferences(Arrays.copyOf(toCopy.getReferences(), toCopy.getReferences().length));
 		}
 		return copy;
 	}
@@ -48,6 +53,7 @@ public class JDORevisionUtils {
 		rev.setModifiedOn(new Date(jdo.getModifiedOn()));
 		try {
 			rev.setNamedAnnotations(JDOAnnotationsUtils.decompressedAnnotations(jdo.getAnnotations()));
+			rev.setReferences(JDOAnnotationsUtils.decompressedReferences(jdo.getReferences()));
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -70,6 +76,7 @@ public class JDORevisionUtils {
 		jdo.setRevisionNumber(dto.getRevisionNumber());
 		try {
 			jdo.setAnnotations(JDOAnnotationsUtils.compressAnnotations(dto.getNamedAnnotations()));
+			jdo.setReferences(JDOAnnotationsUtils.compressReferences(dto.getReferences()));
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

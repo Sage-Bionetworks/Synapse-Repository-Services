@@ -7,23 +7,21 @@ import static org.junit.Assert.assertTrue;
 
 import java.lang.reflect.Field;
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.repo.manager.backup.SerializationUseCases;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Layer;
-import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Preview;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.repo.model.TransientField;
+import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
 
 public class NodeTranslationUtilsTest {
 	
@@ -118,42 +116,8 @@ public class NodeTranslationUtilsTest {
 	
 	@Test
 	public void testStepRoundTrip() throws InstantiationException, IllegalAccessException, InvalidModelException {
-		// Make some references
-		Reference layer1 = new Reference();
-		layer1.setTargetId("1");
-		layer1.setTargetVersionNumber(99L);
-		Reference layer2 = new Reference();
-		layer2.setTargetId("2");
-		Reference layer3 = new Reference();
-		layer3.setTargetId("3");
-		layer3.setTargetVersionNumber(42L);
-		
-		Set<Reference> code = new HashSet<Reference>(); // this one is empty
-		Set<Reference> input = new HashSet<Reference>();
-		input.add(layer1);
-		input.add(layer2);
-		Set<Reference> output = new HashSet<Reference>();
-		output.add(layer3);
-		
-		// First we create a step with all fields filled in.
-		Step step = new Step();
-		step.setEtag("12");
-		step.setId("44");
-		step.setName("someName");
-		step.setParentId("42");
-		step.setUri("/step/42");
-		step.setCreationDate(new Date(System.currentTimeMillis()));
-		step.setCreatedBy("foo@bar.com");
-		step.setStartDate(new Date());
-		step.setEndDate(new Date());
-		step.setDescription("someDescr");
-		step.setCommandLine("/usr/bin/r");
-		step.setCode(code);
-		step.setInput(input);
-		step.setOutput(output);
-		step.setAnnotations("/step/42/annotations");
-		step.setAccessControlList("/step/42/accessControlList");
-		
+		Step step = SerializationUseCases.createStepWithReferences();
+
 		// Create a clone using node translation
 		Step clone = cloneUsingNodeTranslation(step);
 		

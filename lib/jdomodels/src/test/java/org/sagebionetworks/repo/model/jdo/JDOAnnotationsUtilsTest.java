@@ -52,10 +52,10 @@ public class JDOAnnotationsUtilsTest {
 	}
 	
 	@Test
-	public void testCreateAnnotaionString(){
+	public void testCreateannotationString(){
 		String key = "someKey";
 		String value = "someValue";
-		Object result = JDOAnnotationsUtils.createAnnotaion(owner, key, value);
+		Object result = JDOAnnotationsUtils.createAnnotation(owner, key, value);
 		assertNotNull(result);
 		assertTrue(result instanceof JDOStringAnnotation);
 		JDOStringAnnotation anno = (JDOStringAnnotation) result;
@@ -65,10 +65,10 @@ public class JDOAnnotationsUtilsTest {
 	}
 	
 	@Test
-	public void testCreateAnnotaionDate(){
+	public void testCreateAnnotationDate(){
 		String key = "someKey";
 		Date value = new Date(System.currentTimeMillis());
-		Object result = JDOAnnotationsUtils.createAnnotaion(owner, key, value);
+		Object result = JDOAnnotationsUtils.createAnnotation(owner, key, value);
 		assertNotNull(result);
 		assertTrue(result instanceof JDODateAnnotation);
 		JDODateAnnotation anno = (JDODateAnnotation) result;
@@ -78,10 +78,10 @@ public class JDOAnnotationsUtilsTest {
 	}
 	
 	@Test
-	public void testCreateAnnotaionLong(){
+	public void testCreateAnnotationLong(){
 		String key = "someKey";
 		Long value = new Long(System.currentTimeMillis());
-		Object result = JDOAnnotationsUtils.createAnnotaion(owner, key, value);
+		Object result = JDOAnnotationsUtils.createAnnotation(owner, key, value);
 		assertNotNull(result);
 		assertTrue(result instanceof JDOLongAnnotation);
 		JDOLongAnnotation anno = (JDOLongAnnotation) result;
@@ -91,10 +91,10 @@ public class JDOAnnotationsUtilsTest {
 	}
 	
 	@Test
-	public void testCreateAnnotaionDouble(){
+	public void testCreateAnnotationDouble(){
 		String key = "someKey";
 		Double value = new Double(1234.567);
-		Object result = JDOAnnotationsUtils.createAnnotaion(owner, key, value);
+		Object result = JDOAnnotationsUtils.createAnnotation(owner, key, value);
 		assertNotNull(result);
 		assertTrue(result instanceof JDODoubleAnnotation);
 		JDODoubleAnnotation anno = (JDODoubleAnnotation) result;
