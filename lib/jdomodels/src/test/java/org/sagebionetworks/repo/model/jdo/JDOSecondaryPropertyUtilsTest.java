@@ -40,7 +40,7 @@ import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
  *
  */
 @SuppressWarnings("unchecked")
-public class JDOAnnotationsUtilsTest {
+public class JDOSecondaryPropertyUtilsTest {
 	
 	
 	JDONode owner;
@@ -55,7 +55,7 @@ public class JDOAnnotationsUtilsTest {
 	public void testCreateannotationString(){
 		String key = "someKey";
 		String value = "someValue";
-		Object result = JDOAnnotationsUtils.createAnnotation(owner, key, value);
+		Object result = JDOSecondaryPropertyUtils.createAnnotation(owner, key, value);
 		assertNotNull(result);
 		assertTrue(result instanceof JDOStringAnnotation);
 		JDOStringAnnotation anno = (JDOStringAnnotation) result;
@@ -68,7 +68,7 @@ public class JDOAnnotationsUtilsTest {
 	public void testCreateAnnotationDate(){
 		String key = "someKey";
 		Date value = new Date(System.currentTimeMillis());
-		Object result = JDOAnnotationsUtils.createAnnotation(owner, key, value);
+		Object result = JDOSecondaryPropertyUtils.createAnnotation(owner, key, value);
 		assertNotNull(result);
 		assertTrue(result instanceof JDODateAnnotation);
 		JDODateAnnotation anno = (JDODateAnnotation) result;
@@ -81,7 +81,7 @@ public class JDOAnnotationsUtilsTest {
 	public void testCreateAnnotationLong(){
 		String key = "someKey";
 		Long value = new Long(System.currentTimeMillis());
-		Object result = JDOAnnotationsUtils.createAnnotation(owner, key, value);
+		Object result = JDOSecondaryPropertyUtils.createAnnotation(owner, key, value);
 		assertNotNull(result);
 		assertTrue(result instanceof JDOLongAnnotation);
 		JDOLongAnnotation anno = (JDOLongAnnotation) result;
@@ -94,7 +94,7 @@ public class JDOAnnotationsUtilsTest {
 	public void testCreateAnnotationDouble(){
 		String key = "someKey";
 		Double value = new Double(1234.567);
-		Object result = JDOAnnotationsUtils.createAnnotation(owner, key, value);
+		Object result = JDOSecondaryPropertyUtils.createAnnotation(owner, key, value);
 		assertNotNull(result);
 		assertTrue(result instanceof JDODoubleAnnotation);
 		JDODoubleAnnotation anno = (JDODoubleAnnotation) result;
@@ -116,7 +116,7 @@ public class JDOAnnotationsUtilsTest {
 		valueCollection = new ArrayList<String>();
 		valueCollection.add("a");
 		map.put("secondKey", valueCollection);
-		Set<? extends JDOAnnotation<String>> result = JDOAnnotationsUtils.createFromMap(owner, map);
+		Set<? extends JDOAnnotation<String>> result = JDOSecondaryPropertyUtils.createFromMap(owner, map);
 		assertNotNull(result);
 		Set<JDOStringAnnotation> set;
 		try{
@@ -134,7 +134,7 @@ public class JDOAnnotationsUtilsTest {
 		set.add(new JDOLongAnnotation("keyOne", new Long(102)));
 		set.add(new JDOLongAnnotation("keyTwo", new Long(42)));
 		// Convert it to a map
-		Map<String, Collection<Long>> map = JDOAnnotationsUtils.createFromSet(set);
+		Map<String, Collection<Long>> map = JDOSecondaryPropertyUtils.createFromSet(set);
 		assertNotNull(map);
 		// There should be two values int the map, and the first value should have a collection with 2 values.
 		assertEquals(2, map.size());
@@ -153,16 +153,16 @@ public class JDOAnnotationsUtilsTest {
 		dto.addAnnotation("doubleOne", new Double(32.4));
 		dto.addAnnotation("dateOne", new Date(System.currentTimeMillis()));
 		
-		byte[] compressed = JDOAnnotationsUtils.compressAnnotations(named);
-		String xmlString = JDOAnnotationsUtils.toXml(named);
+		byte[] compressed = JDOSecondaryPropertyUtils.compressAnnotations(named);
+		String xmlString = JDOSecondaryPropertyUtils.toXml(named);
 		System.out.println(xmlString);
-		NamedAnnotations mapClone = JDOAnnotationsUtils.fromXml(xmlString);
+		NamedAnnotations mapClone = JDOSecondaryPropertyUtils.fromXml(xmlString);
 		assertEquals(named, mapClone);
 		assertNotNull(compressed);
 		System.out.println("Size: "+compressed.length);
 		System.out.println(new String(compressed, "UTF-8"));
 		// Now make sure we can read the compressed data
-		NamedAnnotations dtoCopy = JDOAnnotationsUtils.decompressedAnnotations(compressed);
+		NamedAnnotations dtoCopy = JDOSecondaryPropertyUtils.decompressedAnnotations(compressed);
 		assertNotNull(dtoCopy);
 		// The copy should match the original
 		assertEquals(named, dtoCopy);
@@ -180,13 +180,13 @@ public class JDOAnnotationsUtilsTest {
 		// Now create the jdo
 		JDONode node = new JDONode();
 		JDORevision rev = new JDORevision();
-		JDOAnnotationsUtils.updateFromJdoFromDto(named, node, rev);
+		JDOSecondaryPropertyUtils.updateFromJdoFromDto(named, node, rev);
 		assertNotNull(node.getBlobAnnotations());
 		assertNotNull(node.getDateAnnotations());
 		assertNotNull(node.getStringAnnotations());
 		assertNotNull(node.getDoubleAnnotations());
 		// Check the copy
-		NamedAnnotations dtoCopy = JDOAnnotationsUtils.createFromJDO(rev);
+		NamedAnnotations dtoCopy = JDOSecondaryPropertyUtils.createFromJDO(rev);
 		assertNotNull(dtoCopy);
 		// The copy should match the original
 		assertEquals(named, dtoCopy);
@@ -197,7 +197,7 @@ public class JDOAnnotationsUtilsTest {
 		// Create a revision with a null byte array
 		JDORevision rev = new JDORevision();
 		// Check the copy
-		NamedAnnotations dtoCopy = JDOAnnotationsUtils.createFromJDO(rev);
+		NamedAnnotations dtoCopy = JDOSecondaryPropertyUtils.createFromJDO(rev);
 		assertNotNull(dtoCopy);
 	}
 	
@@ -213,11 +213,11 @@ public class JDOAnnotationsUtilsTest {
 		dto.addAnnotation("blobOne", values[0].getBytes("UTF-8"));
 		dto.addAnnotation("blobOne", values[1].getBytes("UTF-8"));
 		dto.addAnnotation("blobTwo", values[2].getBytes("UTF-8"));
-		byte[] comressedBytes = JDOAnnotationsUtils.compressAnnotations(named);
+		byte[] comressedBytes = JDOSecondaryPropertyUtils.compressAnnotations(named);
 		System.out.println("Compressed size: "+comressedBytes.length);
 		assertNotNull(comressedBytes);
 		// Make the round trip
-		NamedAnnotations namedClone = JDOAnnotationsUtils.decompressedAnnotations(comressedBytes);
+		NamedAnnotations namedClone = JDOSecondaryPropertyUtils.decompressedAnnotations(comressedBytes);
 		assertNotNull(namedClone);
 		Annotations annos = namedClone.getAdditionalAnnotations();
 		assertNotNull(annos);
@@ -245,7 +245,7 @@ public class JDOAnnotationsUtilsTest {
 	 */
 	public static byte[] loadFileAsBytes(String fileName) throws IOException{
 		// First get the input stream from the class loader
-		InputStream in = JDOAnnotationsUtilsTest.class.getClassLoader().getResourceAsStream(fileName);
+		InputStream in = JDOSecondaryPropertyUtilsTest.class.getClassLoader().getResourceAsStream(fileName);
 		assertNotNull("Failed to find:"+fileName+" on the classpath", in);
 		try{
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -300,7 +300,7 @@ public class JDOAnnotationsUtilsTest {
 		FileOutputStream fos = new FileOutputStream(outputFile);
 		try{
 			// First create the blob
-			byte[] compressedBlob = JDOAnnotationsUtils.compressAnnotations(named);
+			byte[] compressedBlob = JDOSecondaryPropertyUtils.compressAnnotations(named);
 			System.out.println("Compressed file size is: "+compressedBlob.length+" bytes");
 						
 			// Write this blob to the file

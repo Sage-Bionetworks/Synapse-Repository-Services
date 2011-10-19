@@ -255,7 +255,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			node.setCurrentRevNumber(versions.get(0));
 			rev = getNodeRevisionById(id, node.getCurrentRevNumber());
 			try {
-				updateReferences(node, JDOAnnotationsUtils.decompressedReferences(rev.getReferences()), node.getReferences());
+				updateReferences(node, JDOSecondaryPropertyUtils.decompressedReferences(rev.getReferences()), node.getReferences());
 			} catch (IOException e) {
 				throw new DatastoreException(e);
 			}
@@ -332,7 +332,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// Get the annotations and make a copy
 		NamedAnnotations annos = new NamedAnnotations();;
 		try {
-			annos = JDOAnnotationsUtils.createFromJDO(rev);
+			annos = JDOSecondaryPropertyUtils.createFromJDO(rev);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -487,10 +487,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		JDORevision rev = getCurrentRevision(jdo);
 		// now update the annotations from the passed values.
 		try {
-			NamedAnnotations annos = JDOAnnotationsUtils.createFromJDO(rev);
+			NamedAnnotations annos = JDOSecondaryPropertyUtils.createFromJDO(rev);
 			// Replace the annotations from this namespace
 			annos.putAll(updatedAnnos.getMap());
-			JDOAnnotationsUtils.updateFromJdoFromDto(annos, jdo, rev);
+			JDOSecondaryPropertyUtils.updateFromJdoFromDto(annos, jdo, rev);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -844,7 +844,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 */
 	private void updateAnnotationTablesIfCurrentRev(NodeRevisionBackup rev, JDONode owner) {
 		if(owner.getCurrentRevNumber().equals(rev.getRevisionNumber())){
-			JDOAnnotationsUtils.updateAnnotationsFromDto(rev.getNamedAnnotations(), owner);
+			JDOSecondaryPropertyUtils.updateAnnotationsFromDto(rev.getNamedAnnotations(), owner);
 		}
 	}
 

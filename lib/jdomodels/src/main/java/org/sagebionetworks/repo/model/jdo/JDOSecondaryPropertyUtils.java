@@ -36,7 +36,7 @@ import com.thoughtworks.xstream.XStream;
  * @author jmhill
  *
  */
-public class JDOAnnotationsUtils {
+public class JDOSecondaryPropertyUtils {
 	
 
 	/**
