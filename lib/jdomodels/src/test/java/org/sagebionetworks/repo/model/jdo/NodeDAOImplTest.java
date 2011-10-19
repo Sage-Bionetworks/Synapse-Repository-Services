@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeBackupDAO;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
@@ -48,6 +49,10 @@ public class NodeDAOImplTest {
 
 	@Autowired
 	NodeDAO nodeDao;
+
+	@Autowired
+	NodeBackupDAO nodeBackupDao;
+
 	@Autowired
 	NodeInheritanceDAO nodeInheritanceDAO;
 	@Autowired
@@ -760,18 +765,18 @@ public class NodeDAOImplTest {
 		node = nodeDao.getNode(id);
 		Long v1Number = node.getVersionNumber();
 		// Get the current rev
-		NodeRevisionBackup currentRev = nodeDao.getNodeRevision(id, node.getVersionNumber());
+		NodeRevisionBackup currentRev = nodeBackupDao.getNodeRevision(id, node.getVersionNumber());
 		assertNotNull(currentRev);
 		// Add some annotations
 		String keyOnFirstVersion = "NodeDAOImplTest.testUpdateRevision.OnFirstVersion";
 		currentRev.getNamedAnnotations().getAdditionalAnnotations().addAnnotation(keyOnFirstVersion, "newValue");
 		currentRev.setLabel("2.0");
-		nodeDao.updateRevision(currentRev);
+		nodeBackupDao.updateRevision(currentRev);
 		// Since we added this annotation to the current version it should be query-able
 		assertTrue(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));
 		
 		// Get it back
-		NodeRevisionBackup clone = nodeDao.getNodeRevision(id, node.getVersionNumber());
+		NodeRevisionBackup clone = nodeBackupDao.getNodeRevision(id, node.getVersionNumber());
 		assertNotNull(clone);
 		assertEquals("newValue", clone.getNamedAnnotations().getAdditionalAnnotations().getSingleValue(keyOnFirstVersion));
 		assertEquals("2.0", clone.getLabel());
@@ -782,18 +787,18 @@ public class NodeDAOImplTest {
 		nodeDao.createNewVersion(node);
 		node = nodeDao.getNode(id);
 		// Get the latest
-		clone = nodeDao.getNodeRevision(id, node.getVersionNumber());
+		clone = nodeBackupDao.getNodeRevision(id, node.getVersionNumber());
 		// Clear the string annoations.
 		clone.getNamedAnnotations().getAdditionalAnnotations().setStringAnnotations(new HashMap<String, Collection<String>>());
-		nodeDao.updateRevision(clone);
+		nodeBackupDao.updateRevision(clone);
 		// The string annotation should no longer be query-able
 		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));
 		
 		// Finally, update the first version again, adding back the string property
 		// but this time since this is not the current version it should not be query-able
-		clone = nodeDao.getNodeRevision(id, v1Number);
+		clone = nodeBackupDao.getNodeRevision(id, v1Number);
 		clone.getNamedAnnotations().getAdditionalAnnotations().addAnnotation(keyOnFirstVersion, "updatedValue");
-		nodeDao.updateRevision(clone);
+		nodeBackupDao.updateRevision(clone);
 		// This annotation should not be query-able
 		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));
 	}
@@ -828,21 +833,20 @@ public class NodeDAOImplTest {
 		newRev.setLabel("1.0");
 		newRev.setModifiedBy("me");
 		newRev.setModifiedOn(new Date());
-		
+
 		// This annotation should not be query-able
 		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnNewVersion));
 		// Now create the version
-		nodeDao.createNewRevision(newRev);
+		nodeBackupDao.createNewRevision(newRev);
 		// This annotation should still not be query-able because it is not on the current version.
 		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnNewVersion));
 		
 		// Get the older version
-		NodeRevisionBackup clone = nodeDao.getNodeRevision(id, newVersionNumber);
+		NodeRevisionBackup clone = nodeBackupDao.getNodeRevision(id, newVersionNumber);
 		assertNotNull(clone);
 		assertEquals("value on new", clone.getNamedAnnotations().getAnnotationsForName("newNamed").getSingleValue(keyOnNewVersion));
 		assertEquals("1.0", clone.getLabel());
-		assertEquals(newRev, clone);
-		
+		assertEquals(newRev, clone);		
 	}
 
 	@Test
@@ -1017,42 +1021,27 @@ public class NodeDAOImplTest {
 		assertTrue(node.getReferences().get("even").contains(inEven));
 		assertTrue(node.getReferences().get("odd").contains(inOdd));
 		
-		// Get the current rev
-		NodeRevisionBackup currentRev = nodeDao.getNodeRevision(id, node.getVersionNumber());
-		assertNotNull(currentRev);
-		assertTrue(currentRev.getReferences().get("even").contains(inEven));
-		assertTrue(currentRev.getReferences().get("odd").contains(inOdd));
-
 		// now create a new version and change the references
 		node = nodeDao.getNode(id);
 		node.getReferences().put("even2", node.getReferences().get("even"));
 		node.setVersionLabel("references 2.0");
 		nodeDao.createNewVersion(node);
 
-		// Get the updated node and the current revision
+		// Get the updated node
 		node = nodeDao.getNode(id);
-		currentRev = nodeDao.getNodeRevision(id, node.getVersionNumber());
 		// Since we added more references, we should see them in the node and in the revision
 		assertTrue(node.getReferences().get("even").contains(inEven));
 		assertTrue(node.getReferences().get("odd").contains(inOdd));
 		assertTrue(node.getReferences().get("even2").contains(inEven));
-		assertTrue(currentRev.getReferences().get("even").contains(inEven));
-		assertTrue(currentRev.getReferences().get("odd").contains(inOdd));
-		assertTrue(currentRev.getReferences().get("even2").contains(inEven));
 		
 		// Delete the current version.
 		nodeDao.deleteVersion(id, node.getVersionNumber());
 
-		// Get the (rolled back) node and the current revision
+		// Get the (rolled back) node and check that the references have been reverted
 		node = nodeDao.getNode(id);
-		currentRev = nodeDao.getNodeRevision(id, node.getVersionNumber());
-		// Since we added more references, we should see them in the node and in the revision
 		assertTrue(node.getReferences().get("even").contains(inEven));
 		assertTrue(node.getReferences().get("odd").contains(inOdd));
 		assertNull(node.getReferences().get("even2"));
-		assertTrue(currentRev.getReferences().get("even").contains(inEven));
-		assertTrue(currentRev.getReferences().get("odd").contains(inOdd));
-		assertNull(currentRev.getReferences().get("even2"));
 	}
 
 	

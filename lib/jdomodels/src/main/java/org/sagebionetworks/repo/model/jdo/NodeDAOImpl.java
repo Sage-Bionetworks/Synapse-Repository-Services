@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeBackupDAO;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
@@ -61,7 +62,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  */
 @Transactional(readOnly = true)
-public class NodeDAOImpl implements NodeDAO, InitializingBean {
+public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	
 	private static final String SQL_COUNT_NODES = "SELECT COUNT("+SqlConstants.COL_NODE_ID+") FROM "+SqlConstants.TABLE_NODE;
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+SqlConstants.COL_NODE_PARENT_ID+", "+SqlConstants.COL_NODE_TYPE+", "+SqlConstants.COL_NODE_NAME+" FROM "+SqlConstants.TABLE_NODE+" WHERE "+SqlConstants.COL_NODE_ID+" = ?";

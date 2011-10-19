@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeBackup;
+import org.sagebionetworks.repo.model.NodeBackupDAO;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
@@ -37,6 +38,9 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 	@Autowired
 	NodeDAO nodeDao;
 	
+	@Autowired
+	NodeBackupDAO nodeBackupDao;
+
 	@Autowired
 	AccessControlListDAO aclDAO;
 	
@@ -79,7 +83,7 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 	@Override
 	public NodeRevisionBackup getNodeRevision(String nodeId, Long revisionId) throws NotFoundException, DatastoreException {
 		// Pass it along
-		NodeRevisionBackup rev =  nodeDao.getNodeRevision(nodeId,revisionId);
+		NodeRevisionBackup rev =  nodeBackupDao.getNodeRevision(nodeId,revisionId);
 		// Make sure the xml version is set to the current version
 		rev.setXmlVersion(NodeRevisionBackup.CURRENT_XML_VERSION);
 		return rev;
@@ -87,7 +91,7 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 
 	@Override
 	public long getTotalNodeCount() {
-		return nodeDao.getTotalNodeCount();
+		return nodeBackupDao.getTotalNodeCount();
 	}
 
 	/**
@@ -191,10 +195,10 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 			}
 			if(nodeDao.doesNodeRevisionExist(rev.getNodeId(), rev.getRevisionNumber())){
 				// This is an update.
-				nodeDao.updateRevision(rev);
+				nodeBackupDao.updateRevision(rev);
 			}else{
 				// This is a create
-				nodeDao.createNewRevision(rev);
+				nodeBackupDao.createNewRevision(rev);
 			}
 			
 		}catch(Exception e ){
