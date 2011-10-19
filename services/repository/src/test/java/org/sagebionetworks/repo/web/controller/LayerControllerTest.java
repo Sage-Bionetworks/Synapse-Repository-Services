@@ -5,6 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
@@ -14,10 +17,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.web.ServiceConstants;
+import org.sagebionetworks.repo.web.controller.metadata.LocationMetadataProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 /**
  * Unit tests for the Layer CRUD operations exposed by the LayerController with
@@ -140,8 +146,10 @@ public class LayerControllerTest {
 				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString(NodeConstants.COL_ID)));
 
 		// Get the layer
+		Map<String,String> extraParams = new HashMap<String, String>();
+		extraParams.put(ServiceConstants.METHOD_PARAM, RequestMethod.HEAD.name());
 		JSONObject results = helper
-				.testGetJsonEntity(newLayer.getString("uri"));
+				.testGetJsonEntity(newLayer.getString("uri"), extraParams);
 
 		assertEquals(newLayer.getString(NodeConstants.COL_ID), results.getString(NodeConstants.COL_ID));
 		assertEquals("DeLiver expression data", results.getString("name"));

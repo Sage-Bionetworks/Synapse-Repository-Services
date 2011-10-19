@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMethod;
 
@@ -36,8 +37,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
  */
 public class LocationMetadataProvider implements
 		TypeSpecificMetadataProvider<Location> {
-
-	public static final String METHOD_PARAMETER = "method";
 
 	private static final Pattern MD5_REGEX = Pattern.compile("[0-9a-fA-F]{32}");
 	private static final String DEFAULT_MIME_TYPE = "application/binary";
@@ -73,7 +72,7 @@ public class LocationMetadataProvider implements
 				// See if the user wants a pre-signed GET, HEAD, or DELETE
 				// request
 				String signedPath = null;
-				String method = request.getParameter(METHOD_PARAMETER);
+				String method = request.getParameter(ServiceConstants.METHOD_PARAM);
 				if ((null != method)
 						&& (method.equals(RequestMethod.HEAD.name()))) {
 					signedPath = locationHelper.getS3HeadUrl(request

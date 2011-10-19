@@ -16,7 +16,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.web.controller.metadata.LocationMetadataProvider;
+import org.sagebionetworks.repo.web.ServiceConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
@@ -188,7 +188,7 @@ public class LocationControllerTest {
 				.getString("md5sum"));
 		// HEAD method
 		Map<String,String> extraParams = new HashMap<String, String>();
-		extraParams.put(LocationMetadataProvider.METHOD_PARAMETER, RequestMethod.HEAD.name());
+		extraParams.put(ServiceConstants.METHOD_PARAM, RequestMethod.HEAD.name());
 		JSONObject s3HeadLocation = helper.testGetJsonEntity(newS3Location
 				.getString("uri"), extraParams);
 		assertEquals(newS3Location.getString("id"), s3HeadLocation.getString("id"));

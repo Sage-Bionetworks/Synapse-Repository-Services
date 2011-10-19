@@ -13,7 +13,6 @@ package org.sagebionetworks.repo.web;
  */
 public class ServiceConstants {
 
-
 	/**
 	 * Request parameter used to indicate the 1-based index of the first result
 	 * to be returned in a set of paginated results
@@ -96,6 +95,18 @@ public class ServiceConstants {
 	 * This is modeled after http://developers.facebook.com/docs/reference/fql/
 	 */
 	public static final String QUERY_PARAM = "query";
+
+	/**
+	 * Request parameter specific to GET requests for layer locations so that we
+	 * can return a presigned URL for an S3 GET, HEAD, or DELETE operation
+	 */
+	public static final String METHOD_PARAM = "method";
+
+	/**
+	 * Request parameter for provenance side-effects. e.g., when the user GETs a
+	 * layer, the specified provenance record is updated as a side-effect
+	 */
+	public static final String STEP_TO_UPDATE_PARAM = "stepId";
 
 	/**
 	 * Request header used to indicate the version of the resource.
