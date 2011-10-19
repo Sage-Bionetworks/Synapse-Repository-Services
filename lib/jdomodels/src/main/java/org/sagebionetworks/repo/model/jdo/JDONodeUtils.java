@@ -48,7 +48,7 @@ public class JDONodeUtils {
 			rev.setLabel(dto.getVersionLabel());
 		}
 		try {
-			rev.setReferences(JDOAnnotationsUtils.compressReferences(dto.getReferences()));
+			rev.setReferences(JDOSecondaryPropertyUtils.compressReferences(dto.getReferences()));
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

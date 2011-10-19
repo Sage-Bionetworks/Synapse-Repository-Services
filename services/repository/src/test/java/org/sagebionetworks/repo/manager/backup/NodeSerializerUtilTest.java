@@ -13,8 +13,11 @@ import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -26,6 +29,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.util.RandomNodeBackupUtil;
 import org.sagebionetworks.repo.model.util.RandomNodeRevisionUtil;
@@ -74,7 +78,30 @@ public class NodeSerializerUtilTest {
 	}
 	
 	@Test
-	public void testRoundTripNodeRevision() throws UnsupportedEncodingException{
+	public void testRoundTripNodeRevision() throws UnsupportedEncodingException {
+		
+		// Make some references
+		Reference layer1 = new Reference();
+		layer1.setTargetId("1");
+		layer1.setTargetVersionNumber(99L);
+		Reference layer2 = new Reference();
+		layer2.setTargetId("2");
+		Reference layer3 = new Reference();
+		layer3.setTargetId("3");
+		layer3.setTargetVersionNumber(42L);
+
+		Set<Reference> code = new HashSet<Reference>(); // this one is empty
+		Set<Reference> input = new HashSet<Reference>();
+		input.add(layer1);
+		input.add(layer2);
+		Set<Reference> output = new HashSet<Reference>();
+		output.add(layer3);
+		
+		Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
+		references.put("code", code);
+		references.put("input",input);
+		references.put("output", output);
+		
 		// Create a node backup with all of the values.
 		NodeRevisionBackup rev = new NodeRevisionBackup();
 		rev.setNodeId("123");
@@ -83,6 +110,7 @@ public class NodeSerializerUtilTest {
 		rev.setModifiedBy("somebody");
 		rev.setModifiedOn(new Date());
 		rev.setRevisionNumber(new Long(12));
+		rev.setReferences(references);
 		
 		NamedAnnotations named = new NamedAnnotations();
 		Annotations annos = named.getAdditionalAnnotations();
