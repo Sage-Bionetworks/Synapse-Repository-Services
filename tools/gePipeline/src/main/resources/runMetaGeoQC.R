@@ -15,17 +15,27 @@ kOkStatusCode <- 0L
 ## load synapse client
 library(synapseClient)
 
+synapseCacheDir("/mnt/ebs/synapseCacheDir")
+Sys.setenv(TMPDIR="/mnt/ebs/r_tmp")
+
+
 ## load the workflow utilities
 source('./src/main/resources/synapseWorkflow.R')
 
 ## get config args
 gseId <- getInputDatasetIdArg()
-geoTimestamp  <- getLastUpdateDateArg()
 userName <- getUsernameArg()
 secretKey <- getSecretKeyArg()
 authEndpoint <- getAuthEndpointArg()
 repoEndpoint <- getRepoEndpointArg()
 projectId <- getProjectIdArg()
+
+geoTimestamp <- getInputDataArg()
+
+# in the future, 'getInputDataArg' will return JSON:
+#inputData <- RJSONIO::fromJSON(getInputDataArg())
+#geoTimestamp <- inputData["geoTimeStamp"] # or something like that...
+
 
 if(is.null(gseId) 
 		|| is.null(secretKey) 
@@ -54,7 +64,8 @@ hmacSecretKey(secretKey)
 ##########################################
 ## get the R Code dataset id
 ##########################################
-result <- synapseQuery(sprintf('select * from dataset where dataset.name == "%s" and dataset.parentId == "%s"', "GEO R Code Layers", projectId))
+codeProjectId <- 17962 ### TEMPORARY FIX
+result <- synapseQuery(sprintf('select * from dataset where dataset.name == "%s" and dataset.parentId == "%s"', "GEO R Code Layers", codeProjectId))
 if(is.null(result) || nrow(result) != 1L){
 	msg <- sprintf("could not find R code dataset in project %s", projectId)
 	finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
