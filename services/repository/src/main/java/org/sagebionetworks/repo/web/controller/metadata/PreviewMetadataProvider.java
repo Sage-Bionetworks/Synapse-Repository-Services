@@ -40,7 +40,7 @@ public class PreviewMetadataProvider implements
 
 	@Override
 	public void validateEntity(Preview entity, EntityEvent event) {
-		// Convert the blob value to the string value
+		// Clear the string and set the blob
 		if (entity.getPreviewString() != null) {
 			try {
 				entity.setPreviewBlob(entity.getPreviewString().getBytes(

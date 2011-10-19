@@ -1,10 +1,16 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Set;
 
 /**
  * Model object holding for holding Steps (a.k.a. provenance records).
+ * 
+ * Note that environment descriptors are currently held in a blob annotation.
+ * If/when we decide we need to be able to query upon them, we'll revisit how
+ * they are actually persisted.
+ * 
  */
 public class Step implements Nodeable {
 
@@ -22,6 +28,9 @@ public class Step implements Nodeable {
 	private Set<Reference> code;
 	private Set<Reference> input;
 	private Set<Reference> output;
+	private byte[] environmentDescriptorsBlob;
+	@TransientField
+	private Set<EnvironmentDescriptor> environmentDescriptors;
 	@TransientField
 	private String annotations; // URI for annotations
 	@TransientField
@@ -99,7 +108,8 @@ public class Step implements Nodeable {
 	}
 
 	/**
-	 * @param createdBy the createdBy to set
+	 * @param createdBy
+	 *            the createdBy to set
 	 */
 	public void setCreatedBy(String createdBy) {
 		this.createdBy = createdBy;
@@ -113,7 +123,8 @@ public class Step implements Nodeable {
 	}
 
 	/**
-	 * @param description the description to set
+	 * @param description
+	 *            the description to set
 	 */
 	public void setDescription(String description) {
 		this.description = description;
@@ -127,7 +138,8 @@ public class Step implements Nodeable {
 	}
 
 	/**
-	 * @param startDate the startDate to set
+	 * @param startDate
+	 *            the startDate to set
 	 */
 	public void setStartDate(Date startDate) {
 		this.startDate = startDate;
@@ -141,7 +153,8 @@ public class Step implements Nodeable {
 	}
 
 	/**
-	 * @param endDate the endDate to set
+	 * @param endDate
+	 *            the endDate to set
 	 */
 	public void setEndDate(Date endDate) {
 		this.endDate = endDate;
@@ -155,7 +168,8 @@ public class Step implements Nodeable {
 	}
 
 	/**
-	 * @param commandLine the commandLine to set
+	 * @param commandLine
+	 *            the commandLine to set
 	 */
 	public void setCommandLine(String commandLine) {
 		this.commandLine = commandLine;
@@ -169,7 +183,8 @@ public class Step implements Nodeable {
 	}
 
 	/**
-	 * @param code the code to set
+	 * @param code
+	 *            the code to set
 	 */
 	public void setCode(Set<Reference> code) {
 		this.code = code;
@@ -183,7 +198,8 @@ public class Step implements Nodeable {
 	}
 
 	/**
-	 * @param input the input to set
+	 * @param input
+	 *            the input to set
 	 */
 	public void setInput(Set<Reference> input) {
 		this.input = input;
@@ -197,13 +213,47 @@ public class Step implements Nodeable {
 	}
 
 	/**
-	 * @param output the output to set
+	 * @param output
+	 *            the output to set
 	 */
 	public void setOutput(Set<Reference> output) {
 		this.output = output;
 	}
 
-	/* (non-Javadoc)
+	/**
+	 * @return the environmentDescriptorsBlob
+	 */
+	public byte[] getEnvironmentDescriptorsBlob() {
+		return environmentDescriptorsBlob;
+	}
+
+	/**
+	 * @param environmentDescriptorsBlob
+	 *            the environmentDescriptorsBlob to set
+	 */
+	public void setEnvironmentDescriptorsBlob(byte[] environmentDescriptorsBlob) {
+		this.environmentDescriptorsBlob = environmentDescriptorsBlob;
+	}
+
+	/**
+	 * @return the environmentDescriptors
+	 */
+	public Set<EnvironmentDescriptor> getEnvironmentDescriptors() {
+		return environmentDescriptors;
+	}
+
+	/**
+	 * @param environmentDescriptors
+	 *            the environmentDescriptors to set
+	 */
+	public void setEnvironmentDescriptors(
+			Set<EnvironmentDescriptor> environmentDescriptors) {
+		this.environmentDescriptors = environmentDescriptors;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
@@ -226,6 +276,11 @@ public class Step implements Nodeable {
 		result = prime * result
 				+ ((description == null) ? 0 : description.hashCode());
 		result = prime * result + ((endDate == null) ? 0 : endDate.hashCode());
+		result = prime
+				* result
+				+ ((environmentDescriptors == null) ? 0
+						: environmentDescriptors.hashCode());
+		result = prime * result + Arrays.hashCode(environmentDescriptorsBlob);
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((input == null) ? 0 : input.hashCode());
@@ -239,7 +294,9 @@ public class Step implements Nodeable {
 		return result;
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
@@ -291,6 +348,14 @@ public class Step implements Nodeable {
 				return false;
 		} else if (!endDate.equals(other.endDate))
 			return false;
+		if (environmentDescriptors == null) {
+			if (other.environmentDescriptors != null)
+				return false;
+		} else if (!environmentDescriptors.equals(other.environmentDescriptors))
+			return false;
+		if (!Arrays.equals(environmentDescriptorsBlob,
+				other.environmentDescriptorsBlob))
+			return false;
 		if (etag == null) {
 			if (other.etag != null)
 				return false;
@@ -334,7 +399,9 @@ public class Step implements Nodeable {
 		return true;
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
@@ -343,11 +410,13 @@ public class Step implements Nodeable {
 				+ ", annotations=" + annotations + ", code=" + code
 				+ ", commandLine=" + commandLine + ", createdBy=" + createdBy
 				+ ", creationDate=" + creationDate + ", description="
-				+ description + ", endDate=" + endDate + ", etag=" + etag
-				+ ", id=" + id + ", input=" + input + ", name=" + name
+				+ description + ", endDate=" + endDate
+				+ ", environmentDescriptors=" + environmentDescriptors
+				+ ", environmentDescriptorsBlob="
+				+ Arrays.toString(environmentDescriptorsBlob) + ", etag="
+				+ etag + ", id=" + id + ", input=" + input + ", name=" + name
 				+ ", output=" + output + ", parentId=" + parentId
-				+ ", startDate=" + startDate + ", uri="
-				+ uri + "]";
+				+ ", startDate=" + startDate + ", uri=" + uri + "]";
 	}
 
 }
