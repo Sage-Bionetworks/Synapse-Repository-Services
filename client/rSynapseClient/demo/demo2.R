@@ -9,7 +9,7 @@ library(simpleaffy)
 synapseLogin()
 
 ## set up a project
-myName <- "MattF"
+myName <- <your name>
 projName <- sprintf("%ss Curation Project", myName)
 
 ## create a project object using it's constructor. The
@@ -77,7 +77,7 @@ onWeb(plot)
 
 ## store the code used to generate the curated data
 ## this is a bit artificial, but in this case we'll just store the entire Rhistory.
-## in the provenance features of Synapse may provide an easier way to do this.
+## in the future provenance features of Synapse may provide an easier way to do this.
 savehistory(file.path(tempdir(), "history.R"))
 curationCode <- Code(list(name="My Curation Script", parentId = propertyValue(myDataset, "id")))
 curationCode <- addFile(curationCode, file.path(tempdir(), "history.R"))
