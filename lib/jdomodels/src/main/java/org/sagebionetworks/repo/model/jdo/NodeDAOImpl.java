@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import javax.jdo.JDOException;
 import javax.jdo.JDOObjectNotFoundException;
@@ -191,6 +192,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		JDORevision newRev = JDORevisionUtils.makeCopyForNewVersion(rev);
 		// Now update the new revision and node
 		JDONodeUtils.updateFromDto(newVersion, jdo, newRev);
+		// Create any new references or delete removed references, as applicable
+		updateReferences(newVersion, jdo);
 		// Now save the new revision
 		try{
 			jdoTemplate.makePersistent(newRev);
@@ -250,6 +253,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			JDONode node = getNodeById(id);
 			// Make sure the node is still pointing the the current version
 			node.setCurrentRevNumber(versions.get(0));
+			rev = getNodeRevisionById(id, node.getCurrentRevNumber());
+			try {
+				updateReferences(node, JDOAnnotationsUtils.decompressedReferences(rev.getReferences()), node.getReferences());
+			} catch (IOException e) {
+				throw new DatastoreException(e);
+			}
 		}
 	}
 	
@@ -459,11 +468,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// Update is as simple as copying the values from the passed node.
 		try{
 			JDONodeUtils.updateFromDto(updatedNode, jdoToUpdate, revToUpdate);	
-		}catch (DuplicateKeyException e){
+		} catch (DuplicateKeyException e){
 			// Currently this is not hit because the exception is thrown when the 
 			// transaction commits outside of this method.
 			checkExceptionDetails(updatedNode.getName(), updatedNode.getParentId(), e);
 		}
+		// But we also need to create any new references or delete removed references, as applicable
 		updateReferences(updatedNode, jdoToUpdate);
 	}
 
@@ -860,18 +870,20 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 	
 	private void updateReferences(Node dto, JDONode jdo) throws NotFoundException, DatastoreException {
-		Set<JDOReference> priorReferences = jdo.getReferences();
+		updateReferences(jdo, dto.getReferences(), jdo.getReferences());
+	}
 
-		if((null == dto.getReferences()) || (0 == dto.getReferences().size())) {
+	private void updateReferences(JDONode owner, Map<String, Set<Reference>> newReferences, Set<JDOReference> priorReferences) throws NotFoundException, DatastoreException {
+		if((null == newReferences) || (0 == newReferences.size())) {
 			// If we had any references in the past, they should all be deleted
 			priorReferences.clear();
 		}
 		else {
 			// Look in the dto references and create new references, if needed
 			Set<JDOReference> currentReferences = new HashSet<JDOReference>();
-			for(Map.Entry<String, Set<Reference>> group : dto.getReferences().entrySet()) {
+			for(Entry<String, Set<Reference>> group : newReferences.entrySet()) {
 				for(Reference reference : group.getValue()) {
-					currentReferences.add(persistReference(jdo, group.getKey(), reference));
+					currentReferences.add(persistReference(owner, group.getKey(), reference));
 				}
 			}
 
@@ -880,6 +892,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 	}
 
+	
 	private JDOReference persistReference(JDONode jdo, String groupName, Reference reference) throws NotFoundException, DatastoreException {
 		
 		Long targetId = KeyFactory.stringToKey(reference.getTargetId());

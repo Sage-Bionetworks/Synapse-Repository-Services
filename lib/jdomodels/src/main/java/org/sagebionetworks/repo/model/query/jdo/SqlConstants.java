@@ -50,6 +50,7 @@ public class SqlConstants {
 	public static final String COL_REVISION_LABEL		= "LABEL";
 	public static final String COL_REVISION_COMMENT		= "COMMENT";
 	public static final String COL_REVISION_ANNOS_BLOB	= "ANNOTATIONS";
+	public static final String COL_REVISION_REFS_BLOB	= "REFERENCES";
 
 	// The Reference table
 	public static final String TABLE_REFERENCE						= "JDOREFERENCE";

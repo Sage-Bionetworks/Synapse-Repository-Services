@@ -45,6 +45,10 @@ public class JDORevision {
 	@Persistent
 	private byte[] annotations;
 
+	@Column(name=SqlConstants.COL_REVISION_REFS_BLOB)
+	@Persistent
+	private byte[] references;
+
 	public JDONode getOwner() {
 		return owner;
 	}
@@ -91,6 +95,20 @@ public class JDORevision {
 
 	public void setAnnotations(byte[] annotations) {
 		this.annotations = annotations;
+	}
+
+	/**
+	 * @return the references
+	 */
+	public byte[] getReferences() {
+		return references;
+	}
+
+	/**
+	 * @param references the references to set
+	 */
+	public void setReferences(byte[] references) {
+		this.references = references;
 	}
 
 	public Long getRevisionNumber() {

@@ -23,7 +23,7 @@ public interface Nodeable extends Base {
 	 * The URL that will get the annotations for this object.
 	 * @param annoations
 	 */
-	public void setAnnotations(String annoations);
+	public void setAnnotations(String annotations);
 	
 	/**
 	 * The URL that will get the annotations for this object.

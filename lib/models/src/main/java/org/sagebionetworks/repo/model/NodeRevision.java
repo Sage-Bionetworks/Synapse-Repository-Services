@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Date;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 
@@ -34,7 +35,8 @@ public class NodeRevision {
 	 * of the depreciated annotations.
 	 */
 	private NamedAnnotations namedAnnotations;
-	
+	private Map<String, Set<Reference>> references;
+
 	/**
 	 * The xml version that this object serialized to/from.
 	 * @return
@@ -111,6 +113,23 @@ public class NodeRevision {
 	public void setNamedAnnotations(NamedAnnotations namespaceAnnotations) {
 		this.namedAnnotations = namespaceAnnotations;
 	}
+	
+	/**
+	 * @return the references
+	 */
+	public Map<String, Set<Reference>> getReferences() {
+		return references;
+	}
+	/**
+	 * @param references the references to set
+	 */
+	public void setReferences(Map<String, Set<Reference>> references) {
+		this.references = references;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -123,13 +142,22 @@ public class NodeRevision {
 				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
 		result = prime * result
 				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
-		result = prime * result
+		result = prime
+				* result
 				+ ((namedAnnotations == null) ? 0 : namedAnnotations.hashCode());
 		result = prime * result + ((nodeId == null) ? 0 : nodeId.hashCode());
 		result = prime * result
+				+ ((references == null) ? 0 : references.hashCode());
+		result = prime * result
 				+ ((revisionNumber == null) ? 0 : revisionNumber.hashCode());
+		result = prime * result
+				+ ((xmlVersion == null) ? 0 : xmlVersion.hashCode());
 		return result;
 	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -174,21 +202,36 @@ public class NodeRevision {
 				return false;
 		} else if (!nodeId.equals(other.nodeId))
 			return false;
+		if (references == null) {
+			if (other.references != null)
+				return false;
+		} else if (!references.equals(other.references))
+			return false;
 		if (revisionNumber == null) {
 			if (other.revisionNumber != null)
 				return false;
 		} else if (!revisionNumber.equals(other.revisionNumber))
 			return false;
+		if (xmlVersion == null) {
+			if (other.xmlVersion != null)
+				return false;
+		} else if (!xmlVersion.equals(other.xmlVersion))
+			return false;
 		return true;
 	}
-	
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
 	@Override
 	public String toString() {
-		return "NodeRevision [nodeId=" + nodeId + ", revisionNumber="
-				+ revisionNumber + ", label=" + label + ", comment=" + comment
-				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
-				+ ", annotations=" + annotations + ", namespaceAnnos="
-				+ namedAnnotations + "]";
+		return "NodeRevision [annotations=" + annotations + ", comment="
+				+ comment + ", label=" + label + ", modifiedBy=" + modifiedBy
+				+ ", modifiedOn=" + modifiedOn + ", namedAnnotations="
+				+ namedAnnotations + ", nodeId=" + nodeId + ", references="
+				+ references + ", revisionNumber=" + revisionNumber
+				+ ", xmlVersion=" + xmlVersion + "]";
 	}
+	
 	
 }
