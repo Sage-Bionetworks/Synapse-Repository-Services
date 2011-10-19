@@ -4,11 +4,13 @@ import java.util.List;
 
 import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.PlaceChanger;
+import org.sagebionetworks.web.client.cookie.CookieKeys;
 import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.cookie.CookieUtils;
 import org.sagebionetworks.web.client.place.DatasetsHome;
 import org.sagebionetworks.web.client.view.DatasetsHomeView;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
+import org.sagebionetworks.web.shared.WhereCondition;
 
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
@@ -17,7 +19,8 @@ import com.google.inject.Inject;
 
 public class DatasetsHomePresenter extends AbstractActivity implements DatasetsHomeView.Presenter {
 	
-	public static final String KEY_DATASETS_SELECTED_COLUMNS_COOKIE = "org.sagebionetworks.selected.dataset.columns";
+	public static final String KEY_DATASETS_SELECTED_COLUMNS_COOKIE = CookieKeys.SELECTED_DATASETS_COLUMNS;
+	public static final String KEY_DATASETS_APPLIED_FILTERS_COOKIE = CookieKeys.APPLIED_DATASETS_FILTERS;
 
 	private DatasetsHome place;
 	private DatasetsHomeView view;
@@ -42,6 +45,8 @@ public class DatasetsHomePresenter extends AbstractActivity implements DatasetsH
 	public void start(AcceptsOneWidget panel, EventBus eventBus) {
 		// Setup the columns
 		setVisibleColumns();
+		// Setup the filters
+		setAppliedFilters();
 		// Install the view
 		panel.setWidget(view);
 	}
@@ -81,6 +86,15 @@ public class DatasetsHomePresenter extends AbstractActivity implements DatasetsH
 			view.setVisibleColumns(currentSelection);
 		}
 	}
+	
+	private void setAppliedFilters() {
+		List<WhereCondition> currentFilters = null;
+		String cookieValue = this.cookieProvider.getCookie(KEY_DATASETS_APPLIED_FILTERS_COOKIE);
+		if(cookieValue != null) {
+			currentFilters = CookieUtils.createWhereListFromString(cookieValue);
+			view.setAppliedFilters(currentFilters);
+		}
+	}
 
 	@Override
 	public PlaceChanger getPlaceChanger() {
@@ -92,5 +106,11 @@ public class DatasetsHomePresenter extends AbstractActivity implements DatasetsH
         view.clear();
         return null;
     }
+
+	@Override
+	public void onChangeFilter(List<WhereCondition> newConditions) {
+		String newValue = CookieUtils.createStringFromWhereList(newConditions);
+		cookieProvider.setCookie(KEY_DATASETS_APPLIED_FILTERS_COOKIE, newValue);
+	}
 
 }

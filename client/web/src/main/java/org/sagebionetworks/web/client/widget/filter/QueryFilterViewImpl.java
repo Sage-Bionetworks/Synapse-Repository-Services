@@ -2,6 +2,8 @@ package org.sagebionetworks.web.client.widget.filter;
 
 import java.util.List;
 
+import org.sagebionetworks.web.shared.WhereCondition;
+
 import com.google.gwt.event.dom.client.ChangeEvent;
 import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.uibinder.client.UiBinder;
@@ -44,7 +46,7 @@ public class QueryFilterViewImpl extends Composite implements QueryFilterView {
 	}
 
 	@Override
-	public void setDisplayData(List<DropdownData> viewData) {		
+	public void setDisplayData(List<DropdownData> viewData, List<WhereCondition> currentFilters) {		
 		horizPanel.clear();
 		
 		// Fill it with data from the list
@@ -59,8 +61,18 @@ public class QueryFilterViewImpl extends Composite implements QueryFilterView {
 				}
 			}
 			//box.setWidth("150px");
-			// Set the current selection
-			box.setSelectedIndex(0);
+
+			// Check for the applicable cookie
+			if(currentFilters != null) {
+				int index = 0;
+				for(WhereCondition where : currentFilters) {
+					if(where.getId().equals(data.getId())) {
+						index = data.getValueList().indexOf(where.getValue());
+					}
+				}
+				// Set the current selection
+				box.setSelectedIndex(index);
+			}
 			// Listen for selection changes
 			box.addChangeHandler(new ChangeHandler() {
 				

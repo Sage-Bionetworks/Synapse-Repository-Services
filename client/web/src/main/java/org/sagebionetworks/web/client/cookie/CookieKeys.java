@@ -11,7 +11,12 @@ public class CookieKeys {
 	/**
 	 * Key for the selected columns shown in the datasets table.
 	 */
-	public static String SELECTED_DATASETS_COLUMNS = "org.sagbionetworks.datasets.selected.columns";
+	public static String SELECTED_DATASETS_COLUMNS = "org.sagebionetworks.datasets.selected.columns";
+	
+	/**
+	 * Key for the selected filters applied on the datasets table.
+	 */
+	public static String APPLIED_DATASETS_FILTERS = "org.sagebionetworks.datasets.applied.filters";
 	
 	/**
 	 * Login data

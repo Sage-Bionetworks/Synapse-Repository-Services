@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.web.client.SearchService;
 import org.sagebionetworks.web.client.SearchServiceAsync;
+import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.widget.filter.QueryFilter;
 import org.sagebionetworks.web.client.widget.filter.QueryFilterView;
 import org.sagebionetworks.web.shared.DisplayableValue;
@@ -26,6 +27,7 @@ public class QueryFilterTest {
 	SearchServiceAsync mockAsynch;
 	SearchService mockService;
 	AsyncServiceRecorder<SearchService, SearchServiceAsync> recorder;
+	CookieProvider mockCookieProvider;
 	
 	@Before
 	public void setup(){
@@ -51,7 +53,7 @@ public class QueryFilterTest {
 		recorder = new AsyncServiceRecorder<SearchService, SearchServiceAsync>(mockService, SearchServiceAsync.class);
 		// Create the asynchronous proxy 
 		mockAsynch = recorder.createAsyncProxyToRecord();
-		queryFilter = new QueryFilter(mockView, mockAsynch);
+		queryFilter = new QueryFilter(mockView, mockAsynch, mockCookieProvider);
 	}
 	
 	@Test

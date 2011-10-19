@@ -8,6 +8,9 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.sagebionetworks.web.client.SearchServiceAsync;
+import org.sagebionetworks.web.client.cookie.CookieKeys;
+import org.sagebionetworks.web.client.cookie.CookieProvider;
+import org.sagebionetworks.web.client.cookie.CookieUtils;
 import org.sagebionetworks.web.shared.DisplayableValue;
 import org.sagebionetworks.web.shared.FilterEnumeration;
 import org.sagebionetworks.web.shared.WhereCondition;
@@ -24,22 +27,26 @@ import com.google.inject.Inject;
  */
 public class QueryFilter implements QueryFilterView.Presenter, IsWidget{
 	
+	private static final String KEY_DATASETS_APPLIED_FILTERS_COOKIE = CookieKeys.APPLIED_DATASETS_FILTERS;
+
 	private QueryFilterView view;
 	private SearchServiceAsync queryService;
 	private Map<String, FilterEnumeration> filterMap;
 	private LinkedHashMap<String, WhereCondition> whereMap;
 	private List<SelectionListner> listeners;
+	private CookieProvider cookieProvider; 
 
 	/**
 	 * Injected via GIN
 	 * @param view
 	 */
 	@Inject
-	public QueryFilter(QueryFilterView view, SearchServiceAsync queryService){
+	public QueryFilter(QueryFilterView view, SearchServiceAsync queryService, CookieProvider cookieProvider){
 		this.view = view;
 		this.queryService = queryService;
 		this.view.setPresenter(this);
 		this.listeners = new ArrayList<SelectionListner>();
+		this.cookieProvider = cookieProvider;
 		// Get the data from the server
 		refreshFromServer();
 	}
@@ -88,8 +95,17 @@ public class QueryFilter implements QueryFilterView.Presenter, IsWidget{
 					}
 				}
 			}
+			// Grab the applied filters cookie
+			List<WhereCondition> currentFilters = null;
+			String cookieValue = this.cookieProvider.getCookie(KEY_DATASETS_APPLIED_FILTERS_COOKIE);
+			
+			// Convert it into a List
+			if(cookieValue != null) {
+				currentFilters = CookieUtils.createWhereListFromString(cookieValue);
+			}
+			
 			// Set the data on the view.
-			view.setDisplayData(viewData);
+			view.setDisplayData(viewData, currentFilters);
 		}
 	}
 

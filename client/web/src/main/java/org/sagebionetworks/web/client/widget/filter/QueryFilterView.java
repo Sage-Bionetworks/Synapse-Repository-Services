@@ -2,6 +2,8 @@ package org.sagebionetworks.web.client.widget.filter;
 
 import java.util.List;
 
+import org.sagebionetworks.web.shared.WhereCondition;
+
 import com.google.gwt.user.client.ui.IsWidget;
 
 /**
@@ -43,6 +45,6 @@ public interface QueryFilterView extends IsWidget{
 	 * Set the data to render
 	 * @param viewData
 	 */
-	public void setDisplayData(List<DropdownData> viewData);
+	public void setDisplayData(List<DropdownData> viewData, List<WhereCondition> currentFilters);
 
 }

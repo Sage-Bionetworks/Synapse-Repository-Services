@@ -5,6 +5,8 @@ import java.util.List;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
+import org.sagebionetworks.web.client.cookie.CookieProvider;
+import org.sagebionetworks.web.client.cookie.CookieUtils;
 import org.sagebionetworks.web.client.widget.filter.QueryFilter;
 import org.sagebionetworks.web.client.widget.filter.QueryFilter.SelectionListner;
 import org.sagebionetworks.web.client.widget.footer.Footer;
@@ -28,7 +30,7 @@ import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
 public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView {
-
+	
 	public interface DatasetsHomeViewImplUiBinder extends 	UiBinder<Widget, DatasetsHomeViewImpl> {}
 
 	@UiField
@@ -50,7 +52,6 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 	private IconsImageBundle icons;
 	private QueryFilter filter;
 	private Header headerWidget;
-
 	
 	@Inject
 	public DatasetsHomeViewImpl(DatasetsHomeViewImplUiBinder binder, Header headerWidget, Footer footerWidget, IconsImageBundle icons, QueryFilter filter, SageImageBundle imageBundle, QueryServiceTableResourceProvider queryServiceTableResourceProvider) {		
@@ -98,6 +99,7 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 			
 			@Override
 			public void selectionChanged(List<WhereCondition> newConditions) {
+				presenter.onChangeFilter(newConditions);
 				if(newConditions.size() < 1){
 					queryServiceTable.setWhereCondition(null);
 				}else{
@@ -112,6 +114,11 @@ public class DatasetsHomeViewImpl extends Composite implements DatasetsHomeView 
 	@Override
 	public void setVisibleColumns(List<String> visible) {
 		this.queryServiceTable.setDispalyColumns(visible);
+	}
+	
+	@Override
+	public void setAppliedFilters(List<WhereCondition> applied) {
+		this.queryServiceTable.setWhereCondition(applied);
 	}
 
 
