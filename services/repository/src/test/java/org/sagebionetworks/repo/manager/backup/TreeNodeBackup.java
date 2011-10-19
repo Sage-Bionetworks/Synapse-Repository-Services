@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeRevision;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 
 /**
  * A tree node version of a NodeBackup.  Allows for a tree of nodes to be built.
@@ -17,7 +17,7 @@ public class TreeNodeBackup {
 	private List<TreeNodeBackup> children = new ArrayList<TreeNodeBackup>();
 	private String benefactor;
 	private AccessControlList acl;
-	private List<NodeRevision> revisions = new ArrayList<NodeRevision>();
+	private List<NodeRevisionBackup> revisions = new ArrayList<NodeRevisionBackup>();
 	public Node getNode() {
 		return node;
 	}
@@ -42,10 +42,10 @@ public class TreeNodeBackup {
 	public void setAcl(AccessControlList acl) {
 		this.acl = acl;
 	}
-	public List<NodeRevision> getRevisions() {
+	public List<NodeRevisionBackup> getRevisions() {
 		return revisions;
 	}
-	public void setRevisions(List<NodeRevision> revisions) {
+	public void setRevisions(List<NodeRevisionBackup> revisions) {
 		this.revisions = revisions;
 	}
 	@Override

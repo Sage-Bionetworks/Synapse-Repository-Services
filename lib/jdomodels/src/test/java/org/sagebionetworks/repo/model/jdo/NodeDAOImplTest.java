@@ -31,7 +31,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
-import org.sagebionetworks.repo.model.NodeRevision;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
@@ -760,7 +760,7 @@ public class NodeDAOImplTest {
 		node = nodeDao.getNode(id);
 		Long v1Number = node.getVersionNumber();
 		// Get the current rev
-		NodeRevision currentRev = nodeDao.getNodeRevision(id, node.getVersionNumber());
+		NodeRevisionBackup currentRev = nodeDao.getNodeRevision(id, node.getVersionNumber());
 		assertNotNull(currentRev);
 		// Add some annotations
 		String keyOnFirstVersion = "NodeDAOImplTest.testUpdateRevision.OnFirstVersion";
@@ -771,7 +771,7 @@ public class NodeDAOImplTest {
 		assertTrue(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));
 		
 		// Get it back
-		NodeRevision clone = nodeDao.getNodeRevision(id, node.getVersionNumber());
+		NodeRevisionBackup clone = nodeDao.getNodeRevision(id, node.getVersionNumber());
 		assertNotNull(clone);
 		assertEquals("newValue", clone.getNamedAnnotations().getAdditionalAnnotations().getSingleValue(keyOnFirstVersion));
 		assertEquals("2.0", clone.getLabel());
@@ -815,7 +815,7 @@ public class NodeDAOImplTest {
 		assertEquals(currentVersionNumver, node.getVersionNumber());
 		
 		// now create a new version number
-		NodeRevision newRev = new NodeRevision();
+		NodeRevisionBackup newRev = new NodeRevisionBackup();
 		Annotations annos = RandomAnnotationsUtil.generateRandom(33477, 23);
 		NamedAnnotations nammed = new NamedAnnotations();
 		nammed.put("newNamed", annos);
@@ -837,7 +837,7 @@ public class NodeDAOImplTest {
 		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnNewVersion));
 		
 		// Get the older version
-		NodeRevision clone = nodeDao.getNodeRevision(id, newVersionNumber);
+		NodeRevisionBackup clone = nodeDao.getNodeRevision(id, newVersionNumber);
 		assertNotNull(clone);
 		assertEquals("value on new", clone.getNamedAnnotations().getAnnotationsForName("newNamed").getSingleValue(keyOnNewVersion));
 		assertEquals("1.0", clone.getLabel());
@@ -1018,7 +1018,7 @@ public class NodeDAOImplTest {
 		assertTrue(node.getReferences().get("odd").contains(inOdd));
 		
 		// Get the current rev
-		NodeRevision currentRev = nodeDao.getNodeRevision(id, node.getVersionNumber());
+		NodeRevisionBackup currentRev = nodeDao.getNodeRevision(id, node.getVersionNumber());
 		assertNotNull(currentRev);
 		assertTrue(currentRev.getReferences().get("even").contains(inEven));
 		assertTrue(currentRev.getReferences().get("odd").contains(inOdd));

@@ -8,18 +8,18 @@ import java.util.Map;
 import org.sagebionetworks.repo.manager.NodeTranslationUtils;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
-import org.sagebionetworks.repo.model.NodeRevision;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.ObjectType;
 
 /**
- * The only job for this step is to take NodeRevision from v0 to v1.
+ * The only job for this step is to take NodeRevisionBackup from v0 to v1.
  * @author John
  *
  */
 public class RevisionStepV0toV1 implements RevisionMigrationStep {
 
 	@Override
-	public NodeRevision migrateOneStep(NodeRevision toMigrate, ObjectType type) {
+	public NodeRevisionBackup migrateOneStep(NodeRevisionBackup toMigrate, ObjectType type) {
 		// Only migrate v0 (null) to v1.
 		if(!isXmlV0(toMigrate.getXmlVersion())) return toMigrate;
 		
@@ -50,7 +50,7 @@ public class RevisionStepV0toV1 implements RevisionMigrationStep {
 		// Clear-out the old annotations
 		toMigrate.setAnnotations(null);
 		// Now that we are done, change the version to v1
-		toMigrate.setXmlVersion(NodeRevision.XML_V_1);
+		toMigrate.setXmlVersion(NodeRevisionBackup.XML_V_1);
 		return toMigrate;
 	}
 	
@@ -63,7 +63,7 @@ public class RevisionStepV0toV1 implements RevisionMigrationStep {
 		// The first version did not have a version string and will be null.
 		if(xmlVersion == null) return true;
 		// If the V0 string is applied.
-		return NodeRevision.XML_V_0.equals(xmlVersion);
+		return NodeRevisionBackup.XML_V_0.equals(xmlVersion);
 	}
 
 }

@@ -22,7 +22,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeQueryDao;
-import org.sagebionetworks.repo.model.NodeRevision;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -174,7 +174,7 @@ public class NodeBackupManagerImplAutowireTest {
 		assertTrue(root.getRevisions().size() > 0);
 		// Make sure we can get all revision of root
 		for(Long revNumber: root.getRevisions()){
-			NodeRevision rev = backupManager.getNodeRevision(root.getNode().getId(), revNumber);
+			NodeRevisionBackup rev = backupManager.getNodeRevision(root.getNode().getId(), revNumber);
 			assertNotNull(rev);
 			assertNotNull(rev.getNodeId());
 			assertNull(rev.getAnnotations());
@@ -183,7 +183,7 @@ public class NodeBackupManagerImplAutowireTest {
 			assertNotNull(rev.getComment());
 			assertNotNull(rev.getModifiedBy());
 			assertNotNull(rev.getModifiedOn());
-			assertEquals(NodeRevision.CURRENT_XML_VERSION, rev.getXmlVersion());
+			assertEquals(NodeRevisionBackup.CURRENT_XML_VERSION, rev.getXmlVersion());
 		}
 	}
 	
@@ -196,7 +196,7 @@ public class NodeBackupManagerImplAutowireTest {
 	@Test
 	public void testRestoreNonExisting() throws Exception{
 		// Now get the node backup data 
-		List<NodeRevision> revisions = new ArrayList<NodeRevision>();
+		List<NodeRevisionBackup> revisions = new ArrayList<NodeRevisionBackup>();
 		NodeBackup backup = backupManager.getNode(newNodeId);
 		assertNotNull(backup);
 		assertNotNull(backup.getNode());
@@ -204,7 +204,7 @@ public class NodeBackupManagerImplAutowireTest {
 		assertEquals("This node should be its own benefactor",newNodeId, backup.getBenefactor());
 		// Get all of the revisions
 		for(Long revNumer: backup.getRevisions()){
-			NodeRevision rev = backupManager.getNodeRevision(newNodeId, revNumer);
+			NodeRevisionBackup rev = backupManager.getNodeRevision(newNodeId, revNumer);
 			revisions.add(rev);
 		}
 	
@@ -215,19 +215,19 @@ public class NodeBackupManagerImplAutowireTest {
 		// Now restore the node
 		backupManager.createOrUpdateNode(backup);
 		// Restore each revision
-		for(NodeRevision rev: revisions){
+		for(NodeRevisionBackup rev: revisions){
 			backupManager.createOrUpdateRevision(rev);
 		}
 		
 		//Now get the backup data again and make sure it matches the originals
-		List<NodeRevision> cloneRevision = new ArrayList<NodeRevision>();
+		List<NodeRevisionBackup> cloneRevision = new ArrayList<NodeRevisionBackup>();
 		NodeBackup cloneBackup = backupManager.getNode(newNodeId);
 		// The only think that will not match is the etag
 		cloneBackup.getNode().setETag(backup.getNode().getETag());
 		cloneBackup.getAcl().setEtag((backup.getAcl().getEtag()));
 		assertEquals(backup, cloneBackup);
 		for(Long revNumer: cloneBackup.getRevisions()){
-			NodeRevision rev = backupManager.getNodeRevision(newNodeId, revNumer);
+			NodeRevisionBackup rev = backupManager.getNodeRevision(newNodeId, revNumer);
 			cloneRevision.add(rev);
 		}
 		assertEquals(revisions, cloneRevision);
@@ -239,7 +239,7 @@ public class NodeBackupManagerImplAutowireTest {
 	@Test
 	public void testRestoreExisting() throws Exception{
 		// Now get the node backup data 
-		List<NodeRevision> revisions = new ArrayList<NodeRevision>();
+		List<NodeRevisionBackup> revisions = new ArrayList<NodeRevisionBackup>();
 		NodeBackup backup = backupManager.getNode(newNodeId);
 		assertNotNull(backup);
 		assertNotNull(backup.getNode());
@@ -247,26 +247,26 @@ public class NodeBackupManagerImplAutowireTest {
 		assertEquals("This node should be its own benefactor",newNodeId, backup.getBenefactor());
 		// Get all of the revisions
 		for(Long revNumer: backup.getRevisions()){
-			NodeRevision rev = backupManager.getNodeRevision(newNodeId, revNumer);
+			NodeRevisionBackup rev = backupManager.getNodeRevision(newNodeId, revNumer);
 			revisions.add(rev);
 		}
 
 		// This time the node should still exist.
 		backupManager.createOrUpdateNode(backup);
 		// Restore each revision
-		for(NodeRevision rev: revisions){
+		for(NodeRevisionBackup rev: revisions){
 			backupManager.createOrUpdateRevision(rev);
 		}
 		
 		//Now get the backup data again and make sure it matches the originals
-		List<NodeRevision> cloneRevision = new ArrayList<NodeRevision>();
+		List<NodeRevisionBackup> cloneRevision = new ArrayList<NodeRevisionBackup>();
 		NodeBackup cloneBackup = backupManager.getNode(newNodeId);
 		// The only think that will not match is the etag
 		cloneBackup.getNode().setETag(backup.getNode().getETag());
 		cloneBackup.getAcl().setEtag((backup.getAcl().getEtag()));
 		assertEquals(backup, cloneBackup);
 		for(Long revNumer: cloneBackup.getRevisions()){
-			NodeRevision rev = backupManager.getNodeRevision(newNodeId, revNumer);
+			NodeRevisionBackup rev = backupManager.getNodeRevision(newNodeId, revNumer);
 			cloneRevision.add(rev);
 		}
 		assertEquals(revisions, cloneRevision);

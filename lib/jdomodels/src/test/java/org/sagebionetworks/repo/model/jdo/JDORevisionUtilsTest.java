@@ -13,7 +13,7 @@ import java.util.Random;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
-import org.sagebionetworks.repo.model.NodeRevision;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
 import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
@@ -58,7 +58,7 @@ public class JDORevisionUtilsTest {
 	
 	@Test
 	public void testRoundTrip() throws IOException, DatastoreException{
-		NodeRevision dto = new NodeRevision();
+		NodeRevisionBackup dto = new NodeRevisionBackup();
 		dto.setNodeId("123");
 		dto.setRevisionNumber(new Long(3));
 		dto.setComment("I comment therefore I am!");
@@ -73,7 +73,7 @@ public class JDORevisionUtilsTest {
 		owner.setId(new Long(123));
 		JDORevisionUtils.updateJdoFromDto(dto, jdo, owner);
 		// Now go back
-		NodeRevision clone = JDORevisionUtils.createDtoFromJdo(jdo);
+		NodeRevisionBackup clone = JDORevisionUtils.createDtoFromJdo(jdo);
 		assertEquals(dto, clone);
 	}
 

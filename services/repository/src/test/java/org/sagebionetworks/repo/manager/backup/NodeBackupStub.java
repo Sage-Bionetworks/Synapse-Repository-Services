@@ -8,7 +8,7 @@ import java.util.Map;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackup;
-import org.sagebionetworks.repo.model.NodeRevision;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 
 /**
  * This is a stub implementation of a Node backup source and destination for testing.
@@ -19,7 +19,7 @@ public class NodeBackupStub implements NodeBackupManager {
 	
 	private TreeNodeBackup root;
 	private Map<String, TreeNodeBackup> nodeIdMap = new HashMap<String, TreeNodeBackup>();;
-	private Map<String, NodeRevision> revisionIdMap = new HashMap<String, NodeRevision>();;
+	private Map<String, NodeRevisionBackup> revisionIdMap = new HashMap<String, NodeRevisionBackup>();;
 	private long nodeIdSequence;
 	
 	public NodeBackupStub(TreeNodeBackup root){
@@ -53,7 +53,7 @@ public class NodeBackupStub implements NodeBackupManager {
 		nodeIdMap.put(nodeId.toString(), nodeNode);
 		// Map its revisions
 		long revNumbers = 0;
-		for(NodeRevision rev: nodeNode.getRevisions()){
+		for(NodeRevisionBackup rev: nodeNode.getRevisions()){
 			rev.setNodeId(nodeId.toString());
 			Long revId = new Long(revNumbers++);
 			rev.setRevisionNumber(revId);
@@ -143,7 +143,7 @@ public class NodeBackupStub implements NodeBackupManager {
 		TreeNodeBackup nn = getNodeNode(id);
 		// Build up the list of children
 		List<Long> rervisions = new ArrayList<Long>();
-		for(NodeRevision rev: nn.getRevisions()){
+		for(NodeRevisionBackup rev: nn.getRevisions()){
 			rervisions.add(rev.getRevisionNumber());
 		}
 		return rervisions;
@@ -155,11 +155,11 @@ public class NodeBackupStub implements NodeBackupManager {
 	}
 
 	@Override
-	public NodeRevision getNodeRevision(String nodeId, Long revId) {
+	public NodeRevisionBackup getNodeRevision(String nodeId, Long revId) {
 		String revKey = createKeyForLongs(nodeId, revId);
-		NodeRevision rev = revisionIdMap.get(revKey);
+		NodeRevisionBackup rev = revisionIdMap.get(revKey);
 		if(rev != null){
-			rev.setXmlVersion(NodeRevision.CURRENT_XML_VERSION);
+			rev.setXmlVersion(NodeRevisionBackup.CURRENT_XML_VERSION);
 		}
 		return rev;
 	}
@@ -175,7 +175,7 @@ public class NodeBackupStub implements NodeBackupManager {
 	}
 
 	@Override
-	public void createOrUpdateRevision(NodeRevision rev) {
+	public void createOrUpdateRevision(NodeRevisionBackup rev) {
 		if(rev == null) throw new IllegalArgumentException("Rev cannot be null");
 		TreeNodeBackup node = getNodeNode(rev.getNodeId());
 		if(node == null) throw new IllegalArgumentException("Could not find the owner of the given revision");

@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager.backup.migration;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.NodeRevision;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.ObjectType;
 
 /**
@@ -33,7 +33,7 @@ public class MigrationDriverImpl implements MigrationDriver{
 	 * Walk over each step until we get to the current version.
 	 */
 	@Override
-	public NodeRevision migrateToCurrentVersion(NodeRevision toMigrate,	ObjectType type) {
+	public NodeRevisionBackup migrateToCurrentVersion(NodeRevisionBackup toMigrate,	ObjectType type) {
 		if(toMigrate == null) throw new IllegalArgumentException("NodeRevsion toMigrate cannot be null");
 		if(type == null) throw new IllegalArgumentException("ObjectType cannot be null");
 		String startingVersion = toMigrate.getXmlVersion();
@@ -42,7 +42,7 @@ public class MigrationDriverImpl implements MigrationDriver{
 			toMigrate = step.migrateOneStep(toMigrate, type);
 		}
 		// Validate we are on the current version
-		if(!NodeRevision.CURRENT_XML_VERSION.equals(toMigrate.getXmlVersion())) throw new IllegalStateException("Failed to migrate a NodeRevision from version: "+startingVersion+" to the current version: "+NodeRevision.CURRENT_XML_VERSION);
+		if(!NodeRevisionBackup.CURRENT_XML_VERSION.equals(toMigrate.getXmlVersion())) throw new IllegalStateException("Failed to migrate a NodeRevisionBackup from version: "+startingVersion+" to the current version: "+NodeRevisionBackup.CURRENT_XML_VERSION);
 		return toMigrate;
 	}
 

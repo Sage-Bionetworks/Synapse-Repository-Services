@@ -9,7 +9,7 @@ import java.util.Set;
  * @author jmhill
  *
  */
-public class NodeRevision {
+public class NodeRevisionBackup {
 	
 	// This is the first version.
 	public static String XML_V_0	 = "0.0";
@@ -166,7 +166,7 @@ public class NodeRevision {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		NodeRevision other = (NodeRevision) obj;
+		NodeRevisionBackup other = (NodeRevisionBackup) obj;
 		if (annotations == null) {
 			if (other.annotations != null)
 				return false;
@@ -225,7 +225,7 @@ public class NodeRevision {
 	 */
 	@Override
 	public String toString() {
-		return "NodeRevision [annotations=" + annotations + ", comment="
+		return "NodeRevisionBackup [annotations=" + annotations + ", comment="
 				+ comment + ", label=" + label + ", modifiedBy=" + modifiedBy
 				+ ", modifiedOn=" + modifiedOn + ", namedAnnotations="
 				+ namedAnnotations + ", nodeId=" + nodeId + ", references="

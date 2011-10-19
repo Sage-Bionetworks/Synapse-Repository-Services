@@ -9,7 +9,7 @@ import java.util.Random;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.NodeRevision;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.util.RandomAccessControlListUtil;
 import org.sagebionetworks.repo.model.util.RandomNodeRevisionUtil;
 import org.sagebionetworks.repo.model.util.RandomNodeUtil;
@@ -86,7 +86,7 @@ public class NodeBackupDriverImplTest {
 			node.setAcl(RandomAccessControlListUtil.generateRandom(rand));
 		}
 		for(int i=0; i<numberRevs; i++){
-			NodeRevision rev = RandomNodeRevisionUtil.generateRandom(rand, annoCount);
+			NodeRevisionBackup rev = RandomNodeRevisionUtil.generateRandom(rand, annoCount);
 			node.getRevisions().add(rev);
 		}
 		return node;

@@ -26,7 +26,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeRevision;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOBlobAnnotation;
@@ -789,7 +789,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Transactional(readOnly = true)
 	@Override
-	public NodeRevision getNodeRevision(String nodeId, Long revisionId) throws NotFoundException, DatastoreException {
+	public NodeRevisionBackup getNodeRevision(String nodeId, Long revisionId) throws NotFoundException, DatastoreException {
 		if(nodeId == null) throw new IllegalArgumentException("nodeId cannot be null");
 		if(revisionId == null) throw new IllegalArgumentException("revisionId cannot be null");
 		JDORevision rev = getNodeRevisionById(KeyFactory.stringToKey(nodeId), revisionId);
@@ -806,15 +806,15 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * Is the passed revision valid?
 	 * @param rev
 	 */
-	public static void validateNodeRevision(NodeRevision rev) {
-		if(rev == null) throw new IllegalArgumentException("NodeRevision cannot be null");
-		if(rev.getNodeId() == null) throw new IllegalArgumentException("NodeRevision.nodeId cannot be null");
-		if(rev.getRevisionNumber() == null) throw new IllegalArgumentException("NodeRevision.revisionNumber cannot be null");
+	public static void validateNodeRevision(NodeRevisionBackup rev) {
+		if(rev == null) throw new IllegalArgumentException("NodeRevisionBackup cannot be null");
+		if(rev.getNodeId() == null) throw new IllegalArgumentException("NodeRevisionBackup.nodeId cannot be null");
+		if(rev.getRevisionNumber() == null) throw new IllegalArgumentException("NodeRevisionBackup.revisionNumber cannot be null");
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void updateRevision(NodeRevision rev) throws NotFoundException, DatastoreException {
+	public void updateRevision(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
 		validateNodeRevision(rev);
 		JDONode owner = getNodeById(KeyFactory.stringToKey(rev.getNodeId()));
 		JDORevision jdo = getNodeRevisionById(KeyFactory.stringToKey(rev.getNodeId()), rev.getRevisionNumber());
@@ -825,7 +825,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void createNewRevision(NodeRevision rev) throws NotFoundException, DatastoreException {
+	public void createNewRevision(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
 		validateNodeRevision(rev);
 		JDONode owner = getNodeById(KeyFactory.stringToKey(rev.getNodeId()));
 		JDORevision newJdo = new JDORevision();
@@ -842,7 +842,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @param rev
 	 * @param owner
 	 */
-	private void updateAnnotationTablesIfCurrentRev(NodeRevision rev, JDONode owner) {
+	private void updateAnnotationTablesIfCurrentRev(NodeRevisionBackup rev, JDONode owner) {
 		if(owner.getCurrentRevNumber().equals(rev.getRevisionNumber())){
 			JDOAnnotationsUtils.updateAnnotationsFromDto(rev.getNamedAnnotations(), owner);
 		}

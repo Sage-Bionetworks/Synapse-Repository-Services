@@ -210,7 +210,7 @@ public interface NodeDAO {
 	 * @throws NotFoundException 
 	 * @throws IOException 
 	 */
-	public NodeRevision getNodeRevision(String nodeId, Long revisionId) throws NotFoundException, DatastoreException;
+	public NodeRevisionBackup getNodeRevision(String nodeId, Long revisionId) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Get the total node count
@@ -232,7 +232,7 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public void updateRevision(NodeRevision rev) throws NotFoundException, DatastoreException;
+	public void updateRevision(NodeRevisionBackup rev) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Create a new revision from a backup.
@@ -240,7 +240,7 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public void createNewRevision(NodeRevision rev) throws NotFoundException, DatastoreException;
+	public void createNewRevision(NodeRevisionBackup rev) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Only the annotations of the current version are query-able.

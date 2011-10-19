@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.NodeRevision;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
 
@@ -41,8 +41,8 @@ public class JDORevisionUtils {
 	 * @throws DatastoreException 
 	 * @throws IOException 
 	 */
-	public static NodeRevision createDtoFromJdo(JDORevision jdo) throws DatastoreException{
-		NodeRevision rev = new NodeRevision();
+	public static NodeRevisionBackup createDtoFromJdo(JDORevision jdo) throws DatastoreException{
+		NodeRevisionBackup rev = new NodeRevisionBackup();
 		if(jdo.getOwner() != null){
 			rev.setNodeId(KeyFactory.keyToString(jdo.getOwner().getId()));
 		}
@@ -65,7 +65,7 @@ public class JDORevisionUtils {
 	 * @param jdo
 	 * @throws IOException 
 	 */
-	public static void updateJdoFromDto(NodeRevision dto, JDORevision jdo, JDONode owner) throws DatastoreException{
+	public static void updateJdoFromDto(NodeRevisionBackup dto, JDORevision jdo, JDONode owner) throws DatastoreException{
 		jdo.setOwner(owner);
 		jdo.setComment(dto.getComment());
 		jdo.setLabel(dto.getLabel());
