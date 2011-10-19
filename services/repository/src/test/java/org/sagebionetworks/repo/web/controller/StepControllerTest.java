@@ -85,7 +85,12 @@ public class StepControllerTest {
 	public void testCreateStep() throws Exception {
 		JSONObject step = helper.testCreateJsonEntity(helper.getServletPrefix()
 				+ "/step", "{\"input\":[{\"targetId\":\""
-				+ layer.getString("id") + "\"}]}");
+				+ layer.getString("id") + "\"}], \"environmentDescriptors\":["
+				+ "{\"type\":\"OS\",\"name\":\"x86_64-apple-darwin9.8.0/x86_64\",\"quantifier\":\"64-bit\"},"
+				+ "{\"type\":\"application\",\"name\":\"R\",\"quantifier\":\"2.13.0\"}," 
+				+ "{\"type\":\"rPackage\",\"name\":\"synapseClient\",\"quantifier\":\"0.8-0\"},"
+				+ "{\"type\":\"rPackage\",\"name\":\"Biobase\",\"quantifier\":\"2.12.2\"}"
+				+ "]}");
 		assertExpectedStepProperties(step);
 		assertEquals(layer.getString("id"), step.getJSONArray("input")
 				.getJSONObject(0).getString("targetId"));
@@ -100,6 +105,7 @@ public class StepControllerTest {
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, (Long) storedStep
 				.getJSONArray("input").getJSONObject(0).getLong(
 						"targetVersionNumber"));
+		assertEquals(4, storedStep.getJSONArray("environmentDescriptors").length());
 	}
 
 	/*****************************************************************************************************
@@ -124,5 +130,6 @@ public class StepControllerTest {
 		assertTrue(step.has("code"));
 		assertTrue(step.has("input"));
 		assertTrue(step.has("output"));
+		assertTrue(step.has("environmentDescriptors"));
 	}
 }
