@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
-import org.sagebionetworks.repo.model.NodeRevision;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -77,11 +77,11 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 	}
 
 	@Override
-	public NodeRevision getNodeRevision(String nodeId, Long revisionId) throws NotFoundException, DatastoreException {
+	public NodeRevisionBackup getNodeRevision(String nodeId, Long revisionId) throws NotFoundException, DatastoreException {
 		// Pass it along
-		NodeRevision rev =  nodeDao.getNodeRevision(nodeId,revisionId);
+		NodeRevisionBackup rev =  nodeDao.getNodeRevision(nodeId,revisionId);
 		// Make sure the xml version is set to the current version
-		rev.setXmlVersion(NodeRevision.CURRENT_XML_VERSION);
+		rev.setXmlVersion(NodeRevisionBackup.CURRENT_XML_VERSION);
 		return rev;
 	}
 
@@ -175,11 +175,11 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
-	public void createOrUpdateRevision(NodeRevision rev) {
-		if(rev == null) throw new IllegalArgumentException("NodeRevision cannot be null");
-		if(rev.getNodeId() == null) throw new IllegalArgumentException("NodeRevision.nodeId cannot be null");
-		if(rev.getRevisionNumber() == null) throw new IllegalArgumentException("NodeRevision.revisionNumber cannot be null");
-		if(rev.getLabel() == null) throw new IllegalArgumentException("NodeRevision.revisionNumber cannot be null");
+	public void createOrUpdateRevision(NodeRevisionBackup rev) {
+		if(rev == null) throw new IllegalArgumentException("NodeRevisionBackup cannot be null");
+		if(rev.getNodeId() == null) throw new IllegalArgumentException("NodeRevisionBackup.nodeId cannot be null");
+		if(rev.getRevisionNumber() == null) throw new IllegalArgumentException("NodeRevisionBackup.revisionNumber cannot be null");
+		if(rev.getLabel() == null) throw new IllegalArgumentException("NodeRevisionBackup.revisionNumber cannot be null");
 		try{
 			// Validate the annotations
 			if(rev.getNamedAnnotations() != null){

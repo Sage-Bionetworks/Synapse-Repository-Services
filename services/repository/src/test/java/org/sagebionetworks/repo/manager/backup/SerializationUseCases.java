@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeRevision;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -31,28 +31,28 @@ public class SerializationUseCases {
 	 * 
 	 * @return
 	 */
-	public static NodeRevision createV0DatasetRevision() {
+	public static NodeRevisionBackup createV0DatasetRevision() {
 		// Create a dataset with data
 		Dataset ds = createDatasetWithAllFields();
 
 		// Get the annotations for this object
 		Annotations annos = createAnnotationsV0(ds);
 		// now create a revision for this node
-		NodeRevision rev = createRevisionV0(ds, annos);
+		NodeRevisionBackup rev = createRevisionV0(ds, annos);
 		// We did not have this field in v0
 		rev.setXmlVersion(null);
 		return rev;
 	}
 
-	public static NodeRevision createV1DatasetRevision() {
+	public static NodeRevisionBackup createV1DatasetRevision() {
 		// Create a dataset with data
 		Dataset ds = createDatasetWithAllFields();
 
 		// Get the annotations for this object
 		NamedAnnotations annos = createAnnotationsV1(ds);
 		// now create a revision for this node
-		NodeRevision rev = createRevisionV1(ds, annos);
-		rev.setXmlVersion(NodeRevision.XML_V_1);
+		NodeRevisionBackup rev = createRevisionV1(ds, annos);
+		rev.setXmlVersion(NodeRevisionBackup.XML_V_1);
 		return rev;
 	}
 
@@ -61,13 +61,13 @@ public class SerializationUseCases {
 	 * 
 	 * @return
 	 */
-	public static NodeRevision createV0ProjectRevision() {
+	public static NodeRevisionBackup createV0ProjectRevision() {
 		// Create a dataset with data
 		Project project = createProjectWithAllFields();
 		// Get the annotations for this object
 		Annotations annos = createAnnotationsV0(project);
 		// now create a revision for this node
-		NodeRevision rev = createRevisionV0(project, annos);
+		NodeRevisionBackup rev = createRevisionV0(project, annos);
 		// We did not have this field in v0
 		rev.setXmlVersion(null);
 		return rev;
@@ -78,14 +78,14 @@ public class SerializationUseCases {
 	 * 
 	 * @return
 	 */
-	public static NodeRevision createV1ProjectRevision() {
+	public static NodeRevisionBackup createV1ProjectRevision() {
 		// Create a dataset with data
 		Project project = createProjectWithAllFields();
 		// Get the annotations for this object
 		NamedAnnotations annos = createAnnotationsV1(project);
 		// now create a revision for this node
-		NodeRevision rev = createRevisionV1(project, annos);
-		rev.setXmlVersion(NodeRevision.XML_V_1);
+		NodeRevisionBackup rev = createRevisionV1(project, annos);
+		rev.setXmlVersion(NodeRevisionBackup.XML_V_1);
 		return rev;
 	}
 
@@ -94,13 +94,13 @@ public class SerializationUseCases {
 	 * 
 	 * This is a little more complicated now with references. TODO think about
 	 * how to factor this more cleanly. The problem is that in the real
-	 * codebase, we don't go from Node -> NodeRevision, we go from Entity ->
-	 * Node -> JDORevision -> NodeRevision. We wind up writing a bunch of
+	 * codebase, we don't go from Node -> NodeRevisionBackup, we go from Entity ->
+	 * Node -> JDORevision -> NodeRevisionBackup. We wind up writing a bunch of
 	 * artificial code here instead of testing the real code path.
 	 * 
 	 * @return
 	 */
-	public static NodeRevision createV1StepRevision() {
+	public static NodeRevisionBackup createV1StepRevision() {
 		// Create a Step
 		Step step = createStepWithReferences();
 
@@ -122,33 +122,33 @@ public class SerializationUseCases {
 		addAdditionalAnnotations(additionalAnnos);
 
 		// Now create a revision for this node
-		NodeRevision rev = new NodeRevision();
+		NodeRevisionBackup rev = new NodeRevisionBackup();
 		rev.setRevisionNumber(1l);
 		rev.setNodeId(node.getId());
 		rev.setLabel("The first version of this object");
 		rev.setComment("I have no comment at this time");
 		rev.setNamedAnnotations(named);
 		rev.setReferences(node.getReferences());
-		rev.setXmlVersion(NodeRevision.XML_V_1);
+		rev.setXmlVersion(NodeRevisionBackup.XML_V_1);
 		return rev;
 	}
 
-	public static <T extends Nodeable> NodeRevision createRevisionV0(T ds,
+	public static <T extends Nodeable> NodeRevisionBackup createRevisionV0(T ds,
 			Annotations annos) {
-		NodeRevision rev = createBasicRev(ds);
+		NodeRevisionBackup rev = createBasicRev(ds);
 		rev.setAnnotations(annos);
 		return rev;
 	}
 
-	public static <T extends Nodeable> NodeRevision createRevisionV1(T ds,
+	public static <T extends Nodeable> NodeRevisionBackup createRevisionV1(T ds,
 			NamedAnnotations annos) {
-		NodeRevision rev = createBasicRev(ds);
+		NodeRevisionBackup rev = createBasicRev(ds);
 		rev.setNamedAnnotations(annos);
 		return rev;
 	}
 
-	public static <T extends Nodeable> NodeRevision createBasicRev(T ds) {
-		NodeRevision rev = new NodeRevision();
+	public static <T extends Nodeable> NodeRevisionBackup createBasicRev(T ds) {
+		NodeRevisionBackup rev = new NodeRevisionBackup();
 		rev.setRevisionNumber(1l);
 		rev.setNodeId(ds.getId());
 		rev.setLabel("The first version of this object");
@@ -297,7 +297,7 @@ public class SerializationUseCases {
 
 	public static void main(String[] args) {
 		// project v0
-		NodeRevision rev = createV0ProjectRevision();
+		NodeRevisionBackup rev = createV0ProjectRevision();
 		StringWriter writer = new StringWriter();
 		NodeSerializerUtil.writeNodeRevision(rev, writer);
 		System.out.println("project v0 xml");

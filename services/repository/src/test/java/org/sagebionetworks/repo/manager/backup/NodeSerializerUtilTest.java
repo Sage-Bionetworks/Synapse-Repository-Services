@@ -24,7 +24,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackup;
-import org.sagebionetworks.repo.model.NodeRevision;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.util.RandomNodeBackupUtil;
@@ -76,7 +76,7 @@ public class NodeSerializerUtilTest {
 	@Test
 	public void testRoundTripNodeRevision() throws UnsupportedEncodingException{
 		// Create a node backup with all of the values.
-		NodeRevision rev = new NodeRevision();
+		NodeRevisionBackup rev = new NodeRevisionBackup();
 		rev.setNodeId("123");
 		rev.setComment("I would like to comment!");
 		rev.setLabel("0.6.12");
@@ -105,7 +105,7 @@ public class NodeSerializerUtilTest {
 		
 		// Now read it back
 		StringReader reader = new StringReader(writer.toString());
-		NodeRevision clone = NodeSerializerUtil.readNodeRevision(reader);
+		NodeRevisionBackup clone = NodeSerializerUtil.readNodeRevision(reader);
 		assertNotNull(clone);
 		assertEquals(rev, clone);
 		
@@ -114,7 +114,7 @@ public class NodeSerializerUtilTest {
 	@Test
 	public void testRoundTripNodeRevisionRandom() throws UnsupportedEncodingException{
 		// Create a node backup with all of the values.
-		NodeRevision rev = RandomNodeRevisionUtil.generateRandom(489, 12);
+		NodeRevisionBackup rev = RandomNodeRevisionUtil.generateRandom(489, 12);
 		
 		StringWriter writer = new StringWriter();
 		NodeSerializerUtil.writeNodeRevision(rev, writer);
@@ -122,7 +122,7 @@ public class NodeSerializerUtilTest {
 		
 		// Now read it back
 		StringReader reader = new StringReader(writer.toString());
-		NodeRevision clone = NodeSerializerUtil.readNodeRevision(reader);
+		NodeRevisionBackup clone = NodeSerializerUtil.readNodeRevision(reader);
 		assertNotNull(clone);
 		assertEquals(rev, clone);
 		
@@ -169,7 +169,7 @@ public class NodeSerializerUtilTest {
 		InputStream in = NodeSerializerUtilTest.class.getClassLoader().getResourceAsStream("node-revisionV0.xml");
 		assertNotNull("Failed to find:node-revisionV0.xml on the classpath", in);
 		try{
-			NodeRevision loaded = NodeSerializerUtil.readNodeRevision(in);
+			NodeRevisionBackup loaded = NodeSerializerUtil.readNodeRevision(in);
 			assertNotNull(loaded);
 			// This V0 had annotations
 			assertNotNull(loaded.getAnnotations());
@@ -257,13 +257,13 @@ public class NodeSerializerUtilTest {
 			throw new IllegalArgumentException("The thrid argument should be the number of annotations to used", e);
 		}
 		NodeBackup backupToSave = null;
-		NodeRevision revToSave = null;
+		NodeRevisionBackup revToSave = null;
 		if(name.startsWith("node-backup")){
 			backupToSave = RandomNodeBackupUtil.generateRandome(seed);
 		}else if(name.startsWith("node-revision")){
 			revToSave = RandomNodeRevisionUtil.generateRandom(seed, count);
 		}else{
-			throw new IllegalArgumentException("The file name for the first argument should either start with 'node-backup' for a NodeBackup or 'node-revision' for a NodeRevision");
+			throw new IllegalArgumentException("The file name for the first argument should either start with 'node-backup' for a NodeBackup or 'node-revision' for a NodeRevisionBackup");
 		}
 
 		// Now create the output file

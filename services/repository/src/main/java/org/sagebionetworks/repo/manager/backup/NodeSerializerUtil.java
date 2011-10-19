@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeBackup;
-import org.sagebionetworks.repo.model.NodeRevision;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -80,24 +80,24 @@ public class NodeSerializerUtil  {
 		return backup;
 	}
 	
-	public static void writeNodeRevision(NodeRevision revision, OutputStream out){
+	public static void writeNodeRevision(NodeRevisionBackup revision, OutputStream out){
 		OutputStreamWriter writer = new OutputStreamWriter(out);
 		writeNodeRevision(revision, writer);
 	}
 	
-	public static void writeNodeRevision(NodeRevision revision, Writer writer){
+	public static void writeNodeRevision(NodeRevisionBackup revision, Writer writer){
 		XStream xstream = createXStream();
 		xstream.toXML(revision, writer);
 	}
 	
-	public static NodeRevision readNodeRevision(InputStream in){
+	public static NodeRevisionBackup readNodeRevision(InputStream in){
 		InputStreamReader reader = new InputStreamReader(in);
 		return readNodeRevision(reader);
 	}
 	
-	public static NodeRevision readNodeRevision(Reader reader){
+	public static NodeRevisionBackup readNodeRevision(Reader reader){
 		XStream xstream = createXStream();
-		NodeRevision rev = new NodeRevision();
+		NodeRevisionBackup rev = new NodeRevisionBackup();
 		xstream.fromXML(reader, rev);
 		return rev;
 	}
@@ -107,7 +107,7 @@ public class NodeSerializerUtil  {
 		xstream.alias(ALIAS_NODE_BACKUP, NodeBackup.class);
 		xstream.alias(ALIAS_ACCESS_TYPE, AuthorizationConstants.ACCESS_TYPE.class);
 		xstream.alias(ALIAS_RESOURCE_ACCESS, ResourceAccess.class);
-		xstream.alias(ALIAS_NODE_REVISION, NodeRevision.class);
+		xstream.alias(ALIAS_NODE_REVISION, NodeRevisionBackup.class);
 		xstream.alias(ALIAS_ANNOTATIONS, Annotations.class);
 		xstream.alias(ALIAS_NAME_SPACE, NamedAnnotations.class);
 		return xstream;

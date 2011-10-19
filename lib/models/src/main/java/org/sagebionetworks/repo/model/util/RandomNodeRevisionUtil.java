@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.model.util;
 import java.util.Random;
 
 import org.sagebionetworks.repo.model.NamedAnnotations;
-import org.sagebionetworks.repo.model.NodeRevision;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 
 public class RandomNodeRevisionUtil {
 	
@@ -12,7 +12,7 @@ public class RandomNodeRevisionUtil {
 	 * @param seed
 	 * @return
 	 */
-	public static NodeRevision generateRandom(long seed, int annCount){
+	public static NodeRevisionBackup generateRandom(long seed, int annCount){
 		Random rand = new Random(seed);
 		return generateRandom(rand, annCount);
 	}
@@ -23,8 +23,8 @@ public class RandomNodeRevisionUtil {
 	 * @param rand
 	 * @return
 	 */
-	public static NodeRevision generateRandom(Random rand, int annCount) {
-		NodeRevision rev = new NodeRevision();
+	public static NodeRevisionBackup generateRandom(Random rand, int annCount) {
+		NodeRevisionBackup rev = new NodeRevisionBackup();
 		rev.setNodeId(""+rand.nextLong());
 		rev.setComment("Comment: "+rand.nextLong());
 		rev.setModifiedBy("modifiedBy: "+rand.nextLong());

@@ -12,7 +12,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriver;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriverImpl;
-import org.sagebionetworks.repo.model.NodeRevision;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.ObjectType;
 
 /**
@@ -38,12 +38,12 @@ public class MigrationDriverImplTest {
 	}
 
 	String fileNameToLoad;
-	NodeRevision expectedRevision;
+	NodeRevisionBackup expectedRevision;
 	ObjectType type;
 	MigrationDriver migrationDriver = new MigrationDriverImpl();
 	
 
-	public MigrationDriverImplTest(String fileNameToLoad, NodeRevision expectedRevision, ObjectType type) {
+	public MigrationDriverImplTest(String fileNameToLoad, NodeRevisionBackup expectedRevision, ObjectType type) {
 		this.fileNameToLoad = fileNameToLoad;
 		this.expectedRevision = expectedRevision;
 		this.type = type;
@@ -55,13 +55,13 @@ public class MigrationDriverImplTest {
 		// validate that we can load and migrate each version.
 		InputStream in = MigrationDriverImplTest.class.getClassLoader().getResourceAsStream(fileNameToLoad);
 		if(in == null) throw new IllegalArgumentException("Failed to find file: "+fileNameToLoad+" on the classpath");
-		NodeRevision revision = NodeSerializerUtil.readNodeRevision(in);
+		NodeRevisionBackup revision = NodeSerializerUtil.readNodeRevision(in);
 		// Migrate the revision to the current version
 		System.out.println("Starting with version: "+revision.getXmlVersion()+"...");
 		revision = migrationDriver.migrateToCurrentVersion(revision, this.type);
 		System.out.println("Migrated to: "+revision.getXmlVersion());
 		// Make sure the revision is on the current version
-		assertEquals(NodeRevision.CURRENT_XML_VERSION, revision.getXmlVersion());
+		assertEquals(NodeRevisionBackup.CURRENT_XML_VERSION, revision.getXmlVersion());
 		assertEquals(expectedRevision, revision);
 	}
 

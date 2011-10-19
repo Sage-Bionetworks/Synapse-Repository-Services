@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager.backup;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeBackup;
-import org.sagebionetworks.repo.model.NodeRevision;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -38,7 +38,7 @@ public interface NodeBackupSource {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public NodeRevision getNodeRevision(String nodeId, Long revisionId) throws NotFoundException, DatastoreException;
+	public NodeRevisionBackup getNodeRevision(String nodeId, Long revisionId) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * How many nodes are there?  This is used to track progress.
