@@ -19,6 +19,9 @@
 
 	<bean id="nodeDao" class="org.sagebionetworks.repo.model.jdo.NodeDAOImpl"
 		depends-on="idGenerator" />
+
+	<alias name="nodeDao" alias="nodeBackupDao"/>
+
 	<!-- Controls how nodes inherit their permissions -->
 	<bean id="nodeInheritanceDao"
 		class="org.sagebionetworks.repo.model.jdo.JDONodeInheritanceDAOImpl" />

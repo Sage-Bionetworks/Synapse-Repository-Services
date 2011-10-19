@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -17,12 +16,10 @@ public interface NodeDAO {
 	
 	/**
 	 * Create a new node.
-	 * @param parentId can be null, or an existing parent node, to add this node to.
 	 * @param node
-	 * @return
+	 * @return the new node's id
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
-	 * @throws DuplicateNameException 
 	 * @throws NumberFormatException 
 	 */
 	public String createNew(Node node) throws NotFoundException, DatastoreException;
@@ -39,7 +36,7 @@ public interface NodeDAO {
 	/**
 	 * Fetch a node using its id.
 	 * @param id
-	 * @return
+	 * @return the node
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
@@ -49,7 +46,7 @@ public interface NodeDAO {
 	 * Get the node for a given version number.
 	 * @param id
 	 * @param versionNumber
-	 * @return
+	 * @return the particular version of a node
 	 * @throws NotFoundException
 	 * @throws DatastoreException 
 	 */
@@ -74,7 +71,7 @@ public interface NodeDAO {
 	/**
 	 * Get the Annotations for a node. 
 	 * @param id
-	 * @return
+	 * @return the current annotations
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
@@ -83,7 +80,8 @@ public interface NodeDAO {
 	/**
 	 * Get the annotations for a given version number
 	 * @param id
-	 * @return
+	 * @param versionNumber 
+	 * @return the version-specific annotations
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
@@ -92,7 +90,7 @@ public interface NodeDAO {
 	/**
 	 * Get all of the children nodes of a given node.
 	 * @param id
-	 * @return
+	 * @return the child nodes
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
@@ -101,7 +99,7 @@ public interface NodeDAO {
 	/**
 	 * Get all of the version numbers for this node.
 	 * @param id
-	 * @return
+	 * @return a list of verison numbers
 	 * @throws NotFoundException
 	 */
 	public List<Long> getVersionNumbers(String id) throws NotFoundException;
@@ -109,7 +107,7 @@ public interface NodeDAO {
 	/**
 	 * Get all of the IDs for a given node's children
 	 * @param id
-	 * @return
+	 * @return the set of child ids
 	 * @throws NotFoundException
 	 */
 	public Set<String> getChildrenIds(String id) throws NotFoundException;
@@ -117,7 +115,7 @@ public interface NodeDAO {
 	/**
 	 * Look at the current eTag without locking or changing anything.
 	 * @param id
-	 * @return
+	 * @return the current etag
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
@@ -128,7 +126,7 @@ public interface NodeDAO {
 	 * @param id
 	 * @param eTag - The current eTag for this node.  If this eTag does not match the current
 	 * eTag, then ConflictingUpdateException will be thrown.
-	 * @return
+	 * @return the new etag
 	 * @throws NotFoundException - Thrown if the node does not exist.
 	 * @throws ConflictingUpdateException - Thrown if the passed eTag does not match the current eTag.
 	 * This exception indicates that the node has changed since the last time the user fetched it.
@@ -147,8 +145,8 @@ public interface NodeDAO {
 	
 	/**
 	 * Update a nodes annotations.
-	 * @param id
-	 * @param updatedAnnotations
+	 * @param nodeId 
+	 * @param updatedAnnos 
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
@@ -158,14 +156,14 @@ public interface NodeDAO {
 	/**
 	 * Does a given node exist?
 	 * @param nodeId
-	 * @return
+	 * @return whether or not the node exists
 	 */
 	public boolean doesNodeExist(Long nodeId);
 	
 	/**
 	 * Get the header information for an entity.
 	 * @param nodeId
-	 * @return
+	 * @return the entity header
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
@@ -189,64 +187,33 @@ public interface NodeDAO {
 	/**
 	 * Lookup a node id using its unique path.
 	 * @param path
-	 * @return
+	 * @return the node id
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
 	 */
 	public String getNodeIdForPath(String path) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the ordered list of children ids.
 	 * @param id
-	 * @return
+	 * @return list of child ids
 	 * @throws DatastoreException 
 	 */
 	public List<String> getChildrenIdsAsList(String id) throws DatastoreException;
 
 	/**
-	 * Get a revision of a node.
-	 * @param nodeId
-	 * @param revisionId
-	 * @return
-	 * @throws DatastoreException 
-	 * @throws NotFoundException 
-	 * @throws IOException 
-	 */
-	public NodeRevisionBackup getNodeRevision(String nodeId, Long revisionId) throws NotFoundException, DatastoreException;
-
-	/**
-	 * Get the total node count
-	 * @return
-	 */
-	public long getTotalNodeCount();
-
-	/**
 	 * Does this revision already exist?
 	 * @param nodeId
 	 * @param revNumber
-	 * @return
+	 * @return whether or not the revision exists
 	 */
 	boolean doesNodeRevisionExist(String nodeId, Long revNumber);
-
-	/**
-	 * Update an existing revision from a backup.
-	 * @param rev
-	 * @throws DatastoreException 
-	 * @throws NotFoundException 
-	 */
-	public void updateRevision(NodeRevisionBackup rev) throws NotFoundException, DatastoreException;
-
-	/**
-	 * Create a new revision from a backup.
-	 * @param rev
-	 * @throws DatastoreException 
-	 * @throws NotFoundException 
-	 */
-	public void createNewRevision(NodeRevisionBackup rev) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Only the annotations of the current version are query-able.
 	 * @param nodeId
 	 * @param annotationKey
-	 * @return
+	 * @return whether or not the annotation is queryable
 	 */
 	public boolean isStringAnnotationQueryable(String nodeId, String annotationKey);
 	
