@@ -195,13 +195,33 @@ public class Helpers {
 	 */
 	public JSONObject testCreateJsonEntity(String requestUrl,
 			String jsonRequestContent) throws Exception {
+		return testCreateJsonEntity(requestUrl, jsonRequestContent, null);
+	}
+	
+	/**
+	 * Creation of JSON entities
+	 * 
+	 * @param requestUrl
+	 * @param jsonRequestContent
+	 * @param extraParams 
+	 * @return the entity created
+	 * @throws Exception
+	 */
+	public JSONObject testCreateJsonEntity(String requestUrl,
+			String jsonRequestContent, Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(requestUrl);
-		if (null != userId)
+		if (null != userId) {
 			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		}
+		if (null != extraParams) {
+			for(Map.Entry<String, String> param : extraParams.entrySet()) {
+				request.setParameter(param.getKey(), param.getValue());
+			}
+		}
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setContent(jsonRequestContent.getBytes("UTF-8"));
 		log.info("About to send: "
