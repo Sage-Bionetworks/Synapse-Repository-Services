@@ -36,9 +36,10 @@ public class GEPWorkflowInitiator {
 		String script = ConfigHelper.getGEPipelineCrawlerScript();
 		if (script==null || script.length()==0) throw new RuntimeException("Missing crawler script parameter.");
 		ScriptResult results = ScriptProcessor.doProcess(script, scriptParams);
-		Map<String,String> idToDateMap = results.getStringMapResult(ScriptResult.OUTPUT_JSON_KEY);
-		log.info("datasetIds to last-update-date map: "+idToDateMap);
-		for (String datasetId:idToDateMap.keySet()) GEPWorkflow.doWorkflow(datasetId, idToDateMap.get(datasetId));
+		// the script returns a map whose keys are GSEIDs to run and values are the input data for each activity instance
+		Map<String,String> idToActivityInputMap = results.getStringMapResult(ScriptResult.OUTPUT_JSON_KEY);
+		log.info("datasetIds to input map: "+idToActivityInputMap);
+		for (String datasetId:idToActivityInputMap.keySet()) GEPWorkflow.doWorkflow(datasetId, idToActivityInputMap.get(datasetId));
 
 	}
 

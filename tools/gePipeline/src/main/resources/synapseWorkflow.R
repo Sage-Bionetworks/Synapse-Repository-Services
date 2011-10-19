@@ -9,7 +9,7 @@ setClass(
 				kAuthEndpointKey = 'character',
 				kRepoEndpointKey = 'character',
 				kInputDatasetIdKey = 'character',
-				kLastUpdateDateKey = 'character',
+				kInputDataKey = 'character',
 				kOutputKey = 'character',
 				kWorkflowDone = 'character',
 				kOutputStartDelimiterPattern = 'character',
@@ -25,7 +25,7 @@ setClass(
 				kAuthEndpointKey = '--authEndpoint',
 				kRepoEndpointKey = '--repoEndpoint',
 				kInputDatasetIdKey = '--datasetId',
-				kLastUpdateDateKey = "--lastUpdateDate",
+				kInputDataKey = "--inputData",
 				kOutputKey = 'output',
 				kWorkflowDone = 'workflowDone',
 				kOutputStartDelimiterPattern = 'SynapseWorkflowResult_START',
@@ -65,9 +65,9 @@ getInputDatasetIdArg <- function() {
 	getArgVal(argName=constants@kInputDatasetIdKey) 
 }
 
-getLastUpdateDateArg <- function() {
+getInputDataArg <- function() {
 	constants <- new('SynapseWorkflowConstants')
-	getArgVal(argName=constants@kLastUpdateDateKey) 
+	getArgVal(argName=constants@kInputDataKey) 
 }
 
 getInputLayerIdArg <- function() {
