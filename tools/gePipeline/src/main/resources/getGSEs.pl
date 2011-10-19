@@ -13,7 +13,7 @@ system("rm all.GSEs.txt");
 
 open O, ">>all.GSEs.txt";
 print O
-"GSE.ID\tGPL\tLast Update Date\tSpecies\tSupplementary_File\tSummary\tN_Samples\n";
+"GSE.ID\tGPL\tLast Update Date\tSpecies\tSummary\tSupplementary_File\tN_Samples\n";
 close O;
 
 foreach my $p ( keys %platforms ) {
