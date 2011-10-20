@@ -5,6 +5,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +18,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
@@ -20,9 +26,11 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -420,4 +428,152 @@ public class NodeManagerImplAutoWiredTest {
 		assertEquals("Deleting a version failed to increment the eTag",eTagAfterDelete, afterDelete.getETag());
 	}
 
+	/**
+	 * Checks that parentId updates are correctly handled in NodeManagerImpl's update method.
+	 * @throws Exception
+	 */
+	@Test
+	public void testParentIdUpdate() throws Exception {
+		//make a root node
+		Node node = new Node();
+		node.setName("root");
+		node.setNodeType(ObjectType.project.name());
+		String rootId = nodeManager.createNewNode(node, testUser);
+		assertNotNull(rootId);
+		nodesToDelete.add(rootId);
+		
+		//make a child node
+		node = new Node();
+		node.setName("child");
+		node.setNodeType(ObjectType.dataset.name());
+		node.setParentId(rootId);
+		String childId = nodeManager.createNewNode(node, testUser);
+		assertNotNull(childId);
+		nodesToDelete.add(childId);
+		
+		//make a newProject node
+		node = new Node();
+		node.setName("newProject");
+		node.setNodeType(ObjectType.project.name());
+		String newProjectId = nodeManager.createNewNode(node, testUser);
+		assertNotNull(newProjectId);
+		nodesToDelete.add(newProjectId);
+		
+		//get the child node and verify the state of it's parentId
+		Node fetchedChild = nodeManager.get(testUser, childId);
+		assertNotNull(fetchedChild);
+		assertEquals(childId, fetchedChild.getId());
+		assertEquals(rootId, fetchedChild.getParentId());
+		
+		//set child's parentId to the newProject
+		fetchedChild.setParentId(newProjectId);
+		Node updatedChild = nodeManager.update(testUser, fetchedChild);
+		assertNotNull(updatedChild);
+		assertEquals(childId, updatedChild.getId());
+		assertEquals(newProjectId, updatedChild.getParentId());
+		
+		//check and make sure update is in database
+		Node childFromDB = nodeManager.get(testUser, childId);
+		assertNotNull(childFromDB);
+		assertEquals(childId, childFromDB.getId());
+		assertEquals(newProjectId, childFromDB.getParentId());
+	}
+	
+	/**
+	 * Verify that correct flow of control happens when update happens for 
+	 * parentId change
+	 * @throws Exception
+	 */
+	@Test
+	public void testParentIdUpdateFlowOfControl() throws Exception {
+		//make a root node
+		Node node = new Node();
+		node.setName("root");
+		node.setNodeType(ObjectType.project.name());
+		String rootId = nodeManager.createNewNode(node, testUser);
+		assertNotNull(rootId);
+		nodesToDelete.add(rootId);
+		
+		//make a child node
+		node = new Node();
+		node.setName("child");
+		node.setNodeType(ObjectType.dataset.name());
+		node.setParentId(rootId);
+		String childId = nodeManager.createNewNode(node, testUser);
+		assertNotNull(childId);
+		nodesToDelete.add(childId);
+		
+		//make a newProject node
+		node = new Node();
+		node.setName("newProject");
+		node.setNodeType(ObjectType.project.name());
+		String newProjectId = nodeManager.createNewNode(node, testUser);
+		assertNotNull(newProjectId);
+		nodesToDelete.add(newProjectId);
+		
+		//get the child node and verify the state of it's parentId
+		Node fetchedChild = nodeManager.get(testUser, childId);
+		assertNotNull(fetchedChild);
+		assertEquals(childId, fetchedChild.getId());
+		assertEquals(rootId, fetchedChild.getParentId());
+		
+		//root and child nodes are in correct state
+		
+		//I need a NodeManagerImpl with the mocked dependencies so behavior
+		//can be verified
+		NodeDAO mockNodeDao = Mockito.mock(NodeDAO.class);
+		FieldTypeDAO mockFieldTypeDao = Mockito.mock(FieldTypeDAO.class);
+		NodeInheritanceManager mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
+		
+		NodeManager nodeManagerWMocks = new NodeManagerImpl(mockNodeDao, authorizationManager, 
+				mockFieldTypeDao, aclDAO, entityBootstrapper, mockNodeInheritanceManager);		
+		
+		//set child's parentId to the newProject
+		fetchedChild.setParentId(newProjectId);
+		nodeManagerWMocks.update(testUser, fetchedChild);
+		verify(mockNodeDao, times(1)).changeNodeParent(childId, newProjectId);
+		verify(mockNodeInheritanceManager, times(1)).nodeParentChanged(childId, newProjectId);
+	}
+	
+	/**
+	 * Verify that correct flow of control happens when update happens  
+	 * that is not a parentId change
+	 * @throws Exception
+	 */
+	@Test
+	public void testNonParentIdUpdateFlowOfControl() throws Exception {
+		//make a root node
+		Node node = new Node();
+		node.setName("root");
+		node.setNodeType(ObjectType.project.name());
+		String rootId = nodeManager.createNewNode(node, testUser);
+		assertNotNull(rootId);
+		nodesToDelete.add(rootId);
+		
+		//make a child node
+		node = new Node();
+		node.setName("child");
+		node.setNodeType(ObjectType.dataset.name());
+		node.setParentId(rootId);
+		String childId = nodeManager.createNewNode(node, testUser);
+		assertNotNull(childId);
+		nodesToDelete.add(childId);
+		
+		//I need a NodeManagerImpl with the mocked dependencies so behavior
+		//can be verified
+		NodeDAO mockNodeDao = Mockito.mock(NodeDAO.class);
+		FieldTypeDAO mockFieldTypeDao = Mockito.mock(FieldTypeDAO.class);
+		NodeInheritanceManager mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
+		
+		NodeManager nodeManagerWMocks = new NodeManagerImpl(mockNodeDao, authorizationManager, 
+				mockFieldTypeDao, aclDAO, entityBootstrapper, mockNodeInheritanceManager);	
+		
+		//make a non parentId change to the child
+		Node fetchedNode = nodeManager.get(testUser, childId);
+		fetchedNode.setName("notTheChildName");
+		when(mockNodeDao.getParentId(anyString())).thenReturn(fetchedNode.getParentId());
+		nodeManagerWMocks.update(testUser, fetchedNode);
+		verify(mockNodeDao, never()).changeNodeParent(anyString(), anyString());
+		verify(mockNodeInheritanceManager, never()).nodeParentChanged(anyString(), anyString());
+	}
 }

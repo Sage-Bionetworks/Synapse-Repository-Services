@@ -217,5 +217,26 @@ public interface NodeDAO {
 	 */
 	public boolean isStringAnnotationQueryable(String nodeId, String annotationKey);
 	
-
+	/**
+	 * Returns string of parentId for a Node
+	 * @param nodeId
+	 *@return String node's parentId
+	 * @throws NotFoundException 
+	 * @throws NumberFormatException 
+	 * @throws DatastoreException 
+	 */
+	public String getParentId(String nodeId) throws NumberFormatException, NotFoundException, DatastoreException;
+	
+	/**
+	 * Handles change to a parentId for a node and saves reference to new parent in 
+	 * database.
+	 * @param nodeId
+	 * @param newParentId
+	 * @return returns true if the parent was actually changed, false if not.  So, if parent was
+	 * already set to the parameter newParentId then it will return false.
+	 * @throws NotFoundException 
+	 * @throws NumberFormatException 
+	 * @throws DatastoreException 
+	 */
+	public boolean changeNodeParent(String nodeId, String newParentId) throws NumberFormatException, NotFoundException, DatastoreException;
 }

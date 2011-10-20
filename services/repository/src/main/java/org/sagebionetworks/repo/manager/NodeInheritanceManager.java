@@ -14,11 +14,14 @@ public interface NodeInheritanceManager {
 	public String getBenefactor(String nodeId) throws NotFoundException;
 
 	/**
-	 * This method should be called when a node's parent changes.
-	 * 
-	 * @param nodeId
+	 * Puts a Node's children into correct state for permissions/benefactorId
+	 * when  node's parentId has changed.  This method works whether or not the
+	 * parentId change has already been made.
+	 * @param nodeId representing the node whose parentId has changed
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
-	public void nodeParentChanged(String nodeId);
+	public void nodeParentChanged(String nodeId, String parentNodeId) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * This method is called when an Access Control List (ACL) is added to a node. When 
@@ -39,5 +42,13 @@ public interface NodeInheritanceManager {
 	 * @throws DatastoreException 
 	 */
 	public void setNodeToInheritFromNearestParent(String nodeId) throws NotFoundException, DatastoreException;
+
+	/**
+	 * This method is called to set a nodes benefactor.
+	 * @param beneficiaryId
+	 * @param toBenefactorId
+	 * @throws NotFoundException 
+	 */
+	void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException;
 	
 }

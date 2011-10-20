@@ -976,6 +976,139 @@ public class NodeDAOImplTest {
 		assertEquals(0, storedNode.getReferences().size());
 	}
 	
+	/**
+	 * Tests that getParentId method returns the Id of a node's parent.
+	 * @throws Exception
+	 */
+	@Test
+	public void testGetParentId() throws Exception {
+		//make parent project
+		Node node = NodeTestUtils.createNew("parent");
+		node.setNodeType(ObjectType.project.name());
+		String parentId = nodeDao.createNew(node);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+		
+		//add a child to the parent	
+		node = NodeTestUtils.createNew("child1");
+		node.setNodeType(ObjectType.dataset.name());
+		node.setParentId(parentId);
+		String child1Id = nodeDao.createNew(node);
+		toDelete.add(child1Id);
+		
+		// Now get child's parentId
+		String answerParentId =  nodeDao.getParentId(child1Id);
+		assertEquals(parentId, answerParentId);
+	}
+	
+	/**
+	 * Tests that changeNodeParent correctly sets a node's parent to reference
+	 * the parentNode sent as a parameter.
+	 * @throws Exception
+	 */
+	@Test
+	public void testChangeNodeParent() throws Exception {
+		//make a parent project
+		Node node = NodeTestUtils.createNew("parentProject");
+		node.setNodeType(ObjectType.project.name());
+		String parentProjectId = nodeDao.createNew(node);
+		toDelete.add(parentProjectId);
+		assertNotNull(parentProjectId);
+		
+		//add a child to the parent
+		node = NodeTestUtils.createNew("child");
+		node.setNodeType(ObjectType.dataset.name());
+		node.setParentId(parentProjectId);
+		String childId = nodeDao.createNew(node);
+		toDelete.add(childId);
+		assertNotNull(childId);
+		
+		//make a second project
+		node = NodeTestUtils.createNew("newParent");
+		node.setNodeType(ObjectType.project.name());
+		String newParentId = nodeDao.createNew(node);
+		toDelete.add(newParentId);
+		assertNotNull(newParentId);
+		
+		//check state of child node before the change
+		Node oldNode = nodeDao.getNode(childId);
+		assertNotNull(oldNode);
+		assertEquals(parentProjectId, oldNode.getParentId());
+		
+		//change child's parent to newProject
+		boolean changeReturn = nodeDao.changeNodeParent(childId, newParentId);
+		assertTrue(changeReturn);
+		
+		Node changedNode = nodeDao.getNode(childId);
+		assertNotNull(changedNode);
+		assertEquals(newParentId, changedNode.getParentId());		
+	}
+	
+	/**
+	 * Tests that changeNodeParent correctly throws a IllegalArgumentException
+	 * when the JDONode's parentId is null
+	 * @throws Exception
+	 */
+	@Test(expected = IllegalArgumentException.class)
+	public void testChangeNodeParentWhenParentIsNull() throws Exception {
+		//make a project
+		Node node = NodeTestUtils.createNew("root");
+		node.setNodeType(ObjectType.project.name());
+		String rootId = nodeDao.createNew(node);
+		toDelete.add(rootId);
+		assertNotNull(rootId);
+		
+		//make a second project
+		node = NodeTestUtils.createNew("newParent");
+		node.setNodeType(ObjectType.project.name());
+		String newParentId = nodeDao.createNew(node);
+		toDelete.add(newParentId);
+		assertNotNull(newParentId);
+		
+		Node parent = nodeDao.getNode(rootId);
+		assertNull(parent.getParentId());
+		nodeDao.changeNodeParent(rootId, newParentId);
+	}
+	
+	/**
+	 * Tests that changeNodeParent does nothing if the new parent parameter
+	 * is the parent the current node already references
+	 * @throws Exception
+	 */
+	@Test
+	public void testChangeNodeParentWhenParamParentIsCurrentParent() throws Exception {
+		//make a parent project
+		Node node = NodeTestUtils.createNew("parentProject");
+		node.setNodeType(ObjectType.project.name());
+		String parentProjectId = nodeDao.createNew(node);
+		toDelete.add(parentProjectId);
+		assertNotNull(parentProjectId);
+		
+		//add a child to the parent
+		node = NodeTestUtils.createNew("child");
+		node.setNodeType(ObjectType.dataset.name());
+		node.setParentId(parentProjectId);
+		String childId = nodeDao.createNew(node);
+		toDelete.add(childId);
+		assertNotNull(childId);
+		
+		//check current state of node
+		Node oldNode = nodeDao.getNode(childId);
+		assertNotNull(oldNode);
+		assertEquals(childId, oldNode.getId());
+		assertEquals(parentProjectId, oldNode.getParentId());
+		
+		//make the parentChange update
+		boolean updateReturn = nodeDao.changeNodeParent(childId, parentProjectId);
+		assertFalse(updateReturn);
+		
+		//check new state of node
+		Node newNode = nodeDao.getNode(childId);
+		assertNotNull(newNode);
+		assertEquals(childId, newNode.getId());
+		assertEquals(parentProjectId, newNode.getParentId());
+	}
+
 	@Test
 	public void testReferencesDeleteCurrentVersion() throws NotFoundException, DatastoreException{
 		Reference inEven = null, inOdd = null;
@@ -1043,6 +1176,4 @@ public class NodeDAOImplTest {
 		assertTrue(node.getReferences().get("odd").contains(inOdd));
 		assertNull(node.getReferences().get("even2"));
 	}
-
-	
 }

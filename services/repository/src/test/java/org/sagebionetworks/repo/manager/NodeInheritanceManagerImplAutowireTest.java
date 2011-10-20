@@ -244,7 +244,6 @@ public class NodeInheritanceManagerImplAutowireTest {
 	 * is correct after changing the dataset to receive it's parentID from a new ProjectThree
 	 * @throws Exception
 	 */
-	@Ignore
 	@Test
 	public void testDatasetParentIDChangeWhenAllInheritFromRoot() throws Exception {
 		//projectOne should inherit from itself
@@ -366,7 +365,6 @@ public class NodeInheritanceManagerImplAutowireTest {
 	 * @throws Exception
 	 */
 	@Test
-	@Ignore
 	public void testDatasetParentIDChangeWhenSomeInheritFromRoot() throws Exception {
 		//projectOne should inherit from itself
 		String benefactorId = nodeInheritanceDao.getBenefactor(projectOneId);
@@ -488,7 +486,6 @@ public class NodeInheritanceManagerImplAutowireTest {
 	 * changing the dataset to receive it's parentID from a new ProjectThree
 	 * @throws Exception
 	 */
-	@Ignore
 	@Test
 	public void testDatasetParentIDChangeWhenDatasetHasTreeBelowIt() throws Exception {
 		//projectOne should inherit from itself
@@ -629,7 +626,6 @@ public class NodeInheritanceManagerImplAutowireTest {
 	 * in the correct state.
 	 * @throws Exception
 	 */
-	@Ignore
 	@Test
 	public void testDatasetParentIDChangeWhenDatasetInheritsFromItself() throws Exception {
 		//projectOne should inherit from itself
@@ -705,7 +701,6 @@ public class NodeInheritanceManagerImplAutowireTest {
 	 * after the parentId change update.
 	 * @throws Exception
 	 */
-	@Ignore
 	@Test
 	public void testFolderParentIDChangeWhenFolderHasTwoLevelsBelowIt() throws Exception {
 		//now need to build up heirarchy for the test

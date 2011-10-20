@@ -29,8 +29,20 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void nodeParentChanged(String nodeId) {
-		throw new IllegalArgumentException("This method is not yet supported");
+	public void nodeParentChanged(String nodeId, String parentNodeId) throws NotFoundException, DatastoreException {
+		//first determine who this node is inheriting from
+		String oldBenefactorId = nodeInheritanceDao.getBenefactor(nodeId);		
+		//if node inherits from itself everything is in order
+		if (oldBenefactorId.equals(nodeId)){
+			return;
+		}		
+		//here node needs to be set to nearest benefactor and children
+		//need to be adjusted accordingly.  Nearest benefactor will be 
+		//set to what the parent node has as benefactor
+		String changeToId = nodeInheritanceDao.getBenefactor(parentNodeId);
+
+		//change our node and all appropriate children
+		changeAllChildrenTo(oldBenefactorId, nodeId, changeToId);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -120,6 +132,16 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 	@Override
 	public String getBenefactor(String nodeId) throws NotFoundException {
 		return nodeInheritanceDao.getBenefactor(nodeId);
+	}
+	
+	/**
+	 * Add a beneficiary to a node
+	 * @throws NotFoundException 
+	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException {
+		nodeInheritanceDao.addBeneficiary(beneficiaryId, toBenefactorId);
 	}
 
 }
