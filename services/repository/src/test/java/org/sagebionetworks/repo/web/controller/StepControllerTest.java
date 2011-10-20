@@ -1,31 +1,31 @@
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.EnvironmentDescriptor;
+import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.Step;
+import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
- * Unit tests for the Location CRUD operations on Step entities exposed by the
- * GenericController with JSON request and response encoding.
- * <p>
- * 
- * Note that test logic and assertions common to operations for all DAO-backed
- * entities can be found in the Helpers class. What follows are test cases that
- * make use of that generic test logic with some assertions specific to steps.
+ * Deep unit tests for Step entities.  jhill might call these integration tests because they interact with the persistence layer :-)
  * 
  * @author deflaux
  */
@@ -34,37 +34,37 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class StepControllerTest {
 
 	@Autowired
-	private Helpers helper;
-	private JSONObject project;
-	private JSONObject dataset;
-	private JSONObject layer;
+	ServletTestHelper testHelper;
+	
+	private Project project;
+	private Dataset dataset;
+	private Layer layer;
 
 	/**
-	 * @throws java.lang.Exception
+	 * @throws Exception
 	 */
 	@Before
-	public void setUp() throws Exception {
-		helper.setUp();
-		helper.useTestUser();
+	public void before() throws Exception {
+		testHelper.setUp();
+		project = new Project();
+		project = testHelper.createEntity(project, null);
 
-		project = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/project", DatasetControllerTest.SAMPLE_PROJECT);
+		dataset = new Dataset();
+		dataset.setParentId(project.getId());
+		dataset = testHelper.createEntity(dataset, null);
 
-		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/dataset", DatasetControllerTest.getSampleDataset(project
-				.getString("id")));
-
-		layer = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/layer", LayerControllerTest.getSampleLayer(dataset
-				.getString("id")));
+		layer = new Layer();
+		layer.setParentId(dataset.getId());
+		layer.setType(LayerTypeNames.E.name());
+		layer = testHelper.createEntity(layer, null);
 	}
 
 	/**
-	 * @throws java.lang.Exception
+	 * @throws Exception
 	 */
 	@After
-	public void tearDown() throws Exception {
-		helper.tearDown();
+	public void after() throws Exception {
+		testHelper.tearDown();
 	}
 
 	/**
@@ -72,33 +72,46 @@ public class StepControllerTest {
 	 */
 	@Test
 	public void testCreateStep() throws Exception {
-		JSONObject step = helper
-				.testCreateJsonEntity(
-						helper.getServletPrefix() + "/step",
-						"{\"input\":[{\"targetId\":\""
-								+ layer.getString("id")
-								+ "\"}], \"environmentDescriptors\":["
-								+ "{\"type\":\"OS\",\"name\":\"x86_64-apple-darwin9.8.0/x86_64\",\"quantifier\":\"64-bit\"},"
-								+ "{\"type\":\"application\",\"name\":\"R\",\"quantifier\":\"2.13.0\"},"
-								+ "{\"type\":\"rPackage\",\"name\":\"synapseClient\",\"quantifier\":\"0.8-0\"},"
-								+ "{\"type\":\"rPackage\",\"name\":\"Biobase\",\"quantifier\":\"2.12.2\"}"
-								+ "]}");
-		assertExpectedStepProperties(step);
-		assertEquals(layer.getString("id"), step.getJSONArray("input")
-				.getJSONObject(0).getString("targetId"));
-		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, (Long) step
-				.getJSONArray("input").getJSONObject(0).getLong(
-						"targetVersionNumber"));
+		Step step = new Step();
 
-		JSONObject storedStep = helper.testGetJsonEntity(step.getString("uri"));
-		assertExpectedStepProperties(storedStep);
-		assertEquals(layer.getString("id"), storedStep.getJSONArray("input")
-				.getJSONObject(0).getString("targetId"));
-		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, (Long) storedStep
-				.getJSONArray("input").getJSONObject(0).getLong(
-						"targetVersionNumber"));
-		assertEquals(4, storedStep.getJSONArray("environmentDescriptors")
-				.length());
+		Set<Reference> refs = new HashSet<Reference>();
+		Reference ref = new Reference();
+		ref.setTargetId(layer.getId());
+		refs.add(ref);
+		step.setInput(refs);
+
+		Set<EnvironmentDescriptor> descriptors = new HashSet<EnvironmentDescriptor>();
+
+		EnvironmentDescriptor descriptor = new EnvironmentDescriptor();
+		descriptor.setType("OS");
+		descriptor.setName("x86_64-apple-darwin9.8.0/x86_64");
+		descriptor.setQuantifier("64-bit");
+		descriptors.add(descriptor);
+		
+		descriptor = new EnvironmentDescriptor();
+		descriptor.setType("application");
+		descriptor.setName("R");
+		descriptor.setQuantifier("2.13.0");
+		descriptors.add(descriptor);
+
+		descriptor = new EnvironmentDescriptor();
+		descriptor.setType("rPackage");
+		descriptor.setName("synapseClient");
+		descriptor.setQuantifier("0.8-0");
+		descriptors.add(descriptor);
+
+		descriptor = new EnvironmentDescriptor();
+		descriptor.setType("rPackage");
+		descriptor.setName("Biobase");
+		descriptor.setQuantifier("2.12.2");
+		descriptors.add(descriptor);
+
+		step.setEnvironmentDescriptors(descriptors);
+		
+		step = testHelper.createEntity(step, null);
+		assertEquals(layer.getId(), step.getInput().iterator().next().getTargetId());
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, step.getInput().iterator().next().getTargetVersionNumber());
+		assertEquals(4, step.getEnvironmentDescriptors().size());
 	}
 
 	/**
@@ -106,65 +119,32 @@ public class StepControllerTest {
 	 */
 	@Test
 	public void testProvenanceSideEffects() throws Exception {
-		JSONObject step = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/step", "{}");
-		assertExpectedStepProperties(step);
 
+		Step step = new Step();
+		step = testHelper.createEntity(step, null);
+		
 		// Our extra parameter used to indicate the provenance record to update
 		Map<String, String> extraParams = new HashMap<String, String>();
-		extraParams.put(ServiceConstants.STEP_TO_UPDATE_PARAM, step
-				.getString("id"));
+		extraParams.put(ServiceConstants.STEP_TO_UPDATE_PARAM, step.getId());
 
 		// Get a layer, side effect should add it to input references
-		helper.testGetJsonEntity(layer.getString("uri"), extraParams);
+		testHelper.getEntity(Layer.class, layer.getId(), extraParams);
 
 		// Create a new layer, side effect should be to add it to output
 		// references
-		JSONObject outputLayer = helper.testCreateJsonEntity(helper
-				.getServletPrefix()
-				+ "/layer", "{\"parentId\":\"" + dataset.getString("id")
-				+ "\", \"type\":\"M\"}", extraParams);
+		Layer outputLayer = new Layer();
+		outputLayer.setParentId(dataset.getId());
+		outputLayer.setType(LayerTypeNames.M.name());
+		outputLayer = testHelper.createEntity(outputLayer, extraParams);
 
 		// TODO update a layer, version a layer, etc ...
 
 		// Make sure those layers are not referred to by our step
-		JSONObject storedStep = helper.testGetJsonEntity(step.getString("uri"));
-		assertExpectedStepProperties(storedStep);
-		assertEquals(layer.getString("id"), storedStep.getJSONArray("input")
-				.getJSONObject(0).getString("targetId"));
-		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, (Long) storedStep
-				.getJSONArray("input").getJSONObject(0).getLong(
-						"targetVersionNumber"));
-		assertEquals(outputLayer.getString("id"), storedStep.getJSONArray(
-				"output").getJSONObject(0).getString("targetId"));
-		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, (Long) storedStep
-				.getJSONArray("input").getJSONObject(0).getLong(
-						"targetVersionNumber"));
-
-	}
-
-	/*****************************************************************************************************
-	 * Step-specific helpers
-	 */
-
-	/**
-	 * @param step
-	 * @throws Exception
-	 */
-	public void assertExpectedStepProperties(JSONObject step) throws Exception {
-		// Check required properties
-		assertTrue(step.has("creationDate"));
-		assertFalse("null".equals(step.getString("creationDate")));
-		assertTrue(step.has("createdBy"));
-		assertEquals(helper.getUserId(), step.getString("createdBy"));
-		assertTrue(step.has("startDate"));
-		assertFalse("null".equals(step.getString("startDate")));
-		assertTrue(step.has("endDate"));
-		assertTrue(step.has("description"));
-		assertTrue(step.has("commandLine"));
-		assertTrue(step.has("code"));
-		assertTrue(step.has("input"));
-		assertTrue(step.has("output"));
-		assertTrue(step.has("environmentDescriptors"));
+		step = testHelper.getEntity(Step.class, step.getId(), null);
+		
+		assertEquals(layer.getId(), step.getInput().iterator().next().getTargetId());
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, step.getInput().iterator().next().getTargetVersionNumber());
+		assertEquals(outputLayer.getId(), step.getOutput().iterator().next().getTargetId());
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, step.getOutput().iterator().next().getTargetVersionNumber());
 	}
 }
