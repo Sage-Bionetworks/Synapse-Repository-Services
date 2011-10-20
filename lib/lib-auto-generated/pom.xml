@@ -25,7 +25,7 @@
 							<goal>generate</goal>
 						</goals>
 						<configuration>
-							<sourceDirectory>src/main/resources</sourceDirectory>
+							<sourceDirectory>src/main/resources/schema</sourceDirectory>
 							<packageName>org.sagebionetworks</packageName>
 							<outputDirectory>target/auto-generated-pojos</outputDirectory>
 						</configuration>
@@ -48,8 +48,19 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>schema-to-pojo-org-json</artifactId>
 			<version>${schema-to-pojo.version}</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-models</artifactId>
+			<version>${applicationVersion}</version>
 			<scope>test</scope>
-			<type>jar</type>
+		</dependency>
+		
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 </project>
