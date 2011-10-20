@@ -11,6 +11,4 @@
 
 	<import resource="classpath:managers-spb.xml" />
 
-
-
 </beans>

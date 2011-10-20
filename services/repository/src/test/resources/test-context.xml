@@ -11,14 +11,16 @@
   <context:annotation-config />
 
   <import resource="classpath:repository-servlet.xml" />
-
- 
             
   <bean id="helper"
         class="org.sagebionetworks.repo.web.controller.Helpers"
         scope="prototype"/>
                 
-	<bean id="userDAO" class="org.sagebionetworks.repo.manager.TestUserDAO" scope="singleton"/>
+  <bean id="testHelper"
+        class="org.sagebionetworks.repo.web.controller.ServletTestHelper"
+        scope="prototype"/>
+        
+    <bean id="userDAO" class="org.sagebionetworks.repo.manager.TestUserDAO" scope="singleton"/>
 
 	<bean id="amazonClientFactory" class="org.sagebionetworks.repo.util.MockAmazonClientFactory"  scope="singleton"/>
         
