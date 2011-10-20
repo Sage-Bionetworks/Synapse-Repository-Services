@@ -1,0 +1,15 @@
+{
+    "description":"Metadata about entities",
+    "id":"EntityRegistry.json",
+    "properties":{
+        "entityTypes":{
+            "type":"array",
+            "description":"The full path of the entity schema.",
+            "uniqueItems":false,
+            "items":{
+                "type":"object",
+    			"$ref":"EntityTypeMetadata.json",
+            }
+        }
+    }
+}
