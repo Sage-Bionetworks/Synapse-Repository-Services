@@ -58,7 +58,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	private EntityBootstrapper entityBootstrapper;
 	
 	@Autowired
-	private NodeInheritanceDAO inheritanceDAO;
+	private NodeInheritanceManager nodeInheritanceManager;
 	
 	// for testing (in prod it's autowired)
 	public void setAuthorizationManager(AuthorizationManager authorizationManager) {
@@ -70,13 +70,13 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 * @param nodeDao
 	 * @param authDoa
 	 */
-	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, FieldTypeDAO fieldTypeday, AccessControlListDAO aclDao, EntityBootstrapper entityBootstrapper, NodeInheritanceDAO inheritanceDAO){
+	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, FieldTypeDAO fieldTypeday, AccessControlListDAO aclDao, EntityBootstrapper entityBootstrapper, NodeInheritanceManager nodeInheritanceManager){
 		this.nodeDao = nodeDao;
 		this.authorizationManager = authDoa;
 		this.fieldTypeDao = fieldTypeday;
 		this.aclDAO = aclDao;
 		this.entityBootstrapper = entityBootstrapper;
-		this.inheritanceDAO = inheritanceDAO;
+		this.nodeInheritanceManager = nodeInheritanceManager;
 	}
 	
 	/**
@@ -131,13 +131,13 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// Setup the ACL for this node.
 		if(ACL_SCHEME.INHERIT_FROM_PARENT == aclSchem){
 			// This node inherits from its parent.
-			String parentBenefactor = inheritanceDAO.getBenefactor(newNode.getParentId());
-			inheritanceDAO.addBeneficiary(id, parentBenefactor);
+			String parentBenefactor = nodeInheritanceManager.getBenefactor(newNode.getParentId());
+			nodeInheritanceManager.addBeneficiary(id, parentBenefactor);
 		}else if(ACL_SCHEME.GRANT_CREATOR_ALL == aclSchem){
 			AccessControlList rootAcl = AccessControlList.createACLToGrantAll(id, userInfo);
 			aclDAO.create(rootAcl);
 			// This node is its own benefactor
-			inheritanceDAO.addBeneficiary(id, id);
+			nodeInheritanceManager.addBeneficiary(id, id);
 		}else{
 			throw new IllegalArgumentException("Unknown ACL_SHEME: "+aclSchem);
 		}
@@ -296,6 +296,15 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			nodeDao.createNewVersion(updatedNode);
 		}
 		
+		//identify if update is a parentId change by comparing our
+		//updatedNode's parentId with the parentId our node is showing in database
+		//change in database, and update benefactorID/permissions
+		String parentInDatabase = nodeDao.getParentId(updatedNode.getId());
+		if (updatedNode.getParentId() != parentInDatabase){
+			nodeDao.changeNodeParent(updatedNode.getId(), updatedNode.getParentId());
+			nodeInheritanceManager.nodeParentChanged(updatedNode.getId(), updatedNode.getParentId());
+		}
+	
 		// Now make the actual update.
 		nodeDao.updateNode(updatedNode);
 		// Also update the Annotations if provided

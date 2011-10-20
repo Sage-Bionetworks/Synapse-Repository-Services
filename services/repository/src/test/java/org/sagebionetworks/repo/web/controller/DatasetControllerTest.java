@@ -191,7 +191,6 @@ public class DatasetControllerTest {
 	 * 
 	 * @throws Exception
 	 */
-	@Ignore
 	@Test
 	public void testChangeDatasetParentID() throws Exception {
 		// Load up a few datasets
@@ -226,15 +225,15 @@ public class DatasetControllerTest {
 		assertExpectedDatasetProperties(updatedDataset);
 		
 		//check that parentID value sent over was not null
-		//assertTrue(updatedDataset.get("parentId") != null);
+		assertTrue(updatedDataset.get("parentId") != null);
 		
 		//check that update response reflects the change
-		//assertEquals(newProject.get("id"), updatedDataset.get("parentId"));
+		assertEquals(newProject.get("id"), updatedDataset.get("parentId"));
 		
 		//now make sure change is reflected back in stored object
-		//JSONObject storedDataset = helper.testGetJsonEntity(newDataset
-				//.getString("uri"));
-		//assertEquals(newProject.get("id"), storedDataset.get("parentId"));		
+		JSONObject storedDataset = helper.testGetJsonEntity(newDataset
+				.getString("uri"));
+		assertEquals(newProject.get("id"), storedDataset.get("parentId"));		
 	}
 	
 	/**

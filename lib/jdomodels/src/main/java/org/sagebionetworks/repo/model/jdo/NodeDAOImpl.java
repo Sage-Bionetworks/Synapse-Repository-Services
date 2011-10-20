@@ -923,4 +923,33 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		jdoTemplate.makePersistent(jdoReference);
 		return jdoReference;
 	}
+	
+	@Transactional(readOnly = true)
+	@Override
+	public String getParentId(String nodeId) throws NumberFormatException, NotFoundException, DatastoreException{
+		ParentTypeName nodeParent = getParentTypeName(Long.parseLong(nodeId));
+		Long pId = nodeParent.getParentId();
+		String toReturn = KeyFactory.keyToString(pId);
+		return toReturn;
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public boolean changeNodeParent(String nodeId, String newParentId) throws NumberFormatException, NotFoundException, DatastoreException{
+		JDONode node = getNodeById(Long.parseLong(nodeId));
+		//if node's parentId is null it is a root and can't have
+		//it's parentId altered
+		if (node.getParent() == null){
+			throw new IllegalArgumentException("Can't change a root project's parentId");
+		}
+		//does this update need to happen
+		if (newParentId.equals(getParentId(nodeId))){
+			return false;
+		}
+		//get reference to new parent's JDONode, will throw exception if node isn't found
+		JDONode newParentNode = getNodeById(Long.parseLong(newParentId));
+		//make the update 
+		node.setParent(newParentNode);
+		return true;
+	}
 }

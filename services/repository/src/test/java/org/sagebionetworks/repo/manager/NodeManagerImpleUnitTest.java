@@ -5,15 +5,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Date;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -22,22 +18,18 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
-import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * This is the unit test version of this class.
@@ -53,7 +45,7 @@ public class NodeManagerImpleUnitTest {
 	private AccessControlListDAO mockAclDao = null;
 	private FieldTypeDAO mockFieldTypeDao = null;
 	private EntityBootstrapper mockEntityBootstrapper;
-	private NodeInheritanceDAO mockInheritanceDAO;
+	private NodeInheritanceManager mockNodeInheritanceManager = null;
 		
 	private final UserInfo mockUserInfo = new UserInfo(false);
 	private final UserInfo anonUserInfo = new UserInfo(false);
@@ -67,9 +59,9 @@ public class NodeManagerImpleUnitTest {
 		mockFieldTypeDao = Mockito.mock(FieldTypeDAO.class);
 		mockAclDao = Mockito.mock(AccessControlListDAO.class);
 		mockEntityBootstrapper = Mockito.mock(EntityBootstrapper.class);
-		mockInheritanceDAO = Mockito.mock(NodeInheritanceDAO.class);
+		mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
 		// Create the manager dao with mocked dependent daos.
-		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockFieldTypeDao, mockAclDao, mockEntityBootstrapper, mockInheritanceDAO );
+		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockFieldTypeDao, mockAclDao, mockEntityBootstrapper, mockNodeInheritanceManager );
 
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId("2");
@@ -201,5 +193,6 @@ public class NodeManagerImpleUnitTest {
 		Annotations copy = namedCopy.getAdditionalAnnotations();
 		assertEquals(copy, annos);
 	}
-
+	
+	
 }
