@@ -81,7 +81,7 @@
         {
             "validParentTypes":[
                 "/folder",
-                "/project",
+                "/analysis",
                 "DEFAULT"
             ],
             "urlPrefix":"/step",

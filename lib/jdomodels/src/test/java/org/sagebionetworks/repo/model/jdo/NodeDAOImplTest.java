@@ -851,7 +851,8 @@ public class NodeDAOImplTest {
 
 	@Test
 	public void testAddReferencesNoVersionSpecified() throws Exception {
-		
+		String deleteMeNode = null;
+
 		// Create a few nodes we will refer to, use the current version held in the repo svc
 		Set<Reference> referees = new HashSet<Reference>();
 		for(int i=0; i<10; i++){
@@ -861,6 +862,7 @@ public class NodeDAOImplTest {
 			Reference ref = new Reference();
 			ref.setTargetId(id);
 			referees.add(ref);
+			deleteMeNode = id;
 		}
 
 		// Create our reference map
@@ -882,6 +884,39 @@ public class NodeDAOImplTest {
 		assertEquals(10, storedNode.getReferences().get("referees").size());
 		Object[] storedRefs = storedNode.getReferences().get("referees").toArray();
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, ((Reference)storedRefs[0]).getTargetVersionNumber());
+		
+		// Now delete one of those nodes, such that one of our references has become 
+		// invalid after we've created it.  This is okay and does not cause an error 
+		// because we are not enforcing referential integrity.
+		nodeDao.delete(deleteMeNode);
+	}
+	
+	@Test(expected=NotFoundException.class)
+	public void testAddInvalidReference() throws Exception {
+		String deleteMeNode = null;
+		// Create some a few nodes we will refer to, use the current version held in the repo svc
+		Set<Reference> referees = new HashSet<Reference>();
+		for(int i=0; i<10; i++){
+			Node node = NodeTestUtils.createNew("referee"+i);
+			String id = nodeDao.createNew(node);
+			toDelete.add(id);
+			Reference ref = new Reference();
+			ref.setTargetId(id);
+			referees.add(ref);
+			deleteMeNode = id;
+		}
+
+		// Create our reference map
+		Map<String, Set<Reference>> refs = new HashMap<String, Set<Reference>>();
+		refs.put("referees", referees);
+		
+		// Now delete one of those nodes, such that one of our references has become invalid before we've created it
+		nodeDao.delete(deleteMeNode);
+		
+		// Create the node that holds the references, this will fail with a NotFoundException
+		Node referer = NodeTestUtils.createNew("referer");
+		referer.setReferences(refs);
+		nodeDao.createNew(referer);
 	}
 	
 	@Test 
