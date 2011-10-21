@@ -18,7 +18,7 @@ public enum ObjectType {
 	agreement		(Agreement.class,	(short)6, PrefixConst.AGREEMENT,	NodeConstants.AGREEMENT_FOLDER_PATH,new String[]{PrefixConst.DEFAULT, PrefixConst.FOLDER}),
 	folder			(Folder.class,		(short)7, PrefixConst.FOLDER,		NodeConstants.ROOT_FOLDER_PATH,		new String[]{PrefixConst.DEFAULT, PrefixConst.FOLDER}),
 	analysis		(Analysis.class, 	(short)8, PrefixConst.ANALYSIS,		NodeConstants.ROOT_FOLDER_PATH, 	new String[]{PrefixConst.PROJECT}),
-	step			(Step.class, 		(short)9, PrefixConst.STEP,			NodeConstants.ROOT_FOLDER_PATH, 	new String[]{PrefixConst.FOLDER, PrefixConst.PROJECT, PrefixConst.DEFAULT});
+	step			(Step.class, 		(short)9, PrefixConst.STEP,			NodeConstants.ROOT_FOLDER_PATH, 	new String[]{PrefixConst.FOLDER, PrefixConst.ANALYSIS, PrefixConst.DEFAULT});
 	
 	private Class<? extends Nodeable> clazz;
 	private short id;
