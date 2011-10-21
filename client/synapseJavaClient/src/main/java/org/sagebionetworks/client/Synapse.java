@@ -20,10 +20,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.Entity;
 import org.sagebionetworks.registry.EntityType;
-import org.sagebionetworks.schema.adapter.JSONAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
@@ -219,6 +217,43 @@ public class Synapse {
 			SynapseServiceException {
 		return getSynapseEntity(repoEndpoint, uri);
 	}
+	
+	/**
+	 * Get an entity given an Entity ID and the class of the Entity.
+	 * @param <T>
+	 * @param entityId
+	 * @param clazz
+	 * @return
+	 * @throws SynapseServiceException 
+	 * @throws SynapseUserException 
+	 * @throws JSONException 
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public <T extends Entity> T getEntity(String entityId, Class<? extends T> clazz) throws ClientProtocolException, IOException, JSONException, SynapseUserException, SynapseServiceException, JSONObjectAdapterException{
+		if(entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
+		if(clazz == null) throw new IllegalArgumentException("Entity class cannot be null");
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
+		// Build the URI
+		String uri = createEntityUri(type.getUrlPrefix(), entityId);
+		JSONObject object = getEntity(uri);
+		return (T) EntityFactory.createEntityFromJSONObject(object, clazz);
+	}
+	
+	/**
+	 * Helper to create an Entity URI.
+	 * @param prefix
+	 * @param id
+	 * @return
+	 */
+	private static String createEntityUri(String prefix, String id){
+		StringBuilder uri = new StringBuilder();
+		uri.append(prefix);
+		uri.append("/");
+		uri.append(id);
+		return uri.toString();
+	}
 
 	/**
 	 * Update a dataset, layer, preview, annotations, etc...
@@ -241,10 +276,33 @@ public class Synapse {
 	 * @throws IOException
 	 * @throws ClientProtocolException
 	 */
+	@Deprecated // Use putEntity
 	public JSONObject updateEntity(String uri, JSONObject entity)
 			throws ClientProtocolException, IOException, JSONException,
 			SynapseUserException, SynapseServiceException {
 		return updateSynapseEntity(repoEndpoint, uri, entity);
+	}
+	
+	/**
+	 * Update a dataset, layer, preview, annotations, etc...
+	 * @param <T>
+	 * @param entity
+	 * @return
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 * @throws JSONException
+	 * @throws SynapseUserException
+	 * @throws SynapseServiceException
+	 * @throws JSONObjectAdapterException 
+	 */
+	public <T extends Entity> T putEntity(T entity)	throws ClientProtocolException, IOException, JSONException,
+			SynapseUserException, SynapseServiceException, JSONObjectAdapterException {
+		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
+		EntityType type = EntityType.getNodeTypeForClass(entity.getClass());
+		String uri = createEntityUri(type.getUrlPrefix(), entity.getId());
+		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(entity);
+		jsonObject = putEntity(uri, jsonObject);
+		return (T) EntityFactory.createEntityFromJSONObject(jsonObject, entity.getClass());
 	}
 
 	/**
@@ -281,6 +339,27 @@ public class Synapse {
 		deleteSynapseEntity(repoEndpoint, uri);
 		return;
 	}
+	
+	/**
+	 * Delete a dataset, layer, etc..
+	 * @param <T>
+	 * @param entity
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 * @throws JSONException
+	 * @throws SynapseUserException
+	 * @throws SynapseServiceException
+	 */
+	public <T extends Entity> void deleteEntity(T entity)
+			throws ClientProtocolException, IOException, JSONException,
+			SynapseUserException, SynapseServiceException {
+		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
+		EntityType type = EntityType.getNodeTypeForClass(entity.getClass());
+		String uri = createEntityUri(type.getUrlPrefix(), entity.getId());
+		deleteEntity(uri);
+	}
+	
+	
 
 	/**
 	 * Perform a query
