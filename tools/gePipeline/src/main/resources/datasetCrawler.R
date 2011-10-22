@@ -1,4 +1,4 @@
-system("perl getGSEs.pl")
+system("perl src/main/resources/getGSEs.pl")
 all.gses <- read.table("all.GSEs.txt",sep="\t",header=TRUE,stringsAsFactors=FALSE,row.names=1)
 
 output <- list()
@@ -14,4 +14,6 @@ lapply(1:nrow(all.gses), function(i) {
 
 names(output) <- rownames(all.gses)
 
+source('./src/main/resources/synapseWorkflow.R')
 
+finishWorkflowTask(output=output)

@@ -2,7 +2,7 @@ use LWP::Simple;
 
 # Download PubMed records for inputted platform
 my %platforms;
-open F, "ncbiGPLIDs" or die("dead");
+open F, "src/main/resources/ncbiGPLIDs" or die("dead");
 while (<F>) {
 	chomp;
 	$platforms{$_} = 1;

@@ -30,11 +30,22 @@ authEndpoint <- getAuthEndpointArg()
 repoEndpoint <- getRepoEndpointArg()
 projectId <- getProjectIdArg()
 
-geoTimestamp <- getInputDataArg()
+# "old" way:
+#geoTimestamp <- getInputDataArg()
 
-# in the future, 'getInputDataArg' will return JSON:
-#inputData <- RJSONIO::fromJSON(getInputDataArg())
-#geoTimestamp <- inputData["geoTimeStamp"] # or something like that...
+# "new" way:
+urlEncodedInputData <- getInputDataArg()
+# to avoid problems with spaces, quotes, etc. we just URLEncode the input data
+# thus we decode it here
+inputData <- URLdecode(urlEncodedInputData)
+inputDataMap<-RJSONIO::fromJSON(inputData)
+
+geoTimestamp<-inputDataMap[["lastUpdate"]]
+summary <-inputDataMap[["summary"]]
+gpl<-inputDataMap[["gpl"]]
+hasCelFile<-inputDataMap[["hasCelFile"]]
+species<-inputDataMap[["species"]]
+nSamples<-inputDataMap[["n_sample"]]
 
 
 if(is.null(gseId) 
