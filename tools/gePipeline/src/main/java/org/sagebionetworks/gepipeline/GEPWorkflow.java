@@ -1,6 +1,8 @@
 package org.sagebionetworks.gepipeline;
 
+import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
+import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 
@@ -113,7 +115,7 @@ public class GEPWorkflow {
 		ScriptResult result = ScriptProcessor.doProcess(script,
 				Arrays.asList(new String[]{
 						INPUT_DATASET_PARAMETER_KEY, datasetId, 
-						INPUT_DATA_PARAMETER_KEY, activityInput
+						INPUT_DATA_PARAMETER_KEY, formatAsScriptParam(activityInput),
 						}));
 		processedLayerId.set("layer id goes here");
 		stdout.set((MAX_SCRIPT_OUTPUT > result.getStdout().length()) ? result
@@ -124,6 +126,23 @@ public class GEPWorkflow {
 				MAX_SCRIPT_OUTPUT));
 		return Value.asValue(result.getStringResult(ScriptResult.OUTPUT_JSON_KEY));
 	}
+	
+	private static final String DOUBLE_QUOTE = "\"";
+	// the following translates to \\\" in the string passed to DOS, which becomes \", i.e. an escaped quote. whew!
+	private static final String ESCAPED_DOUBLE_QUOTE = "\\\\\\"+DOUBLE_QUOTE;
+	// escape all double quotes, then surround by double quotes
+	private static String formatAsScriptParam(String s) {
+		// doesn't work!
+		// return DOUBLE_QUOTE+s.replaceAll(DOUBLE_QUOTE, ESCAPED_DOUBLE_QUOTE)+DOUBLE_QUOTE;
+		// so let's try URLEncoding the param.  This means we must URLDecode on the R side
+		try {
+			// R's URLdecode expects %20 for space, not +
+			return URLEncoder.encode(s, "UTF-8").replaceAll("+", "%20");
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 
 	@Asynchronous
 	private Value<String> dispatchNotifyDataProcessed(Value<String> param,
