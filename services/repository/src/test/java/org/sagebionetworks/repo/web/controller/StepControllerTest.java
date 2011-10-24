@@ -11,6 +11,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.Analysis;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.EnvironmentDescriptor;
 import org.sagebionetworks.repo.model.Layer;
@@ -139,12 +140,22 @@ public class StepControllerTest {
 
 		// TODO update a layer, version a layer, etc ...
 
-		// Make sure those layers are not referred to by our step
+		// Make sure those layers are now referred to by our step
 		step = testHelper.getEntity(Step.class, step.getId(), null);
-		
 		assertEquals(layer.getId(), step.getInput().iterator().next().getTargetId());
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, step.getInput().iterator().next().getTargetVersionNumber());
 		assertEquals(outputLayer.getId(), step.getOutput().iterator().next().getTargetId());
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, step.getOutput().iterator().next().getTargetVersionNumber());
+		
+		// Create a new analysis, side effect should be to re-parent the referenced step
+		Analysis analysis = new Analysis();
+		analysis.setParentId(project.getId());
+		analysis.setName("test analysis");
+		analysis.setDescription("test description");
+		analysis = testHelper.createEntity(analysis, extraParams);
+		
+		// Make sure the step's parent is now the analysis
+		step = testHelper.getEntity(Step.class, step.getId(), null);
+		assertEquals(analysis.getId(), step.getParentId());
 	}
 }

@@ -3,16 +3,16 @@
  */
 package org.sagebionetworks.repo.web.controller.metadata;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.Analysis;
 import org.sagebionetworks.repo.model.EnvironmentDescriptor;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.Step;
 
 /**
@@ -89,7 +89,6 @@ public class StepMetadataProviderTest {
 		assertNull(step.getEnvironmentDescriptorsBlob());
 		assertNotNull(step.getEnvironmentDescriptors());
 		assertEquals(4, step.getEnvironmentDescriptors().size());
-
 	}
 
 }
