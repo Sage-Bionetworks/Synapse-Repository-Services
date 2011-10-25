@@ -884,6 +884,19 @@ public class NodeDAOImplTest {
 		assertEquals(10, storedNode.getReferences().get("referees").size());
 		Object[] storedRefs = storedNode.getReferences().get("referees").toArray();
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, ((Reference)storedRefs[0]).getTargetVersionNumber());
+
+		// Now add some duplicate references, these do get added to the set because they have 
+		// blank versions and therefore appear to be different references to this client-side code
+		storedNode.getReferences().get("referees").addAll(refs.get("referees"));
+		assertEquals(20, storedNode.getReferences().get("referees").size());
+		nodeDao.updateNode(storedNode);
+		storedNode = nodeDao.getNode(refererId);
+		assertNotNull(storedNode);
+		assertNotNull(storedNode.getReferences());
+		assertEquals(1, storedNode.getReferences().size());
+		assertEquals(10, storedNode.getReferences().get("referees").size());
+		storedRefs = storedNode.getReferences().get("referees").toArray();
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, ((Reference)storedRefs[0]).getTargetVersionNumber());
 		
 		// Now delete one of those nodes, such that one of our references has become 
 		// invalid after we've created it.  This is okay and does not cause an error 
