@@ -895,31 +895,28 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 
 	
 	private JDOReference persistReference(JDONode jdo, String groupName, Reference reference) throws NotFoundException, DatastoreException {
-		
+
 		Long targetId = KeyFactory.stringToKey(reference.getTargetId());
 		Long targetVersion = reference.getTargetVersionNumber();
-	
-		if(null != targetVersion) {
-			try {
-				// This may or may not be a new reference, return it if we find it, otherwise proceed
-				return (JDOReference) jdoTemplate.getObjectById(new ReferenceId(jdo.getId(), targetId, targetVersion, groupName));
-			} 
-			catch (JdoObjectRetrievalFailureException e) {
-				// This is okay, the user wants a new reference created at a particular version
-			}
+
+		if(null == targetVersion) {
+			JDONode target = getNodeById(targetId);
+			targetVersion = target.getCurrentRevNumber();
 		}
-		
+
+		try {
+			// This may or may not be a new reference, return it if we find it, otherwise proceed
+			return (JDOReference) jdoTemplate.getObjectById(new ReferenceId(jdo.getId(), targetId, targetVersion, groupName));
+		} 
+		catch (JdoObjectRetrievalFailureException e) {
+			// This is okay, the user wants a new reference created at a particular version
+		}
+
 		JDOReference jdoReference = new JDOReference();
 		jdoReference.setGroupName(groupName);
 		jdoReference.setOwner(jdo);
-		JDONode target = getNodeById(targetId);
-		jdoReference.setTargetId(target.getId());
-		if(null == targetVersion) {
-			jdoReference.setTargetRevision(target.getCurrentRevNumber());
-		}
-		else {
-			jdoReference.setTargetRevision(targetVersion);
-		}
+		jdoReference.setTargetId(targetId);
+		jdoReference.setTargetRevision(targetVersion);
 		jdoTemplate.makePersistent(jdoReference);
 		return jdoReference;
 	}
