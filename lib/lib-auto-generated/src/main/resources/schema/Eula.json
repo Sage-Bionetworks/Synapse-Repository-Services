@@ -1,5 +1,10 @@
 {
-    "description": "JSON schema for EULA POJO",
+    "description":"JSON schema for EULA POJO",
     "id":"Eula.json",
-    "extends": {"$ref":"Entity.json"},
+    "implements":[
+        {
+            "$ref":"Entity.json"
+        }
+    ],
+    
 }

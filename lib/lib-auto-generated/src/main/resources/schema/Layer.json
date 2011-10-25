@@ -1,9 +1,11 @@
 {
     "description":"JSON schema for Layer POJO",
     "id":"Layer.json",
-    "extends":{
-        "$ref":"VersionableEntity.json"
-    },
+    "implements":[
+        {
+            "$ref":"Entity.json"
+        },
+    ],
     "properties":{
         "publicationDate":{
             "type":"string",

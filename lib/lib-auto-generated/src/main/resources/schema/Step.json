@@ -1,5 +1,9 @@
 {
     "description": "JSON schema for Step POJO",
     "id":"Step.json",
-    "extends": {"$ref":"Entity.json"},
+    "implements":[
+        {
+            "$ref":"Entity.json"
+        },
+    ],
 }

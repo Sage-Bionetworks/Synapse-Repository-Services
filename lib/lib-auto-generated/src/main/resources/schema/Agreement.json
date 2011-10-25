@@ -1,5 +1,10 @@
 {
-    "description": "JSON schema for Agreement POJO",
+    "description":"JSON schema for Agreement POJO",
     "id":"Agreement.json",
-    "extends": {"$ref":"Entity.json"},
+    "implements":[
+        {
+            "$ref":"Entity.json",
+        }
+    ],
+    
 }

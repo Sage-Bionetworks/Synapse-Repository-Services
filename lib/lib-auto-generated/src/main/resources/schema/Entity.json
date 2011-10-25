@@ -1,5 +1,6 @@
 {
-    "description":"This is the base class for all",
+    "description":"This is the base interface that all Entities should implement",
+    "type":"interface",
     "id":"Entity.json",
     "properties":{
         "name":{

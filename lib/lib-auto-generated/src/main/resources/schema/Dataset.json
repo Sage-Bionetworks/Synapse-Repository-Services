@@ -1,28 +1,40 @@
 {
-    "description": "JSON schema for Dataset POJO",
-    "id": "Dataset.json",
-    "extends": {"$ref":"Entity.json"},
-    "properties": {
-	    "eulaId": {
-		    "type": "string",
-		    "description": "The id of the EULA for this dataset",
-		    "required": true
-	    },
-	    "hasExpressionData": {
-		    "type": "boolean",
-		    "description": "Indicates that this dataset contains expression data",
-		    "required": true
-	    },
-	    "hasGeneticata": {
-		    "type": "boolean",
-		    "description": "Indicates that this dataset contains genotype data",
-		    "required": true
-	    },
-	    "hasClinicalData": {
-		    "type": "boolean",
-		    "description": "Indicates that this datasets contains clinical data",
-		    "required": true
-	    }
-        }
+    "description":"JSON schema for Dataset POJO",
+    "id":"Dataset.json",
+    "implements":[
+        {
+            "$ref":"Entity.json"
+        },
+        {
+            "$ref":"HasLayers.json"
+        },
+        {
+            "$ref":"HasLocations.json"
+        },
+        
+    ],
+    "properties":{
+        "eulaId":{
+            "type":"string",
+            "description":"The id of the EULA for this dataset",
+            "required":true
+        },
+        "hasExpressionData":{
+            "type":"boolean",
+            "description":"Indicates that this dataset contains expression data",
+            "required":true
+        },
+        "hasGeneticata":{
+            "type":"boolean",
+            "description":"Indicates that this dataset contains genotype data",
+            "required":true
+        },
+        "hasClinicalData":{
+            "type":"boolean",
+            "description":"Indicates that this datasets contains clinical data",
+            "required":true,
+            
+        },
+        
     }
 }

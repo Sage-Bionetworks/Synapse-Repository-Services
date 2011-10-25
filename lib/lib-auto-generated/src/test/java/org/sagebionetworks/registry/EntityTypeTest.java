@@ -69,7 +69,7 @@ public class EntityTypeTest {
 		EntityType[] array = EntityType.values();
 		for(EntityType type: array){
 			assertNotNull(type.getClassForType());
-			EntityType result = type.getNodeTypeForClass(type.getClassForType());
+			EntityType result = EntityType.getNodeTypeForClass(type.getClassForType());
 			assertEquals(type, result);
 		}
 	}
@@ -79,7 +79,7 @@ public class EntityTypeTest {
 		EntityType[] array = EntityType.values();
 		for(EntityType type: array){
 			assertNotNull(type.getId());
-			EntityType result = type.getTypeForId(type.getId());
+			EntityType result = EntityType.getTypeForId(type.getId());
 			assertEquals(type, result);
 		}
 	}

@@ -1,5 +1,11 @@
 {
-    "description": "JSON schema for Analysis POJO",
+    "description":"JSON schema for Analysis POJO",
     "id":"Analysis.json",
-    "extends": {"$ref":"Entity.json"},
+    "implements":[
+        {
+            "$ref":"Entity.json",
+            
+        }
+    ],
+    
 }
