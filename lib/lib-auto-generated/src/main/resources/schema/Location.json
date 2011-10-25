@@ -1,29 +1,42 @@
 {
-    "description": "JSON schema for Location POJO",
+    "description":"JSON schema for Location POJO",
     "id":"Location.json",
-    "extends": {"$ref":"VersionableEntity.json"},
-    "properties:": {
-	    "type": {
-		    "description": "The type of this location",
-		    "type": "string",
-		    "enum": ["aws", "awsebs", "sage", "external"],
-		    "required": true
-	    },
-	    "path": {
-		    "description": "The path of this location",
-		    "type": "string",
-		    "required": true
-	    },
-	    "md5sum": {
-		    "description": "The checksum of this location",
-		    "type": "string",
-		    "required": true
-	    },
-	    "contentType": {
-		    "description": "The type of file of this location",
-		    "type": "string",
-		    "required": true
-	    },
-	    
+    "implements":[
+        {
+            "$ref":"Entity.json"
+        },
+        {
+            "$ref":"Versionable.json"
+        },
+        
+    ],
+    "properties:":{
+        "type":{
+            "description":"The type of this location",
+            "type":"string",
+            "enum":[
+                "aws",
+                "awsebs",
+                "sage",
+                "external"
+            ],
+            "required":true
+        },
+        "path":{
+            "description":"The path of this location",
+            "type":"string",
+            "required":true
+        },
+        "md5sum":{
+            "description":"The checksum of this location",
+            "type":"string",
+            "required":true
+        },
+        "contentType":{
+            "description":"The type of file of this location",
+            "type":"string",
+            "required":true
+        },
+        
     }
 }

@@ -1,0 +1,13 @@
+{
+    "description":"Any Entity that has locations should implement this interface.",
+    "type":"interface",
+    "id":"HasLocations.json",
+    "properties":{
+        "locations":{
+            "type":"string",
+            "description":"The URI for the locations of this entity.  This URI will be automatically provided by Synapse.",
+            
+        },
+        
+    }
+}

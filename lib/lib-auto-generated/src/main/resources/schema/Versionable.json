@@ -1,0 +1,20 @@
+{
+    "description":"JSON schema for Versionable interface",
+    "id":"Versionable.json",
+    "type":"interface",
+    "properties":{
+        "versionNumber":{
+            "type":"integer",
+            "description":"The version number for this entity",
+            "required":true
+        },
+        "versionLabel":{
+            "type":"string",
+            "description":"The version label for this entity"
+        },
+        "versionComment":{
+            "type":"string",
+            "description":"The version comment for this entity"
+        }
+    }
+}

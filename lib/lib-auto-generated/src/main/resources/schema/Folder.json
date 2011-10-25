@@ -1,5 +1,10 @@
 {
-    "description": "JSON schema for Folder POJO",
+    "description":"JSON schema for Folder POJO",
     "id":"Folder.json",
-    "extends": {"$ref":"Entity.json"},
+    "implements":[
+        {
+            "$ref":"Entity.json"
+        }
+    ],
+    
 }
