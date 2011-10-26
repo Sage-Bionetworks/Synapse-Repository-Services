@@ -1,15 +1,29 @@
-import sageArtifactory
+import sageArtifactory, synapseAwsEnvironment
+from boto.s3.connection import S3Connection
+from boto.s3.key import Key
 
-# Main entry
-sageArtifactory.downloadAll('0.7.9', False)
+# Parameters to drive Deployment
 
+# Connection to Mike's account DON'T CHECK THIS IN
+conn = S3Connection('account id','secret key')
+# Change to match platform bucket
+deploymentBucket = 'elasticbeanstalk-us-east-1-059816207990'
 
-# upload to S3
-'''
-s3url = 'https://s3.amazonaws.com/elasticbeanstalk-us-east-1-325565585839/portal-0.7-SNAPSHOT-4544.war'+moduleName+'-'+version+'-'
-if isSnapshot:
-    s3url += 'SNAPSHOT-'
-s3url += buildNumber + '.war'
-synapse.utils.uploadToS3(tempFileName, s3url, md5, 'application/x-zip', True)
-print("Upload to S3 completed successfully")
-'''
+workDir = '/temp/' 
+warsToUpgrade = sageArtifactory.SUPPORTED_ARTIFACT_NAMES #all of them
+version = '0.8'
+isSnapshot = True
+
+synapse = synapseAwsEnvironment.SynapseAwsEnvironment(conn, deploymentBucket)
+
+for war in warsToUpgrade:
+    artifact = sageArtifactory.downloadArtifact(war, version, isSnapshot, workDir)
+    key = war+'-'+version
+    if isSnapshot: key += '-SNAPSHOT'
+    key += '-'+str(artifact.buildNumber)+'.war'
+    print('uploading '+key)
+    synapse.putFile(key, artifact.fileName)
+    
+    
+print('Done')
+
