@@ -1,12 +1,23 @@
 '''
 Created on Sep 23, 2011
-    # COMMENT: This script is doing one maintenance task: updating .war files in place for a stack.  
+    # This script is doing one maintenance task: fetching .war files for a Synapse deployment.
+    # This is the place for any Sage-Artifactory specific code. 
     # Will eventually be a function in more complete module for Synapse Administration 
+
 @author: mkellen
 '''
 import json, synapse.utils, zipfile, urllib
+from exception import SynapseDeployerError
 
 SUPPORTED_ARTIFACT_NAMES = ("portal", "services-repository", "services-authentication")
+
+class Artifact:
+    '''
+    Describes an artifact obtained from Artifactory
+    '''
+    def __init__(self,fileName,buildNumber):
+        self.fileName = fileName
+        self.buildNumber = buildNumber
 
 def _determineDownloadURLForResource(artifactName, version, isSnapshot):
     path = "http://sagebionetworks.artifactoryonline.com/sagebionetworks/"
@@ -17,7 +28,6 @@ def _determineDownloadURLForMetadata(artifactName, version, isSnapshot):
     return _determineDownloadURL(artifactName, version, isSnapshot, path) + ':sample-metadata'
 
 def _determineDownloadURL(artifactName, version, isSnapshot, path):  
-    #QUESTION: How do I make this function "private" in Python?  
     if isSnapshot:
         path += "libs-snapshots-local"
     else:
@@ -26,8 +36,7 @@ def _determineDownloadURL(artifactName, version, isSnapshot, path):
     if (SUPPORTED_ARTIFACT_NAMES.__contains__(artifactName)):
         path += artifactName
     else:
-        print("Error: unrecognized module")
-        return None
+        raise SynapseDeployerError, "Error: unrecognized module"
     path += "/"
     path += version
     if isSnapshot:
@@ -55,7 +64,7 @@ def _findBuildNumber(fileName):
     zipFile.close()
     return int(buildNumber)
 
-def downloadArtifact(moduleName, version, isSnapshot):
+def downloadArtifact(moduleName, version, isSnapshot, workDir):
     '''
     Get an artifact from Artifactory and verify download worked via MD5
     '''
@@ -63,13 +72,13 @@ def downloadArtifact(moduleName, version, isSnapshot):
     # Get the war file and check it's MD5
     warUrl = _determineDownloadURLForResource(moduleName, version, isSnapshot)
     print('preparing to download from ' + warUrl)
-    tempFileName = '/temp/' + moduleName +'-'+ version+ '.war'
+    tempFileName = workDir + moduleName +'-'+ version+ '.war'
     urllib.urlretrieve(warUrl, tempFileName)
     md5 = synapse.utils.computeMd5ForFile(tempFileName)
 
     # Get the metadata and see what actual MD5 should be
     metaUrl = _determineDownloadURLForMetadata(moduleName, version, isSnapshot)
-    metadataFileName = '/temp/' + moduleName + '.json'
+    metadataFileName = workDir + moduleName + '.json'
     urllib.urlretrieve(metaUrl, metadataFileName)
     file = open(metadataFileName, 'r')
     metadata = json.load(file)
@@ -79,18 +88,10 @@ def downloadArtifact(moduleName, version, isSnapshot):
     if (md5.hexdigest() == expectedMD5hexdigest):
         print("Downloads completed successfully")
     else:
-        raise "ERROR: MD5 does not match"
+        raise SynapseDeployerError, "ERROR: MD5 does not match"
 
-    return _findBuildNumber(tempFileName)
-
-def downloadAll(version, isSnapshot):
-    # Get all artifacts
-    buildNumber = 0
-    for artifactName in SUPPORTED_ARTIFACT_NAMES:
-        buildNumber = downloadArtifact(artifactName, version, isSnapshot)
-        print 'build number '+buildNumber
-    return buildNumber
-        
+    buildNumber = _findBuildNumber(tempFileName)
+    return Artifact(tempFileName, buildNumber)
 
 #------- UNIT TESTS -----------------
 if __name__ == '__main__':
@@ -100,11 +101,17 @@ if __name__ == '__main__':
         
         def test_getArtifact(self):
             #Test happy case with a small artifact
-            buildNumber = downloadArtifact('services-authentication', '0.7.9', False)
-            self.assertEqual(4655, buildNumber)
+            artifact = downloadArtifact('services-authentication', '0.7.9', False, '/temp/')
+            self.assertEqual(4655, artifact.buildNumber)
+            self.assertEqual('/temp/services-authentication-0.7.9.war', artifact.fileName)
         
         def test_getSnapshot(self):
+            #Just test that the paths here are right
             result = _determineDownloadURLForResource('services-authentication', '0.7', True)
             self.assertEqual(result, 'http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-snapshots-local/org/sagebionetworks/services-authentication/0.7-SNAPSHOT/services-authentication-0.7-SNAPSHOT.war')
             
+        def test_getUnsupported(self):
+            #Test exception raising
+            self.assertRaisesRegexp(SynapseDeployerError, "Error: unrecognized module", _determineDownloadURLForMetadata,'unknown', '0.7', True)
+                
     unittest.main()
