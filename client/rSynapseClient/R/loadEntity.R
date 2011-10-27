@@ -103,7 +103,12 @@ setMethod(
 		definition = function(entity){
 			if(length(entity$files) == 0L)
 				entity <- downloadEntity(entity)
-			if(annotValue(entity,"format") == "GEO"){
+			if(is.null(annotValue(entity, "format"))){
+                                oldClass <- class(entity)
+                                class(entity) <- "Layer"
+                                entity <- loadEntity(entity)
+                                class(entity) <- oldClass
+			} else if(annotValue(entity,"format") == "GEO"){
 				cel.files <- list.celfiles(entity$cacheDir, full.names=TRUE)
 				cdfs <- sapply(cel.files, whatcdf) 
 				expression <- lapply(unique(cdfs), function(cdf){
@@ -112,7 +117,8 @@ setMethod(
 				)
 				names(expression) <- unique(cdfs)
 				entity <- addObject(entity, expression, unlist = FALSE)
-			}
+			} else
+				cat("No functionality to handle that kind of format yet - objects not loaded\n")
 			entity
 		}
 )
