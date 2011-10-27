@@ -1,5 +1,6 @@
 system("perl src/main/resources/getGSEs.pl")
 all.gses <- read.table("all.GSEs.txt",sep="\t",header=TRUE,stringsAsFactors=FALSE,row.names=1)
+all.gses <- all.gses[which(all.gses$N_Samples < 1500),]
 
 output <- list()
 lapply(1:nrow(all.gses), function(i) {  
