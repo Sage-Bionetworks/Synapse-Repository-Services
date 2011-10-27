@@ -9,7 +9,7 @@
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>platform</artifactId>
 	<!-- This is not the same as the application version. This is a constant. -->
-	<version>parent-1.0</version>
+	<version>0.8-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<url>http://www.sagebase.org/</url>
 	<scm>
@@ -201,12 +201,137 @@
 				<version>4.1.2</version>
 			</dependency>
 
+			<!-- Synapse internal dependencies -->
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>schema-to-pojo-lib</artifactId>
+				<version>${schema-to-pojo.version}</version>
+			</dependency>
+			
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>schema-to-pojo-org-json</artifactId>
 				<version>${schema-to-pojo.version}</version>
 			</dependency>
 
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>services-authentication</artifactId>
+				<version>${project.version}</version>
+				<type>war</type>
+			</dependency>
+			
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>services-repository</artifactId>
+				<version>${project.version}</version>
+				<type>war</type>
+			</dependency>
+			
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>portal</artifactId>
+				<version>${project.version}</version>
+				<type>war</type>
+			</dependency>
+			
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>portal</artifactId>
+				<version>${project.version}</version>
+				<classifier>gwt-rpc-assembly</classifier>
+				<type>jar</type>
+			</dependency>
+						
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-auto-generated</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+						
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-communicationUtilities</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-id-generator</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+						
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-jdomodels</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-models</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-securityUtilities</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+				
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-stackConfiguration</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-workflow</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+		
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>synapseJavaClient</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+	
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>synapsePythonClient</artifactId>
+				<version>${project.version}</version>
+				<classifier>synapse-python-client-assembly</classifier>
+				<type>zip</type>
+			</dependency>
+	
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>synapseRClient</artifactId>
+				<version>${project.version}</version>
+				<classifier>synapse-r-client-assembly</classifier>
+				<type>zip</type>
+			</dependency>
+	
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>DatasetMetadataLoader</artifactId>
+				<version>${project.version}</version>
+				<classifier>dataset-metadata-loader-assembly</classifier>
+				<type>zip</type>
+			</dependency>
+	
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>wikiutil</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>auth-util</artifactId>
+				<version>${project.version}</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<!-- Only list globally used plugins in this file -->
@@ -320,8 +445,6 @@
 		<!-- This is just for "eclipse:eclipse" goal to always attempt downloading 
 			sources -->
 		<downloadSources>true</downloadSources>
-		<!-- This is the version of all modules that make us Synapse -->
-		<applicationVersion>0.8-SNAPSHOT</applicationVersion>
 
 		<org.springframework.version>3.0.5.RELEASE
 		</org.springframework.version>

@@ -6,14 +6,13 @@
 	<parent>
 		<groupId>org.sagebionetworks</groupId>
 		<artifactId>services</artifactId>
-		<version>parent-1.0</version>
+		<version>0.8-SNAPSHOT</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>auth-util</artifactId>
 	<packaging>jar</packaging>
 	<name>Platform Authentication and Authorization Utilities</name>
-	<version>${applicationVersion}</version>
 
 	<dependencies>
 
@@ -32,19 +31,16 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-stackConfiguration</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-models</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-securityUtilities</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<!-- Spring Framework dependencies -->

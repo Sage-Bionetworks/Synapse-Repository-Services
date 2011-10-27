@@ -7,13 +7,12 @@
 	<parent>
 		<artifactId>tools</artifactId>
 		<groupId>org.sagebionetworks</groupId>
-		<version>parent-1.0</version>
+		<version>0.8-SNAPSHOT</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>tcgaWorkflow</artifactId>
 	<packaging>jar</packaging>
-	<version>${applicationVersion}</version>
 	<name>tcgaWorkflow</name>
 
 	<dependencies>
@@ -21,19 +20,16 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-stackConfiguration</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>synapseJavaClient</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-workflow</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>

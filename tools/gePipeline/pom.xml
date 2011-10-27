@@ -5,36 +5,32 @@
   <parent>
     <artifactId>tools</artifactId>
     <groupId>org.sagebionetworks</groupId>
-    <version>parent-1.0</version>
+    <version>0.8-SNAPSHOT</version>
   </parent>
+  
   <groupId>org.sagebionetworks</groupId>
   <artifactId>gePipeline</artifactId>
-  <version>${applicationVersion}</version>
   <name>gePipeline</name>
   <url>http://maven.apache.org</url>
   <dependencies>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-stackConfiguration</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>synapseJavaClient</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-communicationUtilities</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-workflow</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
         <!-- Note that SWF only works with a particular old version of AWS SDK -->

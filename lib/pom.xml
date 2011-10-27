@@ -5,14 +5,14 @@
   <parent>
     <groupId>org.sagebionetworks</groupId>
     <artifactId>platform</artifactId>
-    <version>parent-1.0</version>
+    <version>0.8-SNAPSHOT</version>
   </parent>
   
   <groupId>org.sagebionetworks</groupId>
   <artifactId>lib</artifactId>
   <packaging>pom</packaging>
   <name>Libraries</name>
-  <version>parent-1.0</version>
+
   <modules>
     <module>stackConfiguration</module>
     <module>id-generator</module>

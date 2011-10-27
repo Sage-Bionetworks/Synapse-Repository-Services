@@ -4,7 +4,7 @@
 	<parent>
 		<artifactId>tools</artifactId>
 		<groupId>org.sagebionetworks</groupId>
-		<version>parent-1.0</version>
+		<version>0.8-SNAPSHOT</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 
@@ -14,7 +14,6 @@
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>wikiutil</artifactId>
 	<packaging>jar</packaging>
-	<version>${applicationVersion}</version>
 	<name>Platform Services Wiki Generator Utilities</name>
 
 	<dependencies>
@@ -22,7 +21,6 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>synapseJavaClient</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>

@@ -5,14 +5,13 @@
   <parent>
     <groupId>org.sagebionetworks</groupId>
     <artifactId>platform</artifactId>
-    <version>parent-1.0</version>
+    <version>0.8-SNAPSHOT</version>
   </parent>
   
   <groupId>org.sagebionetworks</groupId>
   <artifactId>services</artifactId>
   <packaging>pom</packaging>
   <name>Services</name>
-  <version>parent-1.0</version>
   
   <modules>
     <module>authutil</module>
