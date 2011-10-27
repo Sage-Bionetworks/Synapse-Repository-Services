@@ -2,11 +2,9 @@ package org.sagebionetworks.web.client.widget.editpanels;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.web.client.DisplayConstants;
-import org.sagebionetworks.web.client.ontology.OntologyTerm;
 import org.sagebionetworks.web.client.ontology.StaticOntologies;
 import org.sagebionetworks.web.shared.NodeType;
 
@@ -22,6 +20,8 @@ public class NodeEditorDisplayHelper {
 		typeToDevaition.put(NodeType.DATASET, createDatasetDeviation());
 		typeToDevaition.put(NodeType.LAYER, createLayerDeviation());
 		typeToDevaition.put(NodeType.PROJECT, createProjectDeviation());		
+		typeToDevaition.put(NodeType.ANALYSIS, createAnalysisDeviation());		
+		typeToDevaition.put(NodeType.STEP, createStepDeviation());		
 	}
 
 	public SpecificNodeTypeDeviation getNodeTypeDeviation(NodeType type) {
@@ -71,7 +71,31 @@ public class NodeEditorDisplayHelper {
 		return deviation;
 	}
 	
+	// ANALYSIS
+	private SpecificNodeTypeDeviation createAnalysisDeviation() {
+		SpecificNodeTypeDeviation deviation = new SpecificNodeTypeDeviation(
+				NodeType.ANALYSIS, "Analysis",
+				DisplayConstants.CREATE_ANALYSIS_TEXT,
+				DisplayConstants.EDIT_ANALYSIS_TEXT, 
+				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag"}),
+				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag"}));		
+		deviation.setKeyToOntology(new StaticOntologies().getAnnotationToOntology());
+			
+		return deviation;
+	}
 	
+	// STEP
+	private SpecificNodeTypeDeviation createStepDeviation() {
+		SpecificNodeTypeDeviation deviation = new SpecificNodeTypeDeviation(
+				NodeType.STEP, "Step",
+				DisplayConstants.CREATE_STEP_TEXT,
+				DisplayConstants.EDIT_STEP_TEXT, 
+				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag"}),
+				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag"}));		
+		deviation.setKeyToOntology(new StaticOntologies().getAnnotationToOntology());
+			
+		return deviation;
+	}
 	
 	
 }

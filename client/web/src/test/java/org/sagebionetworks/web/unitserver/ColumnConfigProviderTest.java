@@ -148,7 +148,7 @@ public class ColumnConfigProviderTest {
 		// Set it up with the default columns.
 		providerWithCycles.setDefaultDatasetColumns(b.getId()+","+a.getId());
 		// Add the additional columns with one duplicate from the defaults
-		providerWithCycles.setAdditionalDatasetsColumns(a.getId()+","+c.getId());
+		providerWithCycles.setAdditionalDatasetColumns(a.getId()+","+c.getId());
 		// Now get the columns for datasts
 		ColumnsForType cft = providerWithCycles.getColumnsForType(ObjectType.dataset.name());
 		assertNotNull(cft);

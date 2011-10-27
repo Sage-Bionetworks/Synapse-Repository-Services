@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.transform;
 
 
 import org.sagebionetworks.web.shared.Agreement;
+import org.sagebionetworks.web.shared.Analysis;
 import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.DownloadLocation;
@@ -11,6 +12,7 @@ import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
 import org.sagebionetworks.web.shared.PagedResults;
 import org.sagebionetworks.web.shared.Project;
+import org.sagebionetworks.web.shared.Step;
 import org.sagebionetworks.web.shared.exceptions.ForbiddenException;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 import org.sagebionetworks.web.shared.exceptions.UnauthorizedException;
@@ -37,6 +39,10 @@ public interface NodeModelCreator {
 	
 	EntityTypeResponse createEntityTypeResponse(String json) throws RestServiceException;
 	
+	Analysis createAnalysis(String json) throws RestServiceException;
+
+	Step createStep(String json) throws RestServiceException;
+
 	/**
 	 * Validates that the json parses and does not throw any RestService exceptions
 	 * this is useful for json that doesn't have a model object (like schemas)

@@ -193,7 +193,7 @@ public class ColumnConfigProvider {
 	}
 	
 	@Inject
-	public void setAdditionalDatasetsColumns(@Named(ServerConstants.KEY_ADDITIONAL_DATASET_COLS) String additional){
+	public void setAdditionalDatasetColumns(@Named(ServerConstants.KEY_ADDITIONAL_DATASET_COLS) String additional){
 		// convert from a string to a list
 		List<String> keyList = splitCommaSeparatedString(additional);
 		additoinalColumns.put(ObjectType.dataset.name(), keyList);
@@ -206,7 +206,22 @@ public class ColumnConfigProvider {
 		// Add this list to the map
 		defaultColumns.put(ObjectType.project.name(), keyList);
 	}
+		
+	@Inject
+	public void setDefaultAnalysisColumns(@Named(ServerConstants.KEY_DEFAULT_ANALYSIS_COLS) String defaults) {
+		// convert from a string to a list
+		List<String> keyList = splitCommaSeparatedString(defaults);
+		// Add this list to the map
+		defaultColumns.put(ObjectType.analysis.name(), keyList);
+	}
 	
+	@Inject
+	public void setDefaultStepColumns(@Named(ServerConstants.KEY_DEFAULT_STEP_COLS) String defaults) {
+		// convert from a string to a list
+		List<String> keyList = splitCommaSeparatedString(defaults);
+		// Add this list to the map
+		defaultColumns.put(ObjectType.step.name(), keyList);
+	}
 	
 	/**
 	 * Load the given filter enumeration xml file.

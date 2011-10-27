@@ -14,7 +14,7 @@ public class Header implements HeaderView.Presenter {
 
 	
 	public static enum MenuItems {
-		DATASETS, TOOLS, NETWORKS, PEOPLE, PROJECTS
+		DATASETS, TOOLS, NETWORKS, PEOPLE, PROJECTS, ANALYSES, STEPS
 	}
 	
 	private HeaderView view;

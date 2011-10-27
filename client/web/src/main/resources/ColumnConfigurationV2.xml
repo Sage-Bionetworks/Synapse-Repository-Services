@@ -181,10 +181,63 @@
 			<description>The date this project was created</description>
 		</column>
 	
+		<!-- Analysis columns -->
+		<column id="analysis.id">
+			<type>String</type>
+			<display>Analysis ID</display>
+			<description>Analysis ID</description>
+		</column>		
+		<column id="analysis.name">
+			<type>String</type>
+			<display>analysis Name</display>
+			<description>Name of the analysis</description>
+		</column>
+		<column id="analysis.description">
+			<type>String</type>
+			<display>Description</display>
+			<description>The description of this analysis</description>
+		</column>
+		<column id="analysis.createdBy">
+			<type>String</type>
+			<display>Created By</display>
+			<description>The person that created this analysis</description>
+		</column>
+		<column id="analysis.creationDate">
+			<type>Long</type>
+			<display>Creation Date</display>
+			<description>The date this analysis was created</description>
+		</column>
+
+		<!-- Step columns -->
+		<column id="step.id">
+			<type>String</type>
+			<display>Step ID</display>
+			<description>Step ID</description>
+		</column>		
+		<column id="step.name">
+			<type>String</type>
+			<display>Step Name</display>
+			<description>Name of the step</description>
+		</column>
+		<column id="step.commandLine">
+			<type>String</type>
+			<display>Command Line</display>
+			<description>The command line of this step</description>
+		</column>
+		<column id="step.createdBy">
+			<type>String</type>
+			<display>Created By</display>
+			<description>The person that created this step</description>
+		</column>
+		<column id="step.creationDate">
+			<type>Long</type>
+			<display>Creation Date </display>
+			<description>The date this step was created</description>
+		</column>
 		
 		<!-- The more complex/composite columns -->
 		
-		<!-- A dynamic relative URL will be built for datatasts using the ID column -->
+		<!-- A dynamic relative URL will be built for datatsets using the ID column -->
 		<url-template id="dataset.localUrl">
 			<type>String</type>
 			<urlTemplate>Dataset:{dataset.id}</urlTemplate>
@@ -194,6 +247,7 @@
 			<display reference="dataset.name" />
 			<url reference="dataset.localUrl" />
 		</link-column>
+		
 		<!-- Renders all layer types as a single column -->
 		<layer-column id="dataset.layerTypeIcons">
 			<display>Layers</display>
@@ -202,10 +256,12 @@
 			<hasGenetic reference="dataset.hasGeneticData" />
 			<hasClinical reference="dataset.hasClinicalData" />
 		</layer-column>
+
 		<!-- The created on date -->
 		<date-column id="dataset.createdOnDate">
 			<baseColumn reference="dataset.creationDate"/>
 		</date-column>
+
 		<!-- Renders a Layer's Type image -->
 		<layer-type-column id="layer.TypeIcon">
 			<baseColumn reference="layer.type"/>
@@ -242,12 +298,45 @@
 		<link-column id="project.NameLink">
 			<display reference="project.name" />
 			<url reference="project.localUrl" />
-		</link-column>		
+		</link-column>	
+		
+		<!-- A dynamic relative URL will be built for analyses using the ID column -->
+		<url-template id="analysis.LocalUrl">
+			<type>String</type>
+			<urlTemplate>Analysis:{analysis.id}</urlTemplate>
+		</url-template>
+		<!-- Acts as the analysis name column  -->
+		<link-column id="analysis.NameLink">
+			<display reference="analysis.name" />
+			<url reference="analysis.LocalUrl" />
+		</link-column>
+		
+		<!-- A dynamic relative URL will be built for steps using the ID column -->
+		<url-template id="step.LocalUrl">
+			<type>String</type>
+			<urlTemplate>Step:{step.id}</urlTemplate>
+		</url-template>
+		
+		<!-- Acts as the step name column  -->
+		<link-column id="step.NameLink">
+			<display reference="step.name" />
+			<url reference="step.LocalUrl" />
+		</link-column>
+			
 		<!-- The created on date -->
 		<date-column id="project.createdOnDate">
 			<baseColumn reference="project.creationDate"/>
 		</date-column>
-		
 
+		<!-- The created on date -->
+		<date-column id="analysis.creationDate">
+			<baseColumn reference="analysis.creationDate"/>
+		</date-column>
+
+		<!-- The created on date -->
+		<date-column id="step.creationDate">
+			<baseColumn reference="step.creationDate"/>
+		</date-column>
+		
 	</columns>
 </configuration>

@@ -6,6 +6,10 @@ import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.security.AuthenticationControllerImpl;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.transform.NodeModelCreatorImpl;
+import org.sagebionetworks.web.client.view.AnalysesHomeView;
+import org.sagebionetworks.web.client.view.AnalysesHomeViewImpl;
+import org.sagebionetworks.web.client.view.AnalysisView;
+import org.sagebionetworks.web.client.view.AnalysisViewImpl;
 import org.sagebionetworks.web.client.view.CellTableProvider;
 import org.sagebionetworks.web.client.view.CellTableProviderImpl;
 import org.sagebionetworks.web.client.view.ColumnsPopupView;
@@ -32,6 +36,10 @@ import org.sagebionetworks.web.client.view.ProjectView;
 import org.sagebionetworks.web.client.view.ProjectViewImpl;
 import org.sagebionetworks.web.client.view.ProjectsHomeView;
 import org.sagebionetworks.web.client.view.ProjectsHomeViewImpl;
+import org.sagebionetworks.web.client.view.StepView;
+import org.sagebionetworks.web.client.view.StepViewImpl;
+import org.sagebionetworks.web.client.view.StepsHomeView;
+import org.sagebionetworks.web.client.view.StepsHomeViewImpl;
 import org.sagebionetworks.web.client.view.table.ColumnFactory;
 import org.sagebionetworks.web.client.view.table.ColumnFactoryImpl;
 import org.sagebionetworks.web.client.view.users.PasswordResetView;
@@ -130,6 +138,22 @@ public class PortalGinModule extends AbstractGinModule {
 		// ProjectView
 		bind(ProjectViewImpl.class).in(Singleton.class);
 		bind(ProjectView.class).to(ProjectViewImpl.class);		
+		
+		// AnalysesHomeView
+		bind(AnalysesHomeViewImpl.class).in(Singleton.class);
+		bind(AnalysesHomeView.class).to(AnalysesHomeViewImpl.class);		
+		
+		// AnalysisView
+		bind(AnalysisViewImpl.class).in(Singleton.class);
+		bind(AnalysisView.class).to(AnalysisViewImpl.class);	
+		
+		// StepsHomeView
+		bind(StepsHomeViewImpl.class).in(Singleton.class);
+		bind(StepsHomeView.class).to(StepsHomeViewImpl.class);		
+		
+		// StepView
+		bind(StepViewImpl.class).in(Singleton.class);
+		bind(StepView.class).to(StepViewImpl.class);	
 		
 		// QueryService View
 		//bind(QueryServiceTableView.class).to(QueryServiceTableViewImpl.class);

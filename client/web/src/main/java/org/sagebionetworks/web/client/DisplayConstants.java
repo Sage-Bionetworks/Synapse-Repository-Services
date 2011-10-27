@@ -31,6 +31,8 @@ public class DisplayConstants {
 	 */
 	public static final String FOLLOW_DATASET_HTML = "Following a dataset allows you to be notified when the dataset has new comments, additional layers or data, is used in a project, or referenced by a new publication.<br/><br/>Click Confirm to Follow this dataset. You can adjust your notifications settings through your Profile.";  
 	public static final String FOLLOW_PROJECT_HTML = "Following a project allows you to be notified when the project has new comments, additional layers or data, is used in a project, or referenced by a new publication.<br/><br/>Click Confirm to Follow this project. You can adjust your notifications settings through your Profile.";
+	public static final String FOLLOW_ANALYSIS_HTML = "Following an analysis project allows you to be notified when the analysis has new comments or additional steps.<br/><br/>Click Confirm to Follow this project. You can adjust your notifications settings through your Profile.";
+	public static final String FOLLOW_STEP_HTML = "REMOVE ME, we don't want to follow steps";
 	
 	public static final String TEMP_MSKCC_DESCRIPTION = "Genetic and epigenetic alterations have been identified that lead to transcriptional Annotation of prostate cancer genomes provides a foundation for discoveries that can impact disease understanding and treatment. Concordant assessment of DNA copy number, mRNA expression, and focused exon resequencing in the 218 prostate cancer tumors represented in this dataset haveidentified the nuclear receptor coactivator NCOA2 as an oncogene in approximately 11% of tumors. Additionally, the androgen-driven TMPRSS2-ERG fusion was associated with a previously unrecognized, prostate-specific deletion at chromosome 3p14 that implicates FOXP1, RYBP, and SHQ1 as potential cooperative tumor suppressors. DNA copy-number data from primary tumors revealed that copy-number alterations robustly define clusters of low- and high-risk disease beyond that achieved by Gleason score.";
 	
@@ -40,6 +42,10 @@ public class DisplayConstants {
 	public static final String EDIT_LAYER_TEXT = "Edit the layer's details by altering the fields below and then clicking the Save button. To cancel, click the Close button.";
 	public static final String CREATE_PROJECT_TEXT = "Please fill out the initial descriptive fields for the project you would like to create.";
 	public static final String EDIT_PROJECT_TEXT = "Edit the project's details by altering the fields below and then clicking the Save button. To cancel, click the Close button."; 
+	public static final String CREATE_ANALYSIS_TEXT = "Please fill out the initial descriptive fields for the analysis you would like to create.";
+	public static final String EDIT_ANALYSIS_TEXT = "Edit the analysis' details by altering the fields below and then clicking the Save button. To cancel, click the Close button.";;
+	public static final String CREATE_STEP_TEXT = "Please fill out the initial descriptive fields for the step you would like to create.";
+	public static final String EDIT_STEP_TEXT = "Edit the step's details by altering the fields below and then clicking the Save button. To cancel, click the Close button.";;
 	public static final String EDIT_ANNOTATIONS_TEXT = "Edit Annotations for this object. You can add new annotations by using the form fields at the bottom.";
 	
 	public static final String LOGOUT_TEXT = "You have been logged out of Synapse.";
@@ -120,6 +126,14 @@ public class DisplayConstants {
 	public static final String BUTTON_DOWNLOAD_DATASET = "Download Dataset";
 	public static final String BUTTON_ADD_A_LAYER_TO_DATASET = "Add a Layer to Dataset";
 	public static final String BUTTON_ADD_LAYER = "Add Layer";
+	public static final String BUTTON_EDIT_ANALYSIS_DETAILS = "Edit Analysis Details";
+	public static final String BUTTON_ADD_STEP = "Add Step";
+	public static final String BUTTON_ADD_STEP_TO_ANALYSIS = "Add Step to Analysis";
+	public static final String LABEL_DELETE_ANALYSIS = "Delete Analysis";
+	public static final String TITLE_CREATE_STEP = "Create Step";
+	public static final String BUTTON_EDIT_STEP_DETAILS = "Edit Step Details";
+	public static final String LABEL_DELETE_STEP = "Delete Step";
+	public static final String BUTTON_ADD_DATASET_TO_STEP = "FIX ME addDatasetToStep";
 	public static final String TITLE_ERROR = "Error";
 	
 	
@@ -131,10 +145,6 @@ public class DisplayConstants {
 	public static final String DEMO_COMMENTS = "<div id=\"scrollable_item\">							<span class=\"scrollable_header\">								<img src=\"static/images/down_arrow.png\" class=\"right\" />								<span class=\"scroll_text\">New analysis using this dataset in the Federation Warburg Project</span>								<span class=\"author\"><a href=\"\">Xudong D.</a></span>								<span class=\"date\">21-Nov-2010</span>							</span>							<span class=\"scrollable_comments\">								<span class=\"scrollable_comment\">									<span class=\"comment_text\">The paper references 149 matched normal samples.  Do you have this data?</span>									<span class=\"comment_author\">Sam S.</span>									<span class=\"comment_date\">22-Dec-2010</span>								</span>								<span class=\"scrollable_comment\">									<span class=\"comment_text\">We have only able to obtain 29 matched normal samples.</span>									<span class=\"comment_author\">Matt F.</span>									<span class=\"comment_date\">22-Nov-2010</span>								</span>							</span>						</div>						<div id=\"scrollable_item\">							<span class=\"scrollable_header\">								<img src=\"static/images/down_arrow.png\" class=\"right\" />								<span class=\"scroll_text\">New analysis using this dataset in the MetaGEO Project</span>								<span class=\"author\"><a href=\"\">Brig M</a></span>								<span class=\"date\">01-Apr-2011</span>							</span>							<span class=\"scrollable_comments\">								<span class=\"scrollable_comment\">									<span class=\"comment_text\">Look out, there is a large batch effect in this data.  Have been working on a way to remove it.</span>									<span class=\"comment_author\">Brig M.</span>									<span class=\"comment_date\">02-Apr-2011</span>								</span>								<span class=\"scrollable_comment\">									<span class=\"comment_text\">Appreciate the help.  We can post new version of the normalized data.</span>									<span class=\"comment_author\">Matt F.</span>									<span class=\"comment_date\">02-Apr-2011</span>								</span>							</span>						</div>";
 	public static final String DEMO_ANALYSIS = "<table width=\"100%\" class=\"detail\">							<tr>								<td class=\"analysis\"><a href=\"network_overview.html\">Network Generation</a></td>								<td class=\"project\"><a href=\"project_details.html\">Federation Warburg</a></td>								<td class=\"last_modified\">12-Apr-2011</td>							</tr>							<tr class=\"gray\">								<td class=\"analysis\"><a href=\"network_overview.html\">Network Survey</a></td>								<td class=\"project\"><a href=\"project_details.html\">Federation Warburg</a></td>								<td class=\"last_modified\">23-Mar-2011</td>							</tr>							<tr>								<td class=\"analysis\"><a href=\"network_overview.html\">Interactome</a></td>								<td class=\"project\"><a href=\"project_details.html\">Federation Warburg</a></td>								<td class=\"last_modified\">04-Mar-2011</td>							</tr>							<tr class=\"gray\">								<td class=\"analysis\"><a href=\"network_overview_metageo.html\">GSE 21034</a></td>								<td class=\"project\"><a href=\"project_details_metageo.html\">MetaGEO</a></td>								<td class=\"last_modified\">2-Apr-2011</td>							</tr> <tr> <td class=\"analysis\"><a href=\"analysis_predictor.html\">Biomarker Prediction</a></td> <td class=\"project\"><a href=\"project_details_predictor.html\">Predictive Modeling</a></td> <td class=\"last_modified\">07-Jul-2011</td> </tr>						</table>";
 	public static final String DEMO_OVERVIEW = "Genetic and epigenetic alterations have been identified that lead to transcriptional Annotation of prostate cancer genomes provides a foundation for discoveries that can impact disease understanding and treatment. Concordant assessment of DNA copy number, mRNA expression, and focused exon resequencing in the 218 prostate cancer tumors represented in this dataset haveidentified the nuclear receptor coactivator NCOA2 as an oncogene in approximately 11% of tumors. Additionally, the androgen-driven TMPRSS2-ERG fusion was associated with a previously unrecognized, prostate-specific deletion at chromosome 3p14 that implicates FOXP1, RYBP, and SHQ1 as potential cooperative tumor suppressors. DNA copy-number data from primary tumors revealed that copy-number alterations robustly define clusters of low- and high-risk disease beyond that achieved by Gleason score.";
-	
-	
-	
-
 
 }
 

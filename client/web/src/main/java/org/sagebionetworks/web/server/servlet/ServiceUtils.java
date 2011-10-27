@@ -21,6 +21,8 @@ public class ServiceUtils {
 	public static final String REPOSVC_PATH_ENTITY = "entity";
 	public static final String REPOSVC_PATH_HAS_ACCESS = "access";
 	public static final String REPOSVC_PATH_GET_USERS = "user";
+	public static final String REPOSVC_PATH_ANALYSIS = "analysis";
+	public static final String REPOSVC_PATH_STEP = "step";
 	public static final String REPOSVC_SUFFIX_PATH_ANNOTATIONS = "annotations";
 	public static final String REPOSVC_SUFFIX_PATH_PREVIEW = "preview";
 	public static final String REPOSVC_SUFFIX_LOCATION_PATH = "location";	
@@ -46,7 +48,6 @@ public class ServiceUtils {
 	public static final String AUTHSVC_ACL_PRINCIPAL_URI = "uri";
 	public static final String AUTHSVC_ACL_PRINCIPAL_ETAG = "etag";
 	public static final String AUTHSVC_ACL_PRINCIPAL_INDIVIDUAL = "individual";
-
 	
 	public static StringBuilder getBaseUrlBuilder(ServiceUrlProvider urlProvider, NodeType type) {
 		StringBuilder builder = new StringBuilder();
@@ -67,6 +68,12 @@ public class ServiceUtils {
 			break;
 		case AGREEMENT:
 			builder.append(REPOSVC_PATH_AGREEMENT);
+			break;
+		case ANALYSIS:
+			builder.append(REPOSVC_PATH_ANALYSIS);
+			break;
+		case STEP:
+			builder.append(REPOSVC_PATH_STEP);
 			break;
 		case ENTITY:
 			builder.append(REPOSVC_PATH_ENTITY);

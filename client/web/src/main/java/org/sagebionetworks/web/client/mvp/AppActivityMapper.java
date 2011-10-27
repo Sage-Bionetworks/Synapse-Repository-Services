@@ -9,6 +9,8 @@ import java.util.logging.Logger;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.PortalGinInjector;
+import org.sagebionetworks.web.client.place.AnalysesHome;
+import org.sagebionetworks.web.client.place.Analysis;
 import org.sagebionetworks.web.client.place.ComingSoon;
 import org.sagebionetworks.web.client.place.Dataset;
 import org.sagebionetworks.web.client.place.DatasetsHome;
@@ -20,8 +22,12 @@ import org.sagebionetworks.web.client.place.PhenoEdit;
 import org.sagebionetworks.web.client.place.Profile;
 import org.sagebionetworks.web.client.place.Project;
 import org.sagebionetworks.web.client.place.ProjectsHome;
+import org.sagebionetworks.web.client.place.Step;
+import org.sagebionetworks.web.client.place.StepsHome;
 import org.sagebionetworks.web.client.place.users.PasswordReset;
 import org.sagebionetworks.web.client.place.users.RegisterAccount;
+import org.sagebionetworks.web.client.presenter.AnalysesHomePresenter;
+import org.sagebionetworks.web.client.presenter.AnalysisPresenter;
 import org.sagebionetworks.web.client.presenter.ComingSoonPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetsHomePresenter;
@@ -33,6 +39,8 @@ import org.sagebionetworks.web.client.presenter.PhenoEditPresenter;
 import org.sagebionetworks.web.client.presenter.ProfilePresenter;
 import org.sagebionetworks.web.client.presenter.ProjectPresenter;
 import org.sagebionetworks.web.client.presenter.ProjectsHomePresenter;
+import org.sagebionetworks.web.client.presenter.StepPresenter;
+import org.sagebionetworks.web.client.presenter.StepsHomePresenter;
 import org.sagebionetworks.web.client.presenter.users.PasswordResetPresenter;
 import org.sagebionetworks.web.client.presenter.users.RegisterAccountPresenter;
 import org.sagebionetworks.web.client.security.AuthenticationController;
@@ -132,6 +140,26 @@ public class AppActivityMapper implements ActivityMapper {
 			// Projects Home 
 			ProjectPresenter presenter = ginjector.getProjectPresenter();
 			presenter.setPlace((Project)place);
+			return presenter;
+		}else if (place instanceof AnalysesHome) {
+			// Analyses Home 
+			AnalysesHomePresenter presenter = ginjector.getAnalysesHomePresenter();
+			presenter.setPlace((AnalysesHome)place);
+			return presenter;
+		}else if (place instanceof Analysis) {
+			// Analysis Home 
+			AnalysisPresenter presenter = ginjector.getAnalysisPresenter();
+			presenter.setPlace((Analysis)place);
+			return presenter;
+		}else if (place instanceof StepsHome) {
+			// Steps Home 
+			StepsHomePresenter presenter = ginjector.getStepsHomePresenter();
+			presenter.setPlace((StepsHome)place);
+			return presenter;
+		}else if (place instanceof Step) {
+			// Steps Home 
+			StepPresenter presenter = ginjector.getStepPresenter();
+			presenter.setPlace((Step)place);
 			return presenter;
 		}else if (place instanceof LoginPlace) {
 			// login view

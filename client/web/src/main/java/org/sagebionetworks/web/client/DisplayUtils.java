@@ -1,11 +1,13 @@
 package org.sagebionetworks.web.client;
 
 
+import org.sagebionetworks.web.client.place.Analysis;
 import org.sagebionetworks.web.client.place.Dataset;
 import org.sagebionetworks.web.client.place.Home;
 import org.sagebionetworks.web.client.place.Layer;
 import org.sagebionetworks.web.client.place.LoginPlace;
 import org.sagebionetworks.web.client.place.Project;
+import org.sagebionetworks.web.client.place.Step;
 import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.exceptions.BadRequestException;
 import org.sagebionetworks.web.shared.exceptions.ForbiddenException;
@@ -232,6 +234,12 @@ public class DisplayUtils {
 			break;
 		case LAYER:
 			place = new Layer(id, null, false);
+			break;
+		case ANALYSIS:
+			place = new Analysis(id);
+			break;
+		case STEP:
+			place = new Step(id);
 			break;
 		default:
 			place = null;

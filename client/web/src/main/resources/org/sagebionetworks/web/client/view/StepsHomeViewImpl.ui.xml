@@ -1,0 +1,68 @@
+<!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
+<ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
+	xmlns:g="urn:import:com.google.gwt.user.client.ui" 
+	xmlns:c="urn:import:com.google.gwt.user.cellview.client"
+	xmlns:s="urn:import:org.sagebionetworks.web.client.view">
+		
+	<ui:style>
+		.important {
+			font-weight: bold;
+		}
+		
+		.rowTop {
+			vertical-align: top;
+		}
+	</ui:style>
+		
+	<g:HTMLPanel>
+
+	<!-- start header -->
+		<div id="container" class="clearfix">		
+			<g:SimplePanel ui:field="header" />
+			<div id="main" role="main">
+	<!-- end header -->
+
+				<div id="main_content" class="clearfix">	
+					<ul class="breadcrumbs">
+						<li class="breadcrumb"><a href="#">Home</a> > All Steps</li>
+					</ul>
+					<h2>All Steps</h2>
+					<div class="info">
+						Groups use steps in Synapse to organize their efforts and track their analyses. You can browse existing steps in the table below. 											
+					</div>					
+				</div>		
+
+				<div id="sidebar">
+					<div id="participate" class="clearfix">
+							<h5>Invitation to Participate</h5>
+							<br />
+							Would you like to create a step to make use of the available datasets and analytical capabilities of Synapse?  
+							<br /><br />
+				
+							<g:SimplePanel ui:field="createStepButtonPanel" />							
+							<!-- 
+							<a href="#">
+							<span class="large_button left">
+								<span class="large_button_left">&nbsp;</span>
+								<span class="large_button_center">Start a Step</span>
+								<span class="large_button_right">&nbsp;</span>
+							</span>
+							</a>
+							 -->
+					</div>
+				</div>
+
+				<div id="data">
+					<div>
+						<g:SimplePanel ui:field="tablePanel" />
+					</div>
+				</div>				
+					
+<!-- start footer -->
+				<g:SimplePanel ui:field="footer" />
+			</div> <!-- id: main -->				
+		</div> <!-- id: container -->
+<!-- end footer -->
+
+	</g:HTMLPanel>
+</ui:UiBinder> 

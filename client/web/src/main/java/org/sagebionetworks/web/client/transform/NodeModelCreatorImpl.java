@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.transform;
 
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.shared.Agreement;
+import org.sagebionetworks.web.shared.Analysis;
 import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.DownloadLocation;
@@ -11,6 +12,7 @@ import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
 import org.sagebionetworks.web.shared.PagedResults;
 import org.sagebionetworks.web.shared.Project;
+import org.sagebionetworks.web.shared.Step;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 
 import com.google.gwt.json.client.JSONObject;
@@ -103,6 +105,18 @@ public class NodeModelCreatorImpl implements NodeModelCreator {
 		}
 	}
 
+	@Override
+	public Analysis createAnalysis(String json) throws RestServiceException {
+		JSONObject obj = JSONParser.parseStrict(json).isObject();
+		DisplayUtils.checkForErrors(obj);
+		return new Analysis(obj);
+	}
 
+	@Override
+	public Step createStep(String json) throws RestServiceException {
+		JSONObject obj = JSONParser.parseStrict(json).isObject();
+		DisplayUtils.checkForErrors(obj);
+		return new Step(obj);
+	}
 }
 
