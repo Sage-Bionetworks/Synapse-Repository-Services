@@ -18,7 +18,7 @@
 			<plugin>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>schema-to-pojo-maven-plugin</artifactId>
-				<version>${schema-to-pojo.version}</version>
+				<version>0.0.7</version>
 				<executions>
 					<execution>
 						<goals>
@@ -39,15 +39,14 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>schema-to-pojo-lib</artifactId>
-			<version>${schema-to-pojo.version}</version>
-			<type>jar</type>
+			<version>0.0.7</version>
 		</dependency>
 		<!-- This must remain a test only scope or it will add org.json as a dependency 
 			to all projects. -->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>schema-to-pojo-org-json</artifactId>
-			<version>${schema-to-pojo.version}</version>
+			<version>0.0.7</version>
 		</dependency>
 		
 		<dependency>
