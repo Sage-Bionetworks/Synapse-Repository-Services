@@ -3,9 +3,10 @@
     "id":"Analysis.json",
     "implements":[
         {
-            "$ref":"Entity.json",
-            
+            "$ref":"Entity.json"            
+        },
+                {
+            "$ref":"HasSteps.json"            
         }
     ],
-    
 }
