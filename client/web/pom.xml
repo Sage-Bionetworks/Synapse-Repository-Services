@@ -6,13 +6,13 @@
 	<parent>
 		<artifactId>client</artifactId>
 		<groupId>org.sagebionetworks</groupId>
-		<version>parent-1.0</version>
+		<version>0.8-SNAPSHOT</version>
 	</parent>
+	
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>portal</artifactId>
 	<packaging>war</packaging>
-	<version>${applicationVersion}</version>
 	<name>GWT Maven Archetype</name>
 
 	<properties>
@@ -113,7 +113,6 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-stackConfiguration</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 
@@ -224,7 +223,6 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-models</artifactId>
-			<version>${applicationVersion}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

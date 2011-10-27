@@ -6,13 +6,12 @@
 	<parent>
 		<groupId>org.sagebionetworks</groupId>
 		<artifactId>services</artifactId>
-		<version>parent-1.0</version>
+		<version>0.8-SNAPSHOT</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>services-repository</artifactId>
 	<packaging>war</packaging>
-	<version>${applicationVersion}</version>
 	<name>Platform Repository Service</name>
 
 	<dependencies>
@@ -21,31 +20,26 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-models</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-jdomodels</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>auth-util</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-stackConfiguration</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>
 		  <groupId>org.sagebionetworks</groupId>
 		  <artifactId>lib-securityUtilities</artifactId>
-		  <version>${applicationVersion}</version>
 		</dependency>
 		
 		<!-- This was being pulled in as a child dependency of the springframework 

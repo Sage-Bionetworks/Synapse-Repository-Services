@@ -4,11 +4,11 @@
 	<parent>
 		<artifactId>lib</artifactId>
 		<groupId>org.sagebionetworks</groupId>
-		<version>parent-1.0</version>
+		<version>0.8-SNAPSHOT</version>
 	</parent>
+	
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>lib-auto-generated</artifactId>
-	<version>${applicationVersion}</version>
 	<name>lib-schema</name>
 	<description>This project contains JSON schemas and the POJOs auto-generated from the schemas</description>
 	<build>
@@ -39,20 +39,17 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>schema-to-pojo-lib</artifactId>
-			<version>${schema-to-pojo.version}</version>
 		</dependency>
 		<!-- This must remain a test only scope or it will add org.json as a dependency 
 			to all projects. -->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>schema-to-pojo-org-json</artifactId>
-			<version>${schema-to-pojo.version}</version>
 		</dependency>
 		
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-models</artifactId>
-			<version>${applicationVersion}</version>
 			<scope>test</scope>
 		</dependency>
 		

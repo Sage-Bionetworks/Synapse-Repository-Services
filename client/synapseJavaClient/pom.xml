@@ -7,12 +7,11 @@
 	<parent>
 		<artifactId>client</artifactId>
 		<groupId>org.sagebionetworks</groupId>
-		<version>parent-1.0</version>
+		<version>0.8-SNAPSHOT</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>synapseJavaClient</artifactId>
-	<version>${applicationVersion}</version>
 	<packaging>jar</packaging>
 	<name>synapseJavaClient</name>
 
@@ -21,13 +20,11 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-auto-generated</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-communicationUtilities</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>

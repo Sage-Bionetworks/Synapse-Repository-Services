@@ -6,12 +6,11 @@
 	<parent>
 		<groupId>org.sagebionetworks</groupId>
 		<artifactId>services</artifactId>
-		<version>parent-1.0</version>
+		<version>0.8-SNAPSHOT</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>services-authentication</artifactId>
-	<version>${applicationVersion}</version>
 	<packaging>war</packaging>
 	<name>Platform Authentication Service</name>
 
@@ -20,13 +19,11 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>auth-util</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-securityUtilities</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<!-- JSON -->

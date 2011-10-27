@@ -3,13 +3,12 @@
 	<parent>
 		<artifactId>platform</artifactId>
 		<groupId>org.sagebionetworks</groupId>
-		<version>parent-1.0</version>
+		<version>0.8-SNAPSHOT</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>tools</artifactId>
 	<packaging>pom</packaging>
-	<version>parent-1.0</version>
 	<name>Platform Tools</name>
 	
     <modules>

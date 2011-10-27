@@ -6,13 +6,12 @@
 	<parent>
 		<groupId>org.sagebionetworks</groupId>
 		<artifactId>platform</artifactId>
-		<version>parent-1.0</version>
+		<version>0.8-SNAPSHOT</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>integration-test</artifactId>
 	<packaging>jar</packaging>
-	<version>${applicationVersion}</version>
 	<name>Integration Tests for All services</name>
 
 	<properties>
@@ -228,7 +227,6 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>services-authentication</artifactId>
-			<version>${applicationVersion}</version>
 			<type>war</type>
 		</dependency>
 		
@@ -242,14 +240,12 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>services-repository</artifactId>
-			<version>${applicationVersion}</version>
 			<type>war</type>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>portal</artifactId>
-			<version>${applicationVersion}</version>
 			<type>war</type>
 		</dependency>
 
@@ -257,7 +253,6 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>portal</artifactId>
-			<version>${applicationVersion}</version>
 			<classifier>gwt-rpc-assembly</classifier>
 			<scope>integration-test</scope>
 			<type>jar</type>
@@ -266,25 +261,21 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-models</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-stackConfiguration</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>synapseJavaClient</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>synapsePythonClient</artifactId>
-			<version>${applicationVersion}</version>
 			<classifier>synapse-python-client-assembly</classifier>
 			<type>zip</type>
 			<!-- Make sure this isn't included on any classpath -->
@@ -294,7 +285,6 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>synapseRClient</artifactId>
-			<version>${applicationVersion}</version>
 			<classifier>synapse-r-client-assembly</classifier>
 			<type>zip</type>
 			<!-- Make sure this isn't included on any classpath -->
@@ -304,7 +294,6 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>DatasetMetadataLoader</artifactId>
-			<version>${applicationVersion}</version>
 			<classifier>dataset-metadata-loader-assembly</classifier>
 			<type>zip</type>
 			<!-- Make sure this isn't included on any classpath -->
@@ -314,13 +303,11 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>wikiutil</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-communicationUtilities</artifactId>
-			<version>${applicationVersion}</version>
 		</dependency>
 
 <!--		<dependency>-->

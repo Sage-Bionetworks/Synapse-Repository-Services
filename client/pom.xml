@@ -9,14 +9,13 @@
   <parent>
     <groupId>org.sagebionetworks</groupId>
     <artifactId>platform</artifactId>
-    <version>parent-1.0</version>
+    <version>0.8-SNAPSHOT</version>
   </parent>
   
   <groupId>org.sagebionetworks</groupId>
   <artifactId>client</artifactId>
   <packaging>pom</packaging>
   <name>Platform Clients</name>
-  <version>parent-1.0</version>
 
   <modules>
     <module>web</module>
