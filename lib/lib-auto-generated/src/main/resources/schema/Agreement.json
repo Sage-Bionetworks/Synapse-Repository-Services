@@ -4,7 +4,26 @@
     "implements":[
         {
             "$ref":"Entity.json",
+            
         }
     ],
-    
+    "properties":{
+        "datasetId":{
+            "type":"string",
+            "description":"The id of the dataset that this is an Agreement for.",
+        },
+        "datasetVersionNumber":{
+            "type":"integer",
+            "description":"The version number of the dataset that this is an Agreement for.",
+        },
+        "eulaId":{
+            "type":"string",
+            "description":"The id of the End User License Agreement (EULA).",
+        },
+        "eulaVersionNumber":{
+            "type":"integer",
+            "description":"The version number of the End User License Agreement (EULA)",            
+        },
+        
+    }
 }
