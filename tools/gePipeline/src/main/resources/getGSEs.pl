@@ -13,7 +13,7 @@ system("rm all.GSEs.txt");
 
 open O, ">>all.GSEs.txt";
 print O
-"GSE.ID\tGPL\tLast Update Date\tSpecies\tSummary\tSupplementary_File\tN_Samples\n";
+"GSE.ID\tGPL\tLast Update Date\tSpecies\tDescription\tSupplementary_File\tNumber_of_Samples\tInvestigator\tPlatform\n";
 close O;
 
 foreach my $p ( keys %platforms ) {
@@ -73,7 +73,7 @@ sub getInfo {
 	my %retval;
 	open F, $_[0];
 	open O, ">>all.GSEs.txt";
-	my ( $gse, $gpl, $pdat, $taxon, $suppFile, $summary, $n_samples ) = 'NA';
+	my ( $gse, $gpl, $pdat, $taxon, $suppFile, $summary, $n_samples, $investigator, $platform ) = 'NA';
 	while (<F>) {
 		s/\r//g;
 		s/\!//;
@@ -85,7 +85,7 @@ sub getInfo {
 			#################################
 			if ( not defined $gses{$gse} ) {
 				print O 'GSE'.$gse, "\t", $gpl, "\t", $pdat, "\t", $taxon, "\t", $summary,
-					"\t", $suppFile, "\t", $n_samples, "\n";
+					"\t", $suppFile, "\t", $n_samples, "\t", $investigator, "\t", $platform, "\n";
 				$gses{$gse} = 1;
 			}
 		}
