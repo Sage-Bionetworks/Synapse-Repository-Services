@@ -26,7 +26,7 @@
         <version>2.1</version>
         <configuration>
           <descriptors>
-            <descriptor>datasetMetadataLoader-assembly.xml</descriptor>
+            <descriptor>synapseDeployer-assembly.xml</descriptor>
           </descriptors>
         </configuration>
         <executions>
