@@ -137,7 +137,7 @@ public class GEPWorkflow {
 		// so let's try URLEncoding the param.  This means we must URLDecode on the R side
 		try {
 			// R's URLdecode expects %20 for space, not +
-			return URLEncoder.encode(s, "UTF-8").replaceAll("+", "%20");
+			return URLEncoder.encode(s, "UTF-8").replaceAll("\\+", "%20");
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}

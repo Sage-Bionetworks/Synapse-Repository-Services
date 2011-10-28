@@ -12,8 +12,8 @@ lapply(1:nrow(all.gses), function(i) {
 					Description =all.gses[i,4],
 					hasCelFile=all.gses[i,5],
 					Number_of_Samples=all.gses[i,6],
-					Investigator=all.gses[i,7],
-					Platform=all.gses[,8])
+					creator=all.gses[i,7],
+					Platform=all.gses[i,8])
   b
 }) -> output
 

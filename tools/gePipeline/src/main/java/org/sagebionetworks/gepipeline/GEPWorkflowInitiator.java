@@ -41,7 +41,7 @@ public class GEPWorkflowInitiator {
 		// the script returns a map whose keys are GSEIDs to run and values are the input data for each activity instance
 		Map<String,String> idToActivityInputMap = results.getStringMapResult(ScriptResult.OUTPUT_JSON_KEY);
 		log.info("datasetIds to input map: "+idToActivityInputMap);
-		int max = 1; // set to -1 to disable
+		int max = -1; // set to -1 to disable
 		int i = 0;
 		for (String datasetId:idToActivityInputMap.keySet()) {
 			if (max>0 && i++>=max) break; // for debugging, just launch a few...
