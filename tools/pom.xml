@@ -16,6 +16,7 @@
       <module>wikiutil</module>
       <module>DatasetMetadataLoader</module>
       <module>gePipeline</module>
+      <module>SynapseDeployer</module>
   </modules>
     
 </project>
