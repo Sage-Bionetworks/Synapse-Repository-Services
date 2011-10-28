@@ -6,6 +6,7 @@ open F, "src/main/resources/ncbiGPLIDs" or die("dead");
 while (<F>) {
 	chomp;
 	$platforms{$_} = 1;
+	### last(); # INCLUDE THIS LINE TO LIMIT THE RESULTS TO A SINGLE PLATFORM (for testing) 
 }
 
 my %gses;
@@ -85,7 +86,7 @@ sub getInfo {
 			#################################
 			if ( not defined $gses{$gse} ) {
 				print O 'GSE'.$gse, "\t", $gpl, "\t", $pdat, "\t", $taxon, "\t", $summary,
-					"\t", $suppFile, "\t", $n_samples, "\t", $investigator, "\t", $platform, "\n";
+					"\t", $suppFile, "\t", $n_samples, "\t", "NA", "\t", "NA", "\n";
 				$gses{$gse} = 1;
 			}
 		}

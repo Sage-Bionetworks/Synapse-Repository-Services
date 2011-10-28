@@ -30,22 +30,40 @@ authEndpoint <- getAuthEndpointArg()
 repoEndpoint <- getRepoEndpointArg()
 projectId <- getProjectIdArg()
 
-# "old" way:
-#geoTimestamp <- getInputDataArg()
-
-# "new" way:
 urlEncodedInputData <- getInputDataArg()
 # to avoid problems with spaces, quotes, etc. we just URLEncode the input data
 # thus we decode it here
 inputData <- URLdecode(urlEncodedInputData)
-inputDataMap<-RJSONIO::fromJSON(inputData)
+inputDataMap<-RJSONIO::fromJSON(inputData, simplify=F)
 
 geoTimestamp<-inputDataMap[["lastUpdate"]]
-summary <-inputDataMap[["summary"]]
+summary <-inputDataMap[["Description"]]
 gpl<-inputDataMap[["gpl"]]
 hasCelFile<-inputDataMap[["hasCelFile"]]
-species<-inputDataMap[["species"]]
-nSamples<-inputDataMap[["n_sample"]]
+species<-inputDataMap[["Species"]]
+nSamples<-inputDataMap[["Number_of_Samples"]]
+investigator<-inputDataMap[["Investigator"]]
+platform<-inputDataMap[["Platform"]]
+
+# divides attributes into 'properties' and 'annotations'
+splitDatasetAttributes<-function(a) {
+	dataSetPropertyLabels<-c("name", "description", "status", "creator")
+	properties<-list()
+	annotations<-list()
+	for (i in 1:length(a)) {
+		fieldName<-names(a[i])
+		cat(paste(fieldName, "\n"))
+		if (any(dataSetPropertyLabels==fieldName)) {
+			properties[fieldName]<-a[i]
+		} else {
+			annotations[fieldName]<-a[i]
+		}
+	}
+	list(properties=properties, annotations=annotations)
+}
+
+
+attributes<-splitDatasetAttributes(inputDataMap)
 
 
 if(is.null(gseId) 
