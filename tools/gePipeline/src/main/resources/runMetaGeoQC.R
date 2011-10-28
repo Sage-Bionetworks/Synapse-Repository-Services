@@ -52,7 +52,6 @@ splitDatasetAttributes<-function(a) {
 	annotations<-list()
 	for (i in 1:length(a)) {
 		fieldName<-names(a[i])
-		cat(paste(fieldName, "\n"))
 		if (any(dataSetPropertyLabels==fieldName)) {
 			properties[fieldName]<-a[i]
 		} else {
