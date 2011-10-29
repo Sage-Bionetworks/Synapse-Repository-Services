@@ -11,14 +11,15 @@ public enum ObjectType {
 
 	dataset			(Dataset.class, 	(short)0, PrefixConst.DATASET,		NodeConstants.ROOT_FOLDER_PATH, 	new String[]{PrefixConst.PROJECT}),
 	layer			(Layer.class, 		(short)1, PrefixConst.LAYER,		NodeConstants.ROOT_FOLDER_PATH,		new String[]{PrefixConst.DATASET}),
-	location		(Location.class, 	(short)2, PrefixConst.LOCATION,		NodeConstants.ROOT_FOLDER_PATH,		new String[]{PrefixConst.DATASET, PrefixConst.LAYER}),
+	location		(Location.class, 	(short)2, PrefixConst.LOCATION,		NodeConstants.ROOT_FOLDER_PATH,		new String[]{PrefixConst.DATASET, PrefixConst.LAYER, PrefixConst.CODE}),
 	project			(Project.class, 	(short)3, PrefixConst.PROJECT,		NodeConstants.ROOT_FOLDER_PATH,		new String[]{PrefixConst.FOLDER, PrefixConst.PROJECT, PrefixConst.DEFAULT}),
 	preview			(Preview.class, 	(short)4, PrefixConst.PREVIEW,		NodeConstants.ROOT_FOLDER_PATH, 	new String[]{PrefixConst.LAYER}),
 	eula			(Eula.class,		(short)5, PrefixConst.EULA,			NodeConstants.EULA_FOLDER_PATH,		new String[]{PrefixConst.DEFAULT, PrefixConst.FOLDER}),
 	agreement		(Agreement.class,	(short)6, PrefixConst.AGREEMENT,	NodeConstants.AGREEMENT_FOLDER_PATH,new String[]{PrefixConst.DEFAULT, PrefixConst.FOLDER}),
 	folder			(Folder.class,		(short)7, PrefixConst.FOLDER,		NodeConstants.ROOT_FOLDER_PATH,		new String[]{PrefixConst.DEFAULT, PrefixConst.FOLDER}),
 	analysis		(Analysis.class, 	(short)8, PrefixConst.ANALYSIS,		NodeConstants.ROOT_FOLDER_PATH, 	new String[]{PrefixConst.PROJECT}),
-	step			(Step.class, 		(short)9, PrefixConst.STEP,			NodeConstants.ROOT_FOLDER_PATH, 	new String[]{PrefixConst.FOLDER, PrefixConst.ANALYSIS, PrefixConst.DEFAULT});
+	step			(Step.class, 		(short)9, PrefixConst.STEP,			NodeConstants.ROOT_FOLDER_PATH, 	new String[]{PrefixConst.FOLDER, PrefixConst.ANALYSIS, PrefixConst.DEFAULT}),
+	code			(Code.class,			(short)10, PrefixConst.CODE,		NodeConstants.ROOT_FOLDER_PATH,		new String[]{PrefixConst.PROJECT});
 	
 	private Class<? extends Nodeable> clazz;
 	private short id;

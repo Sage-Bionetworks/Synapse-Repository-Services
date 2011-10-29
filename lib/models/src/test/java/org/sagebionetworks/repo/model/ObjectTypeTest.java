@@ -78,7 +78,7 @@ public class ObjectTypeTest {
 	
 	@Test
 	public void testLocationValidParent(){
-		ObjectType[] expectedValid = new ObjectType[]{ObjectType.dataset, ObjectType.layer};
+		ObjectType[] expectedValid = new ObjectType[]{ObjectType.dataset, ObjectType.layer, ObjectType.code};
 		testValidParents(expectedValid, ObjectType.location);
 	}
 	

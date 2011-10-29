@@ -738,6 +738,7 @@ public class Synapse {
 			String response = (null != e.getResponse().getEntity()) ? EntityUtils
 					.toString(e.getResponse().getEntity())
 					: null;
+			System.out.println(response);
 			try {
 				results = new JSONObject(response);
 				if (log.isDebugEnabled()) {

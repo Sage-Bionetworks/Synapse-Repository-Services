@@ -99,6 +99,7 @@ public class UrlHelpers {
 	public static final String ENTITY	 = PrefixConst.ENTITY;
 	public static final String ANALYSIS	 = PrefixConst.ANALYSIS;
 	public static final String STEP 	 = PrefixConst.STEP;
+	public static final String CODE 	 = PrefixConst.CODE;
 	
 	/**
 	 * All of the base URLs for Synapse objects with ID.
@@ -114,6 +115,7 @@ public class UrlHelpers {
 	public static final String ENTITY_ID	= ENTITY+ID;
 	public static final String ANALYSIS_ID	= ANALYSIS+ID;
 	public static final String STEP_ID		= STEP+ID;
+	public static final String CODE_ID		= CODE+ID;
 	
 	public static final String ENTITY_ID_TYPE = ENTITY_ID+TYPE;
 	
@@ -130,6 +132,7 @@ public class UrlHelpers {
 	public static final String FOLDER_ANNOTATIONS 	= FOLDER_ID+ANNOTATIONS;
 	public static final String ANALYSIS_ANNOTATIONS	= ANALYSIS_ID+ANNOTATIONS;
 	public static final String STEP_ANNOTATIONS 	= STEP_ID+ANNOTATIONS;
+	public static final String CODE_ANNOTATIONS 	= CODE_ID+ANNOTATIONS;
 
 	
 	/**
@@ -145,6 +148,7 @@ public class UrlHelpers {
 	public static final String FOLDER_PATH		= FOLDER_ID+PATH;
 	public static final String ANALYSIS_PATH	= ANALYSIS_ID+PATH;
 	public static final String STEP_PATH		= STEP_ID+PATH;
+	public static final String CODE_PATH		= CODE_ID+PATH;
 	
 	/**
 	 * All of the base URLs for Synapse object's versions.
@@ -163,6 +167,7 @@ public class UrlHelpers {
 	public static final String FOLDER_CHILDREN		= PARENT_TYPE_ID+FOLDER;
 	public static final String ANALYSIS_CHILDREN	= PARENT_TYPE_ID+ANALYSIS;
 	public static final String STEP_CHILDREN		= PARENT_TYPE_ID+STEP;
+	public static final String CODE_CHILDREN		= PARENT_TYPE_ID+CODE;
 
 	/**
 	 * Get the schema for each object type
@@ -177,6 +182,7 @@ public class UrlHelpers {
 	public static final String FOLDER_SCHEMA 	= FOLDER+SCHEMA;
 	public static final String ANALYSIS_SCHEMA 	= ANALYSIS+SCHEMA;
 	public static final String STEP_SCHEMA 		= STEP+SCHEMA;
+	public static final String CODE_SCHEMA 		= CODE+SCHEMA;
 	
 	/**
 	 * Get a specific version of an entity
