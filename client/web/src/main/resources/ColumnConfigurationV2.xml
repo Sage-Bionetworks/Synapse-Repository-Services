@@ -189,7 +189,7 @@
 		</column>		
 		<column id="analysis.name">
 			<type>String</type>
-			<display>analysis Name</display>
+			<display>Analysis Name</display>
 			<description>Name of the analysis</description>
 		</column>
 		<column id="analysis.description">

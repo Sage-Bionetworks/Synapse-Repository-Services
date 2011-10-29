@@ -77,8 +77,8 @@ public class NodeEditorDisplayHelper {
 				NodeType.ANALYSIS, "Analysis",
 				DisplayConstants.CREATE_ANALYSIS_TEXT,
 				DisplayConstants.EDIT_ANALYSIS_TEXT, 
-				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag"}),
-				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag"}));		
+				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "parentId", "uri", "etag"}),
+				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "parentId", "uri", "etag"}));		
 		deviation.setKeyToOntology(new StaticOntologies().getAnnotationToOntology());
 			
 		return deviation;
@@ -90,8 +90,8 @@ public class NodeEditorDisplayHelper {
 				NodeType.STEP, "Step",
 				DisplayConstants.CREATE_STEP_TEXT,
 				DisplayConstants.EDIT_STEP_TEXT, 
-				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag"}),
-				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag"}));		
+				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "parentId", "uri", "etag"}),
+				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "parentId", "uri", "etag"}));		
 		deviation.setKeyToOntology(new StaticOntologies().getAnnotationToOntology());
 			
 		return deviation;
