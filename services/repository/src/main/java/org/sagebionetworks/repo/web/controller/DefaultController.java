@@ -74,7 +74,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.EULA,
 			UrlHelpers.AGREEMENT,
 			UrlHelpers.ANALYSIS,
-			UrlHelpers.STEP
+			UrlHelpers.STEP,
+			UrlHelpers.CODE
 			}, method = RequestMethod.POST)
 	public @ResponseBody
 	Nodeable createEntity(
@@ -146,7 +147,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.EULA_ID,
 			UrlHelpers.AGREEMENT_ID,
 			UrlHelpers.ANALYSIS_ID,
-			UrlHelpers.STEP_ID
+			UrlHelpers.STEP_ID,
+			UrlHelpers.CODE_ID
 			}, method = RequestMethod.GET)
 	public @ResponseBody
 	Nodeable getEntity(
@@ -245,7 +247,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.EULA_ID,
 			UrlHelpers.AGREEMENT_ID,
 			UrlHelpers.ANALYSIS_ID,
-			UrlHelpers.STEP_ID
+			UrlHelpers.STEP_ID,
+			UrlHelpers.CODE_ID
 	}, method = RequestMethod.PUT)
 	public @ResponseBody
 	Nodeable updateEntity(
@@ -312,7 +315,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.EULA_ANNOTATIONS,
 			UrlHelpers.AGREEMENT_ANNOTATIONS,
 			UrlHelpers.ANALYSIS_ANNOTATIONS,
-			UrlHelpers.STEP_ANNOTATIONS
+			UrlHelpers.STEP_ANNOTATIONS,
+			UrlHelpers.CODE_ANNOTATIONS
 			}, method = RequestMethod.GET)
 	public @ResponseBody
 	Annotations getEntityAnnotations(
@@ -345,7 +349,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.EULA_PATH,
 			UrlHelpers.AGREEMENT_PATH,
 			UrlHelpers.ANALYSIS_PATH,
-			UrlHelpers.STEP_PATH
+			UrlHelpers.STEP_PATH,
+			UrlHelpers.CODE_PATH
 			}, method = RequestMethod.GET)
 	public @ResponseBody
 	List<EntityHeader> getEntityPath(
@@ -409,7 +414,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.EULA_ANNOTATIONS,
 			UrlHelpers.AGREEMENT_ANNOTATIONS,
 			UrlHelpers.ANALYSIS_ANNOTATIONS,
-			UrlHelpers.STEP_ANNOTATIONS
+			UrlHelpers.STEP_ANNOTATIONS,
+			UrlHelpers.CODE_ANNOTATIONS
 	}, method = RequestMethod.PUT)
 	public @ResponseBody
 	Annotations updateEntityAnnotations(
@@ -442,7 +448,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.EULA_ID,
 			UrlHelpers.AGREEMENT_ID,
 			UrlHelpers.ANALYSIS_ID,
-			UrlHelpers.STEP_ID
+			UrlHelpers.STEP_ID,
+			UrlHelpers.CODE_ID
 			}, method = RequestMethod.DELETE)
 	public void deleteEntity(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
@@ -504,7 +511,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.EULA,
 			UrlHelpers.AGREEMENT,
 			UrlHelpers.ANALYSIS,
-			UrlHelpers.STEP
+			UrlHelpers.STEP,
+			UrlHelpers.CODE
 		}, method = RequestMethod.GET)
 	public @ResponseBody
     PaginatedResults<Nodeable> getEntities(
@@ -588,7 +596,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.EULA_CHILDREN,
 			UrlHelpers.AGREEMENT_CHILDREN,
 			UrlHelpers.ANALYSIS_CHILDREN,
-			UrlHelpers.STEP_CHILDREN
+			UrlHelpers.STEP_CHILDREN,
+			UrlHelpers.CODE_CHILDREN
 		}, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Nodeable> getEntityChildren(
@@ -632,7 +641,8 @@ public class DefaultController extends BaseController {
 			UrlHelpers.EULA_SCHEMA,
 			UrlHelpers.AGREEMENT_SCHEMA,
 			UrlHelpers.ANALYSIS_SCHEMA,
-			UrlHelpers.STEP_SCHEMA
+			UrlHelpers.STEP_SCHEMA,
+			UrlHelpers.CODE_SCHEMA
 	}, method = RequestMethod.GET)
 	public @ResponseBody
 	JsonSchema getEntitiesSchema(HttpServletRequest request) throws DatastoreException {

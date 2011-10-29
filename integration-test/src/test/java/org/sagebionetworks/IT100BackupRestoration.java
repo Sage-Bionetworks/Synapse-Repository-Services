@@ -123,9 +123,9 @@ public class IT100BackupRestoration {
 		// Step one is to upload the file to s3.
 		URL fileUrl = IT100BackupRestoration.class.getClassLoader()
 				.getResource(BACKUP_FILE_NAME);
-		File backupFile = new File(fileUrl.getFile());
+		File backupFile = new File(fileUrl.getFile().replaceAll("%20", " "));
 		// Make sure the file exists
-		assertTrue(backupFile.exists());
+		assertTrue(backupFile.getAbsolutePath()+" does not exist.", backupFile.exists());
 		// Now upload the file to s3
 		PutObjectResult putResults = s3Client.putObject(bucket,
 				BACKUP_FILE_NAME, backupFile);

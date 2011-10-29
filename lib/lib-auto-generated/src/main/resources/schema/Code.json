@@ -1,0 +1,11 @@
+{
+    "description":"JSON schema for Code POJO",
+    "id":"Code.json",
+    "implements":[
+        {
+            "$ref":"Entity.json"
+        },
+    ],
+    "properties":{
+    }
+}

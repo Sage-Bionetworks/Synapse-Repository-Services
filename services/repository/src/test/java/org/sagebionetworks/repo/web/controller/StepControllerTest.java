@@ -12,6 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.Analysis;
+import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.EnvironmentDescriptor;
 import org.sagebionetworks.repo.model.Layer;
@@ -40,6 +41,7 @@ public class StepControllerTest {
 	private Project project;
 	private Dataset dataset;
 	private Layer layer;
+	private Code code;
 
 	/**
 	 * @throws Exception
@@ -58,6 +60,10 @@ public class StepControllerTest {
 		layer.setParentId(dataset.getId());
 		layer.setType(LayerTypeNames.E.name());
 		layer = testHelper.createEntity(layer, null);
+		
+		code = new Code();
+		code.setParentId(project.getId());
+		code = testHelper.createEntity(code, null);
 	}
 
 	/**
@@ -80,6 +86,12 @@ public class StepControllerTest {
 		ref.setTargetId(layer.getId());
 		refs.add(ref);
 		step.setInput(refs);
+
+		Set<Reference> codeRefs = new HashSet<Reference>();
+		Reference codeRef = new Reference();
+		codeRef.setTargetId(code.getId());
+		codeRefs.add(codeRef);
+		step.setCode(codeRefs);
 
 		Set<EnvironmentDescriptor> descriptors = new HashSet<EnvironmentDescriptor>();
 
@@ -113,6 +125,7 @@ public class StepControllerTest {
 		assertEquals(layer.getId(), step.getInput().iterator().next().getTargetId());
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, step.getInput().iterator().next().getTargetVersionNumber());
 		assertEquals(4, step.getEnvironmentDescriptors().size());
+		assertEquals(code.getId(), step.getCode().iterator().next().getTargetId());
 	}
 
 	/**
@@ -137,6 +150,12 @@ public class StepControllerTest {
 		outputLayer.setParentId(dataset.getId());
 		outputLayer.setType(LayerTypeNames.M.name());
 		outputLayer = testHelper.createEntity(outputLayer, extraParams);
+		
+		
+		// Create a new code, side effect should be to reference it in the Step
+		Code code = new Code();
+		code.setParentId(project.getId());
+		code = testHelper.createEntity(code, extraParams);
 
 		// TODO update a layer, version a layer, etc ...
 
@@ -146,6 +165,8 @@ public class StepControllerTest {
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, step.getInput().iterator().next().getTargetVersionNumber());
 		assertEquals(outputLayer.getId(), step.getOutput().iterator().next().getTargetId());
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, step.getOutput().iterator().next().getTargetVersionNumber());
+		assertEquals(code.getId(), step.getCode().iterator().next().getTargetId());
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, step.getCode().iterator().next().getTargetVersionNumber());
 		
 		// Create a new analysis, side effect should be to re-parent the referenced step
 		Analysis analysis = new Analysis();
