@@ -55,7 +55,7 @@ splitDatasetAttributes<-function(a) {
 attributes<-splitDatasetAttributes(inputDataMap)
 
 if(!all(c('name', 'parentId', 'lastUpdate') %in% names(inputDataMap))){
-	msg <- paste("gseId: ", inputDataMap[["name"]], "\ngeoTimestamp: ", inputDataMap[["lastUpdate"]], "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", projectId, "\n")
+	msg <- paste("gseId: ", inputDataMap[["name"]], "\ngeoTimestamp: ", inputDataMap[["lastUpdate"]], "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", inputDataMap[["parentId"]], "\n")
 	msg <- sprintf("not all required properties were provided: %s", msg)
 	finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
 	stop(msg)
@@ -66,13 +66,13 @@ if(is.null(secretKey)
 		|| is.null(authEndpoint)
 		|| is.null(repoEndpoint)
 		){
-	msg <- paste("gseId: ", inputDataMap[["name"]], "\ngeoTimestamp: ", inputDataMap[["lastUpdate"]], "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", projectId, "\n")
+	msg <- paste("gseId: ", inputDataMap[["name"]], "\ngeoTimestamp: ", inputDataMap[["lastUpdate"]], "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", inputDataMap[["parentId"]], "\n")
 	msg <- sprintf("not all required arguments were provided: %s", msg)
 	finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
 	stop(msg)
 }
 
-msg <- paste("gseId: ", inputDataMap[["name"]], "\ngeoTimestamp: ", inputDataMap[["lastUpdate"]], "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", projectId, "\n")
+msg <- paste("gseId: ", inputDataMap[["name"]], "\ngeoTimestamp: ", inputDataMap[["lastUpdate"]], "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", inputDataMap[["parentId"]], "\n")
 cat(msg)
 
 ## set the service endpoints
@@ -109,7 +109,7 @@ if(!ans$update){
 	codeProjectId <- 17962 ### TEMPORARY FIX
 	result <- synapseQuery(sprintf('select * from dataset where dataset.name == "%s" and dataset.parentId == "%s"', "GEO R Code Layers", codeProjectId))
 	if(is.null(result) || nrow(result) != 1L){
-		msg <- sprintf("could not find R code dataset in project %s", projectId)
+		msg <- sprintf("could not find R code dataset in project %s", inputDataMap[["parentId"]])
 		finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
 		setWorkFlowStatusAnnotation(dsId, kErrorStatusCode, msg)
 		stop(msg)
