@@ -28,7 +28,9 @@ public class InternalInputStream extends InputStream {
 	 * @see java.io.InputStream#read()
 	 */
 	public int read() throws IOException {
-		if (p>=len) return -1;
+		if (p>=len) {
+			return -1;
+		}
 		int i = is.read();
 		p++;
 		return i;
@@ -40,7 +42,9 @@ public class InternalInputStream extends InputStream {
 	 * @see java.io.InputStream#read(byte[])
 	 */
 	public int read(byte[] b) throws IOException {
-		if (p>=len) return -1;
+		if (p>=len) {
+			return -1;
+		}
 		byte[] bInt = null;
 		if (b.length<=len-p) {
 			bInt = b;
@@ -62,8 +66,8 @@ public class InternalInputStream extends InputStream {
 	 * @throws IOException
 	 * @see java.io.InputStream#read(byte[], int, int)
 	 */
-	public int read(byte[] b, int off, int l) throws IOException {
-		l = Math.min(l, (int)(len-p));
+	public int read(byte[] b, int off, int lP) throws IOException {
+		int l = Math.min(lP, (int)(len-p));
 		int i = is.read(b, off, l);
 		p += i;
 		return i;

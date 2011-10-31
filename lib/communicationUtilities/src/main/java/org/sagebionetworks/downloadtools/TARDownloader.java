@@ -14,6 +14,10 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import org.apache.commons.net.ftp.FTP;
+import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPFile;
+
 
 /**
  * 
@@ -31,11 +35,19 @@ public class TARDownloader {
 	 * 
 	 * TODO:  A possible extension is to handle TAR files which are themselves zipped.
 	 */
-	public static List<File> download(URL url, File dir) throws IOException {
+	public static List<File> ftpDownload(String ftpServer, File remoteFile, File dir) throws IOException {
 		if (!dir.exists()) throw new IOException(dir.getPath()+" does not exist.");
 		byte [] buffer = new byte[RECORDLEN]; 
-		URLConnection conn = (URLConnection)url.openConnection();
-		InputStream is = conn.getInputStream();
+		FTPClient ftp = new FTPClient();
+	    ftp.connect( ftpServer );
+	    ftp.login("anonymous", "emailaddress");
+
+	    String path = remoteFile.getParent().replaceAll("\\\\", "/");
+	    boolean b = ftp.changeWorkingDirectory(path);
+	    if (!b) throw new RuntimeException("Cannot change directory to "+path);
+	    ftp.setFileType(FTP.BINARY_FILE_TYPE);
+		InputStream is = ftp.retrieveFileStream(remoteFile.getName());
+		if (is==null) throw new IOException("Unable to download "+remoteFile.getPath());
 		List<File> fileList = new ArrayList<File>();
 		while ( ((is.read(buffer)) == RECORDLEN) && (buffer[NAMEOFF] != 0) ) { 
 			String name = new String(buffer, NAMEOFF, NAMELEN, Charset.defaultCharset()).trim(); 
