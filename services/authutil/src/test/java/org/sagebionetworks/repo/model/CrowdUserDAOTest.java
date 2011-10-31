@@ -28,7 +28,7 @@ public class CrowdUserDAOTest {
 
 	@BeforeClass
 	public static void setUp() throws Exception {
-		CrowdAuthUtil.acceptAllCertificates2();
+		CrowdAuthUtil.acceptAllCertificates();
 	}
 
 	private static final String TEST_USER = "demouser@sagebase.org";

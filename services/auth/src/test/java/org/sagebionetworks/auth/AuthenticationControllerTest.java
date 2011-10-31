@@ -61,7 +61,6 @@ public class AuthenticationControllerTest {
 	public void setUp() throws Exception {
 		if (!isIntegrationTest()) return;
 		crowdAuthUtil = new CrowdAuthUtil();
-		CrowdAuthUtil.acceptAllCertificates2();
 		
 		// special userId for testing -- no confirmation email is sent!
 		Properties props = new Properties();
@@ -484,20 +483,6 @@ public class AuthenticationControllerTest {
 				throw new AuthenticationException(rc, failureReason, new Exception(new String(respBody)));
 			}
 	}
-
-	
-	//curl -k -H "Content-Type:application/json" -H "Accept:application/json" 
-	// -d "{\"email\":\"demouser@sagebase.org\", \"password\":\"demouser-pw\"}" 
-	// -X POST https://auth-staging.sagebase.org/auth/v1/session
-	private void authenticateViaDeployedServer() throws Exception {
-		URL url = new URL("https://auth-staging.sagebase.org/auth/v1/session");
-		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-		conn.setRequestMethod("POST");
-		conn.setRequestProperty("Accept", "application/json");
-		conn.setRequestProperty("Content-Type", "application/json");
-		CrowdAuthUtil.setBody(conn, "{\"email\":\"demouser@sagebase.org\", \"password\":\"demouser-pw\"}");
-		byte[] sessionXML = executeRequest(conn, HttpStatus.CREATED, "Unable to authenticate");
-	}
 	
 	// this is meant to recreate the problem described in PLFM-292
 	// http://sagebionetworks.jira.com/browse/PLFM-292
@@ -505,7 +490,7 @@ public class AuthenticationControllerTest {
 	@Test 
 	public void testMultipleLogins() throws Exception {
 		if (!isIntegrationTest()) return;
-		CrowdAuthUtil.acceptAllCertificates2();
+		CrowdAuthUtil.acceptAllCertificates();
 		int n = 100;
 		Set<Long> sortedTimes = new TreeSet<Long>();
 		long elapsed = 0;
@@ -549,23 +534,18 @@ public class AuthenticationControllerTest {
 	}
 	
 	private void authenticate() throws Exception {
-		if (true) {
 			// run against a simulated http service, in the same JVM
 			JSONObject session = helper.testCreateJsonEntity("/session",
 			"{\"email\":\"demouser@sagebase.org\",\"password\":\"demouser-pw\"}");
 			assertTrue(session.has("sessionToken"));
 			assertEquals("Demo User", session.getString("displayName"));
-		} else {
-			// run against the real service, on AWS
-			authenticateViaDeployedServer();
-		}
 	}
 	
 	@Ignore
 	@Test 
 	public void testMultipleLoginsMultiThreaded() throws Exception {
 		if (!isIntegrationTest()) return;
-		CrowdAuthUtil.acceptAllCertificates2();
+		CrowdAuthUtil.acceptAllCertificates();
 		
 		if (false) {
 			// we 'prime' the auth server's cache with 1-2 authentication requests

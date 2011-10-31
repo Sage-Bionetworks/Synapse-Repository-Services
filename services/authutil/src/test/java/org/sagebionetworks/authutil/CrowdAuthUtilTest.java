@@ -22,7 +22,6 @@ public class CrowdAuthUtilTest {
 	
 	@Before
 	public void setUp() {
-		CrowdAuthUtil.acceptAllCertificates();
 	}
 	
 	@After

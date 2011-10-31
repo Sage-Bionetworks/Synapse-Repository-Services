@@ -218,7 +218,7 @@ public class CrowdAuthenticationFilter implements Filter {
         String certsProperty = System.getProperty(AuthorizationConstants.ACCEPT_ALL_CERTS);
         
         if (certsProperty!=null && "true".equalsIgnoreCase(certsProperty.trim())) acceptAllCerts=true;
-        if (acceptAllCerts) CrowdAuthUtil.acceptAllCertificates2();
+        if (acceptAllCerts) CrowdAuthUtil.acceptAllCertificates();
        
        
 		String implementingClassName = System.getProperty(AuthorizationConstants.USER_DAO_INTEGRATION_TEST_SWITCH);

@@ -18,12 +18,12 @@ cat("\n\n")
 
 inputDataMap<-RJSONIO::fromJSON(inputData)
 
-summary <-inputDataMap[["summary"]]
+summary <-inputDataMap[["Description"]]
 gpl<-inputDataMap[["gpl"]]
 hasCelFile<-inputDataMap[["hasCelFile"]]
-species<-inputDataMap[["species"]]
+species<-inputDataMap[["Species"]]
 lastUpdate<-inputDataMap[["lastUpdate"]]
-nSamples<-inputDataMap[["n_sample"]]
+nSamples<-inputDataMap[["Number_of_Samples"]]
 
 cat("SUMMARY: ");cat(summary);cat("\n\n")
 cat("GPL: ");cat(gpl);cat("\n\n")

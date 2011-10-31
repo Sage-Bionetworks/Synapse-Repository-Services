@@ -2,10 +2,13 @@ package org.sagebionetworks.gepipeline;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.json.JSONObject;
 
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotations.ActivityAnnotationProcessor;
@@ -21,7 +24,8 @@ public class GEPWorkflowInitiator {
 			.getLogger(GEPWorkflowInitiator.class.getName());
 	
 	private static final String MAX_DATASET_SIZE_PARAMETER_KEY = "--maxDatasetSize";
-
+	private static final String NAME_PROPERTY_NAME = "name";
+	private static final String PARENT_ID_PROPERTY_NAME = "parentId";
 
 	/**
 	 * Crawl all top level TCGA datasets and identify the ones in which we are
@@ -39,13 +43,21 @@ public class GEPWorkflowInitiator {
 //		System.out.println("results stdout:\n"+results.getStdout().toString()+"\n\n");
 //		System.out.println("results stderr:\n"+results.getStderr().toString()+"\n\n");
 		// the script returns a map whose keys are GSEIDs to run and values are the input data for each activity instance
-		Map<String,String> idToActivityInputMap = results.getStringMapResult(ScriptResult.OUTPUT_JSON_KEY);
+		Map<String,String> idToActivityInputMap = new HashMap<String,String>(results.getStringMapResult(ScriptResult.OUTPUT_JSON_KEY));
 		log.info("datasetIds to input map: "+idToActivityInputMap);
-		int max = -1; // set to -1 to disable
+		int max = 1; // set to -1 to disable
 		int i = 0;
+		ObjectMapper mapper = new ObjectMapper();
+		String projectId = ConfigHelper.getGEPipelineProjectId();
 		for (String datasetId:idToActivityInputMap.keySet()) {
 			if (max>0 && i++>=max) break; // for debugging, just launch a few...
-			GEPWorkflow.doWorkflow(datasetId, idToActivityInputMap.get(datasetId));
+			String parameterString = idToActivityInputMap.get(datasetId);
+			JSONObject jsonParameters = new JSONObject(parameterString);
+			//Map<String,String> parameters = jsonParameters.
+			jsonParameters.put(PARENT_ID_PROPERTY_NAME, ConfigHelper.getGEPipelineProjectId());
+			jsonParameters.put(NAME_PROPERTY_NAME, datasetId);
+			parameterString =jsonParameters.toString();
+			GEPWorkflow.doWorkflow(datasetId, parameterString);
 		}
 	}
 
