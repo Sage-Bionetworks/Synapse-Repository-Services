@@ -23,12 +23,10 @@ Sys.setenv(TMPDIR="/mnt/ebs/r_tmp")
 source('./src/main/resources/synapseWorkflow.R')
 
 ## get config args
-gseId <- getInputDatasetIdArg()
 userName <- getUsernameArg()
 secretKey <- getSecretKeyArg()
 authEndpoint <- getAuthEndpointArg()
 repoEndpoint <- getRepoEndpointArg()
-projectId <- getProjectIdArg()
 
 urlEncodedInputData <- getInputDataArg()
 # to avoid problems with spaces, quotes, etc. we just URLEncode the input data
@@ -36,18 +34,10 @@ urlEncodedInputData <- getInputDataArg()
 inputData <- URLdecode(urlEncodedInputData)
 inputDataMap<-RJSONIO::fromJSON(inputData, simplify=F)
 
-geoTimestamp<-inputDataMap[["lastUpdate"]]
-summary <-inputDataMap[["Description"]]
-gpl<-inputDataMap[["gpl"]]
-hasCelFile<-inputDataMap[["hasCelFile"]]
-species<-inputDataMap[["Species"]]
-nSamples<-inputDataMap[["Number_of_Samples"]]
-investigator<-inputDataMap[["Investigator"]]
-platform<-inputDataMap[["Platform"]]
 
 # divides attributes into 'properties' and 'annotations'
 splitDatasetAttributes<-function(a) {
-	dataSetPropertyLabels<-c("name", "description", "status", "creator")
+	dataSetPropertyLabels<-c("name", "description", "status", "creator", "parentId")
 	properties<-list()
 	annotations<-list()
 	for (i in 1:length(a)) {
@@ -63,23 +53,27 @@ splitDatasetAttributes<-function(a) {
 
 
 attributes<-splitDatasetAttributes(inputDataMap)
-attributes$properties$parentId <- projectId
 
+if(!all(c('name', 'parentId', 'lastUpdate') %in% names(inputDataMap))){
+	msg <- paste("gseId: ", inputDataMap[["name"]], "\ngeoTimestamp: ", inputDataMap[["lastUpdate"]], "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", projectId, "\n")
+	msg <- sprintf("not all required properties were provided: %s", msg)
+	finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
+	stop(msg)
+}
 
-if(is.null(gseId) 
-		|| is.null(secretKey) 
+if(is.null(secretKey) 
 		|| is.null(userName) 
-		|| is.null(geoTimestamp)
-		|| is.null(projectId)
 		|| is.null(authEndpoint)
 		|| is.null(repoEndpoint)
 		){
-	cat("gseId: ", gseId, "\ngeoTimestamp: ", geoTimestamp, "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", projectId, "\n")
-	stop("not all required arguments were provided")
+	msg <- paste("gseId: ", inputDataMap[["name"]], "\ngeoTimestamp: ", inputDataMap[["lastUpdate"]], "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", projectId, "\n")
+	msg <- sprintf("not all required arguments were provided: %s", msg)
+	finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
+	stop(msg)
 }
 
-cat("gseId: ", gseId, "\ngeoTimestamp: ", geoTimestamp, "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", projectId, "\n")
-
+msg <- paste("gseId: ", inputDataMap[["name"]], "\ngeoTimestamp: ", inputDataMap[["lastUpdate"]], "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", projectId, "\n")
+cat(msg)
 
 ## set the service endpoints
 synapseAuthServiceEndpoint(authEndpoint)
@@ -100,6 +94,9 @@ ans <- tryCatch({
 		}
 )
 dsId <- ans$datasetId
+msg <- "Starting"
+setWorkFlowStatusAnnotation(dsId, kOkStatusCode, msg)
+
 if(!ans$update){
 	msg <- sprintf("Dataset %s has not changed since last update.", dsId)
 	finishWorkflowTask(list(status=kOkStatusCode, msg=msg, datasetId=dsId))
@@ -148,7 +145,7 @@ if(!ans$update){
 	## run the metaGeo workflow
 	ans <- tryCatch({
 				runMetaGeoEntity <- loadEntity(kRunMetaGeoCodeEntityId)
-				runMetaGeoEntity$objects$run(ans$layerId, geoTimestamp)
+				runMetaGeoEntity$objects$run(ans$layerId, inputDataMap[["lastUpdate"]])
 			},
 			error = function(e){
 				msg <- sprintf("Failed to run metaGeo workflow: %s", e)
@@ -165,7 +162,7 @@ if(!ans$update){
 	maxmem<-sum(gc()[,6])
 	
 	## call the finish workflow step code
-	msg <- sprintf("Successfully added GEO study %s to Synapse.", gseId)
+	msg <- sprintf("Successfully added GEO study %s to Synapse.", inputDataMap[['name']])
 	finishWorkflowTask(
 			output=list(
 					status=kOkStatusCode, 
