@@ -124,3 +124,108 @@ getMaxDatasetSizeArg <- function(){
 	constants <- new('SynapseWorkflowConstants')
 	getArgVal(argName=constants@kMaxDatasetSizeArg) 
 }
+
+createLayer <- function (datasetId, url, zipFilePath, locationName = "ncbi") 
+{
+	require(synapseClient)
+	dataset <- getEntity(datasetId)
+	layer <- Layer(list(name = sprintf("%s_rawExpression", propertyValue(dataset, 
+									"name")), parentId = datasetId, type = "E", status = "raw"))
+	qryString <- sprintf("select * from layer where layer.parentId == \"%s\" and layer.name == \"%s\"", 
+			propertyValue(layer, "parentId"), propertyValue(layer, 
+					"name"))
+	qryResult <- synapseQuery(qryString)
+	if (!is.null(qryResult)) 
+		layer <- getEntity(qryResult$layer.id[1])
+	annotValue(layer, "format") <- "GEO"
+	if (is.null(propertyValue(layer, "id"))) {
+		layer <- createEntity(layer)
+	}
+	else {
+		layer <- updateEntity(layer)
+	}
+	if (missing(url)) {
+		geoId <- propertyValue(dataset, "name")
+		url <- sprintf("ftp://ftp.ncbi.nih.gov/pub/geo/DATA/supplementary/series/%s/%s_RAW.tar", 
+				geoId, geoId)
+	}
+	if (missing(zipFilePath)) {
+		zipFilePath <- synapseClient:::.curlWriterDownload(url = url)
+	}
+	if (!file.exists(zipFilePath)) {
+		stop(sprintf("File not found: %s", zipFilePath))
+	}
+	parsedUrl <- synapseClient:::.ParsedUrl(url)
+	destfile <- file.path(synapseCacheDir(), gsub("^/", "", parsedUrl@path))
+	destfile <- path.expand(destfile)
+	destdir <- gsub(parsedUrl@file, "", destfile, fixed = TRUE)
+	destdir <- gsub("[\\/]+$", "", destdir)
+	if (!file.exists(destdir)) 
+		dir.create(destdir, recursive = TRUE)
+	if (zipFilePath != destfile) 
+		file.copy(zipFilePath, destfile, overwrite = TRUE)
+	checksum <- as.character(tools::md5sum(destfile))
+	qryString <- sprintf("select * from location where location.parentId == \"%s\" and location.name == \"%s\"", 
+			propertyValue(layer, "id"), locationName)
+	qryResult <- synapseQuery(qryString)
+	location <- tryCatch({
+				if (is.null(qryResult)) {
+					location <- synapseClient:::Location(list(name = locationName, 
+									parentId = propertyValue(layer, "id"), path = url, 
+									md5sum = checksum, type = "external"))
+					createEntity(location)
+				}
+				else {
+					location <- getEntity(qryResult$location.id)
+					propertyValue(location, "path") <- url
+					propertyValue(location, "md5sum") <- checksum
+					propertyValue(location, "type") <- "external"
+					updateEntity(location)
+				}
+			}, error = function(e) {
+				cat(sprintf("unable to create or update location for layer %s. Deleting data files\n", 
+								propertyValue(layer, "id")))
+				unlink(destdir, recursive = TRUE)
+				stop(e)
+			})
+	list(layerId = propertyValue(layer, "id"), locationId = propertyValue(location, 
+					"id"))
+}
+
+createDataset <- function (dsProperties, dsAnnotations) 
+{
+	if (!is.list(dsProperties) || !is.list(dsAnnotations)) 
+		stop("Annotations and properties must both be submitted as lists.")
+	require(synapseClient)
+	dataset <- Dataset(dsProperties)
+	annotationValues(dataset) <- dsAnnotations
+	origTimestamp <- NULL
+	qryString <- sprintf("select * from dataset where dataset.parentId == \"%s\" and datset.name == \"%s\"", 
+			propertyValue(dataset, "parentId"), propertyValue(dataset, 
+					"name"))
+	qryResult <- synapseQuery(qryString)
+	if (!is.null(qryResult)) {
+		dataset <- getEntity(qryResult$dataset.id[1])
+		origTimestamp <- annotValue(dataset, "geoTimestamp")
+		annotationValues(datset) <- dsAnnotations
+		dataset <- updateEntity(dataset)
+	}
+	else {
+		dataset <- createEntity(dataset)
+	}
+	retVal <- list(update = TRUE, projectId = propertyValue(dataset, 
+					"parentId"), datasetId = propertyValue(dataset, "id"))
+	if (!is.null(origTimestamp) && annotValue(dataset, "geoTimestamp") == 
+			origTimestamp) {
+		retVal$update <- FALSE
+	}
+	retVal
+}
+
+setWorkFlowStatusAnnotation <- function(dsId, statusCode, statusMessage){
+	ds <- getEntity(dsId)
+	annotValue(ds, "workflowStatusCode") <- statusCode
+	annotValue(ds, "workflowStatusMsg") <- statusMessage
+	invisible(updateEntity(ds))
+}
+
