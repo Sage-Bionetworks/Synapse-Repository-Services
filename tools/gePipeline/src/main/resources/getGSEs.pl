@@ -6,7 +6,7 @@ open F, "src/main/resources/ncbiGPLIDs" or die("dead");
 while (<F>) {
 	chomp;
 	$platforms{$_} = 1;
-	### last(); # INCLUDE THIS LINE TO LIMIT THE RESULTS TO A SINGLE PLATFORM (for testing) 
+	last(); # INCLUDE THIS LINE TO LIMIT THE RESULTS TO A SINGLE PLATFORM (for testing) 
 }
 
 my %gses;

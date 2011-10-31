@@ -49,7 +49,7 @@ public class CodeControllerTest {
 	 * Some properties for a code to use for unit tests
 	 */
 	private final static String SAMPLE_CODE_1 = "{\"name\":\"Bayesian Network\",  "
-			+ "\"description\": \"foo\", \"releaseNotes\":\"bar\", \"parentId\":\"";
+			+ "\"description\": \"foo\", \"parentId\":\"";
 	
 	/**
 	 * Build a sample code.
@@ -104,7 +104,7 @@ public class CodeControllerTest {
 		JSONObject allProjects = helper.testGetJsonEntities(helper
 				.getServletPrefix()
 				+ "/project", null, null, null, null);
-		assertEquals(1, allProjects.getInt("totalNumberOfResults"));
+		assertTrue(allProjects.getInt("totalNumberOfResults")>0);
 
 		JSONObject newCode = helper.testCreateJsonEntity(helper
 				.getServletPrefix()+ "/code", CodeControllerTest.getSampleCode(project.getString(NodeConstants.COL_ID)));
@@ -115,16 +115,7 @@ public class CodeControllerTest {
 		// Sanity check - make sure we can _STILL_ find our project
 		allProjects = helper.testGetJsonEntities(helper.getServletPrefix()
 				+ "/project", null, null, null, null);
-		assertEquals(1, allProjects.getInt("totalNumberOfResults"));
-
-		// Get the project ...
-		JSONObject updatedProject = helper.testGetJsonEntity(project
-				.getString("uri"));
-
-		// Get our newly created code using the code uri
-		JSONObject results = helper.testGetJsonEntities(updatedProject
-				.getString("codes"), null, null, null, null);
-		assertExpectedCodesProperties(results.getJSONArray("results"));
+		assertTrue(allProjects.getInt("totalNumberOfResults")>0);
 	}
 
 	/**
@@ -171,19 +162,17 @@ public class CodeControllerTest {
 		assertEquals("Bayesian Network", code.getString("name"));
 
 		// Modify that code
-		code.put("name", "DeLiver clinical data");
-		code.put("type", "C");
+		code.put("name", "Coexpression Network");
 		JSONObject updatedCode = helper.testUpdateJsonEntity(code);
 		assertExpectedCodeProperties(updatedCode);
 
 		// Check that the update response reflects the change
-		assertEquals("DeLiver clinical data", updatedCode.getString("name"));
-		assertEquals("C", updatedCode.getString("type"));
+		assertEquals("Coexpression Network", updatedCode.getString("name"));
 
 		// Now make sure the stored one reflects the change too
 		JSONObject storedCode = helper.testGetJsonEntity(newCode
 				.getString("uri"));
-		assertEquals("DeLiver clinical data", storedCode.getString("name"));
+		assertEquals("Coexpression Network", storedCode.getString("name"));
 	}
 
 	/**
@@ -218,15 +207,15 @@ public class CodeControllerTest {
 		helper
 				.testCreateJsonEntity(helper.getServletPrefix()
 						+"/code",
-						"{\"name\":\"DeLiver genetic data\", \"type\":\"G\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\", \"parentId\":\""+project.getString(NodeConstants.COL_ID)+"\"}");
+						"{\"name\":\"Bayesian Netowrk\", "
+								+ " \"description\": \"foo\", \"parentId\":\""+project.getString(NodeConstants.COL_ID)+"\"}");
 		helper.testCreateJsonEntity(helper
 				.getServletPrefix()+ "/code", CodeControllerTest.getSampleCode(project.getString(NodeConstants.COL_ID)));
 		helper
 				.testCreateJsonEntity(helper.getServletPrefix()
 						+"/code",
-						"{\"name\":\"DeLiver clinical data\", \"type\":\"C\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\", \"parentId\":\""+project.getString(NodeConstants.COL_ID)+"\"}");
+						"{\"name\":\"Coexpession Network\",  "
+								+ " \"description\": \"foo\", \"parentId\":\""+project.getString(NodeConstants.COL_ID)+"\"}");
 
 		JSONObject results = helper.testGetJsonEntities(helper
 				.getServletPrefix()
@@ -272,8 +261,8 @@ public class CodeControllerTest {
 		// line: 1, column: 19]"}
 
 		String reason = error.getString("reason");
-		assertTrue(reason.matches("(?s).*\"BOGUS\".*"));
-		assertTrue(reason.matches("(?s).*not marked as ignorable.*"));
+		assertTrue(reason, reason.matches("(?s).*\"BOGUS\".*"));
+		assertTrue(reason, reason.matches("(?s).*not marked as ignorable.*"));
 	}
 
 	/**

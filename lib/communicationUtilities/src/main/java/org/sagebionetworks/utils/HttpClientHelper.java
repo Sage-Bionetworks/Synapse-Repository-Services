@@ -6,6 +6,12 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -65,7 +71,35 @@ public class HttpClientHelper {
 		clientParams.setParameter(CoreConnectionPNames.SO_TIMEOUT,
 				DEFAULT_SOCKET_TIMEOUT_MSEC);
 
-		httpClient = new DefaultHttpClient(connectionManager, clientParams);
+		String integrationTestEndpoint = System.getProperty("INTEGRATION_TEST_ENDPOINT");
+		if ((integrationTestEndpoint!=null && integrationTestEndpoint.length()>0)) {
+			// for integration testing we simply trust all certificates
+			HttpClient base = new DefaultHttpClient(connectionManager, clientParams);
+			X509TrustManager tm = new X509TrustManager() { 
+				public void checkClientTrusted(X509Certificate[] xcs, String string) throws CertificateException { 
+				} 
+				public void checkServerTrusted(X509Certificate[] xcs, String string) throws CertificateException { 
+				} 
+				public X509Certificate[] getAcceptedIssuers() { 
+					return null; 
+				} 
+			}; 
+			SSLContext ctx = null;
+			try {
+				ctx = SSLContext.getInstance("TLS"); 
+				ctx.init(null, new TrustManager[]{tm}, null); 
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			SSLSocketFactory ssf = new SSLSocketFactory(ctx);  
+			ClientConnectionManager ccm = base.getConnectionManager(); 
+			SchemeRegistry sr = ccm.getSchemeRegistry(); 
+			sr.register(new Scheme("https", 443, ssf)); 
+			httpClient = new DefaultHttpClient(ccm, base.getParams());  
+		} else {
+			httpClient = new DefaultHttpClient(connectionManager, clientParams);
+		}
+		
 	}
 
 	/**
@@ -159,7 +193,7 @@ public class HttpClientHelper {
 				requestHeaders, overridingExpectedResponseStatus);
 	}
 
-	private static HttpResponse performRequest(String requestUrl,
+	public static HttpResponse performRequest(String requestUrl,
 			String requestMethod, String requestContent,
 			Map<String, String> requestHeaders,
 			Integer overridingExpectedResponseStatus)
