@@ -200,14 +200,14 @@ createDataset <- function (dsProperties, dsAnnotations)
 	dataset <- Dataset(dsProperties)
 	annotationValues(dataset) <- dsAnnotations
 	origTimestamp <- NULL
-	qryString <- sprintf("select * from dataset where dataset.parentId == \"%s\" and datset.name == \"%s\"", 
+	qryString <- sprintf("select * from dataset where dataset.parentId == \"%s\" and dataset.name == \"%s\"", 
 			propertyValue(dataset, "parentId"), propertyValue(dataset, 
 					"name"))
 	qryResult <- synapseQuery(qryString)
 	if (!is.null(qryResult)) {
 		dataset <- getEntity(qryResult$dataset.id[1])
-		origTimestamp <- annotValue(dataset, "geoTimestamp")
-		annotationValues(datset) <- dsAnnotations
+		origTimestamp <- annotValue(dataset, "lastUpdate")
+		annotationValues(dataset) <- dsAnnotations
 		dataset <- updateEntity(dataset)
 	}
 	else {
@@ -215,8 +215,21 @@ createDataset <- function (dsProperties, dsAnnotations)
 	}
 	retVal <- list(update = TRUE, projectId = propertyValue(dataset, 
 					"parentId"), datasetId = propertyValue(dataset, "id"))
-	if (!is.null(origTimestamp) && annotValue(dataset, "geoTimestamp") == 
-			origTimestamp) {
+	if (
+				(
+				!is.null(dsAnnotations$hasCelFiles)
+				&& !is.na(as.logical(dsAnnotations$hasCelFiles))
+				&& !as.logical(dsAnnotations$hasCelFiles)
+				)
+			
+			||
+				(
+				!is.null(origTimestamp)
+				&& !is.null(annotValue(dataset, "lastUpdate")) 
+				&& annotValue(dataset, "lastUpdate") == origTimestamp
+				)
+		)
+	{
 		retVal$update <- FALSE
 	}
 	retVal
