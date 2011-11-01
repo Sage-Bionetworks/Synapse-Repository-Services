@@ -1,21 +1,37 @@
-GPL570
-GPL96
-GPL97
-GPL571
-GPL8300
-GPL201
-GPL1261
-GPL8321
-GPL339
-GPL81
-GPL1355
-GPL85
-GPL341
-GPL5188
-GPL6244
-GPL5175
-GPL3921
-GPL80
-GPL6246
-GPL6193
-GPL6096
+Probe Tab File	CDF File	String	Species	GPL_ID			
+HG-Focus.probe_tab	HG-Focus.CDF	hgfocus	human	GPL201			
+HG-U133A_2.probe_tab	HG-U133A_2.cdf	hgu133a2	human	GPL571			
+HG-U133A.probe_tab	HG-U133A.cdf	hgu133a	human	GPL96			
+HG-U133B.probe_tab	HG-U133B.cdf	hgu133b	human	GPL97			
+HG-U133_Plus_2.probe_tab	HG-U133_Plus_2.cdf	hgu133plus2	human	GPL570			
+HG_U95Av2.probe_tab	HG_U95Av2.CDF	hgu95av2	human	GPL8300			
+HG_U95B.probe_tab	HG_U95B.CDF	hgu95b	human	GPL92			
+HG_U95C.probe_tab	HG_U95C.CDF	hgu95c	human	GPL93			
+HG_U95D.probe_tab	HG_U95D.CDF	hgu95d	human	GPL94			
+HG_U95E.probe_tab	HG_U95E.CDF	hgu95e	human	GPL95			
+HT_HG-U133A.probe_tab	HT_HG-U133A.cdf	hthgu133a	human	GPL3921			
+HT_HG-U133B.probe_tab	HT_HG-U133B.cdf	hthgu133b	human	GPL9197			
+HT_MG-430A.probe_tab	HT_MG-430A.cdf	htmg430a	mouse	GPL8759			
+HT_MG-430B.probe_tab	HT_MG-430B.cdf	htmg430b	mouse	GPL8760			
+HuEx-1_0-st-v2.probe.tab	2560	huex10stv2	human	GPL5175			
+HuGene-1_0-st-v1.hg19.probe.tab	1050	hugene10stv1	human	GPL6244
+HuGene-1_1-st-v1.hg18.probe.tab	1190	hugene11stv1	human	GPL11532
+MG_U74Av2.probe_tab	MG_U74Av2.CDF	mgu74av2	mouse	GPL81
+MG_U74Bv2.probe_tab	MG_U74Bv2.CDF	mgu74bv2	mouse	GPL82
+MG_U74Cv2.probe_tab	MG_U74Cv2.CDF	mgu74cv2	mouse	GPL83
+MOE430A.probe_tab	MOE430A.CDF	moe430a	mouse	GPL339
+MOE430B.probe_tab	MOE430B.CDF	moe430b	mouse	GPL340
+MoEx-1_0-st-v1.probe.tab	2560	moex10stv1	mouse	GPL6193
+MoGene-1_0-st-v1.probe.tab	1050	mogene10stv1	mouse	GPL6246
+MoGene-1_1-st-v1.mm8.probe.tab	1190	mogene11stv1	mouse	GPL11533
+Mouse430_2.probe_tab	Mouse430_2.cdf	mouse4302	mouse	GPL8321
+Mouse430A_2.probe_tab	Mouse430A_2.cdf	mouse430a2	mouse	GPL1261
+RAE230A.probe_tab	RAE230A.CDF	rae230a	rat	GPL341
+RAE230B.probe_tab	RAE230B.CDF	rae203b	rat	GPL342
+RaEx-1_0-st-v1.probe.tab	2460	raex10stv1	rat	GPL6194
+RaGene-1_0-st-v1.probe.tab	1050	ragene10stv1	rat	GPL6247
+RaGene-1_1-st-v1.rn4.probe.tab	NODATA	NODATA	rat	GPL11534
+Rat230_2.probe_tab	Rat230_2.cdf	rat2302	rat	GPL1355
+RG_U34A.probe_tab	RG_U34A.cdf	rgu34a	rat	GPL85
+RG_U34B.probe_tab	RG_U34B.cdf	rgu34b	rat	GPL86
+RG_U34C.probe_tab	RG_U34C.cdf	rgu34c	rat	GPL87
