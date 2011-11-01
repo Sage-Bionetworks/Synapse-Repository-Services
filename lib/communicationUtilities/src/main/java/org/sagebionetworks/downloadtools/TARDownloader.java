@@ -41,12 +41,12 @@ public class TARDownloader {
 		FTPClient ftp = new FTPClient();
 	    ftp.connect( ftpServer );
 	    ftp.login("anonymous", "emailaddress");
-
 	    String path = remoteFile.getParent().replaceAll("\\\\", "/");
 	    boolean b = ftp.changeWorkingDirectory(path);
 	    if (!b) throw new RuntimeException("Cannot change directory to "+path);
 	    ftp.setFileType(FTP.BINARY_FILE_TYPE);
 	    String fname = remoteFile.getName();
+	    ftp.enterLocalPassiveMode();
 		InputStream is = ftp.retrieveFileStream(fname);
 		if (is==null) throw new IOException(
 				"Changed dir to "+path+
