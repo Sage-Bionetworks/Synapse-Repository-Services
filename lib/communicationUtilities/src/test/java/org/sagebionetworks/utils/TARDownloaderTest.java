@@ -11,8 +11,7 @@ import org.sagebionetworks.downloadtools.TARDownloader;
 
 public class TARDownloaderTest {
 
-	// works locally, but not under Elastic Bamboo
-//	@Ignore
+
 	@Test
 	public void testTARDownloader() throws Exception {
 		String studyID = "GSE12800";
