@@ -1,0 +1,292 @@
+\documentclass[10pt]{article}
+
+\usepackage{times}
+\usepackage{hyperref}
+\usepackage{float}
+
+\textwidth=6.5in
+\textheight=8.5in
+\oddsidemargin=-.1in
+\evensidemargin=-.1in
+\headheight=-.3in
+
+\newcommand{\Rfunction}[1]{{\texttt{#1}}}
+\newcommand{\Robject}[1]{{\texttt{#1}}}
+\newcommand{\Rpackage}[1]{{\textit{#1}}}
+\newcommand{\Rmethod}[1]{{\texttt{#1}}}
+\newcommand{\Rfunarg}[1]{{\texttt{#1}}}
+\newcommand{\Rclass}[1]{{\textit{#1}}}
+\newcommand{\Rcode}[1]{{\texttt{#1}}}
+\newcommand{\software}[1]{\textsf{#1}}
+\newcommand{\R}{\software{R}}
+\newcommand{\synapseClient}{\Rpackage{synapseClient}}
+
+\title{Synapse R Client Demo}
+\author{Matt Furia}
+\date{\today}
+
+\SweaveOpts{keep.source=TRUE}
+
+\begin{document}
+
+\maketitle
+
+\section{Sage Bionetworks Synapse project}
+
+The recent exponential growth of biological ``omics'' data has occurred
+concurrently with a decline in the number of NMEs approved by the FDA. Sage
+Bionetworks believes that a fundamental reason biological research
+productivity does not scale with biological data generation is that the
+analysis and interpretation of genomic data remains largely an isolated,
+individual activity. Sage Bionetworks' mission is to catalyze a cultural
+transition from the traditional single lab, single-company, and
+single-therapy R\&D paradigm to a model with broad precompetitive
+collaboration on the analysis of large scale data in medical sciences. For
+this to happen it is critical that: 1) human health data become accessible
+and reusable by people other than the original data generators allowing
+multiple parallel approaches to data interpretation; 2) analytical
+methodologies become fully reproducible and transparent so that results can
+be vetted and existing analysis techniques quickly applied to new
+application areas, and; 3) models of biological systems and networks be
+opened to a variety of users such that theoretical predictions can be
+rapidly validated experimentally and improve standards of care for
+patients. Sage Bionetworks is actively engaged with academic and
+pharmaceutical collaborators in developing technical, policy and strategic
+solutions to these issues. Part of Sage's solution is Synapse, a platform
+for open, reproducible data-driven science, which will provide support for
+Sage's research initiatives and serve as a resource for the broader
+scientific community.
+
+Synapse will support the reusability of information facilitated by
+ontology-based services and applications directed at scientific researchers
+and data curators. Sage Bionetworks is actively pursuing the acquisition,
+curation, statistical quality control, and hosting of human and mouse global
+coherent datasets for use by Sage Bionetworks researchers, collaborators,
+and the broader research community. Global coherent datasets integrate both
+clinical phenotype and genomic data along with an intermediate molecular
+layer such as gene expression or proteomic data. Typically studies contain
+genome-wide genetic variation data and/or expression profiling data. We
+expect the release of these sorts of unique, integrative, high value
+datasets into the public domain will seed a variety of analytical approaches
+to drive new treatments based on better understanding of disease states and
+the biological effects of existing drugs.
+
+Reproducible analysis and disease model reuse require a supporting
+informatics infrastructure. In the Sage Bionetworks system, users interact
+with resources via a number of mechanisms depending upon their interests and
+expertise. The Synapse web portal will be an environment for end user
+scientists to interact and share data, models, and analysis methods, both in
+the context of specific research projects, and broadly across otherwise
+disparate projects. Many other specialized scientific tools can be extended
+to load data and save results to the Sage Bionetworks platform, or to
+perform analysis by calling methods executed on a remote service. The Sage
+Bionetworks Platform is aggressively leveraging and optimizing its
+architecture to take full advantage of the rapidly maturing cloud computing
+technologies which will put on-demand supercomputing power in the hands of
+the average researcher.  These more specialized analytical clients would
+support use cases in data curation and quality control as well as scientific
+analysis.
+
+\section{Set up your Synapse work environment}
+
+Go to \url{https://synapse-alpha.sagebase.org/} to register for a new
+account and then log into Synapse.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics{synapseScreenshots/Register.png}
+  \caption{Register for a Synapse account and log in}
+\end{figure}
+
+Use the following R code to setup your Synapse work environment.
+
+Load the synapse client and log in.  Be sure to type in your Synapse
+username and password when prompted from R.
+
+<<loadlib>>=
+library(affy)
+library(simpleaffy)
+@ 
+
+<<fakeLogin,eval=FALSE>>=
+library(synapseClient)
+synapseLogin()
+@ 
+
+<<realLogin,echo=FALSE>>=
+# add this method .Rprofile to load synapse and log us in
+goAlpha()
+@ 
+
+Create a Synapse project to hold your analyses results.  
+
+Create a project object using it's constructor. The list contains name-value
+pairs of properties that should be added to the project. See help
+documentation for details on the properties that can be set. For projects,
+only name is required.
+
+<<createProjectEntity>>=
+# Change the values of this variable 
+myName <- 'your name'
+projName <- sprintf("%ss Curation Project %s", 
+                     myName, 
+                     gsub(':', '_', date()))
+
+myProj <- Project(list(name=projName))
+@
+
+Show the project.  Note that entity id is missing.
+
+<<showProject>>=
+myProj
+@ 
+
+Create the project in Synapse using createEntity. make sure to 
+catch the return value.
+
+<<createProjectInSynapse>>=
+myProj <- createEntity(myProj)
+@ 
+
+Now the Synapse Entity Id is populated.
+<<showCreatedProject>>=
+myProj
+@ 
+
+Go back to \url{https://synapse-alpha.sagebase.org/} using the
+\Rfunction{onWeb} function and find your newly created project.  
+
+<<onWebProject,eval=FALSE>>=
+onWeb(myProj)
+@ 
+
+Click on ``share'' and share your project with the group
+AUTHENTICATED\_USERS.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics{synapseScreenshots/Sharing.png}
+  \caption{Find your project and share it with AUTHENTICATED\_USERS}
+\end{figure}
+
+\section{Load data from Synapse}
+
+Navigate to the ``metaGeo'' in Synapse
+\url{https://synapse.sagebase.org/#Project:16114}.  Click on the two
+datasets listed there and view their details.  Note that you can also browse
+data available in Synapse via the Synapse R Client.  See the help
+documentation for synapseClient for more detail.
+
+TODO change the screenshot
+
+\begin{figure}[H]
+  \centering
+  \includegraphics{synapseScreenshots/Datasets.png}
+  \caption{Find the CCLE and Sanger Dataset Layers in Synapse}
+\end{figure}
+  
+Download a metageo expression layer.
+<<loadData>>=
+geoEntityId <- "23994"
+expr <- loadEntity(geoEntityId)
+@ 
+
+Inspect the contents.
+<<showExpressionLayer>>=
+expr
+@ 
+
+\section{Create Data in Synapse}
+
+Create a dataset.
+
+<<createDataset>>=
+myDataset <- createEntity(Dataset(list(name="my Data", 
+                                  parentId=propertyValue(myProj, "id"))))
+@ 
+
+View the dataset on the web to add a description.
+<<onWebDataset,eval=FALSE>>=
+onWeb(myDataset)
+@ 
+
+TODO screen shot here?
+
+Refresh the local copy of myDataset
+<<refreshDataset>>=
+myDataset <- refreshEntity(myDataset)
+@ 
+
+Write the pm values to a text file.
+<<writeTable>>=
+write.table(pm(expr$objects$expression[["HG-U133A"]]), 
+               file="pm.txt", 
+               sep="\t", 
+               quote=F, 
+               row.names=F)
+@ 
+
+Create a new expression layer.
+<<createLayer>>=
+myExpr <- createEntity(Layer(list(name="curated expression", 
+                                  type="E", 
+                                  parentId = propertyValue(myDataset, "id"), 
+                                  status="curated")))
+@ 
+
+Add an annotation specifying the data format.
+<<addAnnot>>=
+annotValue(myExpr, "format") <- "sageBioCurated"
+@ 
+
+Add the pm data file to the entity
+<<addFile>>=
+myExpr <- addFile(myExpr, 
+                  "pm.txt", 
+                  path="GSE10024/expression/affymetrix")
+@ 
+
+Store the data
+<<storeLayer>>=
+myExpr <- storeEntity(myExpr)
+@ 
+
+\section{Create a Plot in Synapse}
+
+Create a heatmap of some probes and push that to Synapse.
+
+<<createPlot>>=
+jpeg(file = "heatmap.jpg")
+hmap.eset(expr$objects$expression[[1]], 
+          probesets=101:200)
+dev.off()
+@ 
+
+<<storePlot>>=
+plot <- synapseClient:::Media(list(name = "heatmap", 
+                                   parentId=propertyValue(myDataset,"id")))
+plot <- addFile(plot,"heatmap.jpg")
+plot <- storeEntity(plot)
+@ 
+
+Show the plot from R.
+<<showPlot,eval=FALSE>>=
+plot
+@ 
+\includegraphics{heatmap.jpg}
+
+Show the plot on the web
+<<plotOnWeb,eval=FALSE>>=
+onWeb(plot)
+@ 
+
+\section{Next steps}
+Implement your own customized predictive models and use the cross validation evaluation procedures to test if your method achieves more accurate predictive performance than currently used methods.
+
+\section{Session Information}
+
+<<sessionInfo, results=tex, print=TRUE>>=
+toLatex(sessionInfo())
+@
+
+\end{document}
