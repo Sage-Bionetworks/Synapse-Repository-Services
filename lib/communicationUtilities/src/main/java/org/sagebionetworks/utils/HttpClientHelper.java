@@ -30,16 +30,6 @@ import org.apache.http.params.CoreConnectionPNames;
 import org.apache.http.params.HttpParams;
 import org.apache.http.util.EntityUtils;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import org.apache.http.conn.scheme.SchemeSocketFactory;
-import org.apache.http.conn.scheme.SocketFactory;
-
-
-
 /**
  * @author deflaux
  * 
@@ -55,35 +45,12 @@ public class HttpClientHelper {
 	private static final HttpClient httpClient;
 
 	static {
-		SchemeSocketFactory ssf = null;
-		// for integration testing we simply trust all certificates
-		if (true) {
-			X509TrustManager tm = new X509TrustManager() { 
-				public void checkClientTrusted(X509Certificate[] xcs, String string) throws CertificateException { 
-				} 
-				public void checkServerTrusted(X509Certificate[] xcs, String string) throws CertificateException { 
-				} 
-				public X509Certificate[] getAcceptedIssuers() { 
-					return null; 
-				} 
-			}; 
-			SSLContext ctx = null;
-			try {
-				ctx = SSLContext.getInstance("TLS"); 
-				ctx.init(null, new TrustManager[]{tm}, null); 
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			ssf = new SSLSocketFactory(ctx);  
-		} else {
-			ssf = SSLSocketFactory.getSocketFactory();
-		}
-		
 
 		SchemeRegistry schemeRegistry = new SchemeRegistry();
 		schemeRegistry.register(new Scheme("http", 80, PlainSocketFactory
 				.getSocketFactory()));
-		schemeRegistry.register(new Scheme("https", 443, ssf));
+		schemeRegistry.register(new Scheme("https", 443, SSLSocketFactory
+				.getSocketFactory()));
 
 		// TODO its unclear how to set a default for the timeout in milliseconds
 		// used when retrieving an
@@ -98,7 +65,6 @@ public class HttpClientHelper {
 		clientParams.setParameter(CoreConnectionPNames.SO_TIMEOUT,
 				DEFAULT_SOCKET_TIMEOUT_MSEC);
 
-		
 		httpClient = new DefaultHttpClient(connectionManager, clientParams);
 	}
 
