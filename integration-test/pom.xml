@@ -231,6 +231,11 @@
 		</dependency>
 		
 		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>auth-util</artifactId>
+		</dependency>
+		
+		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>com.springsource.javax.servlet</artifactId>
 			<version>2.5.0</version>
