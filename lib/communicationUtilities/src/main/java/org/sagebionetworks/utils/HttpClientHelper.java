@@ -66,7 +66,7 @@ public class HttpClientHelper {
 			// from http://www.coderanch.com/t/372437/java/java/javax-net-ssl-keyStore-system
 			TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
 			KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
-			InputStream keystoreStream = ClassLoader.getSystemResourceAsStream(KEYSTORE_NAME);
+			InputStream keystoreStream = HttpClientHelper.class.getClassLoader().getResourceAsStream(KEYSTORE_NAME);
 			keystore.load(keystoreStream, DEFAULT_JAVA_KEYSTORE_PW.toCharArray());
 			trustManagerFactory.init(keystore);
 			TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
