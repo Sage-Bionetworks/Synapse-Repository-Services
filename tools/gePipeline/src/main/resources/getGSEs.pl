@@ -1,24 +1,47 @@
 use LWP::Simple;
 
-# Download PubMed records for inputted platform
+# Load platforms to search
 my %platforms;
-open F, "src/main/resources/ncbiGPLIDs" or die("dead");
+my %affiliatedPlatforms;
+my %allPlatforms;
+open F, "src/main/resources/ncbiGPLIDs" or die("Cannot find file: src/main/resources/ncbiGPLIDs");
 while (<F>) {
 	chomp;
-	$platforms{$_} = 1;
-	last(); # INCLUDE THIS LINE TO LIMIT THE RESULTS TO A SINGLE PLATFORM (for testing) 
+	my @a = split /\t/;
+	$platforms{$a[4]}{probe_tab} = $a[0];
+	$platforms{$a[4]}{cdf_file} = $a[1];
+	$platforms{$a[4]}{platform} = $a[2];
+	$platforms{$a[4]}{species} = $a[3];
+	$allPlatforms{$a[4]} = 1;
+}
+
+# Get all affiliated platforms from NCBI
+foreach my $p (keys %platforms) {
+	print $p, "\n";
+#	next unless $p eq 'GPL96';
+	my $url = 'http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc='.$p;
+	system("curl -O $url");
+	my $file = 'acc.cgi?acc='.$p;
+  my $otherGPLs = parseGPL($file);
+  foreach my $a (@{$otherGPLs}) {
+  	$affiliatedPlatforms{$a} = $p;
+  	$allPlatforms{$a} = 1; 
+  }
+  system("rm $file");
 }
 
 my %gses;
-system("rm all.GSEs.txt");
-
-open O, ">>all.GSEs.txt";
-print O
-"GSE.ID\tGPL\tLast Update Date\tSpecies\tDescription\tSupplementary_File\tNumber_of_Samples\tInvestigator\tPlatform\n";
+open O, ">all.GSEs.txt";
+print O "GSE.ID\tGPL\tLast Update Date\tSpecies\tDescription\tSupplementary_File\tNumber_of_Samples\tInvestigator\tPlatform\n";
 close O;
 
-foreach my $p ( keys %platforms ) {
+# Download and Parse GEO records for inputted platform
+
+foreach my $p ( keys %allPlatforms ) {
 	print "Downloading information for $p\n";
+	my $a = $affiliatedPlatforms{$p};
+#	next unless $p eq 'GPL96' or $a eq 'GPL96';
+	
 	open G, ">output";
 	$db    = 'gds';
 	$query = $p . '[ACCN]+AND+gse[ETYP]&usehistory=y';
@@ -26,10 +49,10 @@ foreach my $p ( keys %platforms ) {
 	#assemble the esearch URL
 	$base = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/';
 	$url  = $base . "esearch.fcgi?db=$db&term=$query&usehistory=y";
-
+    
 	#post the esearch URL
 	$output = get($url);
-
+  
 	#parse WebEnv and QueryKey
 	$web = $1 if ( $output =~ /<WebEnv>(\S+)<\/WebEnv>/ );
 	$key = $1 if ( $output =~ /<QueryKey>(\d+)<\/QueryKey>/ );
@@ -67,14 +90,14 @@ foreach my $p ( keys %platforms ) {
 	close O;
 	system("rm hmm output");
 
-	# exit();
+#  exit();
 }
 
 sub getInfo {
 	my %retval;
 	open F, $_[0];
 	open O, ">>all.GSEs.txt";
-	my ( $gse, $gpl, $pdat, $taxon, $suppFile, $summary, $n_samples, $investigator, $platform ) = 'NA';
+	my ( $gse, $gpl, $pdat, $taxon, $suppFile, $summary, $n_samples,  $invest, $plat ) = 'NA';
 	while (<F>) {
 		s/\r//g;
 		s/\!//;
@@ -85,8 +108,20 @@ sub getInfo {
 			# Document summary closed. Print out values
 			#################################
 			if ( not defined $gses{$gse} ) {
+				my @plat;
+				$invest = 'NA';
+				my $mult=0;
+				my @keys = split ";", $gpl;
+				foreach my $k (@keys) {
+					$k = 'GPL'.$k;
+					if(exists $platforms{$k}){ 
+						push @plat, $platforms{$k}{platform};
+					}elsif(exists $affiliatedPlatforms{$k}){ 
+						push @plat, $platforms{$affiliatedPlatforms{$k}}{platform};
+					}
+				}
 				print O 'GSE'.$gse, "\t", $gpl, "\t", $pdat, "\t", $taxon, "\t", $summary,
-					"\t", $suppFile, "\t", $n_samples, "\t", "NA", "\t", "NA", "\n";
+					"\t", $suppFile, "\t", $n_samples, "\t", $invest, "\t", join(";",@plat), "\n";
 				$gses{$gse} = 1;
 			}
 		}
@@ -140,4 +175,23 @@ sub getInfo {
 		}
 	}
 	close O;
+}
+
+
+sub parseGPL {
+	my @gpls;
+	open F, $_[0];
+	while(<F>){ 
+	  if(/Alternative\s+to/){ 
+	    $h = <F>;
+	    $h =~ /GPL\d+/;
+	    push @gpls, $&;
+	  }
+	  if(/Affiliated\s+with/){ 
+	    $h = <F>;
+	    $h =~ /GPL\d+/;
+	    push @gpls, $&;
+	  }
+	}
+	return \@gpls;
 }
