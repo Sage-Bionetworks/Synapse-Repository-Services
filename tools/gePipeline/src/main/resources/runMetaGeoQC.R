@@ -51,6 +51,10 @@ splitDatasetAttributes<-function(a) {
 	list(properties=properties, annotations=annotations)
 }
 
+indx <- which(tolower(names(inputDataMap)) == "number_of_samples")
+if(length(indx) > 0L)
+	names(inputDataMap)[indx] <- tolower(names(inputDataMap)[indx])
+
 
 attributes<-splitDatasetAttributes(inputDataMap)
 

@@ -265,6 +265,15 @@ setMethod(
 )
 
 setMethod(
+		f = "annotValue<-",
+		signature = signature("SynapseAnnotation", "character", "NULL"),
+		definition = function(object, which, value){
+			annotValue(object = object, which = which) <- as.character(value)
+			object
+		}
+)
+
+setMethod(
 		f = "propertyValue<-",
 		signature = signature("SynapseAnnotation", "character"),
 		definition = function(object, which, value){
