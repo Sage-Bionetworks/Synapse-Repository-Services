@@ -35,7 +35,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
  * <p>
  * 
  */
-@Ignore
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class CodeControllerTest {
@@ -248,7 +247,7 @@ public class CodeControllerTest {
 		JSONObject error = helper
 				.testCreateJsonEntityShouldFail(helper.getServletPrefix()
 						+"/code",
-						"{\"name\": \"Bayesian Network\",  \"type\":\"C\", "
+						"{\"name\": \"Bayesian Network\", "
 								+ "\"BOGUS\":\"this does not match our model object\"}",
 						HttpStatus.BAD_REQUEST);
 
@@ -267,59 +266,6 @@ public class CodeControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.CodeController#createChildEntity}
-	 * .
-	 * 
-	 * @throws Exception
-	 */
-	@Ignore // if the name is null then the id will be used.
-	@Test
-	public void testMissingRequiredFieldCreateCode() throws Exception {
-
-		JSONObject error = helper
-				.testCreateJsonEntityShouldFail(helper.getServletPrefix()
-						+"/code",
-						"{\"version\": \"1.0.0\", \"description\": \"foo\", \"releaseNotes\":\"bar\", \"type\":\"C\", \"parentId\":\""+project.getString("id")+"\"}",
-						HttpStatus.BAD_REQUEST);
-
-		assertEquals("Node.name cannot be null", error
-				.getString("reason"));
-	}
-
-	/**
-	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.CodeController#updateChildEntity}
-	 * .
-	 * 
-	 * @throws Exception
-	 */
-	@Ignore
-	@Test
-	public void testMissingRequiredFieldUpdateCode() throws Exception {
-
-		// Create a code
-		JSONObject newCode = helper
-				.testCreateJsonEntity(helper.getServletPrefix()
-						+"/code",
-						"{\"name\":\"MouseCross clinical data\", \"type\":\"C\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
-
-		// Get that code
-		JSONObject code = helper.testGetJsonEntity(newCode.getString("uri"));
-		assertEquals(newCode.getString(NodeConstants.COL_ID), code.getString(NodeConstants.COL_ID));
-		assertEquals("MouseCross clinical data", code.getString("name"));
-
-		// Modify that code to make it invalid
-		code.remove("name");
-		JSONObject error = helper.testUpdateJsonEntityShouldFail(code,
-				HttpStatus.BAD_REQUEST);
-
-		assertEquals("'name' is a required property for Code", error
-				.getString("reason"));
-	}
-
-	/**
-	 * Test method for
 	 * {@link org.sagebionetworks.repo.web.controller.CodeController#updateChildEntity}
 	 * .
 	 * 
@@ -331,8 +277,8 @@ public class CodeControllerTest {
 		JSONObject newCode = helper
 				.testCreateJsonEntity(helper.getServletPrefix()
 						+"/code",
-						"{\"name\":\"MouseCross genetic data\", \"type\":\"C\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\", \"parentId\":\"" +project.getString(NodeConstants.COL_ID)+
+						"{\"name\":\"MouseCross genetic data\", "
+								+ " \"description\": \"foo\",  \"parentId\":\"" +project.getString(NodeConstants.COL_ID)+
 										"\"}");
 
 		// Get that code
