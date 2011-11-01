@@ -69,7 +69,7 @@ public class AnalysesHomeViewImpl extends Composite implements AnalysesHomeView 
 		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
-		headerWidget.setMenuItemActive(MenuItems.ANALYSES);
+		headerWidget.setMenuItemActive(MenuItems.PROJECTS);
 
 	}
 

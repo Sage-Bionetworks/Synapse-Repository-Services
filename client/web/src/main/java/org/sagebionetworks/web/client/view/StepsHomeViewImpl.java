@@ -69,7 +69,7 @@ public class StepsHomeViewImpl extends Composite implements StepsHomeView {
 		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
-		headerWidget.setMenuItemActive(MenuItems.STEPS);
+		headerWidget.setMenuItemActive(MenuItems.PROJECTS);
 
 	}
 

@@ -140,7 +140,7 @@ public class StepViewImpl extends Composite implements StepView {
 
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
-		headerWidget.setMenuItemActive(MenuItems.ANALYSES);
+		headerWidget.setMenuItemActive(MenuItems.PROJECTS);
 	}
 
 	@Override
