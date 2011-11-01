@@ -26,6 +26,8 @@ import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.conn.scheme.SchemeSocketFactory;
+import org.apache.http.conn.scheme.SocketFactory;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.StringEntity;
@@ -51,30 +53,12 @@ public class HttpClientHelper {
 	private static final HttpClient httpClient;
 
 	static {
+		
+		SchemeSocketFactory ssf = null;
 
-		SchemeRegistry schemeRegistry = new SchemeRegistry();
-		schemeRegistry.register(new Scheme("http", 80, PlainSocketFactory
-				.getSocketFactory()));
-		schemeRegistry.register(new Scheme("https", 443, SSLSocketFactory
-				.getSocketFactory()));
-
-		// TODO its unclear how to set a default for the timeout in milliseconds
-		// used when retrieving an
-		// instance of ManagedClientConnection from the ClientConnectionManager
-		// since parameters are now deprecated for connection managers.
-		ThreadSafeClientConnManager connectionManager = new ThreadSafeClientConnManager(
-				schemeRegistry);
-
-		HttpParams clientParams = new BasicHttpParams();
-		clientParams.setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT,
-				DEFAULT_CONNECT_TIMEOUT_MSEC);
-		clientParams.setParameter(CoreConnectionPNames.SO_TIMEOUT,
-				DEFAULT_SOCKET_TIMEOUT_MSEC);
-
+		// for integration testing we simply trust all certificates
 		String integrationTestEndpoint = System.getProperty("INTEGRATION_TEST_ENDPOINT");
-		if (false && (integrationTestEndpoint!=null && integrationTestEndpoint.length()>0)) {
-			// for integration testing we simply trust all certificates
-			HttpClient base = new DefaultHttpClient(connectionManager, clientParams);
+		if (true || (integrationTestEndpoint!=null && integrationTestEndpoint.length()>0)) {
 			X509TrustManager tm = new X509TrustManager() { 
 				public void checkClientTrusted(X509Certificate[] xcs, String string) throws CertificateException { 
 				} 
@@ -91,14 +75,32 @@ public class HttpClientHelper {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			SSLSocketFactory ssf = new SSLSocketFactory(ctx);  
-			ClientConnectionManager ccm = base.getConnectionManager(); 
-			SchemeRegistry sr = ccm.getSchemeRegistry(); 
-			sr.register(new Scheme("https", 443, ssf)); 
-			httpClient = new DefaultHttpClient(ccm, base.getParams());  
+			ssf = new SSLSocketFactory(ctx);  
 		} else {
-			httpClient = new DefaultHttpClient(connectionManager, clientParams);
+			ssf = SSLSocketFactory.getSocketFactory();
 		}
+
+		SchemeSocketFactory psf = PlainSocketFactory.getSocketFactory();
+		SchemeRegistry schemeRegistry = new SchemeRegistry();
+		schemeRegistry.register(new Scheme("http", 80, psf));
+		schemeRegistry.register(new Scheme("http", 8080, psf));
+		schemeRegistry.register(new Scheme("https", 443, ssf));
+		schemeRegistry.register(new Scheme("https", 8443, ssf));
+
+		// TODO its unclear how to set a default for the timeout in milliseconds
+		// used when retrieving an
+		// instance of ManagedClientConnection from the ClientConnectionManager
+		// since parameters are now deprecated for connection managers.
+		ThreadSafeClientConnManager connectionManager = new ThreadSafeClientConnManager(
+				schemeRegistry);
+
+		HttpParams clientParams = new BasicHttpParams();
+		clientParams.setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT,
+				DEFAULT_CONNECT_TIMEOUT_MSEC);
+		clientParams.setParameter(CoreConnectionPNames.SO_TIMEOUT,
+				DEFAULT_SOCKET_TIMEOUT_MSEC);
+
+		httpClient = new DefaultHttpClient(connectionManager, clientParams);
 		
 	}
 

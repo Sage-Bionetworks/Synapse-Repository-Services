@@ -46,8 +46,12 @@ public class TARDownloader {
 	    boolean b = ftp.changeWorkingDirectory(path);
 	    if (!b) throw new RuntimeException("Cannot change directory to "+path);
 	    ftp.setFileType(FTP.BINARY_FILE_TYPE);
-		InputStream is = ftp.retrieveFileStream(remoteFile.getName());
-		if (is==null) throw new IOException("Unable to download "+remoteFile.getPath());
+	    String fname = remoteFile.getName();
+		InputStream is = ftp.retrieveFileStream(fname);
+		if (is==null) throw new IOException(
+				"Changed dir to "+path+
+				" but unable to download "+fname+". Last reply from server:\n"+
+				ftp.getReplyString());
 		List<File> fileList = new ArrayList<File>();
 		while ( ((is.read(buffer)) == RECORDLEN) && (buffer[NAMEOFF] != 0) ) { 
 			String name = new String(buffer, NAMEOFF, NAMELEN, Charset.defaultCharset()).trim(); 
