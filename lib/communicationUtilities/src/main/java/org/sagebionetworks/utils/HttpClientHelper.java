@@ -6,12 +6,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -26,8 +20,6 @@ import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
-import org.apache.http.conn.scheme.SchemeSocketFactory;
-import org.apache.http.conn.scheme.SocketFactory;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.StringEntity;
@@ -37,6 +29,16 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.CoreConnectionPNames;
 import org.apache.http.params.HttpParams;
 import org.apache.http.util.EntityUtils;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import org.apache.http.conn.scheme.SchemeSocketFactory;
+import org.apache.http.conn.scheme.SocketFactory;
+
+
 
 /**
  * @author deflaux
@@ -53,12 +55,9 @@ public class HttpClientHelper {
 	private static final HttpClient httpClient;
 
 	static {
-		
 		SchemeSocketFactory ssf = null;
-
 		// for integration testing we simply trust all certificates
-		String integrationTestEndpoint = System.getProperty("INTEGRATION_TEST_ENDPOINT");
-		if (true || (integrationTestEndpoint!=null && integrationTestEndpoint.length()>0)) {
+		if (true) {
 			X509TrustManager tm = new X509TrustManager() { 
 				public void checkClientTrusted(X509Certificate[] xcs, String string) throws CertificateException { 
 				} 
@@ -79,13 +78,12 @@ public class HttpClientHelper {
 		} else {
 			ssf = SSLSocketFactory.getSocketFactory();
 		}
+		
 
-		SchemeSocketFactory psf = PlainSocketFactory.getSocketFactory();
 		SchemeRegistry schemeRegistry = new SchemeRegistry();
-		schemeRegistry.register(new Scheme("http", 80, psf));
-		schemeRegistry.register(new Scheme("http", 8080, psf));
+		schemeRegistry.register(new Scheme("http", 80, PlainSocketFactory
+				.getSocketFactory()));
 		schemeRegistry.register(new Scheme("https", 443, ssf));
-		schemeRegistry.register(new Scheme("https", 8443, ssf));
 
 		// TODO its unclear how to set a default for the timeout in milliseconds
 		// used when retrieving an
@@ -100,8 +98,8 @@ public class HttpClientHelper {
 		clientParams.setParameter(CoreConnectionPNames.SO_TIMEOUT,
 				DEFAULT_SOCKET_TIMEOUT_MSEC);
 
-		httpClient = new DefaultHttpClient(connectionManager, clientParams);
 		
+		httpClient = new DefaultHttpClient(connectionManager, clientParams);
 	}
 
 	/**
