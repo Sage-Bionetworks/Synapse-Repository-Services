@@ -3,8 +3,18 @@ package org.sagebionetworks.utils;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import java.security.cert.CertificateException;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -20,6 +30,7 @@ import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.conn.scheme.SchemeSocketFactory;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.StringEntity;
@@ -44,28 +55,58 @@ public class HttpClientHelper {
 	private static final int DEFAULT_SOCKET_TIMEOUT_MSEC = 2000;
 	private static final HttpClient httpClient;
 
+	// Note: Having this 'password' in plaintext is OK because (1) it's a well known default for key stores,
+	// and (2) the keystore (below) contains only public certificates.
+	private static final String DEFAULT_JAVA_KEYSTORE_PW = "changeit";
+	private static final String KEYSTORE_NAME = "HttpClientHelperPublicCertsOnly.jks";
+	
 	static {
 
-		SchemeRegistry schemeRegistry = new SchemeRegistry();
-		schemeRegistry.register(new Scheme("http", 80, PlainSocketFactory
-				.getSocketFactory()));
-		schemeRegistry.register(new Scheme("https", 443, SSLSocketFactory
-				.getSocketFactory()));
-
-		// TODO its unclear how to set a default for the timeout in milliseconds
-		// used when retrieving an
-		// instance of ManagedClientConnection from the ClientConnectionManager
-		// since parameters are now deprecated for connection managers.
-		ThreadSafeClientConnManager connectionManager = new ThreadSafeClientConnManager(
-				schemeRegistry);
-
-		HttpParams clientParams = new BasicHttpParams();
-		clientParams.setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT,
-				DEFAULT_CONNECT_TIMEOUT_MSEC);
-		clientParams.setParameter(CoreConnectionPNames.SO_TIMEOUT,
-				DEFAULT_SOCKET_TIMEOUT_MSEC);
-
-		httpClient = new DefaultHttpClient(connectionManager, clientParams);
+		try {
+			// from http://www.coderanch.com/t/372437/java/java/javax-net-ssl-keyStore-system
+			TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+			KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
+			InputStream keystoreStream = ClassLoader.getSystemResourceAsStream(KEYSTORE_NAME);
+			keystore.load(keystoreStream, DEFAULT_JAVA_KEYSTORE_PW.toCharArray());
+			trustManagerFactory.init(keystore);
+			TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
+			SSLContext ctx = SSLContext.getInstance("TLS"); // was SSL
+			ctx.init(null, trustManagers, null);
+			
+			SchemeSocketFactory ssf = new SSLSocketFactory(ctx);  
+			
+			SchemeRegistry schemeRegistry = new SchemeRegistry();
+			schemeRegistry.register(new Scheme("http", 80, PlainSocketFactory
+					.getSocketFactory()));
+			schemeRegistry.register(new Scheme("https", 443, ssf));
+			schemeRegistry.register(new Scheme("https", 8443, ssf));
+	
+			// TODO its unclear how to set a default for the timeout in milliseconds
+			// used when retrieving an
+			// instance of ManagedClientConnection from the ClientConnectionManager
+			// since parameters are now deprecated for connection managers.
+			ThreadSafeClientConnManager connectionManager = new ThreadSafeClientConnManager(
+					schemeRegistry);
+	
+			HttpParams clientParams = new BasicHttpParams();
+			clientParams.setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT,
+					DEFAULT_CONNECT_TIMEOUT_MSEC);
+			clientParams.setParameter(CoreConnectionPNames.SO_TIMEOUT,
+					DEFAULT_SOCKET_TIMEOUT_MSEC);
+	
+			httpClient = new DefaultHttpClient(connectionManager, clientParams);
+		} catch (KeyStoreException e) {
+			throw new RuntimeException(e);
+		} catch (KeyManagementException e) {
+			throw new RuntimeException(e);
+		} catch (NoSuchAlgorithmException e) {
+			throw new RuntimeException(e);
+		} catch (CertificateException e) {
+			throw new RuntimeException(e);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+			
 	}
 
 	/**
