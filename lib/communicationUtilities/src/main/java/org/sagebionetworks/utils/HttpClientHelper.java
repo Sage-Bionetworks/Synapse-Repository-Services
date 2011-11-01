@@ -72,7 +72,7 @@ public class HttpClientHelper {
 				DEFAULT_SOCKET_TIMEOUT_MSEC);
 
 		String integrationTestEndpoint = System.getProperty("INTEGRATION_TEST_ENDPOINT");
-		if ((integrationTestEndpoint!=null && integrationTestEndpoint.length()>0)) {
+		if (false && (integrationTestEndpoint!=null && integrationTestEndpoint.length()>0)) {
 			// for integration testing we simply trust all certificates
 			HttpClient base = new DefaultHttpClient(connectionManager, clientParams);
 			X509TrustManager tm = new X509TrustManager() { 

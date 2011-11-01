@@ -9,11 +9,12 @@ lapply(1:nrow(all.gses), function(i) {
 			b <- list(gpl     =all.gses[i,1],
 					lastUpdate    =all.gses[i,2],
 					Species =all.gses[i,3],
-					Description =all.gses[i,4],
+					description =all.gses[i,4],
 					hasCelFile=all.gses[i,5],
-					Number_of_Samples=all.gses[i,6],
-					creator=all.gses[i,7],
-					Platform=all.gses[i,8])
+					number_of_samples=all.gses[i,6],
+					creator=all.gses[i,7]
+					#,Platform=all.gses[i,8]
+			)
   b
 }) -> output
 
