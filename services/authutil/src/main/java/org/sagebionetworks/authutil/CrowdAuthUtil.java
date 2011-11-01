@@ -49,6 +49,9 @@ public class CrowdAuthUtil {
 	private String apiApplicationKey;
 
 	public CrowdAuthUtil() {
+		HttpClientHelper.setGlobalConnectionTimeout(2000);
+		HttpClientHelper.setGlobalSocketTimeout(10000);
+		
 		// get the values from system properties, if available
 		crowdUrl = StackConfiguration.getCrowdEndpoint();
 		
