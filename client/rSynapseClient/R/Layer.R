@@ -97,6 +97,7 @@ setMethod(
 			if(!is.null(layerType <- propertyValue(object, "type"))){
 				if(layerType == "M"){
 					format <- annotValue(object, "format")
+					layerType <- "Media"
 					if(!is.null(format) && tolower(format) == "code")
 						layerType <- "Code"
 				}

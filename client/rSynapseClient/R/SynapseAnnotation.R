@@ -212,7 +212,7 @@ setMethod(
 		f = "annotValue<-",
 		signature = signature("SynapseAnnotation", "character", "numeric"),
 		definition = function(object, which, value){
-			if(grepl("date", tolower(which)))
+			if(grepl("date", gsub("update", "", tolower(which))))
 				stop("invalid data type for date annotations. See the documentation for 'POSIXct' or 'Date' for details on how to construct the correct value for date annotations.")
 			type <- names(which(.getCache("annotationTypeMap") == class(value)))
 			#all annotations are stored internally as strings
@@ -224,7 +224,7 @@ setMethod(
 		f = "annotValue<-",
 		signature = signature("SynapseAnnotation", "character", "integer"),
 		definition = function(object, which, value){
-			if(grepl("date", tolower(which)))
+			if(grepl("date", gsub("update", "", tolower(which))))
 				stop("invalid data type for date annotations. See the documentation for 'POSIXct' or 'Date' for details on how to construct the correct value for date annotations.")
 			type <- names(which(.getCache("annotationTypeMap") == class(value)))
 			#all annotations are stored internally as strings
