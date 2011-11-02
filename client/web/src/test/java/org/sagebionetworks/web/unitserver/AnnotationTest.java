@@ -16,13 +16,16 @@ public class AnnotationTest {
 		// Create a new Annotations object
 		Annotations anno = new Annotations();
 		String key = "someKey";
-		String value = "someValue";
-		anno.addAnnotation(key, value);
+		String value1 = "someValue1";
+		String value2 = "someValue2";
+		anno.addAnnotation(key, value1);
+		anno.addAnnotation(key, value2);
 		// Make sure we can find it
 		Object result = anno.findFirstAnnotationValue(key);
 		assertNotNull(result);
 		assertTrue(result instanceof String);
-		assertEquals(value, (String)result);
+		assertEquals(value1, (String)result);
+		assertTrue(anno.getStringAnnotations().get(key).contains(value2));
 	}
 	
 	@Test
@@ -44,13 +47,16 @@ public class AnnotationTest {
 		// Create a new Annotations object
 		Annotations anno = new Annotations();
 		String key = "someKey";
-		Long value = new Long(123);
-		anno.addAnnotation(key, value);
+		Long value1 = new Long(123);
+		Long value2 = new Long(456);
+		anno.addAnnotation(key, value1);
+		anno.addAnnotation(key, value2);
 		// Make sure we can find it
 		Object result = anno.findFirstAnnotationValue(key);
 		assertNotNull(result);
 		assertTrue(result instanceof Long);
-		assertEquals(value, (Long)result);
+		assertEquals(value1, (Long)result);
+		assertTrue(anno.getLongAnnotations().get(key).contains(value2));
 	}
 	
 	@Test

@@ -120,6 +120,7 @@ public class DisplayConstants {
 	public static final String LABEL_GOTO_SYNAPSE_ID = "Enter a Synapse Id...";
 	public static final String LABEL_DELETE_PROJECT = "Delete Project";
 	public static final String TITLE_CREATE_DATASET = "Create Dataset";
+	public static final String TITLE_CREATE_REFERENCE = "Create Reference";
 	public static final String BUTTON_EDIT_PROJECT_DETAILS = "Edit Project Details";
 	public static final String BUTTON_ADD_DATASET_TO_PROJECT = "Add Dataset to Project";
 	public static final String BUTTON_ADD_DATASET = "Add Dataset";
@@ -133,7 +134,8 @@ public class DisplayConstants {
 	public static final String TITLE_CREATE_STEP = "Create Step";
 	public static final String BUTTON_EDIT_STEP_DETAILS = "Edit Step Details";
 	public static final String LABEL_DELETE_STEP = "Delete Step";
-	public static final String BUTTON_ADD_DATASET_TO_STEP = "FIX ME addDatasetToStep";
+	public static final String BUTTON_ADD_REFERENCE_TO_STEP = "Add Reference to Step";
+	public static final String BUTTON_ADD_REFERENCE = "Add Reference";
 	public static final String TITLE_ERROR = "Error";
 	
 	

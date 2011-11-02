@@ -1,8 +1,6 @@
 package org.sagebionetworks.web.client.view;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.web.client.DisplayConstants;
@@ -22,14 +20,10 @@ import org.sagebionetworks.web.client.widget.header.Header.MenuItems;
 import org.sagebionetworks.web.client.widget.modal.ModalWindow;
 import org.sagebionetworks.web.client.widget.sharing.AccessMenuButton;
 import org.sagebionetworks.web.client.widget.sharing.AccessMenuButton.AccessLevel;
-import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
 import org.sagebionetworks.web.shared.EnvironmentDescriptor;
 import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.Reference;
-import org.sagebionetworks.web.shared.WhereCondition;
-import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
-import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
 
 import com.extjs.gxt.ui.client.event.Listener;
 import com.extjs.gxt.ui.client.event.MenuEvent;
@@ -55,6 +49,7 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
@@ -87,7 +82,13 @@ public class StepViewImpl extends Composite implements StepView {
 	@UiField
 	FlowPanel overviewPanel;
 	@UiField
-	SimplePanel datasetListTablePanel;
+    FlexTable middleFlexTable;
+    @UiField
+    FlexTable rightFlexTable;
+	@UiField
+	SimplePanel referenceListTablePanel;
+	@UiField
+	FlexTable referencesFlexTable;
 	@UiField
 	SimplePanel accessPanel;
 	@UiField
@@ -95,11 +96,10 @@ public class StepViewImpl extends Composite implements StepView {
 	@UiField
 	SimplePanel adminPanel;
 	@UiField
-	SimplePanel addDatasetPanel;
+	SimplePanel addReferencePanel;
 
 	private Presenter presenter;
 	private PreviewDisclosurePanel previewDisclosurePanel;
-	private QueryServiceTable datasetsListQueryServiceTable;
 	private IconsImageBundle iconsImageBundle;
 	private boolean isAdministrator = false;
 	private boolean canEdit = false;
@@ -141,6 +141,10 @@ public class StepViewImpl extends Composite implements StepView {
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
 		headerWidget.setMenuItemActive(MenuItems.PROJECTS);
+		
+        // alignment setup
+        middleFlexTable.setCellSpacing(5);
+        rightFlexTable.setCellSpacing(5);
 	}
 
 	@Override
@@ -199,10 +203,17 @@ public class StepViewImpl extends Composite implements StepView {
 		followStepButtonPanel.clear();
 		followStepButtonPanel.add(followStep);
 
-		// List of datasets table
-		setupDatasetTable(id);
-		datasetListTablePanel.clear();
-		datasetListTablePanel.add(datasetsListQueryServiceTable.asWidget());
+		// List of references table
+        int rowIndex = 0;
+        DisplayUtils.addRowToTable(rowIndex++, "Code References", "", referencesFlexTable);
+        rowIndex = addRefsToReferenceTable(rowIndex, code);
+        DisplayUtils.addRowToTable(rowIndex++, "Input Layer References", "", referencesFlexTable);               
+        rowIndex = addRefsToReferenceTable(rowIndex, input);
+        DisplayUtils.addRowToTable(rowIndex++, "Output Layer References", "", referencesFlexTable);               
+        rowIndex = addRefsToReferenceTable(rowIndex, output);
+        referencesFlexTable.setStyleName("references_table");
+        referenceListTablePanel.clear();
+		referenceListTablePanel.add(referencesFlexTable.asWidget());
 
 		// fill in fields
 		titleSpan.setInnerText(name);
@@ -218,6 +229,23 @@ public class StepViewImpl extends Composite implements StepView {
 				summaryLength), description);
 		overviewPanel.add(previewDisclosurePanel);
 
+		// add metadata to tables
+        rowIndex = 0;
+        DisplayUtils.addRowToTable(rowIndex++, "Created By:", createdBy, middleFlexTable);               
+        DisplayUtils.addRowToTable(rowIndex++, "Command Line:", commandLine, middleFlexTable);
+        DisplayUtils.addRowToTable(rowIndex++, "Start Date:", 
+        		(null != startDate) ? DisplayConstants.DATE_FORMAT.format(startDate) : "", 
+        				middleFlexTable);
+        DisplayUtils.addRowToTable(rowIndex++, "End Date:", 
+        		(null != endDate) ? DisplayConstants.DATE_FORMAT.format(endDate) : "",
+        				middleFlexTable);
+
+        rowIndex = 0;
+        for(EnvironmentDescriptor descriptor : environmentDescriptors) {
+        	String descriptorDisplay = (null == descriptor.getQuantifier()) ? descriptor.getName() : descriptor.getName() + ", " + descriptor.getQuantifier();
+        	DisplayUtils.addRowToTable(rowIndex++, descriptor.getType(), descriptorDisplay, rightFlexTable);        
+        }
+        
 		annotationsPanel.clear();
 		annotationEditor.setPlaceChanger(presenter.getPlaceChanger());
 		annotationEditor.setResource(NodeType.STEP, id);
@@ -227,23 +255,14 @@ public class StepViewImpl extends Composite implements StepView {
 	/*
 	 * Private Methods
 	 */
-	private void setupDatasetTable(String id) {
-		int datasetTableWidth = 320;
-		int datasetTableHeight = 237;
-		datasetsListQueryServiceTable = new QueryServiceTable(
-				queryServiceTableResourceProvider, ObjectType.dataset, true,
-				datasetTableWidth, datasetTableHeight, presenter
-						.getPlaceChanger());
-		List<String> visibileColumns = new ArrayList<String>();
-		visibileColumns.add("dataset.NameLink");
-		visibileColumns.add("dataset.creator");
-		visibileColumns.add("dataset.createdOnDate");
-		datasetsListQueryServiceTable.setDispalyColumns(visibileColumns, false);
-		// load the datasets for this step
-		List<WhereCondition> whereList = new ArrayList<WhereCondition>();
-		whereList.add(new WhereCondition("dataset.parentId",
-				WhereOperator.EQUALS, id));
-		datasetsListQueryServiceTable.setWhereCondition(whereList);
+	private int addRefsToReferenceTable(int rowIndex, Set<Reference> references) {
+		for(Reference ref : references) {
+			DisplayUtils.addRowToTable(rowIndex++, 
+					ref.getTargetId(), 
+					ref.getTargetVersionNumber().toString(), 
+					referencesFlexTable);
+		}
+		return rowIndex;
 	}
 
 	private Anchor createFollowStepButton(IconsImageBundle icons,
@@ -254,7 +273,7 @@ public class StepViewImpl extends Composite implements StepView {
 		followStepModal.setCallbackButton("Confirm", new AsyncCallback<Void>() {
 			@Override
 			public void onSuccess(Void result) {
-				// TODO : call a service layer to follow the dataset
+				// TODO : call a service layer to follow the reference
 				followStepModal.hideWindow();
 			}
 
@@ -263,17 +282,17 @@ public class StepViewImpl extends Composite implements StepView {
 			}
 		});
 		// follow link
-		Anchor followDatasetAnchor = new Anchor();
-		followDatasetAnchor.setHTML(AbstractImagePrototype.create(
+		Anchor followReferenceAnchor = new Anchor();
+		followReferenceAnchor.setHTML(AbstractImagePrototype.create(
 				icons.arrowCurve16()).getHTML()
 				+ " Follow this Step");
-		followDatasetAnchor.addClickHandler(new ClickHandler() {
+		followReferenceAnchor.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
 				followStepModal.showWindow();
 			}
 		});
-		return followDatasetAnchor;
+		return followReferenceAnchor;
 	}
 
 	private void createAdminPanel(String stepId) {
@@ -286,24 +305,24 @@ public class StepViewImpl extends Composite implements StepView {
 			button.setHeight(25);
 			adminPanel.add(button);
 
-			// add dataset button on page
-			addDatasetPanel.clear();
-			addDatasetPanel.add(createAddDatasetLink(stepId));
+			// add reference button on page
+			addReferencePanel.clear();
+			addReferencePanel.add(createAddReferenceLink(stepId));
 		}
 	}
 
-	private Anchor createAddDatasetLink(final String stepId) {
-		Anchor addDatasetLink = new Anchor();
-		addDatasetLink.setHTML(DisplayUtils.getIconHtml(iconsImageBundle
+	private Anchor createAddReferenceLink(final String stepId) {
+		Anchor addReferenceLink = new Anchor();
+		addReferenceLink.setHTML(DisplayUtils.getIconHtml(iconsImageBundle
 				.addSquare16())
-				+ " " + DisplayConstants.BUTTON_ADD_DATASET);
-		addDatasetLink.addClickHandler(new ClickHandler() {
+				+ " " + DisplayConstants.BUTTON_ADD_REFERENCE);
+		addReferenceLink.addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
-				showAddDatasetWindow(stepId);
+				showAddReferenceWindow(stepId);
 			}
 		});
-		return addDatasetLink;
+		return addReferenceLink;
 	}
 
 	private Menu createAdminMenu(final String stepId) {
@@ -347,12 +366,12 @@ public class StepViewImpl extends Composite implements StepView {
 			});
 			menu.add(item);
 
-			item = new MenuItem(DisplayConstants.BUTTON_ADD_DATASET_TO_STEP);
+			item = new MenuItem(DisplayConstants.BUTTON_ADD_REFERENCE_TO_STEP);
 			item.setIcon(AbstractImagePrototype.create(iconsImageBundle
 					.documentAdd16()));
 			item.addSelectionListener(new SelectionListener<MenuEvent>() {
 				public void componentSelected(MenuEvent menuEvent) {
-					showAddDatasetWindow(stepId);
+					showAddReferenceWindow(stepId);
 				}
 			});
 			menu.add(item);
@@ -407,13 +426,13 @@ public class StepViewImpl extends Composite implements StepView {
 		}
 	}
 
-	private void showAddDatasetWindow(final String stepId) {
+	private void showAddReferenceWindow(final String stepId) {
 		final Window window = new Window();
 		window.setSize(600, 370);
 		window.setPlain(true);
 		window.setModal(true);
 		window.setBlinkModal(true);
-		window.setHeading(DisplayConstants.TITLE_CREATE_DATASET);
+		window.setHeading(DisplayConstants.TITLE_CREATE_REFERENCE);
 		window.setLayout(new FitLayout());
 		nodeEditor.addCancelHandler(new CancelHandler() {
 			@Override
@@ -429,7 +448,7 @@ public class StepViewImpl extends Composite implements StepView {
 			}
 		});
 		nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
-		window.add(nodeEditor.asWidget(NodeType.DATASET, null, stepId),
+		window.add(nodeEditor.asWidget(NodeType.STEP, null, stepId),
 				new FitData(4));
 		window.show();
 	}

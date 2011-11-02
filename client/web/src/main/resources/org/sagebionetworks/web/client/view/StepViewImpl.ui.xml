@@ -61,25 +61,29 @@
 					<span style="float:right;">
 						<g:SimplePanel ui:field="annotationsPanel" />
 					</span>
-<!-- 
+				</div>
+				<div class="data_info">
+					<span class="data_details">
+                       <g:FlexTable ui:field="middleFlexTable" />
+					</span>
 					<span class="data_details data_details_right">
 						<g:FlexTable ui:field="rightFlexTable" />
 					</span>
--->
 				</div>
 			</div>
 			<div class="data_detail_sections">
 				<div class="data_detail_section">
 					<span class="header">
 						<span class="icon right">
-							<g:SimplePanel ui:field="addDatasetPanel" />						
+							<g:SimplePanel ui:field="addReferencePanel" />						
 						</span>
-						<span class="title">Step Datasets</span>
-						<span class="secondary_text">Select a dataset to view its details</span>
+						<span class="title">Step References</span>
+						<span class="secondary_text">Select a reference to view its details</span>
 					</span>
-					<g:SimplePanel ui:field="datasetListTablePanel" />												
+					<g:SimplePanel ui:field="referenceListTablePanel" />
+                    <g:FlexTable ui:field="referencesFlexTable" />												
 				</div>
-				
+
 				<div class="data_detail_section">
 					<span class="header">
 						<span class="icon right">

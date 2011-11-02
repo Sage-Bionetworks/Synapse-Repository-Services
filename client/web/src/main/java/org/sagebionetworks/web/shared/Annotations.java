@@ -289,10 +289,13 @@ public class Annotations implements IsSerializable {
 			map = new HashMap<String, List<String>>();
 			setStringAnnotations(map);
 		}
-		// Create a new value
-		List<String> values = new ArrayList<String>();
+		// Add a new value
+		List<String> values = map.get(key);
+		if(null == values) {
+			values = new ArrayList<String>();
+			map.put(key, values);
+		}
 		values.add(value);
-		map.put(key, values);
 	}
 	
 	public void addBlobAnnotation(String key, byte[] value) {
@@ -302,10 +305,13 @@ public class Annotations implements IsSerializable {
 			map = new HashMap<String, List<byte[]>>();
 			setBlobAnnotations(map);
 		}
-		// Create a new value
-		List<byte[]> values = new ArrayList<byte[]>();
+		// Add a new value
+		List<byte[]> values = map.get(key);
+		if(null == values) {
+			values = new ArrayList<byte[]>();
+			map.put(key, values);
+		}
 		values.add(value);
-		map.put(key, values);
 	}
 	
 	/**
@@ -321,10 +327,13 @@ public class Annotations implements IsSerializable {
 			map = new HashMap<String, List<Date>>();
 			setDateAnnotations(map);
 		}
-		// Create a new value
-		List<Date> values = new ArrayList<Date>();
+		// Add a new value
+		List<Date> values = map.get(key);
+		if(null == values) {
+			values = new ArrayList<Date>();
+			map.put(key, values);
+		}
 		values.add(value);
-		map.put(key, values);
 	}
 	
 	/**
@@ -340,10 +349,13 @@ public class Annotations implements IsSerializable {
 			map = new HashMap<String, List<Long>>();
 			setLongAnnotations(map);
 		}
-		// Create a new value
-		List<Long> values = new ArrayList<Long>();
+		// Add a new value
+		List<Long> values = map.get(key);
+		if(null == values) {
+			values = new ArrayList<Long>();
+			map.put(key, values);
+		}
 		values.add(value);
-		map.put(key, values);
 	}
 	
 	/**
@@ -359,10 +371,13 @@ public class Annotations implements IsSerializable {
 			map = new HashMap<String, List<Double>>();
 			setDoubleAnnotations(map);
 		}
-		// Create a new value
-		List<Double> values = new ArrayList<Double>();
+		// Add a new value
+		List<Double> values = map.get(key);
+		if(null == values) {
+			values = new ArrayList<Double>();
+			map.put(key, values);
+		}
 		values.add(value);
-		map.put(key, values);
 	}
 
 	/**

@@ -152,6 +152,7 @@ public class Step implements IsSerializable {
 			Reference ref = new Reference();
 			ref.setTargetId(targetId);
 			ref.setTargetVersionNumber(targetVersionNumber);
+			refs.add(ref);
 		}
 		return refs;
 	}
@@ -176,6 +177,7 @@ public class Step implements IsSerializable {
 			descriptor.setName(name);
 			descriptor.setType(type);
 			descriptor.setQuantifier(quantifier);
+			descriptors.add(descriptor);
 		}
 		return descriptors;
 	}

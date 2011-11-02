@@ -566,6 +566,9 @@ h2 {
 	width: 320px;
 	margin-right:20px;
 }
+.references_table{
+	background-color: #bc3226;
+}
 .data_detail_section .header {
 	background-color: #bc3226;
 	height:35px;
