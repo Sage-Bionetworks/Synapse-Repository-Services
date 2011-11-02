@@ -79,7 +79,7 @@ public class HttpClientHelper {
 			schemeRegistry.register(new Scheme("http", 80, PlainSocketFactory
 					.getSocketFactory()));
 			schemeRegistry.register(new Scheme("https", 443, ssf));
-			schemeRegistry.register(new Scheme("https", 8443, ssf));
+//			schemeRegistry.register(new Scheme("https", 8443, ssf));
 	
 			// TODO its unclear how to set a default for the timeout in milliseconds
 			// used when retrieving an
