@@ -1,22 +1,15 @@
 {
-    "description":"JSON schema for Location POJO",
-    "implements":[
-        {
-            "$ref":"org.sagebionetworks.repo.model.Versionable"
-        },
-        
-    ],
+    "description":"JSON schema for Location Data POJO",
     "properties":{
         "type":{
             "$ref":"org.sagebionetworks.repo.model.LocationTypeNames",
-            
         },
         "path":{
             "description":"The path of this location",
             "type":"string",
             
         },
-        "md5sum":{
+        "md5":{
             "description":"The checksum of this location",
             "type":"string",
             

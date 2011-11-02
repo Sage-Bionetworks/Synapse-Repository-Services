@@ -110,6 +110,9 @@ public class DefaultController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { 
+			UrlHelpers.CODE_VERSION,
+			UrlHelpers.LAYER_VERSION,
+			UrlHelpers.DATASET_VERSION,
 			UrlHelpers.LOCATION_VERSION
 			}, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -202,6 +205,9 @@ public class DefaultController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { 
+			UrlHelpers.CODE_VERSION_NUMBER,
+			UrlHelpers.LAYER_VERSION_NUMBER,
+			UrlHelpers.DATASET_VERSION_NUMBER,
 			UrlHelpers.LOCATION_VERSION_NUMBER
 			}, method = RequestMethod.GET)
 	public @ResponseBody
@@ -375,6 +381,9 @@ public class DefaultController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { 
+			UrlHelpers.CODE_VERSION_ANNOTATIONS,
+			UrlHelpers.LAYER_VERSION_ANNOTATIONS,
+			UrlHelpers.DATASET_VERSION_ANNOTATIONS,
 			UrlHelpers.LOCATION_VERSION_ANNOTATIONS
 			}, method = RequestMethod.GET)
 	public @ResponseBody
@@ -474,7 +483,10 @@ public class DefaultController extends BaseController {
 	 * @throws ConflictingUpdateException 
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = { 			
+	@RequestMapping(value = { 	
+			UrlHelpers.CODE_VERSION_NUMBER,
+			UrlHelpers.LAYER_VERSION_NUMBER,
+			UrlHelpers.DATASET_VERSION_NUMBER,
 			UrlHelpers.LOCATION_VERSION_NUMBER
 			}, method = RequestMethod.DELETE)
 	public void deleteEntityVersion(
@@ -551,6 +563,9 @@ public class DefaultController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { 
+			UrlHelpers.CODE_VERSION,
+			UrlHelpers.LAYER_VERSION,
+			UrlHelpers.DATASET_VERSION,
 			UrlHelpers.LOCATION_VERSION
 		}, method = RequestMethod.GET)
 	public @ResponseBody

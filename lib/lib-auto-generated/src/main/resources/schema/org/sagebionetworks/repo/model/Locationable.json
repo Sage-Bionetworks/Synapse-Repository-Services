@@ -1,0 +1,21 @@
+{
+    "description":"A Versionable interface for any entity that has multiple locations",
+    "type":"interface",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.Versionable"
+        },
+        
+    ],
+    "properties":{
+        "locations2":{
+            "type":"array",
+            "description":"The list of location datat.",
+            "uniqueItems":false,
+            "contentEncoding":"binary",
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.LocationData"
+            }
+        },
+    }
+}
