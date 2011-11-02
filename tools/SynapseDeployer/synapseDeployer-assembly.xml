@@ -14,9 +14,14 @@
 		<fileSet>
 			<outputDirectory>/</outputDirectory>
 			<directory>${project.basedir}</directory>
-			<includes>
-				<include>*.py</include>
-			</includes>
+			<excludes>
+				<exclude>pom.xml</exclude>
+				<exclude>synapseDeployer-assembly.xml</exclude>
+				<exclude>target/*</exclude>
+				<exclude>.settings/*</exclude>
+				<exclude>.project</exclude>
+				<exclude>.pydevproject</exclude>
+			</excludes>
 		</fileSet>
 	</fileSets>
 </assembly>

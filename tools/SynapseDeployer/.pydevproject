@@ -6,6 +6,6 @@
 <pydev_property name="org.python.pydev.PYTHON_PROJECT_VERSION">python 2.7</pydev_property>
 
 <pydev_pathproperty name="org.python.pydev.PROJECT_SOURCE_PATH">
-<path>/SynapseDeployer/boto-boto-2.1rc2-0-gde833d0/boto-boto-c499f75</path>
+<path>/SynapseDeployer/boto-2.1.1</path>
 </pydev_pathproperty>
 </pydev_project>
