@@ -1,0 +1,54 @@
+{
+    "description":"JSON schema for Step POJO",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.Entity"
+        },
+        
+    ],
+    "properties":{
+        "code":{
+            "type":"array",
+            "uniqueItems":true,
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.Reference"
+            }
+        },
+        "input":{
+            "type":"array",
+            "uniqueItems":true,
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.Reference"
+            }
+        },
+        "output":{
+            "type":"array",
+            "uniqueItems":true,
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.Reference"
+            }
+        },
+        "environmentDescriptors":{
+            "type":"array",
+            "uniqueItems":true,
+            "contentEncoding":"binary",
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.EnvironmentDescriptor"
+            }
+        },
+        "startDate":{
+            "type":"string",
+            "format":"date-time",
+            
+        },
+        "endDate":{
+            "type":"string",
+            "format":"date-time",
+            
+        },
+        "commandLine":{
+            "type":"string",  
+        },
+        
+    }
+}

@@ -27,12 +27,12 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.Base;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.Nodeable;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.RestoreFile;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -41,6 +41,8 @@ import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -63,7 +65,7 @@ import org.springframework.web.servlet.DispatcherServlet;
 public class ServletTestHelper {
 
 	private static final Log log = LogFactory.getLog(ServletTestHelper.class);
-	private static final ObjectMapper objectMapper = new ObjectMapper();
+	private static final EntityObjectMapper objectMapper = new EntityObjectMapper();
 	private static final String DEFAULT_USERNAME = TestUserDAO.TEST_USER_NAME;
 
 	@Autowired
@@ -141,7 +143,7 @@ public class ServletTestHelper {
 	 * @return the entity
 	 * @throws Exception
 	 */
-	public <T extends Base> T createEntity(T entity,
+	public <T extends Entity> T createEntity(T entity,
 			Map<String, String> extraParams) throws Exception {
 		T returnedEntity = ServletTestHelper.createEntity(dispatchServlet,
 				entity, username, extraParams);
@@ -157,7 +159,7 @@ public class ServletTestHelper {
 	 * @return the entity
 	 * @throws Exception
 	 */
-	public <T extends Base> T getEntity(Class<? extends T> clazz, String id,
+	public <T extends Entity> T getEntity(Class<? extends T> clazz, String id,
 			Map<String, String> extraParams) throws Exception {
 		return ServletTestHelper.getEntity(dispatchServlet, clazz, id,
 				username, extraParams);
@@ -170,7 +172,7 @@ public class ServletTestHelper {
 	 * @return
 	 * @throws Exception
 	 */
-	public <T extends Base> T updateEntity(T entity,
+	public <T extends Entity> T updateEntity(T entity,
 			Map<String, String> extraParams) throws Exception {
 		return ServletTestHelper.updateEntity(dispatchServlet, entity,
 				username, extraParams);
@@ -183,7 +185,7 @@ public class ServletTestHelper {
 	 * @param extraParams
 	 * @throws Exception
 	 */
-	public <T extends Base> void deleteEntity(Class<? extends T> clazz, String id,
+	public <T extends Entity> void deleteEntity(Class<? extends T> clazz, String id,
 			Map<String, String> extraParams) throws Exception {
 		ServletTestHelper.deleteEntity(dispatchServlet, clazz, id,
 				username, extraParams);
@@ -201,7 +203,7 @@ public class ServletTestHelper {
 	 * @throws IOException
 	 * 
 	 */
-	public static <T extends Base> T createEntity(HttpServlet dispatchServlet,
+	public static <T extends Entity> T createEntity(HttpServlet dispatchServlet,
 			T entity, String userId) throws ServletException, IOException {
 		return ServletTestHelper.createEntity(dispatchServlet, entity, userId,
 				null);
@@ -220,12 +222,12 @@ public class ServletTestHelper {
 	 * @throws IOException
 	 * 
 	 */
-	public static <T extends Base> T createEntity(HttpServlet dispatchServlet,
+	public static <T extends Entity> T createEntity(HttpServlet dispatchServlet,
 			T entity, String userId, Map<String, String> extraParams)
 			throws ServletException, IOException {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
-		ObjectType type = ObjectType.getNodeTypeForClass(entity.getClass());
+		EntityType type = EntityType.getNodeTypeForClass(entity.getClass());
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
@@ -267,7 +269,7 @@ public class ServletTestHelper {
 	 * @throws IOException
 	 * 
 	 */
-	public static <T extends Base> T getEntity(HttpServlet dispatchServlet,
+	public static <T extends Entity> T getEntity(HttpServlet dispatchServlet,
 			Class<? extends T> clazz, String id, String userId)
 			throws ServletException, IOException {
 		return ServletTestHelper.getEntity(dispatchServlet, clazz, id, userId,
@@ -288,13 +290,13 @@ public class ServletTestHelper {
 	 * @throws IOException
 	 * 
 	 */
-	public static <T extends Base> T getEntity(HttpServlet dispatchServlet,
+	public static <T extends Entity> T getEntity(HttpServlet dispatchServlet,
 			Class<? extends T> clazz, String id, String userId,
 			Map<String, String> extraParams) throws ServletException,
 			IOException {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
-		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -332,7 +334,7 @@ public class ServletTestHelper {
 			IOException {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
-		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -360,12 +362,12 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static <T extends Base> Annotations getEntityAnnotations(
+	public static <T extends Entity> Annotations getEntityAnnotations(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
 			String userId) throws ServletException, IOException {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
-		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -395,12 +397,12 @@ public class ServletTestHelper {
 	 * @throws IOException
 	 * @throws JSONException
 	 */
-	public static <T extends Base> List<EntityHeader> getEntityPath(
+	public static <T extends Entity> List<EntityHeader> getEntityPath(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
 			String userId) throws ServletException, IOException, JSONException {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
-		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -429,13 +431,13 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static <T extends Base> Annotations getEntityAnnotationsForVersion(
+	public static <T extends Entity> Annotations getEntityAnnotationsForVersion(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
 			Long versionNumber, String userId) throws ServletException,
 			IOException {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
-		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -465,13 +467,13 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static <T extends Base> Annotations updateEntityAnnotations(
+	public static <T extends Entity> Annotations updateEntityAnnotations(
 			HttpServlet dispatchServlet, Class<? extends T> clazz,
 			Annotations updatedAnnos, String userId) throws ServletException,
 			IOException {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
-		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("PUT");
@@ -505,7 +507,7 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static <T extends Base> T updateEntity(HttpServlet dispatchServlet,
+	public static <T extends Entity> T updateEntity(HttpServlet dispatchServlet,
 			T entity, String userId) throws ServletException, IOException {
 		return ServletTestHelper.updateEntity(dispatchServlet, entity, userId,
 				null);
@@ -524,12 +526,12 @@ public class ServletTestHelper {
 	 * @throws IOException
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T extends Base> T updateEntity(HttpServlet dispatchServlet,
+	public static <T extends Entity> T updateEntity(HttpServlet dispatchServlet,
 			T entity, String userId, Map<String, String> extraParams)
 			throws ServletException, IOException {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
-		ObjectType type = ObjectType.getNodeTypeForClass(entity.getClass());
+		EntityType type = EntityType.getNodeTypeForClass(entity.getClass());
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("PUT");
@@ -573,7 +575,7 @@ public class ServletTestHelper {
 			throws ServletException, IOException {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
-		ObjectType type = ObjectType.getNodeTypeForClass(entity.getClass());
+		EntityType type = EntityType.getNodeTypeForClass(entity.getClass());
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("PUT");
@@ -609,13 +611,13 @@ public class ServletTestHelper {
 	 * @throws Exception
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T extends Base> PaginatedResults<T> getAllEntites(
+	public static <T extends Entity> PaginatedResults<T> getAllEntites(
 			HttpServlet dispatchServlet, Class<? extends T> clazz,
 			Integer offset, Integer limit, String sort, Boolean ascending,
 			String userId) throws ServletException, IOException, JSONException {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
-		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -665,7 +667,7 @@ public class ServletTestHelper {
 			throws ServletException, IOException, JSONException {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
-		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -702,22 +704,17 @@ public class ServletTestHelper {
 	 * @throws JsonMappingException
 	 * @throws JsonParseException
 	 */
-	public static <T extends Base> PaginatedResults<T> createPaginatedResultsFromJSON(
+	public static <T extends Entity> PaginatedResults<T> createPaginatedResultsFromJSON(
 			String jsonString, Class<? extends T> clazz) throws JSONException,
 			JsonParseException, JsonMappingException, IOException {
-		JSONObject root = new JSONObject(jsonString);
-		JSONArray array = root.getJSONArray("results");
-		// We need to convert each object to the corret type
-		List<T> list = new ArrayList<T>();
-		for (int i = 0; i < array.length(); i++) {
-			JSONObject object = array.getJSONObject(i);
-			T entity = objectMapper.readValue(object.toString(), clazz);
-			list.add(entity);
+		PaginatedResults<T> pr = new PaginatedResults<T>(clazz);
+		try {
+			pr.initializeFromJSONObject(JSONObjectAdapterImpl.createAdapterFromJSONString(jsonString));
+			return pr;
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
 		}
-		PaginatedResults<T> result = new PaginatedResults<T>();
-		result.setTotalNumberOfResults(root.getLong("totalNumberOfResults"));
-		result.setResults(list);
-		return result;
+
 	}
 
 	/**
@@ -757,14 +754,14 @@ public class ServletTestHelper {
 	 * @throws Exception
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T extends Base> PaginatedResults<T> getAllChildrenEntites(
-			HttpServlet dispatchServlet, ObjectType parentType,
+	public static <T extends Entity> PaginatedResults<T> getAllChildrenEntites(
+			HttpServlet dispatchServlet, EntityType parentType,
 			String parentId, Class<? extends T> childClass, Integer offset,
 			Integer limit, String sort, Boolean ascending, String userId)
 			throws ServletException, IOException, JSONException {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
-		ObjectType type = ObjectType.getNodeTypeForClass(childClass);
+		EntityType type = EntityType.getNodeTypeForClass(childClass);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -808,7 +805,7 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static <T extends Base> void deleteEntity(
+	public static <T extends Entity> void deleteEntity(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
 			String userId) throws ServletException, IOException {
 		ServletTestHelper.deleteEntity(dispatchServlet, clazz, id, userId, null);
@@ -826,11 +823,11 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static <T extends Base> void deleteEntity(
+	public static <T extends Entity> void deleteEntity(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
 			String userId, Map<String, String> extraParams)
 			throws ServletException, IOException {
-		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("DELETE");
@@ -861,11 +858,11 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws Exception
 	 */
-	public static <T extends Base> void deleteEntityVersion(
+	public static <T extends Entity> void deleteEntityVersion(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
 			Long versionNumber, String userId) throws ServletException,
 			IOException {
-		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("DELETE");
@@ -890,10 +887,10 @@ public class ServletTestHelper {
 	 * @return
 	 * @throws Exception
 	 */
-	public static <T extends Base> String getSchema(
+	public static <T extends Entity> String getSchema(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String userId)
 			throws Exception {
-		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -920,13 +917,13 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static <T extends Base> AccessControlList createEntityACL(
+	public static <T extends Entity> AccessControlList createEntityACL(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
 			AccessControlList entityACL, String userId)
 			throws ServletException, IOException {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
-		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
@@ -961,11 +958,11 @@ public class ServletTestHelper {
 	 * @throws IOException
 	 * @throws ACLInheritanceException
 	 */
-	public static <T extends Base> AccessControlList getEntityACL(
+	public static <T extends Entity> AccessControlList getEntityACL(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
 			String userId) throws ServletException, IOException,
 			ACLInheritanceException {
-		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -998,13 +995,13 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static <T extends Base> AccessControlList updateEntityAcl(
+	public static <T extends Entity> AccessControlList updateEntityAcl(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
 			AccessControlList entityACL, String userId)
 			throws ServletException, IOException {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
-		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("PUT");
@@ -1038,13 +1035,13 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static <T extends Base> void deleteEntityACL(
+	public static <T extends Entity> void deleteEntityACL(
 			HttpServlet dispatchServlet, Class<? extends T> clazz,
 			String resourceId, String userId) throws ServletException,
 			IOException {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
-		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("DELETE");
@@ -1129,11 +1126,11 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static <T extends Base> BooleanResult hasAccess(
+	public static <T extends Entity> BooleanResult hasAccess(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
 			String userId, String accessType) throws ServletException,
 			IOException {
-		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -1280,10 +1277,10 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static <T extends Nodeable> EntityHeader getEntityBenefactor(
+	public static <T extends Entity> EntityHeader getEntityBenefactor(
 			HttpServlet dispatchServlet, String id, Class<? extends T> clazz,
 			String userId) throws ServletException, IOException {
-		ObjectType type = ObjectType.getNodeTypeForClass(clazz);
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");

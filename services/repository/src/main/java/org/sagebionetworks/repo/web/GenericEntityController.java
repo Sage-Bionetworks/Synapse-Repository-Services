@@ -9,12 +9,12 @@ import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Base;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Nodeable;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -37,7 +37,7 @@ public interface GenericEntityController {
 	 * 
 	 * @param userId
 	 * @param offset
-	 *            1-based pagination offset
+	 *            1-Entityd pagination offset
 	 * @param limit
 	 *            maximum number of results to return
 	 * @param sort
@@ -49,7 +49,7 @@ public interface GenericEntityController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException 
 	 */
-	public <T extends Nodeable> PaginatedResults<T> getEntities(String userId,
+	public <T extends Entity> PaginatedResults<T> getEntities(String userId,
 			PaginatedParameters paging,
 			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
@@ -68,7 +68,7 @@ public interface GenericEntityController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public <T extends Nodeable> PaginatedResults<T> getAllVerionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
+	public <T extends Entity> PaginatedResults<T> getAllVerionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
 			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
 
@@ -86,7 +86,7 @@ public interface GenericEntityController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Nodeable> T getEntity(String userId, String id,
+	public <T extends Entity> T getEntity(String userId, String id,
 			HttpServletRequest request, Class<? extends T> clazz) throws NotFoundException,
 			DatastoreException, UnauthorizedException;
 	
@@ -103,7 +103,7 @@ public interface GenericEntityController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Nodeable> T getEntity(UserInfo info, String id, HttpServletRequest request, Class<? extends T> clazz, EventType eventType) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public <T extends Entity> T getEntity(UserInfo info, String id, HttpServletRequest request, Class<? extends T> clazz, EventType eventType) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * Get a specific version of an entity.  This one takes a username instead of info.
@@ -118,7 +118,7 @@ public interface GenericEntityController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Nodeable> T getEntityForVersion(String userId, String id, Long versionNumber,
+	public <T extends Entity> T getEntityForVersion(String userId, String id, Long versionNumber,
 			HttpServletRequest request, Class<? extends T> clazz) throws NotFoundException,
 			DatastoreException, UnauthorizedException;
 	
@@ -136,7 +136,7 @@ public interface GenericEntityController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Nodeable> T getEntityForVersion(UserInfo info, String id, Long versionNumber,
+	public <T extends Entity> T getEntityForVersion(UserInfo info, String id, Long versionNumber,
 			HttpServletRequest request, Class<? extends T> clazz)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 	
@@ -151,7 +151,7 @@ public interface GenericEntityController {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public <T extends Nodeable> List<T> getEntityChildrenOfType(String userId, String parentId, Class<? extends T> clazz, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public <T extends Entity> List<T> getEntityChildrenOfType(String userId, String parentId, Class<? extends T> clazz, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * Get the children of a given type with paging.
@@ -166,7 +166,7 @@ public interface GenericEntityController {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Nodeable> PaginatedResults<T> getEntityChildrenOfTypePaginated(String userId, String parentId, Class<? extends T> clazz, PaginatedParameters paging, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public <T extends Entity> PaginatedResults<T> getEntityChildrenOfTypePaginated(String userId, String parentId, Class<? extends T> clazz, PaginatedParameters paging, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * Create a new entity
@@ -182,7 +182,7 @@ public interface GenericEntityController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException 
 	 */
-	public <T extends Nodeable> T createEntity(String userId, T newEntity,
+	public <T extends Entity> T createEntity(String userId, T newEntity,
 			HttpServletRequest request) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException;
 	
@@ -215,7 +215,7 @@ public interface GenericEntityController {
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Nodeable> T updateEntity(String userId,T updatedEntity, boolean newVersion, HttpServletRequest request)
+	public <T extends Entity> T updateEntity(String userId,T updatedEntity, boolean newVersion, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException;
 	
@@ -233,7 +233,7 @@ public interface GenericEntityController {
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Nodeable> Collection<T> aggregateEntityUpdate(String userId, String parentId, Collection<T> update,HttpServletRequest request) throws NotFoundException,
+	public <T extends Entity> Collection<T> aggregateEntityUpdate(String userId, String parentId, Collection<T> update,HttpServletRequest request) throws NotFoundException,
 	ConflictingUpdateException, DatastoreException,
 	InvalidModelException, UnauthorizedException;
 
@@ -248,7 +248,7 @@ public interface GenericEntityController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Nodeable> void deleteEntity(String userId, String id, Class<? extends T> clazz)
+	public <T extends Entity> void deleteEntity(String userId, String id, Class<? extends T> clazz)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -270,7 +270,7 @@ public interface GenericEntityController {
 	 * @return the schema
 	 * @throws DatastoreException 
 	 */
-	public <T extends Nodeable> JsonSchema getEntitySchema(Class<? extends T> clazz) throws DatastoreException;
+	public <T extends Entity> JsonSchema getEntitySchema(Class<? extends T> clazz) throws DatastoreException;
 
 	/**
 	 * Get the schema for a paginated list of entities<p>
@@ -281,7 +281,7 @@ public interface GenericEntityController {
 	 * @return the schema
 	 * @throws DatastoreException 
 	 */
-	public <T extends Nodeable> JsonSchema getEntitiesSchema(Class<? extends T> clazz) throws DatastoreException;
+	public <T extends Entity> JsonSchema getEntitiesSchema(Class<? extends T> clazz) throws DatastoreException;
 
 	/**
 	 * Get the annotations of an entity for the current version.
@@ -344,7 +344,7 @@ public interface GenericEntityController {
 	 * @throws NotFoundException 
 	 * @throws ConflictingUpdateException 
 	 */
-	public  <T extends Base> AccessControlList createEntityACL(String userId, AccessControlList newEntity,
+	public  <T extends Entity> AccessControlList createEntityACL(String userId, AccessControlList newEntity,
 			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ConflictingUpdateException;
 
@@ -361,7 +361,7 @@ public interface GenericEntityController {
 	 * @throws  ACLInheritanceException - Thrown when attempting to get the ACL for a node that inherits its permissions. The exception
 	 * will include the benefactor's ID. 
 	 */
-	public  <T extends Base>  AccessControlList getEntityACL(String entityId, String userId, HttpServletRequest request, Class<? extends T> clazz) 
+	public  <T extends Entity>  AccessControlList getEntityACL(String entityId, String userId, HttpServletRequest request, Class<? extends T> clazz) 
 		throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException;
 	
 	/**
@@ -377,7 +377,7 @@ public interface GenericEntityController {
 	 * @throws UnauthorizedException
 	 * @throws ACLInheritanceException
 	 */
-	public  <T extends Base>  EntityHeader getEntityBenefactor(String entityId, String userId, HttpServletRequest request, Class<? extends T> clazz) 
+	public  <T extends Entity>  EntityHeader getEntityBenefactor(String entityId, String userId, HttpServletRequest request, Class<? extends T> clazz) 
 	throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException;
 	
 	/**
@@ -411,7 +411,7 @@ public interface GenericEntityController {
 	/**
 	 * @return the JSON schema for an access control list
 	 */
-	public <T extends Base> JsonSchema getAclSchema() throws DatastoreException;
+	public <T extends Entity> JsonSchema getAclSchema() throws DatastoreException;
 	
 	/**
 	 * Execute a query and include the annotations for each entity.
@@ -425,7 +425,7 @@ public interface GenericEntityController {
 	 * @throws DatastoreException 
 	 * @throws UnauthorizedException 
 	 */
-	public <T extends Nodeable> QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, Class<? extends T> clazz, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public <T extends Entity> QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, Class<? extends T> clazz, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * determine whether a user has the given access type for a given entity
@@ -438,7 +438,7 @@ public interface GenericEntityController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException 
 	 */
-	public <T extends Nodeable> boolean hasAccess(String entityId, String userId, HttpServletRequest request, Class<? extends T> clazz, String accessType) 
+	public <T extends Entity> boolean hasAccess(String entityId, String userId, HttpServletRequest request, Class<? extends T> clazz, String accessType) 
 		throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
@@ -452,7 +452,7 @@ public interface GenericEntityController {
 	 * @throws UnauthorizedException 
 	 * @throws ConflictingUpdateException 
 	 */
-	public <T extends Nodeable> void deleteEntityVersion(String userId, String id,Long versionNumber, Class<? extends Nodeable> classForType) throws DatastoreException, NotFoundException, UnauthorizedException, ConflictingUpdateException;
+	public <T extends Entity> void deleteEntityVersion(String userId, String id,Long versionNumber, Class<? extends Entity> classForType) throws DatastoreException, NotFoundException, UnauthorizedException, ConflictingUpdateException;
 	
 	/**
 	 * Get the type of an entity

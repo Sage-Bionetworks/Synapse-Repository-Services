@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.web;
 
 import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.CompoundId;
@@ -23,7 +23,7 @@ public class QueryUtils {
 	 * @return
 	 */
 	public static BasicQuery createChildrenOfTypePaginated(String parentId,
-			PaginatedParameters paging, ObjectType type) {
+			PaginatedParameters paging, EntityType type) {
 		BasicQuery query = new BasicQuery();
 		// We want all children
 		query.setLimit(paging.getLimit());
@@ -41,7 +41,7 @@ public class QueryUtils {
 	 * @param type
 	 * @return
 	 */
-	public static BasicQuery createFindPaginagedOfType(PaginatedParameters paging, ObjectType type) {
+	public static BasicQuery createFindPaginagedOfType(PaginatedParameters paging, EntityType type) {
 		BasicQuery query = new BasicQuery();
 		query.setFrom(type);
 		query.setLimit(paging.getLimit());

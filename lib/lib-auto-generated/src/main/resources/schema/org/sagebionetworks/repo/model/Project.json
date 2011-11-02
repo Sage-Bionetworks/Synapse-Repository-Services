@@ -1,0 +1,8 @@
+{
+    "description": "JSON schema for Project POJO",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.Entity"
+        },
+    ],
+}

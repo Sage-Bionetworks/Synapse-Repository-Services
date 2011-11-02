@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.manager.NodeTranslationUtils;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 
 /**
  * The only job for this step is to take NodeRevisionBackup from v0 to v1.
@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 public class RevisionStepV0toV1 implements RevisionMigrationStep {
 
 	@Override
-	public NodeRevisionBackup migrateOneStep(NodeRevisionBackup toMigrate, ObjectType type) {
+	public NodeRevisionBackup migrateOneStep(NodeRevisionBackup toMigrate, EntityType type) {
 		// Only migrate v0 (null) to v1.
 		if(!isXmlV0(toMigrate.getXmlVersion())) return toMigrate;
 		

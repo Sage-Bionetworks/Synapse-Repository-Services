@@ -36,26 +36,26 @@ public class StepMetadataProvider implements TypeSpecificMetadataProvider<Step> 
 			HttpServletRequest request, UserInfo userInfo, EventType eventType)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-		// Clear the blob and set the environmentDescriptors
-		if (entity.getEnvironmentDescriptorsBlob() != null) {
-			Set<EnvironmentDescriptor> descriptors;
-			try {
-				descriptors = (Set<EnvironmentDescriptor>) OBJECT_MAPPER
-						.readValue(new String(entity
-								.getEnvironmentDescriptorsBlob(), "UTF-8"),
-								descriptorTypeRef);
-				entity.setEnvironmentDescriptors(descriptors);
-				entity.setEnvironmentDescriptorsBlob(null);
-			} catch (JsonParseException e) {
-				throw new DatastoreException(e);
-			} catch (JsonMappingException e) {
-				throw new DatastoreException(e);
-			} catch (UnsupportedEncodingException e) {
-				throw new DatastoreException(e);
-			} catch (IOException e) {
-				throw new DatastoreException(e);
-			}
-		}
+//		// Clear the blob and set the environmentDescriptors
+//		if (entity.getEnvironmentDescriptorsBlob() != null) {
+//			Set<EnvironmentDescriptor> descriptors;
+//			try {
+//				descriptors = (Set<EnvironmentDescriptor>) OBJECT_MAPPER
+//						.readValue(new String(entity
+//								.getEnvironmentDescriptorsBlob(), "UTF-8"),
+//								descriptorTypeRef);
+//				entity.setEnvironmentDescriptors(descriptors);
+//				entity.setEnvironmentDescriptorsBlob(null);
+//			} catch (JsonParseException e) {
+//				throw new DatastoreException(e);
+//			} catch (JsonMappingException e) {
+//				throw new DatastoreException(e);
+//			} catch (UnsupportedEncodingException e) {
+//				throw new DatastoreException(e);
+//			} catch (IOException e) {
+//				throw new DatastoreException(e);
+//			}
+//		}
 	}
 
 	@Override
@@ -77,18 +77,18 @@ public class StepMetadataProvider implements TypeSpecificMetadataProvider<Step> 
 		// that we create on their behalf?
 		
 		// Clear the environmentDescriptors and set the blob
-		if (entity.getEnvironmentDescriptors() != null) {
-				try {
-					entity.setEnvironmentDescriptorsBlob(OBJECT_MAPPER.writeValueAsBytes(entity.getEnvironmentDescriptors()));
-				} catch (JsonGenerationException e) {
-					throw new DatastoreException(e);
-				} catch (JsonMappingException e) {
-					throw new DatastoreException(e);
-				} catch (IOException e) {
-					throw new DatastoreException(e);
-				}
-				entity.setEnvironmentDescriptors(null);
-		}
+//		if (entity.getEnvironmentDescriptors() != null) {
+//				try {
+//					entity.setEnvironmentDescriptorsBlob(OBJECT_MAPPER.writeValueAsBytes(entity.getEnvironmentDescriptors()));
+//				} catch (JsonGenerationException e) {
+//					throw new DatastoreException(e);
+//				} catch (JsonMappingException e) {
+//					throw new DatastoreException(e);
+//				} catch (IOException e) {
+//					throw new DatastoreException(e);
+//				}
+//				entity.setEnvironmentDescriptors(null);
+//		}
 	}
 
 	@Override

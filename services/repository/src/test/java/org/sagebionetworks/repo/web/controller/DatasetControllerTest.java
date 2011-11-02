@@ -31,6 +31,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DatasetControllerTest {
 
+	public static final String CREATION_DATE = "createdOn";
+
 	@Autowired
 	private Helpers helper;
 
@@ -312,8 +314,8 @@ public class DatasetControllerTest {
 		// line: 1, column: 19]"}
 
 		String reason = error.getString("reason");
-		assertTrue(reason.matches("(?s).*\"BOGUS\".*"));
-		assertTrue(reason.matches("(?s).*not marked as ignorable.*"));
+		assertTrue(reason,reason.matches("(?s).*BOGUS.*"));
+		assertTrue(reason, reason.matches("(?s).*is not defined in the schema.*"));
 	}
 
 	/**
@@ -521,8 +523,8 @@ public class DatasetControllerTest {
 		assertTrue(results.has("hasGeneticData"));
 		assertTrue(results.has("hasClinicalData"));
 
-		assertTrue(results.has("creationDate"));
-		assertFalse("null".equals(results.getString("creationDate")));
+		assertTrue(results.has(CREATION_DATE));
+		assertFalse("null".equals(results.getString(CREATION_DATE)));
 		// Check that optional properties that receive default values
 		assertTrue(results.has("version"));
 		assertFalse("null".equals(results.getString("version")));

@@ -6,25 +6,135 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.backup.SerializationUseCases;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.LayerTypeNames;
+import org.sagebionetworks.repo.model.Location;
+import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.Nodeable;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Preview;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Step;
-import org.sagebionetworks.repo.model.TransientField;
-import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
+import org.sagebionetworks.sample.Example;
+import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.TYPE;
 
 public class NodeTranslationUtilsTest {
 	
+	@Test
+	public void testGetNameFromEnum(){
+		LocationTypeNames names =LocationTypeNames.awsebs;
+		// Get the string value
+		String name = NodeTranslationUtils.getNameFromEnum(names);
+		assertNotNull(name);
+		assertEquals(names.name(), name);;
+	}
+	
+	@Test
+	public void testGetEnumValueFromString(){
+		LocationTypeNames names =LocationTypeNames.sage;
+		// Get the string value
+		LocationTypeNames enumValue = (LocationTypeNames) NodeTranslationUtils.getValueOfFromEnum(names.name(), LocationTypeNames.class);
+		assertNotNull(enumValue);
+		assertEquals(names, enumValue);;
+	}
+	
+	@Test
+	public void testBinaryRoundTripString(){
+		ObjectSchema schema = new ObjectSchema(TYPE.STRING);
+		String longString = "This string is so long we must store it as a blob";
+		byte[] bytes = NodeTranslationUtils.objectToBytes(longString, schema);
+		assertNotNull(bytes);
+		// Now convert it back to a string
+		String back = (String) NodeTranslationUtils.bytesToObject(bytes, schema);
+		assertNotNull(back);
+		assertEquals(longString, back);
+	}
+	
+	@Test
+	public void testBinaryRoundTripJSONEntity(){
+		Example example = new Example();
+		example.setName("Example name");
+		example.setType("The best type ever");
+		example.setQuantifier("Totally not quantifyable!");
+		ObjectSchema schema = SchemaCache.getSchema(example);
+		byte[] bytes = NodeTranslationUtils.objectToBytes(example, schema);
+		assertNotNull(bytes);
+		// Now convert it back to a string
+		Example back = (Example) NodeTranslationUtils.bytesToObject(bytes, schema);
+		assertNotNull(back);
+		assertEquals(example, back);
+	}
+	
+	@Test
+	public void testBinaryRoundTripListJSONEntity(){
+		ObjectSchema schema = new ObjectSchema();
+		schema.setType(TYPE.ARRAY);
+		schema.setItems(SchemaCache.getSchema(new Example()));
+		schema.setUniqueItems(false);
+		
+		Example example = new Example();
+		example.setName("Example name");
+		example.setType("The best type ever");
+		example.setQuantifier("Totally not quantifyable!");
+		List<Example> list = new ArrayList<Example>();
+		list.add(example);
+		// Add one more
+		example = new Example();
+		example.setName("Example 2");
+		example.setType("The best type ever 2");
+		example.setQuantifier("Totally not quantifyable 2!");
+		list.add(example);
+		
+		byte[] bytes = NodeTranslationUtils.objectToBytes(list, schema);
+		assertNotNull(bytes);
+		// Now convert it back to a string
+		List<Example> back = (List<Example>) NodeTranslationUtils.bytesToObject(bytes, schema);
+		assertNotNull(back);
+		assertEquals(list, back);
+	}
+	
+	@Test
+	public void testBinaryRoundTripSetJSONEntity(){
+		ObjectSchema schema = new ObjectSchema();
+		schema.setType(TYPE.ARRAY);
+		schema.setItems(SchemaCache.getSchema(new Example()));
+		schema.setUniqueItems(true);
+		
+		Example example = new Example();
+		example.setName("Example name");
+		example.setType("The best type ever");
+		example.setQuantifier("Totally not quantifyable!");
+		Set<Example> set = new HashSet<Example>();
+		set.add(example);
+		// Add one more
+		example = new Example();
+		example.setName("Example 2");
+		example.setType("The best type ever 2");
+		example.setQuantifier("Totally not quantifyable 2!");
+		set.add(example);
+		
+		byte[] bytes = NodeTranslationUtils.objectToBytes(set, schema);
+		assertNotNull(bytes);
+		// Now convert it back to a string
+		Set<Example> back = (Set<Example>) NodeTranslationUtils.bytesToObject(bytes, schema);
+		assertNotNull(back);
+		assertEquals(set, back);
+	}
 
 	@Test
 	public void testDatasetRoundTrip() throws InstantiationException, IllegalAccessException{
@@ -32,8 +142,8 @@ public class NodeTranslationUtilsTest {
 		Dataset ds = new Dataset();
 		ds.setName("someName");
 		ds.setDescription("someDesc");
-		ds.setCreator("magic");
-		ds.setCreationDate(new Date(System.currentTimeMillis()));
+		ds.setCreatedBy("magic");
+		ds.setCreatedOn(new Date(System.currentTimeMillis()));
 		ds.setAnnotations("someAnnoUrl");
 		ds.setEtag("110");
 		ds.setId("12");
@@ -52,18 +162,18 @@ public class NodeTranslationUtilsTest {
 		// Now our clone should match the original dataset.
 		System.out.println("Original: "+ds.toString());
 		System.out.println("Clone: "+clone.toString());
-		assertEqualsNonTransient(ds, clone);
+		assertEqualsNonTransient(ds, clone, SchemaCache.getSchema(ds));
 	}
 	
 	/**
-	 * Assert two Nodeable objects are equal while ignoring transient fields.
+	 * Assert two Entity objects are equal while ignoring transient fields.
 	 * @param <T>
 	 * @param one
 	 * @param two
 	 * @throws IllegalArgumentException
 	 * @throws IllegalAccessException
 	 */
-	public static <T extends Nodeable> void assertEqualsNonTransient(T one, T two) throws IllegalArgumentException, IllegalAccessException{
+	public static <T extends Entity> void assertEqualsNonTransient(T one, T two, ObjectSchema schema) throws IllegalArgumentException, IllegalAccessException{
 		assertNotNull(one);
 		assertNotNull(two);
 		assertEquals(one.getClass(), two.getClass());
@@ -72,10 +182,13 @@ public class NodeTranslationUtilsTest {
 		for(int i=0; i<oneFields.length;i++){
 			Field field = oneFields[i];
 			field.setAccessible(true);
-			TransientField trans = field.getAnnotation(TransientField.class);
+			ObjectSchema propSchema = schema.getProperties().get(field.getName());
+			if(propSchema == null){
+				continue;
+			}
 			// Only compare non-transient fields
-			if(trans == null){
-				assertEquals(field.get(one), field.get(two));
+			if(!propSchema.isTransient()){
+				assertEquals("Name: "+field.getName(),field.get(one), field.get(two));
 			}
 		}
 	}
@@ -85,7 +198,7 @@ public class NodeTranslationUtilsTest {
 		// First we create a layer with all fields filled in.
 		Layer layer = new Layer();
 		layer.setAnnotations("someAnnoUrl");
-		layer.setCreationDate(new Date(System.currentTimeMillis()));
+		layer.setCreatedOn(new Date(System.currentTimeMillis()));
 		layer.setDescription("someDescr");
 		layer.setEtag("12");
 		layer.setId("44");
@@ -101,7 +214,7 @@ public class NodeTranslationUtilsTest {
 		layer.setReleaseNotes("resleaseNote");
 		layer.setStatus("someStatus");
 		layer.setTissueType("type");
-		layer.setType(LayerTypeNames.C.name());
+		layer.setType(LayerTypeNames.C);
 		layer.setUri("someUri");
 		layer.setVersion("someVersion");
 		
@@ -111,7 +224,7 @@ public class NodeTranslationUtilsTest {
 		// Now our clone should match the original layer.
 		System.out.println("Original: "+layer.toString());
 		System.out.println("Clone: "+clone.toString());
-		assertEqualsNonTransient(layer, clone);
+		assertEqualsNonTransient(layer, clone, SchemaCache.getSchema(layer));
 	}
 	
 	@Test
@@ -120,17 +233,18 @@ public class NodeTranslationUtilsTest {
 
 		// Create a clone using node translation
 		Step clone = cloneUsingNodeTranslation(step);
+		clone.setCode(null);
 		
 		// Now our clone should match the original step.
 		System.out.println("Original: "+step.toString());
 		System.out.println("Clone: "+clone.toString());
-		assertEqualsNonTransient(step, clone);
+		assertEqualsNonTransient(step, clone, SchemaCache.getSchema(step));
 	}
 
 	@Test
 	public void testLayerPreviewRoundTrip() throws Exception{
 		Preview preview = new Preview();
-		preview.setPreviewBlob("Pretend this a very long string and needs to be stored as a blob".getBytes("UTF-8"));
+		preview.setPreviewString("Pretend this a very long string and needs to be stored as a blob");
 		// Create a clone using node translation
 		Preview clone = cloneUsingNodeTranslation(preview);
 		// Now our clone should match the original layer.
@@ -142,10 +256,10 @@ public class NodeTranslationUtilsTest {
 	@Test
 	public void testDoubleAdd() throws InvalidModelException{
 		Layer layer = new Layer();
-		layer.setType("C");
+		layer.setType(LayerTypeNames.C);
 		Annotations annos = new Annotations();
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(layer, annos, null);
-		layer.setType("E");
+		layer.setType(LayerTypeNames.E);
 		// update again
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(layer, annos, null);
 		// The E should replace the C
@@ -169,34 +283,34 @@ public class NodeTranslationUtilsTest {
 	
 	@Test
 	public void testSetNullOnNode(){
-		Node node = createNew("notNull");
-		node.setParentId("90");
+		Project project = new Project();
+		project.setParentId("90");
 		Node copy = new Node();
-		NodeTranslationUtils.updateNodeFromObject(node, copy);
+		NodeTranslationUtils.updateNodeFromObject(project, copy);
 		assertTrue(copy.getParentId() != null);
 		// Now clear the node parent id
-		node.setParentId(null);
-		NodeTranslationUtils.updateNodeFromObject(node, copy);
+		project.setParentId(null);
+		NodeTranslationUtils.updateNodeFromObject(project, copy);
 		// The copy should have a null parent id.
 		assertTrue(copy.getParentId() == null);
 	}
 	
 	@Test
-	public void testTransientData() throws InstantiationException, IllegalAccessException{
-		TransientTest test = new TransientTest();
-		test.setMarkedTransient("I should not be stored");
-		test.setNonTransient("I should be stored");
-		Annotations annos = new Annotations();
-		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(test, annos, null);
-		// The transient field should not be in the annotations
-		assertEquals("I should be stored", annos.getSingleValue("nonTransient"));
-		assertTrue("A @TransientField should not be stored in the annotations",annos.getSingleValue("markedTransient") == null);
+	public void testVersionableRoundTrip() throws InstantiationException, IllegalAccessException{
+		Location location = new Location();
+		location.setVersionComment("version comment");
+		location.setVersionNumber(new Long(134));
+		location.setVersionLabel("1.133.0");
+		location.setName("mame");
+		location.setType(LocationTypeNames.awsebs);
+		Location clone = cloneUsingNodeTranslation(location);
+		assertEquals(location, clone);
 	}
 	
 	@Test
 	public void testIsPrimaryFieldNames(){
 		// check all of the fields for each object type.
-		for(ObjectType type: ObjectType.values()){
+		for(EntityType type: EntityType.values()){
 			Field[] fields = type.getClassForType().getDeclaredFields();
 			for(Field field: fields){
 				String name = field.getName();
@@ -208,42 +322,6 @@ public class NodeTranslationUtilsTest {
 	}
 	
 	/**
-	 * Helper class to test transient fields
-	 * @author jmhill
-	 *
-	 */
-	private static class TransientTest {
-		private String nonTransient;
-		@TransientField
-		private String markedTransient;
-		public String getNonTransient() {
-			return nonTransient;
-		}
-		public void setNonTransient(String nonTransient) {
-			this.nonTransient = nonTransient;
-		}
-		public String getMarkedTransient() {
-			return markedTransient;
-		}
-		public void setMarkedTransient(String markedTransient) {
-			this.markedTransient = markedTransient;
-		}
-	}
-	
-	
-	
-	private static Node createNew(String name){
-		Node node = new Node();
-		node.setName(name);
-		node.setCreatedBy("anonymous");
-		node.setModifiedBy("anonymous");
-		node.setCreatedOn(new Date(System.currentTimeMillis()));
-		node.setModifiedOn(node.getCreatedOn());
-		node.setNodeType("unknown");
-		return node;
-	}
-	
-	/**
 	 * Will clone an object by first creating a node and annotations for the passed object.
 	 * A new object will then be created and populated using the node and annotations.
 	 * @param <T>
@@ -251,9 +329,9 @@ public class NodeTranslationUtilsTest {
 	 * @throws IllegalAccessException 
 	 * @throws InstantiationException 
 	 */
-	public static <T> T cloneUsingNodeTranslation(T toClone) throws InstantiationException, IllegalAccessException{
+	public static <T extends Entity> T cloneUsingNodeTranslation(T toClone) throws InstantiationException, IllegalAccessException{
 		// Create a node using this the object
-		Node dsNode = NodeTranslationUtils.createFromBase(toClone);
+		Node dsNode = NodeTranslationUtils.createFromEntity(toClone);
 		// Update an annotations object using the object
 		Annotations annos = new Annotations();
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(toClone, annos, dsNode.getReferences());

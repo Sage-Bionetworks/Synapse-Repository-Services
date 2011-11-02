@@ -6,18 +6,15 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.util.Map;
 
 import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.entity.StringEntity;
-import org.json.JSONException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.Dataset;
-import org.sagebionetworks.Entity;
+import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 /**

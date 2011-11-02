@@ -18,8 +18,8 @@ import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.sagebionetworks.Entity;
-import org.sagebionetworks.registry.EntityType;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.utils.HttpClientHelperException;
@@ -738,7 +738,6 @@ public class Synapse {
 			String response = (null != e.getResponse().getEntity()) ? EntityUtils
 					.toString(e.getResponse().getEntity())
 					: null;
-
 			try {
 				results = new JSONObject(response);
 				if (log.isDebugEnabled()) {

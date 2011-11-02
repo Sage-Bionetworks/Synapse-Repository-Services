@@ -17,7 +17,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -58,7 +58,7 @@ public class NodeManagerAuthorizationTest {
 		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockFieldTypeDao, mockAclDao, mockEntityBootstrapper, mockInheritanceManager );
 		// The mocks user for tests
 		mockNode = Mockito.mock(Node.class);
-		when(mockNode.getNodeType()).thenReturn(ObjectType.project.name());
+		when(mockNode.getNodeType()).thenReturn(EntityType.project.name());
 		when(mockNode.getName()).thenReturn("BobTheNode");
 		mockAnnotations = Mockito.mock(Annotations.class);
 		when(mockAnnotations.getEtag()).thenReturn("12");

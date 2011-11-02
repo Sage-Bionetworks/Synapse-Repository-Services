@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Base;
+import org.sagebionetworks.repo.model.Entity;
 
 /**
  * Allows methods to return an entity with its annotations.
@@ -9,7 +10,7 @@ import org.sagebionetworks.repo.model.Base;
  *
  * @param <T>
  */
-public class EntityWithAnnotations <T extends Base>{
+public class EntityWithAnnotations <T extends Entity>{
 	
 	private T entity;
 	private Annotations annotations;

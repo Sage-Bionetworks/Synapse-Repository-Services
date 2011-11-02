@@ -26,7 +26,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -73,7 +73,7 @@ public class JDOAccessControlListDAOImplTest {
 		node.setCreatedBy("me");
 		node.setModifiedOn(new Date());
 		node.setModifiedBy("metoo");
-		node.setNodeType(ObjectType.project.name());
+		node.setNodeType(EntityType.project.name());
 		String nodeId = nodeDAO.createNew(node);
 		assertNotNull(nodeId);
 		node = nodeDAO.getNode(nodeId);

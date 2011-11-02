@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
@@ -89,7 +89,7 @@ public class BackupDaemonLauncherImplAutowireTest {
 		// First create a node using random datat
 		Node node = new Node();
 		node.setName("BackupDaemonLauncherImplAutowireTest.testRoundTrip");
-		node.setNodeType(ObjectType.project.name());
+		node.setNodeType(EntityType.project.name());
 		UserInfo nonAdmin = testUserProvider.getTestAdminUserInfo();
 		Annotations annos = RandomAnnotationsUtil.generateRandom(12334, 100);
 		NamedAnnotations named = new NamedAnnotations();

@@ -30,7 +30,7 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.query.BasicQuery;
@@ -133,7 +133,7 @@ public class JDONodeQueryDAOImplTest {
 			Date now = new Date(System.currentTimeMillis());
 			parent.setDescription("description" + i);
 			parent.setCreatedBy("magic");
-			parent.setNodeType(ObjectType.dataset.name());
+			parent.setNodeType(EntityType.dataset.name());
 
 			// Create this dataset
 			String parentId = nodeDao.createNew(parent);
@@ -195,7 +195,7 @@ public class JDONodeQueryDAOImplTest {
 		Node ans = NodeTestUtils.createNew("layerName"+i);
 		ans.setDescription("description"+i);
 		ans.setCreatedOn(date);
-		ans.setNodeType(ObjectType.layer.name());
+		ans.setNodeType(EntityType.layer.name());
 //		ans.setTissueType("cell line"+i);
 //		ans.setPlatform("Affymetrix");
 //		ans.setProcessingFacility("Broad Institute");
@@ -241,7 +241,7 @@ public class JDONodeQueryDAOImplTest {
 	public void testBasicQuery() throws Exception {
 		// This query is basically "select * from datasets"
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.dataset);
+		query.setFrom(EntityType.dataset);
 		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		assertEquals(totalNumberOfDatasets, results.getTotalNumberOfResults());
@@ -254,7 +254,7 @@ public class JDONodeQueryDAOImplTest {
 			// Get the node with this id
 			Node node = nodeDao.getNode(id);
 			assertNotNull(node);
-			assertEquals(ObjectType.dataset.name(), node.getNodeType());
+			assertEquals(EntityType.dataset.name(), node.getNodeType());
 			// Load the annotations for this node
 			NamedAnnotations named = nodeDao.getAnnotations(id);
 			Annotations annos = named.getAdditionalAnnotations();
@@ -279,7 +279,7 @@ public class JDONodeQueryDAOImplTest {
 	@Test
 	public void testPagingFromZero() throws DatastoreException {
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.dataset);
+		query.setFrom(EntityType.dataset);
 		query.setOffset(0);
 		query.setLimit(2);
 		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
@@ -303,7 +303,7 @@ public class JDONodeQueryDAOImplTest {
 	@Test
 	public void testPagingFromNonZero() throws DatastoreException {
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.dataset);
+		query.setFrom(EntityType.dataset);
 		query.setOffset(2);
 		query.setLimit(2);
 		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
@@ -327,7 +327,7 @@ public class JDONodeQueryDAOImplTest {
 	@Test
 	public void testSortOnPrimaryAscending() throws DatastoreException {
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.dataset);
+		query.setFrom(EntityType.dataset);
 		query.setSort("name");
 		query.setAscending(true);
 		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
@@ -352,7 +352,7 @@ public class JDONodeQueryDAOImplTest {
 	@Test
 	public void testSortOnPrimaryDecending() throws DatastoreException {
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.dataset);
+		query.setFrom(EntityType.dataset);
 		query.setSort("name");
 		query.setAscending(false);
 		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
@@ -381,7 +381,7 @@ public class JDONodeQueryDAOImplTest {
 	@Test
 	public void testSortOnPrimaryDate() throws Exception {
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.dataset);
+		query.setFrom(EntityType.dataset);
 		query.setSort("createdOn");
 		query.setAscending(false);
 		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
@@ -408,7 +408,7 @@ public class JDONodeQueryDAOImplTest {
 	@Test
 	public void testSortOnStringAttribute() throws Exception {
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.dataset);
+		query.setFrom(EntityType.dataset);
 		query.setSort(attString);
 		query.setAscending(false);
 		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
@@ -437,7 +437,7 @@ public class JDONodeQueryDAOImplTest {
 	@Test
 	public void testFilterOnSinglePrimary() throws Exception {
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.dataset);
+		query.setFrom(EntityType.dataset);
 		// query.setSort(attString);
 		// query.setAscending(false);
 		Expression expression = new Expression(new CompoundId("dataset",
@@ -458,7 +458,7 @@ public class JDONodeQueryDAOImplTest {
 	@Test
 	public void testFilterOnSinglePrimaryDate() throws DatastoreException {
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.dataset);
+		query.setFrom(EntityType.dataset);
 		// query.setSort(attString);
 		// query.setAscending(false);
 		Expression expression = new Expression(new CompoundId("dataset",
@@ -479,7 +479,7 @@ public class JDONodeQueryDAOImplTest {
 	@Test
 	public void testFilterOnMultiplePrimary() throws Exception {
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.dataset);
+		query.setFrom(EntityType.dataset);
 		List<Expression> filters = new ArrayList<Expression>();
 		String filterCreator = "magic";
 		String filterName = "dsName0";
@@ -506,7 +506,7 @@ public class JDONodeQueryDAOImplTest {
 	@Test
 	public void testFilterOnSingleAttribute() throws Exception {
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.dataset);
+		query.setFrom(EntityType.dataset);
 		query.setSort(attOnOdd);
 		query.setAscending(false);
 		// Filter on an annotation using does not equal with a bogus value to
@@ -530,7 +530,7 @@ public class JDONodeQueryDAOImplTest {
 	public void testFilterOnSingleAttributeAndSinglePrimary()
 			throws Exception {
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.dataset);
+		query.setFrom(EntityType.dataset);
 		query.setSort(attOnOdd);
 		query.setAscending(false);
 		List<Expression> filters = new ArrayList<Expression>();
@@ -568,7 +568,7 @@ public class JDONodeQueryDAOImplTest {
 	@Test
 	public void testFilterMultiple() throws Exception {
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.dataset);
+		query.setFrom(EntityType.dataset);
 		query.setSort(attOnOdd);
 		query.setAscending(true);
 		query.setLimit(3);
@@ -615,7 +615,7 @@ public class JDONodeQueryDAOImplTest {
 	@Test
 	public void testLayerQueryStringId() throws Exception{
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.layer);
+		query.setFrom(EntityType.layer);
 		query.setSort("name");
 		query.setAscending(true);
 		query.setLimit(3);
@@ -641,7 +641,7 @@ public class JDONodeQueryDAOImplTest {
 	@Test
 	public void testLayerQueryNumericId() throws Exception{
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.layer);
+		query.setFrom(EntityType.layer);
 		query.setSort("name");
 		query.setAscending(true);
 		query.setLimit(3);
@@ -669,7 +669,7 @@ public class JDONodeQueryDAOImplTest {
 	@Test
 	public void testInvalidAttributeName() throws DatastoreException{
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.dataset);
+		query.setFrom(EntityType.dataset);
 		query.setSort("name");
 		query.setAscending(true);
 		query.setLimit(3);
@@ -692,7 +692,7 @@ public class JDONodeQueryDAOImplTest {
 	@Test
 	public void testExecuteCountQuery() throws DatastoreException{
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.layer);
+		query.setFrom(EntityType.layer);
 		List<Expression> filters = new ArrayList<Expression>();
 		Expression expression = new Expression(new CompoundId("layer", attLayerType), Compartor.EQUALS, LayerTypeNames.C.name());
 		filters.add(expression);
@@ -701,7 +701,7 @@ public class JDONodeQueryDAOImplTest {
 		assertEquals(3, count);
 		// Try the next
 		query = new BasicQuery();
-		query.setFrom(ObjectType.layer);
+		query.setFrom(EntityType.layer);
 		filters = new ArrayList<Expression>();
 		expression = new Expression(new CompoundId("layer", attLayerType), Compartor.EQUALS, LayerTypeNames.G.name());
 		filters.add(expression);
@@ -710,7 +710,7 @@ public class JDONodeQueryDAOImplTest {
 		assertEquals(1, count);
 		// Try the next
 		query = new BasicQuery();
-		query.setFrom(ObjectType.layer);
+		query.setFrom(EntityType.layer);
 		filters = new ArrayList<Expression>();
 		expression = new Expression(new CompoundId("layer", attLayerType), Compartor.EQUALS, LayerTypeNames.E.name());
 		filters.add(expression);
@@ -722,7 +722,7 @@ public class JDONodeQueryDAOImplTest {
 	public void testExecuteCountQueryNonExistant() throws DatastoreException{
 		// Value does not exist
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.layer);
+		query.setFrom(EntityType.layer);
 		List<Expression> filters = new ArrayList<Expression>();
 		Expression expression = new Expression(new CompoundId("layer", attLayerType), Compartor.EQUALS, "i do not exists");
 		filters.add(expression);
@@ -732,7 +732,7 @@ public class JDONodeQueryDAOImplTest {
 		
 		// Key does not exist
 		query = new BasicQuery();
-		query.setFrom(ObjectType.layer);
+		query.setFrom(EntityType.layer);
 		filters = new ArrayList<Expression>();
 		expression = new Expression(new CompoundId("layer", "someFakeKeyThatDoesNotExist"), Compartor.EQUALS, LayerTypeNames.E.name());
 		filters.add(expression);

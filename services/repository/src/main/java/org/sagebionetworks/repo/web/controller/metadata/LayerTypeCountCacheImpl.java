@@ -8,11 +8,11 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
+import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Compartor;
@@ -82,7 +82,7 @@ public class LayerTypeCountCacheImpl implements LayerTypeCountCache {
 	public static BasicQuery createChildrenLayerQuery(String parentId){
 		BasicQuery query = new BasicQuery();
 		// We want all children
-		query.setFrom(ObjectType.layer);
+		query.setFrom(EntityType.layer);
 		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COL_PARENT_ID), Compartor.EQUALS, Long.parseLong(parentId)));
 		return query;
 	}
@@ -105,7 +105,7 @@ public class LayerTypeCountCacheImpl implements LayerTypeCountCache {
 		// Warm up the cache on startup.
 		UserInfo tempAdmin = new UserInfo(true);
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.dataset);
+		query.setFrom(EntityType.dataset);
 		query.setLimit(Long.MAX_VALUE);
 		query.setOffset(0);
 		try{

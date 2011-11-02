@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.Location;
+import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -316,8 +317,8 @@ public class LocationControllerTest {
 		// line: 1, column: 19]"}
 
 		String reason = error.getString("reason");
-		assertTrue(reason.matches("(?s).*\"BOGUS\".*"));
-		assertTrue(reason.matches("(?s).*not marked as ignorable.*"));
+		assertTrue(reason,reason.matches("(?s).*BOGUS.*"));
+		assertTrue(reason, reason.matches("(?s).*is not defined in the schema.*"));
 	}
 
 	/**
@@ -527,7 +528,7 @@ public class LocationControllerTest {
 				.getString(NodeConstants.COL_PARENT_ID)));
 
 		if(location.getString("type").equals(
-				Location.LocationTypeNames.awss3.toString())) {
+				LocationTypeNames.awss3.toString())) {
 			String s3keyPrefix = "/"
 				+ location.getString("id");
 

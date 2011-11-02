@@ -1,0 +1,35 @@
+{
+    "description":"JSON schema for Preview POJO",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.Entity"
+        },
+        
+    ],
+    "properties":{
+        "previewString":{
+            "type":"string",
+            "description":"The String value of a preview",
+            "contentEncoding":"binary",
+            
+        },
+        "headers":{
+            "type":"array",
+            "transient":true,
+            "uniqueItems":false,
+            "items":{
+                "type":"string",
+                
+            }
+        },
+        "rows":{
+            "type":"array",
+            "transient":true,
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.Row"
+            },
+            
+        },
+        
+    }
+}

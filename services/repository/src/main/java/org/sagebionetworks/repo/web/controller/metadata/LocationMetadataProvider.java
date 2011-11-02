@@ -16,9 +16,10 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.Location;
+import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeQueryDao;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
@@ -65,7 +66,7 @@ public class LocationMetadataProvider implements
 
 		// Special handling for S3 locations
 		if (entity.getType()
-				.equals(Location.LocationTypeNames.awss3.toString())) {
+				.equals(LocationTypeNames.awss3)) {
 
 			if (RequestMethod.GET.name().equals(request.getMethod())) {
 
@@ -147,7 +148,7 @@ public class LocationMetadataProvider implements
 		// - location version (unique per location)
 		// - user-supplied path
 		if (location.getType().equals(
-				Location.LocationTypeNames.awss3.toString())) {
+				LocationTypeNames.awss3)) {
 
 			String versionLabel = location.getVersionLabel();
 			if (versionLabel == null) {
@@ -187,17 +188,17 @@ public class LocationMetadataProvider implements
 		// Users without write access must have agreed to the use
 		// agreement in order to see any location info about the dataset or
 		// layer
-		ObjectType type = entityManager.getEntityType(userInfo, entity
+		EntityType type = entityManager.getEntityType(userInfo, entity
 				.getParentId());
 		Dataset dataset = null;
-		if (ObjectType.layer == type) {
+		if (EntityType.layer == type) {
 			Layer layer = (Layer) entityManager.getEntity(userInfo, entity
-					.getParentId(), ObjectType.layer.getClassForType());
+					.getParentId(), EntityType.layer.getClassForType());
 			dataset = (Dataset) entityManager.getEntity(userInfo, layer
-					.getParentId(), ObjectType.dataset.getClassForType());
+					.getParentId(), EntityType.dataset.getClassForType());
 		} else {
 			dataset = (Dataset) entityManager.getEntity(userInfo, entity
-					.getParentId(), ObjectType.dataset.getClassForType());
+					.getParentId(), EntityType.dataset.getClassForType());
 		}
 
 		if (null == dataset.getEulaId()) {
@@ -206,7 +207,7 @@ public class LocationMetadataProvider implements
 		}
 
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.agreement);
+		query.setFrom(EntityType.agreement);
 		List<Expression> filters = new ArrayList<Expression>();
 		filters.add(new Expression(new CompoundId(null, "datasetId"),
 				Compartor.EQUALS, dataset.getId()));

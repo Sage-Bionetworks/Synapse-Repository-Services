@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.backup.migration;
 
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 
 /**
  * Drives the migration of objects from older versions to the current.
@@ -17,6 +17,6 @@ public interface MigrationDriver {
 	 * @param type
 	 * @return
 	 */
-	public NodeRevisionBackup migrateToCurrentVersion(NodeRevisionBackup toMigrate, ObjectType type);
+	public NodeRevisionBackup migrateToCurrentVersion(NodeRevisionBackup toMigrate, EntityType type);
 
 }

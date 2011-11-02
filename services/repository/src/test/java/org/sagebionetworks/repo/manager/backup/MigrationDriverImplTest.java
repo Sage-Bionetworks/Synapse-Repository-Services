@@ -13,7 +13,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriver;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriverImpl;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 
 /**
  * Validate that we can migrate from all version of the xml.
@@ -28,22 +28,22 @@ public class MigrationDriverImplTest {
 	public static Collection<Object[]> data() {
 		return Arrays.asList(new Object[][] {
 				// We must be able to load the V0 xml files into the current version
-				{ "node-revision-dataset-v0.xml", SerializationUseCases.createV1DatasetRevision(), ObjectType.dataset },
-				{ "node-revision-project-v0.xml", SerializationUseCases.createV1ProjectRevision(), ObjectType.project  },
+				{ "node-revision-dataset-v0.xml", SerializationUseCases.createV1DatasetRevision(), EntityType.dataset },
+				{ "node-revision-project-v0.xml", SerializationUseCases.createV1ProjectRevision(), EntityType.project  },
 				// We must be able to load the V1 xml files into the current version
-				{ "node-revision-dataset-v1.xml", SerializationUseCases.createV1DatasetRevision(), ObjectType.dataset  },
-				{ "node-revision-project-v1.xml", SerializationUseCases.createV1ProjectRevision(), ObjectType.project  },
-				{ "node-revision-step-v1.xml", SerializationUseCases.createV1StepRevision(), ObjectType.step  },
+				{ "node-revision-dataset-v1.xml", SerializationUseCases.createV1DatasetRevision(), EntityType.dataset  },
+				{ "node-revision-project-v1.xml", SerializationUseCases.createV1ProjectRevision(), EntityType.project  },
+				{ "node-revision-step-v1.xml", SerializationUseCases.createV1StepRevision(), EntityType.step  },
 		});
 	}
 
 	String fileNameToLoad;
 	NodeRevisionBackup expectedRevision;
-	ObjectType type;
+	EntityType type;
 	MigrationDriver migrationDriver = new MigrationDriverImpl();
 	
 
-	public MigrationDriverImplTest(String fileNameToLoad, NodeRevisionBackup expectedRevision, ObjectType type) {
+	public MigrationDriverImplTest(String fileNameToLoad, NodeRevisionBackup expectedRevision, EntityType type) {
 		this.fileNameToLoad = fileNameToLoad;
 		this.expectedRevision = expectedRevision;
 		this.type = type;

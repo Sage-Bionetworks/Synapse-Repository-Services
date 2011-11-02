@@ -3,8 +3,7 @@ package org.sagebionetworks.repo.web.controller.metadata;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Nodeable;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -24,7 +23,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
  *
  * @param <T>
  */
-public interface TypeSpecificMetadataProvider<T extends Nodeable> extends EntityValidator<T> {
+public interface TypeSpecificMetadataProvider<T extends Entity> extends EntityValidator<T> {
 	
 	/**
 	 * This method will be called before the given entity is returned to the client.

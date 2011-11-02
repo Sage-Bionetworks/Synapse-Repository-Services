@@ -1,0 +1,54 @@
+{
+    "description":"JSON schema for Dataset POJO",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.Entity"
+        },
+        {
+            "$ref":"org.sagebionetworks.repo.model.HasLayers"
+        },
+        {
+            "$ref":"org.sagebionetworks.repo.model.HasLocations"
+        },
+        
+    ],
+    "properties":{
+        "eulaId":{
+            "type":"string",
+            "description":"The id of the EULA for this dataset",
+        },
+        "hasExpressionData":{
+            "type":"boolean",
+            "description":"Indicates that this dataset contains expression data",
+            "transient":true,
+            
+        },
+        "hasGeneticData":{
+            "type":"boolean",
+            "description":"Indicates that this dataset contains genotype data",
+            "transient":true,
+            
+        },
+        "hasClinicalData":{
+            "type":"boolean",
+            "description":"Indicates that this datasets contains clinical data",
+            "transient":true,
+            
+        },
+        "status":{
+            "type":"string",
+            "description":"the status of this dataset",
+            
+        },
+        "version":{
+            "type":"string",
+            "description":"This is a fake value.  Layers need to be changed to versionable."
+        },
+        "releaseDate":{
+            "type":"string",
+            "format":"date-time",
+            
+        },
+        
+    }
+}

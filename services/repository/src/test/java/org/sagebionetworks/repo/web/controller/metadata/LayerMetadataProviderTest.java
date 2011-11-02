@@ -9,7 +9,8 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.LayerTypeNames;
 
 public class LayerMetadataProviderTest {
 	
@@ -19,11 +20,11 @@ public class LayerMetadataProviderTest {
 		LayerMetadataProvider provider = new LayerMetadataProvider();
 		Layer mock = new Layer();
 		mock.setParentId("12");
-		mock.setType(Layer.LayerTypeNames.C.name());
+		mock.setType(LayerTypeNames.C);
 
 		EntityHeader parent = new EntityHeader();
 		parent.setId("344");
-		parent.setType(ObjectType.dataset.getUrlPrefix());
+		parent.setType(EntityType.dataset.getUrlPrefix());
 		parent.setName("Joe");
 		List<EntityHeader> list  = new ArrayList<EntityHeader>();
 		list.add(parent);

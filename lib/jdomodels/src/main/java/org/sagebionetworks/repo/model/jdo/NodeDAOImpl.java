@@ -28,7 +28,7 @@ import org.sagebionetworks.repo.model.NodeBackupDAO;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOBlobAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
@@ -102,7 +102,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(dto.getVersionLabel() == null){
 			rev.setLabel(NodeConstants.DEFAULT_VERSION_LABEL);
 		}
-		if(dto.getVersionNumber() == null){
+		if(dto.getVersionNumber() == null || dto.getVersionNumber().longValue() < 1){
 			rev.setRevisionNumber(NodeConstants.DEFAULT_VERSION_NUMBER);
 		}else{
 			rev.setRevisionNumber(dto.getVersionNumber());
@@ -121,7 +121,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 		// Look up this type
 		if(dto.getNodeType() == null) throw new IllegalArgumentException("Node type cannot be null");
-		JDONodeType type = getNodeType(ObjectType.valueOf(dto.getNodeType()));
+		JDONodeType type = getNodeType(EntityType.valueOf(dto.getNodeType()));
 		node.setNodeType(type);
 		// Start it with an eTag of zero
 		node.seteTag(new Long(0));
@@ -300,7 +300,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 	}
 	
-	private JDONodeType getNodeType(ObjectType type) throws NotFoundException{
+	private JDONodeType getNodeType(EntityType type) throws NotFoundException{
 		if(type == null) throw new IllegalArgumentException("Node Type cannot be null");
 		try{
 			return jdoTemplate.getObjectById(JDONodeType.class, type.getId());
@@ -533,8 +533,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Override
 	public void boostrapAllNodeTypes() {
 		// Make sure all of the known types are there
-		ObjectType[] types = ObjectType.values();
-		for(ObjectType type: types){
+		EntityType[] types = EntityType.values();
+		for(EntityType type: types){
 			try{
 				// Try to get the type.
 				// If the type does not already exist then an exception will be thrown
@@ -597,7 +597,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		EntityHeader header = new EntityHeader();
 		header.setId(nodeId);
 		header.setName(ptn.getName());
-		ObjectType type = ObjectType.getTypeForId(ptn.getType());
+		EntityType type = EntityType.getTypeForId(ptn.getType());
 		header.setType(type.getUrlPrefix());
 		return header;
 	}
@@ -899,7 +899,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		Long targetId = KeyFactory.stringToKey(reference.getTargetId());
 		Long targetVersion = reference.getTargetVersionNumber();
 
-		if(null == targetVersion) {
+		if(targetVersion == null || targetVersion.longValue() < 1) {
 			JDONode target = getNodeById(targetId);
 			targetVersion = target.getCurrentRevNumber();
 		}

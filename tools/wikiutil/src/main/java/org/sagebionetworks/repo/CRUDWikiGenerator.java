@@ -86,7 +86,7 @@ public class CRUDWikiGenerator {
 							"/dataset",
 							new JSONObject(
 									"{\"status\": \"Pending\", \"description\": \"Genetic and epigenetic alterations have been identified that ...\", "
-											+ "\"creator\": \"Charles Sawyers\", \"releaseDate\": \"2008-09-14\", \"version\": \"1.0.0\", \"name\": \"MSKCC Prostate Cancer\", \"parentId\":\""
+											+ "\"createdBy\": \"Charles Sawyers\", \"releaseDate\": \"2008-09-14T00:00:00.000-07:00\", \"version\": \"1.0.0\", \"name\": \"MSKCC Prostate Cancer\", \"parentId\":\""
 											+ project.getString("id")
 											+ "\", \"eulaId\": \""
 											+ eula.getString("id") + "\"}"),
@@ -244,7 +244,7 @@ public class CRUDWikiGenerator {
 		s3Location.put("versionComment", "The second version of this location.");
 		s3Location.put("versionLabel", "0.0.2");
 		s3Location.remove("accessControlList");
-		s3Location.remove("creationDate");
+		s3Location.remove("createdOn");
 		s3Location.remove("annotations");
 		s3Location.remove("versionNumber");
 		s3Location.remove("versionUrl");

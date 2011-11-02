@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller.metadata;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +11,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Preview;
+import org.sagebionetworks.repo.model.Row;
 import org.sagebionetworks.repo.model.UserInfo;
 
 /**
@@ -22,14 +24,7 @@ public class PreviewMetadataProvider implements
 	public void addTypeSpecificMetadata(Preview entity,
 			HttpServletRequest request, UserInfo user, EventType eventType) {
 		// Clear the blob and set the string
-		if (entity.getPreviewBlob() != null) {
-			try {
-				entity.setPreviewString(new String(entity.getPreviewBlob(),
-						"UTF-8"));
-				entity.setPreviewBlob(null);
-			} catch (UnsupportedEncodingException e) {
-				throw new IllegalArgumentException(e);
-			}
+		if (entity.getPreviewString() != null) {
 			try {
 				createPreviewMap(entity);
 			} catch (DatastoreException e) {
@@ -41,15 +36,6 @@ public class PreviewMetadataProvider implements
 	@Override
 	public void validateEntity(Preview entity, EntityEvent event) {
 		// Clear the string and set the blob
-		if (entity.getPreviewString() != null) {
-			try {
-				entity.setPreviewBlob(entity.getPreviewString().getBytes(
-						"UTF-8"));
-				entity.setPreviewString(null);
-			} catch (UnsupportedEncodingException e) {
-				throw new IllegalArgumentException(e);
-			}
-		}
 	}
 
 	/**
@@ -75,18 +61,17 @@ public class PreviewMetadataProvider implements
 //			throw new DatastoreException("Unable to convert preview data to map format");
 		}
 		// These are our headers
-		preview.setHeaders(header);
-		List<Map<String, String>> results = new ArrayList<Map<String, String>>();
+		preview.setHeaders(Arrays.asList(header));
+		List<Row> results = new ArrayList<Row>();
 		for (int row = 1; row < lines.length; row++) {
-			Map<String, String> result = new HashMap<String, String>();
+			Row result = new Row();
 			String values[] = lines[row].split("\t");
+
 			// Confirm that the tab-delimited data is well-formed
 			if (header.length != values.length) {
 				throw new DatastoreException("Unable to convert preview data to map format");
 			}
-			for (int column = 0; column < values.length; column++) {
-				result.put(header[column], values[column]);
-			}
+			result.setCells(Arrays.asList(values));
 			results.add(result);
 		}
 		preview.setRows(results);

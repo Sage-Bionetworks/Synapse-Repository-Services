@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.model.query;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 
 /**
  * The data describing a basic query.
@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 public class BasicQuery {
 	
 	String select;
-	ObjectType from;
+	EntityType from;
 	String sort;
 	List<Expression> filters;
 	boolean ascending = true;
@@ -27,10 +27,10 @@ public class BasicQuery {
 	public void setSelect(String select) {
 		this.select = select;
 	}
-	public ObjectType getFrom() {
+	public EntityType getFrom() {
 		return from;
 	}
-	public void setFrom(ObjectType from) {
+	public void setFrom(EntityType from) {
 		this.from = from;
 	}
 

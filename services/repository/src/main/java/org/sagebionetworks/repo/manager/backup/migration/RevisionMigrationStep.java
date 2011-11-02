@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.backup.migration;
 
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 
 /**
  * Represents a single step in the migration of a NodeRevisionBackup.
@@ -16,5 +16,5 @@ public interface RevisionMigrationStep {
 	 * @param type
 	 * @return
 	 */
-	public NodeRevisionBackup migrateOneStep(NodeRevisionBackup toMigrate,	ObjectType type);
+	public NodeRevisionBackup migrateOneStep(NodeRevisionBackup toMigrate,	EntityType type);
 }

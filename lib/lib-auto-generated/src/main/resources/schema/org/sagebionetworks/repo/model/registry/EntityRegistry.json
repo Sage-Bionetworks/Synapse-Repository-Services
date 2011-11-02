@@ -1,0 +1,14 @@
+{
+    "description":"Metadata about entities",
+    "properties":{
+        "entityTypes":{
+            "type":"array",
+            "description":"The full path of the entity schema.",
+            "uniqueItems":false,
+            "items":{
+                "type":"object",
+    			"$ref":"org.sagebionetworks.repo.model.registry.EntityTypeMetadata",
+            }
+        }
+    }
+}

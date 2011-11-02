@@ -37,7 +37,7 @@ inputDataMap<-RJSONIO::fromJSON(inputData, simplify=F)
 
 # divides attributes into 'properties' and 'annotations'
 splitDatasetAttributes<-function(a) {
-	dataSetPropertyLabels<-c("name", "description", "status", "creator", "parentId")
+	dataSetPropertyLabels<-c("name", "description", "status", "createdBy", "parentId")
 	properties<-list()
 	annotations<-list()
 	for (i in 1:length(a)) {

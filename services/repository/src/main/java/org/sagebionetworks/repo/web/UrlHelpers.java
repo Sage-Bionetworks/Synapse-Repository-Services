@@ -13,12 +13,11 @@ import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Base;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.HasLayers;
 import org.sagebionetworks.repo.model.HasLocations;
 import org.sagebionetworks.repo.model.HasPreviews;
-import org.sagebionetworks.repo.model.Nodeable;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PrefixConst;
 import org.sagebionetworks.repo.model.Versionable;
 
@@ -260,7 +259,7 @@ public class UrlHelpers {
 	 */
 	@SuppressWarnings("unchecked")
 	public static String getUrlForModel(Class theModelClass) {
-		ObjectType type =  ObjectType.getNodeTypeForClass(theModelClass);
+		EntityType type =  EntityType.getNodeTypeForClass(theModelClass);
 		return type.getUrlPrefix();
 	}
 
@@ -292,7 +291,7 @@ public class UrlHelpers {
 	 * @return the uri for this entity's annotations
 	 */
 	@SuppressWarnings("unchecked")
-	public static String makeEntityPropertyUri(Base entity,
+	public static String makeEntityPropertyUri(Entity entity,
 			Class propertyClass, HttpServletRequest request) {
 
 		String urlPrefix = getUrlPrefixFromRequest(request);
@@ -353,13 +352,13 @@ public class UrlHelpers {
 	 * @param urlPrefix
 	 * @return the entity uri
 	 */
-	public static String createEntityUri(String entityId, Class<? extends Nodeable> entityClass, String urlPrefix){
+	public static String createEntityUri(String entityId, Class<? extends Entity> entityClass, String urlPrefix){
 		if(entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
 		if(entityClass == null) throw new IllegalArgumentException("Entity class cannot be null");
 		if(urlPrefix == null) throw new IllegalArgumentException("Url prefix cannot be null");
 		StringBuilder builder = new StringBuilder();
 		builder.append(urlPrefix);
-		ObjectType type = ObjectType.getNodeTypeForClass(entityClass);
+		EntityType type = EntityType.getNodeTypeForClass(entityClass);
 		builder.append(type.getUrlPrefix());
 		builder.append("/");
 		builder.append(entityId);
@@ -371,7 +370,7 @@ public class UrlHelpers {
 	 * @param entity
 	 * @param request
 	 */
-	public static void setBaseUriForEntity(Nodeable entity, HttpServletRequest request){
+	public static void setBaseUriForEntity(Entity entity, HttpServletRequest request){
 		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
 		if(request == null) throw new IllegalArgumentException("Request cannot be null");
 		// First get the prefix
@@ -382,10 +381,10 @@ public class UrlHelpers {
 	}
 	
 	/**
-	 * Set the all of the Nodeable URLs (annotations, ACL)
+	 * Set the all of the Entity URLs (annotations, ACL)
 	 * @param entity
 	 */
-	public static void setAllNodeableUrls(Nodeable entity){
+	public static void setAllEntityUrls(Entity entity){
 		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
 		if(entity.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null null");
 		// Add the annotations
@@ -444,11 +443,11 @@ public class UrlHelpers {
 	 * @param entity
 	 * @param request
 	 */
-	public static void setAllUrlsForEntity(Nodeable entity, HttpServletRequest request){
+	public static void setAllUrlsForEntity(Entity entity, HttpServletRequest request){
 		// First set the base url
 		setBaseUriForEntity(entity, request);
-		// Set the nodeable types
-		setAllNodeableUrls(entity);
+		// Set the Entity types
+		setAllEntityUrls(entity);
 		// Set the specialty types
 		// Layers
 		if(entity instanceof HasLayers){
@@ -472,10 +471,10 @@ public class UrlHelpers {
 	 * Helper method to validate all urs.
 	 * @param object
 	 */
-	public static void validateAllUrls(Nodeable object) {
+	public static void validateAllUrls(Entity object) {
 		if(object == null) throw new IllegalArgumentException("Entity cannot be null");
 		if(object.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null");
-		ObjectType type = ObjectType.getNodeTypeForClass(object.getClass());
+		EntityType type = EntityType.getNodeTypeForClass(object.getClass());
 		String expectedBaseSuffix = type.getUrlPrefix()+"/"+object.getId();
 		if(!object.getUri().endsWith(expectedBaseSuffix)){
 			throw new IllegalArgumentException("Expected base uri suffix: "+expectedBaseSuffix+" but was: "+object.getUri());
@@ -520,9 +519,6 @@ public class UrlHelpers {
 			if(!expected.equals(able.getVersions())){
 				throw new IllegalArgumentException("Expected versions: "+expected+" but was: "+able.getVersions());
 			}
-			if(able.getVersionNumber() == null){
-				throw new IllegalArgumentException("Expected a versionable entity to have a version number");
-			}
 			expected = object.getUri()+UrlHelpers.VERSION+"/"+able.getVersionNumber();
 			if(!expected.equals(able.getVersionUrl())){
 				throw new IllegalArgumentException("Expected versionUrl: "+expected+" but was: "+able.getVersionUrl());
@@ -537,7 +533,7 @@ public class UrlHelpers {
 	 * @param id - The ID of the redirect entity
 	 * @return
 	 */
-	public static String createACLRedirectURL(HttpServletRequest request, ObjectType type, String id){
+	public static String createACLRedirectURL(HttpServletRequest request, EntityType type, String id){
 		if(request == null) throw new IllegalArgumentException("Request cannot be null");
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
 		if(id == null) throw new IllegalArgumentException("ID cannot be null");

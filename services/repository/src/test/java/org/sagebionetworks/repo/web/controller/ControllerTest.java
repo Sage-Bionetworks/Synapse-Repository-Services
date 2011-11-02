@@ -16,7 +16,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -104,14 +104,14 @@ public class ControllerTest {
 	@Test
 	public void testInvalidJsonCreateEntity() throws Exception {
 
-		ObjectType[] types = ObjectType.values();
-		for (ObjectType type: types) {
+		EntityType[] types = EntityType.values();
+		for (EntityType type: types) {
 
 			String url = helper.getServletPrefix()+type.getUrlPrefix();
 
 			// Notice the missing quotes around the key
 			JSONObject results = helper.testCreateJsonEntityShouldFail(url,
-					"{name:\"bad json from a unit test\"}",
+					"{name:\"bad json from \"a unit test\"}",
 					HttpStatus.BAD_REQUEST);
 
 			// The response should be something like: {"reason":"Could not read
@@ -126,7 +126,7 @@ public class ControllerTest {
 			// name\n at [Source:
 			// org.springframework.mock.web.DelegatingServletInputStream@11e3c2c6;
 			// line: 1, column: 3]"}
-			int index = results.getString("reason").indexOf("Could not read JSON: Unexpected character");
+			int index = results.getString("reason").indexOf("org.json.JSONException: Expected a ',' or '}' at character 23");
 			assertTrue("Testing " + url +" "+ results.getString("reason"), index >= 0);
 		}
 	}
@@ -140,8 +140,8 @@ public class ControllerTest {
 	@Test
 	public void testMissingBodyCreateEntity() throws Exception {
 
-		ObjectType[] types = ObjectType.values();
-		for (ObjectType type: types) {
+		EntityType[] types = EntityType.values();
+		for (EntityType type: types) {
 
 			String url = helper.getServletPrefix()+type.getUrlPrefix();
 			
@@ -175,8 +175,8 @@ public class ControllerTest {
 	@Test
 	public void testMissingBodyUpdateEntity() throws Exception {
 
-		ObjectType[] types = ObjectType.values();
-		for (ObjectType type: types) {
+		EntityType[] types = EntityType.values();
+		for (EntityType type: types) {
 
 			String url = helper.getServletPrefix()+type.getUrlPrefix();
 
@@ -210,8 +210,8 @@ public class ControllerTest {
 	 */
 	@Test
 	public void testUpdateEntityMissingEtag() throws Exception {
-		ObjectType[] types = ObjectType.values();
-		for (ObjectType type: types) {
+		EntityType[] types = EntityType.values();
+		for (EntityType type: types) {
 
 			String url = helper.getServletPrefix()+type.getUrlPrefix();
 

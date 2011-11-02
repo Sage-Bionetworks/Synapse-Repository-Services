@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.Step;
-import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
+import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -58,7 +58,7 @@ public class StepControllerTest {
 
 		layer = new Layer();
 		layer.setParentId(dataset.getId());
-		layer.setType(LayerTypeNames.E.name());
+		layer.setType(LayerTypeNames.E);
 		layer = testHelper.createEntity(layer, null);
 		
 		code = new Code();
@@ -148,7 +148,7 @@ public class StepControllerTest {
 		// references
 		Layer outputLayer = new Layer();
 		outputLayer.setParentId(dataset.getId());
-		outputLayer.setType(LayerTypeNames.M.name());
+		outputLayer.setType(LayerTypeNames.M);
 		outputLayer = testHelper.createEntity(outputLayer, extraParams);
 		
 		

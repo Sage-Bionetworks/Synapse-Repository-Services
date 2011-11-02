@@ -1,0 +1,21 @@
+{
+    "description":"JSON schema for environment descriptor POJO",
+    "properties":{
+        "type":{
+            "type":"string",
+            "description":"type the type to set",
+            
+        },
+        "name":{
+            "type":"string",
+            "description":"name the name to set",
+            
+        },
+        "quantifier":{
+            "type":"string",
+            "description":"quantifier the quantifier to set",
+            
+        },
+        
+    }
+}

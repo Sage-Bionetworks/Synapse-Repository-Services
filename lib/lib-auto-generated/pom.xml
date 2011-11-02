@@ -18,7 +18,6 @@
 			<plugin>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>schema-to-pojo-maven-plugin</artifactId>
-				<version>${schema-to-pojo.version}</version>
 				<executions>
 					<execution>
 						<goals>
@@ -26,7 +25,6 @@
 						</goals>
 						<configuration>
 							<sourceDirectory>src/main/resources/schema</sourceDirectory>
-							<packageName>org.sagebionetworks</packageName>
 							<outputDirectory>target/auto-generated-pojos</outputDirectory>
 						</configuration>
 					</execution>
@@ -40,19 +38,7 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>schema-to-pojo-lib</artifactId>
 		</dependency>
-		<!-- This must remain a test only scope or it will add org.json as a dependency 
-			to all projects. -->
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>schema-to-pojo-org-json</artifactId>
-		</dependency>
-		
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-models</artifactId>
-			<scope>test</scope>
-		</dependency>
-		
+			
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>

@@ -32,7 +32,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
@@ -103,8 +103,8 @@ public class NodeManagerImplAutoWiredTest {
 		// We do not want an admin for this test
 		testUser = testUserProvider.getTestUserInfo();
 		// Create a node of each type.
-		ObjectType[] array = ObjectType.values();
-		for(ObjectType type: array){
+		EntityType[] array = EntityType.values();
+		for(EntityType type: array){
 			Node newNode = new Node();
 			newNode.setName("NodeManagerImplAutoWiredTest."+type.name());
 			newNode.setNodeType(type.name());
@@ -147,7 +147,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testCreateWithAnnotations");
 		// We are using an agreement because the user should have permission to create it but not update it
-		newNode.setNodeType(ObjectType.agreement.name());
+		newNode.setNodeType(EntityType.agreement.name());
 		NamedAnnotations named = new NamedAnnotations();
 		Annotations annos = named.getAdditionalAnnotations();
 		annos.addAnnotation("stringKey", "stringValue");
@@ -172,7 +172,7 @@ public class NodeManagerImplAutoWiredTest {
 		newNode.setName("NodeManagerImplAutoWiredTest.testCreateNode");
 		
 		// need to enable Public to have 'create' access to 'someType'
-		newNode.setNodeType(ObjectType.project.name());
+		newNode.setNodeType(EntityType.project.name());
 		String id = nodeManager.createNewNode(newNode, testUser);
 		assertNotNull(id);
 		nodesToDelete.add(id);
@@ -208,7 +208,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testCreateNode");
 		// need to enable Public to have 'create' access to 'someType'
-		newNode.setNodeType(ObjectType.project.name());
+		newNode.setNodeType(EntityType.project.name());
 		String id = nodeManager.createNewNode(newNode, testUser);
 		assertNotNull(id);
 		nodesToDelete.add(id);
@@ -226,7 +226,7 @@ public class NodeManagerImplAutoWiredTest {
 		// Create a node
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
-		newNode.setNodeType(ObjectType.project.name());
+		newNode.setNodeType(EntityType.project.name());
 		UserInfo userInfo = testUser;
 		String id = nodeManager.createNewNode(newNode, userInfo);
 		assertNotNull(id);
@@ -260,7 +260,7 @@ public class NodeManagerImplAutoWiredTest {
 	public void testAnnotationsUpdateConflict() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
-		newNode.setNodeType(ObjectType.project.name());
+		newNode.setNodeType(EntityType.project.name());
 		UserInfo userInfo = testUser;
 		String id = nodeManager.createNewNode(newNode, userInfo);
 		assertNotNull(id);
@@ -280,7 +280,7 @@ public class NodeManagerImplAutoWiredTest {
 		// First create a node with 
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
-		newNode.setNodeType(ObjectType.location.name());
+		newNode.setNodeType(EntityType.location.name());
 		newNode.setVersionLabel("0.0.1");
 		newNode.setVersionComment("This is the comment on the first version.");
 		UserInfo userInfo = testUser;
@@ -394,7 +394,7 @@ public class NodeManagerImplAutoWiredTest {
 		// First create a node with 
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
-		newNode.setNodeType(ObjectType.location.name());
+		newNode.setNodeType(EntityType.location.name());
 		newNode.setVersionLabel("0.0.0");
 		newNode.setVersionComment("This is the comment on the first version.");
 		UserInfo userInfo = testUser;
@@ -437,7 +437,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a root node
 		Node node = new Node();
 		node.setName("root");
-		node.setNodeType(ObjectType.project.name());
+		node.setNodeType(EntityType.project.name());
 		String rootId = nodeManager.createNewNode(node, testUser);
 		assertNotNull(rootId);
 		nodesToDelete.add(rootId);
@@ -445,7 +445,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a child node
 		node = new Node();
 		node.setName("child");
-		node.setNodeType(ObjectType.dataset.name());
+		node.setNodeType(EntityType.dataset.name());
 		node.setParentId(rootId);
 		String childId = nodeManager.createNewNode(node, testUser);
 		assertNotNull(childId);
@@ -454,7 +454,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a newProject node
 		node = new Node();
 		node.setName("newProject");
-		node.setNodeType(ObjectType.project.name());
+		node.setNodeType(EntityType.project.name());
 		String newProjectId = nodeManager.createNewNode(node, testUser);
 		assertNotNull(newProjectId);
 		nodesToDelete.add(newProjectId);
@@ -489,7 +489,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a root node
 		Node node = new Node();
 		node.setName("root");
-		node.setNodeType(ObjectType.project.name());
+		node.setNodeType(EntityType.project.name());
 		String rootId = nodeManager.createNewNode(node, testUser);
 		assertNotNull(rootId);
 		nodesToDelete.add(rootId);
@@ -497,7 +497,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a child node
 		node = new Node();
 		node.setName("child");
-		node.setNodeType(ObjectType.dataset.name());
+		node.setNodeType(EntityType.dataset.name());
 		node.setParentId(rootId);
 		String childId = nodeManager.createNewNode(node, testUser);
 		assertNotNull(childId);
@@ -506,7 +506,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a newProject node
 		node = new Node();
 		node.setName("newProject");
-		node.setNodeType(ObjectType.project.name());
+		node.setNodeType(EntityType.project.name());
 		String newProjectId = nodeManager.createNewNode(node, testUser);
 		assertNotNull(newProjectId);
 		nodesToDelete.add(newProjectId);
@@ -545,7 +545,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a root node
 		Node node = new Node();
 		node.setName("root");
-		node.setNodeType(ObjectType.project.name());
+		node.setNodeType(EntityType.project.name());
 		String rootId = nodeManager.createNewNode(node, testUser);
 		assertNotNull(rootId);
 		nodesToDelete.add(rootId);
@@ -553,7 +553,7 @@ public class NodeManagerImplAutoWiredTest {
 		//make a child node
 		node = new Node();
 		node.setName("child");
-		node.setNodeType(ObjectType.dataset.name());
+		node.setNodeType(EntityType.dataset.name());
 		node.setParentId(rootId);
 		String childId = nodeManager.createNewNode(node, testUser);
 		assertNotNull(childId);

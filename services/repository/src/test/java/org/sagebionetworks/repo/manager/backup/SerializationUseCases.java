@@ -9,11 +9,12 @@ import java.util.Set;
 import org.sagebionetworks.repo.manager.NodeTranslationUtils;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.EnvironmentDescriptor;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.Nodeable;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.Step;
@@ -107,9 +108,9 @@ public class SerializationUseCases {
 		/************
 		 *  This code is lifted from EntityManagerImpl.createEntity.
 		 */
-		Node node = NodeTranslationUtils.createFromBase(step);
+		Node node = NodeTranslationUtils.createFromEntity(step);
 		// Set the type for this object
-		node.setNodeType(ObjectType.getNodeTypeForClass(step.getClass())
+		node.setNodeType(EntityType.getNodeTypeForClass(step.getClass())
 				.toString());
 		NamedAnnotations named = new NamedAnnotations();
 		// Now add all of the annotations and references from the step
@@ -133,21 +134,21 @@ public class SerializationUseCases {
 		return rev;
 	}
 
-	public static <T extends Nodeable> NodeRevisionBackup createRevisionV0(T ds,
+	public static <T extends Entity> NodeRevisionBackup createRevisionV0(T ds,
 			Annotations annos) {
 		NodeRevisionBackup rev = createBasicRev(ds);
 		rev.setAnnotations(annos);
 		return rev;
 	}
 
-	public static <T extends Nodeable> NodeRevisionBackup createRevisionV1(T ds,
+	public static <T extends Entity> NodeRevisionBackup createRevisionV1(T ds,
 			NamedAnnotations annos) {
 		NodeRevisionBackup rev = createBasicRev(ds);
 		rev.setNamedAnnotations(annos);
 		return rev;
 	}
 
-	public static <T extends Nodeable> NodeRevisionBackup createBasicRev(T ds) {
+	public static <T extends Entity> NodeRevisionBackup createBasicRev(T ds) {
 		NodeRevisionBackup rev = new NodeRevisionBackup();
 		rev.setRevisionNumber(1l);
 		rev.setNodeId(ds.getId());
@@ -163,7 +164,7 @@ public class SerializationUseCases {
 	 * @param ds
 	 * @return
 	 */
-	public static <T extends Nodeable> Annotations createAnnotationsV0(T ds) {
+	public static <T extends Entity> Annotations createAnnotationsV0(T ds) {
 		Annotations annos = new Annotations();
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(ds, annos,
 				null);
@@ -178,7 +179,7 @@ public class SerializationUseCases {
 	 * @param ds
 	 * @return
 	 */
-	public static <T extends Nodeable> NamedAnnotations createAnnotationsV1(T ds) {
+	public static <T extends Entity> NamedAnnotations createAnnotationsV1(T ds) {
 		NamedAnnotations named = new NamedAnnotations();
 		Annotations primaryAnnotations = named.getPrimaryAnnotations();
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(ds,
@@ -210,13 +211,13 @@ public class SerializationUseCases {
 	public static Dataset createDatasetWithAllFields() {
 		Dataset ds = new Dataset();
 		ds.setName("exampleName");
-		ds.setCreationDate(new Date(100l));
+		ds.setCreatedOn(new Date(100l));
 		ds.setDescription("Examle description");
 		ds.setEulaId("123");
 		ds.setId("546");
 		ds.setAccessControlList("acl/456");
 		ds.setAnnotations("annotations/456");
-		ds.setCreator("sam@bogus.com");
+		ds.setCreatedBy("sam@bogus.com");
 		ds.setEtag("2");
 		ds.setHasClinicalData(true);
 		ds.setHasExpressionData(false);
@@ -243,7 +244,7 @@ public class SerializationUseCases {
 		project.setEtag("45");
 		project.setAccessControlList("acl/556");
 		project.setAnnotations("annotations/556");
-		project.setCreationDate(new Date(333333333333l));
+		project.setCreatedOn(new Date(333333333333l));
 		project.setParentId("23");
 		project.setUri("project/556");
 		project.setDescription("Some project description");
@@ -280,17 +281,23 @@ public class SerializationUseCases {
 		step.setName("someName");
 		step.setParentId("42");
 		step.setUri("/step/42");
-		step.setCreationDate(new Date(System.currentTimeMillis()));
+		step.setCreatedOn(new Date(System.currentTimeMillis()));
 		step.setCreatedBy("foo@bar.com");
 		step.setStartDate(new Date());
 		step.setEndDate(new Date());
 		step.setDescription("someDescr");
 		step.setCommandLine("/usr/bin/r");
-		step.setCode(code);
+//		step.setCode(code);
 		step.setInput(input);
 		step.setOutput(output);
 		step.setAnnotations("/step/42/annotations");
 		step.setAccessControlList("/step/42/accessControlList");
+//		step.setEnvironmentDescriptors(new HashSet<EnvironmentDescriptor>());
+//		EnvironmentDescriptor ed = new EnvironmentDescriptor();
+//		ed.setName("name");
+//		ed.setQuantifier("qunati");
+//		ed.setType("basic");
+//		step.getEnvironmentDescriptors().add(ed);
 
 		return step;
 	}

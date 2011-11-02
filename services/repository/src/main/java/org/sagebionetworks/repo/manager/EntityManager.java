@@ -4,13 +4,13 @@ import java.util.Collection;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Base;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Nodeable;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -33,7 +33,7 @@ public interface EntityManager {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException 
 	 */
-	public <T extends Base> String createEntity(UserInfo userInfo, T newEntity) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
+	public <T extends Entity> String createEntity(UserInfo userInfo, T newEntity) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 		
 	/**
 	 * Get an existing dataset
@@ -44,7 +44,7 @@ public interface EntityManager {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public <T extends Base> T getEntity(UserInfo userInfo, String entityId, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public <T extends Entity> T getEntity(UserInfo userInfo, String entityId, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * Get the full path of an entity.
@@ -78,7 +78,7 @@ public interface EntityManager {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public ObjectType getEntityType(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public EntityType getEntityType(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * Get the entity header.
@@ -102,7 +102,7 @@ public interface EntityManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Nodeable> List<T> getEntityChildren(UserInfo userInfo, String parentId, Class<? extends T> childrenClass) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public <T extends Entity> List<T> getEntityChildren(UserInfo userInfo, String parentId, Class<? extends T> childrenClass) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	
 	/**
@@ -116,7 +116,7 @@ public interface EntityManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Base> EntityWithAnnotations<T> getEntityWithAnnotations(UserInfo userInfo, String entityId, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public <T extends Entity> EntityWithAnnotations<T> getEntityWithAnnotations(UserInfo userInfo, String entityId, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Delete an existing dataset.
@@ -189,7 +189,7 @@ public interface EntityManager {
 	 * @throws ConflictingUpdateException 
 	 * @throws InvalidModelException 
 	 */
-	public <T extends Base> void updateEntity(UserInfo userInfo, T updated, boolean newVersion) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException;
+	public <T extends Entity> void updateEntity(UserInfo userInfo, T updated, boolean newVersion) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException;
 	
 	/**
 	 * Update multiple children of a single parent within the same transaction.
@@ -202,7 +202,7 @@ public interface EntityManager {
 	 * @throws ConflictingUpdateException 
 	 * @throws InvalidModelException 
 	 */
-	public <T extends Nodeable> List<String> aggregateEntityUpdate(UserInfo userInfo, String parentId, Collection<T> update) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException;
+	public <T extends Entity> List<String> aggregateEntityUpdate(UserInfo userInfo, String parentId, Collection<T> update) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException;
 	
 	/**
 	 * List all version numbers for an entity.
@@ -226,7 +226,7 @@ public interface EntityManager {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public <T extends Nodeable> T getEntityForVersion(UserInfo userInfo, String entityId, Long versionNumber, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public <T extends Entity> T getEntityForVersion(UserInfo userInfo, String entityId, Long versionNumber, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Used to override this dao for a test.

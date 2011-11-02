@@ -9,8 +9,8 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -98,7 +98,7 @@ public class CodeMetadataProvider implements
 		
 		try {
 			Step step = (Step) entityManager.getEntity(user, stepId,
-					ObjectType.step.getClassForType());
+					EntityType.step.getClassForType());
 			Reference reference = new Reference();
 			reference.setTargetId(entity.getId());
 			if (EventType.CREATE == eventType 

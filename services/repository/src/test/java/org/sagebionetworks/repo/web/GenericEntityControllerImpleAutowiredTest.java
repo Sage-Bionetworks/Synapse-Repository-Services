@@ -20,9 +20,10 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Layer;
-import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
+import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Location;
+import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -99,8 +100,8 @@ public class GenericEntityControllerImpleAutowiredTest {
 		Dataset ds = new Dataset();
 		ds.setName("someName"+i);
 		ds.setDescription("someDesc"+i);
-		ds.setCreator("magic"+i);
-		ds.setCreationDate(new Date(1001));
+		ds.setCreatedBy("magic"+i);
+		ds.setCreatedOn(new Date(1001));
 		ds.setAnnotations("someAnnoUrl"+1);
 		ds.setHasClinicalData(false);
 		ds.setHasExpressionData(true);
@@ -117,8 +118,8 @@ public class GenericEntityControllerImpleAutowiredTest {
 		Layer layer = new Layer();
 		layer.setName("layerName"+i);
 		layer.setDescription("layerDesc"+i);
-		layer.setCreationDate(new Date(1001));
-		layer.setType(LayerTypeNames.G.name());
+		layer.setCreatedOn(new Date(1001));
+		layer.setType(LayerTypeNames.G);
 		return layer;
 	}
 	
@@ -126,7 +127,7 @@ public class GenericEntityControllerImpleAutowiredTest {
 		Location location = new Location();
 		location.setMd5sum("9ca4d9623b655ba970e7b8173066b58f");
 		location.setPath("a/very/long/path/"+i);
-		location.setType(Location.LocationTypeNames.awsebs.name());
+		location.setType(LocationTypeNames.awsebs);
 		return location;
 	}
 	

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -90,7 +91,7 @@ public class PreviewControllerTest {
 				.getServletPrefix()+ "/preview", prviewString);
 
 		assertEquals(newLayer.getString("id"), layerPreview.getString(NodeConstants.COL_PARENT_ID));
-		assertEquals("null", layerPreview.getString("previewString"));
+		assertTrue(layerPreview.isNull("previewString"));
 
 		// Modify that layer
 		layerPreview.put("previewString", tabDelimitedSnippet);
@@ -128,7 +129,7 @@ public class PreviewControllerTest {
 				.getServletPrefix()+ "/preview", prviewString);
 
 		assertEquals(newLayer.getString("id"), layerPreview.getString(NodeConstants.COL_PARENT_ID));
-		assertEquals("null", layerPreview.getString("previewString"));
+		assertTrue(layerPreview.isNull("previewString"));
 
 		// Modify that layer
 		layerPreview.put("previewString", "this is an updated preview of a layer");

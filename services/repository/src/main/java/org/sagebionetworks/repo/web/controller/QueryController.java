@@ -19,7 +19,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.query.BasicQuery;
@@ -99,7 +99,7 @@ public class QueryController extends BaseController {
 
 		// Convert from a query statement to a basic query
 		BasicQuery basic = new BasicQuery();
-		ObjectType type = ObjectType.valueOf(stmt.getTableName());
+		EntityType type = EntityType.valueOf(stmt.getTableName());
 		basic.setFrom(type);
 		basic.setSort(stmt.getSortField());
 		basic.setAscending(stmt.getSortAcending());

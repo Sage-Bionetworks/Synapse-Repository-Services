@@ -20,6 +20,11 @@
 	<dependencies>
 
 		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>schema-to-pojo-org-json</artifactId>
+		</dependency>
+		
+		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 		</dependency>
@@ -33,6 +38,11 @@
 		<dependency>
 			<groupId>commons-lang</groupId>
 			<artifactId>commons-lang</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-auto-generated</artifactId>
 		</dependency>
 
 	</dependencies>

@@ -30,7 +30,7 @@ import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -289,7 +289,7 @@ public class DefaultControllerAutowiredTest {
 		
 		EntityHeader type = ServletTestHelper.getEntityType(dispatchServlet, clone.getId(), TestUserDAO.TEST_USER_NAME);
 		assertNotNull(type);
-		assertEquals(ObjectType.project.getUrlPrefix(), type.getType());
+		assertEquals(EntityType.project.getUrlPrefix(), type.getType());
 		assertEquals(clone.getId(), type.getName());
 		assertEquals(clone.getId(), type.getId());
 	}
@@ -312,7 +312,7 @@ public class DefaultControllerAutowiredTest {
 		assertNotNull(benefactor);
 		// The project should be its own benefactor
 		assertEquals(project.getId(), benefactor.getId());
-		assertEquals(ObjectType.project.getUrlPrefix(), benefactor.getType());
+		assertEquals(EntityType.project.getUrlPrefix(), benefactor.getType());
 		assertEquals(project.getName(), benefactor.getName());
 		
 		// Now check the dataset
@@ -320,7 +320,7 @@ public class DefaultControllerAutowiredTest {
 		assertNotNull(benefactor);
 		// The project should be the dataset's benefactor
 		assertEquals(project.getId(), benefactor.getId());
-		assertEquals(ObjectType.project.getUrlPrefix(), benefactor.getType());
+		assertEquals(EntityType.project.getUrlPrefix(), benefactor.getType());
 		assertEquals(project.getName(), benefactor.getName());
 		
 	}
