@@ -7,7 +7,7 @@ import java.util.List;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
-import org.sagebionetworks.web.client.ontology.Ontology;
+import org.sagebionetworks.web.client.ontology.Enumeration;
 import org.sagebionetworks.web.client.widget.SynapseWidgetView;
 
 import com.extjs.gxt.ui.client.data.BaseModelData;
@@ -161,7 +161,7 @@ public class OntologySearchPanelViewImpl extends LayoutContainer implements Onto
 		return colConfigs;
 	}	
 
-	private GridCellRenderer<BaseModelData> createSelectRenderer(final Collection<Ontology> ontologies) {
+	private GridCellRenderer<BaseModelData> createSelectRenderer(final Collection<Enumeration> ontologies) {
 		GridCellRenderer<BaseModelData> buttonRenderer = new GridCellRenderer<BaseModelData>() {
 			@Override
 			public Object render(final BaseModelData model,
@@ -178,7 +178,7 @@ public class OntologySearchPanelViewImpl extends LayoutContainer implements Onto
 		return buttonRenderer;
 	}
 
-	private GridCellRenderer<BaseModelData> createDetailsRenderer(final Collection<Ontology> ontologies) {
+	private GridCellRenderer<BaseModelData> createDetailsRenderer(final Collection<Enumeration> ontologies) {
 		GridCellRenderer<BaseModelData> buttonRenderer = new GridCellRenderer<BaseModelData>() {
 			@Override
 			public Object render(final BaseModelData model,
@@ -196,7 +196,7 @@ public class OntologySearchPanelViewImpl extends LayoutContainer implements Onto
 		return buttonRenderer;
 	}
 
-	private GridCellRenderer<BaseModelData> createVisualizeRenderer(final Collection<Ontology> ontologies) {
+	private GridCellRenderer<BaseModelData> createVisualizeRenderer(final Collection<Enumeration> ontologies) {
 		GridCellRenderer<BaseModelData> buttonRenderer = new GridCellRenderer<BaseModelData>() {
 			@Override
 			public Object render(final BaseModelData model,

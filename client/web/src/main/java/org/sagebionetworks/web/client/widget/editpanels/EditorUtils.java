@@ -6,7 +6,7 @@ import java.util.Map;
 
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
-import org.sagebionetworks.web.client.ontology.OntologyTerm;
+import org.sagebionetworks.web.client.ontology.EnumerationTerm;
 
 import com.extjs.gxt.ui.client.data.BaseModelData;
 import com.extjs.gxt.ui.client.store.ListStore;
@@ -27,7 +27,7 @@ public class EditorUtils {
 						formField.setValue(DisplayConstants.DATE_FORMAT_SERVICES.format((Date)value));
 					} else if(value instanceof SimpleComboValue) {
 						@SuppressWarnings("unchecked")
-						OntologyTerm term = ((SimpleComboValue<OntologyTerm>)value).getValue();
+						EnumerationTerm term = ((SimpleComboValue<EnumerationTerm>)value).getValue();
 						formField.setValue(term.getValue());
 					} else {				
 						formField.setValue(gxtField.getValue().toString());
@@ -84,8 +84,12 @@ public class EditorUtils {
 			}
 
 			// set type to combo for ontologies
-			if(formField.isOntologyBased()) {				
-				model.setColumnEditType(ColumnEditType.COMBO);
+			if(formField.isEnumBased()) {				
+				model.setColumnEditType(ColumnEditType.ENUMERATION);
+			}
+			
+			if(formField.isOntologyBased()) {
+				model.setColumnEditType(ColumnEditType.ONTOLOGY);
 			}
 			
 			store.add(model);

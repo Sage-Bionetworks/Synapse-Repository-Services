@@ -25,9 +25,9 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.sagebionetworks.web.client.SearchService;
 import org.sagebionetworks.web.server.ColumnConfigProvider;
 import org.sagebionetworks.web.server.ServerConstants;

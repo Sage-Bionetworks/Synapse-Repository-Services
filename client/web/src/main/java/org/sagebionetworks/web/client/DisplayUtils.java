@@ -48,6 +48,10 @@ public class DisplayUtils {
 	
 	private static final String ERROR_OBJ_REASON_KEY = "reason";
 	
+	// TODO : temporary
+	public static final String NCBO_VALUE_PREFIX = "NCBO-ENTRY:";
+	public static final String NCBO_DELIMITER = ":";
+	
 	/*
 	 * Style names
 	 */

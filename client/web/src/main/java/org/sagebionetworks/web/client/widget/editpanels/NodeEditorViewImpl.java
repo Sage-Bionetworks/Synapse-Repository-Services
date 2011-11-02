@@ -9,8 +9,8 @@ import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
-import org.sagebionetworks.web.client.ontology.Ontology;
-import org.sagebionetworks.web.client.ontology.OntologyTerm;
+import org.sagebionetworks.web.client.ontology.Enumeration;
+import org.sagebionetworks.web.client.ontology.EnumerationTerm;
 
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
 import com.extjs.gxt.ui.client.Style.Scroll;
@@ -73,14 +73,14 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 	@Override
 	public void generateCreateForm(List<FormField> formFields,
 			String typeDisplay, String topText, List<String> ignoreFields,
-			Map<String, Ontology> keyToOntologyTerms) {
+			Map<String, Enumeration> keyToOntologyTerms) {
 		buildNodeForm(formFields, typeDisplay, topText, ignoreFields, keyToOntologyTerms, false, null);
 	}
 
 	@Override
 	public void generateEditForm(List<FormField> formFields,
 			String typeDisplay, String topText, List<String> ignoreFields,
-			Map<String, Ontology> keyToOntologyTerms,
+			Map<String, Enumeration> keyToOntologyTerms,
 			JSONObject editorValues) {
 		buildNodeForm(formFields, typeDisplay, topText, ignoreFields, keyToOntologyTerms, true, editorValues);
 	}
@@ -109,7 +109,7 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 	 */
 	private void buildNodeForm(final List<FormField> formFields,
 			String typeDisplay, String topText, List<String> ignoreFields,
-			Map<String, Ontology> keyToOntologyTerms, boolean isEditor,
+			Map<String, Enumeration> keyToOntologyTerms, boolean isEditor,
 			JSONObject editorValues) {
 		// remove any old forms, this is a singleton afterall
 		this.removeAll();
@@ -152,11 +152,11 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 					if(isEditor) description.setValue(formField.getValue());
 					nodeFormPanel.add(description, formData);				
 				} else if(keyToOntologyTerms.containsKey(key)) {
-					SimpleComboBox<OntologyTerm> combo = new SimpleComboBox<OntologyTerm>();					
+					SimpleComboBox<EnumerationTerm> combo = new SimpleComboBox<EnumerationTerm>();					
 					combo.setFieldLabel(key);  
 					combo.setForceSelection(true);					 
 					combo.setTriggerAction(TriggerAction.ALL);
-					for(OntologyTerm term : keyToOntologyTerms.get(key).getTerms()) {
+					for(EnumerationTerm term : keyToOntologyTerms.get(key).getTerms()) {
 						combo.add(term);
 					}					
 					if(isEditor) combo.setSimpleValue(formField.getOntologyValue());

@@ -2,7 +2,8 @@ package org.sagebionetworks.web.client.widget.editpanels;
 
 import java.util.List;
 
-import org.sagebionetworks.web.client.ontology.OntologyTerm;
+import org.sagebionetworks.web.client.ontology.EnumerationTerm;
+import org.sagebionetworks.web.client.ontology.NcboOntologyTerm;
 
 public class FormField {
 
@@ -10,28 +11,36 @@ public class FormField {
 	
 	private String key;
 	private String value;
-	private OntologyTerm ontologyValue;
-	private OntologyTerm[] ontologyTerms;
+	private NcboOntologyTerm ncboOntologyTerm;
+	private EnumerationTerm enumValue;
+	private EnumerationTerm[] enumTerms;
 	private List<String> valueList;
 	private ColumnType type;
 	private boolean isList;
+	private boolean isEnumBased;
 	private boolean isOntologyBased;
+	
+	public FormField(String key, NcboOntologyTerm ncboOntologyTerm, ColumnType type) {
+		this.key = key;
+		this.ncboOntologyTerm = ncboOntologyTerm;
+		this.type = type;
+	}
 	
 	public FormField(String key, String value, ColumnType type) {
 		isList = false;
-		this.isOntologyBased = false;
+		this.isEnumBased = false;
 		this.key = key;
 		this.value = value;
 		this.type = type;
 	}
 
-	public FormField(String key, OntologyTerm ontologyValue, OntologyTerm[] ontologyTerms, ColumnType type) {
+	public FormField(String key, EnumerationTerm enumValue, EnumerationTerm[] enumTerms, ColumnType type) {
 		isList = false;
-		this.isOntologyBased = true;
+		this.isEnumBased = true;
 		this.key = key;
-		this.ontologyValue = ontologyValue;
-		this.ontologyTerms = ontologyTerms;
-		if(ontologyValue != null) this.value = ontologyValue.getValue();
+		this.enumValue = enumValue;
+		this.enumTerms = enumTerms;
+		if(enumValue != null) this.value = enumValue.getValue();
 		this.type = type;
 	}
 	
@@ -47,10 +56,10 @@ public class FormField {
 	 * @param value
 	 */
 	public void setValue(String value) {
-		if(isOntologyBased && ontologyTerms != null) {
-			for(OntologyTerm term : ontologyTerms) {
+		if(isEnumBased && enumTerms != null) {
+			for(EnumerationTerm term : enumTerms) {
 				if(term.getValue().equals(value)) {
-					this.ontologyValue = term;
+					this.enumValue = term;
 					this.value = value;
 				}
 			}
@@ -89,20 +98,44 @@ public class FormField {
 		this.valueList = valueList;
 	}
 
-	public OntologyTerm getOntologyValue() {
-		return ontologyValue;
+	public EnumerationTerm getOntologyValue() {
+		return enumValue;
 	}
 
-	public void setOntologyValue(OntologyTerm ontologyValue) {
-		this.ontologyValue = ontologyValue;
+	public void setOntologyValue(EnumerationTerm ontologyValue) {
+		this.enumValue = ontologyValue;
 	}
 
-	public OntologyTerm[] getOntologyTerms() {
-		return ontologyTerms;
+	public EnumerationTerm[] getEnumTerms() {
+		return enumTerms;
 	}
 
-	public void setOntologyTerms(OntologyTerm[] ontologyTerms) {
-		this.ontologyTerms = ontologyTerms;
+	public boolean isEnumBased() {
+		return isEnumBased;
+	}
+
+	public EnumerationTerm getEnumValue() {
+		return enumValue;
+	}
+
+	public void setEnumValue(EnumerationTerm enumValue) {
+		this.enumValue = enumValue;
+	}
+
+	public void setEnumTerms(EnumerationTerm[] enumTerms) {
+		this.enumTerms = enumTerms;
+	}
+
+	public void setEnumBased(boolean isEnumBased) {
+		this.isEnumBased = isEnumBased;
+	}
+
+	public NcboOntologyTerm getNcboOntologyTerm() {
+		return ncboOntologyTerm;
+	}
+
+	public void setNcboOntologyTerm(NcboOntologyTerm ncboOntologyTerm) {
+		this.ncboOntologyTerm = ncboOntologyTerm;
 	}
 
 	public boolean isOntologyBased() {

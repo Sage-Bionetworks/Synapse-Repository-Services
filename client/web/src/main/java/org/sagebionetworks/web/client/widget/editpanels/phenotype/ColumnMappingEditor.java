@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.web.client.PlaceChanger;
-import org.sagebionetworks.web.client.ontology.Ontology;
+import org.sagebionetworks.web.client.ontology.Enumeration;
 import org.sagebionetworks.web.client.widget.SynapseWidgetPresenter;
 
 import com.google.gwt.user.client.ui.Widget;
@@ -17,7 +17,7 @@ public class ColumnMappingEditor implements ColumnMappingEditorView.Presenter, S
 	private List<String> columns;
     private String currentIdentityColumn;
     private Map<String,String> columnToOntology;
-    private Collection<Ontology> ontologies;
+    private Collection<Enumeration> ontologies;
 	
 	@Inject
 	public ColumnMappingEditor(ColumnMappingEditorView view) {

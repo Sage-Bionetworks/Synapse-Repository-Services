@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.web.client.PlaceChanger;
-import org.sagebionetworks.web.client.ontology.Ontology;
+import org.sagebionetworks.web.client.ontology.Enumeration;
 import org.sagebionetworks.web.client.widget.SynapseWidgetPresenter;
 
 import com.google.gwt.user.client.ui.Widget;

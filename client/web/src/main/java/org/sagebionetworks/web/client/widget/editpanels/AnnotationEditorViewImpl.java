@@ -7,17 +7,27 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.bcel.generic.CPInstruction;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
-import org.sagebionetworks.web.client.ontology.Ontology;
-import org.sagebionetworks.web.client.ontology.OntologyTerm;
+import org.sagebionetworks.web.client.ontology.Enumeration;
+import org.sagebionetworks.web.client.ontology.EnumerationTerm;
+import org.sagebionetworks.web.client.ontology.NcboOntologyTerm;
 
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
 import com.extjs.gxt.ui.client.Style.Scroll;
 import com.extjs.gxt.ui.client.Style.SelectionMode;
+import com.extjs.gxt.ui.client.data.BasePagingLoader;
+import com.extjs.gxt.ui.client.data.DataField;
+import com.extjs.gxt.ui.client.data.JsonPagingLoadResultReader;
+import com.extjs.gxt.ui.client.data.LoadEvent;
+import com.extjs.gxt.ui.client.data.Loader;
+import com.extjs.gxt.ui.client.data.ModelData;
+import com.extjs.gxt.ui.client.data.ModelType;
+import com.extjs.gxt.ui.client.data.PagingLoadResult;
+import com.extjs.gxt.ui.client.data.PagingLoader;
+import com.extjs.gxt.ui.client.data.ScriptTagProxy;
 import com.extjs.gxt.ui.client.event.ButtonEvent;
 import com.extjs.gxt.ui.client.event.Events;
 import com.extjs.gxt.ui.client.event.GridEvent;
@@ -27,13 +37,13 @@ import com.extjs.gxt.ui.client.event.SelectionChangedListener;
 import com.extjs.gxt.ui.client.event.SelectionListener;
 import com.extjs.gxt.ui.client.store.ListStore;
 import com.extjs.gxt.ui.client.widget.ContentPanel;
-import com.extjs.gxt.ui.client.widget.Html;
 import com.extjs.gxt.ui.client.widget.Info;
 import com.extjs.gxt.ui.client.widget.LayoutContainer;
 import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.Window;
 import com.extjs.gxt.ui.client.widget.button.Button;
 import com.extjs.gxt.ui.client.widget.form.CheckBox;
+import com.extjs.gxt.ui.client.widget.form.ComboBox;
 import com.extjs.gxt.ui.client.widget.form.ComboBox.TriggerAction;
 import com.extjs.gxt.ui.client.widget.form.DateField;
 import com.extjs.gxt.ui.client.widget.form.FormPanel;
@@ -44,7 +54,6 @@ import com.extjs.gxt.ui.client.widget.form.TextField;
 import com.extjs.gxt.ui.client.widget.grid.CellEditor;
 import com.extjs.gxt.ui.client.widget.grid.ColumnConfig;
 import com.extjs.gxt.ui.client.widget.grid.ColumnData;
-import com.extjs.gxt.ui.client.widget.grid.ColumnModel;
 import com.extjs.gxt.ui.client.widget.grid.EditorGrid;
 import com.extjs.gxt.ui.client.widget.grid.Grid;
 import com.extjs.gxt.ui.client.widget.grid.GridCellRenderer;
@@ -78,20 +87,23 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 	private ColumnConfig valueCol;
 	private FormPanel addAnnotationPanel;
 	private Button deleteButton;
-	private Map<String, CellEditor> keyToComboEditor;
+	private Map<String, CellEditor> keyToEnumEditor;
 	private Map<String, FormField> keyToFormFieldMap;
+	private ComboBox<ModelData> ncboSuggestField;
 	
-	private Collection<Ontology> ontologies;
+	private Collection<Enumeration> enumerations;
 	private TextField<String> addAnnotationName;
 	private SimpleComboBox<String> addAnnotationTypeCombo;
-	private SimpleComboBox<Ontology> addAnnotationOntologyCombo;
+	private SimpleComboBox<Enumeration> addAnnotationEnumCombo;
+	private ComboBox<ModelData> addAnnotationOntologyCombo;
 	private Button createAnnotationButton;
 	private Window addAnnotationsWindow;	
 	
 	private static final String MENU_ADD_ANNOTATION_TEXT = "Text";
 	private static final String MENU_ADD_ANNOTATION_NUMBER = "Number";
 	private static final String MENU_ADD_ANNOTATION_DATE = "Date";
-	private static final String MENU_ADD_ANNOTATION_ONTOLOGY = "Ontology";
+	private static final String MENU_ADD_ANNOTATION_ENUMERATION = "Enumeration";
+	private static final String MENU_ADD_ANNOTATION_ONTOLOGY = "NCBO Ontology";
 	
     @Inject
     public AnnotationEditorViewImpl(SageImageBundle sageImageBundle, IconsImageBundle iconsImageBundle) {
@@ -201,8 +213,8 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 	}
 
 	@Override
-	public void setOntologies(Collection<Ontology> ontologies) {
-		this.ontologies = ontologies;
+	public void setEnumerations(Collection<Enumeration> enumerations) {
+		this.enumerations = enumerations;
 	}
 
 
@@ -266,35 +278,38 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		dateField.getPropertyEditor().setFormat(DateTimeFormat.getFormat("MM/dd/yyyy"));		
 		dateEditor = new CellEditor(dateField);
 
-		keyToComboEditor = new HashMap<String, CellEditor>();
-		// Create a SimpleComboBox CellEditor for each FormField that has an ontology (not all ontologies)
+		keyToEnumEditor = new HashMap<String, CellEditor>();
+		// Create a SimpleComboBox CellEditor for each FormField that has an enumeration (not all enumerations)
 		for(FormField formField : formFields) {
-			createComboEditorForFormField(formField);
+			createEnumEditorForFormField(formField);
 		}		
 
 		// Boolean (checkbox) editor
-		booleanEditor = new CellEditor(new CheckBox());				
+		booleanEditor = new CellEditor(new CheckBox());
+		
+		// NCBO Search editor
+		ncboSuggestField = createNcboSuggestField(); 
 	}
 
-	private void createComboEditorForFormField(FormField formField) {
+	private void createEnumEditorForFormField(FormField formField) {
 		String key = formField.getKey();
-		if(key != null && formField.isOntologyBased()) {
+		if(key != null && formField.isEnumBased()) {
 			// Combo Editor
-			final SimpleComboBox<String> ontologyCombo = new SimpleComboBox<String>();
-			ontologyCombo.setFieldLabel(key);					
-			ontologyCombo.setForceSelection(true);
-			ontologyCombo.setTriggerAction(TriggerAction.ALL);
-			for(OntologyTerm ontologyTerm : formField.getOntologyTerms()) {
-				ontologyCombo.add(ontologyTerm.getValue());
+			final SimpleComboBox<String> enumCombo = new SimpleComboBox<String>();
+			enumCombo.setFieldLabel(key);					
+			enumCombo.setForceSelection(true);
+			enumCombo.setTriggerAction(TriggerAction.ALL);
+			for(EnumerationTerm enumTerm : formField.getEnumTerms()) {
+				enumCombo.add(enumTerm.getValue());
 			}
 
-			CellEditor comboEditor = new CellEditor(ontologyCombo) {
+			CellEditor comboEditor = new CellEditor(enumCombo) {
 				@Override
 				public Object preProcessValue(Object value) {
 					if (value == null) {
 						return value;
 					}
-					return ontologyCombo.findModel(value.toString());
+					return enumCombo.findModel(value.toString());
 				}
 
 				@SuppressWarnings("unchecked")
@@ -307,7 +322,7 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 				}
 			};
 
-			keyToComboEditor.put(key, comboEditor);
+			keyToEnumEditor.put(key, comboEditor);
 		}
 	}
 
@@ -338,13 +353,13 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 			public void handleEvent(GridEvent<EditableAnnotationModelData> event) {				
 				EditableAnnotationModelData model = event.getModel();
 				ColumnEditType type = model.getColumnEditType();
-				if(type == ColumnEditType.COMBO) {
-					// lookup ontology editor to use via model key
+				if(type == ColumnEditType.ENUMERATION) {
+					// lookup enum editor to use via model key
 					String key = model.getKey();
-					if(keyToComboEditor.containsKey(model.getKey())) {
-						valueCol.setEditor(keyToComboEditor.get(key));
+					if(keyToEnumEditor.containsKey(model.getKey())) {
+						valueCol.setEditor(keyToEnumEditor.get(key));
 					} else {
-						// fallback if no ontology editor
+						// fallback if no enum editor
 						valueCol.setEditor(textEditor);
 					}					
 				} else if(type == ColumnEditType.TEXTAREA) {
@@ -398,6 +413,8 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 				// get string of value
 				if(type == ColumnEditType.DATE) {
 					val = DisplayConstants.DATE_FORMAT.format((Date) model.get(property));
+				} else if(type == ColumnEditType.ONTOLOGY) {
+					val = val + ""; // TODO : modify render
 				} else {					
 					val = (String) model.get(property);
 				}
@@ -405,9 +422,10 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 				// render text areas as tall as they need to be (can also add "height:60px;" below for fixed height
 				if(type == ColumnEditType.TEXTAREA) {
 					return "<div style=\"white-space: normal;\">" + val +"</div>";					
-				} else {
+				} else {				
 					return val;
 				}
+				
 			}
 		};
 		valueCol.setRenderer(wrap);
@@ -449,7 +467,7 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		addAnnotationsWindow = new Window();
 		addAnnotationsWindow.setHeading(DisplayConstants.TITLE_ADD_ANNOTATION);		
 		addAnnotationsWindow.setModal(true);
-		addAnnotationsWindow.setSize(400, 170);
+		addAnnotationsWindow.setSize(600, 170);
 		if(addAnnotationPanel == null) {		
 			setupAddAnnotationPanel();
 		}
@@ -486,16 +504,20 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		addAnnotationName.setAllowBlank(false);		
 		addAnnotationPanel.add(addAnnotationName, formData);
 
-		// Build up ontologies
-		addAnnotationOntologyCombo = new SimpleComboBox<Ontology>();
-		addAnnotationOntologyCombo.setFieldLabel("Ontology");					
-		addAnnotationOntologyCombo.setForceSelection(true);
-		addAnnotationOntologyCombo.setTriggerAction(TriggerAction.ALL);
-		if(ontologies != null) {
-			for(Ontology ontology : ontologies) {
-				addAnnotationOntologyCombo.add(ontology);				
+		// Build up enums
+		addAnnotationEnumCombo = new SimpleComboBox<Enumeration>();
+		addAnnotationEnumCombo.setFieldLabel("Enumeration");					
+		addAnnotationEnumCombo.setForceSelection(true);
+		addAnnotationEnumCombo.setTriggerAction(TriggerAction.ALL);
+		if(enumerations != null) {
+			for(Enumeration enumeration : enumerations) {
+				addAnnotationEnumCombo.add(enumeration);				
 			}
 		}
+		addAnnotationEnumCombo.hide();
+		
+		addAnnotationOntologyCombo = createNcboSuggestField();
+		addAnnotationOntologyCombo.setFieldLabel("Value");
 		addAnnotationOntologyCombo.hide();
 		
 		addAnnotationTypeCombo = new SimpleComboBox<String>();
@@ -505,20 +527,24 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		addAnnotationTypeCombo.add(MENU_ADD_ANNOTATION_TEXT);
 		addAnnotationTypeCombo.add(MENU_ADD_ANNOTATION_NUMBER);
 		addAnnotationTypeCombo.add(MENU_ADD_ANNOTATION_DATE);
-		addAnnotationTypeCombo.add(MENU_ADD_ANNOTATION_ONTOLOGY);
+		addAnnotationTypeCombo.add(MENU_ADD_ANNOTATION_ENUMERATION);
+		//addAnnotationTypeCombo.add(MENU_ADD_ANNOTATION_ONTOLOGY);
 		addAnnotationTypeCombo.addSelectionChangedListener(new SelectionChangedListener<SimpleComboValue<String>>() {			
 			@Override
 			public void selectionChanged(SelectionChangedEvent<SimpleComboValue<String>> se) {
 				SimpleComboValue<String> selectedItem = se.getSelectedItem();				
-				if(selectedItem.getValue().equals(MENU_ADD_ANNOTATION_ONTOLOGY)) {
-					addAnnotationOntologyCombo.show();					
+				if(selectedItem.getValue().equals(MENU_ADD_ANNOTATION_ENUMERATION)) {
+					addAnnotationEnumCombo.show();					
+				} else if (selectedItem.getValue().equals(MENU_ADD_ANNOTATION_ONTOLOGY)) {
+					addAnnotationOntologyCombo.show();
 				} else {
-					addAnnotationOntologyCombo.clearSelections();
-					addAnnotationOntologyCombo.hide();
+					addAnnotationEnumCombo.clearSelections();
+					addAnnotationEnumCombo.hide();
 				}
 			}
 		});
 		addAnnotationPanel.add(addAnnotationTypeCombo, formData);						
+		addAnnotationPanel.add(addAnnotationEnumCombo, formData);
 		addAnnotationPanel.add(addAnnotationOntologyCombo, formData);
 		
 		// buttons
@@ -533,8 +559,7 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		
 		Button cancelButton = new Button("Cancel");
 		cancelButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
-			@Override
-			public void componentSelected(ButtonEvent ce) {
+			@Override			public void componentSelected(ButtonEvent ce) {
 				addAnnotationsWindow.hide();
 				cleanupAddAnnotationPanel();
 			}
@@ -554,8 +579,8 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		resetCreateAnnotationButton();
 		addAnnotationName.clear();
 		addAnnotationTypeCombo.clearSelections();
-		addAnnotationOntologyCombo.clearSelections();
-		addAnnotationOntologyCombo.hide();
+		addAnnotationEnumCombo.clearSelections();
+		addAnnotationEnumCombo.hide();
 	}
 
 	private ColumnEditType getColumnEditTypeFromDisplayType(String type) {
@@ -564,15 +589,15 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 			return ColumnEditType.DATE;
 		} else if (MENU_ADD_ANNOTATION_NUMBER.equals(type)) {
 			return ColumnEditType.TEXT;			
-		} else if (MENU_ADD_ANNOTATION_ONTOLOGY.equals(type)) {
-			return ColumnEditType.COMBO;			
+		} else if (MENU_ADD_ANNOTATION_ENUMERATION.equals(type)) {
+			return ColumnEditType.ENUMERATION;			
 		} else {
 			return ColumnEditType.TEXT;
 		}	
 	}
 
 	private void handleAddAnnotation() {
-		Ontology ontologySelected = null;
+		Enumeration enumSelected = null;
 		ColumnEditType typeSelected = null;
 		String nameSelected = addAnnotationName.getValue();
 		
@@ -595,12 +620,12 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		}
 		
 		String selected = selections.get(0).getValue();
-		if(selected.equals(MENU_ADD_ANNOTATION_ONTOLOGY)) {
-			List<SimpleComboValue<Ontology>> selectedOntologies = addAnnotationOntologyCombo.getSelection();
-			if(selectedOntologies.size() >= 1) {
-				ontologySelected = selectedOntologies.get(0).getValue();
+		if(selected.equals(MENU_ADD_ANNOTATION_ENUMERATION)) {
+			List<SimpleComboValue<Enumeration>> selectedEnums = addAnnotationEnumCombo.getSelection();
+			if(selectedEnums.size() >= 1) {
+				enumSelected = selectedEnums.get(0).getValue();
 			} else {
-				MessageBox.alert("Ontology Required", "Please select an Ontology", null);
+				MessageBox.alert("Enumeration Required", "Please select an Enumeration", null);
 				return;
 			}
 		} else if(selected.equals(MENU_ADD_ANNOTATION_DATE)) {					
@@ -611,20 +636,72 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		}
 		typeSelected = getColumnEditTypeFromDisplayType(selected);
 		
-		// TODO : Remove this when we have an Ontology Service
-		if(typeSelected == ColumnEditType.COMBO && ontologySelected != null
-				&& !ontologySelected.getDisplayName().equals(nameSelected)) {
-			MessageBox.alert("Error", "Currently the annotation Name field must match the name of the Ontology. This requirement will be removed in the future.", null);
+		// TODO : Remove this when we have a custom type Service
+		if(typeSelected == ColumnEditType.ENUMERATION && enumSelected != null
+				&& !enumSelected.getDisplayName().equals(nameSelected)) {
+			MessageBox.alert("Error", "Currently the annotation Name field must match the name of the Enumeration. This requirement will be removed in the future.", null);
 			return;
 		}
 		
 		// add Annotation
 		DisplayUtils.changeButtonToSaving(createAnnotationButton, sageImageBundle);					
-		if(typeSelected == ColumnEditType.COMBO && ontologySelected != null) {
-			presenter.addAnnotation(nameSelected, typeSelected, ontologySelected);
+		if(typeSelected == ColumnEditType.ENUMERATION && enumSelected != null) {
+			presenter.addAnnotation(nameSelected, typeSelected, enumSelected);
 		} else {
 			presenter.addAnnotation(nameSelected, typeSelected); 
 		}
 	}
 
+	private ComboBox<ModelData> createNcboSuggestField() {
+		 String url = "http://www.extjs.com/forum/topics-remote.php";  
+	     ScriptTagProxy<PagingLoadResult<ModelData>> proxy = new ScriptTagProxy<PagingLoadResult<ModelData>>(url);  
+	   
+	     ModelType type = new ModelType();  
+	     type.setRoot("topics");  
+	     type.setTotalName("totalCount");  
+	     type.addField("title", "topic_title");  
+	     type.addField("topicId", "topic_id");  
+	     type.addField("author", "author");  
+	     type.addField("excerpt", "post_text");  
+	   
+	     DataField date = new DataField("lastPost", "post_time");  
+	     date.setType(Date.class);  
+	     date.setFormat("timestamp");  
+	     type.addField(date);  
+	   
+	     JsonPagingLoadResultReader<PagingLoadResult<ModelData>> reader = new JsonPagingLoadResultReader<PagingLoadResult<ModelData>>(  
+	         type);  
+	   
+	     PagingLoader<PagingLoadResult<ModelData>> loader = new BasePagingLoader<PagingLoadResult<ModelData>>(proxy, reader);  
+	   
+	     loader.addListener(Loader.BeforeLoad, new Listener<LoadEvent>() {  
+	       public void handleEvent(LoadEvent be) {  
+	         be.<ModelData> getConfig().set("start", be.<ModelData> getConfig().get("offset"));  
+	       }  
+	     });  
+	   
+	     ListStore<ModelData> store = new ListStore<ModelData>(loader);  
+	   
+	     ComboBox<ModelData> combo = new ComboBox<ModelData>();  
+	     combo.setWidth(580);  
+	     combo.setDisplayField("title");  
+	     combo.setItemSelector("div.search-item");  
+	     combo.setTemplate(getTemplate());  
+	     combo.setStore(store);  
+	     combo.setHideTrigger(true);  
+	     combo.setPageSize(10);
+	     
+	     return combo;
+	}
+ 
+	private native String getTemplate() /*-{ 
+		return [ 
+			'<tpl for="."><div class="search-item">', 
+			'<b><span>{lastPost:date("MM/dd/y")}<br />by {author}</span>{title}</b>', 
+			'{excerpt}', 
+			'</div></tpl>' 
+		].join(""); 
+	}-*/;    
+	
+	
 }

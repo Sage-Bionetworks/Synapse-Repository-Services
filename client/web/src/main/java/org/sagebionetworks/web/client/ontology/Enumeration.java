@@ -2,15 +2,15 @@ package org.sagebionetworks.web.client.ontology;
 
 import java.util.Arrays;
 
-public class Ontology {
+public class Enumeration {
 	
 	private String displayName;
-	private OntologyTerm[] terms;
+	private EnumerationTerm[] terms;
 	
-	public Ontology() {
+	public Enumeration() {
 	}	
 
-	public Ontology(String displayName, OntologyTerm[] terms) {
+	public Enumeration(String displayName, EnumerationTerm[] terms) {
 		super();
 		this.displayName = displayName;
 		this.terms = terms;
@@ -28,11 +28,11 @@ public class Ontology {
 		this.displayName = displayName;
 	}
 
-	public OntologyTerm[] getTerms() {
+	public EnumerationTerm[] getTerms() {
 		return terms;
 	}
 
-	public void setTerms(OntologyTerm[] terms) {
+	public void setTerms(EnumerationTerm[] terms) {
 		this.terms = terms;
 	}
 
@@ -54,7 +54,7 @@ public class Ontology {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		Ontology other = (Ontology) obj;
+		Enumeration other = (Enumeration) obj;
 		if (displayName == null) {
 			if (other.displayName != null)
 				return false;

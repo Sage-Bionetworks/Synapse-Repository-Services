@@ -7,7 +7,7 @@ import java.util.Map;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
-import org.sagebionetworks.web.client.ontology.Ontology;
+import org.sagebionetworks.web.client.ontology.Enumeration;
 import org.sagebionetworks.web.client.widget.statictable.StaticTable;
 import org.sagebionetworks.web.client.widget.statictable.StaticTableView.StaticSelectionMode;
 
@@ -59,7 +59,7 @@ public class PhenotypeEditorViewImpl extends LayoutContainer implements Phenotyp
 	@Override
 	public void generatePhenotypeEditor(List<String> columns,
 			String identityColumn, List<Map<String, String>> phenoData,
-			Collection<Ontology> ontologies,
+			Collection<Enumeration> ontologies,
 			final ColumnDefinitionEditor columnDefinitionEditor,
 			final ColumnMappingEditor columnMappingEditor,
 			final PhenotypeMatrix phenotypeMatrix) {

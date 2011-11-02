@@ -231,6 +231,11 @@
 			<version>2.2.1.SPECIAL</version>
 			<scope>provided</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>${org.json.version}</version>
+		</dependency>
 
 	</dependencies>
 

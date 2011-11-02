@@ -2,8 +2,8 @@ package org.sagebionetworks.web.server.servlet;
 
 import java.util.logging.Logger;
 
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.sagebionetworks.web.shared.NodeType;
 import org.springframework.web.client.HttpClientErrorException;
 

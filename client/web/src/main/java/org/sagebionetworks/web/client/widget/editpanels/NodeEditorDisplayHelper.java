@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sagebionetworks.web.client.DisplayConstants;
-import org.sagebionetworks.web.client.ontology.StaticOntologies;
+import org.sagebionetworks.web.client.ontology.StaticEnumerations;
 import org.sagebionetworks.web.shared.NodeType;
 
 import com.google.inject.Inject;
@@ -42,7 +42,7 @@ public class NodeEditorDisplayHelper {
 				DisplayConstants.EDIT_DATASET_TEXT,
 				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag", "layers", "locations", "hasExpressionData", "hasGeneticData", "hasClinicalData", "eulaId"}),
 				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag", "layers", "locations", "hasExpressionData", "hasGeneticData", "hasClinicalData", "eulaId"}));		
-		deviation.setKeyToOntology(new StaticOntologies().getAnnotationToOntology());			
+		deviation.setKeyToOntology(new StaticEnumerations().getAnnotationToEnum());			
 		return deviation;
 	}
 	
@@ -54,7 +54,7 @@ public class NodeEditorDisplayHelper {
 				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag", "locations", "previews", "description", 
 						"publicationDate", "releaseNotes", "tissueType", "processingFacility", "qcBy", "qcDate"}),
 				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag", "locations", "previews"}));		
-		deviation.setKeyToOntology(new StaticOntologies().getAnnotationToOntology());			
+		deviation.setKeyToOntology(new StaticEnumerations().getAnnotationToEnum());			
 		return deviation;
 	}
 	
@@ -66,7 +66,7 @@ public class NodeEditorDisplayHelper {
 				DisplayConstants.EDIT_PROJECT_TEXT, 
 				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag"}),
 				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag"}));		
-		deviation.setKeyToOntology(new StaticOntologies().getAnnotationToOntology());
+		deviation.setKeyToOntology(new StaticEnumerations().getAnnotationToEnum());
 			
 		return deviation;
 	}
@@ -79,7 +79,7 @@ public class NodeEditorDisplayHelper {
 				DisplayConstants.EDIT_ANALYSIS_TEXT, 
 				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "parentId", "uri", "etag"}),
 				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "parentId", "uri", "etag"}));		
-		deviation.setKeyToOntology(new StaticOntologies().getAnnotationToOntology());
+		deviation.setKeyToOntology(new StaticEnumerations().getAnnotationToEnum());
 			
 		return deviation;
 	}
@@ -92,7 +92,7 @@ public class NodeEditorDisplayHelper {
 				DisplayConstants.EDIT_STEP_TEXT, 
 				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "parentId", "uri", "etag"}),
 				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "parentId", "uri", "etag"}));		
-		deviation.setKeyToOntology(new StaticOntologies().getAnnotationToOntology());
+		deviation.setKeyToOntology(new StaticEnumerations().getAnnotationToEnum());
 			
 		return deviation;
 	}

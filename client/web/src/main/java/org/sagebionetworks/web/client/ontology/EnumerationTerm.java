@@ -1,14 +1,14 @@
 package org.sagebionetworks.web.client.ontology;
 
-public class OntologyTerm {
+public class EnumerationTerm {
 
 	private String display;
 	private String value;
 	
-	public OntologyTerm() {		
+	public EnumerationTerm() {		
 	}	
 	
-	public OntologyTerm(String display, String value) {
+	public EnumerationTerm(String display, String value) {
 		super();
 		this.display = display;
 		this.value = value;
@@ -52,7 +52,7 @@ public class OntologyTerm {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		OntologyTerm other = (OntologyTerm) obj;
+		EnumerationTerm other = (EnumerationTerm) obj;
 		if (display == null) {
 			if (other.display != null)
 				return false;

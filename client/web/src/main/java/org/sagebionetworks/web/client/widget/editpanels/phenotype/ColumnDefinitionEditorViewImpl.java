@@ -10,7 +10,7 @@ import java.util.Map;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
-import org.sagebionetworks.web.client.ontology.Ontology;
+import org.sagebionetworks.web.client.ontology.Enumeration;
 import org.sagebionetworks.web.client.widget.statictable.StaticTable;
 
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
@@ -101,7 +101,7 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 	}
 
 	@Override
-	public void createWidget(List<String> columns, String identityColumn, Map<String, String> columnToOntology, Collection<Ontology> ontologies) {
+	public void createWidget(List<String> columns, String identityColumn, Map<String, String> columnToOntology, Collection<Enumeration> ontologies) {
 		this.removeAll(true);
 		
 		ContentPanel columnDefPanel = new ContentPanel();
@@ -340,7 +340,7 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 		return toolBar;
 	}
 	
-	private GridCellRenderer<ColumnDefinitionTableModel> createOntologyRenderer(final Collection<Ontology> ontologies) {
+	private GridCellRenderer<ColumnDefinitionTableModel> createOntologyRenderer(final Collection<Enumeration> ontologies) {
 		GridCellRenderer<ColumnDefinitionTableModel> buttonRenderer = new GridCellRenderer<ColumnDefinitionTableModel>() {
 			private boolean init;
 
@@ -404,7 +404,7 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 		return buttonRenderer;
 	}
 
-	private GridCellRenderer<ColumnDefinitionTableModel> createConstraintRenderer(final Collection<Ontology> ontologies) {
+	private GridCellRenderer<ColumnDefinitionTableModel> createConstraintRenderer(final Collection<Enumeration> ontologies) {
 		GridCellRenderer<ColumnDefinitionTableModel> buttonRenderer = new GridCellRenderer<ColumnDefinitionTableModel>() {
 			@Override
 			public Object render(final ColumnDefinitionTableModel model,
@@ -472,7 +472,7 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 		return buttonRenderer;
 	}
 
-	private GridCellRenderer<ColumnDefinitionTableModel> createUnitsRenderer(final Collection<Ontology> ontologies) {
+	private GridCellRenderer<ColumnDefinitionTableModel> createUnitsRenderer(final Collection<Enumeration> ontologies) {
 		GridCellRenderer<ColumnDefinitionTableModel> buttonRenderer = new GridCellRenderer<ColumnDefinitionTableModel>() {
 			@Override
 			public Object render(final ColumnDefinitionTableModel model,
@@ -498,7 +498,7 @@ public class ColumnDefinitionEditorViewImpl extends LayoutContainer implements C
 		return buttonRenderer;
 	}
 
-	private GridCellRenderer<ColumnDefinitionTableModel> createDescriptionRenderer(final Collection<Ontology> ontologies) {
+	private GridCellRenderer<ColumnDefinitionTableModel> createDescriptionRenderer(final Collection<Enumeration> ontologies) {
 		GridCellRenderer<ColumnDefinitionTableModel> buttonRenderer = new GridCellRenderer<ColumnDefinitionTableModel>() {
 			@Override
 			public Object render(final ColumnDefinitionTableModel model,

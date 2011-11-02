@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.web.client.ontology.Ontology;
+import org.sagebionetworks.web.client.ontology.Enumeration;
 
 import com.google.gwt.user.client.ui.IsWidget;
 
@@ -12,7 +12,7 @@ public interface PhenotypeEditorView extends IsWidget {
 
 	public void generatePhenotypeEditor(List<String> columns,
 			String identityColumn, List<Map<String, String>> phenoData,
-			Collection<Ontology> ontologies,
+			Collection<Enumeration> ontologies,
 			ColumnDefinitionEditor columnDefinitionEditor,
 			ColumnMappingEditor columnMappingEditor,
 			PhenotypeMatrix phenotypeMatrix);

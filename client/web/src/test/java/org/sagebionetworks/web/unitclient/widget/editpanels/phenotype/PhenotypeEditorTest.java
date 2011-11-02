@@ -6,7 +6,7 @@ import static org.mockito.Mockito.verify;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.web.client.ontology.StaticOntologies;
+import org.sagebionetworks.web.client.ontology.StaticEnumerations;
 import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
@@ -29,7 +29,7 @@ public class PhenotypeEditorTest {
 	
 	@Before
 	public void setup(){
-		StaticOntologies staticOntologies = new StaticOntologies();
+		StaticEnumerations staticOntologies = new StaticEnumerations();
 		
 		ColumnDefinitionEditor columnDefinitionEditor = new ColumnDefinitionEditor(mock(ColumnDefinitionEditorView.class), staticOntologies);
 		ColumnMappingEditor columnMappingEditor = new ColumnMappingEditor(mock(ColumnMappingEditorView.class));

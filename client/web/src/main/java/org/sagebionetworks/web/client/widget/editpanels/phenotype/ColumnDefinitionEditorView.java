@@ -4,13 +4,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.web.client.ontology.Ontology;
+import org.sagebionetworks.web.client.ontology.Enumeration;
 import org.sagebionetworks.web.client.widget.SynapseWidgetView;
 import com.google.gwt.user.client.ui.IsWidget;
 
 public interface ColumnDefinitionEditorView extends IsWidget, SynapseWidgetView {
 
-	public void createWidget(List<String> columns, String identityColumn, Map<String,String> columnToOntology, Collection<Ontology> ontologies);
+	public void createWidget(List<String> columns, String identityColumn, Map<String,String> columnToOntology, Collection<Enumeration> ontologies);
 	
 	public void refresh(List<String> columns, String identityColumn, Map<String,String> columnToOntology);
 

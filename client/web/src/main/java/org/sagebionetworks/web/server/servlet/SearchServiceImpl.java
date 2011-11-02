@@ -8,8 +8,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Logger;
 
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.sagebionetworks.web.client.SearchService;
 import org.sagebionetworks.web.server.ColumnConfigProvider;
 import org.sagebionetworks.web.server.RestTemplateProvider;

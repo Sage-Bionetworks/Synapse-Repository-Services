@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.web.client.PlaceChanger;
-import org.sagebionetworks.web.client.ontology.Ontology;
-import org.sagebionetworks.web.client.ontology.StaticOntologies;
+import org.sagebionetworks.web.client.ontology.Enumeration;
+import org.sagebionetworks.web.client.ontology.StaticEnumerations;
 import org.sagebionetworks.web.client.widget.SynapseWidgetPresenter;
 
 import com.google.gwt.user.client.ui.Widget;
@@ -14,21 +14,21 @@ import com.google.inject.Inject;
 
 public class ColumnDefinitionEditor implements ColumnDefinitionEditorView.Presenter, SynapseWidgetPresenter {
 	private ColumnDefinitionEditorView view;
-	private StaticOntologies staticOntologies;
+	private StaticEnumerations staticOntologies;
 
 	private List<String> columns;
     private String currentIdentityColumn;
     private Map<String,String> columnToOntology;
-    private Collection<Ontology> ontologies;
+    private Collection<Enumeration> ontologies;
 	
 	@Inject
-	public ColumnDefinitionEditor(ColumnDefinitionEditorView view, StaticOntologies staticOntologies) {
+	public ColumnDefinitionEditor(ColumnDefinitionEditorView view, StaticEnumerations staticOntologies) {
         this.view = view;
 		this.staticOntologies = staticOntologies;
         view.setPresenter(this);		
 	}
 	
-	public void setResources(List<String> columns, String identityColumn, Map<String, String> columnToOntology, Collection<Ontology> ontologies) {
+	public void setResources(List<String> columns, String identityColumn, Map<String, String> columnToOntology, Collection<Enumeration> ontologies) {
 		this.columns = columns;
 		this.currentIdentityColumn = identityColumn;
 		this.columnToOntology = columnToOntology;

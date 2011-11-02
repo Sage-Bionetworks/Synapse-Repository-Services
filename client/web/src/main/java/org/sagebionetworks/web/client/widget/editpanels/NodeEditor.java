@@ -13,8 +13,8 @@ import org.sagebionetworks.web.client.events.CancelEvent;
 import org.sagebionetworks.web.client.events.CancelHandler;
 import org.sagebionetworks.web.client.events.PersistSuccessEvent;
 import org.sagebionetworks.web.client.events.PersistSuccessHandler;
-import org.sagebionetworks.web.client.ontology.Ontology;
-import org.sagebionetworks.web.client.ontology.OntologyTerm;
+import org.sagebionetworks.web.client.ontology.Enumeration;
+import org.sagebionetworks.web.client.ontology.EnumerationTerm;
 import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
@@ -188,7 +188,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 	/*
 	 * Private Methods
 	 */
-	private static List<FormField> getSchemaFormFields(JSONObject schema, Map<String, Ontology> getKeyToOntology) {
+	private static List<FormField> getSchemaFormFields(JSONObject schema, Map<String, Enumeration> getKeyToOntology) {
 		List<FormField> formFields = new ArrayList<FormField>();
 		if(schema != null) {
 			if(schema.containsKey(SCHEMA_PROPERTIES_KEY)) {
@@ -310,9 +310,9 @@ public class NodeEditor implements NodeEditorView.Presenter {
 		JSONObject merged = new JSONObject(jsonObject.getJavaScriptObject()); // make a copy
 		for(FormField formField : formFields) {
 			if(ignoreFields.contains(formField.getKey())) continue;
-			if(formField.isOntologyBased()) {
+			if(formField.isEnumBased()) {
 				// get ontology value
-				OntologyTerm value = formField.getOntologyValue();
+				EnumerationTerm value = formField.getOntologyValue();
 				if(value != null)
 					merged.put(formField.getKey(), new JSONString(value.getValue()));
 			} else {
