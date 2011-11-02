@@ -2,7 +2,7 @@
     "description":"JSON schema for Layer POJO",
     "implements":[
         {
-            "$ref":"org.sagebionetworks.repo.model.Entity"
+            "$ref":"org.sagebionetworks.repo.model.Locationable"
         },
         {
             "$ref":"org.sagebionetworks.repo.model.HasLocations"

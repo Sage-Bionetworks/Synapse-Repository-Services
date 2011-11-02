@@ -153,6 +153,10 @@ public class UrlHelpers {
 	 * All of the base URLs for Synapse object's versions.
 	 */
 	public static final String LOCATION_VERSION		= LOCATION_ID+VERSION;
+	public static final String DATASET_VERSION		= DATASET_ID+VERSION;
+	public static final String LAYER_VERSION		= LAYER_ID+VERSION;
+	public static final String CODE_VERSION			= CODE_ID+VERSION;
+	
 	/**
 	 * For Synapse objects that have children, these urls list all children of that type.
 	 */
@@ -187,11 +191,17 @@ public class UrlHelpers {
 	 * Get a specific version of an entity
 	 */
 	public static final String LOCATION_VERSION_NUMBER		= LOCATION_VERSION+VERSION_NUMBER;
+	public static final String DATASET_VERSION_NUMBER		= DATASET_VERSION+VERSION_NUMBER;
+	public static final String LAYER_VERSION_NUMBER			= LAYER_VERSION+VERSION_NUMBER;
+	public static final String CODE_VERSION_NUMBER			= CODE_VERSION+VERSION_NUMBER;
 	
 	/**
 	 * Get the annotations of a specific version of an entity
 	 */
-	public static final String LOCATION_VERSION_ANNOTATIONS = LOCATION_VERSION_NUMBER+ANNOTATIONS;
+	public static final String LOCATION_VERSION_ANNOTATIONS = 	LOCATION_VERSION_NUMBER+ANNOTATIONS;
+	public static final String DATASET_VERSION_ANNOTATIONS = 	DATASET_VERSION_NUMBER+ANNOTATIONS;
+	public static final String LAYER_VERSION_ANNOTATIONS = 		LAYER_VERSION_NUMBER+ANNOTATIONS;
+	public static final String CODE_VERSION_ANNOTATIONS = 		CODE_VERSION_NUMBER+ANNOTATIONS;
 
 	public static final String OBJECT_TYPE_SCHEMA = OBJECT_TYPE+SCHEMA;
 

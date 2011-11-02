@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Location;
+import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Preview;
@@ -155,6 +156,15 @@ public class NodeTranslationUtilsTest {
 		ds.setStatus("someStatus");
 		ds.setVersion("someVersion");
 		ds.setUri("someUri");
+		// Add some location data
+		List<LocationData> locations = new ArrayList<LocationData>();
+		ds.setLocations2(locations);
+		LocationData ldata = new LocationData();
+		ldata.setContentType("xml");
+		ldata.setMd5("some MD5");
+		ldata.setPath("http://my.home.com:8990/wow");
+		ldata.setType(LocationTypeNames.sage);
+		locations.add(ldata);
 		
 		// Create a clone using node translation
 		Dataset clone = cloneUsingNodeTranslation(ds);

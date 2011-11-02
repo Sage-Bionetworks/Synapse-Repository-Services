@@ -1,0 +1,12 @@
+{
+    "description":"The type of this location",
+    "type":"string",
+    "name":"LocationTypeNames",
+    "enum":[
+        "awss3",
+        "awsebs",
+        "sage",
+        "external",        
+    ],
+    
+}
