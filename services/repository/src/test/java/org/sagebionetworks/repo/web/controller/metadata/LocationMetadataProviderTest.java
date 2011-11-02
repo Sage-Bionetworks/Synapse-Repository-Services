@@ -6,10 +6,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Location;
-import org.sagebionetworks.repo.model.Nodeable;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.MetadataProviderFactory;
@@ -24,12 +25,12 @@ public class LocationMetadataProviderTest {
 	@Autowired
 	MetadataProviderFactory metadataProviderFactory;
 
-	TypeSpecificMetadataProvider<Nodeable> locationMetadataProvider;
+	TypeSpecificMetadataProvider<Entity> locationMetadataProvider;
 
 	@Before
 	public void before() throws DatastoreException, NotFoundException {
 		locationMetadataProvider = metadataProviderFactory
-				.getMetadataProvider(ObjectType.location);
+				.getMetadataProvider(EntityType.location);
 	}
 
 
@@ -38,7 +39,7 @@ public class LocationMetadataProviderTest {
 		Location mock = new Location();
 		mock.setParentId("12");
 		mock.setMd5sum("85e8c666f57573345d7b9fbe8d704f0");
-		mock.setType(Location.LocationTypeNames.awss3.name());
+		mock.setType(LocationTypeNames.awss3);
 		mock.setPath("foo.zip");
 		mock.setContentType(null);
 		locationMetadataProvider.validateEntity(mock, new EntityEvent(
@@ -50,7 +51,7 @@ public class LocationMetadataProviderTest {
 		Location mock = new Location();
 		mock.setParentId("12");
 		mock.setMd5sum("85e8c666f57573345d7b9fbe8d704f055");
-		mock.setType(Location.LocationTypeNames.awss3.name());
+		mock.setType(LocationTypeNames.awss3);
 		mock.setPath("foo.zip");
 		mock.setContentType(null);
 		locationMetadataProvider.validateEntity(mock, new EntityEvent(
@@ -63,7 +64,7 @@ public class LocationMetadataProviderTest {
 		mock.setParentId("12");
 		// Letter O instead of zero
 		mock.setMd5sum("85e8c666f57573345d7b9fbe8d704fO5");
-		mock.setType(Location.LocationTypeNames.awss3.name());
+		mock.setType(LocationTypeNames.awss3);
 		mock.setPath("foo.zip");
 		mock.setContentType(null);
 		locationMetadataProvider.validateEntity(mock, new EntityEvent(
@@ -76,7 +77,7 @@ public class LocationMetadataProviderTest {
 		Location mock = new Location();
 		mock.setParentId("12");
 		mock.setMd5sum("85e8c666f57573345d7b9fbe8d704f05");
-		mock.setType(Location.LocationTypeNames.awss3.name());
+		mock.setType(LocationTypeNames.awss3);
 
 		mock.setPath("foo.zip");
 		mock.setContentType(null);

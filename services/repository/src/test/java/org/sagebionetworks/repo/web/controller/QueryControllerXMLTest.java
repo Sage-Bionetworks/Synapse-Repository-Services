@@ -10,6 +10,7 @@ import javax.servlet.http.HttpServlet;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -68,6 +69,7 @@ public class QueryControllerXMLTest {
 	 * 
 	 * @throws Exception
 	 */
+	@Ignore // currently do not support xml (we never did actually).
 	@Test
 	public void testQueryDatasets() throws Exception {
 		// Load up a few datasets
@@ -77,7 +79,7 @@ public class QueryControllerXMLTest {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
-		request.addHeader("Accept", "application/xml");
+		request.addHeader("Accept", "application/json");
 		request.setRequestURI(helper.getServletPrefix() + "/query");
 		request.addParameter("query", "select * from dataset");
 		request.addParameter(AuthorizationConstants.USER_ID_PARAM, helper.getUserId());

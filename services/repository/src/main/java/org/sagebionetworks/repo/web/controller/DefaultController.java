@@ -15,8 +15,8 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Nodeable;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.Versionable;
@@ -78,7 +78,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.CODE
 			}, method = RequestMethod.POST)
 	public @ResponseBody
-	Nodeable createEntity(
+	Entity createEntity(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
@@ -86,11 +86,11 @@ public class DefaultController extends BaseController {
 			UnauthorizedException, NotFoundException, IOException {
 
 		// Determine the object type from the url.
-		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
 		@SuppressWarnings("unchecked")
-		Nodeable entity =  (Nodeable) objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
+		Entity entity =  (Entity) objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
 		// Now create the entity
-		Nodeable createdEntity = entityController.createEntity(userId, entity, request);
+		Entity createdEntity = entityController.createEntity(userId, entity, request);
 		// Finally, add the type specific metadata.
 		return createdEntity;
 	}
@@ -151,15 +151,15 @@ public class DefaultController extends BaseController {
 			UrlHelpers.CODE_ID
 			}, method = RequestMethod.GET)
 	public @ResponseBody
-	Nodeable getEntity(
+	Entity getEntity(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Validate the object type
-		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
 		// Get the entity.
 		@SuppressWarnings("unchecked")
-		Nodeable updatedEntity = entityController.getEntity(userId, id, request, type.getClassForType());
+		Entity updatedEntity = entityController.getEntity(userId, id, request, type.getClassForType());
 		// Return the results
 		return updatedEntity;
 	}
@@ -205,17 +205,17 @@ public class DefaultController extends BaseController {
 			UrlHelpers.LOCATION_VERSION_NUMBER
 			}, method = RequestMethod.GET)
 	public @ResponseBody
-	Nodeable getEntityForVersion(
+	Entity getEntityForVersion(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id,
 			@PathVariable Long versionNumber,
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Validate the object type
-		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
 		// Get the entity.
 		@SuppressWarnings("unchecked")
-		Nodeable updatedEntity = entityController.getEntityForVersion(userId, id, versionNumber, request, type.getClassForType());
+		Entity updatedEntity = entityController.getEntityForVersion(userId, id, versionNumber, request, type.getClassForType());
 		// Return the results
 		return updatedEntity;
 	}
@@ -251,7 +251,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.CODE_ID
 	}, method = RequestMethod.PUT)
 	public @ResponseBody
-	Nodeable updateEntity(
+	Entity updateEntity(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
 			@PathVariable String id,
@@ -278,13 +278,13 @@ public class DefaultController extends BaseController {
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
 	 */
-	private Nodeable updateEntityImpl(String userId, HttpHeaders header,
+	private Entity updateEntityImpl(String userId, HttpHeaders header,
 			String etag, boolean newVersion, HttpServletRequest request) throws IOException,
 			NotFoundException, ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException {
-		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
 		@SuppressWarnings("unchecked")
-		Nodeable entity = (Nodeable) objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
+		Entity entity = (Entity) objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
 		if(etag != null){
 			entity.setEtag(etag.toString());
 		}
@@ -457,7 +457,7 @@ public class DefaultController extends BaseController {
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		// Determine the object type from the url.
-		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
 		entityController.deleteEntity(userId, id, type.getClassForType());
 		return;
 	}
@@ -484,7 +484,7 @@ public class DefaultController extends BaseController {
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		// Determine the object type from the url.
-		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
 		entityController.deleteEntityVersion(userId, id, versionNumber,type.getClassForType());
 	}
 	/**
@@ -515,7 +515,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.CODE
 		}, method = RequestMethod.GET)
 	public @ResponseBody
-    PaginatedResults<Nodeable> getEntities(
+    PaginatedResults<Entity> getEntities(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
@@ -529,9 +529,9 @@ public class DefaultController extends BaseController {
 			sort = null;
 		}
 		// Determine the object type from the url.
-		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
 		@SuppressWarnings("unchecked")
-		PaginatedResults<Nodeable> results = (PaginatedResults<Nodeable>) entityController.getEntities(
+		PaginatedResults<Entity> results = (PaginatedResults<Entity>) entityController.getEntities(
 				userId, new PaginatedParameters(offset, limit, sort, ascending), request, type.getClassForType());
 		// Return the result
 		return results;
@@ -563,7 +563,7 @@ public class DefaultController extends BaseController {
 			UnauthorizedException, NotFoundException {
 
 		// Determine the object type from the url.
-		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
 		Class<? extends Versionable> clazz = (Class<? extends Versionable>) type.getClassForType();
 		@SuppressWarnings("unchecked")
 		PaginatedResults<Versionable> results = entityController.getAllVerionsOfEntity(userId, offset, limit, id, request, clazz);
@@ -600,7 +600,7 @@ public class DefaultController extends BaseController {
 			UrlHelpers.CODE_CHILDREN
 		}, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<Nodeable> getEntityChildren(
+	PaginatedResults<Entity> getEntityChildren(
 			@PathVariable String parentType,
 			@PathVariable String parentId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
@@ -617,9 +617,9 @@ public class DefaultController extends BaseController {
 		}
 		PaginatedParameters paging = new PaginatedParameters(offset, limit, sort, ascending);
 		// Determine the object type from the url.
-		ObjectType type = ObjectType.getLastTypeInUrl(request.getRequestURI());
-		Class<? extends Nodeable> clazz = (Class<? extends Nodeable>) type.getClassForType();
-		PaginatedResults<Nodeable> results = entityController.getEntityChildrenOfTypePaginated(userId, parentId, clazz, paging, request);
+		EntityType type = EntityType.getLastTypeInUrl(request.getRequestURI());
+		Class<? extends Entity> clazz = (Class<? extends Entity>) type.getClassForType();
+		PaginatedResults<Entity> results = entityController.getEntityChildrenOfTypePaginated(userId, parentId, clazz, paging, request);
 		// Return the results
 		return results;
 	}	
@@ -646,7 +646,7 @@ public class DefaultController extends BaseController {
 	}, method = RequestMethod.GET)
 	public @ResponseBody
 	JsonSchema getEntitiesSchema(HttpServletRequest request) throws DatastoreException {
-		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
 		return entityController.getEntitySchema(type.getClassForType());
 	}
 	
@@ -692,7 +692,7 @@ public class DefaultController extends BaseController {
 		if(newAcl == null) throw new IllegalArgumentException("New ACL cannot be null");
 		if(id == null) throw new IllegalArgumentException("ACL ID in the path cannot be null");
 		// pass it along.
-		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
 		// This is a fix for PLFM-410
 		newAcl.setId(id);
 		AccessControlList acl = entityController.createEntityACL(userId, newAcl, request, type.getClassForType());
@@ -722,7 +722,7 @@ public class DefaultController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException, ACLInheritanceException {
 		// pass it along.
-		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
 		return entityController.getEntityACL(id, userId, request, type.getClassForType());
 	}
 	
@@ -750,7 +750,7 @@ public class DefaultController extends BaseController {
 		if(objectType == null) throw new IllegalArgumentException("PathVariable ObjectType cannot be null");
 		if(id == null) throw new IllegalArgumentException("PathVariable ID cannot be null");
 		// pass it along.
-		ObjectType type = ObjectType.valueOf(objectType);
+		EntityType type = EntityType.valueOf(objectType);
 		return entityController.getEntityBenefactor(id, userId, request, type.getClassForType());
 	}
 	
@@ -843,7 +843,7 @@ public class DefaultController extends BaseController {
 			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false) String accessType,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
 		// pass it along.
-		ObjectType type = ObjectType.getFirstTypeInUrl(request.getRequestURI());
+		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
 		return new BooleanResult(entityController.hasAccess(id, userId, request, type.getClassForType(), accessType));
 	}
 	

@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -204,7 +204,7 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 			progress.setMessage("Reading: "+source.getAbsolutePath());
 			progress.setTotalCount(source.length());
 			// We need to map the node type to the node id.
-			ObjectType nodeType = null;
+			EntityType nodeType = null;
 			ZipEntry entry;
 			while((entry = zin.getNextEntry()) != null) {
 				progress.setMessage(entry.getName());
@@ -216,7 +216,7 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 				if(isNodeBackupFile(entry.getName())){
 					// This is a backup file.
 					NodeBackup backup = NodeSerializerUtil.readNodeBackup(zin);
-					nodeType = ObjectType.valueOf(backup.getNode().getNodeType());
+					nodeType = EntityType.valueOf(backup.getNode().getNodeType());
 					backupManager.createOrUpdateNode(backup);
 				}else if(isNodeRevisionFile(entry.getName())){
 					// This is a revision file.

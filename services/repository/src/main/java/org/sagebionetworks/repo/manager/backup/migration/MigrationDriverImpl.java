@@ -4,7 +4,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 
 /**
  * This is a simple step-wise migration driver implementation. 
@@ -33,7 +33,7 @@ public class MigrationDriverImpl implements MigrationDriver{
 	 * Walk over each step until we get to the current version.
 	 */
 	@Override
-	public NodeRevisionBackup migrateToCurrentVersion(NodeRevisionBackup toMigrate,	ObjectType type) {
+	public NodeRevisionBackup migrateToCurrentVersion(NodeRevisionBackup toMigrate,	EntityType type) {
 		if(toMigrate == null) throw new IllegalArgumentException("NodeRevsion toMigrate cannot be null");
 		if(type == null) throw new IllegalArgumentException("ObjectType cannot be null");
 		String startingVersion = toMigrate.getXmlVersion();

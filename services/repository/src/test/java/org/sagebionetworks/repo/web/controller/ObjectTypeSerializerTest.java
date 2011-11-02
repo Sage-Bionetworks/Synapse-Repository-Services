@@ -37,7 +37,7 @@ public class ObjectTypeSerializerTest {
 		project.setName("name");
 		project.setParentId("123");
 		project.setEtag("202");
-		project.setCreationDate(new Date(System.currentTimeMillis()));
+		project.setCreatedOn(new Date(System.currentTimeMillis()));
 		project.setUri("/project/123");
 		// Now write it to JSON
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -60,7 +60,7 @@ public class ObjectTypeSerializerTest {
 		project.setName("name");
 		project.setParentId("123");
 		project.setEtag("202");
-		project.setCreationDate(new Date(System.currentTimeMillis()));
+		project.setCreatedOn(new Date(System.currentTimeMillis()));
 		project.setUri("/project/123");
 		// Now write it to JSON
 		ByteArrayOutputStream out = new ByteArrayOutputStream();

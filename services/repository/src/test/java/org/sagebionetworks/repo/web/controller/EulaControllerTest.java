@@ -297,8 +297,8 @@ public class EulaControllerTest {
 		assertTrue(agreement.has("eulaVersionNumber"));
 		assertFalse("null".equals(agreement.getString("eulaVersionNumber")));
 		assertTrue(agreement.has("createdBy"));
-		assertFalse("null".equals(agreement.getString("creationDate")));
+		assertFalse("null".equals(agreement.getString("createdOn")));
 		assertTrue(agreement.has("createdBy"));
-		assertFalse("null".equals(agreement.getString("creationDate")));
+		assertFalse("null".equals(agreement.getString("createdOn")));
 	}
 }

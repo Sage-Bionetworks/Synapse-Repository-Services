@@ -20,13 +20,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Layer;
-import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -105,8 +105,8 @@ public class QueryManagerAutowireTest {
 		Dataset ds = new Dataset();
 		ds.setName("someName"+i);
 		ds.setDescription("someDesc"+i);
-		ds.setCreator("magic"+i);
-		ds.setCreationDate(new Date(1001));
+		ds.setCreatedBy("magic"+i);
+		ds.setCreatedOn(new Date(1001));
 		ds.setAnnotations("someAnnoUrl"+1);
 		ds.setHasClinicalData(false);
 		ds.setHasExpressionData(true);
@@ -123,8 +123,8 @@ public class QueryManagerAutowireTest {
 		Layer layer = new Layer();
 		layer.setName("layerName"+i);
 		layer.setDescription("layerDesc"+i);
-		layer.setCreationDate(new Date(1001));
-		layer.setType(LayerTypeNames.G.name());
+		layer.setCreatedOn(new Date(1001));
+		layer.setType(LayerTypeNames.G);
 		return layer;
 	}
 	
@@ -143,7 +143,7 @@ public class QueryManagerAutowireTest {
 	public void testExecuteQuery() throws DatastoreException, NotFoundException, UnauthorizedException {
 		// Build up the query.
 		BasicQuery query = new BasicQuery();
-		query.setFrom(ObjectType.dataset);
+		query.setFrom(EntityType.dataset);
 		query.setOffset(0);
 		query.setLimit(totalEntities-2);
 		query.setSort("longKey");

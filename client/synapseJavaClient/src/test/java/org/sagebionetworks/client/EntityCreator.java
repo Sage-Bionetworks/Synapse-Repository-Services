@@ -2,7 +2,7 @@ package org.sagebionetworks.client;
 
 import java.util.Date;
 
-import org.sagebionetworks.Dataset;
+import org.sagebionetworks.repo.model.Dataset;
 
 /**
  * Helper to create sample entities for tests.
@@ -32,7 +32,7 @@ public class EntityCreator {
 		toCreate.setEulaId("4445");
 		toCreate.setHasClinicalData(true);
 		toCreate.setHasExpressionData(false);
-		toCreate.setHasGeneticata(true);
+		toCreate.setHasGeneticData(true);
 		toCreate.setParentId("1");
 		toCreate.setUri("/dataset/"+id);
 		return toCreate;

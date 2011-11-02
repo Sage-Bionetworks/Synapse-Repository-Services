@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.model.bootstrap;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 
 /**
  * The metadata used to bootstrap an entity.
@@ -15,7 +15,7 @@ public class EntityBootstrapData {
 	
 	private String entityPath;
 	private String entityDescription;
-	private ObjectType entityType;
+	private EntityType entityType;
 	private List<AccessBootstrapData> accessList;
 	private ACL_SCHEME defaultChildAclScheme;
 	
@@ -37,14 +37,14 @@ public class EntityBootstrapData {
 	 * The entity type of the resulting entity.
 	 * @return
 	 */
-	public ObjectType getEntityType() {
+	public EntityType getEntityType() {
 		return entityType;
 	}
 	/**
 	 * The entity type of the resulting entity.
 	 * @param entityType
 	 */
-	public void setEntityType(ObjectType entityType) {
+	public void setEntityType(EntityType entityType) {
 		this.entityType = entityType;
 	}
 	/**

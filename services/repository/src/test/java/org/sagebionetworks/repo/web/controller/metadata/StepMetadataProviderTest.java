@@ -82,11 +82,9 @@ public class StepMetadataProviderTest {
 		step.setEnvironmentDescriptors(descriptors);
 		
 		provider.validateEntity(step, new EntityEvent(EventType.CREATE, null, null));
-		assertNotNull(step.getEnvironmentDescriptorsBlob());
-		assertNull(step.getEnvironmentDescriptors());
+		assertNotNull(step.getEnvironmentDescriptors());
 		
 		provider.addTypeSpecificMetadata(step, null, null, null);
-		assertNull(step.getEnvironmentDescriptorsBlob());
 		assertNotNull(step.getEnvironmentDescriptors());
 		assertEquals(4, step.getEnvironmentDescriptors().size());
 	}

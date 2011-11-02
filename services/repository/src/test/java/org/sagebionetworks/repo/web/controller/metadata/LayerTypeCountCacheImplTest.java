@@ -17,9 +17,9 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Layer;
-import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
+import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -100,7 +100,7 @@ public class LayerTypeCountCacheImplTest {
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
 		// Create a datset
-		Dataset ds = (Dataset) ObjectTypeFactory.createObjectForTest("DatasetOne", ObjectType.dataset, null);
+		Dataset ds = (Dataset) ObjectTypeFactory.createObjectForTest("DatasetOne", EntityType.dataset, null);
 		ds.setParentId(project.getId());
 		ds = entityController.createEntity(userId, ds, mockRequest);
 		assertNotNull(ds);
@@ -110,8 +110,8 @@ public class LayerTypeCountCacheImplTest {
 		expectedCount = (LayerTypeNames.values().length -1) * 1;
 		assertEquals(expectedCount, layerTypeCountCache.getCacheSize());
 		// Now add a layer to the datsaet
-		Layer layer = (Layer) ObjectTypeFactory.createObjectForTest("layerOne", ObjectType.layer, ds.getId());
-		layer.setType(LayerTypeNames.G.name());
+		Layer layer = (Layer) ObjectTypeFactory.createObjectForTest("layerOne", EntityType.layer, ds.getId());
+		layer.setType(LayerTypeNames.G);
 		layer = entityController.createEntity(userId, layer, mockRequest);
 		assertNotNull(layer);
 		toDelete.add(layer.getId());
@@ -124,8 +124,8 @@ public class LayerTypeCountCacheImplTest {
 		expectedCount++;
 		assertEquals(expectedCount, layerTypeCountCache.getCacheSize());
 		// Create another layer
-		layer = (Layer) ObjectTypeFactory.createObjectForTest("layerTwo", ObjectType.layer, ds.getId());
-		layer.setType(LayerTypeNames.G.name());
+		layer = (Layer) ObjectTypeFactory.createObjectForTest("layerTwo", EntityType.layer, ds.getId());
+		layer.setType(LayerTypeNames.G);
 		layer = entityController.createEntity(userId, layer, mockRequest);
 		assertNotNull(layer);
 		toDelete.add(layer.getId());
@@ -138,7 +138,7 @@ public class LayerTypeCountCacheImplTest {
 		assertEquals(expectedCount, layerTypeCountCache.getCacheSize());
 		
 		// Now add another dataset without any layers
-		ds = (Dataset) ObjectTypeFactory.createObjectForTest("DatasetTwo", ObjectType.dataset, null);
+		ds = (Dataset) ObjectTypeFactory.createObjectForTest("DatasetTwo", EntityType.dataset, null);
 		ds.setParentId(project.getId());
 		ds = entityController.createEntity(userId, ds, mockRequest);
 		assertNotNull(ds);

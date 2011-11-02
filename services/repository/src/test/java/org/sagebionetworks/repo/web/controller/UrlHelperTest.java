@@ -13,8 +13,8 @@ import org.sagebionetworks.repo.model.HasLocations;
 import org.sagebionetworks.repo.model.HasPreviews;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.Location;
-import org.sagebionetworks.repo.model.Nodeable;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -83,10 +83,10 @@ public class UrlHelperTest {
 	
 	@Test 
 	public void testsetEntityUriAllTypes(){
-		ObjectType[] array = ObjectType.values();
+		EntityType[] array = EntityType.values();
 		String uriPrefix = "/repo/v1";
 		String id = "123";
-		for(ObjectType type: array){
+		for(EntityType type: array){
 			String expectedUri = uriPrefix+type.getUrlPrefix()+"/"+id;
 			String uri = UrlHelpers.createEntityUri(id, type.getClassForType(), uriPrefix);
 			assertEquals(expectedUri, uri);
@@ -121,24 +121,24 @@ public class UrlHelperTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testSetAllNodeableUrlsNull(){
-		UrlHelpers.setAllNodeableUrls(null);
+	public void testSetAllEntityUrlsNull(){
+		UrlHelpers.setAllEntityUrls(null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testSetAllNodeableNullUri(){
+	public void testSetAllEntityNullUri(){
 		Preview preview = new Preview();
 		preview.setUri(null);
-		UrlHelpers.setAllNodeableUrls(preview);
+		UrlHelpers.setAllEntityUrls(preview);
 	}
 	
 	@Test
-	public void testSetAllNodeableUrls(){
+	public void testSetAllEntityUrls(){
 		Preview preview = new Preview();
 		// Make sure the preview has a uri
-		String baseUri = "/repo/v1"+ObjectType.preview.getUrlPrefix()+"/42";
+		String baseUri = "/repo/v1"+EntityType.preview.getUrlPrefix()+"/42";
 		preview.setUri(baseUri);
-		UrlHelpers.setAllNodeableUrls(preview);
+		UrlHelpers.setAllEntityUrls(preview);
 		assertEquals(baseUri+UrlHelpers.ACL, preview.getAccessControlList());
 		assertEquals(baseUri+UrlHelpers.ANNOTATIONS, preview.getAnnotations());
 	}
@@ -159,7 +159,7 @@ public class UrlHelperTest {
 	public void testHasLayersUrlUrls(){
 		Dataset ds = new Dataset();
 		// Make sure the preview has a uri
-		String baseUri = "/repo/v1"+ObjectType.dataset.getUrlPrefix()+"/42";
+		String baseUri = "/repo/v1"+EntityType.dataset.getUrlPrefix()+"/42";
 		ds.setUri(baseUri);
 		UrlHelpers.setHasLayersUrl(ds);
 		assertEquals(baseUri+UrlHelpers.LAYER, ds.getLayers());
@@ -181,7 +181,7 @@ public class UrlHelperTest {
 	public void testHasLocationsUrls(){
 		Dataset ds = new Dataset();
 		// Make sure the preview has a uri
-		String baseUri = "/repo/v1"+ObjectType.dataset.getUrlPrefix()+"/42";
+		String baseUri = "/repo/v1"+EntityType.dataset.getUrlPrefix()+"/42";
 		ds.setUri(baseUri);
 		UrlHelpers.setHasLocationsUrl(ds);
 		assertEquals(baseUri+UrlHelpers.LOCATION, ds.getLocations());
@@ -203,7 +203,7 @@ public class UrlHelperTest {
 	public void testHasPreviewUrls(){
 		Layer layer = new Layer();
 		// Make sure the preview has a uri
-		String baseUri = "/repo/v1"+ObjectType.layer.getUrlPrefix()+"/42";
+		String baseUri = "/repo/v1"+EntityType.layer.getUrlPrefix()+"/42";
 		layer.setUri(baseUri);
 		UrlHelpers.setHasPreviewsUrl(layer);
 		assertEquals(baseUri+UrlHelpers.PREVIEW, layer.getPreviews());
@@ -220,7 +220,7 @@ public class UrlHelperTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetVersionableNullVersionNumber(){
 		Location location = new Location();
-		String baseUri = "/repo/v1"+ObjectType.location.getUrlPrefix()+"/42";
+		String baseUri = "/repo/v1"+EntityType.location.getUrlPrefix()+"/42";
 		location.setUri(baseUri);
 		// set the version number to be null
 		location.setVersionNumber(null);
@@ -232,7 +232,7 @@ public class UrlHelperTest {
 		Location location = new Location();
 		location.setVersionNumber(new Long(12));
 		// Make sure the location has a uri
-		String baseUri = "/repo/v1"+ObjectType.location.getUrlPrefix()+"/42";
+		String baseUri = "/repo/v1"+EntityType.location.getUrlPrefix()+"/42";
 		location.setUri(baseUri);
 		UrlHelpers.setVersionableUrl(location);
 		assertEquals(baseUri+UrlHelpers.VERSION, location.getVersions());
@@ -247,9 +247,9 @@ public class UrlHelperTest {
 		String id = "56";
 		when(mockRequest.getServletPath()).thenReturn(base);
 		// Test each type
-		ObjectType[] array = ObjectType.values();
-		for(ObjectType type: array){
-			Nodeable entity = type.getClassForType().newInstance();
+		EntityType[] array = EntityType.values();
+		for(EntityType type: array){
+			Entity entity = type.getClassForType().newInstance();
 			entity.setId(id);
 			if(entity instanceof Versionable){
 				Versionable able = (Versionable) entity;
@@ -303,7 +303,7 @@ public class UrlHelperTest {
 	public void testValidateAllNullAnnos(){
 		Layer layer = new Layer();
 		layer.setUri("repo/v1/layer/33");
-		UrlHelpers.setAllNodeableUrls(layer);
+		UrlHelpers.setAllEntityUrls(layer);
 		layer.setAnnotations(null);
 		UrlHelpers.validateAllUrls(layer);
 	}
@@ -312,7 +312,7 @@ public class UrlHelperTest {
 	public void testValidateAllNullACL(){
 		Layer layer = new Layer();
 		layer.setUri("repo/v1/layer/33");
-		UrlHelpers.setAllNodeableUrls(layer);
+		UrlHelpers.setAllEntityUrls(layer);
 		layer.setAccessControlList(null);
 		UrlHelpers.validateAllUrls(layer);
 	}
@@ -321,7 +321,7 @@ public class UrlHelperTest {
 	public void testValidateAllNullLocations(){
 		Layer layer = new Layer();
 		layer.setUri("repo/v1/layer/33");
-		UrlHelpers.setAllNodeableUrls(layer);
+		UrlHelpers.setAllEntityUrls(layer);
 		layer.setLocations(null);
 		UrlHelpers.validateAllUrls(layer);
 	}
@@ -330,7 +330,7 @@ public class UrlHelperTest {
 	public void testValidateAllNullPreview(){
 		Layer layer = new Layer();
 		layer.setUri("repo/v1/layer/33");
-		UrlHelpers.setAllNodeableUrls(layer);
+		UrlHelpers.setAllEntityUrls(layer);
 		layer.setPreviews(null);
 		UrlHelpers.validateAllUrls(layer);
 	}
@@ -340,7 +340,7 @@ public class UrlHelperTest {
 		Location location = new Location();
 		location.setVersionNumber(45l);
 		location.setUri("repo/v1/location/33");
-		UrlHelpers.setAllNodeableUrls(location);
+		UrlHelpers.setAllEntityUrls(location);
 		location.setVersions(null);
 		UrlHelpers.validateAllUrls(location);
 	}
@@ -350,7 +350,7 @@ public class UrlHelperTest {
 		Location location = new Location();
 		location.setVersionNumber(1l);
 		location.setUri("repo/v1/location/33");
-		UrlHelpers.setAllNodeableUrls(location);
+		UrlHelpers.setAllEntityUrls(location);
 		location.setVersionUrl(null);
 		UrlHelpers.validateAllUrls(location);
 	}
@@ -360,13 +360,13 @@ public class UrlHelperTest {
 		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getContextPath()).thenReturn("http://localhost:8080");
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
-		String redirectURL = UrlHelpers.createACLRedirectURL(mockRequest, ObjectType.project, "45");
+		String redirectURL = UrlHelpers.createACLRedirectURL(mockRequest, EntityType.project, "45");
 		assertEquals("http://localhost:8080/repo/v1/project/45/acl", redirectURL);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateACLRedirectURLNullRequst(){
-		String redirectURL = UrlHelpers.createACLRedirectURL(null, ObjectType.project, "45");
+		String redirectURL = UrlHelpers.createACLRedirectURL(null, EntityType.project, "45");
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -382,7 +382,7 @@ public class UrlHelperTest {
 		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getContextPath()).thenReturn("http://localhost:8080");
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
-		String redirectURL = UrlHelpers.createACLRedirectURL(mockRequest, ObjectType.dataset, null);
+		String redirectURL = UrlHelpers.createACLRedirectURL(mockRequest, EntityType.dataset, null);
 	}
 
 }

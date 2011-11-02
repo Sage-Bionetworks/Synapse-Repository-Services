@@ -23,7 +23,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.BasicQuery;
@@ -86,7 +86,7 @@ public class NodeBackupManagerImplAutowireTest {
 		
 		Node randomNode = RandomNodeUtil.generateRandom(443);
 		randomNode.setId(KeyFactory.keyToString(idGenerator.generateNewId()));
-		randomNode.setNodeType(ObjectType.folder.name());
+		randomNode.setNodeType(EntityType.folder.name());
 		randomNode.setParentId(null);
 		
 		// First create a node to restore
@@ -112,7 +112,7 @@ public class NodeBackupManagerImplAutowireTest {
 		
 		// We should be able to find this node with this query
 		queryForNode = new BasicQuery();
-		queryForNode.setFrom(ObjectType.folder);
+		queryForNode.setFrom(EntityType.folder);
 		queryForNode.addExpression(new Expression(new CompoundId(null, uniqueAnnotationName), Compartor.EQUALS, uniqueAnnotationValue));
 		assertEquals(1, nodeQueryDao.executeCountQuery(queryForNode, nonAdminUser));
 	}

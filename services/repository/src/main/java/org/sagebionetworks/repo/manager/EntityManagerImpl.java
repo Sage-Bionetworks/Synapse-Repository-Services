@@ -6,18 +6,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import javax.swing.text.html.parser.Entity;
 
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Base;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.Nodeable;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -38,12 +36,12 @@ public class EntityManagerImpl implements EntityManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends Base> String createEntity(UserInfo userInfo, T newEntity) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
+	public <T extends Entity> String createEntity(UserInfo userInfo, T newEntity) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
 		if(newEntity == null) throw new IllegalArgumentException("Entity cannot be null");
 		// First create a node the represent the entity
-		Node node = NodeTranslationUtils.createFromBase(newEntity);
+		Node node = NodeTranslationUtils.createFromEntity(newEntity);
 		// Set the type for this object
-		node.setNodeType(ObjectType.getNodeTypeForClass(newEntity.getClass()).toString());
+		node.setNodeType(EntityType.getNodeTypeForClass(newEntity.getClass()).name());
 		NamedAnnotations annos = new NamedAnnotations();
 		// Now add all of the annotations and references from the entity
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(newEntity, annos.getPrimaryAnnotations(), node.getReferences());
@@ -55,14 +53,14 @@ public class EntityManagerImpl implements EntityManager {
 	
 	@Transactional(readOnly = true)
 	@Override
-	public <T extends Base> EntityWithAnnotations<T> getEntityWithAnnotations(UserInfo userInfo, String entityId, Class<? extends T> entityClass)
+	public <T extends Entity> EntityWithAnnotations<T> getEntityWithAnnotations(UserInfo userInfo, String entityId, Class<? extends T> entityClass)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get the annotations for this entity
 		NamedAnnotations annos = nodeManager.getAnnotations(userInfo, entityId);
 		// Fetch the current node from the server
 		Node node = nodeManager.get(userInfo, entityId);
 		// Does the node type match the requested type?
-		validateType(ObjectType.getNodeTypeForClass(entityClass), ObjectType.valueOf(node.getNodeType()), entityId);
+		validateType(EntityType.getNodeTypeForClass(entityClass), EntityType.valueOf(node.getNodeType()), entityId);
 		return populateEntityWithNodeAndAnnotations(entityClass, annos, node);
 	}
 	
@@ -73,7 +71,7 @@ public class EntityManagerImpl implements EntityManager {
 	 * @param acutalType
 	 * @param id
 	 */
-	private <T extends Base> void validateType(ObjectType requestedType, ObjectType acutalType, String id){
+	private <T extends Entity> void validateType(EntityType requestedType, EntityType acutalType, String id){
 		if(acutalType != requestedType){
 			throw new IllegalArgumentException("Requested "+requestedType.getUrlPrefix()+"/"+id+" but the entity with ID="+id+" is not of type: "+requestedType.name());
 		}
@@ -91,7 +89,7 @@ public class EntityManagerImpl implements EntityManager {
 	 * @throws UnauthorizedException
 	 */
 	@Transactional(readOnly = true)
-	public <T extends Base> EntityWithAnnotations<T> getEntityVersionWithAnnotations(UserInfo userInfo, String entityId, Long versionNumber, Class<? extends T> entityClass)
+	public <T extends Entity> EntityWithAnnotations<T> getEntityVersionWithAnnotations(UserInfo userInfo, String entityId, Long versionNumber, Class<? extends T> entityClass)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get the annotations for this entity
 		NamedAnnotations annos = nodeManager.getAnnotationsForVersion(userInfo, entityId, versionNumber);
@@ -109,9 +107,9 @@ public class EntityManagerImpl implements EntityManager {
 	 * @param node
 	 * @return
 	 */
-	private <T extends Base> EntityWithAnnotations<T> populateEntityWithNodeAndAnnotations(
+	private <T extends Entity> EntityWithAnnotations<T> populateEntityWithNodeAndAnnotations(
 			Class<? extends T> entityClass, NamedAnnotations annos, Node node) {
-		// Return the new object from the database
+		// Return the new object from the dataEntity
 		T newEntity = createNewEntity(entityClass);
 		// Populate the entity using the annotations and references
 		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(newEntity, annos.getPrimaryAnnotations(), node.getReferences());
@@ -125,7 +123,7 @@ public class EntityManagerImpl implements EntityManager {
 
 	@Transactional(readOnly = true)
 	@Override
-	public <T extends Base> T getEntity(UserInfo userInfo, String entityId, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException {
+	public <T extends Entity> T getEntity(UserInfo userInfo, String entityId, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException {
 		if(entityId == null) throw new IllegalArgumentException("Entity ID cannot be null");
 		// To fully populate an entity we must also load its annotations.
 		// Therefore, we get both but only return the entity for this call.
@@ -135,7 +133,7 @@ public class EntityManagerImpl implements EntityManager {
 	
 	@Transactional(readOnly = true)
 	@Override
-	public <T extends Nodeable> T getEntityForVersion(UserInfo userInfo,
+	public <T extends Entity> T getEntityForVersion(UserInfo userInfo,
 			String entityId, Long versionNumber, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// To fully populate an entity we must also load its annotations.
 		// Therefore, we get both but only return the entity for this call.
@@ -204,7 +202,7 @@ public class EntityManagerImpl implements EntityManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends Base> void updateEntity(UserInfo userInfo, T updated, boolean newVersion) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException {
+	public <T extends Entity> void updateEntity(UserInfo userInfo, T updated, boolean newVersion) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException {
 		if(updated == null) throw new IllegalArgumentException("Entity cannot be null");
 		if(updated.getId() == null) throw new IllegalArgumentException("The updated Entity cannot have a null ID");
 		Node node = nodeManager.get(userInfo, updated.getId());		
@@ -223,7 +221,7 @@ public class EntityManagerImpl implements EntityManager {
 	 * @param node
 	 * @param annos
 	 */
-	private <T extends Base> void updateNodeAndAnnotationsFromEntity(T entity, Node node, Annotations annos){
+	private <T extends Entity> void updateNodeAndAnnotationsFromEntity(T entity, Node node, Annotations annos){
 		// Update the annotations from the entity
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(entity, annos, node.getReferences());
 		// Update the node from the entity
@@ -239,7 +237,7 @@ public class EntityManagerImpl implements EntityManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends Nodeable> List<String> aggregateEntityUpdate(UserInfo userInfo, String parentId, Collection<T> update) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException {
+	public <T extends Entity> List<String> aggregateEntityUpdate(UserInfo userInfo, String parentId, Collection<T> update) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException {
 		if(update == null) throw new IllegalArgumentException("AggregateUpdate cannot be null");
 		// We are going to lock on the parent so the first step is to get the parent
 		Node parentNode = nodeManager.get(userInfo, parentId);
@@ -267,16 +265,16 @@ public class EntityManagerImpl implements EntityManager {
 
 
 	@Override
-	public <T extends Nodeable> List<T> getEntityChildren(UserInfo userInfo,
+	public <T extends Entity> List<T> getEntityChildren(UserInfo userInfo,
 			String parentId, Class<? extends T> childrenClass)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		List<T> resultSet = new ArrayList<T>();
 		Set<Node> children = nodeManager.getChildren(userInfo, parentId);
 		Iterator<Node> it = children.iterator();
-		ObjectType type = ObjectType.getNodeTypeForClass(childrenClass);
+		EntityType type = EntityType.getNodeTypeForClass(childrenClass);
 		while(it.hasNext()){
 			Node child = it.next();
-			if(ObjectType.valueOf(child.getNodeType()) == type){
+			if(EntityType.valueOf(child.getNodeType()) == type){
 				resultSet.add(this.getEntity(userInfo, child.getId(), childrenClass));
 			}
 		}
@@ -285,7 +283,7 @@ public class EntityManagerImpl implements EntityManager {
 
 
 	@Override
-	public ObjectType getEntityType(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException {
+	public EntityType getEntityType(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		return nodeManager.getNodeType(userInfo, entityId);
 	}
 	

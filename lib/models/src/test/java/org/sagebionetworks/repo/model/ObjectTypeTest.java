@@ -11,28 +11,28 @@ public class ObjectTypeTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testgetFirstTypeInUrlUknonw(){
 		// This should throw an exception
-		ObjectType type = ObjectType.getFirstTypeInUrl("/some/uknown/url");
+		EntityType type = EntityType.getFirstTypeInUrl("/some/uknown/url");
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testgetLastTypeInUrlUknonw(){
 		// This should throw an exception
-		ObjectType type = ObjectType.getLastTypeInUrl("/some/uknown/url");
+		EntityType type = EntityType.getLastTypeInUrl("/some/uknown/url");
 	}
 	
 	
 	@Test
 	public void testAllTypeForLastAndFirstUrl(){
 		// Make sure we can find any child type given any combination of parent and child
-		ObjectType[] array = ObjectType.values();
-		for(ObjectType parent: array){
-			for(ObjectType child: array){
+		EntityType[] array = EntityType.values();
+		for(EntityType parent: array){
+			for(EntityType child: array){
 				String prifix = "/repo/v1";
 				String url = prifix+parent.getUrlPrefix()+"/12"+child.getUrlPrefix();
 //				System.out.println(url);
-				ObjectType resultChild = ObjectType.getLastTypeInUrl(url);
+				EntityType resultChild = EntityType.getLastTypeInUrl(url);
 				assertEquals(child, resultChild);
-				ObjectType resultParent = ObjectType.getFirstTypeInUrl(url);
+				EntityType resultParent = EntityType.getFirstTypeInUrl(url);
 				assertEquals(parent, resultParent);
 			}
 		}
@@ -40,64 +40,64 @@ public class ObjectTypeTest {
 	
 	@Test
 	public void testGetNodeTypeForClass(){
-		ObjectType[] array = ObjectType.values();
-		for(ObjectType type: array){
+		EntityType[] array = EntityType.values();
+		for(EntityType type: array){
 			assertNotNull(type.getClassForType());
-			ObjectType result = type.getNodeTypeForClass(type.getClassForType());
+			EntityType result = type.getNodeTypeForClass(type.getClassForType());
 			assertEquals(type, result);
 		}
 	}
 	
 	@Test
 	public void testGetTypeForId(){
-		ObjectType[] array = ObjectType.values();
-		for(ObjectType type: array){
+		EntityType[] array = EntityType.values();
+		for(EntityType type: array){
 			assertNotNull(type.getId());
-			ObjectType result = type.getTypeForId(type.getId());
+			EntityType result = type.getTypeForId(type.getId());
 			assertEquals(type, result);
 		}
 	}
 	
 	@Test
 	public void testDatasetValidParent(){
-		ObjectType[] expectedValid = new ObjectType[]{ObjectType.project};
-		testValidParents(expectedValid,  ObjectType.dataset);
+		EntityType[] expectedValid = new EntityType[]{EntityType.project};
+		testValidParents(expectedValid,  EntityType.dataset);
 	}
 	
 	@Test
 	public void testProjectValidParent(){
-		ObjectType[] expectedValid = new ObjectType[]{ObjectType.project, null, ObjectType.folder};
-		testValidParents(expectedValid, ObjectType.project);
+		EntityType[] expectedValid = new EntityType[]{EntityType.project, null, EntityType.folder};
+		testValidParents(expectedValid, EntityType.project);
 	}
 	
 	@Test
 	public void testLayerValidParent(){
-		ObjectType[] expectedValid = new ObjectType[]{ObjectType.dataset};
-		testValidParents(expectedValid, ObjectType.layer);
+		EntityType[] expectedValid = new EntityType[]{EntityType.dataset};
+		testValidParents(expectedValid, EntityType.layer);
 	}
 	
 	@Test
 	public void testLocationValidParent(){
-		ObjectType[] expectedValid = new ObjectType[]{ObjectType.dataset, ObjectType.layer, ObjectType.code};
-		testValidParents(expectedValid, ObjectType.location);
+		EntityType[] expectedValid = new EntityType[]{EntityType.dataset, EntityType.layer, EntityType.code};
+		testValidParents(expectedValid, EntityType.location);
 	}
 	
 	@Test
 	public void testPreviewValidParent(){
-		ObjectType[] expectedValid = new ObjectType[]{ ObjectType.layer};
-		testValidParents(expectedValid, ObjectType.preview);
+		EntityType[] expectedValid = new EntityType[]{ EntityType.layer};
+		testValidParents(expectedValid, EntityType.preview);
 	}
 	
 	@Test
 	public void testEulaValidParent(){
-		ObjectType[] expectedValid = new ObjectType[]{ null, ObjectType.folder  };
-		testValidParents(expectedValid, ObjectType.eula);
+		EntityType[] expectedValid = new EntityType[]{ null, EntityType.folder  };
+		testValidParents(expectedValid, EntityType.eula);
 	}
 	
 	@Test
 	public void testAgreementValidParent(){
-		ObjectType[] expectedValid = new ObjectType[]{ null, ObjectType.folder };
-		testValidParents(expectedValid, ObjectType.eula);
+		EntityType[] expectedValid = new EntityType[]{ null, EntityType.folder };
+		testValidParents(expectedValid, EntityType.eula);
 	}
 	
 	/**
@@ -105,21 +105,21 @@ public class ObjectTypeTest {
 	 * @param expectedValid
 	 * @param toTest
 	 */
-	private void testValidParents(ObjectType[] expectedValid, ObjectType toTest) {
+	private void testValidParents(EntityType[] expectedValid, EntityType toTest) {
 		// Test expected
-		for(ObjectType expected: expectedValid){
+		for(EntityType expected: expectedValid){
 			assertTrue(toTest.isValidParentType(expected));
 		}
 		// test invalid
-		for(ObjectType type: ObjectType.values()){
+		for(EntityType type: EntityType.values()){
 			if(!arrayCcontains(expectedValid, type)){
 				assertFalse(toTest.isValidParentType(type));
 			}
 		}
 	}
 	
-	private static boolean arrayCcontains(ObjectType[] array, ObjectType contains){
-		for(ObjectType ob: array){
+	private static boolean arrayCcontains(EntityType[] array, EntityType contains){
+		for(EntityType ob: array){
 			if(ob == contains) return true;
 		}
 		return false;

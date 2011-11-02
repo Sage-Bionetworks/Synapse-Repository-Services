@@ -24,11 +24,11 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Layer;
-import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
+import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.model.Nodeable;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -57,7 +57,7 @@ public class DatasetMetadataProviderTest {
 	@Autowired
 	MetadataProviderFactory metadataProviderFactory;
 	
-	TypeSpecificMetadataProvider<Nodeable> datasetMetadataProvider;
+	TypeSpecificMetadataProvider<Entity> datasetMetadataProvider;
 
 	static private Log log = LogFactory.getLog(DatasetMetadataProviderTest.class);
 
@@ -70,7 +70,7 @@ public class DatasetMetadataProviderTest {
 	@Before
 	public void before() throws DatastoreException, NotFoundException {
 		assertNotNull(entityController);
-		datasetMetadataProvider = metadataProviderFactory.getMetadataProvider(ObjectType.dataset);
+		datasetMetadataProvider = metadataProviderFactory.getMetadataProvider(EntityType.dataset);
 		assertNotNull(datasetMetadataProvider);
 		toDelete = new ArrayList<String>();
 		// Map test objects to their urls
@@ -115,7 +115,7 @@ public class DatasetMetadataProviderTest {
 	public void testCreateChildrenLayerQuery(){
 		BasicQuery query = DatasetMetadataProvider.createChildrenLayerQuery("123");
 		assertNotNull(query);
-		assertEquals(ObjectType.layer, query.getFrom());
+		assertEquals(EntityType.layer, query.getFrom());
 		assertNotNull(query.getFilters());
 		assertEquals(1, query.getFilters().size());
 		Expression expression = query.getFilters().get(0);
@@ -130,7 +130,7 @@ public class DatasetMetadataProviderTest {
 	public void testCreateHasClinicalQuery(){
 		BasicQuery query = DatasetMetadataProvider.createHasClinicalQuery("123");
 		assertNotNull(query);
-		assertEquals(ObjectType.layer, query.getFrom());
+		assertEquals(EntityType.layer, query.getFrom());
 		assertNotNull(query.getFilters());
 		assertEquals(2, query.getFilters().size());
 		// find the clinical
@@ -139,7 +139,7 @@ public class DatasetMetadataProviderTest {
 			assertNotNull(expression.getId());
 			if(NodeConstants.COLUMN_LAYER_TYPE.equals(expression.getId().getFieldName())){
 				assertEquals(Compartor.EQUALS, expression.getCompare());
-				assertEquals(Layer.LayerTypeNames.C.name(), expression.getValue());
+				assertEquals(LayerTypeNames.C, expression.getValue());
 			}
 		}
 	}
@@ -148,7 +148,7 @@ public class DatasetMetadataProviderTest {
 	public void testCreateHasExpressionQuery(){
 		BasicQuery query = DatasetMetadataProvider.createHasExpressionQuery("123");
 		assertNotNull(query);
-		assertEquals(ObjectType.layer, query.getFrom());
+		assertEquals(EntityType.layer, query.getFrom());
 		assertNotNull(query.getFilters());
 		assertEquals(2, query.getFilters().size());
 		// find the clinical
@@ -157,7 +157,7 @@ public class DatasetMetadataProviderTest {
 			assertNotNull(expression.getId());
 			if(NodeConstants.COLUMN_LAYER_TYPE.equals(expression.getId().getFieldName())){
 				assertEquals(Compartor.EQUALS, expression.getCompare());
-				assertEquals(Layer.LayerTypeNames.E.name(), expression.getValue());
+				assertEquals(LayerTypeNames.E, expression.getValue());
 			}
 		}
 	}
@@ -166,7 +166,7 @@ public class DatasetMetadataProviderTest {
 	public void testCreateHasGeneticQuery(){
 		BasicQuery query = DatasetMetadataProvider.createHasGeneticQuery("123");
 		assertNotNull(query);
-		assertEquals(ObjectType.layer, query.getFrom());
+		assertEquals(EntityType.layer, query.getFrom());
 		assertNotNull(query.getFilters());
 		assertEquals(2, query.getFilters().size());
 		// find the clinical
@@ -175,7 +175,7 @@ public class DatasetMetadataProviderTest {
 			assertNotNull(expression.getId());
 			if(NodeConstants.COLUMN_LAYER_TYPE.equals(expression.getId().getFieldName())){
 				assertEquals(Compartor.EQUALS, expression.getCompare());
-				assertEquals(Layer.LayerTypeNames.G.name(), expression.getValue());
+				assertEquals(LayerTypeNames.G, expression.getValue());
 			}
 		}
 	}
@@ -202,7 +202,7 @@ public class DatasetMetadataProviderTest {
 		for(LayerTypeNames type: types){
 			Layer layer = new Layer();
 			layer.setName("DatasetMetadataProviderTestLayerChildNotUsed"+count);
-			layer.setType(type.name());
+			layer.setType(type);
 			layer.setParentId(ds.getId());
 			layer = entityController.createEntity(userName, layer, mockRequest);
 			assertNotNull(layer);
@@ -226,7 +226,7 @@ public class DatasetMetadataProviderTest {
 		// Now add a clinical layer
 		Layer layer = new Layer();
 		layer.setName("DatasetMetadataProviderTestLayerC");
-		layer.setType(LayerTypeNames.C.name());
+		layer.setType(LayerTypeNames.C);
 		layer.setParentId(ds.getId());
 		layer = entityController.createEntity(userName, layer, mockRequest);
 		assertNotNull(layer);
@@ -243,7 +243,7 @@ public class DatasetMetadataProviderTest {
 		// Now add a clinical layer
 		layer = new Layer();
 		layer.setName("DatasetMetadataProviderTestLayerE");
-		layer.setType(LayerTypeNames.E.name());
+		layer.setType(LayerTypeNames.E);
 		layer.setParentId(ds.getId());
 		layer = entityController.createEntity(userName, layer, mockRequest);
 		assertNotNull(layer);
@@ -260,7 +260,7 @@ public class DatasetMetadataProviderTest {
 		// Now add a clinical layer
 		layer = new Layer();
 		layer.setName("DatasetMetadataProviderTestLayerG");
-		layer.setType(LayerTypeNames.G.name());
+		layer.setType(LayerTypeNames.G);
 		layer.setParentId(ds.getId());
 		layer = entityController.createEntity(userName, layer, mockRequest);
 		assertNotNull(layer);

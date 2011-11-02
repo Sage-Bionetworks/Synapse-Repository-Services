@@ -6,7 +6,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -25,7 +25,7 @@ public class BootstrapRootFolderTest {
 		assertNotNull(rootFolderBootstrapData);
 		// Check the values
 		assertEquals("/root", rootFolderBootstrapData.getEntityPath());
-		assertEquals(ObjectType.folder, rootFolderBootstrapData.getEntityType());
+		assertEquals(EntityType.folder, rootFolderBootstrapData.getEntityType());
 		assertNotNull(rootFolderBootstrapData);
 		assertNotNull(rootFolderBootstrapData.getAccessList());
 		assertEquals(1, rootFolderBootstrapData.getAccessList().size());
@@ -42,7 +42,7 @@ public class BootstrapRootFolderTest {
 		assertNotNull(agreementFolderBootstrapData);
 		// Check the values
 		assertEquals("/root/agreements", agreementFolderBootstrapData.getEntityPath());
-		assertEquals(ObjectType.folder, agreementFolderBootstrapData.getEntityType());
+		assertEquals(EntityType.folder, agreementFolderBootstrapData.getEntityType());
 		assertNotNull(agreementFolderBootstrapData);
 		assertNotNull(agreementFolderBootstrapData.getAccessList());
 		assertEquals(2, agreementFolderBootstrapData.getAccessList().size());

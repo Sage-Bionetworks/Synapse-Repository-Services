@@ -1,12 +1,14 @@
 package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.repo.model.Analysis;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Eula;
-import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Location;
-import org.sagebionetworks.repo.model.Nodeable;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.LocationTypeNames;
 
 /**
  * A utility for creating various object types with all of the required fields set.
@@ -26,16 +28,16 @@ public class ObjectTypeFactory {
 	 * @throws IllegalAccessException
 	 * @throws InvalidModelException 
 	 */
-	public static Nodeable createObjectForTest(String name, ObjectType type, String parentId) throws InstantiationException, IllegalAccessException, InvalidModelException{
-		Nodeable object = type.getClassForType().newInstance();
+	public static Entity createObjectForTest(String name, EntityType type, String parentId) throws InstantiationException, IllegalAccessException, InvalidModelException{
+		Entity object = type.getClassForType().newInstance();
 		object.setName(name);
 		// Handle layers
 		if(object instanceof Layer){
 			Layer layer = (Layer) object;
-			layer.setType(Layer.LayerTypeNames.C.name());
+			layer.setType(LayerTypeNames.C);
 		} else if(object instanceof Location){
 			Location location = (Location) object;
-			location.setType(Location.LocationTypeNames.sage.name());
+			location.setType(LocationTypeNames.sage);
 			location.setPath("/somePath");
 			location.setMd5sum("9ca4d9623b655ba970e7b8173066b58f");
 		} else if(object instanceof Eula){
@@ -46,8 +48,8 @@ public class ObjectTypeFactory {
 			analysis.setDescription("this is a fake description");
 		} 
 		// Any object that needs  parent
-		if(object instanceof Nodeable){
-			Nodeable child = (Nodeable) object;
+		if(object instanceof Entity){
+			Entity child = (Entity) object;
 			child.setParentId(parentId);
 		}
 		return object;

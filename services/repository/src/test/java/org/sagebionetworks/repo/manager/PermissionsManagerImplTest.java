@@ -26,7 +26,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -65,7 +65,7 @@ public class PermissionsManagerImplTest {
 		node.setCreatedBy(createdBy);
 		node.setModifiedOn(new Date());
 		node.setModifiedBy(modifiedBy);
-		node.setNodeType(ObjectType.project.name());
+		node.setNodeType(EntityType.project.name());
 		if (parentId!=null) node.setParentId(parentId);
 		return node;
 	}

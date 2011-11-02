@@ -1,0 +1,13 @@
+{
+    "description":"JSON schema for Row POJO",
+    "properties":{
+        "cells":{
+            "type":"array",
+            "description":"The the id of the entity to which this reference refers",
+            "items":{
+                "type":"string"
+            }
+        },
+        
+    }
+}

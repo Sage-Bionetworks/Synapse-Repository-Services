@@ -1,0 +1,40 @@
+{
+    "description":"JSON schema for Location POJO",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.Versionable"
+        },
+        
+    ],
+    "properties":{
+        "type":{
+            "description":"The type of this location",
+            "type":"string",
+            "name":"LocationTypeNames",
+            "id":"org.sagebionetworks.repo.model.LocationTypeNames",
+            "enum":[
+                "awss3",
+                "awsebs",
+                "sage",
+                "external",
+                
+            ],
+            
+        },
+        "path":{
+            "description":"The path of this location",
+            "type":"string",
+            
+        },
+        "md5sum":{
+            "description":"The checksum of this location",
+            "type":"string",
+            
+        },
+        "contentType":{
+            "description":"The type of file of this location",
+            "type":"string",
+            
+        }
+    }
+}

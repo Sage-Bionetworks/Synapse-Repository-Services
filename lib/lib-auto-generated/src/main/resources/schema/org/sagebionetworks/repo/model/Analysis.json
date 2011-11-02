@@ -1,0 +1,11 @@
+{
+    "description":"JSON schema for Analysis POJO",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.Entity"            
+        },
+                {
+            "$ref":"org.sagebionetworks.repo.model.HasSteps"            
+        }
+    ],
+}

@@ -21,8 +21,8 @@ public class EntityToMapUtilTest {
 		Dataset ds = new Dataset();
 		ds.setName("someName");
 		ds.setDescription("someDesc");
-		ds.setCreator("magic");
-		ds.setCreationDate(new Date(System.currentTimeMillis()));
+		ds.setCreatedBy("magic");
+		ds.setCreatedOn(new Date(System.currentTimeMillis()));
 		ds.setAnnotations("someAnnoUrl");
 		ds.setEtag("110");
 		ds.setId("12");

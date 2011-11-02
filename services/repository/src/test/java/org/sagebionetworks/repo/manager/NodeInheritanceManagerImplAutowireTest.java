@@ -18,7 +18,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,7 +69,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		// For this test we need a complex hierarchy of nodes
 		Node rootProject = new Node();
 		rootProject.setName("root");
-		rootProject.setNodeType(ObjectType.project.name());
+		rootProject.setNodeType(EntityType.project.name());
 		rootId = nodeManager.createNewNode(rootProject, userInfo);
 		nodesToDelete.add(rootId);
 		// This is the tree we are building
@@ -80,28 +80,28 @@ public class NodeInheritanceManagerImplAutowireTest {
 		// Node B is also a child of root, and a benefactor of root.
 		Node node = new Node();
 		node.setName("A");
-		node.setNodeType(ObjectType.project.name());
+		node.setNodeType(EntityType.project.name());
 		node.setParentId(rootId);
 		aId = nodeManager.createNewNode(node, userInfo);
 		
 		// Create A.inherits
 		node = new Node();
 		node.setName("A.inherits");
-		node.setNodeType(ObjectType.project.name());
+		node.setNodeType(EntityType.project.name());
 		node.setParentId(aId);
 		aInheritsId = nodeManager.createNewNode(node, userInfo);
 		
 		// Create A.inherits.child
 		node = new Node();
 		node.setName("A.inherits.child");
-		node.setNodeType(ObjectType.project.name());
+		node.setNodeType(EntityType.project.name());
 		node.setParentId(aInheritsId);
 		aInheritsChildId = nodeManager.createNewNode(node, userInfo);
 		
 		// Create A.override
 		node = new Node();
 		node.setName("A.overrides");
-		node.setNodeType(ObjectType.project.name());
+		node.setNodeType(EntityType.project.name());
 		node.setParentId(aId);
 		aOverrideId = nodeManager.createNewNode(node, userInfo);
 		// Make sure this node inherits from itself
@@ -110,14 +110,14 @@ public class NodeInheritanceManagerImplAutowireTest {
 		// Create A.override.child
 		node = new Node();
 		node.setName("A.overrides.child");
-		node.setNodeType(ObjectType.project.name());
+		node.setNodeType(EntityType.project.name());
 		node.setParentId(aOverrideId);
 		aOverrideChildId = nodeManager.createNewNode(node, userInfo);
 		
 		// Create B
 		node = new Node();
 		node.setName("B");
-		node.setNodeType(ObjectType.project.name());
+		node.setNodeType(EntityType.project.name());
 		node.setParentId(rootId);
 		bId = nodeManager.createNewNode(node, userInfo);
 		
@@ -125,7 +125,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		//need a root projectOne
 		Node projectOne = new Node();
 		projectOne.setName("projectOne");
-		projectOne.setNodeType(ObjectType.project.name());
+		projectOne.setNodeType(EntityType.project.name());
 		projectOneId = nodeManager.createNewNode(projectOne, userInfo);
 		nodesToDelete.add(projectOneId);
 	}
@@ -262,7 +262,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		String layerId = null; 
 		
 		nextNode.setName("projectTwo");
-		nextNode.setNodeType(ObjectType.project.name());
+		nextNode.setNodeType(EntityType.project.name());
 		nextNode.setParentId(projectOneId);
 		projectTwoId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(projectTwoId);
@@ -273,7 +273,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		
 		nextNode = new Node();
 		nextNode.setName("dataset");
-		nextNode.setNodeType(ObjectType.dataset.name());
+		nextNode.setNodeType(EntityType.dataset.name());
 		nextNode.setParentId(projectTwoId);
 		datasetId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(datasetId);
@@ -284,7 +284,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		
 		nextNode = new Node();
 		nextNode.setName("layer");
-		nextNode.setNodeType(ObjectType.layer.name());
+		nextNode.setNodeType(EntityType.layer.name());
 		nextNode.setParentId(datasetId);
 		layerId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(layerId);
@@ -301,7 +301,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		String projectThreeId = null;
 		nextNode = new Node();
 		nextNode.setName("projectThree");
-		nextNode.setNodeType(ObjectType.project.name());
+		nextNode.setNodeType(EntityType.project.name());
 		projectThreeId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(projectThreeId);
 		nodesToDelete.add(projectThreeId);
@@ -383,7 +383,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		String layerId = null; 
 		
 		nextNode.setName("projectTwo");
-		nextNode.setNodeType(ObjectType.project.name());
+		nextNode.setNodeType(EntityType.project.name());
 		nextNode.setParentId(projectOneId);
 		projectTwoId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(projectTwoId);
@@ -394,7 +394,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		
 		nextNode = new Node();
 		nextNode.setName("dataset");
-		nextNode.setNodeType(ObjectType.dataset.name());
+		nextNode.setNodeType(EntityType.dataset.name());
 		nextNode.setParentId(projectTwoId);
 		datasetId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(datasetId);
@@ -405,7 +405,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		
 		nextNode = new Node();
 		nextNode.setName("layer");
-		nextNode.setNodeType(ObjectType.layer.name());
+		nextNode.setNodeType(EntityType.layer.name());
 		nextNode.setParentId(datasetId);
 		layerId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(layerId);
@@ -422,7 +422,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		String projectThreeId = null;
 		nextNode = new Node();
 		nextNode.setName("projectThree");
-		nextNode.setNodeType(ObjectType.project.name());
+		nextNode.setNodeType(EntityType.project.name());
 		projectThreeId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(projectThreeId);
 		nodesToDelete.add(projectThreeId);
@@ -506,7 +506,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		String layerTwoId = null;
 		
 		nextNode.setName("projectTwo");
-		nextNode.setNodeType(ObjectType.project.name());
+		nextNode.setNodeType(EntityType.project.name());
 		nextNode.setParentId(projectOneId);
 		projectTwoId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(projectTwoId);
@@ -517,7 +517,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		
 		nextNode = new Node();
 		nextNode.setName("dataset");
-		nextNode.setNodeType(ObjectType.dataset.name());
+		nextNode.setNodeType(EntityType.dataset.name());
 		nextNode.setParentId(projectTwoId);
 		datasetId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(datasetId);
@@ -528,7 +528,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		
 		nextNode = new Node();
 		nextNode.setName("layerOne");
-		nextNode.setNodeType(ObjectType.layer.name());
+		nextNode.setNodeType(EntityType.layer.name());
 		nextNode.setParentId(datasetId);
 		layerOneId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(layerOneId);
@@ -539,7 +539,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		
 		nextNode = new Node();
 		nextNode.setName("layerTwo");
-		nextNode.setNodeType(ObjectType.layer.name());
+		nextNode.setNodeType(EntityType.layer.name());
 		nextNode.setParentId(datasetId);
 		layerTwoId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(layerTwoId);
@@ -556,7 +556,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		String projectThreeId = null;
 		nextNode = new Node();
 		nextNode.setName("projectThree");
-		nextNode.setNodeType(ObjectType.project.name());
+		nextNode.setNodeType(EntityType.project.name());
 		projectThreeId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(projectThreeId);
 		nodesToDelete.add(projectThreeId);
@@ -640,7 +640,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		String datasetId = null;
 		
 		nextNode.setName("dataset");
-		nextNode.setNodeType(ObjectType.dataset.name());
+		nextNode.setNodeType(EntityType.dataset.name());
 		nextNode.setParentId(projectOneId);
 		datasetId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(datasetId);
@@ -656,7 +656,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		String newProjectId = null;
 		nextNode = new Node();
 		nextNode.setName("newProject");
-		nextNode.setNodeType(ObjectType.project.name());
+		nextNode.setNodeType(EntityType.project.name());
 		newProjectId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(newProjectId);
 		nodesToDelete.add(newProjectId);
@@ -719,7 +719,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		String folderFiveId = null;
 		
 		nextNode.setName("rootFolder");
-		nextNode.setNodeType(ObjectType.folder.name());
+		nextNode.setNodeType(EntityType.folder.name());
 		rootFolderId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(rootFolderId);
 		String benefactorId = nodeInheritanceDao.getBenefactor(rootFolderId);
@@ -728,7 +728,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		
 		nextNode = new Node();
 		nextNode.setName("folderTwo");
-		nextNode.setNodeType(ObjectType.folder.name());
+		nextNode.setNodeType(EntityType.folder.name());
 		nextNode.setParentId(rootFolderId);
 		folderTwoId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(folderTwoId);
@@ -739,7 +739,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		
 		nextNode = new Node();
 		nextNode.setName("folderThree");
-		nextNode.setNodeType(ObjectType.folder.name());
+		nextNode.setNodeType(EntityType.folder.name());
 		nextNode.setParentId(folderTwoId);
 		folderThreeId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(folderThreeId);
@@ -750,7 +750,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		
 		nextNode = new Node();
 		nextNode.setName("folderFour");
-		nextNode.setNodeType(ObjectType.folder.name());
+		nextNode.setNodeType(EntityType.folder.name());
 		nextNode.setParentId(folderThreeId);
 		folderFourId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(folderFourId);
@@ -761,7 +761,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		
 		nextNode = new Node();
 		nextNode.setName("folderFive");
-		nextNode.setNodeType(ObjectType.folder.name());
+		nextNode.setNodeType(EntityType.folder.name());
 		nextNode.setParentId(folderThreeId);
 		folderFiveId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(folderFiveId);
@@ -777,7 +777,7 @@ public class NodeInheritanceManagerImplAutowireTest {
 		String newFolderId = null;
 		nextNode = new Node();
 		nextNode.setName("newFolder");
-		nextNode.setNodeType(ObjectType.folder.name());
+		nextNode.setNodeType(EntityType.folder.name());
 		newFolderId = nodeManager.createNewNode(nextNode, userInfo);
 		nodeInheritanceManager.setNodeToInheritFromItself(newFolderId);
 		nodesToDelete.add(newFolderId);

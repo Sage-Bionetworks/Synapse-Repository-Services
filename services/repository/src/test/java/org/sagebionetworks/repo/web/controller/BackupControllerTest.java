@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestoreFile;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -103,7 +103,7 @@ public class BackupControllerTest {
 
 		Node nodeWithAnnotations = new Node();
 		nodeWithAnnotations.setName("BackupDaemonLauncherImplAutowireTest.testRoundTrip Annotations");
-		nodeWithAnnotations.setNodeType(ObjectType.project.name());
+		nodeWithAnnotations.setNodeType(EntityType.project.name());
 		Annotations annos = RandomAnnotationsUtil.generateRandom(334, 50);
 		NamedAnnotations named = new NamedAnnotations();
 		named.put(NamedAnnotations.NAME_SPACE_ADDITIONAL, annos);
@@ -113,7 +113,7 @@ public class BackupControllerTest {
 
 		Node nodeWithRefs = new Node();
 		nodeWithRefs.setName("BackupDaemonLauncherImplAutowireTest.testRoundTrip References");
-		nodeWithRefs.setNodeType(ObjectType.project.name());
+		nodeWithRefs.setNodeType(EntityType.project.name());
 		Reference reference = new Reference();
 		reference.setTargetId(idOfNodeWithAnnotations);
 		reference.setTargetVersionNumber(42L);

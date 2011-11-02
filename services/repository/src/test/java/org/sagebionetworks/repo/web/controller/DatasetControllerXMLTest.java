@@ -43,6 +43,7 @@ import org.springframework.web.HttpMediaTypeNotAcceptableException;
  * 
  * @author deflaux
  */
+@Ignore
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DatasetControllerXMLTest {

@@ -3,8 +3,9 @@ package org.sagebionetworks.repo.web.controller;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 
-import org.sagebionetworks.repo.model.Base;
+import org.sagebionetworks.repo.model.Entity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
@@ -21,14 +22,17 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
  */
 public class ObjectTypeSerializer {
 
-	HttpMessageConverter<?>[] messageConverters;
+	List<HttpMessageConverter<?>> messageConverters;
+	
 
 	/**
 	 * This is injected via Spring
 	 * @param messageConverterList
 	 */
-	public void setMessageConverters(HttpMessageConverter<?>[] messageConverterList) {
+	public void setMessageConverters(List<HttpMessageConverter<?>> messageConverterList) {
 		this.messageConverters = messageConverterList;
+		// Add the entity converter first
+		messageConverters.add(0, new JSONEntityHttpMessageConverter());
 	}
 
 	/**
@@ -46,7 +50,7 @@ public class ObjectTypeSerializer {
 	 * @throws IOException
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public <T extends Base> T deserialize(final InputStream body,
+	public <T extends Entity> T deserialize(final InputStream body,
 			final HttpHeaders headers, Class<? extends T> clazz, MediaType type) {
 		HttpInputMessage message = new HttpInputMessage() {
 			@Override
@@ -84,7 +88,7 @@ public class ObjectTypeSerializer {
 	 * @param type
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public <T extends Base> void serializer(final OutputStream body,
+	public <T extends Entity> void serializer(final OutputStream body,
 			final HttpHeaders headers, T toSerializer, MediaType type) {
 		HttpOutputMessage message = new HttpOutputMessage() {
 			

@@ -1,14 +1,113 @@
-{"entityTypes":
-[{"validParentTypes":["/project"],"urlPrefix":"/dataset","className":"org.sagebionetworks.Dataset","defaultParentPath":"/root"},
-{"validParentTypes":["/dataset"],"urlPrefix":"/layer","className":"org.sagebionetworks.Layer","defaultParentPath":"/root"},
-{"validParentTypes":["/dataset","/layer","/code"],"urlPrefix":"/location","className":"org.sagebionetworks.Location","defaultParentPath":"/root"},
-{"validParentTypes":["/folder","/project","DEFAULT"],"urlPrefix":"/project","className":"org.sagebionetworks.Project","defaultParentPath":"/root"},
-{"validParentTypes":["/layer"],"urlPrefix":"/preview","className":"org.sagebionetworks.Preview","defaultParentPath":"/root"},
-{"validParentTypes":["DEFAULT","/folder"],"urlPrefix":"/eula","className":"org.sagebionetworks.Eula","defaultParentPath":"/root/eulas"},
-{"validParentTypes":["DEFAULT","/folder"],"urlPrefix":"/agreement","className":"org.sagebionetworks.Agreement","defaultParentPath":"/root/agreements"},
-{"validParentTypes":["DEFAULT","/folder"],"urlPrefix":"/folder","className":"org.sagebionetworks.Folder","defaultParentPath":"/root"},
-{"validParentTypes":["/project"],"urlPrefix":"/analysis","className":"org.sagebionetworks.Analysis","defaultParentPath":"/root"},
-{"validParentTypes":["/folder","/analysis","DEFAULT"],"urlPrefix":"/step","className":"org.sagebionetworks.Step","defaultParentPath":"/root"},
-{"validParentTypes":["/project"],"urlPrefix":"/code","className":"org.sagebionetworks.Code","defaultParentPath":"/root"}]
+{
+    "entityTypes":[
+        {
+            "validParentTypes":[
+                "/project"
+            ],
+            "urlPrefix":"/dataset",
+            "name":"dataset",
+            "className":"org.sagebionetworks.repo.model.Dataset",
+            "defaultParentPath":"/root"
+        },
+        {
+            "validParentTypes":[
+                "/dataset"
+            ],
+            "urlPrefix":"/layer",
+            "name":"layer",
+            "className":"org.sagebionetworks.repo.model.Layer",
+            "defaultParentPath":"/root"
+        },
+        {
+            "validParentTypes":[
+                "/dataset",
+                "/layer",
+                "/code"
+            ],
+            "urlPrefix":"/location",
+            "name":"location",
+            "className":"org.sagebionetworks.repo.model.Location",
+            "defaultParentPath":"/root"
+        },
+        {
+            "validParentTypes":[
+                "/folder",
+                "/project",
+                "DEFAULT"
+            ],
+            "urlPrefix":"/project",
+            "name":"project",
+            "className":"org.sagebionetworks.repo.model.Project",
+            "defaultParentPath":"/root"
+        },
+        {
+            "validParentTypes":[
+                "/layer"
+            ],
+            "urlPrefix":"/preview",
+            "name":"preview",
+            "className":"org.sagebionetworks.repo.model.Preview",
+            "defaultParentPath":"/root"
+        },
+        {
+            "validParentTypes":[
+                "DEFAULT",
+                "/folder"
+            ],
+            "urlPrefix":"/eula",
+            "name":"eula",
+            "className":"org.sagebionetworks.repo.model.Eula",
+            "defaultParentPath":"/root/eulas"
+        },
+        {
+            "validParentTypes":[
+                "DEFAULT",
+                "/folder"
+            ],
+            "urlPrefix":"/agreement",
+            "name":"agreement",
+            "className":"org.sagebionetworks.repo.model.Agreement",
+            "defaultParentPath":"/root/agreements"
+        },
+        {
+            "validParentTypes":[
+                "DEFAULT",
+                "/folder"
+            ],
+            "urlPrefix":"/folder",
+            "name":"folder",
+            "className":"org.sagebionetworks.repo.model.Folder",
+            "defaultParentPath":"/root"
+        },
+        {
+            "validParentTypes":[
+                "/project"
+            ],
+            "urlPrefix":"/analysis",
+            "name":"analysis",
+            "className":"org.sagebionetworks.repo.model.Analysis",
+            "defaultParentPath":"/root"
+        },
+        {
+            "validParentTypes":[
+                "/folder",
+                "/analysis",
+                "DEFAULT"
+            ],
+            "urlPrefix":"/step",
+            "name":"step",
+            "className":"org.sagebionetworks.repo.model.Step",
+            "defaultParentPath":"/root"
+        },
+        {
+            "validParentTypes":[
+                "/project"
+            ],
+            "name":"code",
+            "urlPrefix":"/code",
+            "className":"org.sagebionetworks.repo.model.Code",
+            "defaultParentPath":"/root"
+        },
+        
+    ]
 }
-

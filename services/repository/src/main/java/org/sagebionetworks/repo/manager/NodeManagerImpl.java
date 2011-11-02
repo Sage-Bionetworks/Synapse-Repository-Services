@@ -21,7 +21,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
@@ -103,7 +103,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		NodeManagerImpl.validateNodeModifiedData(userName, newNode);
 		
 		// What is the object type of this node
-		ObjectType type = ObjectType.valueOf(newNode.getNodeType());
+		EntityType type = EntityType.valueOf(newNode.getNodeType());
 		
 		// By default all nodes inherit their their ACL from their parent.
 		ACL_SCHEME aclSchem = ACL_SCHEME.INHERIT_FROM_PARENT;
@@ -417,9 +417,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 
 	@Transactional(readOnly = true)
 	@Override
-	public ObjectType getNodeType(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
+	public EntityType getNodeType(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		Node node = get(userInfo, nodeId);
-		return ObjectType.valueOf(node.getNodeType());
+		return EntityType.valueOf(node.getNodeType());
 	}
 	
 

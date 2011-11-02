@@ -260,8 +260,8 @@ public class CodeControllerTest {
 		// line: 1, column: 19]"}
 
 		String reason = error.getString("reason");
-		assertTrue(reason, reason.matches("(?s).*\"BOGUS\".*"));
-		assertTrue(reason, reason.matches("(?s).*not marked as ignorable.*"));
+		assertTrue(reason, reason.matches("(?s).*BOGUS.*"));
+		assertTrue(reason, reason.matches("(?s).*schema.*"));
 	}
 
 	/**
@@ -396,8 +396,8 @@ public class CodeControllerTest {
 		// Check immutable system-defined properties
 		assertTrue(results.has("annotations"));
 		assertTrue(results.getString("annotations").endsWith("/annotations"));
-		assertTrue(results.has("creationDate"));
-		assertFalse("null".equals(results.getString("creationDate")));
+		assertTrue(results.has("createdOn"));
+		assertFalse("null".equals(results.getString("createdOn")));
 
 		// Check that optional properties that receive default values
 		assertTrue(results.has("version"));

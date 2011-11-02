@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -583,7 +583,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @param builder
 	 * @param from
 	 */
-	private String buildFrom(ObjectType from) {
+	private String buildFrom(EntityType from) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("from ");
 		builder.append(QueryUtils.getTableNameForClass(JDONode.class));

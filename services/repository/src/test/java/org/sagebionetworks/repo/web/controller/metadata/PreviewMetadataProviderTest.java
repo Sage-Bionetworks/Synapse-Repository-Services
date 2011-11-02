@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.web.controller.metadata;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.UnsupportedEncodingException;
-import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Preview;
+import org.sagebionetworks.repo.model.Row;
 import org.sagebionetworks.repo.model.UserInfo;
 
 /**
@@ -67,37 +68,38 @@ public class PreviewMetadataProviderTest {
 		// Now create the map and headers
 		PreviewMetadataProvider.createPreviewMap(preview);
 		assertNotNull(preview.getHeaders());
-		assertEquals(numberCols, preview.getHeaders().length);
+		assertEquals(numberCols, preview.getHeaders().size());
 		assertNotNull(preview.getRows());
 		assertEquals(numberRows, preview.getRows().size());
 		// Check the headers
-		assertEquals("header3", preview.getHeaders()[3]);
-		Map<String, String> row = preview.getRows().get(0);
+		assertEquals("header3", preview.getHeaders().get(3));
+		Row row = preview.getRows().get(0);
 		assertNotNull(row);
-		assertEquals("0.3",row.get("header3"));
+		assertEquals("0.3",row.getCells().get(3));
 	}
 	
-	@Test
-	public void testValidateEntity() throws UnsupportedEncodingException{
-		Preview preview = new Preview();
-		preview.setPreviewString(previewString);
-		PreviewMetadataProvider provider = new PreviewMetadataProvider();
-		provider.validateEntity(preview,  new EntityEvent(EventType.GET, null, null));
-		assertNotNull(preview.getPreviewBlob());
-		assertEquals(previewString, new String(preview.getPreviewBlob(), "UTF-8"));
-		assertTrue(preview.getPreviewString() == null);
-	}
+//	@Test
+//	public void testValidateEntity() throws UnsupportedEncodingException{
+//		Preview preview = new Preview();
+//		preview.setPreviewString(previewString);
+//		PreviewMetadataProvider provider = new PreviewMetadataProvider();
+//		provider.validateEntity(preview,  new EntityEvent(EventType.GET, null, null));
+//		assertNotNull(preview.getPreviewBlob());
+//		assertEquals(previewString, new String(preview.getPreviewBlob(), "UTF-8"));
+//		assertTrue(preview.getPreviewString() == null);
+//	}
 	
 	@Test
 	public void testAddTypeSpecificMetadata() throws UnsupportedEncodingException{
 		Preview preview = new Preview();
-		preview.setPreviewBlob(previewString.getBytes("UTF-8"));
+		preview.setPreviewString(previewString);
+//		preview.setPreviewString(previewString.getBytes("UTF-8"));
 		PreviewMetadataProvider provider = new PreviewMetadataProvider();
 		provider.addTypeSpecificMetadata(preview, mockRequest, mockUser, EventType.GET);
-		assertTrue(preview.getPreviewBlob() == null);
+//		assertTrue(preview.getPreviewBlob() == null);
 		assertEquals(previewString, preview.getPreviewString());
 		assertNotNull(preview.getHeaders());
-		assertEquals(numberCols, preview.getHeaders().length);
+		assertEquals(numberCols, preview.getHeaders().size());
 		assertNotNull(preview.getRows());
 		assertEquals(numberRows, preview.getRows().size());
 	}

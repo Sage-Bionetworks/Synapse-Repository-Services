@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.model.util;
 import java.util.Random;
 
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 
 /**
  * A utility to generate a random node.
@@ -41,8 +41,8 @@ public class RandomNodeUtil {
 		node.setVersionComment("comment: "+rand.nextLong());
 		node.setVersionNumber(new Long(rand.nextInt(10)));
 		node.setVersionLabel("0.0"+rand.nextDouble());
-		int typeIndex = rand.nextInt(ObjectType.values().length);
-		node.setNodeType(ObjectType.values()[typeIndex].name());
+		int typeIndex = rand.nextInt(EntityType.values().length);
+		node.setNodeType(EntityType.values()[typeIndex].name());
 		if(rand.nextBoolean()){
 			node.setParentId(""+rand.nextLong());
 		}

@@ -277,8 +277,8 @@ public class LayerControllerTest {
 		// line: 1, column: 19]"}
 
 		String reason = error.getString("reason");
-		assertTrue(reason.matches("(?s).*\"BOGUS\".*"));
-		assertTrue(reason.matches("(?s).*not marked as ignorable.*"));
+		assertTrue(reason,reason.matches("(?s).*BOGUS.*"));
+		assertTrue(reason, reason.matches("(?s).*is not defined in the schema.*"));
 	}
 
 	/**
@@ -470,8 +470,8 @@ public class LayerControllerTest {
 		assertTrue(results.getString("annotations").endsWith("/annotations"));
 		assertTrue(results.has("previews"));
 		assertTrue(results.getString("previews").endsWith("/preview"));
-		assertTrue(results.has("creationDate"));
-		assertFalse("null".equals(results.getString("creationDate")));
+		assertTrue(results.has("createdOn"));
+		assertFalse("null".equals(results.getString("createdOn")));
 
 		// Check that optional properties that receive default values
 		assertTrue(results.has("version"));

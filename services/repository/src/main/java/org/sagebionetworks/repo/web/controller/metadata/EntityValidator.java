@@ -1,12 +1,12 @@
 package org.sagebionetworks.repo.web.controller.metadata;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Nodeable;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface EntityValidator<T extends Nodeable> {
+public interface EntityValidator<T extends Entity> {
 	
 	/**
 	 * Validate an entity before it is created or updated.

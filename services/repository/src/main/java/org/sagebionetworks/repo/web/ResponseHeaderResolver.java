@@ -9,6 +9,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.codec.binary.Base64;
 import org.json.JSONException;
 import org.sagebionetworks.repo.model.Base;
+import org.sagebionetworks.repo.model.Entity;
 import org.springframework.ui.ExtendedModelMap;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.servlet.ModelAndView;
@@ -59,6 +60,11 @@ public class ResponseHeaderResolver implements ModelAndViewResolver {
 				response.setHeader(ServiceConstants.ETAG_HEADER, entity
 						.getEtag());
 			}
+			
+			if (returnValue instanceof Entity) { // DAO backed entities
+				Entity entity = (Entity) returnValue;
+				response.setHeader(ServiceConstants.ETAG_HEADER, entity.getEtag());
+			}
 
 			/*
 			 * Add the Location header any time we create a resource
@@ -69,6 +75,11 @@ public class ResponseHeaderResolver implements ModelAndViewResolver {
 			if (request.getMethod().equals("POST")) {
 				if (returnValue instanceof Base) {
 					Base entity = (Base) returnValue;
+					response.setHeader(ServiceConstants.LOCATION_HEADER, entity
+							.getUri());
+				}
+				if (returnValue instanceof Entity) {
+					Entity entity = (Entity) returnValue;
 					response.setHeader(ServiceConstants.LOCATION_HEADER, entity
 							.getUri());
 				}

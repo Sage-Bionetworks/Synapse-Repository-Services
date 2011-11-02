@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -56,7 +56,7 @@ public class AllTypesValidatorTest {
 		EntityHeader parentHeader = new EntityHeader();
 		parentHeader.setId(parentId);
 		parentHeader.setName("name");
-		parentHeader.setType(ObjectType.project.getUrlPrefix());
+		parentHeader.setType(EntityType.project.getUrlPrefix());
 		List<EntityHeader> path = new ArrayList<EntityHeader>();
 		path.add(parentHeader);
 		
@@ -73,7 +73,7 @@ public class AllTypesValidatorTest {
 		EntityHeader parentHeader = new EntityHeader();
 		parentHeader.setId(parentId);
 		parentHeader.setName("name");
-		parentHeader.setType(ObjectType.dataset.getUrlPrefix());
+		parentHeader.setType(EntityType.dataset.getUrlPrefix());
 		List<EntityHeader> path = new ArrayList<EntityHeader>();
 		path.add(parentHeader);
 		

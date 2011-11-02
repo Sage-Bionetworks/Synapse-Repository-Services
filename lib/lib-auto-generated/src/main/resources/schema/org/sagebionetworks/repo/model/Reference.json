@@ -1,0 +1,16 @@
+{
+    "description":"JSON schema for Reference POJO",
+    "properties":{
+        "targetId":{
+            "type":"string",
+            "description":"The the id of the entity to which this reference refers",
+            
+        },
+        "targetVersionNumber":{
+            "type":"integer",
+            "description":"The version number of the entity to which this reference refers",
+            
+        },
+        
+    }
+}

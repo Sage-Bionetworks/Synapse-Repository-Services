@@ -23,7 +23,7 @@ import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -158,7 +158,7 @@ public class NodeManagerImpleUnitTest {
 		// Test creating a new node with nothing but the name and type set
 		Node newNode = new Node();
 		newNode.setName("testCreateNode");
-		newNode.setNodeType(ObjectType.folder.name());
+		newNode.setNodeType(EntityType.folder.name());
 		when(mockEntityBootstrapper.getChildAclSchemeForPath("/root")).thenReturn(ACL_SCHEME.INHERIT_FROM_PARENT);
 		
 		// Sure the mock is ready.

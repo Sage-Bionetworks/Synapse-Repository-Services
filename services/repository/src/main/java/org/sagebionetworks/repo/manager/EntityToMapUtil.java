@@ -5,7 +5,7 @@ import java.util.Map;
 
 import org.codehaus.jackson.map.ObjectMapper;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Base;
+import org.sagebionetworks.repo.model.Entity;
 
 /**
  * Converts an entity with annotations to a map
@@ -22,7 +22,7 @@ public class EntityToMapUtil {
 	 * @param entity
 	 * @return
 	 */
-	public static <T extends Base> Map<String, Object> createMapFromEntity(EntityWithAnnotations<T> entity) {
+	public static <T extends Entity> Map<String, Object> createMapFromEntity(EntityWithAnnotations<T> entity) {
 		// Convert the object to the map
 		@SuppressWarnings("unchecked")
 		Map<String, Object> row = OBJECT_MAPPER.convertValue(entity.getEntity(),Map.class);

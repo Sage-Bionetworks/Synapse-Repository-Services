@@ -207,7 +207,7 @@ public class EntityManagerImplAutowireTest {
 		Layer layer = new Layer();
 		layer.setName("layerName"+i);
 		layer.setDescription("layerDesc"+i);
-		layer.setCreationDate(new Date(1001));
+		layer.setCreatedOn(new Date(1001));
 		return layer;
 	}
 	
@@ -220,8 +220,8 @@ public class EntityManagerImplAutowireTest {
 		Dataset ds = new Dataset();
 		ds.setName("someName");
 		ds.setDescription("someDesc");
-		ds.setCreator("magic");
-		ds.setCreationDate(new Date(1001));
+		ds.setCreatedBy("magic");
+		ds.setCreatedOn(new Date(1001));
 		ds.setAnnotations("someAnnoUrl");
 		ds.setEtag("110");
 		ds.setId("12");

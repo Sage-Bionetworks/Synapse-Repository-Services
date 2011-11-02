@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.web.controller.metadata;
 
-import org.sagebionetworks.repo.model.Nodeable;
+import org.sagebionetworks.repo.model.Entity;
 
-public interface AllTypesValidator extends EntityValidator<Nodeable> {
+public interface AllTypesValidator extends EntityValidator<Entity> {
 
 }

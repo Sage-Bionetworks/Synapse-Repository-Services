@@ -28,7 +28,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.util.RandomNodeBackupUtil;
@@ -220,7 +220,7 @@ public class NodeSerializerUtilTest {
 		node.setId("569");
 		node.setModifiedBy("you");
 		node.setModifiedOn(new Date());
-		node.setNodeType(ObjectType.folder.name());
+		node.setNodeType(EntityType.folder.name());
 		node.setParentId("13");
 		node.setVersionComment("Some version comment");
 		node.setVersionLabel("The version label");

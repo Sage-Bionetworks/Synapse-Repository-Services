@@ -1,0 +1,72 @@
+{
+    "description":"JSON schema for Layer POJO",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.Entity"
+        },
+        {
+            "$ref":"org.sagebionetworks.repo.model.HasLocations"
+        },
+        {
+            "$ref":"org.sagebionetworks.repo.model.HasPreviews"
+        },
+        
+    ],
+    "properties":{
+        "publicationDate":{
+            "type":"string",
+            "format":"date-time",
+            "description":"Date this layer was published"
+        },
+        "releaseNotes":{
+            "type":"string",
+            "description":"Free text about layer"
+        },
+        "type":{
+            "type":"string",
+            "description":"Type of layer",
+            "name":"LayerTypeNames",
+            "id":"org.sagebionetworks.repo.model.LayerTypeNames",
+            "enum":[
+                "E",
+                "G",
+                "C",
+                "M"
+            ],
+            
+        },
+        "tissueType":{
+            "type":"string",
+            "description":"Type of tissue for the samples in this layer"
+        },
+        "platform":{
+            "type":"string",
+            "description":"Chip platform for the samples in this layer"
+        },
+        "processingFacility":{
+            "type":"string",
+            "description":"Location where the samples for this layer were processed"
+        },
+        "qcBy":{
+            "type":"string",
+            "description":"Name of person who processed this layer"
+        },
+        "qcDate":{
+            "type":"string",
+            "format":"date-time",
+            "description":"Date this layer was Qc'ed"
+        },
+        "status":{
+            "type":"string",
+            "description":"Status of this layer"
+        },
+        "version":{
+            "type":"string",
+            "description":"This is a fake value.  Layers need to be changed to versionable."
+        },
+        "numSamples":{
+            "type":"integer",
+            "description":"Approximate number of samples in this layer"
+        }
+    }
+}

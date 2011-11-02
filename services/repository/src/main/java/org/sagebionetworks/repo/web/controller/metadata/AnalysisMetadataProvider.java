@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.model.Analysis;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -86,7 +86,7 @@ public class AnalysisMetadataProvider implements
 
 		try {
 			Step step = (Step) entityManager.getEntity(user, stepId,
-					ObjectType.step.getClassForType());
+					EntityType.step.getClassForType());
 			step.setParentId(entity.getId());
 			entityManager.updateEntity(user, step, false);
 		}

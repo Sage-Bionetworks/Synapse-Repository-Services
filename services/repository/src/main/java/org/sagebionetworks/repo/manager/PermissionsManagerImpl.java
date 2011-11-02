@@ -15,7 +15,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -54,7 +54,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		if(!benefactor.equals(nodeId)){
 			// Look up the type of the benefactor
 			EntityHeader header = nodeDao.getEntityHeader(benefactor);
-			ObjectType type = ObjectType.getFirstTypeInUrl(header.getType());
+			EntityType type = EntityType.getFirstTypeInUrl(header.getType());
 			throw new ACLInheritanceException("Cannot access the ACL of a node that inherits it permissions. This node inherits its permissions from: "+benefactor,type, benefactor);
 		}
 		return aclDAO.getForResource(nodeId);

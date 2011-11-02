@@ -8,9 +8,9 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Layer;
-import org.sagebionetworks.repo.model.Layer.LayerTypeNames;
+import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.BasicQuery;
@@ -56,7 +56,7 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 	public static BasicQuery createChildrenLayerQuery(String parentId){
 		BasicQuery query = new BasicQuery();
 		// We want all children
-		query.setFrom(ObjectType.layer);
+		query.setFrom(EntityType.layer);
 		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COL_PARENT_ID), Compartor.EQUALS, Long.parseLong(parentId)));
 		return query;
 	}
@@ -70,7 +70,7 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 		// Start with the children query
 		BasicQuery query = createChildrenLayerQuery(datasetId);
 		// Now add a filter for the clinical layer type.
-		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COLUMN_LAYER_TYPE), Compartor.EQUALS, Layer.LayerTypeNames.C.name()));
+		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COLUMN_LAYER_TYPE), Compartor.EQUALS, LayerTypeNames.C));
 		return query;
 	}
 	
@@ -83,7 +83,7 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 		// Start with the children query
 		BasicQuery query = createChildrenLayerQuery(datasetId);
 		// Now add a filter for the clinical layer type.
-		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COLUMN_LAYER_TYPE), Compartor.EQUALS, Layer.LayerTypeNames.E.name()));
+		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COLUMN_LAYER_TYPE), Compartor.EQUALS, LayerTypeNames.E));
 		return query;
 	}
 	
@@ -96,7 +96,7 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 		// Start with the children query
 		BasicQuery query = createChildrenLayerQuery(datasetId);
 		// Now add a filter for the clinical layer type.
-		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COLUMN_LAYER_TYPE), Compartor.EQUALS, Layer.LayerTypeNames.G.name()));
+		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COLUMN_LAYER_TYPE), Compartor.EQUALS, LayerTypeNames.G));
 		return query;
 	}
 
