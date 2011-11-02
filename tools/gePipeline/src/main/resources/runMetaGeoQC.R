@@ -54,9 +54,8 @@ splitDatasetAttributes<-function(a) {
 indx <- which(tolower(names(inputDataMap)) == "number_of_samples")
 if(length(indx) > 0L)
 	names(inputDataMap)[indx] <- tolower(names(inputDataMap)[indx])
-
-
-attributes<-splitDatasetAttributes(inputDataMap)
+	
+attributes<-splitDatasetAttributes(inputDataMap[setdiff(names(inputDataMap),"lastUpdate")])
 
 if(!all(c('name', 'parentId', 'lastUpdate') %in% names(inputDataMap))){
 	msg <- paste("gseId: ", inputDataMap[["name"]], "\ngeoTimestamp: ", inputDataMap[["lastUpdate"]], "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", inputDataMap[["parentId"]], "\n")
