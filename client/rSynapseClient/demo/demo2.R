@@ -14,7 +14,7 @@ library(affy)
 synapseLogin()
 
 ## set up a project
-myName <- <your name>
+myName <- "<your name>"
 projName <- sprintf("%ss Curation Project %s", myName, as.character(gsub("-",".",Sys.Date())))
 
 ## create a project object using it's constructor. The
@@ -64,11 +64,11 @@ myExpr <- storeEntity(myExpr)
 
 
 ## create a heatmap of some features and push it to Synapse
-jpeg(file = "heatmap.jpg")
+jpeg(file = file.path(tempdir(), "heatmap.jpg"))
 heatmap(pm(expr$objects$expression[[1]])[101:200,])
 dev.off()
 plot <- synapseClient:::Media(list(name = "heatmap", parentId=propertyValue(myDataset,"id")))
-plot <- addFile(plot,"heatmap.jpg")
+plot <- addFile(plot,file.path(tempdir(),"heatmap.jpg"))
 
 ## show the plot from R
 plot
