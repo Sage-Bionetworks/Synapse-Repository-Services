@@ -95,8 +95,6 @@ public class StepViewImpl extends Composite implements StepView {
 	@UiField
 	FlexTable environmentDescriptorsFlexTable;
 	@UiField
-	SimplePanel referenceListTablePanel;
-	@UiField
 	FlexTable referencesFlexTable;
 	@UiField
 	SimplePanel accessPanel;
@@ -261,8 +259,7 @@ public class StepViewImpl extends Composite implements StepView {
 		propertiesFlexTable.getRowFormatter().addStyleName(rowIndex,
 				STEP_DETAILS_HEADER_STYLE);
 		DisplayUtils.addRowToTable(rowIndex++, "Property Name",
-				"Property Value", STEP_DETAILS_STYLE,
-				propertiesFlexTable);
+				"Property Value", STEP_DETAILS_STYLE, propertiesFlexTable);
 		DisplayUtils.addRowToTable(rowIndex++, "Created By:", createdBy,
 				STEP_DETAILS_STYLE, propertiesFlexTable);
 		DisplayUtils.addRowToTable(rowIndex++, "Command Line:", commandLine,
@@ -277,19 +274,21 @@ public class StepViewImpl extends Composite implements StepView {
 				propertiesFlexTable);
 
 		rowIndex = 0;
-		environmentDescriptorsFlexTable.getRowFormatter().addStyleName(rowIndex,
-				STEP_DETAILS_HEADER_STYLE);
+		environmentDescriptorsFlexTable.getRowFormatter().addStyleName(
+				rowIndex, STEP_DETAILS_HEADER_STYLE);
 		DisplayUtils.addRowToTable(rowIndex++, "Descriptor Type", "Descriptor",
 				STEP_DETAILS_STYLE, environmentDescriptorsFlexTable);
-		for (EnvironmentDescriptor descriptor : environmentDescriptors) {
-			String descriptorDisplay = (null == descriptor.getQuantifier() || (0 == descriptor
-					.getQuantifier().length())) ? descriptor.getName()
-					: descriptor.getName() + ", " + descriptor.getQuantifier();
-			DisplayUtils.addRowToTable(rowIndex++, descriptor.getType(),
-					descriptorDisplay, STEP_DETAILS_STYLE,
-					environmentDescriptorsFlexTable);
+		if (null != environmentDescriptors) {
+			for (EnvironmentDescriptor descriptor : environmentDescriptors) {
+				String descriptorDisplay = (null == descriptor.getQuantifier() || (0 == descriptor
+						.getQuantifier().length())) ? descriptor.getName()
+						: descriptor.getName() + ", "
+								+ descriptor.getQuantifier();
+				DisplayUtils.addRowToTable(rowIndex++, descriptor.getType(),
+						descriptorDisplay, STEP_DETAILS_STYLE,
+						environmentDescriptorsFlexTable);
+			}
 		}
-
 		// List of references table
 		rowIndex = 0;
 		referencesFlexTable.setHTML(rowIndex, 0, "Reference Type");
@@ -304,8 +303,6 @@ public class StepViewImpl extends Composite implements StepView {
 		rowIndex = addRefsToReferenceTable(rowIndex, output,
 				"Output Layer Reference");
 		referencesFlexTable.setStyleName(REFERENCES_TABLE_STYLE);
-		referenceListTablePanel.clear();
-		referenceListTablePanel.add(referencesFlexTable.asWidget());
 
 		annotationsPanel.clear();
 		annotationEditor.setPlaceChanger(presenter.getPlaceChanger());
@@ -330,6 +327,7 @@ public class StepViewImpl extends Composite implements StepView {
 
 	private int addRefsToReferenceTable(int rowIndex,
 			Set<Reference> references, String referenceLabel) {
+		if(null == references) return rowIndex;
 		for (Reference ref : references) {
 			if (0 == (rowIndex % 2)) {
 				referencesFlexTable.getRowFormatter().addStyleName(rowIndex,
@@ -539,16 +537,19 @@ public class StepViewImpl extends Composite implements StepView {
 		int rowIndex = 0;
 		commandHistoryFlexTable.getRowFormatter().addStyleName(rowIndex,
 				STEP_DETAILS_HEADER_STYLE);
-		DisplayUtils.addRowToTable(rowIndex++, "Command Number",
-				"Command", STEP_DETAILS_STYLE, commandHistoryFlexTable);
-		for (String command : commands) {
-			DisplayUtils.addRowToTable(rowIndex, Integer.toString(rowIndex),
-					command, STEP_DETAILS_STYLE, commandHistoryFlexTable);
-			if (0 == (rowIndex % 2)) {
-				commandHistoryFlexTable.getRowFormatter().addStyleName(
-						rowIndex, STEP_DETAILS_CONTRAST_STYLE);
+		DisplayUtils.addRowToTable(rowIndex++, "Command Number", "Command",
+				STEP_DETAILS_STYLE, commandHistoryFlexTable);
+		if (null != commands) {
+			for (String command : commands) {
+				DisplayUtils.addRowToTable(rowIndex,
+						Integer.toString(rowIndex), command,
+						STEP_DETAILS_STYLE, commandHistoryFlexTable);
+				if (0 == (rowIndex % 2)) {
+					commandHistoryFlexTable.getRowFormatter().addStyleName(
+							rowIndex, STEP_DETAILS_CONTRAST_STYLE);
+				}
+				rowIndex++;
 			}
-			rowIndex++;
 		}
 	}
 

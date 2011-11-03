@@ -28,7 +28,7 @@ import com.google.inject.Inject;
 
 /**
  * @author deflaux
- *
+ * 
  */
 public class StepPresenter extends AbstractActivity implements
 		StepView.Presenter {
@@ -74,7 +74,7 @@ public class StepPresenter extends AbstractActivity implements
 		// Install the view
 		panel.setWidget(view);
 	}
-	
+
 	/**
 	 * @param place
 	 */
@@ -234,6 +234,7 @@ public class StepPresenter extends AbstractActivity implements
 					@Override
 					public void onSuccess(String annotationJsonString) {
 						try {
+							List<String> commandHistory = null;
 							Annotations annotations = nodeModelCreator
 									.createAnnotations(annotationJsonString);
 							Map<String, List<String>> strAnnotations = annotations
@@ -241,10 +242,11 @@ public class StepPresenter extends AbstractActivity implements
 							for (String annotKey : strAnnotations.keySet()) {
 								if (annotKey
 										.equals(COMMAND_HISTORY_ANNOTATION_KEY)) {
-									view.setCommandHistoryTable(strAnnotations
-											.get(annotKey));
+									commandHistory = strAnnotations
+											.get(annotKey);
 								}
 							}
+							view.setCommandHistoryTable(commandHistory);
 						} catch (RestServiceException ex) {
 							DisplayUtils.handleServiceException(ex,
 									placeChanger, authenticationController
