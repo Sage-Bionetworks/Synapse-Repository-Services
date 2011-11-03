@@ -62,7 +62,7 @@
 						<g:SimplePanel ui:field="annotationsPanel" />
 					</span>
 				</div>
-				<div class="data_info">
+				<div class="data_info step_details">
 					<span class="data_details">
 					   <span class="title">Step Properties</span>
   						<br /><br />

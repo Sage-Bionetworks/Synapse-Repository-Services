@@ -112,7 +112,7 @@ public class StepViewImpl extends Composite implements StepView {
 	private Header headerWidget;
 	private AnnotationEditor annotationEditor;
 	
-	private static final String STEP_DETAILS_HEADING_CELL_STYLE = "step_details_heading_cell";
+	private static final String STEP_DETAILS_STYLE = "step_details";
 	private static final String REFERENCES_TABLE_STYLE = "references_table";
 	private static final String REFERENCES_TABLE_HEADING_STYLE = "references_table_heading";
 		
@@ -223,19 +223,19 @@ public class StepViewImpl extends Composite implements StepView {
 
 		// add metadata to tables
         int rowIndex = 0;
-        DisplayUtils.addRowToTable(rowIndex++, "Created By:", createdBy, STEP_DETAILS_HEADING_CELL_STYLE, propertiesFlexTable);               
-        DisplayUtils.addRowToTable(rowIndex++, "Command Line:", commandLine, STEP_DETAILS_HEADING_CELL_STYLE, propertiesFlexTable);
+        DisplayUtils.addRowToTable(rowIndex++, "Created By:", createdBy, STEP_DETAILS_STYLE, propertiesFlexTable);               
+        DisplayUtils.addRowToTable(rowIndex++, "Command Line:", commandLine, STEP_DETAILS_STYLE, propertiesFlexTable);
         DisplayUtils.addRowToTable(rowIndex++, "Start Date:", 
         		(null != startDate) ? DisplayConstants.DATE_FORMAT.format(startDate) : "", 
-        				STEP_DETAILS_HEADING_CELL_STYLE, propertiesFlexTable);
+        				STEP_DETAILS_STYLE, propertiesFlexTable);
         DisplayUtils.addRowToTable(rowIndex++, "End Date:", 
         		(null != endDate) ? DisplayConstants.DATE_FORMAT.format(endDate) : "",
-        				STEP_DETAILS_HEADING_CELL_STYLE, propertiesFlexTable);
+        				STEP_DETAILS_STYLE, propertiesFlexTable);
 
         rowIndex = 0;
         for(EnvironmentDescriptor descriptor : environmentDescriptors) {
         	String descriptorDisplay = (null == descriptor.getQuantifier()) ? descriptor.getName() : descriptor.getName() + ", " + descriptor.getQuantifier();
-        	DisplayUtils.addRowToTable(rowIndex++, descriptor.getType(), descriptorDisplay, STEP_DETAILS_HEADING_CELL_STYLE, environmentDescriptorsFlexTable);        
+        	DisplayUtils.addRowToTable(rowIndex++, descriptor.getType(), descriptorDisplay, STEP_DETAILS_STYLE, environmentDescriptorsFlexTable);        
         }
         
 		// List of references table
@@ -280,7 +280,7 @@ public class StepViewImpl extends Composite implements StepView {
 					referenceLabel,
 					referenceLink, 
 					ref.getTargetVersionNumber().toString(),
-					STEP_DETAILS_HEADING_CELL_STYLE,
+					STEP_DETAILS_STYLE,
 					referencesFlexTable);
 		}
 		return rowIndex;

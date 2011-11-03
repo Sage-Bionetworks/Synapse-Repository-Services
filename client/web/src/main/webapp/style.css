@@ -566,10 +566,7 @@ h2 {
 	width: 320px;
 	margin-right:20px;
 }
-.step_details_heading_cell td {
-	text-align: left;
-	color: #FFFFFF;
-	font-size: 11px;
+.step_details td {
 	padding: 5px;
 }
 .references_table{
