@@ -1,8 +1,17 @@
 {
-    "description": "JSON schema for Project POJO",
+    "description":"JSON schema for Project POJO",
     "implements":[
         {
             "$ref":"org.sagebionetworks.repo.model.Entity"
         },
+        
     ],
+    "properties":{
+        "status":{
+            "type":"string",
+            "description":"the status of this Project",
+            
+        },
+        
+    }
 }
