@@ -48,7 +48,7 @@ public class DatasetPresenterTest {
 	GlobalApplicationState mockGlobalApplicationState;
 	String datasetId = "1";
 	Dataset place = new Dataset("Dataset:"+ datasetId);
-	org.sagebionetworks.web.shared.Dataset datasetModel1;
+	org.sagebionetworks.repo.model.Dataset datasetModel1;
 	UserData user1;
 	EULA eula1;
 	PagedResults emptyPagedResults;
@@ -70,7 +70,7 @@ public class DatasetPresenterTest {
 		user1 = new UserData("email@email.com", "Username", "token", false);
 
 		// Dataset 
-		datasetModel1 = new org.sagebionetworks.web.shared.Dataset();
+		datasetModel1 = new org.sagebionetworks.repo.model.Dataset();
 		datasetModel1.setId(datasetId);
 		datasetModel1.setName("test dataset");	
 

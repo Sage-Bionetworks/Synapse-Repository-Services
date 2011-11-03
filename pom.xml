@@ -216,6 +216,12 @@
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
+				<artifactId>schema-to-pojo-gwt</artifactId>
+				<version>${schema-to-pojo.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
 				<artifactId>services-authentication</artifactId>
 				<version>${project.version}</version>
 				<type>war</type>
@@ -467,7 +473,7 @@
 		<org.aspectj.version>1.6.10</org.aspectj.version>
 		<org.apache.commons.commons-dbcp.version>1.4
 		</org.apache.commons.commons-dbcp.version>
-		<schema-to-pojo.version>0.1.3</schema-to-pojo.version>
+		<schema-to-pojo.version>0.1.5</schema-to-pojo.version>
 		<org.json.version>20090211</org.json.version>
 		<com.amazonaws.version>1.2.7</com.amazonaws.version>
 	</properties>

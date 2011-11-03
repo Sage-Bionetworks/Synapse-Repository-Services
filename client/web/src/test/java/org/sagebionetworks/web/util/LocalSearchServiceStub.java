@@ -17,12 +17,12 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 
+import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.web.client.SearchService;
 import org.sagebionetworks.web.server.ColumnConfigProvider;
 import org.sagebionetworks.web.server.ServerConstants;
 import org.sagebionetworks.web.server.servlet.QueryStringUtils;
 import org.sagebionetworks.web.shared.ColumnInfo;
-import org.sagebionetworks.web.shared.Dataset;
 import org.sagebionetworks.web.shared.FilterEnumeration;
 import org.sagebionetworks.web.shared.HeaderData;
 import org.sagebionetworks.web.shared.SearchParameters;

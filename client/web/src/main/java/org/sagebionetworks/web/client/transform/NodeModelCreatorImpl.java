@@ -4,7 +4,10 @@ import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.shared.Agreement;
 import org.sagebionetworks.web.shared.Analysis;
 import org.sagebionetworks.web.shared.Annotations;
-import org.sagebionetworks.web.shared.Dataset;
+import org.sagebionetworks.gwt.client.schema.adapter.JSONObjectGwt;
+import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.web.shared.DownloadLocation;
 import org.sagebionetworks.web.shared.EULA;
 import org.sagebionetworks.web.shared.EntityTypeResponse;
@@ -31,7 +34,14 @@ public class NodeModelCreatorImpl implements NodeModelCreator {
 	public Dataset createDataset(String json) throws RestServiceException {
 		JSONObject obj = JSONParser.parseStrict(json).isObject();
 		DisplayUtils.checkForErrors(obj);
-		return new Dataset(obj);
+		Dataset ds = new Dataset();
+		JSONObjectAdapter adapter = new JSONObjectGwt(obj);
+		try {
+			ds.initializeFromJSONObject(adapter);
+		} catch (JSONObjectAdapterException e) {
+			throw new RestServiceException(e);
+		}
+		return ds;
 	}
 
 	@Override

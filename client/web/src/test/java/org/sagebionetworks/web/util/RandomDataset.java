@@ -5,7 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
-import org.sagebionetworks.web.shared.Dataset;
+import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.web.shared.LayerLink;
 
 public class RandomDataset {
@@ -30,10 +30,10 @@ public class RandomDataset {
 		long created = now - rand.nextInt(ONE_YEAR_MS);
 		// Released within 5 days of creation.
 		long release = created + rand.nextInt(DAY_MS*5);
-		c.setCreationDate(new Date(created));
+		c.setCreatedOn(new Date(created));
 		c.setReleaseDate(new Date(created));
 		c.setName(RandomStrings.generateRandomString(2, 15));
-		c.setCreator(RandomStrings.generateRandomString(2, 15));
+		c.setCreatedBy(RandomStrings.generateRandomString(2, 15));
 		int descWordCount = rand.nextInt(25)+5;
 		c.setDescription(RandomStrings.generateRandomString(descWordCount, 15));
 		// Create the layers

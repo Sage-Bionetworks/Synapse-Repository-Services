@@ -2,7 +2,8 @@ package org.sagebionetworks.web.client.presenter;
 
 import java.util.Date;
 
-import org.sagebionetworks.web.shared.Dataset;
+import org.sagebionetworks.repo.model.Dataset;
+
 
 abstract class DatasetRow {
 
@@ -36,11 +37,11 @@ abstract class DatasetRow {
 	}
 
 	public String getCreator() {
-		return wrapped.getCreator();
+		return wrapped.getCreatedBy();
 	}
 
 	public Date getCreatedOn() {
-		return wrapped.getCreationDate();
+		return wrapped.getCreatedOn();
 
 	}
 

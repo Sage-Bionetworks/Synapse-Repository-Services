@@ -4,7 +4,7 @@ package org.sagebionetworks.web.client.transform;
 import org.sagebionetworks.web.shared.Agreement;
 import org.sagebionetworks.web.shared.Analysis;
 import org.sagebionetworks.web.shared.Annotations;
-import org.sagebionetworks.web.shared.Dataset;
+import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.web.shared.DownloadLocation;
 import org.sagebionetworks.web.shared.EULA;
 import org.sagebionetworks.web.shared.EntityTypeResponse;

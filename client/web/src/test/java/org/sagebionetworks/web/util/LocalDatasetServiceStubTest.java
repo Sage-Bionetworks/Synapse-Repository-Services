@@ -8,7 +8,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 
 import org.junit.Test;
-import org.sagebionetworks.web.shared.Dataset;
+import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.web.shared.PaginatedDatasets;
 
 /**

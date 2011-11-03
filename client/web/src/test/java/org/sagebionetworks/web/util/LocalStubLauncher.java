@@ -13,7 +13,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.UriBuilder;
 
-import org.sagebionetworks.web.shared.Dataset;
+import org.sagebionetworks.repo.model.Dataset;
+
 
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.jersey.api.container.grizzly.GrizzlyWebContainerFactory;

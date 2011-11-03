@@ -34,6 +34,8 @@
 	<inherits name="org.sagebionetworks.web.Portal"/>
 	<inherits name="com.gwtplatform.mvp.Mvp"/>
 	<inherits name="com.extjs.gxt.ui.GXT" />
+	<inherits name="org.sagebionetworks.repo.synpaseDTOs"/>
+	<inherits name="org.sagebionetworks.gwt.JSONAdapter"/>
 
 
 </module>

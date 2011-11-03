@@ -6,13 +6,28 @@
 		<groupId>org.sagebionetworks</groupId>
 		<version>0.8-SNAPSHOT</version>
 	</parent>
-	
+
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>lib-auto-generated</artifactId>
 	<name>lib-schema</name>
 	<description>This project contains JSON schemas and the POJOs auto-generated from the schemas</description>
 	<build>
-
+		<resources>
+			<resource>
+				<!-- This will add the source files to the jar, which is needed for GWT 
+					compile. -->
+				<directory>src/main/java</directory>
+			</resource>
+			<resource>
+				<!-- We also want the resources directory added -->
+				<directory>src/main/resources</directory>
+			</resource>
+			<resource>
+				<!-- This will add all of the auto-generated sources files, which is needed for GWT 
+					compile. -->
+				<directory>target/auto-generated-pojos</directory>
+			</resource>
+		</resources>
 		<!-- This plugin builds the POJOs from JSON schemas. -->
 		<plugins>
 			<plugin>
@@ -38,7 +53,7 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>schema-to-pojo-lib</artifactId>
 		</dependency>
-			
+
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>

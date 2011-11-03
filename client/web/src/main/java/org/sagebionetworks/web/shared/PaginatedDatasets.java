@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.Dataset;
+
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 /**

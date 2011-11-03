@@ -10,7 +10,7 @@ import java.util.Map;
 
 import org.junit.Test;
 import org.sagebionetworks.web.client.DisplayUtils;
-import org.sagebionetworks.web.shared.Dataset;
+import org.sagebionetworks.repo.model.Dataset;
 
 /**
  * 
@@ -26,11 +26,11 @@ public class ListUtilsTest {
 		Dataset one = new Dataset();
 		one.setId(DisplayUtils.DEFAULT_PLACE_TOKEN);
 		one.setName("beta");
-		one.setCreationDate(new Date(99));
+		one.setCreatedOn(new Date(99));
 		Dataset two = new Dataset();
 		two.setId("1");
 		two.setName("alpha");
-		two.setCreationDate(new Date(98));
+		two.setCreatedOn(new Date(98));
 		Dataset allNull = new Dataset();
 		// Add them to the list
 		
