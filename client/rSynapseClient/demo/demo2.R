@@ -1,33 +1,28 @@
-# TODO: Add comment
+# Demo Script for Nov 3, 2011 training session
 # 
-# Author: furia
+# Author: Matt Furia
 ###############################################################################
 ## load the synapse client and login
 library(synapseClient)
 library(affy)
-library(simpleaffy)
+
+###############
+## Section 1: Setup a project in Synapse
+###############
+
+## log in
 synapseLogin()
 
 ## set up a project
 myName <- <your name>
-projName <- sprintf("%ss Curation Project", myName)
+projName <- sprintf("%ss Curation Project %s", myName, as.character(gsub("-",".",Sys.Date())))
 
 ## create a project object using it's constructor. The
 ## list contains name-value pairs of properties that should
 ## be added to the project. See help documentation for details
 ## on the properties that can be set. For projects, only name is
 ## required
-myProj <- Project(list(name=projName))
-
-## show the project. note that entity id is missing
-myProj
-
-## create the project in Synapse using createEntity. make sure to 
-## catch the return value
-myProj <- createEntity(myProj)
-
-## now the Synapse Entity Id is populated
-myProj
+myProj <- createEntity(Project(list(name=projName)))
 
 ## create a dataset 
 myDataset <- createEntity(Dataset(list(name="my Data", parentId=propertyValue(myProj, "id"))))
@@ -38,12 +33,19 @@ onWeb(myDataset)
 ## refresh the local copy of myDataset
 myDataset <- refreshEntity(myDataset)
 
+
+################
+## Section 2: Working with data
+################
+
 ## download a metageo expression layer
-geoEntityId <- "17365"
+geoEntityId <- "23994"
 expr <- loadEntity(geoEntityId)
 
 ##inspect the contents
 expr
+names(expr)
+names(expr$objects)
 
 ## write the pm values to a text file
 write.table(pm(expr$objects$expression[["HG-U133A"]]), file="pm.txt", sep="\t", quote=F, row.names=F)
@@ -61,34 +63,53 @@ myExpr <- addFile(myExpr, "pm.txt", path="GSE10024/expression/affymetrix")
 myExpr <- storeEntity(myExpr)
 
 
-## create a heatmap of some probes and push that to Synapse
+## create a heatmap of some features and push it to Synapse
 jpeg(file = "heatmap.jpg")
-hmap.eset(expr$objects$expression[[1]], probesets=101:200)
+heatmap(pm(expr$objects$expression[[1]])[101:200,])
 dev.off()
 plot <- synapseClient:::Media(list(name = "heatmap", parentId=propertyValue(myDataset,"id")))
 plot <- addFile(plot,"heatmap.jpg")
-plot <- storeEntity(plot)
 
 ## show the plot from R
 plot
 
+## store the plot in synapse
+plot <- storeEntity(plot)
+
 ## show the plot on the web
 onWeb(plot)
 
-## store the code used to generate the curated data
-## this is a bit artificial, but in this case we'll just store the entire Rhistory.
-## in the future provenance features of Synapse may provide an easier way to do this.
-savehistory(file.path(tempdir(), "history.R"))
-curationCode <- Code(list(name="My Curation Script", parentId = propertyValue(myDataset, "id")))
-curationCode <- addFile(curationCode, file.path(tempdir(), "history.R"))
-curationCode <- storeEntity(curationCode)
 
-## retrieve the curation code from synapse, edit it and store the code again
-fetchedCode <- downloadEntity(curationCode)
-fetchedCode <- edit(fetchedCode)
-storeEntity(fetchedCode)
+##############
+## Section 3: Code entities
+##############
 
-onWeb(myDataset)
+## create a code entity
+plotCode <- Code(list(name="ggheat", parentId=propertyValue(myDataset,"id")))
+
+## add code file to the entity
+plotCode <- addFile(plotCode)
+
+## edit the source file
+edit(plotCode)
+
+## source the code file
+plotCode <- loadEntity(plotCode)
+
+## show the code entity
+plotCode
+
+## attach the code entity
+attach(plotCode)
+
+## make a plot
+myHeatmap(pm(expr$objects$expression[[1]])[101:200,])
+
+## detach the code entity
+detach(plotCode)
+
+## store the code in Synapse
+plotCode <- storeEntity(plotCode)
 
 
 
