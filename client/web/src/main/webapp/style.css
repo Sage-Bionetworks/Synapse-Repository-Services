@@ -566,16 +566,25 @@ h2 {
 	width: 320px;
 	margin-right:20px;
 }
+.step_details_header td {
+	background-color: #f9f498;
+	padding-top: 5px;
+	padding-bottom: 3px;
+	vertical-align: bottom;
+	border-bottom: 2px solid #d8d8da;
+	font-size: 10px;
+	color: #861b19;	
+}
 .step_details td {
 	padding: 5px;
     color: #58585A;
     font-size: 10px;
 }
+.step_details_contrast td {
+	 background-color: #F0F0F0;
+}
 .references_table{
 	width: 100%;
-}
-.references_table_heading {
-	 background-color: #F0F0F0;
 }
 .data_detail_section .header {
 	background-color: #bc3226;

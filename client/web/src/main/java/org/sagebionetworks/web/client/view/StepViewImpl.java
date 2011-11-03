@@ -126,9 +126,10 @@ public class StepViewImpl extends Composite implements StepView {
 	private Header headerWidget;
 	private AnnotationEditor annotationEditor;
 
+	private static final String STEP_DETAILS_HEADER_STYLE = "step_details_header";
 	private static final String STEP_DETAILS_STYLE = "step_details";
 	private static final String REFERENCES_TABLE_STYLE = "references_table";
-	private static final String REFERENCES_TABLE_HEADING_STYLE = "references_table_heading";
+	private static final String STEP_DETAILS_CONTRAST_STYLE = "step_details_contrast";
 
 	/**
 	 * @param binder
@@ -257,6 +258,11 @@ public class StepViewImpl extends Composite implements StepView {
 
 		// add metadata to tables
 		int rowIndex = 0;
+		propertiesFlexTable.getRowFormatter().addStyleName(rowIndex,
+				STEP_DETAILS_HEADER_STYLE);
+		DisplayUtils.addRowToTable(rowIndex++, "Property Name",
+				"Property Value", STEP_DETAILS_STYLE,
+				propertiesFlexTable);
 		DisplayUtils.addRowToTable(rowIndex++, "Created By:", createdBy,
 				STEP_DETAILS_STYLE, propertiesFlexTable);
 		DisplayUtils.addRowToTable(rowIndex++, "Command Line:", commandLine,
@@ -271,6 +277,10 @@ public class StepViewImpl extends Composite implements StepView {
 				propertiesFlexTable);
 
 		rowIndex = 0;
+		environmentDescriptorsFlexTable.getRowFormatter().addStyleName(rowIndex,
+				STEP_DETAILS_HEADER_STYLE);
+		DisplayUtils.addRowToTable(rowIndex++, "Descriptor Type", "Descriptor",
+				STEP_DETAILS_STYLE, environmentDescriptorsFlexTable);
 		for (EnvironmentDescriptor descriptor : environmentDescriptors) {
 			String descriptorDisplay = (null == descriptor.getQuantifier() || (0 == descriptor
 					.getQuantifier().length())) ? descriptor.getName()
@@ -281,12 +291,12 @@ public class StepViewImpl extends Composite implements StepView {
 		}
 
 		// List of references table
-		rowIndex = 1;
+		rowIndex = 0;
 		referencesFlexTable.setHTML(rowIndex, 0, "Reference Type");
 		referencesFlexTable.setHTML(rowIndex, 1, "Entity Id");
 		referencesFlexTable.setHTML(rowIndex, 2, "Entity Version");
 		referencesFlexTable.getRowFormatter().addStyleName(rowIndex,
-				REFERENCES_TABLE_HEADING_STYLE);
+				STEP_DETAILS_HEADER_STYLE);
 		rowIndex++;
 		rowIndex = addRefsToReferenceTable(rowIndex, code, "Code Reference");
 		rowIndex = addRefsToReferenceTable(rowIndex, input,
@@ -321,6 +331,10 @@ public class StepViewImpl extends Composite implements StepView {
 	private int addRefsToReferenceTable(int rowIndex,
 			Set<Reference> references, String referenceLabel) {
 		for (Reference ref : references) {
+			if (0 == (rowIndex % 2)) {
+				referencesFlexTable.getRowFormatter().addStyleName(rowIndex,
+						STEP_DETAILS_CONTRAST_STYLE);
+			}
 			Anchor referenceLink = createReferenceLink(ref.getTargetId());
 			DisplayUtils.addRowToTable(rowIndex++, referenceLabel,
 					referenceLink, ref.getTargetVersionNumber().toString(),
@@ -523,13 +537,18 @@ public class StepViewImpl extends Composite implements StepView {
 	@Override
 	public void setCommandHistoryTable(List<String> commands) {
 		int rowIndex = 0;
+		commandHistoryFlexTable.getRowFormatter().addStyleName(rowIndex,
+				STEP_DETAILS_HEADER_STYLE);
+		DisplayUtils.addRowToTable(rowIndex++, "Command Number",
+				"Command", STEP_DETAILS_STYLE, commandHistoryFlexTable);
 		for (String command : commands) {
-			DisplayUtils.addRowToTable(rowIndex++, Integer.toString(rowIndex),
+			DisplayUtils.addRowToTable(rowIndex, Integer.toString(rowIndex),
 					command, STEP_DETAILS_STYLE, commandHistoryFlexTable);
-			if (1 == (rowIndex % 2)) {
+			if (0 == (rowIndex % 2)) {
 				commandHistoryFlexTable.getRowFormatter().addStyleName(
-						rowIndex, REFERENCES_TABLE_HEADING_STYLE);
+						rowIndex, STEP_DETAILS_CONTRAST_STYLE);
 			}
+			rowIndex++;
 		}
 	}
 

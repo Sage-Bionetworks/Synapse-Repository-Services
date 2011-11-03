@@ -84,8 +84,10 @@
 						<span class="title">Step References</span>
 						<span class="secondary_text">Select a reference to view its details</span>
 					</span>
-					<g:SimplePanel ui:field="referenceListTablePanel" />
-                    <g:FlexTable ui:field="referencesFlexTable" />												
+					<div class="scrollable">
+						<g:SimplePanel ui:field="referenceListTablePanel" />
+                    	<g:FlexTable ui:field="referencesFlexTable" />
+                    </div>												
 				</div>
 
 				<div class="data_detail_section">
@@ -110,12 +112,6 @@
 
 						<span class="title">Step History</span>
 					</span>
-					<table width="100%" class="head_table">
-						<tr>
-							<th class="analysis">Command Number</th>
-							<th class="step">Command</th>
-						</tr>
-					</table>
 					<div class="scrollable">
 						<g:FlexTable ui:field="commandHistoryFlexTable" />
 					</div>
