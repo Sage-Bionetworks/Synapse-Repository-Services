@@ -4,7 +4,8 @@ use LWP::Simple;
 my %platforms;
 my %affiliatedPlatforms;
 my %allPlatforms;
-open F, "src/main/resources/ncbiGPLIDs" or die("Cannot find file: src/main/resources/ncbiGPLIDs");
+#open F, "src/main/resources/ncbiGPLIDs" or die("Cannot find file: src/main/resources/ncbiGPLIDs");
+open F, "ncbiGPLIDs" or die("Cannot find file: src/main/resources/ncbiGPLIDs");
 while (<F>) {
 	chomp;
 	my @a = split /\t/;
@@ -18,7 +19,7 @@ while (<F>) {
 # Get all affiliated platforms from NCBI
 foreach my $p (keys %platforms) {
 	print $p, "\n";
-#	next unless $p eq 'GPL96';
+#	next unless $p eq 'GPL570';
 	my $url = 'http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc='.$p;
 	system("curl -O $url");
 	my $file = 'acc.cgi?acc='.$p;
@@ -41,8 +42,10 @@ foreach my $p ( keys %allPlatforms ) {
 	print "Downloading information for $p\n";
 	my $a = $affiliatedPlatforms{$p};
 #	next unless $p eq 'GPL96' or $a eq 'GPL96';
-	
-	open G, ">output";
+#	next unless $p eq 'GPL570';
+
+	my $filename = 'output';
+	open G, ">:utf8", $filename;
 	$db    = 'gds';
 	$query = $p . '[ACCN]+AND+gse[ETYP]&usehistory=y';
 
@@ -88,8 +91,7 @@ foreach my $p ( keys %allPlatforms ) {
 	}
 	close F;
 	close O;
-	system("rm hmm output");
-
+#	system("rm hmm output");
 #  exit();
 }
 
@@ -102,7 +104,6 @@ sub getInfo {
 		s/\r//g;
 		s/\!//;
 		s/\#//g;
-
 		if (/\/DocSum/) {
 			#################################
 			# Document summary closed. Print out values
