@@ -8,7 +8,7 @@ importFrom(utils, edit)
 ## package has a dynamic library
 useDynLib(synapseClient)
 
-export(onWeb, attach)
+export(onWeb, attach, detach)
 
 ## S3 utility methods
 export(
