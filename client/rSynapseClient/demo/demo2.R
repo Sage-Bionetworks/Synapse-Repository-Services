@@ -64,11 +64,11 @@ myExpr <- storeEntity(myExpr)
 
 
 ## create a heatmap of some features and push it to Synapse
-jpeg(file = file.path(tempdir(), "heatmap.jpg"))
+jpeg(file = "heatmap.jpg")
 heatmap(pm(expr$objects$expression[[1]])[101:200,])
 dev.off()
 plot <- synapseClient:::Media(list(name = "heatmap", parentId=propertyValue(myDataset,"id")))
-plot <- addFile(plot,file.path(tempdir(),"heatmap.jpg"))
+plot <- addFile(plot,"heatmap.jpg")
 
 ## show the plot from R
 plot
