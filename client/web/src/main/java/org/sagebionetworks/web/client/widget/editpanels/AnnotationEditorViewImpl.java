@@ -561,9 +561,11 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 				SimpleComboValue<String> selectedItem = se.getSelectedItem();				
 				if(selectedItem.getValue().equals(MENU_ADD_ANNOTATION_ENUMERATION)) {
 					addAnnotationEnumCombo.show();
+					addAnnotationOntologyValueCombo.hide();
 //					addAnnotationValue.hide();					
 				} else if (selectedItem.getValue().equals(MENU_ADD_ANNOTATION_ONTOLOGY)) {
 					addAnnotationOntologyValueCombo.show();
+					addAnnotationEnumCombo.hide();
 //					addAnnotationValue.hide();
 				} else {
 					addAnnotationEnumCombo.clearSelections();
@@ -620,6 +622,7 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 //		addAnnotationValue.clear();
 //		addAnnotationValue.hide();
 	}
+	
 
 	private ColumnEditType getColumnEditTypeFromDisplayType(String type) {
 		if(type == null) return null;
