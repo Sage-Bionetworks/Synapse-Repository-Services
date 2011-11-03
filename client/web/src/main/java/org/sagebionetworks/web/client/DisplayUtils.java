@@ -28,6 +28,7 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.place.shared.Place;
 import com.google.gwt.resources.client.ImageResource;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
+import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.FlexTable;
 
 public class DisplayUtils {
@@ -77,11 +78,25 @@ public class DisplayUtils {
 	 */
 	public static void addRowToTable(int row, String key, String value,
 			FlexTable table) {
-		table.setHTML(row, 0, key);
-		table.getCellFormatter().addStyleName(row, 0, "boldRight");
+		addRowToTable(row, key, value, "boldRight", table);
 		table.setHTML(row, 1, value);
 	}
 
+	public static void addRowToTable(int row, String key, String value,
+			String styleName, FlexTable table) {
+		table.setHTML(row, 0, key);
+		table.getCellFormatter().addStyleName(row, 0, styleName);
+		table.setHTML(row, 1, value);
+	}
+	
+	public static void addRowToTable(int row, String label, Anchor key, String value,
+			String styleName, FlexTable table) {
+		table.setHTML(row, 0, label);
+		table.getCellFormatter().addStyleName(row, 0, styleName);
+		table.setWidget(row, 1, key);
+		table.setHTML(row, 2, value);
+	}
+	
 	public static void checkForErrors(JSONObject obj) throws RestServiceException {
 		if(obj == null) return;
 		if(obj.containsKey("error")) {

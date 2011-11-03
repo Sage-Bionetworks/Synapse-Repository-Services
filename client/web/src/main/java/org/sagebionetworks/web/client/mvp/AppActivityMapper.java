@@ -79,6 +79,10 @@ public class AppActivityMapper implements ActivityMapper {
 		openAccessPlaces.add(Project.class);
 		openAccessPlaces.add(ComingSoon.class);
 		openAccessPlaces.add(Lookup.class);
+		openAccessPlaces.add(Step.class);
+		openAccessPlaces.add(StepsHome.class);
+		openAccessPlaces.add(Analysis.class);
+		openAccessPlaces.add(AnalysesHome.class);
 	}
 
 	@Override
@@ -160,6 +164,7 @@ public class AppActivityMapper implements ActivityMapper {
 			// Steps Home 
 			StepPresenter presenter = ginjector.getStepPresenter();
 			presenter.setPlace((Step)place);
+			presenter.setLookupPresenter(ginjector.getLookupPresenter());
 			return presenter;
 		}else if (place instanceof LoginPlace) {
 			// login view

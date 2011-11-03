@@ -64,10 +64,14 @@
 				</div>
 				<div class="data_info">
 					<span class="data_details">
-                       <g:FlexTable ui:field="middleFlexTable" />
+					   <span class="title">Step Properties</span>
+  						<br /><br />
+                       <g:FlexTable ui:field="propertiesFlexTable" />
 					</span>
-					<span class="data_details data_details_right">
-						<g:FlexTable ui:field="rightFlexTable" />
+					<span class="data_details data_details_right" style="float:right;">
+ 					   <span class="title">Step Environment Descriptors</span>
+						<br /><br />
+						<g:FlexTable ui:field="environmentDescriptorsFlexTable" />
 					</span>
 				</div>
 			</div>

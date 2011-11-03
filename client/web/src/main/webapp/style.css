@@ -566,8 +566,17 @@ h2 {
 	width: 320px;
 	margin-right:20px;
 }
+.step_details_heading_cell td {
+	text-align: left;
+	color: #FFFFFF;
+	font-size: 11px;
+	padding: 5px;
+}
 .references_table{
-	background-color: #bc3226;
+	width: 100%;
+}
+.references_table_heading {
+	 background-color: #F0F0F0;
 }
 .data_detail_section .header {
 	background-color: #bc3226;

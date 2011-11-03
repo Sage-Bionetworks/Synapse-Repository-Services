@@ -33,6 +33,7 @@ public class StepPresenter extends AbstractActivity implements
 	private NodeModelCreator nodeModelCreator;
 	private AuthenticationController authenticationController;
 	private GlobalApplicationState globalApplicationState;
+	private LookupPresenter lookupPresenter;
 
 	@Inject
 	public StepPresenter(StepView view, NodeServiceAsync service,
@@ -181,4 +182,12 @@ public class StepPresenter extends AbstractActivity implements
 		return null;
 	}
 
-}
+	public void setLookupPresenter(LookupPresenter lookupPresenter) {
+		this.lookupPresenter = lookupPresenter;
+	}
+
+	@Override
+	public void doLookupEntity(final String entityId) {
+		lookupPresenter.doLookupEntity(entityId);
+	}
+	}

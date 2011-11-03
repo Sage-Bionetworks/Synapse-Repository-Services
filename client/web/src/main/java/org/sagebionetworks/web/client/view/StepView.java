@@ -62,6 +62,12 @@ public interface StepView extends IsWidget, SynapseView {
 		 * Deletes this step and redirects to the steps home page
 		 */
 		public void delete();
+
+		/**
+		 * Redirect the user to the page for the entity to which we refer
+		 * @param referenceId
+		 */
+		public void doLookupEntity(String referenceId);
 	}
 
 }
