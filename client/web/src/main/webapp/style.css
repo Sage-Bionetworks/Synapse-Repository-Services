@@ -568,6 +568,8 @@ h2 {
 }
 .step_details td {
 	padding: 5px;
+    color: #58585A;
+    font-size: 10px;
 }
 .references_table{
 	width: 100%;

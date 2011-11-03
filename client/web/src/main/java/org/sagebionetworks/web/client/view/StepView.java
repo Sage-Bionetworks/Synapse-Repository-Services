@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.client.view;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.web.shared.EnvironmentDescriptor;
@@ -47,6 +48,13 @@ public interface StepView extends IsWidget, SynapseView {
 			Set<Reference> output,
 			Set<EnvironmentDescriptor> environmentDescriptors,
 			boolean isAdministrator, boolean canEdit);
+
+	/** 
+	 * Pass in commands to display
+	 * 
+	 * @param commands
+	 */
+	void setCommandHistoryTable(List<String> commands);
 
 	/**
 	 * @author deflaux

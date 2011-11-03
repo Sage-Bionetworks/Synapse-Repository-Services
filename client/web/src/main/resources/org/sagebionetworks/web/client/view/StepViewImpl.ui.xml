@@ -76,7 +76,7 @@
 				</div>
 			</div>
 			<div class="data_detail_sections">
-				<div class="data_detail_section">
+				<div class="step_details data_detail_section">
 					<span class="header">
 						<span class="icon right">
 							<g:SimplePanel ui:field="addReferencePanel" />						
@@ -101,7 +101,7 @@
 					</div>
 				</div>
 
-				<div class="data_detail_section last">
+				<div class="step_details data_detail_section last">
 					<span class="header">
 						<span class="icon right">
 							<g:Image resource='{icons.applicationResize16}'/> View All<br/>
@@ -112,13 +112,12 @@
 					</span>
 					<table width="100%" class="head_table">
 						<tr>
-							<th class="analysis">Action</th>
-							<th class="step">User</th>
-							<th class="last_modified">Date</th>
+							<th class="analysis">Command Number</th>
+							<th class="step">Command</th>
 						</tr>
 					</table>
 					<div class="scrollable">
-						<g:SimplePanel ui:field="demoStepHistory" />
+						<g:FlexTable ui:field="commandHistoryFlexTable" />
 					</div>
 				</div>
 

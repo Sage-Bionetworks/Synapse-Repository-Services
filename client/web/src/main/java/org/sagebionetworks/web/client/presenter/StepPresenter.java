@@ -1,5 +1,8 @@
 package org.sagebionetworks.web.client.presenter;
 
+import java.util.List;
+import java.util.Map;
+
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.GlobalApplicationState;
@@ -9,6 +12,7 @@ import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.view.StepView;
+import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.Step;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
@@ -22,8 +26,14 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.AcceptsOneWidget;
 import com.google.inject.Inject;
 
+/**
+ * @author deflaux
+ *
+ */
 public class StepPresenter extends AbstractActivity implements
 		StepView.Presenter {
+
+	private static final String COMMAND_HISTORY_ANNOTATION_KEY = "rHistory";
 
 	private org.sagebionetworks.web.client.place.Step place;
 	private StepView view;
@@ -32,9 +42,17 @@ public class StepPresenter extends AbstractActivity implements
 	private PlaceChanger placeChanger;
 	private NodeModelCreator nodeModelCreator;
 	private AuthenticationController authenticationController;
+	@SuppressWarnings("unused")
 	private GlobalApplicationState globalApplicationState;
 	private LookupPresenter lookupPresenter;
 
+	/**
+	 * @param view
+	 * @param service
+	 * @param nodeModelCreator
+	 * @param authenticationController
+	 * @param globalApplicationState
+	 */
 	@Inject
 	public StepPresenter(StepView view, NodeServiceAsync service,
 			NodeModelCreator nodeModelCreator,
@@ -56,19 +74,23 @@ public class StepPresenter extends AbstractActivity implements
 		// Install the view
 		panel.setWidget(view);
 	}
-
+	
+	/**
+	 * @param place
+	 */
 	public void setPlace(org.sagebionetworks.web.client.place.Step place) {
 		this.place = place;
-		this.stepId = place.toToken();
+		this.stepId = this.place.toToken();
 		view.setPresenter(this);
 
 		// load the step given in the Step Place
-		loadFromServer();
+		refresh();
 	}
 
 	@Override
 	public void refresh() {
 		loadFromServer();
+		loadCommandHistory();
 	}
 
 	@Override
@@ -95,7 +117,7 @@ public class StepPresenter extends AbstractActivity implements
 				});
 	}
 
-	/*
+	/**
 	 * Protected Methods
 	 */
 	protected void loadFromServer() {
@@ -182,6 +204,12 @@ public class StepPresenter extends AbstractActivity implements
 		return null;
 	}
 
+	/**
+	 * References can be of any entity type, use the Lookup presenter when folks
+	 * click on reference links
+	 * 
+	 * @param lookupPresenter
+	 */
 	public void setLookupPresenter(LookupPresenter lookupPresenter) {
 		this.lookupPresenter = lookupPresenter;
 	}
@@ -190,4 +218,39 @@ public class StepPresenter extends AbstractActivity implements
 	public void doLookupEntity(final String entityId) {
 		lookupPresenter.doLookupEntity(entityId);
 	}
+
+	/**
+	 * Load the command history for this step from the server
+	 */
+	private void loadCommandHistory() {
+		nodeService.getNodeAnnotationsJSON(NodeType.STEP, stepId,
+				new AsyncCallback<String>() {
+					@Override
+					public void onFailure(Throwable caught) {
+						// set the table even if we can't get the annotations
+						view.setCommandHistoryTable(null);
+					}
+
+					@Override
+					public void onSuccess(String annotationJsonString) {
+						try {
+							Annotations annotations = nodeModelCreator
+									.createAnnotations(annotationJsonString);
+							Map<String, List<String>> strAnnotations = annotations
+									.getStringAnnotations();
+							for (String annotKey : strAnnotations.keySet()) {
+								if (annotKey
+										.equals(COMMAND_HISTORY_ANNOTATION_KEY)) {
+									view.setCommandHistoryTable(strAnnotations
+											.get(annotKey));
+								}
+							}
+						} catch (RestServiceException ex) {
+							DisplayUtils.handleServiceException(ex,
+									placeChanger, authenticationController
+											.getLoggedInUser());
+						}
+					}
+				});
 	}
+}
