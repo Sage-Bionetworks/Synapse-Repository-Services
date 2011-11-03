@@ -121,7 +121,11 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 		if(key != null && newValue != null) {
 			for(FormField formField : formFields) {
 				if(formField.getKey().equals(key)) {
-					formField.setValue(newValue);
+					if(formField.isOntologyBased()) {
+						formField.setNcboOntologyTerm(new NcboOntologyTerm(newValue));
+					} else {
+						formField.setValue(newValue);
+					}
 					persist(formFields, PersistOperation.UPDATE);
 					return;
 				}
@@ -136,14 +140,20 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
     
 	@Override
 	public void addAnnotation(String key, ColumnEditType type) {
-		addAnnotationField(key, type, null);
+		addAnnotationField(key, type, null, null);
 	}
 
 	@Override
 	public void addAnnotation(String key, ColumnEditType type, Enumeration enumeration) {
-		addAnnotationField(key, type, enumeration); 
+		addAnnotationField(key, type, enumeration, null); 
 	}
 
+	@Override
+	public void addAnnotation(String key, ColumnEditType type, NcboOntologyTerm term) {
+		addAnnotationField(key, type, null, term);
+		
+	}
+	
 	@Override
 	public void deleteAnnotation(String key) {
 		if(key != null) {
@@ -286,7 +296,7 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 				}
 				FormField field = null;
 				// TODO : this ontology & enum logic should eventually be read from the JSON schema or type store
-				if(value.startsWith(DisplayUtils.NCBO_VALUE_PREFIX)) {
+				if(value.startsWith(NcboOntologyTerm.NCBO_VALUE_PREFIX)) {
 					// create NCBO field
 					field = extractNcboEntry(key, value, ctype);
 				} else if(getKeyToEnum.containsKey(key)) {
@@ -323,20 +333,14 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 
     private static FormField extractNcboEntry(String key, String value, ColumnType ctype) {
     	FormField field = null;
-    	
-    	// NCBO-ENTRY:<display>:<ontology version id>:<concept id> 
-    	String [] tokens = value.split(DisplayUtils.NCBO_DELIMITER);
-    	if(tokens != null && tokens.length == 4 
-    			&& !tokens[1].isEmpty()
-    			&& !tokens[2].isEmpty()
-    			&& !tokens[3].isEmpty()) {    		
-    		NcboOntologyTerm term = new NcboOntologyTerm(tokens[1], tokens[2], tokens[3]);     		
-    		field = new FormField(key, term, ctype);
-    	}
+    	 
+		NcboOntologyTerm term = new NcboOntologyTerm(value);     		
+		field = new FormField(key, term, ctype);
     	
     	return field;
 	}
 
+    
 	/**
      * NOTE: fields are copied into the original object because not all operations of the annotation object are supported.
      * Thus just rebuilding the annotation object from FormFields is not possible.
@@ -367,9 +371,13 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 		if(typeOfAnnotations != null) {
 			for(FormField formField : formFields) {
 				if(annotationKey == STRING_ANNOTATIONS) { 
-					if(formField.getType() == ColumnType.STRING) {
+					if(formField.getType() == ColumnType.STRING) {						
 						JSONArray array = new JSONArray();
-						array.set(0, new JSONString(formField.getValue()));
+						if(formField.isOntologyBased()) {
+							array.set(0, new JSONString(formField.getNcboOntologyTerm().serialize()));
+						} else {							
+							array.set(0, new JSONString(formField.getValue()));
+						}
 						typeOfAnnotations.put(formField.getKey(), array);
 					}
 				} else if (annotationKey == LONG_ANNOTATIONS) {
@@ -397,7 +405,7 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 		}
     }
 	
-	private void addAnnotationField(String key, ColumnEditType type, Enumeration enumeration) {
+	private void addAnnotationField(String key, ColumnEditType type, Enumeration enumeration, NcboOntologyTerm ontologyTerm) {
 		// validate key
 		String errorMessage = validateKey(key);
 		if(errorMessage != null) {
@@ -416,6 +424,7 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 			else if (type == ColumnEditType.TEXTAREA) columnType = ColumnType.STRING; 
 			else if (type == ColumnEditType.BOOLEAN) columnType = ColumnType.BOOLEAN;
 			else if (type == ColumnEditType.ENUMERATION) columnType = ColumnType.STRING;
+			else if (type == ColumnEditType.ONTOLOGY) columnType = ColumnType.STRING;
 			else if (type == ColumnEditType.DATE) { 
 				columnType = ColumnType.DATE; 
 				blankValue = DisplayConstants.DATE_FORMAT.format(new Date());
@@ -424,6 +433,8 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 			if(columnType != null) {
 				if(enumeration != null) {
 					formFields.add(new FormField(key, new EnumerationTerm("", ""), enumeration.getTerms(), columnType));
+				} else if(ontologyTerm != null) { 
+					formFields.add(new FormField(key, ontologyTerm, columnType));
 				} else {
 					formFields.add(new FormField(key, blankValue, columnType));					
 				}
@@ -474,4 +485,5 @@ public class AnnotationEditor implements AnnotationEditorView.Presenter {
 		}
 		return errorMsg;
 	}
+
 }

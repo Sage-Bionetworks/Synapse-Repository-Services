@@ -24,6 +24,7 @@ public class FormField {
 		this.key = key;
 		this.ncboOntologyTerm = ncboOntologyTerm;
 		this.type = type;
+		this.isOntologyBased = true;
 	}
 	
 	public FormField(String key, String value, ColumnType type) {

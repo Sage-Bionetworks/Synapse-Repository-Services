@@ -7,6 +7,7 @@ import java.util.Map;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.ontology.EnumerationTerm;
+import org.sagebionetworks.web.client.ontology.NcboOntologyTerm;
 
 import com.extjs.gxt.ui.client.data.BaseModelData;
 import com.extjs.gxt.ui.client.store.ListStore;
@@ -71,11 +72,20 @@ public class EditorUtils {
 			case DECIMAL:
 			case BOOLEAN:			
 				if(key.equals(DisplayUtils.NODE_DESCRIPTION_KEY) || key.matches("^" + DisplayUtils.LAYER_COLUMN_DESCRIPTION_KEY_PREFIX + ".*")) {
-					model.setColumnEditType(ColumnEditType.TEXTAREA);					
+					model.setColumnEditType(ColumnEditType.TEXTAREA);
+					model.setValue(formField.getValue());
 				} else {
-					model.setColumnEditType(ColumnEditType.TEXT);
+					if(formField.isOntologyBased()) {
+						model.setColumnEditType(ColumnEditType.ONTOLOGY);
+						NcboOntologyTerm term = formField.getNcboOntologyTerm();
+						model.setValueDisplay(term.getPreferredName());
+						model.setValue(term.serialize());		
+					} else {
+						// normal text
+						model.setColumnEditType(ColumnEditType.TEXT);
+						model.setValue(formField.getValue());
+					}
 				}
-				model.setValue(formField.getValue());
 				break;
 			case DATE:		
 				model.setColumnEditType(ColumnEditType.DATE);
@@ -87,11 +97,7 @@ public class EditorUtils {
 			if(formField.isEnumBased()) {				
 				model.setColumnEditType(ColumnEditType.ENUMERATION);
 			}
-			
-			if(formField.isOntologyBased()) {
-				model.setColumnEditType(ColumnEditType.ONTOLOGY);
-			}
-			
+						
 			store.add(model);
 			
 			// save for lookup later

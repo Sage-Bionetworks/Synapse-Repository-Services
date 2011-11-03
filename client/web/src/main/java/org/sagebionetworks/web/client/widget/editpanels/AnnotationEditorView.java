@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.sagebionetworks.web.client.ontology.Enumeration;
+import org.sagebionetworks.web.client.ontology.NcboOntologyTerm;
 
 import com.google.gwt.user.client.ui.IsWidget;
 
@@ -69,6 +70,8 @@ public interface AnnotationEditorView extends IsWidget {
     	public void addAnnotation(String key, ColumnEditType type, Enumeration enumeration);
     	
     	public void deleteAnnotation(String key);
+
+		public void addAnnotation(String nameSelected, ColumnEditType typeSelected, NcboOntologyTerm ontologyTermSelected);
     }
 
 

@@ -120,3 +120,14 @@ h1 {
 
 }	
 	
+	
+.suggestSearchTerm {
+	color: #7a0402;
+	font: 12px/1.4 arial,FreeSans,Helvetica,sans-serif;
+    font-family: Courier,monospace;
+}
+
+.suggestSearchOntology {
+	color: #A9A9A9;
+	font: 10px;	
+}	

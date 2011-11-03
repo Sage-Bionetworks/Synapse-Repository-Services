@@ -18,16 +18,7 @@ import org.sagebionetworks.web.client.ontology.NcboOntologyTerm;
 import com.extjs.gxt.ui.client.Style.HorizontalAlignment;
 import com.extjs.gxt.ui.client.Style.Scroll;
 import com.extjs.gxt.ui.client.Style.SelectionMode;
-import com.extjs.gxt.ui.client.data.BasePagingLoader;
-import com.extjs.gxt.ui.client.data.DataField;
-import com.extjs.gxt.ui.client.data.JsonPagingLoadResultReader;
-import com.extjs.gxt.ui.client.data.LoadEvent;
-import com.extjs.gxt.ui.client.data.Loader;
-import com.extjs.gxt.ui.client.data.ModelData;
-import com.extjs.gxt.ui.client.data.ModelType;
-import com.extjs.gxt.ui.client.data.PagingLoadResult;
-import com.extjs.gxt.ui.client.data.PagingLoader;
-import com.extjs.gxt.ui.client.data.ScriptTagProxy;
+import com.extjs.gxt.ui.client.data.BaseModelData;
 import com.extjs.gxt.ui.client.event.ButtonEvent;
 import com.extjs.gxt.ui.client.event.Events;
 import com.extjs.gxt.ui.client.event.GridEvent;
@@ -84,18 +75,20 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 	private CellEditor textAreaEditor;	
 	private CellEditor dateEditor;
 	private CellEditor booleanEditor;
+	private CellEditor ncboSuggestEditor; 
 	private ColumnConfig valueCol;
 	private FormPanel addAnnotationPanel;
 	private Button deleteButton;
-	private Map<String, CellEditor> keyToEnumEditor;
+	private Map<String, CellEditor> keyToEnumEditor;	
 	private Map<String, FormField> keyToFormFieldMap;
-	private ComboBox<ModelData> ncboSuggestField;
+	private ComboBox<NcboOntologyTerm> ncboSuggestField;
 	
 	private Collection<Enumeration> enumerations;
 	private TextField<String> addAnnotationName;
 	private SimpleComboBox<String> addAnnotationTypeCombo;
 	private SimpleComboBox<Enumeration> addAnnotationEnumCombo;
-	private ComboBox<ModelData> addAnnotationOntologyCombo;
+	private ComboBox<NcboOntologyTerm> addAnnotationOntologyValueCombo;
+	//private TextField<String> addAnnotationValue;
 	private Button createAnnotationButton;
 	private Window addAnnotationsWindow;	
 	
@@ -279,6 +272,7 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		dateEditor = new CellEditor(dateField);
 
 		keyToEnumEditor = new HashMap<String, CellEditor>();
+
 		// Create a SimpleComboBox CellEditor for each FormField that has an enumeration (not all enumerations)
 		for(FormField formField : formFields) {
 			createEnumEditorForFormField(formField);
@@ -287,10 +281,40 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		// Boolean (checkbox) editor
 		booleanEditor = new CellEditor(new CheckBox());
 		
-		// NCBO Search editor
-		ncboSuggestField = createNcboSuggestField(); 
+		// NCBO Search editor		
+		ncboSuggestEditor = createNcboSuggestEditor();
 	}
 
+	private CellEditor createNcboSuggestEditor() {
+		// Search Editor
+		ncboSuggestField = NcboSearchSuggestBox.createNcboSuggestField();
+		
+		CellEditor ncboEditor = new CellEditor(ncboSuggestField) {
+			@Override
+			public Object preProcessValue(Object value) {
+				if (value == null) {
+					return value;
+				}
+				// create Term from value
+				return new NcboOntologyTerm(value.toString());
+			}
+
+			@SuppressWarnings("unchecked")
+			@Override
+			public Object postProcessValue(Object value) {
+				if (value == null) {
+					return value;
+				}						
+				// create value (string) from Term
+				NcboOntologyTerm term = new NcboOntologyTerm((BaseModelData)value);
+				return term.serialize();
+			}
+		};
+		
+		return ncboEditor;
+	}
+	
+	
 	private void createEnumEditorForFormField(FormField formField) {
 		String key = formField.getKey();
 		if(key != null && formField.isEnumBased()) {
@@ -325,7 +349,7 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 			keyToEnumEditor.put(key, comboEditor);
 		}
 	}
-
+		
 	private void createColumnModel() {
 		List<ColumnConfig> configs = new ArrayList<ColumnConfig>();
 		ColumnConfig column = new ColumnConfig();
@@ -362,6 +386,8 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 						// fallback if no enum editor
 						valueCol.setEditor(textEditor);
 					}					
+				} else if(type == ColumnEditType.ONTOLOGY) {
+					valueCol.setEditor(ncboSuggestEditor);
 				} else if(type == ColumnEditType.TEXTAREA) {
 					valueCol.setEditor(textAreaEditor);
 				} else if(type == ColumnEditType.DATE) {
@@ -414,17 +440,13 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 				if(type == ColumnEditType.DATE) {
 					val = DisplayConstants.DATE_FORMAT.format((Date) model.get(property));
 				} else if(type == ColumnEditType.ONTOLOGY) {
-					val = val + ""; // TODO : modify render
+					val = model.getValueDisplay();
 				} else {					
 					val = (String) model.get(property);
 				}
 				
 				// render text areas as tall as they need to be (can also add "height:60px;" below for fixed height
-				if(type == ColumnEditType.TEXTAREA) {
-					return "<div style=\"white-space: normal;\">" + val +"</div>";					
-				} else {				
-					return val;
-				}
+				return "<div style=\"white-space: normal;\">" + val +"</div>";					
 				
 			}
 		};
@@ -503,6 +525,10 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		addAnnotationName.setFieldLabel("Annotation Name");
 		addAnnotationName.setAllowBlank(false);		
 		addAnnotationPanel.add(addAnnotationName, formData);
+		
+//		addAnnotationValue = new TextField<String>(); 
+//		addAnnotationValue.setFieldLabel("Value");
+//		addAnnotationValue.hide();
 
 		// Build up enums
 		addAnnotationEnumCombo = new SimpleComboBox<Enumeration>();
@@ -516,9 +542,9 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		}
 		addAnnotationEnumCombo.hide();
 		
-		addAnnotationOntologyCombo = createNcboSuggestField();
-		addAnnotationOntologyCombo.setFieldLabel("Value");
-		addAnnotationOntologyCombo.hide();
+		addAnnotationOntologyValueCombo = NcboSearchSuggestBox.createNcboSuggestField();
+		addAnnotationOntologyValueCombo.setFieldLabel("Value");
+		addAnnotationOntologyValueCombo.hide();
 		
 		addAnnotationTypeCombo = new SimpleComboBox<String>();
 		addAnnotationTypeCombo.setFieldLabel("Type");					
@@ -528,24 +554,32 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		addAnnotationTypeCombo.add(MENU_ADD_ANNOTATION_NUMBER);
 		addAnnotationTypeCombo.add(MENU_ADD_ANNOTATION_DATE);
 		addAnnotationTypeCombo.add(MENU_ADD_ANNOTATION_ENUMERATION);
-		//addAnnotationTypeCombo.add(MENU_ADD_ANNOTATION_ONTOLOGY);
+		addAnnotationTypeCombo.add(MENU_ADD_ANNOTATION_ONTOLOGY);
 		addAnnotationTypeCombo.addSelectionChangedListener(new SelectionChangedListener<SimpleComboValue<String>>() {			
 			@Override
 			public void selectionChanged(SelectionChangedEvent<SimpleComboValue<String>> se) {
 				SimpleComboValue<String> selectedItem = se.getSelectedItem();				
 				if(selectedItem.getValue().equals(MENU_ADD_ANNOTATION_ENUMERATION)) {
-					addAnnotationEnumCombo.show();					
+					addAnnotationEnumCombo.show();
+//					addAnnotationValue.hide();					
 				} else if (selectedItem.getValue().equals(MENU_ADD_ANNOTATION_ONTOLOGY)) {
-					addAnnotationOntologyCombo.show();
+					addAnnotationOntologyValueCombo.show();
+//					addAnnotationValue.hide();
 				} else {
 					addAnnotationEnumCombo.clearSelections();
 					addAnnotationEnumCombo.hide();
+					addAnnotationOntologyValueCombo.clearSelections();
+					addAnnotationOntologyValueCombo.hide();
+					
+					// show regular add
+//					addAnnotationValue.show();
 				}
 			}
 		});
-		addAnnotationPanel.add(addAnnotationTypeCombo, formData);						
+		addAnnotationPanel.add(addAnnotationTypeCombo, formData);
+//		addAnnotationPanel.add(addAnnotationValue, formData);
 		addAnnotationPanel.add(addAnnotationEnumCombo, formData);
-		addAnnotationPanel.add(addAnnotationOntologyCombo, formData);
+		addAnnotationPanel.add(addAnnotationOntologyValueCombo, formData);
 		
 		// buttons
 		createAnnotationButton = new Button(DisplayConstants.BUTTON_ADD_ANNOTATION, AbstractImagePrototype.create(iconsImageBundle.addSquare16()));
@@ -581,6 +615,10 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		addAnnotationTypeCombo.clearSelections();
 		addAnnotationEnumCombo.clearSelections();
 		addAnnotationEnumCombo.hide();
+		addAnnotationOntologyValueCombo.clearSelections();
+		addAnnotationOntologyValueCombo.hide();
+//		addAnnotationValue.clear();
+//		addAnnotationValue.hide();
 	}
 
 	private ColumnEditType getColumnEditTypeFromDisplayType(String type) {
@@ -591,12 +629,15 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 			return ColumnEditType.TEXT;			
 		} else if (MENU_ADD_ANNOTATION_ENUMERATION.equals(type)) {
 			return ColumnEditType.ENUMERATION;			
+		} else if (MENU_ADD_ANNOTATION_ONTOLOGY.equals(type)) { 
+			return ColumnEditType.ONTOLOGY;
 		} else {
 			return ColumnEditType.TEXT;
 		}	
 	}
 
 	private void handleAddAnnotation() {
+		NcboOntologyTerm ontologyTermSelected = null;
 		Enumeration enumSelected = null;
 		ColumnEditType typeSelected = null;
 		String nameSelected = addAnnotationName.getValue();
@@ -628,6 +669,15 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 				MessageBox.alert("Enumeration Required", "Please select an Enumeration", null);
 				return;
 			}
+		} else if(selected.equals(MENU_ADD_ANNOTATION_ONTOLOGY)) {
+			List<NcboOntologyTerm> selectedTerms = addAnnotationOntologyValueCombo.getSelection();
+			if(selectedTerms.size() >= 1) {
+				// for whatever reason, get() returns a BaseModelData object, so use the BMD constructor as a deep copy
+				ontologyTermSelected = new NcboOntologyTerm(selectedTerms.get(0)); 				
+			} else {
+				MessageBox.alert("Ontology Term Required", "Please select an Ontology Term", null);
+				return;
+			}
 		} else if(selected.equals(MENU_ADD_ANNOTATION_DATE)) {					
 			if(!nameSelected.matches(".*Date$")) {
 				MessageBox.alert("Error", "Currently Date annotations' Name must end with 'Date' (i.e. 'ReleaseDate'). This requirement will be removed in the future.", null);				
@@ -647,61 +697,13 @@ public class AnnotationEditorViewImpl extends LayoutContainer implements Annotat
 		DisplayUtils.changeButtonToSaving(createAnnotationButton, sageImageBundle);					
 		if(typeSelected == ColumnEditType.ENUMERATION && enumSelected != null) {
 			presenter.addAnnotation(nameSelected, typeSelected, enumSelected);
+		} else if(typeSelected == ColumnEditType.ONTOLOGY && typeSelected != null) { 
+			presenter.addAnnotation(nameSelected, typeSelected, ontologyTermSelected);
 		} else {
 			presenter.addAnnotation(nameSelected, typeSelected); 
 		}
 	}
 
-	private ComboBox<ModelData> createNcboSuggestField() {
-		 String url = "http://www.extjs.com/forum/topics-remote.php";  
-	     ScriptTagProxy<PagingLoadResult<ModelData>> proxy = new ScriptTagProxy<PagingLoadResult<ModelData>>(url);  
-	   
-	     ModelType type = new ModelType();  
-	     type.setRoot("topics");  
-	     type.setTotalName("totalCount");  
-	     type.addField("title", "topic_title");  
-	     type.addField("topicId", "topic_id");  
-	     type.addField("author", "author");  
-	     type.addField("excerpt", "post_text");  
-	   
-	     DataField date = new DataField("lastPost", "post_time");  
-	     date.setType(Date.class);  
-	     date.setFormat("timestamp");  
-	     type.addField(date);  
-	   
-	     JsonPagingLoadResultReader<PagingLoadResult<ModelData>> reader = new JsonPagingLoadResultReader<PagingLoadResult<ModelData>>(  
-	         type);  
-	   
-	     PagingLoader<PagingLoadResult<ModelData>> loader = new BasePagingLoader<PagingLoadResult<ModelData>>(proxy, reader);  
-	   
-	     loader.addListener(Loader.BeforeLoad, new Listener<LoadEvent>() {  
-	       public void handleEvent(LoadEvent be) {  
-	         be.<ModelData> getConfig().set("start", be.<ModelData> getConfig().get("offset"));  
-	       }  
-	     });  
-	   
-	     ListStore<ModelData> store = new ListStore<ModelData>(loader);  
-	   
-	     ComboBox<ModelData> combo = new ComboBox<ModelData>();  
-	     combo.setWidth(580);  
-	     combo.setDisplayField("title");  
-	     combo.setItemSelector("div.search-item");  
-	     combo.setTemplate(getTemplate());  
-	     combo.setStore(store);  
-	     combo.setHideTrigger(true);  
-	     combo.setPageSize(10);
-	     
-	     return combo;
-	}
- 
-	private native String getTemplate() /*-{ 
-		return [ 
-			'<tpl for="."><div class="search-item">', 
-			'<b><span>{lastPost:date("MM/dd/y")}<br />by {author}</span>{title}</b>', 
-			'{excerpt}', 
-			'</div></tpl>' 
-		].join(""); 
-	}-*/;    
 	
 	
 }

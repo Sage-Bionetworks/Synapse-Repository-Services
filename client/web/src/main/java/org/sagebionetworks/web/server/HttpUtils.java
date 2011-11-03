@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -22,7 +23,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class HttpUtils {
+	private static Logger logger = Logger.getLogger(HttpUtils.class.getName());
 
+	
     public static String httpGet(String url) throws ClientProtocolException, IOException {
     	return httpGet(url, null);
     }
@@ -30,15 +33,10 @@ public class HttpUtils {
 	public static String httpGet(String url, Map<String,String> params) throws ClientProtocolException, IOException {
         String responseString = null;
 
-        HttpClient httpclient = new DefaultHttpClient();
-        String paramStr = null;
-        try {
-        	for(String key : params.keySet()) {
-        		if(paramStr != null) paramStr += "&";
-        		paramStr += key + "=" + params.get(key);
-        	}
-        	String fullUrl = url + "?" + paramStr;
-        	
+        HttpClient httpclient = new DefaultHttpClient();        
+        try {        	
+        	String fullUrl = url + "?" + paramsToString(params);
+        	logger.info("GET:" + fullUrl);
             HttpGet httpGet = new HttpGet(fullUrl);                      
             ResponseHandler<String> responseHandler = new BasicResponseHandler();
             responseString = httpclient.execute(httpGet, responseHandler);            
@@ -47,14 +45,14 @@ public class HttpUtils {
         }
         
         return responseString;
-	}	
+	}
 
-    
     public static String httpPost(String url, Map<String,String> params) throws ClientProtocolException, IOException {
         String responseString = null;
 
         HttpClient httpclient = new DefaultHttpClient();
         try {
+        	logger.info("GET:" + url + " params: " + paramsToString(params));
             HttpPost httppost = new HttpPost(url);
             List <NameValuePair> nvps = new ArrayList <NameValuePair>();
             for(String key : params.keySet()) {
@@ -99,5 +97,31 @@ public class HttpUtils {
         response.getWriter().write(obj.toString());
     }
 
+    public static void respondError(HttpServletResponse response, String reason) throws IOException {
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Content-Type", "application/json");                    
+        
+        JSONObject obj = new JSONObject();
+        try {
+            obj.put("reason", reason);
+        } catch (JSONException e) {
+        }        
+        response.getWriter().write(obj.toString());
+    }
+
+    
+    /*
+     * Private Methods
+     */
+	private static String paramsToString(Map<String, String> params) {
+		String paramStr = "";
+		for(String key : params.keySet()) {
+			if(!paramStr.equals("")) paramStr += "&";        		
+			paramStr += key + "=" + params.get(key);
+		}
+		return paramStr;
+	}	
+
+    
 	
 }

@@ -201,7 +201,7 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 				formButton.disable();
 				formButton.setText("Saving...");
 				formButton.setIcon(AbstractImagePrototype.create(sageImageBundle.loading16()));
-				presenter.persist(formFields); // persist 
+				presenter.persist(formFields); // persist				
 			}
 		});
 		nodeFormPanel.addButton(formButton);
