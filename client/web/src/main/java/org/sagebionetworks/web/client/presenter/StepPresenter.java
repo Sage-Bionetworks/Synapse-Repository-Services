@@ -3,6 +3,7 @@ package org.sagebionetworks.web.client.presenter;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.GlobalApplicationState;
@@ -14,7 +15,6 @@ import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.view.StepView;
 import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.NodeType;
-import org.sagebionetworks.web.shared.Step;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 import org.sagebionetworks.web.shared.users.AclUtils;
 import org.sagebionetworks.web.shared.users.PermissionLevel;
@@ -192,7 +192,7 @@ public class StepPresenter extends AbstractActivity implements
 			boolean canEdit) {
 		view.setStepDetails(step.getId(), step.getName(),
 				step.getDescription(), step.getCreatedBy(), step
-						.getCreationDate(), step.getStartDate(), step
+						.getCreatedOn(), step.getStartDate(), step
 						.getEndDate(), step.getCommandLine(), step.getCode(),
 				step.getInput(), step.getOutput(), step
 						.getEnvironmentDescriptors(), isAdministrator, canEdit);

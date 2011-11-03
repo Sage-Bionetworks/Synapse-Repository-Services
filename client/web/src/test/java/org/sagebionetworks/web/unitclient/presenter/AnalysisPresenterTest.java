@@ -25,7 +25,7 @@ public class AnalysisPresenterTest {
 
 	String projectId = "1";
 	String analysisId = "2";
-	org.sagebionetworks.web.shared.Analysis analysisModel1;
+	org.sagebionetworks.repo.model.Analysis analysisModel1;
 	
 	@Before
 	public void setup(){
@@ -37,7 +37,7 @@ public class AnalysisPresenterTest {
 		analysisPresenter = new AnalysisPresenter(mockView, mockNodeService, mockNodeModelCreator, mockAuthenticationController, mockGlobalApplicationState);
 		
 		// Analysis object
-		analysisModel1 = new org.sagebionetworks.web.shared.Analysis();
+		analysisModel1 = new org.sagebionetworks.repo.model.Analysis();
 		analysisModel1.setId(analysisId);
 		analysisModel1.setName("test analysis");
 		analysisModel1.setParentId(projectId);

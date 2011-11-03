@@ -4,9 +4,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.web.client.services.ProjectService;
 import org.sagebionetworks.web.server.RestTemplateProvider;
-import org.sagebionetworks.web.shared.Project;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;

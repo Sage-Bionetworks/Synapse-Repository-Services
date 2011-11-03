@@ -4,8 +4,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.web.shared.EnvironmentDescriptor;
-import org.sagebionetworks.web.shared.Reference;
+import org.sagebionetworks.repo.model.EnvironmentDescriptor;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.web.client.SynapsePresenter;
 import org.sagebionetworks.web.client.SynapseView;
 

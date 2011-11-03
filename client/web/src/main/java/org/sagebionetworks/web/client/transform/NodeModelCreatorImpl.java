@@ -1,21 +1,21 @@
 package org.sagebionetworks.web.client.transform;
 
-import org.sagebionetworks.web.client.DisplayUtils;
-import org.sagebionetworks.web.shared.Agreement;
-import org.sagebionetworks.web.shared.Analysis;
-import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.gwt.client.schema.adapter.JSONObjectGwt;
+import org.sagebionetworks.repo.model.Agreement;
+import org.sagebionetworks.repo.model.Analysis;
 import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Eula;
+import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.DownloadLocation;
-import org.sagebionetworks.web.shared.EULA;
 import org.sagebionetworks.web.shared.EntityTypeResponse;
-import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
 import org.sagebionetworks.web.shared.PagedResults;
-import org.sagebionetworks.web.shared.Project;
-import org.sagebionetworks.web.shared.Step;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 
 import com.google.gwt.json.client.JSONObject;
@@ -34,21 +34,28 @@ public class NodeModelCreatorImpl implements NodeModelCreator {
 	public Dataset createDataset(String json) throws RestServiceException {
 		JSONObject obj = JSONParser.parseStrict(json).isObject();
 		DisplayUtils.checkForErrors(obj);
-		Dataset ds = new Dataset();
+		Dataset entity = new Dataset();
 		JSONObjectAdapter adapter = new JSONObjectGwt(obj);
 		try {
-			ds.initializeFromJSONObject(adapter);
+			entity.initializeFromJSONObject(adapter);
+			return entity;
 		} catch (JSONObjectAdapterException e) {
 			throw new RestServiceException(e);
 		}
-		return ds;
 	}
 
 	@Override
 	public Layer createLayer(String json) throws RestServiceException {
 		JSONObject obj = JSONParser.parseStrict(json).isObject();
 		DisplayUtils.checkForErrors(obj);
-		return new Layer(obj);
+		Layer entity = new Layer();
+		JSONObjectAdapter adapter = new JSONObjectGwt(obj);
+		try {
+			entity.initializeFromJSONObject(adapter);
+			return entity;
+		} catch (JSONObjectAdapterException e) {
+			throw new RestServiceException(e);
+		}
 	}
 
 	@Override
@@ -62,21 +69,49 @@ public class NodeModelCreatorImpl implements NodeModelCreator {
 	public Project createProject(String json) throws RestServiceException {
 		JSONObject obj = JSONParser.parseStrict(json).isObject();
 		DisplayUtils.checkForErrors(obj);
-		return new Project(obj);
+		Project entity = new Project();
+		JSONObjectAdapter adapter = new JSONObjectGwt(obj);
+		try {
+			entity.initializeFromJSONObject(adapter);
+			return entity;
+		} catch (JSONObjectAdapterException e) {
+			throw new RestServiceException(e);
+		}
 	}
 	
 	@Override
-	public EULA createEULA(String json) throws RestServiceException {
+	public Eula createEULA(String json) throws RestServiceException {
 		JSONObject obj = JSONParser.parseStrict(json).isObject();
 		DisplayUtils.checkForErrors(obj);
-		return new EULA(obj);
+		Eula entity = new Eula();
+		JSONObjectAdapter adapter = new JSONObjectGwt(obj);
+		try {
+			entity.initializeFromJSONObject(adapter);
+			return entity;
+		} catch (JSONObjectAdapterException e) {
+			throw new RestServiceException(e);
+		}
 	}
 
 	@Override
 	public Agreement createAgreement(String json) throws RestServiceException {
 		JSONObject obj = JSONParser.parseStrict(json).isObject();
 		DisplayUtils.checkForErrors(obj);
-		return new Agreement(obj);
+		Agreement entity = new Agreement();
+		JSONObjectAdapter adapter = new JSONObjectGwt(obj);
+		try {
+			entity.initializeFromJSONObject(adapter);
+			return entity;
+		} catch (JSONObjectAdapterException e) {
+			throw new RestServiceException(e);
+		}
+	}
+	
+	@Override
+	public String createAgreementJSON(Agreement agreement)	throws JSONObjectAdapterException {
+		// Write it to an adapter
+		JSONObjectAdapter adapter = agreement.writeToJSONObject(JSONObjectGwt.createNewAdapter());
+		return adapter.toJSONString();
 	}
 
 	@Override
@@ -119,14 +154,30 @@ public class NodeModelCreatorImpl implements NodeModelCreator {
 	public Analysis createAnalysis(String json) throws RestServiceException {
 		JSONObject obj = JSONParser.parseStrict(json).isObject();
 		DisplayUtils.checkForErrors(obj);
-		return new Analysis(obj);
+		Analysis entity = new Analysis();
+		JSONObjectAdapter adapter = new JSONObjectGwt(obj);
+		try {
+			entity.initializeFromJSONObject(adapter);
+			return entity;
+		} catch (JSONObjectAdapterException e) {
+			throw new RestServiceException(e);
+		}
 	}
 
 	@Override
 	public Step createStep(String json) throws RestServiceException {
 		JSONObject obj = JSONParser.parseStrict(json).isObject();
 		DisplayUtils.checkForErrors(obj);
-		return new Step(obj);
+		Step entity = new Step();
+		JSONObjectAdapter adapter = new JSONObjectGwt(obj);
+		try {
+			entity.initializeFromJSONObject(adapter);
+			return entity;
+		} catch (JSONObjectAdapterException e) {
+			throw new RestServiceException(e);
+		}
 	}
+
+
 }
 

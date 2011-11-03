@@ -1,5 +1,6 @@
 package org.sagebionetworks.web.client.presenter;
 
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.GlobalApplicationState;
@@ -10,7 +11,6 @@ import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.view.ProjectView;
 import org.sagebionetworks.web.shared.NodeType;
-import org.sagebionetworks.web.shared.Project;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 import org.sagebionetworks.web.shared.users.AclUtils;
 import org.sagebionetworks.web.shared.users.PermissionLevel;
@@ -161,8 +161,8 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 	private void setProjectDetails(final Project project,
 			boolean isAdministrator, boolean canEdit) {
 		view.setProjectDetails(project.getId(), project.getName(),
-				project.getDescription(), project.getCreator(),
-				project.getCreationDate(), project.getStatus(), isAdministrator, canEdit);
+				project.getDescription(), project.getCreatedBy(),
+				project.getCreatedOn(), project.getStatus(), isAdministrator, canEdit);
 	}	
 	
 	@Override

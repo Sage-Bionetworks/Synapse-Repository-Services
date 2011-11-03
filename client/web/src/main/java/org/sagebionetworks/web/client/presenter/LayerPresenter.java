@@ -5,7 +5,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.Agreement;
 import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Eula;
+import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.GlobalApplicationState;
@@ -18,12 +22,9 @@ import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.view.LayerView;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAsync;
-import org.sagebionetworks.web.shared.Agreement;
 import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.DownloadLocation;
-import org.sagebionetworks.web.shared.EULA;
 import org.sagebionetworks.web.shared.FileDownload;
-import org.sagebionetworks.web.shared.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.NodeType;
@@ -102,8 +103,14 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 			Agreement agreement = new Agreement();							
 			agreement.setEulaId(licenseAgreement.getEulaId());
 			agreement.setDatasetId(layerModel.getParentId());
-			
-			nodeService.createNode(NodeType.AGREEMENT, agreement.toJson(), new AsyncCallback<String>() {
+			String json = null;
+			try {
+				json = nodeModelCreator.createAgreementJSON(agreement);
+			} catch (JSONObjectAdapterException e) {
+				view.showInfo("Error", e.getMessage());
+				return;
+			}
+			nodeService.createNode(NodeType.AGREEMENT, json, new AsyncCallback<String>() {
 				@Override
 				public void onSuccess(String result) {
 					view.showInfo("Saved", "Agreement acceptance saved.");
@@ -352,7 +359,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 								 model.getPlatform(), 
 								 isAdministrator, 
 								 canEdit,
-								 model.getType());
+								 model.getType().name());
 		}
 	}
 
@@ -405,7 +412,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 									nodeService.getNodeJSON(NodeType.EULA, eulaId, new AsyncCallback<String>() {
 										@Override
 										public void onSuccess(String eulaJson) {
-											EULA eula = null;
+											Eula eula = null;
 											try {
 												eula = nodeModelCreator.createEULA(eulaJson);
 											} catch (RestServiceException ex) {

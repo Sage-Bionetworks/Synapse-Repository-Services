@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.client.services;
 
-import org.sagebionetworks.web.shared.Project;
+
+import org.sagebionetworks.repo.model.Project;
 
 import com.google.gwt.user.client.rpc.AsyncCallback;
 

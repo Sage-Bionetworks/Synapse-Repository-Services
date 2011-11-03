@@ -4,6 +4,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.EnvironmentDescriptor;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
@@ -22,9 +24,7 @@ import org.sagebionetworks.web.client.widget.modal.ModalWindow;
 import org.sagebionetworks.web.client.widget.sharing.AccessMenuButton;
 import org.sagebionetworks.web.client.widget.sharing.AccessMenuButton.AccessLevel;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
-import org.sagebionetworks.web.shared.EnvironmentDescriptor;
 import org.sagebionetworks.web.shared.NodeType;
-import org.sagebionetworks.web.shared.Reference;
 
 import com.extjs.gxt.ui.client.event.Listener;
 import com.extjs.gxt.ui.client.event.MenuEvent;

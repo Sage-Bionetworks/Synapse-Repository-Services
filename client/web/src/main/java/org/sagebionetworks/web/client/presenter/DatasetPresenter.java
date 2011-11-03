@@ -5,7 +5,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.Agreement;
 import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Eula;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.GlobalApplicationState;
@@ -17,10 +20,8 @@ import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.view.DatasetView;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAsync;
-import org.sagebionetworks.web.shared.Agreement;
 import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.DownloadLocation;
-import org.sagebionetworks.web.shared.EULA;
 import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.NodeType;
@@ -133,8 +134,14 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 			Agreement agreement = new Agreement();							
 			agreement.setEulaId(licenseAgreement.getEulaId());
 			agreement.setDatasetId(model.getId());
-			
-			nodeService.createNode(NodeType.AGREEMENT, agreement.toJson(), new AsyncCallback<String>() {
+			String json = null;
+			try {
+				json = nodeModelCreator.createAgreementJSON(agreement);
+			} catch (JSONObjectAdapterException e) {
+				view.showInfo("Error", e.getMessage());
+				return;
+			}
+			nodeService.createNode(NodeType.AGREEMENT, json, new AsyncCallback<String>() {
 				@Override
 				public void onSuccess(String result) {
 					// agreement saved
@@ -334,7 +341,7 @@ public class DatasetPresenter extends AbstractActivity implements DatasetView.Pr
 					nodeService.getNodeJSON(NodeType.EULA, eulaId, new AsyncCallback<String>() {
 						@Override
 						public void onSuccess(String eulaJson) {
-							EULA eula = null;
+							Eula eula = null;
 							try {
 								eula = nodeModelCreator.createEULA(eulaJson);
 							} catch (RestServiceException ex) {

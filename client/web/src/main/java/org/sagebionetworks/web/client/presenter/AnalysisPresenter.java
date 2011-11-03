@@ -12,7 +12,7 @@ import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.view.AnalysisView;
 import org.sagebionetworks.web.client.view.ProjectView;
 import org.sagebionetworks.web.shared.NodeType;
-import org.sagebionetworks.web.shared.Analysis;
+import org.sagebionetworks.repo.model.Analysis;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 import org.sagebionetworks.web.shared.users.AclUtils;
 import org.sagebionetworks.web.shared.users.PermissionLevel;
@@ -164,7 +164,7 @@ public class AnalysisPresenter extends AbstractActivity implements AnalysisView.
 			boolean isAdministrator, boolean canEdit) {
 		view.setAnalysisDetails(analysis.getId(), analysis.getName(),
 				analysis.getDescription(), analysis.getCreatedBy(),
-				analysis.getCreationDate(), analysis.getStatus(), isAdministrator, canEdit);
+				analysis.getCreatedOn(), analysis.getStatus(), isAdministrator, canEdit);
 	}	
 	
 	@Override

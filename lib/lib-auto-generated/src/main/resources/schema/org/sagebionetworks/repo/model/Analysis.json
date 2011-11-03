@@ -2,10 +2,18 @@
     "description":"JSON schema for Analysis POJO",
     "implements":[
         {
-            "$ref":"org.sagebionetworks.repo.model.Entity"            
+            "$ref":"org.sagebionetworks.repo.model.Entity"
         },
-                {
-            "$ref":"org.sagebionetworks.repo.model.HasSteps"            
+        {
+            "$ref":"org.sagebionetworks.repo.model.HasSteps"
         }
     ],
+    "properties":{
+        "status":{
+            "type":"string",
+            "description":"the status of this Analysis",
+            
+        },
+        
+    }
 }

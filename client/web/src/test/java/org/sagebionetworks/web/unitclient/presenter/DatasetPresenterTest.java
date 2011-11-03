@@ -15,6 +15,7 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.Eula;
 import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.place.Dataset;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
@@ -24,7 +25,6 @@ import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.view.DatasetView;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAsync;
 import org.sagebionetworks.web.shared.DownloadLocation;
-import org.sagebionetworks.web.shared.EULA;
 import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LicenseAgreement;
 import org.sagebionetworks.web.shared.NodeType;
@@ -50,7 +50,7 @@ public class DatasetPresenterTest {
 	Dataset place = new Dataset("Dataset:"+ datasetId);
 	org.sagebionetworks.repo.model.Dataset datasetModel1;
 	UserData user1;
-	EULA eula1;
+	Eula eula1;
 	PagedResults emptyPagedResults;
 	PagedResults pagedResults;
 	DownloadLocation downloadLocation;
@@ -75,7 +75,7 @@ public class DatasetPresenterTest {
 		datasetModel1.setName("test dataset");	
 
 		// eula
-		eula1 = new EULA();
+		eula1 = new Eula();
 		eula1.setId("3");
 		eula1.setAgreement("Agreement");
 		eula1.setName("Agreement 1");

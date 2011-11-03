@@ -29,8 +29,9 @@ import org.sagebionetworks.web.client.view.LayerView;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAsync;
 import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Eula;
+import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.web.shared.DownloadLocation;
-import org.sagebionetworks.web.shared.EULA;
 import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.LayerPreview;
 import org.sagebionetworks.web.shared.LicenseAgreement;
@@ -57,9 +58,9 @@ public class LayerPresenterTest {
 	String datasetId = "1";
 	String layerId = "2";
 	Dataset datasetModel1;
-	org.sagebionetworks.web.shared.Layer layerModel1;
+	org.sagebionetworks.repo.model.Layer layerModel1;
 	UserData user1;
-	EULA eula1;
+	Eula eula1;
 	
 	@Before
 	public void setup(){
@@ -77,15 +78,15 @@ public class LayerPresenterTest {
 		datasetModel1.setName("test dataset");		
 
 		// Layer object
-		layerModel1 = new org.sagebionetworks.web.shared.Layer();
-		layerModel1.setType("C");
+		layerModel1 = new org.sagebionetworks.repo.model.Layer();
+		layerModel1.setType(LayerTypeNames.C);
 		layerModel1.setId(layerId);
 		layerModel1.setName("test layer");
 		layerModel1.setParentId(datasetModel1.getId());
 		// UserData
 		user1 = new UserData("email@email.com", "Username", "token", false);
 		// eula
-		eula1 = new EULA();
+		eula1 = new Eula();
 		eula1.setId("3");
 		eula1.setAgreement("Agreement");
 		eula1.setName("Agreement 1");

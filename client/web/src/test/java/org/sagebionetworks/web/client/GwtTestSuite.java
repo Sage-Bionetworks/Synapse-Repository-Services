@@ -5,7 +5,13 @@ import java.util.Map;
 
 import org.junit.Test;
 import org.sagebionetworks.gwt.client.schema.adapter.JSONObjectGwt;
+import org.sagebionetworks.repo.model.Agreement;
+import org.sagebionetworks.repo.model.Analysis;
 import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Eula;
+import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.schema.FORMAT;
@@ -32,21 +38,15 @@ public class GwtTestSuite extends GWTTestCase {
 		return "org.sagebionetworks.web.Portal";
 	}
 	
-	private Dataset populatedDataset;
-	
 	@Override
 	public void gwtSetUp() {
 		// Create a dataset with all fields filled in
-		populatedDataset = new Dataset();
-		try {
-			initilaizedJSONEntityFromSchema(populatedDataset);
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
 	}
 	
 	@Test
 	public void testNodeModelCreatorImpl_createDataset() throws JSONObjectAdapterException, RestServiceException{
+		Dataset populatedDataset = new Dataset();
+		initilaizedJSONEntityFromSchema(populatedDataset);
 		assertNotNull(populatedDataset);
 		// Get the JSON for the populate dataset
 		JSONObjectAdapter adapter = populatedDataset.writeToJSONObject(JSONObjectGwt.createNewAdapter());
@@ -57,6 +57,105 @@ public class GwtTestSuite extends GWTTestCase {
 		Dataset clone = modelCreator.createDataset(json);
 		assertNotNull(clone);
 		assertEquals(populatedDataset, clone);
+	}
+	
+	@Test
+	public void testNodeModelCreatorImpl_createLayer() throws JSONObjectAdapterException, RestServiceException{
+		Layer populatedLayer = new Layer();
+		initilaizedJSONEntityFromSchema(populatedLayer);
+		assertNotNull(populatedLayer);
+		// Get the JSON for the populate dataset
+		JSONObjectAdapter adapter = populatedLayer.writeToJSONObject(JSONObjectGwt.createNewAdapter());
+		String json = adapter.toJSONString();
+		assertNotNull(json);
+		// Use the factor to create a clone
+		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl();
+		Layer clone = modelCreator.createLayer(json);
+		assertNotNull(clone);
+		assertEquals(populatedLayer, clone);
+	}
+	
+	@Test
+	public void testNodeModelCreatorImpl_createProject() throws JSONObjectAdapterException, RestServiceException{
+		Project populatedProject = new Project();
+		initilaizedJSONEntityFromSchema(populatedProject);
+		assertNotNull(populatedProject);
+		// Get the JSON for the populate dataset
+		JSONObjectAdapter adapter = populatedProject.writeToJSONObject(JSONObjectGwt.createNewAdapter());
+		String json = adapter.toJSONString();
+		assertNotNull(json);
+		// Use the factor to create a clone
+		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl();
+		Project clone = modelCreator.createProject(json);
+		assertNotNull(clone);
+		assertEquals(populatedProject, clone);
+	}
+	
+	@Test
+	public void testNodeModelCreatorImpl_createEULA() throws JSONObjectAdapterException, RestServiceException{
+		Eula populatedEula = new Eula();
+		initilaizedJSONEntityFromSchema(populatedEula);
+		assertNotNull(populatedEula);
+		// Get the JSON for the populate dataset
+		JSONObjectAdapter adapter = populatedEula.writeToJSONObject(JSONObjectGwt.createNewAdapter());
+		String json = adapter.toJSONString();
+		assertNotNull(json);
+		// Use the factor to create a clone
+		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl();
+		Eula clone = modelCreator.createEULA(json);
+		assertNotNull(clone);
+		assertEquals(populatedEula, clone);
+	}
+	
+	@Test
+	public void testNodeModelCreatorImpl_Agreement() throws JSONObjectAdapterException, RestServiceException{
+		Agreement populatedAgreement = new Agreement();
+		initilaizedJSONEntityFromSchema(populatedAgreement);
+		assertNotNull(populatedAgreement);
+		// Get the JSON for the populate dataset
+		JSONObjectAdapter adapter = populatedAgreement.writeToJSONObject(JSONObjectGwt.createNewAdapter());
+		String json = adapter.toJSONString();
+		assertNotNull(json);
+		// Use the factor to create a clone
+		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl();
+		Agreement clone = modelCreator.createAgreement(json);
+		assertNotNull(clone);
+		assertEquals(populatedAgreement, clone);
+		// Make sure we can go back to json
+		String jsonClone = modelCreator.createAgreementJSON(clone);
+		assertEquals(json, jsonClone);
+	}
+	
+	@Test
+	public void testNodeModelCreatorImpl_createAnalysis() throws JSONObjectAdapterException, RestServiceException{
+		Analysis populatedAnalysis = new Analysis();
+		initilaizedJSONEntityFromSchema(populatedAnalysis);
+		assertNotNull(populatedAnalysis);
+		// Get the JSON for the populate dataset
+		JSONObjectAdapter adapter = populatedAnalysis.writeToJSONObject(JSONObjectGwt.createNewAdapter());
+		String json = adapter.toJSONString();
+		assertNotNull(json);
+		// Use the factor to create a clone
+		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl();
+		Analysis clone = modelCreator.createAnalysis(json);
+		assertNotNull(clone);
+		assertEquals(populatedAnalysis, clone);
+	}
+	
+	@Test
+	public void testNodeModelCreatorImpl_createStep() throws JSONObjectAdapterException, RestServiceException{
+		Step populatedStep = new Step();
+		initilaizedJSONEntityFromSchema(populatedStep);
+		assertNotNull(populatedStep);
+		// Get the JSON for the populate dataset
+		JSONObjectAdapter adapter = populatedStep.writeToJSONObject(JSONObjectGwt.createNewAdapter());
+		String json = adapter.toJSONString();
+		assertNotNull(json);
+		// Use the factor to create a clone
+		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl();
+		Step clone = modelCreator.createStep(json);
+		assertNotNull(clone);
+		assertEquals(populatedStep, clone);
 	}
 	
 	/**

@@ -1,18 +1,19 @@
 package org.sagebionetworks.web.client.transform;
 
 
-import org.sagebionetworks.web.shared.Agreement;
-import org.sagebionetworks.web.shared.Analysis;
+import org.sagebionetworks.repo.model.Agreement;
+import org.sagebionetworks.repo.model.Analysis;
+import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.web.shared.DownloadLocation;
-import org.sagebionetworks.web.shared.EULA;
+import org.sagebionetworks.repo.model.Eula;
 import org.sagebionetworks.web.shared.EntityTypeResponse;
-import org.sagebionetworks.web.shared.Layer;
+import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.web.shared.LayerPreview;
 import org.sagebionetworks.web.shared.PagedResults;
-import org.sagebionetworks.web.shared.Project;
-import org.sagebionetworks.web.shared.Step;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.web.shared.exceptions.ForbiddenException;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 import org.sagebionetworks.web.shared.exceptions.UnauthorizedException;
@@ -27,9 +28,11 @@ public interface NodeModelCreator {
 	
 	Project createProject(String json) throws RestServiceException;
 	
-	EULA createEULA(String json) throws RestServiceException;
+	Eula createEULA(String json) throws RestServiceException;
 	
 	Agreement createAgreement(String json) throws RestServiceException;
+	
+	String createAgreementJSON(Agreement agreement) throws JSONObjectAdapterException;
 	
 	PagedResults createPagedResults(String json) throws RestServiceException;
 

@@ -2,7 +2,8 @@ package org.sagebionetworks.web.client.presenter;
 
 import java.util.Date;
 
-import org.sagebionetworks.web.shared.Layer;
+import org.sagebionetworks.repo.model.Layer;
+
 
 public class LayerRow {
 	
@@ -17,11 +18,11 @@ public class LayerRow {
 	}
 	
 	public String getLayersType(){
-		return wrapped.getType();
+		return wrapped.getType().name();
 	}
 
 	public Date getCreatedOn() {
-		return wrapped.getCreationDate();
+		return wrapped.getCreatedOn();
 		
 	}
 

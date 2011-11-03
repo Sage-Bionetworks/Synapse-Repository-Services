@@ -25,7 +25,7 @@ public class StepPresenterTest {
 
 	String analysisId = "1";
 	String stepId = "2";
-	org.sagebionetworks.web.shared.Step stepModel1;
+	org.sagebionetworks.repo.model.Step stepModel1;
 	
 	@Before
 	public void setup(){
@@ -37,7 +37,7 @@ public class StepPresenterTest {
 		stepPresenter = new StepPresenter(mockView, mockNodeService, mockNodeModelCreator, mockAuthenticationController, mockGlobalApplicationState);
 		
 		// Step object
-		stepModel1 = new org.sagebionetworks.web.shared.Step();
+		stepModel1 = new org.sagebionetworks.repo.model.Step();
 		stepModel1.setId(stepId);
 		stepModel1.setName("test step");
 		stepModel1.setParentId(analysisId);
