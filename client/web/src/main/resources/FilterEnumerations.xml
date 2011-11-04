@@ -37,13 +37,13 @@
 			<operator>EQUALS</operator>
 			<values>
 				<displayable>
-					<value>Human</value>
+					<value>Homo Sapiens</value>
 				</displayable>
 				<displayable>
-					<value>Mouse</value>
+					<value>Mus Musculus</value>
 				</displayable>
 				<displayable>
-					<value>Rat</value>
+					<value>Ratus Norvegicus</value>
 				</displayable>
 				<displayable>
 					<value>Pig</value>
@@ -54,24 +54,183 @@
 			</values>
 		</filter>
 		<filter>
-			<columnId>dataset.Tissue_Tumor</columnId>
+			<columnId>dataset.SampleSource</columnId>
 			<defaultValue>All Tissues</defaultValue>
 			<operator>EQUALS</operator>
 			<values>
 				<displayable>
-					<value>Prostate</value>
+					<value>Adipose</value>
+				</displayable>
+				<displayable>
+					<value>Adrenal</value>
+				</displayable>
+				<displayable>
+					<value>Aorta</value>
+				</displayable>
+				<displayable>
+					<value>Aortic Endothelia Cells</value>
+				</displayable>
+				<displayable>
+					<value>Bladder</value>
+				</displayable>
+				<displayable>
+					<value>Blood</value>
+				</displayable>
+				<displayable>
+					<value>Bone</value>
+				</displayable>
+				<displayable>
+					<value>Brain</value>
+				</displayable>
+				<displayable>
+					<value>Brain cerebellum</value>
+				</displayable>
+				<displayable>
+					<value>Brain Cerebellum</value>
+				</displayable>
+				<displayable>
+					<value>Brain Cortex</value>
+				</displayable>
+				<displayable>
+					<value>Brain frontal Cortex</value>
+				</displayable>
+				<displayable>
+					<value>Brain Frontal Cortex</value>
+				</displayable>
+				<displayable>
+					<value>Brain Hippocampus</value>
+				</displayable>
+				<displayable>
+					<value>Brain Parietal Cortex</value>
+				</displayable>
+				<displayable>
+					<value>Brain pons</value>
+				</displayable>
+				<displayable>
+					<value>Brain Prefrontal Cortex</value>
+				</displayable>
+				<displayable>
+					<value>Brain Striatum</value>
+				</displayable>
+				<displayable>
+					<value>Brain temporal Cortex</value>
+				</displayable>
+				<displayable>
+					<value>Brain Temporal Cortex</value>
+				</displayable>
+				<displayable>
+					<value>Brain Visual Cortex</value>
 				</displayable>
 				<displayable>
 					<value>Breast</value>
 				</displayable>
 				<displayable>
+					<value>Carotid</value>
+				</displayable>
+				<displayable>
+					<value>Cell Line</value>
+				</displayable>
+				<displayable>
+					<value>Colorectal</value>
+				</displayable>
+				<displayable>
+					<value>Embryonic Stem Cell</value>
+				</displayable>
+				<displayable>
+					<value>Esophagus</value>
+				</displayable>
+				<displayable>
+					<value>Fibroblast</value>
+				</displayable>
+				<displayable>
+					<value>Heart</value>
+				</displayable>
+				<displayable>
+					<value>Hippocampus</value>
+				</displayable>
+				<displayable>
+					<value>Hypothalamus</value>
+				</displayable>
+				<displayable>
+					<value>Intestine</value>
+				</displayable>
+				<displayable>
+					<value>Islet</value>
+				</displayable>
+				<displayable>
+					<value>Kidney</value>
+				</displayable>
+				<displayable>
+					<value>Kidney Cortex</value>
+				</displayable>
+				<displayable>
+					<value>Kidney Medulla</value>
+				</displayable>
+				<displayable>
 					<value>Liver</value>
+				</displayable>
+				<displayable>
+					<value>Lung</value>
+				</displayable>
+				<displayable>
+					<value>Lymphoblastoid</value>
+				</displayable>
+				<displayable>
+					<value>Macrophage</value>
+				</displayable>
+				<displayable>
+					<value>Marcrophage</value>
+				</displayable>
+				<displayable>
+					<value>Multiple</value>
 				</displayable>
 				<displayable>
 					<value>Muscle</value>
 				</displayable>
 				<displayable>
-					<value>Lung</value>
+					<value>Omental Adipose</value>
+				</displayable>
+				<displayable>
+					<value>Osteoblast</value>
+				</displayable>
+				<displayable>
+					<value>Ovary</value>
+				</displayable>
+				<displayable>
+					<value>Pancreas</value>
+				</displayable>
+				<displayable>
+					<value>Plaque</value>
+				</displayable>
+				<displayable>
+					<value>Prostate</value>
+				</displayable>
+				<displayable>
+					<value>Sample Source</value>
+				</displayable>
+				<displayable>
+					<value>Skin</value>
+				</displayable>
+				<displayable>
+					<value>Soft Tissue</value>
+				</displayable>
+				<displayable>
+					<value>Stomach</value>
+				</displayable>
+				<displayable>
+					<value>Subcutaneous Adipose</value>
+				</displayable>
+				<displayable>
+					<value>T cell</value>
+				</displayable>
+				<displayable>
+					<value>Thalamus</value>
+				</displayable>
+				<displayable>
+					<value>Uterus</value>
+				</displayable>
+				<displayable>
+					<value>Yeast</value>
 				</displayable>
 			</values>
 		</filter>
@@ -81,26 +240,34 @@
 			<operator>EQUALS</operator>
 			<values>
 				<displayable>
-					<display>Alzheimer's</display>
 					<value>Alzheimers</value>
 				</displayable>
 				<displayable>
 					<value>Asthma</value>
 				</displayable>
 				<displayable>
+					<value>Autism</value>
+				</displayable>
+				<displayable>
 					<value>Cancer</value>
 				</displayable>
 				<displayable>
-					<value>Cardiovascular Disease</value>
+					<value>CVD</value>
 				</displayable>
 				<displayable>
 					<value>Diabetes</value>
 				</displayable>
 				<displayable>
+					<value>Disease</value>
+				</displayable>
+				<displayable>
 					<value>Drug Response</value>
 				</displayable>
 				<displayable>
-					<value>Health</value>
+					<value>Healthy</value>
+				</displayable>
+				<displayable>
+					<value>Infectious Disease</value>
 				</displayable>
 				<displayable>
 					<value>Inflammatory Disease</value>
@@ -109,17 +276,24 @@
 					<value>Metabolic Disease</value>
 				</displayable>
 				<displayable>
+					<value>Multiple</value>
+				</displayable>
+				<displayable>
+					<value>Multiple Sclerosis</value>
+				</displayable>
+				<displayable>
 					<value>Neurological Disease</value>
+				</displayable>
+				<displayable>
+					<value>Respiratory Disease</value>
 				</displayable>
 				<displayable>
 					<value>Sarcopenia</value>
 				</displayable>
 				<displayable>
-					<value>Respiratory diseases</value>
+					<value>Schizophrenia</value>
 				</displayable>
 			</values>
 		</filter>
-
-
 	</filters>
 </configuration>

@@ -70,6 +70,11 @@
 			<display>Disease</display>
 			<description>What disease is this dataset about</description>
 		</column>
+		<column id="dataset.SampleSource">
+			<type>StringArray</type>
+			<display>Sample Source</display>
+			<description>Sample source</description>
+		</column>
 		<column id="dataset.Tissue_Tumor">
 			<type>StringArray</type>
 			<display>Tumor / Tissue Type</display>
