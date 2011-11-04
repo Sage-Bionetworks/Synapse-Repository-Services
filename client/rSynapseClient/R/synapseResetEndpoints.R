@@ -1,7 +1,7 @@
 synapseResetEndpoints <-
 		function()
 {
-	synapseAuthServiceEndpoint("https://auth-staging.sagebase.org/auth/v1")
-	synapseRepoServiceEndpoint("https://repo-staging.sagebase.org/repo/v1")
-	synapsePortalEndpoint("http://synapse-staging.sagebase.org")
+	synapseAuthServiceEndpoint("https://auth-alpha.sagebase.org/auth/v1")
+	synapseRepoServiceEndpoint("https://repo-alpha.sagebase.org/repo/v1")
+	synapsePortalEndpoint("http://synapse.sagebase.org")
 }
