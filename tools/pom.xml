@@ -3,14 +3,14 @@
 	<parent>
 		<artifactId>platform</artifactId>
 		<groupId>org.sagebionetworks</groupId>
-		<version>0.8-SNAPSHOT</version>
+		<version>0.9-SNAPSHOT</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>tools</artifactId>
 	<packaging>pom</packaging>
 	<name>Platform Tools</name>
-	
+
     <modules>
       <module>tcgaWorkflow</module>
       <module>wikiutil</module>
@@ -18,5 +18,5 @@
       <module>gePipeline</module>
       <module>SynapseDeployer</module>
   </modules>
-    
+
 </project>

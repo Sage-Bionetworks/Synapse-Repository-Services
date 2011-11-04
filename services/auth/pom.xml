@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.sagebionetworks</groupId>
 		<artifactId>services</artifactId>
-		<version>0.8-SNAPSHOT</version>
+		<version>0.9-SNAPSHOT</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
@@ -58,7 +58,7 @@
 		</dependency>
 
 
-		<!-- This was being pulled in as a child dependency of the springframework 
+		<!-- This was being pulled in as a child dependency of the springframework
 			but the tomcat plugin needs this to be in scope "provided" -->
 		<dependency>
 			<groupId>javax.servlet</groupId>
@@ -67,7 +67,7 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- In a tomcat container, such as Elastic Beanstalk, you have to include 
+		<!-- In a tomcat container, such as Elastic Beanstalk, you have to include
 			jstl.jar manually, hence this entry. -->
 		<dependency>
 			<groupId>javax.servlet</groupId>
@@ -100,13 +100,13 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 		</dependency>
-		
+
 	    <dependency>
           <groupId>org.apache.httpcomponents</groupId>
           <artifactId>httpclient</artifactId>
           <version>4.1.1</version>
         </dependency>
-		
+
 	</dependencies>
 
 
@@ -132,7 +132,7 @@
 				</configuration>
 			</plugin>
 
-			<!-- This allows us to run the servlet container from maven via mvn tomcat:run 
+			<!-- This allows us to run the servlet container from maven via mvn tomcat:run
 				or deploy to a local tomcat via tomcat:deploy -->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
@@ -144,11 +144,11 @@
 			</plugin>
 
 			<!-- Upload application to the appspot automatically, during release:perform -->
-			<!-- plugin> <artifactId>maven-release-plugin</artifactId> <configuration> 
+			<!-- plugin> <artifactId>maven-release-plugin</artifactId> <configuration>
 				<goals>gae:deploy</goals> </configuration> </plugin -->
 
-			<!-- Added this path to the test classpath so that we do not need to copy 
-				and paste our servlet config into a separate file even though we want the 
+			<!-- Added this path to the test classpath so that we do not need to copy
+				and paste our servlet config into a separate file even though we want the
 				exact same config for testing -->
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
@@ -171,8 +171,8 @@
 	</properties>
 
 	<profiles>
-		<!-- We can configure our integration server to activate this profile and 
-			perform gae:deploy, thus uploading latest snapshot to the http://1.latest.<applicationName>.appspot.com 
+		<!-- We can configure our integration server to activate this profile and
+			perform gae:deploy, thus uploading latest snapshot to the http://1.latest.<applicationName>.appspot.com
 			automatically -->
 		<profile>
 			<id>integration-build</id>
@@ -181,9 +181,9 @@
 			</properties>
 		</profile>
 
-		<!-- This profile will activate automatically during release and upload 
-			application to the http://2.latest.<applicationName>.appspot.com (We might 
-			want to set the 2nd version as our applications Default version to be accessible 
+		<!-- This profile will activate automatically during release and upload
+			application to the http://2.latest.<applicationName>.appspot.com (We might
+			want to set the 2nd version as our applications Default version to be accessible
 			at http://<applicationName>.appspot.com) -->
 		<profile>
 			<id>release-build</id>
@@ -195,7 +195,7 @@
 			</activation>
 
 			<properties>
-				<!-- During release, set application version in appengine-web.xml to 
+				<!-- During release, set application version in appengine-web.xml to
 					2 -->
 				<gae.application.version>release</gae.application.version>
 			</properties>

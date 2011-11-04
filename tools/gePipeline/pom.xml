@@ -5,9 +5,9 @@
   <parent>
     <artifactId>tools</artifactId>
     <groupId>org.sagebionetworks</groupId>
-    <version>0.8-SNAPSHOT</version>
+    <version>0.9-SNAPSHOT</version>
   </parent>
-  
+
   <groupId>org.sagebionetworks</groupId>
   <artifactId>gePipeline</artifactId>
   <name>gePipeline</name>
@@ -48,7 +48,7 @@
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
     </dependency>
-    
+
 		<!-- JSON -->
 		<dependency>
 			<groupId>org.json</groupId>
@@ -56,7 +56,7 @@
 			<version>${org.json.version}</version>
 		</dependency>
 
-    
+
   </dependencies>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -68,10 +68,10 @@
 				<artifactId>buildnumber-maven-plugin</artifactId>
 			</plugin>
 
-			<!-- The shade plugin is building a jar with all the other jar dependencies 
-				bundled inside. We can use this to run all three of our main classes in this 
+			<!-- The shade plugin is building a jar with all the other jar dependencies
+				bundled inside. We can use this to run all three of our main classes in this
 				package (not just the one we have listed as the main class). -->
-			<!-- See http://sagebionetworks.jira.com/wiki/display/PLFM/Workflow+Deployment 
+			<!-- See http://sagebionetworks.jira.com/wiki/display/PLFM/Workflow+Deployment
 				for how to run this -->
 
 			<plugin>
@@ -98,7 +98,7 @@
 		</plugins>
 	</build>
 
-  
-  
-  
+
+
+
 </project>

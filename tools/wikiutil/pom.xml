@@ -4,11 +4,11 @@
 	<parent>
 		<artifactId>tools</artifactId>
 		<groupId>org.sagebionetworks</groupId>
-		<version>0.8-SNAPSHOT</version>
+		<version>0.9-SNAPSHOT</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 
-	<!-- Note that this POM is not a child of PLFM/trunk/pom.xml and therefore 
+	<!-- Note that this POM is not a child of PLFM/trunk/pom.xml and therefore
 		does not inherit any settings from it -->
 
 	<groupId>org.sagebionetworks</groupId>

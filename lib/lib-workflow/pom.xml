@@ -6,14 +6,14 @@
   <parent>
     <artifactId>lib</artifactId>
     <groupId>org.sagebionetworks</groupId>
-    <version>0.8-SNAPSHOT</version>
+    <version>0.9-SNAPSHOT</version>
   </parent>
-  
+
   <groupId>org.sagebionetworks</groupId>
   <artifactId>lib-workflow</artifactId>
   <packaging>jar</packaging>
   <name>Workflow Library</name>
-  
+
   <dependencies>
 
     <dependency>
@@ -21,7 +21,7 @@
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
-    
+
 		<!-- Simple Workflow Framework -->
 		<dependency>
 			<groupId>com.amazonaws.services.simpleworkflow</groupId>
@@ -91,14 +91,14 @@
 			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>
 		</dependency>
-             
+
         <!-- Jackson JSON Mapper -->
 		<dependency>
           <groupId>org.codehaus.jackson</groupId>
           <artifactId>jackson-mapper-asl</artifactId>
           <version>${jackson.version}</version>
         </dependency>
-        
+
         <dependency>
 			<groupId>javassist</groupId>
 			<artifactId>javassist</artifactId>

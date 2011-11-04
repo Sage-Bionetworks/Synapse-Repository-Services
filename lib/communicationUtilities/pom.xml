@@ -6,28 +6,28 @@
   <parent>
     <artifactId>lib</artifactId>
     <groupId>org.sagebionetworks</groupId>
-    <version>0.8-SNAPSHOT</version>
+    <version>0.9-SNAPSHOT</version>
   </parent>
-  
+
   <groupId>org.sagebionetworks</groupId>
   <artifactId>lib-communicationUtilities</artifactId>
   <name>lib-communicationUtilities</name>
   <url>http://maven.apache.org</url>
 
   <dependencies>
-  
+
 	  <dependency>
 	    <groupId>commons-net</groupId>
 	    <artifactId>commons-net</artifactId>
 	    <version>3.0.1</version>
 	  </dependency>
-  
-    
+
+
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
     </dependency>
-    
+
     <!-- jsoup HTML parser library @ http://jsoup.org/ -->
     <!-- JQuery-like HTML parser -->
     <dependency>
@@ -35,31 +35,31 @@
       <artifactId>jsoup</artifactId>
       <version>1.5.2</version>
     </dependency>
-    
+
     <!-- String utils -->
     <dependency>
       <groupId>commons-lang</groupId>
       <artifactId>commons-lang</artifactId>
     </dependency>
-    
+
     <!-- Logging dependencies -->
     <dependency>
       <groupId>log4j</groupId>
       <artifactId>log4j</artifactId>
     </dependency>
-    
+
     <dependency>
       <groupId>commons-logging</groupId>
       <artifactId>commons-logging</artifactId>
     </dependency>
-    
+
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
     </dependency>
-    
+
   </dependencies>
-  
+
   <build>
     <plugins>
       <!-- Build number generator -->
@@ -69,5 +69,5 @@
       </plugin>
     </plugins>
   </build>
-  
+
 </project>

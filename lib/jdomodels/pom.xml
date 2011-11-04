@@ -9,7 +9,7 @@
 	<parent>
 		<groupId>org.sagebionetworks</groupId>
 		<artifactId>lib</artifactId>
-		<version>0.8-SNAPSHOT</version>
+		<version>0.9-SNAPSHOT</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
@@ -24,7 +24,7 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-models</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-id-generator</artifactId>
@@ -75,7 +75,7 @@
 			<groupId>hsqldb</groupId>
 			<artifactId>hsqldb</artifactId>
 			<version>1.8.0.4</version>
-			<!-- TODO this should be a test dependency only once we have MySQL configured 
+			<!-- TODO this should be a test dependency only once we have MySQL configured
 				in production -->
 			<!-- <scope>test</scope> -->
 		</dependency>
@@ -138,19 +138,19 @@
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>cglib</groupId>
 			<artifactId>cglib</artifactId>
 			<version>2.2</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>joda-time</groupId>
 			<artifactId>joda-time</artifactId>
 		</dependency>
 
-		
+
 	</dependencies>
 
 	<build>
@@ -161,7 +161,7 @@
 				<artifactId>buildnumber-maven-plugin</artifactId>
 			</plugin>
 
-			<!-- This plug-in "enhances" your domain model objects (i.e. makes them 
+			<!-- This plug-in "enhances" your domain model objects (i.e. makes them
 				persistent for datanucleus) -->
 			<plugin>
 				<groupId>org.datanucleus</groupId>
