@@ -150,7 +150,14 @@ setClass(
 
 setClass(
 		Class = "Code",
-		contains = "Layer"
+		contains = "Layer",
+		representation = representation(
+				location = "CachedLocation",
+				objects = "environment"
+		),
+		prototype = prototype(
+				synapseEntityKind = "code"
+		)
 )
 
 

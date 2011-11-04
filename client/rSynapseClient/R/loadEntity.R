@@ -128,11 +128,10 @@ setMethod(
 		f = "loadEntity",
 		signature = "Code",
 		definition = function(entity){
-			## call the super class load method
-			oldClass <- class(entity)
-			class(entity) <- "Layer"
-			entity <- loadEntity(entity)
-			class(entity) <- oldClass
+			if(length(entity@location@files) == 0)
+				entity <- downloadEntity(entity)
+			entity@objects <- new.env()
+			
 			indx <- grep("\\.r$", tolower(entity$files))
 			if(!is.null(propertyValue(entity, "id"))){
 				setPackageName(sprintf("entity%s", propertyValue(entity, "id")), env = entity@objects)

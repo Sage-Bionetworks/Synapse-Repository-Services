@@ -23,6 +23,15 @@ setMethod(
 
 setMethod(
 		f = "downloadEntity",
+		signature = "Code",
+		definition = function(entity){
+			entity@location <- .cacheEntity(entity)
+			entity
+		}
+)
+
+setMethod(
+		f = "downloadEntity",
 		signature = "SynapseEntity",
 		definition = function(entity){
 			stop("Currently only Layer entities can contain data.")
