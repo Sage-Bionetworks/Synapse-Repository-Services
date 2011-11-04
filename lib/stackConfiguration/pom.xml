@@ -7,7 +7,7 @@
 	<parent>
 		<artifactId>lib</artifactId>
 		<groupId>org.sagebionetworks</groupId>
-		<version>0.8-SNAPSHOT</version>
+		<version>0.9-SNAPSHOT</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
@@ -61,7 +61,7 @@
 			<artifactId>jdom</artifactId>
 			<version>1.1</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk</artifactId>
@@ -72,7 +72,7 @@
           <artifactId>httpclient</artifactId>
           <scope>runtime</scope>
         </dependency>
-        
+
     </dependencies>
 
 	<build>

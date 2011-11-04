@@ -6,7 +6,7 @@
 	<parent>
 		<artifactId>client</artifactId>
 		<groupId>org.sagebionetworks</groupId>
-		<version>0.8-SNAPSHOT</version>
+		<version>0.9-SNAPSHOT</version>
 	</parent>
 
 	<modelVersion>4.0.0</modelVersion>
@@ -45,7 +45,7 @@
 						</goals>
 					</execution>
 				</executions>
-				<!-- Plugin configuration. There are many available options, see gwt-maven-plugin 
+				<!-- Plugin configuration. There are many available options, see gwt-maven-plugin
 					documentation at codehaus.org -->
 				<configuration>
 					<runTarget>Portal.html</runTarget>
@@ -78,7 +78,7 @@
 				</configuration>
 			</plugin>
 
-			<!-- We use this assembly to package the GWT RPC dependencies so they 
+			<!-- We use this assembly to package the GWT RPC dependencies so they
 				are aviablible fore integration testing. -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -193,7 +193,7 @@
 			<version>0.2</version>
 			<scope>test</scope>
 		</dependency>
-		<!-- We are using this to serialize column metadata. We can drop it when 
+		<!-- We are using this to serialize column metadata. We can drop it when
 			the API provides this functionality -->
 		<dependency>
 			<groupId>com.thoughtworks.xstream</groupId>

@@ -4,14 +4,14 @@
 	<parent>
 		<groupId>org.sagebionetworks</groupId>
 		<artifactId>lib</artifactId>
-		<version>0.8-SNAPSHOT</version>
+		<version>0.9-SNAPSHOT</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>lib-id-generator</artifactId>
 	<name>lib-id-generator</name>
 	<description>Generates domain unique identifiers</description>
-	
+
 	<dependencies>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
@@ -66,5 +66,5 @@
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
-	</dependencies>	
+	</dependencies>
 </project>

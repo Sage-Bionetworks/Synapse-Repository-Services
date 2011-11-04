@@ -9,7 +9,7 @@
 	<parent>
 		<groupId>org.sagebionetworks</groupId>
 		<artifactId>lib</artifactId>
-		<version>0.8-SNAPSHOT</version>
+		<version>0.9-SNAPSHOT</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
@@ -23,7 +23,7 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>schema-to-pojo-org-json</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
@@ -39,7 +39,7 @@
 			<groupId>commons-lang</groupId>
 			<artifactId>commons-lang</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-auto-generated</artifactId>
