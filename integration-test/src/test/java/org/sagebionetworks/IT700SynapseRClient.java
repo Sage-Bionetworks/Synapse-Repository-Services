@@ -69,9 +69,6 @@ public class IT700SynapseRClient {
 	}
 
 	/**
-	 * TODO for now skipping some R integration tests because they access S3
-	 * functionality which is not yet stubbed out in the repo service.
-	 * 
 	 * @throws Exception
 	 */
 	@Test
@@ -97,6 +94,10 @@ public class IT700SynapseRClient {
 		assertEquals(0, result.getReturnCode());
 		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
 	}
+	
+	/**
+	 * @throws Exception
+	 */
 	@Test
 	public void testRunRHmacAuthenticationTest() throws Exception{
 		String cmd[] = {

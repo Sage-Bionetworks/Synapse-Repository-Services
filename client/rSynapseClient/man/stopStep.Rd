@@ -1,22 +1,21 @@
-\name{Dataset}
-\alias{Dataset}
-\alias{SynapseEntity}
-\alias{Layer}
-\alias{Project}
-\alias{Analysis}
-\alias{Step}
+\name{stopStep}
+\alias{stopStep}
+%- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-	Entity Constructors
+Stop the current provenance Step
 }
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+call with no arguments to stop the current Step entity
+
+pass a particular Step entity or id to stop a different Step
 }
 \usage{
-Dataset(entity)
+stopStep(step)
 }
+%- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{entity}{
-%%     ~~Describe \code{entity} here~~
+  \item{step}{
+%%     ~~Describe \code{step} here~~
 }
 }
 \details{
@@ -44,3 +43,10 @@ Dataset(entity)
 \seealso{
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
+\examples{
+
+}
+% Add one or more standard keywords, see file 'KEYWORDS' in the
+% R documentation directory.
+\keyword{ ~kwd1 }
+\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line

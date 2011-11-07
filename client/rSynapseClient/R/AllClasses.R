@@ -160,4 +160,19 @@ setClass(
 		)
 )
 
+setClass(
+	Class = "Analysis",
+	contains = "SynapseEntity",
+	prototype = prototype(
+		synapseEntityKind = "analysis"
+		)
+	)
+
+setClass(
+	Class = "Step",
+	contains = "SynapseEntity",
+	prototype = prototype(
+		synapseEntityKind = "step"
+		)
+	)
 
