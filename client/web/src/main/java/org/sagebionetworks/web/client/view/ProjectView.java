@@ -25,7 +25,7 @@ public interface ProjectView extends IsWidget, SynapseView {
 	 * @param status
 	 */
 	public void setProjectDetails(String id, String name, String description,
-			String creator, Date creationDate, String status, boolean isAdministrator, boolean canEdit);
+			String creator, Date creationDate, boolean isAdministrator, boolean canEdit);
 		
 	
 	public interface Presenter extends SynapsePresenter {		
