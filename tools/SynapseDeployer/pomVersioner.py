@@ -4,10 +4,10 @@ Walk the complete PLFM hierarchy and bring all the pom.xml files up to new minor
 '''
 
 #Old and new minor versions
-oldVersion = '0.8.0'
-newVersion = '0.8.1'
+oldVersion = '0.8.1'
+newVersion = '0.8-SNAPSHOT'
 #Path to PLFM on your system
-startPath = 'C:\\dev\\workspace\\Synapse'
+startPath = 'C:\\dev\\workspace\\Synapse-0.8'
 for root, subFolders, files in os.walk(startPath):    
     for file in files:
         if file == 'pom.xml': 
@@ -19,12 +19,12 @@ for root, subFolders, files in os.walk(startPath):
                     line = line.replace(oldVersion,newVersion)
                     found = True
                 print line.rstrip()
-        if file == 'DESCRIPTION' and root.find('rSynapseClient') >= 0:
-            f = os.path.join(root, file)
-            print 'updating '+f
-            for line in fileinput.FileInput(f, inplace=1):
-                found = False
-                if not found and line.find('Version') >= 0:
-                    line = 'Version: '+newVersion+'-0'
-                    found = True
-                print line.rstrip()
+#        if file == 'DESCRIPTION' and root.find('rSynapseClient') >= 0:
+#            f = os.path.join(root, file)
+#            print 'updating '+f
+#            for line in fileinput.FileInput(f, inplace=1):
+#                found = False
+#                if not found and line.find('Version') >= 0:
+#                    line = 'Version: '+newVersion+'-0'
+#                    found = True
+#                print line.rstrip()
