@@ -67,9 +67,8 @@ integrationTestStoreLayerRbin <-
 integrationTestStoreLayerCode <-
 		function()
 {
-	#dataset <- synapseClient:::.getCache("testDataset")
-	project<- synapseClient:::.getCache("testProject") # check set up method
-	code <- Code(list(name="a code layer", parentId=propertyValue(project, "id")))
+	dataset <- synapseClient:::.getCache("testDataset")
+	code <- Code(list(name="a code layer", parentId=propertyValue(dataset, "id")))
 	codeFile <- tempfile(fileext=".R")
 	cat('run <- function(){return("executing test function")}',file=codeFile)
 	code <- addFile(code, codeFile)
