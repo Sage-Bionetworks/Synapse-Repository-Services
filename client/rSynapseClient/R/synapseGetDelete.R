@@ -50,6 +50,9 @@
 	
 	##curlSetOpt(opts,curl=curlHandle)
 	if(is.null(entity)){
+        if(.getCache("debug")) {
+		    message("request: ", requestMethod, " ", uri)
+	    }
 		response <- getURL(uri, 
 				customrequest = requestMethod, 
 				httpheader = header, 
@@ -59,6 +62,10 @@
 		)
 	}else{
 		httpBody <- toJSON(entity)
+       	if(.getCache("debug")) {
+            message("request: ", requestMethod, " ", uri)
+		    message("requestBody: ", httpBody)
+	    }
 		response <- getURL(uri, 
 				postfields = httpBody, 
 				customrequest = requestMethod, 
