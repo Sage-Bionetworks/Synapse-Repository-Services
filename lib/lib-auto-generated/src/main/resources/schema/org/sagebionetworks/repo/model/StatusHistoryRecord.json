@@ -1,0 +1,12 @@
+{
+    "description": "JSON schema for StatusHistoryRecord POJO",
+    "properties": {
+        "statusName": {
+            "type": "string"
+        },
+        "date": {
+            "type": "string",
+            "format": "date-time"
+        }
+    }
+}

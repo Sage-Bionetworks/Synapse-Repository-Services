@@ -36,9 +36,7 @@
             
         },
         "status":{
-            "type":"string",
-            "description":"the status of this dataset",
-            
+            "$ref":"org.sagebionetworks.repo.model.DatasetStatusNames"
         },
         "version":{
             "type":"string",
@@ -49,6 +47,22 @@
             "format":"date-time",
             
         },
-        
+        "diseases":{
+            "type":"array",
+            "description":"The list of diseases for this dataset",
+            "items":{
+                "type":"string"
+            }
+        },
+        "tissues":{
+            "type":"array",
+            "description":"The list of tissues for this dataset",
+            "items": {
+                "type":"string"
+            }
+        },
+        "trackingData":{
+            "$ref":"org.sagebionetworks.repo.model.DatasetTrackingData"
+        }
     }
 }

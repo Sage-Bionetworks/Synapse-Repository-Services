@@ -1,0 +1,40 @@
+{
+    "description":"JSON schema for AcquisitionTrackingData",
+    "properties":{
+        "status": {
+            "description": "The status of data acquisition process",
+            "type": "string",
+            "name":"AcquisitionStatusNames",
+            "enum": [
+                "requested",
+                "approved",
+                "denied",
+                "pending",
+                "acquired"
+            ]
+        },
+        "dataAcquisitionReference": {
+            "description": "Reference id of data acquisition",
+            "type": "string"
+        },
+        "requestor": {
+            "description": "Contact id of person who requested the data",
+            "type": "string"
+        },
+        "followupRequirements": {
+            "description": "Short description of followup requirements",
+            "type": "string"
+        },
+        "comments": {
+            "description": "Comments on acquisition process",
+            "type": "string"
+        },
+        "history":{
+            "description": "Status history",
+            "type": "array",
+            "items": {
+                "$ref": "org.sagebionetworks.repo.model.StatusHistoryRecord"
+            }
+        }
+    }
+}

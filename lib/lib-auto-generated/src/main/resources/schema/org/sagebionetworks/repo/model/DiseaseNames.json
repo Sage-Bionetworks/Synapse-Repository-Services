@@ -1,0 +1,26 @@
+{
+    "description":"JSON schema for Disease Data POJO",
+    "name": "DiseaseNames",
+    "type":"string",
+    "enum":[
+        "Alzheimers",
+        "Asthma",
+        "Autism",
+        "Cancer",
+        "CVD",
+        "Diabetes",
+        "Disease",
+        "Drug_Response",
+        "Healthy",
+        "Infectious_Disease",
+        "Inflammatory_Disease",
+        "Metabolic_Disease",
+        "Multiple",
+        "Multiple_Sclerosis",
+        "Neurological_Disease",
+        "Respiratory_Disease",
+        "Sarcopenia",
+        "Schizophrenia",
+        "TBD"
+    ]
+}
