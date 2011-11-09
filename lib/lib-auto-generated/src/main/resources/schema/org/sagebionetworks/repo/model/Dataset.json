@@ -36,33 +36,19 @@
             
         },
         "status":{
-            "$ref":"org.sagebionetworks.repo.model.DatasetStatusNames"
+            "type":"string",
+            "description":"the status of this dataset",
+            
         },
         "version":{
             "type":"string",
-            "description":"This is a fake value.  Layers need to be changed to versionable."
+            "description":"This is a fake value. Layers need to be changed to versionable."
         },
         "releaseDate":{
             "type":"string",
             "format":"date-time",
             
         },
-        "diseases":{
-            "type":"array",
-            "description":"The list of diseases for this dataset",
-            "items":{
-                "type":"string"
-            }
-        },
-        "tissues":{
-            "type":"array",
-            "description":"The list of tissues for this dataset",
-            "items": {
-                "type":"string"
-            }
-        },
-        "trackingData":{
-            "$ref":"org.sagebionetworks.repo.model.DatasetTrackingData"
-        }
+        
     }
 }
