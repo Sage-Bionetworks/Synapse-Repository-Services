@@ -20,7 +20,8 @@ export(
 	synapseLogout, 
 	synapseQuery, 
 	synapseCacheDir,
-	hmacSecretKey
+	hmacSecretKey,
+    .Last.lib
 )
 
 ## S3 convenience methods
@@ -34,6 +35,8 @@ exportMethods(
 	Dataset, 
 	Layer, 
 	Project,
+  Analysis,
+  Step,
 	Code,
 	Media
 )
@@ -89,3 +92,10 @@ exportMethods(
  	properties
 )
 
+# Provenance Methods
+exportMethods(
+  startStep,
+  getStep,
+  stopStep
+)
+              

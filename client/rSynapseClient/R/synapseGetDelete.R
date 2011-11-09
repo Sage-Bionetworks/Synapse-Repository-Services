@@ -21,6 +21,17 @@
 	}else {
 		uri <- paste(host, path, uri, sep="")
 	}
+	
+	## Add the provenance parameter, if applicable
+	step <- .getCache("currentStep")
+	if(!is.null(step)) {
+		if(grepl("?", uri, fixed=TRUE)) {
+			uri <- paste(uri, "&stepId=", propertyValue(step, "id"), sep="")
+		} else {
+			uri <- paste(uri, "?stepId=", propertyValue(step, "id"), sep="")			
+		}
+	}
+	
 	if(length(path) > 1)
 		stop("put", paste(length(path), path))
 	## Prepare the header. If not an anonymous request, stuff the

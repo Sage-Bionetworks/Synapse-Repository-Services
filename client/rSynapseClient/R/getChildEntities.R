@@ -74,6 +74,13 @@ getLayerPreviews <-
 	.getChildEntities(entity=entity, offset=offset, limit=limit, kind="layer", childKind="preview", includeParentAnnot = FALSE)
 }
 
+getAnalysisSteps <- 
+	function(entity, includeParentAnnot=TRUE, offset=1, limit=100)
+	{
+		missing(entity)
+		.getChildEntities(entity=entity, offset=offset, limit=limit, kind="analysis", childKind="step", includeParentAnnot = includeParentAnnot)
+	}
+
 setMethod(
 		f = "getDatasetLayers",
 		signature = "SynapseEntity",

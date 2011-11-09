@@ -3,6 +3,8 @@
 \alias{SynapseEntity}
 \alias{Layer}
 \alias{Project}
+\alias{Analysis}
+\alias{Step}
 \title{
 	Entity Constructors
 }

@@ -81,4 +81,17 @@ kLayerSubtypeMap <- list(
 	.setCache("annotationTypeMap", kSynapseRAnnotationTypeMap)
 	.setCache("synapseBannerPath", file.path(libname, pkgname, "images", "synapse_banner.gif"))
 	.setCache("rObjCacheDir", ".R_OBJECTS")
+	## install cleanup hooks upon shutdown
+	reg.finalizer(topenv(parent.frame()),
+								function(...) .Last.lib(),
+								onexit=TRUE)
+	reg.finalizer(getNamespace("synapseClient"),
+								function(...) .Last.lib(),
+								onexit=TRUE)
+}
+
+.onUnload <- function(libpath) .Last.lib()
+
+.Last.lib <- function(...) {
+	try(stoppedStep <- stopStep(), silent=TRUE)
 }

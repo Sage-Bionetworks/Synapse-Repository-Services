@@ -445,6 +445,22 @@ setGeneric(
 		}
 )
 
+## Generic Analysis constructor
+setGeneric(
+	name = "Analysis",
+	def = function(entity){
+		standardGeneric("Analysis")
+	}
+	)
+
+## Generic Step constructor
+setGeneric(
+	name = "Step",
+	def = function(entity){
+		standardGeneric("Step")
+	}
+	)
+
 setGeneric(
 		name = "synapseEntityKind",
 		def = function(entity){
