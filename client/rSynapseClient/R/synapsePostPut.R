@@ -71,6 +71,10 @@
 	
 	##curlSetOpt(opts,curl=curlHandle)
 	
+	if(.getCache("debug")) {
+		message("request: ", requestMethod, " ", uri)
+		message("requestBody: ", httpBody)
+	}
 	response <- getURL(uri, 
 			postfields = httpBody, 
 			customrequest = requestMethod, 
@@ -81,7 +85,6 @@
 	)
 	if(.getCache("debug")) {
 		message(d$value())
-		message("requestBody: ", httpBody)
 		message("responseBody: ", response)
 	}
 	
