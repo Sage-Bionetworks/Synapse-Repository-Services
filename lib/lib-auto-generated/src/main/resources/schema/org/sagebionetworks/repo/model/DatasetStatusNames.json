@@ -1,0 +1,10 @@
+{
+    "description":"JSON schema for Datsset Status enumeration POJO",
+    "name": "DatasetStatusNames",
+    "type":"string",
+    "enum":[
+        "Identified",
+        "Contributed",
+        "Curated"
+    ]
+}
