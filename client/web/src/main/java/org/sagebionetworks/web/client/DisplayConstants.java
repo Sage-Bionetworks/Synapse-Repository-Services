@@ -23,6 +23,7 @@ public class DisplayConstants {
 	public static final int DESCRIPTION_SUMMARY_LENGTH = 450; // characters for summary
 	
 	public static final DateTimeFormat DATE_FORMAT = DateTimeFormat.getFormat("dd-MMM-yyyy");
+	public static final DateTimeFormat DATE_TIME_FORMAT = DateTimeFormat.getFormat(DateTimeFormat.PredefinedFormat.DATE_TIME_MEDIUM);
 	public static final DateTimeFormat DATE_FORMAT_SERVICES = DateTimeFormat.getFormat("yyyy-MM-dd");	
 	
 	

@@ -1,5 +1,8 @@
 package org.sagebionetworks.web.client.view;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
@@ -14,7 +17,9 @@ import org.sagebionetworks.web.client.widget.header.Header.MenuItems;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
 import org.sagebionetworks.web.shared.NodeType;
+import org.sagebionetworks.web.shared.WhereCondition;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
+import org.sagebionetworks.web.shared.QueryConstants.WhereOperator;
 
 import com.extjs.gxt.ui.client.event.ButtonEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
@@ -50,6 +55,7 @@ public class StepsHomeViewImpl extends Composite implements StepsHomeView {
 	private NodeEditor nodeEditor;
 	private Header headerWidget;
 	private Window startStepWindow;
+	private String currentUserId = null;
 
 	private final int INITIAL_QUERY_TABLE_OFFSET = 0;
 	private final int QUERY_TABLE_LENGTH = 20;
@@ -80,6 +86,15 @@ public class StepsHomeViewImpl extends Composite implements StepsHomeView {
 		headerWidget.refresh();
 				
 		this.queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.step, true, 1000, 487, presenter.getPlaceChanger());		
+
+		if(null != currentUserId) {
+			// If the user is logged in, show only that user's steps, most recent first
+			List<WhereCondition> where = new ArrayList<WhereCondition>();
+			where.add(new WhereCondition("step.createdBy", WhereOperator.EQUALS, currentUserId));
+			queryServiceTable.setWhereCondition(where);
+			queryServiceTable.toggleSort("step.createdOn");
+		}
+		
 		// Start on the first page and trigger a data fetch from the server
 		queryServiceTable.pageTo(INITIAL_QUERY_TABLE_OFFSET, QUERY_TABLE_LENGTH);
 		tablePanel.clear();
@@ -138,6 +153,12 @@ public class StepsHomeViewImpl extends Composite implements StepsHomeView {
 	@Override
 	public void clear() {
 		if(startStepWindow != null) startStepWindow.hide();
+	}
+
+
+	@Override
+	public void setCurrentUserId(String userId) {
+		this.currentUserId = userId;
 	}
 
 }

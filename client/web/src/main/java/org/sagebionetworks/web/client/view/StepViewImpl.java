@@ -265,11 +265,11 @@ public class StepViewImpl extends Composite implements StepView {
 		DisplayUtils.addRowToTable(rowIndex++, "Command Line:", commandLine,
 				STEP_DETAILS_STYLE, propertiesFlexTable);
 		DisplayUtils.addRowToTable(rowIndex++, "Start Date:",
-				(null != startDate) ? DisplayConstants.DATE_FORMAT
+				(null != startDate) ? DisplayConstants.DATE_TIME_FORMAT
 						.format(startDate) : "", STEP_DETAILS_STYLE,
 				propertiesFlexTable);
 		DisplayUtils.addRowToTable(rowIndex++, "End Date:",
-				(null != endDate) ? DisplayConstants.DATE_FORMAT
+				(null != endDate) ? DisplayConstants.DATE_TIME_FORMAT
 						.format(endDate) : "", STEP_DETAILS_STYLE,
 				propertiesFlexTable);
 

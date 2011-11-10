@@ -3,7 +3,9 @@ package org.sagebionetworks.web.client.presenter;
 import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.place.StepsHome;
+import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.view.StepsHomeView;
+import org.sagebionetworks.web.shared.users.UserData;
 
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
@@ -18,11 +20,15 @@ public class StepsHomePresenter extends AbstractActivity implements StepsHomeVie
 	private StepsHomeView view;
 	private PlaceController placeController;
 	private PlaceChanger placeChanger;
+	private AuthenticationController authenticationController;
 	private GlobalApplicationState globalApplicationState;
 	
 	@Inject
-	public StepsHomePresenter(StepsHomeView view, GlobalApplicationState globalApplicationState){
+	public StepsHomePresenter(StepsHomeView view, 
+			AuthenticationController authenticationController, 
+			GlobalApplicationState globalApplicationState){
 		this.view = view;
+		this.authenticationController = authenticationController;
 		this.globalApplicationState = globalApplicationState;
 		this.placeChanger = globalApplicationState.getPlaceChanger();
 		
@@ -37,6 +43,8 @@ public class StepsHomePresenter extends AbstractActivity implements StepsHomeVie
 
 	public void setPlace(StepsHome place) {
 		this.place = place;
+		
+		setCurrentUserId(); 
 		view.setPresenter(this);
 	}
 
@@ -50,5 +58,12 @@ public class StepsHomePresenter extends AbstractActivity implements StepsHomeVie
         view.clear();
         return null;
     }
+	
+	public void setCurrentUserId() {
+		UserData currentUser = authenticationController.getLoggedInUser();
+		if(currentUser != null) {
+			view.setCurrentUserId(currentUser.getEmail());
+		}
+	}
 	
 }

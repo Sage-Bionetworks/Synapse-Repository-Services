@@ -12,6 +12,13 @@ public interface StepsHomeView extends IsWidget, SynapseView {
 	 * @param presenter
 	 */
 	public void setPresenter(Presenter presenter);
+	
+	/**
+	 * Sets the current user id in the view
+	 * 
+	 * @param userId
+	 */
+	public void setCurrentUserId(String userId);
 		
 	public interface Presenter {
 
