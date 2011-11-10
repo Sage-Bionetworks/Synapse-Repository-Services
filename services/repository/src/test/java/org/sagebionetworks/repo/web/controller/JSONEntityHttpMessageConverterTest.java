@@ -64,13 +64,7 @@ public class JSONEntityHttpMessageConverterTest {
 		Mockito.when(mockHeaders.getContentType()).thenReturn(MediaType.APPLICATION_JSON);
 		
 	}
-	
-	@Test
-	public void testIsJSONEntity(){
-		JSONEntityHttpMessageConverter converter = new JSONEntityHttpMessageConverter();
-		assertTrue(converter.isJSONEntity(ExampleContainer.class));
-		assertFalse(converter.isJSONEntity(Object.class));
-	}
+
 	@Test
 	public void testCanRead(){
 		JSONEntityHttpMessageConverter converter = new JSONEntityHttpMessageConverter();

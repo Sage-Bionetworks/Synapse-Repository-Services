@@ -9,6 +9,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.repo.util.JSONEntityUtil;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -32,22 +33,7 @@ public class JSONEntityHttpMessageConverter implements
 
 	@Override
 	public boolean canRead(Class<?> clazz, MediaType mediaType) {
-		return isJSONType(mediaType) && isJSONEntity(clazz);
-	}
-	
-	/**
-	 * Is the given class a JSONEntity
-	 * @param clazz
-	 * @return
-	 */
-	public static boolean isJSONEntity(Class<?> clazz){
-		Class[] interfaces = clazz.getInterfaces();
-		if(interfaces == null) return false;
-		if(interfaces.length < 1) return false;
-		for(Class c: interfaces){
-			if(JSONEntity.class.equals(c)) return true;
-		}
-		return false;
+		return isJSONType(mediaType) && JSONEntityUtil.isJSONEntity(clazz);
 	}
 	
 	public static boolean isJSONType(MediaType type){
@@ -61,7 +47,7 @@ public class JSONEntityHttpMessageConverter implements
 
 	@Override
 	public boolean canWrite(Class<?> clazz, MediaType mediaType) {
-		return isJSONType(mediaType) && isJSONEntity(clazz);
+		return isJSONType(mediaType) && JSONEntityUtil.isJSONEntity(clazz);
 	}
 
 	@Override

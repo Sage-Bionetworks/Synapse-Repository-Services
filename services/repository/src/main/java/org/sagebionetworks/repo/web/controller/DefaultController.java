@@ -6,6 +6,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.schema.JsonSchema;
+import org.sagebionetworks.repo.manager.SchemaCache;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
@@ -20,11 +21,13 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.util.JSONEntityUtil;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.PaginatedParameters;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -660,9 +663,10 @@ public class DefaultController extends BaseController {
 			UrlHelpers.CODE_SCHEMA
 	}, method = RequestMethod.GET)
 	public @ResponseBody
-	JsonSchema getEntitiesSchema(HttpServletRequest request) throws DatastoreException {
+	ObjectSchema getEntitiesSchema(HttpServletRequest request) throws DatastoreException {
 		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
-		return entityController.getEntitySchema(type.getClassForType());
+		ObjectSchema schema =  SchemaCache.getSchema(type.getClassForType());
+		return schema;
 	}
 	
 	/**

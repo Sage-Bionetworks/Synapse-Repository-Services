@@ -26,14 +26,23 @@ public class SchemaCache {
 	 */
 	public static ObjectSchema getSchema(JSONEntity entity) {
 		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
-		Class<? extends JSONEntity> clazz = entity.getClass();
+		return getSchema(entity.getClass());
+	}
+	
+	/**
+	 * Get the schema for a JSONEntity class.
+	 * @param clazz
+	 * @return
+	 */
+	public static ObjectSchema getSchema(Class<? extends JSONEntity> clazz) {
+		if(clazz == null) throw new IllegalArgumentException("Entity class cannot be null");
 		ObjectSchema schema = cache.get(clazz);
 		if(schema == null){
-			String jsonString = entity.getJSONSchema();
-			if(jsonString == null) throw new IllegalArgumentException("The JSON Schema cannot be null for entity.getJSONSchema()");
 			try {
+				String jsonString = (String) clazz.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
+				if(jsonString == null) throw new IllegalArgumentException("The JSON Schema cannot be null for entity.getJSONSchema()");
 				schema = new ObjectSchema(JSONObjectAdapterImpl.createAdapterFromJSONString(jsonString));
-			} catch (JSONObjectAdapterException e) {
+			} catch (Exception e) {
 				// convert this to a runtime.
 				throw new RuntimeException(e);
 			}
