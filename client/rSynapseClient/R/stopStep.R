@@ -81,7 +81,7 @@ setMethod(
 
 .getRHistory <- function(step) {
 	file1 <- tempfile("Rrawhist")
-	historyAttemptStatus <- try(savehistory(file1))
+	historyAttemptStatus <- try(savehistory(file1), silent=TRUE)
 	if(is.null(historyAttemptStatus)) {
 		rawhist <- readLines(file1)
 		unlink(file1)
