@@ -58,7 +58,7 @@ public class LoginPresenter extends AbstractActivity implements LoginView.Presen
 		} else {
 			// load Open ID urls
 			// retrieve endpoints for SSO
-			userService.getPrivateAuthServiceUrl(new AsyncCallback<String>() {
+			userService.getPublicAuthServiceUrl(new AsyncCallback<String>() {
 				@Override
 				public void onSuccess(String result) {
 					openIdActionUrl = result + "/openid";

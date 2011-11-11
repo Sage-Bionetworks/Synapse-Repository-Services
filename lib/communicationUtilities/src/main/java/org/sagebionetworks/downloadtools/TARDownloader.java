@@ -36,8 +36,6 @@ public class TARDownloader {
 	 * TODO:  A possible extension is to handle TAR files which are themselves zipped.
 	 */
 	public static List<File> ftpDownload(String ftpServer, File remoteFile, File dir) throws IOException {
-		if (!dir.exists()) throw new IOException(dir.getPath()+" does not exist.");
-		byte [] buffer = new byte[RECORDLEN]; 
 		FTPClient ftp = new FTPClient();
 	    ftp.connect( ftpServer );
 	    ftp.login("anonymous", "emailaddress");
@@ -52,6 +50,22 @@ public class TARDownloader {
 				"Changed dir to "+path+
 				" but unable to download "+fname+". Last reply from server:\n"+
 				ftp.getReplyString());
+		List<File> result = untar(is, dir);
+		is.close();
+		return result;
+	}
+	
+	/**
+	 * Untars the content from an input stream, also unzipping any zipped or zgipped contents.
+	 * 
+	 * @param is the input stream from which to read
+	 * @param dir the directory into which to place the extracted files
+	 * @return the handles to the extracted files
+	 * 
+	 */
+	public static List<File> untar(InputStream is, File dir) throws IOException {
+		if (!dir.exists()) throw new IOException(dir.getPath()+" does not exist.");
+		byte [] buffer = new byte[RECORDLEN]; 
 		List<File> fileList = new ArrayList<File>();
 		while ( ((is.read(buffer)) == RECORDLEN) && (buffer[NAMEOFF] != 0) ) { 
 			String name = new String(buffer, NAMEOFF, NAMELEN, Charset.defaultCharset()).trim(); 

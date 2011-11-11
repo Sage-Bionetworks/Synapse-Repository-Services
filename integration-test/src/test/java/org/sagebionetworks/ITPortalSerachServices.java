@@ -3,15 +3,12 @@ package org.sagebionetworks;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.utils.CookieSessionManager;
 import org.sagebionetworks.web.client.SearchService;
 import org.sagebionetworks.web.client.services.NodeService;
@@ -174,29 +171,29 @@ public class ITPortalSerachServices {
 //		assertEquals(2, results.getTotalNumberResults());
 	}
 		
-	private static Layer createLayer(Date date, int i)
-			throws InvalidModelException {
-//		Layer ans = new Layer();
-//		ans.setName("layerName" + i);
-//		ans.setDescription("description" + i);
-//		ans.setCreationDate(date);
-//		ans.setVersion("1.0");
-//		ans.setPublicationDate(date);
-//		ans.setReleaseNotes("this version contains important revisions" + i);
-//		if ((i % 2) == 0) {
-//			ans.setType(LayerTypeNames.C.name());
-//		} else if ((i % 3) == 0) {
-//			ans.setType(LayerTypeNames.E.name());
-//		} else {
-//			ans.setType(LayerTypeNames.G.name());
-//		}
-//		ans.setTissueType("cell line" + i);
-//		ans.setPlatform("Affymetrix");
-//		ans.setProcessingFacility("Broad Institute");
-//		ans.setQcBy("Fred");
-//		ans.setQcDate(date);
-//		return ans;
-		return null;
-	}
+//	private static Layer createLayer(Date date, int i)
+//			throws InvalidModelException {
+////		Layer ans = new Layer();
+////		ans.setName("layerName" + i);
+////		ans.setDescription("description" + i);
+////		ans.setCreationDate(date);
+////		ans.setVersion("1.0");
+////		ans.setPublicationDate(date);
+////		ans.setReleaseNotes("this version contains important revisions" + i);
+////		if ((i % 2) == 0) {
+////			ans.setType(LayerTypeNames.C.name());
+////		} else if ((i % 3) == 0) {
+////			ans.setType(LayerTypeNames.E.name());
+////		} else {
+////			ans.setType(LayerTypeNames.G.name());
+////		}
+////		ans.setTissueType("cell line" + i);
+////		ans.setPlatform("Affymetrix");
+////		ans.setProcessingFacility("Broad Institute");
+////		ans.setQcBy("Fred");
+////		ans.setQcDate(date);
+////		return ans;
+//		return null;
+//	}
 
 }

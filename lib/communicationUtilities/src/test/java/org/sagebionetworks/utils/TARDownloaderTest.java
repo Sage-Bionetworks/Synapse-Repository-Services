@@ -3,6 +3,8 @@ package org.sagebionetworks.utils;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.InputStream;
+import java.io.FileInputStream;
 import java.util.List;
 
 import org.junit.Ignore;
@@ -11,15 +13,12 @@ import org.sagebionetworks.downloadtools.TARDownloader;
 
 public class TARDownloaderTest {
 
-	@Ignore
 	@Test
-	public void testTARDownloader() throws Exception {
-		String studyID = "GSE12800";
-		String fileName = studyID+"_RAW.tar";
-		String ftpServer = "ftp.ncbi.nih.gov";
-		File remoteFile = new File("/pub/geo/DATA/supplementary/series/"+studyID, fileName);
+	public void testUntar() throws Exception {
 		File dir = new File(".");
-		List<File> files = TARDownloader.ftpDownload(ftpServer, remoteFile, dir);
+		InputStream is = new FileInputStream(new File("src"+File.separator+"test"+File.separator+"resources", "test.tar"));
+		List<File> files = TARDownloader.untar(is, dir);
+		is.close();
 		assertTrue(files.size()>0);
 		for (File file : files) file.delete();
 	}
