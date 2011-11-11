@@ -1,6 +1,12 @@
 package org.sagebionetworks.web.client;
 
 
+import java.util.Date;
+
+import org.gwttime.time.DateTime;
+import org.gwttime.time.format.ISODateTimeFormat;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.schema.FORMAT;
 import org.sagebionetworks.web.client.place.Analysis;
 import org.sagebionetworks.web.client.place.Dataset;
 import org.sagebionetworks.web.client.place.Home;
@@ -264,10 +270,49 @@ public class DisplayUtils {
 		return place;
 	}
 	
+	/**
+	 * Returns the NodeType for this entity class. 
+	 * TODO : This should be removed when we move to using the Synapse Java Client
+	 * @param entity
+	 * @return
+	 */
+	public static NodeType getNodeTypeForEntity(Entity entity) {
+		// 	DATASET, LAYER, PROJECT, EULA, AGREEMENT, ENTITY, ANALYSIS, STEP
+		if(entity instanceof org.sagebionetworks.repo.model.Dataset) {
+			return NodeType.DATASET;
+		} else if(entity instanceof org.sagebionetworks.repo.model.Layer) {
+			return NodeType.LAYER;
+		} else if(entity instanceof org.sagebionetworks.repo.model.Project) {
+			return NodeType.PROJECT;
+		} else if(entity instanceof org.sagebionetworks.repo.model.Eula) {
+			return NodeType.EULA;
+		} else if(entity instanceof org.sagebionetworks.repo.model.Agreement) {
+			return NodeType.AGREEMENT;
+		} else if(entity instanceof org.sagebionetworks.repo.model.Analysis) {
+			return NodeType.ANALYSIS;
+		} else if(entity instanceof org.sagebionetworks.repo.model.Step) {
+			return NodeType.STEP;
+		}
+		return null;	
+	}
+	
 	public static String getRClientEntityLoad(String id) {
 		return "# Load in Synapse R Client:<br/>" +  
 			"entity."+ id +" <- getEntity("+ id +")";		
 	}	
+	
+	public static String convertDateToString(Date toFormat) {
+		if(toFormat == null) throw new IllegalArgumentException("Date cannot be null");
+		DateTime dt = new DateTime(toFormat.getTime());
+		return ISODateTimeFormat.dateTime().print(dt);
+	}
+
+	public static Date convertStringToDate(String toFormat) {
+		if(toFormat == null) throw new IllegalArgumentException("Date cannot be null");
+		DateTime dt = ISODateTimeFormat.dateTime().parseDateTime(toFormat);
+		return dt.toDate();
+	}
+	
 	
 	/*
 	 * Private methods

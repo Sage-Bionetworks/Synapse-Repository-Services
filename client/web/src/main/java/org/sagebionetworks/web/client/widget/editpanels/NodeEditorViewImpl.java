@@ -72,17 +72,17 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 	
 	@Override
 	public void generateCreateForm(List<FormField> formFields,
-			String typeDisplay, String topText, List<String> ignoreFields,
+			String typeDisplay, String topText, List<String> requiredFields,
 			Map<String, Enumeration> keyToOntologyTerms) {
-		buildNodeForm(formFields, typeDisplay, topText, ignoreFields, keyToOntologyTerms, false, null);
+		buildNodeForm(formFields, typeDisplay, topText, requiredFields, keyToOntologyTerms, false, null);
 	}
 
 	@Override
 	public void generateEditForm(List<FormField> formFields,
-			String typeDisplay, String topText, List<String> ignoreFields,
+			String typeDisplay, String topText, List<String> requiredFields,
 			Map<String, Enumeration> keyToOntologyTerms,
 			JSONObject editorValues) {
-		buildNodeForm(formFields, typeDisplay, topText, ignoreFields, keyToOntologyTerms, true, editorValues);
+		buildNodeForm(formFields, typeDisplay, topText, requiredFields, keyToOntologyTerms, true, editorValues);
 	}
 		
 	@Override
@@ -108,7 +108,7 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 	 * Private Methods 
 	 */
 	private void buildNodeForm(final List<FormField> formFields,
-			String typeDisplay, String topText, List<String> ignoreFields,
+			String typeDisplay, String topText, List<String> requiredFields,
 			Map<String, Enumeration> keyToOntologyTerms, boolean isEditor,
 			JSONObject editorValues) {
 		// remove any old forms, this is a singleton afterall
@@ -136,8 +136,8 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 		
 		final Map<String, FormField> keyToFormFieldMap = new HashMap<String, FormField>();
 		for(FormField formField : formFields) {
-			// skip some fields
-			if(ignoreFields.contains(formField.getKey()))
+			// only add required fields some fields
+			if(!requiredFields.contains(formField.getKey()))
 				continue;
 			String key = formField.getKey();
 			switch(formField.getType()) {
@@ -217,7 +217,9 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 		nodeFormPanel.addButton(closeButton);
 		
 		nodeFormPanel.setButtonAlign(HorizontalAlignment.CENTER);
-		binding.addButton(formButton);		
+		// only require all fields for creation windows
+		if(!isEditor) 
+			binding.addButton(formButton);		
 		
 		nodeFormPanel.layout();
 		this.add(nodeFormPanel);
@@ -240,9 +242,9 @@ public class NodeEditorViewImpl extends LayoutContainer implements NodeEditorVie
 					break;
 				case DATE:
 					String dateString = "";
-					JSONNumber dateDouble = editorValues.get(key).isNumber();
-					if(dateDouble != null) {
-						Date date = new Date(((Double)dateDouble.doubleValue()).longValue());
+					JSONString dateUTC = editorValues.get(key).isString();
+					if(dateUTC != null) {
+						Date date = DisplayUtils.convertStringToDate(dateUTC.stringValue());
 						if(date != null) {							
 							dateString = DisplayConstants.DATE_FORMAT_SERVICES.format(date);
 						}

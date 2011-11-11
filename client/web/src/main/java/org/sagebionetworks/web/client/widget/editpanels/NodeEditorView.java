@@ -24,7 +24,7 @@ public interface NodeEditorView extends IsWidget {
 	 * @param typeDisplay display string for the type
 	 * @param map 
 	 */
-	public void generateCreateForm(List<FormField> formFields, String typeDisplay, String topText, List<String> ignoreFields, Map<String, Enumeration> keyToOntologyTerms);
+	public void generateCreateForm(List<FormField> formFields, String typeDisplay, String topText, List<String> requiredFields, Map<String, Enumeration> keyToOntologyTerms);
 
 	/**
 	 * Tells the view what fields to build in the form
