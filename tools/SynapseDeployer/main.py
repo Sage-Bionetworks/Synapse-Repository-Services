@@ -9,15 +9,19 @@ class Component:
 
 # Parameters to drive Deployment
 workDir = os.sep+'temp'+os.sep 
-componentsToUpgrade = [Component('DefaultEnvironment', 'services-authentication')]
-version = '0.8'
-isSnapshot = True
-beanstalk_application_name = 'My First Elastic Beanstalk Application'
+componentsToUpgrade = [Component('prod-a-auth', 'services-authentication'),
+                       Component('prod-a-repo', 'services-repository'),
+                       Component('prod-a-portal', 'portal')]
+version = '0.8.1'
+isSnapshot = False
+beanstalk_application_name = 'Synapse'
 description = 'created by Synapse Deployer' 
-environment_name = 'Default-Environment'
 
 # Change to match beanstalk bucket for your account
-deploymentBucket = 'elasticbeanstalk-us-east-1-059816207990'
+#Mike
+#deploymentBucket = 'elasticbeanstalk-us-east-1-059816207990'
+# Platform
+deploymentBucket = 'elasticbeanstalk-us-east-1-325565585839'
 
 # Initialize environment
 synapse = synapseAwsEnvironment.SynapseAwsEnvironment(deploymentBucket)
@@ -30,7 +34,7 @@ for component in componentsToUpgrade:
     print 'creating version '+version_label
     synapse.createApplicationVersion(version_label, beanstalk_application_name, 
                                      key, description=description)
-    synapse.updateEnvironment(environment_name = environment_name, version_label = version_label)
+    synapse.updateEnvironment(environment_name = component.environment_name, version_label = version_label)
     
 print('Done')
 

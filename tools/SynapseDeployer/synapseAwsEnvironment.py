@@ -5,9 +5,9 @@ from boto.ec2.connection import EC2Connection
 
 class BeanstalkConnection(AWSQueryConnection):
     #For now this is only place elasticbeanstalk is supported
-    BeanstalkDefaultHost = 'elasticbeanstalk.us-east-1.amazonaws.com'
+    BEANSTALK_DEFAULT_HOST = 'elasticbeanstalk.us-east-1.amazonaws.com'
     
-    def __init__(self, aws_access_key_id=None, aws_secret_access_key=None, host=BeanstalkDefaultHost):
+    def __init__(self, aws_access_key_id=None, aws_secret_access_key=None, host=BEANSTALK_DEFAULT_HOST):
         #TODO: allow access key and id to optional, they may come in from config
         self.host = host
         AWSQueryConnection.__init__(self, aws_access_key_id, aws_secret_access_key, host=self.host)
@@ -20,6 +20,26 @@ class BeanstalkConnection(AWSQueryConnection):
         response = self.make_request('DescribeApplications')
         body = response.read()
         return body
+    
+    def describeConfigurationOptions(self, application_name=None, environment_name=None, template_name=None):
+        params = {}
+        if application_name: params['ApplicationName'] = application_name
+        if environment_name: params['EnvironmentName'] = environment_name
+        if template_name: params['TemplateName'] = template_name
+        self.make_request('DescribeConfigurationOptions', params)
+    
+    def createEnvironment(self, application_name, environment_name, CNAME_prefix=None, 
+                          description=None, solution_stack_name=None, template_name=None,
+                          version_label=None):
+        params = {}
+        params['ApplicationName'] = application_name
+        params['EnvironmantName'] = environment_name
+        if CNAME_prefix: params['CNAMEPrefix'] = CNAME_prefix
+        if description: params['Description'] = description
+        if solution_stack_name: params['SolutionStackName'] = solution_stack_name
+        if template_name: params['TemplateName'] = template_name
+        if version_label: params['VersionLabel'] = version_label
+        self.make_request('CreateEnvironment', params)
     
     def updateEnvironment(self, description=None, environment_id=None, environment_name=None,
                           template_name=None, version_label=None):
