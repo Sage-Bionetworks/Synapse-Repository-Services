@@ -11,6 +11,7 @@ import org.sagebionetworks.web.client.events.CancelEvent;
 import org.sagebionetworks.web.client.events.CancelHandler;
 import org.sagebionetworks.web.client.events.PersistSuccessEvent;
 import org.sagebionetworks.web.client.events.PersistSuccessHandler;
+import org.sagebionetworks.web.client.view.DatasetView.Presenter;
 import org.sagebionetworks.web.client.widget.adminmenu.AdminMenu;
 import org.sagebionetworks.web.client.widget.breadcrumb.Breadcrumb;
 import org.sagebionetworks.web.client.widget.editpanels.AnnotationEditor;

@@ -164,7 +164,7 @@ public class AnalysisPresenter extends AbstractActivity implements AnalysisView.
 			boolean isAdministrator, boolean canEdit) {
 		view.setAnalysisDetails(analysis.getId(), analysis.getName(),
 				analysis.getDescription(), analysis.getCreatedBy(),
-				analysis.getCreatedOn(), analysis.getStatus(), isAdministrator, canEdit);
+				analysis.getCreatedOn(), isAdministrator, canEdit);
 	}	
 	
 	@Override

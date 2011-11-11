@@ -162,7 +162,7 @@ public class ProjectPresenter extends AbstractActivity implements ProjectView.Pr
 			boolean isAdministrator, boolean canEdit) {
 		view.setProjectDetails(project.getId(), project.getName(),
 				project.getDescription(), project.getCreatedBy(),
-				project.getCreatedOn(), project.getStatus(), isAdministrator, canEdit);
+				project.getCreatedOn(), isAdministrator, canEdit);
 	}	
 	
 	@Override

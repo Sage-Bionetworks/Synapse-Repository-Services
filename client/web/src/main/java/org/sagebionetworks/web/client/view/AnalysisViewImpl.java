@@ -171,13 +171,12 @@ public class AnalysisViewImpl extends Composite implements AnalysisView {
 
 	@Override
 	public void setAnalysisDetails(String id, String name, String description,
-			String createdBy, Date creationDate, String status, boolean isAdministrator, boolean canEdit) {
+			String createdBy, Date creationDate, boolean isAdministrator, boolean canEdit) {
 		// Assure reasonable values
 		if(id == null) id = "";
 		if(name == null) name = "";
 		if(description == null) description = "";
 		if(createdBy == null) createdBy = "";		
-		if(status == null) status = "";
 
 		// clear out any previous values in the view
 		clear();
@@ -225,7 +224,7 @@ public class AnalysisViewImpl extends Composite implements AnalysisView {
 		List<String> visibileColumns = new ArrayList<String>();
 		visibileColumns.add("step.NameLink");
 		visibileColumns.add("step.createdBy");
-		visibileColumns.add("step.creationDate");
+		visibileColumns.add("step.modifiedOn");
 		stepsListQueryServiceTable.setDispalyColumns(visibileColumns, false);
 		// load the steps for this analysis
 		List<WhereCondition> whereList = new ArrayList<WhereCondition>();

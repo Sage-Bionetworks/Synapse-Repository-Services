@@ -24,7 +24,7 @@ public interface AnalysisView extends IsWidget, SynapseView {
 	 * @param status
 	 */
 	public void setAnalysisDetails(String id, String name, String description,
-			String creator, Date creationDate, String status, boolean isAdministrator, boolean canEdit);
+			String creator, Date creationDate, boolean isAdministrator, boolean canEdit);
 		
 	
 	public interface Presenter extends SynapsePresenter {		

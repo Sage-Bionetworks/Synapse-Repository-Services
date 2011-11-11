@@ -171,13 +171,12 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 
 	@Override
 	public void setProjectDetails(String id, String name, String description,
-			String creator, Date creationDate, String status, boolean isAdministrator, boolean canEdit) {
+			String creator, Date creationDate, boolean isAdministrator, boolean canEdit) {
 		// Assure reasonable values
 		if(id == null) id = "";
 		if(name == null) name = "";
 		if(description == null) description = "";
-		if(creator == null) creator = "";		
-		if(status == null) status = "";
+		if(creator == null) creator = "";				
 
 		// clear out any previous values in the view
 		clear();
@@ -224,8 +223,8 @@ public class ProjectViewImpl extends Composite implements ProjectView {
 		datasetsListQueryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.dataset, true, datasetTableWidth, datasetTableHeight, presenter.getPlaceChanger());
 		List<String> visibileColumns = new ArrayList<String>();
 		visibileColumns.add("dataset.NameLink");
-		visibileColumns.add("dataset.creator");
-		visibileColumns.add("dataset.createdOnDate");
+		visibileColumns.add("dataset.createdBy");
+		visibileColumns.add("dataset.modifiedOn");
 		datasetsListQueryServiceTable.setDispalyColumns(visibileColumns, false);
 		// load the datasets for this project
 		List<WhereCondition> whereList = new ArrayList<WhereCondition>();

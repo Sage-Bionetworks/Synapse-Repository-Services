@@ -18,15 +18,15 @@
 			<display>Description</display>
 			<description>The description of this datasets</description>
 		</column>
-		<column id="dataset.creator">
+		<column id="dataset.createdBy">
 			<type>String</type>
 			<display>Investigator</display>
 			<description>The person that created this dataset</description>
 		</column>
-		<column id="dataset.creationDate">
+		<column id="dataset.modifiedOn">
 			<type>Long</type>
-			<display>Created On</display>
-			<description>The date this dataset was created</description>
+			<display>Modified On</display>
+			<description>The date this dataset was last changed</description>
 		</column>
 		<column id="dataset.status">
 			<type>String</type>
@@ -175,15 +175,15 @@
 			<display>Description</display>
 			<description>The description of this project</description>
 		</column>
-		<column id="project.creator">
+		<column id="project.createdBy">
 			<type>String</type>
 			<display>Investigator</display>
 			<description>The person that created this project</description>
 		</column>
-		<column id="project.creationDate">
+		<column id="project.modifiedOn">
 			<type>Long</type>
-			<display>Created On</display>
-			<description>The date this project was created</description>
+			<display>Modified On</display>
+			<description>The date this project was last modified</description>
 		</column>
 	
 		<!-- Analysis columns -->
@@ -207,10 +207,10 @@
 			<display>Created By</display>
 			<description>The person that created this analysis</description>
 		</column>
-		<column id="analysis.creationDate">
+		<column id="analysis.modifiedOn">
 			<type>Long</type>
-			<display>Creation Date</display>
-			<description>The date this analysis was created</description>
+			<display>Modified On</display>
+			<description>The date this analysis was last modified</description>
 		</column>
 
 		<!-- Step columns -->
@@ -234,10 +234,10 @@
 			<display>Created By</display>
 			<description>The person that created this step</description>
 		</column>
-		<column id="step.creationDate">
+		<column id="step.modifiedOn">
 			<type>Long</type>
-			<display>Creation Date </display>
-			<description>The date this step was created</description>
+			<display>Modified Date </display>
+			<description>The date this step was last changed</description>
 		</column>
 		
 		<!-- The more complex/composite columns -->
@@ -262,9 +262,9 @@
 			<hasClinical reference="dataset.hasClinicalData" />
 		</layer-column>
 
-		<!-- The created on date -->
-		<date-column id="dataset.createdOnDate">
-			<baseColumn reference="dataset.creationDate"/>
+		<!-- The modified on date -->
+		<date-column id="dataset.modifiedOn">
+			<baseColumn reference="dataset.modifiedOn"/>
 		</date-column>
 
 		<!-- Renders a Layer's Type image -->
@@ -328,19 +328,19 @@
 			<url reference="step.LocalUrl" />
 		</link-column>
 			
-		<!-- The created on date -->
-		<date-column id="project.createdOnDate">
-			<baseColumn reference="project.creationDate"/>
+		<!-- The modified on date -->
+		<date-column id="project.modifiedOn">
+			<baseColumn reference="project.modifiedOn"/>
 		</date-column>
 
 		<!-- The created on date -->
-		<date-column id="analysis.creationDate">
-			<baseColumn reference="analysis.creationDate"/>
+		<date-column id="analysis.modifiedOn">
+			<baseColumn reference="analysis.modifiedOn"/>
 		</date-column>
 
 		<!-- The created on date -->
-		<date-column id="step.creationDate">
-			<baseColumn reference="step.creationDate"/>
+		<date-column id="step.modifiedOn">
+			<baseColumn reference="step.modifiedOn"/>
 		</date-column>
 		
 	</columns>

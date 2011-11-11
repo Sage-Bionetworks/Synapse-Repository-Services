@@ -164,13 +164,6 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 		// If the sortKey is based on creator/createdBy or creationDate/createdOn, we want to be able to find AND sort the columns correctly
 		// Else, just leave the sortKey alone.
 		String newSortKey = sortKey;
-		if(sortKey != null) {
-			if(sortKey.equals("dataset.creator")) {
-				newSortKey = "dataset.createdBy";
-			} else if(sortKey.equals("dataset.creationDate")) {
-				newSortKey = "dataset.createdOn";
-			}
-		}
 		
 		return new SearchParameters(getDisplayColumns(), this.type.name(), this.where, oneBasedOffset, paginationLimit, newSortKey, ascending);
 	}
