@@ -25,7 +25,7 @@ public class EditorUtils {
 				Object value = gxtField.getValue();
 				if(value != null) {
 					if(value instanceof Date) {
-						formField.setValue(DisplayConstants.DATE_FORMAT_SERVICES.format((Date)value));
+						formField.setValue(DisplayConstants.DATE_FORMAT_SERVICES.format((Date)value));						
 					} else if(value instanceof SimpleComboValue) {
 						@SuppressWarnings("unchecked")
 						EnumerationTerm term = ((SimpleComboValue<EnumerationTerm>)value).getValue();

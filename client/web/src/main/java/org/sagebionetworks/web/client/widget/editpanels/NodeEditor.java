@@ -109,7 +109,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 					originalNode = schemaObj;
 					SpecificNodeTypeDeviation deviation = nodeEditorDisplayHelper.getNodeTypeDeviation(type);										
 					List<FormField> formFields = getSchemaFormFields(schemaObj, deviation.getKeyToOntology());
-					view.generateCreateForm(formFields, deviation.getDisplayString(), deviation.getCreateText(), deviation.getCreationIgnoreFields(), deviation.getKeyToOntology());
+					view.generateCreateForm(formFields, deviation.getDisplayString(), deviation.getCreateText(), deviation.getCreationRequiredFields(), deviation.getKeyToOntology());
 				}
 				
 				@Override
@@ -147,7 +147,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 								return;
 							}					
 							originalNode = JSONParser.parseStrict(nodeJsonString).isObject();
-							view.generateEditForm(formFields, deviation.getDisplayString(), deviation.getEditText(), deviation.getCreationIgnoreFields(), deviation.getKeyToOntology(), originalNode);							
+							view.generateEditForm(formFields, deviation.getDisplayString(), deviation.getEditText(), deviation.getUpdateShowFields(), deviation.getKeyToOntology(), originalNode);							
 						}
 						
 						@Override
@@ -248,7 +248,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 			// UPDATE
 			JSONValue eTagJSON = originalNode.get(DisplayConstants.SERVICE_ETAG_KEY);
 			String etag = eTagJSON != null ? eTagJSON.isString().stringValue() : null;
-			String updateJson = mergeChangesIntoJsonString(originalNode, formFields, deviation.getCreationIgnoreFields(), parentId);
+			String updateJson = mergeChangesIntoJsonString(originalNode, formFields, deviation.getUpdateShowFields(), parentId);
 			service.updateNode(nodeType, editId, updateJson, etag, new AsyncCallback<String>() {		
 				@Override
 				public void onSuccess(String result) {
@@ -275,7 +275,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 			});
 		} else {
 			// CREATE			
-			String createJson = formFieldsToJsonString(formFields, deviation.getCreationIgnoreFields(), parentId);
+			String createJson = formFieldsToJsonString(formFields, deviation.getCreationRequiredFields(), parentId);
 			service.createNode(nodeType, createJson, new AsyncCallback<String>() {		
 				@Override
 				public void onSuccess(String result) {
@@ -306,20 +306,27 @@ public class NodeEditor implements NodeEditorView.Presenter {
 	/*
 	 * Private Methods
 	 */
-	private static String mergeChangesIntoJsonString(JSONObject jsonObject, List<FormField> formFields, List<String> ignoreFields, String parentId) {
+	private static String mergeChangesIntoJsonString(JSONObject jsonObject, List<FormField> formFields, List<String> showFields, String parentId) {
 		JSONObject merged = new JSONObject(jsonObject.getJavaScriptObject()); // make a copy
 		for(FormField formField : formFields) {
-			if(ignoreFields.contains(formField.getKey())) continue;
+			if(!showFields.contains(formField.getKey())) 
+				continue;
 			if(formField.isEnumBased()) {
 				// get ontology value
 				EnumerationTerm value = formField.getOntologyValue();
 				if(value != null)
 					merged.put(formField.getKey(), new JSONString(value.getValue()));
 			} else {
-				if(formField.getKey().matches(".+Date$")) {
-					// date field
-					Date date = DisplayConstants.DATE_FORMAT_SERVICES.parse(formField.getValue());
-					merged.put(formField.getKey(), new JSONNumber(date.getTime()));
+				if(formField.getType() == ColumnType.DATE || formField.getKey().matches(".+Date$")) {
+					if(formField.getValue() != "") {
+						// 	date field
+						try {
+							Date date = DisplayConstants.DATE_FORMAT_SERVICES.parse(formField.getValue());
+							merged.put(formField.getKey(), new JSONString(DisplayUtils.convertDateToString(date)));
+						} catch (IllegalArgumentException ex) {
+							// poorly formatted date. skip
+						}
+					}
 				} else {
 					// normal field
 					merged.put(formField.getKey(), new JSONString(formField.getValue()));
@@ -332,14 +339,29 @@ public class NodeEditor implements NodeEditorView.Presenter {
 		return merged.toString();
 	}
 	
-	private static String formFieldsToJsonString(List<FormField> formFields, List<String> ignoreFields, String parentId) {
+	private static String formFieldsToJsonString(List<FormField> formFields, List<String> showFields, String parentId) {
 		JSONObject json = new JSONObject();
 		for(FormField formField : formFields) {
-			if(ignoreFields.contains(formField.getKey())) continue;
+			if(!showFields.contains(formField.getKey())) 
+				continue;
 			String value = "";
 			if(formField.getValue() != null) 
 				value = formField.getValue();
-			json.put(formField.getKey(), new JSONString(value));
+			if(formField.getType() == ColumnType.DATE || formField.getKey().matches(".+Date$")) {
+				if(value != "") {
+					// 	date field
+					try {
+						Date date = DisplayConstants.DATE_FORMAT_SERVICES.parse(formField.getValue());
+						json.put(formField.getKey(), new JSONString(DisplayUtils.convertDateToString(date)));
+					} catch (IllegalArgumentException ex) {
+						// poorly formatted date. skip
+					}
+				}
+			} else {
+				// normal field
+				json.put(formField.getKey(), new JSONString(value));
+			}
+			
 		}
 		if(parentId != null) {
 			json.put(DisplayConstants.SERVICE_PARENT_ID_KEY, new JSONString(parentId));

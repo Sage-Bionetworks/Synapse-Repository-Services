@@ -12,22 +12,22 @@ public class SpecificNodeTypeDeviation {
 	private String displayString;
 	private String createText;
 	private String editText;
-	private List<String> creationIgnoreFields;
-	private List<String> updateIgnoreFields;	
+	private List<String> creationRequiredFields;
+	private List<String> updateShowFields;	
 	private Map<String, Enumeration> keyToOntology;	
 		
 	public SpecificNodeTypeDeviation() { }
 		
 	public SpecificNodeTypeDeviation(NodeType nodeType, String displayString,
 			String createText, String editText,
-			List<String> creationIgnoreFields, List<String> updateIgnoreFields) {
+			List<String> creationRequiredFields, List<String> updateShowFields) {
 		super();
 		this.nodeType = nodeType;
 		this.displayString = displayString;
 		this.createText = createText;
 		this.editText = editText;
-		this.creationIgnoreFields = creationIgnoreFields;
-		this.updateIgnoreFields = updateIgnoreFields;
+		this.creationRequiredFields = creationRequiredFields;
+		this.updateShowFields = updateShowFields;
 	}
 
 	public NodeType getNodeType() {
@@ -55,12 +55,12 @@ public class SpecificNodeTypeDeviation {
 		this.editText = editText;
 	}
 
-	public List<String> getCreationIgnoreFields() {
-		return creationIgnoreFields;
+	public List<String> getCreationRequiredFields() {
+		return creationRequiredFields;
 	}
 
-	public void setCreationIgnoreFields(List<String> creationIgnoreFields) {
-		this.creationIgnoreFields = creationIgnoreFields;
+	public void setCreationRequiredFields(List<String> creationRequiredFields) {
+		this.creationRequiredFields = creationRequiredFields;
 	}
 
 	public Map<String, Enumeration> getKeyToOntology() {
@@ -71,11 +71,12 @@ public class SpecificNodeTypeDeviation {
 		this.keyToOntology = keyToOntology;
 	}
 
-	public List<String> getUpdateIgnoreFields() {
-		return updateIgnoreFields;
+	public List<String> getUpdateShowFields() {
+		return updateShowFields;
 	}
 
-	public void setUpdateIgnoreFields(List<String> updateIgnoreFields) {
-		this.updateIgnoreFields = updateIgnoreFields;
+	public void setUpdateShowFields(List<String> updateShowFields) {
+		this.updateShowFields = updateShowFields;
 	}
+	
 }

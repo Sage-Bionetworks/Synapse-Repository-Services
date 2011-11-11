@@ -1,9 +1,13 @@
 package org.sagebionetworks.web.client.widget.editpanels;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.LayerTypeNames;
+import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.ontology.StaticEnumerations;
 import org.sagebionetworks.web.shared.NodeType;
@@ -40,20 +44,25 @@ public class NodeEditorDisplayHelper {
 				NodeType.DATASET, "Dataset",
 				DisplayConstants.CREATE_DATASET_TEXT,
 				DisplayConstants.EDIT_DATASET_TEXT,
-				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag", "layers", "locations", "hasExpressionData", "hasGeneticData", "hasClinicalData", "eulaId"}),
-				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag", "layers", "locations", "hasExpressionData", "hasGeneticData", "hasClinicalData", "eulaId"}));		
+				Arrays.asList(new String[] { "name" }),
+				Arrays.asList(new String[] { "versionLabel", "releaseDate",
+						"description", "name", "status" }));
 		deviation.setKeyToOntology(new StaticEnumerations().getAnnotationToEnum());			
 		return deviation;
-	}
+	}	
 	
 	// LAYER
 	private SpecificNodeTypeDeviation createLayerDeviation() {
 		SpecificNodeTypeDeviation deviation = new SpecificNodeTypeDeviation(
 				NodeType.LAYER, "Layer", DisplayConstants.CREATE_LAYER_TEXT,
 				DisplayConstants.EDIT_LAYER_TEXT,
-				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag", "locations", "previews", "description", 
-						"publicationDate", "releaseNotes", "tissueType", "processingFacility", "qcBy", "qcDate"}),
-				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag", "locations", "previews"}));		
+ Arrays.asList(new String[] { "name" }),
+				Arrays.asList(new String[] {
+						"releaseNotes", "tissueType",
+						"description", "name", "publicationDate", "qcBy",
+						"platform", "status", 
+						"processingFacility", "numSamples", "qcDate",
+						"versionNumber" }));
 		deviation.setKeyToOntology(new StaticEnumerations().getAnnotationToEnum());			
 		return deviation;
 	}
@@ -64,8 +73,8 @@ public class NodeEditorDisplayHelper {
 				NodeType.PROJECT, "Project",
 				DisplayConstants.CREATE_PROJECT_TEXT,
 				DisplayConstants.EDIT_PROJECT_TEXT, 
-				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag"}),
-				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "creationDate", "creator", "parentId", "uri", "etag"}));		
+				Arrays.asList(new String[] { "name" }),
+				Arrays.asList(new String[] { "status", "version", "description", "name" }));
 		deviation.setKeyToOntology(new StaticEnumerations().getAnnotationToEnum());
 			
 		return deviation;
@@ -77,8 +86,8 @@ public class NodeEditorDisplayHelper {
 				NodeType.ANALYSIS, "Analysis",
 				DisplayConstants.CREATE_ANALYSIS_TEXT,
 				DisplayConstants.EDIT_ANALYSIS_TEXT, 
-				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "parentId", "uri", "etag"}),
-				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "parentId", "uri", "etag"}));		
+				Arrays.asList(new String[] {"name"}),
+				Arrays.asList(new String[] {"name","description"}));		
 		deviation.setKeyToOntology(new StaticEnumerations().getAnnotationToEnum());
 			
 		return deviation;
@@ -90,8 +99,8 @@ public class NodeEditorDisplayHelper {
 				NodeType.STEP, "Step",
 				DisplayConstants.CREATE_STEP_TEXT,
 				DisplayConstants.EDIT_STEP_TEXT, 
-				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "parentId", "uri", "etag"}),
-				Arrays.asList(new String[] {"annotations", "accessControlList", "id", "parentId", "uri", "etag"}));		
+				Arrays.asList(new String[] {"name"}),
+				Arrays.asList(new String[] {"name", "description"}));		
 		deviation.setKeyToOntology(new StaticEnumerations().getAnnotationToEnum());
 			
 		return deviation;
