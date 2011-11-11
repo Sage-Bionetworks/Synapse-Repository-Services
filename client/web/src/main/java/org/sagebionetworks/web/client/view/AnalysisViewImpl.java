@@ -224,7 +224,7 @@ public class AnalysisViewImpl extends Composite implements AnalysisView {
 		List<String> visibileColumns = new ArrayList<String>();
 		visibileColumns.add("step.NameLink");
 		visibileColumns.add("step.createdBy");
-		visibileColumns.add("step.creationDate");
+		visibileColumns.add("step.modifiedOn");
 		stepsListQueryServiceTable.setDispalyColumns(visibileColumns, false);
 		// load the steps for this analysis
 		List<WhereCondition> whereList = new ArrayList<WhereCondition>();

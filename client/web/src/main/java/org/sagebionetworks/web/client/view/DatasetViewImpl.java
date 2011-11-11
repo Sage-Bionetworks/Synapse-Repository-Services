@@ -90,9 +90,9 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	@UiField
 	SimplePanel downloadPanel;
 	@UiField
-	SimplePanel followDatasetPanel;
+	SimplePanel bannerRightTopSlot;
 	@UiField
-	SimplePanel seeTermsPanel;
+	SimplePanel bannerRightBottomSlot;
 	@UiField
 	SimplePanel accessPanel;
 	@UiField
@@ -230,8 +230,8 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 		setupDatasetLicensedDownloaderCallbacks();
  
 		Anchor followDatasetAnchor = setupFollowDatasetModal();		
-		followDatasetPanel.clear();
-		followDatasetPanel.add(followDatasetAnchor);	
+		bannerRightTopSlot.clear();
+		bannerRightTopSlot.add(followDatasetAnchor);	
 
 		setupLayerTable(id);
 		tablePanel.clear();
@@ -276,8 +276,8 @@ public class DatasetViewImpl extends Composite implements DatasetView {
 	public void setLicenseAgreement(LicenseAgreement agreement) {		
 		datasetLicensedDownloader.setLicenseAgreement(agreement);
 		Anchor seeTermsAnchor = setupTermsModal(agreement);
-		seeTermsPanel.clear();		
-		seeTermsPanel.add(seeTermsAnchor);
+		bannerRightBottomSlot.clear();		
+		bannerRightBottomSlot.add(seeTermsAnchor);
 	}
 
 	@Override
