@@ -17,6 +17,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.utils.HttpClientHelper;
 
 public class CrowdAuthUtilTest {
 	
@@ -26,7 +27,7 @@ public class CrowdAuthUtilTest {
 	
 	@After
 	public void tearDown() throws Exception {
-		//deleteUsers();// temporarily needed for 'testMultipleLogins()'
+		deleteUsers();// temporarily needed for 'testMultipleLogins()'
 	}
 
 
@@ -98,15 +99,18 @@ public class CrowdAuthUtilTest {
 	
 	// this is meant to recreate the problem described in PLFM-292
 	// http://sagebionetworks.jira.com/browse/PLFM-292
-	@Ignore
 	@Test 
 	public void testMultipleLogins() throws Exception {
+		HttpClientHelper.setGlobalConnectionTimeout(100000);
+		HttpClientHelper.setGlobalSocketTimeout(100000);
 		createUsers();
-		for (int i : new int[]{1,5,10,15,20,50,100}) {
+		for (int i : new int[]{35}) {
 //		for (int i : new int[]{1,2,3,4,5,6}) {
 			testMultipleLogins(i);
 		}
 	}
+	
+	private static final long FAILURE_VALUE = -1L;
 		
 	public void testMultipleLogins(int n) throws Exception {
 //		long start = System.currentTimeMillis();
@@ -125,6 +129,8 @@ public class CrowdAuthUtilTest {
 						cau.authenticate(user, false);
 						L.set(System.currentTimeMillis()-start);
 					} catch (Exception e) {
+						L.set(FAILURE_VALUE);
+//						e.printStackTrace();
 						fail(e.toString());
 					}
 				}
@@ -149,10 +155,14 @@ public class CrowdAuthUtilTest {
 			for (int i: times.keySet()) {
 				long L = times.get(i).get();
 				if (L!=0) {
-					elapsed += L;
-					//System.out.println((float)L/1000L+" sec.");
-					sortedTimes.add(L);
-					count++;
+					if (L==FAILURE_VALUE) {
+						// don't add to stat's
+					} else {
+						elapsed += L;
+						//System.out.println((float)L/1000L+" sec.");
+						sortedTimes.add(L);
+						count++;
+					}
 					times.remove(i);
 					break;
 				}

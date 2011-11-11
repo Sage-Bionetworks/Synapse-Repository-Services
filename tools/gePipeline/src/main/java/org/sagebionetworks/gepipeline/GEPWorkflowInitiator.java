@@ -23,9 +23,9 @@ public class GEPWorkflowInitiator {
 	private static final Logger log = Logger
 			.getLogger(GEPWorkflowInitiator.class.getName());
 	
-	private static final String MAX_DATASET_SIZE_PARAMETER_KEY = "--maxDatasetSize";
-	private static final String NAME_PROPERTY_NAME = "name";
-	private static final String PARENT_ID_PROPERTY_NAME = "parentId";
+	public static final String MAX_DATASET_SIZE_PARAMETER_KEY = "--maxDatasetSize";
+	public static final String NAME_PROPERTY_NAME = "name";
+	public static final String PARENT_ID_PROPERTY_NAME = "parentId";
 
 	/**
 	 * Crawl all top level TCGA datasets and identify the ones in which we are
@@ -45,7 +45,7 @@ public class GEPWorkflowInitiator {
 		// the script returns a map whose keys are GSEIDs to run and values are the input data for each activity instance
 		Map<String,String> idToActivityInputMap = new HashMap<String,String>(results.getStringMapResult(ScriptResult.OUTPUT_JSON_KEY));
 		log.info("datasetIds to input map: "+idToActivityInputMap);
-		int max = 1; // set to -1 to disable
+		int max = -1; // set to -1 to disable
 		int i = 0;
 		ObjectMapper mapper = new ObjectMapper();
 		String projectId = ConfigHelper.getGEPipelineProjectId();

@@ -159,8 +159,8 @@ public class IT500SynapseJavaClient {
 	 */
 	@Test
 	public void testJavaClientUploadDownloadLayerFromS3() throws Exception {
-		HttpClientHelper.setGlobalConnectionTimeout(10000);
-		HttpClientHelper.setGlobalSocketTimeout(10000);
+//		HttpClientHelper.setGlobalConnectionTimeout(10000);
+//		HttpClientHelper.setGlobalSocketTimeout(10000);
 	    File dataSourceFile = File.createTempFile("integrationTest", ".txt");
 	    dataSourceFile.deleteOnExit();
 	    FileWriter writer = new FileWriter(dataSourceFile);

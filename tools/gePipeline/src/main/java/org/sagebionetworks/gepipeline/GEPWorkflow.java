@@ -38,8 +38,8 @@ public class GEPWorkflow {
 	private static final int MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS = 4;
 	private static final int NUM_ATTEMPTS = 1;
 	
-	private static final String INPUT_DATASET_PARAMETER_KEY = "--datasetId";
-	private static final String INPUT_DATA_PARAMETER_KEY = "--inputData";
+	public static final String INPUT_DATASET_PARAMETER_KEY = "--datasetId";
+	public static final String INPUT_DATA_PARAMETER_KEY = "--inputData";
 
 	/**
 	 * Other Constants (can be determined at runtime)
@@ -131,7 +131,7 @@ public class GEPWorkflow {
 	// the following translates to \\\" in the string passed to DOS, which becomes \", i.e. an escaped quote. whew!
 	private static final String ESCAPED_DOUBLE_QUOTE = "\\\\\\"+DOUBLE_QUOTE;
 	// escape all double quotes, then surround by double quotes
-	private static String formatAsScriptParam(String s) {
+	public static String formatAsScriptParam(String s) {
 		// doesn't work!
 		// return DOUBLE_QUOTE+s.replaceAll(DOUBLE_QUOTE, ESCAPED_DOUBLE_QUOTE)+DOUBLE_QUOTE;
 		// so let's try URLEncoding the param.  This means we must URLDecode on the R side
