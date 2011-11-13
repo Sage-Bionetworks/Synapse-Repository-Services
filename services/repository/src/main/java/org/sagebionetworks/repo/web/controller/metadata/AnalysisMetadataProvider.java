@@ -6,11 +6,11 @@ import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.model.Analysis;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -31,6 +31,9 @@ public class AnalysisMetadataProvider implements
 
 	@Autowired
 	EntityManager entityManager;
+	@Autowired
+	PermissionsManager permissionsManager;
+
 
 	@Override
 	public void addTypeSpecificMetadata(Analysis entity,
@@ -85,10 +88,11 @@ public class AnalysisMetadataProvider implements
 		}
 
 		try {
-			Step step = (Step) entityManager.getEntity(user, stepId,
-					EntityType.step.getClassForType());
+			Step step = entityManager.getEntity(user, stepId,
+					Step.class);
 			step.setParentId(entity.getId());
 			entityManager.updateEntity(user, step, false);
+			permissionsManager.restoreInheritance(stepId, user);
 		}
 		// Sorry for the big catch block, its not a good habit to just catch
 		// Exception

@@ -107,7 +107,7 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 	 * @return
 	 */
 	public static String[] splitParentPathAndName(String path){
-		if(path == null) throw new IllegalArgumentException("Bootstrap 'enityPath' cannot be null");
+		if(path == null) throw new IllegalArgumentException("Bootstrap 'entityPath' cannot be null");
 		path = path.trim();
 		int index = path.lastIndexOf(NodeConstants.PATH_PREFIX);
 		String[] results = new String[2];
