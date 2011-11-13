@@ -16,7 +16,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -27,12 +26,12 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.RestoreFile;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -192,6 +191,34 @@ public class ServletTestHelper {
 	}
 	
 	/**
+	 * @param <T>
+	 * @param clazz
+	 * @param id
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws ACLInheritanceException
+	 */
+	public <T extends Entity> AccessControlList getEntityACL(Class<? extends T> clazz, String id) throws ServletException, IOException,
+			ACLInheritanceException {
+		return ServletTestHelper.getEntityACL(dispatchServlet, clazz, id, username);
+	}
+
+	/**
+	 * @param <T>
+	 * @param clazz
+	 * @param id
+	 * @param entityACL
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public <T extends Entity> AccessControlList updateEntityAcl(Class<? extends T> clazz, String id,
+			AccessControlList entityACL) throws ServletException, IOException {
+		return ServletTestHelper.updateEntityAcl(dispatchServlet, clazz, id, entityACL, username);
+	}
+	
+	/**
 	 * Create the passed entity by making a request to the passed servlet.
 	 * 
 	 * @param dispatchServlet
@@ -248,7 +275,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.CREATED.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		@SuppressWarnings("unchecked")
 		T returnedEntity = (T) objectMapper.readValue(response
@@ -311,7 +338,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return (T) objectMapper.readValue(response.getContentAsString(), clazz);
 	}
@@ -345,7 +372,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return (T) objectMapper.readValue(response.getContentAsString(), clazz);
 	}
@@ -378,7 +405,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return objectMapper.readValue(response.getContentAsString(),
 				Annotations.class);
@@ -412,7 +439,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return (List<EntityHeader>) createEntityHeaderList(response
 				.getContentAsString());
@@ -449,7 +476,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return objectMapper.readValue(response.getContentAsString(),
 				Annotations.class);
@@ -490,7 +517,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return objectMapper.readValue(response.getContentAsString(),
 				Annotations.class);
@@ -552,7 +579,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return (T) objectMapper.readValue(response.getContentAsString(), entity
 				.getClass());
@@ -592,7 +619,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return (T) objectMapper.readValue(response.getContentAsString(), entity
 				.getClass());
@@ -642,7 +669,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return createPaginatedResultsFromJSON(response.getContentAsString(),
 				clazz);
@@ -686,7 +713,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return createPaginatedResultsFromJSON(response.getContentAsString(),
 				clazz);
@@ -788,7 +815,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return createPaginatedResultsFromJSON(response.getContentAsString(),
 				childClass);
@@ -842,7 +869,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 	}
 
@@ -873,7 +900,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 	}
 
@@ -900,7 +927,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return response.getContentAsString();
 	}
@@ -977,7 +1004,7 @@ public class ServletTestHelper {
 			throw new ACLInheritanceException(response.getErrorMessage());
 		}
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return objectMapper.readValue(response.getContentAsString(),
 				AccessControlList.class);
@@ -1017,7 +1044,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return objectMapper.readValue(response.getContentAsString(),
 				AccessControlList.class);
@@ -1052,7 +1079,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 	}
 
@@ -1077,7 +1104,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		@SuppressWarnings("unchecked")
 		Collection<Map<String, Object>> us = objectMapper.readValue(response
@@ -1106,7 +1133,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		@SuppressWarnings("unchecked")
 		Collection<Map<String, Object>> us = objectMapper.readValue(response
@@ -1142,7 +1169,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return (BooleanResult) objectMapper.readValue(response
 				.getContentAsString(), BooleanResult.class);
@@ -1168,7 +1195,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.CREATED.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return (BackupRestoreStatus) objectMapper.readValue(response
 				.getContentAsString(), BackupRestoreStatus.class);
@@ -1195,7 +1222,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return (BackupRestoreStatus) objectMapper.readValue(response
 				.getContentAsString(), BackupRestoreStatus.class);
@@ -1228,7 +1255,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.CREATED.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return (BackupRestoreStatus) objectMapper.readValue(response
 				.getContentAsString(), BackupRestoreStatus.class);
@@ -1245,7 +1272,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 	}
 
@@ -1260,7 +1287,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return (EntityHeader) objectMapper.readValue(response
 				.getContentAsString(), EntityHeader.class);
@@ -1291,7 +1318,7 @@ public class ServletTestHelper {
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage());
+			throw new ServletTestHelperException(response);
 		}
 		return (EntityHeader) objectMapper.readValue(response
 				.getContentAsString(), EntityHeader.class);

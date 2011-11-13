@@ -567,7 +567,6 @@ public class DefaultControllerAutowiredAllTypesTest {
 		
 		// Now update each
 		for(Entity entity: created){
-			Entity child = (Entity)entity;
 			AccessControlList acl = null;
 			try{
 				acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);

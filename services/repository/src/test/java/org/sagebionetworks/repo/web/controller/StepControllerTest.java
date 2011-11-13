@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,7 +12,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.TestUserDAO;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Analysis;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.EnvironmentDescriptor;
@@ -19,8 +23,10 @@ import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.repo.model.LayerTypeNames;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -38,6 +44,9 @@ public class StepControllerTest {
 	@Autowired
 	ServletTestHelper testHelper;
 	
+	private static final String TEST_USER1 = TestUserDAO.TEST_USER_NAME;
+	private static final String TEST_USER2 = "testuser2@test.org";
+	
 	private Project project;
 	private Dataset dataset;
 	private Layer layer;
@@ -49,6 +58,9 @@ public class StepControllerTest {
 	@Before
 	public void before() throws Exception {
 		testHelper.setUp();
+		
+		testHelper.setTestUser(TEST_USER1);
+		
 		project = new Project();
 		project = testHelper.createEntity(project, null);
 
@@ -71,6 +83,7 @@ public class StepControllerTest {
 	 */
 	@After
 	public void after() throws Exception {
+		testHelper.setTestUser(TEST_USER1);
 		testHelper.tearDown();
 	}
 
@@ -153,9 +166,10 @@ public class StepControllerTest {
 		
 		
 		// Create a new code, side effect should be to reference it in the Step
-		Code code = new Code();
-		code.setParentId(project.getId());
-		code = testHelper.createEntity(code, extraParams);
+		Code code2 = new Code();
+		code2.setParentId(project.getId());
+		code2 = testHelper.createEntity(code2, extraParams);
+		assertEquals(project.getId(), code2.getParentId());
 
 		// TODO update a layer, version a layer, etc ...
 
@@ -165,7 +179,7 @@ public class StepControllerTest {
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, step.getInput().iterator().next().getTargetVersionNumber());
 		assertEquals(outputLayer.getId(), step.getOutput().iterator().next().getTargetId());
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, step.getOutput().iterator().next().getTargetVersionNumber());
-		assertEquals(code.getId(), step.getCode().iterator().next().getTargetId());
+		assertEquals(code2.getId(), step.getCode().iterator().next().getTargetId());
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, step.getCode().iterator().next().getTargetVersionNumber());
 		
 		// Create a new analysis, side effect should be to re-parent the referenced step
@@ -178,5 +192,30 @@ public class StepControllerTest {
 		// Make sure the step's parent is now the analysis
 		step = testHelper.getEntity(Step.class, step.getId(), null);
 		assertEquals(analysis.getId(), step.getParentId());
+		
+		// Confirm that another user cannot read the analysis or the step
+		testHelper.setTestUser(TEST_USER2);
+		try {
+			testHelper.getEntity(Step.class, step.getId(), null);
+			fail("expected exception");
+		}
+		catch(ServletTestHelperException e) {
+			assertEquals(TEST_USER2 + " lacks read access to the requested object.", e.getServiceErrorMessage());
+		}
+		
+		// Add a public read ACL to the project object
+		testHelper.setTestUser(TEST_USER1);
+		AccessControlList projectAcl = testHelper.getEntityACL(Project.class, project.getId());
+		ResourceAccess ac = new ResourceAccess();
+		ac.setGroupName(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name());
+		ac.setAccessType(new HashSet<ACCESS_TYPE>());
+		ac.getAccessType().add(ACCESS_TYPE.READ);
+		projectAcl.getResourceAccess().add(ac);
+		projectAcl = testHelper.updateEntityAcl(Project.class, project.getId(), projectAcl);
+
+		// Ensure that another user can now read the step
+		testHelper.setTestUser(TEST_USER2);
+		step = testHelper.getEntity(Step.class, step.getId(), null);
+
 	}
 }
