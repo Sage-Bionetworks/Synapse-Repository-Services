@@ -265,7 +265,7 @@ public class DefaultControllerAutowiredTest {
 	 * @throws IOException 
 	 * @throws ServletException 
 	 */
-	@Test (expected=IllegalArgumentException.class)
+	@Test (expected=ServletTestHelperException.class)
 	public void testTypeDoesNotMatchId() throws ServletException, IOException{
 		// First create a project as a non-admin
 		Project project = new Project();
@@ -325,7 +325,7 @@ public class DefaultControllerAutowiredTest {
 		
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test (expected=ServletTestHelperException.class)
 	public void testAclUpdateWithChildType() throws ServletException, IOException, ACLInheritanceException{
 		Project project = new Project();
 		project.setName(null);

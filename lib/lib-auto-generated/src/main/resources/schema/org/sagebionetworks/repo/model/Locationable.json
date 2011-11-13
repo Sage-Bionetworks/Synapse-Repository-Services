@@ -10,7 +10,7 @@
     "properties":{
         "locations2":{
             "type":"array",
-            "description":"The list of location datat.",
+            "description":"The list of location data.",
             "uniqueItems":false,
             "contentEncoding":"binary",
             "items":{
