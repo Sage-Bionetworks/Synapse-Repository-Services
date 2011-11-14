@@ -25,7 +25,7 @@ setMethod(
 			## build the outfile name
 			dataFileName <- gsub("^[\\/]+", "", tempfile(fileext=".zip", tmpdir=""))
 			if(!is.null(propertyValue(entity, "name")))
-				dataFileName <- sprintf("%s%s",gsub("[ ]+", "_", propertyValue(entity, "name")),".zip")
+				dataFileName <- sprintf("%s%s",gsub('[\\W]', "_", propertyValue(entity, "name"), perl=TRUE),".zip")
 			
 			dataFileName <- file.path(tempdir(), dataFileName)
 			

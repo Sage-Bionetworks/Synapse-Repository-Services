@@ -59,7 +59,7 @@ integrationTestStoreLayerData <-
 	##------
 	## Create a layer and store a tab-delimited file explicity
 	layer2 <- RJSONIO::emptyNamedList
-	layer2$name <- 'R Integration Test Layer2'
+	layer2$name <- 'R Integration Test Layer2 (check_special-characters.in0entity+names)'
 	layer2$type <- 'C'
 	layer2$parentId <- propertyValue(createdDataset, "id")
 	
