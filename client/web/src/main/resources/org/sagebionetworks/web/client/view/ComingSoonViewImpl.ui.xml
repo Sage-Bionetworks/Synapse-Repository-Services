@@ -28,7 +28,9 @@
 					</ul>
 					<h2>Coming Soon</h2>
 					<div class="info">
-						This page is coming soon. 											
+						This page is coming soon.
+						
+						<g:SimplePanel ui:field="entityView" /> 											
 					</div>					
 				</div>		
 					

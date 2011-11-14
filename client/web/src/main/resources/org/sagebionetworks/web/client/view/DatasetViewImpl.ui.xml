@@ -60,8 +60,8 @@
 						</h2>
 
 						<span class="data_options">
-							<g:SimplePanel ui:field="followDatasetPanel" />
-							<g:SimplePanel ui:field="seeTermsPanel" /> <!-- <g:Image resource='{icons.documentText16}'/> See Terms of Use -->
+							<g:SimplePanel ui:field="bannerRightTopSlot" />
+							<g:SimplePanel ui:field="bannerRightBottomSlot" /> <!-- <g:Image resource='{icons.documentText16}'/> See Terms of Use -->
 						</span>
 					</span>
 					<span class="info_text">

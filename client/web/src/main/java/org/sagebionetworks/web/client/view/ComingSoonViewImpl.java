@@ -4,6 +4,7 @@ import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.widget.editpanels.NodeEditor;
+import org.sagebionetworks.web.client.widget.entity.EntityPageTop;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
@@ -23,6 +24,8 @@ public class ComingSoonViewImpl extends Composite implements ComingSoonView {
 	SimplePanel header;
 	@UiField
 	SimplePanel footer;
+	@UiField
+	SimplePanel entityView;
 		
 	private Presenter presenter;
 	private IconsImageBundle icons;
@@ -33,7 +36,8 @@ public class ComingSoonViewImpl extends Composite implements ComingSoonView {
 			Header headerWidget, Footer footerWidget, IconsImageBundle icons,
 			SageImageBundle imageBundle,
 			QueryServiceTableResourceProvider queryServiceTableResourceProvider,
-			final NodeEditor nodeEditor) {		
+			final NodeEditor nodeEditor,
+			EntityPageTop entityPageTop) {		
 		initWidget(binder.createAndBindUi(this));
 
 		this.icons = icons;
@@ -41,7 +45,10 @@ public class ComingSoonViewImpl extends Composite implements ComingSoonView {
 		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
-
+		
+//		entityPageTop.setEntity(new Dataset());
+//		entityView.add(entityPageTop.asWidget());
+		
 	}
 
 
