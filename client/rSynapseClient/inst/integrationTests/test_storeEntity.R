@@ -9,7 +9,7 @@
 	## create a project
 	project <- new(Class="Project")
 	propertyValues(project) <- list(
-					name = paste("myProject", synapseClient:::sessionToken())
+					name = paste("myProject", gsub(':', '_', date()))
 			)
 	project <- createEntity(project)
 	synapseClient:::.setCache("testProject", project)
@@ -62,6 +62,32 @@ integrationTestStoreLayerRbin <-
 	
 	checkTrue(all(file.exists(file.path(storedLayer@location@cacheDir, storedLayer@location@files))))
 	
+}
+
+integrationTestStoreLayerZip <-
+		function()
+{
+	data <- data.frame(a=1:3, b=letters[10:12],
+			c=c('hello', 'world', 'have a nice day'),
+			stringsAsFactors = FALSE)
+	
+	dataFile <- file.path(tempdir(), "data.tab")
+	write.table(data, file=dataFile, sep="\t", quote=F, row.names=F)
+	zipFile <- file.path(tempdir(), "data.zip")
+	zip(zipfile=zipFile, files=dataFile)
+	
+	dataset <- synapseClient:::.getCache("testDataset")
+	layer <- Layer(list(parentId=propertyValue(dataset,"id"), type="C", name="myZippedLayer"))
+	layer <- addFile(layer, zipFile)
+	
+	storedLayer <- storeEntity(layer)
+	checkEquals(propertyValue(storedLayer, "name"), propertyValue(layer, "name"))
+	checkEquals(propertyValue(storedLayer, "type"), propertyValue(layer, "type"))
+	checkEquals(propertyValue(storedLayer, "parentId"), propertyValue(dataset, "id"))
+	
+	loadedLayer <- loadEntity(storedLayer)
+	storedLayerData <- read.delim(normalizePath(file.path(loadedLayer$cacheDir, loadedLayer$files[1])), sep='\t', stringsAsFactors = FALSE)
+	checkEquals(storedLayerData, data)	
 }
 
 integrationTestStoreLayerCode <-

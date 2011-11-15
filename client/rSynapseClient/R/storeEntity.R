@@ -18,7 +18,11 @@ setMethod(
 				storeEntityObjects(entity)
 			} else if(("M" == propertyValue(entity, "type")) && (length(entity$files) == 1) && tolower(class(entity)) != "code") {
 				# Special case for media layers, don't zip them
-				storeFile(entity, entity$files)
+				storeFile(entity, normalizePath(file.path(entity$cacheDir, entity$files)))
+			}
+			else if((length(entity$files) == 1) && grepl(".*\\.zip$", entity$files[1], perl=TRUE)) {
+				# If the file is already zipped, don't zip it
+				storeFile(entity, normalizePath(file.path(entity$cacheDir, entity$files)))
 			}
 			else {
 				storeEntityFiles(entity)

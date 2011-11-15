@@ -33,7 +33,6 @@ setMethod(
 			if(file.exists(dataFileName))
 				file.remove(dataFileName)
 			
-			
 			## change directory to the cache directory
 			oldDir <- getwd()
 			setwd(entity@location@cacheDir)
@@ -57,6 +56,11 @@ setMethod(
 		f = "storeFile",
 		signature = signature("Layer", "character"),
 		definition = function(entity, filePath){
+			
+			if(!all(file.exists(filePath))) {
+				stop(paste("File", filePath, "does not exist, current working directory is", getwd()))
+			}
+			
 			if(is.null(propertyValue(entity, "id"))){
 				## Create the layer in Synapse
 				entity <- createEntity(entity)

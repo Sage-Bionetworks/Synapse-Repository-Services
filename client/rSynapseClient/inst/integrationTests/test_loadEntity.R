@@ -9,7 +9,7 @@
 	## create a project
 	project <- new(Class="Project")
 	propertyValues(project) <- list(
-			name = paste("myProject", synapseClient:::sessionToken())
+			name = paste("myProject", gsub(':', '_', date()))
 	)
 	project <- createEntity(project)
 	synapseClient:::.setCache("testProject", project)
