@@ -32,6 +32,7 @@
 	}
 	ext <- .curlReaderOpen(srcfile)
 	on.exit(.curlReaderClose(ext))
+	opts$noprogress <- 0L
 	opts$put <- 1L
 	opts$infilesize <- file.info(srcfile)$size
 	if(missing(header)){

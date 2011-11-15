@@ -24,6 +24,7 @@
 {
 	ext <- .curlWriterOpen(destfile)
 	on.exit(.curlWriterClose(ext))
+	opts$noprogress <- 0L
 	response <- curlPerform(URL=url, writefunction=writeFunction,
 			writedata=ext, .opts = opts)
 	.checkCurlResponse(curlHandle, response)
