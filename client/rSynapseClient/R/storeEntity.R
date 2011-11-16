@@ -16,13 +16,12 @@ setMethod(
 		definition = function(entity){
 			if(length(list.files(file.path(entity$cacheDir, .getCache("rObjCacheDir")), all.files = TRUE)) > 0 ){
 				storeEntityObjects(entity)
-			} else if(("M" == propertyValue(entity, "type")) && (length(entity$files) == 1) && tolower(class(entity)) != "code") {
+			} else if((length(entity$files) == 1) 
+					&& (tolower(class(entity)) != "code") 
+					&& (("M" == propertyValue(entity, "type")) || grepl(".*\\.zip$", entity$files[1], perl=TRUE))) {
 				# Special case for media layers, don't zip them
-				storeFile(entity, normalizePath(file.path(entity$cacheDir, entity$files)))
-			}
-			else if((length(entity$files) == 1) && grepl(".*\\.zip$", entity$files[1], perl=TRUE)) {
-				# If the file is already zipped, don't zip it
-				storeFile(entity, normalizePath(file.path(entity$cacheDir, entity$files)))
+				# Special case for zip files, they are already zipped so don't zip them
+				storeFile(entity, entity$files)
 			}
 			else {
 				storeEntityFiles(entity)

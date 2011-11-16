@@ -57,6 +57,12 @@ setMethod(
 		signature = signature("Layer", "character"),
 		definition = function(entity, filePath){
 			
+			# Change into the cache directory, if filePath is a relative paths, maybe 
+			# we'll find it here, if filePath is an absolute path, changing the working 
+			# directory will have no effect
+			oldDir <- getwd()
+			setwd(entity$cacheDir)
+						
 			if(!all(file.exists(filePath))) {
 				stop(paste("File", filePath, "does not exist, current working directory is", getwd()))
 			}
@@ -115,6 +121,7 @@ setMethod(
 					),
 					error = function(e){
 						warning(sprintf("failed to upload data file, please try again: %s", e))
+						setwd(oldDir)
 						return(entity)
 					}
 			)
@@ -139,6 +146,7 @@ setMethod(
 				entity@location <- CachedLocation(entity@location, .unpack(file.path(destdir, filename)))
 			}
 			
+			setwd(oldDir)
 			refreshEntity(entity)
 		}
 )

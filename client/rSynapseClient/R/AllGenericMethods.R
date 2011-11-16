@@ -252,33 +252,6 @@ setGeneric(
 )
 
 setGeneric(
-		name = "loadLayerData",
-		def = function(entity){
-			standardGeneric("loadLayerData")
-		}
-)
-
-setGeneric(
-		name = "storeLayerData",
-		def = function(entity, ...){
-			standardGeneric("storeLayerData")
-		}
-)
-
-setGeneric(
-		name = "storeLayerDataFile",
-		def = function(entity, layerDataFilepath){
-			standardGeneric("storeLayerDataFile")
-		}
-)
-setGeneric(
-		name = "storeLayerDataFiles",
-		def = function(entity, layerDataFile){
-			standardGeneric("storeLayerDataFiles")
-		}
-)
-
-setGeneric(
 		name = "updateAnnotations",
 		def = function(annotations){
 			standardGeneric("updateAnnotations")

@@ -34,7 +34,7 @@
 	synapseClient:::.deleteCache("rIntegrationTestProject")
 }
 
-integrationTestText <- 
+integrationTestNoZipFile <- 
 		function()
 {
 	dataset <- Dataset(entity = list(
@@ -60,15 +60,15 @@ integrationTestText <-
 					parentId = propertyValue(createdDataset, "id")
 			)
 	)
+	layer <- createEntity(layer)
+	layer <- addFile(layer, dataFile)
+	layer <- updateEntity(layer)
 	
-	createdLayer <- synapseClient:::storeLayerDataFiles(entity=layer, layerDataFile = dataFile)
-	checkEquals(propertyValue(layer, "name"), propertyValue(createdLayer, "name"))
-	
-	layerData <- synapseClient:::loadLayerData(createdLayer)
-	checkTrue(grepl(sprintf("%s$", "data.tab"), layerData[1]))
+	loadedLayer <- loadEntity(layer)
+	checkTrue(grepl(sprintf("%s$", "data.tab"), loadedLayer$files[1]))
 }
 
-integrationTestMultipleText <- 
+integrationTestNoZipMultipleFiles <- 
 		function()
 {
 	dataset <- Dataset(entity = list(
@@ -96,11 +96,13 @@ integrationTestMultipleText <-
 					parentId = propertyValue(createdDataset, "id")
 			)
 	)
-	
-	checkException(synapseClient:::storeLayerDataFiles(entity=layer, layerDataFile = c(dataFile, dataFile2)))
+	layer <- createEntity(layer)
+	layer <- addFile(layer, c(dataFile, dataFile2))
+	# This should fail because we've added two files to the layer but we don't have a zip utility
+	checkException(storeEntity(layer))
 }
 
-integrationTestBinary <- 
+integrationTestNoZipBinary <- 
 		function()
 {
 	dataset <- Dataset(entity = list(
@@ -124,17 +126,16 @@ integrationTestBinary <-
 			)
 	)
 	
-	createdLayer <- synapseClient:::storeLayerData(entity=layer, data)
-	checkEquals(propertyValue(layer, "name"), propertyValue(createdLayer, "name"))
-	files <- synapseClient:::.cacheFiles(propertyValue(createdLayer,"id"))
-	checkTrue(grepl(sprintf("%s$", "data.rbin"), files[1]))
+	layer <- createEntity(layer)
+	layer <- addObject(layer, data)
+	layer <- storeEntity(layer)
 	
-	layerData <- synapseClient:::loadLayerData(createdLayer)
-	checkEquals(data, layerData$data)
+	loadedLayer <- loadEntity(layer)
+	checkEquals(data, loadedLayer$objects$data)
 }
 
 
-integrationTestMultipleBinary <- 
+integrationTestNoZipMultipleBinary <- 
 		function()
 {
 	dataset <- Dataset(entity = list(
@@ -159,6 +160,8 @@ integrationTestMultipleBinary <-
 					parentId = propertyValue(createdDataset, "id")
 			)
 	)
-	
-	checkException(synapseClient:::storeLayerData(entity=layer, dataFile, dataFile2))
+	layer <- createEntity(layer)
+	layer <- addObject(layer, c(data, data2))
+	# This should fail because we've added two objectss to the layer but we don't have a zip utility
+	checkException(storeEntity(layer))
 }

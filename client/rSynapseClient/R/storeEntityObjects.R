@@ -43,13 +43,13 @@ setMethod(
 			suppressWarnings(zipRetVal <- zip(zipfile=normalizePath(dataFileName, mustWork=FALSE), files=gsub("^/","",files)))
 			setwd(oldDir)
 			
-			## if zip failes, load uncompressed
+			## if zip fails, load uncompressed
 			if(zipRetVal != 0L){
 				msg <- sprintf("Unable to zip layerData Files. Error code: %i.",zipRetVal)
 				if(length(files) > 1)
 					stop(msg, " Make sure that zip is installed on your computer. Without zip, only one file can be uploaded at a time")
 				warning("Zip was not installed on your computer. Uploading layer data uncompressed. Directory structure will not be preserved.")
-				dataFileName <- files
+				dataFileName <- gsub("^/","",files)
 			}
 			
 			storeFile(entity, dataFileName)

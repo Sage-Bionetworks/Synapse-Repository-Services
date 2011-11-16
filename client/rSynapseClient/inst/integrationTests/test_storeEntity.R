@@ -103,3 +103,58 @@ integrationTestStoreLayerCode <-
 	code <- loadEntity(propertyValue(code, "id"))
 	checkEquals(code$objects$run(), "executing test function")
 }
+
+integrationTestStoreMediaLayer <- function() {
+	
+	dataset <- synapseClient:::.getCache("testDataset")
+	layer <- Layer(list(parentId=propertyValue(dataset,"id"), type="M", name="myZippedLayer"))
+	
+	## Make a jpeg when PLFM-498 is fixed, for now, make a fake one
+	filename <- "r_integration_test_plot.jpg"
+	filepath <- file.path(tempdir(), filename)
+#	attach(mtcars)
+#	jpeg(filename)
+#	plot(wt, mpg) 
+#	abline(lm(mpg~wt))
+#	title("Regression of MPG on Weight")
+#	dev.off()
+	data <- data.frame(a=1:3, b=letters[10:12],
+			c=seq(as.Date("2004-01-01"), by = "week", len = 3),
+			stringsAsFactors = FALSE)
+	write.table(data, filepath)	
+
+	layer <- addFile(layer, filepath)
+	createdLayer <- storeEntity(layer)
+	loadedLayer <- loadEntity(createdLayer)
+	checkEquals(1, length(loadedLayer$files))
+	checkEquals(filename, loadedLayer$files[1])
+}
+
+integrationTestMultipleBinary <- 
+		function()
+{
+
+	## Make an R data object that we will store in a couple different ways
+	data <- data.frame(a=1:3, b=letters[10:12],
+			c=seq(as.Date("2004-01-01"), by = "week", len = 3),
+			stringsAsFactors = FALSE)
+	
+	data2 <- diag(100)
+	
+	dataset <- synapseClient:::.getCache("testDataset")
+	layer <- Layer(entity = list(
+					type = 'E',
+					parentId = propertyValue(dataset, "id")
+			)
+	)
+	
+	layer <- addObject(layer, data)
+    layer <- addObject(layer, data2)
+	createdLayer <- storeEntity(layer)
+	loadedLayer <- loadEntity(createdLayer)
+	
+	checkTrue(all(c("data", "data2") %in% names(loadedLayer$objects)))
+	
+	checkEquals(data, loadedLayer$objects$data)
+	checkEquals(data2, loadedLayer$objects$data2)
+}

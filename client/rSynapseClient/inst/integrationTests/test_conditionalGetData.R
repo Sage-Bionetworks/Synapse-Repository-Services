@@ -2,9 +2,7 @@
 		function() 
 {
 	# Create a project
-	project <- RJSONIO::emptyNamedList
-	project$name <- paste('R Conditional Get Integration Test Project', gsub(':', '_', date()))
-	createdProject <- synapseClient:::createProject(entity=project)
+	createdProject <- createEntity(Project(list(name=paste('R Conditional Get Integration Test Project', gsub(':', '_', date())))))
 	synapseClient:::.setCache("rIntegrationTestProject", createdProject)
 	
 	synapseClient:::.setCache("oldCacheDir", synapseCacheDir())
@@ -14,9 +12,8 @@
 .tearDown <- 
 		function() 
 {
-	synapseClient:::deleteProject(entity=synapseClient:::.getCache("rIntegrationTestProject"))
+	deleteEntity(synapseClient:::.getCache("rIntegrationTestProject"))
 	synapseClient:::.deleteCache("rIntegrationTestProject")
-	synapseClient:::.deleteCache("createdDataset")
 	
 	## delete test cache dir
 	unlink(synapseCacheDir(), recursive=TRUE)
@@ -29,41 +26,36 @@ integrationTestConditionalGet <-
 {
 
 	# Create a dataset
-	dataset <- RJSONIO::emptyNamedList
-	dataset$name <- 'R Integration Test Dataset'
-	dataset$parentId <- synapseClient:::.getCache("rIntegrationTestProject")$id
-	createdDataset <- synapseClient:::createDataset(entity=dataset)
-	synapseClient:::.setCache("createdDataset",createdDataset)
-	checkEquals(dataset$name, createdDataset$name)
+	dataset <- Dataset(list(
+					name='R Integration Test Dataset',
+					parentId=propertyValue(synapseClient:::.getCache("rIntegrationTestProject"), 'id')
+			))
+	createdDataset <- createEntity(dataset)
 	
 	# Create a layer and store a data R object
-	layer <- RJSONIO::emptyNamedList
-	layer$name <- 'R Integration Test Layer'
-	layer$type <- 'C'
-	layer$parentId <- createdDataset$id 
+	layer <- Layer(list(name='R Integration Test Layer',
+					type='C',
+					parentId=propertyValue(createdDataset, 'id')
+	)) 
 	
 	data <- data.frame(a=1:3, b=letters[10:12],
 			c=seq(as.Date("2004-01-01"), by = "week", len = 3),
 			stringsAsFactors = TRUE)
 	fileName <- file.path(tempdir(), "data.tab")
 	write.table(data, file=fileName, quote=F, sep="\t", row.names=F)
-	layer <- Layer(layer)
-	createdLayer <- synapseClient:::storeLayerDataFiles(entity=layer, layerDataFile=fileName)
+	layer <- addFile(layer, fileName)
+	createdLayer <- createEntity(layer)
 	checkEquals(propertyValue(layer,"name"), propertyValue(createdLayer, "name"))
 	
 	# Now download the layer
-	locations <- synapseClient:::getLayerLocations(entity=synapseClient:::.extractEntityFromSlots(createdLayer))
-	destinationFile1 <- synapseClient:::synapseDownloadFile(url=locations$path[1], checksum=locations$md5sum[1])
-	fileInfo1 <- file.info(destinationFile1) 
+	loadedLayer1 <- loadEntity(layer)
+	fileInfo1 <- file.info(normalizePath(file.path(loadedLayer1$cacheDir, loadedLayer1$files[1]))) 
 	
 	# Now download the layer again, but this time it should just read from the cache
-	destinationFile2 <- synapseClient:::synapseDownloadFile(url=locations$path[1], checksum=locations$md5sum[1])
-	fileInfo2 <- file.info(destinationFile2) 
+	loadedLayer2 <- loadEntity(layer)
+	fileInfo2 <- file.info(normalizePath(file.path(loadedLayer2$cacheDir, loadedLayer2$files[1]))) 
 	
-	checkEquals(destinationFile1, destinationFile2)
+	checkEquals(loadedLayer1$files[1], loadedLayer2$files[1])
 	# If the modification time is the same, we did not download it the second time
 	checkEquals(fileInfo1$mtime, fileInfo2$mtime)
-	
-	## delete the dataset
-	synapseClient:::deleteDataset(synapseClient:::.getCache("createdDataset"))
 }
