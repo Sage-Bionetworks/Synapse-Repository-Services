@@ -1,6 +1,5 @@
-## log into my local synapse stack
-goLocal()
-#goStaging()
+library(synapseClient)
+synapseLogin()
 
 ## this is just to show what's happening under the covers, you don't need to call this
 onWeb(getStep())
