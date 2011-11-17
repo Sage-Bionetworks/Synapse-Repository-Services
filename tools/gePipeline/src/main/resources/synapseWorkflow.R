@@ -207,6 +207,7 @@ createDataset <- function (dsProperties, dsAnnotations)
 	if (!is.null(qryResult)) {
 		dataset <- getEntity(qryResult$dataset.id[1])
 		origTimestamp <- annotValue(dataset, "lastUpdate")
+		origErrorCode <- annotValue(dataset, "workflowStatusCode")
 		annotationValues(dataset) <- dsAnnotations
 		dataset <- updateEntity(dataset)
 	}
@@ -215,22 +216,31 @@ createDataset <- function (dsProperties, dsAnnotations)
 	}
 	retVal <- list(update = TRUE, projectId = propertyValue(dataset, 
 					"parentId"), datasetId = propertyValue(dataset, "id"))
+	# if there are no CEL files OR 
+	# if the update date has not changed AND the previous error code is zero
+	# then don't rerun QC
 	if (
+		(
+					!is.null(origTimestamp)
+					&& !is.null(annotValue(dataset, "lastUpdate")) 
+					&& annotValue(dataset, "lastUpdate") == origTimestamp
+					)
+				&&
 				(
-				!is.null(dsAnnotations$hasCelFiles)
-				&& !is.na(as.logical(dsAnnotations$hasCelFiles))
-				&& !as.logical(dsAnnotations$hasCelFiles)
+					!is.null(origErrorCode)
+					&& as.numeric(origErrorCode) == 0
+					)
 				)
-			
-			||
-				(
-				!is.null(origTimestamp)
-				&& !is.null(annotValue(dataset, "lastUpdate")) 
-				&& annotValue(dataset, "lastUpdate") == origTimestamp
-				)
-		)
 	{
 		retVal$update <- FALSE
+		retVal$reason <- sprintf("Dataset %s has not changed since last update.", propertyValue(dataset, "id"))
+	}
+	if (!is.null(dsAnnotations$hasCelFiles)
+				&& !is.na(as.logical(dsAnnotations$hasCelFiles))
+				&& !as.logical(dsAnnotations$hasCelFiles))
+	{
+		retVal$update <- FALSE
+		retVal$reason <- "Dataset has no expression data to process."
 	}
 	retVal
 }

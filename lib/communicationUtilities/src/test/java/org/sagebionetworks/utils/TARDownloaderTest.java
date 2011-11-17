@@ -16,7 +16,7 @@ public class TARDownloaderTest {
 	@Test
 	public void testUntar() throws Exception {
 		File dir = new File(".");
-		InputStream is = new FileInputStream(new File("src"+File.separator+"test"+File.separator+"resources", "test.tar"));
+		InputStream is = TARDownloaderTest.class.getClassLoader().getResourceAsStream("test.tar");
 		List<File> files = TARDownloader.untar(is, dir);
 		is.close();
 		assertTrue(files.size()>0);

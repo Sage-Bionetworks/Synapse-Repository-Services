@@ -381,4 +381,11 @@ public class TemplatedConfiguration {
 		return getProperty("org.sagebionetworks.gepipeline.maxdatasetsize");
 	}
 
+	public String getGEPipelineMaxWorkflowInstances() {
+		return getProperty("org.sagebionetworks.gepipeline.maxworkflowinstances");
+	}
+	
+	public String getGEPipelineNoop() {
+		return getProperty("org.sagebionetworks.gepipeline.noop");
+	}
 }

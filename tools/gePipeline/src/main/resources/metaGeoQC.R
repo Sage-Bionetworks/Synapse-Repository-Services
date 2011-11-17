@@ -18,8 +18,9 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 	## load synapse client
 	library(synapseClient)
 	
-	synapseCacheDir("/mnt/ebs/synapseCacheDir")
-	Sys.setenv(TMPDIR="/mnt/ebs/r_tmp")
+	# override these two lines to set where temporary files go
+	#synapseCacheDir("/mnt/ebs/synapseCacheDir")
+	#Sys.setenv(TMPDIR="/mnt/ebs/r_tmp")
 	
 	
 	## load the workflow utilities
@@ -81,6 +82,10 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 	## set up the hmac credentials
 	synapseClient:::userName(userName)
 	hmacSecretKey(secretKey)
+	startStep() # this is done automatically with 'synapseLogin', here we do it manually
+	analysis<-Analysis(paste("Unsupervised QC for ", inputDataMap[["name"]]))
+	storeEntity(analysis)
+	associateCurrentStepWithAnalysis()
 	
 	## create the geo dataset
 	ans <- tryCatch({
@@ -93,36 +98,26 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 			}
 	)
 	dsId <- ans$datasetId
-	msg <- "Starting"
-	setWorkFlowStatusAnnotation(dsId, kOkStatusCode, msg)
+	msg <- "QC In Progress"
+
+	# we initially set the status code to ERROR.  Upon successful completion we'll change it to OK
+	setWorkFlowStatusAnnotation(dsId, kErrorStatusCode, msg)
 	
 	if(!ans$update){
-		msg <- sprintf("Dataset %s has not changed since last update.", dsId)
+		msg <- ans$reason
 		finishWorkflowTask(list(status=kOkStatusCode, msg=msg, datasetId=dsId))
 		setWorkFlowStatusAnnotation(dsId, kOkStatusCode, msg)
 	}else{
 		
 		##########################################
-		## get the R Code dataset id
-		##########################################
-		codeProjectId <- inputDataMap[["parentId"]] # can override if the code is in another project
-		result <- synapseQuery(sprintf('select * from dataset where dataset.name == "%s" and dataset.parentId == "%s"', "GEO R Code Layers", codeProjectId))
-		if(is.null(result) || nrow(result) != 1L){
-			msg <- sprintf("could not find R code dataset in project %s", inputDataMap[["parentId"]])
-			finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
-			setWorkFlowStatusAnnotation(dsId, kErrorStatusCode, msg)
-			stop(msg)
-		}
-		datasetId <- result$dataset.id
-		
-		##########################################
 		## get the entity ids for the code modules
 		##########################################
+		codeProjectId <- inputDataMap[["parentId"]] # can override if the code is in another project
 		
 		scriptName <- "run Metageo QC"
-		result <- synapseQuery(sprintf('select * from layer where layer.name == "%s" and layer.parentId == "%s"', scriptName, datasetId))
+		result <- synapseQuery(sprintf('select * from layer where layer.name == "%s" and layer.parentId == "%s"', scriptName, codeProjectId))
 		if(nrow(result) != 1L){
-			msg <- sprintf("could not find R code entity %s in dataset %s", scriptName, datasetId)
+			msg <- sprintf("could not find R code entity %s in dataset %s", scriptName, codeProjectId)
 			finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
 			setWorkFlowStatusAnnotation(dsId, kErrorStatusCode, msg)
 			stop(msg)
@@ -131,7 +126,7 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 		
 		## get add location code entity and add location for the geo id
 		ans <- tryCatch({
-					createLayer(dsId)
+					createLayer(dsId, inputDataMap[["url"]])
 				},
 				error = function(e){
 					msg <- sprintf("Failed to create layer: %s", e)
@@ -140,6 +135,10 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 					stop(e)
 				}
 		)
+		
+		stopStep()
+		startStep()
+		associateCurrentStepWithAnalysis()
 		
 		## run the metaGeo workflow
 		ans <- tryCatch({
