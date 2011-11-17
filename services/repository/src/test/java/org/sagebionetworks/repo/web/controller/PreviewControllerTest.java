@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -162,23 +163,23 @@ public class PreviewControllerTest {
 		// Modify the locations
 		// Create three locations for this layer
 		JSONObject location = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ "/location", "{\"type\":\"awss3\",\"path\":\"human_liver_cohort/expression/expression.txt\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\", \"parentId\":\""+newLayer.getString("id")+"\"}");
+				.getServletPrefix()+ UrlHelpers.LOCATION, "{\"type\":\"awss3\",\"path\":\"human_liver_cohort/expression/expression.txt\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\", \"parentId\":\""+newLayer.getString("id")+"\"}");
 		assertExpectedLayerLocationProperties(location);
 		
 		location = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ "/location", "{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\", \"parentId\":\""+newLayer.getString("id")+"\"}");
+				.getServletPrefix()+ UrlHelpers.LOCATION, "{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\", \"parentId\":\""+newLayer.getString("id")+"\"}");
 		assertExpectedLayerLocationProperties(location);
 		
 		location = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ "/location", "{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\", \"parentId\":\""+newLayer.getString("id")+"\"}");
+				.getServletPrefix()+ UrlHelpers.LOCATION, "{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\", \"parentId\":\""+newLayer.getString("id")+"\"}");
 		assertExpectedLayerLocationProperties(location);
 		
 		location = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ "/location", "{\"type\":\"sage\", \"path\":\"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\", \"parentId\":\""+newLayer.getString("id")+"\"}");
+				.getServletPrefix()+ UrlHelpers.LOCATION, "{\"type\":\"sage\", \"path\":\"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\", \"parentId\":\""+newLayer.getString("id")+"\"}");
 		assertExpectedLayerLocationProperties(location);
 
 		// Now make sure the stored one reflects the change too
-		JSONObject paginatedLocations = helper.testGetJsonObject(newLayer.getString("locations"));
+		JSONObject paginatedLocations = helper.testGetJsonObject(newLayer.getString("uri")+UrlHelpers.LOCATION);
 		assertNotNull(paginatedLocations.getInt("totalNumberOfResults"));
 		assertNotNull(paginatedLocations.getJSONArray("results"));
 		assertEquals(4, paginatedLocations.getJSONArray("results").length());

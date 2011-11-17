@@ -6,11 +6,7 @@
         },
         {
             "$ref":"org.sagebionetworks.repo.model.HasLayers"
-        },
-        {
-            "$ref":"org.sagebionetworks.repo.model.HasLocations"
-        },
-        
+        },        
     ],
     "properties":{
         "eulaId":{

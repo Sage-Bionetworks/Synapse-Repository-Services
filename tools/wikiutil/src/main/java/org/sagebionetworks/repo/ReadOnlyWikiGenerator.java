@@ -200,7 +200,7 @@ public class ReadOnlyWikiGenerator {
 								+ " Dataset Layer",
 						"This returns the preview data for a dataset layer.");
 				JSONObject locationsResult = wiki
-						.doGet(layer.getString("locations"),
+						.doGet(layer.getString("uri")+"/location",
 								"h4. Get the locations for a " + type
 										+ " Dataset Layer",
 								"This returns all the locations metadata for a dataset layer.");

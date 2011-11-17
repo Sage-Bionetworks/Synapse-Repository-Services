@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.HasLayers;
-import org.sagebionetworks.repo.model.HasLocations;
 import org.sagebionetworks.repo.model.HasPreviews;
 import org.sagebionetworks.repo.model.PrefixConst;
 import org.sagebionetworks.repo.model.Versionable;
@@ -413,15 +412,6 @@ public class UrlHelpers {
 		entity.setLayers(entity.getUri()+LAYER);
 	}
 	
-	/**
-	 * Set the URL for the locations for any object that has locations.
-	 * @param entity
-	 */
-	public static void setHasLocationsUrl(HasLocations entity){
-		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
-		if(entity.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null null");
-		entity.setLocations(entity.getUri()+LOCATION);
-	}
 	
 	/**
 	 * Set the URL for the preview for any object that has preview.
@@ -463,10 +453,6 @@ public class UrlHelpers {
 		if(entity instanceof HasLayers){
 			setHasLayersUrl((HasLayers) entity);
 		}
-		// Locations
-		if(entity instanceof HasLocations){
-			setHasLocationsUrl((HasLocations) entity);
-		}
 		// Previews
 		if(entity instanceof HasPreviews){
 			setHasPreviewsUrl((HasPreviews) entity);
@@ -503,14 +489,6 @@ public class UrlHelpers {
 			expected = object.getUri()+UrlHelpers.LAYER;
 			if(!expected.equals(hasLayers.getLayers())){
 				throw new IllegalArgumentException("Expected layers: "+expected+" but was: "+hasLayers.getLayers());
-			}
-		}
-		// Has locations
-		if(object instanceof HasLocations){
-			HasLocations has = (HasLocations) object;
-			expected = object.getUri()+UrlHelpers.LOCATION;
-			if(!expected.equals(has.getLocations())){
-				throw new IllegalArgumentException("Expected locations: "+expected+" but was: "+has.getLocations());
 			}
 		}
 		// Has preview
