@@ -32,6 +32,7 @@ public class GEPWorkflowInitiator {
 	 * interested
 	 */
 	void initiateWorkflowTasks() throws Exception {
+		String maxInstances = ConfigHelper.getGEPipelineMaxWorkflowInstances();
 		// call R function which returns IDs of data sets to process
 		String maxDatasetSize = ConfigHelper.getGEPipelineMaxDatasetSize();
 		List<String> scriptParams = new ArrayList<String>(Arrays.asList(
@@ -44,8 +45,8 @@ public class GEPWorkflowInitiator {
 //		System.out.println("results stderr:\n"+results.getStderr().toString()+"\n\n");
 		// the script returns a map whose keys are GSEIDs to run and values are the input data for each activity instance
 		Map<String,String> idToActivityInputMap = new HashMap<String,String>(results.getStringMapResult(ScriptResult.OUTPUT_JSON_KEY));
-		log.info("datasetIds to input map: "+idToActivityInputMap);
-		int max = -1; // set to -1 to disable
+//		log.info("datasetIds to input map: "+idToActivityInputMap);
+		int max = maxInstances==null ? -1 : Integer.parseInt(maxInstances); // set to -1 to disable
 		int i = 0;
 		ObjectMapper mapper = new ObjectMapper();
 		String projectId = ConfigHelper.getGEPipelineProjectId();

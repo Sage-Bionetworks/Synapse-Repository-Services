@@ -52,6 +52,10 @@ public class GEPWorkflow {
 	private static final String NOTIFICATION_SNS_TOPIC = ConfigHelper
 			.getWorkflowSnsTopic();
 	
+	// for testing, can set the workflow to 'no-op', i.e. just close out the instance
+	// without doing anything
+	private static final String NOOP = ConfigHelper.getGEPipelineNoop();
+	
 	/**
 	 * @param param
 	 * @param datasetId
@@ -64,6 +68,14 @@ public class GEPWorkflow {
 			throws Exception {
 
 		GEPWorkflow flow = new GEPWorkflow();
+		
+		boolean noop = (NOOP!=null && NOOP.equalsIgnoreCase("true"));
+		
+		if (noop) {
+			Value<String> result = Value.asValue("NO-OP for "+datasetId);
+			flow.dispatchNotifyDataProcessed(result);
+			return;
+		}
 
 		Settable<String> script = new Settable<String>();
 		String workflowScript = ConfigHelper.getGEPipelineWorkflowScript();
@@ -81,7 +93,7 @@ public class GEPWorkflow {
 		Value<String> result = flow.dispatchProcessData(script,
 				datasetId, activityInput, processedLayerId, stdout, stderr);
 
-		flow.dispatchNotifyDataProcessed(result, processedLayerId);
+		flow.dispatchNotifyDataProcessed(result);
 
 	}
 
@@ -145,20 +157,14 @@ public class GEPWorkflow {
 
 
 	@Asynchronous
-	private Value<String> dispatchNotifyDataProcessed(Value<String> param,
-			Value<String> processedLayerId) throws Exception {
-
-//		if (Constants.WORKFLOW_DONE.equals(processedLayerId.get())) {
-//			return Value.asValue(param + ":noop");
-//		}
-
+	private Value<String> dispatchNotifyDataProcessed(Value<String> param) throws Exception {
 		/**
 		 * Formulate the message to be sent to all interested parties about the
 		 * new processed data from TCGA
 		 */
 		Settable<String> processedDataMessage = new Settable<String>();
 		Value<String> result1 = dispatchFormulateNotificationMessage(param,
-				processedLayerId, processedDataMessage);
+				processedDataMessage);
 
 		Settable<String> recipient = new Settable<String>();
 		recipient.set(NOTIFICATION_SNS_TOPIC);
@@ -179,15 +185,15 @@ public class GEPWorkflow {
 	// note, the output is in 'message'
 	@Asynchronous
 	private Value<String> dispatchFormulateNotificationMessage(
-			Value<String> param, Value<String> layerId, Settable<String> message)
+			Value<String> param, Settable<String> message)
 			throws Exception {
-		return doFormulateNotificationMessage(param.get(), /*layerId.get(),*/
+		return doFormulateNotificationMessage(param.get(), 
 				message);
 	}
 
 	@Activity(version = VERSION)
 	private static Value<String> doFormulateNotificationMessage(String param,
-			/*String layerId,*/ Settable<String> message) throws Exception {
+			Settable<String> message) throws Exception {
 		message.set(param);
 		return Value.asValue(param + ":FormulateNotificationMessage");
 	}

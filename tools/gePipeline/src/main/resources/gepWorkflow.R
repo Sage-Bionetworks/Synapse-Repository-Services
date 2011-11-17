@@ -20,14 +20,14 @@ inputDataMap<-RJSONIO::fromJSON(inputData)
 
 summary <-inputDataMap[["Description"]]
 gpl<-inputDataMap[["gpl"]]
-hasCelFile<-inputDataMap[["hasCelFile"]]
+hasCelFiles<-inputDataMap[["hasCelFiles"]]
 species<-inputDataMap[["Species"]]
 lastUpdate<-inputDataMap[["lastUpdate"]]
 nSamples<-inputDataMap[["Number_of_Samples"]]
 
 cat("SUMMARY: ");cat(summary);cat("\n\n")
 cat("GPL: ");cat(gpl);cat("\n\n")
-cat("hasCelFile: ");cat(hasCelFile);cat("\n\n")
+cat("hasCelFiles: ");cat(hasCelFiles);cat("\n\n")
 cat("SPECIES: ");cat(species);cat("\n\n")
 cat("lastUpdate: ");cat(lastUpdate);cat("\n\n")
 cat("nSamples: ");cat(nSamples);cat("\n\n")

@@ -195,4 +195,12 @@ public class ConfigHelper {
 	public static String getGEPipelineMaxDatasetSize() {
 		return configuration.getGEPipelineMaxDatasetSize();
 	}
+	
+	public static String getGEPipelineMaxWorkflowInstances() {
+		return configuration.getGEPipelineMaxWorkflowInstances();
+	}
+	
+	public static String getGEPipelineNoop() {
+		return configuration.getGEPipelineNoop();
+	}
 }
