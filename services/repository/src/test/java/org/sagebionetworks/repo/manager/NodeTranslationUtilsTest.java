@@ -158,7 +158,7 @@ public class NodeTranslationUtilsTest {
 		ds.setUri("someUri");
 		// Add some location data
 		List<LocationData> locations = new ArrayList<LocationData>();
-		ds.setLocations2(locations);
+		ds.setLocations(locations);
 		LocationData ldata = new LocationData();
 		ldata.setContentType("xml");
 		ldata.setMd5("some MD5");
@@ -212,7 +212,6 @@ public class NodeTranslationUtilsTest {
 		layer.setDescription("someDescr");
 		layer.setEtag("12");
 		layer.setId("44");
-		layer.setLocations("/locations");
 		layer.setName("someName");
 		layer.setNumSamples(new Long(12));
 		layer.setPlatform("somePlate");
@@ -277,19 +276,6 @@ public class NodeTranslationUtilsTest {
 		assertEquals("E", result);
 	}
 	
-	@Ignore // We no longer have an object with a collection.
-	@Test
-	public void testSingleValueCollection(){
-		Layer layer = new Layer();
-		layer.setLocations("/locations");
-		Annotations annos = new Annotations();
-		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(layer, annos, null);
-		// Now go back
-		Layer copy = new Layer();
-		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(copy, annos, null);
-		String copyLocations = copy.getLocations();
-		assertEquals(layer.getLocations(), copyLocations);
-	}
 	
 	@Test
 	public void testSetNullOnNode(){

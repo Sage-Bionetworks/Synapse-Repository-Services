@@ -4,9 +4,6 @@
         {
             "$ref":"org.sagebionetworks.repo.model.Locationable"
         },
-        {
-            "$ref":"org.sagebionetworks.repo.model.HasLocations"
-        },
         
     ],
     "properties":{

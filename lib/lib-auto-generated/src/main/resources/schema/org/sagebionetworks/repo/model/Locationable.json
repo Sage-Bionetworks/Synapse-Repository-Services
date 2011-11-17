@@ -8,7 +8,7 @@
         
     ],
     "properties":{
-        "locations2":{
+        "locations":{
             "type":"array",
             "description":"The list of location data.",
             "uniqueItems":false,

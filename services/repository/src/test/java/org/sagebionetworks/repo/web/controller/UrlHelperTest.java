@@ -8,13 +8,12 @@ import javax.servlet.http.HttpServletRequest;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.HasLayers;
-import org.sagebionetworks.repo.model.HasLocations;
 import org.sagebionetworks.repo.model.HasPreviews;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.Location;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -166,28 +165,6 @@ public class UrlHelperTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testHasLocationsEntityNull(){
-		UrlHelpers.setHasLocationsUrl(null);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testHasLocationsNullUri(){
-		Dataset ds = new Dataset();
-		ds.setUri(null);
-		UrlHelpers.setHasLocationsUrl(ds);
-	}
-	
-	@Test
-	public void testHasLocationsUrls(){
-		Dataset ds = new Dataset();
-		// Make sure the preview has a uri
-		String baseUri = "/repo/v1"+EntityType.dataset.getUrlPrefix()+"/42";
-		ds.setUri(baseUri);
-		UrlHelpers.setHasLocationsUrl(ds);
-		assertEquals(baseUri+UrlHelpers.LOCATION, ds.getLocations());
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
 	public void testHasPreviewEntityNull(){
 		UrlHelpers.setHasPreviewsUrl(null);
 	}
@@ -268,12 +245,6 @@ public class UrlHelperTest {
 				HasLayers hasLayers = (HasLayers) entity;
 				expected = expectedBase+UrlHelpers.LAYER;
 				assertEquals(expected, hasLayers.getLayers());
-			}
-			// Has locations
-			if(entity instanceof HasLocations){
-				HasLocations has = (HasLocations) entity;
-				expected = expectedBase+UrlHelpers.LOCATION;
-				assertEquals(expected, has.getLocations());
 			}
 			// Has preview
 			if(entity instanceof HasPreviews){

@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
@@ -63,7 +64,7 @@ public class EulaControllerTest {
 		datasetLocation = new JSONObject(LocationControllerTest.SAMPLE_LOCATION)
 				.put(NodeConstants.COL_PARENT_ID, dataset.getString("id"));
 		datasetLocation = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/location", datasetLocation.toString());
+				+ UrlHelpers.LOCATION, datasetLocation.toString());
 		helper.addPublicReadOnlyAclToEntity(dataset);
 
 		layer = helper.testCreateJsonEntity(helper.getServletPrefix()
@@ -72,7 +73,7 @@ public class EulaControllerTest {
 		layerLocation = new JSONObject(LocationControllerTest.SAMPLE_LOCATION)
 				.put(NodeConstants.COL_PARENT_ID, layer.getString("id"));
 		layerLocation = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/location", layerLocation.toString());
+				+ UrlHelpers.LOCATION, layerLocation.toString());
 	}
 
 	/**
@@ -191,7 +192,7 @@ public class EulaControllerTest {
 		JSONObject datasetLocation2 = new JSONObject(LocationControllerTest.SAMPLE_LOCATION)
 				.put(NodeConstants.COL_PARENT_ID, dataset2.getString("id"));
 		datasetLocation2 = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/location", datasetLocation2.toString());
+				+ UrlHelpers.LOCATION, datasetLocation2.toString());
 		helper.addPublicReadOnlyAclToEntity(dataset2);
 		
 		// Make an agreement for the current user
@@ -207,15 +208,15 @@ public class EulaControllerTest {
 		// The ACL on the eula has public read so this works
 		helper.testGetJsonEntity(eula.getString("uri"));
 		// But the user has not signed the agreement so these does not work
-		helper.testGetJsonEntityShouldFail(dataset.getString("locations"),
+		helper.testGetJsonEntityShouldFail(dataset.getString("uri")+UrlHelpers.LOCATION,
 				HttpStatus.FORBIDDEN);
 		helper.testGetJsonEntityShouldFail(datasetLocation.getString("uri"),
 				HttpStatus.FORBIDDEN);
-		helper.testGetJsonEntityShouldFail(layer.getString("locations"),
+		helper.testGetJsonEntityShouldFail(layer.getString("uri")+UrlHelpers.LOCATION,
 				HttpStatus.FORBIDDEN);
 		helper.testGetJsonEntityShouldFail(layerLocation.getString("uri"),
 				HttpStatus.FORBIDDEN);
-		helper.testGetJsonEntityShouldFail(dataset2.getString("locations"),
+		helper.testGetJsonEntityShouldFail(dataset2.getString("uri")+UrlHelpers.LOCATION,
 				HttpStatus.FORBIDDEN);
 		helper.testGetJsonEntityShouldFail(datasetLocation2.getString("uri"),
 				HttpStatus.FORBIDDEN);
@@ -235,9 +236,9 @@ public class EulaControllerTest {
 		assertExpectedAgreementProperties(agreement);
 
 		// Now that the user has signed the agreement, these do work
-		helper.testGetJsonEntities(dataset.getString("locations"));
+		helper.testGetJsonEntities(dataset.getString("uri")+UrlHelpers.LOCATION);
 		helper.testGetJsonEntity(datasetLocation.getString("uri"));
-		helper.testGetJsonEntities(layer.getString("locations"));
+		helper.testGetJsonEntities(layer.getString("uri")+UrlHelpers.LOCATION);
 		helper.testGetJsonEntity(layerLocation.getString("uri"));
 		JSONObject datasetLocationQueryResult = helper
 				.testQuery("select * from location where location.parentId == \""
@@ -250,7 +251,7 @@ public class EulaControllerTest {
 		assertEquals(1, layerLocationQueryResult.getInt("totalNumberOfResults"));
 
 		// These still do not work
-		helper.testGetJsonEntityShouldFail(dataset2.getString("locations"),
+		helper.testGetJsonEntityShouldFail(dataset2.getString("uri")+UrlHelpers.LOCATION,
 				HttpStatus.FORBIDDEN);
 		helper.testGetJsonEntityShouldFail(datasetLocation2.getString("uri"),
 				HttpStatus.FORBIDDEN);

@@ -18,6 +18,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.web.ServiceConstants;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.metadata.LocationMetadataProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -479,7 +480,7 @@ public class LayerControllerTest {
 		assertFalse("null".equals(value));
 
 		// Check that other properties are present, even if their value is null
-		String locations = results.getString("locations");
+		String locations = results.getString("uri")+UrlHelpers.LOCATION;
 		assertNotNull(locations);
 //		for (int i = 0; i < locations.length(); i++) {
 //			String location = locations.getString(i);
