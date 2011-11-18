@@ -48,7 +48,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	private PlaceChanger placeChanger;
 	private LayerView view;
 	private String layerId;	
-	private Boolean showDownload;
+	private Boolean showDownloadOnStartup;
 	private Layer layerModel;
 	private boolean hasAcceptedLicenseAgreement;
 	private LicenceServiceAsync licenseService;
@@ -74,7 +74,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 		this.globalApplicationState = globalApplicationState;
 		this.placeChanger = globalApplicationState.getPlaceChanger();
 		this.hasAcceptedLicenseAgreement = false;
-		
+		this.showDownloadOnStartup = false;
 		view.setPresenter(this);
 	}
 
@@ -91,7 +91,9 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	public void setPlace(org.sagebionetworks.web.client.place.Layer place) {
 		this.place = place;
 		this.layerId = place.getLayerId();		
-		this.showDownload = place.getDownload();
+		this.showDownloadOnStartup = place.getDownload();
+		if(showDownloadOnStartup == null) 
+			this.showDownloadOnStartup = false;
 		view.setPresenter(this);
 		refresh();
 	}	
@@ -144,9 +146,9 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 					return;
 				}					
 				// Load calls that required the model 
-				loadLicenseAgreement(layerModel, showDownload);
+				loadLicenseAgreement(layerModel);
 				loadPermissionLevel(layerModel);
-				loadDownloadLocations(layerModel, showDownload); 
+				loadDownloadLocations(layerModel, showDownloadOnStartup); 
 			}
 			
 			@Override
@@ -320,8 +322,9 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 								String units = columnUnits.get(key);
 								columnDescriptions.put(key, columnDescriptions.get(key) + " (" + units + ")");
 							}		
-							
-							view.setLayerPreviewTable(layerPreviewFinal.getRows(), columnDisplayOrder, columnDescriptions, columnUnits);														
+							if(layerPreviewFinal != null && layerPreviewFinal.getRows() != null && layerPreviewFinal.getRows().size() > 0 ) {
+								view.setLayerPreviewTable(layerPreviewFinal.getRows(), columnDisplayOrder, columnDescriptions, columnUnits);
+							}
 						}
 					});
 				}
@@ -367,7 +370,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	 * Loads the License Agreement
 	 * @param model Layer model object
 	 */
-	public void loadLicenseAgreement(final Layer model, final Boolean showDownload) {		
+	public void loadLicenseAgreement(final Layer model) {
 		// get Dataset to get its EULA id
 		if(model != null) {
 			nodeService.getNodeJSON(NodeType.DATASET, model.getParentId(), new AsyncCallback<String>() {
@@ -393,13 +396,17 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 							// EULA required
 							// now query to see if user has accepted the agreement
 							UserData currentUser = authenticationController.getLoggedInUser();
-							if(currentUser == null && showDownload) {
-								view.showInfo(DisplayConstants.ERROR_TITLE_LOGIN_REQUIRED, DisplayConstants.ERROR_LOGIN_REQUIRED);
-								if(placeChanger != null) {
-									placeChanger.goTo(new LoginPlace(DisplayUtils.DEFAULT_PLACE_TOKEN));
+							if(currentUser == null) {
+								if(showDownloadOnStartup) {
+									view.showInfo(DisplayConstants.ERROR_TITLE_LOGIN_REQUIRED, DisplayConstants.ERROR_LOGIN_REQUIRED);
+									if(placeChanger != null) {
+										placeChanger.goTo(new LoginPlace(DisplayUtils.DEFAULT_PLACE_TOKEN));
+									}
+								} else {
+									view.setDownloadUnavailable();
 								}
 								return;
-							}
+							}  
 							
 							// Check to see if the license has already been accepted
 							licenseService.hasAccepted(currentUser.getEmail(), eulaId, model.getParentId(), new AsyncCallback<Boolean>() {
@@ -461,7 +468,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 	 * Loads the download locations for the given Layer 
 	 * @param model Layer model object
 	 */
-	public void loadDownloadLocations(final Layer model, final Boolean showDownload) {
+	public void loadDownloadLocations(final Layer model, final Boolean showDownloadLocations) {
 		view.showDownloadsLoading();
 		if(model != null) {
 			nodeService.getNodeLocations(NodeType.LAYER, model.getId(), new AsyncCallback<String>() {
@@ -490,7 +497,7 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
 					view.setLicensedDownloads(downloads);
 					
 					// show download if requested
-					if(showDownload != null && showDownload == true) {
+					if(showDownloadLocations != null && showDownloadLocations == true) {
 						if(downloadAttempted()) {
 							view.showDownload();
 						}
@@ -515,6 +522,14 @@ public class LayerPresenter extends AbstractActivity implements LayerView.Presen
         return null;
     }
 	
+	public Boolean getShowDownloadOnStartup() {
+		return showDownloadOnStartup;
+	}
+
+	public void setShowDownloadOnStartup(Boolean showDownloadOnStartup) {
+		this.showDownloadOnStartup = showDownloadOnStartup;
+	}
+
 	/*
 	 * Private Methods
 	 */
