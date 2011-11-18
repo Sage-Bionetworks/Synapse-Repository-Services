@@ -348,29 +348,31 @@ public class LayerViewImpl extends Composite implements LayerView {
 		// TODO : add data to static table		
 		staticTable.setDimensions(1002, 175);
 		staticTable.setTitle("Data Preview");		
-		
-		// create static table columns
-		List<StaticTableColumn> stColumns = new ArrayList<StaticTableColumn>();
-		for(String key : columnDisplayOrder) {
-			StaticTableColumn stCol = new StaticTableColumn();
-			stCol.setId(key);
-			stCol.setName(key);
-			
-			// add units to column if available
-			if (columnUnits.containsKey(key)) {
-				stCol.setUnits(columnUnits.get(key));
-			} 
-			
-			// add description if available
-			if (columnDescriptions.containsKey(key)) {
-				stCol.setTooltip(columnDescriptions.get(key));
+		if (rows != null && columnDisplayOrder != null
+				&& columnDescriptions != null && columnUnits != null) {		
+			// create static table columns
+			List<StaticTableColumn> stColumns = new ArrayList<StaticTableColumn>();
+			for(String key : columnDisplayOrder) {
+				StaticTableColumn stCol = new StaticTableColumn();
+				stCol.setId(key);
+				stCol.setName(key);
+				
+				// add units to column if available
+				if (columnUnits.containsKey(key)) {
+					stCol.setUnits(columnUnits.get(key));
+				} 
+				
+				// add description if available
+				if (columnDescriptions.containsKey(key)) {
+					stCol.setTooltip(columnDescriptions.get(key));
+				}
+				
+				stColumns.add(stCol);
 			}
 			
-			stColumns.add(stCol);
+			staticTable.setDataAndColumnsInOrder(rows, stColumns);
+			previewTablePanel.setWidget(staticTable.asWidget());		
 		}
-		
-		staticTable.setDataAndColumnsInOrder(rows, stColumns);
-		previewTablePanel.setWidget(staticTable.asWidget());		
 	}	
 
 	@Override
@@ -402,11 +404,11 @@ public class LayerViewImpl extends Composite implements LayerView {
 
 	@Override
 	public void clear() {
-		titleSpan.setInnerText("");		
-		staticTable.clear();
-		downloadPanel.clear();
-		previewDownload.clear();
-		rClientCodeDiv.setInnerHTML("");
+		if(titleSpan != null) titleSpan.setInnerText("");		
+		if(staticTable != null) staticTable.clear();
+		if(downloadPanel != null) downloadPanel.clear();
+		if(previewDownload != null) previewDownload.clear();
+		if(rClientCodeDiv != null) rClientCodeDiv.setInnerHTML("");
 	}
 	
 	/*

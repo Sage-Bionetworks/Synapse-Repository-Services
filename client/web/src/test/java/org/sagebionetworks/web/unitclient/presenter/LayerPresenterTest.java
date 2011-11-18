@@ -356,7 +356,7 @@ public class LayerPresenterTest {
 		
 		// null model
 		resetMocks();
-		layerPresenter.loadLicenseAgreement(null, false);
+		layerPresenter.loadLicenseAgreement(null);
 		
 		// Failure of Dataset
 		resetMocks();
@@ -366,7 +366,7 @@ public class LayerPresenterTest {
 		AsyncMockStubber.callFailureWith(new Throwable("error message")).when(mockNodeService).getNodeJSON(eq(NodeType.DATASET), eq(datasetModel1.getId()), any(AsyncCallback.class));
 		AsyncMockStubber.callSuccessWith("eula json").when(mockNodeService).getNodeJSON(eq(NodeType.EULA), eq(eula1.getId()), any(AsyncCallback.class));
 		AsyncMockStubber.callSuccessWith(true).when(mockLicenseService).hasAccepted(eq(user1.getEmail()), eq(eula1.getId()), eq(datasetModel1.getId()), any(AsyncCallback.class));
-		layerPresenter.loadLicenseAgreement(layerModel1, false);
+		layerPresenter.loadLicenseAgreement(layerModel1);
 		verifyShowDownloadFailure();
 
 		// Success of Dataset with null
@@ -377,7 +377,7 @@ public class LayerPresenterTest {
 		AsyncMockStubber.callSuccessWith("dataset json").when(mockNodeService).getNodeJSON(eq(NodeType.DATASET), eq(datasetModel1.getId()), any(AsyncCallback.class));		
 		AsyncMockStubber.callSuccessWith("eula json").when(mockNodeService).getNodeJSON(eq(NodeType.EULA), eq(eula1.getId()), any(AsyncCallback.class));
 		AsyncMockStubber.callSuccessWith(true).when(mockLicenseService).hasAccepted(eq(user1.getEmail()), eq(eula1.getId()), eq(datasetModel1.getId()), any(AsyncCallback.class));
-		layerPresenter.loadLicenseAgreement(layerModel1, false);
+		layerPresenter.loadLicenseAgreement(layerModel1);
 		verifyShowDownloadFailure();
 
 		// Dataset with null EULA 
@@ -390,7 +390,7 @@ public class LayerPresenterTest {
 		AsyncMockStubber.callSuccessWith("eula json").when(mockNodeService).getNodeJSON(eq(NodeType.EULA), eq(eula1.getId()), any(AsyncCallback.class));
 		AsyncMockStubber.callSuccessWith(true).when(mockLicenseService).hasAccepted(eq(user1.getEmail()), eq(eula1.getId()), eq(datasetModel1.getId()), any(AsyncCallback.class));
 		AsyncMockStubber.callSuccessWith("").when(mockNodeService).getNodeJSON(eq(NodeType.DATASET), eq(datasetModel1.getId()), any(AsyncCallback.class));
-		layerPresenter.loadLicenseAgreement(layerModel1, false);
+		layerPresenter.loadLicenseAgreement(layerModel1);
 		verify(mockView).requireLicenseAcceptance(false);		
 		verify(mockView).setLicenseAgreement(null);						
 
@@ -404,7 +404,7 @@ public class LayerPresenterTest {
 		AsyncMockStubber.callSuccessWith("dataset json").when(mockNodeService).getNodeJSON(eq(NodeType.DATASET), eq(datasetModel1.getId()), any(AsyncCallback.class));		
 		AsyncMockStubber.callSuccessWith("eula json").when(mockNodeService).getNodeJSON(eq(NodeType.EULA), eq(eula1.getId()), any(AsyncCallback.class));
 		AsyncMockStubber.callFailureWith(new Throwable("error message")).when(mockLicenseService).hasAccepted(eq(user1.getEmail()), eq(eula1.getId()), eq(datasetModel1.getId()), any(AsyncCallback.class));
-		layerPresenter.loadLicenseAgreement(layerModel1, false);
+		layerPresenter.loadLicenseAgreement(layerModel1);
 		verifyShowDownloadFailure();
 
 		// Check all okay but with user not logged in and trying to show download
@@ -415,10 +415,23 @@ public class LayerPresenterTest {
 		AsyncMockStubber.callSuccessWith("dataset json").when(mockNodeService).getNodeJSON(eq(NodeType.DATASET), eq(datasetModel1.getId()), any(AsyncCallback.class));		
 		AsyncMockStubber.callSuccessWith("eula json").when(mockNodeService).getNodeJSON(eq(NodeType.EULA), eq(eula1.getId()), any(AsyncCallback.class));
 		AsyncMockStubber.callSuccessWith(false).when(mockLicenseService).hasAccepted(eq(user1.getEmail()), eq(eula1.getId()), eq(datasetModel1.getId()), any(AsyncCallback.class));
-		layerPresenter.loadLicenseAgreement(layerModel1, true);
+		layerPresenter.setShowDownloadOnStartup(true);
+		layerPresenter.loadLicenseAgreement(layerModel1);
 		verify(mockView).showInfo(anyString(), anyString());		
 		// TODO : check for placeChanger call
-		
+
+		// check all okay but with user not logged in and not trying to show download
+		resetMocks();
+		when(mockAuthenticationController.getLoggedInUser()).thenReturn(null);
+		when(mockNodeModelCreator.createDataset(anyString())).thenReturn(datasetModel1);
+		when(mockNodeModelCreator.createEULA(anyString())).thenReturn(eula1);
+		AsyncMockStubber.callSuccessWith("dataset json").when(mockNodeService).getNodeJSON(eq(NodeType.DATASET), eq(datasetModel1.getId()), any(AsyncCallback.class));		
+		AsyncMockStubber.callSuccessWith("eula json").when(mockNodeService).getNodeJSON(eq(NodeType.EULA), eq(eula1.getId()), any(AsyncCallback.class));
+		AsyncMockStubber.callSuccessWith(false).when(mockLicenseService).hasAccepted(eq(user1.getEmail()), eq(eula1.getId()), eq(datasetModel1.getId()), any(AsyncCallback.class));
+		layerPresenter.setShowDownloadOnStartup(false);
+		layerPresenter.loadLicenseAgreement(layerModel1);
+		verify(mockView).setDownloadUnavailable();		
+
 		// License Accepted == False
 		resetMocks();
 		when(mockAuthenticationController.getLoggedInUser()).thenReturn(user1);
@@ -427,7 +440,7 @@ public class LayerPresenterTest {
 		AsyncMockStubber.callSuccessWith("dataset json").when(mockNodeService).getNodeJSON(eq(NodeType.DATASET), eq(datasetModel1.getId()), any(AsyncCallback.class));		
 		AsyncMockStubber.callSuccessWith("eula json").when(mockNodeService).getNodeJSON(eq(NodeType.EULA), eq(eula1.getId()), any(AsyncCallback.class));
 		AsyncMockStubber.callSuccessWith(false).when(mockLicenseService).hasAccepted(eq(user1.getEmail()), eq(eula1.getId()), eq(datasetModel1.getId()), any(AsyncCallback.class));
-		layerPresenter.loadLicenseAgreement(layerModel1, false);
+		layerPresenter.loadLicenseAgreement(layerModel1);
 		verify(mockView).requireLicenseAcceptance(true);
 		verify(mockView).setLicenseAgreement(licenseAgreement);
 
@@ -440,7 +453,7 @@ public class LayerPresenterTest {
 		AsyncMockStubber.callSuccessWith("dataset json").when(mockNodeService).getNodeJSON(eq(NodeType.DATASET), eq(datasetModel1.getId()), any(AsyncCallback.class));		
 		AsyncMockStubber.callSuccessWith("eula json").when(mockNodeService).getNodeJSON(eq(NodeType.EULA), eq(eula1.getId()), any(AsyncCallback.class));
 		AsyncMockStubber.callSuccessWith(true).when(mockLicenseService).hasAccepted(eq(user1.getEmail()), eq(eula1.getId()), eq(datasetModel1.getId()), any(AsyncCallback.class));
-		layerPresenter.loadLicenseAgreement(layerModel1, false);
+		layerPresenter.loadLicenseAgreement(layerModel1);
 		verify(mockView).requireLicenseAcceptance(false);
 		verify(mockView).setLicenseAgreement(licenseAgreement);
 		
@@ -453,7 +466,7 @@ public class LayerPresenterTest {
 		AsyncMockStubber.callSuccessWith("dataset json").when(mockNodeService).getNodeJSON(eq(NodeType.DATASET), eq(datasetModel1.getId()), any(AsyncCallback.class));		
 		AsyncMockStubber.callSuccessWith("eula json").when(mockNodeService).getNodeJSON(eq(NodeType.EULA), eq(eula1.getId()), any(AsyncCallback.class));
 		AsyncMockStubber.callSuccessWith(true).when(mockLicenseService).hasAccepted(eq(user1.getEmail()), eq(eula1.getId()), eq(datasetModel1.getId()), any(AsyncCallback.class));
-		layerPresenter.loadLicenseAgreement(layerModel1, false);
+		layerPresenter.loadLicenseAgreement(layerModel1);
 		verifyShowDownloadFailure();		
 	}
 
