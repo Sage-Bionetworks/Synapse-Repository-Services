@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
+import org.sagebionetworks.repo.model.query.BasicQuery;
 
 /**
  * 
@@ -85,4 +86,5 @@ public class JDONodeQueryUnitTest {
 		assertTrue(123L == groupBindValue0.longValue() || 123L == groupBindValue1.longValue());
 		assertTrue(124L == groupBindValue0.longValue() || 124L == groupBindValue1.longValue());
 	}
+	
 }

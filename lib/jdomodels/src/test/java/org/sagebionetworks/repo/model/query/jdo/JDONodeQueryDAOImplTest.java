@@ -520,10 +520,10 @@ public class JDONodeQueryDAOImplTest {
 		assertNotNull(results);
 		// Every dataset should have this creator so the count should match the
 		// total
-		assertEquals(totalNumberOfDatasets, results.getTotalNumberOfResults());
+		assertEquals(2, results.getTotalNumberOfResults());
 		List<String> list = results.getResultIds();
 		assertNotNull(list);
-		assertEquals(totalNumberOfDatasets, list.size());
+		assertEquals(2, list.size());
 	}
 
 	@Test
@@ -531,7 +531,7 @@ public class JDONodeQueryDAOImplTest {
 			throws Exception {
 		BasicQuery query = new BasicQuery();
 		query.setFrom(EntityType.dataset);
-		query.setSort(attOnOdd);
+		query.setSort(attOnall);
 		query.setAscending(false);
 		List<Expression> filters = new ArrayList<Expression>();
 		// Filter on an annotation using does not equal with a bogus value to
@@ -569,7 +569,7 @@ public class JDONodeQueryDAOImplTest {
 	public void testFilterMultiple() throws Exception {
 		BasicQuery query = new BasicQuery();
 		query.setFrom(EntityType.dataset);
-		query.setSort(attOnOdd);
+		query.setSort(attOnall);
 		query.setAscending(true);
 		query.setLimit(3);
 		query.setOffset(0);
