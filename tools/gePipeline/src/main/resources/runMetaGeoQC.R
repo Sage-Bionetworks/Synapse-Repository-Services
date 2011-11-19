@@ -11,6 +11,11 @@ source('./src/main/resources/synapseWorkflow.R')
 
 source('./src/main/resources/metaGeoQC.R')
 
+# in the long term we would just install all libraries (rSynapseClient, MetaGEO) in a public place
+.libPaths("~/swfMetaGEO/rLibrary")
+
+
+
 ## get config args
 userName <- getUsernameArg()
 secretKey <- getSecretKeyArg()
