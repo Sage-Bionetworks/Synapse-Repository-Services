@@ -82,10 +82,14 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 	## set up the hmac credentials
 	synapseClient:::userName(userName)
 	hmacSecretKey(secretKey)
-	startStep() # this is done automatically with 'synapseLogin', here we do it manually
-	analysis<-Analysis(paste("Unsupervised QC for ", inputDataMap[["name"]]))
-	storeEntity(analysis)
-	associateCurrentStepWithAnalysis()
+	timestamp <- gsub("-", "_", gsub(":", ".", Sys.time()))
+	analysisDescription <- paste("Unsupervised QC for", inputDataMap[["name"]], timestamp)
+	analysis <- Analysis(list(description=analysisDescription, 
+					name=analysisDescription, parentId=inputDataMap[["parentId"]]))
+	analysis <- createEntity(analysis)
+	analysisStep<-startStep(analysis)
+	propertyValue(analysisStep, "name")<-paste("GEO indexing step for ", inputDataMap[["name"]], timestamp)
+	analysisStep <- updateEntity(analysisStep)
 	
 	## create the geo dataset
 	ans <- tryCatch({
@@ -109,21 +113,6 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 		setWorkFlowStatusAnnotation(dsId, kOkStatusCode, msg)
 	}else{
 		
-		##########################################
-		## get the entity ids for the code modules
-		##########################################
-		codeProjectId <- inputDataMap[["parentId"]] # can override if the code is in another project
-		
-		scriptName <- "run Metageo QC"
-		result <- synapseQuery(sprintf('select * from layer where layer.name == "%s" and layer.parentId == "%s"', scriptName, codeProjectId))
-		if(nrow(result) != 1L){
-			msg <- sprintf("could not find R code entity %s in dataset %s", scriptName, codeProjectId)
-			finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
-			setWorkFlowStatusAnnotation(dsId, kErrorStatusCode, msg)
-			stop(msg)
-		}
-		kRunMetaGeoCodeEntityId <- result$layer.id
-		
 		## get add location code entity and add location for the geo id
 		ans <- tryCatch({
 					createLayer(dsId, inputDataMap[["url"]])
@@ -137,8 +126,24 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 		)
 		
 		stopStep()
-		startStep()
-		associateCurrentStepWithAnalysis()
+		analysisStep<-startStep(analysis)	
+		propertyValue(analysisStep, "name")<-paste("Unsupervised QC step for ", inputDataMap[["name"]], timestamp)
+		analysisStep <- updateEntity(analysisStep)
+		
+		##########################################
+		## get the entity ids for the code modules
+		##########################################
+		codeProjectId <- inputDataMap[["parentId"]] # can override if the code is in another project
+		
+		scriptName <- "run Metageo QC"
+		result <- synapseQuery(sprintf('select * from code where code.name == "%s" and code.parentId == "%s"', scriptName, codeProjectId))
+		if(nrow(result) != 1L){
+			msg <- sprintf("could not find R code entity %s in dataset %s", scriptName, codeProjectId)
+			finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
+			setWorkFlowStatusAnnotation(dsId, kErrorStatusCode, msg)
+			stop(msg)
+		}
+		kRunMetaGeoCodeEntityId <- result$code.id
 		
 		## run the metaGeo workflow
 		ans <- tryCatch({
@@ -174,5 +179,6 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 		)
 		setWorkFlowStatusAnnotation(dsId, kOkStatusCode, msg)
 	}
+	stopStep()
 	return(kOkStatusCode)
 }
