@@ -4,6 +4,8 @@ import javax.jdo.annotations.Column;
 import javax.jdo.annotations.ForeignKey;
 import javax.jdo.annotations.ForeignKeyAction;
 import javax.jdo.annotations.IdGeneratorStrategy;
+import javax.jdo.annotations.Indices;
+import javax.jdo.annotations.Index;
 import javax.jdo.annotations.NullValue;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
@@ -22,8 +24,17 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
  * 
  * @author bhoff
  * 
+ * NOTE: The Indices added are part of the fix for PLFM-770.
  */
 @PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_STRING_ANNOTATIONS)
+@Indices({
+	@Index(name="VAL1_ATT2_INDEX", members={"value","attribute"}),
+	@Index(name="VAL1_OWN2_INDEX", members={"value","owner"}),
+	@Index(name="ATT1_VAL1_INDEX", members={"attribute","value"}),
+	@Index(name="ATT1_OWN2_INDEX", members={"attribute","owner"}),
+	@Index(name="OWN1_VAL2_INDEX", members={"owner","value"}),
+	@Index(name="OWN1_ATT2_INDEX", members={"owner","attribute"})
+	})
 public class JDOStringAnnotation implements JDOAnnotation<String> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)

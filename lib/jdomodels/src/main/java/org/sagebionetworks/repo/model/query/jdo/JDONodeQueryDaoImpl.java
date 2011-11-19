@@ -13,16 +13,14 @@ import javax.jdo.Query;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -181,38 +179,30 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Compartor.EQUALS, in.getFrom().getId()));
 
 		// A count query is composed of the following parts
-		// <select> + <primaryFrom> + (<inner_join_attribute_filter>)* +
-		// (<outer_join_attribute_sort>)+ <primary_where>
+		// <select> + <from> + <authorization_filter> + <where>
 		// The real query is composed of the following parts
-		// <select> + <primaryFrom> + (<inner_join_attribute_filter>)* +
-		// (<outer_join_attribute_sort>)+ <primary_where> + <orderby> + <paging>
+		// <select> + <from> + <authorization_filter> + <where>+ <orderby> + <paging>
 
-		// Build the from
-		String fromString = buildFrom(in.getFrom());
 		// Build select
 		String selectCount = buildSelect(true);
 		String selectId = buildSelect(false);
-		// Bind variables go in the map.
-//		Map<String, Object> parameters = new HashMap<String, Object>();
-		// Build the outer join attribute sort (empty string if not needed)
-		StringBuilder outerJoinAttributeSort = new StringBuilder();
+		// The following are the parts of the query.
+		StringBuilder from = new StringBuilder();
+		StringBuilder where = new StringBuilder();
 		StringBuilder orderByClause = new StringBuilder();
-		// Build the attribute filters
-		StringBuilder innerJoinAttributeFilters = new StringBuilder();
-		StringBuilder primaryWhere = new StringBuilder();
 
 		try {
+			// Build the from
+			Map<String, FieldType> aliasMap = buildFrom(from, in);
+			// Build the where
+			buildWhere(where, aliasMap, parameters, in);
+			
 			// These two get built at the same time
 			if (in.getSort() != null) {
-				buildAllSorting(outerJoinAttributeSort, orderByClause,
-						in.getSort(), in.isAscending(), parameters);
+				buildAllSorting(orderByClause,
+						in.getSort(), in.isAscending());
 			}
 
-			// Handle all filters
-			if (in.getFilters() != null) {
-				buildAllFilters(innerJoinAttributeFilters, primaryWhere,
-						in.getFilters(), parameters);
-			}
 		} catch (AttributeDoesNotExist e) {
 			// log this and return an empty result
 			log.warn(e.getMessage(), e);
@@ -228,26 +218,20 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		// Count
 		countQuery.append(selectCount);
 		countQuery.append(" ");
-		countQuery.append(fromString);
-		countQuery.append(" ");
-		countQuery.append(innerJoinAttributeFilters);
+		countQuery.append(from);
 		countQuery.append(" ");
 		countQuery.append(authorizationFilter);
 		countQuery.append(" ");
-		countQuery.append(primaryWhere);
+		countQuery.append(where);
 
 		// Now build the full query
 		fullQuery.append(selectId);
 		fullQuery.append(" ");
-		fullQuery.append(fromString);
-		fullQuery.append(" ");
-		fullQuery.append(innerJoinAttributeFilters);
+		fullQuery.append(from);
 		fullQuery.append(" ");
 		fullQuery.append(authorizationFilter);
 		fullQuery.append(" ");
-		fullQuery.append(outerJoinAttributeSort);
-		fullQuery.append(" ");
-		fullQuery.append(primaryWhere);
+		fullQuery.append(where);
 		fullQuery.append(" ");
 		fullQuery.append(orderByClause);
 		fullQuery.append(" ");
@@ -340,125 +324,6 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	}
 
 	/**
-	 * Build all filters. For attributes this involves adding an inner join
-	 * sub-query, for primary fields it involves a simple where clause.
-	 * 
-	 * @param innerJoinAttributeFilters
-	 * @param primaryWhere
-	 * @param filters
-	 * @param parameters
-	 * @throws DatastoreException
-	 */
-	private void buildAllFilters(StringBuilder innerJoinAttributeFilters,
-			StringBuilder primaryWhere, List<Expression> filters,
-			Map<String, Object> parameters) throws DatastoreException,
-			AttributeDoesNotExist {
-		// We only write the where clause the first time
-		int primaryFieldCount = 0;
-		int attributeFilterCount = 0;
-		// Process each expression
-		for (Expression exp : filters) {
-			// First look up the column name
-			CompoundId id = exp.getId();
-			if (id == null)
-				throw new IllegalArgumentException("Compound id cannot be null");
-			FieldType type = getFieldType(id.getFieldName());
-			// Throw an exception if the field does not exist
-			if (FieldType.DOES_NOT_EXIST == type)
-				throw new AttributeDoesNotExist("No attribute found for: "
-						+ id.getFieldName());
-			if (FieldType.PRIMARY_FIELD == type) {
-				// This is a simple primary field filter
-				buildPrimaryWhere(primaryWhere, parameters, primaryFieldCount,
-						exp);
-				// increment the count
-				primaryFieldCount++;
-			} else {
-				// This is not a primary field so we add an inner join sub-query
-				buildInnerJoinAnnotationFilter(innerJoinAttributeFilters, exp,
-						type, parameters, attributeFilterCount);
-
-				// Increment the count
-				attributeFilterCount++;
-			}
-		}
-	}
-
-	/**
-	 * Build up an inner join sub-query to filter on an attribute.
-	 * 
-	 * @param innerJoinAttributeFilters
-	 * @param exp
-	 * @param type
-	 * @param parameters
-	 * @param attributeFilterCount
-	 */
-	private void buildInnerJoinAnnotationFilter(
-			StringBuilder innerJoinAttributeFilters, Expression exp,
-			FieldType type, Map<String, Object> parameters,
-			int attributeFilterCount) {
-		String attTableName = QueryUtils.getTableNameForFieldType(type);
-		String joinColumnName = SqlConstants.ANNOTATION_OWNER_ID_COLUMN;;
-		innerJoinAttributeFilters.append("inner join (select * from ");
-		innerJoinAttributeFilters.append(attTableName);
-		innerJoinAttributeFilters.append(" where ");
-		innerJoinAttributeFilters
-				.append(SqlConstants.ANNOTATION_ATTRIBUTE_COLUMN);
-		innerJoinAttributeFilters.append(" = :");
-		String attNameKey = "attName" + attributeFilterCount;
-		innerJoinAttributeFilters.append(attNameKey);
-		// Bind the key
-		parameters.put(attNameKey, exp.getId().getFieldName());
-		innerJoinAttributeFilters.append(" and ");
-		innerJoinAttributeFilters.append(SqlConstants.ANNOTATION_VALUE_COLUMN);
-		innerJoinAttributeFilters.append(" ");
-		innerJoinAttributeFilters.append(SqlConstants.getSqlForComparator(exp
-				.getCompare()));
-		innerJoinAttributeFilters.append(" :");
-		String valueKey = "valeKey" + attributeFilterCount;
-		innerJoinAttributeFilters.append(valueKey);
-		// Bind the value
-		parameters.put(valueKey, exp.getValue());
-		innerJoinAttributeFilters.append(") ");
-		String filterAlias = "filter" + attributeFilterCount;
-		innerJoinAttributeFilters.append(filterAlias);
-		buildJoinOn(innerJoinAttributeFilters, SqlConstants.PRIMARY_ALIAS,
-				SqlConstants.COL_NODE_ID, filterAlias, joinColumnName);
-	}
-
-	/**
-	 * Append a single primary where clause.
-	 * 
-	 * @param primaryWhere
-	 * @param parameters
-	 * @param primaryFieldCount
-	 * @param exp
-	 */
-	private void buildPrimaryWhere(StringBuilder primaryWhere,
-			Map<String, Object> parameters, int primaryFieldCount,
-			Expression exp) {
-		// First gets a where, all others get an and
-		if (primaryFieldCount == 0) {
-			primaryWhere.append("where ");
-		} else {
-			primaryWhere.append(" and ");
-		}
-		// Write the expression
-		primaryWhere.append(SqlConstants.PRIMARY_ALIAS);
-		primaryWhere.append(".");
-		primaryWhere.append(SqlConstants.getColumnNameForPrimaryField(exp
-				.getId().getFieldName()));
-		primaryWhere.append(" ");
-		primaryWhere.append(SqlConstants.getSqlForComparator(exp.getCompare()));
-		primaryWhere.append(" :");
-		// Add a bind variable
-		String bindKey = "primaryValue" + primaryFieldCount;
-		primaryWhere.append(bindKey);
-		// Bind the value to the parameters
-		parameters.put(bindKey, exp.getValue());
-	}
-
-	/**
 	 * Build all parts involved in sorting
 	 * 
 	 * @param outerJoinAttributeSort
@@ -468,9 +333,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @param parameters
 	 * @throws DatastoreException
 	 */
-	private void buildAllSorting(StringBuilder outerJoinAttributeSort,
-			StringBuilder orderByClause, String sort, boolean ascending,
-			Map<String, Object> parameters) throws DatastoreException,
+	private void buildAllSorting(StringBuilder orderByClause, String sort, boolean ascending) throws DatastoreException,
 			AttributeDoesNotExist {
 		// The first thing we need to do is determine if we are sorting on a
 		// primary field or an attribute.
@@ -480,39 +343,23 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		} else {
 			ascString = "desc";
 		}
-		String sortOnAlias = null;
 		String sortColumnName = null;
 		FieldType type = getFieldType(sort);
+		String alias = null;
 		if (FieldType.DOES_NOT_EXIST == type)
 			throw new AttributeDoesNotExist("No attribute found for: " + sort);
 		if (FieldType.PRIMARY_FIELD == type) {
-			sortOnAlias = SqlConstants.PRIMARY_ALIAS;
 			sortColumnName = SqlConstants.getColumnNameForPrimaryField(sort);
+			alias = SqlConstants.PRIMARY_ALIAS;
 		} else {
 			// We are sorting on an attribute which means we need a left outer
 			// join.
-			String tableName = QueryUtils.getTableNameForFieldType(type);
-			String foreignKey = SqlConstants.ANNOTATION_OWNER_ID_COLUMN;
 			sortColumnName = SqlConstants.ANNOTATION_VALUE_COLUMN;
-			// We are going to be sorting on a sub query
-			sortOnAlias = SqlConstants.ANNOTATION_SORT_SUB_ALIAS;
-
-			// We have enough information to add the left outer joint
-			outerJoinAttributeSort.append(" left outer join (select * from ");
-			outerJoinAttributeSort.append(tableName);
-			outerJoinAttributeSort.append(" where attribute = :sortAttName ");
-			// Bind the value to the map.
-			parameters.put("sortAttName", sort);
-			outerJoinAttributeSort.append(") ");
-			outerJoinAttributeSort
-					.append(SqlConstants.ANNOTATION_SORT_SUB_ALIAS);
-			buildJoinOn(outerJoinAttributeSort, SqlConstants.PRIMARY_ALIAS,
-					SqlConstants.COL_NODE_ID,
-					SqlConstants.ANNOTATION_SORT_SUB_ALIAS, foreignKey);
+			alias = SqlConstants.SORT_ALIAS;
 		}
 		// Add the order by
 		orderByClause.append(" order by ");
-		orderByClause.append(sortOnAlias);
+		orderByClause.append(alias);
 		orderByClause.append(".");
 		orderByClause.append(sortColumnName);
 		orderByClause.append(" ");
@@ -582,15 +429,185 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * 
 	 * @param builder
 	 * @param from
+	 * @throws AttributeDoesNotExist 
 	 */
-	private String buildFrom(EntityType from) {
-		StringBuilder builder = new StringBuilder();
-		builder.append("from ");
-		builder.append(QueryUtils.getTableNameForClass(JDONode.class));
-		builder.append(" ");
-		builder.append(SqlConstants.PRIMARY_ALIAS);
-		return builder.toString();
+	protected Map<String, FieldType> buildFrom(StringBuilder fromBuilder, BasicQuery in) throws AttributeDoesNotExist {
+		Map<String, FieldType> aliasMap = new HashMap<String, FieldType>();
+		fromBuilder.append("from");
+		//Append any other table we might need
+		if(in.getSort() != null){
+			FieldType sortType = getFieldType(in.getSort());
+			if(FieldType.PRIMARY_FIELD != sortType){
+				// Add the sort
+				addFrom(fromBuilder, SqlConstants.SORT_ALIAS, sortType, aliasMap);				
+			}
+		}
+		// Add each filter
+		if(in.getFilters() != null){
+			for(int i=0; i< in.getFilters().size(); i++){
+				// First look up the column name
+				Expression expression = in.getFilters().get(i);
+				CompoundId id = expression.getId();
+				if (id == null)
+					throw new IllegalArgumentException("Compound id cannot be null");
+				FieldType type = getFieldType(id.getFieldName());
+				// We only need to add a from for non-primary fileds
+				if(FieldType.PRIMARY_FIELD != type){
+					addFrom(fromBuilder, SqlConstants.EXPRESSION_ALIAS_PREFIX+i, type, aliasMap);
+				}
+			}
+		}
+		// Add the primary field type
+		addFrom(fromBuilder, SqlConstants.PRIMARY_ALIAS, FieldType.PRIMARY_FIELD, aliasMap);
+		// The where clause is started if there is more than one alias used
+		return aliasMap;
 	}
+	
+	/**
+	 * Add each type.
+	 * @param builder
+	 * @param type
+	 * @param first
+	 * @param usedTypes
+	 * @throws AttributeDoesNotExist 
+	 */
+	private void addFrom(StringBuilder fromBuilder, String alias, FieldType type, Map<String, FieldType> aliasMap)
+			throws AttributeDoesNotExist {
+		if (FieldType.DOES_NOT_EXIST.equals(type))
+			throw new AttributeDoesNotExist("Unknown field type: " + type);
+
+		if (aliasMap.size() > 0) {
+			// This is not the first so it needs a comma in the from
+			fromBuilder.append(",");
+		}
+		// Add this table and alais to the from clause.
+		String tableName = QueryUtils.getTableNameForFieldType(type);
+		fromBuilder.append(" ");
+		fromBuilder.append(tableName);
+		fromBuilder.append(" ");
+		fromBuilder.append(alias);
+		aliasMap.put(alias, type);
+
+	}
+	
+	/**
+	 * Build up the from
+	 * 
+	 * @param builder
+	 * @param from
+	 * @throws AttributeDoesNotExist 
+	 */
+	protected void buildWhere(StringBuilder whereBuilder, Map<String, FieldType> aliasMap, Map parameters, BasicQuery in) throws AttributeDoesNotExist {
+		// We need a where clause if there is more than one table in this query or if there are any filters.
+		int conditionCount = 0;
+		// First add all of the join conditions to the where.
+		if(aliasMap.size() > 1){
+			Iterator<String> keyIt = aliasMap.keySet().iterator();
+			while(keyIt.hasNext()){
+				String alias = keyIt.next();
+				FieldType type = aliasMap.get(alias);
+				if(FieldType.PRIMARY_FIELD == type) continue;
+				prepareWhereBuilder(whereBuilder, conditionCount);
+				// Join this alias to the node table.
+				whereBuilder.append(" ");
+				whereBuilder.append(SqlConstants.PRIMARY_ALIAS);
+				whereBuilder.append(".");
+				whereBuilder.append(SqlConstants.COL_NODE_ID);
+				whereBuilder.append(" = ");
+				whereBuilder.append(alias);
+				whereBuilder.append(".");
+				whereBuilder.append(SqlConstants.ANNOTATION_OWNER_ID_COLUMN);
+				conditionCount++;
+			}
+		}
+		
+		// We need a condition for sorting when we are not sorting on the primary field
+		if(in.getSort() != null){
+			FieldType sortType = getFieldType(in.getSort());
+			if(FieldType.PRIMARY_FIELD != sortType){
+				prepareWhereBuilder(whereBuilder, conditionCount);
+				whereBuilder.append(" ");
+				whereBuilder.append(SqlConstants.SORT_ALIAS);
+				whereBuilder.append(".");
+				whereBuilder.append(SqlConstants.ANNOTATION_ATTRIBUTE_COLUMN);
+				whereBuilder.append(" = :sortAttName ");
+				parameters.put("sortAttName", in.getSort());
+				conditionCount++;
+			}
+		}
+
+		// Add each filter
+		if(in.getFilters() != null){
+			for(int i=0; i<in.getFilters().size(); i++){
+				Expression exp = in.getFilters().get(i);
+				// First look up the column name
+				CompoundId id = exp.getId();
+				if (id == null)
+					throw new IllegalArgumentException("Compound id cannot be null");
+				FieldType type = getFieldType(id.getFieldName());
+				// Add where or and
+				prepareWhereBuilder(whereBuilder, conditionCount);
+				
+				// Throw an exception if the field does not exist
+				if (FieldType.DOES_NOT_EXIST == type)	throw new AttributeDoesNotExist("No attribute found for: "+ id.getFieldName());
+				if (FieldType.PRIMARY_FIELD == type) {
+					// This is a simple primary field filter
+					whereBuilder.append(" ");
+					whereBuilder.append(SqlConstants.PRIMARY_ALIAS);
+					whereBuilder.append(".");
+					whereBuilder.append(SqlConstants.getColumnNameForPrimaryField(exp.getId().getFieldName()));
+					whereBuilder.append(" ");
+					whereBuilder.append(SqlConstants.getSqlForComparator(exp.getCompare()));
+					whereBuilder.append(" :");
+					// Add a bind variable
+					String bindKey = "expKey" + i;
+					whereBuilder.append(bindKey);
+					// Bind the value to the parameters
+					parameters.put(bindKey, exp.getValue());
+				} else {
+					// This is not a primary field
+					String attTableName = QueryUtils.getTableNameForFieldType(type);
+					whereBuilder.append(" ");
+					String alais = SqlConstants.EXPRESSION_ALIAS_PREFIX+i;
+					whereBuilder.append(alais);
+					whereBuilder.append(".");
+					whereBuilder.append(SqlConstants.ANNOTATION_ATTRIBUTE_COLUMN);
+					whereBuilder.append(" = :");
+					String attNameKey = "attName" + i;
+					whereBuilder.append(attNameKey);
+					// Bind the key
+					parameters.put(attNameKey, exp.getId().getFieldName());
+					whereBuilder.append(" and ");
+					whereBuilder.append(alais);
+					whereBuilder.append(".");
+					whereBuilder.append(SqlConstants.ANNOTATION_VALUE_COLUMN);
+					whereBuilder.append(" ");
+					whereBuilder.append(SqlConstants.getSqlForComparator(exp.getCompare()));
+					whereBuilder.append(" :");
+					String valueKey = "valeKey" + i;
+					whereBuilder.append(valueKey);
+					// Bind the value
+					parameters.put(valueKey, exp.getValue());
+				}
+				conditionCount++;
+			}
+		}
+	}
+
+	/**
+	 * Add the where or and depending on the count.
+	 * @param whereBuilder
+	 * @param conditionCount
+	 */
+	private void prepareWhereBuilder(StringBuilder whereBuilder,
+			int conditionCount) {
+		if(conditionCount == 0){
+			whereBuilder.append("where");
+		}else{
+			whereBuilder.append(" and");
+		}
+	}
+	
 
 	/**
 	 * Translate the results from a result set to the list of maps.
