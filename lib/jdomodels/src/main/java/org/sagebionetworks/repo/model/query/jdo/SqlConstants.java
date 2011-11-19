@@ -125,7 +125,10 @@ public class SqlConstants {
 	
 	
 	// The alias used for the dataset table.
-	public static final String PRIMARY_ALIAS	= "prm";
+	public static final String PRIMARY_ALIAS				= "prm";
+	public static final String SORT_ALIAS					= "srt";
+	public static final String EXPRESSION_ALIAS_PREFIX		= "exp";
+	
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	
@@ -255,6 +258,8 @@ public class SqlConstants {
 			return JDOLongAnnotation.class;
 		}else if(FieldType.DOUBLE_ATTRIBUTE == type){
 			return JDODoubleAnnotation.class;
+		}else if(FieldType.PRIMARY_FIELD == type){
+			return JDONode.class;
 		}else{
 			throw new IllegalArgumentException("No class for : "+type);
 		}
