@@ -37,16 +37,16 @@
 			<operator>EQUALS</operator>
 			<values>
 				<displayable>
-					<value>Homo Sapiens</value>
+					<value>Homo sapiens</value>
 				</displayable>
 				<displayable>
-					<value>Mus Musculus</value>
+					<value>Mus musculus</value>
 				</displayable>
 				<displayable>
-					<value>Ratus Norvegicus</value>
+					<value>Rattus norvegicus</value>
 				</displayable>
 				<displayable>
-					<value>Pig</value>
+					<value>Sus scrofa</value>
 				</displayable>
 				<displayable>
 					<value>Yeast</value>
@@ -60,6 +60,9 @@
 			<values>
 				<displayable>
 					<value>Adipose</value>
+				</displayable>
+				<displayable>
+					<value>Adipose omental</value>
 				</displayable>
 				<displayable>
 					<value>Adrenal</value>
@@ -83,16 +86,10 @@
 					<value>Brain</value>
 				</displayable>
 				<displayable>
-					<value>Brain cerebellum</value>
-				</displayable>
-				<displayable>
 					<value>Brain Cerebellum</value>
 				</displayable>
 				<displayable>
 					<value>Brain Cortex</value>
-				</displayable>
-				<displayable>
-					<value>Brain frontal Cortex</value>
 				</displayable>
 				<displayable>
 					<value>Brain Frontal Cortex</value>
@@ -104,22 +101,28 @@
 					<value>Brain Parietal Cortex</value>
 				</displayable>
 				<displayable>
-					<value>Brain pons</value>
-				</displayable>
-				<displayable>
 					<value>Brain Prefrontal Cortex</value>
 				</displayable>
 				<displayable>
 					<value>Brain Striatum</value>
 				</displayable>
 				<displayable>
-					<value>Brain temporal Cortex</value>
-				</displayable>
-				<displayable>
 					<value>Brain Temporal Cortex</value>
 				</displayable>
 				<displayable>
 					<value>Brain Visual Cortex</value>
+				</displayable>
+				<displayable>
+					<value>Brain cerebellum</value>
+				</displayable>
+				<displayable>
+					<value>Brain frontal Cortex</value>
+				</displayable>
+				<displayable>
+					<value>Brain pons</value>
+				</displayable>
+				<displayable>
+					<value>Brain temporal Cortex</value>
 				</displayable>
 				<displayable>
 					<value>Breast</value>
@@ -179,16 +182,10 @@
 					<value>Macrophage</value>
 				</displayable>
 				<displayable>
-					<value>Marcrophage</value>
-				</displayable>
-				<displayable>
 					<value>Multiple</value>
 				</displayable>
 				<displayable>
 					<value>Muscle</value>
-				</displayable>
-				<displayable>
-					<value>Omental Adipose</value>
 				</displayable>
 				<displayable>
 					<value>Osteoblast</value>
@@ -206,9 +203,6 @@
 					<value>Prostate</value>
 				</displayable>
 				<displayable>
-					<value>Sample Source</value>
-				</displayable>
-				<displayable>
 					<value>Skin</value>
 				</displayable>
 				<displayable>
@@ -216,9 +210,6 @@
 				</displayable>
 				<displayable>
 					<value>Stomach</value>
-				</displayable>
-				<displayable>
-					<value>Subcutaneous Adipose</value>
 				</displayable>
 				<displayable>
 					<value>T cell</value>
@@ -252,7 +243,7 @@
 					<value>Cancer</value>
 				</displayable>
 				<displayable>
-					<value>CVD</value>
+					<value>Cardiovascular Disease</value>
 				</displayable>
 				<displayable>
 					<value>Diabetes</value>
