@@ -1,0 +1,14 @@
+{
+    "toRename":[
+        {
+            "entityTypeName":"preview",
+            "oldFieldName":"previewBlob",
+            "newFieldName":"previewString"
+        },
+        {
+            "entityTypeName":"eula",
+            "oldFieldName":"agreementBlob",
+            "newFieldName":"agreement"
+        }
+    ]
+}
