@@ -1,6 +1,6 @@
 h3. Versions Create/Read/Update/Delete
 
-Any leaf entity that is version-able will have additional metada. Here is the JSON schema for these additional fields:
+Any leaf entity that is version-able will have additional metadata. Here is the JSON schema for these additional fields:
 {code}
 {
   "properties": {

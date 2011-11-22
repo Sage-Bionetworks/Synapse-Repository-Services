@@ -36,6 +36,7 @@ public class GEPWorkflow {
 	private static final String VERSION = "1.1";
 	private static final int MAX_WORKFLOW_TIMEOUT_HOURS = 24;
 	private static final int MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS = 4;
+	private static final int MAX_QUEUE_TIMEOUT_HOURS = 5*24; // five days
 	private static final int NUM_ATTEMPTS = 1;
 	
 	public static final String INPUT_DATASET_PARAMETER_KEY = "--datasetId";
@@ -63,7 +64,9 @@ public class GEPWorkflow {
 	 * @throws Exception
 	 */
 	@Workflow(name = WORKFLOW_NAME, version = VERSION)
-	@WorkflowRegistrationOptions(defaultWorkflowLifetimeTimeout = @Duration(time = MAX_WORKFLOW_TIMEOUT_HOURS, unit = DurationUnit.Hours))
+	@WorkflowRegistrationOptions(
+			defaultWorkflowLifetimeTimeout = @Duration(time = MAX_WORKFLOW_TIMEOUT_HOURS, unit = DurationUnit.Hours)
+	)
 	public static void doWorkflow(String datasetId, String activityInput)
 			throws Exception {
 
@@ -117,7 +120,7 @@ public class GEPWorkflow {
 			taskLivenessTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours))
 	@ActivitySchedulingOptions(
 			lifetimeTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours), 
-			queueTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours))
+			queueTimeout = @Duration(time = MAX_QUEUE_TIMEOUT_HOURS, unit = DurationUnit.Hours))
 	private static Value<String> doProcessData(String script, 
 			String datasetId,
 			String activityInput,

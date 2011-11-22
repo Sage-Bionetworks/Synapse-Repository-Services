@@ -31,8 +31,10 @@ public class ReadOnlyWikiGenerator {
 			.getName());
 
 	private static final String QUERY_SYNTAX = "{code}SELECT * FROM <data type> WHERE <expression> (AND <expression>)* [LIMIT <#>] [OFFSET #]\n\n"
-			+ "<expresssion> := <field name> <operator> <value>{code}\n"
-			+ "{{<value>}} should be in quotes for strings, but not numbers (i.e. {{name == \"Smith\" AND size > 10}})\n\n"
+			+ "<expression> := <field name> <operator> <value>{code}\n"
+			+ " where <field name> is a primary field or an annotation name.\n"
+			+ "{{<value>}} should be in quotes for strings, but not numbers (i.e. {{name == \"Smith\" AND size > 10}}). "
+			+ "Dates are in milliseconds since Jan 1, 1970.\n\n"
 			+ "Curently supported {{<operators>}} with their required URL escape codes:\n"
 			+ "||Operator ||Value|| URL Escape Code \n"
 			+ "| Equal| == | %3D%3D|\n"
@@ -67,13 +69,16 @@ public class ReadOnlyWikiGenerator {
 							"/query?query=select+*+from+dataset+limit+3+offset+1",
 							"h3. 'Select *' Query",
 							"These queries are generally of the form:\n"
-									+ "{code}SELECT * FROM <data type> [LIMIT <#>] [OFFSET <#>]{code}");
+									+ "{code}SELECT * FROM <data type> [LIMIT <#>] [OFFSET <#>]{code}\n"
+									+ "The current format supports only selection of the entire record, i.e. 'SELECT *', and not of individual fields.\n"
+									+"(Note: 'OFFSET' starts at 1.)");
 			wiki
 					.doGet(
 							"/query?query=select+*+from+dataset+order+by+Number_of_Samples+DESC+limit+3+offset+1",
 							"h3. 'Order By' Query",
 							"These queries are generally of the form:\n"
-									+ "{code}SELECT * FROM <data type> ORDER BY <field name> [ASC|DESC] [LIMIT <#>] [OFFSET #]{code}");
+									+ "{code}SELECT * FROM <data type> ORDER BY <field name> [ASC|DESC] [LIMIT <#>] [OFFSET #]{code}\n"
+									+ " where <field name> is the name of a primary field or annotation.");
 
 			JSONObject results = wiki
 					.doGet(
@@ -118,7 +123,8 @@ public class ReadOnlyWikiGenerator {
 									+ "%22+ORDER+BY+type",
 							"h3. 'Order By' Query for the Layers of a Dataset",
 							"These queries are generally of the form:\n"
-									+ "{code}SELECT * FROM layer WHERE layer.parentId == <parentId> ORDER BY <field name> [ASC|DESC] [LIMIT <#>] [OFFSET <#>]{code}");
+									+ "{code}SELECT * FROM layer WHERE layer.parentId == <parentId> ORDER BY <field name> [ASC|DESC] [LIMIT <#>] [OFFSET <#>]{code}\n"
+									+"where <field name> is the name of a primary field or annotation.");
 
 			wiki
 					.doGet(
