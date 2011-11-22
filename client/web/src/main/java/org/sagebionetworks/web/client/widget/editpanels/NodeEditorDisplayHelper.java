@@ -56,9 +56,9 @@ public class NodeEditorDisplayHelper {
 		SpecificNodeTypeDeviation deviation = new SpecificNodeTypeDeviation(
 				NodeType.LAYER, "Layer", DisplayConstants.CREATE_LAYER_TEXT,
 				DisplayConstants.EDIT_LAYER_TEXT,
- Arrays.asList(new String[] { "name" }),
+ Arrays.asList(new String[] { "name", "type" }),
 				Arrays.asList(new String[] {
-						"releaseNotes", "tissueType",
+						"releaseNotes", "tissueType", "type",
 						"description", "name", "publicationDate", "qcBy",
 						"platform", "status", 
 						"processingFacility", "numSamples", "qcDate",
