@@ -28,7 +28,7 @@ public class GEPWorkflowInitiator {
 	public static final String PARENT_ID_PROPERTY_NAME = "parentId";
 
 	/**
-	 * Crawl all top level TCGA datasets and identify the ones in which we are
+	 * Crawl all top level datasets and identify the ones in which we are
 	 * interested
 	 */
 	void initiateWorkflowTasks() throws Exception {
