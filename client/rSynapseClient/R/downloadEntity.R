@@ -63,13 +63,14 @@ setMethod(
 		f = ".cacheEntity",
 		signature = "Layer",
 		definition = function(entity){
-			if(is.null(propertyValue(entity, "locations"))){
-					if(is.null(propertyValue(entity, "id")))
-						stop("The entity does not have a 'locations' property or an 'id' property so could not be cached")
-					entity <- getEntity(propertyValue(entity, "id"))
-					if(is.null(propertyValue(entity, "locations")))
-						stop("The entity does not have any locations so could not be downloaded")
-			}
+## Reenable this checks once PLFM-693 is fixed
+## 			if(is.null(propertyValue(entity, "locations"))){
+## 					if(is.null(propertyValue(entity, "id")))
+## 						stop("The entity does not have a 'locations' property or an 'id' property so could not be cached")
+## 					entity <- getEntity(propertyValue(entity, "id"))
+## 					if(is.null(propertyValue(entity, "locations")))
+## 						stop("The entity does not have any locations so could not be downloaded")
+## 			}
 			locationPrefs = synapseDataLocationPreferences()
 			cacheDir = synapseCacheDir()
 			
@@ -78,18 +79,18 @@ setMethod(
 				ind <- which(!(locationPrefs %in% kSupportedDataLocationTypes))
 				stop(paste("unsupported repository location(s):", locationPrefs[ind]))
 			}
-			response <- synapseGet(propertyValue(entity, "locations"))
-			if (response$totalNumberOfResults == 0) 
+                        queryString <- sprintf('select * from location where parentId=="%s"', propertyValue(entity, "id"))
+			availableLocations <- synapseQuery(queryString)
+			if (is.null(availableLocations)) 
 				return(NULL)
-			availableLocations <- .jsonListToDataFrame(response$results)
-			ind <- match(locationPrefs, availableLocations$type)
+			ind <- match(locationPrefs, availableLocations$location.type)
 			ind <- ind[!is.na(ind)]
 			if (length(ind) == 0) {
 				stop("Data file was not available in any of the locations specified. Locations available for this layer:", 
 						annotations(entity)$locations)
 			}
 			availableLocations <- availableLocations[ind, ]
-			location <- getEntity(availableLocations$id[1])
+			location <- getEntity(availableLocations$location.id[1])
 			destfile = synapseDownloadFile(url = propertyValue(location, "path"), checksum = propertyValue(location, "md5sum"))
 			
 			return(CachedLocation(location, .unpack(filename = destfile)))
