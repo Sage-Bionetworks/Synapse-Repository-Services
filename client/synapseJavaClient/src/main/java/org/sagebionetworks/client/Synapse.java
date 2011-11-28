@@ -149,6 +149,15 @@ public class Synapse {
 	}
 
 	/**
+	 * Authenticate the synapse client with an existing session token 
+	 * @param sessionToken
+	 */
+	public void login(String sessionToken) {
+		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
+		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, sessionToken);		
+	}
+	
+	/**
 	 * Get the current session token used by this client.
 	 * 
 	 * @return the session token
@@ -231,7 +240,7 @@ public class Synapse {
 	 * @throws ClientProtocolException 
 	 * @throws JSONObjectAdapterException 
 	 */
-	public <T extends Entity> T getEntity(String entityId, Class<? extends T> clazz) throws ClientProtocolException, IOException, JSONException, SynapseUserException, SynapseServiceException, JSONObjectAdapterException{
+	public <T extends Entity> T getEntity(String entityId, Class<? extends T> clazz) throws IOException, JSONException, SynapseUserException, SynapseServiceException, JSONObjectAdapterException {
 		if(entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
 		if(clazz == null) throw new IllegalArgumentException("Entity class cannot be null");
 		EntityType type = EntityType.getNodeTypeForClass(clazz);
@@ -240,7 +249,16 @@ public class Synapse {
 		JSONObject object = getEntity(uri);
 		return (T) EntityFactory.createEntityFromJSONObject(object, clazz);
 	}
-	
+
+	public Entity getEntityById(String entityId) throws ClientProtocolException, IOException, JSONException, SynapseUserException, SynapseServiceException, JSONObjectAdapterException {
+		if(entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
+		String url = "/entity/" + entityId + "/type";
+		JSONObject jsonObj = getEntity(url);
+		String objType = jsonObj.getString("type");
+		EntityType type = EntityType.getFirstTypeInUrl(objType);		
+		return getEntity(entityId, type.getClassForType());		
+	}
+
 	/**
 	 * Helper to create an Entity URI.
 	 * @param prefix

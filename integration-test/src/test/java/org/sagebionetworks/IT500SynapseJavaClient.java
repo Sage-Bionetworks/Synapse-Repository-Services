@@ -1,12 +1,12 @@
 package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Iterator;
 
 import org.apache.commons.httpclient.HttpException;
 import org.json.JSONArray;
@@ -18,6 +18,7 @@ import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.SynapseServiceException;
 import org.sagebionetworks.client.SynapseUserException;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.utils.HttpClientHelper;
 
 /**
@@ -119,6 +120,24 @@ public class IT500SynapseJavaClient {
 		assertEquals("updated", updatedAnnotations.getJSONObject("stringAnnotations").getJSONArray("annotStatus").getString(0));
 	}
 
+	@Test
+	public void testJavaClientCreateEntity() throws Exception {
+		Project newProject = new Project();
+		newProject.setParentId(project.getString("id"));
+		Project createdProject = synapse.createEntity(newProject);		
+		assertNotNull(createdProject);
+		assertNotNull(createdProject.getId());
+		assertNotNull(createdProject.getUri());
+		
+		String createdProjectId = createdProject.getId();
+		Project fromGet = synapse.getEntity(createdProjectId, Project.class);
+		assertEquals(createdProject, fromGet);
+		
+		Project fromGetById = (Project)synapse.getEntityById(createdProjectId);
+		assertEquals(createdProject, fromGetById);
+		
+	}
+	
 	/**
 	 * @throws Exception
 	 */
