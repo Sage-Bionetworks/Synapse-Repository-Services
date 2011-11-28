@@ -57,7 +57,7 @@ setMethod(
 		signature = signature("Layer", "character"),
 		definition = function(entity, filePath){
 			
-			# Change into the cache directory, if filePath is a relative paths, maybe 
+			# Change into the cache directory, if filePath is a relative path, maybe 
 			# we'll find it here, if filePath is an absolute path, changing the working 
 			# directory will have no effect
 			oldDir <- getwd()

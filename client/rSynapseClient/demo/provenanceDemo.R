@@ -5,11 +5,11 @@ synapseLogin()
 onWeb(getStep())
 
 ## load some clinical data
-clinicalData <- getEntity(2967)
+clinicalData <- getEntity(48337)
 # --> refresh the Step web UI page and see how it changed
 
 ## load some expression data
-expressionData <- getEntity(2969)
+expressionData <- getEntity(48344)
 # --> refresh the Step web UI page and see how it changed
 
 ####
@@ -20,7 +20,7 @@ expressionData <- getEntity(2969)
 
 
 ## Create a project for results
-myName <- "Nicole A. Deflaux"
+myName <- paste("Nicole A. Deflaux",  gsub(':', '_', date()))
 project <- Project(list(
 	name=paste("Machine Learning Results - ", myName)
 	))
