@@ -4,10 +4,10 @@ Walk the complete PLFM hierarchy and bring all the pom.xml files up to new minor
 '''
 
 #Old and new minor versions
-oldVersion = '0.8.1'
-newVersion = '0.8-SNAPSHOT'
+oldVersion = '0.8-SNAPSHOT'
+newVersion = '0.8.5'
 #Path to PLFM on your system
-startPath = 'C:\\dev\\workspace\\Synapse-0.8'
+startPath = 'C:\\dev\\workspace\\Synapse-0.8.5'
 for root, subFolders, files in os.walk(startPath):    
     for file in files:
         if file == 'pom.xml': 
