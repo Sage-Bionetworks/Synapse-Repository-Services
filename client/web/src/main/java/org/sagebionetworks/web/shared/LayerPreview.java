@@ -102,10 +102,16 @@ public class LayerPreview implements IsSerializable {
 				List<Map<String,String>> mapList = new ArrayList<Map<String,String>>();
 				for(int i=0; i<list.size(); i++) {
 					JSONObject mapObj = list.get(i).isObject();
-					if(mapObj != null) {
-						Map<String,String> map = new HashMap<String,String>();
-						for(String mapKey : mapObj.keySet()) {
-							map.put(mapKey, mapObj.get(mapKey).isString().stringValue());
+					if(mapObj != null && mapObj.containsKey("cells")) {
+						Map<String,String> map = new HashMap<String, String>();
+						JSONArray cellsList = mapObj.get("cells").isArray();
+						List<String> headers = getHeaders();
+						if(cellsList != null && headers != null) {
+							for(int n=0; n<cellsList.size(); n++) {
+								if(n<headers.size()) {
+									map.put(headers.get(n), cellsList.get(n).isString().stringValue());
+								}
+							}
 						}
 						mapList.add(map);
 					}
