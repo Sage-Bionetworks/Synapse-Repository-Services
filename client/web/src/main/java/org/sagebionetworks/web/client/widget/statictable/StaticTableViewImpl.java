@@ -211,10 +211,11 @@ public class StaticTableViewImpl extends LayoutContainer implements
 
 	private ColumnConfig createColumn(String id, String colName, String tooltip, String units) {
     	String cleanColName = colName.replaceFirst("\\.", "_");
+    	String colNameWithUnits = cleanColName;
     	if(units != null) {
-    		cleanColName = cleanColName + " <small>(" + units + ")</small>";
+    		colNameWithUnits += " <small>(" + units + ")</small>";
     	}
-    	ColumnConfig cc = new ColumnConfig(cleanColName, cleanColName, 125);
+    	ColumnConfig cc = new ColumnConfig(cleanColName, colNameWithUnits, 125);
     	if(tooltip != null) {
     		cc.setToolTip(tooltip);
     	}
