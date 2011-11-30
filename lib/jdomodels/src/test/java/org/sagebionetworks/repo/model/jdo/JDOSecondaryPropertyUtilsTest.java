@@ -128,22 +128,6 @@ public class JDOSecondaryPropertyUtilsTest {
 	}
 	
 	@Test
-	public void testCreateFromSet(){
-		Set<JDOLongAnnotation> set  = new HashSet<JDOLongAnnotation>();
-		set.add(new JDOLongAnnotation("keyOne", new Long(101)));
-		set.add(new JDOLongAnnotation("keyOne", new Long(102)));
-		set.add(new JDOLongAnnotation("keyTwo", new Long(42)));
-		// Convert it to a map
-		Map<String, Collection<Long>> map = JDOSecondaryPropertyUtils.createFromSet(set);
-		assertNotNull(map);
-		// There should be two values int the map, and the first value should have a collection with 2 values.
-		assertEquals(2, map.size());
-		Collection<Long> one = map.get("keyOne");
-		assertNotNull(one);
-		assertEquals(2, one.size());
-	}
-	
-	@Test
 	public void testCompression() throws IOException{
 		NamedAnnotations named = new NamedAnnotations();
 		Annotations dto = named.getAdditionalAnnotations();
@@ -181,7 +165,6 @@ public class JDOSecondaryPropertyUtilsTest {
 		JDONode node = new JDONode();
 		JDORevision rev = new JDORevision();
 		JDOSecondaryPropertyUtils.updateFromJdoFromDto(named, node, rev);
-		assertNotNull(node.getBlobAnnotations());
 		assertNotNull(node.getDateAnnotations());
 		assertNotNull(node.getStringAnnotations());
 		assertNotNull(node.getDoubleAnnotations());
