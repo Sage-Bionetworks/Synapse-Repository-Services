@@ -8,8 +8,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.jdo.JDOException;
 import javax.jdo.JDOObjectNotFoundException;
@@ -22,15 +22,14 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackupDAO;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOBlobAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
@@ -130,7 +129,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		node.setDateAnnotations(new HashSet<JDODateAnnotation>());
 		node.setLongAnnotations(new HashSet<JDOLongAnnotation>());
 		node.setDoubleAnnotations(new HashSet<JDODoubleAnnotation>());
-		node.setBlobAnnotations(new HashSet<JDOBlobAnnotation>());
 		// Make sure it has references
 		node.setReferences(new HashSet<JDOReference>());
 		

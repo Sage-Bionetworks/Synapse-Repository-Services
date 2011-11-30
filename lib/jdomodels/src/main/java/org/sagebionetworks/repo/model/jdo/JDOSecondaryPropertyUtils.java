@@ -6,7 +6,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -20,13 +19,13 @@ import java.util.zip.GZIPOutputStream;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOBlobAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 import com.thoughtworks.xstream.XStream;
 
@@ -88,7 +87,6 @@ public class JDOSecondaryPropertyUtils {
 		jdo.setDateAnnotations((Set<JDODateAnnotation>)createFromMap(jdo, dto.getDateAnnotations()));
 		jdo.setLongAnnotations((Set<JDOLongAnnotation>)createFromMap(jdo, dto.getLongAnnotations()));
 		jdo.setDoubleAnnotations((Set<JDODoubleAnnotation>)createFromMap(jdo, dto.getDoubleAnnotations()));
-		jdo.setBlobAnnotations((Set<JDOBlobAnnotation>)createFromMap(jdo, dto.getBlobAnnotations()));
 	}
 	
 	/**
@@ -224,31 +222,6 @@ public class JDOSecondaryPropertyUtils {
 	}
 	
 	/**
-	 * Build up the map from the set.
-	 * @param <A>
-	 * @param set
-	 * @return
-	 */
-	public static <A> Map<String, Collection<A>> createFromSet(Set<? extends JDOAnnotation<A>> set){
-		Map<String, Collection<A>> map = new HashMap<String, Collection<A>>();
-		if(set != null){
-			Iterator<? extends JDOAnnotation<A>> it = set.iterator();
-			while(it.hasNext()){
-				JDOAnnotation<A> jdoAno = it.next();
-				String key = jdoAno.getAttribute();
-				A value = jdoAno.getValue();
-				Collection<A> collection = map.get(key);
-				if(collection == null){
-					collection = new ArrayList<A>();
-					map.put(key, collection);
-				}
-				collection.add(value);
-			}
-		}
-		return map;
-	}
-	
-	/**
 	 * Create a set of JDOAnnotations from a map
 	 * @param <T>
 	 * @param owner
@@ -265,6 +238,17 @@ public class JDOSecondaryPropertyUtils {
 				Iterator<T> valueIt = valueColection.iterator();
 				while(valueIt.hasNext()){
 					T value = valueIt.next();
+					// If this is a string make sure it will fit in the annotations column.
+					if(value instanceof String){
+						// Note: The annotation tables are not used for persistence, we only put data in them to support queries.
+						// Annotations are persisted in in a blob on the revision table.
+						// Therefore, it is safe to trim string data when it is too long.
+						String stringValue = (String) value;
+						if(stringValue.length() > SqlConstants.STRING_ANNOTATIONS_VALUE_LENGTH){
+							stringValue = stringValue.substring(0, SqlConstants.STRING_ANNOTATIONS_VALUE_LENGTH-1);
+							value = (T) stringValue;
+						}
+					}
 					JDOAnnotation<T> jdo = createAnnotation(owner, key, value);
 					set.add(jdo);
 				}
@@ -303,9 +287,7 @@ public class JDOSecondaryPropertyUtils {
 			temp.setOwner(owner);
 			jdo = (JDOAnnotation<T>) temp;
 		}else if(value instanceof byte[]){
-			JDOBlobAnnotation temp =  new JDOBlobAnnotation();
-			temp.setOwner(owner);
-			jdo = (JDOAnnotation<T>) temp;
+			// There is no reason to put bytes in the annotations tables as they are only used for query.
 		}else{
 			throw new IllegalArgumentException("Unknown annoation type: "+value.getClass());
 		}

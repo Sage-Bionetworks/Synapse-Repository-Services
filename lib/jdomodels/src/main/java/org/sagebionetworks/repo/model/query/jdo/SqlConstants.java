@@ -65,6 +65,10 @@ public class SqlConstants {
 	public static final String TABLE_LONG_ANNOTATIONS	= "JDOLONGANNOTATION";
 	public static final String TABLE_BLOB_ANNOTATIONS	= "JDOBLOBANNOTATION";
 	public static final String TABLE_DATE_ANNOTATIONS	= "JDODATEANNOTATION";
+	
+	// The width of the string annotations value column
+	public static final int STRING_ANNOTATIONS_VALUE_LENGTH = 500;
+	
 	// There are the column names that all annotation tables have.
 	public static final String ANNOTATION_ATTRIBUTE_COLUMN 		= "ATTRIBUTE";
 	public static final String ANNOTATION_VALUE_COLUMN			= "VALUE";

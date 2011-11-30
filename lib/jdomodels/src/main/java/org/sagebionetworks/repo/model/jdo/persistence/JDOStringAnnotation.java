@@ -51,7 +51,7 @@ public class JDOStringAnnotation implements JDOAnnotation<String> {
 	private String attribute;
 
 	@Persistent
-	@Column(name=SqlConstants.ANNOTATION_VALUE_COLUMN, jdbcType="VARCHAR", length=3000)
+	@Column(name=SqlConstants.ANNOTATION_VALUE_COLUMN, jdbcType="VARCHAR", length=SqlConstants.STRING_ANNOTATIONS_VALUE_LENGTH)
 	private String value;
 
 	public JDOStringAnnotation() {

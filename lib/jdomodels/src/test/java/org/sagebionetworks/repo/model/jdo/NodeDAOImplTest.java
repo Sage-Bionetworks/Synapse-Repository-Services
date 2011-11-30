@@ -1226,4 +1226,39 @@ public class NodeDAOImplTest {
 		assertTrue(node.getReferences().get("odd").contains(inOdd));
 		assertNull(node.getReferences().get("even2"));
 	}
+	
+	@Test
+	public void testForPLFM_791() throws Exception {
+		// In the past annotations, were persisted in the annotations tables.  So when we had large strings we had to store
+		// the values as BLOB annotations.  This is no longer the case.  Now all annotations are not persisted as a single 
+		// zipped blob on the revision table.  Therefore, we only use the annotations tables for query.  This means there 
+		// is no need to have a blob annotations table anymore.  There is no need to store very large strings in the
+		// string annotations table since it does not make sense to query for large strings.
+		// This test ensures that we can have giant string annotations without any problems.
+		//make a parent project
+		Node node = NodeTestUtils.createNew("testForPLFM_791");
+		node.setNodeType(EntityType.project.name());
+		String projectId = nodeDao.createNew(node);
+		toDelete.add(projectId);
+		assertNotNull(projectId);
+		// Now get the annotations of the entity
+		NamedAnnotations annos = nodeDao.getAnnotations(projectId);
+		assertNotNull(annos);
+		assertNotNull(annos.getAdditionalAnnotations());
+		// Create a very large string
+		byte[] largeArray = new byte[10000];
+		byte value = 101;
+		Arrays.fill(largeArray, value);
+		String largeString = new String(largeArray, "UTF-8");
+		String key = "veryLargeString";
+		annos.getAdditionalAnnotations().addAnnotation(key, largeString);
+		// This update will fail before PLFM-791 is fixed.
+		nodeDao.updateAnnotations(projectId, annos);
+		// Get the values back
+		annos = nodeDao.getAnnotations(projectId);
+		assertNotNull(annos);
+		assertNotNull(annos.getAdditionalAnnotations());
+		// Make sure we can still get the string
+		assertEquals(largeString, annos.getAdditionalAnnotations().getSingleValue(key));
+	}
 }
