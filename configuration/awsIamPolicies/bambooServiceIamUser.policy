@@ -14,6 +14,13 @@
             ],
             "Resource": "arn:aws:iam::325565585839:user/bamboo*"
         },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "sts:GetFederationToken"
+                ],
+                "Resource":"arn:aws:sts::325565585839:federated-user/bamboo*"
+            },
         {
             "Action": [
                 "s3:GetObject"
