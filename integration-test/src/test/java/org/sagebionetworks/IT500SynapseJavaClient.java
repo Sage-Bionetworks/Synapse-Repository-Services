@@ -77,11 +77,6 @@ public class IT500SynapseJavaClient {
 		}
 	}
 	
-	@Test
-	public void testExternalLocations() throws Exception {
-		
-	}
-	
 	/**
 	 * @throws Exception
 	 */
@@ -213,7 +208,7 @@ public class IT500SynapseJavaClient {
 		layer.setParentId(dataset.getId());
 		layer = synapse.createEntity(layer);
 		
-		Location location = synapse.uploadLayerToSynapse(layer, dataSourceFile);
+		Location location = synapse.uploadLocationableToSynapse(layer, dataSourceFile);
 		assertEquals(LocationTypeNames.awss3, location.getType());
 		assertEquals("text/plain", location.getContentType());
 
@@ -248,7 +243,7 @@ public class IT500SynapseJavaClient {
 		layer.setLocations(locations);
 		layer = synapse.createEntity(layer);
 		
-		File downloadedLayer = synapse.downloadLayerFromSynapse(layer);
+		File downloadedLayer = synapse.downloadLocationableFromSynapse(layer);
 		assertEquals(externalUrlFileSizeBytes, downloadedLayer.length());
 		
 	}
