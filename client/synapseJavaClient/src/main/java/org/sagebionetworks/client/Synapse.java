@@ -470,10 +470,11 @@ public class Synapse {
 	 * @param locationable
 	 * @return destination file
 	 * @throws IOException
-	 * @throws SynapseUserException 
-	 * @throws HttpClientHelperException 
+	 * @throws SynapseUserException
+	 * @throws HttpClientHelperException
 	 */
-	public File downloadLocationableFromSynapse(Locationable locationable) throws IOException, HttpClientHelperException, SynapseUserException {
+	public File downloadLocationableFromSynapse(Locationable locationable)
+			throws IOException, HttpClientHelperException, SynapseUserException {
 		// TODO do the equivalent of the R client synapse cache and file naming
 		// scheme
 		File file = File.createTempFile(locationable.getId(), ".txt");
@@ -481,29 +482,50 @@ public class Synapse {
 	}
 
 	/**
-	 * Download the locationable to the specified destination file
+	 * Download the locationable to the specified destination file using the
+	 * default location type
 	 * 
 	 * @param locationable
 	 * @param destinationFile
 	 * @return destination file
-	 * @throws HttpClientHelperException 
-	 * @throws IOException 
-	 * @throws ClientProtocolException 
-	 * @throws SynapseUserException 
+	 * @throws HttpClientHelperException
+	 * @throws IOException
+	 * @throws ClientProtocolException
+	 * @throws SynapseUserException
 	 */
-	public File downloadLocationableFromSynapse(Locationable locationable, File destinationFile) throws ClientProtocolException, IOException, HttpClientHelperException, SynapseUserException {
+	public File downloadLocationableFromSynapse(Locationable locationable,
+			File destinationFile) throws ClientProtocolException, IOException,
+			HttpClientHelperException, SynapseUserException {
 		List<LocationData> locations = locationable.getLocations();
 		if ((null == locations) || (0 == locations.size())) {
 			new SynapseUserException("No locations available for locationable "
 					+ locationable);
 		}
 
-		// TODO if there are multiple locations for this locationable look in user
+		// TODO if there are multiple locations for this locationable look in
+		// user
 		// preferences to download from the appropriate location (e.g., Sage
 		// Internal versus S3 versus GoogleStorage). For now we are just
 		// downloading from the first location
 		LocationData location = locations.get(0);
+		return downloadFromSynapse(location, destinationFile);
+	}
 
+	/**
+	 * Download data from Synapse to the specified destination file given a
+	 * specific location from which to download
+	 * 
+	 * @param location
+	 * @param destinationFile
+	 * @return destination file
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 * @throws HttpClientHelperException
+	 * @throws SynapseUserException
+	 */
+	public File downloadFromSynapse(LocationData location, File destinationFile)
+			throws ClientProtocolException, IOException,
+			HttpClientHelperException, SynapseUserException {
 		HttpClientHelper.downloadFile(location.getPath(), destinationFile
 				.getAbsolutePath());
 		// Check that the md5s match, if applicable
@@ -535,9 +557,9 @@ public class Synapse {
 	 * @throws HttpClientHelperException
 	 * @throws JSONObjectAdapterException
 	 */
-	public Location uploadLocationableToSynapse(Locationable locationable, File dataFile)
-			throws IOException, JSONException, SynapseUserException,
-			SynapseServiceException, DecoderException,
+	public Location uploadLocationableToSynapse(Locationable locationable,
+			File dataFile) throws IOException, JSONException,
+			SynapseUserException, SynapseServiceException, DecoderException,
 			HttpClientHelperException, JSONObjectAdapterException {
 
 		String md5 = MD5ChecksumHelper.getMD5Checksum(dataFile
@@ -560,9 +582,9 @@ public class Synapse {
 	 * @throws HttpClientHelperException
 	 * @throws JSONObjectAdapterException
 	 */
-	public Location uploadLocationableToSynapse(Locationable locationable, File dataFile, String md5)
-			throws IOException, JSONException, SynapseUserException,
-			SynapseServiceException, DecoderException,
+	public Location uploadLocationableToSynapse(Locationable locationable,
+			File dataFile, String md5) throws IOException, JSONException,
+			SynapseUserException, SynapseServiceException, DecoderException,
 			HttpClientHelperException, JSONObjectAdapterException {
 
 		String s3Path = dataFile.getName();
