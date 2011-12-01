@@ -21,10 +21,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
+import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -465,25 +465,25 @@ public class Synapse {
 	}
 
 	/**
-	 * Download the layer to a tempfile
+	 * Download the locationable to a tempfile
 	 * 
-	 * @param layer
+	 * @param locationable
 	 * @return destination file
 	 * @throws IOException
 	 * @throws SynapseUserException 
 	 * @throws HttpClientHelperException 
 	 */
-	public File downloadLayerFromSynapse(Layer layer) throws IOException, HttpClientHelperException, SynapseUserException {
+	public File downloadLocationableFromSynapse(Locationable locationable) throws IOException, HttpClientHelperException, SynapseUserException {
 		// TODO do the equivalent of the R client synapse cache and file naming
 		// scheme
-		File file = File.createTempFile(layer.getId(), ".txt");
-		return downloadLayerFromSynapse(layer, file);
+		File file = File.createTempFile(locationable.getId(), ".txt");
+		return downloadLocationableFromSynapse(locationable, file);
 	}
 
 	/**
-	 * Download the layer to the specified destination file
+	 * Download the locationable to the specified destination file
 	 * 
-	 * @param layer
+	 * @param locationable
 	 * @param destinationFile
 	 * @return destination file
 	 * @throws HttpClientHelperException 
@@ -491,14 +491,14 @@ public class Synapse {
 	 * @throws ClientProtocolException 
 	 * @throws SynapseUserException 
 	 */
-	public File downloadLayerFromSynapse(Layer layer, File destinationFile) throws ClientProtocolException, IOException, HttpClientHelperException, SynapseUserException {
-		List<LocationData> locations = layer.getLocations();
+	public File downloadLocationableFromSynapse(Locationable locationable, File destinationFile) throws ClientProtocolException, IOException, HttpClientHelperException, SynapseUserException {
+		List<LocationData> locations = locationable.getLocations();
 		if ((null == locations) || (0 == locations.size())) {
-			new SynapseUserException("No locations available for layer "
-					+ layer);
+			new SynapseUserException("No locations available for locationable "
+					+ locationable);
 		}
 
-		// TODO if there are multiple locations for this layer look in user
+		// TODO if there are multiple locations for this locationable look in user
 		// preferences to download from the appropriate location (e.g., Sage
 		// Internal versus S3 versus GoogleStorage). For now we are just
 		// downloading from the first location
@@ -523,7 +523,7 @@ public class Synapse {
 	/**
 	 * TODO this will change with the collapse of layer and location
 	 * 
-	 * @param layer
+	 * @param locationable
 	 * @param dataFile
 	 * 
 	 * @return the newly created location
@@ -535,18 +535,20 @@ public class Synapse {
 	 * @throws HttpClientHelperException
 	 * @throws JSONObjectAdapterException
 	 */
-	public Location uploadLayerToSynapse(Layer layer, File dataFile)
+	public Location uploadLocationableToSynapse(Locationable locationable, File dataFile)
 			throws IOException, JSONException, SynapseUserException,
 			SynapseServiceException, DecoderException,
 			HttpClientHelperException, JSONObjectAdapterException {
 
 		String md5 = MD5ChecksumHelper.getMD5Checksum(dataFile
 				.getAbsolutePath());
-		return uploadLayerToSynapse(layer, dataFile, md5);
+		return uploadLocationableToSynapse(locationable, dataFile, md5);
 	}
 
 	/**
-	 * @param layer
+	 * TODO this will change with the collapse of layer and location
+	 * 
+	 * @param locationable
 	 * @param dataFile
 	 * @param md5
 	 * @return the newly created location
@@ -558,7 +560,7 @@ public class Synapse {
 	 * @throws HttpClientHelperException
 	 * @throws JSONObjectAdapterException
 	 */
-	public Location uploadLayerToSynapse(Layer layer, File dataFile, String md5)
+	public Location uploadLocationableToSynapse(Locationable locationable, File dataFile, String md5)
 			throws IOException, JSONException, SynapseUserException,
 			SynapseServiceException, DecoderException,
 			HttpClientHelperException, JSONObjectAdapterException {
@@ -568,7 +570,7 @@ public class Synapse {
 		Location s3Location = new Location();
 		s3Location.setPath("/" + s3Path);
 		s3Location.setMd5sum(md5);
-		s3Location.setParentId(layer.getParentId());
+		s3Location.setParentId(locationable.getParentId());
 		s3Location.setType(LocationTypeNames.awss3);
 		s3Location = createEntity(s3Location);
 
