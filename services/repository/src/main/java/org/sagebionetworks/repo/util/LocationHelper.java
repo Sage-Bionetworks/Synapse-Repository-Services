@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.util;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * @author deflaux
@@ -26,11 +25,9 @@ public interface LocationHelper {
 	 * @param path
 	 *            the s3key for the item
 	 * @return a pre-signed S3 URL valid for GET requests
-	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	String getS3Url(String userId, String path) throws DatastoreException,
-			NotFoundException;
+	String getS3Url(String userId, String path) throws DatastoreException;
 
 	/**
 	 * Return a pre-signed URL for use checking the status of files in S3, such
@@ -49,11 +46,9 @@ public interface LocationHelper {
 	 * @param path
 	 *            the s3key for the item
 	 * @return a pre-signed S3 URL valid for HEAD requests
-	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	String getS3HeadUrl(String userId, String path) throws DatastoreException,
-			NotFoundException;
+	String getS3HeadUrl(String userId, String path) throws DatastoreException;
 
 	/**
 	 * Return a pre-signed URL for use in uploading a file to S3. Note that the
@@ -75,10 +70,9 @@ public interface LocationHelper {
 	 * @param contentType
 	 * @return a pre-signed URL valid for PUT requests
 	 * @throws DatastoreException
-	 * @throws NotFoundException
 	 */
 	String createS3Url(String userId, String path, String md5, String contentType)
-			throws DatastoreException, NotFoundException;
+			throws DatastoreException;
 	
 	/**
 	 * Retrieve just the s3Key portion of an S3 URL
@@ -87,5 +81,13 @@ public interface LocationHelper {
 	 * @return the s3Key
 	 */
 	String getS3KeyFromS3Url(String s3Url);
+
+	/**
+	 * Retrieve just the entity id from an S3 URL or S3 key
+	 * 
+	 * @param s3Url
+	 * @return the entity id
+	 */
+	String getEntityIdFromS3Url(String s3Url);
 
 }

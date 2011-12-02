@@ -1,13 +1,14 @@
 package org.sagebionetworks.repo.util;
 
 import java.net.URLEncoder;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
@@ -33,6 +34,8 @@ public class LocationHelpersImpl implements LocationHelper {
 	// http://docs.amazonwebservices.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/securitytoken/model/GetFederationTokenRequest.html#setName(java.lang.String)
 	// This will be increased to 64 characters some time in October
 	private static final int MAX_FEDERATED_NAME_LENGTH = 32;
+	// http://docs.amazonwebservices.com/STS/latest/APIReference/API_GetFederationToken.html
+	private static final int MAX_POLICY_LENGTH = 2048;
 
 	private static final int READ_ACCESS_EXPIRY_HOURS = StackConfiguration
 			.getS3ReadAccessExpiryHours();
@@ -44,13 +47,14 @@ public class LocationHelpersImpl implements LocationHelper {
 	private static final String S3_BUCKET = StackConfiguration.getS3Bucket();
 	private static final String S3_URL_PREFIX = "https://" + S3_DOMAIN + "/"
 			+ S3_BUCKET;
+	private static final Pattern ENTITY_FROM_S3KEY_REGEX = Pattern.compile("^(" + S3_URL_PREFIX + ")?(/)?(\\d+)/.*$");
 	private static final String STACK = StackConfiguration.getStack();
-	private static final String IAM_USERNAME_PREFIX = STACK + "-";
-	private static final String S3_KEY_PLACEHOLDER = "REPLACE_ME_WITH_AN_S3_KEY";
-	private static final String READONLY_DATA_POLICY = "{\"Statement\": [{\"Effect\": \"Allow\", \"Action\": [\"s3:GetObject\",\"s3:GetObjectVersion\"],\"Resource\": \"arn:aws:s3:::"
-			+ S3_BUCKET + S3_KEY_PLACEHOLDER + "\"}]}";
-	private static final String READWRITE_DATA_POLICY = "{\"Statement\": [{\"Effect\": \"Allow\", \"Action\": [\"s3:GetObject\",\"s3:GetObjectVersion\",\"s3:PutObject\",\"s3:PutObjectVersion\"],\"Resource\": \"arn:aws:s3:::"
-			+ S3_BUCKET + S3_KEY_PLACEHOLDER + "\"}]}";
+	private static final String FEDERATED_USERNAME_PREFIX = STACK + "-";
+	private static final String ENTITY_ID_PLACEHOLDER = "REPLACE_ME_WITH_AN_ENTITY_ID";
+	private static final String READONLY_DATA_POLICY = "{\"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"s3:GetObject\",\"Resource\": \"arn:aws:s3:::"
+			+ S3_BUCKET + "/" + ENTITY_ID_PLACEHOLDER + "/*\"}]}";
+	private static final String READWRITE_DATA_POLICY = "{\"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"s3:PutObject\",\"Resource\": \"arn:aws:s3:::"
+			+ S3_BUCKET + "/" + ENTITY_ID_PLACEHOLDER + "/*\"}]}";
 
 	private Boolean hasSanityBeenChecked = false;
 
@@ -96,13 +100,13 @@ public class LocationHelpersImpl implements LocationHelper {
 
 	@Override
 	public String getS3Url(String userId, String s3Key)
-			throws DatastoreException, NotFoundException {
+			throws DatastoreException {
 		return getS3Url(userId, s3Key, HttpMethod.GET);
 	}
 
 	@Override
 	public String getS3HeadUrl(String userId, String s3Key)
-			throws DatastoreException, NotFoundException {
+			throws DatastoreException {
 		return getS3Url(userId, s3Key, HttpMethod.HEAD);
 	}
 
@@ -141,7 +145,7 @@ public class LocationHelpersImpl implements LocationHelper {
 	 */
 	@Override
 	public String createS3Url(String userId, String s3Key, String md5,
-			String contentType) throws DatastoreException, NotFoundException {
+			String contentType) throws DatastoreException {
 
 		// Get the credentials with which to sign the request
 		Credentials token = createS3Token(userId, HttpMethod.PUT, s3Key);
@@ -213,6 +217,13 @@ public class LocationHelpersImpl implements LocationHelper {
 		return presignedUrl.toString();
 	}
 
+	/**
+	 * @param userId
+	 * @param method
+	 * @param s3Key
+	 * @return the securityToken credentials
+	 * @throws DatastoreException
+	 */
 	public Credentials createS3Token(String userId, HttpMethod method,
 			String s3Key) throws DatastoreException {
 
@@ -225,21 +236,23 @@ public class LocationHelpersImpl implements LocationHelper {
 		// isolation
 		// since we cannot ensure that folks do not use the same user name on
 		// various stacks.
-		String federatedUserId = IAM_USERNAME_PREFIX + userId;
+		String federatedUserId = FEDERATED_USERNAME_PREFIX + userId;
 		if (MAX_FEDERATED_NAME_LENGTH < federatedUserId.length()) {
 			federatedUserId = federatedUserId.substring(0,
 					MAX_FEDERATED_NAME_LENGTH);
 		}
 
-		if(!s3Key.startsWith("/")) {
-			s3Key = "/" + s3Key;
-		}
+		// Parse out the entity id from the url
+		String entityId = getEntityIdFromS3Url(s3Key);
 		
 		int durationSeconds = ((HttpMethod.PUT == method) ? WRITE_ACCESS_EXPIRY_HOURS
 				: READ_ACCESS_EXPIRY_HOURS) * 3600;
 		String policy = (HttpMethod.PUT == method) ? READWRITE_DATA_POLICY
 				: READONLY_DATA_POLICY;
-		policy = policy.replace(S3_KEY_PLACEHOLDER, s3Key);
+		policy = policy.replace(ENTITY_ID_PLACEHOLDER, entityId);
+		if(MAX_POLICY_LENGTH < policy.length()) {
+			throw new IllegalArgumentException("Security token policy too long: " + policy);
+		}
 
 		AWSSecurityTokenService client = amazonClientFactory
 				.getAWSSecurityTokenServiceClient();
@@ -253,6 +266,23 @@ public class LocationHelpersImpl implements LocationHelper {
 		return result.getCredentials();
 	}
 
+	@Override
+	public String getS3KeyFromS3Url(String s3Url) {
+		if (s3Url.startsWith(S3_URL_PREFIX)) {
+			return s3Url.substring(S3_URL_PREFIX.length(), s3Url.indexOf("?"));
+		}
+		return s3Url;
+	}
+	
+	@Override 
+	public String getEntityIdFromS3Url(String s3Url) {
+		Matcher matcher = ENTITY_FROM_S3KEY_REGEX.matcher(s3Url);
+		if(!matcher.matches()) {
+			throw new IllegalArgumentException("s3 url or key is malformed " + s3Url);
+		}
+		return matcher.group(3);
+	}
+	
 	/**
 	 * Quick tool for base64 encoding a string by hand
 	 * 
@@ -265,14 +295,6 @@ public class LocationHelpersImpl implements LocationHelper {
 				.toCharArray()));
 		String base64Md5 = new String(encoded, "ASCII");
 		System.out.println(args[0] + " base64 encoded= " + base64Md5);
-	}
-
-	@Override
-	public String getS3KeyFromS3Url(String s3Url) {
-		if (s3Url.startsWith(S3_URL_PREFIX)) {
-			return s3Url.substring(S3_URL_PREFIX.length(), s3Url.indexOf("?"));
-		}
-		return s3Url;
 	}
 
 }
