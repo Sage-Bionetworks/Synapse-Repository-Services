@@ -127,7 +127,7 @@ public class LocationControllerTest {
 						"^https://s3.amazonaws.com/"
 								+ StackConfiguration.getS3Bucket()
 								+ s3key
-								+ "\\?.*Expires=\\d+&AWSAccessKeyId=\\w+&Signature=.+$"));
+								+ "\\?.*Expires=\\d+&x-amz-security-token=.+&AWSAccessKeyId=\\w+&Signature=.+$"));
 
 		assertExpectedLocationProperties(createdLocation);
 
@@ -147,7 +147,7 @@ public class LocationControllerTest {
 						"^https://s3.amazonaws.com/"
 								+ StackConfiguration.getS3Bucket()
 								+ s3key
-								+ "\\?.*Expires=\\d+&AWSAccessKeyId=\\w+&Signature=[^/]+$"));
+								+ "\\?.*Expires=\\d+&x-amz-security-token=.+&AWSAccessKeyId=\\w+&Signature=[^/]+$"));
 		assertExpectedLocationProperties(updatedLocation);
 
 		// Ensure we have the correct number of locations under this dataset
@@ -246,7 +246,7 @@ public class LocationControllerTest {
 						"^https://s3.amazonaws.com/"
 						+ StackConfiguration.getS3Bucket()
 						+ s3key
-						+ "\\?.*Expires=\\d+&AWSAccessKeyId=\\w+&Signature=.+$"));
+						+ "\\?.*Expires=\\d+&x-amz-security-token=.+&AWSAccessKeyId=\\w+&Signature=.+$"));
 
 		// Now make sure the stored one reflects the change too
 		JSONObject storedLocation = helper.testGetJsonEntity(newLocation
@@ -540,7 +540,7 @@ public class LocationControllerTest {
 							"^https://s3.amazonaws.com/"
 							+ StackConfiguration.getS3Bucket()
 							+ s3keyPrefix
-							+ "/.*\\?.*Expires=\\d+&AWSAccessKeyId=\\w+&Signature=.+$"));
+							+ "/.*\\?.*Expires=\\d+&x-amz-security-token=.+&AWSAccessKeyId=\\w+&Signature=.+$"));
 		}
 
 	}

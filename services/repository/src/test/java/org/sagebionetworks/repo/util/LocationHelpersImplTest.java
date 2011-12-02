@@ -11,13 +11,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Location;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.controller.metadata.EntityEvent;
-import org.sagebionetworks.repo.web.controller.metadata.EventType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -97,6 +90,9 @@ public class LocationHelpersImplTest {
 		assertNotNull(url);
 	}
 
+	/**
+	 * @throws Exception
+	 */
 	@Test
 	public void testGetS3KeyFromS3Url() throws Exception {
 		String s3Key = helper

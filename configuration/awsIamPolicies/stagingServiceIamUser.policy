@@ -12,6 +12,13 @@
                 "Resource":"arn:aws:iam::325565585839:user/staging*"
             },
             {
+                "Effect": "Allow",
+                "Action": [
+                    "sts:GetFederationToken"
+                ],
+                "Resource":"arn:aws:sts::325565585839:federated-user/staging*"
+            },
+            {
                 "Action": [
                     "s3:GetObject"
                 ],

@@ -107,24 +107,15 @@ public class StackConfiguration {
 		return configuration.getProperty("org.sagebionetworks.s3.bucket");
 	}
 
-	public static String getS3IamGroup() {
-		return configuration.getProperty("org.sagebionetworks.s3.iam.group");
-	}
-
-	public static Integer getS3ReadAccessExpiryMinutes() {
+	public static Integer getS3ReadAccessExpiryHours() {
 		return Integer.valueOf(configuration
-				.getProperty("org.sagebionetworks.s3.readAccessExpiryMinutes"));
+				.getProperty("org.sagebionetworks.s3.readAccessExpiryHours"));
 	}
 
-	public static Integer getS3WriteAccessExpiryMinutes() {
+	public static Integer getS3WriteAccessExpiryHours() {
 		return Integer
 				.valueOf(configuration
-						.getProperty("org.sagebionetworks.s3.writeAccessExpiryMinutes"));
-	}
-
-	public static Integer getStsSessionDurationHours() {
-		return Integer.valueOf(configuration
-				.getProperty("org.sagebionetworks.sts.sessionDurationHours"));
+						.getProperty("org.sagebionetworks.s3.writeAccessExpiryHours"));
 	}
 
 	public static String getCrowdAPIApplicationKey() {
@@ -340,12 +331,6 @@ public class StackConfiguration {
 				.getProperty("org.sagebionetworks.integration.test.password.admin");
 	}
 
-	public static Boolean getUseFederatedIamUsersLaunchFlag() {
-		return Boolean
-				.valueOf(configuration
-						.getProperty("org.sagebionetowrks.launchFlags.useFederatedIamUsers"));
-	}
-	
 	/**
 	 * @return whether the cloudWatch profiler should be on or off boolean.
 	 * True means on, false means off.
