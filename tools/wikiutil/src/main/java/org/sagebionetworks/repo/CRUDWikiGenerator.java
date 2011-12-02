@@ -250,7 +250,7 @@ public class CRUDWikiGenerator {
 		s3Location.remove("versionUrl");
 		s3Location.remove("versions");
 		String path = s3Location.getString("path");
-		path = path.replaceAll("0.0.0", "0.0.2");
+		path = path.replaceAll("0\\.0\\.0", "0.0.2");
 		s3Location.put("path", path);
 		s3Location = wiki.doPut(s3Location.getString("uri")+"/version", s3Location, "h4. Create New Version", "To create a new version of a location, we set the version comment and label.  We also want to set a new path for this version:");
 		// Now list all of the version of this location.
