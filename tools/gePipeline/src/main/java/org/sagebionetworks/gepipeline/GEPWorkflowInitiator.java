@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.joda.time.LocalDate;
 import org.json.JSONObject;
 
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
@@ -26,6 +27,8 @@ public class GEPWorkflowInitiator {
 	public static final String MAX_DATASET_SIZE_PARAMETER_KEY = "--maxDatasetSize";
 	public static final String NAME_PROPERTY_NAME = "name";
 	public static final String PARENT_ID_PROPERTY_NAME = "parentId";
+	private static final String NOTIFICATION_SUBJECT = "GEP Initiator Notification ";
+	private static final String NUMBER_OF_SAMPLES_PROPERTY_NAME = "Number_of_Samples";
 
 	/**
 	 * Crawl all top level datasets and identify the ones in which we are
@@ -58,9 +61,48 @@ public class GEPWorkflowInitiator {
 			jsonParameters.put(PARENT_ID_PROPERTY_NAME, ConfigHelper.getGEPipelineProjectId());
 			jsonParameters.put(NAME_PROPERTY_NAME, datasetId);
 			parameterString =jsonParameters.toString();
-			GEPWorkflow.doWorkflow(datasetId, parameterString);
+			if (!jsonParameters.has(NUMBER_OF_SAMPLES_PROPERTY_NAME)) throw new IllegalStateException("No "+NUMBER_OF_SAMPLES_PROPERTY_NAME+" for "+datasetId);
+			int numSamples = (int)jsonParameters.getLong(NUMBER_OF_SAMPLES_PROPERTY_NAME);
+
+			String activityRequirement = getActivityRequirementFromSampleCount(numSamples); 
+			GEPWorkflow.doWorkflow(datasetId, parameterString, activityRequirement);
+		}
+		
+		String crawlerOutput = "Output from Crawler:\nStdout:\n"+results.getStdout()+"Stderr:\n"+results.getStderr();
+		Notification.doSnsNotifyFollowers(GEPWorkflow.NOTIFICATION_SNS_TOPIC, 
+				NOTIFICATION_SUBJECT + new LocalDate().toString(),
+				crawlerOutput);		
+	}
+	
+	// TODO map sample count to SMALL, MEDIUM, LARGE
+	// for Affy unsupervised QC we know the memory requirement is about 40MB per sample
+	// we have Belltown=256GB, Sodo=64GB, Ballard=32GB
+	// regular EC2: small=1.7GB, large=7.5GB, xl=15GB ($0.68/hr)
+	// hi-mem EC2: xl=17GB ($0.50/hr), dxl=34GB, qxl=68GB
+	//
+	// One approach for large jobs is to reject anything larger than the capacity of the
+	// largest machine.  Here we say that anything larger then the capacity of the 2nd largest
+	// machine is sent to the largest, which can 'take a crack at it.'
+	//
+	public static String getActivityRequirementFromSampleCount(int numSamples) {
+		// compute the memory needed for this number of samples, rounded up to the nearest GB
+		int gigaBytesRequired = (int)Math.ceil((float)numSamples * (float)MEAGABYTES_PER_SAMPLE/1000F);
+		if (gigaBytesRequired<=SMALL_CAPACITY_GB) {
+			return GEPWorkflow.ACTIVITY_REQUIREMENT_SMALL;
+		} else if (gigaBytesRequired<=MEDIUM_CAPACITY_GB) {
+			return GEPWorkflow.ACTIVITY_REQUIREMENT_MEDIUM;
+		} else if (gigaBytesRequired<=LARGE_CAPACITY_GB) {
+			return GEPWorkflow.ACTIVITY_REQUIREMENT_LARGE;
+		} else {
+			return GEPWorkflow.ACTIVITY_REQUIREMENT_EXTRA_LARGE;
 		}
 	}
+	
+	private static final int MEAGABYTES_PER_SAMPLE = 40;
+	private static final int SMALL_CAPACITY_GB = ConfigHelper.getGEPipelineSmallCapacityGB();
+	private static final int MEDIUM_CAPACITY_GB = ConfigHelper.getGEPipelineMediumCapacityGB();
+	private static final int LARGE_CAPACITY_GB = ConfigHelper.getGEPipelineLargeCapacityGB();
+
 
 	/**
 	 * @param args

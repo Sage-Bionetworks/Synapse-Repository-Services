@@ -25,6 +25,8 @@ public class ScriptProcessor {
 	private static final String REPO_ENDPOINT_KEY = "--repoEndpoint";
 
 	private static final String PROJECT_ID_PARAMETER_KEY = "--projectId";
+	
+	private static final String VERBOSE_OPTION = "--verbose";
 
 //	private static final String INPUT_LAYER_PARAMETER_KEY = "--layerId";
 
@@ -49,7 +51,7 @@ public class ScriptProcessor {
 			 rScriptPath = ConfigHelper.getRScriptPath();
 		}
 		
-		String scriptInput[] = new String[] {rScriptPath, script, argsDelimiter,
+		String scriptInput[] = new String[] {rScriptPath, VERBOSE_OPTION, script, argsDelimiter,
 				SYNAPSE_USERNAME_KEY, ConfigHelper.getSynapseUsername(),
 				SYNAPSE_SECRETKEY_KEY, ConfigHelper.getSynapseSecretKey(),
 				AUTH_ENDPOINT_KEY, ConfigHelper.getAuthenticationServicePublicEndpoint(),
@@ -71,7 +73,7 @@ public class ScriptProcessor {
 		if (0 != result.getReturnCode()) {
 			throw new UnrecoverableException("Activity failed(" + result.getReturnCode()
 					+ ") for " + StringUtils.join(scriptInput, " ")
-					+ " stderr: " + result.getStderr());
+					+ "\nstderr: " + result.getStderr()+"\nstdout: "+result.getStdout());
 		}
 		log.debug("Finished running: " + StringUtils.join(scriptInput, " "));
 

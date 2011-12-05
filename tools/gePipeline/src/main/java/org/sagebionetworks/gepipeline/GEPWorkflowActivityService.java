@@ -3,6 +3,7 @@ package org.sagebionetworks.gepipeline;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
 
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
@@ -32,6 +33,8 @@ public class GEPWorkflowActivityService {
 
 		return gepWorkflowActivityServiceInstance;
 	}
+	
+	private static final String CAPABILITY_PROPERTY_NAME = "org.sagebionetworks.gepipeline.capability";
 
 	/**
 	 * @param args
@@ -46,9 +49,20 @@ public class GEPWorkflowActivityService {
 		// Create the client for Simple Workflow Service
 		swfService = ConfigHelper.createSWFClient();
 
+		// Enable routing to specific hosts, based on capabilities
+		// Note, we do NOT want to put this property into a properties file, which may be used by multiple
+		// hosts sharing a common file system.  Rather we pass in as a command-line property
+		// the property contains multiple capabilities, separated by comma, colon, or semi-colon
+		String capabilitiesString = System.getProperty(CAPABILITY_PROPERTY_NAME);
+		List<String> capabilities = new ArrayList<String>();
+		StringTokenizer st = new StringTokenizer(capabilitiesString, ",:;");
+		while (st.hasMoreTokens()) {
+			capabilities.add(st.nextToken());
+		}
+
 		// Start Activity Executor Service
 		getGEPWorkflowActivityServiceInstance()
-				.startGEPWorkflowActivityService();
+				.startGEPWorkflowActivityService(capabilities);
 
 		// Add a Shutdown hook to close ActivityExecutorService
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
@@ -73,7 +87,7 @@ public class GEPWorkflowActivityService {
 		System.exit(0);
 	}
 
-	private void startGEPWorkflowActivityService() throws Exception {
+	private void startGEPWorkflowActivityService(List<String> capabilities) throws Exception {
 		System.out.println("Starting Agent Service...");
 
 		activityExecutor = new AsynchronyExecutorService(swfService);
@@ -83,9 +97,6 @@ public class GEPWorkflowActivityService {
 				.addActivitiesFromPackage(GEPWorkflowActivityService.class
 						.getPackage().getName());
 
-		// Enable routing to specific hosts
-		List<String> capabilities = new ArrayList<String>();
-		capabilities.add(GEPWorkflow.getHostName());
 		activityExecutor.setCapabilities(capabilities);
 
 		// Start ActivityExecutor Service

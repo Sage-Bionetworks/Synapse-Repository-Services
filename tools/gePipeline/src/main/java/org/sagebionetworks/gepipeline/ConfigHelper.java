@@ -203,4 +203,17 @@ public class ConfigHelper {
 	public static String getGEPipelineNoop() {
 		return configuration.getGEPipelineNoop();
 	}
+	
+	public static int getGEPipelineSmallCapacityGB() {
+		return configuration.getGEPipelineSmallCapacityGB();
+	}
+	
+	public static int getGEPipelineMediumCapacityGB() {
+		return configuration.getGEPipelineMediumCapacityGB();
+	}
+	
+	public static int getGEPipelineLargeCapacityGB() {
+		return configuration.getGEPipelineLargeCapacityGB();
+	}
+	
 }
