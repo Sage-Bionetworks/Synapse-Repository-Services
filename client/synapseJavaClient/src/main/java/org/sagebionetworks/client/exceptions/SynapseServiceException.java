@@ -1,13 +1,13 @@
 /**
  * 
  */
-package org.sagebionetworks.client;
+package org.sagebionetworks.client.exceptions;
 
 /**
  * @author deflaux
  *
  */
-public class SynapseServiceException extends Exception {
+public class SynapseServiceException extends SynapseException {
 
 	/**
 	 * 
