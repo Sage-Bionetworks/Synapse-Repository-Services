@@ -388,4 +388,17 @@ public class TemplatedConfiguration {
 	public String getGEPipelineNoop() {
 		return getProperty("org.sagebionetworks.gepipeline.noop");
 	}
+	
+	public int getGEPipelineSmallCapacityGB() {
+		return Integer.parseInt(getProperty("org.sagebionetworks.gepipeline.smallGB"));
+	}
+	
+	public int getGEPipelineMediumCapacityGB() {
+		return Integer.parseInt(getProperty("org.sagebionetworks.gepipeline.mediumGB"));
+	}
+	
+	public int getGEPipelineLargeCapacityGB() {
+		return Integer.parseInt(getProperty("org.sagebionetworks.gepipeline.largeGB"));
+	}
+	
 }

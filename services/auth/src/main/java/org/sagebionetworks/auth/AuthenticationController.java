@@ -199,7 +199,7 @@ public class AuthenticationController {
 			HttpServletResponse response) throws Exception {
 		try {
 			
-			ConsumerManager manager = new ConsumerManager(); //(ConsumerManager)session.getAttribute(MANAGER_KEY);
+			ConsumerManager manager = new ConsumerManager();
 			
 			SampleConsumer sampleConsumer = new SampleConsumer(manager);
 

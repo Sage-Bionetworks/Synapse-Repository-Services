@@ -22,6 +22,21 @@
       <scope>test</scope>
     </dependency>
 
+		<dependency>
+			<groupId>joda-time</groupId>
+			<artifactId>joda-time</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-communicationUtilities</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-securityUtilities</artifactId>
+		</dependency>
+
 		<!-- Simple Workflow Framework -->
 		<dependency>
 			<groupId>com.amazonaws.services.simpleworkflow</groupId>

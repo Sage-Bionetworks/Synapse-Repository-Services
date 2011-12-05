@@ -41,6 +41,13 @@ public class GEPWorkflow {
 	
 	public static final String INPUT_DATASET_PARAMETER_KEY = "--datasetId";
 	public static final String INPUT_DATA_PARAMETER_KEY = "--inputData";
+	
+	
+	public static final String ACTIVITY_REQUIREMENT_SMALL = "small";
+	public static final String ACTIVITY_REQUIREMENT_MEDIUM = "medium";
+	public static final String ACTIVITY_REQUIREMENT_LARGE = "large";
+	public static final String ACTIVITY_REQUIREMENT_EXTRA_LARGE = "extralarge";
+
 
 	/**
 	 * Other Constants (can be determined at runtime)
@@ -50,7 +57,7 @@ public class GEPWorkflow {
 	// convenience. We only want to dig through the logs if we need to.
 	private static final int MAX_SCRIPT_OUTPUT = 10240;
 	private static final String NOTIFICATION_SUBJECT = "GEP Workflow Notification ";
-	private static final String NOTIFICATION_SNS_TOPIC = ConfigHelper
+	public static final String NOTIFICATION_SNS_TOPIC = ConfigHelper
 			.getWorkflowSnsTopic();
 	
 	// for testing, can set the workflow to 'no-op', i.e. just close out the instance
@@ -67,7 +74,7 @@ public class GEPWorkflow {
 	@WorkflowRegistrationOptions(
 			defaultWorkflowLifetimeTimeout = @Duration(time = MAX_WORKFLOW_TIMEOUT_HOURS, unit = DurationUnit.Hours)
 	)
-	public static void doWorkflow(String datasetId, String activityInput)
+	public static void doWorkflow(String datasetId, String activityInput, String activityRequirement)
 			throws Exception {
 
 		GEPWorkflow flow = new GEPWorkflow();
@@ -94,25 +101,38 @@ public class GEPWorkflow {
 		// 'result' is the message returned by the workflow, 
 		// other returned data are in 'processedLayerId', 'stdout', 'stderr'
 		Value<String> result = flow.dispatchProcessData(script,
-				datasetId, activityInput, processedLayerId, stdout, stderr);
+				datasetId, activityInput, activityRequirement, stdout, stderr);
 
-		flow.dispatchNotifyDataProcessed(result);
+		if (hasChanged(result.get())) {
+			flow.dispatchNotifyDataProcessed(result);
+		}
 
 	}
+	
+	// TODO use return code for this status rather than parsing message
+	private static final String NO_CHANGE_MESSAGE = "has not changed since last update";
+	
+	private static boolean hasChanged(String msg) {return msg.indexOf(NO_CHANGE_MESSAGE)<0;}
 
+	// different datasets require different size machines.  The capacity requirement is 
+	// passed in as 'activityRequirement'
 	@Asynchronous
 	private Value<String> dispatchProcessData(
-			Value<String> script, String datasetId, String activityInput, 
-			Settable<String> processedLayerId, Settable<String> stdout,
+			Value<String> script, String datasetId, String activityInput, String activityRequirement,
+			Settable<String> stdout,
 			Settable<String> stderr) throws Exception {
 
-//		if (Constants.WORKFLOW_DONE.equals(rawLayerId.get())) {
-//			return Value.asValue(param + ":noop");
-//		}
-		return doProcessData(script.get(), datasetId, activityInput,
-				processedLayerId, stdout, stderr);
+		if (ACTIVITY_REQUIREMENT_SMALL.equals(activityRequirement)) {
+			return doProcessDataSmall(script.get(), datasetId, activityInput, stdout, stderr);
+		} else if (ACTIVITY_REQUIREMENT_MEDIUM.equals(activityRequirement)) {
+			return doProcessDataMedium(script.get(), datasetId, activityInput, stdout, stderr);
+		} else if (ACTIVITY_REQUIREMENT_LARGE.equals(activityRequirement)) {
+			return doProcessDataLarge(script.get(), datasetId, activityInput, stdout, stderr);
+		} else {
+			throw new IllegalArgumentException("Unexpected "+activityRequirement);
+		}
 	}
-
+	
 	@Activity(version = VERSION)
 	@ExponentialRetry(minimumAttempts = NUM_ATTEMPTS, maximumAttempts = NUM_ATTEMPTS)
 	@ActivityRegistrationOptions(
@@ -120,11 +140,11 @@ public class GEPWorkflow {
 			taskLivenessTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours))
 	@ActivitySchedulingOptions(
 			lifetimeTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours), 
-			queueTimeout = @Duration(time = MAX_QUEUE_TIMEOUT_HOURS, unit = DurationUnit.Hours))
-	private static Value<String> doProcessData(String script, 
+			queueTimeout = @Duration(time = MAX_QUEUE_TIMEOUT_HOURS, unit = DurationUnit.Hours), requirement=ACTIVITY_REQUIREMENT_SMALL)
+	private static Value<String> doProcessDataSmall(String script, 
 			String datasetId,
 			String activityInput,
-			Settable<String> processedLayerId, Settable<String> stdout,
+			Settable<String> stdout,
 			Settable<String> stderr) throws Exception {
 
 		ScriptResult result = ScriptProcessor.doProcess(script,
@@ -132,7 +152,62 @@ public class GEPWorkflow {
 						INPUT_DATASET_PARAMETER_KEY, datasetId, 
 						INPUT_DATA_PARAMETER_KEY, formatAsScriptParam(activityInput),
 						}));
-		processedLayerId.set("layer id goes here");
+		stdout.set((MAX_SCRIPT_OUTPUT > result.getStdout().length()) ? result
+				.getStdout() : result.getStdout().substring(0,
+				MAX_SCRIPT_OUTPUT));
+		stderr.set((MAX_SCRIPT_OUTPUT > result.getStderr().length()) ? result
+				.getStderr() : result.getStderr().substring(0,
+				MAX_SCRIPT_OUTPUT));
+		return Value.asValue(result.getStringResult(ScriptResult.OUTPUT_JSON_KEY));
+	}
+	
+	@Activity(version = VERSION)
+	@ExponentialRetry(minimumAttempts = NUM_ATTEMPTS, maximumAttempts = NUM_ATTEMPTS)
+	@ActivityRegistrationOptions(
+			defaultLifetimeTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours), 
+			taskLivenessTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours))
+	@ActivitySchedulingOptions(
+			lifetimeTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours), 
+			queueTimeout = @Duration(time = MAX_QUEUE_TIMEOUT_HOURS, unit = DurationUnit.Hours), requirement=ACTIVITY_REQUIREMENT_MEDIUM)
+	private static Value<String> doProcessDataMedium(String script, 
+			String datasetId,
+			String activityInput,
+			Settable<String> stdout,
+			Settable<String> stderr) throws Exception {
+
+		ScriptResult result = ScriptProcessor.doProcess(script,
+				Arrays.asList(new String[]{
+						INPUT_DATASET_PARAMETER_KEY, datasetId, 
+						INPUT_DATA_PARAMETER_KEY, formatAsScriptParam(activityInput),
+						}));
+		stdout.set((MAX_SCRIPT_OUTPUT > result.getStdout().length()) ? result
+				.getStdout() : result.getStdout().substring(0,
+				MAX_SCRIPT_OUTPUT));
+		stderr.set((MAX_SCRIPT_OUTPUT > result.getStderr().length()) ? result
+				.getStderr() : result.getStderr().substring(0,
+				MAX_SCRIPT_OUTPUT));
+		return Value.asValue(result.getStringResult(ScriptResult.OUTPUT_JSON_KEY));
+	}
+	
+	@Activity(version = VERSION)
+	@ExponentialRetry(minimumAttempts = NUM_ATTEMPTS, maximumAttempts = NUM_ATTEMPTS)
+	@ActivityRegistrationOptions(
+			defaultLifetimeTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours), 
+			taskLivenessTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours))
+	@ActivitySchedulingOptions(
+			lifetimeTimeout = @Duration(time = MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS, unit = DurationUnit.Hours), 
+			queueTimeout = @Duration(time = MAX_QUEUE_TIMEOUT_HOURS, unit = DurationUnit.Hours), requirement=ACTIVITY_REQUIREMENT_LARGE)
+	private static Value<String> doProcessDataLarge(String script, 
+			String datasetId,
+			String activityInput,
+			Settable<String> stdout,
+			Settable<String> stderr) throws Exception {
+
+		ScriptResult result = ScriptProcessor.doProcess(script,
+				Arrays.asList(new String[]{
+						INPUT_DATASET_PARAMETER_KEY, datasetId, 
+						INPUT_DATA_PARAMETER_KEY, formatAsScriptParam(activityInput),
+						}));
 		stdout.set((MAX_SCRIPT_OUTPUT > result.getStdout().length()) ? result
 				.getStdout() : result.getStdout().substring(0,
 				MAX_SCRIPT_OUTPUT));

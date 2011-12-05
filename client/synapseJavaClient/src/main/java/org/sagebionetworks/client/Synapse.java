@@ -16,6 +16,7 @@ import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.util.EntityUtils;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -66,6 +67,7 @@ public class Synapse {
 	public Synapse() {
 		// Use the default provider
 		this(new HttpClientProviderImpl());
+		log.setLevel(Level.WARN);
 	}
 
 	/**
