@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -204,7 +205,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 */
 	@SuppressWarnings("unchecked")
-	public <T extends Entity> T createEntity(T entity) throws SynapseException {
+	public <T extends JSONEntity> T createEntity(T entity) throws SynapseException {
 		if (entity == null)
 			throw new IllegalArgumentException("Entity cannot be null");
 		// Look up the EntityType for this entity.
@@ -243,10 +244,17 @@ public class Synapse {
 	 * @throws SynapseException
 	 */
 	@SuppressWarnings("unchecked")
-	public <T extends Entity> T getEntity(T entity) throws SynapseException {
+	public <T extends JSONEntity> T getEntity(T entity) throws SynapseException {
 		if (entity == null)
 			throw new IllegalArgumentException("entity cannot be null");
-		return (T) getEntity(entity.getId(), entity.getClass());
+
+		if(entity instanceof Entity) {
+			return (T) getEntity(((Entity) entity).getId(), entity.getClass());
+		} else {
+			// TODO : Nicole--add non Entity Types here
+			throw new SynapseException("NYI");
+		}
+	
 	}
 
 	/**
@@ -263,7 +271,7 @@ public class Synapse {
 	 * @throws ClientProtocolException
 	 * @throws JSONObjectAdapterException
 	 */
-	public <T extends Entity> T getEntity(String entityId,
+	public <T extends JSONEntity> T getEntity(String entityId,
 			Class<? extends T> clazz) throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("EntityId cannot be null");
@@ -466,8 +474,8 @@ public class Synapse {
 			File destinationFile) throws SynapseException {
 		List<LocationData> locations = locationable.getLocations();
 		if ((null == locations) || (0 == locations.size())) {
-			new SynapseUserException("No locations available for locationable "
-					+ locationable);
+			throw new SynapseUserException("No locations available for locationable "
+					+ locationable); 
 		}
 
 		// TODO if there are multiple locations for this locationable look in
