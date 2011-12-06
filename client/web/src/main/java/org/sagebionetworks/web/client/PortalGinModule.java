@@ -20,6 +20,8 @@ import org.sagebionetworks.web.client.view.DatasetView;
 import org.sagebionetworks.web.client.view.DatasetViewImpl;
 import org.sagebionetworks.web.client.view.DatasetsHomeView;
 import org.sagebionetworks.web.client.view.DatasetsHomeViewImpl;
+import org.sagebionetworks.web.client.view.EntityView;
+import org.sagebionetworks.web.client.view.EntityViewImpl;
 import org.sagebionetworks.web.client.view.HomeView;
 import org.sagebionetworks.web.client.view.HomeViewImpl;
 import org.sagebionetworks.web.client.view.LayerView;
@@ -125,6 +127,10 @@ public class PortalGinModule extends AbstractGinModule {
 		bind(DatasetsHomeViewImpl.class).in(Singleton.class);
 		bind(DatasetsHomeView.class).to(DatasetsHomeViewImpl.class);
 		
+		// DatasetView
+		bind(EntityViewImpl.class).in(Singleton.class);
+		bind(EntityView.class).to(EntityViewImpl.class);
+
 		// DatasetView
 		bind(DatasetViewImpl.class).in(Singleton.class);
 		bind(DatasetView.class).to(DatasetViewImpl.class);

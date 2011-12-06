@@ -8,16 +8,7 @@ public class UnknownErrorException extends RestServiceException {
 		super();
 	}
 
-	public UnknownErrorException(String message, Throwable cause) {
-		super(message, cause);
-	}
-
 	public UnknownErrorException(String message) {
 		super(message);
 	}
-
-	public UnknownErrorException(Throwable cause) {
-		super(cause);
-	}
-
 }

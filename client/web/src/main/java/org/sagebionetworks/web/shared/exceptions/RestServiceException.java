@@ -1,20 +1,19 @@
 package org.sagebionetworks.web.shared.exceptions;
 
-public class RestServiceException extends Exception {
-	public RestServiceException() {
-		super();
-	}
+import com.google.gwt.user.client.rpc.IsSerializable;
 
-	public RestServiceException(String message, Throwable cause) {
-		super(message, cause);
+public class RestServiceException extends Exception implements IsSerializable {
+	private String message;
+		
+	public RestServiceException() {
 	}
 
 	public RestServiceException(String message) {
-		super(message);
+		this.message = message;		
 	}
 
-	public RestServiceException(Throwable cause) {
-		super(cause);
+	public String getMessage() {
+		return message;
 	}
-
+	
 }

@@ -8,16 +8,7 @@ public class BadRequestException extends RestServiceException {
 		super();
 	}
 
-	public BadRequestException(String message, Throwable cause) {
-		super(message, cause);
-	}
-
 	public BadRequestException(String message) {
 		super(message);
 	}
-
-	public BadRequestException(Throwable cause) {
-		super(cause);
-	}
-
 }

@@ -11,10 +11,24 @@ import java.util.logging.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.mortbay.log.Log;
+import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseServiceException;
+import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.services.NodeService;
 import org.sagebionetworks.web.server.RestTemplateProvider;
+import org.sagebionetworks.web.shared.EntityWrapper;
 import org.sagebionetworks.web.shared.NodeType;
+import org.sagebionetworks.web.shared.exceptions.ExceptionUtil;
+import org.sagebionetworks.web.shared.exceptions.RestServiceException;
+import org.sagebionetworks.web.shared.exceptions.UnknownErrorException;
 import org.sagebionetworks.web.shared.users.AclAccessType;
 import org.sagebionetworks.web.shared.users.AclPrincipal;
 import org.springframework.http.HttpEntity;
@@ -51,6 +65,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 	private ServiceUrlProvider urlProvider;
 	// By default, we get the tokens from the session cookies.
 	private TokenProvider tokenProvider = this;
+	JSONObjectAdapter jsonObjectAdapter = new JSONObjectAdapterImpl();
 
 	/**
 	 * The rest template will be injected via Guice.
@@ -216,7 +231,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 		try {
 			JSONObject benefactor = new JSONObject(getJsonStringForUrl(url, HttpMethod.GET));
 			builder = new StringBuilder();
-			builder.append(urlProvider.getBaseUrl());
+			builder.append(urlProvider.getRepositoryServiceUrl());
 			builder.append(benefactor.getString("type"));
 			builder.append("/" + benefactor.getString("id"));
 			builder.append("/" + ServiceUtils.REPOSVC_SUFFIX_PATH_ACL);
@@ -362,7 +377,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 	public List<AclPrincipal> getAllUsers() {
 		// Build up the path
 		StringBuilder builder = new StringBuilder();
-		builder.append(urlProvider.getBaseUrl() + "/");
+		builder.append(urlProvider.getRepositoryServiceUrl() + "/");
 		builder.append(ServiceUtils.REPOSVC_PATH_GET_USERS);
 		String url = builder.toString();	
 		String userList = getJsonStringForUrl(url, HttpMethod.GET);
@@ -374,7 +389,7 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 	public List<AclPrincipal> getAllGroups() {
 		// Build up the path
 		StringBuilder builder = new StringBuilder();
-		builder.append(urlProvider.getBaseUrl() + "/");
+		builder.append(urlProvider.getRepositoryServiceUrl() + "/");
 		builder.append(ServiceUtils.AUTHSVC_GET_GROUPS_PATH);
 		String url = builder.toString();	
 		String groupList = getJsonStringForUrl(url, HttpMethod.GET);
@@ -395,7 +410,8 @@ public class NodeServiceImpl extends RemoteServiceServlet implements
 	
 	/*
 	 * Private Methods
-	 */
+	 */	
+
 	private String getJsonStringForUrl(String url, HttpMethod method) {
 		return getJsonStringForUrl(url, method, null, null);
 	}

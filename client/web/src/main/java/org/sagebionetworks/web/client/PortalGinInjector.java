@@ -5,6 +5,7 @@ import org.sagebionetworks.web.client.presenter.AnalysisPresenter;
 import org.sagebionetworks.web.client.presenter.ComingSoonPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetsHomePresenter;
+import org.sagebionetworks.web.client.presenter.EntityPresenter;
 import org.sagebionetworks.web.client.presenter.HomePresenter;
 import org.sagebionetworks.web.client.presenter.LayerPresenter;
 import org.sagebionetworks.web.client.presenter.LoginPresenter;
@@ -36,6 +37,8 @@ public interface PortalGinInjector extends Ginjector {
 	public HomePresenter getHomePresenter();
 	
 	public DatasetsHomePresenter getDatasetsHomePresenter();
+	
+	public EntityPresenter getEntityPresenter();
 	
 	public DatasetPresenter getDatasetPresenter();
 		

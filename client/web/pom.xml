@@ -119,6 +119,10 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-stackConfiguration</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>synapseJavaClient</artifactId>
+		</dependency>
 
 
 		<!-- Using the Spring RestTemplate for all REST calls -->

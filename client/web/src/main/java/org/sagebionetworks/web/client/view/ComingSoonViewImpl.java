@@ -36,8 +36,7 @@ public class ComingSoonViewImpl extends Composite implements ComingSoonView {
 			Header headerWidget, Footer footerWidget, IconsImageBundle icons,
 			SageImageBundle imageBundle,
 			QueryServiceTableResourceProvider queryServiceTableResourceProvider,
-			final NodeEditor nodeEditor,
-			EntityPageTop entityPageTop) {		
+			final NodeEditor nodeEditor) {		
 		initWidget(binder.createAndBindUi(this));
 
 		this.icons = icons;
@@ -45,10 +44,7 @@ public class ComingSoonViewImpl extends Composite implements ComingSoonView {
 		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
-		
-//		entityPageTop.setEntity(new Dataset());
-//		entityView.add(entityPageTop.asWidget());
-		
+				
 	}
 
 

@@ -10,12 +10,12 @@
 		<!--                                                               -->
 		<!-- Consider inlining CSS to reduce the number of requested files -->
 		<!--                                                               -->
-		<link rel="stylesheet" href="Portal/gwt/standard/standard.css"> 
-		<link rel="stylesheet" href="jquery.ui.all.css">
-		<link type="text/css" rel="stylesheet" href="Portal.css">
+		<link rel="stylesheet" type="text/css" href="Portal/gwt/standard/standard.css"> 
+		<link rel="stylesheet" type="text/css" href="jquery/themes/base/jquery.ui.all.css">
+		<link rel="stylesheet" type="text/css" href="Portal.css">
 		<link rel="stylesheet" type="text/css" href="resources/css/gxt-all.css" />
 		<link rel="stylesheet" type="text/css" href="resources/css/gxt-gray.css" />
-		<link href="style.css" rel="stylesheet">
+		<link rel="stylesheet" type="text/css" href="style.css" rel="stylesheet" />
 		
 		<!--[if IE 7]>
 		<link href="ie7.css" rel="stylesheet">
@@ -69,7 +69,7 @@
 		});
 	</script>
 	</head>	
-	<body class="mainBody">	
+	<body class="mainBody">			
 		<!-- OPTIONAL: include this if you want history support -->
 		<iframe src="javascript:''" id="__gwt_historyFrame" tabIndex='-1'
 			style="position: absolute; width: 0; height: 0; border: 0"></iframe>
@@ -81,12 +81,14 @@
 		application to display correctly.</div>
 		</noscript>
 		
-		<!-- This is the GWT-generated body -->
-		<div id="rootPanel"></div>
-	
-		<p>&nbsp;</p>
-		<p>&nbsp;</p>
-		<p>&nbsp;</p>
-		<p>&nbsp;</p>
+		<div class="centeredContent">
+			<!-- This is the GWT-generated body -->
+			<div id="rootPanel"></div>
+		
+			<p>&nbsp;</p>
+			<p>&nbsp;</p>
+			<p>&nbsp;</p>
+			<p>&nbsp;</p>
+		</div>
 	</body>
 </html>

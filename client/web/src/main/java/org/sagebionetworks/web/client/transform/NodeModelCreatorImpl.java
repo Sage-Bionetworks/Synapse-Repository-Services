@@ -4,6 +4,7 @@ import org.sagebionetworks.gwt.client.schema.adapter.JSONObjectGwt;
 import org.sagebionetworks.repo.model.Agreement;
 import org.sagebionetworks.repo.model.Analysis;
 import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Eula;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.Project;
@@ -14,7 +15,9 @@ import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.DownloadLocation;
 import org.sagebionetworks.web.shared.EntityTypeResponse;
+import org.sagebionetworks.web.shared.EntityWrapper;
 import org.sagebionetworks.web.shared.LayerPreview;
+import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.PagedResults;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 
@@ -28,7 +31,46 @@ import com.google.gwt.json.client.JSONParser;
  * @author dburdick
  *
  */
-public class NodeModelCreatorImpl implements NodeModelCreator {
+public class NodeModelCreatorImpl implements NodeModelCreator {		
+		
+	@Override
+	public Entity createEntity(EntityWrapper entityWrapper) throws RestServiceException {
+		Entity entity = null;
+		if(entityWrapper.getRestServiceException() != null) {
+			throw entityWrapper.getRestServiceException();
+		}
+		
+		String json = entityWrapper.getEntityJson();
+		if(json != null) {
+			JSONObject obj = JSONParser.parseStrict(json).isObject();
+			DisplayUtils.checkForErrors(obj);
+			JSONObjectAdapter adapter = new JSONObjectGwt(obj);		
+			try {
+				String typeString = adapter.getString("uri");
+				if (typeString != null) {
+					//DATASET, LAYER, PROJECT, EULA, AGREEMENT, ENTITY, ANALYSIS, STEP
+					if(typeString.matches(".*/"+ NodeType.DATASET.toString().toLowerCase() +"/.*")) {
+						entity = new Dataset(adapter);
+					} else if(typeString.matches(".*/"+ NodeType.LAYER.toString().toLowerCase() +"/.*")) {
+						entity = new Layer(adapter);
+					} else if(typeString.matches(".*/"+ NodeType.PROJECT.toString().toLowerCase() +"/.*")) {
+						entity = new Project(adapter);
+					} else if(typeString.matches(".*/"+ NodeType.EULA.toString().toLowerCase() +"/.*")) {
+						entity = new Eula(adapter);
+					} else if(typeString.matches(".*/"+ NodeType.AGREEMENT.toString().toLowerCase() +"/.*")) {
+						entity = new Agreement(adapter);
+					} else if(typeString.matches(".*/"+ NodeType.ANALYSIS.toString().toLowerCase() +"/.*")) {
+						entity = new Analysis(adapter);
+					} else if(typeString.matches(".*/"+ NodeType.STEP.toString().toLowerCase() +"/.*")) {
+						entity = new Step(adapter);
+					} 
+				}			
+			} catch (JSONObjectAdapterException e) {
+				throw new RestServiceException(e.getMessage());
+			}
+		}
+		return entity;
+	}
 
 	@Override
 	public Dataset createDataset(String json) throws RestServiceException {
@@ -40,7 +82,7 @@ public class NodeModelCreatorImpl implements NodeModelCreator {
 			entity.initializeFromJSONObject(adapter);
 			return entity;
 		} catch (JSONObjectAdapterException e) {
-			throw new RestServiceException(e);
+			throw new RestServiceException(e.getMessage());
 		}
 	}
 
@@ -54,7 +96,7 @@ public class NodeModelCreatorImpl implements NodeModelCreator {
 			entity.initializeFromJSONObject(adapter);
 			return entity;
 		} catch (JSONObjectAdapterException e) {
-			throw new RestServiceException(e);
+			throw new RestServiceException(e.getMessage());
 		}
 	}
 
@@ -75,7 +117,7 @@ public class NodeModelCreatorImpl implements NodeModelCreator {
 			entity.initializeFromJSONObject(adapter);
 			return entity;
 		} catch (JSONObjectAdapterException e) {
-			throw new RestServiceException(e);
+			throw new RestServiceException(e.getMessage());
 		}
 	}
 	
@@ -89,7 +131,7 @@ public class NodeModelCreatorImpl implements NodeModelCreator {
 			entity.initializeFromJSONObject(adapter);
 			return entity;
 		} catch (JSONObjectAdapterException e) {
-			throw new RestServiceException(e);
+			throw new RestServiceException(e.getMessage());
 		}
 	}
 
@@ -103,7 +145,7 @@ public class NodeModelCreatorImpl implements NodeModelCreator {
 			entity.initializeFromJSONObject(adapter);
 			return entity;
 		} catch (JSONObjectAdapterException e) {
-			throw new RestServiceException(e);
+			throw new RestServiceException(e.getMessage());
 		}
 	}
 	
@@ -160,7 +202,7 @@ public class NodeModelCreatorImpl implements NodeModelCreator {
 			entity.initializeFromJSONObject(adapter);
 			return entity;
 		} catch (JSONObjectAdapterException e) {
-			throw new RestServiceException(e);
+			throw new RestServiceException(e.getMessage());
 		}
 	}
 
@@ -174,10 +216,9 @@ public class NodeModelCreatorImpl implements NodeModelCreator {
 			entity.initializeFromJSONObject(adapter);
 			return entity;
 		} catch (JSONObjectAdapterException e) {
-			throw new RestServiceException(e);
+			throw new RestServiceException(e.getMessage());
 		}
 	}
-
 
 }
 

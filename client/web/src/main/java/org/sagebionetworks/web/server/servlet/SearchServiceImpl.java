@@ -104,7 +104,7 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 		// Execute the query
 
 		// Build the uri from the parameters
-		URI uri = QueryStringUtils.writeQueryUri(urlProvider.getBaseUrl() + "/", params);
+		URI uri = QueryStringUtils.writeQueryUri(urlProvider.getRepositoryServiceUrl() + "/", params);
 
 
 		HttpHeaders headers = new HttpHeaders();

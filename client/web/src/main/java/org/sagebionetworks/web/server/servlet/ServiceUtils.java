@@ -51,7 +51,7 @@ public class ServiceUtils {
 	
 	public static StringBuilder getBaseUrlBuilder(ServiceUrlProvider urlProvider, NodeType type) {
 		StringBuilder builder = new StringBuilder();
-		builder.append(urlProvider.getBaseUrl() + "/");
+		builder.append(urlProvider.getRepositoryServiceUrl() + "/");
 		// set path based on type
 		switch(type) {
 		case DATASET:

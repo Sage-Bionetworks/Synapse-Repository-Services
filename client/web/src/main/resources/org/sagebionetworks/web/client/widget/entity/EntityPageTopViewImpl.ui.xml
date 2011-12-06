@@ -7,53 +7,70 @@
 
 	<g:HTMLPanel>
 		<div id="content" class="clearfix">
+			<div id="main" role="main">
+				<ul class="breadcrumbs">
+					<li class="breadcrumb">
+						<a href="#">Home</a>
+						>
+						<a href="#DatasetsHome:0">All Datasets</a>
+						>
+						<span ui:field="breadcrumbTitleSpan" />
+					</li>
+				</ul>
 
-			<ul class="breadcrumbs">
-				<li class="breadcrumb">
-					<a href="#">Home</a>
-					>
-					<a href="#DatasetsHome:0">All Datasets</a>
-					>
-					<span ui:field="breadcrumbTitleSpan" />
-				</li>
-			</ul>
-			<div id="privacy_setting" class="right">
-				<table>
-					<tr valign="bottom">
-						<td style="padding-right: 10px">
-							<g:SimplePanel ui:field="adminPanel" />
-						</td>
-						<td>
-							<g:SimplePanel ui:field="accessPanel" />
-							<span ui:field="accessSpan" />
-						</td>
-					</tr>
-				</table>
-			</div>
-			<div class="data_info">
-				<span class="info_head">
-					<h2>
-						<span ui:field="titleSpan" />
-						<br />
-						<span ui:field="synapseIdSpan" style="font-size: 60%" />
-					</h2>
+ 				<div id="privacy_setting" class="right">
+					<table>
+						<tr valign="bottom">
+							<td style="padding-right: 10px">
+								<g:SimplePanel ui:field="adminPanel" />
+							</td>
+							<td>
+								<g:SimplePanel ui:field="accessPanel" />
+								<span ui:field="accessSpan" />
+							</td>
+						</tr>
+					</table>
+				</div>
+				
+  				<div class="portal">		
+							<!-- <g:SimplePanel ui:field="portalPanel" styleName="portal rounded dropshaddow"/>  -->							
+							<g:SimplePanel ui:field="portalPanel"/>							
 
-					<span class="data_options">
-							<g:SimplePanel ui:field="bannerRightTopSlot" />
-							<g:SimplePanel ui:field="bannerRightBottomSlot" /> 
-					</span>
-				</span>
-				<span class="info_text">
-					<g:FlowPanel ui:field="overviewPanel" />
-					<br />
-					<br />
-					<div ui:field="rClientCodeDiv" />
-				</span>
-				<span style="float:right;">
-					<g:SimplePanel ui:field="annotationsPanel" />
-				</span>
+
+<!-- 
+							<div class="column first">
+								<h4>
+									<span ui:field="titleSpan" /><br />
+									<span ui:field="synapseIdSpan" style="font-size: 60%" />									
+								</h4>
+
+								<h3>description</h3>
+								<g:FlowPanel ui:field="overviewPanel" />
+								<br />
+								<br />
+
+							</div>
+							<div class="column last">														
+								<h3>properties &amp; annotations</h3>
+								<g:SimplePanel ui:field="annotationsPanel" />							
+								<h3 class="top">Synapse R Client</h3>
+																
+								<div ui:field="rClientCodeDiv" />								
+								<g:SimplePanel ui:field="downloadRClientPanel" />
+								<g:SimplePanel ui:field="bannerRightTopSlot" />
+								<g:SimplePanel ui:field="bannerRightBottomSlot" />
+								 								
+							</div>
+							<div ui:field="col2Slot2">
+								<h3></h3>
+								<g:SimplePanel ui:field="col2Slot2Panel" />															
+							</div>
+
+ -->
+					</div>
+						
 			</div>
 		</div>
-
 	</g:HTMLPanel>
 </ui:UiBinder>
+

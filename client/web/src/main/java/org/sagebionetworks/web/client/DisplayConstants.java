@@ -72,7 +72,9 @@ public class DisplayConstants {
 	public static final String MENU_PERMISSION_LEVEL_CAN_EDIT = "Can edit";
 	public static final String MENU_PERMISSION_LEVEL_CAN_ADMINISTER = "Administrator";
 	public static final String LABEL_PERMISSION_TEXT_ADD_PEOPLE = "Add People";
-
+	public static final String BUTTON_SHOW_R_CLIENT_INSTALL = "Show R Client Installation Code";
+	public static final String LABEL_INSTALL_R_CLIENT_CODE = "Install Synapse R Client";
+	public static final String LABEL_LOAD_ENTITY_IN_R_CLIENT = "Load in Synapse R Client";
 		
 	/*
 	 * Service Constants (move to another file?)
@@ -106,6 +108,7 @@ public class DisplayConstants {
 	public static final String ERROR_GETTING_PERMISSIONS_TEXT = "READ ONLY MODE. Reason: An error occured in retrieving your level of access.";
 	public static final String ERROR_FAILED_PERSIST_AGREEMENT_TEXT = "Your license acceptance was not saved. You will need to sign it again in the future.";	
 	public static final String ERROR_USER_ALREADY_EXISTS = "There was a problem creating your account: The email address provided is already in use. If you have forgotten your password, please use the \"Forgot Password\" button from the login page.";
+	public static final String ERROR_UNABLE_TO_LOAD = "An error occured trying to load.";
 	public static final String ERROR_GENERIC = "An error occured. Please try again.";
 	public static final String ERROR_SAVE_MESSAGE = "An error occuring attempting to save. Please try again.";
 	public static final String ERROR_BAD_REQUEST_MESSAGE = "An unknown communication error occured. Please reload the page.";

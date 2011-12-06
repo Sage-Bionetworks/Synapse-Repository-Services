@@ -24,6 +24,7 @@ import org.sagebionetworks.web.client.place.Project;
 import org.sagebionetworks.web.client.place.ProjectsHome;
 import org.sagebionetworks.web.client.place.Step;
 import org.sagebionetworks.web.client.place.StepsHome;
+import org.sagebionetworks.web.client.place.Synapse;
 import org.sagebionetworks.web.client.place.users.PasswordReset;
 import org.sagebionetworks.web.client.place.users.RegisterAccount;
 import org.sagebionetworks.web.client.presenter.AnalysesHomePresenter;
@@ -31,6 +32,7 @@ import org.sagebionetworks.web.client.presenter.AnalysisPresenter;
 import org.sagebionetworks.web.client.presenter.ComingSoonPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetPresenter;
 import org.sagebionetworks.web.client.presenter.DatasetsHomePresenter;
+import org.sagebionetworks.web.client.presenter.EntityPresenter;
 import org.sagebionetworks.web.client.presenter.HomePresenter;
 import org.sagebionetworks.web.client.presenter.LayerPresenter;
 import org.sagebionetworks.web.client.presenter.LoginPresenter;
@@ -73,6 +75,7 @@ public class AppActivityMapper implements ActivityMapper {
 		openAccessPlaces.add(PasswordReset.class);
 		openAccessPlaces.add(RegisterAccount.class);
 		openAccessPlaces.add(DatasetsHome.class);
+		openAccessPlaces.add(Synapse.class);
 		openAccessPlaces.add(Dataset.class);
 		openAccessPlaces.add(Layer.class);
 		openAccessPlaces.add(ProjectsHome.class);
@@ -124,6 +127,10 @@ public class AppActivityMapper implements ActivityMapper {
 			DatasetsHomePresenter presenter = ginjector.getDatasetsHomePresenter();
 			// set this presenter's place
 			presenter.setPlace((DatasetsHome)place);
+			return presenter;
+		} else if(place instanceof Synapse){
+			EntityPresenter presenter = ginjector.getEntityPresenter();
+			presenter.setPlace((Synapse)place);
 			return presenter;
 		}else if(place instanceof Dataset){
 			DatasetPresenter presenter = ginjector.getDatasetPresenter();

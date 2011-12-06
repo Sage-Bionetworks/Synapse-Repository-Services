@@ -115,9 +115,8 @@ h1 {
     
     border-width: 1px;
     border: 1px dashed;
-    margin: 0 0 10px 0;
-    
-
+	margin: 5px 0 5px 0;
+	padding: 5px 8px 5px 8px;
 }	
 	
 	
@@ -130,4 +129,81 @@ h1 {
 .suggestSearchOntology {
 	color: #A9A9A9;
 	font: 10px;	
-}	
+}
+
+/* drop shaddow */
+.dropshaddow {
+	background: #fff;
+	border: 1px solid;
+	border-color: #dcdcdc #d1d1d1 #c3c3c3;
+	-webkit-box-shadow: rgba(0, 0, 0, 0.3) 0 1px 3px;
+	-moz-box-shadow: rgba(0, 0, 0, 0.3) 0 1px 3px;
+	box-shadow: rgba(0, 0, 0, 0.3) 0 1px 3px;
+}
+
+.dropshaddow:nth-child(1n) {
+	border: none;
+}
+
+/* Rounded corners */
+.rounded {
+	border-radius: 3px;
+	-webkit-border-radius: 3px;
+	-moz-border-radius: 3px;
+	-o-border-radius: 3px;
+	-khtml-border-radius: 3px;
+}
+
+.portal {
+	width: 100%;
+	padding-top: 5px;
+	
+}
+
+/* Portal Section header */
+.portal h3 {
+	clear: both;
+	font-size: 16px;
+	font-weight: normal;
+	font-variant: small-caps;
+	color: #000;
+	line-height: 16px;
+	margin-top: 20px;
+	margin-bottom: 20px;
+	margin-left: 0px;
+	margin-right: 0px;
+	padding-top: 6px;
+	border: 0 solid #8CC63F;	
+	border-top-width: 1px;	
+}
+
+.portal h3.top {
+	margin-top: 0px;	
+	margin-bottom: 20px;
+	margin-left: 0px;
+	margin-right: 0px;
+	
+}
+
+.portal h4.top {	
+	margin-top: 0px;
+	margin-bottom: 0px;
+	margin-left: 0px;
+	margin-right: 0px;
+	
+}
+
+/* Portal Section header */
+.portal h4 {
+	clear: both;
+	font-size: 20px;
+	font-weight: normal;
+	color: #000;
+	line-height: 20px;		
+	border: 0;			
+	margin-top: 20px;
+	margin-bottom: 0px;
+	margin-left: 0px;
+	margin-right: 0px;
+	
+}

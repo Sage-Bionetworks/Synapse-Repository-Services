@@ -17,11 +17,20 @@ public interface EntityPageTopView extends IsWidget, SynapseWidgetView {
 	public void setEntityDetails(Entity entity, boolean isAdministrator, boolean canEdit);
 	
 	/**
+	 * Alert the user that their entity delete failed 
+	 */	
+	public void showEntityDeleteFailure();
+	
+	/**
 	 * Presenter interface
 	 */
 	public interface Presenter {
 
 		PlaceChanger getPlaceChanger();
+
+		void refresh();
+
+		void delete();
 
 	}
 }

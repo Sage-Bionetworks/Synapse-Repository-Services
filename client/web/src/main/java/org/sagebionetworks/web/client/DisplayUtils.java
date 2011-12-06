@@ -53,8 +53,10 @@ public class DisplayUtils {
 	
 	public static final String DEFAULT_PLACE_TOKEN = "0";
 	
+	public static final String R_CLIENT_DOWNLOAD_CODE = "source('http://sage.fhcrc.org/CRAN.R')<br/>pkgInstall(c(\"synapseClient\"))";
+	
 	private static final String ERROR_OBJ_REASON_KEY = "reason";
-		
+	
 	/*
 	 * Style names
 	 */
@@ -296,9 +298,15 @@ public class DisplayUtils {
 		return null;	
 	}
 	
+	public static String getEntityTypeDisplay(Entity entity) {
+		NodeType type = getNodeTypeForEntity(entity);
+		String display = type.toString().toLowerCase();
+		return display.substring(0, 0).toUpperCase() + display.substring(1);
+	}
+	
 	public static String getRClientEntityLoad(String id) {
-		return "# Load in Synapse R Client:<br/>" +  
-			"entity."+ id +" <- getEntity("+ id +")";		
+		return "# " + DisplayConstants.LABEL_LOAD_ENTITY_IN_R_CLIENT + " <br/>" +
+				"entity_"+ id +" <- getEntity("+ id +")";		
 	}	
 	
 	public static String convertDateToString(Date toFormat) {

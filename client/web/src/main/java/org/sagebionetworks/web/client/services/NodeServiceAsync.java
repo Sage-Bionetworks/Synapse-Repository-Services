@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.services;
 
 import java.util.List;
 
+import org.sagebionetworks.web.shared.EntityWrapper;
 import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.users.AclAccessType;
 import org.sagebionetworks.web.shared.users.AclPrincipal;

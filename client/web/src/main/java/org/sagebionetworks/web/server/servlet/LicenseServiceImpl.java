@@ -115,7 +115,7 @@ public class LicenseServiceImpl extends RemoteServiceServlet implements LicenceS
 		SearchParameters params = new SearchParameters(select, ObjectType.agreement.name(), where, 1, 10, null, false);
 
 		// Build the uri from the parameters
-		URI uri = QueryStringUtils.writeQueryUri(urlProvider.getBaseUrl() + "/", params);
+		URI uri = QueryStringUtils.writeQueryUri(urlProvider.getRepositoryServiceUrl() + "/", params);
 
 		logger.info("GET: " + uri.toASCIIString());
 

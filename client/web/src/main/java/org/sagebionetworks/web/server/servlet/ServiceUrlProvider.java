@@ -29,7 +29,7 @@ public class ServiceUrlProvider {
 	 * @return
 	 * @throws URISyntaxException 
 	 */
-	public String getBaseUrl() {
+	public String getRepositoryServiceUrl() {
 		if(repositoryServiceUrl == null){
 			logger.info("Repository Service URL: " + repositoryServiceUrl);
 			// Make sure it is a valid url

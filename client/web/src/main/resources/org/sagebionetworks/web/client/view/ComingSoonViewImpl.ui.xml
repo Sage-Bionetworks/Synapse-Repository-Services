@@ -1,9 +1,8 @@
 <!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
 <ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
-	xmlns:g="urn:import:com.google.gwt.user.client.ui" 
-	xmlns:c="urn:import:com.google.gwt.user.cellview.client"
+	xmlns:g="urn:import:com.google.gwt.user.client.ui" xmlns:c="urn:import:com.google.gwt.user.cellview.client"
 	xmlns:s="urn:import:org.sagebionetworks.web.client.view">
-		
+
 	<ui:style>
 		.important {
 			font-weight: bold;
@@ -13,32 +12,34 @@
 			vertical-align: top;
 		}
 	</ui:style>
-		
+
 	<g:HTMLPanel>
 
-	<!-- start header -->
-		<div id="container" class="clearfix">		
+		<!-- start header -->
+		<div id="container" class="clearfix">
 			<g:SimplePanel ui:field="header" />
 			<div id="main" role="main">
-	<!-- end header -->
+				<!-- end header -->
 
-				<div id="main_content" class="clearfix">	
+				<div id="content" class="clearfix">
 					<ul class="breadcrumbs">
-						<li class="breadcrumb"><a href="#">Home</a> > All Projects</li>
+						<li class="breadcrumb">
+							<a href="#">Home</a>
+							> All Projects
+						</li>
 					</ul>
 					<h2>Coming Soon</h2>
+					<g:SimplePanel ui:field="entityView" />
 					<div class="info">
 						This page is coming soon.
-						
-						<g:SimplePanel ui:field="entityView" /> 											
-					</div>					
-				</div>		
-					
-<!-- start footer -->
+					</div>
+				</div>
+
+				<!-- start footer -->
 				<g:SimplePanel ui:field="footer" />
-			</div> <!-- id: main -->				
+			</div> <!-- id: main -->
 		</div> <!-- id: container -->
-<!-- end footer -->
+		<!-- end footer -->
 
 	</g:HTMLPanel>
 </ui:UiBinder> 
