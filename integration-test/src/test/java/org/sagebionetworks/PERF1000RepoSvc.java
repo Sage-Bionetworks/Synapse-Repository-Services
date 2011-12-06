@@ -22,8 +22,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import org.sagebionetworks.client.Synapse;
-import org.sagebionetworks.client.SynapseServiceException;
-import org.sagebionetworks.client.SynapseUserException;
+import org.sagebionetworks.client.exceptions.SynapseServiceException;
+import org.sagebionetworks.client.exceptions.SynapseUserException;
 
 /**
  * Run this performance test to ensure there's no performance regression
