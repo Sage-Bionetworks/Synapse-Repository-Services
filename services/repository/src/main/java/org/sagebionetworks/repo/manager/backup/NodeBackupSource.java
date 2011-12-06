@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.manager.backup;
 
+import java.util.List;
+import java.util.Set;
+
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
@@ -19,6 +22,14 @@ public interface NodeBackupSource {
 	 * @throws DatastoreException 
 	 */
 	public NodeBackup getRoot() throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Get the root Node ID.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public String getRootId() throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Fetch a node using its Id
@@ -45,6 +56,5 @@ public interface NodeBackupSource {
 	 * @return
 	 */
 	public long getTotalNodeCount();
-
 
 }

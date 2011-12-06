@@ -6,9 +6,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * This is a stub implementation of a Node backup source and destination for testing.
@@ -18,15 +20,26 @@ import org.sagebionetworks.repo.model.NodeRevisionBackup;
 public class NodeBackupStub implements NodeBackupManager {
 	
 	private TreeNodeBackup root;
-	private Map<String, TreeNodeBackup> nodeIdMap = new HashMap<String, TreeNodeBackup>();;
-	private Map<String, NodeRevisionBackup> revisionIdMap = new HashMap<String, NodeRevisionBackup>();;
+	private Map<String, TreeNodeBackup> nodeIdMap = new HashMap<String, TreeNodeBackup>();
+	private Map<String, NodeRevisionBackup> revisionIdMap = new HashMap<String, NodeRevisionBackup>();
 	private long nodeIdSequence;
+	private boolean wasCleared = false;
 	
 	public NodeBackupStub(TreeNodeBackup root){
 		this.root = root;
-		this.root.getNode().setParentId(null);
 		// Start the Id sequence at zero.
 		nodeIdSequence = 0;
+		init(root);
+	}
+	
+	public NodeBackupStub(TreeNodeBackup root, int sequenceStart){
+		this.root = root;
+		nodeIdSequence = sequenceStart;
+		init(root);
+	}
+
+	private void init(TreeNodeBackup root) {
+		this.root.getNode().setParentId(null);
 		// Build up a map of each node
 		recursiveBuildMap(root, null);
 	}
@@ -81,7 +94,8 @@ public class NodeBackupStub implements NodeBackupManager {
 	
 
 	@Override
-	public NodeBackup getRoot() {
+	public NodeBackup getRoot() throws NotFoundException {
+		if(root == null) throw new NotFoundException();
 		return createBackupForNode(root);
 	}
 
@@ -120,7 +134,7 @@ public class NodeBackupStub implements NodeBackupManager {
 
 	private TreeNodeBackup getNodeNode(String id) {
 		TreeNodeBackup nn =  nodeIdMap.get(id);
-		if(nn == null) throw new IllegalArgumentException("Node node found for ID: "+id);
+		if(nn == null) throw new IllegalArgumentException("Node not found for ID: "+id);
 		return nn;
 	}
 
@@ -214,8 +228,18 @@ public class NodeBackupStub implements NodeBackupManager {
 
 	@Override
 	public void clearAllData() {
-		// TODO Auto-generated method stub
-		
+		root = null;
+		nodeIdMap.clear();
+		revisionIdMap.clear();
+		wasCleared = true;
+	}
+	
+	/**
+	 * Was this stub cleared.
+	 * @return
+	 */
+	public boolean getWasCleared(){
+		return wasCleared;
 	}
 
 	@Override
@@ -225,5 +249,10 @@ public class NodeBackupStub implements NodeBackupManager {
 				+ nodeIdSequence + "]";
 	}
 
+	@Override
+	public String getRootId() throws DatastoreException, NotFoundException {
+		return getRoot().getNode().getId();
+	}
 	
+
 }

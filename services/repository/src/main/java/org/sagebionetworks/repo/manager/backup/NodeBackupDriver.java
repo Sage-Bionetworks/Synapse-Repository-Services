@@ -3,8 +3,11 @@ package org.sagebionetworks.repo.manager.backup;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface NodeBackupDriver {
@@ -19,7 +22,7 @@ public interface NodeBackupDriver {
 	 * @throws DatastoreException 
 	 * @throws InterruptedException 
 	 */
-	public boolean writeBackup(File destination, Progress progress) throws IOException, DatastoreException, NotFoundException, InterruptedException;
+	public boolean writeBackup(File destination, Progress progress, Set<String> entitiesToBackup) throws IOException, DatastoreException, NotFoundException, InterruptedException;
 	
 	/**
 	 * Restore all data from the backup file.  Any node that does not exist will

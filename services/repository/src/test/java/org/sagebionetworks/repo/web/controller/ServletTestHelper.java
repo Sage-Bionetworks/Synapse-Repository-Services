@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.RestoreFile;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.registry.backup.BackupSubmission;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
@@ -184,12 +185,12 @@ public class ServletTestHelper {
 	 * @param extraParams
 	 * @throws Exception
 	 */
-	public <T extends Entity> void deleteEntity(Class<? extends T> clazz, String id,
-			Map<String, String> extraParams) throws Exception {
-		ServletTestHelper.deleteEntity(dispatchServlet, clazz, id,
-				username, extraParams);
+	public <T extends Entity> void deleteEntity(Class<? extends T> clazz,
+			String id, Map<String, String> extraParams) throws Exception {
+		ServletTestHelper.deleteEntity(dispatchServlet, clazz, id, username,
+				extraParams);
 	}
-	
+
 	/**
 	 * @param <T>
 	 * @param clazz
@@ -199,9 +200,11 @@ public class ServletTestHelper {
 	 * @throws IOException
 	 * @throws ACLInheritanceException
 	 */
-	public <T extends Entity> AccessControlList getEntityACL(Class<? extends T> clazz, String id) throws ServletException, IOException,
-			ACLInheritanceException {
-		return ServletTestHelper.getEntityACL(dispatchServlet, clazz, id, username);
+	public <T extends Entity> AccessControlList getEntityACL(
+			Class<? extends T> clazz, String id) throws ServletException,
+			IOException, ACLInheritanceException {
+		return ServletTestHelper.getEntityACL(dispatchServlet, clazz, id,
+				username);
 	}
 
 	/**
@@ -213,11 +216,13 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public <T extends Entity> AccessControlList updateEntityAcl(Class<? extends T> clazz, String id,
-			AccessControlList entityACL) throws ServletException, IOException {
-		return ServletTestHelper.updateEntityAcl(dispatchServlet, clazz, id, entityACL, username);
+	public <T extends Entity> AccessControlList updateEntityAcl(
+			Class<? extends T> clazz, String id, AccessControlList entityACL)
+			throws ServletException, IOException {
+		return ServletTestHelper.updateEntityAcl(dispatchServlet, clazz, id,
+				entityACL, username);
 	}
-	
+
 	/**
 	 * Create the passed entity by making a request to the passed servlet.
 	 * 
@@ -230,8 +235,9 @@ public class ServletTestHelper {
 	 * @throws IOException
 	 * 
 	 */
-	public static <T extends Entity> T createEntity(HttpServlet dispatchServlet,
-			T entity, String userId) throws ServletException, IOException {
+	public static <T extends Entity> T createEntity(
+			HttpServlet dispatchServlet, T entity, String userId)
+			throws ServletException, IOException {
 		return ServletTestHelper.createEntity(dispatchServlet, entity, userId,
 				null);
 	}
@@ -249,9 +255,10 @@ public class ServletTestHelper {
 	 * @throws IOException
 	 * 
 	 */
-	public static <T extends Entity> T createEntity(HttpServlet dispatchServlet,
-			T entity, String userId, Map<String, String> extraParams)
-			throws ServletException, IOException {
+	public static <T extends Entity> T createEntity(
+			HttpServlet dispatchServlet, T entity, String userId,
+			Map<String, String> extraParams) throws ServletException,
+			IOException {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
 		EntityType type = EntityType.getNodeTypeForClass(entity.getClass());
@@ -278,8 +285,8 @@ public class ServletTestHelper {
 			throw new ServletTestHelperException(response);
 		}
 		@SuppressWarnings("unchecked")
-		T returnedEntity = (T) objectMapper.readValue(response
-				.getContentAsString(), entity.getClass());
+		T returnedEntity = (T) objectMapper.readValue(
+				response.getContentAsString(), entity.getClass());
 		return returnedEntity;
 	}
 
@@ -534,8 +541,9 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static <T extends Entity> T updateEntity(HttpServlet dispatchServlet,
-			T entity, String userId) throws ServletException, IOException {
+	public static <T extends Entity> T updateEntity(
+			HttpServlet dispatchServlet, T entity, String userId)
+			throws ServletException, IOException {
 		return ServletTestHelper.updateEntity(dispatchServlet, entity, userId,
 				null);
 	}
@@ -553,9 +561,10 @@ public class ServletTestHelper {
 	 * @throws IOException
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T extends Entity> T updateEntity(HttpServlet dispatchServlet,
-			T entity, String userId, Map<String, String> extraParams)
-			throws ServletException, IOException {
+	public static <T extends Entity> T updateEntity(
+			HttpServlet dispatchServlet, T entity, String userId,
+			Map<String, String> extraParams) throws ServletException,
+			IOException {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
 		EntityType type = EntityType.getNodeTypeForClass(entity.getClass());
@@ -581,8 +590,8 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		return (T) objectMapper.readValue(response.getContentAsString(), entity
-				.getClass());
+		return (T) objectMapper.readValue(response.getContentAsString(),
+				entity.getClass());
 	}
 
 	/**
@@ -621,8 +630,8 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		return (T) objectMapper.readValue(response.getContentAsString(), entity
-				.getClass());
+		return (T) objectMapper.readValue(response.getContentAsString(),
+				entity.getClass());
 	}
 
 	/**
@@ -654,15 +663,15 @@ public class ServletTestHelper {
 					offset.toString());
 		}
 		if (limit != null) {
-			request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, limit
-					.toString());
+			request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM,
+					limit.toString());
 		}
 		if (sort != null) {
 			request.setParameter(ServiceConstants.SORT_BY_PARAM, sort);
 		}
 		if (ascending != null) {
-			request.setParameter(ServiceConstants.ASCENDING_PARAM, ascending
-					.toString());
+			request.setParameter(ServiceConstants.ASCENDING_PARAM,
+					ascending.toString());
 		}
 		request.setRequestURI(type.getUrlPrefix());
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
@@ -704,8 +713,8 @@ public class ServletTestHelper {
 					offset.toString());
 		}
 		if (limit != null) {
-			request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, limit
-					.toString());
+			request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM,
+					limit.toString());
 		}
 		request.setRequestURI(type.getUrlPrefix() + "/" + entityId
 				+ UrlHelpers.VERSION);
@@ -736,7 +745,8 @@ public class ServletTestHelper {
 			JsonParseException, JsonMappingException, IOException {
 		PaginatedResults<T> pr = new PaginatedResults<T>(clazz);
 		try {
-			pr.initializeFromJSONObject(JSONObjectAdapterImpl.createAdapterFromJSONString(jsonString));
+			pr.initializeFromJSONObject(JSONObjectAdapterImpl
+					.createAdapterFromJSONString(jsonString));
 			return pr;
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
@@ -798,15 +808,15 @@ public class ServletTestHelper {
 					offset.toString());
 		}
 		if (limit != null) {
-			request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, limit
-					.toString());
+			request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM,
+					limit.toString());
 		}
 		if (sort != null) {
 			request.setParameter(ServiceConstants.SORT_BY_PARAM, sort);
 		}
 		if (ascending != null) {
-			request.setParameter(ServiceConstants.ASCENDING_PARAM, ascending
-					.toString());
+			request.setParameter(ServiceConstants.ASCENDING_PARAM,
+					ascending.toString());
 		}
 		String url = parentType.getUrlPrefix() + "/" + parentId
 				+ type.getUrlPrefix();
@@ -835,7 +845,8 @@ public class ServletTestHelper {
 	public static <T extends Entity> void deleteEntity(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
 			String userId) throws ServletException, IOException {
-		ServletTestHelper.deleteEntity(dispatchServlet, clazz, id, userId, null);
+		ServletTestHelper
+				.deleteEntity(dispatchServlet, clazz, id, userId, null);
 	}
 
 	/**
@@ -1107,8 +1118,8 @@ public class ServletTestHelper {
 			throw new ServletTestHelperException(response);
 		}
 		@SuppressWarnings("unchecked")
-		Collection<Map<String, Object>> us = objectMapper.readValue(response
-				.getContentAsString(), Collection.class);
+		Collection<Map<String, Object>> us = objectMapper.readValue(
+				response.getContentAsString(), Collection.class);
 		return us;
 	}
 
@@ -1136,8 +1147,8 @@ public class ServletTestHelper {
 			throw new ServletTestHelperException(response);
 		}
 		@SuppressWarnings("unchecked")
-		Collection<Map<String, Object>> us = objectMapper.readValue(response
-				.getContentAsString(), Collection.class);
+		Collection<Map<String, Object>> us = objectMapper.readValue(
+				response.getContentAsString(), Collection.class);
 		return us;
 	}
 
@@ -1171,8 +1182,8 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		return (BooleanResult) objectMapper.readValue(response
-				.getContentAsString(), BooleanResult.class);
+		return (BooleanResult) objectMapper.readValue(
+				response.getContentAsString(), BooleanResult.class);
 	}
 
 	/**
@@ -1185,20 +1196,29 @@ public class ServletTestHelper {
 	 * @throws IOException
 	 */
 	public static BackupRestoreStatus startBackup(HttpServlet dispatchServlet,
-			String userId) throws ServletException, IOException {
+			String userId, BackupSubmission submission)
+			throws ServletException, IOException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.START_BACKUP_DAEMON);
+		request.setRequestURI(UrlHelpers.ENTITY_BACKUP_DAMEON);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		// Add a body if we were provided a list of entities.
+		if (submission != null) {
+			request.addHeader("Content-Type", "application/json; charset=UTF-8");
+			StringWriter out = new StringWriter();
+			objectMapper.writeValue(out, submission);
+			String body = out.toString();
+			request.setContent(body.getBytes("UTF-8"));
+		}
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.CREATED.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		return (BackupRestoreStatus) objectMapper.readValue(response
-				.getContentAsString(), BackupRestoreStatus.class);
+		return (BackupRestoreStatus) objectMapper.readValue(
+				response.getContentAsString(), BackupRestoreStatus.class);
 	}
 
 	/**
@@ -1211,21 +1231,22 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static BackupRestoreStatus getStatus(HttpServlet dispatchServlet,
-			String userId, String id) throws ServletException, IOException {
+	public static BackupRestoreStatus getDaemonStatus(
+			HttpServlet dispatchServlet, String userId, String id)
+			throws ServletException, IOException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.GET_DAEMON_STATUS_PREFIX + "/" + id);
+		request.setRequestURI(UrlHelpers.DAEMOM + "/" + id);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		return (BackupRestoreStatus) objectMapper.readValue(response
-				.getContentAsString(), BackupRestoreStatus.class);
+		return (BackupRestoreStatus) objectMapper.readValue(
+				response.getContentAsString(), BackupRestoreStatus.class);
 	}
 
 	/**
@@ -1245,7 +1266,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.START_RESTORE_DAEMON);
+		request.setRequestURI(UrlHelpers.ENTITY_RESTORE_DAMEON);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, uesrId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
@@ -1257,8 +1278,8 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.CREATED.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		return (BackupRestoreStatus) objectMapper.readValue(response
-				.getContentAsString(), BackupRestoreStatus.class);
+		return (BackupRestoreStatus) objectMapper.readValue(
+				response.getContentAsString(), BackupRestoreStatus.class);
 	}
 
 	public static void terminateDaemon(HttpServlet dispatchServlet,
@@ -1267,7 +1288,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.TERMINATE_DAEMON_PREFIX + "/" + id);
+		request.setRequestURI(UrlHelpers.DAEMOM + "/" + id);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -1289,8 +1310,8 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		return (EntityHeader) objectMapper.readValue(response
-				.getContentAsString(), EntityHeader.class);
+		return (EntityHeader) objectMapper.readValue(
+				response.getContentAsString(), EntityHeader.class);
 	}
 
 	/**
@@ -1320,8 +1341,8 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		return (EntityHeader) objectMapper.readValue(response
-				.getContentAsString(), EntityHeader.class);
+		return (EntityHeader) objectMapper.readValue(
+				response.getContentAsString(), EntityHeader.class);
 	}
 
 }

@@ -6,7 +6,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -64,7 +68,7 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 	}
 
 	@Override
-	public boolean writeBackup(File destination, Progress progress) throws IOException, DatastoreException, NotFoundException, InterruptedException {
+	public boolean writeBackup(File destination, Progress progress, Set<String> entitiesToBackup) throws IOException, DatastoreException, NotFoundException, InterruptedException {
 		if (destination == null)
 			throw new IllegalArgumentException(
 					"Destination file cannot be null");
@@ -73,6 +77,18 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 					"Destination file dose not exist: "
 							+ destination.getAbsolutePath());
 		if(progress == null) throw new IllegalArgumentException("Progress cannot be null");
+		// If the entitiesToBackup is null then include the root
+		List<String> listToBackup = new ArrayList<String>();
+		boolean isRecursive = false;
+		if(entitiesToBackup == null){
+			// Just add the root
+			isRecursive = true;
+			listToBackup.add(backupManager.getRootId());
+		}else{
+			// Add all of the entites from the set.
+			isRecursive = false;
+			listToBackup.addAll(entitiesToBackup);
+		}
 		log.info("Starting a backup to file: " + destination.getAbsolutePath());
 		progress.setTotalCount(backupManager.getTotalNodeCount());
 		// First write to the file
@@ -80,12 +96,12 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 		ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(fos));
 		try {
 			// First write the root node as its own entry
-			NodeBackup rootBackup = backupManager.getRoot();
-			if (rootBackup == null)
-				throw new RuntimeException(
-						"Cannot create a backup because the root node is null");
-			// Recursively write each node.
-			writeBackupNode(zos, rootBackup, "", progress);
+			for(String idToBackup: listToBackup){
+				// Recursively write each node.
+				NodeBackup backup = backupManager.getNode(idToBackup);
+				if(backup == null) throw new IllegalArgumentException("Cannot backup node: "+idToBackup+" because it does not exists");
+				writeBackupNode(zos, backup, "", progress, isRecursive);
+			}
 			zos.close();
 		} finally {
 			if (fos != null) {
@@ -109,7 +125,7 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 	 * @throws InterruptedException 
 	 */
 	private boolean writeBackupNode(ZipOutputStream zos, NodeBackup backup,
-			String path, Progress progress) throws IOException, NotFoundException, DatastoreException, InterruptedException {
+			String path, Progress progress, boolean isRecurisive) throws IOException, NotFoundException, DatastoreException, InterruptedException {
 		if (backup == null)
 			throw new IllegalArgumentException("NodeBackup cannot be null");
 		if (backup.getNode() == null)
@@ -117,6 +133,9 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 		Node node = backup.getNode();
 		if (node.getId() == null)
 			throw new IllegalArgumentException("node.id cannot be null");
+		// Since this could be called in a tight loop, we need to be
+		// CPU friendly
+		Thread.yield();
 		path = path + node.getId() + PATH_DELIMITER;
 		ZipEntry entry = new ZipEntry(path + NODE_XML_FILE);
 		zos.putNextEntry(entry);
@@ -129,13 +148,15 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 		log.info(progress.toString());
 		// Check for termination.
 		checkForTermination(progress);
-		// now write each child
-		List<String> childList = backup.getChildren();
-		if (childList != null) {
-			for (String childId : childList) {
-				NodeBackup child = backupManager.getNode(childId);
-				writeBackupNode(zos, child, path, progress);
-			}
+		if(isRecurisive){
+			// now write each child
+			List<String> childList = backup.getChildren();
+			if (childList != null) {
+				for (String childId : childList) {
+					NodeBackup child = backupManager.getNode(childId);
+					writeBackupNode(zos, child, path, progress, isRecurisive);
+				}
+			}			
 		}
 		return true;
 	}
@@ -199,7 +220,6 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 		try{
 			log.info("Restoring: "+source.getAbsolutePath());
 			// First clear all data
-			backupManager.clearAllData();
 			ZipInputStream zin = new  ZipInputStream(new BufferedInputStream(fis));
 			progress.setMessage("Reading: "+source.getAbsolutePath());
 			progress.setTotalCount(source.length());
@@ -216,6 +236,17 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 				if(isNodeBackupFile(entry.getName())){
 					// This is a backup file.
 					NodeBackup backup = NodeSerializerUtil.readNodeBackup(zin);
+					// Are we restoring the root node?
+					if(backup.getNode().getParentId() == null){
+						// This node is a root.  Does it match the current root?
+						String currentRootId = getCurrentRootId();
+						if(!backup.getNode().getId().equals(currentRootId)){
+							// We are being asked to restore a root node but we already have one.
+							// Since the current root does not match the ID of the root we were given
+							// we must clear all data and start with a clean database
+							backupManager.clearAllData();
+						}
+					}
 					nodeType = EntityType.valueOf(backup.getNode().getNodeType());
 					backupManager.createOrUpdateNode(backup);
 				}else if(isNodeRevisionFile(entry.getName())){
@@ -229,6 +260,8 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 				}
 				progress.incrementProgressBy(entry.getCompressedSize());
 				log.info(progress.toString());
+				// This is run in a tight loop so to be CPU friendly we should yield
+				Thread.yield();
 			}
 		}finally{
 			if(fis != null){
@@ -236,6 +269,23 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 			}
 		}
 		return true;
+	}
+	
+	/**
+	 * Get the ID of the current root node.
+	 * @return
+	 */
+	String getCurrentRootId(){
+		try {
+			NodeBackup currentRoot = backupManager.getRoot();
+			return currentRoot.getNode().getId();
+		} catch (DatastoreException e) {
+			// There is something wrong
+			throw new RuntimeException(e);
+		} catch (NotFoundException e) {
+			// This just means the current root does not exist
+			return null;
+		}
 	}
 	
 	/**

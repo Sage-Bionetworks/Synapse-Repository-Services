@@ -57,9 +57,16 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 	@Override
 	public NodeBackup getRoot() throws DatastoreException, NotFoundException {
 		// First look up the ID of the root
-		String id = nodeDao.getNodeIdForPath(NodeConstants.ROOT_FOLDER_PATH);
+		String id = getRootId();
 		if(id == null) throw new NotFoundException("Cannot find the root node: "+NodeConstants.ROOT_FOLDER_PATH);
 		return getNode(id);
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public String getRootId() throws DatastoreException, NotFoundException {
+		String id = nodeDao.getNodeIdForPath(NodeConstants.ROOT_FOLDER_PATH);
+		return id;
 	}
 
 	@Transactional(readOnly = true)
@@ -211,15 +218,13 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 	@Override
 	public void clearAllData() {
 		try {
-			// Get the root
-			String id = nodeDao.getNodeIdForPath(NodeConstants.ROOT_FOLDER_PATH);
+			String id = getRootId();
 			// Delete it.
 			nodeDao.delete(id);
 		} catch (Exception e) {
 			// Convert all exceptions to runtimes to force a rollback on this node.
 			throw new RuntimeException(e);
 		}
-		
 	}
 
 }

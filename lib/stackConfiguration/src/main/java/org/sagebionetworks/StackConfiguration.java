@@ -349,4 +349,12 @@ public class StackConfiguration {
 	public long getCloudWatchTriggerTime() {
 		return Long.valueOf(configuration.getProperty("org.sagebionetworks.cloud.watch.trigger"));
 	}
+	
+	/**
+	 * The maximum number of threads to be used for backup/restore
+	 * @return
+	 */
+	public int getBackupRestoreThreadPoolMaximum(){
+		return Integer.valueOf(configuration.getProperty("org.sagebionetworks.backup.restore.thread.pool.maximum"));
+	}
 }

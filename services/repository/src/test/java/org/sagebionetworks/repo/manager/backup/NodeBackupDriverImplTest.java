@@ -1,10 +1,15 @@
 package org.sagebionetworks.repo.manager.backup;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -99,7 +104,7 @@ public class NodeBackupDriverImplTest {
 		try{
 			// Try to write to the temp file
 			Progress progress = new Progress();
-			sourceDriver.writeBackup(temp, progress);
+			sourceDriver.writeBackup(temp, progress, null);
 			System.out.println("Resulting file: "+temp.getAbsolutePath()+" with a size of: "+temp.length()+" bytes");
 			assertTrue(temp.length() > 10);
 			// They should start off as non equal
@@ -109,6 +114,127 @@ public class NodeBackupDriverImplTest {
 			destinationDriver.restoreFromBackup(temp, progress);
 			// At this point all of the data should have migrated from the source to the destination
 			assertEquals(stubSource, stubDestination);
+		}finally{
+			// Cleanup the file
+			temp.delete();
+		}
+	}
+	
+	@Test
+	public void testRoundTripSubSet() throws IOException, DatastoreException, NotFoundException, InterruptedException{
+		// Create a temp file
+		File temp = File.createTempFile("NodeBackupDriverImplTest", ".zip");
+		try{
+			// Try to write to the temp file
+			Set<String> idsToBackup = new HashSet<String>();
+			// Add the root node.
+			idsToBackup.add(stubSource.getRoot().getNode().getId());
+			
+			Progress progress = new Progress();
+			sourceDriver.writeBackup(temp, progress, idsToBackup);
+			System.out.println("Resulting file: "+temp.getAbsolutePath()+" with a size of: "+temp.length()+" bytes");
+			assertTrue(temp.length() > 10);
+			// They should start off as non equal
+			assertEquals(0, stubDestination.getTotalNodeCount());
+			// Now read push the backup
+			progress = new Progress();
+			destinationDriver.restoreFromBackup(temp, progress);
+			// At this point all of the data should have migrated from the source to the destination
+			assertEquals(idsToBackup.size(), stubDestination.getTotalNodeCount());
+			// Make sure we can find each of the children
+			for(String id: idsToBackup){
+				assertNotNull(stubDestination.getNode(id));
+			}
+			// Now backup and restore some children
+			idsToBackup = new HashSet<String>();
+			idsToBackup.add(stubSource.getRoot().getChildren().get(2));
+			idsToBackup.add(stubSource.getRoot().getChildren().get(1));
+			idsToBackup.add(stubSource.getRoot().getChildren().get(0));
+			progress = new Progress();
+			sourceDriver.writeBackup(temp, progress, idsToBackup);
+			System.out.println("Resulting file: "+temp.getAbsolutePath()+" with a size of: "+temp.length()+" bytes");
+			assertTrue(temp.length() > 10);
+			// They should start off as non equal
+			assertEquals(1, stubDestination.getTotalNodeCount());
+			// Now read push the backup
+			progress = new Progress();
+			destinationDriver.restoreFromBackup(temp, progress);
+			// Make sure we can find each of the children
+			for(String id: idsToBackup){
+				assertNotNull(stubDestination.getNode(id));
+			}
+
+		}finally{
+			// Cleanup the file
+			temp.delete();
+		}
+	}
+	
+	/**
+	 * For this case we are testing that if the current root does not match what comes in from an update, that it gets replaces.
+	 * @throws Exception
+	 */
+	@Test
+	public void testReplaceRoot() throws Exception{
+		// Create a temp file
+		File temp = File.createTempFile("NodeBackupDriverImplTest", ".zip");
+		try{
+			// Try to write to the temp file
+			Progress progress = new Progress();
+			sourceDriver.writeBackup(temp, progress, null);
+			String savedRootId = stubSource.getRootId();
+			System.out.println("Resulting file: "+temp.getAbsolutePath()+" with a size of: "+temp.length()+" bytes");
+			assertTrue(temp.length() > 10);
+			// Now that we have a backup, create a new destination with datat
+			TreeNodeBackup newRoot = NodeBackupDriverImplTest.generateRandomLeaf(new Random(5445), true, 3, 12);
+			newRoot.getNode().setParentId(null);
+			// This new root should get deleted
+			stubDestination = new NodeBackupStub(newRoot, 10);
+			destinationDriver = new NodeBackupDriverImpl(stubDestination);
+			String newRootId = stubDestination.getRootId();
+			// Now read push the backup
+			progress = new Progress();
+			destinationDriver.restoreFromBackup(temp, progress);
+			// At this point all of the data should have migrated from the source to the destination
+			assertFalse(newRootId.equals(stubDestination.getRootId()));
+			assertEquals(savedRootId, stubDestination.getRootId());
+			assertTrue("For this case the root node should have been replaced!", stubDestination.getWasCleared());
+		}finally{
+			// Cleanup the file
+			temp.delete();
+		}
+	}
+	
+	/**
+	 * For this case the root already exists and should not be deleted.
+	 * @throws Exception
+	 */
+	@Test
+	public void testUpdateRoot() throws Exception{
+		// Create a temp file
+		File temp = File.createTempFile("NodeBackupDriverImplTest", ".zip");
+		try{
+			// Try to write to the temp file
+			Progress progress = new Progress();
+			sourceDriver.writeBackup(temp, progress, null);
+			String savedRootId = stubSource.getRootId();
+			System.out.println("Resulting file: "+temp.getAbsolutePath()+" with a size of: "+temp.length()+" bytes");
+			assertTrue(temp.length() > 10);
+			// Now that we have a backup, create a new destination with datat
+			TreeNodeBackup newRoot = NodeBackupDriverImplTest.generateRandomLeaf(new Random(5445), true, 3, 12);
+			newRoot.getNode().setParentId(null);
+			// Start the destination with the exact same id as the current
+			stubDestination = new NodeBackupStub(newRoot, 0);
+			
+			destinationDriver = new NodeBackupDriverImpl(stubDestination);
+			String newRootId = stubDestination.getRootId();
+			// Now read push the backup
+			progress = new Progress();
+			destinationDriver.restoreFromBackup(temp, progress);
+			// At this point all of the data should have migrated from the source to the destination
+			assertTrue(newRootId.equals(stubDestination.getRootId()));
+			assertEquals(savedRootId, stubDestination.getRootId());
+			assertFalse("For this case the root node should have been updated and not replaced!", stubDestination.getWasCleared());
 		}finally{
 			// Cleanup the file
 			temp.delete();
@@ -124,7 +250,7 @@ public class NodeBackupDriverImplTest {
 			Progress progress = new Progress();
 			// This should trigger a termination
 			progress.setTerminate(true);
-			sourceDriver.writeBackup(temp, progress);
+			sourceDriver.writeBackup(temp, progress, null);
 		}finally{
 			// Cleanup the file
 			temp.delete();
@@ -138,7 +264,7 @@ public class NodeBackupDriverImplTest {
 		try{
 			// Try to write to the temp file
 			Progress progress = new Progress();
-			sourceDriver.writeBackup(temp, progress);
+			sourceDriver.writeBackup(temp, progress, null);
 			// This should trigger a termination
 			progress = new Progress();
 			progress.setTerminate(true);

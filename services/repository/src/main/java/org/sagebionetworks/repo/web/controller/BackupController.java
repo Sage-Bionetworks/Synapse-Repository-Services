@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
+import java.net.URL;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -15,6 +17,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestoreFile;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.registry.backup.BackupSubmission;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +47,9 @@ public class BackupController extends BaseController {
 	private BackupDaemonLauncher backupDaemonLauncher;
 	
 	@Autowired
+	ObjectTypeSerializer objectTypeSerializer;
+	
+	@Autowired
 	UserManager userManager;
 	
 	/**
@@ -61,7 +67,7 @@ public class BackupController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { 
-			UrlHelpers.START_BACKUP_DAEMON
+			UrlHelpers.ENTITY_BACKUP_DAMEON
 			}, method = RequestMethod.POST)
 	public @ResponseBody
 	BackupRestoreStatus startBackup(
@@ -70,11 +76,20 @@ public class BackupController extends BaseController {
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
+		
+		// The BackupSubmission is optional.  When included we will only backup the entity Ids included.
+		// When the body is null all entities will be backed up.
+		Set<String> entityIdsToBackup = null;
+		if(request.getInputStream() != null){
+			BackupSubmission submission = objectTypeSerializer.deserialize(request.getInputStream(), header,BackupSubmission.class, header.getContentType());
+			entityIdsToBackup = submission.getEntityIdsToBackup();
+		}
 
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// start a backup daemon
-		return backupDaemonLauncher.startBackup(userInfo);
+		// This is a full system backup so 
+		return backupDaemonLauncher.startBackup(userInfo, entityIdsToBackup);
 	}
 	
 	/**
@@ -95,7 +110,7 @@ public class BackupController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { 
-			UrlHelpers.START_RESTORE_DAEMON
+			UrlHelpers.ENTITY_RESTORE_DAMEON
 			}, method = RequestMethod.POST)
 	public @ResponseBody
 	BackupRestoreStatus startRestore(
@@ -130,7 +145,7 @@ public class BackupController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { 
-			UrlHelpers.GET_DAEMON_STATUS
+			UrlHelpers.ENTITY_DAEMON_ID
 			}, method = RequestMethod.GET)
 	public @ResponseBody
 	BackupRestoreStatus getStatus(
@@ -162,7 +177,7 @@ public class BackupController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { 
-			UrlHelpers.TERMINATE_DAEMON
+			UrlHelpers.ENTITY_DAEMON_ID
 			}, method = RequestMethod.DELETE)
 	public @ResponseBody
 	void terminateDaemon(
