@@ -6,6 +6,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.utils.HttpClientHelper;
 
 /**
@@ -172,7 +173,7 @@ public class DataModifier {
 										JSONObject layer = synapse.getEntity("/layer/"+layerId);
 //										System.out.println("\t\t\t"+layer);
 										outputLayerReferenceCount++;
-									} catch (IOException ioe) {
+									} catch (SynapseException ioe) {
 //										System.out.println("\t\t\tcan't retrieve id");
 									}
 								}
