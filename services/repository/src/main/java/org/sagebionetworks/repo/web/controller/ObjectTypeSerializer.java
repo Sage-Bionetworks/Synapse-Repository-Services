@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
@@ -50,7 +51,7 @@ public class ObjectTypeSerializer {
 	 * @throws IOException
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public <T extends Entity> T deserialize(final InputStream body,
+	public <T extends JSONEntity> T deserialize(final InputStream body,
 			final HttpHeaders headers, Class<? extends T> clazz, MediaType type) {
 		HttpInputMessage message = new HttpInputMessage() {
 			@Override
@@ -88,7 +89,7 @@ public class ObjectTypeSerializer {
 	 * @param type
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public <T extends Entity> void serializer(final OutputStream body,
+	public <T extends JSONEntity> void serializer(final OutputStream body,
 			final HttpHeaders headers, T toSerializer, MediaType type) {
 		HttpOutputMessage message = new HttpOutputMessage() {
 			

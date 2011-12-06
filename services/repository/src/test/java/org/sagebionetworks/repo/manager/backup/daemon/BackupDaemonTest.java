@@ -11,6 +11,9 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -47,6 +50,8 @@ public class BackupDaemonTest {
 	BackupRestoreStatusDAO stubDao = null;
 	BackupDaemon daemon = null;
 	String bucketName = "someFakeBucket";
+	ExecutorService threadPool = Executors.newFixedThreadPool(2);
+	
 	@Before
 	public void before(){
 		// Mock the AWS client
@@ -55,7 +60,7 @@ public class BackupDaemonTest {
 		// Using a stub for the dao gives us more control over the test.
 		stubDao = new BackupRestoreStatusDAOStub();
 		// The daemon is passed all mock data.
-		daemon = new BackupDaemon(stubDao, mockDriver, mockAwsClient, "someFakeBucket");
+		daemon = new BackupDaemon(stubDao, mockDriver, mockAwsClient, "someFakeBucket", threadPool);
 	}
 	
 	@Test
@@ -90,7 +95,7 @@ public class BackupDaemonTest {
 		// The AWS client should have been called with the file to update once.
 		verify(mockAwsClient, atLeastOnce()).putObject((String)any(), (String)any(), (File)any());
 		// the driver should have been called to create a backup onece
-		verify(mockDriver, atLeastOnce()).writeBackup((File)any(), (Progress)any());
+		verify(mockDriver, atLeastOnce()).writeBackup((File)any(), (Progress)any(), (Set<String>)any());
 	}
 	
 	@Test
@@ -166,7 +171,7 @@ public class BackupDaemonTest {
 	@Test
 	public void testDriverFailureBackup() throws Exception, DatastoreException{
 		// Simulate a driver failure
-		when(mockDriver.writeBackup((File)any(), (Progress)any())).thenThrow(new InterruptedException());
+		when(mockDriver.writeBackup((File)any(), (Progress)any(), (Set<String>)any())).thenThrow(new InterruptedException());
 		BackupRestoreStatus status = daemon.startBackup("someUser@sagebase.org");
 		assertNotNull(status);
 		assertNotNull(status.getId());

@@ -45,6 +45,17 @@
 	<bean id="backupManager" class="org.sagebionetworks.repo.manager.backup.NodeBackupManagerImpl" scope="singleton"/>
 	
 	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.NodeBackupDriverImpl" scope="singleton"/>
+
+	<!-- The thread pool used by the backup/restore daemons -->
+	<bean id="backupDaemonThreadPool" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetClass">
+			<value>java.util.concurrent.Executors</value>
+		</property>
+		<property name="targetMethod">
+			<value>newFixedThreadPool</value>
+		</property>
+		<property name="arguments" ref="stackConfiguration.backupRestoreThreadPoolMaximum"/>
+	</bean>
 	
 	<bean id="backupDaemonLauncher" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncherImpl" scope="singleton"/>
 	

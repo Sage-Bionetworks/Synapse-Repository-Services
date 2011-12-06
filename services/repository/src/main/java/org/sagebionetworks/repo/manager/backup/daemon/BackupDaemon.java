@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Date;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -40,10 +42,13 @@ public class BackupDaemon implements Runnable{
 	private String awsBucket;
 	private TYPE type;
 	private String backupFileName;
+	// The set of entities to backup
+	private Set<String> entitiesToBackup;
 	
 	private BackupRestoreStatus status;
 	private long startTimeNano;
-	private Thread thread;
+	// The thread pool controls how many daemon threads we start.
+	ExecutorService threadPool;
 	// Is the driver daemon done?
 	private volatile boolean isDriverDone;
 	private volatile Throwable driverError;
@@ -54,15 +59,27 @@ public class BackupDaemon implements Runnable{
 	 * @param dao
 	 * @param driver
 	 */
-	BackupDaemon(BackupRestoreStatusDAO dao, NodeBackupDriver driver, AmazonS3Client client, String bucket){
+	BackupDaemon(BackupRestoreStatusDAO dao, NodeBackupDriver driver, AmazonS3Client client, String bucket, ExecutorService threadPool){
 		if(dao == null) throw new IllegalArgumentException("BackupRestoreStatusDAO cannot be null");
 		if(driver == null) throw new IllegalArgumentException("NodeBackupDriver cannot be null");
 		if(client == null) throw new IllegalArgumentException("AmazonS3Client cannot be null");
 		if(bucket == null) throw new IllegalArgumentException("Bucket cannot be null");
+		if(threadPool == null) throw new IllegalArgumentException("Thread pool cannot be null");
 		this.backupRestoreStatusDao = dao;
 		this.backupDriver = driver;
 		this.awsClient = client;
 		this.awsBucket = bucket;
+		this.threadPool = threadPool;
+	}
+	
+	/**
+	 * Create a new daemon.  This is protected and should only be called from the launcher.
+	 * @param dao
+	 * @param driver
+	 */
+	BackupDaemon(BackupRestoreStatusDAO dao, NodeBackupDriver driver, AmazonS3Client client, String bucket, ExecutorService threadPool, Set<String> entitiesToBackup){
+		this(dao, driver, client, bucket, threadPool);
+		this.entitiesToBackup = entitiesToBackup;
 	}
 	
 	/**
@@ -83,6 +100,8 @@ public class BackupDaemon implements Runnable{
 			// Create the temporary file to write the backup too.
 			final File tempBackup = File.createTempFile("BackupDaemonJob"+status.getId()+"-", ".zip");
 			tempToDelete = tempBackup;
+			// We have started.
+			status.setStatus(STATUS.STARTED.name());
 
 			// If this is a restore then we need to download the file from S3
 			if(TYPE.RESTORE == type){
@@ -159,14 +178,14 @@ public class BackupDaemon implements Runnable{
 		isDriverDone = false;
 		// The type determines which driver method we call
 		// Start the working thread
-		Thread driverThread = new Thread(new Runnable(){
+		threadPool.execute(new Runnable(){
 			@Override
 			public void run() {
 				// Tell the driver to do its thing
 				try {
 					if(TYPE.BACKUP == type){
 						// This is a backup
-						backupDriver.writeBackup(tempBackup, progress);							
+						backupDriver.writeBackup(tempBackup, progress, entitiesToBackup);							
 					}else if(TYPE.RESTORE == type){
 						// This is a restore
 						backupDriver.restoreFromBackup(tempBackup, progress);		
@@ -179,11 +198,6 @@ public class BackupDaemon implements Runnable{
 					driverError = e;
 				} 
 		}});
-
-		// Start the driver thread
-		driverThread.setDaemon(true);
-		driverThread.setName("BakupDriverDaemon");
-		driverThread.start();
 	}
 
 	/**
@@ -261,9 +275,9 @@ public class BackupDaemon implements Runnable{
 		status = new BackupRestoreStatus();
 		status.setStartedBy(userName);
 		status.setStartedOn(new Date());
-		status.setStatus(STATUS.STARTED.name());
+		status.setStatus(STATUS.IN_QUEUE.name());
 		status.setType(this.type.name());
-		status.setProgresssMessage("Starting...");
+		status.setProgresssMessage("Pushed to the thread pool queue...");
 		status.setProgresssCurrent(0);
 		status.setProgresssTotal(0);
 		startTimeNano = System.nanoTime();
@@ -271,10 +285,7 @@ public class BackupDaemon implements Runnable{
 		String id = backupRestoreStatusDao.create(status);
 		status.setId(id);
 		// Now that we have our status we are ready to go
-		thread = new Thread(this);
-		thread.setDaemon(true);
-		thread.setName("BakupDaemon");
-		thread.start();
+		threadPool.execute(this);
 		// Return a copy of the status from the DB.
 		try {
 			return backupRestoreStatusDao.get(id);

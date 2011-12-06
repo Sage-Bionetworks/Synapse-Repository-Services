@@ -15,7 +15,7 @@ public class BackupRestoreStatus {
 	 *
 	 */
 	public enum STATUS {
-		STARTED, IN_PROGRESSS, FAILED, COMPLETED,
+		STARTED, IN_PROGRESSS, FAILED, COMPLETED, IN_QUEUE;
 	}
 	
 	/**

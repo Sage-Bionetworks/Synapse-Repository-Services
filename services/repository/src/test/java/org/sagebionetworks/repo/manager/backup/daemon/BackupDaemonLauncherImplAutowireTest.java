@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import org.junit.After;
@@ -67,7 +68,7 @@ public class BackupDaemonLauncherImplAutowireTest {
 	public void testNonAdminUserStartBackup() throws UnauthorizedException, DatastoreException{
 		UserInfo nonAdmin = testUserProvider.getTestUserInfo();
 		// A non-admin should not be able to start the daemon
-		backupDaemonLauncher.startBackup(nonAdmin);
+		backupDaemonLauncher.startBackup(nonAdmin, null);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -105,7 +106,60 @@ public class BackupDaemonLauncherImplAutowireTest {
 		
 		// First start the backup daemon as an administrator
 		UserInfo admin = testUserProvider.getTestAdminUserInfo();
-		BackupRestoreStatus status = backupDaemonLauncher.startBackup(admin);
+		BackupRestoreStatus status = backupDaemonLauncher.startBackup(admin, null);
+		assertNotNull(status);
+		assertNotNull(status.getId());
+		// Wait for it finish
+		status = waitForStatus(STATUS.COMPLETED, status.getId());
+		assertNotNull(status.getBackupUrl());
+		String fullUrl = status.getBackupUrl();
+		System.out.println(fullUrl);
+		int index = fullUrl.lastIndexOf("/");
+		String fileName = status.getBackupUrl().substring(index+1, fullUrl.length());
+		
+		// Now delete the node
+		nodeManager.delete(nonAdmin, id);
+		
+		// Now restore the node from the backup
+		status = backupDaemonLauncher.startRestore(admin, fileName);
+		assertNotNull(status);
+		assertNotNull(status.getId());
+		// Wait for it finish
+		status = waitForStatus(STATUS.COMPLETED, status.getId());
+		assertNotNull(status.getBackupUrl());
+		System.out.println(status.getBackupUrl());
+		// Now make sure the node it back.
+		Node nodeClone = nodeManager.get(nonAdmin, id);
+		assertEquals(node, nodeClone);
+		NamedAnnotations namedClone = nodeManager.getAnnotations(nonAdmin, id);
+		Annotations annosClone = namedClone.getAdditionalAnnotations();
+		assertEquals(annos, annosClone);
+	}
+	
+	@Test
+	public void testBatchRoundTrip() throws UnauthorizedException, DatastoreException, NotFoundException, InterruptedException, InvalidModelException{
+		// First create a node using random datat
+		Node node = new Node();
+		node.setName("BackupDaemonLauncherImplAutowireTest.testBatchRoundTrip");
+		node.setNodeType(EntityType.project.name());
+		UserInfo nonAdmin = testUserProvider.getTestAdminUserInfo();
+		Annotations annos = RandomAnnotationsUtil.generateRandom(12334, 100);
+		NamedAnnotations named = new NamedAnnotations();
+		named.put(NamedAnnotations.NAME_SPACE_ADDITIONAL, annos);
+		String id = nodeManager.createNewNode(node, named, nonAdmin);
+		assertNotNull(id);
+		nodesToDelete.add(id);
+		// Fetch them back
+		node = nodeManager.get(nonAdmin, id);
+		named = nodeManager.getAnnotations(nonAdmin, id);
+		annos = named.getAdditionalAnnotations();
+		
+		
+		// First start the backup daemon as an administrator
+		UserInfo admin = testUserProvider.getTestAdminUserInfo();
+		HashSet<String> batch = new HashSet<String>();
+		batch.add(id);
+		BackupRestoreStatus status = backupDaemonLauncher.startBackup(admin, batch);
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		// Wait for it finish

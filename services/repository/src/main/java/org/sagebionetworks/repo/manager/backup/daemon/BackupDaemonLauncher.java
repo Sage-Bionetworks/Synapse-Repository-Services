@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.backup.daemon;
 
+import java.util.Set;
+
 import org.sagebionetworks.repo.model.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -15,7 +17,7 @@ public interface BackupDaemonLauncher {
 	 * @throws UnauthorizedException 
 	 * @throws DatastoreException 
 	 */
-	public BackupRestoreStatus startBackup(UserInfo username) throws UnauthorizedException, DatastoreException;
+	public BackupRestoreStatus startBackup(UserInfo username, Set<String> entitiesToBackup) throws UnauthorizedException, DatastoreException;
 	
 	/**
 	 * Start a restore daemon that will populate the system using the given backup file.
