@@ -849,20 +849,26 @@ public class Synapse {
 			// deserialize and convert the error
 			int statusCode = 500; // assume a service exception
 			statusCode = e.getHttpStatus();
-			String response = null;
-			try {
-				String exceptionContent = "Service Error(" + statusCode + "): "
-						+ results.getString("reason");
+			String response = "";
+			String resultsStr = "";			
+			try {				
 
-				response = (null != e.getResponse().getEntity()) ? EntityUtils
-						.toString(e.getResponse().getEntity()) : null;
-
-				results = new JSONObject(response);
-				if (log.isDebugEnabled()) {
-					log.debug("Retrieved " + requestUrl + " : "
-							+ results.toString(JSON_INDENT));
+				try {
+					response = (null != e.getResponse().getEntity()) ? EntityUtils
+							.toString(e.getResponse().getEntity()) : null;
+	
+					results = new JSONObject(response);
+					if (log.isDebugEnabled()) {
+						log.debug("Retrieved " + requestUrl + " : "
+								+ results.toString(JSON_INDENT));
+					}
+					if(results != null) 
+						resultsStr = results.getString("reason"); 				
+				} catch(IOException ioexception) {					
 				}
-
+				String exceptionContent = "Service Error(" + statusCode + "): "
+				+ resultsStr;
+				
 				if (statusCode == 401) {
 					throw new SynapseUnauthorizedException(exceptionContent);
 				} else if (statusCode == 403) {
@@ -876,16 +882,13 @@ public class Synapse {
 				} else {
 					throw new SynapseServiceException(exceptionContent);
 				}
-
 			} catch (JSONException jsonEx) {
 				// swallow the JSONException since its not the real problem and
 				// return the response as-is since it is not JSON
 				throw new SynapseServiceException(jsonEx);
 			} catch (ParseException parseEx) {
 				throw new SynapseServiceException(parseEx);
-			} catch (IOException ioEx) {
-				throw new SynapseServiceException(ioEx);
-			}
+			} 
 		} // end catch
 		catch (MalformedURLException e) {
 			throw new SynapseServiceException(e);
