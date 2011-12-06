@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.registry.EntityTypeMetadata;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
@@ -18,7 +19,7 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
  * @author jmhill
  *
  */
-public class EntityType {
+public class EntityType {	
 	
 	@Deprecated // Only added for backwards compatibility.
 	public static final EntityType dataset = new EntityType();
@@ -63,7 +64,7 @@ public class EntityType {
 			values = new EntityType[typeList.size()];
 			// Build up the values.
 			for(short i=0; i<typeList.size(); i++){
-				EntityTypeMetadata meta = typeList.get(i);
+				EntityTypeMetadata meta = typeList.get(i);				
 				EntityType type = null;
 				if(PrefixConst.DATASET.equals(meta.getUrlPrefix())){
 					type = dataset;
@@ -95,6 +96,7 @@ public class EntityType {
 				type.validParents = meta.getValidParentTypes().toArray(new String[meta.getValidParentTypes().size()]);
 				type.defaultParenPath = meta.getDefaultParentPath();
 				type.name = meta.getName();
+				type.metadata = meta;
 
 			}
 		}catch(Exception e){
@@ -131,6 +133,7 @@ public class EntityType {
 	private String[] validParents;
 	private String defaultParenPath;
 	private String name;
+	private EntityTypeMetadata metadata; 
 	
 	/**
 	 * Do not make this public
@@ -177,7 +180,15 @@ public class EntityType {
 	public String getDefaultParentPath(){
 		return defaultParenPath;
 	}
-	
+		
+	/**
+	 * The EntityTypeMetadata object
+	 * @return
+	 */
+	public EntityTypeMetadata getMetadata() {
+		return metadata;
+	}
+
 	/**
 	 * 
 	 * @param type, if null then the object must support a null parent.
@@ -228,7 +239,7 @@ public class EntityType {
 	 * @param clazz
 	 * @return
 	 */
-	public static EntityType getNodeTypeForClass(Class<? extends Entity> clazz){
+	public static EntityType getNodeTypeForClass(Class<? extends JSONEntity> clazz){
 		if(clazz == null) throw new IllegalArgumentException("Clazz cannot be null");
 		EntityType[] array  = EntityType.values();
 		for(EntityType type: array){
