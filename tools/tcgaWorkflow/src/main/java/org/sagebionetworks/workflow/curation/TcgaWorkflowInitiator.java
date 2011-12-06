@@ -8,6 +8,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.utils.WebCrawler;
 import org.sagebionetworks.utils.SimpleObserver;
 import org.sagebionetworks.workflow.activity.Curation;
@@ -76,40 +77,44 @@ public class TcgaWorkflowInitiator {
 			String datasetAbbreviation = urlComponents[urlComponents.length - 1];
 			String datasetName = configHelper.getTCGADatasetName(datasetAbbreviation);
 			
-			JSONObject results;
+			JSONObject results = null;
 			
 			try {
 				results = synapse.query("select * from dataset where dataset.name == '"
 							+ datasetName + "'");
 			}
-			catch(SocketTimeoutException ex) {
-				// This is a naive retry once
-				Thread.sleep(5000);
-				results = synapse.query("select * from dataset where dataset.name == '"
-						+ datasetName + "'");				
+			catch(SynapseException ex) {
+				if(ex.getCause() instanceof SocketTimeoutException) {
+					// This is a naive retry once
+					Thread.sleep(5000);
+					results = synapse.query("select * from dataset where dataset.name == '"
+							+ datasetName + "'");				
+				}
 			}
 			
-			int numDatasetsFound = results.getInt("totalNumberOfResults");
-			if (0 == numDatasetsFound) {
-				// If Synapse doesn't have a dataset for it, skip it
-				log.debug("Skipping dataset " + datasetName + " at url " + url);
-			} else {
-				JSONObject datasetQueryResult = results.getJSONArray("results")
-						.getJSONObject(0);
-				String datasetId = datasetQueryResult.getString("dataset.id");
-				log.debug("WebCrawler dataset " + datasetName + "("
-						+ datasetQueryResult.getString("dataset.id")
-						+ ") at url " + url);
-				WebCrawler archiveCrawler = new WebCrawler();
-				ArchiveObserver observer = new ArchiveObserver();
-				archiveCrawler.addObserver(observer);
-				archiveCrawler.doCrawl(url, true);
-
-				Collection<String> urls = observer.getResults();
-				for (String dataLayerUrl : urls) {
-					TcgaWorkflow.doWorkflow("Workflow for TCGA Dataset "
-							+ datasetName, datasetId, dataLayerUrl);
-					log.info("Kicked off workflow for " + dataLayerUrl);
+			if(results != null) {
+				int numDatasetsFound = results.getInt("totalNumberOfResults");
+				if (0 == numDatasetsFound) {
+					// If Synapse doesn't have a dataset for it, skip it
+					log.debug("Skipping dataset " + datasetName + " at url " + url);
+				} else {
+					JSONObject datasetQueryResult = results.getJSONArray("results")
+							.getJSONObject(0);
+					String datasetId = datasetQueryResult.getString("dataset.id");
+					log.debug("WebCrawler dataset " + datasetName + "("
+							+ datasetQueryResult.getString("dataset.id")
+							+ ") at url " + url);
+					WebCrawler archiveCrawler = new WebCrawler();
+					ArchiveObserver observer = new ArchiveObserver();
+					archiveCrawler.addObserver(observer);
+					archiveCrawler.doCrawl(url, true);
+	
+					Collection<String> urls = observer.getResults();
+					for (String dataLayerUrl : urls) {
+						TcgaWorkflow.doWorkflow("Workflow for TCGA Dataset "
+								+ datasetName, datasetId, dataLayerUrl);
+						log.info("Kicked off workflow for " + dataLayerUrl);
+					}
 				}
 			}
 		}
