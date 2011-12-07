@@ -1,11 +1,14 @@
 package org.sagebionetworks.repo.model;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.EntityType;
 
 public class EntityTypeTest {
 	
@@ -82,6 +85,23 @@ public class EntityTypeTest {
 			assertNotNull(type.getId());
 			EntityType result = EntityType.getTypeForId(type.getId());
 			assertEquals(type, result);
+		}
+	}
+	
+	@Test
+	public void testChildrenStructure() {
+		EntityType[] array = EntityType.values();
+		for(EntityType type : array) {
+			// find types with this as its parent, then make sure that this contains it as a child
+			for(EntityType childType : array) {
+				if(childType.equals(type))
+					continue;				
+				List<String> childsParents = Arrays.asList(childType.getValidParentTypes());
+				if(childsParents.contains(type.getUrlPrefix())) {
+					assertTrue(type.isValidChildType(childType));
+				}
+			}
+			
 		}
 	}
 	
