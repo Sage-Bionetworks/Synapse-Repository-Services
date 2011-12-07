@@ -71,7 +71,7 @@ public class IT500SynapseJavaClient {
 	 * @throws SynapseServiceException
 	 */
 	@AfterClass
-	public static void afterClass() throws HttpException, IOException, JSONException, SynapseUserException, SynapseServiceException {
+	public static void afterClass() throws Exception {
 		if(null != project) {
 			synapse.deleteEntity(project);
 		}
