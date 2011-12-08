@@ -70,7 +70,31 @@ public class EntityType {
 			// Build up the values.
 			for(short i=0; i<typeList.size(); i++){
 				EntityTypeMetadata meta = typeList.get(i);				
-				EntityType type = getEntityTypeForMetadata(meta);
+				EntityType type;				
+				if(PrefixConst.DATASET.equals(meta.getUrlPrefix())){
+					type = dataset;
+				}else if(PrefixConst.LAYER.equals(meta.getUrlPrefix())){
+					type = layer;
+				}else if(PrefixConst.PROJECT.equals(meta.getUrlPrefix())){
+					type = project;
+				}else if(PrefixConst.AGREEMENT.equals(meta.getUrlPrefix())){
+					type = agreement;
+				}else if(PrefixConst.FOLDER.equals(meta.getUrlPrefix())){
+					type = folder;
+				}else if(PrefixConst.LOCATION.equals(meta.getUrlPrefix())){
+					type = location;
+				}else if(PrefixConst.EULA.equals(meta.getUrlPrefix())){
+					type = eula;
+				}else if(PrefixConst.STEP.equals(meta.getUrlPrefix())){
+					type = step;
+				}else if(PrefixConst.PREVIEW.equals(meta.getUrlPrefix())){
+					type = preview;
+				}else if(PrefixConst.CODE.equals(meta.getUrlPrefix())){
+					type = code;
+				}else{
+					type = new EntityType();
+				}				
+				
 				values[i] = type;
 				type.id = i;
 				type.clazz = (Class<? extends Entity>) Class.forName(meta.getClassName());
@@ -102,38 +126,6 @@ public class EntityType {
 			// Convert to a runtime
 			throw new RuntimeException(e);
 		}
-	}
-
-	public static EntityType getEntityTypeForMetadata(EntityTypeMetadata meta) {
-		return getEntityTypeForUrlPrefix(meta.getUrlPrefix());
-	}
-	
-	public static EntityType getEntityTypeForUrlPrefix(String urlPrefix) {
-		EntityType type;
-		if(PrefixConst.DATASET.equals(urlPrefix)){
-			type = dataset;
-		}else if(PrefixConst.LAYER.equals(urlPrefix)){
-			type = layer;
-		}else if(PrefixConst.PROJECT.equals(urlPrefix)){
-			type = project;
-		}else if(PrefixConst.AGREEMENT.equals(urlPrefix)){
-			type = agreement;
-		}else if(PrefixConst.FOLDER.equals(urlPrefix)){
-			type = folder;
-		}else if(PrefixConst.LOCATION.equals(urlPrefix)){
-			type = location;
-		}else if(PrefixConst.EULA.equals(urlPrefix)){
-			type = eula;
-		}else if(PrefixConst.STEP.equals(urlPrefix)){
-			type = step;
-		}else if(PrefixConst.PREVIEW.equals(urlPrefix)){
-			type = preview;
-		}else if(PrefixConst.CODE.equals(urlPrefix)){
-			type = code;
-		}else{
-			type = new EntityType();
-		}
-		return type;
 	}
 	
 	/**
