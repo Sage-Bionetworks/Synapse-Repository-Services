@@ -241,7 +241,7 @@ authMode <-
 {
 	kDefaultMode <- "auth"
 	if(missing(mode)){
-		mode <- return(.getCache("authMode"))
+		mode <- .getCache("authMode")
 		if(is.null(mode))
 			mode <- kDefaultMode
 		return(mode)
