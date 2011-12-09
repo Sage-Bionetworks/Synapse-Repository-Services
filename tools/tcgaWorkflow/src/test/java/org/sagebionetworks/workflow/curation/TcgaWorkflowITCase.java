@@ -135,7 +135,7 @@ public class TcgaWorkflowITCase {
 		Synapse synapse = ConfigHelper.createSynapseClient();
 		JSONObject results = synapse
 				.query("select * from dataset where dataset.name == 'MSKCC Prostate Cancer'");
-		assertEquals(1, results.getInt("totalNumberOfResults"));
+		assertTrue(1 <= results.getInt("totalNumberOfResults"));
 		String mskccId = results.getJSONArray("results").getJSONObject(0)
 				.getString("dataset.id");
 
