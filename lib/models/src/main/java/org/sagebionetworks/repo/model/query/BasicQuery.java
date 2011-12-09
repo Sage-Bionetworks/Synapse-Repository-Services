@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.model.EntityType;
  */
 public class BasicQuery {
 	
-	String select;
+	List<String> select;
 	EntityType from;
 	String sort;
 	List<Expression> filters;
@@ -21,10 +21,10 @@ public class BasicQuery {
 	long offset = 0;
 	long limit = 10;
 	
-	public String getSelect() {
+	public List<String> getSelect() {
 		return select;
 	}
-	public void setSelect(String select) {
+	public void setSelect(List<String> select) {
 		this.select = select;
 	}
 	public EntityType getFrom() {

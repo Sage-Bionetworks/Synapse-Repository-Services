@@ -9,6 +9,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 import org.junit.Ignore;
@@ -38,6 +40,7 @@ public class QueryParserTest {
 
 		QueryStatement stmt = new QueryStatement("select * from dataset");
 		assertEquals("dataset", stmt.getTableName());
+		assertEquals(null, stmt.getSelect());
 	}
 
 	/**
@@ -385,6 +388,41 @@ public class QueryParserTest {
 			}
 			throw e;
 		}
+	}
+	
+	@Test
+	public void testNullValue() throws Exception {
+		QueryStatement stmt = new QueryStatement("select * from enity where parentId == null");
+		assertNotNull(stmt.getSearchCondition());
+		assertEquals(1, stmt.getSearchCondition().size());
+		Expression expr = stmt.getSearchCondition().get(0);
+		assertNotNull(expr);
+		assertEquals("parentId", expr.getId().getFieldName());
+		assertEquals(null, expr.getValue());
+	}
+	
+	@Test
+	public void testSelectOneValue() throws Exception{
+		QueryStatement stmt = new QueryStatement("select id from enity where parentId == null");
+		// This is what we expect the parser to find.
+		List<String> expectedSelect = new ArrayList<String>();
+		expectedSelect.add("id");
+		assertNotNull(stmt);
+		assertNotNull(stmt.getSelect());
+		assertEquals(expectedSelect, stmt.getSelect());
+	}
+	
+	@Test
+	public void testSelectMultiple() throws Exception{
+		QueryStatement stmt = new QueryStatement("select etag, name, id from enity where parentId == null");
+		// This is what we expect the parser to find.
+		List<String> expectedSelect = new ArrayList<String>();
+		expectedSelect.add("etag");
+		expectedSelect.add("name");
+		expectedSelect.add("id");
+		assertNotNull(stmt);
+		assertNotNull(stmt.getSelect());
+		assertEquals(expectedSelect, stmt.getSelect());
 	}
 
 }

@@ -403,6 +403,32 @@ public class JDONodeQueryDAOImplTest {
 			}
 		}
 	}
+	
+	@Test
+	public void testSortOnModifedOn() throws Exception {
+		BasicQuery query = new BasicQuery();
+		query.setFrom(EntityType.dataset);
+		query.setSort(NodeField.MODIFIED_ON.getFieldName());
+		query.setAscending(false);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(totalNumberOfDatasets, results.getTotalNumberOfResults());
+		// Validate the sort
+		List<String> rows = results.getResultIds();
+		assertNotNull(rows);
+		// Each row should have each primary field
+		Long previousDate = null;
+		Long modified = null;
+		for (String id : rows) {
+			previousDate = modified;
+			Node row = nodeDao.getNode(id);
+			modified = row.getModifiedOn().getTime();
+			System.out.println(modified);
+			if (previousDate != null) {
+				assertTrue(previousDate.compareTo(modified) >= 0);
+			}
+		}
+	}
 
 	// Sorting on a string attribute
 	@Test
@@ -740,5 +766,6 @@ public class JDONodeQueryDAOImplTest {
 		count = nodeQueryDao.executeCountQuery(query, mockUserInfo);
 		assertEquals(0, count);
 	}
+
 	
 }

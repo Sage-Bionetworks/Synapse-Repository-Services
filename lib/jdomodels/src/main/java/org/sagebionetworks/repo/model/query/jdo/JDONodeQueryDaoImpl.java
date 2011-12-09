@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.query.jdo;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -7,31 +8,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.jdo.JDOException;
-import javax.jdo.PersistenceManager;
-import javax.jdo.Query;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
-import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOAccessControlList;
-import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
-import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
-import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.CompoundId;
@@ -39,8 +30,8 @@ import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.orm.jdo.JdoCallback;
-import org.springframework.orm.jdo.JdoTemplate;
+import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Implementation of the NodeQueryDao using JDO.
@@ -53,18 +44,26 @@ import org.springframework.orm.jdo.JdoTemplate;
 public class JDONodeQueryDaoImpl implements NodeQueryDao {
 
 	static private Log log = LogFactory.getLog(JDONodeQueryDaoImpl.class);
-
+	
+	// This is better suited for simple JDBC query.
 	@Autowired
-	JdoTemplate jdoTemplate;
+	private SimpleJdbcTemplate simpleJdbcTempalte;
+	
 	@Autowired
 	FieldTypeDAO fieldTypeDao;
 
+	/**
+	 * The maximum number of bytes allowed per query.
+	 */
+	public static final long MAX_BYTES_PER_QUERY = StackConfiguration.getMaximumBytesPerQueryResult();
+	
 	public static final int MAX_LIMIT = 50000000; // MySQL's upper bound on
 	// LIMIT
 	
 	/**
 	 * Execute the actual query
 	 */
+	@Transactional(readOnly = true)
 	@Override
 	public NodeQueryResults executeQuery(BasicQuery query, UserInfo userInfo) throws DatastoreException {
 		try {
@@ -79,6 +78,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	/**
 	 * Execute a count query.
 	 */
+	@Transactional(readOnly = true)
 	@Override
 	public long executeCountQuery(BasicQuery query, UserInfo userInfo)
 			throws DatastoreException {
@@ -121,18 +121,27 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		boolean columnsExist = bulidQueryStrings(in, userInfo, countQuery, fullQuery, parameters);
 		if(!columnsExist){
 			// For this case there will be no results
-			return new NodeQueryResults(new ArrayList<String>(), 0);
+			return new NodeQueryResults();
 		}
 		// Run the count query
-		List countResults = executeQuery(countQuery.toString(), parameters);
-		Object countObject = countResults.get(0);
-		long count = extractCount(countObject);
+		long count = this.simpleJdbcTempalte.queryForLong(countQuery.toString(), parameters);
 		// Now execute the non-count query
-		List resultSet = (List) executeQuery(fullQuery.toString(), parameters);
-		// Process each object
-		List<String> allRows = translateResults(resultSet);
+		SizeLimitRowMapper sizeLimitMapper = new SizeLimitRowMapper(MAX_BYTES_PER_QUERY);
+		List<Map<String, Object>> results = simpleJdbcTempalte.query(fullQuery.toString(), sizeLimitMapper, parameters);
+		String userId = null;
+		if(userInfo.getUser() != null){
+			userId = userInfo.getUser().getUserId();
+		}
+		// Build the results based on on the select
+		if(log.isDebugEnabled()){
+			log.debug("user: "+userId+ " Query: "+fullQuery.toString());
+			log.debug("user: "+userId+ " parameters: "+parameters);
+		}
+		if(log.isInfoEnabled()){
+			log.debug("user: "+userId+ " query bytes returned: "+sizeLimitMapper.getBytesUsed()+" bytes");
+		}
 		// Create the results
-		return new NodeQueryResults(allRows, count);
+		return translateResults(results, count, in.getSelect());
 	}
 	
 	/**
@@ -155,9 +164,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			return 0;
 		}
 		// Run the count query
-		List countResults = executeQuery(countQuery.toString(), parameters);
-		Object countObject = countResults.get(0);
-		long count = extractCount(countObject);
+		long count = this.simpleJdbcTempalte.queryForLong(countQuery.toString(), parameters);
 		return count;
 	}
 
@@ -172,20 +179,20 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @return True, if the query is valid and can be run, else false.
 	 */
 	private boolean bulidQueryStrings(BasicQuery in, UserInfo userInfo, StringBuilder countQuery, StringBuilder fullQuery, Map parameters) throws DatastoreException{
-		if (in.getFrom() == null)
-			throw new IllegalArgumentException(
-					"The query 'from' cannot be null");
-		// Add the type to the filter
-		in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Compartor.EQUALS, in.getFrom().getId()));
-
+		// Add a filter on type if needed
+		if(in.getFrom() != null){
+			// Add the type to the filter
+			in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Compartor.EQUALS, in.getFrom().getId()));
+		}
+		
 		// A count query is composed of the following parts
 		// <select> + <from> + <authorization_filter> + <where>
 		// The real query is composed of the following parts
 		// <select> + <from> + <authorization_filter> + <where>+ <orderby> + <paging>
 
 		// Build select
-		String selectCount = buildSelect(true);
-		String selectId = buildSelect(false);
+		String selectCount = buildSelect(true, in.getSelect());
+		String selectId = buildSelect(false, in.getSelect());
 		// The following are the parts of the query.
 		StringBuilder from = new StringBuilder();
 		StringBuilder where = new StringBuilder();
@@ -274,33 +281,9 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		builder.append(sql);
 		builder.append(") ");
 		builder.append(SqlConstants.AUTH_FILTER_ALIAS);
-		buildJoinOn(builder, SqlConstants.PRIMARY_ALIAS,
+		buildJoinOn(builder, SqlConstants.NODE_ALIAS,
 				SqlConstants.COL_NODE_BENEFACTOR_ID, SqlConstants.AUTH_FILTER_ALIAS, SqlConstants.ACL_OWNER_ID_COLUMN);
 		return builder.toString();
-	}
-
-	/**
-	 * Execute a given SQL query using the JDO template.
-	 * @param <T>
-	 * @param clazz
-	 * @param sql
-	 * @param parameters
-	 * @return
-	 */
-	public List executeQuery(final String sql, final Map<String, Object> parameters){
-		return this.jdoTemplate.execute(new JdoCallback<List>() {
-			@Override
-			public List doInJdo(PersistenceManager pm) throws JDOException {
-				if(log.isDebugEnabled()){
-					log.debug("Runing SQL query:\n"+sql);
-					if(parameters != null){
-						log.debug("Using Parameters:\n"+parameters.toString());
-					}
-				}
-				Query query = pm.newQuery("javax.jdo.query.SQL", sql);
-				return (List) query.executeWithMap(parameters);
-			}
-		});
 	}
 
 	/**
@@ -349,8 +332,9 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		if (FieldType.DOES_NOT_EXIST == type)
 			throw new AttributeDoesNotExist("No attribute found for: " + sort);
 		if (FieldType.PRIMARY_FIELD == type) {
-			sortColumnName = SqlConstants.getColumnNameForPrimaryField(sort);
-			alias = SqlConstants.PRIMARY_ALIAS;
+			NodeField nodeField = NodeField.getFieldForName(sort);
+			sortColumnName = nodeField.getColumnName();
+			alias = nodeField.getTableAlias();
 		} else {
 			// We are sorting on an attribute which means we need a left outer
 			// join.
@@ -365,6 +349,8 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		orderByClause.append(" ");
 		orderByClause.append(ascString);
 	}
+	
+
 
 	/**
 	 * Build up "on (oneAlias.oneColumn = twoAias.twoColumn)"
@@ -409,19 +395,63 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @param alias
 	 * @return
 	 */
-	public String buildSelect(boolean isCount) {
+	public String buildSelect(boolean isCount, List<String> select) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("select ");
 		if (isCount) {
 			builder.append("count(");
 		}
-		builder.append(SqlConstants.PRIMARY_ALIAS);
+		builder.append(SqlConstants.NODE_ALIAS);
 		builder.append(".");
 		builder.append(SqlConstants.COLUMN_ID);
 		if (isCount) {
 			builder.append(")");
 		}
+		// Now if the select is null then we must select the rest of the data
+		if(!isCount){
+			if(select == null || select.size() == 0){
+				// Add the primary fields
+				for(int i=0; i<NodeField.values().length; i++){
+					NodeField field = NodeField.values()[i];
+					addNodeFieldToSelect(builder, field);
+				}
+				// We also need to select the annotations
+				addAnnotationsToSelect(builder);
+			}else{
+				// Only select what we need to.
+				boolean isAnnotaionsSelected = false;
+				for(String selectName: select){
+					// First is this a primary field?
+					try{
+						NodeField field = NodeField.getFieldForName(selectName);
+						addNodeFieldToSelect(builder, field);
+					}catch (IllegalArgumentException e){
+						// This field must be an annotation.
+						if(!isAnnotaionsSelected){
+							addAnnotationsToSelect(builder);
+							isAnnotaionsSelected = true;
+						}
+					}
+				}
+			}
+		}
 		return builder.toString();
+	}
+
+	private void addAnnotationsToSelect(StringBuilder builder) {
+		builder.append(", ");
+		builder.append(SqlConstants.REVISION_ALIAS);
+		builder.append(".");
+		builder.append(SqlConstants.COL_REVISION_ANNOS_BLOB);
+	}
+
+	private void addNodeFieldToSelect(StringBuilder builder, NodeField field) {
+		builder.append(", ");
+		builder.append(field.getTableAlias());
+		builder.append(".");
+		builder.append(field.getColumnName());
+		builder.append(" as ");
+		builder.append(field.getFieldName());
 	}
 
 	/**
@@ -434,6 +464,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	protected Map<String, FieldType> buildFrom(StringBuilder fromBuilder, BasicQuery in) throws AttributeDoesNotExist {
 		Map<String, FieldType> aliasMap = new HashMap<String, FieldType>();
 		fromBuilder.append("from");
+
 		//Append any other table we might need
 		if(in.getSort() != null){
 			FieldType sortType = getFieldType(in.getSort());
@@ -457,8 +488,27 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 				}
 			}
 		}
-		// Add the primary field type
-		addFrom(fromBuilder, SqlConstants.PRIMARY_ALIAS, FieldType.PRIMARY_FIELD, aliasMap);
+		// Add the primary fields.
+		if (aliasMap.size() > 0) {
+			// This is not the first so it needs a comma in the from
+			fromBuilder.append(",");
+		}
+		// Add the revision table
+		fromBuilder.append(" ");
+		fromBuilder.append(SqlConstants.TABLE_REVISION);
+		fromBuilder.append(" ");
+		fromBuilder.append(SqlConstants.REVISION_ALIAS);
+		aliasMap.put(SqlConstants.REVISION_ALIAS, FieldType.PRIMARY_FIELD);
+		
+		// Add this table and alais to the from clause.
+		fromBuilder.append(", ");
+		fromBuilder.append(SqlConstants.TABLE_NODE);
+		fromBuilder.append(" ");
+		fromBuilder.append(SqlConstants.NODE_ALIAS);
+		aliasMap.put(SqlConstants.NODE_ALIAS, FieldType.PRIMARY_FIELD);
+		
+
+		
 		// The where clause is started if there is more than one alias used
 		return aliasMap;
 	}
@@ -500,6 +550,27 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	protected void buildWhere(StringBuilder whereBuilder, Map<String, FieldType> aliasMap, Map parameters, BasicQuery in) throws AttributeDoesNotExist {
 		// We need a where clause if there is more than one table in this query or if there are any filters.
 		int conditionCount = 0;
+		// Add the join from node to node to node revision
+		whereBuilder.append("where");
+		whereBuilder.append(" ");
+		whereBuilder.append(SqlConstants.NODE_ALIAS);
+		whereBuilder.append(".");
+		whereBuilder.append(SqlConstants.COL_NODE_ID);
+		whereBuilder.append(" = ");
+		whereBuilder.append(SqlConstants.REVISION_ALIAS);
+		whereBuilder.append(".");
+		whereBuilder.append(SqlConstants.COL_REVISION_OWNER_NODE);
+		conditionCount++;
+		whereBuilder.append(" and ");
+		whereBuilder.append(SqlConstants.NODE_ALIAS);
+		whereBuilder.append(".");
+		whereBuilder.append(SqlConstants.COL_CURRENT_REV);
+		whereBuilder.append(" = ");
+		whereBuilder.append(SqlConstants.REVISION_ALIAS);
+		whereBuilder.append(".");
+		whereBuilder.append(SqlConstants.COL_REVISION_NUMBER);
+		conditionCount++;
+		
 		// First add all of the join conditions to the where.
 		if(aliasMap.size() > 1){
 			Iterator<String> keyIt = aliasMap.keySet().iterator();
@@ -510,7 +581,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 				prepareWhereBuilder(whereBuilder, conditionCount);
 				// Join this alias to the node table.
 				whereBuilder.append(" ");
-				whereBuilder.append(SqlConstants.PRIMARY_ALIAS);
+				whereBuilder.append(SqlConstants.NODE_ALIAS);
 				whereBuilder.append(".");
 				whereBuilder.append(SqlConstants.COL_NODE_ID);
 				whereBuilder.append(" = ");
@@ -552,18 +623,23 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 				if (FieldType.DOES_NOT_EXIST == type)	throw new AttributeDoesNotExist("No attribute found for: "+ id.getFieldName());
 				if (FieldType.PRIMARY_FIELD == type) {
 					// This is a simple primary field filter
+					NodeField nodeField = NodeField.getFieldForName(exp.getId().getFieldName());
 					whereBuilder.append(" ");
-					whereBuilder.append(SqlConstants.PRIMARY_ALIAS);
+					whereBuilder.append(nodeField.getTableAlias());
 					whereBuilder.append(".");
-					whereBuilder.append(SqlConstants.getColumnNameForPrimaryField(exp.getId().getFieldName()));
+					whereBuilder.append(nodeField.getColumnName());
 					whereBuilder.append(" ");
-					whereBuilder.append(SqlConstants.getSqlForComparator(exp.getCompare()));
-					whereBuilder.append(" :");
-					// Add a bind variable
-					String bindKey = "expKey" + i;
-					whereBuilder.append(bindKey);
-					// Bind the value to the parameters
-					parameters.put(bindKey, exp.getValue());
+					if(exp.getValue() == null){
+						whereBuilder.append(" IS NULL ");
+					}else{
+						whereBuilder.append(SqlConstants.getSqlForComparator(exp.getCompare()));
+						whereBuilder.append(" :");
+						// Add a bind variable
+						String bindKey = "expKey" + i;
+						whereBuilder.append(bindKey);
+						// Bind the value to the parameters
+						parameters.put(bindKey, exp.getValue());
+					}
 				} else {
 					// This is not a primary field
 					String attTableName = QueryUtils.getTableNameForFieldType(type);
@@ -608,28 +684,77 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		}
 	}
 	
-
 	/**
-	 * Translate the results from a result set to the list of maps.
 	 * 
-	 * @param resultSet
+	 * @param fromDB
+	 * @param select
 	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws UnauthorizedException
+	 * @throws DatastoreException 
 	 */
-	private List<String> translateResults(List resultSet) throws DatastoreException {
-		try {
-			List<String> allRows = new ArrayList<String>();
-			int countReturned = resultSet.size();
-			for (int i = 0; i < countReturned; i++) {
-				Object ob = resultSet.get(i);
-				Long id = (Long) ob;
-				allRows.add(KeyFactory.keyToString(id));
+	static NodeQueryResults translateResults(List<Map<String, Object>> fromDB, long totalCount, List<String> select) throws DatastoreException{
+		// First build up the list of ID
+		List<String> idList = new ArrayList<String>();
+		for(Map<String, Object> row: fromDB){
+			// Remove the annotations from the map if there
+			byte[] zippedAnnos = (byte[]) row.remove(SqlConstants.COL_REVISION_ANNOS_BLOB);
+			// If select is null then add all
+			if(zippedAnnos != null){
+				try {
+					NamedAnnotations named = JDOSecondaryPropertyUtils.decompressedAnnotations(zippedAnnos);
+					// Add the primary
+					addNewToMap(row, named.getPrimaryAnnotations(), select);
+					// Now add the secondary.
+					addNewToMap(row, named.getAdditionalAnnotations(), select);
+				} catch (IOException e) {
+					throw new DatastoreException(e);
+				}
 			}
-			return allRows;
-		} catch (Throwable e) {
-			throw new DatastoreException(e);
+			// Replace the ID with a string if needed
+			Long idLong = (Long) row.remove(NodeField.ID.getFieldName());
+			if(idLong != null){
+				String id = KeyFactory.keyToString(idLong);
+				row.put(NodeField.ID.getFieldName(), id);
+				idList.add(id);
+			}
+//			System.out.println(row);
+		}
+		// Return the results.
+		return new NodeQueryResults(idList, fromDB, totalCount);
+	}
+	
+	private static void addNewToMap(Map<String, Object> row, Annotations annotations, List<String> select) {
+		if(annotations != null){
+			addNewOnly(row, annotations.getStringAnnotations(), select);
+			addNewOnly(row, annotations.getDateAnnotations(), select);
+			addNewOnly(row, annotations.getLongAnnotations(), select);
+			addNewOnly(row, annotations.getDoubleAnnotations(), select);
+		}
+	}
+	
+	/**
+	 * Only add values that are not already in the map
+	 * @param <K>
+	 * @param <V>
+	 * @param map
+	 * @param toAdd
+	 */
+	private static <K> void addNewOnly(Map<String, Object> map, Map<String, ? extends K> toAdd, List<String> select){
+		if(toAdd != null){
+			// If the select list is null then add all keys
+			Iterator<String> keyIt = null;
+			if(select == null){
+				// Add all keys
+				keyIt = toAdd.keySet().iterator();
+			}else{
+				// Only add keys from the list
+				keyIt = select.iterator();
+			}
+			while(keyIt.hasNext()){
+				String key = keyIt.next();
+				if(!map.containsKey(key)){
+					map.put(key, toAdd.get(key));
+				}
+			}
 		}
 	}
 
@@ -642,52 +767,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		}
 	}
 
-	/**
-	 * Runs the actual query.
-	 * 
-	 * @param pm
-	 * @return
-	 * @throws ClassNotFoundException
-	 */
-	
-	private static Map<Class, String> getAllClassTables() {
-		// Load all table names from the database
-		// Use the BasicIdentifierFactory to create the table names.
-		Map<Class, String> map = new HashMap<Class, String>();
-		BasicIdentifierFactory nameFactory = new BasicIdentifierFactory();
-		nameFactory.setWordSeparator("");
-		map.put(JDONode.class, nameFactory.generateIdentifierNameForJavaName(JDONode.class.getSimpleName()));
-		map.put(JDOStringAnnotation.class, nameFactory.generateIdentifierNameForJavaName(JDOStringAnnotation.class.getSimpleName()));
-		map.put(JDOLongAnnotation.class, nameFactory.generateIdentifierNameForJavaName(JDOLongAnnotation.class.getSimpleName()));
-		map.put(JDODoubleAnnotation.class, nameFactory.generateIdentifierNameForJavaName(JDODoubleAnnotation.class.getSimpleName()));
-		map.put(JDODateAnnotation.class, nameFactory.generateIdentifierNameForJavaName(JDODateAnnotation.class.getSimpleName()));
-		map.put(JDOUserGroup.class, nameFactory.generateIdentifierNameForJavaName(JDOUserGroup.class.getSimpleName()));
-		map.put(JDOAccessControlList.class, nameFactory.generateIdentifierNameForJavaName(JDOAccessControlList.class.getSimpleName()));
-		map.put(JDOResourceAccess.class, nameFactory.generateIdentifierNameForJavaName(JDOResourceAccess.class.getSimpleName()));
-		return map;
-	}
 
-	/**
-	 * Creates and executes the query.
-	 * 
-	 * @param pm
-	 * @param clazz
-	 * @param name
-	 * @return
-	 */
-	private Long getCountForName(final Class clazz, final String name) {
-		// Create the query
-	return jdoTemplate.execute(new JdoCallback<Long>(){
-			@Override
-			public Long doInJdo(PersistenceManager pm) throws JDOException {
-				Query query = pm.newQuery(clazz);
-				query.setResult("count(attribute)");
-				query.setFilter("this.attribute == vAtt");
-				query.declareParameters(String.class.getName() + " vAtt");
-				return (Long) query.execute(name);
-			}
-		});
-	}
 
 
 }

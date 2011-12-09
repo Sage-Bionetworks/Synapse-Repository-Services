@@ -39,6 +39,7 @@ TOKEN [IGNORE_CASE]: {
 | < ORDERBY: "order by">
 | < ASC: "asc">
 | < DESC: "desc">
+| < NULL: "null" >
 }
 
 /* Comparators */
@@ -109,11 +110,12 @@ TOKEN: {
   >
 | < WILDCARD: "*" >
 | < DOT: "." >
+| < COMMA: "," >
 }
 
 TOKEN : /* IDENTIFIERS */
 {
-  < ID: <LETTER> (<LETTER>|<DIGIT>)* >
+  < NAME: <LETTER> (<LETTER>|<DIGIT>)* >
 |
   < #LETTER:
       [
@@ -169,15 +171,36 @@ TOKEN : /* IDENTIFIERS */
 
 SimpleNode Start() : {}        
 {
-  <SELECT> <WILDCARD> <FROM> TableName() [ Where() ] [ OrderBy() ] [ Limit() ] [ Offset() ]
+  select() <FROM> TableName() [ Where() ] [ OrderBy() ] [ Limit() ] [ Offset() ]
   {  return jjtThis; }
+}
+
+void select() : {}  
+{
+  <SELECT> selectValue()
+}
+
+void selectValue() : {}  
+{
+  <WILDCARD>  { jjtThis.value = "*"; }
+  | selectList()
+}
+
+void selectList() : {}  
+{
+    Name() ( <COMMA> Name() )*
 }
 
 // This is the same as Id(), but consider how our error messages will look, might be a 
 // good reason for different names for identical methods            
 void TableName() : {}  
 {
-  <ID> { jjtThis.value = new String(token.image); /*System.out.println("token table name " + token.image);*/ }
+  <NAME> { jjtThis.value = new String(token.image); }
+}
+
+void Name() : {}  
+{
+  <NAME> { jjtThis.value = new String(token.image); /*System.out.println("token table name " + token.image);*/ }
 }
 
 void Where() : {}
@@ -228,12 +251,7 @@ void Offset() : {}
 
 void CompoundId() : {}
 {
-	Id() [ <DOT> ( Id() | StringValue() ) ]
-}
-
-void Id() : {}              
-{
-  <ID> { jjtThis.value = new String(token.image); /*System.out.println("token id " + token.image);*/ }
+	Name() [ <DOT> ( Name() | StringValue() ) ]
 }
 
 void Ascending() : {}
@@ -248,7 +266,12 @@ void Descending() : {}
 
 void Value() : {}
 {
-    FpValue() | IntValue() | DateValue() | StringValue()
+    FpValue() | IntValue() | DateValue() | StringValue() | Null()
+}
+
+void Null() : {}
+{
+	<NULL> { jjtThis.value = null; /*System.out.println("token sort direction descending");*/ }
 }
 
 void FpValue() : {}

@@ -42,11 +42,14 @@ public class ServiceConstants {
 	 * section on paging</a>
 	 */
 	public static final String PAGINATION_LIMIT_PARAM = "limit";
+	
+
 	/**
 	 * Default value for limit parameter used RequestParam annotations which
 	 * require a static string
 	 */
 	public static final String DEFAULT_PAGINATION_LIMIT_PARAM = "10";
+	public static final Integer DEFAULT_PAGINATION_LIMIT_PARAM_INT = Integer.parseInt(DEFAULT_PAGINATION_LIMIT_PARAM);
 	/**
 	 * Default value for limit parameter
 	 */

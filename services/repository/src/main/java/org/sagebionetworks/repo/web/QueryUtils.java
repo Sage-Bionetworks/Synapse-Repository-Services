@@ -1,11 +1,14 @@
 package org.sagebionetworks.repo.web;
 
+import java.util.ArrayList;
+
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
+import org.sagebionetworks.repo.model.query.jdo.NodeField;
 
 /**
  * Utility for creating various types of queries.
@@ -25,6 +28,8 @@ public class QueryUtils {
 	public static BasicQuery createChildrenOfTypePaginated(String parentId,
 			PaginatedParameters paging, EntityType type) {
 		BasicQuery query = new BasicQuery();
+		query.setSelect(new ArrayList<String>());
+		query.getSelect().add(NodeField.ID.getFieldName());
 		// We want all children
 		query.setLimit(paging.getLimit());
 		query.setOffset(paging.getOffset()-1);
@@ -43,6 +48,8 @@ public class QueryUtils {
 	 */
 	public static BasicQuery createFindPaginagedOfType(PaginatedParameters paging, EntityType type) {
 		BasicQuery query = new BasicQuery();
+		query.setSelect(new ArrayList<String>());
+		query.getSelect().add(NodeField.ID.getFieldName());
 		query.setFrom(type);
 		query.setLimit(paging.getLimit());
 		query.setOffset(paging.getOffset()-1);

@@ -98,16 +98,9 @@ public class QueryController extends BaseController {
 		QueryStatement stmt = new QueryStatement(query);
 
 		// Convert from a query statement to a basic query
-		BasicQuery basic = new BasicQuery();
-		EntityType type = EntityType.valueOf(stmt.getTableName());
-		basic.setFrom(type);
-		basic.setSort(stmt.getSortField());
-		basic.setAscending(stmt.getSortAcending());
-		basic.setLimit(stmt.getLimit());
-		basic.setOffset(stmt.getOffset()-1);
-		basic.setFilters(stmt.getSearchCondition());
+		BasicQuery basic = QueryTranslator.createBasicQuery(stmt);
 		
-		QueryResults results = entityController.executeQueryWithAnnotations(userId, basic, type.getClassForType(), request);
+		QueryResults results = entityController.executeQueryWithAnnotations(userId, basic, request);
 		results.setResults(formulateResult(stmt, results.getResults()));
 		return results;
 	}

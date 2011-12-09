@@ -357,4 +357,21 @@ public class StackConfiguration {
 	public int getBackupRestoreThreadPoolMaximum(){
 		return Integer.valueOf(configuration.getProperty("org.sagebionetworks.backup.restore.thread.pool.maximum"));
 	}
+		
+	/**
+	 * The maximum bytes allowed for a single query result.
+	 * @return
+	 */
+	public static long getMaximumBytesPerQueryResult(){
+		return Long.valueOf(configuration.getProperty("org.sagebionetworks.maximum.bytes.per.query.result"));
+	}
+	
+	/**
+	 * The maximum number entities returned in a single call
+	 * @return
+	 */
+	public static int getMaximumNumberOfEntitiesReturnedPerCall(){
+		return Integer.valueOf(configuration.getProperty("org.sagebionetworks.maximum.number.entities.returned.per.call"));
+	}
+
 }

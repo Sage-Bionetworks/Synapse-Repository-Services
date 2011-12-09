@@ -30,13 +30,4 @@ public interface NodeQueryDao {
 	 */
 	public long executeCountQuery(BasicQuery query, UserInfo userInfo) throws DatastoreException;
 
-	/**
-	 * Execute a given SQL query using the JDO template.
-	 * @param <T>
-	 * @param clazz
-	 * @param sql
-	 * @param parameters
-	 * @return
-	 */
-	public List executeQuery(final String sql, final Map<String, Object> parameters);
 }
