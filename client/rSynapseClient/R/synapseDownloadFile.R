@@ -43,7 +43,7 @@ synapseDownloadFileToDestination  <-
 	## check the md5sum of the tmpFile to see if it matches the one passed to the function
 	if (file.exists(tmpFile) & !missing(checksum)){
 		if (as.character(tools::md5sum(tmpFile)) != as.character(checksum)){
-			stop(paste("The md5sum of ", downloadFileName, " does not match the md5sum which was passed via AWS", sep=""))
+			stop(paste("The md5 of ", downloadFileName, " does not match the md5 recorded in Synapse", sep=""))
 		}
 	}
 
