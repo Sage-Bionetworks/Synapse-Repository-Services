@@ -50,6 +50,7 @@ public class EntityToMapUtilTest {
 		ewa.setEntity(ds);
 		// Now convert this to a map
 		Map<String, Object> map = EntityToMapUtil.createMapFromEntity(ewa);
+		System.out.println(map);
 		assertNotNull(map);
 		// Now make sure we can get the values out
 		assertEquals(Boolean.TRUE, map.get("hasExpressionData"));

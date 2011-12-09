@@ -579,6 +579,10 @@ public class DefaultController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
+		
+		if(limit == null){
+			limit = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM_INT;
+		}
 
 		// Determine the object type from the url.
 		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
@@ -632,6 +636,9 @@ public class DefaultController extends BaseController {
 		// Null is used for the default.
 		if(ServiceConstants.DEFAULT_SORT_BY_PARAM.equals(sort)){
 			sort = null;
+		}
+		if(limit == null){
+			limit = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM_INT;
 		}
 		PaginatedParameters paging = new PaginatedParameters(offset, limit, sort, ascending);
 		// Determine the object type from the url.

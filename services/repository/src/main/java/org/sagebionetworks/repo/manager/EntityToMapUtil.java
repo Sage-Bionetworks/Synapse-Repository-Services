@@ -1,11 +1,17 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.codehaus.jackson.map.ObjectMapper;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.query.jdo.NodeField;
+import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.TYPE;
 
 /**
  * Converts an entity with annotations to a map
@@ -26,12 +32,27 @@ public class EntityToMapUtil {
 		// Convert the object to the map
 		@SuppressWarnings("unchecked")
 		Map<String, Object> row = OBJECT_MAPPER.convertValue(entity.getEntity(),Map.class);
+		row.remove("jsonschema");
 		Annotations annotations = entity.getAnnotations();
-		addNewOnly(row, annotations.getStringAnnotations());
-		addNewOnly(row, annotations.getDateAnnotations());
-		addNewOnly(row, annotations.getLongAnnotations());
-		addNewOnly(row, annotations.getDoubleAnnotations());
+		addNewToMap(row, annotations);
 		return row;
+	}
+	
+	public static Map<String, Object> createMapFromEntity(Entity entity, Annotations annotations) {
+		// Convert the object to the map
+		Map<String, Object> row = OBJECT_MAPPER.convertValue(entity, Map.class);
+		row.remove("jsonschema");
+		addNewToMap(row, annotations);
+		return row;
+	}
+
+	private static void addNewToMap(Map<String, Object> row, Annotations annotations) {
+		if(annotations != null){
+			addNewOnly(row, annotations.getStringAnnotations());
+			addNewOnly(row, annotations.getDateAnnotations());
+			addNewOnly(row, annotations.getLongAnnotations());
+			addNewOnly(row, annotations.getDoubleAnnotations());
+		}
 	}
 	
 	/**
@@ -52,4 +73,5 @@ public class EntityToMapUtil {
 			}
 		}
 	}
+
 }

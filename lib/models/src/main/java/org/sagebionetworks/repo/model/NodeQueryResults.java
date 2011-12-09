@@ -1,22 +1,30 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class NodeQueryResults {
 	
 
 	private List<String> resultIds;
+	private List<Map<String, Object>> allSelectedData;
 	private long totalNumberOfResults;
 	
+
 	
-	public NodeQueryResults(){	
-	}
-	
-	public NodeQueryResults(List<String> resultIds, long totalCount){	
+	public NodeQueryResults(List<String> resultIds, List<Map<String, Object>> allSelectedData, long totalCount){	
 		this.resultIds = resultIds;
+		this.allSelectedData = allSelectedData;
 		this.totalNumberOfResults = totalCount;
 	}
 	
+	public NodeQueryResults() {
+		this.resultIds =  new ArrayList<String>();
+		this.allSelectedData = new ArrayList<Map<String, Object>>();
+		this.totalNumberOfResults = 0;
+	}
+
 	public List<String> getResultIds() {
 		return resultIds;
 	}
@@ -28,6 +36,14 @@ public class NodeQueryResults {
 	}
 	public void setTotalNumberOfResults(int totalNumberOfResults) {
 		this.totalNumberOfResults = totalNumberOfResults;
+	}
+
+	public List<Map<String, Object>> getAllSelectedData() {
+		return allSelectedData;
+	}
+
+	public void setAllSelectedData(List<Map<String, Object>> allSelectedData) {
+		this.allSelectedData = allSelectedData;
 	}
 
 	@Override

@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
+import org.sagebionetworks.repo.model.query.jdo.NodeField;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.util.UserProvider;
@@ -151,7 +152,7 @@ public class QueryManagerAutowireTest {
 		query.addExpression(new Expression(new CompoundId("dataset", "doubleKey"), Compartor.GREATER_THAN, "0.0"));
 		// Execute it.
 		long start = System.currentTimeMillis();
-		QueryResults results = entityController.executeQueryWithAnnotations(userId, query, Dataset.class, mockRequest);
+		QueryResults results = entityController.executeQueryWithAnnotations(userId, query, mockRequest);
 		long end = System.currentTimeMillis();
 		System.out.println("Executed the query in: "+(end-start)+" ms");
 		assertNotNull(results);
@@ -173,6 +174,7 @@ public class QueryManagerAutowireTest {
 		assertFalse((Boolean) row.get("hasClinicalData"));
 		assertTrue((Boolean) row.get("hasGeneticData"));
 		assertFalse((Boolean) row.get("hasExpressionData"));
+		assertFalse("Test for bug PLFM-834", row.containsKey("jsonschema"));
 	}
 
 }

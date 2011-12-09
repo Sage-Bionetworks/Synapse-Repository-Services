@@ -18,21 +18,21 @@ import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.BasicQuery;
+import org.sagebionetworks.repo.model.query.jdo.NodeField;
 import org.sagebionetworks.repo.util.SchemaHelper;
 import org.sagebionetworks.repo.web.controller.MetadataProviderFactory;
 import org.sagebionetworks.repo.web.controller.metadata.AllTypesValidator;
@@ -131,8 +131,6 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 				versionNumbers.size(), offset, limit, "versionNumber", false);
 	}
 	
-	
-
 
 	/**
 	 * First, execute the given query to determine the nodes that match the criteria.
@@ -538,25 +536,46 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 
 
 	@Override
-	public <T extends Entity> QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, Class<? extends T> clazz,
-			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
+	public QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
 		if(query == null) throw new IllegalArgumentException("Query cannot be null");
-		if(query.getFrom() == null) throw new IllegalArgumentException("Query.getFrom() cannot be null");
+		// This is still here to support the old way of doing things.
+		if(query.getSelect() == null){
+			return executeQueryWithAnnotationsOld(userId, query, request);
+		}
 		// Lookup the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
+		// done
+		return new QueryResults(nodeResults.getAllSelectedData(), nodeResults.getTotalNumberOfResults());
+	}
+	
+
+	@Deprecated
+	public QueryResults executeQueryWithAnnotationsOld(String userId, BasicQuery query,
+			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
+		if(query == null) throw new IllegalArgumentException("Query cannot be null");
+		// Lookup the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
+		// Select the nodeId and type
+		List<String> select = new ArrayList<String>();
+		select.add(NodeField.ID.getFieldName());
+		select.add(NodeField.NODE_TYPE.getFieldName());
+		query.setSelect(select);
 		List<String> ids = nodeResults.getResultIds();
+		List<Map<String, Object>> all = nodeResults.getAllSelectedData();
 		// Convert the list of ids to entities.
 		List<Map<String, Object>> allRows = new ArrayList<Map<String, Object>>();
-		for(String id: ids){
-			EntityWithAnnotations<T> entityWithAnnos;
+		for(Map<String, Object> rowStart: all){
+			String id = (String) rowStart.get(NodeField.ID.getFieldName());
+			Integer nodeType = (Integer) rowStart.get(NodeField.NODE_TYPE.getFieldName());
 			try {
-				T entity = this.getEntity(userInfo, id, request, clazz, EventType.GET);
+				// Lookup the entity type
+				EntityType type = EntityType.getTypeForId(nodeType.shortValue());
+
+				Entity entity = this.getEntity(userInfo, id, request, type.getClassForType(), EventType.GET);
 				Annotations annos = this.getEntityAnnotations(userInfo, id, request);
-				entityWithAnnos = new EntityWithAnnotations<T>();
-				entityWithAnnos.setEntity(entity);
-				entityWithAnnos.setAnnotations(annos);
-				Map<String, Object> row = EntityToMapUtil.createMapFromEntity(entityWithAnnos);
+				Map<String, Object> row = EntityToMapUtil.createMapFromEntity(entity, annos);
 				// Add this row
 				allRows.add(row);
 			} catch (NotFoundException e) {

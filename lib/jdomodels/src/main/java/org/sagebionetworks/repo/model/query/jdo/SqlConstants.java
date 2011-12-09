@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
 import org.sagebionetworks.repo.model.jdo.persistence.JDONodeType;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOReference;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
+import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
 import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.sagebionetworks.repo.model.query.Compartor;
@@ -37,8 +38,6 @@ public class SqlConstants {
 	public static final String COL_NODE_ETAG 			= "ETAG";
 	public static final String COL_NODE_CREATED_BY 		= "CREATED_BY";
 	public static final String COL_NODE_CREATED_ON 		= "CREATED_ON";
-	public static final String COL_NODE_MODIFIED_BY 	= "MODIFIED_BY";
-	public static final String COL_NODE_MODIFIED_ON 	= "MODIFIED_ON";
 	public static final String COL_NODE_TYPE			= "NODE_TYPE";
 	public static final String COL_NODE_ACL				= "NODE_ACL";
 	public static final String COL_CURRENT_REV			= "CURRENT_REV_NUM";
@@ -51,6 +50,8 @@ public class SqlConstants {
 	public static final String COL_REVISION_COMMENT		= "COMMENT";
 	public static final String COL_REVISION_ANNOS_BLOB	= "ANNOTATIONS";
 	public static final String COL_REVISION_REFS_BLOB	= "REFERENCES";
+	public static final String COL_REVISION_MODIFIED_BY	= "MODIFIED_BY";
+	public static final String COL_REVISION_MODIFIED_ON	= "MODIFIED_ON";
 
 	// The Reference table
 	public static final String TABLE_REFERENCE						= "JDOREFERENCE";
@@ -129,7 +130,8 @@ public class SqlConstants {
 	
 	
 	// The alias used for the dataset table.
-	public static final String PRIMARY_ALIAS				= "prm";
+	public static final String NODE_ALIAS					= "nod";
+	public static final String REVISION_ALIAS				= "rev";
 	public static final String SORT_ALIAS					= "srt";
 	public static final String EXPRESSION_ALIAS_PREFIX		= "exp";
 	
@@ -139,6 +141,17 @@ public class SqlConstants {
 	public static final String TYPE_COLUMN_NAME = "nodeType";
 	
 	public static final String AUTH_FILTER_ALIAS = "auth";
+	
+	
+	public static final String[] PRIMARY_FIELDS;
+	
+	static {
+		Field[] fields = Node.class.getDeclaredFields();
+		PRIMARY_FIELDS = new String[fields.length];
+		for(int i=0; i<fields.length; i++){
+			PRIMARY_FIELDS[i] = fields[i].getName();
+		}
+	}
 	
 
 	
@@ -151,21 +164,16 @@ public class SqlConstants {
 	public static final String OPERATOR_SQL_LESS_THAN				= "<";
 	public static final String OPERATOR_SQL_GREATER_THAN_OR_EQUALS	= ">=";
 	public static final String OPERATOR_SQL_LESS_THAN_OR_EQUALS		= "<=";
-	
-	
+		
 	public static final String INPUT_DATA_LAYER_DATASET_ID = "INPUT_LAYERS_ID_OWN";
 	
 	private static final Map<String, String> primaryFieldColumns;
 	private static final Map<String, String> mapClassToTable;
 
-
-
-
 	static{
 		// Map column names to the field names
 		// RELEASE_DATE,STATUS,PLATFORM,PROCESSING_FACILITY,QC_BY,QC_DATE,TISSUE_TYPE,TYPE,CREATION_DATE,DESCRIPTION,PREVIEW,PUBLICATION_DATE,RELEASE_NOTES
 		primaryFieldColumns = new HashMap<String, String>();
-		
 		SqlConstants.addAllFields(Node.class, primaryFieldColumns);
 		// This is a special case for nodes.
 		primaryFieldColumns.put(NodeConstants.COL_PARENT_ID, "PARENT_ID_OID");
@@ -179,6 +187,7 @@ public class SqlConstants {
 		// This is the map of varrious classes to their table names
 		mapClassToTable = new HashMap<String, String>();
 		mapClassToTable.put(JDONode.class.getName(),				TABLE_NODE);
+		mapClassToTable.put(JDORevision.class.getName(),			TABLE_REVISION);
 		mapClassToTable.put(JDONodeType.class.getName(),			TABLE_NODE_TYPE);
 		mapClassToTable.put(JDOReference.class.getName(),			TABLE_REFERENCE);
 		mapClassToTable.put(JDOAnnotationType.class.getName(),		TABLE_ANNOTATION_TYPE);
@@ -192,7 +201,10 @@ public class SqlConstants {
 		// Join tables
 //		mapClassToTable.put(JDOResourceAccess.class.getName()+".accessType",	TABLE_RESOURCE_ACCESS_TYPE);
 		mapClassToTable.put(JDOUserGroup.class.getName()+".users",				TABLE_USER_GROUP_USERS);
+		
+		
 	}
+
 	
 	/**
 	 * Get the table name for a class.
@@ -263,7 +275,7 @@ public class SqlConstants {
 		}else if(FieldType.DOUBLE_ATTRIBUTE == type){
 			return JDODoubleAnnotation.class;
 		}else if(FieldType.PRIMARY_FIELD == type){
-			return JDONode.class;
+			throw new IllegalArgumentException("There is more than one type for primary tables class for : "+type);
 		}else{
 			throw new IllegalArgumentException("No class for : "+type);
 		}
@@ -291,5 +303,6 @@ public class SqlConstants {
 			throw new IllegalArgumentException("Unsupported Compartor: "+comp);
 		}
 	}
+	
 
 }

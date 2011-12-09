@@ -39,11 +39,11 @@ public class JDOAccessControlList {
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
 	private Long creationDate;
 	
-	@Column(name=SqlConstants.COL_NODE_MODIFIED_BY)
+	@Column(name=SqlConstants.COL_REVISION_MODIFIED_BY)
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
 	private String modifiedBy;
 	
-	@Column(name=SqlConstants.COL_NODE_MODIFIED_ON)
+	@Column(name=SqlConstants.COL_REVISION_MODIFIED_ON)
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
 	private Long modifiedOn;
 

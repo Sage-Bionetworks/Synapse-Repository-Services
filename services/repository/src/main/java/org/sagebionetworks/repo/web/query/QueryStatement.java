@@ -31,6 +31,7 @@ public class QueryStatement {
 	private Object whereValue = null;
 	private String sortTable = null;
 	private String sortField = null;
+	private List<String> select = null;
 	// The list of expressions
 	List<Expression> searchCondition = null;
 	private Boolean sortAcending = ServiceConstants.DEFAULT_ASCENDING;
@@ -69,6 +70,27 @@ public class QueryStatement {
 			switch (node.getId()) {
 			case QueryParser.JJTTABLENAME:
 				tableName = (String) node.jjtGetValue();
+				break;
+			case QueryParser.JJTSELECT:
+
+				// Get the next part of the select
+				QueryNode selectValue = (QueryNode) node.jjtGetChild(0);
+				if("*".equals(selectValue.jjtGetValue())){
+					// This is a select *
+					this.select = null;
+				}else{
+					// We have a select list
+					this.select = new ArrayList<String>();
+					QueryNode selectList = (QueryNode) selectValue.jjtGetChild(0);
+					for(int selectIndex=0; selectIndex<selectList.jjtGetNumChildren(); selectIndex++){
+						QueryNode name = (QueryNode) selectList.jjtGetChild(selectIndex);
+						this.select.add((String) name.jjtGetValue());
+					}
+				}
+				break;
+			case QueryParser.JJTSELECTLIST:
+				QueryNode nameValue = (QueryNode) node.jjtGetChild(0);
+				this.select.add((String)nameValue.jjtGetValue());
 				break;
 			case QueryParser.JJTWHERE:
 				QueryNode whereFieldNode = (QueryNode) node.jjtGetChild(0);
@@ -197,6 +219,14 @@ public class QueryStatement {
 	 */
 	public Object getWhereValue() {
 		return whereValue;
+	}
+	
+	/**
+	 * The select clause.
+	 * @return
+	 */
+	public List<String> getSelect(){
+		return this.select;
 	}
 
 	/**

@@ -425,7 +425,7 @@ public interface GenericEntityController {
 	 * @throws DatastoreException 
 	 * @throws UnauthorizedException 
 	 */
-	public <T extends Entity> QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, Class<? extends T> clazz, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException;
+	public QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * determine whether a user has the given access type for a given entity
