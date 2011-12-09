@@ -12,17 +12,19 @@ import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.EntityTypeProvider;
 import org.sagebionetworks.web.shared.Annotations;
 import org.sagebionetworks.web.shared.DownloadLocation;
+import org.sagebionetworks.web.shared.EntityType;
 import org.sagebionetworks.web.shared.EntityTypeResponse;
 import org.sagebionetworks.web.shared.EntityWrapper;
 import org.sagebionetworks.web.shared.LayerPreview;
-import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.PagedResults;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONParser;
+import com.google.inject.Inject;
 
 /**
  * This class exists to isolate JSONObject creation from any classes that need JVM based tests
@@ -32,37 +34,45 @@ import com.google.gwt.json.client.JSONParser;
  *
  */
 public class NodeModelCreatorImpl implements NodeModelCreator {		
-		
+	
+	private JSONObjectAdapter jsonObjectAdapter; 
+	private EntityTypeProvider entityTypeProvider;	
+	
+	@Inject
+	public NodeModelCreatorImpl(JSONObjectAdapter jsonObjectAdapter, EntityTypeProvider entityTypeProvider) {
+		this.jsonObjectAdapter = jsonObjectAdapter;
+		this.entityTypeProvider = entityTypeProvider;
+	}
+	
 	@Override
 	public Entity createEntity(EntityWrapper entityWrapper) throws RestServiceException {
 		Entity entity = null;
 		if(entityWrapper.getRestServiceException() != null) {
 			throw entityWrapper.getRestServiceException();
 		}
-		
+		// TODO : change this to use a GWT.create( full class package name ) generator 
 		String json = entityWrapper.getEntityJson();
-		if(json != null) {
-			JSONObject obj = JSONParser.parseStrict(json).isObject();
-			DisplayUtils.checkForErrors(obj);
-			JSONObjectAdapter adapter = new JSONObjectGwt(obj);		
+		if(json != null) {			
 			try {
-				String typeString = adapter.getString("uri");
+				// What I want to do:
+				JSONObjectAdapter obj = jsonObjectAdapter.createNew(json);			
+				String typeString = obj.getString("uri");
+				EntityType entityType = entityTypeProvider.getEntityTypeForUri(typeString); 
 				if (typeString != null) {
-					//DATASET, LAYER, PROJECT, EULA, AGREEMENT, ENTITY, ANALYSIS, STEP
-					if(typeString.matches(".*/"+ NodeType.DATASET.toString().toLowerCase() +"/.*")) {
-						entity = new Dataset(adapter);
-					} else if(typeString.matches(".*/"+ NodeType.LAYER.toString().toLowerCase() +"/.*")) {
-						entity = new Layer(adapter);
-					} else if(typeString.matches(".*/"+ NodeType.PROJECT.toString().toLowerCase() +"/.*")) {
-						entity = new Project(adapter);
-					} else if(typeString.matches(".*/"+ NodeType.EULA.toString().toLowerCase() +"/.*")) {
-						entity = new Eula(adapter);
-					} else if(typeString.matches(".*/"+ NodeType.AGREEMENT.toString().toLowerCase() +"/.*")) {
-						entity = new Agreement(adapter);
-					} else if(typeString.matches(".*/"+ NodeType.ANALYSIS.toString().toLowerCase() +"/.*")) {
-						entity = new Analysis(adapter);
-					} else if(typeString.matches(".*/"+ NodeType.STEP.toString().toLowerCase() +"/.*")) {
-						entity = new Step(adapter);
+					if("/dataset".equals(entityType.getUrlPrefix())) {
+						entity = new Dataset(obj);
+					} else if("/layer".equals(entityType.getUrlPrefix())) {
+						entity = new Layer(obj);
+					} else if("/project".equals(entityType.getUrlPrefix())) {
+						entity = new Project(obj);
+					} else if("/eula".equals(entityType.getUrlPrefix())) {
+						entity = new Eula(obj);
+					} else if("/agreement".equals(entityType.getUrlPrefix())) {
+						entity = new Agreement(obj);
+					} else if("/analysis".equals(entityType.getUrlPrefix())) {
+						entity = new Analysis(obj);
+					} else if("/step".equals(entityType.getUrlPrefix())) {
+						entity = new Step(obj);
 					} 
 				}			
 			} catch (JSONObjectAdapterException e) {
@@ -71,7 +81,7 @@ public class NodeModelCreatorImpl implements NodeModelCreator {
 		}
 		return entity;
 	}
-
+	
 	@Override
 	public Dataset createDataset(String json) throws RestServiceException {
 		JSONObject obj = JSONParser.parseStrict(json).isObject();

@@ -10,8 +10,8 @@ import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.events.CancelEvent;
 import org.sagebionetworks.web.client.events.CancelHandler;
-import org.sagebionetworks.web.client.events.PersistSuccessEvent;
-import org.sagebionetworks.web.client.events.PersistSuccessHandler;
+import org.sagebionetworks.web.client.events.EntityUpdatedEvent;
+import org.sagebionetworks.web.client.events.EntityUpdatedHandler;
 import org.sagebionetworks.web.client.widget.adminmenu.AdminMenu;
 import org.sagebionetworks.web.client.widget.editpanels.AnnotationEditor;
 import org.sagebionetworks.web.client.widget.editpanels.NodeEditor;
@@ -506,9 +506,9 @@ public class LayerViewImpl extends Composite implements LayerView {
 							window.hide();
 						}
 					});
-					nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
+					nodeEditor.addPersistSuccessHandler(new EntityUpdatedHandler() {					
 						@Override
-						public void onPersistSuccess(PersistSuccessEvent event) {
+						public void onPersistSuccess(EntityUpdatedEvent event) {
 							window.hide();
 							presenter.refresh();
 						}

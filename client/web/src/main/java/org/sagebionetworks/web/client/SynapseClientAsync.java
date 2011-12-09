@@ -8,4 +8,6 @@ public interface SynapseClientAsync {
 
 	void getEntity(String entityId, AsyncCallback<EntityWrapper> callback);
 
+	void getEntityTypeRegistryJSON(AsyncCallback<String> callback);
+
 }

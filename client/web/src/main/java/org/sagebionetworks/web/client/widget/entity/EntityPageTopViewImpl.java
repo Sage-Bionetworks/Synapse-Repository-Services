@@ -1,17 +1,19 @@
 package org.sagebionetworks.web.client.widget.entity;
 
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.registry.EntityTypeMetadata;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.events.CancelEvent;
 import org.sagebionetworks.web.client.events.CancelHandler;
-import org.sagebionetworks.web.client.events.PersistSuccessEvent;
-import org.sagebionetworks.web.client.events.PersistSuccessHandler;
+import org.sagebionetworks.web.client.events.EntityUpdatedEvent;
+import org.sagebionetworks.web.client.events.EntityUpdatedHandler;
 import org.sagebionetworks.web.client.widget.adminmenu.AdminMenu;
 import org.sagebionetworks.web.client.widget.editpanels.AnnotationEditor;
 import org.sagebionetworks.web.client.widget.editpanels.NodeEditor;
+import org.sagebionetworks.web.client.widget.entity.menu.ActionMenu;
 import org.sagebionetworks.web.client.widget.portlet.SynapsePortlet;
 import org.sagebionetworks.web.client.widget.sharing.AccessMenuButton;
 import org.sagebionetworks.web.client.widget.sharing.AccessMenuButton.AccessLevel;
@@ -56,22 +58,17 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 	@UiField 
 	SpanElement breadcrumbTitleSpan;
 	@UiField
-	SimplePanel accessPanel;
-	@UiField
-	SpanElement accessSpan;
-	@UiField
-	SimplePanel adminPanel;
+	SimplePanel actionMenuPanel;
 	@UiField 
 	SimplePanel portalPanel;
 	
 	private Presenter presenter;
 	private SageImageBundle sageImageBundle;
 	private IconsImageBundle iconsImageBundle;
-	private PreviewDisclosurePanel previewDisclosurePanel;
-	private AccessMenuButton accessMenuButton;
-	private NodeEditor nodeEditor;
+	private PreviewDisclosurePanel previewDisclosurePanel;	
 	private AnnotationEditor annotationEditor;
 	private AdminMenu adminMenu;
+	private ActionMenu actionMenu;
 	private boolean isAdministrator = false; 
 	private boolean canEdit = false;
 		
@@ -80,14 +77,13 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 			SageImageBundle sageImageBundle, IconsImageBundle iconsImageBundle,
 			AccessMenuButton accessMenuButton, NodeEditor nodeEditor,
 			PreviewDisclosurePanel previewDisclosurePanel,
-			AnnotationEditor annotationEditor, AdminMenu adminMenu) {
+			AnnotationEditor annotationEditor, AdminMenu adminMenu, ActionMenu actionMenu) {
 		this.iconsImageBundle = iconsImageBundle;
 		this.sageImageBundle = sageImageBundle;
 		this.previewDisclosurePanel = previewDisclosurePanel;
-		this.accessMenuButton = accessMenuButton;
-		this.nodeEditor = nodeEditor;
 		this.annotationEditor = annotationEditor;
 		this.adminMenu = adminMenu;
+		this.actionMenu = actionMenu;
 		
 		initWidget(uiBinder.createAndBindUi(this));
 	}
@@ -95,19 +91,25 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 	@Override
 	public void setEntityDetails(Entity entity, boolean isAdministrator,
 			boolean canEdit) {
-		// Clear everything
-		clear();
 		
 		NodeType entityType = DisplayUtils.getNodeTypeForEntity(entity);
 		
 		// check authorization
 		this.isAdministrator = isAdministrator;
 		this.canEdit = canEdit;
-		createAccessPanel(entity.getId());
-		createAdminPanel(entity.getId(), entityType);	
 		// add breadcrumbs
 		breadcrumbTitleSpan.setInnerText(entity.getName());
 
+		//setup action menu
+		actionMenuPanel.clear();		
+		actionMenu.addEntityUpdatedHandler(new EntityUpdatedHandler() {			
+			@Override
+			public void onPersistSuccess(EntityUpdatedEvent event) {
+				presenter.fireEntityUpdatedEvent();
+			}
+		});
+		actionMenuPanel.add(actionMenu.asWidget(entity, isAdministrator, canEdit));
+		
 		// configure portal
 		Portal portal = new Portal(2);  
 	    portal.setBorders(false);  
@@ -130,7 +132,41 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 		
 		
 	}
+	
+	@Override
+	public Widget asWidget() {
+		return this;
+	}	
 
+	@Override 
+	public void setPresenter(Presenter presenter) {
+		this.presenter = presenter;
+	}
+
+	@Override
+	public void showErrorMessage(String message) {
+		DisplayUtils.showErrorMessage(message);
+	}
+
+	@Override
+	public void showLoading() {
+		// TODO
+	}
+
+	@Override
+	public void showInfo(String title, String message) {
+		DisplayUtils.showInfo(title, message);
+	}
+
+	@Override
+	public void clear() {
+		actionMenu.clearState();
+		// TODO : add other widgets here
+	}
+	
+	/*
+	 * Private Methods
+	 */
 	private SynapsePortlet createDescriptionPortlet(Entity entity) {
 		SynapsePortlet portlet = new SynapsePortlet("Description");
 		String overviewText = entity.getDescription();
@@ -201,174 +237,5 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 		portlet.add(vp);
 	    return portlet;  
 	}	
-	
-	@Override
-	public Widget asWidget() {
-		return this;
-	}	
-
-	@Override 
-	public void setPresenter(Presenter presenter) {
-		this.presenter = presenter;
-	}
-
-	@Override
-	public void showErrorMessage(String message) {
-		DisplayUtils.showErrorMessage(message);
-	}
-
-	@Override
-	public void showLoading() {
-		// TODO
-	}
-
-	@Override
-	public void showInfo(String title, String message) {
-		DisplayUtils.showInfo(title, message);
-	}
-
-	@Override
-	public void clear() {
 		
-	}
-	
-	@Override
-	public void showEntityDeleteFailure() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	
-	/*
-	 * Private Methods
-	 */
-	private void createAccessPanel(String id) {		
-		// TODO : get access level from Authorization service
-		AccessLevel accessLevel = AccessLevel.SHARED;		
-		ImageResource icon = null;
-		if(accessLevel == AccessLevel.PUBLIC) {
-			icon = iconsImageBundle.lockUnlocked16();
-		} else {
-			icon = iconsImageBundle.lock16();
-		}		
-
-		if(isAdministrator) {		
-			accessMenuButton.setPlaceChanger(presenter.getPlaceChanger());			
-			accessMenuButton.createAccessButton(accessLevel, NodeType.DATASET, id);
-			accessPanel.clear();
-			accessPanel.add(accessMenuButton.asWidget());
-		} else {
-			accessSpan.setInnerHTML("<span class=\"setting_label\">Access: </span><span class=\"setting_level\">"+ DisplayUtils.getIconHtml(icon) +" "+ accessLevel +"</span>");
-		}
-	}
-	
-
-	private void createAdminPanel(String id, NodeType entityType) {		
-		if(canEdit) {
-			Button button = new Button("Admin Menu");
-			button.setIcon(AbstractImagePrototype.create(iconsImageBundle.adminTools16()));
-			button.setMenu(createAdminMenu(id, entityType));
-			button.setHeight(25);
-			adminPanel.clear();
-			adminPanel.add(button);	
-		}		
-	}
-
-	private Menu createAdminMenu(final String datasetId, NodeType entityType) {
-		Menu menu = new Menu();		
-		MenuItem item = null; 
-
-		// Edit menu options
-		if(canEdit) {			
-			item = new MenuItem("Edit Dataset Details");
-			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.applicationEdit16()));		
-			item.addSelectionListener(new SelectionListener<MenuEvent>() {
-				public void componentSelected(MenuEvent menuEvent) {													
-					final Window window = new Window();  
-					window.setSize(600, 345);
-					window.setPlain(true);
-					window.setModal(true);
-					window.setBlinkModal(true);
-					window.setHeading("Edit Dataset");
-					window.setLayout(new FitLayout());								
-					nodeEditor.addCancelHandler(new CancelHandler() {					
-						@Override
-						public void onCancel(CancelEvent event) {
-							window.hide();
-						}
-					});
-					nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
-						@Override
-						public void onPersistSuccess(PersistSuccessEvent event) {
-							window.hide();
-							presenter.refresh();
-						}
-					});
-					nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
-					window.add(nodeEditor.asWidget(NodeType.DATASET, datasetId), new FitData(4));				
-					window.show();
-				}
-			});
-			menu.add(item);
-						 
-			item = new MenuItem(DisplayConstants.BUTTON_ADD_A_LAYER_TO_DATASET);
-			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.documentAdd16()));
-			item.addSelectionListener(new SelectionListener<MenuEvent>() {
-				public void componentSelected(MenuEvent menuEvent) {													
-					showAddLayerWindow(datasetId);
-				}
-
-			});
-			menu.add(item);
-		}
-		
-		// Administrator Menu Options
-		if(isAdministrator) {
-			item = new MenuItem("Delete Dataset");
-			item.setIcon(AbstractImagePrototype.create(iconsImageBundle.deleteButton16()));
-			item.addSelectionListener(new SelectionListener<MenuEvent>() {
-				public void componentSelected(MenuEvent menuEvent) {
-					MessageBox.confirm("Delete Dataset", "Are you sure you want to delete this dataset?", new Listener<MessageBoxEvent>() {					
-						@Override
-						public void handleEvent(MessageBoxEvent be) { 					
-							Button btn = be.getButtonClicked();
-							if(Dialog.YES.equals(btn.getItemId())) {
-								presenter.delete();
-							}
-						}
-					});
-				}
-			});
-			menu.add(item);
-		}
-
-		return menu;
-	}
-
-	private void showAddLayerWindow(final String datasetId) {
-		final Window window = new Window();  
-		window.setSize(600, 275);
-		window.setPlain(true);
-		window.setModal(true);
-		window.setBlinkModal(true);
-		window.setHeading("Create Layer");
-		window.setLayout(new FitLayout());				
-		nodeEditor.addCancelHandler(new CancelHandler() {					
-			@Override
-			public void onCancel(CancelEvent event) {
-				window.hide();
-			}
-		});
-		nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
-			@Override
-			public void onPersistSuccess(PersistSuccessEvent event) {
-				window.hide();
-				presenter.refresh();
-			}
-		});
-		nodeEditor.setPlaceChanger(presenter.getPlaceChanger());
-		window.add(nodeEditor.asWidget(NodeType.LAYER, null, datasetId), new FitData(4));
-		window.show();
-	}
-	
 }

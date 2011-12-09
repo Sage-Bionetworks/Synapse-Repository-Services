@@ -6,25 +6,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.events.CancelEvent;
 import org.sagebionetworks.web.client.events.CancelHandler;
-import org.sagebionetworks.web.client.events.PersistSuccessEvent;
-import org.sagebionetworks.web.client.events.PersistSuccessHandler;
+import org.sagebionetworks.web.client.events.EntityUpdatedEvent;
+import org.sagebionetworks.web.client.events.EntityUpdatedHandler;
 import org.sagebionetworks.web.client.ontology.Enumeration;
 import org.sagebionetworks.web.client.ontology.EnumerationTerm;
 import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.widget.editpanels.FormField.ColumnType;
+import org.sagebionetworks.web.shared.EntityType;
 import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.exceptions.RestServiceException;
 
-import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.event.shared.HandlerManager;
-import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONParser;
 import com.google.gwt.json.client.JSONString;
@@ -75,7 +75,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 	public Widget asWidget(NodeType type, String editId) {
 		return asWidget(type, editId, null);
 	}
-	
+		
 	public Widget asWidget(final NodeType type, final String editId, final String parentId) {
 		view.setPresenter(this);
 		this.editId = editId;
@@ -180,8 +180,8 @@ public class NodeEditor implements NodeEditorView.Presenter {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void addPersistSuccessHandler(PersistSuccessHandler handler) {
-		handlerManager.addHandler(PersistSuccessEvent.getType(), handler);
+	public void addPersistSuccessHandler(EntityUpdatedHandler handler) {
+		handlerManager.addHandler(EntityUpdatedEvent.getType(), handler);
 	}
 
 	
@@ -265,7 +265,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 						return;
 					}					
 					view.showPersistSuccess();
-					handlerManager.fireEvent(new PersistSuccessEvent());
+					handlerManager.fireEvent(new EntityUpdatedEvent());
 				}
 				
 				@Override
@@ -292,7 +292,7 @@ public class NodeEditor implements NodeEditorView.Presenter {
 						return;
 					}					
 					view.showPersistSuccess();
-					handlerManager.fireEvent(new PersistSuccessEvent());
+					handlerManager.fireEvent(new EntityUpdatedEvent());
 				}
 				
 				@Override

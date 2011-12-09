@@ -1,7 +1,10 @@
 package org.sagebionetworks.web.client.view;
 
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.registry.EntityTypeMetadata;
 import org.sagebionetworks.web.client.DisplayUtils;
+import org.sagebionetworks.web.client.events.EntityUpdatedEvent;
+import org.sagebionetworks.web.client.events.EntityUpdatedHandler;
 import org.sagebionetworks.web.client.widget.entity.EntityPageTop;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
@@ -54,8 +57,15 @@ public class EntityViewImpl extends Composite implements EntityView {
 	}
 
 	@Override
-	public void setEntity(Entity entity) {		
+	public void setEntity(Entity entity) {
+		entityPageTop.clearState();
 		entityPageTop.setEntity(entity);
+		entityPageTop.addEntityUpdatedHandler(new EntityUpdatedHandler() {			
+			@Override
+			public void onPersistSuccess(EntityUpdatedEvent event) {
+				presenter.refresh();
+			}
+		});
 		entityPageTopPanel.clear();
 		entityPageTopPanel.add(entityPageTop.asWidget());
 	}

@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.client.presenter;
 
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.registry.EntityTypeMetadata;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.GlobalApplicationState;
@@ -75,6 +76,7 @@ public class EntityPresenter extends AbstractActivity implements EntityView.Pres
         return null;
     }
 	
+	@Override
 	public void refresh() {
 		synapseClient.getEntity(entityId, new AsyncCallback<EntityWrapper>() {
 			@Override

@@ -185,6 +185,22 @@ public class DOMUtil {
         }
         return elements;
     }
+    
+    /**
+     * Removes the listed style names recursively from the root element
+     * @param classNames list of class names to remove
+     * @param rootElement start of the element tree
+     */
+	public static void removeStyles(String[] classNames, Element rootElement) {
+		for(String className : classNames) {
+		@SuppressWarnings("unchecked")
+		List<Element> bwraps = DOMUtil.getElementsByClassNameFrom(rootElement, className);
+			for(Element el : bwraps) {
+				el.removeClassName(className);
+			}
+		}
+	}
+
 
     /**
      * Returns a list of all elements in the document with the supplied tag

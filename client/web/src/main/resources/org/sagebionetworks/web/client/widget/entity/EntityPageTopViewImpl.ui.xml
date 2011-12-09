@@ -22,11 +22,7 @@
 					<table>
 						<tr valign="bottom">
 							<td style="padding-right: 10px">
-								<g:SimplePanel ui:field="adminPanel" />
-							</td>
-							<td>
-								<g:SimplePanel ui:field="accessPanel" />
-								<span ui:field="accessSpan" />
+								<g:SimplePanel ui:field="actionMenuPanel" />
 							</td>
 						</tr>
 					</table>

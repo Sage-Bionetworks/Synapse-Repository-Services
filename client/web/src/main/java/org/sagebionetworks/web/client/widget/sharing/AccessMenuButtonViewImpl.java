@@ -59,18 +59,18 @@ public class AccessMenuButtonViewImpl extends LayoutContainer implements AccessM
 		switch(level) {
 		case PUBLIC:
 			levelText = "Public";
-			icon = iconsImageBundle.lockUnlocked16();
+			icon = iconsImageBundle.mailGrey16();
 			break;
 		case PRIVATE:
 			levelText = "Private";
-			icon = iconsImageBundle.lock16();
+			icon = iconsImageBundle.mailGrey16();
 			break;
 		case SHARED:
 			levelText = "Shared";
-			icon = iconsImageBundle.lock16();
+			icon = iconsImageBundle.mailGrey16();
 			break;
 		}
-		button.setText(buttonPrefix + levelText);
+		button.setText(DisplayConstants.BUTTON_SHARE);
 		button.setIcon(AbstractImagePrototype.create(icon));		
 	}	
 	

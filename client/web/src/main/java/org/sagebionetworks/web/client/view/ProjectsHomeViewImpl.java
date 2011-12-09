@@ -5,8 +5,8 @@ import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.events.CancelEvent;
 import org.sagebionetworks.web.client.events.CancelHandler;
-import org.sagebionetworks.web.client.events.PersistSuccessEvent;
-import org.sagebionetworks.web.client.events.PersistSuccessHandler;
+import org.sagebionetworks.web.client.events.EntityUpdatedEvent;
+import org.sagebionetworks.web.client.events.EntityUpdatedHandler;
 import org.sagebionetworks.web.client.widget.editpanels.NodeEditor;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
@@ -104,9 +104,9 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 						startProjectWindow.hide();
 					}
 				});
-				nodeEditor.addPersistSuccessHandler(new PersistSuccessHandler() {					
+				nodeEditor.addPersistSuccessHandler(new EntityUpdatedHandler() {					
 					@Override
-					public void onPersistSuccess(PersistSuccessEvent event) {
+					public void onPersistSuccess(EntityUpdatedEvent event) {
 						startProjectWindow.hide();
 						queryServiceTable.refreshFromServer();
 					}

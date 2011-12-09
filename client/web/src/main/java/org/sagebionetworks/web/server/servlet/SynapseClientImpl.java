@@ -1,5 +1,8 @@
 package org.sagebionetworks.web.server.servlet;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.client.Synapse;
@@ -83,11 +86,8 @@ public class SynapseClientImpl extends RemoteServiceServlet implements SynapseCl
 		
 		try {
 			Entity entity = synapseClient.getEntityById(entityId);
-			EntityType entityType = EntityType.getFirstTypeInUrl(entity.getUri());
 			JSONObjectAdapter entityJson = entity.writeToJSONObject(jsonObjectAdapter.createNew());
-			entityWrapper.setEntityJson(entityJson.toJSONString());
-			JSONObjectAdapter entityTypeJson = entityType.getMetadata().writeToJSONObject(jsonObjectAdapter.createNew());
-			entityWrapper.setEntityMetadata(entityTypeJson.toJSONString());
+			entityWrapper.setEntityJson(entityJson.toJSONString());			
 		} catch (SynapseException e) {
 			entityWrapper.setRestServiceException(ExceptionUtil.convertSynapseException(e));
 		} catch (JSONObjectAdapterException e) {
@@ -95,25 +95,23 @@ public class SynapseClientImpl extends RemoteServiceServlet implements SynapseCl
 		}		
 		
 		return entityWrapper;
-		
-//		String entityTypeResponseJson = getNodeType(entityId);
-//		if(entityTypeResponseJson != null) {
-//			JSONObject etr;
-//			try {
-//				etr = new JSONObject(entityTypeResponseJson);
-//				if(etr != null) {
-//					String typeString = etr.getString("type").substring(1); // remove leading "/"
-//					NodeType type = NodeType.valueOf(typeString.toUpperCase());
-//					return getNodeJSON(type, entityId);
-//				}
-//			} catch (JSONException e) {
-//				Log.warn(e.getMessage());
-//				e.printStackTrace();
-//			}
-//		}
-//		return null;
 	}
+	
+	@Override
+	public String getEntityTypeRegistryJSON() {		
+		ClassLoader classLoader = EntityType.class.getClassLoader();
+		InputStream in = classLoader.getResourceAsStream(EntityType.REGISTER_JSON_FILE_NAME);
+		if(in == null) throw new IllegalStateException("Cannot find the "+EntityType.REGISTER_JSON_FILE_NAME+" file on the classpath");
+		String jsonString = "";
+		try {
+			jsonString = readToString(in);
+		} catch (IOException e) {
+			// error reading file
+		}
+		return jsonString;
+	}	
 
+	
 	
 	/*
 	 * Private Methods
@@ -130,6 +128,27 @@ public class SynapseClientImpl extends RemoteServiceServlet implements SynapseCl
 		return synapseClient;
 	}	
 
+	/**
+	 * Read an input stream into a string.
+	 * 
+	 * @param in
+	 * @return
+	 * @throws IOException
+	 */
+	private static String readToString(InputStream in) throws IOException {
+		try {
+			BufferedInputStream bufferd = new BufferedInputStream(in);
+			byte[] buffer = new byte[1024];
+			StringBuilder builder = new StringBuilder();
+			int index = -1;
+			while ((index = bufferd.read(buffer, 0, buffer.length)) > 0) {
+				builder.append(new String(buffer, 0, index, "UTF-8"));
+			}
+			return builder.toString();
+		} finally {
+			in.close();
+		}
+	}
 	
-	
+
 }

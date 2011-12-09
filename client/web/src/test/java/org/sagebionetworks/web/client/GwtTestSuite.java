@@ -12,9 +12,9 @@ import org.sagebionetworks.repo.model.Eula;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Step;
+import org.sagebionetworks.schema.FORMAT;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
-import org.sagebionetworks.schema.FORMAT;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -53,7 +53,7 @@ public class GwtTestSuite extends GWTTestCase {
 		String json = adapter.toJSONString();
 		assertNotNull(json);
 		// Use the factor to create a clone
-		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl();
+		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl(null,null); // jsonadapter and entitytypeprovider not needed for this deprecated model creation
 		Dataset clone = modelCreator.createDataset(json);
 		assertNotNull(clone);
 		assertEquals(populatedDataset, clone);
@@ -69,7 +69,7 @@ public class GwtTestSuite extends GWTTestCase {
 		String json = adapter.toJSONString();
 		assertNotNull(json);
 		// Use the factor to create a clone
-		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl();
+		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl(null,null); // jsonadapter and entitytypeprovider not needed for this deprecated model creation
 		Layer clone = modelCreator.createLayer(json);
 		assertNotNull(clone);
 		assertEquals(populatedLayer, clone);
@@ -85,7 +85,7 @@ public class GwtTestSuite extends GWTTestCase {
 		String json = adapter.toJSONString();
 		assertNotNull(json);
 		// Use the factor to create a clone
-		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl();
+		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl(null,null); // jsonadapter and entitytypeprovider not needed for this deprecated model creation
 		Project clone = modelCreator.createProject(json);
 		assertNotNull(clone);
 		assertEquals(populatedProject, clone);
@@ -101,7 +101,7 @@ public class GwtTestSuite extends GWTTestCase {
 		String json = adapter.toJSONString();
 		assertNotNull(json);
 		// Use the factor to create a clone
-		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl();
+		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl(null,null); // jsonadapter and entitytypeprovider not needed for this deprecated model creation
 		Eula clone = modelCreator.createEULA(json);
 		assertNotNull(clone);
 		assertEquals(populatedEula, clone);
@@ -117,7 +117,7 @@ public class GwtTestSuite extends GWTTestCase {
 		String json = adapter.toJSONString();
 		assertNotNull(json);
 		// Use the factor to create a clone
-		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl();
+		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl(null,null); // jsonadapter and entitytypeprovider not needed for this deprecated model creation
 		Agreement clone = modelCreator.createAgreement(json);
 		assertNotNull(clone);
 		assertEquals(populatedAgreement, clone);
@@ -136,7 +136,7 @@ public class GwtTestSuite extends GWTTestCase {
 		String json = adapter.toJSONString();
 		assertNotNull(json);
 		// Use the factor to create a clone
-		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl();
+		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl(null,null); // jsonadapter and entitytypeprovider not needed for this deprecated model creation
 		Analysis clone = modelCreator.createAnalysis(json);
 		assertNotNull(clone);
 		assertEquals(populatedAnalysis, clone);
@@ -152,7 +152,7 @@ public class GwtTestSuite extends GWTTestCase {
 		String json = adapter.toJSONString();
 		assertNotNull(json);
 		// Use the factor to create a clone
-		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl();
+		NodeModelCreatorImpl modelCreator = new NodeModelCreatorImpl(null,null); // jsonadapter and entitytypeprovider not needed for this deprecated model creation
 		Step clone = modelCreator.createStep(json);
 		assertNotNull(clone);
 		assertEquals(populatedStep, clone);

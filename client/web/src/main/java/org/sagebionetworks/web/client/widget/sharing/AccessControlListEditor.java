@@ -3,6 +3,7 @@ package org.sagebionetworks.web.client.widget.sharing;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
@@ -18,6 +19,7 @@ import org.sagebionetworks.web.shared.users.AclUtils;
 import org.sagebionetworks.web.shared.users.PermissionLevel;
 import org.sagebionetworks.web.shared.users.UserData;
 
+import com.google.gwt.dom.client.Style.Display;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONParser;
@@ -46,7 +48,7 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
 	private PlaceChanger placeChanger;
 	private NodeModelCreator nodeModelCreator;
 	private AuthenticationController authenticationController;
-
+	private Entity entity;
 	
 	@Inject
 	public AccessControlListEditor(AccessControlListEditorView view, NodeServiceAsync nodeService, UserAccountServiceAsync userAccountService, NodeModelCreator nodeModelCreator, AuthenticationController authenticationController) {
@@ -62,9 +64,21 @@ public class AccessControlListEditor implements AccessControlListEditorView.Pres
     	this.placeChanger = placeChanger;
     }
 	
+    /**
+     * Use Entity based setResource instead
+     * @param type
+     * @param id
+     */
+    @Deprecated
 	public void setResource(final NodeType type, final String id) {						
 		this.nodeType = type;
-		this.nodeId = id;
+		this.nodeId = id;	
+	}
+	
+	public void setResource(Entity entity) {
+		this.entity = entity;
+		this.nodeType = DisplayUtils.getNodeTypeForEntity(entity);
+		this.nodeId = entity.getId();
 	}
 	
 	public Widget asWidget() {

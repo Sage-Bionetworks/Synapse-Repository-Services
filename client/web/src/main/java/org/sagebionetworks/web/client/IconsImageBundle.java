@@ -11,8 +11,17 @@ public interface IconsImageBundle extends ClientBundle {
 	@Source("images/icons/plus-button-16.png")
 	ImageResource addSquare16();	
 
+	@Source("images/icons/plus-16.png")
+	ImageResource add16();	
+
+	@Source("images/icons/grey_plus-16.png")
+	ImageResource addGrey16();	
+
 	@Source("images/icons/wrench-screwdriver-16.png")
 	ImageResource adminTools16();		
+	
+	@Source("images/icons/grey_wrench-screwdriver-16.png")
+	ImageResource adminToolsGrey16();		
 	
 	@Source("images/icons/application--pencil-16.png")
 	ImageResource applicationEdit16();	
@@ -50,6 +59,12 @@ public interface IconsImageBundle extends ClientBundle {
 	@Source("images/icons/document-text-16.png")
 	ImageResource documentText16();
 		
+	@Source("images/icons/pencil-16.png")
+	ImageResource edit16();
+
+	@Source("images/icons/grey_pencil-16.png")
+	ImageResource editGrey16();
+
 	@Source("images/icons/exclamation-red-16.png")
 	ImageResource error16();
 	
@@ -95,6 +110,12 @@ public interface IconsImageBundle extends ClientBundle {
 	@Source("images/icons/magnifier-zoom-out-16.png")
 	ImageResource magnifyZoomOut16();		
 	
+	@Source("images/icons/mail-16.png")
+	ImageResource mail16();	
+			
+	@Source("images/icons/grey_mail-16.png")
+	ImageResource mailGrey16();	
+			
 	@Source("images/icons/mail--arrow-16.png")
 	ImageResource mailArrow16();	
 			

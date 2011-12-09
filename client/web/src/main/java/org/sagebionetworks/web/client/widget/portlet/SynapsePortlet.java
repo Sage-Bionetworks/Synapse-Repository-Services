@@ -44,16 +44,7 @@ public class SynapsePortlet extends Portlet {
 				"x-panel-bl", "x-panel-br", "x-panel-bc", "x-panel-mc",
 				"x-panel-body", "x-panel-tl", "x-panel-tr",
 				"x-panel-body-noheader" };			
-		removeStyles(classNames, this.getElement());			
+		DOMUtil.removeStyles(classNames, this.getElement());			
 	}
 
-	private void removeStyles(String[] classNames, Element rootElement) {
-		for(String className : classNames) {
-		@SuppressWarnings("unchecked")
-		List<Element> bwraps = DOMUtil.getElementsByClassNameFrom(rootElement, className);
-			for(Element el : bwraps) {
-				el.removeClassName(className);
-			}
-		}
-	}
 }
