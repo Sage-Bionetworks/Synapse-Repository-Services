@@ -153,10 +153,10 @@ public class Synapse {
 
 			JSONObject credentials = createAuthEntity("/session", loginRequest);
 
-			defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER,
-					credentials.getString(SESSION_TOKEN_HEADER));
-			defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER,
-					credentials.getString(SESSION_TOKEN_HEADER));
+			defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, credentials
+					.getString(SESSION_TOKEN_HEADER));
+			defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, credentials
+					.getString(SESSION_TOKEN_HEADER));
 			requestProfile = reqPr;
 		} catch (JSONException e) {
 			throw new SynapseException(e);
@@ -205,7 +205,8 @@ public class Synapse {
 	 * @throws SynapseException
 	 */
 	@SuppressWarnings("unchecked")
-	public <T extends JSONEntity> T createEntity(T entity) throws SynapseException {
+	public <T extends JSONEntity> T createEntity(T entity)
+			throws SynapseException {
 		if (entity == null)
 			throw new IllegalArgumentException("Entity cannot be null");
 		// Look up the EntityType for this entity.
@@ -234,7 +235,6 @@ public class Synapse {
 		return getSynapseEntity(repoEndpoint, uri);
 	}
 
-
 	/**
 	 * Given an entity get the that entity (get the current version).
 	 * 
@@ -248,13 +248,13 @@ public class Synapse {
 		if (entity == null)
 			throw new IllegalArgumentException("entity cannot be null");
 
-		if(entity instanceof Entity) {
+		if (entity instanceof Entity) {
 			return (T) getEntity(((Entity) entity).getId(), entity.getClass());
 		} else {
 			// TODO : Nicole--add non Entity Types here
 			throw new SynapseException("NYI");
 		}
-	
+
 	}
 
 	/**
@@ -474,8 +474,8 @@ public class Synapse {
 			File destinationFile) throws SynapseException {
 		List<LocationData> locations = locationable.getLocations();
 		if ((null == locations) || (0 == locations.size())) {
-			throw new SynapseUserException("No locations available for locationable "
-					+ locationable); 
+			throw new SynapseUserException(
+					"No locations available for locationable " + locationable);
 		}
 
 		// TODO if there are multiple locations for this locationable look in
@@ -503,15 +503,15 @@ public class Synapse {
 					.getAbsolutePath());
 			// Check that the md5s match, if applicable
 			if (null != location.getMd5()) {
-				String localMd5 = MD5ChecksumHelper.getMD5Checksum(destinationFile
-						.getAbsolutePath());
+				String localMd5 = MD5ChecksumHelper
+						.getMD5Checksum(destinationFile.getAbsolutePath());
 				if (!localMd5.equals(location.getMd5())) {
 					throw new SynapseUserException(
 							"md5 of downloaded file does not match the one in Synapse"
-							+ destinationFile);
+									+ destinationFile);
 				}
 			}
-			
+
 			return destinationFile;
 		} catch (ClientProtocolException e) {
 			throw new SynapseException(e);
@@ -556,27 +556,27 @@ public class Synapse {
 			File dataFile, String md5) throws SynapseException {
 		try {
 			String s3Path = dataFile.getName();
-			
+
 			Location s3Location = new Location();
 			s3Location.setPath("/" + s3Path);
 			s3Location.setMd5sum(md5);
 			s3Location.setParentId(locationable.getParentId());
 			s3Location.setType(LocationTypeNames.awss3);
 			s3Location = createEntity(s3Location);
-			
+
 			// TODO find a more direct way to go from hex to base64
 			byte[] encoded;
 			encoded = Base64.encodeBase64(Hex.decodeHex(md5.toCharArray()));
 			String base64Md5 = new String(encoded, "ASCII");
-			
+
 			Map<String, String> headerMap = new HashMap<String, String>();
 			headerMap.put("x-amz-acl", "bucket-owner-full-control");
 			headerMap.put("Content-MD5", base64Md5);
 			headerMap.put("Content-Type", s3Location.getContentType());
-			
+
 			clientProvider.uploadFile(s3Location.getPath(), dataFile
 					.getAbsolutePath(), s3Location.getContentType(), headerMap);
-			
+
 			return getEntity(s3Location.getId(), Location.class);
 		} catch (DecoderException e) {
 			throw new SynapseException(e);
@@ -692,8 +692,8 @@ public class Synapse {
 							.keys();
 					while (annotationIter.hasNext()) {
 						String annotationKey = annotationIter.next();
-						storedAnnotations.put(annotationKey,
-								entityAnnotations.get(annotationKey));
+						storedAnnotations.put(annotationKey, entityAnnotations
+								.get(annotationKey));
 					}
 				} else {
 					storedEntity.put(key, entity.get(key));
@@ -731,8 +731,8 @@ public class Synapse {
 			requestHeaders.putAll(defaultPOSTPUTHeaders);
 			requestHeaders.put("ETag", entity.getString("etag"));
 
-			return dispatchSynapseRequest(endpoint, uri, "PUT",
-					entity.toString(), requestHeaders);
+			return dispatchSynapseRequest(endpoint, uri, "PUT", entity
+					.toString(), requestHeaders);
 		} catch (JSONException e) {
 			throw new SynapseException(e);
 		}
@@ -819,9 +819,8 @@ public class Synapse {
 			requestUrl = (uri.startsWith(endpointPrefix)) ? new URL(
 					endpointLocation + uri) : new URL(endpoint + uri);
 
-			HttpResponse response = clientProvider.performRequest(
-					requestUrl.toString(), requestMethod, requestContent,
-					requestHeaders);
+			HttpResponse response = clientProvider.performRequest(requestUrl
+					.toString(), requestMethod, requestContent, requestHeaders);
 			String responseBody = (null != response.getEntity()) ? EntityUtils
 					.toString(response.getEntity()) : null;
 
@@ -850,25 +849,21 @@ public class Synapse {
 			int statusCode = 500; // assume a service exception
 			statusCode = e.getHttpStatus();
 			String response = "";
-			String resultsStr = "";			
-			try {				
-
-				try {
-					response = (null != e.getResponse().getEntity()) ? EntityUtils
-							.toString(e.getResponse().getEntity()) : null;
-	
+			String resultsStr = "";
+			try {
+				response = e.getResponse();
+				if (null != response) {
 					results = new JSONObject(response);
 					if (log.isDebugEnabled()) {
 						log.debug("Retrieved " + requestUrl + " : "
 								+ results.toString(JSON_INDENT));
 					}
-					if(results != null) 
-						resultsStr = results.getString("reason"); 				
-				} catch(IOException ioexception) {					
+					if (results != null)
+						resultsStr = results.getString("reason");
 				}
 				String exceptionContent = "Service Error(" + statusCode + "): "
-				+ resultsStr;
-				
+						+ resultsStr;
+
 				if (statusCode == 401) {
 					throw new SynapseUnauthorizedException(exceptionContent);
 				} else if (statusCode == 403) {
@@ -888,7 +883,7 @@ public class Synapse {
 				throw new SynapseServiceException(jsonEx);
 			} catch (ParseException parseEx) {
 				throw new SynapseServiceException(parseEx);
-			} 
+			}
 		} // end catch
 		catch (MalformedURLException e) {
 			throw new SynapseServiceException(e);
