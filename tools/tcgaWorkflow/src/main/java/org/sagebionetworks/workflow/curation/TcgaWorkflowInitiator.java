@@ -27,7 +27,6 @@ import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotatio
  * completes in tens of seconds so its not worth the effort at this time
  * 
  * @author deflaux
- * 
  */
 public class TcgaWorkflowInitiator {
 

@@ -117,7 +117,7 @@ public class DataIngestion {
 			// right one
 			String localMd5 = MD5ChecksumHelper.getMD5Checksum(dataFile
 					.getAbsolutePath());
-			if ((null == remoteMd5) || (localMd5.equals(remoteMd5))) {
+			if (localMd5.equals(remoteMd5)) {
 				return new DownloadResult(dataFile.getAbsolutePath(), localMd5);
 			}
 		}
