@@ -52,8 +52,8 @@ public class TcgaWorkflow {
 	 * Dev Note: annotation values must be resolvable at compilation time, not
 	 * runtime, therefore we cannot move this into a config file
 	 */
-	private static final String WORKFLOW_NAME = "DemoWorkflow";
-	private static final String VERSION = "1.4";
+	private static final String WORKFLOW_NAME = "TCGAWorkflow";
+	private static final String VERSION = "1.5";
 	private static final int MAX_WORKFLOW_TIMEOUT_HOURS = 24;
 	private static final int MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS = 4;
 	private static final int NUM_RETRIES = 3;
@@ -102,6 +102,11 @@ public class TcgaWorkflow {
 		Value<String> result2 = flow.dispatchNotifyDataProcessed(result1,
 				rawLayerId);
 
+		// HACK ALERT, hard-coded skip for the rest of the workflow until we get
+		// some real analysis scripts in place
+		Settable<String> skipLayerId = new Settable<String>();
+		skipLayerId.set(Constants.WORKFLOW_DONE);
+
 		/**
 		 * Dynamically discover the R scripts to run on this data
 		 */
@@ -123,11 +128,11 @@ public class TcgaWorkflow {
 		Settable<String> stdout = new Settable<String>();
 		Settable<String> stderr = new Settable<String>();
 		Value<String> result3 = flow.dispatchProcessData(result2, script,
-				datasetId, rawLayerId,
+				datasetId, skipLayerId, // rawLayerId,
 				// machineName,
 				processedLayerId, stdout, stderr);
 
-		flow.dispatchNotifyDataProcessed(result3, processedLayerId);
+		flow.dispatchNotifyDataProcessed(result3, skipLayerId); //processedLayerId);
 
 	}
 
@@ -152,16 +157,15 @@ public class TcgaWorkflow {
 		// structure of the TCGA url) but it could become more complicated in
 		// time if we need to pull additional metadata from other TCGA services
 		String synapseLayerId = null;
-//		try {
-//			synapseLayerId = Curation
-//					.doCreateSynapseMetadataForTcgaSourceLayer(doneIfExists,
-//							datasetId, tcgaUrl);
-//			rawLayerId.set(synapseLayerId);
-			rawLayerId.set("123");
-//		} catch (SocketTimeoutException e) {
-//			throw new ActivityFailureException(400,
-//					"Communication timeout, try this again", e);
-//		}
+		try {
+			synapseLayerId = Curation
+					.doCreateSynapseMetadataForTcgaSourceLayer(doneIfExists,
+							datasetId, tcgaUrl);
+			rawLayerId.set(synapseLayerId);
+		} catch (SocketTimeoutException e) {
+			throw new ActivityFailureException(400,
+					"Communication timeout, try this again", e);
+		}
 		return Value.asValue(param + ":CreateMetadata");
 	}
 

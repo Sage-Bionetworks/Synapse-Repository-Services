@@ -77,17 +77,17 @@ public class TcgaWorkflowInitiator {
 			String datasetName = configHelper.getTCGADatasetName(datasetAbbreviation);
 			
 			JSONObject results = null;
-			
-			try {
-				results = synapse.query("select * from dataset where dataset.name == '"
-							+ datasetName + "'");
-			}
-			catch(SynapseException ex) {
-				if(ex.getCause() instanceof SocketTimeoutException) {
-					// This is a naive retry once
-					Thread.sleep(5000);
+			int sleep = 1000;
+			while(null == results) {
+				try {
 					results = synapse.query("select * from dataset where dataset.name == '"
-							+ datasetName + "'");				
+							+ datasetName + "'");
+				}
+				catch(SynapseException ex) {
+					if(ex.getCause() instanceof SocketTimeoutException) {
+						Thread.sleep(sleep);
+						sleep = sleep * 2; // exponential backoff
+					}
 				}
 			}
 			
@@ -143,11 +143,8 @@ public class TcgaWorkflowInitiator {
 		AmazonSimpleWorkflow swfService = ConfigHelper.createSWFClient();
 		AsyncWorkflowStartContext.initialize(swfService);
 
-//		TcgaWorkflowInitiator initiator = new TcgaWorkflowInitiator();
-//		initiator.initiateWorkflowTasks();
-
-		TcgaWorkflow.doWorkflow("Workflow for TCGA Dataset "
-				+ "foo", "456", "http://foo.bar.org");
+		TcgaWorkflowInitiator initiator = new TcgaWorkflowInitiator();
+		initiator.initiateWorkflowTasks();
 		
 		System.exit(0);
 	}

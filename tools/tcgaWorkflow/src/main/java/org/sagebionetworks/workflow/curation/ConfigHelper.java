@@ -116,7 +116,7 @@ public class ConfigHelper {
 	 * @return the Synapse password 
 	 */
 	public static String getSynapsePassword() {
-		return configuration.getProperty("org.sagebionetworks.synapse.password");
+		return configuration.getDecryptedProperty("org.sagebionetworks.synapse.password");
 	}
 	
 	/**
