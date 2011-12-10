@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpStatus;
@@ -125,6 +126,20 @@ public abstract class BaseController {
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public @ResponseBody
 	ErrorResponse handleNotFoundException(NotFoundException ex,
+			HttpServletRequest request) {
+		return handleException(ex, request);
+	}
+	
+	/**
+	 * This exception is thrown when the service is down, or in read-only mode for non-read calls.
+	 * @param ex
+	 * @param request
+	 * @return
+	 */
+	@ExceptionHandler(ServiceUnavailableException.class)
+	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+	public @ResponseBody
+	ErrorResponse handleServiceUnavailableException(ServiceUnavailableException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request);
 	}

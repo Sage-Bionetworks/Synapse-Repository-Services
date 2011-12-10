@@ -21,6 +21,7 @@ public class ServletTestHelperException extends RuntimeException {
 	private static final EntityObjectMapper objectMapper = new EntityObjectMapper();
 	
 	public ServletTestHelperException(MockHttpServletResponse response) {
+		super(response.getErrorMessage());
 		this.response = response;
 	}
 	

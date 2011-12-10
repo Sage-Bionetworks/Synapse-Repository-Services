@@ -55,6 +55,8 @@ public class UrlHelpers {
 	public static final String OBJECT_TYPE		= "/{objectType}";
 	public static final String OBJECT_TYPE_ID	= OBJECT_TYPE+ID;
 	
+
+	
 	public static final String TYPE = "/type";
 	/**
 	 * The URL prefix for all object's Access Control List (ACL).
@@ -237,15 +239,25 @@ public class UrlHelpers {
 	public static final String USER_MIRROR = "/userMirror";
 	
 	/**
+	 * All administration URLs must start with this URL or calls will be
+	 * blocked when Synapse enters READ_ONLY or DOWN modes for maintenance.
+	 */
+	public static final String ADMIN = "/admin";
+	/**
 	 * These are the new more RESTful backup/restore URLS.
 	 */
-	public static final String DAEMOM 						= "/daemon";
+	public static final String DAEMOM 						= ADMIN+"/daemon";
 	public static final String BACKUP						= "/backup";
 	public static final String RESTORE						= "/restore";
 	public static final String DAEMON_ID					= "/{daemonId}";
 	public static final String ENTITY_BACKUP_DAMEON			= DAEMOM+BACKUP;
 	public static final String ENTITY_RESTORE_DAMEON		= DAEMOM+RESTORE;
 	public static final String ENTITY_DAEMON_ID				= DAEMOM+DAEMON_ID;
+	
+	/**
+	 * The stack status of synapse 
+	 */
+	public static final String STACK_STATUS					= ADMIN+"/synapse/status";
 	
 	/**
 	 * Mapping of dependent property classes to their URL suffixes

@@ -210,6 +210,10 @@ public class GwtTestSuite extends GWTTestCase {
 		// Now populate it with data
 		toPopulate.initializeFromJSONObject(adapterToPopulate);
 	}
+	
+	public void testCreateAdapter(){
+		JSONObjectGwt adapter = new JSONObjectGwt();
+	}
 
 	@Override
 	public String toString() {

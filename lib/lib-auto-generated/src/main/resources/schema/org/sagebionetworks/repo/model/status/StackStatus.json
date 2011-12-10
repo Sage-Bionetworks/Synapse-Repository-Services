@@ -1,0 +1,27 @@
+{
+    "description":"The Status of the stack",
+    "properties":{
+        "status":{
+            "type":"string",
+            "description":"The status of this stack can be one of the following enumerations",
+            "name":"StatusEnum",
+            "id":"org.sagebionetworks.repo.model.status.StatusEnum",
+            "enum":[
+                "READ_WRITE",
+                "READ_ONLY",
+                "DOWN",
+             
+            ],
+            
+        },
+        "currentMessage":{
+            "type":"string",
+            "description":"This message applies to the current state of the stack."
+        },
+        "pendingMaintenanceMessage":{
+            "type":"string",
+            "description":"This message is used to notify users of pending maintenance"
+        },
+        
+    }
+}

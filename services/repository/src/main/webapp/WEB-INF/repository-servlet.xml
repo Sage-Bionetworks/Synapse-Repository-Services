@@ -16,8 +16,16 @@
   <!-- Import the manager beans -->
   <import resource="classpath:managers-spb.xml"/>
   
+  <!--This bean will intercept all HTTP calls and check the status  -->
+  <bean id="stackStatusInterceptor" class="org.sagebionetworks.repo.web.StackStatusInterceptor"  />
   <!-- To enable @RequestMapping process on type level and method level -->
-  <bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping" />
+  <bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping" >
+      <property name="interceptors">
+    	<list>
+    		<ref bean="stackStatusInterceptor" />
+    	</list>
+  	</property>
+  </bean>
   
   <bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
     <property name="messageConverters" >

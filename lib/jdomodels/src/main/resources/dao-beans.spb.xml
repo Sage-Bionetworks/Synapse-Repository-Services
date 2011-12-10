@@ -56,6 +56,9 @@
 
 	<bean id="backupRestoreStatusDao"
 		class="org.sagebionetworks.repo.model.jdo.BackupRestoreStatusDAOImpl" scope="singleton"/>
+		
+	<bean id="stackStatusDao"
+		class="org.sagebionetworks.repo.model.jdo.StackStatusDaoImpl" scope="singleton"/>
 
 
 </beans>

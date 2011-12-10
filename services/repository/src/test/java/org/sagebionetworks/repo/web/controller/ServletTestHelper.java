@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.RestoreFile;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.registry.backup.BackupSubmission;
+import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
@@ -1247,6 +1248,66 @@ public class ServletTestHelper {
 		}
 		return (BackupRestoreStatus) objectMapper.readValue(
 				response.getContentAsString(), BackupRestoreStatus.class);
+	}
+	
+	/**
+	 * Get the status of a backup/restore daemon
+	 * 
+	 * @param dispatchServlet
+	 * @param userId
+	 * @param id
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public static StackStatus getStackStatus(
+			HttpServlet dispatchServlet)
+			throws ServletException, IOException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.STACK_STATUS);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return (StackStatus) objectMapper.readValue(response.getContentAsString(), StackStatus.class);
+	}
+	
+	/**
+	 * Get the status of a backup/restore daemon
+	 * 
+	 * @param dispatchServlet
+	 * @param userId
+	 * @param id
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public static StackStatus updateStackStatus(
+			HttpServlet dispatchServlet, String userId, StackStatus toUpdate)
+			throws ServletException, IOException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("PUT");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.STACK_STATUS);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		if (toUpdate != null) {
+			request.addHeader("Content-Type", "application/json; charset=UTF-8");
+			StringWriter out = new StringWriter();
+			objectMapper.writeValue(out, toUpdate);
+			String body = out.toString();
+			request.setContent(body.getBytes("UTF-8"));
+		}
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return (StackStatus) objectMapper.readValue(response.getContentAsString(), StackStatus.class);
 	}
 
 	/**

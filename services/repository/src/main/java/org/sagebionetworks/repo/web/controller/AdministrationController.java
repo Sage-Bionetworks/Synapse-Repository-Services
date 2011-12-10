@@ -7,6 +7,7 @@ import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -15,9 +16,11 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.RestoreFile;
+import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.registry.backup.BackupSubmission;
+import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,13 +38,15 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * 
- * This controller is used to drive both system backups and restorations.
+ * This controller is used for Administration of Synapse.
+ * 
+ * 
  * 
  * @author John
  *
  */
 @Controller
-public class BackupController extends BaseController {
+public class AdministrationController extends BaseController {
 	
 	@Autowired
 	private BackupDaemonLauncher backupDaemonLauncher;
@@ -51,6 +56,9 @@ public class BackupController extends BaseController {
 	
 	@Autowired
 	UserManager userManager;
+	@Autowired
+	StackStatusManager stackStatusManager;
+
 	
 	/**
 	 * Start a backup daemon.  Monitor the status of the daemon with the getStatus method.
@@ -84,7 +92,6 @@ public class BackupController extends BaseController {
 			BackupSubmission submission = objectTypeSerializer.deserialize(request.getInputStream(), header,BackupSubmission.class, header.getContentType());
 			entityIdsToBackup = submission.getEntityIdsToBackup();
 		}
-
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// start a backup daemon
@@ -192,6 +199,65 @@ public class BackupController extends BaseController {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Terminate the daemon
 		backupDaemonLauncher.terminate(userInfo, daemonId);
+	}
+	
+	
+	/**
+	 * Get the current status of the stack
+	 * @param userId
+	 * @param header
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws ConflictingUpdateException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.STACK_STATUS
+			}, method = RequestMethod.GET)
+	public @ResponseBody
+	StackStatus getStackStatus(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestHeader HttpHeaders header,
+			HttpServletRequest request) {
+
+		// Get the status of this daemon
+		return stackStatusManager.getCurrentStatus();
+	}
+	
+	/**
+	 * Update the current status of the stack.
+	 * 
+	 * @param userId
+	 * @param header
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws ConflictingUpdateException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.STACK_STATUS
+			}, method = RequestMethod.PUT)
+	public @ResponseBody
+	StackStatus updateStatusStackStatus(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestHeader HttpHeaders header,
+			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException, IOException {
+
+		// Get the status of this daemon
+		StackStatus updatedValue = objectTypeSerializer.deserialize(request.getInputStream(), header, StackStatus.class, header.getContentType());
+		// Get the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return stackStatusManager.updateStatus(userInfo, updatedValue);
 	}
 
 }

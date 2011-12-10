@@ -32,9 +32,12 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestoreFile;
+import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.registry.backup.BackupSubmission;
+import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.util.UserProvider;
@@ -46,7 +49,7 @@ import org.springframework.web.servlet.DispatcherServlet;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class BackupControllerTest {
+public class AdministrationControllerTest {
 	
 	private static final long TIMEOUT = 1000*60*1; // 1 minutes
 
@@ -60,6 +63,9 @@ public class BackupControllerTest {
 	
 	@Autowired
 	private UserProvider testUserProvider;
+	
+	@Autowired
+	StackStatusDao stackStatusDao;
 	
 	private List<String> toDelete;
 	private String adminUserName;
@@ -85,6 +91,11 @@ public class BackupControllerTest {
 
 	@After
 	public void after() throws UnauthorizedException {
+		// Always restore the status to read-write
+		StackStatus status = new StackStatus();
+		status.setStatus(StatusEnum.READ_WRITE);
+		stackStatusDao.updateStatus(status);
+		
 		if (nodeManager != null && toDelete != null) {
 			for (String idToDelete : toDelete) {
 				try {
@@ -102,7 +113,7 @@ public class BackupControllerTest {
 	 * This test will attempt to backup the entire repository and then restore it.
 	 */
 	@Test
-	public void testRoundTrip() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ServletException, IOException, InterruptedException{
+	public void testBackupRestoreRoundTrip() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ServletException, IOException, InterruptedException{
 		UserInfo nonAdmin = testUserProvider.getTestAdminUserInfo();
 
 		Node nodeWithAnnotations = new Node();
@@ -178,7 +189,7 @@ public class BackupControllerTest {
 	 * This test attempts to create a backup of a single node and restore it.  This should not trigger an full backup or restore.
 	 */
 	@Test
-	public void testBatchRoundTrip() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ServletException, IOException, InterruptedException{
+	public void testBackupRestoreBatchRoundTrip() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ServletException, IOException, InterruptedException{
 		UserInfo nonAdmin = testUserProvider.getTestAdminUserInfo();
 
 		Node nodeWithAnnotations = new Node();
@@ -340,6 +351,45 @@ public class BackupControllerTest {
 		ServletTestHelper.terminateDaemon(dispatchServlet, adminUserName, status.getId());
 		// The job is likely to complete before the termination takes effect so we cannot test for actually 
 		// stopping the daemon as an integration test.  This is well covered as a unit test.
+	}
+	
+	@Test
+	public void testGetStackStatus() throws ServletException, IOException{
+		// Make sure we can get the stack status
+		StackStatus status = ServletTestHelper.getStackStatus(dispatchServlet);
+		assertNotNull(status);
+		assertEquals(StatusEnum.READ_WRITE, status.getStatus());
+	}
+	
+	@Test
+	public void testUpdateStatus() throws ServletException, IOException{
+		// Make sure we can get the stack status
+		StackStatus status = ServletTestHelper.getStackStatus(dispatchServlet);
+		assertNotNull(status);
+		assertEquals(StatusEnum.READ_WRITE, status.getStatus());
+		// Make sure we can update the status
+		status.setPendingMaintenanceMessage("AdministrationControllerTest.testUpdateStatus");
+		StackStatus back = ServletTestHelper.updateStackStatus(dispatchServlet, adminUserName, status);
+		assertEquals(status, back);
+	}
+	
+	@Test
+	public void testGetAndUpdateStatusWhenDown() throws ServletException, IOException{
+		// Make sure we can get the status when down.
+		StackStatus setDown = new StackStatus();
+		setDown.setStatus(StatusEnum.DOWN);
+		setDown.setCurrentMessage("Synapse is going down for a test: AdministrationControllerTest.testGetStatusWhenDown");
+		StackStatus back = ServletTestHelper.updateStackStatus(dispatchServlet, adminUserName, setDown);
+		assertEquals(setDown, back);
+		// Make sure we can still get the status
+		StackStatus current = ServletTestHelper.getStackStatus(dispatchServlet);
+		assertEquals(setDown, current);
+		
+		// Now make sure we can turn it back on when down.
+		setDown.setStatus(StatusEnum.READ_WRITE);
+		setDown.setCurrentMessage(null);
+		back = ServletTestHelper.updateStackStatus(dispatchServlet, adminUserName, setDown);
+		assertEquals(setDown, back);
 	}
 
 	

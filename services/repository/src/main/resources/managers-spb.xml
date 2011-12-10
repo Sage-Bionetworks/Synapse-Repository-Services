@@ -45,6 +45,8 @@
 	<bean id="backupManager" class="org.sagebionetworks.repo.manager.backup.NodeBackupManagerImpl" scope="singleton"/>
 	
 	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.NodeBackupDriverImpl" scope="singleton"/>
+	
+	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl" scope="singleton"/>
 
 	<!-- The thread pool used by the backup/restore daemons -->
 	<bean id="backupDaemonThreadPool" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">

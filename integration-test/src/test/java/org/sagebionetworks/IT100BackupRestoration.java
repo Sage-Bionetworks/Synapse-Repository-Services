@@ -66,7 +66,7 @@ public class IT100BackupRestoration {
 	@Test
 	public void createSnapshot() throws Exception {
 		// Start the daemon
-		JSONObject status = synapse.createEntity("/daemon/backup",
+		JSONObject status = synapse.createEntity("admin/daemon/backup",
 				new JSONObject());
 		assertNotNull(status);
 		assertNotNull(status.getString("status"));
@@ -134,7 +134,7 @@ public class IT100BackupRestoration {
 		// Start the daemon
 		JSONObject startUrl = new JSONObject();
 		startUrl.putOpt("url", BACKUP_FILE_NAME);
-		JSONObject status = synapse.createEntity("/daemon/restore",
+		JSONObject status = synapse.createEntity("/admin/daemon/restore",
 				startUrl);
 		assertNotNull(status);
 		assertNotNull(status.getString("status"));
@@ -146,7 +146,7 @@ public class IT100BackupRestoration {
 				status.getString("type")));
 		String restoreId = status.getString("id");
 		assertNotNull(restoreId);
-		String backupUri = "/daemon/" + restoreId;
+		String backupUri = "/admin/daemon/" + restoreId;
 		long start = System.currentTimeMillis();
 		// Wait for the backup to finish.
 		while (true) {
