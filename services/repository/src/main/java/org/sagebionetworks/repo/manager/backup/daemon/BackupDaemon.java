@@ -9,6 +9,7 @@ import java.util.concurrent.ExecutorService;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.backup.NodeBackupDriver;
 import org.sagebionetworks.repo.manager.backup.Progress;
 import org.sagebionetworks.repo.model.BackupRestoreStatus;
@@ -31,6 +32,8 @@ import com.amazonaws.services.s3.model.PutObjectResult;
  */
 public class BackupDaemon implements Runnable{
 	
+	private static final String PREFIX_BACKUP = "Backup-";
+	private static final String PREFIX_TEMP = "temp-";
 	static private Log log = LogFactory.getLog(BackupDaemon.class);
 	public static long NANO_SECONDS_PER_MILISECOND = 1000000;
 	private static final String S3_DOMAIN = "s3.amazonaws.com";
@@ -98,7 +101,17 @@ public class BackupDaemon implements Runnable{
 			// Before we start, make sure it has not been terminated.
 			checkForTermination();
 			// Create the temporary file to write the backup too.
-			final File tempBackup = File.createTempFile("BackupDaemonJob"+status.getId()+"-", ".zip");
+			String stack = StackConfiguration.getStack();
+			String instance = StackConfiguration.getStackInstance();
+			String prefix = null;
+			if(entitiesToBackup == null){
+				// This is a full backup file.
+				prefix = PREFIX_BACKUP;
+			}else{
+				// Incremental backup files are temporary.
+				prefix = PREFIX_TEMP;
+			}
+			final File tempBackup = File.createTempFile(prefix+stack+"-"+instance+"-"+status.getId()+"-", ".zip");
 			tempToDelete = tempBackup;
 			// We have started.
 			status.setStatus(STATUS.STARTED.name());
@@ -109,6 +122,10 @@ public class BackupDaemon implements Runnable{
 				status.setBackupUrl(getS3URL(this.awsBucket, this.backupFileName));
 				updateStatus();
 				downloadFileFromS3(tempBackup, awsBucket, backupFileName);
+				// If this backup file is a temp file then delete it from S3 after we finish the backup
+				if(backupFileName.startsWith(PREFIX_TEMP)){
+					deleteFileFromS3(awsBucket, backupFileName);
+				}
 				// Let the user know we finished dowloading file from S#
 				status.setProgresssMessage("Finished dowloading file from S3: "+this.backupFileName);
 				updateStatus();
@@ -148,6 +165,14 @@ public class BackupDaemon implements Runnable{
 				// Now upload the file to S3
 				String backupUrl = uploadFileToS3(tempBackup);
 				status.setBackupUrl(backupUrl);
+			}
+			
+			if(TYPE.RESTORE == type){
+				// If this backup file is a temp file then delete it from S3 now that we have consumed it.
+				// We also want to cleanup backup files from builds.
+				if(backupFileName.startsWith(PREFIX_TEMP) || "dev".equals(stack) || "bamboo".equals(stack)){
+					deleteFileFromS3(awsBucket, backupFileName);
+				}
 			}
 
 			// We are done
@@ -332,6 +357,12 @@ public class BackupDaemon implements Runnable{
 		log.info("Atempting to dowload: "+getS3URL(bucket, fileName));
 		GetObjectRequest getObjectRequest = new GetObjectRequest(bucket, fileName);
 		this.awsClient.getObject(getObjectRequest, tempFile);
+		return true;
+	}
+	
+	private boolean deleteFileFromS3(String bucket, String fileName){
+		log.info("Atempting to delete a temp file from S3 dowload: "+getS3URL(bucket, fileName));
+		this.awsClient.deleteObject(bucket, fileName);
 		return true;
 	}
 

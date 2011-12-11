@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.BackupRestoreStatusDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -29,9 +28,6 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 	@Autowired
 	private JdoTemplate jdoTemplate;
 
-	@Autowired
-	private IdGenerator idGenerator;
-
 	/**
 	 * Create a new status object.
 	 * 
@@ -52,8 +48,7 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 		BackupRestoreStatusUtil.updateJdoFromDto(dto, jdo);
 		// Since we will use the ID in the backup file URL we want it to be
 		// unique within the domain.
-		jdo.setId(idGenerator.generateNewId());
-		jdoTemplate.makePersistent(jdo);
+		jdo = jdoTemplate.makePersistent(jdo);
 		JDOBackupTerminate terminateJdo = new JDOBackupTerminate();
 		terminateJdo.setOwner(jdo);
 		terminateJdo.setForceTerminate(false);
