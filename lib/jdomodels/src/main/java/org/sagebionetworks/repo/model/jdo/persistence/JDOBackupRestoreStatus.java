@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.jdo.persistence;
 
 import javax.jdo.annotations.Column;
+import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.NullValue;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
@@ -17,6 +18,7 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 public class JDOBackupRestoreStatus {
 	
 	@Column(name=SqlConstants.COL_BACKUP_ID)
+	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
 	@PrimaryKey
 	private Long id;
 	

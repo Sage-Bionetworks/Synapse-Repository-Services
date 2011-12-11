@@ -39,7 +39,7 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		if(!username.isAdmin()) throw new UnauthorizedException("Must be an administrator to start a backup daemon");
 		
 		AmazonS3Client client = createNewAWSClient();
-		String bucket = StackConfiguration.getS3Bucket();
+		String bucket = StackConfiguration.getSharedS3BackupBucket();
 		if(bucket == null) 	throw new IllegalArgumentException("Bucket cannot be null null");
 		// Create a new daemon and start it
 		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, client, bucket, backupDaemonThreadPool, entitiesToBackup);
@@ -54,7 +54,7 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		if(!username.isAdmin()) throw new UnauthorizedException("Must be an administrator to start a restoration daemon");
 		
 		AmazonS3Client client = createNewAWSClient();
-		String bucket = StackConfiguration.getS3Bucket();
+		String bucket = StackConfiguration.getSharedS3BackupBucket();
 		if(bucket == null) 	throw new IllegalArgumentException("Bucket cannot be null null");
 		// Create a new daemon and start it
 		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, client, bucket, backupDaemonThreadPool);

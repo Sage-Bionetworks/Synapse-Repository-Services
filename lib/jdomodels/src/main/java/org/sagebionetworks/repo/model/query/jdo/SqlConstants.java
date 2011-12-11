@@ -106,7 +106,7 @@ public class SqlConstants {
 	public static final String COL_RESOURCE_ACCESS_ID			= "ID";
 	
 	// The backup/restore status table
-	public static final String TABLE_BACKUP_STATUS 				= "JDO_BACKUP_RESTORE_STATUS";
+	public static final String TABLE_BACKUP_STATUS 				= "DAEMON_STATUS";
 	public static final String COL_BACKUP_ID					= "ID";
 	public static final String COL_BACKUP_STATUS				= "STATUS";
 	public static final String COL_BACKUP_TYPE					= "TYPE";
@@ -120,7 +120,7 @@ public class SqlConstants {
 	public static final String COL_BACKUP_URL					= "BACKUP_URL";
 	public static final String COL_BACKUP_RUNTIME				= "RUN_TIME_MS";
 	
-	public static final String TABLE_BACKUP_TERMINATE 			= "JDO_BACKUP_TERMINATE";
+	public static final String TABLE_BACKUP_TERMINATE 			= "DAEMON_TERMINATE";
 	public static final String COL_BACKUP_TERM_OWNER			= "BACKUP_OWNER";
 	public static final String COL_BACKUP_FORCE_TERMINATION		= "FORCE_TERMINATION";
 		

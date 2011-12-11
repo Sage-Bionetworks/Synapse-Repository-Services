@@ -373,5 +373,13 @@ public class StackConfiguration {
 	public static int getMaximumNumberOfEntitiesReturnedPerCall(){
 		return Integer.valueOf(configuration.getProperty("org.sagebionetworks.maximum.number.entities.returned.per.call"));
 	}
+	
+	/**
+	 * The S3 Bucket for backup file.  This is shared across stacks to enable data migration across a stack.
+	 * @return
+	 */
+	public static String getSharedS3BackupBucket(){
+		return configuration.getProperty("org.sagebionetworks.shared.s3.backup.bucket");
+	}
 
 }

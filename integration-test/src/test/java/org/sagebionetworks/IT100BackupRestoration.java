@@ -54,7 +54,7 @@ public class IT100BackupRestoration {
 			throw new IllegalArgumentException("IAM id cannot be null");
 		if (iamKey == null)
 			throw new IllegalArgumentException("IAM key cannot be null");
-		bucket = StackConfiguration.getS3Bucket();
+		bucket = StackConfiguration.getSharedS3BackupBucket();
 		if (bucket == null)
 			throw new IllegalArgumentException("Bucket cannot be null null");
 		AWSCredentials creds = new BasicAWSCredentials(iamId, iamKey);
