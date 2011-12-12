@@ -11,7 +11,7 @@
                     "s3:GetObject"
                 ],
                 "Effect": "Allow",
-                "Resource": "arn:aws:s3:::stagingworkflow.sagebase.org/staging*.properties"
+                "Resource": "arn:aws:s3:::prodworkflow.sagebase.org/prod*.properties"
             },
             {
                 "Action": [
