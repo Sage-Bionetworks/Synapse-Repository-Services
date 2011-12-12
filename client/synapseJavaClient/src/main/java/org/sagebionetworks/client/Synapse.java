@@ -35,6 +35,10 @@ import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
+import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.daemon.BackupSubmission;
+import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
+import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -59,6 +63,14 @@ public class Synapse {
 	private static final String REQUEST_PROFILE_DATA = "profile_request";
 	private static final String PROFILE_RESPONSE_OBJECT_HEADER = "profile_response_object";
 	private static final String QUERY_URI = "/query?query=";
+	
+	public static final String ADMIN			= "/admin";
+	public static final String DAEMOM			= ADMIN+"/daemon";
+	public static final String BACKUP			= "/backup";
+	public static final String RESTORE			= "/restore";
+	public static final String DAMEON_BACKUP	= DAEMOM+BACKUP;
+	public static final String DAMEON_RETORE	= DAEMOM+RESTORE;
+	public static final String STACK_STATUS		= ADMIN+"/synapse/status";
 
 	private String repoEndpoint;
 	private String authEndpoint;
@@ -896,5 +908,51 @@ public class Synapse {
 		}
 
 		return results;
+	}
+
+	public BackupRestoreStatus startBackupDaemon(BackupSubmission submission) throws JSONObjectAdapterException, SynapseException {
+		JSONObject json = EntityFactory.createJSONObjectForEntity(submission);
+		json = createEntity(DAMEON_BACKUP, json);
+		return EntityFactory.createEntityFromJSONObject(json, BackupRestoreStatus.class);
+	}
+
+	public StackStatus getCurrentStackStatus() throws SynapseException, JSONObjectAdapterException {
+		JSONObject json = getEntity(STACK_STATUS);
+		return EntityFactory.createEntityFromJSONObject(json, StackStatus.class);
+	}
+
+	public StackStatus updateCurrentStackStatus(StackStatus updated) throws JSONObjectAdapterException, SynapseException {
+		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(updated);
+		Map<String, String> requestHeaders = new HashMap<String, String>();
+		requestHeaders.putAll(defaultPOSTPUTHeaders);
+		jsonObject = dispatchSynapseRequest(repoEndpoint, STACK_STATUS, "PUT", jsonObject.toString(),requestHeaders);
+		return EntityFactory.createEntityFromJSONObject(jsonObject, StackStatus.class);
+	}
+
+	public BackupRestoreStatus startRestoreDaemon(RestoreSubmission submission) throws JSONObjectAdapterException, SynapseException {
+		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(submission);
+		// Create the entity
+		jsonObject = createEntity(DAMEON_RETORE, jsonObject);
+		return  EntityFactory.createEntityFromJSONObject(jsonObject, BackupRestoreStatus.class);
+	}
+	
+	/**
+	 * Get a dataset, layer, preview, annotations, etc...
+	 * 
+	 * @param uri
+	 * @return the retrieved entity
+	 * @throws JSONException
+	 * @throws IOException
+	 * @throws ClientProtocolException
+	 * @throws JSONObjectAdapterException 
+	 * @throws SynapseException 
+	 */
+	public <T extends JSONEntity> T getJSONEntity(String uri, Class<? extends T> clazz) throws SynapseException, JSONObjectAdapterException {
+		JSONObject jsonObject = getEntity(uri);
+		return EntityFactory.createEntityFromJSONObject(jsonObject, clazz);
+	}
+
+	public BackupRestoreStatus getDaemonStatus(String daemonId) throws SynapseException, JSONObjectAdapterException {
+		return getJSONEntity(DAEMOM+"/"+daemonId, BackupRestoreStatus.class);
 	}
 }

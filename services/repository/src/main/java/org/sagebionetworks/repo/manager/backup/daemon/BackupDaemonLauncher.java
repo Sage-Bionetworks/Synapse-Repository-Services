@@ -2,10 +2,10 @@ package org.sagebionetworks.repo.manager.backup.daemon;
 
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface BackupDaemonLauncher {

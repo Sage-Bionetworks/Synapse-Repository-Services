@@ -5,9 +5,11 @@ import static org.junit.Assert.assertEquals;
 import java.util.Date;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOBackupRestoreStatus;
+import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.daemon.DaemonStatus;
+import org.sagebionetworks.repo.model.daemon.DaemonType;
+import org.sagebionetworks.repo.model.jdo.persistence.JDODaemonStatus;
 
 public class BackupRestoreStatusUtilTest {
 	
@@ -16,8 +18,8 @@ public class BackupRestoreStatusUtilTest {
 		// Make a round trip from the DTO->JDO->DTO
 		BackupRestoreStatus dto = new BackupRestoreStatus();
 		dto.setId("12");
-		dto.setStatus(BackupRestoreStatus.STATUS.COMPLETED.name());
-		dto.setType(BackupRestoreStatus.TYPE.BACKUP.name());
+		dto.setStatus(DaemonStatus.COMPLETED);
+		dto.setType(DaemonType.BACKUP);
 		dto.setStartedBy("someAdmin@sagebase.org");
 		dto.setStartedOn(new Date());
 		dto.setProgresssMessage("Finally finished!");
@@ -29,7 +31,7 @@ public class BackupRestoreStatusUtilTest {
 		dto.setBackupUrl("https://somehost:port/buck/file.zip");
 
 		// Now upate a new JDO from the DTO
-		JDOBackupRestoreStatus jdo = new JDOBackupRestoreStatus();
+		JDODaemonStatus jdo = new JDODaemonStatus();
 		jdo.setId(new Long(12));
 		BackupRestoreStatusUtil.updateJdoFromDto(dto, jdo);
 		// Create a clone from the JDO
@@ -42,8 +44,8 @@ public class BackupRestoreStatusUtilTest {
 		// Make a round trip from the DTO->JDO->DTO
 		BackupRestoreStatus dto = new BackupRestoreStatus();
 		dto.setId("12");
-		dto.setStatus(BackupRestoreStatus.STATUS.COMPLETED.name());
-		dto.setType(BackupRestoreStatus.TYPE.BACKUP.name());
+		dto.setStatus(DaemonStatus.COMPLETED);
+		dto.setType(DaemonType.BACKUP);
 		dto.setStartedBy("someAdmin@sagebase.org");
 		dto.setStartedOn(new Date());
 		dto.setProgresssMessage("Finally finished!");
@@ -55,7 +57,7 @@ public class BackupRestoreStatusUtilTest {
 		dto.setBackupUrl(null);
 
 		// Now upate a new JDO from the DTO
-		JDOBackupRestoreStatus jdo = new JDOBackupRestoreStatus();
+		JDODaemonStatus jdo = new JDODaemonStatus();
 		jdo.setId(new Long(12));
 		BackupRestoreStatusUtil.updateJdoFromDto(dto, jdo);
 		// Create a clone from the JDO

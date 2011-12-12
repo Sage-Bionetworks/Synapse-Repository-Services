@@ -1,6 +1,10 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -10,11 +14,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.BackupRestoreStatus.STATUS;
-import org.sagebionetworks.repo.model.BackupRestoreStatus.TYPE;
 import org.sagebionetworks.repo.model.BackupRestoreStatusDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.daemon.DaemonStatus;
+import org.sagebionetworks.repo.model.daemon.DaemonType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -49,7 +53,7 @@ public class BackupRestoreStatusDAOImplTest {
 	@Test
 	public void testCreateAndGetWithOptionalNulls() throws Exception{
 		// First setup a DTO
-		BackupRestoreStatus dto = createStatusObject(STATUS.COMPLETED, TYPE.RESTORE);
+		BackupRestoreStatus dto = createStatusObject(DaemonStatus.COMPLETED, DaemonType.RESTORE);
 		dto.setErrorDetails(null);
 		dto.setErrorMessage(null);
 		dto.setBackupUrl(null);
@@ -70,16 +74,16 @@ public class BackupRestoreStatusDAOImplTest {
 	 * @param type
 	 * @return
 	 */
-	public BackupRestoreStatus createStatusObject(STATUS status, TYPE type) {
+	public BackupRestoreStatus createStatusObject(DaemonStatus status, DaemonType type) {
 		BackupRestoreStatus dto = new BackupRestoreStatus();
-		dto.setStatus(status.name());
-		dto.setType(type.name());
+		dto.setStatus(status);
+		dto.setType(type);
 		dto.setStartedBy("someAdmin@sagebase.org");
 		dto.setStartedOn(new Date());
 		dto.setProgresssMessage("Finally finished!");
-		dto.setProgresssCurrent(0);
-		dto.setProgresssTotal(100);
-		dto.setTotalTimeMS(0);
+		dto.setProgresssCurrent(0l);
+		dto.setProgresssTotal(100l);
+		dto.setTotalTimeMS(0l);
 		dto.setErrorDetails(null);
 		dto.setErrorMessage(null);
 		dto.setBackupUrl(null);
@@ -89,7 +93,7 @@ public class BackupRestoreStatusDAOImplTest {
 	@Test
 	public void testCreateAndGetWithOptionalAllValues() throws Exception{
 		// First setup a DTO
-		BackupRestoreStatus dto = createStatusObject(STATUS.STARTED, TYPE.BACKUP);
+		BackupRestoreStatus dto = createStatusObject(DaemonStatus.STARTED, DaemonType.BACKUP);
 		dto.setErrorDetails("some short message");
 		dto.setErrorMessage("imagine I am a full stack trace");
 		dto.setBackupUrl("https://somedomean:port/bucket/file.zip");
@@ -113,7 +117,7 @@ public class BackupRestoreStatusDAOImplTest {
 	@Test
 	public void testDelete() throws DatastoreException, NotFoundException{
 		// First setup a DTO
-		BackupRestoreStatus dto = createStatusObject(STATUS.STARTED, TYPE.BACKUP);
+		BackupRestoreStatus dto = createStatusObject(DaemonStatus.STARTED, DaemonType.BACKUP);
 		String id = backupRestoreStatusDao.create(dto);
 		assertNotNull(id);
 		toDelete.add(id);
@@ -130,13 +134,13 @@ public class BackupRestoreStatusDAOImplTest {
 	@Test
 	public void testUpdate() throws DatastoreException, NotFoundException{
 		// First setup a DTO
-		BackupRestoreStatus dto = createStatusObject(STATUS.STARTED, TYPE.BACKUP);
+		BackupRestoreStatus dto = createStatusObject(DaemonStatus.STARTED, DaemonType.BACKUP);
 		String id = backupRestoreStatusDao.create(dto);
 		assertNotNull(id);
 		toDelete.add(id);
 		dto = backupRestoreStatusDao.get(id);
 		// change it
-		dto.setStatus(STATUS.FAILED.name());
+		dto.setStatus(DaemonStatus.FAILED);
 		dto.setErrorMessage("Something bad happened");
 		dto.setErrorDetails("and here are the details");
 		backupRestoreStatusDao.update(dto);
@@ -146,7 +150,7 @@ public class BackupRestoreStatusDAOImplTest {
 	
 	@Test
 	public void testForceTerminate() throws DatastoreException, NotFoundException{
-		BackupRestoreStatus dto = createStatusObject(STATUS.STARTED, TYPE.BACKUP);
+		BackupRestoreStatus dto = createStatusObject(DaemonStatus.STARTED, DaemonType.BACKUP);
 		String id = backupRestoreStatusDao.create(dto);
 		assertNotNull(id);
 		toDelete.add(id);

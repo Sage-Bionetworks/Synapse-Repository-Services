@@ -23,19 +23,20 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.BackupRestoreStatus.STATUS;
+import org.sagebionetworks.repo.model.DaemonStatusUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.RestoreFile;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.registry.backup.BackupSubmission;
+import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.daemon.BackupSubmission;
+import org.sagebionetworks.repo.model.daemon.DaemonStatus;
+import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
@@ -154,7 +155,7 @@ public class AdministrationControllerTest {
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		// Wait for it finish
-		status = waitForStatus(STATUS.COMPLETED, status.getId());
+		status = waitForStatus(DaemonStatus.COMPLETED, status.getId());
 		assertNotNull(status.getBackupUrl());
 		String fullUrl = status.getBackupUrl();
 		System.out.println(fullUrl);
@@ -166,12 +167,13 @@ public class AdministrationControllerTest {
 		nodeManager.delete(nonAdmin, idOfNodeWithRefs);
 		
 		// Now restore the nodes from the backup
-		RestoreFile file = new RestoreFile(fileName);
+		RestoreSubmission file = new RestoreSubmission();
+		file.setFileName(fileName);
 		status = ServletTestHelper.startRestore(dispatchServlet, adminUserName, file);
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		// Wait for it finish
-		status = waitForStatus(STATUS.COMPLETED, status.getId());
+		status = waitForStatus(DaemonStatus.COMPLETED, status.getId());
 		assertNotNull(status.getBackupUrl());
 		System.out.println(status.getBackupUrl());
 		// Now make sure the nodes are resurrected
@@ -234,7 +236,7 @@ public class AdministrationControllerTest {
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		// Wait for it finish
-		status = waitForStatus(STATUS.COMPLETED, status.getId());
+		status = waitForStatus(DaemonStatus.COMPLETED, status.getId());
 		assertNotNull(status.getBackupUrl());
 		String fullUrl = status.getBackupUrl();
 		System.out.println(fullUrl);
@@ -246,13 +248,14 @@ public class AdministrationControllerTest {
 		nodeManager.delete(nonAdmin, idOfNodeWithRefs);
 		
 		// Now restore the nodes from the backup
-		RestoreFile file = new RestoreFile(fileName);
+		RestoreSubmission file = new RestoreSubmission();
+		file.setFileName(fileName);
 		// The backup should only restore a single node.
 		status = ServletTestHelper.startRestore(dispatchServlet, adminUserName, file);
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		// Wait for it finish
-		status = waitForStatus(STATUS.COMPLETED, status.getId());
+		status = waitForStatus(DaemonStatus.COMPLETED, status.getId());
 		assertNotNull(status.getBackupUrl());
 		System.out.println(status.getBackupUrl());
 		// Now make sure the nodes are resurrected
@@ -304,7 +307,7 @@ public class AdministrationControllerTest {
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		// Wait for it finish
-		status = waitForStatus(STATUS.COMPLETED, status.getId());
+		status = waitForStatus(DaemonStatus.COMPLETED, status.getId());
 		assertNotNull(status.getBackupUrl());
 		String fullUrl = status.getBackupUrl();
 		System.out.println(fullUrl);
@@ -320,13 +323,14 @@ public class AdministrationControllerTest {
 		// Now restore this node from the backup.  The results should be replacing the 
 		// with its original value.
 		// the value from before 
-		RestoreFile file = new RestoreFile(fileName);
+		RestoreSubmission file = new RestoreSubmission();
+		file.setFileName(fileName);
 		// The backup should only restore a single node.
 		status = ServletTestHelper.startRestore(dispatchServlet, adminUserName, file);
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		// Wait for it finish
-		status = waitForStatus(STATUS.COMPLETED, status.getId());
+		status = waitForStatus(DaemonStatus.COMPLETED, status.getId());
 		assertNotNull(status.getBackupUrl());
 		System.out.println(status.getBackupUrl());
 		// Now fetch the nodee
@@ -405,11 +409,11 @@ public class AdministrationControllerTest {
 	 * @throws IOException 
 	 * @throws ServletException 
 	 */
-	private BackupRestoreStatus waitForStatus(STATUS lookinFor, String id) throws DatastoreException, NotFoundException, InterruptedException, UnauthorizedException, ServletException, IOException{
+	private BackupRestoreStatus waitForStatus(DaemonStatus lookinFor, String id) throws DatastoreException, NotFoundException, InterruptedException, UnauthorizedException, ServletException, IOException{
 		BackupRestoreStatus status = ServletTestHelper.getDaemonStatus(dispatchServlet, adminUserName, id);
 		long start = System.currentTimeMillis();
 		long elapse = 0;
-		while(!lookinFor.name().equals(status.getStatus())){
+		while(!lookinFor.equals(status.getStatus())){
 			// Wait for it to complete
 			Thread.sleep(1000);
 			long end =  System.currentTimeMillis();
@@ -419,8 +423,8 @@ public class AdministrationControllerTest {
 			}
 			status = ServletTestHelper.getDaemonStatus(dispatchServlet, adminUserName, id);
 			assertEquals(id, status.getId());
-			System.out.println(status.printStatus());
-			if(STATUS.FAILED != lookinFor && STATUS.FAILED.name().equals(status.getStatus())){
+			System.out.println(DaemonStatusUtil.printStatus(status));
+			if(DaemonStatus.FAILED != lookinFor && DaemonStatus.FAILED.equals(status.getStatus())){
 				fail("Unexpected failure: "+status.getErrorMessage()+" "+status.getErrorDetails());
 			}
 		}

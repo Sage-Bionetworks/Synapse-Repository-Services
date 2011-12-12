@@ -1,25 +1,22 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.net.URL;
 import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.RestoreFile;
-import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.registry.backup.BackupSubmission;
+import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.daemon.BackupSubmission;
+import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -121,7 +118,7 @@ public class AdministrationController extends BaseController {
 			}, method = RequestMethod.POST)
 	public @ResponseBody
 	BackupRestoreStatus startRestore(
-			@RequestBody RestoreFile file,
+			@RequestBody RestoreSubmission file,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
@@ -129,11 +126,11 @@ public class AdministrationController extends BaseController {
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 
 		if(file == null) throw new IllegalArgumentException("File cannot be null");
-		if(file.getUrl() == null) throw new IllegalArgumentException("File.getUrl cannot be null");
+		if(file.getFileName() == null) throw new IllegalArgumentException("File.getFileName cannot be null");
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// start a restore daemon
-		return backupDaemonLauncher.startRestore(userInfo, file.getUrl());
+		return backupDaemonLauncher.startRestore(userInfo, file.getFileName());
 	}
 	
 	/**

@@ -14,15 +14,16 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.BackupRestoreStatus.STATUS;
+import org.sagebionetworks.repo.model.DaemonStatusUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.util.UserProvider;
@@ -110,7 +111,7 @@ public class BackupDaemonLauncherImplAutowireTest {
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		// Wait for it finish
-		status = waitForStatus(STATUS.COMPLETED, status.getId());
+		status = waitForStatus(DaemonStatus.COMPLETED, status.getId());
 		assertNotNull(status.getBackupUrl());
 		String fullUrl = status.getBackupUrl();
 		System.out.println(fullUrl);
@@ -125,7 +126,7 @@ public class BackupDaemonLauncherImplAutowireTest {
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		// Wait for it finish
-		status = waitForStatus(STATUS.COMPLETED, status.getId());
+		status = waitForStatus(DaemonStatus.COMPLETED, status.getId());
 		assertNotNull(status.getBackupUrl());
 		System.out.println(status.getBackupUrl());
 		// Now make sure the node it back.
@@ -163,7 +164,7 @@ public class BackupDaemonLauncherImplAutowireTest {
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		// Wait for it finish
-		status = waitForStatus(STATUS.COMPLETED, status.getId());
+		status = waitForStatus(DaemonStatus.COMPLETED, status.getId());
 		assertNotNull(status.getBackupUrl());
 		String fullUrl = status.getBackupUrl();
 		System.out.println(fullUrl);
@@ -178,7 +179,7 @@ public class BackupDaemonLauncherImplAutowireTest {
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		// Wait for it finish
-		status = waitForStatus(STATUS.COMPLETED, status.getId());
+		status = waitForStatus(DaemonStatus.COMPLETED, status.getId());
 		assertNotNull(status.getBackupUrl());
 		System.out.println(status.getBackupUrl());
 		// Now make sure the node it back.
@@ -200,11 +201,11 @@ public class BackupDaemonLauncherImplAutowireTest {
 	 * @throws InterruptedException
 	 * @throws UnauthorizedException 
 	 */
-	private BackupRestoreStatus waitForStatus(STATUS lookinFor, String id) throws DatastoreException, NotFoundException, InterruptedException, UnauthorizedException{
+	private BackupRestoreStatus waitForStatus(DaemonStatus lookinFor, String id) throws DatastoreException, NotFoundException, InterruptedException, UnauthorizedException{
 		BackupRestoreStatus status = backupDaemonLauncher.getStatus(testUserProvider.getTestAdminUserInfo(), id);
 		long start = System.currentTimeMillis();
 		long elapse = 0;
-		while(!lookinFor.name().equals(status.getStatus())){
+		while(!lookinFor.equals(status.getStatus())){
 			// Wait for it to complete
 			Thread.sleep(1000);
 			long end =  System.currentTimeMillis();
@@ -214,8 +215,8 @@ public class BackupDaemonLauncherImplAutowireTest {
 			}
 			status = backupDaemonLauncher.getStatus(testUserProvider.getTestAdminUserInfo(), id);
 			assertEquals(id, status.getId());
-			System.out.println(status.printStatus());
-			if(STATUS.FAILED != lookinFor && STATUS.FAILED.name().equals(status.getStatus())){
+			System.out.println(DaemonStatusUtil.printStatus(status));
+			if(DaemonStatus.FAILED != lookinFor && DaemonStatus.FAILED.equals(status.getStatus())){
 				fail("Unexpected failure: "+status.getErrorMessage()+" "+status.getErrorDetails());
 			}
 		}

@@ -16,23 +16,23 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
  *
  */
 @PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_BACKUP_TERMINATE)
-public class JDOBackupTerminate {
+public class JDODaemonTerminate {
 	
 	@PrimaryKey
 	@Persistent (nullValue = NullValue.EXCEPTION) //cannot be null
 	@Column(name=SqlConstants.COL_BACKUP_TERM_OWNER)
 	@ForeignKey(name="BACKUP_OWNER_FK", deleteAction=ForeignKeyAction.CASCADE)
-	private JDOBackupRestoreStatus owner;
+	private JDODaemonStatus owner;
 	
 	@Column(name=SqlConstants.COL_BACKUP_FORCE_TERMINATION)
 	@Persistent(nullValue = NullValue.EXCEPTION) // cannot be null
 	private Boolean forceTerminate;
 
-	public JDOBackupRestoreStatus getOwner() {
+	public JDODaemonStatus getOwner() {
 		return owner;
 	}
 
-	public void setOwner(JDOBackupRestoreStatus owner) {
+	public void setOwner(JDODaemonStatus owner) {
 		this.owner = owner;
 	}
 

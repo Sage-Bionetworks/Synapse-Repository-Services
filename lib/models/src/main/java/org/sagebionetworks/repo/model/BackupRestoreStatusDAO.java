@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 

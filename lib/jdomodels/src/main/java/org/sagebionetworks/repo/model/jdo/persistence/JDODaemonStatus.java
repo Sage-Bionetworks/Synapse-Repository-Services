@@ -15,7 +15,7 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
  *
  */
 @PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_BACKUP_STATUS)
-public class JDOBackupRestoreStatus {
+public class JDODaemonStatus {
 	
 	@Column(name=SqlConstants.COL_BACKUP_ID)
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
@@ -175,7 +175,7 @@ public class JDOBackupRestoreStatus {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		JDOBackupRestoreStatus other = (JDOBackupRestoreStatus) obj;
+		JDODaemonStatus other = (JDODaemonStatus) obj;
 		if (id == null) {
 			if (other.id != null)
 				return false;
