@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.web;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -14,17 +17,17 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
-import org.sagebionetworks.repo.model.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.BackupRestoreStatus.STATUS;
+import org.sagebionetworks.repo.model.DaemonStatusUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.RestoreFile;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.registry.backup.BackupSubmission;
+import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.daemon.BackupSubmission;
+import org.sagebionetworks.repo.model.daemon.DaemonStatus;
+import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.repo.web.controller.AdministrationControllerTest;
 import org.sagebionetworks.repo.web.controller.ServletTestHelper;
 import org.sagebionetworks.repo.web.controller.ServletTestHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -265,17 +268,18 @@ public class StackStatusInterceptorTest {
 		submission.getEntityIdsToBackup().add(sampleProject.getId());
 		BackupRestoreStatus status = ServletTestHelper.startBackup(dispatchServlet, userName, submission);
 		// Wait for the backup to complete
-		status = waitForStatus(STATUS.COMPLETED, status.getId());
+		status = waitForStatus(DaemonStatus.COMPLETED, status.getId());
 		// Now make sure we can restore.
 		assertNotNull(status.getBackupUrl());
 		String fullUrl = status.getBackupUrl();
 		int index = fullUrl.lastIndexOf("/");
 		String fileName = status.getBackupUrl().substring(index+1, fullUrl.length());
 		// Now restore the nodes from the backup
-		RestoreFile file = new RestoreFile(fileName);
+		RestoreSubmission file = new RestoreSubmission();
+		file.setFileName(fileName);
 		status = ServletTestHelper.startRestore(dispatchServlet, userName, file);
 		// Wait for the backup to complete
-		status = waitForStatus(STATUS.COMPLETED, status.getId());
+		status = waitForStatus(DaemonStatus.COMPLETED, status.getId());
 	}
 	
 	/**
@@ -302,11 +306,11 @@ public class StackStatusInterceptorTest {
 	 * @throws IOException 
 	 * @throws ServletException 
 	 */
-	private BackupRestoreStatus waitForStatus(STATUS lookinFor, String id) throws DatastoreException, NotFoundException, InterruptedException, UnauthorizedException, ServletException, IOException{
+	private BackupRestoreStatus waitForStatus(DaemonStatus lookinFor, String id) throws DatastoreException, NotFoundException, InterruptedException, UnauthorizedException, ServletException, IOException{
 		BackupRestoreStatus status = ServletTestHelper.getDaemonStatus(dispatchServlet, userName, id);
 		long start = System.currentTimeMillis();
 		long elapse = 0;
-		while(!lookinFor.name().equals(status.getStatus())){
+		while(!lookinFor.equals(status.getStatus())){
 			// Wait for it to complete
 			Thread.sleep(1000);
 			long end =  System.currentTimeMillis();
@@ -316,8 +320,8 @@ public class StackStatusInterceptorTest {
 			}
 			status = ServletTestHelper.getDaemonStatus(dispatchServlet, userName, id);
 			assertEquals(id, status.getId());
-			System.out.println(status.printStatus());
-			if(STATUS.FAILED != lookinFor && STATUS.FAILED.name().equals(status.getStatus())){
+			System.out.println(DaemonStatusUtil.printStatus(status));
+			if(DaemonStatus.FAILED != lookinFor && DaemonStatus.FAILED.equals(status.getStatus())){
 				fail("Unexpected failure: "+status.getErrorMessage()+" "+status.getErrorDetails());
 			}
 		}

@@ -3,9 +3,11 @@ package org.sagebionetworks.repo.model.jdo;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
-import org.sagebionetworks.repo.model.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOBackupRestoreStatus;
+import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.daemon.DaemonStatus;
+import org.sagebionetworks.repo.model.daemon.DaemonType;
+import org.sagebionetworks.repo.model.jdo.persistence.JDODaemonStatus;
 
 /**
  * Translates to and from the JDO and DTO objects.
@@ -21,13 +23,13 @@ public class BackupRestoreStatusUtil {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public static BackupRestoreStatus createDtoFromJdo(JDOBackupRestoreStatus jdo) throws DatastoreException{
+	public static BackupRestoreStatus createDtoFromJdo(JDODaemonStatus jdo) throws DatastoreException{
 		BackupRestoreStatus dto = new BackupRestoreStatus();
 		if(jdo.getId() != null){
 			dto.setId(KeyFactory.keyToString(jdo.getId()));
 		}
-		dto.setStatus(jdo.getStatus());
-		dto.setType(jdo.getType());
+		dto.setStatus(DaemonStatus.valueOf(jdo.getStatus()));
+		dto.setType(DaemonType.valueOf(jdo.getType()));
 		dto.setStartedBy(jdo.getStartedBy());
 		if(jdo.getStartedOn() != null){
 			dto.setStartedOn(new Date(jdo.getStartedOn()));
@@ -54,12 +56,12 @@ public class BackupRestoreStatusUtil {
 	 * @param jdo
 	 * @throws DatastoreException
 	 */
-	public static void updateJdoFromDto(BackupRestoreStatus dto, JDOBackupRestoreStatus jdo) throws DatastoreException{
+	public static void updateJdoFromDto(BackupRestoreStatus dto, JDODaemonStatus jdo) throws DatastoreException{
 		if(jdo.getId() != null){
 			jdo.setId(KeyFactory.stringToKey(dto.getId()));
 		}
-		jdo.setStatus(dto.getStatus());
-		jdo.setType(dto.getType());
+		jdo.setStatus(dto.getStatus().name());
+		jdo.setType(dto.getType().name());
 		jdo.setStartedBy(dto.getStartedBy());
 		if(dto.getStartedOn() != null){
 			jdo.setStartedOn(dto.getStartedOn().getTime());
@@ -86,7 +88,7 @@ public class BackupRestoreStatusUtil {
 	 * @throws DatastoreException 
 	 */
 	public static BackupRestoreStatus cloneStatus(BackupRestoreStatus dto) throws DatastoreException{
-		JDOBackupRestoreStatus jdo = new JDOBackupRestoreStatus();
+		JDODaemonStatus jdo = new JDODaemonStatus();
 		updateJdoFromDto(dto, jdo);
 		if(dto.getId() != null){
 			jdo.setId(KeyFactory.stringToKey(dto.getId()));

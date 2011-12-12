@@ -25,18 +25,17 @@ import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.RestoreFile;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.Versionable;
-import org.sagebionetworks.repo.model.registry.backup.BackupSubmission;
+import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.daemon.BackupSubmission;
+import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -1321,7 +1320,7 @@ public class ServletTestHelper {
 	 * @throws IOException
 	 */
 	public static BackupRestoreStatus startRestore(HttpServlet dispatchServlet,
-			String uesrId, RestoreFile file) throws ServletException,
+			String uesrId, RestoreSubmission file) throws ServletException,
 			IOException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();

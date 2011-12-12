@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import org.sagebionetworks.repo.model.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.BackupRestoreStatusDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOBackupRestoreStatus;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOBackupTerminate;
+import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.jdo.persistence.JDODaemonStatus;
+import org.sagebionetworks.repo.model.jdo.persistence.JDODaemonTerminate;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -44,12 +44,12 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 	public String create(BackupRestoreStatus dto) throws DatastoreException {
 		// First assign the id
 		// Create a new jdo
-		JDOBackupRestoreStatus jdo = new JDOBackupRestoreStatus();
+		JDODaemonStatus jdo = new JDODaemonStatus();
 		BackupRestoreStatusUtil.updateJdoFromDto(dto, jdo);
 		// Since we will use the ID in the backup file URL we want it to be
 		// unique within the domain.
 		jdo = jdoTemplate.makePersistent(jdo);
-		JDOBackupTerminate terminateJdo = new JDOBackupTerminate();
+		JDODaemonTerminate terminateJdo = new JDODaemonTerminate();
 		terminateJdo.setOwner(jdo);
 		terminateJdo.setForceTerminate(false);
 		jdoTemplate.makePersistent(terminateJdo);
@@ -67,7 +67,7 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 	@Override
 	public BackupRestoreStatus get(String id) throws DatastoreException,
 			NotFoundException {
-		JDOBackupRestoreStatus jdo = getJdo(id);
+		JDODaemonStatus jdo = getJdo(id);
 		return BackupRestoreStatusUtil.createDtoFromJdo(jdo);
 	}
 
@@ -79,10 +79,10 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	private JDOBackupRestoreStatus getJdo(String id) throws DatastoreException,
+	private JDODaemonStatus getJdo(String id) throws DatastoreException,
 			NotFoundException {
 		try {
-			return jdoTemplate.getObjectById(JDOBackupRestoreStatus.class,
+			return jdoTemplate.getObjectById(JDODaemonStatus.class,
 					KeyFactory.stringToKey(id));
 		} catch (JdoObjectRetrievalFailureException e) {
 			throw new NotFoundException(
@@ -111,22 +111,22 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 			throw new IllegalArgumentException("Status cannot be null");
 		if (dto.getId() == null)
 			throw new IllegalArgumentException("Status.id cannot be null");
-		JDOBackupRestoreStatus jdo = getJdo(dto.getId());
+		JDODaemonStatus jdo = getJdo(dto.getId());
 		BackupRestoreStatusUtil.updateJdoFromDto(dto, jdo);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
-		JDOBackupRestoreStatus jdo = getJdo(id);
+		JDODaemonStatus jdo = getJdo(id);
 		jdoTemplate.deletePersistent(jdo);
 	}
 
-	private JDOBackupTerminate getJobTerminate(String id)
+	private JDODaemonTerminate getJobTerminate(String id)
 			throws DataAccessException, DatastoreException, NotFoundException {
 		try {
-			JDOBackupRestoreStatus status = getJdo(id);
-			return jdoTemplate.getObjectById(JDOBackupTerminate.class,status);
+			JDODaemonStatus status = getJdo(id);
+			return jdoTemplate.getObjectById(JDODaemonTerminate.class,status);
 		} catch (JdoObjectRetrievalFailureException e) {
 			throw new NotFoundException(
 					"Cannot find a BackupRestoreStatus with ID: " + id);
@@ -136,7 +136,7 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 
 	@Override
 	public boolean shouldJobTerminate(String id) throws DatastoreException, NotFoundException {
-		JDOBackupTerminate terminateJdo = getJobTerminate(id);
+		JDODaemonTerminate terminateJdo = getJobTerminate(id);
 		return terminateJdo.getForceTerminate();
 	}
 
@@ -148,7 +148,7 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 	@Override
 	public void setForceTermination(String id, boolean terminate)
 			throws DatastoreException, NotFoundException {
-		JDOBackupTerminate terminateJdo = getJobTerminate(id);
+		JDODaemonTerminate terminateJdo = getJobTerminate(id);
 		terminateJdo.setForceTerminate(terminate);
 	}
 }
