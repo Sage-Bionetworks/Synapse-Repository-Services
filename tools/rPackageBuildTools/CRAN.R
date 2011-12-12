@@ -13,7 +13,7 @@ pkgInstall <- function (package, stack='prod', ...) {
   rVersion <- paste(R.Version()$major, as.integer(R.Version()$minor), sep=".")
   sageRepos <- paste("http://sage.fhcrc.org/CRAN",
                      stack, rVersion, sep="/")
-  allRepos <- c(sageRepos, biocinstallRepos())
+  allRepos <- c(biocinstallRepos(), sageRepos)
 
   install.packages(package, repos=allRepos, ...)
 }
