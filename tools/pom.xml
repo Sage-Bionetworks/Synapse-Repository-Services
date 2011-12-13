@@ -17,6 +17,7 @@
       <module>DatasetMetadataLoader</module>
       <module>gePipeline</module>
       <module>SynapseDeployer</module>
-  </modules>
+      <module>tool-migration-utility</module>
+    </modules>
 
 </project>

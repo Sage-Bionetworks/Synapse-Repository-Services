@@ -314,6 +314,11 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-communicationUtilities</artifactId>
 		</dependency>
+		
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>tool-migration-utility</artifactId>
+		</dependency>
 
 <!--		<dependency>-->
 <!--			<groupId>com.google.develop</groupId>-->
@@ -342,6 +347,7 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 		</dependency>
+
 
 	</dependencies>
 
