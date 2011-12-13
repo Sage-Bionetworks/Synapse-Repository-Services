@@ -338,6 +338,13 @@
 				<artifactId>auth-util</artifactId>
 				<version>${project.version}</version>
 			</dependency>
+			
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>tool-migration-utility</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			
 		</dependencies>
 	</dependencyManagement>
 	<!-- Only list globally used plugins in this file -->
