@@ -101,7 +101,14 @@ public class ExternalProcessHelper {
         outputGobbler.start();
 
         //Make sure process is complete
-		int i = process.waitFor();
+		int i = 1;
+		boolean wasInterrupted = false;
+		try {
+			i = process.waitFor();
+		} catch (InterruptedException e) {
+			i = 1;
+			wasInterrupted = true;
+		}
 		outputGobbler.join();
 		errorGobbler.join();
 		
@@ -110,6 +117,7 @@ public class ExternalProcessHelper {
 		result.setStderr(errorGobbler.getOutput());
 		result.setStdout(outputGobbler.getOutput());
 		log.info("Completed exec: " + StringUtils.join(cmd, " ")
+				+", wasInterrputed=" + wasInterrupted
 				+ ", " + result);
 		
 		return result;

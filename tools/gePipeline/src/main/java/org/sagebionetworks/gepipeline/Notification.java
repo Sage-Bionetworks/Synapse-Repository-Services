@@ -43,7 +43,17 @@ public class Notification {
 	// Per 
 	// http://docs.amazonwebservices.com/sns/latest/api/
 	// Constraints: Messages must be UTF-8 encoded strings at most 8 KB in size (8192 bytes, not 8192 characters).
-	private static int MAX_MESSAGE_BYTE_LENGTH = 8000;
+	public static int MAX_MESSAGE_BYTE_LENGTH = 8000;
+	
+	public static String truncateMessageToMaxLength(String message) {
+		int byteLength = message.getBytes().length;
+		while (byteLength>MAX_MESSAGE_BYTE_LENGTH) {
+			int newCharLength = message.length()*MAX_MESSAGE_BYTE_LENGTH/byteLength;
+			message = message.substring(0, newCharLength);
+			byteLength = message.getBytes().length;
+		}
+		return message;
+	}
 
 	/**
 	 * Notify followers subscribed to an SNS topic by publishing a message to
@@ -56,14 +66,8 @@ public class Notification {
 	public static void doSnsNotifyFollowers(String topic, String subject,
 			String message) {
 
-		int byteLength = message.getBytes().length;
-		while (byteLength>MAX_MESSAGE_BYTE_LENGTH) {
-			int newCharLength = message.length()*MAX_MESSAGE_BYTE_LENGTH/byteLength;
-			message = message.substring(0, newCharLength);
-			byteLength = message.getBytes().length;
-		}
 		AmazonSNS snsClient = ConfigHelper.createSNSClient();
-		PublishRequest publishRequest = new PublishRequest(topic, message,
+		PublishRequest publishRequest = new PublishRequest(topic, truncateMessageToMaxLength(message),
 				subject);
 
 		PublishResult publishResult = snsClient.publish(publishRequest);

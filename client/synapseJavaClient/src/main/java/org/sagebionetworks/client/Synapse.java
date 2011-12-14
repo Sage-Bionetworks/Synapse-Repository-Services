@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.HashMap;
@@ -29,6 +31,7 @@ import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Location;
@@ -42,9 +45,11 @@ import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
+import org.joda.time.DateTime;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -145,6 +150,38 @@ public class Synapse {
 	 */
 	public JSONObject getProfileData() {
 		return this.profileData;
+	}
+	
+	private String userName;
+	private String apiKey;
+	
+
+	/**
+	 * @return the userName
+	 */
+	public String getUserName() {
+		return userName;
+	}
+
+	/**
+	 * @param userName the userName to set
+	 */
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
+
+	/**
+	 * @return the apiKey
+	 */
+	public String getApiKey() {
+		return apiKey;
+	}
+
+	/**
+	 * @param apiKey the apiKey to set
+	 */
+	public void setApiKey(String apiKey) {
+		this.apiKey = apiKey;
 	}
 
 	/**
@@ -640,7 +677,7 @@ public class Synapse {
 			throw new IllegalArgumentException("must provide entity");
 		}
 
-		return dispatchSynapseRequest(endpoint, uri, "POST", entity.toString(),
+		return signAndDispatchSynapseRequest(endpoint, uri, "POST", entity.toString(),
 				defaultPOSTPUTHeaders);
 	}
 
@@ -661,7 +698,7 @@ public class Synapse {
 			throw new IllegalArgumentException("must provide uri");
 		}
 
-		return dispatchSynapseRequest(endpoint, uri, "GET", null,
+		return signAndDispatchSynapseRequest(endpoint, uri, "GET", null,
 				defaultGETDELETEHeaders);
 	}
 
@@ -742,8 +779,10 @@ public class Synapse {
 			requestHeaders.putAll(defaultPOSTPUTHeaders);
 			requestHeaders.put("ETag", entity.getString("etag"));
 
-			return dispatchSynapseRequest(endpoint, uri, "PUT", entity
-					.toString(), requestHeaders);
+
+			return signAndDispatchSynapseRequest(endpoint, uri, "PUT", 
+					entity.toString(), requestHeaders);
+
 		} catch (JSONException e) {
 			throw new SynapseException(e);
 		}
@@ -761,7 +800,7 @@ public class Synapse {
 			throw new IllegalArgumentException("must provide uri");
 		}
 
-		dispatchSynapseRequest(endpoint, uri, "DELETE", null,
+		signAndDispatchSynapseRequest(endpoint, uri, "DELETE", null,
 				defaultGETDELETEHeaders);
 		return;
 	}
@@ -790,10 +829,34 @@ public class Synapse {
 			Map<String, String> requestHeaders = new HashMap<String, String>();
 			requestHeaders.putAll(defaultGETDELETEHeaders);
 
-			return dispatchSynapseRequest(endpoint, queryUri, "GET", null,
+			return signAndDispatchSynapseRequest(endpoint, queryUri, "GET", null,
 					requestHeaders);
 		} catch (UnsupportedEncodingException e) {
 			throw new SynapseException(e);
+		}
+	}
+	
+	private JSONObject signAndDispatchSynapseRequest(String endpoint, String uri,
+			String requestMethod, String requestContent,
+			Map<String, String> requestHeaders) throws SynapseException {
+		String apiKey = getApiKey();
+		String userName = getUserName();
+		if (apiKey!=null) {
+			String timeStamp = (new DateTime()).toString();
+			String uriRawPath = null; 
+			try {
+				uriRawPath = (new URI(endpoint+uri)).getRawPath(); // chop off the query, if any
+			} catch (URISyntaxException e) {
+				throw new SynapseException(e);
+			}
+		    String signature = HMACUtils.generateHMACSHA1Signature(userName, uriRawPath, timeStamp, apiKey);
+		    Map<String, String> modHeaders = new HashMap<String, String>(requestHeaders);
+		    modHeaders.put(AuthorizationConstants.USER_ID_HEADER, userName);
+		    modHeaders.put(AuthorizationConstants.SIGNATURE_TIMESTAMP, timeStamp);
+		    modHeaders.put(AuthorizationConstants.SIGNATURE, signature);
+		    return dispatchSynapseRequest(endpoint, uri, requestMethod, requestContent, modHeaders);
+		} else {
+		    return dispatchSynapseRequest(endpoint, uri, requestMethod, requestContent, requestHeaders);
 		}
 	}
 

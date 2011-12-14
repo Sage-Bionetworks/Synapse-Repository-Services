@@ -3,11 +3,32 @@
 ###############################################################################
 # Run the metaGeo QC and load the results to Synapse
 # 
+# params:
+# userName - Synapse (service) account used to run the workflow
+# secretKey - API key for 'userName', used to authenticate requests to Synapse
+# authEndpoint - web address of authentication server
+# repoEndpoint - web address of repository server
+# urlEncodedInputData - dataset parameters:
+#	parentId (REQUIRED) - ID of the Synapse project for the datasets of processed data
+#	name (REQUIRED) - name of dataset which will contain the output of this function
+#	lastUpdate (REQUIRED) - time stamp on data source, indicating when last changed
+#	url (REQUIRED) - the URL of the data to be processed, a tarred, zipped, or gzipped collection
+#					of data files, able to be unpacked by the R untar or unzip command.
+#  	layerName (REQUIRED) - the name of the created layer
+#   repositoryName (REQUIRED) - name of the source repository (e.g. 'ncbi')
+#	number_of_samples
+#	description
+#	status
+#	createdBy
+#	
+# 
 # Author: Matt Furia
 ###############################################################################
 
 metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedInputData)
 {
+	
+	recordProvenance <- false
 	
 	starttime<-proc.time()
 	
@@ -54,7 +75,7 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 	
 	attributes<-splitDatasetAttributes(inputDataMap[setdiff(names(inputDataMap),"lastUpdate")])
 	
-	if(!all(c('name', 'parentId', 'lastUpdate') %in% names(inputDataMap))){
+	if(!all(c('name', 'parentId', 'lastUpdate', 'url') %in% names(inputDataMap))){
 		msg <- paste("gseId: ", inputDataMap[["name"]], "\ngeoTimestamp: ", inputDataMap[["lastUpdate"]], "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", inputDataMap[["parentId"]], "\n")
 		msg <- sprintf("not all required properties were provided: %s", msg)
 		finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
@@ -83,13 +104,16 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 	synapseClient:::userName(userName)
 	hmacSecretKey(secretKey)
 	timestamp <- gsub("-", "_", gsub(":", ".", Sys.time()))
-	analysisDescription <- paste("Unsupervised QC for", inputDataMap[["name"]], timestamp)
-	analysis <- Analysis(list(description=analysisDescription, 
+	
+	if (recordProvenance){
+		analysisDescription <- paste("Unsupervised QC for", inputDataMap[["name"]], timestamp)
+		analysis <- Analysis(list(description=analysisDescription, 
 					name=analysisDescription, parentId=inputDataMap[["parentId"]]))
-	analysis <- createEntity(analysis)
-	analysisStep<-startStep(analysis)
-	propertyValue(analysisStep, "name")<-paste("GEO indexing step for ", inputDataMap[["name"]], timestamp)
-	analysisStep <- updateEntity(analysisStep)
+		analysis <- createEntity(analysis)
+		analysisStep<-startStep(analysis)
+		propertyValue(analysisStep, "name")<-paste("GEO indexing step for ", inputDataMap[["name"]], timestamp)
+		analysisStep <- updateEntity(analysisStep)
+	}
 	
 	## create the geo dataset
 	ans <- tryCatch({
@@ -115,7 +139,7 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 		
 		## get add location code entity and add location for the geo id
 		ans <- tryCatch({
-					createLayer(dsId, inputDataMap[["url"]])
+					createLayer(dsId, inputDataMap[["url"]], inputDataMap[["layerName"]], inputDataMap[["sourceRepoName"]])
 				},
 				error = function(e){
 					msg <- sprintf("Failed to create layer: %s", e)
@@ -125,10 +149,12 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 				}
 		)
 		
-		stopStep()
-		analysisStep<-startStep(analysis)	
-		propertyValue(analysisStep, "name")<-paste("Unsupervised QC step for ", inputDataMap[["name"]], timestamp)
-		analysisStep <- updateEntity(analysisStep)
+		if (recordProvenance) {
+			stopStep()
+			analysisStep<-startStep(analysis)	
+			propertyValue(analysisStep, "name")<-paste("Unsupervised QC step for ", inputDataMap[["name"]], timestamp)
+			analysisStep <- updateEntity(analysisStep)
+		}
 		
 		##########################################
 		## get the entity ids for the code modules
@@ -179,6 +205,8 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 		)
 		setWorkFlowStatusAnnotation(dsId, kOkStatusCode, msg)
 	}
-	stopStep()
+	if (recordProvenance) {
+		stopStep()
+	}
 	return(kOkStatusCode)
 }

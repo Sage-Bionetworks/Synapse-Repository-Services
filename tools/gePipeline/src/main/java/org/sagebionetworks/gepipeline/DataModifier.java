@@ -1,7 +1,11 @@
 package org.sagebionetworks.gepipeline;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -40,7 +44,8 @@ public class DataModifier {
 		int batchSize = 20;
 		do {
 			try {
-				JSONObject o = synapse.query("select * from dataset where parentId==16114 ORDER BY Number_of_Samples LIMIT "+batchSize+" OFFSET "+offset);
+				JSONObject o = synapse.query("select * from dataset where parentId==16114 LIMIT "+batchSize+" OFFSET "+offset);
+//				JSONObject o = synapse.query("select * from dataset where parentId==16114 ORDER BY Number_of_Samples LIMIT "+batchSize+" OFFSET "+offset);
 				total = (int)o.getLong("totalNumberOfResults");
 				System.out.println(""+offset+"->"+(offset+batchSize-1)+" of "+total);
 				JSONArray a = o.getJSONArray("results");
@@ -50,7 +55,7 @@ public class DataModifier {
 					String id = ds.getString("dataset.id");
 					String name = ds.getString("dataset.name");
 					String annotUri = "/dataset/"+id+"/annotations";
-					JSONObject annots = synapse.getSynapseEntity(REPO_ENDPOINT, annotUri);
+					JSONObject annots = synapse.getSynapseEntity(REPO_ENDPOINT, annotUri); // this is an unnecessary repeated retrieval
 					long nos=-1;
 					try {
 						nos = dataSetNumberOfSamples(synapse, annots); // see if the target annotation is already set
@@ -196,8 +201,59 @@ public class DataModifier {
 		} while (offset<=total);
 	}
 	
+	// migrate all datasets from the project 'origProjectID' to 'newProjectID'
+	// which have 'datasetNameSubstring' in their name, unless their IDs are in the list of 'exceptions'
+	public static void migrateDatasets(int origProjectID, int newProjectID, String datasetNameSubstring,
+			Collection<Integer> exceptions, String user, String pw) throws SynapseException {
+		Synapse synapse = new Synapse();
+		HttpClientHelper.setGlobalConnectionTimeout(DefaultHttpClientSingleton.getInstance(), 30000);
+		HttpClientHelper.setGlobalSocketTimeout(DefaultHttpClientSingleton.getInstance(), 30000);
+		synapse.setAuthEndpoint(AUTH_ENDPOINT);
+		synapse.setRepositoryEndpoint(REPO_ENDPOINT);
+
+		synapse.login(user, pw);
+		int offset=1;
+		int total=0;
+		int batchSize = 20;
+		do {
+			int movedCount = 0;
+			try {
+				JSONObject o = synapse.query("select * from dataset where parentId=="+origProjectID+" LIMIT "+batchSize+" OFFSET "+offset);
+				total = (int)o.getLong("totalNumberOfResults");
+				System.out.println(""+offset+"->"+(offset+batchSize-1)+" of "+total);
+				JSONArray a = o.getJSONArray("results");
+				for (int i=0; i<a.length(); i++) {
+					JSONObject ds = (JSONObject)a.get(i);
+					String id = ds.getString("dataset.id");
+					String name = ds.getString("dataset.name");
+					if (name.contains(datasetNameSubstring) && !exceptions.contains(Integer.parseInt(id))) {
+						// then move the dataset to the new project
+						String datasetUri = "/dataset/"+id;
+						JSONObject dsjson = new JSONObject();
+						dsjson.put("parentId", ""+newProjectID);
+						synapse.updateSynapseEntity(REPO_ENDPOINT, datasetUri, dsjson);
+						System.out.println("Moved "+name+" to project "+newProjectID);
+						movedCount++;
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			offset += batchSize-movedCount;
+		} while (offset<=total);
+	}
+	
 	public static void main(String[] args) throws Exception {
-		updateNOSAnnotations(args[0], args[1]);
+		 Logger.getLogger(Synapse.class.getName()).setLevel(Level.WARN);
+//		updateNOSAnnotations(args[0], args[1]);
 //		deleteStaleProvenanceString(args[0], args[1]);
+		
+//		// migrate from 4492 to 102610 all datasets having "TCGA" in their name except for dataset 4513
+//		int origProjectID = 4492;
+//		int newProjectID = 102610;
+//		String datasetNameSubstring = "TCGA";
+//		Collection<Integer> exceptions = Arrays.asList(new Integer[]{4513});
+//		migrateDatasets(origProjectID, newProjectID, datasetNameSubstring,
+//				exceptions, args[0], args[1]);
 	}
 }

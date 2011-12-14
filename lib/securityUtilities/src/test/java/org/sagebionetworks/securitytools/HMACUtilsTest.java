@@ -19,14 +19,19 @@ public class HMACUtilsTest {
 //		String uri="/repo/v1/dataset";
 //		String uri="/services-repository-0.7-SNAPSHOT/repo/v1/dataset";
 //		String base64EncodedSecretKey = "nUielh3l3rHuZis4JQ/4sr05N8ounV8OnQsZqmjmHnD2r1ITmJQSkr4WmM37e5Fi81lQ+WdZ794G6KEDMx/NKw==";
-		String base64EncodedSecretKey = "pDfk2KtmuvwFNKJzOn16ZfIY5qbSDebNFpTPHd6DuGemivMLWCV3tBFny6qGQ3luwXW7Q13IL3SUYC29mXeKdg==";
+//		String base64EncodedSecretKey = "pDfk2KtmuvwFNKJzOn16ZfIY5qbSDebNFpTPHd6DuGemivMLWCV3tBFny6qGQ3luwXW7Q13IL3SUYC29mXeKdg==";
 
 //		String timeStampString = timeStamp.toString(); //"2011-09-28T13:31:16.90-0700";
 		
 		
-		String userId="matt.furia@sagebase.org";
-		String uri="/repo/v1/entity/17428/type";
-		String timeStampString = "2011-10-07T00:09:40.44-0700";
+//		String userId="matt.furia@sagebase.org";
+//		String uri="/repo/v1/entity/17428/type";
+//		String timeStampString = "2011-10-07T00:09:40.44-0700";
+		
+		String userId="devUser1@sagebase.org";
+		String uri="/repo/v1/query";
+		String timeStampString = "2011-12-14T14:20:26.554-08:00";
+		String base64EncodedSecretKey = "XL4CIyGR8ooxwBwy+cDelpiU42TG6DQdA0LsuxHeZ0HIgPV4zevQ5WrH8TuI6I9yRDzKLOel2+E73EMOVZS+2A==";
 
 		
 		String encoded = HMACUtils.generateHMACSHA1Signature(
@@ -36,7 +41,7 @@ public class HMACUtilsTest {
 	    		base64EncodedSecretKey);
 		
 //		encoded = new String(HMACUtils.generateHMACSHA1SignatureFromBase64EncodedKey("matt.furia@sagebase.org/repo/v1/entity/17428/type2011-10-07T00:09:40.44-0700", base64EncodedSecretKey));
-		if (true) System.out.println("Secret key: "+base64EncodedSecretKey+"\nData: "+userId+uri+timeStampString+"\nHash for data: "+encoded);
+		if (false) System.out.println("Secret key: "+base64EncodedSecretKey+"\nData: "+userId+uri+timeStampString+"\nHash for data: "+encoded);
 	}
 	
 }
