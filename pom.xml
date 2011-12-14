@@ -69,8 +69,9 @@
 
 	<pluginRepositories>
 		<pluginRepository>
-			<id>Codehaus Snapshots</id>
-			<url>http://snapshots.repository.codehaus.org/</url>
+			<id>sagebionetworks-plugins-releases-local</id>
+			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/plugins-releases-local/
+			</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
@@ -79,9 +80,8 @@
 			</releases>
 		</pluginRepository>
 		<pluginRepository>
-			<id>sagebionetworks-plugins-releases-local</id>
-			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/plugins-releases-local/
-			</url>
+			<id>Codehaus Snapshots</id>
+			<url>http://snapshots.repository.codehaus.org/</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>

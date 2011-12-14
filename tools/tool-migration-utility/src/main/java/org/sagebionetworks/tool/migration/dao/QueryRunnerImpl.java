@@ -44,14 +44,8 @@ public class QueryRunnerImpl implements QueryRunner {
 	@Override
 	public List<EntityData> getAllEntityData(Synapse client) throws SynapseException, JSONException, InterruptedException{
 		if(client == null) throw new IllegalArgumentException("Client cannot be null"); 
-		// First run a query to find the root Entity
+		// Build up the results to get all pages of this query.
 		return queryForAllPages(client, QUERY_TOTAL_ENTITY, MAX_PAGE_SIZE);
-//		List<EntityData> results = new ArrayList<EntityData>();
-//		EntityData root = getRootEntity(client);
-//		// The root is always the first on the list
-//		results.add(root);
-//		recursiveAddAllChildren(client, results, root.getEntityId());
-//		return results;
 	}
 	
 	@Override

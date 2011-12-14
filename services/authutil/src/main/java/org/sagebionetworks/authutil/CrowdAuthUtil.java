@@ -35,6 +35,7 @@ import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.http.HttpStatus;
@@ -49,8 +50,8 @@ public class CrowdAuthUtil {
 	private String apiApplicationKey;
 
 	public CrowdAuthUtil() {
-		HttpClientHelper.setGlobalConnectionTimeout(5000);
-		HttpClientHelper.setGlobalSocketTimeout(10000);
+		HttpClientHelper.setGlobalConnectionTimeout(DefaultHttpClientSingleton.getInstance(), 5000);
+		HttpClientHelper.setGlobalSocketTimeout(DefaultHttpClientSingleton.getInstance(), 10000);
 		
 		// get the values from system properties, if available
 		crowdUrl = StackConfiguration.getCrowdEndpoint();
@@ -120,7 +121,7 @@ public class CrowdAuthUtil {
 		try {
 			HttpResponse response = null;
 			try {
-			    response = HttpClientHelper.performRequest(requestURL,
+			    response = HttpClientHelper.performRequest(DefaultHttpClientSingleton.getInstance(), requestURL,
 					requestMethod, requestContent,
 					getHeaders(),
 					expectedRc.value());
@@ -145,7 +146,7 @@ public class CrowdAuthUtil {
 		try {
 			HttpResponse response = null;
 			try {
-			    response = HttpClientHelper.performRequest(requestURL,
+			    response = HttpClientHelper.performRequest(DefaultHttpClientSingleton.getInstance(), requestURL,
 					requestMethod, requestContent,
 					getHeaders(),
 					expectedRc.value());

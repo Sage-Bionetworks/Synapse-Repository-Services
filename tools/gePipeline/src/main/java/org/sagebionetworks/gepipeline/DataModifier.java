@@ -7,6 +7,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 
 /**
@@ -28,8 +29,8 @@ public class DataModifier {
 	 */
 	public static void updateNOSAnnotations(String user, String pw) throws Exception {
 		Synapse synapse = new Synapse();
-		HttpClientHelper.setGlobalConnectionTimeout(30000);
-		HttpClientHelper.setGlobalSocketTimeout(30000);
+		HttpClientHelper.setGlobalConnectionTimeout(DefaultHttpClientSingleton.getInstance(), 30000);
+		HttpClientHelper.setGlobalSocketTimeout(DefaultHttpClientSingleton.getInstance(), 30000);
 		synapse.setAuthEndpoint(AUTH_ENDPOINT);
 		synapse.setRepositoryEndpoint(REPO_ENDPOINT);
 
@@ -134,8 +135,8 @@ public class DataModifier {
 	
 	public static void deleteStaleProvenanceString(String user, String pw) throws Exception {
 		Synapse synapse = new Synapse();
-		HttpClientHelper.setGlobalConnectionTimeout(30000);
-		HttpClientHelper.setGlobalSocketTimeout(30000);
+		HttpClientHelper.setGlobalConnectionTimeout(DefaultHttpClientSingleton.getInstance(), 30000);
+		HttpClientHelper.setGlobalSocketTimeout(DefaultHttpClientSingleton.getInstance(), 30000);
 		synapse.setAuthEndpoint(AUTH_ENDPOINT);
 		synapse.setRepositoryEndpoint(REPO_ENDPOINT);
 

@@ -47,8 +47,11 @@ public class MigrationDriver {
 	public static void main(String[] args) throws IOException,
 			SynapseException, JSONException, InterruptedException, ExecutionException {
 		// Load the location of the configuration property file
-		if (args == null || args.length != 1) {
-			throw new IllegalArgumentException(	"The first argument must be the configuation property file path");
+		if (args == null) {
+			throw new IllegalArgumentException(	"The first argument must be the configuation property file path.");
+		}
+		if (args.length != 1) {
+			throw new IllegalArgumentException(	"The first argument must be the configuation property file path. args.length: "+args.length);
 		}
 		String path = args[0];
 		// Load all of the configuration information.

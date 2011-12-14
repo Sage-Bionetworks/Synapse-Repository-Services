@@ -17,6 +17,7 @@ import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.joda.time.DateTime;
 import org.sagebionetworks.securitytools.HMACUtils;
+import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
 
@@ -168,7 +169,7 @@ public class SWFManagement {
 
 		String requestContent = null;
 		
-		return HttpClientHelper.performRequest(PROTOCOL+HOST_NAME+REQUEST_URI+"?"+paramsToString(params),
+		return HttpClientHelper.performRequest(DefaultHttpClientSingleton.getInstance(), PROTOCOL+HOST_NAME+REQUEST_URI+"?"+paramsToString(params),
 				requestMethod, requestContent, requestHeaders);
 
 	}

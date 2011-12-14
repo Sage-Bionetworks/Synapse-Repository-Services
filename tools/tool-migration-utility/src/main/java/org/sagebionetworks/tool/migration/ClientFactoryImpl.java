@@ -1,5 +1,6 @@
 package org.sagebionetworks.tool.migration;
 
+import org.sagebionetworks.client.AcceptAllCertificateHttpClientProvider;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
 
@@ -17,7 +18,9 @@ public class ClientFactoryImpl implements ClientFactory {
 	 * @throws SynapseException 
 	 */
 	public Synapse createNewConnection(SynapseConnectionInfo info) throws SynapseException{
-		Synapse synapse = new Synapse();
+		// We need to accept all SSL certificates for this client.
+		AcceptAllCertificateHttpClientProvider clientProvider = new AcceptAllCertificateHttpClientProvider();
+		Synapse synapse = new Synapse(clientProvider);
 		synapse.setAuthEndpoint(info.getAuthenticationEndPoint());
 		synapse.setRepositoryEndpoint(info.getRepositoryEndPoint());
 		synapse.login(info.getAdminUsername(), info.getAdminPassword());

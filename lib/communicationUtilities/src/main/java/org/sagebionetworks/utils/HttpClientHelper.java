@@ -12,9 +12,15 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -32,6 +38,7 @@ import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.scheme.SchemeSocketFactory;
 import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -53,27 +60,33 @@ public class HttpClientHelper {
 	public static final int MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH = 1024 * 1024;
 	private static final int DEFAULT_CONNECT_TIMEOUT_MSEC = 500;
 	private static final int DEFAULT_SOCKET_TIMEOUT_MSEC = 2000;
-	private static final HttpClient httpClient;
 
 	// Note: Having this 'password' in plaintext is OK because (1) it's a well known default for key stores,
 	// and (2) the keystore (below) contains only public certificates.
 	private static final String DEFAULT_JAVA_KEYSTORE_PW = "changeit";
 	private static final String KEYSTORE_NAME = "HttpClientHelperPublicCertsOnly.jks";
 	
-	static {
-
+	
+	/**
+	 * Create a new HTTP client connection factory.
+	 * @param verifySSLCertificates
+	 * @return
+	 */
+	public static HttpClient createNewClient(boolean verifySSLCertificates){
 		try {
-			// from http://www.coderanch.com/t/372437/java/java/javax-net-ssl-keyStore-system
-			TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-			KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
-			InputStream keystoreStream = HttpClientHelper.class.getClassLoader().getResourceAsStream(KEYSTORE_NAME);
-			keystore.load(keystoreStream, DEFAULT_JAVA_KEYSTORE_PW.toCharArray());
-			trustManagerFactory.init(keystore);
-			TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
-			SSLContext ctx = SSLContext.getInstance("TLS"); // was SSL
-			ctx.init(null, trustManagers, null);
+			SSLContext ctx = null;
+			X509HostnameVerifier hostNameVarifier = null;
+			// Should certificates be checked.
+			if(verifySSLCertificates){
+				ctx = createSecureSSLContext();
+				hostNameVarifier = SSLSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER;
+			}else{
+				// This will allow any certificate.
+				ctx = createEasySSLContext();
+				hostNameVarifier = new AcceptAnyHostName();
+			}
 			
-			SchemeSocketFactory ssf = new SSLSocketFactory(ctx);  
+			SchemeSocketFactory ssf = new SSLSocketFactory(ctx, hostNameVarifier);  
 			
 			SchemeRegistry schemeRegistry = new SchemeRegistry();
 			schemeRegistry.register(new Scheme("http", 80, PlainSocketFactory
@@ -94,7 +107,7 @@ public class HttpClientHelper {
 			clientParams.setParameter(CoreConnectionPNames.SO_TIMEOUT,
 					DEFAULT_SOCKET_TIMEOUT_MSEC);
 	
-			httpClient = new DefaultHttpClient(connectionManager, clientParams);
+			return new DefaultHttpClient(connectionManager, clientParams);
 		} catch (KeyStoreException e) {
 			throw new RuntimeException(e);
 		} catch (KeyManagementException e) {
@@ -106,38 +119,122 @@ public class HttpClientHelper {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-			
 	}
+	
+	
 
 	/**
-	 * The ThreadSafeClientConnMangager here uses default configuration. Allow
-	 * clients to get access to it in case they want to:
-	 * <ul>
-	 * <li>increase the max number of concurrent connections per endpoint
-	 * <li>increase the max number of concurrent connections for a particular
-	 * endpoint
-	 * <li>increase the max total number of concurrent connections allowed
-	 * <li>change the timeout for how long to wait for a connnection from the
-	 * pool to become available
-	 * 
-	 * @return the ClientConnectionManager
+	 * The resulting SSLContext will validate 
+	 * @return
+	 * @throws NoSuchAlgorithmException
+	 * @throws KeyStoreException
+	 * @throws CertificateException
+	 * @throws IOException
+	 * @throws KeyManagementException
 	 */
-	public static ClientConnectionManager getConnectionManager() {
-		return httpClient.getConnectionManager();
+	public static SSLContext createSecureSSLContext() throws NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException, KeyManagementException{
+		// from http://www.coderanch.com/t/372437/java/java/javax-net-ssl-keyStore-system
+		TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+		KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
+		InputStream keystoreStream = HttpClientHelper.class.getClassLoader().getResourceAsStream(KEYSTORE_NAME);
+		keystore.load(keystoreStream, DEFAULT_JAVA_KEYSTORE_PW.toCharArray());
+		trustManagerFactory.init(keystore);
+		TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
+		SSLContext ctx = SSLContext.getInstance("TLS"); // was SSL
+		ctx.init(null, trustManagers, null);
+		return ctx;
+	}
+	
+	/**
+	 * The resulting SSLContext will allow any certificate.
+	 * @return
+	 * @throws NoSuchAlgorithmException
+	 * @throws KeyStoreException
+	 * @throws CertificateException
+	 * @throws IOException
+	 * @throws KeyManagementException
+	 */
+	public static SSLContext createEasySSLContext() throws NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException, KeyManagementException{
+		SSLContext sslcontext = SSLContext.getInstance("TLS");
+		sslcontext.init(null, new TrustManager[] { new AcceptAnyCertificatManager() }, null);
+		return sslcontext;
+	}
+	
+	/**
+	 * A trust manager that accepts all certificates.
+	 * 
+	 * @author jmhill
+	 *
+	 */
+	private static class AcceptAnyCertificatManager implements X509TrustManager {
+
+	    @Override
+	    public void checkClientTrusted(
+	            X509Certificate[] chain,
+	            String authType) throws CertificateException {
+	        // Oh, I am easy!
+	    }
+
+	    @Override
+	    public void checkServerTrusted(
+	            X509Certificate[] chain,
+	            String authType) throws CertificateException {
+	        // Oh, I am easy!
+	    }
+
+	    @Override
+	    public X509Certificate[] getAcceptedIssuers() {
+	        return null;
+	    }
+	    
+	};
+	
+	/**
+	 * Accepts any host name.
+	 * @author jmhill
+	 *
+	 */
+	private static class AcceptAnyHostName implements X509HostnameVerifier {
+
+		@Override
+		public boolean verify(String arg0, SSLSession arg1) {
+			return true;
+		}
+
+		@Override
+		public void verify(String host, SSLSocket ssl) throws IOException {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void verify(String host, X509Certificate cert)
+				throws SSLException {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void verify(String host, String[] cns, String[] subjectAlts)
+				throws SSLException {
+			// TODO Auto-generated method stub
+			
+		}
+		
 	}
 
+	
 	/**
-	 * Set the timeout in milliseconds until a connection is established. A
-	 * timeout value of zero is interpreted as an infinite timeout. This will
-	 * change the configuration for all requests.
-	 * 
+	 * Get the Connection timeout on the passed client
+	 * @param client
 	 * @param milliseconds
 	 */
-	public static void setGlobalConnectionTimeout(int milliseconds) {
-		httpClient.getParams().setParameter(
+	public static void setGlobalConnectionTimeout(HttpClient client, int milliseconds) {
+		client.getParams().setParameter(
 				CoreConnectionPNames.CONNECTION_TIMEOUT, milliseconds);
 	}
 
+	
 	/**
 	 * Set the socket timeout (SO_TIMEOUT) in milliseconds, which is the timeout
 	 * for waiting for data or, put differently, a maximum period inactivity
@@ -147,60 +244,46 @@ public class HttpClientHelper {
 	 * 
 	 * @param milliseconds
 	 */
-	public static void setGlobalSocketTimeout(int milliseconds) {
-		httpClient.getParams().setParameter(CoreConnectionPNames.SO_TIMEOUT,
+	public static void setGlobalSocketTimeout(HttpClient client, int milliseconds) {
+		client.getParams().setParameter(CoreConnectionPNames.SO_TIMEOUT,
 				milliseconds);
 	}
-
+	
 	/**
-	 * Perform a REST API request
+	 * Perform a request using the provided Client.
 	 * 
+	 * @param client
 	 * @param requestUrl
 	 * @param requestMethod
 	 * @param requestContent
 	 * @param requestHeaders
-	 * @return response body
-	 * @throws HttpClientHelperException
-	 * @throws IOException
+	 * @return
 	 * @throws ClientProtocolException
-	 * @throws HttpClientHelperException
 	 * @throws IOException
+	 * @throws HttpClientHelperException
 	 */
-	public static HttpResponse performRequest(String requestUrl,
+	public static HttpResponse performRequest(HttpClient client, String requestUrl,
 			String requestMethod, String requestContent,
 			Map<String, String> requestHeaders) throws ClientProtocolException,
 			IOException, HttpClientHelperException {
-
-		return performRequest(requestUrl, requestMethod, requestContent,
+		return performRequest(client, requestUrl, requestMethod, requestContent,
 				requestHeaders, null);
 	}
-
+	
 	/**
-	 * Perform a REST API request, expecting a non-standard HTTP status
-	 * 
+	 * Perform request on the passed client.
+	 * @param client
 	 * @param requestUrl
 	 * @param requestMethod
 	 * @param requestContent
 	 * @param requestHeaders
 	 * @param overridingExpectedResponseStatus
-	 * @return response body
-	 * @throws HttpClientHelperException
-	 * @throws IOException
+	 * @return
 	 * @throws ClientProtocolException
-	 * @throws HttpClientHelperException
 	 * @throws IOException
+	 * @throws HttpClientHelperException
 	 */
-	public static HttpResponse performRequestShouldFail(String requestUrl,
-			String requestMethod, String requestContent,
-			Map<String, String> requestHeaders,
-			Integer overridingExpectedResponseStatus)
-			throws ClientProtocolException, IOException,
-			HttpClientHelperException {
-		return performRequest(requestUrl, requestMethod, requestContent,
-				requestHeaders, overridingExpectedResponseStatus);
-	}
-
-	public static HttpResponse performRequest(String requestUrl,
+	public static HttpResponse performRequest(HttpClient client, String requestUrl,
 			String requestMethod, String requestContent,
 			Map<String, String> requestHeaders,
 			Integer overridingExpectedResponseStatus)
@@ -237,7 +320,7 @@ public class HttpClientHelper {
 			request.setHeader(header.getKey(), header.getValue());
 		}
 
-		HttpResponse response = httpClient.execute(request);
+		HttpResponse response = client.execute(request);
 
 		if (expectedResponseStatus != response.getStatusLine().getStatusCode()) {
 			StringBuilder verboseMessage = new StringBuilder(
@@ -274,13 +357,13 @@ public class HttpClientHelper {
 	 * @throws IOException
 	 * @throws HttpClientHelperException
 	 */
-	public static String getFileContents(final String requestUrl)
+	public static String getFileContents(HttpClient client, final String requestUrl)
 			throws ClientProtocolException, IOException,
 			HttpClientHelperException {
 		String fileContents = null;
 
 		HttpGet get = new HttpGet(requestUrl);
-		HttpResponse response = httpClient.execute(get);
+		HttpResponse response = client.execute(get);
 		if (300 <= response.getStatusLine().getStatusCode()) {
 			throw new HttpClientHelperException(
 					"Request(" + requestUrl + ") failed: "
@@ -300,27 +383,22 @@ public class HttpClientHelper {
 		}
 		return fileContents;
 	}
-
+	
 	/**
-	 * TODO
-	 * <ul>
-	 * <li>large downloads (e.g., 5TB download from S3)
-	 * <li>multipart downloads
-	 * <li>restartable downloads
-	 * </ul>
 	 * 
+	 * @param client
 	 * @param requestUrl
 	 * @param filepath
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 * @throws HttpClientHelperException
 	 */
-	public static void downloadFile(final String requestUrl,
+	public static void downloadFile(final HttpClient client, final String requestUrl,
 			final String filepath) throws ClientProtocolException, IOException,
 			HttpClientHelperException {
 
 		HttpGet get = new HttpGet(requestUrl);
-		HttpResponse response = httpClient.execute(get);
+		HttpResponse response = client.execute(get);
 		if (300 <= response.getStatusLine().getStatusCode()) {
 			String errorMessage = "Request(" + requestUrl + ") failed: "
 					+ response.getStatusLine().getReasonPhrase();
@@ -339,13 +417,8 @@ public class HttpClientHelper {
 	}
 
 	/**
-	 * TODO
-	 * <ul>
-	 * <li>large uploads (e.g., 5TB upload from S3)
-	 * <li>multipart uploads
-	 * <li>restartable uploads
-	 * </ul>
-	 * 
+	 * Upload a file using the provided client.
+	 * @param client
 	 * @param requestUrl
 	 * @param filepath
 	 * @param contentType
@@ -354,7 +427,7 @@ public class HttpClientHelper {
 	 * @throws IOException
 	 * @throws HttpClientHelperException
 	 */
-	public static void uploadFile(final String requestUrl,
+	public static void uploadFile(final HttpClient client, final String requestUrl,
 			final String filepath, final String contentType,
 			Map<String, String> requestHeaders) throws ClientProtocolException,
 			IOException, HttpClientHelperException {
@@ -370,7 +443,7 @@ public class HttpClientHelper {
 			}
 		}
 
-		HttpResponse response = httpClient.execute(put);
+		HttpResponse response = client.execute(put);
 		if (300 <= response.getStatusLine().getStatusCode()) {
 			String errorMessage = "Request(" + requestUrl + ") failed: "
 					+ response.getStatusLine().getReasonPhrase();

@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 
+import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
@@ -89,7 +90,7 @@ public class DataIngestion {
 		String filename;
 		String remoteMd5 = null;
 		try {
-			String md5FileContents = HttpClientHelper.getFileContents(tcgaUrl
+			String md5FileContents = HttpClientHelper.getFileContents(DefaultHttpClientSingleton.getInstance(),tcgaUrl
 					+ ".md5");
 
 			// TODO put a real regexp here to validate the format
@@ -122,7 +123,7 @@ public class DataIngestion {
 			}
 		}
 
-		HttpClientHelper.downloadFile(tcgaUrl, dataFile.getAbsolutePath());
+		HttpClientHelper.downloadFile(DefaultHttpClientSingleton.getInstance(), tcgaUrl, dataFile.getAbsolutePath());
 		String localMd5 = MD5ChecksumHelper.getMD5Checksum(dataFile
 				.getAbsolutePath());
 		if ((null != remoteMd5) && (!localMd5.equals(remoteMd5))) {
