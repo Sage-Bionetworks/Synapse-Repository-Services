@@ -4,8 +4,8 @@ use LWP::Simple;
 my %platforms;
 my %affiliatedPlatforms;
 my %allPlatforms;
-#open F, "src/main/resources/ncbiGPLIDs" or die("Cannot find file: src/main/resources/ncbiGPLIDs");
-open F, "ncbiGPLIDs" or die("Cannot find file: ncbiGPLIDs");
+open F, "src/main/resources/ncbiGPLIDs" or die("Cannot find file: src/main/resources/ncbiGPLIDs");
+#open F, "ncbiGPLIDs" or die("Cannot find file: ncbiGPLIDs");
 while (<F>) {
 	chomp;
 	my @a = split /\t/;

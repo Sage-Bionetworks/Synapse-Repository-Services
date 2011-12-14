@@ -25,13 +25,13 @@ synapseRepoServiceEndpoint(repoEndpoint)
 synapseClient:::userName(userName)
 hmacSecretKey(secretKey)
 
-existingDatasets <- getAllDatasets(parentId, verbose=F)
+existingDatasets <- getAllDatasets(parentId)
 existingIndices <- unlist(intersect(rownames(all.gses), existingDatasets))
 cat(paste("... of which", length(existingIndices), " are already in Synapse...\n"))
 all.gses[existingIndices, PRIORITY_COLUMN_NAME]<- 3
 
 # finally, make the failed dataset in Synapse priority 2
-failedDatasets <- getFailedDatasets(parentId, verbose=F)
+failedDatasets <- getFailedDatasets(parentId)
 failedIndices <- unlist(intersect(rownames(all.gses), failedDatasets))
 cat(paste("... and of which ", length(failedIndices), " are already in Synapse but encountered an error.\n"))
 all.gses[failedIndices, PRIORITY_COLUMN_NAME]<- 2
@@ -42,6 +42,10 @@ all.gses[failedIndices, PRIORITY_COLUMN_NAME]<- 2
 # now sort by Priority
 all.gses <-all.gses[order(all.gses$Priority),]
 
+# sorting is useless, since SWF doesn't assign work in the order submitted
+# Here we *subselect* just the jobs that haven't been done before (priorites 1,2)
+all.gses <- all.gses[all.gses[,PRIORITY_COLUMN_NAME]!=3,]
+		
 header <- "GSE.ID\tGPL\tLast Update Date\tSpecies\tDescription\tSupplementary_File\tNumber_of_Samples\tInvestigator\tPlatform\n";
 
 output <- list()

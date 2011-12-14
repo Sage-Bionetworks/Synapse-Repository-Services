@@ -1,6 +1,7 @@
 package org.sagebionetworks.authutil;
 
 
+import java.net.URI;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -28,7 +29,6 @@ public class CrowdAuthenticationFilterTest {
 		String integrationTestEndpoint = System.getProperty("INTEGRATION_TEST_ENDPOINT");
 		return (integrationTestEndpoint!=null && integrationTestEndpoint.length()>0);
 	}
-
 
 	/**
 	 * @throws Exception

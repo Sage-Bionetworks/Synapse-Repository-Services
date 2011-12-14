@@ -77,7 +77,7 @@ getInputLayerIdArg <- function() {
 
 getProjectId <- function() {
 	constants <- new('SynapseWorkflowConstants')
-	getArgVal(argName=constants@kProjectId) 
+	getArgVal(argName=constants@kInputProjectIdKey) 
 }
 
 getArgVal <- function(argName){
@@ -125,12 +125,13 @@ getMaxDatasetSizeArg <- function(){
 	getArgVal(argName=constants@kMaxDatasetSizeArg) 
 }
 
-createLayer <- function (datasetId, url, zipFilePath, locationName = "ncbi") 
+# 'sourceRepositoryName', e.g. 'nbci'
+createLayer <- function (datasetId, url, zipFilePath, layerName, sourceRepositoryName) 
 {
 	require(synapseClient)
 	dataset <- getEntity(datasetId)
-	layer <- Layer(list(name = sprintf("%s_rawExpression", propertyValue(dataset, 
-									"name")), parentId = datasetId, type = "E", status = "raw"))
+	# name used to be sprintf("%s_rawExpression", propertyValue(dataset, "name"))
+	layer <- Layer(list(name = layerName, parentId = datasetId, type = "E", status = "raw"))
 	qryString <- sprintf("select * from layer where layer.parentId == \"%s\" and layer.name == \"%s\"", 
 			propertyValue(layer, "parentId"), propertyValue(layer, 
 					"name"))
@@ -144,11 +145,12 @@ createLayer <- function (datasetId, url, zipFilePath, locationName = "ncbi")
 	else {
 		layer <- updateEntity(layer)
 	}
-	if (missing(url)) {
-		geoId <- propertyValue(dataset, "name")
-		url <- sprintf("ftp://ftp.ncbi.nih.gov/pub/geo/DATA/supplementary/series/%s/%s_RAW.tar", 
-				geoId, geoId)
-	}
+	## as we become 'generic', we cannot assume the layer comes from GEO
+	## if (missing(url)) {
+	##     geoId <- propertyValue(dataset, "name")
+	##     url <- sprintf("ftp://ftp.ncbi.nih.gov/pub/geo/DATA/supplementary/series/%s/%s_RAW.tar", 
+	##             geoId, geoId)
+	## }
 	if (missing(zipFilePath)) {
 		zipFilePath <- synapseClient:::.curlWriterDownload(url = url)
 	}
@@ -166,11 +168,11 @@ createLayer <- function (datasetId, url, zipFilePath, locationName = "ncbi")
 		file.copy(zipFilePath, destfile, overwrite = TRUE)
 	checksum <- as.character(tools::md5sum(destfile))
 	qryString <- sprintf("select * from location where location.parentId == \"%s\" and location.name == \"%s\"", 
-			propertyValue(layer, "id"), locationName)
+			propertyValue(layer, "id"), sourceRepositoryName)
 	qryResult <- synapseQuery(qryString)
 	location <- tryCatch({
 				if (is.null(qryResult)) {
-					location <- synapseClient:::Location(list(name = locationName, 
+					location <- synapseClient:::Location(list(name = sourceRepositoryName, 
 									parentId = propertyValue(layer, "id"), path = url, 
 									md5sum = checksum, type = "external"))
 					createEntity(location)

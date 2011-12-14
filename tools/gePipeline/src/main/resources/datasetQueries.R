@@ -1,7 +1,7 @@
 
 # get all the dataset names in a given project
 getAllDatasets <- function(projectId, verbose=T) {
-	batchSize <- 500
+	batchSize <- 20
 	offset <- 1
 	
 	ans <- list()
@@ -24,8 +24,8 @@ getAllDatasets <- function(projectId, verbose=T) {
 }
 
 # get all the dataset names in a given project which encountered an error during QC
-getFailedDatasets <- function(projectId, verbose=T) {
-	batchSize <- 500
+getFailedDatasets <- function(projectId, verbose=T, withReason=F) {
+	batchSize <- 20
 	offset <- 1
 	
 	ans <- list()
@@ -37,7 +37,15 @@ getFailedDatasets <- function(projectId, verbose=T) {
 		
 		if (numResults==0) break
 		
-		ans <- c(ans, response[,"dataset.name"])
+		for (i in 1:numResults) {
+			if (withReason) {
+				ds <- getEntity(response[i,"dataset.id"])
+				ans <- rbind(ans, c(response[i,"dataset.name"], annotValue(ds, "workflowStatusMsg")))
+			} else {
+				ans <- c(ans, response[i,"dataset.name"])
+			}
+		}
+		
 		
 		if (numResults<batchSize) break
 		

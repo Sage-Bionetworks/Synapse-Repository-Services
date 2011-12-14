@@ -17,10 +17,10 @@ public class SWFFreeRunner {
 
 	public static void main(String[] args) throws Exception {
 		// call R function which returns IDs of data sets to process
-		String maxDatasetSize = ConfigHelper.getGEPipelineMaxDatasetSize();
+//		String maxDatasetSize = ConfigHelper.getGEPipelineMaxDatasetSize();
 		List<String> scriptParams = new ArrayList<String>(Arrays.asList(
-				new String[]{GEPWorkflowInitiator.MAX_DATASET_SIZE_PARAMETER_KEY, maxDatasetSize})
-		);
+				new String[]{/*GEPWorkflowInitiator.MAX_DATASET_SIZE_PARAMETER_KEY, maxDatasetSize*/}
+		));
 		String crawlerScript = ConfigHelper.getGEPipelineCrawlerScript();
 		if (crawlerScript==null || crawlerScript.length()==0) throw new RuntimeException("Missing crawler script parameter.");
 		ScriptResult results = ScriptProcessor.doProcess(crawlerScript, scriptParams);
@@ -29,13 +29,13 @@ public class SWFFreeRunner {
 		int max = -1; // set to -1 to disable
 		int i = 0;
 		ObjectMapper mapper = new ObjectMapper();
-		String projectId = ConfigHelper.getGEPipelineProjectId();
+		String projectId = ConfigHelper.getGEPipelineTargetProjectId();
 		for (String datasetId:idToActivityInputMap.keySet()) {
 			if (max>0 && i++>=max) break; // for debugging, just launch a few...
 			String parameterString = idToActivityInputMap.get(datasetId);
 			JSONObject jsonParameters = new JSONObject(parameterString);
-			jsonParameters.put(GEPWorkflowInitiator.PARENT_ID_PROPERTY_NAME, ConfigHelper.getGEPipelineProjectId());
-			jsonParameters.put(GEPWorkflowInitiator.NAME_PROPERTY_NAME, datasetId);
+			jsonParameters.put(GEPWorkflowInitiator.TARGET_PROJECT_ID_PROPERTY_NAME, ConfigHelper.getGEPipelineTargetProjectId());
+			jsonParameters.put(GEPWorkflowInitiator.TARGET_DATASET_NAME_PROPERTY_NAME, datasetId);
 			parameterString =jsonParameters.toString();
 			
 			String workflowScript = ConfigHelper.getGEPipelineWorkflowScript();
@@ -43,7 +43,6 @@ public class SWFFreeRunner {
 			try {
 			    ScriptResult result = ScriptProcessor.doProcess(workflowScript,
 					Arrays.asList(new String[]{
-							GEPWorkflow.INPUT_DATASET_PARAMETER_KEY, datasetId, 
 							GEPWorkflow.INPUT_DATA_PARAMETER_KEY, GEPWorkflow.formatAsScriptParam(parameterString),
 							}));
 			} catch (Exception e) {
