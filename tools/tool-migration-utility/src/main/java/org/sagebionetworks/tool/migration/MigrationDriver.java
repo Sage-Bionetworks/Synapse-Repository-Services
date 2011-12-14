@@ -3,7 +3,6 @@ package org.sagebionetworks.tool.migration;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +27,11 @@ import org.sagebionetworks.tool.migration.job.Job;
 import org.sagebionetworks.tool.migration.job.JobQueueWorker;
 import org.sagebionetworks.tool.migration.job.JobUtil;
 
+/**
+ * The main driver for migration.
+ * @author John
+ *
+ */
 public class MigrationDriver {
 
 	static private Log log = LogFactory.getLog(MigrationDriver.class);
@@ -78,10 +82,17 @@ public class MigrationDriver {
 		int entitesProcessed = 0;
 		int failedJobs = 0;
 		int successJobs = 0;
+		long totalStart = System.currentTimeMillis();
 		while(true){
 			// Query for the data to test for
+			long start = System.currentTimeMillis();
 			List<EntityData> sourceData = queryRunner.getAllEntityData(sourceClient);
+			long end = System.currentTimeMillis();
+			log.info("Get all entites from source, count: "+sourceData.size()+" in: "+(end-start)+" ms");
+			start = System.currentTimeMillis();
 			List<EntityData> destData = queryRunner.getAllEntityData(destClient);
+			end = System.currentTimeMillis();
+			log.info("Get all entites from destination, count: "+destData.size()+" in: "+(end-start)+" ms");
 			Map<String, EntityData> destMap = JobUtil.buildMapFromList(destData);
 			// Build up the create jobs
 			CreationJobBuilder createBuilder = new CreationJobBuilder(sourceData, destMap, jobQueue, Configuration.getMaximumBatchSize());
@@ -104,11 +115,13 @@ public class MigrationDriver {
 
 			log.info("Cleared the queue: "+String.format(format, failedJobs, successJobs, entitesProcessed));
 			// If there are any failures exist
-			if(failedJobs > 0 ){
-				System.out.println("There are failed jobs, so existing");
-				System.exit(1);
-			}
-			Thread.sleep(1000);
+//			if(failedJobs > 0 ){
+//				System.out.println("There are failed jobs, so existing");
+//				System.exit(1);
+//			}
+			long endTotal = System.currentTimeMillis();
+			log.info("Total elapse time: "+(endTotal-totalStart)+" ms");
+			Thread.sleep(1000*5);
 		}
 		
 	}
