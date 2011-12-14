@@ -31,6 +31,8 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 	NodeBackupDriver backupDriver;
 	@Autowired
 	ExecutorService backupDaemonThreadPool;
+	@Autowired
+	ExecutorService backupDaemonThreadPool2;
 
 	@Override
 	public BackupRestoreStatus startBackup(UserInfo username, Set<String> entitiesToBackup) throws UnauthorizedException, DatastoreException {
@@ -42,7 +44,7 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		String bucket = StackConfiguration.getSharedS3BackupBucket();
 		if(bucket == null) 	throw new IllegalArgumentException("Bucket cannot be null null");
 		// Create a new daemon and start it
-		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, client, bucket, backupDaemonThreadPool, entitiesToBackup);
+		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, client, bucket, backupDaemonThreadPool, backupDaemonThreadPool2, entitiesToBackup);
 		// Start that bad boy up!
 		return daemon.startBackup(username.getUser().getUserId());
 	}
@@ -57,7 +59,7 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		String bucket = StackConfiguration.getSharedS3BackupBucket();
 		if(bucket == null) 	throw new IllegalArgumentException("Bucket cannot be null null");
 		// Create a new daemon and start it
-		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, client, bucket, backupDaemonThreadPool);
+		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, client, bucket, backupDaemonThreadPool, backupDaemonThreadPool2);
 		return daemon.startRestore(username.getUser().getUserId(), fileName);
 	}
 

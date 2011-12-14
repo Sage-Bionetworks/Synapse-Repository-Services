@@ -52,6 +52,7 @@ public class BackupDaemonTest {
 	BackupDaemon daemon = null;
 	String bucketName = "someFakeBucket";
 	ExecutorService threadPool = Executors.newFixedThreadPool(2);
+	ExecutorService threadPool2 = Executors.newFixedThreadPool(2);
 	
 	@Before
 	public void before(){
@@ -61,7 +62,7 @@ public class BackupDaemonTest {
 		// Using a stub for the dao gives us more control over the test.
 		stubDao = new BackupRestoreStatusDAOStub();
 		// The daemon is passed all mock data.
-		daemon = new BackupDaemon(stubDao, mockDriver, mockAwsClient, "someFakeBucket", threadPool);
+		daemon = new BackupDaemon(stubDao, mockDriver, mockAwsClient, "someFakeBucket", threadPool, threadPool2);
 	}
 	
 	@Test
