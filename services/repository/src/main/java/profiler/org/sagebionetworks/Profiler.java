@@ -22,15 +22,15 @@ import org.aspectj.lang.annotation.Aspect;
 @Aspect
 public class Profiler {
 
-
+	
 	static private Log log = LogFactory.getLog(Profiler.class);
-
+	
 	// Each thread gets its own stack.
 	static Map<Long, Stack<Frame>> MAP = Collections
 			.synchronizedMap(new HashMap<Long, Stack<Frame>>());
 	
 	private List<ProfileHandler> handlers = null;
-	
+
 
 	public List<ProfileHandler> getHandlers() {
 		return handlers;
@@ -43,20 +43,23 @@ public class Profiler {
 	public void setHandlers(List<ProfileHandler> handlers) {
 		this.handlers = handlers;
 	}
-	
+
 	/**
 	 * Should we even profile.
 	 * @param args
 	 * @return
 	 */
-	private boolean shouldCaptureData(Object[] args){
-		if(handlers == null) return false;
-		for(ProfileHandler handler: this.handlers){
-			if(handler.shouldCaptureProfile(args)) return true;
+	private boolean shouldCaptureData(Object[] args) {
+		if (handlers == null) {
+			return false;
+		}
+		for (ProfileHandler handler : this.handlers) {
+			if (handler.shouldCaptureProfile(args)) {
+				return true;
+			}
 		}
 		return false;
 	}
-
 
 	// execution(* org.sagebionetworks..*.*(..)) means profile any bean in the
 	// package org.sagebionetworks or any sub-packages
@@ -113,29 +116,31 @@ public class Profiler {
 
 		// After the method is done.
 		if (declaring != null) {
-			// Push a new frame onto the stack.
-			Frame current = stack.pop();
-			current.setEnd(System.nanoTime());
-			// Is there anything else on the stack?
-			if (stack.size() > 0) {
-				Frame peek = stack.peek();
-				peek.addChild(current);
-			} else {
-				// This should get replace with a logger.
-				doFireProfile(current);
+			// To get around unit test failure, check stack
+			if ((stack != null) && (stack.size() > 0)) {
+				// Push a new frame onto the stack.
+				Frame current = stack.pop();
+				current.setEnd(System.nanoTime());
+				// Is there anything else on the stack?
+				if (stack.size() > 0) {
+					Frame peek = stack.peek();
+					peek.addChild(current);
+				} else {
+					// This should get replace with a logger.
+					doFireProfile(current);
+				}
 			}
 		}
 		return returnValue;
 	}
 
 	private void doFireProfile(Frame frame) {
-		if(handlers != null){
-			for(ProfileHandler handler: this.handlers){
-				if(handler.shouldCaptureProfile(null)){
+		if (handlers != null) {
+			for (ProfileHandler handler : this.handlers) {
+				if (handler.shouldCaptureProfile(null)) {
 					handler.fireProfile(frame);
 				}
 			}
 		}
 	}
-
 }
