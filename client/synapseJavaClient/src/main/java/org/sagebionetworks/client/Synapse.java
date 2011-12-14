@@ -874,7 +874,7 @@ public class Synapse {
 						resultsStr = results.getString("reason");
 				}
 				String exceptionContent = "Service Error(" + statusCode + "): "
-						+ resultsStr;
+						+ resultsStr + " "+e.getMessage();
 
 				if (statusCode == 401) {
 					throw new SynapseUnauthorizedException(exceptionContent);

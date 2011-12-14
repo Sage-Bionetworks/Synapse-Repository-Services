@@ -1,22 +1,30 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <artifactId>tools</artifactId>
-    <groupId>org.sagebionetworks</groupId>
-    <version>0.9-SNAPSHOT</version>
-  </parent>
-  <groupId>org.sagebionetworks</groupId>
-  <artifactId>tool-migration-utility</artifactId>
-  <version>0.9-SNAPSHOT</version>
-  <name>tool-migration-utility</name>
-  <description>A Utility for migrating Synapse data from one stack to another</description>
-  <dependencies>
-  	<dependency>
-  		<groupId>org.sagebionetworks</groupId>
-  		<artifactId>synapseJavaClient</artifactId>
-  		<version>0.9-SNAPSHOT</version>
-  		<type>jar</type>
-  		<scope>compile</scope>
-  	</dependency>
-  </dependencies>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<artifactId>tools</artifactId>
+		<groupId>org.sagebionetworks</groupId>
+		<version>0.9-SNAPSHOT</version>
+	</parent>
+	<groupId>org.sagebionetworks</groupId>
+	<artifactId>tool-migration-utility</artifactId>
+	<version>0.9-SNAPSHOT</version>
+	<packaging>jar</packaging>
+	<name>tool-migration-utility</name>
+	<description>A Utility for migrating Synapse data from one stack to another</description>
+	<dependencies>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>synapseJavaClient</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
 </project>

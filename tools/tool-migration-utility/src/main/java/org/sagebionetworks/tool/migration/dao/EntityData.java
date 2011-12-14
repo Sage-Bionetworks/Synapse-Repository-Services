@@ -1,4 +1,4 @@
-package org.sagebionetworks.tool.migration;
+package org.sagebionetworks.tool.migration.dao;
 
 /**
  * DTO of basic entity data.
