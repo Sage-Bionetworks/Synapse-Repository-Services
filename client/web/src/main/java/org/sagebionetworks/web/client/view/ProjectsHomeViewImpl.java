@@ -13,12 +13,12 @@ import org.sagebionetworks.web.client.widget.header.Header;
 import org.sagebionetworks.web.client.widget.header.Header.MenuItems;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTable;
 import org.sagebionetworks.web.client.widget.table.QueryServiceTableResourceProvider;
+import org.sagebionetworks.web.client.widget.table.QueryTableFactory;
 import org.sagebionetworks.web.shared.NodeType;
 import org.sagebionetworks.web.shared.QueryConstants.ObjectType;
 
 import com.extjs.gxt.ui.client.event.ButtonEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
-import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.Window;
 import com.extjs.gxt.ui.client.widget.button.Button;
 import com.extjs.gxt.ui.client.widget.layout.FitData;
@@ -51,6 +51,7 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 	private NodeEditor nodeEditor;
 	private Header headerWidget;
 	private Window startProjectWindow;
+	private QueryTableFactory queryTableFactory;
 
 	private final int INITIAL_QUERY_TABLE_OFFSET = 0;
 	private final int QUERY_TABLE_LENGTH = 20;
@@ -60,13 +61,14 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 			Header headerWidget, Footer footerWidget, IconsImageBundle icons,
 			SageImageBundle imageBundle,
 			QueryServiceTableResourceProvider queryServiceTableResourceProvider,
-			final NodeEditor nodeEditor) {		
+			final NodeEditor nodeEditor, QueryTableFactory tableProvider) {		
 		initWidget(binder.createAndBindUi(this));
 
 		this.queryServiceTableResourceProvider = queryServiceTableResourceProvider;
 		this.icons = icons;
 		this.nodeEditor = nodeEditor;
 		this.headerWidget = headerWidget;
+		this.queryTableFactory = tableProvider;
 		
 		header.add(headerWidget.asWidget());
 		footer.add(footerWidget.asWidget());
@@ -80,13 +82,8 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 		this.presenter = presenter;		
 		headerWidget.refresh();
 				
-		this.queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.project, true, 1000, 487, presenter.getPlaceChanger());		
-		// Start on the first page and trigger a data fetch from the server
-		queryServiceTable.pageTo(INITIAL_QUERY_TABLE_OFFSET, QUERY_TABLE_LENGTH);
-		tablePanel.clear();
-		tablePanel.add(queryServiceTable.asWidget());
-
-				
+		addQueryTable();
+		
 		Button createProjectButton = new Button("Start a Project", AbstractImagePrototype.create(icons.addSquare16()));
 		createProjectButton.addSelectionListener(new SelectionListener<ButtonEvent>() {			
 			@Override
@@ -119,6 +116,16 @@ public class ProjectsHomeViewImpl extends Composite implements ProjectsHomeView 
 		createProjectButtonPanel.clear();
 		createProjectButtonPanel.add(createProjectButton);		
 	}
+
+	private void addQueryTable() {
+		this.queryServiceTable = new QueryServiceTable(queryServiceTableResourceProvider, ObjectType.project, true, 1000, 487, presenter.getPlaceChanger());		
+		// Start on the first page and trigger a data fetch from the server
+		queryServiceTable.pageTo(INITIAL_QUERY_TABLE_OFFSET, QUERY_TABLE_LENGTH);
+		tablePanel.clear();
+		tablePanel.add(queryServiceTable.asWidget());		
+	}
+
+	
 
 	@Override
 	public void showErrorMessage(String message) {

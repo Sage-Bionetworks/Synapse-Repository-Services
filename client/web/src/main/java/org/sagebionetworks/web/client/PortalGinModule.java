@@ -70,6 +70,8 @@ import org.sagebionetworks.web.client.widget.editpanels.phenotype.PhenotypeMatri
 import org.sagebionetworks.web.client.widget.editpanels.phenotype.PhenotypeMatrixViewImpl;
 import org.sagebionetworks.web.client.widget.entity.EntityPageTopView;
 import org.sagebionetworks.web.client.widget.entity.EntityPageTopViewImpl;
+import org.sagebionetworks.web.client.widget.entity.children.EntityChildBrowserView;
+import org.sagebionetworks.web.client.widget.entity.children.EntityChildBrowserViewImpl;
 import org.sagebionetworks.web.client.widget.entity.menu.ActionMenuView;
 import org.sagebionetworks.web.client.widget.entity.menu.ActionMenuViewImpl;
 import org.sagebionetworks.web.client.widget.filter.QueryFilterView;
@@ -296,6 +298,11 @@ public class PortalGinModule extends AbstractGinModule {
 		// ActionMenu
 		bind(ActionMenuViewImpl.class).in(Singleton.class);
 		bind(ActionMenuView.class).to(ActionMenuViewImpl.class);
+		
+		// EntityChildBrowser
+		bind(EntityChildBrowserViewImpl.class).in(Singleton.class);
+		bind(EntityChildBrowserView.class).to(EntityChildBrowserViewImpl.class);
+		
 	}
 
 }

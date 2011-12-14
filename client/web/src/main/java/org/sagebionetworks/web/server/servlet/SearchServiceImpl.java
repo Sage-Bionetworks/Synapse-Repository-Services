@@ -210,7 +210,7 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 	 */
 	public List<HeaderData> getColumnsForResults(List<String> selectColumns) {
 		if (selectColumns == null)
-			throw new IllegalArgumentException("Select columns cannot be null");
+		throw new IllegalArgumentException("Select columns cannot be null");
 		// First off, if the select columns are null or empty then we use the
 		// defaults
 		List<HeaderData> results = new ArrayList<HeaderData>();

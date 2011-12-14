@@ -29,10 +29,25 @@ public class SearchParameters implements IsSerializable{
 	
 	public SearchParameters(){
 	}
+
+	public SearchParameters(List<String> selectColumns, EntityType entityType, List<WhereCondition>  where, int offset, int limit,
+			String sort, boolean ascending) {
+		super();
+		this.fromType = entityType.getName();
+		setMembers(selectColumns, where, offset, limit, sort, ascending);
+	}
+
+
 	public SearchParameters(List<String> selectColumns, String fromType, List<WhereCondition>  where, int offset, int limit,
 			String sort, boolean ascending) {
 		super();
 		this.fromType = ObjectType.valueOf(fromType).name();
+		setMembers(selectColumns, where, offset, limit, sort, ascending);
+	}
+	
+	private void setMembers(List<String> selectColumns,
+			List<WhereCondition> where, int offset, int limit, String sort,
+			boolean ascending) {
 		this.selectColumns = selectColumns;
 		this.where = where;
 		this.offset = offset;
@@ -40,6 +55,7 @@ public class SearchParameters implements IsSerializable{
 		this.sort = sort;
 		this.ascending = ascending;
 	}
+	
 	public List<String> getSelectColumns() {
 		return selectColumns;
 	}

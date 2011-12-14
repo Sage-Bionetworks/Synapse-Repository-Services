@@ -107,7 +107,6 @@
             "urlPrefix":"/code",
             "className":"org.sagebionetworks.repo.model.Code",
             "defaultParentPath":"/root"
-        },
-        
+        }        
     ]
-}
+} 

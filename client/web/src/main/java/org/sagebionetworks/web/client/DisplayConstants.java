@@ -117,6 +117,7 @@ public class DisplayConstants {
 	public static final String ERROR_USER_ALREADY_EXISTS = "There was a problem creating your account: The email address provided is already in use. If you have forgotten your password, please use the \"Forgot Password\" button from the login page.";
 	public static final String ERROR_UNABLE_TO_LOAD = "An error occured trying to load.";
 	public static final String ERROR_GENERIC = "An error occured. Please try again.";
+	public static final String ERROR_GENERIC_RELOAD = "An error occured. Please try reloading the page.";
 	public static final String ERROR_SAVE_MESSAGE = "An error occuring attempting to save. Please try again.";
 	public static final String ERROR_BAD_REQUEST_MESSAGE = "An unknown communication error occured. Please reload the page.";
 	public static final String ERROR_DUPLICATE_ENTITY_MESSAGE = "An entity with this name already exists. Please enter a different name.";

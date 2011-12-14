@@ -223,6 +223,14 @@ public class ColumnConfigProvider {
 		defaultColumns.put(ObjectType.step.name(), keyList);
 	}
 	
+	@Inject
+	public void setDefaultCodeColumns(@Named(ServerConstants.KEY_DEFAULT_CODE_COLS) String defaults) {
+		// convert from a string to a list
+		List<String> keyList = splitCommaSeparatedString(defaults);
+		// Add this list to the map
+		defaultColumns.put(ObjectType.code.name(), keyList);
+	}
+	
 	/**
 	 * Load the given filter enumeration xml file.
 	 * @param filterResource

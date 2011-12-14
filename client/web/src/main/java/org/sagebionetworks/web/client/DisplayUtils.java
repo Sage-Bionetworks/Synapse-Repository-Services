@@ -58,6 +58,7 @@ public class DisplayUtils {
 	public static final String R_CLIENT_DOWNLOAD_CODE = "source('http://sage.fhcrc.org/CRAN.R')<br/>pkgInstall(c(\"synapseClient\"))";
 	
 	private static final String ERROR_OBJ_REASON_KEY = "reason";
+	public static final String ENTITY_PARENT_ID_KEY = "parentId";
 	
 	/*
 	 * Style names

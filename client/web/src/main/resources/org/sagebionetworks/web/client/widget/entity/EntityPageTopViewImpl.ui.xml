@@ -29,42 +29,10 @@
 				</div>
 				
   				<div class="portal">		
-							<!-- <g:SimplePanel ui:field="portalPanel" styleName="portal rounded dropshaddow"/>  -->							
-							<g:SimplePanel ui:field="portalPanel"/>							
-
-
-<!-- 
-							<div class="column first">
-								<h4>
-									<span ui:field="titleSpan" /><br />
-									<span ui:field="synapseIdSpan" style="font-size: 60%" />									
-								</h4>
-
-								<h3>description</h3>
-								<g:FlowPanel ui:field="overviewPanel" />
-								<br />
-								<br />
-
-							</div>
-							<div class="column last">														
-								<h3>properties &amp; annotations</h3>
-								<g:SimplePanel ui:field="annotationsPanel" />							
-								<h3 class="top">Synapse R Client</h3>
-																
-								<div ui:field="rClientCodeDiv" />								
-								<g:SimplePanel ui:field="downloadRClientPanel" />
-								<g:SimplePanel ui:field="bannerRightTopSlot" />
-								<g:SimplePanel ui:field="bannerRightBottomSlot" />
-								 								
-							</div>
-							<div ui:field="col2Slot2">
-								<h3></h3>
-								<g:SimplePanel ui:field="col2Slot2Panel" />															
-							</div>
-
- -->
-					</div>
-						
+					<!-- <g:SimplePanel ui:field="portalPanel" styleName="portal rounded dropshaddow"/>  -->							
+					<g:SimplePanel ui:field="portalPanel"/>	
+					<g:SimplePanel ui:field="portalPanelSingleCol"/>							
+				</div>						
 			</div>
 		</div>
 	</g:HTMLPanel>

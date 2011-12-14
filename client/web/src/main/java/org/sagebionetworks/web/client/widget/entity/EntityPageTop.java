@@ -131,7 +131,7 @@ public class EntityPageTop implements EntityPageTopView.Presenter, SynapseWidget
 	 */
 	private void sendDetailsToView(boolean isAdmin, boolean canEdit) {
 		entityTypeDisplay = DisplayUtils.getEntityTypeDisplay(entity);
-		view.setEntityDetails(entity, isAdmin, canEdit);
+		view.setEntityDetails(entity, entityTypeDisplay, isAdmin, canEdit);
 	}
 
 }

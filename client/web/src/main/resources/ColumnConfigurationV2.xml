@@ -240,6 +240,28 @@
 			<description>The date this step was last changed</description>
 		</column>
 		
+		<!-- Code columns -->
+		<column id="code.id">
+			<type>String</type>
+			<display>Code ID</display>
+			<description>Code ID</description>
+		</column>		
+		<column id="code.name">
+			<type>String</type>
+			<display>Code Name</display>
+			<description>Name of this Code</description>
+		</column>
+		<column id="code.createdBy">
+			<type>String</type>
+			<display>Created By</display>
+			<description>The person that created this code</description>
+		</column>
+		<column id="code.modifiedOn">
+			<type>Long</type>
+			<display>Modified Date </display>
+			<description>The date this code was last changed</description>
+		</column>
+		
 		<!-- The more complex/composite columns -->
 		
 		<!-- A dynamic relative URL will be built for datatsets using the ID column -->
@@ -328,6 +350,18 @@
 			<url reference="step.LocalUrl" />
 		</link-column>
 			
+		<!-- A dynamic relative URL will be built for Codes using the ID column -->
+		<url-template id="code.LocalUrl">
+			<type>String</type>
+			<urlTemplate>Code:{code.id}</urlTemplate>
+		</url-template>
+		
+		<!-- Acts as the code name column  -->
+		<link-column id="code.NameLink">
+			<display reference="code.name" />
+			<url reference="code.LocalUrl" />
+		</link-column>
+			
 		<!-- The modified on date -->
 		<date-column id="project.modifiedOn">
 			<baseColumn reference="project.modifiedOn"/>
@@ -341,6 +375,11 @@
 		<!-- The created on date -->
 		<date-column id="step.modifiedOn">
 			<baseColumn reference="step.modifiedOn"/>
+		</date-column>
+		
+		<!-- The created on date -->
+		<date-column id="code.modifiedOn">
+			<baseColumn reference="code.modifiedOn"/>
 		</date-column>
 		
 	</columns>

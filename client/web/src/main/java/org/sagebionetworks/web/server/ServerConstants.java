@@ -44,6 +44,11 @@ public class ServerConstants {
 	public static final String KEY_DEFAULT_STEP_COLS =  "org.sagebionetworks.all.steps.default.columns";
 
 	/**
+	 * The property key used for the list of default step columns
+	 */
+	public static final String KEY_DEFAULT_CODE_COLS =  "org.sagebionetworks.all.code.default.columns";
+
+	/**
 	 * The property key that tell what column configuration xml file to be used.
 	 */
 	public static final String KEY_COLUMN_CONFIG_XML_FILE = "org.sagebionetworks.column.config.xml.resource";
@@ -52,5 +57,7 @@ public class ServerConstants {
 	 * The property key that tell what FilterEnumeration.xml file to load.
 	 */
 	public static final String KEY_FILTER_ENUMERATION_CONFIG_XML_FILE = "org.sagebionetworks.fileter.enumeration.xml.resource";
-			
+
+	
+	
 }

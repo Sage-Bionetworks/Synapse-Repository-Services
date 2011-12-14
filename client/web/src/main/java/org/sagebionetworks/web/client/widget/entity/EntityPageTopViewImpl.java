@@ -1,47 +1,34 @@
 package org.sagebionetworks.web.client.widget.entity;
 
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.registry.EntityTypeMetadata;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
-import org.sagebionetworks.web.client.events.CancelEvent;
-import org.sagebionetworks.web.client.events.CancelHandler;
 import org.sagebionetworks.web.client.events.EntityUpdatedEvent;
 import org.sagebionetworks.web.client.events.EntityUpdatedHandler;
 import org.sagebionetworks.web.client.widget.adminmenu.AdminMenu;
 import org.sagebionetworks.web.client.widget.editpanels.AnnotationEditor;
 import org.sagebionetworks.web.client.widget.editpanels.NodeEditor;
+import org.sagebionetworks.web.client.widget.entity.children.EntityChildBrowser;
 import org.sagebionetworks.web.client.widget.entity.menu.ActionMenu;
 import org.sagebionetworks.web.client.widget.portlet.SynapsePortlet;
 import org.sagebionetworks.web.client.widget.sharing.AccessMenuButton;
-import org.sagebionetworks.web.client.widget.sharing.AccessMenuButton.AccessLevel;
 import org.sagebionetworks.web.shared.NodeType;
 
 import com.extjs.gxt.ui.client.Style.Direction;
 import com.extjs.gxt.ui.client.event.ButtonEvent;
-import com.extjs.gxt.ui.client.event.Listener;
-import com.extjs.gxt.ui.client.event.MenuEvent;
-import com.extjs.gxt.ui.client.event.MessageBoxEvent;
 import com.extjs.gxt.ui.client.event.SelectionListener;
 import com.extjs.gxt.ui.client.fx.FxConfig;
-import com.extjs.gxt.ui.client.widget.Dialog;
 import com.extjs.gxt.ui.client.widget.Html;
 import com.extjs.gxt.ui.client.widget.LayoutContainer;
-import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.VerticalPanel;
-import com.extjs.gxt.ui.client.widget.Window;
 import com.extjs.gxt.ui.client.widget.button.Button;
 import com.extjs.gxt.ui.client.widget.custom.Portal;
 import com.extjs.gxt.ui.client.widget.custom.Portlet;
-import com.extjs.gxt.ui.client.widget.layout.FitData;
 import com.extjs.gxt.ui.client.widget.layout.FitLayout;
-import com.extjs.gxt.ui.client.widget.menu.Menu;
-import com.extjs.gxt.ui.client.widget.menu.MenuItem;
 import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
 import com.google.gwt.dom.client.SpanElement;
-import com.google.gwt.resources.client.ImageResource;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
@@ -61,6 +48,8 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 	SimplePanel actionMenuPanel;
 	@UiField 
 	SimplePanel portalPanel;
+	@UiField 
+	SimplePanel portalPanelSingleCol;
 	
 	private Presenter presenter;
 	private SageImageBundle sageImageBundle;
@@ -69,6 +58,7 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 	private AnnotationEditor annotationEditor;
 	private AdminMenu adminMenu;
 	private ActionMenu actionMenu;
+	private EntityChildBrowser entityChildBrowser;
 	private boolean isAdministrator = false; 
 	private boolean canEdit = false;
 		
@@ -77,19 +67,21 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 			SageImageBundle sageImageBundle, IconsImageBundle iconsImageBundle,
 			AccessMenuButton accessMenuButton, NodeEditor nodeEditor,
 			PreviewDisclosurePanel previewDisclosurePanel,
-			AnnotationEditor annotationEditor, AdminMenu adminMenu, ActionMenu actionMenu) {
+			AnnotationEditor annotationEditor, AdminMenu adminMenu, ActionMenu actionMenu,
+			EntityChildBrowser entityChildBrowser) {
 		this.iconsImageBundle = iconsImageBundle;
 		this.sageImageBundle = sageImageBundle;
 		this.previewDisclosurePanel = previewDisclosurePanel;
 		this.annotationEditor = annotationEditor;
 		this.adminMenu = adminMenu;
 		this.actionMenu = actionMenu;
+		this.entityChildBrowser = entityChildBrowser;
 		
 		initWidget(uiBinder.createAndBindUi(this));
 	}
 	
 	@Override
-	public void setEntityDetails(Entity entity, boolean isAdministrator,
+	public void setEntityDetails(Entity entity, String entityTypeDisplay, boolean isAdministrator,
 			boolean canEdit) {
 		
 		NodeType entityType = DisplayUtils.getNodeTypeForEntity(entity);
@@ -120,7 +112,7 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 	    portalPanel.add(portal);
 	    
 	    // Title
-	    portal.add(createTitlePortlet(entity), 0);
+	    portal.add(createTitlePortlet(entity, entityTypeDisplay), 0);
 	    
 	    // Description	    
 		portal.add(createDescriptionPortlet(entity), 0);
@@ -128,9 +120,18 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 	    // Annotation Editor Portlet
 		portal.add(createAnnotationEditorPortlet(portal, entity), 1);	    
 	    // Create R Client portlet
-	    portal.add(createRClientPortlet(portal, entity), 1);
-		
-		
+	    portal.add(createRClientPortlet(portal, entity), 0);
+	    
+	    // Full Width portal
+		Portal portalSingleCol = new Portal(1);  
+	    portalSingleCol.setBorders(false);  
+	    portalSingleCol.setStyleAttribute("backgroundColor", "white");  
+	    portalSingleCol.setColumnWidth(0, 1.0);  	 	    
+	    portalPanelSingleCol.clear();
+	    portalPanelSingleCol.add(portalSingleCol);
+	    
+	    // Child Browser
+	    portalSingleCol.add(createEntityChildBrowser(entity, canEdit), 0);
 	}
 	
 	@Override
@@ -177,10 +178,14 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 		return portlet;
 	}
 
-	private SynapsePortlet createTitlePortlet(Entity entity) {
-	    Html synapseId = new Html();
-	    synapseId.setStyleAttribute("font-size", "60%");
-	    String title = entity.getName() + "<br/><span style=\"font-size: 60%\">" + DisplayConstants.SYNAPSE_ID_PREFIX + entity.getId() + "</span>";
+	private SynapsePortlet createTitlePortlet(Entity entity, String entityTypeDisplay) {
+	    String title = "<span style=\"font-weight:lighter;\">["
+				+ entityTypeDisplay.substring(0, 1)
+				+ "]</span> "
+				+ entity.getName()
+				+ "<br/><span style=\"font-size: 60%\">"
+				+ DisplayConstants.SYNAPSE_ID_PREFIX + entity.getId()
+				+ "</span>";
 	    SynapsePortlet titlePortlet = new SynapsePortlet(title, true, true);
 	    titlePortlet.setAutoHeight(true);
 		return titlePortlet;
@@ -237,5 +242,13 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 		portlet.add(vp);
 	    return portlet;  
 	}	
-		
+	
+	private Portlet createEntityChildBrowser(Entity entity, boolean canEdit) {
+		String typeDisplay = DisplayUtils.getEntityTypeDisplay(entity);
+		SynapsePortlet portlet = new SynapsePortlet(typeDisplay + " " + "Contents");
+		portlet.add(entityChildBrowser.asWidget(entity, canEdit));
+		return portlet;
+	}
+	
+	
 }

@@ -15,7 +15,7 @@ public interface EntityPageTopView extends IsWidget, SynapseWidgetView {
 	 */
 	public void setPresenter(Presenter presenter);
 	
-	public void setEntityDetails(Entity entity, boolean isAdministrator, boolean canEdit);
+	public void setEntityDetails(Entity entity, String entityTypeDisplay, boolean isAdministrator, boolean canEdit);
 		
 	/**
 	 * Presenter interface
