@@ -50,8 +50,14 @@ public class BackupDaemon implements Runnable{
 	
 	private BackupRestoreStatus status;
 	private long startTimeNano;
-	// The thread pool controls how many daemon threads we start.
-	ExecutorService threadPool;
+	// The first pool is for watcher threads.
+	ExecutorService watcherPool;
+	// The second pool is for worker threads.
+	// We need two pools because the first pool can fill up
+	// with watcher requests. If we tried to get works from the
+	// watcher pool we could have dead lock. With two pools
+	// the we are never blocked.
+	ExecutorService workerPool;
 	// Is the driver daemon done?
 	private volatile boolean isDriverDone;
 	private volatile Throwable driverError;
@@ -62,7 +68,7 @@ public class BackupDaemon implements Runnable{
 	 * @param dao
 	 * @param driver
 	 */
-	BackupDaemon(BackupRestoreStatusDAO dao, NodeBackupDriver driver, AmazonS3Client client, String bucket, ExecutorService threadPool){
+	BackupDaemon(BackupRestoreStatusDAO dao, NodeBackupDriver driver, AmazonS3Client client, String bucket, ExecutorService threadPool, ExecutorService threadPool2){
 		if(dao == null) throw new IllegalArgumentException("BackupRestoreStatusDAO cannot be null");
 		if(driver == null) throw new IllegalArgumentException("NodeBackupDriver cannot be null");
 		if(client == null) throw new IllegalArgumentException("AmazonS3Client cannot be null");
@@ -72,7 +78,8 @@ public class BackupDaemon implements Runnable{
 		this.backupDriver = driver;
 		this.awsClient = client;
 		this.awsBucket = bucket;
-		this.threadPool = threadPool;
+		this.watcherPool = threadPool;
+		this.workerPool = threadPool2;
 	}
 	
 	/**
@@ -80,8 +87,8 @@ public class BackupDaemon implements Runnable{
 	 * @param dao
 	 * @param driver
 	 */
-	BackupDaemon(BackupRestoreStatusDAO dao, NodeBackupDriver driver, AmazonS3Client client, String bucket, ExecutorService threadPool, Set<String> entitiesToBackup){
-		this(dao, driver, client, bucket, threadPool);
+	BackupDaemon(BackupRestoreStatusDAO dao, NodeBackupDriver driver, AmazonS3Client client, String bucket, ExecutorService threadPool, ExecutorService threadPool2, Set<String> entitiesToBackup){
+		this(dao, driver, client, bucket, threadPool, threadPool2);
 		this.entitiesToBackup = entitiesToBackup;
 	}
 	
@@ -201,9 +208,9 @@ public class BackupDaemon implements Runnable{
 	 */
 	private void startDriverThread(final File tempBackup, final Progress progress) {
 		isDriverDone = false;
-		// The type determines which driver method we call
-		// Start the working thread
-		threadPool.execute(new Runnable(){
+		// The second level pool is used to do the actual work.
+		// We need a second pool to prevent deadlock.
+		workerPool.execute(new Runnable(){
 			@Override
 			public void run() {
 				// Tell the driver to do its thing
@@ -310,8 +317,9 @@ public class BackupDaemon implements Runnable{
 		// Create the new status.
 		String id = backupRestoreStatusDao.create(status);
 		status.setId(id);
-		// Now that we have our status we are ready to go
-		threadPool.execute(this);
+		// Now that we have our status we are ready to go.
+		// Start the watcher thread.
+		watcherPool.execute(this);
 		// Return a copy of the status from the DB.
 		try {
 			return backupRestoreStatusDao.get(id);

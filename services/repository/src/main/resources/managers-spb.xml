@@ -59,6 +59,17 @@
 		<property name="arguments" ref="stackConfiguration.backupRestoreThreadPoolMaximum"/>
 	</bean>
 	
+	<!-- The second thread pool used by the backup/restore daemons -->
+	<bean id="backupDaemonThreadPool2" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetClass">
+			<value>java.util.concurrent.Executors</value>
+		</property>
+		<property name="targetMethod">
+			<value>newFixedThreadPool</value>
+		</property>
+		<property name="arguments" ref="stackConfiguration.backupRestoreThreadPoolMaximum"/>
+	</bean>
+	
 	<bean id="backupDaemonLauncher" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncherImpl" scope="singleton"/>
 	
 	<!-- Provides validation for all types -->
