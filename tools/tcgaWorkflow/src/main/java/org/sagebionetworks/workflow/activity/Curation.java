@@ -13,6 +13,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.workflow.Constants;
@@ -219,7 +220,7 @@ public class Curation {
 		JSONObject location = new JSONObject();
 		String md5checksum = null;
 		try {
-			String md5FileContents = HttpClientHelper.getFileContents(tcgaUrl
+			String md5FileContents = HttpClientHelper.getFileContents(DefaultHttpClientSingleton.getInstance(), tcgaUrl
 					+ ".md5");
 
 			// TODO put a real regexp here to validate the format

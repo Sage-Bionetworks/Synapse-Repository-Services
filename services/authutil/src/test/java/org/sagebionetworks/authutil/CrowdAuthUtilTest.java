@@ -17,6 +17,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 
 public class CrowdAuthUtilTest {
@@ -101,8 +102,8 @@ public class CrowdAuthUtilTest {
 	// http://sagebionetworks.jira.com/browse/PLFM-292
 	@Test 
 	public void testMultipleLogins() throws Exception {
-		HttpClientHelper.setGlobalConnectionTimeout(100000);
-		HttpClientHelper.setGlobalSocketTimeout(100000);
+		HttpClientHelper.setGlobalConnectionTimeout(DefaultHttpClientSingleton.getInstance(), 100000);
+		HttpClientHelper.setGlobalSocketTimeout(DefaultHttpClientSingleton.getInstance(), 100000);
 		createUsers();
 		for (int i : new int[]{35}) {
 //		for (int i : new int[]{1,2,3,4,5,6}) {

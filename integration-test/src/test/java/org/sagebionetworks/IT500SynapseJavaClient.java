@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
@@ -214,7 +215,7 @@ public class IT500SynapseJavaClient {
 
 	    File dataDestinationFile = File.createTempFile("integrationTest", ".download");
 	    dataDestinationFile.deleteOnExit();
-		HttpClientHelper.downloadFile(location.getPath(), dataDestinationFile.getAbsolutePath());
+		HttpClientHelper.downloadFile(DefaultHttpClientSingleton.getInstance(), location.getPath(), dataDestinationFile.getAbsolutePath());
 		assertTrue(dataDestinationFile.isFile());
 		assertTrue(dataDestinationFile.canRead());
 		assertTrue(0 < dataDestinationFile.length());

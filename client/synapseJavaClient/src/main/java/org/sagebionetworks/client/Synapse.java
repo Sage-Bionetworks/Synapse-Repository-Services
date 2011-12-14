@@ -92,11 +92,11 @@ public class Synapse {
 	}
 
 	/**
-	 * Used for mock testing.
+	 * Will use the provided client provider.
 	 * 
 	 * @param provider
 	 */
-	Synapse(HttpClientProvider provider) {
+	public Synapse(HttpClientProvider provider) {
 		if (provider == null)
 			throw new IllegalArgumentException("Provider cannot be null");
 		setRepositoryEndpoint(DEFAULT_REPO_ENDPOINT);
@@ -511,8 +511,7 @@ public class Synapse {
 	public File downloadFromSynapse(LocationData location, File destinationFile)
 			throws SynapseException {
 		try {
-			HttpClientHelper.downloadFile(location.getPath(), destinationFile
-					.getAbsolutePath());
+			clientProvider.downloadFile(location.getPath(), destinationFile.getAbsolutePath());
 			// Check that the md5s match, if applicable
 			if (null != location.getMd5()) {
 				String localMd5 = MD5ChecksumHelper
