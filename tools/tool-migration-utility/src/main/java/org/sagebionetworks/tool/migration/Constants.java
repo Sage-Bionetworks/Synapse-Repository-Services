@@ -17,11 +17,21 @@ public class Constants {
 	public static final String ENTITY_DOT_E_TAG		= ENTITY_DOT+ENTITY_E_TAG;
 	public static final String ENTITY_DOT_PARENT_ID	= ENTITY_DOT+ENTITY_PARENT_ID;
 	
+	public static final String LIMIT		= "limit";
+	public static final String OFFSET		= "offset";
+	
 	public static final String ENTITY_NAME		= "name";
 	
 	public static final String ROOT_ENTITY_NAME = "root";
 	
 	public static final String JSON_KEY_RESULTS					= "results";
 	public static final String JSON_KEY_TOTAL_NUMBER_OF_RESULTS	= "totalNumberOfResults";
+	
+	public static final long MAX_PAGE_SIZE = 100;
+	
+	/**
+	 * How much time (MS) should we sleep between web service calls.
+	 */
+	public static final long MS_BETWEEN_SYNPASE_CALLS = 100;
 
 }

@@ -1,6 +1,7 @@
-package org.sagebionetworks.tool.migration;
+package org.sagebionetworks.tool.migration.dao;
 
 import java.util.List;
+
 
 /**
  * The query results for an given query.
