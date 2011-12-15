@@ -88,9 +88,14 @@ public class MigrationDriver {
 		int entitesProcessed = 0;
 		int failedJobs = 0;
 		int successJobs = 0;
+		// There are three parts to this loop.
+		// 1. Get all entity data from both the source and destination.
+		// 2. Calculate what needs to be created, updated, or deleted and create a job for each.
+		// 3. Process all jobs on the queue.
+		// Wash/rinse repeat.
 		long totalStart = System.currentTimeMillis();
 		while(true){
-			// Query for the data to test for
+			// 1. Get all entity data from both the source and destination.
 			long start = System.currentTimeMillis();
 			List<EntityData> sourceData = queryRunner.getAllEntityData(sourceClient);
 			long end = System.currentTimeMillis();
@@ -99,34 +104,15 @@ public class MigrationDriver {
 			List<EntityData> destData = queryRunner.getAllEntityData(destClient);
 			end = System.currentTimeMillis();
 			log.info("Get all entites from destination, count: "+destData.size()+" in: "+(end-start)+" ms");
-			Map<String, EntityData> destMap = JobUtil.buildMapFromList(destData);
-			Map<String, EntityData> sourceMap = JobUtil.buildMapFromList(sourceData);
-			// Build up the create jobs
-			CreationJobBuilder createBuilder = new CreationJobBuilder(sourceData, destMap, jobQueue, Configuration.getMaximumBatchSize());
-			Future<BuilderResponse> createFuture = threadPool.submit(createBuilder);
-			// Build up the update jobs
-			UpdateJobBuilder updateBuilder = new UpdateJobBuilder(sourceData, destMap, jobQueue, Configuration.getMaximumBatchSize());
-			Future<BuilderResponse> updateFuture = threadPool.submit(updateBuilder);
-			// build up the delete jobs
-			DeleteJobBuilder deleteBuilder = new DeleteJobBuilder(sourceMap, destData, jobQueue, Configuration.getMaximumBatchSize());
-			Future<BuilderResponse> deleteFuture = threadPool.submit(deleteBuilder);
-			// Wait for each to complete
-			BuilderResponse createResponse = createFuture.get();
-			BuilderResponse updateResponse = updateFuture.get();
-			BuilderResponse deleteResponse = deleteFuture.get();
-			log.info("Submmited "+createResponse.getSubmitedToQueue()+" entites to create queue.  There are "+createResponse.getPendingDependancies()+" entites pending dependancy creations. Submitted "+updateResponse.getSubmitedToQueue()+" updates to the queue");
+			// 2. Calculate what needs to be created, updated, or deleted and create a job for each.
+			populateQueue(threadPool, jobQueue, sourceData, destData, Configuration.getMaximumBatchSize());
 			
-			// Now process the queue with all threads
-			JobQueueWorker queueWorker = new JobQueueWorker(jobQueue, threadPool, factory);
-			// Wait for the worker
-			Future<AggregateResult> workerFuture = threadPool.submit(queueWorker);
-			// Wait for it to finish
-			AggregateResult result = workerFuture.get();
+			// 3. Process all jobs on the queue.
+			AggregateResult result = consumeAllJobs(factory, threadPool, jobQueue);
 			entitesProcessed += result.getTotalEntitesProcessed();
 			failedJobs += result.getFailedJobCount();
 			successJobs += result.getSuccessfulJobCount();
 			String format = "FAILED jobs: %1$-10d SUCCESSFUL jobs: %2$-10d total entities processed: %3$-10d";
-
 			log.info("Cleared the queue: "+String.format(format, failedJobs, successJobs, entitesProcessed));
 			// If there are any failures exist
 			long endTotal = System.currentTimeMillis();
@@ -134,6 +120,59 @@ public class MigrationDriver {
 			Thread.sleep(1000*5);
 		}
 		
+	}
+
+	/**
+	 * Consume all jobs on the queue.  This method will block until the queue is empty.
+	 * @param factory
+	 * @param threadPool
+	 * @param jobQueue
+	 * @return
+	 * @throws InterruptedException
+	 * @throws ExecutionException
+	 */
+	public static AggregateResult consumeAllJobs(ClientFactoryImpl factory,	ExecutorService threadPool, Queue<Job> jobQueue)
+			throws InterruptedException, ExecutionException {
+		// Create a new worker job.
+		JobQueueWorker queueWorker = new JobQueueWorker(jobQueue, threadPool, factory);
+		// Start the worker job.
+		Future<AggregateResult> workerFuture = threadPool.submit(queueWorker);
+		// Wait for it to finish
+		AggregateResult result = workerFuture.get();
+		return result;
+	}
+
+	/**
+	 * Populate the queue with create, update, and delete jobs using what we know about the source and destination repositories.
+	 * This will block until the queue is populated.
+	 * @param threadPool
+	 * @param jobQueue
+	 * @param sourceData
+	 * @param sourceMap
+	 * @param destData
+	 * @param destMap
+	 * @throws InterruptedException
+	 * @throws ExecutionException
+	 */
+	public static void populateQueue(ExecutorService threadPool, Queue<Job> jobQueue, List<EntityData> sourceData, List<EntityData> destData, int maxBatchSize) throws InterruptedException,
+			ExecutionException {
+		// Build the maps
+		Map<String, EntityData> destMap = JobUtil.buildMapFromList(destData);
+		Map<String, EntityData> sourceMap = JobUtil.buildMapFromList(sourceData);
+		// Build up the create jobs
+		CreationJobBuilder createBuilder = new CreationJobBuilder(sourceData, destMap, jobQueue, maxBatchSize);
+		Future<BuilderResponse> createFuture = threadPool.submit(createBuilder);
+		// Build up the update jobs
+		UpdateJobBuilder updateBuilder = new UpdateJobBuilder(sourceData, destMap, jobQueue, maxBatchSize);
+		Future<BuilderResponse> updateFuture = threadPool.submit(updateBuilder);
+		// build up the delete jobs
+		DeleteJobBuilder deleteBuilder = new DeleteJobBuilder(sourceMap, destData, jobQueue, maxBatchSize);
+		Future<BuilderResponse> deleteFuture = threadPool.submit(deleteBuilder);
+		// Wait for each to complete
+		BuilderResponse createResponse = createFuture.get();
+		BuilderResponse updateResponse = updateFuture.get();
+		BuilderResponse deleteResponse = deleteFuture.get();
+		log.info("Submmited "+createResponse.getSubmitedToQueue()+" entites to create queue.  There are "+createResponse.getPendingDependancies()+" entites pending dependancy creations. Submitted "+updateResponse.getSubmitedToQueue()+" updates to the queue. Submitted "+deleteResponse.getSubmitedToQueue()+" for delete.");
 	}
 
 	/**
