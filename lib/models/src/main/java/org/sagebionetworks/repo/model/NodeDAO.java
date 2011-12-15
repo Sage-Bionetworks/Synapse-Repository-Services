@@ -57,7 +57,7 @@ public interface NodeDAO {
 	 * @param id
 	 * @throws NotFoundException 
 	 */
-	public void delete(String id) throws NotFoundException;
+	public boolean delete(String id) throws NotFoundException;
 	
 	/**
 	 * Delete a specific version.
@@ -239,4 +239,20 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 */
 	public boolean changeNodeParent(String nodeId, String newParentId) throws NumberFormatException, NotFoundException, DatastoreException;
+
+	/**
+	 * Update an existing node using a backup
+	 * @param node
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public void updateNodeFromBackup(Node node) throws NotFoundException, DatastoreException;
+
+	/**
+	 * Create a new node from a backup.
+	 * @param node
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public void createNewNodeFromBackup(Node node) throws NotFoundException, DatastoreException;
 }

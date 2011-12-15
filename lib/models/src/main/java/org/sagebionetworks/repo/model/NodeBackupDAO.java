@@ -29,7 +29,7 @@ public interface NodeBackupDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public void createNewRevision(NodeRevisionBackup rev)
+	public void createNewRevisionFromBackup(NodeRevisionBackup rev)
 			throws NotFoundException, DatastoreException;
 
 	/**
@@ -39,7 +39,7 @@ public interface NodeBackupDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public void updateRevision(NodeRevisionBackup rev)
+	public void updateRevisionFromBackup(NodeRevisionBackup rev)
 			throws NotFoundException, DatastoreException;
 
 	/**
