@@ -19,8 +19,9 @@ public class ClientFactoryImpl implements ClientFactory {
 	 */
 	public Synapse createNewConnection(SynapseConnectionInfo info) throws SynapseException{
 		// We need to accept all SSL certificates for this client.
-		AcceptAllCertificateHttpClientProvider clientProvider = new AcceptAllCertificateHttpClientProvider();
-		Synapse synapse = new Synapse(clientProvider);
+//		AcceptAllCertificateHttpClientProvider clientProvider = new AcceptAllCertificateHttpClientProvider();
+//		Synapse synapse = new Synapse(clientProvider);
+		Synapse synapse = new Synapse();
 		synapse.setAuthEndpoint(info.getAuthenticationEndPoint());
 		synapse.setRepositoryEndpoint(info.getRepositoryEndPoint());
 		synapse.login(info.getAdminUsername(), info.getAdminPassword());

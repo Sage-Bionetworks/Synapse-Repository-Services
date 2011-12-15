@@ -70,7 +70,7 @@ public class CreateUpdateWorker implements Callable<WorkerResult> {
 				logStatus(status);
 			}
 			// Wait.
-			Thread.sleep(1000);
+			Thread.sleep(2000);
 		}
 	}
 	
