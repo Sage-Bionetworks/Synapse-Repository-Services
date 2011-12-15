@@ -125,13 +125,13 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 			// Now process the node
 			if (nodeDao.doesNodeExist(KeyFactory.stringToKey(nodeId))) {
 				// Update the node
-				nodeDao.updateNode(backup.getNode());
+				nodeDao.updateNodeFromBackup(backup.getNode());
 				if (backup.getAcl() != null) {
 					aclDAO.update(backup.getAcl());
 				}
 			} else {
 				// Update the node
-				nodeDao.createNew(backup.getNode());
+				nodeDao.createNewNodeFromBackup(backup.getNode());
 				if (backup.getAcl() != null) {
 					aclDAO.create(backup.getAcl());
 				}
@@ -202,10 +202,10 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 			}
 			if(nodeDao.doesNodeRevisionExist(rev.getNodeId(), rev.getRevisionNumber())){
 				// This is an update.
-				nodeBackupDao.updateRevision(rev);
+				nodeBackupDao.updateRevisionFromBackup(rev);
 			}else{
 				// This is a create
-				nodeBackupDao.createNewRevision(rev);
+				nodeBackupDao.createNewRevisionFromBackup(rev);
 			}
 			
 		}catch(Exception e ){
@@ -219,6 +219,9 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 	public void clearAllData() {
 		try {
 			String id = getRootId();
+			// There is nothing to do if there is no root.
+			// This is a fix for PLFM-844.
+			if(id == null) return;
 			// Delete it.
 			nodeDao.delete(id);
 		} catch (Exception e) {

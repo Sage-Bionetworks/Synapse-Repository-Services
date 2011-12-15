@@ -95,6 +95,21 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String createNew(Node dto) throws NotFoundException, DatastoreException {
+		// By default we do not want to use any etag the user might provide
+		boolean forceUseEtag = false;
+		return createNodePrivate(dto, forceUseEtag);
+	}
+	
+	/**
+	 * The does the actual create.
+	 * @param dto
+	 * @param forceEtag When true, the Etag passed in the DTO will be used.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	private String createNodePrivate(Node dto, boolean forceEtag) throws DatastoreException,
+			NotFoundException {
 		if(dto == null) throw new IllegalArgumentException("Node cannot be null");
 		JDORevision rev = new JDORevision();
 		// Set the default label
@@ -122,8 +137,15 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(dto.getNodeType() == null) throw new IllegalArgumentException("Node type cannot be null");
 		JDONodeType type = getNodeType(EntityType.valueOf(dto.getNodeType()));
 		node.setNodeType(type);
-		// Start it with an eTag of zero
-		node.seteTag(new Long(0));
+
+		if(forceEtag){
+			// See PLFM-845.  We need to be able to force the use of an eTag when created from a backup.
+			if(dto.getETag() == null) throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
+			node.seteTag(KeyFactory.stringToKey(dto.getETag()));
+		}else{
+			// Start it with an eTag of zero
+			node.seteTag(new Long(0));
+		}
 		// Make sure it has annotations
 		node.setStringAnnotations(new HashSet<JDOStringAnnotation>());
 		node.setDateAnnotations(new HashSet<JDODateAnnotation>());
@@ -164,6 +186,22 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		createReferences(dto, node);
 		
 		return node.getId().toString();
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void createNewNodeFromBackup(Node node) throws NotFoundException, DatastoreException {
+		if(node == null) throw new IllegalArgumentException("Node cannot be null");
+		if(node.getETag() == null) throw new IllegalArgumentException("The backup node must have an etag");
+		if(node.getId() == null) throw new IllegalArgumentException("The backup node must have an id");
+		// The ID must not change
+		String startingId = node.getId();
+		// Create the node.
+		// We want to force the use of the current eTag. See PLFM-845
+		boolean forceUseEtag = true;
+		String id = this.createNodePrivate(node, forceUseEtag);
+		// validate that the ID is unchanged.
+		if(!startingId.equals(id)) throw new DatastoreException("Creating a node from a backup changed the ID.");
 	}
 
 	/**
@@ -226,11 +264,13 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void delete(String id) throws NotFoundException {
+	public boolean delete(String id) throws NotFoundException {
+		if(id == null) throw new IllegalArgumentException("NodeId cannot be null");
 		JDONode toDelete = getNodeById(Long.parseLong(id));
 		if(toDelete != null){
 			jdoTemplate.deletePersistent(toDelete);
 		}
+		return true;
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -460,6 +500,20 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException {
+		// A regular update will get a new Etag so we do not want to force the use of the passed eTag
+		boolean forceUseEtag = false;
+		updateNodePrivate(updatedNode, forceUseEtag);
+	}
+
+	/**
+	 * The will do the actual update.
+	 * @param updatedNode
+	 * @param forceUseEtag When true, the Etag of the passed node will be applied.  This exists to support restoration. Under normal conditions it will be false.
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	private void updateNodePrivate(Node updatedNode, boolean forceUseEtag) throws NotFoundException,
+			DatastoreException {
 		if(updatedNode == null) throw new IllegalArgumentException("Node to update cannot be null");
 		if(updatedNode.getId() == null) throw new IllegalArgumentException("Node to update cannot have a null ID");
 		JDONode jdoToUpdate = getNodeById(Long.parseLong(updatedNode.getId()));
@@ -472,8 +526,22 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			// transaction commits outside of this method.
 			checkExceptionDetails(updatedNode.getName(), updatedNode.getParentId(), e);
 		}
+		// Should we force the update of the etag?
+		if(forceUseEtag){
+			if(updatedNode.getETag() == null) throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
+			jdoToUpdate.seteTag(KeyFactory.stringToKey(updatedNode.getETag()));
+		}
 		// But we also need to create any new references or delete removed references, as applicable
 		updateReferences(updatedNode, jdoToUpdate);
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void updateNodeFromBackup(Node node) throws NotFoundException, DatastoreException {
+		// Since this node is from a backup we want to use the Etag it provides.
+		// See PLFM-845.
+		boolean forceUseEtag = true;
+		updateNodePrivate(node, forceUseEtag);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -813,7 +881,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void updateRevision(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
+	public void updateRevisionFromBackup(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
 		validateNodeRevision(rev);
 		JDONode owner = getNodeById(KeyFactory.stringToKey(rev.getNodeId()));
 		JDORevision jdo = getNodeRevisionById(KeyFactory.stringToKey(rev.getNodeId()), rev.getRevisionNumber());
@@ -824,7 +892,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void createNewRevision(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
+	public void createNewRevisionFromBackup(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
 		validateNodeRevision(rev);
 		JDONode owner = getNodeById(KeyFactory.stringToKey(rev.getNodeId()));
 		JDORevision newJdo = new JDORevision();
@@ -947,4 +1015,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		node.setParent(newParentNode);
 		return true;
 	}
+
+
+
+
 }

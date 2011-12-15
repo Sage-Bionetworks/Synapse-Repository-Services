@@ -307,6 +307,15 @@ public class NodeDAOImplTest {
 		assertEquals(grandChildId, id);
 	}
 	
+	
+	@Test
+	public void testGetPathDoesNotExist() throws Exception {
+		// Make sure we get null for a path that does not exist.
+		String path = "/fake/should/not/eixst";
+		String id = nodeDao.getNodeIdForPath(path);
+		assertEquals(null, id);
+	}
+	
  	// Calling getETagForUpdate() outside of a transaction in not allowed, and will throw an exception.
 	@Test(expected=IllegalTransactionStateException.class)
 	public void testGetETagForUpdate() throws Exception {
@@ -773,7 +782,7 @@ public class NodeDAOImplTest {
 		String keyOnFirstVersion = "NodeDAOImplTest.testUpdateRevision.OnFirstVersion";
 		currentRev.getNamedAnnotations().getAdditionalAnnotations().addAnnotation(keyOnFirstVersion, "newValue");
 		currentRev.setLabel("2.0");
-		nodeBackupDao.updateRevision(currentRev);
+		nodeBackupDao.updateRevisionFromBackup(currentRev);
 		// Since we added this annotation to the current version it should be query-able
 		assertTrue(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));
 		
@@ -792,7 +801,7 @@ public class NodeDAOImplTest {
 		clone = nodeBackupDao.getNodeRevision(id, node.getVersionNumber());
 		// Clear the string annoations.
 		clone.getNamedAnnotations().getAdditionalAnnotations().setStringAnnotations(new HashMap<String, Collection<String>>());
-		nodeBackupDao.updateRevision(clone);
+		nodeBackupDao.updateRevisionFromBackup(clone);
 		// The string annotation should no longer be query-able
 		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));
 		
@@ -800,7 +809,7 @@ public class NodeDAOImplTest {
 		// but this time since this is not the current version it should not be query-able
 		clone = nodeBackupDao.getNodeRevision(id, v1Number);
 		clone.getNamedAnnotations().getAdditionalAnnotations().addAnnotation(keyOnFirstVersion, "updatedValue");
-		nodeBackupDao.updateRevision(clone);
+		nodeBackupDao.updateRevisionFromBackup(clone);
 		// This annotation should not be query-able
 		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));
 	}
@@ -839,7 +848,7 @@ public class NodeDAOImplTest {
 		// This annotation should not be query-able
 		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnNewVersion));
 		// Now create the version
-		nodeBackupDao.createNewRevision(newRev);
+		nodeBackupDao.createNewRevisionFromBackup(newRev);
 		// This annotation should still not be query-able because it is not on the current version.
 		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnNewVersion));
 		
@@ -1260,5 +1269,54 @@ public class NodeDAOImplTest {
 		assertNotNull(annos.getAdditionalAnnotations());
 		// Make sure we can still get the string
 		assertEquals(largeString, annos.getAdditionalAnnotations().getSingleValue(key));
+	}
+	
+	@Test
+	public void testCreateNodeFromBackup() throws NotFoundException, DatastoreException{
+		// This will be our backup node.
+		Node backup = NodeTestUtils.createNew("backMeUp");
+		backup.setNodeType(EntityType.project.name());
+		String id = nodeDao.createNew(backup);
+		toDelete.add(id);
+		assertNotNull(id);
+		// We will use this to do the backup.
+		backup = nodeDao.getNode(id);
+		// Delete the original node
+		nodeDao.delete(id);
+		// Change the etag (see: PLFM-845)
+		String newEtag = KeyFactory.keyToString(new Long(45));
+		backup.setETag(newEtag);
+		// Now create the node from the backup
+		nodeDao.createNewNodeFromBackup(backup);
+		// Get a fresh copy
+		Node restored = nodeDao.getNode(id);
+		assertNotNull(restored);
+		assertEquals(id, restored.getId());
+		assertEquals("Failed to set the eTag. See: PLFM-845", newEtag, restored.getETag());
+	}
+	
+	@Test
+	public void testUpdateNodeFromBackup() throws NotFoundException, DatastoreException{
+		// This will be our backup node.
+		Node backup = NodeTestUtils.createNew("backMeUp2");
+		backup.setNodeType(EntityType.project.name());
+		String id = nodeDao.createNew(backup);
+		toDelete.add(id);
+		assertNotNull(id);
+		// We will use this to do the backup.
+		backup = nodeDao.getNode(id);
+		// Change the etag (see: PLFM-845)
+		String newEtag = KeyFactory.keyToString(new Long(199));
+		backup.setETag(newEtag);
+		String newDescription = "New description";
+		backup.setDescription(newDescription);
+		// Now create the node from the backup
+		nodeDao.updateNodeFromBackup(backup);
+		// Get a fresh copy
+		Node restored = nodeDao.getNode(id);
+		assertNotNull(restored);
+		assertEquals(id, restored.getId());
+		assertEquals("Failed to set the eTag. See: PLFM-845", newEtag, restored.getETag());
+		assertEquals(newDescription, restored.getDescription());
 	}
 }
