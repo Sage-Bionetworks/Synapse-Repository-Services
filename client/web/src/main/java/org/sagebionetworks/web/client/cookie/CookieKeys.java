@@ -42,5 +42,10 @@ public class CookieKeys {
 	 * Current Place in the app
 	 */
 	public static String CURRENT_PLACE = "org.sagbionetworks.synapse.place.current.place";
+	
+	/**
+	 * LinkedIn requestToken key
+	 */
+	public static String LINKEDIN = "org.sagebionetworks.synapse.linkedin";
 		
 }

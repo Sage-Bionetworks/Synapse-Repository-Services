@@ -8,8 +8,11 @@ import static org.mockito.Mockito.when;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.web.client.LinkedInServiceAsync;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.UserAccountServiceAsync;
+import org.sagebionetworks.web.client.cookie.CookieKeys;
+import org.sagebionetworks.web.client.cookie.CookieProvider;
 import org.sagebionetworks.web.client.place.Profile;
 import org.sagebionetworks.web.client.presenter.ProfilePresenter;
 import org.sagebionetworks.web.client.security.AuthenticationController;
@@ -26,8 +29,10 @@ public class ProfilePresenterTest {
 	ProfileView mockView;
 	AuthenticationController mockAuthenticationController;
 	UserAccountServiceAsync mockUserService;
+	LinkedInServiceAsync mockLinkedInService;
 	GlobalApplicationState mockGlobalApplicationState;
 	PlaceChanger mockPlaceChanger;	
+	CookieProvider mockCookieProvider;
 	Profile place = Mockito.mock(Profile.class);
 	
 	UserData testUser = new UserData("testuser@test.com", "tester", "token", false);
@@ -40,7 +45,9 @@ public class ProfilePresenterTest {
 		mockUserService = mock(UserAccountServiceAsync.class);
 		mockPlaceChanger = mock(PlaceChanger.class);
 		mockGlobalApplicationState = mock(GlobalApplicationState.class);
-		profilePresenter = new ProfilePresenter(mockView, mockAuthenticationController, mockUserService, mockGlobalApplicationState);	
+		mockLinkedInService = mock(LinkedInServiceAsync.class);
+		mockCookieProvider = mock(CookieProvider.class);
+		profilePresenter = new ProfilePresenter(mockView, mockAuthenticationController, mockUserService, mockLinkedInService, mockGlobalApplicationState, mockCookieProvider);	
 		verify(mockView).setPresenter(profilePresenter);
 
 		profilePresenter.setPlace(place);		
@@ -52,7 +59,7 @@ public class ProfilePresenterTest {
 		reset(mockAuthenticationController);
 		reset(mockUserService);
 		reset(mockPlaceChanger);
-		profilePresenter = new ProfilePresenter(mockView, mockAuthenticationController, mockUserService, mockGlobalApplicationState);	
+		profilePresenter = new ProfilePresenter(mockView, mockAuthenticationController, mockUserService, mockLinkedInService, mockGlobalApplicationState, mockCookieProvider);	
 		profilePresenter.setPlace(place);
 
 		AcceptsOneWidget panel = mock(AcceptsOneWidget.class);
@@ -74,7 +81,9 @@ public class ProfilePresenterTest {
 		reset(mockAuthenticationController);
 		reset(mockUserService);
 		reset(mockPlaceChanger);
-		profilePresenter = new ProfilePresenter(mockView, mockAuthenticationController, mockUserService, mockGlobalApplicationState);	
+		reset(mockGlobalApplicationState);
+		reset(mockCookieProvider);
+		profilePresenter = new ProfilePresenter(mockView, mockAuthenticationController, mockUserService, mockLinkedInService, mockGlobalApplicationState, mockCookieProvider);	
 		profilePresenter.setPlace(place);
 		
 		when(mockAuthenticationController.getLoggedInUser()).thenReturn(testUser);
@@ -88,7 +97,10 @@ public class ProfilePresenterTest {
 		reset(mockView);
 		reset(mockAuthenticationController);
 		reset(mockUserService);
-		profilePresenter = new ProfilePresenter(mockView, mockAuthenticationController, mockUserService, mockGlobalApplicationState);	
+		reset(mockPlaceChanger);
+		reset(mockGlobalApplicationState);
+		reset(mockCookieProvider);
+		profilePresenter = new ProfilePresenter(mockView, mockAuthenticationController, mockUserService, mockLinkedInService, mockGlobalApplicationState, mockCookieProvider);	
 		profilePresenter.setPlace(place);
 
 		when(mockAuthenticationController.getLoggedInUser()).thenReturn(testUser);
@@ -101,7 +113,10 @@ public class ProfilePresenterTest {
 		reset(mockView);
 		reset(mockAuthenticationController);
 		reset(mockUserService);
-		profilePresenter = new ProfilePresenter(mockView, mockAuthenticationController, mockUserService, mockGlobalApplicationState);	
+		reset(mockPlaceChanger);
+		reset(mockGlobalApplicationState);
+		reset(mockCookieProvider);
+		profilePresenter = new ProfilePresenter(mockView, mockAuthenticationController, mockUserService, mockLinkedInService, mockGlobalApplicationState, mockCookieProvider);	
 		profilePresenter.setPlace(place);
 
 		when(mockAuthenticationController.getLoggedInUser()).thenReturn(testUser);
@@ -110,4 +125,36 @@ public class ProfilePresenterTest {
 		
 		profilePresenter.updateProfile(firstName, lastName);
 	}
+	
+	@Test
+	public void testRedirectToLinkedIn() {
+		reset(mockView);
+		reset(mockAuthenticationController);
+		reset(mockUserService);
+		reset(mockPlaceChanger);
+		reset(mockGlobalApplicationState);
+		reset(mockCookieProvider);
+		profilePresenter = new ProfilePresenter(mockView, mockAuthenticationController, mockUserService, mockLinkedInService, mockGlobalApplicationState, mockCookieProvider);	
+		profilePresenter.setPlace(place);
+	
+		profilePresenter.redirectToLinkedIn();
+	}
+	
+	@Test
+	public void testUpdateProfileWithLinkedIn() {
+		reset(mockView);
+		reset(mockAuthenticationController);
+		reset(mockUserService);
+		reset(mockPlaceChanger);
+		reset(mockGlobalApplicationState);
+		reset(mockCookieProvider);
+		profilePresenter = new ProfilePresenter(mockView, mockAuthenticationController, mockUserService, mockLinkedInService, mockGlobalApplicationState, mockCookieProvider);	
+		profilePresenter.setPlace(place);
+
+		when(mockCookieProvider.getCookie(CookieKeys.LINKEDIN)).thenReturn("secret");
+		String requestToken = "token";
+		String verifier = "12345";
+		profilePresenter.updateProfileWithLinkedIn(requestToken, verifier);
+	}
+	
 }

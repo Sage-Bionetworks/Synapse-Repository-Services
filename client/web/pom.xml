@@ -247,6 +247,14 @@
 			<version>${org.json.version}</version>
 		</dependency>
 
+		<!-- Scribe library, imported for OAuth for LinkedIn -->
+		<dependency>
+			<groupId>org.scribe</groupId>
+			<artifactId>scribe</artifactId>
+			<version>1.2.3</version>
+		</dependency>
+
+		
 	</dependencies>
 
 

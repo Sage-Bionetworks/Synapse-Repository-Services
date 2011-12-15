@@ -4,6 +4,7 @@ import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
+import org.sagebionetworks.web.client.place.PublicProfile;
 import org.sagebionetworks.web.client.widget.editpanels.NodeEditor;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
@@ -18,6 +19,7 @@ import com.extjs.gxt.ui.client.util.KeyNav;
 import com.extjs.gxt.ui.client.widget.Html;
 import com.extjs.gxt.ui.client.widget.Info;
 import com.extjs.gxt.ui.client.widget.MessageBox;
+import com.extjs.gxt.ui.client.widget.VerticalPanel;
 import com.extjs.gxt.ui.client.widget.button.Button;
 import com.extjs.gxt.ui.client.widget.form.FieldSet;
 import com.extjs.gxt.ui.client.widget.form.FormButtonBinding;
@@ -30,6 +32,7 @@ import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
@@ -48,6 +51,8 @@ public class ProfileViewImpl extends Composite implements ProfileView {
 	SimplePanel changePasswordPanel;
 	@UiField
 	SimplePanel setupPasswordButtonPanel;
+	@UiField
+	SimplePanel updateWithLinkedInPanel;
 	
 	private Presenter presenter;
 	private IconsImageBundle iconsImageBundle;
@@ -59,8 +64,14 @@ public class ProfileViewImpl extends Composite implements ProfileView {
 	private Button changePasswordButton;
 	private Html changePasswordLabel;
 	private FormPanel userFormPanel;
+	private Button updateWithLinkedInButton;
 	private Button updateUserInfoButton;
 	private Html updateUserInfoLabel;
+	private FormPanel connectFormPanel;
+	private Button linkedInButton;
+	private Html linkedInLabel;
+	private Button linkedInConnectButton;
+	private Button viewProfileButton;
 
 	@Inject
 	public ProfileViewImpl(ProfileViewImplUiBinder binder,
@@ -90,6 +101,20 @@ public class ProfileViewImpl extends Composite implements ProfileView {
 		createResetForm();
 		createProfileForm();
 		
+		linkedInButton = new Button();
+	    linkedInButton.setIcon(AbstractImagePrototype.create(sageImageBundle.linkedinsmall()));
+	    linkedInButton.setSize(sageImageBundle.linkedinsmall().getWidth() + 1, sageImageBundle.linkedinsmall().getHeight() + 1);
+	    linkedInButton.setBorders(false);
+	    linkedInButton.addSelectionListener(new SelectionListener<ButtonEvent>() {				
+	    	@Override
+	    	public void componentSelected(ButtonEvent ce) {
+	    		presenter.redirectToLinkedIn();
+	    	}
+	    });
+		
+	    updateWithLinkedInPanel.clear();
+	    updateWithLinkedInPanel.add(linkedInButton);
+	    
 		updateUserInfoLabel.setHtml("");
 		
 		updateUserInfoPanel.clear();
@@ -111,6 +136,7 @@ public class ProfileViewImpl extends Composite implements ProfileView {
 			}
 		});
 		createPasswordButton.enable();
+		
 		setupPasswordButtonPanel.clear();
 		setupPasswordButtonPanel.add(createPasswordButton);
 	}
@@ -236,8 +262,8 @@ public class ProfileViewImpl extends Composite implements ProfileView {
 	     userFormPanel.setFrame(true);
 	     userFormPanel.setHeaderVisible(false);  
 	     userFormPanel.setWidth(350);  
-	     userFormPanel.setLayout(new FlowLayout());  
-	   
+	     userFormPanel.setLayout(new FlowLayout());
+	     
 	     FieldSet fieldSet = new FieldSet();  
 	     fieldSet.setHeading(" ");  
 	     fieldSet.setCheckboxToggle(false);	    
@@ -295,9 +321,20 @@ public class ProfileViewImpl extends Composite implements ProfileView {
 	     // form binding so submit button is greyed out until all fields are filled 
 	     final FormButtonBinding binding = new FormButtonBinding(userFormPanel);
 	     binding.addButton(updateUserInfoButton);
-		 
-	 }
 
+	     // Button for the user to view their own profile.
+	     // TODO Maybe make this a display constant
+	     viewProfileButton = new Button("Click to view your profile.");
+	     viewProfileButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+	    	 @Override
+	    	 public void componentSelected(ButtonEvent ce) {
+	    		 presenter.goTo(new PublicProfile(headerWidget.getUser().getEmail()));
+	    	 }
+	     });
+	     userFormPanel.addButton(viewProfileButton);
+
+	 }
+	 
 	 private void setChangePasswordDefaultIcon() {
 		 changePasswordButton.setIcon(AbstractImagePrototype.create(iconsImageBundle.arrowCurve16()));			
 	 }
@@ -331,7 +368,8 @@ public class ProfileViewImpl extends Composite implements ProfileView {
 	public void clear() {
 		updateUserInfoPanel.clear();
 		changePasswordPanel.clear();
-		setupPasswordButtonPanel.clear();	
+		setupPasswordButtonPanel.clear();
+		updateWithLinkedInPanel.clear();
 	}
 
 }

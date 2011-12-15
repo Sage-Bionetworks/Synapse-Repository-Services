@@ -107,6 +107,7 @@ public class DisplayConstants {
 	public static final String BUTTON_SETUP_API_PASSWORD = "Create Synapse Password";
 	public static final String BUTTON_SAVING = "Saving";
 	public static final String BUTTON_CHANGE_PASSWORD = "Change Password";
+	public static final String BUTTON_UPDATE_WITH_LINKED_IN = "Update With LinkedIn";
 	public static final String BUTTON_CHANGE_USER_INFO = "Change Your Profile";
 	public static final String LABEL_SINGLE_SIGN_ON_LOGGING_IN = "Logging you in.";
 	public static final String LABEL_SEARCHING = "Searching...";

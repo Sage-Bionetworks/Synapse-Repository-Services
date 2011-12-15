@@ -38,7 +38,13 @@
 					<p>&nbsp;</p>
 					
 					<h3>Change Your Profile</h3>
-					<p style="padding-bottom:5px">Changes to your name will appear after your next login.</p>
+					<p style="padding-bottom:5px">You can import profile information from LinkedIn: </p>
+					<g:SimplePanel ui:field="updateWithLinkedInPanel" />
+					<p><small></small></p>
+	
+					<p>&nbsp;</p>
+	
+					<p style="padding-bottom:5px">Or manually edit the fields below.</p>
 					<g:SimplePanel ui:field="updateUserInfoPanel" />
 					<p><small></small></p>
 					
@@ -48,6 +54,10 @@
 					<h3>Change Synapse Password</h3>
 					<g:SimplePanel ui:field="changePasswordPanel" />
 					<p><small></small></p>
+					
+					<p>&nbsp;</p>
+					<p>&nbsp;</p>					
+
 				</div>
 					
 <!-- start footer -->

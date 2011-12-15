@@ -23,6 +23,7 @@ public class ServiceUrlProvider {
 	private String authServicePrivateUrl = StackConfiguration.getAuthenticationServicePrivateEndpoint();
 	private String authServicePublicUrl = StackConfiguration.getAuthenticationServicePublicEndpoint();
 	private String portalBaseUrl = StackConfiguration.getPortalEndpoint();
+	private String linkedInUrl = "http://api.linkedin.com/v1/people/";
 	
 	/**
 	 * The repository service url 
@@ -96,6 +97,14 @@ public class ServiceUrlProvider {
 		return portalBaseUrl;
 	}
 
+	/**
+	 * LinkedIn API Url
+	 * @return
+	 * @throws URISyntaxException
+	 */
+	public String getLinkedInUrl() {
+		return linkedInUrl;
+	}
 	
 	/**
 	 * For testing purposes
@@ -127,6 +136,14 @@ public class ServiceUrlProvider {
 	 */
 	public void setPortalBaseUrl(String portalBaseUrl) {
 		this.portalBaseUrl = portalBaseUrl;
+	}
+
+	/**
+	 * For testing purposes
+	 * @param linkedInUrl
+	 */
+	public void setLinkedInUrl(String linkedInUrl) {
+		this.linkedInUrl = linkedInUrl;
 	}
 
 

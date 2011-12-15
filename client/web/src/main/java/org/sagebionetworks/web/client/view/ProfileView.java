@@ -3,6 +3,7 @@ package org.sagebionetworks.web.client.view;
 import org.sagebionetworks.web.client.SynapsePresenter;
 import org.sagebionetworks.web.client.SynapseView;
 
+import com.google.gwt.place.shared.Place;
 import com.google.gwt.user.client.ui.IsWidget;
 
 public interface ProfileView extends IsWidget, SynapseView {
@@ -57,6 +58,13 @@ public interface ProfileView extends IsWidget, SynapseView {
 		void createSynapsePassword();
 		
 		void updateProfile(String firstName, String lastName);
+
+		void updateProfileWithLinkedIn(String requestToken, String verifier);
+		
+		void redirectToLinkedIn();
+		
+		void goTo(Place place);
+
 
 	}
 

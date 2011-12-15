@@ -17,6 +17,7 @@ import org.sagebionetworks.web.client.place.Step;
 import org.sagebionetworks.web.client.place.StepsHome;
 import org.sagebionetworks.web.client.place.Synapse;
 import org.sagebionetworks.web.client.place.users.PasswordReset;
+import org.sagebionetworks.web.client.place.PublicProfile;
 import org.sagebionetworks.web.client.place.users.RegisterAccount;
 
 import com.google.gwt.place.shared.PlaceHistoryMapper;
