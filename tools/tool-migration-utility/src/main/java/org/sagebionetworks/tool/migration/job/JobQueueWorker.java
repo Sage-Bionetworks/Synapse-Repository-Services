@@ -43,6 +43,11 @@ public class JobQueueWorker implements Callable<AggregateResult> {
 				CreateUpdateWorker worker = new CreateUpdateWorker(this.factory, job.getEntityIds());
 				// Get a thread working on this
 				futures.add(threadPool.submit(worker));
+			}else if (Type.DELETE == job.getJobType()) {
+				// Create a works
+				DeleteWorker worker = new DeleteWorker(this.factory, job.getEntityIds());
+				// Get a thread working on this
+				futures.add(threadPool.submit(worker));
 			} else {
 				throw new IllegalArgumentException("Unknown job type: "	+ job.getJobType());
 			}

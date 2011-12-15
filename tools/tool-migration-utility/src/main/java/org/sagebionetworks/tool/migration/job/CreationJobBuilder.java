@@ -16,7 +16,7 @@ import org.sagebionetworks.tool.migration.job.Job.Type;
  * @author John
  *
  */
-public class CreationJobBuilder implements Callable<CreatorResponse> {
+public class CreationJobBuilder implements Callable<BuilderResponse> {
 	
 	List<EntityData> sourceList;
 	Map<String, EntityData> destMap;
@@ -40,7 +40,7 @@ public class CreationJobBuilder implements Callable<CreatorResponse> {
 	}
 
 	@Override
-	public CreatorResponse call() throws Exception {
+	public BuilderResponse call() throws Exception {
 		// Get the two clients		
 		int createsSubmitted = 0;
 		int pendingCreates = 0;
@@ -78,7 +78,7 @@ public class CreationJobBuilder implements Callable<CreatorResponse> {
 			batchToCreate = new HashSet<String>();
 		}
 		// Report the results.
-		return new CreatorResponse(createsSubmitted, pendingCreates);
+		return new BuilderResponse(createsSubmitted, pendingCreates);
 	}
 
 

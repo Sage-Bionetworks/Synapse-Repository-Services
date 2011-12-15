@@ -15,6 +15,13 @@ public class EntityData {
 		this.parentId = parentId;
 	}
 	
+	public EntityData(EntityData toClone) {
+		super();
+		this.entityId = toClone.entityId;
+		this.eTag = toClone.eTag;
+		this.parentId = toClone.parentId;
+	}
+	
 	private String entityId = null;
 	private String eTag = null;
 	private String parentId = null;
