@@ -1,6 +1,6 @@
 package org.sagebionetworks.tool.migration.job;
 
-public class CreatorResponse {
+public class BuilderResponse {
 	
 	int submitedToQueue;
 	int pendingDependancies;
@@ -11,7 +11,7 @@ public class CreatorResponse {
 	 * 
 	 * @param pendingDependancies How many creates are pending submission due to dependency requirements.
 	 */
-	public CreatorResponse(int submitedToQueue, int pendingDependancies) {
+	public BuilderResponse(int submitedToQueue, int pendingDependancies) {
 		super();
 		this.submitedToQueue = submitedToQueue;
 		this.pendingDependancies = pendingDependancies;

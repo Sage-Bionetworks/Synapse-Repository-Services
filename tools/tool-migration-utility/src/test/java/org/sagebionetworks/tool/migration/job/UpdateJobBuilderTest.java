@@ -1,19 +1,23 @@
 package org.sagebionetworks.tool.migration.job;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.tool.migration.dao.EntityData;
 import org.sagebionetworks.tool.migration.job.Job.Type;
 
-public class CreationJobBuilderTest {
+public class UpdateJobBuilderTest {
+
 	
 	List<EntityData> source;
 	Queue<Job> jobQueue;
@@ -58,79 +62,100 @@ public class CreationJobBuilderTest {
 		Map<String, EntityData> destMap = JobUtil.buildMapFromList(dest);
 		// now run the job
 		int batchSize = 5;
-		CreationJobBuilder builder = new CreationJobBuilder(source, destMap, jobQueue, batchSize);
+		UpdateJobBuilder builder = new UpdateJobBuilder(source, destMap, jobQueue, batchSize);
 		BuilderResponse response = builder.call();
 		assertNotNull(response);
-		// Just the root should have been submitted
-		int expectedSubmited = 1;
+		// Nothing should have been submitted.
+		int expectedSubmited = 0;
 		assertEquals(expectedSubmited, response.getSubmitedToQueue());
-		assertEquals(source.size()-expectedSubmited, response.pendingDependancies);
-		assertEquals(1, jobQueue.size());
-		
-		// Check the jobQue
-		Job job = jobQueue.poll();
-		assertNotNull(job);
-		assertNotNull(job.getEntityIds());
-		assertEquals(1, job.getEntityIds().size());
-		assertTrue(job.getEntityIds().contains("1"));
-		
-	}
-
-	@Test
-	public void testDestinationWithRoot() throws Exception{
-		// This time add root the the destination.
-		List<EntityData> dest = new ArrayList<EntityData>();
-		dest.add(source.get(0));
-		Map<String, EntityData> destMap = JobUtil.buildMapFromList(dest);
-		// now run the job
-		int batchSize = 2;
-		CreationJobBuilder builder = new CreationJobBuilder(source, destMap, jobQueue, batchSize);
-		BuilderResponse response = builder.call();
-		assertNotNull(response);
-		// Just the root should have been submitted
-		int expectedSubmited = 3;
-		assertEquals(expectedSubmited, response.getSubmitedToQueue());
-		assertEquals(source.size()-dest.size()-expectedSubmited, response.pendingDependancies);
-		assertEquals(expectedSubmited/batchSize+1, jobQueue.size());
-		
-		// Check the jobQue
-		Job job = null;
-		while((job = jobQueue.poll()) != null){
-			assertNotNull(job);
-			assertEquals(Type.CREATE, job.getJobType());
-			assertNotNull(job.getEntityIds());
-			assertTrue(job.getEntityIds().size() <= batchSize);
-		}
-		
+		assertEquals(0, response.pendingDependancies);
+		assertEquals(0, jobQueue.size());
 	}
 	
 	@Test
-	public void testDestinationWithPartFirstLevel() throws Exception{
-		// This time add root the the destination.
+	public void testDestinationSameAsSource() throws Exception{
+		// make sure the destination is the same as the source
 		List<EntityData> dest = new ArrayList<EntityData>();
-		dest.add(source.get(0));
-		dest.add(source.get(1));
-		dest.add(source.get(2));
+		for(EntityData fromSource: source){
+			dest.add(new EntityData(fromSource));
+		}
+		assertEquals(source, dest);
+		Map<String, EntityData> destMap = JobUtil.buildMapFromList(dest);
+		// now run the job
+		int batchSize = 5;
+		UpdateJobBuilder builder = new UpdateJobBuilder(source, destMap, jobQueue, batchSize);
+		BuilderResponse response = builder.call();
+		assertNotNull(response);
+		// Nothing should have been submitted.
+		int expectedSubmited = 0;
+		assertEquals(expectedSubmited, response.getSubmitedToQueue());
+		assertEquals(0, response.pendingDependancies);
+		assertEquals(0, jobQueue.size());
+	}
+	
+	@Test
+	public void testSourceWithUpdates() throws Exception{
+		// make sure the destination is the same as the source
+		List<EntityData> dest = new ArrayList<EntityData>();
+		for(EntityData fromSource: source){
+			dest.add(new EntityData(fromSource));
+		}
+		assertEquals(source, dest);
+		// Change some eTags on the source
+		source.get(2).seteTag("33");
+		source.get(5).seteTag("33");
+		source.get(7).seteTag("33");
+		
 		Map<String, EntityData> destMap = JobUtil.buildMapFromList(dest);
 		// now run the job
 		int batchSize = 2;
-		CreationJobBuilder builder = new CreationJobBuilder(source, destMap, jobQueue, batchSize);
+		UpdateJobBuilder builder = new UpdateJobBuilder(source, destMap, jobQueue, batchSize);
 		BuilderResponse response = builder.call();
 		assertNotNull(response);
-		// Just the root should have been submitted
-		int expectedSubmited = 9;
+		// Nothing should have been submitted.
+		int expectedSubmited = 3;
 		assertEquals(expectedSubmited, response.getSubmitedToQueue());
-		assertEquals(source.size()-dest.size()-expectedSubmited, response.pendingDependancies);
+		assertEquals(0, response.pendingDependancies);
 		assertEquals(expectedSubmited/batchSize+1, jobQueue.size());
 		
 		// Check the jobQue
 		Job job = null;
 		while((job = jobQueue.poll()) != null){
 			assertNotNull(job);
-			assertEquals(Type.CREATE, job.getJobType());
+			assertEquals(Type.UPDATE, job.getJobType());
 			assertNotNull(job.getEntityIds());
 			assertTrue(job.getEntityIds().size() <= batchSize);
 		}
+	}
+	
+	@Test
+	public void testSourceWithUpdatesSmallUpdates() throws Exception{
+		// make sure the destination is the same as the source
+		List<EntityData> dest = new ArrayList<EntityData>();
+		for(EntityData fromSource: source){
+			dest.add(new EntityData(fromSource));
+		}
+		assertEquals(source, dest);
+		// Change some eTags on the source
+		EntityData toUpdate = source.get(2);
+		toUpdate.seteTag("33");
+		
+		Map<String, EntityData> destMap = JobUtil.buildMapFromList(dest);
+		// now run the job
+		int batchSize = 10;
+		UpdateJobBuilder builder = new UpdateJobBuilder(source, destMap, jobQueue, batchSize);
+		BuilderResponse response = builder.call();
+		assertNotNull(response);
+		// Nothing should have been submitted.
+		int expectedSubmited = 1;
+		assertEquals(expectedSubmited, response.getSubmitedToQueue());
+		assertEquals(0, response.pendingDependancies);
+		assertEquals(1, jobQueue.size());
+		
+		Set<String> set = jobQueue.peek().getEntityIds();
+		assertNotNull(set);
+		// Does it contain the one expected id.
+		assertTrue(set.contains(toUpdate.getEntityId()));
 		
 	}
 }

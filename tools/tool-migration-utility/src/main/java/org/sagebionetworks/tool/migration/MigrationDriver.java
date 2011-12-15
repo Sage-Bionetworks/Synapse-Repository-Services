@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,10 +23,12 @@ import org.sagebionetworks.tool.migration.dao.QueryRunner;
 import org.sagebionetworks.tool.migration.dao.QueryRunnerImpl;
 import org.sagebionetworks.tool.migration.job.AggregateResult;
 import org.sagebionetworks.tool.migration.job.CreationJobBuilder;
-import org.sagebionetworks.tool.migration.job.CreatorResponse;
+import org.sagebionetworks.tool.migration.job.BuilderResponse;
+import org.sagebionetworks.tool.migration.job.DeleteJobBuilder;
 import org.sagebionetworks.tool.migration.job.Job;
 import org.sagebionetworks.tool.migration.job.JobQueueWorker;
 import org.sagebionetworks.tool.migration.job.JobUtil;
+import org.sagebionetworks.tool.migration.job.UpdateJobBuilder;
 
 /**
  * The main driver for migration.
@@ -79,7 +82,7 @@ public class MigrationDriver {
 		}
 		ExecutorService threadPool = Executors.newFixedThreadPool(maxThreads);
 		// The JOB queue
-		Queue<Job> jobQueue = new LinkedList<Job>();
+		Queue<Job> jobQueue = new ConcurrentLinkedQueue<Job>();
 		
 		// Start up the thread 
 		int entitesProcessed = 0;
@@ -97,13 +100,21 @@ public class MigrationDriver {
 			end = System.currentTimeMillis();
 			log.info("Get all entites from destination, count: "+destData.size()+" in: "+(end-start)+" ms");
 			Map<String, EntityData> destMap = JobUtil.buildMapFromList(destData);
+			Map<String, EntityData> sourceMap = JobUtil.buildMapFromList(sourceData);
 			// Build up the create jobs
 			CreationJobBuilder createBuilder = new CreationJobBuilder(sourceData, destMap, jobQueue, Configuration.getMaximumBatchSize());
-			Future<CreatorResponse> createFuture = threadPool.submit(createBuilder);
-			
+			Future<BuilderResponse> createFuture = threadPool.submit(createBuilder);
+			// Build up the update jobs
+			UpdateJobBuilder updateBuilder = new UpdateJobBuilder(sourceData, destMap, jobQueue, Configuration.getMaximumBatchSize());
+			Future<BuilderResponse> updateFuture = threadPool.submit(updateBuilder);
+			// build up the delete jobs
+			DeleteJobBuilder deleteBuilder = new DeleteJobBuilder(sourceMap, destData, jobQueue, Configuration.getMaximumBatchSize());
+			Future<BuilderResponse> deleteFuture = threadPool.submit(deleteBuilder);
 			// Wait for each to complete
-			CreatorResponse response = createFuture.get();
-			log.info("Summited "+response.getSubmitedToQueue()+" entites to create queue.  There are "+response.getPendingDependancies()+" entites pending dependancy creations.");
+			BuilderResponse createResponse = createFuture.get();
+			BuilderResponse updateResponse = updateFuture.get();
+			BuilderResponse deleteResponse = deleteFuture.get();
+			log.info("Submmited "+createResponse.getSubmitedToQueue()+" entites to create queue.  There are "+createResponse.getPendingDependancies()+" entites pending dependancy creations. Submitted "+updateResponse.getSubmitedToQueue()+" updates to the queue");
 			
 			// Now process the queue with all threads
 			JobQueueWorker queueWorker = new JobQueueWorker(jobQueue, threadPool, factory);
@@ -118,10 +129,6 @@ public class MigrationDriver {
 
 			log.info("Cleared the queue: "+String.format(format, failedJobs, successJobs, entitesProcessed));
 			// If there are any failures exist
-//			if(failedJobs > 0 ){
-//				System.out.println("There are failed jobs, so existing");
-//				System.exit(1);
-//			}
 			long endTotal = System.currentTimeMillis();
 			log.info("Total elapse time: "+(endTotal-totalStart)+" ms");
 			Thread.sleep(1000*5);
