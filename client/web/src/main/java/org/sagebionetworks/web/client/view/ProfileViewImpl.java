@@ -4,7 +4,6 @@ import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
-import org.sagebionetworks.web.client.place.PublicProfile;
 import org.sagebionetworks.web.client.widget.editpanels.NodeEditor;
 import org.sagebionetworks.web.client.widget.footer.Footer;
 import org.sagebionetworks.web.client.widget.header.Header;
@@ -322,15 +321,6 @@ public class ProfileViewImpl extends Composite implements ProfileView {
 	     final FormButtonBinding binding = new FormButtonBinding(userFormPanel);
 	     binding.addButton(updateUserInfoButton);
 
-	     // Button for the user to view their own profile.
-	     // TODO Maybe make this a display constant
-	     viewProfileButton = new Button("Click to view your profile.");
-	     viewProfileButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
-	    	 @Override
-	    	 public void componentSelected(ButtonEvent ce) {
-	    		 presenter.goTo(new PublicProfile(headerWidget.getUser().getEmail()));
-	    	 }
-	     });
 	     userFormPanel.addButton(viewProfileButton);
 
 	 }
