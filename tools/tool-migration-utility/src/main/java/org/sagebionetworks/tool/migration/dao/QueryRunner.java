@@ -5,6 +5,7 @@ import java.util.List;
 import org.json.JSONException;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.tool.migration.BasicProgress;
 
 /**
  * By making this an interface, we can have a real implementation that is well
@@ -35,7 +36,7 @@ public interface QueryRunner {
 	 * @throws JSONException 
 	 * @throws InterruptedException 
 	 */
-	public List<EntityData> getAllEntityData(Synapse client) throws SynapseException, JSONException, InterruptedException;
+	public List<EntityData> getAllEntityData(Synapse client, BasicProgress progress) throws SynapseException, JSONException, InterruptedException;
 	
 	/**
 	 * Get all child entities of a given parent.

@@ -51,10 +51,10 @@ public class MigrationDriver {
 			SynapseException, JSONException, InterruptedException, ExecutionException {
 		// Load the location of the configuration property file
 		if (args == null) {
-			throw new IllegalArgumentException(	"The first argument must be the configuation property file path.");
+			throw new IllegalArgumentException(	"The first argument must be the configuration property file path.");
 		}
 		if (args.length != 1) {
-			throw new IllegalArgumentException(	"The first argument must be the configuation property file path. args.length: "+args.length);
+			throw new IllegalArgumentException(	"The first argument must be the configuration property file path. args.length: "+args.length);
 		}
 		String path = args[0];
 		// Load all of the configuration information.
@@ -96,19 +96,39 @@ public class MigrationDriver {
 		long totalStart = System.currentTimeMillis();
 		while(true){
 			// 1. Get all entity data from both the source and destination.
-			long start = System.currentTimeMillis();
-			List<EntityData> sourceData = queryRunner.getAllEntityData(sourceClient);
-			long end = System.currentTimeMillis();
-			log.info("Get all entites from source, count: "+sourceData.size()+" in: "+(end-start)+" ms");
-			start = System.currentTimeMillis();
-			List<EntityData> destData = queryRunner.getAllEntityData(destClient);
-			end = System.currentTimeMillis();
-			log.info("Get all entites from destination, count: "+destData.size()+" in: "+(end-start)+" ms");
-			// 2. Calculate what needs to be created, updated, or deleted and create a job for each.
+			BasicProgress sourceProgress = new BasicProgress();
+			BasicProgress destProgress = new BasicProgress();
+			AllEntityDataWorker sourceQueryWorker = new AllEntityDataWorker(sourceClient, queryRunner, sourceProgress);
+			AllEntityDataWorker destQueryWorker = new AllEntityDataWorker(destClient, queryRunner, destProgress);
+			// Start both at the same time
+			Future<List<EntityData>> sourceFuture = threadPool.submit(sourceQueryWorker);
+			Future<List<EntityData>> destFuture = threadPool.submit(destQueryWorker);
+			// Wait for both to finish
+			log.info("Starting phase one: Gathering all data from the source and destination repository...");
+			while(!sourceFuture.isDone() || !destFuture.isDone()){
+				// Report on the progress.
+				log.info("     Source query: "+sourceProgress.getCurrentStatus());
+				log.info("Destination query: "+destProgress.getCurrentStatus());
+				Thread.sleep(2000);
+			}
+			
+			// Get the results
+			List<EntityData> sourceData = sourceFuture.get();
+			List<EntityData> destData = destFuture.get();
+			log.debug("Finished phase one.  Source entity count: "+sourceData.size()+". Destination entity Count: "+destData.size());
+			// Start phase 2
+			log.debug("Starting phase two: Calculating creates, updates, and deletes...");
 			populateQueue(threadPool, jobQueue, sourceData, destData, Configuration.getMaximumBatchSize());
 			
 			// 3. Process all jobs on the queue.
-			AggregateResult result = consumeAllJobs(factory, threadPool, jobQueue);
+			log.debug("Starting phase three: Processing the job queue...");
+			BasicProgress consumingProgress = new BasicProgress();
+			Future<AggregateResult> consumFuture = consumeAllJobs(factory, threadPool, jobQueue, consumingProgress);
+			while(!consumFuture.isDone()){
+				log.info("Processing entities: "+destProgress.getCurrentStatus());
+				Thread.sleep(2000);
+			}
+			AggregateResult result = consumFuture.get();
 			entitesProcessed += result.getTotalEntitesProcessed();
 			failedJobs += result.getFailedJobCount();
 			successJobs += result.getSuccessfulJobCount();
@@ -131,15 +151,12 @@ public class MigrationDriver {
 	 * @throws InterruptedException
 	 * @throws ExecutionException
 	 */
-	public static AggregateResult consumeAllJobs(ClientFactoryImpl factory,	ExecutorService threadPool, Queue<Job> jobQueue)
+	public static Future<AggregateResult> consumeAllJobs(ClientFactoryImpl factory,	ExecutorService threadPool, Queue<Job> jobQueue, BasicProgress progress)
 			throws InterruptedException, ExecutionException {
 		// Create a new worker job.
-		JobQueueWorker queueWorker = new JobQueueWorker(jobQueue, threadPool, factory);
+		JobQueueWorker queueWorker = new JobQueueWorker(jobQueue, threadPool, factory, progress);
 		// Start the worker job.
-		Future<AggregateResult> workerFuture = threadPool.submit(queueWorker);
-		// Wait for it to finish
-		AggregateResult result = workerFuture.get();
-		return result;
+		return threadPool.submit(queueWorker);
 	}
 
 	/**
@@ -172,7 +189,7 @@ public class MigrationDriver {
 		BuilderResponse createResponse = createFuture.get();
 		BuilderResponse updateResponse = updateFuture.get();
 		BuilderResponse deleteResponse = deleteFuture.get();
-		log.info("Submmited "+createResponse.getSubmitedToQueue()+" entites to create queue.  There are "+createResponse.getPendingDependancies()+" entites pending dependancy creations. Submitted "+updateResponse.getSubmitedToQueue()+" updates to the queue. Submitted "+deleteResponse.getSubmitedToQueue()+" for delete.");
+		log.info("Submitted "+createResponse.getSubmitedToQueue()+" Entities to create queue.  There are "+createResponse.getPendingDependancies()+" Entities pending dependency creations. Submitted "+updateResponse.getSubmitedToQueue()+" updates to the queue. Submitted "+deleteResponse.getSubmitedToQueue()+" for delete.");
 	}
 
 	/**
@@ -183,12 +200,12 @@ public class MigrationDriver {
 	 * @param destTotal
 	 */
 	public static void safetyCheck(String sourceEndpoint, String destEndpoint, long sourceTotal, long destTotal) {
-		log.info("Source: " + sourceEndpoint + " has: "+ sourceTotal + " entites");
-		log.info("Destination: " + destEndpoint + " has: "+ destTotal + " entites");
+		log.info("Source: " + sourceEndpoint + " has: "+ sourceTotal + " Entities");
+		log.info("Destination: " + destEndpoint + " has: "+ destTotal + " Entities");
 		// If there are more in in the source than the destination the make sure
 		// the user wants to proceed
 		if (destTotal > sourceTotal) {
-			System.out.println("The destination repostiory has more Entities than the source repostiory:");
+			System.out.println("The destination repository has more Entities than the source repository:");
 			String format = "%1$15s total entites: %3$-10d endpoint: %2$s ";
 			System.out.println(String.format(format, "DESTINATION" ,destEndpoint, destTotal));
 			System.out.println(String.format(format, "SOURCE" ,sourceEndpoint, sourceTotal));

@@ -10,6 +10,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.tool.migration.BasicProgress;
 
 /**
  * This is the real implementation of the query runner.
@@ -42,10 +43,10 @@ public class QueryRunnerImpl implements QueryRunner {
 	 * @throws InterruptedException 
 	 */
 	@Override
-	public List<EntityData> getAllEntityData(Synapse client) throws SynapseException, JSONException, InterruptedException{
+	public List<EntityData> getAllEntityData(Synapse client, BasicProgress progress) throws SynapseException, JSONException, InterruptedException{
 		if(client == null) throw new IllegalArgumentException("Client cannot be null"); 
 		// Build up the results to get all pages of this query.
-		return queryForAllPages(client, QUERY_TOTAL_ENTITY, MAX_PAGE_SIZE);
+		return queryForAllPages(client, QUERY_TOTAL_ENTITY, MAX_PAGE_SIZE, progress);
 	}
 	
 	@Override
@@ -124,7 +125,7 @@ public class QueryRunnerImpl implements QueryRunner {
 	@Override
 	public List<EntityData> getAllAllChildrenOfEntity(Synapse client, String parentId) throws SynapseException, JSONException, InterruptedException {
 		String rootQuery = QUERY_CHILDREN_OF_ENTITY1 +parentId;
-		return queryForAllPages(client, rootQuery, MAX_PAGE_SIZE);
+		return queryForAllPages(client, rootQuery, MAX_PAGE_SIZE, null);
 	}
 	
 	/**
@@ -139,7 +140,7 @@ public class QueryRunnerImpl implements QueryRunner {
 	 * @throws JSONException
 	 * @throws InterruptedException 
 	 */
-	public List<EntityData> queryForAllPages(Synapse client, String rootQuery, long limit) throws SynapseException, JSONException, InterruptedException {
+	public List<EntityData> queryForAllPages(Synapse client, String rootQuery, long limit, BasicProgress progress) throws SynapseException, JSONException, InterruptedException {
 		List<EntityData> results = new ArrayList<EntityData>();
 		// First run the first page
 		long offset = 1;
@@ -148,14 +149,27 @@ public class QueryRunnerImpl implements QueryRunner {
 		EntityQueryResults page = translateFromJSONObjectToEntityQueryResult(json);
 		results.addAll(page.getResutls());
 		long totalCount = page.getTotalCount();
+		// Update the progress if we have any
+		if(progress != null){
+			progress.setTotal(totalCount);
+		}
 		// Get as many pages as needed
 		while((offset = getNextOffset(offset, limit, totalCount)) > 0l){
 			query = getPageQuery(rootQuery, limit, offset);
 			json = client.query(query);
 			page = translateFromJSONObjectToEntityQueryResult(json);
+			if(progress != null){
+				// Add this count to the current progress.
+				progress.setCurrent(progress.getCurrent() + page.getResutls().size());
+			}
 			results.addAll(page.getResutls());
 			// Yield between queries
 			Thread.sleep(MS_BETWEEN_SYNPASE_CALLS);
+		}
+		
+		if(progress != null){
+			// Add this count to the current progress.
+			progress.setCurrent(progress.getTotal());
 		}
 		return results;
 	}
