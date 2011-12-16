@@ -1,14 +1,15 @@
 package org.sagebionetworks.tool.migration.job;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import org.sagebionetworks.tool.migration.BasicProgress;
 import org.sagebionetworks.tool.migration.ClientFactory;
+import org.sagebionetworks.tool.migration.Progress.AggregateProgress;
+import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 import org.sagebionetworks.tool.migration.job.Job.Type;
 import org.sagebionetworks.tool.migration.job.WorkerResult.JobStatus;
 
@@ -24,10 +25,10 @@ public class JobQueueWorker implements Callable<AggregateResult> {
 	Queue<Job> jobQueue;
 	ExecutorService threadPool;
 	ClientFactory factory;
-	BasicProgress progress;
+	AggregateProgress progress;
 
 	public JobQueueWorker(Queue<Job> jobQueue, ExecutorService threadPool,
-			ClientFactory factory, BasicProgress progress) {
+			ClientFactory factory, AggregateProgress progress) {
 		super();
 		this.jobQueue = jobQueue;
 		this.threadPool = threadPool;
@@ -38,21 +39,28 @@ public class JobQueueWorker implements Callable<AggregateResult> {
 	@Override
 	public AggregateResult call() throws Exception {
 		// This worker will clear the queue then terminate.
-		List<Future<WorkerResult>> futures = new ArrayList<Future<WorkerResult>>();
+
 		Job job = null;
 		// Build up the progress
 		long total = 0;
+		List<Callable<WorkerResult>> workerList = new LinkedList<Callable<WorkerResult>>();
 		while ((job = this.jobQueue.poll()) != null) {
+			// Setup progress for each job
+			BasicProgress progress = new BasicProgress();
+			progress.setCurrent(0);
+			progress.setTotal(job.getEntityIds().size());
+			this.progress.addProgresss(progress);
+			// Start the works
 			if (Type.CREATE == job.getJobType()	|| Type.UPDATE == job.getJobType()) {
 				// Create a works
-				CreateUpdateWorker worker = new CreateUpdateWorker(this.factory, job.getEntityIds());
-				// Get a thread working on this
-				futures.add(threadPool.submit(worker));
+				CreateUpdateWorker worker = new CreateUpdateWorker(this.factory, job.getEntityIds(), progress);
+				// add this worker to the list
+				workerList.add(worker);
 			}else if (Type.DELETE == job.getJobType()) {
 				// Create a works
-				DeleteWorker worker = new DeleteWorker(this.factory, job.getEntityIds());
-				// Get a thread working on this
-				futures.add(threadPool.submit(worker));
+				DeleteWorker worker = new DeleteWorker(this.factory, job.getEntityIds(), progress);
+				// add this worker to the list
+				workerList.add(worker);
 			} else {
 				throw new IllegalArgumentException("Unknown job type: "	+ job.getJobType());
 			}
@@ -62,7 +70,8 @@ public class JobQueueWorker implements Callable<AggregateResult> {
 			// Yield between each job.
 			Thread.yield();
 		}
-		progress.setTotal(total);
+		// Add all of the workers to the thread queue and start working on them.
+		List<Future<WorkerResult>> futures = threadPool.invokeAll(workerList);
 		// Now wait for all Future to complete
 		int totalEntitesProcessed = 0;
 		int failedJobCount = 0;
@@ -77,11 +86,8 @@ public class JobQueueWorker implements Callable<AggregateResult> {
 				successfulJobCount++;
 			}
 			totalEntitesProcessed += result.getEntitesProcessed();
-			// Update the progress
-			progress.setCurrent(totalEntitesProcessed);
 		}
 		// We are done
-		progress.setCurrent(progress.getTotal());
 		return new AggregateResult(totalEntitesProcessed, failedJobCount, successfulJobCount);
 	}
 

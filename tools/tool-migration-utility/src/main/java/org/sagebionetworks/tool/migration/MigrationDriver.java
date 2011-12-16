@@ -18,6 +18,8 @@ import org.apache.commons.logging.LogFactory;
 import org.json.JSONException;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.tool.migration.Progress.AggregateProgress;
+import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 import org.sagebionetworks.tool.migration.dao.EntityData;
 import org.sagebionetworks.tool.migration.dao.QueryRunner;
 import org.sagebionetworks.tool.migration.dao.QueryRunnerImpl;
@@ -122,10 +124,10 @@ public class MigrationDriver {
 			
 			// 3. Process all jobs on the queue.
 			log.debug("Starting phase three: Processing the job queue...");
-			BasicProgress consumingProgress = new BasicProgress();
+			AggregateProgress consumingProgress = new AggregateProgress();
 			Future<AggregateResult> consumFuture = consumeAllJobs(factory, threadPool, jobQueue, consumingProgress);
 			while(!consumFuture.isDone()){
-				log.info("Processing entities: "+destProgress.getCurrentStatus());
+				log.info("Processing entities: "+consumingProgress.getCurrentStatus());
 				Thread.sleep(2000);
 			}
 			AggregateResult result = consumFuture.get();
@@ -151,7 +153,7 @@ public class MigrationDriver {
 	 * @throws InterruptedException
 	 * @throws ExecutionException
 	 */
-	public static Future<AggregateResult> consumeAllJobs(ClientFactoryImpl factory,	ExecutorService threadPool, Queue<Job> jobQueue, BasicProgress progress)
+	public static Future<AggregateResult> consumeAllJobs(ClientFactoryImpl factory,	ExecutorService threadPool, Queue<Job> jobQueue, AggregateProgress progress)
 			throws InterruptedException, ExecutionException {
 		// Create a new worker job.
 		JobQueueWorker queueWorker = new JobQueueWorker(jobQueue, threadPool, factory, progress);

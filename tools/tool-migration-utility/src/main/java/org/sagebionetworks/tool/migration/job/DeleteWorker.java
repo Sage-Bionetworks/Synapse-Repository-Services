@@ -12,6 +12,7 @@ import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.tool.migration.ClientFactory;
+import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 
 /**
  * A worker that will execute a single delete entity job.
@@ -25,16 +26,18 @@ public class DeleteWorker implements Callable<WorkerResult> {
 	
 	ClientFactory clientFactory = null;
 	Set<String> entites = null;
+	BasicProgress progress = null;
 
 	/**
 	 * Create a new delete worker
 	 * @param clientFactory
 	 * @param entites
 	 */
-	public DeleteWorker(ClientFactory clientFactory, Set<String> entites) {
+	public DeleteWorker(ClientFactory clientFactory, Set<String> entites, BasicProgress progress) {
 		super();
 		this.clientFactory = clientFactory;
 		this.entites = entites;
+		this.progress = progress;
 	}
 
 
@@ -57,10 +60,15 @@ public class DeleteWorker implements Callable<WorkerResult> {
 						throw e;
 					}
 				}
+				progress.setCurrent(progress.getCurrent()+1);
 				Thread.sleep(1000);
-			}			
+			}
+			// done
+			progress.setCurrent(progress.getTotal());
 			return new WorkerResult(this.entites.size(), WorkerResult.JobStatus.SUCCEDED);
 		} catch (Exception e) {
+			// done
+			progress.setCurrent(progress.getTotal());
 			// Log any errors
 			log.error("CreateUpdateWorker Failed to run job: "+ entites.toString(), e);
 			return new WorkerResult(0, WorkerResult.JobStatus.FAILED);
