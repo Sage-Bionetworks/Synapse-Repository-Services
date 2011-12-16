@@ -126,8 +126,9 @@ getMaxDatasetSizeArg <- function(){
 }
 
 # 'sourceRepositoryName', e.g. 'nbci'
-createLayer <- function (datasetId, url, zipFilePath, layerName, sourceRepositoryName) 
+createLayer <- function (datasetId, url, zipFilePath, layerName) 
 {
+	locationName<-layerName
 	require(synapseClient)
 	dataset <- getEntity(datasetId)
 	# name used to be sprintf("%s_rawExpression", propertyValue(dataset, "name"))
@@ -168,11 +169,11 @@ createLayer <- function (datasetId, url, zipFilePath, layerName, sourceRepositor
 		file.copy(zipFilePath, destfile, overwrite = TRUE)
 	checksum <- as.character(tools::md5sum(destfile))
 	qryString <- sprintf("select * from location where location.parentId == \"%s\" and location.name == \"%s\"", 
-			propertyValue(layer, "id"), sourceRepositoryName)
+			propertyValue(layer, "id"), locationName)
 	qryResult <- synapseQuery(qryString)
 	location <- tryCatch({
 				if (is.null(qryResult)) {
-					location <- synapseClient:::Location(list(name = sourceRepositoryName, 
+					location <- synapseClient:::Location(list(name = locationName, 
 									parentId = propertyValue(layer, "id"), path = url, 
 									md5sum = checksum, type = "external"))
 					createEntity(location)
