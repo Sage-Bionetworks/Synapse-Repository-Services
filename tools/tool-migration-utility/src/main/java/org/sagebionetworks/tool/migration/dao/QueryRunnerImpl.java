@@ -10,7 +10,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.tool.migration.BasicProgress;
+import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 
 /**
  * This is the real implementation of the query runner.

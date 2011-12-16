@@ -5,7 +5,7 @@ import java.util.List;
 import org.json.JSONException;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.tool.migration.BasicProgress;
+import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 
 /**
  * By making this an interface, we can have a real implementation that is well

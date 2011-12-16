@@ -33,5 +33,7 @@ public class Constants {
 	 * How much time (MS) should we sleep between web service calls.
 	 */
 	public static final long MS_BETWEEN_SYNPASE_CALLS = 100;
+	
+	public static long NANO_SECS_PER_MIL_SEC = 1000000;
 
 }
