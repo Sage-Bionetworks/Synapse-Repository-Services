@@ -4,22 +4,20 @@
 # Run the metaGeo QC and load the results to Synapse
 # 
 # params:
-# userName - Synapse (service) account used to run the workflow
-# secretKey - API key for 'userName', used to authenticate requests to Synapse
-# authEndpoint - web address of authentication server
-# repoEndpoint - web address of repository server
-# urlEncodedInputData - dataset parameters:
-#	parentId (REQUIRED) - ID of the Synapse project for the datasets of processed data
-#	name (REQUIRED) - name of dataset which will contain the output of this function
-#	lastUpdate (REQUIRED) - time stamp on data source, indicating when last changed
-#	url (REQUIRED) - the URL of the data to be processed, a tarred, zipped, or gzipped collection
-#					of data files, able to be unpacked by the R untar or unzip command.
-#  	layerName (REQUIRED) - the name of the created layer
-#   repositoryName (REQUIRED) - name of the source repository (e.g. 'ncbi')
-#	number_of_samples
-#	description
-#	status
-#	createdBy
+#   userName - Synapse (service) account used to run the workflow
+#   secretKey - API key for 'userName', used to authenticate requests to Synapse
+#   authEndpoint - web address of authentication server
+#   repoEndpoint - web address of repository server
+#   urlEncodedInputData - dataset parameters:
+#		parentId (REQUIRED) - ID of the Synapse project for the datasets of processed data
+#		name (REQUIRED) - name of dataset which will contain the output of this function
+#		lastUpdate (REQUIRED) - time stamp on data source, indicating when last changed
+#   	sourceLayerId (REQUIRED) - the source layer to be processed
+#  		layerName (REQUIRED) - the name of the created layer
+#		number_of_samples
+#		description
+#		status
+#		createdBy
 #	
 # 
 # Author: Matt Furia
@@ -28,7 +26,9 @@
 metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedInputData)
 {
 	
-	recordProvenance <- false
+	Sys.setenv("R_ZIPCMD"="/usr/bin/zip")
+	
+	recordProvenance <- FALSE
 	
 	starttime<-proc.time()
 	
@@ -46,6 +46,7 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 	
 	## load the workflow utilities
 	source('./src/main/resources/synapseWorkflow.R')
+	source('./src/main/resources/doMetaGeoQc.R')
 	
 	# to avoid problems with spaces, quotes, etc. we just URLEncode the input data
 	# thus we decode it here
@@ -75,7 +76,7 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 	
 	attributes<-splitDatasetAttributes(inputDataMap[setdiff(names(inputDataMap),"lastUpdate")])
 	
-	if(!all(c('name', 'parentId', 'lastUpdate', 'url') %in% names(inputDataMap))){
+	if(!all(c('name', 'parentId', 'lastUpdate') %in% names(inputDataMap))){
 		msg <- paste("gseId: ", inputDataMap[["name"]], "\ngeoTimestamp: ", inputDataMap[["lastUpdate"]], "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", inputDataMap[["parentId"]], "\n")
 		msg <- sprintf("not all required properties were provided: %s", msg)
 		finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
@@ -110,10 +111,16 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 		analysis <- Analysis(list(description=analysisDescription, 
 					name=analysisDescription, parentId=inputDataMap[["parentId"]]))
 		analysis <- createEntity(analysis)
-		analysisStep<-startStep(analysis)
-		propertyValue(analysisStep, "name")<-paste("GEO indexing step for ", inputDataMap[["name"]], timestamp)
+		# this function no longer does the 'indexing' step
+		## analysisStep<-startStep(analysis)
+		## propertyValue(analysisStep, "name")<-paste("GEO indexing step for ", inputDataMap[["name"]], timestamp)
+		## analysisStep <- updateEntity(analysisStep)
+		## stopStep()
+		analysisStep<-startStep(analysis)	
+		propertyValue(analysisStep, "name")<-paste("Unsupervised QC step for ", inputDataMap[["name"]], timestamp)
 		analysisStep <- updateEntity(analysisStep)
 	}
+	
 	
 	## create the geo dataset
 	ans <- tryCatch({
@@ -137,44 +144,43 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 		setWorkFlowStatusAnnotation(dsId, kOkStatusCode, msg)
 	}else{
 		
-		## get add location code entity and add location for the geo id
-		ans <- tryCatch({
-					createLayer(dsId, inputDataMap[["url"]], inputDataMap[["layerName"]], inputDataMap[["sourceRepoName"]])
-				},
-				error = function(e){
-					msg <- sprintf("Failed to create layer: %s", e)
-					finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
-					setWorkFlowStatusAnnotation(dsId, kErrorStatusCode, msg)
-					stop(e)
-				}
-		)
+		## 'Indexing' is now done upstream, not by this function
+		##
+		## ## get add location code entity and add location for the geo id
+		## ans <- tryCatch({
+		##             createLayer(dsId, inputDataMap[["url"]], inputDataMap[["layerName"]])
+		##         },
+		##         error = function(e){
+		##             msg <- sprintf("Failed to create layer: %s", e)
+		##             finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
+		##             setWorkFlowStatusAnnotation(dsId, kErrorStatusCode, msg)
+		##             stop(e)
+		##         }
+		## )
 		
-		if (recordProvenance) {
-			stopStep()
-			analysisStep<-startStep(analysis)	
-			propertyValue(analysisStep, "name")<-paste("Unsupervised QC step for ", inputDataMap[["name"]], timestamp)
-			analysisStep <- updateEntity(analysisStep)
-		}
-		
-		##########################################
-		## get the entity ids for the code modules
-		##########################################
-		codeProjectId <- inputDataMap[["parentId"]] # can override if the code is in another project
-		
-		scriptName <- "run Metageo QC"
-		result <- synapseQuery(sprintf('select * from code where code.name == "%s" and code.parentId == "%s"', scriptName, codeProjectId))
-		if(nrow(result) != 1L){
-			msg <- sprintf("could not find R code entity %s in dataset %s", scriptName, codeProjectId)
-			finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
-			setWorkFlowStatusAnnotation(dsId, kErrorStatusCode, msg)
-			stop(msg)
-		}
-		kRunMetaGeoCodeEntityId <- result$code.id
+		## for now, disable the use of code object in Synapse
+		## ##########################################
+		## ## get the entity ids for the code modules
+		## ##########################################
+		## codeProjectId <- inputDataMap[["parentId"]] # can override if the code is in another project
+		## 
+		## scriptName <- "run Metageo QC"
+		## result <- synapseQuery(sprintf('select * from code where code.name == "%s" and code.parentId == "%s"', scriptName, codeProjectId))
+		## if(nrow(result) != 1L){
+		##     msg <- sprintf("could not find R code entity %s in dataset %s", scriptName, codeProjectId)
+		##     finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
+		##     setWorkFlowStatusAnnotation(dsId, kErrorStatusCode, msg)
+		##     stop(msg)
+		## }
+		## kRunMetaGeoCodeEntityId <- result$code.id
 		
 		## run the metaGeo workflow
 		ans <- tryCatch({
-					runMetaGeoEntity <- loadEntity(kRunMetaGeoCodeEntityId)
-					runMetaGeoEntity$objects$run(ans$layerId, inputDataMap[["lastUpdate"]])
+					sourceLayerId <-inputDataMap[["sourceLayerId"]]
+					## for now, disable the use of code object in Synapse
+					## runMetaGeoEntity <- loadEntity(kRunMetaGeoCodeEntityId)
+					## runMetaGeoEntity$objects$run(sourceLayerId, name, inputDataMap[["lastUpdate"]])
+					doMetaGeoQc(sourceLayerId, name, inputDataMap[["lastUpdate"]])
 				},
 				error = function(e){
 					msg <- sprintf("Failed to run metaGeo workflow: %s", e)
