@@ -12,6 +12,7 @@ import org.sagebionetworks.web.client.widget.editpanels.AnnotationEditor;
 import org.sagebionetworks.web.client.widget.editpanels.NodeEditor;
 import org.sagebionetworks.web.client.widget.entity.children.EntityChildBrowser;
 import org.sagebionetworks.web.client.widget.entity.menu.ActionMenu;
+import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloader;
 import org.sagebionetworks.web.client.widget.portlet.SynapsePortlet;
 import org.sagebionetworks.web.client.widget.sharing.AccessMenuButton;
 import org.sagebionetworks.web.shared.NodeType;
@@ -27,6 +28,7 @@ import com.extjs.gxt.ui.client.widget.button.Button;
 import com.extjs.gxt.ui.client.widget.custom.Portal;
 import com.extjs.gxt.ui.client.widget.custom.Portlet;
 import com.extjs.gxt.ui.client.widget.layout.FitLayout;
+import com.extjs.gxt.ui.client.widget.layout.MarginData;
 import com.google.gwt.cell.client.widget.PreviewDisclosurePanel;
 import com.google.gwt.dom.client.SpanElement;
 import com.google.gwt.uibinder.client.UiBinder;
@@ -50,6 +52,8 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 	SimplePanel portalPanel;
 	@UiField 
 	SimplePanel portalPanelSingleCol;
+	@UiField 
+	SimplePanel portalPanelThreeCol;
 	
 	private Presenter presenter;
 	private SageImageBundle sageImageBundle;
@@ -59,6 +63,7 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 	private AdminMenu adminMenu;
 	private ActionMenu actionMenu;
 	private EntityChildBrowser entityChildBrowser;
+	private LicensedDownloader licensedDownloader;
 	private boolean isAdministrator = false; 
 	private boolean canEdit = false;
 		
@@ -68,7 +73,7 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 			AccessMenuButton accessMenuButton, NodeEditor nodeEditor,
 			PreviewDisclosurePanel previewDisclosurePanel,
 			AnnotationEditor annotationEditor, AdminMenu adminMenu, ActionMenu actionMenu,
-			EntityChildBrowser entityChildBrowser) {
+			EntityChildBrowser entityChildBrowser, LicensedDownloader licensedDownloader) {
 		this.iconsImageBundle = iconsImageBundle;
 		this.sageImageBundle = sageImageBundle;
 		this.previewDisclosurePanel = previewDisclosurePanel;
@@ -76,6 +81,7 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 		this.adminMenu = adminMenu;
 		this.actionMenu = actionMenu;
 		this.entityChildBrowser = entityChildBrowser;
+		this.licensedDownloader = licensedDownloader;
 		
 		initWidget(uiBinder.createAndBindUi(this));
 	}
@@ -102,36 +108,48 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 		});
 		actionMenuPanel.add(actionMenu.asWidget(entity, isAdministrator, canEdit));
 		
-		// configure portal
-		Portal portal = new Portal(2);  
-	    portal.setBorders(false);  
-	    portal.setStyleAttribute("backgroundColor", "white");  
-	    portal.setColumnWidth(0, .57);  
-	    portal.setColumnWidth(1, .43);	 	    
+		// Portal #1 - 2 columns
+		Portal portalTwoCol = new Portal(2);  
+	    portalTwoCol.setBorders(false);  
+	    portalTwoCol.setStyleAttribute("backgroundColor", "white");  
+	    portalTwoCol.setColumnWidth(0, .57);  
+	    portalTwoCol.setColumnWidth(1, .43);	 	    
 	    portalPanel.clear();
-	    portalPanel.add(portal);
-	    
+	    portalPanel.add(portalTwoCol);	    
 	    // Title
-	    portal.add(createTitlePortlet(entity, entityTypeDisplay), 0);
-	    
+	    portalTwoCol.add(createTitlePortlet(entity, entityTypeDisplay), 0);	    
 	    // Description	    
-		portal.add(createDescriptionPortlet(entity), 0);
-	    
+		portalTwoCol.add(createDescriptionPortlet(entity), 0);	    
 	    // Annotation Editor Portlet
-		portal.add(createAnnotationEditorPortlet(portal, entity), 1);	    
-	    // Create R Client portlet
-	    portal.add(createRClientPortlet(portal, entity), 0);
+		portalTwoCol.add(createAnnotationEditorPortlet(entity), 1);	    
 	    
-	    // Full Width portal
+	    
+		// Portal #2 - full width
 		Portal portalSingleCol = new Portal(1);  
 	    portalSingleCol.setBorders(false);  
 	    portalSingleCol.setStyleAttribute("backgroundColor", "white");  
 	    portalSingleCol.setColumnWidth(0, 1.0);  	 	    
 	    portalPanelSingleCol.clear();
-	    portalPanelSingleCol.add(portalSingleCol);
-	    
+	    portalPanelSingleCol.add(portalSingleCol);	    
 	    // Child Browser
 	    portalSingleCol.add(createEntityChildBrowser(entity, canEdit), 0);
+	    
+	    
+		// Portal #3 - 3 columns
+		Portal portalThreeCol = new Portal(3);  
+		portalThreeCol.setBorders(false);  
+		portalThreeCol.setStyleAttribute("backgroundColor", "white");  
+		portalThreeCol.setColumnWidth(0, .33);  	 	    
+		portalThreeCol.setColumnWidth(1, .33);  	 	    
+		portalThreeCol.setColumnWidth(2, .33);  	 	    
+		portalPanelThreeCol.clear();
+		portalPanelThreeCol.add(portalThreeCol);
+	    // Create R Client portlet
+	    portalThreeCol.add(createRClientPortlet(entity), 0);
+	    // Create References portlet
+	    portalThreeCol.add(createReferencesPortlet(entity), 1);
+	    // Create References portlet
+	    portalThreeCol.add(createActivityFeedPortlet(entity), 2);
 	}
 	
 	@Override
@@ -168,13 +186,19 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 	/*
 	 * Private Methods
 	 */
-	private SynapsePortlet createDescriptionPortlet(Entity entity) {
+	private SynapsePortlet createDescriptionPortlet(Entity entity) {		
 		SynapsePortlet portlet = new SynapsePortlet("Description");
 		String overviewText = entity.getDescription();
 		if(overviewText == null) overviewText = "";
 		int summaryLength = overviewText.length() >= DisplayConstants.DESCRIPTION_SUMMARY_LENGTH ? DisplayConstants.DESCRIPTION_SUMMARY_LENGTH : overviewText.length();
 		previewDisclosurePanel.init("Expand", overviewText.substring(0, summaryLength), overviewText);
 		portlet.add(previewDisclosurePanel);
+		
+		// download button		
+		if(presenter.isLocationable()) {
+			portlet.add(licensedDownloader.asWidget(entity, false), new MarginData(10, 0, 0, 0));
+		}
+		
 		return portlet;
 	}
 
@@ -191,7 +215,7 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 		return titlePortlet;
 	}
 
-	private Portlet createAnnotationEditorPortlet(Portal portal, Entity entity) {
+	private Portlet createAnnotationEditorPortlet(Entity entity) {
 	    SynapsePortlet portlet = new SynapsePortlet("Properties &amp; Annotations", true, false);  
 	    portlet.setLayout(new FitLayout());    
 	    portlet.setAutoHeight(true);  	  
@@ -203,18 +227,19 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 	
 	
 	
-	private Portlet createRClientPortlet(Portal portal, Entity entity) {			  
+	private Portlet createRClientPortlet(Entity entity) {			  
 	    SynapsePortlet portlet = new SynapsePortlet("Synapse R Client");  
 	    portlet.setLayout(new FitLayout());    
 	    portlet.setAutoHeight(true);  	  
-	   	
+
+	    // setup install code widgets		
 	    Html loadEntityCode = new Html(DisplayUtils.getRClientEntityLoad(entity.getId()));
 	    loadEntityCode.setStyleName(DisplayUtils.STYLE_CODE_CONTENT);		
 		
-		// setup install code widgets
-		final LayoutContainer container = new LayoutContainer();	    
-		container.addText("# " + DisplayConstants.LABEL_INSTALL_R_CLIENT_CODE
-				+ "<br/>" + DisplayUtils.R_CLIENT_DOWNLOAD_CODE);	    		
+		final LayoutContainer container = new LayoutContainer();
+	    String rSnipet = "# " + DisplayConstants.LABEL_R_CLIENT_INSTALL
+		+ "<br/>" + DisplayUtils.R_CLIENT_DOWNLOAD_CODE;
+		container.addText(rSnipet);	    		
 	    container.setStyleName(DisplayUtils.STYLE_CODE_CONTENT);
 	    container.setVisible(false);
 	    
@@ -240,6 +265,20 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 		portlet.add(new Html("<p>The Synapse R Client allows you to interact with the Synapse system programmatically.</p>"));
 		portlet.add(loadEntityCode);
 		portlet.add(vp);
+	    return portlet;  
+	}	
+	
+	private Portlet createReferencesPortlet(Entity entity) {			  
+	    SynapsePortlet portlet = new SynapsePortlet("References");  
+	    portlet.setLayout(new FitLayout());    
+	    portlet.setAutoHeight(true);  	  
+	    return portlet;  
+	}	
+	
+	private Portlet createActivityFeedPortlet(Entity entity) {			  
+	    SynapsePortlet portlet = new SynapsePortlet("Activity Feed");  
+	    portlet.setLayout(new FitLayout());    
+	    portlet.setAutoHeight(true);  	  
 	    return portlet;  
 	}	
 	

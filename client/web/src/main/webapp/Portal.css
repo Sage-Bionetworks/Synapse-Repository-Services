@@ -163,23 +163,23 @@ h1 {
 /* Portal Section header */
 .portal h3 {
 	clear: both;
-	font-size: 16px;
+	font-size: 18px;
 	font-weight: normal;
 	font-variant: small-caps;
 	color: #000;
 	line-height: 16px;
 	margin-top: 20px;
-	margin-bottom: 20px;
+	margin-bottom: 15px;
 	margin-left: 0px;
 	margin-right: 0px;
-	padding-top: 6px;
-	border: 0 solid #8CC63F;	
+	padding-top: 5px;
+	border: 0 solid #D0D0D0;	
 	border-top-width: 1px;	
 }
 
 .portal h3.top {
 	margin-top: 0px;	
-	margin-bottom: 20px;
+	margin-bottom: 15px;
 	margin-left: 0px;
 	margin-right: 0px;
 	

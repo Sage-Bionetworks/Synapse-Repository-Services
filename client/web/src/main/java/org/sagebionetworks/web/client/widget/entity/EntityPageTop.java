@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.client.widget.entity;
 
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.GlobalApplicationState;
@@ -126,6 +127,15 @@ public class EntityPageTop implements EntityPageTopView.Presenter, SynapseWidget
 		handlerManager.addHandler(EntityUpdatedEvent.getType(), handler);
 	}
 
+	@Override
+	public boolean isLocationable() {
+		if(entity instanceof Locationable) {
+			return true;
+		}
+		return false;
+	}
+
+	
 	/*
 	 * Private Methods
 	 */

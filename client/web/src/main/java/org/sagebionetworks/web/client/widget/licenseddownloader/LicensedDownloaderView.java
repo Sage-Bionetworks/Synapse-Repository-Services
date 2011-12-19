@@ -2,11 +2,13 @@ package org.sagebionetworks.web.client.widget.licenseddownloader;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.model.LocationData;
+import org.sagebionetworks.web.client.widget.SynapseWidgetView;
 import org.sagebionetworks.web.shared.FileDownload;
 
 import com.google.gwt.user.client.ui.IsWidget;
 
-public interface LicensedDownloaderView extends IsWidget {
+public interface LicensedDownloaderView extends IsWidget, SynapseWidgetView {
 
 	/**
 	 * Set the presenter.
@@ -46,18 +48,21 @@ public interface LicensedDownloaderView extends IsWidget {
 	/**
 	 * Shows loading in the contents window
 	 */
-	public void showLoading();
+	public void showDownloadsLoading();
 
 	
 	/**
 	 * Sets the content of the download pane
-	 * @param displayText
-	 * @param fileUrls
-	 * @param checksums
+	 * @param downloads
 	 */
 	public void setDownloadUrls(List<FileDownload> downloads);
+
+	/**
+	 * Sets the content of the download pane
+	 * @param downloads
+	 */
+	public void setDownloadLocations(List<LocationData> locations);
 	
-	public void clear();
 	
 	/**
 	 * Presenter Interface 
@@ -70,5 +75,11 @@ public interface LicensedDownloaderView extends IsWidget {
 		public void setLicenseAccepted();
 		
 	}
+
+	public void showDownloadFailure();
+	
+	public void setNoDownloads();
+
+	public void setUnauthorizedDownloads();
 	
 }

@@ -80,8 +80,9 @@ public class DisplayConstants {
 	public static final String MENU_PERMISSION_LEVEL_CAN_ADMINISTER = "Administrator";
 	public static final String LABEL_PERMISSION_TEXT_ADD_PEOPLE = "Add People";
 	public static final String BUTTON_SHOW_R_CLIENT_INSTALL = "Show R Client Installation Code";
-	public static final String LABEL_INSTALL_R_CLIENT_CODE = "Install Synapse R Client";
-	public static final String LABEL_LOAD_ENTITY_IN_R_CLIENT = "Load in Synapse R Client";
+	public static final String LABEL_R_CLIENT_INSTALL = "Install Synapse R Client";
+	public static final String LABEL_R_CLIENT_GET_ENTITY = "Obtain a pointer in the Synapse R Client";
+	public static final String LABEL_R_CLIENT_LOAD_ENTITY = "Load the data in the Synapse R Client";
 		
 	/*
 	 * Service Constants (move to another file?)
@@ -104,6 +105,7 @@ public class DisplayConstants {
 	public static final String BUTTON_CANCEL = "Cancel";
 	public static final String BUTTON_ADD_ANNOTATION = "Add Annotation";
 	public static final String TEXT_NO_DOWNLOADS = "There are no downloads available.";
+	public static final String TEXT_UNAUTH_DOWNLOADS = "Please login or sign the End User License Agreement to see downloads.";
 	public static final String BUTTON_SETUP_API_PASSWORD = "Create Synapse Password";
 	public static final String BUTTON_SAVING = "Saving";
 	public static final String BUTTON_CHANGE_PASSWORD = "Change Password";
@@ -154,6 +156,7 @@ public class DisplayConstants {
 	public static final String BUTTON_ADD = "Add";
 	public static final String BUTTON_EDIT = "Edit";
 	public static final String BUTTON_SHARE = "Share";
+	public static final String BUTTON_DOWNLOAD = "Download";
 	public static final String LABEL_DELETE = "Delete";
 	public static final String LABEL_CREATE = "Create";
 	public static final String ERROR_ENTITY_DELETE_FAILURE = "Deletion failed. Please try again.";

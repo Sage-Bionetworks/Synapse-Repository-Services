@@ -32,6 +32,7 @@
 					<!-- <g:SimplePanel ui:field="portalPanel" styleName="portal rounded dropshaddow"/>  -->							
 					<g:SimplePanel ui:field="portalPanel"/>	
 					<g:SimplePanel ui:field="portalPanelSingleCol"/>							
+					<g:SimplePanel ui:field="portalPanelThreeCol"/>
 				</div>						
 			</div>
 		</div>

@@ -72,6 +72,8 @@ import org.sagebionetworks.web.client.widget.entity.EntityPageTopView;
 import org.sagebionetworks.web.client.widget.entity.EntityPageTopViewImpl;
 import org.sagebionetworks.web.client.widget.entity.children.EntityChildBrowserView;
 import org.sagebionetworks.web.client.widget.entity.children.EntityChildBrowserViewImpl;
+import org.sagebionetworks.web.client.widget.entity.download.LocationableDownloaderView;
+import org.sagebionetworks.web.client.widget.entity.download.LocationableDownloaderViewImpl;
 import org.sagebionetworks.web.client.widget.entity.menu.ActionMenuView;
 import org.sagebionetworks.web.client.widget.entity.menu.ActionMenuViewImpl;
 import org.sagebionetworks.web.client.widget.filter.QueryFilterView;
@@ -302,6 +304,9 @@ public class PortalGinModule extends AbstractGinModule {
 		// EntityChildBrowser
 		bind(EntityChildBrowserViewImpl.class).in(Singleton.class);
 		bind(EntityChildBrowserView.class).to(EntityChildBrowserViewImpl.class);
+		
+		// EntityChildBrowser (not singleton as you may want multiple)
+		bind(LocationableDownloaderView.class).to(LocationableDownloaderViewImpl.class);
 		
 	}
 

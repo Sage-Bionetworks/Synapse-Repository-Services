@@ -8,6 +8,7 @@ import org.gwttime.time.format.ISODateTimeFormat;
 import org.sagebionetworks.repo.model.Agreement;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Eula;
+import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.web.client.place.Analysis;
 import org.sagebionetworks.web.client.place.Dataset;
 import org.sagebionetworks.web.client.place.Home;
@@ -59,6 +60,7 @@ public class DisplayUtils {
 	
 	private static final String ERROR_OBJ_REASON_KEY = "reason";
 	public static final String ENTITY_PARENT_ID_KEY = "parentId";
+	public static final String ENTITY_EULA_ID_KEY = "eulaId";
 	
 	/*
 	 * Style names
@@ -346,8 +348,12 @@ public class DisplayUtils {
 	}
 	
 	public static String getRClientEntityLoad(String id) {
-		return "# " + DisplayConstants.LABEL_LOAD_ENTITY_IN_R_CLIENT + " <br/>" +
-				"entity_"+ id +" <- getEntity("+ id +")";		
+		String rSnipet = "# " + DisplayConstants.LABEL_R_CLIENT_GET_ENTITY
+				+ " <br/>" + "entity_" + id + " <- getEntity(" + id + ")"
+				+ "<br/><br/>"
+				+ "# " + DisplayConstants.LABEL_R_CLIENT_LOAD_ENTITY
+				+ " <br/>" + "entity_" + id + " <- loadEntity(" + id + ")";
+		return rSnipet;
 	}	
 	
 	public static String convertDateToString(Date toFormat) {

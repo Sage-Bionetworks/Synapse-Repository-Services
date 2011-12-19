@@ -2,6 +2,7 @@ package org.sagebionetworks.web.client.widget.licenseddownloader;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
@@ -107,8 +108,16 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 	}
  
 	@Override
-	public Widget asWidget() {		
-		return this;
+	public Widget asWidget() {
+		final LicensedDownloaderView view = this;
+		Button downloadButton = new Button(DisplayConstants.BUTTON_DOWNLOAD, AbstractImagePrototype.create(icons.NavigateDown16()));		
+		downloadButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+			@Override
+			public void componentSelected(ButtonEvent ce) {
+				view.showWindow();
+			}
+		});		
+		return downloadButton;
 	}
 
 	@Override
@@ -132,7 +141,7 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 		citationText = citationHtml;		
 	}
 	
-
+	@Deprecated
 	@Override
 	public void setDownloadUrls(List<FileDownload> downloads) {
 		if(downloads != null && downloads.size() > 0) {
@@ -154,7 +163,33 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 				fillDownloadContentContainer();
 			}			
 		} else {
-			setDownloadToEmpty();
+			setNoDownloads();
+		}
+	}
+	
+	@Override
+	public void setDownloadLocations(List<LocationData> locations) {
+		if(locations != null && locations.size() > 0) {
+			// build a list of links in HTML
+			StringBuilder sb = new StringBuilder();
+			String displayString = "Download";  // TODO : add display to LocationData
+			for(int i=0; i<locations.size(); i++) {
+				LocationData dl = locations.get(i);
+				sb.append("<a href=\"" + dl.getPath() + "\" target=\"new\">" + displayString + "</a> " + AbstractImagePrototype.create(icons.external16()).getHTML());
+				if(dl.getMd5() != null) {
+					sb.append("&nbsp;<small>md5 checksum: " + dl.getMd5() + "</small>");
+				}
+				sb.append("<br/>");				
+			}
+			downloadHtml = sb.toString();
+
+			// replace the view content if this is after initialization
+			if(downloadContentContainer != null) {
+				downloadHtml = sb.toString();
+				fillDownloadContentContainer();
+			}			
+		} else {
+			setNoDownloads();
 		}
 	}
 	
@@ -166,14 +201,48 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 		downloadHtml = "";		
 	}
 
+	@Override
+	public void showDownloadFailure() {
+		// TODO Auto-generated method stub		
+	}
+
 
 	@Override
 	public void showLoading() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void showErrorMessage(String message) {
+		DisplayUtils.showErrorMessage(message);
+	}
+
+	@Override
+	public void showInfo(String title, String message) {
+		DisplayUtils.showInfo(title, message);
+	}
+	
+	
+	@Override
+	public void showDownloadsLoading() {
 		downloadHtml = DisplayUtils.getIconHtml(sageImageBundle.loading16()) + " Loading...";
 		fillDownloadContentContainer();
 	}
 	
-	
+	@Override
+	public void setNoDownloads() {
+		downloadHtml = DisplayConstants.TEXT_NO_DOWNLOADS;
+		fillDownloadContentContainer();		
+	}
+
+	@Override
+	public void setUnauthorizedDownloads() {
+		downloadHtml = DisplayConstants.TEXT_UNAUTH_DOWNLOADS;
+		fillDownloadContentContainer();		
+	}
+
+
 	/*
 	 * Protected Methods
 	 */	
@@ -288,7 +357,7 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 		downloadContentContainer.setBorders(false);
 		downloadContentContainer.setScrollMode(Style.Scroll.AUTOY);
 		if(downloadHtml == null || downloadHtml.equals("")) {
-			setDownloadToEmpty();
+			setNoDownloads();
 		} else {
 			fillDownloadContentContainer();
 		}
@@ -307,11 +376,6 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 	}
 
 	
-	private void setDownloadToEmpty() {
-		downloadHtml = DisplayConstants.TEXT_NO_DOWNLOADS;
-		fillDownloadContentContainer();		
-	}
-	
 	private void fillDownloadContentContainer() {
 		if(downloadContentContainer != null) {
 			downloadContentContainer.removeAll();				
@@ -325,5 +389,11 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 		licenseTextContainer.add(new Html(licenseTextHtml));
 		licenseTextContainer.layout(true);
 	}
+
+
+
+
+	
+	
 
 }

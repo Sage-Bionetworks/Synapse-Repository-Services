@@ -28,5 +28,7 @@ public interface EntityPageTopView extends IsWidget, SynapseWidgetView {
 
 		void fireEntityUpdatedEvent();
 
+		boolean isLocationable();
+
 	}
 }
