@@ -6,6 +6,7 @@ my %affiliatedPlatforms;
 my %allPlatforms;
 open F, "src/main/resources/ncbiGPLIDs" or die("Cannot find file: src/main/resources/ncbiGPLIDs");
 #open F, "ncbiGPLIDs" or die("Cannot find file: ncbiGPLIDs");
+my $GSE_header = <>;
 while (<F>) {
 	chomp;
 	my @a = split /\t/;
@@ -19,7 +20,7 @@ while (<F>) {
 # Get all affiliated platforms from NCBI
 foreach my $p (keys %platforms) {
 	print $p, "\n";
-#	next unless $p eq 'GPL570';
+#	next unless $p eq 'GPL8300';
 	my $url = 'http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc='.$p;
 	system("curl -O $url");
 	my $file = 'acc.cgi?acc='.$p;
@@ -42,7 +43,7 @@ foreach my $p ( keys %allPlatforms ) {
 	print "Downloading information for $p\n";
 	my $a = $affiliatedPlatforms{$p};
 #	next unless $p eq 'GPL96' or $a eq 'GPL96';
-#	next unless $p eq 'GPL570';
+#	next unless $p eq 'GPL8300';
 
 	my $filename = 'output';
 	open G, ">:utf8", $filename;
@@ -97,8 +98,9 @@ foreach my $p ( keys %allPlatforms ) {
 
 sub getInfo {
 	my %retval;
-	open F, $_[0];
-	open O, ">>all.GSEs.txt";
+	open F, "<:utf8", $_[0];
+	my $fileName = "all.GSEs.txt";
+	open O, ">>:utf8", $fileName;
 	my ( $gse, $gpl, $pdat, $taxon, $suppFile, $summary, $n_samples,  $invest, $plat ) = 'NA';
 	while (<F>) {
 		s/\r//g;
