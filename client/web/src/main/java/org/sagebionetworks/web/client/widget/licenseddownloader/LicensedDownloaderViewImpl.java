@@ -168,7 +168,7 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 	}
 	
 	@Override
-	public void setDownloadLocations(List<LocationData> locations) {
+	public void setDownloadLocations(List<LocationData> locations, String md5) {
 		if(locations != null && locations.size() > 0) {
 			// build a list of links in HTML
 			StringBuilder sb = new StringBuilder();
@@ -176,8 +176,8 @@ public class LicensedDownloaderViewImpl extends LayoutContainer implements Licen
 			for(int i=0; i<locations.size(); i++) {
 				LocationData dl = locations.get(i);
 				sb.append("<a href=\"" + dl.getPath() + "\" target=\"new\">" + displayString + "</a> " + AbstractImagePrototype.create(icons.external16()).getHTML());
-				if(dl.getMd5() != null) {
-					sb.append("&nbsp;<small>md5 checksum: " + dl.getMd5() + "</small>");
+				if(md5 != null) {
+					sb.append("&nbsp;<small>md5 checksum: " + md5 + "</small>");
 				}
 				sb.append("<br/>");				
 			}

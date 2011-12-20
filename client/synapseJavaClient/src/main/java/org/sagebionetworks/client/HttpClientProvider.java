@@ -5,7 +5,6 @@ import java.util.Map;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
 import org.sagebionetworks.utils.HttpClientHelperException;
 
 /**
@@ -43,7 +42,7 @@ public interface HttpClientProvider {
 	public void uploadFile(String requestUrl, String filepath, String contentType,	Map<String, String> requestHeaders) throws ClientProtocolException, IOException, HttpClientHelperException;
 	
 	/**
-	 * Downlaod a file.
+	 * Download a file.
 	 * @param requestUrl
 	 * @param filepath
 	 * @throws ClientProtocolException
@@ -58,7 +57,7 @@ public interface HttpClientProvider {
 	 * @param requestMethod
 	 * @param requestContent
 	 * @param requestHeaders
-	 * @return
+	 * @return the response
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 * @throws HttpClientHelperException

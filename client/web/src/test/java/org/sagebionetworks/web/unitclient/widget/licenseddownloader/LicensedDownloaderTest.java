@@ -56,7 +56,7 @@ public class LicensedDownloaderTest {
 	PlaceChanger mockPlaceChanger;
 	
 	JSONObjectAdapter jsonObjectAdapterProvider;
-	Entity entity;
+	Locationable entity;
 	Entity parentEntity;
 	Eula eula1;
 	UserData user1;
@@ -96,10 +96,14 @@ public class LicensedDownloaderTest {
 		((Dataset)parentEntity).setEulaId(eula1.getId());
 
 		// Entity
+		String md5sum = "4759818803f93967eb250f784cf8576d";
+		String contentType = "application/jpg";		
 		entity = new Layer();
 		entity.setId("layerId");
 		entity.setName("layer");
 		entity.setParentId(parentEntity.getId());
+		entity.setMd5(md5sum);
+		entity.setContentType(contentType);
 
 		// User
 		user1 = new UserData("email@email.com", "Username", "token", false);
@@ -111,11 +115,7 @@ public class LicensedDownloaderTest {
 		LocationData downloadLocation = new LocationData();
 		String name = "name";
 		String path = "path";
-		String md5sum = "md5sum";
-		String contentType = "application/jpg";		
 		downloadLocation.setPath(path);
-		downloadLocation.setMd5(md5sum);
-		downloadLocation.setContentType(contentType);
 		locations = new ArrayList<LocationData>();
 		locations.add(downloadLocation);
 
@@ -247,28 +247,28 @@ public class LicensedDownloaderTest {
 		// Success Test: No download
 		resetMocks();
 		when(mockAuthenticationController.getLoggedInUser()).thenReturn(user1);
-		((Locationable)entity).setLocations(locations);		
+		entity.setLocations(locations);		
 		licensedDownloader.loadDownloadLocations(entity, false);
 		verify(mockView).showDownloadsLoading();		
-		verify(mockView).setDownloadLocations(locations);
+		verify(mockView).setDownloadLocations(locations, entity.getMd5());
 
 		// Not Logged in Test: Download
 		resetMocks();			
 		when(mockAuthenticationController.getLoggedInUser()).thenReturn(null); // not logged in
-		((Locationable)entity).setLocations(locations);
+		entity.setLocations(locations);
 		licensedDownloader.loadDownloadLocations(entity, true);
 		verify(mockView).showDownloadsLoading();		
-		verify(mockView).setDownloadLocations(locations);
+		verify(mockView).setDownloadLocations(locations, entity.getMd5());
 		verify(mockView).showInfo(anyString(), anyString());
 		verify(mockPlaceChanger).goTo(any(LoginPlace.class));
 
 		// Success Test: Download
 		resetMocks();			
-		((Locationable)entity).setLocations(locations);
+		entity.setLocations(locations);
 		when(mockAuthenticationController.getLoggedInUser()).thenReturn(user1);
 		licensedDownloader.loadDownloadLocations(entity, true);
 		verify(mockView).showDownloadsLoading();		
-		verify(mockView).setDownloadLocations(locations);
+		verify(mockView).setDownloadLocations(locations, entity.getMd5());
 		verify(mockView).showWindow();
 	}
 
@@ -286,12 +286,12 @@ public class LicensedDownloaderTest {
 
 		// Success Test: No download
 		when(mockAuthenticationController.getLoggedInUser()).thenReturn(user1);
-		((Locationable)entity).setLocations(locations);		
+		entity.setLocations(locations);		
 		
 		licensedDownloader.asWidget(entity, false);		
 
 		verify(mockView).showDownloadsLoading();		
-		verify(mockView).setDownloadLocations(locations);
+		verify(mockView).setDownloadLocations(locations, entity.getMd5());
 		verify(mockView).setLicenceAcceptanceRequired(false);
 		verify(mockView).setLicenseHtml(licenseAgreement.getLicenseHtml());
 

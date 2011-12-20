@@ -163,15 +163,15 @@ public class PreviewControllerTest {
 		// Modify the locations
 		// Create three locations for this layer
 		JSONObject location = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ UrlHelpers.LOCATION, "{\"type\":\"awss3\",\"path\":\"human_liver_cohort/expression/expression.txt\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\", \"parentId\":\""+newLayer.getString("id")+"\"}");
+				.getServletPrefix()+ UrlHelpers.LOCATION, "{\"type\":\"awss3\",\"path\":\"tcga_glioblastoma_data.tar.gz\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\", \"parentId\":\""+newLayer.getString("id")+"\"}");
 		assertExpectedLayerLocationProperties(location);
 		
 		location = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ UrlHelpers.LOCATION, "{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\", \"parentId\":\""+newLayer.getString("id")+"\"}");
+				.getServletPrefix()+ UrlHelpers.LOCATION, "{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\", \"contentType\": \"application/octet-stream\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\", \"parentId\":\""+newLayer.getString("id")+"\"}");
 		assertExpectedLayerLocationProperties(location);
 		
 		location = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ UrlHelpers.LOCATION, "{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\", \"parentId\":\""+newLayer.getString("id")+"\"}");
+				.getServletPrefix()+ UrlHelpers.LOCATION, "{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\", \"contentType\": \"application/octet-stream\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\", \"parentId\":\""+newLayer.getString("id")+"\"}");
 		assertExpectedLayerLocationProperties(location);
 		
 		location = helper.testCreateJsonEntity(helper

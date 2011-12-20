@@ -7,6 +7,7 @@ sessionToken <-
 			refreshSessionToken(sessionToken)
 		}
 		.setCache("sessionToken", sessionToken)
+		.jenv[["syn"]]$setSessionToken(sessionToken)
 		authMode(kAuthMode)
 	} else {
 		# This could be null if the user has not logged in, but that's ok

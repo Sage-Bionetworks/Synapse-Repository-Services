@@ -62,37 +62,26 @@ setMethod(
 setMethod(
 		f = ".cacheEntity",
 		signature = "Layer",
-		definition = function(entity){
-## Reenable this checks once PLFM-693 is fixed
-## 			if(is.null(propertyValue(entity, "locations"))){
-## 					if(is.null(propertyValue(entity, "id")))
-## 						stop("The entity does not have a 'locations' property or an 'id' property so could not be cached")
-## 					entity <- getEntity(propertyValue(entity, "id"))
-## 					if(is.null(propertyValue(entity, "locations")))
-## 						stop("The entity does not have any locations so could not be downloaded")
-## 			}
-			locationPrefs = synapseDataLocationPreferences()
-			cacheDir = synapseCacheDir()
+		definition = function(entity) {
 			
-			## TODO fix this. Shouldn't use global variables this way. Wait for fix on PLFM-568
-			if (!all(locationPrefs %in% kSupportedDataLocationTypes)) {
-				ind <- which(!(locationPrefs %in% kSupportedDataLocationTypes))
-				stop(paste("unsupported repository location(s):", locationPrefs[ind]))
+			## Get the download locations for this entity
+			locations <- propertyValue(entity, "locations")
+			if (is.null(locations)) {
+				if(is.null(propertyValue(entity, "id")))
+					stop("The entity does not have a 'locations' property or an 'id' property so could not be cached")
+				entity <- getEntity(propertyValue(entity, "id"))
+				locations <- propertyValue(entity, "locations")
+				if (is.null(locations)) {
+					stop("The entity does not have any locations so could not be downloaded")
+				}
 			}
-                        queryString <- sprintf('select * from location where parentId=="%s"', propertyValue(entity, "id"))
-			availableLocations <- synapseQuery(queryString)
-			if (is.null(availableLocations)) 
-				return(NULL)
-			ind <- match(locationPrefs, availableLocations$location.type)
-			ind <- ind[!is.na(ind)]
-			if (length(ind) == 0) {
-				stop("Data file was not available in any of the locations specified. Locations available for this layer:", 
-						annotations(entity)$locations)
-			}
-			availableLocations <- availableLocations[ind, ]
-			location <- getEntity(availableLocations$location.id[1])
-			destfile = synapseDownloadFile(url = propertyValue(location, "path"), checksum = propertyValue(location, "md5sum"))
+
+			## Note that we just use the first location, to future-proof this we would use the location preferred
+			## by the user, but we're gonna redo this in java so no point in implementing that here right now
+			destfile = synapseDownloadFile(url = locations[[1]]['path'], checksum = propertyValue(entity, "md5"))
 			
+			## Locations are no longer entities in synapse, but they still exist here in the R client
+			location <- Location(list(path=locations[[1]]['path'], type=locations[[1]]['type']))
 			return(CachedLocation(location, .unpack(filename = destfile)))
 		}
 )

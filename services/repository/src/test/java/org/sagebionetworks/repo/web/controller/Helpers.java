@@ -61,6 +61,7 @@ import org.springframework.web.servlet.DispatcherServlet;
  * 
  * @author deflaux
  */
+@Deprecated
 public class Helpers {
 
 	private static final Logger log = Logger.getLogger(Helpers.class.getName());

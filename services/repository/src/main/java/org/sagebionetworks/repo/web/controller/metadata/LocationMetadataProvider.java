@@ -76,11 +76,11 @@ public class LocationMetadataProvider implements
 				String method = request.getParameter(ServiceConstants.METHOD_PARAM);
 				if ((null != method)
 						&& (method.equals(RequestMethod.HEAD.name()))) {
-					signedPath = locationHelper.getS3HeadUrl(request
+					signedPath = locationHelper.presignS3HEADUrl(request
 							.getParameter(AuthorizationConstants.USER_ID_PARAM),
 							entity.getPath());
 				} else {
-					signedPath = locationHelper.getS3Url(request
+					signedPath = locationHelper.presignS3GETUrl(request
 							.getParameter(AuthorizationConstants.USER_ID_PARAM),
 							entity.getPath());
 				}
@@ -94,7 +94,7 @@ public class LocationMetadataProvider implements
 				// Overwrite the path with a presigned S3 URL to use to PUT the
 				// data to S3
 				String signedPath = locationHelper
-						.createS3Url(request
+						.presignS3PUTUrl(request
 								.getParameter(AuthorizationConstants.USER_ID_PARAM),
 								entity.getPath(), entity.getMd5sum(), entity
 										.getContentType());

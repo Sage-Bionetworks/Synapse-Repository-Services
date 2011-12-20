@@ -205,6 +205,7 @@ hmacSecretKey <-
 		return(key)
 	}
 	.setCache("base64secretKey", secretKey)
+	.jenv[["syn"]]$setApiKey(secretKey)
 	authMode(kAuthMode)
 }
 

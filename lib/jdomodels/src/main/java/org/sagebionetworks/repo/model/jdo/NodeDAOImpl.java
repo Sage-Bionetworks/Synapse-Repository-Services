@@ -235,7 +235,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		try{
 			jdoTemplate.makePersistent(newRev);
 		}catch (DuplicateKeyException e){
-			throw new IllegalArgumentException("Must provide a unique version label. Label: "+newRev.getLabel()+" has alredy be used for this entity");
+			throw new IllegalArgumentException("Must provide a unique version label. Label: "+newRev.getLabel()+" has already be used for this entity");
 		}
 
 		// The new revision becomes the current version

@@ -14,7 +14,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.Location;
+import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.web.ServiceConstants;
@@ -37,6 +38,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
  * 
  * @author deflaux
  */
+@Deprecated
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class LocationControllerTest {
@@ -60,12 +62,16 @@ public class LocationControllerTest {
 	private JSONObject layerS3Location;
 	private JSONObject datasetExternalLocation;
 	private JSONObject layerExternalLocation;
+	
+	@Autowired
+	private ServletTestHelper testHelper;
 
 	/**
 	 * @throws java.lang.Exception
 	 */
 	@Before
 	public void setUp() throws Exception {
+		testHelper.setUp();
 		helper.setUp();
 		
 		// Datasets must have a project as a parent
@@ -94,6 +100,7 @@ public class LocationControllerTest {
 	 */
 	@After
 	public void tearDown() throws Exception {
+		testHelper.tearDown();
 		helper.tearDown();
 	}
 
@@ -157,6 +164,21 @@ public class LocationControllerTest {
 		assertNotNull(datasetLocations);
 		assertEquals(1, datasetLocations.getJSONArray("results").length());
 
+		testHelper.setTestUser(helper.getUserId());
+		Dataset collapsedDataset = testHelper.getEntityById(Dataset.class, dataset.getString("id"), null);
+		assertNotNull(collapsedDataset);
+		assertEquals(updatedLocation.getString("md5sum"), collapsedDataset.getMd5());
+		assertEquals(updatedLocation.getString("contentType"), collapsedDataset.getContentType());
+		assertNotNull(collapsedDataset.getLocations());
+		assertEquals(1, collapsedDataset.getLocations().size());
+		LocationData locationData = collapsedDataset.getLocations().get(0);
+		assertEquals(updatedLocation.getString("type"), locationData.getType().name());
+		assertTrue(locationData.getPath()
+				.matches(
+						"^https://s3.amazonaws.com/"
+						+ StackConfiguration.getS3Bucket()
+						+ s3key
+						+ "\\?.*Expires=\\d+&x-amz-security-token=.+&AWSAccessKeyId=\\w+&Signature=[^/]+$"));
 	}
 
 	/**

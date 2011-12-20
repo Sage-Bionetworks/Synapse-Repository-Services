@@ -11,7 +11,6 @@ import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityToMapUtil;
-import org.sagebionetworks.repo.manager.EntityWithAnnotations;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -210,13 +209,14 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	 */
 	private <T extends Entity> void doAddServiceSpecificMetadata(UserInfo info, T entity, EntityType type, HttpServletRequest request, EventType eventType) throws DatastoreException, NotFoundException, UnauthorizedException{
 		// Fetch the provider that will validate this entity.
-		@SuppressWarnings("unchecked")
-		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>)metadataProviderFactory.getMetadataProvider(type);
+		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 
 		// Add the type specific metadata that is common to all objects.
 		addServiceSpecificMetadata(entity, request);
-		// Add the type specific metadata.
-		provider.addTypeSpecificMetadata(entity, request, info, eventType);
+		// Add the type specific metadata
+		for(TypeSpecificMetadataProvider<Entity> provider : providers) {
+			provider.addTypeSpecificMetadata(entity, request, info, eventType);
+		}
 	}
 	
 	@Override
@@ -280,9 +280,11 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// First apply validation that is common to all types.
 		allTypesValidator.validateEntity(entity, event);
 		// Now validate for a specific type.
-		TypeSpecificMetadataProvider<Entity> provider = metadataProviderFactory.getMetadataProvider(type);
+		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		// Validate the entity
-		provider.validateEntity(entity, event);
+		for(TypeSpecificMetadataProvider<Entity> provider : providers) {
+			provider.validateEntity(entity, event);
+		}
 	}
 	
 	@Override
@@ -329,12 +331,13 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// First get the entity we are deleting
 		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		// Fetch the provider that will validate this entity.
-		@SuppressWarnings("unchecked")
-		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>) metadataProviderFactory.getMetadataProvider(type);
+		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		T entity = entityManager.getEntity(userInfo, entityId, clazz);
 		entityManager.deleteEntity(userInfo, entityId);
 		// Do extra cleanup as needed.
-		provider.entityDeleted(entity);
+		for(TypeSpecificMetadataProvider<Entity> provider : providers) {
+			provider.entityDeleted(entity);
+		}
 		return;
 	}
 	
@@ -345,13 +348,13 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// First get the entity we are deleting
 		EntityType type = EntityType.getNodeTypeForClass(classForType);
 		// Fetch the provider that will validate this entity.
-		@SuppressWarnings("unchecked")
-		TypeSpecificMetadataProvider<T> provider = (TypeSpecificMetadataProvider<T>) metadataProviderFactory.getMetadataProvider(type);
+		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		T entity = (T) entityManager.getEntity(userInfo, id, classForType);
 		entityManager.deleteEntityVersion(userInfo, id, versionNumber);
 		// Do extra cleanup as needed.
-		provider.entityDeleted(entity);
-		
+		for(TypeSpecificMetadataProvider<Entity> provider : providers) {
+			provider.entityDeleted(entity);
+		}		
 	}
 
 	@Override

@@ -56,8 +56,6 @@ public class LocationHelpersImpl implements LocationHelper {
 	private static final String READWRITE_DATA_POLICY = "{\"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"s3:PutObject\",\"Resource\": \"arn:aws:s3:::"
 			+ S3_BUCKET + "/" + ENTITY_ID_PLACEHOLDER + "/*\"}]}";
 
-	private Boolean hasSanityBeenChecked = false;
-
 	@Autowired
 	private AmazonClientFactory amazonClientFactory;
 	
@@ -65,6 +63,10 @@ public class LocationHelpersImpl implements LocationHelper {
 	 * Default constructor
 	 */
 	public LocationHelpersImpl() {
+		// Configuration is checked upon startup, we are being extra safe here
+		// by re-validating our "contract" with the configuration system to
+		// ensure that our invariates hold true
+		validateConfiguration();
 	}
 	
 	/**
@@ -72,40 +74,27 @@ public class LocationHelpersImpl implements LocationHelper {
 	 */
 	public LocationHelpersImpl(AmazonClientFactory amazonClientFactory) {
 		this.amazonClientFactory = amazonClientFactory;
+		// Configuration is checked upon startup, we are being extra safe here
+		// by re-validating our "contract" with the configuration system to
+		// ensure that our invariates hold true
+		validateConfiguration();
 	}
 
-	/**
-	 * This throws DatastoreException. It could throw another exception if that
-	 * made more sense. The most important thing is that it bubbles back to
-	 * clients as a 5XX "our fault" error instead of a 4XX "user error"
-	 * 
-	 * @throws DatastoreException
-	 */
-	public static void validateConfiguration() throws DatastoreException {
+	private void validateConfiguration() {
 		if (!S3_BUCKET.startsWith(STACK)) {
-			throw new DatastoreException("Invalid configuration: stack name "
+			throw new IllegalArgumentException("Invalid configuration: stack name "
 					+ STACK + " does not match S3 bucket " + S3_BUCKET);
 		}
 	}
 
-	private void sanityCheckConfiguration() throws DatastoreException {
-		// Dev Note: this is idempotent and therefore does not need to be
-		// threadsafe
-		if (hasSanityBeenChecked) {
-			return;
-		}
-		validateConfiguration();
-		hasSanityBeenChecked = true;
-	}
-
 	@Override
-	public String getS3Url(String userId, String s3Key)
+	public String presignS3GETUrl(String userId, String s3Key)
 			throws DatastoreException {
 		return getS3Url(userId, s3Key, HttpMethod.GET);
 	}
 
 	@Override
-	public String getS3HeadUrl(String userId, String s3Key)
+	public String presignS3HEADUrl(String userId, String s3Key)
 			throws DatastoreException {
 		return getS3Url(userId, s3Key, HttpMethod.HEAD);
 	}
@@ -114,7 +103,7 @@ public class LocationHelpersImpl implements LocationHelper {
 			throws DatastoreException {
 
 		// Get the credentials with which to sign the request
-		Credentials token = createS3Token(userId, method, s3Key);
+		Credentials token = createFederationTokenForS3(userId, method, s3Key);
 		AWSCredentials creds = new BasicAWSCredentials(token.getAccessKeyId(),
 				token.getSecretAccessKey());
 
@@ -136,6 +125,15 @@ public class LocationHelpersImpl implements LocationHelper {
 				.getSessionToken());
 	}
 
+	@Override
+	public String presignS3PUTUrl(String userId, String s3Key, String md5,
+			String contentType) throws DatastoreException {
+
+		// Get the credentials with which to sign the request
+		Credentials sessionCredentials = createFederationTokenForS3(userId, HttpMethod.PUT, s3Key);
+		return presignS3PUTUrl(sessionCredentials, s3Key, md5, contentType);
+	}
+	
 	/**
 	 * Create presigned S3 PUT URLs
 	 * 
@@ -144,13 +142,11 @@ public class LocationHelpersImpl implements LocationHelper {
 	 * http://s3.amazonaws.com/doc/s3-developer-guide/RESTAuthentication.html
 	 */
 	@Override
-	public String createS3Url(String userId, String s3Key, String md5,
+	public String presignS3PUTUrl(Credentials sessionCredentials, String s3Key, String md5,
 			String contentType) throws DatastoreException {
 
-		// Get the credentials with which to sign the request
-		Credentials token = createS3Token(userId, HttpMethod.PUT, s3Key);
-		AWSCredentials creds = new BasicAWSCredentials(token.getAccessKeyId(),
-				token.getSecretAccessKey());
+		AWSCredentials creds = new BasicAWSCredentials(sessionCredentials.getAccessKeyId(),
+				sessionCredentials.getSecretAccessKey());
 
 		// Do the necessary encoding to make this stuff okay for urls and
 		// headers
@@ -178,10 +174,10 @@ public class LocationHelpersImpl implements LocationHelper {
 		buf.append(expirationInSeconds).append("\n");
 		buf.append(CANONICALIZED_ACL_HEADER).append("\n");
 		buf.append(SECURITY_TOKEN_HEADER).append(':').append(
-				token.getSessionToken()).append("\n");
+				sessionCredentials.getSessionToken()).append("\n");
 		buf.append("/").append(S3_BUCKET).append(s3Key);
 
-		return sign(buf.toString(), creds, s3Key, expirationInSeconds, token
+		return sign(buf.toString(), creds, s3Key, expirationInSeconds, sessionCredentials
 				.getSessionToken());
 	}
 
@@ -217,20 +213,10 @@ public class LocationHelpersImpl implements LocationHelper {
 		return presignedUrl.toString();
 	}
 
-	/**
-	 * @param userId
-	 * @param method
-	 * @param s3Key
-	 * @return the securityToken credentials
-	 * @throws DatastoreException
-	 */
-	public Credentials createS3Token(String userId, HttpMethod method,
-			String s3Key) throws DatastoreException {
 
-		// Configuration is checked upon startup, we are being extra safe here
-		// by re-validating our "contract" with the configuration system to
-		// ensure that our invariates hold true
-		sanityCheckConfiguration();
+	@Override
+	public Credentials createFederationTokenForS3(String userId, HttpMethod method,
+			String s3Key) {
 
 		// Append the stack name to the federated username for prod vs. test
 		// isolation

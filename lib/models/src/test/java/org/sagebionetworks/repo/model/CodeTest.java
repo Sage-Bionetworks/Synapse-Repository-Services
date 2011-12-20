@@ -43,11 +43,11 @@ public class CodeTest {
 		c1.setVersionNumber(1L);
 		c1.setVersionUrl("/versions/1");
 		c1.setVersions("/versions");
+		c1.setContentType("text");
+		c1.setMd5("01234567890123456789012345678901");
 		
 		List<LocationData> ll = new ArrayList<LocationData>();
 		LocationData l = new LocationData();
-		l.setContentType("text");
-		l.setMd5("01234567890123456789012345678901");
 		l.setPath("path");
 		l.setType(LocationTypeNames.sage);
 		ll.add(l);

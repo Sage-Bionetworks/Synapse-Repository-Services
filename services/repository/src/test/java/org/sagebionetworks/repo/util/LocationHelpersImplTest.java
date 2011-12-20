@@ -44,7 +44,7 @@ public class LocationHelpersImplTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.util.LocationHelpersImpl#createS3Url(java.lang.String, java.lang.String, java.lang.String, java.lang.String)}
+	 * {@link org.sagebionetworks.repo.util.LocationHelpersImpl#presignS3PUTUrl(java.lang.String, java.lang.String, java.lang.String, java.lang.String)}
 	 * .
 	 * 
 	 * @throws Exception
@@ -52,7 +52,7 @@ public class LocationHelpersImplTest {
 	@Test
 	public void testCreateS3Url() throws Exception {
 
-		String url = helper.createS3Url(INTEGRATION_TEST_READ_ONLY_USER_ID,
+		String url = helper.presignS3PUTUrl(INTEGRATION_TEST_READ_ONLY_USER_ID,
 				"/9876/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz",
 				"33183779e53ce0cfc35f59cc2a762cbd", "application/binary");
 		assertNotNull(url);
@@ -60,7 +60,7 @@ public class LocationHelpersImplTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.util.LocationHelpersImpl#getS3Url(java.lang.String, java.lang.String)}
+	 * {@link org.sagebionetworks.repo.util.LocationHelpersImpl#presignS3GETUrl(java.lang.String, java.lang.String)}
 	 * .
 	 * 
 	 * @throws Exception
@@ -68,7 +68,7 @@ public class LocationHelpersImplTest {
 	@Test
 	public void testGetS3Url() throws Exception {
 
-		String url = helper.getS3Url(INTEGRATION_TEST_READ_ONLY_USER_ID,
+		String url = helper.presignS3GETUrl(INTEGRATION_TEST_READ_ONLY_USER_ID,
 				"/9876/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
 
 		assertNotNull(url);
@@ -76,7 +76,7 @@ public class LocationHelpersImplTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.util.LocationHelpersImpl#getS3HeadUrl(java.lang.String, java.lang.String)}
+	 * {@link org.sagebionetworks.repo.util.LocationHelpersImpl#presignS3HEADUrl(java.lang.String, java.lang.String)}
 	 * .
 	 * 
 	 * @throws Exception
@@ -84,7 +84,7 @@ public class LocationHelpersImplTest {
 	@Test
 	public void testGetS3HeadUrl() throws Exception {
 
-		String url = helper.getS3HeadUrl(INTEGRATION_TEST_READ_ONLY_USER_ID,
+		String url = helper.presignS3HEADUrl(INTEGRATION_TEST_READ_ONLY_USER_ID,
 				"/9123123123/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
 
 		assertNotNull(url);

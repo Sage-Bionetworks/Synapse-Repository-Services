@@ -131,9 +131,9 @@ public class StackStatusInterceptorTest {
 		}catch(ServletTestHelperException e){
 			assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), e.getHttpStatus());
 			// Make sure the message is in the exception
-			assertTrue(e.getServiceErrorMessage().indexOf(CURRENT_STATUS_1) > 0);
-			assertTrue(e.getServiceErrorMessage().indexOf(StatusEnum.DOWN.name()) > 0);
-			assertTrue(e.getServiceErrorMessage().indexOf(CURRENT_STATUS_2) > 0);
+			assertTrue(e.getMessage().indexOf(CURRENT_STATUS_1) > 0);
+			assertTrue(e.getMessage().indexOf(StatusEnum.DOWN.name()) > 0);
+			assertTrue(e.getMessage().indexOf(CURRENT_STATUS_2) > 0);
 		}
 	}
 	
@@ -162,9 +162,9 @@ public class StackStatusInterceptorTest {
 		}catch(ServletTestHelperException e){
 			assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), e.getHttpStatus());
 			// Make sure the message is in the exception
-			assertTrue(e.getServiceErrorMessage().indexOf(CURRENT_STATUS_1) > 0);
-			assertTrue(e.getServiceErrorMessage().indexOf(StatusEnum.READ_ONLY.name()) > 0);
-			assertTrue(e.getServiceErrorMessage().indexOf(CURRENT_STATUS_2) > 0);
+			assertTrue(e.getMessage().indexOf(CURRENT_STATUS_1) > 0);
+			assertTrue(e.getMessage().indexOf(StatusEnum.READ_ONLY.name()) > 0);
+			assertTrue(e.getMessage().indexOf(CURRENT_STATUS_2) > 0);
 		}
 	}
 	

@@ -42,9 +42,11 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.Versionable;
@@ -66,6 +68,9 @@ import org.springframework.web.servlet.DispatcherServlet;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DefaultControllerAutowiredAllTypesTest {
+
+	@Autowired
+	ServletTestHelper testHelper;
 
 	// Used for cleanup
 	@Autowired
@@ -817,4 +822,38 @@ public class DefaultControllerAutowiredAllTypesTest {
 		}
 	}
 
+	/**
+	 * This test should help ensure that if a new locationable entity is created, its url mapping 
+	 * gets added to the S3TokenController
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testLocationableS3Token() throws Exception {
+		testHelper.setUp();
+		testHelper.setTestUser(userName);
+		
+		// First create one of each type
+		List<Entity> created = createEntitesOfEachType(1);
+		assertNotNull(created);
+		assertTrue(created.size() >= EntityType.values().length);
+		// Now update each
+		for(Entity entity: created){
+			// We can only create S3Tokens for locationable entities.
+			if(entity instanceof Locationable) {
+				Locationable locationableEntity = (Locationable) entity;
+				
+				// Now create a new S3Token
+				S3Token token = new S3Token();
+				token.setPath("20111204/data.tsv");
+				token.setMd5("76af51ccdd0aabacca67d083d0b422e6");
+				token = testHelper.createObject(locationableEntity.getS3Token(), token);
+				assertNotNull(token.getSecretAccessKey());
+				assertNotNull(token.getAccessKeyId());
+				assertNotNull(token.getSessionToken());
+				assertNotNull(token.getPresignedUrl());
+			}
+		}
+	}
+	
 }

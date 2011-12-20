@@ -182,7 +182,7 @@ public class GwtTestSuite extends GWTTestCase {
 				}else if(FORMAT.DATE_TIME == propertySchema.getFormat()){
 					value = adapter.convertDateToString(FORMAT.DATE_TIME, new Date());
 				}else if(propertySchema.getEnum() != null){
-					int enumIndex = propertySchema.getEnum().length % index;
+					int enumIndex = propertySchema.getEnum().length-1 % index;
 					value = propertySchema.getEnum()[enumIndex];
 				}else{
 					if(propertySchema.isRequired()){

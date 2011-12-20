@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.util;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.springframework.http.HttpMethod;
+
+import com.amazonaws.services.securitytoken.model.Credentials;
 
 /**
  * @author deflaux
@@ -27,7 +30,7 @@ public interface LocationHelper {
 	 * @return a pre-signed S3 URL valid for GET requests
 	 * @throws DatastoreException
 	 */
-	String getS3Url(String userId, String path) throws DatastoreException;
+	String presignS3GETUrl(String userId, String path) throws DatastoreException;
 
 	/**
 	 * Return a pre-signed URL for use checking the status of files in S3, such
@@ -48,7 +51,7 @@ public interface LocationHelper {
 	 * @return a pre-signed S3 URL valid for HEAD requests
 	 * @throws DatastoreException
 	 */
-	String getS3HeadUrl(String userId, String path) throws DatastoreException;
+	String presignS3HEADUrl(String userId, String path) throws DatastoreException;
 
 	/**
 	 * Return a pre-signed URL for use in uploading a file to S3. Note that the
@@ -71,9 +74,32 @@ public interface LocationHelper {
 	 * @return a pre-signed URL valid for PUT requests
 	 * @throws DatastoreException
 	 */
-	String createS3Url(String userId, String path, String md5, String contentType)
+	String presignS3PUTUrl(String userId, String path, String md5, String contentType)
 			throws DatastoreException;
 	
+	/**
+	 * 
+	 * @param sessionCredentials
+	 * @param s3Key
+	 * @param md5
+	 * @param contentType
+	 * @return a pre-signed URL valid for PUT requests
+	 * @throws DatastoreException
+	 */
+	String presignS3PUTUrl(Credentials sessionCredentials, String s3Key,
+			String md5, String contentType) throws DatastoreException;
+	
+	/**
+	 * Create a federation token for an S3 object
+	 * 
+	 * @param userId
+	 * @param method
+	 * @param s3Key
+	 * @return the securityToken credentials
+	 */
+	Credentials createFederationTokenForS3(String userId, HttpMethod method,
+			String s3Key);
+
 	/**
 	 * Retrieve just the s3Key portion of an S3 URL
 	 * 

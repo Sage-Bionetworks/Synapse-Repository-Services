@@ -200,7 +200,7 @@ public class LicensedDownloader implements LicensedDownloaderView.Presenter, Syn
 				Locationable locationable = (Locationable)entity;
 				List<LocationData> locations = locationable.getLocations();				
 				if(locations != null && locations.size() > 0) {
-					this.view.setDownloadLocations(locations);
+					this.view.setDownloadLocations(locations, locationable.getMd5());
 					
 					// show download if requested
 					if(showDownloadLocations != null && showDownloadLocations == true) {

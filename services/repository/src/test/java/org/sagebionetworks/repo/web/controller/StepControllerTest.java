@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -155,7 +156,7 @@ public class StepControllerTest {
 		extraParams.put(ServiceConstants.STEP_TO_UPDATE_PARAM, step.getId());
 
 		// Get a layer, side effect should add it to input references
-		testHelper.getEntity(Layer.class, layer.getId(), extraParams);
+		testHelper.getEntity(layer, extraParams);
 
 		// Create a new layer, side effect should be to add it to output
 		// references
@@ -174,7 +175,7 @@ public class StepControllerTest {
 		// TODO update a layer, version a layer, etc ...
 
 		// Make sure those layers are now referred to by our step
-		step = testHelper.getEntity(Step.class, step.getId(), null);
+		step = testHelper.getEntity(step, null);
 		assertEquals(layer.getId(), step.getInput().iterator().next().getTargetId());
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, step.getInput().iterator().next().getTargetVersionNumber());
 		assertEquals(outputLayer.getId(), step.getOutput().iterator().next().getTargetId());
@@ -190,32 +191,33 @@ public class StepControllerTest {
 		analysis = testHelper.createEntity(analysis, extraParams);
 		
 		// Make sure the step's parent is now the analysis
-		step = testHelper.getEntity(Step.class, step.getId(), null);
+		step = testHelper.getEntity(step, null);
 		assertEquals(analysis.getId(), step.getParentId());
 		
 		// Confirm that another user cannot read the analysis or the step
 		testHelper.setTestUser(TEST_USER2);
 		try {
-			testHelper.getEntity(Step.class, step.getId(), null);
+			testHelper.getEntity(step, null);
 			fail("expected exception");
 		}
 		catch(ServletTestHelperException e) {
-			assertEquals(TEST_USER2 + " lacks read access to the requested object.", e.getServiceErrorMessage());
+			assertEquals(TEST_USER2 + " lacks read access to the requested object.", e.getMessage());
+			assertEquals(HttpStatus.FORBIDDEN.value(), e.getHttpStatus());
 		}
 		
 		// Add a public read ACL to the project object
 		testHelper.setTestUser(TEST_USER1);
-		AccessControlList projectAcl = testHelper.getEntityACL(Project.class, project.getId());
+		AccessControlList projectAcl = testHelper.getEntityACL(project);
 		ResourceAccess ac = new ResourceAccess();
 		ac.setGroupName(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name());
 		ac.setAccessType(new HashSet<ACCESS_TYPE>());
 		ac.getAccessType().add(ACCESS_TYPE.READ);
 		projectAcl.getResourceAccess().add(ac);
-		projectAcl = testHelper.updateEntityAcl(Project.class, project.getId(), projectAcl);
+		projectAcl = testHelper.updateEntityAcl(project, projectAcl);
 
 		// Ensure that another user can now read the step
 		testHelper.setTestUser(TEST_USER2);
-		step = testHelper.getEntity(Step.class, step.getId(), null);
+		step = testHelper.getEntity(step, null);
 
 	}
 }

@@ -61,7 +61,7 @@ public interface LicensedDownloaderView extends IsWidget, SynapseWidgetView {
 	 * Sets the content of the download pane
 	 * @param downloads
 	 */
-	public void setDownloadLocations(List<LocationData> locations);
+	public void setDownloadLocations(List<LocationData> locations, String md5);
 	
 	
 	/**

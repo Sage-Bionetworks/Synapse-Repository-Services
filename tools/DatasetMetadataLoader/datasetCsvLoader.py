@@ -126,7 +126,7 @@ def checkEmptyRepository():
     Also used to load the groups as side-effect.
     """
     # Postpone until bugfix
-    #chkList = ["/project", "/dataset", "/layer", "/preview", "/location"]
+    #chkList = ["/project", "/dataset", "/layer", "/preview"]
     #for c in chkList:
     #    l = gSYNAPSE.getRepoEntity(c)
     #    if 0 == len(l):
@@ -184,7 +184,7 @@ def createOrUpdateEntity(kind, entity, permissions=None):
     Note that permissions defaults to None meaning that this entity
     should just inherit the permissions of its parent.    
     """
-    if(("location" == kind) or ("preview" == kind)):
+    if("preview" == kind):
         storedEntity = gSYNAPSE.getRepoEntityByProperty(kind=kind,
                                                         propertyName="parentId",
                                                         propertyValue=entity['parentId'])
@@ -220,7 +220,7 @@ def createOrUpdateEntity(kind, entity, permissions=None):
 #        print 'Updated acl %s %s\n\n' % (kind, message)
     return storedEntity
 
-def createOrUpdateDataset(dataset, annotations, location):
+def createOrUpdateDataset(dataset, annotations):
     """
     Helper function to create or update a dataset, its annotations,
     and its location as appropriate.
@@ -230,49 +230,9 @@ def createOrUpdateDataset(dataset, annotations, location):
     # Put our annotations
     gSYNAPSE.updateRepoEntity(storedDataset["annotations"], annotations)
 
-    # If there's a dataset location, set its parentId to created
-    # dataset id and add location
-    if None != location:
-        # Cannot create orphan location
-        location["parentId"] = storedDataset["id"]
-        createOrUpdateLocation(location=location)
-
     # Stash the dataset id for later use
     gDATASET_NAME_2_ID[dataset['name']] = storedDataset['id']
-      
-def createOrUpdateLocation(location):
-    """
-    Helper method to create or update a location and optionally upload
-    the data to S3
-    """
-    if 0 != string.find(location['path'], "/"):
-        location["path"] = "/" + location["path"]
-
-    md5 = None
-    if(gARGS.fakeLocalData):
-        location["md5sum"] = '0123456789ABCDEF0123456789ABCDEF'
-    else:
-        md5 = synapse.utils.computeMd5ForFile(SOURCE_DATA_DIRECTORY + location['path'])
-        location["md5sum"] = md5.hexdigest()
-
-    storedLocation = createOrUpdateEntity(kind="location",
-                                          entity=location,
-                                          permissions=LOCATION_PERMS)
-
-    if(not gARGS.fakeLocalData and gARGS.uploadData):
-        # TODO skip uploads for files if the checksum has not changed
-        # TODO spawn a thread for each upload and proceed to get more throughput
-        ## 20110715, migration to bucket devdata01, skip this dataset since its laready there
-        #if('/mskcc_prostate_cancer.zip' == location['path']):
-        #    return
-
-        localFilepath = SOURCE_DATA_DIRECTORY + location['path']
-        synapse.utils.uploadToS3(localFilepath=localFilepath,
-                                 s3url=storedLocation["path"],
-                                 md5=md5,
-                                 contentType=storedLocation["contentType"],
-                                 debug=gARGS.debug)
-        
+              
 #--------------------[ loadDatasets ]-----------------------------
 # What follows is code that expects a dataset CSV in a particular format,
 # sorry its so brittle and ugly
@@ -319,8 +279,7 @@ def loadDatasets(projectId, eulaId):
         if(previousDatasetId != row[0]):
             # Create our dataset
             createOrUpdateDataset(dataset=dataset,
-                                  annotations=annotations,
-                                  location=location)
+                                  annotations=annotations)
             # Re-initialize per dataset variables
             previousDatasetId = row[0]
             dataset = {}
@@ -357,9 +316,12 @@ def loadDatasets(projectId, eulaId):
                 location = None
                 if "NA" != col:
                     path = col
-                    location = {}
-                    location["type"] = "awss3"
-                    location["path"] = path
+                    locationData = {}
+                    locationData["type"] = "external"
+                    locationData["path"] = path
+                    dataset["md5"] = "43809069fd7d431cd17aec5fac064b95"
+                    dataset[locations] = []
+                    dataset[locations][0] = locationData
             else:
                 if( re.search('date', string.lower(header[colnum])) ):
                     ## TODO: Fix data file and remove following code
@@ -391,8 +353,7 @@ def loadDatasets(projectId, eulaId):
 
     # Send the last one, create our dataset
     createOrUpdateDataset(dataset=dataset,
-                          annotations=annotations,
-                          location=location)
+                          annotations=annotations)
 
 #--------------------[ loadLayers ]-----------------------------
 def loadLayers():
@@ -422,20 +383,21 @@ def loadLayers():
         layer["version"] = row[6]
         layer["qcBy"] = row[11]
         
-        newLayer = createOrUpdateEntity(kind="layer", entity=layer)
-        if newLayer == None:
-            raise Exception("ENTITY_CREATION_ERROR")
-        
         # Ignore column 8 (sage loc) and 9 (awsebs loc) for now
         for col in [10]:
             if(row[col] != ""):
                 # trim whitespace off both sides
                 path = row[col].strip()
-                location = {}
-                location["parentId"] = newLayer["id"]   # Cannot create orphaned location
-                location["type"] = header[col]
-                location["path"] = path
-                createOrUpdateLocation(location=location)
+                locationData = {}
+                locationData["type"] = "external"
+                locationData["path"] = path
+                layer["md5"] = "43809069fd7d431cd17aec5fac064b95"
+                layer[locations] = []
+                layer[locations][0] = locationData
+        
+        newLayer = createOrUpdateEntity(kind="layer", entity=layer)
+        if newLayer == None:
+            raise Exception("ENTITY_CREATION_ERROR")
         
         layerPreview = {}
         

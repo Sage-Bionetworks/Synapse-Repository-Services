@@ -17,8 +17,38 @@
   <packaging>pom</packaging>
   <name>Synapse R Client</name>
 
+  	<dependencies>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>synapseJavaClient</artifactId>
+		</dependency>
+
+	</dependencies>
+  
   <build>
     <plugins>
+
+	  <!-- Unpack java client with this -->
+	  <plugin>
+		<artifactId>maven-dependency-plugin</artifactId>
+		<executions>
+		  <execution>
+			<id>unpack-java-client</id>
+			<goals>
+			  <goal>copy-dependencies</goal>
+			</goals>
+			<phase>compile</phase>
+			<configuration>
+			  <outputDirectory>inst/java</outputDirectory>
+			  <includeArtifacIds>synapseJavaClient</includeArtifacIds>
+              <stripVersion>true</stripVersion>
+			</configuration>
+		  </execution>
+		</executions>
+	  </plugin>
+
+      
       <!-- We use this assembly to package the R and Python dependencies so they are aviablible for integration testing. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

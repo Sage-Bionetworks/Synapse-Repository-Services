@@ -4,6 +4,7 @@ importFrom(RJSONIO, toJSON, fromJSON, emptyNamedList)
 importFrom(tools, md5sum)
 importFrom(digest, digest, hmac)
 importFrom(utils, edit)
+importFrom(rJava, .jinit, .jcall, .jnew, .jcast)
 
 ## package has a dynamic library
 useDynLib(synapseClient)

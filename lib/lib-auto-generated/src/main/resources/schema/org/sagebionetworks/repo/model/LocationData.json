@@ -8,16 +8,6 @@
             "description":"The path of this location",
             "type":"string",
             
-        },
-        "md5":{
-            "description":"The checksum of this location",
-            "type":"string",
-            
-        },
-        "contentType":{
-            "description":"The type of file of this location",
-            "type":"string",
-            
         }
     }
 }

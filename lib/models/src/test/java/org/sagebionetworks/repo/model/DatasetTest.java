@@ -39,6 +39,8 @@ public class DatasetTest {
 		ds1.setVersionNumber(1L);
 		ds1.setVersionUrl("versionUrl");
 		ds1.setVersions("versions");
+		ds1.setContentType("txt");
+		ds1.setMd5("abcdef");
 
 		ds1.setEulaId("0");
 		ds1.setHasClinicalData(Boolean.TRUE);
@@ -52,8 +54,6 @@ public class DatasetTest {
 
 		List<LocationData> ldl = new ArrayList<LocationData>();
 		LocationData ld = new LocationData();
-		ld.setContentType("txt");
-		ld.setMd5("abcdef");
 		ld.setPath("path");
 		ld.setType(LocationTypeNames.sage);
 		ldl.add(ld);

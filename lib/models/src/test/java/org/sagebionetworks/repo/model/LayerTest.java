@@ -41,11 +41,11 @@ public class LayerTest {
 		l1.setVersionNumber(1L);
 		l1.setVersionUrl("/versions/1");
 		l1.setVersions("/versions");
+		l1.setContentType("text");
+		l1.setMd5("01234567890123456789012345678901");
 		
 		List<LocationData> ll = new ArrayList<LocationData>();
 		LocationData l = new LocationData();
-		l.setContentType("text");
-		l.setMd5("01234567890123456789012345678901");
 		l.setPath("path");
 		l.setType(LocationTypeNames.sage);
 		ll.add(l);

@@ -65,7 +65,7 @@ getDatasetLayers <-
 getLayerLocations <- 
 		function(entity, offset=1, limit=100)
 {
-	.getChildEntities(entity=entity, offset=offset, limit=limit, kind="layer", childKind="location", includeParentAnnot = FALSE)
+	propertyValue(entity, "locations")
 }
 
 getLayerPreviews <- 

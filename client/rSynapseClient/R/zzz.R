@@ -4,7 +4,11 @@
 # Author: mfuria
 ###############################################################################
 
+# For user preferences and other configuration data
 .cache <- new.env(parent=emptyenv())
+
+# For Java objects
+.jenv <- new.env()
 
 kCertBundle <- "certificateBundle/cacert.pem"
 
@@ -63,6 +67,17 @@ kLayerSubtypeMap <- list(
 .onLoad <-
 		function(libname, pkgname)
 {
+	## Set up rJava
+	classpath <- c(list.files(file.path(find.package("synapseClient"), "java"), full.names=TRUE, pattern='jar$', recursive=FALSE))
+	.jinit(classpath=classpath)
+	# use the non-default text-based progress listener for uploads
+	progress <- .jnew("org/sagebionetworks/client/TextProgressListener")
+	uploader <- .jnew("org/sagebionetworks/client/DataUploaderMultipartImpl")
+	uploader$setProgressListener(progress)
+	syn <- .jnew("org/sagebionetworks/client/Synapse")
+	syn$setDataUploader(uploader)
+	assign("syn", syn, envir=synapseClient:::.jenv)
+	
 	synapseResetEndpoints()
 	synapseDataLocationPreferences(kSupportedDataLocationTypes)
 	.setCache("synapseCacheDir", gsub("[\\]+", "/", path.expand("~/.synapseCache")))

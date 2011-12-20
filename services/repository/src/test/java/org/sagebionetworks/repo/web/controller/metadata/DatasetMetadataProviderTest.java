@@ -38,7 +38,6 @@ import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.MetadataProviderFactory;
-import org.sagebionetworks.repo.web.controller.ServletTestHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -70,7 +69,7 @@ public class DatasetMetadataProviderTest {
 	@Before
 	public void before() throws DatastoreException, NotFoundException {
 		assertNotNull(entityController);
-		datasetMetadataProvider = metadataProviderFactory.getMetadataProvider(EntityType.dataset);
+		datasetMetadataProvider = metadataProviderFactory.getMetadataProvider(EntityType.dataset).get(0);
 		assertNotNull(datasetMetadataProvider);
 		toDelete = new ArrayList<String>();
 		// Map test objects to their urls

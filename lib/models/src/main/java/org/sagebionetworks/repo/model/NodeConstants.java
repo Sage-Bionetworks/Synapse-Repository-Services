@@ -31,6 +31,11 @@ public class NodeConstants {
 	public static final String DEFAULT_VERSION_LABEL = "0.0.0";
 	
 	/**
+	 * The versionLabel prefix for auto-created versions
+	 */
+	public static final String AUTOCREATED_VERSION_LABEL_PREFIX = "autoVersionBumpFrom_";
+	
+	/**
 	 * Forward slash should be the prefix of a node's path.
 	 */
 	public static final String PATH_PREFIX = "/";
