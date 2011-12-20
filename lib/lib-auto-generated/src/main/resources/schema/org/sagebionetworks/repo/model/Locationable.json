@@ -17,5 +17,30 @@
                 "$ref":"org.sagebionetworks.repo.model.LocationData"
             }
         },
+       "locationStatus":{
+            "type":"string",
+            "description":"Status of location data, a system-controlled field",
+            "name":"LocationStatusNames",
+            "id":"org.sagebionetworks.repo.model.LocationStatusNames",
+            "enum":[
+                "available",
+                "pendingEula"
+            ],
+            
+        },
+        "md5":{
+            "description":"The checksum of this location",
+            "type":"string",
+            
+        },
+        "contentType":{
+            "description":"The type of file of this location",
+            "type":"string",
+            
+        },
+        "s3Token":{
+            "type":"string",
+            "description":"The URL to an S3 token for this entity. This URL is provided by Synapse."
+        }
     }
 }

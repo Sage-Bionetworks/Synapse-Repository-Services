@@ -25,6 +25,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 public class SynapseTest {
 	
 	HttpClientProvider mockProvider = null;
+	DataUploader mockUploader = null;
 	HttpResponse mockResponse;
 	
 	Synapse synapse;
@@ -33,9 +34,10 @@ public class SynapseTest {
 	public void before() throws Exception{
 		// The mock provider
 		mockProvider = Mockito.mock(HttpClientProvider.class);
+		mockUploader = Mockito.mock(DataUploaderMultipartImpl.class);
 		mockResponse = Mockito.mock(HttpResponse.class);
 		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
-		synapse = new Synapse(mockProvider);
+		synapse = new Synapse(mockProvider, mockUploader);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -67,7 +69,7 @@ public class SynapseTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetEntityNullClass() throws Exception{
-		synapse.getEntity("123", Dataset.class);
+		synapse.getEntity("123", null);
 	}
 	
 	@Test

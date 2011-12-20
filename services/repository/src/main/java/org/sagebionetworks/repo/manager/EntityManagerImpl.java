@@ -13,9 +13,11 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -28,8 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Transactional(readOnly = true)
 public class EntityManagerImpl implements EntityManager {
-	
-//	private static final Logger log = Logger.getLogger(EntityManagerImpl.class.getName());
 	
 	@Autowired
 	NodeManager nodeManager;
@@ -203,14 +203,28 @@ public class EntityManagerImpl implements EntityManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Entity> void updateEntity(UserInfo userInfo, T updated, boolean newVersion) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException {
+
 		if(updated == null) throw new IllegalArgumentException("Entity cannot be null");
 		if(updated.getId() == null) throw new IllegalArgumentException("The updated Entity cannot have a null ID");
-		Node node = nodeManager.get(userInfo, updated.getId());		
+
+		Node node = nodeManager.get(userInfo, updated.getId());	
 		// Now get the annotations for this node
 		NamedAnnotations annos = nodeManager.getAnnotations(userInfo, updated.getId());
 		annos.setEtag(updated.getEtag());
+
+		// Auto-version locationable entities
+		if(false == newVersion && Locationable.class.isAssignableFrom(updated.getClass())) {
+			Locationable locationable = (Locationable) updated;
+			String currentMd5 = (String) annos.getPrimaryAnnotations().getSingleValue("md5");
+			if(null != currentMd5 && !currentMd5.equals(locationable.getMd5())) {
+				newVersion = true;
+				// Programmatically construct a unique version label
+				locationable.setVersionLabel(NodeConstants.AUTOCREATED_VERSION_LABEL_PREFIX + locationable.getVersionNumber().toString());
+			}
+		}
+
 		updateNodeAndAnnotationsFromEntity(updated, node, annos.getPrimaryAnnotations());
-		// NOw update both at the same time
+		// Now update both at the same time
 		nodeManager.update(userInfo, node, annos, newVersion);
 	}
 	

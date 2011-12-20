@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+@Deprecated
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class LocationMetadataProviderTest {
@@ -30,7 +31,7 @@ public class LocationMetadataProviderTest {
 	@Before
 	public void before() throws DatastoreException, NotFoundException {
 		locationMetadataProvider = metadataProviderFactory
-				.getMetadataProvider(EntityType.location);
+				.getMetadataProvider(EntityType.location).get(0);
 	}
 
 

@@ -8,14 +8,13 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
@@ -34,10 +33,10 @@ import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
+import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
@@ -46,7 +45,6 @@ import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.HMACUtils;
-import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.joda.time.DateTime;
@@ -68,14 +66,14 @@ public class Synapse {
 	private static final String REQUEST_PROFILE_DATA = "profile_request";
 	private static final String PROFILE_RESPONSE_OBJECT_HEADER = "profile_response_object";
 	private static final String QUERY_URI = "/query?query=";
-	
-	public static final String ADMIN			= "/admin";
-	public static final String DAEMOM			= ADMIN+"/daemon";
-	public static final String BACKUP			= "/backup";
-	public static final String RESTORE			= "/restore";
-	public static final String DAMEON_BACKUP	= DAEMOM+BACKUP;
-	public static final String DAMEON_RETORE	= DAEMOM+RESTORE;
-	public static final String STACK_STATUS		= ADMIN+"/synapse/status";
+
+	public static final String ADMIN = "/admin";
+	public static final String DAEMOM = ADMIN + "/daemon";
+	public static final String BACKUP = "/backup";
+	public static final String RESTORE = "/restore";
+	public static final String DAMEON_BACKUP = DAEMOM + BACKUP;
+	public static final String DAMEON_RETORE = DAEMOM + RESTORE;
+	public static final String STACK_STATUS = ADMIN + "/synapse/status";
 
 	private String repoEndpoint;
 	private String authEndpoint;
@@ -86,24 +84,30 @@ public class Synapse {
 	private JSONObject profileData;
 	private boolean requestProfile;
 	private HttpClientProvider clientProvider;
+	private DataUploader dataUploader;
 
 	/**
 	 * Default constructor uses the default repository and auth services
 	 * endpoints.
 	 */
 	public Synapse() {
-		// Use the default provider
-		this(new HttpClientProviderImpl());
+		// Use the default implementations
+		this(new HttpClientProviderImpl(), new DataUploaderMultipartImpl());
 	}
 
 	/**
-	 * Will use the provided client provider.
+	 * Will use the provided client provider and data uploader.
 	 * 
-	 * @param provider
+	 * @param clientProvider 
+	 * @param dataUploader 
 	 */
-	public Synapse(HttpClientProvider provider) {
-		if (provider == null)
-			throw new IllegalArgumentException("Provider cannot be null");
+	public Synapse(HttpClientProvider clientProvider, DataUploader dataUploader) {
+		if (clientProvider == null)
+			throw new IllegalArgumentException("HttpClientProvider cannot be null");
+
+		if (dataUploader == null)
+			throw new IllegalArgumentException("DataUploader cannot be null");
+
 		setRepositoryEndpoint(DEFAULT_REPO_ENDPOINT);
 		setAuthEndpoint(DEFAULT_AUTH_ENDPOINT);
 
@@ -114,12 +118,31 @@ public class Synapse {
 		defaultPOSTPUTHeaders.putAll(defaultGETDELETEHeaders);
 		defaultPOSTPUTHeaders.put("Content-Type", "application/json");
 
-		clientProvider = provider;
+		this.clientProvider = clientProvider;
 		clientProvider.setGlobalConnectionTimeout(DEFAULT_TIMEOUT_MSEC);
 		clientProvider.setGlobalSocketTimeout(DEFAULT_TIMEOUT_MSEC);
 
+		this.dataUploader = dataUploader;
+		
 		requestProfile = false;
 
+	}
+
+	/**
+	 * Use this method to override the default implementation of {@link HttpClientProvider}
+	 * @param clientProvider
+	 */
+	public void setHttpClientProvider(HttpClientProvider clientProvider) {
+		this.clientProvider = clientProvider;
+	}
+	
+	/**
+	 * Use this method to override the default implementation of {@link DataUploader}
+	 * 
+	 * @param dataUploader
+	 */
+	public void setDataUploader(DataUploader dataUploader) {
+		this.dataUploader = dataUploader;
 	}
 
 	/**
@@ -239,6 +262,7 @@ public class Synapse {
 	 * @param uri
 	 * @param entity
 	 * @return the newly created entity
+	 * @throws SynapseException
 	 */
 	public JSONObject createEntity(String uri, JSONObject entity)
 			throws SynapseException {
@@ -250,7 +274,7 @@ public class Synapse {
 	 * 
 	 * @param <T>
 	 * @param entity
-	 * @return
+	 * @return the newly created entity
 	 * @throws SynapseException
 	 */
 	@SuppressWarnings("unchecked")
@@ -260,12 +284,28 @@ public class Synapse {
 			throw new IllegalArgumentException("Entity cannot be null");
 		// Look up the EntityType for this entity.
 		EntityType type = EntityType.getNodeTypeForClass(entity.getClass());
+		return createEntity(type.getUrlPrefix(), entity);
+	}
+
+	/**
+	 * Create a new Entity.
+	 * 
+	 * @param <T>
+	 * @param entity
+	 * @return the newly created entity
+	 * @throws SynapseException
+	 */
+	@SuppressWarnings("unchecked")
+	public <T extends JSONEntity> T createEntity(String uri, T entity)
+			throws SynapseException {
+		if (entity == null)
+			throw new IllegalArgumentException("Entity cannot be null");
 		// Get the json for this entity
 		JSONObject jsonObject;
 		try {
 			jsonObject = EntityFactory.createJSONObjectForEntity(entity);
 			// Create the entity
-			jsonObject = createEntity(type.getUrlPrefix(), jsonObject);
+			jsonObject = createEntity(uri, jsonObject);
 			// Now convert to Object to an entity
 			return (T) EntityFactory.createEntityFromJSONObject(jsonObject,
 					entity.getClass());
@@ -279,6 +319,7 @@ public class Synapse {
 	 * 
 	 * @param uri
 	 * @return the retrieved entity
+	 * @throws SynapseException
 	 */
 	public JSONObject getEntity(String uri) throws SynapseException {
 		return getSynapseEntity(repoEndpoint, uri);
@@ -299,44 +340,17 @@ public class Synapse {
 
 		if (entity instanceof Entity) {
 			return (T) getEntity(((Entity) entity).getId(), entity.getClass());
-		} else {
-			// TODO : Nicole--add non Entity Types here
-			throw new SynapseException("NYI");
 		}
+		// TODO : Nicole--add non Entity Types here
+		throw new SynapseException("NYI");
 
 	}
 
 	/**
-	 * Get an entity given an Entity ID and the class of the Entity.
-	 * 
-	 * @param <T>
 	 * @param entityId
-	 * @param clazz
-	 * @return
-	 * @throws SynapseServiceException
-	 * @throws SynapseUserException
-	 * @throws JSONException
-	 * @throws IOException
-	 * @throws ClientProtocolException
-	 * @throws JSONObjectAdapterException
+	 * @return the entity
+	 * @throws SynapseException
 	 */
-	public <T extends JSONEntity> T getEntity(String entityId,
-			Class<? extends T> clazz) throws SynapseException {
-		if (entityId == null)
-			throw new IllegalArgumentException("EntityId cannot be null");
-		if (clazz == null)
-			throw new IllegalArgumentException("Entity class cannot be null");
-		EntityType type = EntityType.getNodeTypeForClass(clazz);
-		// Build the URI
-		String uri = createEntityUri(type.getUrlPrefix(), entityId);
-		JSONObject object = getEntity(uri);
-		try {
-			return (T) EntityFactory.createEntityFromJSONObject(object, clazz);
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}
-	}
-
 	public Entity getEntityById(String entityId) throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("EntityId cannot be null");
@@ -348,6 +362,34 @@ public class Synapse {
 			EntityType type = EntityType.getFirstTypeInUrl(objType);
 			return getEntity(entityId, type.getClassForType());
 		} catch (JSONException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	/**
+	 * Get an entity given an Entity ID and the class of the Entity.
+	 * 
+	 * @param <T>
+	 * @param entityId
+	 * @param clazz
+	 * @return the entity
+	 * @throws SynapseException
+	 */
+	@SuppressWarnings("cast")
+	public <T extends JSONEntity> T getEntity(String entityId,
+			Class<? extends T> clazz) throws SynapseException {
+		if (entityId == null)
+			throw new IllegalArgumentException("EntityId cannot be null");
+		if (clazz == null)
+			throw new IllegalArgumentException("Entity class cannot be null");
+		EntityType type = EntityType.getNodeTypeForClass(clazz);
+		// Build the URI
+		String uri = createEntityUri(type.getUrlPrefix(), entityId);
+		JSONObject jsonObj = getEntity(uri);
+		// Now convert to Object to an entity
+		try {
+			return (T) EntityFactory.createEntityFromJSONObject(jsonObj, clazz);
+		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
 	}
@@ -382,11 +424,7 @@ public class Synapse {
 	 * @param uri
 	 * @param entity
 	 * @return the updated entity
-	 * @throws SynapseServiceException
-	 * @throws SynapseUserException
-	 * @throws JSONException
-	 * @throws IOException
-	 * @throws ClientProtocolException
+	 * @throws SynapseException
 	 */
 	@Deprecated
 	// Use putEntity
@@ -401,13 +439,9 @@ public class Synapse {
 	 * @param <T>
 	 * @param entity
 	 * @return the updated entity
-	 * @throws ClientProtocolException
-	 * @throws IOException
-	 * @throws JSONException
-	 * @throws SynapseUserException
-	 * @throws SynapseServiceException
-	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
 	 */
+	@SuppressWarnings("unchecked")
 	public <T extends Entity> T putEntity(T entity) throws SynapseException {
 		if (entity == null)
 			throw new IllegalArgumentException("Entity cannot be null");
@@ -441,11 +475,7 @@ public class Synapse {
 	 * Delete a dataset, layer, etc..
 	 * 
 	 * @param uri
-	 * @throws SynapseServiceException
-	 * @throws SynapseUserException
-	 * @throws JSONException
-	 * @throws IOException
-	 * @throws ClientProtocolException
+	 * @throws SynapseException
 	 */
 	public void deleteEntity(String uri) throws SynapseException {
 		deleteSynapseEntity(repoEndpoint, uri);
@@ -457,11 +487,7 @@ public class Synapse {
 	 * 
 	 * @param <T>
 	 * @param entity
-	 * @throws ClientProtocolException
-	 * @throws IOException
-	 * @throws JSONException
-	 * @throws SynapseUserException
-	 * @throws SynapseServiceException
+	 * @throws SynapseException
 	 */
 	public <T extends Entity> void deleteEntity(T entity)
 			throws SynapseException {
@@ -478,11 +504,7 @@ public class Synapse {
 	 * @param query
 	 *            the query to perform
 	 * @return the query result
-	 * @throws SynapseServiceException
-	 * @throws SynapseUserException
-	 * @throws JSONException
-	 * @throws IOException
-	 * @throws ClientProtocolException
+	 * @throws SynapseException
 	 */
 	public JSONObject query(String query) throws SynapseException {
 		return querySynapse(repoEndpoint, query);
@@ -493,9 +515,8 @@ public class Synapse {
 	 * 
 	 * @param locationable
 	 * @return destination file
-	 * @throws IOException
+	 * @throws SynapseException
 	 * @throws SynapseUserException
-	 * @throws HttpClientHelperException
 	 */
 	public File downloadLocationableFromSynapse(Locationable locationable)
 			throws SynapseException {
@@ -533,7 +554,8 @@ public class Synapse {
 		// Internal versus S3 versus GoogleStorage). For now we are just
 		// downloading from the first location
 		LocationData location = locations.get(0);
-		return downloadFromSynapse(location, destinationFile);
+		return downloadFromSynapse(location, locationable.getMd5(),
+				destinationFile);
 	}
 
 	/**
@@ -541,19 +563,20 @@ public class Synapse {
 	 * specific location from which to download
 	 * 
 	 * @param location
+	 * @param md5
 	 * @param destinationFile
 	 * @return destination file
 	 * @throws SynapseException
 	 */
-	public File downloadFromSynapse(LocationData location, File destinationFile)
-			throws SynapseException {
+	public File downloadFromSynapse(LocationData location, String md5,
+			File destinationFile) throws SynapseException {
 		try {
 			clientProvider.downloadFile(location.getPath(), destinationFile.getAbsolutePath());
 			// Check that the md5s match, if applicable
-			if (null != location.getMd5()) {
+			if (null != md5) {
 				String localMd5 = MD5ChecksumHelper
 						.getMD5Checksum(destinationFile.getAbsolutePath());
-				if (!localMd5.equals(location.getMd5())) {
+				if (!localMd5.equals(md5)) {
 					throw new SynapseUserException(
 							"md5 of downloaded file does not match the one in Synapse"
 									+ destinationFile);
@@ -571,15 +594,13 @@ public class Synapse {
 	}
 
 	/**
-	 * TODO this will change with the collapse of layer and location
-	 * 
 	 * @param locationable
 	 * @param dataFile
 	 * 
-	 * @return the newly created location
+	 * @return the updated locationable
 	 * @throws SynapseException
 	 */
-	public Location uploadLocationableToSynapse(Locationable locationable,
+	public Locationable uploadLocationableToSynapse(Locationable locationable,
 			File dataFile) throws SynapseException {
 
 		try {
@@ -592,51 +613,42 @@ public class Synapse {
 	}
 
 	/**
-	 * TODO this will change with the collapse of layer and location
+	 * Dev Note: this implementation allows only one location per Locationable,
+	 * ultimately we plan to support multiple locations (e.g., a copy in
+	 * GoogleStorage, S3, and on a local server), but we'll save that work for
+	 * later
 	 * 
 	 * @param locationable
 	 * @param dataFile
 	 * @param md5
-	 * @return the newly created location
+	 * @return the updated locationable
 	 * @throws SynapseException
 	 */
-	public Location uploadLocationableToSynapse(Locationable locationable,
+	public Locationable uploadLocationableToSynapse(Locationable locationable,
 			File dataFile, String md5) throws SynapseException {
-		try {
-			String s3Path = dataFile.getName();
 
-			Location s3Location = new Location();
-			s3Location.setPath("/" + s3Path);
-			s3Location.setMd5sum(md5);
-			s3Location.setParentId(locationable.getParentId());
-			s3Location.setType(LocationTypeNames.awss3);
-			s3Location = createEntity(s3Location);
+		// Step 1: get the token
+		S3Token s3Token = new S3Token();
+		s3Token.setPath(dataFile.getName());
+		s3Token.setMd5(md5);
+		s3Token = createEntity(locationable.getS3Token(), s3Token);
 
-			// TODO find a more direct way to go from hex to base64
-			byte[] encoded;
-			encoded = Base64.encodeBase64(Hex.decodeHex(md5.toCharArray()));
-			String base64Md5 = new String(encoded, "ASCII");
+		// Step 2: perform the upload
+		dataUploader.uploadData(s3Token, dataFile);
 
-			Map<String, String> headerMap = new HashMap<String, String>();
-			headerMap.put("x-amz-acl", "bucket-owner-full-control");
-			headerMap.put("Content-MD5", base64Md5);
-			headerMap.put("Content-Type", s3Location.getContentType());
+		// Step 3: set the upload location in the locationable so that Synapse
+		// is aware of the new data
+		LocationData location = new LocationData();
+		location.setPath(s3Token.getPath());
+		location.setType(LocationTypeNames.awss3);
 
-			clientProvider.uploadFile(s3Location.getPath(), dataFile
-					.getAbsolutePath(), s3Location.getContentType(), headerMap);
+		List<LocationData> locations = new ArrayList<LocationData>();
+		locations.add(location);
 
-			return getEntity(s3Location.getId(), Location.class);
-		} catch (DecoderException e) {
-			throw new SynapseException(e);
-		} catch (UnsupportedEncodingException e) {
-			throw new SynapseException(e);
-		} catch (ClientProtocolException e) {
-			throw new SynapseException(e);
-		} catch (IOException e) {
-			throw new SynapseException(e);
-		} catch (HttpClientHelperException e) {
-			throw new SynapseException(e);
-		}
+		locationable.setContentType(s3Token.getContentType());
+		locationable.setMd5(s3Token.getMd5());
+		locationable.setLocations(locations);
+		return putEntity(locationable);
 	}
 
 	/******************** Mid Level Authorization Service APIs ********************/
@@ -793,6 +805,7 @@ public class Synapse {
 	 * 
 	 * @param endpoint
 	 * @param uri
+	 * @throws SynapseException
 	 */
 	public void deleteSynapseEntity(String endpoint, String uri)
 			throws SynapseException {
@@ -812,6 +825,7 @@ public class Synapse {
 	 * @param query
 	 *            the query to perform
 	 * @return the query result
+	 * @throws SynapseException
 	 */
 	public JSONObject querySynapse(String endpoint, String query)
 			throws SynapseException {
@@ -839,8 +853,6 @@ public class Synapse {
 	private JSONObject signAndDispatchSynapseRequest(String endpoint, String uri,
 			String requestMethod, String requestContent,
 			Map<String, String> requestHeaders) throws SynapseException {
-		String apiKey = getApiKey();
-		String userName = getUserName();
 		if (apiKey!=null) {
 			String timeStamp = (new DateTime()).toString();
 			String uriRawPath = null; 
@@ -855,9 +867,8 @@ public class Synapse {
 		    modHeaders.put(AuthorizationConstants.SIGNATURE_TIMESTAMP, timeStamp);
 		    modHeaders.put(AuthorizationConstants.SIGNATURE, signature);
 		    return dispatchSynapseRequest(endpoint, uri, requestMethod, requestContent, modHeaders);
-		} else {
-		    return dispatchSynapseRequest(endpoint, uri, requestMethod, requestContent, requestHeaders);
-		}
+		} 
+		return dispatchSynapseRequest(endpoint, uri, requestMethod, requestContent, requestHeaders);
 	}
 
 	/**
@@ -936,7 +947,7 @@ public class Synapse {
 						resultsStr = results.getString("reason");
 				}
 				String exceptionContent = "Service Error(" + statusCode + "): "
-						+ resultsStr + " "+e.getMessage();
+						+ resultsStr + " " + e.getMessage();
 
 				if (statusCode == 401) {
 					throw new SynapseUnauthorizedException(exceptionContent);
@@ -972,49 +983,92 @@ public class Synapse {
 		return results;
 	}
 
-	public BackupRestoreStatus startBackupDaemon(BackupSubmission submission) throws JSONObjectAdapterException, SynapseException {
+	/**
+	 * @param submission
+	 * @return status
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	public BackupRestoreStatus startBackupDaemon(BackupSubmission submission)
+			throws JSONObjectAdapterException, SynapseException {
 		JSONObject json = EntityFactory.createJSONObjectForEntity(submission);
 		json = createEntity(DAMEON_BACKUP, json);
-		return EntityFactory.createEntityFromJSONObject(json, BackupRestoreStatus.class);
+		return EntityFactory.createEntityFromJSONObject(json,
+				BackupRestoreStatus.class);
 	}
 
-	public StackStatus getCurrentStackStatus() throws SynapseException, JSONObjectAdapterException {
+	/**
+	 * @return status
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public StackStatus getCurrentStackStatus() throws SynapseException,
+			JSONObjectAdapterException {
 		JSONObject json = getEntity(STACK_STATUS);
-		return EntityFactory.createEntityFromJSONObject(json, StackStatus.class);
+		return EntityFactory
+				.createEntityFromJSONObject(json, StackStatus.class);
 	}
 
-	public StackStatus updateCurrentStackStatus(StackStatus updated) throws JSONObjectAdapterException, SynapseException {
-		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(updated);
+	/**
+	 * @param updated
+	 * @return status
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	public StackStatus updateCurrentStackStatus(StackStatus updated)
+			throws JSONObjectAdapterException, SynapseException {
+		JSONObject jsonObject = EntityFactory
+				.createJSONObjectForEntity(updated);
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultPOSTPUTHeaders);
-		jsonObject = dispatchSynapseRequest(repoEndpoint, STACK_STATUS, "PUT", jsonObject.toString(),requestHeaders);
-		return EntityFactory.createEntityFromJSONObject(jsonObject, StackStatus.class);
+		jsonObject = dispatchSynapseRequest(repoEndpoint, STACK_STATUS, "PUT",
+				jsonObject.toString(), requestHeaders);
+		return EntityFactory.createEntityFromJSONObject(jsonObject,
+				StackStatus.class);
 	}
 
-	public BackupRestoreStatus startRestoreDaemon(RestoreSubmission submission) throws JSONObjectAdapterException, SynapseException {
-		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(submission);
+	/**
+	 * @param submission
+	 * @return status
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	public BackupRestoreStatus startRestoreDaemon(RestoreSubmission submission)
+			throws JSONObjectAdapterException, SynapseException {
+		JSONObject jsonObject = EntityFactory
+				.createJSONObjectForEntity(submission);
 		// Create the entity
 		jsonObject = createEntity(DAMEON_RETORE, jsonObject);
-		return  EntityFactory.createEntityFromJSONObject(jsonObject, BackupRestoreStatus.class);
+		return EntityFactory.createEntityFromJSONObject(jsonObject,
+				BackupRestoreStatus.class);
 	}
-	
+
 	/**
 	 * Get a dataset, layer, preview, annotations, etc...
 	 * 
+	 * @param <T>
+	 * 
 	 * @param uri
+	 * @param clazz
 	 * @return the retrieved entity
-	 * @throws JSONException
-	 * @throws IOException
-	 * @throws ClientProtocolException
-	 * @throws JSONObjectAdapterException 
-	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
 	 */
-	public <T extends JSONEntity> T getJSONEntity(String uri, Class<? extends T> clazz) throws SynapseException, JSONObjectAdapterException {
+	public <T extends JSONEntity> T getJSONEntity(String uri,
+			Class<? extends T> clazz) throws SynapseException,
+			JSONObjectAdapterException {
 		JSONObject jsonObject = getEntity(uri);
 		return EntityFactory.createEntityFromJSONObject(jsonObject, clazz);
 	}
 
-	public BackupRestoreStatus getDaemonStatus(String daemonId) throws SynapseException, JSONObjectAdapterException {
-		return getJSONEntity(DAEMOM+"/"+daemonId, BackupRestoreStatus.class);
+	/**
+	 * @param daemonId
+	 * @return the status
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public BackupRestoreStatus getDaemonStatus(String daemonId)
+			throws SynapseException, JSONObjectAdapterException {
+		return getJSONEntity(DAEMOM + "/" + daemonId, BackupRestoreStatus.class);
 	}
 }

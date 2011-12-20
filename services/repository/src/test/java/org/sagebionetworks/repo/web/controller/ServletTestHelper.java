@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -122,7 +123,7 @@ public class ServletTestHelper {
 		if (entityController != null && toDelete != null) {
 			for (String idToDelete : toDelete) {
 				try {
-					entityController.deleteEntity(username, idToDelete);
+					entityController.deleteEntity(TestUserDAO.ADMIN_USER_NAME, idToDelete);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {
@@ -150,6 +151,45 @@ public class ServletTestHelper {
 		toDelete.add(returnedEntity.getId());
 		return returnedEntity;
 	}
+	
+	public <T extends Object> T createObject(String uri, T object) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		StringWriter out = new StringWriter();
+		objectMapper.writeValue(out, object);
+		String body = out.toString();
+		
+		// TODO why is this adding the jsonschema property?
+		JSONObject obj = new JSONObject(body);
+		obj.remove("jsonschema");
+		body = obj.toString();
+		
+		request.setContent(body.getBytes("UTF-8"));
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.CREATED.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return (T) objectMapper.readValue(response.getContentAsString(),
+				object.getClass());
+	}
+
+	/**
+	 * @param <T>
+	 * @param entity
+	 * @param extraParams
+	 * @return the entity
+	 * @throws Exception
+	 */
+	public <T extends Entity> T getEntity(T entity,
+			Map<String, String> extraParams) throws Exception {
+		return (T) getEntityById(entity.getClass(), entity.getId(),	extraParams);
+	}
 
 	/**
 	 * @param <T>
@@ -159,7 +199,7 @@ public class ServletTestHelper {
 	 * @return the entity
 	 * @throws Exception
 	 */
-	public <T extends Entity> T getEntity(Class<? extends T> clazz, String id,
+	public <T extends Entity> T getEntityById(Class<? extends T> clazz, String id,
 			Map<String, String> extraParams) throws Exception {
 		return ServletTestHelper.getEntity(dispatchServlet, clazz, id,
 				username, extraParams);
@@ -190,36 +230,42 @@ public class ServletTestHelper {
 		ServletTestHelper.deleteEntity(dispatchServlet, clazz, id, username,
 				extraParams);
 	}
+	
+	/**
+	 * @param query 
+	 * @return the query results
+	 * @throws Exception
+	 */
+	public QueryResults query(String query) throws Exception {
+		return ServletTestHelper.query(dispatchServlet, query, username);
+	}
 
 	/**
 	 * @param <T>
-	 * @param clazz
-	 * @param id
+	 * @param entity 
 	 * @return
 	 * @throws ServletException
 	 * @throws IOException
 	 * @throws ACLInheritanceException
 	 */
-	public <T extends Entity> AccessControlList getEntityACL(
-			Class<? extends T> clazz, String id) throws ServletException,
+	public <T extends Entity> AccessControlList getEntityACL(T entity) throws ServletException,
 			IOException, ACLInheritanceException {
-		return ServletTestHelper.getEntityACL(dispatchServlet, clazz, id,
+		return ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(),
 				username);
 	}
 
 	/**
 	 * @param <T>
-	 * @param clazz
-	 * @param id
+	 * @param entity 
 	 * @param entityACL
 	 * @return
 	 * @throws ServletException
 	 * @throws IOException
 	 */
 	public <T extends Entity> AccessControlList updateEntityAcl(
-			Class<? extends T> clazz, String id, AccessControlList entityACL)
+			T entity, AccessControlList entityACL)
 			throws ServletException, IOException {
-		return ServletTestHelper.updateEntityAcl(dispatchServlet, clazz, id,
+		return ServletTestHelper.updateEntityAcl(dispatchServlet, entity.getClass(), entity.getId(),
 				entityACL, username);
 	}
 
@@ -916,13 +962,44 @@ public class ServletTestHelper {
 	}
 
 	/**
+	 * @param <T>
+	 * @param dispatchServlet
+	 * @param query
+	 * @param userId
+	 * @return the query results
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public static <T extends Entity> QueryResults query(
+			HttpServlet dispatchServlet, String query,
+			 String userId) throws ServletException,
+			IOException {
+		if (dispatchServlet == null)
+			throw new IllegalArgumentException("Servlet cannot be null");
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.QUERY);
+		request.setParameter(ServiceConstants.QUERY_PARAM, query);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return objectMapper.readValue(response.getContentAsString(),
+				QueryResults.class);
+	}
+	
+	/**
 	 * Get the schema
 	 * 
 	 * @param <T>
-	 * @param requestUrl
+	 * @param dispatchServlet 
 	 * @param clazz
-	 * @param id
-	 * @return
+	 * @param userId 
+	 * @return the schema
 	 * @throws Exception
 	 */
 	public static <T extends Entity> String getSchema(

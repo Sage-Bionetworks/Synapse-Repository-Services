@@ -10,13 +10,13 @@
         "contentType":{
             "type":"string",  
         },
-        "accessId":{
+        "accessKeyId":{
             "type":"string",  
         },
-        "secretKey":{
+        "secretAccessKey":{
             "type":"string",  
         },
-        "securityToken":{
+        "sessionToken":{
             "type":"string",  
         },
         "bucket":{

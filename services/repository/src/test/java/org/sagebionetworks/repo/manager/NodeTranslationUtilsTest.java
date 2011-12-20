@@ -156,12 +156,12 @@ public class NodeTranslationUtilsTest {
 		ds.setStatus("someStatus");
 		ds.setVersion("someVersion");
 		ds.setUri("someUri");
+		ds.setContentType("text/xml");
+		ds.setMd5("8b12c8b413504cf19889efca5605a6c9");
 		// Add some location data
 		List<LocationData> locations = new ArrayList<LocationData>();
 		ds.setLocations(locations);
 		LocationData ldata = new LocationData();
-		ldata.setContentType("xml");
-		ldata.setMd5("some MD5");
 		ldata.setPath("http://my.home.com:8990/wow");
 		ldata.setType(LocationTypeNames.sage);
 		locations.add(ldata);

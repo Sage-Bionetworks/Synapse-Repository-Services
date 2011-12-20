@@ -86,6 +86,7 @@
 	<bean id="analysisMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.AnalysisMetadataProvider" scope="singleton"/>
 	<bean id="stepMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.StepMetadataProvider" scope="singleton"/>
 	<bean id="codeMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.CodeMetadataProvider" scope="singleton"/>
+	<bean id="locationableMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.LocationableMetadataProvider" scope="singleton"/>
 	
 	<!-- the keys in this map must be the values of the org.sagebionetworks.repo.modelObjectType enum -->
 	<bean id="metadataProviderFactory" class="org.sagebionetworks.repo.web.controller.MetadataProviderFactoryImpl" scope="singleton">
@@ -102,6 +103,7 @@
 			<entry key="analysis"><ref bean="analysisMetadataProvider" /></entry>
 			<entry key="step"><ref bean="stepMetadataProvider" /></entry>
 			<entry key="code"><ref bean="codeMetadataProvider" /></entry>
+			<entry key="locationable"><ref bean="locationableMetadataProvider" /></entry>
 	      </map>
 	    </property>
 	</bean>

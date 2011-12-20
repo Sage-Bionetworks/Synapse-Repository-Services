@@ -20,16 +20,15 @@ import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.repo.model.Agreement;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
-import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
-import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 /**
  * Run this integration test as a sanity check to ensure our Synapse Java Client
@@ -38,7 +37,7 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
  * @author deflaux
  */
 public class IT500SynapseJavaClient {
-	
+
 	private static Synapse synapse = null;
 	private static Project project = null;
 	private static Dataset dataset = null;
@@ -57,7 +56,7 @@ public class IT500SynapseJavaClient {
 				.getRepositoryServiceEndpoint());
 		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
 				StackConfiguration.getIntegrationTestUserOnePassword());
-		
+
 		project = synapse.createEntity(new Project());
 		dataset = new Dataset();
 		dataset.setParentId(project.getId());
@@ -77,7 +76,7 @@ public class IT500SynapseJavaClient {
 			synapse.deleteEntity(project);
 		}
 	}
-	
+
 	/**
 	 * @throws Exception
 	 */
@@ -92,7 +91,8 @@ public class IT500SynapseJavaClient {
 		if (0 < datasets.length()) {
 			int datasetId = datasets.getJSONObject(0).getInt("dataset.id");
 
-			JSONObject aStoredDataset = synapse.getEntity("/dataset/" + datasetId);
+			JSONObject aStoredDataset = synapse.getEntity("/dataset/"
+					+ datasetId);
 			assertTrue(aStoredDataset.has("annotations"));
 
 			JSONObject annotations = synapse.getEntity(aStoredDataset
@@ -104,37 +104,33 @@ public class IT500SynapseJavaClient {
 			assertTrue(annotations.has("blobAnnotations"));
 		}
 	}
-	
+
 	/**
 	 * @throws Exception
 	 */
-	@Test 
+	@Test
 	public void testJavaClientCRUD() throws Exception {
-		JSONObject aNewDataset = synapse.createEntity("/dataset", new JSONObject("{\"name\":\"testCrud\", \"status\": \"created\", \"parentId\":\"" + project.getId() + "\"}"));
-		assertEquals("created", aNewDataset.getString("status"));
-		aNewDataset.put("status", "updated");
-		JSONObject updatedDataset = synapse.updateEntity(aNewDataset.getString("uri"), aNewDataset);
-		assertEquals("updated", updatedDataset.getString("status"));	
+		Dataset aNewDataset = new Dataset();
+		aNewDataset.setStatus("created");
+		aNewDataset.setParentId(project.getId());
 
-		JSONArray annotationValue = new JSONArray();
-		annotationValue.put("created");
-		JSONObject stringAnnotations = new JSONObject();
-		stringAnnotations.put("annotStatus", annotationValue);
-		JSONObject annotations = new JSONObject();
-		annotations.put("stringAnnotations", stringAnnotations);
+		aNewDataset = synapse.createEntity(aNewDataset);
+		assertEquals("created", aNewDataset.getStatus());
+		aNewDataset.setStatus("updated");
+		Dataset updatedDataset = synapse.putEntity(aNewDataset);
+		assertEquals("updated", updatedDataset.getStatus());
 
-		JSONObject createdAnnotations = synapse.updateEntity(updatedDataset.getString("annotations"), annotations);
-		assertEquals("created", createdAnnotations.getJSONObject("stringAnnotations").getJSONArray("annotStatus").getString(0));
+		/* TODO upgrade the support for Annotations in the Synapse Java Client PLFM-820
+		Annotations annots = synapse.getObject(aNewDataset.getAnnotations(), Annotations.class);
 
-		annotationValue = new JSONArray();
-		annotationValue.put("updated");
-		stringAnnotations = new JSONObject();
-		stringAnnotations.put("annotStatus", annotationValue);
-		annotations = new JSONObject();
-		annotations.put("stringAnnotations", stringAnnotations);
+		annots.addAnnotation("annotStatus", "created");
+		annots = synapse.putObject(annots);
+		assertEquals("created", annots.getSingleValue("annotStatus"));
 
-		JSONObject updatedAnnotations = synapse.updateEntity(updatedDataset.getString("annotations"), annotations);
-		assertEquals("updated", updatedAnnotations.getJSONObject("stringAnnotations").getJSONArray("annotStatus").getString(0));
+		annots.replaceAnnotation("annotStatus", "updated");
+		annots = synapse.putObject(annots);
+		assertEquals("updated", annots.getSingleValue("annotStatus"));
+		*/
 	}
 
 	/**
@@ -144,20 +140,20 @@ public class IT500SynapseJavaClient {
 	public void testJavaClientCreateEntity() throws Exception {
 		Project newProject = new Project();
 		newProject.setParentId(project.getId());
-		Project createdProject = synapse.createEntity(newProject);		
+		Project createdProject = synapse.createEntity(newProject);
 		assertNotNull(createdProject);
 		assertNotNull(createdProject.getId());
 		assertNotNull(createdProject.getUri());
-		
+
 		String createdProjectId = createdProject.getId();
 		Project fromGet = synapse.getEntity(createdProjectId, Project.class);
 		assertEquals(createdProject, fromGet);
-		
-		Project fromGetById = (Project)synapse.getEntityById(createdProjectId);
+
+		Project fromGetById = (Project) synapse.getEntityById(createdProjectId);
 		assertEquals(createdProject, fromGetById);
-		
+
 	}
-	
+
 	/**
 	 * @throws Exception
 	 */
@@ -184,69 +180,87 @@ public class IT500SynapseJavaClient {
 		// user running the generator is not an admin or has not signed the EULA
 		// for the MSKCC dataset
 		if (0 == agreementQueryResults.getJSONArray("results").length()) {
-			JSONObject agreement = new JSONObject();
-			agreement.put("datasetId", datasetQueryResult
+			Agreement agreement = new Agreement();
+			agreement.setDatasetId(datasetQueryResult
 					.getString("dataset.id"));
-			agreement.put("eulaId", datasetQueryResult
+			agreement.setEulaId(datasetQueryResult
 					.getString("dataset.eulaId"));
-			synapse.createEntity("/agreement", agreement);
+			synapse.createEntity(agreement);
 		}
 	}
-	
+
 	/**
 	 * @throws Exception
 	 */
 	@Test
 	public void testJavaClientUploadDownloadLayerFromS3() throws Exception {
-	    File dataSourceFile = File.createTempFile("integrationTest", ".txt");
-	    dataSourceFile.deleteOnExit();
-	    FileWriter writer = new FileWriter(dataSourceFile);
-	    writer.write("Hello world!");
-	    writer.close();
 		
+		File dataSourceFile = File.createTempFile("integrationTest", ".txt");
+		dataSourceFile.deleteOnExit();
+		FileWriter writer = new FileWriter(dataSourceFile);
+		writer.write("Hello world!");
+		writer.close();
+
 		Layer layer = new Layer();
 		layer.setType(LayerTypeNames.E);
 		layer.setParentId(dataset.getId());
 		layer = synapse.createEntity(layer);
-		
-		Location location = synapse.uploadLocationableToSynapse(layer, dataSourceFile);
-		assertEquals(LocationTypeNames.awss3, location.getType());
-		assertEquals("text/plain", location.getContentType());
 
-	    File dataDestinationFile = File.createTempFile("integrationTest", ".download");
-	    dataDestinationFile.deleteOnExit();
+		layer = (Layer) synapse.uploadLocationableToSynapse(layer,
+				dataSourceFile);
+		
+		// TODO!!!!!!!!!!!! test upload more than once, do we clutter LocationData?
+
+		assertEquals("text/plain", layer.getContentType());
+		assertNotNull(layer.getMd5());
+
+		List<LocationData> locations = layer.getLocations();
+		assertEquals(1, locations.size());
+		LocationData location = locations.get(0);
+		assertEquals(LocationTypeNames.awss3, location.getType());
+		assertNotNull(location.getPath());
+		assertTrue(location.getPath().startsWith("http"));
+		
+		File dataDestinationFile = File.createTempFile("integrationTest",
+				".download");
+		dataDestinationFile.deleteOnExit();
 		HttpClientHelper.downloadFile(DefaultHttpClientSingleton.getInstance(), location.getPath(), dataDestinationFile.getAbsolutePath());
 		assertTrue(dataDestinationFile.isFile());
 		assertTrue(dataDestinationFile.canRead());
 		assertTrue(0 < dataDestinationFile.length());
+		
+		// TODO test auto versioning
+		
 	}
-	
+
 	/**
 	 * @throws Exception
 	 */
 	@Test
 	public void testJavaDownloadExternalLayer() throws Exception {
 
-	    // Use a url that we expect to be available and whose contents we don't expect to change
-	    String externalUrl = "http://www.sagebase.org/favicon";
-	    String externalUrlMD5 = "8f8e272d7fdb2fc6c19d57d00330c397";
-	    int externalUrlFileSizeBytes = 1150; 
-	    
-	    LocationData externalLocation = new LocationData();
-	    externalLocation.setPath(externalUrl);
-	    externalLocation.setMd5(externalUrlMD5);
-	    List<LocationData> locations = new ArrayList<LocationData>();
-	    locations.add(externalLocation);
-	    
+		// Use a url that we expect to be available and whose contents we don't
+		// expect to change
+		String externalUrl = "http://www.sagebase.org/favicon";
+		String externalUrlMD5 = "8f8e272d7fdb2fc6c19d57d00330c397";
+		int externalUrlFileSizeBytes = 1150;
+
+		LocationData externalLocation = new LocationData();
+		externalLocation.setPath(externalUrl);
+		externalLocation.setType(LocationTypeNames.external);
+		List<LocationData> locations = new ArrayList<LocationData>();
+		locations.add(externalLocation);
+
 		Layer layer = new Layer();
 		layer.setType(LayerTypeNames.M);
+		layer.setMd5(externalUrlMD5);
 		layer.setParentId(dataset.getId());
 		layer.setLocations(locations);
 		layer = synapse.createEntity(layer);
-		
+
 		File downloadedLayer = synapse.downloadLocationableFromSynapse(layer);
 		assertEquals(externalUrlFileSizeBytes, downloadedLayer.length());
-		
+
 	}
 	
 	// tests signing requests using an API key, as an alternative to logging in
