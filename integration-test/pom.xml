@@ -222,6 +222,10 @@
 		</plugins>
 	</build>
 	<dependencies>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+		</dependency>
 
 		<!-- Sage Bionetworks Dependencies -->
 		<dependency>
@@ -350,11 +354,10 @@
 		</dependency>
 
 		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-		    <scope>test</scope>
+		    <groupId>com.gdevelop</groupId>
+		    <artifactId>SyncProxy</artifactId>
+		    <version>0.3.1.4</version>
 		</dependency>
-
 
 	</dependencies>
 
