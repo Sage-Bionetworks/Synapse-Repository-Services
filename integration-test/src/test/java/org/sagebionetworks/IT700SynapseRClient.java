@@ -21,9 +21,11 @@ public class IT700SynapseRClient {
 	 */
 	@Test
 	public void testCheckRClient() throws Exception {
-		String cmd[] = { Helpers.getRPath(), "CMD", "check", "--no-manual", "-o", "target",
+		String cmd[] = { Helpers.getRPath(), "CMD", "check", "--no-manual",
+				"-o", "target", "--no-install",
 				"target/non-java-dependencies/synapseRClient" };
-		ExternalProcessResult result = ExternalProcessHelper.runExternalProcess(cmd);
+		ExternalProcessResult result = ExternalProcessHelper
+				.runExternalProcess(cmd);
 		assertEquals(0, result.getReturnCode());
 	}
 
@@ -33,8 +35,9 @@ public class IT700SynapseRClient {
 	@Test
 	public void testInstallRClient() throws Exception {
 		String cmd[] = { Helpers.getRPath(), "CMD", "INSTALL", "-l", "target",
-				"target/non-java-dependencies/synapseRClient" };
-		ExternalProcessResult result = ExternalProcessHelper.runExternalProcess(cmd);
+				"--no-test-load", "target/non-java-dependencies/synapseRClient" };
+		ExternalProcessResult result = ExternalProcessHelper
+				.runExternalProcess(cmd);
 		assertEquals(0, result.getReturnCode());
 		assertTrue(0 <= result.getStderr().indexOf("DONE"));
 	}
@@ -51,19 +54,20 @@ public class IT700SynapseRClient {
 		String cmd[] = {
 				Helpers.getRPath(),
 				"-e",
-				"library(synapseClient, lib.loc='target')",
-				"-e",
 				".libPaths('target')",
 				"-e",
+				"library(synapseClient, lib.loc='target')",
+				"-e",
 				"synapseAuthServiceEndpoint(endpoint='"
-						+ StackConfiguration.getAuthenticationServicePrivateEndpoint()
+						+ StackConfiguration
+								.getAuthenticationServicePrivateEndpoint()
 						+ "')",
 				"-e",
 				"synapseRepoServiceEndpoint(endpoint='"
 						+ StackConfiguration.getRepositoryServiceEndpoint()
-						+ "')",
-				"-e", "synapseClient:::.test()" };
-		ExternalProcessResult result = ExternalProcessHelper.runExternalProcess(cmd);
+						+ "')", "-e", "synapseClient:::.test()" };
+		ExternalProcessResult result = ExternalProcessHelper
+				.runExternalProcess(cmd);
 		assertEquals(0, result.getReturnCode());
 		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
 	}
@@ -76,50 +80,62 @@ public class IT700SynapseRClient {
 		String cmd[] = {
 				Helpers.getRPath(),
 				"-e",
+				".libPaths('target')",
+				"-e",
 				"library(synapseClient, lib.loc='target')",
 				"-e",
 				"synapseAuthServiceEndpoint(endpoint='"
-						+ StackConfiguration.getAuthenticationServicePrivateEndpoint()
+						+ StackConfiguration
+								.getAuthenticationServicePrivateEndpoint()
 						+ "')",
 				"-e",
 				"synapseRepoServiceEndpoint(endpoint='"
 						+ StackConfiguration.getRepositoryServiceEndpoint()
-						+ "')", "-e",
-				"synapseLogin(username='" + StackConfiguration.getIntegrationTestUserOneName()
-						+ "', password='"
-						+ StackConfiguration.getIntegrationTestUserOnePassword() + "')",
+						+ "')",
 				"-e",
-				"synapseClient:::.integrationTest()" };
-		ExternalProcessResult result = ExternalProcessHelper.runExternalProcess(cmd);
+				"synapseLogin(username='"
+						+ StackConfiguration.getIntegrationTestUserOneName()
+						+ "', password='"
+						+ StackConfiguration
+								.getIntegrationTestUserOnePassword() + "')",
+				"-e", "synapseClient:::.integrationTest()" };
+		ExternalProcessResult result = ExternalProcessHelper
+				.runExternalProcess(cmd);
 		assertEquals(0, result.getReturnCode());
 		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
 	}
-	
+
 	/**
 	 * @throws Exception
 	 */
 	@Test
-	public void testRunRHmacAuthenticationTest() throws Exception{
+	public void testRunRHmacAuthenticationTest() throws Exception {
 		String cmd[] = {
 				Helpers.getRPath(),
+				"-e",
+				".libPaths('target')",
 				"-e",
 				"library(synapseClient, lib.loc= 'target')",
 				"-e",
 				"synapseAuthServiceEndpoint(endpoint='"
-						+ StackConfiguration.getAuthenticationServicePrivateEndpoint()
+						+ StackConfiguration
+								.getAuthenticationServicePrivateEndpoint()
 						+ "')",
 				"-e",
 				"synapseRepoServiceEndpoint(endpoint='"
 						+ StackConfiguration.getRepositoryServiceEndpoint()
-						+ "')", "-e",
-				"synapseLogin(username='" + StackConfiguration.getIntegrationTestUserOneName()
-						+ "', password='"
-						+ StackConfiguration.getIntegrationTestUserOnePassword() + "', mode='hmac')",
+						+ "')",
 				"-e",
+				"synapseLogin(username='"
+						+ StackConfiguration.getIntegrationTestUserOneName()
+						+ "', password='"
+						+ StackConfiguration
+								.getIntegrationTestUserOnePassword()
+						+ "', mode='hmac')", "-e",
 				"synapseClient:::.integrationTest(testFileRegexp='test_entityGet.R')" };
-		ExternalProcessResult result = ExternalProcessHelper.runExternalProcess(cmd);
+		ExternalProcessResult result = ExternalProcessHelper
+				.runExternalProcess(cmd);
 		assertEquals(0, result.getReturnCode());
 		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
 	}
 }
-
