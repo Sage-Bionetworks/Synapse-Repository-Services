@@ -10,7 +10,7 @@
 	}
 	
 	if(!"uri" %in% names(entity)){
-		stop("the entity does not have a uri")
+		stop("entities must exist in Synapse before they can be updated")
 	}
 	
 	synapsePut(uri=entity$uri, entity=entity, anonymous=FALSE)
