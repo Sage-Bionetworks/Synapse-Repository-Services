@@ -75,7 +75,7 @@ public class ServletTestHelper {
 	@Autowired
 	private UserManager userManager;
 
-	private HttpServlet dispatchServlet = null;
+	private static HttpServlet dispatchServlet = null;
 	private UserInfo testUser = null;
 	private List<String> toDelete = null;
 	private String username = null;
@@ -89,12 +89,13 @@ public class ServletTestHelper {
 	 * @throws Exception
 	 */
 	public void setUp() throws Exception {
-		MockServletConfig servletConfig = new MockServletConfig("repository");
-		servletConfig.addInitParameter("contextConfigLocation",
-				"classpath:test-context.xml");
-		dispatchServlet = new DispatcherServlet();
-		dispatchServlet.init(servletConfig);
-
+		if(null == dispatchServlet) {
+			MockServletConfig servletConfig = new MockServletConfig("repository");
+			servletConfig.addInitParameter("contextConfigLocation",
+			"classpath:test-context.xml");
+			dispatchServlet = new DispatcherServlet();
+			dispatchServlet.init(servletConfig);
+		}
 		assertNotNull(entityController);
 		toDelete = new ArrayList<String>();
 
@@ -130,10 +131,6 @@ public class ServletTestHelper {
 					// nothing to do here.
 				}
 			}
-		}
-		// If we do not destroy the servlet we get connection leaks.
-		if (dispatchServlet != null) {
-			dispatchServlet.destroy();
 		}
 	}
 
