@@ -14,6 +14,7 @@ import org.sagebionetworks.web.client.presenter.PhenoEditPresenter;
 import org.sagebionetworks.web.client.presenter.ProfilePresenter;
 import org.sagebionetworks.web.client.presenter.ProjectPresenter;
 import org.sagebionetworks.web.client.presenter.ProjectsHomePresenter;
+import org.sagebionetworks.web.client.presenter.PublicProfilePresenter;
 import org.sagebionetworks.web.client.presenter.StepPresenter;
 import org.sagebionetworks.web.client.presenter.StepsHomePresenter;
 import org.sagebionetworks.web.client.presenter.users.PasswordResetPresenter;
@@ -71,4 +72,6 @@ public interface PortalGinInjector extends Ginjector {
 	public PhenoEditPresenter getPhenoEditPresenter();
 	
 	public LookupPresenter getLookupPresenter();
+	
+	public PublicProfilePresenter getPublicProfilePresenter();
 }

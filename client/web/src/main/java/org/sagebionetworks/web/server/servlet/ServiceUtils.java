@@ -23,6 +23,7 @@ public class ServiceUtils {
 	public static final String REPOSVC_PATH_GET_USERS = "user";
 	public static final String REPOSVC_PATH_ANALYSIS = "analysis";
 	public static final String REPOSVC_PATH_STEP = "step";
+	public static final String REPOSVC_PATH_PUBLIC_PROFILE = "publicprofile";
 	public static final String REPOSVC_SUFFIX_PATH_ANNOTATIONS = "annotations";
 	public static final String REPOSVC_SUFFIX_PATH_PREVIEW = "preview";
 	public static final String REPOSVC_SUFFIX_LOCATION_PATH = "location";	

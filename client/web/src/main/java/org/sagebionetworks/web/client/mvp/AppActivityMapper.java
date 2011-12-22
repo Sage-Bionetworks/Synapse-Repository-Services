@@ -22,6 +22,7 @@ import org.sagebionetworks.web.client.place.PhenoEdit;
 import org.sagebionetworks.web.client.place.Profile;
 import org.sagebionetworks.web.client.place.Project;
 import org.sagebionetworks.web.client.place.ProjectsHome;
+import org.sagebionetworks.web.client.place.PublicProfile;
 import org.sagebionetworks.web.client.place.Step;
 import org.sagebionetworks.web.client.place.StepsHome;
 import org.sagebionetworks.web.client.place.Synapse;
@@ -41,6 +42,7 @@ import org.sagebionetworks.web.client.presenter.PhenoEditPresenter;
 import org.sagebionetworks.web.client.presenter.ProfilePresenter;
 import org.sagebionetworks.web.client.presenter.ProjectPresenter;
 import org.sagebionetworks.web.client.presenter.ProjectsHomePresenter;
+import org.sagebionetworks.web.client.presenter.PublicProfilePresenter;
 import org.sagebionetworks.web.client.presenter.StepPresenter;
 import org.sagebionetworks.web.client.presenter.StepsHomePresenter;
 import org.sagebionetworks.web.client.presenter.users.PasswordResetPresenter;
@@ -86,6 +88,7 @@ public class AppActivityMapper implements ActivityMapper {
 		openAccessPlaces.add(StepsHome.class);
 		openAccessPlaces.add(Analysis.class);
 		openAccessPlaces.add(AnalysesHome.class);
+		openAccessPlaces.add(PublicProfile.class);
 	}
 
 	@Override
@@ -207,6 +210,11 @@ public class AppActivityMapper implements ActivityMapper {
 			// user's profile page
 			LookupPresenter presenter = ginjector.getLookupPresenter();
 			presenter.setPlace((Lookup)place);
+			return presenter;
+		} else if (place instanceof PublicProfile) {
+			// user's public profile page
+			PublicProfilePresenter presenter = ginjector.getPublicProfilePresenter();
+			presenter.setPlace((PublicProfile)place);
 			return presenter;
 		} else {
 			// Log that we have an unknown place but send the user to the default

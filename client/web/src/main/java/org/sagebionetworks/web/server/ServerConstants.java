@@ -43,6 +43,12 @@ public class ServerConstants {
 	 */
 	public static final String KEY_DEFAULT_STEP_COLS =  "org.sagebionetworks.all.steps.default.columns";
 
+	/** 
+	 * The property key used for the list of default public profile columns
+	 */
+	
+	public static final String KEY_DEFAULT_PUBLIC_PROFILE_COLS = "org.sagebionetworks.all.public.profile.columns";
+	
 	/**
 	 * The property key used for the list of default step columns
 	 */

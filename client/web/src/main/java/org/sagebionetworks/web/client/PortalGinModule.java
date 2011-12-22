@@ -42,6 +42,8 @@ import org.sagebionetworks.web.client.view.ProjectView;
 import org.sagebionetworks.web.client.view.ProjectViewImpl;
 import org.sagebionetworks.web.client.view.ProjectsHomeView;
 import org.sagebionetworks.web.client.view.ProjectsHomeViewImpl;
+import org.sagebionetworks.web.client.view.PublicProfileView;
+import org.sagebionetworks.web.client.view.PublicProfileViewImpl;
 import org.sagebionetworks.web.client.view.StepView;
 import org.sagebionetworks.web.client.view.StepViewImpl;
 import org.sagebionetworks.web.client.view.StepsHomeView;
@@ -212,6 +214,9 @@ public class PortalGinModule extends AbstractGinModule {
 		bind(LookupViewImpl.class).in(Singleton.class);
 		bind(LookupView.class).to(LookupViewImpl.class);					
 		
+		// PublicProfileView
+		bind(PublicProfileViewImpl.class).in(Singleton.class);
+		bind(PublicProfileView.class).to(PublicProfileViewImpl.class);
 		
 		/*
 		 * Widgets

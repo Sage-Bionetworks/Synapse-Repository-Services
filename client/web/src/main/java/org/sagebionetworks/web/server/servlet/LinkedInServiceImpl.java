@@ -3,11 +3,6 @@ package org.sagebionetworks.web.server.servlet;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.web.client.LinkedInService;
-import org.sagebionetworks.web.client.UserAccountService;
-import org.sagebionetworks.web.client.security.AuthenticationException;
-import org.sagebionetworks.web.client.cookie.CookieKeys;
-import org.sagebionetworks.web.client.cookie.CookieProvider;
-import org.sagebionetworks.web.client.cookie.CookieUtils;
 import org.sagebionetworks.web.server.RestTemplateProvider;
 import org.sagebionetworks.web.shared.LinkedInInfo;
 import org.scribe.builder.ServiceBuilder;
@@ -30,7 +25,11 @@ import com.google.inject.Inject;
 
 public class LinkedInServiceImpl extends RemoteServiceServlet implements LinkedInService {
 	private static Logger logger = Logger.getLogger(LinkedInServiceImpl.class.getName());
+	
+	// OAuth service for authentication and integration with LinkedIn
+	private OAuthService oAuthService;
 
+	
 	/**
 	 * The template is injected with Gin
 	 */
@@ -40,14 +39,7 @@ public class LinkedInServiceImpl extends RemoteServiceServlet implements LinkedI
 	 * Injected with Gin
 	 */
 	private ServiceUrlProvider urlProvider;
-	
-	// OAuth service for authentication and integration with LinkedIn
-	private OAuthService oAuthService = new ServiceBuilder().provider(LinkedInApi.class)
-															.apiKey("0oq37ippxz8c")
-															.apiSecret("2JpVsFPqHqT0Xou4")
-															.callback("http://127.0.0.1:8888/Portal.html?gwt.codesvr=127.0.0.1:9997/#Profile:")
-															.build();
-	
+		
 	/**
 	 * Injected via Gin.
 	 * 
@@ -73,6 +65,8 @@ public class LinkedInServiceImpl extends RemoteServiceServlet implements LinkedI
 	 */
 	@Override
 	public LinkedInInfo returnAuthUrl() {
+		validateService();
+		
 		Token requestToken = oAuthService.getRequestToken();
 		String authUrl = oAuthService.getAuthorizationUrl(requestToken);
 		LinkedInInfo linkedInInfo = new LinkedInInfo(authUrl, requestToken.getSecret(), null);
@@ -81,6 +75,8 @@ public class LinkedInServiceImpl extends RemoteServiceServlet implements LinkedI
 	
 	@Override
 	public String getCurrentUserInfo(String requestToken, String secret, String verifier) {
+		validateService();
+		
 		// Create the access token
 		Token rToken = new Token(requestToken, secret);
 		Verifier v = new Verifier(verifier);
@@ -107,5 +103,12 @@ public class LinkedInServiceImpl extends RemoteServiceServlet implements LinkedI
 		if (urlProvider == null)
 			throw new IllegalStateException(
 					"The org.sagebionetworks.rest.api.root.url was not set");
+		if(oAuthService == null) {
+			oAuthService = new ServiceBuilder().provider(LinkedInApi.class)
+											   .apiKey("0oq37ippxz8c")
+											   .apiSecret("2JpVsFPqHqT0Xou4")
+											   .callback(urlProvider.getPortalBaseUrl() + "/#Profile:")
+											   .build();
+		}
 	}
 }

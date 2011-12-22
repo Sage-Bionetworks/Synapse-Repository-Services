@@ -8,6 +8,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.sagebionetworks.web.server.servlet.LicenseServiceImpl;
+import org.sagebionetworks.web.server.servlet.LinkedInServiceImpl;
 import org.sagebionetworks.web.server.servlet.NcboSearchService;
 import org.sagebionetworks.web.server.servlet.NodeServiceImpl;
 import org.sagebionetworks.web.server.servlet.ProjectServiceImpl;
@@ -60,6 +61,7 @@ public class PortalServletModule extends ServletModule {
 		bind(NodeServiceImpl.class).in(Singleton.class);
 		serve("/Portal/node").with(NodeServiceImpl.class);
 			
+		
 		// Setup the License service mapping
 		bind(LicenseServiceImpl.class).in(Singleton.class);
 		serve("/Portal/license").with(LicenseServiceImpl.class);
@@ -71,6 +73,10 @@ public class PortalServletModule extends ServletModule {
 		// setup the NCBO servlet
 		bind(NcboSearchService.class).in(Singleton.class);
 		serve("/Portal/ncbo/search").with(NcboSearchService.class);
+		
+		// Setup the LinkedIn service mapping
+		bind(LinkedInServiceImpl.class).in(Singleton.class);
+		serve("/Portal/linkedin").with(LinkedInServiceImpl.class);
 		
 		// The Rest template provider should be a singleton.
 		bind(RestTemplateProviderImpl.class).in(Singleton.class);

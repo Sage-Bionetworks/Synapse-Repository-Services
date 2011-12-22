@@ -107,6 +107,7 @@ public class ProfileViewImpl extends Composite implements ProfileView {
 	    linkedInButton.addSelectionListener(new SelectionListener<ButtonEvent>() {				
 	    	@Override
 	    	public void componentSelected(ButtonEvent ce) {
+	    		linkedInButton.disable();
 	    		presenter.redirectToLinkedIn();
 	    	}
 	    });
@@ -320,8 +321,6 @@ public class ProfileViewImpl extends Composite implements ProfileView {
 	     // form binding so submit button is greyed out until all fields are filled 
 	     final FormButtonBinding binding = new FormButtonBinding(userFormPanel);
 	     binding.addButton(updateUserInfoButton);
-
-	     userFormPanel.addButton(viewProfileButton);
 
 	 }
 	 
