@@ -102,8 +102,7 @@ public class IT575WebClient {
 	public void after() throws Exception{
 		if(null != project) 
 			synapse.deleteEntity(project);
-		if(null != eula)
-			synapse.deleteEntity(eula);
+		// do not try to delete the EULA object
 	}
 
 
@@ -111,14 +110,12 @@ public class IT575WebClient {
 	 * @throws Exception
 	 */
 	@SuppressWarnings("unused")
-	@Ignore
 	@Test
 	public void testLicensedDownloader() throws Exception {		
 		// upload file to S3
 		synapse.uploadLocationableToSynapse(layer, testUploadfile);		
 		layer = synapse.getEntity(layer);		
 
-		
 		String portalEndpoint = StackConfiguration.getPortalEndpoint() + "/";
 		final String sessionToken = synapse.getCurrentSessionToken();	
 		// setup user data & cookies
@@ -158,8 +155,9 @@ public class IT575WebClient {
 				synapseClient, jsonObjectAdapterProvider);
 		reset(mockView);				
 		downloader.configureHeadless(layer, false);		
-		verify(mockView).setDownloadLocations(layer.getLocations(), layer.getMd5());
 		
+		// test 
+		verify(mockView).setDownloadLocations(layer.getLocations(), layer.getMd5());
 	}
 	
 }
