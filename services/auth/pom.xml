@@ -26,13 +26,6 @@
 			<artifactId>lib-securityUtilities</artifactId>
 		</dependency>
 
-		<!-- JSON -->
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>${org.json.version}</version>
-		</dependency>
-
 		<!-- ATOM -->
 		<dependency>
 			<groupId>rome</groupId>
@@ -80,7 +73,6 @@
 		<dependency>
 			<groupId>org.codehaus.jackson</groupId>
 			<artifactId>jackson-mapper-asl</artifactId>
-			<version>${jackson.version}</version>
 		</dependency>
 
 		<!-- Logging dependencies -->
