@@ -11,7 +11,10 @@ import javax.jdo.annotations.Unique;
 
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
-@PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_REVISION, objectIdClass=RevisionId.class)
+/**
+ * Note: Cacheable MUST BE "false".  See: PLFM-852.
+ */
+@PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_REVISION, objectIdClass=RevisionId.class, cacheable="false")
 @Unique(name="UNIQUE_REVISION_LABEL", members={"owner", "label"})
 public class JDORevision {
 		

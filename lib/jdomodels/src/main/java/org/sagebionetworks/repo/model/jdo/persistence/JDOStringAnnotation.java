@@ -25,8 +25,10 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
  * @author bhoff
  * 
  * NOTE: The Indices added are part of the fix for PLFM-770.
+ * 
+ * Note: Cacheable MUST BE "false".  See: PLFM-852.
  */
-@PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_STRING_ANNOTATIONS)
+@PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_STRING_ANNOTATIONS, cacheable="false")
 @Indices({
 	@Index(name="VAL1_ATT2_INDEX", members={"value","attribute"}),
 	@Index(name="VAL1_OWN2_INDEX", members={"value","owner"}),

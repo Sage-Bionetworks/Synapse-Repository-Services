@@ -22,8 +22,9 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
  * 
  * @author bhoff
  * 
+ * Note: Cacheable MUST BE "false".  See: PLFM-852.
  */
-@PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_DOUBLE_ANNOTATIONS)
+@PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_DOUBLE_ANNOTATIONS, cacheable="false")
 public class JDODoubleAnnotation implements JDOAnnotation<Double> {
 	@PrimaryKey
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)

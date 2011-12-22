@@ -14,7 +14,10 @@ import javax.jdo.annotations.Unique;
 
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
-@PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_NODE)
+/**
+ * Note: Cacheable MUST BE "false".  See: PLFM-852.
+ */
+@PersistenceCapable(detachable = "true", table=SqlConstants.TABLE_NODE, cacheable="false")
 // This constraint ensures that names must be unique within a parent.
 @Unique(name=SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME, members={"parent", "name"})
 public class JDONode {
