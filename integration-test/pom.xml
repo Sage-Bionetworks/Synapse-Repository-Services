@@ -324,12 +324,6 @@
 			<artifactId>tool-migration-utility</artifactId>
 		</dependency>
 
-<!--		<dependency>-->
-<!--			<groupId>com.google.develop</groupId>-->
-<!--			<artifactId>gwt-syncproxy</artifactId>-->
-<!--			<version>0.3</version>-->
-<!--		</dependency>-->
-
 		    <dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>org.springframework.web</artifactId>
@@ -354,11 +348,11 @@
 		</dependency>
 
 		<dependency>
-		    <groupId>com.gdevelop</groupId>
-		    <artifactId>SyncProxy</artifactId>
-		    <version>0.3.1.4</version>
+			<groupId>com.google.develop</groupId>
+			<artifactId>gwt-syncproxy</artifactId>
+			<version>0.3.1.sage</version>
 		</dependency>
-
+ 
 	</dependencies>
 
 </project>
