@@ -14,6 +14,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.web.client.SynapseClient;
 import org.sagebionetworks.web.shared.EntityWrapper;
+import org.sagebionetworks.web.shared.SerializableWhitelist;
 import org.sagebionetworks.web.shared.exceptions.ExceptionUtil;
 import org.sagebionetworks.web.shared.exceptions.UnknownErrorException;
 
@@ -148,6 +149,11 @@ public class SynapseClientImpl extends RemoteServiceServlet implements SynapseCl
 		} finally {
 			in.close();
 		}
+	}
+
+	@Override
+	public SerializableWhitelist junk(SerializableWhitelist l) {
+		return null;
 	}
 	
 

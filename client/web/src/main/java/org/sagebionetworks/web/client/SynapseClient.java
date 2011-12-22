@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.client;
 
 import org.sagebionetworks.web.shared.EntityWrapper;
+import org.sagebionetworks.web.shared.SerializableWhitelist;
 
 import com.google.gwt.user.client.rpc.RemoteService;
 import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
@@ -13,5 +14,7 @@ public interface SynapseClient extends RemoteService {
 	//public EntityWrapper createEntity(EntityType type, JSONObjectAdaptor properties);
 	
 	public String getEntityTypeRegistryJSON();
+	
+	public SerializableWhitelist junk(SerializableWhitelist l); 
 	
 }
