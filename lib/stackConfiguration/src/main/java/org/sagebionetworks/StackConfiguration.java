@@ -191,6 +191,11 @@ public class StackConfiguration {
 				getRepositoryDatabaseUsername());
 		map.put("javax.jdo.option.ConnectionPassword",
 				getRepositoryDatabasePassword());
+		// See PLFM-852
+		map.put("datanucleus.cache.level2.type", "none");
+		map.put("datanucleus.cache.query.type", "none");
+		map.put("datanucleus.cache.collections", "false");
+		map.put("datanucleus.cache.level1.type", "weak");
 		return map;
 	}
 

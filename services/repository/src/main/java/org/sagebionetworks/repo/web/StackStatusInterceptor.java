@@ -30,7 +30,6 @@ public class StackStatusInterceptor implements HandlerInterceptor {
 		// If this was not in place, then once a stack was down, there would be no way
 		// to bring it up again using the web-services.
 		String prefix = request.getRequestURI();
-		System.out.println(prefix);
 		if(prefix != null && prefix.startsWith(UrlHelpers.ADMIN)){
 			return true;
 		}

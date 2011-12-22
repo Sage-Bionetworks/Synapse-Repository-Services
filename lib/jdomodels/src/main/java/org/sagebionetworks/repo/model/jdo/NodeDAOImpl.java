@@ -15,9 +15,11 @@ import javax.jdo.JDOException;
 import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
+import javax.jdo.annotations.PersistenceCapable;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.datanucleus.jdo.JDOPersistenceManagerFactory;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -590,7 +592,43 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		String driver = this.jdoTemplate.getPersistenceManagerFactory().getConnectionDriverName();
 		log.info("Driver: "+driver);
 		isHypersonicDB = driver.startsWith("org.hsqldb");
+		org.datanucleus.jdo.JDOPersistenceManagerFactory pmf = (JDOPersistenceManagerFactory) this.jdoTemplate.getPersistenceManagerFactory();
+		// Check the options against the expected
+		Map<String, Object> options = pmf.getOptions();
+		Map<String, String> expectedCacheOptions = new HashMap<String, String>();
+		expectedCacheOptions.put("datanucleus.cache.level2.type", "none");
+		expectedCacheOptions.put("datanucleus.cache.query.type", "none");
+		expectedCacheOptions.put("datanucleus.cache.collections", "false");
+		expectedCacheOptions.put("datanucleus.cache.level1.type", "weak");
+		for(String key: expectedCacheOptions.keySet()){
+			String expectedValue = expectedCacheOptions.get(key);
+			Object actualOption = options.get(key);
+			if(!expectedValue.equals(actualOption)){
+				throw new IllegalStateException("All JDO cache options must be off! See PLFM-852. Expected :"+key+" to have value: "+expectedValue+" but was: "+actualOption);
+			}
+		}
+		
+		// Validate that all caching is off.
+
+		// Starting with the JDO cache on will kill the application: See PLFM-852
+		Class[] jdoClassesThatMustNotBeCachable = new Class[]{
+				JDONode.class,
+				JDORevision.class,
+				JDOReference.class,
+				JDOStringAnnotation.class,
+				JDODoubleAnnotation.class,
+				JDOLongAnnotation.class,
+				JDODateAnnotation.class,
+		};
+		// Valiadate that all of these are not cachable.
+		for(Class toTest: jdoClassesThatMustNotBeCachable){
+			PersistenceCapable pcAnnotation = (PersistenceCapable) toTest.getAnnotation(PersistenceCapable.class);
+			if(!"false".equals(pcAnnotation.cacheable())){
+				throw new IllegalStateException("JDO class: "+toTest.getName()+" must not be cachable!  See PLFM-852.");
+			}
+		}
 	}
+	
 	
 	/**
 	 * This must occur in its own transaction.

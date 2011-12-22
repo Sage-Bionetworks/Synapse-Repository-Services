@@ -13,8 +13,10 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 /**
  * @author deflaux
  * 
+ * Note: Cacheable MUST BE "false".  See: PLFM-852.
+ * 
  */
-@PersistenceCapable(detachable = "true", table = SqlConstants.TABLE_REFERENCE, objectIdClass = ReferenceId.class)
+@PersistenceCapable(detachable = "true", table = SqlConstants.TABLE_REFERENCE, objectIdClass = ReferenceId.class, cacheable="false")
 public class JDOReference {
 
 	@PrimaryKey
